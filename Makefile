@@ -1,5 +1,5 @@
 #Define our building directory for all output files!
-BUILD_DIR = ../../projects_build/x86EMU
+BUILD_DIR = ../../psp-projects_build/x86EMU
 
 TARGET = eboot
 
