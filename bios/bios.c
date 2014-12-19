@@ -1,0 +1,523 @@
+#include "headers/types.h" //Basic types etc.
+#include "headers/bios/io.h" //Basic I/O support for BIOS!
+#include "headers/support/crc32.h" //CRC32 support!
+#include "headers/mmu/mmu.h" //CRC32 support!
+#include "headers/bios/bios.h" //BIOS basic type support etc!
+#include "headers/bios/boot.h" //For booting disks!
+#include "headers/cpu/cpu.h" //For some constants concerning CPU!
+#include "headers/emu/gpu/gpu.h" //Need GPU comp!
+#include "headers/support/zalloc.h" //Memory allocation: freemem function!
+#include "headers/support/log.h" //Logging support!
+#include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
+
+//Are we disabled?
+#define __HW_DISABLED 0
+
+BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
+int showchecksumerrors = 0; //Show checksum errors?
+
+//One Megabyte of Memory!
+#define MBMEMORY 1024768
+//Block size of memory!
+#define MEMORY_BLOCKSIZE 16
+//What to leave for functions! 1MB for normal operations + 4MB for BMP allocations and screen buffers!
+#define FREEMEMALLOC 5
+
+//What file to use for saving the BIOS!
+#define BIOS_FILE "BIOS.DAT"
+//Default values for new BIOS settings:
+#define DEFAULT_BOOT_ORDER 0
+#define DEFAULT_CPU CPU_80186
+#define DEFAULT_DEBUGMODE DEBUGMODE_TEST
+
+void forceBIOSSave()
+{
+	int ok;
+	ok = BIOS_SaveData(); //Save the BIOS, ignoring the result!
+}
+
+void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIOS?)
+{
+	if (__HW_DISABLED) return; //Ignore updates to memory!
+	debugrow("Detecting MMU memory size to use...");
+	
+	uint_32 freememory = freemem(); //The free memory available!
+	int memoryblocks = SAFEDIV((freememory-(FREEMEMALLOC*MBMEMORY)),MEMORY_BLOCKSIZE); //Calculate # of free memory size and prepare for block size!
+	if (memoryblocks<0) memoryblocks = 0; //No memory left?
+	BIOS_Settings.memory = memoryblocks * MEMORY_BLOCKSIZE; //Whole blocks of memory only!
+	if (BIOS_Settings.memory<1024768) //Not enough memory?
+	{
+		raiseError("BIOS","Ran out of enough memory to use! Free memory: ",BIOS_Settings.memory); //Show error&quit: not enough memory to work with!
+		sleep(); //Wait forever!
+	}
+	//dolog("BIOS","Detected memory: %i bytes",BIOS_Settings.memory);
+
+	if (tosave)
+	{
+		forceBIOSSave(); //Force BIOS save!
+	}
+}
+
+
+
+void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
+{
+	if (showchecksumerrors)
+	{
+		GPU_EMU_printscreen(-1,-1,"BIOS Checksum Error. "); //Checksum error.
+	}
+	
+	uint_32 oldmem = BIOS_Settings.memory; //Memory installed!
+	memset(&BIOS_Settings,0,sizeof(BIOS_Settings)); //Reset to empty!
+	
+	if (!file_exists(BIOS_FILE)) //New file?
+	{
+		BIOS_Settings.firstrun = 1; //We're the first run!
+	}
+	
+	BIOS_Settings.memory = oldmem; //Keep this intact!
+//Now load the defaults.
+
+	bzero(BIOS_Settings.floppy0,sizeof(BIOS_Settings.floppy0));
+	BIOS_Settings.floppy0_readonly = 0; //Not read-only!
+	bzero(BIOS_Settings.floppy1,sizeof(BIOS_Settings.floppy1));
+	BIOS_Settings.floppy1_readonly = 0; //Not read-only!
+	bzero(BIOS_Settings.hdd0,sizeof(BIOS_Settings.hdd0));
+	BIOS_Settings.hdd0_readonly = 0; //Not read-only!
+	bzero(BIOS_Settings.hdd1,sizeof(BIOS_Settings.hdd1));
+	BIOS_Settings.hdd1_readonly = 0; //Not read-only!
+
+	bzero(BIOS_Settings.cdrom0,sizeof(BIOS_Settings.cdrom0));
+	bzero(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1));
+//CD-ROM always read-only!
+
+	BIOS_Settings.bootorder = DEFAULT_BOOT_ORDER; //Default boot order!
+	BIOS_Settings.emulated_CPU = DEFAULT_CPU; //Which CPU to be emulated?
+
+	BIOS_Settings.debugmode = DEFAULT_DEBUGMODE; //Default debug mode!
+
+	bzero((char *)&BIOS_Settings.input_settings,sizeof(BIOS_Settings.input_settings)); //Default: no input override!
+	BIOS_Settings.VGA_AllowDirectPlot = 1; //Default: automatic 1:1 mapping!
+	BIOS_Settings.keepaspectratio = 0; //Don't keep aspect ratio by default!
+	
+	
+	BIOS_Settings.version = BIOS_VERSION; //Current version loaded!
+	keyboard_loadDefaults(); //Load the defaults for the keyboard!
+	
+	if (tosave) //Save settings?
+	{
+		forceBIOSSave(); //Save the BIOS!
+	}
+	if (showchecksumerrors)
+	{
+		GPU_EMU_printscreen(-1,-1,"Defaults loaded.\r\n"); //Show that the defaults are loaded.
+	}
+
+}
+
+int telleof(FILE *f) //Are we @eof?
+{
+	int curpos = 0; //Cur pos!
+	int endpos = 0; //End pos!
+	int result = 0; //Result!
+	curpos = ftell(f); //Cur position!
+	fseek(f,0,SEEK_END); //Goto EOF!
+	endpos = ftell(f); //End position!
+
+	fseek(f,curpos,SEEK_SET); //Return!
+	result = (curpos==endpos); //@EOF?
+	return result; //Give the result!
+}
+
+uint_32 BIOS_getChecksum() //Get the BIOS checksum!
+{
+	return CRC32((char *)&BIOS_Settings.data,sizeof(BIOS_Settings)); //Give the checksum of the loaded settings!
+}
+
+
+void BIOS_LoadData() //Load BIOS settings!
+{
+	if (__HW_DISABLED) return; //Abort!
+	FILE *f;
+	word bytesread;
+	uint_32 CheckSum = 0; //Read checksum!
+
+	f = fopen(BIOS_FILE,"rb"); //Open BIOS file!
+
+	if (!f) //Not loaded?
+	{
+		BIOS_LoadDefaults(1); //Load the defaults, save!
+		return; //We've loaded the defaults!
+	}
+
+	bytesread = fread(&CheckSum,1,sizeof(CheckSum),f); //Read Checksum!
+	if (bytesread!=sizeof(CheckSum) || feof(f)) //Not read?
+	{
+		fclose(f); //Close!
+		BIOS_LoadDefaults(1); //Load the defaults, save!
+		return; //We've loaded the defaults!
+	}
+
+	bytesread = fread(&BIOS_Settings,1,sizeof(BIOS_Settings),f); //Read settings!
+
+	if (bytesread!=sizeof(BIOS_Settings) || !telleof(f)) //Not read all we need and valid?
+	{
+		fclose(f); //Close!
+		BIOS_LoadDefaults(1); //Load the defaults, save!
+		return; //We've loaded the defaults!
+	}
+
+	fclose(f); //Close!
+
+//Verify the checksum!
+
+	if (CheckSum!=BIOS_getChecksum()) //Checksum fault?
+	{
+		fclose(f); //Close!
+		BIOS_LoadDefaults(1); //Load the defaults, save!
+		return; //We've loaded the defaults!
+	}
+//BIOS has been loaded.
+}
+
+
+
+
+
+int BIOS_SaveData() //Save BIOS settings!
+{
+	if (__HW_DISABLED) return 1; //Abort!
+	uint_32 CheckSum = BIOS_getChecksum(); //CRC is over all but checksum!
+
+	word byteswritten;
+	FILE *f;
+	f = fopen(BIOS_FILE,"wb"); //Open for saving!
+	if (!f) //Not able to open?
+	{
+		return 0; //Failed to write!
+	}
+	
+	byteswritten = fwrite(&CheckSum,1,sizeof(CheckSum),f); //Write checksum for error checking!
+	if (byteswritten!=sizeof(CheckSum)) //Failed to save?
+	{
+		fclose(f); //Close!
+		return 0; //Failed to write!
+	}
+
+	byteswritten = fwrite(&BIOS_Settings,1,sizeof(BIOS_Settings),f); //Write data!
+	if (byteswritten!=sizeof(BIOS_Settings)) //Failed to save?
+	{
+		fclose(f); //Close!
+		return 0; //Failed to write!
+	}
+
+	fclose(f); //Close!
+	return 1; //BIOS Written & saved successfully!
+}
+
+uint_32 BIOS_GetMMUSize() //For MMU!
+{
+	if (__HW_DISABLED) return MBMEMORY; //Abort with default value (1MB memory)!
+	return BIOS_Settings.memory; //Use all available memory always!
+}
+
+void BIOS_ValidateDisks() //Validates all disks and unmounts/remounts if needed!
+{
+	if (__HW_DISABLED) return; //Abort!
+	//Mount all devices!
+	iofloppy0(BIOS_Settings.floppy0,0,BIOS_Settings.floppy0_readonly,0);
+	iofloppy1(BIOS_Settings.floppy1,0,BIOS_Settings.floppy1_readonly,0);
+	iohdd0(BIOS_Settings.hdd0,0,BIOS_Settings.hdd0_readonly,0);
+	iohdd1(BIOS_Settings.hdd1,0,BIOS_Settings.hdd1_readonly,0);
+	iocdrom0(BIOS_Settings.cdrom0,0,1,0);
+	iocdrom1(BIOS_Settings.cdrom1,0,1,0);
+
+	byte buffer[512]; //Little buffer for checking the files!
+	int bioschanged = 0; //BIOS changed?
+	bioschanged = 0; //Reset if the BIOS is changed!
+
+	//dolog("IO","Checking FLOPPY A (%s)...",BIOS_Settings.floppy0);
+	if ((!readdata(FLOPPY0,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.floppy0,"")!=0)) //No disk mounted but listed?
+	{
+		bzero(BIOS_Settings.floppy0,sizeof(BIOS_Settings.floppy0)); //Unmount!
+		BIOS_Settings.floppy0_readonly = 0; //Reset readonly flag!
+		//dolog("BIOS","Floppy A invalidated!");
+		bioschanged = 1; //BIOS changed!
+	}
+	//dolog("IO","Checking FLOPPY B (%s)...",BIOS_Settings.floppy1);
+	if ((!readdata(FLOPPY1,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.floppy1,"")!=0)) //No disk mounted but listed?
+	{
+		bzero(BIOS_Settings.floppy1,sizeof(BIOS_Settings.floppy1)); //Unmount!
+		BIOS_Settings.floppy1_readonly = 0; //Reset readonly flag!
+		//dolog("BIOS","Floppy B invalidated!");
+		bioschanged = 1; //BIOS changed!
+	}
+	
+	//dolog("IO","Checking First HDD (%s)...",BIOS_Settings.hdd0);
+	if ((!readdata(HDD0,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.hdd0,"")!=0)) //No disk mounted but listed?
+	{
+		bzero(BIOS_Settings.hdd0,sizeof(BIOS_Settings.hdd0)); //Unmount!
+		BIOS_Settings.hdd0_readonly = 0; //Reset readonly flag!
+		//dolog("BIOS","First HDD invalidated!");
+		bioschanged = 1; //BIOS changed!
+	}
+	
+	//dolog("IO","Checking Second HDD (%s)...",BIOS_Settings.hdd1);
+	if ((!readdata(HDD1,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.hdd1,"")!=0)) //No disk mounted but listed?
+	{
+		bzero(BIOS_Settings.hdd1,sizeof(BIOS_Settings.hdd1)); //Unmount!
+		BIOS_Settings.hdd1_readonly = 0; //Reset readonly flag!
+		//dolog("BIOS","Second HDD invalidated!");
+		bioschanged = 1; //BIOS changed!
+	}
+	//dolog("IO","Checking First CD-ROM (%s)...",BIOS_Settings.cdrom0);
+	if ((!readdata(CDROM0,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.cdrom0,"")!=0)) //No disk mounted but listed?
+	{
+		bzero(BIOS_Settings.cdrom0,sizeof(BIOS_Settings.cdrom0)); //Unmount!
+		bioschanged = 1; //BIOS changed!
+		//dolog("BIOS","First CD-ROM invalidated!");
+	}
+	
+	//dolog("IO","Checking Second CD-ROM (%s)...",BIOS_Settings.cdrom1);
+	if ((!readdata(CDROM1,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.cdrom1,"")!=0)) //No disk mounted but listed?
+	{
+		bzero(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1)); //Unmount!
+		bioschanged = 1; //BIOS changed!
+		//dolog("BIOS","Second CD-ROM invalidated!");
+	}
+
+	//Unmount/remount!
+	iofloppy0(BIOS_Settings.floppy0,0,BIOS_Settings.floppy0_readonly,0);
+	iofloppy1(BIOS_Settings.floppy1,0,BIOS_Settings.floppy1_readonly,0);
+	iohdd0(BIOS_Settings.hdd0,0,BIOS_Settings.hdd0_readonly,0);
+	iohdd1(BIOS_Settings.hdd1,0,BIOS_Settings.hdd1_readonly,0);
+	iocdrom0(BIOS_Settings.cdrom0,0,1,0); //CDROM always read-only!
+	iocdrom1(BIOS_Settings.cdrom1,0,1,0); //CDROM always read-only!
+
+	if (bioschanged)
+	{
+		forceBIOSSave(); //Force saving!
+	}
+}
+
+
+void BIOS_LoadIO(int showchecksumerrors) //Loads basic I/O drives from BIOS!
+{
+	if (__HW_DISABLED) return; //Abort!
+	ioInit(); //Reset I/O system!
+	showchecksumerrors = showchecksumerrors; //Allow checksum errors to be shown!
+	BIOS_LoadData();//Load BIOS options!
+	BIOS_ValidateDisks(); //Validate all disks!
+	GPU_keepAspectRatio(BIOS_Settings.keepaspectratio); //Keep the aspect ratio?
+	showchecksumerrors = 0; //Don't Allow checksum errors to be shown!
+}
+
+void BIOS_ShowBIOS() //Shows mounted drives etc!
+{
+	if (__HW_DISABLED) return; //Abort!
+	showchecksumerrors = 0; //No checksum errors to show!
+	BIOS_LoadData();
+	BIOS_ValidateDisks(); //Validate all disks before continuing!
+
+	printmsg(0xF,"Memory installed: ");
+	printmsg(0xE,"%i blocks (%iKB / %iMB)\r\n",SAFEDIV(BIOS_GetMMUSize(),MEMORY_BLOCKSIZE),(SAFEDIV(BIOS_GetMMUSize(),1024)),(BIOS_GetMMUSize()/MBMEMORY));
+
+	printmsg(0xF,"\r\n"); //A bit of space between memory and disks!
+	int numdrives = 0;
+	if (strcmp(BIOS_Settings.hdd0,"")!=0) //Have HDD0?
+	{
+		printmsg(0xF,"Primary master: %s",BIOS_Settings.hdd0);
+		if (BIOS_Settings.hdd0_readonly) //Read-only?
+		{
+			printmsg(0x4," <R>");
+		}
+		printmsg(0xF,"\r\n"); //Newline!
+		++numdrives;
+	}
+	if (strcmp(BIOS_Settings.hdd1,"")!=0) //Have HDD1?
+	{
+		printmsg(0xF,"Primary slave: %s",BIOS_Settings.hdd1);
+		if (BIOS_Settings.hdd1_readonly) //Read-only?
+		{
+			printmsg(0x4," <R>");
+		}
+		printmsg(0xF,"\r\n"); //Newline!
+		++numdrives;
+	}
+	if (strcmp(BIOS_Settings.cdrom0,"")!=0) //Have CDROM0?
+	{
+		printmsg(0xF,"Secondary master: %s\r\n",BIOS_Settings.cdrom0);
+		++numdrives;
+	}
+	if (strcmp(BIOS_Settings.cdrom1,"")!=0) //Have CDROM1?
+	{
+		printmsg(0xF,"Secondary slave: %s\r\n",BIOS_Settings.cdrom1);
+		++numdrives;
+	}
+
+	if (((strcmp(BIOS_Settings.floppy0,"")!=0) || (strcmp(BIOS_Settings.floppy1,"")!=0)) && numdrives>0) //Have drives and adding floppy?
+	{
+		printmsg(0xF,"\r\n"); //Insert empty row between floppy and normal disks!
+	}
+
+	if (strcmp(BIOS_Settings.floppy0,"")!=0) //Have FLOPPY0?
+	{
+		printmsg(0xF,"Floppy disk detected: %s",BIOS_Settings.floppy0);
+		if (BIOS_Settings.floppy0_readonly) //Read-only?
+		{
+			printmsg(0x4," <R>");
+		}
+		printmsg(0xF,"\r\n"); //Newline!
+		++numdrives;
+	}
+
+	if (strcmp(BIOS_Settings.floppy1,"")!=0) //Have FLOPPY1?
+	{
+		printmsg(0xF,"Floppy disk detected: %s",BIOS_Settings.floppy0);
+		if (BIOS_Settings.floppy1_readonly) //Read-only?
+		{
+			printmsg(0x4," <R>");
+		}
+		printmsg(0xF,"\r\n"); //Newline!
+		++numdrives;
+	}
+
+	if ((BIOS_Settings.emulated_CPU!=CPU_8086) && (BIOS_Settings.emulated_CPU!=CPU_80186)) //Invalid CPU detected?
+	{
+		BIOS_Settings.emulated_CPU = CPU_8086; //Load default CPU!
+		forceBIOSSave(); //Force the BIOS to be saved!
+	}
+
+	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
+	{
+		printmsg(0xF,"Installed CPU: Intel 8086\r\n"); //Emulated CPU!
+	}
+	else if (BIOS_Settings.emulated_CPU==CPU_80186) //80186?
+	{
+		printmsg(0xF,"Installed CPU: Intel 80186\r\n"); //Emulated CPU!
+	}
+	else //Unknown CPU?
+	{
+		printmsg(0x4,"Installed CPU: None\r\n"); //Emulated CPU!
+	}
+
+	if (numdrives==0) //No drives?
+	{
+		printmsg(0x4,"Warning: no drives have been detected!\r\nPlease enter BIOS and specify some disks.\r\n");
+	}
+}
+
+//Defines for booting!
+#define BOOT_FLOPPY 0
+#define BOOT_HDD 1
+#define BOOT_CDROM 2
+#define BOOT_NONE 3
+
+//Boot order for boot sequence!
+byte BOOT_ORDER[15][3] =
+{
+//First full categories (3 active)
+	{BOOT_FLOPPY, BOOT_CDROM, BOOT_HDD}, //Floppy, Cdrom, Hdd?
+	{BOOT_FLOPPY, BOOT_HDD, BOOT_CDROM}, //Floppy, Hdd, Cdrom?
+	{BOOT_CDROM, BOOT_FLOPPY, BOOT_HDD}, //Cdrom, Floppy, Hdd?
+	{BOOT_CDROM, BOOT_HDD, BOOT_FLOPPY}, //Cdrom, Hdd, Floppy?
+	{BOOT_HDD, BOOT_FLOPPY, BOOT_CDROM}, //Hdd, Floppy, Cdrom?
+	{BOOT_HDD, BOOT_CDROM, BOOT_FLOPPY}, //Hdd, Cdrom, Floppy?
+//Now advanced categories (2 active)!
+	{BOOT_FLOPPY, BOOT_CDROM, BOOT_NONE}, //Floppy, Cdrom?
+	{BOOT_FLOPPY, BOOT_HDD, BOOT_NONE}, //Floppy, Hdd?
+	{BOOT_CDROM, BOOT_FLOPPY, BOOT_NONE}, //Cdrom, Floppy?
+	{BOOT_CDROM, BOOT_HDD, BOOT_NONE}, //Cdrom, Hdd?
+	{BOOT_HDD, BOOT_FLOPPY, BOOT_NONE}, //Hdd, Floppy?
+	{BOOT_HDD, BOOT_CDROM, BOOT_NONE}, //Hdd, Cdrom?
+//Finally single categories (1 active)
+	{BOOT_FLOPPY, BOOT_NONE, BOOT_NONE}, //Floppy only?
+	{BOOT_CDROM, BOOT_NONE, BOOT_NONE}, //CDROM only?
+	{BOOT_HDD, BOOT_NONE, BOOT_NONE} //HDD only?
+};
+
+//Boot order (string representation)
+char BOOT_ORDER_STRING[15][30] =
+{
+//Full categories (3 active)
+	"FLOPPY, CDROM, HDD",
+	"FLOPPY, HDD, CDROM",
+	"CDROM, FLOPPY, HDD",
+	"CDROM, HDD, FLOPPY",
+	"HDD, FLOPPY, CDROM",
+	"HDD, CDROM, FLOPPY",
+//Advanced categories (2 active)
+	"FLOPPY, CDROM",
+	"FLOPPY, HDD",
+	"CDROM, FLOPPY",
+	"CDROM, HDD",
+	"HDD, FLOPPY",
+	"HDD, CDROM",
+//Finally single categories (1 active)
+	"FLOPPY ONLY",
+	"CDROM ONLY",
+	"HDD ONLY",
+};
+
+//Try to boot a category (BOOT_FLOPPY, BOOT_HDD, BOOT_CDROM)
+
+int try_boot(byte category)
+{
+	if (__HW_DISABLED) return 0; //Abort!
+	switch (category)
+	{
+	case BOOT_FLOPPY: //Boot FLOPPY?
+		if (CPU_boot(FLOPPY0)) //Try floppy0!
+		{
+			return 1; //OK: booted!
+		}
+		else
+		{
+			return CPU_boot(FLOPPY1); //Try floppy1!
+		}
+	case BOOT_HDD: //Boot HDD?
+		if (CPU_boot(HDD0)) //Try hdd0!
+		{
+			return 1; //OK: booted!
+		}
+		else
+		{
+			return CPU_boot(HDD1); //Try hdd1!
+		}
+	case BOOT_CDROM: //Boot CDROM?
+		if (CPU_boot(CDROM0)) //Try cdrom0!
+		{
+			return 1; //OK: booted!
+		}
+		else
+		{
+			return CPU_boot(CDROM1); //Try cdrom1!
+		}
+	case BOOT_NONE: //No device?
+		break; //Don't boot!
+	default: //Default?
+		break; //Don't boot!
+	}
+	return 0; //Not booted!
+}
+
+/*
+
+boot_system: boots using BIOS boot order!
+returns: TRUE on booted, FALSE on no bootable disk found.
+
+*/
+
+int boot_system()
+{
+	if (__HW_DISABLED) return 0; //Abort!
+	int c;
+	for (c=0; c<3; c++) //Try 3 boot devices!
+	{
+		if (try_boot(BOOT_ORDER[BIOS_Settings.bootorder][c])) //Try boot using currently specified boot order!
+		{
+			return 1; //Booted!
+		}
+	}
+	return 0; //Not booted at all!
+}

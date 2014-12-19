@@ -1,0 +1,363 @@
+#include "headers/types.h" //Basic types!
+#include "headers/emu/threads.h" //Basic threads!
+#include "headers/support/log.h" //Logging!
+#include "headers/emu/gpu/gpu_text.h" //Text support!
+
+#define MAX_THREAD 50
+//Maximum ammount of threads:
+
+#define THREADSTATUS_ALLOCATED 0
+#define THREADSTATUS_CREATEN 1
+#define THREADSTATUS_RUNNING 2
+
+
+//To debug threads?
+#define DEBUG_THREADS 0
+//Allow running threads/callbacks?
+#define CALLBACK_ENABLED 1
+
+//Stuff for easy thread functions.
+
+//Threads don't need stacks, but give it some to be sure!
+#define THREAD_STACKSIZE 0x10000
+
+ThreadParams threadpool[MAX_THREAD]; //Thread pool!
+
+
+//Thread allocation/deallocation!
+
+static int getthreadpoolindex(SceUID thid) //Get index of thread in thread pool!
+{
+	int i;
+	for (i=0;i<NUMITEMS(threadpool);i++) //Process all known indexes!
+	{
+		if (threadpool[i].used && threadpool[i].threadID==thid) //Used and found?
+		{
+			return i; //Give the index!
+		}
+	}
+	return -1; //Not found!
+}
+
+static ThreadParams_p allocateThread() //Allocate a new thread to run (waits if none to allocate)!
+{
+	uint_32 curindex;
+	newallocate: //Try (again)!
+	for (curindex=0;curindex<NUMITEMS(threadpool);curindex++) //Find an unused entry!
+	{
+		if (!threadpool[curindex].used) //Not used?
+		{
+			//dolog("threads","Allocating thread entry...");
+			threadpool[curindex].used = 1; //Allocated!
+			return &threadpool[curindex]; //Give the newly allocated thread params!
+			//Failed to allocate, passthrough!
+		}
+	}
+	delay(1); //Wait a bit for some space: allow other threads to!
+	goto newallocate; //Try again till we work!
+}
+
+static void releasePool(SceUID threadid) //Release a pooled thread if it exists!
+{
+	int index;
+	if ((index = getthreadpoolindex(threadid))!=-1) //Gotten index?
+	{
+		threadpool[index].used = 0; //Unused!
+	}
+}
+
+static void activeThread(SceUID threadid)
+{
+	int index; //The index to be used!
+	//dolog("threads","activeThread...");
+	if ((index = getthreadpoolindex(threadid))!=-1) //Gotten index?
+	{
+		threadpool[index].status = THREADSTATUS_RUNNING; //Running!
+	}
+	//dolog("threads","activeThread_RET!");
+}
+
+static void deleteThread(SceUID thid)
+{
+	if (sceKernelDeleteThread(thid)>=0) //Deleted?
+	{
+		//dolog("threads","Deletethread: freethread...");
+		releasePool(thid); //Release from pool if available!
+	}
+}
+
+void terminateThread(SceUID thid) //Terminate the thread!
+{
+	//dolog("threads","terminateThread: Terminating thread: %x",thid);
+	releasePool(thid); //Release from pool if available!
+	sceKernelTerminateDeleteThread(thid); //Exit and delete myself!
+}
+
+static void runcallback(SceUID thid)
+{
+	//dolog("threads","Runcallback...");
+	//Now run the requested thread!
+	if (thid && CALLBACK_ENABLED) //Gotten params?
+	{
+		int index; //The index to be used!
+		//dolog("threads","activeThread...");
+		if ((index = getthreadpoolindex(thid))!=-1) //Gotten index?
+		{
+			if (threadpool[index].callback) //Found the callback?
+			{
+				//dolog("threads","RunRealCallback...");
+				threadpool[index].callback(); //Execute the real callback!
+			}
+		}
+	}
+	//dolog("threads","Callback RET.");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Running/stop etc. function for the thread!
+
+
+int ThreadsRunning() //Are there any threads running or ready to run?
+{
+	int i;
+	int numthreads = 0; //Number of running threads?
+	for (i=0;i<NUMITEMS(threadpool);i++) //Check all threads!
+	{
+		if (threadpool[i].used) //Allocated?
+		{
+			if (threadpool[i].status>=THREADSTATUS_CREATEN) //Createn or running?
+			{
+				++numthreads; //We have some createn or running threads!
+			}
+		}
+	}
+	return numthreads; //How many threads are running?
+}
+
+int minthreadsrunning() //Minimum ammount of threads running when nothing's there!
+{
+	return DEBUG_THREADS; //1 or 0 minimal!
+}
+
+/*
+
+threadhandler: The actual thread running over all other threads.
+
+*/
+
+int threadhandler(SceSize args, void *params)
+{
+	SceUID thid = sceKernelGetThreadId(); //The thread ID!
+	activeThread(thid); //Mark us as running!
+	runcallback(thid); //Run the callback!
+	terminateThread(thid); //Terminate ourselves!
+	return 0; //Shouldn't be here?
+}
+
+
+void termThreads() //Terminate all threads but our own!
+{
+	//dolog("threads","termThreads...");
+	int i;
+	SceUID my_thid = sceKernelGetThreadId(); //My own thread ID!
+	for (i=0;i<NUMITEMS(threadpool);i++) //Process all of our threads!
+	{
+		if (threadpool[i].used && (threadpool[i].threadID!=my_thid)) //Used and not ourselves?
+		{
+			switch (threadpool[i].status) //What status?
+			{
+				case THREADSTATUS_ALLOCATED: //Allocated?
+					//dolog("threads","termThreads: Allocated!");
+					threadpool[i].used = 0; //Deallocate it!
+					break; //Just allocated, nothing more!
+				case THREADSTATUS_CREATEN: //Createn?
+					//dolog("threads","termThreads: Createn!");
+					deleteThread(threadpool[i].threadID); //Delete it!
+					break; //Removed!
+				case THREADSTATUS_RUNNING: //Running?
+					//dolog("threads","termThreads: Running!");
+					terminateThread(threadpool[i].threadID); //Terminate it!
+					break;
+			}
+		}
+	}
+}
+
+extern PSP_TEXTSURFACE *frameratesurface;
+
+void debug_threads()
+{
+	char thread_name[256];
+	bzero(thread_name,sizeof(thread_name)); //Init!
+	while (1)
+	{
+		byte numthreads = 0; //Number of installed threads running!
+		int i,i2;
+		for (i=0;i<NUMITEMS(threadpool);i++)
+		{
+			if (threadpool[i].used) //Allocated?
+			{
+				if (threadpool[i].status>=THREADSTATUS_CREATEN) //Created or running?
+				{
+					++numthreads; //Count ammount of threads!
+					GPU_textgotoxy(frameratesurface,0,30-NUMITEMS(threadpool)+numthreads); //Goto the debug row start!
+					sprintf(thread_name,"Active thread: %s",threadpool[i].name); //Get data string!
+					GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x00,0xFF,0x00),thread_name);
+					for (i2=strlen(thread_name);i2<=50;i2++)
+					{
+						GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x00,0xFF,0x00)," "); //Filler to 50 chars!
+					} 
+				}
+			}
+		}
+		GPU_textgotoxy(frameratesurface,0,30);
+		GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x00,0xFF,0x00),"Number of threads: %i",numthreads); //Debug the ammount of threads used!
+		delay(100000); //Wait 100ms!
+	}
+}
+
+
+void initThreads() //Initialise&reset thread subsystem!
+{
+	//dolog("threads","initThreads...");
+	//dolog("threads","initThreads: termThreads...");
+	termThreads(); //Make sure all running threads are stopped!
+	//dolog("threads","debugThreads?...");
+	memset(threadpool,0,sizeof(threadpool)); //Clear thread pool!
+	if (DEBUG_THREADS) startThread(&debug_threads,"Thread Debugger",DEFAULT_PRIORITY); //Plain debug threads!
+	//dolog("threads","initThreads: RET...");
+}
+
+
+static void threadCreaten(ThreadParams_p params, SceUID threadID, char *name)
+{
+	//dolog("threads","threadCreaten...");
+	if (params) //Gotten params?
+	{
+	//dolog("threads","threadCreaten set...");
+	params->status = THREADSTATUS_CREATEN; //Createn!
+	params->threadID = threadID; //The thread ID!
+	bzero(params->name,sizeof(params->name));
+	strcpy(params->name,name); //Save the name for usage!
+	}
+	//dolog("threads","threadCreaten: RET...");
+}
+
+byte threadRunning(ThreadParams_p thread, char *name)
+{
+	if (thread) //OK?
+	{
+		if (thread->used) //Are we used?
+		{
+			if (!strcmp(thread->name,name)) //Same name verification?
+			{
+				switch (thread->status) //What status?
+				{
+					case THREADSTATUS_CREATEN: //Createn and ready to run?
+					case THREADSTATUS_RUNNING: //Running?
+						return 1; //Active/ready to run!
+						break;
+					default: //Unknown/not ready/started!
+						break; //Invalid thread!
+				}
+			}
+		}
+	}
+	return 0; //Not running!
+}
+
+ThreadParams_p startThread(Handler thefunc, char *name, int priority) //Start a thread!
+{
+	//dolog("threads","startThread (%s)...",name);
+	if (!thefunc || thefunc==NULL) //No func?
+	{
+		//dolog("threads","startThread: NULLfunc...");
+		raiseError("thread manager","NULL thread: %s",name); //Show the thread as being NULL!
+		return NULL; //Don't start: can't start no function!
+	}
+
+
+	//We create our handler in dynamic memory, because we need to keep it in the threadhandler!
+	
+	//dolog("threads","startThread: allocThread...");
+	//First, allocate a thread position!
+	ThreadParams_p params = allocateThread(); //Allocate a thread for us, wait for any to come free in the meanwhile!
+//Next, start the timer function!
+	SceUID thid; //The thread ID to allocate!
+	
+	//dolog("threads","startThread: createThread...");
+	docreatethread: //Try to create a thread!
+	thid = sceKernelCreateThread(name, threadhandler, priority, THREAD_STACKSIZE, PSP_THREAD_ATTR_USER|PSP_THREAD_ATTR_NO_FILLSTACK|PSP_THREAD_ATTR_CLEAR_STACK, NULL); //Try to create the thread!
+	if (!thid) //Failed to create?
+	{
+		delay(1); //Wait a bit!
+		goto docreatethread; //Try again!
+	}
+
+	//dolog("threads","startThread: threadCreaten...");
+	threadCreaten(params,thid,name); //We've been createn!
+	
+	//dolog("threads","startThread: checking params...");
+	if (params) //Valid params?
+	{
+		//dolog("threads","startThread: Checking status...");
+		if (params->status) //We're ready to go?
+		{
+			//dolog("threads","startThread: Ready! Setting callback...");
+			//Set our parameters!
+			params->callback = thefunc; //The function to run!
+			
+			//dolog("threads","startThread: Ready! StartThread...");
+			//We have a thread we can use now!
+			sceKernelStartThread(thid, 0, 0); //Start thread, if possible! Data is ready to be processed!
+			return params; //Give the createn thread!
+		}
+		else //Remove the thread: we're done with it!
+		{
+			//dolog("threads","startThread: Status wrong. Calling deleteThread...");
+			deleteThread(thid); //Cleanup the parameters!
+		}
+	}
+	//dolog("threads","startThread: RET...");
+	return NULL; //Failed to allocate!
+}
+
+void waitThreadEnd(ThreadParams_p thread) //Wait for this thread to end!
+{
+	if (thread) //Valid thread?
+	{
+		if (thread->used) //Allocated?
+		{
+			if (thread->status>=THREADSTATUS_CREATEN) //Createn or running?
+			{
+				while (thread->status==THREADSTATUS_CREATEN) //Not running yet?
+				{
+					delay(10); //Wait for a bit for the thread to start!
+				}
+				sceKernelWaitThreadEnd(thread->threadID,NULL); //Wait for it to end, wait infinitely!
+			}
+		}
+	}
+	//Done with running the thread!
+}
+
+void quitThread() //Quit the current thread!
+{
+	SceUID thid = sceKernelGetThreadId(); //Get the current thread ID!
+	terminateThread(thid); //Terminate ourselves!
+}
+
+void termThread(){quitThread();} //Alias!

@@ -1,0 +1,323 @@
+#define IS_MMU
+#include "headers/mmu/mmu.h"
+#include "headers/cpu/cpu.h"
+#include "headers/bios/bios.h"
+#include "headers/mmu/memory_adressing.h" //Memory assist functions!
+#include "headers/mmu/paging.h" //Paging functions!
+#include "headers/emu/gpu/gpu.h" //GPU support!
+#include "headers/support/zalloc.h" //Memory allocation!
+#include "headers/support/log.h" //Logging support!
+#include "headers/cpu/80286/protection.h" //Protection support!
+#include "headers/mmu/mmuhandler.h" //MMU Handler support!
+
+//Are we disabled?
+#define __HW_DISABLED 0
+
+MMU_type MMU; //The MMU itself!
+
+extern byte EMU_RUNNING; //Emulator is running?
+
+extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS!
+
+//Pointer support (real mode only)!
+
+void *MMU_directptr(uint_32 address, uint_32 size) //Full ptr to real MMU memory!
+{
+	if (address<=MMU.size && memprotect(&MMU.memory[address],size,"MMU_Memory")) //Within our limits of flat memory and not paged?
+	{
+		return &MMU.memory[address]; //Give the memory's start!
+	}
+
+	MMU.invaddr = 1; //Invalid address!
+	return NULL; //Not found!	
+}
+
+//MMU_ptr: 80(1)86 only!
+void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint_32 size) //Gives direct memory pointer!
+{
+	if (MMU.memory==NULL) //None?
+	{
+		return NULL; //NULL: no memory alligned!
+	}
+
+	if (EMULATED_CPU<=CPU_80186) //-80186 wraps offset arround?
+	{
+		offset = SAFEMOD(offset,65536); //Wrap arround!
+	}
+	else
+	{
+		return NULL; //80286+ isn't supported here!
+	}
+	uint_32 realaddr;
+	realaddr = (segment<<4)+offset; //Our real address!
+	realaddr = BITOFF(realaddr,0x100000); //Wrap arround, disable A20!	
+	return MMU_directptr(realaddr,size); //Direct pointer!
+}
+
+uint_32 user_memory_used = 0; //Memory used by the software!
+byte force_memoryredetect = 0; //Force memory redetect?
+
+void resetMMU()
+{
+	if (__HW_DISABLED) return; //Abort!
+	doneMMU(); //We're doing a full reset!
+	resetmmu:
+	//dolog("MMU","Initialising MMU...");
+	MMU.size = BIOS_GetMMUSize(); //Take over predefined: don't try to detect!
+	//dolog("zalloc","Allocating MMU memory...");
+	MMU.memory = (byte *)zalloc(MMU.size,"MMU_Memory"); //Allocate the memory available for the segments
+	MMU.invaddr = 0; //Default: MMU address OK!
+	user_memory_used = 0; //Default: no memory used yet!
+	if (MMU.memory!=NULL && !force_memoryredetect) //Allocated and not forcing redetect?
+	{
+		MMU_wraparround(1); //Default: wrap arround!
+	}
+	else //Not allocated?
+	{
+		doneMMU(); //Free up memory if allocated, to make sure we're not allocated anymore on the next try!
+		autoDetectMemorySize(1); //Redetect memory size!
+		force_memoryredetect = 0; //Not forcing redetect anymore: we've been redetected!
+		goto resetmmu; //Try again!
+	}
+	if (!MMU.size) //No size?
+	{
+		raiseError("MMU","No memory available to use!");
+	}
+}
+
+void doneMMU()
+{
+	if (__HW_DISABLED) return; //Abort!
+	if (MMU.memory) //Got memory allocated?
+	{
+		freez((void **)&MMU.memory,MMU.size,"doneMMU_Memory"); //Release memory!
+		MMU.size = 0; //Reset: none allocated!
+	}
+	MMU_resetHandlers(NULL); //Reset all linked handlers!
+}
+
+
+uint_32 MEMsize() //Total size of memory in use?
+{
+	if (MMU.memory!=NULL) //Have memory?
+	{
+		return MMU.size; //Give number of bytes!
+	}
+	else
+	{
+		return 0; //Error!
+	}
+}
+
+//Direct memory access (for the entire emulator)
+byte MMU_directrb(uint_32 realaddress) //Direct read from real memory (with real data direct)!
+{
+	if (realaddress>MMU.size) //Overflow?
+	{
+		MMU.invaddr = 1; //Signal invalid address!
+		return 0xFF; //Nothing there!
+	}
+	return MMU.memory[realaddress]; //Get data, wrap arround!
+}
+
+byte LOG_MMU_WRITES = 0; //Log MMU writes?
+
+void MMU_directwb(uint_32 realaddress, byte value) //Direct write to real memory (with real data direct)!
+{
+	if (realaddress>MMU.size) //Overflow?
+	{
+		MMU.invaddr = 1; //Signal invalid address!
+		return; //Abort: can't write here!
+	}
+	if (LOG_MMU_WRITES) //Data debugging?
+	{
+		dolog("MMU","MMU: Writing to real %08X=%02X",realaddress,value);
+	}
+	MMU.memory[realaddress] = value; //Set data, full memory protection!
+	if (realaddress>user_memory_used) //More written than present in memory (first write to addr)?
+	{
+		user_memory_used = realaddress; //Update max memory used!
+	}
+}
+
+//Used by the DMA controller only (or the paging system for faster reads):
+word MMU_directrw(uint_32 realaddress) //Direct read from real memory (with real data direct)!
+{
+	return (MMU_directrb(realaddress+1)<<8)|MMU_directrb(realaddress); //Get data, wrap arround!
+}
+
+void MMU_directww(uint_32 realaddress, word value) //Direct write to real memory (with real data direct)!
+{
+	MMU_directwb(realaddress,value&0xFF);; //Low!
+	MMU_directwb(realaddress+1,(value>>8)&0xFF); //High!
+}
+
+//Used by paging only!
+uint_32 MMU_directrdw(uint_32 realaddress)
+{
+	return (MMU_directrw(realaddress+2)<<16)|MMU_directrw(realaddress); //Get data, wrap arround!	
+}
+void MMU_directwdw(uint_32 realaddress, uint_32 value)
+{
+	MMU_directww(realaddress,value&0xFF); //Low!
+	MMU_directww(realaddress+2,(value>>8)&0xFF); //High!
+}
+
+//Direct memory access with Memory mapped I/O (for the CPU).
+byte MMU_directrb_realaddr(uint_32 realaddress) //Read without segment/offset translation&protection (from system/interrupt)!
+{
+		byte data;
+		if (MMU_IO_readhandler(realaddress,&data)) //Normal memory address?
+		{
+			data = MMU_directrb(realaddress); //Read the data from memory (and port I/O)!		
+		}
+		return data;
+}
+
+void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segment/offset translation&protection (from system/interrupt)!
+{
+	if (MMU_IO_writehandler(realaddress,val)) //Normal memory access?
+	{
+		MMU_directwb(realaddress,val); //Set data in real memory!
+	}
+}
+
+byte writeword = 0; //Hi-end word written?
+
+//Address translation routine.
+uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) //Real adress?
+{
+	//word originalsegment = segment;
+	//uint_32 originaloffset = offset; //Save!
+	if (EMULATED_CPU==CPU_8086 || (EMULATED_CPU==CPU_80186 && !(offset==0x10000 && wordop))) //-80186 wraps offset arround 64kB? 80186 allows 1 byte more in word operations!
+	{
+		offset &= 0xFFFF; //Wrap arround!
+	}
+	writeword = 0; //Reset word-write flag for checking next bytes!
+
+	uint_32 realaddress;
+	realaddress = CPU_MMU_start(segdesc,segment)+offset; //Real adress!
+
+	if (MMU.wraparround) //-80186 wraps offset arround?
+	{
+		realaddress = BITOFF(realaddress,0x100000); //Wrap arround, disable A20!
+	}
+	//We work!
+	//dolog("MMU","\nAddress translation: %04X:%08X=%08X",originalsegment,originaloffset,realaddress); //Log the converted address!
+	return realaddress; //Give real adress!
+}
+
+//CPU/EMU simple memory access routine.
+byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	if ((MMU.memory==NULL) || (MMU.size==0)) //No mem?
+	{
+		//dolog("MMU","R:No memory present!");
+		MMU.invaddr = 1; //Invalid adress!
+		return 0; //Out of bounds!
+	}
+
+	if (CPU_MMU_checklimit(segdesc,segment,offset,1|(opcode<<1))) //Disallowed?
+	{
+		//dolog("MMU","R:Limit break:%04X:%08X!",segment,offset);
+		MMU.invaddr = 1; //Invalid address!
+		return 0; //Not found.
+	}
+
+	uint_32 realaddress;
+	realaddress = MMU_realaddr(segdesc,segment,offset,writeword); //Real adress!
+	
+	return MMU_directrb_realaddr(realaddress); //Read from MMU/hardware!
+}
+
+word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress!
+{
+	return (MMU_rb(segdesc,segment,offset,opcode)|(MMU_rb(segdesc,segment,offset+1,opcode)<<8)); //Get adress word!
+}
+
+uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress!
+{
+	return (MMU_rw(segdesc,segment,offset,opcode)|(MMU_rw(segdesc,segment,offset+2,opcode)<<16)); //Get adress dword!
+}
+
+void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
+{
+	if (MMU.invaddr) return; //Abort!
+	if ((MMU.memory==NULL) || !MMU.size) //No mem?
+	{
+		//dolog("MMU","W:No memory present!");
+		return; //Out of bounds!
+	}
+	
+	if (CPU.faultraised && EMU_RUNNING) //Fault has been raised while emulator is running?
+	{
+		return; //Disable writes to memory when a fault has been raised!
+	}
+
+	if (CPU_MMU_checklimit(segdesc,segment,offset,0)) //Disallowed?
+	{
+		MMU.invaddr = 1; //Invalid address signaling!
+		return; //Not found.
+	}
+	
+	if (LOG_MMU_WRITES) //Log MMU writes?
+	{
+		dolog("MMU","MMU: Write to %04X:%08X=%02X",segment,offset,val); //Log our written value!
+	}
+
+	uint_32 realaddress;
+	realaddress = MMU_realaddr(segdesc,segment,offset,writeword); //Real adress!
+
+	MMU_directwb_realaddr(realaddress,val); //Set data!
+}
+
+void MMU_ww(sword segdesc, word segment, uint_32 offset, word val) //Set adress (word)!
+{
+	MMU_wb(segdesc,segment,offset,val&0xFF); //Low first!
+	writeword = 1; //We're writing a 2nd byte word, for emulating the 80186 0x10000 overflow bug.
+	MMU_wb(segdesc,segment,offset+1,(val>>8)&0xFF); //High last!
+}
+
+void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val) //Set adress (dword)!
+{
+	MMU_ww(segdesc,segment,offset,val&0xFFFF); //Low first!
+	MMU_ww(segdesc,segment,offset+2,(val>>16)&0xFFFF); //High last!
+}
+
+//Extra routines for the emulator.
+
+//Dump memory
+void MMU_dumpmemory(char *filename) //Dump the memory to a file!
+{
+	FILE *f;
+	f = fopen(filename,"wb"); //Open file!
+	fwrite(MMU.memory,1,user_memory_used,f); //Write memory to file!
+	fclose(f); //Close file!
+}
+
+//Have memory available?
+byte hasmemory()
+{
+	if (MMU.memory==NULL) //No memory?
+	{
+		return 0; //No memory!
+	}
+	if (MMU.size==0) //No memory?
+	{
+		return 0; //No memory!
+	}
+	return 1; //Have memory!
+}
+
+//Memory has gone wrong in direct access?
+byte MMU_invaddr()
+{
+	return MMU.invaddr; //Given an invalid adress?
+}
+
+//A20 bit enable/disable (80286+).
+void MMU_wraparround(byte dowrap) //To wrap arround 1MB limit?
+{
+	//dolog("MMU","Set A20 bit disabled: %i",dowrap); //To wrap arround?
+	MMU.wraparround = (dowrap>0);
+}
