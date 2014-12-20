@@ -39,6 +39,10 @@
 #include "headers/hardware/8237A.h" //DMA Controller!
 #include "headers/hardware/midi/midi.h" //MIDI/MPU support!
 
+#include "headers/bios/biosrom.h" //BIOS ROM support!
+#include "headers/emu/threads.h" //Multithreading support!
+#include "headers/hardware/pcspeaker.h" //PC Speakers support!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To debug VGA at MAX speed?
@@ -59,7 +63,7 @@ extern PIC i8259; //PIC processor!
 int emu_started = 0; //Emulator started (initEMU called)?
 
 //To debug init/doneemu?
-#define DEBUG_EMU 1
+#define DEBUG_EMU 0
 
 /*
 
@@ -336,8 +340,6 @@ void initEMUreset() //Simple reset emulator!
 
 static byte coreHandler()
 {
-	uint_32 curaddr;
-	curaddr = MMU_realaddr(-1,CPU.registers->CS,CPU.registers->IP,0); //Real address!
 	if ((romsize!=0) && (CPU.halt)) //Debug HLT?
 	{
 		MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!

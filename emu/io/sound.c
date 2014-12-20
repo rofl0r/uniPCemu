@@ -9,7 +9,7 @@
 #include <SDL/SDL.h>
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 //How many samples to process at once? Originally 2048; 64=Optimum
 #define SAMPLESIZE 4096
 //Maximum samplerate in Hertz (200KHz)
@@ -408,6 +408,7 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 			dolog("soundservice","Adding channel %s at %f samples/s, buffer every %i samples, Stereo: %i",name,samplerate,samples,stereo);
 			#endif
 			soundchannels[n].soundhandler = handler; //Set handler!
+			soundchannels[n].fillbuffer = &fillbuffer_new; //Our fillbuffer call to start with!
 			soundchannels[n].extradata = extradata; //Extra data to be sent!
 			soundchannels[n].sound.numsamples = samples; //Ammount of samples to buffer at a time!
 			memset(&soundchannels[n].name,0,sizeof(soundchannels[n].name)); //Init name!
@@ -441,8 +442,6 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 			
 			soundchannels[n].sound.length = samplesize(soundchannels[n].sound.numsamples,method); //Ammount of samples in the buffer, stereo quality (even if mono used)!
 			soundchannels[n].sound.samples = zalloc(soundchannels[n].sound.length,"SW_Samples");
-			
-			soundchannels[n].fillbuffer = &fillbuffer_new; //Our fillbuffer call to start with!
 			
 			#ifdef DEBUG_SOUNDALLOC
 			dolog("soundservice","Channel allocated and ready to run: handler: %p, extra data: %p, samplerate: %f, sample buffer size: %i, stereo: %i",soundchannels[n].soundhandler,soundchannels[n].extradata,soundchannels[n].samplerate,soundchannels[n].sound.numsamples,soundchannels[n].stereo);
@@ -620,7 +619,7 @@ static uint_32 fillbuffer_existing(playing_p currentchannel, uint_32 *relsample,
 	{
 		#ifdef DEBUG_SOUNDBUFFER
 		buffering = 1; //We're buffering!
-		dolog("soundservice","Buffering %i @ %i/%i samples; extra data: %p; name: %s",n,*relsample,C_BUFFERSIZE(currentchannel),currentchannel->extradata,currentchannel->name);
+		dolog("soundservice","Buffering @ %i/%i samples; extra data: %p; name: %s",*relsample,C_BUFFERSIZE(currentchannel),currentchannel->extradata,currentchannel->name);
 		#endif
 		//Buffer and update buffer position!
 		currentchannel->bufferflags = currentchannel->soundhandler(currentchannel->sound.samples,C_BUFFERSIZE(currentchannel),C_STEREO(currentchannel),currentchannel->extradata); // Request next sample for this channel, also give our channel extra information!
@@ -645,13 +644,16 @@ static uint_32 fillbuffer_new(playing_p currentchannel, uint_32 *relsample, uint
 	*relsample = 0; //Reset relative sample!
 	#ifdef DEBUG_SOUNDBUFFER
 	dolog("soundservice","Initialising sound buffer...");
-	dolog("soundservice","Buffering %i @ 0/%i samples; extra data: %p; name: %s",n,C_BUFFERSIZE(currentchannel),currentchannel->extradata,currentchannel->name);
+	dolog("soundservice","Buffering @ 0/%i samples; extra data: %p; name: %s",C_BUFFERSIZE(currentchannel),currentchannel->extradata,currentchannel->name);
 	#endif
 	//Buffer and update buffer position!
 	currentchannel->bufferflags = currentchannel->soundhandler(currentchannel->sound.samples,C_BUFFERSIZE(currentchannel),C_STEREO(currentchannel),currentchannel->extradata); // Request next sample for this channel, also give our channel extra information!
 	currentchannel->fillbuffer = &fillbuffer_existing; //We're initialised, so call existing buffers from now on!
 
 	processbufferflags(currentchannel); //Process the buffer flags!
+	#ifdef DEBUG_SOUNDBUFFER
+	dolog("soundservice","Buffer ready. Mixing...");
+	#endif
 	return 0; //We start at the beginning!
 }
 
@@ -696,10 +698,11 @@ static OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int
 	C_SAMPLEPOS(currentchannel) = currentpos; //Store the current position for next usage!
 }
 
+int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!
+
 static OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio channels to buffer!
 {
 	//Variables first
-	int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!
 	//Current data numbers
 	uint_32 currentsample;
 	uint_32 channelsleft = soundchannels_used; //The ammount of channels to mix!
@@ -708,7 +711,7 @@ static OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 	int_32 *firstactivesample;
 	int_32 *activesample;
 	if (!length) return; //Abort without length!
-	memset(&mixedsamples,0,sizeof(mixedsamples)); //Init mixed samples, stereo!
+	memset(&mixedsamples[0],0,sizeof(mixedsamples)); //Init mixed samples, stereo!
 	if (channelsleft)
 	{
 		activechannel = &soundchannels[0]; //Lookup the first channel!
@@ -736,7 +739,7 @@ static OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 		}
 	} //Got channels?
 
-	 //Process all generated samples to output!
+	//Process all generated samples to output!
 	currentsample = 0; //Init sample!
 	int_32 result_l, result_r; //Sample buffer!
 	activesample = &mixedsamples[0]; //Initialise the mixed samples position!

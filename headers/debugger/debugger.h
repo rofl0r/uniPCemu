@@ -34,8 +34,8 @@ void debugger_beforeCPU(); //Action before the CPU changes it's registers!
 void debugger_setcommand(char *text, ...); //Set current command (Opcode only!)
 void debugger_setprefix(char *text); //Set prefix (CPU only!)
 
-void modrm_debugger8(MODRM_PARAMS *params, int whichregister1, int whichregister2); //8-bit handler!
-void modrm_debugger16(MODRM_PARAMS *params, int whichregister1, int whichregister2); //16-bit handler!
+void modrm_debugger8(MODRM_PARAMS *params, byte whichregister1, byte whichregister2); //8-bit handler!
+void modrm_debugger16(MODRM_PARAMS *params, byte whichregister1, byte whichregister2); //16-bit handler!
 
 void debugger_screen(); //On-screen dump of registers etc.
 

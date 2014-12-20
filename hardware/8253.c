@@ -188,7 +188,6 @@ void out8253(word portnum, byte value)
 
 void init8253() {
 	if (__HW_DISABLED) return; //Abort!
-	memset (&i8253, 0, sizeof (i8253) );
 	register_PORTOUT(0x40,&out8253);
 	register_PORTOUT(0x41,&out8253);
 	register_PORTOUT(0x42,&out8253);

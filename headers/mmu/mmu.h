@@ -46,18 +46,18 @@ extern MMU_type MMU; //Extern call!
 #define MEM_FACTOR 16
 //Factor is 16 at 8086, 16/4K at 386.
 
-void *MMU_ptr(int segdesc, word segment, uint_32 offset, int forreading, uint_32 size); //Gives direct memory pointer!
+void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint_32 size); //Gives direct memory pointer!
 void resetMMU(); //Initialises memory!
 void doneMMU(); //Releases memory for closing emulator etc.
 uint_32 MEMsize(); //Total size of memory in use?
-byte MMU_rb(int segdesc, word segment, uint_32 offset, int opcode); //Get adress!
-word MMU_rw(int segdesc, word segment, uint_32 offset, int opcode); //Get adress (word)!
-uint_32 MMU_rdw(int segdesc, word segment, uint_32 offset, int opcode); //Get adress (dword)!
-void MMU_wb(int segdesc, word segment, uint_32 offset, byte val); //Get adress!
-void MMU_ww(int segdesc, word segment, uint_32 offset, word val); //Get adress (word)!
-void MMU_wdw(int segdesc, word segment, uint_32 offset, uint_32 val); //Get adress (dword)!
-int hasmemory(); //Have memory?
-int MMU_invaddr(); //Last MMU call has invalid adressing?
+byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode); //Get adress!
+word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode); //Get adress (word)!
+uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode); //Get adress (dword)!
+void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val); //Get adress!
+void MMU_ww(sword segdesc, word segment, uint_32 offset, word val); //Get adress (word)!
+void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val); //Get adress (dword)!
+byte hasmemory(); //Have memory?
+byte MMU_invaddr(); //Last MMU call has invalid adressing?
 
 byte MMU_directrb(uint_32 realadress); //Direct read from memory (with real data direct)!
 void MMU_directwb(uint_32 realadress, byte value); //Direct write to memory (with real data direct)!
@@ -73,5 +73,5 @@ void MMU_directwdw(uint_32 realaddress, uint_32 value);
 
 void MMU_dumpmemory(char *filename); //Dump the memory to a file!
 //uint_32 MMU_realaddr(int segdesc, word segment, uint_32 offset); //Real adress in real (direct) memory?
-void MMU_wraparround(int dowrap); //To wrap arround 1/3/5/... MB limit?
+void MMU_wraparround(byte dowrap); //To wrap arround 1/3/5/... MB limit?
 #endif

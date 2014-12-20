@@ -50,7 +50,7 @@ word emu_x, emu_y; //EMU coordinates!
 
 void EMU_clearscreen()
 {
-	GPU_textclearscreen(BIOS_Surface); //Clear the screen!
+	if (BIOS_Surface) GPU_textclearscreen(BIOS_Surface); //Clear the screen!
 }
 
 void EMU_textcolor(byte color)
@@ -66,7 +66,7 @@ void EMU_gotoxy(word x, word y)
 	CPU.registers->DH = y;
 	BIOS_int10(); //Call interrupt!
 	*/
-	GPU_textgotoxy(BIOS_Surface,x,y); //Goto xy!
+	if (BIOS_Surface) GPU_textgotoxy(BIOS_Surface,x,y); //Goto xy!
 }
 
 void EMU_getxy(word *x, word *y)
@@ -98,8 +98,10 @@ void GPU_EMU_printscreen(int x, int y, char *text, ...) //Direct text output (fr
 
 	GPU_textprintf(BIOS_Surface,getemucol16(GPU.GPU_EMU_color&0xF),getemucol16((GPU.GPU_EMU_color>>4)&0xF),"%s",buffer); //Show our output using the full font color!
 
-	emu_x = BIOS_Surface->x;
-	emu_y = BIOS_Surface->y; //Update coordinates for our continuing!
-	
+	if (BIOS_Surface) //Allowed to update?
+	{
+		emu_x = BIOS_Surface->x;
+		emu_y = BIOS_Surface->y; //Update coordinates for our continuing!
+	}
 	va_end (args); //Destroy list!
 }

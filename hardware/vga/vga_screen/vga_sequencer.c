@@ -78,23 +78,22 @@ OPTINLINE void recalc_pixelsrendered(SEQ_DATA *Sequencer)
 	Sequencer->pixelstorender = SAFEDIVUINT32(totaltime_audio_avg,SAFEDIV(Sequencer->totalpixeltime,Sequencer->totalpixels));
 }
 
-/*OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data for the sequencer!
+OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data for the sequencer!
 {
 	//First, all our variables!
-	word originalscanline; //Original scanline!
-	word scanline; //Active scanline on-screen!
+	//word originalscanline; //Original scanline!
+	//word scanline; //Active scanline on-screen!
 	uint_32 bytepanning;
 	byte allow_pixelshiftcount;
-	word pixelshift;
-	word horizontalstart;
-	uint_32 pixelmove;
-	uint_32 rowstart;
+	//word pixelshift;
+	//word horizontalstart;
+	//uint_32 pixelmove;
+	//uint_32 rowstart;
 	
 	SEQ_DATA *Sequencer;
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
 
-	SEQ_PRECALCS *precalcs; //Precalcs for the current row!
-	for (originalscanline=0;originalscanline<0x400;originalscanline++) //Process all original scanlines!
+	/*for (originalscanline=0;originalscanline<0x400;originalscanline++) //Process all original scanlines!
 	{
 		precalcs = &Sequencer->precalcs[originalscanline]; //Our current precalcs to calculate!
 		
@@ -108,7 +107,7 @@ OPTINLINE void recalc_pixelsrendered(SEQ_DATA *Sequencer)
 		}
 		
 		precalcs->precalcs_scanline = scanline; //Save the new scanline!
-		
+		*/
 		//Determine panning
 		bytepanning = VGA->registers->CRTControllerRegisters.REGISTERS.PRESETROWSCANREGISTER.BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
 
@@ -117,7 +116,7 @@ OPTINLINE void recalc_pixelsrendered(SEQ_DATA *Sequencer)
 		reset_startmap = 0; //Default: don't reset!
 		
 		allow_pixelshiftcount = 1; //Allow by default!
-		if (originalscanline>=VGA->precalcs.topwindowstart) //Top window reached?
+		if (Sequencer->Scanline>=VGA->precalcs.topwindowstart) //Top window reached?
 		{
 			reset_startmap = 1; //Enforce start of map to 0 for the top window!
 			if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PixelPanningMode)
@@ -127,20 +126,21 @@ OPTINLINE void recalc_pixelsrendered(SEQ_DATA *Sequencer)
 			}
 		}
 
-		precalcs->startmap = VGA->precalcs.startaddress[reset_startmap]; //What start address to use?
+		Sequencer->startmap = VGA->precalcs.startaddress[reset_startmap]; //What start address to use?
 		
 		//Determine byte panning and pixel shift count!
-		precalcs->bytepanning = bytepanning; //Pass!
+		Sequencer->bytepanning = bytepanning; //Pass!
 
-		if (allow_pixelshiftcount) //Allowing pixel shift count?
+		/*if (allow_pixelshiftcount) //Allowing pixel shift count?
 		{
 			pixelshift = getHorizontalPixelPanning(VGA); //Get horizontal pixel panning!
 		}
 		else
 		{
 			pixelshift = 0; //Default: no pixel shift!	
-		}
+		}*/
 
+		/*
 		//Horizontal start
 		horizontalstart = getHorizontalStart(VGA); //For each calculation!
 
@@ -165,8 +165,8 @@ OPTINLINE void recalc_pixelsrendered(SEQ_DATA *Sequencer)
 		{
 			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 0; //VBlank not taking place anymore!
 		}
-	}
-}*/
+	}*/
+}
 
 /*OPTINLINE void calcScanlineData(VGA_Type *VGA)
 {
@@ -337,6 +337,10 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//CRT
 	++VGA->CRTC.y; //Next row on-screen!
 	
+	//Sequencer rendering data
+	Sequencer->tempx = 0; //Reset the rendering position from the framebuffer!
+	VGA_Sequencer_calcScanlineData(VGA);
+	
 	//Stop running!
 	Sequencer_Running = 0; //Not running anymore!
 }
@@ -364,8 +368,9 @@ void render_nextPixel(SEQ_DATA *Sequencer, VGA_Type *VGA)
 OPTINLINE void VGA_Blank(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	drawPixel(VGA->CRTC.x,VGA->CRTC.y,RGB(0x00,0x00,0x00)); //Draw blank!
-	render_nextPixel(Sequencer,VGA);
 }
+
+typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo); //Render an active display pixel!
 
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -373,21 +378,26 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	if (blanking) //Are we blanking?
 	{
 		VGA_Blank(Sequencer,VGA); //Blank redirect!
-		return;
 	}
-	
-	/*
-	SEQ_DATA *Sequencer = GETSEQUENCER(VGA); //Our current sequencer!
-	VGA_AttributeInfo *Attributeinfo_ptr = &Sequencer->Attributeinfo; //Kept pointer to the attribute info!
-	Sequencer_pixelhandler pixelhandler[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Handlers for pixels!
-	*/
-
-	uint_32 color;
-	color = flashing?RGB(0xFF,0x00,0x00):RGB(0x00,0xFF,0x00); //Flash in two colors to detect refresh!
-
-	//Active display!
-	drawPixel(VGA->CRTC.x,VGA->CRTC.y,color); //Green display area for now!
+	else
+	{
+		//Render our active display here! Start with text mode!
+		
+		VGA_AttributeInfo attributeinfo; //Our collected attribute info!
+		VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
+		
+		activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
+		
+		VGA_AttributeController(&attributeinfo,VGA,Sequencer->tempx,VGA->CRTC.x,VGA->CRTC.y); //Apply the attribute through the attribute controller!
+		
+		//Active display!
+		attributeinfo.attribute = 0; //Black!
+		drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,attributeinfo.attribute)); //Render through the DAC!
+	}
 	render_nextPixel(Sequencer,VGA);
+	
+	//All our rendering info that needs to be updated!
+	++Sequencer->tempx; //Next horizontal pixel!
 }
 
 //Overscan handler!
@@ -396,11 +406,13 @@ void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	if (blanking) //Are we blanking?
 	{
 		VGA_Blank(Sequencer,VGA); //Blank redirect!
-		return;
 	}
-	
-	//Overscan!
-	drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,VGA->precalcs.overscancolor)); //Draw overscan!
+	else
+	{
+		//Overscan!
+		drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,VGA->precalcs.overscancolor)); //Draw overscan!
+		//drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_OVERSCANCOLOR); //Overscan color!
+	}
 	render_nextPixel(Sequencer,VGA);
 }
 
@@ -536,151 +548,6 @@ void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 	SEQ_DATA *Sequencer;
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
 
-	/*	#ifdef DEBUG_PIXEL_SPEED
-			TicksHolder ticks; //All possible ticks holders!
-		#else
-		#ifdef FREE_PIXELTIME
-			TicksHolder ticks; //All possible ticks holders!
-		#endif
-		#endif
-	*/
-	
-	//Render the line!
-	/*uint_32 pixelsrendered; //Ammount of horizontal pixels rendered atm!
-	pixelsrendered = 0; //Init!
-
-	for (;;) //Process next pixel!
-	{
-		#ifdef DEBUG_PIXEL_SPEED
-			startHiresCounting(&ticks); //Init ticks taken!
-		#else
-		#ifdef FREE_PIXELTIME
-			startHiresCounting(&ticks); //Init ticks taken!			
-		#endif
-		#endif
-
-		if (!VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable) //Drawing (enabled)?
-		{
-			#ifdef DEBUG_PIXEL_STAGE_SPEED
-				TicksHolder ticks2;
-			#endif
-			//Prepare our info!
-			if (!memprotect(Sequencer->currentPrecalcs,sizeof(SEQ_PRECALCS),NULL)) //Not ready to go?
-			{
-				calcScanlineData(VGA); //Refresh data when needed!
-			}
-			CalcScanlinePixel(VGA); //Calculate pixel!
-
-			if (memprotect(Sequencer->currentPrecalcs,sizeof(*Sequencer->currentPrecalcs),NULL)) //Valid precalcs?
-			{
-				//if (is_activedisplay(VGA,VGA->CurrentScanLineStart,Sequencer->x)) //Active display?
-				//{
-					//We're processing 1 (character sub-)pixel!
-					/
-					
-					Simplified list:
-					VGA
-					Sequencer_Attributeinfo_ptr
-					Sequencer->tempx
-					Sequencer->rowscancounter
-					Sequencer->x
-					Sequencer->Scanline
-					Sequencer->bytepanning
-					
-					/
-
-					//Pixel(s)
-					#ifdef DEBUG_PIXEL_STAGE_SPEED
-						startHiresCounting(&ticks2); //Init ticks taken!
-					#endif
-					pixelhandler[VGA->precalcs.graphicsmode](VGA,Attributeinfo_ptr,Sequencer->tempx,Sequencer->currentPrecalcs->rowscancounter,Sequencer->x,Sequencer->currentPrecalcs->Scanline,Sequencer->currentPrecalcs->bytepanning); //Retrieve the pixel from VRAM!
-					#ifdef DEBUG_PIXEL_STAGE_SPEED
-						Sequencer->lastpixeltimepixel = getmspassed(&ticks2);
-						Sequencer->totalpixeltimepixel += Sequencer->lastpixeltimepixel; //Count total ticks!
-						Sequencer->totalpixelspixel += VGA->LinesToRender; //Count total pixels!
-					#endif
-					
-					//Attribute
-					#ifdef DEBUG_PIXEL_STAGE_SPEED
-						startHiresCounting(&ticks2); //Init ticks taken!
-					#endif
-					VGA_AttributeController(Attributeinfo_ptr, VGA, Sequencer->x,Sequencer->tempx,Sequencer->currentPrecalcs->rowscancounter); //Apply attribute to generate DAC Index! Used to be: VGA,Scanline,x,&characterinfo
-					#ifdef DEBUG_PIXEL_STAGE_SPEED
-						Sequencer->lastpixeltimeattribute = getmspassed(&ticks2);
-						Sequencer->totalpixeltimeattribute += Sequencer->lastpixeltimeattribute; //Count total ticks!
-						Sequencer->totalpixelsattribute += VGA->LinesToRender; //Count total pixels!
-					#endif
-				/}
-				else if (is_overscan(VGA,VGA->CurrentScanLineStart,Sequencer->x)) //Overscan?
-				{
-					byte y2=VGA->precalcs.renderedlines; //Total ammount to process!
-					byte overscancolor;
-					overscancolor = VGA->precalcs.overscancolor; //Load once only!
-					for (;;) //Process all overscan!
-					{
-						--y2; //Decrease first!
-						VGA->CurrentScanLine[y2] = overscancolor; //Overscan! Already DAC Index!
-						if (!y2) goto finishdac; //Break out if nothing is left!
-					}
-				}/
-
-				finishdac: //Finish with the DAC always!
-				//DAC
-				#ifdef DEBUG_PIXEL_STAGE_SPEED
-					startHiresCounting(&ticks2); //Init ticks taken!
-				#endif
-				VGA_DAC(VGA,Sequencer->x,currentscreenbottom); //DAC final processing! Used to be: VGA,x
-				#ifdef DEBUG_PIXEL_STAGE_SPEED
-					Sequencer->lastpixeltimedac = getmspassed(&ticks2); //Save last!
-					Sequencer->totalpixeltimedac += Sequencer->lastpixeltimedac; //Count total ticks!
-					Sequencer->totalpixelsdac += VGA->LinesToRender; //Count total pixels!
-				#endif
-			}
-
-			//Total time!
-			#ifdef DEBUG_PIXEL_SPEED
-				Sequencer->totalpixeltime += getmspassed(&ticks); //Count total ticks!
-				Sequencer->totalpixels += VGA->LinesToRender; //Count total pixels!
-			#else
-				#ifdef FREE_PIXELTIME
-					Sequencer->totalpixeltime += getmspassed(&ticks); //Count total ticks!
-					Sequencer->totalpixels += VGA->LinesToRender; //Count total pixels!
-				#endif
-			#endif
-		} //Valid precalcs?
-		#ifdef FREE_PIXELTIME //Freeing up pixel time?
-			if (++Sequencer->pixelsrendered>=Sequencer->pixelstorender) //Overflow timing?
-			{
-				delay(totaltime_audio_avg); //Give other threads some time!
-				getmspassed(&ticks); //Update to current time, skipped!!
-				Sequencer->pixelsrendered = 0; //Reset!
-				recalc_pixelsrendered(VGA); //Recalc next portion!
-			}
-		#endif
-
-		if (++Sequencer->x>=GPU.xres) //End of line reached?
-		{
-			VGA_Sequencer_newline(VGA,currentscreenbottom); //Process newline!
-		}
-
-		//Update the time for the current pixel with newline(s)!
-		#ifdef DEBUG_PIXEL_SPEED
-			Sequencer->totalpixeltime += getmspassed(&ticks); //Count total ticks!
-		#else
-			#ifdef FREE_PIXELTIME
-				Sequencer->totalpixeltime += getmspassed(&ticks); //Count total ticks!
-			#endif
-		#endif
-		
-		if (++pixelsrendered>=GPU.xres) //Enough rendered (one line at a time)?
-		{
-			#ifdef LOG_PIXEL_SPEED
-				dolog("timing","AVG Pixel rendering time: %ius",SAFEDIV(Sequencer->totalpixeltime,Sequencer->totalpixels)); //Log it!	
-			#endif
-			return; //Stop processing!
-		}
-	}*/ //Process next!
-	
 	//All possible states!
 	if (!displaysignalhandler[0]) //Nothing set?
 	{

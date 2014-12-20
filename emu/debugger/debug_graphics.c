@@ -6,7 +6,7 @@
 #include "headers/emu/emu_vga_bios.h" //VGA misc functionality for INT10!
 
 //To make a screen capture of all of the debug screens active?
-#define LOG_VGA_SCREEN_CAPTURE 0
+#define LOG_VGA_SCREEN_CAPTURE 1
 //For text-mode debugging!
 #define VIDEOMODE_TEXTMODE 0x02
 //To log the first rendered line after putting pixels?
@@ -123,9 +123,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		CPU.registers->BH = 0x0; //Set overscan color!
 		CPU.registers->BL = 0x4; //Blue overscan!
 		BIOS_int10(); //Set overscan!
+		VGA_LOGCRTCSTATUS(); //Log our full status!
+		VGA_DUMPDAC(); //Dump the active DAC!
 		debugTextModeScreenCapture(); //Make a screen capture!
 		sleep(); //Wait forever to debug!
-		VGA_DUMPDAC(); //Dump the active DAC!
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Direct VRAM access 40x25-0...");
 

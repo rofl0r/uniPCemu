@@ -323,41 +323,7 @@ int handle_keyboardpeek(byte *result) //Peek at the keyboard!
 	return peekfifobuffer(Keyboard.buffer,result); //Peek at the buffer!
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void BIOS_writeKBDCMD(byte cmd)
-{
-	if (__HW_DISABLED) return; //Abort!
-	write_8042(0x60,cmd); //Write the command directly to the controller!
-}
-
-
-
-
-
-//CPU stuff!
+//Initialisation stuff!
 
 
 void keyboardControllerInit() //Part before the BIOS at computer bootup (self test)!
@@ -376,7 +342,7 @@ void keyboardControllerInit() //Part before the BIOS at computer bootup (self te
 	}
 
 
-	BIOS_writeKBDCMD(0xED); //Set/reset status indicators!
+	write_8042(0x60,0xED); //Set/reset status indicators!
 	if (!(read_8042(0x64)&0x2)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No set/reset status indicator command result:1!");
@@ -398,7 +364,7 @@ void keyboardControllerInit() //Part before the BIOS at computer bootup (self te
 		raiseError("Keyboard Hardware initialisation","Couldn't set/reset status indicators! Result: %02X",result);
 	}
 
-	BIOS_writeKBDCMD(0xF2); //Read ID!
+	write_8042(0x60,0xF2); //Read ID!
 	if (!(read_8042(0x64)&0x2)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No read ID command result!");
@@ -432,35 +398,6 @@ void keyboardControllerInit() //Part before the BIOS at computer bootup (self te
 	if (result!=0x83) //Second byte invalid?
 	{
 		raiseError("Keyboard Hardware initialisation","Invalid ID#2! Result: %02X",result);
-	}
-}
-
-void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
-{
-	if (__HW_DISABLED) return; //Abort!
-	byte result; //For holding the result from the hardware!
-
-	BIOS_writeKBDCMD(0xED); //Set/reset status indicators!
-	if (!(read_8042(0x64)&0x2)) //No input data?
-	{
-		raiseError("Keyboard BIOS initialisation","No set/reset status indicator command result:2!");
-	}
-
-	result = read_8042(0x60); //Check the result!
-	if (result!=0xFA) //NAC?
-	{
-		raiseError("Keyboard BIOS initialisation","Set/reset status indication command result: %02X",result);
-	}
-
-	write_8042(0x60,0x02); //Turn on NUM LOCK led!
-	if (!(read_8042(0x64)&0x2)) //No input data?
-	{
-		raiseError("Keyboard BIOS initialisation","No turn on NUM lock led result!");
-	}
-	result = read_8042(0x60); //Must be 0xFA!
-	if (result!=0xFA) //Error?
-	{
-		raiseError("Keyboard BIOS initialisation","Couldn't turn on Num Lock LED! Result: %02X",result);
 	}
 }
 

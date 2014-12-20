@@ -13,9 +13,6 @@
 
 #include "headers/emu/emucore.h" //Emulation core!
 
-//Whether to show debug addressing during debug phrase.
-#define SHOW_DEBUGADDR 0
-
 extern byte shutdown; //To shut down?
 extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?

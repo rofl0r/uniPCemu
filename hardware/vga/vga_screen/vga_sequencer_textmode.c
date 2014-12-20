@@ -50,9 +50,9 @@ static OPTINLINE byte is_cursorscanline(VGA_Type *VGA,word Sequencer_x,byte Rend
 	return 0; //Done!
 }
 
-void VGA_Sequencer_TextMode(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning) //Process text-data line! Returns attribute info!
+/*void VGA_Sequencer_TextMode(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning) //Process text-data line! Returns attribute info!
 {
-	/*
+	/
 	//For detecting newlines!
 	static word last_x;
 	static byte gotlast_x = 0;
@@ -139,5 +139,39 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attribute
 		VGA->CurrentScanLine[y2] = pixel; //Set the pixel to use!
 		if (!y2) return; //Stop searching when done!
 		goto nextpixel; //Next pixel!
-	}*/
+	}/
+}*/
+
+void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo) //Render a text mode pixel!
+{
+	attributeinfo->attribute_graphics = 0; //We're a text-mode attribute!
+
+	attributeinfo->attributesource = 0x22222222; //Our plane sources!
+	
+	//First, full value to lookup!
+	attributeinfo->charx = attributeinfo->charinner_x = Sequencer->tempx; //The column to render!
+	attributeinfo->charx /= getcharacterwidth(VGA); //What horizontal character?
+	attributeinfo->charinner_x -= attributeinfo->charx*getcharacterwidth(VGA);
+
+	attributeinfo->chary = attributeinfo->charinner_y = Sequencer->Scanline; //Row is the same!
+	attributeinfo->chary /= getcharacterheight(VGA); //What vertical character?
+	attributeinfo->charinner_y -= attributeinfo->chary*getcharacterheight(VGA);
+	
+	uint_32 charystart;
+	charystart = getVRAMScanlineStart(VGA,attributeinfo->chary); //Calculate row start!
+	charystart += Sequencer->startmap; //What start address?
+	
+	uint_32 Sequencer_textmode_charindex; //Where do we find our info!
+	Sequencer_textmode_charindex = charystart; //Get the start of the row!
+	Sequencer_textmode_charindex += attributeinfo->charx; //Add the character column for the base character index!
+	Sequencer_textmode_charindex += Sequencer->bytepanning; //Apply byte panning to the index!
+
+	byte character = readVRAMplane(VGA,0,Sequencer_textmode_charindex,3); //The character itself! From plane 0!
+	attributeinfo->attribute = readVRAMplane(VGA,1,Sequencer_textmode_charindex,3); //The attribute itself! From plane 1!
+	
+	byte pixel = getcharxy(VGA,attributeinfo->attribute,character,attributeinfo->charinner_x,attributeinfo->charinner_y); //Check for the character, the simple way!
+	if (!pixel) //Not already on?
+	{
+		pixel = is_cursorscanline(VGA,attributeinfo->charx,attributeinfo->charinner_y,Sequencer_textmode_charindex,attributeinfo); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
+	}
 }

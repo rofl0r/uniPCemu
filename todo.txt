@@ -24,9 +24,4 @@ Item update:
 .checksum += newsectorheader+newsectorpos; //Generate set!
 
 Errors in files to solve in headers/remove:
-vga_vram: getVRAMMemAddrSize
-vga_sequencer: get_display
-gpu_renderer: render_EMU_buffer
-emucore: speakers, BIOS ROMs and termThreads, doneCPU, MMU_realaddr
 emu_bios_post: BIOS ROMs, initMEM, BIOSKeyboardInit
-debug_graphics: VGA_DUMPDAC

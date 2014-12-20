@@ -30,7 +30,7 @@
 
 //Pixel manipulation!
 //OPTINLINE byte getVRAMScanlineMultiplier(VGA_Type *VGA); //VRAM scanline multiplier!
-//OPTINLINE byte getVRAMMemAddrSize(VGA_Type *VGA); //Current memory address size?
+OPTINLINE byte getVRAMMemAddrSize(VGA_Type *VGA); //Current memory address size?
 //OPTINLINE word getHorizontalStart(VGA_Type *VGA); //How many pixels to take off the active display x to get the start x!
 //OPTINLINE word getHorizontalEnd(VGA_Type *VGA); //How many pixels to take off the display x to get the start of the right border?
 //OPTINLINE word getVerticalDisplayEnd(VGA_Type *VGA);
@@ -48,7 +48,9 @@
 OPTINLINE byte VGA_ScanDoubling(VGA_Type *VGA); //Scanline doubling?
 //OPTINLINE uint_32 getVRAMScanlineStart(VGA_Type *VGA,word Scanline); //Start of a scanline!
 OPTINLINE word getHorizontalTotal(VGA_Type *VGA); //Get horizontal total (for calculating refresh speed timer)
+OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x); //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
+
+//For precalcs only!
 word get_display_y(VGA_Type *VGA, word scanline); //Vertical check!
 word get_display_x(VGA_Type *VGA, word x); //Horizontal check!
-
 #endif

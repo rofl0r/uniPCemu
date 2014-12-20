@@ -270,7 +270,8 @@ void CPU8086_noCOOP(); //Coprosessor opcodes handler!
 word getLEA(MODRM_PARAMS *params);
 
 void CPU8086_int(byte interrupt); //Executes an hardware interrupt (from tbl)
-void CPU8086_hardware_int(byte interrupt, int has_errorcode, uint_32 errorcode); //See int, but for hardware interrupts!
+void CPU8086_hardware_int(byte interrupt, byte has_errorcode, uint_32 errorcode); //See int, but for hardware interrupts!
+void CPU8086_hardware_int(byte interrupt, byte has_errorcode, uint_32 errorcode); //See int, but for hardware interrupts!
 
 /*
 //For 80186+

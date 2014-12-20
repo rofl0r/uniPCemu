@@ -37,7 +37,9 @@ typedef struct
 	
 	//Newline recalculation
 	byte newline_ready; //We don't have a newline, so we don't need recalcs?
-
+	uint_32 startmap; //Where our map starts!
+	uint_32 bytepanning; //How much byte panning is used?
+	
 	/*
 
 	Pixel timing

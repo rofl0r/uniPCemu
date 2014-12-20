@@ -16,7 +16,7 @@
 #include "headers/support/log.h" //Logging support!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //Delay between mouse inputs!
 #define MOUSE_DELAY 10000
@@ -45,7 +45,7 @@ int psp_inputkey()
 	SceCtrlData input; //Input given!
 
 	sceCtrlReadBufferPositive(&input, 1); //Wait for key to be pressed or not!
-	if (input.Buttons>0) //Key has been pressed?
+	if (input.Buttons) //Key has been pressed?
 	{
 		return input.Buttons; //Give buttons!
 	}
@@ -57,7 +57,7 @@ int psp_inputkeydelay(uint_32 waittime)
 	uint_32 counter; //Counter for inputkeydelay!
 	int key = 0;
 	key = psp_inputkey(); //Check for keys!
-	if (key>0) //Key pressed?
+	if (key) //Key pressed?
 	{
 		counter = waittime; //Init counter!
 		while (counter>0) //Still waiting?

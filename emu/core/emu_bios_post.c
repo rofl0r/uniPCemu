@@ -3,6 +3,8 @@
 #include "headers/mmu/mmu.h" //For MMU
 #include "headers/bios/io.h" //For mounting!
 #include "headers/bios/bios.h" //For BIOS!
+#include "headers/bios/biosrom.h" //BIOS ROM support!
+#include "headers/bios/initmem.h" //BIOS Memory support!
 #include "headers/hardware/pic.h" //Interrupt controller support!
 #include "headers/emu/timers.h" //Timers!
 #include "headers/support/log.h" //Log support!

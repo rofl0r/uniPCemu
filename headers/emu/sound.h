@@ -25,12 +25,12 @@ typedef struct {
 
 void initAudio(); //Initialises audio subsystem!
 void doneAudio(); //Finishes audio subsystem!
-int addchannel(SOUNDHANDLER handler, void *extradata, char *name, float samplerate, uint_32 samples, byte stereo, byte method); //Adds and gives a 1 on added or 0 on error!
+byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float samplerate, uint_32 samples, byte stereo, byte method); //Adds and gives a 1 on added or 0 on error!
 //is_hw: bit 1 set: do not pause, bit 2 set: do not resume playing.
-void removechannel(SOUNDHANDLER handler, void *extradata, int is_hw); //Removes a sound handler from mixing, use is_hw=0 always, except for init/done of sound.c!
+void removechannel(SOUNDHANDLER handler, void *extradata, byte is_hw); //Removes a sound handler from mixing, use is_hw=0 always, except for init/done of sound.c!
 void resetchannels(); //Stop all channels&reset!
-int setVolume(SOUNDHANDLER handler, void *extradata, float p_volume); //Channel&Volume(100.0f=100%)
-int setSampleRate(SOUNDHANDLER handler, void *extradata, float rate); //Set sample rate!
+byte setVolume(SOUNDHANDLER handler, void *extradata, float p_volume); //Channel&Volume(100.0f=100%)
+byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate); //Set sample rate!
 
 //Audio locking!
 OPTINLINE void lockaudio();

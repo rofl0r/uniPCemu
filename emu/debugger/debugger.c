@@ -12,6 +12,7 @@
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/emu/emucore.h" //for pause/resumeEMU support!
 
+//Log flags only?
 #define LOGFLAGSONLY
 
 char debugger_prefix[256] = ""; //The prefix!

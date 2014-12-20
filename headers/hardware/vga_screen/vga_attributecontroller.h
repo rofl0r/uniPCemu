@@ -11,9 +11,10 @@ typedef struct
 {
 	int attribute_graphics; //Use graphics attribute: attribute is raw index into table? 0=Normal operation, 1=Font only, 2=Attribute controller disabled!
 	byte attribute; //Attribute for the character!
-	byte charx; //Character x!
-	byte chary; //Character y!
-	byte charinner_x; //Inner x base of character!
+	word charx; //Character x!
+	word chary; //Character y!
+	word charinner_x; //Inner x base of character!
+	word charinner_y; //Inner y base of character!
 	uint_32 attributesource; //What's the source plane of the attribute bits (plane bits set)?
 } VGA_AttributeInfo; //Attribute info!
 

@@ -5,6 +5,9 @@
 #include "headers/emu/input.h" //For INPUT_SETTINGS!
 //First, the typedefs:
 
+//Delay between steps!
+#define BIOS_INPUTDELAY 250000
+
 //BIOS Version!
 #define BIOS_VERSION 1
 
@@ -90,7 +93,6 @@ int boot_system(); //Tries to boot using BIOS Boot Order. TRUE on success, FALSE
 void autoDetectMemorySize(int tosave); //Autodetect memory size! (tosave=To save BIOS?)
 void forceBIOSSave(); //Forces BIOS to save!
 
-//Delay between steps!
-#define BIOS_INPUTDELAY 250000
+void BIOSKeyboardInit(); //BIOS part of keyboard initialisation!
 
 #endif

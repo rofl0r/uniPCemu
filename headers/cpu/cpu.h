@@ -750,6 +750,7 @@ extern byte CPU_StackAddress_size; //Address size for this opcode!
 #define CPU_MODE_UNKNOWN 3
 
 void resetCPU(); //Initialises CPU!
+void doneCPU(); //Finish the CPU!
 void moveinttable16(word segment, uint_32 offset); //Move interrupt table somewhere else!
 byte CPU_readOP(); //Reads the operation (byte) at CS:EIP
 word CPU_readOPw(); //Reads the operation (word) at CS:EIP

@@ -9,6 +9,7 @@
 #include "headers/support/zalloc.h" //Memory allocation: freemem function!
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
+#include "headers/hardware/8042.h" //Basic 8042 support for keyboard initialisation!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -520,4 +521,45 @@ int boot_system()
 		}
 	}
 	return 0; //Not booted at all!
+}
+
+/*
+
+Basic BIOS Keyboard support!
+
+*/
+
+void BIOS_writeKBDCMD(byte cmd)
+{
+	if (__HW_DISABLED) return; //Abort!
+	write_8042(0x60,cmd); //Write the command directly to the controller!
+}
+
+void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
+{
+	if (__HW_DISABLED) return; //Abort!
+	byte result; //For holding the result from the hardware!
+
+	BIOS_writeKBDCMD(0xED); //Set/reset status indicators!
+	if (!(read_8042(0x64)&0x2)) //No input data?
+	{
+		raiseError("Keyboard BIOS initialisation","No set/reset status indicator command result:2!");
+	}
+
+	result = read_8042(0x60); //Check the result!
+	if (result!=0xFA) //NAC?
+	{
+		raiseError("Keyboard BIOS initialisation","Set/reset status indication command result: %02X",result);
+	}
+
+	write_8042(0x60,0x02); //Turn on NUM LOCK led!
+	if (!(read_8042(0x64)&0x2)) //No input data?
+	{
+		raiseError("Keyboard BIOS initialisation","No turn on NUM lock led result!");
+	}
+	result = read_8042(0x60); //Must be 0xFA!
+	if (result!=0xFA) //Error?
+	{
+		raiseError("Keyboard BIOS initialisation","Couldn't turn on Num Lock LED! Result: %02X",result);
+	}
 }

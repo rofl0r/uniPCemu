@@ -20,6 +20,7 @@ typedef byte (*agetpixel)(VGA_Type *VGA, int x, VGA_AttributeInfo *Sequencer_Att
 */
 
 /*uint_32 rowscanaddress; //For old graphic modes!
+*/
 
 //This should be OK, according to: http://www.nondot.org/sabre/Mirrored/GraphicsProgrammingBlackBook/gpbb31.pdf
 byte getpixel256colorshiftmode(VGA_Type *VGA, int x, VGA_AttributeInfo *Sequencer_Attributeinfo) //256colorshiftmode getcolorplanes!
@@ -28,8 +29,8 @@ byte getpixel256colorshiftmode(VGA_Type *VGA, int x, VGA_AttributeInfo *Sequence
 	uint_32 sourceplanes[4] = {0x11111111,0x22222222,0x44444444,0x88888888}; //Our source plane translation table!
 	Sequencer_Attributeinfo->attributesource = sourceplanes[plane]; //All our bits are from this plane!
 	x >>= 2; //Get the pixel!
-	return readVRAMplane(VGA,plane,GETSEQUENCER(VGA)->currentPrecalcs->startmap+x,1); //The full offset of the plane all stuff is already done, so 0 at the end!
-}*/
+	return readVRAMplane(VGA,plane,GETSEQUENCER(VGA)->startmap+x,1); //The full offset of the plane all stuff is already done, so 0 at the end!
+}
 
 /*
 
@@ -37,11 +38,11 @@ SHIFT REGISTER INTERLEAVE MODE
 
 */
 
-/*byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, int x, VGA_AttributeInfo *Sequencer_Attributeinfo) //256colorshiftmode getcolorplanes!
+byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, int x, VGA_AttributeInfo *Sequencer_Attributeinfo) //256colorshiftmode getcolorplanes!
 {
 	//Calculate the plane index!
 	word planeindex = OPTMUL((x>>3),getVRAMMemAddrSize(VGA)); //The full offset, within the plane with our pixel!
-	planeindex += GETSEQUENCER(VGA)->currentPrecalcs->startmap; //Add the start address!
+	planeindex += GETSEQUENCER(VGA)->startmap; //Add the start address!
 	
 	//Determine low&high plane bases!
 	byte planebase = (x>>2)&1; //Base plane (0/1)! OK!
@@ -78,7 +79,7 @@ SHIFT REGISTER INTERLEAVE MODE
 	highplanebase |= planebase; //Get the final plane base to use!
 	Sequencer_Attributeinfo->attributesource = sourceplanes[highplanebase]; //Lowest low bit bit!
 	return result; //Give the result!
-}*/
+}
 
 /*
 
@@ -86,7 +87,7 @@ SINGLE SHIFT MODE
 
 */
 
-/*byte getpixelsingleshiftmode(VGA_Type *VGA, int x, VGA_AttributeInfo *Sequencer_Attributeinfo)
+byte getpixelsingleshiftmode(VGA_Type *VGA, int x, VGA_AttributeInfo *Sequencer_Attributeinfo)
 {
 	//Should be OK?
 	uint_32 offset; //No offset, don't process scanline start!
@@ -94,7 +95,7 @@ SINGLE SHIFT MODE
 	//rowscanaddress = offset; //Use this as the row scan address!
 	uint_32 pixeloffset = OPTMUL((x>>3),getVRAMMemAddrSize(VGA)); //Pixel offset!
 	offset += pixeloffset; //The x coordinate, 8 pixels per byte!
-	offset += GETSEQUENCER(VGA)->currentPrecalcs->startmap; //VRAM start!
+	offset += GETSEQUENCER(VGA)->startmap; //VRAM start!
 	
 	byte bit = (x&7); //The bit in the byte (from the start of VRAM byte)!
 	
@@ -113,7 +114,7 @@ SINGLE SHIFT MODE
 	
 	Sequencer_Attributeinfo->attributesource = 0x00008421; //Our source planes!
 	return result; //Give the result!
-}*/
+}
 
 //Shiftregister: 2=ShiftRegisterInterleave, 1=Color256ShiftMode. Priority list: 1, 2, 0; So 1&3=256colorshiftmode, 2=ShiftRegisterInterleave, 0=SingleShift.
 //When index0(VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable)=1, getColorPlanesAlphaNumeric
@@ -124,23 +125,22 @@ SINGLE SHIFT MODE
 //Parallel Planes: Else case!
 //Interleaved: Shift Register Interleave!
 
-/*agetpixel getpixel_jmptbl[4] = {
+agetpixel getpixel_jmptbl[4] = {
 				getpixelsingleshiftmode,
 				getpixelshiftregisterinterleavemode,
 				getpixel256colorshiftmode,
 				getpixel256colorshiftmode
 				}; //All the getpixel functionality!
-*/
 /*
 
 Core functions!
 
 */
 
-void VGA_Sequencer_GraphicsMode(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning) //Render graphics mode screen!
+/*void VGA_Sequencer_GraphicsMode(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning) //Render graphics mode screen!
 {
 
-	/*VGA->CurrentScanLine[0] = 1; //Plot font always if needed!
+	/VGA->CurrentScanLine[0] = 1; //Plot font always if needed!
 	Sequencer_Attributeinfo->attribute_graphics = 1; //Graphics attribute!
 	if ((tempx>=getxres(VGA)) || (tempy>=getyres(VGA))) //Over x/y resolution?
 	{
@@ -151,5 +151,11 @@ void VGA_Sequencer_GraphicsMode(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attri
 
 	Sequencer_Attributeinfo->attribute = getpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](VGA,tempx,Sequencer_Attributeinfo);
 	//As the rest of the rows are simply a copy of ours, don't process them!
-	*/
+	/
+}*/
+
+void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+{
+	attributeinfo->attribute_graphics = 1; //Graphics attribute!
+	attributeinfo->attribute = getpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](VGA,Sequencer->tempx,attributeinfo);
 }

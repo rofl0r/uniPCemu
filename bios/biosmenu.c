@@ -18,7 +18,7 @@
 #include "headers/interrupts/interrupt10.h" //GPU emulator support!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //BIOS width in text mode!
 #define BIOS_WIDTH GPU_COLUMNS
@@ -95,7 +95,7 @@ Handler BIOS_Menus[] =
 //Not implemented?
 #define NOTIMPLEMENTED NUMITEMS(BIOS_Menus)+1
 
-word BIOS_Menu = 0; //What menu are we opening (-1 for closing!)?
+sword BIOS_Menu = 0; //What menu are we opening (-1 for closing!)?
 byte BIOS_SaveStat = 0; //To save the BIOS?
 byte BIOS_Changed = 0; //BIOS Changed?
 

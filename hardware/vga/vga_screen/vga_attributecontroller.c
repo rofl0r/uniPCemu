@@ -62,7 +62,6 @@ OPTINLINE byte getColorPlaneEnableMask(VGA_Type *VGA, VGA_AttributeInfo *Sequenc
 //Dependant on mode control register and underline location register
 void VGA_AttributeController_calcPixels(VGA_Type *VGA)
 {
-	return; //Disable for now!
 	byte processpixel, charinnery, currentblink;
 	int DACIndex; //This changes!
 	
@@ -118,7 +117,6 @@ void VGA_AttributeController_calcPixels(VGA_Type *VGA)
 //Dependant on pallete, index register, mode control register, colorselect54&76.
 void VGA_AttributeController_calcColorLogic(VGA_Type *VGA)
 {
-	return; //Disable for now!
 	byte enableblink=0;
 	enableblink = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable; //Enable blink?	
 
@@ -188,65 +186,40 @@ OPTINLINE void VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinf
 	//Originally: VGA_Type *VGA, word Scanline, word x, VGA_AttributeInfo *info
 
 	//Our changing variables that are required!
-	byte defaultDAC = Sequencer_attributeinfo->attribute; //Default DAC index!
-
 	word y=0;
 	if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit) //Attribute controller disabled?
 	{
-		for (;;)
-		{
-			VGA->CurrentScanLine[y] = defaultDAC; //Give the default DAC index for all pixels!
-			//DAC Index loaded for this row!
-			if (++y>=VGA->precalcs.renderedlines) return; //Overflow or graphics (Only process one pixel)?
-		}
+		return; //Take raw!
 	}
 
-	byte cursorblinkon=0;
+	byte defaultDAC = Sequencer_attributeinfo->attribute; //Default DAC index!
 	
-	//Attribute controller enabled?
-	cursorblinkon = VGA->TextBlinkOn; //Blink on?
-	
-	byte colormask; //Prefetch!
-	colormask = getColorPlaneEnableMask(VGA,Sequencer_attributeinfo); //This is the same for the entire function call!
-	
-	word pixellookup; //Default pixel lookup that's the same for all pixels!
-	pixellookup = defaultDAC;
+	word pixellookup = defaultDAC;
 	pixellookup <<= 1; //Make room for 1 bit!
-	pixellookup |= cursorblinkon;
+	pixellookup |= VGA->TextBlinkOn;
 	pixellookup <<= 5; //Make room for 5 bits!
 	//pixellookup |= Sequencer_attributeinfo.charinnery; //Don't do this? Always 0 by default (processed by the current row)?
 	
-	byte *processpixelprecalcs;
-	processpixelprecalcs = &VGA->precalcs.processpixelprecalcs[0]; //The pixel precalcs!
-	
-	byte *colorlogicprecalcs;
-	colorlogicprecalcs = &VGA->precalcs.colorlogicprecalcs[0]; //The color logic precalcs!
-	
 	//Now, process all pixels!
-	for (;;)
-	{
-		//First, process attribute!
-		byte processpixel = VGA->CurrentScanLine[y]; //The pixel to process: font(1) or back(0)!
-		
-		word lookup;
-		lookup = pixellookup; //Load defaults!
-		lookup += y; //Add the current row for the final row!
-		lookup <<= 1; //Make room for the processpixel!
-		lookup |= processpixel; //Generate the lookup value!
-		processpixel = processpixelprecalcs[lookup]; //Look our pixel font/back up!
-		
-		byte DACIndex; //Current DAC Index from 256-color by default!
-		DACIndex = defaultDAC; //Load DAC defaults!
-		DACIndex &= colormask; //Mask color planes off if needed!
-		
-		DACIndex <<= 1; //Make room for the processpixel!
-		DACIndex |= processpixel; //Generate the DAC Index lookup!
-		DACIndex = colorlogicprecalcs[DACIndex]; //Look the DAC Index up!
+	//First, process attribute!
+	byte processpixel = VGA->CurrentScanLine[y]; //The pixel to process: font(1) or back(0)!
+	
+	word lookup;
+	lookup = pixellookup; //Load defaults!
+	lookup += y; //Add the current row for the final row!
+	lookup <<= 1; //Make room for the processpixel!
+	lookup |= processpixel; //Generate the lookup value!
+	processpixel = VGA->precalcs.processpixelprecalcs[lookup]; //Look our pixel font/back up!
+	
+	byte DACIndex; //Current DAC Index from 256-color by default!
+	DACIndex = defaultDAC; //Load DAC defaults!
+	DACIndex &= getColorPlaneEnableMask(VGA,Sequencer_attributeinfo); //Mask color planes off if needed!
+	
+	DACIndex <<= 1; //Make room for the processpixel!
+	DACIndex |= processpixel; //Generate the DAC Index lookup!
+	DACIndex = VGA->precalcs.colorlogicprecalcs[DACIndex]; //Look the DAC Index up!
 
-		VGA->CurrentScanLine[y] = DACIndex; //Give the DAC index!
-
-		//DAC Index loaded for this row!
-		if (++y>=VGA->precalcs.renderedlines) return; //Overflow or graphics (Only process one pixel)?
-	}
+	Sequencer_attributeinfo->attribute = DACIndex; //Give the DAC index!
+	//DAC Index loaded for this row!
 	//Done, all row's pixel(s) loaded!
 }

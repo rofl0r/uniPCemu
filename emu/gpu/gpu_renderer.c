@@ -17,7 +17,7 @@
 #define RENDER_EMU 1
 
 //Allow HW rendering? (VGA or other hardware)
-//#define ALLOW_HWRENDERING
+#define ALLOW_HWRENDERING
 
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS Settings!
 
@@ -375,10 +375,9 @@ void renderHWFrame() //Render a frame from hardware!
 		}
 		if (SCREEN_CAPTURE) //Screen capture?
 		{
-			if (writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),GPU.xres,GPU.yres,GPU.doublewidth,GPU.doubleheight,EMU_MAX_X)) //Dump our raw screen!
-			{
-				SCREEN_CAPTURE = 0; //No more captures!
-			}
+			dolog("EMU","Screen capture requested! Executing (%ix%i)...",GPU.xres,GPU.yres);
+			writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),GPU.xres,GPU.yres,GPU.doublewidth,GPU.doubleheight,EMU_MAX_X); //Dump our raw screen!
+			SCREEN_CAPTURE = 0; //No more captures!
 		}
 	#endif
 	

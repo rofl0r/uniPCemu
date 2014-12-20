@@ -290,7 +290,7 @@ OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current
 			}
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: NOTE OFF: %i-%i=%i:%i-%i",channel,note,channel,note32,note32_index); //Log it!
+			dolog("MPU","MIDIDEVICE: NOTE OFF: %i-%i=%i:%i-%i",channel,firstparam,channel,note32,note32_index); //Log it!
 			#endif
 			break;
 		case 0x90: //Note on?
@@ -310,7 +310,7 @@ OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current
 			MIDIDEVICE.channels[currentchannel].notes[firstparam].pressure = (firstparam<<7)|current->buffer[1];
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: Aftertouch: %i-%i",channel,MIDIDEVICE.channels[currentchannel].notes[firstparam].pressure); //Log it!
+			dolog("MPU","MIDIDEVICE: Aftertouch: %i-%i",currentchannel,MIDIDEVICE.channels[currentchannel].notes[firstparam].pressure); //Log it!
 			#endif
 			break;
 		case 0xB0: //Control change?
