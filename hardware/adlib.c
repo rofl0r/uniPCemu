@@ -37,7 +37,7 @@
 //Use the adlib sound? If disabled, only run timers for the CPU. Sound will not actually be heard.
 #define __SOUND_ADLIB 1
 //Ignore ADSR?
-#define __IGNORE_ADSR 1
+#define __IGNORE_ADSR 0
 //What volume, in percent!
 #define ADLIB_VOLUME 100.0f
 

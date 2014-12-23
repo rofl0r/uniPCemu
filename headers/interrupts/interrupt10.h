@@ -27,7 +27,7 @@ byte MEMGRAPHICS_get256colors(uint_32 startaddr, int x, int y);
 
 void cursorXY(byte displaypage, byte x, byte y); //Set cursor x,y!
 void emu_setactivedisplaypage(byte page); //Set active display page!
-int INT10_Internal_SetVideoMode(VGA_Type *VGA, word mode); //For internal int10 video mode switching!
+int INT10_Internal_SetVideoMode(word mode); //For internal int10 video mode switching!
 void int10_internal_outputchar(byte videopage, byte character, byte attribute); //Ourput character (see int10,function 0xE)
 void EMU_CPU_setCursorScanlines(byte start, byte end);
 void GPU_clearscreen(); //Clears the screen!

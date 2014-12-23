@@ -125,10 +125,6 @@ void initEMU(int full) //Init!
 	//First, VGA allocations for seperate systems!
 	MainVGA = VGAalloc(0,1); //Allocate a main VGA, automatically by BIOS!
 	setActiveVGA(MainVGA); //Initialise primary VGA using the BIOS settings, for the system itself!
-	int10_useVGA(MainVGA); //Use normal VGA by default!
-
-	debugrow("Allocating BIOS menu data...");
-	allocBIOSMenu(); //Allocate BIOS menu data (for seperation from the normal system)!
 
 	debugrow("Initializing 8259...");
 	init8259(); //Initialise the 8259 (PIC)!
@@ -237,7 +233,6 @@ void doneEMU()
 			debugrow("doneEMU: Finish keyboard PSP...");
 			psp_keyboard_done(); //We're done with the keyboard!
 			debugrow("doneEMU: finish active VGA...");
-			int10_useVGA(NULL); //We don't use any VGA!
 			doneVGA(&MainVGA); //We're done with the VGA!
 			debugrow("doneEMU: finish CPU.");
 			doneCPU(); //Finish the CPU!

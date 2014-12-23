@@ -48,7 +48,7 @@ static OPTINLINE byte is_A000VRAM(uint_32 linearoffset) //In VRAM (for CPU), off
 
 static OPTINLINE uint_32 getVRAMOffset(uint_32 linearoffset)
 {
-	uint_32 result = 0; //Don't read/write by default!
+	uint_32 result; //Don't read/write by default!
 	result = linearoffset;
 	result -= VGA_VRAM_START; //Calculate start offset!
 	return result; //Don't read/write from VRAM!	

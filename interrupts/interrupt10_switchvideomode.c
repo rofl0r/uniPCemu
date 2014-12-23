@@ -30,15 +30,6 @@ VideoModeBlock *CurMode = &ModeList_VGA[0]; //Current video mode information blo
 
 //Patches for dosbox!
 
-void VGA_DAC_SetEntry(VGA_Type *VGA,byte index, byte r, byte g, byte b)
-{
-	DACEntry entry;
-	entry.r = r;
-	entry.g = g;
-	entry.b = b;
-	writeDAC(VGA,index,&entry); //Write DAC entry!
-}
-
 //Now for real:
 
 uint_32 machine = M_VGA; //Active machine!
@@ -58,6 +49,11 @@ void INT10_SetSingleDACRegister(Bit8u index,Bit8u red,Bit8u green,Bit8u blue) {
 		IO_Write(VGAREG_DAC_DATA,ic);
 		IO_Write(VGAREG_DAC_DATA,ic);
 	}
+}
+
+void VGA_DAC_SetEntry(byte index, byte r, byte g, byte b)
+{
+	INT10_SetSingleDACRegister(index,r,g,b);
 }
 
 void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count) { //Creates a grayscale palette!
@@ -123,8 +119,9 @@ static bool SetCurMode(VideoModeBlock modeblock[],word mode)
 	return false;
 }
 
-void FinishSetMode(VGA_Type *VGA, int clearmem)
+void FinishSetMode(int clearmem)
 {
+	VGA_Type *currentVGA;
 	/* Clear video memory if needs be */
 	if (clearmem)
 	{
@@ -152,7 +149,10 @@ void FinishSetMode(VGA_Type *VGA, int clearmem)
 		case M_LIN16:
 		case M_LIN32:
 			/* Hack we just acess the memory directly */
-			memset(VGA->VRAM,0,VGA->VRAM_size);
+			if ((currentVGA = getActiveVGA())) //Gotten active VGA?
+			{
+				memset(currentVGA->VRAM,0,currentVGA->VRAM_size);
+			}
 			break;
 		default: //Unknown?
 			break;
@@ -194,7 +194,7 @@ void FinishSetMode(VGA_Type *VGA, int clearmem)
 	emu_setactivedisplaypage(0);
 }
 
-bool INT10_SetVideoMode_OTHER(VGA_Type *VGA, word mode,bool clearmem)
+bool INT10_SetVideoMode_OTHER(word mode,bool clearmem)
 {
 	byte ct;
 	switch (machine)
@@ -263,7 +263,7 @@ bool INT10_SetVideoMode_OTHER(VGA_Type *VGA, word mode,bool clearmem)
 	}
 	IO_WriteW(crtc_base,0x09 | (scanline-1) << 8);
 	//Setup the CGA palette using VGA DAC palette
-	for (ct=0; ct<16; ct++) VGA_DAC_SetEntry(VGA,ct,cga_palette[ct][0],cga_palette[ct][1],cga_palette[ct][2]);
+	for (ct=0; ct<16; ct++) VGA_DAC_SetEntry(ct,cga_palette[ct][0],cga_palette[ct][1],cga_palette[ct][2]);
 	//Setup the tandy palette
 	//for (ct=0;ct<16;ct++) VGA_DAC_CombineColor(ct,ct);
 	//Setup the special registers for each machine type
@@ -386,12 +386,12 @@ bool INT10_SetVideoMode_OTHER(VGA_Type *VGA, word mode,bool clearmem)
 			IO_WriteW(crtc_base, i | (real_readb(RealSeg(vparams),
 				RealOff(vparams) + i + crtc_block_index*16) << 8));
 	}*/
-	FinishSetMode(VGA,clearmem);
+	FinishSetMode(clearmem);
 	if (LOG_SWITCHMODE) dolog(LOG_FILE,"switchvideomode: Set_OTHER: RET!");
 	return true;
 }
 
-int INT10_Internal_SetVideoMode(VGA_Type *VGA, word mode)
+int INT10_Internal_SetVideoMode(word mode)
 {
 	if (__HW_DISABLED) return true; //Abort!
 	if (LOG_SWITCHMODE) dolog(LOG_FILE,"switchvideomode: INT10_Internal_SetVideoMode (%04X)...",mode);
@@ -415,7 +415,7 @@ int INT10_Internal_SetVideoMode(VGA_Type *VGA, word mode)
 	//int10.vesa_setmode=0xffff;
 
 	//LOG(LOG_INT10,LOG_NORMAL)("Set Video Mode %X",mode);
-	if (!IS_EGAVGA_ARCH) return INT10_SetVideoMode_OTHER(VGA,mode,clearmem);
+	if (!IS_EGAVGA_ARCH) return INT10_SetVideoMode_OTHER(mode,clearmem);
 
 	//raiseError("Debug_INT10_SetVideoMode","Checkpoint 1A");
 
@@ -1317,7 +1317,7 @@ dac_text16:
 	//raiseError("Debug_INT10_SetVideoMode","Checkpoint 5");
 
 	if (LOG_SWITCHMODE) dolog(LOG_FILE,"switchvideomode: INT10_Internal_SetVideoMode - Finish setmode...");
-	FinishSetMode(VGA,clearmem);
+	FinishSetMode(clearmem);
 
 	//raiseError("Debug_INT10_SetVideoMode","Checkpoint 6");
 

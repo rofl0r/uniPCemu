@@ -579,7 +579,7 @@ typedef struct __attribute__((packed))
 	EXTERNALREGS ExternalRegisters; //External registers!
 
 	byte DACMaskRegister; //DAC Mask Register (port 0x3C6 for read/write; default is 0xFF)
-	byte DAC[3*256]; //All DAC values!
+	byte DAC[1024]; //All DAC values (4 bytes an entry)!
 
 //For colors:
 	byte colorIndex; //Written to port 0x3C8; 3 bytes to 3C9 in order R, G, B

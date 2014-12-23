@@ -99,30 +99,10 @@ sword BIOS_Menu = 0; //What menu are we opening (-1 for closing!)?
 byte BIOS_SaveStat = 0; //To save the BIOS?
 byte BIOS_Changed = 0; //BIOS Changed?
 
-VGA_Type *BIOS_VGA; //BIOS VGA standalone data!
-byte *BIOS_BDA; //BIOS BDA standalone data!
-
-VGA_Type *originalVGA; //Original VGA!
-byte *originalBDA; //Original BDA!
-
 extern CPU_type CPU; //Active CPU!
 //CPU_type CPU_Backup; //Backup of the CPU!
 
 PSP_TEXTSURFACE *BIOS_Surface; //Our very own BIOS Surface!
-
-void switchint10(byte *newBDA, VGA_Type *newVGA) //Switch current chipsets&settings!
-{
-	return; //Not used anymore?
-	if (__HW_DISABLED) return; //Abort!
-	memcpy(originalBDA,MMU_ptr(-1,0x0040,0x0000,0,0x100),0x100); //Save original!
-	originalVGA = getActiveVGA(); //Save current VGA!
-	
-	memcpy(MMU_ptr(-1,0x0040,0x0000,0,sizeof(*newBDA)),newBDA,sizeof(*newBDA)); //New BDA!
-	int10_useVGA(newVGA); //Interrupt 10h uses the new VGA!
-	
-	setActiveVGA(newVGA); //We're switching to the new VGA!
-	startVGA(); //Start it up!
-}
 
 void allocBIOSMenu() //Stuff that take extra video memory etc. for seperated BIOS allocation (so before MMU, because it may take it all)!
 {
@@ -134,19 +114,6 @@ void allocBIOSMenu() //Stuff that take extra video memory etc. for seperated BIO
 		return; //Just in case!
 	}
 	GPU_addTextSurface(BIOS_Surface,NULL); //Register our text surface!
-	return; //Below isn't used anymore?
-	
-	BIOS_VGA = VGAalloc(0x40000,0); //Start new VGA session, NO BIOS update with new size, solid 256K memory!
-	BIOS_BDA = zalloc(0x100,"BIOS_BDA"); //Init BDA for the BIOS!
-	if (!BIOS_VGA)
-	{
-		raiseError("BIOS","Ran out of memory allocating BIOS VGA!");
-	}
-	originalBDA = zalloc(0x100,"BIOS_BDABackup"); //Init BDA for backing up
-	if (!BIOS_BDA || !originalBDA)
-	{
-		raiseError("BIOS","Ran out of memory allocating BIOS (backup) BDA!");
-	}
 }
 
 byte EMU_Quit = 0; //Quitting emulator?
@@ -155,38 +122,6 @@ void freeBIOSMenu() //Free up all BIOS related memory!
 	if (__HW_DISABLED) return; //Abort!
 	GPU_removeTextSurface(BIOS_Surface); //Unregister!
 	free_GPUtext(&BIOS_Surface); //Try to deallocate the BIOS Menu surface!
-	return; //Below isn't used anymore?
-	doneVGA(&BIOS_VGA); //Free BIOS VGA!
-	freez((void **)&BIOS_BDA,0x100,"BIOS_BDA"); //Free BIOS BDA!
-	freez((void **)&originalBDA,0x100,"BIOS_BDABackup"); //Free original BDA!
-}
-
-void initBIOSMenu() //Initialise BIOS menu settings etc.!
-{
-	if (__HW_DISABLED) return; //Abort!
-	return; //Below isn't used anymore?
-	switchint10(BIOS_BDA,BIOS_VGA); //Switch to the BIOS version!
-	//memcpy(&CPU_Backup,&CPU,sizeof(CPU)); //Backup the CPU!
-	
-	CPU.registers->AX = VIDEOMODE_EMU; //Color 80x25 text mode!
-	BIOS_int10(); //Switch our video modes!
-	CPU.registers->AH = 0x03; //Get cursor position and size!
-	BIOS_int10(); //Get data!
-	CPU.registers->AH = 0x02; //Set cursor shape!
-	CPU.registers->CH |= 0x20; //Disable cursor!
-	BIOS_int10(); //Set data!
-	BIOS_VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable = BIOS_ATTR_BLINKENABLE; //Blink enable?
-
-	CPU.registers->AH = 0x03; //Get cursor position and size!
-	BIOS_int10(); //Get data!
-	CPU.registers->AH = 0x02; //Set cursor shape!
-	CPU.registers->CH |= 0x10; //Disable the cursor in the BIOS!
-	BIOS_int10(); //Set data!
-
-	//memcpy(&CPU,&CPU_Backup,sizeof(CPU)); //Copy the CPU back to what it was!
-	
-	//Finally: switch back to the original version!
-	switchint10(originalBDA,originalVGA); //Switch back!
 }
 
 extern byte showchecksumerrors; //Show checksum errors?
@@ -248,7 +183,7 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 
 
 
-int EMU_RUNNING = 0; //Emulator is running (are we using the IN-EMULATOR limited menus?) 0=Not running, 1=Running with CPU, 2=Running no CPU (BIOS Menu running?)
+byte EMU_RUNNING = 0; //Emulator is running (are we using the IN-EMULATOR limited menus?) 0=Not running, 1=Running with CPU, 2=Running no CPU (BIOS Menu running?)
 
 void BIOS_clearscreen()
 {
@@ -267,8 +202,7 @@ void runBIOS() //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNI
 	showchecksumerrors = 0; //Not showing any checksum errors!
 
 //Now reset/save all we need to run the BIOS!
-	byte frameratebackup;
-	frameratebackup = GPU.show_framerate; //Backup!
+	byte frameratebackup = GPU.show_framerate; //Backup!
 
 	GPU.show_framerate = 0; //Hide the framerate surface!	
 	
@@ -282,13 +216,6 @@ void runBIOS() //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNI
 	
 	GPU_textclearscreen(frameratesurface); //Make sure the surface is empty for a neat BIOS!
 	
-	/*if (1) //Seperate version: we can run during runtime?
-	{
-		//Backup all and set BIOS info!
-		memcpy(&CPU_Backup,&CPU,sizeof(CPU)); //Backup the CPU!
-		switchint10(BIOS_BDA,BIOS_VGA); //Switch to the BIOS version of the screen!
-	}*/
-
 	BIOS_LoadData(); //Now load/reset the BIOS
 	BIOS_Changed = 0; //Default: the BIOS hasn't been changed!
 	BIOS_SaveStat = 0; //Default: not saving!
@@ -350,20 +277,6 @@ void runBIOS() //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNI
 	GPU_keepAspectRatio(BIOS_Settings.keepaspectratio); //Keep the aspect ratio?
 
 //Restore all states saved for the BIOS!
-	/*if (1)
-	{
-		memcpy(&CPU,&CPU_Backup,sizeof(CPU)); //Copy the CPU back to what it was!
-		//Finally: switch back to the original version!
-		switchint10(originalBDA,originalVGA); //Switch back to the original version!
-	}
-	else //Non-seperate?
-	{
-		CPU.registers->AH = 0x03; //Get cursor position and size!
-		BIOS_int10(); //Get data!
-		CPU.registers->AH = 0x02; //Set cursor shape!
-		CPU.registers->CH &= ~0x10; //Enable cursor!
-		BIOS_int10(); //Set data!
-	}*/
 	GPU.show_framerate = frameratebackup; //Restore!
 	startVGA(); //Start the VGA up again!
 	EMU_startInput(); //Start all emu input again!
@@ -1758,7 +1671,6 @@ extern byte force_memoryredetect; //From the MMU: force memory redetect on load?
 void BIOS_MemReAlloc() //Reallocates BIOS memory!
 {
 	return; //Disable due to the fact that memory allocations aren't 100% OK atm.
-	switchint10(originalBDA,originalVGA); //Switch back to normal VGA, because memory will be gone for a moment!
 
 	force_memoryredetect = 1; //We're forcing memory redetect!
 	doneEMU(); //Finish the old EMU memory!
@@ -1766,7 +1678,6 @@ void BIOS_MemReAlloc() //Reallocates BIOS memory!
 	autoDetectMemorySize(0); //Check memory size if needed!
 	initEMU(1); //Start a new EMU memory!
 	
-	switchint10(BIOS_BDA,BIOS_VGA); //Switch back to our BIOS!
 	BIOS_Changed = 1; //Changed!
 	BIOS_Menu = 8; //Goto Advanced menu!
 }

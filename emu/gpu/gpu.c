@@ -75,7 +75,6 @@ void initVideoLayer() //We're for allocating the main video layer, only dealloca
 			}
 		}
 	}
-	allocBIOSMenu(); //BIOS menu has the highest priority!
 }
 
 //Wrapped arround the EMU.
@@ -86,6 +85,7 @@ void initVideoMain() //Everything SDL PRE-EMU!
 	{
 		initFramerate(); //Start the framerate handler!
 		initKeyboardOSK(); //Start the OSK handler!
+		allocBIOSMenu(); //BIOS menu has the highest priority!
 	}
 }
 
@@ -93,8 +93,8 @@ void doneVideoMain() //Everything SDL POST-EMU!
 {
 	doneKeyboardOSK(); //Stop the OSK handler!
 	doneFramerate(); //Finish framerate!
-	done_GPURenderer(); //Finish up any rest rendering stuff!
 	freeBIOSMenu(); //We're done with the BIOS menu!
+	done_GPURenderer(); //Finish up any rest rendering stuff!
 }
 
 //Below is called during emulation itself!

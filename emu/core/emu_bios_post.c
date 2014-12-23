@@ -36,7 +36,7 @@ extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CP
 
 //Special flags for the BIOS POST loader!
 //To only debug text/graphic mode operations for now (and sleep after)?
-#define DEBUG_VGA_ONLY 0
+#define DEBUG_VGA_ONLY 1
 //Don't run the emulator?
 #define NOEMU 1
 //To debug files in the tests folder?

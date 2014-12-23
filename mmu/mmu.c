@@ -131,7 +131,7 @@ void MMU_directwb(uint_32 realaddress, byte value) //Direct write to real memory
 	}
 	if (LOG_MMU_WRITES) //Data debugging?
 	{
-		dolog("MMU","MMU: Writing to real %08X=%02X",realaddress,value);
+		dolog("debugger","MMU: Writing to real %08X=%02X",realaddress,value);
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	if (realaddress>user_memory_used) //More written than present in memory (first write to addr)?
@@ -262,7 +262,7 @@ void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
 	
 	if (LOG_MMU_WRITES) //Log MMU writes?
 	{
-		dolog("MMU","MMU: Write to %04X:%08X=%02X",segment,offset,val); //Log our written value!
+		dolog("debugger","MMU: Write to %04X:%08X=%02X",segment,offset,val); //Log our written value!
 	}
 
 	uint_32 realaddress;

@@ -22,20 +22,13 @@ byte pointersinitialised = 0; //Are the pointers already initialised?
 
 //Pointer registration/unregistration
 
-int allow_zallocfaillog = 1; //Allow zalloc fail log?
+byte allow_zallocfaillog = 1; //Allow zalloc fail log?
 uint_32 totalmemory_real; //Total memory present?
 
 void initZalloc() //Initialises the zalloc subsystem!
 {
 	if (pointersinitialised) return; //Don't do anything when we're ready already!
-	int i;
-	for (i=0;i<1024;i++)
-	{
-		registeredpointers[i].pointer = NULL; //Init!
-		registeredpointers[i].size = 0; //None!
-		bzero(registeredpointers[i].name,sizeof(registeredpointers[i].name));
-		registeredpointers[i].dealloc = NULL; //No deallocation function!
-	}
+	memset(&registeredpointers,0,sizeof(registeredpointers)); //Initialise all registered pointers!
 	pointersinitialised = 1; //We're ready to run!
 	totalmemory_real = freemem(); //Load total memory present!
 }
@@ -60,8 +53,8 @@ void logpointers() //Logs any changes in memory usage!
 		}
 	}
 	dolog("zalloc","End dump of allocated pointers.");
-	dolog("zalloc","Total memory detected: %i bytes; Free memory detected: %i bytes",total_memory,free_memory); //We're a full log!
-	dolog("zalloc","Total memory registered: %i bytes; Missing difference (total-detected): %i bytes",totalmemory_real,totalmemory_real-total_memory); //We're the difference info!
+	dolog("zalloc","Total memory detected: %i bytes; From which Free memory detected: %i bytes",total_memory,free_memory); //We're a full log!
+	dolog("zalloc","Actual memory registered during initialisation of memory module: %i bytes; Missing difference (detected compared to total): %i bytes",totalmemory_real,(int_32)total_memory-(int_32)totalmemory_real); //We're the difference info!
 }
 
 static void zalloc_free(void **ptr, uint_32 size) //Free a pointer (used internally only) allocated with nzalloc/zalloc!

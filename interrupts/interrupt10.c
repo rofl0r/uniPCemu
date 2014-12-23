@@ -29,7 +29,6 @@ Interrupt 10h: Video interrupt
 
 //Text screen height is always 25!
 
-VGA_Type *int10_VGA; //For direct VGA function access!
 extern GPU_type GPU; //GPU info&adjusting!
 extern byte LOG_VRAM_WRITES; //Log VRAM writes?
 
@@ -38,12 +37,6 @@ int int10loaded = 0; //Default: not loaded yet!
 //Screencontents: 0xB800:(row*0x0040:004A)+column*2)
 //Screencolorsfont: 0xB800:((row*0x0040:004A)+column*2)+1)
 //Screencolorsback: Same as font, high nibble!
-
-void int10_useVGA(VGA_Type *VGA)
-{
-	if (__HW_DISABLED) return; //Abort!
-	int10_VGA = VGA;
-}
 
 extern VideoModeBlock ModeList_VGA[63]; //VGA Modelist!
 extern VideoModeBlock *CurMode; //VGA Active Video Mode!
@@ -67,7 +60,7 @@ void GPU_setresolution(word mode) //Sets the resolution based on current video m
 
 	//Now all BIOS data!
 	//dolog("emu","Setting int10 video mode...");
-	INT10_Internal_SetVideoMode(int10_VGA,mode); //Switch video modes!
+	INT10_Internal_SetVideoMode(mode); //Switch video modes!
 	//dolog("emu","Setting scanlines...");
 	//EMU_CPU_setCursorScanlines(getcharacterheight(int10_VGA)-2,getcharacterheight(int10_VGA)-1); //Reset scanlines to bottom!
 }
@@ -354,6 +347,50 @@ void INT10_SetSinglePaletteRegister(Bit8u reg,Bit8u val) {
 	//}
 }
 
+void INT10_SetOverscanBorderColor(Bit8u val) {
+	/*switch (machine) {
+	case TANDY_ARCH_CASE:
+		IO_Read(VGAREG_TDY_RESET);
+		WriteTandyACTL(0x02,val);
+		break;
+	case EGAVGA_ARCH_CASE:*/
+		ResetACTL();
+		IO_Write(VGAREG_ACTL_ADDRESS,0x11);
+		IO_Write(VGAREG_ACTL_WRITE_DATA,val);
+		IO_Write(VGAREG_ACTL_ADDRESS,32);		//Enable output and protect palette
+	/*	break;
+	}*/
+}
+
+void INT10_SetAllPaletteRegisters(PhysPt data) {
+	/*switch (machine) {
+	case TANDY_ARCH_CASE:
+		IO_Read(VGAREG_TDY_RESET);
+		// First the colors
+		for(Bit8u i=0;i<0x10;i++) {
+			WriteTandyACTL(i+0x10,mem_readb(data));
+			data++;
+		}
+		// Then the border
+		WriteTandyACTL(0x02,mem_readb(data));
+		break;
+	case EGAVGA_ARCH_CASE:*/
+		ResetACTL();
+		// First the colors
+		Bit8u i;
+		for(i=0;i<0x10;i++) {
+			IO_Write(VGAREG_ACTL_ADDRESS,i);
+			IO_Write(VGAREG_ACTL_WRITE_DATA,phys_readb(data));
+			data++;
+		}
+		// Then the border
+		IO_Write(VGAREG_ACTL_ADDRESS,0x11);
+		IO_Write(VGAREG_ACTL_WRITE_DATA,phys_readb(data));
+		IO_Write(VGAREG_ACTL_ADDRESS,32);		//Enable output and protect palette
+		/*break;
+	}*/
+}
+
 void INT10_SetColorSelect(Bit8u val) {
 	if (__HW_DISABLED) return; //Abort!
 	Bit8u temp=real_readb(BIOSMEM_SEG,BIOSMEM_CURRENT_PAL);
@@ -398,6 +435,63 @@ void INT10_SetColorSelect(Bit8u val) {
 //	}
 }
 
+void INT10_ToggleBlinkingBit(Bit8u state) {
+	Bit8u value;
+//	state&=0x01;
+	//if ((state>1) && (svgaCard==SVGA_S3Trio)) return;
+	ResetACTL();
+	
+	IO_Write(VGAREG_ACTL_ADDRESS,0x10);
+	value=IO_Read(VGAREG_ACTL_READ_DATA);
+	if (state<=1) {
+		value&=0xf7;
+		value|=state<<3;
+	}
+
+	ResetACTL();
+	IO_Write(VGAREG_ACTL_ADDRESS,0x10);
+	IO_Write(VGAREG_ACTL_WRITE_DATA,value);
+	IO_Write(VGAREG_ACTL_ADDRESS,32);		//Enable output and protect palette
+
+	if (state<=1) {
+		Bit8u msrval=real_readb(BIOSMEM_SEG,BIOSMEM_CURRENT_MSR)&0xdf;
+		if (state) msrval|=0x20;
+		real_writeb(BIOSMEM_SEG,BIOSMEM_CURRENT_MSR,msrval);
+	}
+}
+
+void INT10_GetSinglePaletteRegister(Bit8u reg,Bit8u * val) {
+	if(reg<=ACTL_MAX_REG) {
+		ResetACTL();
+		IO_Write(VGAREG_ACTL_ADDRESS,reg+32);
+		*val=IO_Read(VGAREG_ACTL_READ_DATA);
+		IO_Write(VGAREG_ACTL_WRITE_DATA,*val);
+	}
+}
+
+void INT10_GetOverscanBorderColor(Bit8u * val) {
+	ResetACTL();
+	IO_Write(VGAREG_ACTL_ADDRESS,0x11+32);
+	*val=IO_Read(VGAREG_ACTL_READ_DATA);
+	IO_Write(VGAREG_ACTL_WRITE_DATA,*val);
+}
+
+void INT10_GetAllPaletteRegisters(PhysPt data) {
+	ResetACTL();
+	// First the colors
+	Bit8u i;
+	for(i=0;i<0x10;i++) {
+		IO_Write(VGAREG_ACTL_ADDRESS,i);
+		phys_writeb(data,IO_Read(VGAREG_ACTL_READ_DATA));
+		ResetACTL();
+		data++;
+	}
+	// Then the border
+	IO_Write(VGAREG_ACTL_ADDRESS,0x11+32);
+	phys_writeb(data,IO_Read(VGAREG_ACTL_READ_DATA));
+	ResetACTL();
+}
+
 void updateCursorLocation()
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -437,8 +531,6 @@ void EMU_CPU_setCursorScanlines(byte start, byte end)
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_TYPE,start); //Set start line!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_TYPE+1,end); //Set end line!
 
-	/*int10_VGA->registers->CRTControllerRegisters.DATA[0xA] = start;
-	int10_VGA->registers->CRTControllerRegisters.DATA[0xB] = end;*/
 	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
 	PORT_OUT_B(0x3D4,0xA); //Select start register!
 	PORT_OUT_B(0x3D5,start); //Start!
@@ -572,8 +664,14 @@ void emu_setactivedisplaypage(byte page) //Set active display page!
 	MMU_ww(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,page*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0)); //Display page offset!
 //Now for the VGA!
 
-	int10_VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = ((MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)>>8)&0xFF); //High!
-	int10_VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER = (MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)&0xFF); //Low!
+	//int10_VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = ((MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)>>8)&0xFF); //High!
+	//int10_VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER = (MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)&0xFF); //Low!
+	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
+	PORT_OUT_B(0x3D4,0xE); //Select high register!
+	PORT_OUT_B(0x3D5,((MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)>>8)&0xFF));  //High!
+	PORT_OUT_B(0x3D4,0xF); //Select low register!
+	PORT_OUT_B(0x3D5,(MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)&0xFF)); //Low!
+	PORT_OUT_B(0x3D4,oldcrtc); //Restore old CRTC register!
 }
 
 byte emu_getdisplaypage()
@@ -693,6 +791,105 @@ void int10_LoadFontSystem(byte *data, //font in dosbox!
 	if (__HW_DISABLED) return; //Abort!
 	VGALoadCharTable(getActiveVGA(),getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine+1,0x0000); //Reload the font at 0x0000!
 }*/ //Seperate!
+
+void INT10_SetSingleDacRegister(Bit8u index,Bit8u red,Bit8u green,Bit8u blue) {
+	IO_Write(VGAREG_DAC_WRITE_ADDRESS,(Bit8u)index);
+	IO_Write(VGAREG_DAC_DATA,red);
+	IO_Write(VGAREG_DAC_DATA,green);
+	IO_Write(VGAREG_DAC_DATA,blue);
+}
+
+void INT10_GetSingleDacRegister(Bit8u index,Bit8u * red,Bit8u * green,Bit8u * blue) {
+	IO_Write(VGAREG_DAC_READ_ADDRESS,index);
+	*red=IO_Read(VGAREG_DAC_DATA);
+	*green=IO_Read(VGAREG_DAC_DATA);
+	*blue=IO_Read(VGAREG_DAC_DATA);
+}
+
+void INT10_SetDACBlock(Bit16u index,Bit16u count,PhysPt data) {
+ 	IO_Write(VGAREG_DAC_WRITE_ADDRESS,(Bit8u)index);
+	for (;count>0;count--) {
+		IO_Write(VGAREG_DAC_DATA,phys_readb(data++));
+		IO_Write(VGAREG_DAC_DATA,phys_readb(data++));
+		IO_Write(VGAREG_DAC_DATA,phys_readb(data++));
+	}
+}
+
+void INT10_GetDACBlock(Bit16u index,Bit16u count,PhysPt data) {
+ 	IO_Write(VGAREG_DAC_READ_ADDRESS,(Bit8u)index);
+	for (;count>0;count--) {
+		phys_writeb(data++,IO_Read(VGAREG_DAC_DATA));
+		phys_writeb(data++,IO_Read(VGAREG_DAC_DATA));
+		phys_writeb(data++,IO_Read(VGAREG_DAC_DATA));
+	}
+}
+
+void INT10_SelectDACPage(Bit8u function,Bit8u mode) {
+	ResetACTL();
+	IO_Write(VGAREG_ACTL_ADDRESS,0x10);
+	Bit8u old10=IO_Read(VGAREG_ACTL_READ_DATA);
+	if (!function) {		//Select paging mode
+		if (mode) old10|=0x80;
+		else old10&=0x7f;
+		//IO_Write(VGAREG_ACTL_ADDRESS,0x10);
+		IO_Write(VGAREG_ACTL_WRITE_DATA,old10);
+	} else {				//Select page
+		IO_Write(VGAREG_ACTL_WRITE_DATA,old10);
+		if (!(old10 & 0x80)) mode<<=2;
+		mode&=0xf;
+		IO_Write(VGAREG_ACTL_ADDRESS,0x14);
+		IO_Write(VGAREG_ACTL_WRITE_DATA,mode);
+	}
+	IO_Write(VGAREG_ACTL_ADDRESS,32);		//Enable output and protect palette
+}
+
+void INT10_GetDACPage(Bit8u* mode,Bit8u* page) {
+	ResetACTL();
+	IO_Write(VGAREG_ACTL_ADDRESS,0x10);
+	Bit8u reg10=IO_Read(VGAREG_ACTL_READ_DATA);
+	IO_Write(VGAREG_ACTL_WRITE_DATA,reg10);
+	*mode=(reg10&0x80)?0x01:0x00;
+	IO_Write(VGAREG_ACTL_ADDRESS,0x14);
+	*page=IO_Read(VGAREG_ACTL_READ_DATA);
+	IO_Write(VGAREG_ACTL_WRITE_DATA,*page);
+	if(*mode) {
+		*page&=0xf;
+	} else {
+		*page&=0xc;
+		*page>>=2;
+	}
+}
+
+void INT10_SetPelMask(Bit8u mask) {
+	IO_Write(VGAREG_PEL_MASK,mask);
+}	
+
+void INT10_GetPelMask(Bit8u *mask) {
+	*mask=IO_Read(VGAREG_PEL_MASK);
+}	
+
+void INT10_SetBackgroundBorder(Bit8u val) {
+	Bit8u temp=real_readb(BIOSMEM_SEG,BIOSMEM_CURRENT_PAL);
+	temp=(temp & 0xe0) | (val & 0x1f);
+	real_writeb(BIOSMEM_SEG,BIOSMEM_CURRENT_PAL,temp);
+	/*if (machine == MCH_CGA || IS_TANDY_ARCH)
+		IO_Write(0x3d9,temp);
+	else if (IS_EGAVGA_ARCH) {*/
+		val = ((val << 1) & 0x10) | (val & 0x7);
+		/* Aways set the overscan color */
+		INT10_SetSinglePaletteRegister( 0x11, val );
+		/* Don't set any extra colors when in text mode */
+		if (CurMode->mode <= 3)
+			return;
+		INT10_SetSinglePaletteRegister( 0, val );
+		val = (temp & 0x10) | 2 | ((temp & 0x20) >> 5);
+		INT10_SetSinglePaletteRegister( 1, val );
+		val+=2;
+		INT10_SetSinglePaletteRegister( 2, val );
+		val+=2;
+		INT10_SetSinglePaletteRegister( 3, val );
+	//}
+}
 
 
 
@@ -921,8 +1118,6 @@ void int10_WriteCharOnlyAtCursor()
 	}
 }
 
-
-
 void int10_SetBackColor() //AH=0B BH=00h
 {
 	/*
@@ -1132,35 +1327,24 @@ void int10_WriteString()
 	}
 }
 
-
+void int10_updatePalette(byte what, byte value)
+{
+}
 
 //Extra: EGA/VGA functions:
 
 void int10_Pallette() //AH=10h,AL=subfunc
 {
-    byte index; //Index of the pallette!
-    byte data[17]; //Full data for the list!
 	switch (AL) //Subfunc?
 	{
 	case 0x00: //Set one pallette register?
-            int10_VGA->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[BL&0xF].DATA = BH; //Set palette register!
-            VGA_calcprecalcs(int10_VGA,WHEREUPDATED_ATTRIBUTECONTROLLER|(BL&0xF)); //Update precalcs!
+            int10_updatePalette(BL&0xF,BH); //Set palette register!
             break;
 	case 0x01: //Set overscan/border color?
-            int10_VGA->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = BH; //Set!
+			int10_updatePalette(0x11,BH); //Set!
             break;
 	case 0x02: //Set all pallette registers&border color?
             //ES:DX=List (byte 0-15=Pallete registers, 16=Border color register))
-            for (index=0;index<18;index++)
-            {
-                data[index] = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,ES,DX+index,0); //Move to our buffer!
-            }
-            for (index=0;index<=0x10;index++) //Process all!
-            {
-                int10_VGA->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[BL&0xF].DATA = data[index]; //Set palette register!
-            }
-            int10_VGA->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = data[0x10]; //Set!
-            VGA_calcprecalcs(int10_VGA,WHEREUPDATED_ATTRIBUTECONTROLLER); //Update full attribute precalcs!
             break;
 	case 0x03: //Select foreground blink or bold background?
 	case 0x07: //Read one palette register?
@@ -1169,13 +1353,6 @@ void int10_Pallette() //AH=10h,AL=subfunc
 			AL = 0; //Unknown command!
             break;
 	case 0x10: //Set one DAC color register?
-                {
-                    DACEntry entry;
-                    entry.r = DH;
-                    entry.g = CH;
-                    entry.b = CL;
-                    writeDAC(int10_VGA,(BX&0xFF),&entry); //Write the entry!
-                }
             break;
 	case 0x12: //Set block of DAC color registers?
 	case 0x13: //DAC color paging functions?
@@ -1253,11 +1430,11 @@ void int10_SpecialFunctions() //AH=12h
 		{
 		case 0x00: //Enable refresh?
 			AH = 0x12; //Correct!
-			int10_VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable = 0; //bit 5 of VGA's Sequencer Clocking mode Register off for enable!
+			//int10_VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable = 0; //bit 5 of VGA's Sequencer Clocking mode Register off for enable!
 			break;
 		case 0x01: //Disable refresh?
 			AH = 0x12; //Correct!
-			int10_VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable = 1; //bit 5 of VGA's Sequencer Clocking mode Register on for disable!
+			//int10_VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable = 1; //bit 5 of VGA's Sequencer Clocking mode Register on for disable!
 			break;
 		default: //Unknown status?
 			AH = 0; //Error: unknown data?
@@ -1432,7 +1609,7 @@ void init_int10() //Initialises int10&VGA for usage!
 	
 	INT10_SetupRomMemory(); //Initialise the VGA ROM memory if not initialised yet!
 	
-	int10_VGA = getActiveVGA(); //Use the active VGA for int10 by default!
+	//int10_VGA = getActiveVGA(); //Use the active VGA for int10 by default!
 	
 //Initialise variables!
 	//dolog("int10","Switching video mode to mode #0...");

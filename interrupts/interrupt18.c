@@ -23,6 +23,6 @@ void BIOS_int18()
 		delay(10000); //See above!
 	}
 	EMU_startInput(); //Start input again!
-	MMU_ww(CPU_segment_index(CPU_SEGMENT_DS),0x0000,0x0472,0x1234); //Try and reboot!
+	MMU_ww(CPU_segment_index(CPU_SEGMENT_DS),0x0040,0x0072,0x1234); //Try and reboot!
 	CPU_INT(0x19); //Load bootstrap!
 }

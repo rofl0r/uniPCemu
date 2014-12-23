@@ -148,14 +148,6 @@ void CPU_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	//rest is unset or unused!
 }
 
-void doneCPU() //Finish the CPU!
-{
-	if (CPU.registers) //Registered?
-	{
-		freez((void **)&CPU.registers,sizeof(*CPU.registers),"CPU_REGISTERS"); //Release the registers if needed!
-	}
-}
-
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h
 
 byte CPU_readOP() //Reads the operation (byte) at CS:EIP
@@ -322,16 +314,34 @@ byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	return OP; //Give the OPCode!
 }
 
+void alloc_CPUregisters()
+{
+	CPU.registers = zalloc(sizeof(*CPU.registers),"CPU_REGISTERS"); //Allocate the registers!
+	if (!CPU.registers)
+	{
+		raiseError("CPU","Failed to allocate the required registers!");
+	}
+}
+
+void free_CPUregisters()
+{
+	if (CPU.registers) //Still allocated?
+	{
+		freez((void **)&CPU.registers,sizeof(*CPU.registers),"CPU_REGISTERS"); //Release the registers if needed!
+		dolog("zalloc","CPU: initregisters called. Allocated registers/zalloc:");
+		logpointers(); //Log all pointers registered atm!
+	}
+}
+
 void CPU_initRegisters() //Init the registers!
 {
 	static byte CSAccessRights = 0x93; //Default CS access rights, overwritten during first software reset!
 	if (CPU.registers) //Already allocated?
 	{
 		CSAccessRights = CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights; //Save old CS acccess rights to use now (after first reset)!
-		freez((void **)&CPU.registers,sizeof(*CPU.registers),"CPU_REGISTERS"); //Release the registers if needed!
-		logpointers(); //Log all pointers registered atm!
+		free_CPUregisters(); //Free the CPU registers!
 	}
-	CPU.registers = zalloc(sizeof(*CPU.registers),"CPU_REGISTERS"); //Allocate the registers!
+	alloc_CPUregisters(); //Allocate the CPU registers!
 
 	//Calculation registers
 	CPU.registers->EAX = 0;
@@ -420,6 +430,11 @@ void CPU_initRegisters() //Init the registers!
 		CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF;
 		CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0xFF;
 	}
+}
+
+void doneCPU() //Finish the CPU!
+{
+	free_CPUregisters(); //Finish the allocated registers!
 }
 
 //Specs for 80386 says we start in REAL mode!

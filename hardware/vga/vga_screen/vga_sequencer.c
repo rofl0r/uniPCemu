@@ -16,6 +16,9 @@
 extern GPU_type GPU; //GPU!
 extern VGA_Type *ActiveVGA; //Active VGA!
 
+//Are we disabled?
+#define HW_DISABLED 1
+
 //Free time rendering pixels to the sound engine?
 //#define FREE_PIXELTIME
 //Debug total pixel speed?
@@ -545,6 +548,7 @@ void initStateHandlers()
 
 void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 {
+	if (HW_DISABLED) return;
 	SEQ_DATA *Sequencer;
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
 

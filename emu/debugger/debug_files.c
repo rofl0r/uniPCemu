@@ -48,6 +48,7 @@ void DoDebugFiles() //Do the debug files!
 		{
 			GPU_EMU_printscreen(0,GPU_ROWS-1,"Verifying %s...",file_name);
 			dolog("ROM_log","Start verifying %s!",file_name); //Start!
+			refreshscreen(); //Update the screen now!
 			int verified = 0;
 			verified = runromverify(file_name,file_nameres); //Verified?
 			if (verified)
@@ -66,6 +67,7 @@ void DoDebugFiles() //Do the debug files!
 				dolog("ROM_log","%s has gone wrong!",file_name);
 				sleep();
 			}
+			refreshscreen(); //Update the screen now!
 		} //Not a result file?
 	}
 	closedir(dir); //Close the directory!
@@ -73,6 +75,7 @@ void DoDebugFiles() //Do the debug files!
 	dolog("ROM_log","END OF VERIFICATION PROCEDURE!"); //End!
 
 	GPU_EMU_printscreen(0,GPU_ROWS-1,"Verification complete!");
+	refreshscreen(); //Update the screen now!
 	halt(); //Quit if possible!
 	sleep(); //Wait forever with the emulator active!
 }

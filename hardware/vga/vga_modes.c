@@ -286,20 +286,3 @@ byte colorregs_default[256][3] =
 	{0x0B,0x0B,0x10}, {0x0C,0x0B,0x10}, {0x0D,0x0B,0x10}, {0x0F,0x0B,0x10}, {0x10,0x0B,0x10}, {0x10,0x0B,0x0F}, {0x10,0x0B,0x0D}, {0x10,0x0B,0x0C}, {0x10,0x0B,0x0B}, {0x10,0x0C,0x0B}, {0x10,0x0D,0x0B}, {0x10,0x0F,0x0B}, {0x10,0x10,0x0B}, {0x0F,0x10,0x0B}, {0x0D,0x10,0x0B}, {0x0C,0x10,0x0B},
 	{0x0B,0x10,0x0B}, {0x0B,0x10,0x0C}, {0x0B,0x10,0x0D}, {0x0B,0x10,0x0F}, {0x0B,0x10,0x10}, {0x0B,0x0F,0x10}, {0x0B,0x0D,0x10}, {0x0B,0x0C,0x10}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, {0x00,0x00,0x00}
 };
-
-void VGA_LoadVideoMode(byte mode) //Load a video mode from the predefined modes.
-{
-	memcpy(&ActiveVGA->registers->GraphicsRegisters.DATA,&VGA_GraphRegs[mode],sizeof(VGA_GraphRegs[0])); //Load Graph Regs!
-	memcpy(&ActiveVGA->registers->SequencerRegisters.DATA,&VGA_Sequencerregs[mode],sizeof(VGA_Sequencerregs[0])); //Load Sequencer Registers!
-	memcpy(&ActiveVGA->registers->AttributeControllerRegisters.DATA,&VGA_AttributeControllerRegs[mode],sizeof(VGA_AttributeControllerRegs[0])); //Attribute Controller Registers!
-	memcpy(&ActiveVGA->registers->CRTControllerRegisters.DATA,&VGA_CRTControllerRegs[mode],sizeof(VGA_CRTControllerRegs[0])); //CRT Controller Registers!
-
-	ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = VGA_DACAddressWriteModeReg[mode]; //DAC Address Write Mode Register!
-	ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_DATA_REGISTER = VGA_DACAddressDataReg[mode]; //DAC ADdress Data Register!
-	ActiveVGA->registers->ColorRegisters.DAC_STATE_REGISTER.DATA = VGA_DACAddressStateReg[mode]; //DAC Address State Register!
-
-	ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA = VGA_MiscOutputReg[mode]; //Misc. Output Register!
-	ActiveVGA->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA = VGA_FeatureControlRegister[mode]; //Feature Control Register!
-	ActiveVGA->registers->ExternalRegisters.INPUTSTATUS0REGISTER.DATA = VGA_InputStatusRegister0[mode]; //Input Status Register #0!
-	ActiveVGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA = VGA_InputStatusRegister1[mode]; //Input Status Register #1!
-}

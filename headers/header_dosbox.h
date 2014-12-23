@@ -266,4 +266,10 @@ Our own switch function!
 
 void switchvideomode(word mode); //For DOSBox way!
 
+//Phys/Real pointer support
+void phys_writew(PhysPt ptr, word val);
+void phys_writeb(PhysPt ptr, byte val);
+byte phys_readb(PhysPt ptr);
+void RealSetVec(byte interrupt, word segment, word offset);
+
 #endif

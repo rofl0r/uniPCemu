@@ -22,6 +22,7 @@ extern byte cpudebugger; //To debug the CPU?
 extern PSP_TEXTSURFACE *frameratesurface;
 
 extern byte allow_RETHalt; //Allow RET(level<0)=HALT?
+extern byte LOG_MMU_WRITES; //Log MMU writes?
 
 int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 {
@@ -88,6 +89,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	uint_32 erroraddr16 = 0x00000000; //16-bit segment:offset pair.
 	BIOS_registerROM(); //Register the BIOS ROM!
 	dolog("debugger","Starting debugging file %s",filename); //Log the file we're going to test!
+	LOG_MMU_WRITES = 1; //Enable logging!
 	for (;!CPU.halt;) //Still running?
 	{
 		if (CPU.registers->SFLAGS.IF && PICInterrupt()) CPU8086_hardware_int(nextintr(),0,0); //get next interrupt from the i8259, if any
@@ -106,7 +108,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		debugger_step(); //Step debugger if needed!
 		CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 	} //Main debug CPU loop!
-
+	LOG_MMU_WRITES = 0; //Disable logging!
 
 	if (CPU.halt) //HLT Received?
 	{

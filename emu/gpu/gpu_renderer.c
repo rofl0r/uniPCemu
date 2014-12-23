@@ -13,11 +13,8 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
-//To render VGA input?
-#define RENDER_EMU 1
-
 //Allow HW rendering? (VGA or other hardware)
-#define ALLOW_HWRENDERING
+#define ALLOW_HWRENDERING 1
 
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS Settings!
 
@@ -299,7 +296,7 @@ static void render_EMU_buffer() //Render the EMU to the buffer!
 	{
 		//Move entire emulator buffer to the rendering buffer when needed (updated)!
 		
-		if (GPU.emu_buffer_dirty && RENDER_EMU) //Dirty = to render again, if allowed!
+		if (GPU.emu_buffer_dirty) //Dirty = to render again, if allowed!
 		{
 			GPU_finishRenderer(); //Done with the resizing!
 			//First, init&fill emu_screen data!
@@ -363,7 +360,8 @@ void renderHWFrame() //Render a frame from hardware!
 	if (GPU_is_rendering) return; //Don't render multiple frames at the same time!
 	GPU_is_rendering = 1; //We're rendering, so block other renderers!
 
-	#ifdef ALLOW_HWRENDERING
+	if (ALLOW_HWRENDERING)
+	{
 		init_rowempty(); //Init empty row!
 		//Start the rendering!
 		if (!VIDEO_DIRECT) //To do scaled mapping to the screen?
@@ -379,7 +377,7 @@ void renderHWFrame() //Render a frame from hardware!
 			writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),GPU.xres,GPU.yres,GPU.doublewidth,GPU.doubleheight,EMU_MAX_X); //Dump our raw screen!
 			SCREEN_CAPTURE = 0; //No more captures!
 		}
-	#endif
+	}
 	
 	GPU_FrameRendered(); //A frame has been rendered, so update our stats!
 	GPU_is_rendering = 0; //We're not rendering anymore!

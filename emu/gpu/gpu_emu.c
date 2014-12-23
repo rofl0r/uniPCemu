@@ -87,7 +87,7 @@ void GPU_EMU_printscreen(int x, int y, char *text, ...) //Direct text output (fr
 	va_start (args, text); //Start list!
 	vsprintf (buffer, text, args); //Compile list!
 	
-	if (x==-1 && y==-1) //Dynamic coordinates?
+	if ((x==-1) && (y==-1)) //Dynamic coordinates?
 	{
 		EMU_gotoxy(emu_x,emu_y); //Continue at emu coordinates!
 	}

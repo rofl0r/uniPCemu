@@ -13,7 +13,11 @@ byte is_paging()
 	{
 		return 0; //Not paging in REAL mode!
 	}
-	return CPU.registers->CR0.PG; //Are we paging!
+	if (CPU.registers) //Gotten registers?
+	{
+		return CPU.registers->CR0.PG; //Are we paging!
+	}
+	return 0; //Not paging: we don't have registers!
 }
 
 union
@@ -60,7 +64,7 @@ byte getUserLevel(byte CPL)
 
 void PF(uint_32 address, word flags)
 {
-	if (!(flags&1)) //Not present?
+	if (!(flags&1) && CPU.registers) //Not present?
 	{
 		CPU.registers->CR2 = address; //Fill CR2 with the address cause!
 	}
@@ -84,6 +88,7 @@ byte verifyCPL(byte iswrite, byte userlevel, byte RW, byte US) //userlevel=CPL o
 
 int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging without error? userlevel=CPL usually.
 {
+	if (!CPU.registers) return 0; //No registers available!
 	word DIR = (address>>22)&0x3FF; //The directory entry!
 	word TABLE = (address>>12)&0x3FF; //The table entry!
 	

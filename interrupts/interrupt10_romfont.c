@@ -18,19 +18,18 @@ void MEM_BlockCopy(word segment, word offset, word fontseg, word fontoffs, Bitu 
 	}
 }
 
-void phys_writew(PhysPt ptr, word val)
-{
-	if (!ptr) return;
-	word *ptr2 = (word *)ptr;
-	*ptr2 = val; //write!
-}
-
-void phys_writeb(PhysPt ptr, word val)
+void phys_writeb(PhysPt ptr, byte val)
 {
 	if (!ptr) return;
 	//*ptr = val; //Write!
 	uint_32 RealPt = Phys2Real(ptr); //Convert to real pointer!
 	mem_writeb(RealPt,val); //Write to memory normally!
+}
+
+void phys_writew(PhysPt ptr, word val)
+{
+	phys_writeb(ptr++,val&0xFF); //Low
+	phys_writeb(ptr,(val>>8)&0xFF); //High
 }
 
 byte phys_readb(PhysPt ptr)

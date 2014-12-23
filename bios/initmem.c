@@ -107,7 +107,7 @@ void initMEM() //Initialise memory for reset!
 
 	BDA->Equipment.ParallelPorts = 0; //Ammount!
 	BDA->Equipment.SerialPorts = 0; //Ammount!
-	BDA->Equipment.FloppyDrives = 1; //Ammount: 1 or 2!
+	BDA->Equipment.FloppyDrives = 1; //Ammount: 1(0b) or 2(1b) floppy drives installed!
 	BDA->Equipment.VideoMode = 0; //0: EGA+; 1=color 40x25; 2=color 80x25; 3=mono 80x25
 	BDA->Equipment.PS2MouseInstalled = 0; //PS/2 mouse installed?
 	BDA->Equipment.MathCOProcessorInstalled = 0; //Math CO-OP installed?
@@ -115,7 +115,7 @@ void initMEM() //Initialise memory for reset!
 
 	BDA->IF_ManufacturingTest = 0; //IF - Manufacturing test
 
-	BDA->MemorySize_KB = ((MEMsize()/1024)>=0xFFFF)?0xFFFF:(MEMsize()/1024); //MMU size in KB!
+	BDA->MemorySize_KB = ((MEMsize()>>10)>=0xFFFF)?0xFFFF:(MEMsize()/1024); //MMU size in KB!
 
 	BDA->ErrorCodes_AdapterMemorySizePCXT = 0; //Error coes for AT+; Adapter memory size for PC&XT
 
