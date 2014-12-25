@@ -33,81 +33,90 @@ OPTINLINE byte getattributefont(byte attr)
 
 OPTINLINE byte getattributeback(byte attr,byte filter)
 {
-	return ((attr>>4)&filter); //Need attribute registers below used!
+	byte temp = attr;
+	temp >>= 4; //Shift!
+	temp &= filter; //Apply filter!
+	return temp; //Need attribute registers below used!
 }
 
 //This is a slow function:
 OPTINLINE byte getColorPlaneEnableMask(VGA_Type *VGA, VGA_AttributeInfo *Sequencer_attributeinfo) //Determine the bits to process!
 {
-	byte result=0; //Init result!
-	byte bit=0; //Init bit!
-	byte bitval=1; //Our bit value!
-	byte bitplane;
-	uint_32 colorplanes = Sequencer_attributeinfo->attributesource; //What's our source?
-	byte enableplanes = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA; //What planes to enable?
+	register byte result=0; //Init result!
+	register byte bitval=1; //Our bit value!
+	register uint_32 bitplane;
+	register uint_32 colorplanes = Sequencer_attributeinfo->attributesource; //What's our source?
+	register uint_32 enableplanes = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA; //What planes to enable?
 	enableplanes &= 0xF; //Only the low 4 bits are used!
-	nextbit:
+	for (;;) //Loop bits!
+	{
 		bitplane = colorplanes; //The color planes, low byte!
 		bitplane &= 0xF; //Only the low 4 bits are used!
 		if ((bitplane&enableplanes)==bitplane) //Planes all valid for this bit?
 		{
 			result |= bitval; //Enable the bit!
 		}
-		if (++bit&8) return result; //Done!
+		if (bitval==0x80) return result; //Done!
 		bitval <<= 1; //Shift bit to next bit value!
 		colorplanes >>= 4; //Shift to next bit planes!
-		goto nextbit; //Process next bit!
+	}
 }
 
 //Dependant on mode control register and underline location register
 void VGA_AttributeController_calcPixels(VGA_Type *VGA)
 {
-	byte processpixel, charinnery, currentblink;
-	int DACIndex; //This changes!
+	byte pixelon, charinnery, currentblink;
+	int Attribute; //This changes!
 	
-	byte enableblink=0;
-	enableblink = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable; //Enable blink?	
+	byte enableblink = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable; //Enable blink?	
 	
-	byte underlinelocation=0;
-	underlinelocation = VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation; //Underline location!	
+	byte underlinelocation = VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation; //Underline location!	
 	
 	byte graphicsdisabled;
 	graphicsdisabled = !VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable; //Text mode?
 
-	byte *processpixelprecalcs;
-	processpixelprecalcs = &VGA->precalcs.processpixelprecalcs[0]; //The pixel precalcs!	
+	byte *processpixelprecalcs = &VGA->precalcs.processpixelprecalcs[0]; //The pixel precalcs!	
 	
-	for (processpixel=0;processpixel<2;processpixel++) //All values of processpixel!
+	for (pixelon=0;pixelon<2;pixelon++) //All values of pixelon!
 	{
 		for (currentblink=0;currentblink<2;currentblink++) //All values of currentblink!
 		{
-			for (charinnery=0;charinnery<32;charinnery++)
+			for (charinnery=0;charinnery<0x20;charinnery++)
 			{
-				for (DACIndex=0;DACIndex<256;DACIndex++)
+				for (Attribute=0;Attribute<0x100;Attribute++)
 				{
-					byte allowfont = 1; //Allow font color? Default: yes!
+					byte fontstatus = pixelon; //What font status? By default this is the font/back status!
 					//Blinking capability!
-					if (enableblink) //Enable blink affects allowfont?
-					{
-						allowfont = currentblink; //To enable using blink, else force disabled?
-						if (DACIndex&0x80) //Blink enabled?
-						{
-							processpixel &= allowfont; //Need blink on to show!
-						}
-					}
 					
 					//Underline capability!
-					if (!processpixel && graphicsdisabled) //Not already foreground and allowed to check for underline?
+					if (!fontstatus) //Not already foreground?
 					{
-						if (charinnery==underlinelocation) //Underline (Non-graphics mode only)?
+						if ((charinnery==underlinelocation) && graphicsdisabled) //Underline (Non-graphics mode only)?
 						{
-							if ((DACIndex&0x73)==1) //Underline?
+							if ((Attribute&0x73)==0x01) //Underline?
 							{
-								processpixel = allowfont; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
+								fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
 							}
 						}
 					}
-					processpixelprecalcs[(DACIndex<<7)|(currentblink<<6)|(charinnery<<1)|processpixel] = processpixel; //Our result for this combination!
+					
+					if (enableblink) //Blink affects font?
+					{
+						if (Attribute&0x80) //Blink enabled?
+						{
+							fontstatus &= currentblink; //Need blink on to show!
+						}
+					}
+					
+					uint_32 pos = Attribute;
+					pos <<= 5; //Create room!
+					pos |= charinnery; //Add!
+					pos <<= 1; //Create room!
+					pos |= currentblink;
+					pos <<= 1; //Create room!
+					pos |= pixelon;
+					//attribute,charinnery,currentblink,pixelon: 8,5,1,1: Less shifting at a time=More speed!
+					processpixelprecalcs[pos] = fontstatus; //Our result for this combination!
 				}
 			}
 		}
@@ -141,21 +150,21 @@ void VGA_AttributeController_calcColorLogic(VGA_Type *VGA)
 	byte *colorlogicprecalcs;
 	colorlogicprecalcs = &VGA->precalcs.colorlogicprecalcs[0]; //The color logic precalcs!	
 	
-	int DACIndex;
-	byte processpixel;
-	for (processpixel=0;processpixel<2;processpixel++)
+	word Attribute;
+	byte pixelon;
+	for (pixelon=0;pixelon<2;pixelon++)
 	{
-		for (DACIndex=0;DACIndex<256;DACIndex++)
+		for (Attribute=0;Attribute<0x100;Attribute++)
 		{
 			byte CurrentDAC;
 			//Determine pixel font or back color to PAL index!
-			if (processpixel)
+			if (pixelon)
 			{
-				CurrentDAC = getattributefont(DACIndex); //Font!
+				CurrentDAC = getattributefont(Attribute); //Font!
 			}
 			else
 			{
-				CurrentDAC = getattributeback(DACIndex,backgroundfilter); //Back!
+				CurrentDAC = getattributeback(Attribute,backgroundfilter); //Back!
 			}
 
 			if (palletteenable) //Internal palette enable?
@@ -175,51 +184,44 @@ void VGA_AttributeController_calcColorLogic(VGA_Type *VGA)
 				//Finally, bit 6&7 always processing!
 				CurrentDAC |= colorselect76; //Apply bits 6&7!
 			}
-			colorlogicprecalcs[(DACIndex<<1)|processpixel] = CurrentDAC; //Save the translated value!
+			uint_32 pos = Attribute; //Attribute!
+			pos <<= 1; //Make room!
+			pos |= pixelon; //Pixel on?
+			colorlogicprecalcs[pos] = CurrentDAC; //Save the translated value!
 		}
 	}
 }
 
 //Translate 4-bit or 8-bit color to 256 color DAC Index through palette!
-OPTINLINE void VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, word Sequencer_x, word Screenx, word Screeny) //Process attribute to DAC index!
+OPTINLINE void VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA) //Process attribute to DAC index!
 {
 	//Originally: VGA_Type *VGA, word Scanline, word x, VGA_AttributeInfo *info
 
 	//Our changing variables that are required!
-	word y=0;
 	if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit) //Attribute controller disabled?
 	{
 		return; //Take raw!
 	}
 
-	byte defaultDAC = Sequencer_attributeinfo->attribute; //Default DAC index!
-	
-	word pixellookup = defaultDAC;
-	pixellookup <<= 1; //Make room for 1 bit!
-	pixellookup |= VGA->TextBlinkOn;
-	pixellookup <<= 5; //Make room for 5 bits!
 	//pixellookup |= Sequencer_attributeinfo.charinnery; //Don't do this? Always 0 by default (processed by the current row)?
 	
 	//Now, process all pixels!
 	//First, process attribute!
-	byte processpixel = VGA->CurrentScanLine[y]; //The pixel to process: font(1) or back(0)!
+	register uint_32 lookup = Sequencer_attributeinfo->attribute;
+	lookup <<= 5; //Make room!
+	lookup |= Sequencer_attributeinfo->charinner_y;
+	lookup <<= 1; //Make room!
+	lookup |= VGA->TextBlinkOn; //Blink!
+	lookup <<= 1; //Make room for the pixelon!
+	lookup |= Sequencer_attributeinfo->fontpixel; //Generate the lookup value!
+	lookup = VGA->precalcs.processpixelprecalcs[lookup]; //Look our pixel font/back up!
 	
-	word lookup;
-	lookup = pixellookup; //Load defaults!
-	lookup += y; //Add the current row for the final row!
-	lookup <<= 1; //Make room for the processpixel!
-	lookup |= processpixel; //Generate the lookup value!
-	processpixel = VGA->precalcs.processpixelprecalcs[lookup]; //Look our pixel font/back up!
-	
-	byte DACIndex; //Current DAC Index from 256-color by default!
-	DACIndex = defaultDAC; //Load DAC defaults!
-	DACIndex &= getColorPlaneEnableMask(VGA,Sequencer_attributeinfo); //Mask color planes off if needed!
-	
-	DACIndex <<= 1; //Make room for the processpixel!
-	DACIndex |= processpixel; //Generate the DAC Index lookup!
-	DACIndex = VGA->precalcs.colorlogicprecalcs[DACIndex]; //Look the DAC Index up!
+	register uint_32 Attribute; //Current DAC Index from 256-color by default!
+	Attribute = Sequencer_attributeinfo->attribute; //Load DAC defaults!
+	Attribute &= getColorPlaneEnableMask(VGA,Sequencer_attributeinfo); //Mask color planes off if needed!
+	Attribute <<= 1; //Make room for the active pixel!
+	Attribute |= lookup; //Generate the DAC Index lookup using the information plus On/Off information!
+	Sequencer_attributeinfo->attribute = VGA->precalcs.colorlogicprecalcs[Attribute]; //Look the DAC Index up!
 
-	Sequencer_attributeinfo->attribute = DACIndex; //Give the DAC index!
-	//DAC Index loaded for this row!
-	//Done, all row's pixel(s) loaded!
+	//DAC Index loaded for this pixel!
 }

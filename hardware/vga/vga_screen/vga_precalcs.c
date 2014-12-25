@@ -152,7 +152,6 @@ void VGA_LOGCRTCSTATUS()
 
 void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, whereupdated: where were we updated?
 {
-	static uint_32 lasttotal = 0;
 	//All our flags for updating sections related!
 	byte recalcScanline = 0, recalcAttrcolorlogic = 0, recalcAttrpixels = 0, VerticalClocksUpdated = 0, updateCRTC = 0, charwidthupdated = 0, underlinelocationupdated = 0; //Default: don't update!
 	
@@ -161,11 +160,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 //Calculate the precalcs!
 	//Sequencer_Textmode: we update this always!
 
-	if (lasttotal!=VGA->precalcs.verticaltotal)
-	{
-		dolog("VGA","VTotal changed @ precalcs: %i",VGA->precalcs.verticaltotal);	
-	}
-	
 	if ((whereupdated==(WHEREUPDATED_SEQUENCER|0x01)) || FullUpdate || !VGA->precalcs.characterwidth) //Sequencer register updated?
 	{
 		//dolog("VGA","VTotal before charwidth: %i",VGA->precalcs.verticaltotal);
@@ -557,7 +551,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//dolog("VGA","VTotal after DAC: %i",VGA->precalcs.verticaltotal); //Log it!
 	}
 
-	/*if (VerticalClocksUpdated) //Ammount of vertical clocks have been updated?
+	if (VerticalClocksUpdated) //Ammount of vertical clocks have been updated?
 	{
 		//Character height / vertical character clocks!
 		VGA->precalcs.clockselectrows = VGA->precalcs.verticalcharacterclocks = (VGA->precalcs.verticaltotal+1); //Use the same value!
@@ -568,10 +562,10 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			changeRowTimer(VGA,VGA->precalcs.clockselectrows); //Make sure the display scanline refresh rate is OK!		
 		}
 		recalcScanline = 1; //Recalc scanline data!
-	}*/
+	}
 	
-	
-	/*if (recalcScanline)
+	//Recalculate all our lookup tables when needed!
+	if (recalcScanline)
 	{
 		VGA_Sequencer_calcScanlineData(VGA); //Recalculate all scanline data!
 	}
@@ -589,6 +583,5 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	if (recalcAttrcolorlogic)
 	{
 		VGA_AttributeController_calcColorLogic(VGA); //Recalc color logic!
-	}*/
-	lasttotal = VGA->precalcs.verticaltotal; //Update our check value!
+	}
 }

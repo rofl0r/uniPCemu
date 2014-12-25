@@ -58,13 +58,14 @@ word HWkeyboard_getrepeatdelay() //Delay after which to start using the repeat r
 
 int EMU_keyboard_handler_nametoid(char *name) //Same as above, but with unique names from the keys_names table!
 {
-	byte b;
-	for (b=0;b<NUMITEMS(keys_names);b++) //Find the key!
+	byte b=0;
+	for (;b<NUMITEMS(keys_names);) //Find the key!
 	{
 		if (strcmp(keys_names[b],name)==0) //Found?
 		{
 			return b; //Give the ID!
 		}
+		++b; //Next key!
 	}
 	//Unknown name: don't do anything!
 	return -1; //Unknown key!

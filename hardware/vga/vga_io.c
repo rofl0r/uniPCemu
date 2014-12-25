@@ -190,17 +190,13 @@ static void PORT_write_MISC_3C2(byte value) //Misc Output register!
 
 static byte PORT_read_DAC_3C9() //DAC Data register!
 {
-	word entrynumber;
-	entrynumber = ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER; //Current entry number!
-	word index;
-	index = ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER; //Load current DAC index!
+	word index = ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER; //Load current DAC index!
 	index <<= 2; //Multiply for the index!
 	index |= ActiveVGA->registers->current_3C9; //Current index!
 	byte result; //The result!
 	result = ActiveVGA->registers->DAC[index]; //Read the result!
 
-	++ActiveVGA->registers->current_3C9; //Next color index!
-	if (ActiveVGA->registers->current_3C9>2) //Next entry?
+	if (++ActiveVGA->registers->current_3C9>2) //Next entry?
 	{
 		++ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER; //Next entry!
 		if (ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER>0xFF) //Overflow?
@@ -215,22 +211,20 @@ static byte PORT_read_DAC_3C9() //DAC Data register!
 
 static void PORT_write_DAC_3C9(byte value) //DAC Data register!
 {
-	word entrynumber;
-	entrynumber = ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Current entry number!
-	word index;
-	index = ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Load current DAC index!
+	word entrynumber = ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Current entry number!
+	word index = entrynumber; //Load current DAC index!
 	index <<= 2; //Multiply for the index!
 	index |= ActiveVGA->registers->current_3C9; //Current index!
 	ActiveVGA->registers->DAC[index] = (value&0x3F); //Write the data!
-
-	++ActiveVGA->registers->current_3C9; //Next color index!
-	if (ActiveVGA->registers->current_3C9>2) //Next entry?
+	VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_DAC|entrynumber); //We've been updated!
+	
+	if (++ActiveVGA->registers->current_3C9>2) //Next entry?
 	{
-		++ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Next entry!
-		if (ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER>0xFF) //Overflow?
+		if (++entrynumber>0xFF) //Overflow?
 		{
-			ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = 0; //Reset!
+			entrynumber = 0; //Reset!
 		}
+		ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = entrynumber; //Update the entry number!
 		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_INDEX|INDEX_DACWRITE); //Updated index!
 		ActiveVGA->registers->current_3C9 = 0; //Reset!
 	}

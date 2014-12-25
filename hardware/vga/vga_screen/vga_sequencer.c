@@ -17,7 +17,9 @@ extern GPU_type GPU; //GPU!
 extern VGA_Type *ActiveVGA; //Active VGA!
 
 //Are we disabled?
-#define HW_DISABLED 1
+#define HW_DISABLED 0
+
+typedef void (*DisplayRenderHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA);
 
 //Free time rendering pixels to the sound engine?
 //#define FREE_PIXELTIME
@@ -375,32 +377,27 @@ OPTINLINE void VGA_Blank(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo); //Render an active display pixel!
 
+void VGA_ActiveDisplay_noblanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
+{
+	//Render our active display here! Start with text mode!		
+	static VGA_AttributeInfo attributeinfo; //Our collected attribute info!
+	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
+	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
+	VGA_AttributeController(&attributeinfo,VGA); //Apply the attribute through the attribute controller!
+	
+	//Active display!
+	drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,attributeinfo.attribute)); //Render through the DAC!
+}
+
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	if (blanking) //Are we blanking?
-	{
-		VGA_Blank(Sequencer,VGA); //Blank redirect!
-	}
-	else
-	{
-		//Render our active display here! Start with text mode!
-		
-		VGA_AttributeInfo attributeinfo; //Our collected attribute info!
-		VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
-		
-		activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
-		
-		VGA_AttributeController(&attributeinfo,VGA,Sequencer->tempx,VGA->CRTC.x,VGA->CRTC.y); //Apply the attribute through the attribute controller!
-		
-		//Active display!
-		attributeinfo.attribute = 0; //Black!
-		drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,attributeinfo.attribute)); //Render through the DAC!
-	}
-	render_nextPixel(Sequencer,VGA);
+	static DisplayRenderHandler activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
+	activedisplayhandlers[blanking](Sequencer,VGA); //Blank or active display!
+	render_nextPixel(Sequencer,VGA); //Common: Goto next pixel!
 	
 	//All our rendering info that needs to be updated!
-	++Sequencer->tempx; //Next horizontal pixel!
+	++Sequencer->tempx; //Next horizontal pixel: we should also count blank pixels: the pixels are normally drawn, but the DAC is set to blanking state, clearing output!
 }
 
 //Overscan handler!
@@ -512,7 +509,6 @@ void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 
 //Horizontal before vertical, retrace before total.
 
-typedef void (*DisplayRenderHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA);
 typedef void (*DisplaySignalHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal);
 
 //displayrenderhandler[total][retrace][signal]
@@ -561,10 +557,11 @@ void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 	Sequencer_Running = 1; //Start running!
 	
 	word displaystate; //Current display state!
-	for (;Sequencer_Running;) //New CRTC constrolled way!
+	for (;;) //New CRTC constrolled way!
 	{
 		displaystate = get_display(VGA,Sequencer->Scanline,Sequencer->x); //Current display state!
 		displaysignalhandler[displaystate](Sequencer,VGA,displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalling][retracing][displaystate](Sequencer,VGA); //Execute our signal!
+		if (!Sequencer_Running) return; //Finished?
 	}
 }

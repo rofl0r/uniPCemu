@@ -25,8 +25,8 @@ typedef byte (*agetpixel)(VGA_Type *VGA, int x, VGA_AttributeInfo *Sequencer_Att
 //This should be OK, according to: http://www.nondot.org/sabre/Mirrored/GraphicsProgrammingBlackBook/gpbb31.pdf
 byte getpixel256colorshiftmode(VGA_Type *VGA, int x, VGA_AttributeInfo *Sequencer_Attributeinfo) //256colorshiftmode getcolorplanes!
 {
+	const static uint_32 sourceplanes[4] = {0x11111111,0x22222222,0x44444444,0x88888888}; //Our source plane translation table!
 	byte plane = (x&3); //We walk through the planes!
-	uint_32 sourceplanes[4] = {0x11111111,0x22222222,0x44444444,0x88888888}; //Our source plane translation table!
 	Sequencer_Attributeinfo->attributesource = sourceplanes[plane]; //All our bits are from this plane!
 	x >>= 2; //Get the pixel!
 	return readVRAMplane(VGA,plane,GETSEQUENCER(VGA)->startmap+x,1); //The full offset of the plane all stuff is already done, so 0 at the end!
@@ -47,15 +47,19 @@ byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, int x, VGA_AttributeInfo
 	//Determine low&high plane bases!
 	byte planebase = (x>>2)&1; //Base plane (0/1)! OK!
 	
-	byte highplanebase = planebase;
-	highplanebase |= 2; //plane high (2/3) OK!
+	const static uint_32 sourceplanes[0x10] = {0x00001111,0x00001122,0x00001144,0x00001188,0x00002211,0x00002222,0x00002244,0x00002288,0x00004411,0x00004422,0x00004444,0x00004488,0x00008811,0x00008822,0x00008844,0x00008888};
+	byte theplanebase = planebase; //Our high plane for now, next total plane data!
+	theplanebase |= 2; //plane high (2/3) OK!
+	theplanebase <<= 4; //Shift left to make it compatible with the sourceplanes index!
+	theplanebase |= planebase; //Get the final plane base to use!
+	Sequencer_Attributeinfo->attributesource = sourceplanes[theplanebase]; //Lowest low bit bit!
 	
 	//Set row scan address!
 	//rowscanaddress = scanlineoffset; //Copy for compatibility!
 	
 	//Read the low&high planes!
 	byte planelow = readVRAMplane(VGA,planebase,planeindex,1); //Read low plane!
-	byte planehigh = readVRAMplane(VGA,highplanebase,planeindex,1); //Read high plane!
+	byte planehigh = readVRAMplane(VGA,theplanebase,planeindex,1); //Read high plane!
 	//byte shift = 6-((x&3)<<1); //OK!
 	
 	//Determine the shift for our pixels!
@@ -74,10 +78,6 @@ byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, int x, VGA_AttributeInfo
 	result |= planehigh;
 	
 	//Source plane bits for all possibilities!
-	uint_32 sourceplanes[0x10] = {0x00001111,0x00001122,0x00001144,0x00001188,0x00002211,0x00002222,0x00002244,0x00002288,0x00004411,0x00004422,0x00004444,0x00004488,0x00008811,0x00008822,0x00008844,0x00008888};
-	highplanebase <<= 4; //Shift left to make it compatible with the sourceplanes index!
-	highplanebase |= planebase; //Get the final plane base to use!
-	Sequencer_Attributeinfo->attributesource = sourceplanes[highplanebase]; //Lowest low bit bit!
 	return result; //Give the result!
 }
 
@@ -156,6 +156,6 @@ Core functions!
 
 void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	attributeinfo->attribute_graphics = 1; //Graphics attribute!
+	attributeinfo->fontpixel = 1; //Graphics attribute!
 	attributeinfo->attribute = getpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](VGA,Sequencer->tempx,attributeinfo);
 }

@@ -31,7 +31,7 @@ static OPTINLINE word patch_map1314(VGA_Type *VGA, word rowscanaddress) //Patch 
 	SEQ_DATA *Sequencer;
 	Sequencer = (SEQ_DATA *)VGA->Sequencer; //The sequencer!
 	
-	word bit; //Load row scan counter!
+	register uint_32 bit; //Load row scan counter!
 	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13) //a13=Bit 0 of the row scan counter!
 	{
 		//Row scan counter bit 1 is placed on the memory bus bit 14 during active display time.
@@ -57,9 +57,9 @@ static OPTINLINE word patch_map1314(VGA_Type *VGA, word rowscanaddress) //Patch 
 
 static OPTINLINE word addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arround 64k!
 {
-	if (getVRAMMemAddrSize(VGA)==2) //Word address mode?
+	/*if (getVRAMMemAddrSize(VGA)==2) //Word address mode?
 	{
-		word address = memoryaddress; //Init address to memory address!
+		register word address = memoryaddress; //Init address to memory address!
 		address &= ~1; //Clear MA0!
 		if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
 		{
@@ -70,7 +70,7 @@ static OPTINLINE word addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps mem
 			address |= (address&0x2000)>>13; //Add bit MA13!
 		}
 		return address; //Adjusted address!
-	}
+	}*/
 
 	
 	return memoryaddress; //Normal operating mode!
@@ -90,7 +90,7 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //R
 		patchedoffset = patch_map1314(VGA,patchedoffset); //Patch MAP13&14!
 	}
 
-	uint_32 fulloffset2;
+	register uint_32 fulloffset2;
 	fulloffset2 = plane; //Load full plane!
 	fulloffset2 <<= 16; //Move to the start of the plane!
 	fulloffset2 |= patchedoffset; //Generate full offset!
@@ -108,14 +108,14 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, byte value) //Wri
 	if (!VGA) return; //Invalid VGA!
 	if (!VGA->VRAM_size) return; //No size!
 
-	uint_32 fulloffset2;
+	register uint_32 fulloffset2;
 	fulloffset2 = plane; //Load full plane!
 	fulloffset2 <<= 16; //Move to the start of the plane!
 	fulloffset2 |= offset; //Generate full offset!
 
 	/*if (LOG_VRAM_WRITES) //Log where we write!
 	{
-		dolog("VRAM","Writing %i:%08X=%02X",plane,offset,value); //Log it!
+		dolog("VRAM","Writing %i:%08X=%02X=%c",plane,offset,value,value); //Log it!
 	}*/
 	
 	byte *data = &VGA->VRAM[SAFEMODUINT32(fulloffset2,VGA->VRAM_size)];

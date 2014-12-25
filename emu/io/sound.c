@@ -704,14 +704,15 @@ static OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 {
 	//Variables first
 	//Current data numbers
-	uint_32 currentsample;
-	uint_32 channelsleft = soundchannels_used; //The ammount of channels to mix!
+	uint_32 currentsample, channelsleft; //The ammount of channels to mix!
+	int_32 result_l, result_r; //Sample buffer!
 	//Active data
 	playing_p activechannel; //Current channel!
 	int_32 *firstactivesample;
 	int_32 *activesample;
+	channelsleft = soundchannels_used; //Load the channels to process!
 	if (!length) return; //Abort without length!
-	memset(&mixedsamples[0],0,sizeof(mixedsamples)); //Init mixed samples, stereo!
+	memset(&mixedsamples,0,sizeof(mixedsamples)); //Init mixed samples, stereo!
 	if (channelsleft)
 	{
 		activechannel = &soundchannels[0]; //Lookup the first channel!
@@ -722,15 +723,13 @@ static OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 				if (activechannel->samplerate &&
 					memprotect(activechannel->sound.samples,activechannel->sound.length,"SW_Samples")) //Allocated all neccesary channel data?
 				{
-					currentsample = 0;
+					currentsample = length; //The ammount of sample to still buffer!
 					activesample = &mixedsamples[0]; //Init active sample to the first sample!
-					for (;currentsample<length;) //Process all samples!
+					for (;;) //Process all samples!
 					{
-						firstactivesample = activesample; //First channel sample!
-						++activesample; //Next sample!
-						mixchannel(activechannel,firstactivesample,activesample); //L&R channel!
-						++currentsample; //Next sample!
-						++activesample; //Next sample in our buffer!
+						firstactivesample = activesample++; //First channel sample!
+						mixchannel(activechannel,firstactivesample,activesample++); //L&R channel!
+						if (!--currentsample) break; //Next sample when still noit done!
 					}
 				}
 			}
@@ -740,15 +739,12 @@ static OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 	} //Got channels?
 
 	//Process all generated samples to output!
-	currentsample = 0; //Init sample!
-	int_32 result_l, result_r; //Sample buffer!
+	currentsample = length; //Init samples to give!
 	activesample = &mixedsamples[0]; //Initialise the mixed samples position!
 	for (;;)
 	{
-		result_l = *activesample; //L channel!
-		++activesample; //Next sample!
-		result_r = *activesample; //R channel!
-		++activesample; //Next sample!
+		result_l = *activesample++; //L channel!
+		result_r = *activesample++; //R channel!
 		if (result_l>SHRT_MAX) result_l = SHRT_MAX;
 		if (result_l<SHRT_MIN) result_l = SHRT_MIN;
 		if (result_r>SHRT_MAX) result_r = SHRT_MAX;
@@ -756,7 +752,7 @@ static OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 
 		buffer->l = (sample_t)result_l; //Left channel!
 		buffer->r = (sample_t)result_r; //Right channel!
-		if (++currentsample>length) break; //Finished!
+		if (!--currentsample) return; //Finished!
 		++buffer; //Next sample in the result!
 	}
 }
@@ -790,7 +786,7 @@ void SDL_AudioCallback(void *user_data, Uint8 *audio, int length)
 	initTicksHolder(&ticks); //Init!
 	getmspassed(&ticks); //Init!
 	#endif
-	uint_32 reallength = length/sizeof(ubuf[0]); //Total length!
+	uint_32 reallength = length/sizeof(*ubuf); //Total length!
 	mixaudio(ubuf,reallength); //Mix the audio!
 	#ifdef EXTERNAL_TIMING
 	uint_64 mspassed = getmspassed(&ticks); //Load the time passed!

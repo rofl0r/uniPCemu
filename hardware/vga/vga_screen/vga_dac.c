@@ -17,8 +17,13 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	int c;
 	for (c=0;c<256;c++)
 	{
-		dolog(filename,"DAC %02X is %08X",c,ActiveVGA->precalcs.DAC[c]); //Updated!
+		uint_32 DACVal = ActiveVGA->precalcs.DAC[c]; //The DAC value!
+		if (DACVal!=RGB(0x00,0x00,0x00) && ((DACVal&0xFF000000)!=0)) //Not black and filled?
+		{
+			dolog(filename,"DAC %02X is %08X",c,ActiveVGA->precalcs.DAC[c]); //Updated!
+		}
 	}
+	dolog(filename,"*** END OF DUMP ***");
 }
 
 static OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!

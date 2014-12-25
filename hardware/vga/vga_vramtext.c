@@ -58,7 +58,7 @@ static OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 		for (;attribute<2;) //2 attributes!
 		{
 			byte y = 0; //From 0-32 (5 bits)!
-			for (;y<33;) //33 rows!
+			for (;y<0x20;) //33 rows!
 			{
 				uint_32 characterset_offset; //First, the character set, later translated to the real charset offset!
 				if (attribute) //Charset A? (bit 2 (value 0x4) set?)

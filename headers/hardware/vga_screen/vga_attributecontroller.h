@@ -11,6 +11,7 @@ typedef struct
 {
 	int attribute_graphics; //Use graphics attribute: attribute is raw index into table? 0=Normal operation, 1=Font only, 2=Attribute controller disabled!
 	byte attribute; //Attribute for the character!
+	byte fontpixel; //Are we a front pixel?
 	word charx; //Character x!
 	word chary; //Character y!
 	word charinner_x; //Inner x base of character!
@@ -18,7 +19,7 @@ typedef struct
 	uint_32 attributesource; //What's the source plane of the attribute bits (plane bits set)?
 } VGA_AttributeInfo; //Attribute info!
 
-OPTINLINE void VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *Sequencer_VGA, word Sequencer_x, word Screenx, word Screeny); //Process attribute!
+OPTINLINE void VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *Sequencer_VGA); //Process attribute!
 
 //Precalcs!
 #ifdef VGA_Type

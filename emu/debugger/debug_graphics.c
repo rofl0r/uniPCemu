@@ -123,13 +123,14 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		CPU.registers->BH = 0x0; //Set overscan color!
 		CPU.registers->BL = 0x4; //Blue overscan!
 		BIOS_int10(); //Set overscan!
-		VGA_LOGCRTCSTATUS(); //Log our full status!
-		VGA_DUMPDAC(); //Dump the active DAC!
-		debugTextModeScreenCapture(); //Make a screen capture!
-		sleep(); //Wait forever to debug!
+		//VGA_LOGCRTCSTATUS(); //Log our full status!
+		//VGA_DUMPDAC(); //Dump the active DAC!
+		//debugTextModeScreenCapture(); //Make a screen capture!
+		//sleep(); //Wait forever to debug!
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Direct VRAM access 40x25-0...");
 
+		LOG_VRAM_WRITES = 1; //Enable log!
 		MMU_wb(-1,0xB800,0,'F');
 		MMU_wb(-1,0xB800,1,0xF);
 		MMU_wb(-1,0xB800,2,'i');
@@ -150,7 +151,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		MMU_wb(-1,0xB800,17,0xF);
 		MMU_wb(-1,0xB800,18,'!');
 		MMU_wb(-1,0xB800,19,0xF);
-		
+		LOG_VRAM_WRITES = 0; //Disable log!
+		startTimers(); //Make sure all timers are running!
+
+		sleep();
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Ready.");
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"SCREENCAPTURE CREATEN.");

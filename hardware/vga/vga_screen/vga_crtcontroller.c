@@ -154,7 +154,7 @@ word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 
 OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
 {
-	word stat; //The status of the pixel!
+	register word stat; //The status of the pixel!
 	//We are a maximum of 4096x1024 size!
 	Scanline &= 0x3FF; //Range safety!
 	x &= 0xFFF; //Range safety!
