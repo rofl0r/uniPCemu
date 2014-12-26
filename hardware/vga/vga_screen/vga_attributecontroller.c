@@ -34,7 +34,11 @@ OPTINLINE byte getattributefont(byte attr)
 OPTINLINE byte getattributeback(byte attr,byte filter)
 {
 	byte temp = attr;
-	temp >>= 4; //Shift!
+	//Only during text mode: shift!
+	if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable) //Take the BG nibble!
+	{
+		temp >>= 4; //Shift!
+	}
 	temp &= filter; //Apply filter!
 	return temp; //Need attribute registers below used!
 }
