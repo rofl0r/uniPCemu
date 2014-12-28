@@ -433,7 +433,7 @@ typedef union __attribute__((packed))
 
 		//Some undocumented registers (index 22,24,3X)
 
-		byte notused[9]; //Unused registers
+		byte notused[10]; //Unused registers
 		
 		union
 		{
@@ -463,7 +463,8 @@ typedef union __attribute__((packed))
 	} REGISTERS;
 } CRTCONTROLLERREGS;
 
-
+//Attribute controller toggle register location for precalcs!
+#define VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER 24
 
 
 
@@ -602,7 +603,9 @@ typedef struct __attribute__((packed))
 typedef struct __attribute__((packed))
 {
 	word rowstatus[0x400]; //Row status!
+	word charrowstatus[0x800]; //Character row status (double the row status, for character and inner)
 	word colstatus[0x1000]; //Column status!
+	word charcolstatus[0x2000]; //Character column status (double the row status, for character and inner)
 	//Current processing coordinates on-screen!
 	word x; //X coordinate on the screen!
 	word y; //Y coordinate on the screen!

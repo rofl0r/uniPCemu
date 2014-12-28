@@ -165,6 +165,7 @@ static void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
 		VGA_3C0_PAL = ((value&0x20)>>5); //Palette Address Source!
 		VGA_3C0_INDEX = (value&0x1F); //Which index?
 		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_INDEX|INDEX_ATTRIBUTECONTROLLER); //Updated index!
+		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_CRTCONTROLLER|VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER); //Our actual location!
 	}
 	else //Data mode?
 	{
@@ -173,6 +174,7 @@ static void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
 			ActiveVGA->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEX] = value; //Set!
 		}
 		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_ATTRIBUTECONTROLLER|VGA_3C0_INDEX); //We have been updated!
+		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_CRTCONTROLLER|VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER); //Our actual location!
 	}
 
 	VGA_3C0_FLIPFLOP = !VGA_3C0_FLIPFLOP; //Flipflop!

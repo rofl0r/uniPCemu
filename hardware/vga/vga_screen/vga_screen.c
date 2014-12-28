@@ -8,7 +8,6 @@
 //Finally all subparts, in order of occurence:
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer!
 //#include "headers/hardware/vga_screen/vga_sequencer_textmode.h" //Text-mode!
-//#include "headers/hardware/vga_screen/vga_sequencer_textmode_cursor.h" //Text-mode cursor!
 //#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller!
 //#include "headers/hardware/vga_screen/vga_dac.h" //DAC operations!
 //#include "headers/hardware/vga_screen/vga_displaygeneration_crtcontroller.h" //CRT Controller

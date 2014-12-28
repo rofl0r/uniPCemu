@@ -57,21 +57,26 @@ static OPTINLINE word patch_map1314(VGA_Type *VGA, word rowscanaddress) //Patch 
 
 static OPTINLINE word addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arround 64k!
 {
-	/*if (getVRAMMemAddrSize(VGA)==2) //Word address mode?
+	if (getVRAMMemAddrSize(VGA)==2) //Word address mode?
 	{
 		register word address = memoryaddress; //Init address to memory address!
+		register word address2;
 		address &= ~1; //Clear MA0!
+		address2 = address; //Load the initial value for calculating!
 		if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
 		{
-			address |= (address&0x8000)>>15; //Add bit MA15!
+			address2 >>= 15;
+			address2 &= 1;
+			address |= address2; //Add bit MA15!
 		}
 		else //MA13 has to be on MA0?
 		{
-			address |= (address&0x2000)>>13; //Add bit MA13!
+			address2 >>= 13;
+			address2 &= 1;
+			address |= address2; //Add bit MA13!
 		}
 		return address; //Adjusted address!
-	}*/
-
+	}
 	
 	return memoryaddress; //Normal operating mode!
 }

@@ -21,8 +21,8 @@ int showchecksumerrors = 0; //Show checksum errors?
 #define MBMEMORY 1024768
 //Block size of memory!
 #define MEMORY_BLOCKSIZE 16
-//What to leave for functions! 1MB for normal operations + 4MB for BMP allocations and screen buffers!
-#define FREEMEMALLOC 5
+//What to leave for functions! 1MB for normal operations!
+#define FREEMEMALLOC 1
 
 //What file to use for saving the BIOS!
 #define BIOS_FILE "BIOS.DAT"

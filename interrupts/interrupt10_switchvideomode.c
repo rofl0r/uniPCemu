@@ -1019,8 +1019,7 @@ att_text16:
 			for (ct=0; ct<8; ct++) //Used to be up to 8!
 			{
 				att_data[ct]=ct; //Color all, dark!
-				//att_data[ct+8]=ct+0x38; //Color all, lighter!
-				att_data[ct+8]=ct+8; //Color all, lighter!
+				att_data[ct+8]=ct+0x38; //Color all, lighter!
 			}
 			if (IS_VGA_ARCH) att_data[0x06]=0x14; //Odd Color 6 yellow/brown.
 		}

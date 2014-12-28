@@ -117,55 +117,68 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	{
 		int i; //For further loops!
 
-		CPU.registers->AX = VIDEOMODE_TEXTMODE;
+		/*CPU.registers->AX = VIDEOMODE_TEXTMODE;
 		BIOS_int10(); //Text mode operations!
 		CPU.registers->AH = 0xB;
 		CPU.registers->BH = 0x0; //Set overscan color!
 		CPU.registers->BL = 0x4; //Blue overscan!
 		BIOS_int10(); //Set overscan!
 		//VGA_LOGCRTCSTATUS(); //Log our full status!
-		//VGA_DUMPDAC(); //Dump the active DAC!
+		VGA_DUMPDAC(); //Dump the active DAC!
 		//debugTextModeScreenCapture(); //Make a screen capture!
 		//sleep(); //Wait forever to debug!
+
+		//LOG_VRAM_WRITES = 1; //Enable log!
+		MMU_wb(-1,0xB800,0,'F');
+		MMU_wb(-1,0xB800,1,0x1);
+		MMU_wb(-1,0xB800,2,'i');
+		MMU_wb(-1,0xB800,3,0x2);
+		MMU_wb(-1,0xB800,4,'r');
+		MMU_wb(-1,0xB800,5,0x3);
+		MMU_wb(-1,0xB800,6,'s');
+		MMU_wb(-1,0xB800,7,0x4);
+		MMU_wb(-1,0xB800,8,'t');
+		MMU_wb(-1,0xB800,9,0x5);
+		MMU_wb(-1,0xB800,10,'6');
+		MMU_wb(-1,0xB800,11,0x6);
+		MMU_wb(-1,0xB800,12,'r');
+		MMU_wb(-1,0xB800,13,0x7);
+		MMU_wb(-1,0xB800,14,'o');
+		MMU_wb(-1,0xB800,15,0x8);
+		MMU_wb(-1,0xB800,16,'w');
+		MMU_wb(-1,0xB800,17,0x9);
+		MMU_wb(-1,0xB800,18,'!');
+		MMU_wb(-1,0xB800,19,0xA);
+		MMU_wb(-1,0xB800,20,'B');
+		MMU_wb(-1,0xB800,21,0xB);
+		MMU_wb(-1,0xB800,22,'C');
+		MMU_wb(-1,0xB800,23,0xC);
+		MMU_wb(-1,0xB800,24,'D');
+		MMU_wb(-1,0xB800,25,0xD);
+		MMU_wb(-1,0xB800,26,'E');
+		MMU_wb(-1,0xB800,27,0xE);
+		MMU_wb(-1,0xB800,28,'F');
+		MMU_wb(-1,0xB800,29,0xF);
+		
+		//LOG_VRAM_WRITES = 0; //Disable log!
+
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Direct VRAM access 40x25-0...");
 
-		LOG_VRAM_WRITES = 1; //Enable log!
-		MMU_wb(-1,0xB800,0,'F');
-		MMU_wb(-1,0xB800,1,0xF);
-		MMU_wb(-1,0xB800,2,'i');
-		MMU_wb(-1,0xB800,3,0xF);
-		MMU_wb(-1,0xB800,4,'r');
-		MMU_wb(-1,0xB800,5,0xF);
-		MMU_wb(-1,0xB800,6,'s');
-		MMU_wb(-1,0xB800,7,0xF);
-		MMU_wb(-1,0xB800,8,'t');
-		MMU_wb(-1,0xB800,9,0xF);
-		MMU_wb(-1,0xB800,10,' ');
-		MMU_wb(-1,0xB800,11,0xF);
-		MMU_wb(-1,0xB800,12,'r');
-		MMU_wb(-1,0xB800,13,0xF);
-		MMU_wb(-1,0xB800,14,'o');
-		MMU_wb(-1,0xB800,15,0xF);
-		MMU_wb(-1,0xB800,16,'w');
-		MMU_wb(-1,0xB800,17,0xF);
-		MMU_wb(-1,0xB800,18,'!');
-		MMU_wb(-1,0xB800,19,0xF);
-		LOG_VRAM_WRITES = 0; //Disable log!
-		startTimers(); //Make sure all timers are running!
+		//VGA_DUMPATTR(); //Dump attribute controller info!
 
-		sleep();
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Ready.");
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"SCREENCAPTURE CREATEN.");
 		delay(5000000); //Wait a bit!
+		*/
 	
 		CPU.registers->AH = 0x0B; //Advanced:!
 		CPU.registers->BH = 0x00; //Set background/border color!
 		CPU.registers->BL = 0x0E; //yellow!
 		BIOS_int10(); //Show the border like this!
 	
-		CPU.registers->AH = 1; //Set cursor shape!
+		/*CPU.registers->AH = 1; //Set cursor shape!
 		CPU.registers->CH = 7; //Scan line 7-
 		CPU.registers->CL = 8; //8!
 		BIOS_int10(); //Set cursor shape!

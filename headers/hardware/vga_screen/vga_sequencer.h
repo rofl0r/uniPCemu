@@ -40,6 +40,12 @@ typedef struct
 	uint_32 startmap; //Where our map starts!
 	uint_32 bytepanning; //How much byte panning is used?
 	
+	//Text mode information about the current scanline!
+	word chary; //Character y!
+	word charinner_y; //Inner y base of character!
+	uint_32 charystart; //Start of the row in VRAM!
+
+
 	/*
 
 	Pixel timing

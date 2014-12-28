@@ -3,7 +3,6 @@
 #include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller!
 #include "headers/hardware/vga_screen/vga_sequencer_graphicsmode.h" //Text mode!
 #include "headers/hardware/vga_screen/vga_sequencer_textmode.h" //Text mode!
-#include "headers/hardware/vga_screen/vga_sequencer_textmode_cursor.h" //Text mode cursor!
 #include "headers/hardware/vga_screen/vga_crtcontroller.h" //CRT Controller for finishing up!
 #include "headers/hardware/vga_screen/vga_dac.h" //DAC support!
 #include "headers/hardware/pic.h" //IRQ support!
@@ -173,114 +172,6 @@ OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanl
 	}*/
 }
 
-/*OPTINLINE void calcScanlineData(VGA_Type *VGA)
-{
-	#ifdef DEBUG_SCANLINE_SPEED
-		TicksHolder ticks; //Our ticks holder!
-		getmspassed(&ticks); //Init!
-	#endif
-
-	//Load&save scanline!
-	word originalscanline = VGA->registers->Scanline; //The scanline to render (unmodified to screen)!
-	originalscanline &= 0x3FF; //Make sure we're within range!
-	SEQ_DATA *Sequencer = GETSEQUENCER(VGA); //Retrieve the sequencer!
-	Sequencer->currentPrecalcs = &Sequencer->precalcs[originalscanline]; //Load the current precalcs!
-	VGA->CurrentScanLineStart = Sequencer->currentPrecalcs->CurrentScanLineStart; //Load current scanline start!
-	
-	//First scanline of the screen!
-	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending &= !originalscanline; //VBlank not taking place anymore!
-
-	#ifdef DEBUG_SCANLINE_SPEED
-		//For the average line preparation time!
-		uint_64 lasttime;
-		lasttime = getmspassed(&ticks);
-		Sequencer->lastscanlinetime = lasttime;
-		Sequencer->totalscanlinetime += lasttime;
-		++Sequencer->totalscanlines; //One line further!
-	#endif
-}*/
-
-/*OPTINLINE void CalcScanlinePixel(VGA_Type *VGA) //Calculate the current pixel!
-{
-	SEQ_DATA *Sequencer;
-	Sequencer = GETSEQUENCER(VGA);
-	word tempx;
-	tempx = Sequencer->precalcs->pixelmove; //Extra pixel shift to the left (start further at the right for 0,Y)!
-	tempx += Sequencer->x; //Use the current pixel!
-
-	if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2) //Divide pixel by 2?
-	{
-		tempx &= 0xFFFE; //Disable bit 1!
-		tempx >>= 1; //Divide by 2, multiplying all pixels with 2!
-	}
-	
-	Sequencer->tempx = tempx; //Save the temporary x!
-}
-
-OPTINLINE void VGA_Sequencer_newline(VGA_Type *VGA, byte currentscreenbottom)
-{
-	#ifdef DEBUG_NEWLINE_SPEED
-		TicksHolder ticks; //Our ticks holder!
-		getmspassed(&ticks); //Init!
-	#endif
-
-	SEQ_DATA *Sequencer;
-	Sequencer = GETSEQUENCER(VGA);
-
-	//plot scanline is changed to plot pixel after the DAC step!
-	curscanlinepercentage += VGA->precalcs.scanlinepercentage; //Add to ammount of scanlines processed relatively!
-
-	Sequencer->currentPrecalcs = NULL; //No current loaded yet!
-	Sequencer->x = 0; //Reset x&newline_ready for next row!
-	//We're a newline, so we're not ready to render yet: we need data loading!
-	++VGA->registers->Scanline; //Next scanline!
-	
-	byte totalreached;
-	totalreached = VGA->registers->VerticalDisplayTotalReached; //Total reached?
-	totalreached |= (OPTMUL32(VGA->registers->Scanline,VGA->LinesToRender)>=VGA->precalcs.verticalcharacterclocks); //Normal vblank rule!
-
-	//Total for timing information!
-	#ifdef DEBUG_NEWLINE_SPEED
-		uint_64 lasttime;
-		lasttime = getmspassed(&ticks);
-		++Sequencer->totalnewlines; //One line further!
-	#endif
-	
-	if (totalreached) //VBlank occurred?
-	{
-		VGA->registers->Scanline = VGA->registers->VerticalDisplayTotalReached = 0; //Reset scan line to the top of the screen!
-		if (VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending) //Pending interrupt?
-		{
-			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 0; //Not pending anymore!
-			if (EMU_RUNNING&1) //CPU is running (IRQs emulated)?
-			{
-				doirq(2); //Trigger interrupt 2: VBlank interrupt!
-			}
-		}
-		#ifdef DEBUG_NEWLINE_SPEED
-			lasttime += getmspassed(&ticks);
-		#endif
-		
-		if (!VGA->registers->SequencerRegisters.REGISTERS.DISABLERENDERING) //Rendering enabled?
-		{
-			#ifdef DEBUG_NEWLINE_SPEED
-				lasttime += getmspassed(&ticks);
-			#endif
-			VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
-		}
-		#ifdef DEBUG_NEWLINE_SPEED
-			else
-			{
-				lasttime += getmspassed(&ticks);
-			}
-		#endif
-	}
-	#ifdef DEBUG_NEWLINE_SPEED
-		Sequencer->lastnewlinetime = lasttime;
-		Sequencer->totalnewlinetime += lasttime;
-	#endif
-}*/
-
 typedef void (*Sequencer_pixelhandler)(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning); //Pixel(s) handler!
 
 OPTINLINE byte VGA_Sequencer_ProcessDAC(VGA_Type *VGA, byte DACValue) //Process DAC!
@@ -327,6 +218,7 @@ byte flashing = 0; //Are we flash status when used?
 void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	Sequencer->Scanline = 0; //Reset for the next scanline!
+	VGA_Sequencer_TextMode_updateRow(VGA, Sequencer); //Scanline has been changed!
 	VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
 	Sequencer_Running = 0; //Not running anymore!
 	flashing = !flashing; //Reverse flashing!
@@ -338,6 +230,7 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//Sequencer itself
 	Sequencer->x = 0; //Reset for the next scanline!
 	++Sequencer->Scanline; //Next scanline to process!
+	VGA_Sequencer_TextMode_updateRow(VGA, Sequencer); //Scanline has been changed!
 	
 	//CRT
 	++VGA->CRTC.y; //Next row on-screen!
@@ -370,49 +263,50 @@ void render_nextPixel(SEQ_DATA *Sequencer, VGA_Type *VGA)
 }
 
 //Blank handler!
-OPTINLINE void VGA_Blank(SEQ_DATA *Sequencer, VGA_Type *VGA)
+OPTINLINE void VGA_Blank(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	drawPixel(VGA->CRTC.x,VGA->CRTC.y,RGB(0x00,0x00,0x00)); //Draw blank!
 }
 
 typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo); //Render an active display pixel!
 
-void VGA_ActiveDisplay_noblanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
+void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	//Render our active display here! Start with text mode!		
-	static VGA_AttributeInfo attributeinfo; //Our collected attribute info!
-	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
-	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
-	VGA_AttributeController(&attributeinfo,VGA); //Apply the attribute through the attribute controller!
-	
 	//Active display!
-	drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,attributeinfo.attribute)); //Render through the DAC!
+	drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,attributeinfo->attribute)); //Render through the DAC!
 }
 
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	static DisplayRenderHandler activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
-	activedisplayhandlers[blanking](Sequencer,VGA); //Blank or active display!
-	render_nextPixel(Sequencer,VGA); //Common: Goto next pixel!
-	
-	//All our rendering info that needs to be updated!
+	//Render our active display here! Start with text mode!		
+	VGA_AttributeInfo attributeinfo; //Our collected attribute info!
+	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
+	othernibble: //Process the next nibble!
+	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
+	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer)) //Apply the attribute through the attribute controller!
+	{
+		++Sequencer->tempx; //Next horizontal pixel: we should also count blank pixels: the pixels are normally drawn, but the DAC is set to blanking state, clearing output!
+		goto othernibble; //Process the next nibble!
+	}
 	++Sequencer->tempx; //Next horizontal pixel: we should also count blank pixels: the pixels are normally drawn, but the DAC is set to blanking state, clearing output!
+
+	static VGA_Sequencer_Mode activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
+	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
+	render_nextPixel(Sequencer,VGA); //Common: Goto next pixel!
+}
+
+void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+{
+	//Overscan!
+	drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,VGA->precalcs.overscancolor)); //Draw overscan!
 }
 
 //Overscan handler!
 void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	if (blanking) //Are we blanking?
-	{
-		VGA_Blank(Sequencer,VGA); //Blank redirect!
-	}
-	else
-	{
-		//Overscan!
-		drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,VGA->precalcs.overscancolor)); //Draw overscan!
-		//drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_OVERSCANCOLOR); //Overscan color!
-	}
+	static VGA_Sequencer_Mode activemode[2] = {VGA_Overscan_noblanking,VGA_Blank};
+	activemode[blanking](VGA,Sequencer,NULL); //Attribute info isn't used!
 	render_nextPixel(Sequencer,VGA);
 }
 
@@ -562,6 +456,6 @@ void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 		displaystate = get_display(VGA,Sequencer->Scanline,Sequencer->x); //Current display state!
 		displaysignalhandler[displaystate](Sequencer,VGA,displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalling][retracing][displaystate](Sequencer,VGA); //Execute our signal!
-		if (!Sequencer_Running) return; //Finished?
+		if (!Sequencer_Running) break; //Finished?
 	}
 }

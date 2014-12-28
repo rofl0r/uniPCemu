@@ -93,8 +93,7 @@ typedef struct //Contains the precalculated values!
 	byte renderedlines; //Actual ammount of lines rendered, graphics mode included!
 	
 	//Attribute controller precalcs!
-	byte processpixelprecalcs[0x8000]; //All pixel precalcs!
-	byte colorlogicprecalcs[0x200]; //All color logic precalcs!
+	byte attributeprecalcs[0x8000]; //All attribute precalcs!
 	
 	//Rest!
 	word clockselectrows; //Rows determined by clock select!

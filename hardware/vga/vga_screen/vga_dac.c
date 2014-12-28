@@ -13,17 +13,21 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	char filename[256];
 	bzero(filename,sizeof(filename)); //Init
 	sprintf(&filename[0],"DAC_%02X",CurMode->mode); //Generate log of this mode!
-	dolog(filename,"*** START OF DUMP ***");
 	int c;
+	uint_32 DACBitmap[256]; //Full DAC 1-row bitmap!
 	for (c=0;c<256;c++)
 	{
-		uint_32 DACVal = ActiveVGA->precalcs.DAC[c]; //The DAC value!
-		if (DACVal!=RGB(0x00,0x00,0x00) && ((DACVal&0xFF000000)!=0)) //Not black and filled?
+		register uint_32 DACVal = ActiveVGA->precalcs.DAC[c]; //The DAC value!
+		if ((DACVal==RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
 		{
-			dolog(filename,"DAC %02X is %08X",c,ActiveVGA->precalcs.DAC[c]); //Updated!
+			DACBitmap[c] = 0; //Clear entry!
+		}
+		else
+		{
+			DACBitmap[c] = DACVal; //Load the DAC value!
 		}
 	}
-	dolog(filename,"*** END OF DUMP ***");
+	writeBMP(filename,&DACBitmap,256,1,4,5,0); //Simple 1-row dump!
 }
 
 static OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!

@@ -21,20 +21,29 @@ static uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!
 
 extern VGA_Type *ActiveVGA; //For checking if we're active!
 
-static void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs!
+static OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs!
 {
 	uint_32 current;
 	current = 0; //Init!
+	byte charsize;
 	//Column and row status for each pixel on-screen!
+	charsize = getcharacterheight(VGA); //First, based on height!
 	for (;current<0x400;) //All available resolutions!
 	{
 		VGA->CRTC.rowstatus[current] = get_display_y(VGA,current); //Translate!
+		VGA->CRTC.charrowstatus[current<<1] = current/charsize;
+		VGA->CRTC.charrowstatus[(current<<1)|1] = current%charsize;
 		++current; //Next!
 	}
+
+	//Horizontal coordinates!
+	charsize = getcharacterwidth(VGA); //Now, based on width!
 	current = 0; //Init!
 	for (;current<0x1000;)
 	{
 		VGA->CRTC.colstatus[current] = get_display_x(VGA,current); //Translate!
+		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
+		VGA->CRTC.charcolstatus[(current<<1)|1] = current%charsize;
 		++current; //Next!
 	}
 }
@@ -153,7 +162,7 @@ void VGA_LOGCRTCSTATUS()
 void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, whereupdated: where were we updated?
 {
 	//All our flags for updating sections related!
-	byte recalcScanline = 0, recalcAttrcolorlogic = 0, recalcAttrpixels = 0, VerticalClocksUpdated = 0, updateCRTC = 0, charwidthupdated = 0, underlinelocationupdated = 0; //Default: don't update!
+	byte recalcScanline = 0, recalcAttr = 0, VerticalClocksUpdated = 0, updateCRTC = 0, charwidthupdated = 0, underlinelocationupdated = 0; //Default: don't update!
 	
 	VGA_Type *VGA = (VGA_Type *)useVGA; //The VGA!
 	byte FullUpdate = (whereupdated==0); //Fully updated?
@@ -443,11 +452,21 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			recalcScanline = 1; //Recalc scanline data!
 			//dolog("VGA","VTotal after startaddress: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
+		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x14))) //Underline location updated?
+		{
+			recalcAttr = 1; //Recalc attribute pixels!
+		}
+
+		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER))) //Attribute controller toggle register updated?
+		{
+			recalcAttr = 1; //We've been updated: update the color logic!
+		}
 	}
 
+	byte AttrUpdated = 0; //Fully updated?
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER) || FullUpdate || underlinelocationupdated || (whereupdated==(WHEREUPDATED_INDEX|INDEX_ATTRIBUTECONTROLLER))) //Attribute Controller updated?
 	{
-		byte AttrUpdated = UPDATE_SECTION(whereupdated)||FullUpdate; //Fully updated?
+		AttrUpdated = UPDATE_SECTION(whereupdated)||FullUpdate; //Fully updated?
 
 		if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x14)))
 		{
@@ -461,6 +480,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			csel <<= 6;
 			VGA->precalcs.colorselect76 = csel; //Precalculate!
 			//dolog("VGA","VTotal after colorselect: %i",VGA->precalcs.verticaltotal); //Log it!
+			recalcAttr = 1; //We've been updated: update the color logic!
 		}
 
 		if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x11))) //Overscan?
@@ -511,20 +531,20 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			//dolog("VGA","VTotal after pixelboost: %i",VGA->precalcs.verticaltotal); //Log it!
 			recalcScanline = 1; //Recalc scanline data!
 		}
-			
-			
-		if (AttrUpdated || ((whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10))) || underlinelocationupdated) //Mode control or underline location updated?
-		{
-			recalcAttrpixels = 1; //Recalculate!
-		}
 		
-		if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x14)) //Color select updated?
-			|| (SECTIONUPDATED(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER && ((whereupdated&WHEREUPDATED_REGISTER)<0x10))) //Pallette update?
-			|| (whereupdated==(WHEREUPDATED_INDEX|INDEX_ATTRIBUTECONTROLLER)) //Index updated?
-			|| ((whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10))) //Mode control updated?
-			)
+		//Simple attribute controller updates?
+
+		if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10))) //Mode control register updated?
 		{
-			recalcAttrcolorlogic = 1; //Recalculate!
+			recalcAttr = 1; //We've been updated: update the color logic and pixels!
+		}
+		else if (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x12)) //Color planes enable register?
+		{
+			recalcAttr = 1; //We've been updated: update the color logic!
+		}
+		else if (SECTIONUPDATED(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER) && ((whereupdated&WHEREUPDATED_REGISTER)<0x10)) //Pallette updated?
+		{
+			recalcAttr = 1; //We've been updated: update the color logic!
 		}
 	}
 
@@ -565,23 +585,18 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	}
 	
 	//Recalculate all our lookup tables when needed!
-	if (recalcScanline)
+	if (recalcScanline) //Update scanline information?
 	{
 		VGA_Sequencer_calcScanlineData(VGA); //Recalculate all scanline data!
 	}
 	
 	if (updateCRTC) //Update CRTC?
 	{
-		VGA_calcprecalcs_CRTC(VGA); //Update the CRTC timing data5!
+		VGA_calcprecalcs_CRTC(VGA); //Update the CRTC timing data!
 	}
 	
-	if (recalcAttrpixels)
+	if (recalcAttr) //Update attribute controller?
 	{
-		VGA_AttributeController_calcPixels(VGA); //Recalc pixel logic!	
-	}
-	
-	if (recalcAttrcolorlogic)
-	{
-		VGA_AttributeController_calcColorLogic(VGA); //Recalc color logic!
+		VGA_AttributeController_calcAttributes(VGA); //Recalc pixel logic!	
 	}
 }

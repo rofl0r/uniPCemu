@@ -138,7 +138,7 @@ word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 		signal |= VGA_SIGNAL_HBLANKSTART; //Blanking!
 	}
 	
-	if (((x/getcharacterwidth(VGA))&0x3F)==getHorizontalBlankingEnd(VGA))
+	if ((((x/getcharacterwidth(VGA))-1)&0x3F)==getHorizontalBlankingEnd(VGA)) //We end blanking AFTER this character!
 	{
 		signal |= VGA_SIGNAL_HBLANKEND; //End blanking!
 	}
