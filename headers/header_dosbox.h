@@ -214,6 +214,9 @@ enum MachineType
 #define Bitu uint_32
 
 typedef byte *PhysPt; //Physical pointer!
+
+//Real pointer is a 32-bit segment:offset pointer.
+
 #define color pixel
 #define mem_readb(off) MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,(((off)>>16)&0xFFFF),((off)&0xFFFF),0)
 #define mem_writeb(off,val) MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,(((off)>>16)&0xFFFF),((off)&0xFFFF),0)
@@ -244,6 +247,14 @@ typedef byte *PhysPt; //Physical pointer!
 #define real_readw(biosseg,offs) (real_readb(biosseg,offs)+(real_readb(biosseg,offs+1)*256))
 #define real_writew(biosseg,offs,val) real_writeb(biosseg,offs,val&0xFF); real_writeb(biosseg,offs+1,((val&0xFF00)>>8));
 #define memreal_writew(seg,offs,val) MMU_ww(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,seg,offs,val)
+
+//Extras
+#define address2phys(address) PhysMake(address>>4,(address&0xF))
+#define mem_readw(address) phys_readw(address2phys(address))
+#define mem_writew(address,value) phys_writew(address2phys(address),value)
+#define phys_readw(address) (phys_readb(address)|(phys_readb((address)+1)))
+
+//Port I/O
 #define IO_WriteB(port,value) PORT_OUT_B(port,value)
 #define IO_WriteW(port,value) PORT_OUT_W(port,value)
 #define IO_ReadB(port) PORT_IN_B(port)
@@ -251,6 +262,9 @@ typedef byte *PhysPt; //Physical pointer!
 //Synonym for IO_WriteB:
 #define IO_Write(port,value) IO_WriteB(port,value)
 #define IO_Read(port) IO_ReadB(port)
+
+//Simply return to the emulator from the interrupt handler when required to go IDLE!
+#define CALLBACK_Idle() return
 
 #define true 1
 #define false 0
@@ -324,5 +338,8 @@ enum KBD_KEYS {
 /* maximum of scancodes handled by keyboard bios routines */
 #define MAX_SCAN_CODE 0x58
 
-
+#define BIOS_DEFAULT_HANDLER_LOCATION	(RealMake(0xf000,0xff53))
+#define BIOS_DEFAULT_IRQ0_LOCATION		(RealMake(0xf000,0xfea5))
+#define BIOS_DEFAULT_IRQ1_LOCATION		(RealMake(0xf000,0xe987))
+#define BIOS_DEFAULT_IRQ2_LOCATION		(RealMake(0xf000,0xff55))
 #endif

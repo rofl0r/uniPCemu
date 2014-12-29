@@ -31,6 +31,7 @@ extern CPU_type CPU; //CPU!
 
 void debugTextModeScreenCapture()
 {
+	VGA_DUMPDAC(); //Make sure the DAC is dumped!
 	VGA_waitforVBlank(); //Wait for VBlank!
 	SCREEN_CAPTURE = LOG_VGA_SCREEN_CAPTURE; //Screen capture next frame?
 	LOG_RENDER_BYTES = LOG_VGA_FIRST_LINE; //Log it!
@@ -43,6 +44,7 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 {
 	CPU.registers->AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
+	VGA_DUMPDAC(); //Dump the current DAC and rest info!
 
 	int x,y; //X&Y coordinate!
 	int color; //The color for the coordinate!
@@ -182,6 +184,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		CPU.registers->CH = 7; //Scan line 7-
 		CPU.registers->CL = 8; //8!
 		BIOS_int10(); //Set cursor shape!
+		*/
 
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(5000000); //Wait 5 seconds!

@@ -5,7 +5,14 @@
 #include "headers/cpu/callback.h" //Callback support!
 #include "headers/cpu/80286/protection.h" //Protection support!
 #include "headers/header_dosbox.h" //Basic DOSBox compatibility.
+#include "headers/cpu/easyregs.h" //Easy register support!
+#include "headers/hardware/ports.h" //Port support!
 //Keyboard interrupt!
+
+void Dosbox_RealSetVec(byte interrupt, uint_32 realaddr)
+{
+	RealSetVec(interrupt,realaddr>>16,realaddr&0xFFFF); //Set the interrupt vector in real mode!
+}
 
 /*void int16_readkey()
 {
@@ -248,14 +255,14 @@ static struct {
 bool BIOS_AddKeyToBuffer(Bit16u code) {
 	if (mem_readb(BIOS_KEYBOARD_FLAGS2)&8) return true;
 	Bit16u start,end,head,tail,ttail;
-	if (machine==MCH_PCJR) {
-		/* should be done for cga and others as well, to be tested */
+	/*if (machine==MCH_PCJR) {
+		/ should be done for cga and others as well, to be tested /
 		start=0x1e;
 		end=0x3e;
-	} else {
+	} else {*/
 		start=mem_readw(BIOS_KEYBOARD_BUFFER_START);
 		end	 =mem_readw(BIOS_KEYBOARD_BUFFER_END);
-	}
+	//}
 	head =mem_readw(BIOS_KEYBOARD_BUFFER_HEAD);
 	tail =mem_readw(BIOS_KEYBOARD_BUFFER_TAIL);
 	ttail=tail+2;
@@ -274,16 +281,16 @@ static void add_key(Bit16u code) {
 	if (code!=0) BIOS_AddKeyToBuffer(code);
 }
 
-static bool get_key(Bit16u &code) {
+static bool get_key(Bit16u *code) {
 	Bit16u start,end,head,tail,thead;
-	if (machine==MCH_PCJR) {
-		/* should be done for cga and others as well, to be tested */
+	/*if (machine==MCH_PCJR) {
+		/ should be done for cga and others as well, to be tested /
 		start=0x1e;
 		end=0x3e;
-	} else {
+	} else {*/
 		start=mem_readw(BIOS_KEYBOARD_BUFFER_START);
 		end	 =mem_readw(BIOS_KEYBOARD_BUFFER_END);
-	}
+	//}
 	head =mem_readw(BIOS_KEYBOARD_BUFFER_HEAD);
 	tail =mem_readw(BIOS_KEYBOARD_BUFFER_TAIL);
 
@@ -291,16 +298,16 @@ static bool get_key(Bit16u &code) {
 	thead=head+2;
 	if (thead>=end) thead=start;
 	mem_writew(BIOS_KEYBOARD_BUFFER_HEAD,thead);
-	code = real_readw(0x40,head);
+	*code = real_readw(0x40,head);
 	return true;
 }
 
-static bool check_key(Bit16u &code) {
+static bool check_key(Bit16u *code) {
 	Bit16u head,tail;
 	head =mem_readw(BIOS_KEYBOARD_BUFFER_HEAD);
 	tail =mem_readw(BIOS_KEYBOARD_BUFFER_TAIL);
 	if (head==tail) return false;
-	code = real_readw(0x40,head);
+	*code = real_readw(0x40,head);
 	return true;
 }
 
@@ -338,11 +345,12 @@ static bool check_key(Bit16u &code) {
 
 
 /* the scancode is in reg_al */
-static Bitu IRQ1_Handler(void) {
+void IRQ1_Handler(void) {
 /* handling of the locks key is difficult as sdl only gives
  * states for numlock capslock. 
  */
-	Bitu scancode=reg_al;	/* Read the code */
+	Bitu scancode=AL;	/* Read the code */
+	Bit16u asciiscan;
 
 	Bit8u flags1,flags2,flags3,leds;
 	flags1=mem_readb(BIOS_KEYBOARD_FLAGS1);
@@ -354,7 +362,7 @@ static Bitu IRQ1_Handler(void) {
 #else
 	flags2&=~(0x40+0x20);//remove numlock/capslock pressed (hack for sdl only reporting states)
 #endif
-	if (DOS_LayoutKey(scancode,flags1,flags2,flags3)) return CBRET_NONE;
+	//if (DOS_LayoutKey(scancode,flags1,flags2,flags3)) return CBRET_NONE;
 //LOG_MSG("key input %d %d %d %d",scancode,flags1,flags2,flags3);
 	switch (scancode) {
 	/* First the hard ones  */
@@ -432,8 +440,8 @@ static Bitu IRQ1_Handler(void) {
 				mem_writeb(BIOS_KEYBOARD_FLAGS2,flags2|8);
 				IO_Write(0x20,0x20);
 				while (mem_readb(BIOS_KEYBOARD_FLAGS2)&8) CALLBACK_Idle();	// pause loop
-				reg_ip+=5;	// skip out 20,20
-				return CBRET_NONE;
+				IP+=5;	// skip out 20,20
+				return;
 			}
 		} else {
 			/* Num Lock */
@@ -507,7 +515,6 @@ static Bitu IRQ1_Handler(void) {
 		break;
 
 	default: /* Normal Key */
-		Bit16u asciiscan;
 		/* Now Handle the releasing of keys and see if they match up for a code */
 		/* Handle the actual scancode */
 		if (scancode & 0x80) goto irq1_end;
@@ -566,73 +573,73 @@ irq1_end:
 	IO_Write(0x61,old61 | 128);
 	IO_Write(0x64,0xae);
 #endif
-	return CBRET_NONE;
+	return;
 }
 
 
 /* check whether key combination is enhanced or not,
    translate key if necessary */
-static bool IsEnhancedKey(Bit16u &key) {
+static bool IsEnhancedKey(Bit16u *key) {
 	/* test for special keys (return and slash on numblock) */
-	if ((key>>8)==0xe0) {
-		if (((key&0xff)==0x0a) || ((key&0xff)==0x0d)) {
+	if ((*key>>8)==0xe0) {
+		if (((*key&0xff)==0x0a) || ((*key&0xff)==0x0d)) {
 			/* key is return on the numblock */
-			key=(key&0xff)|0x1c00;
+			*key=(*key&0xff)|0x1c00;
 		} else {
 			/* key is slash on the numblock */
-			key=(key&0xff)|0x3500;
+			*key=(*key&0xff)|0x3500;
 		}
 		/* both keys are not considered enhanced keys */
 		return false;
-	} else if (((key>>8)>0x84) || (((key&0xff)==0xf0) && (key>>8))) {
+	} else if (((*key>>8)>0x84) || (((*key&0xff)==0xf0) && (*key>>8))) {
 		/* key is enhanced key (either scancode part>0x84 or
 		   specially-marked keyboard combination, low part==0xf0) */
 		return true;
 	}
 	/* convert key if necessary (extended keys) */
-	if ((key>>8) && ((key&0xff)==0xe0))  {
-		key&=0xff00;
+	if ((*key>>8) && ((*key&0xff)==0xe0))  {
+		*key&=0xff00;
 	}
 	return false;
 }
 
-static Bitu INT16_Handler(void) {
+void INT16_Handler(void) {
 	Bit16u temp=0;
-	switch (reg_ah) {
+	switch (AH) {
 	case 0x00: /* GET KEYSTROKE */
-		if ((get_key(temp)) && (!IsEnhancedKey(temp))) {
+		if ((get_key(&temp)) && (!IsEnhancedKey(&temp))) {
 			/* normal key found, return translated key in ax */
-			reg_ax=temp;
+			AX=temp;
 		} else {
 			/* enter small idle loop to allow for irqs to happen */
-			reg_ip+=1;
+			IP+=1;
 		}
 		break;
 	case 0x10: /* GET KEYSTROKE (enhanced keyboards only) */
-		if (get_key(temp)) {
+		if (get_key(&temp)) {
 			if (((temp&0xff)==0xf0) && (temp>>8)) {
 				/* special enhanced key, clear low part before returning key */
 				temp&=0xff00;
 			}
-			reg_ax=temp;
+			AX=temp;
 		} else {
 			/* enter small idle loop to allow for irqs to happen */
-			reg_ip+=1;
+			IP+=1;
 		}
 		break;
 	case 0x01: /* CHECK FOR KEYSTROKE */
 		// enable interrupt-flag after IRET of this int16
-		mem_writew(SegPhys(ss)+reg_sp+4,(mem_readw(SegPhys(ss)+reg_sp+4) | FLAG_IF));
+		MMU_ww(CPU_SEGMENT_SS,SS,SP+4,(MMU_rw(CPU_SEGMENT_SS,SS,SP+4,0) | IF));
 		for (;;) {
-			if (check_key(temp)) {
-				if (!IsEnhancedKey(temp)) {
+			if (check_key(&temp)) {
+				if (!IsEnhancedKey(&temp)) {
 					/* normal key, return translated key in ax */
 					CALLBACK_SZF(false);
-					reg_ax=temp;
+					AX=temp;
 					break;
 				} else {
 					/* remove enhanced key from buffer and ignore it */
-					get_key(temp);
+					get_key(&temp);
 				}
 			} else {
 				/* no key available */
@@ -643,7 +650,7 @@ static Bitu INT16_Handler(void) {
 		}
 		break;
 	case 0x11: /* CHECK FOR KEYSTROKE (enhanced keyboards only) */
-		if (!check_key(temp)) {
+		if (!check_key(&temp)) {
 			CALLBACK_SZF(true);
 		} else {
 			CALLBACK_SZF(false);
@@ -651,42 +658,40 @@ static Bitu INT16_Handler(void) {
 				/* special enhanced key, clear low part before returning key */
 				temp&=0xff00;
 			}
-			reg_ax=temp;
+			AX=temp;
 		}
 		break;
 	case 0x02:	/* GET SHIFT FlAGS */
-		reg_al=mem_readb(BIOS_KEYBOARD_FLAGS1);
+		AL=mem_readb(BIOS_KEYBOARD_FLAGS1);
 		break;
 	case 0x03:	/* SET TYPEMATIC RATE AND DELAY */
-		if (reg_al == 0x00) { // set default delay and rate
+		if (AL == 0x00) { // set default delay and rate
 			IO_Write(0x60,0xf3);
 			IO_Write(0x60,0x20); // 500 msec delay, 30 cps
-		} else if (reg_al == 0x05) { // set repeat rate and delay
+		} else if (AL == 0x05) { // set repeat rate and delay
 			IO_Write(0x60,0xf3);
-			IO_Write(0x60,(reg_bh&3)<<5|(reg_bl&0x1f));
-		} else {
+			IO_Write(0x60,(BH&3)<<5|(BL&0x1f));
+		} /*else {
 			LOG(LOG_BIOS,LOG_ERROR)("INT16:Unhandled Typematic Rate Call %2X BX=%X",reg_al,reg_bx);
-		}
+		}*/
 		break;
 	case 0x05:	/* STORE KEYSTROKE IN KEYBOARD BUFFER */
-		if (BIOS_AddKeyToBuffer(reg_cx)) reg_al=0;
-		else reg_al=1;
+		if (BIOS_AddKeyToBuffer(CX)) AL=0;
+		else AL=1;
 		break;
 	case 0x12: /* GET EXTENDED SHIFT STATES */
-		reg_al=mem_readb(BIOS_KEYBOARD_FLAGS1);
-		reg_ah=mem_readb(BIOS_KEYBOARD_FLAGS2);		
+		AL=mem_readb(BIOS_KEYBOARD_FLAGS1);
+		AH=mem_readb(BIOS_KEYBOARD_FLAGS2);		
 		break;
 	case 0x55:
 		/* Weird call used by some dos apps */
-		LOG(LOG_BIOS,LOG_NORMAL)("INT16:55:Word TSR compatible call");
+		//LOG(LOG_BIOS,LOG_NORMAL)("INT16:55:Word TSR compatible call");
 		break;
 	default:
-		LOG(LOG_BIOS,LOG_ERROR)("INT16:Unhandled call %02X",reg_ah);
+		//LOG(LOG_BIOS,LOG_ERROR)("INT16:Unhandled call %02X",reg_ah);
 		break;
 
 	};
-
-	return CBRET_NONE;
 }
 
 //Keyboard initialisation. src/gui/sdlmain.cpp
@@ -716,13 +721,19 @@ void BIOS_SetupKeyboard(void) {
 	InitBiosSegment();
 
 	/* Allocate/setup a callback for int 0x16 and for standard IRQ 1 handler */
-	call_int16=CALLBACK_Allocate();	
+	/*call_int16=CALLBACK_Allocate();	
 	CALLBACK_Setup(call_int16,&INT16_Handler,CB_INT16,"Keyboard");
 	RealSetVec(0x16,CALLBACK_RealPointer(call_int16));
+	*/
+	addCBHandler(CB_DOSBOX_INTERRUPT,&INT16_Handler,0x16); //Register our handler our way!
 
-	call_irq1=CALLBACK_Allocate();	
+	/*call_irq1=CALLBACK_Allocate();	
 	CALLBACK_Setup(call_irq1,&IRQ1_Handler,CB_IRQ1,Real2Phys(BIOS_DEFAULT_IRQ1_LOCATION),"IRQ 1 Keyboard");
 	RealSetVec(0x09,BIOS_DEFAULT_IRQ1_LOCATION);
+	*/
+	addCBHandler(CB_DOSBOX_IRQ1,&IRQ1_Handler,BIOS_DEFAULT_IRQ1_LOCATION);
+	Dosbox_RealSetVec(0x16,BIOS_DEFAULT_IRQ1_LOCATION); //Our pointer!
+
 	// pseudocode for CB_IRQ1:
 	//	push ax
 	//	in al, 0x60
@@ -738,7 +749,7 @@ void BIOS_SetupKeyboard(void) {
 	//	pop ax
 	//	iret
 
-	if (machine==MCH_PCJR) {
+	/*if (machine==MCH_PCJR) {
 		call_irq6=CALLBACK_Allocate();
 		CALLBACK_Setup(call_irq6,NULL,CB_IRQ6_PCJR,"PCJr kb irq");
 		RealSetVec(0x0e,CALLBACK_RealPointer(call_irq6));
@@ -754,10 +765,10 @@ void BIOS_SetupKeyboard(void) {
 		//	out 0x20, al
 		//	pop ax
 		//	iret
-	}
+	}*/
 }
 
-Handler int16_functions[0x13] =
+/*Handler int16_functions[0x13] =
 {
 	int16_readkey, //0x00
 	int16_querykeyb_status_previewkey, //0x01
@@ -778,12 +789,12 @@ Handler int16_functions[0x13] =
 	NULL, //int16_readextendedkeybinput, //0x10
 	NULL, //int16_queryextendedkeybstatus, //0x11
 	NULL //int16_queryextendedkeybshiftflags //0x12
-};
+};*/
 
 void BIOS_int16()
 {
 //Not implemented yet!
-	int dohandle = 0;
+	/*int dohandle = 0;
 	dohandle = (AH<(sizeof(int16_functions)/sizeof(Handler))); //handle?
 	if (CPU.blocked) //No output?
 	{
@@ -804,5 +815,8 @@ void BIOS_int16()
 		{
 			AX = 0; //Error: unknown command!
 		}
-	}
+	}*/
+
+	//Passthrough to dosbox handler!
+	INT16_Handler(); //Execute int16 handler of DOSBox!
 }

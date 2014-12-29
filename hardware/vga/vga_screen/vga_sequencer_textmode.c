@@ -46,7 +46,7 @@ static OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,uint_32 Seque
 			}
 		}
 	}
-	return 0; //Done!
+	return 0; //No cursor!
 }
 
 void VGA_Sequencer_TextMode_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
@@ -85,8 +85,9 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	currentchar = readVRAMplane(VGA,0,Sequencer_textmode_charindex,3); //The character itself! From plane 0!
 	attribute = readVRAMplane(VGA,1,Sequencer_textmode_charindex,3); //The attribute itself! From plane 1!
 	
-	register byte pixel = getcharxy(VGA,attribute,currentchar,charinner,Sequencer->charinner_y); //Check for the character, the simple way!
-	pixel |= is_cursorscanline(VGA,Sequencer->charinner_y,Sequencer_textmode_charindex); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
+	register byte pixel;
+	pixel = getcharxy(VGA,attribute,currentchar,charinner,Sequencer->charinner_y); //Check for the character, the simple way!
+	//pixel |= is_cursorscanline(VGA,Sequencer->charinner_y,Sequencer_textmode_charindex); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
 	attributeinfo->fontpixel = pixel; //We're the font pixel?
 	attributeinfo->attribute = attribute; //The attribute for this pixel!
 }

@@ -64,6 +64,9 @@ OPTINLINE float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one 
 
 //Main rendering routine: renders pixels to the emulated screen.
 
+uint_32 numpixels;
+int_64 totalpixeltime;
+
 void drawPixel(word x, word y, uint_32 pixel)
 {
 	if ((y<EMU_MAX_Y) && (x<EMU_MAX_X)) //Valid pixel to render?
@@ -193,7 +196,7 @@ OPTINLINE byte VGA_Sequencer_ProcessDAC(VGA_Type *VGA, byte DACValue) //Process 
 	return result; //Give the result!
 }
 
-byte Sequencer_Running; //Sequencer running?
+byte Sequencer_Break = 0; //Sequencer breaked (loop exit)?
 
 //Special states!
 byte blanking = 0; //Are we blanking!
@@ -220,7 +223,7 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->Scanline = 0; //Reset for the next scanline!
 	VGA_Sequencer_TextMode_updateRow(VGA, Sequencer); //Scanline has been changed!
 	VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
-	Sequencer_Running = 0; //Not running anymore!
+	Sequencer_Break = 1; //Not running anymore!
 	flashing = !flashing; //Reverse flashing!
 }
 
@@ -240,7 +243,7 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	VGA_Sequencer_calcScanlineData(VGA);
 	
 	//Stop running!
-	Sequencer_Running = 0; //Not running anymore!
+	Sequencer_Break = 1; //Not running anymore!
 }
 
 //Retrace handlers!
@@ -294,6 +297,7 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	static VGA_Sequencer_Mode activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
 	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
 	render_nextPixel(Sequencer,VGA); //Common: Goto next pixel!
+	++Sequencer->totalpixels; //A pixel has been processed!
 }
 
 void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -319,7 +323,7 @@ void VGA_SIGNAL_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 
 void VGA_SIGNAL_NOPQ(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal) //Nothing to do yet?
 {
-	Sequencer_Running = 0; //Not running anymore: we can't do anything without a signal!
+	Sequencer_Break = 1; //Not running anymore: we can't do anything without a signal!
 }
 
 void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
@@ -439,7 +443,10 @@ void initStateHandlers()
 void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 {
 	if (HW_DISABLED) return;
+
+	TicksHolder ticks;
 	SEQ_DATA *Sequencer;
+	word displaystate; //Current display state!
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
 
 	//All possible states!
@@ -448,14 +455,20 @@ void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 		initStateHandlers(); //Init our display states for usage!
 	}
 	
-	Sequencer_Running = 1; //Start running!
+	Sequencer_Break = 0; //Start running!
 	
-	word displaystate; //Current display state!
+	startHiresCounting(&ticks);
+
 	for (;;) //New CRTC constrolled way!
 	{
 		displaystate = get_display(VGA,Sequencer->Scanline,Sequencer->x); //Current display state!
 		displaysignalhandler[displaystate](Sequencer,VGA,displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalling][retracing][displaystate](Sequencer,VGA); //Execute our signal!
-		if (!Sequencer_Running) break; //Finished?
+		if (Sequencer_Break) goto sequencerfinished; //Abort when done!
 	}
+	sequencerfinished:
+	++Sequencer->totalrenders; //Increase total render counting!
+
+	Sequencer->totalpixeltime += getmspassed_k(&ticks); //Log the ammount of time passed!
+	Sequencer->totalrendertime += getmspassed(&ticks); //Log the ammount of time passed!
 }

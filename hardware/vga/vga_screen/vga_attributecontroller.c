@@ -135,7 +135,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					
 					if (enableblink) //Blink affects font?
 					{
-						if (Attribute&0x80) //Blink enabled?
+						if (getattributeback(textmode,Attribute,0x8)) //Blink enabled?
 						{
 							fontstatus &= currentblink; //Need blink on to show!
 						}
@@ -196,7 +196,8 @@ typedef byte (*VGA_AttributeController_Mode)(VGA_AttributeInfo *Sequencer_attrib
 
 byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, SEQ_DATA *Sequencer)
 {
-	static byte curnibble = 0, latchednibbles = 0; //What nibble are we currently?
+	static byte curnibble = 0;
+	static byte latchednibbles = 0; //What nibble are we currently?
 	//First, execute the shift and add required in this mode!
 	latchednibbles <<= 4; //Shift high!
 	latchednibbles |= Sequencer_attributeinfo->attribute; //Latch to DAC Index or DAC Nibble!

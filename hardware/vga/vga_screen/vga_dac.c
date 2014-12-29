@@ -14,10 +14,11 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	bzero(filename,sizeof(filename)); //Init
 	sprintf(&filename[0],"DAC_%02X",CurMode->mode); //Generate log of this mode!
 	int c;
-	uint_32 DACBitmap[256]; //Full DAC 1-row bitmap!
-	for (c=0;c<256;c++)
+	uint_32 DACBitmap[0x200]; //Full DAC 1-row bitmap!
+	register uint_32 DACVal;
+	for (c=0;c<0x100;c++)
 	{
-		register uint_32 DACVal = ActiveVGA->precalcs.DAC[c]; //The DAC value!
+		DACVal = ActiveVGA->precalcs.DAC[c]; //The DAC value!
 		if ((DACVal==RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
 		{
 			DACBitmap[c] = 0; //Clear entry!
@@ -27,7 +28,35 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 			DACBitmap[c] = DACVal; //Load the DAC value!
 		}
 	}
-	writeBMP(filename,&DACBitmap,256,1,4,5,0); //Simple 1-row dump!
+	writeBMP(filename,&DACBitmap,16,16,4,4,16); //Simple 1-row dump of the DAC results!
+	//Now, write the Attribute results through the DAC pallette!
+	for (c=0;c<0x200;c++) //All possible attributes (font and back color)!
+	{
+		word lookup;
+		lookup = (c>>1); //What attribute!
+		lookup <<= 5; //Make room!
+		//No charinner_y (fixed to row #0)!
+		lookup <<= 1; //Make room!
+		lookup |= 1; //Blink ON!
+		lookup <<= 1; //Make room!
+		lookup |= (c&1); //Font?
+		//The lookup points to the index!
+		register uint_32 DACVal;
+		DACVal = ActiveVGA->precalcs.DAC[ActiveVGA->precalcs.attributeprecalcs[lookup]]; //The DAC value looked up!
+		if ((DACVal==RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
+		{
+			DACBitmap[c] = 0; //Clear entry!
+		}
+		else
+		{
+			DACBitmap[c] = DACVal; //Load the DAC value!
+		}		
+	}
+	//Attributes are in order: attribute foreground, attribute background for all attributes!
+	filename[0] = 'A';
+	filename[1] = 'T';
+	filename[2] = 'T'; //Attribute controller translations!
+	writeBMP(filename,&DACBitmap,16,16,4,4,16); //Simple 1-row dump of the attributes through the DAC!
 }
 
 static OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!

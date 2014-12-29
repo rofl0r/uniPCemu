@@ -24,8 +24,18 @@
 //Same as CB_INTERRUPT, but not assigned to any yet!
 #define CB_UNASSIGNEDINTERRUPT 0x04
 
+//Dosbox interrupt support!
+#define CB_DOSBOX_INTERRUPT 0x05
+#define CB_DOSBOX_IRQ0 0x06
+#define CB_DOSBOX_IRQ1 0x07
+#define CB_DOSBOX_IRQ9 0x08
+#define CB_DOSBOX_IRQ12 0x09
+#define CB_DOSBOX_IRQ12_RET 0x0A
+#define CB_DOSBOX_MOUSE 0x0B
+#define CB_DOSBOX_INT16 0x0C
+
 void CB_handler(byte handlernr); //Call an handler (from CB_Handler)?
-void addCBHandler(byte type, Handler CBhandler, byte intnr); //Add a callback!
+void addCBHandler(byte type, Handler CBhandler, uint_32 intnr); //Add a callback!
 void clearCBHandlers(); //Reset callbacks!
 
 void CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!

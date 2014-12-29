@@ -13,9 +13,7 @@
 #define __HW_DISABLED 0
 
 //Define pixel(stage/(scan&)newline) speed?
-//#define DEBUG_PIXEL_SPEED
-//#define DEBUG_PIXEL_STAGE_SPEED
-//#define DEBUG_PIXEL_NEWSCANLINE_SPEED
+#define DEBUG_PIXEL_SPEED
 //Framerate step in us!
 #define FRAMERATE_STEP 1000000
 //Log VGA speed?
@@ -112,31 +110,33 @@ void renderFramerate()
 				GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x22,0x22,0x22),"Frames rendered: %i",totalframes); //Total # of frames rendered!
 
 				#ifdef DEBUG_PIXEL_SPEED
-				GPU_textgotoxy(frameratesurface,0,20);
-				GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"AVG pixel time: %i us   ",SAFEDIV(Sequencer->totalpixeltime,Sequencer->totalpixels)); //Log the time taken per pixel AVG!
-				//GPU_textgotoxy(frameratesurface,0,21);
-				//GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"AVG render time: %i us   ",SAFEDIV(Sequencer->totalrendertime,Sequencer->totalrenders)); //Log the time taken per pixel AVG!
+				if (Sequencer->totalpixels) //Valid pixels to check speed?
+				{
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels rendered: %i               ",Sequencer->totalpixels); //Log the time taken per pixel AVG!
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels time rendered: %i               ",Sequencer->totalpixeltime); //Log the time taken per pixel AVG!
+
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nVGA@Scanline: %i               ",Sequencer->Scanline); //Log the time taken per pixel AVG!
+
+					float avgpixeltime;
+					avgpixeltime = (float)((float)Sequencer->totalpixeltime/(float)Sequencer->totalpixels); //Calculate!
+					GPU_textgotoxy(frameratesurface,0,20);
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nAVG pixel time: %02.5f us   ",avgpixeltime); //Log the time taken per pixel AVG!
+					uint_32 avgpixels;
+					if (avgpixeltime) //Gotten time at all?
+					{
+						avgpixels = (uint_32)((float)1000000.0f/(float)avgpixeltime);
+					}
+					else
+					{
+						avgpixels = 0; //None!
+					}
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nAVG pixels/second: %i               ",avgpixels); //Log the time taken per pixel AVG!
+					if (avgpixels) //Any processed a second?
+					{
+						GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nAVG FPS@640x480: %f               ",(float)((float)avgpixels/(640.0f*480.0f))); //Log the time taken per pixel AVG!
+					}
+				}
 				#endif
-				#ifdef DEBUG_PIXEL_STAGE_SPEED
-				GPU_textgotoxy(frameratesurface,0,22);
-				GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"AVG pixel retrieval time: %i us   LAST: %i      ",SAFEDIV(Sequencer->totalpixeltimepixel,Sequencer->totalpixelspixel),Sequencer->lastpixeltimepixel); //Log the time taken per pixel AVG!
-				GPU_textgotoxy(frameratesurface,0,23);
-				GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"AVG pixel attribute time: %i us   LAST: %i      ",SAFEDIV(Sequencer->totalpixeltimeattribute,Sequencer->totalpixelsattribute),Sequencer->lastpixeltimeattribute); //Log the time taken per pixel AVG!
-				GPU_textgotoxy(frameratesurface,0,24);
-				GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"AVG pixel DAC time: %i us   LAST: %i      ",SAFEDIV(Sequencer->totalpixeltimedac,Sequencer->totalpixelsdac),Sequencer->lastpixeltimedac); //Log the time taken per pixel AVG!
-				#endif
-				#ifdef DEBUG_PIXEL_NEWSCANLINE_SPEED
-				GPU_textgotoxy(frameratesurface,0,25);
-				GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"AVG pixel scanline(start of row) time: %i us   LAST: %i      ",SAFEDIV(Sequencer->totalscanlinetime,Sequencer->totalscanlines),Sequencer->lastscanlinetime); //Log the time taken per pixel AVG!
-				GPU_textgotoxy(frameratesurface,0,26);
-				GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"AVG pixel newline(VBlank) time: %i us   LAST: %i      ",SAFEDIV(Sequencer->totalnewlinetime,Sequencer->totalnewlines),Sequencer->lastnewlinetime); //Log the time taken per pixel AVG!
-				#endif
-				
-				/*GPU_textgotoxy(frameratesurface,0,27);
-				GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"Current CRTC Coordinates: %i:%i",VGA->CRTC.y,VGA->CRTC.x); //Current coordinates!
-				GPU_textgotoxy(frameratesurface,0,28);
-				GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"Current Rendering Coordinates: %i:%i",Sequencer->Scanline,Sequencer->x); //Current coordinates!
-				*/
 			}
 		}
 		else //Don't debug framerate, but still render?

@@ -202,11 +202,11 @@ void GPU_textprintf(PSP_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 		{
 			curx = 0; //Move to the left!
 		}
-		else if (msg[i]=='\n') //CR?
+		if (msg[i]=='\n') //CR?
 		{
 			++cury; //Next Y!
 		}
-		else
+		else if (msg[i]!='\r') //Never display \r!
 		{
 			GPU_textsetxy(surface,curx,cury,(byte)msg[i],font,border); //Write the character to our screen!
 			++curx; //Next character!
