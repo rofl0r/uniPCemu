@@ -19,7 +19,7 @@ OPTINLINE void initTicksHolder(TicksHolder *ticksholder)
 	{
 		ticksholder->avg_sumpassed = oldpassed; //Total passed!
 		ticksholder->avg_oldtimes = oldtimes; //Times passed!
-		ticksholder->avg = avg; //Average flag!
+		ticksholder->avg = 1; //Average flag: keep intact!
 	}
 }
 
@@ -53,8 +53,8 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 	ticksholder->newticks = currentticks; //Get current ticks as new ticks!
 	if (ticksholder->newticks>ticksholder->oldticks) //Not overflown?
 	{
-    	ticksholder->tickspassed = ticksholder->newticks;
-    	ticksholder->tickspassed -= ticksholder->oldticks; //Ticks passed!
+	    	ticksholder->tickspassed = ticksholder->newticks;
+	    	ticksholder->tickspassed -= ticksholder->oldticks; //Ticks passed!
 	}
 	else //Overflow?
 	{
@@ -69,9 +69,9 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 
 OPTINLINE uint_64 getmspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
 {
-	u64 tickspassed = (double)getrealtickspassed(ticksholder); //Start with checking the current ticks!
+	u64 tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	uint_64 result;
-	result = (uint_64)((tickspassed/(double)sceRtcGetTickResolution())*1000000.0f); //The ammount of ms that has passed as precise as we can!
+	result = (uint_64)(((double)tickspassed/(double)sceRtcGetTickResolution())*1000000.0f); //The ammount of ms that has passed as precise as we can!
 	if (ticksholder->avg) //Average enabled?
 	{
 		ticksholder->avg_sumpassed += result; //Add to the sum!

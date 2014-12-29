@@ -64,10 +64,7 @@ OPTINLINE float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one 
 
 //Main rendering routine: renders pixels to the emulated screen.
 
-uint_32 numpixels;
-int_64 totalpixeltime;
-
-void drawPixel(word x, word y, uint_32 pixel)
+OPTINLINE void drawPixel(word x, word y, uint_32 pixel)
 {
 	if ((y<EMU_MAX_Y) && (x<EMU_MAX_X)) //Valid pixel to render?
 	{
@@ -215,8 +212,6 @@ void VGA_NOPT(SEQ_DATA *Sequencer, VGA_Type *VGA) //TRUE NO-OP!
 void VGA_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA) //NOP with quit!
 {}
 
-byte flashing = 0; //Are we flash status when used?
-
 //Total handlers!
 void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
@@ -224,7 +219,6 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	VGA_Sequencer_TextMode_updateRow(VGA, Sequencer); //Scanline has been changed!
 	VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
 	Sequencer_Break = 1; //Not running anymore!
-	flashing = !flashing; //Reverse flashing!
 }
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -464,11 +458,13 @@ void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 		displaystate = get_display(VGA,Sequencer->Scanline,Sequencer->x); //Current display state!
 		displaysignalhandler[displaystate](Sequencer,VGA,displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalling][retracing][displaystate](Sequencer,VGA); //Execute our signal!
-		if (Sequencer_Break) goto sequencerfinished; //Abort when done!
+		if (Sequencer_Break) break; //Abort when done!
 	}
-	sequencerfinished:
-	++Sequencer->totalrenders; //Increase total render counting!
 
-	Sequencer->totalpixeltime += getmspassed_k(&ticks); //Log the ammount of time passed!
-	Sequencer->totalrendertime += getmspassed(&ticks); //Log the ammount of time passed!
+	uint_64 passed;
+	passed = getmspassed(&ticks); //Log the ammount of time passed!
+	Sequencer->totalpixeltime += passed; //Log the ammount of time passed!
+
+	++Sequencer->totalrenders; //Increase total render counting!
+	Sequencer->totalrendertime += passed; //Idem!
 }

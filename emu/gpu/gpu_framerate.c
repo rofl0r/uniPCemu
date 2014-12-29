@@ -115,6 +115,9 @@ void renderFramerate()
 					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels rendered: %i               ",Sequencer->totalpixels); //Log the time taken per pixel AVG!
 					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels time rendered: %i               ",Sequencer->totalpixeltime); //Log the time taken per pixel AVG!
 
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nRenderer rendered: %i               ",Sequencer->totalrenders); //Log the time taken per pixel AVG!
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nRenderer time rendered: %i               ",Sequencer->totalrendertime); //Log the time taken per pixel AVG!
+
 					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nVGA@Scanline: %i               ",Sequencer->Scanline); //Log the time taken per pixel AVG!
 
 					float avgpixeltime;
