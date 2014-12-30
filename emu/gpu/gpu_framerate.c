@@ -63,7 +63,7 @@ void GPU_Framerate_Thread() //One second has passed thread (called every second!
 
 	while (1) //Not done yet?
 	{
-		timepassed = getmspassed(&lastcheck); //Real time passed!
+		timepassed = getuspassed(&lastcheck); //Real time passed!
 		if (timepassed) //Time passed?
 		{
 			//Update total framerate data!
@@ -112,11 +112,11 @@ void renderFramerate()
 				#ifdef DEBUG_PIXEL_SPEED
 				if (Sequencer->totalpixels) //Valid pixels to check speed?
 				{
-					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels rendered: %i               ",Sequencer->totalpixels); //Log the time taken per pixel AVG!
-					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels time rendered: %i               ",Sequencer->totalpixeltime); //Log the time taken per pixel AVG!
+					//GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels rendered: %i               ",Sequencer->totalpixels); //Log the time taken per pixel AVG!
+					//GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels time rendered: %i               ",Sequencer->totalpixeltime); //Log the time taken per pixel AVG!
 
-					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nRenderer rendered: %i               ",Sequencer->totalrenders); //Log the time taken per pixel AVG!
-					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nRenderer time rendered: %i               ",Sequencer->totalrendertime); //Log the time taken per pixel AVG!
+					//GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nRenderer rendered: %i               ",Sequencer->totalrenders); //Log the time taken per pixel AVG!
+					//GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nRenderer time rendered: %i               ",Sequencer->totalrendertime); //Log the time taken per pixel AVG!
 
 					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nVGA@Scanline: %i               ",Sequencer->Scanline); //Log the time taken per pixel AVG!
 
@@ -127,7 +127,7 @@ void renderFramerate()
 					uint_32 avgpixels;
 					if (avgpixeltime) //Gotten time at all?
 					{
-						avgpixels = (uint_32)((float)1000000.0f/(float)avgpixeltime);
+						avgpixels = (uint_32)((float)PS_SECOND/(float)avgpixeltime);
 					}
 					else
 					{

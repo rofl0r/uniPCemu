@@ -784,12 +784,12 @@ void SDL_AudioCallback(void *user_data, Uint8 *audio, int length)
 	#ifdef EXTERNAL_TIMING
 	TicksHolder ticks;
 	initTicksHolder(&ticks); //Init!
-	getmspassed(&ticks); //Init!
+	getuspassed(&ticks); //Init!
 	#endif
 	uint_32 reallength = length/sizeof(*ubuf); //Total length!
 	mixaudio(ubuf,reallength); //Mix the audio!
 	#ifdef EXTERNAL_TIMING
-	uint_64 mspassed = getmspassed(&ticks); //Load the time passed!
+	uint_64 mspassed = getuspassed(&ticks); //Load the time passed!
 	totaltime_audio += mspassed; //Total time!
 	++totaltimes_audio; //Total times increase!
 	totaltime_audio_avg = (uint_32)SAFEDIV(totaltime_audio,totaltimes_audio); //Recalculate AVG audio time!

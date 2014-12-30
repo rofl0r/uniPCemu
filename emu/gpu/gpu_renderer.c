@@ -289,7 +289,7 @@ static void GPU_directRenderer() //Plot directly 1:1 on-screen!
 
 static void render_EMU_buffer() //Render the EMU to the buffer!
 {
-	getmspassed(&ms_render_lastcheck); //Init last check to current time!
+	getuspassed(&ms_render_lastcheck); //Init last check to current time!
 	//Next, allocate all buffers!
 	//First, check the emulated screen for updates and update it if needed!
 	if (rendersurface && ((GPU.xres*GPU.yres)>0)) //Got emu screen to render to the PSP and not testing and dirty?
@@ -320,7 +320,7 @@ static void render_EMU_buffer() //Render the EMU to the buffer!
 			GPU.emu_buffer_dirty = 0; //Not dirty anymore: we've been updated!
 		}
 	}
-	ms_render = (getmspassed(&ms_render_lastcheck)&0xFFFFFFFF); //Update last check to current time processed!
+	ms_render = (getuspassed(&ms_render_lastcheck)&0xFFFFFFFF); //Update last check to current time processed!
 	char time[20];
 	convertTime(ms_render,&time[0]); //Convert!
 }

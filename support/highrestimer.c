@@ -1,8 +1,16 @@
 #include "headers/support/highrestimer.h" //Our own typedefs etc.
 #include "headers/support/log.h" //Logging support!
 
+byte resolutioninit = 1; //Resolution is loaded?
+double tickresolution = 0.0f; //Our tick resolution, initialised!
+
 OPTINLINE void initTicksHolder(TicksHolder *ticksholder)
 {
+	if (resolutioninit) //Not loaded yet?
+	{
+		tickresolution = sceRtcGetTickResolution(); //Init resolution!
+		resolutioninit = 0; //We're ready to run!
+	}
 	byte avg;
 	avg = ticksholder->avg; //Averaging!
 	u64 oldpassed;
@@ -25,7 +33,7 @@ OPTINLINE void initTicksHolder(TicksHolder *ticksholder)
 
 OPTINLINE void ticksholder_AVG(TicksHolder *ticksholder)
 {
-	ticksholder->avg = 1; //Enable average meter!
+	//ticksholder->avg = 1; //Enable average meter!
 }
 
 OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
@@ -33,9 +41,9 @@ OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 	u64 result = 0; //The result!
 	if (!sceRtcGetCurrentTick(&result)) //Try to retrieve current ticks as old ticks until we get it!
 	{
-		return result; //Give the result: ticks passed!
+		return result; //Give the result!
 	}
-	return 0; //Give the result: error!
+	return 0; //Give the result: ticks passed!
 }
 
 OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
@@ -67,11 +75,11 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 	return ticksholder->tickspassed; //Give the result: ammount of ticks passed!
 }
 
-OPTINLINE uint_64 getmspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
+OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, u64 secondfactor)
 {
 	u64 tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	uint_64 result;
-	result = (uint_64)(((double)tickspassed/(double)sceRtcGetTickResolution())*1000000.0f); //The ammount of ms that has passed as precise as we can!
+	result = (uint_64)(((double)tickspassed/tickresolution)*secondfactor); //The ammount of ms that has passed as precise as we can!
 	if (ticksholder->avg) //Average enabled?
 	{
 		ticksholder->avg_sumpassed += result; //Add to the sum!
@@ -81,11 +89,40 @@ OPTINLINE uint_64 getmspassed(TicksHolder *ticksholder) //Get ammount of ms pass
 	return result; //Ordinary result!
 }
 
-OPTINLINE uint_64 getmspassed_k(TicksHolder *ticksholder) //Same as getmspassed, but doesn't update the start of timing, allowing for timekeeping normally.
+OPTINLINE uint_64 getuspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
+{
+	return gettimepassed(ticksholder,US_SECOND); //Factor us!
+}
+
+OPTINLINE uint_64 getnspassed(TicksHolder *ticksholder)
+{
+	return gettimepassed(ticksholder,NS_SECOND); //Factor ns!
+}
+
+OPTINLINE uint_64 getpspassed(TicksHolder *ticksholder)
+{
+	return gettimepassed(ticksholder,PS_SECOND); //Factor ps!
+}
+
+OPTINLINE uint_64 getuspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
 {
 	TicksHolder temp;
 	memcpy(&temp,ticksholder,sizeof(temp)); //Copy the old one!
-	return getmspassed(&temp); //Give the ammount of time passed!
+	return getuspassed(&temp); //Give the ammount of time passed!
+}
+
+OPTINLINE uint_64 getnspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
+{
+	TicksHolder temp;
+	memcpy(&temp,ticksholder,sizeof(temp)); //Copy the old one!
+	return getnspassed(&temp); //Give the ammount of time passed!
+}
+
+OPTINLINE uint_64 getpspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
+{
+	TicksHolder temp;
+	memcpy(&temp,ticksholder,sizeof(temp)); //Copy the old one!
+	return getpspassed(&temp); //Give the ammount of time passed!
 }
 
 OPTINLINE void startHiresCounting(TicksHolder *ticksholder)
@@ -96,7 +133,7 @@ OPTINLINE void startHiresCounting(TicksHolder *ticksholder)
 
 OPTINLINE void stopHiresCounting(char *src, char *what, TicksHolder *ticksholder)
 {
-	uint_64 passed = getmspassed(ticksholder); //Get the time that has passed!
+	uint_64 passed = getuspassed(ticksholder); //Get the time that has passed!
 	char time[30]; //Some time holder!
 	bzero(time,sizeof(time)); //Init holder!
 	convertTime(passed,&time[0]); //Convert the time!

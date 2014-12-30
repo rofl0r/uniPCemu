@@ -7,9 +7,6 @@
 #include "headers/support/bmp.h" //Bitmap support!
 #include "headers/support/highrestimer.h" //High resolution timer!
 
-//Special transparent pixel!
-#define TRANSPARENTPIXEL 0
-
 //\n is newline? Else \r\n is newline!
 #define USESLASHN 1
 
@@ -57,7 +54,7 @@ static void GPU_textput_pixel(GPU_SDL_Surface *dest, PSP_TEXTSURFACE *surface,in
 {
 	if (surface->dirty[fy][fx]) updateDirty(surface,fx,fy); //Update dirty if needed!
 	uint_32 color = surface->notdirty[fy][fx];
-	if (color)
+	if (color^TRANSPARENTPIXEL)
 	{
 		put_pixel(dest,fx,fy,color); //Plot the pixel!
 	}
@@ -100,7 +97,7 @@ uint_64 GPU_textrenderer(PSP_TEXTSURFACE *surface) //Run the text rendering on r
 	if (!surface) return 0; //Abort without surface!
 	TicksHolder ms_render_lastcheck; //For counting ms to render (GPU_framerate)!
 	initTicksHolder(&ms_render_lastcheck); //Init for counting time of rendering on the device directly from VGA data!
-	getmspassed(&ms_render_lastcheck); //Get first value!
+	getuspassed(&ms_render_lastcheck); //Get first value!
 	int y=0;
 	for (;;) //Process all rows!
 	{
@@ -113,7 +110,7 @@ uint_64 GPU_textrenderer(PSP_TEXTSURFACE *surface) //Run the text rendering on r
 		if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!
 	}
 	surface->flags &= ~TEXTSURFACE_FLAG_DIRTY; //Clear dirty flag!
-	return getmspassed(&ms_render_lastcheck); //Give processing time!
+	return getuspassed(&ms_render_lastcheck); //Give processing time!
 }
 
 int GPU_textgetxy(PSP_TEXTSURFACE *surface,int x, int y, byte *character, uint_32 *font, uint_32 *border) //Read a character+attribute!

@@ -16,9 +16,17 @@ u64 avg_sumpassed; //Total sum passed of getmspassed!
 uint_32 avg_oldtimes; //Total times of avg_sumpassed!
 } TicksHolder; //Info for checking differences between ticks!
 
+#define US_SECOND 1000000
+#define NS_SECOND 1000000000
+#define PS_SECOND 1000000000000
+
 OPTINLINE void initTicksHolder(TicksHolder *ticksholder); //Initialise ticks holder!
-OPTINLINE uint_64 getmspassed(TicksHolder *ticksholder); //Get ammount of ms passed since last use!
-OPTINLINE uint_64 getmspassed_k(TicksHolder *ticksholder); //Same as above, but keep old time data!
+OPTINLINE uint_64 getuspassed(TicksHolder *ticksholder); //Get ammount of us passed since last use!
+OPTINLINE uint_64 getnspassed(TicksHolder *ticksholder); //Get ammount of ns passed since last use!
+OPTINLINE uint_64 getpspassed(TicksHolder *ticksholder); //Get ammount of ps passed since last use!
+OPTINLINE uint_64 getuspassed_k(TicksHolder *ticksholder); //Same as above, but keep old time data!
+OPTINLINE uint_64 getnspassed_k(TicksHolder *ticksholder); //Same as above, but keep old time data!
+OPTINLINE uint_64 getpspassed_k(TicksHolder *ticksholder); //Same as above, but keep old time data!
 
 OPTINLINE void convertTime(uint_64 time, char *holder); //Convert time to hh:mm:ss:s100.s1000.s1k!
 

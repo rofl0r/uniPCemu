@@ -32,7 +32,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	
 	if (safe_strlen(logtext,sizeof(logtext))) //Got length?
 	{
-		uint_64 time = getmspassed_k(&logticksholder); //Get the current time!
+		uint_64 time = getuspassed_k(&logticksholder); //Get the current time!
 		convertTime(time,&timestamp[0]); //Convert the time!
 		strcat(timestamp,": "); //Suffix!
 	}

@@ -81,8 +81,11 @@ typedef uint64 FILEPOS;
 //#endif
 
 //RGB, with and without A (full)
-#define RGB(r, g, b) ((r)|((g)<<8)|((b)<<16)|(0xFF<<24))
 #define RGBA(r, g, b, a) ((r)|((g)<<8)|((b)<<16)|((a)<<24))
+//RGB is by default fully opaque
+#define RGB(r, g, b) RGBA(r,g,b,0xFF)
+//Special transparent pixel!
+#define TRANSPARENTPIXEL RGBA(0x00,0x00,0x00,0x00)
 //Same, but reversed!
 #define GETR(x) ((x)&0xFF)
 #define GETG(x) (((x)>>8)&0xFF)
@@ -196,7 +199,6 @@ typedef struct
 //Easy rotating!
 #define ror(x,moves) ((x >> moves) | (x << (sizeof(x)*8 - moves)))
 #define rol(x,moves) ((x << moves) | (x >> (sizeof(x)*8 - moves)))
-
 
 //Emulator itself:
 #define VIDEOMODE_EMU 0x02

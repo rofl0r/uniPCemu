@@ -87,7 +87,7 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	
 	register byte pixel;
 	pixel = getcharxy(VGA,attribute,currentchar,charinner,Sequencer->charinner_y); //Check for the character, the simple way!
-	//pixel |= is_cursorscanline(VGA,Sequencer->charinner_y,Sequencer_textmode_charindex); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
+	pixel |= is_cursorscanline(VGA,Sequencer->charinner_y,Sequencer_textmode_charindex); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
 	attributeinfo->fontpixel = pixel; //We're the font pixel?
 	attributeinfo->attribute = attribute; //The attribute for this pixel!
 }

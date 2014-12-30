@@ -82,7 +82,7 @@ void timer_thread() //Handler for timer!
 			action_confirmed = 1; //Confirmed!
 			return; //Stop timer!
 		}
-		realpassed = getmspassed(&timer_lasttimer); //How many time has passed for real!
+		realpassed = getuspassed(&timer_lasttimer); //How many time has passed for real!
 
 		if (TIMER_DEBUG) debug_timers(); //Debug the timers!
 		for (curtimer=0; curtimer<NUMITEMS(timers); curtimer++) //Process timers!
@@ -104,7 +104,7 @@ void timer_thread() //Handler for timer!
 						startHiresCounting(&singletimer); //Start counting!
 						timers[curtimer].handler(); //Run the handler!
 						++timers[curtimer].calls; //For debugging the ammount of calls!
-						timers[curtimer].total_timetaken += getmspassed(&singletimer); //Add the time that has passed for this timer!
+						timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
 						#ifdef TIMER_LOG
 						dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
 						#endif

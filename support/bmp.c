@@ -80,15 +80,15 @@ static OPTINLINE void getBMP(TRGB *pixel,int x, int y, uint_32 *image, int w, in
 	h = originalh; //Apply double!
 	uint_32 index;
 	index = (y*virtualwidth)+x; //Our index of our pixel!
-	if (!GETA(image[(y*virtualwidth)+x])) //No output?
-	{
-		memset(pixel,0,sizeof(pixel)); //No pixel!
-		return; //Abort!
-	}
+	float a;
+	a = (float)(GETA(image[(y*virtualwidth)+x]))/255.0f; //A gradient!
 	uint_32 thepixel = image[(y*virtualwidth)+x];
 	pixel->R = GETR(thepixel); //Get R!
 	pixel->G = GETG(thepixel); //Get G!
 	pixel->B = GETB(thepixel); //Get B!
+	pixel->R *= a; //Apply alpha!
+	pixel->G *= a; //Apply alpha!
+	pixel->B *= a; //Apply alpha!
 }
 
 byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, byte doubleyres, int virtualwidth)

@@ -186,14 +186,14 @@ OPTINLINE byte VGA_Sequencer_ProcessDAC(VGA_Type *VGA, byte DACValue) //Process 
 	#endif
 	result = VGA_DAC(VGA,DACValue); //DAC final processing! Used to be: VGA,x
 	#ifdef DEBUG_PIXEL_STAGE_SPEED
-		Sequencer->lastpixeltimedac = getmspassed(&ticks2); //Save last!
+		Sequencer->lastpixeltimedac = getuspassed(&ticks2); //Save last!
 		Sequencer->totalpixeltimedac += Sequencer->lastpixeltimedac; //Count total ticks!
 		Sequencer->totalpixelsdac += VGA->LinesToRender; //Count total pixels!
 	#endif
 	return result; //Give the result!
 }
 
-byte Sequencer_Break = 0; //Sequencer breaked (loop exit)?
+byte Sequencer_Break; //Sequencer breaked (loop exit)?
 
 //Special states!
 byte blanking = 0; //Are we blanking!
@@ -451,7 +451,9 @@ void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 	
 	Sequencer_Break = 0; //Start running!
 	
-	startHiresCounting(&ticks);
+	initTicksHolder(&ticks);
+	getuspassed(&ticks); //Discard our initial value!
+	getuspassed(&ticks); //Bugfix: make sure we're run multiple times before running normally!
 
 	for (;;) //New CRTC constrolled way!
 	{
@@ -462,7 +464,7 @@ void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 	}
 
 	uint_64 passed;
-	passed = getmspassed(&ticks); //Log the ammount of time passed!
+	passed = getpspassed(&ticks); //Log the ammount of time passed!
 	Sequencer->totalpixeltime += passed; //Log the ammount of time passed!
 
 	++Sequencer->totalrenders; //Increase total render counting!
