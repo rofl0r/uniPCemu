@@ -15,20 +15,24 @@
 //Log running timers (error/timing search only!)
 //#define TIMER_LOG
 //Timer step in us! Originally 100ms now 10000?
-#define TIMER_STEP 1
+#define TIMER_STEP 10000
 //Base row/column of debugging timers!
 #define DEBUG_BASE_ROW 10
 #define DEBUG_BASE_COLUMN 10
 
+//The limit in executing counters per step!
+#define COUNTER_LIMIT 25
+
 typedef struct
 {
-float frequency; //The frequency!
-Handler handler; //The handler!
-byte enabled; //Enabled?
-double counter; //Counter for handling the frequency calls!
-char name[256]; //The name of the timer!
-uint_32 calls; //Total ammount of calls so far (for debugging only!)
-uint_64 total_timetaken; //Time taken by the function!
+	float frequency; //The frequency!
+	float overflowtime; //The time taken to overflow in us!
+	Handler handler; //The handler!
+	byte enabled; //Enabled?
+	double counter; //Counter for handling the frequency calls!
+	char name[256]; //The name of the timer!
+	uint_32 calls; //Total ammount of calls so far (for debugging only!)
+	uint_64 total_timetaken; //Time taken by the function!
 } TIMER; //A timer's data!
 
 TIMER timers[10]; //We use 10 timers!
@@ -67,6 +71,7 @@ void timer_thread() //Handler for timer!
 	TicksHolder timer_lasttimer; //Last timer ticks holder!
 	char name[256];
 	bzero(name,sizeof(name)); //Init name!
+	uint_32 numcounters;
 
 	initTicksHolder(&timer_lasttimer); //Init ticks holder for precision!
 	int curtimer;
@@ -84,40 +89,47 @@ void timer_thread() //Handler for timer!
 		}
 		realpassed = getuspassed(&timer_lasttimer); //How many time has passed for real!
 
-		if (TIMER_DEBUG) debug_timers(); //Debug the timers!
-		for (curtimer=0; curtimer<NUMITEMS(timers); curtimer++) //Process timers!
+		//if (TIMER_DEBUG) debug_timers(); //Debug the timers!
+		if (TIMER_ENABLED) //Are timers enabled?
 		{
-			if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
+			for (curtimer=0; curtimer<NUMITEMS(timers); curtimer++) //Process timers!
 			{
-				timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
-				if ((timers[curtimer].counter-SAFEDIV(1000000,timers[curtimer].frequency))+1) //Overflow multi?
+				if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
 				{
-					timers[curtimer].counter -= SAFEDIV(1000000,timers[curtimer].frequency); //Decrease counter!
-					strcpy(name,"timer_sub_"); //Root!
-					strcat(name,timers[curtimer].name); //Set name!
-					if (TIMER_ENABLED && (timers[curtimer].handler!=0) && (timers[curtimer].handler!=NULL)) //Allowed to run?
+					timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
+					numcounters = (timers[curtimer].counter/timers[curtimer].overflowtime); //Ammount of times to count!
+					if (numcounters>COUNTER_LIMIT) numcounters = COUNTER_LIMIT;
+					if (numcounters) //Anything at all to process?
 					{
-						#ifdef TIMER_LOG
-						dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
-						#endif
-						TicksHolder singletimer;
-						startHiresCounting(&singletimer); //Start counting!
-						timers[curtimer].handler(); //Run the handler!
-						++timers[curtimer].calls; //For debugging the ammount of calls!
-						timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
-						#ifdef TIMER_LOG
-						dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
-						#endif
+						timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions!
+						for (;;) //Overflow multi?
+						{
+							#ifdef TIMER_LOG
+							strcpy(name,"timer_sub_"); //Root!
+							strcat(name,timers[curtimer].name); //Set name!
+							dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
+							TicksHolder singletimer;
+							startHiresCounting(&singletimer); //Start counting!
+							#endif
+							timers[curtimer].handler(); //Run the handler!
+							#ifdef TIMER_LOG
+							++timers[curtimer].calls; //For debugging the ammount of calls!
+							timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
+							dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
+							#endif
+							if (!--numcounters) break; //Done? Process next counter!
+						}
 					}
-				}
-				while (timers[curtimer].counter>10000000) //Way too much (10 seconds)?
-				{
-					timers[curtimer].counter -= 10000000; //Remove some (10 seconds)!
 				}
 			}
 		}
 		delay(TIMER_STEP); //Lousy, take 100ms breaks!
 	}
+}
+
+void timer_calcfreq(int timer)
+{
+	timers[timer].overflowtime = (1000000.0f/timers[timer].frequency); //Actual time taken to overflow!
 }
 
 void addtimer(float frequency, Handler timer, char *name)
@@ -138,6 +150,7 @@ void addtimer(float frequency, Handler timer, char *name)
 			timers[i].frequency = frequency; //Edit frequency!
 //Timer name is already set!
 			timers[i].enabled = 1; //Set to enabled by default!
+			timer_calcfreq(i);
 			return; //Done: we've found the timer and updated it!
 		}
 	}
@@ -153,6 +166,7 @@ void addtimer(float frequency, Handler timer, char *name)
 			timers[i].frequency = frequency; //Start timer!
 			strcpy(timers[i].name,name); //Timer name!
 			timers[i].enabled = 1; //Set to enabled by default!
+			timer_calcfreq(i);
 			break;
 		}
 	}

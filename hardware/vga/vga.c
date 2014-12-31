@@ -402,6 +402,6 @@ void VGA_waitforVBlank() //Wait for a VBlank to happen?
 	ActiveVGA->wait_for_vblank = 1; //We're waiting for vblank to happen!
 	while (!ActiveVGA->VGA_vblank) //Not happened yet?
 	{
-		delay(1); //Wait a bit for the VBlank to occur!
+		delay(50000); //Wait a bit for the VBlank to occur!
 	}
 }

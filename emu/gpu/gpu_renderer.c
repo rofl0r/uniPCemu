@@ -320,7 +320,7 @@ static void render_EMU_buffer() //Render the EMU to the buffer!
 			GPU.emu_buffer_dirty = 0; //Not dirty anymore: we've been updated!
 		}
 	}
-	ms_render = (getuspassed(&ms_render_lastcheck)&0xFFFFFFFF); //Update last check to current time processed!
+	ms_render = getuspassed(&ms_render_lastcheck); //Update last check to current time processed!
 	char time[20];
 	convertTime(ms_render,&time[0]); //Convert!
 }

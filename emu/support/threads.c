@@ -303,7 +303,7 @@ ThreadParams_p startThread(Handler thefunc, char *name, int priority) //Start a 
 	thid = sceKernelCreateThread(name, threadhandler, priority, THREAD_STACKSIZE, PSP_THREAD_ATTR_USER|PSP_THREAD_ATTR_NO_FILLSTACK|PSP_THREAD_ATTR_CLEAR_STACK, NULL); //Try to create the thread!
 	if (!thid) //Failed to create?
 	{
-		delay(1); //Wait a bit!
+		delay(100); //Wait a bit!
 		goto docreatethread; //Try again!
 	}
 
@@ -345,7 +345,7 @@ void waitThreadEnd(ThreadParams_p thread) //Wait for this thread to end!
 			{
 				while (thread->status==THREADSTATUS_CREATEN) //Not running yet?
 				{
-					delay(10); //Wait for a bit for the thread to start!
+					delay(100); //Wait for a bit for the thread to start!
 				}
 				sceKernelWaitThreadEnd(thread->threadID,NULL); //Wait for it to end, wait infinitely!
 			}

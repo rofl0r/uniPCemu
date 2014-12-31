@@ -57,6 +57,16 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	filename[1] = 'T';
 	filename[2] = 'T'; //Attribute controller translations!
 	writeBMP(filename,&DACBitmap,16,16,4,4,16); //Simple 1-row dump of the attributes through the DAC!
+	
+	/*char cs[256];
+	memset(&cs,0,sizeof(cs));
+	sprintf(&filename[0],"CHARX_%02X.DAT",CurMode->mode); //Generate log of this mode!
+	
+	FILE *f;
+	f = fopen(filename,"wb");
+	fwrite(&ActiveVGA->CRTC.charcolstatus,1,sizeof(ActiveVGA->CRTC.charcolstatus),f); //Write the column statuses!
+	fclose(f); //Close the file!
+	*/
 }
 
 static OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
@@ -79,17 +89,17 @@ static OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w v
 	return RGB(a,a,a); //RGB Greyscale!
 }
 
-static byte DAC_BWmonitor(VGA_Type *VGA, byte DACValue)
+static uint_32 DAC_BWmonitor(VGA_Type *VGA, byte DACValue)
 {
 	return color2bw(VGA->precalcs.DAC[DACValue]); //Lookup!
 }
 
-static byte DAC_colorMonitor(VGA_Type *VGA,byte DACValue)
+static uint_32 DAC_colorMonitor(VGA_Type *VGA,byte DACValue)
 {
 	return VGA->precalcs.DAC[DACValue]; //Lookup!
 }
 
-typedef byte (*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
+typedef uint_32 (*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
 
 OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *VGA, word x
 {

@@ -79,8 +79,8 @@ int exit_callback(int arg1, int arg2, void *common)
 		}
 		else
 		{
-			delay(10000); //Wait a bit!
-			counter += 10000; //For timeout!
+			delay(100000); //Wait a bit!
+			counter += 100000; //For timeout!
 		}
 	}
 	termThreads(); //Terminate all threads now!	

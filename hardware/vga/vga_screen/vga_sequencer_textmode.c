@@ -66,14 +66,13 @@ void VGA_Sequencer_TextMode_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 
 void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo) //Render a text mode pixel!
 {
-	//attributeinfo->attributesource = 0x33333333; //Our plane sources!
-	
 	//First, full value to lookup!
 	register word character;
 	register word charinner;
 	//X!
-	word *curcolstatus = &VGA->CRTC.charcolstatus[Sequencer->tempx<<1]; //Current col status!
-	Sequencer->chary = character = *curcolstatus++; //First is chary!
+	word *curcolstatus;
+	curcolstatus = &VGA->CRTC.charcolstatus[Sequencer->tempx<<1]; //Current col status!
+	attributeinfo->charx = character = *curcolstatus++; //First is chary!
 	attributeinfo->charinner_x = charinner = *curcolstatus; //Second is charinner_y!
 	
 	register uint_32 Sequencer_textmode_charindex; //Where do we find our info!

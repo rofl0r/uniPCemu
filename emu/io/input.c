@@ -18,9 +18,6 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
-//Delay between mouse inputs!
-#define MOUSE_DELAY 10000
-
 //Time between keyboard set swapping.
 #define KEYSWAP_DELAY 100000
 //Keyboard enabled?
@@ -55,12 +52,11 @@ int psp_inputkey()
 int psp_inputkeydelay(uint_32 waittime)
 {
 	uint_32 counter; //Counter for inputkeydelay!
-	int key = 0;
-	key = psp_inputkey(); //Check for keys!
+	int key = psp_inputkey(); //Check for keys!
 	if (key) //Key pressed?
 	{
 		counter = waittime; //Init counter!
-		while (counter>0) //Still waiting?
+		while ((int_64)counter>0) //Still waiting?
 		{
 			if (counter>INPUTKEYDELAYSTEP) //Big block?
 			{
@@ -806,7 +802,7 @@ void keyboard_renderer() //Render the keyboard on-screen!
 }
 
 int ticking = 0; //Already ticking?
-void keyboard_tick()
+/*void keyboard_tick()
 {
 	if (ticking) return; //Disable when already ticking!
 	ticking = 1; //We're ticking!
@@ -817,7 +813,7 @@ void keyboard_tick()
 	keyboard_renderer(); //Render the off!
 	currentkey = currentkeybackup; //Restore the current key!
 	ticking = 0; //Not ticking anymore!
-}
+}*/
 
 void keyboard_swap_handler() //Swap handler for keyboard!
 {
@@ -853,7 +849,7 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 			{
 				currentkey = 0; //No keys pressed!
 				ReleaseKeys(); //Release all keys!
-				while (psp_inputkeydelay(10000)&PSP_CTRL_DOWN) //Wait to be released!
+				while (psp_inputkeydelay(333333)&PSP_CTRL_DOWN) //Wait to be released!
 				{}
 				curstat.gamingmode = 1; //Enable gaming mode!
 			}
@@ -861,7 +857,7 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 			{
 				currentkey = 0; //No keys pressed!
 				ReleaseKeys(); //Release all keys!
-				while (psp_inputkeydelay(10000)&PSP_CTRL_START) //Wait to be released!
+				while (psp_inputkeydelay(333333)&PSP_CTRL_START) //Wait to be released!
 				{}
 				curstat.mode = 0; //Swap to mouse mode!
 			}
@@ -870,13 +866,13 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 		{
 			if (psp_inputkeydelay(333333)&PSP_CTRL_DOWN) //Down pressed: swap to gaming mode!
 			{
-				while (psp_inputkeydelay(10000)&PSP_CTRL_DOWN) ////Wait to be released!
+				while (psp_inputkeydelay(333333)&PSP_CTRL_DOWN) ////Wait to be released!
 				{}
 				curstat.gamingmode = 1; //Enable gaming mode!
 			}
 			else if (psp_inputkeydelay(333333)&PSP_CTRL_START) //Swap to keyboard mode!
 			{
-				while (psp_inputkeydelay(10000)&PSP_CTRL_START) //Wait to be released!
+				while (psp_inputkeydelay(333333)&PSP_CTRL_START) //Wait to be released!
 				{}
 				curstat.mode = 1; //Swap to keyboard mode!
 			}
@@ -1431,7 +1427,7 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 		}
 		else
 		{
-			delay(1); //Wait for the minimum!
+			delay(100000); //Wait for the minimum!
 		}
 	} //While loop, muse be infinite to prevent closing!
 }

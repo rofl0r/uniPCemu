@@ -65,7 +65,7 @@ BIOSMENU_FONT BIOSMenu_Fonts[3] = {
 
 //How long to press for BIOS!
 #define BIOS_TIME 2000000
-#define INPUT_INTERVAL 10000
+#define INPUT_INTERVAL 100000
 
 //First, global handler!
 Handler BIOS_Menus[] =

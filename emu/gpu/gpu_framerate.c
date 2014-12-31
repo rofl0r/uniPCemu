@@ -112,8 +112,10 @@ void renderFramerate()
 				#ifdef DEBUG_PIXEL_SPEED
 				if (Sequencer->totalpixels) //Valid pixels to check speed?
 				{
-					//GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels rendered: %i               ",Sequencer->totalpixels); //Log the time taken per pixel AVG!
-					//GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels time rendered: %i               ",Sequencer->totalpixeltime); //Log the time taken per pixel AVG!
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nDisplay speed in rows/second: %f               ",VGA_VerticalRefreshRate(VGA)); //Log the time taken per pixel AVG!
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nDisplay resolution: %ix%i               ",GPU.xres,GPU.yres); //Log the time taken per pixel AVG!
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nHTotal: %i               ",VGA->precalcs.horizontaltotal); //Log the time taken per pixel AVG!
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels time rendered: %i               ",Sequencer->totalpixeltime); //Log the time taken per pixel AVG!
 
 					//GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nRenderer rendered: %i               ",Sequencer->totalrenders); //Log the time taken per pixel AVG!
 					//GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nRenderer time rendered: %i               ",Sequencer->totalrendertime); //Log the time taken per pixel AVG!
@@ -123,11 +125,11 @@ void renderFramerate()
 					float avgpixeltime;
 					avgpixeltime = (float)((float)Sequencer->totalpixeltime/(float)Sequencer->totalpixels); //Calculate!
 					GPU_textgotoxy(frameratesurface,0,20);
-					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nAVG pixel time: %02.5f us   ",avgpixeltime); //Log the time taken per pixel AVG!
+					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nAVG pixel time: %02.5f ns   ",avgpixeltime); //Log the time taken per pixel AVG!
 					uint_32 avgpixels;
 					if (avgpixeltime) //Gotten time at all?
 					{
-						avgpixels = (uint_32)((float)PS_SECOND/(float)avgpixeltime);
+						avgpixels = (uint_32)((float)NS_SECOND/(float)avgpixeltime);
 					}
 					else
 					{

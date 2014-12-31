@@ -174,25 +174,6 @@ OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanl
 
 typedef void (*Sequencer_pixelhandler)(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning); //Pixel(s) handler!
 
-OPTINLINE byte VGA_Sequencer_ProcessDAC(VGA_Type *VGA, byte DACValue) //Process DAC!
-{
-	byte result;
-	SEQ_DATA *Sequencer;
-	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
-	//DAC
-	#ifdef DEBUG_PIXEL_STAGE_SPEED
-		TicksHolder ticks2; //Our ticks to count!
-		startHiresCounting(&ticks2); //Init ticks taken!
-	#endif
-	result = VGA_DAC(VGA,DACValue); //DAC final processing! Used to be: VGA,x
-	#ifdef DEBUG_PIXEL_STAGE_SPEED
-		Sequencer->lastpixeltimedac = getuspassed(&ticks2); //Save last!
-		Sequencer->totalpixeltimedac += Sequencer->lastpixeltimedac; //Count total ticks!
-		Sequencer->totalpixelsdac += VGA->LinesToRender; //Count total pixels!
-	#endif
-	return result; //Give the result!
-}
-
 byte Sequencer_Break; //Sequencer breaked (loop exit)?
 
 //Special states!
@@ -216,8 +197,12 @@ void VGA_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA) //NOP with quit!
 void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	Sequencer->Scanline = 0; //Reset for the next scanline!
+	GPU.xres = Sequencer->xres; //Apply x resolution!
+	GPU.yres = Sequencer->yres; //Apply y resolution!
 	VGA_Sequencer_TextMode_updateRow(VGA, Sequencer); //Scanline has been changed!
 	VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
+	Sequencer->yres = 0; //Reset Y resolution next frame if not specified (like a real screen)!
+	Sequencer->xres = 0; //Reset X resolution next frame if not specified (like a real screen)!
 	Sequencer_Break = 1; //Not running anymore!
 }
 
@@ -243,13 +228,13 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 //Retrace handlers!
 void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	GPU.yres = VGA->CRTC.y; //Update Y resolution!
+	Sequencer->yres = VGA->CRTC.y; //Update Y resolution!
 	VGA->CRTC.y = 0; //Reset destination row!
 }
 
 void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	GPU.xres = VGA->CRTC.x; //Update X resolution!
+	Sequencer->xres = VGA->CRTC.x; //Update X resolution!
 	VGA->CRTC.x = 0; //Reset destination column!
 }
 
@@ -270,7 +255,7 @@ typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attri
 void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	//Active display!
-	drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,attributeinfo->attribute)); //Render through the DAC!
+	drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_DAC(VGA,attributeinfo->attribute)); //Render through the DAC!
 }
 
 //Active display handler!
@@ -297,7 +282,7 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	//Overscan!
-	drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_Sequencer_ProcessDAC(VGA,VGA->precalcs.overscancolor)); //Draw overscan!
+	drawPixel(VGA->CRTC.x,VGA->CRTC.y,VGA_DAC(VGA,VGA->precalcs.overscancolor)); //Draw overscan!
 }
 
 //Overscan handler!
@@ -464,7 +449,7 @@ void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 	}
 
 	uint_64 passed;
-	passed = getpspassed(&ticks); //Log the ammount of time passed!
+	passed = getnspassed(&ticks); //Log the ammount of time passed!
 	Sequencer->totalpixeltime += passed; //Log the ammount of time passed!
 
 	++Sequencer->totalrenders; //Increase total render counting!

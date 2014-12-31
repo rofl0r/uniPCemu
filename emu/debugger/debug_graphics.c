@@ -12,7 +12,7 @@
 //To log the first rendered line after putting pixels?
 #define LOG_VGA_FIRST_LINE 0
 //To debug text modes too in below or BIOS setting?
-#define TEXTMODE_DEBUGGING 1
+#define TEXTMODE_DEBUGGING 0
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
 
@@ -119,7 +119,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	{
 		int i; //For further loops!
 
-		/*CPU.registers->AX = VIDEOMODE_TEXTMODE;
+		CPU.registers->AX = VIDEOMODE_TEXTMODE;
 		BIOS_int10(); //Text mode operations!
 		CPU.registers->AH = 0xB;
 		CPU.registers->BH = 0x0; //Set overscan color!
@@ -131,35 +131,35 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		//sleep(); //Wait forever to debug!
 
 		//LOG_VRAM_WRITES = 1; //Enable log!
-		MMU_wb(-1,0xB800,0,'F');
+		MMU_wb(-1,0xB800,0,'a');
 		MMU_wb(-1,0xB800,1,0x1);
-		MMU_wb(-1,0xB800,2,'i');
+		MMU_wb(-1,0xB800,2,'b');
 		MMU_wb(-1,0xB800,3,0x2);
-		MMU_wb(-1,0xB800,4,'r');
+		MMU_wb(-1,0xB800,4,'c');
 		MMU_wb(-1,0xB800,5,0x3);
-		MMU_wb(-1,0xB800,6,'s');
+		MMU_wb(-1,0xB800,6,'d');
 		MMU_wb(-1,0xB800,7,0x4);
-		MMU_wb(-1,0xB800,8,'t');
+		MMU_wb(-1,0xB800,8,'e');
 		MMU_wb(-1,0xB800,9,0x5);
-		MMU_wb(-1,0xB800,10,'6');
+		MMU_wb(-1,0xB800,10,'f');
 		MMU_wb(-1,0xB800,11,0x6);
-		MMU_wb(-1,0xB800,12,'r');
+		MMU_wb(-1,0xB800,12,'g');
 		MMU_wb(-1,0xB800,13,0x7);
-		MMU_wb(-1,0xB800,14,'o');
+		MMU_wb(-1,0xB800,14,'h');
 		MMU_wb(-1,0xB800,15,0x8);
-		MMU_wb(-1,0xB800,16,'w');
+		MMU_wb(-1,0xB800,16,'i');
 		MMU_wb(-1,0xB800,17,0x9);
-		MMU_wb(-1,0xB800,18,'!');
+		MMU_wb(-1,0xB800,18,'j');
 		MMU_wb(-1,0xB800,19,0xA);
-		MMU_wb(-1,0xB800,20,'B');
+		MMU_wb(-1,0xB800,20,'k');
 		MMU_wb(-1,0xB800,21,0xB);
-		MMU_wb(-1,0xB800,22,'C');
+		MMU_wb(-1,0xB800,22,'l');
 		MMU_wb(-1,0xB800,23,0xC);
-		MMU_wb(-1,0xB800,24,'D');
+		MMU_wb(-1,0xB800,24,'m');
 		MMU_wb(-1,0xB800,25,0xD);
-		MMU_wb(-1,0xB800,26,'E');
+		MMU_wb(-1,0xB800,26,'n');
 		MMU_wb(-1,0xB800,27,0xE);
-		MMU_wb(-1,0xB800,28,'F');
+		MMU_wb(-1,0xB800,28,'o');
 		MMU_wb(-1,0xB800,29,0xF);
 		
 		//LOG_VRAM_WRITES = 0; //Disable log!
@@ -172,8 +172,8 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Ready.");
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"SCREENCAPTURE CREATEN.");
+		sleep();
 		delay(5000000); //Wait a bit!
-		*/
 	
 		CPU.registers->AH = 0x0B; //Advanced:!
 		CPU.registers->BH = 0x00; //Set background/border color!
@@ -283,7 +283,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//B/W mode!
 	
 	//TODO:
-	DoDebugVGAGraphics(0x06,640,200,0x02,0,0x1,1,1); //Debug 640x200x2(B/W)! NOT WORKING YET!
+	//DoDebugVGAGraphics(0x06,640,200,0x02,0,0x1,1,1); //Debug 640x200x2(B/W)! NOT WORKING YET!
 	
 	//DoDebugVGAGraphics(0x0F,640,350,0x02,0,0x1,1,0); //Debug 640x350x2(Monochrome)!
 	//16 color mode!
@@ -296,7 +296,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//16 color maxres mode!
 	//DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
 	//256 color mode!
-	//DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
+	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!
 	//halt(); //Stop!

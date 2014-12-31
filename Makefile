@@ -14,7 +14,7 @@ CXXFLAGS =
 LIBS = 
 #optimization flags: Nothing: Debugging, -O3 normal operations.
 #OPTIMIZATIONFLAG = -O3
-OPTIMIZATIONFLAG = -O3
+OPTIMIZATIONFLAG = 
 
 #Exception handler!
 OBJS += exception/exception.o

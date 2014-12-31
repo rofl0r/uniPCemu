@@ -151,7 +151,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						CurrentDAC = getattributeback(textmode,Attribute,backgroundfilter); //Back!
 					}
 		
-					//CurrentDAC &= colorplanes; //Apply color planes!
+					CurrentDAC &= colorplanes; //Apply color planes!
 		
 					if (palletteenable) //Internal palette enable?
 					{

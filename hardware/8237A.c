@@ -494,7 +494,7 @@ void DMA_Thread()
 				DMA_Thread_RequestTerm = 0; //Reset!
 				return; //Terminate ourselves!
 			}
-			delay(1); //Wait a bit to give other threads some time!
+			delay(10000); //Wait a bit to give other threads some time!
 		}
 		goto nextcycle; //Next cycle!
 }

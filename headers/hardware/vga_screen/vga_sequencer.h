@@ -27,6 +27,9 @@ typedef struct
 	//SEQ_PRECALCS precalcs[1024]; //Precalcs for all scanlines!
 	//SEQ_PRECALCS *currentPrecalcs; //Current precalcs!
 	
+	word xres;
+	word yres; //The full resolution currently counted!
+	
 	word Scanline; //Current scanline to process! Also the VGA's row scan counter!
 	
 	

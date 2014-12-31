@@ -78,7 +78,7 @@ void waitforfreefifobuffer(FIFOBUFFER *buffer, uint_32 size)
 	if (__HW_DISABLED) return; //Abort!
 	while (fifobuffer_freesize(buffer)<size) //Not enough?
 	{
-		delay(10); //Wait for the buffer to have enough free size!
+		delay(1000); //Wait for the buffer to have enough free size!
 	}
 }
 

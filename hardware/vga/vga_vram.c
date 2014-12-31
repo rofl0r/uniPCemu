@@ -25,8 +25,9 @@
 byte LOG_VRAM_WRITES = 0;
 
 //Below patches input addresses for rendering only.
-static OPTINLINE word patch_map1314(VGA_Type *VGA, word rowscanaddress) //Patch full VRAM address!
+static OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 rowscanaddress) //Patch full VRAM address!
 { //Check this!
+	return rowscanaddress; //Disabled!
 	word newrowscan = rowscanaddress; //New row scan to use!
 	SEQ_DATA *Sequencer;
 	Sequencer = (SEQ_DATA *)VGA->Sequencer; //The sequencer!
@@ -55,32 +56,69 @@ static OPTINLINE word patch_map1314(VGA_Type *VGA, word rowscanaddress) //Patch 
 	return newrowscan; //Give the linear address!
 }
 
-static OPTINLINE word addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arround 64k!
+static OPTINLINE uint_32 applyaddressingmode(VGA_Type *VGA, uint_32 memoryaddress)
 {
-	if (getVRAMMemAddrSize(VGA)==2) //Word address mode?
+	uint_32 result = memoryaddress; //Default: nothing happened!
+	switch (getVRAMMemAddrSize(VGA)) //What memory size?
 	{
-		register word address = memoryaddress; //Init address to memory address!
-		register word address2;
-		address &= ~1; //Clear MA0!
-		address2 = address; //Load the initial value for calculating!
+		case 2: //2?
+			result <<= 1; //Shift left by 1!
+			break;
+		case 4:
+			result <<= 2; //Shift left by 2!
+			break;
+		default: //1=Default?
+			//Nothing happens!
+			break;
+	}
+	return result; //Give the shifted value if needed!
+}
+
+static OPTINLINE uint_32 unapplyaddressingmode(VGA_Type *VGA, uint_32 memoryaddress)
+{
+	uint_32 result = memoryaddress; //Default: nothing happened!
+	switch (getVRAMMemAddrSize(VGA)) //What memory size?
+	{
+		case 2: //2?
+			result >>= 1; //Shift left by 1!
+			break;
+		case 4:
+			result >>= 2; //Shift left by 2!
+			break;
+		default: //1=Default?
+			//Nothing happens!
+			break;
+	}
+	return result; //Give the shifted value if needed!
+}
+
+static OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memory arround 64k!
+{
+	return memoryaddress; //Don't use: we don't work!
+	uint_32 result;
+	result = applyaddressingmode(VGA,memoryaddress); //Initialise the result according to the addressing mode!
+	if (getVRAMMemAddrSize(VGA)==2) //Word mode?
+	{
+		register uint_32 address2 = memoryaddress; //Load the initial value for calculating!
 		if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
 		{
 			address2 >>= 15;
 			address2 &= 1;
-			address |= address2; //Add bit MA15!
+			result &= ~1; //Clear bit MA15&0!
+			result |= address2; //Add bit MA15 at position 0!
 		}
 		else //MA13 has to be on MA0?
 		{
 			address2 >>= 13;
 			address2 &= 1;
-			address |= address2; //Add bit MA13!
+			result &= ~1; //Clear bit MA13&0!
+			result |= address2; //Add bit MA13 at position 0!
 		}
-		return address; //Adjusted address!
 	}
-	
-	return memoryaddress; //Normal operating mode!
+	result = unapplyaddressingmode(VGA,memoryaddress); //Reverse!
+	result &= 0xFFFF; //Wrap to 16-bit!
+	return result; //Adjusted address!
 }
-
 
 //Planar access to VRAM
 byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //Read from a VRAM plane!
@@ -91,7 +129,8 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //R
 
 	if (is_renderer) //First address wrap, next map13&14!
 	{
-		patchedoffset = addresswrap(VGA,offset); //Wrap!
+		//First, apply addressing mode!
+		patchedoffset = addresswrap(VGA,patchedoffset); //Wrap first!
 		patchedoffset = patch_map1314(VGA,patchedoffset); //Patch MAP13&14!
 	}
 
@@ -99,9 +138,11 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //R
 	fulloffset2 = plane; //Load full plane!
 	fulloffset2 <<= 16; //Move to the start of the plane!
 	fulloffset2 |= patchedoffset; //Generate full offset!
+	fulloffset2 = SAFEMODUINT32(fulloffset2,VGA->VRAM_size); //Wrap arround VRAM if needed!
 
-	byte *data = &VGA->VRAM[SAFEMODUINT32(fulloffset2,VGA->VRAM_size)]; //Give the data!
-	if (memprotect(data,sizeof(*data),"VGA_VRAM")) //VRAM valid?
+	byte *data;
+	data = &VGA->VRAM[fulloffset2]; //Give the data!
+	if (memprotect(data,1,"VGA_VRAM")) //VRAM valid?
 	{
 		return *data; //Read the data from VRAM!
 	}
@@ -112,20 +153,18 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, byte value) //Wri
 {
 	if (!VGA) return; //Invalid VGA!
 	if (!VGA->VRAM_size) return; //No size!
-
+	
 	register uint_32 fulloffset2;
 	fulloffset2 = plane; //Load full plane!
 	fulloffset2 <<= 16; //Move to the start of the plane!
 	fulloffset2 |= offset; //Generate full offset!
 
-	/*if (LOG_VRAM_WRITES) //Log where we write!
-	{
-		dolog("VRAM","Writing %i:%08X=%02X=%c",plane,offset,value,value); //Log it!
-	}*/
+	fulloffset2 = SAFEMODUINT32(fulloffset2,VGA->VRAM_size); //Wrap arround VRAM if needed!
 	
-	byte *data = &VGA->VRAM[SAFEMODUINT32(fulloffset2,VGA->VRAM_size)];
+	byte *data;
+	data = &VGA->VRAM[fulloffset2];
 
-	if (memprotect(data,sizeof(*data),"VGA_VRAM"))
+	if (memprotect(data,1,"VGA_VRAM"))
 	{
 		*data = value; //Set the data in VRAM!
 		if (plane==2) //Character RAM updated?
