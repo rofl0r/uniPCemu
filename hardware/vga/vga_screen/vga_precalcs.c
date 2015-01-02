@@ -46,6 +46,12 @@ static OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC p
 		VGA->CRTC.charcolstatus[(current<<1)|1] = current%charsize;
 		++current; //Next!
 	}
+	
+	SEQ_DATA *Sequencer = GETSEQUENCER(VGA); //Our sequencer!
+	
+	//Clear our timing debugger information: we're invalid now!
+	Sequencer->totalrenders = 0; //Clear total render counting!
+	Sequencer->totalrendertime = 0; //Clear time passed
 }
 
 OPTINLINE void dump_CRTCTiming()

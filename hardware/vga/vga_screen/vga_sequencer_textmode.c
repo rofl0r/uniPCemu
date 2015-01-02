@@ -71,7 +71,7 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	register word charinner;
 	//X!
 	word *curcolstatus;
-	curcolstatus = &VGA->CRTC.charcolstatus[Sequencer->tempx<<1]; //Current col status!
+	curcolstatus = &VGA->CRTC.charcolstatus[Sequencer->tempx++<<1]; //Current col status!
 	attributeinfo->charx = character = *curcolstatus++; //First is chary!
 	attributeinfo->charinner_x = charinner = *curcolstatus; //Second is charinner_y!
 	

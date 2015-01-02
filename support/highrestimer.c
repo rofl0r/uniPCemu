@@ -99,11 +99,6 @@ OPTINLINE uint_64 getnspassed(TicksHolder *ticksholder)
 	return gettimepassed(ticksholder,NS_SECOND); //Factor ns!
 }
 
-OPTINLINE uint_64 getpspassed(TicksHolder *ticksholder)
-{
-	return gettimepassed(ticksholder,PS_SECOND); //Factor ps!
-}
-
 OPTINLINE uint_64 getuspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
 {
 	TicksHolder temp;
@@ -116,13 +111,6 @@ OPTINLINE uint_64 getnspassed_k(TicksHolder *ticksholder) //Same as getuspassed,
 	TicksHolder temp;
 	memcpy(&temp,ticksholder,sizeof(temp)); //Copy the old one!
 	return getnspassed(&temp); //Give the ammount of time passed!
-}
-
-OPTINLINE uint_64 getpspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
-{
-	TicksHolder temp;
-	memcpy(&temp,ticksholder,sizeof(temp)); //Copy the old one!
-	return getpspassed(&temp); //Give the ammount of time passed!
 }
 
 OPTINLINE void startHiresCounting(TicksHolder *ticksholder)

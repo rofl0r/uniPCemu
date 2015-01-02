@@ -13,8 +13,8 @@ CFLAGS =
 CXXFLAGS = 
 LIBS = 
 #optimization flags: Nothing: Debugging, -O3 normal operations.
-#OPTIMIZATIONFLAG = -O3
-OPTIMIZATIONFLAG = 
+OPTIMIZATIONFLAG = -O3
+#OPTIMIZATIONFLAG = 
 
 #Exception handler!
 OBJS += exception/exception.o
@@ -162,11 +162,10 @@ OBJS += basicio\fopen64.o
 
 #Finally, everything PSP!
 
-CFLAGS += $(OPTIMIZATIONFLAG) -G0 -Wall
+CFLAGS += $(OPTIMIZATIONFLAG) -G0
 
 #SDL
-CXXFLAGS += $(CFLAGS) -fno-exceptions -fno-rtti
-CXXFLAGS += -fexpensive-optimizations
+CXXFLAGS += $(CFLAGS)
 ASFLAGS = $(CFLAGS)
 LIBS = -lpng -lz -lm -lstdc++
 #PSPLIBS1 = -lpspgu -lpsppower -lpspdebugkb

@@ -12,7 +12,7 @@
 //To log the first rendered line after putting pixels?
 #define LOG_VGA_FIRST_LINE 0
 //To debug text modes too in below or BIOS setting?
-#define TEXTMODE_DEBUGGING 0
+#define TEXTMODE_DEBUGGING 1
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
 
@@ -92,7 +92,7 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	}
 	
 	finishy: //Finish our operations!
-
+	/*
 	GPU_textgotoxy(frameratesurface,33,2); //Goto Rendering... text!
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Rendered.   ",mode);
 
@@ -103,6 +103,8 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	{
 		debugTextModeScreenCapture(); //Debug a screen capture!
 	}
+	*/
+	startTimers(); //Start the timers!
 	delay(5000000); //Wait a bit!
 }
 
@@ -117,6 +119,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	enableKeyboard(0); //Allow to test the keyboard!
 	if (TEXTMODE_DEBUGGING) //Debug text mode too?
 	{
+		stopTimers(); //Make sure we've stopped!
 		int i; //For further loops!
 
 		CPU.registers->AX = VIDEOMODE_TEXTMODE;
@@ -170,8 +173,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		//VGA_DUMPATTR(); //Dump attribute controller info!
 
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Ready.");
-		debugTextModeScreenCapture(); //Debug a screen capture!
+		/*debugTextModeScreenCapture(); //Debug a screen capture!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"SCREENCAPTURE CREATEN.");
+		*/
+		startTimers(); //Start timers up!
 		sleep();
 		delay(5000000); //Wait a bit!
 	

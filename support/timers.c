@@ -21,7 +21,7 @@
 #define DEBUG_BASE_COLUMN 10
 
 //The limit in executing counters per step!
-#define COUNTER_LIMIT 25
+#define COUNTER_LIMIT 100
 
 typedef struct
 {
