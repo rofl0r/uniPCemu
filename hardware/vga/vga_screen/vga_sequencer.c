@@ -191,20 +191,27 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
+word tempxbackup = sequencer->tempx;
 	//Render our active display here! Start with text mode!		
 	static VGA_AttributeInfo attributeinfo; //Our collected attribute info!
 	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
 	word activex; //Active X!
 	othernibble:
 	activex = Sequencer->tempx++; //Active X!
-	activex >>= VGA->precalcs.doublepixels; //Apply double pixels if needed to get our actual activeX!
+	//activex >>= VGA->precalcs.doublepixels; //Apply double pixels if needed to get our actual activeX!
 	Sequencer->activex = activex; //Apply our active X coordinate!
 	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
 	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer)) goto othernibble; //Apply the attribute through the attribute controller!
 	static VGA_Sequencer_Mode activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
 	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
+if (VGA->precalcs.doublepixels)
+{
+Sequencer->doublepixels = !Sequencer->doublepixels;
+if (Sequencer->doublepixels)
+{
+Sequencer->tempx = tempxbackup; //Draw same pixel twice
 }
-
+}
 //Overscan handler!
 void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
