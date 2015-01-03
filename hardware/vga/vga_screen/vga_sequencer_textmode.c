@@ -65,6 +65,7 @@ void VGA_Sequencer_TextMode_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	charystart += Sequencer->startmap; //What start address?
 
 	Sequencer->charystart = charystart; //Start of the row in VRAM!
+	Sequencer->doublepixels = 0; //Reset double pixels for odd sized screens.
 }
 
 void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo) //Render a text mode pixel!
