@@ -54,7 +54,10 @@ void VGA_Sequencer_TextMode_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	register word character;
 	register uint_32 charystart;
 
-	word *currowstatus = &VGA->CRTC.charrowstatus[Sequencer->Scanline<<1]; //Current row status!
+	word effectivescanline;
+	effectivescanline = Sequencer->Scanline; //Default: our normal scanline!
+	effectivescanline >>= VGA_ScanDoubling(VGA); //Apply Scan Doubling here!
+	word *currowstatus = &VGA->CRTC.charrowstatus[effectivescanline<<1]; //Current row status!
 	Sequencer->chary = character = *currowstatus++; //First is chary!
 	Sequencer->charinner_y = *currowstatus; //Second is charinner_y!
 	
@@ -71,7 +74,7 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	register word charinner;
 	//X!
 	word *curcolstatus;
-	curcolstatus = &VGA->CRTC.charcolstatus[Sequencer->tempx++<<1]; //Current col status!
+	curcolstatus = &VGA->CRTC.charcolstatus[Sequencer->activex<<1]; //Current col status!
 	attributeinfo->charx = character = *curcolstatus++; //First is chary!
 	attributeinfo->charinner_x = charinner = *curcolstatus; //Second is charinner_y!
 	

@@ -12,7 +12,7 @@
 //To log the first rendered line after putting pixels?
 #define LOG_VGA_FIRST_LINE 0
 //To debug text modes too in below or BIOS setting?
-#define TEXTMODE_DEBUGGING 1
+#define TEXTMODE_DEBUGGING 0
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
 
@@ -42,6 +42,7 @@ extern PSP_TEXTSURFACE *frameratesurface; //The framerate surface!
 
 void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
 {
+	stopTimers(); //Stop all timers!
 	CPU.registers->AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
 	VGA_DUMPDAC(); //Dump the current DAC and rest info!
@@ -51,8 +52,7 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 
 	GPU_textgotoxy(frameratesurface,0,2); //Goto third row!
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Surface for mode %02X(Colors %03i): Rendering...",mode,maxcolor);
-	VGA_waitforVBlank(); //Make sure we're ending drawing!
-	stopTimers(); //Stop all timers!
+	//VGA_waitforVBlank(); //Make sure we're ending drawing!
 
 	y = 0; //Init Y!
 	nexty:
@@ -302,6 +302,8 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
 	//256 color mode!
 	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
+	LOG_RENDER_BYTES = 1; //Log our renderer's output!
+	debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!
 	//halt(); //Stop!

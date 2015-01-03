@@ -19,15 +19,13 @@
 
 //is_renderer determines special stuff for the renderer:
 //bit 1 contains the "I'm a renderer" flag.
-//bit 2 contains enable the first buffer for this block of 4 bytes memory.
-//bit 3 contains enable the second buffer for this block of 4 bytes memory.
 
 byte LOG_VRAM_WRITES = 0;
 
 //Below patches input addresses for rendering only.
 static OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 rowscanaddress) //Patch full VRAM address!
 { //Check this!
-	return rowscanaddress; //Disabled!
+	//return rowscanaddress; //Disabled!
 	word newrowscan = rowscanaddress; //New row scan to use!
 	SEQ_DATA *Sequencer;
 	Sequencer = (SEQ_DATA *)VGA->Sequencer; //The sequencer!
@@ -58,6 +56,7 @@ static OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 rowscanaddress) //
 
 static OPTINLINE uint_32 applyaddressingmode(VGA_Type *VGA, uint_32 memoryaddress)
 {
+	return memoryaddress; //Don't apply!
 	uint_32 result = memoryaddress; //Default: nothing happened!
 	switch (getVRAMMemAddrSize(VGA)) //What memory size?
 	{
@@ -76,6 +75,7 @@ static OPTINLINE uint_32 applyaddressingmode(VGA_Type *VGA, uint_32 memoryaddres
 
 static OPTINLINE uint_32 unapplyaddressingmode(VGA_Type *VGA, uint_32 memoryaddress)
 {
+	return memoryaddress; //Don't apply!
 	uint_32 result = memoryaddress; //Default: nothing happened!
 	switch (getVRAMMemAddrSize(VGA)) //What memory size?
 	{
@@ -100,7 +100,7 @@ static OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wra
 	if (getVRAMMemAddrSize(VGA)==2) //Word mode?
 	{
 		register uint_32 address2 = memoryaddress; //Load the initial value for calculating!
-		if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
+		/*if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
 		{
 			address2 >>= 15;
 			address2 &= 1;
@@ -113,7 +113,8 @@ static OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wra
 			address2 &= 1;
 			result &= ~1; //Clear bit MA13&0!
 			result |= address2; //Add bit MA13 at position 0!
-		}
+		}*/
+		result &= 0x3FFF; //Only a quarter of normal display memory is available!
 	}
 	result = unapplyaddressingmode(VGA,memoryaddress); //Reverse!
 	result &= 0xFFFF; //Wrap to 16-bit!
@@ -154,11 +155,15 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, byte value) //Wri
 	if (!VGA) return; //Invalid VGA!
 	if (!VGA->VRAM_size) return; //No size!
 	
+	/*if (LOG_VRAM_WRITES)
+	{
+		dolog("VGA_VRAM","Writing to plane %i offset %04X=%02X",plane,offset,value); //Log our write!
+	}*/
+	
 	register uint_32 fulloffset2;
 	fulloffset2 = plane; //Load full plane!
 	fulloffset2 <<= 16; //Move to the start of the plane!
 	fulloffset2 |= offset; //Generate full offset!
-
 	fulloffset2 = SAFEMODUINT32(fulloffset2,VGA->VRAM_size); //Wrap arround VRAM if needed!
 	
 	byte *data;

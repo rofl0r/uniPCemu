@@ -219,7 +219,7 @@ typedef byte *PhysPt; //Physical pointer!
 
 #define color pixel
 #define mem_readb(off) MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,(((off)>>16)&0xFFFF),((off)&0xFFFF),0)
-#define mem_writeb(off,val) MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,(((off)>>16)&0xFFFF),((off)&0xFFFF),0)
+#define mem_writeb(off,val) MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,(((off)>>16)&0xFFFF),((off)&0xFFFF),val)
 #define PhysMake(seg,offs) MMU_ptr(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,seg,offs,0,1)
 #define Real2Phys(x) (byte *)MMU_ptr(-1,(((x)>>16)&0xFFFF),((x)&0xFFFF),0,1)
 //Physical to real support (for MMU_wb/w/dw)

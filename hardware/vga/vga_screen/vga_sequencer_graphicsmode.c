@@ -24,6 +24,7 @@ byte getpixel256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_A
 {
 	word plane;
 	byte part, result;
+	word activex;
 
 	//First: calculate the nibble to shift into our result!
 	part = x;
@@ -32,12 +33,13 @@ byte getpixel256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_A
 	part &= 1; //What part are we? High nibble(0) or low nibble(1)
 	part <<= 2; //High nibble=4, Low nibble=0
 
-	x >>= 1; //Ignore the part number to get our pixel: Every part is half a pixel, so increase every 2 pixels!
+	activex = x; //Load x!
+	activex >>= 1; //Ignore the part number to get our pixel: Every part is half a pixel, so increase every 2 pixels!
 	//const static uint_32 sourceplanes[4] = {0x11111111,0x22222222,0x44444444,0x88888888}; //Our source plane translation table!
-	plane = x;
+	plane = activex;
 	plane &= 3; //We walk through the planes!
 	x >>= 2; //Get the pixel (every 4 increment)!
-	result = readVRAMplane(VGA,plane,Sequencer->charystart+x,1); //The full offset of the plane all stuff is already done, so 0 at the end!
+	result = readVRAMplane(VGA,plane,Sequencer->charystart+activex,1); //The full offset of the plane all stuff is already done, so 0 at the end!
 	result >>= part; //Shift to the required part (low/high nibble)!
 	result &= 0xF; //Only the low resulting nibble is used!
 	return result; //Give the result!
@@ -139,5 +141,5 @@ void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attribut
 				getpixel256colorshiftmode
 				}; //All the getpixel functionality!
 	attributeinfo->fontpixel = 1; //Graphics attribute is always font enabled!
-	attributeinfo->attribute = getpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](VGA,Sequencer,Sequencer->tempx++,attributeinfo);
+	attributeinfo->attribute = getpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](VGA,Sequencer,Sequencer->activex,attributeinfo);
 }

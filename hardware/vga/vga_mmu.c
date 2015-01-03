@@ -6,6 +6,7 @@
 extern VGA_Type *ActiveVGA; //Active VGA!
 extern byte is_loadchartable; //Loading character table?
 uint_32 VGA_VRAM_START = 0xA0000; //VRAM start address default!
+extern byte LOG_VRAM_WRITES; //Log VRAM writes?
 
 OPTINLINE void VGA_updateLatches()
 {
@@ -106,7 +107,6 @@ extern byte LOG_VRAM_WRITES; //Log VRAM writes?
 static OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 {
 	uint_32 data = val; //Default to the value given!
-
 	byte curplane; //For plane loops!
 	switch (ActiveVGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode) //What write mode?
 	{

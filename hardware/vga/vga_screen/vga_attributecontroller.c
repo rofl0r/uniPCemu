@@ -201,14 +201,9 @@ byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 	//First, execute the shift and add required in this mode!
 	latchednibbles <<= 4; //Shift high!
 	latchednibbles |= Sequencer_attributeinfo->attribute; //Latch to DAC Index or DAC Nibble!
-	curnibble ^= 1; //Reverse current nibble!
-	if (!curnibble) //Pixel processed?
-	{
-		Sequencer_attributeinfo->attribute = latchednibbles; //Load the DAC index!
-		return 0; //We have a DAC index loaded!
-	}
-	
-	return 1; //Give us the next nibble please!
+	curnibble = !curnibble; //Reverse current nibble!
+	Sequencer_attributeinfo->attribute = latchednibbles; //Load the DAC index!
+	return curnibble; //Give us the next nibble, when needed, please!
 }
 
 byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, SEQ_DATA *Sequencer)
