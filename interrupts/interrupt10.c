@@ -688,34 +688,6 @@ Font generator support!
 
 */
 
-/*void INT10_LoadFont(PhysPt font,bool reload,Bitu count,Bitu offset,Bitu map,Bitu height) {
-	PhysPt ftwhere=PhysMake(0xa000,map_offset[map & 0x7]+(Bit16u)(offset*32));
-	IO_Write(0x3c4,0x2);IO_Write(0x3c5,0x4);	//Enable plane 2
-	IO_Write(0x3ce,0x6);Bitu old_6=IO_Read(0x3cf);
-	IO_Write(0x3cf,0x0);	//Disable odd/even and a0000 adressing
-	for (Bitu i=0;i<count;i++) {
-		MEM_BlockCopy(ftwhere,font,height);
-		ftwhere+=32;
-		font+=height;
-	}
-	IO_Write(0x3c4,0x2);IO_Write(0x3c5,0x3);	//Enable textmode planes (0,1)
-	IO_Write(0x3ce,0x6);
-	if (IS_VGA_ARCH) IO_Write(0x3cf,(Bit8u)old_6);	//odd/even and b8000 adressing
-	else IO_Write(0x3cf,0x0e);
-	/ Reload tables and registers with new values based on this height /
-	if (reload) {
-		//Max scanline 
-		Bit16u base=real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);
-		IO_Write(base,0x9);
-		IO_Write(base+1,(IO_Read(base+1) & 0xe0)|(height-1));
-		//Vertical display end bios says, but should stay the same?
-		//Rows setting in bios segment
-		real_writeb(BIOSMEM_SEG,BIOSMEM_NB_ROWS,(CurMode->sheight/height)-1);
-		real_writeb(BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT,(Bit8u)height);
-		//TODO Reprogram cursor size?
-	}
-}*/
-
 
 void int10_ActivateFontBlocks(byte selector) //Activate a font!
 {
@@ -1329,139 +1301,837 @@ void int10_WriteString()
 	}
 }
 
-void int10_updatePalette(byte what, byte value)
-{
-}
-
 //Extra: EGA/VGA functions:
 
 void int10_Pallette() //AH=10h,AL=subfunc
 {
-	switch (AL) //Subfunc?
-	{
-	case 0x00: //Set one pallette register?
-            int10_updatePalette(BL&0xF,BH); //Set palette register!
-            break;
-	case 0x01: //Set overscan/border color?
-			int10_updatePalette(0x11,BH); //Set!
-            break;
-	case 0x02: //Set all pallette registers&border color?
-            //ES:DX=List (byte 0-15=Pallete registers, 16=Border color register))
-            break;
-	case 0x03: //Select foreground blink or bold background?
-	case 0x07: //Read one palette register?
-	case 0x08: //Read overscan/border color?
-	case 0x09: //Read all pallet registers & border color?
-			AL = 0; //Unknown command!
-            break;
-	case 0x10: //Set one DAC color register?
-            break;
-	case 0x12: //Set block of DAC color registers?
-	case 0x13: //DAC color paging functions?
-	case 0x15: //Read one DAC color register?
-	case 0x17: //Read block of DAC color registers?
-	case 0x1A: //Query DAC color paging state?
-	case 0x1B: //Convert DAC colors to grey scale?
-		AL = 0; //Unknown command!
-		break;
-	default: //Unknown subfunction?
-		AL = 0; //Unknown command!
-		break;
+	switch (AL) {
+		case 0x00:							/* SET SINGLE PALETTE REGISTER */
+			INT10_SetSinglePaletteRegister(BL,BH);
+			break;
+		case 0x01:							/* SET BORDER (OVERSCAN) COLOR*/
+			INT10_SetOverscanBorderColor(BH);
+			break;
+		case 0x02:							/* SET ALL PALETTE REGISTERS */
+			INT10_SetAllPaletteRegisters(Real2Phys(RealMake(ES,DX)));
+			break;
+		case 0x03:							/* TOGGLE INTENSITY/BLINKING BIT */
+			INT10_ToggleBlinkingBit(BL);
+			break;
+		case 0x07:							/* GET SINGLE PALETTE REGISTER */
+			INT10_GetSinglePaletteRegister(BL,&BH);
+			break;
+		case 0x08:							/* READ OVERSCAN (BORDER COLOR) REGISTER */
+			INT10_GetOverscanBorderColor(&BH);
+			break;
+		case 0x09:							/* READ ALL PALETTE REGISTERS AND OVERSCAN REGISTER */
+			INT10_GetAllPaletteRegisters(Real2Phys(RealMake(ES,DX)));
+			break;
+		case 0x10:							/* SET INDIVIDUAL DAC REGISTER */
+			INT10_SetSingleDacRegister(BL,DH,CH,CL);
+			break;
+		case 0x12:							/* SET BLOCK OF DAC REGISTERS */
+			INT10_SetDACBlock(BX,CX,Real2Phys(RealMake(ES,DX)));
+			break;
+		case 0x13:							/* SELECT VIDEO DAC COLOR PAGE */
+			INT10_SelectDACPage(BL,BH);
+			break;
+		case 0x15:							/* GET INDIVIDUAL DAC REGISTER */
+			INT10_GetSingleDacRegister(BL,&DH,&CH,&CL);
+			break;
+		case 0x17:							/* GET BLOCK OF DAC REGISTER */
+			INT10_GetDACBlock(BX,CX,Real2Phys(RealMake(ES,DX)));
+			break;
+		case 0x18:							/* undocumented - SET PEL MASK */
+			INT10_SetPelMask(BL);
+			break;
+		case 0x19:							/* undocumented - GET PEL MASK */
+			INT10_GetPelMask(&BL);
+			BH=0;	// bx for get mask
+			break;
+		case 0x1A:							/* GET VIDEO DAC COLOR PAGE */
+			INT10_GetDACPage(&BL,&BH);
+			break;
+		case 0x1B:							/* PERFORM GRAY-SCALE SUMMING */
+			INT10_PerformGrayScaleSumming(BX,CX);
+			break;
+		default:
+			//LOG(LOG_INT10,LOG_ERROR)("Function 10:Unhandled EGA/VGA Palette Function %2X",AL);
+			break;
 	}
+}
+
+uint_32 RealGetVec(byte interrupt)
+{
+	word segment, offset;
+	CPU_getint(interrupt,&segment,&offset);
+	return RealMake(segment,offset); //Give vector!
 }
 
 void int10_CharacterGenerator() //AH=11h,AL=subfunc
 {
-	AH = 0xFF; //Not supported!
-	return; //We're disabled!
-	switch (AL) //Subfunc?
-	{
-	case 0x00: //Load user-defined font?
-	case 0x10: //Load and activate user-defined font?
-		int10_LoadFont(ES,BP,AL==0x10,CX,DX,BL,BH);
+	switch (AL) {
+/* Textmode calls */
+	case 0x00:			/* Load user font */
+	case 0x10:
+		INT10_LoadFont(ES,BP,AL==0x10,CX,DX,BL,BH);
 		break;
-	case 0x01: //Load ROM 8x14 font?
-	case 0x11: //Load and activate ROM 8x14 font?
-		//int10_LoadFontSystem(
+	case 0x01:			/* Load 8x14 font */
+	case 0x11:
+		INT10_LoadFont(RealSeg(int10.rom.font_14),RealOff(int10.rom.font_14),AL==0x11,256,0,0,14);
 		break;
-	case 0x02: //Load ROM 8x8 font?
-	case 0x12: //Load and activate ROM 8x8 font?
+	case 0x02:			/* Load 8x8 font */
+	case 0x12:
+		INT10_LoadFont(RealSeg(int10.rom.font_8_first),RealOff(int10.rom.font_8_first),AL==0x12,256,0,0,8);
 		break;
-	case 0x03: //Activate font block; 512-character set?
+	case 0x03:			/* Set Block Specifier */
+		IO_Write(0x3c4,0x3);IO_Write(0x3c5,BL);
 		break;
-	case 0x04: //Load ROM 8x16 font?
+	case 0x04:			/* Load 8x16 font */
+	case 0x14:
+		if (!IS_VGA_ARCH) break;
+		INT10_LoadFont(RealSeg(int10.rom.font_16),RealOff(int10.rom.font_16),AL==0x14,256,0,0,16);
 		break;
+/* Graphics mode calls */
+	case 0x20:			/* Set User 8x8 Graphics characters */
+		RealSetVec(0x1f,ES,BP);
 		break;
+	case 0x21:			/* Set user graphics characters */
+		RealSetVec(0x43,ES,BP);
+		real_writew(BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT,CX);
+		goto graphics_chars;
+	case 0x22:			/* Rom 8x14 set */
+		RealSetVec(0x43,RealSeg(int10.rom.font_14),RealOff(int10.rom.font_14));
+		real_writew(BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT,14);
+		goto graphics_chars;
+	case 0x23:			/* Rom 8x8 double dot set */
+		RealSetVec(0x43,RealSeg(int10.rom.font_8_first),RealOff(int10.rom.font_8_first));
+		real_writew(BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT,8);
+		goto graphics_chars;
+	case 0x24:			/* Rom 8x16 set */
+		if (!IS_VGA_ARCH) break;
+		RealSetVec(0x43,RealSeg(int10.rom.font_16),RealOff(int10.rom.font_16));
+		real_writew(BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT,16);
+		goto graphics_chars;
+graphics_chars:
+		switch (BL) {
+		case 0x00:real_writeb(BIOSMEM_SEG,BIOSMEM_NB_ROWS,DL-1);break;
+		case 0x01:real_writeb(BIOSMEM_SEG,BIOSMEM_NB_ROWS,13);break;
+		case 0x03:real_writeb(BIOSMEM_SEG,BIOSMEM_NB_ROWS,42);break;
+		case 0x02:
+		default:real_writeb(BIOSMEM_SEG,BIOSMEM_NB_ROWS,24);break;
+		}
 		break;
+/* General */
+	case 0x30:/* Get Font Information */
+		switch (BH) {
+		case 0x00:	/* interupt 0x1f vector */
+			{
+				RealPt int_1f=RealGetVec(0x1f);
+				segmentWritten(CPU_SEGMENT_ES,RealSeg(int_1f),0);
+				BP=RealOff(int_1f);
+			}
+			break;
+		case 0x01:	/* interupt 0x43 vector */
+			{
+				RealPt int_43=RealGetVec(0x43);
+				segmentWritten(CPU_SEGMENT_ES,RealSeg(int_43),0);
+				BP=RealOff(int_43);
+			}
+			break;
+		case 0x02:	/* font 8x14 */
+			segmentWritten(CPU_SEGMENT_ES,RealSeg(int10.rom.font_14),0);
+			BP=RealOff(int10.rom.font_14);
+			break;
+		case 0x03:	/* font 8x8 first 128 */
+			segmentWritten(CPU_SEGMENT_ES,RealSeg(int10.rom.font_8_first),0);
+			BP=RealOff(int10.rom.font_8_first);
+			break;
+		case 0x04:	/* font 8x8 second 128 */
+			segmentWritten(CPU_SEGMENT_ES,RealSeg(int10.rom.font_8_second),0);
+			BP=RealOff(int10.rom.font_8_second);
+			break;
+		case 0x05:	/* alpha alternate 9x14 */
+			if (!IS_VGA_ARCH) break;
+			segmentWritten(CPU_SEGMENT_ES,RealSeg(int10.rom.font_14_alternate),0);
+			BP=RealOff(int10.rom.font_14_alternate);
+			break;
+		case 0x06:	/* font 8x16 */
+			if (!IS_VGA_ARCH) break;
+			segmentWritten(CPU_SEGMENT_ES,RealSeg(int10.rom.font_16),0);
+			BP=RealOff(int10.rom.font_16);
+			break;
+		case 0x07:	/* alpha alternate 9x16 */
+			if (!IS_VGA_ARCH) break;
+			segmentWritten(CPU_SEGMENT_ES,RealSeg(int10.rom.font_16_alternate),0);
+			BP=RealOff(int10.rom.font_16_alternate);
+			break;
+		default:
+			//LOG(LOG_INT10,LOG_ERROR)("Function 11:30 Request for font %2X",BH);	
+			break;
+		}
+		if ((BH<=7) /*|| (svgaCard==SVGA_TsengET4K)*/) {
+			/*if (machine==MCH_EGA) {
+				CX=0x0e;
+				DL=0x18;
+			} else {*/
+				CX=real_readw(BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT);
+				DL=real_readb(BIOSMEM_SEG,BIOSMEM_NB_ROWS);
+			//}
+		}
 		break;
-	case 0x13: //Load and activate ROM 8x16 font?
-		break;
-	case 0x20: //Setup INT 1Fh graphics font pointer?
-	case 0x21: //Setup user-defined font for graphics?
-		break;
-	case 0x22: //ROM 8x14 font for graphics modes?
-		break;
-	case 0x23: //ROM 8x8 font for graphics modes?
-		break;
-	case 0x24: //ROM 8x16 font for graphics modes?
-		break;
-	case 0x30: //Get video font information?
-		break;
-	default: //Unknown subfunction?
-		AL = 0; //Unknown subfunction!
+	default:
+		//LOG(LOG_INT10,LOG_ERROR)("Function 11:Unsupported character generator call %2X",AL);
 		break;
 	}
 }
 
 void int10_SpecialFunctions() //AH=12h
 {
-	switch (BL) //Subfunction?
-	{
-	case 0x10: //get EGA info?
-	case 0x20: //use alternate print screen?
-	case 0x30: //set text-mode scan-lines?
-	case 0x31: //enable default pallette loading?
-	case 0x32: //enable access to video?
-	case 0x33: //enable gray-scale summing?
-	case 0x34: //enable cursor emulation?
-	case 0x35: //PS/2 display switching?
-		AL = 0; //Unknown command!
-		break; //Unimplemented?
-	case 0x36: //Screen refresh on/off?
-		switch (AL) //Status to switch to?
-		{
-		case 0x00: //Enable refresh?
-			AH = 0x12; //Correct!
-			//int10_VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable = 0; //bit 5 of VGA's Sequencer Clocking mode Register off for enable!
-			break;
-		case 0x01: //Disable refresh?
-			AH = 0x12; //Correct!
-			//int10_VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable = 1; //bit 5 of VGA's Sequencer Clocking mode Register on for disable!
-			break;
-		default: //Unknown status?
-			AH = 0; //Error: unknown data?
+	switch (BL) {
+	case 0x10:							/* Get EGA Information */
+		BH=(real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS)==0x3B4);	
+		BL=3;	//256 kb
+		CL=real_readb(BIOSMEM_SEG,BIOSMEM_SWITCHES) & 0x0F;
+		CH=real_readb(BIOSMEM_SEG,BIOSMEM_SWITCHES) >> 4;
+		break;
+	case 0x20:							/* Set alternate printscreen */
+		break;
+	case 0x30:							/* Select vertical resolution */
+		{   
+			if (!IS_VGA_ARCH) break;
+			//LOG(LOG_INT10,LOG_WARN)("Function 12:Call %2X (select vertical resolution)",reg_bl);
+			/*if (svgaCard != SVGA_None) {
+				if (AL > 2) {
+					AL=0;		// invalid subfunction
+					break;
+				}
+			}*/
+			Bit8u modeset_ctl = real_readb(BIOSMEM_SEG,BIOSMEM_MODESET_CTL);
+			Bit8u video_switches = real_readb(BIOSMEM_SEG,BIOSMEM_SWITCHES)&0xf0;
+			switch(AL) {
+			case 0: // 200
+				modeset_ctl &= 0xef;
+				modeset_ctl |= 0x80;
+				video_switches |= 8;	// ega normal/cga emulation
+				break;
+			case 1: // 350
+				modeset_ctl &= 0x6f;
+				video_switches |= 9;	// ega enhanced
+				break;
+			case 2: // 400
+				modeset_ctl &= 0x6f;
+				modeset_ctl |= 0x10;	// use 400-line mode at next mode set
+				video_switches |= 9;	// ega enhanced
+				break;
+			default:
+				modeset_ctl &= 0xef;
+				video_switches |= 8;	// ega normal/cga emulation
+				break;
+			}
+			real_writeb(BIOSMEM_SEG,BIOSMEM_MODESET_CTL,modeset_ctl);
+			real_writeb(BIOSMEM_SEG,BIOSMEM_SWITCHES,video_switches);
+			AL=0x12;	// success
 			break;
 		}
+	case 0x31:							/* Palette loading on modeset */
+		{   
+			if (!IS_VGA_ARCH) break;
+			//if (svgaCard==SVGA_TsengET4K) AL&=1;
+			if (AL>1) {
+				AL=0;		//invalid subfunction
+				break;
+			}
+			Bit8u temp = real_readb(BIOSMEM_SEG,BIOSMEM_MODESET_CTL) & 0xf7;
+			if (AL&1) temp|=8;		// enable if al=0
+			real_writeb(BIOSMEM_SEG,BIOSMEM_MODESET_CTL,temp);
+			AL=0x12;
+			break;	
+		}		
+	case 0x32:							/* Video adressing */
+		if (!IS_VGA_ARCH) break;
+		//LOG(LOG_INT10,LOG_ERROR)("Function 12:Call %2X not handled",reg_bl);
+		//if (svgaCard==SVGA_TsengET4K) AL&=1;
+		if (AL>1) AL=0;		//invalid subfunction
+		else AL=0x12;			//fake a success call
 		break;
-	default: //Unknown subfunction?
-		AL = 0; //Unknown subfunction!
+	case 0x33: /* SWITCH GRAY-SCALE SUMMING */
+		{   
+			if (!IS_VGA_ARCH) break;
+			//if (svgaCard==SVGA_TsengET4K) AL&=1;
+			if (AL>1) {
+				AL=0;
+				break;
+			}
+			Bit8u temp = real_readb(BIOSMEM_SEG,BIOSMEM_MODESET_CTL) & 0xfd;
+			if (!(AL&1)) temp|=2;		// enable if al=0
+			real_writeb(BIOSMEM_SEG,BIOSMEM_MODESET_CTL,temp);
+			AL=0x12;
+			break;	
+		}		
+	case 0x34: /* ALTERNATE FUNCTION SELECT (VGA) - CURSOR EMULATION */
+		{   
+			// bit 0: 0=enable, 1=disable
+			if (!IS_VGA_ARCH) break;
+			//if (svgaCard==SVGA_TsengET4K) AL&=1;
+			if (AL>1) {
+				AL=0;
+				break;
+			}
+			Bit8u temp = real_readb(BIOSMEM_SEG,BIOSMEM_VIDEO_CTL) & 0xfe;
+			real_writeb(BIOSMEM_SEG,BIOSMEM_VIDEO_CTL,temp|AL);
+			AL=0x12;
+			break;	
+		}		
+	case 0x35:
+		if (!IS_VGA_ARCH) break;
+		//LOG(LOG_INT10,LOG_ERROR)("Function 12:Call %2X not handled",reg_bl);
+		AL=0x12;
+		break;
+	case 0x36: {						/* VGA Refresh control */
+		if (!IS_VGA_ARCH) break;
+		/*if ((svgaCard==SVGA_S3Trio) && (AL>1)) {
+			AL=0;
+			break;
+		}*/
+		IO_Write(0x3c4,0x1);
+		Bit8u clocking = IO_Read(0x3c5);
+		
+		if (AL==0) clocking &= ~0x20;
+		else clocking |= 0x20;
+		
+		IO_Write(0x3c4,0x1);
+		IO_Write(0x3c5,clocking);
+
+		AL=0x12; // success
+		break;
+	}
+	default:
+		//LOG(LOG_INT10,LOG_ERROR)("Function 12:Call %2X not handled",reg_bl);
+		/*if (machine!=MCH_EGA)*/ AL=0;
 		break;
 	}
 }
 
 void int10_DCC() //AH=1Ah
 {
-	AX = 0; //Unknown command!
+	if (AL==0) {	// get dcc
+		// walk the tables...
+		RealPt vsavept=real_readd(BIOSMEM_SEG,BIOSMEM_VS_POINTER);
+		RealPt svstable=real_readd(RealSeg(vsavept),RealOff(vsavept)+0x10);
+		if (svstable) {
+			RealPt dcctable=real_readd(RealSeg(svstable),RealOff(svstable)+0x02);
+			Bit8u entries=real_readb(RealSeg(dcctable),RealOff(dcctable)+0x00);
+			Bit8u idx=real_readb(BIOSMEM_SEG,BIOSMEM_DCC_INDEX);
+			// check if index within range
+			if (idx<entries) {
+				Bit16u dccentry=real_readw(RealSeg(dcctable),RealOff(dcctable)+0x04+idx*2);
+				if ((dccentry&0xff)==0) BX=dccentry>>8;
+				else BX=dccentry;
+			} else BX=0xffff;
+		} else BX=0xffff;
+		AX=0x1A;	// high part destroyed or zeroed depending on BIOS
+	} else if (AL==1) {	// set dcc
+		Bit8u newidx=0xff;
+		// walk the tables...
+		RealPt vsavept=real_readd(BIOSMEM_SEG,BIOSMEM_VS_POINTER);
+		RealPt svstable=real_readd(RealSeg(vsavept),RealOff(vsavept)+0x10);
+		if (svstable) {
+			RealPt dcctable=real_readd(RealSeg(svstable),RealOff(svstable)+0x02);
+			Bit8u entries=real_readb(RealSeg(dcctable),RealOff(dcctable)+0x00);
+			if (entries) {
+				Bitu ct;
+				Bit16u swpidx=BH|(BL<<8);
+				// search the ddc index in the dcc table
+				for (ct=0; ct<entries; ct++) {
+					Bit16u dccentry=real_readw(RealSeg(dcctable),RealOff(dcctable)+0x04+ct*2);
+					if ((dccentry==BX) || (dccentry==swpidx)) {
+						newidx=(Bit8u)ct;
+						break;
+					}
+				}
+			}
+		}
+
+		real_writeb(BIOSMEM_SEG,BIOSMEM_DCC_INDEX,newidx);
+		AX=0x1A;	// high part destroyed or zeroed depending on BIOS
+	}
+}
+
+Bitu INT10_VideoState_GetSize(Bitu state) {
+	// state: bit0=hardware, bit1=bios data, bit2=color regs/dac state
+	if ((state&7)==0) return 0;
+
+	Bitu size=0x20;
+	if (state&1) size+=0x46;
+	if (state&2) size+=0x3a;
+	if (state&4) size+=0x303;
+	if ((svgaCard==SVGA_S3Trio) && (state&8)) size+=0x43;
+	if (size!=0) size=(size-1)/64+1;
+	return size;
+}
+
+bool INT10_VideoState_Save(Bitu state,RealPt buffer) {
+	Bitu ct;
+	if ((state&7)==0) return false;
+
+	Bitu base_seg=RealSeg(buffer);
+	Bitu base_dest=RealOff(buffer)+0x20;
+
+	if (state&1)  {
+		real_writew(base_seg,RealOff(buffer),base_dest);
+
+		Bit16u crt_reg=real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);
+		real_writew(base_seg,base_dest+0x40,crt_reg);
+
+		real_writeb(base_seg,base_dest+0x00,IO_ReadB(0x3c4));
+		real_writeb(base_seg,base_dest+0x01,IO_ReadB(0x3d4));
+		real_writeb(base_seg,base_dest+0x02,IO_ReadB(0x3ce));
+		IO_ReadB(crt_reg+6);
+		real_writeb(base_seg,base_dest+0x03,IO_ReadB(0x3c0));
+		real_writeb(base_seg,base_dest+0x04,IO_ReadB(0x3ca));
+
+		// sequencer
+		for (ct=1; ct<5; ct++) {
+			IO_WriteB(0x3c4,ct);
+			real_writeb(base_seg,base_dest+0x04+ct,IO_ReadB(0x3c5));
+		}
+
+		real_writeb(base_seg,base_dest+0x09,IO_ReadB(0x3cc));
+
+		// crt controller
+		for (ct=0; ct<0x19; ct++) {
+			IO_WriteB(crt_reg,ct);
+			real_writeb(base_seg,base_dest+0x0a+ct,IO_ReadB(crt_reg+1));
+		}
+
+		// attr registers
+		for (ct=0; ct<4; ct++) {
+			IO_ReadB(crt_reg+6);
+			IO_WriteB(0x3c0,0x10+ct);
+			real_writeb(base_seg,base_dest+0x33+ct,IO_ReadB(0x3c1));
+		}
+
+		// graphics registers
+		for (ct=0; ct<9; ct++) {
+			IO_WriteB(0x3ce,ct);
+			real_writeb(base_seg,base_dest+0x37+ct,IO_ReadB(0x3cf));
+		}
+
+		// save some registers
+		IO_WriteB(0x3c4,2);
+		Bit8u crtc_2=IO_ReadB(0x3c5);
+		IO_WriteB(0x3c4,4);
+		Bit8u crtc_4=IO_ReadB(0x3c5);
+		IO_WriteB(0x3ce,6);
+		Bit8u gfx_6=IO_ReadB(0x3cf);
+		IO_WriteB(0x3ce,5);
+		Bit8u gfx_5=IO_ReadB(0x3cf);
+		IO_WriteB(0x3ce,4);
+		Bit8u gfx_4=IO_ReadB(0x3cf);
+
+		// reprogram for full access to plane latches
+		IO_WriteW(0x3c4,0x0f02);
+		IO_WriteW(0x3c4,0x0704);
+		IO_WriteW(0x3ce,0x0406);
+		IO_WriteW(0x3ce,0x0105);
+		mem_writeb(0xaffff,0);
+
+		for (ct=0; ct<4; ct++) {
+			IO_WriteW(0x3ce,0x0004+ct*0x100);
+			real_writeb(base_seg,base_dest+0x42+ct,mem_readb(0xaffff));
+		}
+
+		// restore registers
+		IO_WriteW(0x3ce,0x0004|(gfx_4<<8));
+		IO_WriteW(0x3ce,0x0005|(gfx_5<<8));
+		IO_WriteW(0x3ce,0x0006|(gfx_6<<8));
+		IO_WriteW(0x3c4,0x0004|(crtc_4<<8));
+		IO_WriteW(0x3c4,0x0002|(crtc_2<<8));
+
+		for (ct=0; ct<0x10; ct++) {
+			IO_ReadB(crt_reg+6);
+			IO_WriteB(0x3c0,ct);
+			real_writeb(base_seg,base_dest+0x23+ct,IO_ReadB(0x3c1));
+		}
+		IO_WriteB(0x3c0,0x20);
+
+		base_dest+=0x46;
+	}
+
+	if (state&2)  {
+		real_writew(base_seg,RealOff(buffer)+2,base_dest);
+
+		real_writeb(base_seg,base_dest+0x00,mem_readb(0x410)&0x30);
+		for (ct=0; ct<0x1e; ct++) {
+			real_writeb(base_seg,base_dest+0x01+ct,mem_readb(0x449+ct));
+		}
+		for (ct=0; ct<0x07; ct++) {
+			real_writeb(base_seg,base_dest+0x1f+ct,mem_readb(0x484+ct));
+		}
+		real_writed(base_seg,base_dest+0x26,mem_readd(0x48a));
+		real_writed(base_seg,base_dest+0x2a,mem_readd(0x14));	// int 5
+		real_writed(base_seg,base_dest+0x2e,mem_readd(0x74));	// int 1d
+		real_writed(base_seg,base_dest+0x32,mem_readd(0x7c));	// int 1f
+		real_writed(base_seg,base_dest+0x36,mem_readd(0x10c));	// int 43
+
+		base_dest+=0x3a;
+	}
+
+	if (state&4)  {
+		real_writew(base_seg,RealOff(buffer)+4,base_dest);
+
+		Bit16u crt_reg=real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);
+
+		IO_ReadB(crt_reg+6);
+		IO_WriteB(0x3c0,0x14);
+		real_writeb(base_seg,base_dest+0x303,IO_ReadB(0x3c1));
+
+		Bitu dac_state=IO_ReadB(0x3c7)&1;
+		Bitu dac_windex=IO_ReadB(0x3c8);
+		if (dac_state!=0) dac_windex--;
+		real_writeb(base_seg,base_dest+0x000,dac_state);
+		real_writeb(base_seg,base_dest+0x001,dac_windex);
+		real_writeb(base_seg,base_dest+0x002,IO_ReadB(0x3c6));
+
+		for (ct=0; ct<0x100; ct++) {
+			IO_WriteB(0x3c7,ct);
+			real_writeb(base_seg,base_dest+0x003+ct*3+0,IO_ReadB(0x3c9));
+			real_writeb(base_seg,base_dest+0x003+ct*3+1,IO_ReadB(0x3c9));
+			real_writeb(base_seg,base_dest+0x003+ct*3+2,IO_ReadB(0x3c9));
+		}
+
+		IO_ReadB(crt_reg+6);
+		IO_WriteB(0x3c0,0x20);
+
+		base_dest+=0x303;
+	}
+
+	if ((svgaCard==SVGA_S3Trio) && (state&8))  {
+		real_writew(base_seg,RealOff(buffer)+6,base_dest);
+
+		Bit16u crt_reg=real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);
+
+		IO_WriteB(0x3c4,0x08);
+//		Bitu seq_8=IO_ReadB(0x3c5);
+		IO_ReadB(0x3c5);
+//		real_writeb(base_seg,base_dest+0x00,IO_ReadB(0x3c5));
+		IO_WriteB(0x3c5,0x06);	// unlock s3-specific registers
+
+		// sequencer
+		for (ct=0; ct<0x13; ct++) {
+			IO_WriteB(0x3c4,0x09+ct);
+			real_writeb(base_seg,base_dest+0x00+ct,IO_ReadB(0x3c5));
+		}
+
+		// unlock s3-specific registers
+		IO_WriteW(crt_reg,0x4838);
+		IO_WriteW(crt_reg,0xa539);
+
+		// crt controller
+		Bitu ct_dest=0x13;
+		for (ct=0; ct<0x40; ct++) {
+			if ((ct==0x4a-0x30) || (ct==0x4b-0x30)) {
+				IO_WriteB(crt_reg,0x45);
+				IO_ReadB(crt_reg+1);
+				IO_WriteB(crt_reg,0x30+ct);
+				real_writeb(base_seg,base_dest+(ct_dest++),IO_ReadB(crt_reg+1));
+				real_writeb(base_seg,base_dest+(ct_dest++),IO_ReadB(crt_reg+1));
+				real_writeb(base_seg,base_dest+(ct_dest++),IO_ReadB(crt_reg+1));
+			} else {
+				IO_WriteB(crt_reg,0x30+ct);
+				real_writeb(base_seg,base_dest+(ct_dest++),IO_ReadB(crt_reg+1));
+			}
+		}
+	}
+	return true;
+}
+
+bool INT10_VideoState_Restore(Bitu state,RealPt buffer) {
+	Bitu ct;
+	if ((state&7)==0) return false;
+
+	Bit16u base_seg=RealSeg(buffer);
+	Bit16u base_dest;
+
+	if (state&1)  {
+		base_dest=real_readw(base_seg,RealOff(buffer));
+		Bit16u crt_reg=real_readw(base_seg,base_dest+0x40);
+
+		// reprogram for full access to plane latches
+		IO_WriteW(0x3c4,0x0704);
+		IO_WriteW(0x3ce,0x0406);
+		IO_WriteW(0x3ce,0x0005);
+
+		IO_WriteW(0x3c4,0x0002);
+		mem_writeb(0xaffff,real_readb(base_seg,base_dest+0x42));
+		IO_WriteW(0x3c4,0x0102);
+		mem_writeb(0xaffff,real_readb(base_seg,base_dest+0x43));
+		IO_WriteW(0x3c4,0x0202);
+		mem_writeb(0xaffff,real_readb(base_seg,base_dest+0x44));
+		IO_WriteW(0x3c4,0x0402);
+		mem_writeb(0xaffff,real_readb(base_seg,base_dest+0x45));
+		IO_WriteW(0x3c4,0x0f02);
+		mem_readb(0xaffff);
+
+		IO_WriteW(0x3c4,0x0100);
+
+		// sequencer
+		for (ct=1; ct<5; ct++) {
+			IO_WriteW(0x3c4,ct+(real_readb(base_seg,base_dest+0x04+ct)<<8));
+		}
+
+		IO_WriteB(0x3c2,real_readb(base_seg,base_dest+0x09));
+		IO_WriteW(0x3c4,0x0300);
+		IO_WriteW(crt_reg,0x0011);
+
+		// crt controller
+		for (ct=0; ct<0x19; ct++) {
+			IO_WriteW(crt_reg,ct+(real_readb(base_seg,base_dest+0x0a+ct)<<8));
+		}
+
+		IO_ReadB(crt_reg+6);
+		// attr registers
+		for (ct=0; ct<4; ct++) {
+			IO_WriteB(0x3c0,0x10+ct);
+			IO_WriteB(0x3c0,real_readb(base_seg,base_dest+0x33+ct));
+		}
+
+		// graphics registers
+		for (ct=0; ct<9; ct++) {
+			IO_WriteW(0x3ce,ct+(real_readb(base_seg,base_dest+0x37+ct)<<8));
+		}
+
+		IO_WriteB(crt_reg+6,real_readb(base_seg,base_dest+0x04));
+		IO_ReadB(crt_reg+6);
+
+		// attr registers
+		for (ct=0; ct<0x10; ct++) {
+			IO_WriteB(0x3c0,ct);
+			IO_WriteB(0x3c0,real_readb(base_seg,base_dest+0x23+ct));
+		}
+
+		IO_WriteB(0x3c4,real_readb(base_seg,base_dest+0x00));
+		IO_WriteB(0x3d4,real_readb(base_seg,base_dest+0x01));
+		IO_WriteB(0x3ce,real_readb(base_seg,base_dest+0x02));
+		IO_ReadB(crt_reg+6);
+		IO_WriteB(0x3c0,real_readb(base_seg,base_dest+0x03));
+	}
+
+	if (state&2)  {
+		base_dest=real_readw(base_seg,RealOff(buffer)+2);
+
+		mem_writeb(0x410,(mem_readb(0x410)&0xcf) | real_readb(base_seg,base_dest+0x00));
+		for (ct=0; ct<0x1e; ct++) {
+			mem_writeb(0x449+ct,real_readb(base_seg,base_dest+0x01+ct));
+		}
+		for (ct=0; ct<0x07; ct++) {
+			mem_writeb(0x484+ct,real_readb(base_seg,base_dest+0x1f+ct));
+		}
+		mem_writed(0x48a,real_readd(base_seg,base_dest+0x26));
+		mem_writed(0x14,real_readd(base_seg,base_dest+0x2a));	// int 5
+		mem_writed(0x74,real_readd(base_seg,base_dest+0x2e));	// int 1d
+		mem_writed(0x7c,real_readd(base_seg,base_dest+0x32));	// int 1f
+		mem_writed(0x10c,real_readd(base_seg,base_dest+0x36));	// int 43
+	}
+
+	if (state&4)  {
+		base_dest=real_readw(base_seg,RealOff(buffer)+4);
+
+		Bit16u crt_reg=real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);
+
+		IO_WriteB(0x3c6,real_readb(base_seg,base_dest+0x002));
+
+		for (ct=0; ct<0x100; ct++) {
+			IO_WriteB(0x3c8,ct);
+			IO_WriteB(0x3c9,real_readb(base_seg,base_dest+0x003+ct*3+0));
+			IO_WriteB(0x3c9,real_readb(base_seg,base_dest+0x003+ct*3+1));
+			IO_WriteB(0x3c9,real_readb(base_seg,base_dest+0x003+ct*3+2));
+		}
+
+		IO_ReadB(crt_reg+6);
+		IO_WriteB(0x3c0,0x14);
+		IO_WriteB(0x3c0,real_readb(base_seg,base_dest+0x303));
+
+		Bitu dac_state=real_readb(base_seg,base_dest+0x000);
+		if (dac_state==0) {
+			IO_WriteB(0x3c8,real_readb(base_seg,base_dest+0x001));
+		} else {
+			IO_WriteB(0x3c7,real_readb(base_seg,base_dest+0x001));
+		}
+	}
+
+	if ((svgaCard==SVGA_S3Trio) && (state&8))  {
+		base_dest=real_readw(base_seg,RealOff(buffer)+6);
+
+		Bit16u crt_reg=real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);
+
+		Bitu seq_idx=IO_ReadB(0x3c4);
+		IO_WriteB(0x3c4,0x08);
+//		Bitu seq_8=IO_ReadB(0x3c5);
+		IO_ReadB(0x3c5);
+//		real_writeb(base_seg,base_dest+0x00,IO_ReadB(0x3c5));
+		IO_WriteB(0x3c5,0x06);	// unlock s3-specific registers
+
+		// sequencer
+		for (ct=0; ct<0x13; ct++) {
+			IO_WriteW(0x3c4,(0x09+ct)+(real_readb(base_seg,base_dest+0x00+ct)<<8));
+		}
+		IO_WriteB(0x3c4,seq_idx);
+
+//		Bitu crtc_idx=IO_ReadB(0x3d4);
+
+		// unlock s3-specific registers
+		IO_WriteW(crt_reg,0x4838);
+		IO_WriteW(crt_reg,0xa539);
+
+		// crt controller
+		Bitu ct_dest=0x13;
+		for (ct=0; ct<0x40; ct++) {
+			if ((ct==0x4a-0x30) || (ct==0x4b-0x30)) {
+				IO_WriteB(crt_reg,0x45);
+				IO_ReadB(crt_reg+1);
+				IO_WriteB(crt_reg,0x30+ct);
+				IO_WriteB(crt_reg,real_readb(base_seg,base_dest+(ct_dest++)));
+			} else {
+				IO_WriteW(crt_reg,(0x30+ct)+(real_readb(base_seg,base_dest+(ct_dest++))<<8));
+			}
+		}
+
+		// mmio
+/*		IO_WriteB(crt_reg,0x40);
+		Bitu sysval1=IO_ReadB(crt_reg+1);
+		IO_WriteB(crt_reg+1,sysval|1);
+		IO_WriteB(crt_reg,0x53);
+		Bitu sysva2=IO_ReadB(crt_reg+1);
+		IO_WriteB(crt_reg+1,sysval2|0x10);
+
+		real_writew(0xa000,0x8128,0xffff);
+
+		IO_WriteB(crt_reg,0x40);
+		IO_WriteB(crt_reg,sysval1);
+		IO_WriteB(crt_reg,0x53);
+		IO_WriteB(crt_reg,sysval2);
+		IO_WriteB(crt_reg,crtc_idx); */
+	}
+
+	return true;
+}
+
+void INT10_GetFuncStateInformation(PhysPt save) {
+	/* set static state pointer */
+	mem_writed(save,int10.rom.static_state);
+	/* Copy BIOS Segment areas */
+	Bit16u i;
+
+	/* First area in Bios Seg */
+	for (i=0;i<0x1e;i++) {
+		mem_writeb(save+0x4+i,real_readb(BIOSMEM_SEG,BIOSMEM_CURRENT_MODE+i));
+	}
+	/* Second area */
+	mem_writeb(save+0x22,real_readb(BIOSMEM_SEG,BIOSMEM_NB_ROWS)+1);
+	for (i=1;i<3;i++) {
+		mem_writeb(save+0x22+i,real_readb(BIOSMEM_SEG,BIOSMEM_NB_ROWS+i));
+	}
+	/* Zero out rest of block */
+	for (i=0x25;i<0x40;i++) mem_writeb(save+i,0);
+	/* DCC */
+//	mem_writeb(save+0x25,real_readb(BIOSMEM_SEG,BIOSMEM_DCC_INDEX));
+	Bit8u dccode = 0x00;
+	RealPt vsavept=real_readd(BIOSMEM_SEG,BIOSMEM_VS_POINTER);
+	RealPt svstable=real_readd(RealSeg(vsavept),RealOff(vsavept)+0x10);
+	if (svstable) {
+		RealPt dcctable=real_readd(RealSeg(svstable),RealOff(svstable)+0x02);
+		Bit8u entries=real_readb(RealSeg(dcctable),RealOff(dcctable)+0x00);
+		Bit8u idx=real_readb(BIOSMEM_SEG,BIOSMEM_DCC_INDEX);
+		// check if index within range
+		if (idx<entries) {
+			Bit16u dccentry=real_readw(RealSeg(dcctable),RealOff(dcctable)+0x04+idx*2);
+			if ((dccentry&0xff)==0) dccode=(Bit8u)((dccentry>>8)&0xff);
+			else dccode=(Bit8u)(dccentry&0xff);
+		}
+	}
+	mem_writeb(save+0x25,dccode);
+
+	Bit16u col_count=0;
+	switch (CurMode->type) {
+	case M_TEXT:
+		if (CurMode->mode==0x7) col_count=1; else col_count=16;break; 
+	case M_CGA2:
+		col_count=2;break;
+	case M_CGA4:
+		col_count=4;break;
+	case M_EGA:
+		if (CurMode->mode==0x11 || CurMode->mode==0x0f) 
+			col_count=2; 
+		else 
+			col_count=16;
+		break; 
+	case M_VGA:
+		col_count=256;break;
+	default:
+		LOG(LOG_INT10,LOG_ERROR)("Get Func State illegal mode type %d",CurMode->type);
+	}
+	/* Colour count */
+	mem_writew(save+0x27,col_count);
+	/* Page count */
+	mem_writeb(save+0x29,CurMode->ptotal);
+	/* scan lines */
+	switch (CurMode->sheight) {
+	case 200:
+		mem_writeb(save+0x2a,0);break;
+	case 350:
+		mem_writeb(save+0x2a,1);break;
+	case 400:
+		mem_writeb(save+0x2a,2);break;
+	case 480:
+		mem_writeb(save+0x2a,3);break;
+	};
+	/* misc flags */
+	if (CurMode->type==M_TEXT) mem_writeb(save+0x2d,0x21);
+	else mem_writeb(save+0x2d,0x01);
+	/* Video Memory available */
+	mem_writeb(save+0x31,3);
 }
 
 void int10_FuncStatus() //AH=1Bh
 {
-	AX = 0; //Unknown command!
+	switch (BX) {
+	case 0x0000:
+		INT10_GetFuncStateInformation(RealMake(ES,DI));
+		AL=0x1B;
+		break;
+	default:
+		//LOG(LOG_INT10,LOG_ERROR)("1B:Unhandled call BX %2X",reg_bx);
+		AL=0;
+		break;
+	}
 }
 
 void int10_SaveRestoreVideoStateFns() //AH=1Ch
 {
-	AX = 0; //Unknown command!
+	switch (AL) {
+		case 0: {
+			Bitu ret=INT10_VideoState_GetSize(CX);
+			if (ret) {
+				AL=0x1c;
+				BX=(Bit16u)ret;
+			} else AL=0;
+			}
+			break;
+		case 1:
+			if (INT10_VideoState_Save(CX,RealMake(ES,BX))) AL=0x1c;
+			else AL=0;
+			break;
+		case 2:
+			if (INT10_VideoState_Restore(CX,RealMake(ES,BX))) AL=0x1c;
+			else AL=0;
+			break;
+		default:
+			/*if (svgaCard==SVGA_TsengET4K) reg_ax=0;
+			else*/ AL=0;
+			break;
+	}
 }
 
 //AH=4Fh,AL=subfunc; SVGA support?

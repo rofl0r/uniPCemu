@@ -45,7 +45,10 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	stopTimers(); //Stop all timers!
 	CPU.registers->AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
-	VGA_DUMPDAC(); //Dump the current DAC and rest info!
+	CPU.registers->AX = 0x1001; //Set pallette!
+	CPU.registers->BH = 3; //#3!
+	BIOS_int10();
+	//VGA_DUMPDAC(); //Dump the current DAC and rest info!
 
 	int x,y; //X&Y coordinate!
 	int color; //The color for the coordinate!
@@ -104,6 +107,9 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 		debugTextModeScreenCapture(); //Debug a screen capture!
 	}
 	*/
+	
+	VGA_LOGCRTCSTATUS(); //Dump the current CRTC status!
+	
 	startTimers(); //Start the timers!
 	delay(5000000); //Wait a bit!
 }

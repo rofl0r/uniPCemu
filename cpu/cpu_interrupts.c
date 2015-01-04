@@ -13,6 +13,12 @@ void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry
 	MMU_ww(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0000,((intnr<<2)|2),offset); //Copy offset!
 }
 
+void CPU_getint(byte intnr, word *segment, word *offset) //Set real mode IVT entry!
+{
+	*segment = MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0000,(intnr<<2),0); //Copy segment!
+	*offset = MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0000,((intnr<<2)|2),0); //Copy offset!
+}
+
 void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //Used by soft (below) and exceptions/hardware!
 {
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?

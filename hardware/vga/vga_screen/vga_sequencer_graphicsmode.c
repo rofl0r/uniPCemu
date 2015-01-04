@@ -22,15 +22,15 @@ typedef byte (*agetpixel)(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_Attrib
 //This should be OK, according to: http://www.nondot.org/sabre/Mirrored/GraphicsProgrammingBlackBook/gpbb31.pdf
 byte getpixel256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_AttributeInfo *Sequencer_Attributeinfo) //256colorshiftmode getcolorplanes!
 {
-	word plane;
-	byte part, result;
-	word activex;
+	register word plane; //Plane
+	register word activex; //X!
+	register byte part;
+	register byte result;
 
 	//First: calculate the nibble to shift into our result!
 	part = x;
 	part &= 1; //Take the lowest bit only!
 	part ^= 1; //Reverse: High nibble=bit 0 set, Low nibble=bit 0 cleared
-	part &= 1; //What part are we? High nibble(0) or low nibble(1)
 	part <<= 2; //High nibble=4, Low nibble=0
 
 	activex = x; //Load x!
@@ -38,7 +38,7 @@ byte getpixel256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_A
 	//const static uint_32 sourceplanes[4] = {0x11111111,0x22222222,0x44444444,0x88888888}; //Our source plane translation table!
 	plane = activex;
 	plane &= 3; //We walk through the planes!
-	x >>= 2; //Get the pixel (every 4 increment)!
+	activex >>= 2; //Get the pixel (every 4 increment)!
 	result = readVRAMplane(VGA,plane,Sequencer->charystart+activex,1); //The full offset of the plane all stuff is already done, so 0 at the end!
 	result >>= part; //Shift to the required part (low/high nibble)!
 	result &= 0xF; //Only the low resulting nibble is used!

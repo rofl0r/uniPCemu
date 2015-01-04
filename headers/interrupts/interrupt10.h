@@ -40,7 +40,7 @@ byte getscreenwidth(byte displaypage); //Get the screen width (in characters), b
 
 //Character fonts!
 void INT10_ReloadFont(); //Reload active font at address 0 in the VGA Plane 2!
-void INT10_LoadFont(VGA_Type *VGA, byte height, word offset); //Load a font at an offset!
+void INT10_LoadFont(word fontseg, word fontoffs,bool reload,Bitu count,Bitu offset,Bitu map,Bitu height);
 void INT10_ActivateFont(VGA_Type *VGA, byte height, word offset);
 
 int GPU_putpixel(int x, int y, byte page, byte color); //Writes a video buffer pixel to the real emulated screen buffer

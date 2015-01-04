@@ -602,8 +602,8 @@ typedef struct __attribute__((packed))
 
 typedef struct __attribute__((packed))
 {
-	word rowstatus[0x400]; //Row status!
-	word charrowstatus[0x800]; //Character row status (double the row status, for character and inner)
+	word rowstatus[0x800]; //Row status!
+	word charrowstatus[0x1000]; //Character row status (double the row status, for character and inner)
 	word colstatus[0x1000]; //Column status!
 	word charcolstatus[0x2000]; //Character column status (double the row status, for character and inner)
 	//Current processing coordinates on-screen!

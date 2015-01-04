@@ -28,7 +28,7 @@ static OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC p
 	byte charsize;
 	//Column and row status for each pixel on-screen!
 	charsize = getcharacterheight(VGA); //First, based on height!
-	for (;current<0x400;) //All available resolutions!
+	for (;current<0x800;) //All available resolutions!
 	{
 		VGA->CRTC.rowstatus[current] = get_display_y(VGA,current); //Translate!
 		VGA->CRTC.charrowstatus[current<<1] = current/charsize;

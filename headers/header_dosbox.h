@@ -230,6 +230,8 @@ typedef byte *PhysPt; //Physical pointer!
 #define phys_writeb(ptr,val) phys_writeb(ptr,val)
 #define phys_readb(ptr) phys_readb(ptr)
 #define RealMake(seg,offs) (((seg)&0xFFFF)<<16)|((offs)&0xFFFF)
+#define RealSeg(real) (((real)>>16)&0xFFFF)
+#define RealOff(real) ((real)&0xFFFF)
 #define false 0
 #define S3_LFB_BASE 0xC0000000
 
@@ -246,6 +248,8 @@ typedef byte *PhysPt; //Physical pointer!
 #define real_writeb(biosseg,offs,val) MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,biosseg,offs,val)
 #define real_readw(biosseg,offs) (real_readb(biosseg,offs)+(real_readb(biosseg,offs+1)*256))
 #define real_writew(biosseg,offs,val) real_writeb(biosseg,offs,val&0xFF); real_writeb(biosseg,offs+1,((val&0xFF00)>>8));
+#define real_readd(biosseg,offs) (real_readb(biosseg,offs)+(real_readb(biosseg,offs+2)*256))
+#define real_writed(biosseg,offs,val) real_writew(biosseg,offs,val&0xFFFF); real_writew(biosseg,offs+2,((val&0xFFFF)>>16));
 #define memreal_writew(seg,offs,val) MMU_ww(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,seg,offs,val)
 
 //Extras

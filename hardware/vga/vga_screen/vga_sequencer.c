@@ -178,7 +178,7 @@ extern byte LOG_RENDER_BYTES; //From graphics mode operations!
 void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	//Active display!
-	if (LOG_RENDER_BYTES && attributeinfo->attribute) dolog("VGA","Rendering DAC: %i=%02X; DP:%i",Sequencer->x,attributeinfo->attribute,VGA->precalcs.doublepixels); //Log the rendered DAC index!
+	//if (LOG_RENDER_BYTES && !Sequencer->Scanline) dolog("VGA","Rendering DAC: %i=%02X; DP:%i",Sequencer->x,attributeinfo->attribute,VGA->precalcs.doublepixels); //Log the rendered DAC index!
 	drawPixel(VGA,VGA_DAC(VGA,attributeinfo->attribute)); //Render through the DAC!
 }
 
@@ -191,26 +191,25 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-word tempxbackup = sequencer->tempx;
+	word tempxbackup = Sequencer->tempx;
 	//Render our active display here! Start with text mode!		
 	static VGA_AttributeInfo attributeinfo; //Our collected attribute info!
 	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
 	word activex; //Active X!
 	othernibble:
-	activex = Sequencer->tempx++; //Active X!
-	//activex >>= VGA->precalcs.doublepixels; //Apply double pixels if needed to get our actual activeX!
-	Sequencer->activex = activex; //Apply our active X coordinate!
+	Sequencer->activex = Sequencer->tempx++; //Active X!
 	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
 	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer)) goto othernibble; //Apply the attribute through the attribute controller!
 	static VGA_Sequencer_Mode activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
 	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
-if (VGA->precalcs.doublepixels)
-{
-Sequencer->doublepixels = !Sequencer->doublepixels;
-if (Sequencer->doublepixels)
-{
-Sequencer->tempx = tempxbackup; //Draw same pixel twice
-}
+	if (VGA->precalcs.doublepixels)
+	{
+		Sequencer->doublepixels = !Sequencer->doublepixels;
+		if (Sequencer->doublepixels)
+		{
+			Sequencer->tempx = tempxbackup; //Draw same pixel twice!
+		}
+	}
 }
 //Overscan handler!
 void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -335,7 +334,7 @@ void initStateHandlers()
 	for (i=1;i<0x10000;i++) //Fill the normal entries!
 	{
 		//Total handler for total handlers!
-		displayrenderhandler[1][i] = &VGA_NOPT; //Do nothing when disabled: retrace does overscan!
+		displayrenderhandler[1][i] = &VGA_NOPT; //Do nothing when disabled: retrace does no output!
 		displayrenderhandler[2][i] = &VGA_NOPT; //Do nothing when disabled: total handler!
 		displayrenderhandler[3][i] = &VGA_NOPT; //Do nothing when disabled: total&retrace handler!
 		
@@ -366,8 +365,7 @@ void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 	
 	for (;;) //New CRTC constrolled way!
 	{
-		displaystate = get_display(VGA,Sequencer->Scanline,Sequencer->x); //Current display state!
-		++Sequencer->x; //Increase the horizontal column!
+		displaystate = get_display(VGA,Sequencer->Scanline,Sequencer->x++); //Current display state!
 		displaysignalhandler[displaystate](Sequencer,VGA,displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalretracing][displaystate](Sequencer,VGA); //Execute our signal!
 		if (Sequencer_Break) return; //Abort when done!

@@ -328,6 +328,7 @@ void PORT_writeVGA(word port, byte value) //Write to a port/register!
 	{
 		raiseError("VGA","VGA Port Out, but no active VGA loaded!");
 	}
+	byte temp;
 	switch (port) //What port?
 	{
 	case 0x3B0:
@@ -362,8 +363,11 @@ void PORT_writeVGA(word port, byte value) //Write to a port/register!
 		PORT_write_MISC_3C2(value); //Write to 3C2!
 		break;
 	case 0x3C3: //Video subsystem enable
-		ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (value&1); //Enable RAM?
-		ActiveVGA->registers->VGA_3C3 = (value&0xFE); //Write port 3C3, clear our unused bit for easier retrieval!
+		temp = value;
+		value &= 1; //One bit only!
+		temp &= 0xFE; //Clear our bit used!
+		ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = value; //Enable RAM?
+		ActiveVGA->registers->VGA_3C3 = temp; //Write port 3C3, clear our unused bit for easier retrieval!
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
 		ActiveVGA->registers->SequencerRegisters_Index = value; //Set!

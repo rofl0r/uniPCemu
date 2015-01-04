@@ -194,7 +194,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 
 	byte doubleres;
 	doubleres = 0; //Default: normal resolution!
-	if ((doublexres || doubleyres) && !(doublexres && doubleyres)) //Either double x or y resolution, but not both?
+	if (doublexres ^ doubleyres) //Either double x or y resolution, but not both?
 	{
 		n_width <<= doublexres; //Apply double width!
 		n_height <<= doubleyres; //Apply double height!
