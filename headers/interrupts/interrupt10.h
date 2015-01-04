@@ -1,6 +1,8 @@
 #ifndef INTERRUPT10_H
 #define INTERRUPT10_H
 
+#include "headers/header_dosbox.h" //Dosbox support!
+
 void BIOS_int10(); //Interrupt #10h: (Video Services)! Overridable!
 
 //Stuff for VGA screen/INT10!

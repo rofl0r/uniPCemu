@@ -1666,7 +1666,7 @@ Bitu INT10_VideoState_GetSize(Bitu state) {
 	if (state&1) size+=0x46;
 	if (state&2) size+=0x3a;
 	if (state&4) size+=0x303;
-	if ((svgaCard==SVGA_S3Trio) && (state&8)) size+=0x43;
+	//if ((svgaCard==SVGA_S3Trio) && (state&8)) size+=0x43;
 	if (size!=0) size=(size-1)/64+1;
 	return size;
 }
@@ -1807,7 +1807,7 @@ bool INT10_VideoState_Save(Bitu state,RealPt buffer) {
 		base_dest+=0x303;
 	}
 
-	if ((svgaCard==SVGA_S3Trio) && (state&8))  {
+	/*if ((svgaCard==SVGA_S3Trio) && (state&8))  {
 		real_writew(base_seg,RealOff(buffer)+6,base_dest);
 
 		Bit16u crt_reg=real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);
@@ -1843,7 +1843,7 @@ bool INT10_VideoState_Save(Bitu state,RealPt buffer) {
 				real_writeb(base_seg,base_dest+(ct_dest++),IO_ReadB(crt_reg+1));
 			}
 		}
-	}
+	}*/
 	return true;
 }
 
@@ -1961,7 +1961,7 @@ bool INT10_VideoState_Restore(Bitu state,RealPt buffer) {
 		}
 	}
 
-	if ((svgaCard==SVGA_S3Trio) && (state&8))  {
+	/*if ((svgaCard==SVGA_S3Trio) && (state&8))  {
 		base_dest=real_readw(base_seg,RealOff(buffer)+6);
 
 		Bit16u crt_reg=real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);
@@ -1999,7 +1999,7 @@ bool INT10_VideoState_Restore(Bitu state,RealPt buffer) {
 		}
 
 		// mmio
-/*		IO_WriteB(crt_reg,0x40);
+/		IO_WriteB(crt_reg,0x40);
 		Bitu sysval1=IO_ReadB(crt_reg+1);
 		IO_WriteB(crt_reg+1,sysval|1);
 		IO_WriteB(crt_reg,0x53);
@@ -2012,29 +2012,29 @@ bool INT10_VideoState_Restore(Bitu state,RealPt buffer) {
 		IO_WriteB(crt_reg,sysval1);
 		IO_WriteB(crt_reg,0x53);
 		IO_WriteB(crt_reg,sysval2);
-		IO_WriteB(crt_reg,crtc_idx); */
-	}
+		IO_WriteB(crt_reg,crtc_idx); /
+	}*/
 
 	return true;
 }
 
 void INT10_GetFuncStateInformation(PhysPt save) {
 	/* set static state pointer */
-	mem_writed(save,int10.rom.static_state);
+	mem_writed(Phys2Real(save),int10.rom.static_state);
 	/* Copy BIOS Segment areas */
 	Bit16u i;
 
 	/* First area in Bios Seg */
 	for (i=0;i<0x1e;i++) {
-		mem_writeb(save+0x4+i,real_readb(BIOSMEM_SEG,BIOSMEM_CURRENT_MODE+i));
+		mem_writeb(Phys2Real(save+0x4+i),real_readb(BIOSMEM_SEG,BIOSMEM_CURRENT_MODE+i));
 	}
 	/* Second area */
-	mem_writeb(save+0x22,real_readb(BIOSMEM_SEG,BIOSMEM_NB_ROWS)+1);
+	mem_writeb(Phys2Real(save+0x22),real_readb(BIOSMEM_SEG,BIOSMEM_NB_ROWS)+1);
 	for (i=1;i<3;i++) {
-		mem_writeb(save+0x22+i,real_readb(BIOSMEM_SEG,BIOSMEM_NB_ROWS+i));
+		mem_writeb(Phys2Real(save+0x22+i),real_readb(BIOSMEM_SEG,BIOSMEM_NB_ROWS+i));
 	}
 	/* Zero out rest of block */
-	for (i=0x25;i<0x40;i++) mem_writeb(save+i,0);
+	for (i=0x25;i<0x40;i++) mem_writeb(Phys2Real(save+i),0);
 	/* DCC */
 //	mem_writeb(save+0x25,real_readb(BIOSMEM_SEG,BIOSMEM_DCC_INDEX));
 	Bit8u dccode = 0x00;
@@ -2051,7 +2051,7 @@ void INT10_GetFuncStateInformation(PhysPt save) {
 			else dccode=(Bit8u)(dccentry&0xff);
 		}
 	}
-	mem_writeb(save+0x25,dccode);
+	mem_writeb(Phys2Real(save+0x25),dccode);
 
 	Bit16u col_count=0;
 	switch (CurMode->type) {
@@ -2068,37 +2068,39 @@ void INT10_GetFuncStateInformation(PhysPt save) {
 			col_count=16;
 		break; 
 	case M_VGA:
-		col_count=256;break;
+		col_count=256;
+		break;
 	default:
-		LOG(LOG_INT10,LOG_ERROR)("Get Func State illegal mode type %d",CurMode->type);
+		//LOG(LOG_INT10,LOG_ERROR)("Get Func State illegal mode type %d",CurMode->type);
+		break;
 	}
 	/* Colour count */
-	mem_writew(save+0x27,col_count);
+	mem_writew(Phys2Real(save+0x27),col_count);
 	/* Page count */
-	mem_writeb(save+0x29,CurMode->ptotal);
+	mem_writeb(Phys2Real(save+0x29),CurMode->ptotal);
 	/* scan lines */
 	switch (CurMode->sheight) {
 	case 200:
-		mem_writeb(save+0x2a,0);break;
+		mem_writeb(Phys2Real(save+0x2a),0);break;
 	case 350:
-		mem_writeb(save+0x2a,1);break;
+		mem_writeb(Phys2Real(save+0x2a),1);break;
 	case 400:
-		mem_writeb(save+0x2a,2);break;
+		mem_writeb(Phys2Real(save+0x2a),2);break;
 	case 480:
-		mem_writeb(save+0x2a,3);break;
+		mem_writeb(Phys2Real(save+0x2a),3);break;
 	};
 	/* misc flags */
-	if (CurMode->type==M_TEXT) mem_writeb(save+0x2d,0x21);
-	else mem_writeb(save+0x2d,0x01);
+	if (CurMode->type==M_TEXT) mem_writeb(Phys2Real(save+0x2d),0x21);
+	else mem_writeb(Phys2Real(save+0x2d),0x01);
 	/* Video Memory available */
-	mem_writeb(save+0x31,3);
+	mem_writeb(Phys2Real(save+0x31),3);
 }
 
 void int10_FuncStatus() //AH=1Bh
 {
 	switch (BX) {
 	case 0x0000:
-		INT10_GetFuncStateInformation(RealMake(ES,DI));
+		INT10_GetFuncStateInformation(Real2Phys(RealMake(ES,DI)));
 		AL=0x1B;
 		break;
 	default:

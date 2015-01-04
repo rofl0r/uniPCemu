@@ -256,6 +256,8 @@ typedef byte *PhysPt; //Physical pointer!
 #define address2phys(address) PhysMake(address>>4,(address&0xF))
 #define mem_readw(address) phys_readw(address2phys(address))
 #define mem_writew(address,value) phys_writew(address2phys(address),value)
+#define mem_readd(address) phys_readd(address2phys(address))
+#define mem_writed(address,value) phys_writed(address2phys(address),value)
 #define phys_readw(address) (phys_readb(address)|(phys_readb((address)+1)))
 
 //Port I/O

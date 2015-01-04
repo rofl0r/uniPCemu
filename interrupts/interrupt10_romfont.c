@@ -32,12 +32,35 @@ void phys_writew(PhysPt ptr, word val)
 	phys_writeb(ptr,(val>>8)&0xFF); //High
 }
 
+void phys_writed(PhysPt ptr, uint_32 val)
+{
+	phys_writew(ptr++,val&0xFFFF); //Low
+	++ptr;
+	phys_writew(ptr,(val>>16)&0xFFFF); //High
+}
+
 byte phys_readb(PhysPt ptr)
 {
 	if (!ptr) return 0; //Invalid!
 	//return *ptr; //Read!
 	uint_32 RealPt = Phys2Real(ptr); //Convert to real pointer!
 	return mem_readb(RealPt); //Write to memory normally!
+}
+
+word phys_readw(PhysPt ptr)
+{
+	if (!ptr) return 0; //Invalid!
+	//return *ptr; //Read!
+	uint_32 RealPt = Phys2Real(ptr); //Convert to real pointer!
+	return mem_readw(RealPt); //Write to memory normally!
+}
+
+byte phys_readd(PhysPt ptr)
+{
+	if (!ptr) return 0; //Invalid!
+	//return *ptr; //Read!
+	uint_32 RealPt = Phys2Real(ptr); //Convert to real pointer!
+	return mem_readd(RealPt); //Write to memory normally!
 }
 
 //Original function:
