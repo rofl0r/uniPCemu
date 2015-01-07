@@ -204,8 +204,9 @@ void debug_threads()
 	bzero(thread_name,sizeof(thread_name)); //Init!
 	while (1)
 	{
-		byte numthreads = 0; //Number of installed threads running!
+		int numthreads = 0; //Number of installed threads running!
 		int i,i2;
+		int totalthreads = ThreadsRunning(); //Ammount of threads running!
 		for (i=0;i<NUMITEMS(threadpool);i++)
 		{
 			if (threadpool[i].used) //Allocated?
@@ -213,7 +214,7 @@ void debug_threads()
 				if (threadpool[i].status>=THREADSTATUS_CREATEN) //Created or running?
 				{
 					++numthreads; //Count ammount of threads!
-					GPU_textgotoxy(frameratesurface,0,30-NUMITEMS(threadpool)+numthreads); //Goto the debug row start!
+					GPU_textgotoxy(frameratesurface,0,29-totalthreads+numthreads); //Goto the debug row start!
 					sprintf(thread_name,"Active thread: %s",threadpool[i].name); //Get data string!
 					GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x00,0xFF,0x00),thread_name);
 					for (i2=strlen(thread_name);i2<=50;i2++)
@@ -237,7 +238,7 @@ void initThreads() //Initialise&reset thread subsystem!
 	termThreads(); //Make sure all running threads are stopped!
 	//dolog("threads","debugThreads?...");
 	memset(threadpool,0,sizeof(threadpool)); //Clear thread pool!
-	if (DEBUG_THREADS) startThread(&debug_threads,"Thread Debugger",DEFAULT_PRIORITY); //Plain debug threads!
+	if (DEBUG_THREADS) startThread(&debug_threads,"X86EMU_Thread Debugger",DEFAULT_PRIORITY); //Plain debug threads!
 	//dolog("threads","initThreads: RET...");
 }
 

@@ -61,10 +61,8 @@ void VGA_Sequencer_TextMode_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	Sequencer->chary = character = *currowstatus++; //First is chary!
 	Sequencer->charinner_y = *currowstatus; //Second is charinner_y!
 	
-	charystart = getVRAMScanlineStart(VGA,character); //Calculate row start!
-	charystart += Sequencer->startmap; //What start address?
+	Sequencer->charystart = getVRAMScanlineStart(VGA,character); //Calculate row start!
 
-	Sequencer->charystart = charystart; //Start of the row in VRAM!
 	Sequencer->doublepixels = 0; //Reset double pixels for odd sized screens.
 }
 
@@ -76,13 +74,16 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	//X!
 	word *curcolstatus;
 	curcolstatus = &VGA->CRTC.charcolstatus[Sequencer->activex<<1]; //Current col status!
-	attributeinfo->charx = character = *curcolstatus++; //First is chary!
+	character = *curcolstatus++; //First is charx!
+	character >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
+	attributeinfo->charx = character; //Load the character we use!
 	attributeinfo->charinner_x = charinner = *curcolstatus; //Second is charinner_y!
 	
 	register uint_32 Sequencer_textmode_charindex; //Where do we find our info!
 	Sequencer_textmode_charindex = Sequencer->charystart; //Get the start of the row!
 	Sequencer_textmode_charindex += character; //Add the character column for the base character index!
 	Sequencer_textmode_charindex += Sequencer->bytepanning; //Apply byte panning to the index!
+	Sequencer_textmode_charindex += Sequencer->startmap; //Add the start of the map for us to look at!
 
 	byte currentchar, attribute;
 	currentchar = readVRAMplane(VGA,0,Sequencer_textmode_charindex,3); //The character itself! From plane 0!

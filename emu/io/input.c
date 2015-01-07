@@ -35,21 +35,30 @@ byte input_buffer_input = 0; //To buffer, instead of straigt into emulation (giv
 int input_buffer_shift = -1; //Ctrl-Shift-Alt Status for the pressed key!
 int input_buffer = -1; //To contain the pressed key!
 
+SceCtrlData input; //Current input status!
+
 PSP_INPUTSTATE curstat; //Current status!
 
-int psp_inputkey()
+void updateInput() //Update all input!
 {
-	SceCtrlData input; //Input given!
-
-	sceCtrlReadBufferPositive(&input, 1); //Wait for key to be pressed or not!
-	if (input.Buttons) //Key has been pressed?
-	{
-		return input.Buttons; //Give buttons!
-	}
-	return 0; //No buttons pressed!
+	/*for (;;)
+	{*/
+		SceCtrlData temp; //Current input status!
+		if (sceCtrlReadBufferPositive(&temp, 1)) //Anything happened!
+		{
+			memcpy(&input,&temp,sizeof(input)); //Copy to actived input!
+		}
+		/*delay(100000); //Refresh 10x/second.
+	}*/
 }
 
-int psp_inputkeydelay(uint_32 waittime)
+int psp_inputkey() //Simple key sampling!
+{
+	updateInput(); //Update the input!
+	return input.Buttons; //Give buttons pressed!
+}
+
+int psp_inputkeydelay(uint_32 waittime) //Don't use within any timers! This will hang up itself!
 {
 	uint_32 counter; //Counter for inputkeydelay!
 	int key = psp_inputkey(); //Check for keys!
@@ -76,10 +85,10 @@ int psp_inputkeydelay(uint_32 waittime)
 int psp_readkey() //Wait for keypress and release!
 {
 	int result;
-	result = psp_inputkeydelay(0); //Check for input!
+	result = psp_inputkeydelay(1); //Check for input!
 	while (result==0) //No input?
 	{
-		result = psp_inputkeydelay(0); //Check for input!
+		result = psp_inputkeydelay(1); //Check for input!
 	}
 	return result; //Give the pressed key!
 }
@@ -93,9 +102,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //Our BIOS Settings!
 
 void get_analog_state(PSP_INPUTSTATE *state) //Get the current state for mouse/analog driver!
 {
-	SceCtrlData input; //Input given!
-	sceCtrlReadBufferPositive(&input, 1); //Wait for key to be pressed or not!
-	
+	updateInput(); //Make sure our input is up-to-date!
 	//Clear all we set!
 	state->analogdirection_mouse_x = 0; //No mouse X movement!
 	state->analogdirection_mouse_y = 0; //No mouse Y movement!
@@ -817,67 +824,54 @@ int ticking = 0; //Already ticking?
 
 void keyboard_swap_handler() //Swap handler for keyboard!
 {
-	while (1)
+	//while (1)
 	{
-		if (curstat.gamingmode && input_enabled) //Gaming mode?
+		if (input_enabled) //Input enabled?
 		{
-			if (psp_inputkeydelay(333333)&PSP_CTRL_SELECT) //Quit gaming mode?
+		if (curstat.gamingmode) //Gaming mode?
+		{
+			if (psp_inputkey()&PSP_CTRL_SELECT) //Quit gaming mode?
 			{
-				while (psp_inputkeydelay(333333)&PSP_CTRL_SELECT)
-				{
-					//Wait to be depressed!
-				}
 				curstat.gamingmode = 0; //Disable gaming mode!
 			}
 		}
 		else if (curstat.mode==1 && input_enabled) //Keyboard active and on-screen?
 		{
 			int curkey;
-			curkey = psp_inputkeydelay(333333); //Read current keys with delay!
+			curkey = psp_inputkey(); //Read current keys with delay!
 			if ((curkey&PSP_CTRL_LTRIGGER) && (!(curkey&PSP_CTRL_RTRIGGER))) //Not L&R (which is CAPS LOCK) special?
 			{
-				while ((curkey&PSP_CTRL_LTRIGGER)) //About 3 sets per second: we have a swap?
-				{
-					currentset = (currentset+1)%3; //Next set!
-					currentkey = 0; //No keys pressed!
-					//Disable all output still standing!
-					ReleaseKeys(); //Release all keys!
-					curkey = psp_inputkeydelay(333333); //Read current keys with delay!
-				}
+				currentset = (currentset+1)%3; //Next set!
+				currentkey = 0; //No keys pressed!
+				//Disable all output still standing!
+				ReleaseKeys(); //Release all keys!
 			}
 			else if (curkey&PSP_CTRL_DOWN) //Down pressed: swap to gaming mode!
 			{
 				currentkey = 0; //No keys pressed!
 				ReleaseKeys(); //Release all keys!
-				while (psp_inputkeydelay(333333)&PSP_CTRL_DOWN) //Wait to be released!
-				{}
 				curstat.gamingmode = 1; //Enable gaming mode!
 			}
 			else if (curkey&PSP_CTRL_START) //Swap to mouse mode!
 			{
 				currentkey = 0; //No keys pressed!
 				ReleaseKeys(); //Release all keys!
-				while (psp_inputkeydelay(333333)&PSP_CTRL_START) //Wait to be released!
-				{}
 				curstat.mode = 0; //Swap to mouse mode!
 			}
 		}
 		else if (curstat.mode==0 && input_enabled) //Mouse active?
 		{
-			if (psp_inputkeydelay(333333)&PSP_CTRL_DOWN) //Down pressed: swap to gaming mode!
+			if (psp_inputkey()&PSP_CTRL_DOWN) //Down pressed: swap to gaming mode!
 			{
-				while (psp_inputkeydelay(333333)&PSP_CTRL_DOWN) ////Wait to be released!
-				{}
 				curstat.gamingmode = 1; //Enable gaming mode!
 			}
-			else if (psp_inputkeydelay(333333)&PSP_CTRL_START) //Swap to keyboard mode!
+			else if (psp_inputkey()&PSP_CTRL_START) //Swap to keyboard mode!
 			{
-				while (psp_inputkeydelay(333333)&PSP_CTRL_START) //Wait to be released!
-				{}
 				curstat.mode = 1; //Swap to keyboard mode!
 			}
 		}
-		delay(KEYSWAP_DELAY); //Wait a bit, for as precise as we can simply (1ms), slower is never worse!
+		}
+		//delay(KEYSWAP_DELAY); //Wait a bit, for as precise as we can simply (1ms), slower is never worse!
 	}
 }
 
@@ -1386,13 +1380,13 @@ int request_type_term = 0;
 
 void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 {
-	for(;;)
+	//for(;;)
 	{
-		if (request_type_term) //Request termination?
+		/*if (request_type_term) //Request termination?
 		{
 			request_type_term = 0; //Terminated!
 			return; //Terminate!
-		}
+		}*/
 
 		if (input_enabled && ALLOW_INPUT) //Input enabled?
 		{
@@ -1421,15 +1415,22 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 			}
 		} //Input enabled?
 
-		if (HWkeyboard_getrepeatrate()) //Got a repeat rate?
+		/*if (HWkeyboard_getrepeatrate()) //Got a repeat rate?
 		{
 			delay((uint_32)(1000000/HWkeyboard_getrepeatrate())); //Wait for the set timespan, depending on the set keyboard by the CPU!
 		}
 		else
 		{
 			delay(100000); //Wait for the minimum!
-		}
+		}*/
 	} //While loop, muse be infinite to prevent closing!
+}
+
+void psp_keyboard_refreshrate()
+{
+	float repeatrate = HWkeyboard_getrepeatrate();
+	if (!repeatrate) repeatrate = 10.0f; //10 times a second sampling!
+	addtimer(repeatrate,&keyboard_type_handler,"Keyboard PSP Type"); //Our type handler!
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
@@ -1450,23 +1451,23 @@ void psp_keyboard_init()
 	
 	
 	//dolog("osk","Starting OSK when enabled...");
-	if (!KEYBOARD_STARTED) //Not started yet?
-	{
+	/*if (!KEYBOARD_STARTED) //Not started yet?
+	{*/
 		//dolog("osk","Starting type handler");
-		startThread(&keyboard_type_handler,"Keyboard PSP Type",DEFAULT_PRIORITY); //Handles keyboard typing: we're an interrupt!
+		psp_keyboard_refreshrate(); //Handles keyboard typing: we're an interrupt!
 		//dolog("osk","Starting swap handler");
-		startThread(&keyboard_swap_handler,"Keyboard PSP Swap",DEFAULT_PRIORITY); //Handles keyboard set swapping: we're an interrupt!
+		addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap"); //Handles keyboard set swapping: we're an interrupt!
 		//dolog("osk","Starting mouse handler");
-		addtimer(256,&mouse_handler,"PSP Mouse"); //Handles mouse input: we're a normal timer!
+		addtimer(256.0f,&mouse_handler,"PSP Mouse"); //Handles mouse input: we're a normal timer!
 		KEYBOARD_STARTED = 1; //Started!
-	}
+	//}
 	//dolog("osk","keyboard&mouse ready.");
 }
 
 void psp_keyboard_done()
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (KEYBOARD_STARTED) //Stil started?
+	/*if (KEYBOARD_STARTED) //Stil started?
 	{
 		if (!request_type_term)
 		{
@@ -1478,7 +1479,10 @@ void psp_keyboard_done()
 		}
 		KEYBOARD_STARTED = 0; //Not started anymore!
 		//Keyboard has been terminated!
-	}
+	}*/
+	removetimer("Keyboard PSP Type"); //No typing!
+	removetimer("Keyboard PSP Swap"); //No swapping!
+	removetimer("PSP Mouse"); //No mouse!
 }
 
 void keyboard_loadDefaults() //Load the defaults for the keyboard font etc.!
@@ -1536,4 +1540,27 @@ void enableKeyboard(int bufferinput) //Enables the keyboard/mouse functionnality
 	input_buffer = -1; //Nothing pressed yet!
 	input_buffer_input = bufferinput; //To buffer?
 	input_enabled = ALLOW_INPUT; //Enable input!
+}
+
+/* All update functionality for input */
+
+//ThreadParams_p input_thread = NULL;
+
+void psp_input_init()
+{
+	/*(if (!input_thread) //Nothing yet?
+	{*/
+		sceCtrlSetSamplingCycle(0); //Polling ourselves!
+		sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG); //We need buttons and analog, not analog only!
+		/*input_thread = startThread(&updateInput,"X86EMU_Input refresh",DEFAULT_PRIORITY);
+	}*/
+}
+
+void psp_input_done()
+{
+	/*if (input_thread) //Started?
+	{
+		terminateThread(input_thread->threadID); //Terminate input!
+		input_thread = 0; //No thread anymore!
+	}*/ //Nothing to finish: nothing used!
 }

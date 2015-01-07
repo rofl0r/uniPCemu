@@ -89,4 +89,8 @@ EMU internal!
 void EMU_stopInput(); //Stop input from EMU!
 void EMU_startInput(); //Start input from EMU!
 
+//Input support!
+void psp_input_init();
+void psp_input_done();
+
 #endif

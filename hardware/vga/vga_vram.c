@@ -54,70 +54,26 @@ static OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 rowscanaddress) //
 	return newrowscan; //Give the linear address!
 }
 
-static OPTINLINE uint_32 applyaddressingmode(VGA_Type *VGA, uint_32 memoryaddress)
-{
-	return memoryaddress; //Don't apply!
-	uint_32 result = memoryaddress; //Default: nothing happened!
-	switch (getVRAMMemAddrSize(VGA)) //What memory size?
-	{
-		case 2: //2?
-			result <<= 1; //Shift left by 1!
-			break;
-		case 4:
-			result <<= 2; //Shift left by 2!
-			break;
-		default: //1=Default?
-			//Nothing happens!
-			break;
-	}
-	return result; //Give the shifted value if needed!
-}
-
-static OPTINLINE uint_32 unapplyaddressingmode(VGA_Type *VGA, uint_32 memoryaddress)
-{
-	return memoryaddress; //Don't apply!
-	uint_32 result = memoryaddress; //Default: nothing happened!
-	switch (getVRAMMemAddrSize(VGA)) //What memory size?
-	{
-		case 2: //2?
-			result >>= 1; //Shift left by 1!
-			break;
-		case 4:
-			result >>= 2; //Shift left by 2!
-			break;
-		default: //1=Default?
-			//Nothing happens!
-			break;
-	}
-	return result; //Give the shifted value if needed!
-}
-
 static OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memory arround 64k!
 {
-	return memoryaddress; //Don't use: we don't work!
-	uint_32 result;
-	result = applyaddressingmode(VGA,memoryaddress); //Initialise the result according to the addressing mode!
+	register uint_32 address2; //Load the initial value for calculating!
+	register uint_32 result;
+	result = memoryaddress; //Default: don't change!
 	if (getVRAMMemAddrSize(VGA)==2) //Word mode?
 	{
-		register uint_32 address2 = memoryaddress; //Load the initial value for calculating!
-		/*if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
+		address2 = memoryaddress; //Load the address for calculating!
+		if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
 		{
 			address2 >>= 15;
-			address2 &= 1;
-			result &= ~1; //Clear bit MA15&0!
-			result |= address2; //Add bit MA15 at position 0!
 		}
 		else //MA13 has to be on MA0?
 		{
 			address2 >>= 13;
-			address2 &= 1;
-			result &= ~1; //Clear bit MA13&0!
-			result |= address2; //Add bit MA13 at position 0!
-		}*/
-		result &= 0x3FFF; //Only a quarter of normal display memory is available!
+		}
+		address2 &= 1; //Only load 1 bit!
+		result &= ~1; //Clear bit 0!
+		result |= address2; //Add bit MA15 at position 0!
 	}
-	result = unapplyaddressingmode(VGA,memoryaddress); //Reverse!
-	result &= 0xFFFF; //Wrap to 16-bit!
 	return result; //Adjusted address!
 }
 

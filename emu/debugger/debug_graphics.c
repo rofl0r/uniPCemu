@@ -12,14 +12,12 @@
 //To log the first rendered line after putting pixels?
 #define LOG_VGA_FIRST_LINE 0
 //To debug text modes too in below or BIOS setting?
-#define TEXTMODE_DEBUGGING 0
+#define TEXTMODE_DEBUGGING 1
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
 
 extern byte LOG_VRAM_WRITES; //Log VRAM writes?
 extern byte LOG_MMU_WRITES; //Log MMU writes?
-
-extern byte LOG_RENDER_BYTES; //See VRAM, but the rendering!
 
 extern byte ENABLE_VRAM_LOG; //Enable VRAM logging?
 extern byte SCREEN_CAPTURE; //Log a screen capture?
@@ -31,10 +29,9 @@ extern CPU_type CPU; //CPU!
 
 void debugTextModeScreenCapture()
 {
-	VGA_DUMPDAC(); //Make sure the DAC is dumped!
+	//VGA_DUMPDAC(); //Make sure the DAC is dumped!
 	VGA_waitforVBlank(); //Wait for VBlank!
 	SCREEN_CAPTURE = LOG_VGA_SCREEN_CAPTURE; //Screen capture next frame?
-	LOG_RENDER_BYTES = LOG_VGA_FIRST_LINE; //Log it!
 	VGA_waitforVBlank(); //Log one screen!
 }
 
@@ -108,7 +105,7 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	}
 	*/
 	
-	VGA_LOGCRTCSTATUS(); //Dump the current CRTC status!
+	//VGA_LOGCRTCSTATUS(); //Dump the current CRTC status!
 	
 	startTimers(); //Start the timers!
 	delay(5000000); //Wait a bit!
@@ -135,7 +132,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		CPU.registers->BL = 0x4; //Blue overscan!
 		BIOS_int10(); //Set overscan!
 		//VGA_LOGCRTCSTATUS(); //Log our full status!
-		VGA_DUMPDAC(); //Dump the active DAC!
+		//VGA_DUMPDAC(); //Dump the active DAC!
 		//debugTextModeScreenCapture(); //Make a screen capture!
 		//sleep(); //Wait forever to debug!
 
@@ -308,7 +305,6 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
 	//256 color mode!
 	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
-	LOG_RENDER_BYTES = 1; //Log our renderer's output!
 	debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!

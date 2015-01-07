@@ -14,8 +14,8 @@
 
 //Define pixel(stage/(scan&)newline) speed?
 #define DEBUG_PIXEL_SPEED
-//Framerate step in us!
-#define FRAMERATE_STEP 1000000
+//Framerate step in times per second!
+#define FRAMERATE_SPEED 1.0f
 //Log VGA speed?
 //#define LOG_VGA_SPEED
 
@@ -47,6 +47,8 @@ PSP_TEXTSURFACE *frameratesurface = NULL; //Framerate surface!
 uint_32 frames; //Frames processed!
 float curscanlinepercentage = 0.0f; //Current scanline percentage (0.0-1.0)!
 
+TicksHolder lastcheck; //Last check we did!
+
 void GPU_FrameRendered() //A frame has been rendered?
 {
 	++frames; //A frame has been rendered!
@@ -54,14 +56,12 @@ void GPU_FrameRendered() //A frame has been rendered?
 }
 
 //The main thread!
-void GPU_Framerate_Thread() //One second has passed thread (called every second!)?
+void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 {
 	if (__HW_DISABLED) return; //Disabled?
-	TicksHolder lastcheck; //Last check we did!
-	initTicksHolder(&lastcheck); //Init for counting!
 	uint_64 timepassed;
 
-	while (1) //Not done yet?
+	//while (1) //Not done yet?
 	{
 		timepassed = getuspassed(&lastcheck); //Real time passed!
 		if (timepassed) //Time passed?
@@ -80,7 +80,7 @@ void GPU_Framerate_Thread() //One second has passed thread (called every second!
 		logVGASpeed(); //Log the speed for our frames!
 		#endif
 		//Finally delay for next update!
-		delay(FRAMERATE_STEP); //Wait for the next update as good as we can!
+		//delay(FRAMERATE_STEP); //Wait for the next update as good as we can!
 	}
 }
 
@@ -88,6 +88,8 @@ void finish_screen() //Extra stuff after rendering!
 {
 	++SCREENS_RENDERED; //Count ammount of screens rendered!
 }
+
+extern double clockspeed; //Default clock speed!
 
 void renderFramerate()
 {
@@ -110,36 +112,12 @@ void renderFramerate()
 				GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x22,0x22,0x22),"Frames rendered: %i",totalframes); //Total # of frames rendered!
 
 				#ifdef DEBUG_PIXEL_SPEED
-				/*if (Sequencer->totalpixels) //Valid pixels to check speed?
-				{*/
 					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nRendering speed in rows/second: %f               ",VGA_VerticalRefreshRate(VGA)); //Log the time taken per pixel AVG!
 					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nScreen resolution: %ix%i               ",GPU.xres,GPU.yres); //Log the time taken per pixel AVG!
 					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nHTotal: %i               ",VGA->precalcs.horizontaltotal); //Log the time taken per pixel AVG!
 					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nPixels time rendered: %i               ",Sequencer->totalrendertime); //Log the time taken per pixel AVG!
 
 					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nVGA@Scanline: %i               ",Sequencer->Scanline); //Log the time taken per pixel AVG!
-
-					if (Sequencer->totalrenders) //Something rendered?
-					{
-						double avgpixeltime = (float)((float)Sequencer->totalrendertime/(float)Sequencer->totalrenders)/(float)VGA->precalcs.horizontaltotal; //Calculate!
-						GPU_textgotoxy(frameratesurface,0,20);
-						GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nAVG pixel time: %02.5f ns   ",avgpixeltime); //Log the time taken per pixel AVG!
-						uint_32 avgpixels;
-						if (avgpixeltime) //Gotten time at all?
-						{
-							avgpixels = (uint_32)((float)NS_SECOND/(float)avgpixeltime);
-						}
-						else
-						{
-							avgpixels = 0; //None!
-						}
-						GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nAVG pixels/second: %i               ",avgpixels); //Log the time taken per pixel AVG!
-						if (avgpixels) //Any processed a second?
-						{
-							GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nAVG FPS@640x480: %f               ",(float)((float)avgpixels/(640.0f*480.0f))); //Log the time taken per pixel AVG!
-						}
-					}
-				//}
 				#endif
 			}
 		}
@@ -150,25 +128,31 @@ void renderFramerate()
 	}
 }
 
+void doneFramerate()
+{
+	free_GPUtext(&frameratesurface); //Release the framerate!
+	removetimer("framerate");
+}
+
 void initFramerate()
 {
+	if (frameratesurface) //Already allocated?
+	{
+		doneFramerate(); //Finish first!
+	}
+	initTicksHolder(&lastcheck); //Init for counting!
 	frameratesurface = alloc_GPUtext(); //Allocate GPU text surface for us to use!
 	if (!frameratesurface) return; //Couldn't allocate the surface!
 	GPU_addTextSurface(frameratesurface,&renderFramerate); //Register our renderer!
 	if (!framerate_running) //Not running yet and enabled?
 	{
-		startThread(&GPU_Framerate_Thread,"Framerate",DEFAULT_PRIORITY); //Framerate thread!
 		framerate_running = 1; //Already running!
 	}
 	else
 	{
 		frames = 0; //Reset frames!
 	}
-}
-
-void doneFramerate()
-{
-	free_GPUtext(&frameratesurface); //Release the framerate!
+	addtimer(FRAMERATE_SPEED,&GPU_Framerate_tick,"framerate");
 }
 
 extern GPU_type GPU; //The GPU itself!

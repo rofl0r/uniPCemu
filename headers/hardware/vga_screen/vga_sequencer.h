@@ -88,7 +88,7 @@ typedef struct
 	uint_64 pixelsrendered; //Ammount of pixels rendered, cleared on above overflow.
 } SEQ_DATA; //Sequencer used data!
 
-void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom); //Process sequencer scanline etc.!
+void VGA_Sequencer(VGA_Type *VGA); //Process sequencer scanline etc.!
 void VGA_Sequencer_calcScanlineData(VGA_Type *VGA);
 
 //Retrieve the Sequencer from a VGA!

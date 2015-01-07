@@ -14,9 +14,6 @@ DMA Controller (8237A)
 //Are we disabled?
 #define __HW_DISABLED 1
 
-//Use a timer instead of a thread?
-#define USE_TIMER
-
 typedef void (*DMAWriteBHandler)(byte data); //Write handler to DMA hardware!
 typedef byte (*DMAReadBHandler)(); //Read handler from DMA hardware!
 typedef void (*DMAWriteWHandler)(word data); //Write handler to DMA hardware!
@@ -294,14 +291,14 @@ void DMA_autoinit(byte controller, byte channel) //Autoinit functionality.
 //Flags for different responses that might need to be met.
 #define FLAG_TC 1
 
-byte DMA_Thread_RequestTerm = 0; //Request DMA Termination?
-
-/* Main DMA Controller processing thread */
-void DMA_Thread()
+/* Main DMA Controller processing ticks */
+void DMA_tick()
 {
 	if (__HW_DISABLED) return; //Abort!
-	byte current = 0; //Current channel in total (0-7)
-	byte controller; //Current controller!
+	static byte current = 0; //Current channel in total (0-7)
+	static byte controller; //Current controller!
+	byte transferred = 0; //Transferred data this time?
+	byte startcurrent = current; //Current backup for checking for finished!
 	nextcycle: //Next cycle to process!
 		controller = ((current&4)>>2); //Init controller
 		byte channel = (current&3); //Channel to use! Channels 0 are unused (DRAM memory refresh (controller 0) and cascade DMA controller (controller 1))
@@ -348,6 +345,7 @@ void DMA_Thread()
 			
 			if (processchannel) //Channel not masked off and requested?
 			{
+				transferred = 1; //We've transferred a byte of data!
 				byte processed = 0; //Default: nothing going on!
 				/*
 				processed bits:
@@ -486,20 +484,11 @@ void DMA_Thread()
 		if (++current&(~0x7)) //Last controller finished (overflow channel counter)?
 		{
 			current = 0; //Reset controller!
-			#ifdef USE_TIMER
-			return; //Stop: only one cycle att!
-			#endif
-			if (DMA_Thread_RequestTerm) //Requesting termination?
-			{
-				DMA_Thread_RequestTerm = 0; //Reset!
-				return; //Terminate ourselves!
-			}
-			delay(10000); //Wait a bit to give other threads some time!
 		}
-		goto nextcycle; //Next cycle!
+		if (transferred) return; //Transferred data? We're done!
+		if (startcurrent==current) return; //Back to our original cycle? We don't have anything to transfer!
+		goto nextcycle; //Next cycle!!
 }
-
-ThreadParams_p DMA_RunningThread = NULL; //Our running thread!
 
 void initDMA()
 {
@@ -520,24 +509,13 @@ void initDMA()
 
 	if (!__HW_DISABLED) //Enabled?
 	{
-		#ifdef USE_TIMER
-		addtimer(1000000.0f,&DMA_Thread,"DMA Thread"); //Just use threads!
-		#else
-		DMA_RunningThread = startThread(&DMA_Thread,"DMA_Thread",DEFAULT_PRIORITY); //Start the DMA thread, if possible!
-		#endif
+		//We're up to 1.6MB/s, so for 1 channel 1.6 million bytes per second, for all channels, to 8 channel 204953.6 bytes per second!
+		addtimer(1639628.8f,&DMA_tick,"DMA tick"); //Just use threads!
 	}
 }
 
 void doneDMA()
 {
 	if (__HW_DISABLED) return; //Disabled!
-	#ifdef USE_TIMER
 	removetimer("DMA Thread"); //Remove our timer!
-	#else
-	if (DMA_RunningThread) //We're running or createn?
-	{
-		DMA_Thread_RequestTerm = 1; //Request termination of DMA Thread!
-		waitThreadEnd(DMA_RunningThread); //Wait for our thread to end!
-	}
-	#endif
 }

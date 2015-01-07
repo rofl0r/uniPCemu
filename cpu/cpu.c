@@ -328,8 +328,6 @@ void free_CPUregisters()
 	if (CPU.registers) //Still allocated?
 	{
 		freez((void **)&CPU.registers,sizeof(*CPU.registers),"CPU_REGISTERS"); //Release the registers if needed!
-		dolog("zalloc","CPU: initregisters called. Allocated registers/zalloc:");
-		logpointers(); //Log all pointers registered atm!
 	}
 }
 

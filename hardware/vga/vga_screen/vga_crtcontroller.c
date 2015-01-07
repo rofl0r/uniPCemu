@@ -98,7 +98,7 @@ word get_display_y(VGA_Type *VGA, word scanline) //Vertical check!
 		signal |= VGA_SIGNAL_VBLANKSTART; //Start blanking!
 	}
 	
-	if ((scanline&0x7F)==getVerticalBlankingEnd(VGA))
+	if ((scanline&0x7F)==getVerticalBlankingEnd(VGA)) //Probably 7 bits used wide? Maybe 8?
 	{
 		signal |= VGA_SIGNAL_VBLANKEND; //End blanking!
 	}
@@ -116,6 +116,7 @@ word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 {
 	word signal;
 	signal = VGA_OVERSCAN; //Init to overscan!
+	word hchar = VGA->CRTC.charcolstatus[x<<1]; //What character?
 	if (x>=getHorizontalTotal(VGA)) //HTotal?
 	{
 		signal |= VGA_SIGNAL_HTOTAL; //HTotal notify!
@@ -126,7 +127,7 @@ word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 		signal |= VGA_SIGNAL_HRETRACESTART; //Retracing: do nothing!
 	}
 	
-	if (((x/getcharacterwidth(VGA))&0x1F)==getHorizontalRetraceEnd(VGA)) //End of horizontal retrace?
+	if ((hchar&0x1F)==getHorizontalRetraceEnd(VGA)) //End of horizontal retrace?
 	{
 		signal |= VGA_SIGNAL_HRETRACEEND; //End of horizontal retrace!
 	}
@@ -138,7 +139,7 @@ word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 		signal |= VGA_SIGNAL_HBLANKSTART; //Blanking!
 	}
 	
-	if ((((x/getcharacterwidth(VGA))-1)&0x3F)==getHorizontalBlankingEnd(VGA)) //We end blanking AFTER this character!
+	if ((hchar&0x3F)==getHorizontalBlankingEnd(VGA)) //We end blanking AFTER this character!
 	{
 		signal |= VGA_SIGNAL_HBLANKEND; //End blanking!
 	}
@@ -156,8 +157,8 @@ OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust th
 {
 	register word stat; //The status of the pixel!
 	//We are a maximum of 4096x1024 size!
-	Scanline &= 0x3FF; //Range safety!
-	x &= 0xFFF; //Range safety!
+	Scanline &= 0x3FF; //Range safety: 1024 scanlines!
+	x &= 0xFFF; //Range safety: 4095 columns!
 	stat = VGA->CRTC.rowstatus[Scanline]; //Get row status!
 	stat |= VGA->CRTC.colstatus[x]; //Get column status!
 	return stat; //Give the combined (OR'ed) status!

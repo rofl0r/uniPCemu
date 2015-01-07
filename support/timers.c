@@ -2,67 +2,42 @@
 #include "headers/emu/timers.h" //Timer support function data!
 #include "headers/emu/threads.h" //Thread for timer item!
 #include "headers/support/highrestimer.h" //High-resolution timer for additional precision!
-#include "headers/support/log.h" //Logging support!
-#include "headers/emu/gpu/gpu_text.h" //Text support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
 
-//Timers enabled?
-#define TIMER_ENABLED 1
+//Timer step in us! Originally 100ms now 10000?
+#define TIMER_STEP 1
+
 //Debug active timers?
-#define TIMER_DEBUG 0
+//#define TIMER_DEBUG
 //Log running timers (error/timing search only!)
 //#define TIMER_LOG
-//Timer step in us! Originally 100ms now 10000?
-#define TIMER_STEP 10000
-//Base row/column of debugging timers!
-#define DEBUG_BASE_ROW 10
-#define DEBUG_BASE_COLUMN 10
 
-//The limit in executing counters per step!
-#define COUNTER_LIMIT 100
+#ifdef TIMER_LOG
+#include "headers/support/log.h" //Logging support!
+#endif
+
+//The limit in executing counters per step! Not defined = 1 counter a time.
+//#define COUNTER_LIMIT 1
 
 typedef struct
 {
 	float frequency; //The frequency!
-	float overflowtime; //The time taken to overflow in us!
+	double overflowtime; //The time taken to overflow in us!
 	Handler handler; //The handler!
 	byte enabled; //Enabled?
 	double counter; //Counter for handling the frequency calls!
 	char name[256]; //The name of the timer!
 	uint_32 calls; //Total ammount of calls so far (for debugging only!)
-	uint_64 total_timetaken; //Time taken by the function!
+	double total_timetaken; //Time taken by the function!
 } TIMER; //A timer's data!
 
 TIMER timers[10]; //We use 10 timers!
 
-int TIMER_RUNNING = 0; //Whether to run timers or pause!
-int action_confirmed = 0; //Action confirmed (after stop)?
+ThreadParams_p timerthread = NULL; //Our thread!
 
-extern PSP_TEXTSURFACE *frameratesurface; //Framerate surface!
-
-void debug_timers() //Timer debug for timer_thread!
-{
-	if (__HW_DISABLED) return; //Abort!
-	int timer;
-	int ctr = 0; //Counter for index!
-	for (timer=0;timer<NUMITEMS(timers);timer++) //Process all timers!
-	{
-		if (timers[timer].handler) //OK?
-		{
-			GPU_textgotoxy(frameratesurface,DEBUG_BASE_COLUMN,ctr+DEBUG_BASE_ROW); //Goto row/column!
-			GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0xFF),"#%i: \"%s\"@%i; AVG Time: %i us!",ctr,timers[timer].name,timers[timer].calls,(uint_32)(timers[timer].total_timetaken/timers[timer].calls)); //Debug info about the timer!
-			//dolog("timing","#%i: \"%s\"@%i; AVG Time: %i us!",ctr,timers[timer].name,timers[timer].calls,(uint_32)(timers[timer].total_timetaken/timers[timer].calls));
-			++ctr; //Next counter!
-		}
-	}
-	if (ctr==0) //No timers?
-	{
-		GPU_textgotoxy(frameratesurface,DEBUG_BASE_COLUMN,DEBUG_BASE_ROW);
-		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0xFF),"No timers running!");
-	}
-}
+extern double clockspeed; //Default clockspeed we use, in Hz!
 
 //This handles all current used timers!
 void timer_thread() //Handler for timer!
@@ -75,51 +50,59 @@ void timer_thread() //Handler for timer!
 
 	initTicksHolder(&timer_lasttimer); //Init ticks holder for precision!
 	int curtimer;
-	uint_64 realpassed; //Real timer passed since last call!
+	float realpassed; //Real timer passed since last call!
 	while (1) //Keep running!
 	{
-		if (TIMER_RUNNING && !action_confirmed) //Request to run?
-		{
-			action_confirmed = 1; //Confirmed to run!
-		}
-		else if (!TIMER_RUNNING && !action_confirmed) //To stop running?
-		{
-			action_confirmed = 1; //Confirmed!
-			return; //Stop timer!
-		}
-		realpassed = getuspassed(&timer_lasttimer); //How many time has passed for real!
+		if (!timerthread) return; //To stop running?
+		
+		//Calculate speedup needed for our timing!
+		double clockspeedup;
+		clockspeedup = 1.0f;
+		clockspeedup /= clockspeed; //Take the percentage of 1.0f for clockspeed (time in seconds for the default clock speed)
+		clockspeedup *= getCurrentClockSpeed(); //Multiply with current clock speed for the speedup factor!
 
-		//if (TIMER_DEBUG) debug_timers(); //Debug the timers!
-		if (TIMER_ENABLED) //Are timers enabled?
+		realpassed = getuspassed(&timer_lasttimer); //How many time has passed for real!
+		realpassed *= clockspeedup; //Speed up the clock as much as needed, according to the actual CPU speed!
+
+		#ifdef TIMER_DEBUG
+		debug_timers(); //Debug the timers!
+		#endif
+
+		for (curtimer=0; curtimer<NUMITEMS(timers); curtimer++) //Process timers!
 		{
-			for (curtimer=0; curtimer<NUMITEMS(timers); curtimer++) //Process timers!
+			if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
 			{
-				if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
+				timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
+				#ifdef COUNTER_LIMIT
+				numcounters = (timers[curtimer].counter/timers[curtimer].overflowtime); //Ammount of times to count!
+				if (numcounters>COUNTER_LIMIT) numcounters = COUNTER_LIMIT;
+				#else
+				numcounters = (timers[curtimer].counter>=timers[curtimer].overflowtime); //Have we overflown?
+				#endif
+				if (numcounters) //Are we to fire?
 				{
-					timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
-					numcounters = (timers[curtimer].counter/timers[curtimer].overflowtime); //Ammount of times to count!
-					if (numcounters>COUNTER_LIMIT) numcounters = COUNTER_LIMIT;
-					if (numcounters) //Anything at all to process?
+					timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions!
+					#ifdef COUNTER_LIMIT
+					for (;;) //Overflow multi?
 					{
-						timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions!
-						for (;;) //Overflow multi?
-						{
-							#ifdef TIMER_LOG
-							strcpy(name,"timer_sub_"); //Root!
-							strcat(name,timers[curtimer].name); //Set name!
-							dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
-							TicksHolder singletimer;
-							startHiresCounting(&singletimer); //Start counting!
-							#endif
-							timers[curtimer].handler(); //Run the handler!
-							#ifdef TIMER_LOG
-							++timers[curtimer].calls; //For debugging the ammount of calls!
-							timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
-							dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
-							#endif
-							if (!--numcounters) break; //Done? Process next counter!
-						}
+					#endif
+						#ifdef TIMER_LOG
+						strcpy(name,"timer_sub_"); //Root!
+						strcat(name,timers[curtimer].name); //Set name!
+						dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
+						TicksHolder singletimer;
+						startHiresCounting(&singletimer); //Start counting!
+						#endif
+						timers[curtimer].handler(); //Run the handler!
+						#ifdef TIMER_LOG
+						++timers[curtimer].calls; //For debugging the ammount of calls!
+						timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
+						dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
+						#endif
+					#ifdef COUNTER_LIMIT
+						if (!--numcounters) break; //Done? Process next counter!
 					}
+					#endif
 				}
 			}
 		}
@@ -129,7 +112,14 @@ void timer_thread() //Handler for timer!
 
 void timer_calcfreq(int timer)
 {
-	timers[timer].overflowtime = (1000000.0f/timers[timer].frequency); //Actual time taken to overflow!
+	if (timers[timer].frequency)
+	{
+		timers[timer].overflowtime = (1000000.0f/timers[timer].frequency); //Actual time taken to overflow!
+	}
+	else
+	{
+		timers[timer].overflowtime = 1.0f; //minimal interval?
+	}
 }
 
 void addtimer(float frequency, Handler timer, char *name)
@@ -226,28 +216,24 @@ void removetimer(char *name) //Removes a timer!
 void startTimers()
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (!TIMER_RUNNING) //Not already running?
+	if (!timerthread) //Not already running?
 	{
-		TIMER_RUNNING = 1; //Start timers!
-		startThread(&timer_thread,"Timer",DEFAULT_PRIORITY); //Timer thread start!
+		timerthread = startThread(&timer_thread,"X86EMU_Timing",DEFAULT_PRIORITY); //Timer thread start!
 	}
 }
 
 void stopTimers()
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (TIMER_RUNNING) //Running already (we can terminate it)?
+	if (timerthread) //Running already (we can terminate it)?
 	{
-		action_confirmed = 0; //Init!
-		TIMER_RUNNING = 0; //Stop timers command for the timer thread!
-		while (!action_confirmed) //Wait to stop!
-		{
-			delay(1); //Wait a bit for the thread to stop!
-		}
+		ThreadParams_p timerthread_backup = timerthread; //Our thread!
+		timerthread = NULL; //Request normal termination!
+		waitThreadEnd(timerthread_backup); //Wait for our thread to end!
 	}
 }
 
-void resetTimers() //Init/Reset all timers to off and turn off all handlers!
+void resetTimers() //Init/Reset all timers to go off and turn off all handlers!
 {
 	if (__HW_DISABLED) return; //Abort!
 	stopTimers(); //Stop timer thread!

@@ -21,22 +21,22 @@ void MEM_BlockCopy(word segment, word offset, word fontseg, word fontoffs, Bitu 
 void phys_writeb(PhysPt ptr, byte val)
 {
 	if (!ptr) return;
-	//*ptr = val; //Write!
 	uint_32 RealPt = Phys2Real(ptr); //Convert to real pointer!
 	mem_writeb(RealPt,val); //Write to memory normally!
 }
 
 void phys_writew(PhysPt ptr, word val)
 {
-	phys_writeb(ptr++,val&0xFF); //Low
-	phys_writeb(ptr,(val>>8)&0xFF); //High
+	if (!ptr) return;
+	uint_32 RealPt = Phys2Real(ptr); //Convert to real pointer!
+	mem_writew(RealPt,val); //Write to memory normally!
 }
 
 void phys_writed(PhysPt ptr, uint_32 val)
 {
-	phys_writew(ptr++,val&0xFFFF); //Low
-	++ptr;
-	phys_writew(ptr,(val>>16)&0xFFFF); //High
+	if (!ptr) return;
+	uint_32 RealPt = Phys2Real(ptr); //Convert to real pointer!
+	mem_writed(RealPt,val); //Write to memory normally!
 }
 
 byte phys_readb(PhysPt ptr)
@@ -55,7 +55,7 @@ word phys_readw(PhysPt ptr)
 	return mem_readw(RealPt); //Write to memory normally!
 }
 
-byte phys_readd(PhysPt ptr)
+uint_32 phys_readd(PhysPt ptr)
 {
 	if (!ptr) return 0; //Invalid!
 	//return *ptr; //Read!

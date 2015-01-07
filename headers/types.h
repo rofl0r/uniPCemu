@@ -241,4 +241,6 @@ void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 #define OPTINLINE inline
 
 #include "headers/fopen64.h" //64-bit fopen support!
+
+OPTINLINE double getCurrentClockSpeed(); //Retrieves the current clock speed!
 #endif

@@ -218,20 +218,29 @@ typedef byte *PhysPt; //Physical pointer!
 //Real pointer is a 32-bit segment:offset pointer.
 
 #define color pixel
-#define mem_readb(off) MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,(((off)>>16)&0xFFFF),((off)&0xFFFF),0)
-#define mem_writeb(off,val) MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,(((off)>>16)&0xFFFF),((off)&0xFFFF),val)
-#define PhysMake(seg,offs) MMU_ptr(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,seg,offs,0,1)
-#define Real2Phys(x) (byte *)MMU_ptr(-1,(((x)>>16)&0xFFFF),((x)&0xFFFF),0,1)
-//Physical to real support (for MMU_wb/w/dw)
-#define Phys2Real1(x) (((uint_32)x)-((uint_32)MMU_ptr(-1,0,0,0,0)))
-#define Phys2Real(x) (Phys2Real1(x)&0xF)|((Phys2Real1(x)&(~0xF))<<16)
-//Write/read functions!
-#define phys_writew(ptr,val) phys_writew(ptr,val)
-#define phys_writeb(ptr,val) phys_writeb(ptr,val)
-#define phys_readb(ptr) phys_readb(ptr)
-#define RealMake(seg,offs) (((seg)&0xFFFF)<<16)|((offs)&0xFFFF)
+
+//Real compatiblity!
+#define RealMake(seg,offs) ((((seg)&0xFFFF)<<16)|((offs)&0xFFFF))
 #define RealSeg(real) (((real)>>16)&0xFFFF)
 #define RealOff(real) ((real)&0xFFFF)
+
+//Simple memory compatiblity for real mode!
+#define mem_readb(off) MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),0)
+#define mem_writeb(off,val) MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),val)
+#define mem_readw(off) MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),0)
+#define mem_writew(off,val) MMU_ww(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),val)
+#define mem_readd(off) MMU_rdw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),0)
+#define mem_writed(off,val) MMU_wdw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),val)
+
+#define PhysMake(seg,offs) MMU_ptr(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,seg,offs,0,1)
+
+//Physical 2 real support
+#define Phys2Real1(x) (((uint_32)x)-((uint_32)MMU_ptr(-1,0,0,0,0)))
+#define Phys2Real(x) (Phys2Real1(x)&0xF)|((Phys2Real1(x)&(~0xF))<<16)
+
+//Real 2 physical
+#define Real2Phys(x) PhysMake((((x)>>16)&0xFFFF),((x)&0xFFFF))
+
 #define false 0
 #define S3_LFB_BASE 0xC0000000
 
@@ -244,21 +253,18 @@ typedef byte *PhysPt; //Physical pointer!
 
 
 //Dosbox Patches! Redirect it all!
-#define real_readb(biosseg,offs) MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,biosseg,offs,0)
-#define real_writeb(biosseg,offs,val) MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,biosseg,offs,val)
-#define real_readw(biosseg,offs) (real_readb(biosseg,offs)+(real_readb(biosseg,offs+1)*256))
-#define real_writew(biosseg,offs,val) real_writeb(biosseg,offs,val&0xFF); real_writeb(biosseg,offs+1,((val&0xFF00)>>8));
-#define real_readd(biosseg,offs) (real_readb(biosseg,offs)+(real_readb(biosseg,offs+2)*256))
-#define real_writed(biosseg,offs,val) real_writew(biosseg,offs,val&0xFFFF); real_writew(biosseg,offs+2,((val&0xFFFF)>>16));
-#define memreal_writew(seg,offs,val) MMU_ww(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,seg,offs,val)
+#define real_readb(biosseg,offs) mem_readb(RealMake(biosseg,offs))
+#define real_writeb(biosseg,offs,val) mem_writeb(RealMake(biosseg,offs),val)
+#define real_readw(biosseg,offs) mem_readw(RealMake(biosseg,offs))
+#define real_writew(biosseg,offs,val) mem_writew(RealMake(biosseg,offs),val)
+#define real_readd(biosseg,offs) mem_readd(RealMake(biosseg,offs))
+#define real_writed(biosseg,offs,val) mem_writed(RealMake(biosseg,offs),val)
+#define memreal_writeb real_writeb
+#define memreal_writew real_writew
+#define memreal_writed real_writed
 
 //Extras
 #define address2phys(address) PhysMake(address>>4,(address&0xF))
-#define mem_readw(address) phys_readw(address2phys(address))
-#define mem_writew(address,value) phys_writew(address2phys(address),value)
-#define mem_readd(address) phys_readd(address2phys(address))
-#define mem_writed(address,value) phys_writed(address2phys(address),value)
-#define phys_readw(address) (phys_readb(address)|(phys_readb((address)+1)))
 
 //Port I/O
 #define IO_WriteB(port,value) PORT_OUT_B(port,value)
@@ -287,9 +293,12 @@ Our own switch function!
 void switchvideomode(word mode); //For DOSBox way!
 
 //Phys/Real pointer support
+void phys_writed(PhysPt ptr, uint_32 val);
 void phys_writew(PhysPt ptr, word val);
 void phys_writeb(PhysPt ptr, byte val);
 byte phys_readb(PhysPt ptr);
+word phys_readw(PhysPt ptr);
+uint_32 phys_readd(PhysPt ptr);
 void RealSetVec(byte interrupt, word segment, word offset);
 
 

@@ -23,20 +23,7 @@ word VGA_LINESTEP = 0; //How many lines to draw in one swoop!
 static void VGA_generateScreenLineStep() //Generate one step in VGA Screen Lines!
 {
 	if (__HW_DISABLED) return; //Disabled?
-	VGA_generateScreenLine(getActiveVGA()); //Generate one line only!
-	return; //Abort!
-	int i = 0;
-	if (!VGA_LINESTEP) //No lines to process?
-	{
-		VGA_generateScreenLine(getActiveVGA()); //Generate one line!
-		return; //Do no more than one!
-	}
-	
-	for (; i<VGA_LINESTEP; ) //Process X scanlines!
-	{
-		VGA_generateScreenLine(getActiveVGA()); //Generate one line!
-		++i; //Next counter!
-	}
+	VGA_Sequencer(getActiveVGA()); //Generate one line only!
 }
 
 word oldlines = 0; //Old line step!

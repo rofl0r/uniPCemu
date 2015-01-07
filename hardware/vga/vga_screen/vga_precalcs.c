@@ -24,26 +24,26 @@ extern VGA_Type *ActiveVGA; //For checking if we're active!
 static OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs!
 {
 	uint_32 current;
-	current = 0; //Init!
 	byte charsize;
 	//Column and row status for each pixel on-screen!
 	charsize = getcharacterheight(VGA); //First, based on height!
-	for (;current<0x800;) //All available resolutions!
+	current = 0; //Init!
+	for (;current<NUMITEMS(VGA->CRTC.rowstatus);) //All available resolutions!
 	{
-		VGA->CRTC.rowstatus[current] = get_display_y(VGA,current); //Translate!
 		VGA->CRTC.charrowstatus[current<<1] = current/charsize;
 		VGA->CRTC.charrowstatus[(current<<1)|1] = current%charsize;
+		VGA->CRTC.rowstatus[current] = get_display_y(VGA,current); //Translate!
 		++current; //Next!
 	}
 
 	//Horizontal coordinates!
 	charsize = getcharacterwidth(VGA); //Now, based on width!
 	current = 0; //Init!
-	for (;current<0x1000;)
+	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
-		VGA->CRTC.colstatus[current] = get_display_x(VGA,current); //Translate!
 		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
 		VGA->CRTC.charcolstatus[(current<<1)|1] = current%charsize;
+		VGA->CRTC.colstatus[current] = get_display_x(VGA,current); //Translate!
 		++current; //Next!
 	}
 	
@@ -92,7 +92,7 @@ OPTINLINE void dump_CRTCTiming()
 		{
 			sprintf(information,"%s+OVERSCAN",information); //Add!
 		}
-		dolog("CRTC","%s",information);
+		dolog("VGA","%s",information);
 		if (status&VGA_SIGNAL_VTOTAL) //Total reached? Don't look any further!
 		{
 			break;
@@ -132,7 +132,7 @@ OPTINLINE void dump_CRTCTiming()
 		{
 			sprintf(information,"%s+OVERSCAN",information); //Add!
 		}
-		dolog("CRTC","%s",information);
+		dolog("VGA","%s",information);
 		if (status&VGA_SIGNAL_HTOTAL) //Total reached? Don't look any further!
 		{
 			break;
@@ -145,7 +145,6 @@ void VGA_LOGCRTCSTATUS()
 	stopTimers(); //Stop all timers currently on!
 	//Log all register info:
 	dolog("VGA","CRTC Info:");
-	dolog("VGA","Overflow register: %02X",ActiveVGA->registers->CRTControllerRegisters.DATA[0x7]); //Log the overflow register too for reference!
 	dolog("VGA","HDispStart:%i",ActiveVGA->precalcs.horizontaldisplaystart); //Horizontal start
 	dolog("VGA","HDispEnd:%i",ActiveVGA->precalcs.horizontaldisplayend); //Horizontal End of display area!
 	dolog("VGA","HBlankStart:%i",ActiveVGA->precalcs.horizontalblankingstart); //When to start blanking horizontally!
@@ -160,7 +159,7 @@ void VGA_LOGCRTCSTATUS()
 	dolog("VGA","VRetraceEnd:~%i",ActiveVGA->precalcs.verticalretraceend); //When to stop vertical retrace.
 	dolog("VGA","VTotal:%i",ActiveVGA->precalcs.verticaltotal); //Full resolution plus vertical retrace!
 
-	//dump_CRTCTiming(); //Dump all CRTC timing!
+	dump_CRTCTiming(); //Dump all CRTC timing!
 	
 	startTimers(); //Restart all timers currently on!
 }

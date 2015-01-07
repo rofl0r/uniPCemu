@@ -7,6 +7,9 @@ TARGET = eboot
 #BUILD_PRX = 1
 #atm. build_prx causes multithreading to fail?
 
+#Enable large memory detection? Disabled during developing.
+#PSP_LARGE_MEMORY = 1
+
 #Init for below:
 OBJS = 
 CFLAGS = 
@@ -69,8 +72,6 @@ OBJS += hardware\vga\vga_screen\vga_dac.o
 OBJS += hardware\vga\vga_screen\vga_crtcontroller.o
 # Help: precalcs for VGA rendering!
 OBJS += hardware\vga\vga_screen\vga_precalcs.o
-# *F* Finally, everything comes together
-OBJS += hardware\vga\vga_screen\vga_screen.o
 #VRAM text-mode data
 OBJS += hardware\vga\vga_vramtext.o
 

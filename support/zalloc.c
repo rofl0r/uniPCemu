@@ -15,6 +15,9 @@ DEALLOCFUNC dealloc; //Deallocation function!
 POINTERENTRY registeredpointers[1024]; //All registered pointers!
 byte pointersinitialised = 0; //Are the pointers already initialised?
 
+//Our maximum memory that's supported: 3GB!
+#define MEM_MAX_10 2000000000
+
 //Debug undefined deallocations?
 #define DEBUG_WRONGDEALLOCATION 1
 //Debug allocation and deallocation?
@@ -267,7 +270,7 @@ OPTINLINE uint_32 freemem() //Free memory left! We work!
 	char *buffer;
 	uint_32 multiplier; //The multiplier!
 	curalloc = 0; //Reset at 1 bytes!
-	multiplier = 100000000; //Start at max multiplier (~100MB)!
+	multiplier = MEM_MAX_10; //Start at max multiplier (~100MB)!
 	byte times = 9; //Times!
 	times = 9; //Times 9 to start with!
 

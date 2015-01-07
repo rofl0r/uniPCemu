@@ -10,53 +10,6 @@ float currentFunction(byte how, const float time); //For the PC speaker!
 #define __DEBUG_MIDI
 //#define __DEBUG_ADLIB
 
-/*
-//What sound to generate? 0=SINUS, 1=SQUARE WAVE, 2=TRIANGLE WAVE, 3=NOISE
-#define __TESTSOUND 1
-//What frequency to generate, if supported (non-noise)
-#define __TESTFREQUENCY 1000.0f
-//What samplerate to generate?
-#define __TESTSAMPLERATE 200000.0f
-
-float sampleLength = 1.0f / __TESTSAMPLERATE;
-
-void testCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
-	const float scaleFactor = (SHRT_MAX - 1.0f);
-	int i;
-	static float time = 0.0f;
-
-	if (stereo) //Stereo samples?
-	{
-		sample_stereo_p ubuf_stereo = (sample_stereo_p) buf; //Active buffer!
-		int j;
-		j = 0; //Init!
-		for (i=0; i<length; i++) //Process all samples!
-		{ //Process full length!
-			short s = (short) (scaleFactor * currentFunction(__TESTSOUND,2.0f * PI * __TESTFREQUENCY * time)); //Set the channels!
-			ubuf_stereo[i].l = ubuf_stereo[i].r = s; //Left channel!
-			time += sampleLength; //Add 1 sample to the time!
-		}		
-	}
-	else //Mono samples?
-	{
-		sample_p ubuf_mono = (sample_p) buf; //Active buffer!
-		for (i=0; i<length; i++)
-		{ //Process full length!
-			short s = (short) (scaleFactor * currentFunction(__TESTSOUND,2.0f * PI * __TESTFREQUENCY * time)); //Set the channels!
-			ubuf_mono[i] = s; //Mono channel!
-			time += sampleLength; //Add 1 sample to the time!
-		}
-	}
-
-	if (time * (float)__TESTFREQUENCY > 1.0f) {
-		double d;
-		time = modf(time * (float)__TESTFREQUENCY, &d) / (float)__TESTFREQUENCY;
-	}
-	
-}*/ //Test sound callback!
-
-//Adlib test!
-
 void adlibsetreg(byte reg,byte val)
 {
 	PORT_OUT_B(0x388,reg);

@@ -22,6 +22,3 @@ Header initialisation:
 Item update:
 .checksum -= oldsectorheader+oldsectorpos; //Regenerate cleared!
 .checksum += newsectorheader+newsectorpos; //Generate set!
-
-Errors in files to solve in headers/remove:
-emu_bios_post: BIOS ROMs, initMEM, BIOSKeyboardInit

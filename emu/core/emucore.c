@@ -65,6 +65,9 @@ int emu_started = 0; //Emulator started (initEMU called)?
 //To debug init/doneemu?
 #define DEBUG_EMU 0
 
+//Report a memory leak has occurred?
+//#define REPORT_MEMORYLEAK
+
 /*
 
 debugging for us!
@@ -89,6 +92,7 @@ uint_32 initEMUmemory = 0;
 void initEMU(int full) //Init!
 {
 	doneEMU(); //Make sure we're finished too!
+	psp_input_init(); //Make sure input is set up!
 
 	initEMUmemory = freemem(); //Log free mem!
 	
@@ -134,7 +138,7 @@ void initEMU(int full) //Init!
 	{
 		if (!DEBUG_VGA_SPEED) //Not to debug speed only?
 		{
-			addtimer(30.0,&refreshscreen,"RefreshScreen"); //Refresh the screen at this frequency MAX!
+			addtimer(60.0,&refreshscreen,"RefreshScreen"); //Refresh the screen at this frequency MAX!
 			startVideo(); //Start the video functioning!
 		}
 	}
@@ -163,7 +167,7 @@ void initEMU(int full) //Init!
 		startTimers(); //Start the timers!
 		while (1)
 		{
-			VGA_generateScreenLine(getActiveVGA()); //Generate one line!
+			VGA_Sequencer(getActiveVGA()); //Generate one line!
 			delay(1); //Allow other threads!
 			logVGASpeed(); //Log any VGA speeds!
 		}
@@ -265,11 +269,13 @@ void doneEMU()
 		debugrow("doneEMU: EMU finished!");
 		emu_started = 0; //Not started anymore!
 		EMU_RUNNING = 0; //We aren't running anymore!
+		#ifdef REPORT_MEMORYLEAK
 		if (freemem()!=initEMUmemory && initEMUmemory) //Difference?
 		{
 			dolog("zalloc","doneEMU: warning: memory difference before and after allocating EMU services!");
 			logpointers(); //Log all pointers!
 		}
+		#endif
 	}
 	
 }

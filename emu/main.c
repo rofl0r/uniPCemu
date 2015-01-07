@@ -114,7 +114,7 @@ int SetupCallbacks(void)
 {
 	int thid = 0;
 
-	thid = sceKernelCreateThread("update_thread", CallbackThread, EXIT_PRIORITY, 0xFA0, 0, 0); //Create thread at highest priority!
+	thid = sceKernelCreateThread("X86EMU_ExitThread", CallbackThread, EXIT_PRIORITY, 0xFA0, 0, 0); //Create thread at highest priority!
 	if(thid >= 0)
 	{
 		sceKernelStartThread(thid, 0, 0);
@@ -143,12 +143,20 @@ void testthread()
 
 extern byte use_profiler; //To determine if the profiler is used!
 
+double clockspeed; //Current clock speed, for affecting timers!
+
+OPTINLINE double getCurrentClockSpeed()
+{
+	return scePowerGetCpuClockFrequencyFloat(); //Current clock speed!
+}
+
 int main(int argc, char * argv[])
 {
 //Basic PSP stuff!
 	pspDebugScreenInit();
 	SetupCallbacks();
 	scePowerSetClockFrequency(333, 333, 166); //Start high-speed CPU!
+	clockspeed = getCurrentClockSpeed(); //Save the current clock frequency for reference!
 
 	if (FILE_EXISTS("exception.prx")) //Enable exceptions?
 	{
@@ -210,7 +218,8 @@ int main(int argc, char * argv[])
 	if (DELETE_BMP_ONBOOT) delete_file("captures","*.bmp"); //Delete any bitmaps still there!
 	
 	initThreads(); //Initialise&reset thread subsystem!
-	
+	psp_input_init(); //Make sure input is checked!	
+
 	if (FILE_EXISTS("profiler.txt")) //Enable profiler: doesn't work in EMU?
 	{
 		// Clear the existing profile regs
@@ -242,9 +251,6 @@ int main(int argc, char * argv[])
 
 //First, support for I/O on the PSP!
 
-	sceCtrlSetSamplingCycle(0); //Polling ourselves!
-	sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG); //We need buttons and analog, not analog only!
-	
 	fontcolor(RGB(0xFF,0xFF,0xFF));
 	backcolor(RGB(0x00,0x00,0x00)); //Standard fonts/backs!
 
@@ -293,11 +299,11 @@ int main(int argc, char * argv[])
 	//Start of the visible part!
 	if (THREADTEST)
 	{
-		rootthread = startThread(&testthread,"Test thread",DEFAULT_PRIORITY); //Test it!
+		rootthread = startThread(&testthread,"X86EMU_Test",DEFAULT_PRIORITY); //Test it!
 	}
 	else
 	{
-		rootthread = startThread(&mainthread,"mainthread",DEFAULT_PRIORITY); //Start the main thread (default priority)!
+		rootthread = startThread(&cputhread,"X86EMU_CPU",DEFAULT_PRIORITY); //Start the main thread (default priority)!
 	}
 
 	waitThreadEnd(rootthread); //Let the thread run and end!

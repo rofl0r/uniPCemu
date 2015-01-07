@@ -55,7 +55,7 @@ OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel)
 		old ^= pixel; //Check for differences!
 		if (old) //Changed anything?
 		{
-			GPU.emu_buffer_dirty |= 1; //Update, set changed bits when changed!
+			GPU.emu_buffer_dirty = 1; //Update, set changed bits when changed!
 			*screenpixel = pixel; //Update whether it's needed or not!
 		}
 	}
@@ -107,6 +107,7 @@ byte totalretracing = 0; //Combined flags of retracing/totalling!
 
 byte hblank = 0, hretrace = 0; //Horizontal blanking/retrace?
 byte vblank = 0, vretrace = 0; //Vertical blanking/retrace?
+word blankretraceendpending = 0; //Ending blank/retrace pending? bits set for any of them!
 
 void VGA_NOPT(SEQ_DATA *Sequencer, VGA_Type *VGA) //TRUE NO-OP!
 {
@@ -191,24 +192,32 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	word tempxbackup = Sequencer->tempx;
 	//Render our active display here! Start with text mode!		
 	static VGA_AttributeInfo attributeinfo; //Our collected attribute info!
 	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
-	word activex; //Active X!
-	othernibble:
-	Sequencer->activex = Sequencer->tempx++; //Active X!
+	byte allow_tempx; //Allow tempx applying!
+	word tempx = Sequencer->tempx; //Load tempx!
+
+	othernibble: //Retrieve the current DAC index!
+	Sequencer->activex = tempx++; //Active X!
 	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
 	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer)) goto othernibble; //Apply the attribute through the attribute controller!
+
+	//dolog("VGA","%i=%i=%02X",Sequencer->x-1,Sequencer->tempx,attributeinfo.attribute); //Log the attribute!
 	static VGA_Sequencer_Mode activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
 	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
-	if (VGA->precalcs.doublepixels)
+	if (VGA->precalcs.doublepixels) //Apply double pixels?
 	{
-		Sequencer->doublepixels = !Sequencer->doublepixels;
-		if (Sequencer->doublepixels)
+		allow_tempx = Sequencer->doublepixels; //Allow saving when set!
+		Sequencer->doublepixels ^= 1; //We're the second pixel next?
+		if (allow_tempx) //Allowed to draw next?
 		{
-			Sequencer->tempx = tempxbackup; //Draw same pixel twice!
+			Sequencer->tempx = tempx; //Write back tempx!
 		}
+	}
+	else
+	{
+		Sequencer->tempx = tempx; //Write back tempx!
 	}
 }
 //Overscan handler!
@@ -219,11 +228,6 @@ void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 }
 
 //All different signals!
-
-void VGA_SIGNAL_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
-{
-	//We're a NOP operation for the signal: do nothing, also don't abort since we're not the renderer!
-}
 
 void VGA_SIGNAL_NOPQ(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal) //Nothing to do yet?
 {
@@ -237,55 +241,92 @@ void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 	{
 		hblank = 1; //We're blanking!
 	}
-	if (signal&VGA_SIGNAL_HBLANKEND) //HBlank end?
+	else if (hblank)
 	{
-		hblank = 0; //We're not blanking anymore!
+		if (signal&VGA_SIGNAL_HBLANKEND) //HBlank end?
+		{
+			blankretraceendpending |= VGA_SIGNAL_HBLANKEND;
+		}
+		else if (blankretraceendpending&VGA_SIGNAL_HBLANKEND) //End pending HBlank!
+		{
+			hblank = 0; //We're not blanking anymore!
+			blankretraceendpending &= ~VGA_SIGNAL_HBLANKEND; //Remove from flags pending!
+		}
 	}
-	
+
 	if (signal&VGA_SIGNAL_VBLANKSTART) //VBlank start?
 	{
 		vblank = 1; //We're blanking!
 	}
-	if (signal&VGA_SIGNAL_VBLANKEND) //VBlank end?
+	else if (vblank)
 	{
-		vblank = 0; //We're not blanking anymore!
+		if (signal&VGA_SIGNAL_VBLANKEND) //VBlank end?
+		{
+			blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
+		}
+		else if (blankretraceendpending&VGA_SIGNAL_VBLANKEND) //End pending HBlank!
+		{
+			vblank = 0; //We're not blanking anymore!
+			blankretraceendpending &= ~VGA_SIGNAL_VBLANKEND; //Remove from flags pending!
+		}
 	}
 	
 	//Both H&VBlank count!
-	blanking = hblank|vblank; //Process vblank!
+	blanking = hblank;
+	blanking |= vblank; //Process vblank!
 	
-	byte oldretrace;
-	oldretrace = hretrace; //Save old!
 	//Retraces
 	if (signal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
 	{
-		hretrace = 1; //We're retracing!
+		if (!hretrace) //Not already retracing?
+		{
+			if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Enable sync?
+			{
+				hretrace = 1; //We're retracing!
+				VGA_HRetrace(Sequencer,VGA); //HRetrace!
+			}
+		}
 	}
-	if (hretrace && !oldretrace) //Retracing horizontal and wasn't retracing yet?
+	else if (hretrace)
 	{
-		VGA_HRetrace(Sequencer,VGA); //HRetrace!	
-	}
-	if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
-	{
-		hretrace = 0; //We're not retracing!
+		if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
+		{
+			blankretraceendpending |= VGA_SIGNAL_HRETRACEEND;
+		}
+		else if (blankretraceendpending&VGA_SIGNAL_HRETRACEEND) //End pending HRetrace!
+		{
+			hretrace = 0;
+			blankretraceendpending &= ~VGA_SIGNAL_HRETRACEEND; //Remove from flags pending!
+		}
 	}
 	
-	oldretrace = vretrace; //Save old!
 	if (signal&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
 	{
-		vretrace = 1; //We're retracing!
+		if (!vretrace) //Not already retracing?
+		{
+			if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Enable sync?
+			{
+				vretrace = 1; //We're retracing!
+				VGA_VRetrace(Sequencer,VGA); //VRetrace!
+			}
+		}
 	}
-	if (vretrace && !oldretrace) //Retracing vertical?
+	else if (vretrace)
 	{
-		VGA_VRetrace(Sequencer,VGA); //VRetrace!
-	}
-	if (signal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
-	{
-		vretrace = 0; //We're not retracing!
+		if (signal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
+		{
+			blankretraceendpending |= VGA_SIGNAL_VRETRACEEND;
+		}
+		else if (blankretraceendpending&VGA_SIGNAL_VRETRACEEND) //End pending VRetrace!
+		{
+			vretrace = 0;
+			blankretraceendpending &= ~VGA_SIGNAL_VRETRACEEND; //Remove from flags pending!
+		}
 	}
 	
 	
-	retracing = hretrace|vretrace; //We're retracing?
+	retracing = hretrace;
+	retracing |= vretrace; //We're retracing?
 	//Retracing disables output!
 
 	ActiveVGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace; //Vertical retrace?
@@ -307,6 +348,15 @@ void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 	totalretracing = totalling;
 	totalretracing <<= 1; //1 bit needed more!
 	totalretracing |= retracing; //Are we retracing?
+}
+
+void VGA_SIGNAL_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+{
+	//We're a NOP operation for the signal: do nothing, also don't abort since we're not the renderer!
+	if (blankretraceendpending) //Anything pending?
+	{
+		VGA_SIGNAL_HANDLER(Sequencer,VGA,signal); //Handle our un-signals!
+	}
 }
 
 //Combination functions of the above:
@@ -346,10 +396,10 @@ void initStateHandlers()
 	}
 }
 
-void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
+void VGA_Sequencer(VGA_Type *VGA)
 {
 	if (HW_DISABLED) return;
-
+	if (!VGA) return; //Invalid VGA?
 	TicksHolder ticks;
 	SEQ_DATA *Sequencer;
 	word displaystate; //Current display state!
@@ -362,7 +412,6 @@ void VGA_Sequencer(VGA_Type *VGA, byte currentscreenbottom)
 	}
 	
 	Sequencer_Break = 0; //Start running!
-	
 	for (;;) //New CRTC constrolled way!
 	{
 		displaystate = get_display(VGA,Sequencer->Scanline,Sequencer->x++); //Current display state!

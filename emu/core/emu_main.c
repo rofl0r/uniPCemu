@@ -88,7 +88,7 @@ Main thread for emulation!
 
 */
 
-void mainthread() //The main thread for the emulator!
+void cputhread() //The main thread for the emulator!
 {
 	doneEMU(); //Make sure we're all cleaned up!
 	fontcolor(RGB(0xFF,0xFF,0xFF)); //Make sure we have white text!

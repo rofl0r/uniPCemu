@@ -21,9 +21,9 @@
 
 //Display check
 //Bits to check:
-#define VGA_DISPLAYMASK 0xC00
+#define VGA_DISPLAYMASK (VGA_VACTIVEDISPLAY|VGA_HACTIVEDISPLAY)
 //Bits set within above bits:
-#define VGA_DISPLAYACTIVE 0xC00
+#define VGA_DISPLAYACTIVE (VGA_VACTIVEDISPLAY|VGA_HACTIVEDISPLAY)
 
 //Do we have a signal with these bits on!
 #define VGA_SIGNAL_HASSIGNAL 0x3FF
