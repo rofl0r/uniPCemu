@@ -4,6 +4,8 @@
 
 #include "headers/types.h" //Basic types!
 
+typedef byte bool; //Booleans are ints!
+
 /*
 
 Constants for memory adressing:

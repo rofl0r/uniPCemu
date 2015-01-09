@@ -792,15 +792,15 @@ void keyboard_renderer() //Render the keyboard on-screen!
 	fill_keyboarddisplay(); //Fill the keyboard display!
 
 	int ybase,xbase;
-	ybase = GPU_ROWS-KEYBOARD_NUMY; //Base Y on GPU's text screen!
-	xbase = GPU_COLUMNS-KEYBOARD_NUMX; //Base X on GPU's text screen!
+	ybase = GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMY; //Base Y on GPU's text screen!
+	xbase = GPU_TEXTSURFACE_WIDTH-KEYBOARD_NUMX; //Base X on GPU's text screen!
 
 	int x;
 	int y; //The coordinates in the buffer!
 
-	for (y=ybase;y<GPU_ROWS;y++)
+	for (y=ybase;y<GPU_TEXTSURFACE_HEIGHT;y++)
 	{
-		for (x=xbase;x<GPU_COLUMNS;x++)
+		for (x=xbase;x<GPU_TEXTSURFACE_WIDTH;x++)
 		{
 			uint_32 fontcolor = getemucol16(BIOS_Settings.input_settings.fontcolor); //Use font color by default!
 			uint_32 bordercolor = getemucol16(BIOS_Settings.input_settings.bordercolor); //Use border color by default!

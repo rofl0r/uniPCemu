@@ -63,39 +63,6 @@
 #define DIVIDED(v,n) (byte)SAFEDIV((double)v,(double)n)
 #define CONVERTREL(src,srcfac,dest) SAFEDIV((double)src,(double)srcfac)*(double)dest
 
-//We're using a 8x8 font!
-#define GPU_ROWS (PSP_SCREEN_ROWS/8)
-#define GPU_COLUMNS (PSP_SCREEN_COLUMNS/8)
-#define GPU_TEXTPIXELSY (GPU_ROWS*8)
-#define GPU_TEXTPIXELSX (GPU_COLUMNS*8)
-
-//Flags!
-//Dirty flag!
-#define TEXTSURFACE_FLAG_DIRTY 1
-
-typedef struct
-{
-	int x;
-	int y;
-} BACKLISTITEM; //Background list coordinate!
-
-typedef struct
-{
-//First, the text data (modified during write/read)!
-byte text[GPU_ROWS][GPU_COLUMNS]; //Text surface text!
-uint_32 font[GPU_ROWS][GPU_COLUMNS]; //Text surface font!
-uint_32 border[GPU_ROWS][GPU_COLUMNS]; //Text surface border!
-
-//Dirty flags and rendered data (internal).
-byte dirty[GPU_ROWS*8][GPU_COLUMNS*8]; //This is dirty and needs to be updated?
-uint_32 notdirty[GPU_ROWS*8][GPU_COLUMNS*8]; //This is non-dirty, so use this then!
-
-//List for checking for borders, set by allocator!
-BACKLISTITEM backlist[8]; //List of border background positions candidates!
-int x,y; //Coordinates currently!
-byte flags; //Extra flags for a surface!
-} PSP_TEXTSURFACE;
-
 typedef struct
 {
 //Now normal stuff:
@@ -126,8 +93,10 @@ typedef struct
 	uint_32 framenr; //Current frame number (for Frameskip, kept 0 elsewise.)
 	
 	uint_32 emu_buffer_dirty; //Emu screenbuffer dirty: needs re-rendering?
+
+	//Text surface support!
 	Handler textrenderers[10]; //Every surface can have a handler to draw!
-	PSP_TEXTSURFACE *textsurfaces[10]; //Up to 10 text surfaces available!
+	void *textsurfaces[10]; //Up to 10 text surfaces available!
 } GPU_type; //GPU data
 
 void initVideoLayer(); //We're for allocating the main video layer, only deallocated using SDL_Quit (when quitting the application)!
@@ -141,6 +110,6 @@ void GPU_keepAspectRatio(byte letterbox); //Keep aspect ratio with letterboxing?
 void initVideoMain(); //Resets the screen (clears); used at start of emulator only!
 void doneVideoMain(); //Resets the screen (clears); used at end of emulator only!
 
-void GPU_addTextSurface(PSP_TEXTSURFACE *surface, Handler handler); //Register a text surface for usage with the GPU!
-void GPU_removeTextSurface(PSP_TEXTSURFACE *surface); //Unregister a text surface (removes above added surface)!
+void GPU_addTextSurface(void *surface, Handler handler); //Register a text surface for usage with the GPU!
+void GPU_removeTextSurface(void *surface); //Unregister a text surface (removes above added surface)!
 #endif

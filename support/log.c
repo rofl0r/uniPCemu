@@ -8,6 +8,8 @@ void initlog()
 
 void dolog(char *filename, const char *format, ...) //Logging functionality!
 {
+	char emptystring = '\0'; //Empty string!
+	if (!filename) filename = &emptystring;
 	char filenametmp[256];
 	bzero(filenametmp,sizeof(filenametmp)); //Init filename!
 	char logtext[256];

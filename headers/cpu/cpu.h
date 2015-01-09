@@ -44,6 +44,13 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 
 #define u16 word
 #define u8 byte
+#define u32 uint_32
+
+//NULL pointer definition
+#define NULLPTR(x) ((x.segment==0) && (x.offset==0))
+//Same, but for pointer dereference
+#define NULLPTR_PTR(x,location) (ANTINULL(x,location)?((x->segment==0) && (x->offset==0)):1)
+
 
 typedef struct
 {
@@ -316,7 +323,58 @@ typedef struct
 	};
 } TR_PTR;
 
+//Different kinds of pointers!
+typedef struct
+{
+	union
+	{
+		struct
+		{
+			uint_32 offset; //Default: 0
+			unsigned int segment; //Default: 0
+		};
+		unsigned char data[6]; //46-bits as bytes!
+	};
+} ptr48; //48-bit pointer Adress (32-bit mode)!
 
+typedef struct
+{
+	union
+	{
+		struct
+		{
+			unsigned int offset; //Default: 0
+			unsigned int segment; //Default: 0
+		};
+		unsigned char data[4]; //32-bits as bytes!
+	};
+} ptr32; //32-bit pointer Adress (16-bit mode)!
+
+typedef struct
+{
+	union
+	{
+		struct
+		{
+			unsigned short limit; //Limit!
+			unsigned int base; //Base!
+		};
+		unsigned char data[6]; //46-bit adress!
+	};
+} GDTR_PTR;
+
+typedef struct
+{
+	union
+	{
+		struct
+		{
+			unsigned int limit;
+			uint_32 base;
+		};
+		unsigned char data[6]; //46-bit adress!
+	};
+} IDTR_PTR;
 
 typedef struct //The registers!
 {

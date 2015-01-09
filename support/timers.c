@@ -9,8 +9,6 @@
 //Timer step in us! Originally 100ms now 10000?
 #define TIMER_STEP 1
 
-//Debug active timers?
-//#define TIMER_DEBUG
 //Log running timers (error/timing search only!)
 //#define TIMER_LOG
 
@@ -43,28 +41,25 @@ void timer_thread() //Handler for timer!
 	if (__HW_DISABLED) return; //Abort!
 	TicksHolder timer_lasttimer; //Last timer ticks holder!
 	char name[256];
-	bzero(name,sizeof(name)); //Init name!
+	int curtimer;
 	uint_32 numcounters;
 
+	double clockspeedup;
+	bzero(name,sizeof(name)); //Init name!
+
 	initTicksHolder(&timer_lasttimer); //Init ticks holder for precision!
-	int curtimer;
 	float realpassed; //Real timer passed since last call!
-	while (1) //Keep running!
+	for (;;) //Keep running!
 	{
 		if (!timerthread) return; //To stop running?
 		
 		//Calculate speedup needed for our timing!
-		double clockspeedup;
 		clockspeedup = 1.0f;
 		clockspeedup /= clockspeed; //Take the percentage of 1.0f for clockspeed (time in seconds for the default clock speed)
 		clockspeedup *= getCurrentClockSpeed(); //Multiply with current clock speed for the speedup factor!
 
 		realpassed = getuspassed(&timer_lasttimer); //How many time has passed for real!
 		realpassed *= clockspeedup; //Speed up the clock as much as needed, according to the actual CPU speed!
-
-		#ifdef TIMER_DEBUG
-		debug_timers(); //Debug the timers!
-		#endif
 
 		for (curtimer=0; curtimer<NUMITEMS(timers); curtimer++) //Process timers!
 		{
@@ -79,8 +74,7 @@ void timer_thread() //Handler for timer!
 					for (;;) //Overflow multi?
 					{
 						#ifdef TIMER_LOG
-						strcpy(name,"timer_sub_"); //Root!
-						strcat(name,timers[curtimer].name); //Set name!
+						strcpy(name,timers[curtimer].name); //Set name!
 						dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
 						TicksHolder singletimer;
 						startHiresCounting(&singletimer); //Start counting!
@@ -102,18 +96,27 @@ void timer_thread() //Handler for timer!
 
 void timer_calcfreq(int timer)
 {
-	if (timers[timer].frequency)
+	if (timers[timer].frequency!=0.0f)
 	{
-		timers[timer].overflowtime = (1000000.0f/timers[timer].frequency); //Actual time taken to overflow!
+		timers[timer].overflowtime = 1000000.0f;
+		timers[timer].overflowtime /= timers[timer].frequency; //Actual time taken to overflow!
+		if (!timers[timer].overflowtime)
+		{
+			goto defaulttime;
+		}
 	}
 	else
 	{
+		defaulttime: //Apply default time!
 		timers[timer].overflowtime = 1.0f; //minimal interval?
 	}
 }
 
 void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit)
 {
+	char emptystring = '\0';
+	if (!name) name = &emptystring;
+	dolog("zalloc","Addtimer!");
 	if (__HW_DISABLED) return; //Abort!
 	if (frequency==0.0f)
 	{
@@ -137,7 +140,7 @@ void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit)
 	}
 
 //Now for new timers!
-
+	dolog("zalloc","Allocating timer...");
 	for (i=0; i<NUMITEMS(timers); i++)
 	{
 		if (timers[i].frequency==0.0) //Not set?
@@ -145,12 +148,15 @@ void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit)
 			timers[i].handler = timer; //Set timer!
 			timers[i].counter = 0; //Reset counter!
 			timers[i].frequency = frequency; //Start timer!
+			timers[i].counterlimit = counterlimit; //The counter limit!
 			strcpy(timers[i].name,name); //Timer name!
 			timers[i].enabled = 1; //Set to enabled by default!
 			timer_calcfreq(i);
+			dolog("zalloc","Timer ready.");
 			break;
 		}
 	}
+	dolog("zalloc","Ran out of timers!");
 }
 
 void cleartimers() //Clear all running timers!

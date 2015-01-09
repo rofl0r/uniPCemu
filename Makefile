@@ -48,7 +48,7 @@ OBJS += basicio\io.o basicio\port_mapper.o
 #external chip caller port port i/o (for the CPU and hardware):
 OBJS += basicio\port_io.o
 #external chips
-OBJS += hardware\8253.o
+OBJS += hardware\pit.o
 #PS/2 Keyboard
 OBJS += hardware\ps2_keyboard_data.o hardware\ps2_keyboard.o
 #PS/2 mouse device
@@ -56,7 +56,7 @@ OBJS += hardware\ps2_mouse.o
 #Main PS/2 controller
 OBJS += hardware\8042.o
 #Various devices.
-OBJS += hardware\8237A.o hardware\8259A.o hardware\82093.o hardware\CMOS.o hardware\DP8390D.o hardware\soundblaster.o
+OBJS += hardware\dma.o hardware\pic.o hardware\CMOS.o
 #VGA Adapter for CPU and EMU (non-view):
 OBJS += hardware\vga\vga_colorconversion.o hardware\vga\vga_vram.o hardware\vga\vga_dac.o hardware\vga\vga.o
 #VGA MMU&I/O device.

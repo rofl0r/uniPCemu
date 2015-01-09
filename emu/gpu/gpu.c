@@ -173,7 +173,7 @@ void resetVideo() //Resets the screen (clears)
 	EMU_textcolor(0xF); //Default color: white on black!
 }
 
-void GPU_addTextSurface(PSP_TEXTSURFACE *surface, Handler handler) //Register a text surface for usage with the GPU!
+void GPU_addTextSurface(void *surface, Handler handler) //Register a text surface for usage with the GPU!
 {
 	int i=0;
 	for (;i<NUMITEMS(GPU.textsurfaces);i++)
@@ -195,7 +195,7 @@ void GPU_addTextSurface(PSP_TEXTSURFACE *surface, Handler handler) //Register a 
 	}
 }
 
-void GPU_removeTextSurface(PSP_TEXTSURFACE *surface)
+void GPU_removeTextSurface(void *surface)
 {
 	int i=0;
 	for (;i<NUMITEMS(GPU.textsurfaces);i++)

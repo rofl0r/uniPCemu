@@ -188,7 +188,7 @@ static void renderFrames() //Render all frames to the screen!
 				{
 					GPU.textrenderers[i](); //Execute the handler for filling the screen!
 				}
-				if (GPU.textsurfaces[i]->flags&TEXTSURFACE_FLAG_DIRTY) //Marked dirty?
+				if (GPU_textdirty(GPU.textsurfaces[i])) //Marked dirty?
 				{
 					dirty = 1; //We're dirty!
 				}

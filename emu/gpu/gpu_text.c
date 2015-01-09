@@ -14,13 +14,13 @@ extern GPU_SDL_Surface *rendersurface; //The PSP's surface to use when flipping!
 
 OPTINLINE static byte GPU_textget_pixel(PSP_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
 {
-	if (((x<0) || (y<0) || ((y>>3)>GPU_ROWS) || ((x>>3)>GPU_COLUMNS))) return 0; //None when out of bounds!
+	if (((x<0) || (y<0) || ((y>>3)>GPU_TEXTSURFACE_HEIGHT) || ((x>>3)>GPU_TEXTSURFACE_WIDTH))) return 0; //None when out of bounds!
 	return getcharxy_8(surface->text[y>>3][x>>3], x&7, y&7); //Give the pixel of the character!
 }
 
 OPTINLINE static uint_32 GPU_textgetcolor(PSP_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
 {
-	if (((x<0) || (y<0) || ((y>>3)>GPU_ROWS) || ((x>>3)>GPU_COLUMNS))) return TRANSPARENTPIXEL; //None when out of bounds!
+	if (((x<0) || (y<0) || ((y>>3)>GPU_TEXTSURFACE_HEIGHT) || ((x>>3)>GPU_TEXTSURFACE_WIDTH))) return TRANSPARENTPIXEL; //None when out of bounds!
 	return border?surface->border[y>>3][x>>3]:surface->font[y>>3][x>>3]; //Give the border or font of the character!
 }
 
@@ -94,32 +94,33 @@ void free_GPUtext(PSP_TEXTSURFACE **surface)
 	}
 }
 
-uint_64 GPU_textrenderer(PSP_TEXTSURFACE *surface) //Run the text rendering on rendersurface!
+uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurface!
 {
 	if (!surface) return 0; //Abort without surface!
 	TicksHolder ms_render_lastcheck; //For counting ms to render (GPU_framerate)!
 	initTicksHolder(&ms_render_lastcheck); //Init for counting time of rendering on the device directly from VGA data!
 	getuspassed(&ms_render_lastcheck); //Get first value!
 	register int y=0;
+	PSP_TEXTSURFACE *tsurface = (PSP_TEXTSURFACE *)surface; //Convert!
 	for (;;) //Process all rows!
 	{
 		register int x=0; //Reset x!
 		for (;;) //Process all columns!
 		{
-			GPU_textput_pixel(rendersurface,surface,x,y); //Plot a pixel?
+			GPU_textput_pixel(rendersurface,tsurface,x,y); //Plot a pixel?
 			if (++x==GPU_TEXTPIXELSX) break; //Stop searching now!
 		}
 		if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!
 	}
-	surface->flags &= ~TEXTSURFACE_FLAG_DIRTY; //Clear dirty flag!
+	tsurface->flags &= ~TEXTSURFACE_FLAG_DIRTY; //Clear dirty flag!
 	return getuspassed(&ms_render_lastcheck); //Give processing time!
 }
 
 int GPU_textgetxy(PSP_TEXTSURFACE *surface,int x, int y, byte *character, uint_32 *font, uint_32 *border) //Read a character+attribute!
 {
 	if (!surface) return 0; //Not allocated!
-	if (y>=GPU_ROWS) return 0; //Out of bounds?
-	if (x>=GPU_COLUMNS) return 0; //Out of bounds?
+	if (y>=GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
+	if (x>=GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
 	*character = surface->text[y][x];
 	*font = surface->font[y][x];
 	*border = surface->border[y][x];
@@ -151,8 +152,8 @@ static void GPU_markdirty(PSP_TEXTSURFACE *surface, int x, int y) //Mark a chara
 int GPU_textsetxy(PSP_TEXTSURFACE *surface,int x, int y, byte character, uint_32 font, uint_32 border) //Write a character+attribute!
 {
 	if (!surface) return 0; //Not allocated!
-	if (y>=GPU_ROWS) return 0; //Out of bounds?
-	if (x>=GPU_COLUMNS) return 0; //Out of bounds?
+	if (y>=GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
+	if (x>=GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
 	//dolog("GPU","GPU_textsetxy(x,y)",x,y);
 	byte oldtext = surface->text[y][x];
 	uint_32 oldfont = surface->font[y][x];
@@ -177,7 +178,7 @@ void GPU_textclearrow(PSP_TEXTSURFACE *surface, int y)
 	for (;;)
 	{
 		GPU_textsetxy(surface,x,y,0,0,0); //Clear the row fully!
-		if (++x>=GPU_COLUMNS) return; //Done!
+		if (++x>=GPU_TEXTSURFACE_WIDTH) return; //Done!
 	}
 }
 
@@ -187,7 +188,7 @@ void GPU_textclearscreen(PSP_TEXTSURFACE *surface)
 	for (;;)
 	{
 		GPU_textclearrow(surface,y); //Clear all rows!
-		if (++y>=GPU_ROWS) return; //Done!
+		if (++y>=GPU_TEXTSURFACE_HEIGHT) return; //Done!
 	}
 }
 
@@ -206,10 +207,10 @@ void GPU_textprintf(PSP_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 	int i;
 	for (i=0; i<strlen(msg); i++) //Process text!
 	{
-		while (curx>=GPU_COLUMNS) //Overflow?
+		while (curx>=GPU_TEXTSURFACE_WIDTH) //Overflow?
 		{
 			++cury; //Next row!
-			curx -= GPU_COLUMNS; //Decrease columns for every row size!
+			curx -= GPU_TEXTSURFACE_WIDTH; //Decrease columns for every row size!
 		}
 		if ((msg[i]=='\r' && !USESLASHN) || (msg[i]=='\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
 		{
@@ -234,11 +235,17 @@ void GPU_textgotoxy(PSP_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 	if (!surface) return; //Not allocated!
 	int curx = x;
 	int cury = y;
-	while (curx>=GPU_COLUMNS) //Overflow?
+	while (curx>=GPU_TEXTSURFACE_WIDTH) //Overflow?
 	{
 		++cury; //Next row!
-		curx -= GPU_COLUMNS; //Decrease columns for every row size!
+		curx -= GPU_TEXTSURFACE_WIDTH; //Decrease columns for every row size!
 	}
 	surface->x = curx; //Real x!
 	surface->y = cury; //Real y!
+}
+
+OPTINLINE byte GPU_textdirty(void *surface)
+{
+	PSP_TEXTSURFACE *tsurface = (PSP_TEXTSURFACE *)surface;
+	return (tsurface->flags&TEXTSURFACE_FLAG_DIRTY)>0; //Are we dirty?
 }

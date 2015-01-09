@@ -92,81 +92,13 @@ typedef uint64 FILEPOS;
 #define GETB(x) (((x)>>16)&0xFF)
 #define GETA(x) (((x)>>24)&0xFF)
 
-typedef int bool; //Booleans are ints!
-
 typedef void (*Handler)(void);    /* A pointer to a handler function */
-
-//Number of characters
-#define DEBUGSCREEN_WIDTH 67
-#define DEBUGSCREEN_HEIGHT 34
 
 //Ammount of items in a buffer!
 #define NUMITEMS(buffer) (sizeof(buffer)/sizeof(buffer[0]))
 //Timeout for shutdown: force shutdown!
 //When set to 0, shutdown immediately shuts down, ignoring the emulated machine!
 #define SHUTDOWN_TIMEOUT 0
-
-
-//Different kinds of pointers!
-
-typedef struct
-{
-	union
-	{
-		struct
-		{
-			uint_32 offset; //Default: 0
-			unsigned int segment; //Default: 0
-		};
-		unsigned char data[6]; //46-bits as bytes!
-	};
-} ptr48; //48-bit pointer Adress (32-bit mode)!
-
-typedef struct
-{
-	union
-	{
-		struct
-		{
-			unsigned int offset; //Default: 0
-			unsigned int segment; //Default: 0
-		};
-		unsigned char data[4]; //32-bits as bytes!
-	};
-} ptr32; //32-bit pointer Adress (16-bit mode)!
-
-typedef struct
-{
-	union
-	{
-		struct
-		{
-			unsigned short limit; //Limit!
-			unsigned int base; //Base!
-		};
-		unsigned char data[6]; //46-bit adress!
-	};
-} GDTR_PTR;
-
-typedef struct
-{
-	union
-	{
-		struct
-		{
-			unsigned int limit;
-			uint_32 base;
-		};
-		unsigned char data[6]; //46-bit adress!
-	};
-} IDTR_PTR;
-
-//NULL pointer definition
-#define NULLPTR(x) ((x.segment==0) && (x.offset==0))
-//Same, but for pointer dereference
-#define NULLPTR_PTR(x,location) (ANTINULL(x,location)?((x->segment==0) && (x->offset==0)):1)
-
-#define NULLPROTECT(ptr) ANTINULL(ptr,constsprintf("%s at %i",__FILE__,__LINE__))
 
 //MIN/MAX: East calculation of min/max data!
 #define MIN(a,b) ((a<b)?a:b)
@@ -216,8 +148,6 @@ uint_32 safe_strlen(char *str, int limit); //Safe safe_strlen function!
 char *constsprintf(char *str1, ...); //Concatinate strings (or constants)!
 
 void EMU_Shutdown(int doshutdown); //Shut down the emulator?
-void startTimers(); //Start timers!
-void stopTimers(); //Stop timers!
 void raiseError(char *source, char *text, ...); //Raises an error!
 void printmsg(byte attribute, char *text, ...); //Prints a message to the screen!
 void delete_file(char *directory, char *filename); //Delete one or more files!
@@ -235,7 +165,7 @@ void debugrow(char *text); //Log a row to debugrow log!
 void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 
 //INLINE options!
-#define OPTINLINE inline
+#define OPTINLINE 
 
 #include "headers/fopen64.h" //64-bit fopen support!
 

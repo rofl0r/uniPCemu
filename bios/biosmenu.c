@@ -21,7 +21,7 @@
 #define __HW_DISABLED 0
 
 //BIOS width in text mode!
-#define BIOS_WIDTH GPU_COLUMNS
+#define BIOS_WIDTH GPU_TEXTSURFACE_WIDTH
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
 extern byte showchecksumerrors; //Show checksum errors?
@@ -1542,6 +1542,7 @@ uint_32 ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 
 void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 {
+	if (0) { //Disabled for now: this will use the OSK!
 	BIOS_Title("Generate Static HDD Image");
 	char filename[256]; //Filename container!
 	bzero(filename,sizeof(filename)); //Init!
@@ -1564,10 +1565,12 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 			generateStaticImage(filename, size, 18, 6); //Generate a static image!
 		}
 	}
+	}
 	BIOS_Menu = 1; //Return to Disk Menu!
 }
 void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 {
+	if (0) { //Disabled for now: 
 	BIOS_Title("Generate Dynamic HDD Image");
 	char filename[256]; //Filename container!
 	bzero(filename,sizeof(filename)); //Init!
@@ -1589,6 +1592,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 			uint_32 sizecreated;
 			sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
 		}
+	}
 	}
 	BIOS_Menu = 1; //Return to Disk Menu!
 }

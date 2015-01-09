@@ -5,6 +5,7 @@
 #include "headers/debugger/runromverify.h" //runROMVerify support!
 #include "headers/emu/emu_misc.h" //file support!
 #include "headers/emu/gpu/gpu_emu.h" //EMU debugging text support!
+#include "headers/emu/gpu/gpu_text.h" //Text surface support!
 
 /*
 
@@ -23,7 +24,7 @@ void DoDebugFiles() //Do the debug files!
 	/* open directory */
 	if ( ( dir = opendir( "debug" ) ) == 0 )
 	{
-		GPU_EMU_printscreen(0,GPU_ROWS-1,"Error: verification directory was not found. (debug)");
+		GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Error: verification directory was not found. (debug)");
 		sleep(); //Wait forever!
 	}
 	
@@ -46,7 +47,7 @@ void DoDebugFiles() //Do the debug files!
 		sprintf(finish_nameres,"debugsucceeded/res_%s",dirent->d_name); //Result file!
 		if (file_exists(file_name) && file_exists(file_nameres)) //Not a result?
 		{
-			GPU_EMU_printscreen(0,GPU_ROWS-1,"Verifying %s...",file_name);
+			GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Verifying %s...",file_name);
 			dolog("ROM_log","Start verifying %s!",file_name); //Start!
 			refreshscreen(); //Update the screen now!
 			int verified = 0;
@@ -74,7 +75,7 @@ void DoDebugFiles() //Do the debug files!
 
 	dolog("ROM_log","END OF VERIFICATION PROCEDURE!"); //End!
 
-	GPU_EMU_printscreen(0,GPU_ROWS-1,"Verification complete!");
+	GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Verification complete!");
 	refreshscreen(); //Update the screen now!
 	halt(); //Quit if possible!
 	sleep(); //Wait forever with the emulator active!
