@@ -6,7 +6,7 @@
 #include "headers/emu/emu_vga_bios.h" //VGA misc functionality for INT10!
 
 //To make a screen capture of all of the debug screens active?
-#define LOG_VGA_SCREEN_CAPTURE 1
+#define LOG_VGA_SCREEN_CAPTURE 2
 //For text-mode debugging!
 #define VIDEOMODE_TEXTMODE 0x02
 //To log the first rendered line after putting pixels?
@@ -30,9 +30,9 @@ extern CPU_type CPU; //CPU!
 void debugTextModeScreenCapture()
 {
 	//VGA_DUMPDAC(); //Make sure the DAC is dumped!
-	VGA_waitforVBlank(); //Wait for VBlank!
 	SCREEN_CAPTURE = LOG_VGA_SCREEN_CAPTURE; //Screen capture next frame?
 	VGA_waitforVBlank(); //Log one screen!
+	VGA_waitforVBlank(); //Wait for VBlank!
 }
 
 extern PSP_TEXTSURFACE *frameratesurface; //The framerate surface!
@@ -117,6 +117,8 @@ VGA Full Debug routine!
 
 */
 
+extern byte VGA_LOGPRECALCS; //Log precalcs after this ammount of scanlines!
+
 void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 {
 	enableKeyboard(0); //Allow to test the keyboard!
@@ -131,7 +133,8 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		CPU.registers->BH = 0x0; //Set overscan color!
 		CPU.registers->BL = 0x4; //Blue overscan!
 		BIOS_int10(); //Set overscan!
-		//VGA_LOGCRTCSTATUS(); //Log our full status!
+		VGA_LOGCRTCSTATUS(); //Log our full status!
+		VGA_LOGPRECALCS = 5; //Log after 5 scanlines!
 		//VGA_DUMPDAC(); //Dump the active DAC!
 		//debugTextModeScreenCapture(); //Make a screen capture!
 		//sleep(); //Wait forever to debug!
@@ -167,6 +170,11 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		MMU_wb(-1,0xB800,27,0xE);
 		MMU_wb(-1,0xB800,28,'o');
 		MMU_wb(-1,0xB800,29,0xF);
+		MMU_wb(-1,0xB800,156,'B');
+		MMU_wb(-1,0xB800,157,0xF);
+		MMU_wb(-1,0xB800,158,'E');
+		MMU_wb(-1,0xB800,159,0xF); //Green at the full width!
+		//SCREEN_CAPTURE = 2; //Enable a screen capture please, on the second frame (first is incomplete, since we've changed VRAM)!
 		
 		//LOG_VRAM_WRITES = 0; //Disable log!
 

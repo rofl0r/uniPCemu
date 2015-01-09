@@ -214,11 +214,8 @@ void BREAKPOINT(); //Safe breakpoint function!
 int convertrel(int src, int fromres, int tores); //Relative convert!
 uint_32 safe_strlen(char *str, int limit); //Safe safe_strlen function!
 char *constsprintf(char *str1, ...); //Concatinate strings (or constants)!
-void *ANTINULL(void *ptr, char *location); //ANTI NULL Dereference!
 
 void EMU_Shutdown(int doshutdown); //Shut down the emulator?
-void addtimer(float frequency, Handler timer, char *name); //Add a timer!
-void removetimer(char *name); //Removes a timer!
 void startTimers(); //Start timers!
 void stopTimers(); //Stop timers!
 void raiseError(char *source, char *text, ...); //Raises an error!

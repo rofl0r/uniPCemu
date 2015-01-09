@@ -138,7 +138,7 @@ void initEMU(int full) //Init!
 	{
 		if (!DEBUG_VGA_SPEED) //Not to debug speed only?
 		{
-			addtimer(60.0,&refreshscreen,"RefreshScreen"); //Refresh the screen at this frequency MAX!
+			addtimer(60.0,&refreshscreen,"RefreshScreen",1); //Refresh the screen at this frequency MAX!
 			startVideo(); //Start the video functioning!
 		}
 	}

@@ -304,15 +304,6 @@ byte soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata) //Ge
 //Multicall speedup!
 #define ADLIBMULTIPLIER 10
 
-void tickadlibmulti()
-{
-	byte i;
-	for (i=0;i<ADLIBMULTIPLIER;i++)
-	{
-		tickadlib();
-	}
-}
-
 void initAdlib()
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -338,7 +329,7 @@ void initAdlib()
 	register_PORTOUT(baseport,&outadlib); //Address port (W)
 	register_PORTOUT(baseport+1,&outadlib); //Data port (W/O)
 	//dolog("adlib","Registering timer...");
-	addtimer(49716.0/ADLIBMULTIPLIER,&tickadlibmulti,"AdlibAttackDecay"); //We run at 49.716Khz, about every 20us.
+	addtimer(49716.0,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER); //We run at 49.716Khz, about every 20us.
 	//dolog("adlib","Ready"); //Ready to run!
 }
 

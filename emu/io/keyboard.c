@@ -2,10 +2,16 @@
 
 //Basic keyboard support for emulator, mapping key presses and releases to the PS/2 keyboard!
 
+extern byte SCREEN_CAPTURE; //Screen capture requested?
+
 byte keys_pressed[0x100]; //All possible keys to be pressed!
 
 void onKeyPress(char *key) //On key press/hold!
 {
+	if (strcmp(key,"CAPTURE")==0) //Screen capture requested?
+	{
+		SCREEN_CAPTURE = 1; //Screen capture next frame!
+	}
 	int keyid;
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
 	if (keyid!=-1) //Key found?

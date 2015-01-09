@@ -102,10 +102,12 @@ static void render_EMU_screen() //Render the EMU buffer to the screen!
 	if (!memprotect(rendersurface,sizeof(*rendersurface),NULL)) return; //Nothing to render to!
 	if (!memprotect(rendersurface->sdllayer,sizeof(*rendersurface->sdllayer),NULL)) return; //Nothing to render to!
 	//Now, render our screen, or clear it!
+	byte rendered = 0;
 	if (memprotect(resized,sizeof(*resized),NULL)) //Resized available (anti-NULL protection)?
 	{
 		if (memprotect(resized->sdllayer,sizeof(*resized->sdllayer),NULL))
 		{
+			rendered = 1; //We're rendered from here on!
 			word y = 0; //Current row counter!
 			word count;
 			uint_32 virtual = 0; //Virtual row to use! (From the source)
@@ -150,7 +152,7 @@ static void render_EMU_screen() //Render the EMU buffer to the screen!
 		finishbottomrendering:
 		resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
 	}
-	else //Nothing to render = clear screen!
+	if (!rendered) //Nothing to render = clear screen!
 	{
 		word count2 = rendersurface->sdllayer->h; //How many to process!
 		if (count2) //Got something to render?
@@ -373,9 +375,10 @@ void renderHWFrame() //Render a frame from hardware!
 		}
 		if (SCREEN_CAPTURE) //Screen capture?
 		{
-			dolog("EMU","Screen capture requested! Executing (%ix%i)...",GPU.xres,GPU.yres);
-			writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),GPU.xres,GPU.yres,GPU.doublewidth,GPU.doubleheight,EMU_MAX_X); //Dump our raw screen!
-			SCREEN_CAPTURE = 0; //No more captures!
+			if (!--SCREEN_CAPTURE) //Capture this frame?
+			{
+				writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),GPU.xres,GPU.yres,GPU.doublewidth,GPU.doubleheight,EMU_MAX_X); //Dump our raw screen!
+			}
 		}
 	}
 	

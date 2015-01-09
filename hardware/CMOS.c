@@ -200,31 +200,22 @@ void CMOS_onRead() //When CMOS is being read (special actions).
 
 void RTC_Handler() //Handle RTC Timer Tick!
 {
-	if (1) //Periodic interrupt?
+	if (CMOS.info.STATUSREGISTERB.EnablePeriodicInterrupt) //Enabled?
 	{
-		if (CMOS.info.STATUSREGISTERB.EnablePeriodicInterrupt) //Enabled?
-		{
-			RTC_PeriodicInterrupt(); //Handle!
-		}
+		RTC_PeriodicInterrupt(); //Handle!
 	}
 
-	if (1) //Update ended interrupt?
+	if (CMOS.info.STATUSREGISTERB.EnabledUpdateEndedInterrupt) //Enabled?
 	{
-		if (CMOS.info.STATUSREGISTERB.EnabledUpdateEndedInterrupt) //Enabled?
-		{
-			RTC_UpdateEndedInterrupt(); //Handle!
-		}
+		RTC_UpdateEndedInterrupt(); //Handle!
 	}
 
-	if (1) //Alarm interrupt?
+	if ((CMOS.info.RTC_Hours==CMOS.info.RTC_HourAlarm) &&
+			(CMOS.info.RTC_Minutes==CMOS.info.RTC_MinuteAlarm) &&
+			(CMOS.info.RTC_Seconds==CMOS.info.RTC_SecondAlarm) &&
+			(CMOS.info.STATUSREGISTERB.EnableAlarmInterrupt)) //Alarm on?
 	{
-			if ((CMOS.info.RTC_Hours==CMOS.info.RTC_HourAlarm) &&
-					(CMOS.info.RTC_Minutes==CMOS.info.RTC_MinuteAlarm) &&
-					(CMOS.info.RTC_Seconds==CMOS.info.RTC_SecondAlarm) &&
-					(CMOS.info.STATUSREGISTERB.EnableAlarmInterrupt)) //Alarm on?
-			{
-				RTC_AlarmInterrupt(); //Handle!
-			}
+		RTC_AlarmInterrupt(); //Handle!
 	}
 }
 
@@ -237,7 +228,7 @@ void CMOS_onWrite() //When written to CMOS!
 {
 	if (CMOS.ADDR==0xB) //Might have enabled IRQ8 functions!
 	{
-		addtimer((float)getIRQ8Rate(),&RTC_Handler,"RTC"); //RTC handler!
+		addtimer((float)getIRQ8Rate(),&RTC_Handler,"RTC",10); //RTC handler!
 		CMOS.IRQ8_Disabled = 0; //Allow IRQ8 to be called by timer: we're enabled!
 	}
 }

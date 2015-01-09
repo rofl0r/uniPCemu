@@ -18,9 +18,6 @@
 #include "headers/support/log.h" //Logging support!
 #endif
 
-//The limit in executing counters per step! Not defined = 1 counter a time.
-//#define COUNTER_LIMIT 1
-
 typedef struct
 {
 	float frequency; //The frequency!
@@ -31,6 +28,7 @@ typedef struct
 	char name[256]; //The name of the timer!
 	uint_32 calls; //Total ammount of calls so far (for debugging only!)
 	double total_timetaken; //Time taken by the function!
+	uint_32 counterlimit; //Limit of the ammount of counters to execute!
 } TIMER; //A timer's data!
 
 TIMER timers[10]; //We use 10 timers!
@@ -73,19 +71,13 @@ void timer_thread() //Handler for timer!
 			if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
 			{
 				timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
-				#ifdef COUNTER_LIMIT
 				numcounters = (timers[curtimer].counter/timers[curtimer].overflowtime); //Ammount of times to count!
-				if (numcounters>COUNTER_LIMIT) numcounters = COUNTER_LIMIT;
-				#else
-				numcounters = (timers[curtimer].counter>=timers[curtimer].overflowtime); //Have we overflown?
-				#endif
+				if (numcounters>timers[curtimer].counterlimit) numcounters = timers[curtimer].counterlimit;
 				if (numcounters) //Are we to fire?
 				{
 					timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions!
-					#ifdef COUNTER_LIMIT
 					for (;;) //Overflow multi?
 					{
-					#endif
 						#ifdef TIMER_LOG
 						strcpy(name,"timer_sub_"); //Root!
 						strcat(name,timers[curtimer].name); //Set name!
@@ -99,10 +91,8 @@ void timer_thread() //Handler for timer!
 						timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
 						dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
 						#endif
-					#ifdef COUNTER_LIMIT
 						if (!--numcounters) break; //Done? Process next counter!
 					}
-					#endif
 				}
 			}
 		}
@@ -122,7 +112,7 @@ void timer_calcfreq(int timer)
 	}
 }
 
-void addtimer(float frequency, Handler timer, char *name)
+void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit)
 {
 	if (__HW_DISABLED) return; //Abort!
 	if (frequency==0.0f)
@@ -140,6 +130,7 @@ void addtimer(float frequency, Handler timer, char *name)
 			timers[i].frequency = frequency; //Edit frequency!
 //Timer name is already set!
 			timers[i].enabled = 1; //Set to enabled by default!
+			timers[i].counterlimit = counterlimit; //The counter limit!
 			timer_calcfreq(i);
 			return; //Done: we've found the timer and updated it!
 		}

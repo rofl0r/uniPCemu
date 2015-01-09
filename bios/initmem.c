@@ -77,7 +77,6 @@ void initMEM() //Initialise memory for reset!
 {
 	if (__HW_DISABLED) return; //Abort!
 	BDA_type *BDA; //The BIOS Data area for us to initialise!
-	NULLPROTECT(MMU.memory);
 	bzero(MMU.memory,MMU.size); //Initialise the memory by size!
 	if (!hasmemory())
 	{
@@ -86,13 +85,12 @@ void initMEM() //Initialise memory for reset!
 
 	BDA = (BDA_type *)MMU_ptr(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0040,0x0000,0,sizeof(*BDA)); //Point to the BDA (Segment 40, offset 0; thus generating offset 400)!
 
-	if (BDA==NULL) //No BIOS Data Area set yet?
+	if (!BDA) //No BIOS Data Area set yet?
 	{
 		raiseError("BIOS::initmem","No BDA set!");
 		return; //Stop: No BDA!
 	}
 
-	NULLPROTECT(BDA);
 	bzero(BDA,sizeof(*BDA)); //Init BDA to 0's!
 
 //BDA Data:

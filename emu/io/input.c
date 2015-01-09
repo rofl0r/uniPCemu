@@ -479,7 +479,7 @@ void doneKeyboardOSK()
 	free_GPUtext(&keyboardsurface); //Release the framerate!
 }
 
-byte displaytokeyboard[4] = {3,1,4,2}; //1,2,3,4 (keyboard display)=>3,1,4,2 (getkeyboard)
+byte displaytokeyboard[5] = {0,3,1,4,2}; //1,2,3,4 (keyboard display)=>3,1,4,2 (getkeyboard)
 
 //Keyboard layout: shift,set,sety,setx,itemnr,values
 char active_keyboard[3][3][3][2][5][10]; //Active keyboard!
@@ -539,7 +539,7 @@ char keyboards[2][3][3][3][2][5][10] = { //X times 3 sets of 3x3 key choices, ev
 													{{"enable","num/","num*","num-","num+"},{"enable","num/","num*","num-","num+"}}
 												},
 												{ //Row 3
-													{{"enable","","","","`"},{"enable","","","","~"}},
+													{{"enable","","","CAPTURE","`"},{"enable","","","CAPTURE","~"}},
 													{{"","","","",""},{"","","","",""}},
 													{{"","","","",""},{"","","","",""}}
 												} //Not used.
@@ -595,7 +595,7 @@ char keyboards[2][3][3][3][2][5][10] = { //X times 3 sets of 3x3 key choices, ev
 													{{"enable","num/","num+","num*","num-"},{"enable","num/","num+","num*","num-"}}
 												},
 												{ //Row 3
-													{{"enable","","","","`"},{"enable","","","","~"}},
+													{{"enable","","","CAPTURE","`"},{"enable","","","CAPTURE","~"}},
 													{{"","","","",""},{"","","","",""}},
 													{{"","","","",""},{"","","","",""}}
 												} //Barely used input.
@@ -628,6 +628,7 @@ byte keyboard_display[KEYBOARD_NUMY][KEYBOARD_NUMX];
 #define getkeyboard(shift,set,sety,setx,itemnr) &active_keyboard[set][1+sety][1+setx][shift][itemnr][0]
 
 extern PS2_KEYBOARD Keyboard; //Active keyboard!
+extern byte SCREEN_CAPTURE; //Screen capture requested?
 
 void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 {
@@ -685,6 +686,22 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	
 	if (!curstat.gamingmode) //Not gaming mode (both mouse and keyboard mode)?
 	{
+		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-3] = 'C'; //Screen capture!
+		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-2] = 'A'; //Screen capture!
+		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-1] = 'P'; //Screen capture!
+
+		if (SCREEN_CAPTURE) //Screen capture status?
+		{
+			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-3] = 3; //Special shift color active!
+			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-2] = 3; //Special shift color active!
+			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-1] = 3; //Special shift color active!
+		}
+		else
+		{
+			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-3] = 2; //Special shift color inactive!
+			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-2] = 2; //Special shift color inactive!
+			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-1] = 2; //Special shift color inactive!
+		}
 		keyboard_display[KEYBOARD_NUMY-2][KEYBOARD_NUMX-3] = 'N'; //NumberLock!
 		if (Keyboard.LEDS&2) //NUMLOCK?
 		{
@@ -1015,24 +1032,37 @@ void handleKeyboard() //Handles keyboard input!
 		}
 		else if (lastkey) //We have a last key with nothing pressed?
 		{
-			onKeyRelease(getkeyboard(shiftstatus,lastset,lasty,lastx,lastkey)); //Release the last key!
+			onKeyRelease(getkeyboard(0,lastset,lasty,lastx,displaytokeyboard[lastkey])); //Release the last key!
 			lastkey = 0; //We didn't have a last key!			
 		}
 	} //Not buffering?
 	else //Buffering?
 	{
-		if (!currentkey && ((lastkey!=currentkey) || (lastx!=setx) || (lasty!=sety) || (lastset!=currentset))) //Key released?
+		if (currentkey) //Key pressed?
 		{
-			input_buffer_shift = shiftstatus; //Set shift status!
-			input_buffer = EMU_keyboard_handler_nametoid(getkeyboard(0,lastset,lasty,lastx,displaytokeyboard[lastkey])); //Last key!
+			//Save the active key information!
+			lastset = currentset;
+			lastx = setx;
+			lasty = sety;
+			lastkey = currentkey;
+		}
+		else if (((lastkey!=currentkey) || (lastx!=setx) || (lasty!=sety) || (lastset!=currentset))) //Key released?
+		{
+			int key;
+			key = EMU_keyboard_handler_nametoid(getkeyboard(0,lastset,lasty,lastx,displaytokeyboard[lastkey])); //Our key?
+			if (key!=-1) //Found as a valid key to press?
+			{
+				input_buffer_shift = shiftstatus; //Set shift status!
+				input_buffer = key; //Last key!
 			
+			}
 			//Update current information!
 			lastkey = 0; //Update current information!
 			lastx = setx;
 			lasty = sety;
 			lastset = currentset;
 		}
-		//Key releases aren't buffered: we only want to know the key, nothing more!
+		//Key presses aren't buffered: we only want to know the key, nothing more!
 	}
 }
 
@@ -1430,7 +1460,7 @@ void psp_keyboard_refreshrate()
 {
 	float repeatrate = HWkeyboard_getrepeatrate();
 	if (!repeatrate) repeatrate = 10.0f; //10 times a second sampling!
-	addtimer(repeatrate,&keyboard_type_handler,"Keyboard PSP Type"); //Our type handler!
+	addtimer(repeatrate,&keyboard_type_handler,"Keyboard PSP Type",1); //Our type handler!
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
@@ -1456,9 +1486,9 @@ void psp_keyboard_init()
 		//dolog("osk","Starting type handler");
 		psp_keyboard_refreshrate(); //Handles keyboard typing: we're an interrupt!
 		//dolog("osk","Starting swap handler");
-		addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap"); //Handles keyboard set swapping: we're an interrupt!
+		addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1); //Handles keyboard set swapping: we're an interrupt!
 		//dolog("osk","Starting mouse handler");
-		addtimer(256.0f,&mouse_handler,"PSP Mouse"); //Handles mouse input: we're a normal timer!
+		addtimer(256.0f,&mouse_handler,"PSP Mouse",10); //Handles mouse input: we're a normal timer!
 		KEYBOARD_STARTED = 1; //Started!
 	//}
 	//dolog("osk","keyboard&mouse ready.");

@@ -12,19 +12,19 @@
 
 extern GPU_SDL_Surface *rendersurface; //The PSP's surface to use when flipping!
 
-static byte GPU_textget_pixel(PSP_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
+OPTINLINE static byte GPU_textget_pixel(PSP_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
 {
 	if (((x<0) || (y<0) || ((y>>3)>GPU_ROWS) || ((x>>3)>GPU_COLUMNS))) return 0; //None when out of bounds!
 	return getcharxy_8(surface->text[y>>3][x>>3], x&7, y&7); //Give the pixel of the character!
 }
 
-static uint_32 GPU_textgetcolor(PSP_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
+OPTINLINE static uint_32 GPU_textgetcolor(PSP_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
 {
 	if (((x<0) || (y<0) || ((y>>3)>GPU_ROWS) || ((x>>3)>GPU_COLUMNS))) return TRANSPARENTPIXEL; //None when out of bounds!
 	return border?surface->border[y>>3][x>>3]:surface->font[y>>3][x>>3]; //Give the border or font of the character!
 }
 
-static void updateDirty(PSP_TEXTSURFACE *surface, int fx, int fy)
+OPTINLINE static void updateDirty(PSP_TEXTSURFACE *surface, int fx, int fy)
 {
 	surface->dirty[fy][fx] = 0; //We're going to un-dirty this!
 	//Undirty!
@@ -34,27 +34,29 @@ static void updateDirty(PSP_TEXTSURFACE *surface, int fx, int fy)
 		return;
 	}
 
+	//We're background/transparent!
 	BACKLISTITEM *curbacklist = &surface->backlist[0]; //The current backlist!
-	byte c=0;
+	register byte c=0;
 	for (;;)
 	{
-		if (GPU_textget_pixel(surface,fx+curbacklist->x,fy+curbacklist->y)) //Background?
+		if (GPU_textget_pixel(surface,fx+curbacklist->x,fy+curbacklist->y)) //Border?
 		{
 			surface->notdirty[fy][fx] = GPU_textgetcolor(surface,fx,fy,1); //Back!
 			return; //Done!
 		}
-		++c;++curbacklist; //Next backlist item!
-		if (c==8) break; //Stop searching!
+		if (++c==8) break; //Stop searching!
+		++curbacklist; //Next backlist item!
 	}
 
+	//We're transparent!
 	surface->notdirty[fy][fx] = TRANSPARENTPIXEL;
 }
 
-static void GPU_textput_pixel(GPU_SDL_Surface *dest, PSP_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
+OPTINLINE static void GPU_textput_pixel(GPU_SDL_Surface *dest, PSP_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
 {
 	if (surface->dirty[fy][fx]) updateDirty(surface,fx,fy); //Update dirty if needed!
-	uint_32 color = surface->notdirty[fy][fx];
-	if (color^TRANSPARENTPIXEL)
+	register uint_32 color = surface->notdirty[fy][fx];
+	if (color!=TRANSPARENTPIXEL)
 	{
 		put_pixel(dest,fx,fy,color); //Plot the pixel!
 	}
@@ -98,10 +100,10 @@ uint_64 GPU_textrenderer(PSP_TEXTSURFACE *surface) //Run the text rendering on r
 	TicksHolder ms_render_lastcheck; //For counting ms to render (GPU_framerate)!
 	initTicksHolder(&ms_render_lastcheck); //Init for counting time of rendering on the device directly from VGA data!
 	getuspassed(&ms_render_lastcheck); //Get first value!
-	int y=0;
+	register int y=0;
 	for (;;) //Process all rows!
 	{
-		int x=0; //Reset x!
+		register int x=0; //Reset x!
 		for (;;) //Process all columns!
 		{
 			GPU_textput_pixel(rendersurface,surface,x,y); //Plot a pixel?
@@ -129,12 +131,19 @@ static void GPU_markdirty(PSP_TEXTSURFACE *surface, int x, int y) //Mark a chara
 	int rx;
 	int ry;
 
-	for (rx=0;rx<10;rx++)
+	for (rx=-1;rx<9;) //Take one pixel extra for neighbouring pixels.
 	{
-		for (ry=0;ry<10;ry++)
+		for (ry=-1;ry<9;)
 		{
-			surface->dirty[y*8+ry][x*8+rx] = 1; //Set dirty!
+			int cx = x*8+rx;
+			int cy = y*8+ry;
+			if (cx>=0 && cy>=0) //Valid positions?
+			{
+				surface->dirty[cy][cx] = 1; //Set dirty!
+			}
+			++ry;
 		}
+		++rx;
 	}
 	surface->flags |= TEXTSURFACE_FLAG_DIRTY; //Set dirty!
 }
@@ -151,7 +160,14 @@ int GPU_textsetxy(PSP_TEXTSURFACE *surface,int x, int y, byte character, uint_32
 	surface->text[y][x] = character;
 	surface->font[y][x] = font;
 	surface->border[y][x] = border;
-	if ((character!=oldtext) || (font!=oldfont) || (border!=oldborder)) GPU_markdirty(surface,x,y); //Mark us as dirty when needed!
+	uint_32 change;
+	character ^= oldtext;
+	font ^= oldfont;
+	border ^= oldborder;
+	change = character;
+	change |= font;
+	change |= border;
+	if (change) GPU_markdirty(surface,x,y); //Mark us as dirty when needed!
 	return 1; //OK!
 }
 

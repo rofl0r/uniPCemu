@@ -72,10 +72,11 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	register word character;
 	register word charinner;
 	//X!
+	Sequencer->activex >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
+
 	word *curcolstatus;
 	curcolstatus = &VGA->CRTC.charcolstatus[Sequencer->activex<<1]; //Current col status!
 	character = *curcolstatus++; //First is charx!
-	character >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
 	attributeinfo->charx = character; //Load the character we use!
 	attributeinfo->charinner_x = charinner = *curcolstatus; //Second is charinner_y!
 	

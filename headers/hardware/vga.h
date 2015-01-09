@@ -748,7 +748,6 @@ void VGA_waitforVBlank(); //Wait for a VBlank to happen?
 void changeRowTimer(VGA_Type *VGA, word lines); //Change the VGA row processing timer the ammount of lines on display: should be in the emulator itself!
 
 //Concerning rendering the VGA for the GPU!
-void VGA_generateScreenLine(); //Generate the screen line based on VGA register calls!
 void setVGAFrameskip(VGA_Type *VGA, byte Frameskip); //Set frameskip or 0 for none!
 
 void dumpVRAM(); //Diagnostic dump of VRAM!

@@ -21,8 +21,11 @@ static uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!
 
 extern VGA_Type *ActiveVGA; //For checking if we're active!
 
+extern byte VGA_LOGPRECALCS; //Are we manually updated to log?
+
 static OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs!
 {
+	if (VGA_LOGPRECALCS) dolog("VGA","CRTC updated!");
 	uint_32 current;
 	byte charsize;
 	//Column and row status for each pixel on-screen!
@@ -142,7 +145,6 @@ OPTINLINE void dump_CRTCTiming()
 
 void VGA_LOGCRTCSTATUS()
 {
-	stopTimers(); //Stop all timers currently on!
 	//Log all register info:
 	dolog("VGA","CRTC Info:");
 	dolog("VGA","HDispStart:%i",ActiveVGA->precalcs.horizontaldisplaystart); //Horizontal start
@@ -159,9 +161,7 @@ void VGA_LOGCRTCSTATUS()
 	dolog("VGA","VRetraceEnd:~%i",ActiveVGA->precalcs.verticalretraceend); //When to stop vertical retrace.
 	dolog("VGA","VTotal:%i",ActiveVGA->precalcs.verticaltotal); //Full resolution plus vertical retrace!
 
-	dump_CRTCTiming(); //Dump all CRTC timing!
-	
-	startTimers(); //Restart all timers currently on!
+	//dump_CRTCTiming(); //Dump all CRTC timing!
 }
 
 void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, whereupdated: where were we updated?
@@ -257,7 +257,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word hblankend;
 			hblankend = VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER.EHB5;
-			hblankend <<= 5; //Move to bit 5!
+			hblankend <<= 5; //Move to bit 6!
 			hblankend |= VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EndHorizontalBlanking;
 			VGA->precalcs.horizontalblankingend = hblankend; //Load!
 			//dolog("VGA","HBlankEnd updated: %i",hblankend);
@@ -269,8 +269,8 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word hretracestart;
 			hretracestart = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALRETRACEREGISTER;
-			++hretracestart; //Start after this character!
 			hretracestart *= VGA->precalcs.characterwidth; //We're character units!
+			++hretracestart; //We start after this!
 			VGA->precalcs.horizontalretracestart = hretracestart; //Load!
 			//dolog("VGA","HRetStart updated: %i",hretracestart);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
@@ -293,6 +293,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			vdispend |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalDisplayEnd8;
 			vdispend <<= 8;
 			vdispend |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALDISPLAYENDREGISTER;
+			++vdispend; //Stop one scanline later: we're the final scanline!
 			VGA->precalcs.verticaldisplayend = vdispend;
 			VGA->precalcs.yres = vdispend;
 			//dolog("VGA","VDispEnd updated: %i",vdispend);
@@ -330,7 +331,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			vretracestart |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalRetraceStart8;
 			vretracestart <<= 8;
 			vretracestart |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACESTARTREGISTER;
-			//++vretracestart; //We end after this: we address the final scanline!
 			VGA->precalcs.verticalretracestart = vretracestart;
 			//dolog("VGA","VRetraceStart updated: %i",vretracestart);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
@@ -345,7 +345,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			vtotal |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalTotal8;
 			vtotal <<= 8;
 			vtotal |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALTOTALREGISTER;
-			++vtotal; //We end after the line specified!
+			++vtotal; //We end after the line specified, so specify the line to end at!
 			VGA->precalcs.verticaltotal = vtotal;
 			//dolog("VGA","VTotal updated: %i",vtotal);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!

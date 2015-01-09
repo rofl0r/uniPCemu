@@ -32,16 +32,6 @@ char *constsprintf(char *text, ...)
 	return &concatinations_constsprintf[0]; //Give the concatinated string!
 }
 
-//ANTI-NULL support!
-void *ANTINULL(void *ptr, char *location) //ANTI NULL Dereference!
-{
-	if (ptr==NULL) //NULL ptr?
-	{
-		raiseError(location,"NULL Dereference!");
-	}
-	return ptr; //Non-null: safe to use!
-}
-
 extern PSP_TEXTSURFACE *frameratesurface; //The framerate surface!
 void BREAKPOINT() //Break point!
 {

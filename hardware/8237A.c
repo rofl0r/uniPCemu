@@ -510,7 +510,7 @@ void initDMA()
 	if (!__HW_DISABLED) //Enabled?
 	{
 		//We're up to 1.6MB/s, so for 1 channel 1.6 million bytes per second, for all channels, to 8 channel 204953.6 bytes per second!
-		addtimer(1639628.8f,&DMA_tick,"DMA tick"); //Just use threads!
+		addtimer(1639628.8f,&DMA_tick,"DMA tick",100); //Just use threads!
 	}
 }
 
