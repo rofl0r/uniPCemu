@@ -1,3 +1,4 @@
+#include "headers/types.h" //Basic types!
 #include "headers/support/highrestimer.h" //Our own typedefs etc.
 #include "headers/support/log.h" //Logging support!
 
@@ -8,7 +9,8 @@ OPTINLINE void initTicksHolder(TicksHolder *ticksholder)
 {
 	if (resolutioninit) //Not loaded yet?
 	{
-		tickresolution = sceRtcGetTickResolution(); //Init resolution!
+		//tickresolution = sceRtcGetTickResolution(); //Init resolution!
+		tickresolution = 1000; //We have a resolution in ms!
 		resolutioninit = 0; //We're ready to run!
 	}
 	byte avg;
@@ -38,12 +40,14 @@ OPTINLINE void ticksholder_AVG(TicksHolder *ticksholder)
 
 OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 {
-	u64 result = 0; //The result!
+	/*u64 result = 0; //The result!
 	if (!sceRtcGetCurrentTick(&result)) //Try to retrieve current ticks as old ticks until we get it!
 	{
 		return result; //Give the result!
 	}
 	return 0; //Give the result: ticks passed!
+	*/
+	return SDL_GetTicks(); //Give the ticks passed!
 }
 
 OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)

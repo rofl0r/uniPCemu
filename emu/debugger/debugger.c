@@ -313,7 +313,7 @@ void debugger_screen() //Show debugger info on-screen!
 void debugger_step() //Processes the debugging step!
 {
 recheckdebugger: //For getting from the BIOS!
-	if ((debugging() && (psp_keypressed(PSP_CTRL_RTRIGGER) || (DEBUGGER_ALWAYS_STEP>0))) || (singlestep)) //Debugging step or single step enforced?
+	if ((debugging() && (psp_keypressed(BUTTON_RTRIGGER) || (DEBUGGER_ALWAYS_STEP>0))) || (singlestep)) //Debugging step or single step enforced?
 	{
 		pauseEMU(); //Pause it!
 
@@ -335,44 +335,44 @@ recheckdebugger: //For getting from the BIOS!
 			}
 			else
 			{
-				done = (!psp_keypressed(PSP_CTRL_RTRIGGER)); //Continue when release hold (except when forcing stepping), singlestep prevents this!
+				done = (!psp_keypressed(BUTTON_RTRIGGER)); //Continue when release hold (except when forcing stepping), singlestep prevents this!
 			}
 
-			if (psp_keypressed(PSP_CTRL_CROSS)) //Step (wait for release and break)?
+			if (psp_keypressed(BUTTON_CROSS)) //Step (wait for release and break)?
 			{
-				while (psp_keypressed(PSP_CTRL_CROSS)) //Wait for release!
+				while (psp_keypressed(BUTTON_CROSS)) //Wait for release!
 				{
 				}
 				//If single stepping, keep doing so!
 				return; //Done!
 				break;
 			}
-			if (psp_keypressed(PSP_CTRL_TRIANGLE)) //Dump screen?
+			if (psp_keypressed(BUTTON_TRIANGLE)) //Dump screen?
 			{
-				while (psp_keypressed(PSP_CTRL_TRIANGLE)) //Wait for release!
+				while (psp_keypressed(BUTTON_TRIANGLE)) //Wait for release!
 				{
 				}
 				int10_dumpscreen(); //Dump it!
 				break;
 			}
-			if (psp_keypressed(PSP_CTRL_SQUARE)) //Refresh screen?
+			if (psp_keypressed(BUTTON_SQUARE)) //Refresh screen?
 			{
 				renderHWFrame(); //Refresh it!
-				while (psp_keypressed(PSP_CTRL_SQUARE)) //Wait for release to show debugger again!
+				while (psp_keypressed(BUTTON_SQUARE)) //Wait for release to show debugger again!
 				{
 				}
 				debugger_screen(); //Show the debugger again!
 			}
-			if (psp_keypressed(PSP_CTRL_CIRCLE)) //Reset?
+			if (psp_keypressed(BUTTON_CIRCLE)) //Reset?
 			{
-				while (psp_keypressed(PSP_CTRL_CIRCLE)) //Wait for release!
+				while (psp_keypressed(BUTTON_CIRCLE)) //Wait for release!
 				{
 				}
 				resetCPU(); //Reset the CPU to reboot!
 				return; //We're resetting!
 				break;
 			}
-			if (psp_keypressed(PSP_CTRL_SELECT) && !is_gamingmode()) //Goto BIOS?
+			if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Goto BIOS?
 			{
 				runBIOS(); //Run the BIOS!
 				goto recheckdebugger; //Recheck the debugger!
@@ -398,7 +398,7 @@ int debugging() //Debugging?
 	{
 		return 1; //Always debug!
 	}
-	return psp_keypressed(PSP_CTRL_LTRIGGER); //Debugging according to LTRIGGER!!!
+	return psp_keypressed(BUTTON_LTRIGGER); //Debugging according to LTRIGGER!!!
 }
 
 void debugger_setcommand(char *text, ...)

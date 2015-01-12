@@ -7,7 +7,7 @@
 #include "headers/support/highrestimer.h" //High resolution timer support!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 RIFFHEADER *soundfont; //Our loaded soundfont!
 
 //All MIDI voices that are available!

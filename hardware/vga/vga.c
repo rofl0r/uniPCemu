@@ -29,7 +29,7 @@ VGA ROM and handling functions.
 #include "headers/emu/gpu/gpu_renderer.h" //GPU emulator support!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 #define __RENDERER_DISABLED 0
 
 extern GPU_type GPU; //GPU!

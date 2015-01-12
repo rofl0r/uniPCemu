@@ -4,6 +4,10 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/bios/bios.h" //BIOS support!
 
+//For time support!
+//#include <psprtc.h> //PSP Real Time Clock atm!
+#include <time.h>
+
 /*
 
 CMOS&RTC (Combined!)
@@ -11,7 +15,7 @@ CMOS&RTC (Combined!)
 */
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 word decodeBCD(word bcd)
 {
@@ -159,17 +163,15 @@ void RTC_PeriodicInterrupt() //Periodic Interrupt!
 void RTC_UpdateEndedInterrupt() //Update Ended Interrupt!
 {
 	//Apply time!
-	pspTime time;
-	if (!sceRtcGetCurrentClockLocalTime(&time)) //Time gotten?
-	{
-		CMOS.info.RTC_Year = encodeBCD8(time.year);
-		CMOS.info.RTC_Month = encodeBCD8(time.month);
-		CMOS.info.RTC_DateOfMonth = encodeBCD8(time.day);
-		CMOS.info.RTC_Hours = encodeBCD8(time.hour);
-		CMOS.info.RTC_Minutes = encodeBCD8(time.minutes);
-		CMOS.info.RTC_Seconds = encodeBCD8(time.seconds);
-		//Now the time is updated!
-	}
+	time_t t = time(0);
+	struct tm *curtime = localtime(&t); //Get the current time!
+	CMOS.info.RTC_Year = encodeBCD8(curtime->tm_year);
+	CMOS.info.RTC_Month = encodeBCD8(curtime->tm_mon);
+	CMOS.info.RTC_DateOfMonth = encodeBCD8(curtime->tm_mday);
+	CMOS.info.RTC_Hours = encodeBCD8(curtime->tm_hour);
+	CMOS.info.RTC_Minutes = encodeBCD8(curtime->tm_min);
+	CMOS.info.RTC_Seconds = encodeBCD8(curtime->tm_sec);
+	
 	CMOS.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
 
 	if (CMOS.data[0x0B]&0x10) //Enabled interrupt?

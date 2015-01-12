@@ -10,7 +10,7 @@
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer support!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 //Define pixel(stage/(scan&)newline) speed?
 #define DEBUG_PIXEL_SPEED
@@ -98,23 +98,22 @@ void renderFramerate()
 		GPU_textgotoxy(frameratesurface,0,0); //For output!
 		if (GPU.show_framerate)
 		{
-			SEQ_DATA *Sequencer;
-			VGA_Type *VGA;
-			if ((VGA = getActiveVGA())) //Gotten active VGA?
-			{
-				Sequencer = (SEQ_DATA *)VGA->Sequencer; //Sequencer!
-				GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),"FPS: %02.5f, AVG: %02.5f, Render time: %09ius",
-					framerate, //Current framrate (FPS)
-					totalframerate, //AVG framerate (FPS)
-					ms_render //Time it took to render (MS)
-					); //Show the framerate and average!
-				GPU_textgotoxy(frameratesurface,0,1); //Goto row 1!
-				GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x22,0x22,0x22),"Frames rendered: %i",totalframes); //Total # of frames rendered!
-
-				#ifdef DEBUG_PIXEL_SPEED
+			GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),"FPS: %02.5f, AVG: %02.5f, Render time: %09ius",
+				framerate, //Current framrate (FPS)
+				totalframerate, //AVG framerate (FPS)
+				ms_render //Time it took to render (MS)
+				); //Show the framerate and average!
+			GPU_textgotoxy(frameratesurface,0,1); //Goto row 1!
+			GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x22,0x22,0x22),"Frames rendered: %i",totalframes); //Total # of frames rendered!
+			#ifdef DEBUG_PIXEL_SPEED
+				SEQ_DATA *Sequencer;
+				VGA_Type *VGA;
+				if ((VGA = getActiveVGA())) //Gotten active VGA?
+				{
+					Sequencer = (SEQ_DATA *)VGA->Sequencer; //Sequencer!
 					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nVGA@Scanline: %i               ",Sequencer->Scanline); //Log the time taken per pixel AVG!
-				#endif
-			}
+				}
+			#endif
 		}
 		else //Don't debug framerate, but still render?
 		{
@@ -147,10 +146,8 @@ void initFramerate()
 	{
 		frames = 0; //Reset frames!
 	}
-	addtimer(FRAMERATE_SPEED,&GPU_Framerate_tick,"framerate",1);
+	addtimer(FRAMERATE_SPEED,&GPU_Framerate_tick,"Framerate",1);
 }
-
-extern GPU_type GPU; //The GPU itself!
 
 extern GPU_SDL_Surface *rendersurface; //The PSP's surface!
 

@@ -1,6 +1,7 @@
 #include "headers/types.h" //Only global stuff!
 #include "headers/emu/gpu/gpu.h" //GPU stuff!
 #include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //A dynamic image .DAT data:
 typedef struct

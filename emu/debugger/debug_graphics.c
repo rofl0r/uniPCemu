@@ -341,7 +341,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		BIOS_int10(); //Get location!
 		switch (key)
 		{
-		case PSP_CTRL_SQUARE: //Backspace?
+		case BUTTON_SQUARE: //Backspace?
 			CPU.registers->AH = 0xE; //Enter character!
 			CPU.registers->AL = 0x7; //One back!
 			CPU.registers->BH = 0; //Page!
@@ -360,14 +360,14 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 			CPU.registers->BL = 0xF; //Color!
 			BIOS_int10(); //Execute!
 			break;
-		case PSP_CTRL_CROSS: //Enter X?
+		case BUTTON_CROSS: //Enter X?
 			CPU.registers->AH = 0xE; //Enter character!
 			CPU.registers->AL = 'x'; //Our cross!
 			CPU.registers->BH = 0; //Page!
 			CPU.registers->BL = 0x2; //Color!
 			BIOS_int10(); //Execute!
 			break;
-		case PSP_CTRL_UP:
+		case BUTTON_UP:
 			if (CPU.registers->DH>0) //Below top?
 			{
 				CPU.registers->AH = 2; //Set cursor position!
@@ -375,7 +375,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 				BIOS_int10(); //Update!
 			}
 			break;
-		case PSP_CTRL_DOWN:
+		case BUTTON_DOWN:
 			if (CPU.registers->DH<24) //Above bottom?
 			{
 				CPU.registers->AH = 2; //Set cursor position!
@@ -383,7 +383,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 				BIOS_int10(); //Update!
 			}
 			break;
-		case PSP_CTRL_LEFT:
+		case BUTTON_LEFT:
 			if (CPU.registers->DL>0) //Not leftmost?
 			{
 				CPU.registers->AH = 2; //Set cursor position!
@@ -391,7 +391,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 				BIOS_int10(); //Update!
 			}
 			break;
-		case PSP_CTRL_RIGHT:
+		case BUTTON_RIGHT:
 			if (CPU.registers->DL<39) //Not rightmost?
 			{
 				CPU.registers->AH = 2; //Set cursor position!

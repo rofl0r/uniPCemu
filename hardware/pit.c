@@ -15,7 +15,7 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 #include "headers/hardware/pcspeaker.h" //PC speaker support!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 uint64_t timerticks; //Done externally!
 double timerfreq; //Done externally!

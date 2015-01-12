@@ -261,14 +261,6 @@ void tickadlib() {
 //sword audbuf[96000]; //Audio buffer!
 //uint_32 audbufptr = 0; //Current audiobuffer pointer!
 
-/*void tickAudio()
-{
-	sword sample; //A sample!
-	if (audbufptr>=NUMITEMS(audbuf)) return; //Nothing to do!
-	sample = adlibgensample(); //Generate a sample!
-	if (audbufptr<NUMITEMS(audbuf)) audbuf[audbufptr++] = sample; //Add a sample!
-}*/
-
 byte soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata) //Generate a sample!
 {
 	if (stereo) return 0; //We don't support stereo!
@@ -286,8 +278,6 @@ byte soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata) //Ge
 		return 0; //Unused channel!
 	}
 	
-	/*TicksHolder t;
-	startHiresCounting(&t);*/
 	uint_32 c;
 	c = length; //Init c!
 	char *data_mono;
@@ -298,7 +288,6 @@ byte soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata) //Ge
 		*data_mono++ = adlibgensample(); //Generate a mono sample!
 		if (!--c) return SOUNDHANDLER_RESULT_FILLED; //Next item!
 	}
-	//stopHiresCounting("soundgen","adlib",&t); //Log our timing!
 }
 
 //Multicall speedup!
@@ -307,10 +296,7 @@ byte soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata) //Ge
 void initAdlib()
 {
 	if (__HW_DISABLED) return; //Abort!
-	//set_port_write_redirector (baseport, baseport + 1, &outadlib);
-	//set_port_read_redirector (baseport, baseport + 1, &inadlib);
 	//All input!
-	//dolog("adlib","adding sound channel.");
 	if (__SOUND_ADLIB)
 	{
 		if (!addchannel(&soundGenerator,NULL,"Adlib",usesamplerate,0,0,SMPL8S)) //Start the sound emulation (mono) with automatic samples buffer?
@@ -329,7 +315,7 @@ void initAdlib()
 	register_PORTOUT(baseport,&outadlib); //Address port (W)
 	register_PORTOUT(baseport+1,&outadlib); //Data port (W/O)
 	//dolog("adlib","Registering timer...");
-	addtimer(49716.0,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER); //We run at 49.716Khz, about every 20us.
+	addtimer(49716.0f,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER); //We run at 49.716Khz, about every 20us.
 	//dolog("adlib","Ready"); //Ready to run!
 }
 

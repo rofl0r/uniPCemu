@@ -368,7 +368,7 @@ static byte coreHandler()
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 	
-	if (psp_keypressed(PSP_CTRL_SELECT) && !is_gamingmode()) //Run in-emulator BIOS menu and not gaming mode?
+	if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Run in-emulator BIOS menu and not gaming mode?
 	{
 		pauseEMU(); //Stop timers!
 		runBIOS(); //Run the 1emulator BIOS!

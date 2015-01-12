@@ -14,6 +14,9 @@
 
 #include "headers/emu/emucore.h" //Emulator core support for checking for memory leaks!
 
+#include <pspkernel.h>
+
+
 PSP_MODULE_INFO("x86EMU", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER); //Make sure we're user mode!
 PSP_HEAP_SIZE_MAX(); //Free maximum for us: need this for the memory allocation (m/zalloc)!
@@ -21,8 +24,6 @@ PSP_HEAP_SIZE_MAX(); //Free maximum for us: need this for the memory allocation 
 //Debug zalloc allocations?
 #define DEBUG_ZALLOC 0
 
-//Enable threading manager test?
-#define THREADTEST 0
 //Delete all logs on boot?
 #define DELETE_LOGS_ONBOOT 1
 //Delete all bitmaps on boot?
@@ -88,7 +89,7 @@ int exit_callback(int arg1, int arg2, void *common)
 	finishEMU(); //Finish the emulator!
 	freezall(); //Release all still allocated data when possible!
 	
-	if (SDL_WasInit(SDL_INIT_VIDEO|SDL_INIT_AUDIO)) //Video and/or audio loaded?
+	if (SDL_WasInit(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_JOYSTICK)) //Video and/or audio and joystick loaded?
 	{
 		SDL_Quit(); //Quit SDL, releasing everything still left!
 	}
@@ -129,18 +130,6 @@ Main emulation routine
 
 */
 
-void testthread()
-{
-	if (THREADTEST==2) //Keep running?
-	{
-		for(;;) //Wait forever!
-		{
-			delay(1); //Wait a bit!
-		}
-	}
-	return; //Just a simple testing of threads!
-}
-
 extern byte use_profiler; //To determine if the profiler is used!
 
 double clockspeed; //Current clock speed, for affecting timers!
@@ -164,6 +153,7 @@ int main(int argc, char * argv[])
 	}
 
 	initlog(); //Initialise the logging system!
+	resetTimers(); //Make sure all timers are ready!
 	
 	if (DEBUG_ZALLOC) //Verify zalloc functionality?
 	{
@@ -217,9 +207,6 @@ int main(int argc, char * argv[])
 	if (DELETE_LOGS_ONBOOT) delete_file("logs","*.log"); //Delete any logs still there!
 	if (DELETE_BMP_ONBOOT) delete_file("captures","*.bmp"); //Delete any bitmaps still there!
 	
-	initThreads(); //Initialise&reset thread subsystem!
-	psp_input_init(); //Make sure input is checked!	
-
 	if (FILE_EXISTS("profiler.txt")) //Enable profiler: doesn't work in EMU?
 	{
 		// Clear the existing profile regs
@@ -229,30 +216,23 @@ int main(int argc, char * argv[])
 		use_profiler = 1; //Use the profiler!	
 	}
 
-	if (!THREADTEST) //Not a thread test?
+	if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_JOYSTICK)==-1) //Error initialising video&audio?
 	{
-		if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO)==-1) //Error initialising video&audio?
-		{
-			raiseError("SDL Init error: %s",SDL_GetError()); //Raise an error!
-			sleep(); //Wait forever!
-		}
-		initVideoLayer(); //We're for allocating the main video layer, only deallocated using SDL_Quit (when quitting the application)!
+		raiseError("SDL Init error: %s",SDL_GetError()); //Raise an error!
+		sleep(); //Wait forever!
 	}
+	psp_input_init(); //Make sure input is checked!
+	initThreads(); //Initialise&reset thread subsystem!
+	initVideoLayer(); //We're for allocating the main video layer, only deallocated using SDL_Quit (when quitting the application)!
 	
 	resetmain: //Main reset!
 
-	if (!THREADTEST)
-	{
-		debugrow("Initialising main video service...");	
-		initVideoMain(); //All main video!
-		debugrow("Initialising main audio service...");	
-		initAudio(); //Initialise main audio!
-	}
+	debugrow("Initialising main video service...");	
+	initVideoMain(); //All main video!
+	debugrow("Initialising main audio service...");	
+	initAudio(); //Initialise main audio!
 
 //First, support for I/O on the PSP!
-
-	fontcolor(RGB(0xFF,0xFF,0xFF));
-	backcolor(RGB(0x00,0x00,0x00)); //Standard fonts/backs!
 
 	if (FIND_EMU_MEMORY_LEAKS) //Find memory leaks?
 	{
@@ -283,13 +263,10 @@ int main(int argc, char * argv[])
 		dolog("zalloc","Memory overflow at the end: %i bytes too much deallocated.",freemem()-freememstart); //Should be the ammount of data still allocated!
 		termThreads(); //Terminate all running threads still running!
 
-		if (!THREADTEST) //Not a thread test? Terminate!
-		{
-			debugrow("Terminating main audio service...");		
-			doneAudio(); //Finish audio processing!
-			debugrow("Terminating main video service...");		
-			doneVideoMain(); //Finish video!
-		}
+		debugrow("Terminating main audio service...");		
+		doneAudio(); //Finish audio processing!
+		debugrow("Terminating main video service...");		
+		doneVideoMain(); //Finish video!
 		halt(); //Exit software!
 		sleep(); //Wait forever if needed!
 	}
@@ -297,16 +274,26 @@ int main(int argc, char * argv[])
 	
 	ThreadParams_p rootthread; //The main thread we're going to use!
 	//Start of the visible part!
-	if (THREADTEST)
-	{
-		rootthread = startThread(&testthread,"X86EMU_Test",DEFAULT_PRIORITY); //Test it!
-	}
-	else
-	{
-		rootthread = startThread(&cputhread,"X86EMU_CPU",DEFAULT_PRIORITY); //Start the main thread (default priority)!
-	}
+	rootthread = startThread(&cputhread,"X86EMU_CPU",DEFAULT_PRIORITY); //Start the main thread (default priority)!
 
-	waitThreadEnd(rootthread); //Let the thread run and end!
+	//New SDL way!
+	/* Check for events */
+	SDL_Event event;
+	byte running;
+	running = 1; //Default: we're running!
+	for (;(ThreadsRunning() && running);) //Still running?
+	{
+		SDL_WaitEvent( &event ); //Gotten events to handle?
+		updateInput(&event); //Update input!
+		if (event.type==SDL_QUIT) //Quitting requested?
+		{
+			running = 0; //Terminate our app!
+		}
+	}
+	if (ThreadsRunning()) //Still running?
+	{
+		termThreads(); //Terminate our threads!
+	}
 
 	if (SLEEP_ON_MAIN_CLOSE) //Sleep on main thread close?
 	{
@@ -315,21 +302,17 @@ int main(int argc, char * argv[])
 
 	termThreads(); //Terminate all still running threads (minimum threads included)!
 	
-	if (!THREADTEST) //Not a thread test? Terminate!
+	debugrow("Terminating main audio service...");		
+	doneAudio(); //Finish audio processing!
+	debugrow("Terminating main video service...");		
+	doneVideoMain(); //Finish video!
+	freezall(); //Finish up: free all used pointers!
+	if (shutdown || !running) //Shutdown requested or SDL termination requested?
 	{
-		debugrow("Terminating main audio service...");		
-		doneAudio(); //Finish audio processing!
-		debugrow("Terminating main video service...");		
-		doneVideoMain(); //Finish video!
-		if (shutdown) //Shutdown requested?
-		{
-			freezall(); //Finish up: free all used pointers!
-			SDL_Quit(); //Quit using SDL, terminating the pspsurface!
-		}
+		SDL_Quit(); //Quit using SDL, terminating the pspsurface!
 	}
 
 	//Prepare us for a full software/emu reset
-	freezall(); //Finish up: free all used pointers!
 	goto resetmain; //Reset?
 	return 0; //Just here for, ehm.... nothing!
 }

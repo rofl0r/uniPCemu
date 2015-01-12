@@ -11,7 +11,7 @@ extern float kbd_repeat_rate[0x20]; //Rate in keys per second when trashing!
 extern Controller8042_t Controller8042; //The 8042 itself!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 PS2_KEYBOARD Keyboard; //Active keyboard settings!
 

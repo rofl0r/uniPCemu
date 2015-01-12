@@ -601,12 +601,6 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 				{
 					SDL_UnlockSurface( surface->sdllayer );
 				}
-
-				if (emu_use_profiler()) //To profile?
-				{
-					gotoxy(0,10);
-					pspDebugProfilerPrint(); //Print the profiler registgers to screen!
-				}
 			}
 			surface->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
 		}

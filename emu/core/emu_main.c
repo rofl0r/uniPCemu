@@ -91,11 +91,8 @@ Main thread for emulation!
 void cputhread() //The main thread for the emulator!
 {
 	doneEMU(); //Make sure we're all cleaned up!
-	fontcolor(RGB(0xFF,0xFF,0xFF)); //Make sure we have white text!
-	backcolor(RGB(0x00,0x00,0x00)); //And black background!
 
 	resetTimers(); //Stop all timers!
-	gotoxy(0,0);
 
 	initEMUreset(); //Reset initialisation!
 

@@ -26,7 +26,7 @@ ThreadParams threadpool[MAX_THREAD]; //Thread pool!
 
 //Thread allocation/deallocation!
 
-static int getthreadpoolindex(SceUID thid) //Get index of thread in thread pool!
+static int getthreadpoolindex(uint_32 thid) //Get index of thread in thread pool!
 {
 	int i;
 	for (i=0;i<NUMITEMS(threadpool);i++) //Process all known indexes!
@@ -57,7 +57,7 @@ static ThreadParams_p allocateThread() //Allocate a new thread to run (waits if 
 	goto newallocate; //Try again till we work!
 }
 
-static void releasePool(SceUID threadid) //Release a pooled thread if it exists!
+static void releasePool(uint_32 threadid) //Release a pooled thread if it exists!
 {
 	int index;
 	if ((index = getthreadpoolindex(threadid))!=-1) //Gotten index?
@@ -66,7 +66,7 @@ static void releasePool(SceUID threadid) //Release a pooled thread if it exists!
 	}
 }
 
-static void activeThread(SceUID threadid)
+static void activeThread(uint_32 threadid)
 {
 	int index; //The index to be used!
 	//dolog("threads","activeThread...");
@@ -77,7 +77,7 @@ static void activeThread(SceUID threadid)
 	//dolog("threads","activeThread_RET!");
 }
 
-static void deleteThread(SceUID thid)
+static void deleteThread(uint_32 thid)
 {
 	if (sceKernelDeleteThread(thid)>=0) //Deleted?
 	{
@@ -86,14 +86,22 @@ static void deleteThread(SceUID thid)
 	}
 }
 
-void terminateThread(SceUID thid) //Terminate the thread!
+void terminateThread(uint_32 thid) //Terminate the thread!
 {
 	//dolog("threads","terminateThread: Terminating thread: %x",thid);
+	SDL_Thread *thread;
+	int thnr;
+	thnr = getthreadpoolindex(thid);
+	if (thnr)
+	{
+		thread = threadpool[thnr].thread; //Get the thread!
+	}
 	releasePool(thid); //Release from pool if available!
-	sceKernelTerminateDeleteThread(thid); //Exit and delete myself!
+	//sceKernelTerminateDeleteThread(thid); //Exit and delete myself!
+	SDL_KillThread(thread); //Kill this thread!
 }
 
-static void runcallback(SceUID thid)
+static void runcallback(uint_32 thid)
 {
 	//dolog("threads","Runcallback...");
 	//Now run the requested thread!
@@ -158,9 +166,9 @@ threadhandler: The actual thread running over all other threads.
 
 */
 
-int threadhandler(SceSize args, void *params)
+int threadhandler(/*SceSize args, void *params*/ void *data)
 {
-	SceUID thid = sceKernelGetThreadId(); //The thread ID!
+	uint_32 thid = SDL_ThreadID(); //The thread ID!
 	activeThread(thid); //Mark us as running!
 	runcallback(thid); //Run the callback!
 	terminateThread(thid); //Terminate ourselves!
@@ -243,13 +251,12 @@ void initThreads() //Initialise&reset thread subsystem!
 }
 
 
-static void threadCreaten(ThreadParams_p params, SceUID threadID, char *name)
+static void threadCreaten(ThreadParams_p params, uint_32 threadID, char *name)
 {
 	//dolog("threads","threadCreaten...");
 	if (params) //Gotten params?
 	{
 	//dolog("threads","threadCreaten set...");
-	params->status = THREADSTATUS_CREATEN; //Createn!
 	params->threadID = threadID; //The thread ID!
 	bzero(params->name,sizeof(params->name));
 	strcpy(params->name,name); //Save the name for usage!
@@ -297,22 +304,28 @@ ThreadParams_p startThread(Handler thefunc, char *name, int priority) //Start a 
 	//First, allocate a thread position!
 	ThreadParams_p params = allocateThread(); //Allocate a thread for us, wait for any to come free in the meanwhile!
 //Next, start the timer function!
-	SceUID thid; //The thread ID to allocate!
-	
+	//SceUID thid; //The thread ID to allocate!
+	params->callback = thefunc; //The function to run!
+	params->status = THREADSTATUS_CREATEN; //Createn!
+
+	uint_32 thid; //The thread ID!
 	//dolog("threads","startThread: createThread...");
-	docreatethread: //Try to create a thread!
-	thid = sceKernelCreateThread(name, threadhandler, priority, THREAD_STACKSIZE, PSP_THREAD_ATTR_USER|PSP_THREAD_ATTR_NO_FILLSTACK|PSP_THREAD_ATTR_CLEAR_STACK, NULL); //Try to create the thread!
-	if (!thid) //Failed to create?
+	docreatethread: //Try to start a thread!
+	params->thread = SDL_CreateThread(threadhandler,params); //Create the thread!
+	
+	if (!params->thread) //Failed to create?
 	{
 		delay(100); //Wait a bit!
 		goto docreatethread; //Try again!
 	}
+	threadCreaten(params,thid,name); //We've been createn!
+
+	return params; //Give the thread createn!
 
 	//dolog("threads","startThread: threadCreaten...");
-	threadCreaten(params,thid,name); //We've been createn!
 	
 	//dolog("threads","startThread: checking params...");
-	if (params) //Valid params?
+	/*if (params) //Valid params?
 	{
 		//dolog("threads","startThread: Checking status...");
 		if (params->status) //We're ready to go?
@@ -331,9 +344,9 @@ ThreadParams_p startThread(Handler thefunc, char *name, int priority) //Start a 
 			//dolog("threads","startThread: Status wrong. Calling deleteThread...");
 			deleteThread(thid); //Cleanup the parameters!
 		}
-	}
+	}*/
 	//dolog("threads","startThread: RET...");
-	return NULL; //Failed to allocate!
+	//return NULL; //Failed to allocate!
 }
 
 void waitThreadEnd(ThreadParams_p thread) //Wait for this thread to end!
@@ -348,7 +361,9 @@ void waitThreadEnd(ThreadParams_p thread) //Wait for this thread to end!
 				{
 					delay(100); //Wait for a bit for the thread to start!
 				}
-				sceKernelWaitThreadEnd(thread->threadID,NULL); //Wait for it to end, wait infinitely!
+				//sceKernelWaitThreadEnd(thread->threadID,NULL); //Wait for it to end, wait infinitely!
+				int dummy;
+				SDL_WaitThread(thread->thread,&dummy); //Wait for the thread to end, ignore the result from the thread!
 			}
 		}
 	}
@@ -357,7 +372,7 @@ void waitThreadEnd(ThreadParams_p thread) //Wait for this thread to end!
 
 void quitThread() //Quit the current thread!
 {
-	SceUID thid = sceKernelGetThreadId(); //Get the current thread ID!
+	uint_32 thid = SDL_ThreadID(); //Get the current thread ID!
 	terminateThread(thid); //Terminate ourselves!
 }
 

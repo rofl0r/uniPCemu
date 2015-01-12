@@ -4,7 +4,7 @@
 #include "headers/support/highrestimer.h" //High-resolution timer for additional precision!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 //Timer step in us! Originally 100ms now 10000?
 #define TIMER_STEP 1
@@ -29,7 +29,7 @@ typedef struct
 	uint_32 counterlimit; //Limit of the ammount of counters to execute!
 } TIMER; //A timer's data!
 
-TIMER timers[10]; //We use 10 timers!
+TIMER timers[100]; //We use up to 100 timers!
 
 ThreadParams_p timerthread = NULL; //Our thread!
 
@@ -114,49 +114,51 @@ void timer_calcfreq(int timer)
 
 void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit)
 {
-	char emptystring = '\0';
-	if (!name) name = &emptystring;
-	dolog("zalloc","Addtimer!");
+	dolog("timer","Addtimer:%s!",name);
 	if (__HW_DISABLED) return; //Abort!
 	if (frequency==0.0f)
 	{
+		dolog("timer",":removetimer");
 		removetimer(name); //Remove the timer if it's there!
 		return; //Don't add without frequency: 0 times/sec is never!
 	}
 	int i;
+	int timerpos = -1; //Timer position to use!
 	for (i=0; i<NUMITEMS(timers); i++) //Check for existing timer!
 	{
-		if (strcmp(timers[i].name,name)==0) //Found?
+		if (timers[i].name==name) //Found?
 		{
-			timers[i].handler = timer; //Edit timer if needed!
-//Leave counter alone!
-			timers[i].frequency = frequency; //Edit frequency!
-//Timer name is already set!
-			timers[i].enabled = 1; //Set to enabled by default!
-			timers[i].counterlimit = counterlimit; //The counter limit!
-			timer_calcfreq(i);
-			return; //Done: we've found the timer and updated it!
+			timerpos = i; //Use this position!
+			break; //Quit our search!
 		}
 	}
 
 //Now for new timers!
-	dolog("zalloc","Allocating timer...");
-	for (i=0; i<NUMITEMS(timers); i++)
+	if (timerpos==-1) //New timer?
 	{
-		if (timers[i].frequency==0.0) //Not set?
+		for (i=0; i<NUMITEMS(timers); i++)
 		{
-			timers[i].handler = timer; //Set timer!
-			timers[i].counter = 0; //Reset counter!
-			timers[i].frequency = frequency; //Start timer!
-			timers[i].counterlimit = counterlimit; //The counter limit!
-			strcpy(timers[i].name,name); //Timer name!
-			timers[i].enabled = 1; //Set to enabled by default!
-			timer_calcfreq(i);
-			dolog("zalloc","Timer ready.");
-			break;
+			if (!timers[i].frequency) //Not set?
+			{
+				timerpos = i; //Use this position!
+				break; //Quit our search!
+			}
 		}
 	}
-	dolog("zalloc","Ran out of timers!");
+	
+	if (timerpos!=-1) //Found a position to add?
+	{
+		timers[timerpos].handler = timer; //Set timer!
+		timers[timerpos].counter = 0; //Reset counter!
+		timers[timerpos].frequency = frequency; //Start timer!
+		timers[timerpos].counterlimit = counterlimit; //The counter limit!
+		memset(timers[timerpos].name,0,sizeof(timers[timerpos].name)); //Init name!
+		strcpy(timers[timerpos].name,name); //Timer name!
+		timers[timerpos].enabled = 1; //Set to enabled by default!
+		timer_calcfreq(timerpos);
+		return; //Finished: we're added!
+	}
+	dolog("timer","Ran out of timers!");
 }
 
 void cleartimers() //Clear all running timers!
@@ -235,9 +237,4 @@ void resetTimers() //Init/Reset all timers to go off and turn off all handlers!
 	if (__HW_DISABLED) return; //Abort!
 	stopTimers(); //Stop timer thread!
 	memset(&timers,0,sizeof(timers)); //Reset all!
-	int i;
-	for (i=0;i<NUMITEMS(timers);i++)
-	{
-		timers[i].handler = NULL; //Default to NULL ptr!
-	}
 }

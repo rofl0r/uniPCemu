@@ -8,18 +8,18 @@ void initlog()
 
 void dolog(char *filename, const char *format, ...) //Logging functionality!
 {
-	char emptystring = '\0'; //Empty string!
-	if (!filename) filename = &emptystring;
-	char filenametmp[256];
+	static char filenametmp[256];
+	static char logtext[256];
+	static char timestamp[256];
+
+	//First: init variables!
 	bzero(filenametmp,sizeof(filenametmp)); //Init filename!
-	char logtext[256];
 	bzero(logtext,sizeof(logtext)); //Init logging text!
-	char timestamp[256];
 	bzero(timestamp,sizeof(timestamp)); //Init timestamp text!
 	
 	strcpy(filenametmp,"logs/"); //Base directory!
 	strcat(filenametmp,filename); //Add the filename to the directory!
-	if (!strcmp(filename,"")) //Empty filename?
+	if (!*filename) //Empty filename?
 	{
 		strcpy(filenametmp,"unknown"); //Empty filename = unknown.log!
 	}

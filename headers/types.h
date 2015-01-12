@@ -1,31 +1,45 @@
 #ifndef TYPESEMU_H
 #define TYPESEMU_H
 
-#include <psptypes.h> //For long long etc. (u64 etc).
 #include <stdlib.h>
-#include <pspkernel.h>
-#include <pspdebug.h>
-#include <pspdebugkb.h> //Keyboard!
+
 #include <stdint.h>
-#include <pspdisplay.h>
 #include <stdarg.h>
 #include <string.h>
-#include <pspctrl.h>
-#include <psppower.h>
 #include <ctype.h> //C type!
 #include <stdlib.h>
 #include <dirent.h>
-#include <pspthreadman.h> //For threads!
 #include <float.h> //FLT_MAX support!
 
 //For speaker!
-#include <pspaudiolib.h>
 #include <math.h>
 #include <limits.h>
 
 //For timing!
-#include <psprtc.h> //Real Time Clock!
 #include <stdio.h>
+
+//Our basic SDL support we always will need!
+#include "SDL/SDL.h" //SDL library!
+
+//Our basic functionality we need for running this program!
+//We have less accuracy using SDL delay: ms instead of us. Round to 1ms if needed!
+#define delay(us) SDL_Delay((us)/1000)
+//Sleep is an infinite delay
+#define sleep() for (;;) SDL_Delay(1)
+#define halt SDL_Quit
+
+#ifdef _WIN32
+//Windows-specific headers!
+#define mkdir _mkdir
+#else
+//Basic PSP headers!
+/*
+#define delay sceKernelDelayThread
+#define sleep sceKernelSleepThread
+#define halt sceKernelExitGame
+#define mkdir(dir) sceIoMkdir(dir,0777)
+*/
+#endif
 
 #define EXIT_PRIORITY 0x11
 //Exit priority, higest of all!
@@ -42,43 +56,9 @@ typedef signed short sword; //Signed!
 #define TRUE 1
 #define FALSE 0
 
-#define printf pspDebugScreenPrintf
-#define wherex pspDebugScreenGetX
-#define wherey pspDebugScreenGetY
-#define gotoxy pspDebugScreenSetXY
-#define fontcolor pspDebugScreenSetTextColor
-#define backcolor pspDebugScreenSetBackColor
-//Real clearscreen:
-#define realclrscr pspDebugScreenClear
-#define delay sceKernelDelayThread
-#define sleep sceKernelSleepThread
-#define halt sceKernelExitGame
-#define mkdir(dir) sceIoMkdir(dir,0777)
-
 typedef s64 int64;
 typedef u64 uint64;
 typedef uint64 FILEPOS;
-
-//64-bit file support (or not)!
-/*#ifdef __FILE_SUPPORT_64
-//64-bits wide file support!
-#define fopen64 fopen64
-#define fseek64 fseeko64
-#define ftell64 ftello64
-#define fread64 fread64
-#define fwrite64 fwrite64
-#define fclose64 fclose64
-#else
-*/
-//32-bits wide file support!
-#define fopen64 fopen64
-#define fseek64 fseek64
-#define ftell64 ftell64
-#define feof64 feof64
-#define fread64 fread64
-#define fwrite64 fwrite64
-#define fclose64 fclose64
-//#endif
 
 //RGB, with and without A (full)
 #define RGBA(r, g, b, a) ((r)|((g)<<8)|((b)<<16)|((a)<<24))
@@ -166,8 +146,6 @@ void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 
 //INLINE options!
 #define OPTINLINE 
-
-#include "headers/fopen64.h" //64-bit fopen support!
 
 OPTINLINE double getCurrentClockSpeed(); //Retrieves the current clock speed!
 #endif

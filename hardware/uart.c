@@ -6,7 +6,7 @@
 #include "headers/hardware/uart.h" //UART support (ourselves)!
 
 //Hardware disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 struct
 {

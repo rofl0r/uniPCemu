@@ -59,6 +59,7 @@ byte force_memoryredetect = 0; //Force memory redetect?
 
 void resetMMU()
 {
+	byte memory_allowresize = 1; //Do we allow resizing?
 	if (__HW_DISABLED) return; //Abort!
 	doneMMU(); //We're doing a full reset!
 	resetmmu:
@@ -70,15 +71,21 @@ void resetMMU()
 	user_memory_used = 0; //Default: no memory used yet!
 	if (MMU.memory!=NULL && !force_memoryredetect) //Allocated and not forcing redetect?
 	{
-		MMU_wraparround(1); //Default: wrap arround!
+		MMU_wraparround(1); //Default: wrap arround 20 bits memory address!
 	}
 	else //Not allocated?
 	{
+		MMU.size = 0; //We don't have size!
 		doneMMU(); //Free up memory if allocated, to make sure we're not allocated anymore on the next try!
-		autoDetectMemorySize(1); //Redetect memory size!
-		force_memoryredetect = 0; //Not forcing redetect anymore: we've been redetected!
-		goto resetmmu; //Try again!
+		if (memory_allowresize) //Can we resize memory?
+		{
+			autoDetectMemorySize(1); //Redetect memory size!
+			force_memoryredetect = 0; //Not forcing redetect anymore: we've been redetected!
+			memory_allowresize = 0; //Don't allow resizing anymore!
+			goto resetmmu; //Try again!
+		}
 	}
+	memory_allowresize = 1; //Allow resizing again!
 	if (!MMU.size) //No size?
 	{
 		raiseError("MMU","No memory available to use!");

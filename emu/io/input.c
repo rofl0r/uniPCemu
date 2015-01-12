@@ -15,8 +15,16 @@
 
 #include "headers/support/log.h" //Logging support!
 
+#include <SDL/SDL_joystick.h> //Joystick support!
+
+enum input_button_map { //All buttons we support!
+INPUT_BUTTON_TRIANGLE, INPUT_BUTTON_CIRCLE, INPUT_BUTTON_CROSS, INPUT_BUTTON_SQUARE,
+INPUT_BUTTON_LTRIGGER, INPUT_BUTTON_RTRIGGER,
+INPUT_BUTTON_DOWN, INPUT_BUTTON_LEFT, INPUT_BUTTON_UP, INPUT_BUTTON_RIGHT,
+INPUT_BUTTON_SELECT, INPUT_BUTTON_START, INPUT_BUTTON_HOME, INPUT_BUTTON_HOLD };
+
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 //Time between keyboard set swapping.
 #define KEYSWAP_DELAY 100000
@@ -35,26 +43,18 @@ byte input_buffer_input = 0; //To buffer, instead of straigt into emulation (giv
 int input_buffer_shift = -1; //Ctrl-Shift-Alt Status for the pressed key!
 int input_buffer = -1; //To contain the pressed key!
 
-SceCtrlData input; //Current input status!
-
 PSP_INPUTSTATE curstat; //Current status!
 
-void updateInput() //Update all input!
+struct
 {
-	/*for (;;)
-	{*/
-		SceCtrlData temp; //Current input status!
-		if (sceCtrlReadBufferPositive(&temp, 1)) //Anything happened!
-		{
-			memcpy(&input,&temp,sizeof(input)); //Copy to actived input!
-		}
-		/*delay(100000); //Refresh 10x/second.
-	}*/
-}
+	uint_32 Buttons; //Currently pressed buttons!
+	sword Lx; //X axis!
+	sword Ly; //Y axis!
+	byte keyboardjoy_direction; //Keyboard joystick direction (internal use only)
+} input;
 
 int psp_inputkey() //Simple key sampling!
 {
-	updateInput(); //Update the input!
 	return input.Buttons; //Give buttons pressed!
 }
 
@@ -102,7 +102,6 @@ extern BIOS_Settings_TYPE BIOS_Settings; //Our BIOS Settings!
 
 void get_analog_state(PSP_INPUTSTATE *state) //Get the current state for mouse/analog driver!
 {
-	updateInput(); //Make sure our input is up-to-date!
 	//Clear all we set!
 	state->analogdirection_mouse_x = 0; //No mouse X movement!
 	state->analogdirection_mouse_y = 0; //No mouse Y movement!
@@ -114,8 +113,8 @@ void get_analog_state(PSP_INPUTSTATE *state) //Get the current state for mouse/a
 	
 	int x; //Analog x!
 	int y; //Analog y!
-	x = input.Lx-128; //Convert to signed!
-	y = input.Ly-128; //Convert to signed!
+	x = input.Lx; //Convert to signed!
+	y = input.Ly; //Convert to signed!
 	
 	//Now, apply analog_minrange!
 	
@@ -190,54 +189,54 @@ void get_analog_state(PSP_INPUTSTATE *state) //Get the current state for mouse/a
 			state->analogdirection_keyboard_y = -1; //Negative simple!
 		}
 
-		if ((input.Buttons&PSP_CTRL_TRIANGLE)>0) //Triangle?
+		if ((input.Buttons&BUTTON_TRIANGLE)>0) //Triangle?
 		{
 			state->buttonpress |= 2; //Triangle!
 		}
-		if ((input.Buttons&PSP_CTRL_SQUARE)>0) //Square?
+		if ((input.Buttons&BUTTON_SQUARE)>0) //Square?
 		{
 			state->buttonpress |= 1; //Square!
 		}
-		if ((input.Buttons&PSP_CTRL_CROSS)>0) //Cross?
+		if ((input.Buttons&BUTTON_CROSS)>0) //Cross?
 		{
 			state->buttonpress |= 8; //Cross!
 		}
-		if ((input.Buttons&PSP_CTRL_CIRCLE)>0) //Circle?
+		if ((input.Buttons&BUTTON_CIRCLE)>0) //Circle?
 		{
 			state->buttonpress |= 4; //Circle!
 		}
 
-		if ((input.Buttons&PSP_CTRL_LEFT)>0) //Left?
+		if ((input.Buttons&BUTTON_LEFT)>0) //Left?
 		{
 			state->buttonpress |= 16; //Left!
 		}
 
-		if ((input.Buttons&PSP_CTRL_UP)>0) //Up?
+		if ((input.Buttons&BUTTON_UP)>0) //Up?
 		{
 			state->buttonpress |= 32; //Up!
 		}
 
-		if ((input.Buttons&PSP_CTRL_RIGHT)>0) //Right?
+		if ((input.Buttons&BUTTON_RIGHT)>0) //Right?
 		{
 			state->buttonpress |= 64; //Right!
 		}
 
-		if ((input.Buttons&PSP_CTRL_DOWN)>0) //Down?
+		if ((input.Buttons&BUTTON_DOWN)>0) //Down?
 		{
 			state->buttonpress |= 128; //Down!
 		}
 
-		if ((input.Buttons&PSP_CTRL_LTRIGGER)>0) //L?
+		if ((input.Buttons&BUTTON_LTRIGGER)>0) //L?
 		{
 			state->buttonpress |= 256; //L!
 		}
 
-		if ((input.Buttons&PSP_CTRL_RTRIGGER)>0) //R?
+		if ((input.Buttons&BUTTON_RTRIGGER)>0) //R?
 		{
 			state->buttonpress |= 512; //R!
 		}
 
-		if ((input.Buttons&PSP_CTRL_START)>0) //START?
+		if ((input.Buttons&BUTTON_START)>0) //START?
 		{
 			state->buttonpress |= 1024; //START!
 		}		
@@ -250,54 +249,54 @@ void get_analog_state(PSP_INPUTSTATE *state) //Get the current state for mouse/a
 			state->analogdirection_mouse_x = x; //Mouse X movement!
 			state->analogdirection_mouse_y = y; //Mouse Y movement!
 			//The face buttons are OR-ed!
-			if ((input.Buttons&PSP_CTRL_TRIANGLE)>0) //Triangle?
+			if ((input.Buttons&BUTTON_TRIANGLE)>0) //Triangle?
 			{
 				state->buttonpress |= 2; //Triangle!
 			}
-			else if ((input.Buttons&PSP_CTRL_SQUARE)>0) //Square?
+			else if ((input.Buttons&BUTTON_SQUARE)>0) //Square?
 			{
 				state->buttonpress |= 1; //Square!
 			}
-			else if ((input.Buttons&PSP_CTRL_CROSS)>0) //Cross?
+			else if ((input.Buttons&BUTTON_CROSS)>0) //Cross?
 			{
 				state->buttonpress |= 8; //Cross!
 			}
-			else if ((input.Buttons&PSP_CTRL_CIRCLE)>0) //Circle?
+			else if ((input.Buttons&BUTTON_CIRCLE)>0) //Circle?
 			{
 				state->buttonpress |= 4; //Circle!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_LEFT)>0) //Left?
+			if ((input.Buttons&BUTTON_LEFT)>0) //Left?
 			{
 				state->buttonpress |= 16; //Left!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_UP)>0) //Up?
+			if ((input.Buttons&BUTTON_UP)>0) //Up?
 			{
 				state->buttonpress |= 32; //Up!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_RIGHT)>0) //Right?
+			if ((input.Buttons&BUTTON_RIGHT)>0) //Right?
 			{
 				state->buttonpress |= 64; //Right!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_DOWN)>0) //Down?
+			if ((input.Buttons&BUTTON_DOWN)>0) //Down?
 			{
 				state->buttonpress |= 128; //Down!
 			}
 			
-			if ((input.Buttons&PSP_CTRL_LTRIGGER)>0) //L?
+			if ((input.Buttons&BUTTON_LTRIGGER)>0) //L?
 			{
 				state->buttonpress |= 256; //L!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_RTRIGGER)>0) //R?
+			if ((input.Buttons&BUTTON_RTRIGGER)>0) //R?
 			{
 				state->buttonpress |= 512; //R!
 			}		
 			
-			if ((input.Buttons&PSP_CTRL_START)) //START?
+			if ((input.Buttons&BUTTON_START)) //START?
 			{
 				state->buttonpress |= 1024; //START!
 			}
@@ -326,54 +325,54 @@ void get_analog_state(PSP_INPUTSTATE *state) //Get the current state for mouse/a
 			}
 	
 			//The face buttons are OR-ed!
-			if ((input.Buttons&PSP_CTRL_TRIANGLE)>0) //Triangle?
+			if ((input.Buttons&BUTTON_TRIANGLE)>0) //Triangle?
 			{
 				state->buttonpress |= 2; //Triangle!
 			}
-			else if ((input.Buttons&PSP_CTRL_SQUARE)>0) //Square?
+			else if ((input.Buttons&BUTTON_SQUARE)>0) //Square?
 			{
 				state->buttonpress |= 1; //Square!
 			}
-			else if ((input.Buttons&PSP_CTRL_CROSS)>0) //Cross?
+			else if ((input.Buttons&BUTTON_CROSS)>0) //Cross?
 			{
 				state->buttonpress |= 8; //Cross!
 			}
-			else if ((input.Buttons&PSP_CTRL_CIRCLE)>0) //Circle?
+			else if ((input.Buttons&BUTTON_CIRCLE)>0) //Circle?
 			{
 				state->buttonpress |= 4; //Circle!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_LEFT)>0) //Left?
+			if ((input.Buttons&BUTTON_LEFT)>0) //Left?
 			{
 				state->buttonpress |= 16; //Left!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_UP)>0) //Up?
+			if ((input.Buttons&BUTTON_UP)>0) //Up?
 			{
 				state->buttonpress |= 32; //Up!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_RIGHT)>0) //Right?
+			if ((input.Buttons&BUTTON_RIGHT)>0) //Right?
 			{
 				state->buttonpress |= 64; //Right!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_DOWN)>0) //Down?
+			if ((input.Buttons&BUTTON_DOWN)>0) //Down?
 			{
 				state->buttonpress |= 128; //Down!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_LTRIGGER)>0) //L?
+			if ((input.Buttons&BUTTON_LTRIGGER)>0) //L?
 			{
 				state->buttonpress |= 256; //L!
 			}
 	
-			if ((input.Buttons&PSP_CTRL_RTRIGGER)>0) //R?
+			if ((input.Buttons&BUTTON_RTRIGGER)>0) //R?
 			{
 				state->buttonpress |= 512; //R!
 			}
 			
-			if ((input.Buttons&PSP_CTRL_START)) //START?
+			if ((input.Buttons&BUTTON_START)) //START?
 			{
 				state->buttonpress |= 1024; //START!
 			}		
@@ -847,7 +846,7 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 		{
 		if (curstat.gamingmode) //Gaming mode?
 		{
-			if (psp_inputkey()&PSP_CTRL_SELECT) //Quit gaming mode?
+			if (psp_inputkey()&BUTTON_SELECT) //Quit gaming mode?
 			{
 				curstat.gamingmode = 0; //Disable gaming mode!
 			}
@@ -856,20 +855,20 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 		{
 			int curkey;
 			curkey = psp_inputkey(); //Read current keys with delay!
-			if ((curkey&PSP_CTRL_LTRIGGER) && (!(curkey&PSP_CTRL_RTRIGGER))) //Not L&R (which is CAPS LOCK) special?
+			if ((curkey&BUTTON_LTRIGGER) && (!(curkey&BUTTON_RTRIGGER))) //Not L&R (which is CAPS LOCK) special?
 			{
 				currentset = (currentset+1)%3; //Next set!
 				currentkey = 0; //No keys pressed!
 				//Disable all output still standing!
 				ReleaseKeys(); //Release all keys!
 			}
-			else if (curkey&PSP_CTRL_DOWN) //Down pressed: swap to gaming mode!
+			else if (curkey&BUTTON_DOWN) //Down pressed: swap to gaming mode!
 			{
 				currentkey = 0; //No keys pressed!
 				ReleaseKeys(); //Release all keys!
 				curstat.gamingmode = 1; //Enable gaming mode!
 			}
-			else if (curkey&PSP_CTRL_START) //Swap to mouse mode!
+			else if (curkey&BUTTON_START) //Swap to mouse mode!
 			{
 				currentkey = 0; //No keys pressed!
 				ReleaseKeys(); //Release all keys!
@@ -878,11 +877,11 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 		}
 		else if (curstat.mode==0 && input_enabled) //Mouse active?
 		{
-			if (psp_inputkey()&PSP_CTRL_DOWN) //Down pressed: swap to gaming mode!
+			if (psp_inputkey()&BUTTON_DOWN) //Down pressed: swap to gaming mode!
 			{
 				curstat.gamingmode = 1; //Enable gaming mode!
 			}
-			else if (psp_inputkey()&PSP_CTRL_START) //Swap to keyboard mode!
+			else if (psp_inputkey()&BUTTON_START) //Swap to keyboard mode!
 			{
 				curstat.mode = 1; //Swap to keyboard mode!
 			}
@@ -1576,21 +1575,298 @@ void enableKeyboard(int bufferinput) //Enables the keyboard/mouse functionnality
 
 //ThreadParams_p input_thread = NULL;
 
+SDL_Joystick *joystick; //Our joystick!
+
+void updateMOD(SDL_Event *event)
+{
+	if (event->key.keysym.mod&KMOD_CTRL) //HOME pressed?
+	{
+		input.Buttons |= BUTTON_HOME; //Pressed!
+	}
+	else
+	{
+		input.Buttons &= ~BUTTON_HOME; //Released!
+	}
+	sword axis;
+	axis = 0; //Init!
+	if (input.keyboardjoy_direction&1) //Up?
+	{
+		axis -= 32768; //Decrease
+	}
+	if (input.keyboardjoy_direction&2) //Down?
+	{
+		axis += 32767; //Increase!
+	}
+	input.Ly = axis; //Vertical axis!
+
+	axis = 0; //Init!
+	if (input.keyboardjoy_direction&4) //Left?
+	{
+		axis -= 32768; //Decrease
+	}
+	if (input.keyboardjoy_direction&8) //Right?
+	{
+		axis += 32767; //Increase!
+	}
+	input.Lx = axis; //Horizontal axis!
+}
+
+void updateInput(SDL_Event *event) //Update all input!
+{
+	switch (event->type)
+	{
+		case SDL_KEYUP: //Keyboard up?
+			if (!SDL_NumJoysticks()) //Gotten no joystick?
+			{
+				switch (event->key.keysym.sym) //What key?
+				{
+					case SDLK_BACKSLASH: //HOLD?
+						input.Buttons &= ~BUTTON_HOLD; //Pressed!
+						break;
+					case SDLK_BACKSPACE: //SELECT?
+						input.Buttons &= ~BUTTON_SELECT; //Pressed!
+						break;
+					case SDLK_RETURN: //START?
+						input.Buttons &= ~BUTTON_START; //Pressed!
+						break;
+					case SDLK_UP: //UP?
+						input.Buttons &= ~BUTTON_UP; //Pressed!
+						break;
+					case SDLK_DOWN: //DOWN?
+						input.Buttons &= ~BUTTON_DOWN; //Pressed!
+						break;
+					case SDLK_LEFT: //LEFT?
+						input.Buttons &= ~BUTTON_LEFT; //Pressed!
+						break;
+					case SDLK_RIGHT: //RIGHT?
+						input.Buttons &= ~BUTTON_RIGHT; //Pressed!
+						break;
+					case SDLK_q: //LTRIGGER?
+						input.Buttons &= ~BUTTON_LTRIGGER; //Pressed!
+						break;
+					case SDLK_w: //RTRIGGER?
+						input.Buttons &= ~BUTTON_RTRIGGER; //Pressed!
+						break;
+					case SDLK_i: //Joy up?
+						input.keyboardjoy_direction &= ~1; //Up!
+						break;
+					case SDLK_j: //Joy left?
+						input.keyboardjoy_direction &= ~4; //Left!
+						break;
+					case SDLK_k: //Joy down?
+						input.keyboardjoy_direction &= ~2; //Down!
+						break;
+					case SDLK_l: //Joy right?
+						input.keyboardjoy_direction &= ~8; //Down!
+						break;
+					case SDLK_KP8: //TRIANGLE?
+						input.Buttons &= ~BUTTON_TRIANGLE; //Pressed!
+						break;
+					case SDLK_KP4: //SQUARE?
+						input.Buttons &= ~BUTTON_SQUARE; //Pressed!
+						break;
+					case SDLK_KP6: //CIRCLE?
+						input.Buttons &= ~BUTTON_CIRCLE; //Pressed!
+						break;
+					case SDLK_KP2: //CROSS?
+						input.Buttons &= ~BUTTON_CROSS; //Pressed!
+						break;
+				}
+				updateMOD(event); //Update rest keys!
+			}
+			break;
+		case SDL_KEYDOWN: //Keyboard down?
+			if (!SDL_NumJoysticks()) //Gotten no joystick?
+			{
+				switch (event->key.keysym.sym) //What key?
+				{
+					case SDLK_BACKSLASH: //HOLD?
+						input.Buttons |= BUTTON_HOLD; //Pressed!
+						break;
+					case SDLK_BACKSPACE: //SELECT?
+						input.Buttons |= BUTTON_SELECT; //Pressed!
+						break;
+					case SDLK_RETURN: //START?
+						input.Buttons |= BUTTON_START; //Pressed!
+						break;
+					case SDLK_UP: //UP?
+						input.Buttons |= BUTTON_UP; //Pressed!
+						break;
+					case SDLK_DOWN: //DOWN?
+						input.Buttons |= BUTTON_DOWN; //Pressed!
+						break;
+					case SDLK_LEFT: //LEFT?
+						input.Buttons |= BUTTON_LEFT; //Pressed!
+						break;
+					case SDLK_RIGHT: //RIGHT?
+						input.Buttons |= BUTTON_RIGHT; //Pressed!
+						break;
+					case SDLK_q: //LTRIGGER?
+						input.Buttons |= BUTTON_LTRIGGER; //Pressed!
+						break;
+					case SDLK_w: //RTRIGGER?
+						input.Buttons |= BUTTON_RTRIGGER; //Pressed!
+						break;
+					case SDLK_i: //Joy up?
+						input.keyboardjoy_direction |= 1; //Up!
+						break;
+					case SDLK_j: //Joy left?
+						input.keyboardjoy_direction |= 4; //Left!
+						break;
+					case SDLK_k: //Joy down?
+						input.keyboardjoy_direction |= 2; //Down!
+						break;
+					case SDLK_l: //Joy right?
+						input.keyboardjoy_direction |= 8; //Down!
+						break;
+					case SDLK_KP8: //TRIANGLE?
+						input.Buttons |= BUTTON_TRIANGLE; //Pressed!
+						break;
+					case SDLK_KP4: //SQUARE?
+						input.Buttons |= BUTTON_SQUARE; //Pressed!
+						break;
+					case SDLK_KP6: //CIRCLE?
+						input.Buttons |= BUTTON_CIRCLE; //Pressed!
+						break;
+					case SDLK_KP2: //CROSS?
+						input.Buttons |= BUTTON_CROSS; //Pressed!
+						break;
+				}
+				updateMOD(event); //Update rest keys!
+			}
+			break;
+		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+			if (SDL_NumJoysticks()) //Gotten a joystick?
+			{
+				switch ( event->jaxis.axis) 
+				{
+					case 0: /* Left-right movement code goes here */
+						input.Lx = event->jaxis.value; //New value!
+						break;
+					case 1: /* Up-Down movement code goes here */
+						input.Ly = event->jaxis.value; //New value!
+						break;
+				}
+			}
+			break;
+		case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
+			if (SDL_NumJoysticks()) //Gotten a joystick?
+			{
+				switch (event->jbutton.button) //What button?
+				{
+					case INPUT_BUTTON_TRIANGLE:
+						input.Buttons |= BUTTON_TRIANGLE; //Press!
+						break;
+					case INPUT_BUTTON_SQUARE:
+						input.Buttons |= BUTTON_SQUARE; //Press!
+						break;
+					case INPUT_BUTTON_CROSS:
+						input.Buttons |= BUTTON_CROSS; //Press!
+						break;
+					case INPUT_BUTTON_CIRCLE:
+						input.Buttons |= BUTTON_CIRCLE; //Press!
+						break;
+					case INPUT_BUTTON_LTRIGGER:
+						input.Buttons |= BUTTON_LTRIGGER; //Press!
+						break;
+					case INPUT_BUTTON_RTRIGGER:
+						input.Buttons |= BUTTON_RTRIGGER; //Press!
+						break;
+					case INPUT_BUTTON_SELECT:
+						input.Buttons |= BUTTON_SELECT; //Press!
+						break;
+					case INPUT_BUTTON_START:
+						input.Buttons |= BUTTON_START; //Press!
+						break;
+					case INPUT_BUTTON_HOME:
+						input.Buttons |= BUTTON_HOME; //Press!
+						break;
+					case INPUT_BUTTON_HOLD:
+						input.Buttons |= BUTTON_HOLD; //Press!
+						break;
+					case INPUT_BUTTON_UP:
+						input.Buttons |= BUTTON_UP; //Press!
+						break;
+					case INPUT_BUTTON_DOWN:
+						input.Buttons |= BUTTON_DOWN; //Press!
+						break;
+					case INPUT_BUTTON_LEFT:
+						input.Buttons |= BUTTON_LEFT; //Press!
+						break;
+					case INPUT_BUTTON_RIGHT:
+						input.Buttons |= BUTTON_RIGHT; //Press!
+						break;
+					default: //Unknown button?
+						break;
+				}
+			}
+			break;
+		case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
+			if (SDL_NumJoysticks()) //Gotten a joystick?
+			{
+				switch (event->jbutton.button) //What button?
+				{
+					case INPUT_BUTTON_TRIANGLE:
+						input.Buttons &= ~BUTTON_TRIANGLE; //Release!
+						break;
+					case INPUT_BUTTON_SQUARE:
+						input.Buttons &= ~BUTTON_SQUARE; //Release!
+						break;
+					case INPUT_BUTTON_CROSS:
+						input.Buttons &= ~BUTTON_CROSS; //Release!
+						break;
+					case INPUT_BUTTON_CIRCLE:
+						input.Buttons &= ~BUTTON_CIRCLE; //Release!
+						break;
+					case INPUT_BUTTON_LTRIGGER:
+						input.Buttons &= ~BUTTON_LTRIGGER; //Release!
+						break;
+					case INPUT_BUTTON_RTRIGGER:
+						input.Buttons &= ~BUTTON_RTRIGGER; //Release!
+						break;
+					case INPUT_BUTTON_SELECT:
+						input.Buttons &= ~BUTTON_SELECT; //Release!
+						break;
+					case INPUT_BUTTON_START:
+						input.Buttons &= ~BUTTON_START; //Release!
+						break;
+					case INPUT_BUTTON_HOME:
+						input.Buttons &= ~BUTTON_HOME; //Release!
+						break;
+					case INPUT_BUTTON_HOLD:
+						input.Buttons &= ~BUTTON_HOLD; //Release!
+						break;
+					case INPUT_BUTTON_UP:
+						input.Buttons &= ~BUTTON_UP; //Release!
+						break;
+					case INPUT_BUTTON_DOWN:
+						input.Buttons &= ~BUTTON_DOWN; //Release!
+						break;
+					case INPUT_BUTTON_LEFT:
+						input.Buttons &= ~BUTTON_LEFT; //Release!
+						break;
+					case INPUT_BUTTON_RIGHT:
+						input.Buttons &= ~BUTTON_RIGHT; //Release!
+						break;
+					default: //Unknown button?
+						break;
+				}
+			}
+			break;
+		case SDL_QUIT: //Quit?
+			SDL_JoystickClose(joystick); //Finish our joystick!
+			break;
+	}
+}
+
 void psp_input_init()
 {
-	/*(if (!input_thread) //Nothing yet?
-	{*/
-		sceCtrlSetSamplingCycle(0); //Polling ourselves!
-		sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG); //We need buttons and analog, not analog only!
-		/*input_thread = startThread(&updateInput,"X86EMU_Input refresh",DEFAULT_PRIORITY);
-	}*/
+	if (SDL_SYS_JoystickInit()==-1) halt(); //No joystick present!
+	SDL_JoystickEventState(SDL_ENABLE);
+	joystick = SDL_JoystickOpen(0); //Open our joystick!
 }
 
 void psp_input_done()
 {
-	/*if (input_thread) //Started?
-	{
-		terminateThread(input_thread->threadID); //Terminate input!
-		input_thread = 0; //No thread anymore!
-	}*/ //Nothing to finish: nothing used!
+	//Do nothing yet!
 }

@@ -5,11 +5,9 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //High resolution clock for timing checks.
 #include "headers/support/signedness.h" //Signedness support!
-#include <pspaudiolib.h>
-#include <SDL/SDL.h>
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 //How many samples to process at once? Originally 2048; 64=Optimum
 #define SAMPLESIZE 4096
 //Maximum samplerate in Hertz (200KHz)
@@ -759,13 +757,6 @@ static OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 
 //Audio callbacks!
 
-//Our standard actual audio callback!
-void PSP_AudioCallback(void* buf, unsigned int length, void *userdata) {
-	if (__HW_DISABLED) return; //Abort?
-	sample_stereo_p ubuf = (sample_stereo_p) buf;
-	mixaudio(ubuf,length); //Mix the audio!
-}
-
 //SDL audio callback:
 
 /* This function is called by SDL whenever the sound card
@@ -815,17 +806,7 @@ void initAudio() //Initialises audio subsystem!
 {
 	if (__HW_DISABLED) return; //Abort?
 
-	if (!SDL_WasInit(SDL_INIT_AUDIO)) //Our own emulation?
-	{
-		//dolog("soundservice","Initialising PSP audio library...");
-		pspAudioInit(); //Initialise audio library!
-		//dolog("soundservice","Resetting channels...");
-		resetchannels(); //Init all channels!
-		//dolog("soundservice","Setting PSP audio callback...");
-		calc_samplePos(); //Initialise sample position precalcs!
-		pspAudioSetChannelCallback(0, PSP_AudioCallback, NULL); //Register our callback!
-	}
-	else if (SDL_WasInit(SDL_INIT_AUDIO)) //SDL rendering?
+	if (SDL_WasInit(SDL_INIT_AUDIO)) //SDL rendering?
 	{
 		if (!SDLAudio_Loaded) //Not loaded yet?
 		{

@@ -1,7 +1,16 @@
 #include "headers/types.h" //Basic types!
 #include "headers/support/zalloc.h" //Zero allocation support!
-#include <stdio.h> //Standard I/O!
+#include "headers/fopen64.h" //64-bit fopen support!
+
+#ifdef __psp__
+//This is for the PSP only: we're missing normal 64-bit support!
 #include <pspkernel.h> //Kernel support!
+
+/*
+
+This is a custom PSP library for adding 64-bit fopen support to the project.
+
+*/
 
 typedef struct
 {
@@ -153,3 +162,5 @@ int fclose64(FILE *stream)
 	}
 	return 0; //OK!
 }
+#endif
+//PSP Only

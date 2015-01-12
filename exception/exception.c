@@ -1,3 +1,8 @@
+#include "headers/types.h" //Basic info!
+#ifdef __psp__
+//PSP Only: exception handler!
+//Use original sleep!
+#undef sleep
 #include <pspkernel.h>
 #include <pspsdk.h>
 #include <pspctrl.h>
@@ -116,3 +121,6 @@ void initExceptionHandler()
       sceKernelStartModule(modid, 8, args, &fd, NULL);
    }
 }
+#else
+void initExceptionHandler() {} //We don't handle exceptions on other platforms: they already have correct handlers?
+#endif

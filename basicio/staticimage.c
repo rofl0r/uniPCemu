@@ -1,6 +1,7 @@
 #include "headers/types.h" //Basic types!
 #include "headers/emu/gpu/gpu.h" //Basic output!
 #include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 FILEPOS staticimage_getsize(char *filename)
 {

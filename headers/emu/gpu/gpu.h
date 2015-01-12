@@ -4,7 +4,6 @@
 #include "headers/types.h" //Global types
 #include "headers/bios/bios.h" //BIOS Settings support (for VIDEO_DIRECT)
 
-#include "SDL/SDL.h" //SDL library!
 #include "SDL/SDL_rotozoom.h" //Rotate&Zoom package for SDL!
 #include "SDL/SDL_gfxPrimitives.h" //Graphics primitives (plot pixel)
 #include "SDL/SDL_image.h" //For matchColorKeys

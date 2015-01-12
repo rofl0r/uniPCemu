@@ -5,6 +5,12 @@
 
 #include "headers/types.h"
 
+enum input_button_emulator { //All buttons we support in our emulator!
+BUTTON_TRIANGLE=1, BUTTON_CIRCLE=2, BUTTON_CROSS=4, BUTTON_SQUARE=8,
+BUTTON_LTRIGGER=0x10, BUTTON_RTRIGGER=0x20,BUTTON_DOWN=0x40, BUTTON_LEFT=0x80,
+BUTTON_UP=0x100, BUTTON_RIGHT=0x200,BUTTON_SELECT=0x400, BUTTON_START=0x800,
+BUTTON_HOME=0x1000, BUTTON_HOLD=0x2000 };
+
 //All available PSP Keys indexes for input during GAME MODE.
 //No SELECT: We use this to break out of it!
 #define GAMEMODE_LEFT 0

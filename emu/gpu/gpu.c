@@ -18,7 +18,7 @@
 #include "headers/emu/gpu/gpu_renderer.h" //Renderer support!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 GPU_type GPU; //The GPU itself!
 
@@ -83,8 +83,11 @@ void initVideoMain() //Everything SDL PRE-EMU!
 	memset(&GPU,0,sizeof(GPU)); //Init all GPU data!
 	if (SDL_WasInit(SDL_INIT_VIDEO)) //Initialised?
 	{
+		dolog("zalloc","initFramerate...");
 		initFramerate(); //Start the framerate handler!
+		dolog("zalloc","initKeyboardOSK...");
 		initKeyboardOSK(); //Start the OSK handler!
+		dolog("zalloc","allocBIOSMenu...");
 		allocBIOSMenu(); //BIOS menu has the highest priority!
 	}
 }

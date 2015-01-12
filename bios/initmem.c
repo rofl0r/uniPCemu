@@ -9,7 +9,7 @@
 #include "headers/cpu/80286/protection.h" //Protection support!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 extern byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
 extern word CB_realoffset; //Real offset we're loaded at within the custom BIOS!

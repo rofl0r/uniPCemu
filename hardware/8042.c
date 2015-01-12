@@ -6,7 +6,7 @@
 #include "headers/support/log.h" //Logging support!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 /*
 

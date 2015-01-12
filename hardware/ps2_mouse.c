@@ -10,7 +10,7 @@
 #define MOUSE_DISABLED Mouse.disabled
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 extern Controller8042_t Controller8042; //The 8042 controller!
 
@@ -139,10 +139,6 @@ float HWmouse_getsamplerate() //Which repeat rate to use after the repeat delay!
 	if (__HW_DISABLED) return 1.0f; //Abort!
 	float result;
 	result = Mouse.samplerate; //Get result!
-	if (!result) //No rate?
-	{
-		return 1.0f; //Give 1 sample/second by default!
-	}
 	return result; //Give the repeat rate!
 }
 

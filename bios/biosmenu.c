@@ -18,7 +18,7 @@
 #include "headers/interrupts/interrupt10.h" //GPU emulator support!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 //BIOS width in text mode!
 #define BIOS_WIDTH GPU_TEXTSURFACE_WIDTH
@@ -158,7 +158,7 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 	{
 		counter -= INPUT_INTERVAL; //One further!
 		delay(INPUT_INTERVAL); //Intervals of one!
-		if ((psp_inputkey() & PSP_CTRL_SELECT) || BIOS_Settings.firstrun) //R trigger pressed or first run?
+		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun) //R trigger pressed or first run?
 		{
 			if (timeout) //Before boot?
 			{
@@ -480,10 +480,10 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 	int key = 0; //Currently pressed key(s)
 	int option = 0; //What option to choose?
 	int oldoption = -1; //Old option!
-	while (key!=PSP_CTRL_CROSS) //Wait for the key to choose something!
+	while (key!=BUTTON_CROSS) //Wait for the key to choose something!
 	{
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input a key with delay!
-		if ((key & PSP_CTRL_UP)>0) //Up pressed?
+		if ((key & BUTTON_UP)>0) //Up pressed?
 		{
 			if (option>0) //Past first?
 			{
@@ -497,7 +497,7 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 				}
 			}
 		}
-		else if ((key & PSP_CTRL_DOWN)>0) //Down pressed?
+		else if ((key & BUTTON_DOWN)>0) //Down pressed?
 		{
 			if (option<(numitems-1)) //Not last item?
 			{
@@ -508,30 +508,30 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 				option = 0; //Goto first item from bottom!
 			}
 		}
-		else if (((key & PSP_CTRL_CIRCLE)>0) && ((allowspecs&BIOSMENU_SPEC_RETURN)>0)) //Cancel pressed and allowed?
+		else if (((key & BUTTON_CIRCLE)>0) && ((allowspecs&BIOSMENU_SPEC_RETURN)>0)) //Cancel pressed and allowed?
 		{
 			option = BIOSMENU_SPEC_CANCEL; //Cancelled!
 			break; //Exit loop!
 		}
 		else if (
 		    ( //Keys pressed?
-		        (((key & PSP_CTRL_LTRIGGER)>0) || ((key & PSP_CTRL_RTRIGGER)>0)) ||
-		        (((key & PSP_CTRL_LEFT)>0) || ((key & PSP_CTRL_RIGHT)>0))
+		        (((key & BUTTON_LTRIGGER)>0) || ((key & BUTTON_RTRIGGER)>0)) ||
+		        (((key & BUTTON_LEFT)>0) || ((key & BUTTON_RIGHT)>0))
 		    )
 		    && ((allowspecs&BIOSMENU_SPEC_LR)>0)) //L/R/LEFT/RIGHT pressed and allowed?
 		{
-			if (((key & PSP_CTRL_LTRIGGER)>0) || ((key & PSP_CTRL_LEFT)>0)) //LTRIGGER/LEFT?
+			if (((key & BUTTON_LTRIGGER)>0) || ((key & BUTTON_LEFT)>0)) //LTRIGGER/LEFT?
 			{
 				option = BIOSMENU_SPEC_LTRIGGER; //LTRIGGER!
 				break; //Exit loop!
 			}
-			else if (((key & PSP_CTRL_RTRIGGER)>0) || ((key & PSP_CTRL_RIGHT)>0)) //RTRIGGER/RIGHT?
+			else if (((key & BUTTON_RTRIGGER)>0) || ((key & BUTTON_RIGHT)>0)) //RTRIGGER/RIGHT?
 			{
 				option = BIOSMENU_SPEC_RTRIGGER; //RTRIGGER!
 				break; //Exit loop!
 			}
 		}
-		else if (((key&PSP_CTRL_SQUARE)>0) && ((allowspecs&BIOSMENU_SPEC_SQUAREOPTION)>0)) //SQUARE and allowed?
+		else if (((key&BUTTON_SQUARE)>0) && ((allowspecs&BIOSMENU_SPEC_SQUAREOPTION)>0)) //SQUARE and allowed?
 		{
 			*stat = BIOSMENU_STAT_SQUARE; //Square special option!
 			break; //Exit loop!
@@ -766,7 +766,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen) //Runs the file li
 		int key = 0;
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 
-		if ((key&PSP_CTRL_UP)>0) //UP?
+		if ((key&BUTTON_UP)>0) //UP?
 		{
 			if (result>0) //Not first?
 			{
@@ -778,7 +778,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen) //Runs the file li
 			}
 			printCurrent(x,y,itemlist[result],maxlen); //Create our current entry!
 		}
-		else if ((key&PSP_CTRL_DOWN)>0) //DOWN?
+		else if ((key&BUTTON_DOWN)>0) //DOWN?
 		{
 			if (result<(numlist-1)) //Not at the bottom?
 			{
@@ -790,15 +790,15 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen) //Runs the file li
 			}
 			printCurrent(x,y,itemlist[result],maxlen); //Create our current entry!
 		}
-		else if ((key&PSP_CTRL_CROSS)>0) //SELECT?
+		else if ((key&BUTTON_CROSS)>0) //SELECT?
 		{
 			return result; //Give the result!
 		}
-		else if ((key&PSP_CTRL_CIRCLE)>0) //CANCEL?
+		else if ((key&BUTTON_CIRCLE)>0) //CANCEL?
 		{
 			return FILELIST_CANCEL; //Cancelled!
 		}
-		else if ((key&PSP_CTRL_TRIANGLE)>0) //DEFAULT?
+		else if ((key&BUTTON_TRIANGLE)>0) //DEFAULT?
 		{
 			return FILELIST_DEFAULT; //Unmount!
 		}
@@ -1472,7 +1472,7 @@ uint_32 ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 {
 	int key = 0;
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
-	while ((key&PSP_CTRL_CROSS)>0) //Pressed? Wait for release!
+	while ((key&BUTTON_CROSS)>0) //Pressed? Wait for release!
 	{
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
 	}
@@ -1482,7 +1482,7 @@ uint_32 ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
 		GPU_EMU_printscreen(x,y,"%08i MB %04i KB",(result/1024000),(result%1024000)/1024); //Show current size!
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
-		if ((key & PSP_CTRL_LEFT)>0)
+		if ((key & BUTTON_LEFT)>0)
 		{
 			if (result==0) { }
 			else
@@ -1497,11 +1497,11 @@ uint_32 ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 				}
 			}
 		}
-		else if ((key & PSP_CTRL_RIGHT)>0)
+		else if ((key & BUTTON_RIGHT)>0)
 		{
 			result += 1024000; //Add 1MB!
 		}
-		else if ((key & PSP_CTRL_UP)>0)
+		else if ((key & BUTTON_UP)>0)
 		{
 			if (result==0) { }
 			else
@@ -1516,21 +1516,21 @@ uint_32 ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 				}
 			}
 		}
-		else if ((key & PSP_CTRL_DOWN)>0)
+		else if ((key & BUTTON_DOWN)>0)
 		{
 			result += 4096; //Add 4KB!
 		}
-		else if ((key & PSP_CTRL_CROSS)>0)
+		else if ((key & BUTTON_CROSS)>0)
 		{
-			while ((key&PSP_CTRL_CROSS)>0) //Wait for release!
+			while ((key&BUTTON_CROSS)>0) //Wait for release!
 			{
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 			}
 			return result;
 		}
-		else if ((key & PSP_CTRL_CIRCLE)>0)
+		else if ((key & BUTTON_CIRCLE)>0)
 		{
-			while ((key&PSP_CTRL_CIRCLE)>0) //Wait for release!
+			while ((key&BUTTON_CIRCLE)>0) //Wait for release!
 			{
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 			}

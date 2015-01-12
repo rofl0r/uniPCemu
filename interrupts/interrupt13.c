@@ -5,7 +5,7 @@
 #include "headers/debugger/debugger.h" //For logging registers debugging!
 
 //Are we disabled?
-#define __HW_DISABLED 0
+#define __HW_DISABLED 1
 
 //Look at AX bit 0 of int 11h
 
