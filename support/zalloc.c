@@ -38,11 +38,11 @@ void initZalloc() //Initialises the zalloc subsystem!
 
 void logpointers() //Logs any changes in memory usage!
 {
-	initZalloc(); //Make sure we're started!
 	int current;
-	dolog("zalloc","Starting dump of allocated pointers...");
 	uint_32 total_memory = 0; //For checking total memory count!
 	uint_32 free_memory = freemem(); //Free memory present!
+	initZalloc(); //Make sure we're started!
+	dolog("zalloc","Starting dump of allocated pointers...");
 	total_memory = free_memory; //Total memory present, which is free!
 	for (current=0;current<NUMITEMS(registeredpointers);current++)
 	{
@@ -80,13 +80,14 @@ Result:
 */
 int matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //Are we already in our list? Give the position!
 {
+	int current;
+	uint_32 address_start, address_end;
 	initZalloc(); //Make sure we're started!
 	if (!ptr) return -1; //Not matched when NULL!
 	if (!size) return -1; //Not matched when no size (should be impossible)!
-	uint_32 address_start = (uint_32)ptr+index; //Start of data!
-	uint_32 address_end = address_start+size-1; //End of data!
+	address_start = (uint_32)ptr+index; //Start of data!
+	address_end = address_start+size-1; //End of data!
 
-	int current;
 	for (current=0;current<NUMITEMS(registeredpointers);current++) //Process matched options!
 	{
 		if (registeredpointers[current].pointer && registeredpointers[current].size) //An registered pointer?
@@ -118,6 +119,7 @@ int matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //Are we alread
 
 int registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Register a pointer!
 {
+	uint_32 current; //Current!
 	initZalloc(); //Make sure we're started!
 	if (!ptr)
 	{
@@ -131,7 +133,6 @@ int registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Regist
 	}
 	if (matchptr(ptr,0,size,NULL)>-2) return 0; //Already gotten (prevent subs to register after parents)?
 	
-	uint_32 current; //Current!
 	for (current=0;current<NUMITEMS(registeredpointers);current++) //Process valid!
 	{
 		if (!registeredpointers[current].pointer || !registeredpointers[current].size) //Unused?
@@ -151,8 +152,8 @@ int registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Regist
 
 void unregisterptr(void *ptr, uint_32 size) //Remove pointer from registration (only if original pointer)?
 {
-	initZalloc(); //Make sure we're started!
 	int index;
+	initZalloc(); //Make sure we're started!
 	if ((index = matchptr(ptr,0,size,NULL))>-1) //We've been found fully?
 	{
 		if (registeredpointers[index].pointer==ptr && registeredpointers[index].size==size) //Fully matched (parents only)?
@@ -167,10 +168,10 @@ void unregisterptr(void *ptr, uint_32 size) //Remove pointer from registration (
 
 OPTINLINE void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on failure (ran out of memory), protected malloc!
 {
-	initZalloc(); //Make sure we're started!
-	if (!size) return NULL; //Can't allocate nothing!
 	void *ptr = NULL;
 	int times=10; //Try 10 times till giving up!
+	initZalloc(); //Make sure we're started!
+	if (!size) return NULL; //Can't allocate nothing!
 	for (;(!ptr && times);) //Try for some times!
 	{
 		ptr = malloc(size); //Try to allocate!
@@ -214,9 +215,9 @@ OPTINLINE void *zalloc(uint_32 size, char *name) //Same as nzalloc, but clears t
 
 void freez(void **ptr, uint_32 size, char *name)
 {
+	int ptrn=-1;
 	initZalloc(); //Make sure we're started!
 	if (!ptr) return; //Invalid pointer to deref!
-	int ptrn=-1;
 	if ((ptrn = matchptr(*ptr,0,size,NULL))>-1) //Found fully existant?
 	{
 		if (!registeredpointers[ptrn].dealloc) //Deallocation not registered?
@@ -234,8 +235,8 @@ void freez(void **ptr, uint_32 size, char *name)
 
 void unregisterptrall() //Free all allocated memory still allocated (on shutdown only, garbage collector)!
 {
-	initZalloc(); //Make sure we're started!
 	int i;
+	initZalloc(); //Make sure we're started!
 	for (i=0;i<NUMITEMS(registeredpointers);i++)
 	{
 		void *ptr;
@@ -269,14 +270,14 @@ OPTINLINE uint_32 freemem() //Free memory left! We work!
 	uint_32 curalloc; //Current allocated memory!
 	char *buffer;
 	uint_32 multiplier; //The multiplier!
+	byte times = 9; //Times!
+	uint_32 lastzalloc = 0;
+	byte allocated = 0; //Allocated?
 	curalloc = 0; //Reset at 1 bytes!
 	multiplier = MEM_MAX_10; //Start at max multiplier (~100MB)!
-	byte times = 9; //Times!
 	times = 9; //Times 9 to start with!
 
-	uint_32 lastzalloc = 0;
 	allow_zallocfaillog = 0; //Don't allow!
-	byte allocated = 0; //Allocated?
 	while (1) //While not done...
 	{
 		lastzalloc = (curalloc+(multiplier*times)); //Last zalloc!

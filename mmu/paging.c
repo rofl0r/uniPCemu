@@ -62,7 +62,7 @@ byte getUserLevel(byte CPL)
 	return (CPL==3)?1:0; //1=User, 0=Supervisor
 }
 
-void PF(uint_32 address, word flags)
+void FLAG_PF(uint_32 address, word flags)
 {
 	if (!(flags&1) && CPU.registers) //Not present?
 	{
@@ -88,20 +88,22 @@ byte verifyCPL(byte iswrite, byte userlevel, byte RW, byte US) //userlevel=CPL o
 
 int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging without error? userlevel=CPL usually.
 {
+	word DIR, TABLE;
+	byte PTEUPDATED = 0; //Not update!
 	if (!CPU.registers) return 0; //No registers available!
-	word DIR = (address>>22)&0x3FF; //The directory entry!
-	word TABLE = (address>>12)&0x3FF; //The table entry!
+	DIR = (address>>22)&0x3FF; //The directory entry!
+	TABLE = (address>>12)&0x3FF; //The table entry!
 	
 	//Check PDE
 	PDE.value = MMU_directrdw(CPU.registers->CR3.PageDirectoryBase+(DIR<<2)); //Read the page directory entry!
 	if (!PDE.P) //Not present?
 	{
-		PF(address,PDE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		FLAG_PF(address,PDE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!
 	}
 	if (!verifyCPL(iswrite,CPL,PDE.RW,PDE.US)) //Protection fault?
 	{
-		PF(address,PDE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		FLAG_PF(address,PDE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!		
 	}
 	if (!PDE.A) //Not accessed yet?
@@ -114,15 +116,14 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	PTE.value = MMU_directrdw(PDE.PageFrameAddress+(TABLE<<2)); //Read the page table entry!
 	if (!PTE.P) //Not present?
 	{
-		PF(address,PTE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		FLAG_PF(address,PTE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!
 	}
 	if (!verifyCPL(iswrite,CPL,PTE.RW,PTE.US)) //Protection fault?
 	{
-		PF(address,PTE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		FLAG_PF(address,PTE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!		
 	}
-	byte PTEUPDATED = 0; //Not update!
 	if (!PTE.A)
 	{
 		PTEUPDATED = 1; //Updated!
@@ -145,10 +146,11 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 
 uint_32 mappage(uint_32 address) //Maps a page to real memory when needed!
 {
+	word DIR,TABLE,ADDR;
 	if (!is_paging()) return address; //Direct address when not paging!
-	word DIR = (address>>22)&0x3FF; //The directory entry!
-	word TABLE = (address>>12)&0x3FF; //The table entry!
-	word ADDR = (address&0xFFF);
+	DIR = (address>>22)&0x3FF; //The directory entry!
+	TABLE = (address>>12)&0x3FF; //The table entry!
+	ADDR = (address&0xFFF);
 	PDE.value = MMU_directrdw(CPU.registers->CR3.PageDirectoryBase+(DIR<<2)); //Read the page directory entry!
 	PTE.value = MMU_directrdw(PDE.PageFrameAddress+(TABLE<<2)); //Read the page table entry!
 	return PTE.PhysicalPageAddress+ADDR; //Give the actual address!

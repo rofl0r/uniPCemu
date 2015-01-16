@@ -54,7 +54,7 @@ void initVideoLayer() //We're for allocating the main video layer, only dealloca
 				{
 					if (memprotect(rendersurface->sdllayer,sizeof(*rendersurface->sdllayer),NULL)) //Valid?
 					{
-						if (!memprotect(rendersurface->sdllayer->pixels,sizeof(*rendersurface->sdllayer->pixels)*get_pixelrow_pitch(rendersurface)*rendersurface->sdllayer->h,NULL)) //Valid?
+						if (!memprotect(rendersurface->sdllayer->pixels,sizeof(uint_32)*get_pixelrow_pitch(rendersurface)*rendersurface->sdllayer->h,NULL)) //Valid?
 						{
 							raiseError("GPU","Rendering surface pixels not registered!");
 						}

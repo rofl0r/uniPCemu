@@ -4,6 +4,7 @@
 #include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller!
 #include "headers/hardware/vga_screen/vga_sequencer_graphicsmode.h" //Graphics mode!
 #include "headers/hardware/vga_screen/vga_vram.h" //Our VRAM support!
+#include "headers/hardware/vga_screen/vga_crtcontroller.h" //Our VRAM support!
 #include "headers/cpu/interrupts.h" //For get/putpixel variant!
 #include "headers/support/log.h" //Logging support!
 #include "headers/mmu/mmu.h" //For BIOS data!

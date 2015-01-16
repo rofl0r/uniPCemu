@@ -3,6 +3,6 @@
 
 void BIOS_unkint()
 {
-	AX = 0; //Unknown interrupt!
-	CF = 1; //Set carry flag!
+	REG_AX = 0; //Unknown interrupt!
+	FLAG_CF = 1; //Set carry flag!
 }

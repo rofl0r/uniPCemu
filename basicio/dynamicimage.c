@@ -281,7 +281,7 @@ int dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read 
 				fclose64(dev);
 				return FALSE; //Error: file is corrupt?
 			}
-			if (fread64(buffer,1,512,dev)!=512); //Error reading sector?
+			if (fread64(buffer,1,512,dev)!=512) //Error reading sector?
 			{
 				fclose64(dev);
 				return FALSE; //Error: file is corrupt?

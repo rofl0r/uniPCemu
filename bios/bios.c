@@ -15,7 +15,7 @@
 #define __HW_DISABLED 1
 
 BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
-int showchecksumerrors = 0; //Show checksum errors?
+byte showchecksumerrors = 0; //Show checksum errors?
 
 //One Megabyte of Memory!
 #define MBMEMORY 1024768

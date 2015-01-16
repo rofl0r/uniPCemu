@@ -46,11 +46,15 @@ OPTINLINE byte getVRAMMemAddrSize(VGA_Type *VGA); //Current memory address size?
 //OPTINLINE word getTopWindowStart(VGA_Type *VGA); //Get Top Window Start scanline!
 
 OPTINLINE byte VGA_ScanDoubling(VGA_Type *VGA); //Scanline doubling?
-//OPTINLINE uint_32 getVRAMScanlineStart(VGA_Type *VGA,word Scanline); //Start of a scanline!
+OPTINLINE uint_32 getVRAMScanlineStart(VGA_Type *VGA,word Scanline); //Start of a scanline!
 OPTINLINE word getHorizontalTotal(VGA_Type *VGA); //Get horizontal total (for calculating refresh speed timer)
 OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x); //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
 
 //For precalcs only!
 word get_display_y(VGA_Type *VGA, word scanline); //Vertical check!
 word get_display_x(VGA_Type *VGA, word x); //Horizontal check!
+
+OPTINLINE byte getcharacterwidth(VGA_Type *VGA);
+OPTINLINE byte getcharacterheight(VGA_Type *VGA);
+
 #endif

@@ -19,8 +19,8 @@ void Dosbox_RealSetVec(byte interrupt, uint_32 realaddr)
 	/
 	Read (Wait for) Next Keystroke
 	returns:
-		AH=Scan code
-		AL=ASCII character code or extended ASCII keystroke(AL=0)
+		REG_AH=Scan code
+		REG_AL=ASCII character code or extended ASCII keystroke(REG_AL=0)
 	/
 	sceKernelSleepThread(); //No input!
 }
@@ -30,13 +30,13 @@ void int16_querykeyb_status_previewkey()
 	/
 	Query Keyboard Status/Preview Key
 	returns:
-		ZF: No keys in buffer
+		FLAG_ZF: No keys in buffer
 		NZ: key is ready
 
-		AH (if not ZF): scan code
-		AL (if not ZF): ASCII character code or extended ASCII keystroke
+		REG_AH (if not FLAG_ZF): scan code
+		REG_AL (if not FLAG_ZF): ASCII character code or extended ASCII keystroke
 	/
-	ZF = 1; //No keys to be read atm!
+	FLAG_ZF = 1; //No keys to be read atm!
 }
 
 void int16_querykeyb_shiftflags()
@@ -44,9 +44,9 @@ void int16_querykeyb_shiftflags()
 	/
 		Query keyboard Shift Status
 		returns:
-			AL: Status of Ctl, Alt etc. (Same as 0040:0017)
+			REG_AL: Status of Ctl, Alt etc. (Same as 0040:0017)
 
-			Info on bits AL:
+			Info on bits REG_AL:
 				0: Alpha-shift (right side) DOWN
 				1: Alpha-shift (left side) DOWN
 				2: Ctrl-shift (either side) DOWN
@@ -66,23 +66,23 @@ void int16_querykeyb_shiftflags()
 				6: CapsLock DOWN (ON)
 				7: Insert DOWN
 	/
-	AL = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0040,0x0017,0); //Reset!
+	REG_AL = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0040,0x0017,0); //Reset!
 }
 
 void int16_set_typeamaticrate_and_delay()
 {
 	/
 		Input:
-			AL=05h
-			BH=Delay code
-			BL=typematic rate code
-		BL Delay code:
+			REG_AL=05h
+			REG_BH=Delay code
+			REG_BL=typematic rate code
+		REG_BL Delay code:
 			00h: 250ms
 			01h: 500ms
 			02h: 750ms
 			03h: 1000ms
 			else: reserved
-		BH repeat code:
+		REG_BH repeat code:
 			00h: 30 repeats per second
 			01h: 26.7 repeats per second
 			02h: 24 repeats per second
@@ -126,13 +126,13 @@ void int16_storekeydata()
 {
 	/
 		Input:
-			CH=Scan code to store
-			CL=ASCII character or extended ACII keystroke
+			REG_CH=Scan code to store
+			REG_CL=ASCII character or extended ACII keystroke
 		Output:
-			AL=0: Successfully stored
-			AL=1: Not stored (no room in buffer)
+			REG_AL=0: Successfully stored
+			REG_AL=1: Not stored (no room in buffer)
 	/
-	AL = 1; //Not stored: not implemented yet!
+	REG_AL = 1; //Not stored: not implemented yet!
 }
 
 void int16_readextendedkeybinput()
@@ -253,8 +253,8 @@ static struct {
       };
 
 bool BIOS_AddKeyToBuffer(Bit16u code) {
-	if (mem_readb(BIOS_KEYBOARD_FLAGS2)&8) return true;
 	Bit16u start,end,head,tail,ttail;
+	if (mem_readb(BIOS_KEYBOARD_FLAGS2)&8) return true;
 	/*if (machine==MCH_PCJR) {
 		/ should be done for cga and others as well, to be tested /
 		start=0x1e;
@@ -349,10 +349,12 @@ void IRQ1_Handler(void) {
 /* handling of the locks key is difficult as sdl only gives
  * states for numlock capslock. 
  */
-	Bitu scancode=AL;	/* Read the code */
+	Bitu scancode=REG_AL;	/* Read the code */
 	Bit16u asciiscan;
 
 	Bit8u flags1,flags2,flags3,leds;
+	Bit16u token;
+
 	flags1=mem_readb(BIOS_KEYBOARD_FLAGS1);
 	flags2=mem_readb(BIOS_KEYBOARD_FLAGS2);
 	flags3=mem_readb(BIOS_KEYBOARD_FLAGS3);
@@ -410,7 +412,7 @@ void IRQ1_Handler(void) {
 		else flags2 &= ~0x02;
 		if( !( (flags3 &0x08) || (flags2 &0x02) ) ) { /* Both alt released */
 			flags1 &= ~0x08;
-			Bit16u token =mem_readb(BIOS_KEYBOARD_TOKEN);
+			token =mem_readb(BIOS_KEYBOARD_TOKEN);
 			if(token != 0){
 				add_key(token);
 				mem_writeb(BIOS_KEYBOARD_TOKEN,0);
@@ -440,7 +442,7 @@ void IRQ1_Handler(void) {
 				mem_writeb(BIOS_KEYBOARD_FLAGS2,flags2|8);
 				IO_Write(0x20,0x20);
 				while (mem_readb(BIOS_KEYBOARD_FLAGS2)&8) CALLBACK_Idle();	// pause loop
-				IP+=5;	// skip out 20,20
+				REG_IP+=5;	// skip out 20,20
 				return;
 			}
 		} else {
@@ -504,9 +506,9 @@ void IRQ1_Handler(void) {
 			break;
 		}
 		if(flags1 &0x08) {
-			Bit8u token = mem_readb(BIOS_KEYBOARD_TOKEN);
+			token = mem_readb(BIOS_KEYBOARD_TOKEN);
 			token = token*10 + (Bit8u)(scan_to_scanascii[scancode].alt&0xff);
-			mem_writeb(BIOS_KEYBOARD_TOKEN,token);
+			mem_writeb(BIOS_KEYBOARD_TOKEN,(byte)token);
 		} else if (flags1 &0x04) {
 			add_key(scan_to_scanascii[scancode].control);
 		} else if( ((flags1 &0x3) != 0) || ((flags1 &0x20) != 0) ) {
@@ -605,14 +607,14 @@ static bool IsEnhancedKey(Bit16u *key) {
 
 void INT16_Handler(void) {
 	Bit16u temp=0;
-	switch (AH) {
+	switch (REG_AH) {
 	case 0x00: /* GET KEYSTROKE */
 		if ((get_key(&temp)) && (!IsEnhancedKey(&temp))) {
 			/* normal key found, return translated key in ax */
-			AX=temp;
+			REG_AX=temp;
 		} else {
 			/* enter small idle loop to allow for irqs to happen */
-			IP+=1;
+			REG_IP+=1;
 		}
 		break;
 	case 0x10: /* GET KEYSTROKE (enhanced keyboards only) */
@@ -621,21 +623,21 @@ void INT16_Handler(void) {
 				/* special enhanced key, clear low part before returning key */
 				temp&=0xff00;
 			}
-			AX=temp;
+			REG_AX=temp;
 		} else {
 			/* enter small idle loop to allow for irqs to happen */
-			IP+=1;
+			REG_IP+=1;
 		}
 		break;
 	case 0x01: /* CHECK FOR KEYSTROKE */
 		// enable interrupt-flag after IRET of this int16
-		MMU_ww(CPU_SEGMENT_SS,SS,SP+4,(MMU_rw(CPU_SEGMENT_SS,SS,SP+4,0) | IF));
+		MMU_ww(CPU_SEGMENT_SS,REG_SS,REG_SP+4,(MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_SP+4,0) | FLAG_IF));
 		for (;;) {
 			if (check_key(&temp)) {
 				if (!IsEnhancedKey(&temp)) {
 					/* normal key, return translated key in ax */
 					CALLBACK_SZF(false);
-					AX=temp;
+					REG_AX=temp;
 					break;
 				} else {
 					/* remove enhanced key from buffer and ignore it */
@@ -658,30 +660,30 @@ void INT16_Handler(void) {
 				/* special enhanced key, clear low part before returning key */
 				temp&=0xff00;
 			}
-			AX=temp;
+			REG_AX=temp;
 		}
 		break;
 	case 0x02:	/* GET SHIFT FlAGS */
-		AL=mem_readb(BIOS_KEYBOARD_FLAGS1);
+		REG_AL=mem_readb(BIOS_KEYBOARD_FLAGS1);
 		break;
 	case 0x03:	/* SET TYPEMATIC RATE AND DELAY */
-		if (AL == 0x00) { // set default delay and rate
+		if (REG_AL == 0x00) { // set default delay and rate
 			IO_Write(0x60,0xf3);
 			IO_Write(0x60,0x20); // 500 msec delay, 30 cps
-		} else if (AL == 0x05) { // set repeat rate and delay
+		} else if (REG_AL == 0x05) { // set repeat rate and delay
 			IO_Write(0x60,0xf3);
-			IO_Write(0x60,(BH&3)<<5|(BL&0x1f));
+			IO_Write(0x60,(REG_BH&3)<<5|(REG_BL&0x1f));
 		} /*else {
-			LOG(LOG_BIOS,LOG_ERROR)("INT16:Unhandled Typematic Rate Call %2X BX=%X",reg_al,reg_bx);
+			LOG(LOG_BIOS,LOG_ERROR)("INT16:Unhandled Typematic Rate Call %2X REG_BX=%X",reg_al,reg_bx);
 		}*/
 		break;
 	case 0x05:	/* STORE KEYSTROKE IN KEYBOARD BUFFER */
-		if (BIOS_AddKeyToBuffer(CX)) AL=0;
-		else AL=1;
+		if (BIOS_AddKeyToBuffer(REG_CX)) REG_AL=0;
+		else REG_AL=1;
 		break;
 	case 0x12: /* GET EXTENDED SHIFT STATES */
-		AL=mem_readb(BIOS_KEYBOARD_FLAGS1);
-		AH=mem_readb(BIOS_KEYBOARD_FLAGS2);		
+		REG_AL=mem_readb(BIOS_KEYBOARD_FLAGS1);
+		REG_AH=mem_readb(BIOS_KEYBOARD_FLAGS2);		
 		break;
 	case 0x55:
 		/* Weird call used by some dos apps */
@@ -699,13 +701,15 @@ extern bool startup_state_numlock;
 extern bool startup_state_capslock;
 
 static void InitBiosSegment(void) {
+	Bit8u flag1;
+	Bit8u leds;
 	/* Setup the variables for keyboard in the bios data segment */
 	mem_writew(BIOS_KEYBOARD_BUFFER_START,0x1e);
 	mem_writew(BIOS_KEYBOARD_BUFFER_END,0x3e);
 	mem_writew(BIOS_KEYBOARD_BUFFER_HEAD,0x1e);
 	mem_writew(BIOS_KEYBOARD_BUFFER_TAIL,0x1e);
-	Bit8u flag1 = 0;
-	Bit8u leds = 16; /* Ack recieved */
+	flag1 = 0;
+	leds = 16; /* Ack recieved */
 //MAPPER_Init takes care of this now ?
 //	if(startup_state_capslock) { flag1|=0x40; leds|=0x04;}
 //	if(startup_state_numlock){ flag1|=0x20; leds|=0x02;}
@@ -795,7 +799,7 @@ void BIOS_int16()
 {
 //Not implemented yet!
 	/*int dohandle = 0;
-	dohandle = (AH<(sizeof(int16_functions)/sizeof(Handler))); //handle?
+	dohandle = (REG_AH<(sizeof(int16_functions)/sizeof(Handler))); //handle?
 	if (CPU.blocked) //No output?
 	{
 		dohandle = 0; //No handling!
@@ -803,17 +807,17 @@ void BIOS_int16()
 
 	if (!dohandle) //Not within list to execute?
 	{
-		AX = 0; //Break!
+		REG_AX = 0; //Break!
 	}
 	else //To handle?
 	{
-		if (int16_functions[AH]) //Set?
+		if (int16_functions[REG_AH]) //Set?
 		{
-			int16_functions[AH](); //Run the function!
+			int16_functions[REG_AH](); //Run the function!
 		}
 		else
 		{
-			AX = 0; //Error: unknown command!
+			REG_AX = 0; //Error: unknown command!
 		}
 	}*/
 

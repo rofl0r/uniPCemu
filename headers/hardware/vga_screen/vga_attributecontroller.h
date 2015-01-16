@@ -14,14 +14,14 @@ typedef struct
 	uint_32 attributesource; //What's the source plane of the attribute bits (plane bits set)?
 } VGA_AttributeInfo; //Attribute info!
 
-#endif
-
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer support!
 
 //Precalcs!
-#ifdef VGA_Type
 OPTINLINE byte getHorizontalPixelPanning(VGA_Type *VGA); //Active horizontal pixel panning when enabled?
-OPTINLINE byte getOverscanColor(VGA_Type *VGA); //Get the active overscan color (256 color byte!)
-void VGA_AttributeController_calcAttributes(VGA_Type *VGA);
-OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *Sequencer_VGA, SEQ_DATA *VGA_Sequencer); //Process attribute: 1=Loaded DAC, 0=Process next for DAC!
+void VGA_AttributeController_calcAttributes(VGA_Type *VGA); //Update attributes!
+#endif
+
+
+#ifdef SEQ_DATA //Process attribute: 0=Loaded DAC, 1=Process next for DAC!
+OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, SEQ_DATA *Sequencer); //Process attribute: 0=Loaded DAC, 1=Process next for DAC!
 #endif

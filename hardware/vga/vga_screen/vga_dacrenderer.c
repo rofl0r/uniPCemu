@@ -3,6 +3,7 @@
 #include "headers/hardware/vga_screen/vga_dac.h" //Our defs!
 #include "headers/header_dosbox.h" //Screen modes from DOSBox!
 #include "headers/support/log.h" //Logging support!
+#include "headers/support/bmp.h" //BMP support for dumping color information!
 
 extern VGA_Type *ActiveVGA; //Active VGA!
 extern VideoModeBlock *CurMode; //Current int10 video mode!
@@ -28,7 +29,7 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 			DACBitmap[c] = DACVal; //Load the DAC value!
 		}
 	}
-	writeBMP(filename,&DACBitmap,16,16,4,4,16); //Simple 1-row dump of the DAC results!
+	writeBMP(filename,&DACBitmap[0],16,16,4,4,16); //Simple 1-row dump of the DAC results!
 	//Now, write the Attribute results through the DAC pallette!
 	for (c=0;c<0x200;c++) //All possible attributes (font and back color)!
 	{
@@ -56,7 +57,7 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	filename[0] = 'A';
 	filename[1] = 'T';
 	filename[2] = 'T'; //Attribute controller translations!
-	writeBMP(filename,&DACBitmap,16,16,4,4,16); //Simple 1-row dump of the attributes through the DAC!
+	writeBMP(filename,&DACBitmap[0],16,16,4,4,16); //Simple 1-row dump of the attributes through the DAC!
 	
 	/*char cs[256];
 	memset(&cs,0,sizeof(cs));

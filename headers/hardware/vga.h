@@ -26,7 +26,8 @@
 
 //Graphics Registers: OK
 
-typedef union __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef union PACKED
 {
 	byte DATA[9]; //9 registers present!
 	struct //Contains the registers itself!
@@ -146,6 +147,7 @@ typedef union __attribute__((packed))
 		byte BITMASKREGISTER; //Bit Mask Register (index 08h)
 	} REGISTERS; //The registers itself!
 } GRAPHREGS; //Graphics registers!
+#include "headers/endpacked.h" //We're packed!
 
 
 
@@ -153,7 +155,8 @@ typedef union __attribute__((packed))
 
 //Sequencer Registers: OK
 
-typedef union __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef union PACKED
 {
 	byte DATA[0x8]; //5 registers present, 1 undocumented!
 
@@ -227,11 +230,13 @@ typedef union __attribute__((packed))
 		byte DISABLERENDERING; //Just here for compatibility (actual disable check is external). The CPU can read/write to this freely. Only writes to this register are counted.
 	} REGISTERS;
 } SEQUENCERREGS;
+#include "headers/endpacked.h" //We're packed!
 
 
 //Attribute Controller Registers: OK
 
-typedef union __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef union PACKED
 {
 	byte DATA[0x15]; //10h color registers + 5 registers present!
 
@@ -288,11 +293,13 @@ typedef union __attribute__((packed))
 		} COLORSELECTREGISTER;
 	} REGISTERS;
 } ATTRIBUTECONTROLLERREGS;
+#include "headers/endpacked.h" //We're packed!
 
 
 //CRT Controller Registers
 
-typedef union __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef union PACKED
 {
 	byte DATA[0x25]; //25h registers present, up to 0x40 are undocumented!
 
@@ -462,13 +469,15 @@ typedef union __attribute__((packed))
 		} ATTRIBUTECONTROLLERTOGGLEREGISTER; //Index 24 Attribute Controller Toggle Register (CR24). READ ONLY at 3B5/3D5 index 24h!
 	} REGISTERS;
 } CRTCONTROLLERREGS;
+#include "headers/endpacked.h" //We're packed!
 
 //Attribute controller toggle register location for precalcs!
 #define VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER 24
 
 
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
 	byte DAC_ADDRESS_WRITE_MODE_REGISTER; //Port 3C8
 	byte DAC_ADDRESS_READ_MODE_REGISTER; //Port 3C7 Write only
@@ -485,8 +494,10 @@ typedef struct __attribute__((packed))
 	} DAC_STATE_REGISTER; //Port 3C7 Read only
 
 } COLORREGS;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
 	union
 	{
@@ -547,15 +558,19 @@ typedef struct __attribute__((packed))
 		byte latchplane[4]; //All 4 plane latches!
 	} DATALATCH;
 } EXTERNALREGS;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
 	byte r;
 	byte g;
 	byte b;
 } DACEntry; //A DAC Entry!
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
 	byte VideoMode; //Active video mode!
 
@@ -599,8 +614,10 @@ typedef struct __attribute__((packed))
 	//Compatibility registers
 	byte VGA_3C3; //All unused bits of port 3C3!
 } VGA_REGISTERS;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
 	word rowstatus[0x800]; //Row status!
 	word charrowstatus[0x1000]; //Character row status (double the row status, for character and inner)
@@ -610,8 +627,10 @@ typedef struct __attribute__((packed))
 	word x; //X coordinate on the screen!
 	word y; //Y coordinate on the screen!
 } VGA_CRTC; //CRTC information!
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
 //First, VRAM and registers:
 	byte *VRAM; //The VRAM: 64K of 32-bit values, byte align!
@@ -651,6 +670,7 @@ typedef struct __attribute__((packed))
 	void *Sequencer; //The active sequencer to use!
 	VGA_CRTC CRTC; //The CRTC information!
 } VGA_Type; //VGA dataset!
+#include "headers/endpacked.h" //We're packed!
 
 /*
 

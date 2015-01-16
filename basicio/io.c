@@ -129,7 +129,7 @@ int readdata(int device, void *buffer, uint_32 startpos, uint_32 bytestoread)
 	SECTORHANDLER handler = disks[device].readhandler; //Our handler!
 	for (;bytesread<bytestoread;) //Still left to read?
 	{
-		if (!handler(dev,sector,buffer+bytesread)) //Append at the buffer failed!
+		if (!handler(dev,sector,(byte *)buffer+bytesread)) //Append at the buffer failed!
 		{
 			if (disks[device].dynamicimage) //Dynamic?
 			{
@@ -202,7 +202,7 @@ int writedata(int device, void *buffer, uint_32 startpos, uint_32 bytestowrite)
 
 	for (;byteswritten<bytestowrite;) //Still left to written?
 	{
-		if (!handler(dev,sector,buffer+byteswritten)) //Write failed!
+		if (!handler(dev,sector,(byte *)buffer+byteswritten)) //Write failed!
 		{
 			if (disks[device].dynamicimage) //Dynamic image?
 			{

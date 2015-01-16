@@ -8,19 +8,17 @@
 #include <string.h>
 #include <ctype.h> //C type!
 #include <stdlib.h>
-#include <dirent.h>
 #include <float.h> //FLT_MAX support!
-
-//For speaker!
 #include <math.h>
 #include <limits.h>
-
-//For timing!
 #include <stdio.h>
-
-//Our basic SDL support we always will need!
+#ifdef _WIN32
+#include "SDL.h" //SDL library for windows!
+#include "SDL_events.h" //SDL events!
+#else
 #include "SDL/SDL.h" //SDL library!
-
+#include "SDL/SDL_events.h" //SDL events!
+#endif
 //Our basic functionality we need for running this program!
 //We have less accuracy using SDL delay: ms instead of us. Round to 1ms if needed!
 #define delay(us) SDL_Delay((us)/1000)
@@ -28,8 +26,23 @@
 #define sleep() for (;;) SDL_Delay(1)
 #define halt SDL_Quit
 
+#ifndef uint_64
+#define uint_64 uint64_t
+#define int_64 int64_t
+#endif
+
+#ifndef uint_32
+#define uint_32 uint32_t
+#define int_32 int32_t
+#endif
+
+//Short versions of 64-bit integers!
+#define u64 uint_64
+#define s64 int_64
+
 #ifdef _WIN32
 //Windows-specific headers!
+#include <direct.h> //For mkdir!
 #define mkdir _mkdir
 #else
 //Basic PSP headers!
@@ -41,13 +54,11 @@
 */
 #endif
 
+#define bzero(v,size) memset(v,0,size)
+
 #define EXIT_PRIORITY 0x11
 //Exit priority, higest of all!
 
-typedef uint64_t uint_64; //Take over using new name!
-typedef int64_t int_64; //Take over using new name!
-typedef uint32_t uint_32; //Take over using new name!
-typedef int32_t int_32; //Take over using new name!
 typedef unsigned char byte;
 typedef unsigned short word;
 typedef signed char sbyte; //Signed!
@@ -56,9 +67,7 @@ typedef signed short sword; //Signed!
 #define TRUE 1
 #define FALSE 0
 
-typedef s64 int64;
-typedef u64 uint64;
-typedef uint64 FILEPOS;
+typedef uint_64 FILEPOS;
 
 //RGB, with and without A (full)
 #define RGBA(r, g, b, a) ((r)|((g)<<8)|((b)<<16)|((a)<<24))
@@ -145,7 +154,7 @@ void debugrow(char *text); //Log a row to debugrow log!
 void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 
 //INLINE options!
-#define OPTINLINE 
+#define OPTINLINE
 
 OPTINLINE double getCurrentClockSpeed(); //Retrieves the current clock speed!
 #endif

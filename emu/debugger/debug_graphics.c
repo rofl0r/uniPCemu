@@ -5,6 +5,9 @@
 #include "headers/interrupts/interrupt10.h" //INT10 support!
 #include "headers/emu/emu_vga_bios.h" //VGA misc functionality for INT10!
 
+//Debugger functions!
+#include "headers/emu/timers.h" //Timer support!
+#include "headers/hardware/vga_screen/vga_precalcs.h" //For the CRT precalcs dump!
 //To make a screen capture of all of the debug screens active?
 #define LOG_VGA_SCREEN_CAPTURE 2
 //For text-mode debugging!

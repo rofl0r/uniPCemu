@@ -73,26 +73,43 @@ return holder.result; //Give the result!
 
 static OPTINLINE void getBMP(TRGB *pixel,int x, int y, uint_32 *image, int w, int h, int virtualwidth, byte doublexres, byte doubleyres, int originalw, int originalh)
 {
+	uint_32 index;
+	float a,r,g,b;
+	uint_32 thepixel;
 	x >>= doublexres; //Apply double!
 	y = (h-y-1); //The pixel Y is reversed in the BMP, so reverse it!
 	y >>= doubleyres; //Apply double!
 	w = originalw; //Apply double!
 	h = originalh; //Apply double!
-	uint_32 index;
 	index = (y*virtualwidth)+x; //Our index of our pixel!
-	float a;
 	a = (float)(GETA(image[(y*virtualwidth)+x]))/255.0f; //A gradient!
-	uint_32 thepixel = image[(y*virtualwidth)+x];
-	pixel->R = GETR(thepixel); //Get R!
-	pixel->G = GETG(thepixel); //Get G!
-	pixel->B = GETB(thepixel); //Get B!
-	pixel->R *= a; //Apply alpha!
-	pixel->G *= a; //Apply alpha!
-	pixel->B *= a; //Apply alpha!
+	thepixel = image[(y*virtualwidth)+x];
+	r = (float)GETR(thepixel); //Get R!
+	g = (float)GETG(thepixel); //Get G!
+	b = (float)GETB(thepixel); //Get B!
+	r *= a; //Apply alpha!
+	g *= a; //Apply alpha!
+	b *= a; //Apply alpha!
+	pixel->R = (byte)r;
+	pixel->G = (byte)g;
+	pixel->B = (byte)b;
 }
 
 byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, byte doubleyres, int virtualwidth)
 {
+	int originalw, originalh;
+	char filename[256];
+	byte rowpadding;
+	FILE *f;
+	uint_32 imgsize = 0;
+	TBMPHeader BMPHeader; //BMP itself!
+	TBMPInfoHeader BMPInfo; //Info about the BMP!
+	uint_32 dataStartOffset;
+	static byte bmppad[3] = {0,0,0}; //For padding!
+	TRGB pixel; //A pixel for writing to the file!
+	int y = 0;
+	int x = 0;
+
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!w || !h)
 	{
@@ -100,31 +117,24 @@ byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, 
 		return 0; //Can't write: empty height/width!
 	}
 
-	int originalw, originalh;
 	originalw = w; //Original width!
 	originalh = h; //Original height!
 	w <<= doublexres; //Apply double!
 	h <<= doubleyres; //Apply double!	
 
-	FILE *f;
-	uint_32 imgsize = 0;
-
-	char filename[256];
 	bzero(filename,sizeof(filename));
 	strcpy(filename,thefilename); //Copy!
 	strcat(filename,".bmp"); //Add extension!
 
 	imgsize = sizeof(TRGB)*w*h; //The size we allocated, to be remembered!
 
-	byte rowpadding = (4-(w*sizeof(TRGB))%4)%4; //Padding for 1 row!
+	rowpadding = (4-(w*sizeof(TRGB))%4)%4; //Padding for 1 row!
 
-	TBMPHeader BMPHeader; //BMP itself!
-	TBMPInfoHeader BMPInfo; //Info about the BMP!
 	//Fill the header!
 	memset(&BMPHeader,0,sizeof(BMPHeader)); //Clear the header!
 	memset(&BMPInfo,0,sizeof(BMPInfo)); //Clear the info header!
 
-	uint_32 dataStartOffset = sizeof(BMPType)+sizeof(BMPHeader)+sizeof(BMPInfo); //Start offset of the data!
+	dataStartOffset = sizeof(BMPType)+sizeof(BMPHeader)+sizeof(BMPInfo); //Start offset of the data!
 
 	//Header!
 	BMPHeader.Filesize = convertEndianness32(dataStartOffset+imgsize); //Full filesize in bytes!
@@ -137,8 +147,6 @@ byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, 
 	BMPInfo.BitDepth = convertEndianness16(24); //Bits per Pixel.
 	//Rest is cleared&not used!
 
-	byte bmppad[3] = {0,0,0}; //For padding!
-
 	//Now write the file!
 
 	f = fopen(filename,"wb");
@@ -148,13 +156,9 @@ byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, 
 
 	//dolog("BMP","Header written, writing Bitmap data...");
 
-	TRGB pixel; //A pixel for writing to the file!
-
-	int y = 0;
 	for (;y<h;y++) //Process all rows!
 	{
-		int x = 0;
-		for (;x<w;x++) //Process all columns!
+		for (x=0;x<w;x++) //Process all columns!
 		{
 			getBMP(&pixel,x,y,image,w,h,virtualwidth,doublexres,doubleyres,originalw,originalh); //Get the pixel to be written!
 			fwrite(&pixel,1,sizeof(pixel),f); //Write the pixel to the file!

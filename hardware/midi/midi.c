@@ -4,6 +4,7 @@
 #include "headers/support/fifobuffer.h" //FIFOBUFFER support!
 #include "headers/hardware/midi/midi.h" //Our own stuff!
 #include "headers/hardware/pic.h" //Interrupt support!
+#include "headers/emu/timers.h" //Timing support!
 
 //http://www.oktopus.hu/imgs/MANAGED/Hangtechnikai_tudastar/The_MIDI_Specification.pdf
 

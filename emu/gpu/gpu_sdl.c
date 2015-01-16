@@ -10,7 +10,7 @@
 GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface) //Retrieves a surface wrapper to use with our functions!
 {
 	GPU_SDL_Surface *wrapper = NULL;
-	wrapper = zalloc(sizeof(GPU_SDL_Surface),"GPU_SDL_Surface"); //Allocate the wrapper!
+	wrapper = (GPU_SDL_Surface *)zalloc(sizeof(GPU_SDL_Surface),"GPU_SDL_Surface"); //Allocate the wrapper!
 	if (!wrapper) //Failed to allocate the wrapper?
 	{
 		return NULL; //Error!

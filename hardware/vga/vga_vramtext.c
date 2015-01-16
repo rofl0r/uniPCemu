@@ -118,7 +118,7 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 		newx = 7; //Only 7 max!
 		if (getcharacterwidth(VGA)!=8) //What width? 9 wide?
 		{
-			if (!((!VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable) && ((character&0xE0)==0xC0))) //Replicate the 8th one (C0-DF)? (Highest 3 bits are 0x6)
+			if (!((!VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable) && ((character&0xE0)==0xC0))) //Replicate the 8th one (C0-FLAG_DF)? (Highest 3 bits are 0x6)
 			{ //9th bit becomes background color!
 				return 0; //Background color for 9th pixel!
 			}

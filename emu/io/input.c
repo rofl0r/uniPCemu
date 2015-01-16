@@ -15,7 +15,13 @@
 
 #include "headers/support/log.h" //Logging support!
 
+#include "headers/emu/timers.h" //Timer support!
+
+#ifdef _WIN32
+#include "sdl_joystick.h" //Joystick support!
+#else
 #include <SDL/SDL_joystick.h> //Joystick support!
+#endif
 
 enum input_button_map { //All buttons we support!
 INPUT_BUTTON_TRIANGLE, INPUT_BUTTON_CIRCLE, INPUT_BUTTON_CROSS, INPUT_BUTTON_SQUARE,
@@ -1861,7 +1867,10 @@ void updateInput(SDL_Event *event) //Update all input!
 
 void psp_input_init()
 {
-	if (SDL_SYS_JoystickInit()==-1) halt(); //No joystick present!
+	#ifdef SDL_SYS_JoystickInit
+		//Gotten initialiser for joystick?
+		if (SDL_SYS_JoystickInit()==-1) halt(); //No joystick present!
+	#endif
 	SDL_JoystickEventState(SDL_ENABLE);
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
 }

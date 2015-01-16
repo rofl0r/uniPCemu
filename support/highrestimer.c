@@ -7,16 +7,16 @@ double tickresolution = 0.0f; //Our tick resolution, initialised!
 
 OPTINLINE void initTicksHolder(TicksHolder *ticksholder)
 {
+	byte avg;
+	u64 oldpassed;
+	uint_32 oldtimes;
 	if (resolutioninit) //Not loaded yet?
 	{
 		//tickresolution = sceRtcGetTickResolution(); //Init resolution!
 		tickresolution = 1000; //We have a resolution in ms!
 		resolutioninit = 0; //We're ready to run!
 	}
-	byte avg;
 	avg = ticksholder->avg; //Averaging!
-	u64 oldpassed;
-	uint_32 oldtimes;
 	if (avg) //Averaging?
 	{
 		oldpassed = ticksholder->avg_sumpassed;
@@ -35,7 +35,7 @@ OPTINLINE void initTicksHolder(TicksHolder *ticksholder)
 
 OPTINLINE void ticksholder_AVG(TicksHolder *ticksholder)
 {
-	//ticksholder->avg = 1; //Enable average meter!
+	ticksholder->avg = 1; //Enable average meter!
 }
 
 OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
@@ -52,6 +52,7 @@ OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 
 OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 {
+    u64 temp;
 	u64 currentticks = getcurrentticks(); //Fist: get current ticks to be sure we're right!
 	if (!ticksholder->haveoldticks) //Not initialized yet?
 	{
@@ -70,7 +71,6 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 	}
 	else //Overflow?
 	{
-	    u64 temp;
 	    temp = ticksholder->oldticks;
 	    temp -= ticksholder->newticks; //Difference between the numbers!
 	    ticksholder->tickspassed = ~0; //Max!
@@ -81,8 +81,8 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 
 OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, u64 secondfactor)
 {
-	u64 tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	uint_64 result;
+	u64 tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	result = (uint_64)(((double)tickspassed/tickresolution)*secondfactor); //The ammount of ms that has passed as precise as we can!
 	if (ticksholder->avg) //Average enabled?
 	{
@@ -125,8 +125,8 @@ OPTINLINE void startHiresCounting(TicksHolder *ticksholder)
 
 OPTINLINE void stopHiresCounting(char *src, char *what, TicksHolder *ticksholder)
 {
-	uint_64 passed = getuspassed(ticksholder); //Get the time that has passed!
 	char time[30]; //Some time holder!
+	uint_64 passed = getuspassed(ticksholder); //Get the time that has passed!
 	bzero(time,sizeof(time)); //Init holder!
 	convertTime(passed,&time[0]); //Convert the time!
 	dolog(src,"Counter %s took %s",what,time); //Log it!
@@ -145,6 +145,6 @@ OPTINLINE void convertTime(uint_64 time, char *holder) //Convert time to hh:mm:s
 	time -= s100*10000ll;
 	s1000 = (uint_32)(time/1000ll); //s1000!
 	time -= s1000*1000ll; //Left!
-	s1k = time; //All that's left!
+	s1k = (uint_32)time; //All that's left!
 	sprintf(holder,"%i:%02i:%02i:%02i.%i.%04i",h,m,s,s100,s1000,s1k); //Generate the final text!
 }

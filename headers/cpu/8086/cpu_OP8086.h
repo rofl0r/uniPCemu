@@ -114,22 +114,22 @@ void CPU8086_OP5F();
 //void CPU8086_OP60(); //PUSHA
 //void CPU8086_OP61(); //POPA
 //70+ : Comparisions etc.
-void CPU8086_OP70(); //JO rel8  : (OF=1)
-void CPU8086_OP71(); //JNO rel8 : (OF=0)
-void CPU8086_OP72(); //JB rel8  : (CF=1)
-void CPU8086_OP73(); //JNB rel8 : (CF=0)
-void CPU8086_OP74(); //JZ rel8  : (ZF=1)
-void CPU8086_OP75(); //JNZ rel8 : (ZF=0)
-void CPU8086_OP76(); //JBE rel8 : (CF=1|ZF=1)
-void CPU8086_OP77(); //JA rel8  : (CF=0&ZF=0)
-void CPU8086_OP78(); //JS rel8  : (SF=1)
-void CPU8086_OP79(); //JNS rel8 : (SF=0)
-void CPU8086_OP7A(); //JPE rel8 : (PF=1)
-void CPU8086_OP7B(); //JPO rel8 : (PF=0)
-void CPU8086_OP7C(); //JL rel8  : (SF!=OF)
-void CPU8086_OP7D(); //JGE rel8 : (SF=OF)
-void CPU8086_OP7E(); //JLE rel8 : (ZF|(SF!=OF))
-void CPU8086_OP7F(); //JG rel8  : ((ZF=0)|SF=OF)
+void CPU8086_OP70(); //JO rel8  : (FLAG_OF=1)
+void CPU8086_OP71(); //JNO rel8 : (FLAG_OF=0)
+void CPU8086_OP72(); //JB rel8  : (FLAG_CF=1)
+void CPU8086_OP73(); //JNB rel8 : (FLAG_CF=0)
+void CPU8086_OP74(); //JZ rel8  : (FLAG_ZF=1)
+void CPU8086_OP75(); //JNZ rel8 : (FLAG_ZF=0)
+void CPU8086_OP76(); //JBE rel8 : (FLAG_CF=1|FLAG_ZF=1)
+void CPU8086_OP77(); //JA rel8  : (FLAG_CF=0&FLAG_ZF=0)
+void CPU8086_OP78(); //JS rel8  : (FLAG_SF=1)
+void CPU8086_OP79(); //JNS rel8 : (FLAG_SF=0)
+void CPU8086_OP7A(); //JPE rel8 : (FLAG_PF=1)
+void CPU8086_OP7B(); //JPO rel8 : (FLAG_PF=0)
+void CPU8086_OP7C(); //JL rel8  : (FLAG_SF!=FLAG_OF)
+void CPU8086_OP7D(); //JGE rel8 : (FLAG_SF=FLAG_OF)
+void CPU8086_OP7E(); //JLE rel8 : (FLAG_ZF|(FLAG_SF!=FLAG_OF))
+void CPU8086_OP7F(); //JG rel8  : ((FLAG_ZF=0)|FLAG_SF=FLAG_OF)
 //80+
 void CPU8086_OP80();
 void CPU8086_OP81();

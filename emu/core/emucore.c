@@ -43,6 +43,8 @@
 #include "headers/emu/threads.h" //Multithreading support!
 #include "headers/hardware/pcspeaker.h" //PC Speakers support!
 
+#include "headers/hardware/vga_screen/vga_sequencer.h" //VGA sequencer for direct MAX speed dump!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To debug VGA at MAX speed?
@@ -319,7 +321,9 @@ void initEMUreset() //Simple reset emulator!
 {
 	debugrow("initEMUreset!");
 	debugrow("immediatelyafter");
-	pspDebugScreenClear(); //Clear the debug screen!
+	#ifdef __psp__
+		pspDebugScreenClear(); //Clear the debug screen!
+	#endif
 	EMU_RUNNING = 0; //Emulator isn't running anymore!
 
 	reset = 0; //Not resetting!

@@ -3,6 +3,13 @@
 #include "headers/support/log.h" //Logging!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 
+#ifdef _WIN32
+#include <sdl_thread.h> //Multithreading support!
+#else
+//PSP?
+#include <SDL/SDL_thread.h> //Multithreading support!
+#endif
+
 #define MAX_THREAD 50
 //Maximum ammount of threads:
 
@@ -23,7 +30,6 @@
 
 ThreadParams threadpool[MAX_THREAD]; //Thread pool!
 
-
 //Thread allocation/deallocation!
 
 static int getthreadpoolindex(uint_32 thid) //Get index of thread in thread pool!
@@ -38,6 +44,21 @@ static int getthreadpoolindex(uint_32 thid) //Get index of thread in thread pool
 	}
 	return -1; //Not found!
 }
+
+/*#ifdef _WIN32
+void SDL_KillThread(uint_32 thid) //Our custom version!
+{
+	int index = getthreadpoolindex(thid); //What index!
+	threadpool[i].allow_running = 0; //Request quitting the thread!
+	waitThreadEnd(&threadpool[i]); //Wait for the thread to end!
+}
+#endif*/
+
+/*int allow_threadrunning() //Allow the current thread to continue running?
+{
+	int index = getthreadpoolindex(SDL_ThreadID()); //What index!
+	return threadpool[i].allow_running; //Allow the thread to run?
+}*/
 
 static ThreadParams_p allocateThread() //Allocate a new thread to run (waits if none to allocate)!
 {
@@ -77,28 +98,31 @@ static void activeThread(uint_32 threadid)
 	//dolog("threads","activeThread_RET!");
 }
 
-static void deleteThread(uint_32 thid)
-{
-	if (sceKernelDeleteThread(thid)>=0) //Deleted?
-	{
-		//dolog("threads","Deletethread: freethread...");
-		releasePool(thid); //Release from pool if available!
-	}
-}
-
 void terminateThread(uint_32 thid) //Terminate the thread!
 {
 	//dolog("threads","terminateThread: Terminating thread: %x",thid);
 	SDL_Thread *thread;
 	int thnr;
-	thnr = getthreadpoolindex(thid);
-	if (thnr)
+	if ((thnr = getthreadpoolindex(thid))!=-1) //Found the thread?
 	{
 		thread = threadpool[thnr].thread; //Get the thread!
 	}
 	releasePool(thid); //Release from pool if available!
+	if (thnr!=-1) //Valid thread to kill?
+	{
+		SDL_KillThread(thread); //Kill this thread!
+	}
 	//sceKernelTerminateDeleteThread(thid); //Exit and delete myself!
-	SDL_KillThread(thread); //Kill this thread!
+}
+
+static void deleteThread(uint_32 thid)
+{
+	terminateThread(thid); //Passthrough!
+	/*if (sceKernelDeleteThread(thid)>=0) //Deleted?
+	{
+		//dolog("threads","Deletethread: freethread...");
+		releasePool(thid); //Release from pool if available!
+	}*/
 }
 
 static void runcallback(uint_32 thid)
@@ -180,7 +204,7 @@ void termThreads() //Terminate all threads but our own!
 {
 	//dolog("threads","termThreads...");
 	int i;
-	SceUID my_thid = sceKernelGetThreadId(); //My own thread ID!
+	uint_32 my_thid = SDL_ThreadID(); //My own thread ID!
 	for (i=0;i<NUMITEMS(threadpool);i++) //Process all of our threads!
 	{
 		if (threadpool[i].used && (threadpool[i].threadID!=my_thid)) //Used and not ourselves?
@@ -256,10 +280,10 @@ static void threadCreaten(ThreadParams_p params, uint_32 threadID, char *name)
 	//dolog("threads","threadCreaten...");
 	if (params) //Gotten params?
 	{
-	//dolog("threads","threadCreaten set...");
-	params->threadID = threadID; //The thread ID!
-	bzero(params->name,sizeof(params->name));
-	strcpy(params->name,name); //Save the name for usage!
+		//dolog("threads","threadCreaten set...");
+		params->threadID = threadID; //The thread ID!
+		bzero(params->name,sizeof(params->name));
+		strcpy(params->name,name); //Save the name for usage!
 	}
 	//dolog("threads","threadCreaten: RET...");
 }
@@ -312,12 +336,14 @@ ThreadParams_p startThread(Handler thefunc, char *name, int priority) //Start a 
 	//dolog("threads","startThread: createThread...");
 	docreatethread: //Try to start a thread!
 	params->thread = SDL_CreateThread(threadhandler,params); //Create the thread!
+	//params->allowthreadrunning  = 1; //Allow the thread to run!
 	
 	if (!params->thread) //Failed to create?
 	{
 		delay(100); //Wait a bit!
 		goto docreatethread; //Try again!
 	}
+	thid = SDL_GetThreadID(params->thread); //Get the thread ID!
 	threadCreaten(params,thid,name); //We've been createn!
 
 	return params; //Give the thread createn!

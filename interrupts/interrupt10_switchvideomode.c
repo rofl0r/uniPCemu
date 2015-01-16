@@ -57,17 +57,19 @@ void VGA_DAC_SetEntry(byte index, byte r, byte g, byte b)
 }
 
 void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count) { //Creates a grayscale palette!
+    Bitu ct;
+	Bit8u red, green, blue, ic;
+	Bit32u i;
 	if (count>0x100) count=0x100;
-        Bitu ct;
 	for (ct=0; ct<count; ct++) {
 		IO_Write(VGAREG_DAC_READ_ADDRESS,start_reg+ct);
-		Bit8u red=IO_Read(VGAREG_DAC_DATA);
-		Bit8u green=IO_Read(VGAREG_DAC_DATA);
-		Bit8u blue=IO_Read(VGAREG_DAC_DATA);
+		red=IO_Read(VGAREG_DAC_DATA);
+		green=IO_Read(VGAREG_DAC_DATA);
+		blue=IO_Read(VGAREG_DAC_DATA);
 
 		/* calculate clamped intensity, taken from VGABIOS */
-		Bit32u i=(( 77*red + 151*green + 28*blue ) + 0x80) >> 8;
-		Bit8u ic=(i>0x3f) ? 0x3f : ((Bit8u)(i & 0xff));
+		i=(( 77*red + 151*green + 28*blue ) + 0x80) >> 8;
+		ic=(i>0x3f) ? 0x3f : ((Bit8u)(i & 0xff));
 		INT10_SetSingleDACRegister(start_reg+ct,ic,ic,ic);
 	}
 }
@@ -122,11 +124,13 @@ static bool SetCurMode(VideoModeBlock modeblock[],word mode)
 void FinishSetMode(int clearmem)
 {
 	VGA_Type *currentVGA;
+	byte ct;
+	uint_32 ct2;
+	word seg;
+	word CRTCAddr;
 	/* Clear video memory if needs be */
 	if (clearmem)
 	{
-		uint_32 ct2;
-		word seg;
 		switch (CurMode->type)
 		{
 		case M_CGA4:
@@ -166,7 +170,6 @@ void FinishSetMode(int clearmem)
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS+1,((CurMode->twidth&0xFF00)>>8)); //High!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,(CurMode->plength&0xFF)); //Low!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE+1,((CurMode->plength&0xFF00)>>8)); //High!
-	word CRTCAddr;
 	CRTCAddr = ((CurMode->mode==7 )|| (CurMode->mode==0x0f)) ? 0x3b4 : 0x3d4; //Address!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS,(CRTCAddr&0xFF)); //Low!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS+1,((CRTCAddr&0xFF00)>>8)); //High!
@@ -188,7 +191,6 @@ void FinishSetMode(int clearmem)
 	}
 
 	// Set cursor pos for page 0..7
-	byte ct;
 	for (ct=0; ct<8; ct++) cursorXY(ct,0,0);
 	// Set active page 0
 	emu_setactivedisplaypage(0);
@@ -197,6 +199,21 @@ void FinishSetMode(int clearmem)
 bool INT10_SetVideoMode_OTHER(word mode,bool clearmem)
 {
 	byte ct;
+	byte scanline,crtpage;
+	word crtc_base;
+	byte mode_control_list[0xa+1]=
+	{
+		0x2c,0x28,0x2d,0x29,	//0-3
+		0x2a,0x2e,0x1e,0x29,	//4-7
+		0x2a,0x2b,0x3b			//8-a
+	};
+	byte mode_control_list_pcjr[0xa+1]=
+	{
+		0x0c,0x08,0x0d,0x09,	//0-3
+		0x0a,0x0e,0x0e,0x09,	//4-7
+		0x1a,0x1b,0x0b			//8-a
+	};
+	byte mode_control,color_select;
 	switch (machine)
 	{
 	case MCH_CGA:
@@ -221,7 +238,7 @@ bool INT10_SetVideoMode_OTHER(word mode,bool clearmem)
 	/* Setup the VGA to the correct mode */
 //	VGA_SetMode(CurMode->type);
 	/* Setup the CRTC */
-	word crtc_base=(machine==MCH_HERC) ? 0x3b4 : 0x3d4;
+	crtc_base=(machine==MCH_HERC) ? 0x3b4 : 0x3d4;
 	//Horizontal total
 	IO_WriteW(crtc_base,0x00 | (CurMode->htotal) << 8);
 	//Horizontal displayed
@@ -239,7 +256,6 @@ bool INT10_SetVideoMode_OTHER(word mode,bool clearmem)
 	//Vertical sync position
 	IO_WriteW(crtc_base,0x07 | (CurMode->vdispend + ((CurMode->vtotal - CurMode->vdispend)/2)-1) << 8);
 	//Maximum scanline
-	byte scanline,crtpage;
 	scanline=8;
 	switch(CurMode->type)
 	{
@@ -267,19 +283,7 @@ bool INT10_SetVideoMode_OTHER(word mode,bool clearmem)
 	//Setup the tandy palette
 	//for (ct=0;ct<16;ct++) VGA_DAC_CombineColor(ct,ct);
 	//Setup the special registers for each machine type
-	byte mode_control_list[0xa+1]=
-	{
-		0x2c,0x28,0x2d,0x29,	//0-3
-		0x2a,0x2e,0x1e,0x29,	//4-7
-		0x2a,0x2b,0x3b			//8-a
-	};
-	byte mode_control_list_pcjr[0xa+1]=
-	{
-		0x0c,0x08,0x0d,0x09,	//0-3
-		0x0a,0x0e,0x0e,0x09,	//4-7
-		0x1a,0x1b,0x0b			//8-a
-	};
-	byte mode_control,color_select;
+
 	switch (machine)
 	{
 	case MCH_HERC:
@@ -393,11 +397,32 @@ bool INT10_SetVideoMode_OTHER(word mode,bool clearmem)
 
 int INT10_Internal_SetVideoMode(word mode)
 {
-	if (__HW_DISABLED) return true; //Abort!
-	if (LOG_SWITCHMODE) dolog(LOG_FILE,"switchvideomode: INT10_Internal_SetVideoMode (%04X)...",mode);
 	byte ct;
 	bool clearmem=true;
 	uint_32 i;
+	byte modeset_ctl;
+	word crtc_base;
+	bool mono_mode=(mode == 7) || (mode==0xf);
+	byte misc_output;
+	byte seq_data[SEQ_REGS];
+	byte overflow=0;
+	byte max_scanline=0;
+	byte ver_overflow=0;
+	byte hor_overflow=0;
+	byte ret_start;
+	byte ret_end;
+	word vretrace;
+	byte vblank_trim;
+	byte underline=0;
+	byte offset;
+	byte mode_control=0;
+	byte gfx_data[GFX_REGS];
+	byte att_data[ATT_REGS];
+	byte feature;
+
+	if (__HW_DISABLED) return true; //Abort!
+	if (LOG_SWITCHMODE) dolog(LOG_FILE,"switchvideomode: INT10_Internal_SetVideoMode (%04X)...",mode);
+
 	if (mode>=0x100)
 	{
 		//if ((mode & 0x4000) && int10.vesa_nolfb) return false;
@@ -422,7 +447,7 @@ int INT10_Internal_SetVideoMode(word mode)
 	/* First read mode setup settings from bios area */
 //	byte video_ctl=real_readb(BIOSMEM_SEG,BIOSMEM_VIDEO_CTL);
 //	byte vga_switches=real_readb(BIOSMEM_SEG,BIOSMEM_SWITCHES);
-	byte modeset_ctl=real_readb(BIOSMEM_SEG,BIOSMEM_MODESET_CTL);
+	modeset_ctl=real_readb(BIOSMEM_SEG,BIOSMEM_MODESET_CTL);
 
 	//raiseError("Debug_INT10_SetVideoMode","Checkpoint 1B");
 
@@ -489,8 +514,6 @@ int INT10_Internal_SetVideoMode(word mode)
 
 	/* Setup the VGA to the correct mode */
 
-	word crtc_base;
-	bool mono_mode=(mode == 7) || (mode==0xf);
 	if (mono_mode) crtc_base=0x3b4;
 	else crtc_base=0x3d4;
 
@@ -502,7 +525,7 @@ int INT10_Internal_SetVideoMode(word mode)
 
 	if (LOG_SWITCHMODE) dolog(LOG_FILE,"switchvideomode: INT10_Internal_SetVideoMode - Setup the Misc output register...");
 	/* Setup MISC Output Register */
-	byte misc_output=0x2 | (mono_mode ? 0x0 : 0x1);
+	misc_output=0x2 | (mono_mode ? 0x0 : 0x1);
 
 	if ((CurMode->type==M_TEXT) && (CurMode->cwidth==9))
 	{
@@ -531,7 +554,6 @@ int INT10_Internal_SetVideoMode(word mode)
 
 	if (LOG_SWITCHMODE) dolog(LOG_FILE,"switchvideomode: INT10_Internal_SetVideoMode - Setup the Sequencer...");
 	/* Program Sequencer */
-	byte seq_data[SEQ_REGS];
 	memset(seq_data,0,SEQ_REGS);
 	seq_data[1]|=0x01;	//8 dot fonts by default
 	if (CurMode->special & _EGA_HALF_CLOCK) seq_data[1]|=0x08; //Check for half clock
@@ -589,10 +611,6 @@ int INT10_Internal_SetVideoMode(word mode)
 		IO_Write(crtc_base,ct);
 		IO_Write(crtc_base+1,0);
 	}
-	byte overflow=0;
-	byte max_scanline=0;
-	byte ver_overflow=0;
-	byte hor_overflow=0;
 	/* Horizontal Total */
 	IO_Write(crtc_base,0x00);
 	IO_Write(crtc_base+1,(byte)(CurMode->htotal-5));
@@ -611,7 +629,6 @@ int INT10_Internal_SetVideoMode(word mode)
 	IO_Write(crtc_base+1,0x80|(blank_end & 0x1f));
 
 	/* Start Horizontal Retrace */
-	byte ret_start;
 	if ((CurMode->special & _EGA_HALF_CLOCK) && (CurMode->type!=M_CGA2)) ret_start = (CurMode->hdispend+3);
 	else if (CurMode->type==M_TEXT) ret_start = (CurMode->hdispend+5);
 	else ret_start = (CurMode->hdispend+4);
@@ -620,7 +637,6 @@ int INT10_Internal_SetVideoMode(word mode)
 	hor_overflow|=(ret_start & 0x100) >> 4;
 
 	/* End Horizontal Retrace */
-	byte ret_end;
 	if (CurMode->special & _EGA_HALF_CLOCK)
 	{
 		if (CurMode->type==M_CGA2) ret_end=0;	// mode 6
@@ -640,7 +656,6 @@ int INT10_Internal_SetVideoMode(word mode)
 	overflow|=((CurMode->vtotal-2) & 0x200) >> 4;
 	ver_overflow|=((CurMode->vtotal-2) & 0x400) >> 10;
 
-	word vretrace;
 	if (IS_VGA_ARCH)
 	{
 		switch (CurMode->vdispend)
@@ -688,7 +703,6 @@ int INT10_Internal_SetVideoMode(word mode)
 	overflow|=((CurMode->vdispend-1) & 0x200) >> 3;
 	ver_overflow|=((CurMode->vdispend-1) & 0x400) >> 9;
 
-	byte vblank_trim;
 	if (IS_VGA_ARCH)
 	{
 		switch (CurMode->vdispend)
@@ -736,7 +750,6 @@ int INT10_Internal_SetVideoMode(word mode)
 	overflow|=(line_compare & 0x100) >> 4;
 	max_scanline|=(line_compare & 0x200) >> 3;
 	ver_overflow|=(line_compare & 0x400) >> 4;
-	byte underline=0;
 	/* Maximum scanline / Underline Location */
 	if (CurMode->special & _EGA_LINE_DOUBLE)
 	{
@@ -785,7 +798,6 @@ int INT10_Internal_SetVideoMode(word mode)
 	}*/
 
 	/* Offset Register */
-	byte offset;
 	switch (CurMode->type)
 	{
 	case M_LIN8:
@@ -817,7 +829,6 @@ int INT10_Internal_SetVideoMode(word mode)
 	}*/
 
 	/* Mode Control */
-	byte mode_control=0;
 
 	switch (CurMode->type)
 	{
@@ -901,7 +912,6 @@ int INT10_Internal_SetVideoMode(word mode)
 	if (LOG_SWITCHMODE) dolog(LOG_FILE,"switchvideomode: INT10_Internal_SetVideoMode - Setup Graphics controller...");
 
 	/* Program Graphics controller */
-	byte gfx_data[GFX_REGS];
 	memset(gfx_data,0,GFX_REGS);
 	gfx_data[0x7]=0xf;				/* Color don't care */
 	gfx_data[0x8]=0xff;				/* BitMask */
@@ -946,7 +956,6 @@ int INT10_Internal_SetVideoMode(word mode)
 		IO_Write(0x3ce,ct);
 		IO_Write(0x3cf,gfx_data[ct]);
 	}
-	byte att_data[ATT_REGS];
 	memset(att_data,0,ATT_REGS);
 	att_data[0x12]=0xf;				//Always have all color planes enabled
 
@@ -1181,7 +1190,7 @@ dac_text16:
 
 	if (LOG_SWITCHMODE) dolog(LOG_FILE,"switchvideomode: INT10_Internal_SetVideoMode - Setup Special stuff for different modes...");
 	/* Setup some special stuff for different modes */
-	byte feature=real_readb(BIOSMEM_SEG,BIOSMEM_INITIAL_MODE);
+	feature=real_readb(BIOSMEM_SEG,BIOSMEM_INITIAL_MODE);
 	switch (CurMode->type)
 	{
 	case M_CGA2:

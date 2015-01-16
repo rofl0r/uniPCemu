@@ -11,5 +11,5 @@
 
 void CPU_OP0F07()
 {
-	/*word tablesegment = ES; uint_32 tableoffset = EDI;*/
+	/*word tablesegment = REG_ES; uint_32 tableoffset = REG_EDI;*/
 } /* LOADALL  */

@@ -26,6 +26,7 @@
 #include "headers/hardware/ports.h" //Basic ports!
 #include "headers/support/highrestimer.h" //High resoltion timer support!
 #include "headers/emu/emu_misc.h" //Random short support for noise generation!
+#include "headers/emu/timers.h" //Timer support for attack/decay!
 //#include <stdint.h>
 //#include <stdio.h>
 
@@ -207,8 +208,6 @@ uint16_t adlibfreq (uint8_t chan) {
 }
 
 uint64_t fullstep, adlibstep[9];
-double adlibenv[9], adlibdecay[9], adlibattack[9];
-uint8_t adlibdidattack[9];
 
 //Original again!
 OPTINLINE char adlibsample (uint8_t curchan) {

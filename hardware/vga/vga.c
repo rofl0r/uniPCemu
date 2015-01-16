@@ -53,7 +53,7 @@ Our base:
 
 http://webpages.charter.net/danrollins/techhelp/0114.HTM
 
- AL  Type     Format   Cell  Colors        Adapter  Addr  Monitor
+ REG_AL  Type     Format   Cell  Colors        Adapter  Addr  Monitor
                                                                            
       0  text     40x25     8x8* 16/8 (shades) CGA,EGA  b800  Composite
       1  text     40x25     8x8* 16/8          CGA,EGA  b800  Comp,RGB,Enh
@@ -73,7 +73,7 @@ http://webpages.charter.net/danrollins/techhelp/0114.HTM
      12H graphic  640x480  8x16  16            VGA      a000  Anlg
      13H graphic  640x480  8x16  256           VGA      a000  Anlg
 
-    Notes: With EGA, VGA, and PCjr you can add 80H to AL to initialize a
+    Notes: With EGA, VGA, and PCjr you can add 80H to REG_AL to initialize a
           video mode without clearing the screen.
 
         * The character cell size for modes 0-3 and 7 varies, depending on
@@ -88,7 +88,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	if (__HW_DISABLED) return NULL; //Abort!
 	VGA_Type *VGA; //The VGA to be allocated!
 	//dolog("zalloc","Allocating VGA...");
-	VGA = zalloc(sizeof(*VGA),"VGA_Struct"); //Allocate new VGA base to work with!
+	VGA = (VGA_Type *)zalloc(sizeof(*VGA),"VGA_Struct"); //Allocate new VGA base to work with!
 	if (!VGA)
 	{
 		raiseError("VGAalloc","Ran out of memory allocating VGA base!");
@@ -138,7 +138,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	}
 
 	//dolog("zalloc","Allocating VGA registers...");
-	VGA->registers = zalloc(sizeof(*VGA->registers),"VGA_Registers"); //Allocate registers!
+	VGA->registers = (VGA_REGISTERS *)zalloc(sizeof(*VGA->registers),"VGA_Registers"); //Allocate registers!
 	if (!VGA->registers) //Couldn't allocate the registers?
 	{
 		freez((void **)&VGA->VRAM, VGA->VRAM_size,"VGA_VRAM@VGAAlloc_Registers"); //Release VRAM!
@@ -167,7 +167,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	VGA->Request_Termination = 0; //We're not running a request for termination!
 	VGA->Terminated = 1; //We're not running yet, so run nothing yet, if enabled!
 	
-	VGA->Sequencer = zalloc(sizeof(SEQ_DATA),"SEQ_DATA"); //Sequencer data!
+	VGA->Sequencer = (SEQ_DATA *)zalloc(sizeof(SEQ_DATA),"SEQ_DATA"); //Sequencer data!
 	if (!VGA->Sequencer) //Failed to allocate?
 	{
 		freez((void **)&VGA->VRAM, VGA->VRAM_size,"VGA_VRAM@VGAAlloc_Registers"); //Release VRAM!

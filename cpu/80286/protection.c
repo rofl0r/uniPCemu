@@ -104,7 +104,7 @@ int isGateDescriptor(SEGDESCRIPTOR_TYPE *loadeddescriptor)
 	return (!loadeddescriptor->desc.nonS && (loadeddescriptor->desc.Type==6)); //Gate descriptor?
 }
 
-void THROWDESCGP(segment)
+void THROWDESCGP(word segment)
 {
 	CPU_GP(1,(segment&(0xFFFB))|(segment&4)); //#GP with an error in the LDT/GDT (index@bits 3-15)!
 }
@@ -117,13 +117,13 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 	descriptor_adress = (segment&4)?CPU.registers->LDTR.base:CPU.registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
 
-	if (descriptor_index>(segment&4)?CPU.registers->LDTR.limit:CPU.registers->GDTR.limit); //LDT/GDT limit exceeded?
+	if (descriptor_index>((segment&4)?CPU.registers->LDTR.limit:CPU.registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		THROWDESCGP(segment); //Throw error!
 		return 0; //Not present: limit exceeded!
 	}
 	
-	if (!descriptor_index && ((whatsegment==CPU_SEGMENT_CS) || (whatsegment==CPU_SEGMENT_SS))) //NULL segment loaded into CS or SS?
+	if (!descriptor_index && ((whatsegment==CPU_SEGMENT_CS) || (whatsegment==CPU_SEGMENT_SS))) //NULL segment loaded into REG_CS or REG_SS?
 	{
 		THROWDESCGP(segment); //Throw error!
 		return 0; //Not present: limit exceeded!	
@@ -135,7 +135,7 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 		container->descdata[i] = MMU_directrb(descriptor_adress+i); //Read a descriptor byte directly from flat memory!
 	}
 	
-	if ((whatsegment==CPU_SEGMENT_SS) && //SS is...
+	if ((whatsegment==CPU_SEGMENT_SS) && //REG_SS is...
 		((getLoadedTYPE(container)==1) || //An executable segment? OR
 		(!getLoadedTYPE(container) && (container->desc.EXECSEGMENT.R)) || //Read-only DATA segment? OR
 		(getCPL()!=container->desc.DPL) //Not the same privilege?
@@ -148,7 +148,7 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 
 	if ((whatsegment==CPU_SEGMENT_CS) &&
 		(
-		(getLoadedTYPE(container)!=1 && !isGateDescriptor(container)) || //Data or System in CS (non-exec)?
+		(getLoadedTYPE(container)!=1 && !isGateDescriptor(container)) || //Data or System in REG_CS (non-exec)?
 		(!getLoadedTYPE(container) && !isGateDescriptor(container)) //Or System?
 		)
 		)
@@ -232,7 +232,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 		(whatsegment==CPU_SEGMENT_DS) ||
 		(whatsegment==CPU_SEGMENT_ES) ||
 		(whatsegment==CPU_SEGMENT_FS) ||
-		(whatsegment==CPU_SEGMENT_GS) //SS,DS,ES,FS,GS are ...
+		(whatsegment==CPU_SEGMENT_GS) //REG_SS,REG_DS,REG_ES,REG_FS,REG_GS are ...
 		) &&
 		(
 		(getLoadedTYPE(&LOADEDDESCRIPTOR)==2) || //A System segment? OR ...
@@ -256,7 +256,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 		return NULL; //We are a lower privilege level, so don't load!
 	}
 
-	if (whatsegment==CPU_SEGMENT_CS) //Special stuff on CS (conforming?), CPL.
+	if (whatsegment==CPU_SEGMENT_CS) //Special stuff on REG_CS (conforming?), CPL.
 	{
 		if (LOADEDDESCRIPTOR.desc.EXECSEGMENT.C) //Conforming segment?
 		{
@@ -301,7 +301,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		{
 			*CPU.SEGMENT_REGISTERS[segment] = value; //Just set the segment, don't load descriptor!
 		}
-		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
+		if (segment==CPU_SEGMENT_CS) //REG_CS segment? Reload access rights in real mode on first write access!
 		{
 			CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x93; //Load default access rights!
 			//Pulled low on first load:
@@ -328,7 +328,7 @@ MMU: memory start!
 
 */
 
-uint_32 CPU_MMU_start(int segment, word segmentval) //Determines the start of the segment!
+uint_32 CPU_MMU_start(word segment, word segmentval) //Determines the start of the segment!
 {
 //Determine the Base!
 
@@ -364,7 +364,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 		}
 	}
 	
-	if (segment!=CPU_SEGMENT_CS && segment!=CPU_SEGMENT_SS && !getDescriptorIndex(segmentval)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
+	if (segment!=CPU_SEGMENT_CS && segment!=CPU_SEGMENT_SS && !getDescriptorIndex(segmentval)) //Accessing memory with REG_DS,REG_ES,REG_FS or REG_GS, when they contain a NULL selector?
 	{
 		THROWDESCGP(segmentval); //Throw fault!
 		return 1; //Error!

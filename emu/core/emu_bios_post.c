@@ -220,7 +220,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			fseek(f,0,SEEK_END); //Goto EOF!
 			romsize = ftell(f); //ROM size!
 			fseek(f,0,SEEK_SET); //Goto BOF!
-			byte *ptr = MMU_ptr(-1,0x0000,0x0000,0,romsize); //Read a pointer to test ROM memory!
+			byte *ptr = (byte *)MMU_ptr(-1,0x0000,0x0000,0,romsize); //Read a pointer to test ROM memory!
 			if (ptr) //Valid pointer?
 			{
 				verified = fread(ptr,1,romsize,f); //Read ROM to memory adress 0!

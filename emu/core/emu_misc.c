@@ -2,6 +2,7 @@
 #include "headers/emu/gpu/gpu_text.h" //Emulator support!
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
 #include "headers/emu/threads.h" //Multithreading support!
+#include "headers/emu/directorylist.h" //Directory listing support!
 
 int convertrel(int src, int fromres, int tores) //Relative int conversion!
 {
@@ -75,23 +76,25 @@ void delete_file(char *directory, char *filename)
 	{
 		char *f2 = substr(filename,1); //Take off the *!
 
-		DIR *dir;
-		struct dirent *dirent = 0;
-		
-		/* open directory */
-		if ( ( dir = opendir( directory ) ) == 0 )
+		char direntry[256];
+		byte isfile;
+		DirListContainer_t dir;
+		if (!opendirlist(&dir,directory,&direntry[0],&isfile))
 		{
 			return; //Nothing found!
 		}
-		while ( ( dirent = readdir( dir ) ) != 0 ) //Files left to check?
+		
+		/* open directory */
+		do //Files left to check?
 		{
-			if ( (dirent->d_name[0] == '.') ) continue; //. or ..?
-			if (strcmp(substr(dirent->d_name,strlen(dirent->d_name)-strlen(f2)),f2)==0) //Match?
+			if ( (direntry[0] == '.') ) continue; //. or ..?
+			if (strcmp(substr(direntry,strlen(direntry)-strlen(f2)),f2)==0) //Match?
 			{
-				delete_file(directory,dirent->d_name); //Delete the file!
+				delete_file(directory,direntry); //Delete the file!
 			}
 		}
-		closedir(dir); //Close the directory!
+		while (readdirlist(&dir,&direntry[0],&isfile)); //Files left to check?)
+		closedirlist(&dir); //Close the directory!
 		return; //Don't process normally!
 	}
 	//Compose the full path!

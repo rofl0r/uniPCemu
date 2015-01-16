@@ -101,6 +101,18 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 	byte buffer[CD_SEC_SIZE]; //1MB buffer!
 	int drivetype = 0; //Drive type!
 	int success = 0;
+	dwordconverter firstbootcatptr;
+	DWORD BootCatalogSector;
+	dwordconverter dwbuf;
+	DWORD StartingSector;
+	WORD VirtSectorCount;
+	WORD ReadSecCount;
+	DWORD dwLen;
+	int do_boot, counter;
+	byte sectorbuffer[CD_SEC_SIZE]; //A buffer to contain a sector!
+	FILE *f;
+	uint_32 byteswritten = 0; //Ammount of data bytes written!
+	uint_32 data_size;
 
 //First, read boot record in buffer!
 	success = readdata(device,&buffer,CD_SEC_SIZE * CD_BOOT_RECORD_VOL_SEC, CD_SEC_SIZE); //Read boot-record-volume
@@ -125,14 +137,13 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 
 //ok, it is valid... now get the sector of the boot-catalog
 
-	dwordconverter firstbootcatptr;
 
 	firstbootcatptr.b[0] = buffer[0x47];
 	firstbootcatptr.b[1] = buffer[0x48];
 	firstbootcatptr.b[2] = buffer[0x49];
 	firstbootcatptr.b[3] = buffer[0x4A];
 
-	DWORD BootCatalogSector = firstbootcatptr.thedword; //Boot catalog sector!
+	BootCatalogSector = firstbootcatptr.thedword; //Boot catalog sector!
 
 //Read the boot-catalog (should be at 36864 in test image):
 	success = readdata(device,&buffer,CD_SEC_SIZE * BootCatalogSector,CD_SEC_SIZE); //Read the boot-catalog!
@@ -182,19 +193,18 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 		ISOREADER_SEGMENT = BOOT_SEGMENT; //Use traditional segment!
 	}
 
-	dwordconverter dwbuf;
 	dwbuf.b[0] = buffer[0x08+CD_BOOT_DEFAULTENTRY];
 	dwbuf.b[1] = buffer[0x09+CD_BOOT_DEFAULTENTRY];
 	dwbuf.b[2] = buffer[0x0A+CD_BOOT_DEFAULTENTRY];
 	dwbuf.b[3] = buffer[0x0B+CD_BOOT_DEFAULTENTRY];
 
-	DWORD StartingSector = dwbuf.thedword; //Starting sector
+	StartingSector = dwbuf.thedword; //Starting sector
 
-	WORD VirtSectorCount = *((WORD *)&buffer[0x06+CD_BOOT_DEFAULTENTRY]); //Sector count
+	VirtSectorCount = *((WORD *)&buffer[0x06+CD_BOOT_DEFAULTENTRY]); //Sector count
 
-	WORD ReadSecCount = 0; //Copy for now (default)!
+	ReadSecCount = 0; //Copy for now (default)!
 
-	DWORD dwLen = 0;
+	dwLen = 0;
 
 	ReadSecCount = VirtSectorCount; //Use virtual ammount of sectors!
 
@@ -238,8 +248,9 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 	default: //Not a CD-ROM drive!
 		return FALSE; //Don't boot from NON-CDROM!
 	}
-	int do_boot = 0; //Do boot?
-	int counter = ISO_BOOT_TIME; //5 Seconds to wait!
+
+	do_boot = 0; //Do boot?
+	counter = ISO_BOOT_TIME; //5 Seconds to wait!
 	counter = ISO_BOOT_TIME; //Init!
 	while (counter>=0)
 	{
@@ -270,19 +281,15 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 //read the boot image
 //Process the "boot sector"=boot image
 
-	byte sectorbuffer[CD_SEC_SIZE]; //A buffer to contain a sector!
-	FILE *f = fopen(imagefile,"wb"); //Open the image file!
+	f = fopen(imagefile,"wb"); //Open the image file!
 	if (!f)
 	{
 		dolog("ISOReader","Failed to boot from CD-ROM: could not open temporary image file %s.",imagefile); //Log our error!
 		return FALSE;
 	}
 
-	uint_32 byteswritten = 0; //Ammount of data bytes written!
-	
 	while (byteswritten<dwLen) //Not fully writte yet?
 	{
-		uint_32 data_size;
 		if ((dwLen-byteswritten)>CD_SEC_SIZE) //More than the buffer?
 		{
 			data_size = CD_SEC_SIZE; //No more than our buffer!
@@ -326,6 +333,15 @@ int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on boota
 	byte buffer[CD_SEC_SIZE]; //1MB buffer!
 	int drivetype = 0; //Drive type!
 	int success = 0;
+	dwordconverter firstbootcatptr;
+	DWORD BootCatalogSector;
+	dwordconverter dwbuf;
+	DWORD StartingSector;
+	WORD VirtSectorCount;
+	WORD ReadSecCount;
+	DWORD dwLen;
+	int do_boot = 0; //Do boot?
+	int counter = ISO_BOOT_TIME; //5 Seconds to wait!
 
 //First, read boot record in buffer!
 	success = readdata(device,&buffer,CD_SEC_SIZE * CD_BOOT_RECORD_VOL_SEC, CD_SEC_SIZE); //Read boot-record-volume
@@ -350,14 +366,12 @@ int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on boota
 
 //ok, it is valid... now get the sector of the boot-catalog
 
-	dwordconverter firstbootcatptr;
-
 	firstbootcatptr.b[0] = buffer[0x47];
 	firstbootcatptr.b[1] = buffer[0x48];
 	firstbootcatptr.b[2] = buffer[0x49];
 	firstbootcatptr.b[3] = buffer[0x4A];
 
-	DWORD BootCatalogSector = firstbootcatptr.thedword; //Boot catalog sector!
+	BootCatalogSector = firstbootcatptr.thedword; //Boot catalog sector!
 
 //Read the boot-catalog (should be at 36864 in test image):
 	success = readdata(device,&buffer,CD_SEC_SIZE * BootCatalogSector,CD_SEC_SIZE); //Read the boot-catalog!
@@ -407,19 +421,18 @@ int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on boota
 		ISOREADER_SEGMENT = BOOT_SEGMENT; //Use traditional segment!
 	}
 
-	dwordconverter dwbuf;
 	dwbuf.b[0] = buffer[0x08+CD_BOOT_DEFAULTENTRY];
 	dwbuf.b[1] = buffer[0x09+CD_BOOT_DEFAULTENTRY];
 	dwbuf.b[2] = buffer[0x0A+CD_BOOT_DEFAULTENTRY];
 	dwbuf.b[3] = buffer[0x0B+CD_BOOT_DEFAULTENTRY];
 
-	DWORD StartingSector = dwbuf.thedword; //Starting sector
+	StartingSector = dwbuf.thedword; //Starting sector
 
-	WORD VirtSectorCount = *((WORD *)&buffer[0x06+CD_BOOT_DEFAULTENTRY]); //Sector count
+	VirtSectorCount = *((WORD *)&buffer[0x06+CD_BOOT_DEFAULTENTRY]); //Sector count
 
-	WORD ReadSecCount = 0; //Copy for now (default)!
+	ReadSecCount = 0; //Copy for now (default)!
 
-	DWORD dwLen = 0;
+	dwLen = 0;
 
 	ReadSecCount = VirtSectorCount; //Use virtual ammount of sectors!
 
@@ -461,8 +474,6 @@ int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on boota
 		GPU_EMU_printscreen(-1,-1,"Press any key to boot from the second CDROM...\n");
 	}
 
-	int do_boot = 0; //Do boot?
-	int counter = ISO_BOOT_TIME; //5 Seconds to wait!
 	counter = ISO_BOOT_TIME; //Init!
 	while (counter>=0)
 	{

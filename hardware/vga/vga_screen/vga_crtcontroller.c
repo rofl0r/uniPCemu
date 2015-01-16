@@ -3,6 +3,17 @@
 #include "headers/hardware/vga_screen/vga_sequencer_textmode.h" //VGA Attribute controller!
 #include "headers/hardware/vga_screen/vga_crtcontroller.h"
 
+//Character sizes in pixels!
+OPTINLINE byte getcharacterwidth(VGA_Type *VGA)
+{
+	return VGA->precalcs.characterwidth; //8 or 9 dots per line?
+}
+
+OPTINLINE byte getcharacterheight(VGA_Type *VGA)
+{
+	return VGA->precalcs.characterheight; //The character height!
+}
+
 //Horizontal information!
 
 OPTINLINE word getHorizontalDisplayStart(VGA_Type *VGA) //How many pixels to take off the active display x to get the start x!

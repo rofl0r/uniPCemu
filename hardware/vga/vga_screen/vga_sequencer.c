@@ -1,6 +1,6 @@
 #include "headers/emu/gpu/gpu.h" //GPU!
 #include "headers/hardware/vga.h" //VGA!
-#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller!
+#include "headers/hardware/vga_screen/vga_sequencer.h" //Ourselves!
 #include "headers/hardware/vga_screen/vga_sequencer_graphicsmode.h" //Text mode!
 #include "headers/hardware/vga_screen/vga_sequencer_textmode.h" //Text mode!
 #include "headers/hardware/vga_screen/vga_crtcontroller.h" //CRT Controller for finishing up!
@@ -11,6 +11,7 @@
 #include "headers/support/zalloc.h" //Memory protection support!
 
 #include "headers/emu/gpu/gpu_text.h" //Text support!
+#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller!
 
 //Are we disabled?
 #define HW_DISABLED 0
@@ -201,6 +202,8 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 	//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59 && Sequencer->x==639) dolog("VGA","Rendering OS@%i->%i,%i",Sequencer->x,VGA->CRTC.x,VGA->CRTC.y);
 	++VGA->CRTC.x; //Next x!
 }
+
+OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, SEQ_DATA *Sequencer); //Process attribute to DAC index! Inside the attribute controller!
 
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)

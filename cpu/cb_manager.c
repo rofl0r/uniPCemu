@@ -308,30 +308,30 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 
 void CALLBACK_SZF(byte val) {
 	uint_32 flags;
-	flags = EFLAGS; //Read flags!
-	EFLAGS = MMU_rw(CPU_SEGMENT_SS,SS,SP+4,0); 
-	if (val) ZF = 1;
-	else ZF = 0; 
-	MMU_ww(CPU_SEGMENT_SS,SS,SP+4,EFLAGS); 
-	EFLAGS = flags; //Restore!
+	flags = REG_EFLAGS; //Read flags!
+	REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_SP+4,0); 
+	if (val) FLAG_ZF = 1;
+	else FLAG_ZF = 0; 
+	MMU_ww(CPU_SEGMENT_SS,REG_SS,REG_SP+4,REG_EFLAGS); 
+	REG_EFLAGS = flags; //Restore!
 }
 
 void CALLBACK_SCF(byte val) {
 	uint_32 flags;
-	flags = EFLAGS; //Read flags!
-	EFLAGS = MMU_rw(CPU_SEGMENT_SS,SS,SP+4,0); 
-	if (val) CF = 1;
-	else CF = 0; 
-	MMU_ww(CPU_SEGMENT_SS,SS,SP+4,EFLAGS); 
-	EFLAGS = flags; //Restore!
+	flags = REG_EFLAGS; //Read flags!
+	REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_SP+4,0); 
+	if (val) FLAG_CF = 1;
+	else FLAG_CF = 0; 
+	MMU_ww(CPU_SEGMENT_SS,REG_SS,REG_SP+4,REG_EFLAGS); 
+	REG_EFLAGS = flags; //Restore!
 }
 
 void CALLBACK_SIF(byte val) {
 	uint_32 flags;
-	flags = EFLAGS; //Read flags!
-	EFLAGS = MMU_rw(CPU_SEGMENT_SS,SS,SP+4,0); 
-	if (val) IF = 1;
-	else IF = 0; 
-	MMU_ww(CPU_SEGMENT_SS,SS,SP+4,EFLAGS); 
-	EFLAGS = flags; //Restore!
+	flags = REG_EFLAGS; //Read flags!
+	REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_SP+4,0); 
+	if (val) FLAG_IF = 1;
+	else FLAG_IF = 0; 
+	MMU_ww(CPU_SEGMENT_SS,REG_SS,REG_SP+4,REG_EFLAGS); 
+	REG_EFLAGS = flags; //Restore!
 }

@@ -111,7 +111,7 @@ void initMEM() //Initialise memory for reset!
 	BDA->Equipment.MathCOProcessorInstalled = 0; //Math CO-OP installed?
 	BDA->Equipment.BootFloppyInstalled = 1; //Boot floppy installed?
 
-	BDA->IF_ManufacturingTest = 0; //IF - Manufacturing test
+	BDA->IF_ManufacturingTest = 0; //FLAG_IF - Manufacturing test
 
 	BDA->MemorySize_KB = ((MEMsize()>>10)>=0xFFFF)?0xFFFF:(MEMsize()/1024); //MMU size in KB!
 
@@ -170,7 +170,7 @@ void initMEM() //Initialise memory for reset!
 //End of Video part!
 
 
-//END OF BDA
+//END FLAG_OF BDA
 
 //Finally: model and submodel
 //SRC: http://flint.cs.yale.edu/feng/research/BIOS/mem.htm

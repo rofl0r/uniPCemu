@@ -50,4 +50,5 @@ int GPU_putpixel(int x, int y, byte page, byte color); //Writes a video buffer p
 //ROM support!
 void INT10_SetupRomMemory(void); //ROM memory installation!
 
+void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count);
 #endif

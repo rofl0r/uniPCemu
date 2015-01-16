@@ -67,7 +67,7 @@ OBJS += hardware\vga\vga_screen\vga_sequencer.o hardware\vga\vga_screen\vga_sequ
 # *2*: Attribute Controller Operation
 OBJS += hardware\vga\vga_screen\vga_attributecontroller.o
 # *3*: DAC Operation
-OBJS += hardware\vga\vga_screen\vga_dac.o
+OBJS += hardware\vga\vga_screen\vga_dacrenderer.o
 # *4*: CRTC
 OBJS += hardware\vga\vga_screen\vga_crtcontroller.o
 # Help: precalcs for VGA rendering!
@@ -95,7 +95,7 @@ OBJS += cpu\modrm.o
 #8086,80186 GRP Opcodes:
 OBJS += cpu\8086\8086_grpOPs.o
 #Opcodes for CPU 8086,Debugger,Flags
-OBJS += cpu\8086\opcodes_8086.o cpu\8086\flags.o
+OBJS += cpu\8086\opcodes_8086.o
 #Opcodes for CPU 80186,Debugger
 OBJS += cpu\80186\opcodes_80186.o
 #Opcodes for CPU 80286,Debugger&JMPTbl for 0F opcodes!
@@ -110,8 +110,8 @@ OBJS += cpu\cpu_jmptbls.o
 OBJS += cpu\80286\protection.o
 #Multitasking module of the CPU (286+).
 OBJS += cpu\80286\multitasking.o
-#finally CPU module itself
-OBJS += cpu\cpu.o
+#finally CPU module itself and flag support (global)
+OBJS += cpu\flags.o cpu\cpu.o
 #Debugger
 OBJS += emu\debugger\debugger.o
 #Signed VS unsigned conversion support!
@@ -154,6 +154,9 @@ OBJS += emu\core\emu_bios_post.o
 
 #Main subcores.
 OBJS += emu\core\emu_main.o emu\core\emu_misc.o emu\support\number_optimizations.o emu\core\emu_vga_bios.o emu\core\emu_vga.o emu\core\emu_bios_sound.o emu\debugger\debug_graphics.o emu\debugger\debug_files.o
+
+#Directory listing support!
+OBJS += emu\io\directorylist.o
 
 #Finally: main script!
 OBJS += emu\main.o

@@ -66,7 +66,7 @@ static void init_rowempty()
 	if (!row_empty) //Not allocated yet?
 	{
 		row_empty_size = EMU_MAX_X*sizeof(uint_32); //Load the size of an empty row for deallocation purposes!
-		row_empty = zalloc(row_empty_size,"Empty row"); //Initialise empty row!
+		row_empty = (uint_32 *)zalloc(row_empty_size,"Empty row"); //Initialise empty row!
 	}
 }
 
@@ -110,7 +110,7 @@ static void render_EMU_screen() //Render the EMU buffer to the screen!
 			rendered = 1; //We're rendered from here on!
 			word y = 0; //Current row counter!
 			word count;
-			uint_32 virtual = 0; //Virtual row to use! (From the source)
+			uint_32 virtualrow = 0; //Virtual row to use! (From the source)
 			
 			byte letterbox = GPU.use_Letterbox; //Use letterbox?
 			if (letterbox) //Using letterbox for aspect ratio?
@@ -131,7 +131,7 @@ static void render_EMU_screen() //Render the EMU buffer to the screen!
 				nextrowemu: //Process row-by-row!
 				{
 					if (!count--) goto startbottomrendering; //Stop when done!
-					put_pixel_row(rendersurface,y++,resized->sdllayer->w,get_pixel_row(resized,virtual++,0),(letterbox&1),0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+					put_pixel_row(rendersurface,y++,resized->sdllayer->w,get_pixel_row(resized,virtualrow++,0),(letterbox&1),0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
 					goto nextrowemu;
 				}
 			}
@@ -227,6 +227,7 @@ static void GPU_directRenderer() //Plot directly 1:1 on-screen!
 	{
 		if (GPU.emu_buffer_dirty) //Dirty?
 		{
+			uint_32 virtualrow = 0; //Virtual row to use! (From the source)
 			uint_32 start = 0; //Start row of the drawn part!
 			word y = 0; //Init Y to the beginning!
 			if (GPU.use_Letterbox) //Using letterbox for aspect ratio?
@@ -239,12 +240,9 @@ static void GPU_directRenderer() //Plot directly 1:1 on-screen!
 				}
 			}
 			
-			uint_32 virtual = 0; //Virtual row to use! (From the source)
-			for (;virtual<GPU.yres;) //Process row-by-row!
+			for (;virtualrow<GPU.yres;) //Process row-by-row!
 			{
-				put_pixel_row(rendersurface,y,GPU.xres,&EMU_BUFFER(0,virtual),0,0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
-				++y; //Next Y!
-				++virtual; //Next virtual row!
+				put_pixel_row(rendersurface,y++,GPU.xres,&EMU_BUFFER(0,virtualrow++),0,0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
 			}
 			
 			if (GPU.use_Letterbox) //Using letterbox for aspect ratio?

@@ -11,6 +11,10 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	static char filenametmp[256];
 	static char logtext[256];
 	static char timestamp[256];
+	static char CRLF[2] = {'\r','\n'}; //CRLF!
+	va_list args; //Going to contain the list!
+	uint_64 time;
+	FILE *f; //The file to use!
 
 	//First: init variables!
 	bzero(filenametmp,sizeof(filenametmp)); //Init filename!
@@ -27,19 +31,17 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	
 	mkdir("logs"); //Create a logs directory if needed!
 	
-	va_list args; //Going to contain the list!
 	va_start (args, format); //Start list!
 	vsprintf (logtext, format, args); //Compile list!
 	va_end (args); //Destroy list!
 	
 	if (safe_strlen(logtext,sizeof(logtext))) //Got length?
 	{
-		uint_64 time = getuspassed_k(&logticksholder); //Get the current time!
+		time = getuspassed_k(&logticksholder); //Get the current time!
 		convertTime(time,&timestamp[0]); //Convert the time!
 		strcat(timestamp,": "); //Suffix!
 	}
 
-	FILE *f; //The file to use!
 	f = fopen(filenametmp,"r"); //Open for testing!
 	if (f) //Existing?
 	{
@@ -59,7 +61,6 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 			fwrite(&timestamp,1,safe_strlen(timestamp,sizeof(timestamp)),f); //Write the timestamp!
 			fwrite(&logtext,1,safe_strlen(logtext,sizeof(logtext)),f); //Write string to file!
 		}
-		char CRLF[2] = "\r\n"; //CRLF!
 		fwrite(&CRLF,1,sizeof(CRLF),f); //Write line feed!
 		fclose(f); //Close the log!
 	}

@@ -8,6 +8,7 @@
 
 #include "headers/emu/gpu/gpu_emu.h" //GPU EMU support!
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
+#include "headers/emu/timers.h" //Timer support!
 
 void halt_modrm(char *message, ...) //Unknown modr/m?
 {
@@ -21,5 +22,5 @@ void halt_modrm(char *message, ...) //Unknown modr/m?
 	raiseError("modrm","Modr/m error: %s",buffer); //Shut the adress and opcode!
 	debugger_screen(); //Show debugger info!
 //EMU_Shutdown(1); //Shut down the emulator!
-	sceKernelSleepThread(); //Wait forever!
+	sleep(); //Wait forever!
 }

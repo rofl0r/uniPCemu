@@ -2,6 +2,6 @@
 #define LOG_H
 
 void initlog(); //Init log info!
-void dolog(char *filename, char *format, ...); //Logging functionality!
+void dolog(char *filename, const char *format, ...); //Logging functionality!
 
 #endif

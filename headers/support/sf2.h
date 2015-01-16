@@ -90,39 +90,49 @@ RIFF
 #define WORD word
 
 typedef uint_32 FOURCC; // Four-character code 
-typedef struct  __attribute__((packed)) { 
+#include "headers/packed.h" //We're packed!
+typedef struct  PACKED { 
  FOURCC ckID; // A chunk ID identifies the type of data within the chunk. 
  DWORD ckSize; // The size of the chunk data in bytes, excluding any pad byte. 
  // DATA THAT FOLLOWS = The actual data plus a pad byte if req’d to word align. 
 } RIFF_DATAENTRY;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct  __attribute__((packed)) { 
+#include "headers/packed.h" //We're packed!
+typedef struct  PACKED { 
      FOURCC ckID; 
      DWORD ckSize; 
      FOURCC fccType;          // RIFF form type 
 } RIFF_LISTENTRY; //LIST/RIFF
+#include "headers/endpacked.h" //We're packed!
 
 typedef union
 {
 	RIFF_DATAENTRY *dataentry; //Data type!
 	RIFF_LISTENTRY *listentry; //List type!
 	void *voidentry; //Void type!
+	byte *byteentry; //Byte type (same as void, but for visual c++)
 } RIFF_ENTRY; //Data/List entry!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
  { 
  BYTE byLo; 
  BYTE byHi; 
  } rangesType;
- 
-typedef union __attribute__((packed))
+ #include "headers/endpacked.h" //We're packed!
+
+#include "headers/packed.h" //We're packed!
+typedef union PACKED
  { 
  rangesType ranges; 
  SHORT shAmount; 
  WORD wAmount;
  } genAmountType;
+#include "headers/endpacked.h" //We're packed!
 
-typedef enum __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef enum PACKED
 {
  monoSample = 1, 
  rightSample = 2, 
@@ -133,14 +143,18 @@ typedef enum __attribute__((packed))
  RomLeftSample = 0x8004, 
  RomLinkedSample = 0x8008 
  } SFSampleLink;
- 
-typedef struct __attribute__((packed))
+ #include "headers/endpacked.h" //We're packed!
+
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 { 
  WORD wMajor; 
  WORD wMinor; 
 } sfVersionTag;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 { 
  CHAR achPresetName[20]; 
  WORD wPreset; 
@@ -150,18 +164,22 @@ typedef struct __attribute__((packed))
  DWORD dwGenre; 
  DWORD dwMorphology; 
 } sfPresetHeader;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 { 
  WORD wGenNdx; 
  WORD wModNdx; 
 } sfPresetBag;
+#include "headers/endpacked.h" //We're packed!
 
 typedef word SFGenerator;
 typedef word SFModulator;
 typedef word SFTransform;
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 { 
  SFModulator sfModSrcOper; 
  SFGenerator sfModDestOper; 
@@ -169,32 +187,42 @@ typedef struct __attribute__((packed))
  SFModulator sfModAmtSrcOper; 
  SFTransform sfModTransOper; 
 } sfModList;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 { 
  SFGenerator sfGenOper; 
  genAmountType genAmount; 
 } sfGenList;
- 
-typedef struct __attribute__((packed))
+#include "headers/endpacked.h" //We're packed!
+
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 { 
  CHAR achInstName[20]; 
  WORD wInstBagNdx; 
 } sfInst;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 { 
  WORD wInstGenNdx; 
  WORD wInstModNdx; 
 } sfInstBag;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 { 
  SFGenerator sfGenOper; 
  genAmountType genAmount; 
 } sfInstGenList;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 { 
  CHAR achSampleName[20]; 
  DWORD dwStart; 
@@ -207,6 +235,7 @@ typedef struct __attribute__((packed))
  WORD wSampleLink; 
  SFSampleLink sfSampleType; 
 } sfSample;
+#include "headers/endpacked.h" //We're packed!
 
 //Our own defines!
 
@@ -253,13 +282,15 @@ typedef struct __attribute__((packed))
 #define GEN_KEYRANGE 43
 #define GEN_VELOCITYRANGE 44
 
-typedef struct __attribute__((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
 	uint_32 filesize; //The total filesize!
 	RIFF_ENTRY rootentry; //Root (SFBK) entry!
 	RIFF_ENTRY pcmdata; //16-bit (SMPL) audio entry!
 	RIFF_ENTRY pcm24data; //24-bit (SMPL) audio extension of 16-bit audio entry!
 } RIFFHEADER; //RIFF data header!
+#include "headers/endpacked.h" //We're packed!
 
 //Basic open/close functions for soundfonts!
 RIFFHEADER *readSF(char *filename); //Open, read and validate a soundfont!

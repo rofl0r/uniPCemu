@@ -17,7 +17,8 @@
 #include "headers/emu/gpu/gpu_text.h" //For the framerate surface clearing!
 #include "headers/interrupts/interrupt10.h" //GPU emulator support!
 
-//Are we disabled?
+#include "headers/emu/directorylist.h" //Directory listing support!
+
 #define __HW_DISABLED 1
 
 //BIOS width in text mode!
@@ -58,7 +59,7 @@ BIOSMENU_FONT BIOSMenu_Fonts[3] = {
 
 #define BIOS_ATTR_BLINKENABLE (ActiveBIOSPreset.HighestBitBlink>0)
 
-/* END OF BIOS PRESETS */
+/* END FLAG_OF BIOS PRESETS */
 
 
 
@@ -188,7 +189,7 @@ byte EMU_RUNNING = 0; //Emulator is running (are we using the IN-EMULATOR limite
 void BIOS_clearscreen()
 {
     //Clear the framerate surface!
-    EMU_clearscreen(frameratesurface); //Clear the screen we're working on!
+    EMU_clearscreen(); //Clear the screen we're working on!
 }
 
 extern GPU_type GPU; //The GPU!
@@ -630,13 +631,16 @@ void generateFileList(char *extension, int allowms0, int allowdynamic)
 {
 	numlist = 0; //Reset ammount of files!
 	clearList(); //Clear the list!
+	if (allowms0) //Allow Memory Stick option?
+	{
+        #ifdef __psp__
+               addList("ms0:"); //Add filename (Memory Stick)!
+        #endif
+	}
+	/*
 	int dfd;
 	SceIoDirent namelist;
 	dfd = sceIoDopen(".");
-	if (allowms0) //Allow Memory Stick option?
-	{
-		addList("ms0:"); //Add filename (Memory Stick)!
-	}
 	if (dfd>=0)
 	{
 		while ((sceIoDread(dfd,&namelist)>0)) //Entry read and space left to store?
@@ -657,6 +661,30 @@ void generateFileList(char *extension, int allowms0, int allowdynamic)
 				}
 			}
 		}
+	}*/
+	char direntry[256];
+	byte isfile;
+	DirListContainer_t dir;
+	if (opendirlist(&dir,".",&direntry[0],&isfile))
+	{
+		/* print all the files and directories within directory */
+		do //Files left to check?
+		{
+			if (isfile) //It's a file?
+			{
+				if (isext(direntry,extension)) //Check extension!
+				{
+					int allowed = 0;
+					allowed = ((allowdynamic && is_dynamicimage(direntry))||(!is_dynamicimage(direntry))); //Allowed when not dynamic or dynamic is allowed!
+					if (allowed) //Allowed?
+					{
+						addList(direntry); //Set filename!
+					}
+				}
+			}
+		}
+		while (readdirlist(&dir,&direntry[0],&isfile)); //Files left to check?)
+		closedirlist(&dir);
 	}
 }
 
@@ -1547,7 +1575,6 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 	char filename[256]; //Filename container!
 	bzero(filename,sizeof(filename)); //Init!
 	uint_32 size = 0;
-	pspDebugKbInit(filename); //Do the input!
 	BIOSClearScreen(); //Clear the screen!
 	BIOS_Title("Generate Dynamic HDD Image"); //Full clear!
 	EMU_textcolor(BIOS_ATTR_TEXT);
@@ -1575,7 +1602,6 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 	char filename[256]; //Filename container!
 	bzero(filename,sizeof(filename)); //Init!
 	uint_32 size = 0;
-	pspDebugKbInit(filename); //Do the input!
 	BIOS_Title("Generate Dynamic HDD Image"); //Full clear!
 	EMU_textcolor(BIOS_ATTR_TEXT);
 	if (strcmp(filename,"")!=0) //Got input?

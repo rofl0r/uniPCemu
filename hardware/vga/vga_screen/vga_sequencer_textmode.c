@@ -6,17 +6,6 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer!
 
-//Character sizes in pixels!
-OPTINLINE byte getcharacterwidth(VGA_Type *VGA)
-{
-	return VGA->precalcs.characterwidth; //8 or 9 dots per line?
-}
-
-OPTINLINE byte getcharacterheight(VGA_Type *VGA)
-{
-	return VGA->precalcs.characterheight; //The character height!
-}
-
 OPTINLINE uint_32 getcursorlocation(VGA_Type *VGA) //Location of the cursor!
 {
 	return VGA->precalcs.cursorlocation; //Cursor location!
@@ -52,8 +41,6 @@ static OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,uint_32 Seque
 void VGA_Sequencer_TextMode_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 {
 	register word character;
-	register uint_32 charystart;
-
 	word effectivescanline;
 	effectivescanline = Sequencer->Scanline; //Default: our normal scanline!
 	effectivescanline >>= VGA_ScanDoubling(VGA); //Apply Scan Doubling here!
@@ -80,7 +67,7 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	attributeinfo->charx = character; //Load the character we use!
 	attributeinfo->charinner_x = charinner = *curcolstatus; //Second is charinner_y!
 	
-	register uint_32 Sequencer_textmode_charindex; //Where do we find our info!
+	register word Sequencer_textmode_charindex; //Where do we find our info!
 	Sequencer_textmode_charindex = Sequencer->charystart; //Get the start of the row!
 	Sequencer_textmode_charindex += character; //Add the character column for the base character index!
 	Sequencer_textmode_charindex += Sequencer->bytepanning; //Apply byte panning to the index!
@@ -91,8 +78,8 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	attribute = readVRAMplane(VGA,1,Sequencer_textmode_charindex,3); //The attribute itself! From plane 1!
 	
 	register byte pixel;
-	pixel = getcharxy(VGA,attribute,currentchar,charinner,Sequencer->charinner_y); //Check for the character, the simple way!
-	pixel |= is_cursorscanline(VGA,Sequencer->charinner_y,Sequencer_textmode_charindex); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
+	pixel = getcharxy(VGA,attribute,currentchar,(byte)charinner,(byte)Sequencer->charinner_y); //Check for the character, the simple way!
+	pixel |= is_cursorscanline(VGA,(byte)Sequencer->charinner_y,Sequencer_textmode_charindex); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
 	attributeinfo->fontpixel = pixel; //We're the font pixel?
 	attributeinfo->attribute = attribute; //The attribute for this pixel!
 }

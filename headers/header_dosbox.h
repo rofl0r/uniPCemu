@@ -4,7 +4,10 @@
 
 #include "headers/types.h" //Basic types!
 
-typedef byte bool; //Booleans are ints!
+#ifndef bool
+//Booleans are ints!
+#define bool byte
+#endif
 
 /*
 
@@ -234,10 +237,10 @@ typedef byte *PhysPt; //Physical pointer!
 #define mem_readd(off) MMU_rdw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),0)
 #define mem_writed(off,val) MMU_wdw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),val)
 
-#define PhysMake(seg,offs) MMU_ptr(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,seg,offs,0,1)
+#define PhysMake(seg,offs) (byte *)MMU_ptr(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,seg,offs,0,1)
 
 //Physical 2 real support
-#define Phys2Real1(x) (((uint_32)x)-((uint_32)MMU_ptr(-1,0,0,0,0)))
+#define Phys2Real1(x) (uint_32)(((byte *)x)-((byte *)MMU_ptr(-1,0,0,0,0)))
 #define Phys2Real(x) (Phys2Real1(x)&0xF)|((Phys2Real1(x)&(~0xF))<<16)
 
 //Real 2 physical
@@ -359,4 +362,10 @@ enum KBD_KEYS {
 #define BIOS_DEFAULT_IRQ0_LOCATION		(RealMake(0xf000,0xfea5))
 #define BIOS_DEFAULT_IRQ1_LOCATION		(RealMake(0xf000,0xe987))
 #define BIOS_DEFAULT_IRQ2_LOCATION		(RealMake(0xf000,0xff55))
+
+//Callbacks!
+void CALLBACK_SZF(byte val);
+void CALLBACK_SCF(byte val);
+void CALLBACK_SIF(byte val);
+
 #endif

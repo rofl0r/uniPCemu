@@ -20,6 +20,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 	int imagegotten = 0; //Image gotten?
 	word loadedsegment = BOOT_SEGMENT;
 	BOOTIMGINFO imageinfo; //The info for the image from CD-ROM!
+	int emuread = 0; //Ammount of bytes read!
 
 	loadedsegment = BOOT_SEGMENT; //Default segment!
 	if (customsegment) //Use custom segment?
@@ -64,7 +65,6 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 			return BOOT_ERROR; //Not bootable!
 		}
 
-		int emuread = 0; //Ammount of bytes read!
 		switch (imagegotten) //Detect kind of image gotten!
 		{
 		case 0x01: //Diskette emulation?
@@ -93,7 +93,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 		default: //Unknown!
 			return BOOT_ERROR; //Unknown!
 		}
-
+		break;
 	default: //Unknown device or other error?
 		return BOOT_ERROR; //Unknown device!
 	}

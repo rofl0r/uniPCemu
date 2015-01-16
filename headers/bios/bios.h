@@ -11,11 +11,12 @@
 //BIOS Version!
 #define BIOS_VERSION 1
 
-typedef struct __attribute((packed))
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
-	union __attribute((packed))
+	union PACKED
 	{
-		struct __attribute((packed))
+		struct PACKED
 		{
 			byte version; //The version number of the BIOS; should match with current version number!
 
@@ -54,6 +55,7 @@ typedef struct __attribute((packed))
 	};
 //Rest settings!
 } BIOS_Settings_TYPE; //BIOS Settings!
+#include "headers/endpacked.h" //We're packed!
 
 //Debug modes:
 //None:
@@ -64,7 +66,7 @@ typedef struct __attribute((packed))
 #define DEBUGMODE_STEP 2
 //Show, just run, ignore RTRIGGER buttons.
 #define DEBUGMODE_SHOW_RUN 3
-//Run advanced debugger (debug/*.* OR bootrom.dat)
+//Run advanced debugger (debug / *.* OR bootrom.dat)
 #define DEBUGMODE_TEST 4
 //Special case: TEST mode (see above) with forced STEP!
 #define DEBUGMODE_TEST_STEP 5

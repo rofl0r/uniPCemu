@@ -35,6 +35,7 @@ void *MMU_directptr(uint_32 address, uint_32 size) //Full ptr to real MMU memory
 //MMU_ptr: 80(1)86 only!
 void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint_32 size) //Gives direct memory pointer!
 {
+	uint_32 realaddr;
 	if (MMU.memory==NULL) //None?
 	{
 		return NULL; //NULL: no memory alligned!
@@ -48,7 +49,6 @@ void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint
 	{
 		return NULL; //80286+ isn't supported here!
 	}
-	uint_32 realaddr;
 	realaddr = (segment<<4)+offset; //Our real address!
 	realaddr = BITOFF(realaddr,0x100000); //Wrap arround, disable A20!	
 	return MMU_directptr(realaddr,size); //Direct pointer!
@@ -194,6 +194,7 @@ byte writeword = 0; //Hi-end word written?
 //Address translation routine.
 uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) //Real adress?
 {
+	uint_32 realaddress;
 	//word originalsegment = segment;
 	//uint_32 originaloffset = offset; //Save!
 	if (EMULATED_CPU==CPU_8086 || (EMULATED_CPU==CPU_80186 && !(offset==0x10000 && wordop))) //-80186 wraps offset arround 64kB? 80186 allows 1 byte more in word operations!
@@ -202,7 +203,6 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) /
 	}
 	writeword = 0; //Reset word-write flag for checking next bytes!
 
-	uint_32 realaddress;
 	realaddress = CPU_MMU_start(segdesc,segment)+offset; //Real adress!
 
 	if (MMU.wraparround) //-80186 wraps offset arround?
@@ -217,6 +217,7 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) /
 //CPU/EMU simple memory access routine.
 byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
 {
+	uint_32 realaddress;
 	if ((MMU.memory==NULL) || (MMU.size==0)) //No mem?
 	{
 		//dolog("MMU","R:No memory present!");
@@ -231,7 +232,6 @@ byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adre
 		return 0; //Not found.
 	}
 
-	uint_32 realaddress;
 	realaddress = MMU_realaddr(segdesc,segment,offset,writeword); //Real adress!
 	
 	return MMU_directrb_realaddr(realaddress); //Read from MMU/hardware!
@@ -249,6 +249,7 @@ uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get 
 
 void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
 {
+	uint_32 realaddress;
 	if (MMU.invaddr) return; //Abort!
 	if ((MMU.memory==NULL) || !MMU.size) //No mem?
 	{
@@ -272,7 +273,6 @@ void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
 		dolog("debugger","MMU: Write to %04X:%08X=%02X",segment,offset,val); //Log our written value!
 	}*/
 
-	uint_32 realaddress;
 	realaddress = MMU_realaddr(segdesc,segment,offset,writeword); //Real adress!
 
 	MMU_directwb_realaddr(realaddress,val); //Set data!

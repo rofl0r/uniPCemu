@@ -15,55 +15,55 @@ extern MODRM_PARAMS params;    //For getting all params!
 //AAA
 void CPU_OP37()
 {
-	if (((AL & 0x0F)>9)||(AF))
+	if (((REG_AL & 0x0F)>9)||(FLAG_AF))
 	{
-		AL = ((AL+6)&0x0F);    //AAA
-		AF = 1;
-		CF = 1;
+		REG_AL = ((REG_AL+6)&0x0F);    //AAA
+		FLAG_AF = 1;
+		FLAG_CF = 1;
 	}
 	else
 	{
-		CF = 0;
-		AF = 0;
+		FLAG_CF = 0;
+		FLAG_AF = 0;
 	}
 	CPU.cycles_OP = 4;
 }
 //AAD
 void CPU_OPD50A()
 {
-	AL = (AH*10)+AL;    //AAD
-	CHECK_SF(AL);
-	AH = 0;
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
-	CHECK_PF(AL);
+	REG_AL = (REG_AH*10)+REG_AL;    //AAD
+	CHECK_SF(REG_AL);
+	REG_AH = 0;
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
+	CHECK_PF(REG_AL);
 	CPU.cycles_OP = 19;
 }
 //AAM
 void CPU_OPD40A()
 {
-	AH = SAFEDIV(AL,10);
-	AL = SAFEMOD(AL,10);
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
-	CHECK_PF(AL);
+	REG_AH = SAFEDIV(REG_AL,10);
+	REG_AL = SAFEMOD(REG_AL,10);
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
+	CHECK_PF(REG_AL);
 	CPU.cycles_OP = 17;
 }
 //AAS
 void CPU_OP3F()
 {
-	if (((AL&0x0F)>9)||(AF))
+	if (((REG_AL&0x0F)>9)||(FLAG_AF))
 	{
-		AL = AL - 6;    //AAS
-		AL = (AL&0x0F);
-		AH = AH - 1;
-		AF = 1;
-		CF = 1;
+		REG_AL = REG_AL - 6;    //AAS
+		REG_AL = (REG_AL&0x0F);
+		REG_AH = REG_AH - 1;
+		FLAG_AF = 1;
+		FLAG_CF = 1;
 	}
 	else
 	{
-		CF = 0;
-		AF = 0;
+		FLAG_CF = 0;
+		FLAG_AF = 0;
 	}
 	CPU.cycles_OP = 4;
 }
@@ -86,30 +86,30 @@ void CPU_OP3F()
 //ADC
 void CPU_OP14()
 {
-	byte addition = ((imm8() + CF)&0xFF);    //ADC AL,imm8
-	CHECK_AF(AL,addition); /*CHECK_OF(AL,addition);*/
-	AL = ((AL + addition)&0xFF);
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
+	byte addition = ((imm8() + FLAG_CF)&0xFF);    //ADC REG_AL,imm8
+	CHECK_AF(REG_AL,addition); /*CHECK_OF(REG_AL,addition);*/
+	REG_AL = ((REG_AL + addition)&0xFF);
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
 	CPU.cycles_OP = 2;
 }
 //OP15 multihandler
 void CPU_OP15_IW()
 {
-	word addition = ((imm16() + CF)&0xFFFF);    //ADC AX,imm16
-	CHECK_AF(AX,addition); /*CHECK_OF(AL,addition);*/
-	AL = ((AL + addition)&0xFF);
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
+	word addition = ((imm16() + FLAG_CF)&0xFFFF);    //ADC REG_AX,imm16
+	CHECK_AF(REG_AX,addition); /*CHECK_OF(REG_AL,addition);*/
+	REG_AL = ((REG_AL + addition)&0xFF);
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
 	CPU.cycles_OP = 2;
 }
 void CPU_OP15_ID()
 {
-	uint_32 addition = ((imm32() + CF)&0xFFFFFFFF);    //ADC EAX,imm32
-	CHECK_AF(EAX,addition); /*CHECK_OF(AX,addition);*/
-	EAX = ((EAX + addition)&0xFF);
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
+	uint_32 addition = ((imm32() + FLAG_CF)&0xFFFFFFFF);    //ADC REG_EAX,imm32
+	CHECK_AF(REG_EAX,addition); /*CHECK_OF(REG_AX,addition);*/
+	REG_EAX = ((REG_EAX + addition)&0xFF);
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
 	CPU.cycles_OP = 2;
 }
 void CPU_OP15()
@@ -129,7 +129,7 @@ void CPU_OP15()
 void CPU_OP80_ADC()
 {
 	modrm_readparams(&params,8,0);
-	sbyte addition = (imm8()+CF);
+	sbyte addition = (imm8()+FLAG_CF);
 	CHECK_AF(modrm_read8(&params,0),addition); /*CHECK_OF(modrm_read8(&params,0),addition);*/
 	modrm_write8(&params,((modrm_read8(&params,0)+addition)&0xFF),0);
 	CHECK_SF(modrm_read8(&params,0));
@@ -140,9 +140,9 @@ void CPU_OP80_ADC()
 void CPU_OP81_ADC_IW()
 {
 	modrm_readparams(&params,16,0);
-	sword addition = (imm16()+CF);
+	sword addition = (imm16()+FLAG_CF);
 	CHECK_AF(modrm_read16(&params,0),addition); /*CHECK_OF(modrm_read16(&params,0),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,0)+addition)&0xFFFF),0);
+	modrm_write16(&params,2,((modrm_read16(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,0));
 	CHECK_ZF(modrm_read16(&params,0));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -150,9 +150,9 @@ void CPU_OP81_ADC_IW()
 void CPU_OP81_ADC_ID()
 {
 	modrm_readparams(&params,32,0);
-	int_32 addition = (imm32()+CF);
+	int_32 addition = (imm32()+FLAG_CF);
 	CHECK_AF(modrm_read32(&params,0),addition); /*CHECK_OF(modrm_read32(&params,0),addition);*/
-	modrm_write32(&params,((modrm_read32(&params,0)+addition)&0xFFFF),0);
+	modrm_write32(&params,2,((modrm_read32(&params,0)+addition)&0xFFFF));
 	CHECK_SF(modrm_read32(&params,0));
 	CHECK_ZF(modrm_read32(&params,0));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -172,9 +172,9 @@ void CPU_OP81_ADC()
 void CPU_OP83_ADC_IW()
 {
 	modrm_readparams(&params,16,0);
-	sword addition = (imm8()+CF);
+	sword addition = (imm8()+FLAG_CF);
 	CHECK_AF(modrm_read16(&params,0),addition); /*CHECK_OF(modrm_read16(&params,0),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,0)+addition)&0xFFFF),0);
+	modrm_write16(&params,2,((modrm_read16(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,0));
 	CHECK_ZF(modrm_read16(&params,0));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -182,9 +182,9 @@ void CPU_OP83_ADC_IW()
 void CPU_OP83_ADC_ID()
 {
 	modrm_readparams(&params,32,0);
-	int_32 addition = (imm8()+CF);
+	int_32 addition = (imm8()+FLAG_CF);
 	CHECK_AF(modrm_read32(&params,0),addition); /*CHECK_OF(modrm_read32(&params,0),addition);*/
-	modrm_write32(&params,((modrm_read32(&params,0)+addition)&0xFFFF),0);
+	modrm_write32(&params,2,((modrm_read32(&params,0)+addition)&0xFFFF));
 	CHECK_SF(modrm_read32(&params,0));
 	CHECK_ZF(modrm_read32(&params,0));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -205,9 +205,9 @@ void CPU_OP83_ADC()
 void CPU_OP10()
 {
 	modrm_readparams(&params,8,2);
-	byte addition = (modrm_read8(&params,1)+CF);
+	byte addition = (modrm_read8(&params,1)+FLAG_CF);
 	CHECK_AF(modrm_read8(&params,2),addition); /*CHECK_OF(modrm_read8(&params,2),addition);*/
-	modrm_write8(&params,((modrm_read8(&params,2)+addition)&0xFF),1);
+	modrm_write8(&params,2,((modrm_read8(&params,2)+addition)&0xFF));
 	CHECK_SF(modrm_read8(&params,2));
 	CHECK_ZF(modrm_read8(&params,2));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -215,9 +215,9 @@ void CPU_OP10()
 void CPU_OP11_IW()
 {
 	modrm_readparams(&params,16,2);
-	word addition = (modrm_read16(&params,1)+CF);
+	word addition = (modrm_read16(&params,1)+FLAG_CF);
 	CHECK_AF(modrm_read16(&params,2),addition); /*CHECK_OF(modrm_read16(&params,2),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,2)+addition)&0xFFFF),1);
+	modrm_write16(&params,2,((modrm_read16(&params,2)+addition)&0xFFFF),1);
 	CHECK_SF(modrm_read16(&params,2));
 	CHECK_ZF(modrm_read16(&params,2));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -225,9 +225,9 @@ void CPU_OP11_IW()
 void CPU_OP11_ID()
 {
 	modrm_readparams(&params,32,2);
-	int_32 addition = (modrm_read32(&params,1)+CF);
+	int_32 addition = (modrm_read32(&params,1)+FLAG_CF);
 	CHECK_AF(modrm_read32(&params,2),addition); /*CHECK_OF(modrm_read32(&params,2),addition);*/
-	modrm_write32(&params,((modrm_read32(&params,2)+addition)&0xFFFFFFFF),1);
+	modrm_write32(&params,2,((modrm_read32(&params,2)+addition)&0xFFFFFFFF));
 	CHECK_SF(modrm_read32(&params,2));
 	CHECK_ZF(modrm_read32(&params,2));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -248,9 +248,9 @@ void CPU_OP11()
 void CPU_OP12()
 {
 	modrm_readparams(&params,8,1);
-	byte addition = (modrm_read8(&params,1)+CF);
+	byte addition = (modrm_read8(&params,1)+FLAG_CF);
 	CHECK_AF(modrm_read8(&params,1),addition); /*CHECK_OF(modrm_read8(&params,1),addition);*/
-	modrm_write8(&params,((modrm_read8(&params,1)+addition)&0xFF),2);
+	modrm_write8(&params,2,((modrm_read8(&params,1)+addition)&0xFF));
 	CHECK_SF(modrm_read8(&params,1));
 	CHECK_ZF(modrm_read8(&params,1));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -258,9 +258,9 @@ void CPU_OP12()
 void CPU_OP13_IW()
 {
 	modrm_readparams(&params,16,1);
-	word addition = (modrm_read16(&params,1)+CF);
+	word addition = (modrm_read16(&params,1)+FLAG_CF);
 	CHECK_AF(modrm_read16(&params,1),addition); /*CHECK_OF(modrm_read16(&params,1),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,1)+addition)&0xFFFF),2);
+	modrm_write16(&params,2,((modrm_read16(&params,1)+addition)&0xFFFF),2);
 	CHECK_SF(modrm_read16(&params,1));
 	CHECK_ZF(modrm_read16(&params,1));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -268,9 +268,9 @@ void CPU_OP13_IW()
 void CPU_OP13_ID()
 {
 	modrm_readparams(&params,32,1);
-	int_32 addition = (modrm_read32(&params,1)+CF);
+	int_32 addition = (modrm_read32(&params,1)+FLAG_CF);
 	CHECK_AF(modrm_read32(&params,1),addition); /*CHECK_OF(modrm_read32(&params,1),addition);*/
-	modrm_write32(&params,((modrm_read32(&params,1)+addition)&0xFFFFFFFF),2);
+	modrm_write32(&params,2,((modrm_read32(&params,1)+addition)&0xFFFFFFFF));
 	CHECK_SF(modrm_read32(&params,1));
 	CHECK_ZF(modrm_read32(&params,1));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -308,30 +308,30 @@ void CPU_OP13()
 //ADD
 void CPU_OP04()
 {
-	byte addition = ((imm8())&0xFF);    //ADC AL,imm8
-	CHECK_AF(AL,addition); /*CHECK_OF(AL,addition);*/
-	AL = ((AL + addition)&0xFF);
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
+	byte addition = ((imm8())&0xFF);    //ADC REG_AL,imm8
+	CHECK_AF(REG_AL,addition); /*CHECK_OF(REG_AL,addition);*/
+	REG_AL = ((REG_AL + addition)&0xFF);
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
 	CPU.cycles_OP = 2;
 }
 //OP15 multihandler
 void CPU_OP05_IW()
 {
-	word addition = ((imm16())&0xFFFF);    //ADC AX,imm16
-	CHECK_AF(AX,addition); /*CHECK_OF(AL,addition);*/
-	AL = ((AL + addition)&0xFF);
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
+	word addition = ((imm16())&0xFFFF);    //ADC REG_AX,imm16
+	CHECK_AF(REG_AX,addition); /*CHECK_OF(REG_AL,addition);*/
+	REG_AL = ((REG_AL + addition)&0xFF);
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
 	CPU.cycles_OP = 2;
 }
 void CPU_OP05_ID()
 {
-	uint_32 addition = ((imm32())&0xFFFFFFFF);    //ADC EAX,imm32
-	CHECK_AF(EAX,addition); /*CHECK_OF(AX,addition);*/
-	EAX = ((EAX + addition)&0xFF);
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
+	uint_32 addition = ((imm32())&0xFFFFFFFF);    //ADC REG_EAX,imm32
+	CHECK_AF(REG_EAX,addition); /*CHECK_OF(REG_AX,addition);*/
+	REG_EAX = ((REG_EAX + addition)&0xFF);
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
 	CPU.cycles_OP = 2;
 }
 void CPU_OP05()
@@ -352,7 +352,7 @@ void CPU_OP05()
 void CPU_OP80_ADD()
 {
 	modrm_readparams(&params,8,0);
-	sbyte addition = (imm8()+CF);
+	sbyte addition = (imm8()+FLAG_CF);
 	CHECK_AF(modrm_read8(&params,0),addition); /*CHECK_OF(modrm_read8(&params,0),addition);*/
 	modrm_write8(&params,((modrm_read8(&params,0)+addition)&0xFF),0);
 	CHECK_SF(modrm_read8(&params,0));
@@ -363,9 +363,9 @@ void CPU_OP80_ADD()
 void CPU_OP81_ADD_IW()
 {
 	modrm_readparams(&params,16,0);
-	sword addition = (imm16()+CF);
+	sword addition = (imm16()+FLAG_CF);
 	CHECK_AF(modrm_read16(&params,0),addition); /*CHECK_OF(modrm_read16(&params,0),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,0)+addition)&0xFFFF),0);
+	modrm_write16(&params,2,((modrm_read16(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,0));
 	CHECK_ZF(modrm_read16(&params,0));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -373,7 +373,7 @@ void CPU_OP81_ADD_IW()
 void CPU_OP81_ADD_ID()
 {
 	modrm_readparams(&params,32,0);
-	int_32 addition = (imm32()+CF);
+	int_32 addition = (imm32()+FLAG_CF);
 	CHECK_AF(modrm_read32(&params,0),addition); /*CHECK_OF(modrm_read32(&params,0),addition);*/
 	modrm_write32(&params,((modrm_read32(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read32(&params,0));
@@ -395,9 +395,9 @@ void CPU_OP81_ADD()
 void CPU_OP83_ADD_IW()
 {
 	modrm_readparams(&params,16,0);
-	sword addition = (imm8()+CF);
+	sword addition = (imm8()+FLAG_CF);
 	CHECK_AF(modrm_read16(&params,0),addition); /*CHECK_OF(modrm_read16(&params,0),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,0)+addition)&0xFFFF),0);
+	modrm_write16(&params,2,((modrm_read16(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,0));
 	CHECK_ZF(modrm_read16(&params,0));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -405,7 +405,7 @@ void CPU_OP83_ADD_IW()
 void CPU_OP83_ADD_ID()
 {
 	modrm_readparams(&params,32,0);
-	int_32 addition = (imm8()+CF);
+	int_32 addition = (imm8()+FLAG_CF);
 	CHECK_AF(modrm_read32(&params,0),addition); /*CHECK_OF(modrm_read32(&params,0),addition);*/
 	modrm_write32(&params,((modrm_read32(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read32(&params,0));
@@ -440,7 +440,7 @@ void CPU_OP01_IW()
 	modrm_readparams(&params,16,2);
 	word addition = (modrm_read16(&params,1));
 	CHECK_AF(modrm_read16(&params,2),addition); /*CHECK_OF(modrm_read16(&params,2),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,2)+addition)&0xFFFF),1);
+	modrm_write16(&params,2,((modrm_read16(&params,2)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,2));
 	CHECK_ZF(modrm_read16(&params,2));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -483,7 +483,7 @@ void CPU_OP03_IW()
 	modrm_readparams(&params,16,1);
 	word addition = (modrm_read16(&params,1));
 	CHECK_AF(modrm_read16(&params,1),addition); /*CHECK_OF(modrm_read16(&params,1),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,1)+addition)&0xFFFF),2);
+	modrm_write16(&params,2,((modrm_read16(&params,1)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,1));
 	CHECK_ZF(modrm_read16(&params,1));
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
@@ -524,36 +524,36 @@ void CPU_OP03()
 //AND
 void CPU_OP24()
 {
-	byte addition = ((imm8())&0xFF);    //ADC AL,imm8
-	CHECK_AF(AL,addition); /*CHECK_OF(AL,addition);*/
-	AL = ((AL + addition)&0xFF);
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
-	CF = 0;
-	OF = 0;
+	byte addition = ((imm8())&0xFF);    //ADC REG_AL,imm8
+	CHECK_AF(REG_AL,addition); /*CHECK_OF(REG_AL,addition);*/
+	REG_AL = ((REG_AL + addition)&0xFF);
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = 2;
 }
 //OP15 multihandler
 void CPU_OP25_IW()
 {
-	word addition = ((imm16())&0xFFFF);    //ADC AX,imm16
-	CHECK_AF(AX,addition); /*CHECK_OF(AL,addition);*/
-	AL = ((AL + addition)&0xFF);
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
-	CF = 0;
-	OF = 0;
+	word addition = ((imm16())&0xFFFF);    //ADC REG_AX,imm16
+	CHECK_AF(REG_AX,addition); /*CHECK_OF(REG_AL,addition);*/
+	REG_AL = ((REG_AL + addition)&0xFF);
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = 2;
 }
 void CPU_OP25_ID()
 {
-	uint_32 addition = ((imm32())&0xFFFFFFFF);    //ADC EAX,imm32
-	CHECK_AF(EAX,addition); /*CHECK_OF(AX,addition);*/
-	EAX = ((EAX + addition)&0xFF);
-	CHECK_SF(AL);
-	CHECK_ZF(AL);
-	CF = 0;
-	OF = 0;
+	uint_32 addition = ((imm32())&0xFFFFFFFF);    //ADC REG_EAX,imm32
+	CHECK_AF(REG_EAX,addition); /*CHECK_OF(REG_AX,addition);*/
+	REG_EAX = ((REG_EAX + addition)&0xFF);
+	CHECK_SF(REG_AL);
+	CHECK_ZF(REG_AL);
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = 2;
 }
 void CPU_OP25()
@@ -574,38 +574,38 @@ void CPU_OP25()
 void CPU_OP80_AND()
 {
 	modrm_readparams(&params,8,0);
-	sbyte addition = (imm8()+CF);
+	sbyte addition = (imm8()+FLAG_CF);
 	CHECK_AF(modrm_read8(&params,0),addition); /*CHECK_OF(modrm_read8(&params,0),addition);*/
 	modrm_write8(&params,((modrm_read8(&params,0)+addition)&0xFF),0);
 	CHECK_SF(modrm_read8(&params,0));
 	CHECK_ZF(modrm_read8(&params,0));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 //OP81 multihandler
 void CPU_OP81_AND_IW()
 {
 	modrm_readparams(&params,16,0);
-	sword addition = (imm16()+CF);
+	sword addition = (imm16()+FLAG_CF);
 	CHECK_AF(modrm_read16(&params,0),addition); /*CHECK_OF(modrm_read16(&params,0),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,0)+addition)&0xFFFF),0);
+	modrm_write16(&params,2,((modrm_read16(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,0));
 	CHECK_ZF(modrm_read16(&params,0));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP81_AND_ID()
 {
 	modrm_readparams(&params,32,0);
-	int_32 addition = (imm32()+CF);
+	int_32 addition = (imm32()+FLAG_CF);
 	CHECK_AF(modrm_read32(&params,0),addition); /*CHECK_OF(modrm_read32(&params,0),addition);*/
 	modrm_write32(&params,((modrm_read32(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read32(&params,0));
 	CHECK_ZF(modrm_read32(&params,0));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP81_AND()
@@ -623,25 +623,25 @@ void CPU_OP81_AND()
 void CPU_OP83_AND_IW()
 {
 	modrm_readparams(&params,16,0);
-	sword addition = (imm8()+CF);
+	sword addition = (imm8()+FLAG_CF);
 	CHECK_AF(modrm_read16(&params,0),addition); /*CHECK_OF(modrm_read16(&params,0),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,0)+addition)&0xFFFF),0);
+	modrm_write16(&params,2,((modrm_read16(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,0));
 	CHECK_ZF(modrm_read16(&params,0));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP83_AND_ID()
 {
 	modrm_readparams(&params,32,0);
-	int_32 addition = (imm8()+CF);
+	int_32 addition = (imm8()+FLAG_CF);
 	CHECK_AF(modrm_read32(&params,0),addition); /*CHECK_OF(modrm_read32(&params,0),addition);*/
 	modrm_write32(&params,((modrm_read32(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read32(&params,0));
 	CHECK_ZF(modrm_read32(&params,0));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP83_AND()
@@ -665,8 +665,8 @@ void CPU_OP20()
 	modrm_write8(&params,((modrm_read8(&params,2)+addition)&0xFF),1);
 	CHECK_SF(modrm_read8(&params,2));
 	CHECK_ZF(modrm_read8(&params,2));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP21_IW()
@@ -674,11 +674,11 @@ void CPU_OP21_IW()
 	modrm_readparams(&params,16,2);
 	word addition = (modrm_read16(&params,1));
 	CHECK_AF(modrm_read16(&params,2),addition); /*CHECK_OF(modrm_read16(&params,2),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,2)+addition)&0xFFFF),1);
+	modrm_write16(&params,2,((modrm_read16(&params,2)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,2));
 	CHECK_ZF(modrm_read16(&params,2));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP21_ID()
@@ -689,8 +689,8 @@ void CPU_OP21_ID()
 	modrm_write32(&params,((modrm_read32(&params,2)+addition)&0xFFFFFFFF),1);
 	CHECK_SF(modrm_read32(&params,2));
 	CHECK_ZF(modrm_read32(&params,2));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP21()
@@ -714,8 +714,8 @@ void CPU_OP22()
 	modrm_write8(&params,((modrm_read8(&params,1)+addition)&0xFF),2);
 	CHECK_SF(modrm_read8(&params,1));
 	CHECK_ZF(modrm_read8(&params,1));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP23_IW()
@@ -723,11 +723,11 @@ void CPU_OP23_IW()
 	modrm_readparams(&params,16,1);
 	word addition = (modrm_read16(&params,1));
 	CHECK_AF(modrm_read16(&params,1),addition); /*CHECK_OF(modrm_read16(&params,1),addition);*/
-	modrm_write16(&params,((modrm_read16(&params,1)+addition)&0xFFFF),2);
+	modrm_write16(&params,2,((modrm_read16(&params,1)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,1));
 	CHECK_ZF(modrm_read16(&params,1));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP23_ID()
@@ -738,8 +738,8 @@ void CPU_OP23_ID()
 	modrm_write32(&params,((modrm_read32(&params,1)+addition)&0xFFFFFFFF),2);
 	CHECK_SF(modrm_read32(&params,1));
 	CHECK_ZF(modrm_read32(&params,1));
-	CF = 0;
-	OF = 0;
+	FLAG_CF = 0;
+	FLAG_OF = 0;
 	CPU.cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP23()
@@ -789,7 +789,7 @@ void CPU_OP23()
 void CPU_OP80()
 {
 	byte commandinfo = CPU_readOP();
-	EIP--; //Read modr/m base info and return for function!
+	REG_EIP--; //Read modr/m base info and return for function!
 	switch (((commandinfo&0x38)>>3)) //What function?
 	{
 	case 0:
@@ -816,7 +816,7 @@ void CPU_OP80()
 void CPU_OP81()
 {
 	byte commandinfo = CPU_readOP();
-	EIP--; //Read modr/m base info and return for function!
+	REG_EIP--; //Read modr/m base info and return for function!
 	switch (((commandinfo&0x38)>>3)) //What function?
 	{
 	case 0:
@@ -843,7 +843,7 @@ void CPU_OP81()
 void CPU_OP82()
 {
 	byte commandinfo = CPU_readOP();
-	EIP--; //Read modr/m base info and return for function!
+	REG_EIP--; //Read modr/m base info and return for function!
 	switch (((commandinfo&0x38)>>3)) //What function?
 	{
 	case 0:
@@ -867,7 +867,7 @@ void CPU_OP82()
 void CPU_OP83()
 {
 	byte commandinfo = CPU_readOP();
-	EIP--; //Read modr/m base info and return for function!
+	REG_EIP--; //Read modr/m base info and return for function!
 	switch (((commandinfo&0x38)>>3)) //What function?
 	{
 	case 0:

@@ -6,7 +6,7 @@
 #include "headers/hardware/midi/midi.h" //MIDI OUT/IN device support!
 #include "headers/hardware/pic.h" //Own typedefs etc.
 #include "headers/hardware/ports.h" //I/O port support!
-
+#include "headers/emu/timers.h" //Timer support!
 //Our own typedefs for easier changing of the dosbox code!
 #define MIDI_RawOutByte MIDI_OUT
 #define MIDI_Available() 1
@@ -19,7 +19,7 @@ typedef uint_32 Bits;
 
 //PIC support!
 #define PIC_RemoveEvents(function) removetimer("MPU")
-#define PIC_AddEvent(function,timeout) addtimer(1/(timeout/1000000),function,"MPU")
+#define PIC_AddEvent(function,timeout) addtimer(1/(timeout/1000000),function,"MPU",1)
 #define PIC_ActivateIRQ(irq) doirq(irq)
 #define PIC_DeActivateIRQ(irq) removeirq(irq)
 

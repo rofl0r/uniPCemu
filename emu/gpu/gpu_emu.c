@@ -80,7 +80,7 @@ void EMU_getxy(word *x, word *y)
 	*y = emu_y;
 }
 
-void GPU_EMU_printscreen(int x, int y, char *text, ...) //Direct text output (from emu)!
+void GPU_EMU_printscreen(sword x, sword y, char *text, ...) //Direct text output (from emu)!
 {
 	char buffer[256]; //Going to contain our output data!
 	va_list args; //Going to contain the list!

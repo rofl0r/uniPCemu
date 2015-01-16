@@ -13,13 +13,14 @@
 #include "headers/support/log.h" //Logging support!
 
 #include "headers/emu/emucore.h" //Emulator core support for checking for memory leaks!
+#include "headers/emu/timers.h" //Timer support!
 
+#ifdef __psp__
 #include <pspkernel.h>
-
-
 PSP_MODULE_INFO("x86EMU", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER); //Make sure we're user mode!
 PSP_HEAP_SIZE_MAX(); //Free maximum for us: need this for the memory allocation (m/zalloc)!
+#endif
 
 //Debug zalloc allocations?
 #define DEBUG_ZALLOC 0
@@ -62,7 +63,7 @@ BASIC Exit Callbacks
 
 */
 
-
+#ifdef __psp__
 /* Exit callback */
 int exit_callback(int arg1, int arg2, void *common)
 {
@@ -109,10 +110,12 @@ int CallbackThread(SceSize args, void *argp)
 
 	return 0;
 }
+#endif
 
 /* Sets up the callback thread and returns its thread id */
 int SetupCallbacks(void)
 {
+#ifdef __psp__
 	int thid = 0;
 
 	thid = sceKernelCreateThread("X86EMU_ExitThread", CallbackThread, EXIT_PRIORITY, 0xFA0, 0, 0); //Create thread at highest priority!
@@ -122,6 +125,8 @@ int SetupCallbacks(void)
 	}
 
 	return thid;
+#endif
+	return 0;
 }
 
 /*
@@ -136,15 +141,20 @@ double clockspeed; //Current clock speed, for affecting timers!
 
 OPTINLINE double getCurrentClockSpeed()
 {
-	return scePowerGetCpuClockFrequencyFloat(); //Current clock speed!
+	#ifdef __psp
+		return scePowerGetCpuClockFrequencyFloat(); //Current clock speed!
+	#else
+		return 222.0f; //Not used yet, just assume 222Hz!
+	#endif
 }
 
 int main(int argc, char * argv[])
 {
 //Basic PSP stuff!
-	pspDebugScreenInit();
 	SetupCallbacks();
-	scePowerSetClockFrequency(333, 333, 166); //Start high-speed CPU!
+	#ifdef __psp__
+		scePowerSetClockFrequency(333, 333, 166); //Start high-speed CPU!
+	#endif
 	clockspeed = getCurrentClockSpeed(); //Save the current clock frequency for reference!
 
 	if (FILE_EXISTS("exception.prx")) //Enable exceptions?
@@ -173,15 +183,15 @@ int main(int argc, char * argv[])
 		int *p; //Pointer to int #1!
 		int *p2; //Pointer to int #2!
 		
-		p = zalloc(sizeof(*p),"zalloc_debug_int");
+		p = (int *)zalloc(sizeof(*p),"zalloc_debug_int");
 		freez((void **)&p,sizeof(*p),"zalloc_debug_int"); //Release int #1!
 		
 		if (freemem()!=f) //Different free memory?
 		{
 			dolog("zalloc_debug","Allocation-deallocation failed.");
 		}
-		p = zalloc(sizeof(*p),"debug_int");
-		p2 = zalloc(sizeof(*p),"debug_int_2");
+		p = (int *)zalloc(sizeof(*p),"debug_int");
+		p2 = (int *)zalloc(sizeof(*p),"debug_int_2");
 		freez((void **)&p2,sizeof(*p),"debug_int_2"); //Release int #2!
 		freez((void **)&p,sizeof(*p),"debug_int"); //Release int #1!
 		
@@ -190,8 +200,8 @@ int main(int argc, char * argv[])
 			dolog("zalloc_debug","Multiple deallocation failed.");
 		}
 		
-		p = zalloc(sizeof(*p),"debug_int");
-		p2 = zalloc(sizeof(*p),"debug_int_2");
+		p = (int *)zalloc(sizeof(*p),"debug_int");
+		p2 = (int *)zalloc(sizeof(*p),"debug_int_2");
 		freez((void **)&p,sizeof(*p),"debug_int"); //Release int #1!
 		freez((void **)&p2,sizeof(*p),"debug_int_2"); //Release int #2!
 		
@@ -207,14 +217,16 @@ int main(int argc, char * argv[])
 	if (DELETE_LOGS_ONBOOT) delete_file("logs","*.log"); //Delete any logs still there!
 	if (DELETE_BMP_ONBOOT) delete_file("captures","*.bmp"); //Delete any bitmaps still there!
 	
-	if (FILE_EXISTS("profiler.txt")) //Enable profiler: doesn't work in EMU?
-	{
-		// Clear the existing profile regs
-		pspDebugProfilerClear();
-		// Enable profiling
-		pspDebugProfilerEnable();
-		use_profiler = 1; //Use the profiler!	
-	}
+	#ifdef __psp__
+		if (FILE_EXISTS("profiler.txt")) //Enable profiler: doesn't work in EMU?
+		{
+			// Clear the existing profile regs
+			pspDebugProfilerClear();
+			// Enable profiling
+			pspDebugProfilerEnable();
+			use_profiler = 1; //Use the profiler!	
+		}
+	#endif
 
 	if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_JOYSTICK)==-1) //Error initialising video&audio?
 	{
@@ -283,8 +295,9 @@ int main(int argc, char * argv[])
 	running = 1; //Default: we're running!
 	for (;(ThreadsRunning() && running);) //Still running?
 	{
-		SDL_WaitEvent( &event ); //Gotten events to handle?
-		updateInput(&event); //Update input!
+		SDL_WaitEvent(&event); //Gotten events to handle?
+		//Handle an event!
+		updateInput(&event); //Update input status when needed!
 		if (event.type==SDL_QUIT) //Quitting requested?
 		{
 			running = 0; //Terminate our app!
@@ -310,6 +323,7 @@ int main(int argc, char * argv[])
 	if (shutdown || !running) //Shutdown requested or SDL termination requested?
 	{
 		SDL_Quit(); //Quit using SDL, terminating the pspsurface!
+		return 0; //Finish to be safe!
 	}
 
 	//Prepare us for a full software/emu reset

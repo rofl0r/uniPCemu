@@ -7,6 +7,8 @@
 #include "headers/emu/gpu/gpu_emu.h" //Emulator support!
 #include "headers/emu/gpu/gpu_text.h" //Emulator support!
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
+#include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer itself!
+#include "headers/emu/timers.h" //Timer support!
 
 //How many steps (function calls) for every full screen frame! Min=1, was originally 10!
 #define __SCREEN_LINES_LIMIT 10

@@ -4,10 +4,11 @@
 #include "headers/cpu/easyregs.h" //Easy register functionality last!
 #include "headers/debugger/debugger.h" //For logging registers debugging!
 
+#include "headers/support/log.h" //Logging support for debugging!
 //Are we disabled?
 #define __HW_DISABLED 1
 
-//Look at AX bit 0 of int 11h
+//Look at REG_AX bit 0 of int 11h
 
 //Extern data!
 //EXT=part of the 13h Extensions which were written in the 1990s to support HDDs with more than 8GB.
@@ -121,7 +122,7 @@ byte mounteddrives[0x100]; //All mounted drives!
 
 //BPS=512 always!
 
-int floppy_spt(uint_64 floppy_size)
+byte floppy_spt(uint_64 floppy_size)
 {
 	switch (KB(floppy_size)) //Determine by size!
 	{
@@ -146,7 +147,7 @@ int floppy_spt(uint_64 floppy_size)
 	}
 }
 
-int floppy_tracks(uint_64 floppy_size)
+byte floppy_tracks(uint_64 floppy_size)
 {
 	switch (KB(floppy_size)) //Determine by size!
 	{
@@ -167,7 +168,7 @@ int floppy_tracks(uint_64 floppy_size)
 	}
 }
 
-int floppy_sides(uint_64 floppy_size)
+byte floppy_sides(uint_64 floppy_size)
 {
 	switch (KB(floppy_size)) //Determine by size!
 	{
@@ -194,6 +195,7 @@ int killRead; //For Pirates! game?
 
 void int13_init(int floppy0, int floppy1, int hdd0, int hdd1, int cdrom0, int cdrom1)
 {
+	byte hdd;
 	if (__HW_DISABLED) return; //Abort!	
 	//We don't need to worry about file sizes: automatically done at Init!
 	killRead = 0; //Init killRead!
@@ -217,7 +219,6 @@ void int13_init(int floppy0, int floppy1, int hdd0, int hdd1, int cdrom0, int cd
 	}
 
 	//HDD=Dynamic!
-	byte hdd;
 	hdd = 0x80; //Init to first drive!
 	if (hdd0) //Have?
 	{
@@ -313,7 +314,7 @@ word gethddbps()
 
 word gethddcylinders(uint_64 disksize)
 {
-	return disksize/(gethddspt()*gethddheads(disksize)*gethddbps());
+	return (word)(disksize/(gethddspt()*gethddheads(disksize)*gethddbps()));
 }
 
 
@@ -326,8 +327,8 @@ word gethddcylinders(uint_64 disksize)
 
 void getDiskGeometry(byte disk, word *heads, word *cylinders, uint_64 *sectors, uint_64 *bps)
 {
-	word head;
-	word sector;
+	byte head;
+	byte sector;
 	if ((disk==FLOPPY0) || (disk==FLOPPY1)) //Floppy0 or Floppy1?
 	{
 		uint_64 oursize;
@@ -339,7 +340,7 @@ void getDiskGeometry(byte disk, word *heads, word *cylinders, uint_64 *sectors, 
 	}
 	else if ((disk==HDD0) || (disk==HDD1) || (disk==CDROM0) || (disk==CDROM1)) //HDD0 or HDD1?
 	{
-		LBA2CHS(disksize(disk),cylinders,&head,&sector,gethddheads(disksize(disk)),SECTORS(disksize(disk))); //Convert to emulated value!
+		LBA2CHS((uint_32)(disksize(disk)/gethddbps()),cylinders,&head,&sector,gethddheads(disksize(disk)),(uint_32)SECTORS(disksize(disk))); //Convert to emulated value!
 		*heads = (uint_64)head;
 		*sectors = (uint_64)sector; //Transfer rest!
 		*bps = 512; //Assume 512 Bytes Per Sector!
@@ -350,7 +351,7 @@ void getDiskGeometry(byte disk, word *heads, word *cylinders, uint_64 *sectors, 
 		*cylinders = 0;
 		*sectors = 0;
 		*bps = 0;
-		CF = 1; //Set carry flag!
+		FLAG_CF = 1; //Set carry flag!
 	}
 }
 
@@ -367,49 +368,50 @@ byte last_drive; //Last drive something done to
 byte readdiskdata(uint_32 startpos)
 {
 	byte buffer[512]; //A sector buffer to read!
+	byte readdata_result;
 	//Detect ammount of sectors to be able to read!
 	word sectors;
-	sectors = AL; //Number of sectors to be read!
-	byte readdata_result;
+	word sector;
+	word position; //Current position in memory!
+	word left;
+	word current = 0; //Current byte in the buffer!
+	sectors = REG_AL; //Number of sectors to be read!
 	readdata_result = 1;
 	while (sectors && !readdata_result)
 	{
-		readdata_result = disksize(mounteddrives[DL])>=(startpos+(sectors<<9)); //Have enough data to read this many sectors?
+		readdata_result = disksize(mounteddrives[REG_DL])>=(startpos+(sectors<<9)); //Have enough data to read this many sectors?
 		if (!readdata_result) //Failed to read this many?
 		{
 			--sectors; //One sector less, etc.
 		}
 	}
 
-	word sector;
 	sector = 0; //Init sector!
-	word position; //Current position in memory!
 	if (!readdata_result)
 	{
 		last_status = 0x00;
-		CF = 1; //Error!
+		FLAG_CF = 1; //Error!
 		return 0; //Abort!
 	}
 	else //Ready to read?
 	{
-		position = BX; //Current position to write to!
+		position = REG_BX; //Current position to write to!
 		for (;sectors;) //Sectors left to read?
 		{
 			//Read from disk
-			readdata_result = readdata(mounteddrives[DL],&buffer,startpos+(sector<<9),512); //Read the data to the buffer!
+			readdata_result = readdata(mounteddrives[REG_DL],&buffer,startpos+(sector<<9),512); //Read the data to the buffer!
 			if (!readdata_result) //Error?
 			{
 				last_status = 0x00;
-				CF = 1; //Error!
-				return sector; //Abort with ammount of sectors read!
+				FLAG_CF = 1; //Error!
+				return (byte)sector; //Abort with ammount of sectors read!
 			}
 			//Sector is read, now write it to memory!
-			word left;
 			left = 512; //Data left!
-			word current = 0; //Current byte in the buffer!
+			current = 0; //Current byte in the buffer!
 			for (;;)
 			{
-				MMU_wb(CPU_SEGMENT_ES,ES,position,buffer[current]); //Write the data to memory!
+				MMU_wb(CPU_SEGMENT_ES,REG_ES,position,buffer[current]); //Write the data to memory!
 				if (!left--) goto nextsector; //Stop when nothing left!
 				++current; //Next byte in the buffer!
 				++position; //Next position in memory!
@@ -420,8 +422,8 @@ byte readdiskdata(uint_32 startpos)
 		}
 	}
 	
-	dolog("int13","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Disk size: %i bytes",sector,AL,DL,startpos,DH,CH,CL&0x3F,disksize(mounteddrives[DL]));
-	return sector; //Give the ammount of sectors read!
+	dolog("int13","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Disk size: %i bytes",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,disksize(mounteddrives[REG_DL]));
+	return (byte)sector; //Give the ammount of sectors read!
 }
 
 byte writediskdata(uint_32 startpos)
@@ -429,59 +431,60 @@ byte writediskdata(uint_32 startpos)
 	byte buffer[512]; //A sector buffer to read!
 	//Detect ammount of sectors to be able to read!
 	word sectors;
-	sectors = AL; //Number of sectors to be read!
+	word position; //Current position in memory!
+	word sector;
+	word left;
 	byte writedata_result;
+	word current;
+	sectors = REG_AL; //Number of sectors to be read!
 	writedata_result = 1;
 	while (sectors && !writedata_result)
 	{
-		writedata_result = disksize(mounteddrives[DL])>=(startpos+(sectors<<9)); //Have enough data to read this many sectors?
+		writedata_result = disksize(mounteddrives[REG_DL])>=(startpos+(sectors<<9)); //Have enough data to read this many sectors?
 		if (!writedata_result) //Failed to read this many?
 		{
 			--sectors; //One sector less, etc.
 		}
 	}
 
-	word position; //Current position in memory!
-	word sector;
 	sector = 0; //Init sector!
 	if (!writedata_result)
 	{
 		last_status = 0x00;
-		CF = 1; //Error!
+		FLAG_CF = 1; //Error!
 		return 0; //Abort!
 	}
 	else //Ready to read?
 	{
-		position = BX; //Current position to read from!
+		position = REG_BX; //Current position to read from!
 		for (;sectors;) //Sectors left to read?
 		{
 			//Fill the buffer!
-			word left;
 			left = 512; //Data left!
-			word current = 0; //Current byte in the buffer!
+			current = 0; //Current byte in the buffer!
 			for (;;)
 			{
-				buffer[current] = MMU_rb(CPU_SEGMENT_ES,ES,position,0); //Read the data from memory (no opcode)!
+				buffer[current] = MMU_rb(CPU_SEGMENT_ES,REG_ES,position,0); //Read the data from memory (no opcode)!
 				if (!left--) goto dosector; //Stop when nothing left!
 				++current; //Next byte in the buffer!
 				++position; //Next position in memory!
 			}
 			dosector: //Process next sector!
 			//Write to disk!
-			writedata_result = writedata(mounteddrives[DL],&buffer,startpos+(sector<<9),512); //Write the data to the disk!
+			writedata_result = writedata(mounteddrives[REG_DL],&buffer,startpos+(sector<<9),512); //Write the data to the disk!
 			if (!writedata_result) //Error?
 			{
 				last_status = 0x00;
-				CF = 1; //Error!
-				return sector; //Abort!
+				FLAG_CF = 1; //Error!
+				return (byte)sector; //Abort!
 			}
 			--sectors; //One sector processed!
 			++sector; //Process to the next sector!
 		}
 	}
 	
-	dolog("int13","Written %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Disk size: %i bytes",sector,AL,DL,startpos,DH,CH,CL&0x3F,disksize(mounteddrives[DL]));
-	return sector; //Ammount of sectors read!
+	dolog("int13","Written %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Disk size: %i bytes",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,disksize(mounteddrives[REG_DL]));
+	return (byte)sector; //Ammount of sectors read!
 }
 
 
@@ -512,25 +515,25 @@ Return values
 void int13_00() //OK!
 {
 //Reset Disk Drive
-//DL=Drive
+//REG_DL=Drive
 
 	/*
-	CF=Set on Error
+	FLAG_CF=Set on Error
 	*/
 	last_status = 0x00; //Reset status!
-	CF = 0; //No carry flag: OK!
+	FLAG_CF = 0; //No carry flag: OK!
 }
 
 void int13_01()
 {
 //Check Drive Status
-//DL=Drive
+//REG_DL=Drive
 //Bit 7=0:floppy;Else fixed.
 
 	/*
-	AL:
+	REG_AL:
 	00: Successful
-	01: Invalid function in AH or invalid parameter
+	01: Invalid function in REG_AH or invalid parameter
 	02: Cannot Find Address Mark
 	03: Attemted Write On Write Protected Disk
 	04: Sector Not Found/read error
@@ -565,144 +568,143 @@ void int13_01()
 	E0: Status error (hdd)
 	FF: Sense operation failed (hdd)
 
-	CF: Set on error, no error=cleared.
+	FLAG_CF: Set on error, no error=cleared.
 
 	*/
 
 	if (last_status!=0x00)
 	{
 		dolog("int13","Last status: %02X",last_status);
-		AH = last_status;
-		CF = 1;
+		REG_AH = last_status;
+		FLAG_CF = 1;
 	}
 	else
 	{
 		dolog("int13","Last status: unknown");	
-		AH = 0;
-		CF = 0;
+		REG_AH = 0;
+		FLAG_CF = 0;
 	}
 }
 
 void int13_02()
 {
 //Read Sectors From Drive
-//AL=Sectors To Read Count
-//CH=Track
-//CL=Sector
-//DH=Head
-//DL=Drive
-//ES:BX=Buffer Address Pointer
+//REG_AL=Sectors To Read Count
+//REG_CH=Track
+//REG_CL=Sector
+//REG_DH=Head
+//REG_DL=Drive
+//REG_ES:REG_BX=Buffer Address Pointer
 
 //HDD:
-//cylinder := ( (CX and 0xFF00) shr 8 ) or ( (CX and 0xC0) shl 2)
-//sector := CX and 63;
+//cylinder := ( (REG_CX and 0xFF00) shr 8 ) or ( (REG_CX and 0xC0) shl 2)
+//sector := REG_CX and 63;
 	
 	uint_64 startpos; //Start position in image!
 	word cylinder;
 	word sector;
-	if (!AL) //No sectors to read?
+	if (!REG_AL) //No sectors to read?
 	{
 		dolog("int13","Nothing to read specified!");
 		last_status = 0x01;
-		CF = 1;
+		FLAG_CF = 1;
 		return; //Abort!
 	}
 
-	if (!has_drive(mounteddrives[DL])) //No drive image loaded?
+	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
 	{
-		dolog("int13","Media not mounted:%02X!",DL);
+		dolog("int13","Media not mounted:%02X!",REG_DL);
 		last_status = 0x31; //No media in drive!
-		CF = 1;
+		FLAG_CF = 1;
 		return;
 	}
 
-	switch (mounteddrives[DL]) //Which drive?
+	switch (mounteddrives[REG_DL]) //Which drive?
 	{
 	case FLOPPY0: //Floppy 1
 	case FLOPPY1: //Floppy 2
-		debugger_logregisters(); //Log a register dump!
-		startpos = floppy_LBA(mounteddrives[DL],DH,CH,CL&0x3F); //Floppy LBA!
-		AL = readdiskdata(startpos); //Read the data to memory!
+		debugger_logregisters(CPU.registers); //Log a register dump!
+		startpos = floppy_LBA(mounteddrives[REG_DL],REG_DH,REG_CH,REG_CL&0x3F); //Floppy LBA!
+		REG_AL = readdiskdata((uint_32)startpos); //Read the data to memory!
 		break; //Done with floppy!
 	case HDD0: //HDD1
 	case HDD1: //HDD2
-		cylinder = ((CX&0xFF00)>>8)|((CX&0xC0)<<2);
-		sector = CX&63; //Starts at 1!
+		cylinder = ((REG_CX&0xFF00)>>8)|((REG_CX&0xC0)<<2);
+		sector = REG_CX&63; //Starts at 1!
 		if (!sector) //Sector 0 is invalid?
 		{
 			last_status = 0x00;
-			CF = 1; //Error!
+			FLAG_CF = 1; //Error!
 			return; //Break out!
 		}
-		startpos = CHS2LBA(cylinder,DH,sector,HDD_HEADS,SECTORS(disksize(mounteddrives[DL]))); //HDD LBA!
+		startpos = (uint_32)CHS2LBA(cylinder,REG_DH,(byte)sector,HDD_HEADS,SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
 
-		AL = readdiskdata(startpos); //Read the data to memory!
+		REG_AL = readdiskdata((uint_32)startpos); //Read the data to memory!
 		break; //Done with HDD!
 	default:
-		CF = 1;
+		FLAG_CF = 1;
 		last_status = 0x40; //Seek failure!
 		return; //Unknown disk!
 	}
-	AH = 0; //Reset AH!
+	REG_AH = 0; //Reset REG_AH!
 
 	//Beyond 8GB: Use function 42h
 
 	/*
-	CF:Set on error, not error=cleared.
-	AH=Return code
-	AL=Actual Sectors Read Count
+	FLAG_CF:Set on error, not error=cleared.
+	REG_AH=Return code
+	REG_AL=Actual Sectors Read Count
 	*/
 }
 
 void int13_03()
 {
 //Write Sectors To Drive
-//AL=Sectors To Write Count
-//CH=Track
-//CL=Sector
-//DH=Head
-//DL=Drive
-//ES:BX=Buffer Address Pointer
-
-
-	if (!has_drive(mounteddrives[DL])) //No drive image loaded?
-	{
-		last_status = 0x31; //No media in drive!
-		CF = 1;
-		return;
-	}
-
+//REG_AL=Sectors To Write Count
+//REG_CH=Track
+//REG_CL=Sector
+//REG_DH=Head
+//REG_DL=Drive
+//REG_ES:REG_BX=Buffer Address Pointer
 	uint_64 startpos; //Start position in image!
 	word cylinder;
 	word sector;
-	AL = 0; //Default: none written!
-	switch (mounteddrives[DL]) //Which drive?
+
+	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
+	{
+		last_status = 0x31; //No media in drive!
+		FLAG_CF = 1;
+		return;
+	}
+
+	REG_AL = 0; //Default: none written!
+	switch (mounteddrives[REG_DL]) //Which drive?
 	{
 	case 0x00: //Floppy 1
 	case 0x01: //Floppy 2
-		startpos = floppy_LBA(mounteddrives[DL],DH,CH,CL); //Floppy LBA!
+		startpos = floppy_LBA(mounteddrives[REG_DL],REG_DH,REG_CH,REG_CL); //Floppy LBA!
 
-		AL = writediskdata(startpos); //Write the data to memory!
+		REG_AL = writediskdata((uint_32)startpos); //Write the data to memory!
 		break; //Done with floppy!
 	case 0x80: //HDD1
 	case 0x81: //HDD2
-		cylinder = ((CX&0xFF00)>>8)|((CX&0xC0)<<2);
-		sector = CX&63;
-		startpos = CHS2LBA(cylinder,DH,sector-1,HDD_HEADS,SECTORS(disksize(mounteddrives[DL]))); //HDD LBA!
+		cylinder = ((REG_CX&0xFF00)>>8)|((REG_CX&0xC0)<<2);
+		sector = REG_CX&63;
+		startpos = (uint_32)CHS2LBA(cylinder,REG_DH,(byte)sector-1,HDD_HEADS,SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
 
-		AL = writediskdata(startpos); //Write the data to memory!
+		REG_AL = writediskdata((uint_32)startpos); //Write the data to memory!
 		break; //Done with HDD!
 	default:
-		CF = 1;
+		FLAG_CF = 1;
 		last_status = 0x40; //Seek failure!
 		return; //Unknown disk!
 	}
-	AH = 0; //Reset AH!
+	REG_AH = 0; //Reset REG_AH!
 
 	/*
-	CF: Set On Error; Clear If No Error
-	AH=Return code
-	AL=Actual Sectors Written Count
+	FLAG_CF: Set On Error; Clear If No Error
+	REG_AH=Return code
+	REG_AL=Actual Sectors Written Count
 	*/
 }
 
@@ -723,67 +725,67 @@ void int13_03()
 void int13_04()
 {
 //Verify Sectors From Drive
-//AL=Sectors To Verify Count
-//CH=Track
-//CL=Sector
-//DH=Head
-//DL=Drive
-//ES:BX=Buffer Address Pointer
+//REG_AL=Sectors To Verify Count
+//REG_CH=Track
+//REG_CL=Sector
+//REG_DH=Head
+//REG_DL=Drive
+//REG_ES:REG_BX=Buffer Address Pointer
 
 	/*
-	CF: Set On Error, Clear On No Error
-	AH=Return code
-	AL=Actual Sectors Verified Count
+	FLAG_CF: Set On Error, Clear On No Error
+	REG_AH=Return code
+	REG_AL=Actual Sectors Verified Count
 	*/
-
-	AH = 0; //Reset!
-	CF = 0; //Default: OK!
-
-	if (!AL) //NO sectors?
-	{
-		AH = 0x01;
-		CF = 1;
-		return;
-	}
-
-	if (!has_drive(mounteddrives[DL])) //No drive image loaded?
-	{
-		last_status = 0x31; //No media in drive!
-		CF = 1;
-		return;
-	}
-
 
 	int i;
 	int sectorverified; //Sector verified?
 	byte sectorsverified; //Sectors verified?
+	uint_64 startpos; //Start position in image!
+
+	REG_AH = 0; //Reset!
+	FLAG_CF = 0; //Default: OK!
+
+	if (!REG_AL) //NO sectors?
+	{
+		REG_AH = 0x01;
+		FLAG_CF = 1;
+		return;
+	}
+
+	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
+	{
+		last_status = 0x31; //No media in drive!
+		FLAG_CF = 1;
+		return;
+	}
+
 	sectorsverified = 0; //Default: none verified!
-	for (i=0; i<AL; i++) //Process sectors!
+	for (i=0; i<REG_AL; i++) //Process sectors!
 	{
 
-		uint_64 startpos; //Start position in image!
 		int readdata_result = 0;
 		word cylinder;
 		word sector;
 		int t;
 
-		switch (mounteddrives[DL]) //Which drive?
+		switch (mounteddrives[REG_DL]) //Which drive?
 		{
 		case 0x00: //Floppy 1
 		case 0x01: //Floppy 2
-			startpos = floppy_LBA(mounteddrives[DL],DH,CH,CL); //Floppy LBA!
+			startpos = floppy_LBA(mounteddrives[REG_DL],REG_DH,REG_CH,REG_CL); //Floppy LBA!
 
 			//Detect ammount of sectors to be able to read!
-			readdata_result = readdata(mounteddrives[DL],&buffer,startpos+(i<<9),512); //Read the data to memory!
+			readdata_result = readdata(mounteddrives[REG_DL],&buffer,(uint_32)startpos+(i<<9),512); //Read the data to memory!
 			if (!readdata_result) //Read OK?
 			{
 				last_status = 0x05; //Error reading?
-				CF = 1; //Error!
+				FLAG_CF = 1; //Error!
 			}
 			sectorverified = 1; //Default: verified!
 			for (t=0; t<512; t++)
 			{
-				if (buffer[t]!=MMU_rb(CPU_SEGMENT_ES,ES,BX+(i<<9)+t,0)) //Error?
+				if (buffer[t]!=MMU_rb(CPU_SEGMENT_ES,REG_ES,REG_BX+(i<<9)+t,0)) //Error?
 				{
 					sectorverified = 0; //Not verified!
 					break; //Stop checking!
@@ -796,20 +798,20 @@ void int13_04()
 			break; //Done with floppy!
 		case 0x80: //HDD1
 		case 0x81: //HDD2
-			cylinder = ((CX&0xFF00)>>8)|((CX&0xC0)<<2);
-			sector = CX&63;
-			startpos = CHS2LBA(cylinder,DH,sector,HDD_HEADS,SECTORS(disksize(mounteddrives[DL]))); //HDD LBA!
+			cylinder = ((REG_CX&0xFF00)>>8)|((REG_CX&0xC0)<<2);
+			sector = REG_CX&63;
+			startpos = CHS2LBA(cylinder,REG_DH,(byte)sector,HDD_HEADS,SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
 
-			readdata_result = readdata(mounteddrives[DL],&buffer,startpos,512); //Write the data from memory!
+			readdata_result = (uint_32)readdata(mounteddrives[REG_DL],&buffer,startpos,512); //Write the data from memory!
 			if (!readdata_result) //Read OK?
 			{
 				last_status = 0x05; //Error reading?
-				CF = 1; //Error!
+				FLAG_CF = 1; //Error!
 			}
 			sectorverified = 1; //Default: verified!
 			for (t=0; t<512; t++)
 			{
-				if (buffer[t]!=MMU_rb(CPU_SEGMENT_ES,ES,BX+(i<<9)+t,0)) //Error?
+				if (buffer[t]!=MMU_rb(CPU_SEGMENT_ES,REG_ES,REG_BX+(i<<9)+t,0)) //Error?
 				{
 					sectorverified = 0; //Not verified!
 					break; //Stop checking!
@@ -821,28 +823,28 @@ void int13_04()
 			}
 			break; //Done with HDD!
 		default:
-			CF = 1;
+			FLAG_CF = 1;
 			last_status = 0x40; //Seek failure!
 			return; //Unknown disk!
 		}
 	}
-	AL = sectorsverified; //Sectors verified!
-	AH = 0; //No error code?
+	REG_AL = sectorsverified; //Sectors verified!
+	REG_AH = 0; //No error code?
 }
 
 void int13_05()
 {
 //Format Track
-//AL=Sectors To Format Count
-//CH=Track
-//CL=Sector
-//DH=Head
-//DL=Drive
-//ES:BX=Buffer Address Pointer
+//REG_AL=Sectors To Format Count
+//REG_CH=Track
+//REG_CL=Sector
+//REG_DH=Head
+//REG_DL=Drive
+//REG_ES:REG_BX=Buffer Address Pointer
 
 	/*
-	CF: Set On Error, Clear If No Error
-	AH=Return code
+	FLAG_CF: Set On Error, Clear If No Error
+	REG_AH=Return code
 	*/
 
 
@@ -852,14 +854,16 @@ void int13_05()
 void int13_06()
 {
 //Format Track Set Bad Sector Flags
-//AL=Interleave
-//CH=Track
-//CL=Sector
-//DH=Head
-//DL=Drive
+//REG_AL=Interleave
+//REG_CH=Track
+//REG_CL=Sector
+//REG_DH=Head
+//REG_DL=Drive
+	FLAG_CF = 1; //Error!
+	REG_AH = 0; //Error!
 	/*
-	CF: Set On Error, Clear If No Error
-	AH=Return code
+	FLAG_CF: Set On Error, Clear If No Error
+	REG_AH=Return code
 	*/
 }
 
@@ -871,19 +875,19 @@ void int13_07()
 void int13_08()
 {
 //Read Drive Parameters
-//DL=Drive index (1st HDD =80h; 2nd=81h; else floppy)
-//ES:DI=Set to 0000:0000 to workaround some buggy BIOS
+//REG_DL=Drive index (1st HDD =80h; 2nd=81h; else floppy)
+//REG_ES:REG_DI=Set to 0000:0000 to workaround some buggy BIOS
 	/*
 
 	[bits A:B] = bits A to B of this value
 
-	CF: Set on Error, CLear If No Error
-	AH=Return code
-	DL=Number of Hard Disk Drives
-	DH=Logical last index of heads = number_of - 1 (index starts with 0)
-	CX=[bits 7:6][bits 15:8] logical last index of cylinders = numbert_of - 1 (because starts with 0)
+	FLAG_CF: Set on Error, CLear If No Error
+	REG_AH=Return code
+	REG_DL=Number of Hard Disk Drives
+	REG_DH=Logical last index of heads = number_of - 1 (index starts with 0)
+	REG_CX=[bits 7:6][bits 15:8] logical last index of cylinders = numbert_of - 1 (because starts with 0)
 	   [bits 5:0] logical last index of sectors per track = number_of (because index starts with 1)
-	BL=Drive type:
+	REG_BL=Drive type:
 		01h: 360k
 		02h: 1.2M
 		03h: 720k
@@ -892,174 +896,225 @@ void int13_08()
 		06h: 2.88M
 		10h: ATAPI Removable Media Device
 	*/
-//status&ah=0x07&CF=1 on invalid drive!
-
-	if (!has_drive(mounteddrives[DL])) //No drive image loaded?
-	{
-		last_status = 0x31; //No media in drive!
-		CF = 1;
-		return;
-	}
-
-	AX = 0x00;
-	BL = GetBIOSType(mounteddrives[DL]);
-
-	CF = 0; //Reset carry flag by default!
+//status&ah=0x07&FLAG_CF=1 on invalid drive!
 
 	word tmpheads, tmpcyl;
 	uint_64 tmpsize, tmpsect;
 
-	getDiskGeometry(mounteddrives[DL],&tmpheads,&tmpcyl,&tmpsect,&tmpsize); //Get geometry!
+	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
+	{
+		last_status = 0x31; //No media in drive!
+		FLAG_CF = 1;
+		return;
+	}
 
-	if (CF) //Error within disk geometry (unknown disk)?
+	FLAG_CF = 0; //Reset carry flag by default!
+
+	REG_AX = 0x00;
+	REG_BL = GetBIOSType(mounteddrives[REG_DL]);
+
+	getDiskGeometry(mounteddrives[REG_DL],&tmpheads,&tmpcyl,&tmpsect,&tmpsize); //Get geometry!
+
+	if (FLAG_CF) //Error within disk geometry (unknown disk)?
 	{
 		return; //STOP!
 	}
 
 	if (tmpcyl!=0) --tmpcyl; //Cylinder count -> max!
 	
-	if (mounteddrives[DL]==FLOPPY0 || mounteddrives[DL]==FLOPPY1) //Floppy?
+	if (mounteddrives[REG_DL]==FLOPPY0 || mounteddrives[REG_DL]==FLOPPY1) //Floppy?
 	{
 	}
 	else //HDD, custom format?
 	{
-		CH = (byte)(tmpcyl&0xFF);
-		CL = (byte)(((tmpcyl>>2)&0xC0) | (tmpsect * 0x3F));
-		DH = (byte)tmpheads;
+		REG_CH = (byte)(tmpcyl&0xFF);
+		REG_CL = (byte)(((tmpcyl>>2)&0xC0) | (tmpsect * 0x3F));
+		REG_DH = (byte)tmpheads;
 		last_status = 0x00;
 	}
-	if (DL&0x80) //Harddisks
+	if (REG_DL&0x80) //Harddisks
 	{
-		DL = 0;
-		if (has_drive(HDD0)) ++DL;
-		if (has_drive(HDD1)) ++DL;
+		REG_DL = 0;
+		if (has_drive(HDD0)) ++REG_DL;
+		if (has_drive(HDD1)) ++REG_DL;
 	}
 	else //Floppy disks?
 	{
-		DL = 0;
-		if (has_drive(FLOPPY0)) ++DL;
-		if (has_drive(FLOPPY1)) ++DL;
+		REG_DL = 0;
+		if (has_drive(FLOPPY0)) ++REG_DL;
+		if (has_drive(FLOPPY1)) ++REG_DL;
 	}
-	CF = 0;
 }
 
 void int13_09()
 {
 //HDD: Init Drive Pair Characteristics
-//DL=Drive
+//REG_DL=Drive
 	/*
-	CF: Set On Error, Clear If No Error
-	AH=Return code
+	FLAG_CF: Set On Error, Clear If No Error
+	REG_AH=Return code
 	*/
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_0A()
 {
 //HDD: Read Long Sectors From Drive
 //See function 02, but with bonus of 4 bytes ECC (Error Correction Code: =Sector Data Checksum)
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_0B()
 {
 //HDD: Write Long Sectors To Drive
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_0C()
 {
 //HDD: Move Drive Head To Cylinder
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_0D()
 {
 //HDD: Reset Disk Drives
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_0E()
 {
 //For Hard Disk on PS/2 system only: Controller Read Test
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_0F()
 {
 //For Hard Disk on PS/2 system only: Controller Write Test
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_10()
 {
 //HDD: Test Whether Drive Is Ready
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_11()
 {
 //HDD: Recalibrate Drive
-	AH = 0x00;
-	CF = 0;
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_12()
 {
 //For Hard Disk on PS/2 system only: Controller RAM Test
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_13()
 {
 //For Hard Disk on PS/2 system only: Drive Test
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_14()
 {
 //HDD: Controller Diagnostic
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_15()
 {
 //Read Drive Type
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_16()
 {
 //Floppy disk: Detect Media Change
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_17()
 {
 //Floppy Disk: Set Media Type For Format (used by DOS versions <= 3.1)
 	killRead = TRUE;
-	AH = 0x00;
-	CF = 0;
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0x00;
+	FLAG_CF = 1;
 }
 
 void int13_18()
 {
 //Floppy Disk: Set Media Type For Format (used by DOS versions <= 3.2)
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	FLAG_CF = 1;
 }
 
 void int13_19()
 {
 //Park Heads
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	FLAG_CF = 1;
 }
 
 void int13_41()
 {
 //EXT: Check Extensions Present
-//DL=Drive index (1st HDD=80h etc.)
-//BX=55AAh
+//REG_DL=Drive index (1st HDD=80h etc.)
+//REG_BX=55AAh
 	/*
-	CF: Set On Not Present, Clear If Present
-	AH=Error Code or Major Version Number
-	BX=AA55h
-	CX=Interfact support bitmask:
+	FLAG_CF: Set On Not Present, Clear If Present
+	REG_AH=Error Code or Major Version Number
+	REG_BX=AA55h
+	REG_CX=Interfact support bitmask:
 		1: Device Access using the packet structure
 		2: Drive Locking and Ejecting
 		4: Enhanced Disk Drive Support (EDD)
 	*/
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	REG_BX = 0xAA55;
+	REG_CX = 0;
+	FLAG_CF = 1;
 }
 
 void int13_42()
 {
 //EXT: Extended Read Sectors From Drive
-//DL=Drive index (1st HDD=80h etc.)
-//DS;SI=Segment:offset pointer to the DAP:
+//REG_DL=Drive index (1st HDD=80h etc.)
+//REG_DS;REG_SI=Segment:offset pointer to the DAP:
 	/*
 		DAP:
 		Offset range	Size	Description
@@ -1070,41 +1125,59 @@ void int13_42()
 		08h		8bytes	Absolute number of the start of the sectors to be read (first sector of drive has number 0)
 	*/
 	/*
-	CF: Set on Error, Clear if No Error
-	AH=Return code
+	FLAG_CF: Set on Error, Clear if No Error
+	REG_AH=Return code
 	*/
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	FLAG_CF = 1;
 }
 
 void int13_43()
 {
 //EXT: Write Sectors To Drive
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	FLAG_CF = 1;
 }
 
 void int13_44()
 {
 //EXT: Verify Sectors
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	FLAG_CF = 1;
 }
 
 void int13_45()
 {
 //EXT: Lock/Unlock Drive
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	FLAG_CF = 1;
 }
 
 void int13_46()
 {
 //EXT: Eject Drive
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	FLAG_CF = 1;
 }
 
 void int13_47()
 {
 //EXT: Move Drive Head To Sector
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	FLAG_CF = 1;
 }
 
 void int13_48()
 {
 //EXT: Extended Read Drive Parameters
-//DL=Drive index (1st HDD=80h etc.)
-//DS:SI=Segment:offset pointer to Result Buffer, see below
+//REG_DL=Drive index (1st HDD=80h etc.)
+//REG_DS:REG_SI=Segment:offset pointer to Result Buffer, see below
 	/*
 	Result buffer:
 		Offset:	Size:	Description:
@@ -1118,27 +1191,33 @@ void int13_48()
 		1Ah	4bytes	Optional pointer to Enhanced Disk Drive (EDD) configuration parameters which may be used for subsequent interrupt 13h extension calls (if supported)
 	*/
 	/*
-	CF: Set On Error, Clear If No Error
-	AH=Return code
+	FLAG_CF: Set On Error, Clear If No Error
+	REG_AH=Return code
 	*/
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	FLAG_CF = 1;
 //Remark: Physical CHS values of function 48h may/should differ from logical values of function 08h
 }
 
 void int13_49()
 {
 //EXT: Detect Media Change
+	last_status = 0x01; //Unknown command!
+	REG_AH = 0; //We're unsupported!
+	FLAG_CF = 1;
 }
 
 void int13_unhandled()
 {
 	last_status = 0x01; //Unknown command!
-	CF = 1;
+	FLAG_CF = 1;
 }
 
 void int13_unimplemented()
 {
 	last_status = 0x01; //Unimplemented is unhandled in essence!
-	CF = 1;
+	FLAG_CF = 1;
 }
 
 Handler int13Functions[0x50] =
@@ -1233,16 +1312,17 @@ Handler int13Functions[0x50] =
 void BIOS_int13() //Interrupt #13h (Low Level Disk Services)!
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (AH<NUMITEMS(int13Functions)) //Within range of functions support?
+	if (REG_AH<NUMITEMS(int13Functions)) //Within range of functions support?
 	{
-		dolog("int13","Function %02X called.",AH); //Log our function call!
-		int13Functions[AH](); //Execute call!
+		dolog("int13","Function %02X called.",REG_AH); //Log our function call!
+		int13Functions[REG_AH](); //Execute call!
 	}
 	else
 	{
-		dolog("int13","Unknown call: %02X",AH); //Unknown call!
+		dolog("int13","Unknown call: %02X",REG_AH); //Unknown call!
 //Unknown int13 call?
 		last_status = 1; //Status: Invalid command!
-		CF = 1; //Set carry flag to indicate error
+		REG_AH = 0;
+		FLAG_CF = 1; //Set carry flag to indicate error
 	}
 }

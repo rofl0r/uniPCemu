@@ -3,6 +3,7 @@
 #include "headers/hardware/pcspeaker.h" //PC speaker support!
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/emu/sound.h" //Sound support for our callback!
+#include "headers/emu/timers.h" //Timer support!
 
 float currentFunction(byte how, const float time); //For the PC speaker!
 

@@ -99,4 +99,5 @@ void EMU_startInput(); //Start input from EMU!
 void psp_input_init();
 void psp_input_done();
 
+void updateInput(SDL_Event *event); //Update all input for SDL!
 #endif

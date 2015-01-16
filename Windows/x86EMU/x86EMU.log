@@ -1,0 +1,1195 @@
+﻿Build started 16-1-2015 15:26:12.
+Project "C:\psp-projects\x86EMU\Windows\x86EMU\x86EMU.vcxproj" on node 2 (build target(s)).
+C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppBuild.targets(299,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+InitializeBuildStatus:
+  Creating "C:\psp-projects\x86EMU\Windows\x86EMU\x86EMU.unsuccessfulbuild" because "AlwaysCreate" was specified.
+ClCompile:
+  C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I"C:\SDL-1.2.15\include" /ZI /nologo /W3 /WX- /Od /Oy- /D _WIN32 /D _DEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MD /Zp1 /GS /Gy /fp:precise /fp:except /Zc:wchar_t /Zc:forScope /GR /Fo"C:\psp-projects\x86EMU\Windows\x86EMU\\" /Fd"C:\psp-projects\x86EMU\Windows\x86EMU\vc100.pdb" /Gd /TP /analyze- /FC /errorReport:prompt ..\..\basicio\boot.c ..\..\basicio\dynamicimage.c ..\..\basicio\fopen64.c ..\..\basicio\io.c ..\..\basicio\port_io.c ..\..\basicio\port_mapper.c ..\..\basicio\staticimage.c ..\..\bios\bios.c ..\..\bios\biosmenu.c ..\..\bios\biosrom.c ..\..\bios\initmem.c ..\..\cpu\80186\opcodes_80186.c ..\..\cpu\80286\multitasking.c ..\..\cpu\80286\opcodes_80286.c ..\..\cpu\80286\protection.c ..\..\cpu\80386\opcodes0F_386.c ..\..\cpu\80386\opcodes_386.c ..\..\cpu\8086\8086_grpOPs.c ..\..\cpu\8086\opcodes_8086.c ..\..\cpu\cb_manager.c ..\..\cpu\cpu.c ..\..\cpu\cpu_interrupts.c ..\..\cpu\cpu_jmptbls.c ..\..\cpu\cpu_jmptbls0f.c ..\..\cpu\flags.c ..\..\cpu\hardware_interrupts.c ..\..\cpu\modrm.c ..\..\cpu\unkop.c ..\..\emu\core\emucore.c ..\..\emu\core\emu_bios_post.c ..\..\emu\core\emu_bios_sound.c ..\..\emu\core\emu_main.c ..\..\emu\core\emu_misc.c ..\..\emu\core\emu_vga.c ..\..\emu\core\emu_vga_bios.c ..\..\emu\debugger\debugger.c ..\..\emu\debugger\debug_files.c ..\..\emu\debugger\debug_graphics.c ..\..\emu\debugger\debug_sound.c ..\..\emu\debugger\runromverify.c ..\..\emu\gpu\gpu.c ..\..\emu\gpu\gpu_debug.c ..\..\emu\gpu\gpu_emu.c ..\..\emu\gpu\gpu_framerate.c ..\..\emu\gpu\gpu_renderer.c ..\..\emu\gpu\gpu_sdl.c ..\..\emu\gpu\gpu_text.c ..\..\emu\io\directorylist.c ..\..\emu\io\input.c ..\..\emu\io\keyboard.c ..\..\emu\io\sound.c ..\..\emu\main.c ..\..\emu\support\errors.c ..\..\emu\support\number_optimizations.c ..\..\emu\support\threads.c ..\..\exception\exception.c ..\..\hardware\8042.c ..\..\hardware\adlib.c ..\..\hardware\ATAPI.c ..\..\hardware\CMOS.c ..\..\hardware\dma.c ..\..\hardware\ide.c ..\..\hardware\midi\midi.c ..\..\hardware\midi\mididevice.c ..\..\hardware\midi\mpu.c ..\..\hardware\pcspeaker.c ..\..\hardware\pic.c ..\..\hardware\pit.c ..\..\hardware\ps2_keyboard.c ..\..\hardware\ps2_keyboard_data.c ..\..\hardware\ps2_mouse.c ..\..\hardware\softdebugger.c ..\..\hardware\uart.c ..\..\hardware\vga\vga.c ..\..\hardware\vga\vga_colorconversion.c ..\..\hardware\vga\vga_dac.c ..\..\hardware\vga\vga_io.c ..\..\hardware\vga\vga_mmu.c ..\..\hardware\vga\vga_modes.c ..\..\hardware\vga\vga_screen\vga_attributecontroller.c ..\..\hardware\vga\vga_screen\vga_crtcontroller.c ..\..\hardware\vga\vga_screen\vga_dacrenderer.c ..\..\hardware\vga\vga_screen\vga_precalcs.c ..\..\hardware\vga\vga_screen\vga_sequencer.c ..\..\hardware\vga\vga_screen\vga_sequencer_graphicsmode.c ..\..\hardware\vga\vga_screen\vga_sequencer_textmode.c ..\..\hardware\vga\vga_vram.c ..\..\hardware\vga\vga_vramtext.c ..\..\interrupts\interrupt10.c ..\..\interrupts\interrupt10_modelist_vga.c ..\..\interrupts\interrupt10_romfont.c ..\..\interrupts\interrupt10_switchvideomode.c ..\..\interrupts\interrupt10_textmodedata.c ..\..\interrupts\interrupt11.c ..\..\interrupts\interrupt13.c ..\..\interrupts\interrupt16.c ..\..\interrupts\interrupt18.c ..\..\interrupts\interrupt19.c ..\..\interrupts\interrupt5.c ..\..\interrupts\unkint.c ..\..\mmu\mmu.c ..\..\mmu\mmuhandler.c ..\..\mmu\paging.c ..\..\support\bmp.c ..\..\support\crc32.c ..\..\support\fifobuffer.c ..\..\support\highrestimer.c ..\..\support\isoreader.c ..\..\support\lba.c ..\..\support\log.c ..\..\support\sf2.c ..\..\support\signedness.c ..\..\support\state.c ..\..\support\timers.c ..\..\support\zalloc.c
+  zalloc.c
+c:\psp-projects\x86emu\support\zalloc.c(144): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  timers.c
+c:\psp-projects\x86emu\support\timers.c(155): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  state.c
+  signedness.c
+  sf2.c
+c:\psp-projects\x86emu\support\sf2.c(517): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  log.c
+c:\psp-projects\x86emu\support\log.c(24): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\support\log.c(25): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\support\log.c(28): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\support\log.c(30): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\support\log.c(35): warning C4996: 'vsprintf': This function or variable may be unsafe. Consider using vsprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'vsprintf'
+c:\psp-projects\x86emu\support\log.c(42): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\support\log.c(45): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\support\log.c(49): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\support\log.c(53): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  lba.c
+  isoreader.c
+c:\psp-projects\x86emu\support\isoreader.c(46): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\support\isoreader.c(284): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  highrestimer.c
+c:\psp-projects\x86emu\support\highrestimer.c(149): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+  fifobuffer.c
+  crc32.c
+  bmp.c
+c:\psp-projects\x86emu\support\bmp.c(126): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\support\bmp.c(127): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\support\bmp.c(152): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  paging.c
+  mmuhandler.c
+c:\psp-projects\x86emu\mmu\mmuhandler.c(99): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\mmu\mmuhandler.c(118): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  mmu.c
+c:\psp-projects\x86emu\mmu\mmu.c(300): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  unkint.c
+  interrupt5.c
+  interrupt19.c
+  interrupt18.c
+  interrupt16.c
+  Generating Code...
+  Compiling...
+  interrupt13.c
+c:\psp-projects\x86emu\interrupts\interrupt13.c(640): warning C4244: 'argument' : conversion from 'uint64_t' to 'uint32_t', possible loss of data
+c:\psp-projects\x86emu\interrupts\interrupt13.c(693): warning C4244: 'argument' : conversion from 'uint64_t' to 'uint32_t', possible loss of data
+c:\psp-projects\x86emu\interrupts\interrupt13.c(803): warning C4244: 'argument' : conversion from 'uint64_t' to 'uint32_t', possible loss of data
+c:\psp-projects\x86emu\interrupts\interrupt13.c(805): warning C4244: 'argument' : conversion from 'uint64_t' to 'uint32_t', possible loss of data
+  interrupt11.c
+  interrupt10_textmodedata.c
+  interrupt10_switchvideomode.c
+  interrupt10_romfont.c
+  interrupt10_modelist_vga.c
+  interrupt10.c
+c:\psp-projects\x86emu\interrupts\interrupt10.c(1110): warning C4806: '&' : unsafe operation: no value of type 'bool' promoted to type 'int' can equal the given constant
+c:\psp-projects\x86emu\interrupts\interrupt10.c(2184): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\interrupts\interrupt10.c(2194): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  vga_vramtext.c
+c:\psp-projects\x86emu\hardware\vga\vga_vramtext.c(195): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+  vga_vram.c
+  vga_sequencer_textmode.c
+  vga_sequencer_graphicsmode.c
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_sequencer_graphicsmode.c(39): warning C4244: '=' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_sequencer_graphicsmode.c(56): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_sequencer_graphicsmode.c(86): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_sequencer_graphicsmode.c(88): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+  vga_sequencer.c
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_sequencer.c(37): warning C4244: 'return' : conversion from 'double' to 'float', possible loss of data
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_sequencer.c(39): warning C4244: 'return' : conversion from 'double' to 'float', possible loss of data
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_sequencer.c(406): warning C4101: 'ticks' : unreferenced local variable
+  vga_precalcs.c
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(66): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(71): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(75): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(79): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(83): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(87): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(91): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(95): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(103): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(108): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(112): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(116): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(120): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(124): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(128): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_precalcs.c(132): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+  vga_dacrenderer.c
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_dacrenderer.c(16): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+  vga_crtcontroller.c
+  vga_attributecontroller.c
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_attributecontroller.c(133): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_attributecontroller.c(142): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_attributecontroller.c(146): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\hardware\vga\vga_screen\vga_attributecontroller.c(185): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  vga_modes.c
+  vga_mmu.c
+  vga_io.c
+c:\psp-projects\x86emu\hardware\vga\vga_io.c(229): warning C4244: '=' : conversion from 'word' to 'byte', possible loss of data
+  vga_dac.c
+  Generating Code...
+  Compiling...
+  vga_colorconversion.c
+  vga.c
+c:\psp-projects\x86emu\hardware\vga\vga.c(189): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  uart.c
+c:\psp-projects\x86emu\hardware\uart.c(91): warning C4333: '>>' : right shift by too large amount, data loss
+  softdebugger.c
+c:\psp-projects\x86emu\hardware\softdebugger.c(303): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\hardware\softdebugger.c(332): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\hardware\softdebugger.c(389): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  ps2_mouse.c
+  ps2_keyboard_data.c
+c:\psp-projects\x86emu\hardware\ps2_keyboard_data.c(4): warning C4305: 'initializing' : truncation from 'double' to 'float'
+c:\psp-projects\x86emu\hardware\ps2_keyboard_data.c(4): warning C4305: 'initializing' : truncation from 'double' to 'float'
+c:\psp-projects\x86emu\hardware\ps2_keyboard_data.c(4): warning C4305: 'initializing' : truncation from 'double' to 'float'
+c:\psp-projects\x86emu\hardware\ps2_keyboard_data.c(4): warning C4305: 'initializing' : truncation from 'double' to 'float'
+c:\psp-projects\x86emu\hardware\ps2_keyboard_data.c(5): warning C4305: 'initializing' : truncation from 'double' to 'float'
+  ps2_keyboard.c
+c:\psp-projects\x86emu\hardware\ps2_keyboard.c(78): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  pit.c
+c:\psp-projects\x86emu\hardware\pit.c(153): warning C4244: '=' : conversion from 'double' to 'uint64_t', possible loss of data
+  pic.c
+  pcspeaker.c
+c:\psp-projects\x86emu\hardware\pcspeaker.c(39): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+c:\psp-projects\x86emu\hardware\pcspeaker.c(124): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+  mpu.c
+c:\psp-projects\x86emu\hardware\midi\mpu.c(267): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mpu.c(651): warning C4244: 'argument' : conversion from 'uint32_t' to 'float', possible loss of data
+  mididevice.c
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(180): warning C4244: '=' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(244): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(245): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(477): warning C4244: '*=' : conversion from 'float' to 'uint32_t', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(505): warning C4244: '/=' : conversion from 'float' to 'uint32_t', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(524): warning C4244: '*=' : conversion from 'float' to 'sword', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(525): warning C4244: '*=' : conversion from 'float' to 'sword', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(751): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(787): warning C4244: 'argument' : conversion from 'uint32_t' to 'float', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(793): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+c:\psp-projects\x86emu\hardware\midi\mididevice.c(798): warning C4244: '*=' : conversion from 'double' to 'float', possible loss of data
+  midi.c
+  ide.c
+  dma.c
+c:\psp-projects\x86emu\hardware\dma.c(107): warning C4244: 'initializing' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\hardware\dma.c(226): warning C4244: 'initializing' : conversion from 'word' to 'byte', possible loss of data
+  CMOS.c
+c:\psp-projects\x86emu\hardware\cmos.c(167): warning C4996: 'localtime': This function or variable may be unsafe. Consider using localtime_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\time.inl(112) : see declaration of 'localtime'
+  ATAPI.c
+  adlib.c
+c:\psp-projects\x86emu\hardware\adlib.c(217): warning C4244: '=' : conversion from 'float' to 'uint64_t', possible loss of data
+c:\psp-projects\x86emu\hardware\adlib.c(223): warning C4244: '=' : conversion from 'short' to 'char', possible loss of data
+c:\psp-projects\x86emu\hardware\adlib.c(225): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+  8042.c
+  exception.c
+  Generating Code...
+c:\psp-projects\x86emu\hardware\uart.c(198): warning C4715: 'PORT_readUART' : not all control paths return a value
+  Compiling...
+  threads.c
+c:\psp-projects\x86emu\emu\support\threads.c(248): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\support\threads.c(284): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  number_optimizations.c
+  errors.c
+c:\psp-projects\x86emu\emu\support\errors.c(32): warning C4996: 'vsprintf': This function or variable may be unsafe. Consider using vsprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'vsprintf'
+c:\psp-projects\x86emu\emu\support\errors.c(33): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+  main.c
+  sound.c
+c:\psp-projects\x86emu\emu\io\sound.c(413): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\emu\io\sound.c(665): warning C4244: '*=' : conversion from 'float' to 'int32_t', possible loss of data
+c:\psp-projects\x86emu\emu\io\sound.c(666): warning C4244: '*=' : conversion from 'float' to 'int32_t', possible loss of data
+  keyboard.c
+  input.c
+  directorylist.c
+c:\program files (x86)\microsoft sdks\windows\v7.0a\include\wingdi.h(1595): warning C4005: 'RGB' : macro redefinition
+          c:\psp-projects\x86emu\headers\types.h(73) : see previous definition of 'RGB'
+c:\psp-projects\x86emu\emu\io\directorylist.c(10): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\emu\io\directorylist.c(10): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\emu\io\directorylist.c(12): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\emu\io\directorylist.c(12): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\emu\io\directorylist.c(20): warning C4996: 'wcstombs': This function or variable may be unsafe. Consider using wcstombs_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdlib.h(533) : see declaration of 'wcstombs'
+c:\psp-projects\x86emu\emu\io\directorylist.c(41): warning C4996: 'wcstombs': This function or variable may be unsafe. Consider using wcstombs_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdlib.h(533) : see declaration of 'wcstombs'
+c:\psp-projects\x86emu\emu\io\directorylist.c(36): warning C4101: 'filename' : unreferenced local variable
+  gpu_text.c
+c:\psp-projects\x86emu\emu\gpu\gpu_text.c(203): warning C4996: 'vsprintf': This function or variable may be unsafe. Consider using vsprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'vsprintf'
+c:\psp-projects\x86emu\emu\gpu\gpu_text.c(208): warning C4018: '<' : signed/unsigned mismatch
+  gpu_sdl.c
+c:\psp-projects\x86emu\emu\gpu\gpu_sdl.c(138): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\emu\gpu\gpu_sdl.c(139): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\emu\gpu\gpu_sdl.c(431): warning C4018: '>' : signed/unsigned mismatch
+  gpu_renderer.c
+c:\psp-projects\x86emu\emu\gpu\gpu_renderer.c(53): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\gpu\gpu_renderer.c(55): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\gpu\gpu_renderer.c(323): warning C4244: '=' : conversion from 'uint64_t' to 'uint32_t', possible loss of data
+  gpu_framerate.c
+c:\psp-projects\x86emu\emu\gpu\gpu_framerate.c(72): warning C4244: '+=' : conversion from 'uint64_t' to 'uint32_t', possible loss of data
+c:\psp-projects\x86emu\emu\gpu\gpu_framerate.c(161): warning C4018: '<' : signed/unsigned mismatch
+c:\psp-projects\x86emu\emu\gpu\gpu_framerate.c(166): warning C4244: '=' : conversion from 'uint64_t' to 'uint32_t', possible loss of data
+  gpu_emu.c
+c:\psp-projects\x86emu\emu\gpu\gpu_emu.c(88): warning C4996: 'vsprintf': This function or variable may be unsafe. Consider using vsprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'vsprintf'
+  gpu_debug.c
+c:\psp-projects\x86emu\emu\gpu\gpu_debug.c(16): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\emu\gpu\gpu_debug.c(19): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\emu\gpu\gpu_debug.c(23): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+  gpu.c
+  runromverify.c
+c:\psp-projects\x86emu\emu\debugger\runromverify.c(32): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\emu\debugger\runromverify.c(125): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  debug_sound.c
+  debug_graphics.c
+c:\psp-projects\x86emu\emu\debugger\debug_graphics.c(425): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\emu\debugger\debug_graphics.c(434): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  debug_files.c
+c:\program files (x86)\microsoft sdks\windows\v7.0a\include\wingdi.h(1595): warning C4005: 'RGB' : macro redefinition
+          c:\psp-projects\x86emu\headers\types.h(73) : see previous definition of 'RGB'
+c:\psp-projects\x86emu\emu\debugger\debug_files.c(49): warning C4995: 'sprintf': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\emu\debugger\debug_files.c(49): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debug_files.c(50): warning C4995: 'sprintf': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\emu\debugger\debug_files.c(50): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debug_files.c(52): warning C4995: 'sprintf': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\emu\debugger\debug_files.c(52): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debug_files.c(53): warning C4995: 'sprintf': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\emu\debugger\debug_files.c(53): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+  debugger.c
+c:\psp-projects\x86emu\emu\debugger\debugger.c(40): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(41): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(49): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(50): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(51): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(52): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(53): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(54): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(55): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(56): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(57): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(58): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(59): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(60): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(63): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(64): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(65): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(69): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(70): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(71): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(74): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(79): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(80): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(83): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(87): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(91): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(92): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(93): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(97): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(98): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(99): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(109): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(113): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(185): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(187): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(316): warning C4804: '>' : unsafe use of type 'bool' in operation
+c:\psp-projects\x86emu\emu\debugger\debugger.c(408): warning C4996: 'vsprintf': This function or variable may be unsafe. Consider using vsprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'vsprintf'
+c:\psp-projects\x86emu\emu\debugger\debugger.c(416): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  Generating Code...
+c:\psp-projects\x86emu\emu\support\threads.c(344): warning C4700: uninitialized local variable 'thid' used
+  Compiling...
+  emu_vga_bios.c
+c:\psp-projects\x86emu\emu\core\emu_vga_bios.c(34): warning C4996: 'vsprintf': This function or variable may be unsafe. Consider using vsprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'vsprintf'
+  emu_vga.c
+  emu_misc.c
+c:\program files (x86)\microsoft sdks\windows\v7.0a\include\wingdi.h(1595): warning C4005: 'RGB' : macro redefinition
+          c:\psp-projects\x86emu\headers\types.h(73) : see previous definition of 'RGB'
+c:\psp-projects\x86emu\emu\core\emu_misc.c(30): warning C4995: 'vsprintf': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\emu\core\emu_misc.c(30): warning C4996: 'vsprintf': This function or variable may be unsafe. Consider using vsprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'vsprintf'
+c:\psp-projects\x86emu\emu\core\emu_misc.c(54): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\emu\core\emu_misc.c(65): warning C4018: '<' : signed/unsigned mismatch
+c:\psp-projects\x86emu\emu\core\emu_misc.c(103): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\emu\core\emu_misc.c(103): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\emu\core\emu_misc.c(104): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\emu\core\emu_misc.c(104): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\emu\core\emu_misc.c(105): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\emu\core\emu_misc.c(105): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\emu\core\emu_misc.c(107): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  emu_main.c
+  emu_bios_sound.c
+  emu_bios_post.c
+c:\psp-projects\x86emu\emu\core\emu_bios_post.c(209): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  emucore.c
+  unkop.c
+c:\psp-projects\x86emu\cpu\unkop.c(20): warning C4996: 'vsprintf': This function or variable may be unsafe. Consider using vsprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'vsprintf'
+  modrm.c
+c:\psp-projects\x86emu\cpu\modrm.c(372): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(376): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(388): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(392): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(404): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(408): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(458): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(462): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(466): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(470): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(474): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(478): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(483): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(504): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(510): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(514): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(518): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(522): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(526): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(530): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(534): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(538): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(589): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(593): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(597): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(601): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(605): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(609): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(613): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(617): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(645): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(653): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(661): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(669): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(677): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(685): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(699): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(708): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(715): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(728): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(736): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(744): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(752): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(760): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(768): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(781): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(790): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(799): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(813): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(821): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(829): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(837): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(845): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(853): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(866): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(875): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(884): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(898): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(906): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(914): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(922): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(930): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(938): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(951): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(960): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(969): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1034): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1038): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1042): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1046): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1050): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1054): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1058): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1062): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1067): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1083): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1090): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1097): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1104): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1111): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1118): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1125): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1132): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1149): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1156): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1163): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1170): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1177): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1184): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1191): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1198): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1217): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1224): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1231): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1238): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1245): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1252): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1259): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1266): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1284): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1291): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1298): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1305): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1312): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1319): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1326): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1333): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\cpu\modrm.c(1397): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1401): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1405): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1409): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1413): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1417): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1421): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1425): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1538): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1545): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1570): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1574): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\modrm.c(1577): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  hardware_interrupts.c
+  flags.c
+c:\psp-projects\x86emu\cpu\flags.c(52): warning C4244: 'argument' : conversion from 'int16_t' to 'uint8_t', possible loss of data
+c:\psp-projects\x86emu\cpu\flags.c(80): warning C4244: 'argument' : conversion from 'int16_t' to 'uint8_t', possible loss of data
+  cpu_jmptbls0f.c
+  cpu_jmptbls.c
+  cpu_interrupts.c
+  cpu.c
+  cb_manager.c
+c:\psp-projects\x86emu\cpu\cb_manager.c(149): warning C4333: '>>' : right shift by too large amount, data loss
+  opcodes_8086.c
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(94): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(122): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(126): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(130): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(134): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(138): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(142): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(146): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(459): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(501): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(544): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(578): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(621): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(663): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(706): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(1179): warning C4244: '=' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(1180): warning C4244: '=' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(1187): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(1196): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\opcodes_8086.c(1986): warning C4244: '=' : conversion from 'word' to 'byte', possible loss of data
+  8086_grpOPs.c
+c:\psp-projects\x86emu\cpu\8086\8086_grpops.c(111): warning C4244: 'argument' : conversion from 'word' to 'uint8_t', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\8086_grpops.c(119): warning C4244: 'argument' : conversion from 'word' to 'uint8_t', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\8086_grpops.c(128): warning C4244: 'argument' : conversion from 'word' to 'uint8_t', possible loss of data
+c:\psp-projects\x86emu\cpu\8086\8086_grpops.c(304): warning C4244: 'argument' : conversion from 'word' to 'uint8_t', possible loss of data
+  opcodes_386.c
+  opcodes0F_386.c
+  Generating Code...
+  Compiling...
+  protection.c
+  opcodes_80286.c
+  multitasking.c
+  opcodes_80186.c
+c:\psp-projects\x86emu\cpu\80186\opcodes_80186.c(279): warning C4244: 'argument' : conversion from 'word' to 'byte', possible loss of data
+c:\psp-projects\x86emu\cpu\80186\opcodes_80186.c(351): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+  initmem.c
+  biosrom.c
+c:\psp-projects\x86emu\bios\biosrom.c(27): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\bios\biosrom.c(28): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\bios\biosrom.c(81): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\bios\biosrom.c(92): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\bios\biosrom.c(93): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\bios\biosrom.c(133): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosrom.c(134): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\bios\biosrom.c(157): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosrom.c(170): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
+c:\psp-projects\x86emu\bios\biosrom.c(186): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  biosmenu.c
+c:\program files (x86)\microsoft sdks\windows\v7.0a\include\wingdi.h(1595): warning C4005: 'RGB' : macro redefinition
+          c:\psp-projects\x86emu\headers\types.h(73) : see previous definition of 'RGB'
+c:\psp-projects\x86emu\bios\biosmenu.c(583): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(583): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(607): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(607): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(608): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(608): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(613): warning C4018: '<' : signed/unsigned mismatch
+c:\psp-projects\x86emu\bios\biosmenu.c(852): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(852): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(859): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(859): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(863): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(863): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(880): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(880): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(887): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(887): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(891): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(891): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(908): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(908): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(915): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(915): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(919): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(919): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(936): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(936): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(943): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(943): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(947): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(947): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(964): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(964): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(971): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(971): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(975): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(975): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(992): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(992): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(999): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(999): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1003): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1003): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1017): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1017): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1018): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1018): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1019): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1019): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1020): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1020): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1021): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1021): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1022): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1022): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1023): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1023): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1024): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1024): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1029): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1029): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1033): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1033): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1036): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1036): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1043): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1043): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1047): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1047): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1050): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1050): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1057): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1057): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1061): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1061): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1064): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1064): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1071): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1071): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1075): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1075): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1078): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1078): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1085): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1085): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1089): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1089): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1095): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1095): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1099): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1099): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1208): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1208): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1209): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1209): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1211): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1211): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1214): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1214): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1218): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1218): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1222): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1222): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1227): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1227): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1231): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1231): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1234): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1234): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1237): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1237): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1240): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1240): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1243): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1243): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1246): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1246): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1249): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1249): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1252): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1252): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1255): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1255): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1260): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1260): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1266): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1266): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1269): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1269): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1272): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1272): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1284): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1284): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1288): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1288): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1289): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1289): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1292): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1292): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1295): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1295): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1299): warning C4995: 'strcat': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1299): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\bios\biosmenu.c(1314): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1314): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1343): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1343): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1344): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1344): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1452): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1452): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1456): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1456): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1460): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1460): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1464): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1464): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1468): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1468): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1619): warning C4244: '=' : conversion from 'FILEPOS' to 'uint32_t', possible loss of data
+c:\psp-projects\x86emu\bios\biosmenu.c(1638): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1638): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1639): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1639): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1640): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1640): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1641): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1641): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1642): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1642): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1643): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1643): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1644): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1644): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1645): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1645): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1646): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1646): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1727): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1727): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1728): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1728): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1729): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1729): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\bios\biosmenu.c(1779): warning C4995: 'strcpy': name was marked as #pragma deprecated
+c:\psp-projects\x86emu\bios\biosmenu.c(1779): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  bios.c
+c:\psp-projects\x86emu\bios\bios.c(146): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+c:\psp-projects\x86emu\bios\bios.c(195): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+  staticimage.c
+  port_mapper.c
+  port_io.c
+  io.c
+c:\psp-projects\x86emu\basicio\io.c(45): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\basicio\io.c(48): warning C4244: '=' : conversion from 'FILEPOS' to 'uint32_t', possible loss of data
+c:\psp-projects\x86emu\basicio\io.c(114): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\basicio\io.c(126): warning C4244: '=' : conversion from 'FILEPOS' to 'uint32_t', possible loss of data
+c:\psp-projects\x86emu\basicio\io.c(183): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  fopen64.c
+c:\psp-projects\x86emu\basicio\fopen64.c(73): warning C4065: switch statement contains 'default' but no 'case' labels
+c:\psp-projects\x86emu\basicio\fopen64.c(88): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\basicio\fopen64.c(189): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+  dynamicimage.c
+c:\psp-projects\x86emu\basicio\dynamicimage.c(54): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(55): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(64): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(65): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(83): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(84): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(115): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(116): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(142): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(143): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(179): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(180): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(277): warning C4244: '=' : conversion from 'int64_t' to 'uint32_t', possible loss of data
+c:\psp-projects\x86emu\basicio\dynamicimage.c(285): warning C4390: ';' : empty controlled statement found; is this the intent?
+c:\psp-projects\x86emu\basicio\dynamicimage.c(311): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(105) : see declaration of 'strcpy'
+c:\psp-projects\x86emu\basicio\dynamicimage.c(312): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\program files (x86)\microsoft visual studio 10.0\vc\include\string.h(110) : see declaration of 'strcat'
+  boot.c
+  Generating Code...
+ManifestResourceCompile:
+  C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"C:\psp-projects\x86EMU\Windows\x86EMU\x86EMU.exe.embed.manifest.res" C:\psp-projects\x86EMU\Windows\x86EMU\x86EMU_manifest.rc 
+Link:
+  C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\psp-projects_build\x86EMU\x86EMU.exe" /INCREMENTAL /NOLOGO SDL.lib SDLmain.lib SDL_gfx.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"C:\psp-projects\x86EMU\Windows\x86EMU\x86EMU.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\psp-projects_build\x86EMU\x86EMU.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\psp-projects_build\x86EMU\x86EMU.lib" /MACHINE:X86 "C:\psp-projects\x86EMU\Windows\x86EMU\x86EMU.exe.embed.manifest.res"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\boot.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\dynamicimage.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\fopen64.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\io.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\port_io.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\port_mapper.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\staticimage.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\bios.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\biosmenu.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\biosrom.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\initmem.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\opcodes_80186.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\multitasking.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\opcodes_80286.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\protection.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\opcodes0F_386.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\opcodes_386.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\8086_grpOPs.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\opcodes_8086.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\cb_manager.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\cpu.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\cpu_interrupts.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\cpu_jmptbls.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\cpu_jmptbls0f.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\flags.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\hardware_interrupts.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\modrm.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\unkop.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\emucore.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\emu_bios_post.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\emu_bios_sound.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\emu_main.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\emu_misc.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\emu_vga.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\emu_vga_bios.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\debugger.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\debug_files.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\debug_graphics.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\debug_sound.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\runromverify.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\gpu.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\gpu_debug.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\gpu_emu.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\gpu_framerate.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\gpu_renderer.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\gpu_sdl.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\gpu_text.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\directorylist.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\input.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\keyboard.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\sound.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\main.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\errors.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\number_optimizations.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\threads.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\exception.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\8042.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\adlib.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\ATAPI.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\CMOS.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\dma.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\ide.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\midi.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\mididevice.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\mpu.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\pcspeaker.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\pic.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\pit.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\ps2_keyboard.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\ps2_keyboard_data.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\ps2_mouse.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\softdebugger.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\uart.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_colorconversion.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_dac.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_io.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_mmu.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_modes.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_attributecontroller.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_crtcontroller.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_dacrenderer.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_precalcs.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_sequencer.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_sequencer_graphicsmode.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_sequencer_textmode.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_vram.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\vga_vramtext.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt10.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt10_modelist_vga.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt10_romfont.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt10_switchvideomode.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt10_textmodedata.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt11.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt13.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt16.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt18.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt19.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\interrupt5.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\unkint.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\mmu.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\mmuhandler.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\paging.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\bmp.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\crc32.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\fifobuffer.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\highrestimer.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\isoreader.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\lba.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\log.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\sf2.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\signedness.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\state.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\timers.obj"
+  "C:\psp-projects\x86EMU\Windows\x86EMU\zalloc.obj"
+LINK : fatal error LNK1104: cannot open file 'C:\psp-projects\x86EMU\Windows\x86EMU\opcodes0F_386.obj'
+Done Building Project "C:\psp-projects\x86EMU\Windows\x86EMU\x86EMU.vcxproj" (build target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:01:32.84

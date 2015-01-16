@@ -8,6 +8,7 @@
 #include "headers/emu/gpu/gpu_renderer.h" //For empty rows!
 #include "headers/hardware/vga.h" //VGA!
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer support!
+#include "headers/emu/timers.h" //Timer support!
 
 //Are we disabled?
 #define __HW_DISABLED 1

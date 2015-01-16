@@ -120,8 +120,8 @@ static OPTINLINE void calc_samplePos() //Calculate sample position precalcs!
 	if (samplepos[0] && samplepos[1]) return; //Don't reallocate!
 	uint_32 precalcs_size = ((uint_32)MAX_SAMPLERATE*sizeof(*samplepos[0])<<1); //Size of samplepos precalcs!
 	//Now allocate the precalcs!
-	samplepos[0] = zalloc(precalcs_size,"Sample position precalcs");
-	samplepos[1] = zalloc(precalcs_size,"Sample position precalcs");
+	samplepos[0] = (uint_32 *)zalloc(precalcs_size,"Sample position precalcs");
+	samplepos[1] = (uint_32 *)zalloc(precalcs_size,"Sample position precalcs");
 	byte abort;
 	abort = 0; //Default: no abort!
 	if (!samplepos[1])
@@ -540,31 +540,31 @@ void resetchannels()
 //Sample retrieval
 static int_32 getsample_16(playing_p channel, uint_32 position)
 {
-	word *y = channel->sound.samples;
+	word *y = (word *)channel->sound.samples;
 	return unsigned2signed16(y[position]);
 }
 
 static int_32 getsample_16s(playing_p channel, uint_32 position)
 {
-	sword *ys = channel->sound.samples;
+	sword *ys = (sword *)channel->sound.samples;
 	return ys[position];
 }
 
 static int_32 getsample_8(playing_p channel, uint_32 position)
 {
-	byte *x = channel->sound.samples;	
+	byte *x = (byte *)channel->sound.samples;	
 	return (int_32)unsigned2signed8(x[position])<<8;
 }
 
 static int_32 getsample_8s(playing_p channel, uint_32 position)
 {
-	sbyte *xs = channel->sound.samples;
+	sbyte *xs = (sbyte *)channel->sound.samples;
 	return (int_32)(xs[position]<<8);
 }
 
 static int_32 getsample_flt(playing_p channel, uint_32 position)
 {
-	float *z = channel->sound.samples;
+	float *z = (float *)channel->sound.samples;
 	return (int_32)((z[position]/FLT_MAX)*SHRT_MAX); //Convert to integer value!	
 }
 
@@ -765,7 +765,7 @@ static OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 uint_64 totaltime_audio = 0; //Total time!
 uint_64 totaltimes_audio = 0; //Total times!
 uint_32 totaltime_audio_avg = 1; //Total time of an average audio thread. Use this for synchronization with other time-taking hardware threads.
-void SDL_AudioCallback(void *user_data, Uint8 *audio, int length)
+void Sound_AudioCallback(void *user_data, Uint8 *audio, int length)
 {
 	if (__HW_DISABLED) return; //Disabled?
 	/* Clear the audio buffer so we can mix samples into it. */
@@ -822,7 +822,7 @@ void initAudio() //Initialises audio subsystem!
 			audiospecs.channels = 2;	/* ask for stereo */
 			audiospecs.samples = SAMPLESIZE;	/* this is more or less discretionary */
 			audiospecs.size = audiospecs.samples * audiospecs.channels * sizeof(sample_t);
-			audiospecs.callback = &SDL_AudioCallback;
+			audiospecs.callback = &Sound_AudioCallback;
 			audiospecs.userdata = NULL;	/* we don't need this */
 			//dolog("soundservice","Opening audio device...");
 			if (SDL_OpenAudio(&audiospecs, NULL) < 0)

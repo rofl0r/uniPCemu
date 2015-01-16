@@ -7,6 +7,9 @@
 #include "headers/emu/gpu/gpu_emu.h" //EMU debugging text support!
 #include "headers/emu/gpu/gpu_text.h" //Text surface support!
 
+#include "headers/emu/directorylist.h" //Directory listing support!
+#include "headers/emu/gpu/gpu_renderer.h" //For forcing a refresh of the screen!
+
 /*
 
 debug / *.bin debug routine!
@@ -15,36 +18,39 @@ debug / *.bin debug routine!
 
 void DoDebugFiles() //Do the debug files!
 {
-	DIR *dir;
-	struct dirent *dirent = 0;
 	char file_name[256]; //Original!
 	char file_nameres[256]; //Result!
 	char finish_name[256]; //Original!
 	char finish_nameres[256]; //Result!
 	/* open directory */
-	if ( ( dir = opendir( "debug" ) ) == 0 )
-	{
+	char direntry[256];
+	byte isfile;
+	DirListContainer_t dir;
+    if (!opendirlist(&dir,"debug",&direntry[0],&isfile))
+    {
 		GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Error: verification directory was not found. (debug)");
 		sleep(); //Wait forever!
 	}
+	  /* print all the files and directories within directory */
 	
 	EMU_textcolor(0xF); //Default text color!
-	dolog("ROM_log","START OF VERIFICATION PROCEDURE!"); //End!
+	dolog("ROM_log","START FLAG_OF VERIFICATION PROCEDURE!"); //End!
 
-	while ( ( dirent = readdir( dir ) ) != 0 ) //Files left to check?
+	
+	do
 	{
-		if ( (dirent->d_name[0] == '.') ) continue; //. or ..?
+		if ( (direntry[0] == '.') ) continue; //. or ..?
 		//Assume files only!
 		bzero(file_name,sizeof(file_name));
 		bzero(file_nameres,sizeof(file_nameres));
 		bzero(finish_name,sizeof(finish_name));
 		bzero(finish_nameres,sizeof(finish_nameres));
 		//Source files
-		sprintf(file_name,"debug/%s",dirent->d_name); //Original file!
-		sprintf(file_nameres,"debug/res_%s",dirent->d_name); //Result file!
+		sprintf(file_name,"debug/%s",direntry); //Original file!
+		sprintf(file_nameres,"debug/res_%s",direntry); //Result file!
 		//Succeeded files for moving!
-		sprintf(finish_name,"debugsucceeded/%s",dirent->d_name); //Original file!
-		sprintf(finish_nameres,"debugsucceeded/res_%s",dirent->d_name); //Result file!
+		sprintf(finish_name,"debugsucceeded/%s",direntry); //Original file!
+		sprintf(finish_nameres,"debugsucceeded/res_%s",direntry); //Result file!
 		if (file_exists(file_name) && file_exists(file_nameres)) //Not a result?
 		{
 			GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Verifying %s...",file_name);
@@ -71,9 +77,10 @@ void DoDebugFiles() //Do the debug files!
 			refreshscreen(); //Update the screen now!
 		} //Not a result file?
 	}
-	closedir(dir); //Close the directory!
+	while (readdirlist(&dir,&direntry[0],&isfile)); //Files left to check?)
+	closedirlist(&dir); //Close the directory!
 
-	dolog("ROM_log","END OF VERIFICATION PROCEDURE!"); //End!
+	dolog("ROM_log","END FLAG_OF VERIFICATION PROCEDURE!"); //End!
 
 	GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Verification complete!");
 	refreshscreen(); //Update the screen now!

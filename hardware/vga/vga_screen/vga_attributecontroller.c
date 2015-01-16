@@ -11,11 +11,6 @@ OPTINLINE byte getHorizontalPixelPanning(VGA_Type *VGA) //Active horizontal pixe
 	return VGA->precalcs.pixelboost; //Precalculated pixel boost!
 }
 
-OPTINLINE byte getOverscanColor(VGA_Type *VGA) //Get the active overscan color (256 color byte!)
-{
-	return VGA->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER; //Take the overscan color!
-}
-
 OPTINLINE byte getcolorselect54(VGA_Type *VGA)
 {
 	return VGA->precalcs.colorselect54; //Bits 5-4 of the color select register!

@@ -51,6 +51,7 @@ void raiseError(char *source, char *text, ...)
 
 	dolog("error","Waiting 5 seconds before quitting...");
 	ERROR_RAISED = 1; //We've raised an error!
+	delay(5000000); //Wait 5 seconds...
 	//When we're exiting this thread, the main thread will become active, terminating the software!
 	halt(); //Just in case!
 	sleep(); //Wait forever, just in case!

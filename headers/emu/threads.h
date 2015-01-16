@@ -2,7 +2,11 @@
 #define THREADS_H
 
 #include "headers/types.h" //Basic type support!
+#ifdef _WIN32
+#include <SDL_thread.h> //Multithreading support!
+#else
 #include <SDL/SDL_thread.h> //Multithreading support!
+#endif
 
 #define DEFAULT_PRIORITY 0x18
 //Default priority for threads!
@@ -26,4 +30,5 @@ void termThread(); //Alias of quitThread!
 void termThreads(); //Terminate all threads but our own (active thread)!
 int ThreadsRunning(); //Are there any threads running or ready to run?
 int minthreadsrunning(); //Minimum ammount of threads running when nothing's there!
+//int allow_threadrunning(); //Allow the current thread to continue running?
 #endif

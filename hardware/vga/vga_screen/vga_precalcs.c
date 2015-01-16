@@ -2,9 +2,8 @@
 //#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/hardware/vga_rest/colorconversion.h" //Color conversion for DAC precalculation!
 #include "headers/emu/gpu/gpu.h" //Relative conversion!
-#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller support!
-
 #include "headers/hardware/vga_screen/vga_crtcontroller.h"
+#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller support!
 #include "headers/support/log.h" //Logging support!
 //Works!
 static uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!
@@ -57,7 +56,7 @@ static OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC p
 	Sequencer->totalrendertime = 0; //Clear time passed
 }
 
-OPTINLINE void dump_CRTCTiming()
+void dump_CRTCTiming()
 {
 	uint_32 i;
 	char information[0x1000];
@@ -96,10 +95,7 @@ OPTINLINE void dump_CRTCTiming()
 			sprintf(information,"%s+OVERSCAN",information); //Add!
 		}
 		dolog("VGA","%s",information);
-		if (status&VGA_SIGNAL_VTOTAL) //Total reached? Don't look any further!
-		{
-			break;
-		}
+		if (status&VGA_SIGNAL_VTOTAL) break; //Total reached? Don't look any further!
 	}
 
 	for (i=0;i<NUMITEMS(ActiveVGA->CRTC.colstatus);i++)
@@ -136,10 +132,7 @@ OPTINLINE void dump_CRTCTiming()
 			sprintf(information,"%s+OVERSCAN",information); //Add!
 		}
 		dolog("VGA","%s",information);
-		if (status&VGA_SIGNAL_HTOTAL) //Total reached? Don't look any further!
-		{
-			break;
-		}
+		if (status&VGA_SIGNAL_HTOTAL) return; //Total reached? Don't look any further!
 	}
 }
 
@@ -160,8 +153,6 @@ void VGA_LOGCRTCSTATUS()
 	dolog("VGA","VRetraceStart:%i",ActiveVGA->precalcs.verticalretracestart); //When to start vertical retrace!
 	dolog("VGA","VRetraceEnd:~%i",ActiveVGA->precalcs.verticalretraceend); //When to stop vertical retrace.
 	dolog("VGA","VTotal:%i",ActiveVGA->precalcs.verticaltotal); //Full resolution plus vertical retrace!
-
-	//dump_CRTCTiming(); //Dump all CRTC timing!
 }
 
 void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, whereupdated: where were we updated?
@@ -491,7 +482,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 		if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x11))) //Overscan?
 		{
-			VGA->precalcs.overscancolor = getOverscanColor(VGA); //Update the overscan color!
+			VGA->precalcs.overscancolor = VGA->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER; //Update the overscan color!
 			//dolog("VGA","VTotal after overscancolor: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
 		

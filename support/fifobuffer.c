@@ -20,11 +20,12 @@ result:
 
 FIFOBUFFER* allocfifobuffer(uint_32 buffersize)
 {
+	FIFOBUFFER *container;
 	if (__HW_DISABLED) return NULL; //Abort!
-	FIFOBUFFER *container = zalloc(sizeof(FIFOBUFFER),"FIFOBuffer"); //Allocate an container!
+	container = (FIFOBUFFER *)zalloc(sizeof(FIFOBUFFER),"FIFOBuffer"); //Allocate an container!
 	if (container) //Allocated container?
 	{
-		container->buffer = zalloc(buffersize,"FIFOBuffer_Buffer"); //Try to allocate the buffer!
+		container->buffer = (byte *)zalloc(buffersize,"FIFOBuffer_Buffer"); //Try to allocate the buffer!
 		if (!container->buffer) //No buffer?
 		{
 			freez((void **)&container,sizeof(FIFOBUFFER),"Failed FIFOBuffer"); //Release the container!
@@ -38,12 +39,13 @@ FIFOBUFFER* allocfifobuffer(uint_32 buffersize)
 
 void free_fifobuffer(FIFOBUFFER **buffer)
 {
+	FIFOBUFFER *container;
 	if (__HW_DISABLED) return; //Abort!
 	if (buffer) //Valid?
 	{
 		if (memprotect(*buffer,sizeof(FIFOBUFFER),NULL)) //Valid point?
 		{
-			FIFOBUFFER *container = *buffer; //Get the buffer itself!
+			container = *buffer; //Get the buffer itself!
 			if (memprotect(container->buffer,container->size,NULL)) //Valid?
 			{
 				freez((void **)&container->buffer,container->size,"Free FIFOBuffer_buffer"); //Release the buffer!

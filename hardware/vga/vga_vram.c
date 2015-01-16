@@ -8,6 +8,7 @@
 #include "headers/support/log.h" //Logging support for debugging this!
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer support for special actions!
 #include "headers/support/zalloc.h" //Zero allocation (memprotect) support!
+#include "headers/hardware/vga_screen/vga_vram.h" //VRAM support!
 
 //VGA.VRAM is a pointer to the start of the VGA VRAM (256K large)
 
@@ -21,6 +22,16 @@
 //bit 1 contains the "I'm a renderer" flag.
 
 byte LOG_VRAM_WRITES = 0;
+
+//Bit from left to right starts with 0(value 128) ends with 7(value 1)
+
+//Retrieval function for single bits instead of full bytes!
+byte getBitPlaneBit(VGA_Type *VGA, byte plane, word offset, byte bit, byte is_renderer)
+{
+	byte bits;
+	bits = readVRAMplane(VGA,plane,offset,is_renderer); //Get original bits!
+	return GETBIT(bits,7-bit); //Give the bit!
+}
 
 //Below patches input addresses for rendering only.
 static OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 rowscanaddress) //Patch full VRAM address!
@@ -106,7 +117,7 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //R
 	return 0; //Nothing there: invalid VRAM!
 }
 
-void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, byte value) //Write to a VRAM plane!
+void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write to a VRAM plane!
 {
 	if (!VGA) return; //Invalid VGA!
 	if (!VGA->VRAM_size) return; //No size!
@@ -135,16 +146,7 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, byte value) //Wri
 	}
 }
 
-//Bit from left to right starts with 0(value 128) ends with 7(value 1)
-
-byte getBitPlaneBit(VGA_Type *VGA, int plane, uint_32 offset, byte bit, byte is_renderer)
-{
-	byte bits;
-	bits = readVRAMplane(VGA,plane,offset,is_renderer); //Get original bits!
-	return GETBIT(bits,7-bit); //Give the bit!
-}
-
-void setBitPlaneBit(VGA_Type *VGA, int plane, uint_32 offset, byte bit, byte on) //For testing only. Read-Modify-Write!
+/*void setBitPlaneBit(VGA_Type *VGA, int plane, uint_32 offset, byte bit, byte on) //For testing only. Read-Modify-Write!
 {
 	byte bits;
 	bits = readVRAMplane(VGA,plane,offset,0); //Get original bits!
@@ -157,9 +159,9 @@ void setBitPlaneBit(VGA_Type *VGA, int plane, uint_32 offset, byte bit, byte on)
 		bits = SETBIT0(bits,7-bit); //Turn bit off!
 	}
 	writeVRAMplane(VGA,plane,offset,bits); //Write the modified value back!
-}
+}*/
 
-//END OF VGA COLOR SUPPORT!
+//END FLAG_OF VGA COLOR SUPPORT!
 
 //SVGA color support
 

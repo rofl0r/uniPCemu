@@ -38,17 +38,18 @@ extern double clockspeed; //Default clockspeed we use, in Hz!
 //This handles all current used timers!
 void timer_thread() //Handler for timer!
 {
-	if (__HW_DISABLED) return; //Abort!
 	TicksHolder timer_lasttimer; //Last timer ticks holder!
 	char name[256];
 	int curtimer;
 	uint_32 numcounters;
-
 	double clockspeedup;
+	double realpassed; //Real timer passed since last call!
+
+	if (__HW_DISABLED) return; //Abort!
+
 	bzero(name,sizeof(name)); //Init name!
 
 	initTicksHolder(&timer_lasttimer); //Init ticks holder for precision!
-	float realpassed; //Real timer passed since last call!
 	for (;;) //Keep running!
 	{
 		if (!timerthread) return; //To stop running?
@@ -58,7 +59,7 @@ void timer_thread() //Handler for timer!
 		clockspeedup /= clockspeed; //Take the percentage of 1.0f for clockspeed (time in seconds for the default clock speed)
 		clockspeedup *= getCurrentClockSpeed(); //Multiply with current clock speed for the speedup factor!
 
-		realpassed = getuspassed(&timer_lasttimer); //How many time has passed for real!
+		realpassed = (double)getuspassed(&timer_lasttimer); //How many time has passed for real!
 		realpassed *= clockspeedup; //Speed up the clock as much as needed, according to the actual CPU speed!
 
 		for (curtimer=0; curtimer<NUMITEMS(timers); curtimer++) //Process timers!
@@ -66,7 +67,7 @@ void timer_thread() //Handler for timer!
 			if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
 			{
 				timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
-				numcounters = (timers[curtimer].counter/timers[curtimer].overflowtime); //Ammount of times to count!
+				numcounters = (uint_32)(timers[curtimer].counter/timers[curtimer].overflowtime); //Ammount of times to count!
 				if (numcounters>timers[curtimer].counterlimit) numcounters = timers[curtimer].counterlimit;
 				if (numcounters) //Are we to fire?
 				{
@@ -114,16 +115,14 @@ void timer_calcfreq(int timer)
 
 void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit)
 {
-	dolog("timer","Addtimer:%s!",name);
+	int i;
+	int timerpos = -1; //Timer position to use!
 	if (__HW_DISABLED) return; //Abort!
 	if (frequency==0.0f)
 	{
-		dolog("timer",":removetimer");
 		removetimer(name); //Remove the timer if it's there!
 		return; //Don't add without frequency: 0 times/sec is never!
 	}
-	int i;
-	int timerpos = -1; //Timer position to use!
 	for (i=0; i<NUMITEMS(timers); i++) //Check for existing timer!
 	{
 		if (timers[i].name==name) //Found?
@@ -158,13 +157,12 @@ void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit)
 		timer_calcfreq(timerpos);
 		return; //Finished: we're added!
 	}
-	dolog("timer","Ran out of timers!");
 }
 
 void cleartimers() //Clear all running timers!
 {
-	if (__HW_DISABLED) return; //Abort!
 	int i;
+	if (__HW_DISABLED) return; //Abort!
 	for (i=0; i<NUMITEMS(timers); i++)
 	{
 		if (timers[i].frequency!=0.0) //Set?
@@ -179,8 +177,8 @@ void cleartimers() //Clear all running timers!
 
 void useTimer(char *name, byte use)
 {
-	if (__HW_DISABLED) return; //Abort!
 	int i;
+	if (__HW_DISABLED) return; //Abort!
 	for (i=0; i<NUMITEMS(timers); i++)
 	{
 		if (timers[i].frequency!=0.0) //Set?
@@ -197,8 +195,8 @@ void useTimer(char *name, byte use)
 
 void removetimer(char *name) //Removes a timer!
 {
-	if (__HW_DISABLED) return; //Abort!
 	int i;
+	if (__HW_DISABLED) return; //Abort!
 	for (i=0; i<NUMITEMS(timers); i++)
 	{
 		if (timers[i].frequency!=0.0) //Enabled?

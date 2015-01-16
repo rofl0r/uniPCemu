@@ -580,10 +580,7 @@ typedef struct //The registers!
 			}; //CR0-3!
 			uint_32 unusedCR[2]; //2 unused CRs!
 		}; //CR0-3!
-		union
-		{
-			uint_32 CR[6];
-		}; //DR0-7; 4=6&5=7!
+		//DR0-7; 4=6&5=7!
 	}; //Special registers!
 	
 } CPU_registers; //Registers
@@ -904,5 +901,7 @@ void CPU_exDIV0(); //Division by 0!
 void CPU_exSingleStep(); //Single step (after the opcode only)
 void CPU_BoundException(); //Bound exception!
 void CPU_COOP_notavailable(); //COProcessor not available!
+
+void CPU_getint(byte intnr, word *segment, word *offset); //Set real mode IVT entry!
 
 #endif

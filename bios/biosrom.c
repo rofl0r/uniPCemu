@@ -40,7 +40,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				BIOS_ROM_size[i] = 0; //Reset!
 				continue; //We're skipping this ROM: it's too big!
 			}
-			BIOS_ROMS[i] = nzalloc(BIOS_ROM_size[i],filename); //Simple memory allocation for our ROM!
+			BIOS_ROMS[i] = (byte *)nzalloc(BIOS_ROM_size[i],filename); //Simple memory allocation for our ROM!
 			if (!BIOS_ROMS[i]) //Failed to allocate?
 			{
 				fclose(f); //Close the file!
@@ -48,7 +48,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			}
 			if (fread(BIOS_ROMS[i],1,BIOS_ROM_size[i],f)!=BIOS_ROM_size[i]) //Not fully read?
 			{
-				freez((void *)&BIOS_ROMS[i],BIOS_ROM_size[i],filename); //Failed to read!
+				freez((void **)&BIOS_ROMS[i],BIOS_ROM_size[i],filename); //Failed to read!
 				fclose(f); //Close the file!
 				continue; //Failed to read!
 			}
@@ -100,7 +100,7 @@ int BIOS_load_ROM(byte nr)
  	{
 		BIOS_ROM_size[nr] = ftell(f); //Save the size!
 		fseek(f,0,SEEK_SET); //Goto BOF!
-		BIOS_ROMS[nr] = nzalloc(BIOS_ROM_size[nr],filename); //Simple memory allocation for our ROM!
+		BIOS_ROMS[nr] = (byte *)nzalloc(BIOS_ROM_size[nr],filename); //Simple memory allocation for our ROM!
 		if (!BIOS_ROMS[nr]) //Failed to allocate?
 		{
 			fclose(f); //Close the file!
@@ -108,7 +108,7 @@ int BIOS_load_ROM(byte nr)
 		}
 		if (fread(BIOS_ROMS[nr],1,BIOS_ROM_size[nr],f)!=BIOS_ROM_size[nr]) //Not fully read?
 		{
-			freez((void *)&BIOS_ROMS[nr],BIOS_ROM_size[nr],filename); //Failed to read!
+			freez((void **)&BIOS_ROMS[nr],BIOS_ROM_size[nr],filename); //Failed to read!
 			fclose(f); //Close the file!
 			return 0; //Failed to read!
 		}
@@ -141,7 +141,7 @@ int BIOS_load_custom(char *rom)
  	{
 		BIOS_custom_ROM_size = ftell(f); //Save the size!
 		fseek(f,0,SEEK_SET); //Goto BOF!
-		BIOS_custom_ROM = nzalloc(BIOS_custom_ROM_size,filename); //Simple memory allocation for our ROM!
+		BIOS_custom_ROM = (byte *)nzalloc(BIOS_custom_ROM_size,filename); //Simple memory allocation for our ROM!
 		if (!BIOS_custom_ROM) //Failed to allocate?
 		{
 			fclose(f); //Close the file!
@@ -149,7 +149,7 @@ int BIOS_load_custom(char *rom)
 		}
 		if (fread(BIOS_custom_ROM,1,BIOS_custom_ROM_size,f)!=BIOS_custom_ROM_size) //Not fully read?
 		{
-			freez((void *)&BIOS_custom_ROM,BIOS_custom_ROM_size,filename); //Failed to read!
+			freez((void **)&BIOS_custom_ROM,BIOS_custom_ROM_size,filename); //Failed to read!
 			fclose(f); //Close the file!
 			return 0; //Failed to read!
 		}
@@ -170,7 +170,7 @@ void BIOS_free_ROM(byte nr)
 	sprintf(filename,"BIOSROM.u%i",nr); //Create the filename for the ROM!
 	if (BIOS_ROM_size[nr]) //Has size?
 	{
-		freez((void *)&BIOS_ROMS[nr],BIOS_ROM_size[nr],filename); //Release the BIOS ROM!
+		freez((void **)&BIOS_ROMS[nr],BIOS_ROM_size[nr],filename); //Release the BIOS ROM!
 		BIOS_ROMS[nr] = NULL; //Not allocated anymore!
 	}
 }
@@ -186,7 +186,7 @@ void BIOS_free_custom(char *rom)
 	strcpy(filename,rom); //Create the filename for the ROM!
 	if (BIOS_custom_ROM_size) //Has size?
 	{
-		freez((void *)&BIOS_custom_ROM,BIOS_custom_ROM_size,filename); //Release the BIOS ROM!
+		freez((void **)&BIOS_custom_ROM,BIOS_custom_ROM_size,filename); //Release the BIOS ROM!
 	}
 }
 

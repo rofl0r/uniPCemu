@@ -12,7 +12,7 @@
 #include "headers/cpu/80286/protection.h" //Protection support!
 
 extern MODRM_PARAMS params;    //For getting all params!
-extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
+extern byte blockREP; //Block the instruction from executing (REP with (E)REG_CX=0
 MODRM_PTR info; //For storing ModR/M Info!
 
 /*
@@ -41,7 +41,7 @@ extern word res16; //Result 16-bit!
 extern byte reg; //For function number!
 extern uint_32 ea; //From RM offset (GRP5 Opcodes only!)
 
-uint_32 temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32;
+extern uint_32 temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32;
 
 //Help functions for debugging:
 extern char modrm_param1[256]; //Contains param/reg1
@@ -51,28 +51,28 @@ extern char modrm_param2[256]; //Contains param/reg2
 void CPU186_OP60()
 {
 	debugger_setcommand("PUSHA");
-	word oldSP = SP;    //PUSHA
-	CPU_PUSH16(&AX);
-	CPU_PUSH16(&CX);
-	CPU_PUSH16(&DX);
-	CPU_PUSH16(&BX);
+	word oldSP = REG_SP;    //PUSHA
+	CPU_PUSH16(&REG_AX);
+	CPU_PUSH16(&REG_CX);
+	CPU_PUSH16(&REG_DX);
+	CPU_PUSH16(&REG_BX);
 	CPU_PUSH16(&oldSP);
-	CPU_PUSH16(&BP);
-	CPU_PUSH16(&SI);
-	CPU_PUSH16(&DI);
+	CPU_PUSH16(&REG_BP);
+	CPU_PUSH16(&REG_SI);
+	CPU_PUSH16(&REG_DI);
 }
 void CPU186_OP61()
 {
 	debugger_setcommand("POPA");
 	word dummy;    //POPA
-	DI = CPU_POP16();
-	SI = CPU_POP16();
-	BP = CPU_POP16();
+	REG_DI = CPU_POP16();
+	REG_SI = CPU_POP16();
+	REG_BP = CPU_POP16();
 	dummy = CPU_POP16();
-	BX = CPU_POP16();
-	DX = CPU_POP16();
-	CX = CPU_POP16();
-	AX = CPU_POP16();
+	REG_BX = CPU_POP16();
+	REG_DX = CPU_POP16();
+	REG_CX = CPU_POP16();
+	REG_AX = CPU_POP16();
 }
 //62 not implemented in fake86? Does this not exist?
 void CPU186_OP62()
@@ -107,9 +107,9 @@ void CPU186_OP69()
 	if ((temp1&0x8000)==0x8000) temp1 |= 0xFFFF0000;
 	if ((temp2&0x8000)==0x8000) temp2 |= 0xFFFF0000;
 	temp3 = ((temp1*temp2)&0xFFFFFFFF);
-	AX = (temp3&0xFFFF);
-	DX = ((temp3>>16)&0xFFFF);
-	CF = OF = (unsigned2signed32(temp3)!=unsigned2signed16(AX)); //Overflow occurred?
+	REG_AX = (temp3&0xFFFF);
+	REG_DX = ((temp3>>16)&0xFFFF);
+	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3)!=unsigned2signed16(REG_AX)); //Overflow occurred?
 }
 void CPU186_OP6A()
 {
@@ -135,62 +135,62 @@ void CPU186_OP6B()
 
 	temp3 = signed2unsigned32(unsigned2signed32(temp1) * unsigned2signed32(temp2));
 	modrm_write16(&params,1, temp3 & 0xFFFFL,0); //Write to register!
-	CF = OF = (unsigned2signed32(temp3)!=unsigned2signed16(temp3&0xFFFF)); //Overflow occurred?
+	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3)!=unsigned2signed16(temp3&0xFFFF)); //Overflow occurred?
 }
 void CPU186_OP6C()
 {
 	debugger_setcommand("INSB");
 	if (blockREP) return; //Disabled REP!
-	MMU_wb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),DI,PORT_IN_B(DX));    //INSB
-	if (DF)
+	MMU_wb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,PORT_IN_B(REG_DX));    //INSB
+	if (FLAG_DF)
 	{
-		--DI;
+		--REG_DI;
 	}
 	else
 	{
-		++DI;
+		++REG_DI;
 	}
 }
 void CPU186_OP6D()
 {
 	debugger_setcommand("INSW");
 	if (blockREP) return; //Disabled REP!
-	MMU_ww(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),DI,PORT_IN_W(DX));    //INSW
-	if (DF)
+	MMU_ww(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,PORT_IN_W(REG_DX));    //INSW
+	if (FLAG_DF)
 	{
-		DI -= 2;
+		REG_DI -= 2;
 	}
 	else
 	{
-		DI += 2;
+		REG_DI += 2;
 	}
 }
 void CPU186_OP6E()
 {
 	debugger_setcommand("OUTSB");
 	if (blockREP) return; //Disabled REP!
-	PORT_OUT_B(DX,MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),SI,0)); //OUTS DX,Xb
-	if (DF)
+	PORT_OUT_B(REG_DX,MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_SI,0)); //OUTS REG_DX,Xb
+	if (FLAG_DF)
 	{
-		--DI;
+		--REG_DI;
 	}
 	else
 	{
-		++DI;
+		++REG_DI;
 	}
 }
 void CPU186_OP6F()
 {
 	debugger_setcommand("OUTSW");
 	if (blockREP) return; //Disabled REP!
-	PORT_OUT_W(DX,MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),SI,0));    //OUTS DX,Xz
-	if (DF)
+	PORT_OUT_W(REG_DX,MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_SI,0));    //OUTS REG_DX,Xz
+	if (FLAG_DF)
 	{
-		DI -= 2;
+		REG_DI -= 2;
 	}
 	else
 	{
-		DI += 2;
+		REG_DI += 2;
 	}
 }
 
@@ -286,67 +286,67 @@ void CPU186_OPC8()
 	debugger_setcommand("ENTER %04X,%02X",stacksize,nestlev);
 	if (CPU_Operand_size)
 	{
-	    CPU_PUSH32(&EBP);
+	    CPU_PUSH32(&REG_EBP);
 	}
 	else
 	{
-	    CPU_PUSH16(&BP);
+	    CPU_PUSH16(&REG_BP);
 	}
 	if (CPU_Operand_size) //32-bit size?
     {
-    	uint_32 frametemp = ESP;
+    	uint_32 frametemp = REG_ESP;
     	if (nestlev)
     	{
             nestlev &= 0x1F; //MOD 32!
     		for (temp16=1; temp16<nestlev; temp16++)
     		{
-    			BP -= 4; //Push BP to the next size of BP!
-    			CPU_PUSH32(&EBP);
+    			REG_BP -= 4; //Push REG_BP to the next size of REG_BP!
+    			CPU_PUSH32(&REG_EBP);
     		}
-    		CPU_PUSH32(&ESP);
+    		CPU_PUSH32(&REG_ESP);
     	}
-    	EBP = frametemp;
+    	REG_EBP = frametemp;
     }
     else
     {
-    	word frametemp = SP;
+    	word frametemp = REG_SP;
     	if (nestlev)
     	{
             nestlev &= 0x1F; //MOD 32!
     		for (temp16=1; temp16<nestlev; temp16++)
     		{
-    			BP -= 2; //Push BP to the next size of BP!
-    			CPU_PUSH16(&BP);
+    			REG_BP -= 2; //Push REG_BP to the next size of REG_BP!
+    			CPU_PUSH16(&REG_BP);
     		}
-    		CPU_PUSH16(&SP);
+    		CPU_PUSH16(&REG_SP);
     	}
-    	BP = frametemp;
+    	REG_BP = frametemp;
 	}
 	
 	if (CPU_StackAddress_size) //32-bit size?
 	{
-        ESP -= stacksize; //Zero extend!
+        REG_ESP -= stacksize; //Zero extend!
 	}
 	else //--?
 	{
-        SP -= stacksize;
+        REG_SP -= stacksize;
 	}
 }
 void CPU186_OPC9()
 {
 	debugger_setcommand("LEAVE");
-	SP = BP;    //LEAVE
-	BP = CPU_POP16();
+	REG_SP = REG_BP;    //LEAVE
+	REG_BP = CPU_POP16();
 }
 
 char command[50]; //A command buffer for storing our command (up to 10 bytes)!
 void unkOP_186() //Unknown opcode on 186+?
 {
 	word SavedIP; //Current addresss!
-	SavedIP = IP; //Save the current location!
+	SavedIP = REG_IP; //Save the current location!
 	CPU_resetOP(); //Go back to the opcode itself!
 	bzero(command,sizeof(command)); //Clear the command!
-	while (IP<=SavedIP && strlen(command)<(sizeof(command)-2)) //Not there yet?
+	while (REG_IP<=SavedIP && strlen(command)<(sizeof(command)-2)) //Not there yet?
 	{
 		sprintf(command,"%s%02X",command,CPU_readOP()); //Read the full command into the buffer!
 	}
