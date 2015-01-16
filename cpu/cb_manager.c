@@ -76,7 +76,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	if ((CBhandler==NULL || !CBhandler) && (type==CB_INTERRUPT)) return; //Don't accept NULL INTERRUPT!
 	word offset;
 
-	byte curhandler;
+	word curhandler;
 	int found;
 	found = 0;
 	for (curhandler=0; curhandler<CB_MAX; curhandler++) //Check for new handler!

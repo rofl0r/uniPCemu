@@ -195,6 +195,7 @@ byte PORT_readUART(word port) //Read from the uart!
 			return UART_port[COMport].ScratchRegister; //Give the register!
 			break; //We do nothing yet!
 	}
+	return ~0; //Undefined!
 }
 
 void PORT_writeUART(word port, byte value)

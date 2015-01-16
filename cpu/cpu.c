@@ -150,12 +150,12 @@ void CPU_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h
 
-byte CPU_readOP() //Reads the operation (byte) at REG_CS:REG_EIP
+byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 {
 	return MMU_rb(CPU_SEGMENT_CS,CPU.registers->CS,CPU.registers->EIP++,1); //Read OPcode!
 }
 
-word CPU_readOPw() //Reads the operation (word) at REG_CS:REG_EIP
+word CPU_readOPw() //Reads the operation (word) at CS:EIP
 {
 	word result;
 	result = CPU_readOP(); //Read OPcode!
@@ -163,7 +163,7 @@ word CPU_readOPw() //Reads the operation (word) at REG_CS:REG_EIP
 	return result; //Give result!
 }
 
-uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at REG_CS:REG_EIP
+uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
 {
 	uint_32 result;
 	result = CPU_readOPw(); //Read OPcode!
@@ -179,7 +179,7 @@ uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at REG_CS
 //Opcode&Stack sizes: 0=16-bits, 1=32-bits!
 byte CPU_Operand_size = 0; //Operand size for this opcode!
 byte CPU_Address_size = 0; //Address size for this opcode!
-byte CPU_StackAddress_size = 0; //Stack Address size for this opcode (determines whether REG_SP or REG_ESP is used)!
+byte CPU_StackAddress_size = 0; //Stack Address size for this opcode (determines whether SP or ESP is used)!
 
 //Internal prefix table for below functions!
 byte CPU_prefixes[32]; //All prefixes, packed in a bitfield!
@@ -188,12 +188,12 @@ byte CPU_prefixes[32]; //All prefixes, packed in a bitfield!
 0xF3 Used with string REP, REPE/REPZ
 0xF2 REPNE/REPNZ prefix
 0xF0 LOCK prefix
-0x2E REG_CS segment override prefix
-0x36 REG_SS segment override prefix
-0x3E REG_DS segment override prefix
-0x26 REG_ES segment override prefix
-0x64 REG_FS segment override prefix
-0x65 REG_GS segment override prefix
+0x2E CS segment override prefix
+0x36 SS segment override prefix
+0x3E DS segment override prefix
+0x26 ES segment override prefix
+0x64 FS segment override prefix
+0x65 GS segment override prefix
 0x66 Operand-size override
 0x67 Address-size override
 */
@@ -203,23 +203,23 @@ void CPU_setprefix(byte prefix) //Sets a prefix on!
 	CPU_prefixes[(prefix/8)] |= (128>>(prefix&7)); //Have prefix!
 	switch (prefix) //Which prefix?
 	{
-	case 0x2E: //REG_CS segment override prefix
-		CPU.segment_register = CPU_SEGMENT_CS; //Override REG_DS to REG_CS!
+	case 0x2E: //CS segment override prefix
+		CPU.segment_register = CPU_SEGMENT_CS; //Override DS to CS!
 		break;
-	case 0x36: //REG_SS segment override prefix
-		CPU.segment_register = CPU_SEGMENT_SS; //Override REG_DS to REG_SS!
+	case 0x36: //SS segment override prefix
+		CPU.segment_register = CPU_SEGMENT_SS; //Override DS to SS!
 		break;
-	case 0x3E: //REG_DS segment override prefix
-		CPU.segment_register = CPU_SEGMENT_DS; //Override REG_SS to REG_DS!
+	case 0x3E: //DS segment override prefix
+		CPU.segment_register = CPU_SEGMENT_DS; //Override SS to DS!
 		break;
-	case 0x26: //REG_ES segment override prefix
-		CPU.segment_register = CPU_SEGMENT_ES; //Override REG_DS to REG_ES!
+	case 0x26: //ES segment override prefix
+		CPU.segment_register = CPU_SEGMENT_ES; //Override DS to ES!
 		break;
-	case 0x64: //REG_FS segment override prefix
-		CPU.segment_register = CPU_SEGMENT_FS; //Override REG_DS to REG_FS!
+	case 0x64: //FS segment override prefix
+		CPU.segment_register = CPU_SEGMENT_FS; //Override DS to FS!
 		break;
-	case 0x65: //REG_GS segment override prefix
-		CPU.segment_register = CPU_SEGMENT_GS; //Override REG_DS to REG_GS!
+	case 0x65: //GS segment override prefix
+		CPU.segment_register = CPU_SEGMENT_GS; //Override DS to GS!
 		break;
 	default: //Unknown special prefix action?
 		break; //Do nothing!
@@ -253,12 +253,12 @@ int CPU_isPrefix(byte prefix)
 		case 0xF2: //REPNE/REPNZ prefix
 		case 0xF3: //REPZ
 		case 0xF0: //LOCK prefix
-		case 0x2E: //REG_CS segment override prefix
-		case 0x36: //REG_SS segment override prefix
-		case 0x3E: //REG_DS segment override prefix
-		case 0x26: //REG_ES segment override prefix
-		case 0x64: //REG_FS segment override prefix
-		case 0x65: //REG_GS segment override prefix
+		case 0x2E: //CS segment override prefix
+		case 0x36: //SS segment override prefix
+		case 0x3E: //DS segment override prefix
+		case 0x26: //ES segment override prefix
+		case 0x64: //FS segment override prefix
+		case 0x65: //GS segment override prefix
 		case 0x66: //Operand-size override
 		case 0x67: //Address-size override
 			return 1; //Use!
@@ -270,14 +270,14 @@ int CPU_isPrefix(byte prefix)
 	return 0; //No prefix!
 }
 
-int DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR REG_SS-register!
+int DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
 {
 	if (EMULATED_CPU<=CPU_80186) //8086-80186?
 	{
 		return 0; //Always 16-bit descriptor!
 	}
 
-	return CPU.SEG_DESCRIPTOR[CPU_SEGMENT_SS].D_B; //Give the B-BIT of the REG_SS-register!
+	return CPU.SEG_DESCRIPTOR[CPU_SEGMENT_SS].D_B; //Give the B-BIT of the SS-register!
 }
 
 
@@ -333,10 +333,10 @@ void free_CPUregisters()
 
 void CPU_initRegisters() //Init the registers!
 {
-	static byte CSAccessRights = 0x93; //Default REG_CS access rights, overwritten during first software reset!
+	static byte CSAccessRights = 0x93; //Default CS access rights, overwritten during first software reset!
 	if (CPU.registers) //Already allocated?
 	{
-		CSAccessRights = CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights; //Save old REG_CS acccess rights to use now (after first reset)!
+		CSAccessRights = CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights; //Save old CS acccess rights to use now (after first reset)!
 		free_CPUregisters(); //Free the CPU registers!
 	}
 	alloc_CPUregisters(); //Allocate the CPU registers!
@@ -348,7 +348,7 @@ void CPU_initRegisters() //Init the registers!
 	CPU.registers->EDX = 0;
 	
 	//Index registers
-	CPU.registers->EBP = 0; //Init offset of REG_BP?
+	CPU.registers->EBP = 0; //Init offset of BP?
 	CPU.registers->ESI = 0; //Source index!
 	CPU.registers->EDI = 0; //Destination index!
 
@@ -374,7 +374,7 @@ void CPU_initRegisters() //Init the registers!
 	CPU.registers->DS = 0; //Data segment!
 	CPU.registers->ES = 0; //Extra segment!
 	CPU.registers->FS = 0; //Far segment (extra segment)
-	CPU.registers->GS = 0; //??? segment (extra segment like REG_FS)
+	CPU.registers->GS = 0; //??? segment (extra segment like FS)
 	CPU.registers->EFLAGS = 0; //Flags!
 
 //Now the handling of solid state segments (might change, use index for that!)
@@ -419,8 +419,8 @@ void CPU_initRegisters() //Init the registers!
 		CPU.SEG_DESCRIPTOR[reg].DPL = 0;
 	}
 	
-	//REG_CS specific!
-	CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = CSAccessRights; //Load REG_CS default access rights!
+	//CS specific!
+	CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = CSAccessRights; //Load CS default access rights!
 	if (EMULATED_CPU>CPU_80186) //286+?
 	{
 		CPU.registers->CS = 0xF000; //We're this selector!
@@ -485,7 +485,7 @@ int topdown_stack() //Top-down stack?
 	{
 		return 1; //Real mode!
 	}
-	return !((CPU.SEG_DESCRIPTOR[CPU_SEGMENT_SS].Type&4)>0); //Real mode=8086; Other=REG_SS segment, bit 4 (off=Topdown stack!)
+	return !((CPU.SEG_DESCRIPTOR[CPU_SEGMENT_SS].Type&4)>0); //Real mode=8086; Other=SS segment, bit 4 (off=Topdown stack!)
 }
 
 uint_32 getstackaddrsizelimiter()
@@ -670,8 +670,8 @@ char *CPU_textsegment(byte defaultsegment) //Plain segment to use!
 
 void CPU_afterexec(); //Prototype for below!
 
-word CPU_exec_CS; //OPCode REG_CS
-uint_32 CPU_exec_EIP; //OPCode REG_EIP
+word CPU_exec_CS; //OPCode CS
+uint_32 CPU_exec_EIP; //OPCode EIP
 
 void CPU_OP(byte OP) //Normal CPU opcode execution!
 {
@@ -720,15 +720,15 @@ void CPU_beforeexec()
 	}
 }
 
-byte blockREP = 0; //Block the instruction from executing (REP with (E)REG_CX=0
+byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
 
-void CPU_exec() //Processes the opcode at REG_CS:REG_EIP (386) or REG_CS:REG_IP (8086).
+void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	debugger_beforeCPU(); //Everything that needs to be deone before the CPU executes!
 	MMU.invaddr = 0; //Reset invalid address for our usage!
 	CPU.segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
-	CPU_exec_CS = CPU.registers->CS; //REG_CS of command!
-	CPU_exec_EIP = CPU.registers->EIP; //REG_EIP of command!
+	CPU_exec_CS = CPU.registers->CS; //CS of command!
+	CPU_exec_EIP = CPU.registers->EIP; //EIP of command!
 
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
@@ -981,11 +981,11 @@ int getcpuwraparround() //Wrap arround 1MB limit?
 
 void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 {
-	segmentWritten(CPU_SEGMENT_CS,CPU_exec_CS,0); //REG_CS changed and rerun ...
+	segmentWritten(CPU_SEGMENT_CS,CPU_exec_CS,0); //CS changed and rerun ...
 	CPU.registers->EIP = CPU_exec_EIP; //... The current OPCode!
 }
 
-//Read signed numbers from REG_CS:(E)REG_IP!
+//Read signed numbers from CS:(E)IP!
 
 sbyte imm8()
 {
@@ -1013,7 +1013,7 @@ void CPU_exDIV0() //Division by 0!
 void CPU_exSingleStep() //Single step (after the opcode only)
 {
 	//Points to next opcode!
-	CPU_INT(1); //Execute INT1 normally using current REG_CS:(E)REG_IP!
+	CPU_INT(1); //Execute INT1 normally using current CS:(E)IP!
 }
 
 void CPU_BoundException() //Bound exception!

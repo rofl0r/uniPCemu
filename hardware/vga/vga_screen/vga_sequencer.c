@@ -403,7 +403,6 @@ void VGA_Sequencer(VGA_Type *VGA)
 {
 	if (HW_DISABLED) return;
 	if (!VGA) return; //Invalid VGA?
-	TicksHolder ticks;
 	SEQ_DATA *Sequencer;
 	word displaystate; //Current display state!
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!

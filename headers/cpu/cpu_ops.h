@@ -28,14 +28,14 @@ ib, iw, id: a 1-byte (ib), 2-byte (iw), or 4-byte (id) immediate operand to the 
 codes are--
 
       rb         rw         rd
-    REG_AL = 0     REG_AX = 0     REG_EAX = 0
-    REG_CL = 1     REG_CX = 1     REG_ECX = 1
-    REG_DL = 2     REG_DX = 2     REG_EDX = 2
-    REG_BL = 3     REG_BX = 3     REG_EBX = 3
-    REG_AH = 4     REG_SP = 4     REG_ESP = 4
-    REG_CH = 5     REG_BP = 5     REG_EBP = 5
-    REG_DH = 6     REG_SI = 6     REG_ESI = 6
-    REG_BH = 7     REG_DI = 7     REG_EDI = 7
+    AL = 0     AX = 0     EAX = 0
+    CL = 1     CX = 1     ECX = 1
+    DL = 2     DX = 2     EDX = 2
+    BL = 3     BX = 3     EBX = 3
+    AH = 4     SP = 4     ESP = 4
+    CH = 5     BP = 5     EBP = 5
+    DH = 6     SI = 6     ESI = 6
+    BH = 7     DI = 7     EDI = 7
 
 
 
@@ -48,11 +48,11 @@ rel16, rel32: a relative address within the same code segment as the instruction
 
 ptr16:16, ptr16:32: a FAR pointer, typically in a code segment different from that of the instruction. The notation 16:16 indicates that the value of the pointer has two parts. The value to the right of the colon is a 16-bit selector or value destined for the code segment register. The value to the left corresponds to the offset within the destination segment. ptr16:16 is used when the instruction's operand-size attribute is 16 bits; ptr16:32 is used with the 32-bit attribute.
 
-r8: one of the byte registers REG_AL, REG_CL, REG_DL, REG_BL, REG_AH, REG_CH, REG_DH, or REG_BH.
+r8: one of the byte registers AL, CL, DL, BL, AH, CH, DH, or BH.
 
-r16: one of the word registers REG_AX, REG_CX, REG_DX, REG_BX, REG_SP, REG_BP, REG_SI, or REG_DI.
+r16: one of the word registers AX, CX, DX, BX, SP, BP, SI, or DI.
 
-r32: one of the doubleword registers REG_EAX, REG_ECX, REG_EDX, REG_EBX, REG_ESP, REG_EBP, REG_ESI, or REG_EDI.
+r32: one of the doubleword registers EAX, ECX, EDX, EBX, ESP, EBP, ESI, or EDI.
 
 imm8: an immediate byte value. imm8 is a signed number between -128 and +127 inclusive. For instructions in which imm8 is combined with a word or doubleword operand, the immediate value is sign-extended to form a word or doubleword. The upper byte of the word is filled with the topmost bit of the immediate value.
 
@@ -60,17 +60,17 @@ imm16: an immediate word value used for instructions whose operand-size attribut
 
 imm32: an immediate doubleword value used for instructions whose operand-size attribute is 32-bits. It allows the use of a number between +2147483647 and -2147483648.
 
-r/m8: a one-byte operand that is either the contents of a byte register (REG_AL, REG_BL, REG_CL, REG_DL, REG_AH, REG_BH, REG_CH, REG_DH), or a byte from memory.
+r/m8: a one-byte operand that is either the contents of a byte register (AL, BL, CL, DL, AH, BH, CH, DH), or a byte from memory.
 
-r/m16: a word register or memory operand used for instructions whose operand-size attribute is 16 bits. The word registers are: REG_AX, REG_BX, REG_CX, REG_DX, REG_SP, REG_BP, REG_SI, REG_DI. The contents of memory are found at the address provided by the effective address computation.
+r/m16: a word register or memory operand used for instructions whose operand-size attribute is 16 bits. The word registers are: AX, BX, CX, DX, SP, BP, SI, DI. The contents of memory are found at the address provided by the effective address computation.
 
-r/m32: a doubleword register or memory operand used for instructions whose operand-size attribute is 32-bits. The doubleword registers are: REG_EAX, REG_EBX, REG_ECX, REG_EDX, REG_ESP, REG_EBP, REG_ESI, REG_EDI. The contents of memory are found at the address provided by the effective address computation.
+r/m32: a doubleword register or memory operand used for instructions whose operand-size attribute is 32-bits. The doubleword registers are: EAX, EBX, ECX, EDX, ESP, EBP, ESI, EDI. The contents of memory are found at the address provided by the effective address computation.
 
-m8: a memory byte addressed by REG_DS:REG_SI or REG_ES:REG_DI (used only by string instructions).
+m8: a memory byte addressed by DS:SI or ES:DI (used only by string instructions).
 
-m16: a memory word addressed by REG_DS:REG_SI or REG_ES:REG_DI (used only by string instructions).
+m16: a memory word addressed by DS:SI or ES:DI (used only by string instructions).
 
-m32: a memory doubleword addressed by REG_DS:REG_SI or REG_ES:REG_DI (used only by string instructions).
+m32: a memory doubleword addressed by DS:SI or ES:DI (used only by string instructions).
 
 m16:16, M16:32: a memory operand containing a far pointer composed of two numbers. The number to the left of the colon corresponds to the pointer's segment selector. The number to the right corresponds to its offset.
 
@@ -78,7 +78,7 @@ m16 & 32, m16 & 16, m32 & 32: a memory operand consisting of data item pairs who
 
 moffs8, moffs16, moffs32: (memory offset) a simple memory variable of type BYTE, WORD, or DWORD used by some variants of the MOV instruction. The actual address is given by a simple offset relative to the segment base. No ModR/M byte is used in the instruction. The number shown with moffs indicates its size, which is determined by the address-size attribute of the instruction.
 
-Sreg: a segment register. The segment register bit assignments are REG_ES=0, REG_CS=1, REG_SS=2, REG_DS=3, REG_FS=4, and REG_GS=5.
+Sreg: a segment register. The segment register bit assignments are ES=0, CS=1, SS=2, DS=3, FS=4, and GS=5.
 
 
 Clocks extra info:
@@ -120,8 +120,8 @@ void CPU_RETI16(); //Return from 16-bit interrupt!
 void CPU_RETI32(); //Return from 32-bit interrupt!
 
 //Used by the CPU itself:
-void CPU_PUSH_CSEIP(); //SAVE REG_CS:REG_EIP
-void CPU_PUSH_CSIP(); //SAVE REG_CS:REG_EIP
+void CPU_PUSH_CSEIP(); //SAVE CS:EIP
+void CPU_PUSH_CSIP(); //SAVE CS:EIP
 
 void CPU_CALL16(word segment, word offset); //16-bit call!
 void CPU_CALL32(word segment, uint_32 offset); //32-bit call!

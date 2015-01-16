@@ -316,7 +316,7 @@ void op_grp3_8() {
 		temp3.val32s = temp1.val32s; //Load and...
 		temp3.val32s *= temp2.val32s; //Multiply!
 		dolog("debugger","IMULB:%ix%i=%i",temp1.val32s,temp2.val32s,temp3.val32s); //Show the result!
-		REG_AX = temp3.val16; //Load into REG_AX!
+		REG_AX = temp3.val16; //Load into AX!
 		flag_sp16(REG_AX); //Flags!
 		FLAG_CF = FLAG_OF = (temp3.val8s!=temp3.val16s);
 		break;

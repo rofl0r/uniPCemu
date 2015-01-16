@@ -886,8 +886,8 @@ void INT10_SetBackgroundBorder(Bit8u val) {
 void int10_SetVideoMode()
 {
 	/*
-		REG_AL=Video mode
-		result: REG_AL=Video mode flag/controller byte
+		AL=Video mode
+		result: AL=Video mode flag/controller byte
 	*/
 	GPUswitchvideomode(REG_AL); //Switch the video mode!
 }
@@ -895,8 +895,8 @@ void int10_SetVideoMode()
 void int10_SetTextModeCursorShape()
 {
 	/*
-		REG_CH=Scan row start
-		REG_CL=Scan row end
+		CH=Scan row start
+		CL=Scan row end
 		If bit 5 is used on VGA: hide cursor; else determine by start>end.
 	*/
 	EMU_CPU_setCursorScanlines(REG_CH,REG_CL); //Set scanline start&end to off by making start higher than end!
@@ -905,9 +905,9 @@ void int10_SetTextModeCursorShape()
 void int10_SetCursorPosition()
 {
 	/*
-		REG_BH=Page Number
-		REG_DH=Row
-		REG_DL=Column
+		BH=Page Number
+		DH=Row
+		DL=Column
 	*/
 	//dolog("interrupt10","Gotoxy@%02X: %i,%i",REG_BH,REG_DL,REG_DH);
 	cursorXY(REG_BH,REG_DL,REG_DH); //Goto x,y!
@@ -916,13 +916,13 @@ void int10_SetCursorPosition()
 void int10_GetCursorPositionAndSize()
 {
 	/*
-		REG_BH=Page Number
+		BH=Page Number
 		result:
-		REG_AX=0
-		REG_CH=Start scan line
-		REG_CL=End scan line
-		REG_DH=Row
-		REG_DL=Column
+		AX=0
+		CH=Start scan line
+		CL=End scan line
+		DH=Row
+		DL=Column
 	*/
 	REG_AX = 0;
 	REG_DL = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0); //Cursor x!
@@ -934,12 +934,13 @@ void int10_GetCursorPositionAndSize()
 void int10_ReadLightPenPosition()
 {
 	//Not used on VGA systems!
+	REG_AH = 0; //Invalid function!
 }
 
 void int10_SelectActiveDisplayPage()
 {
 	/*
-		REG_AL=Page Number
+		AL=Page Number
 	*/
 	emu_setactivedisplaypage(REG_AL); //Set!
 }
@@ -981,13 +982,13 @@ void int10_ScrollDownWindow_real(byte linestoscroll, byte backgroundcolor, byte 
 void int10_ScrollDownWindow() //Top off screen is lost, bottom goes up.
 {
 	/*
-		REG_AL=Lines to scroll (0=clear: REG_CH,REG_CL,REG_DH,REG_DL are used)
-		REG_BH=Background color
+		AL=Lines to scroll (0=clear: CH,CL,DH,DL are used)
+		BH=Background color
 
-		REG_CH=Upper row number
-		REG_DH=Lower row number
-		REG_CL=Left column number
-		REG_DL=Right column number
+		CH=Upper row number
+		DH=Lower row number
+		CL=Left column number
+		DL=Right column number
 	*/
 	int10_ScrollDownWindow_real(REG_AL,REG_BH,emu_getdisplaypage(),REG_CH,REG_CL,REG_DH,REG_DL); //Scroll down this window!
 }
@@ -995,13 +996,13 @@ void int10_ScrollDownWindow() //Top off screen is lost, bottom goes up.
 void int10_ScrollUpWindow() //Bottom off screen is lost, top goes down.
 {
 	/*
-		REG_AL=Lines to scroll (0=clear; REG_CH,REG_CL,REG_DH,REG_DL are used)
-		REG_BH=Background Color
+		AL=Lines to scroll (0=clear; CH,CL,DH,DL are used)
+		BH=Background Color
 
-		REG_CH=Upper row number
-		REG_DH=Lower row number
-		REG_CL=Left column number
-		REG_DL=Right column number
+		CH=Upper row number
+		DH=Lower row number
+		CL=Left column number
+		DL=Right column number
 	*/
 	int x; //Current x!
 	int y; //Current y!
@@ -1047,11 +1048,11 @@ void int10_ScrollUpWindow() //Bottom off screen is lost, top goes down.
 void int10_ReadCharAttrAtCursor()
 {
 	/*
-	REG_BH=Page Number
+	BH=Page Number
 
 	Result:
-	REG_AH=Color
-	REG_AL=Character!
+	AH=Color
+	AL=Character!
 	*/
 	int10_vram_readcharacter(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0),
 				 MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,0),REG_BH,&REG_AL,&REG_AH); //Read character REG_AL font REG_AH from page!
@@ -1060,10 +1061,10 @@ void int10_ReadCharAttrAtCursor()
 void int10_WriteCharAttrAtCursor()
 {
 	/*
-	REG_AL=Character
-	REG_BH=Page Number
-	REG_BL=Color
-	REG_CX=Number of times to print character
+	AL=Character
+	BH=Page Number
+	BL=Color
+	CX=Number of times to print character
 	*/
 	while (REG_CX--) //Times left?
 	{
@@ -1076,9 +1077,9 @@ void int10_WriteCharAttrAtCursor()
 void int10_WriteCharOnlyAtCursor()
 {
 	/*
-	REG_AL=Character
-	REG_BH=Page Number
-	REG_CX=Number of times to print character
+	AL=Character
+	BH=Page Number
+	CX=Number of times to print character
 	*/
 	while (REG_CX--)
 	{
@@ -1095,7 +1096,7 @@ void int10_WriteCharOnlyAtCursor()
 void int10_SetBackColor() //REG_AH=0B REG_BH=00h
 {
 	/*
-	REG_BL=Background/Border color (border only in text modes)
+	BL=Background/Border color (border only in text modes)
 	*/
 	
 	PORT_IN_B(0x3DA); //Reset attribute controller!
@@ -1117,7 +1118,7 @@ void int10_SetBackColor() //REG_AH=0B REG_BH=00h
 void int10_SetPalette() //REG_AH=0B REG_BH!=00h
 {
 	/*
-	REG_BL=Palette ID (was only valid in CGA, but newer cards support it in many or all graphics modes)
+	BL=Palette ID (was only valid in CGA, but newer cards support it in many or all graphics modes)
 	*/
 	INT10_SetColorSelect(REG_BL); //Set the palette!
 //???
@@ -1139,10 +1140,10 @@ void int10_PutPixel()
 {
 	/*
 	GRAPHICS
-	REG_AL=Color
-	REG_BH=Page Number
-	REG_CX=x
-	REG_DX=y
+	AL=Color
+	BH=Page Number
+	CX=x
+	DX=y
 	*/
 
 	int ok;
@@ -1153,12 +1154,12 @@ void int10_GetPixel()
 {
 	/*
 	GRAPHICS
-	REG_BH=Page Number
-	REG_CX=x
-	REG_DX=y
+	BH=Page Number
+	CX=x
+	DX=y
 
 	Returns:
-	REG_AL=Color
+	AL=Color
 	*/
 
 	int ok;
@@ -1249,9 +1250,9 @@ void int10_internal_outputchar(byte videopage, byte character, byte attribute)
 void int10_TeleTypeOutput()
 {
 	/*
-	REG_AL=Character
-	REG_BH=Page Number
-	REG_BL=Color (only in graphic mode)
+	AL=Character
+	BH=Page Number
+	BL=Color (only in graphic mode)
 	*/
 	int10_internal_outputchar(REG_BH,REG_AL,REG_BL); //Output&update!
 }
@@ -1260,7 +1261,7 @@ void int10_GetCurrentVideoMode()
 {
 	/*
 	Returns:
-	REG_AL=Video Mode
+	AL=Video Mode
 	*/
 	REG_AL = GPUgetvideomode(); //Give video mode!
 }
@@ -1268,13 +1269,13 @@ void int10_GetCurrentVideoMode()
 void int10_WriteString()
 {
 	/*
-	REG_AL=Write mode
-	REG_BH=Page Number
-	REG_BL=Color
-	REG_CX=String length
-	REG_DH=Row
-	REG_DL=Column
-	REG_ES:REG_BP=Offset of string
+	AL=Write mode
+	BH=Page Number
+	BL=Color
+	CX=String length
+	DH=Row
+	DL=Column
+	ES:BP=Offset of string
 	*/
 	byte c;
 	byte x;
@@ -2136,7 +2137,7 @@ void int10_SaveRestoreVideoStateFns() //REG_AH=1Ch
 	}
 }
 
-//REG_AH=4Fh,REG_AL=subfunc; SVGA support?
+//AH=4Fh,AL=subfunc; SVGA support?
 
 
 
@@ -2264,7 +2265,6 @@ Handler int10functions[] =
 	int10_CharacterGenerator, //11
 	int10_SpecialFunctions, //12
 	int10_WriteString //13
-	/*
 	,NULL, //14
 	NULL, //15
 	NULL, //16
@@ -2274,7 +2274,6 @@ Handler int10functions[] =
 	int10_DCC, //1A
 	int10_FuncStatus, //1B
 	int10_SaveRestoreVideoStateFns, //1C
-	*/ //VGA functions. Disabled for now!
 }; //Function list!
 
 void init_int10() //Initialises int10&VGA for usage!

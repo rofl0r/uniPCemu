@@ -86,7 +86,7 @@ void CPU_OP3F()
 //ADC
 void CPU_OP14()
 {
-	byte addition = ((imm8() + FLAG_CF)&0xFF);    //ADC REG_AL,imm8
+	byte addition = ((imm8() + FLAG_CF)&0xFF);    //ADC AL,imm8
 	CHECK_AF(REG_AL,addition); /*CHECK_OF(REG_AL,addition);*/
 	REG_AL = ((REG_AL + addition)&0xFF);
 	CHECK_SF(REG_AL);
@@ -96,7 +96,7 @@ void CPU_OP14()
 //OP15 multihandler
 void CPU_OP15_IW()
 {
-	word addition = ((imm16() + FLAG_CF)&0xFFFF);    //ADC REG_AX,imm16
+	word addition = ((imm16() + FLAG_CF)&0xFFFF);    //ADC AX,imm16
 	CHECK_AF(REG_AX,addition); /*CHECK_OF(REG_AL,addition);*/
 	REG_AL = ((REG_AL + addition)&0xFF);
 	CHECK_SF(REG_AL);
@@ -105,7 +105,7 @@ void CPU_OP15_IW()
 }
 void CPU_OP15_ID()
 {
-	uint_32 addition = ((imm32() + FLAG_CF)&0xFFFFFFFF);    //ADC REG_EAX,imm32
+	uint_32 addition = ((imm32() + FLAG_CF)&0xFFFFFFFF);    //ADC EAX,imm32
 	CHECK_AF(REG_EAX,addition); /*CHECK_OF(REG_AX,addition);*/
 	REG_EAX = ((REG_EAX + addition)&0xFF);
 	CHECK_SF(REG_AL);
@@ -308,7 +308,7 @@ void CPU_OP13()
 //ADD
 void CPU_OP04()
 {
-	byte addition = ((imm8())&0xFF);    //ADC REG_AL,imm8
+	byte addition = ((imm8())&0xFF);    //ADC AL,imm8
 	CHECK_AF(REG_AL,addition); /*CHECK_OF(REG_AL,addition);*/
 	REG_AL = ((REG_AL + addition)&0xFF);
 	CHECK_SF(REG_AL);
@@ -318,7 +318,7 @@ void CPU_OP04()
 //OP15 multihandler
 void CPU_OP05_IW()
 {
-	word addition = ((imm16())&0xFFFF);    //ADC REG_AX,imm16
+	word addition = ((imm16())&0xFFFF);    //ADC AX,imm16
 	CHECK_AF(REG_AX,addition); /*CHECK_OF(REG_AL,addition);*/
 	REG_AL = ((REG_AL + addition)&0xFF);
 	CHECK_SF(REG_AL);
@@ -327,7 +327,7 @@ void CPU_OP05_IW()
 }
 void CPU_OP05_ID()
 {
-	uint_32 addition = ((imm32())&0xFFFFFFFF);    //ADC REG_EAX,imm32
+	uint_32 addition = ((imm32())&0xFFFFFFFF);    //ADC EAX,imm32
 	CHECK_AF(REG_EAX,addition); /*CHECK_OF(REG_AX,addition);*/
 	REG_EAX = ((REG_EAX + addition)&0xFF);
 	CHECK_SF(REG_AL);
@@ -524,7 +524,7 @@ void CPU_OP03()
 //AND
 void CPU_OP24()
 {
-	byte addition = ((imm8())&0xFF);    //ADC REG_AL,imm8
+	byte addition = ((imm8())&0xFF);    //ADC AL,imm8
 	CHECK_AF(REG_AL,addition); /*CHECK_OF(REG_AL,addition);*/
 	REG_AL = ((REG_AL + addition)&0xFF);
 	CHECK_SF(REG_AL);
@@ -536,7 +536,7 @@ void CPU_OP24()
 //OP15 multihandler
 void CPU_OP25_IW()
 {
-	word addition = ((imm16())&0xFFFF);    //ADC REG_AX,imm16
+	word addition = ((imm16())&0xFFFF);    //ADC AX,imm16
 	CHECK_AF(REG_AX,addition); /*CHECK_OF(REG_AL,addition);*/
 	REG_AL = ((REG_AL + addition)&0xFF);
 	CHECK_SF(REG_AL);
@@ -547,7 +547,7 @@ void CPU_OP25_IW()
 }
 void CPU_OP25_ID()
 {
-	uint_32 addition = ((imm32())&0xFFFFFFFF);    //ADC REG_EAX,imm32
+	uint_32 addition = ((imm32())&0xFFFFFFFF);    //ADC EAX,imm32
 	CHECK_AF(REG_EAX,addition); /*CHECK_OF(REG_AX,addition);*/
 	REG_EAX = ((REG_EAX + addition)&0xFF);
 	CHECK_SF(REG_AL);

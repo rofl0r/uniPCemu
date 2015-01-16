@@ -63,7 +63,7 @@ byte MODRM_RM(byte modrm); //RM
 #define MODRM_REG_EDX 2
 #define MODRM_REG_EBX 3
 
-//REG_SP in mod3 operand
+//SP in mod3 operand
 #define MODRM_REG_ESP 4
 //SIB in all others.
 #define MODRM_REG_SIB 4
@@ -81,9 +81,9 @@ byte MODRM_RM(byte modrm); //RM
 #define MODRM_MEM_SI 4
 #define MODRM_MEM_DI 5
 
-//Only in MOD0 instances, 16-bit address, instead of [REG_BP]:
+//Only in MOD0 instances, 16-bit address, instead of [BP]:
 #define MODRM_MEM_DISP16 6
-//Only in MOD0 instances, 32-bit address, instead of [REG_EBP]:
+//Only in MOD0 instances, 32-bit address, instead of [EBP]:
 #define MODRM_MEM_DISP32 5
 //All other instances:
 #define MODRM_MEM_BP 6
@@ -216,5 +216,5 @@ char *unsigned2signedtext32(uint_32 c);
 void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //16-bit address/reg decoder!
 
 //For CPU itself:
-void modrm_readparams(MODRM_PARAMS *param, int size, int slashr); //Read params for modr/m processing from REG_CS:(E)REG_IP
+void modrm_readparams(MODRM_PARAMS *param, int size, int slashr); //Read params for modr/m processing from CS:(E)IP
 #endif

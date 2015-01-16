@@ -31,7 +31,7 @@
 					FLAG_PF = PARITY32(data&0xFF); \
 				}
 
-//HIER GEBLEVEN; nog te doen: FLAG_CF & FLAG_AF! (Carry flag & Adjust flag (carry or borrow to the low order four bits of REG_AL))
+//HIER GEBLEVEN; nog te doen: FLAG_CF & FLAG_AF! (Carry flag & Adjust flag (carry or borrow to the low order four bits of AL))
 
 //Borrow from high byte!
 #define CHECK_CF(data,addition) FLAG_CF = (((((data+addition)^(data+addition))^addition)&(0x10<<((8*sizeof(addition))-1)))>0)

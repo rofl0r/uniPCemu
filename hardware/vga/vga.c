@@ -53,7 +53,7 @@ Our base:
 
 http://webpages.charter.net/danrollins/techhelp/0114.HTM
 
- REG_AL  Type     Format   Cell  Colors        Adapter  Addr  Monitor
+ AL  Type     Format   Cell  Colors        Adapter  Addr  Monitor
                                                                            
       0  text     40x25     8x8* 16/8 (shades) CGA,EGA  b800  Composite
       1  text     40x25     8x8* 16/8          CGA,EGA  b800  Comp,RGB,Enh
@@ -73,7 +73,7 @@ http://webpages.charter.net/danrollins/techhelp/0114.HTM
      12H graphic  640x480  8x16  16            VGA      a000  Anlg
      13H graphic  640x480  8x16  256           VGA      a000  Anlg
 
-    Notes: With EGA, VGA, and PCjr you can add 80H to REG_AL to initialize a
+    Notes: With EGA, VGA, and PCjr you can add 80H to AL to initialize a
           video mode without clearing the screen.
 
         * The character cell size for modes 0-3 and 7 varies, depending on

@@ -12,7 +12,7 @@
 #include "headers/cpu/80286/protection.h" //Protection support!
 
 extern MODRM_PARAMS params;    //For getting all params!
-extern byte blockREP; //Block the instruction from executing (REP with (E)REG_CX=0
+extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
 MODRM_PTR info; //For storing ModR/M Info!
 
 /*
@@ -169,7 +169,7 @@ void CPU186_OP6E()
 {
 	debugger_setcommand("OUTSB");
 	if (blockREP) return; //Disabled REP!
-	PORT_OUT_B(REG_DX,MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_SI,0)); //OUTS REG_DX,Xb
+	PORT_OUT_B(REG_DX,MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_SI,0)); //OUTS DX,Xb
 	if (FLAG_DF)
 	{
 		--REG_DI;
@@ -183,7 +183,7 @@ void CPU186_OP6F()
 {
 	debugger_setcommand("OUTSW");
 	if (blockREP) return; //Disabled REP!
-	PORT_OUT_W(REG_DX,MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_SI,0));    //OUTS REG_DX,Xz
+	PORT_OUT_W(REG_DX,MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_SI,0));    //OUTS DX,Xz
 	if (FLAG_DF)
 	{
 		REG_DI -= 2;
@@ -300,7 +300,7 @@ void CPU186_OPC8()
             nestlev &= 0x1F; //MOD 32!
     		for (temp16=1; temp16<nestlev; temp16++)
     		{
-    			REG_BP -= 4; //Push REG_BP to the next size of REG_BP!
+    			REG_BP -= 4; //Push BP to the next size of BP!
     			CPU_PUSH32(&REG_EBP);
     		}
     		CPU_PUSH32(&REG_ESP);
@@ -315,7 +315,7 @@ void CPU186_OPC8()
             nestlev &= 0x1F; //MOD 32!
     		for (temp16=1; temp16<nestlev; temp16++)
     		{
-    			REG_BP -= 2; //Push REG_BP to the next size of REG_BP!
+    			REG_BP -= 2; //Push BP to the next size of BP!
     			CPU_PUSH16(&REG_BP);
     		}
     		CPU_PUSH16(&REG_SP);
