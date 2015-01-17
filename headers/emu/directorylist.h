@@ -28,6 +28,7 @@ typedef struct
 #endif
 } DirListContainer_t, *DirListContainer_p;
 
+byte isext(char *filename, char *extension); //Are we a certain extension?
 byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfile); //Open a directory for reading, give the first entry if any!
 byte readdirlist(DirListContainer_p dirlist, char *entry, byte *isfile); //Read an entry from the directory list! Gives the next entry, if any!
 void closedirlist(DirListContainer_p dirlist); //Close an opened directory list!

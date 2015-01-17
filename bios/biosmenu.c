@@ -584,48 +584,6 @@ void addList(char *text)
 	}
 }
 
-
-int isext(char *filename, char *extension)
-{
-	if (filename==NULL) return FALSE; //No ptr!
-	if (extension==NULL) return FALSE; //No ptr!
-	int startpos = safe_strlen(filename,256)-safe_strlen(extension,256)-safe_strlen(".",2); //Start position of the extension!
-	if (startpos<0) //Not available?
-	{
-		return 0; //Not this extension!
-	}
-	char *curchar;
-	int counter = 0; //Counter!
-	curchar = filename; //Take over!
-	while (counter<startpos) //Goto start pos!
-	{
-		++curchar; //Next character!
-		++counter; //Next position!
-	}
-	char ext[256]; //Temp extension holder!
-	bzero(ext,sizeof(ext)); //Init!
-	strcpy(ext,"."); //Init!
-	strcat(ext,extension); //Add extension to compare!
-	char *comparedata;
-	comparedata = &ext[0]; //Start of the comparision!
-//Now we're at the startpos. MUST MATCH ALL CHARACTERS!
-	int result = 1; //Default: match!
-	while (counter<safe_strlen(filename,256)) //Not end of string?
-	{
-//Are we equal or not?
-		if (toupper((int)*curchar)!=toupper((int)*comparedata)) //Not equal (case insensitive)?
-		{
-			result = 0; //Not extension!
-			break; //Stop comparing!
-		}
-		++comparedata; //Next character to compare!
-		++curchar; //Next character in string to compare!
-		++counter; //Next position!
-	}
-
-	return result; //Give the result: 1 for is extension, 0 for not extension!
-}
-
 //Generate file list based on extension!
 void generateFileList(char *extension, int allowms0, int allowdynamic)
 {

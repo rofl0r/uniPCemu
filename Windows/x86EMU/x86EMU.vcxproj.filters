@@ -760,9 +760,6 @@
     <ClInclude Include="..\..\headers\packed.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\headers\directorylisting.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\headers\emu\directorylist.h">
       <Filter>Header Files</Filter>
     </ClInclude>
