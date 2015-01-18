@@ -18,7 +18,7 @@
 #include "headers/emu/gpu/gpu_renderer.h" //Renderer support!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 GPU_type GPU; //The GPU itself!
 
@@ -40,6 +40,7 @@ void initVideoLayer() //We're for allocating the main video layer, only dealloca
 			SDL_ShowCursor(SDL_DISABLE); //We don't want cursors on empty screens!
 			originalrenderer = SDL_SetVideoMode(PSP_SCREEN_COLUMNS, PSP_SCREEN_ROWS, 32, SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 			SDL_WM_SetCaption( "x86EMU", 0 );
+			SDL_WM_GrabInput(SDL_GRAB_ON);
 			if (!originalrenderer) //Failed to allocate?
 			{
 				raiseError("GPU","Error allocating PSP Main Rendering Surface!");

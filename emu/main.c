@@ -310,7 +310,8 @@ int main(int argc, char * argv[])
 
 	if (SLEEP_ON_MAIN_CLOSE) //Sleep on main thread close?
 	{
-		sleep(); //Sleep: The main thread has been closed! Dont reset/quit!
+		halt(); //Terminate the application!
+		return 0; //Sleep: The main thread has been closed! Dont reset/quit!
 	}
 
 	termThreads(); //Terminate all still running threads (minimum threads included)!

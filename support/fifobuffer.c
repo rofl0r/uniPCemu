@@ -3,7 +3,7 @@
 #include "headers/support/fifobuffer.h" //Our types etc.
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 /*
 

@@ -3,7 +3,7 @@
 #include "headers/support/log.h" //Logging support!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //Identifier readback!
 char debugger_identifier[20] = "COMMAND:SFHB_x86EMU"; //Our identifier during standard debugger operations!

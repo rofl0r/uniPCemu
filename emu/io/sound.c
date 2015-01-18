@@ -7,7 +7,7 @@
 #include "headers/support/signedness.h" //Signedness support!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 //How many samples to process at once? Originally 2048; 64=Optimum
 #define SAMPLESIZE 4096
 //Maximum samplerate in Hertz (200KHz)

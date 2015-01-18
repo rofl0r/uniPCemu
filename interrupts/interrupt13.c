@@ -6,7 +6,7 @@
 
 #include "headers/support/log.h" //Logging support for debugging!
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //Look at REG_AX bit 0 of int 11h
 

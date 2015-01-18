@@ -19,7 +19,7 @@
 
 #include "headers/emu/directorylist.h" //Directory listing support!
 
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //BIOS width in text mode!
 #define BIOS_WIDTH GPU_TEXTSURFACE_WIDTH

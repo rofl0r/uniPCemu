@@ -12,7 +12,7 @@ DMA Controller (8237A)
 #include "headers/emu/timers.h" //Timer support!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 typedef void (*DMAWriteBHandler)(byte data); //Write handler to DMA hardware!
 typedef byte (*DMAReadBHandler)(); //Read handler from DMA hardware!

@@ -10,7 +10,7 @@ PC SPEAKER
 */
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //Set to 0xFF to disable the speaker output!
 #define SPEAKER_METHOD 1

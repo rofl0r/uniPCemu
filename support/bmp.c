@@ -3,7 +3,7 @@
 #include "headers/support/log.h" //Logging support!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 byte BMPType[2] = {0x42,0x4D}; //The type, identifying the BMP file 'BM'!
 

@@ -12,7 +12,7 @@
 #include "headers/hardware/8042.h" //Basic 8042 support for keyboard initialisation!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
 byte showchecksumerrors = 0; //Show checksum errors?

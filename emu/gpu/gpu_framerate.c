@@ -11,7 +11,7 @@
 #include "headers/emu/timers.h" //Timer support!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //Define pixel(stage/(scan&)newline) speed?
 #define DEBUG_PIXEL_SPEED

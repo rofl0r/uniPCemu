@@ -19,8 +19,10 @@
 
 #ifdef _WIN32
 #include "sdl_joystick.h" //Joystick support!
+#include "sdl_window.h" //Window support!
 #else
 #include <SDL/SDL_joystick.h> //Joystick support!
+#include <SDL/SDL_window.h> //Window support!
 #endif
 
 enum input_button_map { //All buttons we support!
@@ -30,7 +32,7 @@ INPUT_BUTTON_DOWN, INPUT_BUTTON_LEFT, INPUT_BUTTON_UP, INPUT_BUTTON_RIGHT,
 INPUT_BUTTON_SELECT, INPUT_BUTTON_START, INPUT_BUTTON_HOME, INPUT_BUTTON_HOLD };
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //Time between keyboard set swapping.
 #define KEYSWAP_DELAY 100000
@@ -1621,6 +1623,12 @@ void updateInput(SDL_Event *event) //Update all input!
 {
 	switch (event->type)
 	{
+		case SDL_WINDOWEVENT_FOCUS_GAINED:
+			SDL_WM_GrabInput(SDL_GRAB_ON); //Grab input!
+			break;
+		case SDL_WINDOWEVENT_FOCUS_LOST:
+			SDL_WM_GrabInput(SDL_GRAB_OFF); //Release input!
+			break;
 		case SDL_KEYUP: //Keyboard up?
 			if (!SDL_NumJoysticks()) //Gotten no joystick?
 			{

@@ -13,7 +13,7 @@
 //How many steps (function calls) for every full screen frame! Min=1, was originally 10!
 #define __SCREEN_LINES_LIMIT 10
 
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 /*
 

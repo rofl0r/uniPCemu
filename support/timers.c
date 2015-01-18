@@ -4,7 +4,7 @@
 #include "headers/support/highrestimer.h" //High-resolution timer for additional precision!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //Timer step in us! Originally 100ms now 10000?
 #define TIMER_STEP 1

@@ -25,7 +25,7 @@ Interrupt 10h: Video interrupt
 #include "headers/cpu/80286/protection.h" //For CPU_segment_index!
 
 //Are we disabled for checking?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //Text screen height is always 25!
 

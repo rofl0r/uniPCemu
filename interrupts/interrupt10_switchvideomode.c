@@ -21,7 +21,7 @@
 #define LOG_FILE "int10"
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //Helper functions:
 

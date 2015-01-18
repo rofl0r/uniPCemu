@@ -7,7 +7,7 @@
 #include "headers/hardware/ports.h"  //Port support!
 
 //Hardware disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 struct
 {

@@ -10,7 +10,7 @@
 #define MOUSE_DISABLED Mouse.disabled
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 extern Controller8042_t Controller8042; //The 8042 controller!
 

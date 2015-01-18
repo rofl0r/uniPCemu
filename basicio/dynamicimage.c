@@ -303,6 +303,11 @@ static int dynamicimage_setindex(char *filename, uint_32 sector, int_64 index)
 
 int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!
 {
+	DYNAMICIMAGE_HEADER header, tempheader;
+	if (!readdynamicheader(filename, &header)) //Failed to read the header?
+	{
+		return FALSE; //Error: invalid file!
+	}
 	FILE *dev;
 	dev = fopen64(filename,"rb+"); //Open file for reading!
 	int present = dynamicimage_datapresent(filename,sector); //Data present?
@@ -328,34 +333,42 @@ int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 				fclose64(dev); //Not needed!
 				return TRUE; //We don't need to allocate/write an empty block, as it's already empty by default!
 			}
-			fseek64(dev,0,SEEK_END); //Goto EOF!
-
-			if (dynamicimage_setindex(filename,sector,ftell64(dev))) //Set to go?
+			fseek64(dev,header.currentsize,SEEK_SET); //Goto EOF!
+			if (fwrite64(buffer,1,512,dev)==512) //Write the buffer to the file!
 			{
-				if (fwrite64(buffer,1,512,dev)==512) //Write the buffer to the file!
+				newsize = ftell64(dev); //New file size!
+				fclose64(dev); //Close the device!
+				if (dynamicimage_updatesize(filename, newsize)) //Updated?
 				{
-					newsize = ftell64(dev); //New file size!
-					fclose64(dev); //Close the device!
-					if (dynamicimage_updatesize(filename, newsize)) //Updated?
+					if (dynamicimage_setindex(filename, sector, header.currentsize)) //Assign our newly allocated block!
 					{
-						return TRUE; //OK!
+						return TRUE; //OK: we're written!
 					}
 					else
 					{
-						dynamicimage_setindex(filename, sector, 0); //Clear the index: we've become invalid!
-						return FALSE; //ERROR!
+						//We've failed to set the index! Reverse the update and give an error!
+						if (readdynamicheader(filename, &tempheader)) //Read the new header?
+						{
+							if (tempheader.currentsize == newsize) //Size is reversable?
+							{
+								dynamicimage_updatesize(filename, header.currentsize); //Size is reversed when possible!
+								return FALSE; //We're reversed, but still failed to write!
+							}
+						}
+						return FALSE; //Failed to update: we contain an irreversable allocated block!
 					}
+					return TRUE; //OK!
 				}
 				else
 				{
-					dynamicimage_setindex(filename, sector, 0); //Clear our index! We don't exist anymore: write failed!
-					fclose64(dev); //Close it!
-					return FALSE; //Error!
+					dynamicimage_setindex(filename, sector, 0); //Clear the index: we've become invalid!
+					return FALSE; //ERROR!
 				}
 			}
-			else //Failed to set index!
+			else
 			{
-				fclose64(dev);
+				dynamicimage_setindex(filename, sector, 0); //Clear our index! We don't exist anymore: write failed!
+				fclose64(dev); //Close it!
 				return FALSE; //Error!
 			}
 		}

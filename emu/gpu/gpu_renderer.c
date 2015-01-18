@@ -11,7 +11,7 @@
 #include "headers/emu/gpu/gpu_text.h" //Text rendering support!
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 //Allow HW rendering? (VGA or other hardware)
 #define ALLOW_HWRENDERING 1

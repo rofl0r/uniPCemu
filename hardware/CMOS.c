@@ -15,7 +15,7 @@ CMOS&RTC (Combined!)
 */
 
 //Are we disabled?
-#define __HW_DISABLED 1
+#define __HW_DISABLED 0
 
 word decodeBCD(word bcd)
 {
