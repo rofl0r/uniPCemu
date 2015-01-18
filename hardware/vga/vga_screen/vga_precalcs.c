@@ -138,6 +138,7 @@ void dump_CRTCTiming()
 
 void VGA_LOGCRTCSTATUS()
 {
+	if (!getActiveVGA()) return; //No VGA available!
 	//Log all register info:
 	dolog("VGA","CRTC Info:");
 	dolog("VGA","HDispStart:%i",ActiveVGA->precalcs.horizontaldisplaystart); //Horizontal start

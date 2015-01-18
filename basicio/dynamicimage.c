@@ -246,6 +246,7 @@ static int dynamicimage_setindex(char *filename, uint_32 sector, int_64 index)
 	//First, check the first level lookup table is present!
 	if (!firstlevellocation) //No first level present yet?
 	{
+		if (!index) return 1; //OK: we don't need to be allocated!
 		if (!dynamicimage_allocatelookuptable(filename, &firstlevellocation, 1024)) //Lookup table failed to allocate?
 		{
 			dynamicimage_updatesize(filename, header.currentsize); //Revert!
@@ -264,6 +265,7 @@ static int dynamicimage_setindex(char *filename, uint_32 sector, int_64 index)
 	//We're present: process the first level lookup table!
 	if (!(secondlevellocation = dynamicimage_readlookuptable(filename, firstlevellocation, 1024, firstlevelentry))) //First level lookup failed?
 	{
+		if (!index) return 1; //OK: we don't need to be allocated!
 		if (!dynamicimage_allocatelookuptable(filename, &secondlevellocation, 1024)) //Lookup table failed to allocate?
 		{
 			dynamicimage_updatesize(filename, header.currentsize); //Revert!
@@ -278,6 +280,7 @@ static int dynamicimage_setindex(char *filename, uint_32 sector, int_64 index)
 	}
 	if (!(sectorlevellocation = dynamicimage_readlookuptable(filename, secondlevellocation, 1024,secondlevelentry))) //Second level lookup failed?
 	{
+		if (!index) return 1; //OK: we don't need to be allocated!
 		if (!dynamicimage_allocatelookuptable(filename, &sectorlevellocation, 4096)) //Lookup table failed to allocate?
 		{
 			dynamicimage_updatesize(filename, header.currentsize); //Revert!
