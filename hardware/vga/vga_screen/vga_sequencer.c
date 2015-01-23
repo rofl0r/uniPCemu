@@ -3,15 +3,16 @@
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Ourselves!
 #include "headers/hardware/vga_screen/vga_sequencer_graphicsmode.h" //Text mode!
 #include "headers/hardware/vga_screen/vga_sequencer_textmode.h" //Text mode!
+#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller!
 #include "headers/hardware/vga_screen/vga_crtcontroller.h" //CRT Controller for finishing up!
-#include "headers/hardware/vga_screen/vga_dac.h" //DAC support!
+#include "headers/hardware/vga_screen/vga_dacrenderer.h" //DAC support!
 #include "headers/hardware/pic.h" //IRQ support!
 #include "headers/cpu/interrupts.h" //For get/putpixel variant!
 #include "headers/support/highrestimer.h" //High resolution clock!
 #include "headers/support/zalloc.h" //Memory protection support!
+#include "headers/support/log.h" //Logging support!
 
 #include "headers/emu/gpu/gpu_text.h" //Text support!
-#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller!
 
 //Are we disabled?
 #define HW_DISABLED 0
@@ -128,6 +129,10 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//First, render ourselves to the screen!
 	GPU.xres = Sequencer->xres; //Apply x resolution!
 	GPU.yres = Sequencer->yres; //Apply y resolution!
+	if (Sequencer->xres || Sequencer->yres) //Resolution?
+	{
+		dolog("VGA", "VBlank:%ix%i", GPU.xres, GPU.yres); //Log current resolution frame!
+	}
 	VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
 	
 	Sequencer->Scanline = 0; //Reset for the next frame!
@@ -202,8 +207,6 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 	//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59 && Sequencer->x==639) dolog("VGA","Rendering OS@%i->%i,%i",Sequencer->x,VGA->CRTC.x,VGA->CRTC.y);
 	++VGA->CRTC.x; //Next x!
 }
-
-OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, SEQ_DATA *Sequencer); //Process attribute to DAC index! Inside the attribute controller!
 
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)

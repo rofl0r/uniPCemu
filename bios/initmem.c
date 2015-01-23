@@ -22,7 +22,7 @@ extern word CB_datasegment; //Segment of data!
 extern word CB_dataoffset; //Offset of data!
 extern byte mounteddrives[0x100]; //All mounted drives!
 
-static void generateDPT(word offset, byte disk)
+void generateDPT(word offset, byte disk)
 {
 	if (__HW_DISABLED) return; //Abort!
 	/*

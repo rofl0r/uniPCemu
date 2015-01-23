@@ -53,6 +53,8 @@ void BIOS_MemReAlloc(); //Reallocate memory!
 void BIOS_DirectPlotSetting(); //Direct Plot Setting!
 void BIOS_FontSetting(); //BIOS Font Setting!
 void BIOS_KeepAspectRatio(); //Keep aspect ratio?
+void BIOS_ConvertStaticDynamicHDD(); //Convert static to dynamic HDD?
+
 void BIOSMenu_LoadDefaults(); //Load the defaults option!
 
 void BIOSClearScreen(); //Resets the BIOS's screen!

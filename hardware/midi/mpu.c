@@ -10,8 +10,8 @@
 
 #include "headers/header_dosboxmpu.h" //Basic conversion support!
 
-static void MPU401_Event();
-static void MPU401_Reset(void);
+void MPU401_Event();
+void MPU401_Reset(void);
 
 #define MPU_QUEUE 32
 #define MPU_RQ_QUEUE 64
@@ -165,7 +165,7 @@ COMMAND} MpuDataType;
 
 /////////////////////////////////////////////////////////////////////////////
 
-static struct {
+struct {
 	bool intelligent;
 	MpuMode mode;
 	Bitu irq;
@@ -208,7 +208,7 @@ static struct {
 } mpu;
 
 
-static void QueueByte(Bit8u data) {
+void QueueByte(Bit8u data) {
 	if (mpu.queue_used<MPU_QUEUE) {
 		Bitu pos=mpu.queue_used+mpu.queue_pos;
 		if (mpu.queue_pos>=MPU_QUEUE) mpu.queue_pos-=MPU_QUEUE;
@@ -218,12 +218,12 @@ static void QueueByte(Bit8u data) {
 	} /*else LOG(LOG_MISC,LOG_NORMAL)("MPU401:Data queue full");*/
 }
 
-static void ClrQueue(void) {
+void ClrQueue(void) {
 	mpu.queue_used=0;
 	mpu.queue_pos=0;
 }
 
-static void QueueRequest(Bit8u data) {
+void QueueRequest(Bit8u data) {
 	if (mpu.rq_used<MPU_RQ_QUEUE) {
 		Bitu pos=mpu.rq_pos+mpu.rq_used;
 		if (mpu.rq_pos>=MPU_RQ_QUEUE) mpu.rq_pos-=MPU_RQ_QUEUE;
@@ -234,18 +234,18 @@ static void QueueRequest(Bit8u data) {
 	} /*else LOG(LOG_MISC,LOG_NORMAL)("MPU401:Request queue full");*/
 }
 
-static void ClrRequestQueue(void) {
+void ClrRequestQueue(void) {
 	mpu.rq_pos=0;
 	mpu.rq_used=0;
 }
 
-static Bit8u MPU401_ReadStatus(word port) {
+Bit8u MPU401_ReadStatus(word port) {
 	Bit8u ret=0x3f;	/* Bith 6 and 7 clear */
 	if (!mpu.queue_used) ret|=0x80;
 	return ret;
 }
 
-static void MPU401_WriteCommand(word port,Bit8u val) {
+void MPU401_WriteCommand(word port,Bit8u val) {
 	Bitu i;
 	//LOG(LOG_MISC,LOG_NORMAL)("MPU-401:Command %x",val);
 	if (val && val<=0x2f) {
@@ -406,7 +406,7 @@ static void MPU401_WriteCommand(word port,Bit8u val) {
 	QueueByte(MSG_CMD_ACK);
 }
 
-static Bit8u MPU401_ReadData(word port) {
+Bit8u MPU401_ReadData(word port) {
 	Bit8u ret=MSG_CMD_ACK;
 	if (mpu.queue_used) {
 		ret=mpu.queue[mpu.queue_pos];
@@ -432,7 +432,7 @@ static Bit8u MPU401_ReadData(word port) {
 	return ret;
 }
 
-static void MPU401_WriteData(word port,Bit8u val) {
+void MPU401_WriteData(word port,Bit8u val) {
 	if (mpu.mode==M_UART) {MIDI_RawOutByte(val);return;}
 	switch (mpu.state.command_byte) {
 		case 0:
@@ -560,7 +560,7 @@ static void MPU401_WriteData(word port,Bit8u val) {
 	}
 }
 
-static void MPU401_IntelligentOut(Bit8u chan) {
+void MPU401_IntelligentOut(Bit8u chan) {
 	Bitu val;
 	int i;
 	switch (mpu.playbuf[chan].type) {
@@ -583,10 +583,10 @@ static void MPU401_IntelligentOut(Bit8u chan) {
 }
 
 
-static bool even_odd=false;
-static Bitu new_time;
+bool even_odd=false;
+Bitu new_time;
 
-static void MPU401_Event() {
+void MPU401_Event() {
 	if (mpu.mode==M_UART) return;
 	if (even_odd) goto next_irq;
 	Bitu i;
@@ -651,7 +651,7 @@ next_event:
 	PIC_AddEvent(MPU401_Event,60000000/new_time);
 }
 
-static void MPU401_Reset(void) {
+void MPU401_Reset(void) {
 	PIC_DeActivateIRQ(mpu.irq);
 	mpu.mode=(mpu.intelligent ? M_INTELLIGENT : M_UART);
 	mpu.state.wsd=false;

@@ -19,7 +19,7 @@ parameters:
 
 byte ERROR_RAISED = 0; //No error raised by default!
 
-extern PSP_TEXTSURFACE *frameratesurface; //The framerate!
+extern GPU_TEXTSURFACE *frameratesurface; //The framerate!
 
 void raiseError(char *source, char *text, ...)
 {

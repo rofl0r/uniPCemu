@@ -71,7 +71,7 @@ holder.data[1] = (byte)(val>>8); //High!
 return holder.result; //Give the result!
 }
 
-static OPTINLINE void getBMP(TRGB *pixel,int x, int y, uint_32 *image, int w, int h, int virtualwidth, byte doublexres, byte doubleyres, int originalw, int originalh)
+OPTINLINE void getBMP(TRGB *pixel,int x, int y, uint_32 *image, int w, int h, int virtualwidth, byte doublexres, byte doubleyres, int originalw, int originalh)
 {
 	uint_32 index;
 	float a,r,g,b;
@@ -105,7 +105,7 @@ byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, 
 	TBMPHeader BMPHeader; //BMP itself!
 	TBMPInfoHeader BMPInfo; //Info about the BMP!
 	uint_32 dataStartOffset;
-	static byte bmppad[3] = {0,0,0}; //For padding!
+	static const byte bmppad[3] = {0,0,0}; //For padding!
 	TRGB pixel; //A pixel for writing to the file!
 	int y = 0;
 	int x = 0;

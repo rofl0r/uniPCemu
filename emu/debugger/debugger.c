@@ -199,7 +199,7 @@ void debugger_autolog()
 	} //Allow logging?
 }
 
-extern PSP_TEXTSURFACE *frameratesurface; //The framerate surface!
+extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 
 void debugger_screen() //Show debugger info on-screen!
 {

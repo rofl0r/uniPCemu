@@ -40,7 +40,7 @@ extern char keys_names[104][11]; //Keys names!
 void ReleaseKeys() //Force release all normal keys (excluding ctrl,alt&shift) currently pressed!
 {
 	int i;
-	for (i=0;i<256;i++) //Process all keys!
+	for (i=0;i<NUMITEMS(keys_names);i++) //Process all keys!
 	{
 		onKeyRelease(keys_names[i]); //Release the key!
 	}

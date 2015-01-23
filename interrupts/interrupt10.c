@@ -289,7 +289,7 @@ int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pi
         return 1; //OK!
 }
 
-static void ResetACTL(void) {
+void ResetACTL(void) {
 	if (__HW_DISABLED) return; //Abort!
 	IO_Read(real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS) + 6);
 }
@@ -1108,7 +1108,7 @@ void int10_SetBackColor() //REG_AH=0B REG_BH=00h
 	byte oldindex;
 	oldindex = PORT_IN_B(0x3B4); //Read current CRTC index!
 	PORT_OUT_B(0x3B4,0x24); //Flipflop register!
-	if (!PORT_IN_B(0x3B5)&0x80) //Flipflop is to be reset?
+	if (!(PORT_IN_B(0x3B5)&0x80)) //Flipflop is to be reset?
 	{
 		PORT_IN_B(0x3DA); //Reset the flip-flop!
 	}
@@ -2190,7 +2190,7 @@ void int10_dumpscreen() //Dump screen to file!
 	writehex(f,displaypage); //Write the display page first!
 	writehex(f,getscreenwidth(displaypage)); //Screen width!
 
-	char lb[2];
+	char lb[3];
 	bzero(lb,sizeof(lb));
 	strcpy(lb,"\r\n"); //Line break!
 

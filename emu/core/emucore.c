@@ -274,8 +274,7 @@ void doneEMU()
 		#ifdef REPORT_MEMORYLEAK
 		if (freemem()!=initEMUmemory && initEMUmemory) //Difference?
 		{
-			dolog("zalloc","doneEMU: warning: memory difference before and after allocating EMU services!");
-			logpointers(); //Log all pointers!
+			logpointers("doneEMU: warning: memory difference before and after allocating EMU services!"); //Log all pointers!
 		}
 		#endif
 	}
@@ -343,7 +342,7 @@ void initEMUreset() //Simple reset emulator!
 
 /* coreHandler: The core emulation handler (running CPU and external hardware required to run it.) */
 
-static byte coreHandler()
+byte coreHandler()
 {
 	if ((romsize!=0) && (CPU.halt)) //Debug HLT?
 	{

@@ -38,7 +38,7 @@ void debugTextModeScreenCapture()
 	VGA_waitforVBlank(); //Wait for VBlank!
 }
 
-extern PSP_TEXTSURFACE *frameratesurface; //The framerate surface!
+extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 
 void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
 {

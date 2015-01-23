@@ -15,6 +15,8 @@
 #include "headers/emu/emucore.h" //Emulator core support for checking for memory leaks!
 #include "headers/emu/timers.h" //Timer support!
 
+#include "headers/fopen64.h" //fopen64 support!
+
 #ifdef __psp__
 #include <pspkernel.h>
 PSP_MODULE_INFO("x86EMU", 0, 1, 0);
@@ -163,6 +165,63 @@ int main(int argc, char * argv[])
 	}
 
 	initlog(); //Initialise the logging system!
+
+	FILE *f;
+	byte temp[512];
+	f = fopen64("w95.img", "rb"); //Open file for reading!
+	if (!f)
+	{
+		dolog("test", "Cannot open file w95.img to test!");
+		halt();
+	}
+	if (fread64(&temp, 1, 512, f) != 512)
+	{
+		fclose64(f);
+		dolog("test", "base read failed!");
+		halt();
+	}
+	if (ftell64(f) != 512) //Invalid location?
+	{
+		fclose64(f);
+		dolog("test", "ftell not working!");
+		halt();
+	}
+	if (fseek64(f, 0, SEEK_SET)) //Error seeking to the start!
+	{
+		fclose64(f);
+		dolog("test", "fseek not working!");
+		halt();
+	}
+	if (ftell64(f) != 0) //Error telling the start?
+	{
+		fclose64(f);
+		dolog("test", "ftell not working2!");
+		halt();
+	}
+	if (fseek64(f, 0, SEEK_SET)) //Error seeking to the start!
+	{
+		fclose64(f);
+		dolog("test", "fseek not working!");
+		halt();
+	}
+	if (fseek(f, 0, SEEK_END)) //Error seeking to the end!
+	{
+		fclose64(f);
+		dolog("test", "fseek EOF not working!");
+		halt();
+	}
+	if (!ftell(f))
+	{
+		fclose64(f);
+		dolog("test", "ftell EOF not working!");
+		halt();
+	}
+	fclose(f);
+	dolog("test", "successfull!");
+
+	halt(); //Quit!
+
+	//Normal operations!
 	resetTimers(); //Make sure all timers are ready!
 	
 	if (DEBUG_ZALLOC) //Verify zalloc functionality?
@@ -250,28 +309,25 @@ int main(int argc, char * argv[])
 	{
 		uint_32 freememstart;
 		freememstart = freemem(); //Freemem at the start!
-		logpointers(); //Log pointers at the start!
-		dolog("zalloc","initEMU (simple test)...");
+		logpointers("initEMU(simple test)..."); //Log pointers at the start!
+		dolog("zalloc","");
 		initEMU(0); //Start the EMU partially, not running!
-		logpointers(); //Log pointers at work!
-		dolog("zalloc","doneEMU...");
+		logpointers("doneEMU..."); //Log pointers at work!
 		doneEMU(); //Finish the EMU!
 		
-		logpointers(); //Log pointers after finishing!
+		logpointers("find_emu_memory_leaks"); //Log pointers after finishing!
 		dolog("zalloc","Memory overflow at the end: %i bytes too much deallocated.",freemem()-freememstart); //Should be the ammount of data still allocated!
 		termThreads(); //Terminate all running threads still running!
 
 		//Extended test
 		freememstart = freemem(); //Freemem at the start!
-		logpointers(); //Log pointers at the start!
-		dolog("zalloc","initEMU (extended test)...");
+		logpointers("initEMU (extended test)..."); //Log pointers at the start!
 		initEMU(1); //Start the EMU fully, running without CPU!
 		delay(10000000); //Wait 10 seconds to allow the full emulator to run some (without CPU)!
-		logpointers(); //Log pointers at work!
-		dolog("zalloc","doneEMU...");
+		logpointers("doneEMU..."); //Log pointers at work!
 		doneEMU(); //Finish the EMU!
 		
-		logpointers(); //Log pointers after finishing!
+		logpointers("find_emu_memory_leaks2"); //Log pointers after finishing!
 		dolog("zalloc","Memory overflow at the end: %i bytes too much deallocated.",freemem()-freememstart); //Should be the ammount of data still allocated!
 		termThreads(); //Terminate all running threads still running!
 
@@ -293,14 +349,16 @@ int main(int argc, char * argv[])
 	SDL_Event event;
 	byte running;
 	running = 1; //Default: we're running!
-	for (;(ThreadsRunning() && running);) //Still running?
+	for (; (ThreadsRunning() && running);) //Still running?
 	{
-		SDL_WaitEvent(&event); //Gotten events to handle?
-		//Handle an event!
-		updateInput(&event); //Update input status when needed!
-		if (event.type==SDL_QUIT) //Quitting requested?
+		if (SDL_WaitEvent(&event)) //Gotten events to handle?
 		{
-			running = 0; //Terminate our app!
+			//Handle an event!
+			updateInput(&event); //Update input status when needed!
+			if (event.type == SDL_QUIT) //Quitting requested?
+			{
+				running = 0; //Terminate our app!
+			}
 		}
 	}
 	if (ThreadsRunning()) //Still running?

@@ -103,7 +103,7 @@ typedef struct
 
 MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
 
-OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current); //MIDI device UART mode execution!
+OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current); //MIDI device UART mode execution!
 
 MIDICOMMAND *buffer, *last; //MIDI buffer and last item!
 
@@ -136,7 +136,7 @@ OPTINLINE MIDICOMMAND *MIDIDEVICE_peekbuffer() //Peek at the buffer's first adde
 	return buffer; //Give the last item, if any!
 }
 
-OPTINLINE static int MIDIDEVICE_readbuffer(MIDIPTR result) //Read from the buffer!
+OPTINLINE int MIDIDEVICE_readbuffer(MIDIPTR result) //Read from the buffer!
 {
 	if (__HW_DISABLED) return 0; //We're disabled!
 	if (buffer) //Gotten an item?
@@ -187,7 +187,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 
 /* Execution flow support */
 
-OPTINLINE static byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
+OPTINLINE byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
 {
 	//return (selectedchannel==channel); //Ignore Omni&Poly/Mono modes!
 	if (!(MIDIDEVICE.channels[channel].mode&MIDIDEVICE_OMNI)) //No Omni mode?
@@ -209,7 +209,7 @@ OPTINLINE static byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte c
 	return 1;
 }
 
-OPTINLINE static void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note, byte note32, byte note32_index, uint_32 note32_value)
+OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note, byte note32, byte note32_index, uint_32 note32_value)
 {
 	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel)) //To be applied?
 	{
@@ -220,7 +220,7 @@ OPTINLINE static void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byt
 	}
 }
 
-OPTINLINE static void MIDIDEVICE_calc_notePosition(byte note, byte *note32, byte *note32_index, uint_32 *note32_value)
+OPTINLINE void MIDIDEVICE_calc_notePosition(byte note, byte *note32, byte *note32_index, uint_32 *note32_value)
 {
 	//Our variables come first!
 	//First, calculate our results!
@@ -232,7 +232,7 @@ OPTINLINE static void MIDIDEVICE_calc_notePosition(byte note, byte *note32, byte
 	*note32_value <<= *note32_index; //Shift to our position!
 }
 
-OPTINLINE static void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used with command, mode change and Mono Mode.
+OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used with command, mode change and Mono Mode.
 {
 	word noteoff; //Current note to turn off!
 	//Note values
@@ -250,13 +250,13 @@ OPTINLINE static void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel)
 	#endif
 }
 
-OPTINLINE static void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity, byte note32, byte note32_index, uint_32 note32_value)
+OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity, byte note32, byte note32_index, uint_32 note32_value)
 {
 	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel)) //To be applied?
 	{
 		if (!(MIDIDEVICE.channels[channel].playing[note32]&note32_value)) //Not already playing?
 		{
-			if (!MIDIDEVICE.channels[channel].mode&MIDIDEVICE_POLY) //Mono mode?
+			if (!(MIDIDEVICE.channels[channel].mode&MIDIDEVICE_POLY)) //Mono mode?
 			{
 				MIDIDEVICE_AllNotesOff(selectedchannel,channel); //Turn all notes off first!
 			}
@@ -266,7 +266,7 @@ OPTINLINE static void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte
 	}
 }
 
-OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
+OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
 {
 	//First, our variables!
 	byte note32, note32_index;
@@ -459,12 +459,12 @@ OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current
 /* Basic playback support */
 
 //Convert cents to samples to increase (instead of 1 sample/sample). Floating point number (between 0.0+ usually?) Use this as a counter for the current samples (1.1+1.1..., so keep the rest value (1,1,1,...,0,1,1,1,...))
-OPTINLINE static double cents2samplesfactor(double cents)
+OPTINLINE double cents2samplesfactor(double cents)
 {
 	return pow(2,(cents/1200)); //Convert to samples (not entire numbers, so keep them counted)!
 }
 
-OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *voice) //Get a sample from an MIDI note!
+OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *voice) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	register uint_32 temp;

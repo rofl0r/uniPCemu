@@ -31,7 +31,10 @@
 #define ALLOW_VIDEO 1
 
 //Allow direct plotting (1:1 plotting)?
-#define VIDEO_DIRECT (((GPU.xres<=PSP_SCREEN_COLUMNS) && (GPU.yres<=PSP_SCREEN_ROWS) && (BIOS_Settings.VGA_AllowDirectPlot==1))||(BIOS_Settings.VGA_AllowDirectPlot==2))
+//Direct plot forced?
+#define VIDEO_DFORCED (BIOS_Settings.VGA_AllowDirectPlot==2)
+//Normal dynamic direct plot according to resolution?
+#define VIDEO_DIRECT (((GPU.xres<=PSP_SCREEN_COLUMNS) && (GPU.yres<=PSP_SCREEN_ROWS) && (BIOS_Settings.VGA_AllowDirectPlot==1))||VIDEO_DFORCED)
 
 //Start address of real device (PSP) VRAM!
 //#define VRAM_START (0x40000000 | 0x04000000)
@@ -115,4 +118,6 @@ void doneVideoMain(); //Resets the screen (clears); used at end of emulator only
 
 void GPU_addTextSurface(void *surface, Handler handler); //Register a text surface for usage with the GPU!
 void GPU_removeTextSurface(void *surface); //Unregister a text surface (removes above added surface)!
+
+void updateVideo(); //Update the screen resolution on change!
 #endif

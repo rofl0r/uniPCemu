@@ -1686,7 +1686,7 @@ Slashr:
 
 */
 
-extern PSP_TEXTSURFACE *frameratesurface;
+extern GPU_TEXTSURFACE *frameratesurface;
 
 void modrm_readparams(MODRM_PARAMS *param, int size, int slashr)
 {

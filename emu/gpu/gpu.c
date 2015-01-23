@@ -16,9 +16,12 @@
 #include "headers/emu/gpu/gpu_sdl.h" //SDL support!
 #include "headers/emu/gpu/gpu_emu.h" //Emulator support (for resetting)!
 #include "headers/emu/gpu/gpu_renderer.h" //Renderer support!
+#include "headers/emu/gpu/gpu_text.h" //Text delta position support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
+
+extern BIOS_Settings_TYPE BIOS_Settings; //Current settings!
 
 GPU_type GPU; //The GPU itself!
 
@@ -30,6 +33,33 @@ VIDEO BASICS!
 
 */
 
+SDL_Surface *getGPUSurface()
+{
+	#ifdef __psp__
+	//PSP?
+	originalrenderer = SDL_SetVideoMode(PSP_SCREEN_COLUMNS, PSP_SCREEN_ROWS, 32, SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	#else
+	//Windows etc?
+	//Clip resolution to the maximum!
+	if (GPU.xres > EMU_MAX_X) GPU.xres = EMU_MAX_X;
+	if (GPU.yres > EMU_MAX_Y) GPU.yres = EMU_MAX_Y;
+
+	//Other architecture?
+	if ((GPU.xres>=PSP_SCREEN_COLUMNS) && (GPU.yres>=PSP_SCREEN_ROWS) && VIDEO_DFORCED) //Gotten a resolution bigger than minimum and plotting directly forced? (direct plot any resolution, not automatic)
+	{
+		dolog("GPU", "Windows-specific resolution: %ix%i", GPU.xres, GPU.yres);
+		originalrenderer = SDL_SetVideoMode(GPU.xres, GPU.yres, 32, SDL_SWSURFACE); //Start fullscreen of rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!		
+	}
+	else
+	{
+		originalrenderer = SDL_SetVideoMode(PSP_SCREEN_COLUMNS, PSP_SCREEN_ROWS, 32, SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	}
+	SDL_WM_SetCaption( "x86EMU", 0 );
+	GPU_text_updatedelta(originalrenderer); //Update delta if needed, so the text is at the correct position!
+	#endif
+	return originalrenderer;
+}
+
 //On starting only.
 void initVideoLayer() //We're for allocating the main video layer, only deallocated using SDL_Quit (when quitting the application)!
 {
@@ -37,10 +67,9 @@ void initVideoLayer() //We're for allocating the main video layer, only dealloca
 	{
 		if (!originalrenderer) //Not allocated yet?
 		{
+			//PSP has solid resolution!
+			getGPUSurface(); //Allocate our display!
 			SDL_ShowCursor(SDL_DISABLE); //We don't want cursors on empty screens!
-			originalrenderer = SDL_SetVideoMode(PSP_SCREEN_COLUMNS, PSP_SCREEN_ROWS, 32, SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
-			SDL_WM_SetCaption( "x86EMU", 0 );
-			SDL_WM_GrabInput(SDL_GRAB_ON);
 			if (!originalrenderer) //Failed to allocate?
 			{
 				raiseError("GPU","Error allocating PSP Main Rendering Surface!");
@@ -138,6 +167,29 @@ void initVideo(int show_framerate) //Initialises the video
 
 //We're running with SDL?
 	//dolog("GPU","Device ready.");
+}
+
+void updateVideo() //Update the screen resolution on change!
+{
+	//We're disabled with the PSP: it doesn't update resolution!
+	#ifndef __psp__
+	static word xres=0;
+	static word yres=0;
+	if (rendersurface) //Already started?
+	{
+		if ((xres^GPU.xres) || (yres^GPU.yres)) //Resolution changed?
+		{
+			xres = GPU.xres;
+			yres = GPU.yres;
+			if (getGPUSurface()) //Update the current surface if needed!
+			{
+				freez((void **)&rendersurface, sizeof(*rendersurface), NULL); //Release the surface!
+				rendersurface = getSurfaceWrapper(originalrenderer); //Apply the new renderer!
+				rendersurface->flags |= SDL_FLAG_DIRTY; //Force re-rendering!
+			}
+		}
+	}
+	#endif
 }
 
 void doneVideo() //We're done with video operations?

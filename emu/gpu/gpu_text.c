@@ -1,7 +1,7 @@
 #include "headers/emu/gpu/gpu.h" //Basic GPU!
 #include "headers/emu/gpu/gpu_text.h" //Our prototypes!
 #include "headers/emu/gpu/gpu_sdl.h" //Our prototypes!
-#include "headers/hardware/vga.h" //VGA for font!
+#include "headers/hardware/vga_screen/vga_vramtext.h" //VGA for font!
 #include "headers/support/zalloc.h" //Zero allocation support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/bmp.h" //Bitmap support!
@@ -12,19 +12,22 @@
 
 extern GPU_SDL_Surface *rendersurface; //The PSP's surface to use when flipping!
 
-OPTINLINE static byte GPU_textget_pixel(PSP_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
+word TEXT_xdelta = 0;
+word TEXT_ydelta = 0; //Delta x,y!
+
+OPTINLINE byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
 {
 	if (((x<0) || (y<0) || ((y>>3)>GPU_TEXTSURFACE_HEIGHT) || ((x>>3)>GPU_TEXTSURFACE_WIDTH))) return 0; //None when out of bounds!
 	return getcharxy_8(surface->text[y>>3][x>>3], x&7, y&7); //Give the pixel of the character!
 }
 
-OPTINLINE static uint_32 GPU_textgetcolor(PSP_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
+OPTINLINE uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
 {
 	if (((x<0) || (y<0) || ((y>>3)>GPU_TEXTSURFACE_HEIGHT) || ((x>>3)>GPU_TEXTSURFACE_WIDTH))) return TRANSPARENTPIXEL; //None when out of bounds!
 	return border?surface->border[y>>3][x>>3]:surface->font[y>>3][x>>3]; //Give the border or font of the character!
 }
 
-OPTINLINE static void updateDirty(PSP_TEXTSURFACE *surface, int fx, int fy)
+OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 {
 	surface->dirty[fy][fx] = 0; //We're going to un-dirty this!
 	//Undirty!
@@ -52,12 +55,14 @@ OPTINLINE static void updateDirty(PSP_TEXTSURFACE *surface, int fx, int fy)
 	surface->notdirty[fy][fx] = TRANSPARENTPIXEL;
 }
 
-OPTINLINE static void GPU_textput_pixel(GPU_SDL_Surface *dest, PSP_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
+OPTINLINE void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
 {
 	if (surface->dirty[fy][fx]) updateDirty(surface,fx,fy); //Update dirty if needed!
 	register uint_32 color = surface->notdirty[fy][fx];
 	if (color!=TRANSPARENTPIXEL)
 	{
+		if (surface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
+		if (surface->ydelta) fy += TEXT_ydelta; //Apply delta position to the output pixel!
 		put_pixel(dest,fx,fy,color); //Plot the pixel!
 	}
 	//We're transparent, do don't plot!
@@ -65,9 +70,9 @@ OPTINLINE static void GPU_textput_pixel(GPU_SDL_Surface *dest, PSP_TEXTSURFACE *
 
 BACKLISTITEM defaultbacklist[8] = {{1,1},{1,0},{0,1},{1,-1},{-1,1},{0,-1},{-1,0},{-1,-1}}; //Default back list!
 
-PSP_TEXTSURFACE *alloc_GPUtext()
+GPU_TEXTSURFACE *alloc_GPUtext()
 {
-	PSP_TEXTSURFACE *surface = (PSP_TEXTSURFACE *)zalloc(sizeof(PSP_TEXTSURFACE),"PSP_TextSurface"); //Create an empty initialised surface!
+	GPU_TEXTSURFACE *surface = (GPU_TEXTSURFACE *)zalloc(sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE"); //Create an empty initialised surface!
 	if (!surface) //Failed to allocate?
 	{
 		return NULL; //Failed to allocate!
@@ -83,11 +88,11 @@ PSP_TEXTSURFACE *alloc_GPUtext()
 	return surface; //Give the allocated surface!
 }
 
-void free_GPUtext(PSP_TEXTSURFACE **surface)
+void free_GPUtext(GPU_TEXTSURFACE **surface)
 {
 	if (!surface) return; //Still allocated or not!
 	if (!*surface) return; //Still allocated or not!
-	freez((void **)surface,sizeof(PSP_TEXTSURFACE),"PSP_TextSurface"); //Release the memory, if possible!
+	freez((void **)surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE"); //Release the memory, if possible!
 	if (*surface) //Still allocated?
 	{
 		dolog("zalloc","GPU_TextSurface still allocated?");
@@ -101,7 +106,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	initTicksHolder(&ms_render_lastcheck); //Init for counting time of rendering on the device directly from VGA data!
 	getuspassed(&ms_render_lastcheck); //Get first value!
 	register int y=0;
-	PSP_TEXTSURFACE *tsurface = (PSP_TEXTSURFACE *)surface; //Convert!
+	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 	for (;;) //Process all rows!
 	{
 		register int x=0; //Reset x!
@@ -116,7 +121,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	return getuspassed(&ms_render_lastcheck); //Give processing time!
 }
 
-int GPU_textgetxy(PSP_TEXTSURFACE *surface,int x, int y, byte *character, uint_32 *font, uint_32 *border) //Read a character+attribute!
+int GPU_textgetxy(GPU_TEXTSURFACE *surface,int x, int y, byte *character, uint_32 *font, uint_32 *border) //Read a character+attribute!
 {
 	if (!surface) return 0; //Not allocated!
 	if (y>=GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
@@ -127,7 +132,7 @@ int GPU_textgetxy(PSP_TEXTSURFACE *surface,int x, int y, byte *character, uint_3
 	return 1; //OK!
 }
 
-static void GPU_markdirty(PSP_TEXTSURFACE *surface, int x, int y) //Mark a character as dirty (GPU_text only, to prevent multirendering!)
+void GPU_markdirty(GPU_TEXTSURFACE *surface, int x, int y) //Mark a character as dirty (GPU_text only, to prevent multirendering!)
 {
 	int rx;
 	int ry;
@@ -149,7 +154,7 @@ static void GPU_markdirty(PSP_TEXTSURFACE *surface, int x, int y) //Mark a chara
 	surface->flags |= TEXTSURFACE_FLAG_DIRTY; //Set dirty!
 }
 
-int GPU_textsetxy(PSP_TEXTSURFACE *surface,int x, int y, byte character, uint_32 font, uint_32 border) //Write a character+attribute!
+int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32 font, uint_32 border) //Write a character+attribute!
 {
 	if (!surface) return 0; //Not allocated!
 	if (y>=GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
@@ -172,7 +177,7 @@ int GPU_textsetxy(PSP_TEXTSURFACE *surface,int x, int y, byte character, uint_32
 	return 1; //OK!
 }
 
-void GPU_textclearrow(PSP_TEXTSURFACE *surface, int y)
+void GPU_textclearrow(GPU_TEXTSURFACE *surface, int y)
 {
 	int x=0;
 	for (;;)
@@ -182,7 +187,7 @@ void GPU_textclearrow(PSP_TEXTSURFACE *surface, int y)
 	}
 }
 
-void GPU_textclearscreen(PSP_TEXTSURFACE *surface)
+void GPU_textclearscreen(GPU_TEXTSURFACE *surface)
 {
 	int y=0;
 	for (;;)
@@ -192,7 +197,7 @@ void GPU_textclearscreen(PSP_TEXTSURFACE *surface)
 	}
 }
 
-void GPU_textprintf(PSP_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...)
+void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...)
 {
 	if (!surface) return; //Not allocated!
 	char msg[256];
@@ -230,7 +235,7 @@ void GPU_textprintf(PSP_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 	surface->y = cury; //Update y!
 }
 
-void GPU_textgotoxy(PSP_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
+void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 {
 	if (!surface) return; //Not allocated!
 	int curx = x;
@@ -246,6 +251,28 @@ void GPU_textgotoxy(PSP_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 
 OPTINLINE byte GPU_textdirty(void *surface)
 {
-	PSP_TEXTSURFACE *tsurface = (PSP_TEXTSURFACE *)surface;
-	return (tsurface->flags&TEXTSURFACE_FLAG_DIRTY)>0; //Are we dirty?
+	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface;
+	if (tsurface)
+	{
+		return (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) > 0; //Are we dirty?
+	}
+	return 0; //No surface = not dirty!
+}
+
+void GPU_enableDelta(GPU_TEXTSURFACE *surface, byte xdelta, byte ydelta) //Enable delta coordinates on the x/y axis!
+{
+	surface->xdelta = xdelta; //Enable x delta?
+	surface->ydelta = ydelta; //Enable y delta?
+}
+
+void GPU_text_updatedelta(SDL_Surface *surface)
+{
+	if (!surface) return; //Invalid surface!
+	sword xdelta, ydelta;
+	xdelta = surface->w; //Current resolution!
+	ydelta = surface->h; //Current resolution!
+	xdelta -= GPU_TEXTPIXELSX;
+	ydelta -= GPU_TEXTPIXELSY; //Calculate delta!
+	TEXT_xdelta = xdelta; //Horizontal delta!
+	TEXT_ydelta = ydelta; //Vertical delta!
 }

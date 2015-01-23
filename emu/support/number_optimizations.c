@@ -11,7 +11,7 @@
 		}  //Able to mod by anding with division-1?, simple way!
 
 //Calculates the power of 2!
-static uint_32 DIVMULPOW2_32(uint_32 val, uint_32 todiv, byte divide) //Find the lowest bit that's on!
+uint_32 DIVMULPOW2_32(uint_32 val, uint_32 todiv, byte divide) //Find the lowest bit that's on!
 {
 	if (val&0x8) //8?
 	{
@@ -34,7 +34,7 @@ static uint_32 DIVMULPOW2_32(uint_32 val, uint_32 todiv, byte divide) //Find the
 	return 0; //Give the original!
 }
 
-static unsigned int DIVMULPOW2_16(unsigned int val, unsigned int todiv, byte divide) //Find the lowest bit that's on!
+unsigned int DIVMULPOW2_16(unsigned int val, unsigned int todiv, byte divide) //Find the lowest bit that's on!
 {
 	if (val&0x8) //8?
 	{

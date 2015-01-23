@@ -1,7 +1,8 @@
 #include "headers/hardware/vga.h" //Our typedefs etc!
 #include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller for typedef of attribute info!
-#include "headers/hardware/vga_screen/vga_crtcontroller.h" //CRT controller!
+#include "headers/hardware/vga_screen/vga_crtcontroller.h" //CRT Controller!
 #include "headers/hardware/vga_screen/vga_vram.h" //Our VRAM support!
+#include "headers/hardware/vga_screen/vga_vramtext.h" //Our VRAM text support!
 #include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer!
@@ -20,7 +21,7 @@ OPTINLINE uint_32 getcursorlocation(VGA_Type *VGA) //Location of the cursor!
 #define CURSORENABLED1 (!VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable)
 #define CURSORENABLED2 (VGA->CursorOn)
 
-static OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,uint_32 Sequencer_textmode_charindex) //Cursor scanline within character is cursor? Used to be: VGA_Type *VGA, byte ScanLine,uint_32 characterlocation
+OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,uint_32 Sequencer_textmode_charindex) //Cursor scanline within character is cursor? Used to be: VGA_Type *VGA, byte ScanLine,uint_32 characterlocation
 {
 	if (CHARISCURSOR) //Character is cursor?
 	{

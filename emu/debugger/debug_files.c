@@ -56,14 +56,14 @@ void DoDebugFiles() //Do the debug files!
 			GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Verifying %s...",file_name);
 			dolog("ROM_log","Start verifying %s!",file_name); //Start!
 			refreshscreen(); //Update the screen now!
-			int verified = 0;
+			int verified = 0, dummy=0;
 			verified = runromverify(file_name,file_nameres); //Verified?
 			if (verified)
 			{
 				GPU_EMU_printscreen(-1,-1,"Verified.");
 				dolog("ROM_log","%s has been verified!",file_name);
 				//Move the files to the finish directory!
-				mkdir("debugsucceeded"); //Make sure the directory exists!
+				dummy = mkdir("debugsucceeded"); //Make sure the directory exists!
 				move_file(file_name,finish_name); //Move file!
 				move_file(file_nameres,finish_nameres); //Move file!
 			}

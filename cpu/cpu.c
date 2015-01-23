@@ -435,6 +435,8 @@ void doneCPU() //Finish the CPU!
 	free_CPUregisters(); //Finish the allocated registers!
 }
 
+CPU_registers dummyregisters; //Dummy registers!
+
 //Specs for 80386 says we start in REAL mode!
 //STDMODE: 0=protected; 1=real; 2=Virtual 8086.
 
@@ -448,17 +450,14 @@ void CPU_resetMode() //Resets the mode!
 
 byte getcpumode() //Retrieves the current mode!
 {
+	static const byte modes[4] = { CPU_MODE_REAL, CPU_MODE_PROTECTED, CPU_MODE_REAL, CPU_MODE_8086 }; //All possible modes (VM86 mode can't exist without Protected Mode!)
+	byte mode = 0;
 	if (!CPU.registers) CPU_initRegisters(); //Make sure we have registers!
-	if (!CPU.registers->SFLAGS.V8 && CPU.registers->CR0.PE) //Protected mode with only PE bit set?
-	{
-		return CPU_MODE_PROTECTED; //ProtectedMode!
-	}
-	else if (CPU.registers->SFLAGS.V8) //VM86 mode when FLAG_V8 bit set?
-	{
-		return CPU_MODE_8086; //Default: virtual 8086 mode!
-	}
-	//Real mode by default! This can't be reached in 8086/80186 real mode (PE&FLAG_V8 flags unaccessable)!
-	return CPU_MODE_REAL; //Default: Real mode!
+	if (!CPU.registers) CPU.registers = &dummyregisters; //Dummy registers!
+	mode = CPU.registers->SFLAGS.V8; //VM86 mode?
+	mode <<= 1;
+	mode |= CPU.registers->CR0.PE; //Protected mode?
+	return modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
 }
 
 

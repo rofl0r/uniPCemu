@@ -5,6 +5,7 @@
 
 FILEPOS staticimage_getsize(char *filename)
 {
+	if (strcmp(filename, "") == 0) return 0; //Not mountable!
 	FILE *f;
 	f = fopen64(filename,"rb+"); //Open!
 	if (!f) //Not found?
@@ -22,8 +23,8 @@ int staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Write
 {
 	FILE *f;
 	f = fopen64(filename,"rb+"); //Open!
-	fseek64(f,sector*512,SEEK_SET); //Find block info!
-	if (ftell64(f)!=(sector*512)) //Not found?
+	fseek64(f,sector<<9,SEEK_SET); //Find block info!
+	if (ftell64(f)!=(sector<<9)) //Not found?
 	{
 		fclose64(f); //Close the file!
 		return FALSE; //Error!
@@ -41,8 +42,8 @@ int staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a
 {
 	FILE *f;
 	f = fopen64(filename,"rb"); //Open!
-	fseek64(f,sector*512,SEEK_SET); //Find block info!
-	if (ftell64(f)!=(sector*512)) //Not found?
+	fseek64(f,sector<<9,SEEK_SET); //Find block info!
+	if (ftell64(f)!=(sector<<9)) //Not found?
 	{
 		fclose64(f); //Close the file!
 		return FALSE; //Error!

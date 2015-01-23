@@ -17,7 +17,7 @@ void *memprotect(void *ptr, uint_32 size, char *name); //Checks address (with na
 OPTINLINE uint_32 freemem(); //Free memory left!
 
 //Debugging functionality for finding memory leaks!
-void logpointers(); //Logs any changes in memory usage!
+void logpointers(char *cause); //Logs any changes in memory usage!
 
 //For stuff using external allocations:
 int registerptr(void *ptr,uint_32 size, char *name, DEALLOCFUNC dealloc); //Register a pointer!

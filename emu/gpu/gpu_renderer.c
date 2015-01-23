@@ -42,9 +42,9 @@ void renderScreenFrame() //Render the screen frame!
 }
 
 char filename[256];
-static char *get_screencapture_filename() //Filename for a screen capture!
+char *get_screencapture_filename() //Filename for a screen capture!
 {
-	mkdir("captures"); //Captures directory!
+	int dummy = mkdir("captures"); //Captures directory!
 	uint_32 i=0; //For the number!
 	char filename2[256];
 	memset(&filename2,0,sizeof(filename2)); //Init filename!
@@ -60,7 +60,7 @@ uint_32 *row_empty = NULL; //A full row, non-initialised!
 uint_32 row_empty_size = 0; //No size!
 GPU_SDL_Surface *resized = NULL; //Standard resized data, keep between unchanged screens!
 
-static void init_rowempty()
+void init_rowempty()
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (!row_empty) //Not allocated yet?
@@ -70,7 +70,7 @@ static void init_rowempty()
 	}
 }
 
-static void GPU_finishRenderer() //Finish the rendered surface!
+void GPU_finishRenderer() //Finish the rendered surface!
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (resized) //Resized still buffered?
@@ -97,7 +97,7 @@ uint_32 *get_rowempty()
 }
 
 uint_32 ms_render = 0; //MS it took to render (125000 for 8fps, which is plenty!)
-static void render_EMU_screen() //Render the EMU buffer to the screen!
+void render_EMU_screen() //Render the EMU buffer to the screen!
 {
 	if (!memprotect(rendersurface,sizeof(*rendersurface),NULL)) return; //Nothing to render to!
 	if (!memprotect(rendersurface->sdllayer,sizeof(*rendersurface->sdllayer),NULL)) return; //Nothing to render to!
@@ -166,12 +166,12 @@ static void render_EMU_screen() //Render the EMU buffer to the screen!
 	}
 }
 
-static byte getresizeddirty() //Is the emulated screen dirty?
+OPTINLINE byte getresizeddirty() //Is the emulated screen dirty?
 {
 	return resized?((resized->flags&SDL_FLAG_DIRTY)>0):0; //Are we dirty?
 }
 
-static void renderFrames() //Render all frames to the screen!
+void renderFrames() //Render all frames to the screen!
 {
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
 	{
@@ -218,7 +218,7 @@ static void renderFrames() //Render all frames to the screen!
 }
 
 //Rendering functionality!
-static void GPU_directRenderer() //Plot directly 1:1 on-screen!
+void GPU_directRenderer() //Plot directly 1:1 on-screen!
 {
 	if (__HW_DISABLED) return; //Abort?
 	init_rowempty(); //Init empty row!
@@ -287,7 +287,7 @@ static void GPU_directRenderer() //Plot directly 1:1 on-screen!
 	//OK: rendered to PSP buffer!
 }
 
-static void render_EMU_buffer() //Render the EMU to the buffer!
+void render_EMU_buffer() //Render the EMU to the buffer!
 {
 	getuspassed(&ms_render_lastcheck); //Init last check to current time!
 	//Next, allocate all buffers!
@@ -328,7 +328,7 @@ static void render_EMU_buffer() //Render the EMU to the buffer!
 byte SplitScreen = 0; //Default: no split-screen!
 uint_32 SplitScreen_Start; //Start of split-screen operations!
 
-static void GPU_fullRenderer()
+void GPU_fullRenderer()
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
@@ -362,6 +362,7 @@ void renderHWFrame() //Render a frame from hardware!
 
 	if (ALLOW_HWRENDERING)
 	{
+		updateVideo(); //Change display resolution of output when needed!
 		init_rowempty(); //Init empty row!
 		//Start the rendering!
 		if (!VIDEO_DIRECT) //To do scaled mapping to the screen?

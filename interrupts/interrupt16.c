@@ -155,7 +155,7 @@ static Bitu call_int16,call_irq1,call_irq6;
 
 /* Nice table from BOCHS i should feel bad for ripping this */
 #define none 0
-static struct {
+struct {
   Bit16u normal;
   Bit16u shift;
   Bit16u control;
@@ -277,11 +277,11 @@ bool BIOS_AddKeyToBuffer(Bit16u code) {
 	return true;
 }
 
-static void add_key(Bit16u code) {
+void add_key(Bit16u code) {
 	if (code!=0) BIOS_AddKeyToBuffer(code);
 }
 
-static bool get_key(Bit16u *code) {
+bool get_key(Bit16u *code) {
 	Bit16u start,end,head,tail,thead;
 	/*if (machine==MCH_PCJR) {
 		/ should be done for cga and others as well, to be tested /
@@ -302,7 +302,7 @@ static bool get_key(Bit16u *code) {
 	return true;
 }
 
-static bool check_key(Bit16u *code) {
+bool check_key(Bit16u *code) {
 	Bit16u head,tail;
 	head =mem_readw(BIOS_KEYBOARD_BUFFER_HEAD);
 	tail =mem_readw(BIOS_KEYBOARD_BUFFER_TAIL);
@@ -581,7 +581,7 @@ irq1_end:
 
 /* check whether key combination is enhanced or not,
    translate key if necessary */
-static bool IsEnhancedKey(Bit16u *key) {
+bool IsEnhancedKey(Bit16u *key) {
 	/* test for special keys (return and slash on numblock) */
 	if ((*key>>8)==0xe0) {
 		if (((*key&0xff)==0x0a) || ((*key&0xff)==0x0d)) {
@@ -700,7 +700,7 @@ void INT16_Handler(void) {
 extern bool startup_state_numlock;
 extern bool startup_state_capslock;
 
-static void InitBiosSegment(void) {
+void InitBiosSegment(void) {
 	Bit8u flag1;
 	Bit8u leds;
 	/* Setup the variables for keyboard in the bios data segment */

@@ -276,7 +276,7 @@ uint_64 disksize(int disknumber)
 
 uint_64 floppy_LBA(int floppy,word head, word track, word sector)
 {
-	return ((((head*floppy_tracks(disksize(floppy))+track)*floppy_spt(disksize(floppy)))+sector-1)<<9); //Give LBA for floppy!
+	return (uint_64)(((uint_64)(((head*floppy_tracks(disksize(floppy))+track)*floppy_spt(disksize(floppy)))+sector-1))<<9); //Give LBA for floppy!
 }
 
 
@@ -365,7 +365,7 @@ byte GetBIOSType(byte disk)
 byte last_status; //Status of last operation
 byte last_drive; //Last drive something done to
 
-byte readdiskdata(uint_32 startpos)
+byte readdiskdata(uint_64 startpos)
 {
 	byte buffer[512]; //A sector buffer to read!
 	byte readdata_result;
@@ -426,7 +426,7 @@ byte readdiskdata(uint_32 startpos)
 	return (byte)sector; //Give the ammount of sectors read!
 }
 
-byte writediskdata(uint_32 startpos)
+byte writediskdata(uint_64 startpos)
 {
 	byte buffer[512]; //A sector buffer to read!
 	//Detect ammount of sectors to be able to read!

@@ -328,12 +328,12 @@ void DMA_tick()
 			{
 				case 0:
 				case 1: //TC(&EOP at 1) determines running time!
-						processchannel = !DMAController[controller].TransferComplete&(1<<channel); //TC determines processing!
+						processchannel = !(DMAController[controller].TransferComplete&(1<<channel)); //TC determines processing!
 						processchannel &= (DMAController[controller].DACK&(1<<channel)>>channel); //Process acnowledge!
 						break;
 				case 2: //TC(also caused by EOP) and DREQ masked determines running time!
 						//DACK isn't used in this case!
-						processchannel = !DMAController[controller].TransferComplete&(1<<channel); //TC determines processing!
+						processchannel = !(DMAController[controller].TransferComplete&(1<<channel)); //TC determines processing!
 						processchannel &= (DMAController[controller].DREQ&((~DMAController[controller].MultiChannelMaskRegister)&(1<<channel))); //We're affected directly by the DREQ!
 						break;
 			}

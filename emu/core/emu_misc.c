@@ -33,7 +33,7 @@ char *constsprintf(char *text, ...)
 	return &concatinations_constsprintf[0]; //Give the concatinated string!
 }
 
-extern PSP_TEXTSURFACE *frameratesurface; //The framerate surface!
+extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 void BREAKPOINT() //Break point!
 {
 	termThreads(); //Terminate all other threads!

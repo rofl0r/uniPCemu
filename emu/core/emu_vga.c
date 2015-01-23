@@ -21,7 +21,7 @@ Renderer mini-optimizations.
 
 */
 
-static void VGA_generateScreenLine() //Generate one step in VGA Screen Lines!
+void VGA_generateScreenLine() //Generate one step in VGA Screen Lines!
 {
 	if (__HW_DISABLED) return; //Disabled?
 	VGA_Sequencer(getActiveVGA()); //Generate one line only!

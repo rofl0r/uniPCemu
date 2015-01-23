@@ -4,7 +4,7 @@
 typedef struct
 {
 	int device; //The device used!
-	uint_32 startpos; //Startpos within the file!
+	uint_64 startpos; //Startpos within the file!
 	uint_32 imagesize; //The size of the image!
 	int used; //Is this info used (0 for normal image, 1 for read-only BOOTIMGINFO)
 } BOOTIMGINFO;

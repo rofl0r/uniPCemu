@@ -19,11 +19,15 @@
 #include "SDL/SDL.h" //SDL library!
 #include "SDL/SDL_events.h" //SDL events!
 #endif
+
+//Enable inlining if set!
+#define __ENABLE_INLINE
+
 //Our basic functionality we need for running this program!
 //We have less accuracy using SDL delay: ms instead of us. Round to 1ms if needed!
-#define delay(us) SDL_Delay((us)/1000)
+#define delay(us) SDL_Delay(((us)>=1000)?((us)/1000):1)
 //Sleep is an infinite delay
-#define sleep() for (;;) SDL_Delay(1)
+#define sleep() for (;;) SDL_Delay(1000)
 #define halt SDL_Quit
 
 #ifndef uint_64
@@ -59,10 +63,10 @@
 #define EXIT_PRIORITY 0x11
 //Exit priority, higest of all!
 
-typedef unsigned char byte;
-typedef unsigned short word;
-typedef signed char sbyte; //Signed!
-typedef signed short sword; //Signed!
+typedef uint8_t byte;
+typedef uint16_t word;
+typedef int8_t sbyte; //Signed!
+typedef int16_t sword; //Signed!
 
 #define TRUE 1
 #define FALSE 0
@@ -154,7 +158,22 @@ void debugrow(char *text); //Log a row to debugrow log!
 void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 
 //INLINE options!
+#ifdef OPTINLINE
+#undef OPTINLINE
+#endif
+
+#ifdef __ENABLE_INLINE
+#ifdef _WIN32
+//Windows?
+//For some reason inline functions don't work on windows?
 #define OPTINLINE
+#else
+//PSP?
+#define OPTINLINE inline
+#endif
+#else
+#define OPTINLINE
+#endif
 
 OPTINLINE double getCurrentClockSpeed(); //Retrieves the current clock speed!
 #endif

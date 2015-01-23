@@ -15,6 +15,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	va_list args; //Going to contain the list!
 	uint_64 time;
 	FILE *f; //The file to use!
+	int dummy;
 
 	//First: init variables!
 	bzero(filenametmp,sizeof(filenametmp)); //Init filename!
@@ -29,7 +30,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	}
 	strcat(filenametmp,".log"); //Do log here!
 	
-	mkdir("logs"); //Create a logs directory if needed!
+	dummy = mkdir("logs"); //Create a logs directory if needed!
 	
 	va_start (args, format); //Start list!
 	vsprintf (logtext, format, args); //Compile list!

@@ -1,45 +1,59 @@
 #include "headers/emu/directorylist.h" //Our typedefs!
 #include "headers/support/zalloc.h" //Zero allocation support!
+#include "headers/support/log.h" //Debugging!
 
 byte isext(char *filename, char *extension)
 {
+	char ext[256]; //Temp extension holder!
 	if (filename == NULL) return FALSE; //No ptr!
 	if (extension == NULL) return FALSE; //No ptr!
-	int startpos = safe_strlen(filename, 256) - safe_strlen(extension, 256) - safe_strlen(".", 2); //Start position of the extension!
-	if (startpos<0) //Not available?
-	{
-		return 0; //Not this extension!
-	}
+	char temp[256];
+	bzero(temp, sizeof(temp));
+	strcat(temp, "|"); //Starting delimiter!
+	strcat(temp, extension);
+	strcat(temp, "|"); //Finishing delimiter!
 	char *curchar;
-	int counter = 0; //Counter!
-	curchar = filename; //Take over!
-	while (counter<startpos) //Goto start pos!
+	byte result;
+	int counter; //Counter!
+	extension = strtok(temp, "|"); //Start token!
+	for (;safe_strlen(extension,256);) //Not an empty string?
 	{
-		++curchar; //Next character!
-		++counter; //Next position!
-	}
-	char ext[256]; //Temp extension holder!
-	bzero(ext, sizeof(ext)); //Init!
-	strcpy(ext, "."); //Init!
-	strcat(ext, extension); //Add extension to compare!
-	char *comparedata;
-	comparedata = &ext[0]; //Start of the comparision!
-	//Now we're at the startpos. MUST MATCH ALL CHARACTERS!
-	int result = 1; //Default: match!
-	while (counter<safe_strlen(filename, 256)) //Not end of string?
-	{
-		//Are we equal or not?
-		if (toupper((int)*curchar) != toupper((int)*comparedata)) //Not equal (case insensitive)?
+		bzero(ext, sizeof(ext)); //Init!
+		strcpy(ext, "."); //Init!
+		strcat(ext, extension); //Add extension to compare!
+		int startpos = safe_strlen(filename, 256) - safe_strlen(ext, 256); //Start position of the extension!
+		result = 0; //Default: not there yet!
+		if (startpos >= 0) //Available?
 		{
-			result = 0; //Not extension!
-			break; //Stop comparing!
+			char *comparedata;
+			comparedata = &ext[0]; //Start of the comparision!
+			curchar = &filename[startpos]; //Start of the extension!
+			//Now we're at the startpos. MUST MATCH ALL CHARACTERS!
+			result = 1; //Default: match!
+			counter = 0; //Process the complete extension!
+			while (counter < safe_strlen(ext, 256)) //Not end of string?
+			{
+				//Are we equal or not?
+				if (toupper((int)*curchar) != toupper((int)*comparedata)) //Not equal (case insensitive)?
+				{
+					result = 0; //Not extension!
+					break; //Stop comparing!
+				}
+				++comparedata; //Next character to compare!
+				++curchar; //Next character in string to compare!
+				++counter; //Next position!
+			}
 		}
-		++comparedata; //Next character to compare!
-		++curchar; //Next character in string to compare!
-		++counter; //Next position!
+		if (result) return 1; //Found an existing extension!
+		extension = strtok(NULL, "|"); //Next token!
 	}
 
-	return result; //Give the result: 1 for is extension, 0 for not extension!
+	return 0; //NOt he extension!
+}
+
+void get_filename(const wchar_t *src, char *dest)
+{
+	wcstombs(dest,src , 256); //Convert to viewable size!
 }
 
 byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfile) //Open a directory for reading, give the first entry if any!
@@ -50,16 +64,17 @@ byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfi
 	//Windows?
 	strcpy(dirlist->path,path); //Initialise the path!
 	memcpy(&dirlist2,dirlist,sizeof(dirlist2)); //Copy the path!
-	strcat(dirlist2.path,"\\*"); //Add the wildcard to the filename to search!
-	StringCchCopy(dirlist->szDir, MAX_PATH, (STRSAFE_LPCWSTR)&dirlist2.path);
+	strcat(dirlist2.path,"\\*.*"); //Add the wildcard to the filename to search!
+	StringCchCopy(dirlist->szDir, MAX_PATH, (STRSAFE_LPCSTR)&dirlist2.path);
 	dirlist->hFind = FindFirstFile(dirlist->szDir, &dirlist->ffd); //Find the first file!
 	if (dirlist->hFind==INVALID_HANDLE_VALUE) //Invalid?
 	{
 		return 0; //Invalid handle: not usable!
 	}
 	//We now have the first entry, so give it!
-	wcstombs(entry, dirlist->ffd.cFileName, wcslen(&dirlist->ffd.cFileName[0])); //Convert to viewable size!
-	*isfile = ((dirlist->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)>0); //Are we a file?
+	//get_filename(dirlist->ffd.cFileName, entry); //Convert filename found!
+	strcpy_s(entry, 256,dirlist->ffd.cFileName); //Copy the filename!
+	*isfile = ((dirlist->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)==0); //Are we a file?
 	return 1; //We have a valid file loaded!
 #else
 	//PSP?
@@ -79,8 +94,8 @@ byte readdirlist(DirListContainer_p dirlist, char *entry, byte *isfile) //Read a
 	//Windows?
 	if (FindNextFile(dirlist->hFind, &dirlist->ffd) != 0) //Found a next file?
 	{
-		wcstombs(entry, dirlist->ffd.cFileName, wcslen(&dirlist->ffd.cFileName[0])); //Convert to viewable size!
-		*isfile = ((dirlist->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)>0); //Are we a file?
+		strcpy_s(entry,256,dirlist->ffd.cFileName); //Convert filename found!
+		*isfile = ((dirlist->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)==0); //Are we a file?
 		return 1; //We have a valid file loaded!
 	}
 	return 0; //No file found!

@@ -76,7 +76,7 @@ write:
 
 //CRTC
 
-static byte PORT_readCRTC_3B5() //Read CRTC registers!
+byte PORT_readCRTC_3B5() //Read CRTC registers!
 {
 	if ((ActiveVGA->registers->CRTControllerRegisters_Index>0xF) && (ActiveVGA->registers->CRTControllerRegisters_Index<0x12) && (!ActiveVGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EVRA)) //Reading from light pen location registers?
 	{
@@ -97,7 +97,7 @@ static byte PORT_readCRTC_3B5() //Read CRTC registers!
 	return ActiveVGA->registers->CRTControllerRegisters.DATA[ActiveVGA->registers->CRTControllerRegisters_Index]; //Give normal index!
 }
 
-static void PORT_write_CRTC_3B5(byte value)
+void PORT_write_CRTC_3B5(byte value)
 {
 	byte temp; //For index 7 write protected!
 	byte index = ActiveVGA->registers->CRTControllerRegisters_Index; //What index?
@@ -157,7 +157,7 @@ static void PORT_write_CRTC_3B5(byte value)
 
 //ATTRIBUTE CONTROLLER
 
-static void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
+void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
 {
 	if (!VGA_3C0_FLIPFLOP) //Index mode?
 	{
@@ -182,7 +182,7 @@ static void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
 
 //MISC
 
-static void PORT_write_MISC_3C2(byte value) //Misc Output register!
+void PORT_write_MISC_3C2(byte value) //Misc Output register!
 {
 	ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA = value; //Set!
 	VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_MISCOUTPUTREGISTER); //We have been updated!
@@ -190,7 +190,7 @@ static void PORT_write_MISC_3C2(byte value) //Misc Output register!
 
 //DAC
 
-static byte PORT_read_DAC_3C9() //DAC Data register!
+byte PORT_read_DAC_3C9() //DAC Data register!
 {
 	word index = ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER; //Load current DAC index!
 	index <<= 2; //Multiply for the index!
@@ -211,7 +211,7 @@ static byte PORT_read_DAC_3C9() //DAC Data register!
 	return result; //Give the result!
 }
 
-static void PORT_write_DAC_3C9(byte value) //DAC Data register!
+void PORT_write_DAC_3C9(byte value) //DAC Data register!
 {
 	word entrynumber = ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Current entry number!
 	word index = entrynumber; //Load current DAC index!

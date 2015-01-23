@@ -19,7 +19,7 @@ extern byte dosoftreset; //To soft-reset?
 extern PIC i8259; //PIC processor!
 extern byte cpudebugger; //To debug the CPU?
 
-extern PSP_TEXTSURFACE *frameratesurface;
+extern GPU_TEXTSURFACE *frameratesurface;
 
 extern byte allow_RETHalt; //Allow RET(level<0)=HALT?
 extern byte LOG_MMU_WRITES; //Log MMU writes?

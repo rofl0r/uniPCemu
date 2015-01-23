@@ -6,7 +6,7 @@
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 
 extern GPU_type GPU; //GPU!
-extern PSP_TEXTSURFACE *BIOS_Surface; //Our very own BIOS Surface!
+extern GPU_TEXTSURFACE *BIOS_Surface; //Our very own BIOS Surface!
 
 /*
 

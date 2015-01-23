@@ -1,6 +1,6 @@
 #include "headers/hardware/vga.h"
 #include "headers/hardware/vga_screen/vga_attributecontroller.h" //Our own typedefs!
-#include "headers/hardware/vga_screen/vga_dac.h" //DAC support!
+#include "headers/hardware/vga_screen/vga_dacrenderer.h" //DAC support!
 #include "headers/hardware/vga_screen/vga_sequencer_graphicsmode.h" //For masking planes!
 #include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
 
@@ -37,29 +37,6 @@ OPTINLINE byte getattributeback(byte textmode, byte attr,byte filter)
 	temp &= filter; //Apply filter!
 	return temp; //Need attribute registers below used!
 }
-
-//This is a slow function:
-/*OPTINLINE byte getColorPlaneEnableMask(VGA_Type *VGA, VGA_AttributeInfo *Sequencer_attributeinfo) //Determine the bits to process!
-{
-	register byte result=0; //Init result!
-	register byte bitval=1; //Our bit value!
-	register uint_32 bitplane;
-	register uint_32 colorplanes = Sequencer_attributeinfo->attributesource; //What's our source?
-	register uint_32 enableplanes = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA; //What planes to enable?
-	enableplanes &= 0xF; //Only the low 4 bits are used!
-	for (;;) //Loop bits!
-	{
-		bitplane = colorplanes; //The color planes, low byte!
-		bitplane &= 0xF; //Only the low 4 bits are used!
-		if ((bitplane&enableplanes)==bitplane) //Planes all valid for this bit?
-		{
-			result |= bitval; //Enable the bit!
-		}
-		if (bitval==0x80) return result; //Done!
-		bitval <<= 1; //Shift bit to next bit value!
-		colorplanes >>= 4; //Shift to next bit planes!
-	}
-}*/
 
 //Dependant on mode control register and underline location register
 void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
@@ -221,12 +198,12 @@ byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 }
 
 //Translate 4-bit or 8-bit color to 256 color DAC Index through palette!
-OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, SEQ_DATA *Sequencer) //Process attribute to DAC index!
+OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer) //Process attribute to DAC index!
 {
 	//Originally: VGA_Type *VGA, word Scanline, word x, VGA_AttributeInfo *info
 	static VGA_AttributeController_Mode attributecontroller_modes[2] = {VGA_AttributeController_4bit, VGA_AttributeController_8bit}; //Both modes we use!
 
 	//Our changing variables that are required!
-	return attributecontroller_modes[VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit](Sequencer_attributeinfo,VGA,Sequencer); //Passthrough!
+	return attributecontroller_modes[VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit](Sequencer_attributeinfo,VGA,(SEQ_DATA *)Sequencer); //Passthrough!
 
 }

@@ -1,6 +1,6 @@
 #include "headers/hardware/vga.h" //VGA support!
 #include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
-#include "headers/hardware/vga_screen/vga_dac.h" //Our defs!
+#include "headers/hardware/vga_screen/vga_dacrenderer.h" //Our defs!
 #include "headers/header_dosbox.h" //Screen modes from DOSBox!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/bmp.h" //BMP support for dumping color information!
@@ -70,7 +70,7 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	*/
 }
 
-static OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
+OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
 {
 	word n = GETR(color); //Red channel!
 	n += GETG(color); //Green channel!
@@ -90,12 +90,12 @@ static OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w v
 	return RGB(a,a,a); //RGB Greyscale!
 }
 
-static uint_32 DAC_BWmonitor(VGA_Type *VGA, byte DACValue)
+uint_32 DAC_BWmonitor(VGA_Type *VGA, byte DACValue)
 {
 	return color2bw(VGA->precalcs.DAC[DACValue]); //Lookup!
 }
 
-static uint_32 DAC_colorMonitor(VGA_Type *VGA,byte DACValue)
+uint_32 DAC_colorMonitor(VGA_Type *VGA,byte DACValue)
 {
 	return VGA->precalcs.DAC[DACValue]; //Lookup!
 }
@@ -104,6 +104,6 @@ typedef uint_32 (*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
 
 OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *VGA, word x
 {
-	DAC_monitor monitors[2] = {DAC_colorMonitor,DAC_BWmonitor}; //What kind of monitor?
+	static const DAC_monitor monitors[2] = {DAC_colorMonitor,DAC_BWmonitor}; //What kind of monitor?
 	return monitors[BWmonitor](VGA,DACValue); //Do color mode or B/W mode!
 }

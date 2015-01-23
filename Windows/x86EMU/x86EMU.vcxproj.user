@@ -1,15 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerWorkingDirectory>..\..\..\..\psp-projects_build\x86EMU</LocalDebuggerWorkingDirectory>
-    <DebuggerFlavor>WindowsRemoteDebugger</DebuggerFlavor>
-    <LocalDebuggerAttach>true</LocalDebuggerAttach>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerAttach>false</LocalDebuggerAttach>
     <LocalDebuggerMergeEnvironment>false</LocalDebuggerMergeEnvironment>
     <LocalDebuggerAmpDefaultAccelerator>{ADEFF70D-84BF-47A1-91C3-FF6B0FC71218}</LocalDebuggerAmpDefaultAccelerator>
-    <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
+    <LocalDebuggerDebuggerType>Auto</LocalDebuggerDebuggerType>
     <RemoteDebuggerCommand>$(TargetPath)</RemoteDebuggerCommand>
     <RemoteDebuggerWorkingDirectory>$(OutDir)</RemoteDebuggerWorkingDirectory>
-    <RemoteDebuggerDebuggerType>Auto</RemoteDebuggerDebuggerType>
+    <RemoteDebuggerDebuggerType>NativeOnly</RemoteDebuggerDebuggerType>
     <RemoteDebuggerAttach>false</RemoteDebuggerAttach>
     <DeploymentDirectory>C:\psp-projects_build\x86emu</DeploymentDirectory>
     <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>

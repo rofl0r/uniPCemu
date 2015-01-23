@@ -60,7 +60,7 @@ typedef struct
 typedef uint_32 (*fillbuffer_call)(playing_p currentchannel, uint_32 *relsample, uint_32 currentpos);
 typedef void (*processbuffer_call)(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample);
 
-static uint_32 fillbuffer_new(playing_p currentchannel, uint_32 *relsample, uint_32 currentpos); //New fillbuffer call (for new channels)!
+uint_32 fillbuffer_new(playing_p currentchannel, uint_32 *relsample, uint_32 currentpos); //New fillbuffer call (for new channels)!
 
 uint_32 soundchannels_used = 0; //Ammount of used sound channels to check, increases as the ammount of entries increase!
 playing_t soundchannels[1000]; //All soundchannels!
@@ -115,7 +115,7 @@ OPTINLINE void unlockaudio(byte startplaying)
 }
 
 #define C_CALCSAMPLEPOS(rchannel,stereo,time) ((time*(1<<stereo)) + (stereo*rchannel))
-static OPTINLINE void calc_samplePos() //Calculate sample position precalcs!
+OPTINLINE void calc_samplePos() //Calculate sample position precalcs!
 {
 	if (samplepos[0] && samplepos[1]) return; //Don't reallocate!
 	uint_32 precalcs_size = ((uint_32)MAX_SAMPLERATE*sizeof(*samplepos[0])<<1); //Size of samplepos precalcs!
@@ -163,7 +163,7 @@ static OPTINLINE void calc_samplePos() //Calculate sample position precalcs!
 	samplepos_size = precalcs_size; //The size of the samplepos precalcs!
 }
 
-static OPTINLINE void free_samplePos()
+OPTINLINE void free_samplePos()
 {
 	byte stereo;
 	for (stereo=0;stereo<2;stereo++) //All sample positions!
@@ -340,7 +340,7 @@ byte setVolume(SOUNDHANDLER handler, void *extradata, float p_volume) //Channel&
 
 //add&removal of channels!
 
-static OPTINLINE uint_32 samplesize(uint_32 samples, byte method)
+OPTINLINE uint_32 samplesize(uint_32 samples, byte method)
 {
 	switch (method)
 	{
@@ -538,41 +538,41 @@ void resetchannels()
 //OUR MIXING!
 
 //Sample retrieval
-static int_32 getsample_16(playing_p channel, uint_32 position)
+int_32 getsample_16(playing_p channel, uint_32 position)
 {
 	word *y = (word *)channel->sound.samples;
 	return unsigned2signed16(y[position]);
 }
 
-static int_32 getsample_16s(playing_p channel, uint_32 position)
+int_32 getsample_16s(playing_p channel, uint_32 position)
 {
 	sword *ys = (sword *)channel->sound.samples;
 	return ys[position];
 }
 
-static int_32 getsample_8(playing_p channel, uint_32 position)
+int_32 getsample_8(playing_p channel, uint_32 position)
 {
 	byte *x = (byte *)channel->sound.samples;	
 	return (int_32)unsigned2signed8(x[position])<<8;
 }
 
-static int_32 getsample_8s(playing_p channel, uint_32 position)
+int_32 getsample_8s(playing_p channel, uint_32 position)
 {
 	sbyte *xs = (sbyte *)channel->sound.samples;
 	return (int_32)(xs[position]<<8);
 }
 
-static int_32 getsample_flt(playing_p channel, uint_32 position)
+int_32 getsample_flt(playing_p channel, uint_32 position)
 {
 	float *z = (float *)channel->sound.samples;
 	return (int_32)((z[position]/FLT_MAX)*SHRT_MAX); //Convert to integer value!	
 }
 
 typedef int_32 (*SAMPLEHANDLER)(playing_p channel, uint_32 position); //Sample handler!
-static SAMPLEHANDLER handlers[5] = {getsample_16,getsample_8,getsample_16s,getsample_8s,getsample_flt};
 
-static OPTINLINE int_32 getsample(playing_p channel, uint_32 position) //Get 16-bit sample from sample buffer, convert as needed!
+OPTINLINE int_32 getsample(playing_p channel, uint_32 position) //Get 16-bit sample from sample buffer, convert as needed!
 {
+	static SAMPLEHANDLER handlers[5] = {getsample_16,getsample_8,getsample_16s,getsample_8s,getsample_flt};
 	register byte method = channel->samplemethod; //Load the method!
 	if (method>5)
 	{
@@ -595,16 +595,16 @@ static OPTINLINE int_32 getsample(playing_p channel, uint_32 position) //Get 16-
 #define C_SAMPLE(channel,samplepos) getsample(channel,samplepos)
 
 //Processing functions prototypes!
-static void emptychannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample); //Empty buffer channel handler!
-static void fillchannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample); //Full buffer channel handler!
+void emptychannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample); //Empty buffer channel handler!
+void fillchannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample); //Full buffer channel handler!
 
 
-OPTINLINE static void processbufferflags(playing_p currentchannel)
+OPTINLINE void processbufferflags(playing_p currentchannel)
 {
 	currentchannel->processbuffer = (currentchannel->bufferflags&1)?&fillchannelbuffer:&emptychannelbuffer; //Either the filled or empty channel buffer to use!
 }
 
-static uint_32 fillbuffer_existing(playing_p currentchannel, uint_32 *relsample, uint_32 currentpos)
+uint_32 fillbuffer_existing(playing_p currentchannel, uint_32 *relsample, uint_32 currentpos)
 {
 	uint_32 bufferinc; //Increase in the buffer!
 	#ifdef DEBUG_SOUNDBUFFER
@@ -636,7 +636,7 @@ static uint_32 fillbuffer_existing(playing_p currentchannel, uint_32 *relsample,
 	return currentpos; //Give the new position!
 }
 
-static uint_32 fillbuffer_new(playing_p currentchannel, uint_32 *relsample, uint_32 currentpos)
+uint_32 fillbuffer_new(playing_p currentchannel, uint_32 *relsample, uint_32 currentpos)
 {
 	//currentpos = 0; //Reset samplepos!
 	*relsample = 0; //Reset relative sample!
@@ -655,7 +655,7 @@ static uint_32 fillbuffer_new(playing_p currentchannel, uint_32 *relsample, uint
 	return 0; //We start at the beginning!
 }
 
-static void fillchannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample)
+void fillchannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample)
 {
 	float volume = C_VOLUMEPERCENT(currentchannel); //Retrieve the current volume!
 	int_32 sample_l = C_SAMPLE(currentchannel,C_GETSAMPLEPOS(currentchannel,0,relsample)); //The composed sample, based on the relative position!
@@ -672,12 +672,12 @@ static void fillchannelbuffer(playing_p currentchannel, int_32 *result_l, int_32
 	*result_r += sample_r; //See above!
 }
 
-static void emptychannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample)
+void emptychannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample)
 {
 	//Do nothing!
 }
 
-static OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int_32 *result_r) //Mixes the channels with each other at a specific time!
+OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int_32 *result_r) //Mixes the channels with each other at a specific time!
 {
 	//Process multichannel!
 	uint_32 relsample; //Current channel and relative sample!
@@ -698,7 +698,7 @@ static OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int
 
 int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!
 
-static OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio channels to buffer!
+OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio channels to buffer!
 {
 	//Variables first
 	//Current data numbers

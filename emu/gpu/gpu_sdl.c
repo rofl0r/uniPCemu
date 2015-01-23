@@ -20,7 +20,7 @@ GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface) //Retrieves a surface w
 }
 
 //Returns 1 on not equal, 0 on equal!
-static int diffmem(void *start, byte value, uint_32 size)
+byte diffmem(void *start, byte value, uint_32 size)
 {
 	byte *current = (byte *)start; //Convert to byte list!
 	byte result = 0; //Default: equal!
@@ -59,7 +59,7 @@ static int diffmem(void *start, byte value, uint_32 size)
 }
 
 //Returns 1 on not equal, 0 on equal!
-static int memdiff(void *start, void *value, uint_32 size)
+byte memdiff(void *start, void *value, uint_32 size)
 {
 	byte *current = (byte *)start; //Convert to byte list!
 	byte *ref = (byte *)value; //To compare to!
@@ -343,7 +343,7 @@ void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x)
 		else
 		{
 			if (PPRLOG) dolog("PPR","Get_pixel_ptr: Invalid SDL_Surface pixels:entry:%p!",pixels);
-			logpointers(); //Log all pointers!
+			logpointers("PPR: Invalid SDL_Surface pixels!"); //Log all pointers!
 		}
 	}
 	else
@@ -428,7 +428,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 						}						
 						break;
 					case 1: //Use horizontal centering?
-						if (surface->sdllayer->w>(use_rowsize+2)) //We have space left&right to plot? Also must have at least 2 pixels left&right to center!
+						if ((sword)surface->sdllayer->w>(sword)(use_rowsize+2)) //We have space left&right to plot? Also must have at least 2 pixels left&right to center!
 						{
 							if (!(center&4)) //Clear enabled?
 							{
@@ -601,6 +601,7 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 				{
 					SDL_UnlockSurface( surface->sdllayer );
 				}
+				SDL_UpdateRect(surface->sdllayer, 0, 0, 0, 0); //Make sure we update!
 			}
 			surface->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
 		}

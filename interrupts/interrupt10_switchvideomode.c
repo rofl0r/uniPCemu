@@ -335,7 +335,7 @@ bool INT10_SetVideoMode_OTHER(word mode,bool clearmem)
 		crtpage=(CurMode->mode>=0x9) ? 0xf6 : 0x3f;
 		IO_WriteB(0x3df,crtpage);
 		real_writeb(BIOSMEM_SEG,BIOSMEM_CRTCPU_PAGE,crtpage);
-		mode_control=mode_control_list[CurMode->mode];
+		mode_control=mode_control_list[CurMode->mode%11];
 		if (CurMode->mode == 0x6 || CurMode->mode==0xa) color_select=0x3f;
 		else color_select=0x30;
 		IO_WriteB(0x3d8,mode_control);

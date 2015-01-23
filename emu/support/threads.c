@@ -32,7 +32,7 @@ ThreadParams threadpool[MAX_THREAD]; //Thread pool!
 
 //Thread allocation/deallocation!
 
-static int getthreadpoolindex(uint_32 thid) //Get index of thread in thread pool!
+int getthreadpoolindex(uint_32 thid) //Get index of thread in thread pool!
 {
 	int i;
 	for (i=0;i<NUMITEMS(threadpool);i++) //Process all known indexes!
@@ -60,7 +60,7 @@ void SDL_KillThread(uint_32 thid) //Our custom version!
 	return threadpool[i].allow_running; //Allow the thread to run?
 }*/
 
-static ThreadParams_p allocateThread() //Allocate a new thread to run (waits if none to allocate)!
+ThreadParams_p allocateThread() //Allocate a new thread to run (waits if none to allocate)!
 {
 	uint_32 curindex;
 	newallocate: //Try (again)!
@@ -78,7 +78,7 @@ static ThreadParams_p allocateThread() //Allocate a new thread to run (waits if 
 	goto newallocate; //Try again till we work!
 }
 
-static void releasePool(uint_32 threadid) //Release a pooled thread if it exists!
+void releasePool(uint_32 threadid) //Release a pooled thread if it exists!
 {
 	int index;
 	if ((index = getthreadpoolindex(threadid))!=-1) //Gotten index?
@@ -87,7 +87,7 @@ static void releasePool(uint_32 threadid) //Release a pooled thread if it exists
 	}
 }
 
-static void activeThread(uint_32 threadid)
+void activeThread(uint_32 threadid)
 {
 	int index; //The index to be used!
 	//dolog("threads","activeThread...");
@@ -115,7 +115,7 @@ void terminateThread(uint_32 thid) //Terminate the thread!
 	//sceKernelTerminateDeleteThread(thid); //Exit and delete myself!
 }
 
-static void deleteThread(uint_32 thid)
+void deleteThread(uint_32 thid)
 {
 	terminateThread(thid); //Passthrough!
 	/*if (sceKernelDeleteThread(thid)>=0) //Deleted?
@@ -125,7 +125,7 @@ static void deleteThread(uint_32 thid)
 	}*/
 }
 
-static void runcallback(uint_32 thid)
+void runcallback(uint_32 thid)
 {
 	//dolog("threads","Runcallback...");
 	//Now run the requested thread!
@@ -228,7 +228,7 @@ void termThreads() //Terminate all threads but our own!
 	}
 }
 
-extern PSP_TEXTSURFACE *frameratesurface;
+extern GPU_TEXTSURFACE *frameratesurface;
 
 void debug_threads()
 {
@@ -275,7 +275,7 @@ void initThreads() //Initialise&reset thread subsystem!
 }
 
 
-static void threadCreaten(ThreadParams_p params, uint_32 threadID, char *name)
+void threadCreaten(ThreadParams_p params, uint_32 threadID, char *name)
 {
 	//dolog("threads","threadCreaten...");
 	if (params) //Gotten params?

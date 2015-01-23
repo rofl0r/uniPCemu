@@ -28,14 +28,15 @@ SECTORHANDLER readhandler, writehandler; //Read&write handlers!
 
 void ioInit(); //Resets/unmounts all disks!
 FILEPOS filesize(FILE *f); //Get filesize!
-void iofloppy0(char *filename, uint_32 startpos, byte readonly, uint_32 customsize);
-void iofloppy1(char *filename, uint_32 startpos, byte readonly, uint_32 customsize);
-void iohdd0(char *filename, uint_32 startpos, byte readonly, uint_32 customsize);
-void iohdd1(char *filename, uint_32 startpos, byte readonly, uint_32 customsize);
-void iocdrom0(char *filename, uint_32 startpos, byte readonly, uint_32 customsize);
-void iocdrom1(char *filename, uint_32 startpos, byte readonly, uint_32 customsize);
-int readdata(int device, void *buffer, uint_32 startpos, uint_32 bytestoread);
-int writedata(int device, void *buffer, uint_32 startpos, uint_32 bytestowrite);
+void iofloppy0(char *filename, uint_64 startpos, byte readonly, uint_32 customsize);
+void iofloppy1(char *filename, uint_64 startpos, byte readonly, uint_32 customsize);
+void iohdd0(char *filename, uint_64 startpos, byte readonly, uint_32 customsize);
+void iohdd1(char *filename, uint_64 startpos, byte readonly, uint_32 customsize);
+void iocdrom0(char *filename, uint_64 startpos, byte readonly, uint_32 customsize);
+void iocdrom1(char *filename, uint_64 startpos, byte readonly, uint_32 customsize);
+int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread);
+int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite);
 int has_drive(int drive); //Have drive?
 int drivereadonly(int drive); //Drive is read-only?
+FILEPOS getdisksize(int device); //Retrieve a dynamic/static image size!
 #endif

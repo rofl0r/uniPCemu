@@ -1,7 +1,8 @@
 #include "headers/hardware/vga.h" //Basic VGA stuff!
 #include "headers/hardware/vga_screen/vga_vram.h" //VRAM!
 #include "headers/hardware/vga_rest/textmodedata.h" //Text mode data for loading!
-#include "headers/hardware/vga_screen/vga_sequencer_textmode.h" //For character sizes!
+#include "headers/hardware/vga_screen/vga_crtcontroller.h" //For character sizes!
+#include "headers/hardware/vga_screen/vga_vramtext.h" //Our VRAM text support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //High resolution timing!
 
@@ -43,7 +44,7 @@ void VGALoadCharTable(VGA_Type *VGA, int rows, word startaddr) //Load a characte
 	is_loadchartable = 0; //Not loading character table!
 }
 
-static OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
+OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 {
 	byte *getcharxy_values;
 	getcharxy_values = &VGA->getcharxy_values[0]; //The values!
@@ -102,7 +103,7 @@ void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been update
 }
 
 //This is heavy: it doubles (with about 25ms) the rendering time needed to render a line.
-byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from table!
+OPTINLINE byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from table!
 {
 	if (!VGA) //No active VGA?
 	{
@@ -176,7 +177,7 @@ OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters
 	return ((lastcharinfo&(1<<bitpos))>>bitpos); //Give result!
 }
 
-static void VGA_dumpchar(VGA_Type *VGA, byte c)
+void VGA_dumpchar(VGA_Type *VGA, byte c)
 {
 	byte y=0;
 	byte maxx=0;
@@ -202,7 +203,7 @@ static void VGA_dumpchar(VGA_Type *VGA, byte c)
 	dolog("VRAM_CHARS",""); //Empty row!
 }
 
-static void VGA_dumpstr(VGA_Type *VGA, char *s)
+void VGA_dumpstr(VGA_Type *VGA, char *s)
 {
 	if (!s) return;
 	char *s2 = s; //Load string!

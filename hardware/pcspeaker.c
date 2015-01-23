@@ -34,7 +34,7 @@ SPEAKER_INFO speakers[MAX_SPEAKERS]; //All possible PC speakers, whether used or
 
 SPEAKER_INFO *pcspeaker = &speakers[0]; //The default, PC speaker to use by software!
 
-static OPTINLINE float currentFunction(byte how,const float time) {
+OPTINLINE float currentFunction(byte how,const float time) {
         double x;
 	float t = modf(time / (2 * PI), &x);
 
@@ -63,7 +63,7 @@ static OPTINLINE float currentFunction(byte how,const float time) {
 byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	const float sampleLength = 1.0f / 44100.0f;
 	const float scaleFactor = (SHRT_MAX - 1.0f);
-	float currentfactor;
+	//float currentfactor;
 	int i;
 	SPEAKER_INFO *speaker; //Convert to the current speaker!
 	float time;
@@ -97,7 +97,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 		register sample_stereo_p ubuf_stereo = (sample_stereo_p) buf; //Active buffer!
 		for (;;) //Process all samples!
 		{ //Process full length!
-			currentfactor *= time;
+			//currentfactor *= time;
 			register short s = (short) (scaleFactor * currentFunction(function,defaultfreq * time)); //Set the channels!
 			ubuf_stereo->l = ubuf_stereo->r = s; //Single channel!
 			++ubuf_stereo; //Next item!

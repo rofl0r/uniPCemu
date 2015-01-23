@@ -38,7 +38,7 @@
 //Use the adlib sound? If disabled, only run timers for the CPU. Sound will not actually be heard.
 #define __SOUND_ADLIB 1
 //Ignore ADSR?
-#define __IGNORE_ADSR 0
+//#define __IGNORE_ADSR 1.0f
 //What volume, in percent!
 #define ADLIB_VOLUME 100.0f
 
@@ -115,12 +115,12 @@ struct structadlibchan {
 	uint8_t keyon;
 	uint16_t octave;
 	uint8_t wavesel;
-} adlibch[9];
+} adlibch[0x10];
 
-double attacktable[16] = { 1.0003, 1.00025, 1.0002, 1.00015, 1.0001, 1.00009, 1.00008, 1.00007, 1.00006, 1.00005, 1.00004, 1.00003, 1.00002, 1.00001, 1.000005 }; //1.003, 1.05, 1.01, 1.015, 1.02, 1.025, 1.03, 1.035, 1.04, 1.045, 1.05, 1.055, 1.06, 1.065, 1.07, 1.075 };
-double decaytable[16] = { 0.99999, 0.999985, 0.99998, 0.999975, 0.99997, 0.999965, 0.99996, 0.999955, 0.99995, 0.999945, 0.99994, 0.999935, 0.99994, 0.999925, 0.99992, 0.99991 };
-double adlibenv[9], adlibdecay[9], adlibattack[9];
-uint8_t adlibdidattack[9], adlibpercussion = 0, adlibstatus = 0;
+double attacktable[0x10] = { 1.0003, 1.00025, 1.0002, 1.00015, 1.0001, 1.00009, 1.00008, 1.00007, 1.00006, 1.00005, 1.00004, 1.00003, 1.00002, 1.00001, 1.000005 }; //1.003, 1.05, 1.01, 1.015, 1.02, 1.025, 1.03, 1.035, 1.04, 1.045, 1.05, 1.055, 1.06, 1.065, 1.07, 1.075 };
+double decaytable[0x10] = { 0.99999, 0.999985, 0.99998, 0.999975, 0.99997, 0.999965, 0.99996, 0.999955, 0.99995, 0.999945, 0.99994, 0.999935, 0.99994, 0.999925, 0.99992, 0.99991 };
+double adlibenv[0x10], adlibdecay[0x10], adlibattack[0x10];
+uint8_t adlibdidattack[0x10], adlibpercussion = 0, adlibstatus = 0;
 
 uint16_t adlibport = 0x388;
 
@@ -207,12 +207,13 @@ uint16_t adlibfreq (uint8_t chan) {
 	return (tmpfreq);
 }
 
-uint64_t fullstep, adlibstep[9];
+uint64_t fullstep, adlibstep[0x10];
 
 //Original again!
 OPTINLINE char adlibsample (uint8_t curchan) {
 	char tempsample;
 	float tempstep;
+	if (curchan >= NUMITEMS(adlibch)) return 0; //No sample with invalid channel!
 
 	fullstep = usesamplerate/adlibfreq (curchan);
 
@@ -223,7 +224,11 @@ OPTINLINE char adlibsample (uint8_t curchan) {
 		tempsample = RandomShort(-116,116); //Generate a random sample between -MAX and +MAX!
 	}
 	tempstep = adlibenv[curchan]; //Current volume!
-	if ((tempstep>1.0f) || __IGNORE_ADSR) tempstep = 1.0f; //Limit volume to 100%!
+	#ifdef __IGNORE_ADSR
+		tempstep = __IGNORE_ADSR; //Don't step: always full percentage!
+	#else
+		if (tempstep>1.0f) tempstep = 1.0f; //Limit volume to 100%!
+	#endif
 	tempsample = (char) (tempsample * tempstep);
 
 	if (adlibstep[curchan]>fullstep) adlibstep[curchan] = 0;

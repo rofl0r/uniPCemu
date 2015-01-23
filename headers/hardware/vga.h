@@ -748,16 +748,9 @@ byte PORT_readVGA(word port); //Read from a port/register!
 void PORT_writeVGA(word port, byte value); //Write to a port/register!
 //End of CPU specific! ***
 
-void VGALoadCharTable(VGA_Type *VGA,int rows, word startaddr); //Load a character table from ROM to VRAM!
-byte getcharxy(VGA_Type *VGA,byte attribute, byte character, byte x, byte y); //Retrieve a characters x,y pixel on/off from table!
-byte getcharxy_8(byte character, int x, int y); //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
-
 //DAC (for rendering)
 void readDAC(VGA_Type *VGA,byte entrynumber,DACEntry *entry); //Read a DAC entry
 void writeDAC(VGA_Type *VGA,byte entrynumber,DACEntry *entry); //Write a DAC entry
-
-//VGA Information for int10 etc.:
-float VGA_VerticalRefreshRate(VGA_Type *VGA); //Vertical refresh rate of one scanline (see below function)
 
 //CRTC Controller renderer&int10:
 void VGA_LoadVideoMode(byte mode); //Loads a preset video mode to be active!

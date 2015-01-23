@@ -20,7 +20,7 @@ VRAM base offset!
 
 */
 
-static OPTINLINE byte is_A000VRAM(uint_32 linearoffset) //In VRAM (for CPU), offset=real memory address (linear memory)?
+OPTINLINE byte is_A000VRAM(uint_32 linearoffset) //In VRAM (for CPU), offset=real memory address (linear memory)?
 {
 	if (ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable) //VRAM Access by CPU Enabled?
 	{
@@ -47,7 +47,7 @@ static OPTINLINE byte is_A000VRAM(uint_32 linearoffset) //In VRAM (for CPU), off
 	return 0; //Don't read/write from VRAM!
 }
 
-static OPTINLINE uint_32 getVRAMOffset(uint_32 linearoffset)
+OPTINLINE uint_32 getVRAMOffset(uint_32 linearoffset)
 {
 	uint_32 result; //Don't read/write by default!
 	result = linearoffset;
@@ -63,7 +63,7 @@ Special operations for write!
 
 */
 
-OPTINLINE static uint_32 LogicalOperation(uint_32 input)
+OPTINLINE uint_32 LogicalOperation(uint_32 input)
 {
 	switch (ActiveVGA->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.LogicalOperation)
 	{
@@ -79,7 +79,7 @@ OPTINLINE static uint_32 LogicalOperation(uint_32 input)
 	return input; //Unknown, just give the input!
 }
 
-OPTINLINE static uint_32 BitmaskOperation(uint_32 input, byte bitmaskregister)
+OPTINLINE uint_32 BitmaskOperation(uint_32 input, byte bitmaskregister)
 {
 	uint_32 result = 0; //Default: the result!4
 	byte bit;
@@ -104,7 +104,7 @@ Core read/write operations!
 */
 
 extern byte LOG_VRAM_WRITES; //Log VRAM writes?
-static OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
+OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 {
 	uint_32 data = val; //Default to the value given!
 	byte curplane; //For plane loops!
@@ -151,7 +151,7 @@ static OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte v
 	}
 }
 
-static OPTINLINE void loadlatch(uint_32 offset)
+OPTINLINE void loadlatch(uint_32 offset)
 {
 	ActiveVGA->registers->ExternalRegisters.DATALATCH.latchplane[0] = readVRAMplane(ActiveVGA,0,offset,0); //Plane 0
 	ActiveVGA->registers->ExternalRegisters.DATALATCH.latchplane[1] = readVRAMplane(ActiveVGA,1,offset,0); //Plane 1
@@ -160,7 +160,7 @@ static OPTINLINE void loadlatch(uint_32 offset)
 	VGA_updateLatches(); //Update the latch data mirroring!
 }
 
-static OPTINLINE byte VGA_ReadModeOperation(byte plane, uint_32 offset)
+OPTINLINE byte VGA_ReadModeOperation(byte plane, uint_32 offset)
 {
 	loadlatch(offset); //Load the latches!
 

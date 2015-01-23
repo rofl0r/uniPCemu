@@ -14,7 +14,7 @@ void dumpscreen()
 	int firstrow = 1;
 	FILE *f;
 	f = fopen("SCREEN.TXT","w"); //Open file!
-	char lb[2];
+	char lb[3];
 	bzero(lb,sizeof(lb));
 	strcpy(lb,"\r\n"); //Line break!
 

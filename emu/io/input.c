@@ -19,10 +19,10 @@
 
 #ifdef _WIN32
 #include "sdl_joystick.h" //Joystick support!
-#include "sdl_window.h" //Window support!
+#include "sdl_events.h" //Event support!
 #else
 #include <SDL/SDL_joystick.h> //Joystick support!
-#include <SDL/SDL_window.h> //Window support!
+#include <SDL/SDL_events.h> //Event support!
 #endif
 
 enum input_button_map { //All buttons we support!
@@ -467,7 +467,7 @@ byte keyboard_display[KEYBOARD_NUMY][KEYBOARD_NUMX]; //The characters to display
 */
 //Valid values: 0:Display, 1=Font, 2=Border, 3=Active
 
-PSP_TEXTSURFACE *keyboardsurface = NULL; //Framerate surface!
+GPU_TEXTSURFACE *keyboardsurface = NULL; //Framerate surface!
 
 void initKeyboardOSK()
 {
@@ -476,6 +476,7 @@ void initKeyboardOSK()
 	{
 		raiseError("GPU","Error allocating OSK layer!");
 	}
+	GPU_enableDelta(keyboardsurface, 1, 1); //Enable both x and y delta coordinates: we want to be at the bottom-right of the screen always!
 	GPU_addTextSurface(keyboardsurface,&keyboard_renderer); //Register our renderer!
 
 	//dolog("GPU","Keyboard OSK allocated.");
@@ -1623,12 +1624,6 @@ void updateInput(SDL_Event *event) //Update all input!
 {
 	switch (event->type)
 	{
-		case SDL_WINDOWEVENT_FOCUS_GAINED:
-			SDL_WM_GrabInput(SDL_GRAB_ON); //Grab input!
-			break;
-		case SDL_WINDOWEVENT_FOCUS_LOST:
-			SDL_WM_GrabInput(SDL_GRAB_OFF); //Release input!
-			break;
 		case SDL_KEYUP: //Keyboard up?
 			if (!SDL_NumJoysticks()) //Gotten no joystick?
 			{

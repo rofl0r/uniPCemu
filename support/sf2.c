@@ -39,7 +39,7 @@ uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct!
 	return result; //Invalid entry!
 }
 
-static uint_32 getRIFFChunkSize(RIFF_ENTRY entry) //Checked & correct!
+uint_32 getRIFFChunkSize(RIFF_ENTRY entry) //Checked & correct!
 {
 	uint_32 chunksize;
 	RIFF_DATAENTRY data;
@@ -76,7 +76,7 @@ void *RIFF_start_data(RIFF_ENTRY container)
 	return NULL; //Invalid data!
 }
 
-static OPTINLINE RIFF_ENTRY NULLRIFFENTRY()
+OPTINLINE RIFF_ENTRY NULLRIFFENTRY()
 {
 	RIFF_ENTRY result;
 	result.voidentry = NULL;
@@ -89,7 +89,7 @@ checkRIFFChunkLimits: Verify if a chunk within another chunk is valid to read (w
 
 */
 
-static byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 entrysize) //Check an entry against it's limits!
+byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 entrysize) //Check an entry against it's limits!
 {
 	uint_32 containersize;
 	uint_32 containerstart, containerend, entrystart, entryend;
@@ -135,7 +135,7 @@ getRIFFEntry: Retrieves an RIFF Entry from a RIFF Chunk!
 
 */
 
-static RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a RIFF Subchunk from a RIFF chunk.
+RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a RIFF Subchunk from a RIFF chunk.
 {
 	RIFF_LISTENTRY listentry;
 	RIFF_DATAENTRY dataentry;
@@ -205,7 +205,7 @@ result:
 
 */
 
-static byte getRIFFData(RIFF_ENTRY RIFFHeader, uint_32 index, uint_32 size, void *result)
+byte getRIFFData(RIFF_ENTRY RIFFHeader, uint_32 index, uint_32 size, void *result)
 {
 	RIFF_DATAENTRY temp;
 	byte *entrystart;
@@ -238,7 +238,7 @@ Next, Basic FLAG_SF open/close support!
 
 */
 
-static byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
+byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 {
 	uint_32 filesize;
 	uint_32 finalentry; //For determining the final entry number!
@@ -580,7 +580,7 @@ Basic reading functions for presets, instruments and samples.
 
 */
 
-static RIFF_ENTRY getHydra(RIFFHEADER *sf) //Retrieves the HYDRA structure from the soundfont!
+RIFF_ENTRY getHydra(RIFFHEADER *sf) //Retrieves the HYDRA structure from the soundfont!
 {
 	RIFF_ENTRY rootentry = sf->rootentry; //Take over the root entry!
 	return getRIFFEntry(rootentry,CKID_PDTA); //Get the HYDRA structure!
@@ -748,12 +748,12 @@ byte getSFSampleInformation(RIFFHEADER *sf, word Sample, sfSample *result)
 
 //Samples themselves!
 
-static short getsample16(word sample)
+short getsample16(word sample)
 {
     return unsigned2signed16(sample); //Give the 16-bit sample!
 }
 
-static short getsample24_16(uint_32 sample) //Get 24 bits sample and convert it to a 16-bit sample!
+short getsample24_16(uint_32 sample) //Get 24 bits sample and convert it to a 16-bit sample!
 {
 	/*union
 	{

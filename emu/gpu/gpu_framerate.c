@@ -42,7 +42,7 @@ extern uint_32 ms_render; //MS it took to render (125000 for 8fps, which is plen
 extern VGA_Type *ActiveVGA; //Active VGA!
 uint_32 SCREENS_RENDERED = 0; //Ammount of GPU screens rendered!
 
-PSP_TEXTSURFACE *frameratesurface = NULL; //Framerate surface!
+GPU_TEXTSURFACE *frameratesurface = NULL; //Framerate surface!
 
 //Everything from the renderer:
 uint_32 frames; //Frames processed!

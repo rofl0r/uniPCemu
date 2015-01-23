@@ -1,12 +1,13 @@
 #include "headers/hardware/vga.h" //VGA support (plus precalculation!)
-//#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
+#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/hardware/vga_rest/colorconversion.h" //Color conversion for DAC precalculation!
 #include "headers/emu/gpu/gpu.h" //Relative conversion!
 #include "headers/hardware/vga_screen/vga_crtcontroller.h"
 #include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer render counter support!
 //Works!
-static uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!
+OPTINLINE uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!
 {
 	DACEntry colorEntry; //For getcol256!
 	readDAC(VGA,(color&VGA->registers->DACMaskRegister),&colorEntry); //Read the DAC entry, masked on/off by the DAC Mask Register!
@@ -22,7 +23,7 @@ extern VGA_Type *ActiveVGA; //For checking if we're active!
 
 extern byte VGA_LOGPRECALCS; //Are we manually updated to log?
 
-static OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs!
+OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs!
 {
 	if (VGA_LOGPRECALCS) dolog("VGA","CRTC updated!");
 	uint_32 current;

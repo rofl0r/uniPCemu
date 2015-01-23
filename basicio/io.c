@@ -28,11 +28,11 @@ int drivereadonly(int drive)
 	}
 }
 
-static FILEPOS getdisksize(int device) //Retrieve a dynamic/static image size!
+FILEPOS getdisksize(int device) //Retrieve a dynamic/static image size!
 {
 	//Retrieve the disk size!
 	byte dynamicimage;
-	dynamicimage = is_dynamicimage(disks[device].filename); //Dynamic image?
+	dynamicimage = disks[device].dynamicimage; //Dynamic image?
 	if (dynamicimage) //Dynamic image?
 	{
 		return dynamicimage_getsize(disks[device].filename); //Dynamic image size!
@@ -40,7 +40,7 @@ static FILEPOS getdisksize(int device) //Retrieve a dynamic/static image size!
 	return staticimage_getsize(disks[device].filename); //Dynamic image size!
 }
 
-void loadDisk(int device, char *filename, uint_32 startpos, byte readonly, uint_32 customsize) //Disk mount routine!
+void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_32 customsize) //Disk mount routine!
 {
 	strcpy(disks[device].filename,filename); //Set file!
 	disks[device].start = startpos; //Start pos!
@@ -51,32 +51,32 @@ void loadDisk(int device, char *filename, uint_32 startpos, byte readonly, uint_
 	disks[device].writehandler = disks[device].dynamicimage?&dynamicimage_writesector:&staticimage_writesector; //What write sector function to use!
 }
 
-void iofloppy0(char *filename, uint_32 startpos, byte readonly, uint_32 customsize)
+void iofloppy0(char *filename, uint_64 startpos, byte readonly, uint_32 customsize)
 {
 	loadDisk(FLOPPY0,filename,startpos,readonly,customsize); //Load disk #0!
 }
 
-void iofloppy1(char *filename, uint_32 startpos, byte readonly, uint_32 customsize)
+void iofloppy1(char *filename, uint_64 startpos, byte readonly, uint_32 customsize)
 {
 	loadDisk(FLOPPY1,filename,startpos,readonly,customsize); //Load disk #0!
 }
 
-void iohdd0(char *filename, uint_32 startpos, byte readonly, uint_32 customsize)
+void iohdd0(char *filename, uint_64 startpos, byte readonly, uint_32 customsize)
 {
 	loadDisk(HDD0,filename,startpos,readonly,customsize); //Load disk #0!
 }
 
-void iohdd1(char *filename, uint_32 startpos, byte readonly, uint_32 customsize)
+void iohdd1(char *filename, uint_64 startpos, byte readonly, uint_32 customsize)
 {
 	loadDisk(HDD1,filename,startpos,readonly,customsize); //Load disk #0!
 }
 
-void iocdrom0(char *filename, uint_32 startpos, byte readonly, uint_32 customsize)
+void iocdrom0(char *filename, uint_64 startpos, byte readonly, uint_32 customsize)
 {
 	loadDisk(CDROM0,filename,startpos,readonly,customsize); //Load disk #0!
 }
 
-void iocdrom1(char *filename, uint_32 startpos, byte readonly, uint_32 customsize)
+void iocdrom1(char *filename, uint_64 startpos, byte readonly, uint_32 customsize)
 {
 	loadDisk(CDROM1,filename,startpos,readonly,customsize); //Load disk #0!
 }
@@ -86,7 +86,7 @@ void iocdrom1(char *filename, uint_32 startpos, byte readonly, uint_32 customsiz
 
 
 //Startpos=sector number (start/512 bytes)!
-int readdata(int device, void *buffer, uint_32 startpos, uint_32 bytestoread)
+int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 {
 	if ((device&0xFF)!=device) //Invalid device?
 	{
@@ -120,10 +120,10 @@ int readdata(int device, void *buffer, uint_32 startpos, uint_32 bytestoread)
 		return FALSE; //Error: device not found!
 	}
 
-	readpos = basepos+startpos; //Startpos!
+	readpos = basepos+(startpos<<9); //Startpos!
 
 	uint_32 sector; //Current sector!
-	sector = readpos/512; //The sector we need must be a multiple of 512 bytes (standard sector size)!
+	sector = readpos>>9; //The sector we need must be a multiple of 512 bytes (standard sector size)!
 	FILEPOS bytesread = 0; //Init bytesread!
 	
 	SECTORHANDLER handler = disks[device].readhandler; //Our handler!
@@ -159,7 +159,7 @@ int has_drive(int drive) //Device inserted?
 	return TRUE; //Have drive!
 }
 
-int writedata(int device, void *buffer, uint_32 startpos, uint_32 bytestowrite)
+int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 {
 	char dev[256]; //Our device!
 	bzero(dev,sizeof(dev)); //Init device string!
