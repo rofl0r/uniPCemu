@@ -19,35 +19,33 @@ byte pointersinitialised = 0; //Are the pointers already initialised?
 //#define MEM_MAX_10 2000000000
 //For debugging, limit to 10MB, thus a factor of 1MB to start with (maximum block size: 9.999... times this, eg 10MB=99,9...MB allocated max)!
 #define MEM_MAX_10 1000000
-//Limit each block allocated to this number! Limit us to ~10MB
+//Limit each block allocated to this number when defined! Limit us to ~10MB for testing!
 #define MEM_BLOCK_LIMIT 10000000
 
 //Debug undefined deallocations?
-#define DEBUG_WRONGDEALLOCATION 1
+#define DEBUG_WRONGDEALLOCATION
 //Debug allocation and deallocation?
-#define DEBUG_ALLOCDEALLOC 0
+//#define DEBUG_ALLOCDEALLOC
 
 //Pointer registration/unregistration
 
 byte allow_zallocfaillog = 1; //Allow zalloc fail log?
-uint_32 totalmemory_real; //Total memory present?
 
+//Initialisation.
 void initZalloc() //Initialises the zalloc subsystem!
 {
 	if (pointersinitialised) return; //Don't do anything when we're ready already!
 	memset(&registeredpointers,0,sizeof(registeredpointers)); //Initialise all registered pointers!
 	pointersinitialised = 1; //We're ready to run!
-	totalmemory_real = freemem(); //Load total memory present!
 }
 
+//Log all pointers to zalloc.
 void logpointers(char *cause) //Logs any changes in memory usage!
 {
 	int current;
 	uint_32 total_memory = 0; //For checking total memory count!
-	uint_32 free_memory = freemem(); //Free memory present!
 	initZalloc(); //Make sure we're started!
 	dolog("zalloc","Starting dump of allocated pointers (cause: %s)...",cause);
-	total_memory = free_memory; //Total memory present, which is free!
 	for (current=0;current<NUMITEMS(registeredpointers);current++)
 	{
 		if (registeredpointers[current].pointer && registeredpointers[current].size) //Registered?
@@ -60,25 +58,10 @@ void logpointers(char *cause) //Logs any changes in memory usage!
 		}
 	}
 	dolog("zalloc","End dump of allocated pointers.");
-	dolog("zalloc","Total memory detected: %i bytes; From which Free memory detected: %i bytes",total_memory,free_memory); //We're a full log!
-	dolog("zalloc","Actual memory registered during initialisation of memory module: %i bytes; Missing difference (detected compared to total): %i bytes",totalmemory_real,(int_32)total_memory-(int_32)totalmemory_real); //We're the difference info!
+	dolog("zalloc","Total memory allocated: %i bytes",total_memory); //We're a full log!
 }
 
-void zalloc_free(void **ptr, uint_32 size) //Free a pointer (used internally only) allocated with nzalloc/zalloc!
-{
-	void *ptrdata = NULL;
-	initZalloc(); //Make sure we're started!
-	if (ptr) //Valid pointer to our pointer?
-	{
-		ptrdata = *ptr; //Read the current pointer!
-		if (ptrdata) //Valid pointer to the allocated data?
-		{
-			unregisterptr(ptrdata, size); //Safe unregister, keeping parents alive, use the copy: the original pointer is destroyed by free in Visual C++?!
-			free(ptrdata); //Release the pointer!
-		}
-		*ptr = NULL; //Release the pointer given!
-	}
-}
+//(un)Registration and lookup of pointers.
 
 /*
 Matchpointer: matches an pointer to an entry?
@@ -87,16 +70,17 @@ parameters:
 	index: The start index (in bytes)
 	size: The size of the data we're going to dereference!
 Result:
-	-1 when not matched, else the index in the validpointers table.
+	-2 when not matched, -1 when matched within another pointer, 0+: the index in the registeredpointers table.
 	
 */
-int matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //Are we already in our list? Give the position!
+
+sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //Are we already in our list? Give the position!
 {
 	int current;
 	uint_32 address_start, address_end;
 	initZalloc(); //Make sure we're started!
-	if (!ptr) return -1; //Not matched when NULL!
-	if (!size) return -1; //Not matched when no size (should be impossible)!
+	if (!ptr) return -2; //Not matched when NULL!
+	if (!size) return -2; //Not matched when no size (should be impossible)!
 	address_start = (uint_32)ptr+index; //Start of data!
 	address_end = address_start+size-1; //End of data!
 
@@ -129,18 +113,22 @@ int matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //Are we alread
 	return -2; //Not found!
 }
 
-int registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Register a pointer!
+byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Register a pointer!
 {
 	uint_32 current; //Current!
 	initZalloc(); //Make sure we're started!
 	if (!ptr)
 	{
-		if (allow_zallocfaillog && DEBUG_ALLOCDEALLOC) dolog("zalloc","WARNING: RegisterPointer %s with size %i has invalid pointer!",name,size);
+		#ifdef DEBUG_ALLOCDEALLOC
+		if (allow_zallocfaillog) dolog("zalloc","WARNING: RegisterPointer %s with size %i has invalid pointer!",name,size);
+		#endif
 		return 0; //Not a pointer?
 	}
 	if (!size)
 	{
-		if (allow_zallocfaillog && DEBUG_ALLOCDEALLOC) dolog("zalloc","WARNING: RegisterPointer %s with no size!",name,size);
+		#ifdef DEBUG_ALLOCDEALLOC
+		if (allow_zallocfaillog) dolog("zalloc","WARNING: RegisterPointer %s with no size!",name,size);
+		#endif
 		return 0; //Not a size, so can't be a pointer!
 	}
 	if (matchptr(ptr,0,size,NULL)>-2) return 0; //Already gotten (prevent subs to register after parents)?
@@ -154,15 +142,17 @@ int registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Regist
 			registeredpointers[current].dealloc = dealloc; //The deallocation function to call, if any to use!
 			bzero(&registeredpointers[current].name,sizeof(registeredpointers[current].name)); //Initialise the name!
 			strcpy(registeredpointers[current].name,name); //Set the name!
-			if (allow_zallocfaillog && DEBUG_ALLOCDEALLOC) dolog("zalloc","Memory has been allocated. Size: %i. name: %s, location: %p",size,name,ptr); //Log our allocated memory!
+			#ifdef DEBUG_ALLOCDEALLOC
+			if (allow_zallocfaillog) dolog("zalloc","Memory has been allocated. Size: %i. name: %s, location: %p",size,name,ptr); //Log our allocated memory!
+			#endif
 			return 1; //Registered!
 		}
 	}
-	dolog("zalloc","Pointer already registered or registration buffer full@%s@%p!",name,ptr);
+	dolog("zalloc","Registration buffer full@%s@%p!",name,ptr);
 	return 0; //Give error!
 }
 
-void unregisterptr(void *ptr, uint_32 size) //Remove pointer from registration (only if original pointer)?
+byte unregisterptr(void *ptr, uint_32 size) //Remove pointer from registration (only if original pointer)?
 {
 	int index;
 	initZalloc(); //Make sure we're started!
@@ -172,9 +162,29 @@ void unregisterptr(void *ptr, uint_32 size) //Remove pointer from registration (
 		{
 			registeredpointers[index].pointer = NULL; //Not a pointer!
 			registeredpointers[index].size = 0; //No size: we're not a pointer!
-			if (allow_zallocfaillog && DEBUG_ALLOCDEALLOC) dolog("zalloc","Freeing pointer %s with size %i bytes...",registeredpointers[index].name,size); //Show we're freeing this!
+			#ifdef DEBUG_ALLOCDEALLOC
+			if (allow_zallocfaillog) dolog("zalloc","Freeing pointer %s with size %i bytes...",registeredpointers[index].name,size); //Show we're freeing this!
+			#endif
 			memset(&registeredpointers[index].name,0,sizeof(registeredpointers[index].name)); //Clear the name!
+			return 1; //Safely unregistered!
 		}
+	}
+	return 0; //We could't find the pointer to unregister!
+}
+
+//Core allocation/deallocation functions.
+void zalloc_free(void **ptr, uint_32 size) //Free a pointer (used internally only) allocated with nzalloc/zalloc!
+{
+	void *ptrdata = NULL;
+	initZalloc(); //Make sure we're started!
+	if (ptr) //Valid pointer to our pointer?
+	{
+		ptrdata = *ptr; //Read the current pointer!
+		if (unregisterptr(ptrdata,size)) //Safe unregister, keeping parents alive, use the copy: the original pointer is destroyed by free in Visual C++?!
+		{
+			free(ptrdata); //Release the valid allocated pointer!
+		}
+		*ptr = NULL; //Release the pointer given!
 	}
 }
 
@@ -195,9 +205,12 @@ OPTINLINE void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on fa
 		{
 			return ptr; //Give the original pointer, cleared to 0!
 		}
-		if (allow_zallocfaillog && DEBUG_ALLOCDEALLOC) dolog("zalloc","Ran out of registrations while allocating %i bytes of data for block %s.",size,name);
+		#ifdef DEBUG_ALLOCDEALLOC
+		if (allow_zallocfaillog) dolog("zalloc","Ran out of registrations while allocating %i bytes of data for block %s.",size,name);
+		#endif
 		free(ptr); //Free it, can't generate any more!
 	}
+	#ifdef DEBUG_ALLOCDEALLOC
 	else if (allow_zallocfaillog)
 	{
 		if (freemem()>=size) //Enough memory after all?
@@ -208,23 +221,12 @@ OPTINLINE void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on fa
 		{
 			dolog("zalloc","Ran out of memory while allocating %i bytes of data for block \"%s\".",size,name);
 		}
-		logpointers(name); //Log a dump of pointers!
 	}
+	#endif
 	return NULL; //Not allocated!
 }
 
-OPTINLINE void *zalloc(uint_32 size, char *name) //Same as nzalloc, but clears the allocated memory!
-{
-	void *ptr;
-	ptr = nzalloc(size,name); //Try to allocate!
-	if (ptr) //Allocated?
-	{
-		return memset(ptr,0,size); //Give the original pointer, cleared to 0!
-	}
-	return NULL; //Not allocated!
-}
-
-
+//Deallocation core function.
 void freez(void **ptr, uint_32 size, char *name)
 {
 	int ptrn=-1;
@@ -238,31 +240,39 @@ void freez(void **ptr, uint_32 size, char *name)
 		}
 		registeredpointers[ptrn].dealloc(ptr,size); //Release the memory tied to it using the registered deallocation function, if any!
 	}
-	else if (allow_zallocfaillog && DEBUG_ALLOCDEALLOC && ptr!=NULL) //An pointer pointing to nothing?
+	#ifdef DEBUG_ALLOCDEALLOC
+	else if (allow_zallocfaillog && ptr!=NULL) //An pointer pointing to nothing?
 	{
 		dolog("zalloc","Warning: freeing pointer which isn't an allocated reference: %s=%p",name,*ptr); //Log it!
 	}
+	#endif
 	//Still allocated, we might be a pointer which is a subset, so we can't deallocate!
 }
 
-void unregisterptrall() //Free all allocated memory still allocated (on shutdown only, garbage collector)!
+//Allocation support: add initialization to zero.
+OPTINLINE void *zalloc(uint_32 size, char *name) //Same as nzalloc, but clears the allocated memory!
+{
+	void *ptr;
+	ptr = nzalloc(size,name); //Try to allocate!
+	if (ptr) //Allocated?
+	{
+		return memset(ptr,0,size); //Give the original pointer, cleared to 0!
+	}
+	return NULL; //Not allocated!
+}
+
+//Deallocation support: release all registered pointers! This used to be unregisterptrall.
+void freezall() //Free all allocated memory still allocated (on shutdown only, garbage collector)!
 {
 	int i;
 	initZalloc(); //Make sure we're started!
 	for (i=0;i<NUMITEMS(registeredpointers);i++)
 	{
-		void *ptr;
-		ptr = registeredpointers[i].pointer; //A pointer!
-		freez(&ptr,registeredpointers[i].size,"Unregisterptrall"); //Unregister a pointer when allowed!
+		freez(&registeredpointers[i].pointer,registeredpointers[i].size,"Unregisterptrall"); //Unregister a pointer when allowed!
 	}
 }
 
-
-void freezall() //Same as unregisterptrall
-{
-	unregisterptrall(); //Unregister all!
-}
-
+//Memory protection/verification function. Returns the pointer when valid, NULL on invalid.
 void *memprotect(void *ptr, uint_32 size, char *name) //Checks address of pointer!
 {
 	if (!ptr || ptr==NULL) //Invalid?
@@ -276,9 +286,9 @@ void *memprotect(void *ptr, uint_32 size, char *name) //Checks address of pointe
 	return NULL; //Invalid!
 }
 
+//Detect free memory.
 OPTINLINE uint_32 freemem() //Free memory left! We work!
 {
-	//dolog("zalloc","Detecting free memory...");
 	uint_32 curalloc; //Current allocated memory!
 	char *buffer;
 	uint_32 multiplier; //The multiplier!
@@ -297,7 +307,7 @@ OPTINLINE uint_32 freemem() //Free memory left! We work!
 		buffer = (char *)zalloc(lastzalloc,"freememdetect"); //Try allocating, don't have to be cleared!
 		if (buffer) //Allocated?
 		{
-			freez((void **)&buffer,lastzalloc,"Freemem@Cleanup"); //Release memory for next try!
+			freez((void **)&buffer,lastzalloc,"freememdetect"); //Release memory for next try!
 			buffer = NULL; //Not allocated anymore!
 			curalloc = lastzalloc; //Set detected memory!
 			//dolog("zalloc","Free memory step: %i",curalloc); //Show our step! WE WORK!
@@ -325,7 +335,6 @@ OPTINLINE uint_32 freemem() //Free memory left! We work!
 		freez((void **)&buffer,lastzalloc,"Freemem@FinalCleanup"); //Still allocated=>release?
 	}
 
-	//dolog("zalloc","Free memory detected: %i bytes",curalloc);
 	allow_zallocfaillog = 1; //Allow again!
 	#ifdef MEM_BLOCK_LIMIT
 		if (curalloc > MEM_BLOCK_LIMIT) //More than the limit?
