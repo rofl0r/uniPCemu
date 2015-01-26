@@ -5,7 +5,25 @@
 #include "headers/support/log.h" //Logging support!
 
 //Log put_pixel_row errors?
-#define PPRLOG 0
+#define PPRLOG
+
+//Container/wrapper support
+void freeSurfacePtr(void **ptr, uint_32 size) //Free a pointer (used internally only) allocated with nzalloc/zalloc and our internal functions!
+{
+	GPU_SDL_Surface *surface = (GPU_SDL_Surface *)*ptr; //Take the surface out of the pointer!
+	if (!(surface->flags&SDL_FLAG_NODELETE)) //The surface is allowed to be deleted?
+	{
+		//Start by freeing the surfaces in the handlers!
+		unregisterptr(surface->sdllayer->pixels,surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32)); //The pixels within the surface!
+		if (unregisterptr(surface->sdllayer,sizeof(*surface->sdllayer))) //The surface itself!
+		{
+			//Next release the data associated with it using the official functionality!
+			SDL_FreeSurface(surface->sdllayer); //Release the surface fully using native support!
+		}
+	}
+	//We're always allowed to release the container.
+	freez((void **)ptr,sizeof(GPU_SDL_Surface),"freeSurfacePtr GPU_SDL_Surface");
+}
 
 GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface) //Retrieves a surface wrapper to use with our functions!
 {
@@ -18,6 +36,39 @@ GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface) //Retrieves a surface w
 	wrapper->sdllayer = surface; //The surface to use within the wrapper!
 	return wrapper; //Give the allocated wrapper!
 }
+
+//registration of a wrapped surface.
+void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerelease) //Register a surface!
+{
+	if (!registerptr(surface->sdllayer,sizeof(*surface->sdllayer),name,allowsurfacerelease?&freeSurfacePtr:NULL)) //The surface itself! We're released using a custom function to release it when allowed!
+	{
+		dolog("registerSurface","Registering the surface failed.");
+		return;
+	}
+
+	char pixelsname[256];
+	bzero(pixelsname,sizeof(pixelsname));
+	strcpy(pixelsname,name); //Init name!
+	strcat(pixelsname,"_Pixels"); //We're the pixels layer!
+	if (!registerptr(surface->sdllayer->pixels,surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32),pixelsname,NULL)) //The pixels within the surface! We can't be released natively!
+	{
+		if (!memprotect(surface->sdllayer->pixels,surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32),NULL)) //Not registered?
+		{
+			dolog("registerSurface","Registering the surface pixels failed.");
+			unregisterptr(surface->sdllayer,sizeof(*surface->sdllayer)); //Undo!
+			return;
+		}
+	}
+	
+	//Next our userdata!
+	surface->flags |= SDL_FLAG_DIRTY; //Initialise to a dirty surface (first rendering!)
+	if (!allowsurfacerelease) //Don't allow surface release?
+	{
+		surface->flags |= SDL_FLAG_NODELETE; //Don't delete the surface!
+	}
+}
+
+//Memory value comparision.
 
 //Returns 1 on not equal, 0 on equal!
 byte diffmem(void *start, byte value, uint_32 size)
@@ -99,6 +150,7 @@ byte memdiff(void *start, void *value, uint_32 size)
 	return result; //Give the result!
 }
 
+//Color key matching.
 void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest ){
 	if (!(src && dest)) return; //Abort: invalid src/dest!
 	if (!memprotect((void *)src,sizeof(*src),NULL) || !memprotect((void *)dest,sizeof(dest),NULL)) return; //Invalid?
@@ -109,52 +161,7 @@ void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest ){
 	}
 }
 
-void freeSurfacePtr(void **ptr, uint_32 size) //Free a pointer (used internally only) allocated with nzalloc/zalloc and our internal functions!
-{
-	GPU_SDL_Surface *surface = (GPU_SDL_Surface *)*ptr; //Take the surface out of the pointer!
-	if (!(surface->flags&SDL_FLAG_NODELETE)) //The surface is allowed to be deleted?
-	{
-		//Start by freeing the surfaces in the handlers!
-		unregisterptr(surface->sdllayer->pixels,surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32)); //The pixels within the surface!
-		unregisterptr(surface->sdllayer,sizeof(*surface->sdllayer)); //The surface itself!
-		//Next release the data associated with it using the official functionality!
-		SDL_FreeSurface(surface->sdllayer); //Release the surface fully using native support!
-	}
-	//We're always allowed to release the container.
-	freez((void **)ptr,sizeof(GPU_SDL_Surface),"freeSurfacePtr GPU_SDL_Surface");
-	*ptr = NULL; //Release the memory for the user!
-}
-
-void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerelease) //Register a surface!
-{
-	if (!registerptr(surface->sdllayer,sizeof(*surface->sdllayer),name,allowsurfacerelease?&freeSurfacePtr:NULL)) //The surface itself! We're released using a custom function to release it when allowed!
-	{
-		dolog("registerSurface","Registering the surface failed.");
-		return;
-	}
-
-	char pixelsname[256];
-	bzero(pixelsname,sizeof(pixelsname));
-	strcpy(pixelsname,name); //Init name!
-	strcat(pixelsname,"_Pixels"); //We're the pixels layer!
-	if (!registerptr(surface->sdllayer->pixels,surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32),pixelsname,NULL)) //The pixels within the surface! We can't be released natively!
-	{
-		if (!memprotect(surface->sdllayer->pixels,surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32),NULL)) //Not registered?
-		{
-			dolog("registerSurface","Registering the surface pixels failed.");
-			unregisterptr(surface->sdllayer,sizeof(*surface->sdllayer)); //Undo!
-			return;
-		}
-	}
-	
-	//Next our userdata!
-	surface->flags |= SDL_FLAG_DIRTY; //Initialise to a dirty surface (first rendering!)
-	if (!allowsurfacerelease) //Don't allow surface release?
-	{
-		surface->flags |= SDL_FLAG_NODELETE; //Don't delete the surface!
-	}
-}
-
+//Resizing.
 GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, const uint_32 newheight, byte doublexres, byte doubleyres, int keepaspectratio)
 {
 	//dolog("SDL","ResizeImage called!");
@@ -261,6 +268,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 	return NULL; //Error!
 }
 
+//Pixels between rows.
 uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference between two rows!
 {
 	if (!surface) 
@@ -285,6 +293,7 @@ uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference betwee
 	return surface->sdllayer->w; //Just use the width as a pitch to fall back to!
 }
 
+//Retrieve a pixel
 uint_32 get_pixel(GPU_SDL_Surface* surface, const int x, const int y ){
 	if (!surface) return 0; //Disable if no surface!
 	Uint32 *pixels = (Uint32*)surface->sdllayer->pixels;
@@ -295,7 +304,7 @@ uint_32 get_pixel(GPU_SDL_Surface* surface, const int x, const int y ){
 	return 0; //Invalid pixel!
 }
 
-
+//Draw a pixel
 void put_pixel(GPU_SDL_Surface *surface, const int x, const int y, const Uint32 pixel ){
 	if (!surface) return; //Disable if no surface!
 	if (!memprotect(surface,sizeof(*surface),NULL)) return; //Invalid surface!
@@ -312,6 +321,7 @@ void put_pixel(GPU_SDL_Surface *surface, const int x, const int y, const Uint32 
 	}
 }
 
+//Retrieve a pixel/row(pixel=0).
 void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x)
 {
 	if (!memprotect(surface,sizeof(GPU_SDL_Surface),NULL))
@@ -523,6 +533,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 	}
 }
 
+//Generate a byte order for SDL.
 void loadByteOrder(uint_32 *rmask, uint_32 *gmask, uint_32 *bmask, uint_32 *amask)
 {
 	//Entirely dependant upon the system itself!
@@ -532,6 +543,7 @@ void loadByteOrder(uint_32 *rmask, uint_32 *gmask, uint_32 *bmask, uint_32 *amas
 	*amask = RGBA(0x00,0x00,0x00,0xFF);
 }
 
+//Create a new surface.
 GPU_SDL_Surface *createSurface(int columns, int rows) //Create a new 32BPP surface!
 {
 	uint_32 rmask,gmask,bmask,amask; //Masks!
@@ -547,6 +559,7 @@ GPU_SDL_Surface *createSurface(int columns, int rows) //Create a new 32BPP surfa
 	return wrapper;
 }
 
+//Create a new surface from an existing buffer.
 GPU_SDL_Surface *createSurfaceFromPixels(int columns, int rows, void *pixels, uint_32 pixelpitch) //Create a 32BPP surface, but from an allocated/solid buffer (not deallocated when freed)! Can be used for persistent buffers (always there, like the GPU screen buffer itself)
 {
 	uint_32 rmask,gmask,bmask,amask; //Masks!
@@ -564,6 +577,7 @@ GPU_SDL_Surface *createSurfaceFromPixels(int columns, int rows, void *pixels, ui
 	return wrapper;
 }
 
+//Release a surface.
 GPU_SDL_Surface *freeSurface(GPU_SDL_Surface *surface)
 {
 	if (!surface) return NULL; //Invalid surface?
@@ -579,6 +593,7 @@ GPU_SDL_Surface *freeSurface(GPU_SDL_Surface *surface)
 	return surface; //Still allocated!
 }
 
+//Draw the screen with a surface.
 void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 {
 	if (memprotect(surface,sizeof(GPU_SDL_Surface),NULL)) //Surface valid and allowed to show pixels?
