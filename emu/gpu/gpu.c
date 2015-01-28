@@ -18,6 +18,8 @@
 #include "headers/emu/gpu/gpu_renderer.h" //Renderer support!
 #include "headers/emu/gpu/gpu_text.h" //Text delta position support!
 
+#include "headers/emu/timers.h" //Timer support!
+
 //Are we disabled?
 #define __HW_DISABLED 0
 
@@ -120,6 +122,7 @@ void initVideoMain() //Everything SDL PRE-EMU!
 		initKeyboardOSK(); //Start the OSK handler!
 		dolog("zalloc","allocBIOSMenu...");
 		allocBIOSMenu(); //BIOS menu has the highest priority!
+		addtimer(60.0, &refreshscreen, "RefreshScreen", 1, 1); //Refresh the screen at this frequency MAX!
 	}
 }
 

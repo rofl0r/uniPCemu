@@ -41,7 +41,7 @@ extern byte active_screen; //Active screen: 0=bottom, 1=Top, 2=Left/Right, 3=Rig
 #define DEBUG_VRAM_WRITES 0
 
 //Automatically sleep on main thread close?
-#define SLEEP_ON_MAIN_CLOSE 1
+#define SLEEP_ON_MAIN_CLOSE 0
 
 byte shutdown = 0; //Shut down (default: NO)?
 
@@ -117,6 +117,7 @@ int CallbackThread(SceSize args, void *argp)
 /* Sets up the callback thread and returns its thread id */
 int SetupCallbacks(void)
 {
+	atexit(SDL_Quit); //Basic SDL safety!
 #ifdef __psp__
 	int thid = 0;
 
@@ -163,63 +164,8 @@ int main(int argc, char * argv[])
 	{
 		initExceptionHandler(); //Start the exception handler!
 	}
-
+	
 	initlog(); //Initialise the logging system!
-
-	FILE *f;
-	byte temp[512];
-	f = fopen64("w95.img", "rb"); //Open file for reading!
-	if (!f)
-	{
-		dolog("test", "Cannot open file w95.img to test!");
-		halt();
-	}
-	if (fread64(&temp, 1, 512, f) != 512)
-	{
-		fclose64(f);
-		dolog("test", "base read failed!");
-		halt();
-	}
-	if (ftell64(f) != 512) //Invalid location?
-	{
-		fclose64(f);
-		dolog("test", "ftell not working!");
-		halt();
-	}
-	if (fseek64(f, 0, SEEK_SET)) //Error seeking to the start!
-	{
-		fclose64(f);
-		dolog("test", "fseek not working!");
-		halt();
-	}
-	if (ftell64(f) != 0) //Error telling the start?
-	{
-		fclose64(f);
-		dolog("test", "ftell not working2!");
-		halt();
-	}
-	if (fseek64(f, 0, SEEK_SET)) //Error seeking to the start!
-	{
-		fclose64(f);
-		dolog("test", "fseek not working!");
-		halt();
-	}
-	if (fseek(f, 0, SEEK_END)) //Error seeking to the end!
-	{
-		fclose64(f);
-		dolog("test", "fseek EOF not working!");
-		halt();
-	}
-	if (!ftell(f))
-	{
-		fclose64(f);
-		dolog("test", "ftell EOF not working!");
-		halt();
-	}
-	fclose(f);
-	dolog("test", "successfull!");
-
-	halt(); //Quit!
 
 	//Normal operations!
 	resetTimers(); //Make sure all timers are ready!
@@ -303,6 +249,9 @@ int main(int argc, char * argv[])
 	debugrow("Initialising main audio service...");	
 	initAudio(); //Initialise main audio!
 
+	startTimers(1); //Start core timing!
+	startTimers(0); //Disable normal timing!
+
 //First, support for I/O on the PSP!
 
 	if (FIND_EMU_MEMORY_LEAKS) //Find memory leaks?
@@ -349,9 +298,10 @@ int main(int argc, char * argv[])
 	SDL_Event event;
 	byte running;
 	running = 1; //Default: we're running!
-	for (; (ThreadsRunning() && running);) //Still running?
+	for (; (threadRunning(rootthread,"X86EMU_CPU") && running);) //Still running?
 	{
-		if (SDL_WaitEvent(&event)) //Gotten events to handle?
+		delay(1); //Give threads some time!
+		for (;SDL_PollEvent(&event);) //Gotten events to handle?
 		{
 			//Handle an event!
 			updateInput(&event); //Update input status when needed!

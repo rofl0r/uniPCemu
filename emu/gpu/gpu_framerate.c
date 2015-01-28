@@ -9,6 +9,7 @@
 #include "headers/hardware/vga.h" //VGA!
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer support!
 #include "headers/emu/timers.h" //Timer support!
+#include "headers/support/zalloc.h" //Protection for pointers!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -112,7 +113,10 @@ void renderFramerate()
 				if ((VGA = getActiveVGA())) //Gotten active VGA?
 				{
 					Sequencer = (SEQ_DATA *)VGA->Sequencer; //Sequencer!
-					GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0xBB,0x00,0x00),"\nVGA@Scanline: %i               ",Sequencer->Scanline); //Log the time taken per pixel AVG!
+					if (memprotect(Sequencer, sizeof(SEQ_DATA), NULL)) //Readable?
+					{
+						GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nVGA@Scanline: %i               ", Sequencer->Scanline); //Log the time taken per pixel AVG!
+					}
 				}
 			#endif
 		}
@@ -147,7 +151,7 @@ void initFramerate()
 	{
 		frames = 0; //Reset frames!
 	}
-	addtimer(FRAMERATE_SPEED,&GPU_Framerate_tick,"Framerate",1);
+	addtimer(FRAMERATE_SPEED,&GPU_Framerate_tick,"Framerate",1,1);
 }
 
 extern GPU_SDL_Surface *rendersurface; //The PSP's surface!

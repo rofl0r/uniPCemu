@@ -13,7 +13,7 @@
 void halt_modrm(char *message, ...) //Unknown modr/m?
 {
 	stopVideo(); //Need no video!
-	stopTimers(); //Stop all timers!
+	stopTimers(0); //Stop all normal timers!
 	char buffer[256]; //Going to contain our output data!
 	va_list args; //Going to contain the list!
 	va_start (args, message); //Start list!

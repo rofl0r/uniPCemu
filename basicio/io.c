@@ -23,8 +23,7 @@ int drivereadonly(int drive)
 			return 1; //CDROM always readonly!
 			break;
 		default: //Any other drive?
-			return disks[drive].readonly; //Read only?
-			return 0; //Unknown, so NO!
+			return ((disks[drive].readonly) || (disks[drive].customdisk.used)); //Read only or custom disk = read only!
 	}
 }
 
@@ -42,11 +41,21 @@ FILEPOS getdisksize(int device) //Retrieve a dynamic/static image size!
 
 void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_32 customsize) //Disk mount routine!
 {
-	strcpy(disks[device].filename,filename); //Set file!
+	byte dynamicimage = is_dynamicimage(filename); //Dynamic image detection!
+	if (!dynamicimage) //Might be a static image when not a dynamic image?
+	{
+		if (!is_staticimage(filename)) //Not a static image? We're invalid!
+		{
+			memset(&disks[device], 0, sizeof(disks[device])); //Delete the entry!
+			return; //Abort!
+		}
+	}
+
+	strcpy(disks[device].filename, filename); //Set file!
 	disks[device].start = startpos; //Start pos!
 	disks[device].readonly = readonly; //Read only!
-	disks[device].size = (customsize>0)?customsize:getdisksize(device); //Get sizes!
-	disks[device].dynamicimage = is_dynamicimage(filename); //Dynamic image?
+	disks[device].dynamicimage = dynamicimage; //Dynamic image!
+	disks[device].size = (customsize>0) ? customsize : getdisksize(device); //Get sizes!
 	disks[device].readhandler = disks[device].dynamicimage?&dynamicimage_readsector:&staticimage_readsector; //What read sector function to use!
 	disks[device].writehandler = disks[device].dynamicimage?&dynamicimage_writesector:&staticimage_writesector; //What write sector function to use!
 }
@@ -99,7 +108,8 @@ int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 
 	FILEPOS readpos; //Read pos!
 	FILEPOS basepos; //Base pos!
-	basepos = disks[device].start;
+	readpos = disks[device].start; //Base position!
+	readpos += startpos; //Start position!
 	if (disks[device].customdisk.used) //Custom disk?
 	{
 		if (startpos+bytestoread<=disks[device].customdisk.imagesize) //Within bounds?
@@ -120,10 +130,8 @@ int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 		return FALSE; //Error: device not found!
 	}
 
-	readpos = basepos+(startpos<<9); //Startpos!
-
 	uint_32 sector; //Current sector!
-	sector = readpos>>9; //The sector we need must be a multiple of 512 bytes (standard sector size)!
+	sector = (readpos>>9); //The sector we need must be a multiple of 512 bytes (standard sector size)!
 	FILEPOS bytesread = 0; //Init bytesread!
 	
 	SECTORHANDLER handler = disks[device].readhandler; //Our handler!
@@ -175,7 +183,7 @@ int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 	
 	if (disks[device].customdisk.used) //Read only custom disk passthrough?
 	{
-		return FALSE;
+		return FALSE; //Read only link!
 	}
 	//Load basic data!
 	basepos = disks[device].start;
@@ -192,10 +200,11 @@ int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 		return FALSE; //No writing allowed!
 	}
 
-	writepos = basepos + startpos; //Place to write!
+	writepos = basepos; //Base position!
+	writepos += startpos; //Start position!
 
 	uint_32 sector; //Current sector!
-	sector = writepos/512; //The sector we need!
+	sector = (writepos>>9); //The sector we need!
 	FILEPOS byteswritten = 0; //Init byteswritten!
 
 	SECTORHANDLER handler = disks[device].writehandler; //Our handler!

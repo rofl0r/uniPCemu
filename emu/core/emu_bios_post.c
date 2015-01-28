@@ -49,6 +49,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 {
 	debugrow("Running BIOS POST!");
 	#ifdef ALLOW_BIOS
+	EMU_RUNNING = 0; //We're not running atm!
 	if (CheckBIOSMenu(1000000)) //Run BIOS Menu if needed for a short time!
 	{
 		EMU_RUNNING = 1; //We're running again!
@@ -163,6 +164,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 	#endif
 	
 	#ifdef ALLOW_BIOS
+	startTimers(0); //Start EMU timers!
 	BIOS_ShowBIOS(); //Show BIOS information!
 	if (CheckBIOSMenu(0)) //Run BIOS Menu if needed!
 	{

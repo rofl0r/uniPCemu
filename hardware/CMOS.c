@@ -230,7 +230,7 @@ void CMOS_onWrite() //When written to CMOS!
 {
 	if (CMOS.ADDR==0xB) //Might have enabled IRQ8 functions!
 	{
-		addtimer((float)getIRQ8Rate(),&RTC_Handler,"RTC",10); //RTC handler!
+		addtimer((float)getIRQ8Rate(),&RTC_Handler,"RTC",10,0); //RTC handler!
 		CMOS.IRQ8_Disabled = 0; //Allow IRQ8 to be called by timer: we're enabled!
 	}
 }

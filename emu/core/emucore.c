@@ -140,7 +140,6 @@ void initEMU(int full) //Init!
 	{
 		if (!DEBUG_VGA_SPEED) //Not to debug speed only?
 		{
-			addtimer(60.0,&refreshscreen,"RefreshScreen",1); //Refresh the screen at this frequency MAX!
 			startVideo(); //Start the video functioning!
 		}
 	}
@@ -166,7 +165,7 @@ void initEMU(int full) //Init!
 	if (DEBUG_VGA_SPEED) //To debug the VGA MAX speed?
 	{
 		debugrow("Debugging Maximum VGA speed...");
-		startTimers(); //Start the timers!
+		startTimers(1); //Start the timers!
 		while (1)
 		{
 			VGA_Sequencer(getActiveVGA()); //Generate one line!
@@ -195,7 +194,7 @@ void initEMU(int full) //Init!
 	if (full) //Full start?
 	{
 		debugrow("Starting timers...");
-		startTimers(); //Start the timers!
+		startTimers(0); //Start the timers!
 		debugrow("Loading system BIOS ROM...");
 		BIOS_registerROM(); //Register the BIOS ROM for usage!
 		BIOS_load_systemROM(); //Load custom ROM from emulator itself, we don't know about any system ROM!
@@ -214,7 +213,7 @@ void initEMU(int full) //Init!
 	debugrow("EMU Ready to run.");
 	if (DEBUG_SOUND) //Debugging sound only?
 	{
-		startTimers(); //Make sure the timers are running!
+		startTimers(0); //Make sure the timers are running!
 		dosoundtest();
 		termThreads(); //Terminate our thread for max priority, if possible!
 	}

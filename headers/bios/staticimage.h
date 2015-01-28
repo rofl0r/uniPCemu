@@ -3,7 +3,8 @@
 
 #include "headers/types.h" //Basic types!
 
-int staticimage_writesector(char *filename,uint_32 sector, void *buffer); //Write a 512-byte sector! Result=1 on success, 0 on error!
+int is_staticimage(char *filename); //Are we a static image?
+int staticimage_writesector(char *filename, uint_32 sector, void *buffer); //Write a 512-byte sector! Result=1 on success, 0 on error!
 int staticimage_readsector(char *filename,uint_32 sector, void *buffer); //Read a 512-byte sector! Result=1 on success, 0 on error!
 FILEPOS staticimage_getsize(char *filename);
 

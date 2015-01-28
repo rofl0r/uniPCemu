@@ -298,7 +298,6 @@
       <CompileAs>CompileAsCpp</CompileAs>
       <StructMemberAlignment>1Byte</StructMemberAlignment>
       <FunctionLevelLinking>false</FunctionLevelLinking>
-      <FloatingPointExceptions>true</FloatingPointExceptions>
       <CallingConvention>Cdecl</CallingConvention>
       <UseFullPaths>true</UseFullPaths>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
@@ -306,10 +305,11 @@
       <SDLCheck>false</SDLCheck>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MinimalRebuild>true</MinimalRebuild>
-      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <Optimization>Full</Optimization>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <Optimization>Disabled</Optimization>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

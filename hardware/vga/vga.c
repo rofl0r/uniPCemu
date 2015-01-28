@@ -258,7 +258,11 @@ Internal terminate and start functions!
 void terminateVGA() //Terminate running VGA and disable it! Only to be used by root processes (non-VGA processes!)
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (ActiveVGA==NULL) return; //We can't terminate without a VGA to terminate!
+	if (!memprotect(ActiveVGA, sizeof(*ActiveVGA), "VGA_Struct"))
+	{
+		ActiveVGA = NULL; //Unused!
+		return; //We can't terminate without a VGA to terminate!
+	}
 	if (ActiveVGA->Terminated) return; //Already terminated?
 	/*
 	ActiveVGA->Request_Termination = 1; //We request to terminate!

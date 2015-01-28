@@ -1468,7 +1468,7 @@ void psp_keyboard_refreshrate()
 {
 	float repeatrate = HWkeyboard_getrepeatrate();
 	if (!repeatrate) repeatrate = 10.0f; //10 times a second sampling!
-	addtimer(repeatrate,&keyboard_type_handler,"Keyboard PSP Type",1); //Our type handler!
+	addtimer(repeatrate,&keyboard_type_handler,"Keyboard PSP Type",1,0); //Our type handler!
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
@@ -1494,9 +1494,9 @@ void psp_keyboard_init()
 		//dolog("osk","Starting type handler");
 		psp_keyboard_refreshrate(); //Handles keyboard typing: we're an interrupt!
 		//dolog("osk","Starting swap handler");
-		addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1); //Handles keyboard set swapping: we're an interrupt!
+		addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1,0); //Handles keyboard set swapping: we're an interrupt!
 		//dolog("osk","Starting mouse handler");
-		addtimer(256.0f,&mouse_handler,"PSP Mouse",10); //Handles mouse input: we're a normal timer!
+		addtimer(256.0f,&mouse_handler,"PSP Mouse",10,0); //Handles mouse input: we're a normal timer!
 		KEYBOARD_STARTED = 1; //Started!
 	//}
 	//dolog("osk","keyboard&mouse ready.");

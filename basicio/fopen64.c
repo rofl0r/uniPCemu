@@ -9,7 +9,7 @@
 #endif
 /*
 
-This is a custom PSP library for adding 64-bit fopen support to the project.
+This is a custom PSP&PC library for adding 64-bit fopen support to the project.
 
 */
 
@@ -31,6 +31,8 @@ typedef struct
 
 FILE *fopen64(char *filename, char *mode)
 {
+	BIGFILE *stream;
+	int length;
 	if (!filename) //Invalid filename?
 	{
 		return NULL; //Invalid filename!
@@ -40,8 +42,8 @@ FILE *fopen64(char *filename, char *mode)
 		return NULL; //Invalid filename!
 	}
 
-	BIGFILE *stream;
 	stream = (BIGFILE *)zalloc(sizeof(BIGFILE),"BIGFILE"); //Allocate the big file!
+	//stream = (BIGFILE *)malloc(sizeof(BIGFILE));
 	if (!stream) return NULL; //Nothing to be done!
 	
 	char *modeidentifier = mode; //First character of the mode!
@@ -50,7 +52,7 @@ FILE *fopen64(char *filename, char *mode)
 		freez((void **)&stream,sizeof(BIGFILE),"Unused BIGFILE");
 		return NULL; //Failed!
 	}
-	int length = safe_strlen(mode, 255); //Safe length!
+	length = safe_strlen(mode, 255); //Safe length!
 	while (length--) //Process the mode string!
 	{
 			switch (*modeidentifier) //What identifier have we found?
@@ -129,14 +131,16 @@ int fseek64(FILE *stream, int64_t pos, int direction)
 	if (direction==SEEK_END) newdir = PSP_SEEK_END;
 	if (direction==SEEK_SET) newdir = PSP_SEEK_SET; 
 	b->position = sceIoLseek(b->f,pos,newdir); //Update position!
+	return (b->position == pos) ? 0 : 1; //Give error (non-0) or OK(0)!
 #else
 	//Windows
-	if (!_fseeki64(b->f, pos, direction)) //Direction is constant itself!
+	int result;
+	if (!(result = _fseeki64(b->f, pos, direction))) //Direction is constant itself!
 	{
 		b->position = _ftelli64(b->f); //Use our own position indicator!
 	}
+	return result; //Give the result!
 #endif
-	return (b->position == pos) ? 0 : 1; //Give error (non-0) or OK(0)!
 }
 
 int64_t fwrite64(void *data,int64_t multiplication,int64_t size,FILE *stream)

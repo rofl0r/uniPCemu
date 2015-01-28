@@ -95,7 +95,7 @@ getBootImage: retrieves boot image from ISO disk (from device)
 result: drive type (0x01=floppy (drive #0x00);0x80=hdd;0xFF=No emulation)
 */
 
-int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image written to imagefile), else FALSE!
+int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image assigned to floppy/harddisk), else FALSE!
 {
 	int result = 0;
 	byte buffer[CD_SEC_SIZE]; //1MB buffer!
@@ -315,7 +315,6 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 	}
 	fclose(f); //Close the image file: we've written it!
 
-
 //Clean up before leaving!
 
 	if (result) //Got a result?
@@ -327,7 +326,7 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 	return FALSE; //Default: not gotten!
 }
 
-int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on bootable (image written to imagefile), else FALSE!
+int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on bootable (image info set to imagefile), else FALSE!
 {
 	int result = 0;
 	byte buffer[CD_SEC_SIZE]; //1MB buffer!
@@ -496,7 +495,7 @@ int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on boota
 	imagefile->imagesize = dwLen; //Length of the image!
 	imagefile->used = 1; //Init used (default to used!)
 
-	if (result) //Got a result?
+	if (do_boot) //Got a result?
 	{
 		return drivetype; //Use the drive's type as a result!
 	}

@@ -50,11 +50,14 @@ void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerele
 	bzero(pixelsname,sizeof(pixelsname));
 	strcpy(pixelsname,name); //Init name!
 	strcat(pixelsname,"_Pixels"); //We're the pixels layer!
-	if (!registerptr(surface->sdllayer->pixels,surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32),pixelsname,NULL)) //The pixels within the surface! We can't be released natively!
+	uint_32 pixels_size;
+	pixels_size = surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32); //The size of the pixels structure!
+	if (!registerptr(surface->sdllayer->pixels,pixels_size,pixelsname,NULL)) //The pixels within the surface! We can't be released natively!
 	{
-		if (!memprotect(surface->sdllayer->pixels,surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32),NULL)) //Not registered?
+		if (!memprotect(surface->sdllayer->pixels,pixels_size,pixelsname)) //Not registered?
 		{
 			dolog("registerSurface","Registering the surface pixels failed.");
+			logpointers("registerSurface");
 			unregisterptr(surface->sdllayer,sizeof(*surface->sdllayer)); //Undo!
 			return;
 		}
@@ -276,10 +279,10 @@ uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference betwee
 		dolog("GPP","Pitch: invalid NULL-surface!");
 		return 0; //No surface = no pitch!
 	}
-	if (memprotect(surface,sizeof(GPU_SDL_Surface),NULL)!=surface)
+	if (memprotect(surface,sizeof(*surface),NULL)!=surface)
 	{
 		dolog("GPP","Pitch: invalid protected surface container!");
-		return 0; //Invalid surface!
+		return 0; //Invalid surface container!
 	}
 	if (memprotect(surface->sdllayer,sizeof(surface->sdllayer),NULL)!=surface->sdllayer)
 	{
@@ -326,12 +329,16 @@ void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x)
 {
 	if (!memprotect(surface,sizeof(GPU_SDL_Surface),NULL))
 	{
-		if (PPRLOG) dolog("PPR","Get_pixel_ptr: Invalid surface container!");
+		#ifdef PPRLOG
+			dolog("PPR","Get_pixel_ptr: Invalid surface container!");
+		#endif
 		return NULL; //Unknown!
 	}
 	if (!memprotect(surface->sdllayer,sizeof(*surface->sdllayer),NULL))
 	{
-		if (PPRLOG) dolog("PPR","Get_pixel_ptr: Invalid surface!");
+		#ifdef PPRLOG
+			dolog("PPR","Get_pixel_ptr: Invalid surface!");
+		#endif
 		return NULL; //Unknown!	
 	}
 	if ((y<surface->sdllayer->h) && (x<surface->sdllayer->w)) //Within range?
@@ -347,19 +354,25 @@ void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x)
 			}
 			else
 			{
-				if (PPRLOG) dolog("PPR","Get_pixel_ptr: Invalid SDL_Surface pixels@%i,%i!",x,y);
+#ifdef PPRLOG
+				dolog("PPR","Get_pixel_ptr: Invalid SDL_Surface pixels@%i,%i!",x,y);
+#endif
 			}
 		}
+		#ifdef PPRLOG
+			else
+			{
+				dolog("PPR", "Get_pixel_ptr: Invalid SDL_Surface pixels:entry:%p!", pixels);
+				logpointers("PPR: Invalid SDL_Surface pixels!"); //Log all pointers!
+			}
+		#endif
+	}
+	#ifdef PPRLOG
 		else
 		{
-			if (PPRLOG) dolog("PPR","Get_pixel_ptr: Invalid SDL_Surface pixels:entry:%p!",pixels);
-			logpointers("PPR: Invalid SDL_Surface pixels!"); //Log all pointers!
+			dolog("PPR", "Get_pixel_ptr: Invalid row!");
 		}
-	}
-	else
-	{
-		if (PPRLOG) dolog("PPR","Get_pixel_ptr: Invalid row!");
-	}
+	#endif
 	return NULL; //Out of range!
 }
 
@@ -432,10 +445,12 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 							}
 							memcpy(&row[restpixels],pixels,use_rowsize*4); //Copy the row to the buffer as far as we can go!
 						}
-						else
-						{
-							if (PPRLOG) dolog("GPU_Renderer","Invalid src/dest specified!");
-						}						
+						#ifdef PPRLOG
+							else
+							{
+								dolog("GPU_Renderer", "Invalid src/dest specified!");
+							}						
+						#endif
 						break;
 					case 1: //Use horizontal centering?
 						if ((sword)surface->sdllayer->w>(sword)(use_rowsize+2)) //We have space left&right to plot? Also must have at least 2 pixels left&right to center!
@@ -463,10 +478,12 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 							{
 								memcpy(&row[start],pixels,use_rowsize*4); //Copy the pixels to the center!
 							}
-							else
-							{
-								if (PPRLOG) dolog("PPR","Invalid src/dest specified!");
-							}							
+							#ifdef PPRLOG
+								else
+								{
+									dolog("PPR","Invalid src/dest specified!");
+								}							
+							#endif
 							return; //Done: we've written the pixels at the center!
 						}
 						//We don't need centering: just do left side plot!
@@ -481,10 +498,12 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 							}
 							memcpy(&row[row_start],pixels,use_rowsize*4); //Copy the row to the buffer as far as we can go!
 						}
+#ifdef PPRLOG
 						else
 						{
-							if (PPRLOG) dolog("PPR","Invalid src/dest specified!");
+							dolog("PPR", "Invalid src/dest specified!");
 						}
+#endif
 						//Now just render the rest part of the line to black!
 						if ((restpixels>0) && (!(center&4))) //Still a part of the row not rendered and valid rest location and not disable clearing?
 						{
@@ -502,18 +521,24 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 				}
 				else
 				{
-					if (PPRLOG) dolog("PPR","Invalid surface row:%i!",y);
+#ifdef PPRLOG
+					dolog("PPR", "Invalid surface row:%i!", y);
+#endif
 				}
 			}
 		}
+#ifdef PPRLOG
 		else
 		{
-			if (PPRLOG) dolog("PPR","Invalid row size: Surface: %i, Specified: %i",get_pixelrow_pitch(surface),rowsize); //Log it!
+			dolog("PPR","Invalid row size: Surface: %i, Specified: %i",get_pixelrow_pitch(surface),rowsize); //Log it!
 		}
+#endif
 	}
 	else if (surface && (!(center&4))) //Surface, but no pixels: clear the row? Also clearing must be enabled to do so.
 	{
-		if (PPRLOG) dolog("PPR","Rendering empty pixels because of invalid data to copy.");
+#ifdef PPRLOG
+		dolog("PPR", "Rendering empty pixels because of invalid data to copy.");
+#endif
 		uint_32 *row = get_pixel_row(surface,y,0); //Row at the left!
 		if (row && surface->sdllayer->w) //Got row?
 		{
@@ -529,7 +554,9 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 	}
 	else
 	{
-		if (PPRLOG) dolog("PPR","Invalid surface specified!");
+#ifdef PPRLOG
+		dolog("PPR", "Invalid surface specified!");
+#endif
 	}
 }
 

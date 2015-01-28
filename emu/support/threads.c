@@ -87,14 +87,16 @@ void releasePool(uint_32 threadid) //Release a pooled thread if it exists!
 	}
 }
 
-void activeThread(uint_32 threadid)
+void activeThread(uint_32 threadid, ThreadParams_p thread)
 {
-	int index; //The index to be used!
+	/*int index; //The index to be used!
 	//dolog("threads","activeThread...");
 	if ((index = getthreadpoolindex(threadid))!=-1) //Gotten index?
 	{
 		threadpool[index].status = THREADSTATUS_RUNNING; //Running!
-	}
+	}*/
+	thread->status = THREADSTATUS_RUNNING; //Running!
+	thread->threadID = threadid; //Our thread ID!
 	//dolog("threads","activeThread_RET!");
 }
 
@@ -193,7 +195,7 @@ threadhandler: The actual thread running over all other threads.
 int threadhandler(/*SceSize args, void *params*/ void *data)
 {
 	uint_32 thid = SDL_ThreadID(); //The thread ID!
-	activeThread(thid); //Mark us as running!
+	activeThread(thid,(ThreadParams_p)data); //Mark us as running!
 	runcallback(thid); //Run the callback!
 	terminateThread(thid); //Terminate ourselves!
 	return 0; //Shouldn't be here?
@@ -281,7 +283,7 @@ void threadCreaten(ThreadParams_p params, uint_32 threadID, char *name)
 	if (params) //Gotten params?
 	{
 		//dolog("threads","threadCreaten set...");
-		params->threadID = threadID; //The thread ID!
+		params->threadID = threadID; //The thread ID, just in case!
 		bzero(params->name,sizeof(params->name));
 		strcpy(params->name,name); //Save the name for usage!
 	}

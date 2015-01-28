@@ -42,7 +42,7 @@ extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 
 void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
 {
-	stopTimers(); //Stop all timers!
+	stopTimers(0); //Stop all timers!
 	CPU.registers->AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
 	CPU.registers->AX = 0x1001; //Set pallette!
@@ -99,7 +99,7 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	GPU_textgotoxy(frameratesurface,33,2); //Goto Rendering... text!
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Rendered.   ",mode);
 
-	startTimers(); //Start timers again!
+	startTimers(0); //Start timers again!
 	VGA_waitforVBlank(); //Make sure we're ending drawing!
 	VGA_waitforVBlank(); //Make sure we've drawn the picture!
 	if (screencapture) //Screen capture?
@@ -110,7 +110,7 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	
 	//VGA_LOGCRTCSTATUS(); //Dump the current CRTC status!
 	
-	startTimers(); //Start the timers!
+	startTimers(0); //Start the timers!
 	delay(5000000); //Wait a bit!
 }
 
@@ -127,7 +127,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	enableKeyboard(0); //Allow to test the keyboard!
 	if (TEXTMODE_DEBUGGING) //Debug text mode too?
 	{
-		stopTimers(); //Make sure we've stopped!
+		stopTimers(0); //Make sure we've stopped!
 		int i; //For further loops!
 
 		CPU.registers->AX = VIDEOMODE_TEXTMODE;
@@ -190,7 +190,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		/*debugTextModeScreenCapture(); //Debug a screen capture!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"SCREENCAPTURE CREATEN.");
 		*/
-		startTimers(); //Start timers up!
+		startTimers(0); //Start timers up!
 		sleep();
 		delay(5000000); //Wait a bit!
 	

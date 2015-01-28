@@ -35,7 +35,7 @@ byte allow_zallocfaillog = 1; //Allow zalloc fail log?
 void initZalloc() //Initialises the zalloc subsystem!
 {
 	if (pointersinitialised) return; //Don't do anything when we're ready already!
-	memset(&registeredpointers,0,sizeof(registeredpointers)); //Initialise all registered pointers!
+	//memset(&registeredpointers,0,sizeof(registeredpointers)); //Initialise all registered pointers!
 	pointersinitialised = 1; //We're ready to run!
 }
 
@@ -81,7 +81,8 @@ sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //Are we alre
 	initZalloc(); //Make sure we're started!
 	if (!ptr) return -2; //Not matched when NULL!
 	if (!size) return -2; //Not matched when no size (should be impossible)!
-	address_start = (uint_32)ptr+index; //Start of data!
+	address_start = (uint_32)ptr;
+	address_start += index; //Start of data!
 	address_end = address_start+size-1; //End of data!
 
 	for (current=0;current<NUMITEMS(registeredpointers);current++) //Process matched options!
@@ -194,11 +195,13 @@ OPTINLINE void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on fa
 	int times=10; //Try 10 times till giving up!
 	initZalloc(); //Make sure we're started!
 	if (!size) return NULL; //Can't allocate nothing!
-	for (;(!ptr && times);) //Try for some times!
+	/*for (;(!ptr && times);) //Try for some times!
 	{
 		ptr = malloc(size); //Try to allocate!
 		--times; //Next try!
-	}
+	}*/
+	ptr = malloc(size); //Try to allocate once!
+
 	if (ptr!=NULL) //Allocated and a valid size?
 	{
 		if (registerptr(ptr,size,name,&zalloc_free)) //Register the pointer with the detection system!
@@ -256,7 +259,11 @@ OPTINLINE void *zalloc(uint_32 size, char *name) //Same as nzalloc, but clears t
 	ptr = nzalloc(size,name); //Try to allocate!
 	if (ptr) //Allocated?
 	{
-		return memset(ptr,0,size); //Give the original pointer, cleared to 0!
+		if (memset(ptr, 0, size)) //Give the original pointer, cleared to 0!
+		{
+			return ptr; //Give the pointer allocated!
+		}
+		freez((void **)&ptr, size, NULL); //Release the pointer: we can't be cleared!
 	}
 	return NULL; //Not allocated!
 }

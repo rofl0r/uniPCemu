@@ -54,6 +54,8 @@ void BIOS_DirectPlotSetting(); //Direct Plot Setting!
 void BIOS_FontSetting(); //BIOS Font Setting!
 void BIOS_KeepAspectRatio(); //Keep aspect ratio?
 void BIOS_ConvertStaticDynamicHDD(); //Convert static to dynamic HDD?
+void BIOS_ConvertDynamicStaticHDD(); //Generate Static HDD Image from a dynamic one!
+void BIOS_DefragmentDynamicHDD(); //Defragment a dynamic HDD Image!
 
 void BIOSMenu_LoadDefaults(); //Load the defaults option!
 

@@ -3,6 +3,33 @@
 #include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
 #include "headers/fopen64.h" //64-bit fopen support!
 
+int is_staticimage(char *filename)
+{
+	FILE *f;
+	f = fopen64(filename, "rb"); //Open file!
+	if (!f)
+	{
+		return 0; //Invalid file: file not found!
+	}
+	if (fseek64(f, 0, SEEK_END)) //Failed to seek to EOF?
+	{
+		fclose64(f);
+		return 0; //Not static!
+	}
+	int_64 filesize;
+	filesize = ftell64(f); //Get the file size!
+	fclose64(f); //Close the file!
+	if (filesize <= 0) //Invalid size or empty?
+	{
+		return 0; //Not static: invalid file size!
+	}
+	if (((filesize >> 9) << 9) != filesize) //Not a multiple of 512 bytes?
+	{
+		return 0; //Not static: invalid sector size!
+	}
+	return 1; //We're a static image: we're a multiple of 512 bytes and have contents!
+}
+
 FILEPOS staticimage_getsize(char *filename)
 {
 	if (strcmp(filename, "") == 0) return 0; //Not mountable!
@@ -23,8 +50,20 @@ int staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Write
 {
 	FILE *f;
 	f = fopen64(filename,"rb+"); //Open!
-	fseek64(f,sector<<9,SEEK_SET); //Find block info!
-	if (ftell64(f)!=(sector<<9)) //Not found?
+	++sector; //Find the next sector!
+	if (fseek64(f, sector << 9, SEEK_SET)) //Invalid sector!
+	{
+		fclose64(f); //Close the file!
+		return 0; //Limit broken!
+	}
+	if (ftell64(f) != (sector << 9)) //Invalid sector!
+	{
+		fclose64(f); //Close the file!
+		return 0; //Limit broken!
+	}
+	--sector; //Goto selected sector!
+	fseek64(f, sector << 9, SEEK_SET); //Find block info!
+	if (ftell64(f) != (sector << 9)) //Not found?
 	{
 		fclose64(f); //Close the file!
 		return FALSE; //Error!

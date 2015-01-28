@@ -17,7 +17,7 @@ int_64 firstlevellocation; //The location of the first level, in bytes!
 int_64 currentsize; //The current file size, in bytes!
 } DYNAMICIMAGE_HEADER; //Dynamic image .DAT header.
 
-int_64 lookuptable[4096]; //A full sector lookup table (4096 entries for either block or sector lookup)!
+int_64 lookuptable[4096]; //A full sector lookup table (4096 entries for either block (1024) or sector (4096) lookup)!
 
 byte writedynamicheader(char *filename, DYNAMICIMAGE_HEADER *header)
 {
@@ -36,40 +36,35 @@ byte writedynamicheader(char *filename, DYNAMICIMAGE_HEADER *header)
 	return 1; //We've been updated!
 }
 
+//Problem here!
 byte readdynamicheader(char *filename, DYNAMICIMAGE_HEADER *header)
 {
 	if (!isext(filename, "sfdimg")) //Not our dynamic image file?
 	{
 		return 0; //Not a dynamic image!
 	}
-	int is_dynamic = 0; //Not dynamic by default!
 	FILE *f = fopen64(filename,"rb"); //Open!
 	if (f)
 	{
-		if (fread64(header,1,sizeof(header),f)!=sizeof(header)) //Failed to read the header?
-		{
-			is_dynamic = 0; //Not dynamic.
-		}
-		else
+		if (fread64(header,1,sizeof(*header),f)==sizeof(*header)) //Read the header?
 		{
 			char *sig = (char *)&header->SIG; //The signature!
 			if (!memcmp(sig,&SIG,sizeof(header->SIG)) && header->headersize==sizeof(*header)) //Dynamic image?
 			{
-				is_dynamic = 1; //Is dynamic!
-			}
-			else //Dynamic image invalid?
-			{
-				is_dynamic = 0; //Not dynamic.
+				fclose64(f); //Close the file!
+				return 1; //Is dynamic!
 			}
 		}
 		fclose64(f);
+		return 0; //Valid file, not a dynamic image!
 	}
-	return is_dynamic;
+	return 0; //Not found!
 }
 
 int is_dynamicimage(char *filename)
 {
 	DYNAMICIMAGE_HEADER header; //Header to read!
+	if (strcmp(filename, "") == 0) return 0; //Unexisting: don't even look at it!
 	return readdynamicheader(filename,&header); //Is dynamic?
 }
 
@@ -112,7 +107,7 @@ byte dynamicimage_allocatelookuptable(char *filename, int_64 *location, int_64 n
 		}
 		//We're at EOF!
 		*location = header.currentsize; //The location we've found to use!
-		entrysize = sizeof(lookuptable[0] * numentries); //Size of the entry!
+		entrysize = sizeof(lookuptable[0]) * numentries; //Size of the entry!
 		memset(&lookuptable, 0, (size_t)entrysize); //Init to empty block table!
 		if (fwrite64(&lookuptable, 1, entrysize, f) == entrysize) //Block table allocated?
 		{
@@ -173,7 +168,6 @@ byte dynamicimage_updatelookuptable(char *filename, int_64 location, int_64 nume
 		memset(&lookuptable, 0, (size_t)entrysize); //Clear all entries!
 		if (fread64(&lookuptable, 1, entrysize, f) == entrysize) //Block table read?
 		{
-			fclose64(f); //Close the file!
 			if (entrysize>entry) //Lower than the ammount of entries?
 			{
 				lookuptable[entry] = value; //Update the entry!
@@ -203,15 +197,16 @@ int_64 dynamicimage_getindex(char *filename, uint_32 sector) //Get index!
 	{
 		return -1; //Error: not dynamic!
 	}
-	if (!(index = dynamicimage_readlookuptable(filename, sizeof(header), 1024, ((sector >> 25) & 0x3FF)))) //First level lookup!
+	if (!header.firstlevellocation) return 0; //Not present: no first level lookup table!
+	if (!(index = dynamicimage_readlookuptable(filename, header.firstlevellocation, 1024, ((sector >> 22) & 0x3FF)))) //First level lookup!
 	{
 		return 0; //Not present!
 	}
-	if (!(index = dynamicimage_readlookuptable(filename, index, 1024, ((sector >> 15) & 0x3FF)))) //Second level lookup!
+	if (!(index = dynamicimage_readlookuptable(filename, index, 1024, ((sector >> 12) & 0x3FF)))) //Second level lookup!
 	{
 		return 0; //Not present!
 	}
-	if (!dynamicimage_readlookuptable(filename, sizeof(header), 4096, ((sector >> 3) & 0xFFF))) //Sector level lookup!
+	if (!(index = dynamicimage_readlookuptable(filename, index, 4096, (sector & 0xFFF)))) //Sector level lookup!
 	{
 		return 0; //Not present!
 	}
@@ -234,9 +229,9 @@ byte dynamicimage_setindex(char *filename, uint_32 sector, int_64 index)
 	DYNAMICIMAGE_HEADER header;
 	int_64 firstlevellocation,secondlevellocation,sectorlevellocation;
 	int_64 firstlevelentry, secondlevelentry, sectorlevelentry;
-	firstlevelentry = ((sector >> 25) & 0x3FF); //First level entry!
-	secondlevelentry = ((sector >> 15) & 0x3FF); //Second level entry!
-	sectorlevelentry = ((sector >> 3) & 0xFFF); //Sector level entry!
+	firstlevelentry = ((sector >> 22) & 0x3FF); //First level entry!
+	secondlevelentry = ((sector >> 12) & 0x3FF); //Second level entry!
+	sectorlevelentry = (sector & 0xFFF); //Sector level entry!
 
 	if (!readdynamicheader(filename, &header)) //Not dynamic?
 	{
@@ -287,7 +282,7 @@ byte dynamicimage_setindex(char *filename, uint_32 sector, int_64 index)
 			dynamicimage_updatesize(filename, header.currentsize); //Revert!
 			return 0; //Failed!
 		}
-		if (!dynamicimage_updatelookuptable(filename, firstlevellocation, 4096, secondlevelentry, sectorlevellocation)) //Lookup table failed to assign?
+		if (!dynamicimage_updatelookuptable(filename, secondlevellocation, 4096, secondlevelentry, sectorlevellocation)) //Lookup table failed to assign?
 		{
 			dynamicimage_updatesize(filename, header.currentsize); //Revert!
 			return 0; //Failed!
@@ -317,13 +312,16 @@ int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 	{
 		return FALSE; //Error: invalid file!
 	}
+	if (sector >= header.filesize) return FALSE; //We're over the limit of the image!
 	int present = dynamicimage_datapresent(filename,sector); //Data present?
 	if (present!=-1) //Valid sector?
 	{
 		if (present) //Data present?
 		{
+			int_64 location;
+			location = dynamicimage_getindex(filename, sector); //Load the location!
 			dev = fopen64(filename, "rb+"); //Open file for reading!
-			fseek64(dev, dynamicimage_getindex(filename, sector), SEEK_SET); //Goto location!
+			fseek64(dev,location, SEEK_SET); //Goto location!
 			fwrite64(buffer,1,512,dev); //Write sector always!
 			fclose64(dev); //Close!
 		}
@@ -340,27 +338,39 @@ int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 			}
 			if (dynamicimage_setindex(filename, sector, 0)) //Assign to not allocated!
 			{
-				dev = fopen64(filename, "rb+"); //Open file for reading!
-				fseek64(dev, header.currentsize, SEEK_SET); //Goto EOF!
-				if (fwrite64(buffer, 1, 512, dev) == 512) //Write the buffer to the file!
+				if (readdynamicheader(filename, &header)) //Header updated?
 				{
-					newsize = ftell64(dev); //New file size!
-					fclose64(dev); //Close the device!
-					if (dynamicimage_updatesize(filename, newsize)) //Updated the size?
+					dev = fopen64(filename, "rb+"); //Open file for reading!
+					if (fseek64(dev, header.currentsize, SEEK_SET)) //Goto EOF!
 					{
-						if (dynamicimage_setindex(filename, sector, header.currentsize)) //Assign our newly allocated block!
-						{
-							return TRUE; //OK: we're written!
-						}
-						else //Failed to assign?
-						{
-							dynamicimage_updatesize(filename, header.currentsize); //Reverse sector allocation!
-						}
-						return FALSE; //An error has occurred: couldn't finish allocating the block!
+						fclose64(dev);
+						return FALSE; //Error: couldn't goto EOF!
 					}
-					return FALSE; //ERROR!
+					if (ftell64(dev) != header.currentsize) //Failed going to EOF?
+					{
+						fclose64(dev);
+						return FALSE; //Error: couldn't goto EOF!
+					}
+					if (fwrite64(buffer, 1, 512, dev) == 512) //Write the buffer to the file!
+					{
+						newsize = ftell64(dev); //New file size!
+						fclose64(dev); //Close the device!
+						if (dynamicimage_updatesize(filename, newsize)) //Updated the size?
+						{
+							if (dynamicimage_setindex(filename, sector, header.currentsize)) //Assign our newly allocated block!
+							{
+								return TRUE; //OK: we're written!
+							}
+							else //Failed to assign?
+							{
+								dynamicimage_updatesize(filename, header.currentsize); //Reverse sector allocation!
+							}
+							return FALSE; //An error has occurred: couldn't finish allocating the block!
+						}
+						return FALSE; //ERROR!
+					}
+					fclose64(dev); //Close it!
 				}
-				fclose64(dev); //Close it!
 				return FALSE; //Error!
 			}
 			return FALSE; //Error!
@@ -375,6 +385,13 @@ int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 
 int dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a 512-byte sector! Result=1 on success, 0 on error!
 {
+	DYNAMICIMAGE_HEADER header;
+	if (!readdynamicheader(filename, &header)) //Failed to read the header?
+	{
+		return FALSE; //Error: invalid file!
+	}
+	if (sector >= header.filesize) return FALSE; //We're over the limit of the image!
+
 	FILE *dev;
 	dev = fopen64(filename,"rb"); //Open file for reading!
 	int present = dynamicimage_datapresent(filename,sector); //Data present?
@@ -406,7 +423,7 @@ int dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read 
 		return FALSE; //Error!
 	}
 	fclose64(dev); //Close it!
-	return TRUE; //Written!
+	return TRUE; //Read!
 }
 
 FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int percentagey)

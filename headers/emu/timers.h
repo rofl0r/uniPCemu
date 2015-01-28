@@ -9,11 +9,11 @@ void Timer_Tick(); //Timer tick Irq (18.2 times/sec)
 void timer_thread(); //Handler for timer!
 
 void resetTimers(); //Reset all timers to off and turn off handler!
-void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit);
+void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit, byte coretimer);
 void useTimer(char *name, byte use); //To use the timer (is the timer active?)
 void cleartimers(); //Clear all running timers!
 void removetimer(char *name); //Removes a timer!
-void startTimers();
-void stopTimers();
+void startTimers(byte core);
+void stopTimers(byte core);
 
 #endif

@@ -157,7 +157,7 @@ void dosoundtest()
 		printmsg(0xF,"\r\nSpeaker terminated and reset. You should only be hearing Adlib now.\r\n");
 		delay(2000000); //Adlib only!
 		*/
-		/*
+		/*startTimers
 		adlibsetreg(0xB0,0x11); //Turn voice off!
 		printmsg(0xF,"\r\nAdlib terminated and reset.\r\n");
 		*/
@@ -168,7 +168,7 @@ void dosoundtest()
 	}
 	#endif
 	
-	startTimers(); //Make sure we're timing (needed for adlib test).
+	startTimers(0); //Make sure we're timing (needed for adlib test).
 	
 	#ifdef __DEBUG_SPEAKER
 	int_32 STEP = 1000000; //Wait 1s intervals!

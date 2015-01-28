@@ -16,8 +16,11 @@
 #include "headers/support/log.h" //Logging support!
 #endif
 
+byte timer_ready = 0; //Ready?
+
 typedef struct
 {
+	byte core; //Is this a core timer?
 	float frequency; //The frequency!
 	double overflowtime; //The time taken to overflow in us!
 	Handler handler; //The handler!
@@ -32,8 +35,11 @@ typedef struct
 TIMER timers[100]; //We use up to 100 timers!
 
 ThreadParams_p timerthread = NULL; //Our thread!
+byte allow_running = 0;
 
 extern double clockspeed; //Default clockspeed we use, in Hz!
+
+byte EMU_Timers_Enabled = 1; //Are emulator timers enabled?
 
 //This handles all current used timers!
 void timer_thread() //Handler for timer!
@@ -45,6 +51,7 @@ void timer_thread() //Handler for timer!
 	double clockspeedup;
 	double realpassed; //Real timer passed since last call!
 
+	allow_running = 1; //Set our thread to active!
 	if (__HW_DISABLED) return; //Abort!
 
 	bzero(name,sizeof(name)); //Init name!
@@ -52,7 +59,7 @@ void timer_thread() //Handler for timer!
 	initTicksHolder(&timer_lasttimer); //Init ticks holder for precision!
 	for (;;) //Keep running!
 	{
-		if (!timerthread) return; //To stop running?
+		if (!allow_running) return; //To stop running?
 		
 		//Calculate speedup needed for our timing!
 		clockspeedup = 1.0f;
@@ -66,27 +73,33 @@ void timer_thread() //Handler for timer!
 		{
 			if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
 			{
-				timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
-				numcounters = (uint_32)(timers[curtimer].counter/timers[curtimer].overflowtime); //Ammount of times to count!
-				if (numcounters>timers[curtimer].counterlimit) numcounters = timers[curtimer].counterlimit;
-				if (numcounters) //Are we to fire?
+				if (timers[curtimer].core || ((!timers[curtimer].core) && EMU_Timers_Enabled)) //Allowed to run?
 				{
-					timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions!
-					for (;;) //Overflow multi?
+					timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
+					numcounters = (uint_32)(timers[curtimer].counter / timers[curtimer].overflowtime); //Ammount of times to count!
+					if (numcounters>timers[curtimer].counterlimit) numcounters = timers[curtimer].counterlimit;
+					if (numcounters) //Are we to fire?
 					{
-						#ifdef TIMER_LOG
-						strcpy(name,timers[curtimer].name); //Set name!
-						dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
-						TicksHolder singletimer;
-						startHiresCounting(&singletimer); //Start counting!
-						#endif
-						timers[curtimer].handler(); //Run the handler!
-						#ifdef TIMER_LOG
-						++timers[curtimer].calls; //For debugging the ammount of calls!
-						timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
-						dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
-						#endif
-						if (!--numcounters) break; //Done? Process next counter!
+						timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions!
+						for (;;) //Overflow multi?
+						{
+#ifdef TIMER_LOG
+							strcpy(name,timers[curtimer].name); //Set name!
+							dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
+							TicksHolder singletimer;
+							startHiresCounting(&singletimer); //Start counting!
+#endif
+							if (timers[curtimer].handler) //Gotten a handler?
+							{
+								timers[curtimer].handler(); //Run the handler!
+							}
+#ifdef TIMER_LOG
+							++timers[curtimer].calls; //For debugging the ammount of calls!
+							timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
+							dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
+#endif
+							if (!--numcounters) break; //Done? Process next counter!
+						}
 					}
 				}
 			}
@@ -113,7 +126,7 @@ void timer_calcfreq(int timer)
 	}
 }
 
-void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit)
+void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit, byte coretimer)
 {
 	int i;
 	int timerpos = -1; //Timer position to use!
@@ -153,6 +166,7 @@ void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit)
 		timers[timerpos].counterlimit = counterlimit; //The counter limit!
 		memset(timers[timerpos].name,0,sizeof(timers[timerpos].name)); //Init name!
 		strcpy(timers[timerpos].name,name); //Timer name!
+		timers[timerpos].core = coretimer; //Are we a core timer?
 		timers[timerpos].enabled = 1; //Set to enabled by default!
 		timer_calcfreq(timerpos);
 		return; //Finished: we're added!
@@ -210,29 +224,51 @@ void removetimer(char *name) //Removes a timer!
 	}
 }
 
-void startTimers()
+void timer_quit()
 {
-	if (__HW_DISABLED) return; //Abort!
-	if (!timerthread) //Not already running?
-	{
-		timerthread = startThread(&timer_thread,"X86EMU_Timing",DEFAULT_PRIORITY); //Timer thread start!
-	}
+	stopTimers(0); //Stop normal timers!
+	stopTimers(1); //Stop emu timers!
 }
 
-void stopTimers()
+void startTimers(byte core)
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (timerthread) //Running already (we can terminate it)?
+	if (core) //Core?
 	{
-		ThreadParams_p timerthread_backup = timerthread; //Our thread!
-		timerthread = NULL; //Request normal termination!
-		waitThreadEnd(timerthread_backup); //Wait for our thread to end!
+		if (!timerthread) //Not already running?
+		{
+			startThread(&timer_thread, "X86EMU_Timing", DEFAULT_PRIORITY); //Timer thread start!
+			atexit(&timer_quit); //Register quit function!
+		}
+
 	}
+	EMU_Timers_Enabled = 1; //Enable timers!
+}
+
+void stopTimers(byte core)
+{
+	if (__HW_DISABLED) return; //Abort!
+	if (core) //Are we the core?
+	{
+		if (timerthread) //Running already (we can terminate it)?
+		{
+			allow_running = 0; //Request normal termination!
+			waitThreadEnd(timerthread); //Wait for our thread to end!
+		}
+	}
+	EMU_Timers_Enabled = 0; //Enable timers!
 }
 
 void resetTimers() //Init/Reset all timers to go off and turn off all handlers!
 {
 	if (__HW_DISABLED) return; //Abort!
-	stopTimers(); //Stop timer thread!
-	memset(&timers,0,sizeof(timers)); //Reset all!
+	stopTimers(0); //Stop normal timers!
+	int i;
+	for (i = 0; i < NUMITEMS(timers); i++)
+	{
+		if (!timers[i].core) //Not a core timer?
+		{
+			memset(&timers[i], 0, sizeof(timers[i])); //Delete the timer that's not a core timer!
+		}
+	}
 }
