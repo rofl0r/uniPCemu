@@ -207,10 +207,8 @@ OPTINLINE void VRAM_writecpu(uint_32 offset, byte value)
 	uint_32 realoffset = originaloffset; //Default to original offset!
 
 	byte plane = 0; //The determined plane we use, default: none to write!
-	byte mode; //Safe of the mode!
 	if (ActiveVGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.Chain4Enable) //Chain 4 mode?
 	{
-		mode = 2; //Mode 2!
 		plane = (1<<(originaloffset&0x3)); //Lower bits, create bitmask!
 		realoffset = (originaloffset>>2); //Rest of the bits. Multiples of 4 wont get written!
 	}
@@ -219,7 +217,6 @@ OPTINLINE void VRAM_writecpu(uint_32 offset, byte value)
 		&& ActiveVGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.EnableOE //Odd/even mode enabled?
 		) //Odd/even mode?
 	{
-		mode = 1; //Mode 1!
 		plane = 1;
 		byte plane2;
 		plane2 = ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage; //Load high page!
@@ -227,12 +224,10 @@ OPTINLINE void VRAM_writecpu(uint_32 offset, byte value)
 		plane2 |= (originaloffset&1); //Sub!
 		plane <<= plane2; //The plane to use: odd(1) or even(0)!
 		realoffset = originaloffset;
-		realoffset &= ~1;
-		realoffset >>= 1; //Calculate the correct offset within the VRAM!
+		realoffset &= ~1; //Calculate the correct offset within the VRAM! Bit 0 is cleared: we address even bytes only!
 	}
 	else //Sequential mode?
 	{
-		mode = 0; //Mode 0!
 		plane = 0xF; //Write to all planes possible, map mask register does the rest!
 		//The offset is used directly!
 	}
@@ -259,8 +254,7 @@ OPTINLINE byte VRAM_readcpu(uint_32 offset)
 		plane <<= 1;
 		plane |= (originaloffset&1); //Sub!
 		realoffset = originaloffset;
-		realoffset &= ~1;
-		realoffset >>= 1; //Calculate the correct offset within the VRAM!
+		realoffset &= ~1; //Calculate the correct offset within the VRAM!
 	}
 	else //Sequential mode?
 	{

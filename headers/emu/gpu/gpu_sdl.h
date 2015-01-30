@@ -7,9 +7,9 @@
 
 //We're a dirty surface?
 #define SDL_FLAG_DIRTY 1
-//We're a no-delete surface (like a surface allocated with SDL_SetVideoMode)
+//We're a no-delete surface (like a surface allocated with SDL_SetVideoMode) or no-delete pixels (a surface based upon another surface or allocation)
+#define SDL_FLAG_NODELETE_PIXELS 4
 #define SDL_FLAG_NODELETE 2
-
 typedef struct {
 	SDL_Surface *sdllayer; //The surface itself!
 	byte flags; //Our flags!

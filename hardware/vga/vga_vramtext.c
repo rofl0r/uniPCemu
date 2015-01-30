@@ -86,7 +86,7 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 				//characterset_offset += SAFEMODUINT32(y,getcharacterheight(VGA)); //1 byte per row!
 				characterset_offset += y; //Add the row!
 				
-				byte row = readVRAMplane(VGA,2,characterset_offset,3); //Read the row from the character generator, use second buffer!
+				byte row = readVRAMplane(VGA,2,characterset_offset,0); //Read the row from the character generator, use second buffer! Don't do anything special, just because we're from the renderer!
 				getcharxy_values[character|(attribute<<8)|(y<<9)] = row; //Store the row for the character generator!
 				++y; //Next row!
 			}

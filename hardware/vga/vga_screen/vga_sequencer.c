@@ -129,10 +129,6 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//First, render ourselves to the screen!
 	GPU.xres = Sequencer->xres; //Apply x resolution!
 	GPU.yres = Sequencer->yres; //Apply y resolution!
-	if (Sequencer->xres || Sequencer->yres) //Resolution?
-	{
-		dolog("VGA", "VBlank:%ix%i", GPU.xres, GPU.yres); //Log current resolution frame!
-	}
 	VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
 	
 	Sequencer->Scanline = 0; //Reset for the next frame!
@@ -195,7 +191,7 @@ void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attrib
 {
 	//Active display!
 	//if (LOG_RENDER_BYTES && !Sequencer->Scanline) dolog("VGA","Rendering DAC: %i=%02X; DP:%i",Sequencer->x,attributeinfo->attribute,VGA->precalcs.doublepixels); //Log the rendered DAC index!
-	drawPixel(VGA,VGA_DAC(VGA,attributeinfo->attribute)); //Render through the DAC!
+	drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
 	//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59 && Sequencer->x==639) dolog("VGA","Rendering AC@%i->%i,%i",Sequencer->x,VGA->CRTC.x,VGA->CRTC.y);
 	++VGA->CRTC.x; //Next x!
 }
@@ -221,7 +217,8 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->activex = tempx++; //Active X!
 	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
 	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer)) goto othernibble; //Apply the attribute through the attribute controller!
-	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
+	//activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
+	VGA_ActiveDisplay_noblanking(VGA, Sequencer, &attributeinfo); //Ignore blanking!
 	if (VGA->precalcs.doublepixels) //Apply double pixels?
 	{
 		byte allow_tempx = Sequencer->doublepixels; //Allow saving when set!
@@ -402,8 +399,9 @@ void initStateHandlers()
 	}
 }
 
-void VGA_Sequencer(VGA_Type *VGA)
+OPTINLINE void VGA_Sequencer(VGA_Type *VGA)
 {
+	TicksHolder ticksholder;
 	if (HW_DISABLED) return;
 	if (!VGA) return; //Invalid VGA?
 	SEQ_DATA *Sequencer;
@@ -425,6 +423,6 @@ void VGA_Sequencer(VGA_Type *VGA)
 		//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59 && Sequencer->x==639) dolog("VGA","Rendering %i,%i",Sequencer->Scanline,Sequencer->x); //Log our current x we're processing!
 		displaysignalhandler[displaystate](Sequencer,VGA,displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalretracing][displaystate](Sequencer,VGA); //Execute our signal!
-		if (Sequencer_Break) return; //Abort when done!
+		if (Sequencer_Break) break; //Abort when done!
 	}
 }

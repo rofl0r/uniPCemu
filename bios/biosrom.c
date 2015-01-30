@@ -4,6 +4,7 @@
 #include "headers/cpu/cpu.h" //CPU support!
 
 byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
+byte EMU_VGAROM[0x8000]; //Maximum size custom BIOS VGA ROM!
 
 byte *BIOS_ROMS[0x100]; //All possible BIOS roms!
 uint_32 BIOS_ROM_size[0x100]; //All possible BIOS ROM sizes!
@@ -198,6 +199,29 @@ int BIOS_load_systemROM() //Load custom ROM from emulator itself!
 	return 1; //Loaded!
 }
 
+//VGA support!
+
+byte *BIOS_custom_VGAROM;
+uint_32 BIOS_custom_VGAROM_size;
+char customVGAROMname[256] = "BIOS_VGAROM"; //Custom ROM name!
+
+void BIOS_free_VGAROM()
+{
+	if (BIOS_custom_VGAROM_size) //Has size?
+	{
+		freez((void **)&BIOS_custom_VGAROM, BIOS_custom_VGAROM_size, &customVGAROMname[0]); //Release the BIOS ROM!
+	}
+}
+
+int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
+{
+	BIOS_free_VGAROM(); //Free the custom ROM, if needed and known!
+	BIOS_custom_VGAROM_size = sizeof(EMU_VGAROM); //Save the size!
+	BIOS_custom_VGAROM = (byte *)&EMU_VGAROM; //Simple memory allocation for our ROM!
+	return 1; //Loaded!
+}
+
+
 byte OPTROM_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value)    /* A pointer to a handler function */
 {
 	byte i;
@@ -209,6 +233,17 @@ byte OPTROM_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value)    /
 			{
 				*value = OPT_ROMS[i][reloffset-BIOS_OPTROM_location[i]]; //Read the data!
 				return 1; //Done: we've been read!
+			}
+		}
+	}
+	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
+	{
+		if (baseoffset == 0xC0000) //Custom VGA BIOS at low range?
+		{
+			if (reloffset < BIOS_custom_VGAROM_size) //OK?
+			{
+				*value = BIOS_custom_VGAROM[reloffset]; //Give the value!
+				return 1;
 			}
 		}
 	}
@@ -225,6 +260,16 @@ byte OPTROM_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /
 			if (BIOS_OPTROM_location[i]<=reloffset && (BIOS_OPTROM_location[i]+BIOS_OPTROM_size[i])>=reloffset) //Found ROM?
 			{
 				return 1; //Handled: ignore writes to ROM!
+			}
+		}
+	}
+	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
+	{
+		if (baseoffset == 0xC0000) //Custom VGA BIOS?
+		{
+			if (reloffset < BIOS_custom_VGAROM_size) //OK?
+			{
+				return 1; //Ignore writes!
 			}
 		}
 	}
@@ -385,6 +430,7 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 		default: //Unknown CPU?
 			break;
 	}
+
 	return 0; //Not recognised, use normal RAM!
 }
 

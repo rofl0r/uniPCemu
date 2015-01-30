@@ -3,11 +3,13 @@
 #include "headers/emu/threads.h" //Thread for timer item!
 #include "headers/support/highrestimer.h" //High-resolution timer for additional precision!
 
+#include "headers/support/log.h" //Logging for debugging!
+
 //Are we disabled?
 #define __HW_DISABLED 0
 
 //Timer step in us! Originally 100ms now 10000?
-#define TIMER_STEP 1
+#define TIMER_STEP 0
 
 //Log running timers (error/timing search only!)
 //#define TIMER_LOG
@@ -63,8 +65,9 @@ void timer_thread() //Handler for timer!
 		
 		//Calculate speedup needed for our timing!
 		clockspeedup = 1.0f;
-		clockspeedup /= clockspeed; //Take the percentage of 1.0f for clockspeed (time in seconds for the default clock speed)
+		/*clockspeedup /= clockspeed; //Take the percentage of 1.0f for clockspeed (time in seconds for the default clock speed)
 		clockspeedup *= getCurrentClockSpeed(); //Multiply with current clock speed for the speedup factor!
+		*/
 
 		realpassed = (double)getuspassed(&timer_lasttimer); //How many time has passed for real!
 		realpassed *= clockspeedup; //Speed up the clock as much as needed, according to the actual CPU speed!
@@ -77,10 +80,14 @@ void timer_thread() //Handler for timer!
 				{
 					timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
 					numcounters = (uint_32)(timers[curtimer].counter / timers[curtimer].overflowtime); //Ammount of times to count!
-					if (numcounters>timers[curtimer].counterlimit) numcounters = timers[curtimer].counterlimit;
+					timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions! We skip any overflow!
+					if (numcounters>timers[curtimer].counterlimit)
+					{
+						dolog("Timers", "Enforcing limit @%s=%i", timers[curtimer].name, numcounters);
+						numcounters = timers[curtimer].counterlimit;
+					}
 					if (numcounters) //Are we to fire?
 					{
-						timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions!
 						for (;;) //Overflow multi?
 						{
 #ifdef TIMER_LOG
@@ -112,7 +119,7 @@ void timer_calcfreq(int timer)
 {
 	if (timers[timer].frequency!=0.0f)
 	{
-		timers[timer].overflowtime = 1000000.0f;
+		timers[timer].overflowtime = US_SECOND;
 		timers[timer].overflowtime /= timers[timer].frequency; //Actual time taken to overflow!
 		if (!timers[timer].overflowtime)
 		{
@@ -138,7 +145,7 @@ void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit, 
 	}
 	for (i=0; i<NUMITEMS(timers); i++) //Check for existing timer!
 	{
-		if (timers[i].name==name) //Found?
+		if (!strcmp(timers[i].name,name)) //Found?
 		{
 			timerpos = i; //Use this position!
 			break; //Quit our search!

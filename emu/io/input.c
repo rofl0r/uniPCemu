@@ -53,12 +53,23 @@ int input_buffer = -1; //To contain the pressed key!
 
 PSP_INPUTSTATE curstat; //Current status!
 
+#define CAS_LCTRL 0x01
+#define CAS_RCTRL 0x02
+#define CAS_CTRL 0x03
+#define CAS_LALT 0x04
+#define CAS_RALT 0x08
+#define CAS_ALT 0x0C
+#define CAS_LSHIFT 0x10
+#define CAS_RSHIFT 0x20
+#define CAS_SHIFT 0x30
+
 struct
 {
 	uint_32 Buttons; //Currently pressed buttons!
 	sword Lx; //X axis!
 	sword Ly; //Y axis!
 	byte keyboardjoy_direction; //Keyboard joystick direction (internal use only)
+	byte cas; //L&R Ctrl/alt/shift status!
 } input;
 
 int psp_inputkey() //Simple key sampling!
@@ -1588,7 +1599,7 @@ SDL_Joystick *joystick; //Our joystick!
 
 void updateMOD(SDL_Event *event)
 {
-	if (event->key.keysym.mod&KMOD_CTRL) //HOME pressed?
+	if (input.cas&CAS_CTRL) //Ctrl pressed?
 	{
 		input.Buttons |= BUTTON_HOME; //Pressed!
 	}
@@ -1596,6 +1607,7 @@ void updateMOD(SDL_Event *event)
 	{
 		input.Buttons &= ~BUTTON_HOME; //Released!
 	}
+
 	sword axis;
 	axis = 0; //Init!
 	if (input.keyboardjoy_direction&1) //Up?
@@ -1629,6 +1641,27 @@ void updateInput(SDL_Event *event) //Update all input!
 			{
 				switch (event->key.keysym.sym) //What key?
 				{
+					//Special first
+					case SDLK_LCTRL: //LCTRL!
+						input.cas |= CAS_LCTRL; //Pressed!
+						break;
+					case SDLK_RCTRL: //RCTRL!
+						input.cas |= CAS_RCTRL; //Pressed!
+						break;
+					case SDLK_LALT: //LALT!
+						input.cas |= CAS_LALT; //Pressed!
+						break;
+					case SDLK_RALT: //RALT!
+						input.cas |= CAS_RALT; //Pressed!
+						break;
+					case SDLK_LSHIFT: //LSHIFT!
+						input.cas |= CAS_LSHIFT; //Pressed!
+						break;
+					case SDLK_RSHIFT: //RSHIFT!
+						input.cas |= CAS_RCTRL; //Pressed!
+						break;
+
+					//Normal keys
 					case SDLK_BACKSLASH: //HOLD?
 						input.Buttons &= ~BUTTON_HOLD; //Pressed!
 						break;
@@ -1689,6 +1722,26 @@ void updateInput(SDL_Event *event) //Update all input!
 			{
 				switch (event->key.keysym.sym) //What key?
 				{
+					//Special first
+					case SDLK_LCTRL: //LCTRL!
+						input.cas &= ~CAS_LCTRL; //Released!
+						break;
+					case SDLK_RCTRL: //RCTRL!
+						input.cas &= ~CAS_RCTRL; //Released!
+						break;
+					case SDLK_LALT: //LALT!
+						input.cas &= ~CAS_LALT; //Released!
+						break;
+					case SDLK_RALT: //RALT!
+						input.cas &= ~CAS_RALT; //Released!
+						break;
+					case SDLK_LSHIFT: //LSHIFT!
+						input.cas &= ~CAS_LSHIFT; //Released!
+						break;
+					case SDLK_RSHIFT: //RSHIFT!
+						input.cas &= ~CAS_RSHIFT; //Released!
+						break;
+
 					case SDLK_BACKSLASH: //HOLD?
 						input.Buttons |= BUTTON_HOLD; //Pressed!
 						break;

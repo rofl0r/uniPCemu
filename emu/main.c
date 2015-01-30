@@ -311,6 +311,9 @@ int main(int argc, char * argv[])
 			}
 		}
 	}
+
+	stopTimers(1); //Make sure all timers are stopped!
+
 	if (ThreadsRunning()) //Still running?
 	{
 		termThreads(); //Terminate our threads!

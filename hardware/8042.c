@@ -355,12 +355,14 @@ void BIOS_done8042()
 void register_PS2PortWrite(byte port, PS2OUT handler)
 {
 	if (__HW_DISABLED) return; //Abort!
-	Controller8042.portwrite[port&1] = handler; //Register!
+	port &= 1;
+	Controller8042.portwrite[port] = handler; //Register!
 }
 
 void register_PS2PortRead(byte port, PS2IN handler, PS2PEEK peekhandler)
 {
 	if (__HW_DISABLED) return; //Abort!
-	Controller8042.portread[port&1] = handler; //Register!
-	Controller8042.portpeek[port&1] = peekhandler; //Peek handler!
+	port &= 1;
+	Controller8042.portread[port] = handler; //Register!
+	Controller8042.portpeek[port] = peekhandler; //Peek handler!
 }

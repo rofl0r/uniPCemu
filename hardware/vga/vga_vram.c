@@ -36,7 +36,6 @@ byte getBitPlaneBit(VGA_Type *VGA, byte plane, word offset, byte bit, byte is_re
 //Below patches input addresses for rendering only.
 OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 rowscanaddress) //Patch full VRAM address!
 { //Check this!
-	//return rowscanaddress; //Disabled!
 	word newrowscan = rowscanaddress; //New row scan to use!
 	SEQ_DATA *Sequencer;
 	Sequencer = (SEQ_DATA *)VGA->Sequencer; //The sequencer!

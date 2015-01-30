@@ -517,7 +517,6 @@ RIFFHEADER *readSF(char *filename)
 	f = fopen(filename,"rb"); //Read the file!
 	if (!f)
 	{
-		dolog("SF2","Error: %s not found!",filename);
 		return NULL; //Error!
 	}
 	fseek(f,0,SEEK_END); //Goto EOF!

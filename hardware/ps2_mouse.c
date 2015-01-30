@@ -504,11 +504,7 @@ int handle_mousepeek(byte *result) //Peek at the mouse!
 		*result = processMousePacket(Mouse.packets,Mouse.packetindex); //Process it!
 		return 1; //Read!
 	}
-	else //Nothing to read?
-	{
-		*result = 0; //No packet!
-		return 0; //No packet!
-	}
+	return 0; //No packet!
 }
 
 void EMU_enablemouse(byte enabled) //Enable mouse input (disable during EMU, enable during CPU emulation (not paused))?

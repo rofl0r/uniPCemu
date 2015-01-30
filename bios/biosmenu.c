@@ -25,7 +25,7 @@
 #define __HW_DISABLED 0
 
 //Force the BIOS to open?
-#define FORCE_BIOS 1
+#define FORCE_BIOS 0
 
 //BIOS width in text mode!
 #define BIOS_WIDTH GPU_TEXTSURFACE_WIDTH
@@ -71,7 +71,7 @@ BIOSMENU_FONT BIOSMenu_Fonts[3] = {
 
 
 //How long to press for BIOS!
-#define BIOS_TIME 2000000
+#define BIOS_TIME 10000000
 #define INPUT_INTERVAL 100000
 
 //First, global handler!

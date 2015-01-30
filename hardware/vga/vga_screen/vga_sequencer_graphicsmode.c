@@ -12,17 +12,6 @@
 
 typedef byte (*agetpixel)(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_AttributeInfo *Sequencer_Attributeinfo); //For our jumptable for getpixel!
 
-byte getVGAShift(VGA_Type *VGA)
-{
-	switch (getVRAMMemAddrSize(VGA))
-	{
-		case 2: return 1; //Word mode?
-		case 4: return 2; //DWord mode?
-		default: //Unknown/1?
-			return 0;
-	}
-}
-
 /*
 
 256 COLOR MODE
@@ -32,8 +21,8 @@ byte getVGAShift(VGA_Type *VGA)
 //This should be OK, according to: http://www.nondot.org/sabre/Mirrored/GraphicsProgrammingBlackBook/gpbb31.pdf
 byte getpixel256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_AttributeInfo *Sequencer_Attributeinfo) //256colorshiftmode getcolorplanes!
 {
-	word plane, activex; //X!
-	byte part, result;
+	register word plane, activex; //X!
+	register byte part, result;
 
 	//First: calculate the nibble to shift into our result!
 	part = activex = x;
@@ -68,7 +57,7 @@ SHIFT REGISTER INTERLEAVE MODE
 byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_AttributeInfo *Sequencer_Attributeinfo) //256colorshiftmode getcolorplanes!
 {
 	//Calculate the plane index!
-	word shift,tempx,planebase,planeindex;
+	register word shift,tempx,planebase,planeindex;
 
 	tempx = shift = planebase = x; //Init!
 	tempx >>= 3;
@@ -83,9 +72,9 @@ byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, SEQ_DATA *Sequencer, wor
 	//Determine low&high plane bases!
 	
 	//Read the low&high planes!
-	byte planelow = readVRAMplane(VGA,planebase,planeindex,1); //Read low plane!
+	register byte planelow = readVRAMplane(VGA,planebase,planeindex,1); //Read low plane!
 	planebase |= 2; //High plane!
-	byte planehigh = readVRAMplane(VGA,planebase,planeindex,1); //Read high plane!
+	register byte planehigh = readVRAMplane(VGA,planebase,planeindex,1); //Read high plane!
 	//byte shift = 6-((x&3)<<1); //OK!
 	
 	//Determine the shift for our pixels!
@@ -100,15 +89,13 @@ byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, SEQ_DATA *Sequencer, wor
 	planehigh >>= shift;
 	planehigh &= 3;
 
-	planehigh <<= 2;
+	planehigh <<= 2; //Prepare high plane for addition!
 
 	//Build the result!
-	byte result;
-	result = planelow;
-	result |= planehigh;
+	planelow |= planehigh; //Add high plane!
 	
 	//Source plane bits for all possibilities!
-	return result; //Give the result!
+	return planelow; //Give the result!
 }
 
 /*
@@ -119,7 +106,14 @@ SINGLE SHIFT MODE
 
 byte getpixelsingleshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_AttributeInfo *Sequencer_Attributeinfo)
 {
-	uint_32 offset, bit;
+	//16-color mode!
+	register byte result; //Init result!
+	register uint_32 offset, bit;
+
+	if (x >= 100)
+	{
+		result = 0; //Do nothing, breakpoint here!
+	}
 
 	bit = x;
 	bit &= 7; //The bit in the byte (from the start of VRAM byte)!
@@ -129,9 +123,6 @@ byte getpixelsingleshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_Att
 	offset += x; //The x coordinate, 8 pixels per byte!
 	offset += Sequencer->startmap; //What start address?
 	
-	//16-color mode!
-	byte result; //Init result!
-	
 	//Standard VGA processing!
 	result = getBitPlaneBit(VGA,3,offset,bit,1); //Add plane to the result!
 	result <<= 1; //Shift to next plane!
@@ -140,7 +131,7 @@ byte getpixelsingleshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_Att
 	result |= getBitPlaneBit(VGA,1,offset,bit,1); //Add plane to the result!
 	result <<= 1; //Shift to next plane!
 	result |= getBitPlaneBit(VGA,0,offset,bit,1); //Add plane to the result!
-	
+	return 0xE; //Yellow/brown always!
 	return result; //Give the result!
 }
 

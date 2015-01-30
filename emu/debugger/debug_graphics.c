@@ -8,14 +8,16 @@
 //Debugger functions!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/vga_screen/vga_precalcs.h" //For the CRT precalcs dump!
+#include "headers/hardware/vga_screen/vga_dac.h" //DAC support!
 //To make a screen capture of all of the debug screens active?
 #define LOG_VGA_SCREEN_CAPTURE 2
-//For text-mode debugging!
-#define VIDEOMODE_TEXTMODE 0x02
+//For text-mode debugging! 40 and 80 character modes!
+#define VIDEOMODE_TEXTMODE_40 0x01
+#define VIDEOMODE_TEXTMODE_80 0x03
 //To log the first rendered line after putting pixels?
 #define LOG_VGA_FIRST_LINE 0
 //To debug text modes too in below or BIOS setting?
-#define TEXTMODE_DEBUGGING 1
+#define TEXTMODE_DEBUGGING 0
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
 
@@ -130,7 +132,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		stopTimers(0); //Make sure we've stopped!
 		int i; //For further loops!
 
-		CPU.registers->AX = VIDEOMODE_TEXTMODE;
+		CPU.registers->AX = VIDEOMODE_TEXTMODE_40;
 		BIOS_int10(); //Text mode operations!
 		CPU.registers->AH = 0xB;
 		CPU.registers->BH = 0x0; //Set overscan color!
@@ -173,10 +175,12 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		MMU_wb(-1,0xB800,27,0xE);
 		MMU_wb(-1,0xB800,28,'o');
 		MMU_wb(-1,0xB800,29,0xF);
-		MMU_wb(-1,0xB800,156,'B');
+		/*
+		MMU_wb(-1,0xB800,156,'-');
 		MMU_wb(-1,0xB800,157,0xF);
 		MMU_wb(-1,0xB800,158,'E');
 		MMU_wb(-1,0xB800,159,0xF); //Green at the full width!
+		*/ //80x25
 		//SCREEN_CAPTURE = 2; //Enable a screen capture please, on the second frame (first is incomplete, since we've changed VRAM)!
 		
 		//LOG_VRAM_WRITES = 0; //Disable log!
@@ -191,7 +195,6 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"SCREENCAPTURE CREATEN.");
 		*/
 		startTimers(0); //Start timers up!
-		sleep();
 		delay(5000000); //Wait a bit!
 	
 		CPU.registers->AH = 0x0B; //Advanced:!
@@ -208,7 +211,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(5000000); //Wait 5 seconds!
 	
-		CPU.registers->AX = 0x00; //40x25 TEXT mode!
+		CPU.registers->AX = 0x01; //40x25 TEXT mode!
 		BIOS_int10(); //Switch modes!
 	
 		printmsg(0xF,"This is 40x25 TEXT MODE!");
@@ -234,7 +237,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 10 seconds!
 	
-		CPU.registers->AX = VIDEOMODE_TEXTMODE; //80x25 TEXT mode!
+		CPU.registers->AX = VIDEOMODE_TEXTMODE_80; //80x25 TEXT mode!
 		BIOS_int10(); //Switch modes!
 		printmsg(0xF,"This is 80x25 TEXT MODE!");
 		printCRLF();
@@ -250,7 +253,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 1 seconds!
 	
-		CPU.registers->AX = VIDEOMODE_TEXTMODE; //Reset!
+		CPU.registers->AX = VIDEOMODE_TEXTMODE_80; //Reset to 80x25 text mode!
 		BIOS_int10(); //Reset!
 	
 		for (i=0; i<0x100; i++) //Verify all colors!
@@ -313,9 +316,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//16 color b/w mode!
 	//DoDebugVGAGraphics(0x11,640,480,0x10,0,0x1,1,0); //Debug 640x480x16(B/W)! 
 	//16 color maxres mode!
-	//DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
+	DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
+	VGA_DUMPDAC(); //Dump the DAC!
 	//256 color mode!
-	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
+	//DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
 	debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!

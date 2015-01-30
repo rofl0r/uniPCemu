@@ -36,6 +36,7 @@ void initZalloc() //Initialises the zalloc subsystem!
 {
 	if (pointersinitialised) return; //Don't do anything when we're ready already!
 	//memset(&registeredpointers,0,sizeof(registeredpointers)); //Initialise all registered pointers!
+	atexit(&freezall); //Our cleanup function registered!
 	pointersinitialised = 1; //We're ready to run!
 }
 

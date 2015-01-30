@@ -15,7 +15,7 @@
 #define __HW_DISABLED 0
 
 //Define pixel(stage/(scan&)newline) speed?
-#define DEBUG_PIXEL_SPEED
+//#define DEBUG_PIXEL_SPEED
 //Framerate step in times per second!
 #define FRAMERATE_SPEED 1.0f
 //Log VGA speed?
@@ -60,9 +60,9 @@ void GPU_FrameRendered() //A frame has been rendered?
 //The main thread!
 void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 {
+	dolog("GPU", "Framerate tick!");
 	if (__HW_DISABLED) return; //Disabled?
 	uint_64 timepassed;
-
 	//while (1) //Not done yet?
 	{
 		timepassed = getuspassed(&lastcheck); //Real time passed!

@@ -12,25 +12,10 @@ OPTINLINE void initTicksHolder(TicksHolder *ticksholder)
 	uint_32 oldtimes;
 	if (resolutioninit) //Not loaded yet?
 	{
-		//tickresolution = sceRtcGetTickResolution(); //Init resolution!
-		tickresolution = 1000; //We have a resolution in ms!
+		tickresolution = 1000000; //We have a resolution in ns, not ms as given by SDL!
 		resolutioninit = 0; //We're ready to run!
 	}
-	avg = ticksholder->avg; //Averaging!
-	if (avg) //Averaging?
-	{
-		oldpassed = ticksholder->avg_sumpassed;
-		oldtimes = ticksholder->avg_oldtimes;
-	}
 	memset(ticksholder,0,sizeof(*ticksholder)); //Clear the holder!
-	//No ticks passed!
-	//We don't have old ticks yet!
-	if (avg) //Averaging? Restore our data!
-	{
-		ticksholder->avg_sumpassed = oldpassed; //Total passed!
-		ticksholder->avg_oldtimes = oldtimes; //Times passed!
-		ticksholder->avg = 1; //Average flag: keep intact!
-	}
 }
 
 OPTINLINE void ticksholder_AVG(TicksHolder *ticksholder)
@@ -47,7 +32,7 @@ OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 	}
 	return 0; //Give the result: ticks passed!
 	*/
-	return SDL_GetTicks(); //Give the ticks passed!
+	return (u64)SDL_GetTicks(); //Give the ticks passed!
 }
 
 OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
@@ -64,7 +49,7 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 	//We're not initialising/first call?
 	ticksholder->oldticks = ticksholder->newticks; //Move new ticks to old ticks!
 	ticksholder->newticks = currentticks; //Get current ticks as new ticks!
-	if (ticksholder->newticks>ticksholder->oldticks) //Not overflown?
+	if (ticksholder->newticks>=ticksholder->oldticks) //Not overflown?
 	{
 	    	ticksholder->tickspassed = ticksholder->newticks;
 	    	ticksholder->tickspassed -= ticksholder->oldticks; //Ticks passed!

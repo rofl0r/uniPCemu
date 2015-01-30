@@ -14,7 +14,11 @@ void freeSurfacePtr(void **ptr, uint_32 size) //Free a pointer (used internally 
 	if (!(surface->flags&SDL_FLAG_NODELETE)) //The surface is allowed to be deleted?
 	{
 		//Start by freeing the surfaces in the handlers!
-		unregisterptr(surface->sdllayer->pixels,surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32)); //The pixels within the surface!
+		uint_32 pixels_size = surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32); //Calculate surface pixels size!
+		if (!surface->flags&SDL_FLAG_NODELETE_PIXELS) //Valid to delete?
+		{
+			unregisterptr(surface->sdllayer->pixels,pixels_size); //Release the pixels within the surface!
+		}
 		if (unregisterptr(surface->sdllayer,sizeof(*surface->sdllayer))) //The surface itself!
 		{
 			//Next release the data associated with it using the official functionality!
@@ -40,26 +44,28 @@ GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface) //Retrieves a surface w
 //registration of a wrapped surface.
 void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerelease) //Register a surface!
 {
-	if (!registerptr(surface->sdllayer,sizeof(*surface->sdllayer),name,allowsurfacerelease?&freeSurfacePtr:NULL)) //The surface itself! We're released using a custom function to release it when allowed!
+	if (!registerptr(surface->sdllayer, sizeof(*surface->sdllayer), name, allowsurfacerelease ? &freeSurfacePtr : NULL)) //The surface itself! We're released using a custom function to release it when allowed!
 	{
-		dolog("registerSurface","Registering the surface failed.");
-		return;
+		if (!memprotect(surface->sdllayer, sizeof(*surface->sdllayer), name)) //Failed to register?
+		{
+			dolog("registerSurface", "Registering the surface failed.");
+			return;
+		}
 	}
 
-	char pixelsname[256];
-	bzero(pixelsname,sizeof(pixelsname));
-	strcpy(pixelsname,name); //Init name!
-	strcat(pixelsname,"_Pixels"); //We're the pixels layer!
 	uint_32 pixels_size;
 	pixels_size = surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32); //The size of the pixels structure!
-	if (!registerptr(surface->sdllayer->pixels,pixels_size,pixelsname,NULL)) //The pixels within the surface! We can't be released natively!
+	if (!memprotect(surface->sdllayer->pixels, pixels_size, NULL)) //Not already registered (fix for call from createSurfaceFromPixels)?
 	{
-		if (!memprotect(surface->sdllayer->pixels,pixels_size,pixelsname)) //Not registered?
+		if (!registerptr(surface->sdllayer->pixels, pixels_size, "Surface_Pixels", NULL)) //The pixels within the surface! We can't be released natively!
 		{
-			dolog("registerSurface","Registering the surface pixels failed.");
-			logpointers("registerSurface");
-			unregisterptr(surface->sdllayer,sizeof(*surface->sdllayer)); //Undo!
-			return;
+			if (!memprotect(surface->sdllayer->pixels, pixels_size, "Surface_Pixels")) //Not registered?
+			{
+				dolog("registerSurface", "Registering the surface pixels failed.");
+				logpointers("registerSurface");
+				unregisterptr(surface->sdllayer, sizeof(*surface->sdllayer)); //Undo!
+				return;
+			}
 		}
 	}
 	
@@ -601,6 +607,7 @@ GPU_SDL_Surface *createSurfaceFromPixels(int columns, int rows, void *pixels, ui
 	GPU_SDL_Surface *wrapper;
 	wrapper = getSurfaceWrapper(surface); //Give the surface we've allocated in the standard wrapper!
 	registerSurface(wrapper,"SDL_Surface",1); //Register the surface we've wrapped!
+	surface->flags |= SDL_FLAG_NODELETE_PIXELS; //Don't delete the pixels: we're protected from being deleted together with the surface!
 	return wrapper;
 }
 
@@ -630,6 +637,7 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 			if (memprotect(surface->sdllayer,sizeof(surface->sdllayer),NULL)) //Valid?
 			{
 				//If the surface must be locked
+				/*
 				if( SDL_MUSTLOCK( surface->sdllayer ) )
 				{
 					//Lock the surface
@@ -643,6 +651,7 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 				{
 					SDL_UnlockSurface( surface->sdllayer );
 				}
+				*/ //Just call updaterect!
 				SDL_UpdateRect(surface->sdllayer, 0, 0, 0, 0); //Make sure we update!
 			}
 			surface->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!

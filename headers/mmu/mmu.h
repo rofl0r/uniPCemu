@@ -57,7 +57,9 @@ void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val); //Get adress
 void MMU_ww(sword segdesc, word segment, uint_32 offset, word val); //Get adress (word)!
 void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val); //Get adress (dword)!
 byte hasmemory(); //Have memory?
+
 byte MMU_invaddr(); //Last MMU call has invalid adressing?
+void MMU_resetaddr(); //Resets the invaddr for new operations!
 
 byte MMU_directrb(uint_32 realadress); //Direct read from memory (with real data direct)!
 void MMU_directwb(uint_32 realadress, byte value); //Direct write to memory (with real data direct)!

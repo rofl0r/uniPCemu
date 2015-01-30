@@ -197,7 +197,7 @@ int threadhandler(/*SceSize args, void *params*/ void *data)
 	uint_32 thid = SDL_ThreadID(); //The thread ID!
 	activeThread(thid,(ThreadParams_p)data); //Mark us as running!
 	runcallback(thid); //Run the callback!
-	terminateThread(thid); //Terminate ourselves!
+	releasePool(thid); //Terminate ourselves!
 	return 0; //Shouldn't be here?
 }
 
@@ -271,6 +271,7 @@ void initThreads() //Initialise&reset thread subsystem!
 	//dolog("threads","initThreads: termThreads...");
 	termThreads(); //Make sure all running threads are stopped!
 	//dolog("threads","debugThreads?...");
+	atexit(&termThreads); //Register out cleanup function!
 	memset(threadpool,0,sizeof(threadpool)); //Clear thread pool!
 	if (DEBUG_THREADS) startThread(&debug_threads,"X86EMU_Thread Debugger",DEFAULT_PRIORITY); //Plain debug threads!
 	//dolog("threads","initThreads: RET...");

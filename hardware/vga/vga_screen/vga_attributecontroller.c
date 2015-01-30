@@ -4,6 +4,7 @@
 #include "headers/hardware/vga_screen/vga_sequencer_graphicsmode.h" //For masking planes!
 #include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
 
+#include "headers/support/log.h" //Debugger!
 extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c
 
 OPTINLINE byte getHorizontalPixelPanning(VGA_Type *VGA) //Active horizontal pixel panning when enabled?
@@ -192,7 +193,6 @@ byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 	lookup |= Sequencer_attributeinfo->fontpixel; //Generate the lookup value!
 	
 	Sequencer_attributeinfo->attribute = VGA->precalcs.attributeprecalcs[lookup]; //Look the DAC Index up!
-
 	//DAC Index loaded for this pixel!
 	return 0; //We're ready to execute: we contain a pixel to plot!
 }

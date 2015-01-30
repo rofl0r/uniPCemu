@@ -126,7 +126,7 @@ typedef void (*Handler)(void);    /* A pointer to a handler function */
 #define rol(x,moves) ((x << moves) | (x >> (sizeof(x)*8 - moves)))
 
 //Emulator itself:
-#define VIDEOMODE_EMU 0x02
+#define VIDEOMODE_EMU 0x03
 
 //GPU debugging:
 //Row with info about the CPU etc.
@@ -166,7 +166,7 @@ void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 #ifdef _WIN32
 //Windows?
 //For some reason inline functions don't work on windows?
-#define OPTINLINE
+#define OPTINLINE __inline
 #else
 //PSP?
 #define OPTINLINE inline

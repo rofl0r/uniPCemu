@@ -322,6 +322,11 @@ byte MMU_invaddr()
 	return MMU.invaddr; //Given an invalid adress?
 }
 
+void MMU_resetaddr()
+{
+	MMU.invaddr = 0; //Reset: we're valid again!
+}
+
 //A20 bit enable/disable (80286+).
 void MMU_wraparround(byte dowrap) //To wrap arround 1MB limit?
 {

@@ -186,9 +186,14 @@ void updateVideo() //Update the screen resolution on change!
 			yres = GPU.yres;
 			if (getGPUSurface()) //Update the current surface if needed!
 			{
-				freez((void **)&rendersurface, sizeof(*rendersurface), NULL); //Release the surface!
+				freez((void **)&rendersurface, sizeof(*rendersurface), NULL); //Release the old surface!
 				rendersurface = getSurfaceWrapper(originalrenderer); //Apply the new renderer!
 				rendersurface->flags |= SDL_FLAG_DIRTY; //Force re-rendering!
+
+				if (rendersurface) //Allocated?
+				{
+					registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 0); //Register, but don't allow release: this is done by SDL_Quit only!
+				}
 			}
 		}
 	}

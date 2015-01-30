@@ -36,9 +36,9 @@ extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CP
 
 //Special flags for the BIOS POST loader!
 //To only debug text/graphic mode operations for now (and sleep after)?
-#define DEBUG_VGA_ONLY 1
+#define DEBUG_VGA_ONLY 0
 //Don't run the emulator?
-#define NOEMU 1
+#define NOEMU 0
 //To debug files in the tests folder?
 #define ALLOW_DEBUGFILES 1
 //Allow the BIOS to be run?
@@ -50,7 +50,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 	debugrow("Running BIOS POST!");
 	#ifdef ALLOW_BIOS
 	EMU_RUNNING = 0; //We're not running atm!
-	if (CheckBIOSMenu(1000000)) //Run BIOS Menu if needed for a short time!
+	if (CheckBIOSMenu(3000000)) //Run BIOS Menu if needed for a short time!
 	{
 		EMU_RUNNING = 1; //We're running again!
 		return 1; //Reset after the BIOS!
@@ -75,6 +75,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			{
 				CPU_INT(0x18); //Error: no ROM!
 				EMU_startInput(); //Start input again!
+				EMU_RUNNING = 1; //We're running again!
 				return 0; //No reset!
 			}
 			if (!BIOS_load_ROM(19)) //Failed to load u19?
@@ -82,6 +83,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				BIOS_free_ROM(19); //Release u27!
 				CPU_INT(0x18); //Error: no ROM!
 				EMU_startInput(); //Start input again!
+				EMU_RUNNING = 1; //We're running again!
 				return 0; //No reset!
 			}
 			verified = 1; //Verified!
@@ -92,6 +94,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			{
 				CPU_INT(0x18); //Error: no ROM!
 				EMU_startInput(); //Start input again!
+				EMU_RUNNING = 1; //We're running again!
 				return 0; //No reset!
 			}
 			if (!BIOS_load_ROM(47)) //Failed to load u47?
@@ -99,6 +102,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				BIOS_free_ROM(27); //Release u27!
 				CPU_INT(0x18); //Error: no ROM!
 				EMU_startInput(); //Start input again!
+				EMU_RUNNING = 1; //We're running again!
 				return 0; //No reset!
 			}
 			verified = 1; //Verified!
@@ -113,12 +117,14 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		{
 			CPU_INT(0x18); //Error: no ROM!
 			EMU_startInput(); //Start input again!
+			EMU_RUNNING = 1; //We're running again!
 			return 0; //No reset!
 		}
 		else //Boot rom ready?
 		{
 			BIOS_registerROM(); //Register the BIOS ROM!
 			EMU_startInput(); //Start input again!
+			EMU_RUNNING = 1; //We're running again!
 			return 0; //No reset, start the BIOS!
 		}
 	}
@@ -177,6 +183,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 	if (DEBUG_TEXTMODE) //Debugging text mode?
 	{
 		DoDebugTextMode(0); //Do the debugging!
+		EMU_RUNNING = 1; //We're running again!
 		return 1; //Full reset emulator!
 	}	
 	
@@ -193,6 +200,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		debugrow("Debugging files!");
 		DoDebugFiles(); //Do the debug files!
 		EMU_startInput(); //Start input again!
+		EMU_RUNNING = 1; //We're running again!
 		return 1; //Reboot!
 	}
 
@@ -240,11 +248,13 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			{
 				CPU_INT(0x18); //Error: no ROM!
 				EMU_startInput(); //Start input again!
+				EMU_RUNNING = 1; //We're running again!
 				return 0; //No reset!
 			}
 			else //Boot rom ready?
 			{
 				EMU_startInput(); //Start input again!
+				EMU_RUNNING = 1; //We're running again!
 				return 0; //Run the boot rom!
 			}
 		}
@@ -253,9 +263,12 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 	if (NOEMU)
 	{
 		EMU_startInput(); //Start input again!
+		EMU_RUNNING = 1; //We're running again!
 		return 1; //Don't emulate: just reset!
 	}
 	
+	debugrow("Starting CPU emulation...");
+
 	//We're starting up normal emulation of our 'BIOS'?
 
 	initMEM(); //Initialise all stuff in memory!

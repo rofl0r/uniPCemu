@@ -56,5 +56,5 @@ word get_display_x(VGA_Type *VGA, word x); //Horizontal check!
 //Character sizes in pixels!
 OPTINLINE byte getcharacterwidth(VGA_Type *VGA);
 OPTINLINE byte getcharacterheight(VGA_Type *VGA);
-
+byte getVGAShift(VGA_Type *VGA); //Get the shift to use: 0(x1), 1(x2) or 2(x4)!
 #endif

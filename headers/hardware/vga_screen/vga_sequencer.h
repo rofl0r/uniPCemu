@@ -90,7 +90,7 @@ typedef struct
 
 OPTINLINE float VGA_VerticalRefreshRate(VGA_Type *VGA); //Scanline speed for one line in Hz!
 
-void VGA_Sequencer(VGA_Type *VGA); //Process sequencer scanline etc.!
+OPTINLINE void VGA_Sequencer(VGA_Type *VGA); //Process sequencer scanline etc.!
 void VGA_Sequencer_calcScanlineData(VGA_Type *VGA);
 
 //Retrieve the Sequencer from a VGA!

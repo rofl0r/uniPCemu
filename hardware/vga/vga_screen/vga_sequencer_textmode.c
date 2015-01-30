@@ -70,7 +70,7 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	
 	register word Sequencer_textmode_charindex; //Where do we find our info!
 	Sequencer_textmode_charindex = Sequencer->charystart; //Get the start of the row!
-	Sequencer_textmode_charindex += character; //Add the character column for the base character index!
+	Sequencer_textmode_charindex += (character<<getVGAShift(VGA)); //Add the character column for the base character index!
 	Sequencer_textmode_charindex += Sequencer->bytepanning; //Apply byte panning to the index!
 	Sequencer_textmode_charindex += Sequencer->startmap; //Add the start of the map for us to look at!
 

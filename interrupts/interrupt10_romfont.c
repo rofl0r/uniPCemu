@@ -6,6 +6,9 @@
 #include "headers/cpu/callback.h" //Callback support!
 #include "headers/cpu/80286/protection.h" //Protection support!
 
+#include "headers/support/log.h" //Debugging only!
+#include "headers/bios/biosrom.h" //BIOS ROM support!
+
 uint_32 i;
 void MEM_BlockCopy(word segment, word offset, word fontseg, word fontoffs, Bitu height)
 {
@@ -154,49 +157,53 @@ void INT10_ReloadFont(void) {
 
 Int10Data int10; //Our interrupt data!
 
+extern byte EMU_VGAROM[0x8000]; //Our VGA ROM!
+extern byte EMU_BIOS[0x10000]; //Our BIOS!
+
 void INT10_SetupRomMemory(void)
 {
 /* This should fill up certain structures inside the Video Bios Rom Area */
 	word rom_base=0xC000;
 	if (IS_EGAVGA_ARCH) {
 		// set up the start of the ROM
-		MMU_ww(CPU_SEGMENT_DS,rom_base,0,0xaa55);
-		MMU_wb(CPU_SEGMENT_DS,rom_base,2,0x40);		// Size of ROM: 64 512-blocks = 32KB
+		EMU_VGAROM[0] = 0x55;
+		EMU_VGAROM[1] = 0xaa;
+		EMU_VGAROM[2] = 0x40;		// Size of ROM: 64 512-blocks = 32KB
 		if (IS_VGA_ARCH) {
-			MMU_wb(CPU_SEGMENT_DS,rom_base,0x1e,0x49);	// IBM string
-			MMU_wb(CPU_SEGMENT_DS,rom_base,0x1f,0x42);
-			MMU_wb(CPU_SEGMENT_DS,rom_base,0x20,0x4d);
-			MMU_wb(CPU_SEGMENT_DS,rom_base,0x21,0x00);
+			EMU_VGAROM[0x1e] = 0x49;	// IBM string
+			EMU_VGAROM[0x1f] = 0x42;
+			EMU_VGAROM[0x20] = 0x4d;
+			EMU_VGAROM[0x21] = 0x00;
 		}
 		int10.rom.used=0x100; //Start of our data!
 	}
 	int10.rom.font_8_first=int10.rom.used;
 	for (i=0;i<128*8;i++) {
-		MMU_wb(CPU_SEGMENT_DS,rom_base,int10.rom.used++,int10_font_08[i]);
+		EMU_VGAROM[int10.rom.used++] = int10_font_08[i];
 	}
 	int10.rom.font_8_second=int10.rom.used;
 	for (i=0;i<128*8;i++) {
-		MMU_wb(CPU_SEGMENT_DS,rom_base,int10.rom.used++,int10_font_08[i+128*8]);
+		EMU_VGAROM[int10.rom.used++] = int10_font_08[i+128*8];
 	}
 	int10.rom.font_14=int10.rom.used;
 	for (i=0;i<256*14;i++) {
-		MMU_wb(CPU_SEGMENT_DS,rom_base,int10.rom.used++,int10_font_14[i]);
+		EMU_VGAROM[int10.rom.used++] = int10_font_14[i];
 	}
 	int10.rom.font_16=int10.rom.used;
 	for (i=0;i<256*16;i++) {
-		MMU_wb(CPU_SEGMENT_DS,rom_base,int10.rom.used++,int10_font_16[i]);
+		EMU_VGAROM[int10.rom.used++] = int10_font_16[i];
 	}
 	int10.rom.static_state=int10.rom.used;
 	for (i=0;i<0x10;i++) {
-		MMU_wb(CPU_SEGMENT_DS,rom_base,int10.rom.used++,static_functionality[i]);
+		EMU_VGAROM[int10.rom.used++] = static_functionality[i];
 	}
 	for (i=0;i<128*8;i++) {
-		phys_writeb(PhysMake(0xf000,0xfa6e)+i,int10_font_08[i]);
+		EMU_BIOS[0xfa6e+i] = int10_font_08[i]; //Small ROM!
 	}
 	RealSetVec(0x1F,0xC000,int10.rom.font_8_second);
 	int10.rom.font_14_alternate=RealMake(0xC000,int10.rom.used);
 	int10.rom.font_16_alternate=RealMake(0xC000,int10.rom.used);
-	MMU_wb(CPU_SEGMENT_DS,rom_base,int10.rom.used++,0x00);	// end of table (empty)
+	EMU_BIOS[int10.rom.used++] = 0x00;	// end of table (empty)
 
 	/*if (IS_EGAVGA_ARCH) {
 		int10.rom.video_parameter_table=RealMake(0xC000,int10.rom.used);
@@ -264,10 +271,14 @@ void INT10_SetupRomMemory(void)
 	if (IS_TANDY_ARCH) {
 		RealSetVec(0x44,int10.rom.font_8_first);
 	}*/
+
+	//Addition by superfury: load as a ROM, instead of RAM!
+	BIOS_load_VGAROM(); //Load our custom VGA ROM!
 }
 
 void INT10_ReloadRomFonts(void) {
 	// 16x8 font
+	/*
 	PhysPt font16pt=Real2Phys(int10.rom.font_16);
 	Bitu i;
 	for (i=0;i<256*16;i++) {
@@ -287,18 +298,19 @@ void INT10_ReloadRomFonts(void) {
 	for (i=0;i<128*8;i++) {
 		phys_writeb(font8pt+i,int10_font_08[i+128*8]);
 	}
+	*/ //This isn't needed: it's stored in a ROM!
 }
 
 void INT10_SetupRomMemoryChecksum(void) {
 	if (IS_EGAVGA_ARCH) { //EGA/VGA. Just to be safe
 		/* Sum of all bytes in rom module 256 should be 0 */
 		Bit8u sum = 0;
-		PhysPt rom_base = PhysMake(0xc000,0);
+		uint_32 rom_base = 0;
 		Bitu last_rombyte = 32*1024 - 1;		//32 KB romsize
 		Bitu i;
 		for (i = 0;i < last_rombyte;i++)
-			sum += phys_readb(rom_base + i);	//OVERFLOW IS OKAY
+			sum += EMU_VGAROM[i];	//OVERFLOW IS OKAY
 		sum = (Bit8u)((256 - (Bitu)sum)&0xff);
-		phys_writeb(rom_base + last_rombyte,sum);
+		EMU_VGAROM[last_rombyte] = sum;
 	}
 }

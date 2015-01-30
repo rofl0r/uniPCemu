@@ -199,3 +199,14 @@ OPTINLINE uint_32 getVRAMScanlineStart(VGA_Type *VGA,word Scanline) //Start of a
 {
 	return OPTMUL(VGA->precalcs.scanlinesize,Scanline); //Give the start of the row!
 }
+
+byte getVGAShift(VGA_Type *VGA)
+{
+	switch (getVRAMMemAddrSize(VGA))
+	{
+	case 2: return 1; //Word mode?
+	case 4: return 2; //DWord mode?
+	default: //Unknown/1?
+		return 0;
+	}
+}

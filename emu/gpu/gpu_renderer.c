@@ -96,9 +96,93 @@ uint_32 *get_rowempty()
 	return row_empty; //Give the empty row!
 }
 
+void GPU_directRenderer() //Plot directly 1:1 on-screen!
+{
+	if (__HW_DISABLED) return; //Abort?
+	init_rowempty(); //Init empty row!
+	int pspy = 0;
+	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
+	{
+		uint_32 virtualrow = 0; //Virtual row to use! (From the source)
+		uint_32 start = 0; //Start row of the drawn part!
+		word y = 0; //Init Y to the beginning!
+		if (GPU.use_Letterbox) //Using letterbox for aspect ratio?
+		{
+			#ifdef _WIN32
+				if (VIDEO_DFORCED) //Forced video?
+				{
+					goto drawpixels; //No letterbox!
+				}
+			#endif
+			start = (PSP_SCREEN_ROWS / 2) - (GPU.yres / 2); //Calculate start row of contents!
+			for (y = 0; y<start;) //Process top!
+			{
+				put_pixel_row(rendersurface, y, PSP_SCREEN_COLUMNS, &row_empty[0], 0, 0); //Plot empty row, don't care about more black!
+				++y; //Next row!
+			}
+		}
+
+		drawpixels:
+		for (; virtualrow<GPU.yres;) //Process row-by-row!
+		{
+			put_pixel_row(rendersurface, y++, GPU.xres, &EMU_BUFFER(0, virtualrow++), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+		}
+
+		if (GPU.use_Letterbox) //Using letterbox for aspect ratio?
+		{
+			#ifdef _WIN32
+				if (VIDEO_DFORCED) //Forced video?
+				{
+					goto finishpixels; //No letterbox!
+				}
+			#endif
+			for (; y<PSP_SCREEN_ROWS;) //Process bottom!
+			{
+				put_pixel_row(rendersurface, y, PSP_SCREEN_COLUMNS, &row_empty[0], 0, 0); //Plot empty row for the bottom, don't care about more black!
+				++y; //Next row!
+			}
+		}
+
+		finishpixels:
+		GPU.emu_buffer_dirty = 0; //Not dirty anymore!
+		return; //Don't render anymore!
+	}
+
+	if (GPU.emu_buffer_dirty) //Dirty?
+	{
+		//Old method, also fine&reasonably fast!
+		for (; pspy<PSP_SCREEN_ROWS;) //Process row!
+		{
+			int pspx = 0;
+			for (; pspx<PSP_SCREEN_COLUMNS;) //Process column!
+			{
+				if ((pspx>GPU.xres) || (pspy>GPU.yres)) //Out of range?
+				{
+					PSP_BUFFER(pspx, pspy) = 0; //Clear color for out of range!
+				}
+				else //Exists in buffer?
+				{
+					PSP_BUFFER(pspx, pspy) = GPU_GETPIXEL(pspx, pspy); //Get pixel from buffer!
+				}
+				++pspx; //Next X!
+			}
+			++pspy; //Next Y!
+		}
+		GPU.emu_buffer_dirty = 0; //Not dirty anymore!
+	}
+
+	//We can't use the keyboard with the old renderer, so you just have to do it from the top of your head!
+	//OK: rendered to PSP buffer!
+}
+
 uint_32 ms_render = 0; //MS it took to render (125000 for 8fps, which is plenty!)
 void render_EMU_screen() //Render the EMU buffer to the screen!
 {
+	if (VIDEO_DIRECT) //Direct mode?
+	{
+		GPU_directRenderer(); //Render directly!
+		return;
+	}
 	if (!memprotect(rendersurface,sizeof(*rendersurface),NULL)) return; //Nothing to render to!
 	if (!memprotect(rendersurface->sdllayer,sizeof(*rendersurface->sdllayer),NULL)) return; //Nothing to render to!
 	//Now, render our screen, or clear it!
@@ -168,7 +252,11 @@ void render_EMU_screen() //Render the EMU buffer to the screen!
 
 OPTINLINE byte getresizeddirty() //Is the emulated screen dirty?
 {
-	return resized?((resized->flags&SDL_FLAG_DIRTY)>0):0; //Are we dirty?
+	if (VIDEO_DIRECT)
+	{
+		return GPU.emu_buffer_dirty; //Force dirty from EMU Buffer when in direct mode!
+	}
+	return resized ? ((resized->flags&SDL_FLAG_DIRTY)>0) : 0; //Are we dirty?
 }
 
 void renderFrames() //Render all frames to the screen!
@@ -177,7 +265,7 @@ void renderFrames() //Render all frames to the screen!
 	{
 		byte dirty;
 		dirty = getresizeddirty(); //Check if resized is dirty!
-		
+
 		int i; //For processing surfaces!
 		//Check for dirty text surfaces!
 		for (i=0;i<NUMITEMS(GPU.textsurfaces);i++) //Process all text surfaces!
@@ -194,7 +282,7 @@ void renderFrames() //Render all frames to the screen!
 				}
 			}
 		}
-		
+
 		if (dirty) //Any surfaces dirty?
 		{
 			render_EMU_screen(); //Render the emulator surface to the screen!
@@ -214,79 +302,14 @@ void renderFrames() //Render all frames to the screen!
 		
 		//Render the frame!
 		renderScreenFrame(); //Render the current frame!
+		return; //Normal!
 	}
+
+	//Fallback to direct plot!
+	GPU_directRenderer(); //Fallback!
 }
 
 //Rendering functionality!
-void GPU_directRenderer() //Plot directly 1:1 on-screen!
-{
-	if (__HW_DISABLED) return; //Abort?
-	init_rowempty(); //Init empty row!
-	int pspy=0;
-	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
-	{
-		if (GPU.emu_buffer_dirty) //Dirty?
-		{
-			uint_32 virtualrow = 0; //Virtual row to use! (From the source)
-			uint_32 start = 0; //Start row of the drawn part!
-			word y = 0; //Init Y to the beginning!
-			if (GPU.use_Letterbox) //Using letterbox for aspect ratio?
-			{
-				start = (PSP_SCREEN_ROWS/2) - (GPU.yres/2); //Calculate start row of contents!
-				for (y=0;y<start;) //Process top!
-				{
-					put_pixel_row(rendersurface,y,PSP_SCREEN_COLUMNS,&row_empty[0],0,0); //Plot empty row, don't care about more black!
-					++y; //Next row!
-				}
-			}
-			
-			for (;virtualrow<GPU.yres;) //Process row-by-row!
-			{
-				put_pixel_row(rendersurface,y++,GPU.xres,&EMU_BUFFER(0,virtualrow++),0,0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
-			}
-			
-			if (GPU.use_Letterbox) //Using letterbox for aspect ratio?
-			{
-				for (;y<PSP_SCREEN_ROWS;) //Process bottom!
-				{
-					put_pixel_row(rendersurface,y,PSP_SCREEN_COLUMNS,&row_empty[0],0,0); //Plot empty row for the bottom, don't care about more black!
-					++y; //Next row!
-				}
-			}
-			GPU.emu_buffer_dirty = 0; //Not dirty anymore!
-		}
-		
-		renderFrames(); //Render the frames!
-		return; //Don't render anymore!
-	}
-	
-	if (GPU.emu_buffer_dirty) //Dirty?
-	{
-		//Old method, also fine&reasonably fast!
-		for (;pspy<PSP_SCREEN_ROWS;) //Process row!
-		{
-			int pspx = 0;
-			for (;pspx<PSP_SCREEN_COLUMNS;) //Process column!
-			{
-				if ((pspx>GPU.xres) || (pspy>GPU.yres)) //Out of range?
-				{
-					PSP_BUFFER(pspx,pspy) = 0; //Clear color for out of range!
-				}
-				else //Exists in buffer?
-				{
-					PSP_BUFFER(pspx,pspy) = GPU_GETPIXEL(pspx,pspy); //Get pixel from buffer!
-				}
-				++pspx; //Next X!
-			}
-			++pspy; //Next Y!
-		}
-		GPU.emu_buffer_dirty = 0; //Not dirty anymore!
-	}
-	
-	//We can't use the keyboard with the old renderer, so you just have to do it from the top of your head!
-	//OK: rendered to PSP buffer!
-}
-
 void render_EMU_buffer() //Render the EMU to the buffer!
 {
 	getuspassed(&ms_render_lastcheck); //Init last check to current time!
@@ -305,10 +328,12 @@ void render_EMU_buffer() //Render the EMU to the buffer!
 			yres = GPU.yres; //Load y resolution!
 			if (xres>EMU_MAX_X) xres = EMU_MAX_X; //Limit to buffer!
 			if (yres>EMU_MAX_Y) yres = EMU_MAX_Y; //Limit to buffer!
+			dolog("zalloc", "create surface from pixels...");
 			GPU_SDL_Surface *emu_screen = createSurfaceFromPixels(GPU.xres,GPU.yres,GPU.emu_screenbuffer,EMU_MAX_X); //Create container 32BPP pixel mode!
 			if (emu_screen) //Createn to render?
 			{
 				//Resize to resized!
+				dolog("zalloc", "Resizing frame...");
 				resized = resizeImage(emu_screen,rendersurface->sdllayer->w,rendersurface->sdllayer->h,GPU.doublewidth,GPU.doubleheight,GPU.use_Letterbox); //Render it to the PSP screen, keeping aspect ratio with letterboxing!
 				if (!resized) //Error?
 				{
@@ -408,10 +433,12 @@ void refreshscreen() //Handler for a screen frame (60 fps) MAXIMUM.
 		{
 			GPU_fullRenderer(); //Render a full frame, or direct when needed!
 		}
-		else
-		{
-			GPU_directRenderer(); //Render direct!
-		}
+	}
+
+	if (GPU.xres && GPU.yres)
+	{
+		int temp;
+		temp = 0; //Dummy!
 	}
 
 	renderFrames(); //Render all frames needed!

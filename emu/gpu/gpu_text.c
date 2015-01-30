@@ -7,6 +7,8 @@
 #include "headers/support/bmp.h" //Bitmap support!
 #include "headers/support/highrestimer.h" //High resolution timer!
 
+#define __HW_DISABLED 0
+
 //\n is newline? Else \r\n is newline!
 #define USESLASHN 1
 
@@ -15,16 +17,37 @@ extern GPU_SDL_Surface *rendersurface; //The PSP's surface to use when flipping!
 word TEXT_xdelta = 0;
 word TEXT_ydelta = 0; //Delta x,y!
 
+OPTINLINE void GPU_textcalcpixel(int *x, int *y, int *charx, int *chary)
+{
+	int cx=*x;
+	int cy=*y;
+	cx /= 10; //Shift to the character we're from!
+	cy /= 10; //Shift to the character we're from!
+	*charx = cx;
+	*chary = cy;
+	*x %= 10; //Within the character!
+	*y %= 10; //Within the character!
+	/*
+	--*x; //Adjust for the border!
+	--*y; //Adjust for the border!
+	*/
+}
+
 OPTINLINE byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
 {
-	if (((x<0) || (y<0) || ((y>>3)>GPU_TEXTSURFACE_HEIGHT) || ((x>>3)>GPU_TEXTSURFACE_WIDTH))) return 0; //None when out of bounds!
-	return getcharxy_8(surface->text[y>>3][x>>3], x&7, y&7); //Give the pixel of the character!
+	if (((x<0) || (y<0) || ((y/10)>=GPU_TEXTSURFACE_HEIGHT) || ((x/10)>=GPU_TEXTSURFACE_WIDTH))) return 0; //None when out of bounds!
+	int charx, chary, x2=x, y2=y;
+	GPU_textcalcpixel(&x2, &y2, &charx, &chary); //Calculate our info!
+	if ((x2 < 0) || (x2 >= 8) || (y2 < 0) || (y2 >= 8)) return 0; //Out of range = background!
+	return getcharxy_8(surface->text[chary][charx], x2, y2); //Give the pixel of the character!
 }
 
 OPTINLINE uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
 {
-	if (((x<0) || (y<0) || ((y>>3)>GPU_TEXTSURFACE_HEIGHT) || ((x>>3)>GPU_TEXTSURFACE_WIDTH))) return TRANSPARENTPIXEL; //None when out of bounds!
-	return border?surface->border[y>>3][x>>3]:surface->font[y>>3][x>>3]; //Give the border or font of the character!
+	if (((x<0) || (y<0) || ((y / 10) >= GPU_TEXTSURFACE_HEIGHT) || ((x / 10) >= GPU_TEXTSURFACE_WIDTH))) return TRANSPARENTPIXEL; //None when out of bounds!
+	int charx, chary, x2=x, y2=y;
+	GPU_textcalcpixel(&x2, &y2, &charx, &chary); //Calculate our info!
+	return border ? surface->border[chary][charx] : surface->font[chary][charx]; //Give the border or font of the character!
 }
 
 OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
@@ -39,12 +62,17 @@ OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 
 	//We're background/transparent!
 	BACKLISTITEM *curbacklist = &surface->backlist[0]; //The current backlist!
-	register byte c=0;
+	register int x, y;
+	register byte c = 0;
 	for (;;)
 	{
-		if (GPU_textget_pixel(surface,fx+curbacklist->x,fy+curbacklist->y)) //Border?
+		x = fx;
+		y = fy;
+		x += curbacklist->x;
+		y += curbacklist->y;
+		if (GPU_textget_pixel(surface,x,y)) //Border?
 		{
-			surface->notdirty[fy][fx] = GPU_textgetcolor(surface,fx,fy,1); //Back!
+			surface->notdirty[fy][fx] = GPU_textgetcolor(surface,x,y,1); //Back of the related pixel!
 			return; //Done!
 		}
 		if (++c==8) break; //Stop searching!
@@ -101,6 +129,7 @@ void free_GPUtext(GPU_TEXTSURFACE **surface)
 
 uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurface!
 {
+	if (__HW_DISABLED) return 0; //Disabled!
 	if (!surface) return 0; //Abort without surface!
 	TicksHolder ms_render_lastcheck; //For counting ms to render (GPU_framerate)!
 	initTicksHolder(&ms_render_lastcheck); //Init for counting time of rendering on the device directly from VGA data!
@@ -137,12 +166,14 @@ void GPU_markdirty(GPU_TEXTSURFACE *surface, int x, int y) //Mark a character as
 	int rx;
 	int ry;
 
-	for (rx=-1;rx<9;) //Take one pixel extra for neighbouring pixels.
+	int tx = x * 10;
+	int ty = y * 10;
+	for (rx=-1;rx<11;) //Take one pixel extra for neighbouring pixels.
 	{
-		for (ry=-1;ry<9;)
+		int cx = tx + rx;
+		for (ry = -1; ry<11;)
 		{
-			int cx = x*8+rx;
-			int cy = y*8+ry;
+			int cy = ty+ry;
 			if (cx>=0 && cy>=0) //Valid positions?
 			{
 				surface->dirty[cy][cx] = 1; //Set dirty!
@@ -159,7 +190,6 @@ int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32
 	if (!surface) return 0; //Not allocated!
 	if (y>=GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
 	if (x>=GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
-	//dolog("GPU","GPU_textsetxy(x,y)",x,y);
 	byte oldtext = surface->text[y][x];
 	uint_32 oldfont = surface->font[y][x];
 	uint_32 oldborder = surface->font[y][x];
