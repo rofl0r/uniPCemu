@@ -1,6 +1,12 @@
 #ifndef TYPESEMU_H
 #define TYPESEMU_H
 
+//Windows safety!
+#ifdef RGB
+//We overwrite this!
+#undef RGB
+#endif
+
 #include <stdlib.h>
 
 #include <stdint.h>
@@ -76,6 +82,7 @@ typedef uint_64 FILEPOS;
 //RGB, with and without A (full)
 #define RGBA(r, g, b, a) ((r)|((g)<<8)|((b)<<16)|((a)<<24))
 //RGB is by default fully opaque
+
 #define RGB(r, g, b) RGBA(r,g,b,0xFF)
 //Special transparent pixel!
 #define TRANSPARENTPIXEL RGBA(0x00,0x00,0x00,0x00)
@@ -85,7 +92,7 @@ typedef uint_64 FILEPOS;
 #define GETB(x) (((x)>>16)&0xFF)
 #define GETA(x) (((x)>>24)&0xFF)
 
-typedef void (*Handler)(void);    /* A pointer to a handler function */
+typedef void (*Handler)();    /* A pointer to a handler function */
 
 //Ammount of items in a buffer!
 #define NUMITEMS(buffer) (sizeof(buffer)/sizeof(buffer[0]))

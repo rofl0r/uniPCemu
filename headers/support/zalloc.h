@@ -7,7 +7,7 @@ typedef void (*DEALLOCFUNC)(void **ptr, uint_32 size); //Deallocation functional
 OPTINLINE void *nzalloc(uint_32 size, char *name); //Allocates memory, NULL on failure (ran out of memory), protected allocation!
 OPTINLINE void *zalloc(uint_32 size, char *name); //Same as nzalloc, but clears the allocated memory!
 void freez(void **ptr, uint_32 size, char *name); //Release memory allocated with zalloc!
-void freezall(); //Free all allocated memory still allocated (on shutdown only, garbage collector)!
+void freezall(void); //Free all allocated memory still allocated (on shutdown only, garbage collector)!
 
 //Pointer derefenence protection!
 void *memprotect(void *ptr, uint_32 size, char *name); //Checks address (with name optionally) of pointer!

@@ -48,7 +48,7 @@ void INT10_ActivateFont(VGA_Type *VGA, byte height, word offset);
 int GPU_putpixel(int x, int y, byte page, byte color); //Writes a video buffer pixel to the real emulated screen buffer
 
 //ROM support!
-void INT10_SetupRomMemory(void); //ROM memory installation!
+void INT10_SetupRomMemory(); //ROM memory installation!
 
 void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count);
 #endif

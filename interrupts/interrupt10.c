@@ -289,7 +289,7 @@ int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pi
         return 1; //OK!
 }
 
-void ResetACTL(void) {
+void ResetACTL() {
 	if (__HW_DISABLED) return; //Abort!
 	IO_Read(real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS) + 6);
 }

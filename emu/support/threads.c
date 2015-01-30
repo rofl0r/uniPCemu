@@ -264,6 +264,10 @@ void debug_threads()
 	}
 }
 
+void onThreadExit(void)
+{
+	termThreads(); //Terminate all threads!
+}
 
 void initThreads() //Initialise&reset thread subsystem!
 {
@@ -271,7 +275,7 @@ void initThreads() //Initialise&reset thread subsystem!
 	//dolog("threads","initThreads: termThreads...");
 	termThreads(); //Make sure all running threads are stopped!
 	//dolog("threads","debugThreads?...");
-	atexit(&termThreads); //Register out cleanup function!
+	atexit(&onThreadExit); //Register out cleanup function!
 	memset(threadpool,0,sizeof(threadpool)); //Clear thread pool!
 	if (DEBUG_THREADS) startThread(&debug_threads,"X86EMU_Thread Debugger",DEFAULT_PRIORITY); //Plain debug threads!
 	//dolog("threads","initThreads: RET...");

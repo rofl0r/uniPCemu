@@ -345,7 +345,7 @@ bool check_key(Bit16u *code) {
 
 
 /* the scancode is in reg_al */
-void IRQ1_Handler(void) {
+void IRQ1_Handler() {
 /* handling of the locks key is difficult as sdl only gives
  * states for numlock capslock. 
  */
@@ -605,7 +605,7 @@ bool IsEnhancedKey(Bit16u *key) {
 	return false;
 }
 
-void INT16_Handler(void) {
+void INT16_Handler() {
 	Bit16u temp=0;
 	switch (REG_AH) {
 	case 0x00: /* GET KEYSTROKE */
@@ -700,7 +700,7 @@ void INT16_Handler(void) {
 extern bool startup_state_numlock;
 extern bool startup_state_capslock;
 
-void InitBiosSegment(void) {
+void InitBiosSegment() {
 	Bit8u flag1;
 	Bit8u leds;
 	/* Setup the variables for keyboard in the bios data segment */
@@ -720,7 +720,7 @@ void InitBiosSegment(void) {
 	mem_writeb(BIOS_KEYBOARD_LEDS,leds);
 }
 
-void BIOS_SetupKeyboard(void) {
+void BIOS_SetupKeyboard() {
 	/* Init the variables */
 	InitBiosSegment();
 

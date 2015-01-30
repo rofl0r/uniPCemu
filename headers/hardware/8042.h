@@ -4,7 +4,7 @@
 #include "headers/support/fifobuffer.h" //FIFO buffer support for our data!
 
 typedef void (*PS2OUT)(byte);    /* A pointer to a PS/2 device handler Write function */
-typedef byte (*PS2IN)(void);    /* A pointer to a PS/2 device handler Read function */
+typedef byte (*PS2IN)();    /* A pointer to a PS/2 device handler Read function */
 typedef int (*PS2PEEK)(byte *result);    /* A pointer to a PS/2 device handler Peek (Read without flush) function */
 
 typedef struct

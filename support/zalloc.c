@@ -270,7 +270,7 @@ OPTINLINE void *zalloc(uint_32 size, char *name) //Same as nzalloc, but clears t
 }
 
 //Deallocation support: release all registered pointers! This used to be unregisterptrall.
-void freezall() //Free all allocated memory still allocated (on shutdown only, garbage collector)!
+void freezall(void) //Free all allocated memory still allocated (on shutdown only, garbage collector)!
 {
 	int i;
 	initZalloc(); //Make sure we're started!

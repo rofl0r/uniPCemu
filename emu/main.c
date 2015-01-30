@@ -115,7 +115,7 @@ int CallbackThread(SceSize args, void *argp)
 #endif
 
 /* Sets up the callback thread and returns its thread id */
-int SetupCallbacks(void)
+int SetupCallbacks()
 {
 	atexit(SDL_Quit); //Basic SDL safety!
 #ifdef __psp__

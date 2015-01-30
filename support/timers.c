@@ -231,7 +231,7 @@ void removetimer(char *name) //Removes a timer!
 	}
 }
 
-void timer_quit()
+void timer_quit(void)
 {
 	stopTimers(0); //Stop normal timers!
 	stopTimers(1); //Stop emu timers!

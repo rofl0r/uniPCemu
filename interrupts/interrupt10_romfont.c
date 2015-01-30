@@ -140,7 +140,7 @@ void INT10_LoadFont(word fontseg, word fontoffs,bool reload,Bitu count,Bitu offs
 	}
 }
 
-void INT10_ReloadFont(void) {
+void INT10_ReloadFont() {
 	switch(CurMode->cheight) {
 	case 8:
 		INT10_LoadFont(0xC000,int10.rom.font_8_first,true,256,0,0,8);
@@ -160,7 +160,7 @@ Int10Data int10; //Our interrupt data!
 extern byte EMU_VGAROM[0x8000]; //Our VGA ROM!
 extern byte EMU_BIOS[0x10000]; //Our BIOS!
 
-void INT10_SetupRomMemory(void)
+void INT10_SetupRomMemory()
 {
 /* This should fill up certain structures inside the Video Bios Rom Area */
 	word rom_base=0xC000;
@@ -276,7 +276,7 @@ void INT10_SetupRomMemory(void)
 	BIOS_load_VGAROM(); //Load our custom VGA ROM!
 }
 
-void INT10_ReloadRomFonts(void) {
+void INT10_ReloadRomFonts() {
 	// 16x8 font
 	/*
 	PhysPt font16pt=Real2Phys(int10.rom.font_16);
@@ -301,7 +301,7 @@ void INT10_ReloadRomFonts(void) {
 	*/ //This isn't needed: it's stored in a ROM!
 }
 
-void INT10_SetupRomMemoryChecksum(void) {
+void INT10_SetupRomMemoryChecksum() {
 	if (IS_EGAVGA_ARCH) { //EGA/VGA. Just to be safe
 		/* Sum of all bytes in rom module 256 should be 0 */
 		Bit8u sum = 0;

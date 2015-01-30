@@ -88,8 +88,8 @@ void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 
 byte getCOMport(word port) //What COM port?
 {
-	byte highnibble = ((port>>16)&0xF); //3 or 2
-	byte lownibble = ((port>>8)&0xF); //F or E
+	byte highnibble = ((port>>8)&0xF); //3 or 2
+	byte lownibble = ((port>>4)&0xF); //F or E
 	
 	byte COMport;
 	COMport = 0; //Init COM port!

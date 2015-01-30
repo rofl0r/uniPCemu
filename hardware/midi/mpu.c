@@ -11,7 +11,7 @@
 #include "headers/header_dosboxmpu.h" //Basic conversion support!
 
 void MPU401_Event();
-void MPU401_Reset(void);
+void MPU401_Reset();
 
 #define MPU_QUEUE 32
 #define MPU_RQ_QUEUE 64
@@ -218,7 +218,7 @@ void QueueByte(Bit8u data) {
 	} /*else LOG(LOG_MISC,LOG_NORMAL)("MPU401:Data queue full");*/
 }
 
-void ClrQueue(void) {
+void ClrQueue() {
 	mpu.queue_used=0;
 	mpu.queue_pos=0;
 }
@@ -234,7 +234,7 @@ void QueueRequest(Bit8u data) {
 	} /*else LOG(LOG_MISC,LOG_NORMAL)("MPU401:Request queue full");*/
 }
 
-void ClrRequestQueue(void) {
+void ClrRequestQueue() {
 	mpu.rq_pos=0;
 	mpu.rq_used=0;
 }
@@ -651,7 +651,7 @@ next_event:
 	PIC_AddEvent(MPU401_Event,60000000/new_time);
 }
 
-void MPU401_Reset(void) {
+void MPU401_Reset() {
 	PIC_DeActivateIRQ(mpu.irq);
 	mpu.mode=(mpu.intelligent ? M_INTELLIGENT : M_UART);
 	mpu.state.wsd=false;
