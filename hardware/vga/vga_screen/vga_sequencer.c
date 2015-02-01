@@ -1,3 +1,4 @@
+#include "headers/types.h" //Basic types!
 #include "headers/emu/gpu/gpu.h" //GPU!
 #include "headers/hardware/vga.h" //VGA!
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Ourselves!
@@ -17,12 +18,19 @@
 //Are we disabled?
 #define HW_DISABLED 0
 
+typedef uint_32(*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
+OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *VGA, word x
+{
+	static const DAC_monitor monitors[2] = { DAC_colorMonitor, DAC_BWmonitor }; //What kind of monitor?
+	return monitors[DAC_Use_BWMonitor(2)](VGA, DACValue); //Do color mode or B/W mode!
+}
+
 extern GPU_type GPU; //GPU!
 extern VGA_Type *ActiveVGA; //Active VGA!
 
 typedef void (*DisplayRenderHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA); //Our rendering handler for all signals!
 
-OPTINLINE float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
+float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
 {
 //Horizontal Refresh Rate=Clock Frequency (in Hz)/horizontal pixels
 //Vertical Refresh rate=Horizontal Refresh Rate/total scan lines!
@@ -399,9 +407,8 @@ void initStateHandlers()
 	}
 }
 
-OPTINLINE void VGA_Sequencer(VGA_Type *VGA)
+void VGA_Sequencer(VGA_Type *VGA)
 {
-	TicksHolder ticksholder;
 	if (HW_DISABLED) return;
 	if (!VGA) return; //Invalid VGA?
 	SEQ_DATA *Sequencer;
@@ -423,6 +430,6 @@ OPTINLINE void VGA_Sequencer(VGA_Type *VGA)
 		//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59 && Sequencer->x==639) dolog("VGA","Rendering %i,%i",Sequencer->Scanline,Sequencer->x); //Log our current x we're processing!
 		displaysignalhandler[displaystate](Sequencer,VGA,displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalretracing][displaystate](Sequencer,VGA); //Execute our signal!
-		if (Sequencer_Break) break; //Abort when done!
+		if (Sequencer_Break) return; //Abort when done!
 	}
 }

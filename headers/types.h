@@ -83,9 +83,9 @@ typedef uint_64 FILEPOS;
 #define RGBA(r, g, b, a) ((r)|((g)<<8)|((b)<<16)|((a)<<24))
 //RGB is by default fully opaque
 
-#define RGB(r, g, b) RGBA(r,g,b,0xFF)
+#define RGB(r, g, b) RGBA(r,g,b,SDL_ALPHA_OPAQUE)
 //Special transparent pixel!
-#define TRANSPARENTPIXEL RGBA(0x00,0x00,0x00,0x00)
+#define TRANSPARENTPIXEL RGBA(SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT)
 //Same, but reversed!
 #define GETR(x) ((x)&0xFF)
 #define GETG(x) (((x)>>8)&0xFF)

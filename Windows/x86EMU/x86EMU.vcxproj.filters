@@ -763,5 +763,8 @@
     <ClInclude Include="..\..\headers\emu\directorylist.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\headers\hardware\vga_screen\vga_dacrenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -159,24 +159,6 @@ OPTINLINE byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, 
 	return result; //Give bit!
 }
 
-OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
-{
-	static uint_32 lastcharinfo; //attribute|character|0x80|row, bit8=Set?
-
-	if ((lastcharinfo&0xFFFF)!=((character<<8)|0x80|y)) //Last row not yet loaded?
-	{
-		uint_32 addr = 0; //Address for old method!
-		addr += character<<3; //Start adress of character!
-		addr += (y&7); //1 byte per row!
-		
-		byte lastrow = int10_font_08[addr]; //Read the row from the character generator!
-		lastcharinfo = ((lastrow<<16)|(character<<8)|0x80|y); //Last character info loaded!
-	}
-
-	byte bitpos = 23-(x%8); //x or 7-x for reverse?
-	return ((lastcharinfo&(1<<bitpos))>>bitpos); //Give result!
-}
-
 void VGA_dumpchar(VGA_Type *VGA, byte c)
 {
 	byte y=0;

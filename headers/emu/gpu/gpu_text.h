@@ -50,7 +50,15 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y); //Goto coordinates!
 void GPU_textclearrow(GPU_TEXTSURFACE *surface, int y); //Clear a row!
 void GPU_textclearscreen(GPU_TEXTSURFACE *surface); //Clear a text screen!
-OPTINLINE byte GPU_textdirty(void *surface); //Are we dirty?
+OPTINLINE byte GPU_textdirty(void *surface)
+{
+	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface;
+	if (tsurface)
+	{
+		return (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) > 0; //Are we dirty?
+	}
+	return 0; //No surface = not dirty!
+}
 void GPU_enableDelta(GPU_TEXTSURFACE *surface, byte xdelta, byte ydelta); //Enable delta coordinates on the x/y axis!
 void GPU_text_updatedelta(SDL_Surface *surface); //Update delta!
 #endif

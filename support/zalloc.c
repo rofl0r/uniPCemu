@@ -190,7 +190,7 @@ void zalloc_free(void **ptr, uint_32 size) //Free a pointer (used internally onl
 	}
 }
 
-OPTINLINE void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on failure (ran out of memory), protected malloc!
+void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on failure (ran out of memory), protected malloc!
 {
 	void *ptr = NULL;
 	int times=10; //Try 10 times till giving up!
@@ -254,7 +254,7 @@ void freez(void **ptr, uint_32 size, char *name)
 }
 
 //Allocation support: add initialization to zero.
-OPTINLINE void *zalloc(uint_32 size, char *name) //Same as nzalloc, but clears the allocated memory!
+void *zalloc(uint_32 size, char *name) //Same as nzalloc, but clears the allocated memory!
 {
 	void *ptr;
 	ptr = nzalloc(size,name); //Try to allocate!
@@ -295,7 +295,7 @@ void *memprotect(void *ptr, uint_32 size, char *name) //Checks address of pointe
 }
 
 //Detect free memory.
-OPTINLINE uint_32 freemem() //Free memory left! We work!
+uint_32 freemem() //Free memory left! We work!
 {
 	uint_32 curalloc; //Current allocated memory!
 	char *buffer;

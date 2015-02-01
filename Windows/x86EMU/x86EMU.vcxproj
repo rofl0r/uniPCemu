@@ -208,6 +208,7 @@
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_attributecontroller.h" />
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_crtcontroller.h" />
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_dac.h" />
+    <ClInclude Include="..\..\headers\hardware\vga_screen\vga_dacrenderer.h" />
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_precalcs.h" />
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_sequencer.h" />
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_sequencer_graphicsmode.h" />
@@ -294,10 +295,13 @@
       <AdditionalIncludeDirectories>C:\SDL-1.2.15\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <EnablePREfast>false</EnablePREfast>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <AdditionalDependencies>SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

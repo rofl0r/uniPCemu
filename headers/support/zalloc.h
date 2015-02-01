@@ -4,8 +4,8 @@
 typedef void (*DEALLOCFUNC)(void **ptr, uint_32 size); //Deallocation functionality!
 
 //Functionality for dynamic memory!
-OPTINLINE void *nzalloc(uint_32 size, char *name); //Allocates memory, NULL on failure (ran out of memory), protected allocation!
-OPTINLINE void *zalloc(uint_32 size, char *name); //Same as nzalloc, but clears the allocated memory!
+void *nzalloc(uint_32 size, char *name); //Allocates memory, NULL on failure (ran out of memory), protected allocation!
+void *zalloc(uint_32 size, char *name); //Same as nzalloc, but clears the allocated memory!
 void freez(void **ptr, uint_32 size, char *name); //Release memory allocated with zalloc!
 void freezall(void); //Free all allocated memory still allocated (on shutdown only, garbage collector)!
 
@@ -13,7 +13,7 @@ void freezall(void); //Free all allocated memory still allocated (on shutdown on
 void *memprotect(void *ptr, uint_32 size, char *name); //Checks address (with name optionally) of pointer!
 
 //Free memory available!
-OPTINLINE uint_32 freemem(); //Free memory left!
+uint_32 freemem(); //Free memory left!
 
 //Debugging functionality for finding memory leaks!
 void logpointers(char *cause); //Logs any changes in memory usage!

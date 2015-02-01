@@ -1,6 +1,5 @@
 #include "headers/hardware/vga.h"
 #include "headers/hardware/vga_screen/vga_attributecontroller.h" //Our own typedefs!
-#include "headers/hardware/vga_screen/vga_dacrenderer.h" //DAC support!
 #include "headers/hardware/vga_screen/vga_sequencer_graphicsmode.h" //For masking planes!
 #include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
 
@@ -165,9 +164,7 @@ void VGA_DUMPATTR()
 	fclose(f);
 }
 
-typedef byte (*VGA_AttributeController_Mode)(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, SEQ_DATA *Sequencer); //An attribute controller mode!
-
-byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, SEQ_DATA *Sequencer)
+byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer)
 {
 	static byte curnibble = 0;
 	static byte latchednibbles = 0; //What nibble are we currently?
@@ -179,14 +176,14 @@ byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 	return curnibble; //Give us the next nibble, when needed, please!
 }
 
-byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, SEQ_DATA *Sequencer)
+byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer)
 {
 	//Now, process all pixels!
 	//First, process attribute!
 	register uint_32 lookup;
 	lookup = Sequencer_attributeinfo->attribute;
 	lookup <<= 5; //Make room!
-	lookup |= Sequencer->charinner_y;
+	lookup |= ((SEQ_DATA *)Sequencer)->charinner_y;
 	lookup <<= 1; //Make room!
 	lookup |= VGA->TextBlinkOn; //Blink!
 	lookup <<= 1; //Make room for the pixelon!
@@ -195,15 +192,4 @@ byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 	Sequencer_attributeinfo->attribute = VGA->precalcs.attributeprecalcs[lookup]; //Look the DAC Index up!
 	//DAC Index loaded for this pixel!
 	return 0; //We're ready to execute: we contain a pixel to plot!
-}
-
-//Translate 4-bit or 8-bit color to 256 color DAC Index through palette!
-OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer) //Process attribute to DAC index!
-{
-	//Originally: VGA_Type *VGA, word Scanline, word x, VGA_AttributeInfo *info
-	static VGA_AttributeController_Mode attributecontroller_modes[2] = {VGA_AttributeController_4bit, VGA_AttributeController_8bit}; //Both modes we use!
-
-	//Our changing variables that are required!
-	return attributecontroller_modes[VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit](Sequencer_attributeinfo,VGA,(SEQ_DATA *)Sequencer); //Passthrough!
-
 }

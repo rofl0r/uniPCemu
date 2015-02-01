@@ -44,17 +44,44 @@ OPTINLINE byte getVRAMMemAddrSize(VGA_Type *VGA); //Current memory address size?
 //OPTINLINE word getyresfull(VGA_Type *VGA); //Full resolution (border+active display area) height
 //OPTINLINE word getrowsize(VGA_Type *VGA); //Give the size of a row in VRAM!
 //OPTINLINE word getTopWindowStart(VGA_Type *VGA); //Get Top Window Start scanline!
-OPTINLINE byte VGA_ScanDoubling(VGA_Type *VGA); //Scanline doubling?
-OPTINLINE uint_32 getVRAMScanlineStart(VGA_Type *VGA,word Scanline); //Start of a scanline!
+OPTINLINE byte VGA_ScanDoubling(VGA_Type *VGA) //Scanline doubling?
+{
+	return VGA->precalcs.scandoubling;
+}
+
+OPTINLINE uint_32 getVRAMScanlineStart(VGA_Type *VGA, word Scanline) //Start of a scanline!
+{
+	return OPTMUL(VGA->precalcs.scanlinesize, Scanline); //Give the start of the row!
+}
+
 OPTINLINE word getHorizontalTotal(VGA_Type *VGA); //Get horizontal total (for calculating refresh speed timer)
-OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x); //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
+
+OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
+{
+	register word stat; //The status of the pixel!
+	//We are a maximum of 4096x1024 size!
+	Scanline &= 0x3FF; //Range safety: 1024 scanlines!
+	x &= 0xFFF; //Range safety: 4095 columns!
+	stat = VGA->CRTC.rowstatus[Scanline]; //Get row status!
+	stat |= VGA->CRTC.colstatus[x]; //Get column status!
+	return stat; //Give the combined (OR'ed) status!
+}
+
 
 //For precalcs only!
 word get_display_y(VGA_Type *VGA, word scanline); //Vertical check!
 word get_display_x(VGA_Type *VGA, word x); //Horizontal check!
 
 //Character sizes in pixels!
-OPTINLINE byte getcharacterwidth(VGA_Type *VGA);
-OPTINLINE byte getcharacterheight(VGA_Type *VGA);
+//Character sizes in pixels!
+OPTINLINE byte getcharacterwidth(VGA_Type *VGA)
+{
+	return VGA->precalcs.characterwidth; //8 or 9 dots per line?
+}
+
+OPTINLINE byte getcharacterheight(VGA_Type *VGA)
+{
+	return VGA->precalcs.characterheight; //The character height!
+}
 byte getVGAShift(VGA_Type *VGA); //Get the shift to use: 0(x1), 1(x2) or 2(x4)!
 #endif

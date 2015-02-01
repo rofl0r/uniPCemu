@@ -1,7 +1,7 @@
 #include "headers/emu/gpu/gpu.h" //Basic GPU!
 #include "headers/emu/gpu/gpu_text.h" //Our prototypes!
 #include "headers/emu/gpu/gpu_sdl.h" //Our prototypes!
-#include "headers/hardware/vga_screen/vga_vramtext.h" //VGA for font!
+#include "headers/hardware/vga_rest/textmodedata.h" //VGA for font!
 #include "headers/support/zalloc.h" //Zero allocation support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/bmp.h" //Bitmap support!
@@ -32,6 +32,25 @@ OPTINLINE void GPU_textcalcpixel(int *x, int *y, int *charx, int *chary)
 	--*y; //Adjust for the border!
 	*/
 }
+
+OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
+{
+	static uint_32 lastcharinfo; //attribute|character|0x80|row, bit8=Set?
+
+	if ((lastcharinfo & 0xFFFF) != ((character << 8) | 0x80 | y)) //Last row not yet loaded?
+	{
+		uint_32 addr = 0; //Address for old method!
+		addr += character << 3; //Start adress of character!
+		addr += (y & 7); //1 byte per row!
+
+		byte lastrow = int10_font_08[addr]; //Read the row from the character generator!
+		lastcharinfo = ((lastrow << 16) | (character << 8) | 0x80 | y); //Last character info loaded!
+	}
+
+	byte bitpos = 23 - (x % 8); //x or 7-x for reverse?
+	return ((lastcharinfo&(1 << bitpos)) >> bitpos); //Give result!
+}
+
 
 OPTINLINE byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
 {
@@ -277,16 +296,6 @@ void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 	}
 	surface->x = curx; //Real x!
 	surface->y = cury; //Real y!
-}
-
-OPTINLINE byte GPU_textdirty(void *surface)
-{
-	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface;
-	if (tsurface)
-	{
-		return (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) > 0; //Are we dirty?
-	}
-	return 0; //No surface = not dirty!
 }
 
 void GPU_enableDelta(GPU_TEXTSURFACE *surface, byte xdelta, byte ydelta) //Enable delta coordinates on the x/y axis!

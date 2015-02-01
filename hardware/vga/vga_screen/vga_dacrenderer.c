@@ -1,3 +1,5 @@
+#include "headers/types.h" //Basic types!
+//Our signaling!
 #include "headers/hardware/vga.h" //VGA support!
 #include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/hardware/vga_screen/vga_dacrenderer.h" //Our defs!
@@ -7,7 +9,6 @@
 
 extern VGA_Type *ActiveVGA; //Active VGA!
 extern VideoModeBlock *CurMode; //Current int10 video mode!
-byte BWmonitor = 0; //Force black/white monitor instead of color graphics?
 
 void VGA_DUMPDAC() //Dumps the full DAC!
 {
@@ -100,10 +101,9 @@ uint_32 DAC_colorMonitor(VGA_Type *VGA,byte DACValue)
 	return VGA->precalcs.DAC[DACValue]; //Lookup!
 }
 
-typedef uint_32 (*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
-
-OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *VGA, word x
+byte DAC_Use_BWMonitor(byte use)
 {
-	static const DAC_monitor monitors[2] = {DAC_colorMonitor,DAC_BWmonitor}; //What kind of monitor?
-	return monitors[BWmonitor](VGA,DACValue); //Do color mode or B/W mode!
+	static byte use_bwmonitor = 0; //Use B/W monitor?
+	if (use < 2) use_bwmonitor = use; //Use?
+	return use_bwmonitor; //Give the data!
 }

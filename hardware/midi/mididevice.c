@@ -579,7 +579,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		handlerequest: //Handles an NOTE ON request!
 		currentchannel = biton; //The specified channel!
 		//currentchannel=the channel; currenton=the request dword
-		for (biton=0;biton<32;)
+		for (biton=0;((biton<32) && (!(therequeston&1)));) //Not found yet?
 		{
 			if (therequeston&1) break; //Stop searching when found!
 			therequeston >>= 1; //Next bit check!

@@ -4,8 +4,8 @@
 #include "headers/hardware/vga.h" //VGA support!
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer!
 
-OPTINLINE uint_32 getcol256(VGA_Type *VGA,byte color); //Convert color to RGB!
-OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue); //Process DAC in scanline!
-//void plotScanPixel(VGA_Type *VGA, byte currentscreenbottom, word PixelToRender); //Plot a scanline from the VGA to the rendering buffer, located in the vga_screen root module!
-
+uint_32 getcol256(VGA_Type *VGA,byte color); //Convert color to RGB!
+uint_32 DAC_BWmonitor(VGA_Type *VGA, byte DACValue);
+uint_32 DAC_colorMonitor(VGA_Type *VGA, byte DACValue);
+byte DAC_Use_BWMonitor(byte use);
 #endif
