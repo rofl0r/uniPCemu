@@ -1143,7 +1143,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 							}
 							if (valid) //Still valid?
 							{
-								if (gen.sfGenOper==sfGenOper && dontignoregenerators) //Found?
+								if (gen.sfGenOper==sfGenOper && (dontignoregenerators || gen.sfGenOper==GEN_SAMPLEID)) //Found and not ignoring (or sampleid generator)?
 								{
 									//Log the retrieval!
 									found = 1; //Found!
@@ -1250,7 +1250,7 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 	sfInst currentinstrument;
 	byte gotigen;
 	byte exists;
-	
+
 	if (getSFInstrument(sf,instrument,&currentinstrument)) //Found?
 	{
 		IBag = currentinstrument.wInstBagNdx; //Load the first preset bag!

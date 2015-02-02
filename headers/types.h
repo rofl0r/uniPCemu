@@ -182,5 +182,23 @@ void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 #define OPTINLINE
 #endif
 
+//Enum safety!
+#ifdef _WIN32
+#define ENUM8 :byte
+#define ENUMS8 :sbyte
+#define ENUM16 :word
+#define ENUMS16 :sword
+#define ENUM32 :uint_32
+#define ENUMS32 :int_32
+#else
+//PSP?
+#define ENUM8
+#define ENUMS8
+#define ENUM16
+#define ENUMS16
+#define ENUM32
+#define ENUMS32
+#endif
+
 OPTINLINE double getCurrentClockSpeed(); //Retrieves the current clock speed!
 #endif

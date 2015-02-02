@@ -16,7 +16,7 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 #define __MIDI_SAMPLES 84
 
 //All statuses for MIDI voices!
-#define MIDISTATUS_OFF 0x00
+#define MIDISTATUS_IDLE 0x00
 #define MIDISTATUS_ATTACK 0x01
 #define MIDISTATUS_DECAY 0x02
 #define MIDISTATUS_SUSTAIN 0x03
@@ -290,7 +290,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			}
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: NOTE OFF: %i-%i=%i:%i-%i",channel,firstparam,channel,note32,note32_index); //Log it!
+			dolog("MPU","MIDIDEVICE: NOTE OFF: %i-%i=%i:%i-%i",currentchannel,firstparam,channel,note32,note32_index); //Log it!
 			#endif
 			break;
 		case 0x90: //Note on?
@@ -302,7 +302,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			}
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: NOTE ON: %i-%i=%i:%i-%i",channel,firstparam,currentchannel,note32,note32_index); //Log it!
+			dolog("MPU","MIDIDEVICE: NOTE ON: %i-%i=%i:%i-%i",currentchannel,firstparam,currentchannel,note32,note32_index); //Log it!
 			#endif
 			break;
 		case 0xA0: //Aftertouch?
@@ -459,6 +459,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 /* Basic playback support */
 
 //Convert cents to samples to increase (instead of 1 sample/sample). Floating point number (between 0.0+ usually?) Use this as a counter for the current samples (1.1+1.1..., so keep the rest value (1,1,1,...,0,1,1,1,...))
+//The same applies to absolute and relative timecents (with absolute referring to 1 second intervals (framerate samples) and relative to the absolute value)
 OPTINLINE double cents2samplesfactor(double cents)
 {
 	return pow(2,(cents/1200)); //Convert to samples (not entire numbers, so keep them counted)!

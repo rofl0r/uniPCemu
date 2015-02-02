@@ -1,6 +1,8 @@
 #ifndef SF2_H
 #define SF2_H
 
+#include "headers/types.h" //Basic types!
+
 //RIFF IDs!
 
 #define CKID_RIFF 0x46464952
@@ -142,7 +144,7 @@ typedef enum PACKED
  RomRightSample = 0x8002, 
  RomLeftSample = 0x8004, 
  RomLinkedSample = 0x8008 
- } SFSampleLink;
+} SFSampleLink;
  #include "headers/endpacked.h" //We're packed!
 
 #include "headers/packed.h" //We're packed!
@@ -233,7 +235,7 @@ typedef struct PACKED
  BYTE byOriginalPitch; 
  CHAR chPitchCorrection; 
  WORD wSampleLink; 
- SFSampleLink sfSampleType; 
+ WORD sfSampleType; 
 } sfSample;
 #include "headers/endpacked.h" //We're packed!
 

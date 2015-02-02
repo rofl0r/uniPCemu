@@ -265,7 +265,7 @@ void tickadlib() {
 //sword audbuf[96000]; //Audio buffer!
 //uint_32 audbufptr = 0; //Current audiobuffer pointer!
 
-byte soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata) //Generate a sample!
+byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata) //Generate a sample!
 {
 	if (stereo) return 0; //We don't support stereo!
 	
@@ -303,13 +303,13 @@ void initAdlib()
 	//All input!
 	if (__SOUND_ADLIB)
 	{
-		if (!addchannel(&soundGenerator,NULL,"Adlib",usesamplerate,0,0,SMPL8S)) //Start the sound emulation (mono) with automatic samples buffer?
+		if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,0,0,SMPL8S)) //Start the sound emulation (mono) with automatic samples buffer?
 		{
 			dolog("adlib","Error registering sound channel for output!");
 		}
 		else
 		{
-			setVolume(&soundGenerator,NULL,ADLIB_VOLUME);
+			setVolume(&adlib_soundGenerator,NULL,ADLIB_VOLUME);
 		}
 	}
 	//dolog("adlib","sound channel added. registering ports...");
@@ -329,7 +329,7 @@ void doneAdlib()
 	removetimer("AdlibAttackDecay"); //Stop the audio channel!
 	if (__SOUND_ADLIB)
 	{
-		removechannel(&soundGenerator,NULL,0); //Stop the sound emulation?
+		removechannel(&adlib_soundGenerator,NULL,0); //Stop the sound emulation?
 	}
 	//Unregister the ports!
 	register_PORTIN(baseport,NULL);
