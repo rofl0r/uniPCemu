@@ -79,7 +79,7 @@ uint_32 samplepos_size; //Size of the sample position precalcs (both of them)
 word audiolocklvl = 0; //Audio lock level!
 byte audiolock_paused = 0; //We're paused?
 
-OPTINLINE void lockaudio()
+void lockaudio()
 {
 	if (!audiolocklvl) //Root level?
 	{
@@ -93,7 +93,7 @@ OPTINLINE void lockaudio()
 	++audiolocklvl; //Increase the lock level!
 }
 
-OPTINLINE void unlockaudio(byte startplaying)
+void unlockaudio(byte startplaying)
 {
 	--audiolocklvl; //Decrease the lock level!
 	if (!audiolocklvl) //Root level?

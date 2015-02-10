@@ -319,7 +319,7 @@ void initAdlib()
 	register_PORTOUT(baseport,&outadlib); //Address port (W)
 	register_PORTOUT(baseport+1,&outadlib); //Data port (W/O)
 	//dolog("adlib","Registering timer...");
-	addtimer(49716.0f,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER,0); //We run at 49.716Khz, about every 20us.
+	addtimer(49716.0f,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER,0,NULL); //We run at 49.716Khz, about every 20us.
 	//dolog("adlib","Ready"); //Ready to run!
 }
 

@@ -12,7 +12,7 @@ void initTicksHolder(TicksHolder *ticksholder)
 	uint_32 oldtimes;
 	if (resolutioninit) //Not loaded yet?
 	{
-		tickresolution = 1000000; //We have a resolution in ns, not ms as given by SDL!
+		tickresolution = 1000.0f; //We have a resolution in ms as given by SDL!
 		resolutioninit = 0; //We're ready to run!
 	}
 	memset(ticksholder,0,sizeof(*ticksholder)); //Clear the holder!

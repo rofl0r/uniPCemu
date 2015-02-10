@@ -1,3 +1,5 @@
+#define VGA_SEQUENCER_GRAPHICSMODE
+
 #include "headers/types.h" //Basic types!
 #include "headers/emu/gpu/gpu.h" //GPU!
 #include "headers/hardware/vga.h" //VGA!
@@ -58,41 +60,41 @@ byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, SEQ_DATA *Sequencer, wor
 {
 	//Calculate the plane index!
 	register word shift,tempx,planebase,planeindex;
-
-	tempx = shift = planebase = x; //Init!
-	tempx >>= 3;
+	register byte planelow, planehigh;
+	tempx = x; //Init tempx!
 	tempx >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
-	tempx += Sequencer->charystart; //Add the start address!
-	planebase >>= 2;
+
+	planebase = shift = tempx; //Start with the x value!
+	planebase >>= 2; //The base changes state every 4 pixels (1 byte processed)
+	planeindex = planebase; //Take the same rate as the base for the index, but ...
+	planeindex >>= 1; //The index goes at half the rate of the plane: every 2 planes processed, one index is taken!
 
 	planebase &= 1; //Base plane (0/1)! OK!
-	planeindex = tempx;
+
+	planeindex += Sequencer->charystart; //Add the start address!
 	planeindex += Sequencer->startmap; //What start address?
 	
-	//Determine low&high plane bases!
-	
 	//Read the low&high planes!
-	register byte planelow = readVRAMplane(VGA,planebase,planeindex,1); //Read low plane!
-	planebase |= 2; //High plane!
-	register byte planehigh = readVRAMplane(VGA,planebase,planeindex,1); //Read high plane!
-	//byte shift = 6-((x&3)<<1); //OK!
+	planelow = readVRAMplane(VGA,planebase,planeindex,1); //Read low plane!
+	planebase |= 2; //Take the high plane now!
+	planehigh = readVRAMplane(VGA,planebase,planeindex,1); //Read high plane!
 	
 	//Determine the shift for our pixels!
-	shift &= 3;
-	shift <<= 1;
+	shift &= 3; //The shift rotates every 4 pixels
+	shift <<= 1; //Every rotate contains 2 bits
 	shift = 6-shift; //Get the shift!
 	
 	//Get the pixel
-	planelow >>= shift;
-	planelow &= 3;
+	planelow >>= shift; //Shift plane low correct.
+	planelow &= 3; //We're 2 bits only
 
-	planehigh >>= shift;
-	planehigh &= 3;
+	planehigh >>= shift; //Shift plane high correct
+	planehigh &= 3; //We're 2 bits only
 
-	planehigh <<= 2; //Prepare high plane for addition!
+	planehigh <<= 2; //Prepare high plane for combination!
 
 	//Build the result!
-	planelow |= planehigh; //Add high plane!
+	planelow |= planehigh; //Add high plane to the result!
 	
 	//Source plane bits for all possibilities!
 	return planelow; //Give the result!
@@ -108,12 +110,7 @@ byte getpixelsingleshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_Att
 {
 	//16-color mode!
 	register byte result; //Init result!
-	register uint_32 offset, bit;
-
-	if (x >= 100)
-	{
-		result = 0; //Do nothing, breakpoint here!
-	}
+	register word offset, bit;
 
 	bit = x;
 	bit &= 7; //The bit in the byte (from the start of VRAM byte)!
@@ -131,7 +128,6 @@ byte getpixelsingleshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_Att
 	result |= getBitPlaneBit(VGA,1,offset,bit,1); //Add plane to the result!
 	result <<= 1; //Shift to next plane!
 	result |= getBitPlaneBit(VGA,0,offset,bit,1); //Add plane to the result!
-	return 0xE; //Yellow/brown always!
 	return result; //Give the result!
 }
 

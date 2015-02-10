@@ -5,7 +5,7 @@
 #include "headers/support/log.h" //Logging support!
 
 //Log put_pixel_row errors?
-#define PPRLOG
+//#define PPRLOG
 
 //Container/wrapper support
 void freeSurfacePtr(void **ptr, uint_32 size) //Free a pointer (used internally only) allocated with nzalloc/zalloc and our internal functions!
@@ -15,7 +15,7 @@ void freeSurfacePtr(void **ptr, uint_32 size) //Free a pointer (used internally 
 	{
 		//Start by freeing the surfaces in the handlers!
 		uint_32 pixels_size = surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32); //Calculate surface pixels size!
-		if (!surface->flags&SDL_FLAG_NODELETE_PIXELS) //Valid to delete?
+		if (!(surface->flags&SDL_FLAG_NODELETE_PIXELS)) //Valid to delete?
 		{
 			unregisterptr(surface->sdllayer->pixels,pixels_size); //Release the pixels within the surface!
 		}

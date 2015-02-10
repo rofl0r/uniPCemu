@@ -43,6 +43,7 @@ typedef struct PACKED
 
 			byte VGA_AllowDirectPlot; //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
 			uint_32 VRAM_size; //VGA VRAM size!
+			byte bwmonitor; //Are we a b/w monitor?
 			byte keepaspectratio; //Keep the aspect ratio?
 
 			byte BIOSmenu_font; //The selected font for the BIOS menu!
@@ -51,7 +52,7 @@ typedef struct PACKED
 			byte CMOS[0x80]; //The full saved CMOS!
 			byte got_CMOS; //Gotten an CMOS?
 		}; //Containing the data of the BIOS
-		byte data[1700]; //Data for checksum!
+		byte data[1701]; //Data for checksum!
 	};
 //Rest settings!
 } BIOS_Settings_TYPE; //BIOS Settings!

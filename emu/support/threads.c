@@ -277,10 +277,20 @@ void initThreads() //Initialise&reset thread subsystem!
 	//dolog("threads","debugThreads?...");
 	atexit(&onThreadExit); //Register out cleanup function!
 	memset(threadpool,0,sizeof(threadpool)); //Clear thread pool!
-	if (DEBUG_THREADS) startThread(&debug_threads,"X86EMU_Thread Debugger",DEFAULT_PRIORITY); //Plain debug threads!
+	if (DEBUG_THREADS) startThread(&debug_threads,"X86EMU_Thread Debugger",NULL,DEFAULT_PRIORITY); //Plain debug threads!
 	//dolog("threads","initThreads: RET...");
 }
 
+void *getthreadparams()
+{
+	uint_32 threadID = SDL_ThreadID(); //Get the current thread ID!
+	int index;
+	if ((index = getthreadpoolindex(threadID)) != -1) //Gotten?
+	{
+		return threadpool[index].params; //Give the params, if any!
+	}
+	return NULL; //No params given!
+}
 
 void threadCreaten(ThreadParams_p params, uint_32 threadID, char *name)
 {
@@ -318,7 +328,7 @@ byte threadRunning(ThreadParams_p thread, char *name)
 	return 0; //Not running!
 }
 
-ThreadParams_p startThread(Handler thefunc, char *name, int priority) //Start a thread!
+ThreadParams_p startThread(Handler thefunc, char *name, void *params, int priority) //Start a thread!
 {
 	//dolog("threads","startThread (%s)...",name);
 	if (!thefunc || thefunc==NULL) //No func?
@@ -333,27 +343,28 @@ ThreadParams_p startThread(Handler thefunc, char *name, int priority) //Start a 
 	
 	//dolog("threads","startThread: allocThread...");
 	//First, allocate a thread position!
-	ThreadParams_p params = allocateThread(); //Allocate a thread for us, wait for any to come free in the meanwhile!
+	ThreadParams_p threadparams = allocateThread(); //Allocate a thread for us, wait for any to come free in the meanwhile!
 //Next, start the timer function!
 	//SceUID thid; //The thread ID to allocate!
-	params->callback = thefunc; //The function to run!
-	params->status = THREADSTATUS_CREATEN; //Createn!
+	threadparams->callback = thefunc; //The function to run!
+	threadparams->status = THREADSTATUS_CREATEN; //Createn!
+	threadparams->params = params; //The params to save!
 
 	uint_32 thid; //The thread ID!
 	//dolog("threads","startThread: createThread...");
 	docreatethread: //Try to start a thread!
-	params->thread = SDL_CreateThread(threadhandler,params); //Create the thread!
+	threadparams->thread = SDL_CreateThread(threadhandler,threadparams); //Create the thread!
 	//params->allowthreadrunning  = 1; //Allow the thread to run!
 	
-	if (!params->thread) //Failed to create?
+	if (!threadparams->thread) //Failed to create?
 	{
 		delay(100); //Wait a bit!
 		goto docreatethread; //Try again!
 	}
-	thid = SDL_GetThreadID(params->thread); //Get the thread ID!
-	threadCreaten(params,thid,name); //We've been createn!
+	thid = SDL_GetThreadID(threadparams->thread); //Get the thread ID!
+	threadCreaten(threadparams,thid,name); //We've been createn!
 
-	return params; //Give the thread createn!
+	return threadparams; //Give the thread createn!
 
 	//dolog("threads","startThread: threadCreaten...");
 	

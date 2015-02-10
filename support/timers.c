@@ -32,6 +32,7 @@ typedef struct
 	uint_32 calls; //Total ammount of calls so far (for debugging only!)
 	double total_timetaken; //Time taken by the function!
 	uint_32 counterlimit; //Limit of the ammount of counters to execute!
+	SDL_sem *lock; //The sephamore to use when firing (multithreading support)!
 } TIMER; //A timer's data!
 
 TIMER timers[100]; //We use up to 100 timers!
@@ -76,36 +77,60 @@ void timer_thread() //Handler for timer!
 		{
 			if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
 			{
-				if (timers[curtimer].core || ((!timers[curtimer].core) && EMU_Timers_Enabled)) //Allowed to run?
+				if ((timers[curtimer].core&1) || ((!(timers[curtimer].core&1)) && EMU_Timers_Enabled)) //Allowed to run?
 				{
 					timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
 					numcounters = (uint_32)(timers[curtimer].counter / timers[curtimer].overflowtime); //Ammount of times to count!
 					timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions! We skip any overflow!
-					if (numcounters>timers[curtimer].counterlimit)
+					if (timers[curtimer].counterlimit) //Gotten a limit?
 					{
-						dolog("Timers", "Enforcing limit @%s=%i", timers[curtimer].name, numcounters);
-						numcounters = timers[curtimer].counterlimit;
+						if (numcounters>timers[curtimer].counterlimit)
+						{
+							numcounters = timers[curtimer].counterlimit;
+						}
 					}
 					if (numcounters) //Are we to fire?
 					{
-						for (;;) //Overflow multi?
+						if (timers[curtimer].lock!=NULL) //To wait for using threads?
 						{
-#ifdef TIMER_LOG
-							strcpy(name,timers[curtimer].name); //Set name!
-							dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
-							TicksHolder singletimer;
-							startHiresCounting(&singletimer); //Start counting!
-#endif
-							if (timers[curtimer].handler) //Gotten a handler?
+							//Lock
+							SDL_SemWait(timers[curtimer].lock);
+						}
+						if (!(timers[curtimer].core&2)) //Not counter only timer?
+						{
+							for (;;) //Overflow multi?
 							{
-								timers[curtimer].handler(); //Run the handler!
-							}
 #ifdef TIMER_LOG
-							++timers[curtimer].calls; //For debugging the ammount of calls!
-							timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
-							dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
+								strcpy(name,timers[curtimer].name); //Set name!
+								dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
+								TicksHolder singletimer;
+								startHiresCounting(&singletimer); //Start counting!
 #endif
-							if (!--numcounters) break; //Done? Process next counter!
+								if (timers[curtimer].handler) //Gotten a handler?
+								{
+									timers[curtimer].handler(); //Run the handler!
+								}
+#ifdef TIMER_LOG
+								++timers[curtimer].calls; //For debugging the ammount of calls!
+								timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
+								dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
+#endif
+								if (!--numcounters) break; //Done? Process next counter!
+							}
+						}
+						else //We're a counter only?
+						{
+							uint_64 *counter;
+							counter = (void *)timers[curtimer].handler; //Handler is a counter!
+							if (counter) //Loaded?
+							{
+								*counter += numcounters; //Add the counter!
+							}
+						}
+						if (timers[curtimer].lock!=NULL) //To wait for using threads?
+						{
+							//Unlock
+							SDL_SemPost(timers[curtimer].lock);
 						}
 					}
 				}
@@ -133,7 +158,7 @@ void timer_calcfreq(int timer)
 	}
 }
 
-void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit, byte coretimer)
+void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit, byte coretimer, SDL_sem *lock)
 {
 	int i;
 	int timerpos = -1; //Timer position to use!
@@ -175,6 +200,7 @@ void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit, 
 		strcpy(timers[timerpos].name,name); //Timer name!
 		timers[timerpos].core = coretimer; //Are we a core timer?
 		timers[timerpos].enabled = 1; //Set to enabled by default!
+		timers[timerpos].lock = lock; //The sephamore to use, if any!
 		timer_calcfreq(timerpos);
 		return; //Finished: we're added!
 	}
@@ -244,7 +270,7 @@ void startTimers(byte core)
 	{
 		if (!timerthread) //Not already running?
 		{
-			startThread(&timer_thread, "X86EMU_Timing", DEFAULT_PRIORITY); //Timer thread start!
+			startThread(&timer_thread, "X86EMU_Timing", NULL, DEFAULT_PRIORITY); //Timer thread start!
 			atexit(&timer_quit); //Register quit function!
 		}
 

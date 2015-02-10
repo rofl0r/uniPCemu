@@ -44,6 +44,7 @@
 #include "headers/hardware/pcspeaker.h" //PC Speakers support!
 
 #include "headers/hardware/vga_screen/vga_sequencer.h" //VGA sequencer for direct MAX speed dump!
+#include "headers/hardware/vga_screen/vga_dacrenderer.h" //DAC support!
 
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
@@ -52,7 +53,7 @@
 //To show the framerate?
 #define DEBUG_FRAMERATE 1
 //Debug any sound devices? (PC Speaker, Adlib, MPU(to be tested in software), SB16?)
-#define DEBUG_SOUND 1
+#define DEBUG_SOUND 0
 
 //All external variables!
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
@@ -178,6 +179,8 @@ void initEMU(int full) //Init!
 	debugrow("Initialising MMU...");
 	resetMMU(); //Initialise MMU (we need the BDA from now on!)!
 	setupVGA(); //Set the VGA up for int10&CPU usage!
+
+	DAC_Use_BWMonitor(BIOS_Settings.bwmonitor); //Select color/bw monitor!
 
 	debugrow("Initializing CPU...");
 	resetCPU(); //Initialise CPU!

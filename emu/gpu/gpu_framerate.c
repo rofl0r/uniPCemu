@@ -60,7 +60,6 @@ void GPU_FrameRendered() //A frame has been rendered?
 //The main thread!
 void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 {
-	dolog("GPU", "Framerate tick!");
 	if (__HW_DISABLED) return; //Disabled?
 	uint_64 timepassed;
 	//while (1) //Not done yet?
@@ -151,7 +150,7 @@ void initFramerate()
 	{
 		frames = 0; //Reset frames!
 	}
-	addtimer(FRAMERATE_SPEED,&GPU_Framerate_tick,"Framerate",1,1);
+	addtimer(FRAMERATE_SPEED,&GPU_Framerate_tick,"Framerate",1,1,NULL);
 }
 
 extern GPU_SDL_Surface *rendersurface; //The PSP's surface!

@@ -1,3 +1,5 @@
+#define VGA_SEQUENCER
+
 #include "headers/types.h" //Basic types!
 #include "headers/emu/gpu/gpu.h" //GPU!
 #include "headers/hardware/vga.h" //VGA!

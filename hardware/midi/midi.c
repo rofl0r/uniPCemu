@@ -46,11 +46,11 @@ Basic input/ouput functionality!
 
 void MIDI_writeStatus(byte data) //Write a status byte to the MIDI device!
 {
-	if (((data&0xF0)!=0xF0) || MIDIDEV.command==-1) //Not System comamnd?
+	/*if (((data&0xF0)!=0xF0) || MIDIDEV.command==-1) //Not System comamnd?
 	{
 		MIDIDEV.command = data; //Update the status information!
 		//Do something?
-	}
+	}*/
 	memset(&MIDIDEV.current,0,sizeof(MIDIDEV.current)); //Clear info on the current command!
 	switch ((data>>4)&0xF) //What command?
 	{

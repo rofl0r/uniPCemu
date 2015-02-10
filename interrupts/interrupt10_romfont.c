@@ -198,7 +198,7 @@ void INT10_SetupRomMemory()
 		EMU_VGAROM[int10.rom.used++] = static_functionality[i];
 	}
 	for (i=0;i<128*8;i++) {
-		EMU_BIOS[0xfa6e+i] = int10_font_08[i]; //Small ROM!
+		EMU_BIOS[i+0xfa6e] = int10_font_08[i]; //Small ROM!
 	}
 	RealSetVec(0x1F,0xC000,int10.rom.font_8_second);
 	int10.rom.font_14_alternate=RealMake(0xC000,int10.rom.used);

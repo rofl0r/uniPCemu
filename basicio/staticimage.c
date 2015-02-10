@@ -51,19 +51,19 @@ int staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Write
 	FILE *f;
 	f = fopen64(filename,"rb+"); //Open!
 	++sector; //Find the next sector!
-	if (fseek64(f, sector << 9, SEEK_SET)) //Invalid sector!
+	if (fseek64(f, (uint_64)sector << 9, SEEK_SET)) //Invalid sector!
 	{
 		fclose64(f); //Close the file!
 		return 0; //Limit broken!
 	}
-	if (ftell64(f) != (sector << 9)) //Invalid sector!
+	if (ftell64(f) != ((uint_64)sector << 9)) //Invalid sector!
 	{
 		fclose64(f); //Close the file!
 		return 0; //Limit broken!
 	}
 	--sector; //Goto selected sector!
-	fseek64(f, sector << 9, SEEK_SET); //Find block info!
-	if (ftell64(f) != (sector << 9)) //Not found?
+	fseek64(f, (uint_64)sector << 9, SEEK_SET); //Find block info!
+	if (ftell64(f) != ((uint_64)sector << 9)) //Not found?
 	{
 		fclose64(f); //Close the file!
 		return FALSE; //Error!
@@ -81,8 +81,8 @@ int staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a
 {
 	FILE *f;
 	f = fopen64(filename,"rb"); //Open!
-	fseek64(f,sector<<9,SEEK_SET); //Find block info!
-	if (ftell64(f)!=(sector<<9)) //Not found?
+	fseek64(f,(uint_64)sector<<9,SEEK_SET); //Find block info!
+	if (ftell64(f)!=((uint_64)sector<<9)) //Not found?
 	{
 		fclose64(f); //Close the file!
 		return FALSE; //Error!

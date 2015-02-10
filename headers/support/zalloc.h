@@ -1,6 +1,10 @@
 #ifndef ZALLOC_H
 #define ZALLOC_H
 
+#include "headers/types.h" //Basic types!
+
+void *memprotect(void *ptr, uint_32 size, char *name); //Checks address (with name optionally) of pointer!
+
 typedef void (*DEALLOCFUNC)(void **ptr, uint_32 size); //Deallocation functionality!
 
 //Functionality for dynamic memory!
@@ -8,9 +12,6 @@ void *nzalloc(uint_32 size, char *name); //Allocates memory, NULL on failure (ra
 void *zalloc(uint_32 size, char *name); //Same as nzalloc, but clears the allocated memory!
 void freez(void **ptr, uint_32 size, char *name); //Release memory allocated with zalloc!
 void freezall(void); //Free all allocated memory still allocated (on shutdown only, garbage collector)!
-
-//Pointer derefenence protection!
-void *memprotect(void *ptr, uint_32 size, char *name); //Checks address (with name optionally) of pointer!
 
 //Free memory available!
 uint_32 freemem(); //Free memory left!

@@ -240,6 +240,7 @@ Finally: the read/write handlers themselves!
 
 byte PORT_readVGA(word port) //Read from a port/register!
 {
+	byte result;
 	if (!getActiveVGA()) //No active VGA?
 	{
 		raiseError("VGA","VGA Port Out, but no active VGA loaded!");
@@ -261,7 +262,9 @@ byte PORT_readVGA(word port) //Read from a port/register!
 		return PORT_readCRTC_3B5(); //Read port 3B5!
 		break;
 	case 0x3BA: //Read: Input Status #1 Register (mono)	DATA
-		return ActiveVGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
+		result = ActiveVGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give default value!
+		result |= DAC_Use_BWMonitor(2) ? 4 : 0; //Are we using a b/w monitor?
+		return result; //Give the result!
 		break;
 	case 0x3C0: //Attribute Address/Data register		ADDRESS/DATA
 		//Do nothing: write only port! Undefined!

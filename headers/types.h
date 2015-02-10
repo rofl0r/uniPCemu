@@ -80,17 +80,43 @@ typedef int16_t sword; //Signed!
 typedef uint_64 FILEPOS;
 
 //RGB, with and without A (full)
-#define RGBA(r, g, b, a) ((r)|((g)<<8)|((b)<<16)|((a)<<24))
-//RGB is by default fully opaque
 
-#define RGB(r, g, b) RGBA(r,g,b,SDL_ALPHA_OPAQUE)
-//Special transparent pixel!
-#define TRANSPARENTPIXEL RGBA(SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT)
-//Same, but reversed!
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+#define RGBA(r, g, b, a) ((a)|((b)<<8)|((g)<<16)|((r)<<24))
+#define GETA(x) ((x)&0xFF)
+#define GETB(x) (((x)>>8)&0xFF)
+#define GETG(x) (((x)>>16)&0xFF)
+#define GETR(x) (((x)>>24)&0xFF)
+#else
+#ifdef _WIN32
+//Windows has irregular logic for some reason?
+#define RGBA(r, g, b, a) ((b)|((g)<<8)|((r)<<16)|((a)<<24))
+#define GETA(x) (((x)>>24)&0xFF)
+#define GETR(x) (((x)>>16)&0xFF)
+#define GETG(x) (((x)>>8)&0xFF)
+#define GETB(x) ((x)&0xFF)
+#else
+//PSP logic?
+#define RGBA(r, g, b, a) ((r)|((g)<<8)|((b)<<16)|((a)<<24))
 #define GETR(x) ((x)&0xFF)
 #define GETG(x) (((x)>>8)&0xFF)
 #define GETB(x) (((x)>>16)&0xFF)
 #define GETA(x) (((x)>>24)&0xFF)
+#endif
+#endif
+
+//RGB is by default fully opaque
+
+
+//Windows safety!
+#ifdef RGB
+//We overwrite this!
+#undef RGB
+#endif
+
+#define RGB(r, g, b) RGBA(r,g,b,SDL_ALPHA_OPAQUE)
+//Special transparent pixel!
+#define TRANSPARENTPIXEL RGBA(SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT)
 
 typedef void (*Handler)();    /* A pointer to a handler function */
 
@@ -200,5 +226,5 @@ void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 #define ENUMS32
 #endif
 
-OPTINLINE double getCurrentClockSpeed(); //Retrieves the current clock speed!
+double getCurrentClockSpeed(); //Retrieves the current clock speed!
 #endif

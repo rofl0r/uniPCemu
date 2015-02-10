@@ -122,6 +122,8 @@ OBJS += hardware\pcspeaker.o
 
 #MIDI and SF2 support!
 OBJS += support\sf2.o hardware\midi\mpu.o hardware\midi\midi.o hardware\midi\mididevice.o
+#MID file support!
+OBJS += support\mid.o
 
 #High resolution timer
 OBJS += support\highrestimer.o

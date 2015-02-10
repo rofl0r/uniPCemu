@@ -17,7 +17,7 @@
 //To log the first rendered line after putting pixels?
 #define LOG_VGA_FIRST_LINE 0
 //To debug text modes too in below or BIOS setting?
-#define TEXTMODE_DEBUGGING 0
+#define TEXTMODE_DEBUGGING 1
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
 
@@ -47,8 +47,9 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	stopTimers(0); //Stop all timers!
 	CPU.registers->AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
-	CPU.registers->AX = 0x1001; //Set pallette!
-	CPU.registers->BH = 3; //#3!
+	CPU.registers->AH = 0xB;
+	CPU.registers->BH = 0x0; //Set overscan color!
+	CPU.registers->BL = 0x1; //Blue overscan!
 	BIOS_int10();
 	//VGA_DUMPDAC(); //Dump the current DAC and rest info!
 
@@ -97,10 +98,11 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	}
 	
 	finishy: //Finish our operations!
-	/*
+	
 	GPU_textgotoxy(frameratesurface,33,2); //Goto Rendering... text!
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Rendered.   ",mode);
 
+	/*
 	startTimers(0); //Start timers again!
 	VGA_waitforVBlank(); //Make sure we're ending drawing!
 	VGA_waitforVBlank(); //Make sure we've drawn the picture!
@@ -307,7 +309,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//TODO:
 	//DoDebugVGAGraphics(0x06,640,200,0x02,0,0x1,1,1); //Debug 640x200x2(B/W)! NOT WORKING YET!
 	
-	//DoDebugVGAGraphics(0x0F,640,350,0x02,0,0x1,1,0); //Debug 640x350x2(Monochrome)!
+	//TODO DoDebugVGAGraphics(0x0F,640,350,0x02,0,0x1,1,0); //Debug 640x350x2(Monochrome)! GIVES BLACK SCREEN!
 	//16 color mode!
 	//DoDebugVGAGraphics(0x0D,320,200,0x10,0,0xF,0,0); //Debug 320x200x16!
 
@@ -316,8 +318,8 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//16 color b/w mode!
 	//DoDebugVGAGraphics(0x11,640,480,0x10,0,0x1,1,0); //Debug 640x480x16(B/W)! 
 	//16 color maxres mode!
-	DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
-	VGA_DUMPDAC(); //Dump the DAC!
+	//DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
+	//VGA_DUMPDAC(); //Dump the DAC!
 	//256 color mode!
 	//DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
 	debugTextModeScreenCapture(); //Log screen capture!

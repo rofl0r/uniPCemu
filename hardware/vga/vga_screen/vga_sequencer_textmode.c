@@ -1,3 +1,5 @@
+#define VGA_SEQUENCER_TEXTMODE
+
 #include "headers/hardware/vga.h" //Our typedefs etc!
 #include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller for typedef of attribute info!
 #include "headers/hardware/vga_screen/vga_crtcontroller.h" //CRT Controller!

@@ -4,6 +4,7 @@
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/emu/sound.h" //Sound support for our callback!
 #include "headers/emu/timers.h" //Timer support!
+#include "headers/support/mid.h" //MIDI file support!
 
 float currentFunction(byte how, const float time); //For the PC speaker!
 
@@ -73,6 +74,33 @@ void testtimer()
 	}
 }
 
+extern uint_64 timing_pos; //Current timing position for MIDI speed playback!
+
+word MID_RUNNING = 0;
+
+HEADER_CHNK header;
+
+SDL_sem *MID_channel_Lock = NULL; //Our channel lock for counting running MIDI!
+
+byte *MID_data[100]; //Tempo and music track!
+TRACK_CHNK MID_tracks[100];
+
+void handleMIDIChannel()
+{
+	word channel;
+	channel = (word)getthreadparams(); //Gotten a channel?
+	playMIDIStream(channel,MID_data[channel], &header); //Play the MIDI stream!
+	SDL_SemWait(MID_channel_Lock);
+	dolog("MID", "Channel %i finished", channel); //We're finished!
+	--MID_RUNNING; //Done!
+	SDL_SemPost(MID_channel_Lock);
+}
+
+//All used locks!
+extern SDL_sem *MIDLock;
+extern SDL_sem *MID_timing_pos_Lock;
+extern SDL_sem *MID_BPM_Lock;
+
 void dosoundtest()
 {
 	//dolog("sound","Soundtest started!");
@@ -98,16 +126,94 @@ void dosoundtest()
 	#endif
 
 	#ifdef __DEBUG_MIDI
+	memset(&MID_data, 0, sizeof(MID_data)); //Init data!
+	memset(&MID_tracks, 0, sizeof(MID_tracks)); //Init tracks!
+
+	word numchannels = 0;
+	if ((numchannels = readMID("MPU.mid", &header, &MID_tracks[0], &MID_data[0], 100)))
+	{
+		//Initialise our device!
+		PORT_OUT_B(0x331, 0xFF); //Reset!
+		PORT_OUT_B(0x331, 0x3F); //Kick to UART mode!
+		updateMIDTimer(&header); //Update the timer!
+
+		//Create the semaphore for the threads!
+		MIDLock = SDL_CreateSemaphore(1);
+		MID_timing_pos_Lock = SDL_CreateSemaphore(1);
+		MID_BPM_Lock = SDL_CreateSemaphore(1);
+		MID_channel_Lock = SDL_CreateSemaphore(1);
+
+		//Now, start up all timers!
+
+		word i;
+		MID_RUNNING = numchannels; //Init to all running!
+		for (i = 0; i < numchannels; i++)
+		{
+			startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)i, DEFAULT_PRIORITY); //Start a thread handling the output of the channel!
+		}
+
+		delay(10000); //Wait a bit to allow for initialisation (position 0) to run!
+
+		startTimers(1);
+		startTimers(0); //Start our timers!
+
+		byte running = 1; //Are we running?
+
+		for (;;) //Wait to end!
+		{
+			delay(1000000); //Wait 1sec intervals!
+			SDL_SemWait(MID_channel_Lock);
+			if (!MID_RUNNING)
+			{
+				running = 0; //Not running anymore!
+			}
+			SDL_SemPost(MID_channel_Lock);
+			if (!running) break; //Not running anymore? Start quitting!
+		}
+
+		//Destroy semaphore
+		SDL_DestroySemaphore(MIDLock);
+		SDL_DestroySemaphore(MID_timing_pos_Lock);
+		SDL_DestroySemaphore(MID_BPM_Lock);
+		SDL_DestroySemaphore(MID_channel_Lock);
+
+		removetimer("MID_tempotimer"); //Clean up!
+		freeMID(&MID_tracks[0], &MID_data[0], numchannels); //Free all channels!
+		halt();
+		exit(0);
+		sleep();
+	}
+
 	//dolog("SF2","Sounding test central C...");
 	//printmsg(0xF,"MIDI Piano central C...");
 	//Don't worry about timing!
 	PORT_OUT_B(0x331,0xFF); //Reset!
 	PORT_OUT_B(0x331,0x3F); //Kick to UART mode!
 	PORT_OUT_B(0x330,0xC0);
-	PORT_OUT_B(0x330,0x00); //Piano
-	//PORT_OUT_B(0x330,0x7F); //Drum kit!
+	//PORT_OUT_B(0x330,0x00); //Piano
 	//PORT_OUT_B(0x330,20); //Organ!
 	//PORT_OUT_B(0x330,26); //Jazz guitar
+	//PORT_OUT_B(0x330, 73); //Flute!
+
+	//Apply drum kit!
+	PORT_OUT_B(0x330, 0x00); //Default drum kit!
+
+	//Switch to the drum kit set!
+	PORT_OUT_B(0x330, 0xB0); //Controller change!
+	PORT_OUT_B(0x330, 0x00); //Bank high!
+	PORT_OUT_B(0x330, 0x01); //0xXX00
+	PORT_OUT_B(0x330, 0x20); //Bank low!
+	PORT_OUT_B(0x330, 0x00); //0x00XX
+
+	PORT_OUT_B(0x330, 0x90); //First tone ON!
+	PORT_OUT_B(0x330, 39); //This note...
+	PORT_OUT_B(0x330, 100); //Is sounded at AVG velocity!!
+
+	delay(1000000); //Wait 1 sec!
+
+	PORT_OUT_B(0x330, 39); //Our note!
+	PORT_OUT_B(0x330, 0); //Stop!
+
 	byte notes[10] = {60,62,64,65,67,69,71,72,74,76};
 	byte i;
 	for (i=0;i<10;)
@@ -115,17 +221,21 @@ void dosoundtest()
 		PORT_OUT_B(0x330,0x90); //First tone ON!
 		PORT_OUT_B(0x330,notes[i]); //This note...
 		PORT_OUT_B(0x330,100); //Is sounded at AVG velocity!!
+		/*
 		PORT_OUT_B(0x330,0xB0); //Controller!
 		PORT_OUT_B(0x330,0x40); //Hold pedal!
 		PORT_OUT_B(0x330,0x40); //Enabled!
-		delay(1000000); //Wait 1 second!
+		*/
+		delay(10000); //Wait 1 second!
 		PORT_OUT_B(0x330,0x80); //Note off!
 		PORT_OUT_B(0x330,notes[i]); //Previous note!
 		PORT_OUT_B(0x330,100); //Normally off!
-		/*PORT_OUT_B(0x330,0xB0); //Controller!
+		/*
+		PORT_OUT_B(0x330,0xB0); //Controller!
 		PORT_OUT_B(0x330,0x40); //Hold pedal!
 		PORT_OUT_B(0x330,0x00); //Disabled!
 		*/
+		delay(10000); //Wait 1 second!
 		++i; //Next note!
 	}
 	#endif

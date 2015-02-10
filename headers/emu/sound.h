@@ -21,6 +21,7 @@ typedef struct {
 #define SMPLFLT 4
 
 //Is the buffer filled or skipped (unused)?
+#define SOUNDHANDLER_RESULT_NOTFILLED 0
 #define SOUNDHANDLER_RESULT_FILLED 1
 
 void initAudio(); //Initialises audio subsystem!
@@ -33,7 +34,7 @@ byte setVolume(SOUNDHANDLER handler, void *extradata, float p_volume); //Channel
 byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate); //Set sample rate!
 
 //Audio locking!
-OPTINLINE void lockaudio();
-OPTINLINE void unlockaudio(byte startplaying);
+void lockaudio();
+void unlockaudio(byte startplaying);
 
 #endif

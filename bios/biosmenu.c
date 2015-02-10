@@ -100,6 +100,7 @@ Handler BIOS_Menus[] =
 	,BIOS_ConvertStaticDynamicHDD //Convert static to dynamic HDD is #19!
 	,BIOS_ConvertDynamicStaticHDD //Convert dynamic to static HDD is #20!
 	,BIOS_DefragmentDynamicHDD //Defragment a dynamic HDD is #21!
+	,BIOS_BWMonitor //Switch to a b/w monitor or color monitor is #22!
 };
 
 //Not implemented?
@@ -1265,6 +1266,17 @@ setdirectplottext: //For fixing it!
 	{
 		strcat(menuoptions[advancedoptions++],"Fullscreen stretching");
 	}
+
+	optioninfo[advancedoptions] = 7; //B/W monitor!
+	strcpy(menuoptions[advancedoptions], "Monitor: ");
+	if (BIOS_Settings.bwmonitor) //B/W monitor?
+	{
+		strcat(menuoptions[advancedoptions++], "B/W monitor");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "Color monitor");
+	}
 }
 
 void BIOS_BootOrderOption() //Manages the boot order
@@ -1368,7 +1380,8 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 3:
 	case 4:
 	case 5:
-	case 6: //Valid option?
+	case 6:
+	case 7: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Boot order (plain)?
@@ -1391,6 +1404,9 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 			break;
 		case 6:
 			BIOS_Menu = 17; //Aspect ratio setting!
+			break;
+		case 7:
+			BIOS_Menu = 22; //B/W monitor setting!
 			break;
 		}
 		break;
@@ -2179,6 +2195,20 @@ void BIOS_KeepAspectRatio()
 	else
 	{
 		BIOS_Settings.keepaspectratio = 1; //Set!
+	}
+	BIOS_Changed = 1; //We've changed!
+	BIOS_Menu = 8; //Goto Advanced menu!
+}
+
+void BIOS_BWMonitor()
+{
+	if (BIOS_Settings.bwmonitor)
+	{
+		BIOS_Settings.bwmonitor = 0; //Reset!
+	}
+	else
+	{
+		BIOS_Settings.bwmonitor = 1; //Set!
 	}
 	BIOS_Changed = 1; //We've changed!
 	BIOS_Menu = 8; //Goto Advanced menu!

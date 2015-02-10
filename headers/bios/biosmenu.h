@@ -56,6 +56,7 @@ void BIOS_KeepAspectRatio(); //Keep aspect ratio?
 void BIOS_ConvertStaticDynamicHDD(); //Convert static to dynamic HDD?
 void BIOS_ConvertDynamicStaticHDD(); //Generate Static HDD Image from a dynamic one!
 void BIOS_DefragmentDynamicHDD(); //Defragment a dynamic HDD Image!
+void BIOS_BWMonitor(); //Switch b/w monitor vs color monitor!
 
 void BIOSMenu_LoadDefaults(); //Load the defaults option!
 

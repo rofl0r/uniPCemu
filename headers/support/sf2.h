@@ -239,8 +239,66 @@ typedef struct PACKED
 } sfSample;
 #include "headers/endpacked.h" //We're packed!
 
+enum sfGenerator
+{
+	startAddrsOffset = 0,		// instrument only
+	endAddrsOffset = 1,			// instrument only
+	startloopAddrsOffset = 2,	// instrument only
+	endloopAddrsOffset = 3,		// instrument only
+	startAddrsCoarseOffset = 4,	// instrument only
+	modLfoToPitch = 5,
+	vibLfoToPitch = 6,
+	modEnvToPitch = 7,
+	initialFilterFc = 8,
+	initialFilterQ = 9,
+	modLfoToFilterFc = 10,
+	modEnvToFilterFc = 11,
+	endAddrsCoarseOffset = 12,	// instrument only
+	modLfoToVolume = 13,
+	chorusEffectsSend = 15,
+	reverbEffectsSend = 16,
+	pan = 17,
+	delayModLFO = 21,
+	freqModLFO = 22,
+	delayVibLFO = 23,
+	freqVibLFO = 24,
+	delayModEnv = 25,
+	attackModEnv = 26,
+	holdModEnv = 27,
+	decayModEnv = 28,
+	sustainModEnv = 29,
+	releaseModEnv = 30,
+	keynumToModEnvHold = 31,
+	keynumToModEnvDecay = 32,
+	delayVolEnv = 33,
+	attackVolEnv = 34,
+	holdVolEnv = 35,
+	decayVolEnv = 36,
+	sustainVolEnv = 37,
+	releaseVolEnv = 38,
+	keynumToVolEnvHold = 39,
+	keynumToVolEnvDecay = 40,
+	instrument = 41,			// preset only
+	keyRange = 43,
+	velRange = 44,
+	startloopAddrsCoarseOffset = 45,	// instrument only
+	keynum = 46,				// instrument only
+	velocity = 47,				// instrument only
+	initialAttenuation = 48,
+	endloopAddrsCoarseOffset = 50,		// instrument only
+	coarseTune = 51,
+	fineTune = 52,
+	sampleID = 53,
+	sampleModes = 54,			// instrument only
+	scaleTuning = 56,
+	exclusiveClass = 57,		// instrument only
+	overridingRootKey = 58,		// instrument only
+	endOper = 60
+};
+
 //Our own defines!
 
+/*
 //ID lookup generators.
 #define GEN_INSTRUMENT 41
 #define GEN_SAMPLEID 53
@@ -256,11 +314,13 @@ typedef struct PACKED
 //Loop modes:
 #define GEN_SAMPLEMODES 54
 //Different sample modes:
+*/
 #define GEN_SAMPLEMODES_NOLOOP 0
 #define GEN_SAMPLEMODES_LOOP 1
 #define GEN_SAMPLEMODES_NOLOOP2 2
 #define GEN_SAMPLEMODES_LOOPUNTILDEPRESSDONE 3
 
+/*
 //Panning
 #define GEN_PAN 17
 //Pan are 0.1% units where the sound is send to (left or right speaker). Left=(50-percentage number)%, Right=(50+percentage number)%
@@ -283,12 +343,24 @@ typedef struct PACKED
 //Special also for checks!
 #define GEN_KEYRANGE 43
 #define GEN_VELOCITYRANGE 44
+*/
 
 #include "headers/packed.h" //We're packed!
 typedef struct PACKED
 {
 	uint_32 filesize; //The total filesize!
+	//Now, all required chunks in the file!
 	RIFF_ENTRY rootentry; //Root (SFBK) entry!
+	RIFF_ENTRY hydra; //Hydra block!
+	RIFF_ENTRY phdr; //PHDR block!
+	RIFF_ENTRY pbag; //PBAG block!
+	RIFF_ENTRY pgen; //PGEN block!
+	RIFF_ENTRY pmod; //PMOD block!
+	RIFF_ENTRY inst; //INST block!
+	RIFF_ENTRY ibag; //IBAG block!
+	RIFF_ENTRY igen; //IGEN block!
+	RIFF_ENTRY imod; //IMOD block!
+	RIFF_ENTRY shdr; //SHDR block!
 	RIFF_ENTRY pcmdata; //16-bit (SMPL) audio entry!
 	RIFF_ENTRY pcm24data; //24-bit (SMPL) audio extension of 16-bit audio entry!
 } RIFFHEADER; //RIFF data header!

@@ -1,3 +1,5 @@
+#define VGA_CRTCONTROLLER
+
 #include "headers/hardware/vga.h"
 #include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/hardware/vga_screen/vga_sequencer_textmode.h" //VGA Attribute controller!
@@ -177,4 +179,15 @@ byte getVGAShift(VGA_Type *VGA)
 	default: //Unknown/1?
 		return 0;
 	}
+}
+
+word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
+{
+	register word stat; //The status of the pixel!
+	//We are a maximum of 4096x1024 size!
+	Scanline &= 0x3FF; //Range safety: 1024 scanlines!
+	x &= 0xFFF; //Range safety: 4095 columns!
+	stat = VGA->CRTC.rowstatus[Scanline]; //Get row status!
+	stat |= VGA->CRTC.colstatus[x]; //Get column status!
+	return stat; //Give the combined (OR'ed) status!
 }

@@ -10,6 +10,9 @@ void *pointer; //Pointer to the start of the allocated data!
 uint_32 size; //Size of the data!
 char name[256]; //The name of the allocated entry!
 DEALLOCFUNC dealloc; //Deallocation function!
+
+//Extra optimizations:
+uint_32 ptrstart, ptrend; //Start&end address of the pointer!
 } POINTERENTRY;
 
 POINTERENTRY registeredpointers[1024]; //All registered pointers!
@@ -32,7 +35,7 @@ byte pointersinitialised = 0; //Are the pointers already initialised?
 byte allow_zallocfaillog = 1; //Allow zalloc fail log?
 
 //Initialisation.
-void initZalloc() //Initialises the zalloc subsystem!
+OPTINLINE void initZalloc() //Initialises the zalloc subsystem!
 {
 	if (pointersinitialised) return; //Don't do anything when we're ready already!
 	//memset(&registeredpointers,0,sizeof(registeredpointers)); //Initialise all registered pointers!
@@ -75,49 +78,43 @@ Result:
 	
 */
 
-sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //Are we already in our list? Give the position!
+OPTINLINE sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //Are we already in our list? Give the position!
 {
-	int current;
-	uint_32 address_start, address_end;
+	register uint_32 address_start, address_end, currentstart, currentend;
+	register int left=0;
 	initZalloc(); //Make sure we're started!
 	if (!ptr) return -2; //Not matched when NULL!
 	if (!size) return -2; //Not matched when no size (should be impossible)!
 	address_start = (uint_32)ptr;
 	address_start += index; //Start of data!
-	address_end = address_start+size-1; //End of data!
+	address_end = address_start; //Start of data!
+	address_end += size; //Add the size!
+	--address_end; //End of data!
 
-	for (current=0;current<NUMITEMS(registeredpointers);current++) //Process matched options!
+
+	for (left = 0; left<NUMITEMS(registeredpointers);++left) //Process matchable options!
 	{
-		if (registeredpointers[current].pointer && registeredpointers[current].size) //An registered pointer?
-		{
-			uint_32 currentstart = (uint_32)registeredpointers[current].pointer; //Start of addressing!
-			uint_32 currentend = currentstart+registeredpointers[current].size-1; //End of addressing!
-			if (name) //Name specified?
-			{
-				if (!!strcmp(registeredpointers[current].name,name)) //Invalid name?
-				{
-					continue; //Skip after all: we're name specific!
-				}
-			}
-			if ((currentstart<=address_start) && (currentend>=address_end)) //Within range?
-			{
-				if (currentstart==address_start && currentend==address_end) //Full match?
-				{
-					return current; //Found at this index!
-				}
-				else //Partly match?
-				{
-					return -1; //Partly match!
-				}
-			}
-		}
+		currentstart = (uint_32)registeredpointers[left].pointer; //Start of addressing!
+		if (!currentstart) continue; //Gotten anything at all?
+		currentend = registeredpointers[left].ptrend; //End of addressing!
+		if (name) if (!!strcmp(registeredpointers[left].name, name)) continue; //Invalid name? Skip us if so!
+		if (currentstart > address_start) continue; //Skip: not our pointer!
+		if (currentend < address_end) continue; //Skip: not our pointer!
+		//Within range? Give the correct result!
+		if (currentstart != address_start) return -1; //Partly match!
+		if (currentend != address_end) return -1; //Partly match!
+		//We're a full match!
+		return left; //Full match at this index!
 	}
+
+	//Compatiblity only!
 	return -2; //Not found!
 }
 
 byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Register a pointer!
 {
 	uint_32 current; //Current!
+	uint_32 ptrend;
 	initZalloc(); //Make sure we're started!
 	if (!ptr)
 	{
@@ -144,6 +141,11 @@ byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Regis
 			registeredpointers[current].dealloc = dealloc; //The deallocation function to call, if any to use!
 			bzero(&registeredpointers[current].name,sizeof(registeredpointers[current].name)); //Initialise the name!
 			strcpy(registeredpointers[current].name,name); //Set the name!
+			registeredpointers[current].ptrstart = (uint_32)ptr; //Start of the pointer!
+			ptrend = registeredpointers[current].ptrstart;
+			ptrend += size; //Add the size!
+			--ptrend; //The end of the pointer is before the size!
+			registeredpointers[current].ptrend = ptrend; //End address of the pointer for fast checking!
 			#ifdef DEBUG_ALLOCDEALLOC
 			if (allow_zallocfaillog) dolog("zalloc","Memory has been allocated. Size: %i. name: %s, location: %p",size,name,ptr); //Log our allocated memory!
 			#endif

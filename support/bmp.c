@@ -5,37 +5,43 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
-byte BMPType[2] = {0x42,0x4D}; //The type, identifying the BMP file 'BM'!
-
-typedef struct
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
-word OurSize; //Should be sizeof(this)
-uint_32 Width; //Width of the image!
-uint_32 Height; //Height of the image!
-word Planes; //Ammount of planes = 1
-word BitDepth; //Bit count (1,4,8,16,24)
-uint_32 Compression; //Type of compression, 0 for none!
-uint_32 CompressionSize; //(compressed) Size of Image. =0 When biCompression=0
-uint_32 XPixelsPerMeter; //Horizontal resolution: pixels/meter
-uint_32 YPixelsPerMeter; //Vertical resolution: pixels/meter
-uint_32 ActuallyUsedColors; //Number of actually used colors
-uint_32 Importantcolors; //Number of important colors (0=All)
+	uint_32 OurSize; //Should be sizeof(this)
+	uint_32 Width; //Width of the image!
+	uint_32 Height; //Height of the image!
+	word Planes; //Ammount of planes = 1
+	word BitDepth; //Bit count (1,4,8,16,24)
+	uint_32 Compression; //Type of compression, 0 for none!
+	uint_32 CompressionSize; //(compressed) Size of Image. =0 When biCompression=0
+	uint_32 XPixelsPerMeter; //Horizontal resolution: pixels/meter
+	uint_32 YPixelsPerMeter; //Vertical resolution: pixels/meter
+	uint_32 ActuallyUsedColors; //Number of actually used colors
+	uint_32 Importantcolors; //Number of important colors (0=All)
 } TBMPInfoHeader;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct
+
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
+word BMPType; //Type of bmp, contains BM!
 uint_32 Filesize; //File size in bytes!
 word Reserved1_0; //0
 word Reserved2_0; //0
 uint_32 PixelOffset; //Start offset of pixels!
 } TBMPHeader;
+#include "headers/endpacked.h" //We're packed!
 
-typedef struct
+#include "headers/packed.h" //We're packed!
+typedef struct PACKED
 {
 byte B; //Blue
 byte G; //Green
 byte R; //Red
 } TRGB;
+#include "headers/endpacked.h" //We're packed!
 
 void swap(byte *a, byte *b)
 {
@@ -134,11 +140,13 @@ byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, 
 	memset(&BMPHeader,0,sizeof(BMPHeader)); //Clear the header!
 	memset(&BMPInfo,0,sizeof(BMPInfo)); //Clear the info header!
 
-	dataStartOffset = sizeof(BMPType)+sizeof(BMPHeader)+sizeof(BMPInfo); //Start offset of the data!
+	dataStartOffset = sizeof(BMPHeader)+sizeof(BMPInfo); //Start offset of the data!
 
 	//Header!
+	//The type, identifying the BMP file 'BM'!
+	BMPHeader.BMPType = 0x4D42; //BM
 	BMPHeader.Filesize = convertEndianness32(dataStartOffset+imgsize); //Full filesize in bytes!
-	BMPHeader.PixelOffset = convertEndianness32(sizeof(BMPType)+sizeof(BMPHeader)+sizeof(BMPInfo)); //File offset to raster data!
+	BMPHeader.PixelOffset = convertEndianness32(dataStartOffset); //File offset to raster data!
 	//Info!
 	BMPInfo.OurSize = convertEndianness32(sizeof(BMPInfo)); //Size of InfoHeader=40
 	BMPInfo.Width = convertEndianness32(w); //Width!
@@ -150,7 +158,6 @@ byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, 
 	//Now write the file!
 
 	f = fopen(filename,"wb");
-	fwrite(&BMPType,1,sizeof(BMPType),f); //Write the type, unpadded!
 	fwrite(&BMPHeader,1,sizeof(BMPHeader),f); //Write the header!
 	fwrite(&BMPInfo,1,sizeof(BMPInfo),f); //Write the header!
 

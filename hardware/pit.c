@@ -151,7 +151,7 @@ void out8253(word portnum, byte value)
 				pit0latch = 0;
 				if (pit0divisor==0) pit0divisor = 65536;
 				timerticks = SAFEDIV(timerfreq,(SAFEDIV(1193180,pit0divisor))); //Init ticks!
-				addtimer(SAFEDIV(1193180.0f,pit0divisor),&pit0handler,"PIT0",1,0); //PIT0 handler update!
+				addtimer(SAFEDIV(1193180.0f,pit0divisor),&pit0handler,"PIT0",1,0,NULL); //PIT0 handler update!
 				return;
 			} break;
 		} break;

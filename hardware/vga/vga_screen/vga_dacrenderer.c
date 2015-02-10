@@ -1,3 +1,5 @@
+#define VGA_DACRENDERER
+
 #include "headers/types.h" //Basic types!
 //Our signaling!
 #include "headers/hardware/vga.h" //VGA support!
@@ -16,7 +18,7 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	bzero(filename,sizeof(filename)); //Init
 	sprintf(&filename[0],"DAC_%02X",CurMode->mode); //Generate log of this mode!
 	int c;
-	uint_32 DACBitmap[0x200]; //Full DAC 1-row bitmap!
+	uint_32 DACBitmap[0x400]; //Full DAC 1-row bitmap!
 	register uint_32 DACVal;
 	for (c=0;c<0x100;c++)
 	{
@@ -32,14 +34,14 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	}
 	writeBMP(filename,&DACBitmap[0],16,16,4,4,16); //Simple 1-row dump of the DAC results!
 	//Now, write the Attribute results through the DAC pallette!
-	for (c=0;c<0x200;c++) //All possible attributes (font and back color)!
+	for (c=0;c<0x400;c++) //All possible attributes (font and back color)!
 	{
 		word lookup;
 		lookup = (c>>1); //What attribute!
 		lookup <<= 5; //Make room!
 		//No charinner_y (fixed to row #0)!
 		lookup <<= 1; //Make room!
-		lookup |= 1; //Blink ON!
+		lookup |= ((c&0x200)>>9); //Blink OFF/ON!
 		lookup <<= 1; //Make room!
 		lookup |= (c&1); //Font?
 		//The lookup points to the index!
@@ -58,7 +60,7 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	filename[0] = 'A';
 	filename[1] = 'T';
 	filename[2] = 'T'; //Attribute controller translations!
-	writeBMP(filename,&DACBitmap[0],16,16,4,4,16); //Simple 1-row dump of the attributes through the DAC!
+	writeBMP(filename,&DACBitmap[0],16,32,4,4,16); //Simple 1-row dump of the attributes through the DAC!
 	
 	/*char cs[256];
 	memset(&cs,0,sizeof(cs));

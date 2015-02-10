@@ -379,7 +379,7 @@ byte readdiskdata(uint_64 startpos)
 	readdata_result = 1;
 	while (sectors && !readdata_result)
 	{
-		readdata_result = disksize(mounteddrives[REG_DL])>=(startpos+(sectors<<9)); //Have enough data to read this many sectors?
+		readdata_result = disksize(mounteddrives[REG_DL])>=(startpos+((uint_64)sectors<<9)); //Have enough data to read this many sectors?
 		if (!readdata_result) //Failed to read this many?
 		{
 			--sectors; //One sector less, etc.
@@ -399,7 +399,7 @@ byte readdiskdata(uint_64 startpos)
 		for (;sectors;) //Sectors left to read?
 		{
 			//Read from disk
-			readdata_result = readdata(mounteddrives[REG_DL],&buffer,startpos+(sector<<9),512); //Read the data to the buffer!
+			readdata_result = readdata(mounteddrives[REG_DL],&buffer,startpos+((uint_64)sector<<9),512); //Read the data to the buffer!
 			if (!readdata_result) //Error?
 			{
 				last_status = 0x00;
@@ -440,7 +440,7 @@ byte writediskdata(uint_64 startpos)
 	writedata_result = 1;
 	while (sectors && !writedata_result)
 	{
-		writedata_result = disksize(mounteddrives[REG_DL])>=(startpos+(sectors<<9)); //Have enough data to read this many sectors?
+		writedata_result = disksize(mounteddrives[REG_DL])>=(startpos+((uint_64)sectors<<9)); //Have enough data to read this many sectors?
 		if (!writedata_result) //Failed to read this many?
 		{
 			--sectors; //One sector less, etc.
@@ -471,7 +471,7 @@ byte writediskdata(uint_64 startpos)
 			}
 			dosector: //Process next sector!
 			//Write to disk!
-			writedata_result = writedata(mounteddrives[REG_DL],&buffer,startpos+(sector<<9),512); //Write the data to the disk!
+			writedata_result = writedata(mounteddrives[REG_DL],&buffer,startpos+((uint_64)sector<<9),512); //Write the data to the disk!
 			if (!writedata_result) //Error?
 			{
 				last_status = 0x00;

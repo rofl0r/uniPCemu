@@ -18,22 +18,21 @@ getRIFFChunkSize: Retrieves the chunk size from an entry!
 
 uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct!
 {
-	uint_32 result;
+	uint_32 result = 0; //Default: not found!
 	RIFF_DATAENTRY temp;
-	result = 0; //Default: not found!
 	if (memprotect(container.voidentry,sizeof(temp),NULL)) //Valid entry?
 	{
 		memcpy(&temp,container.voidentry,sizeof(temp));
 		if ((temp.ckID==CKID_LIST) || (temp.ckID==CKID_RIFF)) //Valid RIFF/LIST type?
+	    {
+	    	if (memprotect(container.voidentry,sizeof(*container.listentry),NULL))
 	    	{
-	    		if (memprotect(container.voidentry,sizeof(*container.listentry),NULL))
-	    		{
-	    			result = sizeof(*container.listentry); //Take as list entry!
-	    		}
+	    		result = sizeof(*container.listentry); //Take as list entry!
 	    	}
-	    	else if (memprotect(container.voidentry,sizeof(container.dataentry),NULL)) //Valid data entry?
-	    	{
-	    		result = sizeof(*container.dataentry); //Take as data entry!
+	    }
+	    else if (memprotect(container.voidentry,sizeof(*container.dataentry),NULL)) //Valid data entry?
+	    {
+	    	result = sizeof(*container.dataentry); //Take as data entry!
 		}
 	}
 	return result; //Invalid entry!
@@ -57,13 +56,13 @@ uint_32 getRIFFChunkSize(RIFF_ENTRY entry) //Checked & correct!
 	return chunksize; //Give the size!
 }
 
-void *RIFF_start_data(RIFF_ENTRY container)
+void *RIFF_start_data(RIFF_ENTRY container, uint_32 headersize)
 {
 	byte *result;
 	uint_32 size;
-	if (!RIFF_entryheadersize(container)) return NULL; //Invalid data!
+	if (!headersize) return NULL; //Invalid data!
 	result = container.byteentry;
-	result += RIFF_entryheadersize(container); //Take as data entry!
+	result += headersize; //Take as data entry!
 	size = getRIFFChunkSize(container); //Get the chunk size!
 	if (size)
 	{
@@ -93,6 +92,7 @@ byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 entrysize) 
 {
 	uint_32 containersize;
 	uint_32 containerstart, containerend, entrystart, entryend;
+	void *startData; //Start of the data!
 	if (!memprotect(container.voidentry,sizeof(RIFF_DATAENTRY),NULL)) //Error?
 	{
 		return 0; //Invalid address!
@@ -106,14 +106,17 @@ byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 entrysize) 
 		return 0; //Invalid address!
 	}
 
-	if (!memprotect(RIFF_start_data(container),getRIFFChunkSize(container),NULL)) //Invalid data?
+	startData = RIFF_start_data(container,containersize); //Get the start of the container data!
+	containersize = getRIFFChunkSize(container); //Get the size of the content of the container!
+
+	if (!memprotect(startData,containersize,NULL)) //Invalid data?
 	{
 		return 0; //Invalid container data!
 	}
 
 
-	containerend = containerstart = (uint_32)RIFF_start_data(container);
-	containerend += getRIFFChunkSize(container); //What size!
+	containerend = containerstart = (uint_32)startData;
+	containerend += containersize; //What size!
 
 	entryend = entrystart = (uint_32)entry; //Start of the data!
 	entryend += entrysize;
@@ -144,6 +147,7 @@ RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a RIFF Subc
 	RIFF_ENTRY CurrentEntry;
 	uint_32 foundid;
 	RIFF_ENTRY temp_entry;
+	uint_32 headersize; //Header size, precalculated!
 	if (!RIFFHeader.dataentry) return NULLRIFFENTRY(); //Invalid RIFF Entry specified!
 	if (!memprotect(RIFFHeader.dataentry,sizeof(*RIFFHeader.dataentry),NULL)) //Error?
 	{
@@ -152,7 +156,7 @@ RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a RIFF Subc
 	
 	//Our entries for our usage!
 	EntriesStart = RIFFHeader;
-	CurrentEntry.voidentry = RIFF_start_data(RIFFHeader); //Start of the data!
+	CurrentEntry.voidentry = RIFF_start_data(RIFFHeader,RIFF_entryheadersize(RIFFHeader)); //Start of the data!
 
 	if (!CurrentEntry.voidentry) return NULLRIFFENTRY(); //Invalid RIFF Header data!
 
@@ -167,11 +171,12 @@ RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a RIFF Subc
 	
 	for (;;) //Start on contents!
 	{
-		if (!checkRIFFChunkLimits(RIFFHeader,CurrentEntry.voidentry,RIFF_entryheadersize(CurrentEntry))) //Entry of bounds?
+		headersize = RIFF_entryheadersize(CurrentEntry); //The size of the current header!
+		if (!checkRIFFChunkLimits(RIFFHeader,CurrentEntry.voidentry,headersize)) //Entry of bounds?
 		{
 			return NULLRIFFENTRY(); //Not found!
 		}
-		if (!checkRIFFChunkLimits(RIFFHeader,RIFF_start_data(CurrentEntry),getRIFFChunkSize(CurrentEntry))) //Data out of bounds?
+		if (!checkRIFFChunkLimits(RIFFHeader,RIFF_start_data(CurrentEntry,headersize),getRIFFChunkSize(CurrentEntry))) //Data out of bounds?
 		{
 			return NULLRIFFENTRY(); //Not found!
 		}
@@ -187,7 +192,7 @@ RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a RIFF Subc
 			return CurrentEntry; //Give the entry!
 		}
 		//Entry not found?
-		temp_entry.voidentry = RIFF_start_data(CurrentEntry); //Goto our start!
+		temp_entry.voidentry = RIFF_start_data(CurrentEntry,headersize); //Goto our start!
 		temp_entry.byteentry += getRIFFChunkSize(CurrentEntry); //Add to the position of the start of the data!
 		CurrentEntry.voidentry = temp_entry.voidentry; //Get the next entry!
 	}
@@ -218,7 +223,7 @@ byte getRIFFData(RIFF_ENTRY RIFFHeader, uint_32 index, uint_32 size, void *resul
 	{
 		return 0; //Invalid entry: we're a list, not data!
 	}
-	entrystart = (byte *)RIFF_start_data(RIFFHeader); //Start of the data!
+	entrystart = (byte *)RIFF_start_data(RIFFHeader,RIFF_entryheadersize(RIFFHeader)); //Start of the data!
 	if (!entrystart) //Error?
 	{
 		return 0; //Invalid entry: couldn't get the start of the data!
@@ -330,7 +335,7 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 	RIFF->pcm24data = getRIFFEntry(soundentries,CKID_SM24); //Found 24-bit samples? If acquired, use it!
 
 	//Check PHDR structure!
-	hydra = getRIFFEntry(RIFF->rootentry,CKID_PDTA); //Get the HYDRA structure!
+	RIFF->hydra = hydra = getRIFFEntry(RIFF->rootentry,CKID_PDTA); //Get the HYDRA structure!
 	if (!hydra.dataentry)
 	{
 		dolog("SF2","validateSF: HYDRA block not found!");
@@ -338,7 +343,7 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 	}
 	
 	//First, check the presets!
-	phdr = getRIFFEntry(hydra,CKID_PHDR); //Get the PHDR data!
+	RIFF->phdr = phdr = getRIFFEntry(hydra,CKID_PHDR); //Get the PHDR data!
 	if (SAFEMOD(getRIFFChunkSize(phdr),38)) //Not an exact multiple of 38 bytes?
 	{
 		dolog("SF2","validateSF: PHDR block not found!");
@@ -361,7 +366,7 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 	}
 	
 	//Check PBAG size!
-	pbag = getRIFFEntry(hydra,CKID_PBAG); //Get the PBAG structure!
+	RIFF->pbag = pbag = getRIFFEntry(hydra,CKID_PBAG); //Get the PBAG structure!
 	if (SAFEMOD(getRIFFChunkSize(pbag),4)) //Not a multiple of 4?
 	{
 		dolog("SF2","validateSF: PBAG chunk size isn't a multiple of 4 bytes!");
@@ -373,7 +378,7 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		return 0; //Corrupt file!
 	}
 	
-	pmod = getRIFFEntry(hydra,CKID_PMOD);
+	RIFF->pmod = pmod = getRIFFEntry(hydra,CKID_PMOD);
 	if (!pmod.dataentry)
 	{
 		dolog("SF2","validateSF: PMOD chunk is missing!");
@@ -385,7 +390,7 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		return 0;
 	}
 
-	pgen = getRIFFEntry(hydra,CKID_PGEN);
+	RIFF->pgen = pgen = getRIFFEntry(hydra,CKID_PGEN);
 	if (!pgen.dataentry)
 	{
 		dolog("SF2","validateSF: PGEN chunk is missing!");
@@ -402,7 +407,7 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		return 0; //Corrupt file!
 	}
 	
-	inst = getRIFFEntry(hydra,CKID_INST);
+	RIFF->inst = inst = getRIFFEntry(hydra,CKID_INST);
 	if (!inst.dataentry)
 	{
 		dolog("SF2","validateSF: INST chunk is missing!");
@@ -427,7 +432,7 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		return 0; //Corrupt file!
 	}
 
-	ibag = getRIFFEntry(hydra,CKID_IBAG);
+	RIFF->ibag = ibag = getRIFFEntry(hydra,CKID_IBAG);
 	if (!ibag.dataentry)
 	{
 		dolog("SF2","validateSF: IBAG chunk is missing!");
@@ -456,7 +461,7 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 
 	//imod size=10xfinal instrument.wModNdx+10
 	
-	imod = getRIFFEntry(hydra,CKID_IMOD);
+	RIFF->imod = imod = getRIFFEntry(hydra,CKID_IMOD);
 	if (!imod.dataentry)
 	{
 		dolog("SF2","validateSF: IMOD chunk is missing!");
@@ -474,7 +479,7 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 	}
 	
 	//igen size=4xterminal instrument.wGenNdx+4
-	igen = getRIFFEntry(hydra,CKID_IGEN);
+	RIFF->igen = igen = getRIFFEntry(hydra,CKID_IGEN);
 	if (!igen.dataentry)
 	{
 		dolog("SF2","validateSF: IGEN chunk is missing!");
@@ -491,7 +496,7 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		return 0; //Corrupt file?
 	}
 	
-	shdr = getRIFFEntry(hydra,CKID_SHDR);
+	RIFF->shdr = shdr = getRIFFEntry(hydra,CKID_SHDR);
 	if (!shdr.dataentry)
 	{
 		dolog("SF2","validateSF: SHDR chunk is missing!");
@@ -579,17 +584,15 @@ Basic reading functions for presets, instruments and samples.
 
 */
 
-RIFF_ENTRY getHydra(RIFFHEADER *sf) //Retrieves the HYDRA structure from the soundfont!
+OPTINLINE RIFF_ENTRY getHydra(RIFFHEADER *sf) //Retrieves the HYDRA structure from the soundfont!
 {
-	RIFF_ENTRY rootentry = sf->rootentry; //Take over the root entry!
-	return getRIFFEntry(rootentry,CKID_PDTA); //Get the HYDRA structure!
+	return sf->hydra; //Give the hydra block!
 }
 
 //Preset!
 byte getSFPreset(RIFFHEADER *sf, uint_32 preset, sfPresetHeader *result)
 {
-	RIFF_ENTRY phdr = getRIFFEntry(getHydra(sf),CKID_PHDR); //Get the PHDR data!
-	return getRIFFData(phdr,preset,sizeof(sfPresetHeader),result); //Give the preset, if any is found!
+	return getRIFFData(sf->phdr,preset,sizeof(sfPresetHeader),result); //Give the preset, if any is found!
 }
 
 byte isValidPreset(sfPresetHeader *preset) //Valid for playback?
@@ -602,8 +605,7 @@ byte isValidPreset(sfPresetHeader *preset) //Valid for playback?
 //PBAG
 byte getSFPresetBag(RIFFHEADER *sf,word wPresetBagNdx, sfPresetBag *result)
 {
-	RIFF_ENTRY pbag = getRIFFEntry(getHydra(sf),CKID_PBAG); //Get the PHDR data!
-	return getRIFFData(pbag,wPresetBagNdx,sizeof(sfPresetBag),result); //Give the preset Bag, if any is found!
+	return getRIFFData(sf->pbag,wPresetBagNdx,sizeof(sfPresetBag),result); //Give the preset Bag, if any is found!
 }
 
 //Next preset bag is just one index up.
@@ -622,8 +624,7 @@ byte isPresetBagNdx(RIFFHEADER *sf, uint_32 preset, word wPresetBagNdx)
 
 byte getSFPresetMod(RIFFHEADER *sf, word wPresetModNdx, sfModList *result)
 {
-	RIFF_ENTRY pmod = getRIFFEntry(getHydra(sf),CKID_PMOD); //Get the PHDR data!
-	return getRIFFData(pmod,wPresetModNdx,sizeof(sfModList),result); //Give the preset Mod, if any is found!
+	return getRIFFData(sf->pmod,wPresetModNdx,sizeof(sfModList),result); //Give the preset Mod, if any is found!
 }
 
 byte isPresetModNdx(RIFFHEADER *sf, word preset, word wPresetBagNdx, word wModNdx)
@@ -641,8 +642,7 @@ byte isPresetModNdx(RIFFHEADER *sf, word preset, word wPresetBagNdx, word wModNd
 
 byte getSFPresetGen(RIFFHEADER *sf, word wPresetGenNdx, sfGenList *result)
 {
-	RIFF_ENTRY pgen = getRIFFEntry(getHydra(sf),CKID_PGEN); //Get the PHDR data!
-	return getRIFFData(pgen,wPresetGenNdx,sizeof(sfGenList),result); //Give the preset Mod, if any is found!
+	return getRIFFData(sf->pgen,wPresetGenNdx,sizeof(sfGenList),result); //Give the preset Mod, if any is found!
 }
 
 byte isPresetGenNdx(RIFFHEADER *sf, word preset, word wPresetBagNdx, word wGenNdx)
@@ -662,16 +662,14 @@ byte isPresetGenNdx(RIFFHEADER *sf, word preset, word wPresetBagNdx, word wGenNd
 
 byte getSFInstrument(RIFFHEADER *sf, word Instrument, sfInst *result)
 {
-	RIFF_ENTRY inst = getRIFFEntry(getHydra(sf),CKID_INST); //Get the PHDR data!
-	return getRIFFData(inst,Instrument,sizeof(sfInst),result); //Give the Instrument, if any is found!
+	return getRIFFData(sf->inst,Instrument,sizeof(sfInst),result); //Give the Instrument, if any is found!
 }
 
 //IBAG
 
 byte getSFInstrumentBag(RIFFHEADER *sf, word wInstBagNdx, sfInstBag *result)
 {
-	RIFF_ENTRY ibag = getRIFFEntry(getHydra(sf),CKID_IBAG); //Get the PHDR data!
-	return getRIFFData(ibag,wInstBagNdx,sizeof(sfInstBag),result); //Give the Instrument Bag, if any is found!	
+	return getRIFFData(sf->ibag,wInstBagNdx,sizeof(sfInstBag),result); //Give the Instrument Bag, if any is found!	
 }
 
 byte isInstrumentBagNdx(RIFFHEADER *sf, word Instrument, word wInstBagNdx)
@@ -690,8 +688,7 @@ byte isInstrumentBagNdx(RIFFHEADER *sf, word Instrument, word wInstBagNdx)
 
 byte getSFInstrumentMod(RIFFHEADER *sf, word wInstrumentModNdx, sfModList *result)
 {
-	RIFF_ENTRY pmod = getRIFFEntry(getHydra(sf),CKID_IMOD); //Get the PHDR data!
-	return getRIFFData(pmod,wInstrumentModNdx,sizeof(sfModList),result); //Give the preset Mod, if any is found!
+	return getRIFFData(sf->imod,wInstrumentModNdx,sizeof(sfModList),result); //Give the preset Mod, if any is found!
 }
 
 byte isInstrumentModNdx(RIFFHEADER *sf, word Instrument, word wInstrumentBagNdx, word wInstrumentModNdx)
@@ -709,8 +706,7 @@ byte isInstrumentModNdx(RIFFHEADER *sf, word Instrument, word wInstrumentBagNdx,
 
 byte getSFInstrumentGen(RIFFHEADER *sf, word wInstGenNdx, sfInstGenList *result)
 {
-	RIFF_ENTRY igen = getRIFFEntry(getHydra(sf),CKID_IGEN); //Get the PHDR data!
-	return getRIFFData(igen,wInstGenNdx,sizeof(sfInstGenList),result); //Give the instrument Gen, if any is found!
+	return getRIFFData(sf->igen,wInstGenNdx,sizeof(sfInstGenList),result); //Give the instrument Gen, if any is found!
 }
 
 byte isInstrumentGenNdx(RIFFHEADER *sf, word Instrument, word wInstrumentBagNdx, word wInstrumentGenNdx)
@@ -729,7 +725,7 @@ byte isInstrumentGenNdx(RIFFHEADER *sf, word Instrument, word wInstrumentBagNdx,
 byte getSFSampleInformation(RIFFHEADER *sf, word Sample, sfSample *result)
 {
 	byte temp;
-	RIFF_ENTRY shdr = getRIFFEntry(getHydra(sf),CKID_SHDR); //Get the PHDR data!
+	RIFF_ENTRY shdr = sf->shdr; //Get the SHDR data!
 	if (!shdr.voidentry)
 	{
 		return 0; //Error!
@@ -844,7 +840,7 @@ byte isGlobalPresetZone(RIFFHEADER *sf, uint_32 preset, word PBag)
 						{
 							if (getSFPresetGen(sf,pbag.wGenNdx-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
 							{
-								if (finalgen.sfGenOper!=GEN_INSTRUMENT) //Final isn't an instrument?
+								if (finalgen.sfGenOper!=instrument) //Final isn't an instrument?
 								{
 									return 1; //We're a global zone!
 								}
@@ -887,7 +883,7 @@ byte isGlobalInstrumentZone(RIFFHEADER *sf, word instrument, word IBag)
 					{
 						if (getSFInstrumentGen(sf,ibag.wInstGenNdx-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
 						{
-							if (finalgen.sfGenOper!=GEN_SAMPLEID) //Final isn't an instrument?
+							if (finalgen.sfGenOper!=sampleID) //Final isn't an instrument?
 							{
 								return 1; //We're a global zone!
 							}
@@ -926,7 +922,7 @@ byte isValidPresetZone(RIFFHEADER *sf, uint_32 preset, word PBag)
 		{
 			if (getSFPresetGen(sf,pbag.wGenNdx-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
 			{
-				if (finalgen.sfGenOper!=GEN_INSTRUMENT) //Final isn't an instrument?
+				if (finalgen.sfGenOper!=instrument) //Final isn't an instrument?
 				{
 					return 0; //We're a local zone without an instrument!
 				}
@@ -956,7 +952,7 @@ byte isValidInstrumentZone(RIFFHEADER *sf, word instrument, word IBag)
 		{
 			if (getSFInstrumentGen(sf,ibag.wInstGenNdx-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
 			{
-				if (finalgen.sfGenOper!=GEN_SAMPLEID) //Final isn't a sampleid?
+				if (finalgen.sfGenOper!=sampleID) //Final isn't a sampleid?
 				{
 					return 0; //We're a local zone without an instrument!
 				}
@@ -1118,7 +1114,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 						{
 							byte valid;
 							valid = 1; //Default: still valid!
-							if (gen.sfGenOper==GEN_KEYRANGE) //KEY RANGE?
+							if (gen.sfGenOper==keyRange) //KEY RANGE?
 							{
 								if (firstgen!=CurrentGen) //Not the first?
 								{
@@ -1130,7 +1126,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 									keyrange |= 0x10000; //Set flag: we're used!
 								}
 							}
-							else if (gen.sfGenOper==GEN_VELOCITYRANGE) //VELOCITY RANGE?
+							else if (gen.sfGenOper==velRange) //VELOCITY RANGE?
 							{
 								temp = CurrentGen; //Load!
 								--temp; //Decrease!
@@ -1143,13 +1139,13 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 							}
 							if (valid) //Still valid?
 							{
-								if (gen.sfGenOper==sfGenOper && (dontignoregenerators || gen.sfGenOper==GEN_SAMPLEID)) //Found and not ignoring (or sampleid generator)?
+								if (gen.sfGenOper==sfGenOper && (dontignoregenerators || gen.sfGenOper==sampleID)) //Found and not ignoring (or sampleid generator)?
 								{
 									//Log the retrieval!
 									found = 1; //Found!
 									memcpy(result,&gen,sizeof(*result)); //Set to last found!
 								}
-								if (gen.sfGenOper==GEN_SAMPLEID) //SAMPLEID?
+								if (gen.sfGenOper==sampleID) //SAMPLEID?
 								{
 									dontignoregenerators = 0; //Ignore all generators after the SAMPLEID generator!
 								}
@@ -1218,8 +1214,8 @@ byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDI
 		{
 			if (!isGlobalPresetZone(sf,preset,PBag)) //Not a global zone?
 			{
-				gotpgen = lookupSFPresetGen(sf,preset,PBag,GEN_VELOCITYRANGE,&pgen2); //Velocity lookup!
-				if (lookupSFPresetGen(sf,preset,PBag,GEN_KEYRANGE,&pgen)) //Key range lookup! //Found?
+				gotpgen = lookupSFPresetGen(sf,preset,PBag,velRange,&pgen2); //Velocity lookup!
+				if (lookupSFPresetGen(sf,preset,PBag,keyRange,&pgen)) //Key range lookup! //Found?
 				{
 					if (MIDIKey>=pgen.genAmount.ranges.byLo && MIDIKey<=pgen.genAmount.ranges.byHi) //Within range?
 					{
@@ -1262,14 +1258,14 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 				sfSample sample;
 				sfInstGenList sampleid;
 				//Valid?
-				exists = lookupSFInstrumentGen(sf,instrument,IBag,GEN_KEYRANGE,&igen); //Key range lookup!
+				exists = lookupSFInstrumentGen(sf,instrument,IBag,keyRange,&igen); //Key range lookup!
 				if (exists) //Key range found?
 				{
 					exists = ((MIDIKey>=igen.genAmount.ranges.byLo) && (MIDIKey<=igen.genAmount.ranges.byHi));
 				}
 				if (!exists) //Invalid? Look further!
 				{
-					exists = lookupSFInstrumentGen(sf,instrument,IBag,GEN_KEYNUM,&igen); //Key number lookup!
+					exists = lookupSFInstrumentGen(sf,instrument,IBag,keynum,&igen); //Key number lookup!
 					if (exists) //Valid?
 					{
 						exists = (igen.genAmount.wAmount==MIDIKey); //Does it exist?
@@ -1278,13 +1274,13 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 				if (exists)
 				{
 					exists = !RequireInstrument; //Default: invalid when instrument is required!
-					if (lookupSFInstrumentGen(sf,instrument,IBag,GEN_SAMPLEID,&sampleid)) //SAMPLEID found?
+					if (lookupSFInstrumentGen(sf,instrument,IBag,sampleID,&sampleid)) //SAMPLEID found?
 					{
 						exists |= getSFSampleInformation(sf,sampleid.genAmount.wAmount,&sample); //Sample found=Valid!						
 					}
 					if (exists) //Valid IGEN?
 					{
-						gotigen = lookupSFInstrumentGen(sf,instrument,IBag,GEN_VELOCITY,&igen2); //Velocity lookup!
+						gotigen = lookupSFInstrumentGen(sf,instrument,IBag,velocity,&igen2); //Velocity lookup!
 						if (!gotigen) //No velocity filter? Take just the key filter!
 						{
 							*result = IBag; //It's this PBag!

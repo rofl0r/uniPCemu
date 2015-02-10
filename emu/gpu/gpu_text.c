@@ -21,16 +21,22 @@ OPTINLINE void GPU_textcalcpixel(int *x, int *y, int *charx, int *chary)
 {
 	int cx=*x;
 	int cy=*y;
-	cx /= 10; //Shift to the character we're from!
-	cy /= 10; //Shift to the character we're from!
-	*charx = cx;
-	*chary = cy;
-	*x %= 10; //Within the character!
-	*y %= 10; //Within the character!
-	/*
-	--*x; //Adjust for the border!
-	--*y; //Adjust for the border!
-	*/
+	int cx2, cy2;
+
+	cx *= 0.1f; //Shift to the character we're from!
+	cy *= 0.1f; //Shift to the character we're from!
+	*charx = cx; //Set!
+	*chary = cy; //Set!
+
+	//Now the pixel within!
+	cx2 = *x; //Read original x!
+	cy2 = *y; //Read original y!
+	cx *= 10; //Get original pixel!
+	cy *= 10; //Get original pixel!
+	cx2 -= cx; //Substract from the pixel!
+	cy2 -= cy; //Substract from the pixel!
+	*x = cx2; //Our inner x!
+	*y = cy2; //Our inner y!
 }
 
 OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
@@ -104,6 +110,7 @@ OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 
 OPTINLINE void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
 {
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)) return; //Invalid surface!
 	if (surface->dirty[fy][fx]) updateDirty(surface,fx,fy); //Update dirty if needed!
 	register uint_32 color = surface->notdirty[fy][fx];
 	if (color!=TRANSPARENTPIXEL)

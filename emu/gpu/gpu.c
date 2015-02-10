@@ -122,7 +122,7 @@ void initVideoMain() //Everything SDL PRE-EMU!
 		initKeyboardOSK(); //Start the OSK handler!
 		dolog("zalloc","allocBIOSMenu...");
 		allocBIOSMenu(); //BIOS menu has the highest priority!
-		addtimer(60.0, &refreshscreen, "RefreshScreen", 1, 1); //Refresh the screen at this frequency MAX!
+		addtimer(60.0, &refreshscreen, "RefreshScreen", 1, 1,NULL); //Refresh the screen at this frequency MAX!
 	}
 }
 

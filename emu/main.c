@@ -291,7 +291,7 @@ int main(int argc, char * argv[])
 	
 	ThreadParams_p rootthread; //The main thread we're going to use!
 	//Start of the visible part!
-	rootthread = startThread(&cputhread,"X86EMU_CPU",DEFAULT_PRIORITY); //Start the main thread (default priority)!
+	rootthread = startThread(&cputhread,"X86EMU_CPU",NULL, DEFAULT_PRIORITY); //Start the main thread (default priority)!
 
 	//New SDL way!
 	/* Check for events */
@@ -300,7 +300,7 @@ int main(int argc, char * argv[])
 	running = 1; //Default: we're running!
 	for (; (threadRunning(rootthread,"X86EMU_CPU") && running);) //Still running?
 	{
-		delay(1); //Give threads some time!
+		delay(100000); //Give threads some time!
 		for (;SDL_PollEvent(&event);) //Gotten events to handle?
 		{
 			//Handle an event!

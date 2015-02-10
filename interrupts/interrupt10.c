@@ -127,7 +127,7 @@ int GPU_getpixel(int x, int y, byte page, byte *pixel) //Get a pixel from the re
                                 //LOG(LOG_INT10,LOG_ERROR)("GetPixel_EGA_p: %x!=%x",CurMode->plength,MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0));
                         //if (CurMode->swidth!=(Bitu)MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0)*8)
                                 //LOG(LOG_INT10,LOG_ERROR)("GetPixel_EGA_w: %x!=%x",CurMode->swidth,MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0)*8);
-                        RealPt off=RealMake(0xa0000,MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0)*page+
+                        RealPt off=RealMake(0xa000,MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0)*page+
                                 ((y*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0)*8+x)>>3));
                         Bitu shift=7-(x & 7);
                         /* Set the read map */
@@ -145,13 +145,13 @@ int GPU_getpixel(int x, int y, byte page, byte *pixel) //Get a pixel from the re
         case M_VGA:
                 *color=mem_readb(RealMake(0xa000,320*y+x));
                 break;
-        case M_LIN8: {
+        /*case M_LIN8: {
                         //if (CurMode->swidth!=(Bitu)real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)
                         //        LOG(LOG_INT10,LOG_ERROR)("GetPixel_VGA_w: %x!=%x",CurMode->swidth,real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8);
                         RealPt off=RealMake(S3_LFB_BASE,y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8+x);
                         *color = mem_readb(off);
                         break;
-                }
+                }*/
         default:
                 //LOG(LOG_INT10,LOG_ERROR)("GetPixel unhandled mode type %d",CurMode->type);
             return 0; //Error: unknown mode!
@@ -253,7 +253,7 @@ int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pi
                         //        LOG(LOG_INT10,LOG_ERROR)("PutPixel_EGA_p: %x!=%x",CurMode->plength,real_readw(BIOSMEM_SEG,BIOSMEM_PAGE_SIZE));
                         //if (CurMode->swidth!=(Bitu)real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)
                         //        LOG(LOG_INT10,LOG_ERROR)("PutPixel_EGA_w: %x!=%x",CurMode->swidth,real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8);
-                        RealPt off=RealMake(0xa0000,real_readw(BIOSMEM_SEG,BIOSMEM_PAGE_SIZE)*page+
+                        RealPt off=RealMake(0xa000,real_readw(BIOSMEM_SEG,BIOSMEM_PAGE_SIZE)*page+
                                 ((y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8+x)>>3));
                         /* Bitmask and set/reset should do the rest */
                         mem_readb(off);
@@ -269,13 +269,13 @@ int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pi
         case M_VGA:
                 mem_writeb(RealMake(0xa000,y*320+x),color);
                 break;
-        case M_LIN8: {
+        /*case M_LIN8: {
                         //if (CurMode->swidth!=(Bitu)real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)
                         //        LOG(LOG_INT10,LOG_ERROR)("PutPixel_VGA_w: %x!=%x",CurMode->swidth,real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8);
                         RealPt off=RealMake(S3_LFB_BASE,y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8+x);
                         mem_writeb(off,color);
                         break;
-                }
+                }*/
         default:
                 //if(GCC_UNLIKELY(!putpixelwarned)) {
                         //putpixelwarned = true;          

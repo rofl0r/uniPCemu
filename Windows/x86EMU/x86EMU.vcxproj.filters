@@ -426,6 +426,9 @@
     <ClCompile Include="..\..\hardware\vga\vga_screen\vga_dacrenderer.c">
       <Filter>Source Files\hardware\vga\vga_screen</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\support\mid.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">
@@ -764,6 +767,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_dacrenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\headers\support\mid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
