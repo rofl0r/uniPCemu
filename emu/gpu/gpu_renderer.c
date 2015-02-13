@@ -148,6 +148,8 @@ void GPU_directRenderer() //Plot directly 1:1 on-screen!
 		return; //Don't render anymore!
 	}
 
+#ifdef __psp__
+	//PSP only?
 	if (GPU.emu_buffer_dirty) //Dirty?
 	{
 		//Old method, also fine&reasonably fast!
@@ -170,6 +172,7 @@ void GPU_directRenderer() //Plot directly 1:1 on-screen!
 		}
 		GPU.emu_buffer_dirty = 0; //Not dirty anymore!
 	}
+#endif
 
 	//We can't use the keyboard with the old renderer, so you just have to do it from the top of your head!
 	//OK: rendered to PSP buffer!
@@ -326,8 +329,9 @@ void render_EMU_buffer() //Render the EMU to the buffer!
 			word xres, yres;
 			xres = GPU.xres; //Load x resolution!
 			yres = GPU.yres; //Load y resolution!
-			if (xres>EMU_MAX_X) xres = EMU_MAX_X; //Limit to buffer!
-			if (yres>EMU_MAX_Y) yres = EMU_MAX_Y; //Limit to buffer!
+			//Limit broken = no display!
+			if (xres>EMU_MAX_X) return; //Limit to buffer!
+			if (yres>EMU_MAX_Y) return; //Limit to buffer!
 			dolog("zalloc", "create surface from pixels...");
 			GPU_SDL_Surface *emu_screen = createSurfaceFromPixels(GPU.xres,GPU.yres,GPU.emu_screenbuffer,EMU_MAX_X); //Create container 32BPP pixel mode!
 			if (emu_screen) //Createn to render?

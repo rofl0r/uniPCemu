@@ -42,14 +42,27 @@ SDL_Surface *getGPUSurface()
 	originalrenderer = SDL_SetVideoMode(PSP_SCREEN_COLUMNS, PSP_SCREEN_ROWS, 32, SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 	#else
 	//Windows etc?
-	//Clip resolution to the maximum!
-	if (GPU.xres > EMU_MAX_X) GPU.xres = EMU_MAX_X;
-	if (GPU.yres > EMU_MAX_Y) GPU.yres = EMU_MAX_Y;
+	//If the limit is broken, don't change resolution! Keep old resolution!
+	if (GPU.xres > EMU_MAX_X)
+	{
+		if (originalrenderer)
+		{
+			return originalrenderer;
+		}
+		GPU.xres = 0; //Discard: overflow!
+	}
+	if (GPU.yres > EMU_MAX_Y)
+	{
+		if (originalrenderer)
+		{
+			return originalrenderer;
+		}
+		GPU.yres = 0; //Discard: overflow!
+	}
 
 	//Other architecture?
 	if ((GPU.xres>=PSP_SCREEN_COLUMNS) && (GPU.yres>=PSP_SCREEN_ROWS) && VIDEO_DFORCED) //Gotten a resolution bigger than minimum and plotting directly forced? (direct plot any resolution, not automatic)
 	{
-		dolog("GPU", "Windows-specific resolution: %ix%i", GPU.xres, GPU.yres);
 		originalrenderer = SDL_SetVideoMode(GPU.xres, GPU.yres, 32, SDL_SWSURFACE); //Start fullscreen of rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!		
 	}
 	else
@@ -71,7 +84,10 @@ void initVideoLayer() //We're for allocating the main video layer, only dealloca
 		{
 			//PSP has solid resolution!
 			getGPUSurface(); //Allocate our display!
+			#ifdef __psp__
+			//We don't want the cursor to show on the PSP!
 			SDL_ShowCursor(SDL_DISABLE); //We don't want cursors on empty screens!
+			#endif
 			if (!originalrenderer) //Failed to allocate?
 			{
 				raiseError("GPU","Error allocating PSP Main Rendering Surface!");
@@ -116,11 +132,8 @@ void initVideoMain() //Everything SDL PRE-EMU!
 	memset(&GPU,0,sizeof(GPU)); //Init all GPU data!
 	if (SDL_WasInit(SDL_INIT_VIDEO)) //Initialised?
 	{
-		dolog("zalloc","initFramerate...");
 		initFramerate(); //Start the framerate handler!
-		dolog("zalloc","initKeyboardOSK...");
 		initKeyboardOSK(); //Start the OSK handler!
-		dolog("zalloc","allocBIOSMenu...");
 		allocBIOSMenu(); //BIOS menu has the highest priority!
 		addtimer(60.0, &refreshscreen, "RefreshScreen", 1, 1,NULL); //Refresh the screen at this frequency MAX!
 	}
@@ -188,10 +201,10 @@ void updateVideo() //Update the screen resolution on change!
 			{
 				freez((void **)&rendersurface, sizeof(*rendersurface), NULL); //Release the old surface!
 				rendersurface = getSurfaceWrapper(originalrenderer); //Apply the new renderer!
-				rendersurface->flags |= SDL_FLAG_DIRTY; //Force re-rendering!
 
 				if (rendersurface) //Allocated?
 				{
+					rendersurface->flags |= SDL_FLAG_DIRTY; //Force re-rendering!
 					registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 0); //Register, but don't allow release: this is done by SDL_Quit only!
 				}
 			}

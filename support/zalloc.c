@@ -92,12 +92,15 @@ OPTINLINE sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //A
 	--address_end; //End of data!
 
 
-	for (left = 0; left<NUMITEMS(registeredpointers);++left) //Process matchable options!
+	for (;left<NUMITEMS(registeredpointers);++left) //Process matchable options!
 	{
-		currentstart = (uint_32)registeredpointers[left].pointer; //Start of addressing!
-		if (!currentstart) continue; //Gotten anything at all?
+		currentstart = registeredpointers[left].ptrstart; //Start of addressing!
+		if (currentstart==0) continue; //Gotten anything at all?
 		currentend = registeredpointers[left].ptrend; //End of addressing!
-		if (name) if (!!strcmp(registeredpointers[left].name, name)) continue; //Invalid name? Skip us if so!
+		if (name)
+		{
+			if (strcmp(registeredpointers[left].name, name)!=0) continue; //Invalid name? Skip us if so!
+		}
 		if (currentstart > address_start) continue; //Skip: not our pointer!
 		if (currentend < address_end) continue; //Skip: not our pointer!
 		//Within range? Give the correct result!

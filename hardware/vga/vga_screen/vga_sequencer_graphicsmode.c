@@ -12,7 +12,7 @@
 #include "headers/mmu/mmu.h" //For BIOS data!
 #include "headers/header_dosbox.h" //For comp.
 
-typedef byte (*agetpixel)(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_AttributeInfo *Sequencer_Attributeinfo); //For our jumptable for getpixel!
+typedef byte (*agetpixel)(VGA_Type *VGA, SEQ_DATA *Sequencer, word x); //For our jumptable for getpixel!
 
 /*
 
@@ -21,30 +21,30 @@ typedef byte (*agetpixel)(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_Attrib
 */
 
 //This should be OK, according to: http://www.nondot.org/sabre/Mirrored/GraphicsProgrammingBlackBook/gpbb31.pdf
-byte getpixel256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_AttributeInfo *Sequencer_Attributeinfo) //256colorshiftmode getcolorplanes!
+byte getpixel256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //256colorshiftmode getcolorplanes!
 {
-	register word plane, activex; //X!
-	register byte part, result;
+	register word activex; //X!
+	register byte part, plane, result;
 
 	//First: calculate the nibble to shift into our result!
-	part = activex = x;
-	part &= 1; //Take the lowest bit only!
+	part = activex = x; //Load x into part&activeX for processing!
+	part &= 1; //Take the lowest bit only for the part!
 	part ^= 1; //Reverse: High nibble=bit 0 set, Low nibble=bit 0 cleared
 	part <<= 2; //High nibble=4, Low nibble=0
-
 	activex >>= 1; //Ignore the part number to get our nibble: Every part is a nibble, so increase every 2 pixels!
+
+	//Now we're just a simple index to maintain and find the correct byte!
 	activex >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
-	activex += Sequencer->charystart; //Apply the line to retrieve!
 
 	//Determine plane and offset within the plane!
-	plane = activex;
+	plane = activex; //Load plane!
 	plane &= 3; //We walk through the planes!
-	activex >>= 2; //Get the pixel (every 4 increment)!
+	activex >>= 2; //Apply the pixel (every 4 increment)!
 	
 	//Apply startmap!
-	activex += Sequencer->startmap; //What start address?
+	activex += Sequencer->charystart; //Apply the line and start map to retrieve!
 
-	result = readVRAMplane(VGA,plane,activex,1); //The full offset of the plane all stuff is already done, so 0 at the end!
+	result = readVRAMplane(VGA, plane, activex, 1); //The full offset of the plane all stuff is already done, so 0 at the end!
 	result >>= part; //Shift to the required part (low/high nibble)!
 	result &= 0xF; //Only the low resulting nibble is used!
 	return result; //Give the result!
@@ -56,7 +56,7 @@ SHIFT REGISTER INTERLEAVE MODE
 
 */
 
-byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_AttributeInfo *Sequencer_Attributeinfo) //256colorshiftmode getcolorplanes!
+byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //256colorshiftmode getcolorplanes!
 {
 	//Calculate the plane index!
 	register word shift,tempx,planebase,planeindex;
@@ -71,8 +71,7 @@ byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, SEQ_DATA *Sequencer, wor
 
 	planebase &= 1; //Base plane (0/1)! OK!
 
-	planeindex += Sequencer->charystart; //Add the start address!
-	planeindex += Sequencer->startmap; //What start address?
+	planeindex += Sequencer->charystart; //Add the start address and start map!
 	
 	//Read the low&high planes!
 	planelow = readVRAMplane(VGA,planebase,planeindex,1); //Read low plane!
@@ -82,7 +81,8 @@ byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, SEQ_DATA *Sequencer, wor
 	//Determine the shift for our pixels!
 	shift &= 3; //The shift rotates every 4 pixels
 	shift <<= 1; //Every rotate contains 2 bits
-	shift = 6-shift; //Get the shift!
+	shift = 6; //Shift for pixel 0!
+	shift -= shift; //Get the shift!
 	
 	//Get the pixel
 	planelow >>= shift; //Shift plane low correct.
@@ -106,19 +106,20 @@ SINGLE SHIFT MODE
 
 */
 
-byte getpixelsingleshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x, VGA_AttributeInfo *Sequencer_Attributeinfo)
+byte getpixelsingleshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x)
 {
 	//16-color mode!
 	register byte result; //Init result!
 	register word offset, bit;
 
-	bit = x;
-	bit &= 7; //The bit in the byte (from the start of VRAM byte)!
-	x >>= 3; //Shift to the byte!
-	x >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
-	offset = Sequencer->charystart; //VRAM start!
-	offset += x; //The x coordinate, 8 pixels per byte!
-	offset += Sequencer->startmap; //What start address?
+	offset = x; //Load x!
+	offset >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
+
+	bit = offset;
+	bit &= 7; //The bit in the byte (from the start of VRAM byte)! 8 bits = 8 pixels!
+
+	offset >>= 3; //Shift to the byte: every 8 pixels we go up 1 byte!
+	offset += Sequencer->charystart; //VRAM start of row and start map!
 	
 	//Standard VGA processing!
 	result = getBitPlaneBit(VGA,3,offset,bit,1); //Add plane to the result!
@@ -155,5 +156,5 @@ void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attribut
 				getpixel256colorshiftmode
 				}; //All the getpixel functionality!
 	attributeinfo->fontpixel = 1; //Graphics attribute is always font enabled!
-	attributeinfo->attribute = getpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](VGA,Sequencer,Sequencer->activex,attributeinfo);
+	attributeinfo->attribute = getpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](VGA,Sequencer,Sequencer->activex);
 }

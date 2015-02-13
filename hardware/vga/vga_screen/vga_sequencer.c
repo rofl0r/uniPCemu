@@ -409,13 +409,20 @@ void initStateHandlers()
 	}
 }
 
-void VGA_Sequencer(VGA_Type *VGA)
+void VGA_Sequencer()
 {
 	if (HW_DISABLED) return;
+	VGA_Type *VGA = getActiveVGA(); //Our active VGA!
 	if (!VGA) return; //Invalid VGA?
+
 	SEQ_DATA *Sequencer;
 	word displaystate; //Current display state!
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
+
+	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Not doing anything?
+	{
+		return; //Abort: we're disabled!
+	}
 
 	//All possible states!
 	if (!displaysignalhandler[0]) //Nothing set?

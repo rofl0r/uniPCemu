@@ -107,11 +107,9 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //R
 	fulloffset2 |= patchedoffset; //Generate full offset!
 	fulloffset2 = SAFEMODUINT32(fulloffset2,VGA->VRAM_size); //Wrap arround VRAM if needed!
 
-	byte *data;
-	data = &VGA->VRAM[fulloffset2]; //Give the data!
-	if (memprotect(data,1,"VGA_VRAM")) //VRAM valid?
+	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
-		return *data; //Read the data from VRAM!
+		return VGA->VRAM[fulloffset2]; //Read the data from VRAM!
 	}
 	return 0; //Nothing there: invalid VRAM!
 }

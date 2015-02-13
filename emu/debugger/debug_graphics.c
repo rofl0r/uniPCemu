@@ -10,14 +10,14 @@
 #include "headers/hardware/vga_screen/vga_precalcs.h" //For the CRT precalcs dump!
 #include "headers/hardware/vga_screen/vga_dac.h" //DAC support!
 //To make a screen capture of all of the debug screens active?
-#define LOG_VGA_SCREEN_CAPTURE 2
+#define LOG_VGA_SCREEN_CAPTURE 0
 //For text-mode debugging! 40 and 80 character modes!
-#define VIDEOMODE_TEXTMODE_40 0x01
-#define VIDEOMODE_TEXTMODE_80 0x03
+#define VIDEOMODE_TEXTMODE_40 0x00
+#define VIDEOMODE_TEXTMODE_80 0x02
 //To log the first rendered line after putting pixels?
 #define LOG_VGA_FIRST_LINE 0
 //To debug text modes too in below or BIOS setting?
-#define TEXTMODE_DEBUGGING 1
+#define TEXTMODE_DEBUGGING 0
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
 
@@ -309,7 +309,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//TODO:
 	//DoDebugVGAGraphics(0x06,640,200,0x02,0,0x1,1,1); //Debug 640x200x2(B/W)! NOT WORKING YET!
 	
-	//TODO DoDebugVGAGraphics(0x0F,640,350,0x02,0,0x1,1,0); //Debug 640x350x2(Monochrome)! GIVES BLACK SCREEN!
+	//DoDebugVGAGraphics(0x0F,640,350,0x02,0,0x1,1,0); //Debug 640x350x2(Monochrome)! GIVES BLACK SCREEN!
 	//16 color mode!
 	//DoDebugVGAGraphics(0x0D,320,200,0x10,0,0xF,0,0); //Debug 320x200x16!
 
@@ -318,11 +318,11 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//16 color b/w mode!
 	//DoDebugVGAGraphics(0x11,640,480,0x10,0,0x1,1,0); //Debug 640x480x16(B/W)! 
 	//16 color maxres mode!
-	//DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
+	DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
 	//VGA_DUMPDAC(); //Dump the DAC!
 	//256 color mode!
 	//DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
-	debugTextModeScreenCapture(); //Log screen capture!
+	//debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!
 	//halt(); //Stop!
