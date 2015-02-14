@@ -18,11 +18,9 @@ uint_32 ptrstart, ptrend; //Start&end address of the pointer!
 POINTERENTRY registeredpointers[1024]; //All registered pointers!
 byte pointersinitialised = 0; //Are the pointers already initialised?
 
-//Our maximum memory that's supported: 3GB!
-//#define MEM_MAX_10 2000000000
-//For debugging, limit to 10MB, thus a factor of 1MB to start with (maximum block size: 9.999... times this, eg 10MB=99,9...MB allocated max)!
+//Our maximum memory that's supported: 100MB blocks! We give the greatest power of 10 to use! So 1GB blocks max.
 #define MEM_MAX_10 1000000
-//Limit each block allocated to this number when defined! Limit us to ~10MB for testing!
+//Limit each block allocated to this number when defined! Limit us to ~500MB for memory!
 #define MEM_BLOCK_LIMIT 10000000
 
 //Debug undefined deallocations?

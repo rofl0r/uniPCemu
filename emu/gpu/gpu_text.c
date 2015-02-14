@@ -313,7 +313,11 @@ void GPU_enableDelta(GPU_TEXTSURFACE *surface, byte xdelta, byte ydelta) //Enabl
 
 void GPU_text_updatedelta(SDL_Surface *surface)
 {
-	if (!surface) return; //Invalid surface!
+	if (!surface) //Invalid surface!
+	{
+		TEXT_xdelta = TEXT_ydelta = 0; //No delta!
+		return; //Invalid surface: no delta used!
+	}
 	sword xdelta, ydelta;
 	xdelta = surface->w; //Current resolution!
 	ydelta = surface->h; //Current resolution!
