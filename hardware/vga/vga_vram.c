@@ -133,7 +133,7 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write 
 	byte *data;
 	data = &VGA->VRAM[fulloffset2];
 
-	if (memprotect(data,1,"VGA_VRAM"))
+	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
 		*data = value; //Set the data in VRAM!
 		if (plane==2) //Character RAM updated?
