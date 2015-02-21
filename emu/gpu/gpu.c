@@ -45,18 +45,12 @@ SDL_Surface *getGPUSurface()
 	//If the limit is broken, don't change resolution! Keep old resolution!
 	if (GPU.xres > EMU_MAX_X)
 	{
-		if (originalrenderer)
-		{
-			return originalrenderer;
-		}
+		if (originalrenderer) return originalrenderer; //Unchanged!
 		GPU.xres = 0; //Discard: overflow!
 	}
 	if (GPU.yres > EMU_MAX_Y)
 	{
-		if (originalrenderer)
-		{
-			return originalrenderer;
-		}
+		if (originalrenderer) return originalrenderer; //Unchanged!
 		GPU.yres = 0; //Discard: overflow!
 	}
 
@@ -199,14 +193,9 @@ void updateVideo() //Update the screen resolution on change!
 			yres = GPU.yres;
 			if (getGPUSurface()) //Update the current surface if needed!
 			{
-				freez((void **)&rendersurface, sizeof(*rendersurface), NULL); //Release the old surface!
-				rendersurface = getSurfaceWrapper(originalrenderer); //Apply the new renderer!
-
-				if (rendersurface) //Allocated?
-				{
-					rendersurface->flags |= SDL_FLAG_DIRTY; //Force re-rendering!
-					registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 0); //Register, but don't allow release: this is done by SDL_Quit only!
-				}
+				rendersurface->sdllayer = originalrenderer; //Apply the new renderer!
+				rendersurface->flags |= SDL_FLAG_DIRTY; //Force re-rendering!
+				registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 0); //Register, but don't allow release: this is done by SDL_Quit only!
 			}
 		}
 	}
