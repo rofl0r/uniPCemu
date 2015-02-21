@@ -218,7 +218,7 @@ void render_EMU_screen() //Render the EMU buffer to the screen!
 				nextrowemu: //Process row-by-row!
 				{
 					if (!count--) goto startbottomrendering; //Stop when done!
-					put_pixel_row(rendersurface,y++,resized->sdllayer->w,get_pixel_row(resized,virtualrow++,0),(letterbox&1),0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+					if (resized) put_pixel_row(rendersurface,y++,resized->sdllayer->w,get_pixel_row(resized,virtualrow++,0),(letterbox&1),0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
 					goto nextrowemu;
 				}
 			}

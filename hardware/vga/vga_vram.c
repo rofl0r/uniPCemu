@@ -69,7 +69,7 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 	register uint_32 address2; //Load the initial value for calculating!
 	register uint_32 result;
 	result = memoryaddress; //Default: don't change!
-	if (getVRAMMemAddrSize(VGA)==2) //Word mode?
+	if (VGA->precalcs.VRAMmemaddrsize==2) //Word mode?
 	{
 		address2 = memoryaddress; //Load the address for calculating!
 		if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
@@ -101,11 +101,12 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //R
 		patchedoffset = patch_map1314(VGA,patchedoffset); //Patch MAP13&14!
 	}
 
+	plane &= 3; //Only 4 planes are available!
+
 	register uint_32 fulloffset2;
 	fulloffset2 = plane; //Load full plane!
 	fulloffset2 <<= 16; //Move to the start of the plane!
 	fulloffset2 |= patchedoffset; //Generate full offset!
-	fulloffset2 = SAFEMODUINT32(fulloffset2,VGA->VRAM_size); //Wrap arround VRAM if needed!
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
@@ -119,23 +120,16 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write 
 	if (!VGA) return; //Invalid VGA!
 	if (!VGA->VRAM_size) return; //No size!
 	
-	/*if (LOG_VRAM_WRITES)
-	{
-		dolog("VGA_VRAM","Writing to plane %i offset %04X=%02X",plane,offset,value); //Log our write!
-	}*/
-	
+	plane &= 3; //Only 4 planes are available!
+
 	register uint_32 fulloffset2;
 	fulloffset2 = plane; //Load full plane!
 	fulloffset2 <<= 16; //Move to the start of the plane!
 	fulloffset2 |= offset; //Generate full offset!
-	fulloffset2 = SAFEMODUINT32(fulloffset2,VGA->VRAM_size); //Wrap arround VRAM if needed!
 	
-	byte *data;
-	data = &VGA->VRAM[fulloffset2];
-
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
-		*data = value; //Set the data in VRAM!
+		VGA->VRAM[fulloffset2] = value; //Set the data in VRAM!
 		if (plane==2) //Character RAM updated?
 		{
 			VGA_plane2updated(VGA,offset); //Plane 2 has been updated!	

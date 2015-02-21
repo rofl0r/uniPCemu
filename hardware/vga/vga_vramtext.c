@@ -61,24 +61,22 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 			byte y = 0; //From 0-32 (5 bits)!
 			for (;y<0x20;) //33 rows!
 			{
-				uint_32 characterset_offset; //First, the character set, later translated to the real charset offset!
+				uint_32 characterset_offset, add2000; //First, the character set, later translated to the real charset offset!
 				if (attribute) //Charset A? (bit 2 (value 0x4) set?)
 				{
-					characterset_offset = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetASelect_low+
-										  (VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetASelect_high<<2); //Charset A!
+					characterset_offset = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetASelect_low;
+					add2000 = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetASelect_high; //Charset A!
 				}
 				else //Charset B?
 				{
-					characterset_offset = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetBSelect_low+
-										  (VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetBSelect_high<<2); //Charset B!
+					characterset_offset = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetBSelect_low;
+					add2000 = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetBSelect_high; //Charset B!
 				}
 
-				characterset_offset <<= 14; //The calculated offset from the base!
-				if (characterset_offset>=3) //Base, normally 0, or 0x2000!
-				{
-					characterset_offset += 0x2000; //Other base!
-				}
-				//characterset_offset += OPTMUL32(character,getcharacterheight(VGA)); //Start adress of character!
+				characterset_offset <<= 1; //Calculated 0,4,8,c! Add room for 0x2000!
+				characterset_offset |= add2000; //Add the 2000 mark!
+				characterset_offset <<= 13; //Shift to the start position: 0,4,8,c,2,6,a,e!
+
 				uint_32 character2;
 				character2 = character; //Load!
 				character2 <<= 5; //Multiply by 32!

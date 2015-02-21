@@ -36,7 +36,7 @@ byte allow_zallocfaillog = 1; //Allow zalloc fail log?
 OPTINLINE void initZalloc() //Initialises the zalloc subsystem!
 {
 	if (pointersinitialised) return; //Don't do anything when we're ready already!
-	//memset(&registeredpointers,0,sizeof(registeredpointers)); //Initialise all registered pointers!
+	memset(&registeredpointers,0,sizeof(registeredpointers)); //Initialise all registered pointers!
 	atexit(&freezall); //Our cleanup function registered!
 	pointersinitialised = 1; //We're ready to run!
 }
@@ -131,7 +131,7 @@ byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Regis
 		#endif
 		return 0; //Not a size, so can't be a pointer!
 	}
-	if (matchptr(ptr,0,size,NULL)>-2) return 0; //Already gotten (prevent subs to register after parents)?
+	if (matchptr(ptr,0,size,NULL)>-2) return 1; //Already gotten (prevent subs to register after parents)?
 	
 	for (current=0;current<NUMITEMS(registeredpointers);current++) //Process valid!
 	{
@@ -165,12 +165,10 @@ byte unregisterptr(void *ptr, uint_32 size) //Remove pointer from registration (
 	{
 		if (registeredpointers[index].pointer==ptr && registeredpointers[index].size==size) //Fully matched (parents only)?
 		{
-			registeredpointers[index].pointer = NULL; //Not a pointer!
-			registeredpointers[index].size = 0; //No size: we're not a pointer!
 			#ifdef DEBUG_ALLOCDEALLOC
 			if (allow_zallocfaillog) dolog("zalloc","Freeing pointer %s with size %i bytes...",registeredpointers[index].name,size); //Show we're freeing this!
 			#endif
-			memset(&registeredpointers[index].name,0,sizeof(registeredpointers[index].name)); //Clear the name!
+			memset(&registeredpointers[index],0,sizeof(registeredpointers[index])); //Clear the pointer entry to it's defaults!
 			return 1; //Safely unregistered!
 		}
 	}

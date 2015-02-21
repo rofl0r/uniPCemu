@@ -221,8 +221,8 @@ OPTINLINE void VRAM_writecpu(uint_32 offset, byte value)
 		byte plane2;
 		plane2 = ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage; //Load high page!
 		plane2 <<= 1;
-		plane2 |= (originaloffset&1); //Sub!
-		plane <<= plane2; //The plane to use: odd(1) or even(0)!
+		plane2 |= (originaloffset&1); //The plane to use: odd(1) or even(0)!
+		plane <<= plane2; //Generate our plane mask!
 		realoffset = originaloffset;
 		realoffset &= ~1; //Calculate the correct offset within the VRAM! Bit 0 is cleared: we address even bytes only!
 	}

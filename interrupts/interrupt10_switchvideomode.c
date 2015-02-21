@@ -281,6 +281,8 @@ int INT10_Internal_SetVideoMode(word mode)
 		misc_output|=0x60;
 	}
 	
+	misc_output &= 0xDF; //Added by superfury: Clear the odd/even page bit! This isn't supposed to be used during normal VRAM access: we use planes 0/1, not 2/3 during normal odd/even operations!
+
 	IO_Write(0x3c2,misc_output);		//Setup for 3b4 or 3d4
 
 	/* Program Sequencer */

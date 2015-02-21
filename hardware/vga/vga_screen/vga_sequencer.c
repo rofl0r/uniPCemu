@@ -413,7 +413,7 @@ void VGA_Sequencer()
 {
 	if (HW_DISABLED) return;
 	VGA_Type *VGA = getActiveVGA(); //Our active VGA!
-	if (!VGA) return; //Invalid VGA?
+	if (!memprotect(VGA, sizeof(*VGA), "VGA_Struct")) return; //Invalid VGA? Don't do anything!
 
 	SEQ_DATA *Sequencer;
 	word displaystate; //Current display state!
