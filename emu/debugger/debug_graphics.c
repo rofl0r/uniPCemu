@@ -205,12 +205,6 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		CPU.registers->BL = 0x0E; //yellow!
 		BIOS_int10(); //Show the border like this!
 	
-		/*CPU.registers->AH = 1; //Set cursor shape!
-		CPU.registers->CH = 7; //Scan line 7-
-		CPU.registers->CL = 8; //8!
-		BIOS_int10(); //Set cursor shape!
-		*/
-
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(5000000); //Wait 5 seconds!
 	
@@ -319,21 +313,19 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//16 color b/w mode!
 	//DoDebugVGAGraphics(0x11,640,480,0x10,0,0x1,1,0); //Debug 640x480x16(B/W)! 
 	//16 color maxres mode!
-	//DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
+	DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
 	//VGA_DUMPDAC(); //Dump the DAC!
 	//256 color mode!
-	//DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
+	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
 	//debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!
 	//halt(); //Stop!
 
-	if (waitforever || ALWAYS_SLEEP) //Normal debugging with keyboard?
-	{
-		sleep(); //Wait forever!
-	}
 	disableKeyboard(); //Disable the keyboard!
-	return; //Go to reset!
+
+	CPU.registers->AX = VIDEOMODE_TEXTMODE_80;
+	BIOS_int10(); //Text mode operations!
 
 	CPU.registers->AH = 2; //Set cursor x,y
 	CPU.registers->BH = 0; //Display page #0!
@@ -342,7 +334,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	BIOS_int10(); //Show!
 
 //Now, debug cursor movement etc!
-	while (1)
+	for (;;)
 	{
 		int key;
 		key = psp_inputkeydelay(500000); //Wait for keypress with delay!

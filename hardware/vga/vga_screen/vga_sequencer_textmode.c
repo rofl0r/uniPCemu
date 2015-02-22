@@ -9,13 +9,8 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer!
 
-OPTINLINE uint_32 getcursorlocation(VGA_Type *VGA) //Location of the cursor!
-{
-	return VGA->precalcs.cursorlocation; //Cursor location!
-}
-
 //Character is cursor position?
-#define CHARISCURSOR (Sequencer_textmode_charindex==getcursorlocation(VGA))
+#define CHARISCURSOR (Sequencer_textmode_charindex==VGA->precalcs.cursorlocation)
 //Scanline is cursor position?
 #define SCANLINEISCURSOR1 (Rendery>=VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart)
 #define SCANLINEISCURSOR2 (Rendery<=VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd)
@@ -25,18 +20,14 @@ OPTINLINE uint_32 getcursorlocation(VGA_Type *VGA) //Location of the cursor!
 
 OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,uint_32 Sequencer_textmode_charindex) //Cursor scanline within character is cursor? Used to be: VGA_Type *VGA, byte ScanLine,uint_32 characterlocation
 {
-	if (CHARISCURSOR) //Character is cursor?
+	byte cursorOK;
+	if (CHARISCURSOR) //Character is cursor character?
 	{
-		if (CURSORENABLED1) //Cursor enabled?
-		{
-			if (CURSORENABLED2) //Cursor on?
-			{
-				if (SCANLINEISCURSOR1 && SCANLINEISCURSOR2) //Scanline is cursor top&bottom?
-				{
-					return 1; //To show the cursor on this scanline?
-				}
-			}
-		}
+		cursorOK = CURSORENABLED1; //Cursor enabled?
+		cursorOK &= CURSORENABLED2; //Cursor on?
+		cursorOK &= SCANLINEISCURSOR1; //Scanline is within cursor top range?
+		cursorOK &= SCANLINEISCURSOR2; //Scanline is within cursor bottom range?
+		return cursorOK; //Give if the cursor is OK!
 	}
 	return 0; //No cursor!
 }

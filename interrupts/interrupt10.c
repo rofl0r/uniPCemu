@@ -527,25 +527,44 @@ void EMU_CPU_setCursorXY(byte displaypage, byte x, byte y)
 	}
 }
 
-void EMU_CPU_setCursorScanlines(byte start, byte end)
-{
-	if (__HW_DISABLED) return; //Abort!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_TYPE,start); //Set start line!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_TYPE+1,end); //Set end line!
-
-	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
-	PORT_OUT_B(0x3D4,0xA); //Select start register!
-	PORT_OUT_B(0x3D5,start); //Start!
-	PORT_OUT_B(0x3D4,0xB); //Select end register!
-	PORT_OUT_B(0x3D5,end); //End!
-	PORT_OUT_B(0x3D4,oldcrtc); //Restore old CRTC register!
-}
-
 void EMU_CPU_getCursorScanlines(byte *start, byte *end)
 {
 	if (__HW_DISABLED) return; //Abort!
-	*start = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_TYPE,0); //Get start line!
-	*end = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_TYPE+1,0); //Get end line!
+	*start = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, 0); //Get start line!
+	*end = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, 0); //Get end line!
+}
+
+void EMU_CPU_setCursorScanlines(byte start, byte end)
+{
+	if (__HW_DISABLED) return; //Abort!
+	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
+
+	start &= 0x3F; //Take our usable data only!
+	end &= 0x1F; //Take our usable data only!
+
+	PORT_OUT_B(0x3D4,0xA); //Select start register!
+	byte cursorStart = PORT_IN_B(0x3D5); //Read current cursor start!
+
+	cursorStart &= ~0x3F; //Clear our data location!
+	cursorStart |= start; //Add the usable data!
+	PORT_OUT_B(0x3D5,start); //Start!
+
+	//Process cursor end!
+	PORT_OUT_B(0x3D4,0xB); //Select end register!
+	byte cursorEnd = PORT_IN_B(0x3D5); //Read old end!
+
+	cursorEnd &= ~0x1F; //Clear our data location!
+	cursorEnd |= end; //Create the cursor end data!
+
+	PORT_OUT_B(0x3D5,end); //Write new cursor end!
+	
+	PORT_OUT_B(0x3D4,oldcrtc); //Restore old CRTC register address!
+
+	start &= 0x1F; //Take our usable data only!
+
+	//Update our values!
+	MMU_wb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, start); //Set start line!
+	MMU_wb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, end); //Set end line!
 }
 
 void GPU_clearscreen() //Clears the screen!

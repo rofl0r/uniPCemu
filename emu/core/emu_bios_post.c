@@ -24,6 +24,7 @@
 #include "headers/cpu/80286/protection.h" //Basic protection support!
 
 #include "headers/emu/emu_main.h" //Main stuff!
+#include "headers/emu/emu_vga_bios.h" //VGA BIOS support for output!
 
 extern byte shutdown; //Shut down (default: NO)?
 extern byte reset; //To fully reset emu?
@@ -48,28 +49,28 @@ extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CP
 int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 {
 	debugrow("Running BIOS POST!");
-	#ifdef ALLOW_BIOS
+#ifdef ALLOW_BIOS
 	EMU_RUNNING = 0; //We're not running atm!
 	if (CheckBIOSMenu(3000000)) //Run BIOS Menu if needed for a short time!
 	{
 		EMU_RUNNING = 1; //We're running again!
 		return 1; //Reset after the BIOS!
 	}
-	#endif
+#endif
 
 	debugrow("Running core BIOS POST...");
-	
-	if (BIOS_Settings.debugmode==DEBUGMODE_BIOS)
+
+	if (BIOS_Settings.debugmode == DEBUGMODE_BIOS)
 	{
 		if (NOEMU)
 		{
-			dolog("emu","BIOS is used, but not emulated! Resetting emulator!");
+			dolog("emu", "BIOS is used, but not emulated! Resetting emulator!");
 			return 1; //Reboot always: emulation isn't allowed!
 		}
 		byte verified;
 		verified = 0; //Default: not verified!
-		
-		if (EMULATED_CPU<CPU_80286) //5160 PC?
+
+		if (EMULATED_CPU < CPU_80286) //5160 PC?
 		{
 			if (!BIOS_load_ROM(18)) //Failed to load u18?
 			{
@@ -112,7 +113,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		{
 			verified = BIOS_checkOPTROMS(); //Try and load OPT roms!
 		}
-		
+
 		if (!verified) //Error reading ROM?
 		{
 			CPU_INT(0x18); //Error: no ROM!
@@ -131,31 +132,27 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 	debugrow("Continuing BIOS POST...");
 	EMU_stopInput(); //Stop emulator input!
-	
+
 	debugrow("BIOS Beep...");
 	doBIOSBeep(); //Do the beep to signal we're ready to run!	
 
-//Now for the user visible part:
+	//Now for the user visible part:
 
 	int OPcounter = 0;
 	OPcounter = 0; //Init!
 	if (DEBUG_VGA_ONLY)
 	{
 		DoDebugTextMode(1); //Text mode debugging only, finally sleep!
-	}	
-	
-	#ifdef ALLOW_BIOS
+	}
+
+#ifdef ALLOW_BIOS
 	debugrow("BIOS POST Screen...");
 	//Now we're ready to go run the POST!
 	CPU.registers->AH = 0x00; //Init video mode!
 	CPU.registers->AL = VIDEOMODE_EMU; //80x25 16-color TEXT for EMU mode!
 	BIOS_int10(); //Switch!
 
-	CPU.registers->AH = 0x03; //Get cursor position and size!
-	BIOS_int10(); //Get data!
-	CPU.registers->AH = 0x02; //Set cursor shape!
-	CPU.registers->CH &= ~0x10; //Enable cursor!
-	BIOS_int10(); //Set data!
+	BIOS_enableCursor(0); //Disable the cursor!
 	
 	delay(200000); //Wait a bit before showing on-screen!
 
@@ -174,12 +171,15 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 	BIOS_ShowBIOS(); //Show BIOS information!
 	if (CheckBIOSMenu(0)) //Run BIOS Menu if needed!
 	{
+		BIOS_enableCursor(1); //Re-enable the cursor!
 		EMU_RUNNING = 1; //We're running again!
 		EMU_startInput(); //Start input again!
 		return 1; //Reset after the BIOS!
 	}
 	#endif
-	
+
+	BIOS_enableCursor(1); //Re-enable the cursor!
+
 	if (DEBUG_TEXTMODE) //Debugging text mode?
 	{
 		DoDebugTextMode(0); //Do the debugging!

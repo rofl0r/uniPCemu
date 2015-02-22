@@ -63,3 +63,20 @@ void printCRLF()
 	CPU.registers->BL = 0;//Color (depends on character, not black)
 	BIOS_int10(); //Output!
 }
+
+void BIOS_enableCursor(byte enabled)
+{
+	return; //Ignore!
+	CPU.registers->AH = 0x03; //Get old cursor position and size!
+	BIOS_int10(); //Get data!
+	CPU.registers->AH = 0x01; //Set cursor shape!
+	if (enabled) //Enabled?
+	{
+		CPU.registers->CH &= ~0x20; //Enable cursor!
+	}
+	else //Disabled?
+	{
+		CPU.registers->CH |= 0x20; //Disable cursor!
+	}
+	BIOS_int10(); //Set data!
+}
