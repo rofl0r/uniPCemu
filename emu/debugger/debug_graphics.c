@@ -17,7 +17,7 @@
 //To log the first rendered line after putting pixels?
 #define LOG_VGA_FIRST_LINE 0
 //To debug text modes too in below or BIOS setting?
-#define TEXTMODE_DEBUGGING 1
+#define TEXTMODE_DEBUGGING 0
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
 
@@ -298,6 +298,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//Graphics should be OK!
 	//4-color modes: TODO!
 	DoDebugVGAGraphics(0x04,320,200,0x04,0,0x0,1,0); //Debug 320x200x4! NOT WORKING FULLY YET!
+	sleep(); //Wait forever to test!
 	//DoDebugVGAGraphics(0x05,320,200,0x04,0,0x0,1,0); //Debug 320x200x4(B/W)! 
 	//B/W mode!
 	
@@ -313,10 +314,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//16 color b/w mode!
 	//DoDebugVGAGraphics(0x11,640,480,0x10,0,0x1,1,0); //Debug 640x480x16(B/W)! 
 	//16 color maxres mode!
-	DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
+	//DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
 	//VGA_DUMPDAC(); //Dump the DAC!
 	//256 color mode!
-	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
+	//DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/4th screen height?
 	//debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!

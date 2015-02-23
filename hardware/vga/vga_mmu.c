@@ -27,20 +27,20 @@ OPTINLINE byte is_A000VRAM(uint_32 linearoffset) //In VRAM (for CPU), offset=rea
 		switch (ActiveVGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect) //What memory map?
 		{
 		case 0: //A0000-BFFFF (128K region)?
-			VGA_VRAM_START = 0xA0000; //Start!
-			return ((linearoffset>=0xA0000) && (linearoffset<0xC0000)); //In range?
+			VGA_VRAM_START = 0; //Start!
+			return ((linearoffset>=0) && (linearoffset<0x20000)); //In range?
 			break;
 		case 1: //A0000-AFFFF (64K region)?
-			VGA_VRAM_START = 0xA0000; //Start!
-			return ((linearoffset>=0xA0000) && (linearoffset<0xB0000)); //In range?
+			VGA_VRAM_START = 0; //Start!
+			return ((linearoffset>=0) && (linearoffset<0x10000)); //In range?
 			break;
 		case 2: //B0000-B7FFF (32K region)?
-			VGA_VRAM_START = 0xB0000; //Start!
-			return ((linearoffset>=0xB0000) && (linearoffset<0xB8000)); //In range?
+			VGA_VRAM_START = 0x10000; //Start!
+			return ((linearoffset>=0x10000) && (linearoffset<0x18000)); //In range?
 			break;
 		case 3: //B8000-BFFFF (32K region)?
-			VGA_VRAM_START = 0xB8000; //Start!
-			return ((linearoffset>=0xB8000) && (linearoffset<0xC0000)); //In range?
+			VGA_VRAM_START = 0x18000; //Start!
+			return ((linearoffset>=0x18000) && (linearoffset<0x20000)); //In range?
 			break;
 		}
 	}
@@ -208,10 +208,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	}
 	//if (!ActiveVGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.EnableOE) //Odd/even mode disabled? (According to Dosbox, this value is 0!)
 		//Sequential mode?
-	if (!(ActiveVGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode //Odd/even mode possible?
-		&& ActiveVGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode
-		&& ActiveVGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.EnableOE
-		)) //Sequential mode?
+	if (!ActiveVGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode) //Sequential mode?
 	{
 		if (towrite) //Writing access?
 		{
@@ -228,21 +225,6 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	}
 
 	//Odd/even mode used (compatiblity case)?
-	*planes = 1; //Default to plane 0!
-	/*if (ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage
-		&& ActiveVGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode
-		&& (offset & 1)) //Use high page?
-	{
-		*planes <<= 2; //Shift to the high planes!
-	}*/
-	/*if (offset & 1) //High plane selected?
-	{
-		*planes <<= 1; //Take the high plane!
-	}
-	*realoffset = offset;
-	*realoffset &= ~1; //Calculate the correct offset within the VRAM! Bit 0 is cleared: we address even bytes only!
-	*/
-
 	//Do the same as VPC!
 	register byte calcplanes;
 	calcplanes = offset;
@@ -258,18 +240,14 @@ extern byte LOG_VRAM_WRITES; //Log VRAM writes?
 
 byte planes; //What planes to affect!
 uint_32 realoffset; //What offset to affect!
-uint_32 tempoffset; //Temporary calculated offset into VRAM!
 
 byte VGAmemIO_rb(uint_32 baseoffset, uint_32 reloffset, byte *value)
 {
-	tempoffset = baseoffset;
-	tempoffset += reloffset; //Full offset for referencing!
-
-	if (is_A000VRAM(tempoffset)) //VRAM and within range?
+	if (is_A000VRAM(reloffset)) //VRAM and within range?
 	{
-		tempoffset -= VGA_VRAM_START; //Calculate start offset into VRAM!
+		reloffset -= VGA_VRAM_START; //Calculate start offset into VRAM!
 
-		decodeCPUaddress(0, tempoffset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
+		decodeCPUaddress(0, reloffset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 
 		*value = VGA_ReadModeOperation(planes, realoffset); //Apply the operation on read mode!
 		return 1; //Written!
@@ -279,14 +257,11 @@ byte VGAmemIO_rb(uint_32 baseoffset, uint_32 reloffset, byte *value)
 
 byte VGAmemIO_wb(uint_32 baseoffset, uint_32 reloffset, byte value)
 {
-	tempoffset = baseoffset;
-	tempoffset += reloffset; //Full offset for referencing!
-
-	if (is_A000VRAM(tempoffset)) //VRAM and within range?
+	if (is_A000VRAM(reloffset)) //VRAM and within range?
 	{
-		tempoffset -= VGA_VRAM_START; //Calculate start offset into VRAM!
+		reloffset -= VGA_VRAM_START; //Calculate start offset into VRAM!
 
-		decodeCPUaddress(1, tempoffset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
+		decodeCPUaddress(1, reloffset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 
 		VGA_WriteModeOperation(planes, realoffset, value); //Apply the operation on write mode!
 		return 1; //Written!

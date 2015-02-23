@@ -25,7 +25,6 @@ extern byte VGA_LOGPRECALCS; //Are we manually updated to log?
 
 OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs!
 {
-	if (VGA_LOGPRECALCS) dolog("VGA","CRTC updated!");
 	uint_32 current;
 	byte charsize;
 	//Column and row status for each pixel on-screen!

@@ -21,7 +21,7 @@ typedef byte (*agetpixel)(VGA_Type *VGA, SEQ_DATA *Sequencer, word x); //For our
 */
 
 //This should be OK, according to: http://www.nondot.org/sabre/Mirrored/GraphicsProgrammingBlackBook/gpbb31.pdf
-byte getpixel256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //256colorshiftmode getcolorplanes!
+byte get256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //256-color shift mode!
 {
 	register word activex; //X!
 	register byte part, plane, result;
@@ -56,39 +56,41 @@ SHIFT REGISTER INTERLEAVE MODE
 
 */
 
-byte getpixelshiftregisterinterleavemode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //256colorshiftmode getcolorplanes!
+byte getpackedshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Packed shift mode!
 {
 	//Calculate the plane index!
-	register word shift,tempx,planebase,planeindex;
+	register word shift,bitshift,tempx,planebase,planeindex;
 	register byte planelow, planehigh;
 	tempx = x; //Init tempx!
 	tempx >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
 
-	planebase = shift = tempx; //Start with the x value!
+	planebase = shift = tempx; //Start with the x value and load it for usage in base and shift!
+
 	planebase >>= 2; //The base changes state every 4 pixels (1 byte processed)
+
 	planeindex = planebase; //Take the same rate as the base for the index, but ...
 	planeindex >>= 1; //The index goes at half the rate of the plane: every 2 planes processed, one index is taken!
 
 	planebase &= 1; //Base plane (0/1)! OK!
 
 	planeindex += Sequencer->charystart; //Add the start address and start map!
-	
+
 	//Read the low&high planes!
-	planelow = readVRAMplane(VGA,planebase,planeindex,1); //Read low plane!
+	planelow = readVRAMplane(VGA,planebase,planeindex,0); //Read low plane!
 	planebase |= 2; //Take the high plane now!
 	planehigh = readVRAMplane(VGA,planebase,planeindex,1); //Read high plane!
 	
 	//Determine the shift for our pixels!
 	shift &= 3; //The shift rotates every 4 pixels
 	shift <<= 1; //Every rotate contains 2 bits
-	shift = 6; //Shift for pixel 0!
-	shift -= shift; //Get the shift!
-	
+	bitshift = 6; //Shift for pixel 0!
+	bitshift -= shift; //Get the shift with the actual shift!
+
 	//Get the pixel
-	planelow >>= shift; //Shift plane low correct.
+	planelow >>= bitshift; //Shift plane low correct.
 	planelow &= 3; //We're 2 bits only
 
-	planehigh >>= shift; //Shift plane high correct
+	planehigh >>= bitshift; //Shift plane high correct
 	planehigh &= 3; //We're 2 bits only
 
 	planehigh <<= 2; //Prepare high plane for combination!
@@ -106,7 +108,7 @@ SINGLE SHIFT MODE
 
 */
 
-byte getpixelsingleshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x)
+byte getplanarshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Planar shift mode!
 {
 	//16-color mode!
 	register byte result; //Init result!
@@ -150,10 +152,10 @@ Core functions!
 void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	static agetpixel getpixel_jmptbl[4] = {
-				getpixelsingleshiftmode,
-				getpixelshiftregisterinterleavemode,
-				getpixel256colorshiftmode,
-				getpixel256colorshiftmode
+				getplanarshiftmode,
+				getpackedshiftmode,
+				get256colorshiftmode,
+				get256colorshiftmode
 				}; //All the getpixel functionality!
 	attributeinfo->fontpixel = 1; //Graphics attribute is always font enabled!
 	attributeinfo->attribute = getpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](VGA,Sequencer,Sequencer->activex);

@@ -181,7 +181,7 @@ int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pi
                                         }
                                         real_writeb(0xb800,off,old);
                                 } else {
-                                        Bit16u off=(y>>2)*160+BITOFF((x>>2),1);
+										Bit16u off = (y >> 2) * 160 + ((x >> 2)&(~1));
                                         off+=(8*1024) * (y & 3);
 
                                         Bit16u old=real_readw(0xb800,off);
@@ -189,7 +189,7 @@ int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pi
                                                 old^=(color&1) << (7-(x&7));
                                                 old^=((color&2)>>1) << ((7-(x&7))+8);
                                         } else {
-                                                old=BITOFF(old,((0x101<<(7-(x&7))))) | ((color&1) << (7-(x&7))) | (((color&2)>>1) << ((7-(x&7))+8));
+											old = (old&(~(0x101 << (7 - (x & 7))))) | ((color & 1) << (7 - (x & 7))) | (((color & 2) >> 1) << ((7 - (x & 7)) + 8));
                                         }
                                         real_writew(0xb800,off,old);
                                 }
