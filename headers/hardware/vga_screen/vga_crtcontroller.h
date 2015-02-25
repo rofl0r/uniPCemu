@@ -44,7 +44,6 @@ OPTINLINE byte getVRAMMemAddrSize(VGA_Type *VGA); //Current memory address size?
 //OPTINLINE word getyresfull(VGA_Type *VGA); //Full resolution (border+active display area) height
 //OPTINLINE word getrowsize(VGA_Type *VGA); //Give the size of a row in VRAM!
 //OPTINLINE word getTopWindowStart(VGA_Type *VGA); //Get Top Window Start scanline!
-#define VGA_ScanDoubling(VGA) VGA->precalcs.scandoubling
 
 //Give the start of the row!
 #define getVRAMScanlineStart(VGA, Scanline) OPTMUL(VGA->precalcs.scanlinesize, Scanline)

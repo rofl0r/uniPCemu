@@ -49,6 +49,9 @@ typedef struct
 	word charinner_y; //Inner y base of character!
 	uint_32 charystart; //Start of the row in VRAM!
 
+	byte pixelshiftcount; //Our calculated pixel shift count!
+	byte presetrowscan; //Our calculated preset row scan!
+
 
 	/*
 

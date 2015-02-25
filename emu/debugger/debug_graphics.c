@@ -298,7 +298,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//Graphics should be OK!
 	//4-color modes: TODO!
 	DoDebugVGAGraphics(0x04,320,200,0x04,0,0x0,1,0); //Debug 320x200x4! NOT WORKING FULLY YET!
-	sleep(); //Wait forever to test!
+	//sleep(); //Wait forever to test!
 	//DoDebugVGAGraphics(0x05,320,200,0x04,0,0x0,1,0); //Debug 320x200x4(B/W)! 
 	//B/W mode!
 	
@@ -322,6 +322,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!
 	//halt(); //Stop!
+	sleep(); //Wait forever to test!
 
 	disableKeyboard(); //Disable the keyboard!
 

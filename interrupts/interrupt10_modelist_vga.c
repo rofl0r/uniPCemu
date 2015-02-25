@@ -17,7 +17,7 @@ VideoModeBlock ModeList_VGA[0x14] = {  //VGA Modelist!
 { 0x010, M_EGA, 640, 350, 80, 25, 8, 14, 2, 0xA0000, 0x8000, 100, 449, 80, 350, 0 },
 { 0x011, M_EGA, 640, 480, 80, 30, 8, 16, 1, 0xA0000, 0xA000, 100, 525, 80, 480, 0 },/*was EGA_2 */
 { 0x012, M_EGA, 640, 480, 80, 30, 8, 16, 1, 0xA0000, 0xA000, 100, 525, 80, 480, 0 },
-{ 0x013, M_VGA, 320, 200, 40, 25, 8, 8, 1, 0xA0000, 0x2000, 100, 449, 80, 400, _EGA_HALF_CLOCK | _EGA_LINE_DOUBLE }
+{ 0x013, M_VGA, 320, 200, 40, 25, 8, 8, 1, 0xA0000, 0x2000, 100, 449, 80, 400, _VGA_PIXEL_DOUBLE | _EGA_LINE_DOUBLE }
 }; //VGA Modelist!
 
 byte text_palette[64][3]=

@@ -76,6 +76,8 @@ typedef struct //Contains the precalculated values!
 	word xres;
 	word yres;
 	
+	byte characterclockshift; //Division 0,1 or 2 for the horizontal character clock!
+
 	//Extra information
 	word rowsize;
 	word topwindowstart;
@@ -84,7 +86,8 @@ typedef struct //Contains the precalculated values!
 	uint_32 scanlinesize; //Scanline size!
 	//Sequencer_textmode_cursor (CRTC):
 	word cursorlocation; //Cursor location!
-	byte pixelboost; //Save our precalculated value!
+	byte pixelshiftcount; //Save our precalculated value!
+	byte presetrowscan; //Row scanning boost!
 	byte colorselect54; //Precalculate!
 	byte colorselect76; //Precalculate!
 	uint_32 DAC[0x100]; //Full DAC saved lookup table!

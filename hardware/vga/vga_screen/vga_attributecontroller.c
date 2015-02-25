@@ -8,11 +8,6 @@
 #include "headers/support/log.h" //Debugger!
 extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c
 
-OPTINLINE byte getHorizontalPixelPanning(VGA_Type *VGA) //Active horizontal pixel panning when enabled?
-{
-	return VGA->precalcs.pixelboost; //Precalculated pixel boost!
-}
-
 OPTINLINE byte getcolorselect54(VGA_Type *VGA)
 {
 	return VGA->precalcs.colorselect54; //Bits 5-4 of the color select register!

@@ -27,14 +27,18 @@ byte get256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //256-colo
 	register byte part, plane, result;
 
 	//First: calculate the nibble to shift into our result!
-	part = activex = x; //Load x into part&activeX for processing!
+	activex = x; //Load x!
+	activex >>= VGA->precalcs.characterclockshift; //Apply pixel DIVIDE when needed!
+
+
+	part = x; //Load x into part&activeX for processing!
 	part &= 1; //Take the lowest bit only for the part!
 	part ^= 1; //Reverse: High nibble=bit 0 set, Low nibble=bit 0 cleared
 	part <<= 2; //High nibble=4, Low nibble=0
+	
 	activex >>= 1; //Ignore the part number to get our nibble: Every part is a nibble, so increase every 2 pixels!
 
 	//Now we're just a simple index to maintain and find the correct byte!
-	activex >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
 
 	//Determine plane and offset within the plane!
 	plane = activex; //Load plane!
@@ -62,7 +66,7 @@ byte getpackedshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Packed shi
 	register word shift,bitshift,tempx,planebase,planeindex;
 	register byte planelow, planehigh;
 	tempx = x; //Init tempx!
-	tempx >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
+	tempx >>= VGA->precalcs.characterclockshift; //Apply pixel DIVIDE when needed!
 
 	planebase = shift = tempx; //Start with the x value and load it for usage in base and shift!
 
@@ -115,7 +119,7 @@ byte getplanarshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Planar shi
 	register word offset, bit;
 
 	offset = x; //Load x!
-	offset >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
+	offset >>= VGA->precalcs.characterclockshift; //Apply pixel DIVIDE when needed!
 
 	bit = offset;
 	bit &= 7; //The bit in the byte (from the start of VRAM byte)! 8 bits = 8 pixels!

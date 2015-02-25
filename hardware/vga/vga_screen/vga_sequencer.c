@@ -38,21 +38,27 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 //Vertical Refresh rate=Horizontal Refresh Rate/total scan lines!
 	if (!memprotect(VGA,sizeof(*VGA),NULL)) //No VGA?
 	{
-		return 0; //Remove VGA Scanline counter: nothing to render!
+		return 0.0f; //Remove VGA Scanline counter: nothing to render!
 	}
 	
-//So: Vertical Refresh (One ScanLine)=Clock Frequency (in Hz)/total scan lines! for one scan line!
+	uint_64 result;
 	switch (VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect)
 	{
 	case 0: //25 MHz clock?
-		return 25000000.0/getHorizontalTotal(VGA); //25 MHz scanline clock!
+		result = 25175000.0; //25MHz clock!
+		break;
 	case 1: //28 MHz clock?
-		return 28000000.0/getHorizontalTotal(VGA); //28 MHz scanline clock!
-	case 2: //Unknown?
-	case 3: //Unknown?
-	default:
-		return 0; //None: not supported=Disable timer in the end!
+		result = 28322000.0; //28 MHz clock!
+		break;
+	default: //Unknown clock?
+		result = 0.0f; //Nothing!
+		break;
 	}
+
+	result >>= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Divide by Dot Clock Rate!
+
+	return ((float)result / getHorizontalTotal(VGA)); //Calculate the ammount of horizontal clocks per second!
+
 }
 
 //Main rendering routine: renders pixels to the emulated screen.
@@ -104,9 +110,43 @@ OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanl
 	
 	//Determine byte panning and pixel shift count!
 	Sequencer->bytepanning = bytepanning; //Pass!
+
+	if (allow_pixelshiftcount) //Allow pixel shift count to be applied?
+	{
+		Sequencer->pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
+		Sequencer->presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
+	}
+	else
+	{
+		Sequencer->pixelshiftcount = Sequencer->presetrowscan = 0; //Nothing to shift!
+	}
 }
 
 typedef void (*Sequencer_pixelhandler)(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning); //Pixel(s) handler!
+
+OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
+{
+	register word row;
+	register uint_32 charystart;
+	row = Sequencer->Scanline; //Default: our normal scanline!
+	row >>= VGA->precalcs.characterclockshift; //Apply character clock shift!
+	row >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Apply scanline division!
+	row >>= VGA->precalcs.scandoubling; //Apply Scan Doubling here: we take effect on content!
+	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
+
+	//Row now is an index into charrowstatus
+	word *currowstatus = &VGA->CRTC.charrowstatus[row]; //Current row status!
+	Sequencer->chary = row = *currowstatus++; //First is chary (effective character/graphics row)!
+	Sequencer->charinner_y = *currowstatus; //Second is charinner_y!
+
+	charystart = getVRAMScanlineStart(VGA, row); //Calculate row start!
+	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
+	charystart += Sequencer->bytepanning; //Apply byte panning to the index!
+	Sequencer->charystart = charystart; //What row to start with our pixels!
+
+	//Some attribute controller special 8-bit mode support!
+	Sequencer->doublepixels = 0; //Reset double pixels status for odd sized screens.
+}
 
 byte Sequencer_Break; //Sequencer breaked (loop exit)?
 
@@ -145,7 +185,7 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->yres = 0; //Reset Y resolution next frame if not specified (like a real screen)!
 	Sequencer->xres = 0; //Reset X resolution next frame if not specified (like a real screen)!
 	
-	VGA_Sequencer_TextMode_updateRow(VGA, Sequencer); //Scanline has been changed!
+	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 	Sequencer_Break = 1; //Not running anymore!
 }
 
@@ -165,7 +205,7 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//Sequencer rendering data
 	Sequencer->tempx = 0; //Reset the rendering position from the framebuffer!
 	VGA_Sequencer_calcScanlineData(VGA);
-	VGA_Sequencer_TextMode_updateRow(VGA, Sequencer); //Scanline has been changed!
+	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 	
 	//Stop running!
 	Sequencer_Break = 1; //Not running anymore!

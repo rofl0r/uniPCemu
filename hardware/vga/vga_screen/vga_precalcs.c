@@ -170,7 +170,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		//dolog("VGA","VTotal before charwidth: %i",VGA->precalcs.verticaltotal);
 		VGA->precalcs.characterwidth = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9; //Character width!
-		VGA->precalcs.doublepixels = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //1=Every other horizontal clock is a pixel, else every horizontal clock is a pixel.
 		whereupdated = WHEREUPDATED_CRTCONTROLLER; //We affect the CRTController fully too with above!
 		//dolog("VGA","VTotal after charwidth: %i",VGA->precalcs.verticaltotal); //Log it!
 		charwidthupdated = 1; //The character width has been updated, so update the corresponding registers too!
@@ -403,6 +402,18 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			{
 				VGA->precalcs.VRAMmemaddrsize = 2;
 			}
+			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DivideMemoryAddressClockBy4)
+			{
+				VGA->precalcs.characterclockshift = 2; //Shift right 2 bits!
+			}
+			else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2)
+			{
+				VGA->precalcs.characterclockshift = 1; //Shift right 1 bit!
+			}
+			else
+			{
+				VGA->precalcs.characterclockshift = 0; //Don't shift!
+			}
 			underlinelocationupdated = 1; //We need to update the attribute controller!
 			scanlinesizeupdated = 1; //We need to update this too!
 			//dolog("VGA","VTotal after VRAMMemAddrSize: %i",VGA->precalcs.verticaltotal); //Log it!
@@ -437,6 +448,11 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			
 			VGA->precalcs.cursorlocation = cursorlocation; //Cursor location!
 			//dolog("VGA","VTotal after cursorlocation: %i",VGA->precalcs.verticaltotal); //Log it!
+		}
+
+		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x8))) //Preset row scan updated?
+		{
+			VGA->precalcs.presetrowscan = VGA->registers->CRTControllerRegisters.REGISTERS.PRESETROWSCANREGISTER.PresetRowScan; //Apply new preset row scan!
 		}
 		
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xC))
@@ -525,7 +541,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 					} //Else 0!
 				}
 			}
-			VGA->precalcs.pixelboost = pixelboost; //Save our precalculated value!
+			VGA->precalcs.pixelshiftcount = pixelboost; //Save our precalculated value!
 			//dolog("VGA","VTotal after pixelboost: %i",VGA->precalcs.verticaltotal); //Log it!
 			recalcScanline = 1; //Recalc scanline data!
 		}

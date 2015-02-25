@@ -395,7 +395,7 @@ void VGA_VBlankHandler(VGA_Type *VGA)
 	}
 	
 	GPU.doublewidth = 0; //Apply with double width (can't find anything about this in the VGA manual)!
-	GPU.doubleheight = VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Apply with double height!
+	GPU.doubleheight = 0; //Apply with double height!
 	renderHWFrame(); //Render the GPU a frame!
 }
 

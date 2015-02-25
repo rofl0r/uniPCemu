@@ -503,7 +503,7 @@ void updateCursorLocation()
 	y = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2)+1,0); //Y
 	word address; //Address of the cursor location!
 	address = MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)+
-			(y*MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x;
+			(y*MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+(x<<1);
 
 	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
 	PORT_OUT_B(0x3D4,0xF); //Select cursor location low register!

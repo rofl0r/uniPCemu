@@ -32,28 +32,6 @@ OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,uint_32 Sequencer_te
 	return 0; //No cursor!
 }
 
-void VGA_Sequencer_TextMode_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
-{
-	register word row;
-	register uint_32 charystart;
-	row = Sequencer->Scanline; //Default: our normal scanline!
-	row >>= VGA_ScanDoubling(VGA); //Apply Scan Doubling here: we take effect on content!
-	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
-
-	//Row now is an index into charrowstatus
-	word *currowstatus = &VGA->CRTC.charrowstatus[row]; //Current row status!
-	Sequencer->chary = row = *currowstatus++; //First is chary (effective character/graphics row)!
-	Sequencer->charinner_y = *currowstatus; //Second is charinner_y!
-	
-	charystart = getVRAMScanlineStart(VGA,row); //Calculate row start!
-	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
-	charystart += Sequencer->bytepanning; //Apply byte panning to the index!
-	Sequencer->charystart = charystart; //What row to start with our pixels!
-
-	//Some attribute controller special 8-bit mode support!
-	Sequencer->doublepixels = 0; //Reset double pixels status for odd sized screens.
-}
-
 void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo) //Render a text mode pixel!
 {
 	//First, full value to lookup!
@@ -64,12 +42,12 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	byte currentchar, attribute;
 	character = Sequencer->activex; //Current character point (horizontally)
 	//X!
-	character >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply DIVIDE by 2 when needed!
+	character >>= VGA->precalcs.characterclockshift; //Apply DIVIDE when needed!
 	character <<= 1; //The index into charcolstatus is always a multiple of 2!
 
 	curcolstatus = &VGA->CRTC.charcolstatus[character]; //Current col status!
 	attributeinfo->charx = character = *curcolstatus++; //First is charx!
-	attributeinfo->charinner_x = charinner = *curcolstatus; //Second is charinner_y!
+	attributeinfo->charinner_x = charinner = *curcolstatus; //Second is charinner_x!
 
 	character <<= getVGAShift(VGA); //Calculate the index into the current row!
 	
