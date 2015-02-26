@@ -163,7 +163,6 @@
     <ClInclude Include="..\..\headers\debugger\8087\debug_OP8087.h" />
     <ClInclude Include="..\..\headers\debugger\debugger.h" />
     <ClInclude Include="..\..\headers\debugger\runromverify.h" />
-    <ClInclude Include="..\..\headers\dosbox_patches_unused.h" />
     <ClInclude Include="..\..\headers\emu\directorylist.h" />
     <ClInclude Include="..\..\headers\emu\emucore.h" />
     <ClInclude Include="..\..\headers\emu\emu_bios_sound.h" />

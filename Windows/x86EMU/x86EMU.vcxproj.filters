@@ -706,9 +706,6 @@
     <ClInclude Include="..\..\headers\emu\emu_bios_sound.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\headers\dosbox_patches_unused.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\headers\debugger\runromverify.h">
       <Filter>Header Files</Filter>
     </ClInclude>
