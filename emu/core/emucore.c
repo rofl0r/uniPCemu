@@ -46,6 +46,8 @@
 #include "headers/hardware/vga_screen/vga_sequencer.h" //VGA sequencer for direct MAX speed dump!
 #include "headers/hardware/vga_screen/vga_dacrenderer.h" //DAC support!
 
+#include "headers/hardware/uart.h" //UART support!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To debug VGA at MAX speed?
@@ -188,8 +190,11 @@ void initEMU(int full) //Init!
 	debugrow("Initialising CMOS...");
 	initCMOS(); //Initialise the CMOS!
 	
-	debugrow("Initialising DMA Controller...");
+	debugrow("Initialising DMA Controllers...");
 	initDMA(); //Initialise the DMA Controller!
+
+	debugrow("Initialising UART...");
+	initUART(); //Initialise the UART (COM ports)!
 	
 	debugrow("Initialising port E9 hack and emulator support functionality...");
 	BIOS_initDebugger(); //Initialise the port E9 hack and emulator support functionality!

@@ -249,7 +249,7 @@ void runBIOS() //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNI
 			BIOS_clearscreen(); //Clear the screen!
 			EMU_gotoxy(0,0); //First column,row!
 			EMU_textcolor(0xF);
-			GPU_EMU_printscreen(-1,-1,"Error: couldn't save the BIOS!");
+			GPU_EMU_printscreen(0,0,"Error: couldn't save the BIOS!");
 			delay(5000000); //Wait 5 sec before rebooting!
 		}
 		else
@@ -260,14 +260,14 @@ void runBIOS() //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNI
 			{
 				EMU_gotoxy(0,0); //First column,row!
 				EMU_textcolor(0xF);
-				GPU_EMU_printscreen(-1,-1,"BIOS Saved!");
+				GPU_EMU_printscreen(0,0,"BIOS Saved!");
 				delay(2000000); //Wait 2 sec before rebooting!
 			}
 			else //Emulator running?
 			{
 				EMU_gotoxy(0,0); //First column,row!
 				EMU_textcolor(0xF);
-				GPU_EMU_printscreen(-1,-1,"BIOS Saved (Returning to the emulator)!"); //Info!
+				GPU_EMU_printscreen(0,0,"BIOS Saved (Returning to the emulator)!"); //Info!
 				delay(2000000); //Wait 2 sec!
 			}
 		}
@@ -277,7 +277,7 @@ void runBIOS() //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNI
 	{
 		EMU_gotoxy(0,0);
 		EMU_textcolor(0xF);
-		GPU_EMU_printscreen(-1,-1,"BIOS Discarded!"); //Info!
+		GPU_EMU_printscreen(0,0,"BIOS Discarded!"); //Info!
 		BIOS_LoadData(); //Reload!
 		delay(2000000); //Wait 2 sec!
 	}

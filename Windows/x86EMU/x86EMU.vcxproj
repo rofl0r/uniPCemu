@@ -201,6 +201,7 @@
     <ClInclude Include="..\..\headers\hardware\ps2_keyboard.h" />
     <ClInclude Include="..\..\headers\hardware\ps2_mouse.h" />
     <ClInclude Include="..\..\headers\hardware\softdebugger.h" />
+    <ClInclude Include="..\..\headers\hardware\uart.h" />
     <ClInclude Include="..\..\headers\hardware\vga.h" />
     <ClInclude Include="..\..\headers\hardware\vga_dosbox_screenmodes_unused.h" />
     <ClInclude Include="..\..\headers\hardware\vga_rest\colorconversion.h" />

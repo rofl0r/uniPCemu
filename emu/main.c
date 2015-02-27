@@ -298,7 +298,7 @@ int main(int argc, char * argv[])
 	SDL_Event event;
 	byte running;
 	running = 1; //Default: we're running!
-	for (; (threadRunning(rootthread,"X86EMU_CPU") && running);) //Still running?
+	for (;running;) //Still running?
 	{
 		delay(100000); //Give threads some time!
 		for (;SDL_PollEvent(&event);) //Gotten events to handle?
@@ -310,6 +310,7 @@ int main(int argc, char * argv[])
 				running = 0; //Terminate our app!
 			}
 		}
+		if (!threadRunning(rootthread, "X86EMU_CPU")) break; //Thread not running? Stop our running status!
 	}
 
 	stopTimers(1); //Make sure all timers are stopped!

@@ -769,5 +769,8 @@
     <ClInclude Include="..\..\headers\support\mid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\headers\hardware\uart.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

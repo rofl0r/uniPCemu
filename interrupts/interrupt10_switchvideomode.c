@@ -131,6 +131,7 @@ void FinishSetMode(int clearmem)
 		switch (CurMode->type)
 		{
 		case M_CGA4:
+			goto cgacorruption; //Corruption bugfix: the high planes need to be cleared too, not only the low planes when coming !
 		case M_CGA2:
 			for (ct2=0;ct2<16*1024;ct2++) {
 				memreal_writew( 0xb800,ct2<<1,0x0000);
@@ -143,6 +144,7 @@ void FinishSetMode(int clearmem)
 			break;
 		case M_EGA:
 		case M_VGA:
+			cgacorruption:
 			/* Hack we just acess the memory directly */
 			if ((currentVGA = getActiveVGA())) //Gotten active VGA?
 			{

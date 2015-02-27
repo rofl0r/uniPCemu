@@ -19,6 +19,11 @@
 #include <limits.h>
 #include <stdio.h>
 #ifdef _WIN32
+//Special debugger stuff:
+#ifdef _DEBUG
+#include "vld.h" //Visual Leak Detector for debugging!
+#endif
+//Normal SDL libraries
 #include "SDL.h" //SDL library for windows!
 #include "SDL_events.h" //SDL events!
 #else

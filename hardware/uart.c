@@ -262,11 +262,11 @@ void PORT_writeUART(word port, byte value)
 	}
 }
 
-void BIOS_initUART() //Init software debugger!
+void initUART() //Init software debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	memset(&UART_port,0,sizeof(UART_port)); //Clear memory used!
-	word ports[4] = {0,0,0,0};
+	word ports[4] = {0x3F8,0x2F8,0x3E8,0x2E8};
 	byte i,j;
 	for (i=0;i<4;i++) //Process all I/O ports!
 	{

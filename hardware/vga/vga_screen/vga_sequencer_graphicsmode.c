@@ -65,12 +65,13 @@ byte getpackedshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Packed shi
 	tempx = x; //Init tempx!
 	tempx >>= VGA->precalcs.characterclockshift; //Apply pixel DIVIDE when needed!
 
+	tempx <<= 1; //The index goes at half the rate of the plane: every 2 planes processed, one index is taken (8 pixels)!
+
 	planebase = shift = tempx; //Start with the x value and load it for usage in base and shift!
 
 	planebase >>= 2; //The base changes state every 4 pixels (1 byte processed)
 
 	planeindex = planebase; //Take the same rate as the base for the index, but ...
-	planeindex >>= 1; //The index goes at half the rate of the plane: every 2 planes processed, one index is taken (8 pixels)!
 	planeindex >>= getVGAShift(VGA);  //Apply VGA shift: the shift is the ammount moved through planes in our case, 1, 2, or 4 pixels moved per 8 pixels!
 	planeindex += Sequencer->charystart; //Add the start address and start map!
 

@@ -44,6 +44,7 @@ GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface) //Retrieves a surface w
 //registration of a wrapped surface.
 void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerelease) //Register a surface!
 {
+	if (!surface) return; //Invalid surface!
 	if (!registerptr(surface->sdllayer, sizeof(*surface->sdllayer), name, allowsurfacerelease ? &freeSurfacePtr : NULL)) //The surface itself! We're released using a custom function to release it when allowed!
 	{
 		if (!memprotect(surface->sdllayer, sizeof(*surface->sdllayer), name)) //Failed to register?
@@ -333,6 +334,7 @@ void put_pixel(GPU_SDL_Surface *surface, const int x, const int y, const Uint32 
 //Retrieve a pixel/row(pixel=0).
 void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x)
 {
+	if (!surface) return NULL; //Invalid surface altogether!
 	if (!memprotect(surface,sizeof(GPU_SDL_Surface),NULL))
 	{
 		#ifdef PPRLOG

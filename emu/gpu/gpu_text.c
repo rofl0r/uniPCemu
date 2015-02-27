@@ -110,7 +110,6 @@ OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 
 OPTINLINE void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
 {
-	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)) return; //Invalid surface!
 	if (surface->dirty[fy][fx]) updateDirty(surface,fx,fy); //Update dirty if needed!
 	register uint_32 color = surface->notdirty[fy][fx];
 	if (color!=TRANSPARENTPIXEL)
@@ -156,7 +155,7 @@ void free_GPUtext(GPU_TEXTSURFACE **surface)
 uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurface!
 {
 	if (__HW_DISABLED) return 0; //Disabled!
-	if (!surface) return 0; //Abort without surface!
+	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	TicksHolder ms_render_lastcheck; //For counting ms to render (GPU_framerate)!
 	initTicksHolder(&ms_render_lastcheck); //Init for counting time of rendering on the device directly from VGA data!
 	getuspassed(&ms_render_lastcheck); //Get first value!
@@ -178,8 +177,8 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 
 int GPU_textgetxy(GPU_TEXTSURFACE *surface,int x, int y, byte *character, uint_32 *font, uint_32 *border) //Read a character+attribute!
 {
-	if (!surface) return 0; //Not allocated!
-	if (y>=GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
+	if (y >= GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
 	if (x>=GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
 	*character = surface->text[y][x];
 	*font = surface->font[y][x];
@@ -189,6 +188,7 @@ int GPU_textgetxy(GPU_TEXTSURFACE *surface,int x, int y, byte *character, uint_3
 
 void GPU_markdirty(GPU_TEXTSURFACE *surface, int x, int y) //Mark a character as dirty (GPU_text only, to prevent multirendering!)
 {
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
 	int rx;
 	int ry;
 
@@ -213,7 +213,7 @@ void GPU_markdirty(GPU_TEXTSURFACE *surface, int x, int y) //Mark a character as
 
 int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32 font, uint_32 border) //Write a character+attribute!
 {
-	if (!surface) return 0; //Not allocated!
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (y>=GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
 	if (x>=GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
 	byte oldtext = surface->text[y][x];
@@ -255,7 +255,7 @@ void GPU_textclearscreen(GPU_TEXTSURFACE *surface)
 
 void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...)
 {
-	if (!surface) return; //Not allocated!
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
 	char msg[256];
 	bzero(msg,sizeof(msg)); //Init!
 
@@ -293,7 +293,7 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 
 void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 {
-	if (!surface) return; //Not allocated!
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
 	int curx = x;
 	int cury = y;
 	while (curx>=GPU_TEXTSURFACE_WIDTH) //Overflow?
@@ -307,13 +307,14 @@ void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 
 void GPU_enableDelta(GPU_TEXTSURFACE *surface, byte xdelta, byte ydelta) //Enable delta coordinates on the x/y axis!
 {
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
 	surface->xdelta = xdelta; //Enable x delta?
 	surface->ydelta = ydelta; //Enable y delta?
 }
 
 void GPU_text_updatedelta(SDL_Surface *surface)
 {
-	if (!surface) //Invalid surface!
+	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) //Invalid surface!
 	{
 		TEXT_xdelta = TEXT_ydelta = 0; //No delta!
 		return; //Invalid surface: no delta used!

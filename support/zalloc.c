@@ -193,15 +193,9 @@ void zalloc_free(void **ptr, uint_32 size) //Free a pointer (used internally onl
 
 void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on failure (ran out of memory), protected malloc!
 {
-	void *ptr = NULL;
-	int times=10; //Try 10 times till giving up!
+	void *ptr;
 	initZalloc(); //Make sure we're started!
 	if (!size) return NULL; //Can't allocate nothing!
-	/*for (;(!ptr && times);) //Try for some times!
-	{
-		ptr = malloc(size); //Try to allocate!
-		--times; //Next try!
-	}*/
 	ptr = malloc(size); //Try to allocate once!
 
 	if (ptr!=NULL) //Allocated and a valid size?

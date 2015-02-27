@@ -125,6 +125,9 @@ OBJS += support\sf2.o hardware\midi\mpu.o hardware\midi\midi.o hardware\midi\mid
 #MID file support!
 OBJS += support\mid.o
 
+#UART
+OBJS += hardware\uart.o
+
 #High resolution timer
 OBJS += support\highrestimer.o
 

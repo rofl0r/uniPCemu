@@ -56,6 +56,8 @@
 
 #include "headers/emu/emu_main.h" //Ourselves!
 
+#include "headers/emu/threads.h" //Thread support!
+
 //Disable BIOS&OS loading for testing?
 #define NOEMU 0
 #define NOBIOS 0
@@ -121,6 +123,7 @@ void cputhread() //The main thread for the emulator!
 	default: //Unknown status?
 		debugrow("Invalid EMU return code OR full reset requested!");
 		doneEMU(); //Dismiss emulator!
+		termThreads(); //Terminate all threads!
 		return; //Shut down our thread, returning to the main processor!
 	}
 }

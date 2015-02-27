@@ -181,6 +181,7 @@ void GPU_directRenderer() //Plot directly 1:1 on-screen!
 uint_32 ms_render = 0; //MS it took to render (125000 for 8fps, which is plenty!)
 void render_EMU_screen() //Render the EMU buffer to the screen!
 {
+	uint_32 *srcrow; //Current pixel row rendering!
 	if (VIDEO_DIRECT) //Direct mode?
 	{
 		GPU_directRenderer(); //Render directly!
@@ -211,15 +212,21 @@ void render_EMU_screen() //Render the EMU buffer to the screen!
 				}
 			}
 			
-			startemurendering:
-			if (resized->sdllayer->h) //Gotten height?
+		startemurendering:
+			if (resized) //Valid layer?
 			{
-				count = resized->sdllayer->h; //How many!
-				nextrowemu: //Process row-by-row!
+				if (resized->sdllayer->h) //Gotten height?
 				{
-					if (!count--) goto startbottomrendering; //Stop when done!
-					if (resized) put_pixel_row(rendersurface,y++,resized->sdllayer->w,get_pixel_row(resized,virtualrow++,0),(letterbox&1),0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
-					goto nextrowemu;
+					count = resized->sdllayer->h; //How many!
+				nextrowemu: //Process row-by-row!
+					{
+						if (!count--) goto startbottomrendering; //Stop when done!
+						if (!resized) goto startbottomrendering; //Skip when no resized anymore!
+						srcrow = get_pixel_row(resized, virtualrow++, 0); //Get the current pixel row!
+						if (!srcrow) goto startbottomrendering; //Skip unknown rows!
+						put_pixel_row(rendersurface, y++, resized->sdllayer->w, srcrow, (letterbox & 1), 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+						goto nextrowemu;
+					}
 				}
 			}
 			
@@ -237,7 +244,10 @@ void render_EMU_screen() //Render the EMU buffer to the screen!
 		}
 		
 		finishbottomrendering:
-		resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
+		if (memprotect(resized, sizeof(*resized), NULL))
+		{
+			resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
+		}
 	}
 	if (!rendered) //Nothing to render = clear screen!
 	{

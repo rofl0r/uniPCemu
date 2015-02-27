@@ -13,9 +13,12 @@
 #define MAX_THREAD 50
 //Maximum ammount of threads:
 
-#define THREADSTATUS_ALLOCATED 0
-#define THREADSTATUS_CREATEN 1
-#define THREADSTATUS_RUNNING 2
+#define THREADSTATUS_UNUSED 0
+#define THREADSTATUS_ALLOCATED 1
+#define THREADSTATUS_CREATEN 2
+#define THREADSTATUS_RUNNING 4
+//Terminated=Unused.
+#define THREADSTATUS_TERMINATED THREADSTATUS_UNUSED
 
 
 //To debug threads?
@@ -84,18 +87,13 @@ void releasePool(uint_32 threadid) //Release a pooled thread if it exists!
 	if ((index = getthreadpoolindex(threadid))!=-1) //Gotten index?
 	{
 		threadpool[index].used = 0; //Unused!
+		threadpool[index].status = THREADSTATUS_TERMINATED; //We're terminated!
 	}
 }
 
 void activeThread(uint_32 threadid, ThreadParams_p thread)
 {
-	/*int index; //The index to be used!
-	//dolog("threads","activeThread...");
-	if ((index = getthreadpoolindex(threadid))!=-1) //Gotten index?
-	{
-		threadpool[index].status = THREADSTATUS_RUNNING; //Running!
-	}*/
-	thread->status = THREADSTATUS_RUNNING; //Running!
+	thread->status |= THREADSTATUS_RUNNING; //Running!
 	thread->threadID = threadid; //Our thread ID!
 	//dolog("threads","activeThread_RET!");
 }
@@ -172,7 +170,7 @@ int ThreadsRunning() //Are there any threads running or ready to run?
 	{
 		if (threadpool[i].used) //Allocated?
 		{
-			if (threadpool[i].status>=THREADSTATUS_CREATEN) //Createn or running?
+			if (threadpool[i].status&THREADSTATUS_CREATEN) //Createn or running?
 			{
 				++numthreads; //We have some createn or running threads!
 			}
@@ -211,20 +209,20 @@ void termThreads() //Terminate all threads but our own!
 	{
 		if (threadpool[i].used && (threadpool[i].threadID!=my_thid)) //Used and not ourselves?
 		{
-			switch (threadpool[i].status) //What status?
+			if (threadpool[i].status&THREADSTATUS_RUNNING) //Running?
 			{
-				case THREADSTATUS_ALLOCATED: //Allocated?
-					//dolog("threads","termThreads: Allocated!");
-					threadpool[i].used = 0; //Deallocate it!
-					break; //Just allocated, nothing more!
-				case THREADSTATUS_CREATEN: //Createn?
-					//dolog("threads","termThreads: Createn!");
-					deleteThread(threadpool[i].threadID); //Delete it!
-					break; //Removed!
-				case THREADSTATUS_RUNNING: //Running?
-					//dolog("threads","termThreads: Running!");
-					terminateThread(threadpool[i].threadID); //Terminate it!
-					break;
+				//dolog("threads","termThreads: Running!");
+				terminateThread(threadpool[i].threadID); //Terminate it!
+			}
+			else if (threadpool[i].status&THREADSTATUS_CREATEN) //Createn?
+			{
+				//dolog("threads","termThreads: Createn!");
+				deleteThread(threadpool[i].threadID); //Delete it!
+			}
+			else if (threadpool[i].status&THREADSTATUS_ALLOCATED) //Allocated?
+			{
+				//dolog("threads","termThreads: Allocated!");
+				threadpool[i].used = 0; //Deallocate it!
 			}
 		}
 	}
@@ -264,7 +262,7 @@ void debug_threads()
 	}
 }
 
-void onThreadExit(void)
+void onThreadExit(void) //Exit handler for quitting the application! Used for cleanup!
 {
 	termThreads(); //Terminate all threads!
 }
@@ -313,14 +311,9 @@ byte threadRunning(ThreadParams_p thread, char *name)
 		{
 			if (!strcmp(thread->name,name)) //Same name verification?
 			{
-				switch (thread->status) //What status?
+				if (thread->status&(THREADSTATUS_CREATEN | THREADSTATUS_RUNNING)) //Createn or running?
 				{
-					case THREADSTATUS_CREATEN: //Createn and ready to run?
-					case THREADSTATUS_RUNNING: //Running?
-						return 1; //Active/ready to run!
-						break;
-					default: //Unknown/not ready/started!
-						break; //Invalid thread!
+					return 1; //Active/ready to run!
 				}
 			}
 		}
@@ -405,7 +398,6 @@ void waitThreadEnd(ThreadParams_p thread) //Wait for this thread to end!
 				{
 					delay(100); //Wait for a bit for the thread to start!
 				}
-				//sceKernelWaitThreadEnd(thread->threadID,NULL); //Wait for it to end, wait infinitely!
 				int dummy;
 				SDL_WaitThread(thread->thread,&dummy); //Wait for the thread to end, ignore the result from the thread!
 			}
