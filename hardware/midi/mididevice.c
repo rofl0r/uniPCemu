@@ -116,6 +116,9 @@ typedef struct
 	byte has_last; //Gotten last?
 	float last_sample; //Last retrieved sample!
 	float last_result; //Last result of the high pass filter!
+
+	//Stuff for voice stealing
+	uint_64 starttime; //When have we started our voice?
 } MIDIDEVICE_VOICE;
 
 MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
@@ -244,6 +247,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 
 byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice)
 {
+	static uint_64 starttime = 0; //Calculated start time!
 	byte currentchannel, currenton, biton;
 	word pbag, ibag;
 	sword rootMIDITone; //Relative root MIDI tone!
@@ -675,6 +679,7 @@ handlerequest: //Handles an NOTE ON request!
 	//Final adjustments and set active!
 	setSampleRate(&MIDIDEVICE_renderer, voice, voice->sample.dwSampleRate); //Use this new samplerate!
 	channel->playing[currenton] |= requestbit; //Playing flag!
+	voice->starttime = starttime++; //Take a new start time!
 	voice->active = MIDISTATUS_DELAY; //We're an active voice!
 	availablevoices &= ~voice->availablevoicebit; //Set us busy!
 	return 0; //Run: we're active!
@@ -714,37 +719,6 @@ OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note,
 			{
 				//We're requested, but not playing yet! Remove from queue!
 				MIDIDEVICE.channels[channel].request_on[note32] &= ~note32_value; //Don't play this anymore! Discard the note (lost note)!
-				int voice, foundvoice = -1, voicetosteal = -1;
-				int_32 stolenvoiceranking = 0xEFFFFFFF, currentranking; //Stolen voice ranking starts lowest always!
-				for (voice = 0; voice < __MIDI_NUMVOICES; voice++) //Find a voice!
-				{
-					if (MIDIDEVICE_newvoice(&activevoices[voice])) //Failed to allocate?
-					{
-						//Create ranking by scoring the voice!
-						currentranking = 0; //Just some ranking as placeholder!
-						if (stolenvoiceranking > currentranking) //We're a lower rank?
-						{
-							stolenvoiceranking = currentranking; //New voice to steal!
-							voicetosteal = voice; //Steal this voice, if needed!
-						}
-					}
-					else //Allocated?
-					{
-						foundvoice = voice; //Found this voice!
-						break; //Stop searching!
-					}
-				}
-				if (foundvoice == -1) //No channels available? We need voice stealing!
-				{
-					//Perform voice stealing using voicetosteal, if available!
-					if (voicetosteal != -1) //Something to steal?
-					{
-						activevoices[voicetosteal].active = 0; //Make inactive!
-						MIDIDEVICE_newvoice(&activevoices[voicetosteal]); //Steal the selected voice!
-					}
-					//If nothing can be stolen, don't play the note!
-				}
-				//Else: allocated!
 			}
 			else //Normal: we can be shut down!
 			{
@@ -797,6 +771,71 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 			}
 			MIDIDEVICE.channels[channel].request_on[note32] |= note32_value; //Request start!
 			MIDIDEVICE.channels[channel].notes[note].noteon_velocity = velocity; //Add velocity to our lookup!
+
+			int voice, foundvoice = -1, voicetosteal = -1;
+			int_32 stolenvoiceranking = 0xEFFFFFFF, currentranking; //Stolen voice ranking starts lowest always!
+			for (voice = 0; voice < __MIDI_NUMVOICES; voice++) //Find a voice!
+			{
+				if (MIDIDEVICE_newvoice(&activevoices[voice])) //Failed to allocate?
+				{
+					if (activevoices[voice].active) //Are we active?
+					{
+						//Create ranking by scoring the voice!
+						currentranking = 0; //Start with no ranking!
+						if (activevoices[voice].channel == &MIDIDEVICE.channels[9]) currentranking += 4000; //Drum channel?
+						else if (activevoices[voice].active == MIDISTATUS_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
+						if (activevoices[voice].channel->sustain) currentranking -= 1000; //Lower when sustained!
+						float volume;
+						volume = activevoices[voice].ADSREnvelope; //Load the ADSR volume!
+						if (activevoices[voice].lvolume > activevoices[voice].rvolume) //More left volume?
+						{
+							volume *= activevoices[voice].lvolume; //Left volume!
+						}
+						else
+						{
+							volume *= activevoices[voice].rvolume; //Right volume!
+						}
+						currentranking += (int_32)(volume*1000.0f); //Factor in volume!
+						if (stolenvoiceranking > currentranking) //We're a lower rank?
+						{
+							stolenvoiceranking = currentranking; //New voice to steal!
+							voicetosteal = voice; //Steal this voice, if needed!
+						}
+						else if ((currentranking == stolenvoiceranking) && (voicetosteal!=-1)) //Same ranking as the last one found?
+						{
+							if (activevoices[voice].starttime < activevoices[voicetosteal].starttime) //Earlier start time with same ranking?
+							{
+								voicetosteal = voice; //Steal this voice, if needed!
+							}
+						}
+					}
+					else //Inactive channel, but failed to express when allocating?
+					{
+						foundvoice = voice; //Found this voice!
+						break;
+					}
+				}
+				else //Allocated?
+				{
+					foundvoice = voice; //Found this voice!
+					break; //Stop searching!
+				}
+			}
+			if (foundvoice == -1) //No channels available? We need voice stealing!
+			{
+				//Perform voice stealing using voicetosteal, if available!
+				if (voicetosteal != -1) //Something to steal?
+				{
+					activevoices[voicetosteal].active = 0; //Make inactive!
+					MIDIDEVICE_newvoice(&activevoices[voicetosteal]); //Steal the selected voice!
+				}
+				else
+				{
+					//If nothing can be stolen, don't play the note!
+					MIDIDEVICE.channels[channel].request_on[note32] &= ~note32_value; //Remove from the requests!
+				}
+			}
+			//Else: allocated!
 		}
 	}
 }

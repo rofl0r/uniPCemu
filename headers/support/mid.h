@@ -5,7 +5,8 @@
 
 //MIDI file support!
 
-typedef struct
+#include "headers/packed.h"
+typedef PACKED struct
 {
 	uint_32 Header; //MThd
 	uint_32 header_length;
@@ -13,12 +14,15 @@ typedef struct
 	word n; //Number of tracks that follow us
 	sword division; //Positive: units per beat, negative:  SMPTE-compatible units.
 } HEADER_CHNK;
+#include "headers/endpacked.h"
 
-typedef struct
+#include "headers/packed.h"
+typedef PACKED struct
 {
-	byte Header[4]; //MTrk
+	uint_32 Header; //MTrk
 	uint_32 length; //Number of bytes in the chunk.
 } TRACK_CHNK;
+#include "headers/endpacked.h"
 
 word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **channels, word maxchannels);
 void freeMID(TRACK_CHNK *tracks, byte **channels, word numchannels);

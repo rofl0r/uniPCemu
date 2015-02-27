@@ -25,6 +25,7 @@ word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **cha
 	TRACK_CHNK currenttrack;
 	TRACK_CHNK *curtracks = tracks;
 	word currenttrackn = 0; //Ammount of tracks loaded!
+	uint_32 tracklength;
 
 	byte *data;
 	f = fopen(filename, "rb"); //Try to open!
@@ -55,28 +56,34 @@ word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **cha
 		fclose(f);
 		return 0; //Invalid track!
 	}
+	if (currenttrack.Header != MIDIHEADER_TRACK_ID) //Not a track ID?
+	{
+		fclose(f);
+		return 0; //Invalid track header!
+	}
 	if (!currenttrack.length) //No length?
 	{
 		fclose(f);
 		return 0; //Invalid track length!
 	}
-	data = zalloc(byteswap32(currenttrack.length),"MIDI_DATA"); //Allocate data!
+	tracklength = byteswap32(currenttrack.length); //Calculate the length of the track!
+	data = zalloc(tracklength,"MIDI_DATA"); //Allocate data!
 	if (!data) //Ran out of memory?
 	{
 		fclose(f);
 		return 0; //Ran out of memory!
 	}
-	if (fread(data, 1, byteswap32(currenttrack.length), f) != byteswap32(currenttrack.length)) //Error reading data?
+	if (fread(data, 1, tracklength, f) != tracklength) //Error reading data?
 	{
 		fclose(f);
-		freez((void **)&data, byteswap32(currenttrack.length), "MIDI_DATA");
+		freez((void **)&data, tracklength, "MIDI_DATA");
 		return 0; //Error reading data!
 	}
 
 	++currenttrackn; //Increase the number of tracks loaded!
 	if (currenttrackn > maxchannels) //Limit broken?
 	{
-		freez((void **)&data, byteswap32(currenttrack.length), "MIDI_DATA");
+		freez((void **)&data, tracklength, "MIDI_DATA");
 		return 0; //Limit broken: we can't store the file!
 	}
 

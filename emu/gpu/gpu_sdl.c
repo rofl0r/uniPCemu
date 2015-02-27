@@ -318,7 +318,7 @@ uint_32 get_pixel(GPU_SDL_Surface* surface, const int x, const int y ){
 void put_pixel(GPU_SDL_Surface *surface, const int x, const int y, const Uint32 pixel ){
 	if (!surface) return; //Disable if no surface!
 	if (!memprotect(surface,sizeof(*surface),NULL)) return; //Invalid surface!
-	if (!memprotect(surface->sdllayer,sizeof(surface->sdllayer),NULL)) return; //Invalid layer!
+	if (!memprotect(surface->sdllayer,sizeof(*surface->sdllayer),NULL)) return; //Invalid layer!
 	Uint32 *pixels = (Uint32 *)surface->sdllayer->pixels;
 	Uint32 *pixelpos = &pixels[ ( y * get_pixelrow_pitch(surface) ) + x ]; //The pixel!
 	if (memprotect(pixelpos,sizeof(*pixelpos),NULL)) //Valid?
@@ -415,6 +415,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 {
 	if (surface && pixels) //Got surface and pixels!
 	{
+		if (y >= surface->sdllayer->h) return; //Invalid row detection!
 		uint_32 use_rowsize = MIN(get_pixelrow_pitch(surface),rowsize); //Minimum is decisive!
 		if (use_rowsize) //Got something to copy and valid row?
 		{

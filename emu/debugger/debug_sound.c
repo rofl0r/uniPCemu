@@ -235,7 +235,7 @@ void dosoundtest()
 		PORT_OUT_B(0x330,0x40); //Hold pedal!
 		PORT_OUT_B(0x330,0x00); //Disabled!
 		*/
-		delay(10000); //Wait 1 second!
+		delay(1000000); //Wait 1 second!
 		++i; //Next note!
 	}
 	#endif
