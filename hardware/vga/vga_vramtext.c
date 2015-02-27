@@ -77,14 +77,13 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 				characterset_offset |= add2000; //Add the 2000 mark!
 				characterset_offset <<= 13; //Shift to the start position: 0,4,8,c,2,6,a,e!
 
-				uint_32 character2;
+				word character2;
 				character2 = character; //Load!
 				character2 <<= 5; //Multiply by 32!
 				characterset_offset += character2; //Start of the character!
-				//characterset_offset += SAFEMODUINT32(y,getcharacterheight(VGA)); //1 byte per row!
 				characterset_offset += y; //Add the row!
 				
-				byte row = readVRAMplane(VGA,2,characterset_offset,0); //Read the row from the character generator, use second buffer! Don't do anything special, just because we're from the renderer!
+				byte row = readVRAMplane(VGA,2,characterset_offset,0); //Read the row from the character generator! Don't do anything special, just because we're from the renderer!
 				getcharxy_values[character|(attribute<<8)|(y<<9)] = row; //Store the row for the character generator!
 				++y; //Next row!
 			}
@@ -97,7 +96,7 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 
 void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been updated?
 {
-	fillgetcharxy_values(VGA,(address>>5)); //Update the character!
+	fillgetcharxy_values(VGA,(address>>5)); //Update the character: character number is every 32 locations (5 bits), with 2-bit plane (2 bits), totalling 7 bits per character!
 }
 
 //This is heavy: it doubles (with about 25ms) the rendering time needed to render a line.

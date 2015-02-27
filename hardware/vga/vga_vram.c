@@ -28,46 +28,49 @@ byte LOG_VRAM_WRITES = 0;
 //Retrieval function for single bits instead of full bytes!
 byte getBitPlaneBit(VGA_Type *VGA, byte plane, word offset, byte bit, byte is_renderer)
 {
-	byte bits;
-	bits = readVRAMplane(VGA,plane,offset,is_renderer); //Get original bits!
-	return GETBIT(bits,7-bit); //Give the bit!
+	return GETBIT(readVRAMplane(VGA,plane,offset,is_renderer),7-bit); //Give the bit!
 }
 
 //Below patches input addresses for rendering only.
-OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 rowscanaddress) //Patch full VRAM address!
+OPTINLINE word patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VRAM address!
 { //Check this!
-	word newrowscan = rowscanaddress; //New row scan to use!
+	word memoryaddress = addresscounter; //New row scan to use!
 	SEQ_DATA *Sequencer;
 	Sequencer = (SEQ_DATA *)VGA->Sequencer; //The sequencer!
-	
-	register uint_32 bit; //Load row scan counter!
+
+	register word rowscancounter = Sequencer->Scanline; //Load the row scan counter!
+	rowscancounter >>= VGA->precalcs.characterclockshift; //Apply character clock shift!
+	rowscancounter >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Apply scanline division!
+	rowscancounter >>= VGA->precalcs.scandoubling; //Apply Scan Doubling here: we take effect on content!
+
+	register word bit; //Load row scan counter!
 	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13) //a13=Bit 0 of the row scan counter!
 	{
 		//Row scan counter bit 1 is placed on the memory bus bit 14 during active display time.
 		//Bit 1, placed on memory address bit 14 has the effect of quartering the memory.
-		newrowscan &= 0xDFFF; //Clear bit13!
-		bit = Sequencer->Scanline; //Load the row scan counter!
+		bit = rowscancounter; //Current row scan counter!
 		bit &= 1; //Bit0 only!
-		bit <<= 13; //Shift to our position!
-		newrowscan |= bit;
+		bit <<= 13; //Shift to our position (bit 13)!
+		memoryaddress &= 0xDFFF; //Clear bit13!
+		memoryaddress |= bit; //Set bit13 if needed!
 	}
 
 	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14) //a14<=Bit 1 of the row scan counter!
 	{
-		newrowscan &= 0xBFFF; //Clear bit14;
-		bit = Sequencer->Scanline; //Load the row scan counter!
+		bit = rowscancounter; //Current row scan counter!
 		bit &= 2; //Bit1 only!
-		bit <<= 13; //Shift to our position!
-		newrowscan |= bit;
+		bit <<= 13; //Shift to our position (bit 14)!
+		memoryaddress &= 0xBFFF; //Clear bit14;
+		memoryaddress |= bit; //Set bit14 if needed!
 	}
 	
-	return newrowscan; //Give the linear address!
+	return memoryaddress; //Give the linear address!
 }
 
-OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memory arround 64k!
+OPTINLINE uint_32 addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arround 64k!
 {
-	register uint_32 address2; //Load the initial value for calculating!
-	register uint_32 result;
+	register word address2; //Load the initial value for calculating!
+	register word result;
 	result = memoryaddress; //Default: don't change!
 	if (VGA->precalcs.VRAMmemaddrsize==2) //Word mode?
 	{
@@ -81,7 +84,7 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 			address2 >>= 13;
 		}
 		address2 &= 1; //Only load 1 bit!
-		result &= ~1; //Clear bit 0!
+		result &= 0xFFFE; //Clear bit 0!
 		result |= address2; //Add bit MA15 at position 0!
 	}
 	return result; //Adjusted address!
@@ -101,12 +104,12 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //R
 		patchedoffset = patch_map1314(VGA,patchedoffset); //Patch MAP13&14!
 	}
 
-	plane &= 3; //Only 4 planes are available!
+	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
 
 	register uint_32 fulloffset2;
-	fulloffset2 = plane; //Load full plane!
-	fulloffset2 <<= 16; //Move to the start of the plane!
-	fulloffset2 |= patchedoffset; //Generate full offset!
+	fulloffset2 = patchedoffset; //Load the offset!
+	fulloffset2 <<= 2; //We cylce through the offsets!
+	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
@@ -123,10 +126,10 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write 
 	plane &= 3; //Only 4 planes are available!
 
 	register uint_32 fulloffset2;
-	fulloffset2 = plane; //Load full plane!
-	fulloffset2 <<= 16; //Move to the start of the plane!
-	fulloffset2 |= offset; //Generate full offset!
-	
+	fulloffset2 = offset; //Load the offset!
+	fulloffset2 <<= 2; //We cycle through the offsets!
+	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
+
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
 		VGA->VRAM[fulloffset2] = value; //Set the data in VRAM!
