@@ -311,7 +311,6 @@ uint_32 freemem() //Free memory left! We work!
 		if (buffer) //Allocated?
 		{
 			freez((void **)&buffer,lastzalloc,"freememdetect"); //Release memory for next try!
-			buffer = NULL; //Not allocated anymore!
 			curalloc = lastzalloc; //Set detected memory!
 			//dolog("zalloc","Free memory step: %i",curalloc); //Show our step! WE WORK!
 			allocated = 1; //We're allocated!
