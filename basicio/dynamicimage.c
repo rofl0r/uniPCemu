@@ -127,7 +127,7 @@ int_64 dynamicimage_readlookuptable(char *filename, int_64 location, int_64 nume
 	int_64 entrysize;
 	if (readdynamicheader(filename, &header))
 	{
-		f = fopen64(filename, "rb+"); //Open the file!
+		f = fopen64(filename, "rb"); //Open the file!
 		if (fseek64(f, location, SEEK_SET) != 0) //Error seeking to entry?
 		{
 			fclose64(f); //Close the file!

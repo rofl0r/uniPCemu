@@ -175,9 +175,6 @@ void initMEM() //Initialise memory for reset!
 //Finally: model and submodel
 //SRC: http://flint.cs.yale.edu/feng/research/BIOS/mem.htm
 
-	EMU_BIOS[0xFFF0] = 0xCD; //JMP segment:offset or INT 19
-	EMU_BIOS[0xFFF1] = 0x19; //Boot strap loader!
-
 	EMU_BIOS[0xFFFE] = 0xFF; //PC!
 	EMU_BIOS[0xFFFF] = 0x00; //--!
 

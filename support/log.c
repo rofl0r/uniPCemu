@@ -1,9 +1,19 @@
 #include "headers/types.h"
 #include "headers/support/highrestimer.h" //Our own typedefs etc.
+
 TicksHolder logticksholder; //Log ticks holder!
+SDL_sem *log_Lock = NULL;
+
+void donelog(void)
+{
+	SDL_DestroySemaphore(log_Lock);
+}
+
 void initlog()
 {
 	startHiresCounting(&logticksholder); //Init our timer to the starting point!
+	log_Lock = SDL_CreateSemaphore(1); //Create our sephamore!
+	atexit(&donelog); //Our cleanup function!
 }
 
 void dolog(char *filename, const char *format, ...) //Logging functionality!
@@ -30,20 +40,26 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	}
 	strcat(filenametmp,".log"); //Do log here!
 	
-	dummy = mkdir("logs"); //Create a logs directory if needed!
-	
 	va_start (args, format); //Start list!
 	vsprintf (logtext, format, args); //Compile list!
 	va_end (args); //Destroy list!
 	
 	if (safe_strlen(logtext,sizeof(logtext))) //Got length?
 	{
+		//Lock
+		SDL_SemWait(log_Lock); //Only one instance allowed!
 		time = getuspassed_k(&logticksholder); //Get the current time!
 		convertTime(time,&timestamp[0]); //Convert the time!
 		strcat(timestamp,": "); //Suffix!
 	}
+	else
+	{
+		//Lock
+		SDL_SemWait(log_Lock); //Only one instance allowed!
+	}
 
-	f = fopen(filenametmp,"r"); //Open for testing!
+	dummy = mkdir("logs"); //Create a logs directory if needed!
+	f = fopen(filenametmp, "r"); //Open for testing!
 	if (f) //Existing?
 	{
 		fclose(f); //Close it!
@@ -65,4 +81,6 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 		fwrite(&CRLF,1,sizeof(CRLF),f); //Write line feed!
 		fclose(f); //Close the log!
 	}
+	//Unlock
+	SDL_SemPost(log_Lock);
 }

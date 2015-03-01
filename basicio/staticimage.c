@@ -34,7 +34,7 @@ FILEPOS staticimage_getsize(char *filename)
 {
 	if (strcmp(filename, "") == 0) return 0; //Not mountable!
 	FILE *f;
-	f = fopen64(filename,"rb+"); //Open!
+	f = fopen64(filename,"rb"); //Open!
 	if (!f) //Not found?
 	{
 		return 0; //No size!

@@ -241,29 +241,13 @@ void int13_init(int floppy0, int floppy1, int hdd0, int hdd1, int cdrom0, int cd
 
 byte getdiskbymount(int drive) //Drive to disk converter (reverse of int13_init)!
 {
-	if (mounteddrives[0]==drive)
+	int i;
+	for (i = 0; i < 0xFF; i++)
 	{
-		return 0; //Floppy 0 usually!
-	}
-	else if (mounteddrives[1]==drive)
-	{
-		return 1; //Floppy 1 usually!
-	}
-	else if (mounteddrives[0x80]==drive)
-	{
-		return 0x80; //HDD/CDROM
-	}
-	else if (mounteddrives[0x81]==drive)
-	{
-		return 0x81; //HDD/CDROM
-	}
-	else if (mounteddrives[0x82]==drive)
-	{
-		return 0x82; //HDD/CDROM
-	}
-	else if (mounteddrives[0x83]==drive)
-	{
-		return 0x83; //HDD/CDROM
+		if (mounteddrives[i] == drive) //Found?
+		{
+			return i; //Give the drive number!
+		}
 	}
 	return 0xFF; //Unknown disk!
 }
@@ -274,11 +258,10 @@ uint_64 disksize(int disknumber)
 	return disks[disknumber].size; //Get the size of the disk!
 }
 
-uint_64 floppy_LBA(int floppy,word head, word track, word sector)
+uint_32 floppy_LBA(int floppy,word head, word track, word sector)
 {
-	return (uint_64)(((uint_64)(((head*floppy_tracks(disksize(floppy))+track)*floppy_spt(disksize(floppy)))+sector-1))<<9); //Give LBA for floppy!
+	return (uint_32)((uint_32)(((head*floppy_tracks(disksize(floppy))+track)*floppy_spt(disksize(floppy)))+sector-1)); //Give LBA for floppy!
 }
-
 
 word gethddheads(uint_64 disksize)
 {
@@ -365,7 +348,7 @@ byte GetBIOSType(byte disk)
 byte last_status; //Status of last operation
 byte last_drive; //Last drive something done to
 
-byte readdiskdata(uint_64 startpos)
+byte readdiskdata(uint_32 startpos)
 {
 	byte buffer[512]; //A sector buffer to read!
 	byte readdata_result;
@@ -377,56 +360,40 @@ byte readdiskdata(uint_64 startpos)
 	word current = 0; //Current byte in the buffer!
 	sectors = REG_AL; //Number of sectors to be read!
 	readdata_result = 1;
-	while (sectors && !readdata_result)
-	{
-		readdata_result = disksize(mounteddrives[REG_DL])>=(startpos+((uint_64)sectors<<9)); //Have enough data to read this many sectors?
-		if (!readdata_result) //Failed to read this many?
-		{
-			--sectors; //One sector less, etc.
-		}
-	}
 
 	sector = 0; //Init sector!
-	if (!readdata_result)
+	position = REG_BX; //Current position to write to!
+	for (;sectors;) //Sectors left to read?
 	{
-		last_status = 0x00;
-		FLAG_CF = 1; //Error!
-		return 0; //Abort!
-	}
-	else //Ready to read?
-	{
-		position = REG_BX; //Current position to write to!
-		for (;sectors;) //Sectors left to read?
+		//Read from disk
+		readdata_result = readdata(mounteddrives[REG_DL],&buffer,(startpos<<9)+((uint_64)sector<<9),512); //Read the data to the buffer!
+		if (!readdata_result) //Error?
 		{
-			//Read from disk
-			readdata_result = readdata(mounteddrives[REG_DL],&buffer,startpos+((uint_64)sector<<9),512); //Read the data to the buffer!
-			if (!readdata_result) //Error?
-			{
-				last_status = 0x00;
-				FLAG_CF = 1; //Error!
-				return (byte)sector; //Abort with ammount of sectors read!
-			}
-			//Sector is read, now write it to memory!
-			left = 512; //Data left!
-			current = 0; //Current byte in the buffer!
-			for (;;)
-			{
-				MMU_wb(CPU_SEGMENT_ES,REG_ES,position,buffer[current]); //Write the data to memory!
-				if (!left--) goto nextsector; //Stop when nothing left!
-				++current; //Next byte in the buffer!
-				++position; //Next position in memory!
-			}
-			nextsector: //Process next sector!
-			--sectors; //One sector processed!
-			++sector; //Process to the next sector!
+			last_status = 0x00;
+			FLAG_CF = 1; //Error!
+			return (byte)sector; //Abort with ammount of sectors read!
 		}
+		//Sector is read, now write it to memory!
+		left = 512; //Data left!
+		current = 0; //Current byte in the buffer!
+		for (;;)
+		{
+			MMU_wb(CPU_SEGMENT_ES,REG_ES,position,buffer[current]); //Write the data to memory!
+			if (!left--) goto nextsector; //Stop when nothing left!
+			++current; //Next byte in the buffer!
+			++position; //Next position in memory!
+		}
+		nextsector: //Process next sector!
+		--sectors; //One sector processed!
+		++sector; //Process to the next sector!
 	}
 	
-	dolog("int13","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Disk size: %i bytes",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,disksize(mounteddrives[REG_DL]));
+	dolog("int13","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i",
+					sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos);
 	return (byte)sector; //Give the ammount of sectors read!
 }
 
-byte writediskdata(uint_64 startpos)
+byte writediskdata(uint_32 startpos)
 {
 	byte buffer[512]; //A sector buffer to read!
 	//Detect ammount of sectors to be able to read!
@@ -437,53 +404,35 @@ byte writediskdata(uint_64 startpos)
 	byte writedata_result;
 	word current;
 	sectors = REG_AL; //Number of sectors to be read!
-	writedata_result = 1;
-	while (sectors && !writedata_result)
-	{
-		writedata_result = disksize(mounteddrives[REG_DL])>=(startpos+((uint_64)sectors<<9)); //Have enough data to read this many sectors?
-		if (!writedata_result) //Failed to read this many?
-		{
-			--sectors; //One sector less, etc.
-		}
-	}
 
 	sector = 0; //Init sector!
-	if (!writedata_result)
+	position = REG_BX; //Current position to read from!
+	for (;sectors;) //Sectors left to read?
 	{
-		last_status = 0x00;
-		FLAG_CF = 1; //Error!
-		return 0; //Abort!
-	}
-	else //Ready to read?
-	{
-		position = REG_BX; //Current position to read from!
-		for (;sectors;) //Sectors left to read?
+		//Fill the buffer!
+		left = 512; //Data left!
+		current = 0; //Current byte in the buffer!
+		for (;;)
 		{
-			//Fill the buffer!
-			left = 512; //Data left!
-			current = 0; //Current byte in the buffer!
-			for (;;)
-			{
-				buffer[current] = MMU_rb(CPU_SEGMENT_ES,REG_ES,position,0); //Read the data from memory (no opcode)!
-				if (!left--) goto dosector; //Stop when nothing left!
-				++current; //Next byte in the buffer!
-				++position; //Next position in memory!
-			}
-			dosector: //Process next sector!
-			//Write to disk!
-			writedata_result = writedata(mounteddrives[REG_DL],&buffer,startpos+((uint_64)sector<<9),512); //Write the data to the disk!
-			if (!writedata_result) //Error?
-			{
-				last_status = 0x00;
-				FLAG_CF = 1; //Error!
-				return (byte)sector; //Abort!
-			}
-			--sectors; //One sector processed!
-			++sector; //Process to the next sector!
+			buffer[current] = MMU_rb(CPU_SEGMENT_ES,REG_ES,position,0); //Read the data from memory (no opcode)!
+			if (!left--) goto dosector; //Stop when nothing left!
+			++current; //Next byte in the buffer!
+			++position; //Next position in memory!
 		}
+		dosector: //Process next sector!
+		//Write to disk!
+		writedata_result = writedata(mounteddrives[REG_DL],&buffer,(startpos<<9)+((uint_64)sector<<9),512); //Write the data to the disk!
+		if (!writedata_result) //Error?
+		{
+			last_status = 0x00;
+			FLAG_CF = 1; //Error!
+			return (byte)sector; //Abort!
+		}
+		--sectors; //One sector processed!
+		++sector; //Process to the next sector!
 	}
 	
-	dolog("int13","Written %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Disk size: %i bytes",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,disksize(mounteddrives[REG_DL]));
+	dolog("int13","Written %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos);
 	return (byte)sector; //Ammount of sectors read!
 }
 

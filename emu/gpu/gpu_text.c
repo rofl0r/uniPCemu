@@ -110,6 +110,7 @@ OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 
 OPTINLINE void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
 {
+	if (!memprotect(surface,sizeof(*surface),"GPU_TEXTSURFACE")) return; //Invalid surface?
 	if (surface->dirty[fy][fx]) updateDirty(surface,fx,fy); //Update dirty if needed!
 	register uint_32 color = surface->notdirty[fy][fx];
 	if (color!=TRANSPARENTPIXEL)
@@ -314,7 +315,7 @@ void GPU_enableDelta(GPU_TEXTSURFACE *surface, byte xdelta, byte ydelta) //Enabl
 
 void GPU_text_updatedelta(SDL_Surface *surface)
 {
-	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) //Invalid surface!
+	if (!surface) //Invalid surface!
 	{
 		TEXT_xdelta = TEXT_ydelta = 0; //No delta!
 		return; //Invalid surface: no delta used!

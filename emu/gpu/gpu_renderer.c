@@ -111,10 +111,10 @@ void GPU_directRenderer() //Plot directly 1:1 on-screen!
 			#ifdef _WIN32
 				if (VIDEO_DFORCED) //Forced video?
 				{
-					goto drawpixels; //No letterbox!
+					goto drawpixels; //No letterbox top!
 				}
 			#endif
-			start = (PSP_SCREEN_ROWS / 2) - (GPU.yres / 2); //Calculate start row of contents!
+			start = (rendersurface->sdllayer->h / 2) - (GPU.yres / 2); //Calculate start row of contents!
 			for (y = 0; y<start;) //Process top!
 			{
 				put_pixel_row(rendersurface, y, PSP_SCREEN_COLUMNS, &row_empty[0], 0, 0); //Plot empty row, don't care about more black!
@@ -128,19 +128,11 @@ void GPU_directRenderer() //Plot directly 1:1 on-screen!
 			put_pixel_row(rendersurface, y++, GPU.xres, &EMU_BUFFER(0, virtualrow++), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
 		}
 
-		if (GPU.use_Letterbox) //Using letterbox for aspect ratio?
+		//Always clear the bottom: letterbox and direct plot both have to clear the bottom!
+		for (; y<rendersurface->sdllayer->h;) //Process bottom!
 		{
-			#ifdef _WIN32
-				if (VIDEO_DFORCED) //Forced video?
-				{
-					goto finishpixels; //No letterbox!
-				}
-			#endif
-			for (; y<PSP_SCREEN_ROWS;) //Process bottom!
-			{
-				put_pixel_row(rendersurface, y, PSP_SCREEN_COLUMNS, &row_empty[0], 0, 0); //Plot empty row for the bottom, don't care about more black!
-				++y; //Next row!
-			}
+			put_pixel_row(rendersurface, y, PSP_SCREEN_COLUMNS, &row_empty[0], 0, 0); //Plot empty row for the bottom, don't care about more black!
+			++y; //Next row!
 		}
 
 		finishpixels:
@@ -158,7 +150,7 @@ void GPU_directRenderer() //Plot directly 1:1 on-screen!
 			int pspx = 0;
 			for (; pspx<PSP_SCREEN_COLUMNS;) //Process column!
 			{
-				if ((pspx>GPU.xres) || (pspy>GPU.yres)) //Out of range?
+				if ((pspx>=GPU.xres) || (pspy>=GPU.yres)) //Out of range?
 				{
 					PSP_BUFFER(pspx, pspy) = 0; //Clear color for out of range!
 				}
@@ -342,12 +334,10 @@ void render_EMU_buffer() //Render the EMU to the buffer!
 			//Limit broken = no display!
 			if (xres>EMU_MAX_X) return; //Limit to buffer!
 			if (yres>EMU_MAX_Y) return; //Limit to buffer!
-			dolog("zalloc", "create surface from pixels...");
 			GPU_SDL_Surface *emu_screen = createSurfaceFromPixels(GPU.xres,GPU.yres,GPU.emu_screenbuffer,EMU_MAX_X); //Create container 32BPP pixel mode!
 			if (emu_screen) //Createn to render?
 			{
 				//Resize to resized!
-				dolog("zalloc", "Resizing frame...");
 				resized = resizeImage(emu_screen,rendersurface->sdllayer->w,rendersurface->sdllayer->h,GPU.doublewidth,GPU.doubleheight,GPU.use_Letterbox); //Render it to the PSP screen, keeping aspect ratio with letterboxing!
 				if (!resized) //Error?
 				{

@@ -96,58 +96,6 @@ void resetCPU() //Initialises CPU!
 	CPU.lastopcode = 0; //Last opcode, default to 0 and unknown?
 }
 
-extern byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
-extern word CB_datasegment; //Reserved segment when adding callback!
-extern word CB_dataoffset; //Reserved offset when adding callback!
-void CPU_resetDefaults() //Memory defaults for the CPU with and without custom BIOS!
-{
-	//Our core handlers!
-	addCBHandler(CB_UNASSIGNEDINTERRUPT,&BIOS_int19,0x00); //Second is used by the Bootstrap/BIOS loader! Don't assign to an interrupt!
-	//Jump to our BIOS!
-	debugrow("Setting up the initial emulator JMP to internal BIOS ROM executable...");
-	EMU_BIOS[0xFFF0] = 0xEA; //Intrasegment jump!
-	EMU_BIOS[0xFFF1] = CB_dataoffset&0xFF; //Offset!
-	EMU_BIOS[0xFFF2] = (CB_dataoffset>>8)&0xFF;
-	EMU_BIOS[0xFFF3] = CB_datasegment&0xFF; //Segment!
-	EMU_BIOS[0xFFF4] = (CB_datasegment>>8)&0xFF;
-}
-
-void CPU_memorydefaults() //Memory defaults for the CPU without custom BIOS!
-{
-//Finally: interrupt callbacks!
-	addCBHandler(CB_IRET,NULL,0x00); //IRET first!
-	addCBHandler(CB_INTERRUPT,&BIOS_int05,0x05); //Interrupt 05h overrideable handler!
-	addCBHandler(CB_INTERRUPT,&BIOS_int10,0x10); //Interrupt 10h overrideable handler!
-	addCBHandler(CB_INTERRUPT,&BIOS_int11,0x11); //Interrupt 11h overrideable handler!
-	addCBHandler(CB_INTERRUPT,&BIOS_int13,0x13); //Interrupt 13h overrideable handler!
-	addCBHandler(CB_INTERRUPT,&BIOS_int16,0x16); //Interrupt 16h overrideable handler!
-	CPU_setint(0x19,MMU_rw(-1,0xF000,0xFFF3,0),MMU_rw(-1,0xF000,0xFFF1,0)); //Interrupt 19 (bootstrap)!
-	
-	//1D=Video control parameter table
-	//1E=Disk base table
-	//1F=High video graphics characters
-	//49=Translation table for keyboard-supplement devices
-	
-	//Set up interrupt handler base table!
-	copyint(0x00,0x01); //Set int 1 to IRET!
-	copyint(0x00,0x02); //Set int 2 to IRET!
-	copyint(0x00,0x03); //Set int 3 to IRET!
-	copyint(0x00,0x04); //Set int 4 to IRET!
-	copyint(0x00,0x06); //Set int 6 to IRET!
-	copyint(0x00,0x07); //Set int 7 to IRET!
-	copyint(0x00,0x08); //Set int 8 to IRET!
-	copyint(0x00,0x09); //Set int 9 to IRET!
-	copyint(0x00,0x0A); //Set int 10 to IRET!
-	copyint(0x00,0x0B); //Set int 11 to IRET!
-	copyint(0x00,0x0C); //Set int 12 to IRET!
-	copyint(0x00,0x0D); //Set int 13 to IRET!
-	copyint(0x00,0x0E); //Set int 14 to IRET!
-	
-	//int 15 isn't used!
-	//int 16 is BIOS Video!
-	//rest is unset or unused!
-}
-
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h
 
 byte CPU_readOP() //Reads the operation (byte) at CS:EIP

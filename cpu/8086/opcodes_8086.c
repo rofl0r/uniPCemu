@@ -1972,6 +1972,7 @@ void CPU8086_OPFE() //GRP4 Eb
 		flag_add8(modrm_read8(&params,2),1);
 		FLAG_CF = tempcf;
 		modrm_write8(&params,2,res8);
+		break;
 	case 1: //DEC
 		if (cpudebugger) //Debugger on?
 		{
@@ -1982,13 +1983,15 @@ void CPU8086_OPFE() //GRP4 Eb
 		flag_sub8(modrm_read8(&params,2),1);
 		FLAG_CF = tempcf;
 		modrm_write8(&params,2,res8);
+		break;
 	case 7: //---: Special: callback handler!
 		cb16 = CPU_readOPw(); //Read callback!
 		if (cpudebugger) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("<INTERNAL CALLBACK>",0,cb16,PARAM_IMM16);
 		}
-		CB_handler((byte)(cb16&0xFF)); //Call special handler!
+		CB_handler(cb16); //Call special handler!
+		break;
 	default: //Unknown opcode or special?
 		break;
 	}

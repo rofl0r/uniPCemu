@@ -175,6 +175,18 @@ byte unregisterptr(void *ptr, uint_32 size) //Remove pointer from registration (
 	return 0; //We could't find the pointer to unregister!
 }
 
+byte changedealloc(void *ptr, uint_32 size, DEALLOCFUNC dealloc) //Change the default dealloc func for an entry (used for external overrides)!
+{
+	int index;
+	initZalloc(); //Make sure we're started!
+	if ((index = matchptr(ptr, 0, size, NULL)) > -1) //We've been found fully?
+	{
+		registeredpointers[index].dealloc = dealloc; //Set the new deallocation function!
+		return 1; //Set!
+	}
+	return 0; //Not found!
+}
+
 //Core allocation/deallocation functions.
 void zalloc_free(void **ptr, uint_32 size) //Free a pointer (used internally only) allocated with nzalloc/zalloc!
 {
@@ -191,6 +203,11 @@ void zalloc_free(void **ptr, uint_32 size) //Free a pointer (used internally onl
 	}
 }
 
+DEALLOCFUNC getdefaultdealloc()
+{
+	return &zalloc_free; //Default handler used by us!
+}
+
 void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on failure (ran out of memory), protected malloc!
 {
 	void *ptr;
@@ -200,7 +217,7 @@ void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on failure (ran
 
 	if (ptr!=NULL) //Allocated and a valid size?
 	{
-		if (registerptr(ptr,size,name,&zalloc_free)) //Register the pointer with the detection system!
+		if (registerptr(ptr,size,name,getdefaultdealloc())) //Register the pointer with the detection system, using the default dealloc functionality!
 		{
 			return ptr; //Give the original pointer, cleared to 0!
 		}

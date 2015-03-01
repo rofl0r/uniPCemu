@@ -101,6 +101,7 @@ Handler BIOS_Menus[] =
 	,BIOS_ConvertDynamicStaticHDD //Convert dynamic to static HDD is #20!
 	,BIOS_DefragmentDynamicHDD //Defragment a dynamic HDD is #21!
 	,BIOS_BWMonitor //Switch to a b/w monitor or color monitor is #22!
+	,BIOS_DebugLog //Enable/disable debugger log is #23!
 };
 
 //Not implemented?
@@ -175,7 +176,9 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 			{
 				GPU_EMU_printscreen(0,0,"                                  "); //Clear our text!
 			}
-			runBIOS(); //Run the BIOS!
+			runBIOS(!timeout); //Run the BIOS! Show text if timeout is specified!
+			termThreads(); //Terminate all threads!
+			exit(0); //Quit: for some reason we don't reset correctly!
 			return 1; //We've to reset!
 		}
 	}
@@ -204,7 +207,7 @@ void BIOS_clearscreen()
 
 extern GPU_type GPU; //The GPU!
 
-void runBIOS() //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
+void runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
 {
 	if (__HW_DISABLED) return; //Abort!
 	EMU_stopInput(); //Stop all emu input!
@@ -218,12 +221,14 @@ void runBIOS() //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNI
 	GPU.show_framerate = 0; //Hide the framerate surface!	
 	
 //Now do the BIOS stuff!
-	if (!EMU_RUNNING) //Not in emulator?
+	if (showloadingtext) //Not in emulator?
 	{
 		EMU_textcolor(0xF);
 		printmsg(0xF,"\r\nLoading BIOS...");
 		delay(500000); //0.5 sec!
 	}
+
+	stopEMUTimers(); //Stop our timers!
 	
 	GPU_textclearscreen(frameratesurface); //Make sure the surface is empty for a neat BIOS!
 	
@@ -289,6 +294,7 @@ void runBIOS() //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNI
 
 //Restore all states saved for the BIOS!
 	GPU.show_framerate = frameratebackup; //Restore!
+	startEMUTimers(); //Start our timers up again!
 	startVGA(); //Start the VGA up again!
 	EMU_startInput(); //Start all emu input again!
 }
@@ -767,6 +773,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen) //Runs the file li
 		}
 		else if ((key&BUTTON_CROSS)>0) //SELECT?
 		{
+			delay(500000); //Wait a bit before continuing!
 			return result; //Give the result!
 		}
 		else if ((key&BUTTON_CIRCLE)>0) //CANCEL?
@@ -1166,7 +1173,7 @@ void BIOS_InitAdvancedText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i=0; i<3; i++) //Clear all possibilities!
+	for (i=0; i<10; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
 	}
@@ -1224,9 +1231,19 @@ void BIOS_InitAdvancedText()
 		break;
 	}
 
+	optioninfo[advancedoptions] = 8; //We're debug log setting!
+	strcpy(menuoptions[advancedoptions], "Log when debugging: ");
+	if (BIOS_Settings.debugger_log)
+	{
+		strcat(menuoptions[advancedoptions++], "Enabled");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "Disabled");
+	}
+
 	optioninfo[advancedoptions] = 4; //We're direct plot setting!
 	strcpy(menuoptions[advancedoptions],"VGA Direct Plot: ");
-
 setdirectplottext: //For fixing it!
 	switch (BIOS_Settings.VGA_AllowDirectPlot) //What direct plot setting?
 	{
@@ -1381,7 +1398,8 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 4:
 	case 5:
 	case 6:
-	case 7: //Valid option?
+	case 7:
+	case 8: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Boot order (plain)?
@@ -1407,6 +1425,9 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 			break;
 		case 7:
 			BIOS_Menu = 22; //B/W monitor setting!
+			break;
+		case 8:
+			BIOS_Menu = 23; //Debugger log setting!
 			break;
 		}
 		break;
@@ -2068,6 +2089,13 @@ void BIOS_DebugMode()
 		}
 		break;
 	}
+	BIOS_Menu = 8; //Goto Advanced menu!
+}
+
+void BIOS_DebugLog()
+{
+	BIOS_Settings.debugger_log = !BIOS_Settings.debugger_log; //Reverse!
+	BIOS_Changed = 1; //Changed!
 	BIOS_Menu = 8; //Goto Advanced menu!
 }
 

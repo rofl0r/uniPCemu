@@ -14,139 +14,6 @@ void Dosbox_RealSetVec(byte interrupt, uint_32 realaddr)
 	RealSetVec(interrupt,realaddr>>16,realaddr&0xFFFF); //Set the interrupt vector in real mode!
 }
 
-/*void int16_readkey()
-{
-	/
-	Read (Wait for) Next Keystroke
-	returns:
-		REG_AH=Scan code
-		REG_AL=ASCII character code or extended ASCII keystroke(REG_AL=0)
-	/
-	sceKernelSleepThread(); //No input!
-}
-
-void int16_querykeyb_status_previewkey()
-{
-	/
-	Query Keyboard Status/Preview Key
-	returns:
-		FLAG_ZF: No keys in buffer
-		NZ: key is ready
-
-		REG_AH (if not FLAG_ZF): scan code
-		REG_AL (if not FLAG_ZF): ASCII character code or extended ASCII keystroke
-	/
-	FLAG_ZF = 1; //No keys to be read atm!
-}
-
-void int16_querykeyb_shiftflags()
-{
-	/
-		Query keyboard Shift Status
-		returns:
-			REG_AL: Status of Ctl, Alt etc. (Same as 0040:0017)
-
-			Info on bits REG_AL:
-				0: Alpha-shift (right side) DOWN
-				1: Alpha-shift (left side) DOWN
-				2: Ctrl-shift (either side) DOWN
-				3: Alt-shift (either side) DOWN
-				4: ScrollLock State
-				5: NumLock State
-				6: CapsLock State
-				7: Insert state.
-
-			Extra: 0040:0018:
-				0: Ctrl-shift (left side) DOWN (only 101-key enhanced keyboard)
-				1: Alt-shift (left side) DOWN (see above)
-				2: SysReq DOWN
-				3: hold/pause state
-				4: ScrollLock DOWN
-				5: NumLock DOWN (ON)
-				6: CapsLock DOWN (ON)
-				7: Insert DOWN
-	/
-	REG_AL = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0040,0x0017,0); //Reset!
-}
-
-void int16_set_typeamaticrate_and_delay()
-{
-	/
-		Input:
-			REG_AL=05h
-			REG_BH=Delay code
-			REG_BL=typematic rate code
-		REG_BL Delay code:
-			00h: 250ms
-			01h: 500ms
-			02h: 750ms
-			03h: 1000ms
-			else: reserved
-		REG_BH repeat code:
-			00h: 30 repeats per second
-			01h: 26.7 repeats per second
-			02h: 24 repeats per second
-			03h: 21.8 repeats per second
-			04h: 20.0 repeats per second
-			05h: 18.5 repeats per second
-			06h: 17.1 repeats per second
-			07h: 16.0 repeats per second
-			08h: 15.0 repeats per second
-			09h: 13.3 repeats per second
-			0Ah: 12.0 repeats per second
-			0Bh: 10.9 repeats per second
-			0Ch: 10.0 repeats per second
-			0Dh: 9.2 repeats per second
-			0Eh: 8.6 repeats per second
-			0Fh: 8.0 repeats per second
-			10h: 7.5 repeats per second
-			11h: 6.7 repeats per second
-			12h: 6.0 repeats per second
-			13h: 5.5 repeats per second
-			14h: 5.0 repeats per second
-			15h: 4.6 repeats per second
-			16h: 4.3 repeats per second
-			17h: 4.0 repeats per second
-			18h: 3.7 repeats per second
-			19h: 3.3 repeats per second
-			1Ah: 3.0 repeats per second
-			1Bh: 2.7 repeats per second
-			1Ch: 2.5 repeats per second
-			1Dh: 2.3 repeats per second
-			1Eh: 2.1 repeats per second
-			1Fh: 2 repeats per second
-	/
-	//Delay=(rate+1)*250ms
-	//Rate=(8+A)*(2**B)*4.17
-	//Default: 10.9 characters/second; 500ms delay!
-	//When typed, first character is send, after pressed for delay time, next repeat x characters/second!
-}
-
-void int16_storekeydata()
-{
-	/
-		Input:
-			REG_CH=Scan code to store
-			REG_CL=ASCII character or extended ACII keystroke
-		Output:
-			REG_AL=0: Successfully stored
-			REG_AL=1: Not stored (no room in buffer)
-	/
-	REG_AL = 1; //Not stored: not implemented yet!
-}
-
-void int16_readextendedkeybinput()
-{
-}
-
-void int16_queryextendedkeybstatus()
-{
-}
-
-void int16_queryextendedkeybshiftflags()
-{
-}*/ //My original stuff!
-
 #if SDL_VERSION_ATLEAST(1, 2, 14)
 #define CAN_USE_LOCK 1
 #endif
@@ -729,7 +596,7 @@ void BIOS_SetupKeyboard() {
 	CALLBACK_Setup(call_int16,&INT16_Handler,CB_INT16,"Keyboard");
 	RealSetVec(0x16,CALLBACK_RealPointer(call_int16));
 	*/
-	addCBHandler(CB_DOSBOX_INTERRUPT,&INT16_Handler,0x16); //Register our handler our way!
+	addCBHandler(CB_DOSBOX_INT16,&INT16_Handler,0x16); //Register our handler our way!
 
 	/*call_irq1=CALLBACK_Allocate();	
 	CALLBACK_Setup(call_irq1,&IRQ1_Handler,CB_IRQ1,Real2Phys(BIOS_DEFAULT_IRQ1_LOCATION),"IRQ 1 Keyboard");

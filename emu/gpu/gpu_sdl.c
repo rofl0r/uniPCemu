@@ -25,6 +25,7 @@ void freeSurfacePtr(void **ptr, uint_32 size) //Free a pointer (used internally 
 			SDL_FreeSurface(surface->sdllayer); //Release the surface fully using native support!
 		}
 	}
+	changedealloc(surface, sizeof(*surface), getdefaultdealloc()); //Change the deallocation function back to it's default!
 	//We're always allowed to release the container.
 	freez((void **)ptr,sizeof(GPU_SDL_Surface),"freeSurfacePtr GPU_SDL_Surface");
 }
@@ -45,7 +46,11 @@ GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface) //Retrieves a surface w
 void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerelease) //Register a surface!
 {
 	if (!surface) return; //Invalid surface!
-	if (!registerptr(surface->sdllayer, sizeof(*surface->sdllayer), name, allowsurfacerelease ? &freeSurfacePtr : NULL)) //The surface itself! We're released using a custom function to release it when allowed!
+	if (!changedealloc(surface, sizeof(*surface), &freeSurfacePtr)) //We're changing the default dealloc function for our override!
+	{
+		return; //Can't change registry for 'releasing the surface container' handler!
+	}
+	if (!registerptr(surface->sdllayer, sizeof(*surface->sdllayer), name, NULL)) //The surface itself!
 	{
 		if (!memprotect(surface->sdllayer, sizeof(*surface->sdllayer), name)) //Failed to register?
 		{
@@ -319,16 +324,15 @@ void put_pixel(GPU_SDL_Surface *surface, const int x, const int y, const Uint32 
 	if (!surface) return; //Disable if no surface!
 	if (!memprotect(surface,sizeof(*surface),NULL)) return; //Invalid surface!
 	if (!memprotect(surface->sdllayer,sizeof(*surface->sdllayer),NULL)) return; //Invalid layer!
+	if (y >= surface->sdllayer->h) return; //Invalid row!
+	if (x >= surface->sdllayer->w) return; //Invalid column!
 	Uint32 *pixels = (Uint32 *)surface->sdllayer->pixels;
 	Uint32 *pixelpos = &pixels[ ( y * get_pixelrow_pitch(surface) ) + x ]; //The pixel!
-	if (memprotect(pixelpos,sizeof(*pixelpos),NULL)) //Valid?
+	if (*pixelpos!=pixel) //Different?
 	{
-		if (*pixelpos!=pixel) //Different?
-		{
-			surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-		}
-		*pixelpos = pixel;
+		surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 	}
+	*pixelpos = pixel;
 }
 
 //Retrieve a pixel/row(pixel=0).

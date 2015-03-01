@@ -369,7 +369,6 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 					*value = BIOS_custom_ROM[offset]; //Give the value!
 					return 1;
 				}
-				//dolog("CPU","Custom ROM out of range!");
 			}
 			else //Normal BIOS ROM?
 			{

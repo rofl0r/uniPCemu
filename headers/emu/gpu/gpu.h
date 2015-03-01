@@ -103,6 +103,8 @@ typedef struct
 	//Text surface support!
 	Handler textrenderers[10]; //Every surface can have a handler to draw!
 	void *textsurfaces[10]; //Up to 10 text surfaces available!
+
+	byte fullscreen; //Are we in fullscreen view?
 } GPU_type; //GPU data
 
 void initVideoLayer(); //We're for allocating the main video layer, only deallocated using SDL_Quit (when quitting the application)!

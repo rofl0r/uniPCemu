@@ -22,4 +22,7 @@ void logpointers(char *cause); //Logs any changes in memory usage!
 //For stuff using external allocations. Result: 1 on success, 0 on failure.
 byte registerptr(void *ptr,uint_32 size, char *name, DEALLOCFUNC dealloc); //Register a pointer!
 byte unregisterptr(void *ptr, uint_32 size); //Remove pointer from registration (only if original pointer)?
+
+DEALLOCFUNC getdefaultdealloc(); //The default dealloc function!
+byte changedealloc(void *ptr, uint_32 size, DEALLOCFUNC dealloc); //Change the default dealloc func for an entry (used for external overrides)!
 #endif

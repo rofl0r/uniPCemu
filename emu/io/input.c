@@ -1713,6 +1713,9 @@ void updateInput(SDL_Event *event) //Update all input!
 					case SDLK_KP2: //CROSS?
 						input.Buttons &= ~BUTTON_CROSS; //Pressed!
 						break;
+					case SDLK_F12: //Fullscreen toggle?
+						GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
+						break;
 				}
 				updateMOD(event); //Update rest keys!
 			}

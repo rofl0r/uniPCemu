@@ -55,14 +55,34 @@ SDL_Surface *getGPUSurface()
 	}
 
 	//Other architecture?
-	if ((GPU.xres>=PSP_SCREEN_COLUMNS) && (GPU.yres>=PSP_SCREEN_ROWS) && VIDEO_DFORCED) //Gotten a resolution bigger than minimum and plotting directly forced? (direct plot any resolution, not automatic)
+	word xres, yres; //Our determinated resolution!
+	if (VIDEO_DFORCED) //Forced?
 	{
-		originalrenderer = SDL_SetVideoMode(GPU.xres, GPU.yres, 32, SDL_SWSURFACE); //Start fullscreen of rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!		
+		xres = GPU.xres; //Literal x resolution!
+		yres = GPU.yres; //Literal y resolution!
 	}
-	else
+	else //Normal operations? Use PSP resolution!
 	{
-		originalrenderer = SDL_SetVideoMode(PSP_SCREEN_COLUMNS, PSP_SCREEN_ROWS, 32, SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+		xres = PSP_SCREEN_COLUMNS; //PSP resolution x!
+		yres = PSP_SCREEN_ROWS; //PSP resolution y!
 	}
+
+	if (xres > EMU_MAX_X) xres = EMU_MAX_X;
+	if (yres > EMU_MAX_Y) yres = EMU_MAX_Y; //Apply limits!
+	
+	//Determine minimum by text/screen resolution!
+	word minx, miny;
+	minx = (GPU_TEXTPIXELSX > PSP_SCREEN_COLUMNS) ? GPU_TEXTPIXELSX : PSP_SCREEN_COLUMNS;
+	miny = (GPU_TEXTPIXELSY > PSP_SCREEN_ROWS) ? GPU_TEXTPIXELSY : PSP_SCREEN_ROWS;
+
+	if (xres < minx) xres = minx; //Minimum width!
+	if (yres < miny) yres = miny; //Minimum height!
+
+	uint_32 flags = SDL_SWSURFACE; //Default flags!
+	if (GPU.fullscreen) flags |= SDL_FULLSCREEN; //Goto fullscreen mode!
+
+	originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+
 	SDL_WM_SetCaption( "x86EMU", 0 );
 	GPU_text_updatedelta(originalrenderer); //Update delta if needed, so the text is at the correct position!
 	#endif
@@ -185,16 +205,18 @@ void updateVideo() //Update the screen resolution on change!
 	#ifndef __psp__
 	static word xres=0;
 	static word yres=0;
+	static byte fullscreen = 0; //Are we fullscreen?
 	if (rendersurface) //Already started?
 	{
-		if ((xres^GPU.xres) || (yres^GPU.yres)) //Resolution changed?
+		if ((xres^GPU.xres) || (yres^GPU.yres) || (fullscreen^GPU.fullscreen)) //Resolution changed?
 		{
 			xres = GPU.xres;
 			yres = GPU.yres;
+			fullscreen = GPU.fullscreen; //Save the new values for comparing the next time we're changed!
+			freez((void **)&rendersurface,sizeof(*rendersurface),"SDL Main Rendering Surface"); //Release the rendering surface!
 			if (getGPUSurface()) //Update the current surface if needed!
 			{
-				rendersurface->sdllayer = originalrenderer; //Apply the new renderer!
-				rendersurface->flags |= SDL_FLAG_DIRTY; //Force re-rendering!
+				rendersurface = getSurfaceWrapper(originalrenderer); //New wrapper!
 				registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 0); //Register, but don't allow release: this is done by SDL_Quit only!
 			}
 		}

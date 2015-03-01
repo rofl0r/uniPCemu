@@ -38,6 +38,7 @@ typedef struct PACKED
 
 			byte bootorder; //Boot order?
 			byte debugmode; //What debug mode?
+			byte debugger_log; //Log when using the debugger?
 
 			INPUT_SETTINGS input_settings; //Settings for input!
 

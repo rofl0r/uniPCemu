@@ -873,9 +873,6 @@ int getcpuwraparround(); //Wrap arround 1MB limit?
 
 void CPU_setBootstrap(); //Sets the valid bootstrap at address 0xFFFF0 after the CPU is initialised to run the BIOS POST!
 
-void CPU_resetDefaults(); //Memory defaults for the CPU with and without custom BIOS!
-void CPU_memorydefaults(); //Memory defaults for the CPU without custom BIOS!
-
 #define signext(value) ((((word)value&0x80)*0x1FE)|(word)value)
 #define signext32(value) ((((uint_32)value&0x8000)*0x1FFFE)|(uint_32)value)
 

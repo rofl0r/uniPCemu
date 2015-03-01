@@ -69,6 +69,7 @@ OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel)
 	{
 		register uint_32 old;
 		uint_32 *screenpixel = &EMU_BUFFER(VGA->CRTC.x,VGA->CRTC.y); //Pointer to our pixel!
+		if (!memprotect(screenpixel, sizeof(screenpixel), NULL)) return; //Invalid pixel?
 		old = *screenpixel; //Read old!
 		old ^= pixel; //Check for differences!
 		if (old) //Changed anything?

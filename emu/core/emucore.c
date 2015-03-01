@@ -204,10 +204,10 @@ void initEMU(int full) //Init!
 		debugrow("Starting timers...");
 		startTimers(0); //Start the timers!
 		debugrow("Loading system BIOS ROM...");
-		BIOS_registerROM(); //Register the BIOS ROM for usage!
+		BIOS_registerROM(); //Register the ROMs for usage!
 		BIOS_load_systemROM(); //Load custom ROM from emulator itself, we don't know about any system ROM!
 		clearCBHandlers(); //Reset all callbacks!
-		CPU_resetDefaults(); //Reset to defaults (including our own emulator call and jump)!
+		BIOS_initStart(); //Get us ready to load our own BIOS boot sequence!
 	}
 	else
 	{
@@ -361,6 +361,10 @@ byte coreHandler()
 	//CPU execution, needs to be before the debugger!
 	if (!CPU.halt) //Not halted?
 	{
+		if (CPU.registers->CS == 0xF000 && CPU.registers->IP == 0xE991)
+		{
+			dolog("debug", "Breakpoint!");
+		}
 		debugger_beforeCPU(); //Everything before the CPU!
 		CPU_beforeexec(); //Everything before the execution!
 		if (!CPU.trapped) //Only check for hardware interrupts when not trapped!
@@ -381,7 +385,7 @@ byte coreHandler()
 	if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Run in-emulator BIOS menu and not gaming mode?
 	{
 		pauseEMU(); //Stop timers!
-		runBIOS(); //Run the 1emulator BIOS!
+		runBIOS(0); //Run the emulator BIOS!
 		resumeEMU(); //Resume!
 	}
 	return 1; //OK!
@@ -448,7 +452,14 @@ char EMU_TIMERS[][256] = {
 				"PIT0", //Timer0!
 				"AddrPrint", //When debugging ROMs!
 				"RTC", //Real-time clock!
-				"PSP Mouse" //PS/2 mouse input!
+				"PSP Mouse", //PS/2 mouse input!
+				"VGA_ScanLine", //VGA rendering!
+				"AdlibAttackDecay",
+				"Keyboard PSP Type",
+				"Keyboard PSP Swap",
+				"PSP Mouse",
+				"DMA tick",
+				"Framerate"
 				}; //All emulator (used when running the emulator) timers, which aren't used outside the emulator itself!
 
 void stopEMUTimers()

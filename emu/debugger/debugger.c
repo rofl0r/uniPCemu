@@ -13,7 +13,7 @@
 #include "headers/emu/emucore.h" //for pause/resumeEMU support!
 
 //Log flags only?
-#define LOGFLAGSONLY
+//#define LOGFLAGSONLY
 
 char debugger_prefix[256] = ""; //The prefix!
 char debugger_command_text[256] = ""; //Current command!
@@ -28,7 +28,7 @@ CPU_registers debuggerregisters; //Backup of the CPU's register states before th
 
 byte debugger_active()
 {
-	return (debugging() || DEBUGGER_LOG || singlestep);
+	return (debugging() || singlestep);
 }
 
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
@@ -182,7 +182,13 @@ void debugger_autolog()
 		bzero(fullcmd,sizeof(fullcmd)); //Init!
 		if (!debugger_set) //No debugger set?
 		{
-			sprintf(debugger_command_text,"<Debugger not implemented: %02X>",CPU.lastopcode); //Set to the last opcode!
+			int i;
+			strcpy(debugger_command_text,"<Debugger not implemented: "); //Set to the last opcode!
+			for (i = debuggerregisters.EIP; i < CPU.registers->EIP; i++) //List the full command!
+			{
+				sprintf(debugger_command_text, "%s%c", debugger_command_text, MMU_rb(CPU_SEGMENT_CS, debuggerregisters.CS, i, 1)); //Add part of the opcode!
+			}
+			strcat(debugger_command_text, ">"); //End of #UNKOP!
 		}
 		sprintf(fullcmd,"(%02X)%s%s",CPU.lastopcode,debugger_prefix,debugger_command_text); //Get our full command!
 
@@ -222,72 +228,72 @@ void debugger_screen() //Show debugger info on-screen!
 	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,debugrow++); //Second debug row!
 	GPU_textprintf(frameratesurface,fontcolor,backcolor,"ROP:%02X",CPU.lastopcode); //Real OPCode!
 
-	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,debugrow++); //Second debug row!
+	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 //First: location!
 	GPU_textprintf(frameratesurface,fontcolor,backcolor,"CS:%04X",debuggerregisters.CS); //Debug CS!
 	if (EMULATED_CPU<=CPU_80186) //186-?
 	{
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,debugrow++); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"IP:%04X",debuggerregisters.IP); //Debug IP!
 	}
 	else //286+?
 	{
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-11,debugrow++); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-12,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"EIP:%08X",debuggerregisters.EIP); //Debug IP!
 	}
 
 //Now: Rest segments!
-	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,debugrow++); //Second debug row!
+	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 	GPU_textprintf(frameratesurface,fontcolor,backcolor,"DS:%04X",debuggerregisters.DS); //Debug DS!
-	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,debugrow++); //Second debug row!
+	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 	GPU_textprintf(frameratesurface,fontcolor,backcolor,"ES:%04X",debuggerregisters.ES); //Debug ES!
-	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,debugrow++); //Second debug row!
+	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 	GPU_textprintf(frameratesurface,fontcolor,backcolor,"SS:%04X",debuggerregisters.SS); //Debug SS!
 
 
 //General purpose registers!
 	if (EMULATED_CPU<=CPU_80186) //186-?
 	{
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,debugrow++); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"AX:%04X",debuggerregisters.AX); //Debug AX!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,debugrow++); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"BX:%04X",debuggerregisters.BX); //Debug BX!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,debugrow++); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"CX:%04X",debuggerregisters.CX); //Debug CX!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,debugrow++); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"DX:%04X",debuggerregisters.DX); //Debug DX!
 	
 	//Pointers and indexes!
 	
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,GPU_TEXT_DEBUGGERROW+11); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,GPU_TEXT_DEBUGGERROW+11); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"SP:%04X",debuggerregisters.SP); //Debug DX!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,GPU_TEXT_DEBUGGERROW+12); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,GPU_TEXT_DEBUGGERROW+12); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"BP:%04X",debuggerregisters.BP); //Debug DX!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,GPU_TEXT_DEBUGGERROW+13); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,GPU_TEXT_DEBUGGERROW+13); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"SI:%04X",debuggerregisters.SI); //Debug DX!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,GPU_TEXT_DEBUGGERROW+14); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,GPU_TEXT_DEBUGGERROW+14); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"DI:%04X",debuggerregisters.DI); //Debug DX!
 	}
 	else //286+?
 	{
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-11,debugrow++); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-12,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"EAX:%08X",debuggerregisters.EAX); //Debug EAX!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-11,debugrow++); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-12,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"EBX:%08X",debuggerregisters.EBX); //Debug EBX!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-11,debugrow++); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-12,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"ECX:%08X",debuggerregisters.ECX); //Debug ECX!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-11,debugrow++); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-12,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"EDX:%08X",debuggerregisters.EDX); //Debug EDX!
 	
 	//Pointers and indexes!
 	
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-11,GPU_TEXT_DEBUGGERROW+11); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-12,GPU_TEXT_DEBUGGERROW+11); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"ESP:%08X",debuggerregisters.ESP); //Debug ESP!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-11,GPU_TEXT_DEBUGGERROW+12); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-12,GPU_TEXT_DEBUGGERROW+12); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"EBP:%08X",debuggerregisters.EBP); //Debug EBP!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-11,GPU_TEXT_DEBUGGERROW+13); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-12,GPU_TEXT_DEBUGGERROW+13); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"ESI:%08X",debuggerregisters.ESI); //Debug ESI!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-11,GPU_TEXT_DEBUGGERROW+14); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-12,GPU_TEXT_DEBUGGERROW+14); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"EDI:%08X",debuggerregisters.EDI); //Debug EDI!
 	}
 
@@ -295,31 +301,36 @@ void debugger_screen() //Show debugger info on-screen!
 	//First, flags fully...
 	if (EMULATED_CPU<=CPU_80186) //186-?
 	{
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-6,GPU_TEXT_DEBUGGERROW+15); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,GPU_TEXT_DEBUGGERROW+15); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"F :%04X",debuggerregisters.FLAGS); //Debug FLAGS!
 	}
 	else //286+
 	{
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-10,GPU_TEXT_DEBUGGERROW+15); //Second debug row!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-11,GPU_TEXT_DEBUGGERROW+15); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"F :%08X",debuggerregisters.EFLAGS); //Debug FLAGS!
 	}
 
-	//Finally, flags seperated!
-	char *flags = debugger_generateFlags(&debuggerregisters); //Generate the flags as text!
-	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-strlen(flags),GPU_TEXT_DEBUGGERROW+16); //Second flags row!
-	GPU_textprintf(frameratesurface,fontcolor,backcolor,"%s",flags); //All flags, seperated!
+//Finally, flags seperated!
+char *flags = debugger_generateFlags(&debuggerregisters); //Generate the flags as text!
+GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - strlen(flags), GPU_TEXT_DEBUGGERROW + 16); //Second flags row!
+GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s", flags); //All flags, seperated!
 }
+
+byte allow_debuggerstep = 0; //Disabled by default: needs to be enabled by our BIOS!
 
 void debugger_step() //Processes the debugging step!
 {
+	static byte skipopcodes = 0; //Skip none!
+	debugger_autolog(); //Log when enabled!
 recheckdebugger: //For getting from the BIOS!
-	if ((debugging() && (psp_keypressed(BUTTON_RTRIGGER) || (DEBUGGER_ALWAYS_STEP>0))) || (singlestep)) //Debugging step or single step enforced?
+	if (debugging()) //Debugging step or single step enforced?
 	{
 		pauseEMU(); //Pause it!
 
+		debugger_screen(); //Show debugger info on-screen!
 		int done = 0;
 		done = 0; //Init: not done yet!
-		while (!done) //Still not done?
+		while (!(done || skipopcodes)) //Still not done or skipping?
 		{
 			if (singlestep) //Hardware enforced single step?
 			{
@@ -347,12 +358,12 @@ recheckdebugger: //For getting from the BIOS!
 				return; //Done!
 				break;
 			}
-			if (psp_keypressed(BUTTON_TRIANGLE)) //Dump screen?
+			if (psp_keypressed(BUTTON_TRIANGLE)) //Skip 10 commands?
 			{
 				while (psp_keypressed(BUTTON_TRIANGLE)) //Wait for release!
 				{
 				}
-				int10_dumpscreen(); //Dump it!
+				skipopcodes = 9; //Skip 9 additional opcodes!
 				break;
 			}
 			if (psp_keypressed(BUTTON_SQUARE)) //Refresh screen?
@@ -374,29 +385,36 @@ recheckdebugger: //For getting from the BIOS!
 			}
 			if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Goto BIOS?
 			{
-				runBIOS(); //Run the BIOS!
+				runBIOS(0); //Run the BIOS!
 				goto recheckdebugger; //Recheck the debugger!
 			}
+			delay(1); //Wait a bit!
 		} //While not done
+		if (skipopcodes) //Skipping?
+		{
+			--skipopcodes; //Skipped one opcode!
+		}
 		resumeEMU(); //Resume it!
 	} //Step mode?
-
-	debugger_autolog(); //Log when enabled!
 }
 
 int debugging() //Debugging?
 {
-	if (!DEBUGGER_ENABLED)
+	if (!(DEBUGGER_ENABLED && allow_debuggerstep))
 	{
 		return 0; //No debugger enabled!
 	}
-	if (singlestep && DEBUGGER_ENABLED) //Hardware enforced single step?
+	else if (singlestep && DEBUGGER_ENABLED) //Hardware enforced single step?
 	{
 		return 1; //Enforced by hardware single step!
 	}
-	if (DEBUGGER_ALWAYS_DEBUG)
+	else if (DEBUGGER_ALWAYS_DEBUG)
 	{
 		return 1; //Always debug!
+	}
+	else if ((psp_keypressed(BUTTON_RTRIGGER) || (DEBUGGER_ALWAYS_STEP > 0) || (singlestep))) //Forced step?
+	{
+		return 1; //Always step!
 	}
 	return psp_keypressed(BUTTON_LTRIGGER); //Debugging according to LTRIGGER!!!
 }

@@ -164,7 +164,13 @@ int main(int argc, char * argv[])
 	{
 		initExceptionHandler(); //Start the exception handler!
 	}
-	
+
+	if (SDL_Init(0) < 0) //Error initialising SDL defaults?
+	{
+		SDL_Quit(); //Nothing to be done!
+		exit(1); //Just to be sure
+	}
+
 	initlog(); //Initialise the logging system!
 
 	//Normal operations!
@@ -233,7 +239,7 @@ int main(int argc, char * argv[])
 		}
 	#endif
 
-	if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_JOYSTICK)==-1) //Error initialising video&audio?
+	if (SDL_InitSubSystem(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_JOYSTICK)<0) //Error initialising video,audio&joystick?
 	{
 		raiseError("SDL Init error: %s",SDL_GetError()); //Raise an error!
 		sleep(); //Wait forever!

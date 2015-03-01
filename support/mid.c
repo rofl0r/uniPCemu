@@ -17,7 +17,7 @@ uint_32 byteswap32(uint_32 value)
 	return (byteswap16(value & 0xFFFF) << 8) | byteswap16((value & 0xFFFF0000) >> 16); //
 }
 
-uint_32 activetempo = 0x500000; //Current tempo!
+uint_32 activetempo = 500000; //Current tempo!
 
 word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **channels, word maxchannels)
 {
@@ -176,6 +176,7 @@ float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 		speed = 1.0f / speed; //Ammount per second!
 		speed *= 0.5f; //Divide by 2 for slower speed!
 	}
+
 	//We're counting in ticks!
 	return speed; //ticks per second!
 }
@@ -245,6 +246,7 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
 			switch (meta_type) //What event?
 			{
 				case 0x2F: //EOT?
+					dolog("MID", "channel %i: EOT!", channel); //EOT reached!
 					return; //End of track reached: done!
 				case 0x51: //Set tempo?
 					//Lock
@@ -263,11 +265,13 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
 
 					updateMIDTimer(header);
 
+					dolog("MID", "channel %i: Set Tempo:%06X!", channel, activetempo);
+
 					//Unlock
 					SDL_SemPost(MID_BPM_Lock);
 					break;
 				default: //Unrecognised meta event? Skip it!
-					dolog("MID", "Unrecognised meta type: %02X@Channel %i", meta_type, channel); //Log the unrecognised metadata type!
+					dolog("MID", "Unrecognised meta type: %02X@Channel %i; Data length: %i", meta_type, channel,length); //Log the unrecognised metadata type!
 					for (; length--;) //Process length bytes!
 					{
 						if (!consumeStream(&curstream, &curdata)) return; //Skip failed?
@@ -358,10 +362,11 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
 			//Unlock
 			if (error)
 			{
-				dolog("MID", "Error @position %i of channel %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X",error,channel,last_command,curdata);
+				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X",channel,error,last_command,curdata);
+				SDL_SemPost(MIDLock); //Finish up!
 				return; //Abort on error!
 			}
-			SDL_SemPost(MIDLock);
+			SDL_SemPost(MIDLock); //Finish: prepare for next command!
 		}
 	}
 }

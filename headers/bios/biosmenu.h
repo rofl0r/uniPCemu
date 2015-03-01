@@ -30,7 +30,7 @@ void freeBIOSMenu(); //Free up all BIOS related memory!
 void initBIOSMenu(); //Stuff that take extra video memory etc. for seperated BIOS!
 
 int CheckBIOSMenu(uint_32 timeout); //To run the BIOS Menus! Result: to reboot?
-void runBIOS(); //Run the BIOS!
+void runBIOS(byte showloadingtext); //Run the BIOS!
 void BIOS_MenuChooser(); //The menu chooser!
 
 //Now for the seperate menus:
@@ -63,6 +63,7 @@ void BIOSMenu_LoadDefaults(); //Load the defaults option!
 void BIOSClearScreen(); //Resets the BIOS's screen!
 void BIOSDoneScreen(); //Cleans up the BIOS's screen!
 int psp_inputkey(); //Input key from PSP directly!
+void BIOS_DebugLog(); //Debugger log!
 
 
 #endif

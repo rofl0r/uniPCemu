@@ -9,7 +9,7 @@ Handler CBHandlers[CB_MAX]; //Handlers!
 byte CBTypes[CB_MAX]; //Types!
 struct
 {
-	byte handlernr; //Current handle number!
+	word handlernr; //Current handle number!
 	byte hascallback;
 } currentcallback; //Current callback!
 
@@ -26,7 +26,7 @@ byte CB_ISCallback()
 	return CB_callback?1:0; //Callback or not!
 }
 
-void CB_handler(byte handlernr) //Call an handler (from CB_Handler)?
+void CB_handler(word handlernr) //Call an handler (from CB_Handler)?
 {
 	currentcallback.hascallback = 1; //Have callback!
 	currentcallback.handlernr = handlernr; //The handle to process!
@@ -310,14 +310,14 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		EMU_BIOS[incoffset] =(Bit8u)0xFB;		//STI
 		//if (use_cb) {
 		byte i;
-		for (i = 0; i <= 0x0b; i++) EMU_BIOS[incoffset] = 0x90;
 			EMU_BIOS[incoffset] = (Bit8u)0xFE;	//GRP 4
 			EMU_BIOS[incoffset] =(Bit8u)0x38;	//Extra Callback instruction
 			write_BIOSw(incoffset,(Bit16u)curhandler);	//The immediate word
-			++dataoffset;
+			//++dataoffset;
 			//dataoffset+=4;
 		//}
-			//write_BIOSw(dataoffset + 0x0e, (Bit16u)0xedeb);	//jmp callback
+			for (i = 0; i <= 0x0b; i++) EMU_BIOS[incoffset] = 0x90;
+			write_BIOSw(dataoffset + 0x0e, (Bit16u)0xedeb);	//jmp callback
 			EMU_BIOS[incoffset] = (Bit8u)0xCF;		//An IRET Instruction
 		//return (use_cb?0x10:0x0c);
 		break;

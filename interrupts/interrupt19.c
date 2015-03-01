@@ -42,23 +42,5 @@ note 1) Reads track 0, sector 1 into address 0000h:7C00h, then transfers
 
 void BIOS_int19()
 {
-	if (MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),0x0040,0x0072,0)==0x1234) //Just reboot?
-	{
-		if (EMULATED_CPU>=CPU_80286) //Emulating a CPU with protected mode?
-		{
-			printmsg(0xF,"You can't use the 80286+ with the default BIOS. Please insert a BIOS ROM.");
-			MMU_ww(CPU_segment_index(CPU_SEGMENT_DS),0x0000,0x0472,0); //Clear reboot flag!
-			CPU_INT(0x19); //Reboot!
-		}
-		//Reboot to disk system!
-		if (!boot_system()) //System not booted?
-		{
-			CPU_INT(0x18); //Boot failure!
-			return; //Done: boot failed!
-		}
-	}
-	else //Run POST (normally boot-time only)?
-	{
-		reset = EMU_BIOSPOST(); //Execute POST, process emulator reset if needed!
-	}
+	reset = EMU_BIOSPOST(); //Execute POST, process emulator reset if needed!
 }
