@@ -115,6 +115,8 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	//int 15 isn't used!
 	//int 16 is BIOS Video!
 	//rest is unset or unused!
+
+	MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0x1234); //Make sure we boot the disk only, not do the BIOS again!
 }
 
 //Result: 0=Continue;1=Reset!
@@ -382,8 +384,6 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		CPU.registers->DX = 0; //Reset basic registers!
 
 		int13_init(1, 1, has_drive(HDD0), has_drive(HDD1), 1, 1); //Initialise interrupt 13h disks! Always floppy0&1 and cdrom0&1. HDD are predefined and mounted.
-
-		MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0x1234); //Make sure we boot normally next time!
 
 		MMU_dumpmemory("bootmem.dat"); //Dump all our memory to a file!
 	}

@@ -1223,6 +1223,9 @@ void BIOS_InitAdvancedText()
 	case DEBUGMODE_TEXT:
 		strcat(menuoptions[advancedoptions++],"No debugger enabled, debug text-mode characters"); //Set filename from options!
 		break;
+	case DEBUGMODE_BIOS:
+		strcat(menuoptions[advancedoptions++], "No debugger enabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
+		break;
 	case DEBUGMODE_SOUND:
 		strcat(menuoptions[advancedoptions++],"No debugger enabled, run sound test"); //Set filename from options!
 		break;

@@ -1958,7 +1958,7 @@ void CPU8086_OPFE() //GRP4 Eb
 {
 	byte tempcf;
 	modrm_readparams(&params,2,0);
-	byte cb16;
+	word cb16;
 	modrm_debugger16(&params,1,2);
 	switch (MODRM_REG(params.modrm)) //What function?
 	{

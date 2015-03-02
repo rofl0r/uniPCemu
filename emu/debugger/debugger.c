@@ -26,11 +26,6 @@ byte singlestep; //Enforce single step by CPU/hardware special debugging effects
 
 CPU_registers debuggerregisters; //Backup of the CPU's register states before the CPU starts changing them!
 
-byte debugger_active()
-{
-	return (debugging() || singlestep);
-}
-
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
 	memcpy(&debuggerregisters,CPU.registers,sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
@@ -165,7 +160,7 @@ extern byte last_modrm; //Is the last opcode a modr/m read?
 
 void debugger_autolog()
 {
-	if (DEBUGGER_LOG && debugger_active()) //To log?
+	if (DEBUGGER_LOG && debugging()) //To log?
 	{
 		if (last_modrm)
 		{
@@ -192,7 +187,7 @@ void debugger_autolog()
 		}
 		sprintf(fullcmd,"(%02X)%s%s",CPU.lastopcode,debugger_prefix,debugger_command_text); //Get our full command!
 
-		if (EMULATED_CPU<CPU_80286) //Emulating 80(1)86? Use IP!
+		if (getcpumode() == CPU_MODE_REAL) //Emulating 80(1)86? Use IP!
 		{
 			dolog("debugger","%04X:%04X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
 		}
@@ -231,7 +226,7 @@ void debugger_screen() //Show debugger info on-screen!
 	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 //First: location!
 	GPU_textprintf(frameratesurface,fontcolor,backcolor,"CS:%04X",debuggerregisters.CS); //Debug CS!
-	if (EMULATED_CPU<=CPU_80186) //186-?
+	if (getcpumode() == CPU_MODE_REAL) //Real mode?
 	{
 		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"IP:%04X",debuggerregisters.IP); //Debug IP!
@@ -249,10 +244,17 @@ void debugger_screen() //Show debugger info on-screen!
 	GPU_textprintf(frameratesurface,fontcolor,backcolor,"ES:%04X",debuggerregisters.ES); //Debug ES!
 	GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 	GPU_textprintf(frameratesurface,fontcolor,backcolor,"SS:%04X",debuggerregisters.SS); //Debug SS!
+	if (EMULATED_CPU >= CPU_80286) //286+?
+	{
+		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debugrow++); //Second debug row!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "FS:%04X", debuggerregisters.FS); //Debug FS!
+		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debugrow++); //Second debug row!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "GS:%04X", debuggerregisters.GS); //Debug GS!
+	}
 
 
 //General purpose registers!
-	if (EMULATED_CPU<=CPU_80186) //186-?
+	if (getcpumode() == CPU_MODE_REAL) //Real mode?
 	{
 		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,debugrow++); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"AX:%04X",debuggerregisters.AX); //Debug AX!
@@ -299,7 +301,7 @@ void debugger_screen() //Show debugger info on-screen!
 
 //Finally, the flags!
 	//First, flags fully...
-	if (EMULATED_CPU<=CPU_80186) //186-?
+	if (getcpumode() == CPU_MODE_REAL) //Real mode?
 	{
 		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-7,GPU_TEXT_DEBUGGERROW+15); //Second debug row!
 		GPU_textprintf(frameratesurface,fontcolor,backcolor,"F :%04X",debuggerregisters.FLAGS); //Debug FLAGS!
