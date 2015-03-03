@@ -33,10 +33,10 @@ void init8259()
 	register_PORTIN(0x20,&in8259);
 	register_PORTIN(0x21,&in8259);
 	//PIC1!
-	register_PORTOUT(0x60,&out8259);
-	register_PORTOUT(0x61,&out8259);
-	register_PORTIN(0x60,&in8259);
-	register_PORTIN(0x61,&in8259);
+	register_PORTOUT(0xA0,&out8259);
+	register_PORTOUT(0xA1,&out8259);
+	register_PORTIN(0xA0,&in8259);
+	register_PORTIN(0xA1,&in8259);
 
 	//All set up!
 }
@@ -44,7 +44,7 @@ void init8259()
 byte in8259(word portnum)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	byte pic = (portnum&0xF0)==0xA0?0:1; //PIC0/1!
+	byte pic = ((portnum&0xFE)==0xA0)?1:0; //PIC0/1!
 	switch (portnum & 1)
 	{
 	case 0:
@@ -77,7 +77,7 @@ void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
 void out8259(word portnum, byte value)
 {
 	if (__HW_DISABLED) return; //Abort!
-	byte pic = (portnum&0xF0)==0xA0?0:1; //PIC0/1!
+	byte pic = ((portnum & 0xFE) == 0xA0) ? 1 : 0; //PIC0/1!
 	switch (portnum & 1)
 	{
 	case 0:
@@ -99,6 +99,7 @@ void out8259(word portnum, byte value)
 		break;
 	case 1:
 		if ((i8259.icwstep[pic]==3) && (i8259.icw[pic][1] & 2)) i8259.icwstep[pic] = 4; //single mode, so don't read ICW3
+		if ((i8259.icwstep[pic] == 4) && (i8259.icw[pic][1] & 1)) i8259.icwstep[pic] = 5; //no ICW4 expected, so don't read ICW4
 		if (i8259.icwstep[pic]<5)
 		{
 			i8259.icw[pic][i8259.icwstep[pic]++] = value;

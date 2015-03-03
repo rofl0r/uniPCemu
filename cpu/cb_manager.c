@@ -3,6 +3,8 @@
 #include "headers/cpu/callback.h" //Typedefs!
 #include "headers/cpu/easyregs.h" //Easy register support for DOSBox!
 
+#include "headers/interrupts/interrupt16.h" //For Dosbox compatibility.
+
 extern byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
 
 Handler CBHandlers[CB_MAX]; //Handlers!
@@ -36,13 +38,15 @@ void CB_handleCallbacks() //Handle callbacks after CPU usage!
 {
 	if (currentcallback.hascallback) //Valid set?
 	{
-		if (((CBTypes[currentcallback.handlernr]==CB_INTERRUPT) ||( CBTypes[currentcallback.handlernr]==CB_UNASSIGNEDINTERRUPT)) //Any kind of registerd interrupt?
-			&& CBHandlers[currentcallback.handlernr]) //Set?
+		if (currentcallback.handlernr < NUMITEMS(CBHandlers)) //Do we have a handler in range to execute?
 		{
-			currentcallback.hascallback = 0; //Reset to not used: we're being handled!
-			CB_SetCallback(1); //Callback!
-			CBHandlers[currentcallback.handlernr](); //Run the handler!
-			CB_SetCallback(0); //Not anymore!
+			if (CBHandlers[currentcallback.handlernr]) //Gotten a handler set?
+			{
+				currentcallback.hascallback = 0; //Reset to not used: we're being handled!
+				CB_SetCallback(1); //Callback!
+				CBHandlers[currentcallback.handlernr](); //Run the handler!
+				CB_SetCallback(0); //Not anymore!
+			}
 		}
 	}
 }
@@ -117,8 +121,6 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		case CB_DOSBOX_IRQ9:
 		case CB_DOSBOX_IRQ12:
 		case CB_DOSBOX_IRQ12_RET:
-		case CB_DOSBOX_INT16: //Normal operations?
-		case CB_DOSBOX_MOUSE: //Mouse?
 			CB_datasegment = (intnr>>16);
 			CB_dataoffset = (intnr&0xFFFF);
 			CB_realoffset = CB_dataoffset; //Offset within the custom bios is this!
@@ -131,6 +133,11 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	}
 
 	word dataoffset = CB_realoffset; //Load the real offset for usage by default!
+
+	if ((type == CB_DOSBOX_INT16) || (type == CB_DOSBOX_MOUSE)) //We need to set the interrupt vector too?
+	{
+		Dosbox_RealSetVec(0x16, (CB_datasegment<<16)|CB_dataoffset); //Use intnr to set the interrupt vector!
+	}
 
 	switch (type)
 	{
@@ -294,7 +301,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	*/
 	case CB_DOSBOX_MOUSE:
 		write_BIOSw(incoffset,(Bit16u)0x07eb);		// jmp i33hd
-		//dataoffset+=9;
+		dataoffset+=7; //9-word=9-2=7.
 		// jump here to (i33hd):
 		//if (use_cb) {
 			EMU_BIOS[incoffset] =(Bit8u)0xFE;	//GRP 4
@@ -313,11 +320,12 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 			EMU_BIOS[incoffset] = (Bit8u)0xFE;	//GRP 4
 			EMU_BIOS[incoffset] =(Bit8u)0x38;	//Extra Callback instruction
 			write_BIOSw(incoffset,(Bit16u)curhandler);	//The immediate word
-			//++dataoffset;
+			++dataoffset;
 			//dataoffset+=4;
 		//}
-			for (i = 0; i <= 0x0b; i++) EMU_BIOS[incoffset] = 0x90;
-			write_BIOSw(dataoffset + 0x0e, (Bit16u)0xedeb);	//jmp callback
+			for (i = 0; i <= 0x0c; i++) EMU_BIOS[incoffset] = 0x90;
+			write_BIOSw(incoffset, (Bit16u)0xedeb);	//jmp callback
+			++dataoffset;
 			EMU_BIOS[incoffset] = (Bit8u)0xCF;		//An IRET Instruction
 		//return (use_cb?0x10:0x0c);
 		break;

@@ -603,7 +603,7 @@ void BIOS_SetupKeyboard() {
 	RealSetVec(0x09,BIOS_DEFAULT_IRQ1_LOCATION);
 	*/
 	addCBHandler(CB_DOSBOX_IRQ1,&IRQ1_Handler,BIOS_DEFAULT_IRQ1_LOCATION);
-	Dosbox_RealSetVec(0x16,BIOS_DEFAULT_IRQ1_LOCATION); //Our pointer!
+	Dosbox_RealSetVec(0x09,BIOS_DEFAULT_IRQ1_LOCATION); //Our pointer!
 
 	// pseudocode for CB_IRQ1:
 	//	push ax

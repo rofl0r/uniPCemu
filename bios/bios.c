@@ -562,4 +562,16 @@ void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 	{
 		raiseError("Keyboard BIOS initialisation","Couldn't turn on Num Lock LED! Result: %02X",result);
 	}
+
+	PORT_OUT_B(0x64, 0xAE); //Enable first PS/2 port!
+
+	BIOS_writeKBDCMD(0xF4); //Enable scanning!
+
+	PORT_OUT_B(0x64, 0x20); //Read PS2ControllerConfigurationByte!
+	byte PS2ControllerConfigurationByte;
+	PS2ControllerConfigurationByte = PORT_IN_B(0x60); //Read result!
+
+	PS2ControllerConfigurationByte |= 1; //Enable our interrupt!
+	PORT_OUT_B(0x64, 0x60); //Write PS2ControllerConfigurationByte!
+	PORT_OUT_B(0x60, PS2ControllerConfigurationByte); //Write the new configuration byte!
 }
