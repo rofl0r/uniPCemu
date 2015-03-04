@@ -128,7 +128,6 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	addCBHandler(CB_INTERRUPT, &BIOS_int10, 0x10); //Interrupt 10h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int11, 0x11); //Interrupt 11h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int13, 0x13); //Interrupt 13h overrideable handler!
-	BIOS_SetupKeyboard(); //Setup the Dosbox keyboard handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int18, 0x18); //Interrupt 18h overridable handler!
 	CPU_setint(0x19, MMU_rw(-1, 0xF000, 0xFFF3, 0), MMU_rw(-1, 0xF000, 0xFFF1, 0)); //Interrupt 19 (bootstrap)!
 
@@ -152,6 +151,10 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	copyint(0x00, 0x0D); //Set int 13 to IRET!
 	copyint(0x00, 0x0E); //Set int 14 to IRET!
 
+	//int 15 isn't used!
+	//int 16 is BIOS Video!
+	//rest is unset or unused!
+
 	//Process unused BIOS interrupts!
 	copyint(0x00, 0x12); //12 to IRET!
 	copyint(0x00, 0x14); //Async communication services to IRET!
@@ -161,11 +164,10 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	copyint(0x00, 0x1B); //BIOS CTRL-BREAK!
 	copyint(0x00, 0x1C); //System tick!
 
-	//int 15 isn't used!
-	//int 16 is BIOS Video!
-	//rest is unset or unused!
-
 	PIC_remap(0x08,0x70); //Remap the PIC for our usage!
+
+	//Now, setup overriding interrupts which are installed now!
+	BIOS_SetupKeyboard(); //Setup the Dosbox keyboard handler!
 
 	MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0x1234); //Make sure we boot the disk only, not do the BIOS again!
 }
