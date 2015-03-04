@@ -373,6 +373,13 @@ byte readdiskdata(uint_32 startpos)
 			FLAG_CF = 1; //Error!
 			return (byte)sector; //Abort with ammount of sectors read!
 		}
+		FILE *f;
+		char s[256];
+		memset(s, 0, sizeof(s));
+		sprintf(s, "SECTOR%i.DAT", (startpos+sector)); //Create a filename!
+		f = fopen(s, "wb"); //Create the data dump!
+		fwrite(&buffer, 1, 512, f); //Write the buffer!
+		fclose(f); //Close the dump!
 		//Sector is read, now write it to memory!
 		left = 512; //Data left!
 		current = 0; //Current byte in the buffer!
@@ -572,7 +579,6 @@ void int13_02()
 	{
 	case FLOPPY0: //Floppy 1
 	case FLOPPY1: //Floppy 2
-		debugger_logregisters(CPU.registers); //Log a register dump!
 		startpos = floppy_LBA(mounteddrives[REG_DL],REG_DH,REG_CH,REG_CL&0x3F); //Floppy LBA!
 		REG_AL = readdiskdata((uint_32)startpos); //Read the data to memory!
 		break; //Done with floppy!

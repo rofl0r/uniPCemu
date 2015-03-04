@@ -402,19 +402,19 @@ recheckdebugger: //For getting from the BIOS!
 
 int debugging() //Debugging?
 {
+	if (singlestep) //EMU enforced single step?
+	{
+		return 1; //We're enabled now!
+	}
 	if (!(DEBUGGER_ENABLED && allow_debuggerstep))
 	{
 		return 0; //No debugger enabled!
-	}
-	else if (singlestep && DEBUGGER_ENABLED) //Hardware enforced single step?
-	{
-		return 1; //Enforced by hardware single step!
 	}
 	else if (DEBUGGER_ALWAYS_DEBUG)
 	{
 		return 1; //Always debug!
 	}
-	else if ((psp_keypressed(BUTTON_RTRIGGER) || (DEBUGGER_ALWAYS_STEP > 0) || (singlestep))) //Forced step?
+	else if ((psp_keypressed(BUTTON_RTRIGGER) || (DEBUGGER_ALWAYS_STEP > 0))) //Forced step?
 	{
 		return 1; //Always step!
 	}

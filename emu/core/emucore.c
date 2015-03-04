@@ -349,8 +349,6 @@ void initEMUreset() //Simple reset emulator!
 
 /* coreHandler: The core emulation handler (running CPU and external hardware required to run it.) */
 
-extern byte singlestep; //Enforce debugger single step!
-
 byte coreHandler()
 {
 	if ((romsize!=0) && (CPU.halt)) //Debug HLT?
@@ -363,10 +361,6 @@ byte coreHandler()
 	//CPU execution, needs to be before the debugger!
 	if (!CPU.halt) //Not halted?
 	{
-		if (CPU.registers->CS == 0xF000 && CPU.registers->IP == 0xE991)
-		{
-			singlestep = 1; //Enforce single step!
-		} //Breakpoint here!
 		debugger_beforeCPU(); //Everything before the CPU!
 		CPU_beforeexec(); //Everything before the execution!
 		if (!CPU.trapped) //Only check for hardware interrupts when not trapped!
@@ -375,9 +369,9 @@ byte coreHandler()
 		}
 		CPU_exec(); //Run CPU!
 	}
-	else //Halted?
+	else if (CPU.registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
 	{
-		if (CPU.registers->SFLAGS.IF && PICInterrupt()) CPU.halt = 0; //Interrupt->Resume from HLT
+		CPU.halt = 0; //Interrupt->Resume from HLT
 	}
 
 	debugger_step(); //Step debugger if needed!

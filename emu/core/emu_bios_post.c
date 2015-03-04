@@ -176,95 +176,96 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 {
 	allow_debuggerstep = 0; //Default: don't allow to step!
-	debugrow("Running BIOS POST!");
-#ifdef ALLOW_BIOS
-	EMU_RUNNING = 0; //We're not running atm!
-	if (CheckBIOSMenu(3000000)) //Run BIOS Menu if needed for a short time!
-	{
-		EMU_RUNNING = 1; //We're running again!
-		return 1; //Reset after the BIOS!
-	}
-#endif
-
-	debugrow("Running core BIOS POST...");
-
-	if (BIOS_Settings.debugmode == DEBUGMODE_BIOS)
-	{
-		if (NOEMU)
-		{
-			dolog("emu", "BIOS is used, but not emulated! Resetting emulator!");
-			return 1; //Reboot always: emulation isn't allowed!
-		}
-		byte verified;
-		verified = 0; //Default: not verified!
-
-		if (EMULATED_CPU < CPU_80286) //5160 PC?
-		{
-			if (!BIOS_load_ROM(18)) //Failed to load u18?
-			{
-				CPU_INT(0x18); //Error: no ROM!
-				EMU_startInput(); //Start input again!
-				EMU_RUNNING = 1; //We're running again!
-				allow_debuggerstep = 1; //Allow stepping from now on!
-				return 0; //No reset!
-			}
-			if (!BIOS_load_ROM(19)) //Failed to load u19?
-			{
-				BIOS_free_ROM(19); //Release u27!
-				CPU_INT(0x18); //Error: no ROM!
-				EMU_startInput(); //Start input again!
-				EMU_RUNNING = 1; //We're running again!
-				allow_debuggerstep = 1; //Allow stepping from now on!
-				return 0; //No reset!
-			}
-			verified = 1; //Verified!
-		}
-		else //5170 PC?
-		{
-			if (!BIOS_load_ROM(27)) //Failed to load u27?
-			{
-				CPU_INT(0x18); //Error: no ROM!
-				EMU_startInput(); //Start input again!
-				EMU_RUNNING = 1; //We're running again!
-				allow_debuggerstep = 1; //Allow stepping from now on!
-				return 0; //No reset!
-			}
-			if (!BIOS_load_ROM(47)) //Failed to load u47?
-			{
-				BIOS_free_ROM(27); //Release u27!
-				CPU_INT(0x18); //Error: no ROM!
-				EMU_startInput(); //Start input again!
-				EMU_RUNNING = 1; //We're running again!
-				allow_debuggerstep = 1; //Allow stepping from now on!
-				return 0; //No reset!
-			}
-			verified = 1; //Verified!
-		}
-
-		if (verified) //Ready to boot, but need option ROMS?
-		{
-			verified = BIOS_checkOPTROMS(); //Try and load OPT roms!
-		}
-
-		if (!verified) //Error reading ROM?
-		{
-			CPU_INT(0x18); //Error: no ROM!
-			EMU_startInput(); //Start input again!
-			EMU_RUNNING = 1; //We're running again!
-			return 0; //No reset!
-		}
-		else //Boot rom ready?
-		{
-			BIOS_registerROM(); //Register the BIOS ROM!
-			EMU_startInput(); //Start input again!
-			EMU_RUNNING = 1; //We're running again!
-			allow_debuggerstep = 1; //Allow stepping from now on!
-			return 0; //No reset, start the BIOS!
-		}
-	}
 
 	if (MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0) != 0x1234) //Normal BIOS POST?
 	{
+		debugrow("Running BIOS POST!");
+	#ifdef ALLOW_BIOS
+		EMU_RUNNING = 0; //We're not running atm!
+		if (CheckBIOSMenu(3000000)) //Run BIOS Menu if needed for a short time!
+		{
+			EMU_RUNNING = 1; //We're running again!
+			return 1; //Reset after the BIOS!
+		}
+	#endif
+
+		debugrow("Running core BIOS POST...");
+
+		if (BIOS_Settings.debugmode == DEBUGMODE_BIOS)
+		{
+			if (NOEMU)
+			{
+				dolog("emu", "BIOS is used, but not emulated! Resetting emulator!");
+				return 1; //Reboot always: emulation isn't allowed!
+			}
+			byte verified;
+			verified = 0; //Default: not verified!
+
+			if (EMULATED_CPU < CPU_80286) //5160 PC?
+			{
+				if (!BIOS_load_ROM(18)) //Failed to load u18?
+				{
+					CPU_INT(0x18); //Error: no ROM!
+					EMU_startInput(); //Start input again!
+					EMU_RUNNING = 1; //We're running again!
+					allow_debuggerstep = 1; //Allow stepping from now on!
+					return 0; //No reset!
+				}
+				if (!BIOS_load_ROM(19)) //Failed to load u19?
+				{
+					BIOS_free_ROM(19); //Release u27!
+					CPU_INT(0x18); //Error: no ROM!
+					EMU_startInput(); //Start input again!
+					EMU_RUNNING = 1; //We're running again!
+					allow_debuggerstep = 1; //Allow stepping from now on!
+					return 0; //No reset!
+				}
+				verified = 1; //Verified!
+			}
+			else //5170 PC?
+			{
+				if (!BIOS_load_ROM(27)) //Failed to load u27?
+				{
+					CPU_INT(0x18); //Error: no ROM!
+					EMU_startInput(); //Start input again!
+					EMU_RUNNING = 1; //We're running again!
+					allow_debuggerstep = 1; //Allow stepping from now on!
+					return 0; //No reset!
+				}
+				if (!BIOS_load_ROM(47)) //Failed to load u47?
+				{
+					BIOS_free_ROM(27); //Release u27!
+					CPU_INT(0x18); //Error: no ROM!
+					EMU_startInput(); //Start input again!
+					EMU_RUNNING = 1; //We're running again!
+					allow_debuggerstep = 1; //Allow stepping from now on!
+					return 0; //No reset!
+				}
+				verified = 1; //Verified!
+			}
+
+			if (verified) //Ready to boot, but need option ROMS?
+			{
+				verified = BIOS_checkOPTROMS(); //Try and load OPT roms!
+			}
+
+			if (!verified) //Error reading ROM?
+			{
+				CPU_INT(0x18); //Error: no ROM!
+				EMU_startInput(); //Start input again!
+				EMU_RUNNING = 1; //We're running again!
+				return 0; //No reset!
+			}
+			else //Boot rom ready?
+			{
+				BIOS_registerROM(); //Register the BIOS ROM!
+				EMU_startInput(); //Start input again!
+				EMU_RUNNING = 1; //We're running again!
+				allow_debuggerstep = 1; //Allow stepping from now on!
+				return 0; //No reset, start the BIOS!
+			}
+		}
+
 		debugrow("Continuing BIOS POST...");
 		EMU_stopInput(); //Stop emulator input!
 

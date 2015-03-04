@@ -207,7 +207,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 			++dataoffset;
 			EMU_BIOS[incoffset] =(Bit8u)0xFE;		//GRP 4
 			EMU_BIOS[incoffset] =(Bit8u)0x38;		//Extra Callback instruction
-			write_BIOSw(dataoffset+0x0c,(Bit16u)curhandler);			//The immediate word
+			write_BIOSw(incoffset,(Bit16u)curhandler);			//The immediate word
 			++dataoffset;
 			// jump here to (skip):
 		//}
@@ -323,7 +323,8 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 			++dataoffset;
 			//dataoffset+=4;
 		//}
-			for (i = 0; i <= 0x0c; i++) EMU_BIOS[incoffset] = 0x90;
+			EMU_BIOS[incoffset] = (Bit8u)0xCF;		//An IRET Instruction
+			for (i = 0; i <= 0x0b; i++) EMU_BIOS[incoffset] = 0x90;
 			write_BIOSw(incoffset, (Bit16u)0xedeb);	//jmp callback
 			++dataoffset;
 			EMU_BIOS[incoffset] = (Bit8u)0xCF;		//An IRET Instruction
