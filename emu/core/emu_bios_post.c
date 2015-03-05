@@ -436,11 +436,9 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		CPU.registers->BX = 0;
 		CPU.registers->CX = 0;
 		CPU.registers->DX = 0; //Reset basic registers!
-
-		int13_init(1, 1, has_drive(HDD0), has_drive(HDD1), 1, 1); //Initialise interrupt 13h disks! Always floppy0&1 and cdrom0&1. HDD are predefined and mounted.
-
-		MMU_dumpmemory("bootmem.dat"); //Dump all our memory to a file!
 	}
+
+	int13_init(1, 1, has_drive(HDD0), has_drive(HDD1), 1, 1); //Initialise interrupt 13h disks! Always floppy0&1 and cdrom0&1. HDD are predefined and mounted.
 
 	//Execute boot sequence, if possible...
 	if (EMULATED_CPU >= CPU_80286) //Emulating a CPU with protected mode?
