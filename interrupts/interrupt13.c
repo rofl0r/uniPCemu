@@ -260,7 +260,8 @@ uint_64 disksize(int disknumber)
 
 uint_32 floppy_LBA(int floppy,word head, word track, word sector)
 {
-	return (uint_32)((uint_32)(((head*floppy_tracks(disksize(floppy))+track)*floppy_spt(disksize(floppy)))+sector-1)); //Give LBA for floppy!
+	uint_64 disksize = disksize(floppy); //Retrieve disk size for reference!
+	return (uint_32)(((track*floppy_sides( disksize)) + side ) * floppy_spt(disksize))+sector-1; //Give LBA for floppy!
 }
 
 word gethddheads(uint_64 disksize)
