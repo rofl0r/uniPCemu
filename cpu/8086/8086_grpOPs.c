@@ -137,7 +137,6 @@ word op_grp2_16(byte cnt) {
 	//if (cnt>0x10) return(oper1); //80186+ limits shift count
 	s = oper1;
 	oldCF = FLAG_CF;
-	dolog("debugger","before shift: %04X,%04X",s,cnt); //Show the old value!
 	switch (reg) {
 		case 0: //ROL r/m8
 		for (shift=1; shift<=cnt; shift++) {
@@ -207,7 +206,6 @@ word op_grp2_16(byte cnt) {
 		FLAG_OF = 0;
 		flag_szp16(s); break;
 	}
-	dolog("debugger","after shift: %04X",s&0xFFFF); //Show the old value!	
 	return(s & 0xFFFF);
 }
 

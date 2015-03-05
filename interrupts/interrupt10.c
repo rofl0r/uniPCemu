@@ -670,7 +670,7 @@ void int10_vram_readcharacter(byte x, byte y, byte page, byte *character, byte *
 			address += page*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0); //Start of page!
 			address += ((y*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x)*2; //Character offset within page!
 			*character = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,where,address,0); //The character!
-			*attribute = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,where+1,address,0); //The attribute!
+			*attribute = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,where,address+1,0); //The attribute!
 		}
 		break;
 	default:
@@ -1085,12 +1085,20 @@ void int10_WriteCharAttrAtCursor()
 	BL=Color
 	CX=Number of times to print character
 	*/
+
+	word tempx,tempy;
+	tempx = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0); //Column!
+	tempy = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0); //Row!
+
 	while (REG_CX--) //Times left?
 	{
-		int10_vram_writecharacter(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0),
-					  MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,0),REG_BH,REG_AL,REG_BL); //Write character REG_AL font REG_BL at page!
+		int10_vram_writecharacter(
+			MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0),
+			MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0)
+			, REG_BH, REG_AL, REG_BL); //Write character REG_AL font REG_BL at page!
 		int10_nextcol(REG_BH); //Next column!
 	}
+	cursorXY(REG_BH, tempx, tempy); //Return the cursor to it's original position!
 }
 
 void int10_WriteCharOnlyAtCursor()
@@ -1100,6 +1108,11 @@ void int10_WriteCharOnlyAtCursor()
 	BH=Page Number
 	CX=Number of times to print character
 	*/
+
+	word tempx, tempy;
+	tempx = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0); //Column!
+	tempy = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0); //Row!
+
 	while (REG_CX--)
 	{
 		byte oldchar = 0;
@@ -1110,6 +1123,8 @@ void int10_WriteCharOnlyAtCursor()
 		int10_vram_writecharacter(x,y,REG_BH,REG_AL,oldattr); //Write character REG_AL with old font at page!
 		int10_nextcol(REG_BH); //Next column!
 	}
+
+	cursorXY(REG_BH, tempx, tempy); //Return the cursor!
 }
 
 void int10_SetBackColor() //REG_AH=0B REG_BH=00h
@@ -1273,7 +1288,13 @@ void int10_TeleTypeOutput()
 	BH=Page Number
 	BL=Color (only in graphic mode)
 	*/
-	int10_internal_outputchar(REG_BH,REG_AL,REG_BL); //Output&update!
+
+	byte oldchar = 0;
+	byte oldattr = 0;
+	byte x = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0);
+	byte y = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0);
+	int10_vram_readcharacter(x, y, REG_BH, &oldchar, &oldattr); //Get old info!
+	int10_internal_outputchar(REG_BH, REG_AL, oldattr); //Write character REG_AL with old font at page!
 }
 
 void int10_GetCurrentVideoMode()

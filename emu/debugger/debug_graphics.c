@@ -350,26 +350,22 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 			CPU.registers->AH = 0xE; //Enter character!
 			CPU.registers->AL = 0x7; //One back!
 			CPU.registers->BH = 0; //Page!
-			CPU.registers->BL = 0xF; //Color!
 			BIOS_int10(); //Execute!
 
 			CPU.registers->AH = 0xE; //Enter character!
 			CPU.registers->AL = ' '; //Clear!
 			CPU.registers->BH = 0; //Page!
-			CPU.registers->BL = 0xF; //Color!
 			BIOS_int10(); //Execute!
 
 			CPU.registers->AH = 0xE; //Enter character!
 			CPU.registers->AL = 7; //One back!
 			CPU.registers->BH = 0; //Page!
-			CPU.registers->BL = 0xF; //Color!
 			BIOS_int10(); //Execute!
 			break;
 		case BUTTON_CROSS: //Enter X?
 			CPU.registers->AH = 0xE; //Enter character!
 			CPU.registers->AL = 'x'; //Our cross!
 			CPU.registers->BH = 0; //Page!
-			CPU.registers->BL = 0x2; //Color!
 			BIOS_int10(); //Execute!
 			break;
 		case BUTTON_UP:
