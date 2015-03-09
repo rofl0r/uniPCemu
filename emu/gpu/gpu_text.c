@@ -139,6 +139,9 @@ GPU_TEXTSURFACE *alloc_GPUtext()
 		surface->backlist[c].x = defaultbacklist[c].x; //Copy x!
 		surface->backlist[c].y = defaultbacklist[c].y; //Copy y!
 	}
+
+	surface->lock = SDL_CreateSemaphore(1); //Create our lock for when we are used!
+
 	return surface; //Give the allocated surface!
 }
 
@@ -327,4 +330,18 @@ void GPU_text_updatedelta(SDL_Surface *surface)
 	ydelta -= GPU_TEXTPIXELSY; //Calculate delta!
 	TEXT_xdelta = xdelta; //Horizontal delta!
 	TEXT_ydelta = ydelta; //Vertical delta!
+}
+
+void GPU_text_locksurface(GPU_TEXTSURFACE *surface) //Lock a surface for usage!
+{
+	if (!memprotect(surface,sizeof(*surface),"GPU_TEXTSURFACE")) return; //Invalid surface!
+	if (!surface->lock) return; //no lock?
+	SDL_SemWait(surface->lock); //Wait for us to be available and locked!
+}
+
+void GPU_text_releasesurface(GPU_TEXTSURFACE *surface) //Unlock a surface when done with it!
+{
+	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
+	if (!surface->lock) return; //no lock?
+	SDL_SemPost(surface->lock); //Release our lock: we're done!
 }

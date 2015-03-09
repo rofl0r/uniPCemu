@@ -96,6 +96,7 @@ void renderFramerate()
 {
 	if (frameratesurface) //Existing surface and showing?
 	{
+		GPU_text_locksurface(frameratesurface); //Lock!
 		GPU_textgotoxy(frameratesurface,0,0); //For output!
 		if (GPU.show_framerate)
 		{
@@ -123,6 +124,7 @@ void renderFramerate()
 		{
 			GPU_textclearscreen(frameratesurface); //Clear the rows we use!
 		}
+		GPU_text_releasesurface(frameratesurface); //Unlock!
 	}
 }
 

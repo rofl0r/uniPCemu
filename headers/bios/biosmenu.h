@@ -30,7 +30,7 @@ void freeBIOSMenu(); //Free up all BIOS related memory!
 void initBIOSMenu(); //Stuff that take extra video memory etc. for seperated BIOS!
 
 int CheckBIOSMenu(uint_32 timeout); //To run the BIOS Menus! Result: to reboot?
-void runBIOS(byte showloadingtext); //Run the BIOS!
+byte runBIOS(byte showloadingtext); //Run the BIOS!
 void BIOS_MenuChooser(); //The menu chooser!
 
 //Now for the seperate menus:

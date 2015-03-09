@@ -60,15 +60,10 @@ extern word CB_datasegment; //Reserved segment when adding callback!
 extern word CB_dataoffset; //Reserved offset when adding callback!
 void BIOS_initStart() //Memory defaults for the CPU with our internal BIOS!
 {
-	//Our core handlers!
-	addCBHandler(CB_UNASSIGNEDINTERRUPT, &BIOS_int19, 0x00); //Second is used by the Bootstrap/BIOS loader! Don't assign to an interrupt!
-	//Jump to our BIOS!
 	debugrow("Setting up the initial emulator JMP to internal BIOS ROM executable...");
-	EMU_BIOS[0xFFF0] = 0xEA; //Intrasegment jump!
-	EMU_BIOS[0xFFF1] = CB_dataoffset & 0xFF; //Offset!
-	EMU_BIOS[0xFFF2] = (CB_dataoffset >> 8) & 0xFF;
-	EMU_BIOS[0xFFF3] = CB_datasegment & 0xFF; //Segment!
-	EMU_BIOS[0xFFF4] = (CB_datasegment >> 8) & 0xFF;
+	//Our core handlers!
+	addCBHandler(CB_UNASSIGNEDINTERRUPT, &BIOS_int19, 0x19); //Second is used by the Bootstrap/BIOS loader! Don't assign to an interrupt!
+	//Jump to our BIOS!
 }
 
 /* reinitialize the PIC controllers, giving them specified vector offsets
@@ -123,12 +118,22 @@ void PIC_remap(int offset1, int offset2)
 void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 {
 	//Finally: interrupt callbacks!
+	word NULLsegment, NULLoffset;
 	addCBHandler(CB_IRET, NULL, 0x00); //IRET first!
+	NULLsegment = CB_datasegment;
+	NULLoffset = CB_dataoffset;
 	addCBHandler(CB_INTERRUPT, &BIOS_int05, 0x05); //Interrupt 05h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int10, 0x10); //Interrupt 10h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int11, 0x11); //Interrupt 11h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int13, 0x13); //Interrupt 13h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int18, 0x18); //Interrupt 18h overridable handler!
+	addCBHandler(CB_IRET,NULL,0x12); //12 to IRET!
+	addCBHandler(CB_IRET,NULL,0x14); //Async communication services to IRET!
+	addCBHandler(CB_IRET,NULL,0x15); //System BIOS services to IRET!
+	addCBHandler(CB_IRET,NULL,0x17); //Printer to IRET!
+	addCBHandler(CB_IRET,NULL,0x1A); //System and RTC services to IRET!
+	addCBHandler(CB_IRET,NULL,0x1B); //BIOS CTRL-BREAK!
+	addCBHandler(CB_IRET,NULL,0x1C); //System tick!
 	CPU_setint(0x19, MMU_rw(-1, 0xF000, 0xFFF3, 0), MMU_rw(-1, 0xF000, 0xFFF1, 0)); //Interrupt 19 (bootstrap)!
 
 	//1D=Video control parameter table
@@ -154,15 +159,6 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	//int 15 isn't used!
 	//int 16 is BIOS Video!
 	//rest is unset or unused!
-
-	//Process unused BIOS interrupts!
-	copyint(0x00, 0x12); //12 to IRET!
-	copyint(0x00, 0x14); //Async communication services to IRET!
-	copyint(0x00, 0x15); //System BIOS services to IRET!
-	copyint(0x00, 0x17); //Printer to IRET!
-	copyint(0x00, 0x1A); //System and RTC services to IRET!
-	copyint(0x00, 0x1B); //BIOS CTRL-BREAK!
-	copyint(0x00, 0x1C); //System tick!
 
 	PIC_remap(0x08,0x70); //Remap the PIC for our usage!
 
@@ -316,7 +312,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		BIOS_enableCursor(1); //Re-enable the cursor!
 
-		if (DEBUG_TEXTMODE) //Debugging text mode?
+		if (DEBUG_VIDEOCARD) //Debugging text mode?
 		{
 			DoDebugTextMode(0); //Do the debugging!
 			EMU_RUNNING = 1; //We're running again!
@@ -458,6 +454,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		}
 		else //We're booted?
 		{
+			BIOS_DUMPSYSTEMROM(); //Dump our system ROM for debugging purposes, if enabled!
 			EMU_startInput(); //Start input again!
 			allow_debuggerstep = 1; //Allow stepping from now on!
 		}

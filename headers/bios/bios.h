@@ -72,15 +72,21 @@ typedef struct PACKED
 #define DEBUGMODE_TEST 4
 //Special case: TEST mode (see above) with forced STEP!
 #define DEBUGMODE_TEST_STEP 5
-//Special case: TEXT MODE debug!
-#define DEBUGMODE_TEXT 6
+//Special case: VIDEO CARD MODE debug!
+#define DEBUGMODE_VIDEOCARD 6
 //Special case: Load external BIOS (at the BIOS address) and run it!
 #define DEBUGMODE_BIOS 7
 //Special case: Run sound test!
 #define DEBUGMODE_SOUND 8
+//Special case: Load external BIOS (at the BIOS adress) and run it, enable debugger!
+#define DEBUGMODE_BIOS_DEBUG 9
+//Special case: ", step through!
+#define DEBUGMODE_BIOS_DEBUG_STEP 10
+//Special case: ", Show debugger and ignore shoulder buttons, keep running!
+#define DEBUGMODE_BIOS_DEBUG_SHOW_RUN 11
 
 //To debug the text mode characters on-screen?
-#define DEBUG_TEXTMODE (BIOS_Settings.debugmode==DEBUGMODE_TEXT)
+#define DEBUG_VIDEOCARD (BIOS_Settings.debugmode==DEBUGMODE_VIDEOCARD)
 
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!

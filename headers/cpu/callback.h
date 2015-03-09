@@ -4,15 +4,15 @@
 #include "headers/types.h" //Basic types!
 #include "headers/cpu/cpu.h" //CPU support!
 
-//Info for internal callbacks! (4KB data used)
-#define CB_MAX		128
-#define CB_SIZE		32
+//Info for internal callbacks! (32KB data used)
+#define CB_MAX		1024
+#define CB_SIZE		0x20
 //First callback is reserved for the ROM Basic!
-#define CB_SEG		0xF600
-#define CB_SOFFSET	0x1000
+#define CB_SEG		0xF000
+#define CB_SOFFSET	0x0000
 
 //Base of our data within our custom BIOS!
-#define CB_BASE 0x7000
+#define CB_BASE 0x0000
 
 //Type for below!
 //Not defined.

@@ -199,6 +199,15 @@ int BIOS_load_systemROM() //Load custom ROM from emulator itself!
 	return 1; //Loaded!
 }
 
+void BIOS_DUMPSYSTEMROM() //Dump the SYSTEM ROM currently set (debugging purposes)!
+{
+	FILE *f;
+	f = fopen("SYSROM.DMP", "wb");
+	fwrite(&EMU_BIOS, 1, sizeof(EMU_BIOS), f); //Save our BIOS!
+	fclose(f);
+}
+
+
 //VGA support!
 
 byte *BIOS_custom_VGAROM;

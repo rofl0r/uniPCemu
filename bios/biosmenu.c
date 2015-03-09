@@ -176,10 +176,13 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 			{
 				GPU_EMU_printscreen(0,0,"                                  "); //Clear our text!
 			}
-			runBIOS(!timeout); //Run the BIOS! Show text if timeout is specified!
-			termThreads(); //Terminate all threads!
-			exit(0); //Quit: for some reason we don't reset correctly!
-			return 1; //We've to reset!
+			if (runBIOS(!timeout)) //Run the BIOS! Show text if timeout is specified!
+			{
+				//We're dirty, so reset!
+				termThreads(); //Terminate all threads!
+				exit(0); //Quit: for some reason we don't reset correctly!
+				return 1; //We've to reset!
+			}
 		}
 	}
 	if (timeout)
@@ -207,9 +210,9 @@ void BIOS_clearscreen()
 
 extern GPU_type GPU; //The GPU!
 
-void runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
+byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
 {
-	if (__HW_DISABLED) return; //Abort!
+	if (__HW_DISABLED) return 0; //Abort!
 	EMU_stopInput(); //Stop all emu input!
 	terminateVGA(); //Terminate currently running VGA for a speed up!
 	//dolog("BIOS","Running BIOS...");
@@ -247,6 +250,7 @@ void runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 		BIOS_Changed = 1; //We've been changed!
 	}
 	
+	byte reboot_needed = 0; //Do we need to reboot?
 	if (BIOS_SaveStat && BIOS_Changed) //To save the BIOS and BIOS has been changed?
 	{
 		if (!BIOS_SaveData()) //Save our options and failed?
@@ -256,6 +260,7 @@ void runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 			EMU_textcolor(0xF);
 			GPU_EMU_printscreen(0,0,"Error: couldn't save the BIOS!");
 			delay(5000000); //Wait 5 sec before rebooting!
+			reboot_needed = 1; //We need to reboot!
 		}
 		else
 		{
@@ -275,6 +280,7 @@ void runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 				GPU_EMU_printscreen(0,0,"BIOS Saved (Returning to the emulator)!"); //Info!
 				delay(2000000); //Wait 2 sec!
 			}
+			reboot_needed = 1; //We need to reboot!
 		}
 
 	}
@@ -297,6 +303,7 @@ void runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	startEMUTimers(); //Start our timers up again!
 	startVGA(); //Start the VGA up again!
 	EMU_startInput(); //Start all emu input again!
+	return reboot_needed; //Do we need to reboot?
 }
 
 
@@ -1220,11 +1227,20 @@ void BIOS_InitAdvancedText()
 	case DEBUGMODE_TEST_STEP:
 		strcat(menuoptions[advancedoptions++],"Enabled, Step through, run debug directory files, else BIOSROM.DAT"); //Set filename from options!
 		break;
-	case DEBUGMODE_TEXT:
-		strcat(menuoptions[advancedoptions++],"No debugger enabled, debug text-mode characters"); //Set filename from options!
+	case DEBUGMODE_VIDEOCARD:
+		strcat(menuoptions[advancedoptions++],"Disabled, debug video card output"); //Set filename from options!
 		break;
 	case DEBUGMODE_BIOS:
-		strcat(menuoptions[advancedoptions++], "No debugger enabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
+		strcat(menuoptions[advancedoptions++], "Disabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
+		break;
+	case DEBUGMODE_BIOS_DEBUG:
+		strcat(menuoptions[advancedoptions++], "Enabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
+		break;
+	case DEBUGMODE_BIOS_DEBUG_STEP:
+		strcat(menuoptions[advancedoptions++], "Enabled, load BIOS from BIOSROM.DAT, Step through"); //Set filename from options!
+		break;
+	case DEBUGMODE_BIOS_DEBUG_SHOW_RUN:
+		strcat(menuoptions[advancedoptions++], "Enabled, load BIOS from BIOSROM.DAT, just run, ignore shoulder buttons"); //Set filename from options!
 		break;
 	case DEBUGMODE_SOUND:
 		strcat(menuoptions[advancedoptions++],"No debugger enabled, run sound test"); //Set filename from options!
@@ -2034,15 +2050,20 @@ void BIOS_DebugMode()
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[DEBUGMODE_NONE],"No debugger enabled"); //Set filename from options!
+
+	strcpy(itemlist[DEBUGMODE_NONE],"Disabled"); //Set filename from options!
 	strcpy(itemlist[DEBUGMODE_RTRIGGER],"Enabled, RTrigger=Step"); //Set filename from options!
 	strcpy(itemlist[DEBUGMODE_STEP],"Enabled, Step through"); //Set filename from options!
 	strcpy(itemlist[DEBUGMODE_SHOW_RUN],"Enabled, just run, ignore shoulder buttons"); //Set filename from options!
 	strcpy(itemlist[DEBUGMODE_TEST],"Enabled, run debug directory files, else TESTROM.DAT at 0000:0000"); //Set filename from options!
 	strcpy(itemlist[DEBUGMODE_TEST_STEP],"Enabled, Step through, run debug directory files, else TESTROM.DAT at 0000:0000"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_TEXT],"No debugger enabled, debug text-mode characters"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_BIOS],"No debugger enabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_SOUND],"No debugger enabled, run sound test"); //Debug sound test!
+	strcpy(itemlist[DEBUGMODE_VIDEOCARD],"Disabled, debug video card output"); //Set filename from options!
+	strcpy(itemlist[DEBUGMODE_BIOS],"Disabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
+	strcpy(itemlist[DEBUGMODE_BIOS_DEBUG],"Enabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
+	strcpy(itemlist[DEBUGMODE_BIOS_DEBUG_STEP],"Enabled, load BIOS from BIOSROM.DAT, Step through"); //Set filename from options!
+	strcpy(itemlist[DEBUGMODE_BIOS_DEBUG_SHOW_RUN],"Enabled, load BIOS from BIOSROM.DAT, just run, ignore shoulder buttons"); //Set filename from options!
+	strcpy(itemlist[DEBUGMODE_SOUND], "Disabled, run sound test"); //Debug sound test!
+
 	int current = 0;
 	switch (BIOS_Settings.debugmode) //What debug mode?
 	{
@@ -2052,9 +2073,12 @@ void BIOS_DebugMode()
 	case DEBUGMODE_SHOW_RUN: //Valid
 	case DEBUGMODE_TEST: //Test files or biosrom.dat!
 	case DEBUGMODE_TEST_STEP: //Test files or biosrom.dat!
-	case DEBUGMODE_TEXT: //Text character debugging?
+	case DEBUGMODE_VIDEOCARD: //Text character debugging?
 	case DEBUGMODE_BIOS: //External BIOS?
 	case DEBUGMODE_SOUND: //Sound test?
+	case DEBUGMODE_BIOS_DEBUG: //Enable debugger & External BIOS?
+	case DEBUGMODE_BIOS_DEBUG_STEP: //Step through & External BIOS?
+	case DEBUGMODE_BIOS_DEBUG_SHOW_RUN: //Just run, ignore shoulder buttons & External BIOS?
 		current = BIOS_Settings.debugmode; //Valid: use!
 		break;
 	default: //Invalid
@@ -2081,9 +2105,12 @@ void BIOS_DebugMode()
 	case DEBUGMODE_SHOW_RUN:
 	case DEBUGMODE_TEST:
 	case DEBUGMODE_TEST_STEP:
-	case DEBUGMODE_TEXT:
+	case DEBUGMODE_VIDEOCARD:
 	case DEBUGMODE_BIOS:
 	case DEBUGMODE_SOUND:
+	case DEBUGMODE_BIOS_DEBUG:
+	case DEBUGMODE_BIOS_DEBUG_STEP:
+	case DEBUGMODE_BIOS_DEBUG_SHOW_RUN:
 	default: //Changed?
 		if (file!=current) //Not current?
 		{

@@ -1371,7 +1371,7 @@ void int10_Pallette() //REG_AH=10h,REG_AL=subfunc
 		case 0x10:							/* SET INDIVIDUAL DAC REGISTER */
 			INT10_SetSingleDacRegister(REG_BL,REG_DH,REG_CH,REG_CL);
 			break;
-		case 0x12:							/* SET BLOCK FLAG_OF DAC REGISTERS */
+		case 0x12:							/* SET BLOCK OF DAC REGISTERS */
 			INT10_SetDACBlock(REG_BX,REG_CX,Real2Phys(RealMake(REG_ES,REG_DX)));
 			break;
 		case 0x13:							/* SELECT VIDEO DAC COLOR PAGE */
@@ -1380,7 +1380,7 @@ void int10_Pallette() //REG_AH=10h,REG_AL=subfunc
 		case 0x15:							/* GET INDIVIDUAL DAC REGISTER */
 			INT10_GetSingleDacRegister(REG_BL,&REG_DH,&REG_CH,&REG_CL);
 			break;
-		case 0x17:							/* GET BLOCK FLAG_OF DAC REGISTER */
+		case 0x17:							/* GET BLOCK OF DAC REGISTER */
 			INT10_GetDACBlock(REG_BX,REG_CX,Real2Phys(RealMake(REG_ES,REG_DX)));
 			break;
 		case 0x18:							/* undocumented - SET PEL MASK */
@@ -2363,7 +2363,8 @@ void BIOS_int10() //Handler!
 		}
 		else
 		{
-			REG_AL = 0; //Error: unknown command!
+			REG_AH = 0xFF; //Error: unknown command!
+			CALLBACK_SCF(1); //Set carry flag to indicate an error!
 		}
 	}
 }

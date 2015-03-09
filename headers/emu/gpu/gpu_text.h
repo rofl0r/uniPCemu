@@ -37,6 +37,7 @@ BACKLISTITEM backlist[8]; //List of border background positions candidates!
 int x,y; //Coordinates currently!
 byte flags; //Extra flags for a surface!
 byte xdelta, ydelta; //Enable delta coordinates during plotting?
+SDL_sem *lock; //For locking the surface!
 } GPU_TEXTSURFACE;
 
 //Allocation/deallocation!
@@ -54,4 +55,8 @@ void GPU_textclearscreen(GPU_TEXTSURFACE *surface); //Clear a text screen!
 #define GPU_textdirty(surface) memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)?(((GPU_TEXTSURFACE *)surface)->flags&TEXTSURFACE_FLAG_DIRTY):0
 void GPU_enableDelta(GPU_TEXTSURFACE *surface, byte xdelta, byte ydelta); //Enable delta coordinates on the x/y axis!
 void GPU_text_updatedelta(SDL_Surface *surface); //Update delta!
+
+void GPU_text_locksurface(GPU_TEXTSURFACE *surface); //Lock a surface for usage!
+void GPU_text_releasesurface(GPU_TEXTSURFACE *surface); //Unlock a surface when we're done with it!
+
 #endif

@@ -3,6 +3,7 @@
 #include "headers/bios/io.h" //Basic I/O comp.
 #include "headers/cpu/easyregs.h" //Easy register functionality last!
 #include "headers/debugger/debugger.h" //For logging registers debugging!
+#include "headers/cpu/callback.h" //Callback support!
 
 #include "headers/support/log.h" //Logging support for debugging!
 //Are we disabled?
@@ -335,7 +336,7 @@ void getDiskGeometry(byte disk, word *heads, word *cylinders, uint_64 *sectors, 
 		*cylinders = 0;
 		*sectors = 0;
 		*bps = 0;
-		FLAG_CF = 1; //Set carry flag!
+		CALLBACK_SCF(1); //Set carry flag!
 	}
 }
 
@@ -371,7 +372,7 @@ byte readdiskdata(uint_32 startpos)
 		if (!readdata_result) //Error?
 		{
 			last_status = 0x00;
-			FLAG_CF = 1; //Error!
+			CALLBACK_SCF(1); //Error!
 			return (byte)sector; //Abort with ammount of sectors read!
 		}
 		FILE *f;
@@ -396,8 +397,8 @@ byte readdiskdata(uint_32 startpos)
 		++sector; //Process to the next sector!
 	}
 	
-	dolog("int13","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i",
-					sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos);
+	dolog("int13","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i, Destination: ES:BX=%04X:%08X",
+					sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos,REG_ES,REG_EBX);
 	return (byte)sector; //Give the ammount of sectors read!
 }
 
@@ -433,7 +434,7 @@ byte writediskdata(uint_32 startpos)
 		if (!writedata_result) //Error?
 		{
 			last_status = 0x00;
-			FLAG_CF = 1; //Error!
+			CALLBACK_SCF(1); //Error!
 			return (byte)sector; //Abort!
 		}
 		--sectors; //One sector processed!
@@ -478,7 +479,7 @@ void int13_00() //OK!
 	FLAG_CF=Set on Error
 	*/
 	last_status = 0x00; //Reset status!
-	FLAG_CF = 0; //No carry flag: OK!
+	CALLBACK_SCF(0); //No carry flag: OK!
 }
 
 void int13_01()
@@ -525,7 +526,7 @@ void int13_01()
 	E0: Status error (hdd)
 	FF: Sense operation failed (hdd)
 
-	FLAG_CF: Set on error, no error=cleared.
+	CF: Set on error, no error=cleared.
 
 	*/
 
@@ -533,13 +534,13 @@ void int13_01()
 	{
 		dolog("int13","Last status: %02X",last_status);
 		REG_AH = last_status;
-		FLAG_CF = 1;
+		CALLBACK_SCF(1);
 	}
 	else
 	{
 		dolog("int13","Last status: unknown");	
 		REG_AH = 0;
-		FLAG_CF = 0;
+		CALLBACK_SCF(0);
 	}
 }
 
@@ -564,7 +565,7 @@ void int13_02()
 	{
 		dolog("int13","Nothing to read specified!");
 		last_status = 0x01;
-		FLAG_CF = 1;
+		CALLBACK_SCF(1);
 		return; //Abort!
 	}
 
@@ -572,7 +573,7 @@ void int13_02()
 	{
 		dolog("int13","Media not mounted:%02X!",REG_DL);
 		last_status = 0x31; //No media in drive!
-		FLAG_CF = 1;
+		CALLBACK_SCF(1);
 		return;
 	}
 
@@ -590,7 +591,7 @@ void int13_02()
 		if (!sector) //Sector 0 is invalid?
 		{
 			last_status = 0x00;
-			FLAG_CF = 1; //Error!
+			CALLBACK_SCF(1); //Error!
 			return; //Break out!
 		}
 		startpos = (uint_32)CHS2LBA(cylinder,REG_DH,(byte)sector,HDD_HEADS,SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
@@ -598,7 +599,7 @@ void int13_02()
 		REG_AL = readdiskdata((uint_32)startpos); //Read the data to memory!
 		break; //Done with HDD!
 	default:
-		FLAG_CF = 1;
+		CALLBACK_SCF(1);
 		last_status = 0x40; //Seek failure!
 		return; //Unknown disk!
 	}
@@ -607,7 +608,7 @@ void int13_02()
 	//Beyond 8GB: Use function 42h
 
 	/*
-	FLAG_CF:Set on error, not error=cleared.
+	CF:Set on error, not error=cleared.
 	REG_AH=Return code
 	REG_AL=Actual Sectors Read Count
 	*/
@@ -629,7 +630,7 @@ void int13_03()
 	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
 	{
 		last_status = 0x31; //No media in drive!
-		FLAG_CF = 1;
+		CALLBACK_SCF(1);
 		return;
 	}
 
@@ -651,14 +652,14 @@ void int13_03()
 		REG_AL = writediskdata((uint_32)startpos); //Write the data to memory!
 		break; //Done with HDD!
 	default:
-		FLAG_CF = 1;
+		CALLBACK_SCF(1);
 		last_status = 0x40; //Seek failure!
 		return; //Unknown disk!
 	}
 	REG_AH = 0; //Reset REG_AH!
 
 	/*
-	FLAG_CF: Set On Error; Clear If No Error
+	CF: Set On Error; Clear If No Error
 	REG_AH=Return code
 	REG_AL=Actual Sectors Written Count
 	*/
@@ -689,7 +690,7 @@ void int13_04()
 //REG_ES:REG_BX=Buffer Address Pointer
 
 	/*
-	FLAG_CF: Set On Error, Clear On No Error
+	CF: Set On Error, Clear On No Error
 	REG_AH=Return code
 	REG_AL=Actual Sectors Verified Count
 	*/
@@ -700,19 +701,19 @@ void int13_04()
 	uint_64 startpos; //Start position in image!
 
 	REG_AH = 0; //Reset!
-	FLAG_CF = 0; //Default: OK!
+	CALLBACK_SCF(0); //Default: OK!
 
 	if (!REG_AL) //NO sectors?
 	{
 		REG_AH = 0x01;
-		FLAG_CF = 1;
+		CALLBACK_SCF(1);
 		return;
 	}
 
 	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
 	{
 		last_status = 0x31; //No media in drive!
-		FLAG_CF = 1;
+		CALLBACK_SCF(1);
 		return;
 	}
 
@@ -736,7 +737,7 @@ void int13_04()
 			if (!readdata_result) //Read OK?
 			{
 				last_status = 0x05; //Error reading?
-				FLAG_CF = 1; //Error!
+				CALLBACK_SCF(1); //Error!
 			}
 			sectorverified = 1; //Default: verified!
 			for (t=0; t<512; t++)
@@ -762,7 +763,7 @@ void int13_04()
 			if (!readdata_result) //Read OK?
 			{
 				last_status = 0x05; //Error reading?
-				FLAG_CF = 1; //Error!
+				CALLBACK_SCF(1); //Error!
 			}
 			sectorverified = 1; //Default: verified!
 			for (t=0; t<512; t++)
@@ -779,7 +780,7 @@ void int13_04()
 			}
 			break; //Done with HDD!
 		default:
-			FLAG_CF = 1;
+			CALLBACK_SCF(1);
 			last_status = 0x40; //Seek failure!
 			return; //Unknown disk!
 		}
@@ -799,11 +800,12 @@ void int13_05()
 //REG_ES:REG_BX=Buffer Address Pointer
 
 	/*
-	FLAG_CF: Set On Error, Clear If No Error
+	CF: Set On Error, Clear If No Error
 	REG_AH=Return code
 	*/
 
-
+	CALLBACK_SCF(0);
+	REG_AH = 0x00;
 
 }
 
@@ -815,10 +817,10 @@ void int13_06()
 //REG_CL=Sector
 //REG_DH=Head
 //REG_DL=Drive
-	FLAG_CF = 1; //Error!
+	CALLBACK_SCF(1); //Error!
 	REG_AH = 0; //Error!
 	/*
-	FLAG_CF: Set On Error, Clear If No Error
+	CF: Set On Error, Clear If No Error
 	REG_AH=Return code
 	*/
 }
@@ -837,7 +839,7 @@ void int13_08()
 
 	[bits A:B] = bits A to B of this value
 
-	FLAG_CF: Set on Error, CLear If No Error
+	CF: Set on Error, CLear If No Error
 	REG_AH=Return code
 	REG_DL=Number of Hard Disk Drives
 	REG_DH=Logical last index of heads = number_of - 1 (index starts with 0)
@@ -852,7 +854,7 @@ void int13_08()
 		06h: 2.88M
 		10h: ATAPI Removable Media Device
 	*/
-//status&ah=0x07&FLAG_CF=1 on invalid drive!
+//status&ah=0x07&CF=1 on invalid drive!
 
 	word tmpheads, tmpcyl;
 	uint_64 tmpsize, tmpsect;
@@ -860,11 +862,11 @@ void int13_08()
 	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
 	{
 		last_status = 0x31; //No media in drive!
-		FLAG_CF = 1;
+		CALLBACK_SCF(1);
 		return;
 	}
 
-	FLAG_CF = 0; //Reset carry flag by default!
+	CALLBACK_SCF(0); //Reset carry flag by default!
 
 	REG_AX = 0x00;
 	REG_BL = GetBIOSType(mounteddrives[REG_DL]);
@@ -907,12 +909,12 @@ void int13_09()
 //HDD: Init Drive Pair Characteristics
 //REG_DL=Drive
 	/*
-	FLAG_CF: Set On Error, Clear If No Error
+	CF: Set On Error, Clear If No Error
 	REG_AH=Return code
 	*/
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_0A()
@@ -921,7 +923,7 @@ void int13_0A()
 //See function 02, but with bonus of 4 bytes ECC (Error Correction Code: =Sector Data Checksum)
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_0B()
@@ -929,7 +931,7 @@ void int13_0B()
 //HDD: Write Long Sectors To Drive
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_0C()
@@ -937,7 +939,7 @@ void int13_0C()
 //HDD: Move Drive Head To Cylinder
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_0D()
@@ -945,7 +947,7 @@ void int13_0D()
 //HDD: Reset Disk Drives
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_0E()
@@ -953,7 +955,7 @@ void int13_0E()
 //For Hard Disk on PS/2 system only: Controller Read Test
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_0F()
@@ -961,7 +963,7 @@ void int13_0F()
 //For Hard Disk on PS/2 system only: Controller Write Test
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_10()
@@ -969,7 +971,7 @@ void int13_10()
 //HDD: Test Whether Drive Is Ready
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_11()
@@ -977,7 +979,7 @@ void int13_11()
 //HDD: Recalibrate Drive
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_12()
@@ -985,7 +987,7 @@ void int13_12()
 //For Hard Disk on PS/2 system only: Controller RAM Test
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_13()
@@ -993,7 +995,7 @@ void int13_13()
 //For Hard Disk on PS/2 system only: Drive Test
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_14()
@@ -1001,7 +1003,7 @@ void int13_14()
 //HDD: Controller Diagnostic
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_15()
@@ -1009,7 +1011,7 @@ void int13_15()
 //Read Drive Type
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_16()
@@ -1017,7 +1019,7 @@ void int13_16()
 //Floppy disk: Detect Media Change
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_17()
@@ -1026,7 +1028,7 @@ void int13_17()
 	killRead = TRUE;
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0x00;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_18()
@@ -1034,7 +1036,7 @@ void int13_18()
 //Floppy Disk: Set Media Type For Format (used by DOS versions <= 3.2)
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0; //We're unsupported!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_19()
@@ -1042,7 +1044,7 @@ void int13_19()
 //Park Heads
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0; //We're unsupported!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_41()
@@ -1051,7 +1053,7 @@ void int13_41()
 //REG_DL=Drive index (1st HDD=80h etc.)
 //REG_BX=55AAh
 	/*
-	FLAG_CF: Set On Not Present, Clear If Present
+	CF: Set On Not Present, Clear If Present
 	REG_AH=Error Code or Major Version Number
 	REG_BX=AA55h
 	REG_CX=Interfact support bitmask:
@@ -1063,7 +1065,7 @@ void int13_41()
 	REG_AH = 0; //We're unsupported!
 	REG_BX = 0xAA55;
 	REG_CX = 0;
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_42()
@@ -1081,12 +1083,12 @@ void int13_42()
 		08h		8bytes	Absolute number of the start of the sectors to be read (first sector of drive has number 0)
 	*/
 	/*
-	FLAG_CF: Set on Error, Clear if No Error
+	CF: Set on Error, Clear if No Error
 	REG_AH=Return code
 	*/
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0; //We're unsupported!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_43()
@@ -1094,7 +1096,7 @@ void int13_43()
 //EXT: Write Sectors To Drive
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0; //We're unsupported!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_44()
@@ -1102,7 +1104,7 @@ void int13_44()
 //EXT: Verify Sectors
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0; //We're unsupported!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_45()
@@ -1110,7 +1112,7 @@ void int13_45()
 //EXT: Lock/Unlock Drive
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0; //We're unsupported!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_46()
@@ -1118,7 +1120,7 @@ void int13_46()
 //EXT: Eject Drive
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0; //We're unsupported!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_47()
@@ -1126,7 +1128,7 @@ void int13_47()
 //EXT: Move Drive Head To Sector
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0; //We're unsupported!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_48()
@@ -1147,12 +1149,12 @@ void int13_48()
 		1Ah	4bytes	Optional pointer to Enhanced Disk Drive (EDD) configuration parameters which may be used for subsequent interrupt 13h extension calls (if supported)
 	*/
 	/*
-	FLAG_CF: Set On Error, Clear If No Error
+	CF: Set On Error, Clear If No Error
 	REG_AH=Return code
 	*/
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0; //We're unsupported!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 //Remark: Physical CHS values of function 48h may/should differ from logical values of function 08h
 }
 
@@ -1161,19 +1163,19 @@ void int13_49()
 //EXT: Detect Media Change
 	last_status = 0x01; //Unknown command!
 	REG_AH = 0; //We're unsupported!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_unhandled()
 {
 	last_status = 0x01; //Unknown command!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 void int13_unimplemented()
 {
 	last_status = 0x01; //Unimplemented is unhandled in essence!
-	FLAG_CF = 1;
+	CALLBACK_SCF(1);
 }
 
 Handler int13Functions[0x50] =
@@ -1279,6 +1281,6 @@ void BIOS_int13() //Interrupt #13h (Low Level Disk Services)!
 //Unknown int13 call?
 		last_status = 1; //Status: Invalid command!
 		REG_AH = 0;
-		FLAG_CF = 1; //Set carry flag to indicate error
+		CALLBACK_SCF(1); //Set carry flag to indicate error
 	}
 }

@@ -308,7 +308,7 @@ void pauseEMU()
 		EMU_stopInput(); //Stop all input!
 		EMU_SaveStatus(""); //Save status (temp)
 		stopEMUTimers(); //Stop the timers!
-		EMU_RUNNING = 2; //We've stopped, but still active (paused)!
+		EMU_RUNNING = 3; //We've stopped, but still active (paused)!
 	}
 }
 

@@ -7,6 +7,8 @@
 
 extern byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
 
+extern byte EMU_RUNNING;
+
 Handler CBHandlers[CB_MAX]; //Handlers!
 byte CBTypes[CB_MAX]; //Types!
 struct
@@ -77,6 +79,26 @@ void write_BIOSw(uint_32 offset, word value)
 
 #define incoffset (dataoffset++&0xFFFF)
 
+void CB_createlongjmp(word entrypoint, word segment, word offset) //Create an alias for BIOS compatibility!
+{
+	EMU_BIOS[entrypoint++] = 0xEA; //Long JMP!
+	EMU_BIOS[entrypoint++] = (offset & 0xFF); //Low!
+	EMU_BIOS[entrypoint++] = ((offset >> 8) & 0xFF); //High!
+	EMU_BIOS[entrypoint++] = (segment & 0xFF); //Low!
+	EMU_BIOS[entrypoint++] = ((segment>>8) & 0xFF); //High!
+}
+
+void CB_updatevectoroffsets(uint_32 intnr, word offset)
+{
+	word entrypoint = 0xfef3 + (intnr<<1); //Our entry point!
+	if (entrypoint < 0xff52) //Within range of the IVT?
+	{
+		EMU_BIOS[entrypoint++] = (offset & 0xFF); //Low bits!
+		offset >>= 8; //Shift to low side!
+		EMU_BIOS[entrypoint] = (offset & 0xFF); //High bits!
+	}
+}
+
 void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 {
 	if ((CBhandler==NULL || !CBhandler) && (type==CB_INTERRUPT)) return; //Don't accept NULL INTERRUPT!
@@ -116,6 +138,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 
 	switch (type) //Extra handlers?
 	{
+		//Dosbox stuff!
 		case CB_DOSBOX_IRQ0:
 		case CB_DOSBOX_IRQ1:
 		case CB_DOSBOX_IRQ9:
@@ -124,6 +147,11 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 			CB_datasegment = (intnr>>16);
 			CB_dataoffset = (intnr&0xFFFF);
 			CB_realoffset = CB_dataoffset; //Offset within the custom bios is this!
+			break;
+		case CB_IRET: //IRET?
+			CB_datasegment = CB_SEG;
+			CB_dataoffset = 0xff53;
+			CB_realoffset = CB_dataoffset; //We're forced to F000:FF53!
 			break;
 		default: //Original offset method?
 			//Real offset is already set
@@ -137,6 +165,71 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	if ((type == CB_DOSBOX_INT16) || (type == CB_DOSBOX_MOUSE)) //We need to set the interrupt vector too?
 	{
 		Dosbox_RealSetVec(0x16, (CB_datasegment<<16)|CB_dataoffset); //Use intnr to set the interrupt vector!
+	}
+
+	//Now process our compatibility layer for direct calls!
+	switch (type) //What type?
+	{
+	case CB_DATA:
+		break; //Data has nothing special!
+	case CB_UNASSIGNEDINTERRUPT: //Unassigned interrupt?
+	case CB_IRET: //Interrupt return?
+	case CB_INTERRUPT: //Normal BIOS interrupt?
+		switch (intnr) //What interrupt?
+		{
+		case 0x15:
+			CB_createlongjmp(0xf859, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 15h System Services Entry Point
+			break;
+		case 0x14: //INT14?
+			CB_createlongjmp(0xe739, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 14h Serial Communications Service Entry Point
+			break;
+		case 0x17: //INT17?
+			CB_createlongjmp(0xefd2, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 17h Printer Service Entry Point
+			break;
+		case 0x13: //INT13?
+			CB_createlongjmp(0xe3fe, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 13h Fixed Disk Services Entry Point
+			CB_createlongjmp(0xec59, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 13h Diskette Service Entry Point
+			break;
+		case 0x10: //Video services?
+			CB_createlongjmp(0xf045, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 10 Functions 0-Fh Entry Point
+			CB_createlongjmp(0xf065, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 10h Video Support Service Entry Point
+			break;
+		case 0x12: //memory size services?
+			CB_createlongjmp(0xf841, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 12h Memory Size Service Entry Point
+			break;
+		case 0x11: //Equipment list service?
+			CB_createlongjmp(0xf84d, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 11h Equipment List Service Entry Point
+			break;
+		case 0x05:
+			CB_createlongjmp(0xff54, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 11h Equipment List Service Entry Point
+			break;
+		case 0x19:
+			CB_createlongjmp(0xe05b, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! POST Entry point
+			CB_createlongjmp(0xe6f2, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 19h Boot Load Service Entry Point
+			CB_createlongjmp(0xfff0, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! Power-up Entry Point
+			break;
+		case 0x1A:
+			CB_createlongjmp(0xfe6e, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! Power-up Entry Point			
+			break;
+		default: //Custom interrupt (NON original BIOS)?
+			break;
+		}
+		CB_updatevectoroffsets(intnr, CB_dataoffset); //Update default IVT offsets!
+		break;
+	case CB_DOSBOX_IRQ0:
+		CB_createlongjmp(0xfea5, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 08h System Timer ISR Entry Point
+		CB_updatevectoroffsets(intnr, CB_dataoffset); //Update default IVT offsets!
+		break;
+	case CB_DOSBOX_IRQ1:
+		CB_createlongjmp(0xe987, CB_datasegment, CB_dataoffset); //Create a JMP here where software can expect it! INT 09h Keyboard Service Entry Point
+		CB_updatevectoroffsets(intnr, CB_dataoffset); //Update default IVT offsets!
+		break;
+	case CB_DOSBOX_INT16:
+		CB_createlongjmp(0xe82e, CB_datasegment, CB_dataoffset); //INT 16h Keyboard Service Entry Point
+		CB_updatevectoroffsets(intnr, CB_dataoffset); //Update default IVT offsets!
+		break;
+	default: //Unknown special code?
+		break;
 	}
 
 	switch (type)
@@ -337,34 +430,52 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	}
 }
 
-//DOSBox compatiblity.
+//Flag set/reset for interrupts called by callbacks. Compatible with both callback calls and normal calls.
 
 void CALLBACK_SZF(byte val) {
 	uint_32 flags;
-	flags = REG_EFLAGS; //Read flags!
-	REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_SP+4,0); 
+	if (EMU_RUNNING == 1)
+	{
+		flags = REG_EFLAGS; //Read flags!
+		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, REG_SP + 4, 0);
+	}
 	if (val) FLAG_ZF = 1;
 	else FLAG_ZF = 0; 
-	MMU_ww(CPU_SEGMENT_SS,REG_SS,REG_SP+4,REG_EFLAGS); 
-	REG_EFLAGS = flags; //Restore!
+	if (EMU_RUNNING==1)
+	{
+		MMU_ww(CPU_SEGMENT_SS, REG_SS, REG_SP + 4, REG_EFLAGS);
+		REG_EFLAGS = flags; //Restore!
+	}
 }
 
 void CALLBACK_SCF(byte val) {
 	uint_32 flags;
-	flags = REG_EFLAGS; //Read flags!
-	REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_SP+4,0); 
+	if (EMU_RUNNING == 1)
+	{
+		flags = REG_EFLAGS; //Read flags!
+		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, REG_SP + 4, 0);
+	}
 	if (val) FLAG_CF = 1;
 	else FLAG_CF = 0; 
-	MMU_ww(CPU_SEGMENT_SS,REG_SS,REG_SP+4,REG_EFLAGS); 
-	REG_EFLAGS = flags; //Restore!
+	if (EMU_RUNNING==1)
+	{
+		MMU_ww(CPU_SEGMENT_SS, REG_SS, REG_SP + 4, REG_EFLAGS);
+		REG_EFLAGS = flags; //Restore!
+	}
 }
 
 void CALLBACK_SIF(byte val) {
 	uint_32 flags;
-	flags = REG_EFLAGS; //Read flags!
-	REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_SP+4,0); 
+	if (EMU_RUNNING == 1)
+	{
+		flags = REG_EFLAGS; //Read flags!
+		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, REG_SP + 4, 0);
+	}
 	if (val) FLAG_IF = 1;
 	else FLAG_IF = 0; 
-	MMU_ww(CPU_SEGMENT_SS,REG_SS,REG_SP+4,REG_EFLAGS); 
-	REG_EFLAGS = flags; //Restore!
+	if (EMU_RUNNING==1)
+	{
+		MMU_ww(CPU_SEGMENT_SS, REG_SS, REG_SP + 4, REG_EFLAGS);
+		REG_EFLAGS = flags; //Restore!
+	}
 }
