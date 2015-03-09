@@ -12,7 +12,29 @@
 #include "headers/mmu/mmu.h" //For BIOS data!
 #include "headers/header_dosbox.h" //For comp.
 
-typedef byte (*agetpixel)(VGA_Type *VGA, SEQ_DATA *Sequencer, word x); //For our jumptable for getpixel!
+byte planesbuffer[4]; //All read planes for the current processing!
+byte pixelbuffer[8]; //All 8 pixels decoded from the planesbuffer!
+
+//256 color mode still doesn't work for some reason!
+
+void VGA_loadgraphicsplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
+{
+	//Horizontal logic
+	word location; //The location loaded into the planesbuffer!
+	location = x; //X!
+	location >>= 3; //We take portions of 8 pixels, so increase our location every 8 pixels!
+	location <<= getVGAShift(VGA); //Apply VGA shift: the shift is the ammount to move at a time!
+
+	//Row logic
+	location += Sequencer->charystart; //Apply the line and start map to retrieve!
+
+	//Now calculate and give the planes to be used!
+	planesbuffer[0] = readVRAMplane(VGA, 0, location, 1); //Read plane 0!
+	planesbuffer[1] = readVRAMplane(VGA, 1, location, 1); //Read plane 1!
+	planesbuffer[2] = readVRAMplane(VGA, 2, location, 1); //Read plane 2!
+	planesbuffer[3] = readVRAMplane(VGA, 3, location, 1); //Read plane 3!
+	//Now the buffer is ready to be processed into pixels!
+}
 
 /*
 
@@ -21,34 +43,26 @@ typedef byte (*agetpixel)(VGA_Type *VGA, SEQ_DATA *Sequencer, word x); //For our
 */
 
 //This should be OK, according to: http://www.nondot.org/sabre/Mirrored/GraphicsProgrammingBlackBook/gpbb31.pdf
-byte get256colorshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //256-color shift mode!
+void load256colorshiftmode() //256-color shift mode!
 {
-	register word activex; //X!
-	register byte part, plane, result;
+	register byte part, plane, result, x;
+	for (x = 0; x < 8;) //Buffer 8 nibbles!
+	{
+		//Determine the nibble first: this is used for the attribute controller to combine if needed!
+		plane = part = x; //Load x into part&plane for processing!
+		part &= 1; //Take the lowest bit only for the part!
+		part ^= 1; //Reverse: High nibble=bit 0 set, Low nibble=bit 0 cleared
+		part <<= 2; //High nibble=4, Low nibble=0
 
-	//Determine the nibble first: this is used for the attribute controller to combine if needed!
-	part = activex = x; //Load x into part&activeX for processing!
-	part &= 1; //Take the lowest bit only for the part!
-	part ^= 1; //Reverse: High nibble=bit 0 set, Low nibble=bit 0 cleared
-	part <<= 2; //High nibble=4, Low nibble=0
+		//Determine plane and offset within the plane!
+		plane >>= 1; //We change planes after every 2 parts!
 
-	activex >>= VGA->precalcs.characterclockshift; //Apply pixel DIVIDE when needed!
-
-	activex >>= 1; //Ignore the part number to get our nibble: Every part is a nibble, so increase every 2 pixels!
-
-	plane = activex; //Load plane!
-	activex >>= getVGAShift(VGA); //Apply VGA shift: the shift is the ammount moved through planes in our case, 1, 2, or 4 pixels moved per 4 pixels!
-
-	//Determine plane and offset within the plane!
-	plane &= 3; //We walk through the planes!
-
-	//Apply startmap!
-	activex += Sequencer->charystart; //Apply the line and start map to retrieve!
-
-	result = readVRAMplane(VGA, plane, activex, 1); //The full offset of the plane all stuff is already done, so 0 at the end!
-	result >>= part; //Shift to the required part (low/high nibble)!
-	result &= 0xF; //Only the low resulting nibble is used!
-	return result; //Give the result!
+		//Now read the correct nibble!
+		result = planesbuffer[plane]; //Read the plane buffered!
+		result >>= part; //Shift to the required part (low/high nibble)!
+		result &= 0xF; //Only the low resulting nibble is used!
+		pixelbuffer[x++] = result; //Save the result in the buffer!
+	} //Give the result!
 }
 
 /*
@@ -57,51 +71,59 @@ SHIFT REGISTER INTERLEAVE MODE
 
 */
 
-byte getpackedshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Packed shift mode!
+void loadpackedshiftmode() //Packed shift mode!
 {
-	//Calculate the plane index!
-	register word shift,bitshift,tempx,planebase,planeindex;
-	register byte planelow, planehigh;
-	tempx = x; //Init tempx!
-	tempx >>= VGA->precalcs.characterclockshift; //Apply pixel DIVIDE when needed!
+	register byte temp, temp2, tempbuffer; //A buffer for our current pixel!
+	pixelbuffer[0] = pixelbuffer[1] = pixelbuffer[2] = pixelbuffer[3] = planesbuffer[2]; //Load high plane!
+	pixelbuffer[4] = pixelbuffer[5] = pixelbuffer[6] = pixelbuffer[7] = planesbuffer[3]; //Load high plane!
+	pixelbuffer[0] >>= 4;
+	pixelbuffer[1] >>= 2;
+	pixelbuffer[3] <<= 2; //Shift to the high part!
+	pixelbuffer[4] >>= 4;
+	pixelbuffer[5] >>= 2;
+	pixelbuffer[7] <<= 2; //Shift to the high part!
 
-	tempx <<= 1; //The index goes at half the rate of the plane: every 2 planes processed, one index is taken (8 pixels)!
+	pixelbuffer[0] &= 0xFC;
+	pixelbuffer[1] &= 0xFC;
+	pixelbuffer[2] &= 0xFC;
+	pixelbuffer[3] &= 0xFC;
+	pixelbuffer[4] &= 0xFC;
+	pixelbuffer[5] &= 0xFC;
+	pixelbuffer[6] &= 0xFC;
+	pixelbuffer[7] &= 0xFC; //Clear bits 0-1 and 4+!
 
-	planebase = shift = tempx; //Start with the x value and load it for usage in base and shift!
+	//First byte!
+	tempbuffer = temp = planesbuffer[0]; //Load low plane!
+	tempbuffer &= 3;
+	pixelbuffer[3] |= tempbuffer;
+	temp >>= 2; //Shift to the next data!
+	tempbuffer = temp;
+	tempbuffer &= 3;
+	pixelbuffer[2] |= tempbuffer;
+	temp >>= 2; //Shift to the next data!
+	tempbuffer = temp;
+	tempbuffer &= 3;
+	pixelbuffer[1] |= tempbuffer;
+	temp >>= 2; //Shift to the next data!
+	temp &= 3;
+	pixelbuffer[0] |= temp;
 
-	planebase >>= 2; //The base changes state every 4 pixels (1 byte processed)
-
-	planeindex = planebase; //Take the same rate as the base for the index, but ...
-	planeindex >>= getVGAShift(VGA);  //Apply VGA shift: the shift is the ammount moved through planes in our case, 1, 2, or 4 pixels moved per 8 pixels!
-	planeindex += Sequencer->charystart; //Add the start address and start map!
-
-	planebase &= 1; //Base plane (0/1)! OK!
-
-	//Read the low&high planes!
-	planelow = readVRAMplane(VGA,planebase,planeindex,1); //Read low plane!
-	planebase |= 2; //Take the high plane now!
-	planehigh = readVRAMplane(VGA,planebase,planeindex,1); //Read high plane!
-	
-	//Determine the shift for our pixels!
-	shift &= 3; //The shift rotates every 4 pixels
-	shift <<= 1; //Every rotate contains 2 bits
-	bitshift = 6; //Shift for pixel 0!
-	bitshift -= shift; //Get the shift with the actual shift!
-
-	//Get the pixel
-	planelow >>= bitshift; //Shift plane low correct.
-	planelow &= 3; //We're 2 bits only
-
-	planehigh >>= bitshift; //Shift plane high correct
-	planehigh &= 3; //We're 2 bits only
-
-	planehigh <<= 2; //Prepare high plane for combination!
-
-	//Build the result!
-	planelow |= planehigh; //Add high plane to the result!
-	
-	//Source plane bits for all possibilities!
-	return planelow; //Give the result!
+	//Second byte!
+	tempbuffer = temp = planesbuffer[1]; //Load low plane!
+	tempbuffer &= 3;
+	pixelbuffer[7] |= tempbuffer;
+	temp >>= 2; //Shift to the next data!
+	tempbuffer = temp;
+	tempbuffer &= 3;
+	pixelbuffer[5] |= tempbuffer;
+	temp >>= 2; //Shift to the next data!
+	tempbuffer = temp;
+	tempbuffer &= 3;
+	pixelbuffer[5] |= tempbuffer;
+	temp >>= 2; //Shift to the next data!
+	temp &= 3;
+	pixelbuffer[4] |= temp;
+	//Now all 8 pixels are loaded!
 }
 
 /*
@@ -110,31 +132,29 @@ SINGLE SHIFT MODE
 
 */
 
-byte getplanarshiftmode(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Planar shift mode!
+void loadplanarshiftmode() //Planar shift mode!
 {
 	//16-color mode!
-	register byte result; //Init result!
-	register word offset, bit;
+	byte pixel, counter=8, result;
+	for (pixel = 7; counter--;)
+	{
+		result = (planesbuffer[3] & 1); //Load plane 3!
+		planesbuffer[3] >>= 1; //Next bit!
+		result <<= 1; //Next bit!
 
-	offset = x; //Load x!
-	offset >>= VGA->precalcs.characterclockshift; //Apply pixel DIVIDE when needed!
+		result |= (planesbuffer[2] & 1); //Load plane 2!
+		planesbuffer[2] >>= 1; //Next bit!
+		result <<= 1; //Next bit!
 
-	bit = offset;
-	bit &= 7; //The bit in the byte (from the start of VRAM byte)! 8 bits = 8 pixels!
+		result |= (planesbuffer[1] & 1); //Load plane 1!
+		planesbuffer[1] >>= 1; //Next bit!
+		result <<= 1; //Next bit!
 
-	offset >>= 3; //Shift to the byte: every 8 pixels we go up 1 byte!
-	offset >>= getVGAShift(VGA); //Apply VGA shift! Every 8 pixels we add this ammount to the index!
-	offset += Sequencer->charystart; //VRAM start of row and start map!
-	
-	//Standard VGA processing!
-	result = getBitPlaneBit(VGA,3,offset,bit,1); //Add plane to the result!
-	result <<= 1; //Shift to next plane!
-	result |= getBitPlaneBit(VGA,2,offset,bit,1); //Add plane to the result!
-	result <<= 1; //Shift to next plane!
-	result |= getBitPlaneBit(VGA,1,offset,bit,1); //Add plane to the result!
-	result <<= 1; //Shift to next plane!
-	result |= getBitPlaneBit(VGA,0,offset,bit,1); //Add plane to the result!
-	return result; //Give the result!
+		result |= (planesbuffer[0] & 1); //Load plane 0!
+		planesbuffer[0] >>= 1; //Next bit!
+
+		pixelbuffer[pixel--] = result; //Load the result for usage!
+	}
 }
 
 //Shiftregister: 2=ShiftRegisterInterleave, 1=Color256ShiftMode. Priority list: 1, 2, 0; So 1&3=256colorshiftmode, 2=ShiftRegisterInterleave, 0=SingleShift.
@@ -154,12 +174,20 @@ Core functions!
 
 void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	static agetpixel getpixel_jmptbl[4] = {
-				getplanarshiftmode,
-				getpackedshiftmode,
-				get256colorshiftmode,
-				get256colorshiftmode
+	static Handler loadpixel_jmptbl[4] = {
+				loadplanarshiftmode,
+				loadpackedshiftmode,
+				load256colorshiftmode,
+				load256colorshiftmode
 				}; //All the getpixel functionality!
+	byte currentbuffer;
 	attributeinfo->fontpixel = 1; //Graphics attribute is always font enabled!
-	attributeinfo->attribute = getpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](VGA,Sequencer,Sequencer->activex);
+	currentbuffer = Sequencer->activex; //Current x coordinate!
+	currentbuffer &= 7; //We're buffering 8 pixels!
+	if (!currentbuffer) //First of a block?
+	{
+		VGA_loadgraphicsplanes(VGA, Sequencer, Sequencer->activex); //Load data from the graphics planes!
+		loadpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](); //Load the pixels from the buffer!
+	}
+	attributeinfo->attribute = pixelbuffer[currentbuffer]; //Give the current pixel, loaded with our block!
 }
