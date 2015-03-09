@@ -501,7 +501,7 @@ int INT10_Internal_SetVideoMode(word mode)
 	switch (CurMode->type)
 	{
 	case M_CGA2:
-		mode_control=0xc2; // 0x06 sets address wrap.
+		mode_control=0xa2; // 0x06 sets address wrap.
 		break;
 	case M_CGA4:
 		mode_control=0xa2;
