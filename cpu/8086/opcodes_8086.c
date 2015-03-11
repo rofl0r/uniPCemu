@@ -1227,7 +1227,7 @@ NOW THE REAL OPCODES!
 void CPU8086_OP00() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ADDB",8,0,PARAM_MODRM21); MODRM_src0 = 0; CPU8086_internal_ADD8(modrm_addr8(&params,2,0),modrm_read8(&params,1)); }
 void CPU8086_OP01() {modrm_readparams(&params,2,0); modrm_generateInstructionTEXT("ADDW",16,0,PARAM_MODRM21); MODRM_src0 = 0; CPU8086_internal_ADD16(modrm_addr16(&params,2,0),modrm_read16(&params,1)); }
 void CPU8086_OP02() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ADDB",8,0,PARAM_MODRM12); MODRM_src0 = 0; CPU8086_internal_ADD8(modrm_addr8(&params,1,0),modrm_read8(&params,2)); }
-void CPU8086_OP03() {modrm_readparams(&params,2,0); modrm_generateInstructionTEXT("ADDB",8,0,PARAM_MODRM12); MODRM_src0 = 0; CPU8086_internal_ADD16(modrm_addr16(&params,1,0),modrm_read16(&params,2)); }
+void CPU8086_OP03() {modrm_readparams(&params,2,0); modrm_generateInstructionTEXT("ADDW",16,0,PARAM_MODRM12); MODRM_src0 = 0; CPU8086_internal_ADD16(modrm_addr16(&params,1,0),modrm_read16(&params,2)); }
 void CPU8086_OP04() {byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("ADDB AL,",0,theimm,PARAM_IMM8); CPU8086_internal_ADD8(&REG_AL,theimm); }
 void CPU8086_OP05() {word theimm = CPU_readOPw(); modrm_generateInstructionTEXT("ADDW AX,",0,theimm,PARAM_IMM16); CPU8086_internal_ADD16(&REG_AX,theimm); }
 void CPU8086_OP06() {modrm_generateInstructionTEXT("PUSH ES",0,0,PARAM_NONE); CPU_PUSH16(&REG_ES);/*PUSH ES*/ }

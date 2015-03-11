@@ -385,7 +385,7 @@ char *unsigned2signedtext16(word c)
 	s = unsigned2signed16(c); //Convert to signed!
 	if (s<0) //Negative?
 	{
-		sprintf(signednumbertext,"-%04X",0xFFFF-s); //Show signed!
+		sprintf(signednumbertext,"-%04X",0-s); //Show signed!
 	}
 	else //Positive?
 	{
@@ -401,7 +401,7 @@ char *unsigned2signedtext32(uint_32 c)
 	s = unsigned2signed32(c); //Convert to signed!
 	if (s<0) //Negative?
 	{
-		sprintf(signednumbertext,"-%08X",0xFFFFFFFF-s); //Show signed!
+		sprintf(signednumbertext,"-%08X",0-s); //Show signed!
 	}
 	else //Positive?
 	{
