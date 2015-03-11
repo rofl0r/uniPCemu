@@ -121,73 +121,60 @@ byte mounteddrives[0x100]; //All mounted drives!
 
 */
 
-//BPS=512 always!
+typedef struct
+{
+	uint_64 KB;
+	byte SPT;
+	byte sides;
+	byte tracks;
+} FLOPPY_GEOMETRY; //All floppy geometries!
+
+FLOPPY_GEOMETRY geometries[] = { //Differently formatted disks, and their corresponding geometries
+{160,8,1,40}, //160K 5.25"
+{320,8,1,40}, //320K 5.25"
+{180,9,1,40}, //180K 5.25"
+{360,9,2,40}, //360K 5.25"
+{720,9,2,40}, //720K 3.5"
+{200,10,2,40}, //200K 5.25"
+{400,10,2,40}, //400K 5.25"
+{1200,15,2,80}, //1200K 5.25"
+{1440,18,2,80}, //1.44M 3.5"
+{2880,36,2,80}, //2.88M 3.5"
+{1680,21,2,80}, //1.68M 3.5"
+{1722,21,2,82}, //1.722M 3.5"
+{1840,23,2,80} //1.84M 3.5"
+};
+
+//BPS=512 always(except differently programmed)!
 
 byte floppy_spt(uint_64 floppy_size)
 {
-	switch (KB(floppy_size)) //Determine by size!
+	int i;
+	for (i=0;i<NUMITEMS(geometries);i++)
 	{
-	case 160:
-	case 320:
-		return 8;
-	case 180:
-	case 360:
-	case 720:
-		return 9;
-	case 200:
-	case 400:
-		return 10;
-	case 1200:
-		return 15;
-	case 1440:
-		return 18;
-	case 2880:
-		return 36;
-	default:
-		return 18; //Default: 1.44MB floppy!
+		if (geometries[i].KB==KB(floppy_size)) return geometries[i].SPT; //Found?
 	}
+	return 0; //Unknown!
 }
 
 byte floppy_tracks(uint_64 floppy_size)
 {
-	switch (KB(floppy_size)) //Determine by size!
+	int i;
+	for (i=0;i<NUMITEMS(geometries);i++)
 	{
-	case 160:
-	case 180:
-	case 200:
-	case 320:
-	case 360:
-	case 400:
-		return 40;
-	case 720:
-	case 1200:
-	case 1440:
-	case 2880:
-		return 80;
-	default:
-		return 80; //Default: 1.44MB floppy!
+		if (geometries[i].KB==KB(floppy_size)) return geometries[i].tracks; //Found?
 	}
+	return 0; //Unknown!
 }
 
 byte floppy_sides(uint_64 floppy_size)
 {
-	switch (KB(floppy_size)) //Determine by size!
+	int i;
+	for (i=0;i<NUMITEMS(geometries);i++)
 	{
-	case 160:
-	case 180:
-	case 200:
-		return 1; //Only one side!
-	case 320:
-	case 360:
-	case 400:
-	case 720:
-	case 1200:
-	case 1440:
-	case 2880:
-		return 2; //Two sides!
-	default:
-		return 2; //Default: 1.44MB floppy!
+		if (geometries[i].KB==KB(floppy_size)) return geometries[i].sides; //Found?
 	}
+	return 0; //Unknown!
 }
 
 byte buffer[512]; //Our buffer!
