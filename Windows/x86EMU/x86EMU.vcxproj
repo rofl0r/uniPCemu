@@ -72,6 +72,7 @@
     <ClCompile Include="..\..\hardware\ATAPI.c" />
     <ClCompile Include="..\..\hardware\CMOS.c" />
     <ClCompile Include="..\..\hardware\dma.c" />
+    <ClCompile Include="..\..\hardware\floppy.c" />
     <ClCompile Include="..\..\hardware\ide.c" />
     <ClCompile Include="..\..\hardware\midi\midi.c" />
     <ClCompile Include="..\..\hardware\midi\mididevice.c" />

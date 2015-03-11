@@ -298,7 +298,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//DoDebugVGAGraphics(0x0A,640,200,0x04,0,0xE,0,0); //Debug 640x200x4! None! NOT VGA COMPAT.
 	//Graphics should be OK!
 	//4-color modes: TODO!
-	//DoDebugVGAGraphics(0x04,320,200,0x04,0,0x3,1,0); //Debug 320x200x4! NOT WORKING FULLY YET!
+	DoDebugVGAGraphics(0x04,320,200,0x04,0,0x3,1,0); //Debug 320x200x4! NOT WORKING FULLY YET!
 	//sleep(); //Wait forever to test!
 	//DoDebugVGAGraphics(0x05,320,200,0x04,0,0x0,1,0); //Debug 320x200x4(B/W)! 
 	//B/W mode!
@@ -308,7 +308,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	
 	//DoDebugVGAGraphics(0x0F,640,350,0x02,0,0x1,1,0); //Debug 640x350x2(Monochrome)! GIVES BLACK SCREEN!
 	//16 color mode!
-	//DoDebugVGAGraphics(0x0D,320,200,0x10,0,0xF,0,0); //Debug 320x200x16!
+	DoDebugVGAGraphics(0x0D,320,200,0x10,0,0xF,0,0); //Debug 320x200x16!
 
 	//DoDebugVGAGraphics(0x0E,640,200,0x10,0,0xF,1,0); //Debug 640x200x16!
 	//DoDebugVGAGraphics(0x10,640,350,0x10,0,0xF,1,0); //Debug 640x350x16!
@@ -318,94 +318,11 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
 	//VGA_DUMPDAC(); //Dump the DAC!
 	//256 color mode!
-	//DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/8th screen width?
+	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/8th screen width?
 	//debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!
 	//halt(); //Stop!
-	sleep(); //Wait forever to test!
-
-	disableKeyboard(); //Disable the keyboard!
-
-	CPU.registers->AX = VIDEOMODE_TEXTMODE_80;
-	BIOS_int10(); //Text mode operations!
-
-	CPU.registers->AH = 2; //Set cursor x,y
-	CPU.registers->BH = 0; //Display page #0!
-	CPU.registers->DL = 0; //X
-	CPU.registers->DH = 0; //Y
-	BIOS_int10(); //Show!
-
-//Now, debug cursor movement etc!
-	for (;;)
-	{
-		int key;
-		key = psp_inputkeydelay(500000); //Wait for keypress with delay!
-		CPU.registers->AH = 3; //Get cursor position and size!
-		CPU.registers->BH = 0; //Display page #0!
-		BIOS_int10(); //Get location!
-		switch (key)
-		{
-		case BUTTON_SQUARE: //Backspace?
-			CPU.registers->AH = 0xE; //Enter character!
-			CPU.registers->AL = 0x7; //One back!
-			CPU.registers->BH = 0; //Page!
-			BIOS_int10(); //Execute!
-
-			CPU.registers->AH = 0xE; //Enter character!
-			CPU.registers->AL = ' '; //Clear!
-			CPU.registers->BH = 0; //Page!
-			BIOS_int10(); //Execute!
-
-			CPU.registers->AH = 0xE; //Enter character!
-			CPU.registers->AL = 7; //One back!
-			CPU.registers->BH = 0; //Page!
-			BIOS_int10(); //Execute!
-			break;
-		case BUTTON_CROSS: //Enter X?
-			CPU.registers->AH = 0xE; //Enter character!
-			CPU.registers->AL = 'x'; //Our cross!
-			CPU.registers->BH = 0; //Page!
-			BIOS_int10(); //Execute!
-			break;
-		case BUTTON_UP:
-			if (CPU.registers->DH>0) //Below top?
-			{
-				CPU.registers->AH = 2; //Set cursor position!
-				--CPU.registers->DH; //Up one row!
-				BIOS_int10(); //Update!
-			}
-			break;
-		case BUTTON_DOWN:
-			if (CPU.registers->DH<24) //Above bottom?
-			{
-				CPU.registers->AH = 2; //Set cursor position!
-				++CPU.registers->DH; //Up one row!
-				BIOS_int10(); //Update!
-			}
-			break;
-		case BUTTON_LEFT:
-			if (CPU.registers->DL>0) //Not leftmost?
-			{
-				CPU.registers->AH = 2; //Set cursor position!
-				--CPU.registers->DL; //Up one row!
-				BIOS_int10(); //Update!
-			}
-			break;
-		case BUTTON_RIGHT:
-			if (CPU.registers->DL<39) //Not rightmost?
-			{
-				CPU.registers->AH = 2; //Set cursor position!
-				++CPU.registers->DL; //Up one row!
-				BIOS_int10(); //Update!
-			}
-			break;
-		default: //Default?
-			//Unknown keypress!
-			break;
-		}
-	}
-
 	sleep(); //Wait forever till user Quits the game!
 }
 

@@ -429,6 +429,9 @@
     <ClCompile Include="..\..\support\mid.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\hardware\floppy.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">

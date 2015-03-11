@@ -130,7 +130,6 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	register word row;
 	register uint_32 charystart;
 	row = Sequencer->Scanline; //Default: our normal scanline!
-	row >>= VGA->precalcs.characterclockshift; //Apply character clock shift!
 	row >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Apply scanline division!
 	row >>= VGA->precalcs.scandoubling; //Apply Scan Doubling here: we take effect on content!
 	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
@@ -139,6 +138,8 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	word *currowstatus = &VGA->CRTC.charrowstatus[row]; //Current row status!
 	Sequencer->chary = row = *currowstatus++; //First is chary (effective character/graphics row)!
 	Sequencer->charinner_y = *currowstatus; //Second is charinner_y!
+
+	row >>= VGA->precalcs.characterclockshift; //Apply character clock shift!
 
 	charystart = getVRAMScanlineStart(VGA, row); //Calculate row start!
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!

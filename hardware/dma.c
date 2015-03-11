@@ -14,11 +14,6 @@ DMA Controller (8237A)
 //Are we disabled?
 #define __HW_DISABLED 0
 
-typedef void (*DMAWriteBHandler)(byte data); //Write handler to DMA hardware!
-typedef byte (*DMAReadBHandler)(); //Read handler from DMA hardware!
-typedef void (*DMAWriteWHandler)(word data); //Write handler to DMA hardware!
-typedef word (*DMAReadWHandler)(); //Read handler from DMA hardware!
-
 typedef union
 {
 	struct
@@ -518,4 +513,16 @@ void doneDMA()
 {
 	if (__HW_DISABLED) return; //Disabled!
 	removetimer("DMA Thread"); //Remove our timer!
+}
+
+void registerDMA8(byte channel, DMAReadBHandler readhandler, DMAWriteBHandler writehandler)
+{
+	DMAController[channel >> 2].DMAChannel[channel & 3].ReadBHandler = readhandler; //Assign the read handler!
+	DMAController[channel >> 2].DMAChannel[channel & 3].WriteBHandler = writehandler; //Assign the read handler!
+}
+
+void registerDMA16(byte channel, DMAReadWHandler readhandler, DMAWriteWHandler writehandler)
+{
+	DMAController[channel >> 2].DMAChannel[channel & 3].ReadWHandler = readhandler; //Assign the read handler!
+	DMAController[channel >> 2].DMAChannel[channel & 3].WriteWHandler = writehandler; //Assign the read handler!
 }
