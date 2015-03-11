@@ -25,6 +25,8 @@ void VGA_loadgraphicsplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load t
 	location >>= 3; //We take portions of 8 pixels, so increase our location every 8 pixels!
 	location <<= getVGAShift(VGA); //Apply VGA shift: the shift is the ammount to move at a time!
 
+	location >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply divide character clock by 2!
+
 	//Row logic
 	location += Sequencer->charystart; //Apply the line and start map to retrieve!
 
