@@ -52,6 +52,10 @@ struct
 		};
 		byte data; //DSR data!
 	} DSR;
+	union
+	{
+		byte data; //ST0 register!
+	} ST0;
 	byte commandstep; //Current command step!
 	byte commandbuffer[0x10000]; //Outgoing command buffer!
 	word commandposition; //What position in the command (starts with commandstep=commandposition=0).
@@ -100,7 +104,6 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
 	FLOPPY.resultposition = 0; //Default: start of the result!
-	FLOPPY.resultsize = 0; //Default: no result!
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
 	FLOPPY.databufferposition = 0; //Default: start of the data buffer!
 	switch (FLOPPY.commandbuffer[0]) //What command!
@@ -160,7 +163,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 	}
 }
 
-void floppy_WriteData(byte value)
+void floppy_writeData(byte value)
 {
 	//TODO: handle floppy writes!
 	switch (FLOPPY.commandstep) //What step are we at?
@@ -362,7 +365,7 @@ byte floppy_readData()
 				case 0x8: //Check interrupt status
 				case 0xA: //Read sector ID
 				case 0xF: //Seek/park head
-					if (FLOPPY.resultposition>=resultlength[floppy.commandbuffer[0]&0xF]) //Result finished?
+					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]&0xF]) //Result finished?
 					{
 						FLOPPY.commandstep = 0; //Reset step!
 					}

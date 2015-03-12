@@ -456,7 +456,7 @@ void CPU8086_internal_ADD16(word *dest, word addition)
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res16); //Write the result to memory!
+		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
 	}
 	CPUPROT2
 }
@@ -498,7 +498,7 @@ void CPU8086_internal_ADC16(word *dest, word addition)
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res16); //Write the result to memory!
+		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
 	}
 	CPUPROT2
 }
@@ -541,7 +541,7 @@ void CPU8086_internal_OR16(word *dest, word src)
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res16); //Write the result to memory!
+		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
 	}
 	CPUPROT2
 }
@@ -575,7 +575,7 @@ void CPU8086_internal_AND16(word *dest, word src)
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res16); //Write the result to memory!
+		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
 	}
 	CPUPROT2
 }
@@ -618,7 +618,7 @@ void CPU8086_internal_SUB16(word *dest, word addition)
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res16); //Write the result to memory!
+		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
 	}
 	CPUPROT2
 }
@@ -660,7 +660,7 @@ void CPU8086_internal_SBB16(word *dest, word addition)
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res16); //Write the result to memory!
+		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
 	}
 	CPUPROT2
 }
@@ -703,7 +703,7 @@ void CPU8086_internal_XOR16(word *dest, word src)
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res16); //Write the result to memory!
+		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
 	}
 	CPUPROT2
 }
@@ -1184,7 +1184,7 @@ void CPU8086_internal_XCHG16(word *data1, word *data2)
 	}
 	else
 	{
-		modrm_write8(&params,MODRM_src0,oper1);
+		modrm_write16(&params,MODRM_src0,oper1,0);
 	}
 	CPUPROT1
 	if (data2)
@@ -1193,7 +1193,7 @@ void CPU8086_internal_XCHG16(word *data1, word *data2)
 	}
 	else
 	{
-		modrm_write8(&params,MODRM_src1,oper2);
+		modrm_write16(&params,MODRM_src1,oper2,0);
 	}
 	CPUPROT2
 	CPUPROT2
