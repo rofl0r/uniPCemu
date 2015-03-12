@@ -1141,6 +1141,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			return;
 			break;
 		}
+		result->mem_offset &= 0xFFFF; //Only 16-bit offsets are used!
 		break;
 	case MOD_MEM_DISP8: //[register+DISP8]
 		switch (reg) //Which register?
@@ -1207,6 +1208,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			return;
 			break;
 		}
+		result->mem_offset &= 0xFFFF; //Only 16-bit offsets are used!		
 		break;
 	case MOD_MEM_DISP32: //[register+DISP32]
 		if (CPU_Operand_size) //Operand size is 32-bits?
@@ -1342,6 +1344,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 				return;
 				break;
 			}
+			result->mem_offset &= 0xFFFF; //Only 16-bit offsets are used!			
 			break;
 		}
 		break;
@@ -1727,19 +1730,4 @@ void modrm_readparams(MODRM_PARAMS *param, int size, int slashr)
 	default: //Unknown/no displacement?
 		break; //No displacement!
 	}
-	
-	/*if (debugging())
-	{
-		GPU_textgotoxy(frameratesurface,0,GPU_TEXT_INFOROW); //Goto info row!
-		char str[256];
-		bzero(str,sizeof(str)); //For clearing!
-		int i;
-		for (i=0; i<DEBUGSCREEN_WIDTH; i++) //Clear unneeded!
-		{
-			GPU_textprintf(frameratesurface,0,0," "); //Clear all unneeded!
-		}
-		GPU_textgotoxy(frameratesurface,0,GPU_TEXT_INFOROW);
-		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"MODRM: MOD: %i,RM: %i,REG: %i,size: %i,/r: %i,seg: %i,b:%02X/%02X@%04X:%04X",MODRM_MOD(param->modrm),MODRM_REG(param->modrm),MODRM_RM(param->modrm),size,param->slashr,param->reg_is_segmentregister,param->modrm,MMU_rb(startseg,startoffs),startseg,startoffs); //Debug!
-		//printf("MODRM: %02X/%02X@%04X:%04X",param->modrm,MMU_rb(startseg,startoffs),startseg,startoffs);
-	}*/
 }
