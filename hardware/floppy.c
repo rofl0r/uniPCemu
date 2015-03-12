@@ -52,8 +52,86 @@ struct
 		};
 		byte data; //DSR data!
 	} DSR;
-
+	byte commandstep; //Current command step!
+	word commandposition; //What position in the command (starts with commandstep=commandposition=0).
+	byte commandbuffer[0x10000]; //Outgoing command buffer!
 } FLOPPY; //Our floppy drive data!
+
+void floppy_WriteData(byte value)
+{
+	//TODO: handle floppy writes!
+	switch (FLOPPY.commandstep) //What step are we at?
+	{
+		case 0: //Command
+			FLOPPY.commandstep = 1; //Start inserting parameters!
+			switch (value&0xF) //What command?
+			{
+				case 0x2: //Read complete track
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				case 0x5: //Write sector
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				case 0x6: //Read sector
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				case 0x9: //Write deleted sector
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				case 0xC: //Read deleted sector
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				case 0x3: //Fix drive data
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				case 0x4: //Check drive status
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				case 0x7: //Calibrate drive
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				case 0x8: //Check interrupt status
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				case 0xA: //Read sector ID
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				case 0xF: //Seek/park head
+					FLOPPY.commandbuffer[0] = value; //Set the command to use!
+					break;
+				default: //Invalid command
+					switch (value) //Extended command?
+					{
+						case 0xF: //Register summary
+							FLOPPY.commandbuffer[0] = value; //Set the command to use!
+							break;
+						case 0x10: //Determine controller version
+							FLOPPY.commandbuffer[0] = value; //Set the command to use!
+							break;
+						case 0x16: //Verify
+							FLOPPY.commandbuffer[0] = value; //Set the command to use!
+							break;
+						case 0xF: //Seek relative (with extended byte 1)
+							FLOPPY.commandbuffer[0] = value; //Set the command to use!
+							break;
+						default: //Invalid command!
+							break;
+					}
+			}
+			break;
+		case 1: //Parameters
+			break;
+		case 2: //Data
+			break;
+		case 3: //Result
+			break;
+	}
+}
+
+byte floppy_readData()
+{
+	return ~0; //Not used yet!
+}
 
 byte PORT_IN_floppy(word port)
 {
@@ -67,7 +145,7 @@ byte PORT_IN_floppy(word port)
 		return FLOPPY.MSR.data; //Give MSR!
 	case 5: //Data?
 		//Process data!
-		return 0; //Default handler!
+		return floppy_readData(); //Data has been written!
 	case 7: //CCR?
 		return FLOPPY.CCR.data; //Give CCR!
 	default: //Unknown port?
@@ -86,6 +164,7 @@ void PORT_OUT_floppy(word port, byte value)
 		FLOPPY.DSR.data = value; //Write to register!
 		return; //Finished!
 	case 5: //Data?
+		floppy_writeData(value); //Data has been written!
 		return; //Default handler!
 	case 7: //DIR?
 		FLOPPY.DIR.data = value; //Write to register!
