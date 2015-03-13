@@ -359,7 +359,7 @@ byte coreHandler()
 		return 0; //Stop!
 	}
 
-	cpudebugger = debugging(); //Debugging?
+	cpudebugger = needdebugger(); //Debugging information required?
 	//CPU execution, needs to be before the debugger!
 	if (!CPU.halt) //Not halted?
 	{

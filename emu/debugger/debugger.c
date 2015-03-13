@@ -15,6 +15,8 @@
 //Log flags only?
 //#define LOGFLAGSONLY
 
+byte allow_debuggerstep = 0; //Disabled by default: needs to be enabled by our BIOS!
+
 char debugger_prefix[256] = ""; //The prefix!
 char debugger_command_text[256] = ""; //Current command!
 byte debugger_set = 0; //Debugger set?
@@ -161,7 +163,7 @@ extern byte last_modrm; //Is the last opcode a modr/m read?
 extern byte OPbuffer[256];
 extern byte OPlength; //The length of the OPbuffer!
 
-void debugger_autolog()
+byte debugger_logging()
 {
 	byte enablelog = 0; //Default: disabled!
 	switch (DEBUGGER_LOG) //What log method?
@@ -175,7 +177,21 @@ void debugger_autolog()
 	default:
 		break;
 	}
-	if (enablelog) //To log?
+	enablelog &= allow_debuggerstep; //Are we allowed to debug?
+	return enablelog; //Logging?
+}
+
+byte needdebugger() //Do we need to generate debugging information?
+{
+	byte result;
+	result = debugger_logging(); //Are we logging?
+	result |= debugging(); //Are we debugging?
+	return result; //Do we need debugger information?
+}
+
+void debugger_autolog()
+{
+	if (debugger_logging()) //To log?
 	{
 		if (last_modrm)
 		{
@@ -347,8 +363,6 @@ void debugger_screen() //Show debugger info on-screen!
 		GPU_text_releasesurface(frameratesurface); //Unlock!
 	}
 }
-
-byte allow_debuggerstep = 0; //Disabled by default: needs to be enabled by our BIOS!
 
 void debugger_step() //Processes the debugging step!
 {
