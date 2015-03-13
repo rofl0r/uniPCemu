@@ -3,6 +3,7 @@
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
 #include "headers/emu/threads.h" //Multithreading support!
 #include "headers/emu/directorylist.h" //Directory listing support!
+#include "headers/bios/bios.h" //Basic BIOS compatibility!
 
 int convertrel(int src, int fromres, int tores) //Relative int conversion!
 {
@@ -203,4 +204,15 @@ short RandomShort(short min, short max)
 short shortrand() //Short random
 {
 	return (short)RandomShort(-SHRT_MAX,SHRT_MAX); //Short random generator!
+}
+
+extern BIOS_Settings_TYPE BIOS_Settings; //Our settings!
+
+void EMU_update_DACColorScheme()
+{
+	DAC_Use_BWMonitor((BIOS_Settings.bwmonitor>0) ? 1 : 0); //Select color/bw monitor!
+	if (DAC_Use_BWMonitor(0xFF)) //Using a b/w monitor?
+	{
+		DAC_BWColor(BIOS_Settings.bwmonitor); //Set the color to use!
+	}
 }

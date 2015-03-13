@@ -48,8 +48,6 @@ extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CP
 #define DEBUG_VGA_ONLY 0
 //Don't run the emulator?
 #define NOEMU 0
-//To debug files in the tests folder?
-#define ALLOW_DEBUGFILES 1
 //Allow the BIOS to be run?
 #define ALLOW_BIOS
 
@@ -187,7 +185,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		debugrow("Running core BIOS POST...");
 
-		if (BIOS_Settings.debugmode == DEBUGMODE_BIOS)
+		if (BIOS_Settings.executionmode == EXECUTIONMODE_BIOS)
 		{
 			if (NOEMU)
 			{
@@ -327,27 +325,25 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		//First debugger step: custom bios check!
 
-		if (ALLOW_DEBUGFILES && BIOS_Settings.debugmode == DEBUGMODE_TEST)
+		//Emulate anything here!
+		FILE *f; //The file to use for loading ROMs.
+		//Try booting of different disks:
+
+		switch (BIOS_Settings.executionmode) //What execution mode?
 		{
+		case EXECUTIONMODE_TEST:
 			debugrow("Debugging files!");
 			DoDebugFiles(); //Do the debug files!
 			EMU_startInput(); //Start input again!
 			EMU_RUNNING = 1; //We're running again!
 			return 1; //Reboot!
-		}
 
-		if (BIOS_Settings.debugmode == DEBUGMODE_SOUND)
-		{
+		case EXECUTIONMODE_SOUND:
 			debugrow("Starting sound test...");
 			dosoundtest(); //Run the sound test!
-		}
+			return 1; //Reboot!
 
-		//Emulate anything here!
-		FILE *f; //The file to use for loading ROMs.
-		//Try booting of different disks:
-
-		if (BIOS_Settings.debugmode == DEBUGMODE_TEST)
-		{
+		case EXECUTIONMODE_TESTROM:
 			f = fopen("TESTROM.DAT", "rb"); //Try TESTROM.DAT?
 			int verified;
 			romsize = 0; //Default: no ROM!
@@ -391,6 +387,9 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					return 0; //Run the boot rom!
 				}
 			}
+			break;
+		default: //Unknwn?
+			break;
 		}
 
 		if (NOEMU)

@@ -8,4 +8,5 @@ float frand(); //Floating point random
 float RandomFloat(float min, float max); //Random float within range!
 short shortrand(); //Short random
 short RandomShort(short min, short max);
+void EMU_update_DACColorScheme(); //Update our DAC color scheme (runtime-changable)!
 #endif

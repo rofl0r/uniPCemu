@@ -73,14 +73,22 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	*/
 }
 
+byte DAC_BWColor(byte use) //What B/W color to use?
+{
+	static byte use_color = 0; //Default: b/w!
+	if (use < 4) use_color = use; //Use?
+	return use_color;
+}
+
 OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
 {
+	const float brown_red = ((float)0xAA / (float)255); //Red part!
 	word n = GETR(color); //Red channel!
 	n += GETG(color); //Green channel!
 	n += GETB(color); //Blue channel!
 	
 	//Optimized way of dividing?
-	int a,b;
+	register word a,b;
     a = n >> 2;
     b = (a >> 2);
     a += b;
@@ -90,7 +98,22 @@ OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
     a += b;
     b = (b >> 2);
     a += b;
-	return RGB(a,a,a); //RGB Greyscale!
+
+	switch (DAC_BWColor(0xFF)) //What color scheme?
+	{
+	case BWMONITOR_BLACK: //Back/white?
+		return RGB(a, a, a); //RGB Greyscale!
+	case BWMONITOR_GREEN: //Green?
+		return RGB(0, a, 0); //Green scheme!
+	case BWMONITOR_BROWN: //Brown?
+		a *= brown_red; //Apply basic color: Create yellow tint (R/G)!
+		b = a; //Load a into b!
+		b >>= 1; //Green is halved to create brown
+		return RGB(a, b, 0); //Brown scheme!
+	default:
+		break; //Use default!
+	}
+	return color; //Can't convert: take the original color!
 }
 
 uint_32 DAC_BWmonitor(VGA_Type *VGA, byte DACValue)
@@ -106,6 +129,6 @@ uint_32 DAC_colorMonitor(VGA_Type *VGA,byte DACValue)
 byte DAC_Use_BWMonitor(byte use)
 {
 	static byte use_bwmonitor = 0; //Use B/W monitor?
-	if (use < 2) use_bwmonitor = use; //Use?
+	if (use<2) use_bwmonitor = use; //Use?
 	return use_bwmonitor; //Give the data!
 }

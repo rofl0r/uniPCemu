@@ -158,9 +158,24 @@ extern word modrm_lastsegment;
 extern uint_32 modrm_lastoffset;
 extern byte last_modrm; //Is the last opcode a modr/m read?
 
+extern byte OPbuffer[256];
+extern byte OPlength; //The length of the OPbuffer!
+
 void debugger_autolog()
 {
-	if (DEBUGGER_LOG && debugging()) //To log?
+	byte enablelog = 0; //Default: disabled!
+	switch (DEBUGGER_LOG) //What log method?
+	{
+	case DEBUGGERLOG_ALWAYS:
+		enablelog = 1; //Always enabled!
+		break;
+	case DEBUGGERLOG_DEBUGGING:
+		enablelog = debugging(); //Enable log when debugging!
+		break;
+	default:
+		break;
+	}
+	if (enablelog) //To log?
 	{
 		if (last_modrm)
 		{
@@ -175,17 +190,27 @@ void debugger_autolog()
 		}
 		char fullcmd[256];
 		bzero(fullcmd,sizeof(fullcmd)); //Init!
+		int i; //A counter for opcode data dump!
 		if (!debugger_set) //No debugger set?
 		{
-			int i;
 			strcpy(debugger_command_text,"<Debugger not implemented: "); //Set to the last opcode!
-			for (i = debuggerregisters.EIP; i < CPU.registers->EIP; i++) //List the full command!
+			for (i = 0; i < OPlength; i++) //List the full command!
 			{
-				sprintf(debugger_command_text, "%s%c", debugger_command_text, MMU_rb(CPU_SEGMENT_CS, debuggerregisters.CS, i, 1)); //Add part of the opcode!
+				sprintf(debugger_command_text, "%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
 			}
 			strcat(debugger_command_text, ">"); //End of #UNKOP!
 		}
-		sprintf(fullcmd,"(%02X)%s%s",CPU.lastopcode,debugger_prefix,debugger_command_text); //Get our full command!
+		else
+		{
+			strcpy(fullcmd, "(");
+			for (i = 0; i < OPlength; i++) //List the full command!
+			{
+				sprintf(fullcmd, "%s%02X", fullcmd, OPbuffer[i]); //Add part of the opcode!
+			}
+			strcat(fullcmd, ")"); //Our opcode before disassembly!
+			strcat(fullcmd, debugger_prefix); //The prefix(es)!
+			strcat(fullcmd, debugger_command_text); //Command itself!
+		}
 
 		if (getcpumode() == CPU_MODE_REAL) //Emulating 80(1)86? Use IP!
 		{
@@ -381,13 +406,12 @@ recheckdebugger: //For getting from the BIOS!
 				}
 				debugger_screen(); //Show the debugger again!
 			}
-			if (psp_keypressed(BUTTON_CIRCLE)) //Reset?
+			if (psp_keypressed(BUTTON_CIRCLE)) //Dump memory?
 			{
 				while (psp_keypressed(BUTTON_CIRCLE)) //Wait for release!
 				{
 				}
-				resetCPU(); //Reset the CPU to reboot!
-				return; //We're resetting!
+				MMU_dumpmemory("memory.dat"); //Dump the MMU memory!
 				break;
 			}
 			if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Goto BIOS?

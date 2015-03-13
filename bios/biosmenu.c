@@ -102,6 +102,7 @@ Handler BIOS_Menus[] =
 	,BIOS_DefragmentDynamicHDD //Defragment a dynamic HDD is #21!
 	,BIOS_BWMonitor //Switch to a b/w monitor or color monitor is #22!
 	,BIOS_DebugLog //Enable/disable debugger log is #23!
+	,BIOS_ExecutionMode //Execution mode is #24!
 };
 
 //Not implemented?
@@ -210,6 +211,8 @@ void BIOS_clearscreen()
 
 extern GPU_type GPU; //The GPU!
 
+byte reboot_needed = 0; //Default: no reboot needed!
+
 byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -242,6 +245,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	BIOS_clearscreen(); //Clear the screen!
 	BIOS_Menu = 0; //We're opening the main menu!
 
+	reboot_needed = 0; //Do we need to reboot?
 	BIOS_MenuChooser(); //Show the BIOS's menu we've selected!
 	
 	if (BIOS_Settings.firstrun) //First run?
@@ -250,7 +254,6 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 		BIOS_Changed = 1; //We've been changed!
 	}
 	
-	byte reboot_needed = 0; //Do we need to reboot?
 	if (BIOS_SaveStat && BIOS_Changed) //To save the BIOS and BIOS has been changed?
 	{
 		if (!BIOS_SaveData()) //Save our options and failed?
@@ -260,7 +263,6 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 			EMU_textcolor(0xF);
 			GPU_EMU_printscreen(0,0,"Error: couldn't save the BIOS!");
 			delay(5000000); //Wait 5 sec before rebooting!
-			reboot_needed = 1; //We need to reboot!
 		}
 		else
 		{
@@ -280,7 +282,6 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 				GPU_EMU_printscreen(0,0,"BIOS Saved (Returning to the emulator)!"); //Info!
 				delay(2000000); //Wait 2 sec!
 			}
-			reboot_needed = 1; //We need to reboot!
 		}
 
 	}
@@ -303,6 +304,9 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	startEMUTimers(); //Start our timers up again!
 	startVGA(); //Start the VGA up again!
 	EMU_startInput(); //Start all emu input again!
+
+	EMU_update_DACColorScheme(); //Update the DAC color scheme!
+
 	return reboot_needed; //Do we need to reboot?
 }
 
@@ -1191,17 +1195,17 @@ void BIOS_InitAdvancedText()
 		strcat(menuoptions[advancedoptions++],BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
 		optioninfo[advancedoptions] = 1; //Installed CPU!
 		strcpy(menuoptions[advancedoptions],"Installed CPU: "); //Change installed CPU!
-		if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
+		switch (BIOS_Settings.emulated_CPU) //8086?
 		{
+		case CPU_8086: //8086?
 			strcat(menuoptions[advancedoptions++],"Intel 8086"); //Add installed CPU!
-		}
-		else if (BIOS_Settings.emulated_CPU==CPU_80186) //80186?
-		{
-			strcat(menuoptions[advancedoptions++],"Intel 80186"); //Add installed CPU!
-		}
-		else //Unknown?
-		{
-			strcat(menuoptions[advancedoptions++],"<UNIMPLEMENTED>"); //Add installed CPU!
+			break;
+		case CPU_80186: //80186?
+			strcat(menuoptions[advancedoptions++], "Intel 80186"); //Add installed CPU!
+			break;
+		default:
+			strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
+			break;
 		}
 	}
 
@@ -1221,44 +1225,54 @@ void BIOS_InitAdvancedText()
 	case DEBUGMODE_SHOW_RUN:
 		strcat(menuoptions[advancedoptions++],"Enabled, just run, ignore shoulder buttons"); //Set filename from options!
 		break;
-	case DEBUGMODE_TEST:
-		strcat(menuoptions[advancedoptions++],"Disabled, run debug directory files, else BIOSROM.DAT"); //Set filename from options!
-		break;
-	case DEBUGMODE_TEST_STEP:
-		strcat(menuoptions[advancedoptions++],"Enabled, Step through, run debug directory files, else BIOSROM.DAT"); //Set filename from options!
-		break;
-	case DEBUGMODE_VIDEOCARD:
-		strcat(menuoptions[advancedoptions++],"Disabled, debug video card output"); //Set filename from options!
-		break;
-	case DEBUGMODE_BIOS:
-		strcat(menuoptions[advancedoptions++], "Disabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
-		break;
-	case DEBUGMODE_BIOS_DEBUG:
-		strcat(menuoptions[advancedoptions++], "Enabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
-		break;
-	case DEBUGMODE_BIOS_DEBUG_STEP:
-		strcat(menuoptions[advancedoptions++], "Enabled, load BIOS from BIOSROM.DAT, Step through"); //Set filename from options!
-		break;
-	case DEBUGMODE_BIOS_DEBUG_SHOW_RUN:
-		strcat(menuoptions[advancedoptions++], "Enabled, load BIOS from BIOSROM.DAT, just run, ignore shoulder buttons"); //Set filename from options!
-		break;
-	case DEBUGMODE_SOUND:
-		strcat(menuoptions[advancedoptions++],"No debugger enabled, run sound test"); //Set filename from options!
-		break;
 	default:
 		strcat(menuoptions[advancedoptions++],"<UNKNOWN. CHECK BIOS VERSION>");
 		break;
 	}
 
 	optioninfo[advancedoptions] = 8; //We're debug log setting!
-	strcpy(menuoptions[advancedoptions], "Log when debugging: ");
-	if (BIOS_Settings.debugger_log)
+	strcpy(menuoptions[advancedoptions], "Debugger log: ");
+	switch (BIOS_Settings.debugger_log)
 	{
-		strcat(menuoptions[advancedoptions++], "Enabled");
+	case DEBUGGERLOG_NONE: //None
+		strcat(menuoptions[advancedoptions++], "Don't log"); //Set filename from options!
+		break;
+	case DEBUGGERLOG_DEBUGGING: //Only when debugging
+		strcat(menuoptions[advancedoptions++], "Only when debugging"); //Set filename from options!
+		break;
+	case DEBUGGERLOG_ALWAYS: //Always
+		strcat(menuoptions[advancedoptions++], "Always log"); //Set filename from options!
+		break;
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "Never"); //Set filename from options!
+		break;
 	}
-	else
+	optioninfo[advancedoptions] = 9; //Execution mode!
+	strcpy(menuoptions[advancedoptions], "Execution mode: ");
+	switch (BIOS_Settings.executionmode) //What debug mode is active?
 	{
-		strcat(menuoptions[advancedoptions++], "Disabled");
+	case EXECUTIONMODE_NONE:
+		strcat(menuoptions[advancedoptions++], "Normal operations"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_TEST:
+		strcat(menuoptions[advancedoptions++], "Run debug directory files"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_TESTROM:
+		strcat(menuoptions[advancedoptions++], "Run TESTROM.DAT at 0000:0000"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_VIDEOCARD:
+		strcat(menuoptions[advancedoptions++], "Debug video card output"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_BIOS:
+		strcat(menuoptions[advancedoptions++], "Load BIOS from ROM directory."); //Set filename from options!
+		break;
+	case EXECUTIONMODE_SOUND:
+		strcat(menuoptions[advancedoptions++], "Run sound test"); //Set filename from options!
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>");
+		break;
 	}
 
 	optioninfo[advancedoptions] = 4; //We're direct plot setting!
@@ -1303,15 +1317,22 @@ setdirectplottext: //For fixing it!
 		strcat(menuoptions[advancedoptions++],"Fullscreen stretching");
 	}
 
-	optioninfo[advancedoptions] = 7; //B/W monitor!
+	optioninfo[advancedoptions] = 7; //Monitor!
 	strcpy(menuoptions[advancedoptions], "Monitor: ");
-	if (BIOS_Settings.bwmonitor) //B/W monitor?
+	switch (BIOS_Settings.bwmonitor) //B/W monitor?
 	{
-		strcat(menuoptions[advancedoptions++], "B/W monitor");
-	}
-	else
-	{
+	case BWMONITOR_BLACK:
+		strcat(menuoptions[advancedoptions++], "B/W monitor: black");
+		break;
+	case BWMONITOR_GREEN:
+		strcat(menuoptions[advancedoptions++], "B/W monitor: green");
+		break;
+	case BWMONITOR_BROWN:
+		strcat(menuoptions[advancedoptions++], "B/W monitor: brown");
+		break;
+	case BWMONITOR_NONE:
 		strcat(menuoptions[advancedoptions++], "Color monitor");
+		break;
 	}
 }
 
@@ -1418,7 +1439,8 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 5:
 	case 6:
 	case 7:
-	case 8: //Valid option?
+	case 8:
+	case 9: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Boot order (plain)?
@@ -1448,6 +1470,9 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 		case 8:
 			BIOS_Menu = 23; //Debugger log setting!
 			break;
+		case 9:
+			BIOS_Menu = 24; //Debugger log option!
+			break;
 		}
 		break;
 	default: //Unknown option?
@@ -1470,7 +1495,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	{
 		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
 	}
-	if (EMU_RUNNING) //Running?
+	if (!reboot_needed) //Running?
 	{
 		strcpy(menuoptions[0],"Save Changes & Resume emulation"); //Option #0!
 	}
@@ -1478,7 +1503,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	{
 		strcpy(menuoptions[0],"Save Changes & Reboot"); //Option #0!
 	}
-	if (EMU_RUNNING)
+	if (!reboot_needed)
 	{
 		strcpy(menuoptions[1],"Discard Changes & Resume emulation"); //Option #1!
 	}
@@ -1506,6 +1531,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	case 2: //Load defaults?
 		BIOSMenu_LoadDefaults(); //Load BIOS defaults option!
 		BIOS_Changed = 1; //The BIOS has been changed!
+		reboot_needed = 1; //We need a reboot!
 		break;
 	case BIOSMENU_SPEC_LTRIGGER: //L?
 		BIOS_Menu = 8; //Goto Advanced menu!
@@ -2045,8 +2071,8 @@ void BIOS_DebugMode()
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Debug mode: "); //Show selection init!
 	int i = 0; //Counter!
-	numlist = 9; //Ammount of Debug modes!
-	for (i=0; i<9; i++) //Process options!
+	numlist = 4; //Ammount of Debug modes!
+	for (i=0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
 	}
@@ -2055,14 +2081,6 @@ void BIOS_DebugMode()
 	strcpy(itemlist[DEBUGMODE_RTRIGGER],"Enabled, RTrigger=Step"); //Set filename from options!
 	strcpy(itemlist[DEBUGMODE_STEP],"Enabled, Step through"); //Set filename from options!
 	strcpy(itemlist[DEBUGMODE_SHOW_RUN],"Enabled, just run, ignore shoulder buttons"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_TEST],"Enabled, run debug directory files, else TESTROM.DAT at 0000:0000"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_TEST_STEP],"Enabled, Step through, run debug directory files, else TESTROM.DAT at 0000:0000"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_VIDEOCARD],"Disabled, debug video card output"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_BIOS],"Disabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_BIOS_DEBUG],"Enabled, load BIOS from BIOSROM.DAT"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_BIOS_DEBUG_STEP],"Enabled, load BIOS from BIOSROM.DAT, Step through"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_BIOS_DEBUG_SHOW_RUN],"Enabled, load BIOS from BIOSROM.DAT, just run, ignore shoulder buttons"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_SOUND], "Disabled, run sound test"); //Debug sound test!
 
 	int current = 0;
 	switch (BIOS_Settings.debugmode) //What debug mode?
@@ -2071,14 +2089,6 @@ void BIOS_DebugMode()
 	case DEBUGMODE_RTRIGGER: //Valid
 	case DEBUGMODE_STEP: //Valid
 	case DEBUGMODE_SHOW_RUN: //Valid
-	case DEBUGMODE_TEST: //Test files or biosrom.dat!
-	case DEBUGMODE_TEST_STEP: //Test files or biosrom.dat!
-	case DEBUGMODE_VIDEOCARD: //Text character debugging?
-	case DEBUGMODE_BIOS: //External BIOS?
-	case DEBUGMODE_SOUND: //Sound test?
-	case DEBUGMODE_BIOS_DEBUG: //Enable debugger & External BIOS?
-	case DEBUGMODE_BIOS_DEBUG_STEP: //Step through & External BIOS?
-	case DEBUGMODE_BIOS_DEBUG_SHOW_RUN: //Just run, ignore shoulder buttons & External BIOS?
 		current = BIOS_Settings.debugmode; //Valid: use!
 		break;
 	default: //Invalid
@@ -2103,14 +2113,6 @@ void BIOS_DebugMode()
 	case DEBUGMODE_RTRIGGER:
 	case DEBUGMODE_STEP:
 	case DEBUGMODE_SHOW_RUN:
-	case DEBUGMODE_TEST:
-	case DEBUGMODE_TEST_STEP:
-	case DEBUGMODE_VIDEOCARD:
-	case DEBUGMODE_BIOS:
-	case DEBUGMODE_SOUND:
-	case DEBUGMODE_BIOS_DEBUG:
-	case DEBUGMODE_BIOS_DEBUG_STEP:
-	case DEBUGMODE_BIOS_DEBUG_SHOW_RUN:
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
@@ -2122,13 +2124,129 @@ void BIOS_DebugMode()
 	BIOS_Menu = 8; //Goto Advanced menu!
 }
 
-void BIOS_DebugLog()
+void BIOS_ExecutionMode()
 {
-	BIOS_Settings.debugger_log = !BIOS_Settings.debugger_log; //Reverse!
-	BIOS_Changed = 1; //Changed!
+	BIOS_Title("Execution mode");
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Execution mode: "); //Show selection init!
+	int i = 0; //Counter!
+	numlist = 6; //Ammount of Execution modes!
+	for (i = 0; i<numlist; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+	}
+
+	strcpy(itemlist[EXECUTIONMODE_NONE], "Normal operations"); //Set filename from options!
+	strcpy(itemlist[EXECUTIONMODE_TEST], "Run debug directory files, else TESTROM.DAT at 0000:0000"); //Set filename from options!
+	strcpy(itemlist[EXECUTIONMODE_TESTROM], "Run TESTROM.DAT at 0000:0000"); //Set filename from options!
+	strcpy(itemlist[EXECUTIONMODE_VIDEOCARD], "Debug video card output"); //Set filename from options!
+	strcpy(itemlist[EXECUTIONMODE_BIOS], "Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*"); //Set filename from options!
+	strcpy(itemlist[EXECUTIONMODE_SOUND], "Run sound test"); //Debug sound test!
+
+	int current = 0;
+	switch (BIOS_Settings.executionmode) //What debug mode?
+	{
+	case EXECUTIONMODE_NONE: //Valid
+	case EXECUTIONMODE_TEST: //Test files or biosrom.dat!
+	case EXECUTIONMODE_TESTROM: //Test ROM?
+	case EXECUTIONMODE_VIDEOCARD: //Text character debugging?
+	case EXECUTIONMODE_BIOS: //External BIOS?
+	case EXECUTIONMODE_SOUND: //Sound test?
+		current = BIOS_Settings.executionmode; //Valid: use!
+		break;
+	default: //Invalid
+		current = EXECUTIONMODE_NONE; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.executionmode != current) //Invalid?
+	{
+		BIOS_Settings.executionmode = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(16, 4, itemlist[current], 256); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = EXECUTIONMODE_NONE; //Default execution mode: None!
+
+	case EXECUTIONMODE_NONE:
+	case EXECUTIONMODE_TEST:
+	case EXECUTIONMODE_TESTROM:
+	case EXECUTIONMODE_VIDEOCARD:
+	case EXECUTIONMODE_BIOS:
+	case EXECUTIONMODE_SOUND:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.executionmode = file; //Select Debug Mode!
+			reboot_needed = EMU_RUNNING; //We need to reboot when running: our execution mode has been changed!
+		}
+		break;
+	}
 	BIOS_Menu = 8; //Goto Advanced menu!
 }
 
+void BIOS_DebugLog()
+{
+	BIOS_Title("Debugger log");
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Debugger log: "); //Show selection init!
+	int i = 0; //Counter!
+	numlist = 3; //Ammount of Execution modes!
+	for (i = 0; i<numlist; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+	}
+
+	strcpy(itemlist[DEBUGGERLOG_NONE], "Don't log"); //Set filename from options!
+	strcpy(itemlist[DEBUGGERLOG_DEBUGGING], "Only when debugging"); //Set filename from options!
+	strcpy(itemlist[DEBUGGERLOG_ALWAYS], "Always log"); //Set filename from options!
+
+	int current = 0;
+	switch (BIOS_Settings.debugger_log) //What debug mode?
+	{
+	case DEBUGGERLOG_NONE: //None
+	case DEBUGGERLOG_DEBUGGING: //Only when debugging
+	case DEBUGGERLOG_ALWAYS: //Always
+		current = BIOS_Settings.debugger_log; //Valid: use!
+		break;
+	default: //Invalid
+		current = EXECUTIONMODE_NONE; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.debugger_log != current) //Invalid?
+	{
+		BIOS_Settings.debugger_log = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(14, 4, itemlist[current], 256); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = DEBUGGERLOG_NONE; //Default execution mode: None!
+
+	case DEBUGGERLOG_NONE: //None
+	case DEBUGGERLOG_DEBUGGING: //Only when debugging
+	case DEBUGGERLOG_ALWAYS: //Always
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.debugger_log = file; //Select Debug Mode!
+		}
+		break;
+	}
+	BIOS_Menu = 8; //Goto Advanced menu!
+}
 extern byte force_memoryredetect; //From the MMU: force memory redetect on load?
 
 void BIOS_MemReAlloc() //Reallocates BIOS memory!
@@ -2143,6 +2261,7 @@ void BIOS_MemReAlloc() //Reallocates BIOS memory!
 	
 	BIOS_Changed = 1; //Changed!
 	BIOS_Menu = 8; //Goto Advanced menu!
+	reboot_needed = 1; //We need to reboot!
 }
 
 void BIOS_DirectPlotSetting()
@@ -2260,15 +2379,61 @@ void BIOS_KeepAspectRatio()
 
 void BIOS_BWMonitor()
 {
-	if (BIOS_Settings.bwmonitor)
+	BIOS_Title("Monitor");
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Monitor: "); //Show selection init!
+	int i = 0; //Counter!
+	numlist = 4; //Ammount of Execution modes!
+	for (i = 0; i<numlist; i++) //Process options!
 	{
-		BIOS_Settings.bwmonitor = 0; //Reset!
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
 	}
-	else
+
+	strcpy(itemlist[BWMONITOR_NONE], "Color"); //Set filename from options!
+	strcpy(itemlist[BWMONITOR_BLACK], "B/W monitor: black"); //Set filename from options!
+	strcpy(itemlist[BWMONITOR_GREEN], "B/W monitor: green"); //Set filename from options!
+	strcpy(itemlist[BWMONITOR_BROWN], "B/W monitor: brown"); //Set filename from options!
+
+	int current = 0;
+	switch (BIOS_Settings.bwmonitor) //What debug mode?
 	{
-		BIOS_Settings.bwmonitor = 1; //Set!
+	case BWMONITOR_NONE: //None
+	case BWMONITOR_BLACK: //Black/White
+	case BWMONITOR_GREEN: //Greenscale
+	case BWMONITOR_BROWN: //Brownscale
+		current = BIOS_Settings.bwmonitor; //Valid: use!
+		break;
+	default: //Invalid
+		current = BWMONITOR_NONE; //Default: none!
+		break;
 	}
-	BIOS_Changed = 1; //We've changed!
+	if (BIOS_Settings.bwmonitor != current) //Invalid?
+	{
+		BIOS_Settings.bwmonitor = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(10, 4, itemlist[current], 256); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = DEBUGGERLOG_NONE; //Default execution mode: None!
+
+	case BWMONITOR_NONE: //None
+	case BWMONITOR_BLACK: //Black/White
+	case BWMONITOR_GREEN: //Greenscale
+	case BWMONITOR_BROWN: //Brownscale
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.bwmonitor = file; //Select Debug Mode!
+		}
+		break;
+	}
 	BIOS_Menu = 8; //Goto Advanced menu!
 }
 

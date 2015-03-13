@@ -182,7 +182,7 @@ void initEMU(int full) //Init!
 	resetMMU(); //Initialise MMU (we need the BDA from now on!)!
 	setupVGA(); //Set the VGA up for int10&CPU usage!
 
-	DAC_Use_BWMonitor(BIOS_Settings.bwmonitor); //Select color/bw monitor!
+	EMU_update_DACColorScheme();
 
 	debugrow("Initializing CPU...");
 	resetCPU(); //Initialise CPU!
@@ -214,6 +214,8 @@ void initEMU(int full) //Init!
 		debugrow("No timers enabled.");
 	}
 	} //Not debugging sound only!
+
+	EMU_update_DACColorScheme(); //Update the color scheme to it's default value!
 
 	//Finally: signal we're ready!
 	emu_started = 1; //We've started!

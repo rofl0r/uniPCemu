@@ -8,24 +8,9 @@
 #include "headers/support/log.h" //Debugger!
 extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c
 
-OPTINLINE byte getcolorselect54(VGA_Type *VGA)
-{
-	return VGA->precalcs.colorselect54; //Bits 5-4 of the color select register!
-}
-
-OPTINLINE byte getcolorselect76(VGA_Type *VGA)
-{
-	return VGA->precalcs.colorselect76; //Bits 7-6 of color select register!
-}
-
-OPTINLINE byte getattributefont(byte attr)
-{
-	return (attr&0xF); //Font color!
-}
-
 OPTINLINE byte getattributeback(byte textmode, byte attr,byte filter)
 {
-	byte temp = attr;
+	register byte temp = attr;
 	//Only during text mode: shift!
 	if (textmode) //Take the BG nibble!
 	{
@@ -67,9 +52,9 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 		pallette54 = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PaletteBits54Select; //Use pallette bits 5-4?
 		if (pallette54) //Use pallette bits 5-4?
 		{
-			colorselect54 = getcolorselect54(VGA); //Retrieve pallete bits 5-4!
+			colorselect54 = VGA->precalcs.colorselect54; //Retrieve pallete bits 5-4!
 		}
-		colorselect76 = getcolorselect76(VGA); //Retrieve pallete bits 7-6!
+		colorselect76 = VGA->precalcs.colorselect76; //Retrieve pallete bits 7-6!
 	}
 	backgroundfilter = (~(enableblink<<3))&0xF; //Background filter depends on blink & full background!
 
@@ -77,7 +62,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	colorplanes = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA; //Read colorplane 256-color!
 	colorplanes &= 0xF; //Only 4 bits can be used!
 
-	byte CurrentDAC; //Current DAC to use!
+	register byte CurrentDAC; //Current DAC to use!
 
 	for (pixelon=0;pixelon<2;pixelon++) //All values of pixelon!
 	{
@@ -113,7 +98,8 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					//Determine pixel font or back color to PAL index!
 					if (fontstatus)
 					{
-						CurrentDAC = getattributefont(Attribute); //Font!
+						CurrentDAC = Attribute; //Load attribute!
+						CurrentDAC &= 0xF; //Font!
 					}
 					else
 					{
@@ -168,8 +154,11 @@ byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 	//First, execute the shift and add required in this mode!
 	latchednibbles <<= 4; //Shift high!
 	latchednibbles |= Sequencer_attributeinfo->attribute; //Latch to DAC Index or DAC Nibble!
+
 	curnibble ^= 1; //Reverse current nibble!
+
 	Sequencer_attributeinfo->attribute = latchednibbles; //Load the DAC index!
+
 	return curnibble; //Give us the next nibble, when needed, please!
 }
 
@@ -187,7 +176,6 @@ byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 	lookup |= Sequencer_attributeinfo->fontpixel; //Generate the lookup value!
 	
 	Sequencer_attributeinfo->attribute = VGA->precalcs.attributeprecalcs[lookup]; //Look the DAC Index up!
-	//DAC Index loaded for this pixel!
 	return 0; //We're ready to execute: we contain a pixel to plot!
 }
 

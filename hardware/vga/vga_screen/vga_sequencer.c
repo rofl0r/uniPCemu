@@ -24,7 +24,7 @@ typedef uint_32(*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
 OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *VGA, word x
 {
 	static const DAC_monitor monitors[2] = { DAC_colorMonitor, DAC_BWmonitor }; //What kind of monitor?
-	return monitors[DAC_Use_BWMonitor(2)](VGA, DACValue); //Do color mode or B/W mode!
+	return monitors[DAC_Use_BWMonitor(0xFF)](VGA, DACValue); //Do color mode or B/W mode!
 }
 
 extern GPU_type GPU; //GPU!

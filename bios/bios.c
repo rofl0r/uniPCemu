@@ -29,7 +29,9 @@ byte showchecksumerrors = 0; //Show checksum errors?
 //Default values for new BIOS settings:
 #define DEFAULT_BOOT_ORDER 0
 #define DEFAULT_CPU CPU_80186
-#define DEFAULT_DEBUGMODE DEBUGMODE_TEST
+#define DEFAULT_DEBUGMODE DEBUGMODE_NONE
+#define DEFAULT_EXECUTIONMODE EXECUTIONMODE_NONE
+#define DEFAULT_DEBUGGERLOG DEBUGGERLOG_NONE
 
 void forceBIOSSave()
 {
@@ -96,6 +98,8 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.emulated_CPU = DEFAULT_CPU; //Which CPU to be emulated?
 
 	BIOS_Settings.debugmode = DEFAULT_DEBUGMODE; //Default debug mode!
+	BIOS_Settings.executionmode = DEFAULT_EXECUTIONMODE; //Default execution mode!
+	BIOS_Settings.debugger_log = DEFAULT_DEBUGGERLOG; //Default debugger logging!
 
 	bzero((char *)&BIOS_Settings.input_settings,sizeof(BIOS_Settings.input_settings)); //Default: no input override!
 	BIOS_Settings.VGA_AllowDirectPlot = 1; //Default: automatic 1:1 mapping!

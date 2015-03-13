@@ -671,6 +671,7 @@ byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
+	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
 	debugger_beforeCPU(); //Everything that needs to be deone before the CPU executes!
 	MMU_resetaddr(); //Reset invalid address for our usage!
 	CPU.segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!

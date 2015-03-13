@@ -52,6 +52,8 @@ typedef struct PACKED
 
 			byte CMOS[0x80]; //The full saved CMOS!
 			byte got_CMOS; //Gotten an CMOS?
+
+			byte executionmode; //What mode to execute in during runtime?
 		}; //Containing the data of the BIOS
 		byte data[1701]; //Data for checksum!
 	};
@@ -68,25 +70,39 @@ typedef struct PACKED
 #define DEBUGMODE_STEP 2
 //Show, just run, ignore RTRIGGER buttons.
 #define DEBUGMODE_SHOW_RUN 3
-//Run advanced debugger (debug / *.* OR bootrom.dat)
-#define DEBUGMODE_TEST 4
-//Special case: TEST mode (see above) with forced STEP!
-#define DEBUGMODE_TEST_STEP 5
-//Special case: VIDEO CARD MODE debug!
-#define DEBUGMODE_VIDEOCARD 6
-//Special case: Load external BIOS (at the BIOS address) and run it!
-#define DEBUGMODE_BIOS 7
-//Special case: Run sound test!
-#define DEBUGMODE_SOUND 8
-//Special case: Load external BIOS (at the BIOS adress) and run it, enable debugger!
-#define DEBUGMODE_BIOS_DEBUG 9
-//Special case: ", step through!
-#define DEBUGMODE_BIOS_DEBUG_STEP 10
-//Special case: ", Show debugger and ignore shoulder buttons, keep running!
-#define DEBUGMODE_BIOS_DEBUG_SHOW_RUN 11
+
+//Debugger log:
+//None:
+#define DEBUGGERLOG_NONE 0
+//Debugging only:
+#define DEBUGGERLOG_DEBUGGING 1
+//Always
+#define DEBUGGERLOG_ALWAYS 2
+
+//Execution modes:
+//None:
+#define EXECUTIONMODE_NONE 0
+//Run advanced debugger (debug / *.*):
+#define EXECUTIONMODE_TEST 1
+//Run bootrom.dat
+#define EXECUTIONMODE_TESTROM 2
+//VIDEO CARD MODE debug!
+#define EXECUTIONMODE_VIDEOCARD 3
+//Load external BIOS (at the BIOS address) and run it!
+#define EXECUTIONMODE_BIOS 4
+//Run sound test!
+#define EXECUTIONMODE_SOUND 5
+//Load external BIOS (at the BIOS adress) and run it, enable debugger!
 
 //To debug the text mode characters on-screen?
-#define DEBUG_VIDEOCARD (BIOS_Settings.debugmode==DEBUGMODE_VIDEOCARD)
+#define DEBUG_VIDEOCARD (BIOS_Settings.executionmode==EXECUTIONMODE_VIDEOCARD)
+
+//B/W monitor setting:
+//Color mode
+#define BWMONITOR_NONE 0
+#define BWMONITOR_BLACK 1
+#define BWMONITOR_GREEN 2
+#define BWMONITOR_BROWN 3
 
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!

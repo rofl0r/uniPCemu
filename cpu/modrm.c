@@ -56,7 +56,7 @@ int modrm_useDisplacement(MODRM_PARAMS *params, int size)
 	4: DWord displacement
 	*/
 
-	if (params->slashr) //No displacement on /r operands: REQUIRED FOR SOME OPCODES!!!
+	if (params->slashr==1) //No displacement on /r operands: REQUIRED FOR SOME OPCODES!!!
 	{
 		return 0; //No displacement!
 	}
@@ -491,7 +491,7 @@ void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 is segment 
 //Whichregister:
 /*
 0=Invalid/unimplemented
-1=reg1
+1=reg1 (params->slashr==0) or segment register (params->slashr==1)
 2=reg2 as register (params->slashr==1) or mode 0 (RM value).
 */
 
@@ -566,7 +566,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	{
 		isregister = 1; //Register!
 	}
-	else if (params->slashr) //Register (R/M with /r)?
+	else if (params->slashr==1) //Register (R/M with /r)?
 	{
 		isregister = 1; //Register!
 	}
@@ -1011,7 +1011,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	{
 		isregister = 1; //Register!
 	}
-	else if (params->slashr) //Register (R/M with /r)?
+	else if (params->slashr==1) //Register (R/M with /r)?
 	{
 		isregister = 1; //Register!
 	}
@@ -1376,7 +1376,7 @@ void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	{
 		isregister = 1; //Register!
 	}
-	else if (params->slashr) //Register (R/M with /r)?
+	else if (params->slashr==1) //Register (R/M with /r)?
 	{
 		isregister = 1; //Register!
 	}
@@ -1685,7 +1685,7 @@ uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading)
 Slashr:
 0: No slashr! (Use displacement if needed!)
 1: RM=> REG2 (No displacement etc.)
-2: REG(1)=> SEGMENTREGISTER (Use displacement if needed!)
+2: REG1=> SEGMENTREGISTER (Use displacement if needed!)
 
 */
 
@@ -1699,15 +1699,11 @@ void modrm_readparams(MODRM_PARAMS *param, int size, int slashr)
 	startoffs = REG_EIP; //Our address!
 
 //Special data we already know:
-	param->slashr = 0; //No /r modr/m!
 	param->reg_is_segmentregister = 0; //REG2 is NORMAL!
 
-	if ((slashr==1) || (slashr==2)) //Is this a /r modr/m?
-	{
-		param->slashr = 1; //Is this a /r modr/m?
-	}
+	param->slashr = slashr; //Is this a /r modr/m?
 
-	if (slashr==2) //reg2 is segment register?
+	if (slashr==2) //reg1 is segment register?
 	{
 		param->reg_is_segmentregister = 1; //REG2 is segment register!
 	}

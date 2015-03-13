@@ -90,7 +90,7 @@ int BIOS_load_ROM(byte nr)
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	sprintf(filename,"BIOS/ROM.u%i",nr); //Create the filename for the ROM!
+	sprintf(filename,"roms/BIOSROM.u%i",nr); //Create the filename for the ROM!
 	f = fopen(filename,"rb");
 	if (!f)
 	{

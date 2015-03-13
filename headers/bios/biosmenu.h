@@ -49,6 +49,8 @@ void BIOS_InstalledCPUOption(); //Manages the installed CPU!
 void BIOS_GenerateStaticHDD(); //Generate Static HDD Image!
 void BIOS_GenerateDynamicHDD(); //Generate Static HDD Image!
 void BIOS_DebugMode(); //Switch BIOS Mode!
+void BIOS_DebugLog(); //Debugger log!
+void BIOS_ExecutionMode(); //Switch execution mode!
 void BIOS_MemReAlloc(); //Reallocate memory!
 void BIOS_DirectPlotSetting(); //Direct Plot Setting!
 void BIOS_FontSetting(); //BIOS Font Setting!
@@ -63,7 +65,5 @@ void BIOSMenu_LoadDefaults(); //Load the defaults option!
 void BIOSClearScreen(); //Resets the BIOS's screen!
 void BIOSDoneScreen(); //Cleans up the BIOS's screen!
 int psp_inputkey(); //Input key from PSP directly!
-void BIOS_DebugLog(); //Debugger log!
-
 
 #endif

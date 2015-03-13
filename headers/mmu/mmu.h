@@ -76,4 +76,5 @@ void MMU_directwdw(uint_32 realaddress, uint_32 value);
 void MMU_dumpmemory(char *filename); //Dump the memory to a file!
 //uint_32 MMU_realaddr(int segdesc, word segment, uint_32 offset); //Real adress in real (direct) memory?
 void MMU_wraparround(byte dowrap); //To wrap arround 1/3/5/... MB limit?
+void MMU_clearOP(); //Clear the OPcode cache!
 #endif

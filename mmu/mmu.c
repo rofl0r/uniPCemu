@@ -214,9 +214,27 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) /
 	return realaddress; //Give real adress!
 }
 
+//OPcodes for the debugger!
+byte OPbuffer[256]; //A large opcode buffer!
+byte OPlength = 0; //The length of the opcode buffer!
+
+void MMU_addOP(byte data)
+{
+	if (OPlength < sizeof(OPbuffer)) //Not finished yet?
+	{
+		OPbuffer[OPlength++] = data; //Save a part of the opcode!
+	}
+}
+
+void MMU_clearOP()
+{
+	OPlength = 0; //Clear the buffer!
+}
+
 //CPU/EMU simple memory access routine.
 byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
 {
+	byte result; //The result!
 	uint_32 realaddress;
 	if ((MMU.memory==NULL) || (MMU.size==0)) //No mem?
 	{
@@ -234,7 +252,14 @@ byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adre
 
 	realaddress = MMU_realaddr(segdesc,segment,offset,writeword); //Real adress!
 	
-	return MMU_directrb_realaddr(realaddress); //Read from MMU/hardware!
+	result = MMU_directrb_realaddr(realaddress); //Read from MMU/hardware!
+
+	if (opcode == 1) //We're an OPcode retrieval?
+	{
+		MMU_addOP(result); //Add to the opcode cache!
+	}
+
+	return result; //Give the result!
 }
 
 word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress!

@@ -10,14 +10,13 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
 #endif
 
 //Debugger enabled?
-#define DEBUGGER_ENABLED (((BIOS_Settings.debugmode>0) && (BIOS_Settings.debugmode<4)) || (BIOS_Settings.debugmode==5) || (BIOS_Settings.debugmode==DEBUGMODE_TEST))
+#define DEBUGGER_ENABLED BIOS_Settings.debugmode
 //Always debugger on (ignore LTRIGGER?)
 #define DEBUGGER_ALWAYS_DEBUG (BIOS_Settings.debugmode>1)
-
 //Always stepwise check, also ignoring RTRIGGER for STEP?
-#define DEBUGGER_ALWAYS_STEP ((BIOS_Settings.debugmode==DEBUGMODE_STEP) || (BIOS_Settings.debugmode==DEBUGMODE_TEST_STEP))
+#define DEBUGGER_ALWAYS_STEP (BIOS_Settings.debugmode==DEBUGMODE_STEP)
 //Always keep running, ignoring X for continuing step?
-#define DEBUGGER_KEEP_RUNNING (BIOS_Settings.debugmode==DEBUGMODE_TEST)
+#define DEBUGGER_KEEP_RUNNING (BIOS_Settings.debugmode==DEBUGMODE_SHOW_RUN)
 
 //Base row of register dump on-screen!
 #define DEBUGGER_REGISTERS_BASEROW 1

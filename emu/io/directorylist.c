@@ -65,7 +65,7 @@ byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfi
 	strcpy(dirlist->path,path); //Initialise the path!
 	memcpy(&dirlist2,dirlist,sizeof(dirlist2)); //Copy the path!
 	strcat(dirlist2.path,"\\*.*"); //Add the wildcard to the filename to search!
-	StringCchCopy(dirlist->szDir, MAX_PATH, (STRSAFE_LPCSTR)&dirlist2.path);
+	StringCchCopy(dirlist->szDir, MAX_PATH, (STRSAFE_LPCWSTR)&dirlist2.path);
 	dirlist->hFind = FindFirstFile(dirlist->szDir, &dirlist->ffd); //Find the first file!
 	if (dirlist->hFind==INVALID_HANDLE_VALUE) //Invalid?
 	{
