@@ -203,6 +203,10 @@ void debugger_autolog()
 			{
 				dolog("debugger","ModR/M address: %04X:%08X",modrm_lastsegment,modrm_lastoffset);
 			}
+			if (MMU_invaddr()) //We've detected an invalid address?
+			{
+				dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is not paged, protected or non-existant.");
+			}
 		}
 		char fullcmd[256];
 		bzero(fullcmd,sizeof(fullcmd)); //Init!
