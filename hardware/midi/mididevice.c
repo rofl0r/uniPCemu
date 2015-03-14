@@ -126,8 +126,6 @@ uint_64 availablevoices = 0xFFFFFFFFFFFFFFFF; //Available voices!
 
 OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current); //MIDI device UART mode execution!
 
-MIDICOMMAND *buffer, *last; //MIDI buffer and last item!
-
 /* Buffer support */
 
 void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buffer!
@@ -135,59 +133,8 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buf
 	#ifdef __HW_DISABLED
 	return; //We're disabled!
 	#endif
-	/*MIDICOMMAND *currentcommand;
-	currentcommand = (MIDICOMMAND *)zalloc(sizeof(MIDICOMMAND),"MIDI_COMMAND"); //Allocate a command!
-	memcpy(&currentcommand->buffer,&data->buffer,sizeof(currentcommand->buffer)); //Copy params!
-	currentcommand->command = command; //The command!
-	if (!buffer) //First command?
-	{
-		buffer = currentcommand; //Load the first item!
-	}
-	else //Already something there?
-	{
-		last->next = (void *)currentcommand; //Load the last item new!
-	}
-	last = currentcommand; //Set the last item to the one added!
-	*/
 	data->command = command; //Set the command to use!
 	MIDIDEVICE_execMIDI(data); //Execute directly!
-}
-
-OPTINLINE MIDICOMMAND *MIDIDEVICE_peekbuffer() //Peek at the buffer's first added item!
-{
-	#ifdef __HW_DISABLED
-		return NULL; //We're disabled!
-	#endif
-	return buffer; //Give the last item, if any!
-}
-
-OPTINLINE int MIDIDEVICE_readbuffer(MIDIPTR result) //Read from the buffer!
-{
-	#ifdef __HW_DISABLED
-		return 0; //We're disabled!
-	#endif
-	if (buffer) //Gotten an item?
-	{
-		memcpy(result,buffer,sizeof(result)); //Read from the buffer!
-		if (last==buffer) //Final?
-		{
-			last = NULL; //Unset!
-		}
-		MIDICOMMAND *old;
-		old = buffer; //Load the buffer position!
-		buffer = (MIDICOMMAND *)buffer->next; //Goto next item in the buffer!
-		freez((void **)&old,sizeof(MIDICOMMAND),"MIDI_COMMAND"); //Release the memory taken by the command!
-	}
-	return 0; //Nothing to read!
-}
-
-void MIDIDEVICE_flushBuffers()
-{
-	#ifdef __HW_DISABLED
-		return; //We're disabled!
-	#endif
-	MIDICOMMAND current;
-	for (;MIDIDEVICE_readbuffer(&current);){} //Flush the MIDI buffer!
 }
 
 /* Reset support */
@@ -1070,16 +1017,6 @@ OPTINLINE float calcLowpassFilter(float cutoff_freq,float samplerate,float curre
 	float alpha = dt / (RC + dt);
 	return previousresult + (alpha*(currentsample - previousresult));
 }
-
-/*
-OPTINLINE float calcHighpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
-{
-	float RC = 1.0 / (cutoff_freq * 2 * 3.14);
-	float dt = 1.0 / samplerate;
-	float alpha = RC / (RC + dt);
-	return alpha * (previousresult + currentsample - previoussample);
-}
-*/
 
 void applyLowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample)
 {

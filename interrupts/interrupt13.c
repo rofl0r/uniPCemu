@@ -177,7 +177,7 @@ byte floppy_sides(uint_64 floppy_size)
 	return 0; //Unknown!
 }
 
-byte buffer[512]; //Our buffer!
+byte int13_buffer[512]; //Our int13_buffer!
 
 int killRead; //For Pirates! game?
 
@@ -339,7 +339,6 @@ byte last_drive; //Last drive something done to
 
 byte readdiskdata(uint_32 startpos)
 {
-	byte buffer[512]; //A sector buffer to read!
 	byte readdata_result;
 	//Detect ammount of sectors to be able to read!
 	word sectors;
@@ -355,7 +354,7 @@ byte readdiskdata(uint_32 startpos)
 	for (;sectors;) //Sectors left to read?
 	{
 		//Read from disk
-		readdata_result = readdata(mounteddrives[REG_DL],&buffer,(startpos<<9)+((uint_64)sector<<9),512); //Read the data to the buffer!
+		readdata_result = readdata(mounteddrives[REG_DL],&int13_buffer,(startpos<<9)+((uint_64)sector<<9),512); //Read the data to the buffer!
 		if (!readdata_result) //Error?
 		{
 			last_status = 0x00;
@@ -367,14 +366,14 @@ byte readdiskdata(uint_32 startpos)
 		memset(s, 0, sizeof(s));
 		sprintf(s, "SECTOR%i.DAT", (startpos+sector)); //Create a filename!
 		f = fopen(s, "wb"); //Create the data dump!
-		fwrite(&buffer, 1, 512, f); //Write the buffer!
+		fwrite(&int13_buffer, 1, 512, f); //Write the buffer!
 		fclose(f); //Close the dump!
 		//Sector is read, now write it to memory!
 		left = 512; //Data left!
 		current = 0; //Current byte in the buffer!
 		for (;;)
 		{
-			MMU_wb(CPU_SEGMENT_ES,REG_ES,position,buffer[current]); //Write the data to memory!
+			MMU_wb(CPU_SEGMENT_ES,REG_ES,position,int13_buffer[current]); //Write the data to memory!
 			if (!left--) goto nextsector; //Stop when nothing left!
 			++current; //Next byte in the buffer!
 			++position; //Next position in memory!
@@ -391,7 +390,6 @@ byte readdiskdata(uint_32 startpos)
 
 byte writediskdata(uint_32 startpos)
 {
-	byte buffer[512]; //A sector buffer to read!
 	//Detect ammount of sectors to be able to read!
 	word sectors;
 	word position; //Current position in memory!
@@ -410,14 +408,14 @@ byte writediskdata(uint_32 startpos)
 		current = 0; //Current byte in the buffer!
 		for (;;)
 		{
-			buffer[current] = MMU_rb(CPU_SEGMENT_ES,REG_ES,position,0); //Read the data from memory (no opcode)!
+			int13_buffer[current] = MMU_rb(CPU_SEGMENT_ES,REG_ES,position,0); //Read the data from memory (no opcode)!
 			if (!left--) goto dosector; //Stop when nothing left!
 			++current; //Next byte in the buffer!
 			++position; //Next position in memory!
 		}
 		dosector: //Process next sector!
 		//Write to disk!
-		writedata_result = writedata(mounteddrives[REG_DL],&buffer,(startpos<<9)+((uint_64)sector<<9),512); //Write the data to the disk!
+		writedata_result = writedata(mounteddrives[REG_DL],&int13_buffer,(startpos<<9)+((uint_64)sector<<9),512); //Write the data to the disk!
 		if (!writedata_result) //Error?
 		{
 			last_status = 0x00;
@@ -720,7 +718,7 @@ void int13_04()
 			startpos = floppy_LBA(mounteddrives[REG_DL],REG_DH,REG_CH,REG_CL); //Floppy LBA!
 
 			//Detect ammount of sectors to be able to read!
-			readdata_result = readdata(mounteddrives[REG_DL],&buffer,(uint_32)startpos+(i<<9),512); //Read the data to memory!
+			readdata_result = readdata(mounteddrives[REG_DL],&int13_buffer,(uint_32)startpos+(i<<9),512); //Read the data to memory!
 			if (!readdata_result) //Read OK?
 			{
 				last_status = 0x05; //Error reading?
@@ -729,7 +727,7 @@ void int13_04()
 			sectorverified = 1; //Default: verified!
 			for (t=0; t<512; t++)
 			{
-				if (buffer[t]!=MMU_rb(CPU_SEGMENT_ES,REG_ES,REG_BX+(i<<9)+t,0)) //Error?
+				if (int13_buffer[t]!=MMU_rb(CPU_SEGMENT_ES,REG_ES,REG_BX+(i<<9)+t,0)) //Error?
 				{
 					sectorverified = 0; //Not verified!
 					break; //Stop checking!
@@ -746,7 +744,7 @@ void int13_04()
 			sector = REG_CX&63;
 			startpos = CHS2LBA(cylinder,REG_DH,(byte)sector,HDD_HEADS,SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
 
-			readdata_result = (uint_32)readdata(mounteddrives[REG_DL],&buffer,startpos,512); //Write the data from memory!
+			readdata_result = (uint_32)readdata(mounteddrives[REG_DL],&int13_buffer,startpos,512); //Write the data from memory!
 			if (!readdata_result) //Read OK?
 			{
 				last_status = 0x05; //Error reading?
@@ -755,7 +753,7 @@ void int13_04()
 			sectorverified = 1; //Default: verified!
 			for (t=0; t<512; t++)
 			{
-				if (buffer[t]!=MMU_rb(CPU_SEGMENT_ES,REG_ES,REG_BX+(i<<9)+t,0)) //Error?
+				if (int13_buffer[t]!=MMU_rb(CPU_SEGMENT_ES,REG_ES,REG_BX+(i<<9)+t,0)) //Error?
 				{
 					sectorverified = 0; //Not verified!
 					break; //Stop checking!

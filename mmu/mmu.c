@@ -185,6 +185,10 @@ void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segmen
 {
 	if (MMU_IO_writehandler(realaddress,val)) //Normal memory access?
 	{
+		if (debugger_logging()) //To log?
+		{
+			dolog("debugger", "Written to memory: %08X=%02X", realaddress, val); //Log it!
+		}
 		MMU_directwb(realaddress,val); //Set data in real memory!
 	}
 }

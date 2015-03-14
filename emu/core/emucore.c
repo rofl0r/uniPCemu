@@ -351,6 +351,10 @@ void initEMUreset() //Simple reset emulator!
 
 /* coreHandler: The core emulation handler (running CPU and external hardware required to run it.) */
 
+extern byte singlestep; //Enable EMU-driven single step!
+byte doEMUsinglestep = CPU_MODE_REAL+1; //CPU mode plus 1
+uint_64 singlestepaddress = 0x00703F30; //The segment:offset address!
+
 byte coreHandler()
 {
 	if ((romsize!=0) && (CPU.halt)) //Debug HLT?
@@ -359,10 +363,30 @@ byte coreHandler()
 		return 0; //Stop!
 	}
 
-	cpudebugger = needdebugger(); //Debugging information required?
 	//CPU execution, needs to be before the debugger!
 	if (!CPU.halt) //Not halted?
 	{
+		if (CPU.registers && doEMUsinglestep) //Single step enabled?
+		{
+			if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
+			{
+				switch (getcpumode()) //What CPU mode are we to debug?
+				{
+				case CPU_MODE_REAL: //Real mode?
+					singlestep |= ((CPU.registers->CS == (singlestepaddress >> 16)) && (CPU.registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
+					break;
+				case CPU_MODE_PROTECTED: //Protected mode?
+				case CPU_MODE_8086: //Virtual 8086 mode?
+					singlestep |= ((CPU.registers->CS == singlestepaddress >> 32) && (CPU.registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
+					break;
+				default: //Invalid mode?
+					break;
+				}
+			}
+		}
+
+		cpudebugger = needdebugger(); //Debugging information required?
+
 		CPU_beforeexec(); //Everything before the execution!
 		if (!CPU.trapped) //Only check for hardware interrupts when not trapped!
 		{

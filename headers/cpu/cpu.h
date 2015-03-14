@@ -799,8 +799,8 @@ extern byte CPU_StackAddress_size; //Address size for this opcode!
 #define CPU_PREFIX_ADDR 0x67
 
 //CPU Modes:
-#define CPU_MODE_PROTECTED 0
-#define CPU_MODE_REAL 1
+#define CPU_MODE_PROTECTED 1
+#define CPU_MODE_REAL 0
 #define CPU_MODE_8086 2
 #define CPU_MODE_UNKNOWN 3
 

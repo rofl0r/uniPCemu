@@ -809,6 +809,7 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
+
 	int file = ExecuteList(12,4,BIOS_Settings.floppy0,256); //Show menu for the disk image!
 	switch (file) //Which file?
 	{

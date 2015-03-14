@@ -58,14 +58,16 @@ void get_filename(const wchar_t *src, char *dest)
 
 byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfile) //Open a directory for reading, give the first entry if any!
 {
-	DirListContainer_t dirlist2; //Temp data!
 	memset(dirlist->path,0,sizeof(dirlist->path)); //Clear the path!
 #ifdef _WIN32
+	char pathtmp[256]; //Temp data!
 	//Windows?
-	strcpy(dirlist->path,path); //Initialise the path!
-	memcpy(&dirlist2,dirlist,sizeof(dirlist2)); //Copy the path!
-	strcat(dirlist2.path,"\\*.*"); //Add the wildcard to the filename to search!
-	StringCchCopy(dirlist->szDir, MAX_PATH, (STRSAFE_LPCWSTR)&dirlist2.path);
+	strcpy(pathtmp,path); //Initialise the path!
+	strcat(pathtmp,"\\*.*"); //Add the wildcard to the filename to search!
+
+	//Create the path variable!
+	mbstowcs(&dirlist->szDir[0], pathtmp, sizeof(dirlist->szDir) / (sizeof(dirlist->szDir[0]))); //Convert to TCHAR variable!
+
 	dirlist->hFind = FindFirstFile(dirlist->szDir, &dirlist->ffd); //Find the first file!
 	if (dirlist->hFind==INVALID_HANDLE_VALUE) //Invalid?
 	{
@@ -73,8 +75,8 @@ byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfi
 	}
 	//We now have the first entry, so give it!
 	//get_filename(dirlist->ffd.cFileName, entry); //Convert filename found!
-	strcpy_s(entry, 256,dirlist->ffd.cFileName); //Copy the filename!
-	*isfile = ((dirlist->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)==0); //Are we a file?
+	get_filename(dirlist->ffd.cFileName, entry); //Copy the filename!
+	*isfile = ((dirlist->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0); //Are we a file?
 	return 1; //We have a valid file loaded!
 #else
 	//PSP?
@@ -94,8 +96,8 @@ byte readdirlist(DirListContainer_p dirlist, char *entry, byte *isfile) //Read a
 	//Windows?
 	if (FindNextFile(dirlist->hFind, &dirlist->ffd) != 0) //Found a next file?
 	{
-		strcpy_s(entry,256,dirlist->ffd.cFileName); //Convert filename found!
-		*isfile = ((dirlist->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)==0); //Are we a file?
+		get_filename(dirlist->ffd.cFileName,entry); //Copy the filename!
+		*isfile = ((dirlist->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0); //Are we a file?
 		return 1; //We have a valid file loaded!
 	}
 	return 0; //No file found!

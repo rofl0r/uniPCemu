@@ -260,6 +260,13 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		EMU_BIOS[incoffset] = 0x38; //Special case: call internal interrupt number!
 		EMU_BIOS[incoffset] = curhandler&0xFF; //Call our (interrupt) handler?
 		EMU_BIOS[incoffset] = (curhandler>>8)&0xFF;
+
+		if (intnr == 0x18) //Special data insertion: interrupt 18h!
+		{
+			EMU_BIOS[incoffset] = 0xCD;
+			EMU_BIOS[incoffset] = 0x19; //INT 19h
+		}
+
 		EMU_BIOS[incoffset] = 0xCB; //RETF!
 
 		//Finally, return!

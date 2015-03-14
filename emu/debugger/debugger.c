@@ -28,6 +28,10 @@ byte singlestep; //Enforce single step by CPU/hardware special debugging effects
 
 CPU_registers debuggerregisters; //Backup of the CPU's register states before the CPU starts changing them!
 
+extern uint_32 MMU_lastwaddr = 0; //What address is last addresses in actual memory?
+extern byte MMU_lastwdata = 0;
+extern byte MMU_gotlastwinfo = 0;
+
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
 	memcpy(&debuggerregisters,CPU.registers,sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
@@ -37,6 +41,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 	strcpy(debugger_prefix,"");
 	strcpy(debugger_command_text,"<DEBUGGER UNKOP NOT IMPLEMENTED>"); //Standard: unknown opcode!
 	debugger_set = 0; //Default: the debugger isn't implemented!
+	MMU_gotlastwinfo = 0; //Reset flag for information set: by default we don't have any info!
 }
 
 char flags[256]; //Flags as a text!
@@ -380,19 +385,15 @@ recheckdebugger: //For getting from the BIOS!
 		debugger_screen(); //Show debugger info on-screen!
 		int done = 0;
 		done = 0; //Init: not done yet!
-		while (!(done || skipopcodes)) //Still not done or skipping?
+		for (;!(done || skipopcodes);) //Still not done or skipping?
 		{
-			if (singlestep) //Hardware enforced single step?
+			if (DEBUGGER_ALWAYS_STEP || singlestep) //Always step?
 			{
-				//Just like DEBUGGER_ALWAYS_STEP, but enforced by hardware calls!
+				//We're going though like a normal STEP. Ignore RTRIGGER.
 			}
 			else if (DEBUGGER_KEEP_RUNNING) //Always keep running?
 			{
 				done = 1; //Keep running!
-			}
-			else if (DEBUGGER_ALWAYS_STEP) //Always step?
-			{
-				//We're going though like a normal STEP. Ignore RTRIGGER.
 			}
 			else
 			{
