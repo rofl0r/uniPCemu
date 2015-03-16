@@ -106,6 +106,7 @@
     <ClCompile Include="..\..\interrupts\interrupt10_switchvideomode.c" />
     <ClCompile Include="..\..\interrupts\interrupt10_textmodedata.c" />
     <ClCompile Include="..\..\interrupts\interrupt11.c" />
+    <ClCompile Include="..\..\interrupts\interrupt12.c" />
     <ClCompile Include="..\..\interrupts\interrupt13.c" />
     <ClCompile Include="..\..\interrupts\interrupt16.c" />
     <ClCompile Include="..\..\interrupts\interrupt18.c" />
@@ -222,6 +223,7 @@
     <ClInclude Include="..\..\headers\interrupts\interrupt05.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt10.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt11.h" />
+    <ClInclude Include="..\..\headers\interrupts\interrupt12.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt13.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt16.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt18.h" />

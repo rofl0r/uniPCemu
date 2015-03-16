@@ -432,6 +432,9 @@
     <ClCompile Include="..\..\hardware\floppy.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\interrupts\interrupt12.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">
@@ -773,6 +776,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\hardware\uart.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\headers\interrupts\interrupt12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

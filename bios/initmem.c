@@ -76,99 +76,41 @@ void generateDPT(word offset, byte disk)
 void initMEM() //Initialise memory for reset!
 {
 	if (__HW_DISABLED) return; //Abort!
-	BDA_type *BDA; //The BIOS Data area for us to initialise!
-	bzero(MMU.memory,MMU.size); //Initialise the memory by size!
 	if (!hasmemory())
 	{
 		raiseError("BIOS::initmem","No memory present!");
 	}
-
-	BDA = (BDA_type *)MMU_ptr(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0040,0x0000,0,sizeof(*BDA)); //Point to the BDA (Segment 40, offset 0; thus generating offset 400)!
-
-	if (!BDA) //No BIOS Data Area set yet?
-	{
-		raiseError("BIOS::initmem","No BDA set!");
-		return; //Stop: No BDA!
-	}
-
-	bzero(BDA,sizeof(*BDA)); //Init BDA to 0's!
 
 //BDA Data:
 
 	int i; //For multiple setup!
 	for (i=0; i<4; i++)
 	{
-		BDA->COM_BaseAdress[i] = 0; //Not used!
-		BDA->LPT_BaseAdress[i] = 0; //Not used!
+		MMU_ww(-1,0x40,i<<1,0); //Not used COM port address!
+		MMU_ww(-1,0x40,(i<<1)|8,0); //Not used LPT port address!
 	}
 
 
-	BDA->Equipment.ParallelPorts = 0; //Ammount!
-	BDA->Equipment.SerialPorts = 0; //Ammount!
-	BDA->Equipment.FloppyDrives = 1; //Ammount: 1(0b) or 2(1b) floppy drives installed!
-	BDA->Equipment.VideoMode = 0; //0: EGA+; 1=color 40x25; 2=color 80x25; 3=mono 80x25
-	BDA->Equipment.PS2MouseInstalled = 0; //PS/2 mouse installed?
-	BDA->Equipment.MathCOProcessorInstalled = 0; //Math CO-OP installed?
-	BDA->Equipment.BootFloppyInstalled = 1; //Boot floppy installed?
+	Equipment eq;
 
-	BDA->IF_ManufacturingTest = 0; //FLAG_IF - Manufacturing test
+	eq.ParallelPorts = 0; //Ammount!
+	eq.SerialPorts = 0; //Ammount!
+	eq.FloppyDrives = 1; //Ammount: 1(0b) or 2(1b) floppy drives installed!
+	eq.VideoMode = 0; //0: EGA+; 1=color 40x25; 2=color 80x25; 3=mono 80x25
+	eq.PS2MouseInstalled = 1; //PS/2 mouse installed?
+	eq.MathCOProcessorInstalled = 0; //Math CO-OP installed?
+	eq.BootFloppyInstalled = 1; //Boot floppy installed?
 
-	BDA->MemorySize_KB = ((MEMsize()>>10)>=0xFFFF)?0xFFFF:(MEMsize()/1024); //MMU size in KB!
+	MMU_wb(-1, 0x0040, 0x0010, eq.data[0]); //Write the equipment flag!
+	MMU_wb(-1, 0x0040, 0x0011, eq.data[1]); //Write the equipment flag!
 
-	BDA->ErrorCodes_AdapterMemorySizePCXT = 0; //Error coes for AT+; Adapter memory size for PC&XT
+	uint_32 sizeinKB;
+	sizeinKB = MEMsize();
+	sizeinKB >>= 10; //Size in KB!
 
-	BDA->KeyboardShiftFlags1.data = 0; //Keyboard state flags
-	BDA->KeyboardShiftFlags2.data = 0;
-	BDA->AltNumpadWordArea = 0;
-	BDA->NextCharacterInKeyboardBuffer.segment = 0;
-	BDA->NextCharacterInKeyboardBuffer.offset = 0;
-	BDA->LastCharacterInKeyboardBuffer.segment = 0;
-	BDA->LastCharacterInKeyboardBuffer.offset = 0;
-	bzero(&BDA->KeyboardBuffer,sizeof(BDA->KeyboardBuffer)); //Reset buffer!
-
-	BDA->Int1ACounter = 0; //# of IRQ0 ticks since boot (int 1Ah)!
-
-	BDA->NumHDDs = 0; //Number of HDD drives!
-
-//Video part!
-
-	BDA->ActiveVideoMode = 0; //Active video mode setting
-	BDA->ActiveVideoMode_TextColumnsPerRow = 40; //Number of textcolumns per row for the active video mode!
-	BDA->ActiveVideoMode_Size = 0; //Size of active video in page bytes!
-	BDA->ActiveVideoMode_Offset = 0; //Offset address of the active video page relative to the start of VRAM!
-
-	for (i=0; i<8; i++)
-	{
-		bzero(&BDA->CursorPosition[i],sizeof(BDA->CursorPosition[i])); //Reset cursor positions!
-	}
-
-	BDA->CursorShape.StartRow = 6; //Start row of cursor!
-	BDA->CursorShape.EndRow = 7; //End row of cursor!
-
-	BDA->ActiveVideoPage = 0; //Active video page!
-	BDA->VideoDisplayAdapter_IOPort = 0; //Base IO port for video!
-
-	BDA->VideoDisplayAdapter_InternalModeRegister.Notused1 = 0; //Not used!
-	BDA->VideoDisplayAdapter_InternalModeRegister.Attribute = 0; //0: attribute=background intensity; 1=attribute=blinking
-	BDA->VideoDisplayAdapter_InternalModeRegister.Mode6GraphicsOperation = 0; //1=Mode 6 graphics operation
-	BDA->VideoDisplayAdapter_InternalModeRegister.VideoOn =  1; //1=Video signal enabled
-	BDA->VideoDisplayAdapter_InternalModeRegister.MonoOperation = 0; //0=Color operation; 1=Monochrome operation
-	BDA->VideoDisplayAdapter_InternalModeRegister.Mode45GraphicsOperation = 0; //1=Modr 4/5 graphics operation
-	BDA->VideoDisplayAdapter_InternalModeRegister.Mode23TestOperation = 0; //1=Modr 4/5 graphics operation; 1=Mode 2/3 test operation
-
-	BDA->ColorPalette.NotUsed = 0; //Not used!
-	BDA->ColorPalette.Mode5ForeGroundColors = 0; //mode 5 foreground colors: 0=Green/red/yellow; 1=cyan/magenta/white
-	BDA->ColorPalette.BackgroundIntensified = 0; //background color: 0=normal; 1=Intensified.
-	BDA->ColorPalette.BorderOrBgColor = 0; //Intensified border color (mode 2) and bgcolor (mode 5)
-	BDA->ColorPalette.Red = 0; //Indicates red
-	BDA->ColorPalette.Green = 0; //Indicates green
-	BDA->ColorPalette.Blue = 0; //Indicates blue
-
-	BDA->Video_AdapterROM_Segment = 0; //Segment of Video Parameter Control Block
-	BDA->Video_AdapterROM_Offset = 0; //Offset of Video Parameter Control Block
+	MMU_ww(-1,0x0040,0x0013,(sizeinKB>=640)?640:sizeinKB); //MMU size in KB! Limit it to 640K!
 
 //End of Video part!
-
 
 //END FLAG_OF BDA
 

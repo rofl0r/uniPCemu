@@ -31,6 +31,7 @@
 #include "headers/cpu/callback.h"
 #include "headers/interrupts/interrupt05.h"
 #include "headers/interrupts/interrupt11.h"
+#include "headers/interrupts/interrupt12.h"
 #include "headers/interrupts/interrupt16.h"
 #include "headers/interrupts/interrupt19.h"
 
@@ -123,9 +124,9 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	addCBHandler(CB_INTERRUPT, &BIOS_int05, 0x05); //Interrupt 05h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int10, 0x10); //Interrupt 10h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int11, 0x11); //Interrupt 11h overrideable handler!
+	addCBHandler(CB_INTERRUPT, &BIOS_int12, 0x12); //Interrupt 12h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int13, 0x13); //Interrupt 13h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int18, 0x18); //Interrupt 18h overridable handler!
-	addCBHandler(CB_IRET,NULL,0x12); //12 to IRET!
 	addCBHandler(CB_IRET,NULL,0x14); //Async communication services to IRET!
 	addCBHandler(CB_IRET,NULL,0x15); //System BIOS services to IRET!
 	addCBHandler(CB_IRET,NULL,0x17); //Printer to IRET!

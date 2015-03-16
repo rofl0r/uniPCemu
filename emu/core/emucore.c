@@ -352,7 +352,7 @@ void initEMUreset() //Simple reset emulator!
 /* coreHandler: The core emulation handler (running CPU and external hardware required to run it.) */
 
 extern byte singlestep; //Enable EMU-driven single step!
-byte doEMUsinglestep = CPU_MODE_REAL+1; //CPU mode plus 1
+byte doEMUsinglestep = 0; //CPU mode plus 1
 uint_64 singlestepaddress = 0x00703F30; //The segment:offset address!
 
 byte coreHandler()
