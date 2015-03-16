@@ -361,19 +361,19 @@ byte readdiskdata(uint_32 startpos)
 			CALLBACK_SCF(1); //Error!
 			return (byte)sector; //Abort with ammount of sectors read!
 		}
-		FILE *f;
-		char s[256];
-		memset(s, 0, sizeof(s));
-		sprintf(s, "SECTOR%i.DAT", (startpos+sector)); //Create a filename!
-		f = fopen(s, "wb"); //Create the data dump!
-		fwrite(&int13_buffer, 1, 512, f); //Write the buffer!
-		fclose(f); //Close the dump!
+
 		//Sector is read, now write it to memory!
 		left = 512; //Data left!
 		current = 0; //Current byte in the buffer!
 		for (;;)
 		{
 			MMU_wb(CPU_SEGMENT_ES,REG_ES,position,int13_buffer[current]); //Write the data to memory!
+			if (MMU_rb(CPU_SEGMENT_ES, REG_ES, position, 0) != int13_buffer[current]) //Failed to write (unexistant memory, paged out or read-only)?
+			{
+				last_status = 0x00;
+				CALLBACK_SCF(1); //Error!
+				goto finishup;
+			}
 			if (!left--) goto nextsector; //Stop when nothing left!
 			++current; //Next byte in the buffer!
 			++position; //Next position in memory!
@@ -382,6 +382,8 @@ byte readdiskdata(uint_32 startpos)
 		--sectors; //One sector processed!
 		++sector; //Process to the next sector!
 	}
+
+	finishup: //Early stop: we cannot write any further!
 	
 	dolog("int13","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i, Destination: ES:BX=%04X:%08X",
 					sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos,REG_ES,REG_EBX);
