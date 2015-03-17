@@ -200,15 +200,18 @@ char debugger_lastop[256] = ""; //Last opcode!
 
 void debugger_autolog()
 {
+	if ((debuggerregisters.EIP == debugger_lastEIP) && (debuggerregisters.CS == debugger_lastCS) && (!strcmp(debugger_lastop, debugger_command_text))) //Are we the same as last command?
+	{
+		return; //Don't log: repeat operation!
+	}
+	//Save our location&opcode information for detecting multiple opcode repeats.
+	strcpy(debugger_lastop, debugger_command_text); //Last OP!
+	debugger_lastCS = debuggerregisters.CS;
+	debugger_lastEIP = debuggerregisters.EIP;
+
 	if (debugger_logging()) //To log?
 	{
-		if ((CPU.registers->EIP == debugger_lastEIP) && (CPU.registers->CS == debugger_lastCS) && (!strcmp(debugger_lastop, debugger_command_text)))
-		{
-			return; //Don't log: repeat operation!
-		}
-		strcpy(debugger_lastop, debugger_command_text); //Last OP!
-		debugger_lastCS = CPU.registers->CS;
-		debugger_lastEIP = CPU.registers->EIP;
+		//Now generate debugger information!
 		if (last_modrm)
 		{
 			if (getcpumode()==CPU_MODE_REAL) //16-bits addresses?
@@ -229,12 +232,12 @@ void debugger_autolog()
 		int i; //A counter for opcode data dump!
 		if (!debugger_set) //No debugger set?
 		{
-			strcpy(debugger_command_text,"<Debugger not implemented: "); //Set to the last opcode!
+			strcpy(fullcmd,"<Debugger not implemented: "); //Set to the last opcode!
 			for (i = 0; i < OPlength; i++) //List the full command!
 			{
-				sprintf(debugger_command_text, "%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
+				sprintf(fullcmd, "%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
 			}
-			strcat(debugger_command_text, ">"); //End of #UNKOP!
+			strcat(fullcmd, ">"); //End of #UNKOP!
 		}
 		else
 		{
