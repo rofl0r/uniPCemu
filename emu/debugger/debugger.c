@@ -194,10 +194,21 @@ byte needdebugger() //Do we need to generate debugging information?
 	return result; //Do we need debugger information?
 }
 
+uint_32 debugger_lastEIP = 0;
+word debugger_lastCS = 0;
+char debugger_lastop[256] = ""; //Last opcode!
+
 void debugger_autolog()
 {
 	if (debugger_logging()) //To log?
 	{
+		if ((CPU.registers->EIP == debugger_lastEIP) && (CPU.registers->CS == debugger_lastCS) && (!strcmp(debugger_lastop, debugger_command_text)))
+		{
+			return; //Don't log: repeat operation!
+		}
+		strcpy(debugger_lastop, debugger_command_text); //Last OP!
+		debugger_lastCS = CPU.registers->CS;
+		debugger_lastEIP = CPU.registers->EIP;
 		if (last_modrm)
 		{
 			if (getcpumode()==CPU_MODE_REAL) //16-bits addresses?
