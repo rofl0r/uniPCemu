@@ -177,6 +177,11 @@ byte MMU_directrb_realaddr(uint_32 realaddress) //Read without segment/offset tr
 		if (MMU_IO_readhandler(realaddress,&data)) //Normal memory address?
 		{
 			data = MMU_directrb(realaddress); //Read the data from memory (and port I/O)!		
+
+			if (debugger_logging()) //To log?
+			{
+				dolog("debugger", "Read from memory: %08X=%02X", realaddress, data); //Log it!
+			}
 		}
 		return data;
 }

@@ -784,13 +784,13 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
-				gotrep &= !CPU.registers->SFLAGS.ZF //To reset the opcode (ZF needs to be cleared to loop)?
+				gotREP &= (CPU.registers->SFLAGS.ZF^1); //To reset the opcode (ZF needs to be cleared to loop)?
 			}
 			else if (CPU_getprefix(0xF3) && REPZ) //REPZ?
 			{
-				gotrep &= CPU.registers->SFLAGS.ZF; //To reset the opcode (ZF needs to be set to loop)?
+				gotREP &= CPU.registers->SFLAGS.ZF; //To reset the opcode (ZF needs to be set to loop)?
 			}
-			if (--CPU.registers->CX && gotrep) //Still looping and allowed?
+			if (--CPU.registers->CX && gotREP) //Still looping and allowed?
 			{
 				CPU_resetOP(); //Run the current instruction again!
 			}
