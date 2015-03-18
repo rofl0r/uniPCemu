@@ -782,7 +782,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU_OP(OP); //Now go execute the OPcode once!
 		if (gotREP && !CPU.faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
 		{
-			--CPU.registers->CX; //Decrease the counter!
 			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
 				gotrep &= !CPU.registers->SFLAGS.ZF //To reset the opcode (ZF needs to be cleared to loop)?
@@ -791,7 +790,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			{
 				gotrep &= CPU.registers->SFLAGS.ZF; //To reset the opcode (ZF needs to be set to loop)?
 			}
-			if (CPU.registers->CX && gotrep) //Still looping and allowed?
+			if (--CPU.registers->CX && gotrep) //Still looping and allowed?
 			{
 				CPU_resetOP(); //Run the current instruction again!
 			}
