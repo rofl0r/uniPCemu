@@ -685,15 +685,13 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	OP = CPU_readOP_prefix(); //Process prefix(es) and read OPCode!
 	CPU.cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
 	debugger_setprefix(""); //Reset prefix for the debugger!
-	byte allowREP = 1; //Default: allow REP!
 	if (EMULATED_CPU>=0 && EMULATED_CPU<NUMITEMS(opcode_jmptbl)) //Emulating valid?
 	{
-		byte REPZ;
-		REPZ = 0; //Default to REP!
-		allowREP = 0; //Default: don't allow REP!
+		byte gotREP = 0; //Default: no REP-prefix used!
+		byte REPZ = 0; //Default to REP!
 		if (CPU_getprefix(0xF2)) //REPNE Opcode set?
 		{
-			allowREP = 1; //Allow!
+			gotREP = REPZ = 1; //Allow and we're REPZ!
 			switch (OP) //Which special adjustment cycles Opcode?
 			{
 			case 0xA6: //A6: REPNZ CMPSB
@@ -709,14 +707,14 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				CPU.cycles_OP = 8+(8*CPU.registers->ECX); //Word!
 				break;
 			default: //Unknown yet?
-				allowREP = 0; //Dont allow after all!
+				gotREP = 0; //Dont allow after all!
 				CPU.cycles_OP = 0; //Unknown!
 				break; //Not supported yet!
 			}
 		}
 		else if (CPU_getprefix(0xF3)) //REP/REPE Opcode set?
 		{
-			allowREP = 1; //Allow!
+			gotREP = 1; //Allow!
 			switch (OP) //Which special adjustment cycles Opcode?
 			{
 			case 0xA4: //A4: REP MOVSB
@@ -749,7 +747,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				break;
 			default: //Unknown yet?
 				CPU.cycles_OP = 0; //Unknown!
-				allowREP = 0; //Don't allow after all!
+				gotREP = 0; //Don't allow after all!
 				break; //Not supported yet!
 			}
 		}
@@ -759,76 +757,45 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		word oldIP;
 		oldIP = CPU.registers->IP; //Save location!
 
-		if (allowREP) //Allow REP?
+		if (gotREP) //Gotten REP?
 		{
 			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
-				debugger_setprefix("REPNZ"); //Set prefix if any!
-				if (!CPU.registers->CX) //Starting REP and not executing?
-				{
-					blockREP = 1; //Block the CPU instruction from executing!
-				}
+				debugger_setprefix("REPNZ"); //Set prefix!
 			}
 			else if (CPU_getprefix(0xF3)) //REP/REPZ?
 			{
 				if (REPZ) //REPZ?
 				{
-					debugger_setprefix("REPZ "); //Init repne!
+					debugger_setprefix("REPZ "); //Set prefix!
 				}
 				else //REP?
 				{
-					debugger_setprefix("REP "); //Init repne!
+					debugger_setprefix("REP "); //Set prefix!
 				}
-				if (!CPU.registers->CX) //Starting REP and not executing?
-				{
-					blockREP = 1; //Block the CPU instruction from executing!
-				}
+			}
+			if (!CPU.registers->CX) //REP and finished?
+			{
+				blockREP = 1; //Block the CPU instruction from executing!
 			}
 		}
 		CPU_OP(OP); //Now go execute the OPcode once!
-		if (allowREP) //REP allowed?
+		if (gotREP && !CPU.faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
 		{
-			if (CPU_getprefix(0xF2) || CPU_getprefix(0xF3)) //We're executing a REP instruction?
+			--CPU.registers->CX; //Decrease the counter!
+			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
-				if (!CPU.faultraised) //No fault has been raised?
-				{
-					if (!blockREP) //Not starting empty?
-					{
-						--CPU.registers->CX; //Decrease the counter!
-						if (CPU_getprefix(0xF2)) //REPNZ?
-						{
-							if (!CPU.registers->SFLAGS.ZF) //To reset the opcode (FLAG_ZF quits the loop)?
-							{
-								if (CPU.registers->CX) //Left to run?
-								{
-									CPU_resetOP(); //Retry!
-								}
-							}
-						}
-						else if (CPU_getprefix(0xF3))
-						{
-							if (REPZ) //REPZ?
-							{
-								if (CPU.registers->SFLAGS.ZF) //To reset the opcode (no FLAG_ZF quits the loop)?
-								{
-									if (CPU.registers->CX) //Left to run?
-									{
-										CPU_resetOP(); //Retry!
-									}
-								}
-							}
-							else //REP?
-							{
-								if (CPU.registers->CX) //Left to run?
-								{
-									CPU_resetOP(); //Retry!
-								}
-							}
-						}
-					}
-				}
+				gotrep &= !CPU.registers->SFLAGS.ZF //To reset the opcode (ZF needs to be cleared to loop)?
 			}
+			else if (CPU_getprefix(0xF3) && REPZ) //REPZ?
+			{
+				gotrep &= CPU.registers->SFLAGS.ZF; //To reset the opcode (ZF needs to be set to loop)?
 			}
+			if (CPU.registers->CX && gotrep) //Still looping and allowed?
+			{
+				CPU_resetOP(); //Run the current instruction again!
+			}
+		}
 	}
 	blockREP = 0; //Don't block REP anymore!
 	CPU.cycles += CPU.cycles_OP; //Add cycles executed to total ammount of cycles!
