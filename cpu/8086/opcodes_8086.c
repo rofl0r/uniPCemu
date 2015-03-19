@@ -897,8 +897,11 @@ void CPU8086_internal_CWD()
 //OK so far!
 void CPU8086_internal_MOVSB()
 {
+	byte data;
 	if (blockREP) return; //Disabled REP!
-	MMU_wb(CPU_SEGMENT_ES,REG_ES,REG_DI,MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_SI,0));
+	data = MMU_rb(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0); //Try to read the data!
+	CPUPROT1
+	MMU_wb(CPU_SEGMENT_ES,REG_ES,REG_DI,data);
 	CPUPROT1
 	if (FLAG_DF)
 	{
@@ -910,12 +913,16 @@ void CPU8086_internal_MOVSB()
 		++REG_SI;
 		++REG_DI;
 	}
+	CPUPROT2
 	CPUPROT2
 }
 void CPU8086_internal_MOVSW()
 {
+	word data;
 	if (blockREP) return; //Disabled REP!
-	MMU_ww(CPU_SEGMENT_ES,REG_ES,REG_DI,MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_SI,0));
+	data = MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0); //Try to read the data!
+	CPUPROT1
+	MMU_ww(CPU_SEGMENT_ES,REG_ES,REG_DI,data); //Try to write the data!
 	CPUPROT1
 	if (FLAG_DF)
 	{
@@ -928,12 +935,17 @@ void CPU8086_internal_MOVSW()
 		REG_DI += 2;
 	}
 	CPUPROT2
+	CPUPROT2
 }
 void CPU8086_internal_CMPSB()
 {
+	byte data1, data2;
 	if (blockREP) return; //Disabled REP!
-	CMP_b(MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_SI,0),MMU_rb(CPU_segment_index(CPU_SEGMENT_ES),REG_ES,REG_DI,0));
+	data1 = MMU_rb(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0); //Try to read the first data!
 	CPUPROT1
+		data2 = MMU_rb(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, REG_DI, 0); //Try to read the second data!
+	CPUPROT1
+	CMP_b(data1,data2);
 	if (FLAG_DF)
 	{
 		--REG_SI;
@@ -945,12 +957,17 @@ void CPU8086_internal_CMPSB()
 		++REG_DI;
 	}
 	CPUPROT2
+	CPUPROT2
 }
 void CPU8086_internal_CMPSW()
 {
+	word data1, data2;
 	if (blockREP) return; //Disabled REP!
-	CMP_w(MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_SI,0),MMU_rw(CPU_segment_index(CPU_SEGMENT_ES),REG_ES,REG_DI,0));
+	data1 = MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0); //Try to read the first data!
 	CPUPROT1
+	data2 = MMU_rw(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, REG_DI, 0); //Try to read the second data!
+	CPUPROT1
+	CMP_w(data1,data2);
 	if (FLAG_DF)
 	{
 		REG_SI -= 2;
@@ -961,6 +978,7 @@ void CPU8086_internal_CMPSW()
 		REG_SI += 2;
 		REG_DI += 2;
 	}
+	CPUPROT2
 	CPUPROT2
 }
 void CPU8086_internal_STOSB()
@@ -996,8 +1014,9 @@ void CPU8086_internal_STOSW()
 //OK so far!
 void CPU8086_internal_LODSB()
 {
+	byte value;
 	if (blockREP) return; //Disabled REP!
-	byte value = MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_SI,0);
+	value = MMU_rb(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0); //Try to read the result!
 	CPUPROT1
 	REG_AL = value;
 	if (FLAG_DF)
@@ -1012,8 +1031,9 @@ void CPU8086_internal_LODSB()
 }
 void CPU8086_internal_LODSW()
 {
+	word value;
 	if (blockREP) return; //Disabled REP!
-	word value = MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_SI,0);
+	value = MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0); //Try to read the result!
 	CPUPROT1
 	REG_AX = value;
 	if (FLAG_DF)
@@ -1028,9 +1048,11 @@ void CPU8086_internal_LODSW()
 }
 void CPU8086_internal_SCASB()
 {
+	byte cmp1;
 	if (blockREP) return; //Disabled REP!
-	CMP_b(MMU_rb(CPU_segment_index(CPU_SEGMENT_ES),REG_ES,REG_DI,0),REG_AL);
+	cmp1 = MMU_rb(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, REG_DI, 0); //Try to read the data to compare!
 	CPUPROT1
+	CMP_b(cmp1,REG_AL);
 	if (FLAG_DF)
 	{
 		--REG_DI;
@@ -1043,9 +1065,11 @@ void CPU8086_internal_SCASB()
 }
 void CPU8086_internal_SCASW()
 {
+	word cmp1;
 	if (blockREP) return; //Disabled REP!
-	CMP_w(MMU_rw(CPU_segment_index(CPU_SEGMENT_ES),REG_ES,REG_DI,0),REG_AX);
+	cmp1 = MMU_rw(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, REG_DI, 0); //Try to read the data to compare!
 	CPUPROT1
+	CMP_w(cmp1,REG_AX);
 	if (FLAG_DF)
 	{
 		REG_DI -= 2;
@@ -1198,16 +1222,21 @@ void CPU8086_internal_XCHG16(word *data1, word *data2)
 	CPUPROT2
 }
 
+extern byte modrm_addoffset; //Add this offset to ModR/M reads!
+
 void CPU8086_internal_LXS(word *segmentregister) //LDS, LES etc.
 {
-	word *reg = modrm_addr_reg16(&params,1);
 	CPUPROT1
-	word tmp = MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),getLEA(&params),0);
+	word offset = modrm_read16(&params,2);
 	CPUPROT1
-	word newSeg = MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),getLEA(&params)+2,0);
+	modrm_addoffset = 2; //Add this to the offset to use!
+	word segment = modrm_read16(&params,2);
+	modrm_addoffset = 0; //Reset again!
 	CPUPROT1
-	*reg = tmp; //Load new reg!
-	*segmentregister = newSeg; //Load new segment!
+	modrm_write16(&params,1,offset,0); //Try to load the new register with the offset!
+	CPUPROT1
+	*segmentregister = segment; //Load the new segment!
+	CPUPROT2
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2

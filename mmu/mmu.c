@@ -171,29 +171,28 @@ void MMU_directwdw(uint_32 realaddress, uint_32 value)
 }
 
 //Direct memory access with Memory mapped I/O (for the CPU).
-byte MMU_directrb_realaddr(uint_32 realaddress) //Read without segment/offset translation&protection (from system/interrupt)!
+byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read without segment/offset translation&protection (from system/interrupt)!
 {
-		byte data;
-		if (MMU_IO_readhandler(realaddress,&data)) //Normal memory address?
-		{
-			data = MMU_directrb(realaddress); //Read the data from memory (and port I/O)!		
-
-			if (debugger_logging()) //To log?
-			{
-				dolog("debugger", "Read from memory: %08X=%02X", realaddress, data); //Log it!
-			}
-		}
-		return data;
+	byte data;
+	if (MMU_IO_readhandler(realaddress,&data)) //Normal memory address?
+	{
+		data = MMU_directrb(realaddress); //Read the data from memory (and port I/O)!		
+	}
+	if (debugger_logging() && (!opcode)) //To log?
+	{
+		dolog("debugger", "Read from memory: %08X=%02X", realaddress, data); //Log it!
+	}
+	return data;
 }
 
 void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segment/offset translation&protection (from system/interrupt)!
 {
-	if (MMU_IO_writehandler(realaddress,val)) //Normal memory access?
+	if (debugger_logging()) //To log?
 	{
-		if (debugger_logging()) //To log?
-		{
-			dolog("debugger", "Written to memory: %08X=%02X", realaddress, val); //Log it!
-		}
+		dolog("debugger", "Writing to memory: %08X=%02X", realaddress, val); //Log it!
+	}
+	if (MMU_IO_writehandler(realaddress, val)) //Normal memory access?
+	{
 		MMU_directwb(realaddress,val); //Set data in real memory!
 	}
 }
@@ -261,7 +260,7 @@ byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adre
 
 	realaddress = MMU_realaddr(segdesc,segment,offset,writeword); //Real adress!
 	
-	result = MMU_directrb_realaddr(realaddress); //Read from MMU/hardware!
+	result = MMU_directrb_realaddr(realaddress,opcode); //Read from MMU/hardware!
 
 	if (opcode == 1) //We're an OPcode retrieval?
 	{

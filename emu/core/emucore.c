@@ -353,7 +353,7 @@ void initEMUreset() //Simple reset emulator!
 
 extern byte singlestep; //Enable EMU-driven single step!
 byte doEMUsinglestep = 0; //CPU mode plus 1
-uint_64 singlestepaddress = 0x00703F30; //The segment:offset address!
+uint_64 singlestepaddress = 0x00007C51; //The segment:offset address!
 
 byte coreHandler()
 {
