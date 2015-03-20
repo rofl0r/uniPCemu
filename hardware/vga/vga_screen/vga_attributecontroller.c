@@ -8,13 +8,15 @@
 #include "headers/support/log.h" //Debugger!
 extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c
 
+#define CURRENTBLINK(VGA) VGA->TextBlinkOn
+
 OPTINLINE byte getattributeback(byte textmode, byte attr,byte filter)
 {
 	register byte temp = attr;
 	//Only during text mode: shift!
 	if (textmode) //Take the BG nibble!
 	{
-		temp >>= 4; //Shift!
+		temp >>= 4; //Shift high nibble to low nibble!
 	}
 	temp &= filter; //Apply filter!
 	return temp; //Need attribute registers below used!
@@ -102,7 +104,6 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					if (fontstatus)
 					{
 						CurrentDAC = Attribute; //Load attribute!
-						CurrentDAC &= 0xF; //Font only! Ignore high 4 bits!
 					}
 					else
 					{
@@ -110,21 +111,28 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					}
 
 					CurrentDAC &= colorplanes; //Apply color planes!
-		
+
 					if (palletteenable) //Internal palette enable?
 					{
 						//Use original 16 color palette!
 						CurrentDAC = VGA->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[CurrentDAC].InternalPaletteIndex; //Translate base index into DAC Base index!
-		
-						//First, bit 4&5 processing if needed!
-						if (pallette54) //Bit 4&5 map to the C45 field of the Color Select Register, determined by bit 7?
+
+						if (color256) //8-bit colors?
 						{
-							CurrentDAC &= 0xF; //Take only the first 4 bits!
-							CurrentDAC |= colorselect54; //Use them as 4th&5th bit!
+							CurrentDAC &= 0xF; //Take 4 bits only!
 						}
-						//Else: already 6 bits wide fully!
-						//Finally, bit 6&7 always processing!
-						CurrentDAC |= colorselect76; //Apply bits 6&7!
+						else //Process fully to a DAC index!
+						{
+							//First, bit 4&5 processing if needed!
+							if (pallette54) //Bit 4&5 map to the C45 field of the Color Select Register, determined by bit 7?
+							{
+								CurrentDAC &= 0xF; //Take only the first 4 bits!
+								CurrentDAC |= colorselect54; //Use them as 4th&5th bit!
+							}
+							//Else: already 6 bits wide fully!
+							//Finally, bit 6&7 always processing!
+							CurrentDAC |= colorselect76; //Apply bits 6&7!
+						}
 					}
 
 					word pos = Attribute;
@@ -150,45 +158,36 @@ void VGA_DUMPATTR()
 	fclose(f);
 }
 
-byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer)
+OPTINLINE byte VGA_getAttributeDACIndex(byte attribute, VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer)
 {
-	static byte curnibble = 0;
-	static byte latchednibbles = 0; //What nibble are we currently?
-
 	register word lookup;
 	lookup = Sequencer_attributeinfo->attribute; //Take the latched nibbles as attribute!
 	lookup <<= 5; //Make room!
 	lookup |= ((SEQ_DATA *)Sequencer)->charinner_y;
 	lookup <<= 1; //Make room!
-	lookup |= VGA->TextBlinkOn; //Blink!
+	lookup |= CURRENTBLINK(VGA); //Blink!
 	lookup <<= 1; //Make room for the pixelon!
 	lookup |= Sequencer_attributeinfo->fontpixel; //Generate the lookup value!
+	return VGA->precalcs.attributeprecalcs[lookup]; //Give the data from the lookup table!
+}
+
+byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer)
+{
+	static byte curnibble = 0;
+	static byte latchednibbles = 0; //What nibble are we currently?
 
 	//First, execute the shift and add required in this mode!
 	latchednibbles <<= 4; //Shift high!
-	latchednibbles |= VGA->precalcs.attributeprecalcs[lookup]; //Latch to DAC Index or DAC Nibble!
+	latchednibbles |= VGA_getAttributeDACIndex(Sequencer_attributeinfo->attribute,Sequencer_attributeinfo,VGA,Sequencer); //Latch to DAC Nibble!
 
 	curnibble ^= 1; //Reverse current nibble!
-
 	Sequencer_attributeinfo->attribute = latchednibbles; //Look the DAC Index up!
-
 	return curnibble; //Give us the next nibble, when needed, please!
 }
 
 byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer)
 {
-	//Now, process all pixels!
-	//First, process attribute!
-	register word lookup;
-	lookup = Sequencer_attributeinfo->attribute;
-	lookup <<= 5; //Make room!
-	lookup |= ((SEQ_DATA *)Sequencer)->charinner_y;
-	lookup <<= 1; //Make room!
-	lookup |= VGA->TextBlinkOn; //Blink!
-	lookup <<= 1; //Make room for the pixelon!
-	lookup |= Sequencer_attributeinfo->fontpixel; //Generate the lookup value!
-	
-	Sequencer_attributeinfo->attribute = VGA->precalcs.attributeprecalcs[lookup]; //Look the DAC Index up!
+	Sequencer_attributeinfo->attribute = VGA_getAttributeDACIndex(Sequencer_attributeinfo->attribute, Sequencer_attributeinfo, VGA, Sequencer); //Look the DAC Index up!
 	return 0; //We're ready to execute: we contain a pixel to plot!
 }
 

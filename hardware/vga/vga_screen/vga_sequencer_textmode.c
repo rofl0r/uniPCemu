@@ -55,7 +55,7 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 
 	currentchar = readVRAMplane(VGA,0,character,1); //The character itself! From plane 0!
 	attribute = readVRAMplane(VGA,1,character,1); //The attribute itself! From plane 1!
-	
+
 	pixel = getcharxy(VGA,attribute,currentchar,(byte)charinner,(byte)Sequencer->charinner_y); //Check for the character, the simple way!
 	pixel |= is_cursorscanline(VGA,(byte)Sequencer->charinner_y,character); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
 	attributeinfo->fontpixel = pixel; //We're the font pixel?
