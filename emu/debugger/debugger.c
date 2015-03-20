@@ -170,7 +170,7 @@ extern byte OPlength; //The length of the OPbuffer!
 
 byte debugger_logging()
 {
-	byte enablelog = 0; //Default: disabled!
+	byte enablelog; //Default: disabled!
 	switch (DEBUGGER_LOG) //What log method?
 	{
 	case DEBUGGERLOG_ALWAYS:
@@ -180,6 +180,7 @@ byte debugger_logging()
 		enablelog = debugging(); //Enable log when debugging!
 		break;
 	default:
+		enablelog = 0; //Not logging!
 		break;
 	}
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?

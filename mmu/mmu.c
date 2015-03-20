@@ -9,6 +9,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/80286/protection.h" //Protection support!
 #include "headers/mmu/mmuhandler.h" //MMU Handler support!
+#include "headers/debugger/debugger.h" //Debugger support for logging MMU accesses!
 
 //Are we disabled?
 #define __HW_DISABLED 0
