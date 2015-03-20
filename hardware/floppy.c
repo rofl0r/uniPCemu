@@ -172,6 +172,59 @@ word translateSectorSize(byte size)
 
 //Execution after command and data phrases!
 
+void updateFloppyMSR() //Update the floppy MSR!
+{
+	switch (FLOPPY.commandstep) //What command step?
+	{
+	case 0: //Command?
+		FLOPPY.MSR.RQM = 1; //Ready for data transfer!
+		FLOPPY.MSR.HaveDataForCPU = 0; //We don't have data for the CPU!
+		break;
+	case 1: //Parameters?
+		FLOPPY.MSR.RQM = 1; //Ready for data transfer!
+		FLOPPY.MSR.HaveDataForCPU = 0; //We don't have data for the CPU!
+		break;
+	case 2: //Data?
+		FLOPPY.MSR.RQM = 0; //No data transfer!
+		FLOPPY.MSR.HaveDataForCPU = 0; //We don't have data for the CPU!
+		switch (FLOPPY.commandbuffer[0]) //What command are we processing?
+		{
+		case 0x5: //Write sector?
+		case 0x9: //Write deleted sector?
+			FLOPPY.MSR.RQM = 1; //Data transfer!
+			FLOPPY.MSR.HaveDataForCPU = 0; //We request data from the CPU!
+			FLOPPY.MSR.NonDMA = (!FLOPPY.DOR.Mode); //Not in DMA mode?
+			break;
+		case 0xD: //Format sector?
+			FLOPPY.MSR.RQM = 1; //Data transfer!
+			FLOPPY.MSR.HaveDataForCPU = 0; //We request data from the CPU!
+			break;
+		case 0x6: //Read sector?
+		case 0xC: //Read deleted sector?
+			FLOPPY.MSR.RQM = 1; //Data transfer!
+			FLOPPY.MSR.HaveDataForCPU = 1; //We have data for the CPU!
+			break;
+		default: //Unknown command?
+			break; //Don't process!
+		}
+		break;
+	case 3: //Result?
+		FLOPPY.MSR.RQM = 1; //Data transfer!
+		FLOPPY.MSR.HaveDataForCPU = 1; //We have data for the CPU!
+		break;
+	case 0xFF: //Error?
+		FLOPPY.MSR.RQM = 1; //Data transfer!
+		FLOPPY.MSR.HaveDataForCPU = 1; //We have data for the CPU!
+		break;
+	default: //Unknown status?
+		break; //Unknown?
+	}
+}
+
+void updateFloppyCCR() //Update the floppy CCR!
+{
+}
+
 void floppy_executeData() //Execute a floppy command. Data is fully filled!
 {
 	switch (FLOPPY.commandbuffer[0]) //What command!
@@ -232,6 +285,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			if (readdata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
 			{
 				FLOPPY.commandstep = 2; //Move to data phrase!
+				DMA_SetEOP(FLOPPY_DMA, 0); //No EOP: data transfer when at step 2!
 			}
 			else
 			{
@@ -251,6 +305,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 
 			FLOPPY.databuffersize *= (FLOPPY.commandbuffer[6] - FLOPPY.commandbuffer[4]) + 1; //The ammount of sectors to buffer!
 
+			DMA_SetEOP(FLOPPY_DMA, 0); //No EOP: data transfer when at step 2!
 			FLOPPY.commandstep = 2; //Move to data phrase!
 			break;
 		case 0x6: //Read sector
@@ -269,6 +324,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			if (readdata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
 			{
 				FLOPPY.commandstep = 2; //Move to data phrase!
+				DMA_SetEOP(FLOPPY_DMA, 0); //No EOP: data transfer when at step 2!
 			}
 			else
 			{
@@ -576,11 +632,13 @@ byte PORT_IN_floppy(word port)
 	case 1: //SRB?
 		return 0; //Not used!
 	case 4: //MSR?
+		updateFloppyMSR(); //Update the MSR with current values!
 		return FLOPPY.MSR.data; //Give MSR!
 	case 5: //Data?
 		//Process data!
 		return floppy_readData(); //Read data!
 	case 7: //CCR?
+		updateFloppyCCR(); //Update the CCR with current values!
 		return FLOPPY.CCR.data; //Give CCR!
 	default: //Unknown port?
 		return ~0; //Unknown port!
@@ -622,14 +680,19 @@ byte DMA_floppyread()
 
 void FLOPPY_DMAtick() //For checking any new DREQ/EOP signals!
 {
-	DMA_SetDREQ(FLOPPY_DMA,FLOPPY.commandstep==2); //Set DREQ from hardware when in the data phase!
+	DMA_SetDREQ(FLOPPY_DMA,(FLOPPY.commandstep==2) && (!FLOPPY.MSR.NonDMA && FLOPPY.DOR.Mode)); //Set DREQ from hardware when in the data phase and using DMA transfers!
 }
 
 void initFDC()
 {
 	memset(&FLOPPY, 0, sizeof(FLOPPY)); //Initialise floppy!
+	//Initialise DMA controller settings for the FDC!
+	DMA_SetDREQ(FLOPPY_DMA,0); //No DREQ!
+	DMA_SetEOP(FLOPPY_DMA,0); //No EOP!
 	registerDMA8(FLOPPY_DMA, &DMA_floppyread, &DMA_floppywrite); //Register our DMA channels!
-	registerDMATick(FLOPPY_DMA, *FLOPPY_DMAtick);
+	registerDMATick(FLOPPY_DMA, &FLOPPY_DMAtick);
+
+	//Set basic I/O ports
 	register_PORTIN(0x3F0,&PORT_IN_floppy);
 	register_PORTIN(0x3F1, &PORT_IN_floppy);
 	register_PORTIN(0x3F4, &PORT_IN_floppy);
