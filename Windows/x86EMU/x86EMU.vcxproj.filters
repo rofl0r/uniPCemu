@@ -781,5 +781,8 @@
     <ClInclude Include="..\..\headers\interrupts\interrupt12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\headers\hardware\floppy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

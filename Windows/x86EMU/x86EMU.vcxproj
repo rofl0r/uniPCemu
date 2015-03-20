@@ -195,6 +195,7 @@
     <ClInclude Include="..\..\headers\hardware\8253.h" />
     <ClInclude Include="..\..\headers\hardware\adlib.h" />
     <ClInclude Include="..\..\headers\hardware\cmos.h" />
+    <ClInclude Include="..\..\headers\hardware\floppy.h" />
     <ClInclude Include="..\..\headers\hardware\midi\midi.h" />
     <ClInclude Include="..\..\headers\hardware\midi\mididevice.h" />
     <ClInclude Include="..\..\headers\hardware\pcspeaker.h" />

@@ -90,9 +90,15 @@ void iocdrom1(char *filename, uint_64 startpos, byte readonly, uint_32 customsiz
 	loadDisk(CDROM1,filename,startpos,readonly,customsize); //Load disk #0!
 }
 
+uint_64 disksize(int disknumber)
+{
+	if (disknumber<0 || disknumber>6) return 0; //Not used!
+	return disks[disknumber].size; //Get the size of the disk!
+}
+
+
 #define TRUE 1
 #define FALSE 0
-
 
 //Startpos=sector number (start/512 bytes)!
 int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)

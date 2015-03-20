@@ -21,10 +21,10 @@ SECTORHANDLER readhandler, writehandler; //Read&write handlers!
 #define UNMOUNTED -1
 #define FLOPPY0 0x00
 #define FLOPPY1 0x01
-#define HDD0 0x80
-#define HDD1 0x81
-#define CDROM0 0x82
-#define CDROM1 0x83
+#define HDD0 0x02
+#define HDD1 0x03
+#define CDROM0 0x04
+#define CDROM1 0x05
 
 void ioInit(); //Resets/unmounts all disks!
 FILEPOS filesize(FILE *f); //Get filesize!
@@ -39,4 +39,5 @@ int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite);
 int has_drive(int drive); //Have drive?
 int drivereadonly(int drive); //Drive is read-only?
 FILEPOS getdisksize(int device); //Retrieve a dynamic/static image size!
+uint_64 disksize(int disknumber); //Currently mounted disk size!
 #endif

@@ -26,6 +26,9 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	byte pixelon, charinnery, currentblink;
 	word Attribute; //This changes!
 	
+	byte color256;
+	color256 = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit; //8-bit colors?
+
 	byte enableblink;
 	enableblink = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable; //Enable blink?	
 	
@@ -99,13 +102,13 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					if (fontstatus)
 					{
 						CurrentDAC = Attribute; //Load attribute!
-						CurrentDAC &= 0xF; //Font!
+						CurrentDAC &= 0xF; //Font only! Ignore high 4 bits!
 					}
 					else
 					{
 						CurrentDAC = getattributeback(textmode,Attribute,backgroundfilter); //Back!
 					}
-		
+
 					CurrentDAC &= colorplanes; //Apply color planes!
 		
 					if (palletteenable) //Internal palette enable?
@@ -151,13 +154,23 @@ byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 {
 	static byte curnibble = 0;
 	static byte latchednibbles = 0; //What nibble are we currently?
+
+	register word lookup;
+	lookup = Sequencer_attributeinfo->attribute; //Take the latched nibbles as attribute!
+	lookup <<= 5; //Make room!
+	lookup |= ((SEQ_DATA *)Sequencer)->charinner_y;
+	lookup <<= 1; //Make room!
+	lookup |= VGA->TextBlinkOn; //Blink!
+	lookup <<= 1; //Make room for the pixelon!
+	lookup |= Sequencer_attributeinfo->fontpixel; //Generate the lookup value!
+
 	//First, execute the shift and add required in this mode!
 	latchednibbles <<= 4; //Shift high!
-	latchednibbles |= Sequencer_attributeinfo->attribute; //Latch to DAC Index or DAC Nibble!
+	latchednibbles |= VGA->precalcs.attributeprecalcs[lookup]; //Latch to DAC Index or DAC Nibble!
 
 	curnibble ^= 1; //Reverse current nibble!
 
-	Sequencer_attributeinfo->attribute = latchednibbles; //Load the DAC index!
+	Sequencer_attributeinfo->attribute = latchednibbles; //Look the DAC Index up!
 
 	return curnibble; //Give us the next nibble, when needed, please!
 }

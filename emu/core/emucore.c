@@ -196,6 +196,9 @@ void initEMU(int full) //Init!
 	debugrow("Initialising UART...");
 	initUART(); //Initialise the UART (COM ports)!
 	
+	debugrow("Initialising Floppy Disk Controller...");
+	initFDC(); //Initialise the Floppy Disk Controller!
+
 	debugrow("Initialising port E9 hack and emulator support functionality...");
 	BIOS_initDebugger(); //Initialise the port E9 hack and emulator support functionality!
 	

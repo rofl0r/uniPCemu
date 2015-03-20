@@ -40,6 +40,7 @@ typedef struct
 	DMAReadBHandler ReadBHandler; //Read handler 8-bit
 	DMAWriteWHandler WriteWHandler; //Write handler 16-bit!
 	DMAReadWHandler ReadWHandler; //Read handler 16-bit!
+	DMATickHandler TickHandler; //Tick handler for DMA ticks!
 } DMAChannelTYPE; //Contains all info about an DMA channel!
 
 typedef struct
@@ -78,17 +79,17 @@ void initDMAControllers() //Init function for BIOS!
 	memset(&DMAController[1],0,sizeof(DMAController)); //Init DMA Controller channels 4-7 (4 unused: for DMA Controller coupling)
 }
 
-void DMA_SetDREQ(byte channel) //Set DREQ from hardware!
+void DMA_SetDREQ(byte channel, byte DREQ) //Set DREQ from hardware!
 {
 	if (__HW_DISABLED) return; //Abort!
 	DMAController[channel>>2].DREQ &= ~(1<<(channel&3)); //Disable old DREQ!
-	DMAController[channel>>2].DREQ |= (1<<channel); //Enable new DREQ!
+	DMAController[channel>>2].DREQ |= (DREQ<<channel); //Enable new DREQ!
 }
 
-void DMA_SetEOP(byte channel) //Set EOP from hardware!
+void DMA_SetEOP(byte channel, byte EOP) //Set EOP from hardware!
 {
 	if (__HW_DISABLED) return; //Abort!
-	DMAController[channel>>2].EOP |= (1<<channel); //Set EOP!
+	DMAController[channel>>2].EOP |= (EOP<<channel); //Set EOP!
 }
 
 //Easy sets of high and low nibbles (word data)!
@@ -294,7 +295,7 @@ void DMA_tick()
 	static byte controller; //Current controller!
 	byte transferred = 0; //Transferred data this time?
 	byte startcurrent = current; //Current backup for checking for finished!
-	nextcycle: //Next cycle to process!
+	//nextcycle: //Next cycle to process!
 		controller = ((current&4)>>2); //Init controller
 		byte channel = (current&3); //Channel to use! Channels 0 are unused (DRAM memory refresh (controller 0) and cascade DMA controller (controller 1))
 		if (!(DMAController[controller].CommandRegister&4) && channel) //Controller not disabled and valid channel to transfer?
@@ -302,6 +303,11 @@ void DMA_tick()
 			DMAModeRegister moderegister;
 			moderegister.data = DMAController[controller].DMAChannel[channel].ModeRegister.data; //Read the mode register to use!
 			if (moderegister.Mode==3) goto nextchannel; //Skip channel: invalid! We don't process a cascade mode channel!
+
+			if (DMAController[controller].DMAChannel[channel].TickHandler) //Gotten a tick handler?
+			{
+				DMAController[controller].DMAChannel[channel].TickHandler(); //Execute the tick handler!
+			}
 
 			if (DMAController[controller].DREQ&((~DMAController[controller].MultiChannelMaskRegister)&(1<<channel))) //Requested and not masking?
 			{
@@ -482,7 +488,7 @@ void DMA_tick()
 		}
 		if (transferred) return; //Transferred data? We're done!
 		if (startcurrent==current) return; //Back to our original cycle? We don't have anything to transfer!
-		goto nextcycle; //Next cycle!!
+		//goto nextcycle; //Next cycle!!
 }
 
 void initDMA()
@@ -505,7 +511,7 @@ void initDMA()
 	if (!__HW_DISABLED) //Enabled?
 	{
 		//We're up to 1.6MB/s, so for 1 channel 1.6 million bytes per second, for all channels, to 8 channel 204953.6 bytes per second!
-		addtimer(1639628.8f,&DMA_tick,"DMA tick",100,0,NULL); //Just use threads!
+		addtimer(1639628.8f,&DMA_tick,"DMA tick",100,0,NULL); //Just use timers!
 	}
 }
 
@@ -525,4 +531,9 @@ void registerDMA16(byte channel, DMAReadWHandler readhandler, DMAWriteWHandler w
 {
 	DMAController[channel >> 2].DMAChannel[channel & 3].ReadWHandler = readhandler; //Assign the read handler!
 	DMAController[channel >> 2].DMAChannel[channel & 3].WriteWHandler = writehandler; //Assign the read handler!
+}
+
+void registerDMATick(byte channel, DMATickHandler tickhandler)
+{
+	DMAController[channel >> 2].DMAChannel[channel & 3].TickHandler = tickhandler; //Assign the tick handler!
 }

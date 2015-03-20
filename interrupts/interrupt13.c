@@ -103,80 +103,6 @@ byte mounteddrives[0x100]; //All mounted drives!
 
 #define KB(x) (x/1024)
 
-
-
-
-/*
-	{  KB,SPT,SIDES,TRACKS,  }
-	{ 160,  8, 1   , 40   , 0},
-	{ 180,  9, 1   , 40   , 0},
-	{ 200, 10, 1   , 40   , 0},
-	{ 320,  8, 2   , 40   , 1},
-	{ 360,  9, 2   , 40   , 1},
-	{ 400, 10, 2   , 40   , 1},
-	{ 720,  9, 2   , 80   , 3},
-	{1200, 15, 2   , 80   , 2},
-	{1440, 18, 2   , 80   , 4},
-	{2880, 36, 2   , 80   , 6},
-
-*/
-
-typedef struct
-{
-	uint_64 KB;
-	byte SPT;
-	byte sides;
-	byte tracks;
-} FLOPPY_GEOMETRY; //All floppy geometries!
-
-FLOPPY_GEOMETRY geometries[] = { //Differently formatted disks, and their corresponding geometries
-{160,8,1,40}, //160K 5.25"
-{320,8,1,40}, //320K 5.25"
-{180,9,1,40}, //180K 5.25"
-{360,9,2,40}, //360K 5.25"
-{720,9,2,40}, //720K 3.5"
-{200,10,2,40}, //200K 5.25"
-{400,10,2,40}, //400K 5.25"
-{1200,15,2,80}, //1200K 5.25"
-{1440,18,2,80}, //1.44M 3.5"
-{2880,36,2,80}, //2.88M 3.5"
-{1680,21,2,80}, //1.68M 3.5"
-{1722,21,2,82}, //1.722M 3.5"
-{1840,23,2,80} //1.84M 3.5"
-};
-
-//BPS=512 always(except differently programmed)!
-
-byte floppy_spt(uint_64 floppy_size)
-{
-	int i;
-	for (i=0;i<NUMITEMS(geometries);i++)
-	{
-		if (geometries[i].KB==KB(floppy_size)) return geometries[i].SPT; //Found?
-	}
-	return 0; //Unknown!
-}
-
-byte floppy_tracks(uint_64 floppy_size)
-{
-	int i;
-	for (i=0;i<NUMITEMS(geometries);i++)
-	{
-		if (geometries[i].KB==KB(floppy_size)) return geometries[i].tracks; //Found?
-	}
-	return 0; //Unknown!
-}
-
-byte floppy_sides(uint_64 floppy_size)
-{
-	int i;
-	for (i=0;i<NUMITEMS(geometries);i++)
-	{
-		if (geometries[i].KB==KB(floppy_size)) return geometries[i].sides; //Found?
-	}
-	return 0; //Unknown!
-}
-
 byte int13_buffer[512]; //Our int13_buffer!
 
 int killRead; //For Pirates! game?
@@ -238,18 +164,6 @@ byte getdiskbymount(int drive) //Drive to disk converter (reverse of int13_init)
 		}
 	}
 	return 0xFF; //Unknown disk!
-}
-
-uint_64 disksize(int disknumber)
-{
-	if (disknumber<0 || disknumber>6) return 0; //Not used!
-	return disks[disknumber].size; //Get the size of the disk!
-}
-
-uint_32 floppy_LBA(int floppy,word side, word track, word sector)
-{
-	uint_64 floppysize = disksize(floppy); //Retrieve disk size for reference!
-	return (uint_32)(((track*floppy_sides(floppysize)) + side) * floppy_spt(floppysize)) + sector - 1; //Give LBA for floppy!
 }
 
 word gethddheads(uint_64 disksize)
