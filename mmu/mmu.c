@@ -273,12 +273,18 @@ byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adre
 
 word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress!
 {
-	return (MMU_rb(segdesc,segment,offset,opcode)|(MMU_rb(segdesc,segment,offset+1,opcode)<<8)); //Get adress word!
+	word result;
+	result = MMU_rb(segdesc, segment, offset, opcode);
+	result |= (MMU_rb(segdesc, segment, offset + 1, opcode) << 8); //Get adress word!
+	return result; //Give the result!
 }
 
 uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress!
 {
-	return (MMU_rw(segdesc,segment,offset,opcode)|(MMU_rw(segdesc,segment,offset+2,opcode)<<16)); //Get adress dword!
+	uint_32 result;
+	result = MMU_rw(segdesc, segment, offset, opcode);
+	result |= (MMU_rw(segdesc, segment, offset + 2, opcode) << 16); //Get adress dword!
+	return result; //Give the result!
 }
 
 void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!

@@ -778,7 +778,6 @@ dac_text16:
 		IO_Write(0x3c0,0x20); //Enable palette access
 	}
 
-
 	/* Setup some special stuff for different modes */
 	feature=real_readb(BIOSMEM_SEG,BIOSMEM_INITIAL_MODE);
 	switch (CurMode->type)

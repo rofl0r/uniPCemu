@@ -182,8 +182,11 @@ void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 		break;
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
-		modrm_lastsegment = info.mem_segment;
-		modrm_lastoffset = info.mem_offset;
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = info.mem_segment;
+			modrm_lastoffset = info.mem_offset;
+		}
 		MMU_wb(info.segmentregister_index,info.mem_segment,info.mem_offset,value); //Write the data to memory using byte depth!
 		break;
 		//return result; //Give memory!
@@ -213,7 +216,13 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 		}
 		break;
 	case 2: //Memory?
-		MMU_ww(info.segmentregister_index,info.mem_segment,info.mem_offset,value); //Write the data to memory using byte depth!
+		last_modrm = 1; //ModR/M!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = info.mem_segment;
+			modrm_lastoffset = info.mem_offset;
+		}
+		MMU_ww(info.segmentregister_index, info.mem_segment, info.mem_offset, value); //Write the data to memory using byte depth!
 		break;
 	default:
 		halt_modrm("MODRM: Unknown MODR/M16!");
@@ -241,9 +250,11 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 		break;
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
-		modrm_lastsegment = info.mem_segment;
-		modrm_lastoffset = info.mem_offset;
-		
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = info.mem_segment;
+			modrm_lastoffset = info.mem_offset;
+		}
 		MMU_wdw(info.segmentregister_index,info.mem_segment,info.mem_offset,value); //Write the data to memory using byte depth!
 		break;
 	default:
@@ -271,7 +282,13 @@ byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 		}
 		break;
 	case 2: //Memory?
-		return MMU_rb(info.segmentregister_index,info.mem_segment,info.mem_offset,0); //Read the value from memory!
+		last_modrm = 1; //ModR/M!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = info.mem_segment;
+			modrm_lastoffset = info.mem_offset;
+		}
+		return MMU_rb(info.segmentregister_index, info.mem_segment, info.mem_offset, 0); //Read the value from memory!
 	default:
 		halt_modrm("MODRM: Unknown MODR/M8!");
 		return 0; //Unknown!
@@ -298,7 +315,13 @@ word modrm_read16(MODRM_PARAMS *params, int whichregister)
 		}
 		break;
 	case 2: //Memory?
-		return MMU_rw(info.segmentregister_index,info.mem_segment,info.mem_offset,0); //Read the value from memory!
+		last_modrm = 1; //ModR/M!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = info.mem_segment;
+			modrm_lastoffset = info.mem_offset;
+		}
+		return MMU_rw(info.segmentregister_index, info.mem_segment, info.mem_offset, 0); //Read the value from memory!
 		
 	default:
 		halt_modrm("MODRM: Unknown MODR/M16!");
@@ -327,7 +350,13 @@ uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 		}
 		break;
 	case 2: //Memory?
-		return MMU_rdw(info.segmentregister_index,info.mem_segment,info.mem_offset,0); //Read the value from memory!
+		last_modrm = 1; //ModR/M!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = info.mem_segment;
+			modrm_lastoffset = info.mem_offset;
+		}
+		return MMU_rdw(info.segmentregister_index, info.mem_segment, info.mem_offset, 0); //Read the value from memory!
 		
 	default:
 		halt_modrm("MODRM: Unknown MODR/M32!");
@@ -1350,8 +1379,11 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		break;
 	} //Which MOD?
 	last_modrm = 1; //ModR/M!
-	modrm_lastsegment = result->mem_segment;
-	modrm_lastoffset = result->mem_offset;
+	if (!modrm_addoffset) //We're the offset itself?
+	{
+		modrm_lastsegment = result->mem_segment;
+		modrm_lastoffset = result->mem_offset;
+	}
 }
 
 
@@ -1495,12 +1527,6 @@ byte *modrm_addr8(MODRM_PARAMS *params, int whichregister, int forreading)
 		return (byte *)memprotect(info.reg8,1,"CPU_REGISTERS"); //Give register!
 	case 2: //Memory?
 		return NULL; //We don't do memory addresses! Use direct memory access here!
-		result = (byte *)MMU_ptr(info.segmentregister_index,info.mem_segment,info.mem_offset,forreading,1); //Give memory!
-		if (result==NULL)
-		{
-			halt_modrm("MODRM:NULL MEMPTR8 %X:%X\nValue:%s",info.mem_segment,info.mem_offset,info.text);
-		}
-		return result; //Give memory!
 	default:
 		halt_modrm("MODRM: Unknown MODR/M8!");
 		return NULL; //Unknown!
@@ -1522,12 +1548,6 @@ word *modrm_addr16(MODRM_PARAMS *params, int whichregister, int forreading)
 		return (word *)memprotect(info.reg16,2,"CPU_REGISTERS"); //Give register!
 	case 2: //Memory?
 		return NULL; //We don't do memory addresses! Use direct memory access here!
-		result = (word *)MMU_ptr(info.segmentregister_index,info.mem_segment,info.mem_offset,forreading,2); //Give memory!
-		if (result==NULL)
-		{
-			halt_modrm("MODRM:NULL MEMPTR16 %X:%X\nValue:%s",info.mem_segment,info.mem_offset,info.text);
-		}
-		return result; //Give the result!
 	default:
 		halt_modrm("MODRM: Unknown MODR/M16!");
 		return NULL; //Unknown!
@@ -1555,8 +1575,20 @@ word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions
 	switch (info.isreg) //What type?
 	{
 	case 1: //Register?
-		return (modrm_lastoffset&0xFFFF); //No registers allowed officially, but we return the last offset in this case (undocumented)!
+		last_modrm = 1; //ModR/M!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = 0; //No segment used!
+		}
+		return (modrm_lastoffset & 0xFFFF); //No registers allowed officially, but we return the last offset in this case (undocumented)!
 	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = 0; //No segment used!
+			modrm_lastoffset = info.mem_offset;
+		}
+
 		return info.mem_offset; //Give memory offset!
 	default:
 		return 0; //Unknown!
@@ -1592,6 +1624,12 @@ word modrm_offset16(MODRM_PARAMS *params, int whichregister) //Gives address for
 	case 1: //Register?
 		return *info.reg16; //Give register value!
 	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = 0;
+			modrm_lastoffset = info.mem_offset;
+		}
 		return info.mem_offset; //Give memory offset!
 	default:
 		return 0; //Unknown!
@@ -1616,7 +1654,7 @@ word *modrm_addr_reg16(MODRM_PARAMS *params, int whichregister) //For LEA relate
 		{
 			halt_modrm("NULL REG16LEA_SEGMENT");
 		}
-		return info.segmentregister; //Give memory offset!
+		return info.segmentregister; //Give the segment register of the MODR/M!
 	default:
 		halt_modrm("REG16LEA_UNK");
 		return NULL; //Unknown!
@@ -1655,12 +1693,13 @@ uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading)
 		}
 		return (uint_32 *)memprotect(info.reg32,4,"CPU_REGISTERS"); //Give register!
 	case 2: //Memory?
-		return NULL; //We don't do memory addresses! Use direct memory access here!
-		result = (uint_32 *)MMU_ptr(info.segmentregister_index,info.mem_segment,info.mem_offset,forreading,4); //Give memory!
-		if (result==NULL)
+		last_modrm = 1; //ModR/M!
+		if (!modrm_addoffset) //We're the offset itself?
 		{
-			halt_modrm("NULL MEMPTR16");
+			modrm_lastsegment = info.mem_segment;
+			modrm_lastoffset = info.mem_offset;
 		}
+		return NULL; //We don't do memory addresses! Use direct memory access here!
 	default:
 		return NULL; //Unknown!
 	}

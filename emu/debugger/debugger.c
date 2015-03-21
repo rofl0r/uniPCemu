@@ -195,20 +195,9 @@ byte needdebugger() //Do we need to generate debugging information?
 	return result; //Do we need debugger information?
 }
 
-uint_32 debugger_lastEIP = 0;
-word debugger_lastCS = 0;
-char debugger_lastop[256] = ""; //Last opcode!
-
 void debugger_autolog()
 {
-	if ((debuggerregisters.EIP == debugger_lastEIP) && (debuggerregisters.CS == debugger_lastCS) && (!strcmp(debugger_lastop, debugger_command_text))) //Are we the same as last command?
-	{
-		return; //Don't log: repeat operation!
-	}
-	//Save our location&opcode information for detecting multiple opcode repeats.
-	strcpy(debugger_lastop, debugger_command_text); //Last OP!
-	debugger_lastCS = debuggerregisters.CS;
-	debugger_lastEIP = debuggerregisters.EIP;
+	if ((debuggerregisters.EIP == CPU.registers->EIP) && (debuggerregisters.CS == CPU.registers->CS) && (!CPU.faultraised)) return; //Are we the same address as the executing command and no fault has been raised? We're a repeat operation!
 
 	if (debugger_logging()) //To log?
 	{

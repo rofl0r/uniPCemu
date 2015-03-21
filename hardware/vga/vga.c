@@ -177,6 +177,8 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	
 	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!
 	
+	VGA->VGA_Lock = SDL_CreateSemaphore(1); //Add the lock for hardware/software conflicts!
+
 	//dolog("VGA","Allocation ready.");
 	return VGA; //Give the new allocated VGA!
 }
@@ -316,6 +318,7 @@ void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 {
 	if (__HW_DISABLED) return; //Abort!
 	VGA_Type *realVGA = *VGA; //The real VGA!
+
 	if (realVGA->VRAM) //Got allocated?
 	{
 		freez((void **)&realVGA->VRAM,realVGA->VRAM_size,"VGA_VRAM@DoneVGA"); //Free the VRAM!
@@ -328,6 +331,7 @@ void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 	{
 		freez((void **)&realVGA->Sequencer,sizeof(SEQ_DATA),"SEQ_DATA@DoneVGA"); //Free the registers!
 	}
+	SDL_DestroySemaphore(realVGA->VGA_Lock); //Free the lock!
 	if (VGA) //Valid ptr?
 	{
 		if (*VGA) //Allocated?

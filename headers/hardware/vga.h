@@ -669,6 +669,7 @@ typedef struct PACKED
 	
 	void *Sequencer; //The active sequencer to use!
 	VGA_CRTC CRTC; //The CRTC information!
+	SDL_sem *VGA_Lock; //Hardware register access lock!
 } VGA_Type; //VGA dataset!
 #include "headers/endpacked.h" //We're packed!
 

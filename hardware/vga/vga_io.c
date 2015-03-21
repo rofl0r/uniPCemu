@@ -245,6 +245,7 @@ byte PORT_readVGA(word port) //Read from a port/register!
 	{
 		raiseError("VGA","VGA Port Out, but no active VGA loaded!");
 	}
+	SDL_SemWait(ActiveVGA->VGA_Lock); //Lock ourselves, we don´t want to conflict with our renderer!
 	switch (port) //What port?
 	{
 	case 0x3B0:
@@ -252,76 +253,73 @@ byte PORT_readVGA(word port) //Read from a port/register!
 	case 0x3B6: //Decodes to 3B4!
 	case 0x3B4: //CRTC Controller Address Register		ADDRESS
 	case 0x3D4: //CRTC Controller Address Register		ADDRESS
-		return ActiveVGA->registers->CRTControllerRegisters_Index; //Give!
+		result = ActiveVGA->registers->CRTControllerRegisters_Index; //Give!
 		break;
 	case 0x3B1:
 	case 0x3B3:
 	case 0x3B7: //Decodes to 3B5!
 	case 0x3B5: //CRTC Controller Data Register		DATA
 	case 0x3D5: //CRTC Controller Data Register		DATA
-		return PORT_readCRTC_3B5(); //Read port 3B5!
-		break;
-	case 0x3BA: //Read: Input Status #1 Register (mono)	DATA
-		result = ActiveVGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give default value!
-		result |= DAC_Use_BWMonitor(2) ? 4 : 0; //Are we using a b/w monitor?
-		return result; //Give the result!
+		result = PORT_readCRTC_3B5(); //Read port 3B5!
 		break;
 	case 0x3C0: //Attribute Address/Data register		ADDRESS/DATA
 		//Do nothing: write only port! Undefined!
-		return (VGA_3C0_PAL<<5)|VGA_3C0_INDEX; //Give the saved information!
+		result = (VGA_3C0_PAL<<5)|VGA_3C0_INDEX; //Give the saved information!
 		break;
 	case 0x3C1: //Attribute Data Read Register		DATA
 		if (VGA_3C0_INDEX>=sizeof(ActiveVGA->registers->AttributeControllerRegisters.DATA)) break; //Out of range!
-		return ActiveVGA->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEX]; //Read from current index!
+		result = ActiveVGA->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEX]; //Read from current index!
 		break;
 	case 0x3C2: //Read: Input Status #0 Register		DATA
-		return ActiveVGA->registers->ExternalRegisters.INPUTSTATUS0REGISTER.DATA; //Give the register!
+		result = ActiveVGA->registers->ExternalRegisters.INPUTSTATUS0REGISTER.DATA; //Give the register!
 		break;
 	case 0x3C3: //Video subsystem enable?
-		return ActiveVGA->registers->VGA_3C3|ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable; //RAM enabled?
+		result = ActiveVGA->registers->VGA_3C3|ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable; //RAM enabled?
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
-		return ActiveVGA->registers->SequencerRegisters_Index; //Give the index!
+		result = ActiveVGA->registers->SequencerRegisters_Index; //Give the index!
 		break;
 	case 0x3C5: //Sequencer Data Register			DATA
 		if (ActiveVGA->registers->SequencerRegisters_Index>=sizeof(ActiveVGA->registers->SequencerRegisters.DATA)) break; //Out of range!
-		return ActiveVGA->registers->SequencerRegisters.DATA[ActiveVGA->registers->SequencerRegisters_Index]; //Give the data!
+		result = ActiveVGA->registers->SequencerRegisters.DATA[ActiveVGA->registers->SequencerRegisters_Index]; //Give the data!
 		break;
 	case 0x3C6: //DAC Mask Register?
-		return ActiveVGA->registers->DACMaskRegister; //Give!
+		result = ActiveVGA->registers->DACMaskRegister; //Give!
 		break;
 	case 0x3C7: //Read: DAC State Register			DATA
-		return ActiveVGA->registers->ColorRegisters.DAC_STATE_REGISTER.DATA; //Give!
+		result = ActiveVGA->registers->ColorRegisters.DAC_STATE_REGISTER.DATA; //Give!
 		break;
 	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
-		return ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Give!
+		result = ActiveVGA->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Give!
 		break;
 	case 0x3C9: //DAC Data Register				DATA
-		return PORT_read_DAC_3C9(); //Read port 3C9!
+		result = PORT_read_DAC_3C9(); //Read port 3C9!
 		break;
 	case 0x3CA: //Read: Feature Control Register (mono Read)	DATA
-		return ActiveVGA->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA; //Give!
+		result = ActiveVGA->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA; //Give!
 		break;
 	case 0x3CC: //Read: Miscellaneous Output Register	DATA
-		return ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA; //Give!
+		result = ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA; //Give!
 		break;
 	case 0x3CE: //Graphics Controller Address Register	ADDRESS
-		return ActiveVGA->registers->GraphicsRegisters_Index; //Give!
+		result = ActiveVGA->registers->GraphicsRegisters_Index; //Give!
 		break;
 	case 0x3CF: //Graphics Controller Data Register		DATA
 		if (ActiveVGA->registers->GraphicsRegisters_Index>=sizeof(ActiveVGA->registers->GraphicsRegisters.DATA)) break; //Out of range!
-		return ActiveVGA->registers->GraphicsRegisters.DATA[ActiveVGA->registers->GraphicsRegisters_Index]; //Give!
+		result = ActiveVGA->registers->GraphicsRegisters.DATA[ActiveVGA->registers->GraphicsRegisters_Index]; //Give!
 		break;
-
+	case 0x3BA:	//Read: Input Status #1 Register (mono)	DATA
 	case 0x3DA: //Input Status #1 Register (color)	DATA
 		ActiveVGA->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.DataState = 0; //Reset flipflop for 3C0!
 		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_CRTCONTROLLER|0x24); //We have been updated!		
-		return ActiveVGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
+		result = ActiveVGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
 		break;
 	default: //Unknown?
+		result = PORT_UNDEFINED_RESULT; //Give an undefined result!
 		break; //Not used!
 	}
-	return PORT_UNDEFINED_RESULT; //Disabled for now or unknown port!
+	SDL_SemPost(ActiveVGA->VGA_Lock); //The rendering can start again!
+	return result; //Disabled for now or unknown port!
 }
 
 extern byte LOG_VRAM_WRITES; //Log it?
@@ -331,6 +329,7 @@ void PORT_writeVGA(word port, byte value) //Write to a port/register!
 	{
 		raiseError("VGA","VGA Port Out, but no active VGA loaded!");
 	}
+	SDL_SemWait(ActiveVGA->VGA_Lock); //Lock ourselves, we don´t want to conflict with our renderer!
 	byte temp;
 	switch (port) //What port?
 	{
@@ -338,7 +337,11 @@ void PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3B2:
 	case 0x3B6: //Decodes to 3B4!
 	case 0x3B4: //CRTC Controller Address Register		ADDRESS
+		if (ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		goto accesscrtaddress;
 	case 0x3D4: //CRTC Controller Address Register		ADDRESS
+		if (!ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
+		accesscrtaddress:
 		ActiveVGA->registers->CRTControllerRegisters_Index = value; //Set!
 		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_INDEX|INDEX_CRTCONTROLLER); //Updated index!
 		break;
@@ -346,12 +349,20 @@ void PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3B3:
 	case 0x3B7: //Decodes to 3B5!
 	case 0x3B5: //CRTC Controller Data Register		DATA
+		if (ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		goto accesscrtvalue;
 	case 0x3D5: //CRTC Controller Data Register		DATA
+		if (!ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
+		accesscrtvalue:
 		PORT_write_CRTC_3B5(value); //Write CRTC!
 		break;
 	case 0x3BA: //Write: Feature Control Register (mono)		DATA
+		if (ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		goto accessfc;
 	case 0x3CA: //Same as above!
 	case 0x3DA: //Same!
+		if (!ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
+		accessfc: //Allow!
 		ActiveVGA->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA = value; //Set!
 		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_FEATURECONTROLREGISTER); //We have been updated!
 		break;
@@ -377,7 +388,7 @@ void PORT_writeVGA(word port, byte value) //Write to a port/register!
 		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_INDEX|INDEX_SEQUENCER); //Updated index!
 		break;
 	case 0x3C5: //Sequencer Data Register			DATA
-		if (ActiveVGA->registers->SequencerRegisters_Index>7) return; //Invalid data!
+		if (ActiveVGA->registers->SequencerRegisters_Index>7) break; //Invalid data!
 		if (ActiveVGA->registers->SequencerRegisters_Index==7) //Disable display till write to sequencer registers 0-6?
 		{
 			ActiveVGA->registers->CRTControllerDontRender = 0xFF; //Force to 0xFF indicating display disabled!
@@ -414,11 +425,13 @@ void PORT_writeVGA(word port, byte value) //Write to a port/register!
 		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_INDEX|INDEX_GRAPHICSCONTROLLER); //Updated index!
 		break;
 	case 0x3CF: //Graphics Controller Data Register		DATA
-		if (ActiveVGA->registers->GraphicsRegisters_Index>=sizeof(ActiveVGA->registers->GraphicsRegisters.DATA)) return; //Invalid index!
+		if (ActiveVGA->registers->GraphicsRegisters_Index>=sizeof(ActiveVGA->registers->GraphicsRegisters.DATA)) break; //Invalid index!
 		ActiveVGA->registers->GraphicsRegisters.DATA[ActiveVGA->registers->GraphicsRegisters_Index] = value; //Set!
 		VGA_calcprecalcs(ActiveVGA,WHEREUPDATED_GRAPHICSCONTROLLER|ActiveVGA->registers->GraphicsRegisters_Index); //We have been updated!				
 		break;
 	default: //Unknown?
 		break; //Not used!
 	}
+	finishoutput: //Finisher?
+	SDL_SemPost(ActiveVGA->VGA_Lock); //The rendering can start again!
 }

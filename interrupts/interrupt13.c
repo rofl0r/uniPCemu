@@ -282,15 +282,14 @@ byte readdiskdata(uint_32 startpos)
 		for (;;)
 		{
 			MMU_wb(CPU_SEGMENT_ES,REG_ES,position,int13_buffer[current]); //Write the data to memory!
-			if (MMU_rb(CPU_SEGMENT_ES, REG_ES, position, 0) != int13_buffer[current]) //Failed to write (unexistant memory, paged out or read-only)?
+			if (MMU_rb(CPU_SEGMENT_ES, REG_ES, position++, 0) != int13_buffer[current]) //Failed to write (unexistant memory, paged out or read-only)?
 			{
 				last_status = 0x00;
 				CALLBACK_SCF(1); //Error!
 				goto finishup;
 			}
-			if (!left--) goto nextsector; //Stop when nothing left!
+			if (!--left) goto nextsector; //Stop when nothing left!
 			++current; //Next byte in the buffer!
-			++position; //Next position in memory!
 		}
 		nextsector: //Process next sector!
 		--sectors; //One sector processed!
@@ -324,10 +323,9 @@ byte writediskdata(uint_32 startpos)
 		current = 0; //Current byte in the buffer!
 		for (;;)
 		{
-			int13_buffer[current] = MMU_rb(CPU_SEGMENT_ES,REG_ES,position,0); //Read the data from memory (no opcode)!
-			if (!left--) goto dosector; //Stop when nothing left!
+			int13_buffer[current] = MMU_rb(CPU_SEGMENT_ES,REG_ES,position++,0); //Read the data from memory (no opcode)!
+			if (!--left) goto dosector; //Stop when nothing left!
 			++current; //Next byte in the buffer!
-			++position; //Next position in memory!
 		}
 		dosector: //Process next sector!
 		//Write to disk!

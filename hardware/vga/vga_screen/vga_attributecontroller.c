@@ -10,7 +10,7 @@ extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c
 
 #define CURRENTBLINK(VGA) VGA->TextBlinkOn
 
-OPTINLINE byte getattributeback(byte textmode, byte attr,byte filter)
+OPTINLINE byte getattributeback(VGA_Type *VGA,byte textmode, byte attr,byte filter)
 {
 	register byte temp = attr;
 	//Only during text mode: shift!
@@ -94,7 +94,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					
 					if (enableblink) //Blink affects font?
 					{
-						if (getattributeback(textmode,Attribute,0x8)) //Blink enabled?
+						if (getattributeback(VGA,textmode,Attribute,0x8)) //Blink enabled?
 						{
 							fontstatus &= currentblink; //Need blink on to show!
 						}
@@ -107,7 +107,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					}
 					else
 					{
-						CurrentDAC = getattributeback(textmode,Attribute,backgroundfilter); //Back!
+						CurrentDAC = getattributeback(VGA,textmode,Attribute,backgroundfilter); //Back!
 					}
 
 					CurrentDAC &= colorplanes; //Apply color planes!

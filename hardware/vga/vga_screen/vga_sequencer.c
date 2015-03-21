@@ -457,12 +457,15 @@ void VGA_Sequencer()
 	VGA_Type *VGA = getActiveVGA(); //Our active VGA!
 	if (!memprotect(VGA, sizeof(*VGA), "VGA_Struct")) return; //Invalid VGA? Don't do anything!
 
+	SDL_SemWait(VGA->VGA_Lock); //Lock ourselves!
+
 	SEQ_DATA *Sequencer;
 	word displaystate; //Current display state!
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
 
 	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Not doing anything?
 	{
+		SDL_SemPost(VGA->VGA_Lock);
 		return; //Abort: we're disabled!
 	}
 
@@ -481,6 +484,8 @@ void VGA_Sequencer()
 		//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59 && Sequencer->x==639) dolog("VGA","Rendering %i,%i",Sequencer->Scanline,Sequencer->x); //Log our current x we're processing!
 		displaysignalhandler[displaystate](Sequencer,VGA,displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalretracing][displaystate](Sequencer,VGA); //Execute our signal!
-		if (Sequencer_Break) return; //Abort when done!
+		if (Sequencer_Break) break; //Abort when done!
 	}
+
+	SDL_SemPost(VGA->VGA_Lock); //Unlock the VGA for Software access!
 }
