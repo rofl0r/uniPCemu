@@ -508,6 +508,9 @@ void initDMA()
 	register_PORTOUT_range(0x80,0x9F,&DMA_WriteIO);
 	register_PORTIN_range(0x80,0x9F,&DMA_ReadIO);
 
+	DMAController[0].CommandRegister |= 0x4; //Disable controller!
+	DMAController[1].CommandRegister |= 0x4; //Disable controller!
+
 	if (!__HW_DISABLED) //Enabled?
 	{
 		//We're up to 1.6MB/s, so for 1 channel 1.6 million bytes per second, for all channels, to 8 channel 204953.6 bytes per second!
