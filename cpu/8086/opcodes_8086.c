@@ -1093,10 +1093,10 @@ void CPU8086_internal_RETF(word popbytes)
 {
 	word val = CPU_POP16();    //Far return
 	CPUPROT1
-	REG_IP = val;
 	segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),2); //CS changed!
 	CPUPROT1
-	REG_SP += popbytes;
+		REG_IP = val; //Load IP last!
+		REG_SP += popbytes; //Process SP!
 	CPUPROT2
 	CPUPROT2
 }
@@ -1379,7 +1379,7 @@ void CPU8086_OP96() {modrm_generateInstructionTEXT("XCHG SI,AX",0,0,PARAM_NONE);
 void CPU8086_OP97() {modrm_generateInstructionTEXT("XCHG DI,AX",0,0,PARAM_NONE);/*XCHG AX,DI*/ CPU8086_internal_XCHG16(&REG_DI,&REG_AX); /*XCHG DI,AX*/ }
 void CPU8086_OP98() {modrm_generateInstructionTEXT("CBW",0,0,PARAM_NONE);/*CBW : sign extend AL to AX*/ CPU8086_internal_CBW();/*CBW : sign extend AL to AX (8088+)*/ }
 void CPU8086_OP99() {modrm_generateInstructionTEXT("CWD",0,0,PARAM_NONE);/*CWD : sign extend AX to DX::AX*/ CPU8086_internal_CWD();/*CWD : sign extend AX to DX::AX (8088+)*/ }
-void CPU8086_OP9A() {/*CALL Ap*/ word offset = CPU_readOPw(); word segment = CPU_readOPw(); debugger_setcommand("CALL %04x:%04x",segment,offset); CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP); REG_IP = offset; segmentWritten(CPU_SEGMENT_CS,segment,2); /*CS changed!*/ }
+void CPU8086_OP9A() {/*CALL Ap*/ word offset = CPU_readOPw(); word segment = CPU_readOPw(); debugger_setcommand("CALL %04x:%04x", segment, offset); CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP); segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed!*/ CPUPROT1 REG_IP = offset; CPUPROT2 }
 void CPU8086_OP9B() {modrm_generateInstructionTEXT("WAIT",0,0,PARAM_NONE);/*WAIT : wait for TEST pin activity. (UNIMPLEMENTED)*/ CPU.wait = 1;/*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
 void CPU8086_OP9C() {modrm_generateInstructionTEXT("PUSHF",0,0,PARAM_NONE);/*PUSHF*/ CPU_PUSH16(&REG_FLAGS); }
 void CPU8086_OP9D() {modrm_generateInstructionTEXT("POPF",0,0,PARAM_NONE);/*POPF*/ REG_FLAGS = CPU_POP16();/*POPF*/ }
@@ -1446,7 +1446,7 @@ void CPU8086_OPE6(){byte theimm = CPU_readOP();debugger_setcommand("OUT %02X,AL"
 void CPU8086_OPE7(){byte theimm = CPU_readOP(); debugger_setcommand("OUT %02X,AX",theimm); PORT_OUT_W(theimm,REG_AX);}
 void CPU8086_OPE8(){sword reloffset = imm16(); modrm_generateInstructionTEXT("CALL",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); CPU_PUSH16(&REG_IP); REG_IP += reloffset;}
 void CPU8086_OPE9(){sword reloffset = imm16(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); REG_IP += reloffset;}
-void CPU8086_OPEA(){word offset = CPU_readOPw(); word segment = CPU_readOPw(); debugger_setcommand("JMP %04X:%04X",segment,offset);REG_IP = offset;segmentWritten(CPU_SEGMENT_CS,segment,1);}
+void CPU8086_OPEA(){ word offset = CPU_readOPw(); word segment = CPU_readOPw(); debugger_setcommand("JMP %04X:%04X", segment, offset); segmentWritten(CPU_SEGMENT_CS, segment, 1); CPUPROT1 REG_IP = offset; CPUPROT2 }
 void CPU8086_OPEB(){signed char reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16);REG_IP += reloffset;}
 void CPU8086_OPEC(){modrm_generateInstructionTEXT("IN AL,DX",0,0,PARAM_NONE);REG_AL = PORT_IN_B(REG_DX);}
 void CPU8086_OPED(){modrm_generateInstructionTEXT("IN AX,DX",0,0,PARAM_NONE); REG_AX = PORT_IN_W(REG_DX);}
