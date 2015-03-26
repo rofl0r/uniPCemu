@@ -302,7 +302,6 @@ int INT10_Internal_SetVideoMode(word mode)
 	case M_CGA2:
 		seq_data[2]|=0xf;				//Enable plane 0
 		if (machine==MCH_EGA) seq_data[4]|=0x04;		//odd/even enabled
-		if (IS_VGA_ARCH) seq_data[4]|=0x04; //odd/even enabled
 		break;
 	case M_CGA4:
 		seq_data[2]|=0x03;		//Enable plane 0 and 1
@@ -502,7 +501,7 @@ int INT10_Internal_SetVideoMode(word mode)
 	switch (CurMode->type)
 	{
 	case M_CGA2:
-		mode_control=0xa2; // 0x06 sets address wrap.
+		mode_control=0xc2; // 0x06 sets address wrap.
 		break;
 	case M_CGA4:
 		mode_control=0xa2;
