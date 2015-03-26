@@ -91,10 +91,6 @@ extern byte vga_palette[256][3];
 extern VideoModeBlock ModeList_VGA_Text_200lines[4];
 extern VideoModeBlock ModeList_VGA_Text_350lines[4];
 
-extern VideoModeBlock Hercules_Mode;
-
-
-
 //Now the function itself (a big one)!
 /* Setup the BIOS */
 
@@ -237,7 +233,6 @@ int INT10_Internal_SetVideoMode(word mode)
 		// check for scanline backwards compatibility (VESA text modes??)
 		if (CurMode->type==M_TEXT)
 		{
-			//raiseError("Debug_INT10_SetVideoMode_TEXT200","Checkpoint 1A");
 			if ((modeset_ctl&0x90)==0x80)   // 200 lines emulation
 			{
 				if (CurMode->mode <= 3)
@@ -281,6 +276,11 @@ int INT10_Internal_SetVideoMode(word mode)
 		break;
 	default:
 		misc_output|=0x60;
+	}
+
+	if (CurMode->type == M_CGA2) //Monochrome CGA?
+	{
+		misc_output &= ~0x20; //Monochrome CGA used low plane (linear plane 0)
 	}
 	
 	IO_Write(0x3c2,misc_output);		//Setup for 3b4 or 3d4
@@ -525,12 +525,13 @@ int INT10_Internal_SetVideoMode(word mode)
 	case M_TEXT:
 	case M_VGA:
 		mode_control=0xa3;
-		if (CurMode->special & _VGA_PIXEL_DOUBLE)
-			mode_control |= 0x08;
 		break;
 	default:
 		break;
 	}
+
+	if (CurMode->special & _VGA_PIXEL_DOUBLE)
+		mode_control |= 0x08;
 
 	IO_Write(crtc_base,0x17);
 	IO_Write(crtc_base+1,mode_control);

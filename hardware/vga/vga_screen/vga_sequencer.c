@@ -55,8 +55,6 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 		break;
 	}
 
-	result >>= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Divide by Dot Clock Rate!
-
 	return ((float)result / getHorizontalTotal(VGA)); //Calculate the ammount of horizontal clocks per second!
 
 }
@@ -139,15 +137,13 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	Sequencer->chary = row = *currowstatus++; //First is chary (effective character/graphics row)!
 	Sequencer->charinner_y = *currowstatus; //Second is charinner_y!
 
-	row >>= VGA->precalcs.characterclockshift; //Apply character clock shift!
-
 	charystart = getVRAMScanlineStart(VGA, row); //Calculate row start!
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
 	charystart += Sequencer->bytepanning; //Apply byte panning to the index!
 	Sequencer->charystart = charystart; //What row to start with our pixels!
 
 	//Some attribute controller special 8-bit mode support!
-	Sequencer->doublepixels = 0; //Reset double pixels status for odd sized screens.
+	Sequencer->active_pixelrate = 0; //Reset pixel load rate status for odd sized screens.
 }
 
 byte Sequencer_Break; //Sequencer breaked (loop exit)?
@@ -271,17 +267,10 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer)) goto othernibble; //Apply the attribute through the attribute controller!
 	//activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
 	VGA_ActiveDisplay_noblanking(VGA, Sequencer, &attributeinfo); //Ignore blanking!
-	if (VGA->precalcs.doublepixels) //Apply double pixels?
+
+	if (++Sequencer->active_pixelrate > VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) //To write back the pixel clock every or every other pixel?
 	{
-		byte allow_tempx = Sequencer->doublepixels; //Allow saving when set!
-		Sequencer->doublepixels ^= 1; //We're the second pixel next, so reverse state?
-		if (allow_tempx) //Allowed to draw next?
-		{
-			Sequencer->tempx = tempx; //Write back tempx!
-		}
-	}
-	else
-	{
+		Sequencer->active_pixelrate = 0; //Reset!
 		Sequencer->tempx = tempx; //Write back tempx!
 	}
 }

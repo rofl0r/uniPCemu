@@ -27,6 +27,7 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 {
 	uint_32 current;
 	byte charsize;
+	uint_32 realtiming;
 	//Column and row status for each pixel on-screen!
 	charsize = getcharacterheight(VGA); //First, based on height!
 	current = 0; //Init!
@@ -43,9 +44,13 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 	current = 0; //Init!
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
-		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
-		VGA->CRTC.charcolstatus[(current<<1)|1] = current%charsize;
-		VGA->CRTC.colstatus[current] = get_display_x(VGA,current); //Translate!
+		realtiming = current;
+		realtiming >>= VGA->precalcs.characterclockshift; //Apply character clock shift to get the character clock rate!
+		VGA->CRTC.charcolstatus[current<<1] = realtiming/charsize;
+		VGA->CRTC.charcolstatus[(current<<1)|1] = realtiming%charsize;
+		realtiming = current; //Same rate as the basic rate!
+		realtiming >>= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Apply dot clock rate!
+		VGA->CRTC.colstatus[current] = get_display_x(VGA,realtiming); //Translate to display rate!
 		++current; //Next!
 	}
 	
@@ -414,9 +419,11 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			{
 				VGA->precalcs.characterclockshift = 0; //Don't shift!
 			}
+			
 			underlinelocationupdated = 1; //We need to update the attribute controller!
 			scanlinesizeupdated = 1; //We need to update this too!
 			//dolog("VGA","VTotal after VRAMMemAddrSize: %i",VGA->precalcs.verticaltotal); //Log it!
+			updateCRTC = 1; //Update the CRTC!
 		}
 		
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //Updated?

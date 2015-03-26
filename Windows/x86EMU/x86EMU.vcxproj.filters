@@ -667,9 +667,6 @@
     <ClInclude Include="..\..\headers\hardware\vga_rest\colorconversion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\headers\hardware\vga_dosbox_screenmodes_unused.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\headers\hardware\softdebugger.h">
       <Filter>Header Files</Filter>
     </ClInclude>

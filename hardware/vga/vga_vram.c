@@ -39,7 +39,7 @@ OPTINLINE word patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VR
 	Sequencer = (SEQ_DATA *)VGA->Sequencer; //The sequencer!
 
 	register word rowscancounter = Sequencer->Scanline; //Load the row scan counter!
-	rowscancounter >>= VGA->precalcs.characterclockshift; //Apply character clock shift!
+	rowscancounter = VGA->CRTC.charrowstatus[rowscancounter << 1]; //Take the row status as our source!
 	rowscancounter >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Apply scanline division!
 	rowscancounter >>= VGA->precalcs.scandoubling; //Apply Scan Doubling here: we take effect on content!
 

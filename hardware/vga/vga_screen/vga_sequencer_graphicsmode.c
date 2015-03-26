@@ -23,7 +23,7 @@ void VGA_loadgraphicsplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load t
 	word location; //The location loaded into the planesbuffer!
 	location = x; //X!
 	location >>= 3; //We take portions of 8 pixels, so increase our location every 8 pixels!
-	location >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2; //Apply divide character clock by 2!
+	
 	location <<= getVGAShift(VGA); //Apply VGA shift: the shift is the ammount to move at a time!
 
 	//Row logic
@@ -184,8 +184,8 @@ void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attribut
 	byte currentbuffer;
 	attributeinfo->fontpixel = 1; //Graphics attribute is always font enabled!
 	currentbuffer = Sequencer->activex; //Current x coordinate!
-	currentbuffer &= 7; //We're buffering 8 pixels!
-	if (!currentbuffer) //First of a block?
+	currentbuffer &= 7; //We're buffering every 8 pixels!
+	if (!currentbuffer) //First of a block? Reload our pixel buffer!
 	{
 		VGA_loadgraphicsplanes(VGA, Sequencer, Sequencer->activex); //Load data from the graphics planes!
 		loadpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](); //Load the pixels from the buffer!

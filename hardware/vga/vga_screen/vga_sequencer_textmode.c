@@ -42,7 +42,6 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	byte currentchar, attribute;
 	character = Sequencer->activex; //Current character point (horizontally)
 	//X!
-	character >>= VGA->precalcs.characterclockshift; //Apply DIVIDE when needed!
 	character <<= 1; //The index into charcolstatus is always a multiple of 2!
 
 	curcolstatus = &VGA->CRTC.charcolstatus[character]; //Current col status!

@@ -2,22 +2,22 @@
 
 VideoModeBlock ModeList_VGA[0x14] = {  //VGA Modelist!
 /* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
-{ 0x000, M_TEXT, 360, 400, 40, 25, 9, 16, 8, 0xB8000, 0x0800, 50, 449, 40, 400, _EGA_HALF_CLOCK },
-{ 0x001, M_TEXT, 360, 400, 40, 25, 9, 16, 8, 0xB8000, 0x0800, 50, 449, 40, 400, _EGA_HALF_CLOCK },
+	{ 0x000, M_TEXT, 360, 400, 40, 25, 9, 16, 8, 0xB8000, 0x0800, 50, 449, 80, 400, _EGA_HALF_CLOCK | _VGA_PIXEL_DOUBLE },
+	{ 0x001, M_TEXT, 360, 400, 40, 25, 9, 16, 8, 0xB8000, 0x0800, 50, 449, 80, 400, _EGA_HALF_CLOCK | _VGA_PIXEL_DOUBLE },
 { 0x002, M_TEXT, 720, 400, 80, 25, 9, 16, 8, 0xB8000, 0x1000, 100, 449, 80, 400, 0 },
 { 0x003, M_TEXT, 720, 400, 80, 25, 9, 16, 8, 0xB8000, 0x1000, 100, 449, 80, 400, 0 },
-{ 0x004, M_CGA4, 320, 200, 40, 25, 8, 8, 1, 0xB8000, 0x4000, 50, 449, 40, 400, _EGA_HALF_CLOCK | _EGA_LINE_DOUBLE },
-{ 0x005, M_CGA4, 320, 200, 40, 25, 8, 8, 1, 0xB8000, 0x4000, 50, 449, 40, 400, _EGA_HALF_CLOCK | _EGA_LINE_DOUBLE },
+{ 0x004, M_CGA4, 320, 200, 40, 25, 8, 8, 1, 0xB8000, 0x4000, 50, 449, 40, 400, _EGA_HALF_CLOCK | _VGA_PIXEL_DOUBLE | _EGA_LINE_DOUBLE },
+{ 0x005, M_CGA4, 320, 200, 40, 25, 8, 8, 1, 0xB8000, 0x4000, 50, 449, 40, 400, _EGA_HALF_CLOCK | _VGA_PIXEL_DOUBLE | _EGA_LINE_DOUBLE },
 { 0x006, M_CGA2, 640, 200, 80, 25, 8, 8, 1, 0xB8000, 0x4000, 100, 449, 80, 400, _EGA_LINE_DOUBLE },
 { 0x007, M_TEXT, 720, 400, 80, 25, 9, 16, 8, 0xB0000, 0x1000, 100, 449, 80, 400, 0 },
 
-{ 0x00D, M_EGA, 320, 200, 40, 25, 8, 8, 8, 0xA0000, 0x2000, 50, 449, 40, 400, _EGA_HALF_CLOCK | _EGA_LINE_DOUBLE },
+{ 0x00D, M_EGA, 320, 200, 40, 25, 8, 8, 8, 0xA0000, 0x2000, 50, 449, 40, 400, _EGA_HALF_CLOCK | _VGA_PIXEL_DOUBLE | _EGA_LINE_DOUBLE },
 { 0x00E, M_EGA, 640, 200, 80, 25, 8, 8, 4, 0xA0000, 0x4000, 100, 449, 80, 400, _EGA_LINE_DOUBLE },
 { 0x00F, M_EGA, 640, 350, 80, 25, 8, 14, 2, 0xA0000, 0x8000, 100, 449, 80, 350, 0 },/*was EGA_2*/
 { 0x010, M_EGA, 640, 350, 80, 25, 8, 14, 2, 0xA0000, 0x8000, 100, 449, 80, 350, 0 },
 { 0x011, M_EGA, 640, 480, 80, 30, 8, 16, 1, 0xA0000, 0xA000, 100, 525, 80, 480, 0 },/*was EGA_2 */
 { 0x012, M_EGA, 640, 480, 80, 30, 8, 16, 1, 0xA0000, 0xA000, 100, 525, 80, 480, 0 },
-{ 0x013, M_VGA, 320, 200, 40, 25, 8, 8, 1, 0xA0000, 0x2000, 100, 449, 80, 400, _VGA_PIXEL_DOUBLE | _EGA_LINE_DOUBLE }
+{ 0x013, M_VGA, 320, 200, 40, 25, 8, 8, 1, 0xA0000, 0x2000, 100, 449, 80, 400, _EGA_HALF_CLOCK | _VGA_PIXEL_DOUBLE | _EGA_LINE_DOUBLE }
 }; //VGA Modelist!
 
 byte text_palette[64][3]=
@@ -140,30 +140,11 @@ VideoModeBlock ModeList_VGA_Text_200lines[4]=
 VideoModeBlock ModeList_VGA_Text_350lines[4]=
 {
 	/* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
-	{ 0x000  ,M_TEXT   ,320 ,350 ,40 ,25 ,8 ,14 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,350 ,_EGA_HALF_CLOCK	},
-	{ 0x001  ,M_TEXT   ,320 ,350 ,40 ,25 ,8 ,14 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,350 ,_EGA_HALF_CLOCK	},
+	{ 0x000  ,M_TEXT   ,320 ,350 ,40 ,25 ,8 ,14 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,80 ,350 ,_EGA_HALF_CLOCK | _VGA_PIXEL_DOUBLE	},
+	{ 0x001  ,M_TEXT   ,320 ,350 ,40 ,25 ,8 ,14 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,80 ,350 ,_EGA_HALF_CLOCK | _VGA_PIXEL_DOUBLE	},
 	{ 0x002  ,M_TEXT   ,640 ,350 ,80 ,25 ,8 ,14 ,8 ,0xB8000 ,0x1000 ,100 ,449 ,80 ,350 ,0	},
 	{ 0x003  ,M_TEXT   ,640 ,350 ,80 ,25 ,8 ,14 ,8 ,0xB8000 ,0x1000 ,100 ,449 ,80 ,350 ,0	}
 };
-
-VideoModeBlock ModeList_OTHER[11]=
-{
-	/* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde ,special flags */
-	{ 0x000  ,M_TEXT   ,320 ,400 ,40 ,25 ,8 ,8  ,8 ,0xB8000 ,0x0800 ,56  ,31  ,40 ,25  ,0   },
-	{ 0x001  ,M_TEXT   ,320 ,400 ,40 ,25 ,8 ,8  ,8 ,0xB8000 ,0x0800 ,56  ,31  ,40 ,25  ,0	},
-	{ 0x002  ,M_TEXT   ,640 ,400 ,80 ,25 ,8 ,8  ,4 ,0xB8000 ,0x1000 ,113 ,31  ,80 ,25  ,0	},
-	{ 0x003  ,M_TEXT   ,640 ,400 ,80 ,25 ,8 ,8  ,4 ,0xB8000 ,0x1000 ,113 ,31  ,80 ,25  ,0	},
-	{ 0x004  ,M_CGA4   ,320 ,200 ,40 ,25 ,8 ,8  ,4 ,0xB8000 ,0x0800 ,56  ,127 ,40 ,100 ,0   },
-	{ 0x005  ,M_CGA4   ,320 ,200 ,40 ,25 ,8 ,8  ,4 ,0xB8000 ,0x0800 ,56  ,127 ,40 ,100 ,0   },
-	{ 0x006  ,M_CGA2   ,640 ,200 ,80 ,25 ,8 ,8  ,4 ,0xB8000 ,0x0800 ,56  ,127 ,40 ,100 ,0   },
-	{ 0x008  ,M_TANDY16,160 ,200 ,20 ,25 ,8 ,8  ,8 ,0xB8000 ,0x2000 ,56  ,127 ,40 ,100 ,0   },
-	{ 0x009  ,M_TANDY16,320 ,200 ,40 ,25 ,8 ,8  ,8 ,0xB8000 ,0x2000 ,113 ,63  ,80 ,50  ,0   },
-	{ 0x00A  ,M_CGA4   ,640 ,200 ,80 ,25 ,8 ,8  ,8 ,0xB8000 ,0x2000 ,113 ,63  ,80 ,50  ,0   },
-	{0xFFFF  ,M_ERROR  ,0   ,0   ,0  ,0  ,0 ,0  ,0 ,0x00000 ,0x0000 ,0   ,0   ,0  ,0   ,0 	}
-};
-
-VideoModeBlock Hercules_Mode=
-{ 0x007  ,M_TEXT   ,640 ,400 ,80 ,25 ,8 ,14 ,1 ,0xB0000 ,0x1000 ,97 ,25  ,80 ,25  ,0	};
 
 Bit8u cga_masks[4]={0x3f,0xcf,0xf3,0xfc};
 Bit8u cga_masks2[8]={0x7f,0xbf,0xdf,0xef,0xf7,0xfb,0xfd,0xfe};

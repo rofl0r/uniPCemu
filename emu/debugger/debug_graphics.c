@@ -10,7 +10,7 @@
 #include "headers/hardware/vga_screen/vga_precalcs.h" //For the CRT precalcs dump!
 #include "headers/hardware/vga_screen/vga_dac.h" //DAC support!
 //To make a screen capture of all of the debug screens active?
-#define LOG_VGA_SCREEN_CAPTURE 0
+#define LOG_VGA_SCREEN_CAPTURE 2
 //For text-mode debugging! 40 and 80 character modes!
 #define VIDEOMODE_TEXTMODE_40 0x00
 #define VIDEOMODE_TEXTMODE_80 0x02
@@ -37,7 +37,10 @@ void debugTextModeScreenCapture()
 	//VGA_DUMPDAC(); //Make sure the DAC is dumped!
 	SCREEN_CAPTURE = LOG_VGA_SCREEN_CAPTURE; //Screen capture next frame?
 	VGA_waitforVBlank(); //Log one screen!
-	VGA_waitforVBlank(); //Wait for VBlank!
+	for (; SCREEN_CAPTURE;) //Busy?
+	{
+		VGA_waitforVBlank(); //Wait for VBlank!
+	}
 }
 
 extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
@@ -112,10 +115,11 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	}
 	*/
 	
-	dolog("VGA", "CRTC of mode %02X", mode); //Log what mode we're dumping!
-	VGA_LOGCRTCSTATUS(); //Dump the current CRTC status!
-	dump_CRTCTiming(); //Dum the current CRTC timing!
+	//dolog("VGA", "CRTC of mode %02X", mode); //Log what mode we're dumping!
+	//VGA_LOGCRTCSTATUS(); //Dump the current CRTC status!
+	//dump_CRTCTiming(); //Dump the current CRTC timing!
 	startTimers(0); //Start the timers!
+	debugTextModeScreenCapture(); //Debug a screen capture!
 	delay(5000000); //Wait a bit!
 }
 
@@ -304,7 +308,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//B/W mode!
 	
 	//TODO:
-	//DoDebugVGAGraphics(0x06,640,200,0x02,0,0x1,1,0); //Debug 640x200x2(B/W)! NOT WORKING YET: Giving too much output!
+	//DoDebugVGAGraphics(0x06,640,200,0x02,0,0x1,1,0); //Debug 640x200x2(B/W)! NOT WORKING YET: 50% displays fine, 50% (every 8 pixels) displays black!
 	
 	//DoDebugVGAGraphics(0x0F,640,350,0x02,0,0x1,1,0); //Debug 640x350x2(Monochrome)! GIVES BLACK SCREEN!
 	//16 color mode!

@@ -97,9 +97,7 @@ typedef struct //Contains the precalculated values!
 	
 	//Attribute controller precalcs!
 	byte attributeprecalcs[0x8000]; //All attribute precalcs!
-	
-	byte doublepixels; //Load new character/pixel every other clock instead of every clock?
-	
+
 	//Rest!
 	word clockselectrows; //Rows determined by clock select!
 	word verticalcharacterclocks; //Ammount of vertical character clocks! (VerticalBlankingStart/(Max scanline-1)) OR 1)

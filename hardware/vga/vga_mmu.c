@@ -206,8 +206,6 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		*realoffset >>= 2; //Rest of the bits. Multiples of 4 wont get written!
 		return; //Done!
 	}
-	//if (!ActiveVGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.EnableOE) //Odd/even mode disabled? (According to Dosbox, this value is 0!)
-		//Sequential mode?
 	if (!ActiveVGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode) //Sequential mode?
 	{
 		if (towrite) //Writing access?
@@ -227,13 +225,23 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	//Odd/even mode used (compatiblity case)?
 	//Do the same as VPC!
 	register byte calcplanes;
-	calcplanes = offset;
-	calcplanes &= 1; //Take 1 bit to determine the plane (0/1)!
-	calcplanes = (1 << calcplanes); //The plane calculated (0/1)!
-	calcplanes |= (calcplanes << 2); //Add the high plane for destination!
-	offset &= 0xFFFE; //Take the offset within the plane!
+	register uint_32 newoffset;
+	newoffset = offset; //Take the default offset!
+	newoffset &= 0xFFFE; //Take the offset within the plane!
+	if (ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage) //High page selected?
+	{
+		calcplanes = offset;
+		calcplanes &= 1; //Take 1 bit to determine the plane (0/1)!
+		calcplanes = (1 << calcplanes); //The plane calculated (0/1)!
+		calcplanes |= (calcplanes << 1); //Add high page!
+	}
+	else //Low page selected?
+	{
+		calcplanes = 1; //Always plane 0!
+		newoffset |= (offset & 1); //Use odd offset at the low page!
+	}
 	*planes = calcplanes; //Load the planes to address!
-	*realoffset = offset; //Load the offset to address!
+	*realoffset = newoffset; //Load the offset to address!
 }
 
 extern byte LOG_VRAM_WRITES; //Log VRAM writes?
