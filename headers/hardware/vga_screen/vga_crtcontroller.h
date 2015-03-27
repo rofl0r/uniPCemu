@@ -63,6 +63,4 @@ word get_display(VGA_Type *VGA, word Scanline, word x); //Get/adjust the current
 
 #define getcharacterheight(VGA) VGA->precalcs.characterheight
 //The character height!
-
-byte getVGAShift(VGA_Type *VGA); //Get the shift to use: 0(x1), 1(x2) or 2(x4)!
 #endif

@@ -391,7 +391,7 @@ byte coreHandler()
 		cpudebugger = needdebugger(); //Debugging information required?
 
 		CPU_beforeexec(); //Everything before the execution!
-		if (!CPU.trapped) //Only check for hardware interrupts when not trapped!
+		if (!CPU.trapped && CPU.registers) //Only check for hardware interrupts when not trapped!
 		{
 			if (CPU.registers->SFLAGS.IF && PICInterrupt()) call_hard_inthandler(nextintr()); //get next interrupt from the i8259, if any
 		}

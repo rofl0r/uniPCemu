@@ -1293,7 +1293,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 	int i;
 	for (i=0;i<NUMITEMS(activevoices);i++) //Assign all voices available!
 	{
-		activevoices[i].availablevoicebit = (1 << (uint_64)i); //Our bit in available voices!
+		activevoices[i].availablevoicebit = (1LL << (uint_64)i); //Our bit in available voices!
 		removechannel(&MIDIDEVICE_renderer,&activevoices[i],0); //Remove the channel! Delay at 0.96ms for response speed!
 	}
 	unlockaudio(1);

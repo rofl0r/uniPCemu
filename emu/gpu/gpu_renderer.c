@@ -236,7 +236,7 @@ void render_EMU_screen() //Render the EMU buffer to the screen!
 		}
 		
 		finishbottomrendering:
-		if (memprotect(resized, sizeof(*resized), NULL))
+		if (memprotect(resized, sizeof(*resized), NULL) && resized)
 		{
 			resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
 		}

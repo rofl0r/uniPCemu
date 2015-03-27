@@ -25,12 +25,6 @@ byte LOG_VRAM_WRITES = 0;
 
 //Bit from left to right starts with 0(value 128) ends with 7(value 1)
 
-//Retrieval function for single bits instead of full bytes!
-byte getBitPlaneBit(VGA_Type *VGA, byte plane, word offset, byte bit, byte is_renderer)
-{
-	return GETBIT(readVRAMplane(VGA,plane,offset,is_renderer),7-bit); //Give the bit!
-}
-
 //Below patches input addresses for rendering only.
 OPTINLINE word patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VRAM address!
 { //Check this!

@@ -32,31 +32,26 @@ OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,uint_32 Sequencer_te
 	return 0; //No cursor!
 }
 
+void VGA_TextDecoder(VGA_Type *VGA)
+{
+	//We do nothing: text mode uses multiple planes at the same time!
+}
+
+extern byte planesbuffer[4]; //All read planes for the current processing!
+extern word loadedlocation; //Our character location loaded!
+
 void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo) //Render a text mode pixel!
 {
 	//First, full value to lookup!
-	register word character;
 	register word charinner;
 	register byte pixel;
-	word *curcolstatus;
-	byte currentchar, attribute;
-	character = Sequencer->activex; //Current character point (horizontally)
-	//X!
-	character <<= 1; //The index into charcolstatus is always a multiple of 2!
-
-	curcolstatus = &VGA->CRTC.charcolstatus[character]; //Current col status!
-	attributeinfo->charx = character = *curcolstatus++; //First is charx!
-	attributeinfo->charinner_x = charinner = *curcolstatus; //Second is charinner_x!
-
-	character <<= getVGAShift(VGA); //Calculate the index into the current row!
+	charinner = Sequencer->activex;
+	charinner <<= 1;
+	charinner |= 1; //Calculate our column value!
+	attributeinfo->charinner_x = charinner = VGA->CRTC.charcolstatus[charinner]; //Get charinner_x!
 	
-	character += Sequencer->charystart; //Add the start of the row!
-
-	currentchar = readVRAMplane(VGA,0,character,1); //The character itself! From plane 0!
-	attribute = readVRAMplane(VGA,1,character,1); //The attribute itself! From plane 1!
-
-	pixel = getcharxy(VGA,attribute,currentchar,(byte)charinner,(byte)Sequencer->charinner_y); //Check for the character, the simple way!
-	pixel |= is_cursorscanline(VGA,(byte)Sequencer->charinner_y,character); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
+	pixel = getcharxy(VGA,planesbuffer[1],planesbuffer[0],(byte)charinner,(byte)Sequencer->charinner_y); //Check for the character, the simple way!
+	pixel |= is_cursorscanline(VGA,(byte)Sequencer->charinner_y,loadedlocation); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
 	attributeinfo->fontpixel = pixel; //We're the font pixel?
-	attributeinfo->attribute = attribute; //The attribute for this pixel!
+	attributeinfo->attribute = planesbuffer[1]; //The attribute for this pixel!
 }

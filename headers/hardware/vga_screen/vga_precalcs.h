@@ -77,6 +77,7 @@ typedef struct //Contains the precalculated values!
 	word yres;
 	
 	byte characterclockshift; //Division 0,1 or 2 for the horizontal character clock!
+	byte BWDModeShift; //Memory mode shift for the horizontal character clock in B/W/DW modes!
 
 	//Extra information
 	word rowsize;

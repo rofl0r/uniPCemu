@@ -170,17 +170,6 @@ OPTINLINE byte getVRAMMemAddrSize(VGA_Type *VGA) //Current memory address size?
 	return VGA->precalcs.VRAMmemaddrsize;
 }
 
-byte getVGAShift(VGA_Type *VGA)
-{
-	switch (getVRAMMemAddrSize(VGA))
-	{
-	case 2: return 1; //Word mode?
-	case 4: return 2; //DWord mode?
-	default: //Unknown/1?
-		return 0;
-	}
-}
-
 word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
 {
 	register word stat; //The status of the pixel!

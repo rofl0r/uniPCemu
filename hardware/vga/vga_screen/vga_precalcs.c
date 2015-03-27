@@ -398,14 +398,17 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DW)
 			{
 				VGA->precalcs.VRAMmemaddrsize = 4;
+				VGA->precalcs.BWDModeShift = 2; //Shift by 2!
 			}
 			else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode)
 			{
 				VGA->precalcs.VRAMmemaddrsize = 1;
+				VGA->precalcs.BWDModeShift = 0; //Shift by 0!
 			}
 			else
 			{
 				VGA->precalcs.VRAMmemaddrsize = 2;
+				VGA->precalcs.BWDModeShift = 1; //Shift by 1!
 			}
 			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DivideMemoryAddressClockBy4)
 			{

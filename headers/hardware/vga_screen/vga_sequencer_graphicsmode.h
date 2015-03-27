@@ -7,4 +7,5 @@
 
 //void VGA_Sequencer_GraphicsMode(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning); //Render graphics mode screen!
 void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo);
+void VGA_GraphicsDecoder(VGA_Type *VGA);
 #endif

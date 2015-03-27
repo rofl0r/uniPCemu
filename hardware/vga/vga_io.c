@@ -240,7 +240,7 @@ Finally: the read/write handlers themselves!
 
 byte PORT_readVGA(word port) //Read from a port/register!
 {
-	byte result;
+	byte result=PORT_UNDEFINED_RESULT;
 	if (!getActiveVGA()) //No active VGA?
 	{
 		raiseError("VGA","VGA Port Out, but no active VGA loaded!");

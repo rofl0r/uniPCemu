@@ -6,6 +6,5 @@
 
 byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer); //Read from a VRAM plane!
 void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value); //Write to a VRAM plane!
-byte getBitPlaneBit(VGA_Type *VGA, byte plane, word offset, byte bit, byte is_renderer);
 
 #endif

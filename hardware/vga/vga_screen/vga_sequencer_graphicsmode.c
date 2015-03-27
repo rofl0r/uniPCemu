@@ -12,30 +12,10 @@
 #include "headers/mmu/mmu.h" //For BIOS data!
 #include "headers/header_dosbox.h" //For comp.
 
-byte planesbuffer[4]; //All read planes for the current processing!
+extern byte planesbuffer[4]; //All read planes for the current processing!
 byte pixelbuffer[8]; //All 8 pixels decoded from the planesbuffer!
 
 //256 color mode still doesn't work for some reason!
-
-void VGA_loadgraphicsplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
-{
-	//Horizontal logic
-	word location; //The location loaded into the planesbuffer!
-	location = x; //X!
-	location >>= 3; //We take portions of 8 pixels, so increase our location every 8 pixels!
-	
-	location <<= getVGAShift(VGA); //Apply VGA shift: the shift is the ammount to move at a time!
-
-	//Row logic
-	location += Sequencer->charystart; //Apply the line and start map to retrieve!
-
-	//Now calculate and give the planes to be used!
-	planesbuffer[0] = readVRAMplane(VGA, 0, location, 1); //Read plane 0!
-	planesbuffer[1] = readVRAMplane(VGA, 1, location, 1); //Read plane 1!
-	planesbuffer[2] = readVRAMplane(VGA, 2, location, 1); //Read plane 2!
-	planesbuffer[3] = readVRAMplane(VGA, 3, location, 1); //Read plane 3!
-	//Now the buffer is ready to be processed into pixels!
-}
 
 /*
 
@@ -175,22 +155,22 @@ Core functions!
 
 */
 
-void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+void VGA_GraphicsDecoder(VGA_Type *VGA) //Graphics decoder!
 {
 	static Handler loadpixel_jmptbl[4] = {
-				loadplanarshiftmode,
-				loadpackedshiftmode,
-				load256colorshiftmode,
-				load256colorshiftmode
-				}; //All the getpixel functionality!
-	byte currentbuffer;
-	attributeinfo->fontpixel = 1; //Graphics attribute is always font enabled!
+		loadplanarshiftmode,
+		loadpackedshiftmode,
+		load256colorshiftmode,
+		load256colorshiftmode
+	}; //All the getpixel functionality!
+	loadpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](); //Split the pixels from the buffer!
+}
+
+void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+{
+	register byte currentbuffer;
 	currentbuffer = Sequencer->activex; //Current x coordinate!
 	currentbuffer &= 7; //We're buffering every 8 pixels!
-	if (!currentbuffer) //First of a block? Reload our pixel buffer!
-	{
-		VGA_loadgraphicsplanes(VGA, Sequencer, Sequencer->activex); //Load data from the graphics planes!
-		loadpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](); //Load the pixels from the buffer!
-	}
 	attributeinfo->attribute = pixelbuffer[currentbuffer]; //Give the current pixel, loaded with our block!
+	attributeinfo->fontpixel = 1; //Graphics attribute is always font enabled!
 }

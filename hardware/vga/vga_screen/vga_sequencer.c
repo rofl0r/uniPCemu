@@ -123,6 +123,43 @@ OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanl
 
 typedef void (*Sequencer_pixelhandler)(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning); //Pixel(s) handler!
 
+byte planesbuffer[4]; //All read planes for the current processing!
+
+typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA);
+
+word loadedlocation=0;
+
+void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
+{
+	//Horizontal logic
+	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
+	loadedlocation = x; //X!
+	loadedlocation &= 0xFFF; //Limit!
+	if (VGA->precalcs.graphicsmode) //Graphics mode?
+	{
+		loadedlocation >>= 3; //We take portions of 8 pixels, so increase our location every 8 pixels!
+	}
+	else //Gotten character width? Just here for safety!
+	{
+		loadedlocation <<= 1; //Multiply by 2 for our index!
+		loadedlocation = VGA->CRTC.charcolstatus[loadedlocation]; //Divide by character width in text mode to get the correct character by using the horizontal clock!
+	}
+
+	loadedlocation <<= VGA->precalcs.BWDModeShift; //Apply VGA shift: the shift is the ammount to move at a time!
+
+	//Row logic
+	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!
+
+	//Now calculate and give the planes to be used!
+	planesbuffer[0] = readVRAMplane(VGA, 0, loadedlocation, 1); //Read plane 0!
+	planesbuffer[1] = readVRAMplane(VGA, 1, loadedlocation, 1); //Read plane 1!
+	planesbuffer[2] = readVRAMplane(VGA, 2, loadedlocation, 1); //Read plane 2!
+	planesbuffer[3] = readVRAMplane(VGA, 3, loadedlocation, 1); //Read plane 3!
+	//Now the buffer is ready to be processed into pixels!
+
+	planesdecoder[VGA->precalcs.graphicsmode](VGA); //Use the decoder to get the pixels or characters!
+}
+
 OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 {
 	register word row;
@@ -144,6 +181,8 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 
 	//Some attribute controller special 8-bit mode support!
 	Sequencer->active_pixelrate = 0; //Reset pixel load rate status for odd sized screens.
+
+	VGA_loadcharacterplanes(VGA, Sequencer, 0); //Initialise the character planes for usage!
 }
 
 byte Sequencer_Break; //Sequencer breaked (loop exit)?
@@ -255,6 +294,7 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
+	byte loadcharacterplanes;
 	//Render our active display here! Start with text mode!		
 	static VGA_AttributeInfo attributeinfo; //Our collected attribute info!
 	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
@@ -265,12 +305,23 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->activex = tempx++; //Active X!
 	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
 	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer)) goto othernibble; //Apply the attribute through the attribute controller!
-	//activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
-	VGA_ActiveDisplay_noblanking(VGA, Sequencer, &attributeinfo); //Ignore blanking!
+	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
 
 	if (++Sequencer->active_pixelrate > VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) //To write back the pixel clock every or every other pixel?
 	{
-		Sequencer->active_pixelrate = 0; //Reset!
+		Sequencer->active_pixelrate = 0; //Reset for the new block!
+		if (VGA->precalcs.graphicsmode) //Graphics mode?
+		{
+			loadcharacterplanes = !(tempx & 7); //Load the character planes?
+		}
+		else //Text mode?
+		{
+			loadcharacterplanes = (VGA->CRTC.charcolstatus[(Sequencer->tempx<<1)] != VGA->CRTC.charcolstatus[(tempx<<1)]); //Load the character planes?
+		}
+		if (loadcharacterplanes) //First of a new block? Reload our pixel buffer!
+		{
+			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
+		}
 		Sequencer->tempx = tempx; //Write back tempx!
 	}
 }

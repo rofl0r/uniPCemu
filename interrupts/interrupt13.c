@@ -268,7 +268,7 @@ byte readdiskdata(uint_32 startpos)
 	for (;sectors;) //Sectors left to read?
 	{
 		//Read from disk
-		readdata_result = readdata(mounteddrives[REG_DL],&int13_buffer,(startpos<<9)+((uint_64)sector<<9),512); //Read the data to the buffer!
+		readdata_result = readdata(mounteddrives[REG_DL],&int13_buffer,(((uint_64)startpos)<<9)+((uint_64)sector<<9),512); //Read the data to the buffer!
 		if (!readdata_result) //Error?
 		{
 			last_status = 0x00;
@@ -329,7 +329,7 @@ byte writediskdata(uint_32 startpos)
 		}
 		dosector: //Process next sector!
 		//Write to disk!
-		writedata_result = writedata(mounteddrives[REG_DL],&int13_buffer,(startpos<<9)+((uint_64)sector<<9),512); //Write the data to the disk!
+		writedata_result = writedata(mounteddrives[REG_DL],&int13_buffer,((uint_64)startpos<<9)+((uint_64)sector<<9),512); //Write the data to the disk!
 		if (!writedata_result) //Error?
 		{
 			last_status = 0x00;
