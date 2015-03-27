@@ -308,7 +308,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//B/W mode!
 	
 	//TODO:
-	DoDebugVGAGraphics(0x06,640,200,0x02,0,0x1,1,0); //Debug 640x200x2(B/W)! NOT WORKING YET: 50% displays fine, 50% (every 8 pixels) displays black!
+	//DoDebugVGAGraphics(0x06,640,200,0x02,0,0x1,1,0); //Debug 640x200x2(B/W)! NOT WORKING YET: 50% displays fine, 50% (every 8 pixels) displays black!
 	
 	//DoDebugVGAGraphics(0x0F,640,350,0x02,0,0x1,1,0); //Debug 640x350x2(Monochrome)! GIVES BLACK SCREEN!
 	//16 color mode!

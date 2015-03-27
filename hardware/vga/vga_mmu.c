@@ -133,13 +133,15 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 
 	byte planeenable = ActiveVGA->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable; //What planes to try to write to!
 	planeenable &= planes; //The actual planes to write to!
+	byte curplanemask=1;
 	for (curplane=0;curplane<4;curplane++) //Process all planes!
 	{
-		if (planeenable&(1<<curplane)) //Modification of the plane?
+		if (planeenable&curplanemask) //Modification of the plane?
 		{
 			writeVRAMplane(ActiveVGA,curplane,offset,data&0xFF); //Write the plane from the data!
 		}
 		data >>= 8; //Shift to the next plane!
+		curplanemask <<= 1; //Next plane!
 	}
 }
 
@@ -201,8 +203,9 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 {
 	if (ActiveVGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.Chain4Enable) //Chain 4 mode?
 	{
-		*planes = (1 << (offset & 0x3)); //Lower bits, create bitmask!
-		*realoffset = offset;
+		*realoffset = offset; //Original offset to start with!
+		offset &= 0x3; //Walk through the planes!
+		*planes = (1 << offset); //Lower bits, create bitmask!
 		*realoffset >>= 2; //Rest of the bits. Multiples of 4 wont get written!
 		return; //Done!
 	}

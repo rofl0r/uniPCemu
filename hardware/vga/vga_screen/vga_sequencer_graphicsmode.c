@@ -43,27 +43,29 @@ void VGA_loadgraphicsplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load t
 
 */
 
-//This should be OK, according to: http://www.nondot.org/sabre/Mirrored/GraphicsProgrammingBlackBook/gpbb31.pdf
 void load256colorshiftmode() //256-color shift mode!
 {
-	register byte part, plane, result, x;
-	for (x = 0; x < 8;) //Buffer 8 nibbles!
-	{
-		//Determine the nibble first: this is used for the attribute controller to combine if needed!
-		plane = part = x; //Load x into part&plane for processing!
-		part &= 1; //Take the lowest bit only for the part!
-		part ^= 1; //Reverse: High nibble=bit 0 set, Low nibble=bit 0 cleared
-		part <<= 2; //High nibble=4, Low nibble=0
+	register byte data;
+	//Now all planes are loaded for our calculation!
+	data = planesbuffer[0]; //First plane!
+	pixelbuffer[1] = (data & 0xF); //Take second pixel!
+	data >>= 4; //Shift high to low libble!
+	pixelbuffer[0] = data; //Take first pixel!
 
-		//Determine plane and offset within the plane!
-		plane >>= 1; //We change planes after every 2 parts!
+	data = planesbuffer[1]; //Second plane!
+	pixelbuffer[3] = (data & 0xF); //Take second pixel!
+	data >>= 4; //Shift high to low libble!
+	pixelbuffer[2] = data; //Take first pixel!
 
-		//Now read the correct nibble!
-		result = planesbuffer[plane]; //Read the plane buffered!
-		result >>= part; //Shift to the required part (low/high nibble)!
-		result &= 0xF; //Only the low resulting nibble is used!
-		pixelbuffer[x++] = result; //Save the result in the buffer!
-	} //Give the result!
+	data = planesbuffer[2]; //Third plane!
+	pixelbuffer[5] = (data & 0xF); //Take second pixel!
+	data >>= 4; //Shift high to low libble!
+	pixelbuffer[4] = data; //Take first pixel!
+
+	data = planesbuffer[3]; //Fourth plane!
+	pixelbuffer[7] = (data & 0xF); //Take second pixel!
+	data >>= 4; //Shift high to low libble!
+	pixelbuffer[6] = data; //Take first pixel!
 }
 
 /*
@@ -136,7 +138,7 @@ SINGLE SHIFT MODE
 void loadplanarshiftmode() //Planar shift mode!
 {
 	//16-color mode!
-	byte pixel, counter=8, result;
+	register byte pixel, counter=8, result;
 	for (pixel = 7; counter--;)
 	{
 		result = (planesbuffer[3] & 1); //Load plane 3!

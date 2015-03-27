@@ -134,7 +134,7 @@ void MMU_directwb(uint_32 realaddress, byte value) //Direct write to real memory
 {
 	if (LOG_MMU_WRITES) //Data debugging?
 	{
-		dolog("debugger","MMU: Writing to real %08X=%02X",realaddress,value);
+		dolog("debugger","MMU: Writing to real %08X=%02X (%c)",realaddress,value,value?value:0x20);
 	}
 	if (realaddress>MMU.size) //Overflow?
 	{
@@ -181,7 +181,7 @@ byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read without segm
 	}
 	if (debugger_logging() && (!opcode)) //To log?
 	{
-		dolog("debugger", "Read from memory: %08X=%02X", realaddress, data); //Log it!
+		dolog("debugger", "Read from memory: %08X=%02X (%c)", realaddress, data,data?data:0x20); //Log it!
 	}
 	return data;
 }
@@ -190,7 +190,7 @@ void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segmen
 {
 	if (debugger_logging()) //To log?
 	{
-		dolog("debugger", "Writing to memory: %08X=%02X", realaddress, val); //Log it!
+		dolog("debugger", "Writing to memory: %08X=%02X (%c)", realaddress, val,val?val:0x20); //Log it!
 	}
 	if (MMU_IO_writehandler(realaddress, val)) //Normal memory access?
 	{
