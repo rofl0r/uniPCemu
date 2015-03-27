@@ -158,6 +158,7 @@ OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
 {
 	byte curplane;
 	byte val=0; //The value we return, default to 0 if undefined!
+
 	loadlatch(offset); //Load the latches!
 
 	switch (ActiveVGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode) //What read mode?
@@ -192,6 +193,28 @@ OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
 	return val; //Give the result of the read mode operation!
 }
 
+word addresswrap(word offset)
+{
+	//word address2;
+	//address2 = memoryaddress; //Load the address for calculating!
+	if (ActiveVGA->precalcs.BWDModeShift == 1) //Word mode?
+	{
+		if (ActiveVGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
+		{
+			//address2 >>= 15;
+			offset &= 0x3FFF; //Wrap around 16KB!
+		}
+	}
+	/*else //MA13 has to be on MA0?
+	{
+		address2 >>= 13;
+	}*/
+	//address2 &= 1; //Only load 1 bit!
+	//result &= 0xFFFE; //Clear bit 0!
+	//result |= address2; //Add bit MA15 at position 0!
+	return offset; //Give the result!
+}
+
 /*
 
 The r/w operations from the CPU!
@@ -207,6 +230,8 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		offset &= 0x3; //Walk through the planes!
 		*planes = (1 << offset); //Lower bits, create bitmask!
 		*realoffset >>= 2; //Rest of the bits. Multiples of 4 wont get written!
+		*realoffset <<= ActiveVGA->precalcs.BWDModeShift; //Apply memory address size!
+		*realoffset = addresswrap(*realoffset); //
 		return; //Done!
 	}
 	if (ActiveVGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode) //Odd/Even mode?
@@ -216,7 +241,6 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		register byte calcplanes;
 		register uint_32 newoffset;
 		newoffset = offset; //Take the default offset!
-		newoffset &= 0xFFFE; //Take the offset within the plane!
 		if (ActiveVGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode) //Chain using A0 selected? 0=0/2, 1=1/3!
 		{
 			calcplanes = offset;
@@ -227,12 +251,16 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 			calcplanes = 0; //The plane calculated is always 0!
 			newoffset |= (offset & 1); //Linear!
 		}
+		newoffset &= 0xFFFE; //Take the offset within the plane!
+		newoffset <<= ActiveVGA->precalcs.BWDModeShift; //Apply memory address size!
+		newoffset = addresswrap(newoffset); //Perform address wrap!
 		calcplanes = (0x5 << calcplanes); //Convert to used plane (0/2 or 1/3)!
 		*planes = calcplanes; //Load the planes to address!
 		*realoffset = newoffset; //Load the offset to address!
 		return; //Done!
 	}
 
+	//Planar access?
 	if (towrite) //Writing access?
 	{
 		*planes = 0xF; //Write to all planes possible, map mask register does the rest!
@@ -243,6 +271,8 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		*planes <<= ActiveVGA->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
 	}
 	*realoffset = offset; //Direct offset into VRAM!
+	*realoffset <<= ActiveVGA->precalcs.BWDModeShift; //Apply memory address size!
+	*realoffset = addresswrap(*realoffset);
 	//The offset is used directly!
 }
 

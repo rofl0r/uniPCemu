@@ -165,11 +165,6 @@ OPTINLINE word getTopWindowStart(VGA_Type *VGA)
 	return VGA->precalcs.topwindowstart; //Give top window start scanline!
 }
 
-OPTINLINE byte getVRAMMemAddrSize(VGA_Type *VGA) //Current memory address size?
-{
-	return VGA->precalcs.VRAMmemaddrsize;
-}
-
 word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
 {
 	register word stat; //The status of the pixel!

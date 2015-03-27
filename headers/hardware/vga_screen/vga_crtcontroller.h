@@ -30,7 +30,6 @@
 
 //Pixel manipulation!
 //OPTINLINE byte getVRAMScanlineMultiplier(VGA_Type *VGA); //VRAM scanline multiplier!
-OPTINLINE byte getVRAMMemAddrSize(VGA_Type *VGA); //Current memory address size?
 //OPTINLINE word getHorizontalStart(VGA_Type *VGA); //How many pixels to take off the active display x to get the start x!
 //OPTINLINE word getHorizontalEnd(VGA_Type *VGA); //How many pixels to take off the display x to get the start of the right border?
 //OPTINLINE word getVerticalDisplayEnd(VGA_Type *VGA);

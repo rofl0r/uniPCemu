@@ -408,7 +408,7 @@ typedef union PACKED
 		struct
 		{
 			byte UnderlineLocation : 5; //Horizontal Scan line of a character row on which an underline occurs. =Scanline-1.
-			byte DivideMemoryAddressClockBy4 : 1; //Divide Memory Address Clock by 4 (when dword addresses are used)
+			byte DIV4 : 1; //Divide Memory Address Clock by 4 (when dword addresses are used)
 			byte DW : 1; //Double-Word Addressing: When set to 1, memory addresses are dword addresses. See bit 6 of the Mode Control Register.
 			byte unused : 1;
 		} UNDERLINELOCATIONREGISTER; //Index #14

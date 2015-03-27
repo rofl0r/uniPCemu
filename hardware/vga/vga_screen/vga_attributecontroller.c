@@ -178,7 +178,7 @@ byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 
 	//First, execute the shift and add required in this mode!
 	latchednibbles <<= 4; //Shift high!
-	latchednibbles |= VGA_getAttributeDACIndex(Sequencer_attributeinfo->attribute,Sequencer_attributeinfo,VGA,Sequencer); //Latch to DAC Nibble!
+	latchednibbles |= (VGA_getAttributeDACIndex(Sequencer_attributeinfo->attribute,Sequencer_attributeinfo,VGA,Sequencer)&0xF); //Latch to DAC Nibble!
 
 	curnibble ^= 1; //Reverse current nibble!
 	Sequencer_attributeinfo->attribute = latchednibbles; //Look the DAC Index up!

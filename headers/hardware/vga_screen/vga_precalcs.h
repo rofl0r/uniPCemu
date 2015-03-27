@@ -82,7 +82,6 @@ typedef struct //Contains the precalculated values!
 	//Extra information
 	word rowsize;
 	word topwindowstart;
-	byte VRAMmemaddrsize; //Memory address size!
 	byte scandoubling;
 	uint_32 scanlinesize; //Scanline size!
 	//Sequencer_textmode_cursor (CRTC):

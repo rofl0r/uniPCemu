@@ -45,7 +45,6 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
 		realtiming = current;
-		realtiming >>= VGA->precalcs.characterclockshift; //Apply character clock shift to get the character clock rate!
 		VGA->CRTC.charcolstatus[current<<1] = realtiming/charsize;
 		VGA->CRTC.charcolstatus[(current<<1)|1] = realtiming%charsize;
 		realtiming = current; //Same rate as the basic rate!
@@ -395,22 +394,22 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x14))
 			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x17))) //Updated?
 		{
+			//This applies to the Frame buffer:
 			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DW)
 			{
-				VGA->precalcs.VRAMmemaddrsize = 4;
 				VGA->precalcs.BWDModeShift = 2; //Shift by 2!
 			}
 			else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode)
 			{
-				VGA->precalcs.VRAMmemaddrsize = 1;
 				VGA->precalcs.BWDModeShift = 0; //Shift by 0!
 			}
 			else
 			{
-				VGA->precalcs.VRAMmemaddrsize = 2;
 				VGA->precalcs.BWDModeShift = 1; //Shift by 1!
 			}
-			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DivideMemoryAddressClockBy4)
+
+			//This applies to the address counter (renderer):
+			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4)
 			{
 				VGA->precalcs.characterclockshift = 2; //Shift right 2 bits!
 			}
@@ -422,7 +421,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			{
 				VGA->precalcs.characterclockshift = 0; //Don't shift!
 			}
-			
+
 			underlinelocationupdated = 1; //We need to update the attribute controller!
 			scanlinesizeupdated = 1; //We need to update this too!
 			//dolog("VGA","VTotal after VRAMMemAddrSize: %i",VGA->precalcs.verticaltotal); //Log it!
@@ -439,7 +438,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word scanlinesize;
 			scanlinesize = VGA->precalcs.rowsize;
-			scanlinesize *= VGA->precalcs.VRAMmemaddrsize;
+			scanlinesize *= VGA->precalcs.characterclockshift;
 			VGA->precalcs.scanlinesize = scanlinesize; //Scanline size!
 			recalcScanline = 1; //Recalc scanline data!
 			//dolog("VGA","VTotal after scanlinesize: %i",VGA->precalcs.verticaltotal); //Log it!

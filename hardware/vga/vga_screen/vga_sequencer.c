@@ -145,7 +145,7 @@ void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load 
 		loadedlocation = VGA->CRTC.charcolstatus[loadedlocation]; //Divide by character width in text mode to get the correct character by using the horizontal clock!
 	}
 
-	loadedlocation <<= VGA->precalcs.BWDModeShift; //Apply VGA shift: the shift is the ammount to move at a time!
+	loadedlocation <<= VGA->precalcs.characterclockshift; //Apply VGA shift: the shift is the ammount to move at a time!
 
 	//Row logic
 	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!
@@ -206,9 +206,7 @@ DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for all pi
 DisplaySignalHandler displaysignalhandler[0x10000]; //Our rendering handlers! Executed before all states!
 
 void VGA_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA) //NOP for pixels!
-{
-	//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59 && Sequencer->x==639) dolog("VGA","NOP@%i,%i",Sequencer->x,Sequencer->Scanline);
-}
+{}
 
 //Total handlers!
 void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -269,7 +267,6 @@ typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attri
 void VGA_Blank(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	drawPixel(VGA,RGB(0x00,0x00,0x00)); //Draw blank!
-	//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59) dolog("VGA","Rendering B@%i->%i,%i",Sequencer->x,VGA->CRTC.x,VGA->CRTC.y);
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -277,9 +274,7 @@ extern byte LOG_RENDER_BYTES; //From graphics mode operations!
 void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	//Active display!
-	//if (LOG_RENDER_BYTES && !Sequencer->Scanline) dolog("VGA","Rendering DAC: %i=%02X; DP:%i",Sequencer->x,attributeinfo->attribute,VGA->precalcs.doublepixels); //Log the rendered DAC index!
 	drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
-	//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59 && Sequencer->x==639) dolog("VGA","Rendering AC@%i->%i,%i",Sequencer->x,VGA->CRTC.x,VGA->CRTC.y);
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -287,7 +282,6 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 {
 	//Overscan!
 	drawPixel(VGA,VGA_DAC(VGA,VGA->precalcs.overscancolor)); //Draw overscan!
-	//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59 && Sequencer->x==639) dolog("VGA","Rendering OS@%i->%i,%i",Sequencer->x,VGA->CRTC.x,VGA->CRTC.y);
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -305,14 +299,15 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->activex = tempx++; //Active X!
 	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
 	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer)) goto othernibble; //Apply the attribute through the attribute controller!
-	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
+	//activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display! Blanking doesn't work yet?
+	VGA_ActiveDisplay_noblanking(VGA, Sequencer, &attributeinfo); //Always active display!
 
 	if (++Sequencer->active_pixelrate > VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) //To write back the pixel clock every or every other pixel?
 	{
 		Sequencer->active_pixelrate = 0; //Reset for the new block!
 		if (VGA->precalcs.graphicsmode) //Graphics mode?
 		{
-			loadcharacterplanes = !(tempx & 7); //Load the character planes?
+			loadcharacterplanes = ((tempx & 7)==0); //Load the character planes?
 		}
 		else //Text mode?
 		{
@@ -392,14 +387,8 @@ void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 	else if (hretrace)
 	{
 		if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
-		/*{
-			blankretraceendpending |= VGA_SIGNAL_HRETRACEEND;
-		}
-		else if (blankretraceendpending&VGA_SIGNAL_HRETRACEEND) //End pending HRetrace!
-		*/
 		{
 			hretrace = 0;
-			//blankretraceendpending &= ~VGA_SIGNAL_HRETRACEEND; //Remove from flags pending!
 		}
 	}
 	
@@ -414,14 +403,8 @@ void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 	else if (vretrace)
 	{
 		if (signal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
-		/*{
-			blankretraceendpending |= VGA_SIGNAL_VRETRACEEND;
-		}
-		else if (blankretraceendpending&VGA_SIGNAL_VRETRACEEND) //End pending VRetrace!
-		*/
 		{
 			vretrace = 0;
-			//blankretraceendpending &= ~VGA_SIGNAL_VRETRACEEND; //Remove from flags pending!
 		}
 	}
 	
@@ -515,13 +498,11 @@ void VGA_Sequencer()
 		initStateHandlers(); //Init our display states for usage!
 	}
 	
-	//dolog("VGA","Starting row @%i,%i",VGA->CRTC.x,VGA->CRTC.y); //Log where we start our row!
 	Sequencer_Break = 0; //Start running!
 	for (;;) //New CRTC constrolled way!
 	{
 		totalretracing &= 1; //Only count retracing for new pixels: total is only once!
 		displaystate = get_display(VGA,Sequencer->Scanline,Sequencer->x++); //Current display state!
-		//if (VGA_LOGPRECALCS && Sequencer->Scanline>=59 && Sequencer->x==639) dolog("VGA","Rendering %i,%i",Sequencer->Scanline,Sequencer->x); //Log our current x we're processing!
 		displaysignalhandler[displaystate](Sequencer,VGA,displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalretracing][displaystate](Sequencer,VGA); //Execute our signal!
 		if (Sequencer_Break) break; //Abort when done!
