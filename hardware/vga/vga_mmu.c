@@ -155,7 +155,7 @@ OPTINLINE void loadlatch(uint_32 offset)
 OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
 {
 	byte curplane;
-	byte val; //The value we return, default to 0 if undefined!
+	byte val=0; //The value we return, default to 0 if undefined!
 	loadlatch(offset); //Load the latches!
 
 	switch (ActiveVGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode) //What read mode?
@@ -206,42 +206,41 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		*realoffset >>= 2; //Rest of the bits. Multiples of 4 wont get written!
 		return; //Done!
 	}
-	if (!ActiveVGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode) //Sequential mode?
+	if (ActiveVGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode) //Odd/Even mode?
 	{
-		if (towrite) //Writing access?
+		//Odd/even mode used (compatiblity case)?
+		//Do the same as VPC!
+		register byte calcplanes;
+		register uint_32 newoffset;
+		newoffset = offset; //Take the default offset!
+		newoffset &= 0xFFFE; //Take the offset within the plane!
+		if (ActiveVGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode) //Chain using A0 selected? 0=0/2, 1=1/3!
 		{
-			*planes = 0xF; //Write to all planes possible, map mask register does the rest!
+			calcplanes = offset;
+			calcplanes &= 1; //Take 1 bit to determine the plane (0/1)!
 		}
-		else
+		else //Normal operations?
 		{
-			*planes = 1; //Load plane 0!
-			*planes <<= ActiveVGA->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
+			calcplanes = 0; //The plane calculated is always 0!
+			newoffset |= (offset & 1); //Linear!
 		}
-		*realoffset = offset; //Direct offset into VRAM!
-		//The offset is used directly!
+		calcplanes = (0x5 << calcplanes); //Convert to used plane (0/2 or 1/3)!
+		*planes = calcplanes; //Load the planes to address!
+		*realoffset = newoffset; //Load the offset to address!
 		return; //Done!
 	}
 
-	//Odd/even mode used (compatiblity case)?
-	//Do the same as VPC!
-	register byte calcplanes;
-	register uint_32 newoffset;
-	newoffset = offset; //Take the default offset!
-	newoffset &= 0xFFFE; //Take the offset within the plane!
-	if (ActiveVGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage) //High page selected?
+	if (towrite) //Writing access?
 	{
-		calcplanes = offset;
-		calcplanes &= 1; //Take 1 bit to determine the plane (0/1)!
-		calcplanes = (1 << calcplanes); //The plane calculated (0/1)!
-		calcplanes |= (calcplanes << 1); //Add high page!
+		*planes = 0xF; //Write to all planes possible, map mask register does the rest!
 	}
-	else //Low page selected?
+	else
 	{
-		calcplanes = 1; //Always plane 0!
-		newoffset |= (offset & 1); //Use odd offset at the low page!
+		*planes = 1; //Load plane 0!
+		*planes <<= ActiveVGA->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
 	}
-	*planes = calcplanes; //Load the planes to address!
-	*realoffset = newoffset; //Load the offset to address!
+	*realoffset = offset; //Direct offset into VRAM!
+	//The offset is used directly!
 }
 
 extern byte LOG_VRAM_WRITES; //Log VRAM writes?

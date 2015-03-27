@@ -278,11 +278,6 @@ int INT10_Internal_SetVideoMode(word mode)
 		misc_output|=0x60;
 	}
 
-	if (CurMode->type == M_CGA2) //Monochrome CGA?
-	{
-		misc_output &= ~0x20; //Monochrome CGA used low plane (linear plane 0)
-	}
-	
 	IO_Write(0x3c2,misc_output);		//Setup for 3b4 or 3d4
 
 	/* Program Sequencer */
