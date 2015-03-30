@@ -645,8 +645,8 @@ void int10_vram_writecharacter(byte x, byte y, byte page, byte character, byte a
 		//+ _4KB * vdupage + 160 * y + 2 * x
 			uint_32 where = (CurMode->pstart>>4); //Position of the character, all above the fourth bit (pstart=segment<<4)!
 			word address = (CurMode->pstart&0xF); //Rest address!
-			address += page*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0); //Start of page!
-			address += ((y*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x)*2; //Character offset within page!
+			address += (page*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0)); //Start of page!
+			address += (((y*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x)<<1); //Character offset within page!
 			MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,where,address,character); //The character! Write plane 0!
 			MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,where,address+1,attribute); //The attribute! Write plane 1!
 			return; //Done!
@@ -668,7 +668,7 @@ void int10_vram_readcharacter(byte x, byte y, byte page, byte *character, byte *
 			uint_32 where = (CurMode->pstart>>4); //Position of the character, all above the fourth bit (pstart=segment<<4)!
 			word address = (CurMode->pstart&0xF); //Rest address!
 			address += page*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0); //Start of page!
-			address += ((y*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x)*2; //Character offset within page!
+			address += (((y*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x)<<1); //Character offset within page!
 			*character = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,where,address,0); //The character!
 			*attribute = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,where,address+1,0); //The attribute!
 		}
@@ -685,8 +685,6 @@ void emu_setactivedisplaypage(byte page) //Set active display page!
 	MMU_ww(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,page*MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0)); //Display page offset!
 //Now for the VGA!
 
-	//int10_VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = ((MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)>>8)&0xFF); //High!
-	//int10_VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER = (MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)&0xFF); //Low!
 	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
 	PORT_OUT_B(0x3D4,0xE); //Select high register!
 	PORT_OUT_B(0x3D5,((MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)>>8)&0xFF));  //High!
