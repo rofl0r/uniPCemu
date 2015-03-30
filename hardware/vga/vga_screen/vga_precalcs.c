@@ -44,9 +44,8 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 	current = 0; //Init!
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
-		realtiming = current;
-		VGA->CRTC.charcolstatus[current<<1] = realtiming/charsize;
-		VGA->CRTC.charcolstatus[(current<<1)|1] = realtiming%charsize;
+		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
+		VGA->CRTC.charcolstatus[(current<<1)|1] = current%charsize;
 		realtiming = current; //Same rate as the basic rate!
 		realtiming >>= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Apply dot clock rate!
 		VGA->CRTC.colstatus[current] = get_display_x(VGA,realtiming); //Translate to display rate!
