@@ -225,7 +225,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		else //Normal operations?
 		{
 			calcplanes = 0; //The plane calculated is always 0!
-			newoffset |= (offset & 1); //Linear!
+			newoffset |= (offset & 1); //Linear operations!
 		}
 		calcplanes = (0x5 << calcplanes); //Convert to used plane (0/2 or 1/3)!
 		*planes = calcplanes; //Load the planes to address!
@@ -256,9 +256,7 @@ byte VGAmemIO_rb(uint_32 baseoffset, uint_32 reloffset, byte *value)
 	if (is_A000VRAM(reloffset)) //VRAM and within range?
 	{
 		reloffset -= VGA_VRAM_START; //Calculate start offset into VRAM!
-
 		decodeCPUaddress(0, reloffset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
-
 		*value = VGA_ReadModeOperation(planes, realoffset); //Apply the operation on read mode!
 		return 1; //Written!
 	}
@@ -270,9 +268,7 @@ byte VGAmemIO_wb(uint_32 baseoffset, uint_32 reloffset, byte value)
 	if (is_A000VRAM(reloffset)) //VRAM and within range?
 	{
 		reloffset -= VGA_VRAM_START; //Calculate start offset into VRAM!
-
 		decodeCPUaddress(1, reloffset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
-
 		VGA_WriteModeOperation(planes, realoffset, value); //Apply the operation on write mode!
 		return 1; //Written!
 	}

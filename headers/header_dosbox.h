@@ -100,8 +100,9 @@ extern byte int10_font_16[256 * 16];
 
 
 #define _EGA_HALF_CLOCK		0x0001
-#define _EGA_LINE_DOUBLE	0x0002
+#define _DOUBLESCAN	0x0002
 #define _VGA_PIXEL_DOUBLE	0x0004
+#define _REPEAT1 0x0008
 
 #define SEQ_REGS 0x05
 #define GFX_REGS 0x09

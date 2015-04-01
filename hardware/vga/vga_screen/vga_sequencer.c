@@ -145,8 +145,8 @@ void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load 
 		loadedlocation = VGA->CRTC.charcolstatus[loadedlocation]; //Divide by character width in text mode to get the correct character by using the horizontal clock!
 	}
 
-	//loadedlocation <<= VGA->precalcs.characterclockshift; //Apply VGA shift: the shift is the ammount to move at a time!
-	loadedlocation <<= VGA->precalcs.BWDModeShift; //Apply byte/word/doubleword mode!
+	loadedlocation >>= VGA->precalcs.characterclockshift; //Apply VGA shift: the shift is the ammount to move at a time!
+	loadedlocation <<= ActiveVGA->precalcs.BWDModeShift; //Apply the mode!
 
 	//Row logic
 	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!

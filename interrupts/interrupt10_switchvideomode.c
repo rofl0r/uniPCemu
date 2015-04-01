@@ -250,7 +250,9 @@ int INT10_Internal_SetVideoMode(word mode)
 		}
 
 	/* Setup the VGA to the correct mode */
-
+	// turn off video
+	IO_Write(0x3c4, 0); IO_Write(0x3c5, 1); // reset
+	IO_Write(0x3c4, 1); IO_Write(0x3c5, 0x20); // screen off
 	if (mono_mode) crtc_base=0x3b4;
 	else crtc_base=0x3d4;
 
@@ -275,40 +277,51 @@ int INT10_Internal_SetVideoMode(word mode)
 		misc_output|=0xa0;
 		break;
 	default:
-		misc_output|=0x60;
+		misc_output|=0x20; //According to Dosbox-X
 	}
 
 	IO_Write(0x3c2,misc_output);		//Setup for 3b4 or 3d4
 
 	/* Program Sequencer */
 	memset(seq_data,0,SEQ_REGS);
-	seq_data[1]|=0x01;	//8 dot fonts by default
-	if (CurMode->special & _EGA_HALF_CLOCK) seq_data[1]|=0x08; //Check for half clock
-	if ((machine==MCH_EGA) && (CurMode->special & _EGA_HALF_CLOCK)) seq_data[1]|=0x02;
-	seq_data[4]|=0x02;	//More than 64kb
-	switch (CurMode->type)
-	{
+
+	seq_data[0] = 0x3;	// not reset
+	seq_data[1] = 0x21;	// screen still disabled, will be enabled at end of setmode
+	seq_data[4] = 0x04;	// odd/even disable
+
+	if (CurMode->special & _EGA_HALF_CLOCK) seq_data[1] |= 0x08; //Check for half clock
+	if ((machine == MCH_EGA) && (CurMode->special & _EGA_HALF_CLOCK)) seq_data[1] |= 0x02;
+	seq_data[4] |= 0x02;	//More than 64kb
+	switch (CurMode->type) {
 	case M_TEXT:
-		if (CurMode->cwidth==9) seq_data[1] &= ~1;
-		seq_data[2]|=0x3;				//Enable plane 0 and 1
-		seq_data[4]|=0x01;				//Alpanumeric
-		if (machine==MCH_EGA) seq_data[4]|=0x04;				//odd/even enabled
+		if (CurMode->cwidth == 9) seq_data[1] &= ~1;
+		seq_data[2] |= 0x3;				//Enable plane 0 and 1
+		seq_data[4] |= 0x01;				//Alpanumeric
+		seq_data[4] &= ~0x04;				//odd/even enable
 		break;
 	case M_CGA2:
-		seq_data[2]|=0xf;				//Enable plane 0
-		if (machine==MCH_EGA) seq_data[4]|=0x04;		//odd/even enabled
+		if (IS_EGAVGA_ARCH) {
+			seq_data[2] |= 0x1;			//Enable plane 0. Most VGA cards treat it as a 640x200 variant of the MCGA 2-color mode, with bit 13 remapped for interlace
+		}
 		break;
 	case M_CGA4:
-		seq_data[2]|=0x03;		//Enable plane 0 and 1
+		if (IS_EGAVGA_ARCH) {
+			seq_data[2] |= 0x3;			//Enable plane 0 and 1
+			seq_data[4] &= ~0x04;			//odd/even enable
+		}
 		break;
+	case M_LIN4:
 	case M_EGA:
-		seq_data[2]|=0xf;				//Enable all planes for writing
-		//if (machine==MCH_EGA) seq_data[4]|=0x04;		//odd/even enabled
+		seq_data[2] |= 0xf;				//Enable all planes for writing
 		break;
+	case M_LIN8:						//Seems to have the same reg layout from testing
+	case M_LIN15:
+	case M_LIN16:
+	case M_LIN32:
 	case M_VGA:
-		seq_data[2]|=0xf;				//Enable all planes for writing
-		seq_data[4]|=0xc;				//Graphics - odd/even - Chained
-			break;
+		seq_data[2] |= 0xf;				//Enable all planes for writing
+		seq_data[4] |= 0x8;				//Graphics - Chained
+		break;
 	default:
 		break;
 	}
@@ -357,7 +370,7 @@ int INT10_Internal_SetVideoMode(word mode)
 	if (CurMode->special & _EGA_HALF_CLOCK)
 	{
 		if (CurMode->type==M_CGA2) ret_end=0;	// mode 6
-		else if (CurMode->special & _EGA_LINE_DOUBLE) ret_end = (CurMode->htotal-18) & 0x1f;
+		else if (CurMode->special & _DOUBLESCAN) ret_end = (CurMode->htotal-18) & 0x1f;
 		else ret_end = ((CurMode->htotal-18) & 0x1f) | 0x20; // mode 0&1 have 1 char sync delay
 	}
 	else if (CurMode->type==M_TEXT) ret_end = (CurMode->htotal-3) & 0x1f;
@@ -454,23 +467,28 @@ int INT10_Internal_SetVideoMode(word mode)
 	max_scanline|=(line_compare & 0x200) >> 3;
 	ver_overflow|=(line_compare & 0x400) >> 4;
 	/* Maximum scanline / Underline Location */
-	if (CurMode->special & _EGA_LINE_DOUBLE)
-	{
-		if (machine!=MCH_EGA) max_scanline|=0x80;
-	}
+	if (CurMode->special & _DOUBLESCAN) max_scanline|=0x80;
+	if (CurMode->special & _REPEAT1) max_scanline |= 0x01;
 	switch (CurMode->type)
 	{
 	case M_TEXT:
-		max_scanline|=CurMode->cheight-1;
-		underline=mono_mode ? 0x0f : 0x1f; // mode 7 uses a diff underline position
+		switch (modeset_ctl & 0x90) {
+		case 0x0: // 350-lines mode: 8x14 font
+			max_scanline |= (14 - 1);
+			break;
+		default: // reserved
+		case 0x10: // 400 lines 8x16 font
+			max_scanline |= CurMode->cheight - 1;
+			break;
+		case 0x80: // 200 lines: 8x8 font and doublescan
+			max_scanline |= (8 - 1);
+			max_scanline |= 0x80;
+			break;
+		}
+		underline = mono_mode ? 0x0f : 0x1f; // mode 7 uses a diff underline position
 		break;
 	case M_VGA:
 		underline=0x40;
-		max_scanline|=1;		//Vga doesn't use double line but this
-		break;
-	case M_CGA2:
-	case M_CGA4:
-		max_scanline|=1;
 		break;
 	default:
 		break;
@@ -508,8 +526,7 @@ int INT10_Internal_SetVideoMode(word mode)
 		{
 			if (machine==MCH_EGA)
 			{
-				if (CurMode->special & _EGA_LINE_DOUBLE) mode_control=0xc3;
-				else mode_control=0x8b;
+				mode_control = 0xe3;
 			}
 			else
 			{
@@ -520,13 +537,12 @@ int INT10_Internal_SetVideoMode(word mode)
 	case M_TEXT:
 	case M_VGA:
 		mode_control=0xa3;
+		if (CurMode->special & _VGA_PIXEL_DOUBLE)
+			mode_control |= 0x08;
 		break;
 	default:
 		break;
 	}
-
-	if (CurMode->special & _VGA_PIXEL_DOUBLE)
-		mode_control |= 0x08;
 
 	IO_Write(crtc_base,0x17);
 	IO_Write(crtc_base+1,mode_control);
@@ -559,17 +575,10 @@ int INT10_Internal_SetVideoMode(word mode)
 	case M_CGA4:
 		gfx_data[0x5]|=0x20;		//CGA mode
 		gfx_data[0x6]|=0x0f;		//graphics mode at at 0xb800=0xbfff
-		if (machine==MCH_EGA) gfx_data[0x5]|=0x10;
+		if (IS_EGAVGA_ARCH) gfx_data[0x5] |= 0x10;
 		break;
 	case M_CGA2:
-		if (machine==MCH_EGA)
-		{
-			gfx_data[0x6]|=0x0d;		//graphics mode at at 0xb800=0xbfff
-		}
-		else
-		{
-			gfx_data[0x6]|=0x0f;		//graphics mode at at 0xb800=0xbfff
-		}
+		gfx_data[0x6] |= 0x0d;		//graphics mode at at 0xb800=0xbfff, chain odd/even disabled
 		break;
 	default:
 		break;
@@ -771,7 +780,6 @@ dac_text16:
 			IO_Write(0x3c0,ct);
 			IO_Write(0x3c0,att_data[ct]);
 		}
-		IO_Write(0x3c0,0x20); //Enable palette access
 	}
 
 	/* Setup some special stuff for different modes */
@@ -835,6 +843,8 @@ dac_text16:
 		INT10_ReloadFont(); //Reload the font!
 	}
 
+	// Enable screen memory access
+	IO_Write(0x3c4, 1); IO_Write(0x3c5, seq_data[1] & ~0x20);
 	//raiseError("Debug_INT10_SetVideoMode","Checkpoint RET");
 
 	return true;

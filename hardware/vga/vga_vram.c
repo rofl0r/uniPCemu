@@ -65,9 +65,9 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory 
 {
 	register word address2; //Load the initial value for calculating!
 	register word result;
-	result = memoryaddress; //Default: don't change!
 	if (VGA->precalcs.BWDModeShift==1) //Word mode?
 	{
+		result = memoryaddress; //Default: don't change!
 		address2 = memoryaddress; //Load the address for calculating!
 		if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
 		{
@@ -78,10 +78,11 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory 
 			address2 >>= 13;
 		}
 		address2 &= 1; //Only load 1 bit!
-		result &= 0xFFFE; //Clear bit 0!
+		result &= ~1; //Clear bit 0!
 		result |= address2; //Add bit MA15 at position 0!
+		return result; //Give the result!
 	}
-	return result; //Adjusted address!
+	return memoryaddress; //Original address!
 }
 
 //Planar access to VRAM
