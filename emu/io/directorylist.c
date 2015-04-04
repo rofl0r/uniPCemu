@@ -75,7 +75,7 @@ byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfi
 	}
 	//We now have the first entry, so give it!
 	//get_filename(dirlist->ffd.cFileName, entry); //Convert filename found!
-	get_filename(dirlist->ffd.cFileName, entry); //Copy the filename!
+	strcpy_s(entry,256,dirlist->ffd.cFileName); //Copy the filename!
 	*isfile = ((dirlist->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0); //Are we a file?
 	return 1; //We have a valid file loaded!
 #else
@@ -96,7 +96,7 @@ byte readdirlist(DirListContainer_p dirlist, char *entry, byte *isfile) //Read a
 	//Windows?
 	if (FindNextFile(dirlist->hFind, &dirlist->ffd) != 0) //Found a next file?
 	{
-		get_filename(dirlist->ffd.cFileName,entry); //Copy the filename!
+		strcpy_s(entry,256,dirlist->ffd.cFileName); //Copy the filename!
 		*isfile = ((dirlist->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0); //Are we a file?
 		return 1; //We have a valid file loaded!
 	}

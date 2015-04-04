@@ -437,7 +437,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word scanlinesize;
 			scanlinesize = VGA->precalcs.rowsize;
-			scanlinesize *= VGA->precalcs.characterclockshift;
+			scanlinesize <<= VGA->precalcs.BWDModeShift;
 			VGA->precalcs.scanlinesize = scanlinesize; //Scanline size!
 			recalcScanline = 1; //Recalc scanline data!
 			//dolog("VGA","VTotal after scanlinesize: %i",VGA->precalcs.verticaltotal); //Log it!

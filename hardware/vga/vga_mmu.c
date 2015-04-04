@@ -4,9 +4,7 @@
 #include "headers/mmu/mmuhandler.h" //Handling support!
 
 extern VGA_Type *ActiveVGA; //Active VGA!
-extern byte is_loadchartable; //Loading character table?
 uint_32 VGA_VRAM_START = 0xA0000; //VRAM start address default!
-extern byte LOG_VRAM_WRITES; //Log VRAM writes?
 
 OPTINLINE void VGA_updateLatches()
 {
@@ -95,7 +93,6 @@ Core read/write operations!
 
 */
 
-extern byte LOG_VRAM_WRITES; //Log VRAM writes?
 OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 {
 	byte curplane; //For plane loops!
@@ -245,8 +242,6 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	*realoffset = offset; //Direct offset into VRAM!
 	//The offset is used directly!
 }
-
-extern byte LOG_VRAM_WRITES; //Log VRAM writes?
 
 byte planes; //What planes to affect!
 uint_32 realoffset; //What offset to affect!
