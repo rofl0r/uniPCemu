@@ -18,11 +18,6 @@
 
 //We handle all input for writing to VRAM (CPU interrupts) and reading from VRAM (hardware) here!
 
-//is_renderer determines special stuff for the renderer:
-//bit 1 contains the "I'm a renderer" flag.
-
-byte LOG_VRAM_WRITES = 0;
-
 //Bit from left to right starts with 0(value 128) ends with 7(value 1)
 
 //Below patches input addresses for rendering only.
@@ -65,39 +60,31 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory 
 {
 	register word address2; //Load the initial value for calculating!
 	register word result;
-	if (VGA->precalcs.BWDModeShift==1) //Word mode?
+	register byte temp;
+	if (VGA->precalcs.BWDModeShift == 1) //Word mode?
 	{
 		result = memoryaddress; //Default: don't change!
 		address2 = memoryaddress; //Load the address for calculating!
-		if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW) //MA15 has to be on MA0
-		{
-			address2 >>= 15;
-		}
-		else //MA13 has to be on MA0?
-		{
-			address2 >>= 13;
-		}
-		address2 &= 1; //Only load 1 bit!
-		result &= ~1; //Clear bit 0!
-		result |= address2; //Add bit MA15 at position 0!
+		temp = 0xD; //Load default location (13)
+		temp |= (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW << 1); //MA15 instead of MA13 when set!
+		address2 >>= temp; //Apply MA15/MA13 to bit 0!
+		address2 &= 1; //Only load bit 0!
+		result &= 0xFFFE; //Clear bit 0!
+		result |= address2; //Add bit MA15/MA13 at bit 0!
 		return result; //Give the result!
 	}
 	return memoryaddress; //Original address!
 }
 
 //Planar access to VRAM
-byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //Read from a VRAM plane!
+byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte mode) //Read from a VRAM plane!
 {
 	if (!VGA) return 0; //Invalid VGA!
 	if (!VGA->VRAM_size) return 0; //No size!
 	word patchedoffset = offset; //Default offset to use!
 
-	if (is_renderer) //First address wrap, next map13&14!
-	{
-		//First, apply addressing mode!
-		patchedoffset = addresswrap(VGA,patchedoffset); //Wrap first!
-		patchedoffset = patch_map1314(VGA,patchedoffset); //Patch MAP13&14!
-	}
+	if (mode&1) patchedoffset = addresswrap(VGA,patchedoffset); //Apply address wrap?
+	if (mode&0x80) patchedoffset = patch_map1314(VGA, patchedoffset); //Patch MAP13&14!
 
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
 
@@ -106,6 +93,28 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //R
 	fulloffset2 <<= 2; //We cylce through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
 
+	if ((mode & 84) == 0x84) //Special sequencer panning?
+	{
+		fulloffset2 += ((SEQ_DATA *)VGA->Sequencer)->bytepanning; //Apply byte panning at the memory level!
+	}
+
+	if (mode & 2)
+	{
+		if (mode & 0x80) //Apply DW mode only during rendering!
+		{
+			if (VGA->precalcs.BWDModeShift == 2) //DW mode enabled?
+			{
+				fulloffset2 <<= 2; //Apply DW mode!
+			}
+		}
+		else
+		{
+			fulloffset2 <<= VGA->precalcs.BWDModeShift; //Apply B/W/DW mode from CPU!
+		}
+	}
+
+	if (VGA->VRAM_size == 0x40000) fulloffset2 &= 0x3FFFF; //Wrap arround memory!
+
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
 		return VGA->VRAM[fulloffset2]; //Read the data from VRAM!
@@ -113,17 +122,23 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte is_renderer) //R
 	return 0; //Nothing there: invalid VRAM!
 }
 
-void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write to a VRAM plane!
+void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value, byte mode) //Write to a VRAM plane!
 {
 	if (!VGA) return; //Invalid VGA!
 	if (!VGA->VRAM_size) return; //No size!
 	
 	plane &= 3; //Only 4 planes are available!
 
+	if (mode&1) offset = addresswrap(VGA,offset); //Apply address wrap?
+
 	register uint_32 fulloffset2;
 	fulloffset2 = offset; //Load the offset!
 	fulloffset2 <<= 2; //We cycle through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
+
+	if (mode&2) fulloffset2 <<= VGA->precalcs.BWDModeShift; //Apply B/W/DW mode from CPU!
+
+	if (VGA->VRAM_size == 0x40000) fulloffset2 &= 0x3FFFF; //Wrap arround memory!
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{

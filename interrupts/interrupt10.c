@@ -30,7 +30,6 @@ Interrupt 10h: Video interrupt
 //Text screen height is always 25!
 
 extern GPU_type GPU; //GPU info&adjusting!
-extern byte LOG_VRAM_WRITES; //Log VRAM writes?
 
 int int10loaded = 0; //Default: not loaded yet!
 
@@ -164,7 +163,6 @@ int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pi
 {
 	if (__HW_DISABLED) return 0; //Abort!
         //static bool putpixelwarned = false;
-		LOG_VRAM_WRITES = 1; //Enable logging!
         switch (CurMode->type) {
         case M_CGA4:
                 {
@@ -281,11 +279,9 @@ int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pi
                         //putpixelwarned = true;          
                         //LOG(LOG_INT10,LOG_ERROR)("PutPixel unhandled mode type %d",CurMode->type);
                 //}
-				LOG_VRAM_WRITES = 0; //Disable logging!
                 return 0; //Error!
                 break;
         }
-		LOG_VRAM_WRITES = 0; //Disable logging!
         return 1; //OK!
 }
 

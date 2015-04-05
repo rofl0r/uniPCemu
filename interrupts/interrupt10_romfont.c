@@ -100,8 +100,6 @@ static Bit16u map_offset[8]={
 	0x2000,0x6000,0xa000,0xe000
 };
 
-extern byte LOG_VRAM_WRITES; //Log VRAM writes?
-
 void INT10_LoadFont(word fontseg, word fontoffs,bool reload,Bitu count,Bitu offset,Bitu map,Bitu height) {
 	word ftwhere=0xa000;
 	word ftoffs = map_offset[map & 0x7]+(Bit16u)(offset*32); //offset!
@@ -119,7 +117,6 @@ void INT10_LoadFont(word fontseg, word fontoffs,bool reload,Bitu count,Bitu offs
 		ftoffs+=32; //Increment VRAM!
 		fontoffs+=height; //Increment buffer!
 	}
-	LOG_VRAM_WRITES = 0; //Don't log it anymore!
 	IO_Write(0x3c4,0x2);//IO_Write(0x3c5,0x3);	//Enable textmode planes (0,1)
 	IO_Write(0x3c5,backup3c4_2); //Restore!
 	

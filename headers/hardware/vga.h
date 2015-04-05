@@ -220,7 +220,7 @@ typedef union PACKED
 		{
 			byte unused1 : 1; //Unused!
 			byte ExtendedMemory : 1; //Ext. Mem
-			byte EnableOE : 1; //Odd/Even Host Memory Enable
+			byte OEDisabled : 1; //Odd/Even Host Memory Disable
 			byte Chain4Enable : 1; //Chain 4 Enable?
 			byte unused : 4; //Unused!
 		} SEQUENCERMEMORYMODEREGISTER; //Sequencer Memory Mode Register (index 04h)

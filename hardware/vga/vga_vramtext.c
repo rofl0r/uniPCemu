@@ -22,19 +22,19 @@ void VGALoadCharTable(VGA_Type *VGA, int rows, word startaddr) //Load a characte
 	case 14:
 		for (counter=0;counter<sizeof(int10_font_14);counter++) //Write font!
 		{
-			writeVRAMplane(ActiveVGA,2,startaddr+counter,int10_font_14[counter]); //Write font byte!
+			writeVRAMplane(ActiveVGA,2,startaddr+counter,int10_font_14[counter],0); //Write font byte!
 		}
 		break;
 	case 8:
 		for (counter=0;counter<sizeof(int10_font_08);counter++) //Write font!
 		{
-			writeVRAMplane(ActiveVGA,2,startaddr+counter,int10_font_08[counter]); //Write font byte!
+			writeVRAMplane(ActiveVGA,2,startaddr+counter,int10_font_08[counter],0); //Write font byte!
 		}
 		break;
 	case 16:
 		for (counter=0;counter<sizeof(int10_font_16);counter++) //Write font!
 		{
-			writeVRAMplane(ActiveVGA,2,startaddr+counter,int10_font_16[counter]); //Write font byte!
+			writeVRAMplane(ActiveVGA,2,startaddr+counter,int10_font_16[counter],0); //Write font byte!
 		}
 		break;
 	default: //Unknown ammount of rows!

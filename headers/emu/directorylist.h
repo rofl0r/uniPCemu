@@ -3,14 +3,7 @@
 
 #include "headers/types.h" //Basic typedefs!
 
-#ifdef _WIN32
-//Windows specific structures!
-#include <direct.h>
-#include <windows.h>
-#include <tchar.h> 
-#include <strsafe.h>
-#pragma comment(lib, "User32.lib")
-#else
+#ifndef _WIN32
 //PSP?
 #include <dirent.h>
 #endif//Are we disabled?

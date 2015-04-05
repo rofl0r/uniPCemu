@@ -33,15 +33,24 @@ OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,uint_32 Sequencer_te
 }
 
 byte character=0, attribute=0; //Currently loaded data!
+byte iscursor=0; //Are we a cursor scanline?
+byte characterpixels[9]; //All possible character pixels!
 
 extern byte planesbuffer[4]; //All read planes for the current processing!
 extern word loadedlocation; //Our character location loaded!
 
 void VGA_TextDecoder(VGA_Type *VGA)
 {
+	byte x;
 	//We do nothing: text mode uses multiple planes at the same time!
 	character = planesbuffer[0]; //Character!
 	attribute = planesbuffer[1]; //Attribute!
+	iscursor = is_cursorscanline(VGA, (byte)((SEQ_DATA *)VGA->Sequencer)->charinner_y, loadedlocation); //Are we a cursor?
+	for (x = 0; x < VGA->precalcs.characterwidth;) //Process all coordinates of our row!
+	{
+		characterpixels[x] = getcharxy(VGA, attribute, character, x, (byte)((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+		++x; //Next coordinate!
+	}
 }
 
 void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo) //Render a text mode pixel!
@@ -53,9 +62,9 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	charinner <<= 1;
 	charinner |= 1; //Calculate our column value!
 	attributeinfo->charinner_x = charinner = VGA->CRTC.charcolstatus[charinner]; //Get charinner_x!
-	
-	pixel = getcharxy(VGA,attribute,character,(byte)charinner,(byte)Sequencer->charinner_y); //Check for the character, the simple way!
-	pixel |= is_cursorscanline(VGA,(byte)Sequencer->charinner_y,loadedlocation); //Get if we're to plot font, include cursor? (Else back) Used to be: VGA,attributeinfo->charinner_y,charindex
+	//Now retrieve the font/back pixel
+	pixel = characterpixels[charinner]; //Check for the character, the simple way!
+	pixel |= iscursor; //Get if we're to plot font, include cursor? (Else back)
 	attributeinfo->fontpixel = pixel; //We're the font pixel?
 	attributeinfo->attribute = attribute; //The attribute for this pixel!
 }

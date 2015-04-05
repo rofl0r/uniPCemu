@@ -394,32 +394,29 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x17))) //Updated?
 		{
 			//This applies to the Frame buffer:
+			byte BWDModeShift=0;
 			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DW)
 			{
-				VGA->precalcs.BWDModeShift = 2; //Shift by 2!
+				BWDModeShift = 2; //Shift by 2!
 			}
-			else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode)
+			else if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode)
 			{
-				VGA->precalcs.BWDModeShift = 0; //Shift by 0!
+				BWDModeShift = 1; //Shift by 1 more!
 			}
-			else
-			{
-				VGA->precalcs.BWDModeShift = 1; //Shift by 1!
-			}
+			VGA->precalcs.BWDModeShift = BWDModeShift;
 
+			byte characterclockshift=0;
 			//This applies to the address counter (renderer):
 			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4)
 			{
-				VGA->precalcs.characterclockshift = 2; //Shift right 2 bits!
+				characterclockshift = 2; //Shift right 2 bits: divide by 4!
 			}
 			else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2)
 			{
-				VGA->precalcs.characterclockshift = 1; //Shift right 1 bit!
+				characterclockshift = 1; //Shift right 1 bit more on top of DIV4: divide by 2!
 			}
-			else
-			{
-				VGA->precalcs.characterclockshift = 0; //Don't shift!
-			}
+
+			VGA->precalcs.characterclockshift = characterclockshift; //Apply character clock shift!
 
 			underlinelocationupdated = 1; //We need to update the attribute controller!
 			scanlinesizeupdated = 1; //We need to update this too!
@@ -437,7 +434,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word scanlinesize;
 			scanlinesize = VGA->precalcs.rowsize;
-			scanlinesize <<= VGA->precalcs.BWDModeShift;
+			scanlinesize <<= VGA->precalcs.BWDModeShift; //B/W/DWord mode shift!
 			VGA->precalcs.scanlinesize = scanlinesize; //Scanline size!
 			recalcScanline = 1; //Recalc scanline data!
 			//dolog("VGA","VTotal after scanlinesize: %i",VGA->precalcs.verticaltotal); //Log it!

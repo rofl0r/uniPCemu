@@ -322,7 +322,6 @@ byte PORT_readVGA(word port) //Read from a port/register!
 	return result; //Disabled for now or unknown port!
 }
 
-extern byte LOG_VRAM_WRITES; //Log it?
 void PORT_writeVGA(word port, byte value) //Write to a port/register!
 {
 	if (!getActiveVGA()) //No active VGA?

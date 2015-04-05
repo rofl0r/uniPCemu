@@ -3,6 +3,9 @@
 #include "headers/hardware/vga_screen/vga_vram.h" //VRAM support!
 #include "headers/mmu/mmuhandler.h" //Handling support!
 
+//Our active VRAM read/write mode (processed in VGA_VRAM.c).
+#define VRAMMODE 0
+
 extern VGA_Type *ActiveVGA; //Active VGA!
 uint_32 VGA_VRAM_START = 0xA0000; //VRAM start address default!
 
@@ -131,23 +134,24 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 	byte planeenable = ActiveVGA->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable; //What planes to try to write to!
 	planeenable &= planes; //The actual planes to write to!
 	byte curplanemask=1;
-	for (curplane=0;curplane<4;curplane++) //Process all planes!
+	for (curplane=0;curplane<4;) //Process all planes!
 	{
 		if (planeenable&curplanemask) //Modification of the plane?
 		{
-			writeVRAMplane(ActiveVGA,curplane,offset,data&0xFF); //Write the plane from the data!
+			writeVRAMplane(ActiveVGA,curplane,offset,data&0xFF,VRAMMODE); //Write the plane from the data!
 		}
 		data >>= 8; //Shift to the next plane!
 		curplanemask <<= 1; //Next plane!
+		++curplane; //Next plane!
 	}
 }
 
 OPTINLINE void loadlatch(uint_32 offset)
 {
-	ActiveVGA->registers->ExternalRegisters.DATALATCH.latchplane[0] = readVRAMplane(ActiveVGA,0,offset,0); //Plane 0
-	ActiveVGA->registers->ExternalRegisters.DATALATCH.latchplane[1] = readVRAMplane(ActiveVGA,1,offset,0); //Plane 1
-	ActiveVGA->registers->ExternalRegisters.DATALATCH.latchplane[2] = readVRAMplane(ActiveVGA,2,offset,0); //Plane 2
-	ActiveVGA->registers->ExternalRegisters.DATALATCH.latchplane[3] = readVRAMplane(ActiveVGA,3,offset,0); //Plane 3
+	ActiveVGA->registers->ExternalRegisters.DATALATCH.latchplane[0] = readVRAMplane(ActiveVGA,0,offset,VRAMMODE); //Plane 0
+	ActiveVGA->registers->ExternalRegisters.DATALATCH.latchplane[1] = readVRAMplane(ActiveVGA,1,offset,VRAMMODE); //Plane 1
+	ActiveVGA->registers->ExternalRegisters.DATALATCH.latchplane[2] = readVRAMplane(ActiveVGA,2,offset,VRAMMODE); //Plane 2
+	ActiveVGA->registers->ExternalRegisters.DATALATCH.latchplane[3] = readVRAMplane(ActiveVGA,3,offset,VRAMMODE); //Plane 3
 	VGA_updateLatches(); //Update the latch data mirroring!
 }
 
@@ -160,12 +164,13 @@ OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
 	switch (ActiveVGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode) //What read mode?
 	{
 	case 0: //Read mode 0: Just read the normal way!
-		for (curplane = 0; curplane < 4; curplane++)
+		for (curplane = 0; curplane < 4;)
 		{
 			if (planes&(1 << curplane)) //Read from this plane?
 			{
-				return readVRAMplane(ActiveVGA, curplane, offset, 0); //Read directly from vram using the selected plane!
+				return readVRAMplane(ActiveVGA, curplane, offset, VRAMMODE); //Read directly from vram using the selected plane!
 			}
+			++curplane; //Next plane!
 		}
 		break;
 	case 1: //Read mode 1: Compare display memory with color defined by the Color Compare field. Colors Don't care field are not considered.
@@ -175,7 +180,7 @@ OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
 		{
 			if (ActiveVGA->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER.ColorCare&(1<<curplane)) //We care about this plane?
 			{
-				if (readVRAMplane(ActiveVGA,curplane,offset,0)==ActiveVGA->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER.ColorCompare) //Equal?
+				if (readVRAMplane(ActiveVGA,curplane,offset,VRAMMODE)==ActiveVGA->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER.ColorCompare) //Equal?
 				{
 					val |= (1<<curplane); //Set the bit: the comparision is true!
 				}
@@ -198,49 +203,48 @@ The r/w operations from the CPU!
 //decodeCPUaddress(Write from CPU=1; Read from CPU=0, offset (from VRAM start address), planes to read/write (4-bit mask), offset to read/write within the plane(s)).
 OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
 {
+	register uint_32 realoffsettmp;
+	register byte calcplanes;
 	if (ActiveVGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.Chain4Enable) //Chain 4 mode?
 	{
-		*realoffset = offset; //Original offset to start with!
-		offset &= 0x3; //Walk through the planes!
-		*planes = (1 << offset); //Lower bits, create bitmask!
-		*realoffset >>= 2; //Rest of the bits. Multiples of 4 wont get written!
-		return; //Done!
-	}
-	if (ActiveVGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode) //Odd/Even mode?
-	{
-		//Odd/even mode used (compatiblity case)?
-		//Do the same as VPC!
-		register byte calcplanes;
-		register uint_32 newoffset;
-		newoffset = offset; //Take the default offset!
-		newoffset &= 0xFFFE; //Take the offset within the plane!
-		if (ActiveVGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode) //Chain using A0 selected? 0=0/2, 1=1/3!
-		{
-			calcplanes = offset;
-			calcplanes &= 1; //Take 1 bit to determine the plane (0/1)!
-		}
-		else //Normal operations?
-		{
-			calcplanes = 0; //The plane calculated is always 0!
-			newoffset |= (offset & 1); //Linear operations!
-		}
-		calcplanes = (0x5 << calcplanes); //Convert to used plane (0/2 or 1/3)!
-		*planes = calcplanes; //Load the planes to address!
-		*realoffset = newoffset; //Load the offset to address!
+		calcplanes = realoffsettmp = offset; //Original offset to start with!
+		calcplanes &= 0x3; //Lower bits
+		*planes = (1 << calcplanes); //Give the planes to write to!
+		realoffsettmp &= 0xFFFB; //Rest of bits, multiples of 4 won't get written!
+		*realoffset = realoffsettmp; //Give the offset!
 		return; //Done!
 	}
 
-	if (towrite) //Writing access?
+	if (ActiveVGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.OEDisabled) //Odd/Even mode disabled?
 	{
-		*planes = 0xF; //Write to all planes possible, map mask register does the rest!
+		if (towrite) //Writing access?
+		{
+			calcplanes = 0xF; //Write to all planes possible, map mask register does the rest!
+		}
+		else
+		{
+			calcplanes = 1; //Load plane 0!
+			calcplanes <<= ActiveVGA->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
+		}
+		*planes = calcplanes; //The planes to apply!
+		*realoffset = offset; //Load the offset directly!
+		return; //Done!
+	}
+
+	//Odd/even mode used (compatiblity case)?
+	//Do the same as VPC!
+	calcplanes = realoffsettmp = offset; //Take the default offset!
+	if (ActiveVGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode)
+	{
+		calcplanes &= 1; //Take 1 bit to determine the plane (0/1)!
+		realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
 	}
 	else
 	{
-		*planes = 1; //Load plane 0!
-		*planes <<= ActiveVGA->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
+		calcplanes = 0; //Use plane 0 always!
 	}
-	*realoffset = offset; //Direct offset into VRAM!
-	//The offset is used directly!
+	*realoffset = realoffsettmp; //Give the calculated offset!
+	*planes = (0x5 << calcplanes); //Convert to used plane (0&2 or 1&3)!
 }
 
 byte planes; //What planes to affect!
@@ -253,9 +257,9 @@ byte VGAmemIO_rb(uint_32 baseoffset, uint_32 reloffset, byte *value)
 		reloffset -= VGA_VRAM_START; //Calculate start offset into VRAM!
 		decodeCPUaddress(0, reloffset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 		*value = VGA_ReadModeOperation(planes, realoffset); //Apply the operation on read mode!
-		return 1; //Written!
+		return 1; //Read!
 	}
-	return 0; //Not written!
+	return 0; //Not read!
 }
 
 byte VGAmemIO_wb(uint_32 baseoffset, uint_32 reloffset, byte value)

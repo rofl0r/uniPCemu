@@ -10,7 +10,7 @@
 #include "headers/hardware/vga_screen/vga_precalcs.h" //For the CRT precalcs dump!
 #include "headers/hardware/vga_screen/vga_dac.h" //DAC support!
 //To make a screen capture of all of the debug screens active?
-#define LOG_VGA_SCREEN_CAPTURE 2
+#define LOG_VGA_SCREEN_CAPTURE 0
 //For text-mode debugging! 40 and 80 character modes!
 #define VIDEOMODE_TEXTMODE_40 0x00
 #define VIDEOMODE_TEXTMODE_80 0x02
@@ -21,7 +21,6 @@
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
 
-extern byte LOG_VRAM_WRITES; //Log VRAM writes?
 extern byte LOG_MMU_WRITES; //Log MMU writes?
 
 extern byte ENABLE_VRAM_LOG; //Enable VRAM logging?
@@ -152,7 +151,6 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		//debugTextModeScreenCapture(); //Make a screen capture!
 		//sleep(); //Wait forever to debug!
 
-		//LOG_VRAM_WRITES = 1; //Enable log!
 		MMU_wb(-1,0xB800,0,'a');
 		MMU_wb(-1,0xB800,1,0x1);
 		MMU_wb(-1,0xB800,2,'b');
@@ -191,8 +189,6 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		*/ //80x25
 		//SCREEN_CAPTURE = 2; //Enable a screen capture please, on the second frame (first is incomplete, since we've changed VRAM)!
 		
-		//LOG_VRAM_WRITES = 0; //Disable log!
-
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Direct VRAM access 40x25-0...");
 
@@ -314,10 +310,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//16 color mode!
 	DoDebugVGAGraphics(0x0D,320,200,0x10,0,0xF,0,0); //Debug 320x200x16!
 
-	DoDebugVGAGraphics(0x0E,640,200,0x10,0,0xF,1,0); //Debug 640x200x16!
-	DoDebugVGAGraphics(0x10,640,350,0x10,0,0xF,1,0); //Debug 640x350x16!
+	//DoDebugVGAGraphics(0x0E,640,200,0x10,0,0xF,1,0); //Debug 640x200x16!
+	//DoDebugVGAGraphics(0x10,640,350,0x10,0,0xF,1,0); //Debug 640x350x16!
 	//16 color b/w mode!
-	DoDebugVGAGraphics(0x11,640,480,0x10,0,0x1,1,0); //Debug 640x480x16(B/W)! 
+	//DoDebugVGAGraphics(0x11,640,480,0x10,0,0x1,1,0); //Debug 640x480x16(B/W)! 
 	//16 color maxres mode!
 	DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
 	//VGA_DUMPDAC(); //Dump the DAC!

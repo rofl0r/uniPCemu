@@ -43,16 +43,16 @@ extern byte active_screen; //Active screen: 0=bottom, 1=Top, 2=Left/Right, 3=Rig
 //Automatically sleep on main thread close?
 #define SLEEP_ON_MAIN_CLOSE 0
 
-byte shutdown = 0; //Shut down (default: NO)?
+byte EMU_IsShuttingDown = 0; //Shut down (default: NO)?
 
-void EMU_Shutdown(int doshutdown)
+void EMU_Shutdown(byte execshutdown)
 {
-	shutdown = doshutdown; //Call shutdown or not!
+	EMU_IsShuttingDown = execshutdown; //Call shutdown or not!
 }
 
-int shuttingdown() //Shutting down?
+byte shuttingdown() //Shutting down?
 {
-	if (shutdown)
+	if (EMU_IsShuttingDown)
 	{
 		return 1; //Shutting down!
 	}
@@ -69,7 +69,7 @@ BASIC Exit Callbacks
 /* Exit callback */
 int exit_callback(int arg1, int arg2, void *common)
 {
-	shutdown = 1; //Call for a shut down!
+	EMU_Shutdown(1); //Call for a shut down!
 	int counter = 0; //Counter for timeout!
 	for(;;) //Loop!
 	{
@@ -339,7 +339,7 @@ int main(int argc, char * argv[])
 	debugrow("Terminating main video service...");		
 	doneVideoMain(); //Finish video!
 	freezall(); //Finish up: free all used pointers!
-	if (shutdown || !running) //Shutdown requested or SDL termination requested?
+	if (shuttingdown() || !running) //Shutdown requested or SDL termination requested?
 	{
 		SDL_Quit(); //Quit using SDL, terminating the pspsurface!
 		return 0; //Finish to be safe!

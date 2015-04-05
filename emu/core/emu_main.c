@@ -77,7 +77,6 @@ byte emu_use_profiler()
 
 //Main loader stuff:
 
-extern byte shutdown; //Shut down (default: NO)?
 byte reset = 0; //To fully reset emu?
 uint_32 romsize = 0; //For checking if we're running a ROM!
 
@@ -103,7 +102,7 @@ void cputhread() //The main thread for the emulator!
 		dolog("BIOS","EMU_BIOSLoader: we have no memory!");
 		BIOS_LoadIO(1); //Load basic BIOS I/O (disks), don't show checksum errors!
 		autoDetectMemorySize(0); //Check&Save memory size if needed!
-		shutdown = 0; //No shutdown!
+		EMU_Shutdown(0); //No shutdown!
 		return; //Reset!
 	}
 	

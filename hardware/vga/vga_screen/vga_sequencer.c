@@ -146,16 +146,16 @@ void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load 
 	}
 
 	loadedlocation >>= VGA->precalcs.characterclockshift; //Apply VGA shift: the shift is the ammount to move at a time!
-	loadedlocation <<= ActiveVGA->precalcs.BWDModeShift; //Apply the mode!
+	loadedlocation <<= VGA->precalcs.BWDModeShift; //Apply byte/word/doubleword mode at the character level!
 
 	//Row logic
 	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!
 
 	//Now calculate and give the planes to be used!
-	planesbuffer[0] = readVRAMplane(VGA, 0, loadedlocation, 1); //Read plane 0!
-	planesbuffer[1] = readVRAMplane(VGA, 1, loadedlocation, 1); //Read plane 1!
-	planesbuffer[2] = readVRAMplane(VGA, 2, loadedlocation, 1); //Read plane 2!
-	planesbuffer[3] = readVRAMplane(VGA, 3, loadedlocation, 1); //Read plane 3!
+	planesbuffer[0] = readVRAMplane(VGA, 0, loadedlocation, 0x80); //Read plane 0!
+	planesbuffer[1] = readVRAMplane(VGA, 1, loadedlocation, 0x80); //Read plane 1!
+	planesbuffer[2] = readVRAMplane(VGA, 2, loadedlocation, 0x80); //Read plane 2!
+	planesbuffer[3] = readVRAMplane(VGA, 3, loadedlocation, 0x80); //Read plane 3!
 	//Now the buffer is ready to be processed into pixels!
 
 	planesdecoder[VGA->precalcs.graphicsmode](VGA); //Use the decoder to get the pixels or characters!
@@ -177,7 +177,6 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 
 	charystart = getVRAMScanlineStart(VGA, row); //Calculate row start!
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
-	charystart += Sequencer->bytepanning; //Apply byte panning to the index!
 	Sequencer->charystart = charystart; //What row to start with our pixels!
 
 	//Some attribute controller special 8-bit mode support!

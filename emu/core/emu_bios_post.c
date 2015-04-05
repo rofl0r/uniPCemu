@@ -35,7 +35,6 @@
 #include "headers/interrupts/interrupt16.h"
 #include "headers/interrupts/interrupt19.h"
 
-extern byte shutdown; //Shut down (default: NO)?
 extern byte reset; //To fully reset emu?
 extern byte dosoftreset; //To fully softreset emu (start from booting)
 
@@ -318,9 +317,9 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			return 1; //Full reset emulator!
 		}
 
-		if (shutdown) //Shut down?
+		if (shuttingdown()) //Shut down?
 		{
-			shutdown = 0; //Done shutting down!
+			EMU_Shutdown(0); //Done shutting down!
 			halt(); //Shut down!
 		}
 

@@ -91,7 +91,9 @@ RIFF
 #define SHORT sword
 #define WORD word
 
-typedef uint_32 FOURCC; // Four-character code 
+// Four-character code 
+#define FOURCC uint_32
+
 #include "headers/packed.h" //We're packed!
 typedef struct  PACKED { 
  FOURCC ckID; // A chunk ID identifies the type of data within the chunk. 

@@ -26,6 +26,12 @@
 //Normal SDL libraries
 #include "SDL.h" //SDL library for windows!
 #include "SDL_events.h" //SDL events!
+//Windows specific structures!
+#include <direct.h>
+#include <windows.h>
+#include <tchar.h> 
+#include <strsafe.h>
+#pragma comment(lib, "User32.lib")
 #else
 #include "SDL/SDL.h" //SDL library!
 #include "SDL/SDL_events.h" //SDL events!
@@ -110,16 +116,14 @@ typedef uint_64 FILEPOS;
 #endif
 #endif
 
-//RGB is by default fully opaque
-
-
-//Windows safety!
 #ifdef RGB
-//We overwrite this!
+//We're overwriting default RGB functionality, so remove RGB definition!
 #undef RGB
 #endif
 
-#define RGB(r, g, b) RGBA(r,g,b,SDL_ALPHA_OPAQUE)
+//RGB is by default fully opaque
+#define RGB(r, g, b) RGBA((r),(g),(b),SDL_ALPHA_OPAQUE)
+
 //Special transparent pixel!
 #define TRANSPARENTPIXEL RGBA(SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT)
 
@@ -178,7 +182,8 @@ int convertrel(int src, int fromres, int tores); //Relative convert!
 uint_32 safe_strlen(char *str, int limit); //Safe safe_strlen function!
 char *constsprintf(char *str1, ...); //Concatinate strings (or constants)!
 
-void EMU_Shutdown(int doshutdown); //Shut down the emulator?
+void EMU_Shutdown(byte execshutdown); //Shut down the emulator?
+byte shuttingdown(); //Shutting down?
 void raiseError(char *source, char *text, ...); //Raises an error!
 void printmsg(byte attribute, char *text, ...); //Prints a message to the screen!
 void delete_file(char *directory, char *filename); //Delete one or more files!

@@ -60,7 +60,6 @@
 //All external variables!
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 extern byte reset; //To fully reset emu?
-extern byte shutdown; //Shut down (default: NO)?
 extern uint_32 romsize; //For checking if we're running a ROM!
 extern byte cpudebugger; //To debug the CPU?
 extern PIC i8259; //PIC processor!
@@ -339,11 +338,11 @@ void initEMUreset() //Simple reset emulator!
 
 	reset = 0; //Not resetting!
 //Shutdown check as fast as we can!
-	if (shutdown) //Shut down?
+	if (shuttingdown()) //Shut down?
 	{
 		debugrow("shutdown!");
 		doneEMU(); //Clean up if needed!
-		shutdown = 0; //Done shutting down!
+		EMU_Shutdown(0); //Done shutting down!
 		halt(); //Shut down!
 	}
 
@@ -435,7 +434,7 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 			break; //Stop running!
 		}
 		
-		if (shutdown || reset)
+		if (shuttingdown() || reset)
 		{
 			debugrow("Reset/shutdown detected!");
 			break;    //Shutdown or reset?
@@ -449,7 +448,7 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 
 	EMU_RUNNING = 0; //We're not running anymore!
 	
-	if (shutdown) //Shut down?
+	if (shuttingdown()) //Shut down?
 	{
 		debugrow("Shutdown requested");
 		return 0; //Shut down!

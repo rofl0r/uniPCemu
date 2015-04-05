@@ -13,7 +13,6 @@
 
 #include "headers/emu/emucore.h" //Emulation core!
 
-extern byte shutdown; //To shut down?
 extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?
 extern PIC i8259; //PIC processor!
@@ -77,7 +76,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		return 0; //Failed!
 	}
 	
-	shutdown = 0;
+	EMU_Shutdown(0);
 	cleartimers(); //Clear all timers!
 	
 	dolog("ROM_log","Terminating VGA...");
@@ -119,7 +118,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		dolog("ROM_log","Emulator terminated wrong."); //Log!
 	}
 
-	shutdown = 0;
+	EMU_Shutdown(0);
 
 	int verified = 1; //Data verified!
 	f = fopen(resultfile,"rb"); //Result file verification!
