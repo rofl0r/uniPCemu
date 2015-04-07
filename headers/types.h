@@ -92,29 +92,17 @@ typedef uint_64 FILEPOS;
 
 //RGB, with and without A (full)
 
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-#define RGBA(r, g, b, a) ((a)|((b)<<8)|((g)<<16)|((r)<<24))
-#define GETA(x) ((x)&0xFF)
-#define GETB(x) (((x)>>8)&0xFF)
-#define GETG(x) (((x)>>16)&0xFF)
-#define GETR(x) (((x)>>24)&0xFF)
-#else
-#ifdef _WIN32
-//Windows has irregular logic for some reason?
-#define RGBA(r, g, b, a) ((b)|((g)<<8)|((r)<<16)|((a)<<24))
-#define GETA(x) (((x)>>24)&0xFF)
-#define GETR(x) (((x)>>16)&0xFF)
-#define GETG(x) (((x)>>8)&0xFF)
-#define GETB(x) ((x)&0xFF)
-#else
-//PSP logic?
-#define RGBA(r, g, b, a) ((r)|((g)<<8)|((b)<<16)|((a)<<24))
-#define GETR(x) ((x)&0xFF)
-#define GETG(x) (((x)>>8)&0xFF)
-#define GETB(x) (((x)>>16)&0xFF)
-#define GETA(x) (((x)>>24)&0xFF)
+#ifndef IS_GPU
+//Pixel component information as determined by the system!
+extern byte rshift, gshift, bshift, ashift; //All shift values!
+extern uint_32 rmask, gmask, bmask, amask; //All mask values!
 #endif
-#endif
+
+#define RGBA(r, g, b, a) (((a)<<ashift)|((b)<<bshift)|((g)<<gshift)|((r)<<rshift))
+#define GETR(x) (((x)&rmask)>>rshift)
+#define GETG(x) (((x)&gmask)>>gshift)
+#define GETB(x) (((x)&bmask)>>bshift)
+#define GETA(x) (((x)&amask)>>ashift)
 
 #ifdef RGB
 //We're overwriting default RGB functionality, so remove RGB definition!

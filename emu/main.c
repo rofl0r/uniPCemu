@@ -306,7 +306,7 @@ int main(int argc, char * argv[])
 	running = 1; //Default: we're running!
 	for (;running;) //Still running?
 	{
-		delay(100000); //Give threads some time!
+		delay(1000); //Give threads some time!
 		for (;SDL_PollEvent(&event);) //Gotten events to handle?
 		{
 			//Handle an event!

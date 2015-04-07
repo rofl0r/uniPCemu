@@ -1,3 +1,6 @@
+//We're the GPU!
+#define IS_GPU
+
 #include "headers/types.h" //Global stuff!
 #include "headers/emu/gpu/gpu.h" //Our stuff!
 #include "headers/mmu/mmu.h" //TEXT mode data!
@@ -29,6 +32,10 @@ GPU_type GPU; //The GPU itself!
 
 GPU_SDL_Surface *rendersurface = NULL; //The PSP's surface to use when flipping! We can only be freed using SDL_Quit.
 SDL_Surface *originalrenderer = NULL; //Original renderer from above! Above is just the wrapper!
+
+byte rshift=0, gshift=0, bshift=0, ashift=0; //All shift values!
+uint_32 rmask=0, gmask=0, bmask=0, amask=0; //All mask values!
+
 /*
 
 VIDEO BASICS!
@@ -82,6 +89,24 @@ SDL_Surface *getGPUSurface()
 	if (GPU.fullscreen) flags |= SDL_FULLSCREEN; //Goto fullscreen mode!
 
 	originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	//Load our detected settings!
+	rmask = originalrenderer->format->Rmask;
+	rshift = originalrenderer->format->Rshift;
+	gmask = originalrenderer->format->Gmask;
+	gshift = originalrenderer->format->Gshift;
+	bmask = originalrenderer->format->Bmask;
+	bshift = originalrenderer->format->Bshift;
+	amask = originalrenderer->format->Amask;
+	ashift = originalrenderer->format->Ashift;
+	if (!amask) //No alpha supported?
+	{
+		#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+		amask = ashift = 0; //Default position!
+		#else
+		amask = 0xFF000000; //High part!
+		ashift = 24; //Shift by 24 bits to get alpha!
+		#endif
+	}
 
 	SDL_WM_SetCaption( "x86EMU", 0 );
 	GPU_text_updatedelta(originalrenderer); //Update delta if needed, so the text is at the correct position!

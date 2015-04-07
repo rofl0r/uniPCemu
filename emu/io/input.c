@@ -1715,6 +1715,15 @@ void updateInput(SDL_Event *event) //Update all input!
 						break;
 					case SDLK_F12: //Fullscreen toggle?
 						GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
+						updateVideo(); //Force an update of video!
+						break;
+					case SDLK_F4: //F4?
+						if ((input.cas&CAS_LALT) || (input.cas&CAS_RALT)) //ALT-F4?
+						{
+							SDL_Event quitevent;
+							quitevent.quit.type = SDL_QUIT; //Add a quit to the queue!
+							SDL_PushEvent(&quitevent); //Add an quit event!
+						}
 						break;
 				}
 				updateMOD(event); //Update rest keys!
