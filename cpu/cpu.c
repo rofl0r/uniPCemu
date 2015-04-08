@@ -893,10 +893,12 @@ int getcpuwraparround() //Wrap arround 1MB limit?
 	return (getcpumode()!=CPU_MODE_PROTECTED); //Wrap arround when not in protected mode!
 }
 
+extern uint_32 destEIP;
+
 void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 {
+	destEIP = CPU_exec_EIP; //Destination address!
 	segmentWritten(CPU_SEGMENT_CS,CPU_exec_CS,0); //CS changed and rerun ...
-	CPU.registers->EIP = CPU_exec_EIP; //... The current OPCode!
 }
 
 //Read signed numbers from CS:(E)IP!

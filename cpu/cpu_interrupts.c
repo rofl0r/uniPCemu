@@ -19,6 +19,8 @@ void CPU_getint(byte intnr, word *segment, word *offset) //Set real mode IVT ent
 	*offset = MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0000,(intnr<<2),0); //Copy offset!
 }
 
+extern uint_32 destEIP;
+
 void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //Used by soft (below) and exceptions/hardware!
 {
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
@@ -30,10 +32,8 @@ void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //Used by sof
 		FLAG_IF = 0; //We're calling the interrupt!
 		FLAG_TF = 0; //We're calling an interrupt, resetting debuggers!
 //Now, jump to it!
+		destEIP = MMU_rw(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, 0x0000, (intnr << 2), 0); //JUMP to position CS:EIP/CS:IP in table.
 		segmentWritten(CPU_SEGMENT_CS,MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0000,(intnr<<2)|2,0),0); //Interrupt to position CS:EIP/CS:IP in table.
-		CPUPROT1
-		REG_IP = MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0000,(intnr<<2),0); //JUMP to position CS:EIP/CS:IP in table.
-		CPUPROT2
 	}
 	else //Use Protected mode IVT?
 	{

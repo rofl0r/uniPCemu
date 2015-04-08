@@ -180,43 +180,46 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 	}
 	byte equalprivilege = 0; //Special gate stuff requirement: DPL must equal CPL? 1 for enable, 0 for normal handling.
 	byte privilegedone = 0; //Privilege already calculated?
-	if (isGateDescriptor(&LOADEDDESCRIPTOR) && whatsegment==CPU_SEGMENT_CS && isJMPorCALL) //Handling of gate descriptors?
+	byte is_gated = 0;
+	if (isGateDescriptor(&LOADEDDESCRIPTOR) && whatsegment == CPU_SEGMENT_CS && isJMPorCALL) //Handling of gate descriptors?
 	{
-		memcpy(&GATEDESCRIPTOR,&LOADEDDESCRIPTOR,sizeof(GATEDESCRIPTOR)); //Copy the loaded descriptor to the GATE!
-		if (MAX(getCPL(),getRPL(segment))>GATEDESCRIPTOR.desc.DPL) //Gate has too high a privilege level?
+		is_gated = 1; //We're gated!
+		memcpy(&GATEDESCRIPTOR, &LOADEDDESCRIPTOR, sizeof(GATEDESCRIPTOR)); //Copy the loaded descriptor to the GATE!
+		if (MAX(getCPL(), getRPL(segment)) > GATEDESCRIPTOR.desc.DPL) //Gate has too high a privilege level?
 		{
 			THROWDESCGP(segment); //Throw error!
 			return NULL; //We are a lower privilege level, so don't load!				
 		}
-		if (!LOADDESCRIPTOR(whatsegment,(GATEDESCRIPTOR.desc.base_high<<3)|(segment&7),&LOADEDDESCRIPTOR)) //Error loading current descriptor?
+		segment = (GATEDESCRIPTOR.desc.base_high << 3) | (segment & 7); //We're loading this segment now!
+		if (!LOADDESCRIPTOR(whatsegment, segment, &LOADEDDESCRIPTOR)) //Error loading current descriptor?
 		{
 			return NULL; //Error, by specified reason!
 		}
 		privilegedone = 1; //Privilege has been precalculated!
-		if (isJMPorCALL==1 && !LOADEDDESCRIPTOR.desc.EXECSEGMENT.C) //JMP to a nonconforming segment?
+		if (LOADEDDESCRIPTOR.desc.Type & 0x1D == 9) //Task gate?
 		{
-			if (LOADEDDESCRIPTOR.desc.DPL!=getCPL()) //Different CPL?
+			if (whatsegment != CPU_SEGMENT_CS) //Not code? We're not a task switch! We're trying to load the task segment into a data register. This is illegal!
 			{
 				THROWDESCGP(segment); //Throw error!
-				return NULL; //We are a different privilege level, so don't load!						
+				return NULL; //Don't load!
 			}
 		}
-		else if (isJMPorCALL) //Call instruction (or JMP instruction to a conforming segment)
+		else //Normal descriptor?
 		{
-			if (LOADEDDESCRIPTOR.desc.DPL>getCPL()) //We have a lower CPL?
+			if (isJMPorCALL == 1 && !LOADEDDESCRIPTOR.desc.EXECSEGMENT.C) //JMP to a nonconforming segment?
 			{
-				THROWDESCGP(segment); //Throw error!
-				return NULL; //We are a different privilege level, so don't load!
-			}
-			if (isJMPorCALL==2) //CALL Gate used?
-			{
-				if (LOADEDDESCRIPTOR.desc.DPL!=getCPL()) //Different CPL? Stack switch?
+				if (LOADEDDESCRIPTOR.desc.DPL != getCPL()) //Different CPL?
 				{
-					if (!TSS_PrivilegeChanges(whatsegment,&LOADEDDESCRIPTOR,segment)) //The privilege level has changed and failed?
-					{
-						//6.3.4.1 Stack Switching!!!
-						//Throw #GP?
-					}
+					THROWDESCGP(segment); //Throw error!
+					return NULL; //We are a different privilege level, so don't load!						
+				}
+			}
+			else if (isJMPorCALL) //Call instruction (or JMP instruction to a conforming segment)
+			{
+				if (LOADEDDESCRIPTOR.desc.DPL > getCPL()) //We have a lower CPL?
+				{
+					THROWDESCGP(segment); //Throw error!
+					return NULL; //We are a different privilege level, so don't load!
 				}
 			}
 		}
@@ -256,8 +259,44 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 		return NULL; //We are a lower privilege level, so don't load!
 	}
 
-	if (whatsegment==CPU_SEGMENT_CS) //Special stuff on CS (conforming?), CPL.
+	if ((LOADEDDESCRIPTOR.desc.Type & 0x1D) == 9) //We're a TSS? We're to perform a task switch!
 	{
+		if (segment & 2) //LDT lookup set?
+		{
+			THROWDESCGP(segment); //Throw error!
+			return NULL; //We're an invalid TSS to call!
+		}
+		//Handle the task switch!
+		if (!is_gated) //Not gated?
+		{
+			THROWDESCGP(segment); //Throw error!
+			return NULL; //We're an invalid TSS to execute!
+		}
+	}
+
+	if (whatsegment==CPU_SEGMENT_CS) //Special stuff on CS (conforming?), CPL, Task.
+	{
+		if ((LOADEDDESCRIPTOR.desc.Type & 0x1D) == 9) //We're a TSS? We're to perform a task switch!
+		{
+			if (!LOADEDDESCRIPTOR.desc.P) //Not present?
+			{
+				THROWDESCGP(segment); //Throw error!
+				return NULL; //We're an invalid TSS to execute!
+			}
+			//Handle the task switch!
+			if (LOADEDDESCRIPTOR.desc.DPL != getCPL()) //Different CPL? Stack switch?
+			{
+				if (!TSS_PrivilegeChanges(whatsegment, &LOADEDDESCRIPTOR, segment)) //The privilege level has changed and failed?
+				{
+					//6.3.4.1 Stack Switching!!!
+					//Throw #GP?
+					THROWDESCGP(segment); //Throw error!
+					return NULL; //Error changing priviledges!
+				}
+			}
+
+		}
+
 		if (LOADEDDESCRIPTOR.desc.EXECSEGMENT.C) //Conforming segment?
 		{
 			if (!privilegedone && LOADEDDESCRIPTOR.desc.DPL>getCPL()) //Target DPL must be less-or-equal to the CPL.
@@ -280,6 +319,8 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 	return &LOADEDDESCRIPTOR.desc; //Give the segment descriptor read from memory!
 }
 
+uint_32 destEIP; //Destination address for CS JMP instruction!
+
 void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
 	if (CPU.faultraised) return; //Abort if already an fault has been raised!
@@ -292,6 +333,10 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			if (memprotect(CPU.SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 			{
 				*CPU.SEGMENT_REGISTERS[segment] = value; //Set the segment register to the allowed value!
+			}
+			if (segment == CPU_SEGMENT_CS) //CS register?
+			{
+				CPU.registers->EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
 			}
 		}
 	}
@@ -307,6 +352,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			//Pulled low on first load:
 			CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0;
 			CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0;
+			CPU.registers->EIP = destEIP; //... The current OPCode: just jump to the address!
 		}
 	}
 	//Real mode doesn't use the descriptors?
