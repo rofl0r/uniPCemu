@@ -195,6 +195,13 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			byte verified;
 			verified = 0; //Default: not verified!
 
+			if (file_exists("ROMS/BIOSROM.BIN")) //Fully custom BIOS ROM, for the entire BIOS segment?
+			{
+				verified = BIOS_load_custom("ROMS/BIOSROM.BIN"); //Try to load a custom BIOS ROM!
+				if (verified) goto loadOPTROMS; //Loaded the BIOS?
+			}
+			
+			//Load a normal BIOS ROM, according to the chips!
 			if (EMULATED_CPU < CPU_80286) //5160 PC?
 			{
 				if (!BIOS_load_ROM(18)) //Failed to load u18?
@@ -238,6 +245,8 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				verified = 1; //Verified!
 			}
 
+			loadOPTROMS:
+
 			if (verified) //Ready to boot, but need option ROMS?
 			{
 				verified = BIOS_checkOPTROMS(); //Try and load OPT roms!
@@ -252,10 +261,13 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			else //Boot rom ready?
 			{
-				BIOS_registerROM(); //Register the BIOS ROM!
+				BIOS_registerROM(); //Register the BIOS ROMS!
 				EMU_startInput(); //Start input again!
+				resetCPU(); //Reset the CPU to load the BIOS!
 				EMU_RUNNING = 1; //We're running again!
 				allow_debuggerstep = 1; //Allow stepping from now on!
+				startTimers(0); //Make sure we're running fully!
+				startTimers(1); //Make sure we're running fully!
 				return 0; //No reset, start the BIOS!
 			}
 		}

@@ -443,6 +443,8 @@ void op_grp3_16() {
 	}
 }
 
+extern uint_32 destEIP; //For FAR JMP/call!
+
 void op_grp5() {
 	MODRM_PTR info; //To contain the info!
 	switch (reg) {
@@ -464,14 +466,14 @@ void op_grp5() {
 		case 3: //CALL Mp
 		CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP);
 		modrm_decode16(&params,&info,2); //Get data!
-		REG_IP = (word)MMU_rw(get_segment_index(info.segmentregister),info.mem_segment,info.mem_offset,0);
+		destEIP = MMU_rw(get_segment_index(info.segmentregister),info.mem_segment,info.mem_offset,0);
 		segmentWritten(CPU_SEGMENT_CS,MMU_rw(get_segment_index(info.segmentregister),info.mem_segment,info.mem_offset + 2,0),2);
 		break;
 		case 4: //JMP Ev
 		REG_IP = oper1; break;
 		case 5: //JMP Mp
 		modrm_decode16(&params,&info,2); //Get data!
-		REG_IP = (word)MMU_rw(get_segment_index(info.segmentregister),info.mem_segment,info.mem_offset,0);
+		destEIP = MMU_rw(get_segment_index(info.segmentregister),info.mem_segment,info.mem_offset,0);
 		segmentWritten(CPU_SEGMENT_CS,MMU_rw(get_segment_index(info.segmentregister),info.mem_segment,info.mem_offset + 2,0),1);
 		break;
 		case 6: //PUSH Ev

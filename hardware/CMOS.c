@@ -142,13 +142,6 @@ void saveCMOS()
 	BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
 }
 
-void initCMOS() //Initialises CMOS (apply solid init settings&read init if possible)!
-{
-	CMOS.ADDR = 0; //Reset!
-	CMOS.NMI = 1; //Reset!
-	loadCMOS(); //Load the CMOS from disk OR defaults!
-}
-
 void RTC_PeriodicInterrupt() //Periodic Interrupt!
 {
 	CMOS.data[0x0C] |= 0x40; //Periodic Interrupt flag!
@@ -267,4 +260,17 @@ void PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	default: //Unknown?
 		break; //Do nothing!
 	}
+}
+
+void initCMOS() //Initialises CMOS (apply solid init settings&read init if possible)!
+{
+	CMOS.ADDR = 0; //Reset!
+	CMOS.NMI = 1; //Reset!
+	loadCMOS(); //Load the CMOS from disk OR defaults!
+
+	//Register our I/O ports!
+	register_PORTIN(0x70, &PORT_readCMOS);
+	register_PORTIN(0x71, &PORT_readCMOS);
+	register_PORTOUT(0x70, &PORT_writeCMOS);
+	register_PORTOUT(0x71, &PORT_writeCMOS);
 }

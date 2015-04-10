@@ -25,7 +25,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		FILE *f;
 		char filename[100];
 		memset(&filename,0,sizeof(filename)); //Clear/init!
-		sprintf(filename,"BIOS/OPTROM.%i",i+1); //Create the filename for the ROM!
+		sprintf(filename,"ROMS/OPTROM.%i",i+1); //Create the filename for the ROM!
 		f = fopen(filename,"rb");
 		if (!f)
 		{
@@ -79,7 +79,7 @@ void BIOS_freeOPTROMS()
 		{
 			char filename[100];
 			memset(&filename,0,sizeof(filename)); //Clear/init!
-			sprintf(filename,"BIOS/OPTROM.%i",i); //Create the filename for the ROM!
+			sprintf(filename,"ROMS/OPTROM.%i",i); //Create the filename for the ROM!
 			freez((void **)&OPT_ROMS[i],BIOS_OPTROM_size[i],filename); //Release the OPT ROM!
 		}
 	}
@@ -90,7 +90,7 @@ int BIOS_load_ROM(byte nr)
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	sprintf(filename,"roms/BIOSROM.u%i",nr); //Create the filename for the ROM!
+	sprintf(filename,"ROMS/BIOSROM.u%i",nr); //Create the filename for the ROM!
 	f = fopen(filename,"rb");
 	if (!f)
 	{
@@ -172,7 +172,6 @@ void BIOS_free_ROM(byte nr)
 	if (BIOS_ROM_size[nr]) //Has size?
 	{
 		freez((void **)&BIOS_ROMS[nr],BIOS_ROM_size[nr],filename); //Release the BIOS ROM!
-		BIOS_ROMS[nr] = NULL; //Not allocated anymore!
 	}
 }
 
@@ -195,16 +194,20 @@ int BIOS_load_systemROM() //Load custom ROM from emulator itself!
 {
 	BIOS_free_custom(NULL); //Free the custom ROM, if needed and known!
 	BIOS_custom_ROM_size = sizeof(EMU_BIOS); //Save the size!
-	BIOS_custom_ROM = (byte *)&EMU_BIOS; //Simple memory allocation for our ROM!
+	BIOS_custom_ROM = &EMU_BIOS[0]; //Simple memory allocation for our ROM!
 	return 1; //Loaded!
 }
 
 void BIOS_DUMPSYSTEMROM() //Dump the SYSTEM ROM currently set (debugging purposes)!
 {
-	FILE *f;
-	f = fopen("SYSROM.DMP", "wb");
-	fwrite(&EMU_BIOS, 1, sizeof(EMU_BIOS), f); //Save our BIOS!
-	fclose(f);
+	if (BIOS_custom_ROM == &EMU_BIOS[0]) //We're our own BIOS?
+	{
+		//Dump our own BIOS ROM!
+		FILE *f;
+		f = fopen("SYSROM.DMP", "wb");
+		fwrite(&EMU_BIOS, 1, sizeof(EMU_BIOS), f); //Save our BIOS!
+		fclose(f);
+	}
 }
 
 
@@ -212,7 +215,7 @@ void BIOS_DUMPSYSTEMROM() //Dump the SYSTEM ROM currently set (debugging purpose
 
 byte *BIOS_custom_VGAROM;
 uint_32 BIOS_custom_VGAROM_size;
-char customVGAROMname[256] = "BIOS_VGAROM"; //Custom ROM name!
+char customVGAROMname[256] = "EMU_VGAROM"; //Custom ROM name!
 
 void BIOS_free_VGAROM()
 {
@@ -247,13 +250,10 @@ byte OPTROM_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value)    /
 	}
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
-		if (baseoffset == 0xC0000) //Custom VGA BIOS at low range?
+		if (reloffset < BIOS_custom_VGAROM_size) //OK?
 		{
-			if (reloffset < BIOS_custom_VGAROM_size) //OK?
-			{
-				*value = BIOS_custom_VGAROM[reloffset]; //Give the value!
-				return 1;
-			}
+			*value = BIOS_custom_VGAROM[reloffset]; //Give the value!
+			return 1;
 		}
 	}
 	return 0; //No ROM here, allow read from nroaml memory!
@@ -274,12 +274,9 @@ byte OPTROM_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /
 	}
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
-		if (baseoffset == 0xC0000) //Custom VGA BIOS?
+		if (reloffset < BIOS_custom_VGAROM_size) //OK?
 		{
-			if (reloffset < BIOS_custom_VGAROM_size) //OK?
-			{
-				return 1; //Ignore writes!
-			}
+			return 1; //Ignore writes!
 		}
 	}
 	return 0; //No ROM here, allow writes to normal memory!
@@ -294,35 +291,24 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 		case CPU_8086:
 		case CPU_80186: //5160 PC!
 			offset = reloffset;
-			if (BIOS_custom_ROM) //Custom ROM loaded?
+			offset &= 0x7FFF; //Our offset within the ROM!
+			if (reloffset&0x8000) //u18?
 			{
-				offset &= 0xFFFF; //64-bit ROM!
-				if (BIOS_custom_ROM_size>offset) //Within range?
+				if (BIOS_ROMS[18]) //Set?
 				{
-					return 1; //Ignore writes!
-				}
-			}
-			else //Normal BIOS ROM?
-			{
-				offset &= 0x7FFF; //Our offset within the ROM!
-				if (reloffset&0x8000) //u18?
-				{
-					if (BIOS_ROMS[18]) //Set?
+					if (BIOS_ROM_size[18]>offset) //Within range?
 					{
-						if (BIOS_ROM_size[18]>offset) //Within range?
-						{
-							return 1; //Ignore writes!
-						}
+						return 1; //Ignore writes!
 					}
 				}
-				else //u19?
+			}
+			else //u19?
+			{
+				if (BIOS_ROMS[19]) //Set?
 				{
-					if (BIOS_ROMS[19]) //Set?
+					if (BIOS_ROM_size[19]>offset) //Within range?
 					{
-						if (BIOS_ROM_size[19]>offset) //Within range?
-						{
-							return 1; //Ignore writes!
-						}
+						return 1; //Ignore writes!
 					}
 				}
 			}
@@ -357,6 +343,17 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 		default: //Unknown CPU?
 			break;
 	}
+
+	if (BIOS_custom_ROM) //Custom/system ROM loaded?
+	{
+		offset = reloffset;
+		offset &= 0xFFFF; //16-bit ROM!
+		if (BIOS_custom_ROM_size>offset) //Within range?
+		{
+			return 1; //Ignore writes!
+		}
+	}
+
 	return 0; //Not recognised, use normal RAM!
 }
 
@@ -370,38 +367,26 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 		case CPU_8086:
 		case CPU_80186: //5160 PC!
 			offset = reloffset;
-			if (BIOS_custom_ROM) //Custom ROM loaded?
+			offset &= 0x7FFF; //Our offset within the ROM!
+			if (reloffset&0x8000) //u18?
 			{
-				offset &= 0xFFFF; //64-bit ROM!
-				if (BIOS_custom_ROM_size>offset) //Within range?
+				if (BIOS_ROMS[18]) //Set?
 				{
-					*value = BIOS_custom_ROM[offset]; //Give the value!
-					return 1;
-				}
-			}
-			else //Normal BIOS ROM?
-			{
-				offset &= 0x7FFF; //Our offset within the ROM!
-				if (reloffset&0x8000) //u18?
-				{
-					if (BIOS_ROMS[18]) //Set?
+					if (BIOS_ROM_size[18]>offset) //Within range?
 					{
-						if (BIOS_ROM_size[18]>offset) //Within range?
-						{
-							*value = BIOS_ROMS[18][offset]; //Give the value!
-							return 1;
-						}
+						*value = BIOS_ROMS[18][offset]; //Give the value!
+						return 1;
 					}
 				}
-				else //u19?
+			}
+			else //u19?
+			{
+				if (BIOS_ROMS[19]) //Set?
 				{
-					if (BIOS_ROMS[19]) //Set?
+					if (BIOS_ROM_size[19]>offset) //Within range?
 					{
-						if (BIOS_ROM_size[19]>offset) //Within range?
-						{
-							*value = BIOS_ROMS[19][offset]; //Give the value!
-							return 1;
-						}
+						*value = BIOS_ROMS[19][offset]; //Give the value!
+						return 1;
 					}
 				}
 			}
@@ -437,6 +422,17 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 			break;
 		default: //Unknown CPU?
 			break;
+	}
+
+	if (BIOS_custom_ROM) //Custom/system ROM loaded?
+	{
+		offset = reloffset; //Reload!
+		offset &= 0xFFFF; //16-bit ROM!
+		if (BIOS_custom_ROM_size>offset) //Within range?
+		{
+			*value = BIOS_custom_ROM[offset]; //Give the value!
+			return 1;
+		}
 	}
 
 	return 0; //Not recognised, use normal RAM!

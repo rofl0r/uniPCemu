@@ -17,6 +17,7 @@ extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?
 extern PIC i8259; //PIC processor!
 extern byte cpudebugger; //To debug the CPU?
+extern byte allow_debuggerstep; //Allow debugger stepping?
 
 extern GPU_TEXTSURFACE *frameratesurface;
 
@@ -89,6 +90,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	BIOS_registerROM(); //Register the BIOS ROM!
 	dolog("debugger","Starting debugging file %s",filename); //Log the file we're going to test!
 	LOG_MMU_WRITES = 1; //Enable logging!
+	allow_debuggerstep = 1; //Allow stepping of the debugger!
 	for (;!CPU.halt;) //Still running?
 	{
 		if (CPU.registers->SFLAGS.IF && PICInterrupt()) CPU8086_hardware_int(nextintr(),0,0); //get next interrupt from the i8259, if any
@@ -100,7 +102,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 			break; //Continue, but keep our warning!
 		}
 		lastaddr = curaddr; //Save the current address for reference of the error address!
-		cpudebugger = debugging(); //Debugging?
+		cpudebugger = needdebugger(); //Debugging?
 		debugger_beforeCPU(); //Everything before the CPU!
 		CPU_beforeexec(); //Everything before the execution!
 		CPU_exec(); //Run CPU!

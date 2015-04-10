@@ -66,7 +66,7 @@ byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfi
 	strcat(pathtmp,"\\*.*"); //Add the wildcard to the filename to search!
 
 	//Create the path variable!
-	mbstowcs((wchar_t *)&dirlist->szDir, (const char *)pathtmp, sizeof(dirlist->szDir) / sizeof(wchar_t)); //Convert to TCHAR variable!
+	strcpy(dirlist->szDir, &pathtmp[0]); //Copy the directory to use!
 
 	dirlist->hFind = FindFirstFile(dirlist->szDir, &dirlist->ffd); //Find the first file!
 	if (dirlist->hFind==INVALID_HANDLE_VALUE) //Invalid?

@@ -339,21 +339,16 @@ void CPU186_OPC9()
 	REG_BP = CPU_POP16();
 }
 
+extern byte OPbuffer[256]; //A large opcode buffer!
+extern byte OPlength; //The length of the opcode buffer!
 char command[50]; //A command buffer for storing our command (up to 10 bytes)!
 void unkOP_186() //Unknown opcode on 186+?
 {
-	word SavedIP; //Current addresss!
-	SavedIP = REG_IP; //Save the current location!
-	CPU_resetOP(); //Go back to the opcode itself!
 	bzero(command,sizeof(command)); //Clear the command!
-	while (REG_IP<=SavedIP && strlen(command)<(sizeof(command)-2)) //Not there yet?
-	{
-		sprintf(command,"%s%02X",command,CPU_readOP()); //Read the full command into the buffer!
-	}
-	CPU_resetOP(); //Make sure we're at the command again!
-	debugger_setcommand("<80186+ #UD %s>",command); //Command is unknown opcode!
+	debugger_setcommand("<80186+ #UD>"); //Command is unknown opcode!
 	//dolog("unkop","Unknown opcode on 80186+: %02X",CPU.lastopcode); //Last read opcode!
-	CPU8086_int(0x06); //Call interrupt!
+	CPU_resetOP(); //Go back to the opcode itself!
+	CPU8086_int(0x06); //Call interrupt with return addres of the OPcode!
 }
 
 //Fully checked, and the same as fake86.

@@ -703,7 +703,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			case 0xAE: //AE: REPNZ SCASB
 				CPU.cycles_OP = 8+(4*CPU.registers->ECX); //Byte!
 				break;
-			case 0xAF: //FLAG_AF: REPNZ SCASW
+			case 0xAF: //AF: REPNZ SCASW
 				CPU.cycles_OP = 8+(8*CPU.registers->ECX); //Word!
 				break;
 			default: //Unknown yet?
@@ -728,6 +728,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				break;
 			case 0xAB: //AB: REP STOSW
 				CPU.cycles_OP = 3+(2*CPU.registers->ECX);
+				break;
+			case 0xAC: //AC: REP LODSB
+				CPU.cycles_OP = 3 + CPU.registers->ECX;
+				break;
+			case 0xAD: //AD: REP LODSW
+				CPU.cycles_OP = 3 + (2*CPU.registers->ECX);
 				break;
 			case 0xA6: //A6: REPE CMPSB
 				CPU.cycles_OP = 9+(4*CPU.registers->ECX); //Byte!
@@ -761,7 +767,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
-				debugger_setprefix("REPNZ"); //Set prefix!
+				debugger_setprefix("REPNZ "); //Set prefix!
 			}
 			else if (CPU_getprefix(0xF3)) //REP/REPZ?
 			{
