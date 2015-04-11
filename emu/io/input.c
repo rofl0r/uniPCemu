@@ -441,12 +441,12 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 				
 				if (!curstat.gamingmode) //Not in gaming mode and in mouse mode? emulate left,right,middle mouse button too!
 				{
-					if (curstat.buttonpress&256) //Left mouse button?
+					if (curstat.buttonpress&1) //Left mouse button?
 					{
 						mousepacket->buttons |= 1; //Left button pressed!
 					}
 			
-					if (curstat.buttonpress&512) //Right mouse button?
+					if (curstat.buttonpress&4) //Right mouse button?
 					{
 						mousepacket->buttons |= 2; //Right button pressed!
 					}
@@ -473,12 +473,6 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 //Right
 
 //Down
-
-/*
-byte keyboard_attribute[KEYBOARD_NUMY][KEYBOARD_NUMX]; //The attribute for each part of display: 0=Font std, 1=Font active (Pressed)!
-byte keyboard_display[KEYBOARD_NUMY][KEYBOARD_NUMX]; //The characters to display on-screen!
-*/
-//Valid values: 0:Display, 1=Font, 2=Border, 3=Active
 
 GPU_TEXTSURFACE *keyboardsurface = NULL; //Framerate surface!
 
@@ -1513,15 +1507,6 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 				}
 			}
 		} //Input enabled?
-
-		/*if (HWkeyboard_getrepeatrate()) //Got a repeat rate?
-		{
-			delay((uint_32)(1000000/HWkeyboard_getrepeatrate())); //Wait for the set timespan, depending on the set keyboard by the CPU!
-		}
-		else
-		{
-			delay(100000); //Wait for the minimum!
-		}*/
 	} //While loop, muse be infinite to prevent closing!
 }
 
@@ -1543,42 +1528,22 @@ void psp_keyboard_init()
 
 	if (!KEYBOARD_ENABLED) //Keyboard disabled?
 	{
-		//dolog("osk","Keyboard disabled!");
 		return; //Keyboard disabled?
 	}
 	
-	
-	
-	//dolog("osk","Starting OSK when enabled...");
-	/*if (!KEYBOARD_STARTED) //Not started yet?
-	{*/
-		//dolog("osk","Starting type handler");
-		psp_keyboard_refreshrate(); //Handles keyboard typing: we're an interrupt!
-		//dolog("osk","Starting swap handler");
-		addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1,1,NULL); //Handles keyboard set swapping: we're an interrupt!
-		//dolog("osk","Starting mouse handler");
-		addtimer(256.0f,&mouse_handler,"PSP Mouse",10,0,NULL); //Handles mouse input: we're a normal timer!
-		KEYBOARD_STARTED = 1; //Started!
-	//}
+	//dolog("osk","Starting type handler");
+	psp_keyboard_refreshrate(); //Handles keyboard typing: we're an interrupt!
+	//dolog("osk","Starting swap handler");
+	addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1,1,NULL); //Handles keyboard set swapping: we're an interrupt!
+	//dolog("osk","Starting mouse handler");
+	addtimer(256.0f,&mouse_handler,"PSP Mouse",10,0,NULL); //Handles mouse input: we're a normal timer!
+	KEYBOARD_STARTED = 1; //Started!
 	//dolog("osk","keyboard&mouse ready.");
 }
 
 void psp_keyboard_done()
 {
 	if (__HW_DISABLED) return; //Abort!
-	/*if (KEYBOARD_STARTED) //Stil started?
-	{
-		if (!request_type_term)
-		{
-			request_type_term = 1; //Request termination!
-		}
-		while (request_type_term) //Requesting termination?
-		{
-			delay(1); //Wait to be terminated!
-		}
-		KEYBOARD_STARTED = 0; //Not started anymore!
-		//Keyboard has been terminated!
-	}*/
 	removetimer("Keyboard PSP Type"); //No typing!
 	removetimer("Keyboard PSP Swap"); //No swapping!
 	removetimer("PSP Mouse"); //No mouse!

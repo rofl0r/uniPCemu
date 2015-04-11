@@ -25,7 +25,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		FILE *f;
 		char filename[100];
 		memset(&filename,0,sizeof(filename)); //Clear/init!
-		sprintf(filename,"ROMS/OPTROM.%i",i+1); //Create the filename for the ROM!
+		sprintf(filename,"ROM/OPTROM.%i",i+1); //Create the filename for the ROM!
 		f = fopen(filename,"rb");
 		if (!f)
 		{
@@ -79,7 +79,7 @@ void BIOS_freeOPTROMS()
 		{
 			char filename[100];
 			memset(&filename,0,sizeof(filename)); //Clear/init!
-			sprintf(filename,"ROMS/OPTROM.%i",i); //Create the filename for the ROM!
+			sprintf(filename,"ROM/OPTROM.%i",i); //Create the filename for the ROM!
 			freez((void **)&OPT_ROMS[i],BIOS_OPTROM_size[i],filename); //Release the OPT ROM!
 		}
 	}
@@ -90,7 +90,7 @@ int BIOS_load_ROM(byte nr)
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	sprintf(filename,"ROMS/BIOSROM.u%i",nr); //Create the filename for the ROM!
+	sprintf(filename,"ROM/BIOSROM.u%i",nr); //Create the filename for the ROM!
 	f = fopen(filename,"rb");
 	if (!f)
 	{

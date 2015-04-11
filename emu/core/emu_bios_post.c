@@ -195,9 +195,9 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			byte verified;
 			verified = 0; //Default: not verified!
 
-			if (file_exists("ROMS/BIOSROM.BIN")) //Fully custom BIOS ROM, for the entire BIOS segment?
+			if (file_exists("ROM/BIOSROM.BIN")) //Fully custom BIOS ROM, for the entire BIOS segment?
 			{
-				verified = BIOS_load_custom("ROMS/BIOSROM.BIN"); //Try to load a custom BIOS ROM!
+				verified = BIOS_load_custom("ROM/BIOSROM.BIN"); //Try to load a custom BIOS ROM!
 				if (verified) goto loadOPTROMS; //Loaded the BIOS?
 			}
 			
