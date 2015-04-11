@@ -51,12 +51,19 @@ typedef struct
 	byte analog_minrange; //Minimum adjustment x&y(0,0) for keyboard&mouse to change states (from center)
 	int keyboard_gamemodemappings[15]; //11 Buttons to map: START, LEFT, UP, RIGHT, DOWN, L, R, TRIANGLE, CIRCLE, CROSS, SQUARE, Then LEFT,UP,RIGHT,DOWN for analog stick (when not assigned, assign mouse movement) -1 for not assigned!
 	byte keyboard_gamemodemappings_alt[15]; //Ctrl,alt,shift states!
-	byte fontcolor; //Font color (0-15) for text on the keyboard!
-	byte bordercolor; //Border color for text on the keyboard!
-	byte activecolor; //Active color for text on the keyboard!
-	byte specialcolor; //Special font color!
-	byte specialbordercolor; //Special border color!
-	byte specialactivecolor; //Special active color!
+	union
+	{
+		struct
+		{
+			byte fontcolor; //Font color (0-15) for text on the keyboard!
+			byte bordercolor; //Border color for text on the keyboard!
+			byte activecolor; //Active color for text on the keyboard!
+			byte specialcolor; //Special font color!
+			byte specialbordercolor; //Special border color!
+			byte specialactivecolor; //Special active color!
+		};
+		byte colors[6]; //All our colors!
+	};
 } INPUT_SETTINGS; //Settings for the above!
 
 //Minimal step before override!
@@ -94,6 +101,8 @@ EMU internal!
 
 void EMU_stopInput(); //Stop input from EMU!
 void EMU_startInput(); //Start input from EMU!
+
+void keyboard_loadDefaultColor(byte color); //Load a default color!
 
 //Input support!
 void psp_input_init();

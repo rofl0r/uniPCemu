@@ -101,7 +101,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.executionmode = DEFAULT_EXECUTIONMODE; //Default execution mode!
 	BIOS_Settings.debugger_log = DEFAULT_DEBUGGERLOG; //Default debugger logging!
 
-	bzero((char *)&BIOS_Settings.input_settings,sizeof(BIOS_Settings.input_settings)); //Default: no input override!
+	keyboard_loadDefaults(); //Load the defaults for the keyboard font etc.!
 	BIOS_Settings.VGA_AllowDirectPlot = 1; //Default: automatic 1:1 mapping!
 	BIOS_Settings.keepaspectratio = 0; //Don't keep aspect ratio by default!
 	

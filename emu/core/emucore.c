@@ -479,8 +479,8 @@ char EMU_TIMERS[][256] = {
 				"PSP Mouse", //PS/2 mouse input!
 				"VGA_ScanLine", //VGA rendering!
 				"AdlibAttackDecay",
-				"Keyboard PSP Type",
-				"Keyboard PSP Swap",
+				//"Keyboard PSP Type",
+				//"Keyboard PSP Swap", //Keyboard timers aren't EMU only: the admin can change these!
 				"PSP Mouse",
 				"DMA tick",
 				"Framerate"

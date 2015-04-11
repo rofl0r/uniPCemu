@@ -25,6 +25,8 @@
 #include <SDL/SDL_events.h> //Event support!
 #endif
 
+SDL_sem *keyboard_lock = NULL; //Our lock!
+
 enum input_button_map { //All buttons we support!
 INPUT_BUTTON_TRIANGLE, INPUT_BUTTON_CIRCLE, INPUT_BUTTON_CROSS, INPUT_BUTTON_SQUARE,
 INPUT_BUTTON_LTRIGGER, INPUT_BUTTON_RTRIGGER,
@@ -47,7 +49,7 @@ INPUT_BUTTON_SELECT, INPUT_BUTTON_START, INPUT_BUTTON_HOME, INPUT_BUTTON_HOLD };
 extern GPU_type GPU; //The real GPU, for rendering the keyboard!
 
 byte input_enabled = 0; //To show the input dialog?
-byte input_buffer_input = 0; //To buffer, instead of straigt into emulation (giving the below value the key index)?
+byte input_buffer_input = 0; //To buffer, instead of straight into emulation (giving the below value the key index)?
 int input_buffer_shift = -1; //Ctrl-Shift-Alt Status for the pressed key!
 int input_buffer = -1; //To contain the pressed key!
 
@@ -801,13 +803,19 @@ uint_32 keyboard_rendertime; //Time for framerate rendering!
 
 void keyboard_renderer() //Render the keyboard on-screen!
 {
+	static byte last_rendered = 0; //Last rendered keyboard status: 1=ON, 0=OFF!
 	if (!KEYBOARD_ENABLED) return; //Disabled?
 	if (!input_enabled) //Keyboard disabled atm OR Gaming mode?
 	{
+		if (last_rendered) //We're rendered?
+		{
+			last_rendered = 0; //We're not rendered now!
+			GPU_textclearscreen(keyboardsurface); //Clear the rendered surface: there's nothing to show!
+		}
 		return; //Keyboard disabled: don't show!
 	}
 
-	keyboard_loadDefaults(); //Enfore defaults for now!
+	last_rendered = 1; //We're rendered!
 	fill_keyboarddisplay(); //Fill the keyboard display!
 
 	int ybase,xbase;
@@ -929,28 +937,49 @@ void handleKeyboardMouse() //Handles keyboard input during mouse operations!
 		//First, process Ctrl,Alt,Shift Releases!
 		if (((oldshiftstatus&SHIFTSTATUS_CTRL)>0) && (!(shiftstatus&SHIFTSTATUS_CTRL))) //Released CTRL?
 		{
-			onKeyPress("lctrl");
+			if (input_buffer_input)
+			{
+				input_buffer_shift = oldshiftstatus; //Set shift status!
+			}
+			else
+			{
+				onKeyRelease("lctrl");
+			}
 		}
 		if (((oldshiftstatus&SHIFTSTATUS_ALT)>0) && (!(shiftstatus&SHIFTSTATUS_ALT))) //Released ALT?
 		{
-			onKeyPress("lalt");
+			if (input_buffer_input)
+			{
+				input_buffer_shift = oldshiftstatus; //Set shift status!
+			}
+			else
+			{
+				onKeyRelease("lalt");
+			}
 		}
 		if (((oldshiftstatus&SHIFTSTATUS_SHIFT)>0) && (!(shiftstatus&SHIFTSTATUS_SHIFT))) //Released SHIFT?
 		{
-			onKeyPress("lshift");
+			if (input_buffer_input)
+			{
+				input_buffer_shift = oldshiftstatus; //Set shift status!
+			}
+			else
+			{
+				onKeyRelease("lshift");
+			}
 		}
 		//Next, process Ctrl,Alt,Shift presses!
 		if ((shiftstatus&SHIFTSTATUS_CTRL)>0) //Pressed CTRL?
 		{
-			onKeyRelease("lctrl");
+			onKeyPress("lctrl");
 		}
 		if ((shiftstatus&SHIFTSTATUS_ALT)>0) //Pressed ALT?
 		{
-			onKeyRelease("lalt");
+			onKeyPress("lalt");
 		}
 		if ((shiftstatus&SHIFTSTATUS_SHIFT)>0) //Pressed SHIFT?
 		{
-			onKeyRelease("lshift");
+			onKeyPress("lshift");
 		}
 		oldshiftstatus = shiftstatus; //Save shift status to old shift status!
 	} //Not buffering?
@@ -958,7 +987,7 @@ void handleKeyboardMouse() //Handles keyboard input during mouse operations!
 
 void handleKeyboard() //Handles keyboard input!
 {
-	static int lastkey=0, lastx=0, lasty=0, lastset=0; //Previous key that was pressed!
+	static int lastkey=0, lastx=0, lasty=0, lastset=0, lastshift=0; //Previous key that was pressed!
 	setx = curstat.analogdirection_keyboard_x; //X in keyboard set!
 	sety = curstat.analogdirection_keyboard_y; //Y in keyboard set!
 
@@ -999,28 +1028,28 @@ void handleKeyboard() //Handles keyboard input!
 	if (!input_buffer_input) //Not buffering?
 	{
 		//First, process Ctrl,Alt,Shift Releases!
-		if (((oldshiftstatus&SHIFTSTATUS_CTRL)>0) && (!(shiftstatus&SHIFTSTATUS_CTRL))) //Released CTRL?
+		if (((oldshiftstatus&SHIFTSTATUS_CTRL)>0) && (!currentctrl)) //Released CTRL?
 		{
 			onKeyPress("lctrl");
 		}
-		if (((oldshiftstatus&SHIFTSTATUS_ALT)>0) && (!(shiftstatus&SHIFTSTATUS_ALT))) //Released ALT?
+		if (((oldshiftstatus&SHIFTSTATUS_ALT)>0) && (!currentalt)) //Released ALT?
 		{
 			onKeyPress("lalt");
 		}
-		if (((oldshiftstatus&SHIFTSTATUS_SHIFT)>0) && (!(shiftstatus&SHIFTSTATUS_SHIFT))) //Released SHIFT?
+		if (((oldshiftstatus&SHIFTSTATUS_SHIFT)>0) && (!currentshift)) //Released SHIFT?
 		{
 			onKeyPress("lshift");
 		}
 		//Next, process Ctrl,Alt,Shift presses!
-		if ((shiftstatus&SHIFTSTATUS_CTRL)>0) //Pressed CTRL?
+		if (currentctrl) //Pressed CTRL?
 		{
 			onKeyRelease("lctrl");
 		}
-		if ((shiftstatus&SHIFTSTATUS_ALT)>0) //Pressed ALT?
+		if (currentalt) //Pressed ALT?
 		{
 			onKeyRelease("lalt");
 		}
-		if ((shiftstatus&SHIFTSTATUS_SHIFT)>0) //Pressed SHIFT?
+		if (currentshift) //Pressed SHIFT?
 		{
 			onKeyRelease("lshift");
 		}
@@ -1038,7 +1067,7 @@ void handleKeyboard() //Handles keyboard input!
 
 		if (currentkey) //Key pressed?
 		{
-			if ((lastkey!=currentkey) || (lastx!=setx) || (lasty!=sety) || (lastset!=currentset)) //We had a last key that's different?
+			if (lastkey && ((lastkey!=currentkey) || (lastx!=setx) || (lasty!=sety) || (lastset!=currentset))) //We had a last key that's different?
 			{
 				onKeyRelease(getkeyboard(shiftstatus,lastset,lasty,lastx,displaytokeyboard[lastkey])); //Release the last key!
 			}
@@ -1057,31 +1086,52 @@ void handleKeyboard() //Handles keyboard input!
 	} //Not buffering?
 	else //Buffering?
 	{
-		if (currentkey) //Key pressed?
+		if (!(shiftstatus&SHIFTSTATUS_CTRL) && ((lastshift&SHIFTSTATUS_CTRL)>0)) //Released CTRL?
 		{
+			goto keyreleased; //Released!
+		}
+		if (!(shiftstatus&SHIFTSTATUS_ALT) && ((lastshift&SHIFTSTATUS_ALT)>0)) //Released ALT?
+		{
+			goto keyreleased; //Released!
+		}
+		if (!(shiftstatus&SHIFTSTATUS_SHIFT) && ((lastshift&SHIFTSTATUS_SHIFT)>0)) //Released SHIFT?
+		{
+			goto keyreleased; //Released!
+		}
+
+		if (currentkey || shiftstatus) //More keys pressed?
+		{
+			if (lastkey && ((lastkey != currentkey) || (lastx != setx) || (lasty != sety) || (lastset != currentset))) //We had a last key that's different?
+			{
+				goto keyreleased; //Released after all!
+			}
 			//Save the active key information!
+
 			lastset = currentset;
 			lastx = setx;
 			lasty = sety;
 			lastkey = currentkey;
+			lastshift = shiftstatus; //Shift status!
 		}
-		else if (((lastkey!=currentkey) || (lastx!=setx) || (lasty!=sety) || (lastset!=currentset))) //Key released?
+		else //Key/shift released?
 		{
 			int key;
-			key = EMU_keyboard_handler_nametoid(getkeyboard(0,lastset,lasty,lastx,displaytokeyboard[lastkey])); //Our key?
-			if (key!=-1) //Found as a valid key to press?
+			keyreleased:
+			if (!lastkey && !lastshift) //Nothing yet?
 			{
-				input_buffer_shift = shiftstatus; //Set shift status!
-				input_buffer = key; //Last key!
-			
+				return; //Abort: we're nothing pressed!
 			}
+			key = EMU_keyboard_handler_nametoid(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Our key?
+			input_buffer_shift = lastshift; //Set shift status!
+			input_buffer = key; //Last key!
 			//Update current information!
 			lastkey = 0; //Update current information!
 			lastx = setx;
 			lasty = sety;
 			lastset = currentset;
+			lastshift = shiftstatus;
 		}
-		//Key presses aren't buffered: we only want to know the key, nothing more!
+		//Key presses aren't buffered: we only want to know the key and shift state when fully pressed, nothing more!
 	}
 }
 
@@ -1095,7 +1145,7 @@ void handleGaming() //Handles gaming mode input!
 	//Order: START, LEFT, UP, RIGHT, DOWN, L, R, TRIANGLE, CIRCLE, CROSS, SQUARE, ANALOGLEFT, ANALOGUP, ANALOGRIGHT, ANALOGDOWN
 
 	int i;
-	for (i=0;i<10;i++)
+	for (i=0;i<15;i++)
 	{
 		keys[i] = -1; //We have no index and nothing happened!
 	}
@@ -1479,7 +1529,7 @@ void psp_keyboard_refreshrate()
 {
 	float repeatrate = HWkeyboard_getrepeatrate();
 	if (!repeatrate) repeatrate = 10.0f; //10 times a second sampling!
-	addtimer(repeatrate,&keyboard_type_handler,"Keyboard PSP Type",1,0,NULL); //Our type handler!
+	addtimer(repeatrate,&keyboard_type_handler,"Keyboard PSP Type",1,1,keyboard_lock); //Our type handler!
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
@@ -1505,7 +1555,7 @@ void psp_keyboard_init()
 		//dolog("osk","Starting type handler");
 		psp_keyboard_refreshrate(); //Handles keyboard typing: we're an interrupt!
 		//dolog("osk","Starting swap handler");
-		addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1,0,NULL); //Handles keyboard set swapping: we're an interrupt!
+		addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1,1,NULL); //Handles keyboard set swapping: we're an interrupt!
 		//dolog("osk","Starting mouse handler");
 		addtimer(256.0f,&mouse_handler,"PSP Mouse",10,0,NULL); //Handles mouse input: we're a normal timer!
 		KEYBOARD_STARTED = 1; //Started!
@@ -1534,19 +1584,41 @@ void psp_keyboard_done()
 	removetimer("PSP Mouse"); //No mouse!
 }
 
+void keyboard_loadDefaultColor(byte color)
+{
+	switch (color)
+	{
+	case 0:
+		BIOS_Settings.input_settings.colors[0] = 0x1; //Blue font!
+		break;
+	case 1:
+		BIOS_Settings.input_settings.colors[1] = 0x8; //Dark gray border inactive!
+		break;
+	case 2:
+		BIOS_Settings.input_settings.colors[2] = 0xE; //Yellow border active!
+		break;
+	case 3:
+		BIOS_Settings.input_settings.colors[3] = 0x7; //Special: Brown font!
+		break;
+	case 4:
+		BIOS_Settings.input_settings.colors[4] = 0x6; //Special: Dark gray border inactive!
+		break;
+	case 5:
+		BIOS_Settings.input_settings.colors[5] = 0xE; //Special: Yellow border active!
+		break;
+	default: //Unknown color?
+		break;
+	}
+}
+
 void keyboard_loadDefaults() //Load the defaults for the keyboard font etc.!
 {
 	BIOS_Settings.input_settings.analog_minrange = (int)(127/2); //Default to half to use!
 	//Default: no game mode mappings!
 	//Standard keys:
-	BIOS_Settings.input_settings.fontcolor = 0x1; //Blue font!
-	BIOS_Settings.input_settings.bordercolor = 0x8; //Dark gray border inactive!
-	BIOS_Settings.input_settings.activecolor = 0xE; //Yellow border active!
-	BIOS_Settings.input_settings.specialcolor = 0x7; //Special: Brown font!
-	BIOS_Settings.input_settings.specialbordercolor = 0x6; //Special: Dark gray border inactive!
-	BIOS_Settings.input_settings.specialactivecolor = 0xE; //Special: Yellow border active!
 	int i;
-	for (i=0;i<NUMITEMS(BIOS_Settings.input_settings.keyboard_gamemodemappings);i++) //Process all keymappings!
+	for (i = 0; i < 6; i++) keyboard_loadDefaultColor(i); //Load all default colors!
+	for (i = 0; i<NUMITEMS(BIOS_Settings.input_settings.keyboard_gamemodemappings); i++) //Process all keymappings!
 	{
 		BIOS_Settings.input_settings.keyboard_gamemodemappings[i] = -1; //Disable by default!
 		BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[i] = -1; //Disable by default!
@@ -1585,8 +1657,8 @@ void disableKeyboard() //Disables the keyboard/mouse functionnality!
 void enableKeyboard(int bufferinput) //Enables the keyboard/mouse functionnality param: to buffer into input_buffer?!
 {
 	disableKeyboard(); //Make sure the keyboard if off to start with!
-	input_buffer_shift = 0; //Shift status!
 	input_buffer = -1; //Nothing pressed yet!
+	input_buffer_shift = -1; //Shift status: nothing pressed yet!
 	input_buffer_input = bufferinput; //To buffer?
 	input_enabled = ALLOW_INPUT; //Enable input!
 }
@@ -1637,6 +1709,7 @@ void updateInput(SDL_Event *event) //Update all input!
 	switch (event->type)
 	{
 		case SDL_KEYUP: //Keyboard up?
+			SDL_SemWait(keyboard_lock); //Wait!
 			if (!SDL_NumJoysticks()) //Gotten no joystick?
 			{
 				switch (event->key.keysym.sym) //What key?
@@ -1727,11 +1800,13 @@ void updateInput(SDL_Event *event) //Update all input!
 						break;
 				}
 				updateMOD(event); //Update rest keys!
+				SDL_SemPost(keyboard_lock);
 			}
 			break;
 		case SDL_KEYDOWN: //Keyboard down?
 			if (!SDL_NumJoysticks()) //Gotten no joystick?
 			{
+				SDL_SemWait(keyboard_lock);
 				switch (event->key.keysym.sym) //What key?
 				{
 					//Special first
@@ -1807,11 +1882,13 @@ void updateInput(SDL_Event *event) //Update all input!
 						break;
 				}
 				updateMOD(event); //Update rest keys!
+				SDL_SemPost(keyboard_lock);
 			}
 			break;
 		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
 			if (SDL_NumJoysticks()) //Gotten a joystick?
 			{
+				SDL_SemWait(keyboard_lock);
 				switch ( event->jaxis.axis) 
 				{
 					case 0: /* Left-right movement code goes here */
@@ -1821,11 +1898,13 @@ void updateInput(SDL_Event *event) //Update all input!
 						input.Ly = event->jaxis.value; //New value!
 						break;
 				}
+				SDL_SemPost(keyboard_lock);
 			}
 			break;
 		case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
 			if (SDL_NumJoysticks()) //Gotten a joystick?
 			{
+				SDL_SemWait(keyboard_lock);
 				switch (event->jbutton.button) //What button?
 				{
 					case INPUT_BUTTON_TRIANGLE:
@@ -1873,11 +1952,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					default: //Unknown button?
 						break;
 				}
+				SDL_SemPost(keyboard_lock);
 			}
 			break;
 		case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
 			if (SDL_NumJoysticks()) //Gotten a joystick?
 			{
+				SDL_SemWait(keyboard_lock);
 				switch (event->jbutton.button) //What button?
 				{
 					case INPUT_BUTTON_TRIANGLE:
@@ -1925,6 +2006,7 @@ void updateInput(SDL_Event *event) //Update all input!
 					default: //Unknown button?
 						break;
 				}
+				SDL_SemPost(keyboard_lock);
 			}
 			break;
 		case SDL_QUIT: //Quit?
@@ -1941,9 +2023,11 @@ void psp_input_init()
 	#endif
 	SDL_JoystickEventState(SDL_ENABLE);
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
+	keyboard_lock = SDL_CreateSemaphore(1); //Our lock!
 }
 
 void psp_input_done()
 {
 	//Do nothing yet!
+	SDL_DestroySemaphore(keyboard_lock); //Release the lock!
 }

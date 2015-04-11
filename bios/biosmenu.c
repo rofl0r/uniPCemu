@@ -22,6 +22,8 @@
 
 #include "headers/support/log.h" //Logging for disk images!
 
+#include "headers/hardware/ps2_keyboard.h" //PS/2 keyboard key name support!
+
 #define __HW_DISABLED 0
 
 //Force the BIOS to open?
@@ -103,6 +105,10 @@ Handler BIOS_Menus[] =
 	,BIOS_BWMonitor //Switch to a b/w monitor or color monitor is #22!
 	,BIOS_DebugLog //Enable/disable debugger log is #23!
 	,BIOS_ExecutionMode //Execution mode is #24!
+	,BIOS_inputMenu //Input menu is #25!
+	,BIOS_gamingModeButtonsMenu //Gaming mode buttons menu is #26!
+	,BIOS_gamingKeyboardColorsMenu //Keyboard colors menu is #27!
+	,BIOS_gamingKeyboardColor //Keyboard color menu is #28!
 };
 
 //Not implemented?
@@ -487,7 +493,7 @@ char menuoptions[256][256]; //Going to contain the menu's for BIOS_ShowMenu!
 //Allow L/R/LEFT/RIGHT button for more menus
 #define BIOSMENU_SPEC_LR 2
 //Allow SQUARE for special adjusted ENTER.
-#define BIOSMENU_SPEC_SQUAREOPTION 3
+#define BIOSMENU_SPEC_SQUAREOPTION 4
 
 
 //Results other than valid menu items:
@@ -1335,6 +1341,9 @@ setdirectplottext: //For fixing it!
 		strcat(menuoptions[advancedoptions++], "Color monitor");
 		break;
 	}
+
+	optioninfo[advancedoptions] = 10;
+	strcpy(menuoptions[advancedoptions++], "Input options");
 }
 
 void BIOS_BootOrderOption() //Manages the boot order
@@ -1441,7 +1450,8 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 6:
 	case 7:
 	case 8:
-	case 9: //Valid option?
+	case 9:
+	case 10: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Boot order (plain)?
@@ -1473,6 +1483,9 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 			break;
 		case 9:
 			BIOS_Menu = 24; //Debugger log option!
+			break;
+		case 10:
+			BIOS_Menu = 25; //Input submenu!
 			break;
 		}
 		break;
@@ -2447,4 +2460,363 @@ void BIOSMenu_LoadDefaults() //Load the defaults option!
 	showchecksumerrors = showchecksumerrors_backup; //Restore!
 	BIOS_Changed = 1; //Changed!
 	BIOS_Menu = 0; //Goto Main menu!
+}
+
+void BIOS_InitInputText()
+{
+	advancedoptions = 0; //Init!
+	int i;
+	for (i = 0; i<10; i++) //Clear all possibilities!
+	{
+		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+	}
+	optioninfo[advancedoptions] = 0; //Gaming mode buttons!
+	strcpy(menuoptions[advancedoptions++], "Map gaming mode buttons"); //Gaming mode buttons!
+	optioninfo[advancedoptions] = 1; //Keyboard colors!
+	strcpy(menuoptions[advancedoptions++], "Assign keyboard colors"); //Assign keyboard colors!
+}
+
+void BIOS_inputMenu() //Manage stuff concerning input.
+{
+	BIOS_Title("Input Menu");
+	BIOS_InitInputText(); //Init text!
+	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
+	switch (menuresult)
+	{
+	case BIOSMENU_SPEC_CANCEL: //Return?
+		BIOS_Menu = 8; //Goto Advanced Menu!
+		break;
+	case 0:
+	case 1: //Valid option?
+		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
+		{
+		case 0: //Gaming mode buttons?
+			BIOS_Menu = 26; //Map gaming mode buttons Menu!
+			break;
+		case 1: //Keyboard colors?
+			BIOS_Menu = 27; //Assign keyboard colors Menu!
+			break;
+		}
+		break;
+	default: //Unknown option?
+		BIOS_Menu = NOTIMPLEMENTED; //Not implemented yet!
+		break;
+	}
+}
+
+void BIOS_addInputText(char *s, byte inputnumber)
+{
+	int input_key;
+	int shiftstatus;
+	char name[256]; //A little buffer for a name!
+	if ((BIOS_Settings.input_settings.keyboard_gamemodemappings[inputnumber] != -1) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[inputnumber] >0)) //Got anything?
+	{
+		shiftstatus = BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[inputnumber]; //Load shift status!
+		input_key = BIOS_Settings.input_settings.keyboard_gamemodemappings[inputnumber]; //Load shift status!
+		if (shiftstatus > 0) //Gotten alt status?
+		{
+			if (shiftstatus&SHIFTSTATUS_CTRL)
+			{
+				strcat(s, "Ctrl");
+				if ((shiftstatus&SHIFTSTATUS_CTRL)!=shiftstatus) //More?
+				{
+					strcat(s, "-"); //Seperator!
+				}
+			}
+			if (shiftstatus&SHIFTSTATUS_ALT)
+			{
+				strcat(s, "Alt");
+				if ((shiftstatus&(SHIFTSTATUS_CTRL | SHIFTSTATUS_ALT)) != shiftstatus) //More?
+				{
+					strcat(s, "-"); //Seperator!
+				}
+			}
+			if (shiftstatus&SHIFTSTATUS_SHIFT)
+			{
+				strcat(s, "Shift");
+			}
+			if (input_key != -1) //Gotten a key?
+			{
+				strcat(s, "-"); //Seperator!
+			}
+		}
+		if (input_key != -1) //Gotten a key?
+		{
+			memset(name, 0, sizeof(name)); //Init name!
+			if (EMU_keyboard_handler_idtoname(input_key, &name[0]))
+			{
+				strcat(s, name); //Add the name of the key!
+			}
+			else
+			{
+				strcat(s, "<Unidentified key>");
+			}
+		}
+	}
+	else
+	{
+		strcat(s, "<Unassigned>"); //Not assigned!
+	}
+}
+
+void BIOS_InitGamingModeButtonsText()
+{
+	advancedoptions = 0; //Init!
+	int i;
+	for (i = 0; i<15; i++) //Clear all possibilities!
+	{
+		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+	}
+	optioninfo[advancedoptions] = 0; //START!
+	strcpy(menuoptions[advancedoptions], "Start: "); //Gaming mode buttons!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 0);
+	optioninfo[advancedoptions] = 1; //LEFT!
+	strcpy(menuoptions[advancedoptions], "Left: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 1);
+	optioninfo[advancedoptions] = 2; //UP!
+	strcpy(menuoptions[advancedoptions], "Up: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 2);
+	optioninfo[advancedoptions] = 3; //RIGHT!
+	strcpy(menuoptions[advancedoptions], "Right: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 3);
+	optioninfo[advancedoptions] = 4; //DOWN!
+	strcpy(menuoptions[advancedoptions], "Down: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 4);
+	optioninfo[advancedoptions] = 5; //L!
+	strcpy(menuoptions[advancedoptions], "L: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 5);
+	optioninfo[advancedoptions] = 6; //R!
+	strcpy(menuoptions[advancedoptions], "R: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 6);
+	optioninfo[advancedoptions] = 7; //TRIANGLE!
+	strcpy(menuoptions[advancedoptions], "Triangle: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 7);
+	optioninfo[advancedoptions] = 8; //CIRCLE!
+	strcpy(menuoptions[advancedoptions], "Circle: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 8);
+	optioninfo[advancedoptions] = 9; //CROSS!
+	strcpy(menuoptions[advancedoptions], "Cross: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 9);
+	optioninfo[advancedoptions] = 10; //SQUARE!
+	strcpy(menuoptions[advancedoptions], "Square: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 10);
+	optioninfo[advancedoptions] = 11; //ANALOG LEFT!
+	strcpy(menuoptions[advancedoptions], "Analog left: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 11);
+	optioninfo[advancedoptions] = 12; //ANALOG UP!
+	strcpy(menuoptions[advancedoptions], "Analog up: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 12);
+	optioninfo[advancedoptions] = 13; //ANALOG RIGHT!
+	strcpy(menuoptions[advancedoptions], "Analog right: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 13);
+	optioninfo[advancedoptions] = 14; //ANALOG DOWN!
+	strcpy(menuoptions[advancedoptions], "Analog down: "); //Assign keyboard colors!
+	BIOS_addInputText(&menuoptions[advancedoptions++][0], 14);
+}
+
+extern SDL_sem *keyboard_lock; //For keyboard input!
+extern int input_buffer_shift; //Ctrl-Shift-Alt Status for the pressed key!
+extern int input_buffer; //To contain the pressed key!
+
+
+void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
+{
+	BIOS_Title("Map gaming mode buttons");
+	BIOS_InitGamingModeButtonsText(); //Init text!
+	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN|BIOSMENU_SPEC_SQUAREOPTION, &Menu_Stat); //Show the menu options!
+	switch (menuresult)
+	{
+	case BIOSMENU_SPEC_CANCEL: //Return?
+		BIOS_Menu = 25; //Goto Input Menu!
+		break;
+	case 0: //START
+	case 1: //LEFT
+	case 2: //UP
+	case 3: //RIGHT
+	case 4: //DOWN
+	case 5: //L
+	case 6: //R
+	case 7: //TRIANGLE
+	case 8: //CIRCLE
+	case 9: //CROSS
+	case 10: //SQUARE
+	case 11: //LEFT (analog)
+	case 12: //UP (analog)
+	case 13: //RIGHT (analog)
+	case 14: //DOWN (analog)
+		if (Menu_Stat == BIOSMENU_STAT_SQUARE) //Square pressed on an item?
+		{
+			BIOS_Changed |= ((BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] != -1) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] != 0)); //Did we change?
+			BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] = -1; //Set the new key!
+			BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] = 0; //Set the shift status!
+		}
+		else //Normal option selected?
+		{
+			//Valid option?
+			delay(100000); //Wait a bit!
+			enableKeyboard(1); //Buffer input!
+			for (;;)
+			{
+				delay(10000); //Wait a bit for input!
+				SDL_SemWait(keyboard_lock);
+				if (input_buffer_shift != -1) //Given input yet?
+				{
+					disableKeyboard(); //Disable the keyboard!
+					BIOS_Changed |= ((BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] != input_buffer) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] != input_buffer_shift)); //Did we change?
+					BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] = input_buffer; //Set the new key!
+					BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] = input_buffer_shift; //Set the shift status!
+					SDL_SemPost(keyboard_lock); //We're done with input: release our lock!
+					break; //Break out of the loop: we're done!
+				}
+				SDL_SemPost(keyboard_lock);
+			}
+			//Keep in our own menu: we're not changing after a choise has been made, but simply allowing to select another button!
+		}
+		break;
+	default: //Unknown option?
+		BIOS_Menu = NOTIMPLEMENTED; //Not implemented yet!
+		break;
+	}
+}
+
+char colors[0x10][15] = { "Black", "Blue", "Green", "Cyan", "Red", "Magenta", "Brown", "Light gray", "Dark gray", "Bright blue", "Bright green", "Bright cyan", "Bright red", "Bright magenta", "Yellow", "White" }; //Set color from options!
+void BIOS_addColorText(char *s, byte color)
+{
+	if (color < 0x10) //Valid color?
+	{
+		strcat(s, colors[color]); //Take the color!
+	}
+	else
+	{
+		strcat(s, "<UNKNOWN. CHECK BIOS VERSION>"); //Set color from options!
+	}
+}
+
+void BIOS_InitKeyboardColorsText()
+{
+	advancedoptions = 0; //Init!
+	int i;
+	for (i = 0; i<5; i++) //Clear all possibilities!
+	{
+		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+	}
+	optioninfo[advancedoptions] = 0; //Gaming mode buttons!
+	strcpy(menuoptions[advancedoptions], "Text font color: "); //Gaming mode buttons!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[0]); //First color!
+	optioninfo[advancedoptions] = 1; //Keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Text border color: "); //Assign keyboard colors!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[1]); //First color!
+	optioninfo[advancedoptions] = 2; //Keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Text active border color: "); //Assign keyboard colors!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[2]); //First color!
+	optioninfo[advancedoptions] = 3; //Gaming mode buttons!
+	strcpy(menuoptions[advancedoptions], "LED Font color: "); //Gaming mode buttons!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[3]); //First color!
+	optioninfo[advancedoptions] = 4; //Keyboard colors!
+	strcpy(menuoptions[advancedoptions], "LED border color: "); //Assign keyboard colors!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[4]); //First color!
+	optioninfo[advancedoptions] = 5; //Keyboard colors!
+	strcpy(menuoptions[advancedoptions], "LED active border color: "); //Assign keyboard colors!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[5]); //First color!
+}
+
+byte gamingKeyboardColor = 0;
+
+void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
+{
+	switch (gamingKeyboardColor) //What option?
+	{
+	case 0:
+		BIOS_Title("Text font color");
+		break;
+	case 1:
+		BIOS_Title("Text border color");
+		break;
+	case 2:
+		BIOS_Title("Text active border color");
+		break;
+	case 3:
+		BIOS_Title("LED font color");
+		break;
+	case 4:
+		BIOS_Title("LED border color");
+		break;
+	case 5:
+		BIOS_Title("LED active border color");
+		break;
+	}
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Color: "); //Show selection init!
+	int i = 0; //Counter!
+	numlist = 16; //Ammount of colors!
+	for (i = 0; i<numlist; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		strcpy(itemlist[i], &colors[i][0]); //Set the color to use!
+	}
+
+	int current = 0;
+	switch (BIOS_Settings.input_settings.colors[gamingKeyboardColor]) //What debug mode?
+	{
+	case 0:case 1:case 2:case 3:case 4:case 5:case 6:case 7:case 8:case 9:case 0xA:case 0xB:case 0xC:case 0xD:case 0xE:case 0xF:
+		current = BIOS_Settings.input_settings.colors[gamingKeyboardColor]; //Valid: use!
+		break;
+	default: //Invalid
+		keyboard_loadDefaultColor(gamingKeyboardColor); //Default: none!
+		current = BIOS_Settings.input_settings.colors[gamingKeyboardColor]; //Valid: use!
+		break;
+	}
+	if (BIOS_Settings.input_settings.colors[gamingKeyboardColor] != current) //Invalid?
+	{
+		BIOS_Settings.input_settings.colors[gamingKeyboardColor] = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(7, 4, itemlist[current], 256); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		keyboard_loadDefaultColor(gamingKeyboardColor); //Load the default value!
+		file = BIOS_Settings.input_settings.colors[gamingKeyboardColor]; //Load the default value!
+
+	case BWMONITOR_NONE: //None
+	case BWMONITOR_BLACK: //Black/White
+	case BWMONITOR_GREEN: //Greenscale
+	case BWMONITOR_BROWN: //Brownscale
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.input_settings.colors[gamingKeyboardColor] = file; //Select Debug Mode!
+		}
+		break;
+	}
+	BIOS_Menu = 27; //Goto Colors menu!
+}
+void BIOS_gamingKeyboardColorsMenu() //Manage stuff concerning input.
+{
+	BIOS_Title("Assign keyboard colors");
+	BIOS_InitKeyboardColorsText(); //Init text!
+	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
+	switch (menuresult)
+	{
+	case BIOSMENU_SPEC_CANCEL: //Return?
+		BIOS_Menu = 25; //Goto Input Menu!
+		break;
+	case 0:
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5: //Valid option?
+		gamingKeyboardColor = optioninfo[menuresult]; //What option has been chosen, since we are dynamic size?
+		BIOS_Menu = 28; //Switch to our option!
+		break;
+	default: //Unknown option?
+		BIOS_Menu = NOTIMPLEMENTED; //Not implemented yet!
+		break;
+	}
 }
