@@ -323,7 +323,7 @@ void CPU_initRegisters() //Init the registers!
 	CPU.registers->ES = 0; //Extra segment!
 	CPU.registers->FS = 0; //Far segment (extra segment)
 	CPU.registers->GS = 0; //??? segment (extra segment like FS)
-	CPU.registers->EFLAGS = 0; //Flags!
+	CPU.registers->EFLAGS = 0x2; //Flags!
 
 //Now the handling of solid state segments (might change, use index for that!)
 	CPU.SEGMENT_REGISTERS[CPU_SEGMENT_CS] = &CPU.registers->CS; //Link!
@@ -665,6 +665,26 @@ void CPU_beforeexec()
 	{
 		CPU.trapped = 0; //We're not trapped (allow hardware interrupts)!
 	}
+	switch (EMULATED_CPU)
+	{
+	case CPU_8086:
+		CPU.registers->FLAGS |= 0xF000; //High bits are stuck to 1!
+		break;
+	case CPU_80186:
+		break;
+	case CPU_80286:
+		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		{
+			CPU.registers->FLAGS &= ~0xF000; //Always set the high flags in real mode only!
+		}
+		break;
+	case CPU_80386:
+		CPU.registers->FLAGS &= 0x7FFF; //Bit 15 is always cleared!
+		CPU.registers->SFLAGS.AC = 0; //Stuck to 0!
+		break;
+	case CPU_80486:
+		break;
+	}
 }
 
 byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
@@ -694,17 +714,38 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			gotREP = REPZ = 1; //Allow and we're REPZ!
 			switch (OP) //Which special adjustment cycles Opcode?
 			{
+			//New:
+			case 0xA4: //A4: REPNZ MOVSB
+				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+				break;
+			case 0xA5: //A5: REPNZ MOVSW
+				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+				break;
+
+			//Old:
 			case 0xA6: //A6: REPNZ CMPSB
-				CPU.cycles_OP = 5+(9*CPU.registers->ECX); //Byte!
 				break;
 			case 0xA7: //A7: REPNZ CMPSW
-				CPU.cycles_OP = 5+(18*CPU.registers->ECX); //Word! (manual says 9, but we're moving words so double it! (see above))
 				break;
+
+			//New:
+			case 0xAA: //AA: REPNZ STOSB
+				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+				break;
+			case 0xAB: //AB: REPNZ STOSW
+				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+				break;
+			case 0xAC: //AC: REPNZ LODSB
+				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+				break;
+			case 0xAD: //AD: REPNZ LODSW
+				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+				break;
+
+			//Old:
 			case 0xAE: //AE: REPNZ SCASB
-				CPU.cycles_OP = 8+(4*CPU.registers->ECX); //Byte!
 				break;
 			case 0xAF: //AF: REPNZ SCASW
-				CPU.cycles_OP = 8+(8*CPU.registers->ECX); //Word!
 				break;
 			default: //Unknown yet?
 				gotREP = 0; //Dont allow after all!
@@ -718,41 +759,30 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			switch (OP) //Which special adjustment cycles Opcode?
 			{
 			case 0xA4: //A4: REP MOVSB
-				CPU.cycles_OP = 3+CPU.registers->ECX;
 				break;
 			case 0xA5: //A5: REP MOVSW
-				CPU.cycles_OP = 3+(2*CPU.registers->ECX);
-				break;
-			case 0xAA: //AA: REP STOSB
-				CPU.cycles_OP = 3+CPU.registers->ECX;
-				break;
-			case 0xAB: //AB: REP STOSW
-				CPU.cycles_OP = 3+(2*CPU.registers->ECX);
-				break;
-			case 0xAC: //AC: REP LODSB
-				CPU.cycles_OP = 3 + CPU.registers->ECX;
-				break;
-			case 0xAD: //AD: REP LODSW
-				CPU.cycles_OP = 3 + (2*CPU.registers->ECX);
 				break;
 			case 0xA6: //A6: REPE CMPSB
-				CPU.cycles_OP = 9+(4*CPU.registers->ECX); //Byte!
 				REPZ = 1; //REPE/REPZ!
 				break;
 			case 0xA7: //A7: REPE CMPSW
-				CPU.cycles_OP = 9+(8*CPU.registers->ECX); //Word! (manual says 9, but we're moving words so double it! (see above))
 				REPZ = 1; //REPE/REPZ!
+				break;
+			case 0xAA: //AA: REP STOSB
+				break;
+			case 0xAB: //AB: REP STOSW
+				break;
+			case 0xAC: //AC: REP LODSB
+				break;
+			case 0xAD: //AD: REP LODSW
 				break;
 			case 0xAE: //AE: REPE SCASB
-				CPU.cycles_OP = 8+(4*CPU.registers->ECX);
 				REPZ = 1; //REPE/REPZ!
 				break;
-			case 0xAF: //FLAG_AF: REPE SCASW
-				CPU.cycles_OP = 8+(8*CPU.registers->ECX);
+			case 0xAF: //AF: REPE SCASW
 				REPZ = 1; //REPE/REPZ!
 				break;
 			default: //Unknown yet?
-				CPU.cycles_OP = 0; //Unknown!
 				gotREP = 0; //Don't allow after all!
 				break; //Not supported yet!
 			}
@@ -790,7 +820,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
-				gotREP &= (CPU.registers->SFLAGS.ZF^1); //To reset the opcode (ZF needs to be cleared to loop)?
+				if (REPZ) //Check for zero flag?
+				{
+					gotREP &= (CPU.registers->SFLAGS.ZF ^ 1); //To reset the opcode (ZF needs to be cleared to loop)?
+				}
 			}
 			else if (CPU_getprefix(0xF3) && REPZ) //REPZ?
 			{
@@ -862,7 +895,7 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 	{
 		//Do something on invalid adress?
 	}
-	if (EMULATED_CPU<=CPU_80186) //16-bits mode (protect too high data)?
+	if (EMULATED_CPU <= CPU_80186) //16-bits mode (protect too high data)?
 	{
 		CPU.registers->EAX &= 0xFFFF; //Convert to 16-bits!
 		CPU.registers->EBX &= 0xFFFF; //Convert to 16-bits!
@@ -873,18 +906,7 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 		CPU.registers->ESI &= 0xFFFF; //Convert to 16-bits!
 		CPU.registers->EDI &= 0xFFFF; //Convert to 16-bits!
 		CPU.registers->EIP &= 0xFFFF; //Convert to 16-bits!
-		CPU.registers->EFLAGS &= 0xFFFF; //Convert to 16-bits!
-		//Special bits:
-		CPU.registers->SFLAGS.unmapped2 = 1; //Reserved!
-		/*
-		CPU.registers->SFLAGS.unmapped8 = 0; //Reserved!
-		CPU.registers->SFLAGS.unmapped32 = 0; //Reserved!
-		CPU.registers->SFLAGS.unmapped32768 = 1; //Always 1 on 186-!
-		*/
-	}
-	else //386?
-	{
-		CPU.registers->FLAGS &= 0xFFFBFFFF; //Clear AC flag: we're a 386 (used in detection of the processor)!
+		CPU.registers->EFLAGS &= 0xFFFF; //Convert to 16-bits: we only have 16-bits flags!
 	}
 	CPU.faultraised = 0; //We don't have a fault anymore! Continue on!
 }

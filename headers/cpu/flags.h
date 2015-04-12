@@ -5,6 +5,7 @@
 
 void flag_szp8(uint8_t value);
 void flag_szp16(uint16_t value);
+void flag_szp32(uint32_t value);
 void flag_log8(uint8_t value);
 void flag_log16(uint16_t value);
 void flag_adc8(uint8_t v1, uint8_t v2, uint8_t v3);

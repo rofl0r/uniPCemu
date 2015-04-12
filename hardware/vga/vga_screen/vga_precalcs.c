@@ -19,8 +19,6 @@ OPTINLINE uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!
 #define SECTIONUPDATEDFULL(whereupdated,section,fullupdated) (((whereupdated&WHEREUPDATED_AREA)==section)||fullupdated)
 #define SECTIONUPDATED(whereupdated,section) ((whereupdated&WHEREUPDATED_AREA)==section)
 
-extern VGA_Type *ActiveVGA; //For checking if we're active!
-
 extern byte VGA_LOGPRECALCS; //Are we manually updated to log?
 
 OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs!
@@ -64,11 +62,11 @@ void dump_CRTCTiming()
 	uint_32 i;
 	char information[0x1000];
 	memset(&information,0,sizeof(information)); //Init!
-	for (i=0;i<NUMITEMS(ActiveVGA->CRTC.rowstatus);i++)
+	for (i=0;i<NUMITEMS(getActiveVGA()->CRTC.rowstatus);i++)
 	{
 		sprintf(information,"Row #%i=",i); //Current row!
 		word status;
-		status = ActiveVGA->CRTC.rowstatus[i]; //Read the status for the row!
+		status = getActiveVGA()->CRTC.rowstatus[i]; //Read the status for the row!
 		if (status&VGA_SIGNAL_VTOTAL)
 		{
 			sprintf(information,"%s+VTOTAL",information); //Add!
@@ -101,11 +99,11 @@ void dump_CRTCTiming()
 		if (status&VGA_SIGNAL_VTOTAL) break; //Total reached? Don't look any further!
 	}
 
-	for (i=0;i<NUMITEMS(ActiveVGA->CRTC.colstatus);i++)
+	for (i=0;i<NUMITEMS(getActiveVGA()->CRTC.colstatus);i++)
 	{
 		sprintf(information,"Col #%i=",i); //Current row!
 		word status;
-		status = ActiveVGA->CRTC.colstatus[i]; //Read the status for the row!
+		status = getActiveVGA()->CRTC.colstatus[i]; //Read the status for the row!
 		if (status&VGA_SIGNAL_HTOTAL)
 		{
 			sprintf(information,"%s+HTOTAL",information); //Add!
@@ -144,19 +142,19 @@ void VGA_LOGCRTCSTATUS()
 	if (!getActiveVGA()) return; //No VGA available!
 	//Log all register info:
 	dolog("VGA","CRTC Info:");
-	dolog("VGA","HDispStart:%i",ActiveVGA->precalcs.horizontaldisplaystart); //Horizontal start
-	dolog("VGA","HDispEnd:%i",ActiveVGA->precalcs.horizontaldisplayend); //Horizontal End of display area!
-	dolog("VGA","HBlankStart:%i",ActiveVGA->precalcs.horizontalblankingstart); //When to start blanking horizontally!
-	dolog("VGA","HBlankEnd:~%i",ActiveVGA->precalcs.horizontalblankingend); //When to stop blanking horizontally after starting!
-	dolog("VGA","HRetraceStart:%i",ActiveVGA->precalcs.horizontalretracestart); //When to start vertical retrace!
-	dolog("VGA","HRetraceEnd:~%i",ActiveVGA->precalcs.horizontalretraceend); //When to stop vertical retrace.
-	dolog("VGA","HTotal:%i",ActiveVGA->precalcs.horizontaltotal); //Horizontal total (full resolution plus horizontal retrace)!
-	dolog("VGA","VDispEnd:%i",ActiveVGA->precalcs.verticaldisplayend); //Vertical Display End Register value!
-	dolog("VGA","VBlankStart:%i",ActiveVGA->precalcs.verticalblankingstart); //Vertical Blanking Start value!
-	dolog("VGA","VBlankEnd:~%i",ActiveVGA->precalcs.verticalblankingend); //Vertical Blanking End value!
-	dolog("VGA","VRetraceStart:%i",ActiveVGA->precalcs.verticalretracestart); //When to start vertical retrace!
-	dolog("VGA","VRetraceEnd:~%i",ActiveVGA->precalcs.verticalretraceend); //When to stop vertical retrace.
-	dolog("VGA","VTotal:%i",ActiveVGA->precalcs.verticaltotal); //Full resolution plus vertical retrace!
+	dolog("VGA","HDispStart:%i",getActiveVGA()->precalcs.horizontaldisplaystart); //Horizontal start
+	dolog("VGA","HDispEnd:%i",getActiveVGA()->precalcs.horizontaldisplayend); //Horizontal End of display area!
+	dolog("VGA","HBlankStart:%i",getActiveVGA()->precalcs.horizontalblankingstart); //When to start blanking horizontally!
+	dolog("VGA","HBlankEnd:~%i",getActiveVGA()->precalcs.horizontalblankingend); //When to stop blanking horizontally after starting!
+	dolog("VGA","HRetraceStart:%i",getActiveVGA()->precalcs.horizontalretracestart); //When to start vertical retrace!
+	dolog("VGA","HRetraceEnd:~%i",getActiveVGA()->precalcs.horizontalretraceend); //When to stop vertical retrace.
+	dolog("VGA","HTotal:%i",getActiveVGA()->precalcs.horizontaltotal); //Horizontal total (full resolution plus horizontal retrace)!
+	dolog("VGA","VDispEnd:%i",getActiveVGA()->precalcs.verticaldisplayend); //Vertical Display End Register value!
+	dolog("VGA","VBlankStart:%i",getActiveVGA()->precalcs.verticalblankingstart); //Vertical Blanking Start value!
+	dolog("VGA","VBlankEnd:~%i",getActiveVGA()->precalcs.verticalblankingend); //Vertical Blanking End value!
+	dolog("VGA","VRetraceStart:%i",getActiveVGA()->precalcs.verticalretracestart); //When to start vertical retrace!
+	dolog("VGA","VRetraceEnd:~%i",getActiveVGA()->precalcs.verticalretraceend); //When to stop vertical retrace.
+	dolog("VGA","VTotal:%i",getActiveVGA()->precalcs.verticaltotal); //Full resolution plus vertical retrace!
 }
 
 void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, whereupdated: where were we updated?
@@ -596,7 +594,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		VGA->precalcs.clockselectrows = VGA->precalcs.verticalcharacterclocks = (VGA->precalcs.verticaltotal+1); //Use the same value!
 		
 		VGA->precalcs.scanlinepercentage = SAFEDIV(1.0f,VGA->precalcs.verticalcharacterclocks); //Re-calculate scanline percentage!
-		if (VGA==ActiveVGA) //Active VGA?
+		if (VGA==getActiveVGA()) //Active VGA?
 		{
 			changeRowTimer(VGA,VGA->precalcs.clockselectrows); //Make sure the display scanline refresh rate is OK!		
 		}

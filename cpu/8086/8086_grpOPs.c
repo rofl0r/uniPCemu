@@ -45,20 +45,6 @@ extern uint_32 temp32, tempaddr32; //Defined in opcodes_8086.c
 
 extern MODRM_PARAMS params; //The modr/m params!
 
-void flag_sp16(uint16_t value) //Extension of old sp16!
-{
-	byte oldz;
-	oldz = FLAG_ZF; //Save!
-	flag_szp16(value); //Flags!
-	FLAG_ZF = oldz; //Restore!
-}
-
-void flag_sp32(uint8_t value) //New created from sp16!
-{
-	FLAG_SF = ((value&0x80000000)>0);
-	FLAG_PF = parity[value & 0xFF];	/* retrieve parity state from lookup table */
-}
-
 byte op_grp2_8(byte cnt) {
 	//word d,
 	word s, shift, oldCF, msb;
@@ -299,14 +285,14 @@ void op_grp3_8() {
 		case 4: //MULB
 		temp1.val32 = (uint32_t)oper1b * (uint32_t)REG_AL;
 		REG_AX = temp1.val16 & 0xFFFF;
-		flag_szp8(temp1.val16);
+		flag_szp8(temp1.val32);
 		FLAG_CF = FLAG_OF = (REG_AX!=REG_AL);
 		break;
 		
 		case 5: //IMULB
 		oper1 = oper1b;
 		temp1.val32 = REG_AL;
-		temp2.val32 = oper1;
+		temp2.val32 = oper1b;
 		//Sign extend!
 		if ((temp1.val8 & 0x80)==0x80) temp1.val32 |= 0xFFFFFF00;
 		if ((temp2.val8 & 0x80)==0x80) temp2.val32 |= 0xFFFFFF00;
@@ -315,8 +301,7 @@ void op_grp3_8() {
 		temp3.val32s *= temp2.val32s; //Multiply!
 		dolog("debugger","IMULB:%ix%i=%i",temp1.val32s,temp2.val32s,temp3.val32s); //Show the result!
 		REG_AX = temp3.val16; //Load into AX!
-		flag_sp16(REG_AX); //Flags!
-		FLAG_CF = FLAG_OF = (temp3.val8s!=temp3.val16s);
+		FLAG_CF = FLAG_OF = (REG_AH!=0);
 		break;
 		
 		case 6: //DIV
@@ -418,7 +403,7 @@ void op_grp3_16() {
 		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
 		REG_AX = temp1.val16;
 		REG_DX = (temp1.val32 >> 16);
-		flag_szp16(temp1.val16);
+		flag_szp16(temp1.val32);
 		if (REG_DX) { FLAG_CF = FLAG_OF = 1; } else { FLAG_CF = FLAG_OF = 0; }
 		break;
 		case 5: //IMULW
@@ -432,9 +417,8 @@ void op_grp3_16() {
 		dolog("debugger","IMULW:%ix%i=%i",temp1.val32s,temp2.val32s,temp3.val32s); //Show the result!
 		REG_AX = temp3.val16; //into register ax
 		REG_DX = temp3.val16high; //into register dx
-		
+		flag_szp16(temp3.val32);
 		FLAG_CF = FLAG_OF = (temp3.val16s!=temp3.val32s); //Overflow occurred?
-		flag_sp32(temp3.val32); //Flags!
 		break;
 		case 6: //DIV
 		op_div16(((uint32_t)REG_DX<<16) | REG_AX, oper1); break;

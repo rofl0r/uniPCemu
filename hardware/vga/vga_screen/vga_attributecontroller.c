@@ -150,14 +150,6 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	}
 }
 
-void VGA_DUMPATTR()
-{
-	FILE *f;
-	f = fopen("attributelogic.dat","wb");
-	fwrite(&getActiveVGA()->precalcs.attributeprecalcs,1,sizeof(getActiveVGA()->precalcs.attributeprecalcs),f);
-	fclose(f);
-}
-
 OPTINLINE byte VGA_getAttributeDACIndex(byte attribute, VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer)
 {
 	register word lookup;

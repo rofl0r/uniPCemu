@@ -1054,7 +1054,7 @@ void CPU8086_internal_SCASB()
 	if (blockREP) return; //Disabled REP!
 	cmp1 = MMU_rb(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, REG_DI, 0); //Try to read the data to compare!
 	CPUPROT1
-	CMP_b(cmp1,REG_AL);
+	CMP_b(REG_AL,cmp1);
 	if (FLAG_DF)
 	{
 		--REG_DI;
@@ -1071,7 +1071,7 @@ void CPU8086_internal_SCASW()
 	if (blockREP) return; //Disabled REP!
 	cmp1 = MMU_rw(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, REG_DI, 0); //Try to read the data to compare!
 	CPUPROT1
-	CMP_w(cmp1,REG_AX);
+	CMP_w(REG_AX,cmp1);
 	if (FLAG_DF)
 	{
 		REG_DI -= 2;
@@ -1131,7 +1131,8 @@ void CPU8086_internal_AAD(byte data)
 {
 	CPUPROT1
 	REG_AX = ((REG_AH*data)+REG_AL);    //AAD
-	flag_szp16(REG_AX); //Update the flags!
+	REG_AH = 0;
+	flag_szp16((REG_AH*data)+REG_AL); //Update the flags!
 	REG_AH = 0;
 	FLAG_SF = 0;
 	CPUPROT2
@@ -2050,7 +2051,7 @@ void CPU8086_OPFF() //GRP5 Ev
 			//debugger_setcommand("CALL %04X:%04X",MMU_rw(CPU_SEGMENT_CS,REG_CS,ea,0),MMU_rw(CPU_SEGMENT_CS,REG_CS,ea+2,0)); //Based on CALL Ap
 			break;
 		case 4: //JMP
-			modrm_generateInstructionTEXT("JMP",16,oper1,PARAM_IMM16); //JMP!
+			modrm_generateInstructionTEXT("JMP",16,0,PARAM_MODRM2); //JMP to the register!
 			break;
 		case 5: //JMP Mp
 			modrm_generateInstructionTEXT("JMP",16,0,PARAM_MODRM2); //Jump to the address pointed here!

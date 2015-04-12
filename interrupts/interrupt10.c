@@ -1289,7 +1289,6 @@ void int10_TeleTypeOutput()
 	byte y = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0);
 	int10_vram_readcharacter(x, y, REG_BH, &oldchar, &oldattr); //Get old info!
 	int10_internal_outputchar(REG_BH, REG_AL, oldattr); //Write character REG_AL with old font at page!
-	dolog("int10", "Teletype: %c:%02X>%c:%02X", REG_AL, oldattr, oldchar, oldattr); //Log the output change!
 }
 
 void int10_GetCurrentVideoMode()

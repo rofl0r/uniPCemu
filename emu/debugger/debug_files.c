@@ -60,8 +60,9 @@ void DoDebugFiles() //Do the debug files!
 			verified = runromverify(file_name,file_nameres); //Verified?
 			if (verified)
 			{
-				GPU_EMU_printscreen(-1,-1,"Verified.");
-				dolog("ROM_log","%s has been verified!",file_name);
+				GPU_EMU_printscreen(-1,-1," Verified.");
+				refreshscreen(); //Update the screen now!
+				dolog("ROM_log", "%s has been verified!", file_name);
 				//Move the files to the finish directory!
 				dummy = mkdir("debugsucceeded"); //Make sure the directory exists!
 				move_file(file_name,finish_name); //Move file!
@@ -70,8 +71,9 @@ void DoDebugFiles() //Do the debug files!
 			else
 			{
 				EMU_textcolor(0x4); //Error text color!
-				GPU_EMU_printscreen(-1,-1,"Failed.");
-				dolog("ROM_log","%s has gone wrong!",file_name);
+				GPU_EMU_printscreen(-1,-1," Failed.");
+				refreshscreen(); //Update the screen now!
+				dolog("ROM_log", "%s has gone wrong!", file_name);
 				sleep();
 			}
 			refreshscreen(); //Update the screen now!

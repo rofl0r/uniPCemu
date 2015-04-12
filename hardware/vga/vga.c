@@ -83,6 +83,13 @@ http://webpages.charter.net/danrollins/techhelp/0114.HTM
 
 */
 
+SDL_sem *VGA_Lock; //Our lock!
+
+void freeVGALock(void)
+{
+	SDL_DestroySemaphore(VGA_Lock); //Add the lock for hardware/software conflicts!
+}
+
 VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA and gives the current set!
 {
 	if (__HW_DISABLED) return NULL; //Abort!
@@ -177,7 +184,11 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	
 	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!
 	
-	VGA->VGA_Lock = SDL_CreateSemaphore(1); //Add the lock for hardware/software conflicts!
+	if (!VGA_Lock) //No lock yet?
+	{
+		VGA_Lock = SDL_CreateSemaphore(1); //Add the lock for hardware/software conflicts!
+		atexit(&freeVGALock);
+	}
 
 	//dolog("VGA","Allocation ready.");
 	return VGA; //Give the new allocated VGA!
@@ -186,7 +197,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 void dumpVRAM() //Diagnostic dump of VRAM!
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (ActiveVGA) //Got active VGA?
+	if (getActiveVGA()) //Got active VGA?
 	{
 		FILE *f = fopen("VRAM.dat","wb");
 		if (f) //Opened?
@@ -195,9 +206,9 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 			plane = 0; //Start at plane 0!
 			for (plane=0;plane<4;plane++)
 			{
-				for (c=0;c<(ActiveVGA->VRAM_size>>2);c++) //Process all data in VRAM!
+				for (c=0;c<(getActiveVGA()->VRAM_size>>2);c++) //Process all data in VRAM!
 				{
-					byte data = readVRAMplane(ActiveVGA,plane,c,0); //Read a direct byte from memory!
+					byte data = readVRAMplane(getActiveVGA(),plane,c,0); //Read a direct byte from memory!
 					fwrite(&data,1,1,f); //Write the VRAM byte!
 				}
 			}
@@ -260,35 +271,35 @@ Internal terminate and start functions!
 void terminateVGA() //Terminate running VGA and disable it! Only to be used by root processes (non-VGA processes!)
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (!memprotect(ActiveVGA, sizeof(*ActiveVGA), "VGA_Struct"))
+	if (!memprotect(getActiveVGA(), sizeof(*getActiveVGA()), "VGA_Struct"))
 	{
 		ActiveVGA = NULL; //Unused!
 		return; //We can't terminate without a VGA to terminate!
 	}
-	if (ActiveVGA->Terminated) return; //Already terminated?
+	if (getActiveVGA()->Terminated) return; //Already terminated?
 	/*
-	ActiveVGA->Request_Termination = 1; //We request to terminate!
-	while (!ActiveVGA->Terminated) //Still not terminated?
+	getActiveVGA()->Request_Termination = 1; //We request to terminate!
+	while (!getActiveVGA()->Terminated) //Still not terminated?
 	{
 		delay(1); //Wait to be terminated!
 	}*/
 	//No need to request for termination: we either are rendering in hardware (already not here), or here and not rendering at all!
-	ActiveVGA->Terminated = 1; //Terminate VGA!
+	getActiveVGA()->Terminated = 1; //Terminate VGA!
 }
 
 void startVGA() //Starts the current VGA! (See terminateVGA!)
 {
 	if (__HW_DISABLED) return; //Abort!
-	/*if (ActiveVGA->Request_Termination) //We're requesting termination?
+	/*if (getActiveVGA()->Request_Termination) //We're requesting termination?
 	{
-		while (!ActiveVGA->Terminated) //Wait to be terminated!
+		while (!getActiveVGA()->Terminated) //Wait to be terminated!
 		{
 			delay(1); //Wait to be terminated!
 		}
 	}*/ //Request for termination is not needed!
 	//raiseError("VGA","StartVGA0");
-	ActiveVGA->Terminated = DISABLE_VGA; //Reset termination flag, effectively starting the rendering!
-	VGA_calcprecalcs(ActiveVGA,0); //Update full VGA to make sure we're running!
+	getActiveVGA()->Terminated = DISABLE_VGA; //Reset termination flag, effectively starting the rendering!
+	VGA_calcprecalcs(getActiveVGA(),0); //Update full VGA to make sure we're running!
 }
 
 /*
@@ -297,9 +308,20 @@ For the emulator: setActiveVGA sets and starts a selected VGA (old one is termin
 
 */
 
+void lockVGA()
+{
+	SDL_SemWait(VGA_Lock); //Wait!
+}
+
+void unlockVGA()
+{
+	SDL_SemPost(VGA_Lock); //Release!
+}
+
 void setActiveVGA(VGA_Type *VGA) //Sets the active VGA chipset!
 {
 	if (__HW_DISABLED) return; //Abort!
+	lockVGA();
 	terminateVGA(); //Terminate currently running VGA!
 	ActiveVGA = VGA; //Set the active VGA to this!
 	if (VGA) //Valid?
@@ -307,6 +329,7 @@ void setActiveVGA(VGA_Type *VGA) //Sets the active VGA chipset!
 		startVGA(); //Start the new VGA system!
 	}
 	//raiseError("VGA","SetActiveVGA: Started!");
+	unlockVGA();
 }
 
 VGA_Type *getActiveVGA() //Get the active VGA Chipset!
@@ -317,6 +340,7 @@ VGA_Type *getActiveVGA() //Get the active VGA Chipset!
 void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 {
 	if (__HW_DISABLED) return; //Abort!
+	lockVGA();
 	VGA_Type *realVGA = *VGA; //The real VGA!
 
 	if (realVGA->VRAM) //Got allocated?
@@ -331,7 +355,6 @@ void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 	{
 		freez((void **)&realVGA->Sequencer,sizeof(SEQ_DATA),"SEQ_DATA@DoneVGA"); //Free the registers!
 	}
-	SDL_DestroySemaphore(realVGA->VGA_Lock); //Free the lock!
 	if (VGA) //Valid ptr?
 	{
 		if (*VGA) //Allocated?
@@ -340,14 +363,15 @@ void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 		}
 	}
 	//We're cleaned!
+	unlockVGA();
 }
 
 //Text blink handler!
 void textBlinkHandler() //=Vertical Sync Rate/32 (Every two cursor blinks!, since it's at 16. 16*2=32!)
 {
-	if (ActiveVGA) //Active?
+	if (getActiveVGA()) //Active?
 	{
-		ActiveVGA->TextBlinkOn = !ActiveVGA->TextBlinkOn; //Blink!
+		getActiveVGA()->TextBlinkOn = !getActiveVGA()->TextBlinkOn; //Blink!
 	}
 }
 
@@ -356,10 +380,10 @@ void textBlinkHandler() //=Vertical Sync Rate/32 (Every two cursor blinks!, sinc
 void cursorBlinkHandler() //Handled every 16 frames!
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (ActiveVGA) //Active?
+	if (getActiveVGA()) //Active?
 	{
-		ActiveVGA->CursorOn = !ActiveVGA->CursorOn; //Blink!
-		if (ActiveVGA->CursorOn) //32 frames processed (we start at ON=1, becomes off first 16, becomes on second 16==32)
+		getActiveVGA()->CursorOn = !getActiveVGA()->CursorOn; //Blink!
+		if (getActiveVGA()->CursorOn) //32 frames processed (we start at ON=1, becomes off first 16, becomes on second 16==32)
 		{
 			textBlinkHandler(); //32 frames processed!
 		}
@@ -371,13 +395,13 @@ void cursorBlinkHandler() //Handled every 16 frames!
 byte VRAM_readdirect(uint_32 offset)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	return ActiveVGA->VRAM[SAFEMOD(offset,ActiveVGA->VRAM_size)]; //Give the offset, protected overflow!
+	return getActiveVGA()->VRAM[SAFEMOD(offset,getActiveVGA()->VRAM_size)]; //Give the offset, protected overflow!
 }
 
 void VRAM_writedirect(uint_32 offset, byte value)
 {
 	if (__HW_DISABLED) return; //Abort!
-	ActiveVGA->VRAM[SAFEMOD(offset,ActiveVGA->VRAM_size)] = value; //Set the offset, protected overflow!
+	getActiveVGA()->VRAM[SAFEMOD(offset,getActiveVGA()->VRAM_size)] = value; //Set the offset, protected overflow!
 }
 
 void VGA_VBlankHandler(VGA_Type *VGA)
@@ -406,9 +430,9 @@ void VGA_VBlankHandler(VGA_Type *VGA)
 void VGA_waitforVBlank() //Wait for a VBlank to happen?
 {
 	if (__HW_DISABLED || __RENDERER_DISABLED) return; //Abort!
-	ActiveVGA->VGA_vblank = 0; //Reset we've occurred!
-	ActiveVGA->wait_for_vblank = 1; //We're waiting for vblank to happen!
-	while (!ActiveVGA->VGA_vblank) //Not happened yet?
+	getActiveVGA()->VGA_vblank = 0; //Reset we've occurred!
+	getActiveVGA()->wait_for_vblank = 1; //We're waiting for vblank to happen!
+	while (!getActiveVGA()->VGA_vblank) //Not happened yet?
 	{
 		delay(50000); //Wait a bit for the VBlank to occur!
 	}

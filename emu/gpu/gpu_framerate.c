@@ -40,7 +40,6 @@ uint_32 totalsteps = 0;
 
 extern uint_32 ms_render; //MS it took to render (125000 for 8fps, which is plenty!)
 
-extern VGA_Type *ActiveVGA; //Active VGA!
 uint_32 SCREENS_RENDERED = 0; //Ammount of GPU screens rendered!
 
 GPU_TEXTSURFACE *frameratesurface = NULL; //Framerate surface!

@@ -28,7 +28,6 @@ OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *
 }
 
 extern GPU_type GPU; //GPU!
-extern VGA_Type *ActiveVGA; //Active VGA!
 
 typedef void (*DisplayRenderHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA); //Our rendering handler for all signals!
 
@@ -413,8 +412,8 @@ void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 	retracing |= vretrace; //We're retracing?
 	//Retracing disables output!
 
-	ActiveVGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace; //Vertical retrace?
-	ActiveVGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing; //Vertical or horizontal retrace?
+	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace; //Vertical retrace?
+	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing; //Vertical or horizontal retrace?
 
 	totalling = 0; //Default: Not totalling!
 	//Totals
@@ -474,13 +473,14 @@ void initStateHandlers()
 	}
 }
 
+extern SDL_sem *VGA_Lock; //Our lock!
+
 void VGA_Sequencer()
 {
 	if (HW_DISABLED) return;
+	SDL_SemWait(VGA_Lock); //Lock ourselves!
 	VGA_Type *VGA = getActiveVGA(); //Our active VGA!
 	if (!memprotect(VGA, sizeof(*VGA), "VGA_Struct")) return; //Invalid VGA? Don't do anything!
-
-	SDL_SemWait(VGA->VGA_Lock); //Lock ourselves!
 
 	SEQ_DATA *Sequencer;
 	word displaystate; //Current display state!
@@ -488,7 +488,7 @@ void VGA_Sequencer()
 
 	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Not doing anything?
 	{
-		SDL_SemPost(VGA->VGA_Lock);
+		SDL_SemPost(VGA_Lock);
 		return; //Abort: we're disabled!
 	}
 
@@ -508,5 +508,5 @@ void VGA_Sequencer()
 		if (Sequencer_Break) break; //Abort when done!
 	}
 
-	SDL_SemPost(VGA->VGA_Lock); //Unlock the VGA for Software access!
+	SDL_SemPost(VGA_Lock); //Unlock the VGA for Software access!
 }

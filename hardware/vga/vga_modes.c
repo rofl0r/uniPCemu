@@ -1,8 +1,6 @@
 #include "headers/types.h" //Types!
 #include "headers/hardware/vga.h"
 
-extern VGA_Type *ActiveVGA;
-
 byte VGA_GraphRegs[0x14][9] =
 {
 	{0x00,0x00,0x00,0x00,0x00,0x10,0x0E,0x0F,0xFF},

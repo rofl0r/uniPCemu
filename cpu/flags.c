@@ -31,6 +31,15 @@ void flag_szp16(uint16_t value)
 	FLAG_PF = parity[value & 255];
 }
 
+void flag_szp32(uint32_t value)
+{
+	if (!value) FLAG_ZF = 1;
+	else FLAG_ZF = 0;
+	if (value & 0x80000000) FLAG_SF = 1;
+	else FLAG_SF = 0;
+	FLAG_PF = parity[value & 255];
+}
+
 void flag_log8(uint8_t value)
 {
 	flag_szp8(value);

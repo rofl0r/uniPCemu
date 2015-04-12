@@ -9,7 +9,6 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/bmp.h" //BMP support for dumping color information!
 
-extern VGA_Type *ActiveVGA; //Active VGA!
 extern VideoModeBlock *CurMode; //Current int10 video mode!
 
 void VGA_DUMPDAC() //Dumps the full DAC!
@@ -22,7 +21,7 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	register uint_32 DACVal;
 	for (c=0;c<0x100;c++)
 	{
-		DACVal = ActiveVGA->precalcs.DAC[c]; //The DAC value!
+		DACVal = getActiveVGA()->precalcs.DAC[c]; //The DAC value!
 		if ((DACVal==RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
 		{
 			DACBitmap[c] = 0; //Clear entry!
@@ -46,7 +45,7 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 		lookup |= (c&1); //Font?
 		//The lookup points to the index!
 		register uint_32 DACVal;
-		DACVal = ActiveVGA->precalcs.DAC[ActiveVGA->precalcs.attributeprecalcs[lookup]]; //The DAC value looked up!
+		DACVal = getActiveVGA()->precalcs.DAC[getActiveVGA()->precalcs.attributeprecalcs[lookup]]; //The DAC value looked up!
 		if ((DACVal==RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
 		{
 			DACBitmap[c] = 0; //Clear entry!
@@ -68,7 +67,7 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	
 	FILE *f;
 	f = fopen(filename,"wb");
-	fwrite(&ActiveVGA->CRTC.charcolstatus,1,sizeof(ActiveVGA->CRTC.charcolstatus),f); //Write the column statuses!
+	fwrite(&getActiveVGA()->CRTC.charcolstatus,1,sizeof(getActiveVGA()->CRTC.charcolstatus),f); //Write the column statuses!
 	fclose(f); //Close the file!
 	*/
 }

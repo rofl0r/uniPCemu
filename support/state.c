@@ -4,7 +4,6 @@
 
 extern CPU_type CPU; //CPU!
 extern GPU_type GPU; //GPU!
-extern VGA_Type *ActiveVGA; //VGA!
 extern Handler CBHandlers[CB_MAX]; //Handlers!
 
 SAVED_CPU_STATE_HEADER SaveStatus_Header; //SaveStatus structure!
