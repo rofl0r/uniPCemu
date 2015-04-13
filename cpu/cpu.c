@@ -671,7 +671,6 @@ void CPU_beforeexec()
 	case CPU_80186:
 		CPU.registers->FLAGS |= 0xF000; //High bits are stuck to 1!
 		break;
-		break;
 	case CPU_80286:
 		if (getcpumode() == CPU_MODE_REAL) //Real mode?
 		{
