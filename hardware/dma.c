@@ -14,6 +14,8 @@ DMA Controller (8237A)
 //Are we disabled?
 #define __HW_DISABLED 0
 
+SDL_sem *DMA_Lock = NULL;
+
 typedef union
 {
 	struct
@@ -72,9 +74,18 @@ typedef struct
 
 DMAControllerTYPE DMAController[2]; //We have 2 DMA Controllers!
 
+void freeDMA(void)
+{
+	SDL_DestroySemaphore(DMA_Lock); //Free!
+}
+
 void initDMAControllers() //Init function for BIOS!
 {
 	if (__HW_DISABLED) return; //Abort!
+	if (!DMA_Lock)
+	{
+		DMA_Lock = SDL_CreateSemaphore(1);
+	}
 	memset(&DMAController[0],0,sizeof(DMAController)); //Init DMA Controller channels 0-3 (0 unused: for DRAM Refresh)
 	memset(&DMAController[1],0,sizeof(DMAController)); //Init DMA Controller channels 4-7 (4 unused: for DMA Controller coupling)
 }
@@ -108,6 +119,7 @@ void DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 		//Now reg is on 1:1 mapping too!
 	}
 	byte channel; //Which channel to use?
+	SDL_SemWait(DMA_Lock);
 	switch (port) //What port?
 	{
 	//Extra 8 bits for addresses:
@@ -212,6 +224,7 @@ void DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 		}
 		break;
 	}
+	SDL_SemPost(DMA_Lock);
 }
 
 byte DMA_ReadIO(word port) //Handles IN instruction from CPU I/O ports
@@ -226,33 +239,34 @@ byte DMA_ReadIO(word port) //Handles IN instruction from CPU I/O ports
 		reg >>= 1; //Every port is on a offset of 2!
 		//Now reg is on 1:1 mapping too!
 	}
+	SDL_SemWait(DMA_Lock);
 	switch (port) //What port?
 	{
 		//Extra 8 bits for addresses:
 		case 0x87: //
-			return DMAController[0].DMAChannel[0].PageAddressRegister; //Get!
+			result = DMAController[0].DMAChannel[0].PageAddressRegister; //Get!
 			break;
 		case 0x83: //
-			return DMAController[0].DMAChannel[1].PageAddressRegister; //Get!
+			result = DMAController[0].DMAChannel[1].PageAddressRegister; //Get!
 			break;
 		case 0x81: //
-			return DMAController[0].DMAChannel[2].PageAddressRegister; //Get!
+			result = DMAController[0].DMAChannel[2].PageAddressRegister; //Get!
 			break;
 		case 0x82: //
-			return DMAController[0].DMAChannel[3].PageAddressRegister; //Get!
+			result = DMAController[0].DMAChannel[3].PageAddressRegister; //Get!
 			break;
 		//Extra 8 bits for addresses:
 		case 0x8F: //
-			return DMAController[1].DMAChannel[0].PageAddressRegister; //Get!
+			result = DMAController[1].DMAChannel[0].PageAddressRegister; //Get!
 			break;
 		case 0x8B: //
-			return DMAController[1].DMAChannel[1].PageAddressRegister; //Get!
+			result = DMAController[1].DMAChannel[1].PageAddressRegister; //Get!
 			break;
 		case 0x89: //
-			return DMAController[1].DMAChannel[2].PageAddressRegister; //Get!
+			result = DMAController[1].DMAChannel[2].PageAddressRegister; //Get!
 			break;
 		case 0x8A: //
-			return DMAController[1].DMAChannel[3].PageAddressRegister; //Get!
+			result = DMAController[1].DMAChannel[3].PageAddressRegister; //Get!
 			break;	
 		default: //Non-page register!
 			switch (reg) //What register is selected?
@@ -261,20 +275,21 @@ byte DMA_ReadIO(word port) //Handles IN instruction from CPU I/O ports
 				case 0x08: //Status Register!
 					result = DMAController[0].StatusRegister; //Get!
 					DMAController[0].StatusRegister &= ~0xF; //Clear TC bits!
-					return result; //Get!
 					break;
 				case 0x0D: //Intermediate Register!
-					return DMAController[0].IntermediateRegister; //Get!
+					result = DMAController[0].IntermediateRegister; //Get!
 					break;
 				case 0x0F: //MultiChannel Mask Register!
-					return DMAController[0].MultiChannelMaskRegister; //Get!
+					result = DMAController[0].MultiChannelMaskRegister; //Get!
 					break;
 				default: //Unknown port?
+					result = ~0; //Unknown port!
 					break;
 			}
 			break;
 	}
-	return ~0; //Unknown port!
+	SDL_SemPost(DMA_Lock);
+	return result; //Give the result!
 }
 
 void DMA_autoinit(byte controller, byte channel) //Autoinit functionality.
@@ -295,6 +310,7 @@ void DMA_tick()
 	static byte controller; //Current controller!
 	byte transferred = 0; //Transferred data this time?
 	byte startcurrent = current; //Current backup for checking for finished!
+	SDL_SemWait(DMA_Lock);
 	//nextcycle: //Next cycle to process!
 		controller = ((current&4)>>2); //Init controller
 		byte channel = (current&3); //Channel to use! Channels 0 are unused (DRAM memory refresh (controller 0) and cascade DMA controller (controller 1))
@@ -486,9 +502,18 @@ void DMA_tick()
 		{
 			current = 0; //Reset controller!
 		}
-		if (transferred) return; //Transferred data? We're done!
-		if (startcurrent==current) return; //Back to our original cycle? We don't have anything to transfer!
+		if (transferred)
+		{
+			SDL_SemPost(DMA_Lock);
+			return; //Transferred data? We're done!
+		}
+		if (startcurrent == current)
+		{
+			SDL_SemPost(DMA_Lock);
+			return; //Back to our original cycle? We don't have anything to transfer!
+		}
 		//goto nextcycle; //Next cycle!!
+		SDL_SemPost(DMA_Lock);
 }
 
 void initDMA()

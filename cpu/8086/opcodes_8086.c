@@ -1133,7 +1133,6 @@ void CPU8086_internal_AAD(byte data)
 	REG_AX = ((REG_AH*data)+REG_AL);    //AAD
 	REG_AH = 0;
 	flag_szp16((REG_AH*data)+REG_AL); //Update the flags!
-	REG_AH = 0;
 	FLAG_SF = 0;
 	CPUPROT2
 }

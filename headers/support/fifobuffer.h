@@ -1,12 +1,15 @@
 #ifndef VARBUFFER_H
 #define VARBUFFER_H
 
+#include "headers/types.h" //Basic type support!
+
 typedef struct
 {
 byte *buffer; //The buffer itself!
 uint_32 size; //The size of the buffer!
 uint_32 readpos; //The position to read!
 uint_32 writepos; //The position to write!
+SDL_sem *lock; //Our lock for single access!
 } FIFOBUFFER;
 
 /*
