@@ -668,14 +668,17 @@ void CPU_beforeexec()
 	switch (EMULATED_CPU)
 	{
 	case CPU_8086:
-		CPU.registers->FLAGS |= 0xF000; //High bits are stuck to 1!
-		break;
 	case CPU_80186:
+		CPU.registers->FLAGS |= 0xF000; //High bits are stuck to 1!
 		break;
 	case CPU_80286:
 		if (getcpumode() == CPU_MODE_REAL) //Real mode?
 		{
-			CPU.registers->FLAGS &= ~0xF000; //Always set the high flags in real mode only!
+			CPU.registers->FLAGS &= 0xFFF; //Always set the high flags in real mode only!
+		}
+		else //Protected mode?
+		{
+			CPU.registers->FLAGS &= 0x7FFF; //Bit 15 is always cleared!
 		}
 		break;
 	case CPU_80386:
