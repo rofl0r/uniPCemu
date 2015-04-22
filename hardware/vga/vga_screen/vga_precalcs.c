@@ -392,14 +392,14 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x17))) //Updated?
 		{
 			//This applies to the Frame buffer:
-			byte BWDModeShift=0;
+			byte BWDModeShift = 1; //Default: word mode!
 			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DW)
 			{
 				BWDModeShift = 2; //Shift by 2!
 			}
-			else if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode)
+			else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode)
 			{
-				BWDModeShift = 1; //Shift by 1 more!
+				BWDModeShift = 0; //Shift by 0! We're byte mode!
 			}
 			VGA->precalcs.BWDModeShift = BWDModeShift;
 
