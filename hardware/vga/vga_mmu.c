@@ -207,9 +207,9 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	if (getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.Chain4Enable) //Chain 4 mode?
 	{
 		calcplanes = realoffsettmp = offset; //Original offset to start with!
-		calcplanes &= 0x3; //Lower bits
+		calcplanes &= 0x3; //Lower 2 bits determine the plane!
 		*planes = (1 << calcplanes); //Give the planes to write to!
-		realoffsettmp &= 0xFFFB; //Rest of bits, multiples of 4 won't get written!
+		realoffsettmp &= 0xFFFC; //Rest of bits, multiples of 4 won't get written! Used to be 0xFFFB, but should be multiples of 4 ignored, so clear bit 2, changed to 0xFFFC (multiple addresses of 4 with plane bits ignored) to make it correctly linear with 256 color modes (dword mode)!
 		*realoffset = realoffsettmp; //Give the offset!
 		return; //Done!
 	}
