@@ -93,27 +93,7 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte mode) //Read fro
 	fulloffset2 <<= 2; //We cylce through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
 
-	if ((mode & 84) == 0x84) //Special sequencer panning?
-	{
-		fulloffset2 += ((SEQ_DATA *)VGA->Sequencer)->bytepanning; //Apply byte panning at the memory level!
-	}
-
-	if (mode & 2)
-	{
-		if (mode & 0x80) //Apply DW mode only during rendering!
-		{
-			if (VGA->precalcs.BWDModeShift == 2) //DW mode enabled?
-			{
-				fulloffset2 <<= 2; //Apply DW mode!
-			}
-		}
-		else
-		{
-			fulloffset2 <<= VGA->precalcs.BWDModeShift; //Apply B/W/DW mode from CPU!
-		}
-	}
-
-	if (VGA->VRAM_size == 0x40000) fulloffset2 &= 0x3FFFF; //Wrap arround memory!
+	fulloffset2 &= 0x3FFFF; //Wrap arround memory! Maximum of 256K memory!
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
@@ -129,16 +109,12 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value, byte mod
 	
 	plane &= 3; //Only 4 planes are available!
 
-	if (mode&1) offset = addresswrap(VGA,offset); //Apply address wrap?
-
 	register uint_32 fulloffset2;
 	fulloffset2 = offset; //Load the offset!
 	fulloffset2 <<= 2; //We cycle through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
 
-	if (mode&2) fulloffset2 <<= VGA->precalcs.BWDModeShift; //Apply B/W/DW mode from CPU!
-
-	if (VGA->VRAM_size == 0x40000) fulloffset2 &= 0x3FFFF; //Wrap arround memory!
+	fulloffset2 &= 0x3FFFF; //Wrap arround memory!
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{

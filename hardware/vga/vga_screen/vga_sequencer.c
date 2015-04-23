@@ -66,7 +66,6 @@ OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel)
 	{
 		register uint_32 old;
 		uint_32 *screenpixel = &EMU_BUFFER(VGA->CRTC.x,VGA->CRTC.y); //Pointer to our pixel!
-		if (!memprotect(screenpixel, sizeof(screenpixel), NULL)) return; //Invalid pixel?
 		old = *screenpixel; //Read old!
 		old ^= pixel; //Check for differences!
 		if (old) //Changed anything?
@@ -181,6 +180,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 
 	charystart = getVRAMScanlineStart(VGA, row); //Calculate row start!
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
+	charystart += Sequencer->bytepanning; //Apply byte panning!
 	Sequencer->charystart = charystart; //What row to start with our pixels!
 
 	//Some attribute controller special 8-bit mode support!
