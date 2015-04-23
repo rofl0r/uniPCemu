@@ -179,6 +179,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 
 	//Some attribute controller special 8-bit mode support!
 	Sequencer->active_pixelrate = 0; //Reset pixel load rate status for odd sized screens.
+	Sequencer->active_nibblerate = 0; //Reset nibble load rate status for odd sized screens.
 
 	VGA_loadcharacterplanes(VGA, Sequencer, 0); //Initialise the character planes for usage!
 }
@@ -291,31 +292,47 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	static VGA_AttributeInfo attributeinfo; //Our collected attribute info!
 	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
 	static VGA_Sequencer_Mode activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
+	byte nibbled=0; //Did we process two nibbles instead of one nibble?
 	word tempx = Sequencer->tempx; //Load tempx!
 
 	othernibble: //Retrieve the current DAC index!
 	Sequencer->activex = tempx++; //Active X!
 	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
-	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer)) goto othernibble; //Apply the attribute through the attribute controller!
+	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer))
+	{
+		nibbled = 1; //We're processing 2 nibbles instead of 1 nibble!
+		goto othernibble; //Apply the attribute through the attribute controller!
+	}
 	//activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display! Blanking doesn't work yet?
 	VGA_ActiveDisplay_noblanking(VGA, Sequencer, &attributeinfo); //Always active display!
 
 	if (++Sequencer->active_pixelrate > VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) //To write back the pixel clock every or every other pixel?
 	{
 		Sequencer->active_pixelrate = 0; //Reset for the new block!
-		if (VGA->precalcs.graphicsmode) //Graphics mode?
+		if (nibbled) //We've nibbled?
 		{
-			loadcharacterplanes = ((tempx & 7)==0); //Load the character planes?
+			if (++Sequencer->active_nibblerate>1) //Nibble expired?
+			{
+				Sequencer->active_nibblerate = 0; //Reset for the new block!
+				nibbled = 0; //We're done with the pixel!
+			}
 		}
-		else //Text mode?
+		if (!nibbled) //Finished with the nibble&pixel? We're ready to check for the next one!
 		{
-			loadcharacterplanes = (VGA->CRTC.charcolstatus[(Sequencer->tempx<<1)] != VGA->CRTC.charcolstatus[(tempx<<1)]); //Load the character planes?
+			if (VGA->precalcs.graphicsmode) //Graphics mode?
+			{
+				loadcharacterplanes = ((tempx & 7)==0); //Load the character planes?
+			}
+			else //Text mode?
+			{
+				loadcharacterplanes = (VGA->CRTC.charcolstatus[(Sequencer->tempx<<1)] != VGA->CRTC.charcolstatus[(tempx<<1)]); //Load the character planes?
+			}
+			if (loadcharacterplanes) //First of a new block? Reload our pixel buffer!
+			{
+				VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
+			}
+			Sequencer->tempx = tempx; //Write back tempx!
 		}
-		if (loadcharacterplanes) //First of a new block? Reload our pixel buffer!
-		{
-			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
-		}
-		Sequencer->tempx = tempx; //Write back tempx!
 	}
 }
 //Overscan handler!
