@@ -94,7 +94,7 @@ OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanl
 	reset_startmap = 0; //Default: don't reset!
 	
 	allow_pixelshiftcount = 1; //Allow by default!
-	if (Sequencer->Scanline>=VGA->precalcs.topwindowstart) //Top window reached?
+	if (Sequencer->Scanline>VGA->precalcs.topwindowstart) //Top window reached?
 	{
 		reset_startmap = 1; //Enforce start of map to 0 for the top window!
 		if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PixelPanningMode)
