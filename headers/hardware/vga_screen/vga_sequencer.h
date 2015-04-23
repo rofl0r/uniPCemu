@@ -38,7 +38,8 @@ typedef struct
 	word x; //Current pixel on the scanline!
 	word tempx; //Current X (Sequencer)!
 	word activex; //Real current X to process (Sequencer)!
-	byte active_pixelrate; //Current pixel rate position (0-4)!
+	byte active_pixelrate; //Current pixel rate position (0-1)!
+	byte active_nibblerate; //Current nibble rate position (0-1)!
 	//Newline recalculation
 	byte newline_ready; //We don't have a newline, so we don't need recalcs?
 	uint_32 startmap; //Where our map starts!
