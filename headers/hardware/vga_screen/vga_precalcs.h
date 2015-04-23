@@ -76,6 +76,7 @@ typedef struct //Contains the precalculated values!
 	word xres;
 	word yres;
 	
+	byte DotClockSpeed; //0 for 1:1 mapping of pixels, 1 for 1:2 mapping etc. (every pixel takes up 2 pixels on-screen), 3 for 1:4 mapping.
 	byte characterclockshift; //Division 0,1 or 2 for the horizontal character clock!
 	byte BWDModeShift; //Memory mode shift for the horizontal character clock in B/W/DW modes!
 
