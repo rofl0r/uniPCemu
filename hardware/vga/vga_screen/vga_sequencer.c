@@ -164,6 +164,11 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	register word row;
 	register uint_32 charystart;
 	row = Sequencer->Scanline; //Default: our normal scanline!
+	if (row>VGA->precalcs.topwindowstart) //Splitscreen operations?
+	{
+		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
+		--row; //We start at row #0, not row #1(1 after topwindowstart).
+	}
 	row >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Apply scanline division!
 	row >>= VGA->precalcs.scandoubling; //Apply Scan Doubling here: we take effect on content!
 	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
