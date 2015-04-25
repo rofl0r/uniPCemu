@@ -66,14 +66,14 @@ void loadpackedshiftmode() //Packed shift mode!
 	pixelbuffer[5] >>= 2;
 	pixelbuffer[7] <<= 2; //Shift to the high part!
 
-	pixelbuffer[0] &= 0xFC;
-	pixelbuffer[1] &= 0xFC;
-	pixelbuffer[2] &= 0xFC;
-	pixelbuffer[3] &= 0xFC;
-	pixelbuffer[4] &= 0xFC;
-	pixelbuffer[5] &= 0xFC;
-	pixelbuffer[6] &= 0xFC;
-	pixelbuffer[7] &= 0xFC; //Clear bits 0-1 and 4+!
+	pixelbuffer[0] &= 0xC;
+	pixelbuffer[1] &= 0xC;
+	pixelbuffer[2] &= 0xC;
+	pixelbuffer[3] &= 0xC;
+	pixelbuffer[4] &= 0xC;
+	pixelbuffer[5] &= 0xC;
+	pixelbuffer[6] &= 0xC;
+	pixelbuffer[7] &= 0xC; //Clear bits 0-1 and 4+!
 
 	//First byte!
 	tempbuffer = temp = planesbuffer[0]; //Load low plane!
@@ -98,7 +98,7 @@ void loadpackedshiftmode() //Packed shift mode!
 	temp >>= 2; //Shift to the next data!
 	tempbuffer = temp;
 	tempbuffer &= 3;
-	pixelbuffer[5] |= tempbuffer;
+	pixelbuffer[6] |= tempbuffer;
 	temp >>= 2; //Shift to the next data!
 	tempbuffer = temp;
 	tempbuffer &= 3;
@@ -106,7 +106,6 @@ void loadpackedshiftmode() //Packed shift mode!
 	temp >>= 2; //Shift to the next data!
 	temp &= 3;
 	pixelbuffer[4] |= temp;
-	//Now all 8 pixels are loaded!
 }
 
 /*

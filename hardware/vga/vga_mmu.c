@@ -243,7 +243,22 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		calcplanes = 0; //Use plane 0 always!
 	}
 	*realoffset = realoffsettmp; //Give the calculated offset!
-	*planes = (0x5 << calcplanes); //Convert to used plane (0&2 or 1&3)!
+	if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect == 1) //Memory map mode 1?
+	{
+		//Determine by Page Select!
+		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage) //Lower page?
+		{
+			*planes = (0x1 << calcplanes); //Convert to used plane 0/1!
+		}
+		else //Upper page?
+		{
+			*planes = (0x4 << calcplanes); //Convert to used plane 2/3!
+		}
+	}
+	else //Default behaviour?
+	{
+		*planes = (0x5 << calcplanes); //Convert to used plane (0&2 or 1&3)!
+	}
 }
 
 byte planes; //What planes to affect!
