@@ -531,7 +531,7 @@ typedef struct PACKED
 		struct
 		{
 			byte Reserved0_1 : 4;
-			byte Always1 : 1;
+			byte SwitchSense : 1;
 			byte Reserved0_2 : 2;
 			byte CRTInterruptPending: 1; //0: Not pending, 1: Pending.
 		};

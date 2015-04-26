@@ -272,6 +272,7 @@ byte PORT_readVGA(word port) //Read from a port/register!
 		result = getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEX]; //Read from current index!
 		break;
 	case 0x3C2: //Read: Input Status #0 Register		DATA
+		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER.SwitchSense = 1; //Always 1!
 		result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER.DATA; //Give the register!
 		break;
 	case 0x3C3: //Video subsystem enable?
