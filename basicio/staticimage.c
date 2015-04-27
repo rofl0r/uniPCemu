@@ -98,32 +98,44 @@ int staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a
 
 void generateStaticImage(char *filename, FILEPOS size, int percentagex, int percentagey) //Generate a static image!
 {
+	FILEPOS sizeleft = size; //Init size left!
+	byte buffer[4096]; //Buffer!
+	double percentage;
 	FILE *f;
+	int_64 byteswritten, totalbyteswritten = 0;
 	f = fopen64(filename,"wb"); //Generate file!
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
-		EMU_gotoxy(percentagex,percentagey); //Goto x,y coordinates!
-		GPU_EMU_printscreen(-1,-1,"%2.1f%%",0.0f); //Show first percentage!
+		GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",0.0f); //Show first percentage!
 	}
-	FILEPOS sizeleft = size; //Init size left!
 
-	byte buffer[4096]; //Buffer!
-	memset(buffer,0,sizeof(buffer)); //Clear!
-	
+	memset(buffer, 0, sizeof(buffer)); //Clear!
+
 	while (sizeleft) //Left?
 	{
-		sizeleft -= fwrite64(&buffer,1,sizeof(buffer),f); //We've processed some!
+		byteswritten = fwrite64(&buffer,1,sizeof(buffer),f); //We've processed some!
+		if (byteswritten != sizeof(buffer)) //An error occurred!
+		{
+			fclose64(f); //Close the file!
+			delete_file(".",filename); //Remove the file!
+			return; //Abort!
+		}
 		if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 		{
-			EMU_gotoxy(percentagex,percentagey); //Goto x,y coordinates!
-			GPU_EMU_printscreen(-1,-1,"%2.1f",((size-sizeleft)/size)*100.0f); //Show percentage!
-			delay(1); //Allow update of the screen, if needed!
+			sizeleft -= byteswritten; //Less left to write!
+			totalbyteswritten += byteswritten; //Add to the ammount processed!
+			percentage = totalbyteswritten;
+			percentage /= (double)size;
+			percentage *= 100.0f;
+			GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",(float)percentage); //Show percentage!
+			#ifdef __PSP__
+				delay(1); //Allow update of the screen, if needed!
+			#endif
 		}
 	}
 	fclose64(f);
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
-		EMU_gotoxy(percentagex,percentagey); //Goto x,y coordinates!
-		GPU_EMU_printscreen(-1,-1,"%2.1f%%",100.0f); //Show percentage!
+		GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",100.0f); //Show percentage!
 	}
 }

@@ -66,16 +66,16 @@ void EMU_gotoxy(word x, word y)
 	CPU.registers->DH = y;
 	BIOS_int10(); //Call interrupt!
 	*/
-	if (BIOS_Surface) GPU_textgotoxy(BIOS_Surface,x,y); //Goto xy!
+	if (BIOS_Surface)
+	{
+		GPU_textgotoxy(BIOS_Surface, x, y); //Goto xy!
+		emu_x = x;
+		emu_y = y; //Update our coordinates!
+	}
 }
 
 void EMU_getxy(word *x, word *y)
 {
-	/*CPU.registers->AH = 0x03; //Get cursor position!
-	BIOS_int10(); //Call interrupt!
-	*x = CPU.registers->DL;
-	*y = CPU.registers->DH; //Load position!
-	*/
 	*x = emu_x;
 	*y = emu_y;
 }
@@ -87,6 +87,8 @@ void GPU_EMU_printscreen(sword x, sword y, char *text, ...) //Direct text output
 	va_start (args, text); //Start list!
 	vsprintf (buffer, text, args); //Compile list!
 	
+	GPU_text_locksurface(BIOS_Surface); //Lock the surface!
+
 	if ((x==-1) && (y==-1)) //Dynamic coordinates?
 	{
 		EMU_gotoxy(emu_x,emu_y); //Continue at emu coordinates!
@@ -104,4 +106,5 @@ void GPU_EMU_printscreen(sword x, sword y, char *text, ...) //Direct text output
 		emu_y = BIOS_Surface->y; //Update coordinates for our continuing!
 	}
 	va_end (args); //Destroy list!
+	GPU_text_releasesurface(BIOS_Surface); //Lock the surface!
 }

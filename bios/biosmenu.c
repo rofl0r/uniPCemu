@@ -1559,7 +1559,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	}
 }
 
-uint_32 ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve the size, or 0 for none!
+FILEPOS ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve the size, or 0 for none!
 {
 	int key = 0;
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
@@ -1567,18 +1567,45 @@ uint_32 ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 	{
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
 	}
-	uint_32 result = 0; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
+	FILEPOS result = 0; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
+	FILEPOS oldvalue; //To check for high overflow!
 	for (;;) //Get input; break on error!
 	{
 		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
-		GPU_EMU_printscreen(x,y,"%08i MB %04i KB",(result/1024000),(result%1024000)/1024); //Show current size!
+		GPU_EMU_printscreen(x, y, "%08i MB %04i KB", (uint_32)(result/1024000), (uint_32)((result%1024000)/1024)); //Show current size!
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
-		if ((key & BUTTON_LEFT)>0)
+		//1GB steps!
+		if ((key & BUTTON_LTRIGGER)>0)
+		{
+			if (result == 0) {}
+			else
+			{
+				if (((int_64)(result - 1024000000)) <= 0)
+				{
+					result = 0;    //1GB steps!
+				}
+				else
+				{
+					result -= 1024000000;
+				}
+			}
+		}
+		else if ((key & BUTTON_RTRIGGER)>0)
+		{
+			oldvalue = result; //Save the old value!
+			result += 1024000000; //Add 1GB!
+			if (result < oldvalue) //We've overflown?
+			{
+				result = oldvalue; //Undo: we've overflown!
+			}
+		}
+		//1MB steps!
+		else if ((key & BUTTON_LEFT)>0)
 		{
 			if (result==0) { }
 			else
 			{
-				if (((int_32)(result-1024000))<=0)
+				if (((int_64)(result-1024000))<=0)
 				{
 					result = 0;    //1MB steps!
 				}
@@ -1590,14 +1617,20 @@ uint_32 ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 		}
 		else if ((key & BUTTON_RIGHT)>0)
 		{
+			oldvalue = result; //Save the old value!
 			result += 1024000; //Add 1MB!
+			if (result < oldvalue) //We've overflown?
+			{
+				result = oldvalue; //Undo: we've overflown!
+			}
 		}
-		else if ((key & BUTTON_UP)>0)
+		//4KB steps!
+		else if ((key & BUTTON_DOWN)>0)
 		{
 			if (result==0) { }
 			else
 			{
-				if (((int_32)(result-4096))<=0)
+				if (((int_64)(result - 4096)) <= 0)
 				{
 					result = 0;    //4KB steps!
 				}
@@ -1607,9 +1640,14 @@ uint_32 ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 				}
 			}
 		}
-		else if ((key & BUTTON_DOWN)>0)
+		else if ((key & BUTTON_UP)>0)
 		{
+			oldvalue = result; //Save the old value!
 			result += 4096; //Add 4KB!
+			if (result < oldvalue) //We've overflown?
+			{
+				result = oldvalue; //Undo: we've overflown!
+			}
 		}
 		else if ((key & BUTTON_CROSS)>0)
 		{
@@ -1631,57 +1669,164 @@ uint_32 ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 	return 0; //No size: cancel!
 }
 
+extern SDL_sem *keyboard_lock; //For keyboard input!
+extern int input_buffer_shift; //Ctrl-Shift-Alt Status for the pressed key!
+extern int input_buffer; //To contain the pressed key!
+
+byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
+{
+	delay(100000); //Wait a bit!
+	enableKeyboard(1); //Buffer input!
+	char input[256];
+	memset(&input, 0, sizeof(input)); //Init input to empty!
+	for (;;) //Main input loop!
+	{
+		delay(10000); //Wait a bit for input!
+		SDL_SemWait(keyboard_lock);
+		if (input_buffer_shift != -1) //Given input yet?
+		{
+			if (EMU_keyboard_handler_idtoname(input_buffer,&input[0])) //Valid key?
+			{
+				if (!strcmp(input, "enter") || !strcmp(input,"esc")) //Enter or Escape? We're finished!
+				{
+					disableKeyboard(); //Disable the keyboard!
+					SDL_SemPost(keyboard_lock); //We're done with input: release our lock!
+					EMU_gotoxy(x, y); //Goto position for info!
+					EMU_textcolor(BIOS_ATTR_TEXT);
+					GPU_EMU_printscreen(x, y, "%s", filename); //Show the filename!
+					EMU_textcolor(BIOS_ATTR_ACTIVE); //Active color!
+					GPU_EMU_printscreen(-1, -1, " "); //Clear cursor indicator!
+					return (!strcmp(input, "enter")); //Enter=Confirm, Esc=Cancel!
+				}
+				//We're a normal key hit?
+				else if (!strcmp(input, "bksp") || (!strcmp(input,"z") && (input_buffer_shift&SHIFTSTATUS_CTRL))) //Backspace OR CTRL-Z?
+				{
+					if (strlen(filename)) //Gotten length?
+					{
+						filename[strlen(filename) - 1] = '\0'; //Make us one shorter!
+					}
+				}
+				else if (!strcmp(input, "space")) //Space?
+				{
+					if (strlen(filename) < maxlength) //Not max?
+					{
+						strcat(filename, " "); //Add a space!
+					}
+				}
+				else if (strlen(input) == 1) //Single character?
+				{
+					if ((input[0] != '`') &&
+						(input[0] != '-') &&
+						(input[0] != '=') &&
+						(input[0] != '\\') &&
+						(input[0] != '[') &&
+						(input[0] != ']') &&
+						(input[0] != ';') &&
+						(strcmp(input,"'")!=0) &&
+						(input[0] != ',') &&
+						(input[0] != '/')) //Not an invalid character?
+					{
+						if (strlen(filename) < maxlength) //Not max?
+						{
+							if (input_buffer_shift&SHIFTSTATUS_SHIFT) //Shift pressed?
+							{
+								if ((input[0] >= 'a') && (input[0] <= 'z')) //Able to use shift on this key?
+								{
+									input[0] += ((int)'A' - (int)'a'); //Convert to uppercase!
+									strcat(filename, input); //Add the input to the filename!
+								}
+								//Invalid uppercase is ignored!
+							}
+							else //Non-shift valid character?
+							{
+								strcat(filename, input); //Add the input to the filename!
+							}
+						}
+					}
+				}
+				EMU_gotoxy(x, y); //Goto position for info!
+				EMU_textcolor(BIOS_ATTR_TEXT);
+				GPU_EMU_printscreen(x, y, "%s", filename); //Show the filename!
+				EMU_textcolor(BIOS_ATTR_ACTIVE); //Active color!
+				GPU_EMU_printscreen(-1, -1, "_"); //Cursor indicator!
+				EMU_textcolor(BIOS_ATTR_TEXT); //Back to text!
+				GPU_EMU_printscreen(-1, -1, " "); //Clear output after!
+				input_buffer_shift = -1; //Reset!
+				input_buffer = -1; //Nothing input!
+				delay(100000); //Wait a bit!
+			}
+		}
+		SDL_SemPost(keyboard_lock);
+	}
+}
+
 void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 {
-	if (0) { //Disabled for now: this will use the OSK!
 	BIOS_Title("Generate Static HDD Image");
 	char filename[256]; //Filename container!
 	bzero(filename,sizeof(filename)); //Init!
 	uint_32 size = 0;
 	BIOSClearScreen(); //Clear the screen!
 	BIOS_Title("Generate Dynamic HDD Image"); //Full clear!
-	EMU_textcolor(BIOS_ATTR_TEXT);
-	if (strcmp(filename,"")!=0) //Got input?
+	EMU_gotoxy(0, 4); //Goto position for info!
+	GPU_EMU_printscreen(0, 4, "Name: "); //Show the filename!
+	if (BIOS_InputText(6, 4, &filename[0], 255-4)) //Input text confirmed?
 	{
-		EMU_gotoxy(0,4); //Goto position for info!
-		GPU_EMU_printscreen(0,4,"Filename: %s",filename); //Show the filename!
-		EMU_gotoxy(0,5); //Next row!
-		GPU_EMU_printscreen(0,5,"Image size: "); //Show image size selector!!
-		size = ImageGenerator_GetImageSize(12,5,0); //Get the size!
-		if (size!=0) //Got size?
+		if (strcmp(filename, "") != 0) //Got input?
 		{
-			EMU_gotoxy(0,6); //Next row!
-			GPU_EMU_printscreen(0,6,"Generating image: "); //Start of percentage!
-			generateStaticImage(filename, size, 18, 6); //Generate a static image!
+			if (strlen(filename) <= (255 - 4)) //Not too long?
+			{
+				strcat(filename, ".img"); //Add the extension!
+				EMU_gotoxy(0, 4); //Goto position for info!
+				GPU_EMU_printscreen(0, 4, "Filename: %s", filename); //Show the filename!
+				EMU_gotoxy(0, 5); //Next row!
+				GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
+				size = ImageGenerator_GetImageSize(12, 5, 0); //Get the size!
+				if (size != 0) //Got size?
+				{
+					GPU_EMU_printscreen(-1, -1, "%08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
+					EMU_gotoxy(0, 6); //Next row!
+					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+					generateStaticImage(filename, size, 18, 6); //Generate a static image!
+				}
+			}
+			//If we're too long, ignore it!
 		}
-	}
 	}
 	BIOS_Menu = 1; //Return to Disk Menu!
 }
 void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 {
-	if (0) { //Disabled for now: 
 	BIOS_Title("Generate Dynamic HDD Image");
 	char filename[256]; //Filename container!
 	bzero(filename,sizeof(filename)); //Init!
 	uint_32 size = 0;
-	BIOS_Title("Generate Dynamic HDD Image"); //Full clear!
-	EMU_textcolor(BIOS_ATTR_TEXT);
-	if (strcmp(filename,"")!=0) //Got input?
+	EMU_gotoxy(0, 4); //Goto position for info!
+	GPU_EMU_printscreen(0, 4, "Name: "); //Show the filename!
+	if (BIOS_InputText(6, 4, &filename[0], 255-7)) //Input text confirmed?
 	{
-		EMU_gotoxy(0,4); //Goto position for info!
-		GPU_EMU_printscreen(0,4,"Filename: %s",filename); //Show the filename!
-		EMU_gotoxy(0,5); //Next row!
-		GPU_EMU_printscreen(0,5,"Image size: "); //Show image size selector!!
-		size = ImageGenerator_GetImageSize(12,5,1); //Get the size!
-		if (size!=0) //Got size?
+		if (strcmp(filename, "") != 0) //Got input?
 		{
-			EMU_gotoxy(0,6); //Next row!
-			GPU_EMU_printscreen(0,6,"Generating image: "); //Start of percentage!
-			uint_32 sizecreated;
-			sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
+			if (strlen(filename) <= (255 - 7)) //Not too long?
+			{
+				strcat(filename, ".sfdimg"); //Add the extension!
+				EMU_textcolor(BIOS_ATTR_TEXT);
+				EMU_gotoxy(0, 4); //Goto position for info!
+				GPU_EMU_printscreen(0, 4, "Filename: %s", filename); //Show the filename!
+				EMU_gotoxy(0, 5); //Next row!
+				GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
+				size = ImageGenerator_GetImageSize(12, 5, 1); //Get the size!
+				if (size != 0) //Got size?
+				{
+					GPU_EMU_printscreen(-1, -1, "%08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
+					EMU_gotoxy(0, 6); //Next row!
+					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+					uint_32 sizecreated;
+					sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
+				}
+			}
+			//If we're too long, ignore it!
 		}
-	}
 	}
 	BIOS_Menu = 1; //Return to Disk Menu!
 }
@@ -2613,11 +2758,6 @@ void BIOS_InitGamingModeButtonsText()
 	strcpy(menuoptions[advancedoptions], "Analog down: "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 14);
 }
-
-extern SDL_sem *keyboard_lock; //For keyboard input!
-extern int input_buffer_shift; //Ctrl-Shift-Alt Status for the pressed key!
-extern int input_buffer; //To contain the pressed key!
-
 
 void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 {
