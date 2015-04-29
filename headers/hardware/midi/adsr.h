@@ -3,7 +3,7 @@
 
 #include "headers/types.h" //Basic types!
 
-//All statuses for MIDI voices!
+//All statuses for an MIDI ADSR!
 #define MIDISTATUS_IDLE 0x00
 #define MIDISTATUS_DELAY 0x01
 #define MIDISTATUS_ATTACK 0x02
@@ -25,6 +25,6 @@ typedef struct
 	uint_64 play_counter; //Current counter position!
 } ADSR; //An ADSR's data!
 
-void ADSR_init(ADSR *adsr); //Initialise an ADSR!
-float ADSR_tick(ADSR *adsr); //Tick and ADSR!
+void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup); //Initialise an ADSR!
+float ADSR_tick(ADSR *adsr, byte sustain); //Tick an ADSR!
 #endif
