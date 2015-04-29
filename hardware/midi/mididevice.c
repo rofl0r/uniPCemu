@@ -401,6 +401,8 @@ handlerequest: //Handles an NOTE ON request!
 	//Now determine the volume envelope!
 	voice->CurrentVolumeEnvelope = 1.0f; //Default: nothing yet, so full volume, Give us full priority Volume-wise!
 	voice->CurrentModulationEnvelope = 0.0f; //Default: nothing tet, so no modulation!
+	
+	ADSR_init((float)voice->sample.dwSampleRate, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv);	//Initialise our Volume Envelope for use!
 
 	//Apply low pass filter!
 	voice->lowpassfilter_freq = 0.0f; //Default: no low pass filter!
