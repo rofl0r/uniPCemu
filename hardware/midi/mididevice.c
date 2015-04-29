@@ -963,7 +963,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Now produce the sound itself!
 	for (;numsamples--;) //Produce the samples!
 	{
-		voice->CurrentVolumeEnvelope = ADSR_tick(&voice->volumeEnvelope); //Apply Volume Envelope!
+		voice->CurrentVolumeEnvelope = ADSR_tick(&voice->volumeEnvelope,(voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80)); //Apply Volume Envelope!
 		MIDIDEVICE_getsample(ubuf++,voice); //Get the sample from the MIDI device!
 	}
 
