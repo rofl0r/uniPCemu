@@ -23,4 +23,6 @@ typedef struct
 	uint_64 play_counter; //Current counter position!
 } ADSR; //An ADSR's data!
 
+void ADSR_init(ADSR *adsr); //Initialise an ADSR!
+float ADSR_tick(ADSR *adsr); //Tick and ADSR!
 #endif
