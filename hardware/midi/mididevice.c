@@ -102,6 +102,11 @@ typedef struct
 	float last_sample; //Last retrieved sample!
 	float last_result; //Last result of the high pass filter!
 
+	ADSR VolumeEnvelope; //The volume envelope!
+	ADSR ModulationEnvelope; //The modulation envelope!
+	float CurrentVolumeEnvelope; //Current volume envelope!
+	float CurrentModulationEnvelope; //Current modulation envelope!
+
 	//Stuff for voice stealing
 	uint_64 starttime; //When have we started our voice?
 } MIDIDEVICE_VOICE;
@@ -185,10 +190,6 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice)
 	sword rootMIDITone; //Relative root MIDI tone!
 	uint_32 requestbit, preset, therequeston, notenumber, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
 	float cents, tonecents, lvolume, rvolume, panningtemp;
-
-	//Volume envelope information!
-	int_32 delaytime, attack, hold, decay, sustain, release; //All lengths!
-	float attackfactor = 0.0f, decayfactor = 0.0f, sustainfactor = 0.0f, releasefactor = 0.0f;
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
@@ -400,186 +401,7 @@ handlerequest: //Handles an NOTE ON request!
 	voice->rvolume = rvolume; //Right panning!
 
 	//Now determine the volume envelope!
-
-	//Delay
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, delayVolEnv, &applyigen))
-	{
-		delaytime = applyigen.genAmount.shAmount; //Apply!
-	}
-	else
-	{
-		delaytime = -12000; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, delayVolEnv, &applypgen)) //Preset set?
-	{
-		delaytime += applypgen.genAmount.shAmount; //Apply!
-	}
-
-	//Attack
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, attackVolEnv, &applyigen))
-	{
-		attack = applyigen.genAmount.shAmount; //Apply!
-	}
-	else
-	{
-		attack = -12000; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, attackVolEnv, &applypgen)) //Preset set?
-	{
-		attack = applypgen.genAmount.shAmount; //Apply!
-	}
-
-	//Hold
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, holdVolEnv, &applyigen))
-	{
-		hold = applyigen.genAmount.shAmount; //Apply!
-	}
-	else
-	{
-		hold = -12000; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, holdVolEnv, &applypgen)) //Preset set?
-	{
-		hold += applypgen.genAmount.shAmount; //Apply!
-	}
-
-	//Decay
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, decayVolEnv, &applyigen))
-	{
-		decay = applyigen.genAmount.shAmount; //Apply!
-	}
-	else
-	{
-		decay = -12000; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, decayVolEnv, &applypgen)) //Preset set?
-	{
-		decay += applypgen.genAmount.shAmount; //Apply!
-	}
-
-	//Sustain (dB)
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, sustainVolEnv, &applyigen))
-	{
-		sustain = applyigen.genAmount.shAmount; //Apply!
-	}
-	else
-	{
-		sustain = 0; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, sustainVolEnv, &applypgen)) //Preset set?
-	{
-		sustain += applypgen.genAmount.shAmount; //Apply!
-	}
-
-	//Release (disabled!)
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, releaseVolEnv, &applyigen))
-	{
-		release = applyigen.genAmount.shAmount; //Apply!
-	}
-	else
-	{
-		release = -12000; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, releaseVolEnv, &applypgen)) //Preset set?
-	{
-		release += applypgen.genAmount.shAmount; //Apply!
-	}
-
-	//Now, calculate the length of each interval.
-	if (cents2samplesfactor((double)delaytime) < 0.0002f) //0.0001 sec?
-	{
-		delaytime = 0; //No delay!
-	}
-	else
-	{
-		delaytime = voice->sample.dwSampleRate*cents2samplesfactor((double)delaytime); //Calculate the ammount of samples!
-	}
-	if (cents2samplesfactor((double)attack) < 0.0002f) //0.0001 sec?
-	{
-		attack = 0; //No attack!
-	}
-	else
-	{
-		attack = voice->sample.dwSampleRate*cents2samplesfactor((double)attack); //Calculate the ammount of samples!
-	}
-	if (cents2samplesfactor((double)hold) < 0.0002f) //0.0001 sec?
-	{
-		hold = 0; //No hold!
-	}
-	else
-	{
-		hold = voice->sample.dwSampleRate*cents2samplesfactor((double)hold); //Calculate the ammount of samples!
-	}
-	if (cents2samplesfactor((double)decay) < 0.0002f) //0.0001 sec?
-	{
-		decay = 0; //No decay!
-	}
-	else
-	{
-		decay = voice->sample.dwSampleRate*cents2samplesfactor((double)decay); //Calculate the ammount of samples!
-	}
-	sustainfactor = dB2factor((double)(1000 - sustain), 1000); //We're on a rate of 1000 cb!
-	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
-	if (cents2samplesfactor((double)release) < 0.0002f) //0.0001 sec?
-	{
-		release = 0; //No release!
-	}
-	else
-	{
-		release = voice->sample.dwSampleRate*cents2samplesfactor((double)release); //Calculate the ammount of samples!
-	}
-	//Now calculate the steps for the envelope!
-	//Delay does nothing!
-	//Attack!
-	if (attack) //Gotten attack?
-	{
-		attackfactor = 1.0f;
-		attackfactor /= attack; //Equal steps from 0 to 1.0f!
-		if (!attackfactor)
-		{
-			attack = 0; //No attack!
-		}
-	}
-	//Hold does nothing!
-	//Decay
-	if (decay) //Gotten decay?
-	{
-		decayfactor = 1.0f; //From full!
-		decayfactor -= sustainfactor; //We're going to sustain!
-		decayfactor /= decay; //Equal steps from 1.0f to sustain!
-		if (!decayfactor) //No decay?
-		{
-			decay = 0; //No decay!
-		}
-	}
-	//Sustain does nothing!
-	//Release
-	if (release)
-	{
-		releasefactor = sustainfactor; //From sustain!
-		releasefactor /= release; //Equal steps from sustain to 0!
-		if (!releasefactor) //No release?
-		{
-			release = 0; //No release!
-		}
-	}
-
-	//Apply ADSR to the voice!
-	voice->delaytime = delaytime; //Delay
-	voice->attack = attack; //Attack
-	voice->attackfactor = attackfactor;
-	voice->hold = hold; //Hold
-	voice->decay = decay; //Decay
-	voice->decayfactor = decayfactor;
-	voice->sustain = sustain; //Sustain
-	voice->sustainfactor = sustainfactor; //Sustain %
-	voice->release = release; //Release
-	voice->releasefactor = releasefactor;
-
-	//Finally calculate the actual values needed!
-	voice->attackend = voice->attack + voice->delaytime;
-	voice->holdend = voice->hold + voice->attack + voice->delaytime;
-	voice->decayend = voice->decay + voice->hold + voice->attack + voice->delaytime;
+	voice->CurrentVolumeEnvelope = 1.0f; //Default: nothing yet, so full volume, Give us full priority Volume-wise!
 
 	//Apply low pass filter!
 	voice->lowpassfilter_freq = 0.0f; //Default: no low pass filter!
@@ -718,7 +540,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 						else if (activevoices[voice].active == MIDISTATUS_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
 						if (activevoices[voice].channel->sustain) currentranking -= 1000; //Lower when sustained!
 						float volume;
-						volume = activevoices[voice].ADSREnvelope; //Load the ADSR volume!
+						volume = activevoices[voice].CurrentVolumeEnvelope; //Load the ADSR volume!
 						if (activevoices[voice].lvolume > activevoices[voice].rvolume) //More left volume?
 						{
 							volume *= activevoices[voice].lvolume; //Left volume!
@@ -1080,7 +902,7 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 
 		//First, apply filters and current envelope!
 		applyLowpassFilter(voice, &lchannel); //Low pass filter!
-		lchannel *= voice->ADSREnvelope; //Apply ADSR envelope!
+		lchannel *= voice->CurrentVolumeEnvelope; //Apply ADSR Volume envelope!
 		//Now the sample is ready for output into the actual final volume!
 
 		rchannel = lchannel; //Load into both channels!
@@ -1097,8 +919,6 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 		sample->l = sample->r = 0; //No sample to be found!
 	}
 }
-
-typedef void (*MIDI_ADSR)(MIDIDEVICE_VOICE *voice); //A handler for ADSR!
 
 byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata) //Sound output renderer!
 {
@@ -1146,7 +966,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Now produce the sound itself!
 	for (;numsamples--;) //Produce the samples!
 	{
-		ADSR[voice->active](voice); //Apply ADSR!
+		voice->CurrentVolumeEnvelope = ADSR_tick(&voice->volumeEnvelope); //Apply Volume Envelope!
 		MIDIDEVICE_getsample(ubuf++,voice); //Get the sample from the MIDI device!
 	}
 
