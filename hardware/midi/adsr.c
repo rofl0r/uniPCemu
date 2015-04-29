@@ -299,17 +299,21 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	adsr->attackend = adsr->attack + adsr->delaytime;
 	adsr->holdend = adsr->hold + adsr->attack + adsr->delaytime;
 	adsr->decayend = adsr->decay + adsr->hold + adsr->attack + adsr->delaytime;
+	adsr->active = MIDISTATUS_DELAY; //We're starting with a delay!
+	adsr->play_counter = 0; //Initialise our counter!
 }
+
+typedef void (*MIDI_ADSR)(ADSR *adsr, byte sustaining); //ADSR event handlers!
 
 float ADSR_tick(ADSR *adsr, byte sustaining) //Tick an ADSR!
 {
-	static MIDI_ADSR ADSR[7] = {
+	static MIDI_ADSR ADSR_EXEC[7] = {
 		ADSR_idle, ADSR_delay, //Still quiet!
 		ADSR_attack, ADSR_hold, ADSR_decay, //Start
 		ADSR_sustain, //Holding/sustain
 		ADSR_release //Release
 	}; //ADSR states!
-	ADSR[adsr->active](adsr,sustaining); //Execute the current ADSR!
+	ADSR_EXEC[adsr->active](adsr,sustaining); //Execute the current ADSR!
 	++adsr->play_counter; //Next position to calculate!
 	return adsr->ADSREnvelope; //Give the current envelope!
 }
