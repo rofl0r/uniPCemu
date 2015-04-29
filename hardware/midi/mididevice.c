@@ -70,8 +70,6 @@ struct
 
 typedef struct
 {
-	byte active; //Are we active?
-
 	uint_32 status_counter; //Counter used within this status!
 	uint_32 play_counter; //Current play position within the soundfont!
 
@@ -402,6 +400,7 @@ handlerequest: //Handles an NOTE ON request!
 
 	//Now determine the volume envelope!
 	voice->CurrentVolumeEnvelope = 1.0f; //Default: nothing yet, so full volume, Give us full priority Volume-wise!
+	voice->CurrentModulationEnvelope = 0.0f; //Default: nothing tet, so no modulation!
 
 	//Apply low pass filter!
 	voice->lowpassfilter_freq = 0.0f; //Default: no low pass filter!
@@ -434,7 +433,6 @@ handlerequest: //Handles an NOTE ON request!
 	setSampleRate(&MIDIDEVICE_renderer, voice, voice->sample.dwSampleRate); //Use this new samplerate!
 	channel->playing[currenton] |= requestbit; //Playing flag!
 	voice->starttime = starttime++; //Take a new start time!
-	voice->active = MIDISTATUS_DELAY; //We're an active voice!
 	availablevoices &= ~voice->availablevoicebit; //Set us busy!
 	return 0; //Run: we're active!
 }
@@ -443,7 +441,6 @@ handlerequest: //Handles an NOTE ON request!
 
 OPTINLINE byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
 {
-	//return (selectedchannel==channel); //Ignore Omni&Poly/Mono modes!
 	if (!(MIDIDEVICE.channels[channel].mode&MIDIDEVICE_OMNI)) //No Omni mode?
 	{
 		if (channel!=selectedchannel) //Different channel selected?
@@ -532,12 +529,12 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 			{
 				if (MIDIDEVICE_newvoice(&activevoices[voice])) //Failed to allocate?
 				{
-					if (activevoices[voice].active) //Are we active?
+					if (activevoices[voice].VolumeEnvelope.active) //Are we active?
 					{
 						//Create ranking by scoring the voice!
 						currentranking = 0; //Start with no ranking!
 						if (activevoices[voice].channel == &MIDIDEVICE.channels[9]) currentranking += 4000; //Drum channel?
-						else if (activevoices[voice].active == MIDISTATUS_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
+						else if (activevoices[voice].VolumeEnvelope.active == MIDISTATUS_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
 						if (activevoices[voice].channel->sustain) currentranking -= 1000; //Lower when sustained!
 						float volume;
 						volume = activevoices[voice].CurrentVolumeEnvelope; //Load the ADSR volume!
@@ -580,7 +577,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 				//Perform voice stealing using voicetosteal, if available!
 				if (voicetosteal != -1) //Something to steal?
 				{
-					activevoices[voicetosteal].active = 0; //Make inactive!
+					activevoices[voicetosteal].VolumeEnvelope.active = 0; //Make inactive!
 					MIDIDEVICE_newvoice(&activevoices[voicetosteal]); //Steal the selected voice!
 				}
 				else
@@ -859,7 +856,7 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 	
 	//First: apply looping! We don't apply [bit 1=0] (Loop infinite until finished), because we have no ADSR envelope yet!
 	loopflags = voice->currentloopflags;
-	if (voice->active) //Active voice?
+	if (voice->VolumeEnvelope.active) //Active voice?
 	{
 		if (loopflags & 1) //Currently looping and active?
 		{
@@ -889,7 +886,7 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 
 	//Next, apply finish!
 	loopflags = (samplepos >= voice->endaddressoffset); //Expired?
-	loopflags |= !voice->active; //Inactive?
+	loopflags |= !voice->VolumeEnvelope.active; //Inactive?
 	if (loopflags) //Sound is finished?
 	{
 		sample->l = sample->r = 0; //No sample!
@@ -942,7 +939,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	ticksholder_AVG(&ticks); //Enable averaging!
 	#endif
 
-	if (!voice->active) //Inactive voice?
+	if (!voice->VolumeEnvelope.active) //Inactive voice?
 	{
 		return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
 	}
@@ -974,7 +971,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	stopHiresCounting("MIDIDEV","MIDIRenderer",&ticks); //Log our active counting!
 	#endif
 
-	if (!voice->active) //Inactive voice?
+	if (!voice->VolumeEnvelope.active) //Inactive voice?
 	{
 		//Get our data concerning the release!
 		availablevoices |= voice->availablevoicebit; //We're available again!
