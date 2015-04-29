@@ -74,6 +74,7 @@
     <ClCompile Include="..\..\hardware\dma.c" />
     <ClCompile Include="..\..\hardware\floppy.c" />
     <ClCompile Include="..\..\hardware\ide.c" />
+    <ClCompile Include="..\..\hardware\midi\adsr.c" />
     <ClCompile Include="..\..\hardware\midi\midi.c" />
     <ClCompile Include="..\..\hardware\midi\mididevice.c" />
     <ClCompile Include="..\..\hardware\midi\mpu.c" />
@@ -196,6 +197,7 @@
     <ClInclude Include="..\..\headers\hardware\adlib.h" />
     <ClInclude Include="..\..\headers\hardware\cmos.h" />
     <ClInclude Include="..\..\headers\hardware\floppy.h" />
+    <ClInclude Include="..\..\headers\hardware\midi\adsr.h" />
     <ClInclude Include="..\..\headers\hardware\midi\midi.h" />
     <ClInclude Include="..\..\headers\hardware\midi\mididevice.h" />
     <ClInclude Include="..\..\headers\hardware\pcspeaker.h" />

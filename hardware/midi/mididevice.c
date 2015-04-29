@@ -5,6 +5,7 @@
 #include "headers/emu/sound.h" //Sound support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //High resolution timer support!
+#include "headers/hardware/midi/adsr.h" //ADSR support!
 
 //Are we disabled?
 //#define __HW_DISABLED
@@ -14,15 +15,6 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 #define __MIDI_NUMVOICES 64
 //How many samples to buffer at once! 42 according to MIDI specs! Set to 84 to work!
 #define __MIDI_SAMPLES 1024
-
-//All statuses for MIDI voices!
-#define MIDISTATUS_IDLE 0x00
-#define MIDISTATUS_DELAY 0x01
-#define MIDISTATUS_ATTACK 0x02
-#define MIDISTATUS_HOLD 0x03
-#define MIDISTATUS_DECAY 0x04
-#define MIDISTATUS_SUSTAIN 0x05
-#define MIDISTATUS_RELEASE 0x06
 
 //To log MIDI commands?
 #define MIDI_LOG
@@ -101,13 +93,6 @@ typedef struct
 	byte currentloopflags; //What loopflags are active?
 	byte requestnumber; //Number of the request block!
 	uint_32 requestbit; //The bit used in the request block!
-
-	//ADSR
-	int_32 delaytime, attack, hold, decay, sustain, release, releasestart; //All lengths!
-	float attackfactor, decayfactor, sustainfactor, releasefactor;
-	float ADSREnvelope; //Current ADSR envelope status!
-
-	uint_32 attackend, holdend, decayend; //End position of each of the phases, precalculated!
 
 	uint_64 availablevoicebit; //Our available voice's bit!
 
@@ -1113,96 +1098,6 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 	}
 }
 
-void MIDIDEVICE_release(MIDIDEVICE_VOICE *voice)
-{
-	if (voice->release) //Gotten release?
-	{
-		voice->ADSREnvelope -= voice->releasefactor; //Apply factor!
-		if (voice->ADSREnvelope>0.0f) return; //Not quiet yet?
-	}
-	voice->ADSREnvelope = 0.0f; //Nothing to sound!
-	voice->active = MIDISTATUS_IDLE; //Return to IDLE!
-}
-
-void MIDIDEVICE_sustain(MIDIDEVICE_VOICE *voice)
-{
-	/*if (voice->sustain) //Gotten sustain?
-	{*/
-		if ((voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80)) //Disable our voice when not sustaining anymore!
-		{
-			return; //Sustaining!
-		}
-	//}
-	//Sustain expired?
-	voice->active = MIDISTATUS_RELEASE; //Check next step!
-	voice->releasestart = voice->play_counter; //When we start to release!
-	MIDIDEVICE_release(voice); //Passthrough!
-}
-
-void MIDIDEVICE_decay(MIDIDEVICE_VOICE *voice)
-{
-	if (voice->decay) //Gotten decay?
-	{
-		if (voice->decayend > voice->play_counter) //Decay busy?
-		{
-			voice->ADSREnvelope -= voice->decayfactor; //Apply factor!
-			return; //Hold!
-		}
-	}
-	//Decay expired?
-	voice->active = MIDISTATUS_SUSTAIN; //Check next step!
-	voice->ADSREnvelope = voice->sustainfactor; //Apply sustain factor!
-	MIDIDEVICE_sustain(voice); //Passthrough!
-}
-
-void MIDIDEVICE_hold(MIDIDEVICE_VOICE *voice)
-{
-	if (voice->hold) //Gotten hold?
-	{
-		if (voice->holdend > voice->play_counter) //Hold busy?
-		{
-			return; //Hold!
-		}
-	}
-	//Hold expired?
-	voice->active = MIDISTATUS_DECAY; //Check next step!
-	MIDIDEVICE_decay(voice); //Passthrough!
-}
-
-void MIDIDEVICE_attack(MIDIDEVICE_VOICE *voice)
-{
-	if (voice->attack) //Gotten attack?
-	{
-		if (voice->attackend > voice->play_counter) //Attack busy?
-		{
-			voice->ADSREnvelope += voice->attackfactor; //Apply factor!
-			return;
-		}
-	}
-	//Attack expired?
-	voice->ADSREnvelope = 1.0f; //Make sure we're at 100%
-	voice->active = MIDISTATUS_HOLD; //Check next step!
-	MIDIDEVICE_hold(voice); //Passthrough!
-}
-
-void MIDIDEVICE_delay(MIDIDEVICE_VOICE *voice)
-{
-	if (voice->delaytime) //Gotten delay?
-	{
-		if (voice->delaytime > voice->play_counter) //Delay busy?
-		{
-			return; //Normal delay!
-		}
-	}
-	voice->active = MIDISTATUS_ATTACK; //Check next step!
-	MIDIDEVICE_attack(voice); //Passthrough!
-}
-
-void MIDIDEVICE_idle(MIDIDEVICE_VOICE *voice)
-{
-	//Idle does nothing!
-}
-
 typedef void (*MIDI_ADSR)(MIDIDEVICE_VOICE *voice); //A handler for ADSR!
 
 byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata) //Sound output renderer!
@@ -1211,12 +1106,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		return 0; //We're disabled!
 	#endif
 
-	static MIDI_ADSR ADSR[7] = {
-		MIDIDEVICE_idle,MIDIDEVICE_delay, //Still quiet!
-		MIDIDEVICE_attack,MIDIDEVICE_hold,MIDIDEVICE_decay, //Start
-		MIDIDEVICE_sustain, //Holding/sustain
-		MIDIDEVICE_release //Release
-	}; //ADSR states!
 	//Initialisation info
 	float pitchcents, currentsamplespeedup;
 	byte currenton;

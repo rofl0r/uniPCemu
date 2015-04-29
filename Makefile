@@ -121,7 +121,7 @@ OBJS += support\signedness.o
 OBJS += hardware\pcspeaker.o
 
 #MIDI and SF2 support!
-OBJS += support\sf2.o hardware\midi\mpu.o hardware\midi\midi.o hardware\midi\mididevice.o
+OBJS += support\sf2.o hardware\midi\mpu.o hardware\midi\midi.o hardware\midi\mididevice.o hardware\midi\adsr.o
 #MID file support!
 OBJS += support\mid.o
 
