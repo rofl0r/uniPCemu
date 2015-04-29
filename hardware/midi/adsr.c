@@ -21,7 +21,7 @@ OPTINLINE double factor2dB(double factor, double fMaxLevelDB)
 
 //ADSR itself:
 
-void ADSR_release(ADSR *adsr)
+void ADSR_release(ADSR *adsr, byte sustaining)
 {
 	if (adsr->release) //Gotten release?
 	{
@@ -32,11 +32,11 @@ void ADSR_release(ADSR *adsr)
 	adsr->active = MIDISTATUS_IDLE; //Return to IDLE!
 }
 
-void ADSR_sustain(ADSR *voice)
+void ADSR_sustain(ADSR *voice, byte sustaining)
 {
 	/*if (adsr->sustain) //Gotten sustain?
 	{*/
-	if ((adsr->channel->sustain) || ((adsr->currentloopflags & 0xC0) != 0x80)) //Disable our voice when not sustaining anymore!
+	if (sustaining) //Disable our voice when not sustaining anymore!
 	{
 		return; //Sustaining!
 	}
@@ -47,7 +47,7 @@ void ADSR_sustain(ADSR *voice)
 	ADSR_release(adsr); //Passthrough!
 }
 
-void ADSR_decay(ADSR *adsr)
+void ADSR_decay(ADSR *adsr, byte sustaining)
 {
 	if (adsr->decay) //Gotten decay?
 	{
@@ -63,7 +63,7 @@ void ADSR_decay(ADSR *adsr)
 	ADSR_sustain(adsr); //Passthrough!
 }
 
-void ADSR_hold(ADSR *adsr)
+void ADSR_hold(ADSR *adsr, byte sustaining)
 {
 	if (adsr->hold) //Gotten hold?
 	{
@@ -77,7 +77,7 @@ void ADSR_hold(ADSR *adsr)
 	ADSR_decay(adsr); //Passthrough!
 }
 
-void ADSR_attack(ADSR *adsr)
+void ADSR_attack(ADSR *adsr, byte sustaining)
 {
 	if (adsr->attack) //Gotten attack?
 	{
@@ -93,7 +93,7 @@ void ADSR_attack(ADSR *adsr)
 	ADSR_hold(adsr); //Passthrough!
 }
 
-void ADSR_delay(ADSR *adsr)
+void ADSR_delay(ADSR *adsr, byte sustaining)
 {
 	if (adsr->delaytime) //Gotten delay?
 	{
@@ -301,7 +301,7 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	adsr->decayend = adsr->decay + adsr->hold + adsr->attack + adsr->delaytime;
 }
 
-float ADSR_tick(ADSR *adsr) //Tick and ADSR!
+float ADSR_tick(ADSR *adsr, byte sustaining) //Tick an ADSR!
 {
 	static MIDI_ADSR ADSR[7] = {
 		ADSR_idle, ADSR_delay, //Still quiet!
@@ -309,7 +309,7 @@ float ADSR_tick(ADSR *adsr) //Tick and ADSR!
 		ADSR_sustain, //Holding/sustain
 		ADSR_release //Release
 	}; //ADSR states!
-	ADSR[adsr->active](adsr); //Execute the current ADSR!
+	ADSR[adsr->active](adsr,sustaining); //Execute the current ADSR!
 	++adsr->play_counter; //Next position to calculate!
 	return adsr->ADSREnvelope; //Give the current envelope!
 }
