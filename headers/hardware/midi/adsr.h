@@ -14,6 +14,8 @@
 
 typedef struct
 {
+	byte active; //Are we active?
+	
 	//ADSR
 	int_32 delaytime, attack, hold, decay, sustain, release, releasestart; //All lengths!
 	float attackfactor, decayfactor, sustainfactor, releasefactor;
