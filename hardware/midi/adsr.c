@@ -113,12 +113,15 @@ void ADSR_idle(ADSR *adsr)
 
 void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup) //Initialise an ADSR!
 {
+	sfGenList applypgen;
+	sfInstGenList applyigen;
+
 //Volume envelope information!
 	int_32 delaytime, attack, hold, decay, sustain, release; //All lengths!
 	float attackfactor = 0.0f, decayfactor = 0.0f, sustainfactor = 0.0f, releasefactor = 0.0f;
 	
 //Delay
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, delayVolEnv, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, delayLookup, &applyigen))
 	{
 		delaytime = applyigen.genAmount.shAmount; //Apply!
 	}
@@ -126,13 +129,13 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		delaytime = -12000; //Default!
 	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, delayVolEnv, &applypgen)) //Preset set?
+	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, delayLookup, &applypgen)) //Preset set?
 	{
 		delaytime += applypgen.genAmount.shAmount; //Apply!
 	}
 
 	//Attack
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, attackVolEnv, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, attackLookup, &applyigen))
 	{
 		attack = applyigen.genAmount.shAmount; //Apply!
 	}
@@ -140,13 +143,13 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		attack = -12000; //Default!
 	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, attackVolEnv, &applypgen)) //Preset set?
+	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, attackLookup, &applypgen)) //Preset set?
 	{
 		attack = applypgen.genAmount.shAmount; //Apply!
 	}
 
 	//Hold
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, holdVolEnv, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, holdLookup, &applyigen))
 	{
 		hold = applyigen.genAmount.shAmount; //Apply!
 	}
@@ -154,13 +157,13 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		hold = -12000; //Default!
 	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, holdVolEnv, &applypgen)) //Preset set?
+	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, holdLookup, &applypgen)) //Preset set?
 	{
 		hold += applypgen.genAmount.shAmount; //Apply!
 	}
 
 	//Decay
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, decayVolEnv, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, decayLookup, &applyigen))
 	{
 		decay = applyigen.genAmount.shAmount; //Apply!
 	}
@@ -168,13 +171,13 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		decay = -12000; //Default!
 	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, decayVolEnv, &applypgen)) //Preset set?
+	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, decayLookup, &applypgen)) //Preset set?
 	{
 		decay += applypgen.genAmount.shAmount; //Apply!
 	}
 
 	//Sustain (dB)
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, sustainVolEnv, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, sustainLookup, &applyigen))
 	{
 		sustain = applyigen.genAmount.shAmount; //Apply!
 	}
@@ -182,13 +185,13 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		sustain = 0; //Default!
 	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, sustainVolEnv, &applypgen)) //Preset set?
+	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, sustainLookup, &applypgen)) //Preset set?
 	{
 		sustain += applypgen.genAmount.shAmount; //Apply!
 	}
 
 	//Release (disabled!)
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, releaseVolEnv, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, releaseLookup, &applyigen))
 	{
 		release = applyigen.genAmount.shAmount; //Apply!
 	}
@@ -196,7 +199,7 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		release = -12000; //Default!
 	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, releaseVolEnv, &applypgen)) //Preset set?
+	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, releaseLookup, &applypgen)) //Preset set?
 	{
 		release += applypgen.genAmount.shAmount; //Apply!
 	}
