@@ -20,6 +20,7 @@ typedef struct
 	float ADSREnvelope; //Current ADSR envelope status!
 
 	uint_32 attackend, holdend, decayend; //End position of each of the phases, precalculated!
+	uint_64 play_counter; //Current counter position!
 } ADSR; //An ADSR's data!
 
 #endif
