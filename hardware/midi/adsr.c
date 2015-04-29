@@ -98,10 +98,10 @@ static MIDI_ADSR ADSR[7] = {
 	ADSR_release //Release
 }; //ADSR states!
 
-void ADSR_init(ADSR *adsr)
+void ADSR_init(ADSR *adsr) //Initialise an ADSR!
 {
 }
 
-void ADSR_tick(ADSR *adsr)
+float ADSR_tick(ADSR *adsr) //Tick and ADSR!
 {
 }
