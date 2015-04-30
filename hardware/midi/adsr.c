@@ -111,7 +111,7 @@ void ADSR_idle(ADSR *adsr)
 	//Idle does nothing!
 }
 
-void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup) //Initialise an ADSR!
+void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, sword relKeynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
 {
 	sfGenList applypgen;
 	sfInstGenList applyigen;
