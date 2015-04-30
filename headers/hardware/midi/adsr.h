@@ -2,6 +2,7 @@
 #define __ADSR_H
 
 #include "headers/types.h" //Basic types!
+#include "headers/support/sf2.h" //SF2 support!
 
 //All statuses for an MIDI ADSR!
 #define MIDISTATUS_IDLE 0x00

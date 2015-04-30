@@ -7,6 +7,15 @@
 #include "headers/support/highrestimer.h" //High resolution timer support!
 #include "headers/hardware/midi/adsr.h" //ADSR support!
 
+//Use direct windows MIDI processor if available?
+//#define DIRECT_MIDI
+
+#ifdef _WIN32
+#ifdef DIRECT_MIDI
+#include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
+#endif
+#endif
+
 //Are we disabled?
 //#define __HW_DISABLED
 RIFFHEADER *soundfont; //Our loaded soundfont!
@@ -17,7 +26,7 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 #define __MIDI_SAMPLES 1024
 
 //To log MIDI commands?
-#define MIDI_LOG
+//#define MIDI_LOG
 //To log MIDI rendering timing?
 //#define LOG_MIDI_TIMING
 
@@ -114,6 +123,15 @@ uint_64 availablevoices = 0xFFFFFFFFFFFFFFFF; //Available voices!
 
 OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current); //MIDI device UART mode execution!
 
+/* MIDI direct output support*/
+
+#ifdef _WIN32
+#ifdef DIRECT_MIDI
+int flag;           // monitor the status of returning functions
+HMIDIOUT device;    // MIDI device interface for sending MIDI output
+#endif
+#endif
+
 /* Buffer support */
 
 void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buffer!
@@ -121,6 +139,35 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buf
 	#ifdef __HW_DISABLED
 	return; //We're disabled!
 	#endif
+
+	#ifdef _WIN32
+	#ifdef DIRECT_MIDI
+		//We're directly sending MIDI to the output!
+		union { unsigned long word; unsigned char data[4]; } message;
+		message.data[0] = command; //The command!
+		message.data[1] = data->buffer[0];
+		message.data[2] = data->buffer[1];
+		message.data[3] = 0; //Unused!
+		switch (command&0xF0) //What command?
+		{
+		case 0x80:
+		case 0x90:
+		case 0xA0:
+		case 0xB0:
+		case 0xC0:
+		case 0xD0:
+		case 0xE0:
+		case 0xF0:
+			flag = midiOutShortMsg(device, message.word);
+			if (flag != MMSYSERR_NOERROR) {
+				printf("Warning: MIDI Output is not open.\n");
+			}
+			break;
+		}
+		return; //Stop: ready!
+	#endif
+	#endif
+
 	data->command = command; //Set the command to use!
 	MIDIDEVICE_execMIDI(data); //Execute directly!
 }
@@ -852,7 +899,7 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 	byte loopflags;
 
 	samplepos = voice->play_counter; //Load the current play counter!
-	if (voice->active) ++voice->play_counter; //Disable increasing the counter when inactive: keep the same position!
+	if (voice->VolumeEnvelope.active) ++voice->play_counter; //Disable increasing the counter when inactive: keep the same position!
 	samplepos *= voice->effectivesamplespeedup; //Affect speed through cents and other factors!
 	samplepos += voice->startaddressoffset; //The start of the sample!
 	
@@ -965,7 +1012,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Now produce the sound itself!
 	for (;numsamples--;) //Produce the samples!
 	{
-		voice->CurrentVolumeEnvelope = ADSR_tick(&voice->volumeEnvelope,(voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80)); //Apply Volume Envelope!
+		voice->CurrentVolumeEnvelope = ADSR_tick(&voice->VolumeEnvelope,(voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80)); //Apply Volume Envelope!
 		MIDIDEVICE_getsample(ubuf++,voice); //Get the sample from the MIDI device!
 	}
 
@@ -995,6 +1042,18 @@ void done_MIDIDEVICE() //Finish our midi device!
 	#ifdef __HW_DISABLED
 		return; //We're disabled!
 	#endif
+	#ifdef _WIN32
+	#ifdef DIRECT_MIDI
+		// turn any MIDI notes currently playing:
+		midiOutReset(device);
+
+		// Remove any data in MIDI device and close the MIDI Output port
+		midiOutClose(device);
+		//We're directly sending MIDI to the output!
+		return; //Stop: ready!
+	#endif
+	#endif
+	
 	lockaudio();
 	//Close the soundfont?
 	closeSF(&soundfont);
@@ -1011,6 +1070,18 @@ void init_MIDIDEVICE() //Initialise MIDI device for usage!
 {
 	#ifdef __HW_DISABLED
 		return; //We're disabled!
+	#endif
+	#ifdef _WIN32
+	#ifdef DIRECT_MIDI
+		// Open the MIDI output port
+		flag = midiOutOpen(&device, 0, 0, 0, CALLBACK_NULL);
+		if (flag != MMSYSERR_NOERROR) {
+			printf("Error opening MIDI Output.\n");
+			return;
+		}
+		//We're directly sending MIDI to the output!
+		return; //Stop: ready!
+	#endif
 	#endif
 	lockaudio();
 	done_MIDIDEVICE(); //Start finished!

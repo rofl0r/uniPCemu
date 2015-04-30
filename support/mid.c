@@ -67,23 +67,23 @@ word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **cha
 		return 0; //Invalid track length!
 	}
 	tracklength = byteswap32(currenttrack.length); //Calculate the length of the track!
-	data = zalloc(tracklength,"MIDI_DATA"); //Allocate data!
+	data = zalloc(tracklength+sizeof(uint_32),"MIDI_DATA"); //Allocate data and cursor!
 	if (!data) //Ran out of memory?
 	{
 		fclose(f);
 		return 0; //Ran out of memory!
 	}
-	if (fread(data, 1, tracklength, f) != tracklength) //Error reading data?
+	if (fread(data+sizeof(uint_32), 1, tracklength, f) != tracklength) //Error reading data?
 	{
 		fclose(f);
-		freez((void **)&data, tracklength, "MIDI_DATA");
+		freez((void **)&data, tracklength+sizeof(uint_32), "MIDI_DATA");
 		return 0; //Error reading data!
 	}
 
 	++currenttrackn; //Increase the number of tracks loaded!
 	if (currenttrackn > maxchannels) //Limit broken?
 	{
-		freez((void **)&data, tracklength, "MIDI_DATA");
+		freez((void **)&data, tracklength+sizeof(uint_32), "MIDI_DATA");
 		return 0; //Limit broken: we can't store the file!
 	}
 
@@ -111,36 +111,44 @@ void freeMID(TRACK_CHNK *tracks, byte **channels, word numchannels)
 	uint_32 channelnr;
 	for (channelnr = 0; channelnr < numchannels; channelnr++)
 	{
-		freez(&channels[channelnr], byteswap32(tracks[channelnr].length), "MIDI_DATA"); //Try to free!
+		freez(&channels[channelnr], byteswap32(tracks[channelnr].length)+sizeof(uint_32), "MIDI_DATA"); //Try to free!
 	}
 }
 
-byte consumeStream(byte **stream, byte *result)
+byte consumeStream(byte *stream, TRACK_CHNK *track, byte *result)
 {
-	if (!memprotect(*stream, 1, "MIDI_DATA")) return 0; //Error: EOS!
-	*result = **stream; //Read!
-	++(*stream); //Increase pointer in the stream!
+	byte *streamdata = stream + sizeof(uint_32); //Start of the data!
+	uint_32 *streampos = (uint_32 *)stream; //Position!
+	if (!memprotect(streampos, 4, "MIDI_DATA")) return 0; //Error: Invalid stream!
+	if (*streampos >= byteswap32(track->length)) return 0; //End of stream reached!
+	if (!memprotect(&streamdata[*streampos], 1, "MIDI_DATA")) return 0; //Error: Invalid data!
+	*result = streamdata[*streampos]; //Read the data!
+	++(*streampos); //Increase pointer in the stream!
 	return 1; //Consumed!
 }
 
-byte peekStream(byte **stream, byte *result)
+byte peekStream(byte *stream, TRACK_CHNK *track, byte *result)
 {
-	if (!memprotect(*stream, 1, "MIDI_DATA")) return 0; //Error: EOS!
-	*result = *(*stream); //Consume a byte!
+	byte *streamdata = stream + sizeof(uint_32); //Start of the data!
+	uint_32 *streampos = (uint_32 *)stream; //Position!
+	if (!memprotect(streampos, 4, "MIDI_DATA")) return 0; //Error: Invalid stream!
+	if (*streampos >= byteswap32(track->length)) return 0; //End of stream reached!
+	if (!memprotect(&streamdata[*streampos], 1, "MIDI_DATA")) return 0; //Error: Invalid data!
+	*result = streamdata[*streampos]; //Read the data!
 	return 1; //Consumed!
 }
 
-byte read_VLV(byte **midi_stream, uint_32 *result)
+byte read_VLV(byte *midi_stream, TRACK_CHNK *track, uint_32 *result)
 {
 	uint_32 temp = 0;
 	byte curdata;
-	if (!consumeStream(midi_stream, &curdata)) return 0; //Read first VLV failed?
+	if (!consumeStream(midi_stream, track, &curdata)) return 0; //Read first VLV failed?
 	for (;;) //Process/read the VLV!
 	{
 		temp |= (curdata & 0x7F); //Add to length!
 		if (!(curdata & 0x80)) break; //No byte to follow?
 		temp <<= 7; //Make some room for the next byte!
-		if (!consumeStream(midi_stream, &curdata)) return 0; //Read VLV failed?
+		if (!consumeStream(midi_stream, track, &curdata)) return 0; //Read VLV failed?
 	}
 	*result = temp; //Give the result!
 	return 1; //OK!
@@ -174,7 +182,7 @@ float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 		speed /= 1000000.0f; //Divide by 1 second!
 		speed /= PPQN; //Divide to get the ticks per second!
 		speed = 1.0f / speed; //Ammount per second!
-		speed *= 0.5f; //Divide by 2 for slower speed!
+		speed *= 0.5; //Half speed!
 	}
 
 	//We're counting in ticks!
@@ -198,9 +206,8 @@ SDL_sem *MIDLock = NULL;
 
 #define MIDI_ERROR(position) {error = position; goto abortMIDI;}
 
-void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
+void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_CHNK *track)
 {
-	byte *curstream = midi_stream; //Copy the stream!
 	byte curdata;
 
 	//Metadata event!
@@ -217,7 +224,7 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
 	for (;;) //Playing?
 	{
 		//First, timing information and timing itself!
-		if (!read_VLV(&curstream, &delta_time)) return; //Read VLV time index!
+		if (!read_VLV(midi_stream, track, &delta_time)) return; //Read VLV time index!
 		play_pos += delta_time; //Add the delta time to the playing position!
 		for (;;)
 		{
@@ -234,15 +241,15 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
 			delay(0); //Wait for our tick!
 		}
 
-		if (!peekStream(&curstream, &curdata))
+		if (!peekStream(midi_stream,track, &curdata))
 		{
 			return; //Failed to peek!
 		}
 		if (curdata == 0xFF) //System?
 		{
-			if (!consumeStream(&curstream, &curdata)) return; //EOS!
-			if (!consumeStream(&curstream, &meta_type)) return; //Meta type failed? Give error!
-			if (!read_VLV(&curstream, &length)) return; //Error: unexpected EOS!
+			if (!consumeStream(midi_stream, track, &curdata)) return; //EOS!
+			if (!consumeStream(midi_stream, track, &meta_type)) return; //Meta type failed? Give error!
+			if (!read_VLV(midi_stream, track, &length)) return; //Error: unexpected EOS!
 			switch (meta_type) //What event?
 			{
 				case 0x2F: //EOT?
@@ -253,13 +260,13 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
 					SDL_SemWait(MID_BPM_Lock);
 					removetimer("MID_tempotimer"); //Remove old timer!
 
-					if (!consumeStream(&curstream, &curdata)) return; //Tempo 1/3 failed?
+					if (!consumeStream(midi_stream, track, &curdata)) return; //Tempo 1/3 failed?
 					activetempo = curdata; //Final byte!
 					activetempo <<= 8;
-					if (!consumeStream(&curstream, &curdata)) return; //Tempo 2/3 failed?
+					if (!consumeStream(midi_stream, track, &curdata)) return; //Tempo 2/3 failed?
 					activetempo |= curdata; //Final byte!
 					activetempo <<= 8;
-					if (!consumeStream(&curstream, &curdata)) return; //Tempo 3/3 failed?
+					if (!consumeStream(midi_stream, track, &curdata)) return; //Tempo 3/3 failed?
 					activetempo |= curdata; //Final byte!
 					//Tempo = us per quarter note!
 
@@ -274,7 +281,7 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
 					dolog("MID", "Unrecognised meta type: %02X@Channel %i; Data length: %i", meta_type, channel,length); //Log the unrecognised metadata type!
 					for (; length--;) //Process length bytes!
 					{
-						if (!consumeStream(&curstream, &curdata)) return; //Skip failed?
+						if (!consumeStream(midi_stream, track, &curdata)) return; //Skip failed?
 					}
 					break;
 			}
@@ -287,7 +294,7 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
 			if (curdata & 0x80) //Starting a new command?
 			{
 				dolog("MID", "Status@Channel %i=%02X", channel, curdata);
-				if (!consumeStream(&curstream, &curdata)) MIDI_ERROR(1) //EOS!
+				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(1) //EOS!
 				last_command = curdata; //Save the last command!
 				if (last_command != 0xF7) //Escaped continue isn't sent!
 				{
@@ -311,24 +318,24 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
 				{
 				case 0x0: //System exclusive?
 				case 0x7: //Escaped continue?
-					if (!read_VLV(&curstream, &length)) MIDI_ERROR(2) //Error: unexpected EOS!
+					if (!read_VLV(midi_stream, track, &length)) MIDI_ERROR(2) //Error: unexpected EOS!
 					for (; length--;) //Transmit the packet!
 					{
-						if (!consumeStream(&curstream, &curdata)) MIDI_ERROR(3+length) //EOS!
+						if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(3 + length) //EOS!
 						PORT_OUT_B(0x330, curdata); //Send the byte!
 					}
 					break;
 				case 0x1:
 				case 0x3:
 					//1 byte follows!
-					if (!consumeStream(&curstream, &curdata)) MIDI_ERROR(2) //EOS!
+					if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
 					PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
 					break;
 				case 0x2:
 					//2 bytes follow!
-					if (!consumeStream(&curstream, &curdata)) MIDI_ERROR(2) //EOS!
+					if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
 					PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
-					if (!consumeStream(&curstream, &curdata)) MIDI_ERROR(3) //EOS!
+					if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(3) //EOS!
 					PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
 					break;
 				default: //Unknown special instruction?
@@ -341,19 +348,19 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header)
 			case 0xB: //Control change?
 			case 0xE: //Pitch bend?
 				//2 bytes follow!
-				if (!consumeStream(&curstream, &curdata)) MIDI_ERROR(2) //EOS!
+				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
 				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
-				if (!consumeStream(&curstream, &curdata)) MIDI_ERROR(3) //EOS!
+				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(3) //EOS!
 				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
 				break;
 			case 0xC: //Program change?
 			case 0xD: //Channel pressure/aftertouch?
 				//1 byte follows
-				if (!consumeStream(&curstream, &curdata)) MIDI_ERROR(2) //EOS!
+				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
 				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
 				break;
 			default: //Unknown data? We're sending directly to the hardware! We shouldn't be here!
-				if (!consumeStream(&curstream, &curdata)) MIDI_ERROR(2) //EOS!
+				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
 				dolog("MID", "Warning: Unknown data detected@channel %i: passthrough to MIDI device: %02X!",channel,curdata);
 				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
 				break;

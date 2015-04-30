@@ -25,14 +25,14 @@ void ADSR_release(ADSR *adsr, byte sustaining)
 {
 	if (adsr->release) //Gotten release?
 	{
-		adsr->ADSREnvelope -= voice->releasefactor; //Apply factor!
+		adsr->ADSREnvelope -= adsr->releasefactor; //Apply factor!
 		if (adsr->ADSREnvelope>0.0f) return; //Not quiet yet?
 	}
 	adsr->ADSREnvelope = 0.0f; //Nothing to sound!
 	adsr->active = MIDISTATUS_IDLE; //Return to IDLE!
 }
 
-void ADSR_sustain(ADSR *voice, byte sustaining)
+void ADSR_sustain(ADSR *adsr, byte sustaining)
 {
 	/*if (adsr->sustain) //Gotten sustain?
 	{*/
@@ -44,7 +44,7 @@ void ADSR_sustain(ADSR *voice, byte sustaining)
 	//Sustain expired?
 	adsr->active = MIDISTATUS_RELEASE; //Check next step!
 	adsr->releasestart = adsr->play_counter; //When we start to release!
-	ADSR_release(adsr); //Passthrough!
+	ADSR_release(adsr,sustaining); //Passthrough!
 }
 
 void ADSR_decay(ADSR *adsr, byte sustaining)
@@ -60,7 +60,7 @@ void ADSR_decay(ADSR *adsr, byte sustaining)
 	//Decay expired?
 	adsr->active = MIDISTATUS_SUSTAIN; //Check next step!
 	adsr->ADSREnvelope = adsr->sustainfactor; //Apply sustain factor!
-	ADSR_sustain(adsr); //Passthrough!
+	ADSR_sustain(adsr,sustaining); //Passthrough!
 }
 
 void ADSR_hold(ADSR *adsr, byte sustaining)
@@ -74,7 +74,7 @@ void ADSR_hold(ADSR *adsr, byte sustaining)
 	}
 	//Hold expired?
 	adsr->active = MIDISTATUS_DECAY; //Check next step!
-	ADSR_decay(adsr); //Passthrough!
+	ADSR_decay(adsr,sustaining); //Passthrough!
 }
 
 void ADSR_attack(ADSR *adsr, byte sustaining)
@@ -90,7 +90,7 @@ void ADSR_attack(ADSR *adsr, byte sustaining)
 	//Attack expired?
 	adsr->ADSREnvelope = 1.0f; //Make sure we're at 100%
 	adsr->active = MIDISTATUS_HOLD; //Check next step!
-	ADSR_hold(adsr); //Passthrough!
+	ADSR_hold(adsr,sustaining); //Passthrough!
 }
 
 void ADSR_delay(ADSR *adsr, byte sustaining)
@@ -103,10 +103,10 @@ void ADSR_delay(ADSR *adsr, byte sustaining)
 		}
 	}
 	adsr->active = MIDISTATUS_ATTACK; //Check next step!
-	ADSR_attack(adsr); //Passthrough!
+	ADSR_attack(adsr,sustaining); //Passthrough!
 }
 
-void ADSR_idle(ADSR *adsr)
+void ADSR_idle(ADSR *adsr, byte sustaining)
 {
 	//Idle does nothing!
 }
@@ -118,7 +118,7 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 
 //Volume envelope information!
 	int_32 delaytime, attack, hold, decay, sustain, release; //All lengths!
-	float attackfactor = 0.0f, decayfactor = 0.0f, sustainfactor = 0.0f, releasefactor = 0.0f, holdfactor = 0.0f, decayfactor = 0.0f;
+	float attackfactor = 0.0f, decayfactor = 0.0f, sustainfactor = 0.0f, releasefactor = 0.0f, holdenvfactor = 0.0f, decayenvfactor = 0.0f;
 	
 //Delay
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, delayLookup, &applyigen))
@@ -165,15 +165,15 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	//Hold factor
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvHoldLookup, &applyigen))
 	{
-		holdfactor = applyigen.genAmount.shAmount; //Apply!
+		holdenvfactor = applyigen.genAmount.shAmount; //Apply!
 	}
 	else
 	{
-		holdfactor = 0; //Default!
+		holdenvfactor = 0; //Default!
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvHoldLookup, &applypgen)) //Preset set?
 	{
-		holdfactor += applypgen.genAmount.shAmount; //Apply!
+		holdenvfactor += applypgen.genAmount.shAmount; //Apply!
 	}
 
 	//Decay
@@ -193,15 +193,15 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	//Decay factor
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvDecayLookup, &applyigen))
 	{
-		decayfactor = applyigen.genAmount.shAmount; //Apply!
+		decayenvfactor = applyigen.genAmount.shAmount; //Apply!
 	}
 	else
 	{
-		decayfactor = 0; //Default!
+		decayenvfactor = 0; //Default!
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvDecayLookup, &applypgen)) //Preset set?
 	{
-		decayfactor += applypgen.genAmount.shAmount; //Apply!
+		decayenvfactor += applypgen.genAmount.shAmount; //Apply!
 	}
 
 	//Sustain (dB)
@@ -257,7 +257,7 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		hold = sampleRate*cents2samplesfactor((double)hold); //Calculate the ammount of samples!
 	}
-	hold *= cents2samplesfactor((double)(holdfactor*relKeynum)); //Apply key number!
+	hold *= cents2samplesfactor((double)(holdenvfactor*relKeynum)); //Apply key number!
 
 	if (cents2samplesfactor((double)decay) < 0.0002f) //0.0001 sec?
 	{
@@ -267,7 +267,8 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		decay = sampleRate*cents2samplesfactor((double)decay); //Calculate the ammount of samples!
 	}
-	decay *= cents2samplesfactor((double)(decayfactor*relKeynum)); //Apply key number!
+	decay *= cents2samplesfactor((double)(decayenvfactor*relKeynum)); //Apply key number!
+
 	sustainfactor = dB2factor((double)(1000 - sustain), 1000); //We're on a rate of 1000 cb!
 	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
 	if (cents2samplesfactor((double)release) < 0.0002f) //0.0001 sec?
@@ -334,11 +335,11 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	adsr->play_counter = 0; //Initialise our counter!
 }
 
-typedef void (*MIDI_ADSR)(ADSR *adsr, byte sustaining); //ADSR event handlers!
+typedef void (*MIDI_STATE)(ADSR *adsr, byte sustaining); //ADSR event handlers!
 
 float ADSR_tick(ADSR *adsr, byte sustaining) //Tick an ADSR!
 {
-	static MIDI_ADSR ADSR_EXEC[7] = {
+	static MIDI_STATE ADSR_EXEC[7] = {
 		ADSR_idle, ADSR_delay, //Still quiet!
 		ADSR_attack, ADSR_hold, ADSR_decay, //Start
 		ADSR_sustain, //Holding/sustain
