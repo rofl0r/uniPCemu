@@ -118,7 +118,7 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 
 //Volume envelope information!
 	int_32 delaytime, attack, hold, decay, sustain, release; //All lengths!
-	float attackfactor = 0.0f, decayfactor = 0.0f, sustainfactor = 0.0f, releasefactor = 0.0f;
+	float attackfactor = 0.0f, decayfactor = 0.0f, sustainfactor = 0.0f, releasefactor = 0.0f, holdfactor = 0.0f, decayfactor = 0.0f;
 	
 //Delay
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, delayLookup, &applyigen))
@@ -162,6 +162,20 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 		hold += applypgen.genAmount.shAmount; //Apply!
 	}
 
+	//Hold factor
+	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvHoldLookup, &applyigen))
+	{
+		holdfactor = applyigen.genAmount.shAmount; //Apply!
+	}
+	else
+	{
+		holdfactor = 0; //Default!
+	}
+	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvHoldLookup, &applypgen)) //Preset set?
+	{
+		holdfactor += applypgen.genAmount.shAmount; //Apply!
+	}
+
 	//Decay
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, decayLookup, &applyigen))
 	{
@@ -174,6 +188,20 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, decayLookup, &applypgen)) //Preset set?
 	{
 		decay += applypgen.genAmount.shAmount; //Apply!
+	}
+
+	//Decay factor
+	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvDecayLookup, &applyigen))
+	{
+		decayfactor = applyigen.genAmount.shAmount; //Apply!
+	}
+	else
+	{
+		decayfactor = 0; //Default!
+	}
+	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvDecayLookup, &applypgen)) //Preset set?
+	{
+		decayfactor += applypgen.genAmount.shAmount; //Apply!
 	}
 
 	//Sustain (dB)
@@ -229,6 +257,8 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		hold = sampleRate*cents2samplesfactor((double)hold); //Calculate the ammount of samples!
 	}
+	hold *= cents2samplesfactor((double)(holdfactor*relKeynum)); //Apply key number!
+
 	if (cents2samplesfactor((double)decay) < 0.0002f) //0.0001 sec?
 	{
 		decay = 0; //No decay!
@@ -237,6 +267,7 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		decay = sampleRate*cents2samplesfactor((double)decay); //Calculate the ammount of samples!
 	}
+	decay *= cents2samplesfactor((double)(decayfactor*relKeynum)); //Apply key number!
 	sustainfactor = dB2factor((double)(1000 - sustain), 1000); //We're on a rate of 1000 cb!
 	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
 	if (cents2samplesfactor((double)release) < 0.0002f) //0.0001 sec?
