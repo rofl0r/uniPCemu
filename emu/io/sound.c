@@ -120,8 +120,8 @@ OPTINLINE void calc_samplePos() //Calculate sample position precalcs!
 	if (samplepos[0] && samplepos[1]) return; //Don't reallocate!
 	uint_32 precalcs_size = ((uint_32)MAX_SAMPLERATE*sizeof(*samplepos[0])<<1); //Size of samplepos precalcs!
 	//Now allocate the precalcs!
-	samplepos[0] = (uint_32 *)zalloc(precalcs_size,"Sample position precalcs");
-	samplepos[1] = (uint_32 *)zalloc(precalcs_size,"Sample position precalcs");
+	samplepos[0] = (uint_32 *)zalloc(precalcs_size,"Sample position precalcs",NULL);
+	samplepos[1] = (uint_32 *)zalloc(precalcs_size,"Sample position precalcs",NULL);
 	byte abort;
 	abort = 0; //Default: no abort!
 	if (!samplepos[1])
@@ -439,7 +439,7 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 			soundchannels[n].sound.position = 0; //Make us refresh immediately!
 			
 			soundchannels[n].sound.length = samplesize(soundchannels[n].sound.numsamples,method); //Ammount of samples in the buffer, stereo quality (even if mono used)!
-			soundchannels[n].sound.samples = zalloc(soundchannels[n].sound.length,"SW_Samples");
+			soundchannels[n].sound.samples = zalloc(soundchannels[n].sound.length,"SW_Samples",NULL);
 			
 			#ifdef DEBUG_SOUNDALLOC
 			dolog("soundservice","Channel allocated and ready to run: handler: %p, extra data: %p, samplerate: %f, sample buffer size: %i, stereo: %i",soundchannels[n].soundhandler,soundchannels[n].extradata,soundchannels[n].samplerate,soundchannels[n].sound.numsamples,soundchannels[n].stereo);

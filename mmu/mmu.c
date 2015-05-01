@@ -67,7 +67,7 @@ void resetMMU()
 	//dolog("MMU","Initialising MMU...");
 	MMU.size = BIOS_GetMMUSize(); //Take over predefined: don't try to detect!
 	//dolog("zalloc","Allocating MMU memory...");
-	MMU.memory = (byte *)zalloc(MMU.size,"MMU_Memory"); //Allocate the memory available for the segments
+	MMU.memory = (byte *)zalloc(MMU.size,"MMU_Memory",NULL); //Allocate the memory available for the segments
 	MMU.invaddr = 0; //Default: MMU address OK!
 	user_memory_used = 0; //Default: no memory used yet!
 	if (MMU.memory!=NULL && !force_memoryredetect) //Allocated and not forcing redetect?

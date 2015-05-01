@@ -264,7 +264,7 @@ byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 
 void alloc_CPUregisters()
 {
-	CPU.registers = (CPU_registers *)zalloc(sizeof(*CPU.registers),"CPU_REGISTERS"); //Allocate the registers!
+	CPU.registers = (CPU_registers *)zalloc(sizeof(*CPU.registers),"CPU_REGISTERS",NULL); //Allocate the registers!
 	if (!CPU.registers)
 	{
 		raiseError("CPU","Failed to allocate the required registers!");

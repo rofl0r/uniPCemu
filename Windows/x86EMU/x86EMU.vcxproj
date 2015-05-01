@@ -123,6 +123,7 @@
     <ClCompile Include="..\..\support\highrestimer.c" />
     <ClCompile Include="..\..\support\isoreader.c" />
     <ClCompile Include="..\..\support\lba.c" />
+    <ClCompile Include="..\..\support\locks.c" />
     <ClCompile Include="..\..\support\log.c" />
     <ClCompile Include="..\..\support\mid.c" />
     <ClCompile Include="..\..\support\sf2.c" />
@@ -243,6 +244,7 @@
     <ClInclude Include="..\..\headers\support\isoreader.h" />
     <ClInclude Include="..\..\headers\support\keyboard.h" />
     <ClInclude Include="..\..\headers\support\lba.h" />
+    <ClInclude Include="..\..\headers\support\locks.h" />
     <ClInclude Include="..\..\headers\support\log.h" />
     <ClInclude Include="..\..\headers\support\mid.h" />
     <ClInclude Include="..\..\headers\support\sf2.h" />
@@ -304,7 +306,7 @@
       <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>vld.lib;SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;vld.lib;SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>

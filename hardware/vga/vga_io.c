@@ -237,11 +237,9 @@ Finally: the read/write handlers themselves!
 
 */
 
-extern SDL_sem *VGA_Lock; //Our lock!
-
 byte PORT_readVGA(word port) //Read from a port/register!
 {
-	SDL_SemWait(VGA_Lock); //Lock ourselves, we don´t want to conflict with our renderer!
+	lockVGA(); //Lock ourselves, we don´t want to conflict with our renderer!
 	byte result = PORT_UNDEFINED_RESULT;
 	if (!getActiveVGA()) //No active VGA?
 	{
@@ -320,13 +318,13 @@ byte PORT_readVGA(word port) //Read from a port/register!
 		result = PORT_UNDEFINED_RESULT; //Give an undefined result!
 		break; //Not used!
 	}
-	SDL_SemPost(VGA_Lock); //The rendering can start again!
+	unlockVGA(); //The rendering can start again!
 	return result; //Disabled for now or unknown port!
 }
 
 void PORT_writeVGA(word port, byte value) //Write to a port/register!
 {
-	SDL_SemWait(VGA_Lock); //Lock ourselves, we don´t want to conflict with our renderer!
+	lockVGA(); //Lock ourselves, we don´t want to conflict with our renderer!
 	if (!getActiveVGA()) //No active VGA?
 	{
 		raiseError("VGA","VGA Port Out, but no active VGA loaded!");
@@ -434,5 +432,5 @@ void PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break; //Not used!
 	}
 	finishoutput: //Finisher?
-	SDL_SemPost(VGA_Lock); //The rendering can start again!
+	unlockVGA(); //The rendering can start again!
 }

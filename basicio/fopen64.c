@@ -42,8 +42,7 @@ FILE *fopen64(char *filename, char *mode)
 		return NULL; //Invalid filename!
 	}
 
-	stream = (BIGFILE *)zalloc(sizeof(BIGFILE),"BIGFILE"); //Allocate the big file!
-	//stream = (BIGFILE *)malloc(sizeof(BIGFILE));
+	stream = (BIGFILE *)zalloc(sizeof(BIGFILE),"BIGFILE",NULL); //Allocate the big file!
 	if (!stream) return NULL; //Nothing to be done!
 	
 	char *modeidentifier = mode; //First character of the mode!

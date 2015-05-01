@@ -13,6 +13,7 @@
 typedef struct {
 	SDL_Surface *sdllayer; //The surface itself!
 	byte flags; //Our flags!
+	SDL_sem *lock;
 } GPU_SDL_Surface; //Our userdata!
 
 GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface); //Retrieves a surface wrapper (for the GPU HW Surface only!)

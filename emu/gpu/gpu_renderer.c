@@ -60,13 +60,15 @@ uint_32 *row_empty = NULL; //A full row, non-initialised!
 uint_32 row_empty_size = 0; //No size!
 GPU_SDL_Surface *resized = NULL; //Standard resized data, keep between unchanged screens!
 
+extern SDL_sem *GPU_Lock; //The GPU lock!
+
 void init_rowempty()
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (!row_empty) //Not allocated yet?
 	{
 		row_empty_size = EMU_MAX_X*sizeof(uint_32); //Load the size of an empty row for deallocation purposes!
-		row_empty = (uint_32 *)zalloc(row_empty_size,"Empty row"); //Initialise empty row!
+		row_empty = (uint_32 *)zalloc(row_empty_size,"Empty row",GPU_Lock); //Initialise empty row!
 	}
 }
 
@@ -334,7 +336,9 @@ void render_EMU_buffer() //Render the EMU to the buffer!
 			//Limit broken = no display!
 			if (xres>EMU_MAX_X) return; //Limit to buffer!
 			if (yres>EMU_MAX_Y) return; //Limit to buffer!
-			GPU_SDL_Surface *emu_screen = createSurfaceFromPixels(GPU.xres,GPU.yres,GPU.emu_screenbuffer,EMU_MAX_X); //Create container 32BPP pixel mode!
+			lockGPU(); //Lock the GPU!
+			GPU_SDL_Surface *emu_screen = createSurfaceFromPixels(GPU.xres, GPU.yres, GPU.emu_screenbuffer, EMU_MAX_X); //Create container 32BPP pixel mode!
+			unlockGPU(); //Free the GPU!
 			if (emu_screen) //Createn to render?
 			{
 				//Resize to resized!

@@ -126,7 +126,7 @@ BACKLISTITEM defaultbacklist[8] = {{1,1},{1,0},{0,1},{1,-1},{-1,1},{0,-1},{-1,0}
 
 GPU_TEXTSURFACE *alloc_GPUtext()
 {
-	GPU_TEXTSURFACE *surface = (GPU_TEXTSURFACE *)zalloc(sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE"); //Create an empty initialised surface!
+	GPU_TEXTSURFACE *surface = (GPU_TEXTSURFACE *)zalloc(sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE",NULL); //Create an empty initialised surface!
 	if (!surface) //Failed to allocate?
 	{
 		return NULL; //Failed to allocate!

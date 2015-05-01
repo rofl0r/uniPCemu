@@ -28,6 +28,8 @@ VGA ROM and handling functions.
 
 #include "headers/emu/gpu/gpu_renderer.h" //GPU emulator support!
 
+#include "headers/support/locks.h" //Lock support!
+
 //Are we disabled?
 #define __HW_DISABLED 0
 #define __RENDERER_DISABLED 0
@@ -93,9 +95,16 @@ void freeVGALock(void)
 VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA and gives the current set!
 {
 	if (__HW_DISABLED) return NULL; //Abort!
+
+	if (!VGA_Lock) //No lock yet?
+	{
+		VGA_Lock = SDL_CreateSemaphore(1); //Add the lock for hardware/software conflicts!
+		atexit(&freeVGALock);
+	}
+
 	VGA_Type *VGA; //The VGA to be allocated!
 	//dolog("zalloc","Allocating VGA...");
-	VGA = (VGA_Type *)zalloc(sizeof(*VGA),"VGA_Struct"); //Allocate new VGA base to work with!
+	VGA = (VGA_Type *)zalloc(sizeof(*VGA),"VGA_Struct",VGA_Lock); //Allocate new VGA base to work with!
 	if (!VGA)
 	{
 		raiseError("VGAalloc","Ran out of memory allocating VGA base!");
@@ -123,12 +132,12 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	VGA->VRAM_size = size; //Use the selected size!
 	
 	//dolog("zalloc","Allocating VGA VRAM...");
-	VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM"); //The VRAM allocated to 0!
+	VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM",VGA_Lock); //The VRAM allocated to 0!
 	if (!VGA->VRAM)
 	{
 		VGA->VRAM_size = VRAM_SIZE; //Try Default VRAM size!
 		//dolog("zalloc","Allocating VGA VRAM default...");
-		VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM"); //The VRAM allocated to 0!
+		VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM",VGA_Lock); //The VRAM allocated to 0!
 		if (!VGA->VRAM) //Still not OK?
 		{
 			freez((void **)&VGA,sizeof(*VGA),"VGA@VGAAlloc_VRAM"); //Release the VGA!
@@ -145,7 +154,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	}
 
 	//dolog("zalloc","Allocating VGA registers...");
-	VGA->registers = (VGA_REGISTERS *)zalloc(sizeof(*VGA->registers),"VGA_Registers"); //Allocate registers!
+	VGA->registers = (VGA_REGISTERS *)zalloc(sizeof(*VGA->registers),"VGA_Registers",VGA_Lock); //Allocate registers!
 	if (!VGA->registers) //Couldn't allocate the registers?
 	{
 		freez((void **)&VGA->VRAM, VGA->VRAM_size,"VGA_VRAM@VGAAlloc_Registers"); //Release VRAM!
@@ -174,7 +183,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	VGA->Request_Termination = 0; //We're not running a request for termination!
 	VGA->Terminated = 1; //We're not running yet, so run nothing yet, if enabled!
 	
-	VGA->Sequencer = (SEQ_DATA *)zalloc(sizeof(SEQ_DATA),"SEQ_DATA"); //Sequencer data!
+	VGA->Sequencer = (SEQ_DATA *)zalloc(sizeof(SEQ_DATA),"SEQ_DATA",VGA_Lock); //Sequencer data!
 	if (!VGA->Sequencer) //Failed to allocate?
 	{
 		freez((void **)&VGA->VRAM, VGA->VRAM_size,"VGA_VRAM@VGAAlloc_Registers"); //Release VRAM!
@@ -184,12 +193,6 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	
 	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!
 	
-	if (!VGA_Lock) //No lock yet?
-	{
-		VGA_Lock = SDL_CreateSemaphore(1); //Add the lock for hardware/software conflicts!
-		atexit(&freeVGALock);
-	}
-
 	//dolog("VGA","Allocation ready.");
 	return VGA; //Give the new allocated VGA!
 }
@@ -262,6 +265,16 @@ void setupVGA() //Sets the VGA up for PC usage (CPU access etc.)!
 	VGAmemIO_reset(); //Initialise/reset memory mapped I/O!
 }
 
+byte lockVGA()
+{
+	return lock("VGA");
+}
+
+void unlockVGA()
+{
+	unlock("VGA");
+}
+
 /*
 
 Internal terminate and start functions!
@@ -273,33 +286,25 @@ void terminateVGA() //Terminate running VGA and disable it! Only to be used by r
 	if (__HW_DISABLED) return; //Abort!
 	if (!memprotect(getActiveVGA(), sizeof(*getActiveVGA()), "VGA_Struct"))
 	{
+		lockVGA(); //Lock the VGA!
 		ActiveVGA = NULL; //Unused!
+		unlockVGA(); //Finished!
 		return; //We can't terminate without a VGA to terminate!
 	}
+	lockVGA(); //Lock the VGA!
 	if (getActiveVGA()->Terminated) return; //Already terminated?
-	/*
-	getActiveVGA()->Request_Termination = 1; //We request to terminate!
-	while (!getActiveVGA()->Terminated) //Still not terminated?
-	{
-		delay(1); //Wait to be terminated!
-	}*/
 	//No need to request for termination: we either are rendering in hardware (already not here), or here and not rendering at all!
 	getActiveVGA()->Terminated = 1; //Terminate VGA!
+	unlockVGA(); //VGA can run again!
 }
 
 void startVGA() //Starts the current VGA! (See terminateVGA!)
 {
 	if (__HW_DISABLED) return; //Abort!
-	/*if (getActiveVGA()->Request_Termination) //We're requesting termination?
-	{
-		while (!getActiveVGA()->Terminated) //Wait to be terminated!
-		{
-			delay(1); //Wait to be terminated!
-		}
-	}*/ //Request for termination is not needed!
-	//raiseError("VGA","StartVGA0");
+	lockVGA();
 	getActiveVGA()->Terminated = DISABLE_VGA; //Reset termination flag, effectively starting the rendering!
 	VGA_calcprecalcs(getActiveVGA(),0); //Update full VGA to make sure we're running!
+	unlockVGA();
 }
 
 /*
@@ -308,28 +313,18 @@ For the emulator: setActiveVGA sets and starts a selected VGA (old one is termin
 
 */
 
-void lockVGA()
-{
-	SDL_SemWait(VGA_Lock); //Wait!
-}
-
-void unlockVGA()
-{
-	SDL_SemPost(VGA_Lock); //Release!
-}
-
 void setActiveVGA(VGA_Type *VGA) //Sets the active VGA chipset!
 {
 	if (__HW_DISABLED) return; //Abort!
-	lockVGA();
 	terminateVGA(); //Terminate currently running VGA!
+	lockVGA();
 	ActiveVGA = VGA; //Set the active VGA to this!
+	unlockVGA();
 	if (VGA) //Valid?
 	{
 		startVGA(); //Start the new VGA system!
 	}
 	//raiseError("VGA","SetActiveVGA: Started!");
-	unlockVGA();
 }
 
 VGA_Type *getActiveVGA() //Get the active VGA Chipset!
@@ -430,10 +425,14 @@ void VGA_VBlankHandler(VGA_Type *VGA)
 void VGA_waitforVBlank() //Wait for a VBlank to happen?
 {
 	if (__HW_DISABLED || __RENDERER_DISABLED) return; //Abort!
+	lockVGA();
 	getActiveVGA()->VGA_vblank = 0; //Reset we've occurred!
 	getActiveVGA()->wait_for_vblank = 1; //We're waiting for vblank to happen!
 	while (!getActiveVGA()->VGA_vblank) //Not happened yet?
 	{
+		unlockVGA(); //Allow some running time!
 		delay(50000); //Wait a bit for the VBlank to occur!
+		lockVGA(); //Lock it for our checking!
 	}
+	unlockVGA(); //Allow to run again!
 }

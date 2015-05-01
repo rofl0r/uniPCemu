@@ -67,7 +67,7 @@ word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **cha
 		return 0; //Invalid track length!
 	}
 	tracklength = byteswap32(currenttrack.length); //Calculate the length of the track!
-	data = zalloc(tracklength+sizeof(uint_32),"MIDI_DATA"); //Allocate data and cursor!
+	data = zalloc(tracklength+sizeof(uint_32),"MIDI_DATA",NULL); //Allocate data and cursor!
 	if (!data) //Ran out of memory?
 	{
 		fclose(f);
@@ -182,6 +182,7 @@ float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 		speed /= 1000000.0f; //Divide by 1 second!
 		speed /= PPQN; //Divide to get the ticks per second!
 		speed = 1.0f / speed; //Ammount per second!
+		speed *= 0.5f;
 	}
 
 	//We're counting in ticks!

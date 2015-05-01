@@ -17,6 +17,8 @@
 
 #include "headers/fopen64.h" //fopen64 support!
 
+#include "headers/support/locks.h" //Lock support!
+
 #ifdef __psp__
 #include <pspkernel.h>
 PSP_MODULE_INFO("x86EMU", 0, 1, 0);
@@ -171,6 +173,8 @@ int main(int argc, char * argv[])
 		exit(1); //Just to be sure
 	}
 
+	initLocks(); //Initialise all locks before anything: we have the highest priority!
+
 	initlog(); //Initialise the logging system!
 
 	//Normal operations!
@@ -194,15 +198,15 @@ int main(int argc, char * argv[])
 		int *p; //Pointer to int #1!
 		int *p2; //Pointer to int #2!
 		
-		p = (int *)zalloc(sizeof(*p),"zalloc_debug_int");
+		p = (int *)zalloc(sizeof(*p),"zalloc_debug_int",NULL);
 		freez((void **)&p,sizeof(*p),"zalloc_debug_int"); //Release int #1!
 		
 		if (freemem()!=f) //Different free memory?
 		{
 			dolog("zalloc_debug","Allocation-deallocation failed.");
 		}
-		p = (int *)zalloc(sizeof(*p),"debug_int");
-		p2 = (int *)zalloc(sizeof(*p),"debug_int_2");
+		p = (int *)zalloc(sizeof(*p),"debug_int",NULL);
+		p2 = (int *)zalloc(sizeof(*p),"debug_int_2",NULL);
 		freez((void **)&p2,sizeof(*p),"debug_int_2"); //Release int #2!
 		freez((void **)&p,sizeof(*p),"debug_int"); //Release int #1!
 		
@@ -211,8 +215,8 @@ int main(int argc, char * argv[])
 			dolog("zalloc_debug","Multiple deallocation failed.");
 		}
 		
-		p = (int *)zalloc(sizeof(*p),"debug_int");
-		p2 = (int *)zalloc(sizeof(*p),"debug_int_2");
+		p = (int *)zalloc(sizeof(*p),"debug_int",NULL);
+		p2 = (int *)zalloc(sizeof(*p),"debug_int_2",NULL);
 		freez((void **)&p,sizeof(*p),"debug_int"); //Release int #1!
 		freez((void **)&p2,sizeof(*p),"debug_int_2"); //Release int #2!
 		

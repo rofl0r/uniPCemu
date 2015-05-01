@@ -770,4 +770,7 @@ void VGAmemIO_reset(); //Reset/initialise memory mapped I/O for VGA!
 void VGA_dumpFonts(); //Dump all VGA fonts!
 
 void VGA_plane2updated(VGA_Type *VGA, uint_32 address); //Plane 2 has been updated?
+
+byte lockVGA();
+void unlockVGA();
 #endif

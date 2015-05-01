@@ -5,6 +5,7 @@
 #include "headers/emu/sound.h" //Sound support for our callback!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/mid.h" //MIDI file support!
+#include "headers/hardware/vga.h" //VGA support!
 
 float currentFunction(byte how, const float time); //For the PC speaker!
 
@@ -126,6 +127,8 @@ void dosoundtest()
 	#endif
 
 	#ifdef __DEBUG_MIDI
+	terminateVGA(); //Stop the active VGA renderer: we don't want it's corruption!
+
 	memset(&MID_data, 0, sizeof(MID_data)); //Init data!
 	memset(&MID_tracks, 0, sizeof(MID_tracks)); //Init tracks!
 
@@ -179,8 +182,8 @@ void dosoundtest()
 
 		removetimer("MID_tempotimer"); //Clean up!
 		freeMID(&MID_tracks[0], &MID_data[0], numchannels); //Free all channels!
-		halt();
 		exit(0);
+		halt();
 		sleep();
 	}
 

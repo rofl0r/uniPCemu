@@ -1,6 +1,9 @@
 #include "headers/types.h" //Basic types!
 #include "headers/support/zalloc.h" //Our own definitions!
 #include "headers/support/log.h" //Logging support!
+#include "headers/emu/gpu/gpu.h" //Locking support!
+#include "headers/hardware/vga.h" //Locking support!
+
 
 #include <malloc.h> //Specific to us only!
 
@@ -13,6 +16,7 @@ DEALLOCFUNC dealloc; //Deallocation function!
 
 //Extra optimizations:
 uint_32 ptrstart, ptrend; //Start&end address of the pointer!
+SDL_sem *lock; //The lock applied to this pointer: if it's to be freed and this is set, wait for this lock to be free!
 } POINTERENTRY;
 
 POINTERENTRY registeredpointers[1024]; //All registered pointers!
@@ -112,7 +116,7 @@ OPTINLINE sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //A
 	return -2; //Not found!
 }
 
-byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Register a pointer!
+byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc, SDL_sem *lock) //Register a pointer!
 {
 	uint_32 current; //Current!
 	uint_32 ptrend;
@@ -147,6 +151,7 @@ byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc) //Regis
 			ptrend += size; //Add the size!
 			--ptrend; //The end of the pointer is before the size!
 			registeredpointers[current].ptrend = ptrend; //End address of the pointer for fast checking!
+			registeredpointers[current].lock = lock; //Register the lock too!
 			#ifdef DEBUG_ALLOCDEALLOC
 			if (allow_zallocfaillog) dolog("zalloc","Memory has been allocated. Size: %i. name: %s, location: %p",size,name,ptr); //Log our allocated memory!
 			#endif
@@ -188,8 +193,9 @@ byte changedealloc(void *ptr, uint_32 size, DEALLOCFUNC dealloc) //Change the de
 }
 
 //Core allocation/deallocation functions.
-void zalloc_free(void **ptr, uint_32 size) //Free a pointer (used internally only) allocated with nzalloc/zalloc!
+void zalloc_free(void **ptr, uint_32 size, SDL_sem *lock) //Free a pointer (used internally only) allocated with nzalloc/zalloc!
 {
+	if (lock) SDL_SemWait(lock); //Wait for the lock!
 	void *ptrdata = NULL;
 	initZalloc(); //Make sure we're started!
 	if (ptr) //Valid pointer to our pointer?
@@ -201,6 +207,7 @@ void zalloc_free(void **ptr, uint_32 size) //Free a pointer (used internally onl
 		}
 		*ptr = NULL; //Release the pointer given!
 	}
+	if (lock) SDL_SemPost(lock); //Release the lock!
 }
 
 DEALLOCFUNC getdefaultdealloc()
@@ -208,7 +215,7 @@ DEALLOCFUNC getdefaultdealloc()
 	return &zalloc_free; //Default handler used by us!
 }
 
-void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on failure (ran out of memory), protected malloc!
+void *nzalloc(uint_32 size, char *name, SDL_sem *lock) //Allocates memory, NULL on failure (ran out of memory), protected malloc!
 {
 	void *ptr;
 	initZalloc(); //Make sure we're started!
@@ -217,7 +224,7 @@ void *nzalloc(uint_32 size, char *name) //Allocates memory, NULL on failure (ran
 
 	if (ptr!=NULL) //Allocated and a valid size?
 	{
-		if (registerptr(ptr,size,name,getdefaultdealloc())) //Register the pointer with the detection system, using the default dealloc functionality!
+		if (registerptr(ptr,size,name,getdefaultdealloc(),lock)) //Register the pointer with the detection system, using the default dealloc functionality!
 		{
 			return ptr; //Give the original pointer, cleared to 0!
 		}
@@ -254,7 +261,7 @@ void freez(void **ptr, uint_32 size, char *name)
 		{
 			return; //We can't be freed using this function! We're still allocated!
 		}
-		registeredpointers[ptrn].dealloc(ptr,size); //Release the memory tied to it using the registered deallocation function, if any!
+		registeredpointers[ptrn].dealloc(ptr,size,registeredpointers[ptrn].lock); //Release the memory tied to it using the registered deallocation function, if any!
 	}
 	#ifdef DEBUG_ALLOCDEALLOC
 	else if (allow_zallocfaillog && ptr!=NULL) //An pointer pointing to nothing?
@@ -266,10 +273,10 @@ void freez(void **ptr, uint_32 size, char *name)
 }
 
 //Allocation support: add initialization to zero.
-void *zalloc(uint_32 size, char *name) //Same as nzalloc, but clears the allocated memory!
+void *zalloc(uint_32 size, char *name, SDL_sem *lock) //Same as nzalloc, but clears the allocated memory!
 {
 	void *ptr;
-	ptr = nzalloc(size,name); //Try to allocate!
+	ptr = nzalloc(size,name,lock); //Try to allocate!
 	if (ptr) //Allocated?
 	{
 		if (memset(ptr, 0, size)) //Give the original pointer, cleared to 0!
@@ -286,10 +293,18 @@ void freezall(void) //Free all allocated memory still allocated (on shutdown onl
 {
 	int i;
 	initZalloc(); //Make sure we're started!
+	if (!lockVGA()) return; //VGA lock has highest priority: don't allow the VGA to use any resources!
+	if (!lockGPU()) //Lock us!
+	{
+		unlockVGA();
+		return;
+	}
 	for (i=0;i<NUMITEMS(registeredpointers);i++)
 	{
 		freez(&registeredpointers[i].pointer,registeredpointers[i].size,"Unregisterptrall"); //Unregister a pointer when allowed!
 	}
+	unlockGPU(); //Enable again!
+	unlockVGA();
 }
 
 //Memory protection/verification function. Returns the pointer when valid, NULL on invalid.
@@ -324,7 +339,7 @@ uint_32 freemem() //Free memory left! We work!
 	{
 		lastzalloc = (curalloc+(multiplier*times)); //Last zalloc!
 		allocated = 0; //Default: not allocated!
-		buffer = (char *)zalloc(lastzalloc,"freememdetect"); //Try allocating, don't have to be cleared!
+		buffer = (char *)zalloc(lastzalloc,"freememdetect",NULL); //Try allocating, don't have to be cleared!
 		if (buffer) //Allocated?
 		{
 			freez((void **)&buffer,lastzalloc,"freememdetect"); //Release memory for next try!

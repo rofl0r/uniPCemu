@@ -8,9 +8,10 @@
 //#define PPRLOG
 
 //Container/wrapper support
-void freeSurfacePtr(void **ptr, uint_32 size) //Free a pointer (used internally only) allocated with nzalloc/zalloc and our internal functions!
+void freeSurfacePtr(void **ptr, uint_32 size, SDL_sem *lock) //Free a pointer (used internally only) allocated with nzalloc/zalloc and our internal functions!
 {
 	GPU_SDL_Surface *surface = (GPU_SDL_Surface *)*ptr; //Take the surface out of the pointer!
+	if (surface->lock) SDL_SemWait(surface->lock);
 	if (!(surface->flags&SDL_FLAG_NODELETE)) //The surface is allowed to be deleted?
 	{
 		//Start by freeing the surfaces in the handlers!
@@ -25,20 +26,27 @@ void freeSurfacePtr(void **ptr, uint_32 size) //Free a pointer (used internally 
 			SDL_FreeSurface(surface->sdllayer); //Release the surface fully using native support!
 		}
 	}
+	if (surface->lock) SDL_SemPost(surface->lock); //We're done with the contents!
 	changedealloc(surface, sizeof(*surface), getdefaultdealloc()); //Change the deallocation function back to it's default!
 	//We're always allowed to release the container.
-	freez((void **)ptr,sizeof(GPU_SDL_Surface),"freeSurfacePtr GPU_SDL_Surface");
+	if (surface->lock)
+	{
+		SDL_DestroySemaphore(surface->lock); //Destory the semaphore!
+		surface->lock = NULL; //No lock anymore!
+	}
+	freez((void **)ptr, sizeof(GPU_SDL_Surface), "freeSurfacePtr GPU_SDL_Surface");
 }
 
 GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface) //Retrieves a surface wrapper to use with our functions!
 {
 	GPU_SDL_Surface *wrapper = NULL;
-	wrapper = (GPU_SDL_Surface *)zalloc(sizeof(GPU_SDL_Surface),"GPU_SDL_Surface"); //Allocate the wrapper!
+	wrapper = (GPU_SDL_Surface *)zalloc(sizeof(GPU_SDL_Surface),"GPU_SDL_Surface",NULL); //Allocate the wrapper!
 	if (!wrapper) //Failed to allocate the wrapper?
 	{
 		return NULL; //Error!
 	}
 	wrapper->sdllayer = surface; //The surface to use within the wrapper!
+	wrapper->lock = SDL_CreateSemaphore(1); //The lock!
 	return wrapper; //Give the allocated wrapper!
 }
 
@@ -50,7 +58,7 @@ void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerele
 	{
 		return; //Can't change registry for 'releasing the surface container' handler!
 	}
-	if (!registerptr(surface->sdllayer, sizeof(*surface->sdllayer), name, NULL)) //The surface itself!
+	if (!registerptr(surface->sdllayer, sizeof(*surface->sdllayer), name, NULL,NULL)) //The surface itself!
 	{
 		if (!memprotect(surface->sdllayer, sizeof(*surface->sdllayer), name)) //Failed to register?
 		{
@@ -63,7 +71,7 @@ void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerele
 	pixels_size = surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32); //The size of the pixels structure!
 	if (!memprotect(surface->sdllayer->pixels, pixels_size, NULL)) //Not already registered (fix for call from createSurfaceFromPixels)?
 	{
-		if (!registerptr(surface->sdllayer->pixels, pixels_size, "Surface_Pixels", NULL)) //The pixels within the surface! We can't be released natively!
+		if (!registerptr(surface->sdllayer->pixels, pixels_size, "Surface_Pixels", NULL,NULL)) //The pixels within the surface! We can't be released natively!
 		{
 			if (!memprotect(surface->sdllayer->pixels, pixels_size, "Surface_Pixels")) //Not registered?
 			{
@@ -627,7 +635,7 @@ GPU_SDL_Surface *freeSurface(GPU_SDL_Surface *surface)
 		if (memprotect(surface->sdllayer->pixels,surface->sdllayer->h*get_pixelrow_pitch(surface)*sizeof(uint_32),NULL)) //Pixels also allocated?
 		{
 			GPU_SDL_Surface *newsurface = surface; //Take the surface to use!
-			freeSurfacePtr((void **)&newsurface,sizeof(*newsurface)); //Release the surface via our kernel function!
+			freeSurfacePtr((void **)&newsurface,sizeof(*newsurface),NULL); //Release the surface via our kernel function!
 			return newsurface; //We're released (or not)!
 		}
 	}

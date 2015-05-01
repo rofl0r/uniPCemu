@@ -209,14 +209,32 @@ OPTINLINE double cents2samplesfactor(double cents)
 	return pow(2, (cents / 1200)); //Convert to samples (not entire numbers, so keep them counted)!
 }
 
-OPTINLINE double dB2factor(double dB, double fMaxLevelDB)
+//Low&high pass filters!
+
+OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
 {
-	return pow(10, ((dB - fMaxLevelDB) / 20));
+	float RC = 1.0 / (cutoff_freq * 2 * 3.14);
+	float dt = 1.0 / samplerate;
+	float alpha = dt / (RC + dt);
+	return previousresult + (alpha*(currentsample - previousresult));
 }
 
-OPTINLINE double factor2dB(double factor, double fMaxLevelDB)
+void applyLowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample)
 {
-	return (fMaxLevelDB + (20 * log(factor)));
+	if (!voice->lowpassfilter_freq) //No filter?
+	{
+		voice->has_last = 0; //No last (anymore)!
+		return; //Abort: nothing to filter!
+	}
+	if (!voice->has_last) //No last?
+	{
+		voice->last_result = voice->last_sample = *currentsample; //Save the current sample!
+		voice->has_last = 1;
+		return; //Abort: don't filter the first sample!
+	}
+	voice->last_result = calcLowpassFilter(voice->lowpassfilter_freq, voice->sample.dwSampleRate, *currentsample, voice->last_sample, voice->last_result);
+	voice->last_sample = *currentsample; //The last sample that was processed!
+	*currentsample = voice->last_result; //Give the new result!
 }
 
 /*
@@ -225,7 +243,151 @@ Voice support
 
 */
 
-byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata); //Sound output renderer prototype!
+OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *voice) //Get a sample from an MIDI note!
+{
+	//Our current rendering routine:
+	register uint_32 temp;
+	register uint_32 samplepos;
+	float lchannel, rchannel; //Both channels to use!
+	sword readsample; //The sample retrieved!
+	byte loopflags;
+
+	samplepos = voice->play_counter; //Load the current play counter!
+	if (voice->VolumeEnvelope.active) ++voice->play_counter; //Disable increasing the counter when inactive: keep the same position!
+	samplepos *= voice->effectivesamplespeedup; //Affect speed through cents and other factors!
+	samplepos += voice->startaddressoffset; //The start of the sample!
+
+	//First: apply looping! We don't apply [bit 1=0] (Loop infinite until finished), because we have no ADSR envelope yet!
+	loopflags = voice->currentloopflags;
+	if (voice->VolumeEnvelope.active) //Active voice?
+	{
+		if (loopflags & 1) //Currently looping and active?
+		{
+			if (samplepos >= voice->endloopaddressoffset) //Past/at the end of the loop!
+			{
+				temp = voice->startloopaddressoffset; //The actual start of the loop!
+				//Calculate loop size!
+				samplepos -= temp; //Take the ammount past the start of the loop!
+				samplepos %= voice->loopsize; //Loop past startloop by endloop!
+				samplepos += temp; //The destination position within the loop!
+				if ((loopflags & 0xC0) == 0x80) //We're depressed and depress action is allowed (not holding)?
+				{
+					if (loopflags & 2) //Loop until depress?
+					{
+						voice->currentloopflags = 0; //Disable loop flags: we're not looping anymore!
+						//Loop for the last time!
+						uint_32 temppos;
+						temppos = samplepos;
+						temppos -= voice->startaddressoffset; //Go back to the multiplied offset!
+						temppos /= voice->effectivesamplespeedup; //Calculate our play counter to use!
+						voice->play_counter = temppos; //Possibly our new position to start at!
+					}
+				}
+			}
+		}
+	}
+
+	//Next, apply finish!
+	loopflags = (samplepos >= voice->endaddressoffset); //Expired?
+	loopflags |= !voice->VolumeEnvelope.active; //Inactive?
+	if (loopflags) //Sound is finished?
+	{
+		sample->l = sample->r = 0; //No sample!
+		return; //Done!
+	}
+
+	if (getSFsample(soundfont, samplepos, &readsample)) //Sample found?
+	{
+		lchannel = (float)readsample; //Convert to floating point for our calculations!
+
+		//First, apply filters and current envelope!
+		applyLowpassFilter(voice, &lchannel); //Low pass filter!
+		lchannel *= voice->CurrentVolumeEnvelope; //Apply ADSR Volume envelope!
+		//Now the sample is ready for output into the actual final volume!
+
+		rchannel = lchannel; //Load into both channels!
+		//Now, apply panning!
+		lchannel *= voice->lvolume; //Apply left panning!
+		rchannel *= voice->rvolume; //Apply right panning!
+
+		//Give the result!
+		sample->l = lchannel; //LChannel!
+		sample->r = rchannel; //RChannel!
+	}
+	else
+	{
+		sample->l = sample->r = 0; //No sample to be found!
+	}
+}
+
+byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata) //Sound output renderer!
+{
+#ifdef __HW_DISABLED
+	return 0; //We're disabled!
+#endif
+
+	//Initialisation info
+	float pitchcents, currentsamplespeedup;
+	byte currenton;
+	uint_32 requestbit;
+	MIDIDEVICE_CHANNEL *channel;
+	//Initialised values!
+	MIDIDEVICE_VOICE *voice = (MIDIDEVICE_VOICE *)userdata;
+	sample_stereo_t* ubuf = (sample_stereo_t *)buf; //Our sample buffer!
+	uint_32 numsamples = length; //How many samples to buffer!
+
+#ifdef LOG_MIDI_TIMING
+	static TicksHolder ticks; //Our ticks holder!
+	startHiresCounting(&ticks);
+	ticksholder_AVG(&ticks); //Enable averaging!
+#endif
+
+	if (!voice->VolumeEnvelope.active) //Inactive voice?
+	{
+		return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
+	}
+
+	//Calculate the pitch bend speedup!
+	pitchcents = (double)voice->channel->pitch; //Load active pitch bend!
+	pitchcents /= 40.96f; //Pitch bend in cents!
+
+	//Now apply to the default speedup!
+	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
+	currentsamplespeedup *= cents2samplesfactor(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
+	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
+
+	if (voice->channel->request_off[voice->requestnumber] & voice->requestbit) //Requested turn off?
+	{
+		voice->currentloopflags |= 0x80; //Request quit looping if needed: finish sound!
+		voice->currentloopflags &= ~0x40; //Sustain disabled by default!
+		voice->currentloopflags |= (voice->channel->sustain << 6); //Sustaining?
+	} //Requested off?
+
+	//Now produce the sound itself!
+	for (; numsamples--;) //Produce the samples!
+	{
+		voice->CurrentVolumeEnvelope = ADSR_tick(&voice->VolumeEnvelope, (voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80)); //Apply Volume Envelope!
+		MIDIDEVICE_getsample(ubuf++, voice); //Get the sample from the MIDI device!
+	}
+
+#ifdef LOG_MIDI_TIMING
+	stopHiresCounting("MIDIDEV", "MIDIRenderer", &ticks); //Log our active counting!
+#endif
+
+	if (!voice->VolumeEnvelope.active) //Inactive voice?
+	{
+		//Get our data concerning the release!
+		availablevoices |= voice->availablevoicebit; //We're available again!
+		currenton = voice->requestnumber;
+		requestbit = voice->requestbit;
+		channel = voice->channel; //Current channel!
+
+		channel->request_off[currenton] &= ~requestbit; //Turn the KEY OFF request off, if any!
+		channel->playing[currenton] &= ~requestbit; //Turn the PLAYING flag off: we're not playing anymore!
+	}
+
+	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
+}
 
 byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice)
 {
@@ -857,182 +1019,6 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			#endif
 			break; //Do nothing!
 	}
-}
-
-/* Core rendering support */
-
-//Low&high pass filters!
-
-OPTINLINE float calcLowpassFilter(float cutoff_freq,float samplerate,float currentsample, float previoussample, float previousresult)
-{
-	float RC = 1.0 / (cutoff_freq * 2 * 3.14);
-	float dt = 1.0 / samplerate;
-	float alpha = dt / (RC + dt);
-	return previousresult + (alpha*(currentsample - previousresult));
-}
-
-void applyLowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample)
-{
-	if (!voice->lowpassfilter_freq) //No filter?
-	{
-		voice->has_last = 0; //No last (anymore)!
-		return; //Abort: nothing to filter!
-	}
-	if (!voice->has_last) //No last?
-	{
-		voice->last_result = voice->last_sample = *currentsample; //Save the current sample!
-		voice->has_last = 1;
-		return; //Abort: don't filter the first sample!
-	}
-	voice->last_result = calcLowpassFilter(voice->lowpassfilter_freq, voice->sample.dwSampleRate, *currentsample, voice->last_sample,voice->last_result);
-	voice->last_sample = *currentsample; //The last sample that was processed!
-	*currentsample = voice->last_result; //Give the new result!
-}
-
-OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *voice) //Get a sample from an MIDI note!
-{
-	//Our current rendering routine:
-	register uint_32 temp;
-	register uint_32 samplepos;
-	float lchannel, rchannel; //Both channels to use!
-	sword readsample; //The sample retrieved!
-	byte loopflags;
-
-	samplepos = voice->play_counter; //Load the current play counter!
-	if (voice->VolumeEnvelope.active) ++voice->play_counter; //Disable increasing the counter when inactive: keep the same position!
-	samplepos *= voice->effectivesamplespeedup; //Affect speed through cents and other factors!
-	samplepos += voice->startaddressoffset; //The start of the sample!
-	
-	//First: apply looping! We don't apply [bit 1=0] (Loop infinite until finished), because we have no ADSR envelope yet!
-	loopflags = voice->currentloopflags;
-	if (voice->VolumeEnvelope.active) //Active voice?
-	{
-		if (loopflags & 1) //Currently looping and active?
-		{
-			if (samplepos >= voice->endloopaddressoffset) //Past/at the end of the loop!
-			{
-				temp = voice->startloopaddressoffset; //The actual start of the loop!
-				//Calculate loop size!
-				samplepos -= temp; //Take the ammount past the start of the loop!
-				samplepos %= voice->loopsize; //Loop past startloop by endloop!
-				samplepos += temp; //The destination position within the loop!
-				if ((loopflags & 0xC0) == 0x80) //We're depressed and depress action is allowed (not holding)?
-				{
-					if (loopflags & 2) //Loop until depress?
-					{
-						voice->currentloopflags = 0; //Disable loop flags: we're not looping anymore!
-						//Loop for the last time!
-						uint_32 temppos;
-						temppos = samplepos;
-						temppos -= voice->startaddressoffset; //Go back to the multiplied offset!
-						temppos /= voice->effectivesamplespeedup; //Calculate our play counter to use!
-						voice->play_counter = temppos; //Possibly our new position to start at!
-					}
-				}
-			}
-		}
-	}
-
-	//Next, apply finish!
-	loopflags = (samplepos >= voice->endaddressoffset); //Expired?
-	loopflags |= !voice->VolumeEnvelope.active; //Inactive?
-	if (loopflags) //Sound is finished?
-	{
-		sample->l = sample->r = 0; //No sample!
-		return; //Done!
-	}
-
-	if (getSFsample(soundfont,samplepos,&readsample)) //Sample found?
-	{
-		lchannel = (float)readsample; //Convert to floating point for our calculations!
-
-		//First, apply filters and current envelope!
-		applyLowpassFilter(voice, &lchannel); //Low pass filter!
-		lchannel *= voice->CurrentVolumeEnvelope; //Apply ADSR Volume envelope!
-		//Now the sample is ready for output into the actual final volume!
-
-		rchannel = lchannel; //Load into both channels!
-		//Now, apply panning!
-		lchannel *= voice->lvolume; //Apply left panning!
-		rchannel *= voice->rvolume; //Apply right panning!
-		
-		//Give the result!
-		sample->l = lchannel; //LChannel!
-		sample->r = rchannel; //RChannel!
-	}
-	else
-	{
-		sample->l = sample->r = 0; //No sample to be found!
-	}
-}
-
-byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata) //Sound output renderer!
-{
-	#ifdef __HW_DISABLED
-		return 0; //We're disabled!
-	#endif
-
-	//Initialisation info
-	float pitchcents, currentsamplespeedup;
-	byte currenton;
-	uint_32 requestbit;
-	MIDIDEVICE_CHANNEL *channel;
-	//Initialised values!
-	MIDIDEVICE_VOICE *voice = (MIDIDEVICE_VOICE *)userdata;
-	sample_stereo_t* ubuf = (sample_stereo_t *)buf; //Our sample buffer!
-	uint_32 numsamples = length; //How many samples to buffer!
-
-	#ifdef LOG_MIDI_TIMING
-	static TicksHolder ticks; //Our ticks holder!
-	startHiresCounting(&ticks);
-	ticksholder_AVG(&ticks); //Enable averaging!
-	#endif
-
-	if (!voice->VolumeEnvelope.active) //Inactive voice?
-	{
-		return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
-	}
-
-	//Calculate the pitch bend speedup!
-	pitchcents = (double)voice->channel->pitch; //Load active pitch bend!
-	pitchcents /= 40.96f; //Pitch bend in cents!
-
-	//Now apply to the default speedup!
-	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
-	currentsamplespeedup *= cents2samplesfactor(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
-	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
-
-	if (voice->channel->request_off[voice->requestnumber]&voice->requestbit) //Requested turn off?
-	{
-		voice->currentloopflags |= 0x80; //Request quit looping if needed: finish sound!
-		voice->currentloopflags &= ~0x40; //Sustain disabled by default!
-		voice->currentloopflags |= (voice->channel->sustain<<6); //Sustaining?
-	} //Requested off?
-	
-	//Now produce the sound itself!
-	for (;numsamples--;) //Produce the samples!
-	{
-		voice->CurrentVolumeEnvelope = ADSR_tick(&voice->VolumeEnvelope,(voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80)); //Apply Volume Envelope!
-		MIDIDEVICE_getsample(ubuf++,voice); //Get the sample from the MIDI device!
-	}
-
-	#ifdef LOG_MIDI_TIMING
-	stopHiresCounting("MIDIDEV","MIDIRenderer",&ticks); //Log our active counting!
-	#endif
-
-	if (!voice->VolumeEnvelope.active) //Inactive voice?
-	{
-		//Get our data concerning the release!
-		availablevoices |= voice->availablevoicebit; //We're available again!
-		currenton = voice->requestnumber;
-		requestbit = voice->requestbit;
-		channel = voice->channel; //Current channel!
-
-		channel->request_off[currenton] &= ~requestbit; //Turn the KEY OFF request off, if any!
-		channel->playing[currenton] &= ~requestbit; //Turn the PLAYING flag off: we're not playing anymore!
-	}
-
-	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
 /* Init/destroy support */

@@ -495,14 +495,16 @@ void initStateHandlers()
 	}
 }
 
-extern SDL_sem *VGA_Lock; //Our lock!
-
 void VGA_Sequencer()
 {
 	if (HW_DISABLED) return;
-	SDL_SemWait(VGA_Lock); //Lock ourselves!
+	if (!lockVGA()) return; //Lock ourselves!
 	VGA_Type *VGA = getActiveVGA(); //Our active VGA!
-	if (!memprotect(VGA, sizeof(*VGA), "VGA_Struct")) return; //Invalid VGA? Don't do anything!
+	if (!memprotect(VGA, sizeof(*VGA), "VGA_Struct")) //Invalid VGA? Don't do anything!
+	{
+		unlockVGA();
+		return; //Abort: we're disabled!
+	}
 
 	SEQ_DATA *Sequencer;
 	word displaystate; //Current display state!
@@ -510,7 +512,7 @@ void VGA_Sequencer()
 
 	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Not doing anything?
 	{
-		SDL_SemPost(VGA_Lock);
+		unlockVGA();
 		return; //Abort: we're disabled!
 	}
 
@@ -519,7 +521,19 @@ void VGA_Sequencer()
 	{
 		initStateHandlers(); //Init our display states for usage!
 	}
-	
+
+	if (!lockGPU()) //Lock the GPU for our access!
+	{
+		unlockVGA();
+		return;
+	}
+	if (!memprotect(GPU.emu_screenbuffer, 4, "EMU_ScreenBuffer")) //Invalid framebuffer? Don't do anything!
+	{
+		unlockVGA();
+		unlockGPU(); //Unlock the VGA&GPU for Software access!
+		return; //Abort: we're disabled!
+	}
+
 	Sequencer_Break = 0; //Start running!
 	for (;;) //New CRTC constrolled way!
 	{
@@ -530,5 +544,6 @@ void VGA_Sequencer()
 		if (Sequencer_Break) break; //Abort when done!
 	}
 
-	SDL_SemPost(VGA_Lock); //Unlock the VGA for Software access!
+	unlockVGA(); //Unlock the VGA for Software access!
+	unlockGPU(); //Unlock the GPU for Software access!
 }

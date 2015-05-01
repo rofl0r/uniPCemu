@@ -122,4 +122,8 @@ void GPU_addTextSurface(void *surface, Handler handler); //Register a text surfa
 void GPU_removeTextSurface(void *surface); //Unregister a text surface (removes above added surface)!
 
 void updateVideo(); //Update the screen resolution on change!
+
+byte lockGPU();
+void unlockGPU(); //GPU locking support for framebuffer access!
+
 #endif

@@ -533,7 +533,7 @@ RIFFHEADER *readSF(char *filename)
 		fclose(f); //Close!
 		return NULL; //File has no size!
 	}
-	buffer = (byte *)zalloc(filesize+sizeof(RIFFHEADER),"RIFF_FILE"); //A RIFF file entry in memory!
+	buffer = (byte *)zalloc(filesize+sizeof(RIFFHEADER),"RIFF_FILE",NULL); //A RIFF file entry in memory!
 	if (!buffer) //Not enough memory?
 	{
 		dolog("SF2","Error: Ran out of memory to allocate the soundfont!");

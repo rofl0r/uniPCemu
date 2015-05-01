@@ -23,6 +23,8 @@
 
 #include "headers/emu/timers.h" //Timer support!
 
+#include "headers/support/locks.h" //Lock support!
+
 //Are we disabled?
 #define __HW_DISABLED 0
 
@@ -188,17 +190,44 @@ void doneVideoMain() //Everything SDL POST-EMU!
 
 //Below is called during emulation itself!
 
+SDL_sem *GPU_Lock; //Our lock!
+
+void freeGPULock(void)
+{
+	SDL_DestroySemaphore(GPU_Lock); //Add the lock for hardware/software conflicts!
+}
+
+byte lockGPU()
+{
+	return lock("GPU");
+}
+
+void unlockGPU()
+{
+	unlock("GPU");
+}
+
 void initVideo(int show_framerate) //Initialises the video
 {
 	if (__HW_DISABLED) return; //Abort!
+
+	if (!GPU_Lock) //No lock yet?
+	{
+		GPU_Lock = SDL_CreateSemaphore(1); //Add the lock for hardware/software conflicts!
+		atexit(&freeGPULock);
+	}
+
 	//dolog("GPU","Initialising screen buffers...");
 	
 	//dolog("zalloc","Allocating GPU EMU_screenbuffer...");
-	GPU.emu_screenbuffer = (uint_32 *)zalloc(EMU_SCREENBUFFERSIZE*4,"EMU_ScreenBuffer"); //Emulator screen buffer, 32-bits (x4)!
+	lockGPU();
+	GPU.emu_screenbuffer = (uint_32 *)zalloc(EMU_SCREENBUFFERSIZE * 4, "EMU_ScreenBuffer",GPU_Lock); //Emulator screen buffer, 32-bits (x4)!
 	if (!GPU.emu_screenbuffer) //Failed to allocate?
 	{
-		raiseError("GPU InitVideo","Failed to allocate the emulator screen buffer!");
+		unlockGPU(); //Unlock the GPU for Software access!
+		raiseError("GPU InitVideo", "Failed to allocate the emulator screen buffer!");
 	}
+	unlockGPU(); //Unlock the GPU for Software access!
 	//dolog("GPU","Setting up misc. settings...");
 
 	GPU.show_framerate = show_framerate; //Show framerate?
@@ -256,7 +285,9 @@ void doneVideo() //We're done with video operations?
 	//Nothing to do!
 	if (GPU.emu_screenbuffer) //Allocated?
 	{
-		freez((void **)&GPU.emu_screenbuffer,EMU_SCREENBUFFERSIZE*4,"doneVideo_EMU_ScreenBuffer"); //Free!
+		if (!lockGPU()) return; //Lock ourselves!
+		freez((void **)&GPU.emu_screenbuffer, EMU_SCREENBUFFERSIZE * 4, "doneVideo_EMU_ScreenBuffer"); //Free!
+		unlockGPU(); //Unlock the GPU for Software access!
 	}
 	done_GPURenderer(); //Clean up renderer stuff!
 }

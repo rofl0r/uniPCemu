@@ -14,6 +14,11 @@ OPTINLINE double dB2factor(double dB, double fMaxLevelDB)
 	return pow(10, ((dB - fMaxLevelDB) / 20));
 }
 
+OPTINLINE double factor2dB(double factor, double fMaxLevelDB)
+{
+	return (fMaxLevelDB + (20 * log(factor)));
+}
+
 //ADSR itself:
 
 void ADSR_release(ADSR *adsr, byte sustaining)
@@ -345,5 +350,5 @@ float ADSR_tick(ADSR *adsr, byte sustaining) //Tick an ADSR!
 	}; //ADSR states!
 	ADSR_EXEC[adsr->active](adsr,sustaining); //Execute the current ADSR!
 	++adsr->play_counter; //Next position to calculate!
-	return adsr->ADSREnvelope; //Give the current envelope!
+	return dB2factor(adsr->ADSREnvelope,1); //Give the current envelope, convert the linear factor to decibels!
 }

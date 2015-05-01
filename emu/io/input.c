@@ -416,7 +416,7 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 	{
 		if (useMouseTimer()) //We're using the mouse?
 		{
-			MOUSE_PACKET *mousepacket = (MOUSE_PACKET *)zalloc(sizeof(MOUSE_PACKET),"Mouse_Packet"); //Allocate a mouse packet!
+			MOUSE_PACKET *mousepacket = (MOUSE_PACKET *)zalloc(sizeof(MOUSE_PACKET),"Mouse_Packet",NULL); //Allocate a mouse packet!
 		
 			if (mousepacket) //Not running out of memory?
 			{
