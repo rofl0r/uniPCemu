@@ -14,11 +14,6 @@ OPTINLINE double dB2factor(double dB, double fMaxLevelDB)
 	return pow(10, ((dB - fMaxLevelDB) / 20));
 }
 
-OPTINLINE double factor2dB(double factor, double fMaxLevelDB)
-{
-	return (fMaxLevelDB + (20 * log(factor)));
-}
-
 //ADSR itself:
 
 void ADSR_release(ADSR *adsr, byte sustaining)
@@ -34,13 +29,10 @@ void ADSR_release(ADSR *adsr, byte sustaining)
 
 void ADSR_sustain(ADSR *adsr, byte sustaining)
 {
-	/*if (adsr->sustain) //Gotten sustain?
-	{*/
 	if (sustaining) //Disable our voice when not sustaining anymore!
 	{
 		return; //Sustaining!
 	}
-	//}
 	//Sustain expired?
 	adsr->active = MIDISTATUS_RELEASE; //Check next step!
 	adsr->releasestart = adsr->play_counter; //When we start to release!
@@ -54,7 +46,10 @@ void ADSR_decay(ADSR *adsr, byte sustaining)
 		if (adsr->decayend > adsr->play_counter) //Decay busy?
 		{
 			adsr->ADSREnvelope -= adsr->decayfactor; //Apply factor!
-			return; //Hold!
+			if (adsr->ADSREnvelope > adsr->sustainfactor) //Still busy?
+			{
+				return; //Decay!
+			}
 		}
 	}
 	//Decay expired?
@@ -84,7 +79,10 @@ void ADSR_attack(ADSR *adsr, byte sustaining)
 		if (adsr->attackend > adsr->play_counter) //Attack busy?
 		{
 			adsr->ADSREnvelope += adsr->attackfactor; //Apply factor!
-			return;
+			if (adsr->ADSREnvelope < 1.0f) //Not full yet?
+			{
+				return; //Attack!
+			}
 		}
 	}
 	//Attack expired?
@@ -329,8 +327,8 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 
 	//Finally calculate the actual values needed!
 	adsr->attackend = adsr->attack + adsr->delaytime;
-	adsr->holdend = adsr->hold + adsr->attack + adsr->delaytime;
-	adsr->decayend = adsr->decay + adsr->hold + adsr->attack + adsr->delaytime;
+	adsr->holdend = adsr->hold + adsr->attackend;
+	adsr->decayend = adsr->decay + adsr->holdend;
 	adsr->active = MIDISTATUS_DELAY; //We're starting with a delay!
 	adsr->play_counter = 0; //Initialise our counter!
 }

@@ -182,7 +182,6 @@ float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 		speed /= 1000000.0f; //Divide by 1 second!
 		speed /= PPQN; //Divide to get the ticks per second!
 		speed = 1.0f / speed; //Ammount per second!
-		speed *= 0.5; //Half speed!
 	}
 
 	//We're counting in ticks!
