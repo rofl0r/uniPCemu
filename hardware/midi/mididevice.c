@@ -119,7 +119,6 @@ typedef struct
 } MIDIDEVICE_VOICE;
 
 MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
-uint_64 availablevoices = 0xFFFFFFFFFFFFFFFF; //Available voices!
 
 OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current); //MIDI device UART mode execution!
 
@@ -377,7 +376,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (!voice->VolumeEnvelope.active) //Inactive voice?
 	{
 		//Get our data concerning the release!
-		availablevoices |= voice->availablevoicebit; //We're available again!
 		currenton = voice->requestnumber;
 		requestbit = voice->requestbit;
 		channel = voice->channel; //Current channel!
@@ -608,7 +606,7 @@ handlerequest: //Handles an NOTE ON request!
 	voice->rvolume = rvolume; //Right panning!
 
 	//Now determine the volume envelope!
-	voice->CurrentVolumeEnvelope = 1.0f; //Default: nothing yet, so full volume, Give us full priority Volume-wise!
+	voice->CurrentVolumeEnvelope = 0.0f; //Default: nothing yet, so no volume, Give us full priority Volume-wise!
 	voice->CurrentModulationEnvelope = 0.0f; //Default: nothing tet, so no modulation!
 	
 	ADSR_init((float)voice->sample.dwSampleRate, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay);	//Initialise our Volume Envelope for use!
@@ -644,7 +642,6 @@ handlerequest: //Handles an NOTE ON request!
 	setSampleRate(&MIDIDEVICE_renderer, voice, voice->sample.dwSampleRate); //Use this new samplerate!
 	channel->playing[currenton] |= requestbit; //Playing flag!
 	voice->starttime = starttime++; //Take a new start time!
-	availablevoices &= ~voice->availablevoicebit; //Set us busy!
 	return 0; //Run: we're active!
 }
 
