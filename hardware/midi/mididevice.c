@@ -23,7 +23,7 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 //All MIDI voices that are available!
 #define __MIDI_NUMVOICES 64
 //How many samples to buffer at once! 42 according to MIDI specs! Set to 84 to work!
-#define __MIDI_SAMPLES 1024
+#define __MIDI_SAMPLES 84
 
 //To log MIDI commands?
 //#define MIDI_LOG
@@ -61,9 +61,6 @@ typedef struct
 	byte pressure; //Channel pressure/volume!
 	word bank; //What bank are we?
 	sword pitch; //Current pitch (14-bit value)
-	uint_32 request_on[4]; //All notes requested on (bitfield)
-	uint_32 playing[4]; //All notes that are being played!
-	uint_32 request_off[4]; //All notes requested off (bitfield)
 	byte sustain; //Enable sustain? Don't process KEY OFF while set!
 	byte channelrangemin, channelrangemax; //Ranges of used channels to respond to when in Mono Mode.
 	byte mode; //Channel mode: 0=Omni off, Mono; 1=Omni off, Poly; 2=Omni on, Mono; 3=Omni on, Poly;
@@ -79,15 +76,7 @@ struct
 
 typedef struct
 {
-	uint_32 status_counter; //Counter used within this status!
 	uint_32 play_counter; //Current play position within the soundfont!
-
-	//Our assigned notes/channels for lookup!
-	MIDIDEVICE_CHANNEL *channel; //The active channel!
-	MIDIDEVICE_NOTE *note; //The active note!
-	sfSample sample; //The sample to be played back!
-	float initsamplespeedup; //Precalculated speedup of the samples, to be processed into effective speedup when starting the rendering!
-	float effectivesamplespeedup; //The speedup of the samples!
 	uint_32 loopsize; //The size of a loop!
 	//Patches to the sample offsets, calculated before generating sound!
 	uint_32 startaddressoffset;
@@ -95,27 +84,29 @@ typedef struct
 	uint_32 endaddressoffset;
 	uint_32 endloopaddressoffset;
 
-	float lvolume, rvolume; //Left and right panning!
-
-	byte currentloopflags; //What loopflags are active?
-	byte requestnumber; //Number of the request block!
-	uint_32 requestbit; //The bit used in the request block!
-
-	uint_64 availablevoicebit; //Our available voice's bit!
-
-	//High pass filter
-	float lowpassfilter_freq; //What frequency to filter? 0.0f=No filter!
-	byte has_last; //Gotten last?
-	float last_sample; //Last retrieved sample!
-	float last_result; //Last result of the high pass filter!
-
-	ADSR VolumeEnvelope; //The volume envelope!
-	ADSR ModulationEnvelope; //The modulation envelope!
-	float CurrentVolumeEnvelope; //Current volume envelope!
-	float CurrentModulationEnvelope; //Current modulation envelope!
+	sword last_sample; //Last retrieved sample!
+	sword last_result; //Last result of the high pass filter!
 
 	//Stuff for voice stealing
 	uint_64 starttime; //When have we started our voice?
+
+	//Our assigned notes/channels for lookup!
+	MIDIDEVICE_CHANNEL *channel; //The active channel!
+	MIDIDEVICE_NOTE *note; //The active note!
+	float initsamplespeedup; //Precalculated speedup of the samples, to be processed into effective speedup when starting the rendering!
+	float effectivesamplespeedup; //The speedup of the samples!
+	float lvolume, rvolume; //Left and right panning!
+	float lowpassfilter_freq; //What frequency to filter? 0.0f=No filter!
+	float CurrentVolumeEnvelope; //Current volume envelope!
+	float CurrentModulationEnvelope; //Current modulation envelope!
+
+	sfSample sample; //The sample to be played back!
+	ADSR VolumeEnvelope; //The volume envelope!
+	ADSR ModulationEnvelope; //The modulation envelope!
+
+	byte currentloopflags; //What loopflags are active?
+	byte request_off; //Are we to be turned off? Start the release phase when enabled!
+	byte has_last; //Gotten last?
 } MIDIDEVICE_VOICE;
 
 MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
@@ -218,7 +209,7 @@ OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float cur
 	return previousresult + (alpha*(currentsample - previousresult));
 }
 
-void applyLowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample)
+void applyLowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample)
 {
 	if (!voice->lowpassfilter_freq) //No filter?
 	{
@@ -242,17 +233,17 @@ Voice support
 
 */
 
-OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *voice) //Get a sample from an MIDI note!
+OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *voice, float Volume) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	register uint_32 temp;
+	register uint_32 temppos;
 	register uint_32 samplepos;
-	float lchannel, rchannel; //Both channels to use!
+	sword lchannel, rchannel; //Both channels to use!
 	sword readsample; //The sample retrieved!
 	byte loopflags;
 
 	samplepos = voice->play_counter; //Load the current play counter!
-	if (voice->VolumeEnvelope.active) ++voice->play_counter; //Disable increasing the counter when inactive: keep the same position!
 	samplepos *= voice->effectivesamplespeedup; //Affect speed through cents and other factors!
 	samplepos += voice->startaddressoffset; //The start of the sample!
 
@@ -260,6 +251,7 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 	loopflags = voice->currentloopflags;
 	if (voice->VolumeEnvelope.active) //Active voice?
 	{
+		++voice->play_counter; //Disable increasing the counter when inactive: keep the same position!
 		if (loopflags & 1) //Currently looping and active?
 		{
 			if (samplepos >= voice->endloopaddressoffset) //Past/at the end of the loop!
@@ -275,8 +267,7 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 					{
 						voice->currentloopflags = 0; //Disable loop flags: we're not looping anymore!
 						//Loop for the last time!
-						uint_32 temppos;
-						temppos = samplepos;
+						temppos = samplepos; //Load the samplepos within the loop!
 						temppos -= voice->startaddressoffset; //Go back to the multiplied offset!
 						temppos /= voice->effectivesamplespeedup; //Calculate our play counter to use!
 						voice->play_counter = temppos; //Possibly our new position to start at!
@@ -301,7 +292,7 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 
 		//First, apply filters and current envelope!
 		applyLowpassFilter(voice, &lchannel); //Low pass filter!
-		lchannel *= voice->CurrentVolumeEnvelope; //Apply ADSR Volume envelope!
+		lchannel *= Volume; //Apply ADSR Volume envelope!
 		//Now the sample is ready for output into the actual final volume!
 
 		rchannel = lchannel; //Load into both channels!
@@ -312,11 +303,9 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 		//Give the result!
 		sample->l = lchannel; //LChannel!
 		sample->r = rchannel; //RChannel!
+		return;
 	}
-	else
-	{
-		sample->l = sample->r = 0; //No sample to be found!
-	}
+	sample->l = sample->r = 0; //No sample to be found!
 }
 
 byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata) //Sound output renderer!
@@ -330,10 +319,13 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	byte currenton;
 	uint_32 requestbit;
 	MIDIDEVICE_CHANNEL *channel;
+	register float VolumeEnvelope; //Current volume envelope data!
 	//Initialised values!
 	MIDIDEVICE_VOICE *voice = (MIDIDEVICE_VOICE *)userdata;
 	sample_stereo_t* ubuf = (sample_stereo_t *)buf; //Our sample buffer!
+	ADSR *VolumeADSR = &voice->VolumeEnvelope; //Our used volume envelope ADSR!
 	uint_32 numsamples = length; //How many samples to buffer!
+	++numsamples; //Take one sample more!
 
 #ifdef LOG_MIDI_TIMING
 	static TicksHolder ticks; //Our ticks holder!
@@ -341,10 +333,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	ticksholder_AVG(&ticks); //Enable averaging!
 #endif
 
-	if (!voice->VolumeEnvelope.active) //Inactive voice?
-	{
-		return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
-	}
+	if (!voice->VolumeEnvelope.active) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
 
 	//Calculate the pitch bend speedup!
 	pitchcents = (double)voice->channel->pitch; //Load active pitch bend!
@@ -355,7 +344,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	currentsamplespeedup *= cents2samplesfactor(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
 	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
 
-	if (voice->channel->request_off[voice->requestnumber] & voice->requestbit) //Requested turn off?
+	if (voice->request_off) //Requested turn off?
 	{
 		voice->currentloopflags |= 0x80; //Request quit looping if needed: finish sound!
 		voice->currentloopflags &= ~0x40; //Sustain disabled by default!
@@ -363,11 +352,13 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	} //Requested off?
 
 	//Now produce the sound itself!
-	for (; numsamples--;) //Produce the samples!
+	for (; --numsamples;) //Produce the samples!
 	{
-		voice->CurrentVolumeEnvelope = ADSR_tick(&voice->VolumeEnvelope, (voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80)); //Apply Volume Envelope!
-		MIDIDEVICE_getsample(ubuf++, voice); //Get the sample from the MIDI device!
+		VolumeEnvelope = ADSR_tick(VolumeADSR, (voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80)); //Apply Volume Envelope!
+		MIDIDEVICE_getsample(ubuf++, voice, VolumeEnvelope); //Get the sample from the MIDI device!
 	}
+
+	voice->CurrentVolumeEnvelope = VolumeEnvelope; //Current volume envelope updated!
 
 #ifdef LOG_MIDI_TIMING
 	stopHiresCounting("MIDIDEV", "MIDIRenderer", &ticks); //Log our active counting!
@@ -376,24 +367,19 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (!voice->VolumeEnvelope.active) //Inactive voice?
 	{
 		//Get our data concerning the release!
-		currenton = voice->requestnumber;
-		requestbit = voice->requestbit;
-		channel = voice->channel; //Current channel!
-
-		channel->request_off[currenton] &= ~requestbit; //Turn the KEY OFF request off, if any!
-		channel->playing[currenton] &= ~requestbit; //Turn the PLAYING flag off: we're not playing anymore!
+		voice->request_off = 0; //Finished: we're turned off!
 	}
 
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
-byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice)
+byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
 {
 	static uint_64 starttime = 0; //Calculated start time!
 	byte currentchannel, currenton, biton;
 	word pbag, ibag;
 	sword rootMIDITone; //Relative root MIDI tone!
-	uint_32 requestbit, preset, therequeston, notenumber, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
+	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
 	float cents, tonecents, lvolume, rvolume, panningtemp;
 
 	MIDIDEVICE_CHANNEL *channel;
@@ -405,50 +391,12 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice)
 
 	//Check for requested voices!
 	//First, all our variables!
-	for (currentchannel = 0; currentchannel<0x40;) //Process all channels (10 channels, 4 dwords/channel)!
-	{
-		biton = currenton = currentchannel; //Current on!
-		currenton >>= 4; //Take the current dword!
-		biton &= 0xF; //Lower 4 bits is the channel!
-		if (MIDIDEVICE.channels[biton].request_on[currenton]) //Any request on?
-		{
-			therequeston = MIDIDEVICE.channels[biton].request_on[currenton];
-			goto handlerequest; //Handle request!
-		}
-		++currentchannel; //Next channel!
-	}
-	return 1; //Abort: we're an inactive voice!
-
-handlerequest: //Handles an NOTE ON request!
-	currentchannel = biton; //The specified channel!
-	//currentchannel=the channel; currenton=the request dword
-	for (biton = 0; ((biton<32) && (!(therequeston & 1)));) //Not found yet?
-	{
-		if (therequeston & 1) break; //Stop searching when found!
-		therequeston >>= 1; //Next bit check!
-		++biton; //Next bit!
-	}
-	//biton is the requested bit number
-
-	voice->requestnumber = currenton; //The request number!
-
-	requestbit = 1;
-	requestbit <<= biton; //The request bit!
-
-	voice->channel = channel = &MIDIDEVICE.channels[currentchannel]; //What channel!
-
-	channel->request_on[currenton] &= ~requestbit; //Turn the request off!
-	voice->requestbit = requestbit; //Save the request bit!
+	//Now, determine the actual note to be turned on!
+	voice->channel = channel = &MIDIDEVICE.channels[request_channel]; //What channel!
+	voice->note = note = &voice->channel->notes[request_note]; //What note!
 
 	voice->play_counter = 0; //Reset play counter!
 
-	notenumber = currenton; //Current on!
-	notenumber <<= 5; //32 notes for each currenton;
-	notenumber |= biton; //The actual note that's turned on!
-	//Now, notenumber contains the note turned on!
-
-	//Now, determine the actual note to be turned on!
-	voice->note = note = &voice->channel->notes[notenumber]; //What note!
 
 	//First, our precalcs!
 
@@ -640,7 +588,6 @@ handlerequest: //Handles an NOTE ON request!
 
 	//Final adjustments and set active!
 	setSampleRate(&MIDIDEVICE_renderer, voice, voice->sample.dwSampleRate); //Use this new samplerate!
-	channel->playing[currenton] |= requestbit; //Playing flag!
 	voice->starttime = starttime++; //Take a new start time!
 	return 0; //Run: we're active!
 }
@@ -668,36 +615,22 @@ OPTINLINE byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
 	return 1;
 }
 
-OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note, byte velocity, byte note32, byte note32_index, uint_32 note32_value)
+OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note, byte velocity)
 {
 	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel)) //To be applied?
 	{
-		if ((MIDIDEVICE.channels[channel].playing[note32]&note32_value) || (MIDIDEVICE.channels[channel].request_on[note32]&note32_value)) //Are we playing or requested?
+		int i;
+		for (i = 0; i < __MIDI_NUMVOICES; i++) //Process all voices!
 		{
-			if ((MIDIDEVICE.channels[channel].request_on[note32] & note32_value) && (~MIDIDEVICE.channels[channel].playing[note32] & note32_value)) //Requested without playing?
+			if (activevoices[i].VolumeEnvelope.active) //Active note?
 			{
-				//We're requested, but not playing yet! Remove from queue!
-				MIDIDEVICE.channels[channel].request_on[note32] &= ~note32_value; //Don't play this anymore! Discard the note (lost note)!
-			}
-			else //Normal: we can be shut down!
-			{
-				MIDIDEVICE.channels[channel].request_off[note32] |= note32_value; //Request finish!
-				MIDIDEVICE.channels[channel].notes[note].noteoff_velocity = velocity; //What velocity!
+				if ((activevoices[i].note->channel == channel) && (activevoices[i].note->note == note)) //Note found?
+				{
+					activevoices[i].request_off = 1; //We're requesting to be turned off!
+				}
 			}
 		}
 	}
-}
-
-OPTINLINE void MIDIDEVICE_calc_notePosition(byte note, byte *note32, byte *note32_index, uint_32 *note32_value)
-{
-	//Our variables come first!
-	//First, calculate our results!
-	*note32 = note;
-	*note32 >>= 5; //Divide by 32 for the note every dword!
-	*note32_index = note;
-	*note32_index &= 0x1F; //The index within the search!
-	*note32_value = 1; //Load the index!
-	*note32_value <<= *note32_index; //Shift to our position!
 }
 
 OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used with command, mode change and Mono Mode.
@@ -709,8 +642,7 @@ OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used
 	lockaudio(); //Lock the audio!
 	for (noteoff=0;noteoff<0x100;) //Process all notes!
 	{
-		MIDIDEVICE_calc_notePosition(noteoff,&note32,&note32_index,&note32_value); //Calculate our needs!
-		MIDIDEVICE_noteOff(selectedchannel,channel,noteoff++,64,note32,note32_index,note32_value); //Execute Note Off!
+		MIDIDEVICE_noteOff(selectedchannel,channel,noteoff++,64); //Execute Note Off!
 	}
 	unlockaudio(1); //Unlock the audio!
 	#ifdef MIDI_LOG
@@ -718,92 +650,81 @@ OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used
 	#endif
 }
 
-OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity, byte note32, byte note32_index, uint_32 note32_value)
+OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity)
 {
 	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel)) //To be applied?
 	{
-		if (!(MIDIDEVICE.channels[channel].playing[note32]&note32_value)) //Not already playing?
+		if (!(MIDIDEVICE.channels[channel].mode&MIDIDEVICE_POLY)) //Mono mode?
 		{
-			if (!(MIDIDEVICE.channels[channel].mode&MIDIDEVICE_POLY)) //Mono mode?
-			{
-				MIDIDEVICE_AllNotesOff(selectedchannel,channel); //Turn all notes off first!
-			}
-			MIDIDEVICE.channels[channel].request_on[note32] |= note32_value; //Request start!
-			MIDIDEVICE.channels[channel].notes[note].noteon_velocity = velocity; //Add velocity to our lookup!
+			MIDIDEVICE_AllNotesOff(selectedchannel,channel); //Turn all notes off first!
+		}
+		MIDIDEVICE.channels[channel].notes[note].noteon_velocity = velocity; //Add velocity to our lookup!
 
-			int voice, foundvoice = -1, voicetosteal = -1;
-			int_32 stolenvoiceranking = 0xEFFFFFFF, currentranking; //Stolen voice ranking starts lowest always!
-			for (voice = 0; voice < __MIDI_NUMVOICES; voice++) //Find a voice!
+		int voice, foundvoice = -1, voicetosteal = -1;
+		int_32 stolenvoiceranking = 0xEFFFFFFF, currentranking; //Stolen voice ranking starts lowest always!
+		for (voice = 0; voice < __MIDI_NUMVOICES; voice++) //Find a voice!
+		{
+			if (MIDIDEVICE_newvoice(&activevoices[voice],channel,note)) //Failed to allocate?
 			{
-				if (MIDIDEVICE_newvoice(&activevoices[voice])) //Failed to allocate?
+				if (activevoices[voice].VolumeEnvelope.active) //Are we active?
 				{
-					if (activevoices[voice].VolumeEnvelope.active) //Are we active?
+					//Create ranking by scoring the voice!
+					currentranking = 0; //Start with no ranking!
+					if (activevoices[voice].channel == &MIDIDEVICE.channels[9]) currentranking += 4000; //Drum channel?
+					else if (activevoices[voice].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
+					if (activevoices[voice].channel->sustain) currentranking -= 1000; //Lower when sustained!
+					float volume;
+					volume = activevoices[voice].CurrentVolumeEnvelope; //Load the ADSR volume!
+					if (activevoices[voice].lvolume > activevoices[voice].rvolume) //More left volume?
 					{
-						//Create ranking by scoring the voice!
-						currentranking = 0; //Start with no ranking!
-						if (activevoices[voice].channel == &MIDIDEVICE.channels[9]) currentranking += 4000; //Drum channel?
-						else if (activevoices[voice].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
-						if (activevoices[voice].channel->sustain) currentranking -= 1000; //Lower when sustained!
-						float volume;
-						volume = activevoices[voice].CurrentVolumeEnvelope; //Load the ADSR volume!
-						if (activevoices[voice].lvolume > activevoices[voice].rvolume) //More left volume?
+						volume *= activevoices[voice].lvolume; //Left volume!
+					}
+					else
+					{
+						volume *= activevoices[voice].rvolume; //Right volume!
+					}
+					currentranking += (int_32)(volume*1000.0f); //Factor in volume!
+					if (stolenvoiceranking > currentranking) //We're a lower rank?
+					{
+						stolenvoiceranking = currentranking; //New voice to steal!
+						voicetosteal = voice; //Steal this voice, if needed!
+					}
+					else if ((currentranking == stolenvoiceranking) && (voicetosteal!=-1)) //Same ranking as the last one found?
+					{
+						if (activevoices[voice].starttime < activevoices[voicetosteal].starttime) //Earlier start time with same ranking?
 						{
-							volume *= activevoices[voice].lvolume; //Left volume!
-						}
-						else
-						{
-							volume *= activevoices[voice].rvolume; //Right volume!
-						}
-						currentranking += (int_32)(volume*1000.0f); //Factor in volume!
-						if (stolenvoiceranking > currentranking) //We're a lower rank?
-						{
-							stolenvoiceranking = currentranking; //New voice to steal!
 							voicetosteal = voice; //Steal this voice, if needed!
 						}
-						else if ((currentranking == stolenvoiceranking) && (voicetosteal!=-1)) //Same ranking as the last one found?
-						{
-							if (activevoices[voice].starttime < activevoices[voicetosteal].starttime) //Earlier start time with same ranking?
-							{
-								voicetosteal = voice; //Steal this voice, if needed!
-							}
-						}
-					}
-					else //Inactive channel, but failed to express when allocating?
-					{
-						foundvoice = voice; //Found this voice!
-						break;
 					}
 				}
-				else //Allocated?
+				else //Inactive channel, but failed to express when allocating?
 				{
 					foundvoice = voice; //Found this voice!
-					break; //Stop searching!
+					break;
 				}
 			}
-			if (foundvoice == -1) //No channels available? We need voice stealing!
+			else //Allocated?
 			{
-				//Perform voice stealing using voicetosteal, if available!
-				if (voicetosteal != -1) //Something to steal?
-				{
-					activevoices[voicetosteal].VolumeEnvelope.active = 0; //Make inactive!
-					MIDIDEVICE_newvoice(&activevoices[voicetosteal]); //Steal the selected voice!
-				}
-				else
-				{
-					//If nothing can be stolen, don't play the note!
-					MIDIDEVICE.channels[channel].request_on[note32] &= ~note32_value; //Remove from the requests!
-				}
+				foundvoice = voice; //Found this voice!
+				break; //Stop searching!
 			}
-			//Else: allocated!
 		}
+		if (foundvoice == -1) //No channels available? We need voice stealing!
+		{
+			//Perform voice stealing using voicetosteal, if available!
+			if (voicetosteal != -1) //Something to steal?
+			{
+				activevoices[voicetosteal].VolumeEnvelope.active = 0; //Make inactive!
+				MIDIDEVICE_newvoice(&activevoices[voicetosteal], channel,note); //Steal the selected voice!
+			}
+		}
+		//Else: allocated!
 	}
 }
 
 OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
 {
 	//First, our variables!
-	byte note32, note32_index;
-	uint_32 note32_value;
 	byte command, currentchannel, channel, firstparam;
 	byte rangemin, rangemax; //Ranges for MONO mode.
 
@@ -815,15 +736,14 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 	switch (command&0xF0) //What command?
 	{
 		case 0x80: //Note off?
-			MIDIDEVICE_calc_notePosition(firstparam,&note32,&note32_index,&note32_value); //Calculate our needs!
-		noteoff: //Not off!
+		noteoff: //Note off!
 			#ifdef MIDI_LOG
 			if ((command & 0xF0) == 0x90) dolog("MPU", "MIDIDEVICE: NOTE ON: Redirected to NOTE OFF.");
 			#endif
 			lockaudio(); //Lock the audio!
 			for (channel=0;channel<0x10;) //Process all channels!
 			{
-				MIDIDEVICE_noteOff(currentchannel,channel++,firstparam,current->buffer[1],note32,note32_index,note32_value); //Execute Note Off!
+				MIDIDEVICE_noteOff(currentchannel,channel++,firstparam,current->buffer[1]); //Execute Note Off!
 			}
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
@@ -831,12 +751,11 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			#endif
 			break;
 		case 0x90: //Note on?
-			MIDIDEVICE_calc_notePosition(firstparam,&note32,&note32_index,&note32_value); //Calculate our needs!
 			if (!current->buffer[1]) goto noteoff; //Actually a note off?
 			lockaudio(); //Lock the audio!
 			for (channel=0;channel<0x10;) //Process all channels!
 			{
-				MIDIDEVICE_noteOn(currentchannel, channel++, firstparam, current->buffer[1], note32, note32_index, note32_value); //Execute Note Off!
+				MIDIDEVICE_noteOn(currentchannel, channel++, firstparam, current->buffer[1]); //Execute Note On!
 			}
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
@@ -1043,7 +962,6 @@ void done_MIDIDEVICE() //Finish our midi device!
 	int i;
 	for (i=0;i<NUMITEMS(activevoices);i++) //Assign all voices available!
 	{
-		activevoices[i].availablevoicebit = (1LL << (uint_64)i); //Our bit in available voices!
 		removechannel(&MIDIDEVICE_renderer,&activevoices[i],0); //Remove the channel! Delay at 0.96ms for response speed!
 	}
 	unlockaudio(1);

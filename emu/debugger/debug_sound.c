@@ -92,7 +92,6 @@ void handleMIDIChannel()
 	channel = (word)getthreadparams(); //Gotten a channel?
 	playMIDIStream(channel,MID_data[channel], &header, &MID_tracks[channel]); //Play the MIDI stream!
 	SDL_SemWait(MID_channel_Lock);
-	dolog("MID", "Channel %i finished", channel); //We're finished!
 	--MID_RUNNING; //Done!
 	SDL_SemPost(MID_channel_Lock);
 }

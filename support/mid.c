@@ -4,6 +4,9 @@
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/mid.h" //Our own typedefs!
 
+//Enable this define to log all midi commands executed here!
+//#define MID_LOG
+
 #define MIDIHEADER_ID 0x6468544d
 #define MIDIHEADER_TRACK_ID 0x6b72544d
 
@@ -253,7 +256,9 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 			switch (meta_type) //What event?
 			{
 				case 0x2F: //EOT?
+					#ifdef MID_LOG
 					dolog("MID", "channel %i: EOT!", channel); //EOT reached!
+					#endif
 					return; //End of track reached: done!
 				case 0x51: //Set tempo?
 					//Lock
@@ -272,13 +277,17 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 
 					updateMIDTimer(header);
 
+					#ifdef MID_LOG
 					dolog("MID", "channel %i: Set Tempo:%06X!", channel, activetempo);
+					#endif
 
 					//Unlock
 					SDL_SemPost(MID_BPM_Lock);
 					break;
 				default: //Unrecognised meta event? Skip it!
-					dolog("MID", "Unrecognised meta type: %02X@Channel %i; Data length: %i", meta_type, channel,length); //Log the unrecognised metadata type!
+					#ifdef MID_LOG
+					dolog("MID", "Unrecognised meta type: %02X@Channel %i; Data length: %i", meta_type, channel, length); //Log the unrecognised metadata type!
+					#endif
 					for (; length--;) //Process length bytes!
 					{
 						if (!consumeStream(midi_stream, track, &curdata)) return; //Skip failed?
@@ -293,7 +302,9 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 
 			if (curdata & 0x80) //Starting a new command?
 			{
+				#ifdef MID_LOG
 				dolog("MID", "Status@Channel %i=%02X", channel, curdata);
+				#endif
 				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(1) //EOS!
 				last_command = curdata; //Save the last command!
 				if (last_command != 0xF7) //Escaped continue isn't sent!
@@ -303,7 +314,9 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 			}
 			else
 			{
+				#ifdef MID_LOG
 				dolog("MID", "Continued status@Channel %i: %02X=>%02X",channel, last_command, curdata);
+				#endif
 				if (last_command != 0xF7) //Escaped continue isn't used last?
 				{
 					PORT_OUT_B(0x330, last_command); //Repeat the status bytes: we don't know what the other channels do!
@@ -361,7 +374,9 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 				break;
 			default: //Unknown data? We're sending directly to the hardware! We shouldn't be here!
 				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
-				dolog("MID", "Warning: Unknown data detected@channel %i: passthrough to MIDI device: %02X!",channel,curdata);
+				#ifdef MID_LOG
+				dolog("MID", "Warning: Unknown data detected@channel %i: passthrough to MIDI device: %02X!", channel, curdata);
+				#endif
 				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
 				break;
 			}
@@ -369,7 +384,7 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 			//Unlock
 			if (error)
 			{
-				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X",channel,error,last_command,curdata);
+				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X", channel, error, last_command, curdata);
 				SDL_SemPost(MIDLock); //Finish up!
 				return; //Abort on error!
 			}
