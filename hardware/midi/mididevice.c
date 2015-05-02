@@ -742,7 +742,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 						//Create ranking by scoring the voice!
 						currentranking = 0; //Start with no ranking!
 						if (activevoices[voice].channel == &MIDIDEVICE.channels[9]) currentranking += 4000; //Drum channel?
-						else if (activevoices[voice].VolumeEnvelope.active == MIDISTATUS_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
+						else if (activevoices[voice].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
 						if (activevoices[voice].channel->sustain) currentranking -= 1000; //Lower when sustained!
 						float volume;
 						volume = activevoices[voice].CurrentVolumeEnvelope; //Load the ADSR volume!

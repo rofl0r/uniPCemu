@@ -26,20 +26,17 @@ void ADSR_release(ADSR *adsr, byte sustaining)
 	if (adsr->release) //Gotten release?
 	{
 		adsr->ADSREnvelope -= adsr->releasefactor; //Apply factor!
-		if (adsr->ADSREnvelope>0.0f) return; //Not quiet yet?
+		if (adsr->ADSREnvelope) return; //Not quiet yet?
 	}
 	adsr->ADSREnvelope = 0.0f; //Nothing to sound!
-	adsr->active = MIDISTATUS_IDLE; //Return to IDLE!
+	adsr->active = ADSR_IDLE; //Return to IDLE!
 }
 
 void ADSR_sustain(ADSR *adsr, byte sustaining)
 {
-	if (sustaining) //Disable our voice when not sustaining anymore!
-	{
-		return; //Sustaining!
-	}
+	if (sustaining) return; //Disable our voice when not sustaining anymore!
 	//Sustain expired?
-	adsr->active = MIDISTATUS_RELEASE; //Check next step!
+	adsr->active = ADSR_RELEASE; //Check next step!
 	adsr->releasestart = adsr->play_counter; //When we start to release!
 	ADSR_release(adsr,sustaining); //Passthrough!
 }
@@ -51,14 +48,11 @@ void ADSR_decay(ADSR *adsr, byte sustaining)
 		if (adsr->decayend > adsr->play_counter) //Decay busy?
 		{
 			adsr->ADSREnvelope -= adsr->decayfactor; //Apply factor!
-			if (adsr->ADSREnvelope > adsr->sustainfactor) //Still busy?
-			{
-				return; //Decay!
-			}
+			if (adsr->ADSREnvelope > adsr->sustainfactor) return; //Still busy?
 		}
 	}
 	//Decay expired?
-	adsr->active = MIDISTATUS_SUSTAIN; //Check next step!
+	adsr->active = ADSR_SUSTAIN; //Check next step!
 	adsr->ADSREnvelope = adsr->sustainfactor; //Apply sustain factor!
 	ADSR_sustain(adsr,sustaining); //Passthrough!
 }
@@ -67,13 +61,10 @@ void ADSR_hold(ADSR *adsr, byte sustaining)
 {
 	if (adsr->hold) //Gotten hold?
 	{
-		if (adsr->holdend > adsr->play_counter) //Hold busy?
-		{
-			return; //Hold!
-		}
+		if (adsr->holdend > adsr->play_counter) return; //Hold busy?
 	}
 	//Hold expired?
-	adsr->active = MIDISTATUS_DECAY; //Check next step!
+	adsr->active = ADSR_DECAY; //Check next step!
 	ADSR_decay(adsr,sustaining); //Passthrough!
 }
 
@@ -84,28 +75,22 @@ void ADSR_attack(ADSR *adsr, byte sustaining)
 		if (adsr->attackend > adsr->play_counter) //Attack busy?
 		{
 			adsr->ADSREnvelope += adsr->attackfactor; //Apply factor!
-			if (adsr->ADSREnvelope < 1.0f) //Not full yet?
-			{
-				return; //Attack!
-			}
+			if (adsr->ADSREnvelope < 1.0f) return; //Not full yet?
 		}
 	}
 	//Attack expired?
 	adsr->ADSREnvelope = 1.0f; //Make sure we're at 100%
-	adsr->active = MIDISTATUS_HOLD; //Check next step!
+	adsr->active = ADSR_HOLD; //Check next step!
 	ADSR_hold(adsr,sustaining); //Passthrough!
 }
 
 void ADSR_delay(ADSR *adsr, byte sustaining)
 {
-	if (adsr->delaytime) //Gotten delay?
+	if (adsr->delay) //Gotten delay?
 	{
-		if (adsr->delaytime > adsr->play_counter) //Delay busy?
-		{
-			return; //Normal delay!
-		}
+		if (adsr->delay > adsr->play_counter) return; //Delay busy?
 	}
-	adsr->active = MIDISTATUS_ATTACK; //Check next step!
+	adsr->active = ADSR_ATTACK; //Check next step!
 	ADSR_attack(adsr,sustaining); //Passthrough!
 }
 
@@ -120,21 +105,21 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	sfInstGenList applyigen;
 
 //Volume envelope information!
-	int_32 delaytime, attack, hold, decay, sustain, release; //All lengths!
-	float attackfactor = 0.0f, decayfactor = 0.0f, sustainfactor = 0.0f, releasefactor = 0.0f, holdenvfactor = 0.0f, decayenvfactor = 0.0f;
+	uint_32 delay, attack, hold, decay, sustain, release; //All lengths!
+	float attackfactor, decayfactor, sustainfactor, releasefactor, holdenvfactor, decayenvfactor;
 	
 //Delay
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, delayLookup, &applyigen))
 	{
-		delaytime = applyigen.genAmount.shAmount; //Apply!
+		delay = applyigen.genAmount.shAmount; //Apply!
 	}
 	else
 	{
-		delaytime = -12000; //Default!
+		delay = -12000; //Default!
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, delayLookup, &applypgen)) //Preset set?
 	{
-		delaytime += applypgen.genAmount.shAmount; //Apply!
+		delay += applypgen.genAmount.shAmount; //Apply!
 	}
 
 	//Attack
@@ -236,13 +221,13 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	}
 
 	//Now, calculate the length of each interval.
-	if (cents2samplesfactor((double)delaytime) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactor((double)delay) < 0.0002f) //0.0001 sec?
 	{
-		delaytime = 0; //No delay!
+		delay = 0; //No delay!
 	}
 	else
 	{
-		delaytime = sampleRate*cents2samplesfactor((double)delaytime); //Calculate the ammount of samples!
+		delay = sampleRate*cents2samplesfactor((double)delay); //Calculate the ammount of samples!
 	}
 	if (cents2samplesfactor((double)attack) < 0.0002f) //0.0001 sec?
 	{
@@ -282,6 +267,7 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	{
 		release = sampleRate*cents2samplesfactor((double)release); //Calculate the ammount of samples!
 	}
+	
 	//Now calculate the steps for the envelope!
 	//Delay does nothing!
 	//Attack!
@@ -293,6 +279,10 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 		{
 			attack = 0; //No attack!
 		}
+	}
+	else
+	{
+		attackfactor = 0.0f; //No attack factor!
 	}
 	//Hold does nothing!
 	//Decay
@@ -306,6 +296,10 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 			decay = 0; //No decay!
 		}
 	}
+	else
+	{
+		decayfactor = 0.0f; //No decay!
+	}
 	//Sustain does nothing!
 	//Release
 	if (release)
@@ -317,9 +311,13 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 			release = 0; //No release!
 		}
 	}
+	else
+	{
+		releasefactor = 0.0f; //No release!
+	}
 
 	//Apply ADSR to the voice!
-	adsr->delaytime = delaytime; //Delay
+	adsr->delay = delay; //Delay
 	adsr->attack = attack; //Attack
 	adsr->attackfactor = attackfactor;
 	adsr->hold = hold; //Hold
@@ -331,10 +329,10 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	adsr->releasefactor = releasefactor;
 
 	//Finally calculate the actual values needed!
-	adsr->attackend = adsr->attack + adsr->delaytime;
+	adsr->attackend = adsr->attack + adsr->delay;
 	adsr->holdend = adsr->hold + adsr->attackend;
 	adsr->decayend = adsr->decay + adsr->holdend;
-	adsr->active = MIDISTATUS_DELAY; //We're starting with a delay!
+	adsr->active = ADSR_DELAY; //We're starting with a delay!
 	adsr->play_counter = 0; //Initialise our counter!
 }
 
