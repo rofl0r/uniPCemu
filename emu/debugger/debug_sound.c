@@ -90,9 +90,20 @@ void handleMIDIChannel()
 {
 	word channel;
 	channel = (word)getthreadparams(); //Gotten a channel?
+
+	nextchannel: //Play next channel when type 2!
 	playMIDIStream(channel,MID_data[channel], &header, &MID_tracks[channel]); //Play the MIDI stream!
 	SDL_SemWait(MID_channel_Lock);
 	--MID_RUNNING; //Done!
+	if (byteswap16(header.format) == 2) //Multiple tracks to be played after one another?
+	{
+		timing_pos = 0; //Reset the timing position!
+		++channel; //Process the next channel!
+		if (channel >= byteswap16(header.n)) goto finish; //Last channel processed?
+		SDL_SemPost(MID_channel_Lock);
+		goto nextchannel; //Process the next channel now!
+	}
+	finish:
 	SDL_SemPost(MID_channel_Lock);
 }
 
@@ -151,7 +162,10 @@ void dosoundtest()
 		MID_RUNNING = numchannels; //Init to all running!
 		for (i = 0; i < numchannels; i++)
 		{
-			startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)i, DEFAULT_PRIORITY); //Start a thread handling the output of the channel!
+			if (!i || (byteswap16(header.format) < 2)) //All channels, or only first channel with format 2!
+			{
+				startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)i, DEFAULT_PRIORITY); //Start a thread handling the output of the channel!
+			}
 		}
 
 		delay(10000); //Wait a bit to allow for initialisation (position 0) to run!

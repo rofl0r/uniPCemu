@@ -148,9 +148,17 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buf
 		case 0xD0:
 		case 0xE0:
 		case 0xF0:
-			flag = midiOutShortMsg(device, message.word);
-			if (flag != MMSYSERR_NOERROR) {
-				printf("Warning: MIDI Output is not open.\n");
+			if (command != 0xFF) //Not resetting?
+			{
+				flag = midiOutShortMsg(device, message.word);
+				if (flag != MMSYSERR_NOERROR) {
+					printf("Warning: MIDI Output is not open.\n");
+				}
+			}
+			else
+			{
+				// turn any MIDI notes currently playing:
+				midiOutReset(device);
 			}
 			break;
 		}

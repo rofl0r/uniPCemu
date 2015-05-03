@@ -215,7 +215,7 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 
 	//Metadata event!
 	byte meta_type;
-	uint_32 length; //Our metadata variable length!
+	uint_32 length, length_counter; //Our metadata variable length!
 
 	uint_64 play_pos = 0; //Current play position!
 
@@ -332,9 +332,10 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 				case 0x0: //System exclusive?
 				case 0x7: //Escaped continue?
 					if (!read_VLV(midi_stream, track, &length)) MIDI_ERROR(2) //Error: unexpected EOS!
+					length_counter = 3; //Initialise our position!
 					for (; length--;) //Transmit the packet!
 					{
-						if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(3 + length) //EOS!
+						if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(length_counter++) //EOS!
 						PORT_OUT_B(0x330, curdata); //Send the byte!
 					}
 					break;
@@ -374,16 +375,15 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 				break;
 			default: //Unknown data? We're sending directly to the hardware! We shouldn't be here!
 				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
-				#ifdef MID_LOG
 				dolog("MID", "Warning: Unknown data detected@channel %i: passthrough to MIDI device: %02X!", channel, curdata);
-				#endif
-				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
+				//Can't process: ignore the data, since it's invalid!
 				break;
 			}
 		abortMIDI:
 			//Unlock
 			if (error)
 			{
+				PORT_OUT_B(0x330, 0xFF); //Reset the synthesizer!
 				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X", channel, error, last_command, curdata);
 				SDL_SemPost(MIDLock); //Finish up!
 				return; //Abort on error!

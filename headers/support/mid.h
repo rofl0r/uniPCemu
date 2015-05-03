@@ -24,6 +24,8 @@ typedef PACKED struct
 } TRACK_CHNK;
 #include "headers/endpacked.h"
 
+word byteswap16(word value); //Support for byteswapping the format and number of tracks!
+
 word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **channels, word maxchannels);
 void freeMID(TRACK_CHNK *tracks, byte **channels, word numchannels);
 void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_CHNK *track);
