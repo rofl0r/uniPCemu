@@ -90,7 +90,6 @@ void handleMIDIChannel()
 {
 	word channel;
 	channel = (word)getthreadparams(); //Gotten a channel?
-
 	nextchannel: //Play next channel when type 2!
 	playMIDIStream(channel,MID_data[channel], &header, &MID_tracks[channel]); //Play the MIDI stream!
 	SDL_SemWait(MID_channel_Lock);

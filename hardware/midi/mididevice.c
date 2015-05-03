@@ -36,7 +36,7 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 //Poly and Omni flags in the Mode Selection.
 //Poly: Enable multiple voices per channel. When set to Mono, All Notes Off on the channel when a Note On is received.
 #define MIDIDEVICE_POLY 0x1
-//Omni: Ignore channel number of the message during note On/Off commands (send to channel 0).
+//Omni: Ignore channel number of the message during note On/Off commands.
 #define MIDIDEVICE_OMNI 0x2
 
 //Default mode is Omni Off, Poly
@@ -611,10 +611,10 @@ OPTINLINE byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
 			return 0; //Don't execute!
 		}
 	}
-	else if (!(MIDIDEVICE.channels[channel].mode&MIDIDEVICE_POLY)) //Mono&Omni mode?
+	if (!(MIDIDEVICE.channels[channel].mode&MIDIDEVICE_POLY)) //Mono mode?
 	{
-		if ((selectedchannel<MIDIDEVICE.channels[channel].channelrangemin) ||
-			(selectedchannel>MIDIDEVICE.channels[channel].channelrangemax)) //Out of range?
+		if (!((selectedchannel>=MIDIDEVICE.channels[channel].channelrangemin) &&
+			(selectedchannel<=MIDIDEVICE.channels[channel].channelrangemax))) //Out of range?
 		{
 			return 0; //Don't execute!
 		}
@@ -755,7 +755,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			}
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: NOTE OFF: Channel %i Note %i Velocity %i = Channel %i: Block %i Note %i",currentchannel,firstparam,current->buffer[1],channel,note32,note32_index); //Log it!
+			dolog("MPU","MIDIDEVICE: NOTE OFF: Channel %i Note %i Velocity %i",currentchannel,firstparam,current->buffer[1]); //Log it!
 			#endif
 			break;
 		case 0x90: //Note on?
@@ -767,7 +767,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			}
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: NOTE ON: Channel %i Note %i Velocity %i = Channel %i Block %i Note %i",currentchannel,firstparam,current->buffer[1],currentchannel,note32,note32_index); //Log it!
+			dolog("MPU","MIDIDEVICE: NOTE ON: Channel %i Note %i Velocity %i",currentchannel,firstparam,current->buffer[1]); //Log it!
 			#endif
 			break;
 		case 0xA0: //Aftertouch?
@@ -968,7 +968,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 	//Close the soundfont?
 	closeSF(&soundfont);
 	int i;
-	for (i=0;i<NUMITEMS(activevoices);i++) //Assign all voices available!
+	for (i=0;i<__MIDI_NUMVOICES;i++) //Assign all voices available!
 	{
 		removechannel(&MIDIDEVICE_renderer,&activevoices[i],0); //Remove the channel! Delay at 0.96ms for response speed!
 	}
@@ -1004,7 +1004,7 @@ void init_MIDIDEVICE() //Initialise MIDI device for usage!
 	else
 	{
 		int i;
-		for (i=0;i<NUMITEMS(activevoices);i++) //Assign all voices available!
+		for (i=0;i<__MIDI_NUMVOICES;i++) //Assign all voices available!
 		{
 			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
 		}
