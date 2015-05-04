@@ -397,6 +397,8 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 
+	if (voice->VolumeEnvelope.active) return 1; //Active voices can't be allocated!
+
 	//Check for requested voices!
 	//First, all our variables!
 	//Now, determine the actual note to be turned on!
@@ -412,42 +414,42 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 
 	if (!lookupPresetByInstrument(soundfont, channel->program, channel->bank, &preset)) //Preset not found?
 	{
-		return 1; //No samples!
+		return 0; //No samples!
 	}
 
 	if (!getSFPreset(soundfont, preset, &currentpreset))
 	{
-		return 1;
+		return 0;
 	}
 
 	if (!lookupPBagByMIDIKey(soundfont, preset, note->note, note->noteon_velocity, &pbag)) //Preset bag not found?
 	{
-		return 1; //No samples!
+		return 0; //No samples!
 	}
 
 	if (!lookupSFPresetGen(soundfont, preset, pbag, instrument, &instrumentptr))
 	{
-		return 1; //No samples!
+		return 0; //No samples!
 	}
 
 	if (!getSFInstrument(soundfont, instrumentptr.genAmount.wAmount, &currentinstrument))
 	{
-		return 1;
+		return 0;
 	}
 
 	if (!lookupIBagByMIDIKey(soundfont, instrumentptr.genAmount.wAmount, note->note, note->noteon_velocity, &ibag, 1))
 	{
-		return 1; //No samples!
+		return 0; //No samples!
 	}
 
 	if (!lookupSFInstrumentGen(soundfont, instrumentptr.genAmount.wAmount, ibag, sampleID, &sampleptr))
 	{
-		return 1; //No samples!
+		return 0; //No samples!
 	}
 
 	if (!getSFSampleInformation(soundfont, sampleptr.genAmount.wAmount, &voice->sample))
 	{
-		return 1; //No samples!
+		return 0; //No samples!
 	}
 
 	//Determine the adjusting offsets!
@@ -564,8 +566,6 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	//Now determine the volume envelope!
 	voice->CurrentVolumeEnvelope = 0.0f; //Default: nothing yet, so no volume, Give us full priority Volume-wise!
 	voice->CurrentModulationEnvelope = 0.0f; //Default: nothing tet, so no modulation!
-	
-	ADSR_init((float)voice->sample.dwSampleRate, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay);	//Initialise our Volume Envelope for use!
 
 	//Apply low pass filter!
 	voice->lowpassfilter_freq = 0.0f; //Default: no low pass filter!
@@ -595,6 +595,7 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	}
 
 	//Final adjustments and set active!
+	ADSR_init((float)voice->sample.dwSampleRate, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay);	//Initialise our Volume Envelope for use!
 	setSampleRate(&MIDIDEVICE_renderer, voice, voice->sample.dwSampleRate); //Use this new samplerate!
 	voice->starttime = starttime++; //Take a new start time!
 	return 0; //Run: we're active!
