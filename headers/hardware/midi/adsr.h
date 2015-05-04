@@ -11,7 +11,7 @@
 #define ADSR_HOLD 0x03
 #define ADSR_DECAY 0x05
 #define ADSR_SUSTAIN 0x05
-#define ADSR_RELEASE 0x06
+#define ADSR_RELEASE 0x00
 
 typedef struct
 {
