@@ -708,6 +708,10 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 	playing_p activechannel; //Current channel!
 	int_32 *firstactivesample;
 	int_32 *activesample;
+	
+	//Stuff for Master gain
+	double RMS_l = 0, RMS_r = 0, gainMaster_l, gainMaster_r; //Everything needed to apply the Master gain (equalizer)
+	
 	channelsleft = soundchannels_used; //Load the channels to process!
 	if (!length) return; //Abort without length!
 	memset(&mixedsamples,0,sizeof(mixedsamples)); //Init mixed samples, stereo!
@@ -739,10 +743,35 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 	//Process all generated samples to output!
 	currentsample = length; //Init samples to give!
 	activesample = &mixedsamples[0]; //Initialise the mixed samples position!
+
+	//Second step: Apply equalizer using automatic Master gain.
+	for (;;)
+	{
+		RMS_l += (*activesample) * (*activesample);
+		++activesample; //Next channel!
+		RMS_r += (*activesample) * (*activesample);
+		++activesample; //Next sample!
+		if (!--currentsample) return;
+	}
+	
+	RMS_l /= length;
+	RMS_r /= length;
+	RMS_l = sqrt(RMS_l);
+	RMS_r = sqrt(RMS_r);
+	
+	gainMaster_l = SHRT_MAX / (sqrt(2)*RMS_l);
+	gainMaster_r = SHRT_MAX / (sqrt(2)*RMS_r);
+	
+	//Final step: apply Master gain and clip to output!
+	buffer = buffer_backup; //Restore our buffer pointer to the start of the buffer!
+	currentsample = length; //Init samples to give!
+	activesample = &mixedsamples[0]; //Initialise the mixed samples position!
 	for (;;)
 	{
 		result_l = *activesample++; //L channel!
 		result_r = *activesample++; //R channel!
+		result_l *= gainMaster_l; //Apply master gain!
+		result_r *= gainMaster_r; //Apply master gain!
 		if (result_l>SHRT_MAX) result_l = SHRT_MAX;
 		if (result_l<SHRT_MIN) result_l = SHRT_MIN;
 		if (result_r>SHRT_MAX) result_r = SHRT_MAX;
