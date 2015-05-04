@@ -20,11 +20,6 @@
 //#define __HW_DISABLED
 RIFFHEADER *soundfont; //Our loaded soundfont!
 
-//All MIDI voices that are available!
-#define __MIDI_NUMVOICES 64
-//How many samples to buffer at once! 42 according to MIDI specs! Set to 84 to work!
-#define __MIDI_SAMPLES 84
-
 //To log MIDI commands?
 //#define MIDI_LOG
 //To log MIDI rendering timing?
@@ -42,72 +37,11 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 //Default mode is Omni Off, Poly
 #define MIDIDEVICE_DEFAULTMODE MIDIDEVICE_POLY
 
-typedef struct
-{
-	//First, infomation for looking us up!
-	byte channel; //What channel!
-	byte note; //What note!
-	byte noteon_velocity; //What velocity/AD(SR)!
-	byte noteoff_velocity; //What velocity/(ADS)R!
-	word pressure; //Pressure/volume/aftertouch!
-} MIDIDEVICE_NOTE; //Current playing note to process information!
-
-typedef struct
-{
-	MIDIDEVICE_NOTE notes[0xFF]; //All possible MIDI note statuses!
-	//Channel information!
-	byte control; //Control/current instrument!
-	byte program; //Program/instrument!
-	byte pressure; //Channel pressure/volume!
-	word bank; //What bank are we?
-	sword pitch; //Current pitch (14-bit value)
-	byte sustain; //Enable sustain? Don't process KEY OFF while set!
-	byte channelrangemin, channelrangemax; //Ranges of used channels to respond to when in Mono Mode.
-	byte mode; //Channel mode: 0=Omni off, Mono; 1=Omni off, Poly; 2=Omni on, Mono; 3=Omni on, Poly;
-	//Bit 1=1:Poly/0:Mono; Bit2=1:Omni on/0:Omni off
-	/* Omni: respond to all channels (ignore channel part); Poly: Use multiple voices; Mono: Use one voice at the time (end other voices on Note On) */
-} MIDIDEVICE_CHANNEL;
-
 struct
 {
 	byte UARTMode;
 	MIDIDEVICE_CHANNEL channels[0x10]; //Stuff for all channels!
 } MIDIDEVICE; //Current MIDI device data!
-
-typedef struct
-{
-	uint_32 play_counter; //Current play position within the soundfont!
-	uint_32 loopsize; //The size of a loop!
-	//Patches to the sample offsets, calculated before generating sound!
-	uint_32 startaddressoffset;
-	uint_32 startloopaddressoffset;
-	uint_32 endaddressoffset;
-	uint_32 endloopaddressoffset;
-
-	sword last_sample; //Last retrieved sample!
-	sword last_result; //Last result of the high pass filter!
-
-	//Stuff for voice stealing
-	uint_64 starttime; //When have we started our voice?
-
-	//Our assigned notes/channels for lookup!
-	MIDIDEVICE_CHANNEL *channel; //The active channel!
-	MIDIDEVICE_NOTE *note; //The active note!
-	float initsamplespeedup; //Precalculated speedup of the samples, to be processed into effective speedup when starting the rendering!
-	float effectivesamplespeedup; //The speedup of the samples!
-	float lvolume, rvolume; //Left and right panning!
-	float lowpassfilter_freq; //What frequency to filter? 0.0f=No filter!
-	float CurrentVolumeEnvelope; //Current volume envelope!
-	float CurrentModulationEnvelope; //Current modulation envelope!
-
-	sfSample sample; //The sample to be played back!
-	ADSR VolumeEnvelope; //The volume envelope!
-	ADSR ModulationEnvelope; //The modulation envelope!
-
-	byte currentloopflags; //What loopflags are active?
-	byte request_off; //Are we to be turned off? Start the release phase when enabled!
-	byte has_last; //Gotten last?
-} MIDIDEVICE_VOICE;
 
 MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
 
@@ -340,7 +274,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	startHiresCounting(&ticks);
 	ticksholder_AVG(&ticks); //Enable averaging!
 #endif
-
 	if (!voice->VolumeEnvelope.active) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
 
 	//Calculate the pitch bend speedup!
@@ -362,7 +295,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Now produce the sound itself!
 	for (; --numsamples;) //Produce the samples!
 	{
-		VolumeEnvelope = ADSR_tick(VolumeADSR, (voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80)); //Apply Volume Envelope!
+		VolumeEnvelope = ADSR_tick(VolumeADSR,(voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteoff_velocity); //Apply Volume Envelope!
 		MIDIDEVICE_getsample(ubuf++, voice, VolumeEnvelope); //Get the sample from the MIDI device!
 	}
 
@@ -406,7 +339,6 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	voice->note = note = &voice->channel->notes[request_note]; //What note!
 
 	voice->play_counter = 0; //Reset play counter!
-
 
 	//First, our precalcs!
 
@@ -595,7 +527,7 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	}
 
 	//Final adjustments and set active!
-	ADSR_init((float)voice->sample.dwSampleRate, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay);	//Initialise our Volume Envelope for use!
+	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay);	//Initialise our Volume Envelope for use!
 	setSampleRate(&MIDIDEVICE_renderer, voice, voice->sample.dwSampleRate); //Use this new samplerate!
 	voice->starttime = starttime++; //Take a new start time!
 	return 0; //Run: we're active!
@@ -636,6 +568,7 @@ OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note,
 				if ((activevoices[i].note->channel == channel) && (activevoices[i].note->note == note)) //Note found?
 				{
 					activevoices[i].request_off = 1; //We're requesting to be turned off!
+					activevoices[i].note->noteoff_velocity = velocity; //Note off velocity!
 				}
 			}
 		}

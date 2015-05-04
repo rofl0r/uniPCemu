@@ -21,7 +21,7 @@ OPTINLINE double factor2dB(double factor, double fMaxLevelDB)
 
 //ADSR itself:
 
-void ADSR_release(ADSR *adsr, byte sustaining)
+void ADSR_release(ADSR *adsr, byte sustaining, byte release_velocity)
 {
 	if (adsr->release) //Gotten release?
 	{
@@ -32,32 +32,32 @@ void ADSR_release(ADSR *adsr, byte sustaining)
 	adsr->active = ADSR_IDLE; //Return to IDLE!
 }
 
-void ADSR_sustain(ADSR *adsr, byte sustaining)
+void ADSR_sustain(ADSR *adsr, byte sustaining, byte release_velocity)
 {
 	if (sustaining) return; //Disable our voice when not sustaining anymore!
 	//Sustain expired?
 	adsr->active = ADSR_RELEASE; //Check next step!
 	adsr->releasestart = adsr->play_counter; //When we start to release!
-	ADSR_release(adsr,sustaining); //Passthrough!
+	ADSR_release(adsr, sustaining, release_velocity); //Passthrough!
 }
 
-void ADSR_decay(ADSR *adsr, byte sustaining)
+void ADSR_decay(ADSR *adsr, byte sustaining, byte release_velocity)
 {
 	if (adsr->decay) //Gotten decay?
 	{
 		if (adsr->decayend > adsr->play_counter) //Decay busy?
 		{
 			adsr->ADSREnvelope -= adsr->decayfactor; //Apply factor!
-			if (adsr->ADSREnvelope > adsr->sustainfactor) return; //Still busy?
+			return; //Decay busy!
 		}
 	}
 	//Decay expired?
 	adsr->active = ADSR_SUSTAIN; //Check next step!
 	adsr->ADSREnvelope = adsr->sustainfactor; //Apply sustain factor!
-	ADSR_sustain(adsr,sustaining); //Passthrough!
+	ADSR_sustain(adsr,sustaining,release_velocity); //Passthrough!
 }
 
-void ADSR_hold(ADSR *adsr, byte sustaining)
+void ADSR_hold(ADSR *adsr, byte sustaining, byte release_velocity)
 {
 	if (adsr->hold) //Gotten hold?
 	{
@@ -65,10 +65,10 @@ void ADSR_hold(ADSR *adsr, byte sustaining)
 	}
 	//Hold expired?
 	adsr->active = ADSR_DECAY; //Check next step!
-	ADSR_decay(adsr,sustaining); //Passthrough!
+	ADSR_decay(adsr,sustaining,release_velocity); //Passthrough!
 }
 
-void ADSR_attack(ADSR *adsr, byte sustaining)
+void ADSR_attack(ADSR *adsr, byte sustaining, byte release_velocity)
 {
 	if (adsr->attack) //Gotten attack?
 	{
@@ -81,25 +81,25 @@ void ADSR_attack(ADSR *adsr, byte sustaining)
 	//Attack expired?
 	adsr->ADSREnvelope = 1.0f; //Make sure we're at 100%
 	adsr->active = ADSR_HOLD; //Check next step!
-	ADSR_hold(adsr,sustaining); //Passthrough!
+	ADSR_hold(adsr,sustaining,release_velocity); //Passthrough!
 }
 
-void ADSR_delay(ADSR *adsr, byte sustaining)
+void ADSR_delay(ADSR *adsr, byte sustaining, byte release_velocity)
 {
 	if (adsr->delay) //Gotten delay?
 	{
 		if (adsr->delay > adsr->play_counter) return; //Delay busy?
 	}
 	adsr->active = ADSR_ATTACK; //Check next step!
-	ADSR_attack(adsr,sustaining); //Passthrough!
+	ADSR_attack(adsr,sustaining,release_velocity); //Passthrough!
 }
 
-void ADSR_idle(ADSR *adsr, byte sustaining)
+void ADSR_idle(ADSR *adsr, byte sustaining, byte release_velocity)
 {
 	//Idle does nothing!
 }
 
-void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, sword relKeynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
+void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, sword relKeynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
 {
 	sfGenList applypgen;
 	sfInstGenList applyigen;
@@ -289,11 +289,18 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	if (decay) //Gotten decay?
 	{
 		decayfactor = 1.0f; //From full!
-		decayfactor -= sustainfactor; //We're going to sustain!
-		decayfactor /= decay; //Equal steps from 1.0f to sustain!
+		decayfactor /= decay; //Equal steps from 1.0f to 0.0f!
 		if (!decayfactor) //No decay?
 		{
 			decay = 0; //No decay!
+		}
+		else
+		{
+			float temp;
+			temp = 1; //Full volume!
+			temp -= sustainfactor; //Change to sustain factor difference!
+			temp /= decayfactor; //Calculate the new decay time needed to change to the sustain factor!
+			decay = temp; //Load the calculated decay time!
 		}
 	}
 	else
@@ -304,11 +311,18 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	//Release
 	if (release)
 	{
-		releasefactor = sustainfactor; //From sustain!
-		releasefactor /= release; //Equal steps from sustain to 0!
+		releasefactor = 1.0f; //From full!
+		releasefactor /= release; //Equal steps from 1.0f to 0.0f!
 		if (!releasefactor) //No release?
 		{
 			release = 0; //No release!
+		}
+		else
+		{
+			float temp;
+			temp = sustainfactor; //Full volume!
+			temp /= releasefactor; //Calculate the new decay time needed to change to the sustain factor!
+			release = temp; //Load the calculated decay time!
 		}
 	}
 	else
@@ -336,9 +350,9 @@ void ADSR_init(float sampleRate, ADSR *adsr, RIFFHEADER *soundfont, word instrum
 	adsr->play_counter = 0; //Initialise our counter!
 }
 
-typedef void (*MIDI_STATE)(ADSR *adsr, byte sustaining); //ADSR event handlers!
+typedef void (*MIDI_STATE)(ADSR *adsr, byte sustaining, byte release_velocity); //ADSR event handlers!
 
-float ADSR_tick(ADSR *adsr, byte sustaining) //Tick an ADSR!
+float ADSR_tick(ADSR *adsr, byte sustaining, byte release_velocity) //Tick an ADSR!
 {
 	static MIDI_STATE ADSR_EXEC[7] = {
 		ADSR_idle, ADSR_delay, //Still quiet!
@@ -346,7 +360,7 @@ float ADSR_tick(ADSR *adsr, byte sustaining) //Tick an ADSR!
 		ADSR_sustain, //Holding/sustain
 		ADSR_release //Release
 	}; //ADSR states!
-	ADSR_EXEC[adsr->active](adsr,sustaining); //Execute the current ADSR!
+	ADSR_EXEC[adsr->active](adsr,sustaining,release_velocity); //Execute the current ADSR!
 	++adsr->play_counter; //Next position to calculate!
 	return dB2factor(adsr->ADSREnvelope,1); //Give the current envelope, convert the linear factor to decibels!
 }

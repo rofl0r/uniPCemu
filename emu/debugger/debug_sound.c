@@ -6,6 +6,8 @@
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/mid.h" //MIDI file support!
 #include "headers/hardware/vga.h" //VGA support!
+#include "headers/hardware/midi/mididevice.h" //For the MIDI voices!
+#include "headers/emu/gpu/gpu_text.h" //Text surface support!
 
 float currentFunction(byte how, const float time); //For the PC speaker!
 
@@ -106,6 +108,35 @@ void handleMIDIChannel()
 	SDL_SemPost(MID_channel_Lock);
 }
 
+extern MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
+extern GPU_TEXTSURFACE *frameratesurface; //Our framerate surface!
+
+void printMIDIChannelStatus()
+{
+	int i;
+	GPU_text_locksurface(frameratesurface); //Lock the surface!
+	for (i = 0; i < __MIDI_NUMVOICES; i++) //Process all voices!
+	{
+		GPU_textgotoxy(frameratesurface,(i / 10) * 2, (i % 10) + 5); //Row 5+, column every 10 voices!
+		if (activevoices[i].VolumeEnvelope.active) //Active voice?
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(0xDD, 0xDD, 0xDD),"%02i",activevoices[i].VolumeEnvelope.active);
+		}
+		else //Inactive voice?
+		{
+			if (activevoices[i].play_counter) //We have been playing?
+			{
+				GPU_textprintf(frameratesurface, RGB(0xFF, 0xAA, 0x00), RGB(0xDD, 0xDD, 0xDD), "%02i", i);
+			}
+			else //Completely unused voice?
+			{
+				GPU_textprintf(frameratesurface, RGB(0xFF, 0x00, 0x00), RGB(0xDD, 0xDD, 0xDD), "%02i", i);
+			}
+		}
+	}
+	GPU_text_releasesurface(frameratesurface); //Unlock the surface!
+}
+
 //All used locks!
 extern SDL_sem *MIDLock;
 extern SDL_sem *MID_timing_pos_Lock;
@@ -182,6 +213,7 @@ void dosoundtest()
 			{
 				running = 0; //Not running anymore!
 			}
+			printMIDIChannelStatus(); //Print the MIDI channel status!
 			SDL_SemPost(MID_channel_Lock);
 			if (!running) break; //Not running anymore? Start quitting!
 		}
