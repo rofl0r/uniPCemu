@@ -751,7 +751,7 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 		++activesample; //Next channel!
 		RMS_r += (*activesample) * (*activesample);
 		++activesample; //Next sample!
-		if (!--currentsample) return;
+		if (!--currentsample) break;
 	}
 	
 	RMS_l /= length;
