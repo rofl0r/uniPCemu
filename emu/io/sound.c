@@ -710,7 +710,7 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 	int_32 *activesample;
 	
 	//Stuff for Master gain
-	double RMS_l = 0, RMS_r = 0, gainMaster_l, gainMaster_r; //Everything needed to apply the Master gain (equalizer)
+	double RMS_l = 0, RMS_r = 0, gainMaster_l, gainMaster_r; //Everything needed to apply the Master gain (equalizing using Mean value)
 	
 	channelsleft = soundchannels_used; //Load the channels to process!
 	if (!length) return; //Abort without length!
@@ -763,7 +763,6 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 	gainMaster_r = SHRT_MAX / (sqrt(2)*RMS_r);
 	
 	//Final step: apply Master gain and clip to output!
-	buffer = buffer_backup; //Restore our buffer pointer to the start of the buffer!
 	currentsample = length; //Init samples to give!
 	activesample = &mixedsamples[0]; //Initialise the mixed samples position!
 	for (;;)
