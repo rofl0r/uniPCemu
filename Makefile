@@ -8,7 +8,7 @@ TARGET = eboot
 #atm. build_prx causes multithreading to fail?
 
 #Enable large memory detection? Disabled during developing.
-#PSP_LARGE_MEMORY = 1
+PSP_LARGE_MEMORY = 1
 
 #Init for below:
 OBJS = 

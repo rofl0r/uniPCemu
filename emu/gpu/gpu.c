@@ -91,28 +91,34 @@ SDL_Surface *getGPUSurface()
 	if (GPU.fullscreen) flags |= SDL_FULLSCREEN; //Goto fullscreen mode!
 
 	originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
-	//Load our detected settings!
-	rmask = originalrenderer->format->Rmask;
-	rshift = originalrenderer->format->Rshift;
-	gmask = originalrenderer->format->Gmask;
-	gshift = originalrenderer->format->Gshift;
-	bmask = originalrenderer->format->Bmask;
-	bshift = originalrenderer->format->Bshift;
-	amask = originalrenderer->format->Amask;
-	ashift = originalrenderer->format->Ashift;
-	if (!amask) //No alpha supported?
-	{
-		#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-		amask = ashift = 0; //Default position!
-		#else
-		amask = 0xFF000000; //High part!
-		ashift = 24; //Shift by 24 bits to get alpha!
-		#endif
-	}
 
 	SDL_WM_SetCaption( "x86EMU", 0 );
 	GPU_text_updatedelta(originalrenderer); //Update delta if needed, so the text is at the correct position!
 	#endif
+
+	//Determine the display masks!
+	if (originalrenderer) //Valid renderer?
+	{
+		//Load our detected settings!
+		rmask = originalrenderer->format->Rmask;
+		rshift = originalrenderer->format->Rshift;
+		gmask = originalrenderer->format->Gmask;
+		gshift = originalrenderer->format->Gshift;
+		bmask = originalrenderer->format->Bmask;
+		bshift = originalrenderer->format->Bshift;
+		amask = originalrenderer->format->Amask;
+		ashift = originalrenderer->format->Ashift;
+		if (!amask) //No alpha supported?
+		{
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+			amask = ashift = 0; //Default position!
+#else
+			amask = 0xFF000000; //High part!
+			ashift = 24; //Shift by 24 bits to get alpha!
+#endif
+		}
+	}
+
 	return originalrenderer;
 }
 
