@@ -90,7 +90,7 @@ FILE *fopen64(char *filename, char *mode)
 		}
 		++modeidentifier; //Next identifier!
 	}
-#ifdef __psp
+#ifdef __psp__
 	stream->f = sceIoOpen(filename,stream->mode,0777); //Open the file!
 	if (!stream->f || ((stream->f&0x8F000000)==0x80000000)) //Failed?
 	{

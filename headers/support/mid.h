@@ -6,7 +6,7 @@
 //MIDI file support!
 
 #include "headers/packed.h"
-typedef PACKED struct
+typedef struct PACKED
 {
 	uint_32 Header; //MThd
 	uint_32 header_length;
@@ -17,7 +17,7 @@ typedef PACKED struct
 #include "headers/endpacked.h"
 
 #include "headers/packed.h"
-typedef PACKED struct
+typedef struct PACKED
 {
 	uint_32 Header; //MTrk
 	uint_32 length; //Number of bytes in the chunk.

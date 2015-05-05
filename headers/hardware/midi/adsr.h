@@ -13,6 +13,11 @@
 #define ADSR_SUSTAIN 0x05
 #define ADSR_RELEASE 0x00
 
+//Convert cents to samples to increase (instead of 1 sample/sample). Floating point number (between 0.0+ usually?) Use this as a counter for the current samples (1.1+1.1..., so keep the rest value (1,1,1,...,0,1,1,1,...))
+//The same applies to absolute and relative timecents (with absolute referring to 1 second intervals (framerate samples) and relative to the absolute value)
+#define cents2samplesfactor(cents) pow(2, ((cents) / 1200))
+//Convert to samples (not entire numbers, so keep them counted)!
+
 typedef struct
 {
 	//ADSR

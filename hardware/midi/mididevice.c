@@ -134,13 +134,6 @@ Cents and DB conversion!
 
 */
 
-//Convert cents to samples to increase (instead of 1 sample/sample). Floating point number (between 0.0+ usually?) Use this as a counter for the current samples (1.1+1.1..., so keep the rest value (1,1,1,...,0,1,1,1,...))
-//The same applies to absolute and relative timecents (with absolute referring to 1 second intervals (framerate samples) and relative to the absolute value)
-OPTINLINE double cents2samplesfactor(double cents)
-{
-	return pow(2, (cents / 1200)); //Convert to samples (not entire numbers, so keep them counted)!
-}
-
 //Low&high pass filters!
 
 OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)

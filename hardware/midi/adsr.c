@@ -3,12 +3,6 @@
 #include "headers/support/sf2.h" //Soundfont support!
 
 //Helper functions
-//The same applies to absolute and relative timecents (with absolute referring to 1 second intervals (framerate samples) and relative to the absolute value)
-OPTINLINE double cents2samplesfactor(double cents)
-{
-	return pow(2, (cents / 1200)); //Convert to samples (not entire numbers, so keep them counted)!
-}
-
 OPTINLINE double dB2factor(double dB, double fMaxLevelDB)
 {
 	return pow(10, ((dB - fMaxLevelDB) / 20));

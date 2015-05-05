@@ -114,7 +114,7 @@ void freeMID(TRACK_CHNK *tracks, byte **channels, word numchannels)
 	uint_32 channelnr;
 	for (channelnr = 0; channelnr < numchannels; channelnr++)
 	{
-		freez(&channels[channelnr], byteswap32(tracks[channelnr].length)+sizeof(uint_32), "MIDI_DATA"); //Try to free!
+		freez((void **)&channels[channelnr], byteswap32(tracks[channelnr].length)+sizeof(uint_32), "MIDI_DATA"); //Try to free!
 	}
 }
 

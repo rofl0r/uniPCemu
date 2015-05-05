@@ -5,4 +5,4 @@ void initLocks();
 int lock(char *name);
 void unlock(char *name);
 
-#endif;
+#endif

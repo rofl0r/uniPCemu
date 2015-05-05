@@ -28,9 +28,8 @@ byte singlestep; //Enforce single step by CPU/hardware special debugging effects
 
 CPU_registers debuggerregisters; //Backup of the CPU's register states before the CPU starts changing them!
 
-extern uint_32 MMU_lastwaddr = 0; //What address is last addresses in actual memory?
-extern byte MMU_lastwdata = 0;
-extern byte MMU_gotlastwinfo = 0;
+extern uint_32 MMU_lastwaddr; //What address is last addresses in actual memory?
+extern byte MMU_lastwdata;
 
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
@@ -41,7 +40,6 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 	strcpy(debugger_prefix,"");
 	strcpy(debugger_command_text,"<DEBUGGER UNKOP NOT IMPLEMENTED>"); //Standard: unknown opcode!
 	debugger_set = 0; //Default: the debugger isn't implemented!
-	MMU_gotlastwinfo = 0; //Reset flag for information set: by default we don't have any info!
 }
 
 char flags[256]; //Flags as a text!

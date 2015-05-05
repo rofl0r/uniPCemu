@@ -34,10 +34,13 @@ OBJS += support\bmp.o
 #Logging support!
 OBJS += support\log.o
 
+#Lock support!
+OBJS += support\locks.o
+
 #Basic Callback manager in-memory!
 OBJS += cpu\cb_manager.o
 #first, interrupts
-OBJS += interrupts\interrupt13.o interrupts\interrupt10.o interrupts\interrupt18.o interrupts\interrupt19.o interrupts\interrupt16.o interrupts\interrupt5.o interrupts\interrupt11.o interrupts\unkint.o
+OBJS += interrupts\interrupt13.o interrupts\interrupt10.o interrupts\interrupt18.o interrupts\interrupt19.o interrupts\interrupt16.o interrupts\interrupt5.o interrupts\interrupt11.o interrupts\interrupt12.o interrupts\unkint.o
 OBJS += cpu\cpu_interrupts.o
 #Interrupt 10h VGA help:
 OBJS += interrupts\interrupt10_modelist_vga.o interrupts\interrupt10_switchvideomode.o interrupts\interrupt10_romfont.o interrupts\interrupt10_textmodedata.o
@@ -77,6 +80,9 @@ OBJS += hardware\vga\vga_vramtext.o
 
 #Adlib!
 OBJS += hardware\adlib.o
+
+#Floppy
+OBJS += hardware\floppy.o
 
 #Software debugger/CPU emulator functions.
 OBJS += hardware\softdebugger.o
