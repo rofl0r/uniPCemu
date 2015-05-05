@@ -20,11 +20,14 @@
 //Are we disabled?
 #define HW_DISABLED 0
 
+#define CURRENTBLINK(VGA) VGA->TextBlinkOn
+
 typedef uint_32(*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
+extern byte DAC_whatBWMonitor; //Default: color monitor!
 OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *VGA, word x
 {
 	static const DAC_monitor monitors[2] = { DAC_colorMonitor, DAC_BWmonitor }; //What kind of monitor?
-	return monitors[DAC_Use_BWMonitor(0xFF)](VGA, DACValue); //Do color mode or B/W mode!
+	return monitors[DAC_whatBWMonitor](VGA, DACValue); //Do color mode or B/W mode!
 }
 
 extern GPU_type GPU; //GPU!
@@ -54,7 +57,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 		break;
 	}
 
-	return ((float)result / getHorizontalTotal(VGA)); //Calculate the ammount of horizontal clocks per second!
+	return ((float)result / VGA->precalcs.horizontaltotal); //Calculate the ammount of horizontal clocks per second!
 
 }
 
@@ -127,6 +130,8 @@ typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA);
 
 word loadedlocation=0;
 
+VGA_AttributeInfo attributeinfo; //Our current collected attribute info!
+
 void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
 {
 	//Horizontal logic
@@ -157,6 +162,13 @@ void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load 
 	//Now the buffer is ready to be processed into pixels!
 
 	planesdecoder[VGA->precalcs.graphicsmode](VGA); //Use the decoder to get the pixels or characters!
+
+	byte lookupprecalcs;
+	lookupprecalcs = ((SEQ_DATA *)Sequencer)->charinner_y;
+	lookupprecalcs <<= 1; //Make room!
+	lookupprecalcs |= CURRENTBLINK(VGA); //Blink!
+	lookupprecalcs <<= 1; //Make room for the pixelon!
+	attributeinfo.lookupprecalcs = lookupprecalcs; //Save the looked up precalcs, this never changes during a processed block of pixels (both text and graphics modes)!
 }
 
 OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
@@ -297,7 +309,6 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	byte loadcharacterplanes;
 	//Render our active display here! Start with text mode!		
-	static VGA_AttributeInfo attributeinfo; //Our collected attribute info!
 	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
 	static VGA_Sequencer_Mode activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
 	byte nibbled=0; //Did we process two nibbles instead of one nibble?

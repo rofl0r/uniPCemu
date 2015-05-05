@@ -30,7 +30,7 @@ uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct!
 	    		result = sizeof(*container.listentry); //Take as list entry!
 	    	}
 	    }
-	    else if (memprotect(container.voidentry,sizeof(*container.dataentry),NULL)) //Valid data entry?
+	    else //Valid data entry?
 	    {
 	    	result = sizeof(*container.dataentry); //Take as data entry!
 		}

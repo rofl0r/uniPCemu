@@ -11,7 +11,7 @@ typedef struct
 	byte fontpixel; //Are we a front pixel?
 	word charx; //Character x!
 	word charinner_x; //Inner x base of character!
-	uint_32 attributesource; //What's the source plane of the attribute bits (plane bits set)?
+	byte lookupprecalcs; //Precalculated lookup values!
 } VGA_AttributeInfo; //Attribute info!
 
 //Precalcs!

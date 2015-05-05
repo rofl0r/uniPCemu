@@ -8,8 +8,6 @@
 #include "headers/support/log.h" //Debugger!
 extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c
 
-#define CURRENTBLINK(VGA) VGA->TextBlinkOn
-
 OPTINLINE byte getattributeback(VGA_Type *VGA,byte textmode, byte attr,byte filter)
 {
 	register byte temp = attr;
@@ -154,11 +152,8 @@ OPTINLINE byte VGA_getAttributeDACIndex(byte attribute, VGA_AttributeInfo *Seque
 {
 	register word lookup;
 	lookup = Sequencer_attributeinfo->attribute; //Take the latched nibbles as attribute!
-	lookup <<= 5; //Make room!
-	lookup |= ((SEQ_DATA *)Sequencer)->charinner_y;
-	lookup <<= 1; //Make room!
-	lookup |= CURRENTBLINK(VGA); //Blink!
-	lookup <<= 1; //Make room for the pixelon!
+	lookup <<= 7; //Make room!
+	lookup |= Sequencer_attributeinfo->lookupprecalcs; //Apply the looked up precalcs!
 	lookup |= Sequencer_attributeinfo->fontpixel; //Generate the lookup value!
 	return VGA->precalcs.attributeprecalcs[lookup]; //Give the data from the lookup table!
 }

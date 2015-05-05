@@ -110,7 +110,7 @@ OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 
 OPTINLINE void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
 {
-	if (!memprotect(surface,sizeof(*surface),"GPU_TEXTSURFACE")) return; //Invalid surface?
+	if (!surface) return; //Invalid surface?
 	if (surface->dirty[fy][fx]) updateDirty(surface,fx,fy); //Update dirty if needed!
 	register uint_32 color = surface->notdirty[fy][fx];
 	if (color!=TRANSPARENTPIXEL)

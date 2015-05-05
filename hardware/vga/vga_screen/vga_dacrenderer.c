@@ -72,11 +72,12 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	*/
 }
 
+byte DAC_whatBWColor = 0; //Default: none!
+
 byte DAC_BWColor(byte use) //What B/W color to use?
 {
-	static byte use_color = 0; //Default: b/w!
-	if (use < 4) use_color = use; //Use?
-	return use_color;
+	if (use < 4) DAC_whatBWColor = use; //Use?
+	return DAC_whatBWColor;
 }
 
 OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
@@ -98,7 +99,7 @@ OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
     b = (b >> 2);
     a += b;
 
-	switch (DAC_BWColor(0xFF)) //What color scheme?
+	switch (DAC_whatBWColor) //What color scheme?
 	{
 	case BWMONITOR_BLACK: //Back/white?
 		return RGB(a, a, a); //RGB Greyscale!
@@ -125,9 +126,10 @@ uint_32 DAC_colorMonitor(VGA_Type *VGA,byte DACValue)
 	return VGA->precalcs.DAC[DACValue]; //Lookup!
 }
 
+byte DAC_whatBWMonitor = 0; //Default: color monitor!
+
 byte DAC_Use_BWMonitor(byte use)
 {
-	static byte use_bwmonitor = 0; //Use B/W monitor?
-	if (use<2) use_bwmonitor = use; //Use?
-	return use_bwmonitor; //Give the data!
+	if (use<2) DAC_whatBWMonitor = use; //Use?
+	return DAC_whatBWMonitor; //Give the data!
 }
