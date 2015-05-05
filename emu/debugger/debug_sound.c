@@ -167,8 +167,6 @@ void dosoundtest()
 	#endif
 
 	#ifdef __DEBUG_MIDI
-	terminateVGA(); //Stop the active VGA renderer: we don't want it's corruption!
-
 	memset(&MID_data, 0, sizeof(MID_data)); //Init data!
 	memset(&MID_tracks, 0, sizeof(MID_tracks)); //Init tracks!
 
