@@ -219,7 +219,9 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//First, render ourselves to the screen!
 	GPU.xres = Sequencer->xres; //Apply x resolution!
 	GPU.yres = Sequencer->yres; //Apply y resolution!
+	unlockGPU(); //Unlock the GPU!
 	VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
+	lockGPU(); //Lock the GPU again! We're using it again!
 	
 	Sequencer->Scanline = 0; //Reset for the next frame!
 	Sequencer->yres = 0; //Reset Y resolution next frame if not specified (like a real screen)!
