@@ -3,7 +3,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/gpu/gpu.h" //Locking support!
 #include "headers/hardware/vga.h" //Locking support!
-
+#include "headers/emu/sound.h" //Sound support!
 
 #include <malloc.h> //Specific to us only!
 
@@ -299,10 +299,12 @@ void freezall(void) //Free all allocated memory still allocated (on shutdown onl
 		unlockVGA();
 		return;
 	}
+	lockaudio(); //Make sure audio isn't running!
 	for (i=0;i<NUMITEMS(registeredpointers);i++)
 	{
 		freez(&registeredpointers[i].pointer,registeredpointers[i].size,"Unregisterptrall"); //Unregister a pointer when allowed!
 	}
+	unlockaudio(0); //Unlock the audio! Don't start playing automatically, since there's nothing to play!
 	unlockGPU(); //Enable again!
 	unlockVGA();
 }
