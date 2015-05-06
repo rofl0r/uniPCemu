@@ -69,7 +69,7 @@ SDL_sem *getLock(char *name)
 	return NULL; //Unable to allocate: invalid lock!
 }
 
-int lock(char *name)
+byte lock(char *name)
 {
 	SDL_sem *lock;
 	lock = getLock(name); //Get the lock!

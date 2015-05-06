@@ -83,7 +83,7 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 				characterset_offset += y; //Add the row!
 				
 				byte row = readVRAMplane(VGA,2,characterset_offset,0); //Read the row from the character generator! Don't do anything special, just because we're from the renderer!
-				getcharxy_values[character|(attribute<<8)|(y<<9)] = row; //Store the row for the character generator!
+				getcharxy_values[(character<<6)|(y<<1)|attribute] = row; //Store the row for the character generator!
 				++y; //Next row!
 			}
 			++attribute; //Next attribute!
@@ -106,8 +106,7 @@ OPTINLINE byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, 
 		return 0; //Nothing!
 	}
 
-	byte newx = x; //Default: use the 9th bit if needed!
-	byte newy = y; //Default: use the standard y!
+	register byte newx = x; //Default: use the 9th bit if needed!
 	attribute >>= 2; //...
 	attribute &= 1; //... Take bit 2 to get the actual attribute we need!
 	if (newx&0xFFF8) //Extra ninth bit?
@@ -123,36 +122,34 @@ OPTINLINE byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, 
 	}
 	
 	static uint_32 lastcharinfo = 0; //attribute|character|0x80|row, bit8=Set?
-	uint_32 lastlookup;
+	register uint_32 lastlookup;
 	lastlookup = character;
-	lastlookup <<= 1;
-	lastlookup |= 1;
 	lastlookup <<= 1;
 	lastlookup |= attribute;
 	lastlookup <<= 5;
-	lastlookup |= newy;
-	if ((lastcharinfo&0xFFFFFF)!=lastlookup) //Last row not yet loaded?
+	lastlookup |= y;
+	lastlookup <<= 1;
+	lastlookup |= 1; //A filled record!
+	if ((lastcharinfo&0x7FFF)!=lastlookup) //Last row not yet loaded?
 	{
-		uint_32 charloc;
-		charloc = newy;
+		register uint_32 charloc;
+		charloc = character; //Character position!
+		charloc <<= 5;
+		charloc |= y;
 		charloc <<= 1;
 		charloc |= attribute;
-		charloc <<= 8;
-		charloc |= character; //Character position!
-		lastcharinfo = ((VGA->getcharxy_values[charloc]<<16)|(character<<8)|0x80|(attribute<<5)|newy); //Last character info loaded!
 		lastcharinfo = VGA->getcharxy_values[charloc]; //Lookup!
 		lastcharinfo <<= 8; //Create space for the character!
 		lastcharinfo |= character;
 		lastcharinfo <<= 1;
-		lastcharinfo |= 1; //Used!
-		lastcharinfo <<= 1;
 		lastcharinfo |= attribute;
 		lastcharinfo <<= 5;
-		lastcharinfo |= newy;
+		lastcharinfo |= y;
+		lastcharinfo <<= 1;
+		lastcharinfo |= 1; //We're filled!
 	}
 	
-	byte result = ((lastcharinfo>>(23-newx))&1); //Give bit!
-	return result; //Give bit!
+	return ((lastcharinfo >> (22 - newx)) & 1); //Give bit!
 }
 
 void VGA_dumpchar(VGA_Type *VGA, byte c)

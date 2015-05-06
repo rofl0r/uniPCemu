@@ -132,7 +132,7 @@ word loadedlocation=0;
 
 VGA_AttributeInfo attributeinfo; //Our current collected attribute info!
 
-void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
+OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
 {
 	//Horizontal logic
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
@@ -290,7 +290,7 @@ void VGA_Blank(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributei
 }
 
 extern byte LOG_RENDER_BYTES; //From graphics mode operations!
-void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+OPTINLINE void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	//Active display!
 	drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
@@ -322,8 +322,8 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		nibbled = 1; //We're processing 2 nibbles instead of 1 nibble!
 		goto othernibble; //Apply the attribute through the attribute controller!
 	}
-	//activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display! Blanking doesn't work yet?
-	VGA_ActiveDisplay_noblanking(VGA, Sequencer, &attributeinfo); //Always active display!
+
+	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
 
 	if (++Sequencer->active_pixelrate > VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) //To write back the pixel clock every or every other pixel?
 	{
@@ -354,6 +354,7 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		}
 	}
 }
+
 //Overscan handler!
 void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {

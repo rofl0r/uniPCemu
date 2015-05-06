@@ -2,7 +2,9 @@
 #define __LOCKS_H
 
 void initLocks();
-int lock(char *name);
+byte lock(char *name);
 void unlock(char *name);
+
+SDL_sem *getLock(char *name); //For termination of locks!
 
 #endif

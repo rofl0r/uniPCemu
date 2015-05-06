@@ -740,6 +740,10 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 		}
 	} //Got channels?
 
+
+#ifndef __psp__
+	//Equalize all sound volume!
+
 	//Process all generated samples to output!
 	currentsample = length; //Init samples to give!
 	activesample = &mixedsamples[0]; //Initialise the mixed samples position!
@@ -761,6 +765,7 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 	
 	gainMaster_l = SHRT_MAX / (sqrt(2)*RMS_l);
 	gainMaster_r = SHRT_MAX / (sqrt(2)*RMS_r);
+#endif
 	
 	//Final step: apply Master gain and clip to output!
 	currentsample = length; //Init samples to give!
@@ -769,8 +774,10 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 	{
 		result_l = *activesample++; //L channel!
 		result_r = *activesample++; //R channel!
+#ifndef __psp__
 		result_l *= gainMaster_l; //Apply master gain!
 		result_r *= gainMaster_r; //Apply master gain!
+#endif
 		if (result_l>SHRT_MAX) result_l = SHRT_MAX;
 		if (result_l<SHRT_MIN) result_l = SHRT_MIN;
 		if (result_r>SHRT_MAX) result_r = SHRT_MAX;

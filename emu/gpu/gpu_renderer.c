@@ -426,6 +426,7 @@ FPS LIMITER!
 
 void refreshscreen() //Handler for a screen frame (60 fps) MAXIMUM.
 {
+	lockGPU();
 	if (__HW_DISABLED) return; //Abort?
 	int do_render = 1; //Do render?
 
@@ -453,4 +454,5 @@ void refreshscreen() //Handler for a screen frame (60 fps) MAXIMUM.
 	
 	GPU_is_rendering = 0; //We're done rendering!
 	finish_screen(); //Finish stuff on-screen!	
+	unlockGPU(); //Finished with the GPU!
 }

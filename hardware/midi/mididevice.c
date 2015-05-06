@@ -267,7 +267,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	ticksholder_AVG(&ticks); //Enable averaging!
 #endif
 	if (!voice->VolumeEnvelope.active) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
-	if (!memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unable to render anything!
+	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unable to render anything!
 
 	//Calculate the pitch bend speedup!
 	pitchcents = (double)voice->channel->pitch; //Load active pitch bend!
@@ -284,7 +284,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		voice->currentloopflags &= ~0x40; //Sustain disabled by default!
 		voice->currentloopflags |= (voice->channel->sustain << 6); //Sustaining?
 	} //Requested off?
-
 	//Now produce the sound itself!
 	for (; --numsamples;) //Produce the samples!
 	{
@@ -323,7 +322,7 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 
-	if (!memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return 0; /We're unable to render anything!
+	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return 0; //We're unable to render anything!
 	if (voice->VolumeEnvelope.active) return 1; //Active voices can't be allocated!
 
 	//Check for requested voices!

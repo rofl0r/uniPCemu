@@ -292,7 +292,11 @@ void terminateVGA() //Terminate running VGA and disable it! Only to be used by r
 		return; //We can't terminate without a VGA to terminate!
 	}
 	lockVGA(); //Lock the VGA!
-	if (getActiveVGA()->Terminated) return; //Already terminated?
+	if (getActiveVGA()->Terminated)
+	{
+		unlockVGA(); //Finished!
+		return; //Already terminated?
+	}
 	//No need to request for termination: we either are rendering in hardware (already not here), or here and not rendering at all!
 	getActiveVGA()->Terminated = 1; //Terminate VGA!
 	unlockVGA(); //VGA can run again!

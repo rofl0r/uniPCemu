@@ -342,10 +342,12 @@ int main(int argc, char * argv[])
 	doneAudio(); //Finish audio processing!
 	debugrow("Terminating main video service...");		
 	doneVideoMain(); //Finish video!
+	unlockVGA(); //Unlock the VGA if needed: it's not running anymore!
+	unlockGPU(); //Unlock the GPU if needed: it's not running anymore!
 	freezall(); //Finish up: free all used pointers!
 	if (shuttingdown() || !running) //Shutdown requested or SDL termination requested?
 	{
-		SDL_Quit(); //Quit using SDL, terminating the pspsurface!
+		exit(0); //Quit using SDL, terminating the pspsurface!
 		return 0; //Finish to be safe!
 	}
 

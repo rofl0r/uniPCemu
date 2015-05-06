@@ -19,6 +19,7 @@ getRIFFChunkSize: Retrieves the chunk size from an entry!
 uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct!
 {
 	uint_32 result = 0; //Default: not found!
+	if (!container.voidentry) return 0; //Invalid container!
 	RIFF_DATAENTRY temp;
 	memcpy(&temp,container.voidentry,sizeof(temp));
 	if ((temp.ckID==CKID_LIST) || (temp.ckID==CKID_RIFF)) //Valid RIFF/LIST type?
@@ -27,7 +28,7 @@ uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct!
 	}
 	else //Valid data entry?
 	{
-    		result = sizeof(*container.dataentry); //Take as data entry!
+    	result = sizeof(*container.dataentry); //Take as data entry!
 	}
 	return result; //Invalid entry!
 }
@@ -36,7 +37,8 @@ uint_32 getRIFFChunkSize(RIFF_ENTRY entry) //Checked & correct!
 {
 	uint_32 chunksize;
 	RIFF_DATAENTRY data;
-	memcpy(&data,entry.voidentry,sizeof(data)); //Copy for usage! 
+	if (!entry.voidentry) return 0; //No size: we're an invalid entry!
+	memcpy(&data,entry.voidentry,sizeof(data)); //Copy for usage!
 	chunksize = data.ckSize; //The chunk size!
 	if ((data.ckID==CKID_RIFF) || (data.ckID==CKID_LIST)) //We're a RIFF/LIST list?
 	{
@@ -181,6 +183,7 @@ byte getRIFFData(RIFF_ENTRY RIFFHeader, uint_32 index, uint_32 size, void *resul
 {
 	RIFF_DATAENTRY temp;
 	byte *entrystart;
+	if (!RIFFHeader.voidentry) return 0; //Invalid entry!
 	memcpy(&temp,RIFFHeader.voidentry,sizeof(temp)); //Get an entry!
 	if ((temp.ckID==CKID_LIST) || (temp.ckID==CKID_RIFF)) //Has subchunks, no data?
 	{
@@ -747,7 +750,7 @@ byte getSFsample(RIFFHEADER *sf, uint_32 sample, short *result) //Get a 16/24-bi
 {
 	word sample16;
 	byte gotsample16 = getRIFFData(sf->pcmdata,sample,sizeof(word),&sample16); //Get the sample!
-	
+
 	//24-bit sample high 8 bits
 	byte sample24;
 	byte gotsample24 = getRIFFData(sf->pcm24data,sample,sizeof(byte),&sample24); //Get the sample!
