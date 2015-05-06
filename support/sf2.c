@@ -20,20 +20,14 @@ uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct!
 {
 	uint_32 result = 0; //Default: not found!
 	RIFF_DATAENTRY temp;
-	if (memprotect(container.voidentry,sizeof(temp),NULL)) //Valid entry?
+	memcpy(&temp,container.voidentry,sizeof(temp));
+	if ((temp.ckID==CKID_LIST) || (temp.ckID==CKID_RIFF)) //Valid RIFF/LIST type?
 	{
-		memcpy(&temp,container.voidentry,sizeof(temp));
-		if ((temp.ckID==CKID_LIST) || (temp.ckID==CKID_RIFF)) //Valid RIFF/LIST type?
-	    {
-	    	if (memprotect(container.voidentry,sizeof(*container.listentry),NULL))
-	    	{
-	    		result = sizeof(*container.listentry); //Take as list entry!
-	    	}
-	    }
-	    else //Valid data entry?
-	    {
-	    	result = sizeof(*container.dataentry); //Take as data entry!
-		}
+		result = sizeof(*container.listentry); //Take as list entry!
+	}
+	else //Valid data entry?
+	{
+    		result = sizeof(*container.dataentry); //Take as data entry!
 	}
 	return result; //Invalid entry!
 }
@@ -42,10 +36,6 @@ uint_32 getRIFFChunkSize(RIFF_ENTRY entry) //Checked & correct!
 {
 	uint_32 chunksize;
 	RIFF_DATAENTRY data;
-	if (!memprotect(entry.voidentry,sizeof(data),NULL)) //Invalid entry?
-	{
-		return 0; //Default: Invalid entry protection!
-	}
 	memcpy(&data,entry.voidentry,sizeof(data)); //Copy for usage! 
 	chunksize = data.ckSize; //The chunk size!
 	if ((data.ckID==CKID_RIFF) || (data.ckID==CKID_LIST)) //We're a RIFF/LIST list?
@@ -66,11 +56,7 @@ void *RIFF_start_data(RIFF_ENTRY container, uint_32 headersize)
 	size = getRIFFChunkSize(container); //Get the chunk size!
 	if (size)
 	{
-		if (size&1) ++size; //Word align!
-		if (memprotect(result,size,NULL)) //Valid?
-		{
-			return result; //Give the result!
-		}
+		return result; //Give the result!
 	}
 	return NULL; //Invalid data!
 }
@@ -93,27 +79,12 @@ byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 entrysize) 
 	uint_32 containersize;
 	uint_32 containerstart, containerend, entrystart, entryend;
 	void *startData; //Start of the data!
-	if (!memprotect(container.voidentry,sizeof(RIFF_DATAENTRY),NULL)) //Error?
-	{
-		return 0; //Invalid address!
-	}
 
 	containersize = RIFF_entryheadersize(container); //What header size?
 	if (!containersize) return 0; //Invalid container!
 
-	if (!memprotect(container.voidentry,containersize,NULL)) //Error?
-	{
-		return 0; //Invalid address!
-	}
-
 	startData = RIFF_start_data(container,containersize); //Get the start of the container data!
 	containersize = getRIFFChunkSize(container); //Get the size of the content of the container!
-
-	if (!memprotect(startData,containersize,NULL)) //Invalid data?
-	{
-		return 0; //Invalid container data!
-	}
-
 
 	containerend = containerstart = (uint_32)startData;
 	containerend += containersize; //What size!
@@ -149,10 +120,6 @@ RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a RIFF Subc
 	RIFF_ENTRY temp_entry;
 	uint_32 headersize; //Header size, precalculated!
 	if (!RIFFHeader.dataentry) return NULLRIFFENTRY(); //Invalid RIFF Entry specified!
-	if (!memprotect(RIFFHeader.dataentry,sizeof(*RIFFHeader.dataentry),NULL)) //Error?
-	{
-		return NULLRIFFENTRY(); //Invalid RIFF Header!
-	}
 	
 	//Our entries for our usage!
 	EntriesStart = RIFFHeader;
@@ -214,10 +181,6 @@ byte getRIFFData(RIFF_ENTRY RIFFHeader, uint_32 index, uint_32 size, void *resul
 {
 	RIFF_DATAENTRY temp;
 	byte *entrystart;
-	if (!memprotect(RIFFHeader.voidentry,sizeof(*RIFFHeader.dataentry),NULL)) //Error?
-	{
-		return 0; //Invalid RIFF entry!
-	}
 	memcpy(&temp,RIFFHeader.voidentry,sizeof(temp)); //Get an entry!
 	if ((temp.ckID==CKID_LIST) || (temp.ckID==CKID_RIFF)) //Has subchunks, no data?
 	{
