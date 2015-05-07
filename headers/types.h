@@ -42,9 +42,14 @@
 
 //Our basic functionality we need for running this program!
 //We have less accuracy using SDL delay: ms instead of us. Round to 1ms if needed!
+#ifdef __psp__
+#define delay(us) sceKernelDelayThread(us)
+#define sleep sceKernelSleepThread
+#else
 #define delay(us) SDL_Delay(((us)>=1000)?((us)/1000):1)
 //Sleep is an infinite delay
-#define sleep() for (;;) SDL_Delay(1000)
+#define sleep() for (;;) delay(1000000)
+#endif
 #define halt SDL_Quit
 
 #ifndef uint_64

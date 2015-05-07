@@ -4,8 +4,8 @@
 #include "headers/types.h"
 #include "headers/hardware/midi/adsr.h" //ADSR support!
 
-//All MIDI voices that are available!
-#define __MIDI_NUMVOICES 64
+//All MIDI voices that are available! Originally 64! Minimum of 24 according to General MIDI 1!
+#define __MIDI_NUMVOICES 24
 //How many samples to buffer at once! 42 according to MIDI specs! Set to 84 to work!
 #define __MIDI_SAMPLES 84
 

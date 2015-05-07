@@ -22,6 +22,8 @@
 
 #define CURRENTBLINK(VGA) VGA->TextBlinkOn
 
+#define PIXELBLOCKSIZE 1024
+
 typedef uint_32(*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
 extern byte DAC_whatBWMonitor; //Default: color monitor!
 OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *VGA, word x
@@ -57,8 +59,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 		break;
 	}
 
-	return ((float)result / VGA->precalcs.horizontaltotal); //Calculate the ammount of horizontal clocks per second!
-
+	return (result/PIXELBLOCKSIZE); //Calculate the ammount of horizontal clocks per second!
 }
 
 //Main rendering routine: renders pixels to the emulated screen.
@@ -548,14 +549,15 @@ void VGA_Sequencer()
 		return; //Abort: we're disabled!
 	}
 
-	Sequencer_Break = 0; //Start running!
-	for (;;) //New CRTC constrolled way!
+	uint_32 i = PIXELBLOCKSIZE+1; //Process 1024000 pixels at a time!
+	for (; --i;)
 	{
+		//Process one pixel only!
+		Sequencer_Break = 0; //Start running!
 		totalretracing &= 1; //Only count retracing for new pixels: total is only once!
-		displaystate = get_display(VGA,Sequencer->Scanline,Sequencer->x++); //Current display state!
-		displaysignalhandler[displaystate](Sequencer,VGA,displaystate); //Handle any change in display state first!
-		displayrenderhandler[totalretracing][displaystate](Sequencer,VGA); //Execute our signal!
-		if (Sequencer_Break) break; //Abort when done!
+		displaystate = get_display(VGA, Sequencer->Scanline, Sequencer->x++); //Current display state!
+		displaysignalhandler[displaystate](Sequencer, VGA, displaystate); //Handle any change in display state first!
+		displayrenderhandler[totalretracing][displaystate](Sequencer, VGA); //Execute our signal!
 	}
 
 	unlockVGA(); //Unlock the VGA for Software access!
