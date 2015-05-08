@@ -16,11 +16,11 @@ getRIFFChunkSize: Retrieves the chunk size from an entry!
 
 */
 
-uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct!
+OPTINLINE uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct!
 {
 	uint_32 result = 0; //Default: not found!
 	if (!container.voidentry) return 0; //Invalid container!
-	RIFF_DATAENTRY temp;
+	static RIFF_DATAENTRY temp;
 	memcpy(&temp,container.voidentry,sizeof(temp));
 	if ((temp.ckID==CKID_LIST) || (temp.ckID==CKID_RIFF)) //Valid RIFF/LIST type?
 	{
@@ -33,10 +33,10 @@ uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct!
 	return result; //Invalid entry!
 }
 
-uint_32 getRIFFChunkSize(RIFF_ENTRY entry) //Checked & correct!
+OPTINLINE uint_32 getRIFFChunkSize(RIFF_ENTRY entry) //Checked & correct!
 {
 	uint_32 chunksize;
-	RIFF_DATAENTRY data;
+	static RIFF_DATAENTRY data;
 	if (!entry.voidentry) return 0; //No size: we're an invalid entry!
 	memcpy(&data,entry.voidentry,sizeof(data)); //Copy for usage!
 	chunksize = data.ckSize; //The chunk size!
@@ -48,7 +48,7 @@ uint_32 getRIFFChunkSize(RIFF_ENTRY entry) //Checked & correct!
 	return chunksize; //Give the size!
 }
 
-void *RIFF_start_data(RIFF_ENTRY container, uint_32 headersize)
+OPTINLINE void *RIFF_start_data(RIFF_ENTRY container, uint_32 headersize)
 {
 	byte *result;
 	uint_32 size;
@@ -65,7 +65,7 @@ void *RIFF_start_data(RIFF_ENTRY container, uint_32 headersize)
 
 OPTINLINE RIFF_ENTRY NULLRIFFENTRY()
 {
-	RIFF_ENTRY result;
+	static RIFF_ENTRY result;
 	result.voidentry = NULL;
 	return result; //Give the result!
 }
@@ -76,7 +76,7 @@ checkRIFFChunkLimits: Verify if a chunk within another chunk is valid to read (w
 
 */
 
-byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 entrysize) //Check an entry against it's limits!
+OPTINLINE byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 entrysize) //Check an entry against it's limits!
 {
 	uint_32 containersize;
 	uint_32 containerstart, containerend, entrystart, entryend;
@@ -111,15 +111,15 @@ getRIFFEntry: Retrieves an RIFF Entry from a RIFF Chunk!
 
 */
 
-RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a RIFF Subchunk from a RIFF chunk.
+OPTINLINE RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a RIFF Subchunk from a RIFF chunk.
 {
-	RIFF_LISTENTRY listentry;
-	RIFF_DATAENTRY dataentry;
+	static RIFF_LISTENTRY listentry;
+	static RIFF_DATAENTRY dataentry;
 	
-	RIFF_ENTRY EntriesStart;
-	RIFF_ENTRY CurrentEntry;
+	static RIFF_ENTRY EntriesStart;
+	static RIFF_ENTRY CurrentEntry;
 	uint_32 foundid;
-	RIFF_ENTRY temp_entry;
+	static RIFF_ENTRY temp_entry;
 	uint_32 headersize; //Header size, precalculated!
 	if (!RIFFHeader.dataentry) return NULLRIFFENTRY(); //Invalid RIFF Entry specified!
 	
@@ -179,9 +179,9 @@ result:
 
 */
 
-byte getRIFFData(RIFF_ENTRY RIFFHeader, uint_32 index, uint_32 size, void *result)
+OPTINLINE byte getRIFFData(RIFF_ENTRY RIFFHeader, uint_32 index, uint_32 size, void *result)
 {
-	RIFF_DATAENTRY temp;
+	static RIFF_DATAENTRY temp;
 	byte *entrystart;
 	if (!RIFFHeader.voidentry) return 0; //Invalid entry!
 	memcpy(&temp,RIFFHeader.voidentry,sizeof(temp)); //Get an entry!
@@ -214,12 +214,12 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 	uint_32 filesize;
 	uint_32 finalentry; //For determining the final entry number!
 	uint_64 detectedsize;
-	RIFF_ENTRY sfbkentry, infoentry, version, soundentries, hydra, phdr, pbag, pmod, pgen, inst, ibag, imod, igen, shdr;
-	sfVersionTag versiontag;
-	sfPresetHeader finalpreset;
-	sfPresetBag finalpbag;
-	sfInst finalInst;
-	sfInstBag finalibag;
+	static RIFF_ENTRY sfbkentry, infoentry, version, soundentries, hydra, phdr, pbag, pmod, pgen, inst, ibag, imod, igen, shdr;
+	static sfVersionTag versiontag;
+	static sfPresetHeader finalpreset;
+	static sfPresetBag finalpbag;
+	static sfInst finalInst;
+	static sfInstBag finalibag;
 	if (memprotect(RIFF,sizeof(RIFFHEADER),NULL)!=RIFF) //Error?
 	{
 		dolog("SF2","validateSF: Archive pointer is invalid!");
@@ -484,7 +484,7 @@ RIFFHEADER *readSF(char *filename)
 	FILE *f;
 	uint_32 filesize;
 	byte *buffer;
-	RIFFHEADER *riffheader;
+	static RIFFHEADER *riffheader;
 	f = fopen(filename,"rb"); //Read the file!
 	if (!f)
 	{
@@ -748,11 +748,11 @@ short getsample24_16(uint_32 sample) //Get 24 bits sample and convert it to a 16
 //Sample!
 byte getSFsample(RIFFHEADER *sf, uint_32 sample, short *result) //Get a 16/24-bit(downsampled) sample!
 {
-	word sample16;
+	static word sample16;
 	byte gotsample16 = getRIFFData(sf->pcmdata,sample,sizeof(word),&sample16); //Get the sample!
 
 	//24-bit sample high 8 bits
-	byte sample24;
+	static byte sample24;
 	byte gotsample24 = getRIFFData(sf->pcm24data,sample,sizeof(byte),&sample24); //Get the sample!
 	
 	//Take the correct sample (16/24 bit samples with conversion to 16-bit samples)
@@ -767,8 +767,7 @@ byte getSFsample(RIFFHEADER *sf, uint_32 sample, short *result) //Get a 16/24-bi
 	}
 	else if (gotsample16) //16-bit sample found?
 	{
-		word fullsample16 = sample16; //Create the 16-bit sample!
-		*result = getsample16(fullsample16); //Get the sample!
+		*result = getsample16(sample16); //Get the sample!
 		return 1; //OK!
 	}
 

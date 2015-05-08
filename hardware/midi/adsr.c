@@ -26,17 +26,49 @@ void ADSR_release(ADSR *adsr, byte sustaining, byte release_velocity)
 	adsr->active = ADSR_IDLE; //Return to IDLE!
 }
 
+void enterRelease(ADSR *adsr, byte release_velocity)
+{
+	//Calculate the release information
+	if (adsr->release)
+	{
+		float releasefactor = 1.0f; //From full!
+		releasefactor /= adsr->release; //Equal steps from full to 0.0f!
+		if (!releasefactor) //No release?
+		{
+			adsr->release = 0; //No release!
+		}
+		else
+		{
+			float temp;
+			temp = adsr->ADSREnvelope; //Full current volume!
+			temp /= releasefactor; //Calculate the new decay time needed to change to the sustain factor!
+			adsr->release = temp; //Load the calculated decay time!
+		}
+	}
+	else
+	{
+		adsr->releasefactor = 0.0f; //No release!
+	}
+
+	adsr->active = ADSR_RELEASE; //Check next step!
+	adsr->releasestart = adsr->play_counter; //When we start to release!
+	if (adsr->active==6) ADSR_release(adsr, 0, release_velocity); //Passthrough!
+}
+
 void ADSR_sustain(ADSR *adsr, byte sustaining, byte release_velocity)
 {
 	if (sustaining) return; //Disable our voice when not sustaining anymore!
 	//Sustain expired?
-	adsr->active = ADSR_RELEASE; //Check next step!
-	adsr->releasestart = adsr->play_counter; //When we start to release!
-	ADSR_release(adsr, sustaining, release_velocity); //Passthrough!
+	enterRelease(adsr,release_velocity); //Enter the release phase!
 }
 
 void ADSR_decay(ADSR *adsr, byte sustaining, byte release_velocity)
 {
+	if (!sustaining) //Finished playing?
+	{
+		enterRelease(adsr,release_velocity); //Enter the release phase!
+		return; //Finished!
+	}
 	if (adsr->decay) //Gotten decay?
 	{
 		if (adsr->decayend > adsr->play_counter) //Decay busy?
@@ -48,22 +80,32 @@ void ADSR_decay(ADSR *adsr, byte sustaining, byte release_velocity)
 	//Decay expired?
 	adsr->active = ADSR_SUSTAIN; //Check next step!
 	adsr->ADSREnvelope = adsr->sustainfactor; //Apply sustain factor!
-	ADSR_sustain(adsr,sustaining,release_velocity); //Passthrough!
+	if (adsr->active==5) ADSR_sustain(adsr,sustaining,release_velocity); //Passthrough!
 }
 
 void ADSR_hold(ADSR *adsr, byte sustaining, byte release_velocity)
 {
+	if (!sustaining) //Finished playing?
+	{
+		enterRelease(adsr, release_velocity); //Enter the release phase!
+		return; //Finished!
+	}
 	if (adsr->hold) //Gotten hold?
 	{
 		if (adsr->holdend > adsr->play_counter) return; //Hold busy?
 	}
 	//Hold expired?
 	adsr->active = ADSR_DECAY; //Check next step!
-	ADSR_decay(adsr,sustaining,release_velocity); //Passthrough!
+	if (adsr->active==4) ADSR_decay(adsr,sustaining,release_velocity); //Passthrough!
 }
 
 void ADSR_attack(ADSR *adsr, byte sustaining, byte release_velocity)
 {
+	if (!sustaining) //Finished playing?
+	{
+		enterRelease(adsr, release_velocity); //Enter the release phase!
+		return; //Finished!
+	}
 	if (adsr->attack) //Gotten attack?
 	{
 		if (adsr->attackend > adsr->play_counter) //Attack busy?
@@ -75,7 +117,7 @@ void ADSR_attack(ADSR *adsr, byte sustaining, byte release_velocity)
 	//Attack expired?
 	adsr->ADSREnvelope = 1.0f; //Make sure we're at 100%
 	adsr->active = ADSR_HOLD; //Check next step!
-	ADSR_hold(adsr,sustaining,release_velocity); //Passthrough!
+	if (adsr->active==3) ADSR_hold(adsr,sustaining,release_velocity); //Passthrough!
 }
 
 void ADSR_delay(ADSR *adsr, byte sustaining, byte release_velocity)
@@ -85,7 +127,7 @@ void ADSR_delay(ADSR *adsr, byte sustaining, byte release_velocity)
 		if (adsr->delay > adsr->play_counter) return; //Delay busy?
 	}
 	adsr->active = ADSR_ATTACK; //Check next step!
-	ADSR_attack(adsr,sustaining,release_velocity); //Passthrough!
+	if (adsr->active==2) ADSR_attack(adsr,sustaining,release_velocity); //Passthrough!
 }
 
 void ADSR_idle(ADSR *adsr, byte sustaining, byte release_velocity)
@@ -302,27 +344,6 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 		decayfactor = 0.0f; //No decay!
 	}
 	//Sustain does nothing!
-	//Release
-	if (release)
-	{
-		releasefactor = 1.0f; //From full!
-		releasefactor /= release; //Equal steps from 1.0f to 0.0f!
-		if (!releasefactor) //No release?
-		{
-			release = 0; //No release!
-		}
-		else
-		{
-			float temp;
-			temp = sustainfactor; //Full volume!
-			temp /= releasefactor; //Calculate the new decay time needed to change to the sustain factor!
-			release = temp; //Load the calculated decay time!
-		}
-	}
-	else
-	{
-		releasefactor = 0.0f; //No release!
-	}
 
 	//Apply ADSR to the voice!
 	adsr->delay = delay; //Delay
@@ -334,7 +355,6 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	adsr->sustain = sustain; //Sustain
 	adsr->sustainfactor = sustainfactor; //Sustain %
 	adsr->release = release; //Release
-	adsr->releasefactor = releasefactor;
 
 	//Finally calculate the actual values needed!
 	adsr->attackend = adsr->attack + adsr->delay;

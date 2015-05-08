@@ -9,9 +9,9 @@
 #define ADSR_DELAY 0x01
 #define ADSR_ATTACK 0x02
 #define ADSR_HOLD 0x03
-#define ADSR_DECAY 0x05
+#define ADSR_DECAY 0x04
 #define ADSR_SUSTAIN 0x05
-#define ADSR_RELEASE 0x00
+#define ADSR_RELEASE 0x06
 
 //Convert cents to samples to increase (instead of 1 sample/sample). Floating point number (between 0.0+ usually?) Use this as a counter for the current samples (1.1+1.1..., so keep the rest value (1,1,1,...,0,1,1,1,...))
 //The same applies to absolute and relative timecents (with absolute referring to 1 second intervals (framerate samples) and relative to the absolute value)

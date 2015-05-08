@@ -14,6 +14,7 @@ float currentFunction(byte how, const float time); //For the PC speaker!
 //#define __DEBUG_SPEAKER
 #define __DEBUG_MIDI
 //#define __DEBUG_ADLIB
+#define __DEBUG_MPUMID 0
 
 void adlibsetreg(byte reg,byte val)
 {
@@ -171,8 +172,9 @@ void dosoundtest()
 	memset(&MID_tracks, 0, sizeof(MID_tracks)); //Init tracks!
 
 	word numchannels = 0;
-	if ((numchannels = readMID("MPU.mid", &header, &MID_tracks[0], &MID_data[0], 100)))
+	if ((numchannels = readMID("MPU.mid", &header, &MID_tracks[0], &MID_data[0], 100)) && __DEBUG_MPUMID)
 	{
+		stopTimers(0); //Stop most timers for max compatiblity and speed!
 		//Initialise our device!
 		PORT_OUT_B(0x331, 0xFF); //Reset!
 		PORT_OUT_B(0x331, 0x3F); //Kick to UART mode!
@@ -229,30 +231,32 @@ void dosoundtest()
 		sleep();
 	}
 
+	stopTimers(1); //Stop ALL timers for testing speed!
 	//dolog("SF2","Sounding test central C...");
 	//printmsg(0xF,"MIDI Piano central C...");
 	//Don't worry about timing!
 	PORT_OUT_B(0x331,0xFF); //Reset!
 	PORT_OUT_B(0x331,0x3F); //Kick to UART mode!
 	PORT_OUT_B(0x330,0xC0);
-	//PORT_OUT_B(0x330,0x00); //Piano
+	PORT_OUT_B(0x330,0x00); //Piano
 	//PORT_OUT_B(0x330,20); //Organ!
 	//PORT_OUT_B(0x330,26); //Jazz guitar
 	//PORT_OUT_B(0x330, 73); //Flute!
 
 	//Apply drum kit!
-	PORT_OUT_B(0x330, 0x00); //Default drum kit!
+	//PORT_OUT_B(0x330, 0x00); //Default drum kit!
 
 	//Switch to the drum kit set!
 	PORT_OUT_B(0x330, 0xB0); //Controller change!
 	PORT_OUT_B(0x330, 0x00); //Bank high!
-	PORT_OUT_B(0x330, 0x01); //0xXX00
+	PORT_OUT_B(0x330, 0x00); //0xXX00
 	PORT_OUT_B(0x330, 0x20); //Bank low!
 	PORT_OUT_B(0x330, 0x00); //0x00XX
 
 	PORT_OUT_B(0x330, 0x90); //First tone ON!
-	PORT_OUT_B(0x330, 39); //This note...
+	PORT_OUT_B(0x330, 0x40); //This note...
 	PORT_OUT_B(0x330, 100); //Is sounded at AVG velocity!!
+	sleep(); //Sound forever!
 
 	delay(1000000); //Wait 1 sec!
 

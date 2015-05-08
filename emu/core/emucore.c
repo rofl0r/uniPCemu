@@ -55,8 +55,7 @@
 //To show the framerate?
 #define DEBUG_FRAMERATE 1
 //Debug any sound devices? (PC Speaker, Adlib, MPU(to be tested in software), SB16?)
-#define DEBUG_SOUND 0
-
+#define DEBUG_SOUND 1
 //All external variables!
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 extern byte reset; //To fully reset emu?
@@ -225,7 +224,6 @@ void initEMU(int full) //Init!
 	debugrow("EMU Ready to run.");
 	if (DEBUG_SOUND) //Debugging sound only?
 	{
-		startTimers(0); //Make sure the timers are running!
 		dosoundtest();
 		termThreads(); //Terminate our thread for max priority, if possible!
 	}
