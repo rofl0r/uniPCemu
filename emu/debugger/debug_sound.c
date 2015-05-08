@@ -9,11 +9,14 @@
 #include "headers/hardware/midi/mididevice.h" //For the MIDI voices!
 #include "headers/emu/gpu/gpu_text.h" //Text surface support!
 
-float currentFunction(byte how, const float time); //For the PC speaker!
+//Test the speaker?
+#define __DEBUG_SPEAKER
+//Test the Adlib?
+#define __DEBUG_ADLIB
 
-//#define __DEBUG_SPEAKER
+//Test MIDI?
 #define __DEBUG_MIDI
-//#define __DEBUG_ADLIB
+//Test MIDI using MID file?
 #define __DEBUG_MPUMID 1
 
 void adlibsetreg(byte reg,byte val)
@@ -46,8 +49,11 @@ int detectadlib()
 	return 0; //Not detected!
 }
 
+byte PCspeakerFinished = 0;
+
 void testtimer()
 {
+	byte loops = 5;
 	static byte count = 0;
 	next: //Next speaker callback!
 	switch (count++) //What timer?
@@ -70,12 +76,18 @@ void testtimer()
 		case 4: //Fifth timer!
 			enableSpeaker(0); //Enable all speakers!
 			break;
+		case 5: //Sixth timer!
 		default: //Unknown status?
 			count = 0; //Reset!
-			goto next; //Reprocess!
+			if (!--loops)
+			{
+				disableSpeaker(0); //Disable the final speaker!
+				return; //Abort: finished!
+			}
 			break;
-			
 	}
+	delay(1000000); //Wait 1 second!
+	goto next; //Next loop/item!
 }
 
 extern uint_64 timing_pos; //Current timing position for MIDI speed playback!
@@ -152,7 +164,7 @@ void dosoundtest()
 	//printmsg(0xF,"Beeping PC speaker in 1 second...");
 	//speakerOut(18.2f); //Beep low!
 	
-	
+	//Prepare the PC speaker!
 	#ifdef __DEBUG_SPEAKER
 	//setSpeakerFrequency(0,261.626f);
 	setSpeakerFrequency(0,100.0f); //Low!
@@ -161,11 +173,51 @@ void dosoundtest()
 	
 	//Program second speaker manually.
 	setSpeakerFrequency(1,1000.0f); //MID!
-	enableSpeaker(1); //Enable the second speaker!
+	enableSpeaker(0); //Enable the second speaker!
 
 	setSpeakerFrequency(2,2000.0f);
-	enableSpeaker(2); //Enable the second speaker!
-	#endif
+	enableSpeaker(0); //Enable the second speaker!
+
+	testtimer(); //Run PC speakers test!
+	disableSpeaker(0);
+	disableSpeaker(1);
+	disableSpeaker(2); //Disable all speakers!
+	delay(4000000); //Wait 1 second for the next test!
+#endif
+
+#ifdef __DEBUG_ADLIB
+	startTimers(0); //Make sure we're timing (needed for adlib test).
+	if (detectadlib()) //Detected?
+	{
+		/*
+		printmsg(0xF,"\r\nAdlib detected. Starting sound in 1 second...");
+		VGA_waitforVBlank(); //Wait 1 frame!
+		VGA_waitforVBlank(); //Wait 1 frame!
+		*/
+		delay(1000000);
+		adlibsetreg(0x20, 0x01); //Modulator multiple to 1!
+		adlibsetreg(0x40, 0x10); //Modulator level about 40dB!
+		adlibsetreg(0x60, 0xF0); //Modulator attack: quick; decay long!
+		adlibsetreg(0x80, 0x77); //Modulator sustain: medium; release: medium
+		adlibsetreg(0xA0, 0x98); //Set voice frequency's LSB (it'll be a D#)!
+		adlibsetreg(0x23, 0x01); //Set the carrier's multiple to 1!
+		adlibsetreg(0x43, 0x00); //Set the carrier to maximum volume (about 47dB).
+		adlibsetreg(0x63, 0xF0); //Carrier attack: quick; decay: long!
+		adlibsetreg(0x83, 0x77); //Carrier sustain: medium; release: medium!
+		adlibsetreg(0xB0, 0x31); //Turn the voice on; set the octave and freq MSB!
+		/*
+		delay(2000000); //Wait 2 seconds!
+		speakerOut(0.0f); //Speaker off, hearing adlib only!
+		printmsg(0xF,"\r\nSpeaker terminated and reset. You should only be hearing Adlib now.\r\n");
+		delay(2000000); //Adlib only!
+		*/
+
+		delay(1000000); //Wait 1 second!
+
+		adlibsetreg(0xB0,0x11); //Turn voice off!
+		delay(4000000); //Wait 1 second for the next test!
+	}
+#endif
 
 	#ifdef __DEBUG_MIDI
 	memset(&MID_data, 0, sizeof(MID_data)); //Init data!
@@ -253,16 +305,6 @@ void dosoundtest()
 	PORT_OUT_B(0x330, 0x20); //Bank low!
 	PORT_OUT_B(0x330, 0x00); //0x00XX
 
-	PORT_OUT_B(0x330, 0x90); //First tone ON!
-	PORT_OUT_B(0x330, 0x40); //This note...
-	PORT_OUT_B(0x330, 100); //Is sounded at AVG velocity!!
-	sleep(); //Sound forever!
-
-	delay(1000000); //Wait 1 sec!
-
-	PORT_OUT_B(0x330, 39); //Our note!
-	PORT_OUT_B(0x330, 0); //Stop!
-
 	byte notes[10] = {60,62,64,65,67,69,71,72,74,76};
 	byte i;
 	for (i=0;i<10;)
@@ -291,54 +333,6 @@ void dosoundtest()
 	
 	//printmsg(0xF,"Testing for adlib...");
 	
-	#ifdef __DEBUG_ADLIB
-	if (detectadlib()) //Detected?
-	{
-		/*
-		printmsg(0xF,"\r\nAdlib detected. Starting sound in 1 second...");
-		VGA_waitforVBlank(); //Wait 1 frame!
-		VGA_waitforVBlank(); //Wait 1 frame!
-		*/
-		delay(1000000);
-		adlibsetreg(0x20,0x01); //Modulator multiple to 1!
-		adlibsetreg(0x40,0x10); //Modulator level about 40dB!
-		adlibsetreg(0x60,0xF0); //Modulator attack: quick; decay long!
-		adlibsetreg(0x80,0x77); //Modulator sustain: medium; release: medium
-		adlibsetreg(0xA0,0x98); //Set voice frequency's LSB (it'll be a D#)!
-		adlibsetreg(0x23,0x01); //Set the carrier's multiple to 1!
-		adlibsetreg(0x43,0x00); //Set the carrier to maximum volume (about 47dB).
-		adlibsetreg(0x63,0xF0); //Carrier attack: quick; decay: long!
-		adlibsetreg(0x83,0x77); //Carrier sustain: medium; release: medium!
-		adlibsetreg(0xB0,0x31); //Turn the voice on; set the octave and freq MSB!
-		/*
-		delay(2000000); //Wait 2 seconds!
-		speakerOut(0.0f); //Speaker off, hearing adlib only!
-		printmsg(0xF,"\r\nSpeaker terminated and reset. You should only be hearing Adlib now.\r\n");
-		delay(2000000); //Adlib only!
-		*/
-		/*startTimers
-		adlibsetreg(0xB0,0x11); //Turn voice off!
-		printmsg(0xF,"\r\nAdlib terminated and reset.\r\n");
-		*/
-	}
-	else
-	{
-		printmsg(0xF,"\r\nNo adlib detected.");
-	}
-	#endif
-	
-	startTimers(0); //Make sure we're timing (needed for adlib test).
-	
-	#ifdef __DEBUG_SPEAKER
-	int_32 STEP = 1000000; //Wait 1s intervals!
-	for (;;) //Still left?
-	{
-		delay(STEP); //Wait one second!
-		testtimer(); //Run test!
-	}
-	#endif
-
-	printmsg(0xF,"\r\nReady. Waiting 10 seconds...");
-	delay(10000000); //Wait 10 seconds!
+	exit(0); //Quit the application!
 	sleep(); //Wait forever!
 }
