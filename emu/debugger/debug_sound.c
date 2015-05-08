@@ -14,7 +14,7 @@ float currentFunction(byte how, const float time); //For the PC speaker!
 //#define __DEBUG_SPEAKER
 #define __DEBUG_MIDI
 //#define __DEBUG_ADLIB
-#define __DEBUG_MPUMID 0
+#define __DEBUG_MPUMID 1
 
 void adlibsetreg(byte reg,byte val)
 {
