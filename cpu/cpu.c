@@ -24,7 +24,7 @@ byte activeCPU = 0; //What CPU is currently active?
 
 byte cpudebugger; //To debug the CPU?
 
-CPU_type CPU[2]; //The CPU!
+CPU_type CPU[MAXCPUS]; //The CPU data itself!
 extern Handler opcode_jmptbl[NUMCPUS][0x100][2]; //x86 opcode table
 //extern Handler debug_jmptbl[NUMCPUS][0x100][2]; //x86 debug opcode table
 extern Handler soft_interrupt_jmptbl[]; //Interrupt call table (software INT instructions)

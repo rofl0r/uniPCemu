@@ -2710,49 +2710,49 @@ void BIOS_InitGamingModeButtonsText()
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
 	optioninfo[advancedoptions] = 0; //START!
-	strcpy(menuoptions[advancedoptions], "Start: "); //Gaming mode buttons!
+	strcpy(menuoptions[advancedoptions], "Start:        "); //Gaming mode buttons!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 0);
 	optioninfo[advancedoptions] = 1; //LEFT!
-	strcpy(menuoptions[advancedoptions], "Left: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Left:         "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 1);
 	optioninfo[advancedoptions] = 2; //UP!
-	strcpy(menuoptions[advancedoptions], "Up: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Up:           "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 2);
 	optioninfo[advancedoptions] = 3; //RIGHT!
-	strcpy(menuoptions[advancedoptions], "Right: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Right:        "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 3);
 	optioninfo[advancedoptions] = 4; //DOWN!
-	strcpy(menuoptions[advancedoptions], "Down: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Down:         "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 4);
 	optioninfo[advancedoptions] = 5; //L!
-	strcpy(menuoptions[advancedoptions], "L: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "L:            "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 5);
 	optioninfo[advancedoptions] = 6; //R!
-	strcpy(menuoptions[advancedoptions], "R: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "R:            "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 6);
 	optioninfo[advancedoptions] = 7; //TRIANGLE!
-	strcpy(menuoptions[advancedoptions], "Triangle: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Triangle:     "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 7);
 	optioninfo[advancedoptions] = 8; //CIRCLE!
-	strcpy(menuoptions[advancedoptions], "Circle: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Circle:       "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 8);
 	optioninfo[advancedoptions] = 9; //CROSS!
-	strcpy(menuoptions[advancedoptions], "Cross: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Cross:        "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 9);
 	optioninfo[advancedoptions] = 10; //SQUARE!
-	strcpy(menuoptions[advancedoptions], "Square: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Square:       "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 10);
 	optioninfo[advancedoptions] = 11; //ANALOG LEFT!
-	strcpy(menuoptions[advancedoptions], "Analog left: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Analog left:  "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 11);
 	optioninfo[advancedoptions] = 12; //ANALOG UP!
-	strcpy(menuoptions[advancedoptions], "Analog up: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Analog up:    "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 12);
 	optioninfo[advancedoptions] = 13; //ANALOG RIGHT!
 	strcpy(menuoptions[advancedoptions], "Analog right: "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 13);
 	optioninfo[advancedoptions] = 14; //ANALOG DOWN!
-	strcpy(menuoptions[advancedoptions], "Analog down: "); //Assign keyboard colors!
+	strcpy(menuoptions[advancedoptions], "Analog down:  "); //Assign keyboard colors!
 	BIOS_addInputText(&menuoptions[advancedoptions++][0], 14);
 }
 

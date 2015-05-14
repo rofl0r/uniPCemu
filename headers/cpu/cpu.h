@@ -10,6 +10,9 @@
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determining emulating CPU)
 #endif
 
+//How many CPU instances are used?
+#define MAXCPUS 1
+
 //Number of currently supported CPUs & opcode 0F extensions.
 #define NUMCPUS 2
 #define NUM0FEXTS 1
@@ -771,7 +774,7 @@ typedef struct
 
 #ifndef IS_CPU
 extern byte activeCPU; //That currently active CPU!
-extern CPU_type CPU[2]; //All CPUs itself!
+extern CPU_type CPU[MAXCPUS]; //All CPUs itself!
 extern byte CPU_Operand_size; //Operand size for this opcode!
 extern byte CPU_Address_size; //Address size for this opcode!
 extern byte CPU_StackAddress_size; //Address size for this opcode!
