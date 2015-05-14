@@ -29,7 +29,6 @@ extern byte SCREEN_CAPTURE; //Log a screen capture?
 extern VGA_Type *MainVGA; //Main VGA!
 
 extern GPU_type GPU; //For x&y initialisation!
-extern CPU_type CPU; //CPU!
 
 void debugTextModeScreenCapture()
 {
@@ -47,11 +46,11 @@ extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
 {
 	stopTimers(0); //Stop all timers!
-	CPU.registers->AX = (word)mode; //Switch to graphics mode!
+	CPU[activeCPU].registers->AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
-	CPU.registers->AH = 0xB;
-	CPU.registers->BH = 0x0; //Set overscan color!
-	CPU.registers->BL = 0x1; //Blue overscan!
+	CPU[activeCPU].registers->AH = 0xB;
+	CPU[activeCPU].registers->BH = 0x0; //Set overscan color!
+	CPU[activeCPU].registers->BL = 0x1; //Blue overscan!
 	BIOS_int10();
 	//VGA_DUMPDAC(); //Dump the current DAC and rest info!
 
@@ -138,11 +137,11 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		stopTimers(0); //Make sure we've stopped!
 		int i; //For further loops!
 
-		CPU.registers->AX = VIDEOMODE_TEXTMODE_40;
+		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_40;
 		BIOS_int10(); //Text mode operations!
-		CPU.registers->AH = 0xB;
-		CPU.registers->BH = 0x0; //Set overscan color!
-		CPU.registers->BL = 0x4; //Blue overscan!
+		CPU[activeCPU].registers->AH = 0xB;
+		CPU[activeCPU].registers->BH = 0x0; //Set overscan color!
+		CPU[activeCPU].registers->BL = 0x4; //Blue overscan!
 		BIOS_int10(); //Set overscan!
 
 		VGA_LOGCRTCSTATUS(); //Log our full status!
@@ -201,15 +200,15 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		startTimers(0); //Start timers up!
 		delay(5000000); //Wait a bit!
 	
-		CPU.registers->AH = 0x0B; //Advanced:!
-		CPU.registers->BH = 0x00; //Set background/border color!
-		CPU.registers->BL = 0x0E; //yellow!
+		CPU[activeCPU].registers->AH = 0x0B; //Advanced:!
+		CPU[activeCPU].registers->BH = 0x00; //Set background/border color!
+		CPU[activeCPU].registers->BL = 0x0E; //yellow!
 		BIOS_int10(); //Show the border like this!
 	
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(5000000); //Wait 5 seconds!
 	
-		CPU.registers->AX = 0x01; //40x25 TEXT mode!
+		CPU[activeCPU].registers->AX = 0x01; //40x25 TEXT mode!
 		BIOS_int10(); //Switch modes!
 	
 		printmsg(0xF,"This is 40x25 TEXT MODE!");
@@ -228,14 +227,14 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 10 seconds!
 
-		CPU.registers->AX = 0x81; //40x25, same, but with grayscale!
+		CPU[activeCPU].registers->AX = 0x81; //40x25, same, but with grayscale!
 		BIOS_int10();
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"80x25-1 Alltextcolors...");
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 10 seconds!
 	
-		CPU.registers->AX = VIDEOMODE_TEXTMODE_80; //80x25 TEXT mode!
+		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_80; //80x25 TEXT mode!
 		BIOS_int10(); //Switch modes!
 		printmsg(0xF,"This is 80x25 TEXT MODE!");
 		printCRLF();
@@ -251,13 +250,13 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 1 seconds!
 	
-		CPU.registers->AX = VIDEOMODE_TEXTMODE_80; //Reset to 80x25 text mode!
+		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_80; //Reset to 80x25 text mode!
 		BIOS_int10(); //Reset!
 	
 		for (i=0; i<0x100; i++) //Verify all colors!
 		{
-			CPU.registers->AX = 0x0E41+(i%26); //Character A-Z!
-			CPU.registers->BX = (word)(i%0x100); //Attribute at page 0!
+			CPU[activeCPU].registers->AX = 0x0E41+(i%26); //Character A-Z!
+			CPU[activeCPU].registers->BX = (word)(i%0x100); //Attribute at page 0!
 			BIOS_int10(); //Show the color!
 		}
 	
@@ -266,10 +265,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 1 seconds!
 	
-		CPU.registers->AX = 0x02; //80x25 b/w!
+		CPU[activeCPU].registers->AX = 0x02; //80x25 b/w!
 		BIOS_int10(); //Switch video modes!
 	
-		CPU.registers->AL = 0; //Reset character!
+		CPU[activeCPU].registers->AL = 0; //Reset character!
 	
 		for (i=0; i<0x100; i++) //Verify all characters!
 		{
@@ -283,10 +282,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 			}
 		}
 	
-		CPU.registers->AH = 2; //Set cursor x,y
-		CPU.registers->BH = 0; //Display page #0!
-		CPU.registers->DL = 0; //X
-		CPU.registers->DH = 0; //Y
+		CPU[activeCPU].registers->AH = 2; //Set cursor x,y
+		CPU[activeCPU].registers->BH = 0; //Display page #0!
+		CPU[activeCPU].registers->DL = 0; //X
+		CPU[activeCPU].registers->DH = 0; //Y
 		BIOS_int10(); //Show!
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(5000000); //Wait 5 seconds!

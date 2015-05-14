@@ -61,9 +61,9 @@ void EMU_textcolor(byte color)
 void EMU_gotoxy(word x, word y)
 {
 	/*CPU.registers->AH = 0x02; //Set cursor position!
-	CPU.registers->BH = 0x00; //Page!
-	CPU.registers->DL = x;
-	CPU.registers->DH = y;
+	CPU[activeCPU].registers->BH = 0x00; //Page!
+	CPU[activeCPU].registers->DL = x;
+	CPU[activeCPU].registers->DH = y;
 	BIOS_int10(); //Call interrupt!
 	*/
 	if (BIOS_Surface)

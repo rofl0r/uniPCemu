@@ -20,12 +20,22 @@
 #include "headers/interrupts/interrupt18.h"
 #include "headers/interrupts/interrupt19.h"
 
+byte activeCPU = 0; //What CPU is currently active?
+
 byte cpudebugger; //To debug the CPU?
 
-CPU_type CPU; //The CPU!
+CPU_type CPU[2]; //The CPU!
 extern Handler opcode_jmptbl[NUMCPUS][0x100][2]; //x86 opcode table
 //extern Handler debug_jmptbl[NUMCPUS][0x100][2]; //x86 debug opcode table
 extern Handler soft_interrupt_jmptbl[]; //Interrupt call table (software INT instructions)
+
+//Opcode&Stack sizes: 0=16-bits, 1=32-bits!
+byte CPU_Operand_size[2] = { 0 , 0 }; //Operand size for this opcode!
+byte CPU_Address_size[2] = { 0 , 0 }; //Address size for this opcode!
+byte CPU_StackAddress_size[2] = { 0 , 0 }; //Stack Address size for this opcode (determines whether SP or ESP is used)!
+
+//Internal prefix table for below functions!
+byte CPU_prefixes[2][32]; //All prefixes, packed in a bitfield!
 
 //More info about interrupts: http://www.bioscentral.com/misc/interrupts.htm#
 //More info about interrupts: http://www.bioscentral.com/misc/interrupts.htm#
@@ -91,16 +101,16 @@ void resetCPU() //Initialises CPU!
 	//Not waiting for TEST pin to occur!
 	//Default: not blocked!
 	//Continue interrupt call (hardware)?
-	CPU.running = 1; //We're running!
+	CPU[activeCPU].running = 1; //We're running!
 	
-	CPU.lastopcode = 0; //Last opcode, default to 0 and unknown?
+	CPU[activeCPU].lastopcode = 0; //Last opcode, default to 0 and unknown?
 }
 
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h
 
 byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 {
-	return MMU_rb(CPU_SEGMENT_CS,CPU.registers->CS,CPU.registers->EIP++,1); //Read OPcode!
+	return MMU_rb(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP++,1); //Read OPcode!
 }
 
 word CPU_readOPw() //Reads the operation (word) at CS:EIP
@@ -123,15 +133,6 @@ uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
 
 
 
-//Used by functions itself!
-//Opcode&Stack sizes: 0=16-bits, 1=32-bits!
-byte CPU_Operand_size = 0; //Operand size for this opcode!
-byte CPU_Address_size = 0; //Address size for this opcode!
-byte CPU_StackAddress_size = 0; //Stack Address size for this opcode (determines whether SP or ESP is used)!
-
-//Internal prefix table for below functions!
-byte CPU_prefixes[32]; //All prefixes, packed in a bitfield!
-
 /*
 0xF3 Used with string REP, REPE/REPZ
 0xF2 REPNE/REPNZ prefix
@@ -148,26 +149,26 @@ byte CPU_prefixes[32]; //All prefixes, packed in a bitfield!
 
 void CPU_setprefix(byte prefix) //Sets a prefix on!
 {
-	CPU_prefixes[(prefix/8)] |= (128>>(prefix&7)); //Have prefix!
+	CPU_prefixes[activeCPU][(prefix>>3)] |= (128>>(prefix&7)); //Have prefix!
 	switch (prefix) //Which prefix?
 	{
 	case 0x2E: //CS segment override prefix
-		CPU.segment_register = CPU_SEGMENT_CS; //Override DS to CS!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_CS; //Override DS to CS!
 		break;
 	case 0x36: //SS segment override prefix
-		CPU.segment_register = CPU_SEGMENT_SS; //Override DS to SS!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_SS; //Override DS to SS!
 		break;
 	case 0x3E: //DS segment override prefix
-		CPU.segment_register = CPU_SEGMENT_DS; //Override SS to DS!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_DS; //Override SS to DS!
 		break;
 	case 0x26: //ES segment override prefix
-		CPU.segment_register = CPU_SEGMENT_ES; //Override DS to ES!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_ES; //Override DS to ES!
 		break;
 	case 0x64: //FS segment override prefix
-		CPU.segment_register = CPU_SEGMENT_FS; //Override DS to FS!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_FS; //Override DS to FS!
 		break;
 	case 0x65: //GS segment override prefix
-		CPU.segment_register = CPU_SEGMENT_GS; //Override DS to GS!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_GS; //Override DS to GS!
 		break;
 	default: //Unknown special prefix action?
 		break; //Do nothing!
@@ -176,21 +177,21 @@ void CPU_setprefix(byte prefix) //Sets a prefix on!
 
 byte CPU_getprefix(byte prefix) //Prefix set?
 {
-	return (CPU_prefixes[prefix/8]&(128>>(prefix&7)))>0; //Get prefix set or reset!
+	return (CPU_prefixes[activeCPU][prefix>>3]&(128>>(prefix&7)))>0; //Get prefix set or reset!
 }
 
 void CPU_initPrefixes()
 {
 	byte c;
-	for (c=0; c<sizeof(CPU_prefixes); c++)
+	for (c=0; c<sizeof(CPU_prefixes[0]); c++)
 	{
-		CPU_prefixes[c] = 0; //Reset!
+		CPU_prefixes[activeCPU][c] = 0; //Reset!
 	}
 }
 
 void CPU_resetPrefixes() //Resets all prefixes we use!
 {
-	memset(CPU_prefixes,0,sizeof(CPU_prefixes)); //Reset prefixes!
+	memset(CPU_prefixes[activeCPU],0,sizeof(CPU_prefixes[activeCPU])); //Reset prefixes!
 }
 
 int CPU_isPrefix(byte prefix)
@@ -225,7 +226,7 @@ int DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRI
 		return 0; //Always 16-bit descriptor!
 	}
 
-	return CPU.SEG_DESCRIPTOR[CPU_SEGMENT_SS].D_B; //Give the B-BIT of the SS-register!
+	return CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].D_B; //Give the B-BIT of the SS-register!
 }
 
 
@@ -245,27 +246,27 @@ byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 
 //Determine the stack&attribute sizes!
 
-	CPU_StackAddress_size = DATA_SEGMENT_DESCRIPTOR_B_BIT(); //16 or 32-bits stack!
-	if (CPU_StackAddress_size) //32-bits stack? We're a 32-bit Operand&Address size!
+	CPU_StackAddress_size[activeCPU] = DATA_SEGMENT_DESCRIPTOR_B_BIT(); //16 or 32-bits stack!
+	if (CPU_StackAddress_size[activeCPU]) //32-bits stack? We're a 32-bit Operand&Address size!
 	{
-		CPU_Operand_size = 1; //Set!
-		CPU_Address_size = 1; //Set!
+		CPU_Operand_size[activeCPU] = 1; //Set!
+		CPU_Address_size[activeCPU] = 1; //Set!
 	}
 	if (CPU_getprefix(0x66)) //Invert operand size?
 	{
-		CPU_Operand_size = !CPU_Operand_size; //Invert!
+		CPU_Operand_size[activeCPU] = !CPU_Operand_size[activeCPU]; //Invert!
 	}
 	if (CPU_getprefix(0x67)) //Invert address size?
 	{
-		CPU_Address_size = !CPU_Address_size; //Invert!
+		CPU_Address_size[activeCPU] = !CPU_Address_size[activeCPU]; //Invert!
 	}
 	return OP; //Give the OPCode!
 }
 
 void alloc_CPUregisters()
 {
-	CPU.registers = (CPU_registers *)zalloc(sizeof(*CPU.registers),"CPU_REGISTERS",NULL); //Allocate the registers!
-	if (!CPU.registers)
+	CPU[activeCPU].registers = (CPU_registers *)zalloc(sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS", NULL); //Allocate the registers!
+	if (!CPU[activeCPU].registers)
 	{
 		raiseError("CPU","Failed to allocate the required registers!");
 	}
@@ -273,108 +274,108 @@ void alloc_CPUregisters()
 
 void free_CPUregisters()
 {
-	if (CPU.registers) //Still allocated?
+	if (CPU[activeCPU].registers) //Still allocated?
 	{
-		freez((void **)&CPU.registers,sizeof(*CPU.registers),"CPU_REGISTERS"); //Release the registers if needed!
+		freez((void **)&CPU[activeCPU].registers,sizeof(*CPU[activeCPU].registers),"CPU_REGISTERS"); //Release the registers if needed!
 	}
 }
 
 void CPU_initRegisters() //Init the registers!
 {
 	static byte CSAccessRights = 0x93; //Default CS access rights, overwritten during first software reset!
-	if (CPU.registers) //Already allocated?
+	if (CPU[activeCPU].registers) //Already allocated?
 	{
-		CSAccessRights = CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights; //Save old CS acccess rights to use now (after first reset)!
+		CSAccessRights = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights; //Save old CS acccess rights to use now (after first reset)!
 		free_CPUregisters(); //Free the CPU registers!
 	}
 	alloc_CPUregisters(); //Allocate the CPU registers!
 
 	//Calculation registers
-	CPU.registers->EAX = 0;
-	CPU.registers->EBX = 0;
-	CPU.registers->ECX = 0;
-	CPU.registers->EDX = 0;
+	CPU[activeCPU].registers->EAX = 0;
+	CPU[activeCPU].registers->EBX = 0;
+	CPU[activeCPU].registers->ECX = 0;
+	CPU[activeCPU].registers->EDX = 0;
 	
 	//Index registers
-	CPU.registers->EBP = 0; //Init offset of BP?
-	CPU.registers->ESI = 0; //Source index!
-	CPU.registers->EDI = 0; //Destination index!
+	CPU[activeCPU].registers->EBP = 0; //Init offset of BP?
+	CPU[activeCPU].registers->ESI = 0; //Source index!
+	CPU[activeCPU].registers->EDI = 0; //Destination index!
 
 	//Stack registers
-	CPU.registers->ESP = 0x0000FFFE; //Init offset of stack (top-1)
+	CPU[activeCPU].registers->ESP = 0x0000FFFE; //Init offset of stack (top-1)
 	if (EMULATED_CPU>=CPU_80286) //32-bits?
 	{
-		CPU.registers->ESP = 0xFFFFFFFE; //Start at highest offset!
+		CPU[activeCPU].registers->ESP = 0xFFFFFFFE; //Start at highest offset!
 	}
-	CPU.registers->SS = 0; //Stack segment!
+	CPU[activeCPU].registers->SS = 0; //Stack segment!
 
 	
 	//Code location
-	CPU.registers->EIP = 0; //Start of executable code!
-	CPU.registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
+	CPU[activeCPU].registers->EIP = 0; //Start of executable code!
+	CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
 	//if (EMULATED_CPU>CPU_80186) //286+?
 	{
-		CPU.registers->CS = 0xF000; //We're this selector!
-		CPU.registers->EIP = 0xFFF0; //We're starting at this offset!
+		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
+		CPU[activeCPU].registers->EIP = 0xFFF0; //We're starting at this offset!
 	}
 	
 	//Data registers!
-	CPU.registers->DS = 0; //Data segment!
-	CPU.registers->ES = 0; //Extra segment!
-	CPU.registers->FS = 0; //Far segment (extra segment)
-	CPU.registers->GS = 0; //??? segment (extra segment like FS)
-	CPU.registers->EFLAGS = 0x2; //Flags!
+	CPU[activeCPU].registers->DS = 0; //Data segment!
+	CPU[activeCPU].registers->ES = 0; //Extra segment!
+	CPU[activeCPU].registers->FS = 0; //Far segment (extra segment)
+	CPU[activeCPU].registers->GS = 0; //??? segment (extra segment like FS)
+	CPU[activeCPU].registers->EFLAGS = 0x2; //Flags!
 
 //Now the handling of solid state segments (might change, use index for that!)
-	CPU.SEGMENT_REGISTERS[CPU_SEGMENT_CS] = &CPU.registers->CS; //Link!
-	CPU.SEGMENT_REGISTERS[CPU_SEGMENT_SS] = &CPU.registers->SS; //Link!
-	CPU.SEGMENT_REGISTERS[CPU_SEGMENT_DS] = &CPU.registers->DS; //Link!
-	CPU.SEGMENT_REGISTERS[CPU_SEGMENT_ES] = &CPU.registers->ES; //Link!
-	CPU.SEGMENT_REGISTERS[CPU_SEGMENT_FS] = &CPU.registers->FS; //Link!
-	CPU.SEGMENT_REGISTERS[CPU_SEGMENT_GS] = &CPU.registers->GS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = &CPU[activeCPU].registers->CS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_SS] = &CPU[activeCPU].registers->SS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_DS] = &CPU[activeCPU].registers->DS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_ES] = &CPU[activeCPU].registers->ES; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS] = &CPU[activeCPU].registers->FS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS] = &CPU[activeCPU].registers->GS; //Link!
 	
-	memset(CPU.SEG_DESCRIPTOR,0,sizeof(CPU.SEG_DESCRIPTOR)); //Clear the descriptor cache!
+	memset(CPU[activeCPU].SEG_DESCRIPTOR, 0, sizeof(CPU[activeCPU].SEG_DESCRIPTOR)); //Clear the descriptor cache!
 	//Now, load the default descriptors!
 	
 	//IDTR
-	CPU.registers->IDTR.base = 0;
-	CPU.registers->IDTR.limit = 0x3FF;
+	CPU[activeCPU].registers->IDTR.base = 0;
+	CPU[activeCPU].registers->IDTR.limit = 0x3FF;
 	
 	//GDTR
-	CPU.registers->GDTR.base = 0;
-	CPU.registers->GDTR.limit = 0xFFFF; //From bochs!
+	CPU[activeCPU].registers->GDTR.base = 0;
+	CPU[activeCPU].registers->GDTR.limit = 0xFFFF; //From bochs!
 	
 	//LDTR (invalid)
-	CPU.registers->LDTR.base = CPU.registers->LDTR.limit = 0; //None and invalid!
+	CPU[activeCPU].registers->LDTR.base = CPU[activeCPU].registers->LDTR.limit = 0; //None and invalid!
 	
 	//TR (also invalid)
-	CPU.registers->TR = 0; //No TR!
+	CPU[activeCPU].registers->TR = 0; //No TR!
 	
-	CPU.registers->CR0_full &= 0x7FFFFFE0; //Clear bit 32 and 4-0!
+	CPU[activeCPU].registers->CR0_full &= 0x7FFFFFE0; //Clear bit 32 and 4-0!
 	
 	byte reg=0;
-	for (reg=0;reg<NUMITEMS(CPU.SEG_DESCRIPTOR);reg++) //Process all segment registers!
+	for (reg = 0; reg<NUMITEMS(CPU[activeCPU].SEG_DESCRIPTOR); reg++) //Process all segment registers!
 	{
-		CPU.SEG_DESCRIPTOR[reg].base_high = 0;
-		CPU.SEG_DESCRIPTOR[reg].base_mid = 0;
-		CPU.SEG_DESCRIPTOR[reg].base_low = 0;
-		CPU.SEG_DESCRIPTOR[reg].limit_low = 0xFFFF; //64k limit!
-		CPU.SEG_DESCRIPTOR[reg].limit_high = 0; //No high limit!
-		CPU.SEG_DESCRIPTOR[reg].G = 0; //Byte granularity!
-		CPU.SEG_DESCRIPTOR[reg].DATASEGMENT.E = 0; //Expand up!
-		CPU.SEG_DESCRIPTOR[reg].DATASEGMENT.W = 1; //Writable!
-		CPU.SEG_DESCRIPTOR[reg].P = 1; //Present!
-		CPU.SEG_DESCRIPTOR[reg].DPL = 0;
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_high = 0;
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_mid = 0;
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_low = 0;
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_low = 0xFFFF; //64k limit!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_high = 0; //No high limit!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].G = 0; //Byte granularity!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].DATASEGMENT.E = 0; //Expand up!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].DATASEGMENT.W = 1; //Writable!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].P = 1; //Present!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].DPL = 0;
 	}
 	
 	//CS specific!
-	CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = CSAccessRights; //Load CS default access rights!
+	CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = CSAccessRights; //Load CS default access rights!
 	if (EMULATED_CPU>CPU_80186) //286+?
 	{
-		CPU.registers->CS = 0xF000; //We're this selector!
+		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
 		//Pulled low on first load, pulled high on reset:
-		CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF;
-		CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0xFF;
+		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF;
+		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0xFF;
 	}
 }
 
@@ -390,21 +391,21 @@ CPU_registers dummyregisters; //Dummy registers!
 
 void CPU_resetMode() //Resets the mode!
 {
-	if (!CPU.registers) CPU_initRegisters(); //Make sure we have registers!
+	if (!CPU[activeCPU].registers) CPU_initRegisters(); //Make sure we have registers!
 	//Always start in REAL mode!
-	CPU.registers->SFLAGS.V8 = 0; //Disable Virtual 8086 mode!
-	CPU.registers->CR0.PE = 0; //Real mode!
+	CPU[activeCPU].registers->SFLAGS.V8 = 0; //Disable Virtual 8086 mode!
+	CPU[activeCPU].registers->CR0.PE = 0; //Real mode!
 }
 
 byte getcpumode() //Retrieves the current mode!
 {
 	static const byte modes[4] = { CPU_MODE_REAL, CPU_MODE_PROTECTED, CPU_MODE_REAL, CPU_MODE_8086 }; //All possible modes (VM86 mode can't exist without Protected Mode!)
 	byte mode = 0;
-	if (!CPU.registers) CPU_initRegisters(); //Make sure we have registers!
-	if (!CPU.registers) CPU.registers = &dummyregisters; //Dummy registers!
-	mode = CPU.registers->SFLAGS.V8; //VM86 mode?
+	if (!CPU[activeCPU].registers) CPU_initRegisters(); //Make sure we have registers!
+	if (!CPU[activeCPU].registers) CPU[activeCPU].registers = &dummyregisters; //Dummy registers!
+	mode = CPU[activeCPU].registers->SFLAGS.V8; //VM86 mode?
 	mode <<= 1;
-	mode |= CPU.registers->CR0.PE; //Protected mode?
+	mode |= CPU[activeCPU].registers->CR0.PE; //Protected mode?
 	return modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
 }
 
@@ -432,12 +433,12 @@ int topdown_stack() //Top-down stack?
 	{
 		return 1; //Real mode!
 	}
-	return !((CPU.SEG_DESCRIPTOR[CPU_SEGMENT_SS].Type&4)>0); //Real mode=8086; Other=SS segment, bit 4 (off=Topdown stack!)
+	return !((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].Type & 4)>0); //Real mode=8086; Other=SS segment, bit 4 (off=Topdown stack!)
 }
 
 uint_32 getstackaddrsizelimiter()
 {
-	return CPU_StackAddress_size?0xFFFFFFFF:0xFFFF; //Stack address size!
+	return CPU_StackAddress_size[activeCPU]? 0xFFFFFFFF : 0xFFFF; //Stack address size!
 }
 
 //Memory is the same as PSP: 1234h is 34h 12h, in stack terms reversed, because of back-to-start (top-down) stack!
@@ -459,24 +460,24 @@ void stack_push(byte dword) //Push 16/32-bits to stack!
 {
 	if (topdown_stack()) //--?
 	{
-		if (CPU_StackAddress_size) //32-bits?
+		if (CPU_StackAddress_size[activeCPU]) //32-bits?
 		{
-			CPU.registers->ESP -= (2<<dword); //Decrease!
+			CPU[activeCPU].registers->ESP -= (2 << dword); //Decrease!
 		}
 		else //16-bits?
 		{
-			CPU.registers->SP -= (2<<dword); //Decrease!
+			CPU[activeCPU].registers->SP -= (2 << dword); //Decrease!
 		}
 	}
 	else //++?
 	{
-		if (CPU_StackAddress_size) //32-bits?
+		if (CPU_StackAddress_size[activeCPU]) //32-bits?
 		{
-			CPU.registers->ESP += (2<<dword); //Increase!
+			CPU[activeCPU].registers->ESP += (2 << dword); //Increase!
 		}
 		else //16-bits?
 		{
-			CPU.registers->SP += (2<<dword); //Increase!
+			CPU[activeCPU].registers->SP += (2 << dword); //Increase!
 		}
 	}
 }
@@ -485,25 +486,25 @@ void stack_pop(byte dword) //Push 16/32-bits to stack!
 {
 	if (topdown_stack()) //++?
 	{
-		if (CPU_StackAddress_size) //32-bits?
+		if (CPU_StackAddress_size[activeCPU]) //32-bits?
 		{
-			CPU.registers->ESP += (2<<dword); //Increase!
+			CPU[activeCPU].registers->ESP += (2 << dword); //Increase!
 		}
 		else //16-bits?
 		{
-			CPU.registers->SP += (2<<dword); //Increase!
+			CPU[activeCPU].registers->SP += (2 << dword); //Increase!
 		}
 	}
 	else //--?
 	{
 
-		if (CPU_StackAddress_size) //32-bits?
+		if (CPU_StackAddress_size[activeCPU]) //32-bits?
 		{
-			CPU.registers->ESP -= (2<<dword); //Decrease!
+			CPU[activeCPU].registers->ESP -= (2 << dword); //Decrease!
 		}
 		else //16-bits?
 		{
-			CPU.registers->SP -= (2<<dword); //Decrease!
+			CPU[activeCPU].registers->SP -= (2 << dword); //Decrease!
 		}
 	}
 }
@@ -513,20 +514,20 @@ void CPU_PUSH16(word *val) //Push Word!
 	if (EMULATED_CPU<CPU_80386) //286-?
 	{
 		stack_push(0); //We're pushing a 16-bit value!
-		MMU_ww(CPU_SEGMENT_SS,CPU.registers->SS,(CPU.registers->ESP&getstackaddrsizelimiter()),*val); //Put value!
+		MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), *val); //Put value!
 	}
 	else //386+?
 	{
 		word oldval = *val; //Old value!
 		stack_push(0); //We're pushing a 16-bit value!
-		MMU_ww(CPU_SEGMENT_SS,CPU.registers->SS,(CPU.registers->ESP&getstackaddrsizelimiter()),oldval); //Put value!
+		MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval); //Put value!
 	}
 }
 
 word CPU_POP16() //Pop Word!
 {
 	word result;
-	result = MMU_rw(CPU_SEGMENT_SS,CPU.registers->SS,(CPU.registers->ESP&getstackaddrsizelimiter()),0); //Get value!
+	result = MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), 0); //Get value!
 	stack_pop(0); //We're popping a 16-bit value!
 	return result; //Give the result!
 }
@@ -536,20 +537,20 @@ void CPU_PUSH32(uint_32 *val) //Push DWord!
 	if (EMULATED_CPU<CPU_80386) //286-?
 	{
 		stack_push(1); //We're pushing a 32-bit value!
-		MMU_wdw(CPU_SEGMENT_SS,CPU.registers->SS,(CPU.registers->ESP&getstackaddrsizelimiter()),*val); //Put value!
+		MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), *val); //Put value!
 	}
 	else //386+?
 	{
 		uint_32 oldval = *val; //Old value!
 		stack_push(1); //We're pushing a 32-bit value!
-		MMU_wdw(CPU_SEGMENT_SS,CPU.registers->SS,(CPU.registers->ESP&getstackaddrsizelimiter()),oldval); //Put value!
+		MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval); //Put value!
 	}
 }
 
 uint_32 CPU_POP32() //Full stack used!
 {
 	word result;
-	result = MMU_rdw(CPU_SEGMENT_SS,CPU.registers->SS,CPU.registers->SP,0); //Get value!
+	result = MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0); //Get value!
 	stack_pop(1); //We're popping a 32-bit value!
 	return result; //Give the result!
 }
@@ -586,11 +587,11 @@ char textsegments[][3] =   //Comply to CPU_REGISTER_XX order!
 
 char *CPU_textsegment(byte defaultsegment) //Plain segment to use!
 {
-	if (CPU.segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
+	if (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
 	{
 		return (char *)&textsegments[defaultsegment]; //Default segment!
 	}
-	return (char *)&textsegments[CPU.segment_register]; //Use Data Segment (or different in case) for data!
+	return (char *)&textsegments[CPU[activeCPU].segment_register]; //Use Data Segment (or different in case) for data!
 }
 
 
@@ -623,7 +624,7 @@ uint_32 CPU_exec_EIP; //OPCode EIP
 void CPU_OP(byte OP) //Normal CPU opcode execution!
 {
 	int cpu = EMULATED_CPU; //Init cpu!
-	byte operandsize = CPU_Operand_size; //Operand size to use!
+	byte operandsize = CPU_Operand_size[activeCPU]; //Operand size to use!
 	while (!opcode_jmptbl[cpu][OP][operandsize]) //No opcode to handle at current CPU&operand size?
 	{
 		if (operandsize) //We have an operand size: switch to standard if possible!
@@ -633,11 +634,11 @@ void CPU_OP(byte OP) //Normal CPU opcode execution!
 		}
 		else //No operand size: we're a standard, so go up one cpu and retry!
 		{
-			operandsize = CPU_Operand_size; //Reset operand size!
+			operandsize = CPU_Operand_size[activeCPU]; //Reset operand size!
 			if (cpu) //We've got CPUs left?
 			{
 				--cpu; //Go up one CPU!
-				operandsize = CPU_Operand_size; //Reset operand size to search!
+				operandsize = CPU_Operand_size[activeCPU]; //Reset operand size to search!
 			}
 			else //No CPUs left!
 			{
@@ -648,42 +649,42 @@ void CPU_OP(byte OP) //Normal CPU opcode execution!
 	}
 	protection_nextOP(); //Tell the protection exception handlers that we can give faults again!
 	reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
-	CPU.lastopcode = OP; //Last OPcode!
+	CPU[activeCPU].lastopcode = OP; //Last OPcode!
 	opcode_jmptbl[cpu][OP][operandsize](); //Now go execute the OPcode once in the runtime!
 	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the jmptbl.
 }
 
 void CPU_beforeexec()
 {
-	if (CPU.registers->SFLAGS.TF) //Trapped?
+	if (CPU[activeCPU].registers->SFLAGS.TF) //Trapped?
 	{
 		CPU_exSingleStep(); //Type-1 interrupt: Single step interrupt!
 		CPU_afterexec(); //All after execution fixing!
-		CPU.trapped = 1; //We're trapped! Don't allow hardware interrupts to intervene!
+		CPU[activeCPU].trapped = 1; //We're trapped! Don't allow hardware interrupts to intervene!
 	}
 	else
 	{
-		CPU.trapped = 0; //We're not trapped (allow hardware interrupts)!
+		CPU[activeCPU].trapped = 0; //We're not trapped (allow hardware interrupts)!
 	}
 	switch (EMULATED_CPU)
 	{
 	case CPU_8086:
 	case CPU_80186:
-		CPU.registers->FLAGS |= 0xF000; //High bits are stuck to 1!
+		CPU[activeCPU].registers->FLAGS |= 0xF000; //High bits are stuck to 1!
 		break;
 	case CPU_80286:
 		if (getcpumode() == CPU_MODE_REAL) //Real mode?
 		{
-			CPU.registers->FLAGS &= 0xFFF; //Always set the high flags in real mode only!
+			CPU[activeCPU].registers->FLAGS &= 0xFFF; //Always set the high flags in real mode only!
 		}
 		else //Protected mode?
 		{
-			CPU.registers->FLAGS &= 0x7FFF; //Bit 15 is always cleared!
+			CPU[activeCPU].registers->FLAGS &= 0x7FFF; //Bit 15 is always cleared!
 		}
 		break;
 	case CPU_80386:
-		CPU.registers->FLAGS &= 0x7FFF; //Bit 15 is always cleared!
-		CPU.registers->SFLAGS.AC = 0; //Stuck to 0!
+		CPU[activeCPU].registers->FLAGS &= 0x7FFF; //Bit 15 is always cleared!
+		CPU[activeCPU].registers->SFLAGS.AC = 0; //Stuck to 0!
 		break;
 	case CPU_80486:
 		break;
@@ -697,16 +698,16 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
 	debugger_beforeCPU(); //Everything that needs to be deone before the CPU executes!
 	MMU_resetaddr(); //Reset invalid address for our usage!
-	CPU.segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
-	CPU_exec_CS = CPU.registers->CS; //CS of command!
-	CPU_exec_EIP = CPU.registers->EIP; //EIP of command!
+	CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
+	CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
+	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
 
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
 
 	byte OP; //The opcode!
 	OP = CPU_readOP_prefix(); //Process prefix(es) and read OPCode!
-	CPU.cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
+	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
 	debugger_setprefix(""); //Reset prefix for the debugger!
 	if (EMULATED_CPU>=0 && EMULATED_CPU<NUMITEMS(opcode_jmptbl)) //Emulating valid?
 	{
@@ -752,7 +753,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				break;
 			default: //Unknown yet?
 				gotREP = 0; //Dont allow after all!
-				CPU.cycles_OP = 0; //Unknown!
+				CPU[activeCPU].cycles_OP = 0; //Unknown!
 				break; //Not supported yet!
 			}
 		}
@@ -792,9 +793,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 
 		word oldCS;
-		oldCS = CPU.registers->CS;
+		oldCS = CPU[activeCPU].registers->CS;
 		word oldIP;
-		oldIP = CPU.registers->IP; //Save location!
+		oldIP = CPU[activeCPU].registers->IP; //Save location!
 
 		if (gotREP) //Gotten REP?
 		{
@@ -813,43 +814,43 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 					debugger_setprefix("REP "); //Set prefix!
 				}
 			}
-			if (!CPU.registers->CX) //REP and finished?
+			if (!CPU[activeCPU].registers->CX) //REP and finished?
 			{
 				blockREP = 1; //Block the CPU instruction from executing!
 			}
 		}
 		CPU_OP(OP); //Now go execute the OPcode once!
-		if (gotREP && !CPU.faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
+		if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
 		{
 			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
 				if (REPZ) //Check for zero flag?
 				{
-					gotREP &= (CPU.registers->SFLAGS.ZF ^ 1); //To reset the opcode (ZF needs to be cleared to loop)?
+					gotREP &= (CPU[activeCPU].registers->SFLAGS.ZF ^ 1); //To reset the opcode (ZF needs to be cleared to loop)?
 				}
 			}
 			else if (CPU_getprefix(0xF3) && REPZ) //REPZ?
 			{
-				gotREP &= CPU.registers->SFLAGS.ZF; //To reset the opcode (ZF needs to be set to loop)?
+				gotREP &= CPU[activeCPU].registers->SFLAGS.ZF; //To reset the opcode (ZF needs to be set to loop)?
 			}
-			if (--CPU.registers->CX && gotREP) //Still looping and allowed?
+			if (--CPU[activeCPU].registers->CX && gotREP) //Still looping and allowed?
 			{
 				CPU_resetOP(); //Run the current instruction again!
 			}
 		}
 	}
 	blockREP = 0; //Don't block REP anymore!
-	CPU.cycles += CPU.cycles_OP; //Add cycles executed to total ammount of cycles!
+	CPU[activeCPU].cycles += CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
 	CPU_afterexec(); //After executing OPCode stuff!
 }
 
 void CPU_exec_blocked(uint_32 minEIP, uint_32 maxEIP)
 {
-	CPU.blocked = 1; //Block: we're running till this is gone or over the limits.
-	while (CPU.blocked) //Still running?
+	CPU[activeCPU].blocked = 1; //Block: we're running till this is gone or over the limits.
+	while (CPU[activeCPU].blocked) //Still running?
 	{
 		CPU_exec(); //Run one OpCode!
-		if ((CPU.registers->EIP>maxEIP) || (CPU.registers->EIP<minEIP)) //Out of range?
+		if ((CPU[activeCPU].registers->EIP>maxEIP) || (CPU[activeCPU].registers->EIP<minEIP)) //Out of range?
 		{
 			break; //Terminate: out of range: we're done!
 		}
@@ -900,18 +901,18 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 	}
 	if (EMULATED_CPU <= CPU_80186) //16-bits mode (protect too high data)?
 	{
-		CPU.registers->EAX &= 0xFFFF; //Convert to 16-bits!
-		CPU.registers->EBX &= 0xFFFF; //Convert to 16-bits!
-		CPU.registers->ECX &= 0xFFFF; //Convert to 16-bits!
-		CPU.registers->EDX &= 0xFFFF; //Convert to 16-bits!
-		CPU.registers->ESP &= 0xFFFF; //Convert to 16-bits!
-		CPU.registers->EBP &= 0xFFFF; //Convert to 16-bits!
-		CPU.registers->ESI &= 0xFFFF; //Convert to 16-bits!
-		CPU.registers->EDI &= 0xFFFF; //Convert to 16-bits!
-		CPU.registers->EIP &= 0xFFFF; //Convert to 16-bits!
-		CPU.registers->EFLAGS &= 0xFFFF; //Convert to 16-bits: we only have 16-bits flags!
+		CPU[activeCPU].registers->EAX &= 0xFFFF; //Convert to 16-bits!
+		CPU[activeCPU].registers->EBX &= 0xFFFF; //Convert to 16-bits!
+		CPU[activeCPU].registers->ECX &= 0xFFFF; //Convert to 16-bits!
+		CPU[activeCPU].registers->EDX &= 0xFFFF; //Convert to 16-bits!
+		CPU[activeCPU].registers->ESP &= 0xFFFF; //Convert to 16-bits!
+		CPU[activeCPU].registers->EBP &= 0xFFFF; //Convert to 16-bits!
+		CPU[activeCPU].registers->ESI &= 0xFFFF; //Convert to 16-bits!
+		CPU[activeCPU].registers->EDI &= 0xFFFF; //Convert to 16-bits!
+		CPU[activeCPU].registers->EIP &= 0xFFFF; //Convert to 16-bits!
+		CPU[activeCPU].registers->EFLAGS &= 0xFFFF; //Convert to 16-bits: we only have 16-bits flags!
 	}
-	CPU.faultraised = 0; //We don't have a fault anymore! Continue on!
+	CPU[activeCPU].faultraised = 0; //We don't have a fault anymore! Continue on!
 }
 
 void CPU_debugger_STOP() //Stops on debugging!

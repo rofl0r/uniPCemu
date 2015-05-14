@@ -24,7 +24,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 //Currently emulating CPU (values see above, formula later)?
 #define EMULATED_CPU BIOS_Settings.emulated_CPU
 
-//For easygoing solid state segments (not changeable) in CPU.registers.SEGMENT_REGISTERS[]
+//For easygoing solid state segments (not changeable) in CPU[activeCPU].registers.SEGMENT_REGISTERS[]
 #define CPU_SEGMENT_CS 0
 #define CPU_SEGMENT_SS 1
 #define CPU_SEGMENT_DS 2
@@ -770,7 +770,8 @@ typedef struct
 } SIBType; //SIB byte!
 
 #ifndef IS_CPU
-extern CPU_type CPU;
+extern byte activeCPU; //That currently active CPU!
+extern CPU_type CPU[2]; //All CPUs itself!
 extern byte CPU_Operand_size; //Operand size for this opcode!
 extern byte CPU_Address_size; //Address size for this opcode!
 extern byte CPU_StackAddress_size; //Address size for this opcode!
@@ -877,7 +878,7 @@ void CPU_setBootstrap(); //Sets the valid bootstrap at address 0xFFFF0 after the
 #define signext32(value) ((((uint_32)value&0x8000)*0x1FFFE)|(uint_32)value)
 
 //Software access with protection!
-#define CPUPROT1 if(!CPU.faultraised){
+#define CPUPROT1 if(!CPU[activeCPU].faultraised){
 #define CPUPROT2 }
 
 #include "headers/cpu/interrupts.h" //Real interrupts!

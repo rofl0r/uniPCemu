@@ -485,27 +485,27 @@ void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 is segment 
 	switch (reg) //What segment register?
 	{
 	case MODRM_SEG_ES:
-		result->reg16 = CPU.SEGMENT_REGISTERS[CPU_SEGMENT_ES];
+		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_ES];
 		strcpy(result->text,"ES");
 		break;
 	case MODRM_SEG_CS:
-		result->reg16 = CPU.SEGMENT_REGISTERS[CPU_SEGMENT_CS];
+		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS];
 		strcpy(result->text,"CS");
 		break;
 	case MODRM_SEG_SS:
-		result->reg16 = CPU.SEGMENT_REGISTERS[CPU_SEGMENT_SS];
+		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_SS];
 		strcpy(result->text,"SS");
 		break;
 	case MODRM_SEG_DS:
-		result->reg16 = CPU.SEGMENT_REGISTERS[CPU_SEGMENT_DS];
+		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_DS];
 		strcpy(result->text,"DS");
 		break;
 	case MODRM_SEG_FS:
-		result->reg16 = CPU.SEGMENT_REGISTERS[CPU_SEGMENT_FS];
+		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS];
 		strcpy(result->text,"FS");
 		break;
 	case MODRM_SEG_GS:
-		result->reg16 = CPU.SEGMENT_REGISTERS[CPU_SEGMENT_GS];
+		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS];
 		strcpy(result->text,"GS");
 		break;
 

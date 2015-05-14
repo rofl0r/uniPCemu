@@ -34,9 +34,9 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 	case FLOPPY1: //Floppy?
 		if (readdata(device,MMU_ptr(-1,loadedsegment,BOOT_OFFSET,0,512),0,512)) //Read boot sector!
 		{
-			CPU.registers->CS = loadedsegment; //Loaded segment!
-			CPU.registers->EIP = BOOT_OFFSET; //Loaded boot sector executable!
-			CPU.registers->DL = getdiskbymount(device); //Drive number we loaded from!
+			CPU[activeCPU].registers->CS = loadedsegment; //Loaded segment!
+			CPU[activeCPU].registers->EIP = BOOT_OFFSET; //Loaded boot sector executable!
+			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
 			return BOOT_OK; //Booted!
 		}
 		else
@@ -49,9 +49,9 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 		{
 			if (MMU_rb(-1,loadedsegment,(BOOT_OFFSET+0xfe),0)==0x55 && MMU_rb(-1,loadedsegment,(BOOT_OFFSET+0xff),0)==0xAA) //Valid boot sector?
 			{
-				CPU.registers->CS = loadedsegment; //Loaded segment
-				CPU.registers->EIP = BOOT_OFFSET; //Loaded MBR executable!
-				CPU.registers->DL = getdiskbymount(device); //Drive number we loaded from!
+				CPU[activeCPU].registers->CS = loadedsegment; //Loaded segment
+				CPU[activeCPU].registers->EIP = BOOT_OFFSET; //Loaded MBR executable!
+				CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
 				return BOOT_OK; //Booted!
 			}
 		}
@@ -85,9 +85,9 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 			{
 				return FALSE; //Error loading data file!
 			}
-			CPU.registers->CS = ISOREADER_SEGMENT; //Loaded segment!
-			CPU.registers->IP = 0x7C00; //Loaded executable!
-			CPU.registers->DL = getdiskbymount(device); //Drive number we loaded from!
+			CPU[activeCPU].registers->CS = ISOREADER_SEGMENT; //Loaded segment!
+			CPU[activeCPU].registers->IP = 0x7C00; //Loaded executable!
+			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
 			return BOOT_OK; //Booted!
 			break;
 		default: //Unknown!

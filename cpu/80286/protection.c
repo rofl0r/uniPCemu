@@ -24,64 +24,64 @@ void CPU_GP(int toinstruction,uint_32 errorcode)
 	call_hard_inthandler(13); //Call IVT entry #13 decimal!
 	CPU_PUSH32(&errorcode); //Error code!
 	//Execute the interrupt!
-	CPU.faultraised = 1; //We have a fault raised, so don't raise any more!
+	CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
 }
 
 void protection_nextOP() //We're executing the next OPcode?
 {
-	CPU.faultraised = 0; //We don't have a fault raised anymore, so we can raise again!
+	CPU[activeCPU].faultraised = 0; //We don't have a fault raised anymore, so we can raise again!
 }
 
 word CPU_segment(byte defaultsegment) //Plain segment to use!
 {
-	if (CPU.segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
+	if (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
 	{
-		return *CPU.SEGMENT_REGISTERS[defaultsegment]; //Default segment!
+		return *CPU[activeCPU].SEGMENT_REGISTERS[defaultsegment]; //Default segment!
 	}
-	return *CPU.SEGMENT_REGISTERS[CPU.segment_register]; //Use Data Segment (or different in case ) for data!
+	return *CPU[activeCPU].SEGMENT_REGISTERS[CPU[activeCPU].segment_register]; //Use Data Segment (or different in case ) for data!
 }
 
 word *CPU_segment_ptr(byte defaultsegment) //Plain segment to use, direct access!
 {
-	if (CPU.segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
+	if (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
 	{
-		return CPU.SEGMENT_REGISTERS[defaultsegment]; //Default segment!
+		return CPU[activeCPU].SEGMENT_REGISTERS[defaultsegment]; //Default segment!
 	}
-	return CPU.SEGMENT_REGISTERS[CPU.segment_register]; //Use Data Segment (or different in case ) for data!
+	return CPU[activeCPU].SEGMENT_REGISTERS[CPU[activeCPU].segment_register]; //Use Data Segment (or different in case ) for data!
 }
 
 int CPU_segment_index(byte defaultsegment) //Plain segment to use, direct access!
 {
-	if (CPU.segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
+	if (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
 	{
 		return defaultsegment; //Default segment!
 	}
-	return CPU.segment_register; //Use Data Segment (or different in case) for data!
+	return CPU[activeCPU].segment_register; //Use Data Segment (or different in case) for data!
 }
 
 int get_segment_index(word *location)
 {
-	if (location==CPU.SEGMENT_REGISTERS[CPU_SEGMENT_CS])
+	if (location==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS])
 	{
 		return CPU_SEGMENT_CS;
 	}
-	else if (location==CPU.SEGMENT_REGISTERS[CPU_SEGMENT_DS])
+	else if (location==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_DS])
 	{
 		return CPU_SEGMENT_DS;
 	}
-	else if (location==CPU.SEGMENT_REGISTERS[CPU_SEGMENT_ES])
+	else if (location==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_ES])
 	{
 		return CPU_SEGMENT_ES;
 	}
-	else if (location==CPU.SEGMENT_REGISTERS[CPU_SEGMENT_SS])
+	else if (location==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_SS])
 	{
 		return CPU_SEGMENT_SS;
 	}
-	else if (location==CPU.SEGMENT_REGISTERS[CPU_SEGMENT_FS])
+	else if (location==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS])
 	{
 		return CPU_SEGMENT_FS;
 	}
-	else if (location==CPU.SEGMENT_REGISTERS[CPU_SEGMENT_GS])
+	else if (location==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS])
 	{
 		return CPU_SEGMENT_GS;
 	}
@@ -91,7 +91,7 @@ int get_segment_index(word *location)
 SEGDESCRIPTOR_TYPE LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
 
 //Current privilege level!
-#define getCPL() CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].DPL
+#define getCPL() CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].DPL
 #define getRPL(segment) (segment&3)
 //getTYPE: gets the loaded descriptor type: 0=Code, 1=Exec, 2=System.
 int getLoadedTYPE(SEGDESCRIPTOR_TYPE *loadeddescriptor)
@@ -114,10 +114,10 @@ void THROWDESCGP(word segment)
 int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 {
 	uint_32 descriptor_adress = 0;
-	descriptor_adress = (segment&4)?CPU.registers->LDTR.base:CPU.registers->GDTR.base; //LDT/GDT selector!
+	descriptor_adress = (segment&4)?CPU[activeCPU].registers->LDTR.base:CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
 
-	if (descriptor_index>((segment&4)?CPU.registers->LDTR.limit:CPU.registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if (descriptor_index>((segment&4)?CPU[activeCPU].registers->LDTR.limit:CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		THROWDESCGP(segment); //Throw error!
 		return 0; //Not present: limit exceeded!
@@ -312,7 +312,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 				THROWDESCGP(segment); //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
 			}
-			CPU.CPL = LOADEDDESCRIPTOR.desc.DPL; //New privilege level!
+			CPU[activeCPU].CPL = LOADEDDESCRIPTOR.desc.DPL; //New privilege level!
 		}
 	}
 
@@ -323,36 +323,36 @@ uint_32 destEIP; //Destination address for CS JMP instruction!
 
 void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
-	if (CPU.faultraised) return; //Abort if already an fault has been raised!
+	if (CPU[activeCPU].faultraised) return; //Abort if already an fault has been raised!
 	if (getcpumode()!=CPU_MODE_REAL) //Not real mode, must be protected or V8086 mode, so update the segment descriptor cache!
 	{
 		SEGMENT_DESCRIPTOR *descriptor = getsegment_seg(segment,value,isJMPorCALL); //Read the segment!
 		if (descriptor) //Loaded&valid?
 		{
-			memcpy(&CPU.SEG_DESCRIPTOR[segment],descriptor,sizeof(CPU.SEG_DESCRIPTOR[segment])); //Load the segment descriptor into the cache!
-			if (memprotect(CPU.SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
+			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[segment],descriptor,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[segment])); //Load the segment descriptor into the cache!
+			if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 			{
-				*CPU.SEGMENT_REGISTERS[segment] = value; //Set the segment register to the allowed value!
+				*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Set the segment register to the allowed value!
 			}
 			if (segment == CPU_SEGMENT_CS) //CS register?
 			{
-				CPU.registers->EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
+				CPU[activeCPU].registers->EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
 			}
 		}
 	}
 	else //Real mode has no protection?
 	{
-		if (memprotect(CPU.SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
+		if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 		{
-			*CPU.SEGMENT_REGISTERS[segment] = value; //Just set the segment, don't load descriptor!
+			*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Just set the segment, don't load descriptor!
 		}
 		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
 		{
-			CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x93; //Load default access rights!
+			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x93; //Load default access rights!
 			//Pulled low on first load:
-			CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0;
-			CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0;
-			CPU.registers->EIP = destEIP; //... The current OPCode: just jump to the address!
+			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0;
+			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0;
+			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
 		}
 	}
 	//Real mode doesn't use the descriptors?
@@ -384,7 +384,7 @@ uint_32 CPU_MMU_start(word segment, word segmentval) //Determines the start of t
 	}
 
 //Protected mode!
-	return ((CPU.SEG_DESCRIPTOR[segment].base_high<<24)|(CPU.SEG_DESCRIPTOR[segment].base_mid<<16)|CPU.SEG_DESCRIPTOR[segment].base_low); //Base!
+	return ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Base!
 }
 
 /*
@@ -397,7 +397,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 {
 //Determine the Limit!
 
-	if (CPU.faultraised) return 1; //Abort if already an fault has been raised!
+	if (CPU[activeCPU].faultraised) return 1; //Abort if already an fault has been raised!
 	if (getcpumode()==CPU_MODE_REAL || getcpumode()==CPU_MODE_8086 || segment==-1) //Real or 8086 mode, or unknown segment to use?
 	{
 		if (segment!=-1) //Normal operations (called for the CPU for sure)?
@@ -416,7 +416,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 		return 1; //Error!
 	}
 	
-	SEGMENT_DESCRIPTOR *SEG_DESCRIPTOR = &CPU.SEG_DESCRIPTOR[segment]; //Look it up!
+	SEGMENT_DESCRIPTOR *SEG_DESCRIPTOR = &CPU[activeCPU].SEG_DESCRIPTOR[segment]; //Look it up!
 	//First: type checking!
 	
 	if (segment==CPU_SEGMENT_CS && !(SEG_DESCRIPTOR->EXECSEGMENT.ISEXEC && SEG_DESCRIPTOR->nonS) && (forreading==3)) //Non-executable segment execution?

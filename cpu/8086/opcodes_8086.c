@@ -1382,7 +1382,7 @@ void CPU8086_OP97() {modrm_generateInstructionTEXT("XCHG DI,AX",0,0,PARAM_NONE);
 void CPU8086_OP98() {modrm_generateInstructionTEXT("CBW",0,0,PARAM_NONE);/*CBW : sign extend AL to AX*/ CPU8086_internal_CBW();/*CBW : sign extend AL to AX (8088+)*/ }
 void CPU8086_OP99() {modrm_generateInstructionTEXT("CWD",0,0,PARAM_NONE);/*CWD : sign extend AX to DX::AX*/ CPU8086_internal_CWD();/*CWD : sign extend AX to DX::AX (8088+)*/ }
 void CPU8086_OP9A() {/*CALL Ap*/ word offset = CPU_readOPw(); word segment = CPU_readOPw(); debugger_setcommand("CALL %04x:%04x", segment, offset); CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP); destEIP = offset;  segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed!*/ }
-void CPU8086_OP9B() {modrm_generateInstructionTEXT("WAIT",0,0,PARAM_NONE);/*WAIT : wait for TEST pin activity. (UNIMPLEMENTED)*/ CPU.wait = 1;/*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
+void CPU8086_OP9B() {modrm_generateInstructionTEXT("WAIT",0,0,PARAM_NONE);/*WAIT : wait for TEST pin activity. (UNIMPLEMENTED)*/ CPU[activeCPU].wait = 1;/*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
 void CPU8086_OP9C() {modrm_generateInstructionTEXT("PUSHF",0,0,PARAM_NONE);/*PUSHF*/ CPU_PUSH16(&REG_FLAGS); }
 void CPU8086_OP9D() {modrm_generateInstructionTEXT("POPF",0,0,PARAM_NONE);/*POPF*/ REG_FLAGS = CPU_POP16();/*POPF*/ }
 void CPU8086_OP9E() {modrm_generateInstructionTEXT("SAHF",0,0,PARAM_NONE);/*SAHF : Save AH to lower half of FLAGS.*/ REG_FLAGS = ((REG_FLAGS&0xFF00)|REG_AH);/*SAHF : Save AH to lower half of FLAGS.*/ }
@@ -1456,7 +1456,7 @@ void CPU8086_OPEE(){modrm_generateInstructionTEXT("OUT DX,AL",0,0,PARAM_NONE); P
 void CPU8086_OPEF(){modrm_generateInstructionTEXT("OUT DX,AX",0,0,PARAM_NONE); PORT_OUT_W(REG_DX,REG_AX);}
 void CPU8086_OPF1(){modrm_generateInstructionTEXT("<Undefined and reserved opcode, no error>",0,0,PARAM_NONE);}
 //Finally simply:
-void CPU8086_OPF4(){modrm_generateInstructionTEXT("HLT",0,0,PARAM_NONE); CPU.halt = 1;}
+void CPU8086_OPF4(){modrm_generateInstructionTEXT("HLT",0,0,PARAM_NONE); CPU[activeCPU].halt = 1;}
 void CPU8086_OPF5(){modrm_generateInstructionTEXT("CMC",0,0,PARAM_NONE); FLAG_CF = !FLAG_CF;}
 void CPU8086_OPF8(){modrm_generateInstructionTEXT("CLC",0,0,PARAM_NONE); FLAG_CF = 0;}
 void CPU8086_OPF9(){modrm_generateInstructionTEXT("STC",0,0,PARAM_NONE); FLAG_CF = 1;}
@@ -2123,7 +2123,7 @@ void FPU8087_noCOOP(){debugger_setcommand("<No COprocessor OPcodes implemented!>
 
 void unkOP_8086() //Unknown opcode on 8086?
 {
-	//dolog("8086","Unknown opcode on 8086: %02X",CPU.lastopcode); //Last read opcode!
+	//dolog("8086","Unknown opcode on 8086: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 }
 
 //Gecontroleerd: 100% OK!

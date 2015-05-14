@@ -5,8 +5,6 @@
 #include "headers/cpu/callback.h" //Callback support!
 #include "headers/cpu/80286/protection.h" //Protection support!
 
-extern CPU_type CPU; //CPU!
-
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!
 {
 	MMU_ww(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0000,((intnr<<2)|2),segment); //Copy segment!

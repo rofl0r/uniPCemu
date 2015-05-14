@@ -82,7 +82,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	
 	dolog("ROM_log","Terminating VGA...");
 	terminateVGA(); //Don't show VGA!
-	CPU.halt = 0; //Start without halt!
+	CPU[activeCPU].halt = 0; //Start without halt!
 	dolog("ROM_log","Starting verification ROM emulator...");
 	uint_32 erroraddr = 0xFFFFFFFF; //Error address (undefined)
 	uint_32 lastaddr = 0xFFFFFFFF; //Last address causing the error!
@@ -91,14 +91,14 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	dolog("debugger","Starting debugging file %s",filename); //Log the file we're going to test!
 	LOG_MMU_WRITES = 1; //Enable logging!
 	allow_debuggerstep = 1; //Allow stepping of the debugger!
-	for (;!CPU.halt;) //Still running?
+	for (;!CPU[activeCPU].halt;) //Still running?
 	{
-		if (CPU.registers->SFLAGS.IF && PICInterrupt()) CPU8086_hardware_int(nextintr(),0,0); //get next interrupt from the i8259, if any
-		uint_32 curaddr = (CPU.registers->CS<<4)+CPU.registers->IP; //Calculate current memory address!
+		if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) CPU8086_hardware_int(nextintr(),0,0); //get next interrupt from the i8259, if any
+		uint_32 curaddr = (CPU[activeCPU].registers->CS<<4)+CPU[activeCPU].registers->IP; //Calculate current memory address!
 		if (curaddr<0xF0000) //Out of executable range?
 		{
 			erroraddr = curaddr; //Set error address!
-			erroraddr16 = (CPU.registers->CS<<16)|CPU.registers->IP; //Set error address segment:offset!
+			erroraddr16 = (CPU[activeCPU].registers->CS<<16)|CPU[activeCPU].registers->IP; //Set error address segment:offset!
 			break; //Continue, but keep our warning!
 		}
 		lastaddr = curaddr; //Save the current address for reference of the error address!
@@ -111,7 +111,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	} //Main debug CPU loop!
 	LOG_MMU_WRITES = 0; //Disable logging!
 
-	if (CPU.halt) //HLT Received?
+	if (CPU[activeCPU].halt) //HLT Received?
 	{
 		dolog("ROM_log","Emulator terminated OK."); //Log!
 	}

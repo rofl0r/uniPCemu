@@ -153,6 +153,7 @@
     <ClInclude Include="..\..\headers\cpu\80486\cpu_OP80486.h" />
     <ClInclude Include="..\..\headers\cpu\8086\8086_grpOPs.h" />
     <ClInclude Include="..\..\headers\cpu\8086\cpu_OP8086.h" />
+    <ClInclude Include="..\..\headers\cpu\8086\opcodes_8086_verify.h" />
     <ClInclude Include="..\..\headers\cpu\8087\fpu_OP8087.h" />
     <ClInclude Include="..\..\headers\cpu\callback.h" />
     <ClInclude Include="..\..\headers\cpu\cpu.h" />

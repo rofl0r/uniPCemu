@@ -48,7 +48,7 @@ void unkOP0F_286() //0F unknown opcode handler on 286+?
 void CPU_OP0F_286() //Special 2-byte opcode (286+)?
 {
 	byte OP = CPU_readOP(); //Read second OPcode!
-	CPU.lastopcode = OP; //Last opcode is the 0F opcode specifier, the byte after 0F!
+	CPU[activeCPU].lastopcode = OP; //Last opcode is the 0F opcode specifier, the byte after 0F!
 	if ((EMULATED_CPU-2)>=0) //Valid CPU with the OPcodes?
 	{
 		int cpu = EMULATED_CPU-2; //Init cpu!

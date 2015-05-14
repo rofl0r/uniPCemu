@@ -64,63 +64,63 @@ extern byte parity[0x100]; //Our parity table!
 #define PARITY32(dw) parity[dw&0xFF]
 
 //Accumulator register:
-#define REG_AL CPU.registers->AL
-#define REG_AH CPU.registers->AH
-#define REG_EAX CPU.registers->EAX
-#define REG_AX CPU.registers->AX
+#define REG_AL CPU[activeCPU].registers->AL
+#define REG_AH CPU[activeCPU].registers->AH
+#define REG_EAX CPU[activeCPU].registers->EAX
+#define REG_AX CPU[activeCPU].registers->AX
 
 //Base register:
-#define REG_BL CPU.registers->BL
-#define REG_BH CPU.registers->BH
-#define REG_EBX CPU.registers->EBX
-#define REG_BX CPU.registers->BX
+#define REG_BL CPU[activeCPU].registers->BL
+#define REG_BH CPU[activeCPU].registers->BH
+#define REG_EBX CPU[activeCPU].registers->EBX
+#define REG_BX CPU[activeCPU].registers->BX
 
 //Counter register:
-#define REG_CL CPU.registers->CL
-#define REG_CH CPU.registers->CH
-#define REG_ECX CPU.registers->ECX
-#define REG_CX CPU.registers->CX
+#define REG_CL CPU[activeCPU].registers->CL
+#define REG_CH CPU[activeCPU].registers->CH
+#define REG_ECX CPU[activeCPU].registers->ECX
+#define REG_CX CPU[activeCPU].registers->CX
 
 //Data register:
-#define REG_DL CPU.registers->DL
-#define REG_DH CPU.registers->DH
-#define REG_EDX CPU.registers->EDX
-#define REG_DX CPU.registers->DX
+#define REG_DL CPU[activeCPU].registers->DL
+#define REG_DH CPU[activeCPU].registers->DH
+#define REG_EDX CPU[activeCPU].registers->EDX
+#define REG_DX CPU[activeCPU].registers->DX
 
 //Segment registers
-#define REG_CS CPU.registers->CS
-#define REG_DS CPU.registers->DS
-#define REG_ES CPU.registers->ES
-#define REG_FS CPU.registers->FS
-#define REG_GS CPU.registers->GS
-#define REG_SS CPU.registers->SS
+#define REG_CS CPU[activeCPU].registers->CS
+#define REG_DS CPU[activeCPU].registers->DS
+#define REG_ES CPU[activeCPU].registers->ES
+#define REG_FS CPU[activeCPU].registers->FS
+#define REG_GS CPU[activeCPU].registers->GS
+#define REG_SS CPU[activeCPU].registers->SS
 
 //Indexes and pointers
-#define REG_EDI CPU.registers->EDI
-#define REG_DI CPU.registers->DI
-#define REG_ESI CPU.registers->ESI
-#define REG_SI CPU.registers->SI
-#define REG_EBP CPU.registers->EBP
-#define REG_BP CPU.registers->BP
-#define REG_ESP CPU.registers->ESP
-#define REG_SP CPU.registers->SP
-#define REG_EIP CPU.registers->EIP
-#define REG_IP CPU.registers->IP
-#define REG_EFLAGS CPU.registers->EFLAGS
-#define REG_FLAGS CPU.registers->FLAGS
+#define REG_EDI CPU[activeCPU].registers->EDI
+#define REG_DI CPU[activeCPU].registers->DI
+#define REG_ESI CPU[activeCPU].registers->ESI
+#define REG_SI CPU[activeCPU].registers->SI
+#define REG_EBP CPU[activeCPU].registers->EBP
+#define REG_BP CPU[activeCPU].registers->BP
+#define REG_ESP CPU[activeCPU].registers->ESP
+#define REG_SP CPU[activeCPU].registers->SP
+#define REG_EIP CPU[activeCPU].registers->EIP
+#define REG_IP CPU[activeCPU].registers->IP
+#define REG_EFLAGS CPU[activeCPU].registers->EFLAGS
+#define REG_FLAGS CPU[activeCPU].registers->FLAGS
 
 //Flags
-#define FLAG_V8 CPU.registers->SFLAGS.V8
-#define FLAG_RF CPU.registers->SFLAGS.RF
-#define FLAG_NT CPU.registers->SFLAGS.NT
-#define FLAG_PL CPU.registers->SFLAGS.PL
-#define FLAG_OF CPU.registers->SFLAGS.OF
-#define FLAG_DF CPU.registers->SFLAGS.DF
-#define FLAG_IF CPU.registers->SFLAGS.IF
-#define FLAG_TF CPU.registers->SFLAGS.TF
-#define FLAG_SF CPU.registers->SFLAGS.SF
-#define FLAG_ZF CPU.registers->SFLAGS.ZF
-#define FLAG_AF CPU.registers->SFLAGS.AF
-#define FLAG_PF CPU.registers->SFLAGS.PF
-#define FLAG_CF CPU.registers->SFLAGS.CF
+#define FLAG_V8 CPU[activeCPU].registers->SFLAGS.V8
+#define FLAG_RF CPU[activeCPU].registers->SFLAGS.RF
+#define FLAG_NT CPU[activeCPU].registers->SFLAGS.NT
+#define FLAG_PL CPU[activeCPU].registers->SFLAGS.PL
+#define FLAG_OF CPU[activeCPU].registers->SFLAGS.OF
+#define FLAG_DF CPU[activeCPU].registers->SFLAGS.DF
+#define FLAG_IF CPU[activeCPU].registers->SFLAGS.IF
+#define FLAG_TF CPU[activeCPU].registers->SFLAGS.TF
+#define FLAG_SF CPU[activeCPU].registers->SFLAGS.SF
+#define FLAG_ZF CPU[activeCPU].registers->SFLAGS.ZF
+#define FLAG_AF CPU[activeCPU].registers->SFLAGS.AF
+#define FLAG_PF CPU[activeCPU].registers->SFLAGS.PF
+#define FLAG_CF CPU[activeCPU].registers->SFLAGS.CF
 #endif

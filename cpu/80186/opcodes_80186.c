@@ -346,7 +346,7 @@ void unkOP_186() //Unknown opcode on 186+?
 {
 	bzero(command,sizeof(command)); //Clear the command!
 	debugger_setcommand("<80186+ #UD>"); //Command is unknown opcode!
-	//dolog("unkop","Unknown opcode on 80186+: %02X",CPU.lastopcode); //Last read opcode!
+	//dolog("unkop","Unknown opcode on 80186+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU8086_int(0x06); //Call interrupt with return addres of the OPcode!
 }

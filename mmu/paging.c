@@ -13,9 +13,9 @@ byte is_paging()
 	{
 		return 0; //Not paging in REAL mode!
 	}
-	if (CPU.registers) //Gotten registers?
+	if (CPU[activeCPU].registers) //Gotten registers?
 	{
-		return CPU.registers->CR0.PG; //Are we paging!
+		return CPU[activeCPU].registers->CR0.PG; //Are we paging!
 	}
 	return 0; //Not paging: we don't have registers!
 }
@@ -64,15 +64,15 @@ byte getUserLevel(byte CPL)
 
 void FLAG_PF(uint_32 address, word flags)
 {
-	if (!(flags&1) && CPU.registers) //Not present?
+	if (!(flags&1) && CPU[activeCPU].registers) //Not present?
 	{
-		CPU.registers->CR2 = address; //Fill CR2 with the address cause!
+		CPU[activeCPU].registers->CR2 = address; //Fill CR2 with the address cause!
 	}
 	CPU_PUSH16(&flags);
 	//Call interrupt!
 }
 
-#define getCPL() CPU.SEG_DESCRIPTOR[CPU_SEGMENT_CS].DPL
+#define getCPL() CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].DPL
 byte verifyCPL(byte iswrite, byte userlevel, byte RW, byte US) //userlevel=CPL or 0 (with special instructions LDT, GDT, TSS, IDT, ring-crossing CALL/INT)
 {
 	if (!US && getUserLevel(userlevel)) //User when not an user page?
@@ -90,12 +90,12 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 {
 	word DIR, TABLE;
 	byte PTEUPDATED = 0; //Not update!
-	if (!CPU.registers) return 0; //No registers available!
+	if (!CPU[activeCPU].registers) return 0; //No registers available!
 	DIR = (address>>22)&0x3FF; //The directory entry!
 	TABLE = (address>>12)&0x3FF; //The table entry!
 	
 	//Check PDE
-	PDE.value = MMU_directrdw(CPU.registers->CR3.PageDirectoryBase+(DIR<<2)); //Read the page directory entry!
+	PDE.value = MMU_directrdw(CPU[activeCPU].registers->CR3.PageDirectoryBase+(DIR<<2)); //Read the page directory entry!
 	if (!PDE.P) //Not present?
 	{
 		FLAG_PF(address,PDE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
@@ -109,7 +109,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	if (!PDE.A) //Not accessed yet?
 	{
 		PDE.A = 1; //Accessed!
-		MMU_directwdw(CPU.registers->CR3.PageDirectoryBase+(DIR<<2),PDE.value); //Update in memory!
+		MMU_directwdw(CPU[activeCPU].registers->CR3.PageDirectoryBase+(DIR<<2),PDE.value); //Update in memory!
 	}
 	
 	//Check PTE
@@ -151,7 +151,7 @@ uint_32 mappage(uint_32 address) //Maps a page to real memory when needed!
 	DIR = (address>>22)&0x3FF; //The directory entry!
 	TABLE = (address>>12)&0x3FF; //The table entry!
 	ADDR = (address&0xFFF);
-	PDE.value = MMU_directrdw(CPU.registers->CR3.PageDirectoryBase+(DIR<<2)); //Read the page directory entry!
+	PDE.value = MMU_directrdw(CPU[activeCPU].registers->CR3.PageDirectoryBase+(DIR<<2)); //Read the page directory entry!
 	PTE.value = MMU_directrdw(PDE.PageFrameAddress+(TABLE<<2)); //Read the page table entry!
 	return PTE.PhysicalPageAddress+ADDR; //Give the actual address!
 }

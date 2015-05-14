@@ -118,9 +118,6 @@ sword BIOS_Menu = 0; //What menu are we opening (-1 for closing!)?
 byte BIOS_SaveStat = 0; //To save the BIOS?
 byte BIOS_Changed = 0; //BIOS Changed?
 
-extern CPU_type CPU; //Active CPU!
-//CPU_type CPU_Backup; //Backup of the CPU!
-
 GPU_TEXTSURFACE *BIOS_Surface; //Our very own BIOS Surface!
 
 void allocBIOSMenu() //Stuff that take extra video memory etc. for seperated BIOS allocation (so before MMU, because it may take it all)!
@@ -387,7 +384,7 @@ void BIOSClearScreen() //Resets the BIOS's screen!
 	//cursorXY(0,0,0); //Goto top of the screen!
 
 	EMU_textcolor(BIOS_ATTR_TEXT); //Plain text!
-	/*CPU.registers->AX = VIDEOMODE_EMU; //Video mode 80x25 16 colors!
+	/*CPU[activeCPU].registers->AX = VIDEOMODE_EMU; //Video mode 80x25 16 colors!
 	BIOS_int10(); //Switch video mode+Clearscreen!
 	*/
 	

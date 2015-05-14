@@ -55,7 +55,7 @@
 //To show the framerate?
 #define DEBUG_FRAMERATE 1
 //Debug any sound devices? (PC Speaker, Adlib, MPU(to be tested in software), SB16?)
-#define DEBUG_SOUND 1
+#define DEBUG_SOUND 0
 //All external variables!
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 extern byte reset; //To fully reset emu?
@@ -357,27 +357,27 @@ uint_64 singlestepaddress = 0x00007C51; //The segment:offset address!
 
 byte coreHandler()
 {
-	if ((romsize!=0) && (CPU.halt)) //Debug HLT?
+	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
 	{
 		MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
 		return 0; //Stop!
 	}
 
 	//CPU execution, needs to be before the debugger!
-	if (!CPU.halt) //Not halted?
+	if (!CPU[activeCPU].halt) //Not halted?
 	{
-		if (CPU.registers && doEMUsinglestep) //Single step enabled?
+		if (CPU[activeCPU].registers && doEMUsinglestep) //Single step enabled?
 		{
 			if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
 			{
 				switch (getcpumode()) //What CPU mode are we to debug?
 				{
 				case CPU_MODE_REAL: //Real mode?
-					singlestep |= ((CPU.registers->CS == (singlestepaddress >> 16)) && (CPU.registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
+					singlestep |= ((CPU[activeCPU].registers->CS == (singlestepaddress >> 16)) && (CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
 					break;
 				case CPU_MODE_PROTECTED: //Protected mode?
 				case CPU_MODE_8086: //Virtual 8086 mode?
-					singlestep |= ((CPU.registers->CS == singlestepaddress >> 32) && (CPU.registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
+					singlestep |= ((CPU[activeCPU].registers->CS == singlestepaddress >> 32) && (CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
 					break;
 				default: //Invalid mode?
 					break;
@@ -388,16 +388,16 @@ byte coreHandler()
 		cpudebugger = needdebugger(); //Debugging information required?
 
 		CPU_beforeexec(); //Everything before the execution!
-		if (!CPU.trapped && CPU.registers) //Only check for hardware interrupts when not trapped!
+		if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
 		{
-			if (CPU.registers->SFLAGS.IF && PICInterrupt()) call_hard_inthandler(nextintr()); //get next interrupt from the i8259, if any
+			if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) call_hard_inthandler(nextintr()); //get next interrupt from the i8259, if any
 		}
 		debugger_beforeCPU(); //Everything before the CPU!
 		CPU_exec(); //Run CPU!
 	}
-	else if (CPU.registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
+	else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
 	{
-		CPU.halt = 0; //Interrupt->Resume from HLT
+		CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 	}
 
 	debugger_step(); //Step debugger if needed!
@@ -427,7 +427,7 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 //Start normal emulation!
 	for (;;)
 	{
-		if (!CPU.running || !hasmemory()) //Not running anymore or no memory present to use?
+		if (!CPU[activeCPU].running || !hasmemory()) //Not running anymore or no memory present to use?
 		{
 			break; //Stop running!
 		}

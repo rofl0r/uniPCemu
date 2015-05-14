@@ -33,7 +33,7 @@ extern byte MMU_lastwdata;
 
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
-	memcpy(&debuggerregisters,CPU.registers,sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
+	memcpy(&debuggerregisters,CPU[activeCPU].registers,sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
 	//Initialise debugger texts!
 	bzero(debugger_prefix,sizeof(debugger_prefix));
 	bzero(debugger_command_text,sizeof(debugger_command_text)); //Init vars!
@@ -195,7 +195,7 @@ byte needdebugger() //Do we need to generate debugging information?
 
 void debugger_autolog()
 {
-	if ((debuggerregisters.EIP == CPU.registers->EIP) && (debuggerregisters.CS == CPU.registers->CS) && (!CPU.faultraised)) return; //Are we the same address as the executing command and no fault has been raised? We're a repeat operation!
+	if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised)) return; //Are we the same address as the executing command and no fault has been raised? We're a repeat operation!
 
 	if (debugger_logging()) //To log?
 	{
@@ -215,7 +215,7 @@ void debugger_autolog()
 		{
 			dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is not paged, protected or non-existant.");
 		}
-		if (CPU.faultraised) //Fault has been raised?
+		if (CPU[activeCPU].faultraised) //Fault has been raised?
 		{
 			dolog("debugger", "The CPU has raised an exception.");
 		}
@@ -280,7 +280,7 @@ void debugger_screen() //Show debugger info on-screen!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 5, debugrow++); //First debug row!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "OP:%02X", MMU_rb(-1, debuggerregisters.CS, debuggerregisters.IP, 1)); //Debug opcode!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 6, debugrow++); //Second debug row!
-		GPU_textprintf(frameratesurface, fontcolor, backcolor, "ROP:%02X", CPU.lastopcode); //Real OPCode!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "ROP:%02X", CPU[activeCPU].lastopcode); //Real OPCode!
 
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debugrow++); //Second debug row!
 		//First: location!

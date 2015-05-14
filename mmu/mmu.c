@@ -14,6 +14,8 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
+byte MMU_ignorewrites = 0; //Ignore writes to the MMU from the CPU?
+
 MMU_type MMU; //The MMU itself!
 
 extern byte EMU_RUNNING; //Emulator is running?
@@ -192,6 +194,7 @@ void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segmen
 	{
 		dolog("debugger", "Writing to memory: %08X=%02X (%c)", realaddress, val,val?val:0x20); //Log it!
 	}
+	if (MMU_ignorewrites) return; //Ignore all written data: protect memory integrity!
 	if (MMU_IO_writehandler(realaddress, val)) //Normal memory access?
 	{
 		MMU_directwb(realaddress,val); //Set data in real memory!
@@ -297,7 +300,7 @@ void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
 		return; //Out of bounds!
 	}
 	
-	if (CPU.faultraised && EMU_RUNNING) //Fault has been raised while emulator is running?
+	if (CPU[activeCPU].faultraised && EMU_RUNNING) //Fault has been raised while emulator is running?
 	{
 		return; //Disable writes to memory when a fault has been raised!
 	}
