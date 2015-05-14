@@ -355,6 +355,8 @@ extern byte singlestep; //Enable EMU-driven single step!
 byte doEMUsinglestep = 0; //CPU mode plus 1
 uint_64 singlestepaddress = 0x00007C51; //The segment:offset address!
 
+extern byte interruptsaved; //Primary interrupt saved?
+
 byte coreHandler()
 {
 	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
@@ -364,46 +366,54 @@ byte coreHandler()
 	}
 
 	//CPU execution, needs to be before the debugger!
-	if (!CPU[activeCPU].halt) //Not halted?
+	interruptsaved = 0; //Reset PIC interrupt to not used!
+	if (activeCPU == 0) //Root CPU is active? We're allowed to do stuff!
 	{
-		if (CPU[activeCPU].registers && doEMUsinglestep) //Single step enabled?
+		if (!CPU[activeCPU].halt) //Not halted?
 		{
-			if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
+			if (CPU[activeCPU].registers && doEMUsinglestep) //Single step enabled?
 			{
-				switch (getcpumode()) //What CPU mode are we to debug?
+				if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
 				{
-				case CPU_MODE_REAL: //Real mode?
-					singlestep |= ((CPU[activeCPU].registers->CS == (singlestepaddress >> 16)) && (CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
-					break;
-				case CPU_MODE_PROTECTED: //Protected mode?
-				case CPU_MODE_8086: //Virtual 8086 mode?
-					singlestep |= ((CPU[activeCPU].registers->CS == singlestepaddress >> 32) && (CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
-					break;
-				default: //Invalid mode?
-					break;
+					switch (getcpumode()) //What CPU mode are we to debug?
+					{
+					case CPU_MODE_REAL: //Real mode?
+						singlestep |= ((CPU[activeCPU].registers->CS == (singlestepaddress >> 16)) && (CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
+						break;
+					case CPU_MODE_PROTECTED: //Protected mode?
+					case CPU_MODE_8086: //Virtual 8086 mode?
+						singlestep |= ((CPU[activeCPU].registers->CS == singlestepaddress >> 32) && (CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
+						break;
+					default: //Invalid mode?
+						break;
+					}
 				}
 			}
+
+			cpudebugger = needdebugger(); //Debugging information required?
+
+			CPU_beforeexec(); //Everything before the execution!
+			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
+			{
+				if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) call_hard_inthandler(nextintr()); //get next interrupt from the i8259, if any
+			}
+			debugger_beforeCPU(); //Everything before the CPU!
+			CPU_exec(); //Run CPU!
 		}
-
-		cpudebugger = needdebugger(); //Debugging information required?
-
-		CPU_beforeexec(); //Everything before the execution!
-		if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
+		else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
 		{
-			if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) call_hard_inthandler(nextintr()); //get next interrupt from the i8259, if any
+			CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 		}
-		debugger_beforeCPU(); //Everything before the CPU!
-		CPU_exec(); //Run CPU!
-	}
-	else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
-	{
-		CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
-	}
 
-	debugger_step(); //Step debugger if needed!
+		debugger_step(); //Step debugger if needed!
+	}
+	else //Executing as fake86 port?
+	{
+		exec86(); //Exec as a 80186 only!
+	}
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
-	
+
 	if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Run in-emulator BIOS menu and not gaming mode?
 	{
 		pauseEMU(); //Stop timers!

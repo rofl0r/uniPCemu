@@ -35,6 +35,7 @@
     <ClCompile Include="..\..\cpu\cpu_interrupts.c" />
     <ClCompile Include="..\..\cpu\cpu_jmptbls.c" />
     <ClCompile Include="..\..\cpu\cpu_jmptbls0f.c" />
+    <ClCompile Include="..\..\cpu\fake86_cpu.c" />
     <ClCompile Include="..\..\cpu\flags.c" />
     <ClCompile Include="..\..\cpu\hardware_interrupts.c" />
     <ClCompile Include="..\..\cpu\modrm.c" />

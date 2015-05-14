@@ -111,10 +111,13 @@ void out8259(word portnum, byte value)
 	}
 }
 
+byte interruptsaved = 0; //Have we gotten a primary interrupt (first PIC)?
+byte lastinterrupt = 0; //Last interrupt requested!
+
 byte PICInterrupt() //We have an interrupt ready to process?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (i8259.irr[0] & (~i8259.imr[0])) //Primary PIC interrupt?
+	if ((i8259.irr[0] & (~i8259.imr[0])) || interruptsaved) //Primary PIC interrupt?
 	{
 		return 1;
 	}
@@ -174,6 +177,10 @@ byte getint(byte PIC, byte IR) //Get interrupt!
 
 byte nextintr()
 {
+	if (interruptsaved) //Re-requested?
+	{
+		return lastinterrupt; //Give the same as the last time!
+	}
 	if (__HW_DISABLED) return 0; //Abort!
 	byte i;
 
@@ -186,10 +193,14 @@ byte nextintr()
 		if (IRRequested(PICnr,realIR)) //Requested?
 		{
 			ACNIR(PICnr,realIR); //Acnowledge it!
-			return getint(PICnr,realIR); //Give the interrupt number!
+			lastinterrupt = getint(PICnr,realIR); //Give the interrupt number!
+			interruptsaved = 1; //Gotten an interrupt saved!
+			return lastinterrupt;
 		}
 	}
-	return 0; //No result: unk interrupt!
+	lastinterrupt = 0; //Unknown!
+	interruptsaved = 1; //Gotten!
+	return lastinterrupt; //No result: unk interrupt!
 }
 
 void doirq(byte irqnum)

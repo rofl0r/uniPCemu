@@ -441,6 +441,9 @@
     <ClCompile Include="..\..\support\locks.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\cpu\fake86_cpu.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">
@@ -791,6 +794,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\support\locks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\headers\cpu\8086\opcodes_8086_verify.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

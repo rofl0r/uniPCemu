@@ -72,7 +72,11 @@ void MMU_directww(uint_32 realadress, word value); //Direct write to real memory
 uint_32 MMU_directrdw(uint_32 realaddress);
 void MMU_directwdw(uint_32 realaddress, uint_32 value);
 
+//Memory access for fake86 compatibility and testing our CPU.
+void MMU_directwb_realaddr(uint_32 realaddress, byte val); //Write without segment/offset translation&protection (from system/interrupt)!
+byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode); //Read without segment/offset translation&protection (from system/interrupt)!
 
+//Rest support
 void MMU_dumpmemory(char *filename); //Dump the memory to a file!
 //uint_32 MMU_realaddr(int segdesc, word segment, uint_32 offset); //Real adress in real (direct) memory?
 void MMU_wraparround(byte dowrap); //To wrap arround 1/3/5/... MB limit?

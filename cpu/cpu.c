@@ -654,6 +654,8 @@ void CPU_OP(byte OP) //Normal CPU opcode execution!
 	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the jmptbl.
 }
 
+extern byte primaryinterrupt; //Have we gotten a primary interrupt (first PIC)?
+
 void CPU_beforeexec()
 {
 	if (CPU[activeCPU].registers->SFLAGS.TF) //Trapped?

@@ -11,7 +11,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #endif
 
 //How many CPU instances are used?
-#define MAXCPUS 1
+#define MAXCPUS 2
 
 //Number of currently supported CPUs & opcode 0F extensions.
 #define NUMCPUS 2
