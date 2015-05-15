@@ -337,7 +337,7 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 
 	//Now retrieve our note by specification!
 
-	if (!lookupPresetByInstrument(soundfont, channel->program, channel->bank, &preset)) //Preset not found?
+	if (!lookupPresetByInstrument(soundfont, channel->program, channel->activebank, &preset)) //Preset not found?
 	{
 		return 0; //No samples!
 	}
@@ -833,6 +833,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 		case 0xC0: //Program change?
 			lockaudio(); //Lock the audio!
 			MIDIDEVICE.channels[currentchannel].program = firstparam; //What program?
+			MIDIDEVICE.channels[currentchannel].activebank = MIDIDEVICE.channels[currentchannel].bank; //Apply bank from Bank Select Messages!
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
 			dolog("MPU","MIDIDEVICE: Program change: %i=%i",currentchannel,MIDIDEVICE.channels[currentchannel].program); //Log it!

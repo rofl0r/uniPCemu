@@ -29,25 +29,11 @@ void ADSR_release(ADSR *adsr, byte sustaining, byte release_velocity)
 void enterRelease(ADSR *adsr, byte release_velocity)
 {
 	//Calculate the release information
-	if (adsr->release)
+	if (adsr->release) //Gotten a release phase?
 	{
-		float releasefactor = 1.0f; //From full!
+		float releasefactor = adsr->ADSREnvelope; //From full volume currently at!
 		releasefactor /= adsr->release; //Equal steps from full to 0.0f!
-		if (!releasefactor) //No release?
-		{
-			adsr->release = 0; //No release!
-		}
-		else
-		{
-			float temp;
-			temp = adsr->ADSREnvelope; //Full current volume!
-			temp /= releasefactor; //Calculate the new decay time needed to change to the sustain factor!
-			adsr->release = temp; //Load the calculated decay time!
-		}
-	}
-	else
-	{
-		adsr->releasefactor = 0.0f; //No release!
+		adsr->releasefactor = releasefactor; //Apply the release factor for the current volume!
 	}
 
 	adsr->active = ADSR_RELEASE; //Check next step!

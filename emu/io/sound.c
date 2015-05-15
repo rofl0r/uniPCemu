@@ -613,8 +613,9 @@ uint_32 fillbuffer_existing(playing_p currentchannel, uint_32 *relsample, uint_3
 	bufferinc = C_BUFFERINC(currentchannel); //Load buffer increase rate!
 	*relsample = C_SAMPLERATE(currentchannel,currentpos); //Get the sample position of the destination samplerate!
 	rebuffer: //Rebuffer check!
-	if (*relsample>=C_BUFFERSIZE(currentchannel)) //Expired, we've reached the end of the buffer (sample overflow)?
+	if (*relsample>=C_BUFFERSIZE(currentchannel)) //Expired or empty, we've reached the end of the buffer (sample overflow)?
 	{
+		checkbuffer: //Check for an used buffer when unused!
 		#ifdef DEBUG_SOUNDBUFFER
 		buffering = 1; //We're buffering!
 		dolog("soundservice","Buffering @ %i/%i samples; extra data: %p; name: %s",*relsample,C_BUFFERSIZE(currentchannel),currentchannel->extradata,currentchannel->name);
@@ -640,13 +641,16 @@ uint_32 fillbuffer_new(playing_p currentchannel, uint_32 *relsample, uint_32 cur
 {
 	//currentpos = 0; //Reset samplepos!
 	*relsample = 0; //Reset relative sample!
-	#ifdef DEBUG_SOUNDBUFFER
-	dolog("soundservice","Initialising sound buffer...");
-	dolog("soundservice","Buffering @ 0/%i samples; extra data: %p; name: %s",C_BUFFERSIZE(currentchannel),currentchannel->extradata,currentchannel->name);
-	#endif
+#ifdef DEBUG_SOUNDBUFFER
+	dolog("soundservice", "Initialising sound buffer...");
+	dolog("soundservice", "Buffering @ 0/%i samples; extra data: %p; name: %s", C_BUFFERSIZE(currentchannel), currentchannel->extradata, currentchannel->name);
+#endif
 	//Buffer and update buffer position!
 	currentchannel->bufferflags = currentchannel->soundhandler(currentchannel->sound.samples,C_BUFFERSIZE(currentchannel),C_STEREO(currentchannel),currentchannel->extradata); // Request next sample for this channel, also give our channel extra information!
-	currentchannel->fillbuffer = &fillbuffer_existing; //We're initialised, so call existing buffers from now on!
+	if (currentchannel->bufferflags&1) //Filled?
+	{
+		currentchannel->fillbuffer = &fillbuffer_existing; //We're initialised, so call existing buffers from now on!
+	}
 
 	processbufferflags(currentchannel); //Process the buffer flags!
 	#ifdef DEBUG_SOUNDBUFFER
@@ -727,6 +731,10 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 				{
 					currentsample = length; //The ammount of sample to still buffer!
 					activesample = &mixedsamples[0]; //Init active sample to the first sample!
+					if (!(activechannel->bufferflags & 1)) //Empty channel buffer?
+					{
+						activechannel->fillbuffer = &fillbuffer_new; //We're not yet initialised, so call check for initialisation from now on!
+					}
 					for (;;) //Process all samples!
 					{
 						firstactivesample = activesample++; //First channel sample!

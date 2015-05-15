@@ -33,7 +33,8 @@ typedef struct
 	byte control; //Control/current instrument!
 	byte program; //Program/instrument!
 	byte pressure; //Channel pressure/volume!
-	word bank; //What bank are we?
+	word bank; //The bank from a bank select message!
+	word activebank; //What bank are we?
 	sword pitch; //Current pitch (14-bit value)
 	byte sustain; //Enable sustain? Don't process KEY OFF while set!
 	byte channelrangemin, channelrangemax; //Ranges of used channels to respond to when in Mono Mode.
