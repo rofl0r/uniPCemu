@@ -474,6 +474,13 @@ byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		return 0; //Corrupt file!
 	}
 	
+	//Create our quick lookup entries for samples!
+	RIFF->pcmdata_data = (word *)RIFF_start_data(RIFF->pcmdata, RIFF_entryheadersize(RIFF->pcmdata)); //Start of the data!
+	RIFF->pcmdata_size = (getRIFFChunkSize(RIFF->pcmdata) >> 1); //The ammount of entries we have as PCM samples!
+
+	RIFF->pcm24data_data = (byte *)RIFF_start_data(RIFF->pcm24data, RIFF_entryheadersize(RIFF->pcm24data)); //Start of the data!
+	RIFF->pcm24data_size = (getRIFFChunkSize(RIFF->pcm24data) >> 1); //The ammount of entries we have as PCM samples!
+
 	//The RIFF file has been validated!
 	return 1; //Validated!
 }
@@ -724,7 +731,7 @@ short getsample24_16(uint_32 sample) //Get 24 bits sample and convert it to a 16
 	u.sample32 = sample;
 	if (u.sample32&0x800000) //Sign bit set?
 	{
-		u.sample32 |= 0xFF000000; //Sign extend!
+		u.sample32 |= 0xFF000000; //Sign extend!sf->pcmdata
 	}
     return (short)((((float)u.i)/(float)0xFFFFFF)*(float)SHRT_MAX); //Give the 24-bit sample as a 16-bit sample, converted!
 	*/
@@ -774,6 +781,42 @@ byte getSFsample(RIFFHEADER *sf, uint_32 sample, short *result) //Get a 16/24-bi
 	//Invalid sample?
 	*result = 0; //Clear!
 	return 0; //Invalid sample!
+}
+
+//Specific, optimized versions of sample retrieval: 16 or 24-bits samples are retrieved and given more quickly, with only basic checks (limits only)!
+
+byte getSFSample16(RIFFHEADER *sf, uint_32 sample, short *result)
+{
+	union
+	{
+		word result_tmp;
+		short result_sh;
+	} converter; //Conversion of the result!
+	if (sf->pcmdata_size<sample) return 0; //Invalid sample!
+	converter.result_tmp = sf->pcmdata_data[sample]; //Retrieve the sample!
+	*result = converter.result_sh; //Set the result!
+	return 1; //We have a sample!
+}
+
+byte getSFSample24(RIFFHEADER *sf, uint_32 sample, int_32 *result)
+{
+	static union
+	{
+		uint_32 result_tmp;
+		int_32 result_i;
+	} converter; //Conversion of the result!
+	if (!sf) return 0; //Error: no soundfont!
+	if (sf->pcmdata_size < sample) return 0; //Invalid sample!
+	if (sf->pcm24data_size < sample) return 0; //Invalid 24-bit sample!
+	converter.result_tmp = sf->pcm24data_data[sample]; //Retrieve the high 8-bits!
+	converter.result_tmp <<= 16; //Generate some space for the rest of the sample!
+	converter.result_tmp |= sf->pcmdata_data[sample]; //Add the low 16-bits!
+	if (converter.result_tmp & 0x800000) //Sign bit set?
+	{
+		converter.result_tmp |= 0xFF000000; //Sign extend to 32-bits!
+	}
+	*result = converter.result_i; //Set the result!
+	return 1; //We have a sample!
 }
 
 /*

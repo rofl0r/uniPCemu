@@ -118,6 +118,8 @@ OBJS += cpu\80286\protection.o
 OBJS += cpu\80286\multitasking.o
 #finally CPU module itself and flag support (global)
 OBJS += cpu\flags.o cpu\cpu.o
+#CPU module of fake86 for checking!
+OBJS += cpu\fake86_cpu.o
 #Debugger
 OBJS += emu\debugger\debugger.o
 #Signed VS unsigned conversion support!

@@ -175,7 +175,7 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 	register uint_32 temppos;
 	register uint_32 samplepos;
 	sword lchannel, rchannel; //Both channels to use!
-	sword readsample; //The sample retrieved!
+	static sword readsample; //The sample retrieved!
 	byte loopflags;
 
 	samplepos = voice->play_counter; //Load the current play counter!
@@ -221,7 +221,7 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 		return; //Done!
 	}
 
-	if (getSFsample(soundfont, samplepos, &readsample)) //Sample found?
+	if (getSFSample16(soundfont, samplepos, &readsample)) //Sample found?
 	{
 		lchannel = (float)readsample; //Convert to floating point for our calculations!
 

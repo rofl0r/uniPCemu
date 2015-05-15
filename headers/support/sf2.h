@@ -347,10 +347,17 @@ enum sfGenerator
 #define GEN_VELOCITYRANGE 44
 */
 
-#include "headers/packed.h" //We're packed!
-typedef struct PACKED
+//Don't pack this structure: we will need to speed up this part as much as possible for rendering speedup!
+typedef struct
 {
 	uint_32 filesize; //The total filesize!
+
+	//PCM lookup speedup!
+	uint_32 pcmdata_size; //PCM data size, in entries!
+	word *pcmdata_data; //PCM data itself!
+	uint_32 pcm24data_size; //PCM 24-bit size!
+	byte *pcm24data_data; //PCM 24-bit data itself!
+
 	//Now, all required chunks in the file!
 	RIFF_ENTRY rootentry; //Root (SFBK) entry!
 	RIFF_ENTRY hydra; //Hydra block!
@@ -366,7 +373,6 @@ typedef struct PACKED
 	RIFF_ENTRY pcmdata; //16-bit (SMPL) audio entry!
 	RIFF_ENTRY pcm24data; //24-bit (SMPL) audio extension of 16-bit audio entry!
 } RIFFHEADER; //RIFF data header!
-#include "headers/endpacked.h" //We're packed!
 
 //Basic open/close functions for soundfonts!
 RIFFHEADER *readSF(char *filename); //Open, read and validate a soundfont!
@@ -413,6 +419,11 @@ byte isInstrumentGenNdx(RIFFHEADER *sf, word Instrument, word wInstrumentBagNdx,
 //Sample information and samples themselves!
 byte getSFSampleInformation(RIFFHEADER *sf, word Sample, sfSample *result);
 byte getSFsample(RIFFHEADER *sf, uint_32 sample, short *result); //Get a 16/24-bit sample!
+
+//Optimized versions of sample retrieval:
+byte getSFSample16(RIFFHEADER *sf, uint_32 sample, short *result);
+byte getSFSample24(RIFFHEADER *sf, uint_32 sample, int_32 *result);
+
 
 /* Global and validation of zones */
 
