@@ -293,8 +293,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
 
 	velocity_factor = voice->note->noteon_velocity_factor; //Apply Note On key velocity first!
-	velocity_factor *= ((float)(channel->pressure + 1) / 60.0f); //Adjust velocity, based on channel pressure, which can change during hold!
-	velocity_factor *= ((float)(voice->note->pressure + 1) / 60.0f); //Adjust velocity, based on note pressure, which can change during hold!
+	velocity_factor *= ((float)(channel->pressure + 1) / 64.0f); //Adjust velocity, based on channel pressure, which can change during hold!
+	velocity_factor *= ((float)(voice->note->pressure + 1) / 64.0f); //Adjust velocity, based on note pressure, which can change during hold!
 
 	if (voice->request_off) //Requested turn off?
 	{
@@ -499,7 +499,7 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, pan, &applyigen)) //Gotten panning?
 	{
 		panningtemp = (float)applyigen.genAmount.shAmount; //Get the panning specified!
-		panningtemp *= 0.01f; //Make into a percentage!
+		panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 		lvolume -= panningtemp; //Left percentage!
 		rvolume += panningtemp; //Right percentage!
 	}
@@ -540,7 +540,8 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 
 	//Calculate the velocity factor!
 	float noteon_velocity; //The velocity calculated!
-	noteon_velocity = (note->noteon_velocity/60.0f); //Adjust velocity, based on the key hit! It's always 1+, since 0 is a release of the key.
+	noteon_velocity = note->noteon_velocity;
+	noteon_velocity /= 64.0f; //Adjust velocity, based on the key hit! It's always 1+, since 0 is a release of the key.
 	note->noteon_velocity_factor = noteon_velocity; //The velocity calculated!
 
 	//Final adjustments and set active!
