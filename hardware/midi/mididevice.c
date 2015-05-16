@@ -123,6 +123,16 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 			MIDIDEVICE.channels[channel].notes[notes].note = notes;
 			++notes; //Next note!
 		}
+		MIDIDEVICE.channels[channel].bank = MIDIDEVICE.channels[channel].activebank = 0; //Reset!
+		MIDIDEVICE.channels[channel].channelrangemin = MIDIDEVICE.channels[channel].channelrangemax = channel; //We respond to this channel only!
+		MIDIDEVICE.channels[channel].control = 0; //First instrument!
+		MIDIDEVICE.channels[channel].pitch = 0; //Centered pitch = Default pitch!
+		MIDIDEVICE.channels[channel].pressure = 0x40; //Centered pressure!
+		MIDIDEVICE.channels[channel].program = 0; //First program!
+		MIDIDEVICE.channels[channel].sustain = 0; //Disable sustain!
+		MIDIDEVICE.channels[channel].volume = 0x2000; //Centered volume as the default volume!
+		MIDIDEVICE.channels[channel].panposition = 0x2000; //Centered pan position as the default pan!
+		MIDIDEVICE.channels[channel].lvolume = MIDIDEVICE.channels[channel].rvolume = 0.5; //Accompanying the pan position: centered volume!
 		MIDIDEVICE.channels[channel++].mode = MIDIDEVICE_DEFAULTMODE; //Use the default mode!
 	}
 	unlockaudio(1);
@@ -234,6 +244,9 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 		//Now, apply panning!
 		lchannel *= voice->lvolume; //Apply left panning!
 		rchannel *= voice->rvolume; //Apply right panning!
+		//Apply panning for the note itself, according to the CC!
+		lchannel *= voice->channel->lvolume; //Apply left panning!
+		rchannel *= voice->channel->rvolume; //Apply right panning!
 
 		//Give the result!
 		sample->l = lchannel; //LChannel!
@@ -252,12 +265,13 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	float pitchcents, currentsamplespeedup;
 	byte currenton;
 	uint_32 requestbit;
-	MIDIDEVICE_CHANNEL *channel;
 	register float VolumeEnvelope; //Current volume envelope data!
 	//Initialised values!
 	MIDIDEVICE_VOICE *voice = (MIDIDEVICE_VOICE *)userdata;
 	sample_stereo_t* ubuf = (sample_stereo_t *)buf; //Our sample buffer!
 	ADSR *VolumeADSR = &voice->VolumeEnvelope; //Our used volume envelope ADSR!
+	MIDIDEVICE_CHANNEL *channel = voice->channel; //Get the channel to use!
+	float velocity_factor; //Current velocity factor!
 	uint_32 numsamples = length; //How many samples to buffer!
 	++numsamples; //Take one sample more!
 
@@ -270,7 +284,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unable to render anything!
 
 	//Calculate the pitch bend speedup!
-	pitchcents = (double)voice->channel->pitch; //Load active pitch bend!
+	pitchcents = (double)channel->pitch; //Load active pitch bend!
 	pitchcents /= 40.96f; //Pitch bend in cents!
 
 	//Now apply to the default speedup!
@@ -278,16 +292,20 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	currentsamplespeedup *= cents2samplesfactor(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
 	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
 
+	velocity_factor = voice->note->noteon_velocity_factor; //Apply Note On key velocity first!
+	velocity_factor *= ((float)(channel->pressure + 1) / 60.0f); //Adjust velocity, based on channel pressure, which can change during hold!
+	velocity_factor *= ((float)(voice->note->pressure + 1) / 60.0f); //Adjust velocity, based on note pressure, which can change during hold!
+
 	if (voice->request_off) //Requested turn off?
 	{
 		voice->currentloopflags |= 0x80; //Request quit looping if needed: finish sound!
 		voice->currentloopflags &= ~0x40; //Sustain disabled by default!
-		voice->currentloopflags |= (voice->channel->sustain << 6); //Sustaining?
+		voice->currentloopflags |= (channel->sustain << 6); //Sustaining?
 	} //Requested off?
 	//Now produce the sound itself!
 	for (; --numsamples;) //Produce the samples!
 	{
-		VolumeEnvelope = ADSR_tick(VolumeADSR,(voice->channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteoff_velocity); //Apply Volume Envelope!
+		VolumeEnvelope = ADSR_tick(VolumeADSR, (channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80),velocity_factor, voice->note->noteoff_velocity); //Apply Volume Envelope!
 		MIDIDEVICE_getsample(ubuf++, voice, VolumeEnvelope); //Get the sample from the MIDI device!
 	}
 
@@ -485,6 +503,7 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 		lvolume -= panningtemp; //Left percentage!
 		rvolume += panningtemp; //Right percentage!
 	}
+
 	voice->lvolume = lvolume; //Left panning!
 	voice->rvolume = rvolume; //Right panning!
 
@@ -518,6 +537,11 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 			break;
 		}
 	}
+
+	//Calculate the velocity factor!
+	float noteon_velocity; //The velocity calculated!
+	noteon_velocity = (note->noteon_velocity/60.0f); //Adjust velocity, based on the key hit! It's always 1+, since 0 is a release of the key.
+	note->noteon_velocity_factor = noteon_velocity; //The velocity calculated!
 
 	//Final adjustments and set active!
 	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay);	//Initialise our Volume Envelope for use!
@@ -657,6 +681,16 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 	}
 }
 
+OPTINLINE void updatePanPosition(byte channel)
+{
+	float difference;
+	difference = (float)(MIDIDEVICE.channels[channel].panposition - 0x2000); //Take the panning position!
+	difference /= 0x2000; //Convert to a factor between -1 and 1!
+	difference *= 0.5; //Convert to a factor between -0.5 and 0.5!
+	MIDIDEVICE.channels[channel].lvolume = 0.5 - difference; //Apply to left volume!
+	MIDIDEVICE.channels[channel].rvolume = 0.5 + difference; //Apply to right volume!
+}
+
 OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
 {
 	//First, our variables!
@@ -673,7 +707,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 		case 0x80: //Note off?
 		noteoff: //Note off!
 			#ifdef MIDI_LOG
-			if ((command & 0xF0) == 0x90) dolog("MPU", "MIDIDEVICE: NOTE ON: Redirected to NOTE OFF.");
+				if ((command & 0xF0) == 0x90) dolog("MPU", "MIDIDEVICE: NOTE ON: Redirected to NOTE OFF.");
 			#endif
 			lockaudio(); //Lock the audio!
 			for (channel=0;channel<0x10;) //Process all channels!
@@ -682,7 +716,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			}
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: NOTE OFF: Channel %i Note %i Velocity %i",currentchannel,firstparam,current->buffer[1]); //Log it!
+				dolog("MPU","MIDIDEVICE: NOTE OFF: Channel %i Note %i Velocity %i",currentchannel,firstparam,current->buffer[1]); //Log it!
 			#endif
 			break;
 		case 0x90: //Note on?
@@ -694,15 +728,15 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			}
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: NOTE ON: Channel %i Note %i Velocity %i",currentchannel,firstparam,current->buffer[1]); //Log it!
+				dolog("MPU","MIDIDEVICE: NOTE ON: Channel %i Note %i Velocity %i",currentchannel,firstparam,current->buffer[1]); //Log it!
 			#endif
 			break;
 		case 0xA0: //Aftertouch?
 			lockaudio(); //Lock the audio!
-			MIDIDEVICE.channels[currentchannel].notes[firstparam].pressure = (firstparam<<7)|current->buffer[1];
+			MIDIDEVICE.channels[currentchannel].notes[firstparam].pressure = current->buffer[1];
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: Aftertouch: %i-%i",currentchannel,MIDIDEVICE.channels[currentchannel].notes[firstparam].pressure); //Log it!
+				dolog("MPU","MIDIDEVICE: Aftertouch: %i-%i",currentchannel,MIDIDEVICE.channels[currentchannel].notes[firstparam].pressure); //Log it!
 			#endif
 			break;
 		case 0xB0: //Control change?
@@ -710,59 +744,99 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			{
 				case 0x00: //Bank Select (MSB)
 					#ifdef MIDI_LOG
-					dolog("MPU","MIDIDEVICE: Bank select MSB: %02X",current->buffer[1]); //Log it!
+						dolog("MPU","MIDIDEVICE: Bank select MSB on channel %i: %02X",currentchannel,current->buffer[1]); //Log it!
 					#endif
 					lockaudio(); //Lock the audio!
 					MIDIDEVICE.channels[currentchannel].bank &= 0x7F; //Only keep LSB!
 					MIDIDEVICE.channels[currentchannel].bank |= (current->buffer[1]<<7); //Set MSB!
 					unlockaudio(1); //Unlock the audio!
 					break;
-				case 0x01: //Modulation wheel
-					break;
-				case 0x04: //Foot Pedal (MSB)
-					break;
-				case 0x06: //Data Entry, followed by cc100&101 for the address.
-					break;
+				//case 0x01: //Modulation wheel (MSB)
+					//break;
+				//case 0x04: //Foot Pedal (MSB)
+					//break;
+				//case 0x06: //Data Entry, followed by cc100&101 for the address.
+					//break;
 				case 0x07: //Volume (MSB)
+					#ifdef MIDI_LOG
+						dolog("MPU", "MIDIDEVICE: Volume MSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
+					#endif
+					lockaudio(); //Lock the audio!
+					MIDIDEVICE.channels[currentchannel].volume &= 0x7F; //Only keep LSB!
+					MIDIDEVICE.channels[currentchannel].volume |= (current->buffer[1] << 7); //Set MSB!
+					unlockaudio(1); //Unlock the audio!
 					break;
 				case 0x0A: //Pan position (MSB)
+					#ifdef MIDI_LOG
+						dolog("MPU", "MIDIDEVICE: Pan position MSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
+					#endif
+					lockaudio(); //Lock the audio!
+					MIDIDEVICE.channels[currentchannel].panposition &= 0x7F; //Only keep LSB!
+					MIDIDEVICE.channels[currentchannel].panposition |= (current->buffer[1] << 7); //Set MSB!
+					updatePanPosition(currentchannel);
+					unlockaudio(1); //Unlock the audio!
 					break;
-				case 0x0B: //Expression (MSB)
-					break;
+				//case 0x0B: //Expression (MSB)
+					//break;
 				case 0x20: //Bank Select (LSB) (see cc0)
 					#ifdef MIDI_LOG
-					dolog("MPU", "MIDIDEVICE: Bank select LSB: %02X", current->buffer[1]); //Log it!
+						dolog("MPU", "MIDIDEVICE: Bank select LSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
 					#endif
 					lockaudio(); //Lock the audio!
 					MIDIDEVICE.channels[currentchannel].bank &= 0x3F80; //Only keep MSB!
 					MIDIDEVICE.channels[currentchannel].bank |= current->buffer[1]; //Set LSB!
 					unlockaudio(1); //Unlock the audio!
 					break;
+				//case 0x21: //Modulation wheel (LSB)
+					//break;
+				//case 0x24: //Foot Pedal (LSB)
+					//break;
+				//case 0x26: //Data Entry, followed by cc100&101 for the address.
+					//break;
+				case 0x27: //Volume (LSB)
+					#ifdef MIDI_LOG
+						dolog("MPU", "MIDIDEVICE: Volume LSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
+					#endif
+					lockaudio(); //Lock the audio!
+					MIDIDEVICE.channels[currentchannel].volume &= 0x3F80; //Only keep MSB!
+					MIDIDEVICE.channels[currentchannel].volume |= current->buffer[1]; //Set LSB!
+					unlockaudio(1); //Unlock the audio!
+					break;
+				case 0x2A: //Pan position (LSB)
+					#ifdef MIDI_LOG
+						dolog("MPU", "MIDIDEVICE: Pan position LSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
+					#endif
+					lockaudio(); //Lock the audio!
+					MIDIDEVICE.channels[currentchannel].panposition &= 0x3F80; //Only keep MSB!
+					MIDIDEVICE.channels[currentchannel].panposition |= current->buffer[1]; //Set LSB!
+					updatePanPosition(currentchannel);
+					unlockaudio(1); //Unlock the audio!
+					break;
 				case 0x40: //Hold Pedal (On/Off) = Sustain Pedal
 					#ifdef MIDI_LOG
-					dolog("MPU", "MIDIDEVICE:  Channel %i; Hold pedal: %02X=%i", currentchannel, current->buffer[1],(current->buffer[1]&MIDI_CONTROLLER_ON)?1:0); //Log it!
+						dolog("MPU", "MIDIDEVICE:  Channel %i; Hold pedal: %02X=%i", currentchannel, current->buffer[1],(current->buffer[1]&MIDI_CONTROLLER_ON)?1:0); //Log it!
 					#endif
 					lockaudio(); //Lock the audio!
 					MIDIDEVICE.channels[currentchannel].sustain = (current->buffer[1]&MIDI_CONTROLLER_ON)?1:0; //Sustain?
 					unlockaudio(1); //Unlock the audio!
 					break;
-				case 0x41: //Portamento (On/Off)
-					break;
-				case 0x47: //Resonance a.k.a. Timbre
-					break;
-				case 0x4A: //Frequency Cutoff (a.k.a. Brightness)
-					break;
-				case 0x5B: //Reverb Level
-					break;
-				case 0x5D: //Chorus Level
-					break;
+				//case 0x41: //Portamento (On/Off)
+					//break;
+				//case 0x47: //Resonance a.k.a. Timbre
+					//break;
+				//case 0x4A: //Frequency Cutoff (a.k.a. Brightness)
+					//break;
+				//case 0x5B: //Reverb Level
+					//break;
+				//case 0x5D: //Chorus Level
+					//break;
 					//Sound function On/Off:
-				case 0x78: //All Sound Off
-					break;
-				case 0x79: //All Controllers Off
-					break;
-				case 0x7A: //Local Keyboard On/Off
-					break;
+				//case 0x78: //All Sound Off
+					//break;
+				//case 0x79: //All Controllers Off
+					//break;
+				//case 0x7A: //Local Keyboard On/Off
+					//break;
 				case 0x7B: //All Notes Off
 				case 0x7C: //Omni Mode Off
 				case 0x7D: //Omni Mode On
@@ -779,13 +853,13 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 						{
 						case 0: //Omni Mode Off
 							#ifdef MIDI_LOG
-							dolog("MPU", "MIDIDEVICE: Channel %i, OMNI OFF", currentchannel); //Log it!
+								dolog("MPU", "MIDIDEVICE: Channel %i, OMNI OFF", currentchannel); //Log it!
 							#endif
 							MIDIDEVICE.channels[currentchannel].mode &= ~MIDIDEVICE_OMNI; //Disable Omni mode!
 							break;
 						case 1: //Omni Mode On
 							#ifdef MIDI_LOG
-							dolog("MPU", "MIDIDEVICE: Channel %i, OMNI ON", currentchannel); //Log it!
+								dolog("MPU", "MIDIDEVICE: Channel %i, OMNI ON", currentchannel); //Log it!
 							#endif
 							MIDIDEVICE.channels[currentchannel].mode |= MIDIDEVICE_OMNI; //Enable Omni mode!
 							break;
@@ -795,7 +869,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 							if (current->buffer[1]) //Omni Off+Ammount of channels to respond to?
 							{
 								#ifdef MIDI_LOG
-								dolog("MPU", "MIDIDEVICE: Channel %i, MONO without OMNI, Channels to respond: %i", currentchannel,current->buffer[1]); //Log it!
+									dolog("MPU", "MIDIDEVICE: Channel %i, MONO without OMNI, Channels to respond: %i", currentchannel,current->buffer[1]); //Log it!
 								#endif
 								rangemax = rangemin = currentchannel;
 								rangemax += current->buffer[1]; //Maximum range!
@@ -804,7 +878,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 							else //Omni On?
 							{
 								#ifdef MIDI_LOG
-								dolog("MPU", "MIDIDEVICE: Channel %i, MONO with OMNI, Respond to all channels.", currentchannel); //Log it!
+									dolog("MPU", "MIDIDEVICE: Channel %i, MONO with OMNI, Respond to all channels.", currentchannel); //Log it!
 								#endif
 								MIDIDEVICE.channels[currentchannel].mode |= MIDIDEVICE_OMNI; //Enable Omni mode!
 								rangemin = 0; //Respond to...
@@ -815,7 +889,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 							break;
 						case 3: //Poly Operation
 							#ifdef MIDI_LOG
-							dolog("MPU", "MIDIDEVICE: Channel %i, POLY", currentchannel); //Log it!
+								dolog("MPU", "MIDIDEVICE: Channel %i, POLY", currentchannel); //Log it!
 							#endif
 							MIDIDEVICE.channels[currentchannel].mode |= MIDIDEVICE_POLY; //Enable Poly mode!
 							break;
@@ -824,11 +898,11 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					unlockaudio(1); //Unlock the audio!
 					break;
 				default: //Unknown controller?
+					#ifdef MIDI_LOG
+						dolog("MPU", "MIDIDEVICE: Unknown Continuous Controller change: %i=%i", currentchannel, firstparam); //Log it!
+					#endif
 					break;
 			}
-			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: Control change: %i=%i",currentchannel,firstparam); //Log it!
-			#endif
 			break;
 		case 0xC0: //Program change?
 			lockaudio(); //Lock the audio!
@@ -836,7 +910,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			MIDIDEVICE.channels[currentchannel].activebank = MIDIDEVICE.channels[currentchannel].bank; //Apply bank from Bank Select Messages!
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: Program change: %i=%i",currentchannel,MIDIDEVICE.channels[currentchannel].program); //Log it!
+				dolog("MPU","MIDIDEVICE: Program change: %i=%i",currentchannel,MIDIDEVICE.channels[currentchannel].program); //Log it!
 			#endif
 			break;
 		case 0xD0: //Channel pressure?
@@ -844,7 +918,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			MIDIDEVICE.channels[currentchannel].pressure = firstparam;
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: Channel pressure: %i=%i",currentchannel,MIDIDEVICE.channels[currentchannel].pressure); //Log it!
+				dolog("MPU","MIDIDEVICE: Channel pressure: %i=%i",currentchannel,MIDIDEVICE.channels[currentchannel].pressure); //Log it!
 			#endif
 			break;
 		case 0xE0: //Pitch wheel?
@@ -852,7 +926,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			MIDIDEVICE.channels[currentchannel].pitch = ((sword)((current->buffer[1]<<7)|firstparam))-0x2000; //Actual pitch, converted to signed value!
 			unlockaudio(1); //Unlock the audio!
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: Pitch wheel: %i=%i",currentchannel,MIDIDEVICE.channels[currentchannel].pitch); //Log it!
+				dolog("MPU","MIDIDEVICE: Pitch wheel: %i=%i",currentchannel,MIDIDEVICE.channels[currentchannel].pitch); //Log it!
 			#endif
 			break;
 		case 0xF0: //System message?
@@ -862,12 +936,12 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 				reset_MIDIDEVICE(); //Reset ourselves!
 			}
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: System messages are unsupported!"); //Log it!
+				dolog("MPU","MIDIDEVICE: System messages are unsupported!"); //Log it!
 			#endif
 			break;
 		default: //Invalid command?
 			#ifdef MIDI_LOG
-			dolog("MPU","MIDIDEVICE: Unknown command: %02X",command);
+				dolog("MPU","MIDIDEVICE: Unknown command: %02X",command);
 			#endif
 			break; //Do nothing!
 	}

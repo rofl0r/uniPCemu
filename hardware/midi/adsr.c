@@ -352,7 +352,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 
 typedef void (*MIDI_STATE)(ADSR *adsr, byte sustaining, byte release_velocity); //ADSR event handlers!
 
-float ADSR_tick(ADSR *adsr, byte sustaining, byte release_velocity) //Tick an ADSR!
+float ADSR_tick(ADSR *adsr, byte sustaining, float noteon_velocity, byte release_velocity) //Tick an ADSR!
 {
 	static MIDI_STATE ADSR_EXEC[7] = {
 		ADSR_idle, ADSR_delay, //Still quiet!
@@ -360,7 +360,10 @@ float ADSR_tick(ADSR *adsr, byte sustaining, byte release_velocity) //Tick an AD
 		ADSR_sustain, //Holding/sustain
 		ADSR_release //Release
 	}; //ADSR states!
+	float result; //The result to apply!
 	ADSR_EXEC[adsr->active](adsr,sustaining,release_velocity); //Execute the current ADSR!
 	++adsr->play_counter; //Next position to calculate!
-	return dB2factor(adsr->ADSREnvelope,1); //Give the current envelope, convert the linear factor to decibels!
+	result = adsr->ADSREnvelope; //Load the current envelope!
+	result *= noteon_velocity; //Apply note on velocity!
+	return dB2factor(result,1); //Give the current envelope, convert the linear factor to decibels!
 }

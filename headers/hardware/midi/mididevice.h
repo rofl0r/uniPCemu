@@ -22,8 +22,9 @@ typedef struct
 	byte channel; //What channel!
 	byte note; //What note!
 	byte noteon_velocity; //What velocity/AD(SR)!
+	float noteon_velocity_factor; //Note on velocity converted to a factor!
 	byte noteoff_velocity; //What velocity/(ADS)R!
-	word pressure; //Pressure/volume/aftertouch!
+	byte pressure; //Pressure/volume/aftertouch!
 } MIDIDEVICE_NOTE; //Current playing note to process information!
 
 typedef struct
@@ -33,6 +34,10 @@ typedef struct
 	byte control; //Control/current instrument!
 	byte program; //Program/instrument!
 	byte pressure; //Channel pressure/volume!
+	word volume; //Continuous controller volume!
+	short panposition; //Continuous controller pan position!
+	float lvolume; //Left volume for panning!
+	float rvolume; //Right volume for panning!
 	word bank; //The bank from a bank select message!
 	word activebank; //What bank are we?
 	sword pitch; //Current pitch (14-bit value)

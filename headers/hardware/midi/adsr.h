@@ -31,5 +31,5 @@ typedef struct
 } ADSR; //An ADSR's data!
 
 void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, sword relKeynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup); //Initialise an ADSR!
-float ADSR_tick(ADSR *adsr, byte sustain, byte releasevelocity); //Tick an ADSR!
+float ADSR_tick(ADSR *adsr, byte sustain, float noteon_velocity, byte releasevelocity); //Tick an ADSR!
 #endif
