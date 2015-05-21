@@ -259,7 +259,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	return 0; //We're disabled!
 #endif
 	//Initialisation info
-	float pitchcents, pitchinfluence, currentsamplespeedup;
+	float pitchcents, pitchinfluence, currentsamplespeedup, lvolume, rvolume, panningtemp;
 	byte currenton;
 	uint_32 requestbit;
 	register float VolumeEnvelope; //Current volume envelope data!
@@ -281,11 +281,10 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unable to render anything!
 
 	//Calculate the pitch bend speedup!
-	pitchcents = (double)channel->pitch; //Load active pitch bend (unsigned)!
-	pitchcents &= 0x3FFF; //Only low 14 bits are used!
+	pitchcents = (double)(channel->pitch%0x1FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
 	pitchcents -= 0x2000; //Convert to a signed value!
 	pitchcents /= 128.0f; //Create a value between -1 and 1!
-	pitchcents *= cents2samples(voice->pitchwheelmod*pitchcents); //Influence by pitch wheel!
+	pitchcents *= cents2samplesfactor(voice->pitchwheelmod*pitchcents); //Influence by pitch wheel!
 
 	//Now apply to the default speedup!
 	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
@@ -300,7 +299,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
 	panningtemp = voice->initpanning; //Get the panning specified!
-	panningtemp += voice->panningmod*((float)(voice->channel->panposition)/128); //Apply panning CC!
+	panningtemp += voice->panningmod*((float)(voice->channel->panposition-0x2000)/128); //Apply panning CC!
 	lvolume -= panningtemp; //Left percentage!
 	rvolume += panningtemp; //Right percentage!
 
@@ -343,7 +342,7 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	word pbag, ibag;
 	sword rootMIDITone; //Relative root MIDI tone!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
-	float cents, tonecents, lvolume, rvolume, panningtemp, pitchwheeltemp;
+	float cents, tonecents, panningtemp, pitchwheeltemp;
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;

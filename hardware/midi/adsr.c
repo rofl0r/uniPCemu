@@ -20,7 +20,7 @@ void ADSR_release(ADSR *adsr, byte sustaining, byte release_velocity)
 	if (adsr->release) //Gotten release?
 	{
 		adsr->ADSREnvelope -= adsr->releasefactor; //Apply factor!
-		if (adsr->ADSREnvelope) return; //Not quiet yet?
+		if (adsr->ADSREnvelope>0.0f) return; //Not quiet yet?
 	}
 	adsr->ADSREnvelope = 0.0f; //Nothing to sound!
 	adsr->active = ADSR_IDLE; //Return to IDLE!
