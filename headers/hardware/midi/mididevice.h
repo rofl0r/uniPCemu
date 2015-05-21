@@ -35,7 +35,7 @@ typedef struct
 	byte program; //Program/instrument!
 	byte pressure; //Channel pressure/volume!
 	word volume; //Continuous controller volume!
-	short panposition; //Continuous controller pan position!
+	word panposition; //Continuous controller pan position!
 	float lvolume; //Left volume for panning!
 	float rvolume; //Right volume for panning!
 	word bank; //The bank from a bank select message!
