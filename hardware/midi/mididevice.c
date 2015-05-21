@@ -343,7 +343,7 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	word pbag, ibag;
 	sword rootMIDITone; //Relative root MIDI tone!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
-	float cents, tonecents, lvolume, rvolume, panningtemp;
+	float cents, tonecents, lvolume, rvolume, panningtemp, pitchwheeltemp;
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
@@ -523,6 +523,14 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 		panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 	}
 	voice->panningmod = panningtemp; //Apply the modulator!
+	
+	pitchwheeltemp = 12700.0f; //Default to 12700 cents!
+	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount,ibag,0x020E,&applymod)) //Gotten panning modulator?
+	{
+		pitchwheeltemp = (float)applymod.modAmount; //Get the amount specified!
+	}
+	voice->pitchwheelmod = pitchwheeltemp; //Apply the modulator!
+	
 
 	//Now determine the volume envelope!
 	voice->CurrentVolumeEnvelope = 0.0f; //Default: nothing yet, so no volume, Give us full priority Volume-wise!
