@@ -126,7 +126,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDIDEVICE.channels[channel].bank = MIDIDEVICE.channels[channel].activebank = 0; //Reset!
 		MIDIDEVICE.channels[channel].channelrangemin = MIDIDEVICE.channels[channel].channelrangemax = channel; //We respond to this channel only!
 		MIDIDEVICE.channels[channel].control = 0; //First instrument!
-		MIDIDEVICE.channels[channel].pitch = 0; //Centered pitch = Default pitch!
+		MIDIDEVICE.channels[channel].pitch = 0x2000; //Centered pitch = Default pitch!
 		MIDIDEVICE.channels[channel].pressure = 0x40; //Centered pressure!
 		MIDIDEVICE.channels[channel].program = 0; //First program!
 		MIDIDEVICE.channels[channel].sustain = 0; //Disable sustain!
@@ -259,7 +259,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	return 0; //We're disabled!
 #endif
 	//Initialisation info
-	float pitchcents, currentsamplespeedup;
+	float pitchcents, pitchinfluence, currentsamplespeedup;
 	byte currenton;
 	uint_32 requestbit;
 	register float VolumeEnvelope; //Current volume envelope data!
@@ -281,8 +281,11 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unable to render anything!
 
 	//Calculate the pitch bend speedup!
-	pitchcents = (double)channel->pitch; //Load active pitch bend!
-	pitchcents /= 40.96f; //Pitch bend in cents!
+	pitchcents = (double)channel->pitch; //Load active pitch bend (unsigned)!
+	pitchcents &= 0x3FFF; //Only low 14 bits are used!
+	pitchcents -= 0x2000; //Convert to a signed value!
+	pitchcents /= 128.0f; //Create a value between -1 and 1!
+	pitchcents *= cents2samples(voice->pitchwheelmod*pitchcents); //Influence by pitch wheel!
 
 	//Now apply to the default speedup!
 	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
