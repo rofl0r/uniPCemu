@@ -242,11 +242,8 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 
 		rchannel = lchannel; //Load into both channels!
 		//Now, apply panning!
-		lchannel *= voice->lvolume; //Apply left panning!
-		rchannel *= voice->rvolume; //Apply right panning!
-		//Apply panning for the note itself, according to the CC!
-		lchannel *= voice->channel->lvolume; //Apply left panning!
-		rchannel *= voice->channel->rvolume; //Apply right panning!
+		lchannel *= voice->lvolume; //Apply left panning, also according to the CC!
+		rchannel *= voice->rvolume; //Apply right panning, also according to the CC!
 
 		//Give the result!
 		sample->l = lchannel; //LChannel!
@@ -293,8 +290,20 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
 
 	velocity_factor = voice->note->noteon_velocity_factor; //Apply Note On key velocity first!
-	velocity_factor *= ((float)(channel->pressure + 1) / 64.0f); //Adjust velocity, based on channel pressure, which can change during hold!
-	velocity_factor *= ((float)(voice->note->pressure + 1) / 64.0f); //Adjust velocity, based on note pressure, which can change during hold!
+	//velocity_factor *= ((float)(channel->pressure + 1) / 64.0f); //Adjust velocity, based on channel pressure, which can change during hold!
+	//velocity_factor *= ((float)(voice->note->pressure + 1) / 64.0f); //Adjust velocity, based on note pressure, which can change during hold!
+
+
+	//Determine panning!
+	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
+	panningtemp = voice->initpanning; //Get the panning specified!
+	panningtemp += voice->panningmod*((float)(voice->channel->panposition)/128); //Apply panning CC!
+	lvolume -= panningtemp; //Left percentage!
+	rvolume += panningtemp; //Right percentage!
+
+	voice->lvolume = lvolume; //Left panning!
+	voice->rvolume = rvolume; //Right panning!
+
 
 	if (voice->request_off) //Requested turn off?
 	{
@@ -339,6 +348,7 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	sfGenList instrumentptr, applypgen;
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
+	sfModList applymod;
 
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return 0; //We're unable to render anything!
 	if (voice->VolumeEnvelope.active) return 1; //Active voices can't be allocated!
@@ -495,17 +505,21 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	voice->initsamplespeedup = cents2samplesfactor(cents); //Load the default speedup we need for our tone!
 
 	//Determine panning!
-	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
+	panningtemp = 0.0f; //Default: no panning at all: centered!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, pan, &applyigen)) //Gotten panning?
 	{
 		panningtemp = (float)applyigen.genAmount.shAmount; //Get the panning specified!
 		panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
-		lvolume -= panningtemp; //Left percentage!
-		rvolume += panningtemp; //Right percentage!
 	}
+	voice->initpanning = panningtemp; //Set the initial panning, as a factor!
 
-	voice->lvolume = lvolume; //Left panning!
-	voice->rvolume = rvolume; //Right panning!
+	panningtemp = -1; //Default to none!
+	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount,ibag,0x028A,&applymod)) //Gotten panning modulator?
+	{
+		panningtemp = (float)applymod.modAmount; //Get the amount specified!
+		panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
+	}
+	voice->panningmod = panningtemp; //Apply the modulator!
 
 	//Now determine the volume envelope!
 	voice->CurrentVolumeEnvelope = 0.0f; //Default: nothing yet, so no volume, Give us full priority Volume-wise!
@@ -682,16 +696,6 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 	}
 }
 
-OPTINLINE void updatePanPosition(byte channel)
-{
-	float difference;
-	difference = (float)(MIDIDEVICE.channels[channel].panposition - 0x2000); //Take the panning position!
-	difference /= 0x2000; //Convert to a factor between -1 and 1!
-	difference *= 0.5; //Convert to a factor between -0.5 and 0.5!
-	MIDIDEVICE.channels[channel].lvolume = 0.5 - difference; //Apply to left volume!
-	MIDIDEVICE.channels[channel].rvolume = 0.5 + difference; //Apply to right volume!
-}
-
 OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
 {
 	//First, our variables!
@@ -774,7 +778,6 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					lockaudio(); //Lock the audio!
 					MIDIDEVICE.channels[currentchannel].panposition &= 0x7F; //Only keep LSB!
 					MIDIDEVICE.channels[currentchannel].panposition |= (current->buffer[1] << 7); //Set MSB!
-					updatePanPosition(currentchannel);
 					unlockaudio(1); //Unlock the audio!
 					break;
 				//case 0x0B: //Expression (MSB)
@@ -810,7 +813,6 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					lockaudio(); //Lock the audio!
 					MIDIDEVICE.channels[currentchannel].panposition &= 0x3F80; //Only keep MSB!
 					MIDIDEVICE.channels[currentchannel].panposition |= current->buffer[1]; //Set LSB!
-					updatePanPosition(currentchannel);
 					unlockaudio(1); //Unlock the audio!
 					break;
 				case 0x40: //Hold Pedal (On/Off) = Sustain Pedal
