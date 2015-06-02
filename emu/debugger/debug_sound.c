@@ -10,14 +10,14 @@
 #include "headers/emu/gpu/gpu_text.h" //Text surface support!
 
 //Test the speaker?
-#define __DEBUG_SPEAKER
+//#define __DEBUG_SPEAKER
 //Test the Adlib?
 #define __DEBUG_ADLIB
 
 //Test MIDI?
-#define __DEBUG_MIDI
+//#define __DEBUG_MIDI
 //Test MIDI using MID file?
-#define __DEBUG_MPUMID 1
+//#define __DEBUG_MPUMID 1
 
 void adlibsetreg(byte reg,byte val)
 {
@@ -34,6 +34,7 @@ byte adlibgetstatus()
 
 int detectadlib()
 {
+	return 1; //Detected!
 	adlibsetreg(4,0x60); //Reset both timers!
 	adlibsetreg(4,0x80); //Enable the interrupts!
 	byte status = adlibgetstatus(); //Read the status for comparision!
@@ -195,7 +196,7 @@ void dosoundtest()
 		VGA_waitforVBlank(); //Wait 1 frame!
 		*/
 		delay(1000000);
-		adlibsetreg(0x20, 0x01); //Modulator multiple to 1!
+		adlibsetreg(0x20, 0x81); //Modulator multiple to 1!
 		adlibsetreg(0x40, 0x10); //Modulator level about 40dB!
 		adlibsetreg(0x60, 0xF0); //Modulator attack: quick; decay long!
 		adlibsetreg(0x80, 0x77); //Modulator sustain: medium; release: medium
@@ -205,14 +206,17 @@ void dosoundtest()
 		adlibsetreg(0x63, 0xF0); //Carrier attack: quick; decay: long!
 		adlibsetreg(0x83, 0x77); //Carrier sustain: medium; release: medium!
 		adlibsetreg(0xB0, 0x31); //Turn the voice on; set the octave and freq MSB!
+		adlibsetreg(0x00, 0x20); //Enable waveform selection!
+		adlibsetreg(0xE0, 0x02);
+		adlibsetreg(0xE3, 0x03);
 		/*
 		delay(2000000); //Wait 2 seconds!
 		speakerOut(0.0f); //Speaker off, hearing adlib only!
 		printmsg(0xF,"\r\nSpeaker terminated and reset. You should only be hearing Adlib now.\r\n");
 		delay(2000000); //Adlib only!
 		*/
-
-		delay(1000000); //Wait 1 second!
+		sleep();
+		//delay(1000000); //Wait 1 second!
 
 		adlibsetreg(0xB0,0x11); //Turn voice off!
 		delay(4000000); //Wait 1 second for the next test!

@@ -269,13 +269,12 @@ OPTINLINE char adlibsample (uint8_t curchan) {
 
 	//Apply the volume envelope for operator 1!
 	tempstep = adlibenv[operator1]; //Current volume!
-	if (tempstep > 1.0f) tempstep = 1.0f; //Limit volume to 100%!
 	tempsample *= tempstep;
 	tempsample *= 2.0f;
 
 	//Operator 2!
 	effectivecarrier = (adlibfreq(curchan)*adlibop[operator2].ModulatorFrequencyMultiple); //Effective carrier init!
-	if (!adlibch[curchan].synthmode) effectivecarrier *= ((float)tempsample/117.0f); //FM using the first operator when needed!
+	if (!adlibch[curchan].synthmode) effectivecarrier += tempsample; //FM using the first operator when needed!
 	fullstep2 = usesamplerate / effectivecarrier;
 	result = oplwave[adlibop[operator2].wavesel&wavemask][(uint8_t)((double)adlibstep[operator2]++ / ((double)fullstep2 / (double)256))];
 	if (adlibop[operator2].AM) result *= AMDepth; //Apply AM depth!
@@ -367,7 +366,7 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 }
 
 //Multicall speedup!
-#define ADLIBMULTIPLIER 10
+#define ADLIBMULTIPLIER 0
 
 void initAdlib()
 {
