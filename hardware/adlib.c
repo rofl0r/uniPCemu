@@ -139,7 +139,14 @@ OPTINLINE double dB2factor(double dB, double fMaxLevelDB)
 
 OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 {
-	return 1.0f; //Just ignore for now!
+	switch (data)
+	{
+	case 0: return 0.5f;
+	case 11: return 10.0f;
+	case 13: return 12.0f;
+	case 14: return 15.0f;
+	default: return (float)data; //The same number!
+	}
 }
 
 void outadlib (uint16_t portnum, uint8_t value) {
@@ -208,7 +215,7 @@ uint8_t inadlib (uint16_t portnum) {
 	return (adlibstatus);
 }
 
-uint16_t adlibfreq (uint8_t chan) {
+uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 	//uint8_t downoct[4] = { 3, 2, 1, 0 };
 	//uint8_t upoct[3] = { 1, 2, 3 };
 	if (chan > 8) return (0); //Invalid channel: we only have 9 channels!
@@ -240,7 +247,10 @@ uint16_t adlibfreq (uint8_t chan) {
 			case 7:
 				tmpfreq = tmpfreq << 3;
 		}
-
+	if (operatornumber != -1) //Apply frequency multiplication factor?
+	{
+		tmpfreq *= adlibop[operatornumber].ModulatorFrequencyMultiple; //Apply the frequency multiplication factor!
+	}
 	return (tmpfreq);
 }
 
@@ -262,7 +272,7 @@ OPTINLINE char adlibsample (uint8_t curchan) {
 
 	//Determine the type of modulation!
 	//Operator 1!
-	effectivemodulator = (adlibfreq(curchan)*adlibop[operator1].ModulatorFrequencyMultiple); //Effective modulator frequency!
+	effectivemodulator = adlibfreq(operator1,curchan); //Effective modulator frequency!
 	fullstep1 = usesamplerate / effectivemodulator;
 	tempsample = oplwave[adlibop[operator1].wavesel&wavemask][(uint8_t)((double)adlibstep[operator1]++ / ((double)fullstep1 / (double)256))];
 	if (adlibop[operator1].AM) tempsample *= AMDepth; //Apply AM depth!
@@ -273,7 +283,7 @@ OPTINLINE char adlibsample (uint8_t curchan) {
 	tempsample *= 2.0f;
 
 	//Operator 2!
-	effectivecarrier = (adlibfreq(curchan)*adlibop[operator2].ModulatorFrequencyMultiple); //Effective carrier init!
+	effectivecarrier = adlibfreq(operator2,curchan); //Effective carrier init!
 	if (!adlibch[curchan].synthmode) effectivecarrier += tempsample; //FM using the first operator when needed!
 	fullstep2 = usesamplerate / effectivecarrier;
 	result = oplwave[adlibop[operator2].wavesel&wavemask][(uint8_t)((double)adlibstep[operator2]++ / ((double)fullstep2 / (double)256))];
@@ -301,7 +311,7 @@ OPTINLINE char adlibgensample() {
 	adlibaccum = 0;
 	for (curchan = 0; curchan < 9; curchan++)
 	{
-		if (adlibfreq(curchan) != 0)
+		if (adlibfreq(-1,curchan) != 0)
 		{
 			adlibaccum += adlibsample(curchan);
 		}
@@ -313,7 +323,7 @@ void tickadlib() {
 	uint8_t curchan;
 	for (curchan = 0; curchan<0x16; curchan++)
 	{
-		if (adlibfreq(adliboperatorsreverse[curchan]) != 0)
+		if (adlibfreq(-1,adliboperatorsreverse[curchan]) != 0)
 		{
 			if (adlibdidattack[curchan])
 			{
@@ -342,7 +352,7 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 	byte filled,curchan;
 	filled = 0; //Default: not filled!
 	for (curchan=0; curchan<9; curchan++) { //Check for active channels!
-			if (adlibfreq (curchan) !=0) {
+			if (adlibfreq (-1,curchan) !=0) {
 				filled = 1; //We're filled!
 				break; //Stop searching!
 			}
