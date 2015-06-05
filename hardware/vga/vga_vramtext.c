@@ -101,12 +101,17 @@ void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been update
 //This is heavy: it doubles (with about 25ms) the rendering time needed to render a line.
 OPTINLINE byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from table!
 {
+	static byte lastrow; //Last retrieved character row data!
+	static uint_32 lastcharinfo = 0; //attribute|character|row|1, bit0=Set?
+	register byte newx = x; //Default: use the 9th bit if needed!
+	register uint_32 lastlookup;
+	register uint_32 charloc;
+
 	if (!VGA) //No active VGA?
 	{
 		return 0; //Nothing!
 	}
 
-	register byte newx = x; //Default: use the 9th bit if needed!
 	attribute >>= 2; //...
 	attribute &= 1; //... Take bit 2 to get the actual attribute we need!
 	if (newx&0xFFF8) //Extra ninth bit?
@@ -121,8 +126,6 @@ OPTINLINE byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, 
 		}
 	}
 	
-	static uint_32 lastcharinfo = 0; //attribute|character|0x80|row, bit8=Set?
-	register uint_32 lastlookup;
 	lastlookup = character;
 	lastlookup <<= 1;
 	lastlookup |= attribute;
@@ -130,17 +133,15 @@ OPTINLINE byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, 
 	lastlookup |= y;
 	lastlookup <<= 1;
 	lastlookup |= 1; //A filled record!
-	if ((lastcharinfo&0x7FFF)!=lastlookup) //Last row not yet loaded?
+	if (lastcharinfo!=lastlookup) //Last row not yet loaded?
 	{
-		register uint_32 charloc;
 		charloc = character; //Character position!
 		charloc <<= 5;
 		charloc |= y;
 		charloc <<= 1;
 		charloc |= attribute;
-		lastcharinfo = VGA->getcharxy_values[charloc]; //Lookup!
-		lastcharinfo <<= 8; //Create space for the character!
-		lastcharinfo |= character;
+		lastrow = VGA->getcharxy_values[charloc]; //Lookup the new row!
+		lastcharinfo = character;
 		lastcharinfo <<= 1;
 		lastcharinfo |= attribute;
 		lastcharinfo <<= 5;
@@ -149,7 +150,7 @@ OPTINLINE byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, 
 		lastcharinfo |= 1; //We're filled!
 	}
 	
-	return ((lastcharinfo >> (22 - newx)) & 1); //Give bit!
+	return ((lastrow >> (7 - newx)) & 1); //Give bit!
 }
 
 void VGA_dumpchar(VGA_Type *VGA, byte c)
