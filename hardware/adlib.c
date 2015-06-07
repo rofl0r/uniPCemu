@@ -136,38 +136,6 @@ float AMDepth = 0.0f; //AM depth in dB!
 
 uint16_t adlibport = 0x388;
 
-OPTINLINE float adlibWave(byte how, const float time) {
-	double x;
-	float t = modf(time / (2 * PI), &x);
-
-	float result = sinf(time); //The sinus function!
-
-	switch (how) {
-	case 0: // SINE
-		return result; //Unchanged!
-	case 1: // Negative=0
-		if (t < 0.5f) {
-			return result; //Positive!
-		}
-		else {
-			return 0.0f; //Negative!
-		}
-	case 2: // Absolute?
-	case 3: // Absolute with second half=0?
-		if (result < 0) result = 0 - result; //Make positive!
-		t = fmod(t,0.5f); //We check every half period!
-		if ((t > 0.25) && (t < 0.5) && (how==3)) //Are we the second half of the half period?
-		{
-			return 0.0f; //Second half = 0!
-		}
-		return result; //Simply absolute!
-	case 4: // NOISE
-		return RandomFloat(-1.0f, 1.0f); //Random noise!
-	default:
-		return 0.0f;
-	}
-}
-
 OPTINLINE double dB2factor(double dB, double fMaxLevelDB)
 {
 	return pow(10, ((dB - fMaxLevelDB) / 20));
@@ -307,14 +275,46 @@ uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 
 float adlib_scaleFactor = (SHRT_MAX - 1.0f);
 
-OPTINLINE float calcAdlibSignal(byte wave, float frequency, float *freq0, float *time) //Calculates a signal for input to the adlib synth!
+OPTINLINE float adlibWave(byte how, const float frequencytime) {
+	double x;
+	float t = modf(frequencytime, &x);
+
+	float result = sinf(2.0f * PI * frequencytime); //The sinus function!
+
+	switch (how) {
+	case 0: // SINE
+		return result; //Unchanged!
+	case 1: // Negative=0
+		if (t < 0.5f) {
+			return result; //Positive!
+		}
+		else {
+			return 0.0f; //Negative!
+		}
+	case 2: // Absolute?
+	case 3: // Absolute with second half=0?
+		if (result < 0) result = 0 - result; //Make positive!
+		t = fmod(t, 0.5f); //We check every half period!
+		if ((t > 0.25) && (t < 0.5) && (how == 3)) //Are we the second half of the half period?
+		{
+			return 0.0f; //Second half = 0!
+		}
+		return result; //Simply absolute!
+	case 4: // NOISE
+		return RandomFloat(-1.0f, 1.0f); //Random noise!
+	default:
+		return 0.0f;
+	}
+}
+
+OPTINLINE float calcAdlibSignal(byte wave, float phase, float frequency, float *freq0, float *time) //Calculates a signal for input to the adlib synth!
 {
 	const float adlib_sampleLength = 1.0f / usesamplerate;
 	if (frequency != *freq0) { //Frequency changed?
 		*time *= (*freq0 / frequency);
 	}
 
-	float result = (adlib_scaleFactor * adlibWave(wave, 2.0f * PI * frequency * *time)); //Set the channels!
+	float result = (adlib_scaleFactor * adlibWave(wave, (frequency * *time)+phase)); //Set the channels!
 	*time += adlib_sampleLength; //Add 1 sample to the time!
 
 	float temp = *time*frequency; //Calculate!
@@ -334,10 +334,11 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float modulator)
 
 	//Calculate the frequency to use!
 	frequency = adlibfreq(operator, curchan); //Effective carrier init!
-	if (!adlibch[curchan].synthmode) frequency += modulator; //FM using the first operator when needed!
+	if (adlibch[curchan].synthmode) modulator = 0.0f; //Don't FM using the first operator when needed, so no PM!
+	else modulator /= SHRT_MAX; //Make it a value between -1 and 1 for PM!
 
 	//Generate the signal!
-	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, frequency, &adlib_freq0[operator], &adlib_time[operator]);
+	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask,modulator, frequency, &adlib_freq0[operator], &adlib_time[operator]);
 	result *= adlibenv[operator]; //Apply current volume of the ADSR envelope!
 
 	return result; //Give the result!
