@@ -130,9 +130,43 @@ double sustaintable[0x10] = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 
 double adlibenv[0x20], adlibrelease[0x20], adlibsustain[0x20], adlibdecay[0x20], adlibattack[0x20];
 uint8_t adlibenvstatus[0x20], adlibpercussion = 0, adlibstatus = 0;
 
+float adlib_freq0[0x20], adlib_time[0x20]; //The q0quency and current time of an operator!
+
 float AMDepth = 0.0f; //AM depth in dB!
 
 uint16_t adlibport = 0x388;
+
+OPTINLINE float adlibWave(byte how, const float time) {
+	double x;
+	float t = modf(time / (2 * PI), &x);
+
+	float result = sinf(time); //The sinus function!
+
+	switch (how) {
+	case 0: // SINE
+		return result; //Unchanged!
+	case 1: // Negative=0
+		if (t < 0.5f) {
+			return result; //Positive!
+		}
+		else {
+			return 0.0f; //Negative!
+		}
+	case 2: // Absolute?
+	case 3: // Absolute with second half=0?
+		if (result < 0) result = 0 - result; //Make positive!
+		t = fmod(t,0.5f); //We check every half period!
+		if ((t > 0.25) && (t < 0.5) && (how==3)) //Are we the second half of the half period?
+		{
+			return 0.0f; //Second half = 0!
+		}
+		return result; //Simply absolute!
+	case 4: // NOISE
+		return RandomFloat(-1.0f, 1.0f); //Random noise!
+	default:
+		return 0.0f;
+	}
+}
 
 OPTINLINE double dB2factor(double dB, double fMaxLevelDB)
 {
@@ -158,6 +192,7 @@ void outadlib (uint16_t portnum, uint8_t value) {
 		}
 	portnum = adlibaddr;
 	adlibregmem[portnum] = value;
+	lockaudio(); //Lock the audio: we're going to adjust audio information!
 	switch (portnum) {
 	case 0: //Waveform select enable
 		wavemask = (adlibregmem[0] & 0x20) ? 3 : 0; //Apply waveform mask!
@@ -177,9 +212,9 @@ void outadlib (uint16_t portnum, uint8_t value) {
 	if ((portnum >= 0x20) && (portnum <= 0x35)) //Various flags
 	{
 		portnum &= 0x1F;
-		adlibop[portnum].AM = (adlibregmem[0x20 + portnum] & 0x80) ? 1 : 0; //Take the AM bit!
-		adlibop[portnum].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(adlibregmem[0x20 + portnum] & 0xF); //Which harmonic to use?
-		adlibop[portnum].ReleaseImmediately = (adlibregmem[0x20 + portnum] & 0x20) ? 0 : 1; //Release when not sustain until release!
+		adlibop[portnum].AM = (value & 0x80) ? 1 : 0; //Take the AM bit!
+		adlibop[portnum].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(value & 0xF); //Which harmonic to use?
+		adlibop[portnum].ReleaseImmediately = (value & 0x20) ? 0 : 1; //Release when not sustain until release!
 	}
 	else if ( (portnum >= 0x60) && (portnum <= 0x75) ) { //attack/decay
 			portnum &= 0x1F;
@@ -192,29 +227,37 @@ void outadlib (uint16_t portnum, uint8_t value) {
 		adlibsustain[portnum] = sustaintable[15 - (value >> 4)];
 		adlibrelease[portnum] = decaytable[value & 15];
 	}
-	else if ( (portnum >= 0xA0) && (portnum <= 0xB8) ) { //octave, freq, key on
-		if (portnum & 0x8) return; //Ignore A8-AF!
-			portnum &= 0x7; //Only 9 channels
-			if (!adlibch[portnum].keyon && ( (adlibregmem[0xB0+portnum]>>5) &1) ) {
-					adlibenvstatus[adliboperators[0][portnum]] = 0;
-					adlibenvstatus[adliboperators[1][portnum]] = 0;
-					adlibenv[adliboperators[0][portnum]] = 0.0025;
-					adlibenv[adliboperators[1][portnum]] = 0.0025;
+	else if ( (portnum >= 0xA0) && (portnum <= 0xB8) )
+	{ //octave, freq, key on
+		if ((portnum & 0xF) < 9) //Ignore A9-AF!
+		{
+			portnum &= 0xF; //Get the channel to use!
+			if (!adlibch[portnum].keyon && ((adlibregmem[0xB0 + portnum] >> 5) & 1))
+			{
+				adlibenvstatus[adliboperators[0][portnum]] = 0;
+				adlibenvstatus[adliboperators[1][portnum]] = 0;
+				adlibenv[adliboperators[0][portnum]] = 0.0025;
+				adlibenv[adliboperators[1][portnum]] = 0.0025;
+				adlib_freq0[adliboperators[0][portnum]] = adlib_time[adliboperators[0][portnum]] = 0.0f; //Initialise operator signal!
+				adlib_freq0[adliboperators[1][portnum]] = adlib_time[adliboperators[1][portnum]] = 0.0f; //Initialise operator signal!
 			}
-			adlibch[portnum].freq = adlibregmem[0xA0+portnum] | ( (adlibregmem[0xB0+portnum]&3) <<8);
-			adlibch[portnum].convfreq = ( (double) adlibch[portnum].freq * 0.7626459);
-			adlibch[portnum].keyon = (adlibregmem[0xB0+portnum]>>5) &1;
-			adlibch[portnum].octave = (adlibregmem[0xB0+portnum]>>2) &7;
+			adlibch[portnum].freq = adlibregmem[0xA0 + portnum] | ((adlibregmem[0xB0 + portnum] & 3) << 8);
+			adlibch[portnum].convfreq = ((double)adlibch[portnum].freq * 0.7626459);
+			adlibch[portnum].keyon = (adlibregmem[0xB0 + portnum] >> 5) & 1;
+			adlibch[portnum].octave = (adlibregmem[0xB0 + portnum] >> 2) & 7;
 		}
+	}
 	else if ((portnum >= 0xC0) && (portnum <= 0xC8))
 	{
-		portnum &= 7;
+		portnum &= 0xF;
 		adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
 	}
-	else if ( (portnum >= 0xE0) && (portnum <= 0xF5) ) { //waveform select
-			portnum &= 0x1F;
-			adlibop[portnum].wavesel = value&3;
-		}
+	else if ( (portnum >= 0xE0) && (portnum <= 0xF5) ) //waveform select
+	{
+		portnum &= 0x1F;
+		adlibop[portnum].wavesel = value&3;
+	}
+	unlockaudio(1); //Finished with audio update!
 }
 
 uint8_t inadlib (uint16_t portnum) {
@@ -262,29 +305,46 @@ uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 	return (tmpfreq);
 }
 
-//Calculate an operator signal!
-OPTINLINE char calcOperator(byte curchan, byte operator, char modulator)
+float adlib_scaleFactor = (SHRT_MAX - 1.0f);
+
+OPTINLINE float calcAdlibSignal(byte wave, float frequency, float *freq0, float *time) //Calculates a signal for input to the adlib synth!
 {
-	static uint64_t adlibstep[0x20];
-	float fullstep, tempstep, frequency;
-	char result;
+	const float adlib_sampleLength = 1.0f / usesamplerate;
+	if (frequency != *freq0) { //Frequency changed?
+		*time *= (*freq0 / frequency);
+	}
+
+	float result = (adlib_scaleFactor * adlibWave(wave, 2.0f * PI * frequency * *time)); //Set the channels!
+	*time += adlib_sampleLength; //Add 1 sample to the time!
+
+	float temp = *time*frequency; //Calculate!
+	if (temp > 1.0f) {
+		double d;
+		*time = modf(temp, &d) / frequency;
+	}
+
+	*freq0 = frequency;
+	return result; //Give the generated sample!
+}
+
+//Calculate an operator signal!
+OPTINLINE float calcOperator(byte curchan, byte operator, float modulator)
+{
+	float frequency, result; //What frequency to generate?
+
+	//Calculate the frequency to use!
 	frequency = adlibfreq(operator, curchan); //Effective carrier init!
 	if (!adlibch[curchan].synthmode) frequency += modulator; //FM using the first operator when needed!
-	fullstep = usesamplerate / frequency;
-	result = oplwave[adlibop[operator].wavesel&wavemask][(uint8_t)((double)adlibstep[operator]++ / ((double)fullstep / (double)256))];
 
-	//Apply the volume envelope for operator 2!
-	tempstep = adlibenv[operator]; //Current volume!
-	if (tempstep > 1.0f) tempstep = 1.0f; //Limit volume to 100%!
-	result *= tempstep;
-
-	if (adlibstep[operator] > fullstep) adlibstep[operator] = 0; //Make sure we don't overflow!
+	//Generate the signal!
+	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, frequency, &adlib_freq0[operator], &adlib_time[operator]);
+	result *= adlibenv[operator]; //Apply current volume of the ADSR envelope!
 
 	return result; //Give the result!
 }
 
-OPTINLINE char adlibsample (uint8_t curchan) {
-	char modulatorresult, result; //The operator result and the final result!
+OPTINLINE short adlibsample (uint8_t curchan) {
+	float modulatorresult, result; //The operator result and the final result!
 
 	if (curchan >= NUMITEMS(adlibch)) return 0; //No sample with invalid channel!
 	if (adlibpercussion && (curchan >= 6) && (curchan <= 8)) //We're percussion?
@@ -295,21 +355,20 @@ OPTINLINE char adlibsample (uint8_t curchan) {
 	//Determine the type of modulation!
 	//Operator 1!
 	modulatorresult = calcOperator(curchan, adliboperators[0][curchan], 0); //Calculate the modulator!
-	//Operator 2!
 	result = calcOperator(curchan, adliboperators[1][curchan], modulatorresult); //Calculate the carrier with applied modulator if needed!
 
 	//Perform additive synthesis when asked to do so.
 	if (adlibch[curchan].synthmode) result += modulatorresult; //Perform additive synthesis when needed!
-	return result; //Give the result!
+	return (short)result; //Give the result, converted to short!
 }
 
-OPTINLINE char adlibgensample() {
+OPTINLINE short adlibgensample() {
 	uint8_t curchan;
-	char adlibaccum;
+	short adlibaccum;
 	adlibaccum = 0;
 	for (curchan = 0; curchan < 9; curchan++)
 	{
-		if (adlibfreq(-1,curchan) != 0)
+		if (adlibenv[curchan] != 0.0f) //Anything to sound according to the volume envelope?
 		{
 			adlibaccum += adlibsample(curchan);
 		}
@@ -318,40 +377,41 @@ OPTINLINE char adlibgensample() {
 }
 
 void tickadlib() {
-	uint8_t curchan;
-	for (curchan = 0; curchan<0x16; curchan++)
+	uint8_t curop;
+	for (curop = 0; curop<0x16; curop++)
 	{
-		if (adlibfreq(-1,adliboperatorsreverse[curchan]) != 0)
+		if (adlibenvstatus[curop])
 		{
-			if (adlibenvstatus[curchan])
+			if (adlibenvstatus[curop]>=2) //Sustaining/releasing?
 			{
-				if (adlibenvstatus[curchan]>=2) //Sustaining/releasing?
+				dosustain: //Entered sustain phase!
+				if (((!adlibch[adliboperatorsreverse[curop]].keyon) || adlibop[curop].ReleaseImmediately) && (adlibenvstatus[curop] == 2)) //Release entered when sustaining?
 				{
-					dosustain: //Entered sustain phase!
-					if ((!adlibch[adliboperatorsreverse[curchan]].keyon || adlibop[curchan].ReleaseImmediately) && (adlibenvstatus[curchan] == 2)) //Release entered when sustaining?
-					{
-						adlibenvstatus[curchan] = 3; //Releasing!
-					}
-					if (adlibenvstatus[curchan] == 3) //Releasing?
-					{
-						adlibenv[curchan] *= adlibrelease[curchan]; //Release!
-					}
+					adlibenvstatus[curop] = 3; //Releasing!
 				}
-				else if (adlibenv[curchan]>adlibsustain[curchan]) //Decay?
+				if (adlibenvstatus[curop] == 3) //Releasing?
 				{
-					adlibenv[curchan] *= adlibdecay[curchan]; //Decay!
+					adlibenv[curop] *= adlibrelease[curop]; //Release!
 				}
-				else
-				{
-					adlibenv[curchan] = adlibsustain[curchan]; //Sustain level!
-					adlibenvstatus[curchan] = 2; //Enter sustain phase!
-					goto dosustain; //Do sustain!
-				}
+			}
+			else if (adlibenv[curop]>adlibsustain[curop]) //Decay?
+			{
+				adlibenv[curop] *= adlibdecay[curop]; //Decay!
 			}
 			else
 			{
-				adlibenv[curchan] *= adlibattack[curchan]; //Attack!
-				if (adlibenv[curchan] >= 1.0) adlibenvstatus[curchan] = 1; //Enter decay phase!
+				adlibenv[curop] = adlibsustain[curop]; //Sustain level!
+				adlibenvstatus[curop] = 2; //Enter sustain phase!
+				goto dosustain; //Do sustain!
+			}
+		}
+		else
+		{
+			adlibenv[curop] *= adlibattack[curop]; //Attack!
+			if (adlibenv[curop] >= 1.0)
+			{
+				adlibenv[curop] = 1.0; //We're at 1.0 to start decaying!
+				adlibenvstatus[curop] = 1; //Enter decay phase!
 			}
 		}
 	}
@@ -364,21 +424,18 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 	byte filled,curchan;
 	filled = 0; //Default: not filled!
 	for (curchan=0; curchan<9; curchan++) { //Check for active channels!
-			if (adlibfreq (-1,curchan) !=0) {
+			if (adlibenv[adliboperators[1][curchan]] !=0.0f) { //Do we generate sound on this channel?
 				filled = 1; //We're filled!
 				break; //Stop searching!
 			}
 		}
 	
-	if (!filled) //Not filled?
-	{
-		return 0; //Unused channel!
-	}
+	if (!filled) return SOUNDHANDLER_RESULT_NOTFILLED; //Not filled: nothing to sound!
 	
 	uint_32 c;
 	c = length; //Init c!
-	char *data_mono;
-	data_mono = (char *)buf; //The data in correct samples!
+	short *data_mono;
+	data_mono = (short *)buf; //The data in correct samples!
 	for (;;) //Fill it!
 	{
 		//Left and right are the same!
@@ -407,7 +464,7 @@ void initAdlib()
 
 	if (__SOUND_ADLIB)
 	{
-		if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,0,0,SMPL8S)) //Start the sound emulation (mono) with automatic samples buffer?
+		if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,0,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
 		{
 			dolog("adlib","Error registering sound channel for output!");
 		}
