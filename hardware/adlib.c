@@ -242,8 +242,7 @@ OPTINLINE float adlibWave(byte signal, const float frequencytime) {
 		if (t > 0.5f) return 0.0f; //Negative!
 		return result; //Positive!
 	case 3: // Absolute with second half=0?
-		t = fmod(t, 0.5f); //We check every half period!
-		if (t > 0.25) return 0.0f; //Are we the second half of the half period? Clear the signal if so!
+		if (fmod(t,0.5f) > 0.25) return 0.0f; //Are we the second half of the half period? Clear the signal if so!
 	case 2: // Absolute?
 		if (result < 0) result = 0 - result; //Make positive!
 		return result; //Simply absolute!
