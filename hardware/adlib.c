@@ -77,6 +77,7 @@ struct structadlibchan {
 	uint8_t keyon;
 	uint16_t octave;
 	uint8_t synthmode; //What synthesizer mode (1=Additive synthesis, 0=Frequency modulation)
+	float feedback; //The feedback strength of the modulator signal.
 } adlibch[0x10];
 
 double attacktable[0x10] = { 1.0003, 1.00025, 1.0002, 1.00015, 1.0001, 1.00009, 1.00008, 1.00007, 1.00006, 1.00005, 1.00004, 1.00003, 1.00002, 1.00001, 1.000005 }; //1.003, 1.05, 1.01, 1.015, 1.02, 1.025, 1.03, 1.035, 1.04, 1.045, 1.05, 1.055, 1.06, 1.065, 1.07, 1.075 };
@@ -174,6 +175,10 @@ void outadlib (uint16_t portnum, uint8_t value) {
 	{
 		portnum &= 0xF;
 		adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
+		byte feedback;
+		feedback = (adlibregmem[0xC0 + portnum] >> 1) & 3; //Get the feedback value used!
+		if (feedback) adlibch[portnum].feedback = (float)(feedback/7.0); //Convert to a feedback from 1/7 to 7/7 of the modulator signal!
+		else adlibch[portnum].feedback = 0.0f; //No feedback!
 	}
 	else if ( (portnum >= 0xE0) && (portnum <= 0xF5) ) //waveform select
 	{
@@ -235,7 +240,7 @@ OPTINLINE float adlibWave(byte signal, const float frequencytime) {
 	float result = sinf(2.0f * PI * frequencytime); //The sinus function!
 	float t = modf(frequencytime, &x);
 
-	switch (how) {
+	switch (signal) {
 	case 0: //SINE?
 		return result; //SINE!
 	case 1: // Negative=0?
@@ -260,7 +265,7 @@ OPTINLINE float calcAdlibSignal(byte wave, float phase, float frequency, float *
 		*time *= (*freq0 / frequency);
 	}
 
-	float result = (adlib_scaleFactor * adlibWave(wave, (frequency * *time)+phase)); //Set the channels!
+	float result = adlibWave(wave, (frequency * *time)+phase); //Set the channels!
 	*time += adlib_sampleLength; //Add 1 sample to the time!
 
 	float temp = *time*frequency; //Calculate!
@@ -274,18 +279,23 @@ OPTINLINE float calcAdlibSignal(byte wave, float phase, float frequency, float *
 }
 
 //Calculate an operator signal!
-OPTINLINE float calcOperator(byte curchan, byte operator, float modulator)
+OPTINLINE float calcOperator(byte curchan, byte operator, float modulator, float feedback)
 {
 	float frequency, result; //What frequency to generate?
 
 	//Calculate the frequency to use!
 	frequency = adlibfreq(operator, curchan); //Effective carrier init!
 	if (adlibch[curchan].synthmode) modulator = 0.0f; //Don't FM using the first operator when needed, so no PM!
-	else modulator /= SHRT_MAX; //Make it a value between -1 and 1 for PM!
 
 	//Generate the signal!
 	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask,modulator, frequency, &adlib_freq0[operator], &adlib_time[operator]);
 	result *= adlibenv[operator]; //Apply current volume of the ADSR envelope!
+
+	if (feedback!=0.0f) //We're using feedback?
+	{
+		result *= feedback; //Convert to feedback ratio!
+		return calcOperator(curchan, operator,result, 0); //Apply feedback using our own signal as the modulator!
+	}
 
 	return result; //Give the result!
 }
@@ -301,11 +311,13 @@ OPTINLINE short adlibsample (uint8_t curchan) {
 
 	//Determine the type of modulation!
 	//Operator 1!
-	modulatorresult = calcOperator(curchan, adliboperators[0][curchan], 0); //Calculate the modulator!
-	result = calcOperator(curchan, adliboperators[1][curchan], modulatorresult); //Calculate the carrier with applied modulator if needed!
+	modulatorresult = calcOperator(curchan, adliboperators[0][curchan], 0,adlibch[curchan].feedback); //Calculate the modulator!
+	result = calcOperator(curchan, adliboperators[1][curchan], modulatorresult,0); //Calculate the carrier with applied modulator if needed!
 
 	//Perform additive synthesis when asked to do so.
 	if (adlibch[curchan].synthmode) result += modulatorresult; //Perform additive synthesis when needed!
+
+	result *= adlib_scaleFactor; //Convert to output scale (We're only going from -1.0 to +1.0 up to this point), convert to signed 16-bit scale!
 	return (short)result; //Give the result, converted to short!
 }
 
@@ -402,6 +414,7 @@ void initAdlib()
 	for (i = 0; i < 9; i++)
 	{
 		adlibch[i].keyon = 0; //Initialise key on!
+		adlibch[i].feedback = 0.0f; //No feedback!
 		adlibenvstatus[adliboperators[0][i]] = 3; //Initialise to unused!
 		adlibenvstatus[adliboperators[1][i]] = 3; //Initialise to unused!
 	}
