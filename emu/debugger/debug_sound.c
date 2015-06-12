@@ -204,23 +204,43 @@ void dosoundtest()
 	printmsg(0xF, "Detecting adlib...");
 	if (detectadlib()) //Detected?
 	{
-		printmsg(0xF,"\r\nAdlib detected. Starting sound in 1 second...");
+		printmsg(0xF, "\r\nAdlib detected. Starting sound in 1 second...");
 		VGA_waitforVBlank(); //Wait 1 frame!
 		VGA_waitforVBlank(); //Wait 1 frame!
 		printmsg(0xF, "\r\nStarting adlib sound...");
 		adlibsetreg(0x20, 0x21); //Modulator multiple to 1!
 		adlibsetreg(0x40, 0x10); //Modulator level about 40dB!
-		adlibsetreg(0x60, 0xF0); //Modulator attack: quick; decay long!
-		adlibsetreg(0x80, 0x77); //Modulator sustain: medium; release: medium
+		adlibsetreg(0x60, 0xF7); //Modulator attack: quick; decay long!
+		adlibsetreg(0x80, 0xFF); //Modulator sustain: medium; release: medium
 		adlibsetreg(0xA0, 0x98); //Set voice frequency's LSB (it'll be a D#)!
 		adlibsetreg(0x23, 0x21); //Set the carrier's multiple to 1!
 		adlibsetreg(0x43, 0x00); //Set the carrier to maximum volume (about 47dB).
-		adlibsetreg(0x63, 0xF0); //Carrier attack: quick; decay: long!
-		adlibsetreg(0x83, 0x77); //Carrier sustain: medium; release: medium!
+		adlibsetreg(0x63, 0xFF); //Carrier attack: quick; decay: long!
+		adlibsetreg(0x83, 0x0F); //Carrier sustain: medium; release: medium!
 		adlibsetreg(0xB0, 0x31); //Turn the voice on; set the octave and freq MSB!
-		printmsg(0xF,"\r\nYou should only be hearing the Adlib tone now.");
+		printmsg(0xF, "\r\nYou should only be hearing the Adlib tone now.");
+		delay(5000000); //Basic tone!
+		int i,j;
+		for (j = 0; j < 2; j++)
+		{
+			for (i = 0; i <= 7; i++)
+			{
+				if (j)
+				{
+					printmsg(0xF, "\r\nSetting feedback level %i, additive synthesis", i);
+				}
+				else
+				{
+					printmsg(0xF, "\r\nSetting feedback level %i, fm synthesis", i);
+				}
+				adlibsetreg(0xC0, ((i << 1) | j));
+				delay(3000000); //Wait some time!
+			}
+		}
+		printmsg(0xF, "\r\nResetting synthesis to fm synthesis without feedback...");
+		adlibsetreg(0xC0, 0); //Reset synthesis mode and disable feedback!
 		delay(10000000); //Adlib only!
-		printmsg(0xF, "\r\nSilencing Adlib...");
+		printmsg(0xF, "\r\nSilencing Adlib tone...");
 		adlibsetreg(0xB0,0x11); //Turn voice off!
 		delay(4000000); //Wait 1 second for the next test!
 		printmsg(0xF, "\r\n"); //Finisher!
