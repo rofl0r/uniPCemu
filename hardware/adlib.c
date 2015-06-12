@@ -62,6 +62,8 @@ byte adliboperatorsreverse[0x16] = { 0, 1, 2, 0, 1, 2,
 									255, 255,
 									6, 7, 8, 6, 7, 8}; //Channel lookup of adlib operators!
 
+static const double feedbacklookup[8] = { 0, PI / 16.0, PI / 8.0, PI / 4.0, PI / 2.0, PI, PI*2.0, PI*4.0 }; //The feedback to use from opl3emu! Seems to be half a sinus wave per number!
+
 byte wavemask = 0; //Wave select mask!
 
 struct structadlibop {
@@ -177,8 +179,7 @@ void outadlib (uint16_t portnum, uint8_t value) {
 		adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
 		byte feedback;
 		feedback = (adlibregmem[0xC0 + portnum] >> 1) & 3; //Get the feedback value used!
-		if (feedback) adlibch[portnum].feedback = (float)(feedback/7.0); //Convert to a feedback from 1/7 to 7/7 of the modulator signal!
-		else adlibch[portnum].feedback = 0.0f; //No feedback!
+		adlibch[portnum].feedback = feedbacklookup[feedback]; //Convert to a feedback of the modulator signal!
 	}
 	else if ( (portnum >= 0xE0) && (portnum <= 0xF5) ) //waveform select
 	{
