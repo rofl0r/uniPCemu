@@ -78,7 +78,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	//First, our information sources!
 	speaker = (SPEAKER_INFO *)userdata; //Active speaker!
 	function = speaker->function; //The function to use!
-	if (function==0xFF) return 0; //Inactive speaker!
+	if (function == 0xFF) return SOUNDHANDLER_RESULT_NOTFILLED; //Inactive speaker!
 	//Load current info!
 	time = speaker->time; //Take the current time to update!
 	frequency = speaker->frequency; //Take the current frequency to sound!
