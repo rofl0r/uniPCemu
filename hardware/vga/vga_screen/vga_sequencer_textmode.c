@@ -61,8 +61,9 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	charinner = Sequencer->activex;
 	charinner <<= 1;
 	charinner |= 1; //Calculate our column value!
+	attributeinfo->charinner_x = charinner = VGA->CRTC.charcolstatus[charinner]; //Load inner x!
 	//Now retrieve the font/back pixel
-	pixel = characterpixels[attributeinfo->charinner_x = VGA->CRTC.charcolstatus[charinner]]; //Check for the character, the simple way!
+	pixel = characterpixels[charinner]; //Check for the character, the simple way!
 	pixel |= iscursor; //Get if we're to plot font, include cursor? (Else back)
 	attributeinfo->fontpixel = pixel; //We're the font pixel?
 	attributeinfo->attribute = attribute; //The attribute for this pixel!
