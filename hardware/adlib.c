@@ -42,6 +42,8 @@
 //What volume is the minimum volume to be heard!
 #define __MIN_VOL (1.0f / SHRT_MAX)
 
+#define dB2factor(dB, fMaxLevelDB) pow(10, ((dB - fMaxLevelDB) / 20))
+
 //extern void set_port_write_redirector (uint16_t startport, uint16_t endport, void *callback);
 //extern void set_port_read_redirector (uint16_t startport, uint16_t endport, void *callback);
 
@@ -67,7 +69,7 @@ byte wavemask = 0; //Wave select mask!
 
 struct structadlibop {
 	//Effects
-	uint8_t AM; //Amplitude modulation enabled?
+	float outputlevel;
 	byte ReleaseImmediately; //Release even when the note is still turned on?
 
 	//Volume envelope
@@ -91,16 +93,11 @@ struct structadlibchan {
 
 double attacktable[0x10] = { 1.0003, 1.00025, 1.0002, 1.00015, 1.0001, 1.00009, 1.00008, 1.00007, 1.00006, 1.00005, 1.00004, 1.00003, 1.00002, 1.00001, 1.000005 }; //1.003, 1.05, 1.01, 1.015, 1.02, 1.025, 1.03, 1.035, 1.04, 1.045, 1.05, 1.055, 1.06, 1.065, 1.07, 1.075 };
 double decaytable[0x10] = { 0.99999, 0.999985, 0.99998, 0.999975, 0.99997, 0.999965, 0.99996, 0.999955, 0.99995, 0.999945, 0.99994, 0.999935, 0.99994, 0.999925, 0.99992, 0.99991 };
-double sustaintable[0x10] = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
+double sustaintable[0x10], outputtable[0x40]; //Build using software formulas!
 
 uint8_t adlibpercussion = 0, adlibstatus = 0;
 
 uint16_t adlibport = 0x388;
-
-OPTINLINE double dB2factor(double dB, double fMaxLevelDB)
-{
-	return pow(10, ((dB - fMaxLevelDB) / 20));
-}
 
 OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 {
@@ -140,9 +137,13 @@ void outadlib (uint16_t portnum, uint8_t value) {
 	if ((portnum >= 0x20) && (portnum <= 0x35)) //Various flags
 	{
 		portnum &= 0x1F;
-		adlibop[portnum].AM = (value & 0x80) ? 1 : 0; //Take the AM bit!
 		adlibop[portnum].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(value & 0xF); //Which harmonic to use?
 		adlibop[portnum].ReleaseImmediately = (value & 0x20) ? 0 : 1; //Release when not sustain until release!
+	}
+	else if ((portnum >= 0x40) && (portnum <= 0x55)) //KSL/Output level
+	{
+		portnum &= 0x1F;
+		adlibop[portnum].outputlevel = outputtable[value & 0x2F]; //Apply output level!
 	}
 	else if ( (portnum >= 0x60) && (portnum <= 0x75) ) { //attack/decay
 			portnum &= 0x1F;
@@ -152,7 +153,7 @@ void outadlib (uint16_t portnum, uint8_t value) {
 	else if ((portnum >= 0x80) && (portnum <= 0x95)) //sustain/release
 	{
 		portnum &= 0x1F;
-		adlibop[portnum].sustain = sustaintable[15 - (value >> 4)];
+		adlibop[portnum].sustain = sustaintable[value >> 4];
 		adlibop[portnum].release = decaytable[value & 15];
 	}
 	else if ( (portnum >= 0xA0) && (portnum <= 0xB8) )
@@ -293,6 +294,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float modulator, float
 	//Generate the signal!
 	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask,modulator, frequency, &adlibop[operator].freq0, &adlibop[operator].time);
 	result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
+	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
 
 	if (feedback!=0.0f) //We're using feedback?
 	{
@@ -439,17 +441,40 @@ void initAdlib()
 		adlibch[i].synthmode = 0; //Default synth mode (FM Synthesis)!
 	}
 
+	//Build the needed tables!
+	for (i = 0; i < NUMITEMS(sustaintable); i++)
+	{
+		if (i==0xF) sustaintable[i] = dB2factor(93, 93); //Full volume exception with all bits set!
+		else sustaintable[i] = dB2factor((float)93-(float)(((i & 1) ? 3 : 0) +	((i & 2) ? 6 : 0) +	((i & 4) ? 12 : 0) + ((i & 8) ? 24 : 0)), 93); //Build a sustain table!
+	}
+
+	for (i = 0; i < NUMITEMS(outputtable); i++)
+	{
+		outputtable[i] = dB2factor((float)48 - (float)(
+			((i & 1) ? 0.75:0)+
+			((i&2)?1.5:0)+
+			((i&4)?3:0)+
+			((i&8)?6:0)+
+			((i&0x10)?12:0)+
+			((i&0x20)?24:0)
+			),48.0f);
+	}
+
 	for (i = 0; i < NUMITEMS(adlibop); i++) //Process all channels!
 	{
 		adlibop[i].freq0 = adlibop[i].time = 0.0f; //Initialise the signal!
 
+		//Apply default ADSR!
 		adlibop[i].attack = attacktable[15] * 1.006;
 		adlibop[i].decay = decaytable[0];
 		adlibop[i].sustain = sustaintable[15];
 		adlibop[i].release = decaytable[0];
+
 		adlibop[i].volenvstatus = 0; //Initialise to unused ADSR!
 		adlibop[i].volenv = 0.0f; //Volume envelope to silence!
 		adlibop[i].ReleaseImmediately = 1; //Release immediately by default!
+
+		adlibop[i].outputlevel = outputtable[0]; //Apply default output!
 	}
 
 
