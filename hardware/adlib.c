@@ -39,9 +39,8 @@
 #define __SOUND_ADLIB 1
 //What volume, in percent!
 #define ADLIB_VOLUME 100.0f
-
-//Maximum DB volume (equalling 100% volume)!
-#define __MAX_DB 100.0f
+//What volume is the minimum volume to be heard!
+#define __MIN_VOL (1.0f / SHRT_MAX)
 
 //extern void set_port_write_redirector (uint16_t startport, uint16_t endport, void *callback);
 //extern void set_port_read_redirector (uint16_t startport, uint16_t endport, void *callback);
@@ -67,11 +66,19 @@ static const double feedbacklookup[8] = { 0, PI / 16.0, PI / 8.0, PI / 4.0, PI /
 byte wavemask = 0; //Wave select mask!
 
 struct structadlibop {
-	uint8_t wavesel;
+	//Effects
 	uint8_t AM; //Amplitude modulation enabled?
-	float ModulatorFrequencyMultiple; //What harmonic to sound?
 	byte ReleaseImmediately; //Release even when the note is still turned on?
-} adlibop[0x10];
+
+	//Volume envelope
+	float attack, decay, sustain, release, volenv; //Volume envelope!
+	uint8_t volenvstatus;
+
+	//Signal generation
+	uint8_t wavesel;
+	float freq0, time; //The q0quency and current time of an operator!
+	float ModulatorFrequencyMultiple; //What harmonic to sound?
+} adlibop[0x16];
 
 struct structadlibchan {
 	uint16_t freq;
@@ -85,12 +92,8 @@ struct structadlibchan {
 double attacktable[0x10] = { 1.0003, 1.00025, 1.0002, 1.00015, 1.0001, 1.00009, 1.00008, 1.00007, 1.00006, 1.00005, 1.00004, 1.00003, 1.00002, 1.00001, 1.000005 }; //1.003, 1.05, 1.01, 1.015, 1.02, 1.025, 1.03, 1.035, 1.04, 1.045, 1.05, 1.055, 1.06, 1.065, 1.07, 1.075 };
 double decaytable[0x10] = { 0.99999, 0.999985, 0.99998, 0.999975, 0.99997, 0.999965, 0.99996, 0.999955, 0.99995, 0.999945, 0.99994, 0.999935, 0.99994, 0.999925, 0.99992, 0.99991 };
 double sustaintable[0x10] = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
-double adlibenv[0x20], adlibrelease[0x20], adlibsustain[0x20], adlibdecay[0x20], adlibattack[0x20];
-uint8_t adlibenvstatus[0x20], adlibpercussion = 0, adlibstatus = 0;
 
-float adlib_freq0[0x20], adlib_time[0x20]; //The q0quency and current time of an operator!
-
-float AMDepth = 0.0f; //AM depth in dB!
+uint8_t adlibpercussion = 0, adlibstatus = 0;
 
 uint16_t adlibport = 0x388;
 
@@ -132,7 +135,6 @@ void outadlib (uint16_t portnum, uint8_t value) {
 			case 0xBD:
 				if (value & 0x10) adlibpercussion = 1;
 				else adlibpercussion = 0;
-				AMDepth = (value & 0x80) ? dB2factor(4.8f, __MAX_DB) : dB2factor(1.0f, __MAX_DB); //AM depth in dB!
 				break;
 		}
 	if ((portnum >= 0x20) && (portnum <= 0x35)) //Various flags
@@ -144,14 +146,14 @@ void outadlib (uint16_t portnum, uint8_t value) {
 	}
 	else if ( (portnum >= 0x60) && (portnum <= 0x75) ) { //attack/decay
 			portnum &= 0x1F;
-			adlibattack[portnum] = attacktable[15- (value>>4) ]*1.006;
-			adlibdecay[portnum] = decaytable[value&15];
+			adlibop[portnum].attack = attacktable[15- (value>>4) ]*1.006;
+			adlibop[portnum].decay = decaytable[value&15];
 		}
 	else if ((portnum >= 0x80) && (portnum <= 0x95)) //sustain/release
 	{
 		portnum &= 0x1F;
-		adlibsustain[portnum] = sustaintable[15 - (value >> 4)];
-		adlibrelease[portnum] = decaytable[value & 15];
+		adlibop[portnum].sustain = sustaintable[15 - (value >> 4)];
+		adlibop[portnum].release = decaytable[value & 15];
 	}
 	else if ( (portnum >= 0xA0) && (portnum <= 0xB8) )
 	{ //octave, freq, key on
@@ -160,12 +162,12 @@ void outadlib (uint16_t portnum, uint8_t value) {
 			portnum &= 0xF; //Get the channel to use!
 			if (!adlibch[portnum].keyon && ((adlibregmem[0xB0 + portnum] >> 5) & 1))
 			{
-				adlibenvstatus[adliboperators[0][portnum]] = 0;
-				adlibenvstatus[adliboperators[1][portnum]] = 0;
-				adlibenv[adliboperators[0][portnum]] = 0.0025;
-				adlibenv[adliboperators[1][portnum]] = 0.0025;
-				adlib_freq0[adliboperators[0][portnum]] = adlib_time[adliboperators[0][portnum]] = 0.0f; //Initialise operator signal!
-				adlib_freq0[adliboperators[1][portnum]] = adlib_time[adliboperators[1][portnum]] = 0.0f; //Initialise operator signal!
+				adlibop[adliboperators[0][portnum]].volenvstatus = 1; //Start attacking!
+				adlibop[adliboperators[1][portnum]].volenvstatus = 1; //Start attacking!
+				adlibop[adliboperators[0][portnum]].volenv = 0.0025;
+				adlibop[adliboperators[1][portnum]].volenv = 0.0025;
+				adlibop[adliboperators[0][portnum]].freq0 = adlibop[adliboperators[0][portnum]].time = 0.0f; //Initialise operator signal!
+				adlibop[adliboperators[1][portnum]].freq0 = adlibop[adliboperators[1][portnum]].time = 0.0f; //Initialise operator signal!
 			}
 			adlibch[portnum].freq = adlibregmem[0xA0 + portnum] | ((adlibregmem[0xB0 + portnum] & 3) << 8);
 			adlibch[portnum].convfreq = ((double)adlibch[portnum].freq * 0.7626459);
@@ -289,8 +291,8 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float modulator, float
 	if (adlibch[curchan].synthmode) modulator = 0.0f; //Don't FM using the first operator when needed, so no PM!
 
 	//Generate the signal!
-	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask,modulator, frequency, &adlib_freq0[operator], &adlib_time[operator]);
-	result *= adlibenv[operator]; //Apply current volume of the ADSR envelope!
+	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask,modulator, frequency, &adlibop[operator].freq0, &adlibop[operator].time);
+	result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
 
 	if (feedback!=0.0f) //We're using feedback?
 	{
@@ -328,7 +330,7 @@ OPTINLINE short adlibgensample() {
 	adlibaccum = 0;
 	for (curchan = 0; curchan < 9; curchan++)
 	{
-		if (adlibenv[curchan] != 0.0f) //Anything to sound according to the volume envelope?
+		if (adlibop[adliboperators[1][curchan]].volenvstatus) //Are we a running envelope?
 		{
 			adlibaccum += adlibsample(curchan);
 		}
@@ -336,42 +338,59 @@ OPTINLINE short adlibgensample() {
 	return (adlibaccum);
 }
 
-void tickadlib() {
+float min_vol = __MIN_VOL;
+
+void tickadlib()
+{
 	uint8_t curop;
-	for (curop = 0; curop<0x16; curop++)
+	for (curop = 0; curop < NUMITEMS(adlibop); curop++)
 	{
-		if (adlibenvstatus[curop])
+		if (adliboperatorsreverse[curop] == 0xFF) continue; //Skip invalid operators!
+		if (adlibop[curop].volenvstatus) //Are we a running envelope?
 		{
-			if (adlibenvstatus[curop]>=2) //Sustaining/releasing?
+		volenv_recheck: //Recheck!
+			switch (adlibop[curop].volenvstatus)
 			{
-				dosustain: //Entered sustain phase!
-				if (((!adlibch[adliboperatorsreverse[curop]].keyon) || adlibop[curop].ReleaseImmediately) && (adlibenvstatus[curop] == 2)) //Release entered when sustaining?
+			case 1: //Attacking?
+				adlibop[curop].volenv *= adlibop[curop].attack; //Attack!
+				if (adlibop[curop].volenv >= 1.0)
 				{
-					adlibenvstatus[curop] = 3; //Releasing!
+					adlibop[curop].volenv = 1.0; //We're at 1.0 to start decaying!
+					++adlibop[curop].volenvstatus; //Enter next phase!
+					goto volenv_recheck;
 				}
-				if (adlibenvstatus[curop] == 3) //Releasing?
+				break;
+			case 2: //Decaying?
+				adlibop[curop].volenv *= adlibop[curop].decay; //Decay!
+				if (adlibop[curop].volenv <= adlibop[curop].sustain) //Sustain level reached?
 				{
-					adlibenv[curop] *= adlibrelease[curop]; //Release!
+					adlibop[curop].volenv = adlibop[curop].sustain; //Sustain level!
+					++adlibop[curop].volenvstatus; //Enter next phase!
+					goto volenv_recheck;
 				}
+				break;
+			case 3: //Sustaining?
+				if ((!adlibch[adliboperatorsreverse[curop]].keyon) || adlibop[curop].ReleaseImmediately) //Release entered?
+				{
+					++adlibop[curop].volenvstatus; //Enter next phase!
+					goto volenv_recheck; //Check again!
+				}
+				break;
+			case 4: //Releasing?
+				adlibop[curop].volenv *= adlibop[curop].release; //Release!
+				if (adlibop[curop].volenv < min_vol) //Less than the format can provide?
+				{
+					adlibop[curop].volenv = 0.0f; //Clear the sound!
+					adlibop[curop].volenvstatus = 0; //Terminate the signal: we're unused!
+				}
+				break;
+			default: //Unknown volume envelope status?
+				adlibop[curop].volenvstatus = 0; //Disable this volume envelope!
+				break;
 			}
-			else if (adlibenv[curop]>adlibsustain[curop]) //Decay?
+			if (adlibop[curop].volenv < min_vol) //Below minimum?
 			{
-				adlibenv[curop] *= adlibdecay[curop]; //Decay!
-			}
-			else
-			{
-				adlibenv[curop] = adlibsustain[curop]; //Sustain level!
-				adlibenvstatus[curop] = 2; //Enter sustain phase!
-				goto dosustain; //Do sustain!
-			}
-		}
-		else
-		{
-			adlibenv[curop] *= adlibattack[curop]; //Attack!
-			if (adlibenv[curop] >= 1.0)
-			{
-				adlibenv[curop] = 1.0; //We're at 1.0 to start decaying!
-				adlibenvstatus[curop] = 1; //Enter decay phase!
+				adlibop[curop].volenv = 0.0f; //No volume below minimum!
 			}
 		}
 	}
@@ -384,7 +403,8 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 	byte filled,curchan;
 	filled = 0; //Default: not filled!
 	for (curchan=0; curchan<9; curchan++) { //Check for active channels!
-			if (adlibenv[adliboperators[1][curchan]] !=0.0f) { //Do we generate sound on this channel?
+			if (adlibop[adliboperators[1][curchan]].volenvstatus) //Are we a running envelope?
+			{
 				filled = 1; //We're filled!
 				break; //Stop searching!
 			}
@@ -416,12 +436,22 @@ void initAdlib()
 	{
 		adlibch[i].keyon = 0; //Initialise key on!
 		adlibch[i].feedback = 0.0f; //No feedback!
-		adlibenvstatus[adliboperators[0][i]] = 3; //Initialise to unused!
-		adlibenvstatus[adliboperators[1][i]] = 3; //Initialise to unused!
+		adlibch[i].synthmode = 0; //Default synth mode (FM Synthesis)!
 	}
 
-	//All input!
-	AMDepth = dB2factor(1.0f, __MAX_DB);
+	for (i = 0; i < NUMITEMS(adlibop); i++) //Process all channels!
+	{
+		adlibop[i].freq0 = adlibop[i].time = 0.0f; //Initialise the signal!
+
+		adlibop[i].attack = attacktable[15] * 1.006;
+		adlibop[i].decay = decaytable[0];
+		adlibop[i].sustain = sustaintable[15];
+		adlibop[i].release = decaytable[0];
+		adlibop[i].volenvstatus = 0; //Initialise to unused ADSR!
+		adlibop[i].volenv = 0.0f; //Volume envelope to silence!
+		adlibop[i].ReleaseImmediately = 1; //Release immediately by default!
+	}
+
 
 	if (__SOUND_ADLIB)
 	{
