@@ -22,6 +22,8 @@
 //Use external timing synchronization?
 //#define EXTERNAL_TIMING
 
+//#define __USE_EQUALIZER
+
 typedef struct
 {
 	void *samples; //All samples!
@@ -750,6 +752,7 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 
 
 #ifndef __psp__
+#ifdef __USE_EQUALIZER
 	//Equalize all sound volume!
 
 	//Process all generated samples to output!
@@ -774,6 +777,7 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 	gainMaster_l = SHRT_MAX / (sqrt(2)*RMS_l);
 	gainMaster_r = SHRT_MAX / (sqrt(2)*RMS_r);
 #endif
+#endif
 	
 	//Final step: apply Master gain and clip to output!
 	currentsample = length; //Init samples to give!
@@ -783,8 +787,10 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 		result_l = *activesample++; //L channel!
 		result_r = *activesample++; //R channel!
 #ifndef __psp__
+#ifdef __USE_EQUALIZER
 		result_l *= gainMaster_l; //Apply master gain!
 		result_r *= gainMaster_r; //Apply master gain!
+#endif
 #endif
 		if (result_l>SHRT_MAX) result_l = SHRT_MAX;
 		if (result_l<SHRT_MIN) result_l = SHRT_MIN;
