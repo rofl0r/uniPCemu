@@ -426,6 +426,31 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 	}
 }
 
+//Timer ticks!
+
+void adlib_timer80()
+{
+	if (adlibregmem[4] & 1) //Timer1 enabled?
+	{
+		if ((++adlibregmem[2] == 0) && ((~adlibregmem[4])&0x40)) //Overflown and to update the status register?
+		{
+			//Update status register and set the bits!
+		}
+	}
+}
+
+void adlib_timer320()
+{
+	if (adlibregmem[4] & 2) //Timer2 enabled?
+	{
+		if ((++adlibregmem[3] == 0) && ((~adlibregmem[4]) & 0x20)) //Overflown and to update the status register?
+		{
+			//Update status register and set the bits!
+		}
+
+	}
+}
+
 //Multicall speedup!
 #define ADLIBMULTIPLIER 0
 
@@ -497,6 +522,8 @@ void initAdlib()
 	register_PORTOUT(baseport+1,&outadlib); //Data port (W/O)
 	//dolog("adlib","Registering timer...");
 	addtimer(usesamplerate,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER,0,NULL); //We run at 49.716Khz, about every 20us.
+	addtimer(1.0f / (80.0f / 1000000.0f), &adlib_timer80, "AdlibTimer80", 0, 0, NULL); //80us timer!
+	addtimer(1.0f / (320.0f / 1000000.0f), &adlib_timer80, "AdlibTimer320", 0, 0, NULL); //320us timer!
 	//dolog("adlib","Ready"); //Ready to run!
 }
 
