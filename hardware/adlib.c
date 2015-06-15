@@ -337,19 +337,19 @@ OPTINLINE short adlibsample (uint8_t curchan) {
 
 void adlib_soundtick()
 {
-	const float timer80 = (80/1000000) / (1/usesamplerate); //80us timer tick interval in samples!
-	const float timer320 = (320/1000000) / (1/usesamplerate); //320us timer tick interval in samples!
-	counter80 += timer80; //Tick he 80us counter!
-	counter320 += timer320; //Tick the 320us counter!
+	const static float counter80step = (80/1000000) / (1/usesamplerate); //80us timer tick interval in samples!
+	const static float counter320step = (320/1000000) / (1/usesamplerate); //320us timer tick interval in samples!
+	counter80 += counter80step; //Tick he 80us counter!
+	counter320 += counter320step; //Tick the 320us counter!
 	for (;counter80>=1.0f;) //Somthing left?
 	{
 		adlib_timer80(); //Tick 80us timer!
-		counter80 -= 1.0f; //Decrease counter!
+		counter80 -= 1.0f; //Decrease counter by 1 tick!
 	}
 	for (;counter320>=1.0f;) //Somthing left?
 	{
 		adlib_timer320(); //Tick 320us timer!
-		counter320 -= 1.0f; //Decrease counter!
+		counter320 -= 1.0f; //Decrease counter by 1 tick!
 	}
 }
 
