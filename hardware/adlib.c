@@ -50,6 +50,11 @@
 uint16_t baseport = 0x388; //Adlib address(w)/status(r) port, +1=Data port (write only)
 float usesamplerate = 14318180.0f/288.0f; //The sample rate to use for output!
 
+//Counter info
+float counter80 = 0.0f, counter320 = 0.0f; //Counter ticks!
+byte timer80=0, timer320=0; //Timer variables for current timer ticks!
+
+//Registers itself
 uint16_t adlibregmem[0xFF], adlibaddr = 0;
 
 byte adliboperators[2][9] = { //Groupings of 22 registers! (20,40,60,80,E0)
@@ -125,9 +130,16 @@ void outadlib (uint16_t portnum, uint8_t value) {
 		break;
 			case 4: //timer control
 				if (value&0x80) {
-						adlibstatus = 0;
-						adlibregmem[4] = 0;
+						adlibstatus &= 0x1F; //Reset status flags needed!
 					}
+				if (value&1) //Timer1 enabled?
+				{
+					timer80 = adlibregmem[2]; //Reload timer!
+				}
+				if (value&2) //Timer2 enabled?
+				{
+					timer320 = adlibregmem[3]; //Reload timer!					
+				}
 				break;
 			case 0xBD:
 				if (value & 0x10) adlibpercussion = 1;
@@ -193,10 +205,7 @@ void outadlib (uint16_t portnum, uint8_t value) {
 }
 
 uint8_t inadlib (uint16_t portnum) {
-	if (!adlibregmem[4]) adlibstatus = 0;
-	else adlibstatus = 0x80;
-	adlibstatus = adlibstatus + (adlibregmem[4]&1) *0x40 + (adlibregmem[4]&2) *0x10;
-	return (adlibstatus);
+	return adlibstatus; //Give the current status!
 }
 
 uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
@@ -326,7 +335,26 @@ OPTINLINE short adlibsample (uint8_t curchan) {
 	return (short)result; //Give the result, converted to short!
 }
 
+void adlib_soundtick()
+{
+	const float timer80 = (80/1000000) / (1/usesamplerate); //80us timer tick interval in samples!
+	const float timer320 = (320/1000000) / (1/usesamplerate); //320us timer tick interval in samples!
+	counter80 += timer80; //Tick he 80us counter!
+	counter320 += timer320; //Tick the 320us counter!
+	for (;counter80>=1.0f;) //Somthing left?
+	{
+		adlib_timer80(); //Tick 80us timer!
+		counter80 -= 1.0f; //Decrease counter!
+	}
+	for (;counter320>=1.0f;) //Somthing left?
+	{
+		adlib_timer320(); //Tick 320us timer!
+		counter320 -= 1.0f; //Decrease counter!
+	}
+}
+
 OPTINLINE short adlibgensample() {
+	adlib_soundtick(); //Tick the sound!
 	uint8_t curchan;
 	short adlibaccum;
 	adlibaccum = 0;
@@ -428,27 +456,50 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 
 //Timer ticks!
 
-void adlib_timer80()
+byte ticked80 = 0; //80 ticked?
+
+void tick_adlibtimer()
 {
+	//We don't have any IRQs assigned!
+	if (adlibregmem[8]&0x80) //CSM enabled?
+	{
+		//Process CSM tick!
+	}
+}
+
+void adlib_timer80() //First timer!
+{
+	ticked80 = 0; //Default: not ticked!
 	if (adlibregmem[4] & 1) //Timer1 enabled?
 	{
-		if ((++adlibregmem[2] == 0) && ((~adlibregmem[4])&0x40)) //Overflown and to update the status register?
+		if (++timer80 == 0) //Overflown?
 		{
-			//Update status register and set the bits!
+			timer80 = adlibregmem[2]; //Reload timer!
+			if ((~adlibregmem[4])&0x40) //Update status?
+			{
+				adlibstatus |= 0xC0; //Update status register and set the bits!
+			}
+			tick_adlibtimer(); //Tick either timer!
+			ticked80 = 1; //Ticked 80 clock!
 		}
 	}
 }
 
-void adlib_timer320()
+void adlib_timer320() //Second timer!
 {
 	if (adlibregmem[4] & 2) //Timer2 enabled?
 	{
-		if ((++adlibregmem[3] == 0) && ((~adlibregmem[4]) & 0x20)) //Overflown and to update the status register?
+		if (++timer320 == 0) //Overflown?
 		{
-			//Update status register and set the bits!
+			if ((~adlibregmem[4]) & 0x20) //Update status register?
+			{
+				adlibstatus |= 0xA0; //Update status register and set the bits!
+			}
+			timer320 = adlibregmem[3]; //Reload timer!
+			if (!ticked80) tick_adlibtimer(); //Tick either if not already ticked!
 		}
-
 	}
+	ticked80 = 0; //Reset 80 tick!
 }
 
 //Multicall speedup!
