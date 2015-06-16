@@ -335,10 +335,59 @@ OPTINLINE short adlibsample (uint8_t curchan) {
 	return (short)result; //Give the result, converted to short!
 }
 
+//Timer ticks!
+
+byte ticked80 = 0; //80 ticked?
+
+void tick_adlibtimer()
+{
+	//We don't have any IRQs assigned!
+	if (adlibregmem[8] & 0x80) //CSM enabled?
+	{
+		//Process CSM tick!
+	}
+}
+
+void adlib_timer80() //First timer!
+{
+	ticked80 = 0; //Default: not ticked!
+	if (adlibregmem[4] & 1) //Timer1 enabled?
+	{
+		if (++timer80 == 0) //Overflown?
+		{
+			timer80 = adlibregmem[2]; //Reload timer!
+			if ((~adlibregmem[4]) & 0x40) //Update status?
+			{
+				adlibstatus |= 0xC0; //Update status register and set the bits!
+			}
+			tick_adlibtimer(); //Tick either timer!
+			ticked80 = 1; //Ticked 80 clock!
+		}
+	}
+}
+
+void adlib_timer320() //Second timer!
+{
+	if (adlibregmem[4] & 2) //Timer2 enabled?
+	{
+		if (++timer320 == 0) //Overflown?
+		{
+			if ((~adlibregmem[4]) & 0x20) //Update status register?
+			{
+				adlibstatus |= 0xA0; //Update status register and set the bits!
+			}
+			timer320 = adlibregmem[3]; //Reload timer!
+			if (!ticked80) tick_adlibtimer(); //Tick either if not already ticked!
+		}
+	}
+	ticked80 = 0; //Reset 80 tick!
+}
+
+float counter80step = 0.0f; //80us timer tick interval in samples!
+float counter320step = 0.0f; //320us timer tick interval in samples!
+
 void adlib_soundtick()
 {
-	const static float counter80step = 1/((80/1000000) / (1/usesamplerate)); //80us timer tick interval in samples!
-	const static float counter320step = 1/((320/1000000) / (1/usesamplerate)); //320us timer tick interval in samples!
 	counter80 += counter80step; //Tick he 80us counter!
 	counter320 += counter320step; //Tick the 320us counter!
 	for (;counter80>=1.0f;) //Ticks left?
@@ -454,54 +503,6 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 	}
 }
 
-//Timer ticks!
-
-byte ticked80 = 0; //80 ticked?
-
-void tick_adlibtimer()
-{
-	//We don't have any IRQs assigned!
-	if (adlibregmem[8]&0x80) //CSM enabled?
-	{
-		//Process CSM tick!
-	}
-}
-
-void adlib_timer80() //First timer!
-{
-	ticked80 = 0; //Default: not ticked!
-	if (adlibregmem[4] & 1) //Timer1 enabled?
-	{
-		if (++timer80 == 0) //Overflown?
-		{
-			timer80 = adlibregmem[2]; //Reload timer!
-			if ((~adlibregmem[4])&0x40) //Update status?
-			{
-				adlibstatus |= 0xC0; //Update status register and set the bits!
-			}
-			tick_adlibtimer(); //Tick either timer!
-			ticked80 = 1; //Ticked 80 clock!
-		}
-	}
-}
-
-void adlib_timer320() //Second timer!
-{
-	if (adlibregmem[4] & 2) //Timer2 enabled?
-	{
-		if (++timer320 == 0) //Overflown?
-		{
-			if ((~adlibregmem[4]) & 0x20) //Update status register?
-			{
-				adlibstatus |= 0xA0; //Update status register and set the bits!
-			}
-			timer320 = adlibregmem[3]; //Reload timer!
-			if (!ticked80) tick_adlibtimer(); //Tick either if not already ticked!
-		}
-	}
-	ticked80 = 0; //Reset 80 tick!
-}
-
 //Multicall speedup!
 #define ADLIBMULTIPLIER 0
 
@@ -573,8 +574,8 @@ void initAdlib()
 	register_PORTOUT(baseport+1,&outadlib); //Data port (W/O)
 	//dolog("adlib","Registering timer...");
 	addtimer(usesamplerate,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER,0,NULL); //We run at 49.716Khz, about every 20us.
-	addtimer(1.0f / (80.0f / 1000000.0f), &adlib_timer80, "AdlibTimer80", 0, 0, NULL); //80us timer!
-	addtimer(1.0f / (320.0f / 1000000.0f), &adlib_timer80, "AdlibTimer320", 0, 0, NULL); //320us timer!
+	counter80step = (1.0f / ((80.0f / 1000000.0f) / (1.0f / (14318180.0f / 288.0f)))); //80us timer tick interval in samples!
+	counter320step = (1.0f / ((320.0f / 1000000.0f) / (1.0f / (14318180.0f / 288.0f)))); //320us timer tick interval in samples!
 	//dolog("adlib","Ready"); //Ready to run!
 }
 
