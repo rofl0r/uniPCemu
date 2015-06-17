@@ -103,7 +103,6 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		}
 		lastaddr = curaddr; //Save the current address for reference of the error address!
 		cpudebugger = needdebugger(); //Debugging?
-		debugger_beforeCPU(); //Everything before the CPU!
 		CPU_beforeexec(); //Everything before the execution!
 		CPU_exec(); //Run CPU!
 		debugger_step(); //Step debugger if needed!

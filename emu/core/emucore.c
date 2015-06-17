@@ -397,7 +397,6 @@ byte coreHandler()
 			{
 				if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) call_hard_inthandler(nextintr()); //get next interrupt from the i8259, if any
 			}
-			debugger_beforeCPU(); //Everything before the CPU!
 			CPU_exec(); //Run CPU!
 		}
 		else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!

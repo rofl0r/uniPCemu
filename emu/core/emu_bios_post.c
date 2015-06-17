@@ -268,6 +268,11 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				allow_debuggerstep = 1; //Allow stepping from now on!
 				startTimers(0); //Make sure we're running fully!
 				startTimers(1); //Make sure we're running fully!
+				//Temporarily fix the jumping point to debug!
+				CPU[activeCPU].registers->CS = 0xFFFF;
+				CPU[activeCPU].registers->DS = CPU[activeCPU].registers->ES = CPU[activeCPU].registers->SS = 0;
+				CPU[activeCPU].registers->IP = 0x0000;
+				CPU[activeCPU].registers->SP = 0x0000;
 				return 0; //No reset, start the BIOS!
 			}
 		}

@@ -284,8 +284,19 @@ byte OPTROM_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /
 
 byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* A pointer to a handler function */
 {
-	uint_32 segment; //Current segment!
 	uint_32 offset; //Current offset within the segment!
+	if (BIOS_custom_ROM) //Custom/system ROM loaded?
+	{
+		offset = reloffset;
+		offset &= 0xFFFF; //16-bit ROM!
+		if (BIOS_custom_ROM_size == 0x10000) return 1; //Unwritable BIOS!
+		if (offset>0xFFFF-BIOS_custom_ROM_size) //Within range?
+		{
+			return 1; //Ignore writes!
+		}
+	}
+
+	uint_32 segment; //Current segment!
 	switch (EMULATED_CPU) //What CPU is being emulated?
 	{
 		case CPU_8086:
@@ -344,23 +355,30 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 			break;
 	}
 
-	if (BIOS_custom_ROM) //Custom/system ROM loaded?
-	{
-		offset = reloffset;
-		offset &= 0xFFFF; //16-bit ROM!
-		if (BIOS_custom_ROM_size>offset) //Within range?
-		{
-			return 1; //Ignore writes!
-		}
-	}
-
 	return 0; //Not recognised, use normal RAM!
 }
 
 byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A pointer to a handler function */
 {
-	uint_32 segment; //Current segment!
 	uint_32 offset; //Current offset within the segment!
+	if (BIOS_custom_ROM) //Custom/system ROM loaded?
+	{
+		offset = reloffset; //Reload!
+		offset &= 0xFFFF; //16-bit ROM!
+		if (BIOS_custom_ROM_size == 0x10000)
+		{
+			*value = BIOS_custom_ROM[offset]; //Give the value!
+			return 1; //Direct offset used!
+		}
+		if (offset>(0xFFFF-BIOS_custom_ROM_size)) //Within range?
+		{
+			offset -= (0xFFFF - BIOS_custom_ROM_size)+1;
+			*value = BIOS_custom_ROM[offset]; //Give the value!
+			return 1; //ROM offset from the end of RAM used!
+		}
+	}
+
+	uint_32 segment; //Current segment!
 	//dolog("CPU","BIOS Read handler: %08X+%08X",baseoffset,reloffset);
 	switch (EMULATED_CPU) //What CPU is being emulated?
 	{
@@ -422,17 +440,6 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 			break;
 		default: //Unknown CPU?
 			break;
-	}
-
-	if (BIOS_custom_ROM) //Custom/system ROM loaded?
-	{
-		offset = reloffset; //Reload!
-		offset &= 0xFFFF; //16-bit ROM!
-		if (BIOS_custom_ROM_size>offset) //Within range?
-		{
-			*value = BIOS_custom_ROM[offset]; //Give the value!
-			return 1;
-		}
 	}
 
 	return 0; //Not recognised, use normal RAM!

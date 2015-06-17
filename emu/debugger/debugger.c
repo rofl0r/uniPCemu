@@ -11,6 +11,7 @@
 #include "headers/emu/gpu/gpu_renderer.h" //GPU renderer support!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/emu/emucore.h" //for pause/resumeEMU support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //Log flags only?
 //#define LOGFLAGSONLY
@@ -20,6 +21,7 @@ byte allow_debuggerstep = 0; //Disabled by default: needs to be enabled by our B
 char debugger_prefix[256] = ""; //The prefix!
 char debugger_command_text[256] = ""; //Current command!
 byte debugger_set = 0; //Debugger set?
+uint_32 debugger_index = 0; //Current debugger index!
 
 extern byte dosoftreset; //To soft-reset?
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS for CPU info!
@@ -31,6 +33,17 @@ CPU_registers debuggerregisters; //Backup of the CPU's register states before th
 extern uint_32 MMU_lastwaddr; //What address is last addresses in actual memory?
 extern byte MMU_lastwdata;
 
+#include "headers/packed.h" //Packed!
+typedef struct PACKED
+{
+	word CS, SS, DS, ES; //16-bit segment registers!
+	word AX, BX, CX, DX; //16-bit GP registers!
+	word SI, DI, SP, BP;
+	word IP;
+	word FLAGS;
+} VERIFICATIONDATA;
+#include "headers/endpacked.h" //End packed!
+
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
 	memcpy(&debuggerregisters,CPU[activeCPU].registers,sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
@@ -40,6 +53,63 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 	strcpy(debugger_prefix,"");
 	strcpy(debugger_command_text,"<DEBUGGER UNKOP NOT IMPLEMENTED>"); //Standard: unknown opcode!
 	debugger_set = 0; //Default: the debugger isn't implemented!
+
+	if (debugger_logging()) //To log?
+	{
+		if (file_exists("debuggerverify16.dat")) //Verification file exists?
+		{
+			VERIFICATIONDATA verify, originalverify;
+			originalverify.CS = debuggerregisters.CS;
+			originalverify.SS = debuggerregisters.SS;
+			originalverify.DS = debuggerregisters.DS;
+			originalverify.ES = debuggerregisters.ES;
+			originalverify.SI = debuggerregisters.SI;
+			originalverify.DI = debuggerregisters.DI;
+			originalverify.SP = debuggerregisters.SP;
+			originalverify.BP = debuggerregisters.BP;
+			originalverify.AX = debuggerregisters.AX;
+			originalverify.BX = debuggerregisters.BX;
+			originalverify.CX = debuggerregisters.CX;
+			originalverify.DX = debuggerregisters.DX;
+			originalverify.IP = debuggerregisters.IP;
+			originalverify.FLAGS = debuggerregisters.FLAGS;
+			FILE *f;
+			f = fopen64("debuggerverify16.dat", "r"); //Open verify data!
+			if (fseek64(f, debugger_index*sizeof(verify), SEEK_SET) == 0) //OK?
+			{
+				if (fread64(&verify, 1, sizeof(verify), f) == sizeof(verify)) //OK?
+				{
+					verify.FLAGS |= 0xF000; //Make it equal to our version of the flags!
+					if (memcmp(&verify, &originalverify, sizeof(verify)) != 0) //Not equal?
+					{
+						dolog("debugger", "Invalid data according to debuggerverify.dat before exexuting the following instruction:");
+						debugger_logregisters(&debuggerregisters); //Log the original registers!
+						//Apply the debugger registers to the actual register set!
+						CPU[activeCPU].registers->CS = verify.CS;
+						CPU[activeCPU].registers->SS = verify.SS;
+						CPU[activeCPU].registers->DS = verify.DS;
+						CPU[activeCPU].registers->ES = verify.ES;
+						CPU[activeCPU].registers->SI = verify.SI;
+						CPU[activeCPU].registers->DI = verify.DI;
+						CPU[activeCPU].registers->SP = verify.SP;
+						CPU[activeCPU].registers->BP = verify.BP;
+						CPU[activeCPU].registers->AX = verify.AX;
+						CPU[activeCPU].registers->BX = verify.BX;
+						CPU[activeCPU].registers->CX = verify.CX;
+						CPU[activeCPU].registers->DX = verify.DX;
+						CPU[activeCPU].registers->IP = verify.IP;
+						CPU[activeCPU].registers->FLAGS = verify.FLAGS;
+						dolog("debugger", "Expected:");
+						debugger_logregisters(CPU[activeCPU].registers); //Log the correct registers!
+						//Refresh our debugger registers!
+						memcpy(CPU[activeCPU].registers,&debuggerregisters, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
+					}
+				}
+			}
+			fclose64(f); //Close the file!
+			++debugger_index; //Increase the index to verify!
+		}
+	}
 }
 
 char flags[256]; //Flags as a text!
