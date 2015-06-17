@@ -16,6 +16,8 @@
 //Log flags only?
 //#define LOGFLAGSONLY
 
+byte forcerepeat = 0; //Force repeat log?
+
 byte allow_debuggerstep = 0; //Disabled by default: needs to be enabled by our BIOS!
 
 char debugger_prefix[256] = ""; //The prefix!
@@ -103,6 +105,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 						debugger_logregisters(CPU[activeCPU].registers); //Log the correct registers!
 						//Refresh our debugger registers!
 						memcpy(CPU[activeCPU].registers,&debuggerregisters, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
+						forcerepeat = 1; //Force repeat log!
 					}
 				}
 			}
@@ -265,7 +268,11 @@ byte needdebugger() //Do we need to generate debugging information?
 
 void debugger_autolog()
 {
-	if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised)) return; //Are we the same address as the executing command and no fault has been raised? We're a repeat operation!
+	if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised) && (!forcerepeat))
+	{
+		return; //Are we the same address as the executing command and no fault has been raised? We're a repeat operation!
+	}
+	forcerepeat = 0; //Don't force repeats anymore if forcing!
 
 	if (debugger_logging()) //To log?
 	{
