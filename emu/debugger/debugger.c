@@ -43,12 +43,30 @@ typedef struct PACKED
 	word SI, DI, SP, BP;
 	word IP;
 	word FLAGS;
+	word type; //Special type indication!
 } VERIFICATIONDATA;
 #include "headers/endpacked.h" //End packed!
 
+byte readverification(uint_32 index, VERIFICATIONDATA *entry)
+{
+	FILE *f;
+	f = fopen64("debuggerverify16.dat", "r"); //Open verify data!
+	if (fseek64(f, index*sizeof(*entry), SEEK_SET) == 0) //OK?
+	{
+		if (fread64(entry, 1, sizeof(*entry), f) == sizeof(*entry)) //OK?
+		{
+			fclose64(f); //Close the file!
+			return 1; //Read!
+		}
+	}
+	fclose64(f); //Close the file!
+	return 0; //Error reading the entry!
+}
+
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
-	memcpy(&debuggerregisters,CPU[activeCPU].registers,sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
+	static VERIFICATIONDATA verify, originalverify;
+	memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
 	//Initialise debugger texts!
 	bzero(debugger_prefix,sizeof(debugger_prefix));
 	bzero(debugger_command_text,sizeof(debugger_command_text)); //Init vars!
@@ -60,7 +78,26 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 	{
 		if (file_exists("debuggerverify16.dat")) //Verification file exists?
 		{
-			VERIFICATIONDATA verify, originalverify;
+			nextspecial: //Special entry loop!
+			if (readverification(debugger_index, &verify)) //Read the current index?
+			{
+				if (verify.type) //Special type?
+				{
+					switch (verify.type) //What type?
+					{
+					case 1: //Trap/SW Interrupt?
+						dolog("debugger", "debuggerverify.dat: Trapped Interrupt: %04X", verify.CS); //Trap interrupt!
+						break;
+					case 2: //PIC Interrupt toggle?
+						dolog("debugger", "debuggerverify.dat: HW Interrupt: %04X", verify.CS); //HW interrupt!
+						break;
+					default: //Unknown?
+						break; //Skip unknown special types: we don't handle them!
+					}
+					++debugger_index; //Skip this entry!
+					goto nextspecial; //Check the next entry for special types/normal type!
+				}
+			}
 			originalverify.CS = debuggerregisters.CS;
 			originalverify.SS = debuggerregisters.SS;
 			originalverify.DS = debuggerregisters.DS;
@@ -76,41 +113,35 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 			originalverify.IP = debuggerregisters.IP;
 			originalverify.FLAGS = debuggerregisters.FLAGS;
 			FILE *f;
-			f = fopen64("debuggerverify16.dat", "r"); //Open verify data!
-			if (fseek64(f, debugger_index*sizeof(verify), SEEK_SET) == 0) //OK?
+			if (readverification(debugger_index++,&verify)) //Read the verification entry!
 			{
-				if (fread64(&verify, 1, sizeof(verify), f) == sizeof(verify)) //OK?
+				verify.FLAGS |= 0xF000; //Make it equal to our version of the flags!
+				if (memcmp(&verify, &originalverify, sizeof(verify)) != 0) //Not equal?
 				{
-					verify.FLAGS |= 0xF000; //Make it equal to our version of the flags!
-					if (memcmp(&verify, &originalverify, sizeof(verify)) != 0) //Not equal?
-					{
-						dolog("debugger", "Invalid data according to debuggerverify.dat before exexuting the following instruction:");
-						debugger_logregisters(&debuggerregisters); //Log the original registers!
-						//Apply the debugger registers to the actual register set!
-						CPU[activeCPU].registers->CS = verify.CS;
-						CPU[activeCPU].registers->SS = verify.SS;
-						CPU[activeCPU].registers->DS = verify.DS;
-						CPU[activeCPU].registers->ES = verify.ES;
-						CPU[activeCPU].registers->SI = verify.SI;
-						CPU[activeCPU].registers->DI = verify.DI;
-						CPU[activeCPU].registers->SP = verify.SP;
-						CPU[activeCPU].registers->BP = verify.BP;
-						CPU[activeCPU].registers->AX = verify.AX;
-						CPU[activeCPU].registers->BX = verify.BX;
-						CPU[activeCPU].registers->CX = verify.CX;
-						CPU[activeCPU].registers->DX = verify.DX;
-						CPU[activeCPU].registers->IP = verify.IP;
-						CPU[activeCPU].registers->FLAGS = verify.FLAGS;
-						dolog("debugger", "Expected:");
-						debugger_logregisters(CPU[activeCPU].registers); //Log the correct registers!
-						//Refresh our debugger registers!
-						memcpy(CPU[activeCPU].registers,&debuggerregisters, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
-						forcerepeat = 1; //Force repeat log!
-					}
+					dolog("debugger", "Invalid data according to debuggerverify.dat before exexuting the following instruction:");
+					debugger_logregisters(&debuggerregisters); //Log the original registers!
+					//Apply the debugger registers to the actual register set!
+					CPU[activeCPU].registers->CS = verify.CS;
+					CPU[activeCPU].registers->SS = verify.SS;
+					CPU[activeCPU].registers->DS = verify.DS;
+					CPU[activeCPU].registers->ES = verify.ES;
+					CPU[activeCPU].registers->SI = verify.SI;
+					CPU[activeCPU].registers->DI = verify.DI;
+					CPU[activeCPU].registers->SP = verify.SP;
+					CPU[activeCPU].registers->BP = verify.BP;
+					CPU[activeCPU].registers->AX = verify.AX;
+					CPU[activeCPU].registers->BX = verify.BX;
+					CPU[activeCPU].registers->CX = verify.CX;
+					CPU[activeCPU].registers->DX = verify.DX;
+					CPU[activeCPU].registers->IP = verify.IP;
+					CPU[activeCPU].registers->FLAGS = verify.FLAGS;
+					dolog("debugger", "Expected:");
+					debugger_logregisters(CPU[activeCPU].registers); //Log the correct registers!
+					//Refresh our debugger registers!
+					memcpy(CPU[activeCPU].registers,&debuggerregisters, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
+					forcerepeat = 1; //Force repeat log!
 				}
 			}
-			fclose64(f); //Close the file!
-			++debugger_index; //Increase the index to verify!
 		}
 	}
 }
