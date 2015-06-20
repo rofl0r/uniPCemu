@@ -24,6 +24,8 @@ extern GPU_TEXTSURFACE *frameratesurface;
 extern byte allow_RETHalt; //Allow RET(level<0)=HALT?
 extern byte LOG_MMU_WRITES; //Log MMU writes?
 
+extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
+
 int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 {
 	dolog("debugger","RunROMVerify...");
@@ -93,7 +95,6 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	allow_debuggerstep = 1; //Allow stepping of the debugger!
 	for (;!CPU[activeCPU].halt;) //Still running?
 	{
-		if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) CPU8086_hardware_int(nextintr(),0,0); //get next interrupt from the i8259, if any
 		uint_32 curaddr = (CPU[activeCPU].registers->CS<<4)+CPU[activeCPU].registers->IP; //Calculate current memory address!
 		if (curaddr<0xF0000) //Out of executable range?
 		{
@@ -103,7 +104,14 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		}
 		lastaddr = curaddr; //Save the current address for reference of the error address!
 		cpudebugger = needdebugger(); //Debugging?
+		HWINT_saved = 0; //No HW interrupt by default!
 		CPU_beforeexec(); //Everything before the execution!
+		if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt())
+		{
+			HWINT_nr = nextintr(); //Get the HW interrupt nr!
+			HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
+			call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
+		}
 		CPU_exec(); //Run CPU!
 		debugger_step(); //Step debugger if needed!
 		CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!

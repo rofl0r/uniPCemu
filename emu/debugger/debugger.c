@@ -63,6 +63,8 @@ byte readverification(uint_32 index, VERIFICATIONDATA *entry)
 	return 0; //Error reading the entry!
 }
 
+extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
+
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
 	static VERIFICATIONDATA verify, originalverify;
@@ -78,6 +80,20 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 	{
 		if (file_exists("debuggerverify16.dat")) //Verification file exists?
 		{
+			if (HWINT_saved) //Saved HW interrupt?
+			{
+				switch (HWINT_saved)
+				{
+				case 1: //Trap/SW Interrupt?
+					dolog("debugger", "Trapped interrupt: %04X", HWINT_nr);
+					break;
+				case 2: //PIC Interrupt toggle?
+					dolog("debugger", "HW interrupt: %04X", HWINT_nr);
+					break;
+				default: //Unknown?
+					break;
+				}
+			}
 			nextspecial: //Special entry loop!
 			if (readverification(debugger_index, &verify)) //Read the current index?
 			{

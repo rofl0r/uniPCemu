@@ -654,8 +654,6 @@ void CPU_OP(byte OP) //Normal CPU opcode execution!
 	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the jmptbl.
 }
 
-extern byte primaryinterrupt; //Have we gotten a primary interrupt (first PIC)?
-
 void CPU_beforeexec()
 {
 	if (CPU[activeCPU].registers->SFLAGS.TF) //Trapped?
@@ -960,8 +958,12 @@ void CPU_exDIV0() //Division by 0!
 	CPU_customint(0,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
 }
 
+extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
+
 void CPU_exSingleStep() //Single step (after the opcode only)
 {
+	HWINT_nr = 1; //Trapped INT NR!
+	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
 	CPU_INT(1); //Execute INT1 normally using current CS:(E)IP!
 }

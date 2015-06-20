@@ -357,6 +357,8 @@ uint_64 singlestepaddress = 0x00007C51; //The segment:offset address!
 
 extern byte interruptsaved; //Primary interrupt saved?
 
+byte HWINT_nr = 0, HWINT_saved = 0; //HW interrupt saved?
+
 byte coreHandler()
 {
 	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
@@ -392,10 +394,16 @@ byte coreHandler()
 
 			cpudebugger = needdebugger(); //Debugging information required?
 
+			HWINT_saved = 0; //No HW interrupt by default!
 			CPU_beforeexec(); //Everything before the execution!
 			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
 			{
-				if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) call_hard_inthandler(nextintr()); //get next interrupt from the i8259, if any
+				if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt())
+				{
+					HWINT_nr = nextintr(); //Get the HW interrupt nr!
+					HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
+					call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
+				}
 			}
 			CPU_exec(); //Run CPU!
 		}
