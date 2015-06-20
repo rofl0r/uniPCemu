@@ -4,6 +4,7 @@
 
 byte resolutioninit = 1; //Resolution is loaded?
 double tickresolution = 0.0f; //Our tick resolution, initialised!
+byte tickresolution_win_SDL = 0; //Force SDL rendering?
 
 void initTicksHolder(TicksHolder *ticksholder)
 {
@@ -12,7 +13,25 @@ void initTicksHolder(TicksHolder *ticksholder)
 	uint_32 oldtimes;
 	if (resolutioninit) //Not loaded yet?
 	{
+#ifdef __psp__
+		tickresolution = sceRtcGetTickResolution(); //Get the tick resolution, as defined on the PSP!
+#else
+#ifdef _WIN32
+		LARGE_INTEGER tickresolution_win;
+		if (QueryPerformanceFrequency(&tickresolution_win))
+		{
+			tickresolution = (double)tickresolution_win.QuadPart; //Apply the tick resolution!
+			tickresolution_win_SDL = 0; //Don't force SDL!
+		}
+		else //SDL fallback?
+		{
+			tickresolution = 1000.0f;
+			tickresolution_win_SDL = 1; //Force SDL!
+		}
+#else
 		tickresolution = 1000.0f; //We have a resolution in ms as given by SDL!
+#endif
+#endif
 		resolutioninit = 0; //We're ready to run!
 	}
 	memset(ticksholder,0,sizeof(*ticksholder)); //Clear the holder!
@@ -25,14 +44,27 @@ void ticksholder_AVG(TicksHolder *ticksholder)
 
 u64 getcurrentticks() //Retrieve the current ticks!
 {
-	/*u64 result = 0; //The result!
+	u64 result = 0; //The result!
+#ifdef __psp__
 	if (!sceRtcGetCurrentTick(&result)) //Try to retrieve current ticks as old ticks until we get it!
 	{
 		return result; //Give the result!
 	}
 	return 0; //Give the result: ticks passed!
-	*/
-	return (u64)SDL_GetTicks(); //Give the ticks passed!
+#else
+#ifdef _WIN32
+	if (!tickresolution_win_SDL) //Not forcing SDL?
+	{
+		LARGE_INTEGER temp;
+		if (QueryPerformanceCounter(&temp))
+		{
+			return (u64)temp.QuadPart; //Give the result by the performance counter of windows!
+		}
+	}
+	return 0; //Unknown time passed!
+#endif
+#endif
+	return (u64)SDL_GetTicks(); //Give the ticks passed using SDL default handling!
 }
 
 OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
