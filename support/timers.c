@@ -9,7 +9,7 @@
 #define __HW_DISABLED 0
 
 //Timer step in us! Originally 100ms now 10000?
-#define TIMER_STEP 0
+#define TIMER_STEP 1
 
 //Log running timers (error/timing search only!)
 //#define TIMER_LOG

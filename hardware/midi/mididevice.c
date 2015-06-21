@@ -178,7 +178,7 @@ Voice support
 
 */
 
-OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *voice, float Volume) //Get a sample from an MIDI note!
+OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, uint_64 play_counter, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	register uint_32 temp;
@@ -188,15 +188,14 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 	static sword readsample; //The sample retrieved!
 	byte loopflags;
 
-	samplepos = voice->play_counter; //Load the current play counter!
-	samplepos *= voice->effectivesamplespeedup; //Affect speed through cents and other factors!
+	samplepos = play_counter; //Load the current play counter!
+	samplepos *= samplespeedup; //Affect speed through cents and other factors!
 	samplepos += voice->startaddressoffset; //The start of the sample!
 
 	//First: apply looping! We don't apply [bit 1=0] (Loop infinite until finished), because we have no ADSR envelope yet!
 	loopflags = voice->currentloopflags;
-	if (voice->VolumeEnvelope.active) //Active voice?
+	if (!(voice->has_finallooppos && (voice->finallooppos >= play_counter))) //Not executing final loop?
 	{
-		++voice->play_counter; //Disable increasing the counter when inactive: keep the same position!
 		if (loopflags & 1) //Currently looping and active?
 		{
 			if (samplepos >= voice->endloopaddressoffset) //Past/at the end of the loop!
@@ -210,21 +209,28 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, MIDIDEVICE_VOICE *v
 				{
 					if (loopflags & 2) //Loop until depress?
 					{
-						voice->currentloopflags = 0; //Disable loop flags: we're not looping anymore!
-						//Loop for the last time!
-						temppos = samplepos; //Load the samplepos within the loop!
-						temppos -= voice->startaddressoffset; //Go back to the multiplied offset!
-						temppos /= voice->effectivesamplespeedup; //Calculate our play counter to use!
-						voice->play_counter = temppos; //Possibly our new position to start at!
+						if (!voice->has_finallooppos) //No final loop position set yet?
+						{
+							voice->currentloopflags &= ~0x80; //Clear depress bit!
+							//Loop for the last time!
+							temppos = samplepos; //Load the samplepos within the loop!
+							temppos -= voice->startaddressoffset; //Go back to the multiplied offset!
+							temppos /= voice->effectivesamplespeedup; //Calculate our play counter to use!
+							voice->finallooppos = temppos; //Possibly our new position to start at!
+							voice->has_finallooppos = 1; //We have a final loop position set!
+						}
 					}
 				}
 			}
 		}
 	}
+	else
+	{
+		samplepos -= voice->finallooppos; //Take the tail of the signal!
+	}
 
 	//Next, apply finish!
 	loopflags = (samplepos >= voice->endaddressoffset); //Expired?
-	loopflags |= !voice->VolumeEnvelope.active; //Inactive?
 	if (loopflags) //Sound is finished?
 	{
 		sample->l = sample->r = 0; //No sample!
@@ -310,14 +316,17 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (voice->request_off) //Requested turn off?
 	{
 		voice->currentloopflags |= 0x80; //Request quit looping if needed: finish sound!
-		voice->currentloopflags &= ~0x40; //Sustain disabled by default!
-		voice->currentloopflags |= (channel->sustain << 6); //Sustaining?
 	} //Requested off?
+
+	//Apply sustain
+	voice->currentloopflags &= ~0x40; //Sustain disabled by default!
+	voice->currentloopflags |= (channel->sustain << 6); //Sustaining?
+
 	//Now produce the sound itself!
 	for (; --numsamples;) //Produce the samples!
 	{
-		VolumeEnvelope = ADSR_tick(VolumeADSR, (channel->sustain) || ((voice->currentloopflags & 0xC0) != 0x80),velocity_factor, voice->note->noteoff_velocity); //Apply Volume Envelope!
-		MIDIDEVICE_getsample(ubuf++, voice, VolumeEnvelope); //Get the sample from the MIDI device!
+		VolumeEnvelope = ADSR_tick(VolumeADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x40),velocity_factor, voice->note->noteoff_velocity); //Apply Volume Envelope!
+		MIDIDEVICE_getsample(ubuf++, voice->play_counter++, voice->effectivesamplespeedup, voice, VolumeEnvelope); //Get the sample from the MIDI device!
 	}
 
 	voice->CurrentVolumeEnvelope = VolumeEnvelope; //Current volume envelope updated!
@@ -354,6 +363,8 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return 0; //We're unable to render anything!
 	if (voice->VolumeEnvelope.active) return 1; //Active voices can't be allocated!
+
+	memset(voice, 0, sizeof(*voice)); //Clear the voice!
 
 	//Check for requested voices!
 	//First, all our variables!

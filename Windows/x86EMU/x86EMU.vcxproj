@@ -283,7 +283,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IntDir>$(TEMP)</IntDir>
+    <IntDir>$(TEMP)\$(ProjectName)</IntDir>
     <IncludePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
     <ReferencePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\lib\x86;$(ReferencePath)</ReferencePath>
     <LibraryPath>C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\lib\x86;$(LibraryPath)</LibraryPath>
@@ -295,7 +295,7 @@
     <ReferencePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\lib\x86;$(ReferencePath)</ReferencePath>
     <LibraryPath>C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\lib\x86;$(LibraryPath)</LibraryPath>
     <OutDir>\psp-projects_build\$(ProjectName)</OutDir>
-    <IntDir>\temp$(ProjectName)</IntDir>
+    <IntDir>$(TEMP)\$(ProjectName)</IntDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

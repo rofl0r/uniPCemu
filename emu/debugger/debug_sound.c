@@ -13,12 +13,12 @@
 //Test the speaker?
 //#define __DEBUG_SPEAKER
 //Test the Adlib?
-#define __DEBUG_ADLIB
+//#define __DEBUG_ADLIB
 
 //Test MIDI?
-//#define __DEBUG_MIDI
+#define __DEBUG_MIDI
 //Test MIDI using MID file?
-//#define __DEBUG_MPUMID 1
+#define __DEBUG_MPUMID 1
 
 void adlibsetreg(byte reg,byte val)
 {
@@ -110,7 +110,6 @@ void handleMIDIChannel()
 	nextchannel: //Play next channel when type 2!
 	playMIDIStream(channel,MID_data[channel], &header, &MID_tracks[channel]); //Play the MIDI stream!
 	SDL_SemWait(MID_channel_Lock);
-	--MID_RUNNING; //Done!
 	if (byteswap16(header.format) == 2) //Multiple tracks to be played after one another?
 	{
 		timing_pos = 0; //Reset the timing position!
@@ -120,6 +119,7 @@ void handleMIDIChannel()
 		goto nextchannel; //Process the next channel now!
 	}
 	finish:
+	--MID_RUNNING; //Done!
 	SDL_SemPost(MID_channel_Lock);
 }
 
@@ -274,10 +274,14 @@ void dosoundtest()
 		MID_RUNNING = numchannels; //Init to all running!
 		for (i = 0; i < numchannels; i++)
 		{
-			if (!i || (byteswap16(header.format) < 2)) //All channels, or only first channel with format 2!
+			if (!i || (byteswap16(header.format) == 1)) //One channel, or multiple channels with format 2!
 			{
 				startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)i, DEFAULT_PRIORITY); //Start a thread handling the output of the channel!
 			}
+		}
+		if (byteswap16(header.format) != 1) //One channel only?
+		{
+			MID_RUNNING = 1; //Only one channel running!
 		}
 
 		delay(10000); //Wait a bit to allow for initialisation (position 0) to run!
@@ -359,6 +363,7 @@ void dosoundtest()
 		delay(1000000); //Wait 1 second!
 		++i; //Next note!
 	}
+	delay(10000000);
 	#endif
 	
 	//printmsg(0xF,"Testing for adlib...");

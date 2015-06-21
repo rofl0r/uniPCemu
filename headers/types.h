@@ -41,16 +41,22 @@
 #define __ENABLE_INLINE
 
 //Our basic functionality we need for running this program!
-//We have less accuracy using SDL delay: ms instead of us. Round to 1ms if needed!
+//We have less accuracy using SDL delay: ms instead of us. Round to 0ms(minimal time) if needed!
 #ifdef __psp__
-#define delay(us) sceKernelDelayThread(us)
+#define delay sceKernelDelayThread
 #define sleep sceKernelSleepThread
+#define halt sceKernelExitGame
+#define mkdir(dir) sceIoMkdir(dir,0777)
 #else
-#define delay(us) SDL_Delay(((us)>=1000)?((us)/1000):1)
-//Sleep is an infinite delay
+#define delay(us) SDL_Delay((uint_32)((us)/1000))
 #define sleep() for (;;) delay(1000000)
-#endif
 #define halt SDL_Quit
+#ifdef _WIN32
+//Windows-specific headers!
+#include <direct.h> //For mkdir!
+#define mkdir _mkdir
+#endif
+#endif
 
 #ifndef uint_64
 #define uint_64 uint64_t
@@ -65,20 +71,6 @@
 //Short versions of 64-bit integers!
 #define u64 uint_64
 #define s64 int_64
-
-#ifdef _WIN32
-//Windows-specific headers!
-#include <direct.h> //For mkdir!
-#define mkdir _mkdir
-#else
-//Basic PSP headers!
-/*
-#define delay sceKernelDelayThread
-#define sleep sceKernelSleepThread
-#define halt sceKernelExitGame
-#define mkdir(dir) sceIoMkdir(dir,0777)
-*/
-#endif
 
 #define bzero(v,size) memset(v,0,size)
 
