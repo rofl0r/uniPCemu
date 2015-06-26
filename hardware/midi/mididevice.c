@@ -178,59 +178,59 @@ Voice support
 
 */
 
-OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, uint_64 play_counter, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume) //Get a sample from an MIDI note!
+OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_counter, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	register uint_32 temp;
-	register uint_32 temppos;
-	register uint_32 samplepos;
+	register int_64 temppos;
+	register int_64 samplepos;
 	sword lchannel, rchannel; //Both channels to use!
 	static sword readsample; //The sample retrieved!
-	byte loopflags;
+	byte loopflags; //Flags used during looping!
 
 	samplepos = play_counter; //Load the current play counter!
 	samplepos *= samplespeedup; //Affect speed through cents and other factors!
 	samplepos += voice->startaddressoffset; //The start of the sample!
 
-	//First: apply looping! We don't apply [bit 1=0] (Loop infinite until finished), because we have no ADSR envelope yet!
+	//First: apply looping!
 	loopflags = voice->currentloopflags;
-	if (!(voice->has_finallooppos && (voice->finallooppos >= play_counter))) //Not executing final loop?
+	if (voice->has_finallooppos && (samplepos >= voice->finallooppos)) //Executing final loop?
 	{
-		if (loopflags & 1) //Currently looping and active?
+		samplepos -= voice->finallooppos; //Take the relative offset to the start of the final loop!
+		samplepos += voice->finallooppos_playcounter; //Add the relative offset to the start of our data of the final loop!
+	}
+	else if (loopflags & 1) //Currently looping and active?
+	{
+		if (samplepos >= voice->endloopaddressoffset) //Past/at the end of the loop!
 		{
-			if (samplepos >= voice->endloopaddressoffset) //Past/at the end of the loop!
+			if ((loopflags & 0xC2) == 0x82) //We're depressed, depress action is allowed (not holding) and looping until depressed?
 			{
-				temp = voice->startloopaddressoffset; //The actual start of the loop!
-				//Calculate loop size!
-				samplepos -= temp; //Take the ammount past the start of the loop!
-				samplepos %= voice->loopsize; //Loop past startloop by endloop!
-				samplepos += temp; //The destination position within the loop!
-				if ((loopflags & 0xC0) == 0x80) //We're depressed and depress action is allowed (not holding)?
+				if (!voice->has_finallooppos) //No final loop position set yet?
 				{
-					if (loopflags & 2) //Loop until depress?
-					{
-						if (!voice->has_finallooppos) //No final loop position set yet?
-						{
-							voice->currentloopflags &= ~0x80; //Clear depress bit!
-							//Loop for the last time!
-							temppos = samplepos; //Load the samplepos within the loop!
-							temppos -= voice->startaddressoffset; //Go back to the multiplied offset!
-							temppos /= voice->effectivesamplespeedup; //Calculate our play counter to use!
-							voice->finallooppos = temppos; //Possibly our new position to start at!
-							voice->has_finallooppos = 1; //We have a final loop position set!
-						}
-					}
+					voice->currentloopflags &= ~0x80; //Clear depress bit!
+					//Loop for the last time!
+					voice->finallooppos = samplepos; //Our new position for our final execution till the end!
+					voice->has_finallooppos = 1; //We have a final loop position set!
+					loopflags |= 0x20; //We're to update our final loop start!
 				}
+			}
+
+			//Loop according to loop data!
+			temp = voice->startloopaddressoffset; //The actual start of the loop!
+			//Loop the data!
+			samplepos -= temp; //Take the ammount past the start of the loop!
+			samplepos %= voice->loopsize; //Loop past startloop by endloop!
+			samplepos += temp; //The destination position within the loop!
+			//Check for depress special actions!
+			if (loopflags&0x20) //Extra information needed for the final loop?
+			{
+				voice->finallooppos_playcounter = samplepos; //The start position within the loop to use!
 			}
 		}
 	}
-	else
-	{
-		samplepos -= voice->finallooppos; //Take the tail of the signal!
-	}
 
 	//Next, apply finish!
-	loopflags = (samplepos >= voice->endaddressoffset); //Expired?
+	loopflags = (samplepos >= voice->endaddressoffset) || (play_counter<0); //Expired or not started yet?
 	if (loopflags) //Sound is finished?
 	{
 		sample->l = sample->r = 0; //No sample!
@@ -325,7 +325,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Now produce the sound itself!
 	for (; --numsamples;) //Produce the samples!
 	{
-		VolumeEnvelope = ADSR_tick(VolumeADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x40),velocity_factor, voice->note->noteoff_velocity); //Apply Volume Envelope!
+		VolumeEnvelope = ADSR_tick(VolumeADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),velocity_factor, voice->note->noteoff_velocity); //Apply Volume Envelope!
 		MIDIDEVICE_getsample(ubuf++, voice->play_counter++, voice->effectivesamplespeedup, voice, VolumeEnvelope); //Get the sample from the MIDI device!
 	}
 
@@ -334,12 +334,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 #ifdef LOG_MIDI_TIMING
 	stopHiresCounting("MIDIDEV", "MIDIRenderer", &ticks); //Log our active counting!
 #endif
-
-	if (!voice->VolumeEnvelope.active) //Inactive voice?
-	{
-		//Get our data concerning the release!
-		voice->request_off = 0; //Finished: we're turned off!
-	}
 
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }

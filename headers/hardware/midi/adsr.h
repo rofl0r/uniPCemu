@@ -21,7 +21,7 @@
 typedef struct
 {
 	//ADSR
-	uint_64 attackstart, holdstart, decaystart, sustainstart, releasestart, releasedstart;
+	int_64 attackstart, holdstart, decaystart, sustainstart, releasestart, releasedstart;
 	uint_32 delay, attack, hold, decay, sustain, release; //All lengths and start positions when applied!
 	uint_32 attackend, holdend, decayend; //End position of each of the phases, precalculated!
 	float attackfactor, decayfactor, sustainfactor, releasefactor;
@@ -31,5 +31,5 @@ typedef struct
 } ADSR; //An ADSR's data!
 
 void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, sword relKeynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup); //Initialise an ADSR!
-float ADSR_tick(ADSR *adsr, uint_64 play_counter, byte sustain, float noteon_velocity, byte releasevelocity); //Tick an ADSR!
+float ADSR_tick(ADSR *adsr, int_64 play_counter, byte sustain, float noteon_velocity, byte releasevelocity); //Tick an ADSR!
 #endif

@@ -50,10 +50,10 @@ typedef struct
 
 typedef struct
 {
-	uint_32 play_counter; //Current play position within the soundfont!
+	int_64 play_counter; //Current play position within the soundfont!
 	uint_32 loopsize; //The size of a loop!
-	uint_32 finallooppos; //Final loop position!
-	uint_32 finallooppos_playcounter; //Play counter at the final loop position we've calculated!
+	int_64 finallooppos; //Final loop position!
+	int_64 finallooppos_playcounter; //Play counter at the final loop position we've calculated!
 	//Patches to the sample offsets, calculated before generating sound!
 	uint_32 startaddressoffset;
 	uint_32 startloopaddressoffset;
