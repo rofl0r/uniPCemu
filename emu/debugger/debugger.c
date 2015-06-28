@@ -131,7 +131,6 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 			FILE *f;
 			if (readverification(debugger_index++,&verify)) //Read the verification entry!
 			{
-				verify.FLAGS |= 0xF000; //Make it equal to our version of the flags!
 				if (memcmp(&verify, &originalverify, sizeof(verify)) != 0) //Not equal?
 				{
 					dolog("debugger", "Invalid data according to debuggerverify.dat before exexuting the following instruction:");

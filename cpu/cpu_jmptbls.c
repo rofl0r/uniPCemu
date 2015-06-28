@@ -15,10 +15,12 @@ Indexes:
 2: 80286
 3: 80386
 4: 80486
+5: PENTIUM
 0F Opcode:
 0: 80286
 1: 80386
 2: 80486
+3: PENTIUM
 
 */
 
@@ -27,9 +29,8 @@ Indexes:
 
 Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard interrupt jmptbl!
 {
+	//8086
 	{
-//8086
-
 //0x00:
 		{CPU8086_OP00,NULL}, //00h:
 		{CPU8086_OP01,NULL}, //01h:
@@ -303,9 +304,9 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{CPU8086_OPFE,NULL}, //FEh:
 		{CPU8086_OPFF,NULL},  //FFh:
 	},
-	{
-//80186
 
+	//80186
+	{
 //0x00:
 		{NULL,NULL}, //00h:
 		{NULL,NULL}, //01h:
@@ -578,561 +579,1110 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{NULL,NULL}, //FDh:
 		{NULL,NULL}, //FEh:
 		{CPU8086_OPFF,NULL}  //FFh:
+	},
+
+	//80286
+	{
+		//0x00:
+		{ NULL, NULL }, //00h:
+		{ NULL, NULL }, //01h:
+		{ NULL, NULL }, //02h:
+		{ NULL, NULL }, //03h:
+		{ NULL, NULL }, //04h:
+		{ NULL, NULL }, //05h:
+		{ NULL, NULL }, //06h:
+		{ NULL, NULL }, //07h:
+		{ NULL, NULL }, //08h:
+		{ NULL, NULL }, //09h:
+		{ NULL, NULL }, //0Ah:
+		{ NULL, NULL }, //0Bh:
+		{ NULL, NULL }, //0Ch:
+		{ NULL, NULL }, //0Dh:
+		{ NULL, NULL }, //0Eh:
+		{ NULL, NULL }, //0Fh: 80186 specific OPcode!
+		//0x10:
+		{ NULL, NULL }, //10h:
+		{ NULL, NULL }, //11h:
+		{ NULL, NULL }, //12h:
+		{ NULL, NULL }, //13h:
+		{ NULL, NULL }, //14h:
+		{ NULL, NULL }, //15h:
+		{ NULL, NULL }, //16h:
+		{ NULL, NULL }, //17h:
+		{ NULL, NULL }, //18h:
+		{ NULL, NULL }, //19h:
+		{ NULL, NULL }, //1Ah:
+		{ NULL, NULL }, //1Bh:
+		{ NULL, NULL }, //1Ch:
+		{ NULL, NULL }, //1Dh:
+		{ NULL, NULL }, //1Eh:
+		{ NULL, NULL }, //1Fh:
+		//0x20:
+		{ NULL, NULL }, //20h:
+		{ NULL, NULL }, //21h:
+		{ NULL, NULL }, //22h:
+		{ NULL, NULL }, //23h:
+		{ NULL, NULL }, //24h:
+		{ NULL, NULL }, //25h:
+		{ NULL, NULL }, //26h: Special
+		{ NULL, NULL }, //27h:
+		{ NULL, NULL }, //28h:
+		{ NULL, NULL }, //29h:
+		{ NULL, NULL }, //2Ah:
+		{ NULL, NULL }, //2Bh:
+		{ NULL, NULL }, //2Ch:
+		{ NULL, NULL }, //2Dh:
+		{ NULL, NULL }, //2Eh: Special
+		{ NULL, NULL }, //2Fh:
+		//0x30:
+		{ NULL, NULL }, //30h:
+		{ NULL, NULL }, //31h:
+		{ NULL, NULL }, //32h:
+		{ NULL, NULL }, //33h:
+		{ NULL, NULL }, //34h:
+		{ NULL, NULL }, //35h:
+		{ NULL, NULL }, //36h: Special
+		{ NULL, NULL }, //37h:
+		{ NULL, NULL }, //38h:
+		{ NULL, NULL }, //39h:
+		{ NULL, NULL }, //3Ah:
+		{ NULL, NULL }, //3Bh:
+		{ NULL, NULL }, //3Ch:
+		{ NULL, NULL }, //3Dh:
+		{ NULL, NULL }, //3Eh: Special
+		{ NULL, NULL }, //3Fh:
+		//0x40:
+		{ NULL, NULL }, //40h:
+		{ NULL, NULL }, //41h:
+		{ NULL, NULL }, //42h:
+		{ NULL, NULL }, //43h:
+		{ NULL, NULL }, //44h:
+		{ NULL, NULL }, //45h:
+		{ NULL, NULL }, //46h:
+		{ NULL, NULL }, //47h:
+		{ NULL, NULL }, //48h:
+		{ NULL, NULL }, //49h:
+		{ NULL, NULL }, //4Ah:
+		{ NULL, NULL }, //4Bh:
+		{ NULL, NULL }, //4Ch:
+		{ NULL, NULL }, //4Dh:
+		{ NULL, NULL }, //4Eh:
+		{ NULL, NULL }, //4Fh:
+		//0x50:
+		{ NULL, NULL }, //50h:
+		{ NULL, NULL }, //51h:
+		{ NULL, NULL }, //52h:
+		{ NULL, NULL }, //53h:
+		{ NULL, NULL }, //54h:
+		{ NULL, NULL }, //55h:
+		{ NULL, NULL }, //56h:
+		{ NULL, NULL }, //57h:
+		{ NULL, NULL }, //58h:
+		{ NULL, NULL }, //59h:
+		{ NULL, NULL }, //5Ah:
+		{ NULL, NULL }, //5Bh:
+		{ NULL, NULL }, //5Ch:
+		{ NULL, NULL }, //5Dh:
+		{ NULL, NULL }, //5Eh:
+		{ NULL, NULL }, //5Fh:
+		//0x60:
+		{ NULL, NULL }, //60h: PUSHA(removed here)
+		{ NULL, NULL }, //61h: POPA(removed here)
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //68h:
+		{ NULL, NULL }, //69h:
+		{ NULL, NULL }, //6Ah:
+		{ NULL, NULL }, //6Bh:
+		{ NULL, NULL }, //6Ch:
+		{ NULL, NULL }, //6Dh:
+		{ NULL, NULL }, //6Eh:
+		{ NULL, NULL }, //6Fh:
+		//0x70: Conditional JMP OPcodes:
+		{ NULL, NULL }, //70h:
+		{ NULL, NULL }, //71h:
+		{ NULL, NULL }, //72h:
+		{ NULL, NULL }, //73h:
+		{ NULL, NULL }, //74h:
+		{ NULL, NULL }, //75h:
+		{ NULL, NULL }, //76h:
+		{ NULL, NULL }, //77h:
+		{ NULL, NULL }, //78h:
+		{ NULL, NULL }, //79h:
+		{ NULL, NULL }, //7Ah:
+		{ NULL, NULL }, //7Bh:
+		{ NULL, NULL }, //7Ch:
+		{ NULL, NULL }, //7Dh:
+		{ NULL, NULL }, //7Eh:
+		{ NULL, NULL }, //7Fh:
+		//0x80:
+		{ NULL, NULL }, //80h:
+		{ NULL, NULL }, //81h:
+		{ NULL, NULL }, //82h:
+		{ NULL, NULL }, //83h:
+		{ NULL, NULL }, //84h:
+		{ NULL, NULL }, //85h:
+		{ NULL, NULL }, //86h:
+		{ NULL, NULL }, //87h:
+		{ NULL, NULL }, //88h:
+		{ NULL, NULL }, //89h:
+		{ NULL, NULL }, //8Ah:
+		{ NULL, NULL }, //8Bh:
+		{ NULL, NULL }, //8Ch:
+		{ NULL, NULL }, //8Dh:
+		{ NULL, NULL }, //8Eh:
+		{ NULL, NULL }, //8Fh:
+		//0x90:
+		{ NULL, NULL }, //90h:
+		{ NULL, NULL }, //91h:
+		{ NULL, NULL }, //92h:
+		{ NULL, NULL }, //93h:
+		{ NULL, NULL }, //94h:
+		{ NULL, NULL }, //95h:
+		{ NULL, NULL }, //96h:
+		{ NULL, NULL }, //97h:
+		{ NULL, NULL }, //98h:
+		{ NULL, NULL }, //99h:
+		{ NULL, NULL }, //9Ah:
+		{ NULL, NULL }, //9Bh:
+		{ NULL, NULL }, //9Ch:
+		{ NULL, NULL }, //9Dh:
+		{ NULL, NULL }, //9Eh:
+		{ NULL, NULL }, //9Fh:
+		//0xA0:
+		{ NULL, NULL }, //A0h:
+		{ NULL, NULL }, //A1h:
+		{ NULL, NULL }, //A2h:
+		{ NULL, NULL }, //A3h:
+		{ NULL, NULL }, //A4h:
+		{ NULL, NULL }, //A5h:
+		{ NULL, NULL }, //A6h:
+		{ NULL, NULL }, //A7h:
+		{ NULL, NULL }, //A8h:
+		{ NULL, NULL }, //A9h:
+		{ NULL, NULL }, //AAh:
+		{ NULL, NULL }, //ABh:
+		{ NULL, NULL }, //ACh:
+		{ NULL, NULL }, //ADh:
+		{ NULL, NULL }, //AEh:
+		{ NULL, NULL }, //AFh:
+		//0xB0:
+		{ NULL, NULL }, //B0h:
+		{ NULL, NULL }, //B1h:
+		{ NULL, NULL }, //B2h:
+		{ NULL, NULL }, //B3h:
+		{ NULL, NULL }, //B4h:
+		{ NULL, NULL }, //B5h:
+		{ NULL, NULL }, //B6h:
+		{ NULL, NULL }, //B7h:
+		{ NULL, NULL }, //B8h:
+		{ NULL, NULL }, //B9h:
+		{ NULL, NULL }, //BAh:
+		{ NULL, NULL }, //BBh:
+		{ NULL, NULL }, //BCh:
+		{ NULL, NULL }, //BDh:
+		{ NULL, NULL }, //BEh:
+		{ NULL, NULL }, //BFh:
+		//0xC0:
+		{ NULL, NULL }, //C0h:
+		{ NULL, NULL }, //C1h:
+		{ NULL, NULL }, //C2h:
+		{ NULL, NULL }, //C3h:
+		{ NULL, NULL }, //C4h:
+		{ NULL, NULL }, //C5h:
+		{ NULL, NULL }, //C6h:
+		{ NULL, NULL }, //C7h:
+		{ NULL, NULL }, //C8h:
+		{ NULL, NULL }, //C9h:
+		{ NULL, NULL }, //CAh:
+		{ NULL, NULL }, //CBh:
+		{ NULL, NULL }, //CCh:
+		{ NULL, NULL }, //CDh:
+		{ NULL, NULL }, //CEh:
+		{ NULL, NULL }, //CFh:
+		//0xD0:
+		{ NULL, NULL }, //D0h:
+		{ NULL, NULL }, //D1h:
+		{ NULL, NULL }, //D2h:
+		{ NULL, NULL }, //D3h:
+		{ NULL, NULL }, //D4h:
+		{ NULL, NULL }, //D5h:
+		{ NULL, NULL }, //D6h: UNK
+		{ NULL, NULL }, //D7h:
+		{ NULL, NULL }, //D8h: UNK
+		{ NULL, NULL }, //D9h: CoProcessor Minimum
+		{ NULL, NULL }, //DAh: UNK
+		{ NULL, NULL }, //DBh: CoProcessor Minimum
+		{ NULL, NULL }, //DCh: UNK
+		{ NULL, NULL }, //DDh: CoProcessor Minimum
+		{ NULL, NULL }, //DEh: UNK
+		{ NULL, NULL }, //DFh: COProcessor minimum
+		//0xE0:
+		{ NULL, NULL }, //E0h:
+		{ NULL, NULL }, //E1h:
+		{ NULL, NULL }, //E2h:
+		{ NULL, NULL }, //E3h:
+		{ NULL, NULL }, //E4h:
+		{ NULL, NULL }, //E5h:
+		{ NULL, NULL }, //E6h:
+		{ NULL, NULL }, //E7h:
+		{ NULL, NULL }, //E8h:
+		{ NULL, NULL }, //E9h:
+		{ NULL, NULL }, //EAh:
+		{ NULL, NULL }, //EBh:
+		{ NULL, NULL }, //ECh:
+		{ NULL, NULL }, //EDh:
+		{ NULL, NULL }, //EEh:
+		{ NULL, NULL }, //EFh:
+		//0xF0:
+		{ NULL, NULL }, //F0h: Special
+		{ NULL, NULL }, //F1h: UNK
+		{ NULL, NULL }, //F2h: Special
+		{ NULL, NULL }, //F3h: Special
+		{ NULL, NULL }, //F4h:
+		{ NULL, NULL }, //F5h:
+		{ NULL, NULL }, //F6h:
+		{ NULL, NULL }, //F7h:
+		{ NULL, NULL }, //F8h:
+		{ NULL, NULL }, //F9h:
+		{ NULL, NULL }, //FAh:
+		{ NULL, NULL }, //FBh:
+		{ NULL, NULL }, //FCh:
+		{ NULL, NULL }, //FDh:
+		{ NULL, NULL }, //FEh:
+		{ NULL, NULL }  //FFh:
+	},
+
+	//80386
+	{
+
+		//0x00:
+		{ NULL, NULL }, //00h:
+		{ NULL, NULL }, //01h:
+		{ NULL, NULL }, //02h:
+		{ NULL, NULL }, //03h:
+		{ NULL, NULL }, //04h:
+		{ NULL, NULL }, //05h:
+		{ NULL, NULL }, //06h:
+		{ NULL, NULL }, //07h:
+		{ NULL, NULL }, //08h:
+		{ NULL, NULL }, //09h:
+		{ NULL, NULL }, //0Ah:
+		{ NULL, NULL }, //0Bh:
+		{ NULL, NULL }, //0Ch:
+		{ NULL, NULL }, //0Dh:
+		{ NULL, NULL }, //0Eh:
+		{ NULL, NULL }, //0Fh: 80186 specific OPcode!
+		//0x10:
+		{ NULL, NULL }, //10h:
+		{ NULL, NULL }, //11h:
+		{ NULL, NULL }, //12h:
+		{ NULL, NULL }, //13h:
+		{ NULL, NULL }, //14h:
+		{ NULL, NULL }, //15h:
+		{ NULL, NULL }, //16h:
+		{ NULL, NULL }, //17h:
+		{ NULL, NULL }, //18h:
+		{ NULL, NULL }, //19h:
+		{ NULL, NULL }, //1Ah:
+		{ NULL, NULL }, //1Bh:
+		{ NULL, NULL }, //1Ch:
+		{ NULL, NULL }, //1Dh:
+		{ NULL, NULL }, //1Eh:
+		{ NULL, NULL }, //1Fh:
+		//0x20:
+		{ NULL, NULL }, //20h:
+		{ NULL, NULL }, //21h:
+		{ NULL, NULL }, //22h:
+		{ NULL, NULL }, //23h:
+		{ NULL, NULL }, //24h:
+		{ NULL, NULL }, //25h:
+		{ NULL, NULL }, //26h: Special
+		{ NULL, NULL }, //27h:
+		{ NULL, NULL }, //28h:
+		{ NULL, NULL }, //29h:
+		{ NULL, NULL }, //2Ah:
+		{ NULL, NULL }, //2Bh:
+		{ NULL, NULL }, //2Ch:
+		{ NULL, NULL }, //2Dh:
+		{ NULL, NULL }, //2Eh: Special
+		{ NULL, NULL }, //2Fh:
+		//0x30:
+		{ NULL, NULL }, //30h:
+		{ NULL, NULL }, //31h:
+		{ NULL, NULL }, //32h:
+		{ NULL, NULL }, //33h:
+		{ NULL, NULL }, //34h:
+		{ NULL, NULL }, //35h:
+		{ NULL, NULL }, //36h: Special
+		{ NULL, NULL }, //37h:
+		{ NULL, NULL }, //38h:
+		{ NULL, NULL }, //39h:
+		{ NULL, NULL }, //3Ah:
+		{ NULL, NULL }, //3Bh:
+		{ NULL, NULL }, //3Ch:
+		{ NULL, NULL }, //3Dh:
+		{ NULL, NULL }, //3Eh: Special
+		{ NULL, NULL }, //3Fh:
+		//0x40:
+		{ NULL, NULL }, //40h:
+		{ NULL, NULL }, //41h:
+		{ NULL, NULL }, //42h:
+		{ NULL, NULL }, //43h:
+		{ NULL, NULL }, //44h:
+		{ NULL, NULL }, //45h:
+		{ NULL, NULL }, //46h:
+		{ NULL, NULL }, //47h:
+		{ NULL, NULL }, //48h:
+		{ NULL, NULL }, //49h:
+		{ NULL, NULL }, //4Ah:
+		{ NULL, NULL }, //4Bh:
+		{ NULL, NULL }, //4Ch:
+		{ NULL, NULL }, //4Dh:
+		{ NULL, NULL }, //4Eh:
+		{ NULL, NULL }, //4Fh:
+		//0x50:
+		{ NULL, NULL }, //50h:
+		{ NULL, NULL }, //51h:
+		{ NULL, NULL }, //52h:
+		{ NULL, NULL }, //53h:
+		{ NULL, NULL }, //54h:
+		{ NULL, NULL }, //55h:
+		{ NULL, NULL }, //56h:
+		{ NULL, NULL }, //57h:
+		{ NULL, NULL }, //58h:
+		{ NULL, NULL }, //59h:
+		{ NULL, NULL }, //5Ah:
+		{ NULL, NULL }, //5Bh:
+		{ NULL, NULL }, //5Ch:
+		{ NULL, NULL }, //5Dh:
+		{ NULL, NULL }, //5Eh:
+		{ NULL, NULL }, //5Fh:
+		//0x60:
+		{ NULL, NULL }, //60h: PUSHA(removed here)
+		{ NULL, NULL }, //61h: POPA(removed here)
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //68h:
+		{ NULL, NULL }, //69h:
+		{ NULL, NULL }, //6Ah:
+		{ NULL, NULL }, //6Bh:
+		{ NULL, NULL }, //6Ch:
+		{ NULL, NULL }, //6Dh:
+		{ NULL, NULL }, //6Eh:
+		{ NULL, NULL }, //6Fh:
+		//0x70: Conditional JMP OPcodes:
+		{ NULL, NULL }, //70h:
+		{ NULL, NULL }, //71h:
+		{ NULL, NULL }, //72h:
+		{ NULL, NULL }, //73h:
+		{ NULL, NULL }, //74h:
+		{ NULL, NULL }, //75h:
+		{ NULL, NULL }, //76h:
+		{ NULL, NULL }, //77h:
+		{ NULL, NULL }, //78h:
+		{ NULL, NULL }, //79h:
+		{ NULL, NULL }, //7Ah:
+		{ NULL, NULL }, //7Bh:
+		{ NULL, NULL }, //7Ch:
+		{ NULL, NULL }, //7Dh:
+		{ NULL, NULL }, //7Eh:
+		{ NULL, NULL }, //7Fh:
+		//0x80:
+		{ NULL, NULL }, //80h:
+		{ NULL, NULL }, //81h:
+		{ NULL, NULL }, //82h:
+		{ NULL, NULL }, //83h:
+		{ NULL, NULL }, //84h:
+		{ NULL, NULL }, //85h:
+		{ NULL, NULL }, //86h:
+		{ NULL, NULL }, //87h:
+		{ NULL, NULL }, //88h:
+		{ NULL, NULL }, //89h:
+		{ NULL, NULL }, //8Ah:
+		{ NULL, NULL }, //8Bh:
+		{ NULL, NULL }, //8Ch:
+		{ NULL, NULL }, //8Dh:
+		{ NULL, NULL }, //8Eh:
+		{ NULL, NULL }, //8Fh:
+		//0x90:
+		{ NULL, NULL }, //90h:
+		{ NULL, NULL }, //91h:
+		{ NULL, NULL }, //92h:
+		{ NULL, NULL }, //93h:
+		{ NULL, NULL }, //94h:
+		{ NULL, NULL }, //95h:
+		{ NULL, NULL }, //96h:
+		{ NULL, NULL }, //97h:
+		{ NULL, NULL }, //98h:
+		{ NULL, NULL }, //99h:
+		{ NULL, NULL }, //9Ah:
+		{ NULL, NULL }, //9Bh:
+		{ NULL, NULL }, //9Ch:
+		{ NULL, NULL }, //9Dh:
+		{ NULL, NULL }, //9Eh:
+		{ NULL, NULL }, //9Fh:
+		//0xA0:
+		{ NULL, NULL }, //A0h:
+		{ NULL, NULL }, //A1h:
+		{ NULL, NULL }, //A2h:
+		{ NULL, NULL }, //A3h:
+		{ NULL, NULL }, //A4h:
+		{ NULL, NULL }, //A5h:
+		{ NULL, NULL }, //A6h:
+		{ NULL, NULL }, //A7h:
+		{ NULL, NULL }, //A8h:
+		{ NULL, NULL }, //A9h:
+		{ NULL, NULL }, //AAh:
+		{ NULL, NULL }, //ABh:
+		{ NULL, NULL }, //ACh:
+		{ NULL, NULL }, //ADh:
+		{ NULL, NULL }, //AEh:
+		{ NULL, NULL }, //AFh:
+		//0xB0:
+		{ NULL, NULL }, //B0h:
+		{ NULL, NULL }, //B1h:
+		{ NULL, NULL }, //B2h:
+		{ NULL, NULL }, //B3h:
+		{ NULL, NULL }, //B4h:
+		{ NULL, NULL }, //B5h:
+		{ NULL, NULL }, //B6h:
+		{ NULL, NULL }, //B7h:
+		{ NULL, NULL }, //B8h:
+		{ NULL, NULL }, //B9h:
+		{ NULL, NULL }, //BAh:
+		{ NULL, NULL }, //BBh:
+		{ NULL, NULL }, //BCh:
+		{ NULL, NULL }, //BDh:
+		{ NULL, NULL }, //BEh:
+		{ NULL, NULL }, //BFh:
+		//0xC0:
+		{ NULL, NULL }, //C0h:
+		{ NULL, NULL }, //C1h:
+		{ NULL, NULL }, //C2h:
+		{ NULL, NULL }, //C3h:
+		{ NULL, NULL }, //C4h:
+		{ NULL, NULL }, //C5h:
+		{ NULL, NULL }, //C6h:
+		{ NULL, NULL }, //C7h:
+		{ NULL, NULL }, //C8h:
+		{ NULL, NULL }, //C9h:
+		{ NULL, NULL }, //CAh:
+		{ NULL, NULL }, //CBh:
+		{ NULL, NULL }, //CCh:
+		{ NULL, NULL }, //CDh:
+		{ NULL, NULL }, //CEh:
+		{ NULL, NULL }, //CFh:
+		//0xD0:
+		{ NULL, NULL }, //D0h:
+		{ NULL, NULL }, //D1h:
+		{ NULL, NULL }, //D2h:
+		{ NULL, NULL }, //D3h:
+		{ NULL, NULL }, //D4h:
+		{ NULL, NULL }, //D5h:
+		{ NULL, NULL }, //D6h: UNK
+		{ NULL, NULL }, //D7h:
+		{ NULL, NULL }, //D8h: UNK
+		{ NULL, NULL }, //D9h: CoProcessor Minimum
+		{ NULL, NULL }, //DAh: UNK
+		{ NULL, NULL }, //DBh: CoProcessor Minimum
+		{ NULL, NULL }, //DCh: UNK
+		{ NULL, NULL }, //DDh: CoProcessor Minimum
+		{ NULL, NULL }, //DEh: UNK
+		{ NULL, NULL }, //DFh: COProcessor minimum
+		//0xE0:
+		{ NULL, NULL }, //E0h:
+		{ NULL, NULL }, //E1h:
+		{ NULL, NULL }, //E2h:
+		{ NULL, NULL }, //E3h:
+		{ NULL, NULL }, //E4h:
+		{ NULL, NULL }, //E5h:
+		{ NULL, NULL }, //E6h:
+		{ NULL, NULL }, //E7h:
+		{ NULL, NULL }, //E8h:
+		{ NULL, NULL }, //E9h:
+		{ NULL, NULL }, //EAh:
+		{ NULL, NULL }, //EBh:
+		{ NULL, NULL }, //ECh:
+		{ NULL, NULL }, //EDh:
+		{ NULL, NULL }, //EEh:
+		{ NULL, NULL }, //EFh:
+		//0xF0:
+		{ NULL, NULL }, //F0h: Special
+		{ NULL, NULL }, //F1h: UNK
+		{ NULL, NULL }, //F2h: Special
+		{ NULL, NULL }, //F3h: Special
+		{ NULL, NULL }, //F4h:
+		{ NULL, NULL }, //F5h:
+		{ NULL, NULL }, //F6h:
+		{ NULL, NULL }, //F7h:
+		{ NULL, NULL }, //F8h:
+		{ NULL, NULL }, //F9h:
+		{ NULL, NULL }, //FAh:
+		{ NULL, NULL }, //FBh:
+		{ NULL, NULL }, //FCh:
+		{ NULL, NULL }, //FDh:
+		{ NULL, NULL }, //FEh:
+		{ NULL, NULL }  //FFh:
+	},
+
+	//80486
+	{
+		//0x00:
+		{ NULL, NULL }, //00h:
+		{ NULL, NULL }, //01h:
+		{ NULL, NULL }, //02h:
+		{ NULL, NULL }, //03h:
+		{ NULL, NULL }, //04h:
+		{ NULL, NULL }, //05h:
+		{ NULL, NULL }, //06h:
+		{ NULL, NULL }, //07h:
+		{ NULL, NULL }, //08h:
+		{ NULL, NULL }, //09h:
+		{ NULL, NULL }, //0Ah:
+		{ NULL, NULL }, //0Bh:
+		{ NULL, NULL }, //0Ch:
+		{ NULL, NULL }, //0Dh:
+		{ NULL, NULL }, //0Eh:
+		{ NULL, NULL }, //0Fh: 80186 specific OPcode!
+		//0x10:
+		{ NULL, NULL }, //10h:
+		{ NULL, NULL }, //11h:
+		{ NULL, NULL }, //12h:
+		{ NULL, NULL }, //13h:
+		{ NULL, NULL }, //14h:
+		{ NULL, NULL }, //15h:
+		{ NULL, NULL }, //16h:
+		{ NULL, NULL }, //17h:
+		{ NULL, NULL }, //18h:
+		{ NULL, NULL }, //19h:
+		{ NULL, NULL }, //1Ah:
+		{ NULL, NULL }, //1Bh:
+		{ NULL, NULL }, //1Ch:
+		{ NULL, NULL }, //1Dh:
+		{ NULL, NULL }, //1Eh:
+		{ NULL, NULL }, //1Fh:
+		//0x20:
+		{ NULL, NULL }, //20h:
+		{ NULL, NULL }, //21h:
+		{ NULL, NULL }, //22h:
+		{ NULL, NULL }, //23h:
+		{ NULL, NULL }, //24h:
+		{ NULL, NULL }, //25h:
+		{ NULL, NULL }, //26h: Special
+		{ NULL, NULL }, //27h:
+		{ NULL, NULL }, //28h:
+		{ NULL, NULL }, //29h:
+		{ NULL, NULL }, //2Ah:
+		{ NULL, NULL }, //2Bh:
+		{ NULL, NULL }, //2Ch:
+		{ NULL, NULL }, //2Dh:
+		{ NULL, NULL }, //2Eh: Special
+		{ NULL, NULL }, //2Fh:
+		//0x30:
+		{ NULL, NULL }, //30h:
+		{ NULL, NULL }, //31h:
+		{ NULL, NULL }, //32h:
+		{ NULL, NULL }, //33h:
+		{ NULL, NULL }, //34h:
+		{ NULL, NULL }, //35h:
+		{ NULL, NULL }, //36h: Special
+		{ NULL, NULL }, //37h:
+		{ NULL, NULL }, //38h:
+		{ NULL, NULL }, //39h:
+		{ NULL, NULL }, //3Ah:
+		{ NULL, NULL }, //3Bh:
+		{ NULL, NULL }, //3Ch:
+		{ NULL, NULL }, //3Dh:
+		{ NULL, NULL }, //3Eh: Special
+		{ NULL, NULL }, //3Fh:
+		//0x40:
+		{ NULL, NULL }, //40h:
+		{ NULL, NULL }, //41h:
+		{ NULL, NULL }, //42h:
+		{ NULL, NULL }, //43h:
+		{ NULL, NULL }, //44h:
+		{ NULL, NULL }, //45h:
+		{ NULL, NULL }, //46h:
+		{ NULL, NULL }, //47h:
+		{ NULL, NULL }, //48h:
+		{ NULL, NULL }, //49h:
+		{ NULL, NULL }, //4Ah:
+		{ NULL, NULL }, //4Bh:
+		{ NULL, NULL }, //4Ch:
+		{ NULL, NULL }, //4Dh:
+		{ NULL, NULL }, //4Eh:
+		{ NULL, NULL }, //4Fh:
+		//0x50:
+		{ NULL, NULL }, //50h:
+		{ NULL, NULL }, //51h:
+		{ NULL, NULL }, //52h:
+		{ NULL, NULL }, //53h:
+		{ NULL, NULL }, //54h:
+		{ NULL, NULL }, //55h:
+		{ NULL, NULL }, //56h:
+		{ NULL, NULL }, //57h:
+		{ NULL, NULL }, //58h:
+		{ NULL, NULL }, //59h:
+		{ NULL, NULL }, //5Ah:
+		{ NULL, NULL }, //5Bh:
+		{ NULL, NULL }, //5Ch:
+		{ NULL, NULL }, //5Dh:
+		{ NULL, NULL }, //5Eh:
+		{ NULL, NULL }, //5Fh:
+		//0x60:
+		{ NULL, NULL }, //60h: PUSHA(removed here)
+		{ NULL, NULL }, //61h: POPA(removed here)
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //68h:
+		{ NULL, NULL }, //69h:
+		{ NULL, NULL }, //6Ah:
+		{ NULL, NULL }, //6Bh:
+		{ NULL, NULL }, //6Ch:
+		{ NULL, NULL }, //6Dh:
+		{ NULL, NULL }, //6Eh:
+		{ NULL, NULL }, //6Fh:
+		//0x70: Conditional JMP OPcodes:
+		{ NULL, NULL }, //70h:
+		{ NULL, NULL }, //71h:
+		{ NULL, NULL }, //72h:
+		{ NULL, NULL }, //73h:
+		{ NULL, NULL }, //74h:
+		{ NULL, NULL }, //75h:
+		{ NULL, NULL }, //76h:
+		{ NULL, NULL }, //77h:
+		{ NULL, NULL }, //78h:
+		{ NULL, NULL }, //79h:
+		{ NULL, NULL }, //7Ah:
+		{ NULL, NULL }, //7Bh:
+		{ NULL, NULL }, //7Ch:
+		{ NULL, NULL }, //7Dh:
+		{ NULL, NULL }, //7Eh:
+		{ NULL, NULL }, //7Fh:
+		//0x80:
+		{ NULL, NULL }, //80h:
+		{ NULL, NULL }, //81h:
+		{ NULL, NULL }, //82h:
+		{ NULL, NULL }, //83h:
+		{ NULL, NULL }, //84h:
+		{ NULL, NULL }, //85h:
+		{ NULL, NULL }, //86h:
+		{ NULL, NULL }, //87h:
+		{ NULL, NULL }, //88h:
+		{ NULL, NULL }, //89h:
+		{ NULL, NULL }, //8Ah:
+		{ NULL, NULL }, //8Bh:
+		{ NULL, NULL }, //8Ch:
+		{ NULL, NULL }, //8Dh:
+		{ NULL, NULL }, //8Eh:
+		{ NULL, NULL }, //8Fh:
+		//0x90:
+		{ NULL, NULL }, //90h:
+		{ NULL, NULL }, //91h:
+		{ NULL, NULL }, //92h:
+		{ NULL, NULL }, //93h:
+		{ NULL, NULL }, //94h:
+		{ NULL, NULL }, //95h:
+		{ NULL, NULL }, //96h:
+		{ NULL, NULL }, //97h:
+		{ NULL, NULL }, //98h:
+		{ NULL, NULL }, //99h:
+		{ NULL, NULL }, //9Ah:
+		{ NULL, NULL }, //9Bh:
+		{ NULL, NULL }, //9Ch:
+		{ NULL, NULL }, //9Dh:
+		{ NULL, NULL }, //9Eh:
+		{ NULL, NULL }, //9Fh:
+		//0xA0:
+		{ NULL, NULL }, //A0h:
+		{ NULL, NULL }, //A1h:
+		{ NULL, NULL }, //A2h:
+		{ NULL, NULL }, //A3h:
+		{ NULL, NULL }, //A4h:
+		{ NULL, NULL }, //A5h:
+		{ NULL, NULL }, //A6h:
+		{ NULL, NULL }, //A7h:
+		{ NULL, NULL }, //A8h:
+		{ NULL, NULL }, //A9h:
+		{ NULL, NULL }, //AAh:
+		{ NULL, NULL }, //ABh:
+		{ NULL, NULL }, //ACh:
+		{ NULL, NULL }, //ADh:
+		{ NULL, NULL }, //AEh:
+		{ NULL, NULL }, //AFh:
+		//0xB0:
+		{ NULL, NULL }, //B0h:
+		{ NULL, NULL }, //B1h:
+		{ NULL, NULL }, //B2h:
+		{ NULL, NULL }, //B3h:
+		{ NULL, NULL }, //B4h:
+		{ NULL, NULL }, //B5h:
+		{ NULL, NULL }, //B6h:
+		{ NULL, NULL }, //B7h:
+		{ NULL, NULL }, //B8h:
+		{ NULL, NULL }, //B9h:
+		{ NULL, NULL }, //BAh:
+		{ NULL, NULL }, //BBh:
+		{ NULL, NULL }, //BCh:
+		{ NULL, NULL }, //BDh:
+		{ NULL, NULL }, //BEh:
+		{ NULL, NULL }, //BFh:
+		//0xC0:
+		{ NULL, NULL }, //C0h:
+		{ NULL, NULL }, //C1h:
+		{ NULL, NULL }, //C2h:
+		{ NULL, NULL }, //C3h:
+		{ NULL, NULL }, //C4h:
+		{ NULL, NULL }, //C5h:
+		{ NULL, NULL }, //C6h:
+		{ NULL, NULL }, //C7h:
+		{ NULL, NULL }, //C8h:
+		{ NULL, NULL }, //C9h:
+		{ NULL, NULL }, //CAh:
+		{ NULL, NULL }, //CBh:
+		{ NULL, NULL }, //CCh:
+		{ NULL, NULL }, //CDh:
+		{ NULL, NULL }, //CEh:
+		{ NULL, NULL }, //CFh:
+		//0xD0:
+		{ NULL, NULL }, //D0h:
+		{ NULL, NULL }, //D1h:
+		{ NULL, NULL }, //D2h:
+		{ NULL, NULL }, //D3h:
+		{ NULL, NULL }, //D4h:
+		{ NULL, NULL }, //D5h:
+		{ NULL, NULL }, //D6h: UNK
+		{ NULL, NULL }, //D7h:
+		{ NULL, NULL }, //D8h: UNK
+		{ NULL, NULL }, //D9h: CoProcessor Minimum
+		{ NULL, NULL }, //DAh: UNK
+		{ NULL, NULL }, //DBh: CoProcessor Minimum
+		{ NULL, NULL }, //DCh: UNK
+		{ NULL, NULL }, //DDh: CoProcessor Minimum
+		{ NULL, NULL }, //DEh: UNK
+		{ NULL, NULL }, //DFh: COProcessor minimum
+		//0xE0:
+		{ NULL, NULL }, //E0h:
+		{ NULL, NULL }, //E1h:
+		{ NULL, NULL }, //E2h:
+		{ NULL, NULL }, //E3h:
+		{ NULL, NULL }, //E4h:
+		{ NULL, NULL }, //E5h:
+		{ NULL, NULL }, //E6h:
+		{ NULL, NULL }, //E7h:
+		{ NULL, NULL }, //E8h:
+		{ NULL, NULL }, //E9h:
+		{ NULL, NULL }, //EAh:
+		{ NULL, NULL }, //EBh:
+		{ NULL, NULL }, //ECh:
+		{ NULL, NULL }, //EDh:
+		{ NULL, NULL }, //EEh:
+		{ NULL, NULL }, //EFh:
+		//0xF0:
+		{ NULL, NULL }, //F0h: Special
+		{ NULL, NULL }, //F1h: UNK
+		{ NULL, NULL }, //F2h: Special
+		{ NULL, NULL }, //F3h: Special
+		{ NULL, NULL }, //F4h:
+		{ NULL, NULL }, //F5h:
+		{ NULL, NULL }, //F6h:
+		{ NULL, NULL }, //F7h:
+		{ NULL, NULL }, //F8h:
+		{ NULL, NULL }, //F9h:
+		{ NULL, NULL }, //FAh:
+		{ NULL, NULL }, //FBh:
+		{ NULL, NULL }, //FCh:
+		{ NULL, NULL }, //FDh:
+		{ NULL, NULL }, //FEh:
+		{ NULL, NULL }  //FFh:
+	},
+
+	//80586(Pentium)
+	{
+		//0x00:
+		{ NULL, NULL }, //00h:
+		{ NULL, NULL }, //01h:
+		{ NULL, NULL }, //02h:
+		{ NULL, NULL }, //03h:
+		{ NULL, NULL }, //04h:
+		{ NULL, NULL }, //05h:
+		{ NULL, NULL }, //06h:
+		{ NULL, NULL }, //07h:
+		{ NULL, NULL }, //08h:
+		{ NULL, NULL }, //09h:
+		{ NULL, NULL }, //0Ah:
+		{ NULL, NULL }, //0Bh:
+		{ NULL, NULL }, //0Ch:
+		{ NULL, NULL }, //0Dh:
+		{ NULL, NULL }, //0Eh:
+		{ NULL, NULL }, //0Fh: 80186 specific OPcode!
+		//0x10:
+		{ NULL, NULL }, //10h:
+		{ NULL, NULL }, //11h:
+		{ NULL, NULL }, //12h:
+		{ NULL, NULL }, //13h:
+		{ NULL, NULL }, //14h:
+		{ NULL, NULL }, //15h:
+		{ NULL, NULL }, //16h:
+		{ NULL, NULL }, //17h:
+		{ NULL, NULL }, //18h:
+		{ NULL, NULL }, //19h:
+		{ NULL, NULL }, //1Ah:
+		{ NULL, NULL }, //1Bh:
+		{ NULL, NULL }, //1Ch:
+		{ NULL, NULL }, //1Dh:
+		{ NULL, NULL }, //1Eh:
+		{ NULL, NULL }, //1Fh:
+		//0x20:
+		{ NULL, NULL }, //20h:
+		{ NULL, NULL }, //21h:
+		{ NULL, NULL }, //22h:
+		{ NULL, NULL }, //23h:
+		{ NULL, NULL }, //24h:
+		{ NULL, NULL }, //25h:
+		{ NULL, NULL }, //26h: Special
+		{ NULL, NULL }, //27h:
+		{ NULL, NULL }, //28h:
+		{ NULL, NULL }, //29h:
+		{ NULL, NULL }, //2Ah:
+		{ NULL, NULL }, //2Bh:
+		{ NULL, NULL }, //2Ch:
+		{ NULL, NULL }, //2Dh:
+		{ NULL, NULL }, //2Eh: Special
+		{ NULL, NULL }, //2Fh:
+		//0x30:
+		{ NULL, NULL }, //30h:
+		{ NULL, NULL }, //31h:
+		{ NULL, NULL }, //32h:
+		{ NULL, NULL }, //33h:
+		{ NULL, NULL }, //34h:
+		{ NULL, NULL }, //35h:
+		{ NULL, NULL }, //36h: Special
+		{ NULL, NULL }, //37h:
+		{ NULL, NULL }, //38h:
+		{ NULL, NULL }, //39h:
+		{ NULL, NULL }, //3Ah:
+		{ NULL, NULL }, //3Bh:
+		{ NULL, NULL }, //3Ch:
+		{ NULL, NULL }, //3Dh:
+		{ NULL, NULL }, //3Eh: Special
+		{ NULL, NULL }, //3Fh:
+		//0x40:
+		{ NULL, NULL }, //40h:
+		{ NULL, NULL }, //41h:
+		{ NULL, NULL }, //42h:
+		{ NULL, NULL }, //43h:
+		{ NULL, NULL }, //44h:
+		{ NULL, NULL }, //45h:
+		{ NULL, NULL }, //46h:
+		{ NULL, NULL }, //47h:
+		{ NULL, NULL }, //48h:
+		{ NULL, NULL }, //49h:
+		{ NULL, NULL }, //4Ah:
+		{ NULL, NULL }, //4Bh:
+		{ NULL, NULL }, //4Ch:
+		{ NULL, NULL }, //4Dh:
+		{ NULL, NULL }, //4Eh:
+		{ NULL, NULL }, //4Fh:
+		//0x50:
+		{ NULL, NULL }, //50h:
+		{ NULL, NULL }, //51h:
+		{ NULL, NULL }, //52h:
+		{ NULL, NULL }, //53h:
+		{ NULL, NULL }, //54h:
+		{ NULL, NULL }, //55h:
+		{ NULL, NULL }, //56h:
+		{ NULL, NULL }, //57h:
+		{ NULL, NULL }, //58h:
+		{ NULL, NULL }, //59h:
+		{ NULL, NULL }, //5Ah:
+		{ NULL, NULL }, //5Bh:
+		{ NULL, NULL }, //5Ch:
+		{ NULL, NULL }, //5Dh:
+		{ NULL, NULL }, //5Eh:
+		{ NULL, NULL }, //5Fh:
+		//0x60:
+		{ NULL, NULL }, //60h: PUSHA(removed here)
+		{ NULL, NULL }, //61h: POPA(removed here)
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //UNK
+		{ NULL, NULL }, //68h:
+		{ NULL, NULL }, //69h:
+		{ NULL, NULL }, //6Ah:
+		{ NULL, NULL }, //6Bh:
+		{ NULL, NULL }, //6Ch:
+		{ NULL, NULL }, //6Dh:
+		{ NULL, NULL }, //6Eh:
+		{ NULL, NULL }, //6Fh:
+		//0x70: Conditional JMP OPcodes:
+		{ NULL, NULL }, //70h:
+		{ NULL, NULL }, //71h:
+		{ NULL, NULL }, //72h:
+		{ NULL, NULL }, //73h:
+		{ NULL, NULL }, //74h:
+		{ NULL, NULL }, //75h:
+		{ NULL, NULL }, //76h:
+		{ NULL, NULL }, //77h:
+		{ NULL, NULL }, //78h:
+		{ NULL, NULL }, //79h:
+		{ NULL, NULL }, //7Ah:
+		{ NULL, NULL }, //7Bh:
+		{ NULL, NULL }, //7Ch:
+		{ NULL, NULL }, //7Dh:
+		{ NULL, NULL }, //7Eh:
+		{ NULL, NULL }, //7Fh:
+		//0x80:
+		{ NULL, NULL }, //80h:
+		{ NULL, NULL }, //81h:
+		{ NULL, NULL }, //82h:
+		{ NULL, NULL }, //83h:
+		{ NULL, NULL }, //84h:
+		{ NULL, NULL }, //85h:
+		{ NULL, NULL }, //86h:
+		{ NULL, NULL }, //87h:
+		{ NULL, NULL }, //88h:
+		{ NULL, NULL }, //89h:
+		{ NULL, NULL }, //8Ah:
+		{ NULL, NULL }, //8Bh:
+		{ NULL, NULL }, //8Ch:
+		{ NULL, NULL }, //8Dh:
+		{ NULL, NULL }, //8Eh:
+		{ NULL, NULL }, //8Fh:
+		//0x90:
+		{ NULL, NULL }, //90h:
+		{ NULL, NULL }, //91h:
+		{ NULL, NULL }, //92h:
+		{ NULL, NULL }, //93h:
+		{ NULL, NULL }, //94h:
+		{ NULL, NULL }, //95h:
+		{ NULL, NULL }, //96h:
+		{ NULL, NULL }, //97h:
+		{ NULL, NULL }, //98h:
+		{ NULL, NULL }, //99h:
+		{ NULL, NULL }, //9Ah:
+		{ NULL, NULL }, //9Bh:
+		{ NULL, NULL }, //9Ch:
+		{ NULL, NULL }, //9Dh:
+		{ NULL, NULL }, //9Eh:
+		{ NULL, NULL }, //9Fh:
+		//0xA0:
+		{ NULL, NULL }, //A0h:
+		{ NULL, NULL }, //A1h:
+		{ NULL, NULL }, //A2h:
+		{ NULL, NULL }, //A3h:
+		{ NULL, NULL }, //A4h:
+		{ NULL, NULL }, //A5h:
+		{ NULL, NULL }, //A6h:
+		{ NULL, NULL }, //A7h:
+		{ NULL, NULL }, //A8h:
+		{ NULL, NULL }, //A9h:
+		{ NULL, NULL }, //AAh:
+		{ NULL, NULL }, //ABh:
+		{ NULL, NULL }, //ACh:
+		{ NULL, NULL }, //ADh:
+		{ NULL, NULL }, //AEh:
+		{ NULL, NULL }, //AFh:
+		//0xB0:
+		{ NULL, NULL }, //B0h:
+		{ NULL, NULL }, //B1h:
+		{ NULL, NULL }, //B2h:
+		{ NULL, NULL }, //B3h:
+		{ NULL, NULL }, //B4h:
+		{ NULL, NULL }, //B5h:
+		{ NULL, NULL }, //B6h:
+		{ NULL, NULL }, //B7h:
+		{ NULL, NULL }, //B8h:
+		{ NULL, NULL }, //B9h:
+		{ NULL, NULL }, //BAh:
+		{ NULL, NULL }, //BBh:
+		{ NULL, NULL }, //BCh:
+		{ NULL, NULL }, //BDh:
+		{ NULL, NULL }, //BEh:
+		{ NULL, NULL }, //BFh:
+		//0xC0:
+		{ NULL, NULL }, //C0h:
+		{ NULL, NULL }, //C1h:
+		{ NULL, NULL }, //C2h:
+		{ NULL, NULL }, //C3h:
+		{ NULL, NULL }, //C4h:
+		{ NULL, NULL }, //C5h:
+		{ NULL, NULL }, //C6h:
+		{ NULL, NULL }, //C7h:
+		{ NULL, NULL }, //C8h:
+		{ NULL, NULL }, //C9h:
+		{ NULL, NULL }, //CAh:
+		{ NULL, NULL }, //CBh:
+		{ NULL, NULL }, //CCh:
+		{ NULL, NULL }, //CDh:
+		{ NULL, NULL }, //CEh:
+		{ NULL, NULL }, //CFh:
+		//0xD0:
+		{ NULL, NULL }, //D0h:
+		{ NULL, NULL }, //D1h:
+		{ NULL, NULL }, //D2h:
+		{ NULL, NULL }, //D3h:
+		{ NULL, NULL }, //D4h:
+		{ NULL, NULL }, //D5h:
+		{ NULL, NULL }, //D6h: UNK
+		{ NULL, NULL }, //D7h:
+		{ NULL, NULL }, //D8h: UNK
+		{ NULL, NULL }, //D9h: CoProcessor Minimum
+		{ NULL, NULL }, //DAh: UNK
+		{ NULL, NULL }, //DBh: CoProcessor Minimum
+		{ NULL, NULL }, //DCh: UNK
+		{ NULL, NULL }, //DDh: CoProcessor Minimum
+		{ NULL, NULL }, //DEh: UNK
+		{ NULL, NULL }, //DFh: COProcessor minimum
+		//0xE0:
+		{ NULL, NULL }, //E0h:
+		{ NULL, NULL }, //E1h:
+		{ NULL, NULL }, //E2h:
+		{ NULL, NULL }, //E3h:
+		{ NULL, NULL }, //E4h:
+		{ NULL, NULL }, //E5h:
+		{ NULL, NULL }, //E6h:
+		{ NULL, NULL }, //E7h:
+		{ NULL, NULL }, //E8h:
+		{ NULL, NULL }, //E9h:
+		{ NULL, NULL }, //EAh:
+		{ NULL, NULL }, //EBh:
+		{ NULL, NULL }, //ECh:
+		{ NULL, NULL }, //EDh:
+		{ NULL, NULL }, //EEh:
+		{ NULL, NULL }, //EFh:
+		//0xF0:
+		{ NULL, NULL }, //F0h: Special
+		{ NULL, NULL }, //F1h: UNK
+		{ NULL, NULL }, //F2h: Special
+		{ NULL, NULL }, //F3h: Special
+		{ NULL, NULL }, //F4h:
+		{ NULL, NULL }, //F5h:
+		{ NULL, NULL }, //F6h:
+		{ NULL, NULL }, //F7h:
+		{ NULL, NULL }, //F8h:
+		{ NULL, NULL }, //F9h:
+		{ NULL, NULL }, //FAh:
+		{ NULL, NULL }, //FBh:
+		{ NULL, NULL }, //FCh:
+		{ NULL, NULL }, //FDh:
+		{ NULL, NULL }, //FEh:
+		{ NULL, NULL }  //FFh:
 	}
 };
-
-/*Handler debug_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard interrupt jmptbl!
-{
-	{
-//8086
-
-//0x00:
-		{DEBUG8086_OP00,NULL}, //00h:
-		{DEBUG8086_OP01,NULL}, //01h:
-		{DEBUG8086_OP02,NULL}, //02h:
-		{DEBUG8086_OP03,NULL}, //03h:
-		{DEBUG8086_OP04,NULL}, //04h:
-		{DEBUG8086_OP05,NULL}, //05h:
-		{DEBUG8086_OP06,NULL}, //06h:
-		{DEBUG8086_OP07,NULL}, //07h:
-		{DEBUG8086_OP08,NULL}, //08h:
-		{DEBUG8086_OP09,NULL}, //09h:
-		{DEBUG8086_OP0A,NULL}, //0Ah:
-		{DEBUG8086_OP0B,NULL}, //0Bh:
-		{DEBUG8086_OP0C,NULL}, //0Ch:
-		{DEBUG8086_OP0D,NULL}, //0Dh:
-		{DEBUG8086_OP0E,NULL}, //0Eh:
-		{DEBUG8086_OP0F,NULL}, //0Fh:
-//0x10:
-		{DEBUG8086_OP10,NULL}, //10h:
-		{DEBUG8086_OP11,NULL}, //11h:
-		{DEBUG8086_OP12,NULL}, //12h:
-		{DEBUG8086_OP13,NULL}, //13h:
-		{DEBUG8086_OP14,NULL}, //14h:
-		{DEBUG8086_OP15,NULL}, //15h:
-		{DEBUG8086_OP16,NULL}, //16h:
-		{DEBUG8086_OP17,NULL}, //17h:
-		{DEBUG8086_OP18,NULL}, //18h:
-		{DEBUG8086_OP19,NULL}, //19h:
-		{DEBUG8086_OP1A,NULL}, //1Ah:
-		{DEBUG8086_OP1B,NULL}, //1Bh:
-		{DEBUG8086_OP1C,NULL}, //1Ch:
-		{DEBUG8086_OP1D,NULL}, //1Dh:
-		{DEBUG8086_OP1E,NULL}, //1Eh:
-		{DEBUG8086_OP1F,NULL}, //1Fh:
-//0x20:
-		{DEBUG8086_OP20,NULL}, //20h:
-		{DEBUG8086_OP21,NULL}, //21h:
-		{DEBUG8086_OP22,NULL}, //22h:
-		{DEBUG8086_OP23,NULL}, //23h:
-		{DEBUG8086_OP24,NULL}, //24h:
-		{DEBUG8086_OP25,NULL}, //25h:
-		{DEBUG8086_unkOP,NULL}, //26h: Special
-		{DEBUG8086_OP27,NULL}, //27h:
-		{DEBUG8086_OP28,NULL}, //28h:
-		{DEBUG8086_OP29,NULL}, //29h:
-		{DEBUG8086_OP2A,NULL}, //2Ah:
-		{DEBUG8086_OP2B,NULL}, //2Bh:
-		{DEBUG8086_OP2C,NULL}, //2Ch:
-		{DEBUG8086_OP2D,NULL}, //2Dh:
-		{DEBUG8086_unkOP,NULL}, //2Eh: Special
-		{DEBUG8086_OP2F,NULL}, //2Fh:
-//0x30:
-		{DEBUG8086_OP30,NULL}, //30h:
-		{DEBUG8086_OP31,NULL}, //31h:
-		{DEBUG8086_OP32,NULL}, //32h:
-		{DEBUG8086_OP33,NULL}, //33h:
-		{DEBUG8086_OP34,NULL}, //34h:
-		{DEBUG8086_OP35,NULL}, //35h:
-		{DEBUG8086_unkOP,NULL}, //36h: Special
-		{DEBUG8086_OP37,NULL}, //37h:
-		{DEBUG8086_OP38,NULL}, //38h:
-		{DEBUG8086_OP39,NULL}, //39h:
-		{DEBUG8086_OP3A,NULL}, //3Ah:
-		{DEBUG8086_OP3B,NULL}, //3Bh:
-		{DEBUG8086_OP3C,NULL}, //3Ch:
-		{DEBUG8086_OP3D,NULL}, //3Dh:
-		{DEBUG8086_unkOP,NULL}, //3Eh: Special
-		{DEBUG8086_OP3F,NULL}, //3Fh:
-//0x40:
-		{DEBUG8086_OP40,NULL}, //40h:
-		{DEBUG8086_OP41,NULL}, //41h:
-		{DEBUG8086_OP42,NULL}, //42h:
-		{DEBUG8086_OP43,NULL}, //43h:
-		{DEBUG8086_OP44,NULL}, //44h:
-		{DEBUG8086_OP45,NULL}, //45h:
-		{DEBUG8086_OP46,NULL}, //46h:
-		{DEBUG8086_OP47,NULL}, //47h:
-		{DEBUG8086_OP48,NULL}, //48h:
-		{DEBUG8086_OP49,NULL}, //49h:
-		{DEBUG8086_OP4A,NULL}, //4Ah:
-		{DEBUG8086_OP4B,NULL}, //4Bh:
-		{DEBUG8086_OP4C,NULL}, //4Ch:
-		{DEBUG8086_OP4D,NULL}, //4Dh:
-		{DEBUG8086_OP4E,NULL}, //4Eh:
-		{DEBUG8086_OP4F,NULL}, //4Fh:
-//0x50:
-		{DEBUG8086_OP50,NULL}, //50h:
-		{DEBUG8086_OP51,NULL}, //51h:
-		{DEBUG8086_OP52,NULL}, //52h:
-		{DEBUG8086_OP53,NULL}, //53h:
-		{DEBUG8086_OP54,NULL}, //54h:
-		{DEBUG8086_OP55,NULL}, //55h:
-		{DEBUG8086_OP56,NULL}, //56h:
-		{DEBUG8086_OP57,NULL}, //57h:
-		{DEBUG8086_OP58,NULL}, //58h:
-		{DEBUG8086_OP59,NULL}, //59h:
-		{DEBUG8086_OP5A,NULL}, //5Ah:
-		{DEBUG8086_OP5B,NULL}, //5Bh:
-		{DEBUG8086_OP5C,NULL}, //5Ch:
-		{DEBUG8086_OP5D,NULL}, //5Dh:
-		{DEBUG8086_OP5E,NULL}, //5Eh:
-		{DEBUG8086_OP5F,NULL}, //5Fh:
-//0x60:
-		{DEBUG8086_unkOP,NULL}, //60h:
-		{DEBUG8086_unkOP,NULL}, //61h:
-		{DEBUG8086_unkOP,NULL}, //62h:
-		{DEBUG8086_unkOP,NULL}, //63h:
-		{DEBUG8086_unkOP,NULL}, //64h:
-		{DEBUG8086_unkOP,NULL}, //65h:
-		{DEBUG8086_unkOP,NULL}, //66h:
-		{DEBUG8086_unkOP,NULL}, //67h:
-		{DEBUG8086_unkOP,NULL}, //68h:
-		{DEBUG8086_unkOP,NULL}, //69h:
-		{DEBUG8086_unkOP,NULL}, //6Ah:
-		{DEBUG8086_unkOP,NULL}, //6Bh:
-		{DEBUG8086_unkOP,NULL}, //6Ch:
-		{DEBUG8086_unkOP,NULL}, //6Dh:
-		{DEBUG8086_unkOP,NULL}, //6Eh:
-		{DEBUG8086_unkOP,NULL}, //6Fh:
-//0x70: Conditional JMP OPcodes:
-		{DEBUG8086_OP70,NULL}, //70h:
-		{DEBUG8086_OP71,NULL}, //71h:
-		{DEBUG8086_OP72,NULL}, //72h:
-		{DEBUG8086_OP73,NULL}, //73h:
-		{DEBUG8086_OP74,NULL}, //74h:
-		{DEBUG8086_OP75,NULL}, //75h:
-		{DEBUG8086_OP76,NULL}, //76h:
-		{DEBUG8086_OP77,NULL}, //77h:
-		{DEBUG8086_OP78,NULL}, //78h:
-		{DEBUG8086_OP79,NULL}, //79h:
-		{DEBUG8086_OP7A,NULL}, //7Ah:
-		{DEBUG8086_OP7B,NULL}, //7Bh:
-		{DEBUG8086_OP7C,NULL}, //7Ch:
-		{DEBUG8086_OP7D,NULL}, //7Dh:
-		{DEBUG8086_OP7E,NULL}, //7Eh:
-		{DEBUG8086_OP7F,NULL}, //7Fh:
-//0x80:
-		{DEBUG8086_OP80,NULL}, //80h:
-		{DEBUG8086_OP81,NULL}, //81h:
-		{DEBUG8086_OP82,NULL}, //82h:
-		{DEBUG8086_OP83,NULL}, //83h:
-		{DEBUG8086_OP84,NULL}, //84h:
-		{DEBUG8086_OP85,NULL}, //85h:
-		{DEBUG8086_OP86,NULL}, //86h:
-		{DEBUG8086_OP87,NULL}, //87h:
-		{DEBUG8086_OP88,NULL}, //88h:
-		{DEBUG8086_OP89,NULL}, //89h:
-		{DEBUG8086_OP8A,NULL}, //8Ah:
-		{DEBUG8086_OP8B,NULL}, //8Bh:
-		{DEBUG8086_OP8C,NULL}, //8Ch:
-		{DEBUG8086_OP8D,NULL}, //8Dh:
-		{DEBUG8086_OP8E,NULL}, //8Eh:
-		{DEBUG8086_OP8F,NULL}, //8Fh:
-//0x90:
-		{DEBUG8086_OP90,NULL}, //90h:
-		{DEBUG8086_OP91,NULL}, //91h:
-		{DEBUG8086_OP92,NULL}, //92h:
-		{DEBUG8086_OP93,NULL}, //93h:
-		{DEBUG8086_OP94,NULL}, //94h:
-		{DEBUG8086_OP95,NULL}, //95h:
-		{DEBUG8086_OP96,NULL}, //96h:
-		{DEBUG8086_OP97,NULL}, //97h:
-		{DEBUG8086_OP98,NULL}, //98h:
-		{DEBUG8086_OP99,NULL}, //99h:
-		{DEBUG8086_OP9A,NULL}, //9Ah:
-		{DEBUG8086_OP9B,NULL}, //9Bh:
-		{DEBUG8086_OP9C,NULL}, //9Ch:
-		{DEBUG8086_OP9D,NULL}, //9Dh:
-		{DEBUG8086_OP9E,NULL}, //9Eh:
-		{DEBUG8086_OP9F,NULL}, //9Fh:
-//0xA0:
-		{DEBUG8086_OPA0,NULL}, //A0h:
-		{DEBUG8086_OPA1,NULL}, //A1h:
-		{DEBUG8086_OPA2,NULL}, //A2h:
-		{DEBUG8086_OPA3,NULL}, //A3h:
-		{DEBUG8086_OPA4,NULL}, //A4h:
-		{DEBUG8086_OPA5,NULL}, //A5h:
-		{DEBUG8086_OPA6,NULL}, //A6h:
-		{DEBUG8086_OPA7,NULL}, //A7h:
-		{DEBUG8086_OPA8,NULL}, //A8h:
-		{DEBUG8086_OPA9,NULL}, //A9h:
-		{DEBUG8086_OPAA,NULL}, //AAh:
-		{DEBUG8086_OPAB,NULL}, //ABh:
-		{DEBUG8086_OPAC,NULL}, //ACh:
-		{DEBUG8086_OPAD,NULL}, //ADh:
-		{DEBUG8086_OPAE,NULL}, //AEh:
-		{DEBUG8086_OPAF,NULL}, //AFh:
-//0xB0:
-		{DEBUG8086_OPB0,NULL}, //B0h:
-		{DEBUG8086_OPB1,NULL}, //B1h:
-		{DEBUG8086_OPB2,NULL}, //B2h:
-		{DEBUG8086_OPB3,NULL}, //B3h:
-		{DEBUG8086_OPB4,NULL}, //B4h:
-		{DEBUG8086_OPB5,NULL}, //B5h:
-		{DEBUG8086_OPB6,NULL}, //B6h:
-		{DEBUG8086_OPB7,NULL}, //B7h:
-		{DEBUG8086_OPB8,NULL}, //B8h:
-		{DEBUG8086_OPB9,NULL}, //B9h:
-		{DEBUG8086_OPBA,NULL}, //BAh:
-		{DEBUG8086_OPBB,NULL}, //BBh:
-		{DEBUG8086_OPBC,NULL}, //BCh:
-		{DEBUG8086_OPBD,NULL}, //BDh:
-		{DEBUG8086_OPBE,NULL}, //BEh:
-		{DEBUG8086_OPBF,NULL}, //BFh:
-//0xC0:
-		{DEBUG8086_unkOP,NULL}, //C0h: UNK
-		{DEBUG8086_unkOP,NULL}, //C1h: UNK
-		{DEBUG8086_OPC2,NULL}, //C2h:
-		{DEBUG8086_OPC3,NULL}, //C3h:
-		{DEBUG8086_OPC4,NULL}, //C4h:
-		{DEBUG8086_OPC5,NULL}, //C5h:
-		{DEBUG8086_OPC6,NULL}, //C6h:
-		{DEBUG8086_OPC7,NULL}, //C7h:
-		{DEBUG8086_unkOP,NULL}, //C8h: UNK
-		{DEBUG8086_unkOP,NULL}, //C9h: UNK
-		{DEBUG8086_OPCA,NULL}, //CAh:
-		{DEBUG8086_OPCB,NULL}, //CBh:
-		{DEBUG8086_OPCC,NULL}, //CCh:
-		{DEBUG8086_OPCD,NULL}, //CDh:
-		{DEBUG8086_OPCE,NULL}, //CEh:
-		{DEBUG8086_OPCF,NULL}, //CFh:
-//0xD0:
-		{DEBUG8086_OPD0,NULL}, //D0h:
-		{DEBUG8086_OPD1,NULL}, //D1h:
-		{DEBUG8086_OPD2,NULL}, //D2h:
-		{DEBUG8086_OPD3,NULL}, //D3h:
-		{DEBUG8086_OPD4,NULL}, //D4h:
-		{DEBUG8086_OPD5,NULL}, //D5h:
-		{DEBUG8086_unkOP,NULL}, //D6h: UNK
-		{DEBUG8086_OPD7,NULL}, //D7h:
-		{DEBUG8087_noCOOP,NULL}, //D8h: UNK
-		{DEBUG8087_OPD9,NULL}, //D9h: CoProcessor Minimum
-		{DEBUG8087_noCOOP,NULL}, //DAh: UNK
-		{DEBUG8087_OPDB,NULL}, //DBh: CoProcessor Minimum
-		{DEBUG8087_noCOOP,NULL}, //DCh: UNK
-		{DEBUG8087_OPDD,NULL}, //DDh: CoProcessor Minimum
-		{DEBUG8087_noCOOP,NULL}, //DEh: UNK
-		{DEBUG8087_OPDF,NULL}, //DFh: COProcessor minimum
-//0xE0:
-		{DEBUG8086_OPE0,NULL}, //E0h:
-		{DEBUG8086_OPE1,NULL}, //E1h:
-		{DEBUG8086_OPE2,NULL}, //E2h:
-		{DEBUG8086_OPE3,NULL}, //E3h:
-		{DEBUG8086_OPE4,NULL}, //E4h:
-		{DEBUG8086_OPE5,NULL}, //E5h:
-		{DEBUG8086_OPE6,NULL}, //E6h:
-		{DEBUG8086_OPE7,NULL}, //E7h:
-		{DEBUG8086_OPE8,NULL}, //E8h:
-		{DEBUG8086_OPE9,NULL}, //E9h:
-		{DEBUG8086_OPEA,NULL}, //EAh:
-		{DEBUG8086_OPEB,NULL}, //EBh:
-		{DEBUG8086_OPEC,NULL}, //ECh:
-		{DEBUG8086_OPED,NULL}, //EDh:
-		{DEBUG8086_OPEE,NULL}, //EEh:
-		{DEBUG8086_OPEF,NULL}, //EFh:
-//0xF0:
-		{DEBUG8086_unkOP,NULL}, //F0h: Special
-		{DEBUG8086_OPF1,NULL}, //F1h: UNK
-		{DEBUG8086_unkOP,NULL}, //F2h: Special
-		{DEBUG8086_unkOP,NULL}, //F3h: Special
-		{DEBUG8086_OPF4,NULL}, //F4h:
-		{DEBUG8086_OPF5,NULL}, //F5h:
-		{DEBUG8086_OPF6,NULL}, //F6h:
-		{DEBUG8086_OPF7,NULL}, //F7h:
-		{DEBUG8086_OPF8,NULL}, //F8h:
-		{DEBUG8086_OPF9,NULL}, //F9h:
-		{DEBUG8086_OPFA,NULL}, //FAh:
-		{DEBUG8086_OPFB,NULL}, //FBh:
-		{DEBUG8086_OPFC,NULL}, //FCh:
-		{DEBUG8086_OPFD,NULL}, //FDh:
-		{DEBUG8086_OPFE,NULL}, //FEh:
-		{DEBUG8086_OPFF,NULL},  //FFh:
-	},
-	{
-//80186
-
-//0x00:
-		{NULL,NULL}, //00h:
-		{NULL,NULL}, //01h:
-		{NULL,NULL}, //02h:
-		{NULL,NULL}, //03h:
-		{NULL,NULL}, //04h:
-		{NULL,NULL}, //05h:
-		{NULL,NULL}, //06h:
-		{NULL,NULL}, //07h:
-		{NULL,NULL}, //08h:
-		{NULL,NULL}, //09h:
-		{NULL,NULL}, //0Ah:
-		{NULL,NULL}, //0Bh:
-		{NULL,NULL}, //0Ch:
-		{NULL,NULL}, //0Dh:
-		{NULL,NULL}, //0Eh:
-		{DEBUG8086_unkOP,NULL}, //0Fh: 8086 specific OPcode!
-//0x10:
-		{NULL,NULL}, //10h:
-		{NULL,NULL}, //11h:
-		{NULL,NULL}, //12h:
-		{NULL,NULL}, //13h:
-		{NULL,NULL}, //14h:
-		{NULL,NULL}, //15h:
-		{NULL,NULL}, //16h:
-		{NULL,NULL}, //17h:
-		{NULL,NULL}, //18h:
-		{NULL,NULL}, //19h:
-		{NULL,NULL}, //1Ah:
-		{NULL,NULL}, //1Bh:
-		{NULL,NULL}, //1Ch:
-		{NULL,NULL}, //1Dh:
-		{NULL,NULL}, //1Eh:
-		{NULL,NULL}, //1Fh:
-//0x20:
-		{NULL,NULL}, //20h:
-		{NULL,NULL}, //21h:
-		{NULL,NULL}, //22h:
-		{NULL,NULL}, //23h:
-		{NULL,NULL}, //24h:
-		{NULL,NULL}, //25h:
-		{NULL,NULL}, //26h: Special
-		{NULL,NULL}, //27h:
-		{NULL,NULL}, //28h:
-		{NULL,NULL}, //29h:
-		{NULL,NULL}, //2Ah:
-		{NULL,NULL}, //2Bh:
-		{NULL,NULL}, //2Ch:
-		{NULL,NULL}, //2Dh:
-		{NULL,NULL}, //2Eh: Special
-		{NULL,NULL}, //2Fh:
-//0x30:
-		{NULL,NULL}, //30h:
-		{NULL,NULL}, //31h:
-		{NULL,NULL}, //32h:
-		{NULL,NULL}, //33h:
-		{NULL,NULL}, //34h:
-		{NULL,NULL}, //35h:
-		{NULL,NULL}, //36h: Special
-		{NULL,NULL}, //37h:
-		{NULL,NULL}, //38h:
-		{NULL,NULL}, //39h:
-		{NULL,NULL}, //3Ah:
-		{NULL,NULL}, //3Bh:
-		{NULL,NULL}, //3Ch:
-		{NULL,NULL}, //3Dh:
-		{NULL,NULL}, //3Eh: Special
-		{NULL,NULL}, //3Fh:
-//0x40:
-		{NULL,NULL}, //40h:
-		{NULL,NULL}, //41h:
-		{NULL,NULL}, //42h:
-		{NULL,NULL}, //43h:
-		{NULL,NULL}, //44h:
-		{NULL,NULL}, //45h:
-		{NULL,NULL}, //46h:
-		{NULL,NULL}, //47h:
-		{NULL,NULL}, //48h:
-		{NULL,NULL}, //49h:
-		{NULL,NULL}, //4Ah:
-		{NULL,NULL}, //4Bh:
-		{NULL,NULL}, //4Ch:
-		{NULL,NULL}, //4Dh:
-		{NULL,NULL}, //4Eh:
-		{NULL,NULL}, //4Fh:
-//0x50:
-		{NULL,NULL}, //50h:
-		{NULL,NULL}, //51h:
-		{NULL,NULL}, //52h:
-		{NULL,NULL}, //53h:
-		{NULL,NULL}, //54h:
-		{NULL,NULL}, //55h:
-		{NULL,NULL}, //56h:
-		{NULL,NULL}, //57h:
-		{NULL,NULL}, //58h:
-		{NULL,NULL}, //59h:
-		{NULL,NULL}, //5Ah:
-		{NULL,NULL}, //5Bh:
-		{NULL,NULL}, //5Ch:
-		{NULL,NULL}, //5Dh:
-		{NULL,NULL}, //5Eh:
-		{NULL,NULL}, //5Fh:
-//0x60:
-		{DEBUG186_OP60,NULL}, //60h: PUSHA(removed here)
-		{DEBUG186_OP61,NULL}, //61h: POPA(removed here)
-		{DEBUG186_OP62,NULL}, //UNK
-		{NULL,NULL}, //UNK
-		{NULL,NULL}, //UNK
-		{NULL,NULL}, //UNK
-		{NULL,NULL}, //UNK
-		{NULL,NULL}, //UNK
-		{DEBUG186_OP68,NULL}, //68h:
-		{DEBUG186_OP69,NULL}, //69h:
-		{DEBUG186_OP6A,NULL}, //6Ah:
-		{DEBUG186_OP6B,NULL}, //6Bh:
-		{DEBUG186_OP6C,NULL}, //6Ch:
-		{DEBUG186_OP6D,NULL}, //6Dh:
-		{DEBUG186_OP6E,NULL}, //6Eh:
-		{DEBUG186_OP6F,NULL}, //6Fh:
-//0x70: Conditional JMP OPcodes:
-		{NULL,NULL}, //70h:
-		{NULL,NULL}, //71h:
-		{NULL,NULL}, //72h:
-		{NULL,NULL}, //73h:
-		{NULL,NULL}, //74h:
-		{NULL,NULL}, //75h:
-		{NULL,NULL}, //76h:
-		{NULL,NULL}, //77h:
-		{NULL,NULL}, //78h:
-		{NULL,NULL}, //79h:
-		{NULL,NULL}, //7Ah:
-		{NULL,NULL}, //7Bh:
-		{NULL,NULL}, //7Ch:
-		{NULL,NULL}, //7Dh:
-		{NULL,NULL}, //7Eh:
-		{NULL,NULL}, //7Fh:
-//0x80:
-		{NULL,NULL}, //80h:
-		{NULL,NULL}, //81h:
-		{NULL,NULL}, //82h:
-		{NULL,NULL}, //83h:
-		{NULL,NULL}, //84h:
-		{NULL,NULL}, //85h:
-		{NULL,NULL}, //86h:
-		{NULL,NULL}, //87h:
-		{NULL,NULL}, //88h:
-		{NULL,NULL}, //89h:
-		{NULL,NULL}, //8Ah:
-		{NULL,NULL}, //8Bh:
-		{NULL,NULL}, //8Ch:
-		{NULL,NULL}, //8Dh:
-		{NULL,NULL}, //8Eh:
-		{NULL,NULL}, //8Fh:
-//0x90:
-		{NULL,NULL}, //90h:
-		{NULL,NULL}, //91h:
-		{NULL,NULL}, //92h:
-		{NULL,NULL}, //93h:
-		{NULL,NULL}, //94h:
-		{NULL,NULL}, //95h:
-		{NULL,NULL}, //96h:
-		{NULL,NULL}, //97h:
-		{NULL,NULL}, //98h:
-		{NULL,NULL}, //99h:
-		{NULL,NULL}, //9Ah:
-		{NULL,NULL}, //9Bh:
-		{NULL,NULL}, //9Ch:
-		{NULL,NULL}, //9Dh:
-		{NULL,NULL}, //9Eh:
-		{NULL,NULL}, //9Fh:
-//0xA0:
-		{NULL,NULL}, //A0h:
-		{NULL,NULL}, //A1h:
-		{NULL,NULL}, //A2h:
-		{NULL,NULL}, //A3h:
-		{NULL,NULL}, //A4h:
-		{NULL,NULL}, //A5h:
-		{NULL,NULL}, //A6h:
-		{NULL,NULL}, //A7h:
-		{NULL,NULL}, //A8h:
-		{NULL,NULL}, //A9h:
-		{NULL,NULL}, //AAh:
-		{NULL,NULL}, //ABh:
-		{NULL,NULL}, //ACh:
-		{NULL,NULL}, //ADh:
-		{NULL,NULL}, //AEh:
-		{NULL,NULL}, //AFh:
-//0xB0:
-		{NULL,NULL}, //B0h:
-		{NULL,NULL}, //B1h:
-		{NULL,NULL}, //B2h:
-		{NULL,NULL}, //B3h:
-		{NULL,NULL}, //B4h:
-		{NULL,NULL}, //B5h:
-		{NULL,NULL}, //B6h:
-		{NULL,NULL}, //B7h:
-		{NULL,NULL}, //B8h:
-		{NULL,NULL}, //B9h:
-		{NULL,NULL}, //BAh:
-		{NULL,NULL}, //BBh:
-		{NULL,NULL}, //BCh:
-		{NULL,NULL}, //BDh:
-		{NULL,NULL}, //BEh:
-		{NULL,NULL}, //BFh:
-//0xC0:
-		{DEBUG186_OPC0,NULL}, //C0h:
-		{DEBUG186_OPC1,NULL}, //C1h:
-		{NULL,NULL}, //C2h:
-		{NULL,NULL}, //C3h:
-		{NULL,NULL}, //C4h:
-		{NULL,NULL}, //C5h:
-		{NULL,NULL}, //C6h:
-		{NULL,NULL}, //C7h:
-		{DEBUG186_OPC8,NULL}, //C8h:
-		{DEBUG186_OPC9,NULL}, //C9h:
-		{NULL,NULL}, //CAh:
-		{NULL,NULL}, //CBh:
-		{NULL,NULL}, //CCh:
-		{NULL,NULL}, //CDh:
-		{NULL,NULL}, //CEh:
-		{NULL,NULL}, //CFh:
-//0xD0:
-		{NULL,NULL}, //D0h:
-		{NULL,NULL}, //D1h:
-		{NULL,NULL}, //D2h:
-		{NULL,NULL}, //D3h:
-		{NULL,NULL}, //D4h:
-		{NULL,NULL}, //D5h:
-		{NULL,NULL}, //D6h: UNK
-		{NULL,NULL}, //D7h:
-		{NULL,NULL}, //D8h: UNK
-		{NULL,NULL}, //D9h: CoProcessor Minimum
-		{NULL,NULL}, //DAh: UNK
-		{NULL,NULL}, //DBh: CoProcessor Minimum
-		{NULL,NULL}, //DCh: UNK
-		{NULL,NULL}, //DDh: CoProcessor Minimum
-		{NULL,NULL}, //DEh: UNK
-		{NULL,NULL}, //DFh: COProcessor minimum
-//0xE0:
-		{NULL,NULL}, //E0h:
-		{NULL,NULL}, //E1h:
-		{NULL,NULL}, //E2h:
-		{NULL,NULL}, //E3h:
-		{NULL,NULL}, //E4h:
-		{NULL,NULL}, //E5h:
-		{NULL,NULL}, //E6h:
-		{NULL,NULL}, //E7h:
-		{NULL,NULL}, //E8h:
-		{NULL,NULL}, //E9h:
-		{NULL,NULL}, //EAh:
-		{NULL,NULL}, //EBh:
-		{NULL,NULL}, //ECh:
-		{NULL,NULL}, //EDh:
-		{NULL,NULL}, //EEh:
-		{NULL,NULL}, //EFh:
-//0xF0:
-		{NULL,NULL}, //F0h: Special
-		{NULL,NULL}, //F1h: UNK
-		{NULL,NULL}, //F2h: Special
-		{NULL,NULL}, //F3h: Special
-		{NULL,NULL}, //F4h:
-		{NULL,NULL}, //F5h:
-		{NULL,NULL}, //F6h:
-		{NULL,NULL}, //F7h:
-		{NULL,NULL}, //F8h:
-		{NULL,NULL}, //F9h:
-		{NULL,NULL}, //FAh:
-		{NULL,NULL}, //FBh:
-		{NULL,NULL}, //FCh:
-		{NULL,NULL}, //FDh:
-		{NULL,NULL}, //FEh:
-		{NULL,NULL}  //FFh:
-	}
-};*/

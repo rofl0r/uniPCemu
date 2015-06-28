@@ -1,6 +1,8 @@
 #ifndef CPU_OP80486_H
 #define CPU_OP80486_H
 
-//Nothing yet, not emulated yet.
+//Not emulated yet. Bare minimum instruction to run!
+
+void CPU486_CPUID();
 
 #endif

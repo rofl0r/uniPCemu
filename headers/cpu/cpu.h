@@ -14,8 +14,8 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define MAXCPUS 2
 
 //Number of currently supported CPUs & opcode 0F extensions.
-#define NUMCPUS 2
-#define NUM0FEXTS 1
+#define NUMCPUS 6
+#define NUM0FEXTS 4
 //What CPU is emulated?
 #define CPU_8086 0
 #define CPU_80186 1
@@ -25,7 +25,9 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define CPU_PENTIUM 5
 
 //Currently emulating CPU (values see above, formula later)?
-#define EMULATED_CPU BIOS_Settings.emulated_CPU
+//#define EMULATED_CPU BIOS_Settings.emulated_CPU
+//Since we're comparing to Bochs, emulate a Pentium PC!
+#define EMULATED_CPU CPU_PENTIUM
 
 //For easygoing solid state segments (not changeable) in CPU[activeCPU].registers.SEGMENT_REGISTERS[]
 #define CPU_SEGMENT_CS 0

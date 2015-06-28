@@ -326,7 +326,8 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 			break;
 		case CPU_80286:
 		case CPU_80386:
-		case CPU_80486: //5170 AT PC!
+		case CPU_80486:
+		case CPU_PENTIUM: //5170 AT PC!
 			segment = offset = reloffset; //Load the offset!
 			offset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
@@ -411,7 +412,8 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 			break;
 		case CPU_80286:
 		case CPU_80386:
-		case CPU_80486: //5170 AT PC!
+		case CPU_80486:
+		case CPU_PENTIUM: //5170 AT PC!
 			segment = offset = reloffset; //Load the offset!
 			offset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47

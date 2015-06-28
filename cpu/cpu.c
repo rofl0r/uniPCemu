@@ -302,23 +302,21 @@ void CPU_initRegisters() //Init the registers!
 	CPU[activeCPU].registers->EDI = 0; //Destination index!
 
 	//Stack registers
-	CPU[activeCPU].registers->ESP = 0x0000FFFE; //Init offset of stack (top-1)
-	if (EMULATED_CPU>=CPU_80286) //32-bits?
-	{
-		CPU[activeCPU].registers->ESP = 0xFFFFFFFE; //Start at highest offset!
-	}
+	CPU[activeCPU].registers->ESP = 0; //Init offset of stack (top-1)
 	CPU[activeCPU].registers->SS = 0; //Stack segment!
 
 	
 	//Code location
-	CPU[activeCPU].registers->EIP = 0; //Start of executable code!
-	CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
-	//if (EMULATED_CPU>CPU_80186) //286+?
+	if (EMULATED_CPU>CPU_80186) //286+?
 	{
 		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
 		CPU[activeCPU].registers->EIP = 0xFFF0; //We're starting at this offset!
 	}
-	
+	else
+	{
+		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
+		CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
+	}
 	//Data registers!
 	CPU[activeCPU].registers->DS = 0; //Data segment!
 	CPU[activeCPU].registers->ES = 0; //Extra segment!
@@ -666,6 +664,7 @@ void CPU_beforeexec()
 	{
 		CPU[activeCPU].trapped = 0; //We're not trapped (allow hardware interrupts)!
 	}
+
 	switch (EMULATED_CPU)
 	{
 	case CPU_8086:
@@ -687,6 +686,13 @@ void CPU_beforeexec()
 		CPU[activeCPU].registers->SFLAGS.AC = 0; //Stuck to 0!
 		break;
 	case CPU_80486:
+		CPU[activeCPU].registers->FLAGS &= 0x7FFF; //Bit 15 is always cleared!
+		CPU[activeCPU].registers->SFLAGS.ID = 0; //Don't allow setting of the CPUID flag!
+		break;
+	case CPU_PENTIUM:
+		//Allow all bits to be set!
+		break;
+	default: //Unknown CPU?
 		break;
 	}
 }

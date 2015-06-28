@@ -79,6 +79,9 @@
     <Filter Include="Source Files\cpu\80486">
       <UniqueIdentifier>{22c0f839-8e65-43a3-99cd-81da7cce5b52}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\cpu\80586">
+      <UniqueIdentifier>{668cf0f1-b3cb-45c8-bcee-b9185e9236aa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\basicio\boot.c">
@@ -444,6 +447,12 @@
     <ClCompile Include="..\..\cpu\fake86_cpu.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\cpu\80486\opcodes_486.c">
+      <Filter>Source Files\cpu\80486</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\cpu\80586\opcodes_586.c">
+      <Filter>Source Files\cpu\80586</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">
@@ -797,6 +806,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\cpu\8086\opcodes_8086_verify.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\headers\cpu\80586\cpu_OP80586.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

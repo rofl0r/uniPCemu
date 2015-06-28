@@ -1,6 +1,8 @@
 #include "headers/cpu/cpu.h" //Need basic CPU support!
 #include "headers/cpu/80286/cpu_OP80286.h" //Unknown opcodes under 80286+ and more!
-//#include "headers/debugger/80286/debug_OP80286.h" //Unknown opcodes under 80286+ and more!
+#include "headers/cpu/80386/cpu_OP80386.h" //Unknown opcodes under 80386+ and more!
+#include "headers/cpu/80486/cpu_OP80486.h" //Unknown opcodes under 80486+ and more!
+#include "headers/cpu/80586/cpu_OP80586.h" //Unknown opcodes under 80586+ and more!
 
 
 //0F opcode extensions:
@@ -8,9 +10,8 @@
 //See normal opcode table, but for 0F opcodes!
 Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard interrupt jmptbl!
 {
+	//80286+
 	{
-//80286+
-
 //0x00:
 		{unkOP0F_286,NULL}, //00h:
 		{unkOP0F_286,NULL}, //01h
@@ -283,285 +284,834 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 		{unkOP0F_286,NULL},
 		{unkOP0F_286,NULL},
 		{unkOP0F_286,NULL}
-	}
-};
+	},
 
-/*Handler debug0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard interrupt jmptbl!
-{
+	//80386
 	{
-//80286+
+	//0x00:
+	{ NULL, NULL }, //00h:
+	{ NULL, NULL }, //01h
+	{ NULL, NULL }, //02h:
+	{ NULL, NULL }, //03h:
+	{ NULL, NULL }, //04h:
+	{ NULL, NULL }, //05h:
+	{ NULL, NULL }, //06h:
+	{ NULL, NULL }, //07h:
+	{ NULL, NULL }, //08h:
+	{ NULL, NULL }, //09h:
+	{ NULL, NULL }, //0Ah:
+	{ NULL, NULL }, //0Bh:
+	{ NULL, NULL }, //0Ch:
+	{ NULL, NULL }, //0Dh:
+	{ NULL, NULL }, //0Eh:
+	{ NULL, NULL }, //0Fh:
+	//0x10:
+	{ NULL, NULL }, //10h:
+	{ NULL, NULL }, //11h:
+	{ NULL, NULL }, //12h:
+	{ NULL, NULL }, //13h:
+	{ NULL, NULL }, //14h:
+	{ NULL, NULL }, //15h:
+	{ NULL, NULL }, //16h:
+	{ NULL, NULL }, //17h:
+	{ NULL, NULL }, //18h:
+	{ NULL, NULL }, //19h:
+	{ NULL, NULL }, //1Ah:
+	{ NULL, NULL }, //1Bh:
+	{ NULL, NULL }, //1Ch:
+	{ NULL, NULL }, //1Dh:
+	{ NULL, NULL }, //1Eh:
+	{ NULL, NULL }, //1Fh:
+	//0x20:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0x30:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0x40:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0x50:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0x60:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0x70:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0x80:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0x90:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0xA0:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0xB0:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0xC0:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0xD0:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0xE0:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	//0xF0:
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL },
+	{ NULL, NULL }
+	},
 
-//0x00:
-		{DEBUG286_unkOP0F,NULL}, //00h:
-		{DEBUG286_unkOP0F,NULL}, //01h
-		{DEBUG286_unkOP0F,NULL}, //02h:
-		{DEBUG286_unkOP0F,NULL}, //03h:
-		{DEBUG286_unkOP0F,NULL}, //04h:
-		{DEBUG286_unkOP0F,NULL}, //05h:
-		{DEBUG286_unkOP0F,NULL}, //06h:
-		{DEBUG286_unkOP0F,NULL}, //07h:
-		{DEBUG286_unkOP0F,NULL}, //08h:
-		{DEBUG286_unkOP0F,NULL}, //09h:
-		{DEBUG286_unkOP0F,NULL}, //0Ah:
-		{DEBUG286_unkOP0F,NULL}, //0Bh:
-		{DEBUG286_unkOP0F,NULL}, //0Ch:
-		{DEBUG286_unkOP0F,NULL}, //0Dh:
-		{DEBUG286_unkOP0F,NULL}, //0Eh:
-		{DEBUG286_unkOP0F,NULL}, //0Fh:
-//0x10:
-		{DEBUG286_unkOP0F,NULL}, //10h: video interrupt
-		{DEBUG286_unkOP0F,NULL}, //11h:
-		{DEBUG286_unkOP0F,NULL}, //12h:
-		{DEBUG286_unkOP0F,NULL}, //13h: I/O for HDD/Floppy disks
-		{DEBUG286_unkOP0F,NULL}, //14h:
-		{DEBUG286_unkOP0F,NULL}, //15h:
-		{DEBUG286_unkOP0F,NULL}, //16h:
-		{DEBUG286_unkOP0F,NULL}, //17h:
-		{DEBUG286_unkOP0F,NULL}, //18h:
-		{DEBUG286_unkOP0F,NULL}, //19h:
-		{DEBUG286_unkOP0F,NULL}, //1Ah:
-		{DEBUG286_unkOP0F,NULL}, //1Bh:
-		{DEBUG286_unkOP0F,NULL}, //1Ch:
-		{DEBUG286_unkOP0F,NULL}, //1Dh:
-		{DEBUG286_unkOP0F,NULL}, //1Eh:
-		{DEBUG286_unkOP0F,NULL}, //1Fh:
-//0x20:
-		{DEBUG286_unkOP0F,NULL}, //20h:
-		{DEBUG286_unkOP0F,NULL}, //21h: DOS interrupt
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0x30:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0x40:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0x50:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0x60:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0x70:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0x80:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0x90:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0xA0:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0xB0:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0xC0:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0xD0:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0xE0:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-//0xF0:
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL},
-		{DEBUG286_unkOP0F,NULL}
+	//80486
+	{
+		//0x00:
+		{ NULL, NULL }, //00h:
+		{ NULL, NULL }, //01h
+		{ NULL, NULL }, //02h:
+		{ NULL, NULL }, //03h:
+		{ NULL, NULL }, //04h:
+		{ NULL, NULL }, //05h:
+		{ NULL, NULL }, //06h:
+		{ NULL, NULL }, //07h:
+		{ NULL, NULL }, //08h:
+		{ NULL, NULL }, //09h:
+		{ NULL, NULL }, //0Ah:
+		{ NULL, NULL }, //0Bh:
+		{ NULL, NULL }, //0Ch:
+		{ NULL, NULL }, //0Dh:
+		{ NULL, NULL }, //0Eh:
+		{ NULL, NULL }, //0Fh:
+		//0x10:
+		{ NULL, NULL }, //10h:
+		{ NULL, NULL }, //11h:
+		{ NULL, NULL }, //12h:
+		{ NULL, NULL }, //13h:
+		{ NULL, NULL }, //14h:
+		{ NULL, NULL }, //15h:
+		{ NULL, NULL }, //16h:
+		{ NULL, NULL }, //17h:
+		{ NULL, NULL }, //18h:
+		{ NULL, NULL }, //19h:
+		{ NULL, NULL }, //1Ah:
+		{ NULL, NULL }, //1Bh:
+		{ NULL, NULL }, //1Ch:
+		{ NULL, NULL }, //1Dh:
+		{ NULL, NULL }, //1Eh:
+		{ NULL, NULL }, //1Fh:
+		//0x20:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x30:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x40:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x50:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x60:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x70:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x80:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x90:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xA0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ CPU486_CPUID, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xB0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xC0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xD0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xE0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xF0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL }
+	},
+
+	//PENTIUM (80586)
+	{
+		//0x00:
+		{ NULL, NULL }, //00h:
+		{ NULL, NULL }, //01h
+		{ NULL, NULL }, //02h:
+		{ NULL, NULL }, //03h:
+		{ NULL, NULL }, //04h:
+		{ NULL, NULL }, //05h:
+		{ NULL, NULL }, //06h:
+		{ NULL, NULL }, //07h:
+		{ NULL, NULL }, //08h:
+		{ NULL, NULL }, //09h:
+		{ NULL, NULL }, //0Ah:
+		{ NULL, NULL }, //0Bh:
+		{ NULL, NULL }, //0Ch:
+		{ NULL, NULL }, //0Dh:
+		{ NULL, NULL }, //0Eh:
+		{ NULL, NULL }, //0Fh:
+		//0x10:
+		{ NULL, NULL }, //10h:
+		{ NULL, NULL }, //11h:
+		{ NULL, NULL }, //12h:
+		{ NULL, NULL }, //13h:
+		{ NULL, NULL }, //14h:
+		{ NULL, NULL }, //15h:
+		{ NULL, NULL }, //16h:
+		{ NULL, NULL }, //17h:
+		{ NULL, NULL }, //18h:
+		{ NULL, NULL }, //19h:
+		{ NULL, NULL }, //1Ah:
+		{ NULL, NULL }, //1Bh:
+		{ NULL, NULL }, //1Ch:
+		{ NULL, NULL }, //1Dh:
+		{ NULL, NULL }, //1Eh:
+		{ NULL, NULL }, //1Fh:
+		//0x20:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x30:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x40:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x50:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x60:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x70:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x80:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0x90:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xA0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ CPU586_CPUID, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xB0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xC0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xD0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xE0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		//0xF0:
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL },
+		{ NULL, NULL }
 	}
-};*/
+
+};

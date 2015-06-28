@@ -28,6 +28,8 @@
     <ClCompile Include="..\..\cpu\80286\protection.c" />
     <ClCompile Include="..\..\cpu\80386\opcodes0F_386.c" />
     <ClCompile Include="..\..\cpu\80386\opcodes_386.c" />
+    <ClCompile Include="..\..\cpu\80486\opcodes_486.c" />
+    <ClCompile Include="..\..\cpu\80586\opcodes_586.c" />
     <ClCompile Include="..\..\cpu\8086\8086_grpOPs.c" />
     <ClCompile Include="..\..\cpu\8086\opcodes_8086.c" />
     <ClCompile Include="..\..\cpu\cb_manager.c" />
@@ -152,6 +154,7 @@
     <ClInclude Include="..\..\headers\cpu\80286\protection.h" />
     <ClInclude Include="..\..\headers\cpu\80386\cpu_OP80386.h" />
     <ClInclude Include="..\..\headers\cpu\80486\cpu_OP80486.h" />
+    <ClInclude Include="..\..\headers\cpu\80586\cpu_OP80586.h" />
     <ClInclude Include="..\..\headers\cpu\8086\8086_grpOPs.h" />
     <ClInclude Include="..\..\headers\cpu\8086\cpu_OP8086.h" />
     <ClInclude Include="..\..\headers\cpu\8086\opcodes_8086_verify.h" />
