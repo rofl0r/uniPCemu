@@ -135,6 +135,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDIDEVICE.channels[channel].lvolume = MIDIDEVICE.channels[channel].rvolume = 0.5; //Accompanying the pan position: centered volume!
 		MIDIDEVICE.channels[channel++].mode = MIDIDEVICE_DEFAULTMODE; //Use the default mode!
 	}
+	MIDIDEVICE.channels[MIDI_DRUMCHANNEL].bank = MIDIDEVICE.channels[MIDI_DRUMCHANNEL].activebank = 0x80; //We're locked to a drum set!
 	unlockaudio(1);
 }
 
@@ -298,8 +299,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
 
 	velocity_factor = voice->note->noteon_velocity_factor; //Apply Note On key velocity first!
-	//velocity_factor *= ((float)(channel->pressure + 1) / 64.0f); //Adjust velocity, based on channel pressure, which can change during hold!
-	//velocity_factor *= ((float)(voice->note->pressure + 1) / 64.0f); //Adjust velocity, based on note pressure, which can change during hold!
 
 
 	//Determine panning!
@@ -641,6 +640,8 @@ OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used
 
 OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity)
 {
+	byte purpose;
+
 	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel)) //To be applied?
 	{
 		if (!(MIDIDEVICE.channels[channel].mode&MIDIDEVICE_POLY)) //Mono mode?
@@ -648,54 +649,56 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 			MIDIDEVICE_AllNotesOff(selectedchannel,channel); //Turn all notes off first!
 		}
 		MIDIDEVICE.channels[channel].notes[note].noteon_velocity = velocity; //Add velocity to our lookup!
-
+		purpose = (channel==MIDI_DRUMCHANNEL)?1:0; //Are we a drum channel?
 		int voice, foundvoice = -1, voicetosteal = -1;
-		int_32 stolenvoiceranking = 0xEFFFFFFF, currentranking; //Stolen voice ranking starts lowest always!
+		int_32 stolenvoiceranking = 0, currentranking; //Stolen voice ranking starts lowest always!
 		for (voice = 0; voice < __MIDI_NUMVOICES; voice++) //Find a voice!
 		{
-			if (MIDIDEVICE_newvoice(&activevoices[voice],channel,note)) //Failed to allocate?
+			if (activevoices[voice].purpose==purpose) //Our type of channel (drums vs melodic channels)?
 			{
-				if (activevoices[voice].VolumeEnvelope.active) //Are we active?
+				if (MIDIDEVICE_newvoice(&activevoices[voice], channel, note)) //Failed to allocate?
 				{
-					//Create ranking by scoring the voice!
-					currentranking = 0; //Start with no ranking!
-					if (activevoices[voice].channel == &MIDIDEVICE.channels[9]) currentranking += 4000; //Drum channel?
-					else if (activevoices[voice].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
-					if (activevoices[voice].channel->sustain) currentranking -= 1000; //Lower when sustained!
-					float volume;
-					volume = activevoices[voice].CurrentVolumeEnvelope; //Load the ADSR volume!
-					if (activevoices[voice].lvolume > activevoices[voice].rvolume) //More left volume?
+					if (activevoices[voice].VolumeEnvelope.active) //Are we active?
 					{
-						volume *= activevoices[voice].lvolume; //Left volume!
-					}
-					else
-					{
-						volume *= activevoices[voice].rvolume; //Right volume!
-					}
-					currentranking += (int_32)(volume*1000.0f); //Factor in volume!
-					if (stolenvoiceranking > currentranking) //We're a lower rank?
-					{
-						stolenvoiceranking = currentranking; //New voice to steal!
-						voicetosteal = voice; //Steal this voice, if needed!
-					}
-					else if ((currentranking == stolenvoiceranking) && (voicetosteal!=-1)) //Same ranking as the last one found?
-					{
-						if (activevoices[voice].starttime < activevoices[voicetosteal].starttime) //Earlier start time with same ranking?
+						//Create ranking by scoring the voice!
+						currentranking = 0; //Start with no ranking!
+						if (activevoices[voice].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
+						if (activevoices[voice].channel->sustain) currentranking -= 1000; //Lower when sustained!
+						float volume;
+						volume = activevoices[voice].CurrentVolumeEnvelope; //Load the ADSR volume!
+						if (activevoices[voice].lvolume > activevoices[voice].rvolume) //More left volume?
 						{
+							volume *= activevoices[voice].lvolume; //Left volume!
+						}
+						else
+						{
+							volume *= activevoices[voice].rvolume; //Right volume!
+						}
+						currentranking += (int_32)(volume*1000.0f); //Factor in volume!
+						if ((stolenvoiceranking > currentranking) || (voicetosteal == -1)) //We're a lower rank or the first ranking?
+						{
+							stolenvoiceranking = currentranking; //New voice to steal!
 							voicetosteal = voice; //Steal this voice, if needed!
 						}
+						else if ((currentranking == stolenvoiceranking) && (voicetosteal != -1)) //Same ranking as the last one found?
+						{
+							if (activevoices[voice].starttime < activevoices[voicetosteal].starttime) //Earlier start time with same ranking?
+							{
+								voicetosteal = voice; //Steal this voice, if needed!
+							}
+						}
+					}
+					else //Inactive channel, but failed to express when allocating?
+					{
+						foundvoice = voice; //Found this voice!
+						break;
 					}
 				}
-				else //Inactive channel, but failed to express when allocating?
+				else //Allocated?
 				{
 					foundvoice = voice; //Found this voice!
-					break;
+					break; //Stop searching!
 				}
-			}
-			else //Allocated?
-			{
-				foundvoice = voice; //Found this voice!
-				break; //Stop searching!
 			}
 		}
 		if (foundvoice == -1) //No channels available? We need voice stealing!
@@ -766,59 +769,53 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					#ifdef MIDI_LOG
 						dolog("MPU","MIDIDEVICE: Bank select MSB on channel %i: %02X",currentchannel,current->buffer[1]); //Log it!
 					#endif
-					lockaudio(); //Lock the audio!
-					MIDIDEVICE.channels[currentchannel].bank &= 0x7F; //Only keep LSB!
-					MIDIDEVICE.channels[currentchannel].bank |= (current->buffer[1]<<7); //Set MSB!
-					unlockaudio(1); //Unlock the audio!
+						if (currentchannel != MIDI_DRUMCHANNEL) //Don't receive on channel 9: it's locked!
+						{
+							lockaudio(); //Lock the audio!
+							MIDIDEVICE.channels[currentchannel].bank &= 0x3F80; //Only keep MSB!
+							MIDIDEVICE.channels[currentchannel].bank |= current->buffer[1]; //Set LSB!
+							unlockaudio(1); //Unlock the audio!
+						}
 					break;
-				//case 0x01: //Modulation wheel (MSB)
-					//break;
-				//case 0x04: //Foot Pedal (MSB)
-					//break;
-				//case 0x06: //Data Entry, followed by cc100&101 for the address.
-					//break;
+				case 0x20: //Bank Select (LSB) (see cc0)
+#ifdef MIDI_LOG
+					dolog("MPU", "MIDIDEVICE: Bank select LSB on channel %i: %02X", currentchannel, current->buffer[1]); //Log it!
+#endif
+					if (currentchannel != MIDI_DRUMCHANNEL) //Don't receive on channel 9: it's locked!
+					{
+						lockaudio(); //Lock the audio!
+						MIDIDEVICE.channels[currentchannel].bank &= 0x7F; //Only keep LSB!
+						MIDIDEVICE.channels[currentchannel].bank |= (current->buffer[1] << 7); //Set MSB!
+						unlockaudio(1); //Unlock the audio!
+					}
+					break;
+
 				case 0x07: //Volume (MSB)
 					#ifdef MIDI_LOG
 						dolog("MPU", "MIDIDEVICE: Volume MSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
 					#endif
 					lockaudio(); //Lock the audio!
+					MIDIDEVICE.channels[currentchannel].volume &= 0x3F80; //Only keep MSB!
+					MIDIDEVICE.channels[currentchannel].volume |= current->buffer[1]; //Set LSB!
+					unlockaudio(1); //Unlock the audio!
+					break;
+				case 0x27: //Volume (LSB)
+#ifdef MIDI_LOG
+					dolog("MPU", "MIDIDEVICE: Volume LSB on channel %i: %02X", currentchannel, current->buffer[1]); //Log it!
+#endif
+					lockaudio(); //Lock the audio!
 					MIDIDEVICE.channels[currentchannel].volume &= 0x7F; //Only keep LSB!
 					MIDIDEVICE.channels[currentchannel].volume |= (current->buffer[1] << 7); //Set MSB!
 					unlockaudio(1); //Unlock the audio!
 					break;
+
 				case 0x0A: //Pan position (MSB)
 					#ifdef MIDI_LOG
 						dolog("MPU", "MIDIDEVICE: Pan position MSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
 					#endif
 					lockaudio(); //Lock the audio!
-					MIDIDEVICE.channels[currentchannel].panposition &= 0x7F; //Only keep LSB!
-					MIDIDEVICE.channels[currentchannel].panposition |= (current->buffer[1] << 7); //Set MSB!
-					unlockaudio(1); //Unlock the audio!
-					break;
-				//case 0x0B: //Expression (MSB)
-					//break;
-				case 0x20: //Bank Select (LSB) (see cc0)
-					#ifdef MIDI_LOG
-						dolog("MPU", "MIDIDEVICE: Bank select LSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
-					#endif
-					lockaudio(); //Lock the audio!
-					MIDIDEVICE.channels[currentchannel].bank &= 0x3F80; //Only keep MSB!
-					MIDIDEVICE.channels[currentchannel].bank |= current->buffer[1]; //Set LSB!
-					unlockaudio(1); //Unlock the audio!
-					break;
-				//case 0x21: //Modulation wheel (LSB)
-					//break;
-				//case 0x24: //Foot Pedal (LSB)
-					//break;
-				//case 0x26: //Data Entry, followed by cc100&101 for the address.
-					//break;
-				case 0x27: //Volume (LSB)
-					#ifdef MIDI_LOG
-						dolog("MPU", "MIDIDEVICE: Volume LSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
-					#endif
-					lockaudio(); //Lock the audio!
-					MIDIDEVICE.channels[currentchannel].volume &= 0x3F80; //Only keep MSB!
-					MIDIDEVICE.channels[currentchannel].volume |= current->buffer[1]; //Set LSB!
+					MIDIDEVICE.channels[currentchannel].panposition &= 0x3F80; //Only keep MSB!
+					MIDIDEVICE.channels[currentchannel].panposition |= current->buffer[1]; //Set LSB!
 					unlockaudio(1); //Unlock the audio!
 					break;
 				case 0x2A: //Pan position (LSB)
@@ -826,10 +823,25 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 						dolog("MPU", "MIDIDEVICE: Pan position LSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
 					#endif
 					lockaudio(); //Lock the audio!
-					MIDIDEVICE.channels[currentchannel].panposition &= 0x3F80; //Only keep MSB!
-					MIDIDEVICE.channels[currentchannel].panposition |= current->buffer[1]; //Set LSB!
+					MIDIDEVICE.channels[currentchannel].panposition &= 0x7F; //Only keep LSB!
+					MIDIDEVICE.channels[currentchannel].panposition |= (current->buffer[1] << 7); //Set MSB!
 					unlockaudio(1); //Unlock the audio!
 					break;
+
+				//case 0x01: //Modulation wheel (MSB)
+					//break;
+				//case 0x04: //Foot Pedal (MSB)
+					//break;
+				//case 0x06: //Data Entry, followed by cc100&101 for the address.
+					//break;
+				//case 0x0B: //Expression (MSB)
+					//break;
+				//case 0x21: //Modulation wheel (LSB)
+					//break;
+				//case 0x24: //Foot Pedal (LSB)
+					//break;
+				//case 0x26: //Data Entry, followed by cc100&101 for the address.
+					//break;
 				case 0x40: //Hold Pedal (On/Off) = Sustain Pedal
 					#ifdef MIDI_LOG
 						dolog("MPU", "MIDIDEVICE:  Channel %i; Hold pedal: %02X=%i", currentchannel, current->buffer[1],(current->buffer[1]&MIDI_CONTROLLER_ON)?1:0); //Log it!
@@ -1026,6 +1038,7 @@ void init_MIDIDEVICE() //Initialise MIDI device for usage!
 		int i;
 		for (i=0;i<__MIDI_NUMVOICES;i++) //Assign all voices available!
 		{
+			activevoices[i].purpose = (i < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice?
 			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
 		}
 	}

@@ -4,8 +4,13 @@
 #include "headers/types.h"
 #include "headers/hardware/midi/adsr.h" //ADSR support!
 
+//MIDI Drum channel number
+#define MIDI_DRUMCHANNEL 9
+
 //All MIDI voices that are available! Originally 64! Minimum of 24 according to General MIDI 1!
 #define __MIDI_NUMVOICES 24
+//Ammount of drum voices to reserve!
+#define MIDI_DRUMVOICES 8
 //How many samples to buffer at once! 42 according to MIDI specs! Set to 84 to work!
 #define __MIDI_SAMPLES 84
 
@@ -84,6 +89,8 @@ typedef struct
 	byte request_off; //Are we to be turned off? Start the release phase when enabled!
 	byte has_last; //Gotten last?
 	byte has_finallooppos; //Do we have a final loop position?
+
+	byte purpose; //0=Normal voice, 1=Drum channel!
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_addbuffer(byte command, MIDIPTR data); //Add a command to the buffer!

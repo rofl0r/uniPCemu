@@ -17,10 +17,10 @@ OPTINLINE double factor2dB(double factor, double fMaxLevelDB)
 
 float ADSR_release(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
-	float result;
-	if (adsr->release) //Gotten release?
+	if (adsr->release && adsr->releasefactor && adsr->releaselevel) //Gotten release and a factor to apply?
 	{
-		result = 1.0f-(adsr->releasefactor*(play_counter-adsr->releasestart)); //Apply factor!
+		float result;
+		result = adsr->releaselevel - (adsr->releasefactor*(play_counter - adsr->releasestart)); //Apply factor!
 		if (result>0.0f) return result; //Not quiet yet?
 	}
 	if (!adsr->released) //Not noted yet?
@@ -32,20 +32,21 @@ float ADSR_release(ADSR *adsr, int_64 play_counter, byte sustaining, byte releas
 	return 0.0f; //Nothing to sound!
 }
 
-float enterRelease(ADSR *adsr, int_64 play_counter, byte release_velocity)
+float enterRelease(ADSR *adsr, int_64 play_counter, byte release_velocity, float releaselevel)
 {
 	//Calculate the release information
 	if (!adsr->releasestarted)
 	{
 		if (adsr->release) //Gotten a release phase?
 		{
-			float releasefactor = adsr->sustainfactor; //From full volume currently at!
+			float releasefactor = releaselevel; //From full volume currently at!
 			releasefactor /= adsr->release; //Equal steps from full to 0.0f!
 			adsr->releasefactor = releasefactor; //Apply the release factor for the current volume!
 		}
 
 		adsr->active = ADSR_RELEASE; //Check next step!
 		adsr->releasestart = play_counter; //When we start to release!
+		adsr->releaselevel = releaselevel; //The level at this point!
 		adsr->releasestarted = 1; //We've started!
 	}
 	return ADSR_release(adsr,play_counter, 0, release_velocity); //Passthrough!
@@ -55,7 +56,7 @@ float ADSR_sustain(ADSR *adsr, int_64 play_counter, byte sustaining, byte releas
 {
 	if (sustaining || (adsr->releasestarted && (play_counter < adsr->releasestart))) return adsr->sustainfactor; //Disable our voice when not sustaining anymore!
 	//Sustain expired?
-	return enterRelease(adsr,play_counter,release_velocity); //Enter the release phase!
+	return enterRelease(adsr,play_counter,release_velocity,adsr->sustainfactor); //Enter the release phase!
 }
 
 float ADSR_decay(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
@@ -63,7 +64,7 @@ float ADSR_decay(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_
 	float result;
 	if (!sustaining && (!(adsr->releasestarted && (adsr->releasestart<play_counter)))) //Finished playing?
 	{
-		return enterRelease(adsr,play_counter,release_velocity); //Enter the release phase!
+		return enterRelease(adsr, play_counter, release_velocity, 1.0f - (adsr->decayfactor*(play_counter - adsr->decaystart))); //Enter the release phase!
 	}
 	if (adsr->decay) //Gotten decay?
 	{
@@ -87,7 +88,7 @@ float ADSR_hold(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_v
 {
 	if (!sustaining && (!(adsr->releasestarted && (adsr->releasestart<play_counter)))) //Finished playing?
 	{
-		return enterRelease(adsr,play_counter, release_velocity); //Enter the release phase!
+		return enterRelease(adsr,play_counter, release_velocity,1.0f); //Enter the release phase!
 	}
 	if (adsr->hold) //Gotten hold?
 	{
@@ -108,7 +109,7 @@ float ADSR_attack(ADSR *adsr, int_64 play_counter, byte sustaining, byte release
 	float result;
 	if (!sustaining && !(adsr->releasestarted && (adsr->releasestart<play_counter))) //Finished playing?
 	{
-		return enterRelease(adsr,play_counter, release_velocity); //Enter the release phase!
+		return enterRelease(adsr, play_counter, release_velocity, (adsr->attackfactor*(play_counter - adsr->attackstart))); //Enter the release phase!
 	}
 	if (adsr->attack) //Gotten attack?
 	{

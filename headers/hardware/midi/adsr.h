@@ -24,7 +24,7 @@ typedef struct
 	int_64 attackstart, holdstart, decaystart, sustainstart, releasestart, releasedstart;
 	uint_32 delay, attack, hold, decay, sustain, release; //All lengths and start positions when applied!
 	uint_32 attackend, holdend, decayend; //End position of each of the phases, precalculated!
-	float attackfactor, decayfactor, sustainfactor, releasefactor;
+	float attackfactor, decayfactor, sustainfactor, releasefactor, releaselevel;
 
 	byte active; //Are we an active ADSR envelope?
 	byte attackstarted, holdstarted, decaystarted, sustainstarted, releasestarted, released; //Are these phases started/finished?
