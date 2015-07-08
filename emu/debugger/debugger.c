@@ -131,9 +131,13 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 			FILE *f;
 			if (readverification(debugger_index++,&verify)) //Read the verification entry!
 			{
+				if (EMULATED_CPU < CPU_80286) //Special case for 80(1)86 from fake86!
+				{
+					originalverify.FLAGS &= ~0xF000; //Clear the high 4 bits: they're not set in the dump!
+				}
 				if (memcmp(&verify, &originalverify, sizeof(verify)) != 0) //Not equal?
 				{
-					dolog("debugger", "Invalid data according to debuggerverify.dat before exexuting the following instruction:");
+					dolog("debugger", "Invalid data according to debuggerverify.dat before executing the following instruction:");
 					debugger_logregisters(&debuggerregisters); //Log the original registers!
 					//Apply the debugger registers to the actual register set!
 					CPU[activeCPU].registers->CS = verify.CS;

@@ -6,9 +6,7 @@
 #include "headers/bios/bios.h" //Basic BIOS!
 
 //CPU?
-#ifdef IS_CPU
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determining emulating CPU)
-#endif
 
 //How many CPU instances are used?
 #define MAXCPUS 2
@@ -25,9 +23,9 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define CPU_PENTIUM 5
 
 //Currently emulating CPU (values see above, formula later)?
-//#define EMULATED_CPU BIOS_Settings.emulated_CPU
+#define EMULATED_CPU BIOS_Settings.emulated_CPU
 //Since we're comparing to Bochs, emulate a Pentium PC!
-#define EMULATED_CPU CPU_PENTIUM
+//#define EMULATED_CPU CPU_PENTIUM
 
 //For easygoing solid state segments (not changeable) in CPU[activeCPU].registers.SEGMENT_REGISTERS[]
 #define CPU_SEGMENT_CS 0
