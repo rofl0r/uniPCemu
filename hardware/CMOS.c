@@ -100,8 +100,9 @@ struct
 	byte IRQ8_Disabled; //IRQ8 not allowed to run for this type? (bits 0x10-0x40 are set for enabled)?
 	byte Loaded; //CMOS loaded?
 	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
-	byte NMI; //NMI interrupt enabled?
 } CMOS;
+
+extern byte NMI; //NMI interrupt enabled?
 
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS settings loaded!
 
@@ -233,7 +234,7 @@ byte PORT_readCMOS(word port) //Read from a port/register!
 	switch (port)
 	{
 	case 0x70: //CMOS_ADDR
-		return CMOS.ADDR|(CMOS.NMI<<7); //Give the address and NMI!
+		return CMOS.ADDR|(NMI<<7); //Give the address and NMI!
 	case 0x71:
 		CMOS_onRead(); //Execute handler!
 		byte data =  CMOS.data[CMOS.ADDR]; //Give the data from the CMOS!
@@ -249,7 +250,7 @@ void PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	{
 	case 0x70: //CMOS ADDR
 		CMOS.ADDR = (value&0x7F); //Take the value!
-		CMOS.NMI = ((value&0x80)==0x80); //NMI?
+		NMI = ((value&0x80)>>7); //NMI?
 		CMOS_onWrite(); //On write!
 		break;
 	case 0x71:
@@ -265,7 +266,7 @@ void PORT_writeCMOS(word port, byte value) //Write to a port/register!
 void initCMOS() //Initialises CMOS (apply solid init settings&read init if possible)!
 {
 	CMOS.ADDR = 0; //Reset!
-	CMOS.NMI = 1; //Reset!
+	NMI = 1; //Reset: Disable NMI interrupts!
 	loadCMOS(); //Load the CMOS from disk OR defaults!
 
 	//Register our I/O ports!

@@ -53,6 +53,8 @@ void CPU_INT(byte intnr) //Call an software interrupt; WARNING: DON'T HANDLE ANY
 	}
 }
 
+byte NMIMasked = 0; //Are NMI masked?
+
 void CPU_IRET()
 {
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
@@ -65,4 +67,39 @@ void CPU_IRET()
 	{
 		//TODO
 	}
+	//Special effect: re-enable NMI!
+	NMIMasked = 0; //We're allowing NMI again!
+}
+
+byte SystemControlPortB = 0x00; //System control port B data!
+byte NMI = 1; //NMI Disabled?
+
+extern word CPU_exec_CS;
+extern uint_32 CPU_exec_EIP;
+
+byte execNMI(byte causeisMemory) //Execute an NMI!
+{
+	if (!NMI && !NMIMasked) //NMI interrupt enabled and not masked off?
+	{
+		NMIMasked = 1; //Mask future NMI!
+		if (causeisMemory) //I/O error on memory?
+		{
+			if (SystemControlPortB & 4) //Enabled?
+			{
+				SystemControlPortB |= 0x80; //Signal a Memory error!
+				CPU_customint(2, CPU_exec_CS, CPU_exec_EIP); //Return to opcode!
+				return 0; //We're handled!
+			}
+		}
+		else if (!causeisMemory) //Bus error?
+		{
+			if (SystemControlPortB & 8) //Enabled?
+			{
+				SystemControlPortB |= 0x40; //Signal a Bus error!
+				CPU_customint(2, CPU_exec_CS, CPU_exec_EIP); //Return to opcode!
+				return 0; //We're handled!
+			}
+		}
+	}
+	return 1; //Unhandled NMI!
 }

@@ -1,6 +1,7 @@
 #include "headers/types.h" //Basic type comp.
 #include "headers/hardware/ports.h" //Basic type comp.
 #include "headers/support/log.h" //Logging support!
+#include "headers/cpu/cpu.h" //NMI support!
 
 /*
 
@@ -14,10 +15,13 @@ We handle mapping input and output to ports!
 PORTIN PORT_IN[0x10000]; //For reading from ports!
 PORTOUT PORT_OUT[0x10000]; //For writing to ports!
 
+extern byte SystemControlPortB; //System control port B!
+
 //Reset and register!
 
 void reset_ports()
 {
+	SystemControlPortB = 0x00; //Reset system control port B!
 	int i;
 	for (i=0;i<NUMITEMS(PORT_IN);i++) //Process all ports!
 	{
@@ -61,6 +65,11 @@ void register_PORTIN_range(word startport, word endport, PORTIN handler)
 
 void EXEC_PORTOUT(word port, byte value)
 {
+	if (port == 0x61)
+	{
+		SystemControlPortB = value; //Special case: system control port B!
+		return; //Abort!
+	}
 	if (PORT_OUT[port]) //Exists?
 	{
 		#ifdef __LOG_PORT
@@ -70,27 +79,37 @@ void EXEC_PORTOUT(word port, byte value)
 	}
 	else
 	{
-		dolog("emu","Warning: undefined PORT OUT to port %04X value %02X",port,value);
+		if (execNMI(0)) //Execute an NMI from Bus!
+		{
+			dolog("emu", "Warning: Unhandled PORT OUT to port %04X value %02X", port, value); //Report unhandled NMI!
+		}
 	}
 }
 
 byte EXEC_PORTIN(word port)
 {
-	byte result;
+	byte result=0;
+	if (port == 0x61)
+	{
+		return SystemControlPortB; //Special case: system control port B!
+	}
 	if (PORT_IN[port]) //Exists?
 	{
 		#ifdef __LOG_PORT
 		dolog("emu","PORT IN: %04X",port);
 		#endif
-		result = PORT_IN[port](port); //PORT IN!
+		result |= PORT_IN[port](port); //PORT IN!
 		#ifdef __LOG_PORT
 		dolog("emu","Value read: %02X",result);
 		#endif
-		return result;
+		return result; //Give the result!
 	}
 	else
 	{
-		dolog("emu","Warning: Undefined PORT IN from port %04X",port);
+		if (execNMI(0)) //Execute an NMI from Bus!
+		{
+			dolog("emu", "Warning: Unhandled PORT IN from port %04X", port);
+		}
 		return PORT_UNDEFINED_RESULT; //Undefined!
 	}
 }

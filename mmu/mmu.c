@@ -125,6 +125,7 @@ byte MMU_directrb(uint_32 realaddress) //Direct read from real memory (with real
 	if (realaddress>MMU.size) //Overflow?
 	{
 		MMU.invaddr = 1; //Signal invalid address!
+		execNMI(1); //Execute an NMI from memory!
 		return 0xFF; //Nothing there!
 	}
 	return MMU.memory[realaddress]; //Get data, wrap arround!
@@ -141,6 +142,7 @@ void MMU_directwb(uint_32 realaddress, byte value) //Direct write to real memory
 	if (realaddress>MMU.size) //Overflow?
 	{
 		MMU.invaddr = 1; //Signal invalid address!
+		execNMI(1); //Execute an NMI from memory!
 		return; //Abort: can't write here!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
