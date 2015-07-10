@@ -623,59 +623,68 @@ byte floppy_readData()
 	return ~0; //Not used yet!
 }
 
-byte PORT_IN_floppy(word port)
+byte PORT_IN_floppy(word port, byte *result)
 {
+	if ((port&(~0xF)) != 0x3F0) return 0; //Not our ports!
 	switch (port & 0xF) //What port?
 	{
 	case 0: //SRA?
-		return 0; //Not used!
+		*result = 0;
+		return 1; //Not used!
 	case 1: //SRB?
-		return 0; //Not used!
+		*result = 0;
+		return 1; //Not used!
 	case 4: //MSR?
 		updateFloppyMSR(); //Update the MSR with current values!
-		return FLOPPY.MSR.data; //Give MSR!
+		*result = FLOPPY.MSR.data; //Give MSR!
+		return 1;
 	case 5: //Data?
 		//Process data!
-		return floppy_readData(); //Read data!
+		*result = floppy_readData(); //Read data!
+		return 1;
 	case 7: //CCR?
 		updateFloppyCCR(); //Update the CCR with current values!
-		return FLOPPY.CCR.data; //Give CCR!
+		*result = FLOPPY.CCR.data; //Give CCR!
+		return 1;
 	default: //Unknown port?
-		return ~0; //Unknown port!
+		break;
 	}
+	return 0; //Unknown port!
 }
 
-void PORT_OUT_floppy(word port, byte value)
+byte PORT_OUT_floppy(word port, byte value)
 {
+	if ((port&(~0xF)) != 0x3F0) return 0; //Not our ports!
 	switch (port & 0xF) //What port?
 	{
 	case 2: //DOR?
 		FLOPPY.DOR.data = value; //Write to register!
-		return; //Finished!
+		return 1; //Finished!
 	case 4: //DSR?
 		FLOPPY.DSR.data = value; //Write to register!
-		return; //Finished!
+		return 1; //Finished!
 	case 5: //Data?
 		floppy_writeData(value); //Write data!
-		return; //Default handler!
+		return 1; //Default handler!
 	case 7: //DIR?
 		FLOPPY.DIR.data = value; //Write to register!
-		return;
+		return 1;
 	default: //Unknown port?
-		return; //Unknown port!
+		break; //Unknown port!
 	}
+	return 0; //Unknown port!
 }
 
 //DMA logic
 
 void DMA_floppywrite(byte data)
 {
-	PORT_OUT_floppy(0x3F5,data); //Send the data to the FDC!
+	floppy_writeData(data); //Send the data to the FDC!
 }
 
 byte DMA_floppyread()
 {
-	return PORT_IN_floppy(0x3F5); //Read from floppy!
+	return floppy_readData(); //Read data!
 }
 
 void FLOPPY_DMAtick() //For checking any new DREQ/EOP signals!
@@ -693,13 +702,6 @@ void initFDC()
 	registerDMATick(FLOPPY_DMA, &FLOPPY_DMAtick);
 
 	//Set basic I/O ports
-	register_PORTIN(0x3F0,&PORT_IN_floppy);
-	register_PORTIN(0x3F1, &PORT_IN_floppy);
-	register_PORTIN(0x3F4, &PORT_IN_floppy);
-	register_PORTIN(0x3F5, &PORT_IN_floppy);
-	register_PORTIN(0x3F7, &PORT_IN_floppy);
-	register_PORTOUT(0x3F2, &PORT_OUT_floppy);
-	register_PORTOUT(0x3F4, &PORT_OUT_floppy);
-	register_PORTOUT(0x3F5, &PORT_OUT_floppy);
-	register_PORTOUT(0x3F7, &PORT_OUT_floppy);
+	register_PORTIN(&PORT_IN_floppy);
+	register_PORTOUT(&PORT_OUT_floppy);
 }

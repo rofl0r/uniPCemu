@@ -13,7 +13,9 @@ We handle mapping input and output to ports!
 //#define __LOG_PORT
 
 PORTIN PORT_IN[0x10000]; //For reading from ports!
+word PORT_IN_COUNT = 0;
 PORTOUT PORT_OUT[0x10000]; //For writing to ports!
+word PORT_OUT_COUNT = 0;
 
 extern byte SystemControlPortB; //System control port B!
 
@@ -28,88 +30,70 @@ void reset_ports()
 		PORT_IN[i] = NULL; //Reset PORT IN!
 		PORT_OUT[i] = NULL; //Reset PORT OUT!
 	}
+	PORT_IN_COUNT = 0; //Nothing here!
+	PORT_OUT_COUNT = 0; //Nothing here!
 }
 
-void register_PORTOUT(word port, PORTOUT handler)
+void register_PORTOUT(PORTOUT handler)
 {
-	PORT_OUT[port] = handler; //Link!
-}
-
-void register_PORTIN(word port, PORTIN handler)
-{
-	PORT_IN[port] = handler; //Link!
-}
-
-void register_PORTOUT_range(word startport, word endport, PORTOUT handler)
-{
-	word x;
-	for (x=startport;x<=endport;)
+	if (PORT_OUT_COUNT < NUMITEMS(PORT_OUT))
 	{
-		register_PORTOUT(x,handler); //Register the handler!
-		++x;
+		PORT_OUT[PORT_OUT_COUNT++] = handler; //Link!
 	}
 }
 
-void register_PORTIN_range(word startport, word endport, PORTIN handler)
+void register_PORTIN(PORTIN handler)
 {
-	word x;
-	x = startport;
-	for (x=startport;x<=endport;)
+	if (PORT_IN_COUNT < NUMITEMS(PORT_IN))
 	{
-		register_PORTIN(x,handler); //Register the handler!
-		++x;
+		PORT_IN[PORT_IN_COUNT++] = handler; //Link!
 	}
 }
 
 //Execution CPU functions!
 
-void EXEC_PORTOUT(word port, byte value)
+byte EXEC_PORTOUT(word port, byte value)
 {
-	if (port == 0x61)
+	word i;
+	byte executed = 0;
+	if (port == 0x61) //Special register: System control port B!
 	{
+		executed = 1; //Always executed!
 		SystemControlPortB = value; //Special case: system control port B!
-		return; //Abort!
 	}
-	if (PORT_OUT[port]) //Exists?
+	#ifdef __LOG_PORT
+	dolog("emu","PORT OUT: %02X@%04X",value,port);
+	#endif
+	for (i = 0; i < PORT_OUT_COUNT; i++) //Process all ports!
 	{
-		#ifdef __LOG_PORT
-		dolog("emu","PORT OUT: %02X@%04X",value,port);
-		#endif
-		PORT_OUT[port](port,value); //PORT OUT!
+		executed |= PORT_OUT[i](port, value); //PORT OUT on this port!
 	}
-	else
-	{
-		if (execNMI(0)) //Execute an NMI from Bus!
-		{
-			dolog("emu", "Warning: Unhandled PORT OUT to port %04X value %02X", port, value); //Report unhandled NMI!
-		}
-	}
+	return !executed; //Have we failed?
 }
 
-byte EXEC_PORTIN(word port)
+byte EXEC_PORTIN(word port, byte *result)
 {
-	byte result=0;
-	if (port == 0x61)
+	word i;
+	byte executed = 0, temp, tempresult;
+	byte actualresult=0;
+	if (port == 0x61) //Special register: System control port B!
 	{
-		return SystemControlPortB; //Special case: system control port B!
+		executed = 1; //Always executed!
+		actualresult = SystemControlPortB; //Special case: system control port B!
 	}
-	if (PORT_IN[port]) //Exists?
+	#ifdef __LOG_PORT
+	dolog("emu","PORT IN: %04X",port);
+	#endif
+	for (i = 0; i < PORT_OUT_COUNT; i++) //Process all ports!
 	{
-		#ifdef __LOG_PORT
-		dolog("emu","PORT IN: %04X",port);
-		#endif
-		result |= PORT_IN[port](port); //PORT IN!
-		#ifdef __LOG_PORT
-		dolog("emu","Value read: %02X",result);
-		#endif
-		return result; //Give the result!
+		temp = PORT_IN[i](port, &tempresult); //PORT IN on this port!
+		executed |= temp; //OR into the result: we're executed?
+		if (temp) actualresult |= tempresult; //Add to the result if we're used!
 	}
-	else
-	{
-		if (execNMI(0)) //Execute an NMI from Bus!
-		{
-			dolog("emu", "Warning: Unhandled PORT IN from port %04X", port);
-		}
-		return PORT_UNDEFINED_RESULT; //Undefined!
-	}
+	if (!executed) *result = PORT_UNDEFINED_RESULT; //Not executed gives all bits set!
+	else *result = actualresult; //Give the result!
+	#ifdef __LOG_PORT
+	dolog("emu","Value read: %02X",*result);
+	#endif
+	return !executed; //Have we failed?
 }

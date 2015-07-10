@@ -45,8 +45,8 @@ typedef struct
 } PIC;
 
 void init8259(); //For initialising the 8259 module!
-byte in8259(word portnum); //In port
-void out8259(word portnum, byte value); //Out port
+byte in8259(word portnum, byte *result); //In port
+byte out8259(word portnum, byte value); //Out port
 byte PICInterrupt(); //We have an interrupt ready to process?
 byte nextintr(); //Next interrupt to handle
 void doirq(byte irqnum); //IRQ from hardware request!

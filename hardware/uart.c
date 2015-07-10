@@ -88,7 +88,7 @@ void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 
 byte getCOMport(word port) //What COM port?
 {
-	byte highnibble = ((port>>8)&0xF); //3 or 2
+	byte highnibble = (port>>8); //3 or 2
 	byte lownibble = ((port>>4)&0xF); //F or E
 	
 	byte COMport;
@@ -130,19 +130,19 @@ Gebleven @http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming#
 //Offset calculator!
 #define COMPORT_offset(port) (port&0x7)
 
-byte PORT_readUART(word port) //Read from the uart!
+byte PORT_readUART(word port, byte *result) //Read from the uart!
 {
 	byte COMport;
 	if ((COMport = getCOMport(port))==4) //Unknown?
 	{
-		return ~0; //Error!
+		return 0; //Error: not our port!
 	}
 	switch (COMPORT_offset(port)) //What offset?
 	{
 		case 0: //Receiver buffer OR Low byte of Divisor Value?
 			if (UART_port[COMport].LineControlRegister.DLAB) //DLAB?
 			{
-				return (UART_port[COMport].DLAB&0xFF); //Low byte!
+				*result = (UART_port[COMport].DLAB&0xFF); //Low byte!
 			}
 			else //Receiver buffer?
 			{
@@ -152,12 +152,13 @@ byte PORT_readUART(word port) //Read from the uart!
 					UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
 				}
 				//return value with bits toggled by Line Control Register!
+				*result = 0x00; //Not supported yet!
 			}
 			break;
 		case 1: //Interrupt Enable Register?
 			if (UART_port[COMport].LineControlRegister.DLAB) //DLAB?
 			{
-				return ((UART_port[COMport].DLAB>>8)&0xFF); //High byte!
+				*result = ((UART_port[COMport].DLAB>>8)&0xFF); //High byte!
 			}
 			else //Interrupt enable register?
 			{
@@ -165,46 +166,48 @@ byte PORT_readUART(word port) //Read from the uart!
 				//bit1 = transmitter empty
 				//bit2 = break/error
 				//bit3 = status change
-				return UART_port[COMport].InterruptEnableRegister; //Give the register!
+				*result = UART_port[COMport].InterruptEnableRegister; //Give the register!
 			}
 			break;
 		case 2: //Interrupt ID registers?
-			return UART_port[COMport].InterruptIdentificationRegister.data; //Give the register!
+			*result = UART_port[COMport].InterruptIdentificationRegister.data; //Give the register!
 			break;
 		case 3: //Line Control Register?
-			return UART_port[COMport].LineControlRegister.data; //Give the register!
+			*result = UART_port[COMport].LineControlRegister.data; //Give the register!
 			break;
 		case 4:  //Modem Control Register?
-			return UART_port[COMport].ModemControlRegister; //Give the register!
+			*result = UART_port[COMport].ModemControlRegister; //Give the register!
 			break;
 		case 5: //Line Status Register?
 			if (UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause==3) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
 			}
-			return UART_port[COMport].LineStatusRegister; //Give the register!
+			*result = UART_port[COMport].LineStatusRegister; //Give the register!
 			break;
 		case 6: //Modem Status Register?
 			if (UART_port[COMport].InterruptIdentificationRegister.InterruptPending && !UART_port[COMport].InterruptCause.SimpleCause) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
 			}
-			return UART_port[COMport].ModemStatusRegister; //Give the register!
+			*result = UART_port[COMport].ModemStatusRegister; //Give the register!
 			break;
 		case 7: //Scratch register?
-			return UART_port[COMport].ScratchRegister; //Give the register!
+			*result = UART_port[COMport].ScratchRegister; //Give the register!
 			break; //We do nothing yet!
+		default:
+			return 0; //Unknown port!
 	}
-	return ~0; //Undefined!
+	return 1; //Defined port!
 }
 
-void PORT_writeUART(word port, byte value)
+byte PORT_writeUART(word port, byte value)
 {
 	byte COMport;
 	byte oldDLAB;
 	if ((COMport = getCOMport(port))==4) //Unknown?
 	{
-		return; //Error!
+		return 0; //Error!
 	}
 	switch (COMPORT_offset(port)) //What offset?
 	{
@@ -258,28 +261,16 @@ void PORT_writeUART(word port, byte value)
 			UART_port[COMport].ScratchRegister = value; //Set the register!
 			break; //We do nothing yet!
 		default: //Unknown write register?
+			return 0;
 			break;
 	}
+	return 1; //We're supported!
 }
 
 void initUART() //Init software debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	memset(&UART_port,0,sizeof(UART_port)); //Clear memory used!
-	word ports[4] = {0x3F8,0x2F8,0x3E8,0x2E8};
-	byte i,j;
-	for (i=0;i<4;i++) //Process all I/O ports!
-	{
-		//Register all I/O ports for this COM port!
-		for (j=0;j<5;j++)
-		{
-			register_PORTOUT(ports[i]+j,&PORT_writeUART);
-		}
-		register_PORTOUT(ports[i]+7,&PORT_writeUART);
-		
-		for (j=0;j<8;j++)
-		{
-			register_PORTIN(ports[i]+j,&PORT_readUART);
-		}
-	}
+	register_PORTOUT(&PORT_writeUART);
+	register_PORTIN(&PORT_readUART);
 }

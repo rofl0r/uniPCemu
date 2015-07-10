@@ -112,30 +112,38 @@ void pit0handler() //PIT0 timeout handler!
 	}
 }
 
-byte in8253(word portnum)
+byte in8253(word portnum, byte *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-switch (portnum)
-{
+	switch (portnum)
+	{
 		case 0x40:
-		if (pit0latch==0) {
+		if (pit0latch==0)
+		{
 			pit0latch = 1;
-			return(pit0divisor & 0xFF);
-			} else {
+			*result = (pit0divisor & 0xFF);
+		}
+		else
+		{
 			pit0latch = 0;
-			return((pit0divisor >> 8) & 0xFF);
-		} break;
+			*result = ((pit0divisor >> 8) & 0xFF);
+		}
+		return 1;
 		case 0x43:
-		return(pit0command);
+			*result = pit0command;
+			return 1;
 		case 0x61: //PC speaker? From original timer!
-			return PCSpeakerPort; //Give the speaker port!
-}
-return 0; //Disabled!
+			*result = PCSpeakerPort; //Give the speaker port!
+			return 1;
+		default: //Unknown port?
+			return 0; //Unknown port!
+	}
+	return 0; //Disabled!
 }
 
-void out8253(word portnum, byte value)
+byte out8253(word portnum, byte value)
 {
-	if (__HW_DISABLED) return; //Abort!
+	if (__HW_DISABLED) return 0; //Abort!
 	byte old61; //For tracking updates!
 	switch (portnum)
 	{
@@ -145,16 +153,17 @@ void out8253(word portnum, byte value)
 			if (pit0latch==0) {
 				pit0divisor = (pit0divisor & 0xFF00) + (value & 0xFF);
 				pit0latch = 1;
-				return;
+				return 1;
 				} else {
 				pit0divisor = (pit0divisor & 0xFF) + (value & 0xFF)*256;
 				pit0latch = 0;
 				if (pit0divisor==0) pit0divisor = 65536;
 				timerticks = SAFEDIV(timerfreq,(SAFEDIV(1193180,pit0divisor))); //Init ticks!
 				addtimer(SAFEDIV(1193180.0f,pit0divisor),&pit0handler,"PIT0",1,0,NULL); //PIT0 handler update!
-				return;
 			} break;
-		} break;
+		}
+		return 1;
+		break;
 		case 0x42: //speaker countdown
 		if (latch42==0) {
 			speakercountdown = (speakercountdown & 0xFF00) + value;
@@ -165,7 +174,9 @@ void out8253(word portnum, byte value)
 			latch42 = 0;
 			PCSpeakerFrequency = speakercountdown; //Set the value of countdown for PC speaker!
 			updatePCSpeaker(); //Update the PC speaker!
-		} break;
+		}
+		return 1;
+		break;
 		case 0x43: //pit 0 command port
 		pit0command = value;
 		switch (pit0command) {
@@ -173,30 +184,25 @@ void out8253(word portnum, byte value)
 			pit0latch = 0; break;
 			case 0xB6:
 			latch42 = 0; break;
-		} break;
+		}
+		return 1;
+		break;
 		//From above original:
 	case 0x61: //PC Speaker?
 		old61 = PCSpeakerPort; //Old value!
-		PCSpeakerPort = value; //Set the new port value!
-		if ((old61&0x3)!=(PCSpeakerPort&0x3)) //Port changed?
+		PCSpeakerPort = (value&3); //Set the new port value, only low 2 bits are used!
+		if (old61!=PCSpeakerPort) //Port changed?
 		{
 			updatePCSpeaker(); //The PC Speaker status has been updated!
 		}
+		return 1;
 		break;
 	}
+	return 0; //Unhandled!
 }
 
 void init8253() {
 	if (__HW_DISABLED) return; //Abort!
-	register_PORTOUT(0x40,&out8253);
-	register_PORTOUT(0x41,&out8253);
-	register_PORTOUT(0x42,&out8253);
-	register_PORTOUT(0x43,&out8253);
-	register_PORTIN(0x40,&in8253);
-	register_PORTIN(0x41,&in8253);
-	register_PORTIN(0x42,&in8253);
-	register_PORTIN(0x43,&in8253);
-	//PC Speaker port register!
-	register_PORTOUT(0x61,&out8253);
-	register_PORTIN(0x61,&in8253);
+	register_PORTOUT(&out8253);
+	register_PORTIN(&in8253);
 }

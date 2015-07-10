@@ -334,45 +334,53 @@ void debugger_writecharacter(byte c) //Write a character to the debugger!
 }
 
 //Write and read functionality!
-void PORT_writeDebugger(word port, byte data)
+byte PORT_writeDebugger(word port, byte data)
 {
-	if (__HW_DISABLED) return; //Abort!
+	if (__HW_DISABLED) return 0; //Abort!
+	if (port != 0xE9) return 0; //Not our port!
 	debugger_writecharacter(data); //Write the character to the debugger!
+	return 1; //OK!
 }
 
-byte PORT_readDebugger(word port)
-
+byte PORT_readDebugger(word port, byte *result)
 {
-	if (__HW_DISABLED) return 0xFF; //Undefined port?
-	return 0xE9; //Identifier for identifying our debugger!
+	if (__HW_DISABLED) return 0; //Undefined port?
+	if (port != 0xE9) return 0; //Not our port!
+	*result = 0xE9; //Identifier for identifying our debugger!
+	return 1; //Give the result!
 }
-void PORT_writeCommand(word port, byte data)
+
+byte PORT_writeCommand(word port, byte data)
 {
-	if (__HW_DISABLED) return; //Abort!
+	if (__HW_DISABLED) return 0; //Abort!
+	if (port != 0xEA) return 0; //Not our port!
 	if (softdebugger.command) //Identifier read or in command mode?
 	{
 		write_command(data); //Process a command write!
+		return 1; //OK!
 	}
+	return 0; //Not in command mode!
 }
 
-byte PORT_readCommand(word port) //Read from the debugger port! Undefined on real systems!
+byte PORT_readCommand(word port, byte *result) //Read from the debugger port! Undefined on real systems!
 {
-	if (__HW_DISABLED) return ~0; //Abort!
+	if (__HW_DISABLED) return 0; //Abort!
+	if (port != 0xEA) return 0; //Not our port!
 	if (!softdebugger.readcommand) //Undefined? Give our identifier followed by 0xFF!
 	{
-		byte result; //Read the result from the identifier!
 		if (softdebugger.identifier_pos<strlen(debugger_identifier)) //Not end-of-string?
 		{
-			result = debugger_identifier[softdebugger.identifier_pos++]; //Read a character from the identifier!
+			*result = debugger_identifier[softdebugger.identifier_pos++]; //Read a character from the identifier!
 		}
 		else //Final character?
 		{
-			result = 0xFF; //End of string identifier!
+			*result = 0xFF; //End of string identifier!
 			softdebugger.identifier_pos = 0; //Reset position!
 		}
-		return result; //Give the result!
+		return 1; //Give the result!
 	}
-	return read_command(); //We're in command mode, so read from the command interpreter!
+	*result = read_command(); //We're in command mode, so read from the command interpreter!
+	return 1; //Give the result!
 }
 
 //Initialisation of the debugger!
@@ -380,11 +388,11 @@ void BIOS_initDebugger() //Init software debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	//First: initialise all hardware ports for emulating!
-	register_PORTOUT(0xE9,&PORT_writeDebugger); //Basic: debugger registers!
-	register_PORTIN(0xE9,&PORT_readDebugger); //Basic: debugger identification!
+	register_PORTOUT(&PORT_writeDebugger); //Basic: debugger registers!
+	register_PORTIN(&PORT_readDebugger); //Basic: debugger identification!
 	//Command registers!
-	register_PORTIN(0xEA,&PORT_readCommand); //Read a command byte!
-	register_PORTOUT(0xEA,&PORT_writeCommand); //Write a command byte!
+	register_PORTIN(&PORT_readCommand); //Read a command byte!
+	register_PORTOUT(&PORT_writeCommand); //Write a command byte!
 	bzero(softdebugger.data.outputfilename,sizeof(softdebugger.data.outputfilename)); //Init output filename!
 	strcpy(softdebugger.data.outputfilename,"debugger"); //We're logging to debugger by default!
 	quitdebugger(); //First controller reset!

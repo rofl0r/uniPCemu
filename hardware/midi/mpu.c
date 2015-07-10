@@ -684,13 +684,44 @@ void MPU401_Reset() {
 	for (i=0;i<8;i++) {mpu.playbuf[i].type=UNSET;mpu.playbuf[i].counter=0;}
 }
 
+byte MPU401_OUT(word port, byte data)
+{
+	switch (port)
+	{
+	case 0x330: //Data port?
+		MPU401_WriteData(port, data);
+		return 1;
+		break;
+	case 0x331: //Command port?
+		MPU401_WriteCommand(port, data);
+		return 1;
+		break;
+	}
+	return 0; //Not used!
+}
+
+byte MPU401_IN(word port, byte *result)
+{
+	switch (port)
+	{
+	case 0x330: //Data port?
+		*result = MPU401_ReadData(port);
+		return 1;
+		break;
+	case 0x331: //Status port?
+		*result = MPU401_ReadStatus(port);
+		return 1;
+		break;
+	}
+	return 0; //Not used!
+}
+
 void MPU401_Init(/*Section* sec*/) {
 	if (!MIDI_Available()) return;
 
-	IO_RegisterWriteHandler(0x330,&MPU401_WriteData,"MPU401");
-	IO_RegisterWriteHandler(0x331,&MPU401_WriteCommand,"MPU401");
-	IO_RegisterReadHandler(0x330,&MPU401_ReadData,"MPU401");
-	IO_RegisterReadHandler(0x331,&MPU401_ReadStatus,"MPU401");
+
+	register_PORTOUT(&MPU401_OUT);
+	register_PORTIN(&MPU401_IN);
 
 	mpu.queue_used=0;
 	mpu.queue_pos=0;

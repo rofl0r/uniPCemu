@@ -107,14 +107,17 @@ void DMA_SetEOP(byte channel, byte EOP) //Set EOP from hardware!
 #define SETHIGH(b,v) b=((b&0xFF)|(v<<8))
 #define SETLOW(b,v) b = ((b&0xFF00)|v)
 
-void DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
+byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 {
-	if (__HW_DISABLED) return; //Abort!
-	byte controller = (port>=0xC0)?1:0; //What controller?
+	byte result = 1; //Default: PORT OK!
+	if (__HW_DISABLED) return 0; //Abort!
+	if (!((port < 0x20) || ((port >= 0xC0) && (port <= 0xE0)) || ((port >= 0x80) && (port <= 0x9F)))) return 0; //Not our DMA!
+	byte controller = ((port & 0xC0)==0xC0) ? 1 : 0; //What controller?
 	byte reg = port; //What register is selected, default to 1:1 mapping?
 	if (controller) //16-bit register (second DMA controller)?
 	{
 		reg -= 0xC0; //Take the base!
+		if (reg & 1) return 0; //Invalid register: not mapped!
 		reg >>= 1; //Every port is on a offset of 2!
 		//Now reg is on 1:1 mapping too!
 	}
@@ -220,17 +223,20 @@ void DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 			DMAController[controller].MultiChannelMaskRegister = value; //Set!
 			break;
 		default:
+			SDL_SemPost(DMA_Lock); //Release!
+			return 0; //Invalid register!
 			break;
 		}
 		break;
 	}
 	SDL_SemPost(DMA_Lock);
+	return 1; //Correct register!
 }
 
-byte DMA_ReadIO(word port) //Handles IN instruction from CPU I/O ports
+byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O ports
 {
-	if (__HW_DISABLED) return ~0; //Abort!
-	byte result; //To hold the result!
+	if (__HW_DISABLED) return 0; //Abort!
+	if (!((port < 0x20) || ((port >= 0xC0) && (port <= 0xE0)) || ((port >= 0x80) && (port <= 0x9F)))) return 0; //Not our DMA!
 	byte controller = (port>=0xC0)?1:0; //What controller?
 	byte reg = port; //What register is selected, default to 1:1 mapping?
 	if (controller) //16-bit register (second DMA controller)?
@@ -240,56 +246,68 @@ byte DMA_ReadIO(word port) //Handles IN instruction from CPU I/O ports
 		//Now reg is on 1:1 mapping too!
 	}
 	SDL_SemWait(DMA_Lock);
+	byte ok = 0;
 	switch (port) //What port?
 	{
 		//Extra 8 bits for addresses:
 		case 0x87: //
-			result = DMAController[0].DMAChannel[0].PageAddressRegister; //Get!
+			*result = DMAController[0].DMAChannel[0].PageAddressRegister; //Get!
+			ok = 1;
 			break;
 		case 0x83: //
-			result = DMAController[0].DMAChannel[1].PageAddressRegister; //Get!
+			*result = DMAController[0].DMAChannel[1].PageAddressRegister; //Get!
+			ok = 1;
 			break;
 		case 0x81: //
-			result = DMAController[0].DMAChannel[2].PageAddressRegister; //Get!
+			*result = DMAController[0].DMAChannel[2].PageAddressRegister; //Get!
+			ok = 1;
 			break;
 		case 0x82: //
-			result = DMAController[0].DMAChannel[3].PageAddressRegister; //Get!
+			*result = DMAController[0].DMAChannel[3].PageAddressRegister; //Get!
+			ok = 1;
 			break;
 		//Extra 8 bits for addresses:
 		case 0x8F: //
-			result = DMAController[1].DMAChannel[0].PageAddressRegister; //Get!
+			*result = DMAController[1].DMAChannel[0].PageAddressRegister; //Get!
+			ok = 1;
 			break;
 		case 0x8B: //
-			result = DMAController[1].DMAChannel[1].PageAddressRegister; //Get!
+			*result = DMAController[1].DMAChannel[1].PageAddressRegister; //Get!
+			ok = 1;
 			break;
 		case 0x89: //
-			result = DMAController[1].DMAChannel[2].PageAddressRegister; //Get!
+			*result = DMAController[1].DMAChannel[2].PageAddressRegister; //Get!
+			ok = 1;
 			break;
 		case 0x8A: //
-			result = DMAController[1].DMAChannel[3].PageAddressRegister; //Get!
-			break;	
+			*result = DMAController[1].DMAChannel[3].PageAddressRegister; //Get!
+			ok = 1;
+			break;
 		default: //Non-page register!
 			switch (reg) //What register is selected?
 			{
 				//Controller 0!
 				case 0x08: //Status Register!
-					result = DMAController[0].StatusRegister; //Get!
+					*result = DMAController[0].StatusRegister; //Get!
 					DMAController[0].StatusRegister &= ~0xF; //Clear TC bits!
+					ok = 1;
 					break;
 				case 0x0D: //Intermediate Register!
-					result = DMAController[0].IntermediateRegister; //Get!
+					*result = DMAController[0].IntermediateRegister; //Get!
+					ok = 1;
 					break;
 				case 0x0F: //MultiChannel Mask Register!
-					result = DMAController[0].MultiChannelMaskRegister; //Get!
+					*result = DMAController[0].MultiChannelMaskRegister; //Get!
+					ok = 1;
 					break;
 				default: //Unknown port?
-					result = ~0; //Unknown port!
+					ok = 0; //Unknown port!
 					break;
 			}
 			break;
 	}
 	SDL_SemPost(DMA_Lock);
-	return result; //Give the result!
+	return ok; //Give the result!
 }
 
 void DMA_autoinit(byte controller, byte channel) //Autoinit functionality.
@@ -522,16 +540,8 @@ void initDMA()
 	initDMAControllers(); //Init our DMA controllers!
 
 	//DMA0!
-	register_PORTOUT_range(0x00,0x1F,&DMA_WriteIO);
-	register_PORTIN_range(0x00,0x1F,&DMA_ReadIO);
-
-	//DMA1
-	register_PORTOUT_range(0xC0,0xDF,&DMA_WriteIO);
-	register_PORTIN_range(0xC0,0xDF,&DMA_ReadIO);
-	
-	//Page registers!
-	register_PORTOUT_range(0x80,0x9F,&DMA_WriteIO);
-	register_PORTIN_range(0x80,0x9F,&DMA_ReadIO);
+	register_PORTOUT(&DMA_WriteIO);
+	register_PORTIN(&DMA_ReadIO);
 
 	DMAController[0].CommandRegister |= 0x4; //Disable controller!
 	DMAController[1].CommandRegister |= 0x4; //Disable controller!

@@ -28,32 +28,27 @@ void init8259()
 	}
 	//Now the port handling!
 	//PIC0!
-	register_PORTOUT(0x20,&out8259);
-	register_PORTOUT(0x21,&out8259);
-	register_PORTIN(0x20,&in8259);
-	register_PORTIN(0x21,&in8259);
-	//PIC1!
-	register_PORTOUT(0xA0,&out8259);
-	register_PORTOUT(0xA1,&out8259);
-	register_PORTIN(0xA0,&in8259);
-	register_PORTIN(0xA1,&in8259);
-
+	register_PORTOUT(&out8259);
+	register_PORTIN(&in8259);
 	//All set up!
 }
 
-byte in8259(word portnum)
+byte in8259(word portnum, byte *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	byte pic = ((portnum&0xFE)==0xA0)?1:0; //PIC0/1!
+	byte pic = ((portnum&0xFE)==0xA0)?1:(((portnum&0xFE)==0x20)?0:2); //PIC0/1/unknown!
+	if (pic == 2) return 0; //Not our PIC!
 	switch (portnum & 1)
 	{
 	case 0:
-		if (i8259.readmode[pic]==0) return(i8259.irr[pic]);
-		else return(i8259.isr[pic]);
+		if (i8259.readmode[pic]==0) *result = i8259.irr[pic];
+		else *result = i8259.isr[pic];
+		break;
 	case 1: //read mask register
-		return(i8259.imr[pic]);
+		*result = i8259.imr[pic];
+		break;
 	}
-	return 0; //Shouldn't be here: unknown port number!
+	return 1; //The result is given!
 }
 
 void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
@@ -74,10 +69,11 @@ void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
 
 }
 
-void out8259(word portnum, byte value)
+byte out8259(word portnum, byte value)
 {
-	if (__HW_DISABLED) return; //Abort!
-	byte pic = ((portnum & 0xFE) == 0xA0) ? 1 : 0; //PIC0/1!
+	if (__HW_DISABLED) return 0; //Abort!
+	byte pic = ((portnum & 0xFE) == 0xA0) ? 1 : (((portnum & 0xFE) == 0x20) ? 0 : 2); //PIC0/1/unknown!
+	if (pic == 2) return 0; //Not our PIC!
 	switch (portnum & 1)
 	{
 	case 0:
@@ -86,7 +82,7 @@ void out8259(word portnum, byte value)
 			i8259.icwstep[pic] = 1;
 			i8259.imr[pic] = 0; //clear interrupt mask register
 			i8259.icw[pic][i8259.icwstep[pic]++] = value;
-			return;
+			return 1;
 		}
 		if ((value & 0x98)==8)   //it's an OCW3
 		{
@@ -103,12 +99,13 @@ void out8259(word portnum, byte value)
 		if (i8259.icwstep[pic]<5)
 		{
 			i8259.icw[pic][i8259.icwstep[pic]++] = value;
-			return;
+			return 1;
 		}
 		//if we get to this point, this is just a new IMR value
 		i8259.imr[pic] = value;
 		break;
 	}
+	return 1; //We're processed!
 }
 
 byte interruptsaved = 0; //Have we gotten a primary interrupt (first PIC)?

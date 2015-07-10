@@ -5,19 +5,10 @@
 
 /*
 
-We handle direct input/output to/from hardware ports!
+We handle direct input/output to/from hardware ports by the CPU!
 
 */
 
-/*
-
-Ports used by mouse:
-0a0h
-20h
-60h
-64h
-
-*/
 /*
 
 //Initialises ports support!
@@ -31,7 +22,15 @@ void Ports_Init()
 
 byte PORT_IN_B(word port)
 {
-	return EXEC_PORTIN(port); //Passtrough!
+	byte result;
+	if (EXEC_PORTIN(port,&result)) //Passtrough!
+	{
+		if (execNMI(0)) //Execute an NMI from Bus!
+		{
+			dolog("emu", "Warning: Unhandled PORT IN from port %04X", port);
+		}
+	}
+	return result; //Give the result!
 }
 
 word PORT_IN_W(word port) //IN result,port
@@ -68,7 +67,13 @@ uint_32 PORT_IN_DW(word port) //IN result,port
 
 void PORT_OUT_B(word port, byte b)
 {
-	EXEC_PORTOUT(port,b); //Passtrough!
+	if (EXEC_PORTOUT(port, b)) //Passtrough and error?
+	{
+		if (execNMI(0)) //Execute an NMI from Bus failed?
+		{
+			dolog("emu", "Warning: Unhandled PORT OUT to port %04X value %02X", port, b); //Report unhandled NMI!
+		}
+	}
 }
 
 void PORT_OUT_W(word port, word w) //OUT port,w

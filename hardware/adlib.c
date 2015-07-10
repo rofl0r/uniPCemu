@@ -116,11 +116,12 @@ OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 	}
 }
 
-void outadlib (uint16_t portnum, uint8_t value) {
+byte outadlib (uint16_t portnum, uint8_t value) {
 	if (portnum==adlibport) {
 			adlibaddr = value;
-			return;
+			return 1;
 		}
+	if (portnum != (adlibport+1)) return 0; //Don't handle what's not ours!
 	portnum = adlibaddr;
 	adlibregmem[portnum] = value;
 	lockaudio(); //Lock the audio: we're going to adjust audio information!
@@ -202,10 +203,16 @@ void outadlib (uint16_t portnum, uint8_t value) {
 		adlibop[portnum].wavesel = value&3;
 	}
 	unlockaudio(1); //Finished with audio update!
+	return 1; //We're finished and handled!
 }
 
-uint8_t inadlib (uint16_t portnum) {
-	return adlibstatus; //Give the current status!
+uint8_t inadlib (uint16_t portnum, byte *result) {
+	if (portnum == adlibport) //Status port?
+	{
+		*result = adlibstatus; //Give the current status!
+		return 1; //We're handled!
+	}
+	return 0; //Not our port!
 }
 
 uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
@@ -568,10 +575,9 @@ void initAdlib()
 	}
 	//dolog("adlib","sound channel added. registering ports...");
 	//Ignore unregistered channel, we need to be used by software!
-	register_PORTIN(baseport,&inadlib); //Status port (R)
+	register_PORTIN(&inadlib); //Status port (R)
 	//All output!
-	register_PORTOUT(baseport,&outadlib); //Address port (W)
-	register_PORTOUT(baseport+1,&outadlib); //Data port (W/O)
+	register_PORTOUT(&outadlib); //Address port (W)
 	//dolog("adlib","Registering timer...");
 	addtimer(usesamplerate,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER,0,NULL); //We run at 49.716Khz, about every 20us.
 	counter80step = (1.0f / ((80.0f / 1000000.0f) / (1.0f / (14318180.0f / 288.0f)))); //80us timer tick interval in samples!
@@ -587,9 +593,4 @@ void doneAdlib()
 	{
 		removechannel(&adlib_soundGenerator,NULL,0); //Stop the sound emulation?
 	}
-	//Unregister the ports!
-	register_PORTIN(baseport,NULL);
-	//All output!
-	register_PORTOUT(baseport,NULL);
-	register_PORTOUT(baseport+1,NULL);		
 }

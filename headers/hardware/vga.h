@@ -610,9 +610,6 @@ typedef struct PACKED
 	byte VerticalDisplayTotalReached; //Set when Scanline>max. Setting this causes Scanline to reset!
 	byte lightpen_high; //Lightpen high register!
 	byte lightpen_low; //Lightpen low register!
-	
-	//Compatibility registers
-	byte VGA_3C3; //All unused bits of port 3C3!
 } VGA_REGISTERS;
 #include "headers/endpacked.h" //We're packed!
 
@@ -744,8 +741,8 @@ void VRAM_writedirect(uint_32 offset, byte value); //Direct read/write!
 byte VRAM_readcpu(uint_32 offset);
 void VRAM_writecpu(uint_32 offset, byte value);
 
-byte PORT_readVGA(word port); //Read from a port/register!
-void PORT_writeVGA(word port, byte value); //Write to a port/register!
+byte PORT_readVGA(word port, byte *result); //Read from a port/register!
+byte PORT_writeVGA(word port, byte value); //Write to a port/register!
 //End of CPU specific! ***
 
 //DAC (for rendering)

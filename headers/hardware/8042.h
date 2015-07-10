@@ -87,8 +87,8 @@ void waitforfree8042buffer(byte size); //Wait for size free bytes in the 8042 bu
 void refresh_outputport(); //Refresh the output port actions!
 
 //Read and write port handlers!
-void write_8042(word port, byte value); //Prototype for init port!
-byte read_8042(word port); //Prototype for init port!
+byte write_8042(word port, byte value); //Prototype for init port!
+byte read_8042(word port, byte *result); //Prototype for init port!
 
 //Registration of First and Second PS/2 controller!
 void register_PS2PortWrite(byte port, PS2OUT handler);

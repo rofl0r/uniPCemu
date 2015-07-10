@@ -143,7 +143,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.PS2ControllerConfigurationByte.FirstPortDisabled = 0; //Enabled!
 		break;
 	case 0xC0: //Read controller input port?
-		if (!(read_8042(0x64)&2)) //Nothing to give?
+		if (!(PORT_IN_B(0x64)&2)) //Nothing to give?
 		{
 			give_8042_input(0xFF); //Just give something!
 			break;
@@ -152,7 +152,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xC1: //Copy bits 0-3 of input port to status bits 4-7. No ACK!
 		Controller8042.status_buffer &= ~0xF0; //Clear bits 4-7!
-		if (!(read_8042(0x64)&1)) //Nothing to give?
+		if (!(PORT_IN_B(0x64)&1)) //Nothing to give?
 		{
 			Controller8042.status_buffer = 0xF<<4; //Just nothing to give!
 		}
@@ -163,7 +163,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xC2: //Copy bits 4-7 of input port to status bits 4-7. No ACK!
 		Controller8042.status_buffer &= ~0xF0; //Clear bits 4-7!
-		if (!(read_8042(0x64)&1)) //Nothing to give?
+		if (!(PORT_IN_B(0x64)&1)) //Nothing to give?
 		{
 			Controller8042.status_buffer = 0xF<<4; //Just nothing to give!
 		}
@@ -258,7 +258,7 @@ void datawritten_8042() //Data has been written?
 	}
 }
 
-void write_8042(word port, byte value)
+byte write_8042(word port, byte value)
 {
 switch (port) //What port?
 {
@@ -269,61 +269,64 @@ case 0x60: //Data port: write output buffer?
 		refresh_outputport(); //Handle the new output port!
 		Controller8042.writeoutputport = 0; //Not anymore!
 		Controller8042.status_buffer &= ~0x1; //Cleared output buffer!
-		break; //Don't process normally!
+		return 1; //Don't process normally!
 	}
 	if (Controller8042.Write_RAM) //Write to VRAM byte?
 	{
 		Controller8042.RAM[Controller8042.Write_RAM-1] = value; //Set data in RAM!
 		Controller8042.Write_RAM = 0; //Not anymore!
 		Controller8042.status_buffer &= ~0x1; //Cleared output buffer!
-		break; //Don't process normally!
+		return 1; //Don't process normally!
 	}
 
 	Controller8042.output_buffer = value; //Write to output buffer to process!
 
 	datawritten_8042(); //Written handler!
+	return 1;
 	break;
 case 0x64: //Command port: send command?
 	Controller8042.command = value; //Set command!
 	Controller8042.status_buffer &= ~0x1; //Cleared output buffer!
 	commandwritten_8042(); //Written handler!
+	return 1;
 	break;
 }
+return 0; //We're unhandled!
 }
 
-byte read_8042(word port)
+byte read_8042(word port, byte *result)
 {
-byte result;
-result = 0; //Init result!
 switch (port)
 {
 case 0x60: //Data port: Read input buffer?
 	if (Controller8042.readoutputport) //Read the output port?
 	{
-		result = Controller8042.outputport; //Read the output port directly!
-		break; //Don't process normally!
+		*result = Controller8042.outputport; //Read the output port directly!
+		return 1; //Don't process normally!
 	}
 	if (Controller8042.Read_RAM) //Write to VRAM byte?
 	{
-		result = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
+		*result = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
 		Controller8042.Read_RAM = 0; //Not anymore!
-		break; //Don't process normally!
+		return 1; //Don't process normally!
 	}
 	
 	fill8042_input_buffer(); //Fill the input buffer!
 	if (Controller8042.status_buffer&2) //Gotten data?
 	{
-		result = Controller8042.input_buffer; //Read input buffer!
+		*result = Controller8042.input_buffer; //Read input buffer!
 		Controller8042.status_buffer &= ~0x22; //Clear input buffer full&AUX bits!
 	}
+	return 1; //We're processed!
 	break;
 
 case 0x64: //Command port: read status register?
 	fill8042_input_buffer(); //Fill the input buffer if needed!
-	result = Controller8042.status_buffer; //Read status buffer!
+	*result = Controller8042.status_buffer; //Read status buffer!
+	return 1; //We're processed!
 	break;
 }
-return result; //Undefined!
+return 0; //Undefined!
 }
 
 void BIOS_init8042() //Init 8042&Load all BIOS!
@@ -336,11 +339,8 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	Controller8042.buffer = allocfifobuffer(64); //Allocate a small buffer for us to use to commands/data!
 
 	//First: initialise all hardware ports for emulating!
-	register_PORTOUT(0x60,&write_8042);
-	register_PORTOUT(0x64,&write_8042);
-	register_PORTIN(0x60,&read_8042);
-	register_PORTIN(0x64,&read_8042);
-
+	register_PORTOUT(&write_8042);
+	register_PORTIN(&read_8042);
 	reset8042(); //First 8042 controller reset!
 }
 

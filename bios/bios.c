@@ -545,23 +545,23 @@ void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 	byte result; //For holding the result from the hardware!
 
 	BIOS_writeKBDCMD(0xED); //Set/reset status indicators!
-	if (!(read_8042(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
 	{
 		raiseError("Keyboard BIOS initialisation","No set/reset status indicator command result:2!");
 	}
 
-	result = read_8042(0x60); //Check the result!
+	result = PORT_IN_B(0x60); //Check the result!
 	if (result!=0xFA) //NAC?
 	{
 		raiseError("Keyboard BIOS initialisation","Set/reset status indication command result: %02X",result);
 	}
 
 	write_8042(0x60,0x02); //Turn on NUM LOCK led!
-	if (!(read_8042(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
 	{
 		raiseError("Keyboard BIOS initialisation","No turn on NUM lock led result!");
 	}
-	result = read_8042(0x60); //Must be 0xFA!
+	result = PORT_IN_B(0x60); //Must be 0xFA!
 	if (result!=0xFA) //Error?
 	{
 		raiseError("Keyboard BIOS initialisation","Couldn't turn on Num Lock LED! Result: %02X",result);
