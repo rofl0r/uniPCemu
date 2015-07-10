@@ -355,7 +355,7 @@ void keyboardControllerInit() //Part before the BIOS at computer bootup (self te
 	}
 
 	PORT_OUT_B(0x60,0x00); //Set/reset status indicators: all off!
-	if (!(PORT_OUT_B(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No set/reset status indicator parameter result!");
 	}

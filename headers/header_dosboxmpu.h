@@ -23,6 +23,6 @@ typedef uint_32 Bits;
 #define PIC_ActivateIRQ(irq) doirq(irq)
 #define PIC_DeActivateIRQ(irq) removeirq(irq)
 
-#define IO_RegisterWriteHandler(port,handler,name) register_PORTOUT(port,handler)
-#define IO_RegisterReadHandler(port,handler,name) register_PORTIN(port,handler)
+#define IO_RegisterWriteHandler(port,handler,name) register_PORTOUT(handler)
+#define IO_RegisterReadHandler(port,handler,name) register_PORTIN(handler)
 #endif

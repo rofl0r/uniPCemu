@@ -66,7 +66,10 @@ byte EXEC_PORTOUT(word port, byte value)
 	#endif
 	for (i = 0; i < PORT_OUT_COUNT; i++) //Process all ports!
 	{
-		executed |= PORT_OUT[i](port, value); //PORT OUT on this port!
+		if (PORT_OUT[i]) //Valid port?
+		{
+			executed |= PORT_OUT[i](port, value); //PORT OUT on this port!
+		}
 	}
 	return !executed; //Have we failed?
 }
@@ -86,9 +89,12 @@ byte EXEC_PORTIN(word port, byte *result)
 	#endif
 	for (i = 0; i < PORT_OUT_COUNT; i++) //Process all ports!
 	{
-		temp = PORT_IN[i](port, &tempresult); //PORT IN on this port!
-		executed |= temp; //OR into the result: we're executed?
-		if (temp) actualresult |= tempresult; //Add to the result if we're used!
+		if (PORT_IN[i]) //Valid port?
+		{
+			temp = PORT_IN[i](port, &tempresult); //PORT IN on this port!
+			executed |= temp; //OR into the result: we're executed?
+			if (temp) actualresult |= tempresult; //Add to the result if we're used!
+		}
 	}
 	if (!executed) *result = PORT_UNDEFINED_RESULT; //Not executed gives all bits set!
 	else *result = actualresult; //Give the result!

@@ -270,8 +270,6 @@ void initCMOS() //Initialises CMOS (apply solid init settings&read init if possi
 	loadCMOS(); //Load the CMOS from disk OR defaults!
 
 	//Register our I/O ports!
-	register_PORTIN(0x70, &PORT_readCMOS);
-	register_PORTIN(0x71, &PORT_readCMOS);
-	register_PORTOUT(0x70, &PORT_writeCMOS);
-	register_PORTOUT(0x71, &PORT_writeCMOS);
+	register_PORTIN(&PORT_readCMOS);
+	register_PORTOUT(&PORT_writeCMOS);
 }

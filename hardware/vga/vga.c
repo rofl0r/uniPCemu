@@ -221,8 +221,8 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 }
 
 //Read port, write port and both!
-#define VGAREGISTER_PORTR(port) register_PORTIN(port,&PORT_readVGA)
-#define VGAREGISTER_PORTW(port) register_PORTOUT(port,&PORT_writeVGA)
+#define VGAREGISTER_PORTR(port) register_PORTIN(&PORT_readVGA)
+#define VGAREGISTER_PORTW(port) register_PORTOUT(&PORT_writeVGA)
 #define VGAREGISTER_PORTRW(port) VGAREGISTER_PORTR(port);VGAREGISTER_PORTW(port)
 
 void setupVGA() //Sets the VGA up for PC usage (CPU access etc.)!
