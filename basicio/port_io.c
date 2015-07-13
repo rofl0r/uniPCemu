@@ -25,12 +25,17 @@ byte PORT_IN_B(word port)
 	byte result;
 	if (EXEC_PORTIN(port,&result)) //Passtrough!
 	{
-		if (execNMI(0)) //Execute an NMI from Bus!
-		{
-			dolog("emu", "Warning: Unhandled PORT IN from port %04X", port);
-		}
+		dolog("emu", "Warning: Unhandled PORT IN from port %04X", port);
 	}
 	return result; //Give the result!
+}
+
+void PORT_OUT_B(word port, byte b)
+{
+	if (EXEC_PORTOUT(port, b)) //Passtrough and error?
+	{
+		dolog("emu", "Warning: Unhandled PORT OUT to port %04X value %02X", port, b); //Report unhandled NMI!
+	}
 }
 
 word PORT_IN_W(word port) //IN result,port
@@ -49,6 +54,22 @@ word PORT_IN_W(word port) //IN result,port
 	return splitter.w; //Give word!
 }
 
+void PORT_OUT_W(word port, word w) //OUT port,w
+{
+	union
+	{
+		struct
+		{
+			byte low;
+			byte high;
+		} byte;
+		word w;
+	} splitter;
+	splitter.w = w; //Split!
+	PORT_OUT_B(port,splitter.byte.low); //First low byte!
+	PORT_OUT_B(port+1,splitter.byte.high); //Next high byte!
+}
+
 uint_32 PORT_IN_DW(word port) //IN result,port
 {
 	union
@@ -65,32 +86,6 @@ uint_32 PORT_IN_DW(word port) //IN result,port
 	return splitter.w; //Give word!
 }
 
-void PORT_OUT_B(word port, byte b)
-{
-	if (EXEC_PORTOUT(port, b)) //Passtrough and error?
-	{
-		if (execNMI(0)) //Execute an NMI from Bus failed?
-		{
-			dolog("emu", "Warning: Unhandled PORT OUT to port %04X value %02X", port, b); //Report unhandled NMI!
-		}
-	}
-}
-
-void PORT_OUT_W(word port, word w) //OUT port,w
-{
-	union
-	{
-		struct
-		{
-			byte low;
-			byte high;
-		} byte;
-		word w;
-	} splitter;
-	splitter.w = w; //Split!
-	PORT_OUT_B(port,splitter.byte.low); //First low byte!
-	PORT_OUT_B(port+1,splitter.byte.high); //Next high byte!
-}
 
 void PORT_OUT_DW(word port, uint_32 dw) //OUT port,w
 {
