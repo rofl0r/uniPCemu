@@ -246,7 +246,7 @@ Finally: the read/write handlers themselves!
 
 byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 {
-	lockVGA(); //Lock ourselves, we don�t want to conflict with our renderer!
+	lockVGA(); //Lock ourselves, we don't want to conflict with our renderer!
 	byte ok = 0;
 	if (!getActiveVGA()) //No active VGA?
 	{
@@ -343,7 +343,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3B8: //MDA Mode Control Register
 	case 0x3D8: //CGA mode control register
 	case 0x3D9: //CGA palette register
-		if (NMIPrecursors) OK = !execNMI(0); //Execute an NMI from Bus!
+		if (NMIPrecursors) ok = !execNMI(0); //Execute an NMI from Bus!
 		break;
 	default: //Unknown?
 		break; //Not used address!
@@ -354,7 +354,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 
 byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 {
-	lockVGA(); //Lock ourselves, we don�t want to conflict with our renderer!
+	lockVGA(); //Lock ourselves, we don't want to conflict with our renderer!
 	if (!getActiveVGA()) //No active VGA?
 	{
 		raiseError("VGA","VGA Port Out, but no active VGA loaded!");
@@ -474,7 +474,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3B8: //MDA Mode Control Register
 	case 0x3D8: //CGA mode control register
 	case 0x3D9: //CGA palette register
-		if (NMIPrecursors) OK = !execNMI(0); //Execute an NMI from Bus!
+		if (NMIPrecursors) ok = !execNMI(0); //Execute an NMI from Bus!
 		break;
 	default: //Unknown?
 		break; //Not used!
