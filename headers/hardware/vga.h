@@ -768,6 +768,8 @@ void VGA_dumpFonts(); //Dump all VGA fonts!
 
 void VGA_plane2updated(VGA_Type *VGA, uint_32 address); //Plane 2 has been updated?
 
+void setVGA_NMIonPrecursors(byte enabled); //Trigger an NMI when our precursors are called?
+
 byte lockVGA();
 void unlockVGA();
 #endif
