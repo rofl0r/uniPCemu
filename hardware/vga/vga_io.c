@@ -65,6 +65,13 @@ write:
 
 */
 
+byte NMIPrecursors = 0; //Execute a NMI for our precursors?
+
+void setVGA_NMIonPrecursors(byte enabled)
+{
+	NMIPrecursors = enabled?1:0; //Use precursor NMI?
+}
+
 //Port 3C0 info holder:
 #define VGA_3C0_HOLDER getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER
 
@@ -239,7 +246,7 @@ Finally: the read/write handlers themselves!
 
 byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 {
-	lockVGA(); //Lock ourselves, we don´t want to conflict with our renderer!
+	lockVGA(); //Lock ourselves, we donï¿½t want to conflict with our renderer!
 	byte ok = 0;
 	if (!getActiveVGA()) //No active VGA?
 	{
@@ -331,6 +338,13 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
 		ok = 1;
 		break;
+	
+	//Precursors compatibility
+	case 0x3B8: //MDA Mode Control Register
+	case 0x3D8: //CGA mode control register
+	case 0x3D9: //CGA palette register
+		if (NMIPrecursors) OK = !execNMI(0); //Execute an NMI from Bus!
+		break;
 	default: //Unknown?
 		break; //Not used address!
 	}
@@ -340,7 +354,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 
 byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 {
-	lockVGA(); //Lock ourselves, we don´t want to conflict with our renderer!
+	lockVGA(); //Lock ourselves, we donï¿½t want to conflict with our renderer!
 	if (!getActiveVGA()) //No active VGA?
 	{
 		raiseError("VGA","VGA Port Out, but no active VGA loaded!");
@@ -454,6 +468,13 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		getActiveVGA()->registers->GraphicsRegisters.DATA[getActiveVGA()->registers->GraphicsRegisters_Index] = value; //Set!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_GRAPHICSCONTROLLER|getActiveVGA()->registers->GraphicsRegisters_Index); //We have been updated!				
 		ok = 1;
+		break;
+	
+	//Precursors compatibility
+	case 0x3B8: //MDA Mode Control Register
+	case 0x3D8: //CGA mode control register
+	case 0x3D9: //CGA palette register
+		if (NMIPrecursors) OK = !execNMI(0); //Execute an NMI from Bus!
 		break;
 	default: //Unknown?
 		break; //Not used!
