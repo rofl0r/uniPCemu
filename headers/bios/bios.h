@@ -54,6 +54,7 @@ typedef struct PACKED
 			byte got_CMOS; //Gotten an CMOS?
 
 			byte executionmode; //What mode to execute in during runtime?
+			byte VGA_NMIonPrecursors; //Enable VGA NMI on precursors?
 		}; //Containing the data of the BIOS
 		byte data[1701]; //Data for checksum!
 	};
