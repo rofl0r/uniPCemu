@@ -24,6 +24,8 @@
 
 #include "headers/hardware/ps2_keyboard.h" //PS/2 keyboard key name support!
 
+#include "headers/emu/input.h" //We need input using psp_inputkey.
+
 #define __HW_DISABLED 0
 
 //Force the BIOS to open?
@@ -31,8 +33,6 @@
 
 //BIOS width in text mode!
 #define BIOS_WIDTH GPU_TEXTSURFACE_WIDTH
-
-#include "headers/emu/input.h" //We need input using psp_inputkey.
 
 //Boot time in 2 seconds!
 #define BOOTTIME 2000000
