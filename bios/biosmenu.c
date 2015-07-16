@@ -26,6 +26,8 @@
 
 #include "headers/emu/input.h" //We need input using psp_inputkey.
 
+#include "headers/emu/emu_vga.h" //VGA update support!
+
 #define __HW_DISABLED 0
 
 //Force the BIOS to open?
@@ -368,7 +370,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	startVGA(); //Start the VGA up again!
 	EMU_startInput(); //Start all emu input again!
 
-	EMU_update_DACColorScheme(); //Update the DAC color scheme!
+	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 
 	return reboot_needed; //Do we need to reboot?
 }
@@ -1294,7 +1296,7 @@ void BIOS_InitAdvancedText()
 		break;
 	}
 
-	optioninfo[advancedoptions] = 8; //We're debug log setting!
+	optioninfo[advancedoptions] = 7; //We're debug log setting!
 	strcpy(menuoptions[advancedoptions], "Debugger log: ");
 	switch (BIOS_Settings.debugger_log)
 	{
@@ -1312,7 +1314,7 @@ void BIOS_InitAdvancedText()
 		strcat(menuoptions[advancedoptions++], "Never"); //Set filename from options!
 		break;
 	}
-	optioninfo[advancedoptions] = 9; //Execution mode!
+	optioninfo[advancedoptions] = 8; //Execution mode!
 	strcpy(menuoptions[advancedoptions], "Execution mode: ");
 	switch (BIOS_Settings.executionmode) //What debug mode is active?
 	{
@@ -1339,27 +1341,6 @@ void BIOS_InitAdvancedText()
 		break;
 	}
 
-	optioninfo[advancedoptions] = 4; //We're direct plot setting!
-	strcpy(menuoptions[advancedoptions],"VGA Direct Plot: ");
-setdirectplottext: //For fixing it!
-	switch (BIOS_Settings.VGA_AllowDirectPlot) //What direct plot setting?
-	{
-	case 2: //Forced?
-		strcat(menuoptions[advancedoptions++],"Forced");
-		break;
-	case 1: //Yes?
-		strcat(menuoptions[advancedoptions++],"Automatic");
-		break;
-	case 0: //No?
-		strcat(menuoptions[advancedoptions++],"Disabled");
-		break;
-	default: //Error: fix it!
-		BIOS_Settings.VGA_AllowDirectPlot = 0; //Reset/Fix!
-		BIOS_Changed = 1; //We've changed!
-		goto setdirectplottext; //Goto!
-		break;
-	}
-
 	if (!EMU_RUNNING) //Emulator not running (allow memory size change?)
 	{
 		optioninfo[advancedoptions] = 3; //Memory detect!
@@ -1380,26 +1361,11 @@ setdirectplottext: //For fixing it!
 	{
 		strcat(menuoptions[advancedoptions++],"Fullscreen stretching");
 	}
+	
+	optioninfo[advancedoptions] = 4; //VGA Settings
+	strcpy(menuoptions[advancedoptions++], "VGA Settings");
 
-	optioninfo[advancedoptions] = 7; //Monitor!
-	strcpy(menuoptions[advancedoptions], "Monitor: ");
-	switch (BIOS_Settings.bwmonitor) //B/W monitor?
-	{
-	case BWMONITOR_BLACK:
-		strcat(menuoptions[advancedoptions++], "B/W monitor: black");
-		break;
-	case BWMONITOR_GREEN:
-		strcat(menuoptions[advancedoptions++], "B/W monitor: green");
-		break;
-	case BWMONITOR_BROWN:
-		strcat(menuoptions[advancedoptions++], "B/W monitor: brown");
-		break;
-	case BWMONITOR_NONE:
-		strcat(menuoptions[advancedoptions++], "Color monitor");
-		break;
-	}
-
-	optioninfo[advancedoptions] = 10;
+	optioninfo[advancedoptions] = 9;
 	strcpy(menuoptions[advancedoptions++], "Input options");
 }
 
@@ -1507,8 +1473,7 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 6:
 	case 7:
 	case 8:
-	case 9:
-	case 10: //Valid option?
+	case 9: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Boot order (plain)?
@@ -1523,25 +1488,22 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 		case 3: //Memory reallocation?
 			BIOS_Menu = 14; //Memory reallocation!
 			break;
-		case 4: //Direct plot setting?
-			BIOS_Menu = 15; //Direct plot setting!
+		case 4: //VGA Settings setting?
+			BIOS_Menu = 29; //VGA Settings setting!
 			break;
 		case 5: //BIOS Font?
 			BIOS_Menu = 16; //BIOS Font setting!
 			break;
-		case 6:
+		case 6: //Aspect ratio setting!
 			BIOS_Menu = 17; //Aspect ratio setting!
 			break;
 		case 7:
-			BIOS_Menu = 22; //B/W monitor setting!
-			break;
-		case 8:
 			BIOS_Menu = 23; //Debugger log setting!
 			break;
-		case 9:
-			BIOS_Menu = 24; //Debugger log option!
+		case 8:
+			BIOS_Menu = 24; //Execution mode option!
 			break;
-		case 10:
+		case 9:
 			BIOS_Menu = 25; //Input submenu!
 			break;
 		}
@@ -3012,6 +2974,255 @@ void BIOS_gamingKeyboardColorsMenu() //Manage stuff concerning input.
 		gamingKeyboardColor = optioninfo[menuresult]; //What option has been chosen, since we are dynamic size?
 		BIOS_Menu = 28; //Switch to our option!
 		break;
+	default: //Unknown option?
+		BIOS_Menu = NOTIMPLEMENTED; //Not implemented yet!
+		break;
+	}
+}
+
+void BIOS_VGANMISetting()
+{
+	BIOS_Title("VGA NMI");
+	EMU_gotoxy(0,4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0,4,"VGA NMI: "); //Show selection init!
+	int i = 0; //Counter!
+	numlist = 2; //Ammount of Direct modes!
+	for (i=0; i<3; i++) //Process options!
+	{
+		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[0],"Disabled"); //Set filename from options!
+	strcpy(itemlist[1],"Enabled"); //Set filename from options!
+	int current = 0;
+	switch (BIOS_Settings.VGA_NMIonPrecursors) //What setting?
+	{
+	case 0: //Valid
+	case 1: //Valid
+		current = BIOS_Settings.VGA_NMIonPrecursors; //Valid: use!
+		break;
+	default: //Invalid
+		current = 0; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.VGA_NMIonPrecursors!=current) //Invalid?
+	{
+		BIOS_Settings.VGA_NMIonPrecursors = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(15,4,itemlist[current],256); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0; //Default setting: Disabled!
+
+	case 0:
+	case 1:
+	default: //Changed?
+		if (file!=current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.VGA_NMIonPrecursors = file; //Select Direct Plot setting!
+		}
+		break;
+	}
+	BIOS_Menu = 8; //Goto Advanced menu!
+}
+
+void BIOS_InitVGASettingsText()
+{
+	advancedoptions = 0; //Init!
+	int i;
+	for (i=0; i<10; i++) //Clear all possibilities!
+	{
+		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
+	}
+	if (!EMU_RUNNING) //Just plain menu (not an running emu?)?
+	{
+		optioninfo[advancedoptions] = 0; //Boot Order!
+		strcpy(menuoptions[advancedoptions],"Boot Order: "); //Change boot order!
+		strcat(menuoptions[advancedoptions++],BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
+		optioninfo[advancedoptions] = 1; //Installed CPU!
+		strcpy(menuoptions[advancedoptions],"Installed CPU: "); //Change installed CPU!
+		switch (BIOS_Settings.emulated_CPU) //8086?
+		{
+		case CPU_8086: //8086?
+			strcat(menuoptions[advancedoptions++],"Intel 8086"); //Add installed CPU!
+			break;
+		case CPU_80186: //80186?
+			strcat(menuoptions[advancedoptions++], "Intel 80186"); //Add installed CPU!
+			break;
+		default:
+			strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
+			break;
+		}
+	}
+
+	optioninfo[advancedoptions] = 2; //Debug mode!
+	strcpy(menuoptions[advancedoptions],"Debug mode: ");
+	switch (BIOS_Settings.debugmode) //What debug mode is active?
+	{
+	case DEBUGMODE_NONE:
+		strcat(menuoptions[advancedoptions++],"No debugger enabled"); //Set filename from options!
+		break;
+	case DEBUGMODE_RTRIGGER:
+		strcat(menuoptions[advancedoptions++],"Enabled, RTrigger=Step"); //Set filename from options!
+		break;
+	case DEBUGMODE_STEP:
+		strcat(menuoptions[advancedoptions++],"Enabled, Step through"); //Set filename from options!
+		break;
+	case DEBUGMODE_SHOW_RUN:
+		strcat(menuoptions[advancedoptions++],"Enabled, just run, ignore shoulder buttons"); //Set filename from options!
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++],"<UNKNOWN. CHECK BIOS VERSION>");
+		break;
+	}
+
+	optioninfo[advancedoptions] = 8; //We're debug log setting!
+	strcpy(menuoptions[advancedoptions], "Debugger log: ");
+	switch (BIOS_Settings.debugger_log)
+	{
+	case DEBUGGERLOG_NONE: //None
+		strcat(menuoptions[advancedoptions++], "Don't log"); //Set filename from options!
+		break;
+	case DEBUGGERLOG_DEBUGGING: //Only when debugging
+		strcat(menuoptions[advancedoptions++], "Only when debugging"); //Set filename from options!
+		break;
+	case DEBUGGERLOG_ALWAYS: //Always
+		strcat(menuoptions[advancedoptions++], "Always log"); //Set filename from options!
+		break;
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "Never"); //Set filename from options!
+		break;
+	}
+	optioninfo[advancedoptions] = 9; //Execution mode!
+	strcpy(menuoptions[advancedoptions], "Execution mode: ");
+	switch (BIOS_Settings.executionmode) //What debug mode is active?
+	{
+	case EXECUTIONMODE_NONE:
+		strcat(menuoptions[advancedoptions++], "Normal operations"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_TEST:
+		strcat(menuoptions[advancedoptions++], "Run debug directory files"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_TESTROM:
+		strcat(menuoptions[advancedoptions++], "Run TESTROM.DAT at 0000:0000"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_VIDEOCARD:
+		strcat(menuoptions[advancedoptions++], "Debug video card output"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_BIOS:
+		strcat(menuoptions[advancedoptions++], "Load BIOS from ROM directory."); //Set filename from options!
+		break;
+	case EXECUTIONMODE_SOUND:
+		strcat(menuoptions[advancedoptions++], "Run sound test"); //Set filename from options!
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>");
+		break;
+	}
+
+	optioninfo[advancedoptions] = 4; //We're direct plot setting!
+	strcpy(menuoptions[advancedoptions],"VGA Direct Plot: ");
+setdirectplottext: //For fixing it!
+	switch (BIOS_Settings.VGA_AllowDirectPlot) //What direct plot setting?
+	{
+	case 2: //Forced?
+		strcat(menuoptions[advancedoptions++],"Forced");
+		break;
+	case 1: //Yes?
+		strcat(menuoptions[advancedoptions++],"Automatic");
+		break;
+	case 0: //No?
+		strcat(menuoptions[advancedoptions++],"Disabled");
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.VGA_AllowDirectPlot = 0; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setdirectplottext; //Goto!
+		break;
+	}
+
+	if (!EMU_RUNNING) //Emulator not running (allow memory size change?)
+	{
+		optioninfo[advancedoptions] = 3; //Memory detect!
+		strcpy(menuoptions[advancedoptions++],"Redetect available memory");
+	}
+
+	optioninfo[advancedoptions] = 5; //Select BIOS Font!
+	strcpy(menuoptions[advancedoptions],"BIOS Font: ");
+	strcat(menuoptions[advancedoptions++],ActiveBIOSPreset.name); //BIOS font selected!
+	
+	optioninfo[advancedoptions] = 6; //Keep aspect ratio!
+	strcpy(menuoptions[advancedoptions],"Aspect ratio: ");
+	if (BIOS_Settings.keepaspectratio) //Keep aspect ratio?
+	{
+		strcat(menuoptions[advancedoptions++],"Keep the same");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++],"Fullscreen stretching");
+	}
+
+	optioninfo[advancedoptions] = 7; //Monitor!
+	strcpy(menuoptions[advancedoptions], "Monitor: ");
+	switch (BIOS_Settings.bwmonitor) //B/W monitor?
+	{
+	case BWMONITOR_BLACK:
+		strcat(menuoptions[advancedoptions++], "B/W monitor: black");
+		break;
+	case BWMONITOR_GREEN:
+		strcat(menuoptions[advancedoptions++], "B/W monitor: green");
+		break;
+	case BWMONITOR_BROWN:
+		strcat(menuoptions[advancedoptions++], "B/W monitor: brown");
+		break;
+	case BWMONITOR_NONE:
+		strcat(menuoptions[advancedoptions++], "Color monitor");
+		break;
+	}
+
+	optioninfo[advancedoptions] = 10;
+	strcpy(menuoptions[advancedoptions++], "Input options");
+}
+
+void BIOS_InitInputText()
+{
+	advancedoptions = 0; //Init!
+	int i;
+	for (i = 0; i<10; i++) //Clear all possibilities!
+	{
+		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+	}
+}
+
+void BIOS_VGASettingsMenu() //Manage stuff concerning input.
+{
+	BIOS_Title("VGA Settings Menu");
+	BIOS_InitInputText(); //Init text!
+	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
+	switch (menuresult)
+	{
+	case BIOSMENU_SPEC_CANCEL: //Return?
+		BIOS_Menu = 8; //Goto Advanced Menu!
+		break;
+	/*case 0:
+	case 1: //Valid option?
+		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
+		{
+		case 0: //Gaming mode buttons?
+			BIOS_Menu = 26; //Map gaming mode buttons Menu!
+			break;
+		case 1: //Keyboard colors?
+			BIOS_Menu = 27; //Assign keyboard colors Menu!
+			break;
+		}
+		break;*/
 	default: //Unknown option?
 		BIOS_Menu = NOTIMPLEMENTED; //Not implemented yet!
 		break;
