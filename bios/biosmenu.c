@@ -2497,7 +2497,7 @@ void BIOS_DirectPlotSetting()
 		}
 		break;
 	}
-	BIOS_Menu = 8; //Goto Advanced menu!
+	BIOS_Menu = 29; //Goto VGA Settings menu!
 }
 
 void BIOS_FontSetting()
@@ -2616,7 +2616,7 @@ void BIOS_BWMonitor()
 		}
 		break;
 	}
-	BIOS_Menu = 8; //Goto Advanced menu!
+	BIOS_Menu = 29; //Goto VGA Settings menu!
 }
 
 void BIOSMenu_LoadDefaults() //Load the defaults option!
@@ -3033,7 +3033,7 @@ void BIOS_VGANMISetting()
 		}
 		break;
 	}
-	BIOS_Menu = 8; //Goto Advanced menu!
+	BIOS_Menu = 29; //Goto VGA Settings menu!
 }
 
 void BIOS_InitVGASettingsText()
