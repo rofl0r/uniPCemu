@@ -2945,10 +2945,6 @@ void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
 		keyboard_loadDefaultColor(gamingKeyboardColor); //Load the default value!
 		file = BIOS_Settings.input_settings.colors[gamingKeyboardColor]; //Load the default value!
 
-	case BWMONITOR_NONE: //None
-	case BWMONITOR_BLACK: //Black/White
-	case BWMONITOR_GREEN: //Greenscale
-	case BWMONITOR_BROWN: //Brownscale
 	default: //Changed?
 		if (file != current) //Not current?
 		{
