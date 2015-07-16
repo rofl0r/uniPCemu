@@ -48,6 +48,8 @@
 
 #include "headers/hardware/uart.h" //UART support!
 
+#include "headers/emu/emu_vga.h" //VGA update support!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To debug VGA at MAX speed?
@@ -180,7 +182,7 @@ void initEMU(int full) //Init!
 	resetMMU(); //Initialise MMU (we need the BDA from now on!)!
 	setupVGA(); //Set the VGA up for int10&CPU usage!
 
-	EMU_update_DACColorScheme();
+	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 
 	debugrow("Initializing CPU...");
 	resetCPU(); //Initialise CPU!
@@ -216,7 +218,7 @@ void initEMU(int full) //Init!
 	}
 	} //Not debugging sound only!
 
-	EMU_update_DACColorScheme(); //Update the color scheme to it's default value!
+	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 
 	//Finally: signal we're ready!
 	emu_started = 1; //We've started!
