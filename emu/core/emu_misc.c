@@ -206,15 +206,3 @@ short shortrand() //Short random
 {
 	return (short)RandomShort(-SHRT_MAX,SHRT_MAX); //Short random generator!
 }
-
-extern BIOS_Settings_TYPE BIOS_Settings; //Our settings!
-
-void EMU_update_VGA_Settings() //Update the VGA settings!
-{
-	DAC_Use_BWMonitor((BIOS_Settings.bwmonitor>0) ? 1 : 0); //Select color/bw monitor!
-	if (DAC_Use_BWMonitor(0xFF)) //Using a b/w monitor?
-	{
-		DAC_BWColor(BIOS_Settings.bwmonitor); //Set the color to use!
-	}
-	setVGA_NMIonPrecursors(BIOS_Settings.VGA_NMIonPrecursors); //Set NMI on precursors!
-}
