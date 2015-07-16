@@ -93,6 +93,7 @@ typedef struct
 	byte purpose; //0=Normal voice, 1=Drum channel!
 } MIDIDEVICE_VOICE;
 
+void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
 void MIDIDEVICE_addbuffer(byte command, MIDIPTR data); //Add a command to the buffer!
 //MIDICOMMAND *MIDIDEVICE_peekbuffer(); //Peek at the buffer!
 //int MIDIDEVICE_readbuffer(MIDICOMMAND *result); //Read from the buffer!

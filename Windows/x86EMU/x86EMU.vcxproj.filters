@@ -453,6 +453,9 @@
     <ClCompile Include="..\..\cpu\80586\opcodes_586.c">
       <Filter>Source Files\cpu\80586</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\interrupts\interrupt1a.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">

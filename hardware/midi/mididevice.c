@@ -6,6 +6,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //High resolution timer support!
 #include "headers/hardware/midi/adsr.h" //ADSR support!
+#include "headers/emu/timers.h" //Use timers for Active Sensing!
 
 //Use direct windows MIDI processor if available?
 //#define DIRECT_MIDI
@@ -638,6 +639,55 @@ OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used
 	#endif
 }
 
+SDL_sem *activeSenseLock = NULL; //Active Sense lock!
+
+byte MIDIDEVICE_ActiveSensing = 0; //Active Sensing?
+word MIDIDEVICE_ActiveSenseCounter = 0; //Counter for Active Sense!
+
+void MIDIDEVICE_activeSense_Timer() //Timeout while Active Sensing!
+{
+	if (MIDIDEVICE_ActiveSensing) //Are we Active Sensing?
+	{
+		if (++MIDIDEVICE_ActiveSenseCounter > 300) //300ms passed?
+		{
+			byte channel, currentchannel;
+			for (currentchannel = 0; currentchannel < 0x10; channel++) //Process all active channels!
+			{
+				for (channel = 0; channel < 0x10;)
+				{
+					MIDIDEVICE_AllNotesOff(currentchannel, channel++); //Turn all notes off!
+				}
+			}
+			MIDIDEVICE_ActiveSensing = 0; //Reset our flag!
+		}
+	}
+}
+
+void MIDIDEVICE_tickActiveSense() //Tick the Active Sense (MIDI) line with any command/data!
+{
+	SDL_SemWait(activeSenseLock);
+	MIDIDEVICE_ActiveSenseCounter = 0; //Reset the counter to count again!
+	SDL_SemPost(activeSenseLock);
+}
+
+
+void MIDIDEVICE_ActiveSenseFinished()
+{
+	removetimer("MIDI Active Sense Timeout"); //Remove the current timeout, if any!
+	if (activeSenseLock) //Is Active Sensing used?
+	{
+		SDL_DestroySemaphore(activeSenseLock); //Destroy our lock!
+		activeSenseLock = NULL; //Nothing anymore!
+	}
+}
+
+void MIDIDEVICE_ActiveSenseInit()
+{
+	MIDIDEVICE_ActiveSenseFinished(); //Finish old one!
+	activeSenseLock = SDL_CreateSemaphore(1); //Create our lock!
+	addtimer(300.0f / 1000.0f, &MIDIDEVICE_activeSense_Timer, "MIDI Active Sense Timeout", 1, 1, activeSenseLock); //Add the Active Sense timer!
+}
+
 OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity)
 {
 	byte purpose;
@@ -961,13 +1011,20 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			break;
 		case 0xF0: //System message?
 			//We don't handle system messages!
-			if (command==0xFF) //Reset?
+			switch (command)
 			{
+			case 0xFE: //Active Sense?
+				MIDIDEVICE_ActiveSensing = 1; //We're Active Sensing!
+				break;
+			case 0xFF: //Reset?
 				reset_MIDIDEVICE(); //Reset ourselves!
+				break;
+			default:
+				#ifdef MIDI_LOG
+					dolog("MPU", "MIDIDEVICE: System messages are unsupported!"); //Log it!
+				#endif
+				break;
 			}
-			#ifdef MIDI_LOG
-				dolog("MPU","MIDIDEVICE: System messages are unsupported!"); //Log it!
-			#endif
 			break;
 		default: //Invalid command?
 			#ifdef MIDI_LOG
@@ -1004,6 +1061,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 	{
 		removechannel(&MIDIDEVICE_renderer,&activevoices[i],0); //Remove the channel! Delay at 0.96ms for response speed!
 	}
+	MIDIDEVICE_ActiveSenseFinished(); //Finish our Active Sense: we're not needed anymore!
 	unlockaudio(1);
 }
 
@@ -1042,5 +1100,6 @@ void init_MIDIDEVICE() //Initialise MIDI device for usage!
 			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
 		}
 	}
+	MIDIDEVICE_ActiveSenseInit(); //Initialise Active Sense!
 	unlockaudio(1);
 }

@@ -3108,7 +3108,7 @@ setVGANMItext: //For fixing it!
 void BIOS_VGASettingsMenu() //Manage stuff concerning input.
 {
 	BIOS_Title("VGA Settings Menu");
-	BIOS_InitInputText(); //Init text!
+	BIOS_InitVGASettingsText(); //Init text!
 	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{

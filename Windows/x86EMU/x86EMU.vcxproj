@@ -115,6 +115,7 @@
     <ClCompile Include="..\..\interrupts\interrupt16.c" />
     <ClCompile Include="..\..\interrupts\interrupt18.c" />
     <ClCompile Include="..\..\interrupts\interrupt19.c" />
+    <ClCompile Include="..\..\interrupts\interrupt1a.c" />
     <ClCompile Include="..\..\interrupts\interrupt5.c" />
     <ClCompile Include="..\..\interrupts\unkint.c" />
     <ClCompile Include="..\..\mmu\mmu.c" />

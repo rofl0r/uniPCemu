@@ -229,6 +229,7 @@ void MIDI_OUT(byte data)
 	#ifdef __MIDI_LOG
 	dolog("MIDI","MIDI OUT: %02X",data); //Log it!
 	#endif
+	MIDIDEVICE_tickActiveSense(); //Tick the Active Sense: we're sending MIDI Status or Data bytes!
 	if (data&0x80)
 	{
 		MIDI_writeStatus(data);
