@@ -13,7 +13,7 @@
 #include "headers/support/log.h" //Logging support for debugging!
 
 #include "headers/interrupts/interrupt10.h" //Our typedefs!
-#include "headers/cpu/callback.h" //Callback support!
+#include "headers/cpu/cb_manager.h" //Callback support!
 #include "headers/cpu/80286/protection.h" //Protection support!
 
 //Log options!

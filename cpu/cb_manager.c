@@ -1,6 +1,6 @@
 #include "headers/types.h" //Basic types!
 #include "headers/cpu/cpu.h" //For handler!
-#include "headers/cpu/callback.h" //Typedefs!
+#include "headers/cpu/cb_manager.h" //Typedefs!
 #include "headers/cpu/easyregs.h" //Easy register support for DOSBox!
 
 #include "headers/interrupts/interrupt16.h" //For Dosbox compatibility.

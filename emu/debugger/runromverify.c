@@ -8,7 +8,7 @@
 #include "headers/cpu/8086/cpu_OP8086.h" //hardware interrupt function!
 #include "headers/support/log.h" //Log support!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
-#include "headers/cpu/callback.h" //CPU callback support!
+#include "headers/cpu/cb_manager.h" //CPU callback support!
 #include "headers/bios/biosrom.h" //BIOS ROM support!
 
 #include "headers/emu/emucore.h" //Emulation core!

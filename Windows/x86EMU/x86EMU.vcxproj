@@ -112,6 +112,7 @@
     <ClCompile Include="..\..\interrupts\interrupt11.c" />
     <ClCompile Include="..\..\interrupts\interrupt12.c" />
     <ClCompile Include="..\..\interrupts\interrupt13.c" />
+    <ClCompile Include="..\..\interrupts\interrupt15.c" />
     <ClCompile Include="..\..\interrupts\interrupt16.c" />
     <ClCompile Include="..\..\interrupts\interrupt18.c" />
     <ClCompile Include="..\..\interrupts\interrupt19.c" />
@@ -160,7 +161,7 @@
     <ClInclude Include="..\..\headers\cpu\8086\cpu_OP8086.h" />
     <ClInclude Include="..\..\headers\cpu\8086\opcodes_8086_verify.h" />
     <ClInclude Include="..\..\headers\cpu\8087\fpu_OP8087.h" />
-    <ClInclude Include="..\..\headers\cpu\callback.h" />
+    <ClInclude Include="..\..\headers\cpu\cb_manager.h" />
     <ClInclude Include="..\..\headers\cpu\cpu.h" />
     <ClInclude Include="..\..\headers\cpu\cpu_ops.h" />
     <ClInclude Include="..\..\headers\cpu\easyregs.h" />
@@ -234,6 +235,7 @@
     <ClInclude Include="..\..\headers\interrupts\interrupt11.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt12.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt13.h" />
+    <ClInclude Include="..\..\headers\interrupts\interrupt15.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt16.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt18.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt19.h" />

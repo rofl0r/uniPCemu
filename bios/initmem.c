@@ -5,7 +5,7 @@
 #include "headers/bios/io.h" //Basic I/O support!
 #include "headers/mmu/mmu.h" //MMU support!
 #include "headers/mmu/bda.h" //BDA support!
-#include "headers/cpu/callback.h" //CB support!
+#include "headers/cpu/cb_manager.h" //CB support!
 #include "headers/cpu/80286/protection.h" //Protection support!
 
 //Are we disabled?

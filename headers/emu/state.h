@@ -7,7 +7,7 @@
 #include "headers/emu/gpu/gpu.h" //GPU functionality!
 #include "headers/hardware/vga.h" //VGA functionality
 #include "headers/mmu/bda.h" //BDA support!
-#include "headers/cpu/callback.h" //Callbacks!
+#include "headers/cpu/cb_manager.h" //Callbacks!
 
 typedef struct
 {

@@ -20,7 +20,7 @@ Interrupt 10h: Video interrupt
 
 #include "headers/interrupts/interrupt10.h" //Our typedefs etc.
 #include "headers/emu/gpu/gpu_emu.h" //GPU emulation functionality!
-#include "headers/cpu/callback.h" //Callback detection!
+#include "headers/cpu/cb_manager.h" //Callback detection!
 
 #include "headers/cpu/80286/protection.h" //For CPU_segment_index!
 

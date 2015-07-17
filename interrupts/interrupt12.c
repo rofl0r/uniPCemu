@@ -2,7 +2,7 @@
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/cpu/easyregs.h" //Easy registers!
 #include "headers/mmu/mmu.h" //Basic MMU support!
-#include "headers/cpu/callback.h" //Callback support!
+#include "headers/cpu/cb_manager.h" //Callback support!
 #include "headers/cpu/80286/protection.h" //Protection support!
 
 

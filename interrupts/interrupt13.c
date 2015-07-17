@@ -3,7 +3,7 @@
 #include "headers/bios/io.h" //Basic I/O comp.
 #include "headers/cpu/easyregs.h" //Easy register functionality last!
 #include "headers/debugger/debugger.h" //For logging registers debugging!
-#include "headers/cpu/callback.h" //Callback support!
+#include "headers/cpu/cb_manager.h" //Callback support!
 
 #include "headers/support/log.h" //Logging support for debugging!
 //Are we disabled?
@@ -298,7 +298,7 @@ byte readdiskdata(uint_32 startpos)
 
 	finishup: //Early stop: we cannot write any further!
 	
-	dolog("int13","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i, Destination: ES:BX=%04X:%08X",
+	dolog("debugger","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i, Destination: ES:BX=%04X:%08X",
 					sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos,REG_ES,REG_EBX);
 	return (byte)sector; //Give the ammount of sectors read!
 }
@@ -340,7 +340,7 @@ byte writediskdata(uint_32 startpos)
 		++sector; //Process to the next sector!
 	}
 	
-	dolog("int13","Written %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos);
+	dolog("debugger","Written %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos);
 	return (byte)sector; //Ammount of sectors read!
 }
 
@@ -431,13 +431,13 @@ void int13_01()
 
 	if (last_status!=0x00)
 	{
-		dolog("int13","Last status: %02X",last_status);
+		dolog("debugger","Last status: %02X",last_status);
 		REG_AH = last_status;
 		CALLBACK_SCF(1);
 	}
 	else
 	{
-		dolog("int13","Last status: unknown");	
+		dolog("debugger","Last status: unknown");	
 		REG_AH = 0;
 		CALLBACK_SCF(0);
 	}
@@ -462,7 +462,7 @@ void int13_02()
 	word sector;
 	if (!REG_AL) //No sectors to read?
 	{
-		dolog("int13","Nothing to read specified!");
+		dolog("debugger","Nothing to read specified!");
 		last_status = 0x01;
 		CALLBACK_SCF(1);
 		return; //Abort!
@@ -470,7 +470,7 @@ void int13_02()
 
 	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
 	{
-		dolog("int13","Media not mounted:%02X!",REG_DL);
+		dolog("debugger","Media not mounted:%02X!",REG_DL);
 		last_status = 0x31; //No media in drive!
 		CALLBACK_SCF(1);
 		return;
@@ -1171,12 +1171,12 @@ void BIOS_int13() //Interrupt #13h (Low Level Disk Services)!
 	if (__HW_DISABLED) return; //Abort!
 	if (REG_AH<NUMITEMS(int13Functions)) //Within range of functions support?
 	{
-		dolog("int13","Function %02X called.",REG_AH); //Log our function call!
+		dolog("debugger","Function %02X called.",REG_AH); //Log our function call!
 		int13Functions[REG_AH](); //Execute call!
 	}
 	else
 	{
-		dolog("int13","Unknown call: %02X",REG_AH); //Unknown call!
+		dolog("debugger","Unknown call: %02X",REG_AH); //Unknown call!
 //Unknown int13 call?
 		last_status = 1; //Status: Invalid command!
 		REG_AH = 0;

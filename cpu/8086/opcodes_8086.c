@@ -7,7 +7,7 @@
 #include "headers/hardware/ports.h" //Ports compatibility!
 #include "headers/cpu/8086/cpu_OP8086.h" //Our own opcode presets!
 #include "headers/cpu/8087/fpu_OP8087.h" //Our own opcode presets!
-#include "headers/cpu/callback.h" //For OPFE!
+#include "headers/cpu/cb_manager.h" //For OPFE!
 #include "headers/cpu/flags.h" //Flag support!
 #include "headers/cpu/8086/8086_grpOPs.h" //GRP Opcode extensions!
 #include "headers/cpu/interrupts.h" //Basic interrupt support!
@@ -1226,7 +1226,7 @@ void CPU8086_internal_XCHG16(word *data1, word *data2)
 
 extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 
-void CPU8086_internal_LXS(word *segmentregister) //LDS, LES etc.
+void CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 {
 	CPUPROT1
 	word offset = modrm_read16(&params,2);
@@ -1235,9 +1235,9 @@ void CPU8086_internal_LXS(word *segmentregister) //LDS, LES etc.
 	word segment = modrm_read16(&params,2);
 	modrm_addoffset = 0; //Reset again!
 	CPUPROT1
-	modrm_write16(&params,1,offset,0); //Try to load the new register with the offset!
+		segmentWritten(segmentregister, segment,0); //Load the new segment!
 	CPUPROT1
-	*segmentregister = segment; //Load the new segment!
+		modrm_write16(&params, 1, offset, 0); //Try to load the new register with the offset!
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
@@ -1423,8 +1423,8 @@ void CPU8086_OPBF() {word theimm = CPU_readOPw(); modrm_generateInstructionTEXT(
 /*So far, OK! Second test OK (2013-10-21 11:19)*/ /* Done up to here! 20140505_1258 */
 void CPU8086_OPC2() {sword popbytes = imm16();/*RET imm16 (Near return to calling proc and POP imm16 bytes)*/ modrm_generateInstructionTEXT("RET",0,popbytes,PARAM_IMM8); /*RET imm16 (Near return to calling proc and POP imm16 bytes)*/ CPU8086_internal_RET(popbytes); }
 void CPU8086_OPC3() {modrm_generateInstructionTEXT("RET",0,0,PARAM_NONE);/*RET (Near return to calling proc)*/ /*RET (Near return to calling proc)*/ CPU8086_internal_RET(0); }
-void CPU8086_OPC4() /*LES modr/m*/ {modrm_readparams(&params,2,0); modrm_debugger16(&params,1,2); modrm_generateInstructionTEXT("LES",0,0,PARAM_MODRM12); CPU8086_internal_LXS(&REG_ES); /*Load new ES!*/ }
-void CPU8086_OPC5() /*LDS modr/m*/ {modrm_readparams(&params,2,0); modrm_debugger16(&params,1,2); modrm_generateInstructionTEXT("LDS",0,0,PARAM_MODRM12); CPU8086_internal_LXS(&REG_DS); /*Load new DS!*/ }
+void CPU8086_OPC4() /*LES modr/m*/ {modrm_readparams(&params,2,0); modrm_debugger16(&params,1,2); modrm_generateInstructionTEXT("LES",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_ES); /*Load new ES!*/ }
+void CPU8086_OPC5() /*LDS modr/m*/ {modrm_readparams(&params,2,0); modrm_debugger16(&params,1,2); modrm_generateInstructionTEXT("LDS",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_DS); /*Load new DS!*/ }
 void CPU8086_OPC6() {modrm_readparams(&params,1,0); byte val = CPU_readOP(); modrm_debugger8(&params,1,2); debugger_setcommand("MOVB %s,%02x",modrm_param2,val); modrm_write8(&params,2,val); }
 void CPU8086_OPC7() {modrm_readparams(&params,2,0); word val = CPU_readOPw(); modrm_debugger16(&params,1,2); debugger_setcommand("MOVW %s,%04x",modrm_param2,val); modrm_write16(&params,2,val,0); }
 void CPU8086_OPCA() {sword popbytes = imm16();/*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ modrm_generateInstructionTEXT("RETF",0,popbytes,PARAM_IMM16); /*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ CPU8086_internal_RETF(popbytes); }
@@ -1482,6 +1482,7 @@ DEBUG: REALLY SUPPOSED TO HANDLE OP80-83 HERE?
 void CPU8086_OP80() //GRP1 Eb,Ib
 {
 	modrm_readparams(&params,1,0);
+	MODRM_src0 = 2;
 	byte imm = CPU_readOP();
 	if (cpudebugger) //Debugger on?
 	{
@@ -1552,7 +1553,8 @@ void CPU8086_OP80() //GRP1 Eb,Ib
 
 void CPU8086_OP81() //GRP1 Ev,Iv
 {
-	modrm_readparams(&params,2,0);
+	MODRM_src0 = 2;
+	modrm_readparams(&params, 2, 0);
 	word imm = CPU_readOPw();
 	if (cpudebugger) //Debugger on?
 	{
@@ -1628,7 +1630,8 @@ void CPU8086_OP82() //GRP1 Eb,Ib (same as OP80)
 
 void CPU8086_OP83() //GRP1 Ev,Iv
 {
-	modrm_readparams(&params,2,0);
+	MODRM_src0 = 2;
+	modrm_readparams(&params, 2, 0);
 	word imm;
 	imm = CPU_readOP();
 	if (imm&0x80) imm |= 0xFF00; //Sign extend!
@@ -1701,7 +1704,8 @@ void CPU8086_OP83() //GRP1 Ev,Iv
 
 void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 {
-	modrm_readparams(&params,2,0);
+	MODRM_src0 = 2;
+	modrm_readparams(&params, 2, 0);
 	if (cpudebugger)
 	{
 		modrm_debugger16(&params,1,2);
@@ -1726,7 +1730,8 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 
 void CPU8086_OPD0() //GRP2 Eb,1
 {
-	modrm_readparams(&params,1,0);
+	MODRM_src0 = 2;
+	modrm_readparams(&params, 1, 0);
 	reg = MODRM_REG(params.modrm);
 	oper1b = modrm_read8(&params,2);
 	if (cpudebugger) //Debugger on?
@@ -1764,7 +1769,8 @@ void CPU8086_OPD0() //GRP2 Eb,1
 }
 void CPU8086_OPD1() //GRP2 Ev,1
 {
-	modrm_readparams(&params,2,0);
+	MODRM_src0 = 2;
+	modrm_readparams(&params, 2, 0);
 	reg = MODRM_REG(params.modrm);
 	oper1 = modrm_read16(&params,2);
 	if (cpudebugger) //Debugger on?
@@ -1802,7 +1808,8 @@ void CPU8086_OPD1() //GRP2 Ev,1
 }
 void CPU8086_OPD2() //GRP2 Eb,CL
 {
-	modrm_readparams(&params,1,0);
+	MODRM_src0 = 2;
+	modrm_readparams(&params, 1, 0);
 	reg = MODRM_REG(params.modrm);
 	oper1b = modrm_read8(&params,2);
 	if (cpudebugger) //Debugger on?
@@ -1840,7 +1847,8 @@ void CPU8086_OPD2() //GRP2 Eb,CL
 }
 void CPU8086_OPD3() //GRP2 Ev,CL
 {
-	modrm_readparams(&params,2,0);
+	MODRM_src0 = 2;
+	modrm_readparams(&params, 2, 0);
 	reg = MODRM_REG(params.modrm);
 	oper1 = modrm_read16(&params,2);
 	if (cpudebugger) //Debugger on?
@@ -1884,7 +1892,8 @@ extern byte immb; //For CPU_readOP result!
 extern word immw; //For CPU_readOPw result!
 void CPU8086_OPF6() //GRP3a Eb
 {
-	modrm_readparams(&params,1,0);
+	MODRM_src0 = 2;
+	modrm_readparams(&params, 1, 0);
 	reg = MODRM_REG(params.modrm);
 	oper1b = modrm_read8(&params,2);
 	if (MODRM_REG(params.modrm)<2) //TEST?
@@ -1930,7 +1939,8 @@ void CPU8086_OPF6() //GRP3a Eb
 }
 void CPU8086_OPF7() //GRP3b Ev
 {
-	modrm_readparams(&params,2,0);
+	MODRM_src0 = 2;
+	modrm_readparams(&params, 2, 0);
 	reg = MODRM_REG(params.modrm);
 	oper1 = modrm_read16(&params,2);
 	if (MODRM_REG(params.modrm)<2) //TEST has an operand?
@@ -1984,6 +1994,7 @@ DEBUG: REALLY SUPPOSED TO HANDLE HERE?
 
 void CPU8086_OPFE() //GRP4 Eb
 {
+	MODRM_src0 = 2;
 	byte tempcf;
 	modrm_readparams(&params,2,0);
 	word cb16;
@@ -2027,7 +2038,8 @@ void CPU8086_OPFE() //GRP4 Eb
 
 void CPU8086_OPFF() //GRP5 Ev
 {
-	modrm_readparams(&params,2,0);
+	MODRM_src0 = 2;
+	modrm_readparams(&params, 2, 0);
 	reg = MODRM_REG(params.modrm);
 	oper1 = modrm_read16(&params,2);
 	ea = modrm_offset16(&params,2);

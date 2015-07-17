@@ -456,6 +456,9 @@
     <ClCompile Include="..\..\interrupts\interrupt1a.c">
       <Filter>Source Files\interrupts</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\interrupts\interrupt15.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">
@@ -521,9 +524,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_precalcs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\headers\cpu\callback.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_attributecontroller.h">
@@ -815,6 +815,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\interrupts\interrupt1a.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\headers\interrupts\interrupt15.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\headers\cpu\cb_manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -28,10 +28,11 @@
 
 //Bootstrap stuff
 #include "headers/cpu/easyregs.h" //Easy register stuff!
-#include "headers/cpu/callback.h"
+#include "headers/cpu/cb_manager.h"
 #include "headers/interrupts/interrupt05.h"
 #include "headers/interrupts/interrupt11.h"
 #include "headers/interrupts/interrupt12.h"
+#include "headers/interrupts/interrupt15.h"
 #include "headers/interrupts/interrupt16.h"
 #include "headers/interrupts/interrupt19.h"
 #include "headers/interrupts/interrupt1a.h" //Timer and IRQ0!
@@ -127,12 +128,11 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	addCBHandler(CB_INTERRUPT, &BIOS_int11, 0x11); //Interrupt 11h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int12, 0x12); //Interrupt 12h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int13, 0x13); //Interrupt 13h overrideable handler!
+	addCBHandler(CB_INTERRUPT, &BIOS_int15, 0x15); //Interrupt 15h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int18, 0x18); //Interrupt 18h overridable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int1A, 0x1A); //Interrupt 1Ah overridable handler!
 	addCBHandler(CB_IRET,NULL,0x14); //Async communication services to IRET!
-	addCBHandler(CB_IRET,NULL,0x15); //System BIOS services to IRET!
 	addCBHandler(CB_IRET,NULL,0x17); //Printer to IRET!
-	//addCBHandler(CB_IRET,NULL,0x1A); //System and RTC services to IRET!
 	addCBHandler(CB_IRET,NULL,0x1B); //BIOS CTRL-BREAK!
 	addCBHandler(CB_IRET,NULL,0x1C); //System tick!
 	CPU_setint(0x19, MMU_rw(-1, 0xF000, 0xFFF3, 0), MMU_rw(-1, 0xF000, 0xFFF1, 0)); //Interrupt 19 (bootstrap)!
@@ -149,7 +149,6 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	copyint(0x00, 0x04); //Set int 4 to IRET!
 	copyint(0x00, 0x06); //Set int 6 to IRET!
 	copyint(0x00, 0x07); //Set int 7 to IRET!
-	//copyint(0x00, 0x08); //Set int 8 to IRET! IRQ0
 	copyint(0x00, 0x09); //Set int 9 to IRET!
 	copyint(0x00, 0x0A); //Set int 10 to IRET!
 	copyint(0x00, 0x0B); //Set int 11 to IRET!
@@ -157,10 +156,6 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	copyint(0x00, 0x0D); //Set int 13 to IRET!
 	copyint(0x00, 0x0E); //Set int 14 to IRET!
 
-
-
-	//int 15 isn't used!
-	//int 16 is BIOS Video!
 	//rest is unset or unused!
 
 	PIC_remap(0x08,0x70); //Remap the PIC for our usage!

@@ -2,7 +2,7 @@
 #include "headers/cpu/cpu.h" //CPU!
 #include "headers/bios/bios.h" //BIOS!
 #include "headers/cpu/easyregs.h" //Easy registers!
-#include "headers/cpu/callback.h" //Callback support!
+#include "headers/cpu/cb_manager.h" //Callback support!
 #include "headers/cpu/80286/protection.h" //Protection support!
 
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!

@@ -40,4 +40,9 @@ void clearCBHandlers(); //Reset callbacks!
 
 void CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 byte CB_ISCallback(); //Are we a called callback (for callbacked functions)?
+
+//Callback flag support!
+void CALLBACK_SZF(byte val);
+void CALLBACK_SCF(byte val);
+void CALLBACK_SIF(byte val);
 #endif

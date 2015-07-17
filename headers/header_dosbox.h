@@ -364,9 +364,4 @@ enum KBD_KEYS {
 #define BIOS_DEFAULT_IRQ1_LOCATION		(RealMake(0xf000,0xe987))
 #define BIOS_DEFAULT_IRQ2_LOCATION		(RealMake(0xf000,0xff55))
 
-//Callbacks!
-void CALLBACK_SZF(byte val);
-void CALLBACK_SCF(byte val);
-void CALLBACK_SIF(byte val);
-
 #endif

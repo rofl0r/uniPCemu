@@ -27,6 +27,9 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	FILE *f; //The file to use!
 	int dummy;
 
+	//Lock
+	SDL_SemWait(log_Lock); //Only one instance allowed!
+
 	//First: init variables!
 	bzero(filenametmp,sizeof(filenametmp)); //Init filename!
 	bzero(logtext,sizeof(logtext)); //Init logging text!
@@ -47,15 +50,9 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	if (safe_strlen(logtext,sizeof(logtext))) //Got length?
 	{
 		//Lock
-		SDL_SemWait(log_Lock); //Only one instance allowed!
 		time = getuspassed_k(&logticksholder); //Get the current time!
 		convertTime(time,&timestamp[0]); //Convert the time!
 		strcat(timestamp,": "); //Suffix!
-	}
-	else
-	{
-		//Lock
-		SDL_SemWait(log_Lock); //Only one instance allowed!
 	}
 
 	dummy = mkdir("logs"); //Create a logs directory if needed!

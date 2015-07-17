@@ -6,7 +6,7 @@
 #include "headers/cpu/8086/cpu_OP8086.h" //8086 comp.
 #include "headers/debugger/debugger.h" //Debugger support!
 #include "headers/emu/gpu/gpu.h" //Start&StopVideo!
-#include "headers/cpu/callback.h" //CB support!
+#include "headers/cpu/cb_manager.h" //CB support!
 #include "headers/cpu/80286/protection.h"
 #include "headers/support/zalloc.h" //For allocating registers etc.
 
