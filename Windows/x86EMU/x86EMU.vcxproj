@@ -237,6 +237,7 @@
     <ClInclude Include="..\..\headers\interrupts\interrupt16.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt18.h" />
     <ClInclude Include="..\..\headers\interrupts\interrupt19.h" />
+    <ClInclude Include="..\..\headers\interrupts\interrupt1a.h" />
     <ClInclude Include="..\..\headers\mmu\bda.h" />
     <ClInclude Include="..\..\headers\mmu\memory_adressing.h" />
     <ClInclude Include="..\..\headers\mmu\mmu.h" />
