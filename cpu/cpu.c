@@ -839,7 +839,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			{
 				gotREP &= CPU[activeCPU].registers->SFLAGS.ZF; //To reset the opcode (ZF needs to be set to loop)?
 			}
-			if (--CPU[activeCPU].registers->CX && gotREP) //Still looping and allowed?
+			if (CPU[activeCPU].registers->CX-- && gotREP) //Still looping and allowed? Decrease CX after checking for the final item!
 			{
 				CPU_resetOP(); //Run the current instruction again!
 			}
