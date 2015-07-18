@@ -225,24 +225,51 @@ void updateFloppyCCR() //Update the floppy CCR!
 {
 }
 
+void updateFloppyWriteProtected()
+{
+	FLOPPY.ST1.data = (FLOPPY.ST1.data&~2); //Default: not write protected!
+	if (drivereadonly(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Read-only drive?
+	{
+		FLOPPY.ST1.data |= 2; //Write protected!
+	}
+}
+
 void floppy_executeData() //Execute a floppy command. Data is fully filled!
 {
 	switch (FLOPPY.commandbuffer[0]) //What command!
 	{
 		case 0x5: //Write sector
+		case 0x9: //Write deleted sector
 			//Write sector to disk!
-			if (writedata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
+			if (writedata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Written the data to disk?
 			{
+				FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = 0x00; //ST0!
+				FLOPPY.resultbuffer[1] = FLOPPY.ST1.data = 0x00; //ST1!
+				FLOPPY.resultbuffer[2] = FLOPPY.ST2.data = 0x00; //ST2!
+				FLOPPY.resultbuffer[3] = FLOPPY.commandbuffer[2]; //Cylinder!
+				FLOPPY.resultbuffer[4] = FLOPPY.commandbuffer[3]; //Head!
+				FLOPPY.resultbuffer[5] = FLOPPY.commandbuffer[4]; //Sector!
+				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
 				FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 			}
 			else
 			{
-				FLOPPY.commandstep = 0xFF; //Move to error phase!
+				if (drivereadonly(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Read-only drive?
+				{
+					FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
+					FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //Drive write-protected! ST1!
+					FLOPPY.resultbuffer[2] = FLOPPY.ST2.data = 0x00; //ST2!
+					FLOPPY.resultbuffer[3] = FLOPPY.commandbuffer[2]; //Cylinder!
+					FLOPPY.resultbuffer[4] = FLOPPY.commandbuffer[3]; //Head!
+					FLOPPY.resultbuffer[5] = FLOPPY.commandbuffer[4]; //Sector!
+					FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
+					FLOPPY.commandstep = 3; //Move to result phase!
+				}
+				else //Plain/unknown error?
+				{
+					FLOPPY.commandstep = 0xFF; //Move to error phase!
+				}
 			}
-			break;
-		case 0x9: //Write deleted sector
-			//Write sector to disk!
-			FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 			break;
 		case 0xD: //Format sector
 			//'Format' the sector!
@@ -252,6 +279,14 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 		case 0x6: //Read sector
 		case 0xC: //Read deleted sector
 			//We've finished reading the read data!
+			updateFloppyWriteProtected(); //Update the floppy write protected flag!
+			FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = 0x00; //ST0!
+			FLOPPY.resultbuffer[1] = FLOPPY.ST1.data = 0x00; //ST1!
+			FLOPPY.resultbuffer[2] = FLOPPY.ST2.data = 0x00; //ST2!
+			FLOPPY.resultbuffer[3] = FLOPPY.commandbuffer[2]; //Cylinder!
+			FLOPPY.resultbuffer[4] = FLOPPY.commandbuffer[3]; //Head!
+			FLOPPY.resultbuffer[5] = FLOPPY.commandbuffer[4]; //Sector!
+			FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
 			FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 			break;
 		default: //Unknown command?
@@ -289,6 +324,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			}
 			else
 			{
+				FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3]&1)<<2); //Abnormal termination!
 				FLOPPY.commandstep = 0xFF; //Move to error phase!
 			}
 			break;
@@ -299,6 +335,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 
 			if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 			{
+				FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination!
 				FLOPPY.commandstep = 0xFF; //Move to error phase!
 				return;
 			}
@@ -545,7 +582,7 @@ byte floppy_readData()
 		7, //2
 		0, //3
 		1, //4
-		9, //5
+		7, //5
 		7, //6
 		0, //7
 		2, //8
@@ -626,6 +663,7 @@ byte floppy_readData()
 byte PORT_IN_floppy(word port, byte *result)
 {
 	if ((port&(~0xF)) != 0x3F0) return 0; //Not our ports!
+	updateFloppyWriteProtected(); //Update write protected status!
 	switch (port & 0xF) //What port?
 	{
 	case 0: //SRA?
@@ -655,6 +693,7 @@ byte PORT_IN_floppy(word port, byte *result)
 byte PORT_OUT_floppy(word port, byte value)
 {
 	if ((port&(~0xF)) != 0x3F0) return 0; //Not our ports!
+	updateFloppyWriteProtected(); //Update write protected status!
 	switch (port & 0xF) //What port?
 	{
 	case 2: //DOR?
