@@ -166,6 +166,8 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0x1234); //Make sure we boot the disk only, not do the BIOS again!
 }
 
+extern byte FullMemWritten; //Clear this to disable logging memory writes until full memory is written to!
+
 //Result: 0=Continue;1=Reset!
 int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 {
@@ -268,6 +270,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				allow_debuggerstep = 1; //Allow stepping from now on!
 				startTimers(0); //Make sure we're running fully!
 				startTimers(1); //Make sure we're running fully!
+				FullMemWritten = 0; //Don't log any memory writes until full memory has been written to!
 				return 0; //No reset, start the BIOS!
 			}
 		}

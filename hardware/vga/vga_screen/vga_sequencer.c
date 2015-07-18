@@ -522,20 +522,22 @@ void VGA_Sequencer()
 	}
 
 	SEQ_DATA *Sequencer;
-	word displaystate; //Current display state!
+	static word displaystate=0; //Current display state!
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
-
-	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Not doing anything?
-	{
-		unlockVGA();
-		return; //Abort: we're disabled!
-	}
 
 	//All possible states!
 	if (!displaysignalhandler[0]) //Nothing set?
 	{
 		initStateHandlers(); //Init our display states for usage!
 	}
+
+	displaysignalhandler[displaystate](Sequencer, VGA, displaystate); //Handle any change in display state first!
+
+	/*if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Not doing anything?
+	{
+		unlockVGA();
+		return; //Abort: we're disabled!
+	}*/
 
 	if (!lockGPU()) //Lock the GPU for our access!
 	{

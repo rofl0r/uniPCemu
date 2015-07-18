@@ -10,8 +10,8 @@ byte *BIOS_ROMS[0x100]; //All possible BIOS roms!
 uint_32 BIOS_ROM_size[0x100]; //All possible BIOS ROM sizes!
 
 byte *OPT_ROMS[40]; //Up to 40 option roms!
-uint_32 BIOS_OPTROM_size[40]; //All possible OPT ROM sizes!
-word BIOS_OPTROM_location[40]; //All possible OPT ROM locations!
+uint_32 OPTROM_size[40]; //All possible OPT ROM sizes!
+word OPTROM_location[40]; //All possible OPT ROM locations!
 
 extern BIOS_Settings_TYPE BIOS_Settings;
 
@@ -34,33 +34,33 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		fseek(f,0,SEEK_END); //Goto EOF!
 		if (ftell(f)) //Gotten size?
 		{
-			BIOS_ROM_size[i] = ftell(f); //Save the size!
+			OPTROM_size[i] = ftell(f); //Save the size!
 			fseek(f,0,SEEK_SET); //Goto BOF!
-			if ((location+BIOS_ROM_size[i])>0x20000) //Overflow?
+			if ((location+OPTROM_size[i])>0x20000) //Overflow?
 			{
 				BIOS_ROM_size[i] = 0; //Reset!
 				continue; //We're skipping this ROM: it's too big!
 			}
-			BIOS_ROMS[i] = (byte *)nzalloc(BIOS_ROM_size[i],filename,NULL); //Simple memory allocation for our ROM!
-			if (!BIOS_ROMS[i]) //Failed to allocate?
+			OPT_ROMS[i] = (byte *)nzalloc(OPTROM_size[i],filename,NULL); //Simple memory allocation for our ROM!
+			if (!OPT_ROMS[i]) //Failed to allocate?
 			{
 				fclose(f); //Close the file!
 				continue; //Failed to allocate!
 			}
-			if (fread(BIOS_ROMS[i],1,BIOS_ROM_size[i],f)!=BIOS_ROM_size[i]) //Not fully read?
+			if (fread(OPT_ROMS[i],1,OPTROM_size[i],f)!=OPTROM_size[i]) //Not fully read?
 			{
-				freez((void **)&BIOS_ROMS[i],BIOS_ROM_size[i],filename); //Failed to read!
+				freez((void **)&OPT_ROMS[i],OPTROM_size[i],filename); //Failed to read!
 				fclose(f); //Close the file!
 				continue; //Failed to read!
 			}
 			fclose(f); //Close the file!
 			
-			BIOS_OPTROM_location[i] = location; //The option ROM location we're loaded at!
+			OPTROM_location[i] = location; //The option ROM location we're loaded at!
 			
-			location += BIOS_ROM_size[i]; //Next ROM position!
-			if (BIOS_ROM_size[i]&0x7FF) //Not 2KB alligned?
+			location += OPTROM_size[i]; //Next ROM position!
+			if (OPTROM_size[i]&0x7FF) //Not 2KB alligned?
 			{
-				location += 0x800-(BIOS_ROM_size[i]&0x7FF); //2KB align!
+				location += 0x800-(OPTROM_size[i]&0x7FF); //2KB align!
 			}
 			continue; //Loaded!
 		}
@@ -80,7 +80,7 @@ void BIOS_freeOPTROMS()
 			char filename[100];
 			memset(&filename,0,sizeof(filename)); //Clear/init!
 			sprintf(filename,"ROM/OPTROM.%i",i); //Create the filename for the ROM!
-			freez((void **)&OPT_ROMS[i],BIOS_OPTROM_size[i],filename); //Release the OPT ROM!
+			freez((void **)&OPT_ROMS[i],OPTROM_size[i],filename); //Release the OPT ROM!
 		}
 	}
 }
@@ -241,9 +241,9 @@ byte OPTROM_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value)    /
 	{
 		if (OPT_ROMS[i]) //Enabled?
 		{
-			if (BIOS_OPTROM_location[i]<=reloffset && (BIOS_OPTROM_location[i]+BIOS_OPTROM_size[i])>=reloffset) //Found ROM?
+			if (OPTROM_location[i]<=reloffset && (OPTROM_location[i]+OPTROM_size[i])>reloffset) //Found ROM?
 			{
-				*value = OPT_ROMS[i][reloffset-BIOS_OPTROM_location[i]]; //Read the data!
+				*value = OPT_ROMS[i][reloffset-OPTROM_location[i]]; //Read the data!
 				return 1; //Done: we've been read!
 			}
 		}
@@ -266,7 +266,7 @@ byte OPTROM_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /
 	{
 		if (OPT_ROMS[i]) //Enabled?
 		{
-			if (BIOS_OPTROM_location[i]<=reloffset && (BIOS_OPTROM_location[i]+BIOS_OPTROM_size[i])>=reloffset) //Found ROM?
+			if (OPTROM_location[i]<=reloffset && (OPTROM_location[i]+OPTROM_size[i])>reloffset) //Found ROM?
 			{
 				return 1; //Handled: ignore writes to ROM!
 			}
