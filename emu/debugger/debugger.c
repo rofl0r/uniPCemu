@@ -12,6 +12,7 @@
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/emu/emucore.h" //for pause/resumeEMU support!
 #include "headers/fopen64.h" //64-bit fopen support!
+#include "headers/support/locks.h" //Locking support!
 
 //Log flags only?
 //#define LOGFLAGSONLY
@@ -49,11 +50,12 @@ typedef struct PACKED
 
 byte readverification(uint_32 index, VERIFICATIONDATA *entry)
 {
+	const word size = sizeof(*entry);
 	FILE *f;
-	f = fopen64("debuggerverify16.dat", "r"); //Open verify data!
-	if (fseek64(f, index*sizeof(*entry), SEEK_SET) == 0) //OK?
+	f = fopen64("debuggerverify16.dat", "rb"); //Open verify data!
+	if (fseek64(f, index*size, SEEK_SET) == 0) //OK?
 	{
-		if (fread64(entry, 1, sizeof(*entry), f) == sizeof(*entry)) //OK?
+		if (fread64(entry, 1, size, f) == size) //OK?
 		{
 			fclose64(f); //Close the file!
 			return 1; //Read!
@@ -67,6 +69,7 @@ extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
+	lock("debugger_beforeCPU"); //We're busy on our task!
 	static VERIFICATIONDATA verify, originalverify;
 	memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
 	//Initialise debugger texts!
@@ -128,8 +131,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 			originalverify.DX = debuggerregisters.DX;
 			originalverify.IP = debuggerregisters.IP;
 			originalverify.FLAGS = debuggerregisters.FLAGS;
-			FILE *f;
-			if (readverification(debugger_index++,&verify)) //Read the verification entry!
+			if (readverification(debugger_index,&verify)) //Read the verification entry!
 			{
 				if (EMULATED_CPU < CPU_80286) //Special case for 80(1)86 from fake86!
 				{
@@ -137,7 +139,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 				}
 				if (memcmp(&verify, &originalverify, sizeof(verify)) != 0) //Not equal?
 				{
-					dolog("debugger", "Invalid data according to debuggerverify.dat before executing the following instruction:");
+					dolog("debugger", "Invalid data according to debuggerverify.dat before executing the following instruction(Entry number %08X):",debugger_index); //Show where we got our error!
 					debugger_logregisters(&debuggerregisters); //Log the original registers!
 					//Apply the debugger registers to the actual register set!
 					CPU[activeCPU].registers->CS = verify.CS;
@@ -157,12 +159,14 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 					dolog("debugger", "Expected:");
 					debugger_logregisters(CPU[activeCPU].registers); //Log the correct registers!
 					//Refresh our debugger registers!
-					memcpy(CPU[activeCPU].registers,&debuggerregisters, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
+					memcpy(&debuggerregisters,CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
 					forcerepeat = 1; //Force repeat log!
 				}
 			}
+			++debugger_index; //Apply next index!
 		}
 	}
+	unlock("debugger_beforeCPU"); //We're finished!
 }
 
 char flags[256]; //Flags as a text!
