@@ -51,6 +51,7 @@ byte op_grp2_8(byte cnt) {
 	//if (cnt>0x8) return(oper1b); //80186+ limits shift count
 	s = oper1b;
 	oldCF = FLAG_CF;
+	if (EMULATED_CPU >= CPU_80186) cnt &= 0x1F; //Clear the upper 3 bits to become a 80186+!
 	switch (reg) {
 		case 0: //ROL r/m8
 		for (shift=1; shift<=cnt; shift++) {
@@ -121,6 +122,7 @@ word op_grp2_16(byte cnt) {
 	//uint32_t d,
 	uint_32 s, shift, oldCF, msb;
 	//if (cnt>0x10) return(oper1); //80186+ limits shift count
+	if (EMULATED_CPU >= CPU_80186) cnt &= 0x1F; //Clear the upper 3 bits to become a 80186+!
 	s = oper1;
 	oldCF = FLAG_CF;
 	switch (reg) {

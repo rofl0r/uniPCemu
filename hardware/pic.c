@@ -15,7 +15,6 @@
 PIC i8259;
 
 byte defaultIROrder[16] = { 0,1,2,8,9,10,11,12,13,14,15,3,4,5,6,7 }; //The order of IRQs!
-extern uint_32 makeupticks;
 
 void init8259()
 {
@@ -59,11 +58,6 @@ void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
 		if ((i8259.isr[PIC] >> i) & 1)
 		{
 			i8259.isr[PIC] ^= (1 << i);
-			if ((i==0) && (makeupticks>0))
-			{
-				makeupticks = 0;
-				i8259.irr[PIC] |= 1;
-			}
 			return;
 		}
 
@@ -149,7 +143,7 @@ byte IRRequested(byte PIC, byte IR) //We have this requested?
 	{
 		return 0; //Disable interrupt!	
 	}
-	byte tmpirr = i8259.irr[0] & (~i8259.imr[0]); //XOR request register with inverted mask register
+	byte tmpirr = i8259.irr[PIC] & (~i8259.imr[PIC]); //XOR request register with inverted mask register
 	return ((tmpirr >> IR) & 1); //Interrupt requested?
 }
 

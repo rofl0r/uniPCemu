@@ -293,6 +293,8 @@ extern byte last_modrm; //Is the last opcode a modr/m read?
 extern byte OPbuffer[256];
 extern byte OPlength; //The length of the OPbuffer!
 
+byte startreached = 0;
+
 byte debugger_logging()
 {
 	byte enablelog; //Default: disabled!
@@ -305,9 +307,9 @@ byte debugger_logging()
 		enablelog = debugging(); //Enable log when debugging!
 		break;
 	default:
-		enablelog = 0; //Not logging!
 		break;
 	}
+	enablelog |= startreached; //Start logging from this point!
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
 	return enablelog; //Logging?
 }

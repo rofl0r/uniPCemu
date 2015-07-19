@@ -698,12 +698,31 @@ void CPU_beforeexec()
 }
 
 byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
+byte gotREP = 0; //Default: no REP-prefix used!
+byte REPPending = 0; //Pending REP reset?
+
+void CPU_8086REPPending() //Execute this before CPU_exec!
+{
+	if (REPPending) //Pending REP?
+	{
+		REPPending = 0; //Disable pending REP!
+		CPU_resetOP(); //Rerun the last instruction!
+	}
+}
+
+byte CPU_segmentOverridden(byte activeCPU)
+{
+	return (CPU[activeCPU].segment_register != CPU_SEGMENT_DEFAULT); //Is the segment register overridden?
+}
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
 	debugger_beforeCPU(); //Everything that needs to be deone before the CPU executes!
 	MMU_resetaddr(); //Reset invalid address for our usage!
+
+	CPU_8086REPPending(); //Process pending REP!
+
 	CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
 	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
@@ -717,7 +736,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	debugger_setprefix(""); //Reset prefix for the debugger!
 	if (EMULATED_CPU>=0 && EMULATED_CPU<NUMITEMS(opcode_jmptbl)) //Emulating valid?
 	{
-		byte gotREP = 0; //Default: no REP-prefix used!
+		gotREP = 0; //Default: no REP-prefix used!
 		byte REPZ = 0; //Default to REP!
 		if (CPU_getprefix(0xF2)) //REPNE Opcode set?
 		{
@@ -841,7 +860,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			}
 			if (CPU[activeCPU].registers->CX-- && gotREP) //Still looping and allowed? Decrease CX after checking for the final item!
 			{
-				CPU_resetOP(); //Run the current instruction again!
+				REPPending = 1; //Run the current instruction again!
 			}
 		}
 	}

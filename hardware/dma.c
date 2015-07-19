@@ -49,15 +49,7 @@ typedef struct
 {
 	//Public registers
 	DMAChannelTYPE DMAChannel[4]; //4 DMA Channels per Controller!
-	union
-	{
-		struct
-		{
-			byte TransferComplete : 4; //Transfer complete for 4 channels (high to low, bit 0=TC0.) Set on TC or external EOP. Cleared on read by the CPU.
-			byte RequestPending : 4; //Request pending for 4 channels (high to low, bit 0=REQ0.) Set when requesting service.
-		};
-		byte StatusRegister; //Status register for a DMA controller!
-	}; //A Status register!
+	byte StatusRegister; //Status register for a DMA controller!
 	byte DREQ; //DREQ for 4 channels!
 	byte DACK; //DACK for 4 channels!
 	byte EOP; //EOP for 4 channels!
@@ -100,7 +92,8 @@ void DMA_SetDREQ(byte channel, byte DREQ) //Set DREQ from hardware!
 void DMA_SetEOP(byte channel, byte EOP) //Set EOP from hardware!
 {
 	if (__HW_DISABLED) return; //Abort!
-	DMAController[channel>>2].EOP |= (EOP<<channel); //Set EOP!
+	DMAController[channel>>2].EOP &= ~(1 << (channel&3)); //Disable old EOP!
+	DMAController[channel>>2].EOP |= (EOP<<channel); //Enable new EOP!
 }
 
 //Easy sets of high and low nibbles (word data)!
@@ -328,7 +321,6 @@ void DMA_tick()
 	static byte controller; //Current controller!
 	byte transferred = 0; //Transferred data this time?
 	byte startcurrent = current; //Current backup for checking for finished!
-	SDL_SemWait(DMA_Lock);
 	//nextcycle: //Next cycle to process!
 		controller = ((current&4)>>2); //Init controller
 		byte channel = (current&3); //Channel to use! Channels 0 are unused (DRAM memory refresh (controller 0) and cascade DMA controller (controller 1))
@@ -361,16 +353,18 @@ void DMA_tick()
 			byte processchannel = 0; //To process the channel?
 			switch (moderegister.Mode) //What mode?
 			{
-				case 0:
-				case 1: //TC(&EOP at 1) determines running time!
-						processchannel = !(DMAController[controller].TransferComplete&(1<<channel)); //TC determines processing!
-						processchannel &= (DMAController[controller].DACK&(1<<channel)>>channel); //Process acnowledge!
-						break;
-				case 2: //TC(also caused by EOP) and DREQ masked determines running time!
-						//DACK isn't used in this case!
-						processchannel = !(DMAController[controller].TransferComplete&(1<<channel)); //TC determines processing!
-						processchannel &= (DMAController[controller].DREQ&((~DMAController[controller].MultiChannelMaskRegister)&(1<<channel))); //We're affected directly by the DREQ!
-						break;
+				case 0: //Demand mode?
+					//DREQ determines the transfer!
+					processchannel = DMAController[controller].DREQ&(1 << channel); //Demand sets if we're to run!
+					break;
+				case 1: //Single: DACK determines running time!
+					processchannel &= (DMAController[controller].DACK&(1<<channel)); //Process acnowledge!
+					break;
+				case 2: //Block: TC(also caused by EOP) and DREQ masked determines running time!
+					//DACK isn't used in this case!
+					processchannel = (~DMAController[controller].StatusRegister&(1<<channel)); //TC determines processing!
+					processchannel = (DMAController[controller].DREQ&((~DMAController[controller].MultiChannelMaskRegister)&(1<<channel))); //We're affected directly by the DREQ!
+					break;
 			}
 			
 			if (DMAController[controller].RequestRegister&(1<<channel)) //Requested?
@@ -461,57 +455,60 @@ void DMA_tick()
 				}
 				//Process all flags that has occurred!
 				
-				if (DMAController[controller].EOP&(1<<channel) || processed&FLAG_TC) //EOP or TC resets request register bit?
+				if ((DMAController[controller].EOP&(1<<channel)) || (processed&FLAG_TC)) //EOP or TC resets request register bit?
 				{
 					DMAController[controller].RequestRegister &= ~(1<<channel); //Clear the request register!
 				}
 				
 				switch (moderegister.Mode) //What mode are we processing in?
 				{
-					case 0: //Single Transfer Mode
-						if (processed&FLAG_TC) //AutoInit&complete on TC!
+				case 0: //Demand Transfer Mode
+					if (DMAController[controller].EOP&(1 << channel)) //Finished by external EOP only?
+					{
+						DMAController[controller].StatusRegister |= (1 << channel); //Transfer complete!
+						if (moderegister.Auto && (DMAController[controller].EOP&(1 << channel))) //AutoInit/mask on EOP!
 						{
-							DMAController[controller].TransferComplete |= (1<<channel); //Transfer complete!
+							DMA_autoinit(controller, channel); //Perform autoinit!
+						}
+						else //Block mask!
+						{
+							DMAController[controller].MultiChannelMaskRegister |= (1 << channel); //Set mask!
+						}
+					}
+					break;
+				case 1: //Single Transfer Mode
+					if (processed&FLAG_TC) //AutoInit&complete on TC!
+					{
+						DMAController[controller].StatusRegister |= (1<<channel); //Transfer complete!
+						DMAController[controller].DACK &= ~(1 << channel); //Clear DACK!
+						if (moderegister.Auto)
+						{
+							DMA_autoinit(controller,channel); //Perform utoInit!
+						}
+						else //Allow block mask?
+						{
+							DMAController[controller].MultiChannelMaskRegister |= (1<<channel); //Set mask!
+						}
+					}
+					break;
+				case 2: //Block Transfer Mode
+					if ((processed&FLAG_TC) || (DMAController[controller].EOP&(1<<channel))) //Complete on Terminal count or EOP?
+					{
+						DMAController[controller].StatusRegister |= (1<<channel); //Transfer complete!
+						DMAController[controller].DACK &= ~(1 << channel); //Clear DACK!
+						if (processed&FLAG_TC) //Autoinit/mask on TC!
+						{
 							if (moderegister.Auto)
 							{
-								DMA_autoinit(controller,channel); //Perform utoInit!
+								DMA_autoinit(controller,channel); //Perform autoinit!
 							}
 							else //Allow block mask?
 							{
 								DMAController[controller].MultiChannelMaskRegister |= (1<<channel); //Set mask!
 							}
 						}
-						break;
-					case 1: //Block Transfer Mode
-						if (processed&FLAG_TC || (DMAController[controller].EOP&(1<<channel))) //Complete?
-						{
-							DMAController[controller].TransferComplete |= (1<<channel); //Transfer complete!
-							if (processed&FLAG_TC) //Autoinit/mask on TC!
-							{
-								if (moderegister.Auto)
-								{
-									DMA_autoinit(controller,channel); //Perform autoinit!
-								}
-								else //Allow block mask?
-								{
-									DMAController[controller].MultiChannelMaskRegister |= (1<<channel); //Set mask!
-								}
-							}
-						}
-					case 2: //Demand Transfer Mode
-						if (processed&FLAG_TC || (DMAController[controller].EOP&(1<<channel))) //Finished by TC or external EOP?
-						{
-							DMAController[controller].TransferComplete |= (1<<channel); //Transfer complete!
-							if (moderegister.Auto && (DMAController[controller].EOP&(1<<channel))) //AutoInit/mask on EOP!
-							{
-								DMA_autoinit(controller,channel); //Perform autoinit!
-							}
-							else //Block mask!
-							{
-								DMAController[controller].MultiChannelMaskRegister |= (1<<channel); //Set mask!
-							}
-						}
-						break;
+					}
+					break;
 				}
 			}
 		}
@@ -522,16 +519,25 @@ void DMA_tick()
 		}
 		if (transferred)
 		{
-			SDL_SemPost(DMA_Lock);
 			return; //Transferred data? We're done!
 		}
 		if (startcurrent == current)
 		{
-			SDL_SemPost(DMA_Lock);
 			return; //Back to our original cycle? We don't have anything to transfer!
 		}
 		//goto nextcycle; //Next cycle!!
-		SDL_SemPost(DMA_Lock);
+}
+
+void DMA_blocktick()
+{
+	int i;
+	SDL_SemWait(DMA_Lock);
+	for (i = 0; i < 100;) //Process 100 ticks!
+	{
+		DMA_tick(); //Tick a DMA cycle!
+		++i; //Next item!
+	}
+	SDL_SemPost(DMA_Lock);
 }
 
 void initDMA()
@@ -549,7 +555,7 @@ void initDMA()
 	if (!__HW_DISABLED) //Enabled?
 	{
 		//We're up to 1.6MB/s, so for 1 channel 1.6 million bytes per second, for all channels, to 8 channel 204953.6 bytes per second!
-		addtimer(1639628.8f,&DMA_tick,"DMA tick",100,0,NULL); //Just use timers!
+		addtimer(1639628.8f/100.0f,&DMA_blocktick,"DMA tick",100,0,NULL); //Just use timers!
 	}
 }
 

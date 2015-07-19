@@ -361,6 +361,10 @@ extern byte interruptsaved; //Primary interrupt saved?
 
 byte HWINT_nr = 0, HWINT_saved = 0; //HW interrupt saved?
 
+extern byte REPPending; //REP pending reset?
+
+extern byte startreached; //Debugger start logging here?
+
 byte coreHandler()
 {
 	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
@@ -368,6 +372,8 @@ byte coreHandler()
 		MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
 		return 0; //Stop!
 	}
+
+	startreached |= ((CPU[activeCPU].registers->CS==0x0000) && (CPU[activeCPU].registers->EIP==0x7C00)); //Start logging when we're at the boot sector!
 
 	//CPU execution, needs to be before the debugger!
 	interruptsaved = 0; //Reset PIC interrupt to not used!
@@ -404,9 +410,18 @@ byte coreHandler()
 				{
 					HWINT_nr = nextintr(); //Get the HW interrupt nr!
 					HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
+					if (!((EMULATED_CPU == CPU_8086) && (CPU_segmentOverridden(activeCPU)) && REPPending)) //Not 8086, REP pending and segment override?
+					{
+						CPU_8086REPPending(); //Process pending REPs!
+					}
+					else
+					{
+						REPPending = 0; //Clear the REP pending flag: this makes the bug in the 8086 not repeat anymore during interrupts in this case!
+					}
 					call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 				}
 			}
+			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
 			CPU_exec(); //Run CPU!
 		}
 		else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
