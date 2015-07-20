@@ -357,6 +357,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
 	FLOPPY.databufferposition = 0; //Default: start of the data buffer!
 	if (FLOPPY.DOR.DriveNumber & 2) goto invaliddrive;
+	dolog("floppy", "executing command: %02X", FLOPPY.commandbuffer[0]); //Executing this command!
 	switch (FLOPPY.commandbuffer[0]&0xF) //What command!
 	{
 	case 0x2: //Read complete track
@@ -415,6 +416,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.databuffersize = FLOPPY.commandbuffer[8]; //Use data length!
 		}
 		FLOPPY.disk_startpos = floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4]); //The start position, in sectors!
+		dolog("floppy", "Read sector #%i", FLOPPY.disk_startpos); //We're reading this sector!
 		FLOPPY.disk_startpos *= FLOPPY.databuffersize;
 
 		if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
