@@ -6,7 +6,7 @@
 #define __LOGBUFFER 1024
 #else
 //Log buffer size in bytes. The system we're running on will flush it every X bytes to disk. We use a 1MB buffer on Windows!
-#define __LOGBUFFER 1024000
+//#define __LOGBUFFER 1024000
 #endif
 
 TicksHolder logticksholder; //Log ticks holder!
@@ -80,10 +80,12 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 			logfile = fopen(filenametmp, "w"); //Reopen for writing new!
 		}
 		strcpy(lastfile, filenametmp); //Set the last file we've opened!
+#ifdef __LOGBUFFER
 		if (logfile) //We're opened?
 		{
 			setvbuf(logfile, NULL, _IOFBF, __LOGBUFFER); //Use this buffer!
 		}
+#endif
 	}
 
 	//Now log!

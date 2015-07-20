@@ -355,7 +355,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 		if (readdata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
 		{
 			FLOPPY.commandstep = 2; //Move to data phrase!
-			DMA_SetEOP(FLOPPY_DMA, 0); //No EOP: data transfer when at step 2!
 		}
 		else
 		{
@@ -377,7 +376,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 
 		//FLOPPY.databuffersize *= (FLOPPY.commandbuffer[6] - FLOPPY.commandbuffer[4]) + 1; //The ammount of sectors to buffer!
 
-		DMA_SetEOP(FLOPPY_DMA, 0); //No EOP: data transfer when at step 2!
 		FLOPPY.commandstep = 2; //Move to data phrase!
 		break;
 	case 0x6: //Read sector
@@ -396,7 +394,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 		if (readdata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
 		{
 			FLOPPY.commandstep = 2; //Move to data phrase!
-			DMA_SetEOP(FLOPPY_DMA, 0); //No EOP: data transfer when at step 2!
 		}
 		else
 		{
@@ -503,7 +500,6 @@ void floppy_writeData(byte value)
 	switch (FLOPPY.commandstep) //What step are we at?
 	{
 		case 0: //Command
-			DMA_SetEOP(FLOPPY_DMA, 1); //EOP: repeat data transfer when past step 2!
 			FLOPPY.commandstep = 1; //Start inserting parameters!
 			FLOPPY.commandposition = 1; //Start at position 1 with out parameters/data!
 			switch (value&0xF) //What command?
@@ -687,7 +683,6 @@ byte floppy_readData()
 			}
 			break;
 		case 3: //Result
-			DMA_SetEOP(FLOPPY_DMA, 1); //EOP: repeat data transfer when past step 2!
 			temp = FLOPPY.resultbuffer[FLOPPY.resultposition++]; //Read a result byte!
 			switch (FLOPPY.commandbuffer[0]&0xF) //What command?
 			{
@@ -717,7 +712,6 @@ byte floppy_readData()
 			break;
 		giveerror:
 		case 0xFF: //Error
-			DMA_SetEOP(FLOPPY_DMA, 1); //EOP: repeat data transfer when past step 2!
 			FLOPPY.resultposition = 0;
 			FLOPPY.commandstep = 0; //Reset step!
 			return FLOPPY.ST0.data; //Give ST0, containing an error!
@@ -802,9 +796,19 @@ byte DMA_floppyread()
 	return floppy_readData(); //Read data!
 }
 
-void FLOPPY_DMAtick() //For checking any new DREQ/EOP signals!
+void FLOPPY_DMADREQ() //For checking any new DREQ signals!
 {
-	DMA_SetDREQ(FLOPPY_DMA,(FLOPPY.commandstep==2) && (/*!FLOPPY.MSR.NonDMA &&*/ FLOPPY.DOR.Mode)); //Set DREQ from hardware when in the data phase and using DMA transfers!
+	DMA_SetDREQ(FLOPPY_DMA,(FLOPPY.commandstep==2) && FLOPPY.DOR.Mode); //Set DREQ from hardware when in the data phase and using DMA transfers and not busy yet(pending)!
+}
+
+void FLOPPY_DMADACK() //For processing DACK signal!
+{
+	FLOPPY.MSR.FDCBusy = 1; //We're busy!
+}
+
+void FLOPPY_DMATC() //Terminal count triggered?
+{
+	FLOPPY.MSR.FDCBusy = 0; //We're not busy anymore!
 }
 
 void initFDC()
@@ -812,9 +816,8 @@ void initFDC()
 	memset(&FLOPPY, 0, sizeof(FLOPPY)); //Initialise floppy!
 	//Initialise DMA controller settings for the FDC!
 	DMA_SetDREQ(FLOPPY_DMA,0); //No DREQ!
-	DMA_SetEOP(FLOPPY_DMA,0); //No EOP!
 	registerDMA8(FLOPPY_DMA, &DMA_floppyread, &DMA_floppywrite); //Register our DMA channels!
-	registerDMATick(FLOPPY_DMA, &FLOPPY_DMAtick);
+	registerDMATick(FLOPPY_DMA, &FLOPPY_DMADREQ, &FLOPPY_DMADACK, &FLOPPY_DMATC); //Our handlers for DREQ, DACK and TC!
 
 	//Set basic I/O ports
 	register_PORTIN(&PORT_IN_floppy);

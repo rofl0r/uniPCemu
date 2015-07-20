@@ -42,7 +42,9 @@ typedef struct
 	DMAReadBHandler ReadBHandler; //Read handler 8-bit
 	DMAWriteWHandler WriteWHandler; //Write handler 16-bit!
 	DMAReadWHandler ReadWHandler; //Read handler 16-bit!
-	DMATickHandler TickHandler; //Tick handler for DMA ticks!
+	DMATickHandler DREQHandler; //Tick handler for DMA DREQ!
+	DMATickHandler DACKHandler; //DACK handler for DMA channel!
+	DMATickHandler TCHandler; //TC handler for DMA channel!
 } DMAChannelTYPE; //Contains all info about an DMA channel!
 
 typedef struct
@@ -52,7 +54,6 @@ typedef struct
 	byte StatusRegister; //Status register for a DMA controller!
 	byte DREQ; //DREQ for 4 channels!
 	byte DACK; //DACK for 4 channels!
-	byte EOP; //EOP for 4 channels!
 	byte CommandRegister; //Command Register
 	byte MultiChannelMaskRegister; //MultiChennel Mask Register, bit0-3=channel 0-3; 0=unmask (enabled), 1=mask (disabled)
 	byte RequestRegister; //Request Register for 4 channels!	
@@ -87,13 +88,6 @@ void DMA_SetDREQ(byte channel, byte DREQ) //Set DREQ from hardware!
 	if (__HW_DISABLED) return; //Abort!
 	DMAController[channel>>2].DREQ &= ~(1<<(channel&3)); //Disable old DREQ!
 	DMAController[channel>>2].DREQ |= (DREQ<<channel); //Enable new DREQ!
-}
-
-void DMA_SetEOP(byte channel, byte EOP) //Set EOP from hardware!
-{
-	if (__HW_DISABLED) return; //Abort!
-	DMAController[channel>>2].EOP &= ~(1 << (channel&3)); //Disable old EOP!
-	DMAController[channel>>2].EOP |= (EOP<<channel); //Enable new EOP!
 }
 
 //Easy sets of high and low nibbles (word data)!
@@ -330,19 +324,22 @@ void DMA_tick()
 			moderegister.data = DMAController[controller].DMAChannel[channel].ModeRegister.data; //Read the mode register to use!
 			if (moderegister.Mode==3) goto nextchannel; //Skip channel: invalid! We don't process a cascade mode channel!
 
-			if (DMAController[controller].DMAChannel[channel].TickHandler) //Gotten a tick handler?
+			if (DMAController[controller].DMAChannel[channel].DREQHandler) //Gotten a tick handler?
 			{
-				DMAController[controller].DMAChannel[channel].TickHandler(); //Execute the tick handler!
+				DMAController[controller].DMAChannel[channel].DREQHandler(); //Execute the tick handler!
 			}
 
 			if (DMAController[controller].DREQ&((~DMAController[controller].MultiChannelMaskRegister)&(1<<channel))) //Requested and not masking?
 			{
+				if (DMAController[controller].DMAChannel[channel].DACKHandler) //Gotten a DACK handler?
+				{
+					DMAController[controller].DMAChannel[channel].DACKHandler(); //Send a DACK to the hardware!
+				}
 				switch (moderegister.Mode)
 				{
 					case 0: //Single transfer!
 					case 1: //Block transfer!
 						DMAController[controller].DACK |= (1<<channel); //Acnowledged!
-						DMAController[controller].DREQ &= ~(1<<channel); //Clear DREQ!
 						break;
 					case 2: //Demand transfer?
 						//Nothing happens: DREQ affects transfers directly!
@@ -358,12 +355,9 @@ void DMA_tick()
 					processchannel = DMAController[controller].DREQ&(1 << channel); //Demand sets if we're to run!
 					break;
 				case 1: //Single: DACK determines running time!
-					processchannel &= (DMAController[controller].DACK&(1<<channel)); //Process acnowledge!
-					break;
-				case 2: //Block: TC(also caused by EOP) and DREQ masked determines running time!
+				case 2: //Block: TC and DREQ masked determines running time!
 					//DACK isn't used in this case!
-					processchannel = (~DMAController[controller].StatusRegister&(1<<channel)); //TC determines processing!
-					processchannel = (DMAController[controller].DREQ&((~DMAController[controller].MultiChannelMaskRegister)&(1<<channel))); //We're affected directly by the DREQ!
+					processchannel = (DMAController[controller].DACK&((~DMAController[controller].MultiChannelMaskRegister)&(1<<channel))); //We're affected directly by the DACK!
 					break;
 			}
 			
@@ -379,7 +373,6 @@ void DMA_tick()
 				/*
 				processed bits:
 				bit 0: TC (Terminal Count) occurred.
-				bit 1: External EOP encountered.
 				*/
 				
 				//Calculate the address...
@@ -455,57 +448,41 @@ void DMA_tick()
 				}
 				//Process all flags that has occurred!
 				
-				if ((DMAController[controller].EOP&(1<<channel)) || (processed&FLAG_TC)) //EOP or TC resets request register bit?
+				if (processed&FLAG_TC) //TC resets request register bit?
 				{
 					DMAController[controller].RequestRegister &= ~(1<<channel); //Clear the request register!
 				}
-				
+
+				if (processed&FLAG_TC) //Complete on Terminal count?
+				{
+					if (DMAController[controller].DMAChannel[channel].TCHandler) //Gotten a TC handler?
+					{
+						DMAController[controller].DMAChannel[channel].TCHandler(); //Send hardware TC!
+					}
+					DMAController[controller].StatusRegister |= (1 << channel); //Transfer complete!
+				}
+
 				switch (moderegister.Mode) //What mode are we processing in?
 				{
 				case 0: //Demand Transfer Mode
-					if (DMAController[controller].EOP&(1 << channel)) //Finished by external EOP only?
+					if (processed&FLAG_TC) //TC?
 					{
-						DMAController[controller].StatusRegister |= (1 << channel); //Transfer complete!
-						if (moderegister.Auto && (DMAController[controller].EOP&(1 << channel))) //AutoInit/mask on EOP!
-						{
-							DMA_autoinit(controller, channel); //Perform autoinit!
-						}
-						else //Block mask!
-						{
-							DMAController[controller].MultiChannelMaskRegister |= (1 << channel); //Set mask!
-						}
+						DMAController[controller].DACK &= ~(1 << channel); //Finished!
 					}
 					break;
 				case 1: //Single Transfer Mode
-					if (processed&FLAG_TC) //AutoInit&complete on TC!
+					if (processed&FLAG_TC) //TC?
 					{
-						DMAController[controller].StatusRegister |= (1<<channel); //Transfer complete!
-						DMAController[controller].DACK &= ~(1 << channel); //Clear DACK!
-						if (moderegister.Auto)
-						{
-							DMA_autoinit(controller,channel); //Perform utoInit!
-						}
-						else //Allow block mask?
-						{
-							DMAController[controller].MultiChannelMaskRegister |= (1<<channel); //Set mask!
-						}
+						DMAController[controller].DACK &= ~(1 << channel); //Finished!
 					}
 					break;
 				case 2: //Block Transfer Mode
-					if ((processed&FLAG_TC) || (DMAController[controller].EOP&(1<<channel))) //Complete on Terminal count or EOP?
+					if (processed&FLAG_TC) //Complete on Terminal count?
 					{
-						DMAController[controller].StatusRegister |= (1<<channel); //Transfer complete!
-						DMAController[controller].DACK &= ~(1 << channel); //Clear DACK!
-						if (processed&FLAG_TC) //Autoinit/mask on TC!
+						DMAController[controller].DACK &= ~(1 << channel); //Finished!
+						if (moderegister.Auto)
 						{
-							if (moderegister.Auto)
-							{
-								DMA_autoinit(controller,channel); //Perform autoinit!
-							}
-							else //Allow block mask?
-							{
-								DMAController[controller].MultiChannelMaskRegister |= (1<<channel); //Set mask!
-							}
+							DMA_autoinit(controller,channel); //Perform autoinit!
 						}
 					}
 					break;
@@ -577,7 +554,9 @@ void registerDMA16(byte channel, DMAReadWHandler readhandler, DMAWriteWHandler w
 	DMAController[channel >> 2].DMAChannel[channel & 3].WriteWHandler = writehandler; //Assign the read handler!
 }
 
-void registerDMATick(byte channel, DMATickHandler tickhandler)
+void registerDMATick(byte channel, DMATickHandler DREQHandler, DMATickHandler DACKHandler, DMATickHandler TCHandler)
 {
-	DMAController[channel >> 2].DMAChannel[channel & 3].TickHandler = tickhandler; //Assign the tick handler!
+	DMAController[channel >> 2].DMAChannel[channel & 3].DREQHandler = DREQHandler; //Assign the tick handler!
+	DMAController[channel >> 2].DMAChannel[channel & 3].DACKHandler = DACKHandler; //Assign the tick handler!
+	DMAController[channel >> 2].DMAChannel[channel & 3].TCHandler = TCHandler; //Assign the tick handler!
 }

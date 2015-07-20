@@ -12,9 +12,8 @@ void doneDMA(); //Finish the DMA support!
 
 void registerDMA8(byte channel, DMAReadBHandler readhandler, DMAWriteBHandler writehandler);
 void registerDMA16(byte channel, DMAReadWHandler readhandler, DMAWriteWHandler writehandler);
-void registerDMATick(byte channel, DMATickHandler tickhandler);
+void registerDMATick(byte channel, DMATickHandler DREQHandler, DMATickHandler DACKHandler, DMATickHandler TCHandler);
 
 void DMA_SetDREQ(byte channel, byte DREQ); //Set DREQ from hardware!
-void DMA_SetEOP(byte channel, byte EOP); //Set EOP from hardware!
 
 #endif
