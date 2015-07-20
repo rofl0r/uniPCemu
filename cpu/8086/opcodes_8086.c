@@ -1996,7 +1996,7 @@ void CPU8086_OPFE() //GRP4 Eb
 {
 	MODRM_src0 = 2;
 	byte tempcf;
-	modrm_readparams(&params,2,0);
+	modrm_readparams(&params,1,0);
 	word cb16;
 	modrm_debugger16(&params,1,2);
 	switch (MODRM_REG(params.modrm)) //What function?
@@ -2004,7 +2004,7 @@ void CPU8086_OPFE() //GRP4 Eb
 	case 0: //INC
 		if (cpudebugger) //Debugger on?
 		{
-			modrm_generateInstructionTEXT("INCB",16,0,PARAM_MODRM2); //INC!
+			modrm_generateInstructionTEXT("INCB",8,0,PARAM_MODRM2); //INC!
 		}
 		tempcf = FLAG_CF;
 		res8 = modrm_read8(&params,2)+1;
@@ -2015,7 +2015,7 @@ void CPU8086_OPFE() //GRP4 Eb
 	case 1: //DEC
 		if (cpudebugger) //Debugger on?
 		{
-			modrm_generateInstructionTEXT("DECB",16,0,PARAM_MODRM2); //DEC!
+			modrm_generateInstructionTEXT("DECB",8,0,PARAM_MODRM2); //DEC!
 		}
 		tempcf = FLAG_CF;
 		res8 = modrm_read8(&params,2)-1;
