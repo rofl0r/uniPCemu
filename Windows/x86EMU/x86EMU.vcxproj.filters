@@ -459,7 +459,7 @@
     <ClCompile Include="..\..\interrupts\interrupt15.c">
       <Filter>Source Files\interrupts</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\basicio\dskimage.cpp">
+    <ClCompile Include="..\..\basicio\dskimage.c">
       <Filter>Source Files\basicio</Filter>
     </ClCompile>
   </ItemGroup>

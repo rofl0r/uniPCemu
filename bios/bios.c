@@ -244,18 +244,24 @@ void BIOS_ValidateDisks() //Validates all disks and unmounts/remounts if needed!
 	//dolog("IO","Checking FLOPPY A (%s)...",BIOS_Settings.floppy0);
 	if ((!readdata(FLOPPY0,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.floppy0,"")!=0)) //No disk mounted but listed?
 	{
-		bzero(BIOS_Settings.floppy0,sizeof(BIOS_Settings.floppy0)); //Unmount!
-		BIOS_Settings.floppy0_readonly = 0; //Reset readonly flag!
-		//dolog("BIOS","Floppy A invalidated!");
-		bioschanged = 1; //BIOS changed!
+		if (!getDSKimage(FLOPPY0)) //NOT a DSK image?
+		{
+			bzero(BIOS_Settings.floppy0, sizeof(BIOS_Settings.floppy0)); //Unmount!
+			BIOS_Settings.floppy0_readonly = 0; //Reset readonly flag!
+			//dolog("BIOS","Floppy A invalidated!");
+			bioschanged = 1; //BIOS changed!
+		}
 	}
 	//dolog("IO","Checking FLOPPY B (%s)...",BIOS_Settings.floppy1);
 	if ((!readdata(FLOPPY1,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.floppy1,"")!=0)) //No disk mounted but listed?
 	{
-		bzero(BIOS_Settings.floppy1,sizeof(BIOS_Settings.floppy1)); //Unmount!
-		BIOS_Settings.floppy1_readonly = 0; //Reset readonly flag!
-		//dolog("BIOS","Floppy B invalidated!");
-		bioschanged = 1; //BIOS changed!
+		if (!getDSKimage(FLOPPY1)) //NOT a DSK image?
+		{
+			bzero(BIOS_Settings.floppy1, sizeof(BIOS_Settings.floppy1)); //Unmount!
+			BIOS_Settings.floppy1_readonly = 0; //Reset readonly flag!
+			//dolog("BIOS","Floppy B invalidated!");
+			bioschanged = 1; //BIOS changed!
+		}
 	}
 	
 	//dolog("IO","Checking First HDD (%s)...",BIOS_Settings.hdd0);

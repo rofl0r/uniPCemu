@@ -874,7 +874,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen) //Runs the file li
 void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 {
 	BIOS_Title("Mount FLOPPY A");
-	generateFileList("img",0,0); //Generate file list for all .img files!
+	generateFileList("img|dsk",0,0); //Generate file list for all .img files!
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
@@ -903,7 +903,7 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 {
 	BIOS_Title("Mount FLOPPY B");
-	generateFileList("img",0,0); //Generate file list for all .img files!
+	generateFileList("img|dsk",0,0); //Generate file list for all .img files!
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!

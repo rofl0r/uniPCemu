@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\basicio\boot.c" />
-    <ClCompile Include="..\..\basicio\dskimage.cpp" />
+    <ClCompile Include="..\..\basicio\dskimage.c" />
     <ClCompile Include="..\..\basicio\dynamicimage.c" />
     <ClCompile Include="..\..\basicio\fopen64.c" />
     <ClCompile Include="..\..\basicio\io.c" />

@@ -15,6 +15,7 @@ byte readonly; //Readonly!
 uint_32 size; //Disk size!
 BOOTIMGINFO customdisk; //Boot image info!
 byte dynamicimage; //Are we a dynamic image?
+byte DSKimage; //Are we a DSK image?
 SECTORHANDLER readhandler, writehandler; //Read&write handlers!
 DISKCHANGEDHANDLER diskchangedhandler; //Disk changed handler!
 } IODISK; //I/O mounted disk info.
@@ -43,4 +44,5 @@ int drivereadonly(int drive); //Drive is read-only?
 FILEPOS getdisksize(int device); //Retrieve a dynamic/static image size!
 uint_64 disksize(int disknumber); //Currently mounted disk size!
 void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler); //Register a disk changed handler!
+char *getDSKimage(int drive); //Get DSK image filename OR NULL if not a DSK image!
 #endif

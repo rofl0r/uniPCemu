@@ -1,6 +1,7 @@
 #include "headers/bios/io.h"
 #include "headers/bios/dynamicimage.h" //Dynamic image support!
 #include "headers/bios/staticimage.h" //Static image support!
+#include "headers/bios/dskimage.h" //DSK image support!
 #include "headers/emu/gpu/gpu.h" //Need GPU support for creating images!
 #include "headers/support/log.h" //Logging support!
 //Basic low level i/o functions!
@@ -61,10 +62,13 @@ void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_
 	byte dynamicimage = is_dynamicimage(filename); //Dynamic image detection!
 	if (!dynamicimage) //Might be a static image when not a dynamic image?
 	{
-		if (!is_staticimage(filename)) //Not a static image? We're invalid!
+		if (!is_DSKimage(filename)) //Not a DSK image?
 		{
-			memset(&disks[device], 0, sizeof(disks[device])); //Delete the entry!
-			return; //Abort!
+			if (!is_staticimage(filename)) //Not a static image? We're invalid!
+			{
+				memset(&disks[device], 0, sizeof(disks[device])); //Delete the entry!
+				return; //Abort!
+			}
 		}
 	}
 
@@ -80,9 +84,10 @@ void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_
 	disks[device].start = startpos; //Start pos!
 	disks[device].readonly = readonly; //Read only!
 	disks[device].dynamicimage = dynamicimage; //Dynamic image!
+	disks[device].DSKimage = dynamicimage ? 0 : is_DSKimage(filename); //DSK image?
 	disks[device].size = (customsize>0) ? customsize : getdisksize(device); //Get sizes!
-	disks[device].readhandler = disks[device].dynamicimage?&dynamicimage_readsector:&staticimage_readsector; //What read sector function to use!
-	disks[device].writehandler = disks[device].dynamicimage?&dynamicimage_writesector:&staticimage_writesector; //What write sector function to use!
+	disks[device].readhandler = disks[device].DSKimage?NULL:(disks[device].dynamicimage?&dynamicimage_readsector:&staticimage_readsector); //What read sector function to use!
+	disks[device].writehandler = disks[device].DSKimage?NULL:(disks[device].dynamicimage?&dynamicimage_writesector:&staticimage_writesector); //What write sector function to use!
 }
 
 void iofloppy0(char *filename, uint_64 startpos, byte readonly, uint_32 customsize)
@@ -125,6 +130,12 @@ uint_64 disksize(int disknumber)
 #define TRUE 1
 #define FALSE 0
 
+char *getDSKimage(int drive)
+{
+	if (drive<0 || drive>0xFF) return NULL; //Readonly with unknown drives!
+	return disks[drive].DSKimage?&disks[drive].filename[0]:NULL; //Filename for DSK images, NULL otherwise!
+}
+
 //Startpos=sector number (start/512 bytes)!
 int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 {
@@ -166,7 +177,9 @@ int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 	FILEPOS bytesread = 0; //Init bytesread!
 	
 	SECTORHANDLER handler = disks[device].readhandler; //Our handler!
-	for (;bytesread<bytestoread;) //Still left to read?
+	if (!handler) return 0; //Error: no handler registered!
+
+	for (; bytesread<bytestoread;) //Still left to read?
 	{
 		if (!handler(dev,sector,(byte *)buffer+bytesread)) //Append at the buffer failed!
 		{
@@ -239,6 +252,7 @@ int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 	FILEPOS byteswritten = 0; //Init byteswritten!
 
 	SECTORHANDLER handler = disks[device].writehandler; //Our handler!
+	if (!handler) return 0; //Error: no handler registered!
 
 	for (;byteswritten<bytestowrite;) //Still left to written?
 	{
