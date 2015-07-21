@@ -32,6 +32,7 @@ void resetKeyboard() //Reset the keyboard controller!
 	if (__HW_DISABLED) return; //Abort!
 	FIFOBUFFER *oldbuffer = Keyboard.buffer; //Old buffer!
 	memset(&Keyboard,0,sizeof(Keyboard)); //Reset the controller!
+	Keyboard.keyboard_enabled = 1; //Enable scanning by default!
 	Keyboard.buffer = oldbuffer; //Restore the buffer!
 	give_keyboard_input(0xAA); //Give OK status code!
 	input_lastwrite_keyboard(); //Force to user!

@@ -302,6 +302,7 @@ void EMU_stopInput()
 void EMU_startInput()
 {
 	load_keyboard_status(); //Load keyboard status from memory!
+	enableKeyboard(0); //Enable the keyboard, don't buffer!
 	EMU_enablemouse(1); //Enable all mouse input packets!
 }
 
