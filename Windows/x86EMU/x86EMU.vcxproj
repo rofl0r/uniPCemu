@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\basicio\boot.c" />
+    <ClCompile Include="..\..\basicio\dskimage.cpp" />
     <ClCompile Include="..\..\basicio\dynamicimage.c" />
     <ClCompile Include="..\..\basicio\fopen64.c" />
     <ClCompile Include="..\..\basicio\io.c" />
@@ -146,6 +147,7 @@
     <ClInclude Include="..\..\headers\bios\biosmenu.h" />
     <ClInclude Include="..\..\headers\bios\biosrom.h" />
     <ClInclude Include="..\..\headers\bios\boot.h" />
+    <ClInclude Include="..\..\headers\bios\dskimage.h" />
     <ClInclude Include="..\..\headers\bios\dynamicimage.h" />
     <ClInclude Include="..\..\headers\bios\initmem.h" />
     <ClInclude Include="..\..\headers\bios\io.h" />

@@ -459,6 +459,9 @@
     <ClCompile Include="..\..\interrupts\interrupt15.c">
       <Filter>Source Files\interrupts</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\basicio\dskimage.cpp">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">
@@ -821,6 +824,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\cpu\cb_manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\headers\bios\dskimage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
