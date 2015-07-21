@@ -5,6 +5,7 @@
 #include "headers/support/isoreader.h" //Need for structure!
 
 typedef int (*SECTORHANDLER)(char *filename,uint_32 sector, void *buffer); //Write/read a 512-byte sector! Result=1 on success, 0 on error!
+typedef void(*DISKCHANGEDHANDLER)(int disk); //Disk has been changed!
 
 typedef struct
 {
@@ -15,6 +16,7 @@ uint_32 size; //Disk size!
 BOOTIMGINFO customdisk; //Boot image info!
 byte dynamicimage; //Are we a dynamic image?
 SECTORHANDLER readhandler, writehandler; //Read&write handlers!
+DISKCHANGEDHANDLER diskchangedhandler; //Disk changed handler!
 } IODISK; //I/O mounted disk info.
 
 //Basic img/ms0 input/output for BIOS I/O
@@ -40,4 +42,5 @@ int has_drive(int drive); //Have drive?
 int drivereadonly(int drive); //Drive is read-only?
 FILEPOS getdisksize(int device); //Retrieve a dynamic/static image size!
 uint_64 disksize(int disknumber); //Currently mounted disk size!
+void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler); //Register a disk changed handler!
 #endif

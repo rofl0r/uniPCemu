@@ -52,8 +52,11 @@ TicksHolder lastcheck; //Last check we did!
 
 void GPU_FrameRendered() //A frame has been rendered?
 {
-	++frames; //A frame has been rendered!
-	curscanlinepercentage = 0.0f; //Reset for future references!
+	if (GPU.xres && GPU.yres) //Gotten anything rendered?
+	{
+		++frames; //A frame has been rendered!
+		curscanlinepercentage = 0.0f; //Reset for future references!
+	}
 }
 
 //The main thread!

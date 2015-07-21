@@ -78,6 +78,7 @@ struct
 	byte currentcylinder; //Current cylinder the floppy thinks we're at!
 	byte IRQPending; //Are we waiting for an IRQ?
 	byte DMAPending; //Pending DMA transfer?
+	byte diskchanged[4]; //Disk changed?
 } FLOPPY; //Our floppy drive data!
 
 
@@ -174,6 +175,19 @@ word translateSectorSize(byte size)
 	return 128*pow(2,size); //Give the translated sector size!
 }
 
+void FLOPPY_notifyDiskChanged(int disk)
+{
+	switch (disk)
+	{
+	case FLOPPY0:
+		FLOPPY.diskchanged[0] = 1; //Changed!
+		break;
+	case FLOPPY1:
+		FLOPPY.diskchanged[1] = 1; //Changed!
+		break;
+	}
+}
+
 void FLOPPY_raiseIRQ() //Execute an IRQ!
 {
 	FLOPPY.IRQPending = 1; //We're waiting for an IRQ!
@@ -259,8 +273,11 @@ void updateFloppyMSR() //Update the floppy MSR!
 	}
 }
 
-void updateFloppyCCR() //Update the floppy CCR!
+void updateFloppyDIR() //Update the floppy DIR!
 {
+	FLOPPY.DIR.data = (FLOPPY.diskchanged[0] || FLOPPY.diskchanged[1]); //Disk changed?
+	FLOPPY.diskchanged[0] = 0; //Reset!
+	FLOPPY.diskchanged[1] = 0; //Reset!
 }
 
 void updateFloppyWriteProtected(byte iswrite)
@@ -798,9 +815,9 @@ byte PORT_IN_floppy(word port, byte *result)
 		//Process data!
 		*result = floppy_readData(); //Read data!
 		return 1;
-	case 7: //CCR?
-		updateFloppyCCR(); //Update the CCR with current values!
-		*result = FLOPPY.CCR.data; //Give CCR!
+	case 7: //DIR?
+		updateFloppyDIR(); //Update the DIR register!
+		*result = FLOPPY.DIR.data; //Give DIR!
 		return 1;
 	default: //Unknown port?
 		break;
@@ -827,8 +844,8 @@ byte PORT_OUT_floppy(word port, byte value)
 	case 5: //Data?
 		floppy_writeData(value); //Write data!
 		return 1; //Default handler!
-	case 7: //DIR?
-		FLOPPY.DIR.data = value; //Write to register!
+	case 7: //CCR?
+		FLOPPY.CCR.data = value; //Set CCR!
 		return 1;
 	default: //Unknown port?
 		break; //Unknown port!
@@ -875,4 +892,6 @@ void initFDC()
 	//Set basic I/O ports
 	register_PORTIN(&PORT_IN_floppy);
 	register_PORTOUT(&PORT_OUT_floppy);
+	register_DISKCHANGE(FLOPPY0, &FLOPPY_notifyDiskChanged);
+	register_DISKCHANGE(FLOPPY1, &FLOPPY_notifyDiskChanged);
 }

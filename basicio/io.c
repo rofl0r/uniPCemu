@@ -39,6 +39,23 @@ FILEPOS getdisksize(int device) //Retrieve a dynamic/static image size!
 	return staticimage_getsize(disks[device].filename); //Dynamic image size!
 }
 
+void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler) //Register a disk changed handler!
+{
+	switch (device)
+	{
+	case FLOPPY0:
+	case FLOPPY1:
+	case HDD0:
+	case HDD1:
+	case CDROM0:
+	case CDROM1:
+		disks[device].diskchangedhandler = diskchangedhandler; //Register disk changed handler!
+		break;
+	default: //Unknown disk?
+		break;
+	}
+}
+
 void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_32 customsize) //Disk mount routine!
 {
 	byte dynamicimage = is_dynamicimage(filename); //Dynamic image detection!
@@ -48,6 +65,14 @@ void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_
 		{
 			memset(&disks[device], 0, sizeof(disks[device])); //Delete the entry!
 			return; //Abort!
+		}
+	}
+
+	if (disks[device].diskchangedhandler)
+	{
+		if (strcmp(disks[device].filename, filename) != 0) //Different disk?
+		{
+			disks[device].diskchangedhandler(device); //This disk has been changed!
 		}
 	}
 
