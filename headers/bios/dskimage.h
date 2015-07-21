@@ -47,8 +47,7 @@ typedef struct
 
 byte is_DSKimage(char *filename); //Are we a DSK image?
 byte readDSKSectorInfo(char *filename, byte side, byte track, byte sector, SECTORINFORMATIONBLOCK *result); //Read DSK sector information!
-byte readDSKSectorData(char *filename, byte side, byte track, byte sector, void *result); //Read a sector from the DSK file!
+byte readDSKSectorData(char *filename, byte side, byte track, byte sector, byte sectorsize, void *result); //Read a sector from the DSK file!
 byte writeDSKSectorData(char *filename, byte side, byte track, byte sector, byte sectorsize, void *sectordata); //Write a sector to the DSK file!
-
 
 #endif

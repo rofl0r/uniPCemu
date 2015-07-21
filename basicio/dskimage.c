@@ -55,8 +55,9 @@ word getDSKSectorSize(SECTORINFORMATIONBLOCK *sectorinfo)
 	return (word)powf((long)2, (int)sectorinfo->SectorSize); //Apply sector size!
 }
 
-byte readDSKSector(FILE *f, byte side, word track, byte sector, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *trackinfo, SECTORINFORMATIONBLOCK *sectorinfo, void *result)
+byte readDSKSector(FILE *f, byte side, word track, byte sector, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *trackinfo, SECTORINFORMATIONBLOCK *sectorinfo, byte sectorsize, void *result)
 {
+	if (sectorinfo->SectorSize != sectorsize) return 0; //Wrong sector size!
 	uint_32 position;
 	word actualtracknr;
 	actualtracknr = track;
@@ -136,7 +137,7 @@ byte readDSKSectorInfo(char *filename, byte side, byte track, byte sector, SECTO
 	return 1; //We have retrieved the sector information!
 }
 
-byte readDSKSectorData(char *filename, byte side, byte track, byte sector, void *result)
+byte readDSKSectorData(char *filename, byte side, byte track, byte sector, byte sectorsize, void *result)
 {
 	FILE *f;
 	f = fopen(filename, "rb"); //Open the image!
@@ -159,7 +160,7 @@ byte readDSKSectorData(char *filename, byte side, byte track, byte sector, void 
 		fclose(f); //Close the image!
 		return 0; //Not a valid DSK Sector!
 	}
-	if (!readDSKSector(f, side, track, sector, &DSKInformation, &TrackInformation, &SectorInformation, result)) //Failed reading the sector?
+	if (!readDSKSector(f, side, track, sector, &DSKInformation, &TrackInformation, &SectorInformation,sectorsize, result)) //Failed reading the sector?
 	{
 		fclose(f); //Close the image!
 		return 0; //Invalid DSK data!

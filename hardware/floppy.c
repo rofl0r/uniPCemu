@@ -3,6 +3,7 @@
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/bios/io.h" //Basic I/O functionality!
 #include "headers/hardware/pic.h" //PIC support!
+#include "headers/bios/dskimage.h" //DSK image support!
 
 //What IRQ is expected of floppy disk I/O
 #define FLOPPY_IRQ 6
@@ -291,7 +292,8 @@ void updateFloppyWriteProtected(byte iswrite)
 
 void floppy_executeData() //Execute a floppy command. Data is fully filled!
 {
-	switch (FLOPPY.commandbuffer[0]&0xF) //What command!
+	char *DSKImageFile = NULL; //DSK image file to use?
+	switch (FLOPPY.commandbuffer[0] & 0xF) //What command!
 	{
 		case 0x5: //Write sector
 		case 0x9: //Write deleted sector
@@ -325,9 +327,28 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 					FLOPPY.commandstep = 3; //Move to result phase!
 					FLOPPY_raiseIRQ(); //Entering result phase!
 				}
-				else //Plain/unknown error?
+				else //DSK or error?
 				{
-					FLOPPY.commandstep = 0xFF; //Move to error phase!
+					if (DSKImageFile = getDSKimage(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Are we a DSK image file?
+					{
+						if (writeDSKSectorData(DSKImageFile, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
+						{
+							FLOPPY.resultposition = 0;
+							FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
+							FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //Drive write-protected! ST1!
+							FLOPPY.resultbuffer[2] = FLOPPY.ST2.data = 0x00; //ST2!
+							FLOPPY.resultbuffer[3] = FLOPPY.commandbuffer[2]; //Cylinder!
+							FLOPPY.resultbuffer[4] = FLOPPY.commandbuffer[3]; //Head!
+							FLOPPY.resultbuffer[5] = FLOPPY.commandbuffer[4]; //Sector!
+							FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
+							FLOPPY.commandstep = 3; //Move to result phase!
+							FLOPPY_raiseIRQ(); //Entering result phase!
+							return;
+						}
+					}
+					//Plain error!
+					FLOPPY.ST0.data = 0x80; //Invalid command!
+					FLOPPY.commandstep = 0xFF; //Error!
 				}
 			}
 			break;
@@ -370,6 +391,8 @@ void FLOPPY_startDMA() //Start a DMA transfer if needed!
 
 void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
+	char *DSKImageFile = NULL; //DSK image file to use?
+	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
 	FLOPPY.resultposition = 0; //Default: start of the result!
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
 	FLOPPY.databufferposition = 0; //Default: start of the data buffer!
@@ -449,8 +472,23 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_startDMA();
 			FLOPPY.commandstep = 2; //Move to data phrase!
 		}
-		else
+		else //DSK or error?
 		{
+			if (DSKImageFile = getDSKimage(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Are we a DSK image file?
+			{
+				if (readDSKSectorData(DSKImageFile, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
+				{
+					if (readDSKSectorInfo(DSKImageFile, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], &sectorinformation)) //Read the sector information too!
+					{
+						FLOPPY.ST1.data = sectorinformation.ST1; //Load ST1!
+						FLOPPY.ST2.data = sectorinformation.ST2; //Load ST2!
+					}
+					FLOPPY_startDMA();
+					FLOPPY.commandstep = 2; //Move to data phase!
+					return; //Just execute it!
+				}
+			}
+			//Plain error!
 			FLOPPY.ST0.data = 0x80; //Invalid command!
 			FLOPPY.commandstep = 0xFF; //Error!
 		}
