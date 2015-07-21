@@ -127,14 +127,13 @@ typedef void (*Sequencer_pixelhandler)(VGA_Type *VGA,VGA_AttributeInfo *Sequence
 
 byte planesbuffer[4]; //All read planes for the current processing!
 
-typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA);
-
-word loadedlocation=0;
+typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA, word loadedlocation);
 
 VGA_AttributeInfo attributeinfo; //Our current collected attribute info!
 
 OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
 {
+	word loadedlocation; //The location we load at!
 	//Horizontal logic
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
 	loadedlocation = x; //X!
@@ -162,7 +161,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 	planesbuffer[3] = readVRAMplane(VGA, 3, loadedlocation, 0x80); //Read plane 3!
 	//Now the buffer is ready to be processed into pixels!
 
-	planesdecoder[VGA->precalcs.graphicsmode](VGA); //Use the decoder to get the pixels or characters!
+	planesdecoder[VGA->precalcs.graphicsmode](VGA,loadedlocation); //Use the decoder to get the pixels or characters!
 
 	byte lookupprecalcs;
 	lookupprecalcs = ((SEQ_DATA *)Sequencer)->charinner_y;

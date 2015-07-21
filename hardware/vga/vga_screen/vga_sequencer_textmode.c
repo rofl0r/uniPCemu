@@ -18,7 +18,7 @@
 #define CURSORENABLED1 (!VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable)
 #define CURSORENABLED2 (VGA->CursorOn)
 
-OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,uint_32 Sequencer_textmode_charindex) //Cursor scanline within character is cursor? Used to be: VGA_Type *VGA, byte ScanLine,uint_32 characterlocation
+OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,word Sequencer_textmode_charindex) //Cursor scanline within character is cursor? Used to be: VGA_Type *VGA, byte ScanLine,uint_32 characterlocation
 {
 	byte cursorOK;
 	if (CHARISCURSOR) //Character is cursor character?
@@ -37,9 +37,8 @@ byte iscursor=0; //Are we a cursor scanline?
 byte characterpixels[9]; //All possible character pixels!
 
 extern byte planesbuffer[4]; //All read planes for the current processing!
-extern word loadedlocation; //Our character location loaded!
 
-void VGA_TextDecoder(VGA_Type *VGA)
+void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 {
 	byte x;
 	//We do nothing: text mode uses multiple planes at the same time!

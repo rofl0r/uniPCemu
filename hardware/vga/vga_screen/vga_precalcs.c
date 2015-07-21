@@ -441,14 +441,20 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//Sequencer_textmode_cursor (CRTC):
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xE))
 			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xF))
-			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xB))) //Updated?
+			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xB))
+				   
+				   || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x14))
+				   || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x17)) //Also update on B/W/DW mode changes!
+				   ) //Updated?
 		{
 			word cursorlocation;
 			cursorlocation = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER;
 			cursorlocation <<= 8;
 			cursorlocation |= VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER;
 			cursorlocation += VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorSkew;
-			
+			cursorlocation >>= VGA->precalcs.characterclockshift; //Apply VGA shift: the shift is the ammount to move at a time!
+			cursorlocation <<= VGA->precalcs.BWDModeShift; //Apply byte/word/doubleword mode at the character level!
+
 			VGA->precalcs.cursorlocation = cursorlocation; //Cursor location!
 			//dolog("VGA","VTotal after cursorlocation: %i",VGA->precalcs.verticaltotal); //Log it!
 		}

@@ -154,7 +154,7 @@ Core functions!
 
 */
 
-void VGA_GraphicsDecoder(VGA_Type *VGA) //Graphics decoder!
+void VGA_GraphicsDecoder(VGA_Type *VGA, word loadedlocation) //Graphics decoder!
 {
 	static Handler loadpixel_jmptbl[4] = {
 		loadplanarshiftmode,
