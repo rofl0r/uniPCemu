@@ -46,6 +46,8 @@ typedef struct
 #include "headers/endpacked.h" //End packed structure!
 
 byte is_DSKimage(char *filename); //Are we a DSK image?
+byte readDSKInfo(char *filename, DISKINFORMATIONBLOCK *result); //Read global DSK information!
+byte readDSKTrackInfo(char *filename, byte side, byte track, TRACKINFORMATIONBLOCK *result);
 byte readDSKSectorInfo(char *filename, byte side, byte track, byte sector, SECTORINFORMATIONBLOCK *result); //Read DSK sector information!
 byte readDSKSectorData(char *filename, byte side, byte track, byte sector, byte sectorsize, void *result); //Read a sector from the DSK file!
 byte writeDSKSectorData(char *filename, byte side, byte track, byte sector, byte sectorsize, void *sectordata); //Write a sector to the DSK file!

@@ -202,3 +202,41 @@ byte writeDSKSectorData(char *filename, byte side, byte track, byte sector, byte
 	fclose(f);
 	return 1; //We have retrieved the sector information!
 }
+
+byte readDSKInfo(char *filename, DISKINFORMATIONBLOCK *result)
+{
+	FILE *f;
+	f = fopen(filename, "rb"); //Open the image!
+	if (!f) return 0; //Not opened!
+	DISKINFORMATIONBLOCK DSKInformation;
+	TRACKINFORMATIONBLOCK TrackInformation;
+	if (!readDSKInformation(f, &DSKInformation)) //Invalid header?
+	{
+		fclose(f); //Close the image!
+		return 0; //Not a valid DSK file!
+	}
+	fclose(f); //Close the image!
+	return 1; //Valid DSK file!
+}
+
+byte readDSKTrackInfo(char *filename, byte side, byte track, TRACKINFORMATIONBLOCK *result)
+{
+	FILE *f;
+	f = fopen(filename, "rb+"); //Open the image!
+	if (!f) return 0; //Not opened!
+	DISKINFORMATIONBLOCK DSKInformation;
+	TRACKINFORMATIONBLOCK TrackInformation;
+	SECTORINFORMATIONBLOCK SectorInformation;
+	if (!readDSKInformation(f, &DSKInformation)) //Invalid header?
+	{
+		fclose(f); //Close the image!
+		return 0; //Not a valid DSK file!
+	}
+	if (!readDSKTrackInformation(f, side, track, &DSKInformation, result)) //Invalid track?
+	{
+		fclose(f); //Close the image!
+		return 0; //Not a valid DSK Track!
+	}
+	fclose(f); //Close the image!
+	return 1; //Valid DSK Track!
+}
