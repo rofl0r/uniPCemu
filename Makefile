@@ -40,12 +40,12 @@ OBJS += support\locks.o
 #Basic Callback manager in-memory!
 OBJS += cpu\cb_manager.o
 #first, interrupts
-OBJS += interrupts\interrupt13.o interrupts\interrupt10.o interrupts\interrupt18.o interrupts\interrupt19.o interrupts\interrupt16.o interrupts\interrupt5.o interrupts\interrupt11.o interrupts\interrupt12.o interrupts\unkint.o
+OBJS += interrupts\interrupt13.o interrupts\interrupt10.o interrupts\interrupt18.o interrupts\interrupt19.o interrupts\interrupt16.o interrupts\interrupt5.o interrupts\interrupt11.o interrupts\interrupt12.o interrupts\interrupt1a.o interrupts\interrupt15.o interrupts\unkint.o
 OBJS += cpu\cpu_interrupts.o
 #Interrupt 10h VGA help:
 OBJS += interrupts\interrupt10_modelist_vga.o interrupts\interrupt10_switchvideomode.o interrupts\interrupt10_romfont.o interrupts\interrupt10_textmodedata.o
 #next, support
-OBJS += basicio\dynamicimage.o basicio\staticimage.o support\isoreader.o support\fifobuffer.o support\lba.o support\crc32.o support\state.o
+OBJS += basicio\dynamicimage.o basicio\staticimage.o basicio\dskimage.o support\isoreader.o support\fifobuffer.o support\lba.o support\crc32.o support\state.o
 #all main I/O stuff we need (disk I/O and port mapping)
 OBJS += basicio\io.o basicio\port_mapper.o
 #external chip caller port port i/o (for the CPU and hardware):
@@ -108,6 +108,10 @@ OBJS += cpu\80186\opcodes_80186.o
 OBJS += cpu\cpu_jmptbls0f.o cpu\80286\opcodes_80286.o
 #Opcodes for CPU 80386&JMPTbl
 #OBJS += cpu\80386\opcodes0F_386.o cpu\80386\opcodes_386.o
+#Opcodes for CPU 80486
+OBJS += cpu\80486\opcodes_486.o
+#Opcodes for CPU 80586 (Pentium)
+OBJS += cpu\80586\opcodes_586.o
 #Opcodes: unknown opcodes and rest handler functions (386 0x0F, unknown opcode handler for 386&8086)
 OBJS += cpu\unkop.o
 #Now the jumptables for all CPUs!
