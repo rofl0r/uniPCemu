@@ -161,7 +161,6 @@
     <ClInclude Include="..\..\headers\cpu\80586\cpu_OP80586.h" />
     <ClInclude Include="..\..\headers\cpu\8086\8086_grpOPs.h" />
     <ClInclude Include="..\..\headers\cpu\8086\cpu_OP8086.h" />
-    <ClInclude Include="..\..\headers\cpu\8086\opcodes_8086_verify.h" />
     <ClInclude Include="..\..\headers\cpu\8087\fpu_OP8087.h" />
     <ClInclude Include="..\..\headers\cpu\cb_manager.h" />
     <ClInclude Include="..\..\headers\cpu\cpu.h" />
@@ -298,6 +297,7 @@
     <LibraryPath>C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\lib\x86;$(LibraryPath)</LibraryPath>
     <OutDir>\psp-projects_build\$(ProjectName)\</OutDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
@@ -317,7 +317,6 @@
       <EnablePREfast>false</EnablePREfast>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <ObjectFileName />
       <Optimization>MaxSpeed</Optimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>

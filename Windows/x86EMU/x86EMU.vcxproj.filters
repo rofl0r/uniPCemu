@@ -811,9 +811,6 @@
     <ClInclude Include="..\..\headers\support\locks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\headers\cpu\8086\opcodes_8086_verify.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\headers\cpu\80586\cpu_OP80586.h">
       <Filter>Header Files</Filter>
     </ClInclude>
