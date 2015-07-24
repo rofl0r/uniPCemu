@@ -5,6 +5,8 @@
 #include "headers/hardware/pic.h" //PIC support!
 #include "headers/bios/dskimage.h" //DSK image support!
 
+//Configuration of the FDC...
+
 //Double logging if FLOPPY_LOGFILE2 is defined!
 #define FLOPPY_LOGFILE "debugger"
 #define FLOPPY_LOGFILE2 "floppy"
@@ -13,6 +15,17 @@
 #define FLOPPY_IRQ 6
 //What DMA channel is expected of floppy disk I/O
 #define FLOPPY_DMA 2
+
+//Automatic setup.
+#ifdef FLOPPY_LOGFILE
+#ifdef FLOPPY_LOGFILE2
+#define FLOPPY_LOG(...) dolog(FLOPPY_LOGFILE,__VA_ARGS__); dolog(FLOPPY_LOGFILE2,__VA_ARGS__);
+#else
+#define FLOPPY_LOG(...) dolog(FLOPPY_LOGFILE,__VA_ARGS__);
+#endif
+#else
+#define FLOPPY_LOG(...)
+#endif
 
 typedef struct
 {
@@ -254,10 +267,7 @@ void FLOPPY_lowerIRQ()
 
 void FLOPPY_reset() //Resets the floppy disk command!
 {
-	dolog(FLOPPY_LOGFILE, "FLOPPY: Reset requested!");
-#ifdef FLOPPY_LOGFILE2
-	dolog(FLOPPY_LOGFILE2, "FLOPPY: Reset requested!");
-#endif
+	FLOPPY_LOG("FLOPPY: Reset requested!")
 	FLOPPY.DOR.MotorControl = 0; //Reset motors!
 	FLOPPY.DOR.DriveNumber = 0; //Reset drives!
 	FLOPPY.DOR.Mode = 0; //IRQ channel!
@@ -394,10 +404,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 		case 0x5: //Write sector
 		case 0x9: //Write deleted sector
 			//Write sector to disk!
-			dolog(FLOPPY_LOGFILE, "FLOPPY: Finished transfer of sector. Writing to disk...");
-#ifdef FLOPPY_LOGFILE2
-			dolog(FLOPPY_LOGFILE2, "FLOPPY: Finished transfer of sector. Writing to disk...");
-#endif
+			FLOPPY_LOG("FLOPPY: Finished transfer of sector. Writing to disk...")
 			updateFloppyWriteProtected(1); //Try to write with(out) protection!
 			if (writedata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Written the data to disk?
 			{
@@ -472,10 +479,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 			FLOPPY.resultbuffer[5] = FLOPPY.commandbuffer[4]; //Sector!
 			FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
 			FLOPPY.commandstep = 3; //Move to result phrase and give the result!
-			dolog(FLOPPY_LOGFILE, "FLOPPY: Finished transfer of sector.");
-#ifdef FLOPPY_LOGFILE2
-			dolog(FLOPPY_LOGFILE2, "FLOPPY: Finished transfer of sector.");
-#endif
+			FLOPPY_LOG("FLOPPY: Finished transfer of sector.")
 			FLOPPY_raiseIRQ(); //Entering result phase!
 			break;
 		case 0xD: //Format sector
@@ -508,10 +512,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
 	FLOPPY.databufferposition = 0; //Default: start of the data buffer!
 	if (FLOPPY.DOR.DriveNumber & 2) goto invaliddrive;
-	dolog(FLOPPY_LOGFILE, "FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]); //Executing this command!
-#ifdef FLOPPY_LOGFILE2
-	dolog(FLOPPY_LOGFILE2, "FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]); //Executing this command!
-#endif
+	FLOPPY_LOG("FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]) //Executing this command!
 	switch (FLOPPY.commandbuffer[0] & 0xF) //What command!
 	{
 	case 0x2: //Read complete track!
@@ -570,25 +571,14 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.databuffersize = FLOPPY.commandbuffer[8]; //Use data length!
 		}
 		FLOPPY.disk_startpos = floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4]); //The start position, in sectors!
-		dolog(FLOPPY_LOGFILE, "FLOPPY: Read sector #%i", FLOPPY.disk_startpos); //We're reading this sector!
-#ifdef FLOPPY_LOGFILE2
-		dolog(FLOPPY_LOGFILE2, "FLOPPY: Read sector #%i", FLOPPY.disk_startpos); //We're reading this sector!
-#endif
+		FLOPPY_LOG("FLOPPY: Read sector #%i", FLOPPY.disk_startpos) //We're reading this sector!
 		FLOPPY.disk_startpos *= FLOPPY.databuffersize;
 
-		dolog(FLOPPY_LOGFILE, "FLOPPY: Read sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4],
-			FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]); //Log our request!
-#ifdef FLOPPY_LOGFILE2
-		dolog(FLOPPY_LOGFILE2, "FLOPPY: Read sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4],
-#endif
-			FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]); //Log our request!
+		FLOPPY_LOG("FLOPPY: Read sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4],FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]); //Log our request!
 
 		if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 		{
-			dolog(FLOPPY_LOGFILE, "FLOPPY: Error: drive motor not ON!");
-#ifdef FLOPPY_LOGFILE2
-			dolog(FLOPPY_LOGFILE2, "FLOPPY: Error: drive motor not ON!");
-#endif
+			FLOPPY_LOG("FLOPPY: Error: drive motor not ON!")
 			FLOPPY.commandstep = 0xFF; //Move to error phase!
 			return;
 		}
@@ -602,10 +592,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 		if (readdata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
 		{
 			FLOPPY.ST0.SeekEnd = 1; //Successfull read with implicit seek!
-			dolog(FLOPPY_LOGFILE, "FLOPPY: Start transfer of sector...");
-#ifdef FLOPPY_LOGFILE2
-			dolog(FLOPPY_LOGFILE2, "FLOPPY: Start transfer of sector...");
-#endif
+			FLOPPY_LOG("FLOPPY: Start transfer of sector...")
 			FLOPPY_startDMA();
 			FLOPPY.commandstep = 2; //Move to data phrase!
 		}
@@ -659,12 +646,10 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 		}
 		else if (!FLOPPY.IRQPending) //Not an pending IRQ?
 		{
-			dolog(FLOPPY_LOGFILE, "FLOPPY: Warning: Checking interrupt status without IRQ pending!");
-#ifdef FLOPPY_LOGFILE2
-			dolog(FLOPPY_LOGFILE2, "FLOPPY: Warning: Checking interrupt status without IRQ pending!");
-#endif
+			FLOPPY_LOG("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
 			FLOPPY.ST0.data = 0x80; //Error!
 		}
+		FLOPPY_LOG("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X",FLOPPY.ST0.data,FLOPPY.currentcylinder)
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0.data; //Give ST0!
 		FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder; //Our idea of the current cylinder!
 		FLOPPY.resultposition = 0; //Start result!
@@ -709,6 +694,12 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 	}
 }
 
+void floppy_abnormalpolling()
+{
+	FLOPPY.ST0.data |= 0xD0; //Abnormal termination by polling!
+	FLOPPY.commandstep = 0xFF; //Error!
+}
+
 void floppy_writeData(byte value)
 {
 	//TODO: handle floppy writes!
@@ -717,10 +708,7 @@ void floppy_writeData(byte value)
 		case 0: //Command
 			FLOPPY.commandstep = 1; //Start inserting parameters!
 			FLOPPY.commandposition = 1; //Start at position 1 with out parameters/data!
-			dolog(FLOPPY_LOGFILE, "FLOPPY: Command byte sent: %02X", value); //Log our information about the command byte!
-#ifdef FLOPPY_LOGFILE2
-			dolog(FLOPPY_LOGFILE2, "FLOPPY: Command byte sent: %02X", value); //Log our information about the command byte!
-#endif
+			FLOPPY_LOG("FLOPPY: Command byte sent: %02X", value) //Log our information about the command byte!
 			switch (value & 0xF) //What command?
 			{
 				case 0x8: //Check interrupt status
@@ -827,7 +815,7 @@ void floppy_writeData(byte value)
 					}
 					break;
 				default: //Invalid command
-					FLOPPY.commandstep = 0xFF; //Error!
+					floppy_abnormalpolling();
 					break;
 			}
 			break;
@@ -844,13 +832,15 @@ void floppy_writeData(byte value)
 					}
 					break;
 				default: //Invalid command
-					FLOPPY.commandstep = 0xFF; //Error!
+					floppy_abnormalpolling(); //Abnormal polling!
 					break;
 			}
 			break;
 		case 3: //Result
+			floppy_abnormalpolling();
 			break; //We don't write during the result phrase!
 		case 0xFF: //Error
+			floppy_abnormalpolling();
 			//We can't do anything! Ignore any writes now!
 			break;
 		default:
@@ -867,7 +857,7 @@ byte floppy_readData()
 		0, //3
 		1, //4
 		7, //5
-		1, //6
+		7, //6
 		0, //7
 		1, //8: We only have 1 result byte instead of 2 according to the BIOS!
 		7, //9
@@ -882,8 +872,10 @@ byte floppy_readData()
 	switch (FLOPPY.commandstep) //What step are we at?
 	{
 		case 0: //Command
+			floppy_abnormalpolling(); //Abnormal polling!
 			break; //Nothing to read during command phrase!
 		case 1: //Parameters
+			floppy_abnormalpolling(); //Abnormal polling!
 			break; //Nothing to read during parameter phrase!
 		case 2: //Data
 			switch (FLOPPY.commandbuffer[0]&0xF) //What command?
@@ -899,6 +891,7 @@ byte floppy_readData()
 					return temp; //Give the result!
 					break;
 				default: //Invalid command: we have no data to be READ!
+					floppy_abnormalpolling(); //Abnormal polling!
 					break;
 			}
 			break;
@@ -918,6 +911,7 @@ byte floppy_readData()
 				case 0x8: //Check interrupt status
 				case 0xA: //Read sector ID
 				case 0xF: //Seek/park head
+					FLOPPY_LOG("Reading result byte %i/%i",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0xF])
 					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]&0xF]) //Result finished?
 					{
 						FLOPPY.commandstep = 0; //Reset step!
@@ -925,14 +919,11 @@ byte floppy_readData()
 					return temp; //Give result value!
 					break;
 				default: //Invalid command to read!
-					FLOPPY.resultposition = 0;
-					goto giveerror; //Give an error!
+					floppy_abnormalpolling(); //Abnormal polling!
 					break;
 			}
 			break;
-		giveerror:
 		case 0xFF: //Error
-			FLOPPY.resultposition = 0;
 			FLOPPY.commandstep = 0; //Reset step!
 			return FLOPPY.ST0.data; //Give ST0, containing an error!
 			break;

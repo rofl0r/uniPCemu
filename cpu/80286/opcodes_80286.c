@@ -37,7 +37,6 @@ Interrupts:
 */
 
 extern Handler opcode0F_jmptbl[NUM0FEXTS][0x100][2]; //0F opcode jumptable for 286+, starting at 286+.
-extern byte CPU_Operand_size; //The effective operand size!
 
 void unkOP0F_286() //0F unknown opcode handler on 286+?
 {
@@ -52,7 +51,7 @@ void CPU_OP0F_286() //Special 2-byte opcode (286+)?
 	if ((EMULATED_CPU-2)>=0) //Valid CPU with the OPcodes?
 	{
 		int cpu = EMULATED_CPU-2; //Init cpu!
-		byte operandsize = CPU_Operand_size; //Operand size to use!
+		byte operandsize = CPU_Operand_size[cpu]; //Operand size to use!
 		while ((opcode0F_jmptbl[cpu][OP][operandsize]==NULL)) //No opcode to handle at current CPU&operand size?
 		{
 			if (operandsize) //We have an operand size: switch to standard if possible!
@@ -62,7 +61,7 @@ void CPU_OP0F_286() //Special 2-byte opcode (286+)?
 			}
 			else //No operand size: we're a standard, so go up one cpu and retry!
 			{
-				operandsize = CPU_Operand_size; //Reset operand size!
+				operandsize = CPU_Operand_size[cpu]; //Reset operand size!
 				if (cpu) //We've got CPUs left?
 				{
 					--cpu; //Go up one CPU!

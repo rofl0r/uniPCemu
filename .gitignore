@@ -6,3 +6,7 @@
 *.vsp
 *.zip
 *.suo
+*.obj
+*.idb
+*.pdb
+*.log

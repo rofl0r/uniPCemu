@@ -775,9 +775,9 @@ typedef struct
 #ifndef IS_CPU
 extern byte activeCPU; //That currently active CPU!
 extern CPU_type CPU[MAXCPUS]; //All CPUs itself!
-extern byte CPU_Operand_size; //Operand size for this opcode!
-extern byte CPU_Address_size; //Address size for this opcode!
-extern byte CPU_StackAddress_size; //Address size for this opcode!
+extern byte CPU_Operand_size[2]; //Operand size for this opcode!
+extern byte CPU_Address_size[2]; //Address size for this opcode!
+extern byte CPU_StackAddress_size[2]; //Address size for this opcode!
 #endif
 
 #include "headers/cpu/CPU_ops.h"
