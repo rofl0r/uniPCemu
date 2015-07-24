@@ -857,7 +857,7 @@ byte floppy_readData()
 		0, //3
 		1, //4
 		7, //5
-		7, //6
+		1, //6: Should be 7, but only 1 requested by the Turbo XT BIOS?
 		0, //7
 		1, //8: We only have 1 result byte instead of 2 according to the BIOS!
 		7, //9
