@@ -103,27 +103,18 @@ OPTINLINE byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, 
 {
 	const static byte shift[8] = { 7, 6, 5, 4, 3, 2, 1, 0 }; //Shift for the pixel!
 	static byte lastrow; //Last retrieved character row data!
-	static uint_32 lastcharinfo = 0; //attribute|character|row|1, bit0=Set?
+	static word lastcharinfo = 0; //attribute|character|row|1, bit0=Set?
+	register word lastlookup;
 	register byte newx = x; //Default: use the 9th bit if needed!
-	register uint_32 lastlookup;
-	register uint_32 charloc;
-
-	if (!VGA) //No active VGA?
-	{
-		return 0; //Nothing!
-	}
 
 	attribute >>= 2; //...
 	attribute &= 1; //... Take bit 2 to get the actual attribute we need!
-	if (newx&0xFFF8) //Extra ninth bit?
+	if (newx&0xF8) //Extra ninth bit?
 	{
 		newx = 7; //Only 7 max!
 		if (getcharacterwidth(VGA)!=8) //What width? 9 wide?
 		{
-			if (!((!VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable) && ((character&0xE0)==0xC0))) //Replicate the 8th one (C0-FLAG_DF)? (Highest 3 bits are 0x6)
-			{ //9th bit becomes background color!
-				return 0; //Background color for 9th pixel!
-			}
+			if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable || ((character & 0xE0) != 0xC0)) return 0; //9th bit is always background?
 		}
 	}
 	
@@ -136,6 +127,7 @@ OPTINLINE byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, 
 	lastlookup |= 1; //A filled record!
 	if (lastcharinfo!=lastlookup) //Last row not yet loaded?
 	{
+		register word charloc;
 		charloc = character; //Character position!
 		charloc <<= 5;
 		charloc |= y;

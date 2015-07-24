@@ -22,7 +22,7 @@
 
 #define CURRENTBLINK(VGA) VGA->TextBlinkOn
 
-#define PIXELBLOCKSIZE 1024
+#define PIXELBLOCKSIZE 2048
 
 typedef uint_32(*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
 extern byte DAC_whatBWMonitor; //Default: color monitor!
