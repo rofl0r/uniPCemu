@@ -389,47 +389,6 @@ void DMA_tick()
 				}
 				address |= (DMAController[controller].DMAChannel[channel].PageAddressRegister<<16); //Apply page address to get the full address!
 				
-				//Transfer data!
-				switch (moderegister.TransferType)
-				{
-					case 1: //Writing to memory? (Reading from device)
-						if (controller) //16-bits?
-						{
-							if (DMAController[controller].DMAChannel[channel].ReadWHandler) //Valid handler?
-							{
-								MMU_directww(address,DMAController[controller].DMAChannel[channel].ReadWHandler()); //Read using handler!
-							}
-						}
-						else //8-bits?
-						{
-							if (DMAController[controller].DMAChannel[channel].ReadBHandler) //Valid handler?
-							{
-								MMU_directwb(address,DMAController[controller].DMAChannel[channel].ReadBHandler()); //Read using handler!
-							}
-						}
-						break;
-					case 2: //Reading from memory? (Writing to device)
-						if (controller) //16-bits?
-						{
-							if (DMAController[controller].DMAChannel[channel].WriteWHandler) //Valid handler?
-							{
-								DMAController[controller].DMAChannel[channel].WriteWHandler(MMU_directrw(address)); //Read using handler!
-							}
-						}
-						else //8-bits?
-						{
-							if (DMAController[controller].DMAChannel[channel].WriteBHandler) //Valid handler?
-							{
-								DMAController[controller].DMAChannel[channel].WriteBHandler(MMU_directrb(address)); //Read using handler!
-							}
-						}
-						break;
-					case 0: //Verify? Never used on a PC?
-					case 3: //Invalid?
-					default: //Invalid?
-						break;
-				}
-
 				//Process the address counter step: we've been processed and ready to move on!
 				if (moderegister.Down) //Decrease address?
 				{
@@ -460,6 +419,47 @@ void DMA_tick()
 						DMAController[controller].DMAChannel[channel].TCHandler(); //Send hardware TC!
 					}
 					DMAController[controller].StatusRegister |= (1 << channel); //Transfer complete!
+				}
+
+				//Transfer data!
+				switch (moderegister.TransferType)
+				{
+				case 1: //Writing to memory? (Reading from device)
+					if (controller) //16-bits?
+					{
+						if (DMAController[controller].DMAChannel[channel].ReadWHandler) //Valid handler?
+						{
+							MMU_directww(address, DMAController[controller].DMAChannel[channel].ReadWHandler()); //Read using handler!
+						}
+					}
+					else //8-bits?
+					{
+						if (DMAController[controller].DMAChannel[channel].ReadBHandler) //Valid handler?
+						{
+							MMU_directwb(address, DMAController[controller].DMAChannel[channel].ReadBHandler()); //Read using handler!
+						}
+					}
+					break;
+				case 2: //Reading from memory? (Writing to device)
+					if (controller) //16-bits?
+					{
+						if (DMAController[controller].DMAChannel[channel].WriteWHandler) //Valid handler?
+						{
+							DMAController[controller].DMAChannel[channel].WriteWHandler(MMU_directrw(address)); //Read using handler!
+						}
+					}
+					else //8-bits?
+					{
+						if (DMAController[controller].DMAChannel[channel].WriteBHandler) //Valid handler?
+						{
+							DMAController[controller].DMAChannel[channel].WriteBHandler(MMU_directrb(address)); //Read using handler!
+						}
+					}
+					break;
+				case 0: //Verify? Never used on a PC?
+				case 3: //Invalid?
+				default: //Invalid?
+					break;
 				}
 
 				switch (moderegister.Mode) //What mode are we processing in?

@@ -268,7 +268,7 @@ void updateVideo() //Update the screen resolution on change!
 	static byte fullscreen = 0; //Are we fullscreen?
 	if (rendersurface) //Already started?
 	{
-		if ((xres^GPU.xres) || (yres^GPU.yres) || (fullscreen^GPU.fullscreen)) //Resolution changed?
+		if ((xres!=GPU.xres) || (yres!=GPU.yres) || (fullscreen!=GPU.fullscreen)) //Resolution changed or fullscreen changed?
 		{
 			xres = GPU.xres;
 			yres = GPU.yres;

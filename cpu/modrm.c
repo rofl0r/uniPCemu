@@ -398,11 +398,11 @@ char *unsigned2signedtext16(word c)
 	s = unsigned2signed16(c); //Convert to signed!
 	if (s<0) //Negative?
 	{
-		sprintf(signednumbertext,"-%04X",0-s); //Show signed!
+		sprintf(signednumbertext,"-%04X",(sword)0-s); //Show signed!
 	}
 	else //Positive?
 	{
-		sprintf(signednumbertext,"+%04X",s); //Show signed!
+		sprintf(signednumbertext,"+%04X",(sword)s); //Show signed!
 	}
 	return &signednumbertext[0]; //Give pointer!
 }
