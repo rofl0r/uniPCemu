@@ -53,8 +53,8 @@ struct
 		struct
 		{
 			byte BusyInPositioningMode : 4; //1 if busy in seek mode.
-			byte FDCBusy : 1; //Busy: read/write command of FDC in progress.
-			byte NonDMA : 1; //1 when not in DMA mode, else DMA mode.
+			byte CommandBusy : 1; //Busy: read/write command of FDC in progress. Set when received command byte, cleared at end of result phase
+			byte NonDMA : 1; //1 when not in DMA mode, else DMA mode, during execution phase.
 			byte HaveDataForCPU : 1; //1 when has data for CPU, 0 when expecting data.
 			byte RQM : 1; //1 when ready for data transfer, 0 when not ready.
 		};
@@ -288,16 +288,17 @@ void updateFloppyMSR() //Update the floppy MSR!
 	switch (FLOPPY.commandstep) //What command step?
 	{
 	case 0: //Command?
+		FLOPPY.MSR.CommandBusy = 0; //Not busy: we're waiting for a command!
 		FLOPPY.MSR.RQM = 1; //Ready for data transfer!
 		FLOPPY.MSR.HaveDataForCPU = 0; //We don't have data for the CPU!
-		FLOPPY.MSR.FDCBusy = 0; //Not busy anymore!
 		break;
 	case 1: //Parameters?
+		FLOPPY.MSR.CommandBusy = 1; //Default: busy!
 		FLOPPY.MSR.RQM = 1; //Ready for data transfer!
 		FLOPPY.MSR.HaveDataForCPU = 0; //We don't have data for the CPU!
-		FLOPPY.MSR.FDCBusy = 0; //Not busy anymore!
 		break;
 	case 2: //Data?
+		FLOPPY.MSR.CommandBusy = 1; //Default: busy!
 		//Check DMA, RQM and Busy flag!
 		switch (FLOPPY.commandbuffer[0]) //What command are we processing?
 		{
@@ -310,12 +311,10 @@ void updateFloppyMSR() //Update the floppy MSR!
 			if (FLOPPY.MSR.NonDMA) //Not in DMA mode?
 			{
 				FLOPPY.MSR.RQM = 1; //Data transfer!
-				FLOPPY.MSR.FDCBusy = 0; //We're not busy!
 			}
 			else //DMA mode transfer?
 			{
 				FLOPPY.MSR.RQM = 0; //No transfer!
-				FLOPPY.MSR.FDCBusy = 1; //We're busy!
 			}
 			break;
 		default: //Unknown command?
@@ -340,14 +339,14 @@ void updateFloppyMSR() //Update the floppy MSR!
 		}
 		break;
 	case 3: //Result?
+		FLOPPY.MSR.CommandBusy = 1; //Default: busy!
 		FLOPPY.MSR.RQM = 1; //Data transfer!
 		FLOPPY.MSR.HaveDataForCPU = 1; //We have data for the CPU!
-		FLOPPY.MSR.FDCBusy = 0; //Not busy anymore!
 		break;
 	case 0xFF: //Error?
+		FLOPPY.MSR.CommandBusy = 1; //Default: busy!
 		FLOPPY.MSR.RQM = 1; //Data transfer!
 		FLOPPY.MSR.HaveDataForCPU = 1; //We have data for the CPU!
-		FLOPPY.MSR.FDCBusy = 0; //Not busy anymore!
 		break;
 	default: //Unknown status?
 		break; //Unknown?
@@ -401,7 +400,16 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 
 	if (FLOPPY.DOR.Mode) //DMA mode determines our triggering?
 	{
-		result = !FLOPPY.TC; //No terminal count triggered? Then we read the next sector!
+		if (result) //OK?
+		{
+			result = !FLOPPY.TC; //No terminal count triggered? Then we read the next sector!
+		}
+		else //Error occurred during DMA transfer?
+		{
+			result = 0; //Abort!
+			FLOPPY.ST0.InterruptCode = 1; //Couldn't finish correctly!
+			FLOPPY.ST0.SeekEnd = 0; //Failed!
+		}
 	}
 
 	return result; //Give the result: we've overflown the max sector number!
@@ -526,18 +534,25 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 			updateFloppyWriteProtected(1); //Try to write with(out) protection!
 			if (writedata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Written the data to disk?
 			{
-				if (floppy_increasesector(FLOPPY.DOR.DriveNumber)) //Goto next sector!
+				switch (floppy_increasesector(FLOPPY.DOR.DriveNumber)) //Goto next sector!
 				{
+				case 1: //OK?
 					//More to be written?
 					floppy_writesector(); //Write another sector!
 					return; //Finished!
+				case 2: //Error during transfer?
+					//Let the floppy_increasesector determine the error!
+					break;
+				case 0: //OK?
+				default: //Unknown?
+					FLOPPY.ST0.SeekEnd = 1; //Successfull write with implicit seek!
+					FLOPPY.ST0.InterruptCode = 0; //Normal termination!
+					break;
 				}
 				FLOPPY.resultposition = 0;
-				FLOPPY.ST0.SeekEnd = 1; //Successfull write with implicit seek!
-				FLOPPY.ST0.InterruptCode = 0; //Normal termination!
 				FLOPPY.resultbuffer[0] = FLOPPY.ST0.data; //ST0!
-				FLOPPY.resultbuffer[1] = FLOPPY.ST1.data = 0x00; //ST1!
-				FLOPPY.resultbuffer[2] = FLOPPY.ST2.data = 0x00; //ST2!
+				FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //ST1!
+				FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
 				FLOPPY.resultbuffer[3] = FLOPPY.commandbuffer[2]; //Cylinder!
 				FLOPPY.resultbuffer[4] = FLOPPY.commandbuffer[3]; //Head!
 				FLOPPY.resultbuffer[5] = FLOPPY.commandbuffer[4]; //Sector!
@@ -886,9 +901,9 @@ byte floppy_readData()
 		0, //3
 		1, //4
 		7, //5
-		1, //6: Should be 7, but only 1 requested by the Turbo XT BIOS?
+		7, //6
 		0, //7
-		1, //8: We only have 1 result byte instead of 2 according to the BIOS!
+		2, //8
 		7, //9
 		7, //a
 		0, //b
@@ -1008,6 +1023,11 @@ byte PORT_OUT_floppy(word port, byte value)
 		}
 		return 1; //Finished!
 	case 4: //DSR?
+		if (value & 0x80) //Reset requested?
+		{
+			value &= 0x7F; //Clear the reset bit automatically!
+			FLOPPY_reset(); //Execute a reset!
+		}
 		FLOPPY.DSR.data = value; //Write to register!
 		return 1; //Finished!
 	case 5: //Data?
