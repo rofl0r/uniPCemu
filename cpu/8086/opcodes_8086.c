@@ -1384,8 +1384,8 @@ void CPU8086_OP99() {modrm_generateInstructionTEXT("CWD",0,0,PARAM_NONE);/*CWD :
 void CPU8086_OP9A() {/*CALL Ap*/ word offset = CPU_readOPw(); word segment = CPU_readOPw(); debugger_setcommand("CALL %04x:%04x", segment, offset); CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP); destEIP = offset;  segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed!*/ }
 void CPU8086_OP9B() {modrm_generateInstructionTEXT("WAIT",0,0,PARAM_NONE);/*WAIT : wait for TEST pin activity. (UNIMPLEMENTED)*/ CPU[activeCPU].wait = 1;/*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
 void CPU8086_OP9C() {modrm_generateInstructionTEXT("PUSHF",0,0,PARAM_NONE);/*PUSHF*/ CPU_PUSH16(&REG_FLAGS); }
-void CPU8086_OP9D() {modrm_generateInstructionTEXT("POPF",0,0,PARAM_NONE);/*POPF*/ REG_FLAGS = CPU_POP16();/*POPF*/ }
-void CPU8086_OP9E() {modrm_generateInstructionTEXT("SAHF",0,0,PARAM_NONE);/*SAHF : Save AH to lower half of FLAGS.*/ REG_FLAGS = ((REG_FLAGS&0xFF00)|REG_AH);/*SAHF : Save AH to lower half of FLAGS.*/ }
+void CPU8086_OP9D() { modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/ REG_FLAGS = CPU_POP16(); updateCPUmode(); /*POPF*/ }
+void CPU8086_OP9E() { modrm_generateInstructionTEXT("SAHF", 0, 0, PARAM_NONE);/*SAHF : Save AH to lower half of FLAGS.*/ REG_FLAGS = ((REG_FLAGS & 0xFF00) | REG_AH); updateCPUmode(); /*SAHF : Save AH to lower half of FLAGS.*/ }
 void CPU8086_OP9F() {modrm_generateInstructionTEXT("LAHF",0,0,PARAM_NONE);/*LAHF : Load lower half of FLAGS into AH.*/ REG_AH = (REG_FLAGS&0xFF);/*LAHF : Load lower half of FLAGS into AH.*/ }
 void CPU8086_OPA0() {word theimm = CPU_readOPw(); debugger_setcommand("MOVB AL,[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV AL,[imm16]*/ CPU8086_internal_MOV8(&REG_AL,MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),theimm,0));/*MOV AL,[imm16]*/ }
 void CPU8086_OPA1() {word theimm = CPU_readOPw(); debugger_setcommand("MOVW AX,[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV AX,[imm16]*/  CPU8086_internal_MOV16(&REG_AX,MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),theimm,0));/*MOV AX,[imm16]*/ }

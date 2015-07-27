@@ -170,7 +170,7 @@ void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 	switch (info.isreg) //What type?
 	{
 	case 1: //Register?
-		result = (byte *)memprotect(info.reg8,1,"CPU_REGISTERS"); //Give register!
+		result = (byte *)/*memprotect(*/info.reg8/*,1,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
 			*result = value; //Write the data to the result!
@@ -204,7 +204,7 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 	switch (info.isreg) //What type?
 	{
 	case 1: //Register?
-		result = (word *)memprotect(info.reg16,2,"CPU_REGISTERS"); //Give register!
+		result = (word *)/*memprotect(*/info.reg16/*,2,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
 			*result = value; //Write the data to the result!
@@ -238,7 +238,7 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 	switch (info.isreg) //What type?
 	{
 	case 1: //Register?
-		result = (uint_32 *)memprotect(info.reg32,4,"CPU_REGISTERS"); //Give register!
+		result = (uint_32 *)/*memprotect(*/info.reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
 			*result = value; //Write the data to the result!
@@ -271,7 +271,7 @@ byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 	switch (info.isreg) //What type?
 	{
 	case 1: //Register?
-		result = (byte *)memprotect(info.reg8,1,"CPU_REGISTERS"); //Give register!
+		result = (byte *)/*memprotect(*/info.reg8/*,1,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Valid?
 		{
 			return *result; //Read register!
@@ -304,7 +304,7 @@ word modrm_read16(MODRM_PARAMS *params, int whichregister)
 	switch (info.isreg) //What type?
 	{
 	case 1: //Register?
-		result = (word *)memprotect(info.reg16,2,"CPU_REGISTERS"); //Give register!
+		result = (word *)/*memprotect(*/info.reg16/*,2,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Valid?
 		{
 			return *result; //Read register!
@@ -339,7 +339,7 @@ uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 	switch (info.isreg) //What type?
 	{
 	case 1: //Register?
-		result = (uint_32 *)memprotect(info.reg32,4,"CPU_REGISTERS"); //Give register!
+		result = (uint_32 *)/*memprotect(*/info.reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Valid?
 		{
 			return *result; //Read register!
@@ -1516,7 +1516,7 @@ byte *modrm_addr8(MODRM_PARAMS *params, int whichregister, int forreading)
 		{
 			halt_modrm("MODRM:NULL REG8\nValue:%s",info.text);
 		}
-		return (byte *)memprotect(info.reg8,1,"CPU_REGISTERS"); //Give register!
+		return (byte *)/*memprotect(*/info.reg8/*,1,"CPU_REGISTERS")*/; //Give register!
 	case 2: //Memory?
 		return NULL; //We don't do memory addresses! Use direct memory access here!
 	default:
@@ -1537,7 +1537,7 @@ word *modrm_addr16(MODRM_PARAMS *params, int whichregister, int forreading)
 		{
 			halt_modrm("MODRM:NULL REG16\nValue:%s",info.text);
 		}
-		return (word *)memprotect(info.reg16,2,"CPU_REGISTERS"); //Give register!
+		return (word *)/*memprotect(*/info.reg16/*,2,"CPU_REGISTERS")*/; //Give register!
 	case 2: //Memory?
 		return NULL; //We don't do memory addresses! Use direct memory access here!
 	default:
@@ -1683,7 +1683,7 @@ uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading)
 		{
 			halt_modrm("NULL REG32");
 		}
-		return (uint_32 *)memprotect(info.reg32,4,"CPU_REGISTERS"); //Give register!
+		return (uint_32 *)/*memprotect(*/info.reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?

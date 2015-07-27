@@ -397,9 +397,12 @@ void CPU_resetMode() //Resets the mode!
 	//Always start in REAL mode!
 	CPU[activeCPU].registers->SFLAGS.V8 = 0; //Disable Virtual 8086 mode!
 	CPU[activeCPU].registers->CR0.PE = 0; //Real mode!
+	updateCPUmode(); //Update the CPU mode!
 }
 
-byte getcpumode() //Retrieves the current mode!
+byte CPUmode = CPU_MODE_REAL; //The current CPU mode!
+
+void updateCPUmode() //Update the CPU mode!
 {
 	static const byte modes[4] = { CPU_MODE_REAL, CPU_MODE_PROTECTED, CPU_MODE_REAL, CPU_MODE_8086 }; //All possible modes (VM86 mode can't exist without Protected Mode!)
 	byte mode = 0;
@@ -408,7 +411,12 @@ byte getcpumode() //Retrieves the current mode!
 	mode = CPU[activeCPU].registers->SFLAGS.V8; //VM86 mode?
 	mode <<= 1;
 	mode |= CPU[activeCPU].registers->CR0.PE; //Protected mode?
-	return modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
+	CPUmode = modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
+}
+
+byte getcpumode() //Retrieves the current mode!
+{
+	return CPUmode; //Give the current CPU mode!
 }
 
 

@@ -330,7 +330,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		if (descriptor) //Loaded&valid?
 		{
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[segment],descriptor,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[segment])); //Load the segment descriptor into the cache!
-			if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
+			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 			{
 				*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Set the segment register to the allowed value!
 			}
@@ -342,7 +342,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 	}
 	else //Real mode has no protection?
 	{
-		if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
+		//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 		{
 			*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Just set the segment, don't load descriptor!
 		}
@@ -377,10 +377,14 @@ MMU: memory start!
 uint_32 CPU_MMU_start(word segment, word segmentval) //Determines the start of the segment!
 {
 //Determine the Base!
-
-	if (getcpumode()==CPU_MODE_REAL || getcpumode()==CPU_MODE_8086 || segment==-1) //Real or 8086 mode, or unknown segment to use?
+	if (getcpumode()!=CPU_MODE_PROTECTED) //Real or 8086 mode, or unknown segment to use?
 	{
 		return (segmentval<<4); //Behave like a 8086!
+	}
+
+	if (segment == -1) //Forced 8086 mode?
+	{
+		return (segmentval << 4); //Behave like a 8086!
 	}
 
 //Protected mode!
@@ -398,7 +402,8 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 //Determine the Limit!
 
 	if (CPU[activeCPU].faultraised) return 1; //Abort if already an fault has been raised!
-	if (getcpumode()==CPU_MODE_REAL || getcpumode()==CPU_MODE_8086 || segment==-1) //Real or 8086 mode, or unknown segment to use?
+	if (EMULATED_CPU < CPU_80286) return 0; //Don't give errors: handle like a 80(1)86!
+	if ((getcpumode()!=CPU_MODE_PROTECTED) || (segment==-1)) //Real or 8086 mode, or unknown segment to use?
 	{
 		if (segment!=-1) //Normal operations (called for the CPU for sure)?
 		{

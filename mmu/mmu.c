@@ -220,7 +220,8 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) /
 	}
 	writeword = 0; //Reset word-write flag for checking next bytes!
 
-	realaddress = CPU_MMU_start(segdesc,segment)+offset; //Real adress!
+	realaddress = CPU_MMU_start(segdesc, segment);
+	realaddress += offset; //Real adress!
 
 	if (MMU.wraparround) //-80186 wraps offset arround?
 	{

@@ -185,6 +185,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 					CPU[activeCPU].registers->DX = verify.DX;
 					CPU[activeCPU].registers->IP = verify.IP;
 					CPU[activeCPU].registers->FLAGS = verify.FLAGS;
+					updateCPUmode(); //Update the CPU mode: flags have been changed!
 					dolog("debugger", "Expected:");
 					debugger_logregisters(CPU[activeCPU].registers); //Log the correct registers!
 					//Refresh our debugger registers!
