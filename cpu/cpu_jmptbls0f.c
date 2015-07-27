@@ -1,11 +1,18 @@
 #include "headers/cpu/cpu.h" //Need basic CPU support!
+#include "headers/cpu/8086/cpu_OP8086.h" //Unknown opcodes under 8086!
+#include "headers/cpu/80186/cpu_OP80186.h" //Unknown opcodes under 80186+ and more!
 #include "headers/cpu/80286/cpu_OP80286.h" //Unknown opcodes under 80286+ and more!
 #include "headers/cpu/80386/cpu_OP80386.h" //Unknown opcodes under 80386+ and more!
 #include "headers/cpu/80486/cpu_OP80486.h" //Unknown opcodes under 80486+ and more!
 #include "headers/cpu/80586/cpu_OP80586.h" //Unknown opcodes under 80586+ and more!
 
-
 //0F opcode extensions:
+
+void unkOP0F_286() //0F unknown opcode handler on 286+?
+{
+	CPU_resetOP(); //Go back to the opcode itself!
+	CPU8086_int(0x06); //Call interrupt!
+}
 
 //See normal opcode table, but for 0F opcodes!
 Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard interrupt jmptbl!
@@ -1115,3 +1122,57 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 	}
 
 };
+
+Handler CurrentCPU_opcode0F_jmptbl[512]; //Our standard internal standard opcode jmptbl!
+
+void generate_opcode0F_jmptbl()
+{
+	byte cpu; //What CPU are we processing!
+	byte currentoperandsize = 0;
+	word OP; //The opcode to process!
+	for (currentoperandsize = 0; currentoperandsize < 2; currentoperandsize++) //Process all operand sizes!
+	{
+		byte operandsize = currentoperandsize; //Operand size to use!
+		for (OP = 0; OP < 0x100; OP++) //Process all opcodes!
+		{
+			cpu = EMULATED_CPU; //Start with the emulated CPU and work up to the predesessors!
+			if (cpu >= CPU_80286) //286+?
+			{
+				cpu -= CPU_80286; //We start existing at the 286!
+				while (!opcode0F_jmptbl[cpu][OP][operandsize]) //No opcode to handle at current CPU&operand size?
+				{
+					if (operandsize) //We have an operand size: switch to standard if possible!
+					{
+						operandsize = 0; //Not anymore!
+						continue; //Try again!
+					}
+					else //No operand size: we're a standard, so go up one cpu and retry!
+					{
+						operandsize = currentoperandsize; //Reset operand size!
+						if (cpu) //We've got CPUs left?
+						{
+							--cpu; //Go up one CPU!
+							operandsize = currentoperandsize; //Reset operand size to search!
+						}
+						else //No CPUs left!
+						{
+							break; //Stop searching!
+						}
+					}
+				}
+				if (opcode0F_jmptbl[cpu][OP][operandsize])
+				{
+					CurrentCPU_opcode0F_jmptbl[(OP << 1) | currentoperandsize] = opcode0F_jmptbl[cpu][OP][operandsize]; //Execute this instruction when we're triggered!
+				}
+				else
+				{
+					CurrentCPU_opcode0F_jmptbl[(OP << 1) | currentoperandsize] = &unkOP0F_286; //Execute this instruction when we're triggered!
+				}
+			}
+			else //Too old a CPU to support?
+			{
+				CurrentCPU_opcode0F_jmptbl[(OP << 1) | currentoperandsize] = cpu==CPU_8086?&unkOP_8086:unkOP_186; //Execute this instruction when we're triggered!
+			}
+		}
+	}
+}

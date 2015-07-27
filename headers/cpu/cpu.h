@@ -904,4 +904,6 @@ void CPU_BoundException(); //Bound exception!
 void CPU_COOP_notavailable(); //COProcessor not available!
 
 void CPU_getint(byte intnr, word *segment, word *offset); //Set real mode IVT entry!
+
+void generate_opcode_jmptbl(); //Generate the current CPU opcode jmptbl!
 #endif

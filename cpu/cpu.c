@@ -26,7 +26,6 @@ byte activeCPU = 0; //What CPU is currently active?
 byte cpudebugger; //To debug the CPU?
 
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
-extern Handler opcode_jmptbl[NUMCPUS][0x100][2]; //x86 opcode table
 //extern Handler debug_jmptbl[NUMCPUS][0x100][2]; //x86 debug opcode table
 extern Handler soft_interrupt_jmptbl[]; //Interrupt call table (software INT instructions)
 
@@ -107,6 +106,8 @@ void resetCPU() //Initialises CPU!
 	CPU[activeCPU].running = 1; //We're running!
 	
 	CPU[activeCPU].lastopcode = 0; //Last opcode, default to 0 and unknown?
+	generate_opcode_jmptbl(); //Generate the opcode jmptbl for the current CPU!
+	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
 }
 
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h
@@ -622,36 +623,14 @@ void CPU_afterexec(); //Prototype for below!
 word CPU_exec_CS; //OPCode CS
 uint_32 CPU_exec_EIP; //OPCode EIP
 
+extern Handler CurrentCPU_opcode_jmptbl[512]; //Our standard internal standard opcode jmptbl!
+
 void CPU_OP(byte OP) //Normal CPU opcode execution!
 {
-	int cpu = EMULATED_CPU; //Init cpu!
-	byte operandsize = CPU_Operand_size[activeCPU]; //Operand size to use!
-	while (!opcode_jmptbl[cpu][OP][operandsize]) //No opcode to handle at current CPU&operand size?
-	{
-		if (operandsize) //We have an operand size: switch to standard if possible!
-		{
-			operandsize = 0; //Not anymore!
-			continue; //Try again!
-		}
-		else //No operand size: we're a standard, so go up one cpu and retry!
-		{
-			operandsize = CPU_Operand_size[activeCPU]; //Reset operand size!
-			if (cpu) //We've got CPUs left?
-			{
-				--cpu; //Go up one CPU!
-				operandsize = CPU_Operand_size[activeCPU]; //Reset operand size to search!
-			}
-			else //No CPUs left!
-			{
-				raiseError("CPU","Opcode not defined in jmptbl: %02X",OP); //OPCode not defined!
-				return; //Can't execute!
-			}
-		}
-	}
 	protection_nextOP(); //Tell the protection exception handlers that we can give faults again!
 	reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
 	CPU[activeCPU].lastopcode = OP; //Last OPcode!
-	opcode_jmptbl[cpu][OP][operandsize](); //Now go execute the OPcode once in the runtime!
+	CurrentCPU_opcode_jmptbl[(OP<<1)|CPU_Operand_size[activeCPU]](); //Now go execute the OPcode once in the runtime!
 	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the jmptbl.
 }
 
@@ -737,142 +716,137 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	OP = CPU_readOP_prefix(); //Process prefix(es) and read OPCode!
 	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
 	debugger_setprefix(""); //Reset prefix for the debugger!
-	if (EMULATED_CPU>=0 && EMULATED_CPU<NUMITEMS(opcode_jmptbl)) //Emulating valid?
+	gotREP = 0; //Default: no REP-prefix used!
+	byte REPZ = 0; //Default to REP!
+	if (CPU_getprefix(0xF2)) //REPNE Opcode set?
 	{
-		gotREP = 0; //Default: no REP-prefix used!
-		byte REPZ = 0; //Default to REP!
-		if (CPU_getprefix(0xF2)) //REPNE Opcode set?
+		gotREP = REPZ = 1; //Allow and we're REPZ!
+		switch (OP) //Which special adjustment cycles Opcode?
 		{
-			gotREP = REPZ = 1; //Allow and we're REPZ!
-			switch (OP) //Which special adjustment cycles Opcode?
+		//New:
+		case 0xA4: //A4: REPNZ MOVSB
+			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+			break;
+		case 0xA5: //A5: REPNZ MOVSW
+			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+			break;
+
+		//Old:
+		case 0xA6: //A6: REPNZ CMPSB
+			break;
+		case 0xA7: //A7: REPNZ CMPSW
+			break;
+
+		//New:
+		case 0xAA: //AA: REPNZ STOSB
+			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+			break;
+		case 0xAB: //AB: REPNZ STOSW
+			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+			break;
+		case 0xAC: //AC: REPNZ LODSB
+			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+			break;
+		case 0xAD: //AD: REPNZ LODSW
+			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+			break;
+
+		//Old:
+		case 0xAE: //AE: REPNZ SCASB
+			break;
+		case 0xAF: //AF: REPNZ SCASW
+			break;
+		default: //Unknown yet?
+			gotREP = 0; //Dont allow after all!
+			CPU[activeCPU].cycles_OP = 0; //Unknown!
+			break; //Not supported yet!
+		}
+	}
+	else if (CPU_getprefix(0xF3)) //REP/REPE Opcode set?
+	{
+		gotREP = 1; //Allow!
+		switch (OP) //Which special adjustment cycles Opcode?
+		{
+		case 0xA4: //A4: REP MOVSB
+			break;
+		case 0xA5: //A5: REP MOVSW
+			break;
+		case 0xA6: //A6: REPE CMPSB
+			REPZ = 1; //REPE/REPZ!
+			break;
+		case 0xA7: //A7: REPE CMPSW
+			REPZ = 1; //REPE/REPZ!
+			break;
+		case 0xAA: //AA: REP STOSB
+			break;
+		case 0xAB: //AB: REP STOSW
+			break;
+		case 0xAC: //AC: REP LODSB
+			break;
+		case 0xAD: //AD: REP LODSW
+			break;
+		case 0xAE: //AE: REPE SCASB
+			REPZ = 1; //REPE/REPZ!
+			break;
+		case 0xAF: //AF: REPE SCASW
+			REPZ = 1; //REPE/REPZ!
+			break;
+		default: //Unknown yet?
+			gotREP = 0; //Don't allow after all!
+			break; //Not supported yet!
+		}
+	}
+
+	word oldCS;
+	oldCS = CPU[activeCPU].registers->CS;
+	word oldIP;
+	oldIP = CPU[activeCPU].registers->IP; //Save location!
+
+	if (gotREP) //Gotten REP?
+	{
+		if (CPU_getprefix(0xF2)) //REPNZ?
+		{
+			debugger_setprefix("REPNZ "); //Set prefix!
+		}
+		else if (CPU_getprefix(0xF3)) //REP/REPZ?
+		{
+			if (REPZ) //REPZ?
 			{
-			//New:
-			case 0xA4: //A4: REPNZ MOVSB
-				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
-				break;
-			case 0xA5: //A5: REPNZ MOVSW
-				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
-				break;
-
-			//Old:
-			case 0xA6: //A6: REPNZ CMPSB
-				break;
-			case 0xA7: //A7: REPNZ CMPSW
-				break;
-
-			//New:
-			case 0xAA: //AA: REPNZ STOSB
-				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
-				break;
-			case 0xAB: //AB: REPNZ STOSW
-				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
-				break;
-			case 0xAC: //AC: REPNZ LODSB
-				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
-				break;
-			case 0xAD: //AD: REPNZ LODSW
-				REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
-				break;
-
-			//Old:
-			case 0xAE: //AE: REPNZ SCASB
-				break;
-			case 0xAF: //AF: REPNZ SCASW
-				break;
-			default: //Unknown yet?
-				gotREP = 0; //Dont allow after all!
-				CPU[activeCPU].cycles_OP = 0; //Unknown!
-				break; //Not supported yet!
+				debugger_setprefix("REPZ "); //Set prefix!
+			}
+			else //REP?
+			{
+				debugger_setprefix("REP "); //Set prefix!
 			}
 		}
-		else if (CPU_getprefix(0xF3)) //REP/REPE Opcode set?
+		if (!CPU[activeCPU].registers->CX) //REP and finished?
 		{
-			gotREP = 1; //Allow!
-			switch (OP) //Which special adjustment cycles Opcode?
+			blockREP = 1; //Block the CPU instruction from executing!
+		}
+	}
+	CPU_OP(OP); //Now go execute the OPcode once!
+	if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
+	{
+		if (CPU_getprefix(0xF2)) //REPNZ?
+		{
+			if (REPZ) //Check for zero flag?
 			{
-			case 0xA4: //A4: REP MOVSB
-				break;
-			case 0xA5: //A5: REP MOVSW
-				break;
-			case 0xA6: //A6: REPE CMPSB
-				REPZ = 1; //REPE/REPZ!
-				break;
-			case 0xA7: //A7: REPE CMPSW
-				REPZ = 1; //REPE/REPZ!
-				break;
-			case 0xAA: //AA: REP STOSB
-				break;
-			case 0xAB: //AB: REP STOSW
-				break;
-			case 0xAC: //AC: REP LODSB
-				break;
-			case 0xAD: //AD: REP LODSW
-				break;
-			case 0xAE: //AE: REPE SCASB
-				REPZ = 1; //REPE/REPZ!
-				break;
-			case 0xAF: //AF: REPE SCASW
-				REPZ = 1; //REPE/REPZ!
-				break;
-			default: //Unknown yet?
-				gotREP = 0; //Don't allow after all!
-				break; //Not supported yet!
+				gotREP &= (CPU[activeCPU].registers->SFLAGS.ZF ^ 1); //To reset the opcode (ZF needs to be cleared to loop)?
 			}
 		}
-
-		word oldCS;
-		oldCS = CPU[activeCPU].registers->CS;
-		word oldIP;
-		oldIP = CPU[activeCPU].registers->IP; //Save location!
-
-		if (gotREP) //Gotten REP?
+		else if (CPU_getprefix(0xF3) && REPZ) //REPZ?
 		{
-			if (CPU_getprefix(0xF2)) //REPNZ?
-			{
-				debugger_setprefix("REPNZ "); //Set prefix!
-			}
-			else if (CPU_getprefix(0xF3)) //REP/REPZ?
-			{
-				if (REPZ) //REPZ?
-				{
-					debugger_setprefix("REPZ "); //Set prefix!
-				}
-				else //REP?
-				{
-					debugger_setprefix("REP "); //Set prefix!
-				}
-			}
-			if (!CPU[activeCPU].registers->CX) //REP and finished?
-			{
-				blockREP = 1; //Block the CPU instruction from executing!
-			}
+			gotREP &= CPU[activeCPU].registers->SFLAGS.ZF; //To reset the opcode (ZF needs to be set to loop)?
 		}
-		CPU_OP(OP); //Now go execute the OPcode once!
-		if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
+		if (CPU[activeCPU].registers->CX-- && gotREP) //Still looping and allowed? Decrease CX after checking for the final item!
 		{
-			if (CPU_getprefix(0xF2)) //REPNZ?
-			{
-				if (REPZ) //Check for zero flag?
-				{
-					gotREP &= (CPU[activeCPU].registers->SFLAGS.ZF ^ 1); //To reset the opcode (ZF needs to be cleared to loop)?
-				}
-			}
-			else if (CPU_getprefix(0xF3) && REPZ) //REPZ?
-			{
-				gotREP &= CPU[activeCPU].registers->SFLAGS.ZF; //To reset the opcode (ZF needs to be set to loop)?
-			}
-			if (CPU[activeCPU].registers->CX-- && gotREP) //Still looping and allowed? Decrease CX after checking for the final item!
-			{
-				REPPending = 1; //Run the current instruction again!
-			}
+			REPPending = 1; //Run the current instruction again!
 		}
 	}
 	blockREP = 0; //Don't block REP anymore!
 	CPU[activeCPU].cycles += CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
 	CPU_afterexec(); //After executing OPCode stuff!
-	for (; !lock("CPUIPS");) {}; //Wait for the lock!
 	++instructioncounter; //Increase the instruction counter!
-	unlock("CPUIPS"); //Release the IPS lock!
 }
 
 void CPU_exec_blocked(uint_32 minEIP, uint_32 maxEIP)

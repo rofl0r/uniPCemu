@@ -1686,3 +1686,54 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }  //FFh:
 	}
 };
+
+Handler CurrentCPU_opcode_jmptbl[512]; //Our standard internal standard opcode jmptbl!
+
+void unhandled_CPUjmptblitem()
+{
+	raiseError("CPU", "Unhandled instruction JMPTBL, ROP: %02X, Operand size: %i!", CPU[activeCPU].lastopcode, CPU_Operand_size[activeCPU]); //Log the opcode we're executing!
+}
+
+void generate_opcode_jmptbl()
+{
+	byte cpu; //What CPU are we processing!
+	byte currentoperandsize = 0;
+	word OP; //The opcode to process!
+	for (currentoperandsize = 0; currentoperandsize < 2; currentoperandsize++) //Process all operand sizes!
+	{
+		byte operandsize = currentoperandsize; //Operand size to use!
+		for (OP = 0; OP < 0x100; OP++) //Process all opcodes!
+		{
+			cpu = EMULATED_CPU; //Start with the emulated CPU and work up to the predesessors!
+			while (!opcode_jmptbl[cpu][OP][operandsize]) //No opcode to handle at current CPU&operand size?
+			{
+				if (operandsize) //We have an operand size: switch to standard if possible!
+				{
+					operandsize = 0; //Not anymore!
+					continue; //Try again!
+				}
+				else //No operand size: we're a standard, so go up one cpu and retry!
+				{
+					operandsize = currentoperandsize; //Reset operand size!
+					if (cpu) //We've got CPUs left?
+					{
+						--cpu; //Go up one CPU!
+						operandsize = currentoperandsize; //Reset operand size to search!
+					}
+					else //No CPUs left!
+					{
+						break; //Stop searching!
+					}
+				}
+			}
+			if (opcode_jmptbl[cpu][OP][operandsize])
+			{
+				CurrentCPU_opcode_jmptbl[(OP << 1) | currentoperandsize] = opcode_jmptbl[cpu][OP][operandsize]; //Execute this instruction when we're triggered!
+			}
+			else
+			{
+				CurrentCPU_opcode_jmptbl[(OP << 1) | currentoperandsize] = &unhandled_CPUjmptblitem; //Execute this instruction when we're triggered!
+			}
+		}
+	}
+}

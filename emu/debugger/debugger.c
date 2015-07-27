@@ -67,20 +67,49 @@ byte readverification(uint_32 index, VERIFICATIONDATA *entry)
 
 extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
+byte startreached = 0;
+
+byte debugger_logging()
+{
+	byte enablelog; //Default: disabled!
+	switch (DEBUGGER_LOG) //What log method?
+	{
+	case DEBUGGERLOG_ALWAYS:
+		enablelog = 1; //Always enabled!
+		break;
+	case DEBUGGERLOG_DEBUGGING:
+		enablelog = debugging(); //Enable log when debugging!
+		break;
+	default:
+		break;
+	}
+	enablelog |= startreached; //Start logging from this point!
+	enablelog &= allow_debuggerstep; //Are we allowed to debug?
+	return enablelog; //Logging?
+}
+
+byte needdebugger() //Do we need to generate debugging information?
+{
+	byte result;
+	result = debugger_logging(); //Are we logging?
+	result |= debugging(); //Are we debugging?
+	return result; //Do we need debugger information?
+}
+
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
-	lock("debugger_beforeCPU"); //We're busy on our task!
-	static VERIFICATIONDATA verify, originalverify;
-	memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
-	//Initialise debugger texts!
-	bzero(debugger_prefix,sizeof(debugger_prefix));
-	bzero(debugger_command_text,sizeof(debugger_command_text)); //Init vars!
-	strcpy(debugger_prefix,"");
-	strcpy(debugger_command_text,"<DEBUGGER UNKOP NOT IMPLEMENTED>"); //Standard: unknown opcode!
-	debugger_set = 0; //Default: the debugger isn't implemented!
-
-	if (debugger_logging()) //To log?
+	if (needdebugger()) //To apply the debugger generator?
 	{
+		lock("debugger_beforeCPU"); //We're busy on our task!
+		static VERIFICATIONDATA verify, originalverify;
+		memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
+		//Initialise debugger texts!
+		bzero(debugger_prefix,sizeof(debugger_prefix));
+		bzero(debugger_command_text,sizeof(debugger_command_text)); //Init vars!
+		strcpy(debugger_prefix,"");
+		strcpy(debugger_command_text,"<DEBUGGER UNKOP NOT IMPLEMENTED>"); //Standard: unknown opcode!
+		debugger_set = 0; //Default: the debugger isn't implemented!
+
 		if (file_exists("debuggerverify16.dat")) //Verification file exists?
 		{
 			if (HWINT_saved) //Saved HW interrupt?
@@ -165,8 +194,8 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 			}
 			++debugger_index; //Apply next index!
 		}
-	}
-	unlock("debugger_beforeCPU"); //We're finished!
+		unlock("debugger_beforeCPU"); //We're finished!
+	} //Are we logging or needing info?
 }
 
 char flags[256]; //Flags as a text!
@@ -292,35 +321,6 @@ extern byte last_modrm; //Is the last opcode a modr/m read?
 
 extern byte OPbuffer[256];
 extern byte OPlength; //The length of the OPbuffer!
-
-byte startreached = 0;
-
-byte debugger_logging()
-{
-	byte enablelog; //Default: disabled!
-	switch (DEBUGGER_LOG) //What log method?
-	{
-	case DEBUGGERLOG_ALWAYS:
-		enablelog = 1; //Always enabled!
-		break;
-	case DEBUGGERLOG_DEBUGGING:
-		enablelog = debugging(); //Enable log when debugging!
-		break;
-	default:
-		break;
-	}
-	enablelog |= startreached; //Start logging from this point!
-	enablelog &= allow_debuggerstep; //Are we allowed to debug?
-	return enablelog; //Logging?
-}
-
-byte needdebugger() //Do we need to generate debugging information?
-{
-	byte result;
-	result = debugger_logging(); //Are we logging?
-	result |= debugging(); //Are we debugging?
-	return result; //Do we need debugger information?
-}
 
 void debugger_autolog()
 {
