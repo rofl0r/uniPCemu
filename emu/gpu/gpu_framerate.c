@@ -10,6 +10,7 @@
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer support!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/zalloc.h" //Protection for pointers!
+#include "headers/support/locks.h" //Locking support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -41,6 +42,9 @@ uint_32 totalsteps = 0;
 extern uint_32 ms_render; //MS it took to render (125000 for 8fps, which is plenty!)
 
 uint_32 SCREENS_RENDERED = 0; //Ammount of GPU screens rendered!
+extern uint_64 instructioncounter; //For calculating IPS!
+
+uint_64 CPU_IPS; //Instruction per second counted!
 
 GPU_TEXTSURFACE *frameratesurface = NULL; //Framerate surface!
 
@@ -84,6 +88,10 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 		#endif
 		//Finally delay for next update!
 		//delay(FRAMERATE_STEP); //Wait for the next update as good as we can!
+		for (; !lock("CPUIPS");) {} //Wait for the lock!
+		CPU_IPS = instructioncounter / (timepassed / 1000000.0f);
+		instructioncounter = 0; //Reset instruction counter!
+		unlock("CPUIPS"); //Release the IPS lock!
 	}
 }
 
@@ -102,10 +110,10 @@ void renderFramerate()
 		GPU_textgotoxy(frameratesurface,0,0); //For output!
 		if (GPU.show_framerate)
 		{
-			GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),"FPS: %02.5f, AVG: %02.5f, Render time: %09ius",
+			GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),"FPS: %02.5f, AVG: %02.5f, CPU IPS: %i",
 				framerate, //Current framrate (FPS)
 				totalframerate, //AVG framerate (FPS)
-				ms_render //Time it took to render (MS)
+				CPU_IPS //Time it took to render (MS)
 				); //Show the framerate and average!
 			GPU_textgotoxy(frameratesurface,0,1); //Goto row 1!
 			GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x22,0x22,0x22),"Frames rendered: %i",totalframes); //Total # of frames rendered!

@@ -9,6 +9,7 @@
 #include "headers/cpu/cb_manager.h" //CB support!
 #include "headers/cpu/80286/protection.h"
 #include "headers/support/zalloc.h" //For allocating registers etc.
+#include "headers/support/locks.h" //Locking support!
 
 //ALL INTERRUPTS
 
@@ -45,6 +46,8 @@ uint_32 makeupticks; //From PIC?
 //Now the code!
 
 byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
+
+uint_64 instructioncounter; //Instruction counter!
 
 void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
 {
@@ -867,6 +870,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	blockREP = 0; //Don't block REP anymore!
 	CPU[activeCPU].cycles += CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
 	CPU_afterexec(); //After executing OPCode stuff!
+	for (; !lock("CPUIPS");) {}; //Wait for the lock!
+	++instructioncounter; //Increase the instruction counter!
+	unlock("CPUIPS"); //Release the IPS lock!
 }
 
 void CPU_exec_blocked(uint_32 minEIP, uint_32 maxEIP)

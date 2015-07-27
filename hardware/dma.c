@@ -79,8 +79,8 @@ void initDMAControllers() //Init function for BIOS!
 	{
 		DMA_Lock = SDL_CreateSemaphore(1);
 	}
-	memset(&DMAController[0],0,sizeof(DMAController)); //Init DMA Controller channels 0-3 (0 unused: for DRAM Refresh)
-	memset(&DMAController[1],0,sizeof(DMAController)); //Init DMA Controller channels 4-7 (4 unused: for DMA Controller coupling)
+	memset(&DMAController[0],0,sizeof(DMAController[0])); //Init DMA Controller channels 0-3 (0 unused: for DRAM Refresh)
+	memset(&DMAController[1],0,sizeof(DMAController[1])); //Init DMA Controller channels 4-7 (4 unused: for DMA Controller coupling)
 }
 
 void DMA_SetDREQ(byte channel, byte DREQ) //Set DREQ from hardware!
