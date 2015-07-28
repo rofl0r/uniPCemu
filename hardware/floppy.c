@@ -278,6 +278,9 @@ void FLOPPY_reset() //Resets the floppy disk command!
 	FLOPPY.ST0.data = 0xC0; //Reset ST0 to the correct value: drive became not ready!
 	FLOPPY.ST1.data = FLOPPY.ST2.data = 0; //Reset the ST data!
 	FLOPPY.reset_pending = 4; //We have a reset pending for all 4 drives!
+	FLOPPY.currentcylinder = 0; //Reset current cylinder!
+	memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
+	FLOPPY.TC = 0; //Disable TC identifier!
 	FLOPPY_raiseIRQ(); //Raise the IRQ flag!
 }
 
@@ -457,6 +460,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY.ST0.SeekEnd = 1; //Successfull read with implicit seek!
 		FLOPPY_LOG("FLOPPY: Start transfer of sector...")
 		FLOPPY_startDMA();
+		FLOPPY.databufferposition = 0; //Start with the new buffer!
 		FLOPPY.commandstep = 2; //Move to data phrase!
 	}
 	else //DSK or error?
@@ -471,6 +475,7 @@ void floppy_readsector() //Request a read sector command!
 					FLOPPY.ST2.data = sectorinformation.ST2; //Load ST2!
 				}
 				FLOPPY_startDMA();
+				FLOPPY.databufferposition = 0; //Start with the new buffer!
 				FLOPPY.commandstep = 2; //Move to data phase!
 				return; //Just execute it!
 			}
@@ -520,6 +525,7 @@ void floppy_writesector() //Request a write sector command!
 
 	FLOPPY_startDMA(); //Start the DMA transfer if needed!
 	FLOPPY.commandstep = 2; //Move to data phrase!
+	FLOPPY.databufferposition = 0; //Start with the new buffer!
 }
 
 void floppy_executeData() //Execute a floppy command. Data is fully filled!
@@ -635,8 +641,8 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 			/*FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 			updateFloppyWriteProtected(1); //Try to write with(out) protection!
 			FLOPPY_raiseIRQ(); //Entering result phase!
-			*/
 			break;
+			*/
 		default: //Unknown command?
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0.data = 0x80; //Invalid command!
@@ -686,6 +692,10 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.ST0.data &= 0xF8; //Clear low 3 bits!
 			FLOPPY.ST0.UnitSelect = reset_drive; //What drive are we giving!
 			FLOPPY.ST0.CurrentHead = (FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
+			if (!FLOPPY.reset_pending) //Finished reset?
+			{
+				FLOPPY.ST0.data = 0x00; //Reset the ST0 register after full reset!
+			}
 		}
 		else if (!FLOPPY.IRQPending) //Not an pending IRQ?
 		{
@@ -746,6 +756,24 @@ void floppy_abnormalpolling()
 
 void floppy_writeData(byte value)
 {
+	byte commandlength[0x10] = {
+		0, //0
+		0, //1
+		8, //2
+		2, //3
+		1, //4
+		8, //5
+		8, //6
+		1, //7
+		0, //8
+		8, //9
+		1, //A
+		0, //B
+		8, //C
+		5, //D
+		0, //E
+		2 //F
+		};
 	//TODO: handle floppy writes!
 	switch (FLOPPY.commandstep) //What step are we at?
 	{
@@ -779,88 +807,12 @@ void floppy_writeData(byte value)
 			}
 			break;
 		case 1: //Parameters
-			switch (FLOPPY.commandbuffer[0]&0xF) //What command?
+			FLOPPY_LOG("FLOPPY: Parameter sent: %02X(#%i/%i)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0] & 0xF]); //Log the parameter!
+			FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
+			if (FLOPPY.commandposition > (commandlength[FLOPPY.commandbuffer[0] & 0xF])) //All parameters have been processed?
 			{
-				case 0x2: //Read complete track
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==9) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				case 0x5: //Write sector
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==9) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				case 0x6: //Read sector
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==9) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				case 0x9: //Write deleted sector
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==9) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				case 0xC: //Read deleted sector
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==9) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				case 0xD: //Format track
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==6) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				case 0x3: //Fix drive data
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==3) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				case 0x4: //Check drive status
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==2) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				case 0x7: //Calibrate drive
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==2) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				case 0xA: //Read sector ID
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==2) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				case 0xF: //Seek/park head
-					FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-					if (FLOPPY.commandposition==3) //Finished?
-					{
-						floppy_executeCommand(); //Execute!
-					}
-					break;
-				default: //Invalid command
-					floppy_abnormalpolling();
-					break;
+				floppy_executeCommand(); //Execute!
+				break;
 			}
 			break;
 		case 2: //Data

@@ -471,11 +471,6 @@ void DMA_tick()
 					}
 					break;
 				case 1: //Single Transfer Mode
-					if (processed&FLAG_TC) //TC?
-					{
-						DMAController[controller].DACK &= ~(1 << channel); //Finished!
-					}
-					break;
 				case 2: //Block Transfer Mode
 					if (processed&FLAG_TC) //Complete on Terminal count?
 					{
