@@ -110,10 +110,24 @@ void renderFramerate()
 		GPU_textgotoxy(frameratesurface,0,0); //For output!
 		if (GPU.show_framerate)
 		{
-			GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),"FPS: %02.5f, AVG: %02.5f, CPU IPS: %i",
+			float IPS = (float)CPU_IPS;
+			byte scale = 0;
+			char scaletext[3][256] = { "IPS", "KIPS", "MIPS" };
+			for (scale = 0; scale < (NUMITEMS(scaletext)-1);)
+			{
+				if (IPS >= 1000.0f)
+				{
+					IPS /= 1000.0f; //Divide by 1000!
+					++scale; //Go up in scale!
+				}
+				else break; //Stop searching when found the scale!
+			}
+			GPU_textclearrow(frameratesurface, 0); //Clear the first row!
+			GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),"FPS: %02.5f, AVG: %02.5f, CPU@%1.3f%s",
 				framerate, //Current framrate (FPS)
 				totalframerate, //AVG framerate (FPS)
-				CPU_IPS //Time it took to render (MS)
+				IPS, //Time it took to render (MS)
+				scaletext[scale] //The scale the IPS is on!
 				); //Show the framerate and average!
 			GPU_textgotoxy(frameratesurface,0,1); //Goto row 1!
 			GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x22,0x22,0x22),"Frames rendered: %i",totalframes); //Total # of frames rendered!
