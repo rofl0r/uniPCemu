@@ -171,6 +171,7 @@ extern byte FullMemWritten; //Clear this to disable logging memory writes until 
 //Result: 0=Continue;1=Reset!
 int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 {
+	softreboot: //Little software reboot internal jump!
 	allow_debuggerstep = 0; //Default: don't allow to step!
 
 	if (MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0) != 0x1234) //Normal BIOS POST?
@@ -356,6 +357,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		case EXECUTIONMODE_SOUND:
 			debugrow("Starting sound test...");
 			dosoundtest(); //Run the sound test!
+			goto softreboot; //Execute soft reboot!
 			return 1; //Reboot!
 
 		case EXECUTIONMODE_TESTROM:

@@ -9,6 +9,7 @@
 #include "headers/hardware/midi/mididevice.h" //For the MIDI voices!
 #include "headers/emu/gpu/gpu_text.h" //Text surface support!
 #include "headers/cpu/cpu.h" //CPU support!
+#include "headers/bios/biosmenu.h" //BIOS menu option support!
 
 //Test the speaker?
 //#define __DEBUG_SPEAKER
@@ -99,6 +100,7 @@ word MID_RUNNING = 0;
 HEADER_CHNK header;
 
 SDL_sem *MID_channel_Lock = NULL; //Our channel lock for counting running MIDI!
+extern byte MID_TERM; //MIDI termination flag! Locked with MID_timing_pos_Lock!
 
 byte *MID_data[100]; //Tempo and music track!
 TRACK_CHNK MID_tracks[100];
@@ -164,6 +166,139 @@ void printMIDIChannelStatus()
 extern SDL_sem *MIDLock;
 extern SDL_sem *MID_timing_pos_Lock;
 extern SDL_sem *MID_BPM_Lock;
+extern uint_64 timing_pos; //Current timing position!
+extern float BPM; //No BPM by default!
+
+void playMIDIFile(char *filename) //Play a MIDI file, CIRCLE to stop playback!
+{
+	memset(&MID_data, 0, sizeof(MID_data)); //Init data!
+	memset(&MID_tracks, 0, sizeof(MID_tracks)); //Init tracks!
+
+	word numchannels = 0;
+	if ((numchannels = readMID(filename, &header, &MID_tracks[0], &MID_data[0], 100)) && __DEBUG_MPUMID)
+	{
+		stopTimers(0); //Stop most timers for max compatiblity and speed!
+		//Initialise our device!
+		PORT_OUT_B(0x331, 0xFF); //Reset!
+		PORT_OUT_B(0x331, 0x3F); //Kick to UART mode!
+
+		//Create the semaphore for the threads!
+		MIDLock = SDL_CreateSemaphore(1);
+		MID_timing_pos_Lock = SDL_CreateSemaphore(1);
+		MID_BPM_Lock = SDL_CreateSemaphore(1);
+		MID_channel_Lock = SDL_CreateSemaphore(1);
+
+		SDL_SemWait(MID_BPM_Lock); //Wait for the lock!
+		BPM = 0.0f; //Reset BPM!
+		SDL_SemPost(MID_BPM_Lock); //Finish: we've set the BPM!
+
+		SDL_SemWait(MID_timing_pos_Lock); //Wait for the lock!
+		timing_pos = 0; //Reset the timing for the current song!
+		SDL_SemPost(MID_timing_pos_Lock); //Finish: we've set the timing position!
+
+		MID_TERM = 0; //Reset termination flag!
+
+		updateMIDTimer(&header); //Update the timer!
+
+		//Now, start up all timers!
+
+		word i;
+		MID_RUNNING = numchannels; //Init to all running!
+		for (i = 0; i < numchannels; i++)
+		{
+			if (!i || (byteswap16(header.format) == 1)) //One channel, or multiple channels with format 2!
+			{
+				startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)i, DEFAULT_PRIORITY); //Start a thread handling the output of the channel!
+			}
+		}
+		if (byteswap16(header.format) != 1) //One channel only?
+		{
+			MID_RUNNING = 1; //Only one channel running!
+		}
+
+		delay(10000); //Wait a bit to allow for initialisation (position 0) to run!
+
+		startTimers(1);
+		startTimers(0); //Start our timers!
+
+		byte running = 1; //Are we running?
+
+		for (;;) //Wait to end!
+		{
+			delay(50000); //Wait 1sec intervals!
+			SDL_SemWait(MID_channel_Lock);
+			if (!MID_RUNNING)
+			{
+				running = 0; //Not running anymore!
+			}
+			printMIDIChannelStatus(); //Print the MIDI channel status!
+			SDL_SemPost(MID_channel_Lock);
+
+			if (psp_keypressed(BUTTON_CIRCLE)) //Circle pressed? Request to stop playback!
+			{
+				for (; psp_keypressed(BUTTON_CIRCLE);) {
+					delay(10000); //Wait for release!
+				} //Wait for release!
+				SDL_SemWait(MID_timing_pos_Lock); //Wait to update the flag!
+				MID_TERM = 1; //Set termination flag to request a termination!
+				SDL_SemPost(MID_timing_pos_Lock); //We're updated!
+			}
+
+			if (!running) break; //Not running anymore? Start quitting!
+		}
+
+		//Destroy semaphore
+		SDL_DestroySemaphore(MIDLock);
+		SDL_DestroySemaphore(MID_timing_pos_Lock);
+		SDL_DestroySemaphore(MID_BPM_Lock);
+		SDL_DestroySemaphore(MID_channel_Lock);
+
+		removetimer("MID_tempotimer"); //Clean up!
+		freeMID(&MID_tracks[0], &MID_data[0], numchannels); //Free all channels!
+
+		//Clean up the MIDI device for any leftover sound!
+		byte channel;
+		for (channel = 0; channel < 0x10; channel++) //Process all channels!
+		{
+			PORT_OUT_B(0x330, 0xB0|(channel&0xF)); //We're requesting a ...
+			PORT_OUT_B(0x330, 0x7B); //All Notes off!
+			PORT_OUT_B(0x330, 0x00); //On the current channel!!
+		}
+		PORT_OUT_B(0x330, 0xFF); //Reset MIDI device!
+		PORT_OUT_B(0x331, 0xFF); //Reset the MPU!
+	}
+	//We're finished playing! Return to caller for new input!
+}
+
+extern char itemlist[ITEMLIST_MAXITEMS][256]; //Max X files listed!
+int MIDI_file = 0; //The file selected!
+
+int BIOS_MIDI_selection() //MIDI selection menu, custom for this purpose!
+{
+	BIOS_Title("Select MIDI file to play");
+	generateFileList("mid|midi", 0, 0); //Generate file list for all .img files!
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(0x7F); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "MIDI file: "); //Show selection init!
+
+	int file = ExecuteList(12, 4, itemlist[MIDI_file], 256); //Show menu for the disk image!
+	switch (file) //Which file?
+	{
+	case FILELIST_DEFAULT: //Execute default selection?
+		return -2; //Give to our caller to handle!
+		break;
+	case FILELIST_CANCEL: //Cancelled?
+		return -1; //Not selected!
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_NOFILES: //No files?
+		return -1; //Not selected!
+		break;
+	default: //File?
+		return file; //Use this file!
+	}
+	return -1; //Just in case!
+}
 
 void dosoundtest()
 {
@@ -258,71 +393,26 @@ void dosoundtest()
 	#ifdef __DEBUG_MIDI
 	printmsg(0xF,"Debugging MIDI...\r\n");
 	VGA_waitforVBlank(); //Wait for a VBlank, to allow the screen to be up to date!
-	memset(&MID_data, 0, sizeof(MID_data)); //Init data!
-	memset(&MID_tracks, 0, sizeof(MID_tracks)); //Init tracks!
 
-	word numchannels = 0;
-	if ((numchannels = readMID("MPU.mid", &header, &MID_tracks[0], &MID_data[0], 100)) && __DEBUG_MPUMID)
+	MIDI_file = 0; //Init selected file!
+	for (;;) //MIDI selection loop!
 	{
-		stopTimers(0); //Stop most timers for max compatiblity and speed!
-		//Initialise our device!
-		PORT_OUT_B(0x331, 0xFF); //Reset!
-		PORT_OUT_B(0x331, 0x3F); //Kick to UART mode!
-		updateMIDTimer(&header); //Update the timer!
-
-		//Create the semaphore for the threads!
-		MIDLock = SDL_CreateSemaphore(1);
-		MID_timing_pos_Lock = SDL_CreateSemaphore(1);
-		MID_BPM_Lock = SDL_CreateSemaphore(1);
-		MID_channel_Lock = SDL_CreateSemaphore(1);
-
-		//Now, start up all timers!
-
-		word i;
-		MID_RUNNING = numchannels; //Init to all running!
-		for (i = 0; i < numchannels; i++)
+		MIDI_file = BIOS_MIDI_selection(); //Allow the user to select a MIDI file!
+		if (MIDI_file < 0) //Not selected?
 		{
-			if (!i || (byteswap16(header.format) == 1)) //One channel, or multiple channels with format 2!
+			MIDI_file = 0;
+			if (MIDI_file == -2) //Default selected?
 			{
-				startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)i, DEFAULT_PRIORITY); //Start a thread handling the output of the channel!
+				break; //Stop selection of the MIDI file!
+			}
+			else //Full cancel to execute?
+			{
+				return; //Allow our caller to execute the next step!
 			}
 		}
-		if (byteswap16(header.format) != 1) //One channel only?
-		{
-			MID_RUNNING = 1; //Only one channel running!
-		}
-
-		delay(10000); //Wait a bit to allow for initialisation (position 0) to run!
-
-		startTimers(1);
-		startTimers(0); //Start our timers!
-
-		byte running = 1; //Are we running?
-
-		for (;;) //Wait to end!
-		{
-			delay(50000); //Wait 1sec intervals!
-			SDL_SemWait(MID_channel_Lock);
-			if (!MID_RUNNING)
-			{
-				running = 0; //Not running anymore!
-			}
-			printMIDIChannelStatus(); //Print the MIDI channel status!
-			SDL_SemPost(MID_channel_Lock);
-			if (!running) break; //Not running anymore? Start quitting!
-		}
-
-		//Destroy semaphore
-		SDL_DestroySemaphore(MIDLock);
-		SDL_DestroySemaphore(MID_timing_pos_Lock);
-		SDL_DestroySemaphore(MID_BPM_Lock);
-		SDL_DestroySemaphore(MID_channel_Lock);
-
-		removetimer("MID_tempotimer"); //Clean up!
-		freeMID(&MID_tracks[0], &MID_data[0], numchannels); //Free all channels!
-		exit(0);
-		halt();
-		sleep();
+		//Play the MIDI file!
+		playMIDIFile(&itemlist[MIDI_file][0]); //Play the MIDI file!
+		delay(1000000); //Wait 1 second before selecting the next file!
 	}
 
 	stopTimers(1); //Stop ALL timers for testing speed!
@@ -373,8 +463,6 @@ void dosoundtest()
 	}
 	delay(10000000);
 	#endif
-	
-	//printmsg(0xF,"Testing for adlib...");
 	
 	exit(0); //Quit the application!
 	sleep(); //Wait forever!

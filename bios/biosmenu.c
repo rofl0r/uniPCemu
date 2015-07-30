@@ -664,7 +664,6 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 //File list functions!
 
 //Ammount of files in the list MAX
-#define ITEMLIST_MAXITEMS 0x100
 char itemlist[ITEMLIST_MAXITEMS][256]; //Max X files listed!
 int numlist = 0; //Number of files!
 
@@ -718,13 +717,6 @@ void generateFileList(char *extensions, int allowms0, int allowdynamic)
 		closedirlist(&dir);
 	}
 }
-
-//Cancelled!
-#define FILELIST_CANCEL -1
-//No files with this extension!
-#define FILELIST_NOFILES -2
-//Default item!
-#define FILELIST_DEFAULT -3
 
 int cmpinsensitive(char *str1, char *str2, uint_32 maxlen) //Compare, case insensitive!
 {

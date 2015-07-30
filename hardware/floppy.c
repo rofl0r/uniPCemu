@@ -384,6 +384,12 @@ void updateFloppyMSR() //Update the floppy MSR!
 	default: //Unknown status?
 		break; //Unknown?
 	}
+	static byte oldMSR = 0; //Old MSR!
+	if (FLOPPY.MSR.data != oldMSR) //MSR changed?
+	{
+		oldMSR = FLOPPY.MSR.data; //Update old!
+		FLOPPY_LOG("FLOPPY: MSR: %02x", FLOPPY.MSR.data); //The updated MSR!
+	}
 }
 
 void updateFloppyDIR() //Update the floppy DIR!

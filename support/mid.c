@@ -10,6 +10,8 @@
 #define MIDIHEADER_ID 0x6468544d
 #define MIDIHEADER_TRACK_ID 0x6b72544d
 
+byte MID_TERM = 0; //MIDI termination flag!
+
 word byteswap16(word value)
 {
 	return ((value & 0xFF) << 8) | ((value & 0xFF00) >> 8); //Byteswap!
@@ -233,6 +235,12 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 		{
 			//Lock
 			SDL_SemWait(MID_timing_pos_Lock);
+			if (MID_TERM) //Termination requested?
+			{
+				//Unlock
+				SDL_SemPost(MID_timing_pos_Lock);
+				return; //Stop playback: we're requested to stop playing!
+			}
 			if (timing_pos >= play_pos)
 			{
 				//Unlock
