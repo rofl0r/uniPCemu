@@ -89,61 +89,6 @@ void testtimer()
 	goto next; //Next loop/item!
 }
 
-extern char itemlist[ITEMLIST_MAXITEMS][256]; //Max X files listed!
-int MIDI_file = 0; //The file selected!
-
-int BIOS_MIDI_selection() //MIDI selection menu, custom for this purpose!
-{
-	BIOS_Title("Select MIDI file to play");
-	generateFileList("mid|midi", 0, 0); //Generate file list for all .img files!
-	EMU_gotoxy(0, 4); //Goto 4th row!
-	EMU_textcolor(0x7F); //We're using inactive color for label!
-	GPU_EMU_printscreen(0, 4, "MIDI file: "); //Show selection init!
-
-	int file = ExecuteList(12, 4, itemlist[MIDI_file], 256); //Show menu for the disk image!
-	switch (file) //Which file?
-	{
-	case FILELIST_DEFAULT: //Execute default selection?
-		return -2; //Give to our caller to handle!
-		break;
-	case FILELIST_CANCEL: //Cancelled?
-		return -1; //Not selected!
-		//We do nothing with the selected disk!
-		break; //Just calmly return!
-	case FILELIST_NOFILES: //No files?
-		return -1; //Not selected!
-		break;
-	default: //File?
-		return file; //Use this file!
-	}
-	return -1; //Just in case!
-}
-
-byte sound_playMIDIfile()
-{
-	MIDI_file = 0; //Init selected file!
-	for (;;) //MIDI selection loop!
-	{
-		MIDI_file = BIOS_MIDI_selection(); //Allow the user to select a MIDI file!
-		if (MIDI_file < 0) //Not selected?
-		{
-			MIDI_file = 0;
-			if (MIDI_file == -2) //Default selected?
-			{
-				break; //Stop selection of the MIDI file!
-			}
-			else //Full cancel to execute?
-			{
-				return 0; //Allow our caller to execute the next step!
-			}
-		}
-		//Play the MIDI file!
-		playMIDIFile(&itemlist[MIDI_file][0]); //Play the MIDI file!
-		delay(1000000); //Wait 1 second before selecting the next file!
-	}
-	return 1; //Plain finish: just execute whatever you want!
-}
-
 void dosoundtest()
 {
 	CPU[activeCPU].registers->AH = 0x00; //Init video mode!
@@ -229,7 +174,7 @@ void dosoundtest()
 	#ifdef __DEBUG_MIDI
 	printmsg(0xF,"Debugging MIDI...\r\n");
 	VGA_waitforVBlank(); //Wait for a VBlank, to allow the screen to be up to date!
-	if (sound_playMIDIfile()) //Play the default?
+	if (!playMIDIFile("MPU.MID",1)) //Play the default(we're showing info when playing MIDI files)?
 	{
 		stopTimers(1); //Stop ALL timers for testing speed!
 		//dolog("SF2","Sounding test central C...");

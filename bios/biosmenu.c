@@ -138,6 +138,9 @@ void BIOSClearScreen(); //Resets the BIOS's screen!
 void BIOSDoneScreen(); //Cleans up the BIOS's screen!
 void BIOS_VGASettingsMenu(); //Manage stuff concerning input.
 void BIOS_VGANMISetting(); //VGA NMI setting!
+void BIOS_MIDISettingsMenu(); //Manage stuff concerning MIDI.
+void BIOS_SoundFont_selection(); //FLOPPY0 selection menu!
+void BIOS_MIDIPlayer(); //FLOPPY0 selection menu!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -174,6 +177,9 @@ Handler BIOS_Menus[] =
 	,BIOS_gamingKeyboardColor //Keyboard color menu is #28!
 	,BIOS_VGASettingsMenu //Manage stuff concerning VGA Settings is #29!
 	,BIOS_VGANMISetting //VGA NMI setting is #30!
+	,BIOS_MIDISettingsMenu //MIDI settings menu is #31!
+	,BIOS_SoundFont_selection //Soundfont selection menu is #32!
+	,BIOS_MIDIPlayer //MIDI Player is #33!
 };
 
 //Not implemented?
@@ -184,6 +190,9 @@ byte BIOS_SaveStat = 0; //To save the BIOS?
 byte BIOS_Changed = 0; //BIOS Changed?
 
 GPU_TEXTSURFACE *BIOS_Surface; //Our very own BIOS Surface!
+
+int advancedoptions = 0; //Number of advanced options!
+byte optioninfo[0x10]; //Option info for what option!
 
 void allocBIOSMenu() //Stuff that take extra video memory etc. for seperated BIOS allocation (so before MMU, because it may take it all)!
 {
@@ -365,7 +374,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 	BIOSDoneScreen(); //Clean up the screen!
 //Now return to the emulator to reboot!
-	BIOS_ValidateDisks(); //Validate&reload all disks!
+	BIOS_ValidateData(); //Validate&reload all disks!
 	GPU_keepAspectRatio(BIOS_Settings.keepaspectratio); //Keep the aspect ratio?
 
 //Restore all states saved for the BIOS!
@@ -526,17 +535,7 @@ void BIOS_MenuChooser() //The menu chooser!
 	}
 }
 
-
-
-
-
 //Now the menus itself:
-
-
-
-
-
-
 
 void BIOS_Title(char *text)
 {
@@ -875,15 +874,12 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 	switch (file) //Which file?
 	{
 	case FILELIST_DEFAULT: //Unmount?
+	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.floppy0,""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
-		break; //Just calmly return!
-	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.floppy0,""); //Unmount: no files!
 		break;
 	default: //File?
 		BIOS_Changed = 1; //Changed!
@@ -903,16 +899,13 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 	switch (file) //Which file?
 	{
 	case FILELIST_DEFAULT: //Unmount?
+	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.floppy1,""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
-	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.floppy1,""); //Unmount: no files!
-		break;
 	default: //File?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.floppy1,itemlist[file]); //Use this file!
@@ -931,16 +924,13 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 	switch (file) //Which file?
 	{
 	case FILELIST_DEFAULT: //Unmount?
+	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.hdd0,""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
-	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.hdd0,""); //Unmount: no files!
-		break;
 	default: //File?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.hdd0,itemlist[file]); //Use this file!
@@ -959,16 +949,13 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 	switch (file) //Which file?
 	{
 	case FILELIST_DEFAULT: //Unmount?
+	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.hdd1,""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
-	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.hdd1,""); //Unmount: no files!
-		break;
 	default: //File?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.hdd1,itemlist[file]); //Use this file!
@@ -987,16 +974,13 @@ void BIOS_cdrom0_selection() //CDROM0 selection menu!
 	switch (file) //Which file?
 	{
 	case FILELIST_DEFAULT: //Unmount?
+	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.cdrom0,""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
-	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.cdrom0,""); //Unmount: no files!
-		break;
 	default: //File?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.cdrom0,itemlist[file]); //Use this file!
@@ -1015,16 +999,13 @@ void BIOS_cdrom1_selection() //CDROM1 selection menu!
 	switch (file) //Which file?
 	{
 	case FILELIST_DEFAULT: //Unmount?
+	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.cdrom1,""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
-	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.cdrom1,""); //Unmount: no files!
-		break;
 	default: //File?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.cdrom1,itemlist[file]); //Use this file!
@@ -1239,9 +1220,6 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 
 extern char BOOT_ORDER_STRING[15][30]; //Boot order, string values!
 
-int advancedoptions = 0; //Number of advanced options!
-byte optioninfo[0x10]; //Option info for what option!
-
 void BIOS_InitAdvancedText()
 {
 	advancedoptions = 0; //Init!
@@ -1361,6 +1339,9 @@ void BIOS_InitAdvancedText()
 	optioninfo[advancedoptions] = 4; //VGA Settings
 	strcpy(menuoptions[advancedoptions++], "VGA Settings");
 
+	optioninfo[advancedoptions] = 10;
+	strcpy(menuoptions[advancedoptions++], "MIDI Settings");
+
 	optioninfo[advancedoptions] = 9;
 	strcpy(menuoptions[advancedoptions++], "Input options");
 }
@@ -1469,7 +1450,8 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 6:
 	case 7:
 	case 8:
-	case 9: //Valid option?
+	case 9:
+	case 10: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Boot order (plain)?
@@ -1502,6 +1484,9 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 		case 9:
 			BIOS_Menu = 25; //Input submenu!
 			break;
+		case 10:
+			BIOS_Menu = 31; //MIDI Settings menu!
+			break;
 		}
 		break;
 	default: //Unknown option?
@@ -1509,11 +1494,6 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 		break;
 	}
 }
-
-
-
-
-
 
 void BIOS_MainMenu() //Shows the main menu to process!
 {
@@ -1524,43 +1504,53 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	{
 		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
 	}
-	if (!reboot_needed) //Running?
+	advancedoptions = 0; //No advanced options!
+	if (BIOS_Changed) //Changed?
 	{
-		strcpy(menuoptions[0],"Save Changes & Resume emulation"); //Option #0!
-	}
-	else
-	{
-		strcpy(menuoptions[0],"Save Changes & Reboot"); //Option #0!
-	}
-	if (!reboot_needed)
-	{
-		strcpy(menuoptions[1],"Discard Changes & Resume emulation"); //Option #1!
-	}
-	else
-	{
-		strcpy(menuoptions[1],"Discard Changes & Reboot"); //Option #1!
-	}
-	if (!EMU_RUNNING) //Emulator isn't running?
-	{
-		strcpy(menuoptions[i++],"Load BIOS defaults"); //Load defaults option!
+		optioninfo[advancedoptions] = 0; //Reboot option!
+		if (!reboot_needed) //Running?
+		{
+			strcpy(menuoptions[advancedoptions++], "Save Changes & Resume emulation"); //Option #0!
+		}
+		else
+		{
+			strcpy(menuoptions[advancedoptions++], "Save Changes & Reboot"); //Option #0!
+		}
 	}
 
-	int menuresult = BIOS_ShowMenu(i,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Plain menu, allow L&R triggers!
+	optioninfo[advancedoptions] = 1; //Discard option!
+	strcpy(menuoptions[advancedoptions++],"Discard Changes & Resume emulation"); //Option #1!
+	
+	
+	if (!EMU_RUNNING) //Emulator isn't running?
+	{
+		optioninfo[advancedoptions] = 2; //Load defaults option!
+		strcpy(menuoptions[advancedoptions++],"Load BIOS defaults"); //Load defaults option!
+	}
+
+	int menuresult = BIOS_ShowMenu(advancedoptions,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Plain menu, allow L&R triggers!
 
 	switch (menuresult) //What option has been chosen?
 	{
-	case 0: //Save&Quit?
-		BIOS_Menu = -1; //Quit!
-		BIOS_SaveStat = 1; //Save the BIOS!
-		break;
-	case 1: //Discard changes&Quit?
-		BIOS_Menu = -1; //Quit!
-		BIOS_SaveStat = 0; //Discard changes!
-		break;
-	case 2: //Load defaults?
-		BIOSMenu_LoadDefaults(); //Load BIOS defaults option!
-		BIOS_Changed = 1; //The BIOS has been changed!
-		reboot_needed = 1; //We need a reboot!
+	case 0:
+	case 1:
+	case 2:
+		switch (optioninfo[menuresult]) //What option is chosen?
+		{
+		case 0: //Save&Quit?
+			BIOS_Menu = -1; //Quit!
+			BIOS_SaveStat = 1; //Save the BIOS!
+			break;
+		case 1: //Discard changes&Quit?
+			BIOS_Menu = -1; //Quit!
+			BIOS_SaveStat = 0; //Discard changes!
+			break;
+		case 2: //Load defaults?
+			BIOSMenu_LoadDefaults(); //Load BIOS defaults option!
+			BIOS_Changed = 1; //The BIOS has been changed!
+			reboot_needed = 1; //We need a reboot!
+			break;
+		}
 		break;
 	case BIOSMENU_SPEC_LTRIGGER: //L?
 		BIOS_Menu = 8; //Goto Advanced menu!
@@ -1862,14 +1852,10 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 	switch (file) //Which file?
 	{
 	case FILELIST_DEFAULT: //Unmount?
-		BIOS_Changed = 1; //Changed!
-		break;
+	case FILELIST_NOFILES: //No files?
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
-	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
-		break;
 	default: //File?
 		strcpy(filename, itemlist[file]); //Use this file!
 		EMU_textcolor(BIOS_ATTR_TEXT);
@@ -1989,14 +1975,10 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 	switch (file) //Which file?
 	{
 	case FILELIST_DEFAULT: //Unmount?
-		BIOS_Changed = 1; //Changed!
-		break;
+	case FILELIST_NOFILES: //No files?
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
-	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
-		break;
 	default: //File?
 		strcpy(filename, itemlist[file]); //Use this file!
 		EMU_textcolor(BIOS_ATTR_TEXT);
@@ -2115,13 +2097,8 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	switch (file) //Which file?
 	{
 	case FILELIST_DEFAULT: //Unmount?
-		BIOS_Changed = 1; //Changed!
-		break;
-	case FILELIST_CANCEL: //Cancelled?
-		//We do nothing with the selected disk!
-		break; //Just calmly return!
 	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
+	case FILELIST_CANCEL: //Cancelled?
 		break;
 	default: //File?
 		strcpy(filename, itemlist[file]); //Use this file!
@@ -3028,7 +3005,7 @@ void BIOS_InitVGASettingsText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i=0; i<10; i++) //Clear all possibilities!
+	for (i=0; i<3; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
 	}
@@ -3126,4 +3103,157 @@ void BIOS_VGASettingsMenu() //Manage stuff concerning input.
 		BIOS_Menu = NOTIMPLEMENTED; //Not implemented yet!
 		break;
 	}
+}
+
+void BIOS_InitMIDISettingsText()
+{
+	advancedoptions = 0; //Init!
+	int i;
+	for (i = 0; i<2; i++) //Clear all possibilities!
+	{
+		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+	}
+
+	optioninfo[advancedoptions] = 0; //We're direct plot setting!
+	strcpy(menuoptions[advancedoptions], "MPU Soundfont: ");
+	if (strcmp(BIOS_Settings.SoundFont, "") != 0)
+	{
+		strcat(menuoptions[advancedoptions++], BIOS_Settings.SoundFont); //The selected soundfont!
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "<None>");
+	}
+
+	if (!EMU_RUNNING)
+	{
+		optioninfo[advancedoptions] = 1; //Monitor!
+		strcpy(menuoptions[advancedoptions++], "MIDI Player");
+	}
+}
+
+void BIOS_MIDISettingsMenu() //Manage stuff concerning input.
+{
+	BIOS_Title("MIDI Settings Menu");
+	BIOS_InitMIDISettingsText(); //Init text!
+	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
+	switch (menuresult)
+	{
+	case BIOSMENU_SPEC_CANCEL: //Return?
+		BIOS_Menu = 8; //Goto Advanced Menu!
+		break;
+	case 0:
+	case 1:
+	case 2: //Valid option?
+		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
+		{
+		case 0: //Soundfont selection?
+			BIOS_Menu = 32; //Direct plot setting!
+			break;
+		case 1: //Play MIDI file(s)?
+			BIOS_Menu = 33; //Play MIDI file(s)!
+			break;
+		}
+		break;
+	default: //Unknown option?
+		BIOS_Menu = NOTIMPLEMENTED; //Not implemented yet!
+		break;
+	}
+}
+
+void BIOS_SoundFont_selection() //SoundFont selection menu!
+{
+	BIOS_Title("Mount Soundfont");
+	generateFileList("sf2", 0, 0); //Generate file list for all .sf2 files!
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Soundfont: "); //Show selection init!
+
+	int file = ExecuteList(12, 4, BIOS_Settings.SoundFont, 256); //Show menu for the disk image!
+	switch (file) //Which file?
+	{
+	case FILELIST_DEFAULT: //Unmount?
+	case FILELIST_NOFILES: //No files?
+		if (strcmp(BIOS_Settings.SoundFont, ""))
+		{
+			BIOS_Changed = 1; //Changed!
+			reboot_needed = 1; //We need to reboot!
+			strcpy(BIOS_Settings.SoundFont, ""); //Unmount!
+		}
+		break;
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	default: //File?
+		if (strcmp(BIOS_Settings.SoundFont, itemlist[file])) //Changed?
+		{
+			BIOS_Changed = 1; //Changed!
+			reboot_needed = 1; //We need to reboot!
+		}
+		strcpy(BIOS_Settings.SoundFont, itemlist[file]); //Use this file!
+		break;
+	}
+	BIOS_Menu = 31; //Return to the MIDI menu!
+}
+
+int MIDI_file = 0; //The file selected!
+
+int BIOS_MIDI_selection() //MIDI selection menu, custom for this purpose!
+{
+	BIOS_Title("Select MIDI file to play");
+	generateFileList("mid|midi", 0, 0); //Generate file list for all .img files!
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "MIDI file: "); //Show selection init!
+
+	int file = ExecuteList(12, 4, itemlist[MIDI_file], 256); //Show menu for the disk image!
+	switch (file) //Which file?
+	{
+	case FILELIST_DEFAULT: //Execute default selection?
+		return -2; //Give to our caller to handle!
+		break;
+	case FILELIST_CANCEL: //Cancelled?
+		return -1; //Not selected!
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_NOFILES: //No files?
+		return -1; //Not selected!
+		break;
+	default: //File?
+		return file; //Use this file!
+	}
+	return -1; //Just in case!
+}
+
+byte sound_playMIDIfile(byte showinfo)
+{
+	MIDI_file = 0; //Init selected file!
+	for (;;) //MIDI selection loop!
+	{
+		MIDI_file = BIOS_MIDI_selection(); //Allow the user to select a MIDI file!
+		if (MIDI_file < 0) //Not selected?
+		{
+			MIDI_file = 0;
+			if (MIDI_file == -2) //Default selected?
+			{
+				break; //Stop selection of the MIDI file!
+			}
+			else //Full cancel to execute?
+			{
+				return 0; //Allow our caller to execute the next step!
+			}
+		}
+		EMU_textcolor(0x04); //Green on black!
+		GPU_EMU_printscreen(0, GPU_TEXTSURFACE_HEIGHT - 1, "Playing..."); //Show playing init!
+		//Play the MIDI file!
+		playMIDIFile(&itemlist[MIDI_file][0], showinfo); //Play the MIDI file!
+		GPU_EMU_printscreen(0, GPU_TEXTSURFACE_HEIGHT - 1, "          "); //Show playing finished!
+	}
+	return 1; //Plain finish: just execute whatever you want!
+}
+
+void BIOS_MIDIPlayer() //MIDI Player!
+{
+	sound_playMIDIfile(0); //Play one or more MIDI files! Don't show any information!
+	BIOS_Menu = 31; //Return to the MIDI menu!
 }

@@ -3,8 +3,8 @@
 
 #include "headers/types.h" //Basic types!
 
-//MIDI file support!
+//MIDI file player support!
 
-void playMIDIFile(char *filename); //Play a MIDI file, CIRCLE to stop playback!
+byte playMIDIFile(char *filename, byte showinfo); //Play a MIDI file, CIRCLE to stop playback! Cancelled/error loading returns 0, 1 on success playing.
 
 #endif

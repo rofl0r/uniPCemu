@@ -9,7 +9,7 @@
 #define BIOS_INPUTDELAY 250000
 
 //BIOS Version!
-#define BIOS_VERSION 1
+#define BIOS_VERSION 2
 
 #include "headers/packed.h" //We're packed!
 typedef struct PACKED
@@ -27,6 +27,7 @@ typedef struct PACKED
 			char hdd1[256];
 			char cdrom0[256];
 			char cdrom1[256];
+			char SoundFont[256]; //What soundfont to use?
 
 			int floppy0_readonly; //read-only?
 			int floppy1_readonly; //read-only?
@@ -107,7 +108,7 @@ typedef struct PACKED
 
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!
-void BIOS_ValidateDisks(); //Validate all disks and eject wrong ones!
+void BIOS_ValidateData(); //Validate all data and eject wrong ones!
 void BIOS_LoadDefaults(int tosave); //Load BIOS defaults!
 
 void BIOS_LoadData(); //Loads the data!

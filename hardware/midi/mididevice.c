@@ -287,7 +287,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 #endif
 	if (!voice->VolumeEnvelope.active) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unable to render anything!
-
+	if (!soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //The same!
 	//Calculate the pitch bend speedup!
 	pitchcents = (double)(channel->pitch%0x1FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
 	pitchcents -= 0x2000; //Convert to a signed value!
@@ -356,6 +356,7 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	sfModList applymod;
 
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return 0; //We're unable to render anything!
+	if (!soundfont) return 0; //We're unable to render anything!
 	if (voice->VolumeEnvelope.active) return 1; //Active voices can't be allocated!
 
 	memset(voice, 0, sizeof(*voice)); //Clear the voice!
@@ -573,6 +574,10 @@ byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte req
 	noteon_velocity /= 64.0f; //Adjust velocity, based on the key hit! It's always 1+, since 0 is a release of the key.
 	note->noteon_velocity_factor = noteon_velocity; //The velocity calculated!
 
+	//Save our instrument we're playing!
+	voice->instrument = channel->program;
+	voice->bank = channel->activebank;
+
 	//Final adjustments and set active!
 	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay);	//Initialise our Volume Envelope for use!
 	setSampleRate(&MIDIDEVICE_renderer, voice, voice->sample.dwSampleRate); //Use this new samplerate!
@@ -725,6 +730,11 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 							volume *= activevoices[voice].rvolume; //Right volume!
 						}
 						currentranking += (int_32)(volume*1000.0f); //Factor in volume!
+						if ((activevoices[voice].bank == MIDIDEVICE.channels[channel].bank) && (activevoices[voice].instrument == MIDIDEVICE.channels[channel].program) && (activevoices[voice].note->note == note)) //Same note retriggered?
+						{
+							currentranking -= (int_32)(volume*1000.0f); //We're giving us priority to be stolen, if needed! Take us as if we're having no volume at all!
+							++currentranking; //We're taking all but the lowest volume (0)!
+						}
 						if ((stolenvoiceranking > currentranking) || (voicetosteal == -1)) //We're a lower rank or the first ranking?
 						{
 							stolenvoiceranking = currentranking; //New voice to steal!
@@ -1065,7 +1075,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 	unlockaudio(1);
 }
 
-void init_MIDIDEVICE() //Initialise MIDI device for usage!
+void init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 {
 	#ifdef __HW_DISABLED
 		return; //We're disabled!
@@ -1086,7 +1096,7 @@ void init_MIDIDEVICE() //Initialise MIDI device for usage!
 	done_MIDIDEVICE(); //Start finished!
 	reset_MIDIDEVICE(); //Reset our MIDI device!
 	//Load the soundfont?
-	soundfont = readSF("MPU.sf2"); //Read the soundfont, if available!
+	soundfont = readSF(filename); //Read the soundfont, if available!
 	if (!soundfont) //Unable to load?
 	{
 		dolog("MPU","No soundfont found or could be loaded!");

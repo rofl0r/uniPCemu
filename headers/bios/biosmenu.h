@@ -19,4 +19,5 @@ byte runBIOS(byte showloadingtext); //Run the BIOS!
 
 int ExecuteList(int x, int y, char *defaultentry, int maxlen); //Runs the file list!
 
+byte sound_playMIDIfile(byte showinfo); //Play a MIDI file!
 #endif

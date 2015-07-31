@@ -94,6 +94,8 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	bzero(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1));
 //CD-ROM always read-only!
 
+	bzero(BIOS_Settings.SoundFont,sizeof(BIOS_Settings.SoundFont)); //Reset the currently mounted soundfont!
+
 	BIOS_Settings.bootorder = DEFAULT_BOOT_ORDER; //Default boot order!
 	BIOS_Settings.emulated_CPU = DEFAULT_CPU; //Which CPU to be emulated?
 
@@ -163,26 +165,24 @@ void BIOS_LoadData() //Load BIOS settings!
 		return; //We've loaded the defaults!
 	}
 
+	memset(&BIOS_Settings, 0, sizeof(BIOS_Settings)); //Clear all settings we have!
 	bytesread = fread(&BIOS_Settings,1,sizeof(BIOS_Settings),f); //Read settings!
-
-	if (bytesread!=sizeof(BIOS_Settings) || !telleof(f)) //Not read all we need and valid?
-	{
-		fclose(f); //Close!
-		BIOS_LoadDefaults(1); //Load the defaults, save!
-		return; //We've loaded the defaults!
-	}
-
 	fclose(f); //Close!
 
 //Verify the checksum!
 
 	if (CheckSum!=BIOS_getChecksum()) //Checksum fault?
 	{
-		fclose(f); //Close!
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults!
 	}
 //BIOS has been loaded.
+
+	if (BIOS_Settings.version!=BIOS_VERSION) //Not compatible with our version?
+	{
+		BIOS_LoadDefaults(1); //Load the defaults, save!
+		return; //We've loaded the defaults because 
+	}
 }
 
 
@@ -226,7 +226,7 @@ uint_32 BIOS_GetMMUSize() //For MMU!
 	return BIOS_Settings.memory; //Use all available memory always!
 }
 
-void BIOS_ValidateDisks() //Validates all disks and unmounts/remounts if needed!
+void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 {
 	if (__HW_DISABLED) return; //Abort!
 	//Mount all devices!
@@ -305,6 +305,15 @@ void BIOS_ValidateDisks() //Validates all disks and unmounts/remounts if needed!
 	iocdrom0(BIOS_Settings.cdrom0,0,1,0); //CDROM always read-only!
 	iocdrom1(BIOS_Settings.cdrom1,0,1,0); //CDROM always read-only!
 
+	if (BIOS_Settings.SoundFont[0]) //Gotten a soundfont set?
+	{
+		if (!FILE_EXISTS(BIOS_Settings.SoundFont)) //Not found?
+		{
+			memset(BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont)); //Invalid soundfont!
+			bioschanged = 1; //BIOS changed!
+		}
+	}
+
 	if (bioschanged)
 	{
 		forceBIOSSave(); //Force saving!
@@ -318,7 +327,7 @@ void BIOS_LoadIO(int showchecksumerrors) //Loads basic I/O drives from BIOS!
 	ioInit(); //Reset I/O system!
 	showchecksumerrors = showchecksumerrors; //Allow checksum errors to be shown!
 	BIOS_LoadData();//Load BIOS options!
-	BIOS_ValidateDisks(); //Validate all disks!
+	BIOS_ValidateData(); //Validate all data!
 	GPU_keepAspectRatio(BIOS_Settings.keepaspectratio); //Keep the aspect ratio?
 	showchecksumerrors = 0; //Don't Allow checksum errors to be shown!
 }
@@ -328,7 +337,7 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 	if (__HW_DISABLED) return; //Abort!
 	showchecksumerrors = 0; //No checksum errors to show!
 	BIOS_LoadData();
-	BIOS_ValidateDisks(); //Validate all disks before continuing!
+	BIOS_ValidateData(); //Validate all data before continuing!
 
 	printmsg(0xF,"Memory installed: ");
 	printmsg(0xE,"%i blocks (%iKB / %iMB)\r\n",SAFEDIV(BIOS_GetMMUSize(),MEMORY_BLOCKSIZE),(SAFEDIV(BIOS_GetMMUSize(),1024)),(BIOS_GetMMUSize()/MBMEMORY));

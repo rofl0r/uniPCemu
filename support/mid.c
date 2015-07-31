@@ -501,7 +501,7 @@ finish:
 	SDL_SemPost(MID_channel_Lock);
 }
 
-void playMIDIFile(char *filename) //Play a MIDI file, CIRCLE to stop playback!
+byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to stop playback!
 {
 	memset(&MID_data, 0, sizeof(MID_data)); //Init data!
 	memset(&MID_tracks, 0, sizeof(MID_tracks)); //Init tracks!
@@ -553,7 +553,7 @@ void playMIDIFile(char *filename) //Play a MIDI file, CIRCLE to stop playback!
 			{
 				running = 0; //Not running anymore!
 			}
-			printMIDIChannelStatus(); //Print the MIDI channel status!
+			if (showinfo) printMIDIChannelStatus(); //Print the MIDI channel status!
 			SDL_SemPost(MID_channel_Lock);
 
 			if (psp_keypressed(BUTTON_CIRCLE)) //Circle pressed? Request to stop playback!
@@ -588,6 +588,7 @@ void playMIDIFile(char *filename) //Play a MIDI file, CIRCLE to stop playback!
 		}
 		PORT_OUT_B(0x330, 0xFF); //Reset MIDI device!
 		PORT_OUT_B(0x331, 0xFF); //Reset the MPU!
+		return MID_TERM?0:1; //Played without termination?
 	}
-	//We're finished playing! Return to caller for new input!
+	return 0; //Invalid file?
 }

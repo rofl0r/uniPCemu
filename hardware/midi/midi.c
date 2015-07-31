@@ -245,12 +245,12 @@ byte MIDI_IN()
 	return MIDI_readData(); //Read data from the MPU!
 }
 
-void initMPU() //Initialise function!
+void initMPU(char *filename) //Initialise function!
 {
 	memset(&MIDIDEV,0,sizeof(MIDIDEV)); //Clear the MIDI device!
 	MIDIDEV.inbuffer = allocfifobuffer(100); //Alloc FIFO buffer of 100 bytes!
 	MIDIDEV.command = -1; //Default: no command there!
-	init_MIDIDEVICE(); //Initialise the MIDI device!
+	init_MIDIDEVICE(filename); //Initialise the MIDI device!
 	resetMPU(); //Reset the MPU!
 	MPU401_Init(); //Init the dosbox handler for our MPU-401!
 }

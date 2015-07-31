@@ -120,7 +120,7 @@ void initEMU(int full) //Init!
 	initAdlib(); //Initialise adlib!
 	
 	debugrow("Initialising MPU...");
-	initMPU(); //Initialise our MPU!
+	initMPU(&BIOS_Settings.SoundFont[0]); //Initialise our MPU! Use the selected soundfont!
 
 	if (!DEBUG_SOUND) //Not sound only?
 	{

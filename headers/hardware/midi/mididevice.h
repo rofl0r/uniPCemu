@@ -12,7 +12,7 @@
 //Ammount of drum voices to reserve!
 #define MIDI_DRUMVOICES 8
 //How many samples to buffer at once! 42 according to MIDI specs! Set to 84 to work!
-#define __MIDI_SAMPLES 84
+#define __MIDI_SAMPLES 42
 
 typedef struct
 {
@@ -91,6 +91,8 @@ typedef struct
 	byte has_finallooppos; //Do we have a final loop position?
 
 	byte purpose; //0=Normal voice, 1=Drum channel!
+	word bank; //What bank are we playing from?
+	byte instrument; //What instrument are we playing?
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
@@ -98,7 +100,7 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data); //Add a command to the bu
 //MIDICOMMAND *MIDIDEVICE_peekbuffer(); //Peek at the buffer!
 //int MIDIDEVICE_readbuffer(MIDICOMMAND *result); //Read from the buffer!
 
-void init_MIDIDEVICE(); //Initialise MIDI device for usage!
+void init_MIDIDEVICE(char *filename); //Initialise MIDI device for usage!
 void done_MIDIDEVICE(); //Finish our midi device!
 
 #endif
