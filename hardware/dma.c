@@ -109,7 +109,7 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 		//Now reg is on 1:1 mapping too!
 	}
 	byte channel; //Which channel to use?
-	SDL_SemWait(DMA_Lock);
+	WaitSem(DMA_Lock)
 	switch (port) //What port?
 	{
 	//Extra 8 bits for addresses:
@@ -210,13 +210,13 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 			DMAController[controller].MultiChannelMaskRegister = value; //Set!
 			break;
 		default:
-			SDL_SemPost(DMA_Lock); //Release!
+			PostSem(DMA_Lock) //Release!
 			return 0; //Invalid register!
 			break;
 		}
 		break;
 	}
-	SDL_SemPost(DMA_Lock);
+	PostSem(DMA_Lock)
 	return 1; //Correct register!
 }
 
@@ -232,7 +232,7 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 		reg >>= 1; //Every port is on a offset of 2!
 		//Now reg is on 1:1 mapping too!
 	}
-	SDL_SemWait(DMA_Lock);
+	WaitSem(DMA_Lock)
 	byte ok = 0;
 	switch (port) //What port?
 	{
@@ -293,7 +293,7 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 			}
 			break;
 	}
-	SDL_SemPost(DMA_Lock);
+	PostSem(DMA_Lock)
 	return ok; //Give the result!
 }
 
@@ -503,13 +503,13 @@ void DMA_tick()
 void DMA_blocktick()
 {
 	int i;
-	SDL_SemWait(DMA_Lock);
+	WaitSem(DMA_Lock)
 	for (i = 0; i < 100;) //Process 100 ticks!
 	{
 		DMA_tick(); //Tick a DMA cycle!
 		++i; //Next item!
 	}
-	SDL_SemPost(DMA_Lock);
+	PostSem(DMA_Lock)
 }
 
 void initDMA()

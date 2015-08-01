@@ -38,7 +38,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	int dummy;
 
 	//Lock
-	SDL_SemWait(log_Lock); //Only one instance allowed!
+	WaitSem(log_Lock) //Only one instance allowed!
 
 	//First: init variables!
 	bzero(filenametmp,sizeof(filenametmp)); //Init filename!
@@ -97,8 +97,14 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 			fwrite(&logtext,1,safe_strlen(logtext,sizeof(logtext)),logfile); //Write string to file!
 		}
 		fwrite(&CRLF,1,sizeof(CRLF),logfile); //Write line feed!
+#ifdef __psp__
+		//PSP doesn't buffer!
+		fclose(logfile);
+		logfile = NULL; //We're finished!
+#endif
+
 	}
 
 	//Unlock
-	SDL_SemPost(log_Lock);
+	PostSem(log_Lock)
 }

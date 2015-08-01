@@ -1,8 +1,5 @@
 #include "headers/emu/gpu/gpu.h" //GPU typedefs etc.
 #include "headers/cpu/cpu.h" //CPU support!
-//#include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
-//#include "headers/mmu/bda.h" //BDA support!
-//#include "headers/header_dosbox.h" //BDA support!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 
 extern GPU_type GPU; //GPU!
@@ -48,9 +45,23 @@ Now special stuff for the emulator! Used by the emulator VGA output!
 
 word emu_x, emu_y; //EMU coordinates!
 
+//Locking support for block actions!
+void EMU_locktext()
+{
+	GPU_text_locksurface(BIOS_Surface);
+}
+
+void EMU_unlocktext()
+{
+	GPU_text_releasesurface(BIOS_Surface);
+}
+
 void EMU_clearscreen()
 {
-	if (BIOS_Surface) GPU_textclearscreen(BIOS_Surface); //Clear the screen!
+	if (BIOS_Surface)
+	{
+		GPU_textclearscreen(BIOS_Surface); //Clear the screen!
+	}
 }
 
 void EMU_textcolor(byte color)
@@ -86,16 +97,15 @@ void GPU_EMU_printscreen(sword x, sword y, char *text, ...) //Direct text output
 	va_list args; //Going to contain the list!
 	va_start (args, text); //Start list!
 	vsprintf (buffer, text, args); //Compile list!
-	
-	GPU_text_locksurface(BIOS_Surface); //Lock the surface!
 
-	if ((x==-1) && (y==-1)) //Dynamic coordinates?
+	//First, check for returning cursor!
+	if ((x == -1) && (y == -1)) //Dynamic coordinates?
 	{
-		EMU_gotoxy(emu_x,emu_y); //Continue at emu coordinates!
+		EMU_gotoxy(emu_x, emu_y); //Continue at emu coordinates!
 	}
 	else
 	{
-		EMU_gotoxy(x,y); //Goto coordinates!
+		EMU_gotoxy(x, y); //Goto coordinates!
 	}
 
 	GPU_textprintf(BIOS_Surface,getemucol16(GPU.GPU_EMU_color&0xF),getemucol16((GPU.GPU_EMU_color>>4)&0xF),"%s",buffer); //Show our output using the full font color!
@@ -105,6 +115,5 @@ void GPU_EMU_printscreen(sword x, sword y, char *text, ...) //Direct text output
 		emu_x = BIOS_Surface->x;
 		emu_y = BIOS_Surface->y; //Update coordinates for our continuing!
 	}
-	va_end (args); //Destroy list!
-	GPU_text_releasesurface(BIOS_Surface); //Lock the surface!
+	va_end(args); //Destroy list!
 }

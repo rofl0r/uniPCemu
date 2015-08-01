@@ -96,6 +96,8 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 {
 	if (__HW_DISABLED) return NULL; //Abort!
 
+	debugrow("VGA: Creating VGA lock if needed...");
+
 	if (!VGA_Lock) //No lock yet?
 	{
 		VGA_Lock = SDL_CreateSemaphore(1); //Add the lock for hardware/software conflicts!
@@ -103,7 +105,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	}
 
 	VGA_Type *VGA; //The VGA to be allocated!
-	//dolog("zalloc","Allocating VGA...");
+	debugrow("VGA: Allocating VGA...");
 	VGA = (VGA_Type *)zalloc(sizeof(*VGA),"VGA_Struct",VGA_Lock); //Allocate new VGA base to work with!
 	if (!VGA)
 	{
@@ -131,7 +133,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	}
 	VGA->VRAM_size = size; //Use the selected size!
 	
-	//dolog("zalloc","Allocating VGA VRAM...");
+	debugrow("VGA: Allocating VGA VRAM...");
 	VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM",VGA_Lock); //The VRAM allocated to 0!
 	if (!VGA->VRAM)
 	{
@@ -153,7 +155,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 		forceBIOSSave(); //Force save of BIOS!
 	}
 
-	//dolog("zalloc","Allocating VGA registers...");
+	debugrow("VGA: Allocating VGA registers...");
 	VGA->registers = (VGA_REGISTERS *)zalloc(sizeof(*VGA->registers),"VGA_Registers",VGA_Lock); //Allocate registers!
 	if (!VGA->registers) //Couldn't allocate the registers?
 	{
@@ -161,6 +163,8 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 		freez((void **)&VGA,sizeof(*VGA),"VGA@VGAAlloc_Registers"); //Release VGA itself!
 		raiseError("VGAalloc","Ran out of memory allocating VGA registers!");
 	}
+
+	debugrow("VGA: Initialising settings...");
 
 	VGA->CursorOn = 1; //Default: cursor on!
 	VGA->TextBlinkOn = 1; //Default: text blink on!
@@ -194,9 +198,10 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = 1; //Display disabled by default!
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 1; //Vertical Retrace by default!
 	
+	debugrow("VGA: Executing initial precalculations...");
 	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!
 	
-	//dolog("VGA","Allocation ready.");
+	debugrow("VGA: Allocation ready.");
 	return VGA; //Give the new allocated VGA!
 }
 

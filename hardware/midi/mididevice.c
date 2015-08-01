@@ -670,9 +670,9 @@ void MIDIDEVICE_activeSense_Timer() //Timeout while Active Sensing!
 
 void MIDIDEVICE_tickActiveSense() //Tick the Active Sense (MIDI) line with any command/data!
 {
-	SDL_SemWait(activeSenseLock);
+	WaitSem(activeSenseLock)
 	MIDIDEVICE_ActiveSenseCounter = 0; //Reset the counter to count again!
-	SDL_SemPost(activeSenseLock);
+	PostSem(activeSenseLock)
 }
 
 
@@ -730,11 +730,11 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 							volume *= activevoices[voice].rvolume; //Right volume!
 						}
 						currentranking += (int_32)(volume*1000.0f); //Factor in volume!
-						if ((activevoices[voice].bank == MIDIDEVICE.channels[channel].bank) && (activevoices[voice].instrument == MIDIDEVICE.channels[channel].program) && (activevoices[voice].note->note == note)) //Same note retriggered?
+						/*if ((activevoices[voice].bank == MIDIDEVICE.channels[channel].bank) && (activevoices[voice].instrument == MIDIDEVICE.channels[channel].program) && (activevoices[voice].note->note == note)) //Same note retriggered?
 						{
 							currentranking -= (int_32)(volume*1000.0f); //We're giving us priority to be stolen, if needed! Take us as if we're having no volume at all!
 							++currentranking; //We're taking all but the lowest volume (0)!
-						}
+						}*/
 						if ((stolenvoiceranking > currentranking) || (voicetosteal == -1)) //We're a lower rank or the first ranking?
 						{
 							stolenvoiceranking = currentranking; //New voice to steal!

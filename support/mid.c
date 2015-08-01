@@ -139,13 +139,13 @@ void printMIDIChannelStatus()
 
 void resetMID() //Reset our settings for playback of a new file!
 {
-	SDL_SemWait(MID_BPM_Lock); //Wait for the lock!
+	WaitSem(MID_BPM_Lock) //Wait for the lock!
 	activetempo = 500000; //Default = 120BPM = 500000 microseconds/quarter note!
-	SDL_SemPost(MID_BPM_Lock); //Finish: we've set the BPM!
+	PostSem(MID_BPM_Lock) //Finish: we've set the BPM!
 
-	SDL_SemWait(MID_timing_pos_Lock); //Wait for the lock!
+	WaitSem(MID_timing_pos_Lock) //Wait for the lock!
 	timing_pos = 0; //Reset the timing for the current song!
-	SDL_SemPost(MID_timing_pos_Lock); //Finish: we've set the timing position!
+	PostSem(MID_timing_pos_Lock) //Finish: we've set the timing position!
 
 	MID_TERM = 0; //Reset termination flag!
 
@@ -311,21 +311,21 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 		for (;;)
 		{
 			//Lock
-			SDL_SemWait(MID_timing_pos_Lock);
+			WaitSem(MID_timing_pos_Lock)
 			if (MID_TERM) //Termination requested?
 			{
 				//Unlock
-				SDL_SemPost(MID_timing_pos_Lock);
+				PostSem(MID_timing_pos_Lock)
 				return; //Stop playback: we're requested to stop playing!
 			}
 			if (timing_pos >= play_pos)
 			{
 				//Unlock
-				SDL_SemPost(MID_timing_pos_Lock);
+				PostSem(MID_timing_pos_Lock)
 				break; //Arrived? Play!
 			}
 			//Unlock
-			SDL_SemPost(MID_timing_pos_Lock);
+			PostSem(MID_timing_pos_Lock)
 			delay(0); //Wait for our tick!
 		}
 
@@ -347,7 +347,7 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 					return; //End of track reached: done!
 				case 0x51: //Set tempo?
 					//Lock
-					SDL_SemWait(MID_BPM_Lock);
+					WaitSem(MID_BPM_Lock)
 					if (!consumeStream(midi_stream, track, &curdata)) return; //Tempo 1/3 failed?
 					activetempo = curdata; //Final byte!
 					activetempo <<= 8;
@@ -365,7 +365,7 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 					#endif
 
 					//Unlock
-					SDL_SemPost(MID_BPM_Lock);
+					PostSem(MID_BPM_Lock)
 					break;
 				default: //Unrecognised meta event? Skip it!
 					#ifdef MID_LOG
@@ -381,7 +381,7 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 		else //Hardware?
 		{
 			//Lock
-			SDL_SemWait(MIDLock);
+			WaitSem(MIDLock)
 
 			if (curdata & 0x80) //Starting a new command?
 			{
@@ -468,10 +468,10 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 			{
 				PORT_OUT_B(0x330, 0xFF); //Reset the synthesizer!
 				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X", channel, error, last_command, curdata);
-				SDL_SemPost(MIDLock); //Finish up!
+				PostSem(MIDLock) //Finish up!
 				return; //Abort on error!
 			}
-			SDL_SemPost(MIDLock); //Finish: prepare for next command!
+			PostSem(MIDLock) //Finish: prepare for next command!
 		}
 	}
 }
@@ -482,18 +482,18 @@ void handleMIDIChannel()
 	channel = (word)getthreadparams(); //Gotten a channel?
 nextchannel: //Play next channel when type 2!
 	playMIDIStream(channel, MID_data[channel], &header, &MID_tracks[channel]); //Play the MIDI stream!
-	SDL_SemWait(MID_channel_Lock);
+	WaitSem(MID_channel_Lock)
 	if (byteswap16(header.format) == 2) //Multiple tracks to be played after one another?
 	{
 		timing_pos = 0; //Reset the timing position!
 		++channel; //Process the next channel!
 		if (channel >= byteswap16(header.n)) goto finish; //Last channel processed?
-		SDL_SemPost(MID_channel_Lock);
+		PostSem(MID_channel_Lock)
 		goto nextchannel; //Process the next channel now!
 	}
 finish:
 	--MID_RUNNING; //Done!
-	SDL_SemPost(MID_channel_Lock);
+	PostSem(MID_channel_Lock)
 }
 
 byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to stop playback!
@@ -543,22 +543,22 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 		for (;;) //Wait to end!
 		{
 			delay(50000); //Wait 1sec intervals!
-			SDL_SemWait(MID_channel_Lock);
+			WaitSem(MID_channel_Lock)
 			if (!MID_RUNNING)
 			{
 				running = 0; //Not running anymore!
 			}
 			if (showinfo) printMIDIChannelStatus(); //Print the MIDI channel status!
-			SDL_SemPost(MID_channel_Lock);
+			PostSem(MID_channel_Lock)
 
 			if (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
 			{
 				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));) { //Wait for release while pressed!
 					delay(10000); //Wait for release!
 				} //Wait for release!
-				SDL_SemWait(MID_timing_pos_Lock); //Wait to update the flag!
+				WaitSem(MID_timing_pos_Lock) //Wait to update the flag!
 				MID_TERM = 1; //Set termination flag to request a termination!
-				SDL_SemPost(MID_timing_pos_Lock); //We're updated!
+				PostSem(MID_timing_pos_Lock) //We're updated!
 			}
 
 			if (!running) break; //Not running anymore? Start quitting!

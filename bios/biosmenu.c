@@ -234,12 +234,16 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 
 	if (timeout) //Specified? We're before boot!
 	{
+		EMU_locktext();
 		EMU_textcolor(0xE); //Yellow on black!
 		GPU_EMU_printscreen(0,0,"Press SELECT to bring out the BIOS");
+		EMU_unlocktext();
 	}
 	else //Normal BIOS POST!
 	{
+		EMU_locktext();
 		printmsg(0xE,"Press SELECT to run BIOS SETUP");
+		EMU_unlocktext();
 	}
 	
 	showchecksumerrors = 0; //Don't show!
@@ -254,7 +258,9 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 		{
 			if (timeout) //Before boot?
 			{
+				EMU_locktext();
 				GPU_EMU_printscreen(0,0,"                                  "); //Clear our text!
+				EMU_unlocktext();
 			}
 			if (runBIOS(!timeout)) //Run the BIOS! Show text if timeout is specified!
 			{
@@ -267,7 +273,9 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 	}
 	if (timeout)
 	{
+		EMU_locktext();
 		GPU_EMU_printscreen(0,0,"                                  "); //Clear our text!
+		EMU_unlocktext();
 	}
 	return 0; //No reset!
 }
@@ -338,10 +346,12 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	{
 		if (!BIOS_SaveData()) //Save our options and failed?
 		{
+			EMU_locktext();
 			BIOS_clearscreen(); //Clear the screen!
 			EMU_gotoxy(0,0); //First column,row!
 			EMU_textcolor(0xF);
 			GPU_EMU_printscreen(0,0,"Error: couldn't save the BIOS!");
+			EMU_unlocktext();
 			delay(5000000); //Wait 5 sec before rebooting!
 		}
 		else
@@ -350,16 +360,20 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 			if (!EMU_RUNNING) //Emulator isn't running?
 			{
+				EMU_locktext();
 				EMU_gotoxy(0,0); //First column,row!
 				EMU_textcolor(0xF);
 				GPU_EMU_printscreen(0,0,"BIOS Saved!");
+				EMU_unlocktext();
 				delay(2000000); //Wait 2 sec before rebooting!
 			}
 			else //Emulator running?
 			{
+				EMU_locktext();
 				EMU_gotoxy(0,0); //First column,row!
 				EMU_textcolor(0xF);
 				GPU_EMU_printscreen(0,0,"BIOS Saved (Returning to the emulator)!"); //Info!
+				EMU_unlocktext();
 				delay(2000000); //Wait 2 sec!
 			}
 		}
@@ -367,9 +381,11 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	}
 	else //Discard changes?
 	{
+		EMU_locktext();
 		EMU_gotoxy(0,0);
 		EMU_textcolor(0xF);
 		GPU_EMU_printscreen(0,0,"BIOS Discarded!"); //Info!
+		EMU_unlocktext();
 		BIOS_LoadData(); //Reload!
 		delay(2000000); //Wait 2 sec!
 	}
@@ -435,7 +451,12 @@ First all global stuff:
 
 void printcenter(char *text, int row) //Prints text centered on a row!
 {
-	if (text) GPU_EMU_printscreen(CALCMIDDLE(BIOS_WIDTH,safe_strlen(text,256)),row,text); //Show centered text!
+	if (text)
+	{
+		EMU_locktext();
+		GPU_EMU_printscreen(CALCMIDDLE(BIOS_WIDTH, safe_strlen(text, 256)), row, text); //Show centered text!
+		EMU_unlocktext();
+	}
 }
 
 void printscreencenter(char *text)
@@ -448,7 +469,9 @@ void clearrow(int row)
 	int i=0; //Index for on-screen characters!
 	for (;i<BIOS_WIDTH;) //Clear only one row!
 	{
+		EMU_locktext();
 		GPU_EMU_printscreen(i++,row," "); //Clear BIOS header!
+		EMU_unlocktext();
 	}
 }
 
@@ -477,10 +500,14 @@ void BIOSClearScreen() //Resets the BIOS's screen!
 	}
 	
 	//Now the screen is set to go!
+	EMU_locktext();
 	EMU_textcolor(BIOSTOP_ATTR); //Switch to BIOS Header attribute!
+	EMU_unlocktext();
 	printcenter(BIOSText,0); //Show the BIOS's text!
+	EMU_locktext();
 	GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen("MEM:12MB",256),0,"MEM:%02iMB",(BIOS_Settings.memory/1024768)); //Show ammount of memory to be able to use!
 	EMU_textcolor(BIOS_ATTR_TEXT); //Std: display text!
+	EMU_unlocktext();
 }
 
 
@@ -643,6 +670,7 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 			int cur = 0; //Current option
 			for (cur=0; cur<numitems; cur++) //Process all options!
 			{
+				EMU_locktext();
 				EMU_gotoxy(0,startrow+cur); //Goto start of item row!
 				if (cur==option) //Option?
 				{
@@ -654,6 +682,7 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 					EMU_textcolor(BIOS_ATTR_INACTIVE); //Inactive item!
 					GPU_EMU_printscreen(0,startrow+cur,"  %s",menuoptions[cur]); //Plain option!
 				}
+				EMU_unlocktext();
 			}
 			oldoption = option; //Save our changes!
 		}
@@ -776,11 +805,13 @@ void printCurrent(int x, int y, char *text, int maxlen) //Create the current ite
 	}
 	
 	//Finally, print the output!
+	EMU_locktext();
 	EMU_textcolor(BIOS_ATTR_ACTIVE); //Active item!
 	GPU_EMU_printscreen(x,y,"%s",buffer); //Show item with maximum length or less!
 
 	EMU_textcolor(BIOS_ATTR_BACKGROUND); //Background of the current item!
 	GPU_EMU_printscreen(-1,-1,"%s",filler); //Show rest with filler color, update!
+	EMU_unlocktext();
 }
 
 //x,y = coordinates of file list
@@ -791,9 +822,11 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen) //Runs the file li
 //First, no file check!
 	if (!numlist) //No files?
 	{
+		EMU_locktext();
 		EMU_gotoxy(x,y); //Goto position of output!
 		EMU_textcolor(BIOS_ATTR_TEXT); //Plain text!
 		GPU_EMU_printscreen(x,y,"No files found!");
+		EMU_unlocktext();
 		return FILELIST_NOFILES; //Error: no files found!
 	}
 
@@ -868,9 +901,11 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 {
 	BIOS_Title("Mount FLOPPY A");
 	generateFileList("img|dsk",0,0); //Generate file list for all .img files!
+	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
+	EMU_unlocktext();
 
 	int file = ExecuteList(12,4,BIOS_Settings.floppy0,256); //Show menu for the disk image!
 	switch (file) //Which file?
@@ -894,9 +929,11 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 {
 	BIOS_Title("Mount FLOPPY B");
 	generateFileList("img|dsk",0,0); //Generate file list for all .img files!
+	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
+	EMU_unlocktext();
 	int file = ExecuteList(12,4,BIOS_Settings.floppy1,256); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -919,9 +956,11 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 {
 	BIOS_Title("Mount First HDD");
 	generateFileList("img|sfdimg",1,1); //Generate file list for all .img files!
+	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
+	EMU_unlocktext();
 	int file = ExecuteList(12,4,BIOS_Settings.hdd0,256); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -944,9 +983,11 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 {
 	BIOS_Title("Mount Second HDD");
 	generateFileList("img|sfdimg",1,1); //Generate file list for all .img files!
+	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
+	EMU_unlocktext();
 	int file = ExecuteList(12,4,BIOS_Settings.hdd1,256); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -969,9 +1010,11 @@ void BIOS_cdrom0_selection() //CDROM0 selection menu!
 {
 	BIOS_Title("Mount First CD-ROM");
 	generateFileList("iso",0,0); //Generate file list for all .img files!
-	EMU_gotoxy(0,4); //Goto 4th row!
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
+	EMU_unlocktext();
 	int file = ExecuteList(12,4,BIOS_Settings.cdrom0,256); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -994,9 +1037,11 @@ void BIOS_cdrom1_selection() //CDROM1 selection menu!
 {
 	BIOS_Title("Mount Second CD-ROM");
 	generateFileList("iso",0,0); //Generate file list for all .img files!
+	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
+	EMU_unlocktext();
 	int file = ExecuteList(12,4,BIOS_Settings.cdrom1,256); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -1351,9 +1396,11 @@ void BIOS_InitAdvancedText()
 void BIOS_BootOrderOption() //Manages the boot order
 {
 	BIOS_Title("Boot Order");
+	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Boot Order: "); //Show selection init!
+	EMU_unlocktext();
 	numlist = NUMITEMS(BOOT_ORDER_STRING); //Ammount of files (orders)
 	int i = 0; //Counter!
 	for (i=0; i<numlist; i++) //Process options!
@@ -1379,9 +1426,11 @@ void BIOS_BootOrderOption() //Manages the boot order
 void BIOS_InstalledCPUOption() //Manages the installed CPU!
 {
 	BIOS_Title("Installed CPU");
+	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Installed CPU: "); //Show selection init!
+	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = 2; //Ammount of CPU types!
 	for (i=0; i<2; i++) //Process options!
@@ -1578,8 +1627,10 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 	FILEPOS oldvalue; //To check for high overflow!
 	for (;;) //Get input; break on error!
 	{
+		EMU_locktext();
 		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
 		GPU_EMU_printscreen(x, y, "%08i MB %04i KB", (uint_32)(result/1024000), (uint_32)((result%1024000)/1024)); //Show current size!
+		EMU_unlocktext();
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 		//1GB steps!
 		if ((key & BUTTON_LTRIGGER)>0)
@@ -1689,7 +1740,7 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 	for (;;) //Main input loop!
 	{
 		delay(10000); //Wait a bit for input!
-		SDL_SemWait(keyboard_lock);
+		WaitSem(keyboard_lock)
 		if (input_buffer_shift != -1) //Given input yet?
 		{
 			if (EMU_keyboard_handler_idtoname(input_buffer,&input[0])) //Valid key?
@@ -1697,12 +1748,14 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 				if (!strcmp(input, "enter") || !strcmp(input,"esc")) //Enter or Escape? We're finished!
 				{
 					disableKeyboard(); //Disable the keyboard!
-					SDL_SemPost(keyboard_lock); //We're done with input: release our lock!
+					PostSem(keyboard_lock) //We're done with input: release our lock!
+					EMU_locktext();
 					EMU_gotoxy(x, y); //Goto position for info!
 					EMU_textcolor(BIOS_ATTR_TEXT);
 					GPU_EMU_printscreen(x, y, "%s", filename); //Show the filename!
 					EMU_textcolor(BIOS_ATTR_ACTIVE); //Active color!
 					GPU_EMU_printscreen(-1, -1, " "); //Clear cursor indicator!
+					EMU_unlocktext();
 					return (!strcmp(input, "enter")); //Enter=Confirm, Esc=Cancel!
 				}
 				//We're a normal key hit?
@@ -1751,6 +1804,7 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 						}
 					}
 				}
+				EMU_locktext();
 				EMU_gotoxy(x, y); //Goto position for info!
 				EMU_textcolor(BIOS_ATTR_TEXT);
 				GPU_EMU_printscreen(x, y, "%s", filename); //Show the filename!
@@ -1758,12 +1812,13 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 				GPU_EMU_printscreen(-1, -1, "_"); //Cursor indicator!
 				EMU_textcolor(BIOS_ATTR_TEXT); //Back to text!
 				GPU_EMU_printscreen(-1, -1, " "); //Clear output after!
+				EMU_unlocktext();
 				input_buffer_shift = -1; //Reset!
 				input_buffer = -1; //Nothing input!
 				delay(100000); //Wait a bit!
 			}
 		}
-		SDL_SemPost(keyboard_lock);
+		PostSem(keyboard_lock)
 	}
 }
 
@@ -1775,8 +1830,10 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 	uint_32 size = 0;
 	BIOSClearScreen(); //Clear the screen!
 	BIOS_Title("Generate Dynamic HDD Image"); //Full clear!
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto position for info!
 	GPU_EMU_printscreen(0, 4, "Name: "); //Show the filename!
+	EMU_unlocktext();
 	if (BIOS_InputText(6, 4, &filename[0], 255-4)) //Input text confirmed?
 	{
 		if (strcmp(filename, "") != 0) //Got input?
@@ -1784,16 +1841,20 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 			if (strlen(filename) <= (255 - 4)) //Not too long?
 			{
 				strcat(filename, ".img"); //Add the extension!
+				EMU_locktext();
 				EMU_gotoxy(0, 4); //Goto position for info!
 				GPU_EMU_printscreen(0, 4, "Filename: %s", filename); //Show the filename!
 				EMU_gotoxy(0, 5); //Next row!
 				GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
+				EMU_unlocktext();
 				size = ImageGenerator_GetImageSize(12, 5, 0); //Get the size!
 				if (size != 0) //Got size?
 				{
+					EMU_locktext();
 					GPU_EMU_printscreen(-1, -1, "%08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
 					EMU_gotoxy(0, 6); //Next row!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+					EMU_unlocktext();
 					generateStaticImage(filename, size, 18, 6); //Generate a static image!
 				}
 			}
@@ -1808,8 +1869,10 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 	char filename[256]; //Filename container!
 	bzero(filename,sizeof(filename)); //Init!
 	uint_32 size = 0;
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto position for info!
 	GPU_EMU_printscreen(0, 4, "Name: "); //Show the filename!
+	EMU_unlocktext();
 	if (BIOS_InputText(6, 4, &filename[0], 255-7)) //Input text confirmed?
 	{
 		if (strcmp(filename, "") != 0) //Got input?
@@ -1817,17 +1880,21 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 			if (strlen(filename) <= (255 - 7)) //Not too long?
 			{
 				strcat(filename, ".sfdimg"); //Add the extension!
+				EMU_locktext();
 				EMU_textcolor(BIOS_ATTR_TEXT);
 				EMU_gotoxy(0, 4); //Goto position for info!
 				GPU_EMU_printscreen(0, 4, "Filename: %s", filename); //Show the filename!
 				EMU_gotoxy(0, 5); //Next row!
 				GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
+				EMU_unlocktext();
 				size = ImageGenerator_GetImageSize(12, 5, 1); //Get the size!
 				if (size != 0) //Got size?
 				{
+					EMU_locktext();
 					GPU_EMU_printscreen(-1, -1, "%08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
 					EMU_gotoxy(0, 6); //Next row!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+					EMU_unlocktext();
 					uint_32 sizecreated;
 					sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
 				}
@@ -1847,9 +1914,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 	uint_32 size = 0;
 	BIOS_Title("Convert static to dynamic HDD Image"); //Full clear!
 	generateFileList("img", 0, 0); //Generate file list for all .img files!
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Disk image: "); //Show selection init!
+	EMU_unlocktext();
 	int file = ExecuteList(12, 4, "", 256); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -1860,32 +1929,42 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 		break; //Just calmly return!
 	default: //File?
 		strcpy(filename, itemlist[file]); //Use this file!
+		EMU_locktext();
 		EMU_textcolor(BIOS_ATTR_TEXT);
+		EMU_unlocktext();
 
 		if (strcmp(filename, "") != 0) //Got input?
 		{
+			EMU_locktext();
 			EMU_gotoxy(0, 4); //Goto position for info!
 			GPU_EMU_printscreen(0, 4, "Filename: %s  ", filename); //Show the filename!
 			EMU_gotoxy(0, 5); //Next row!
 			GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
+			EMU_unlocktext();
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 			strcat(filename, ".sfdimg"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
 			if (size != 0) //Got size?
 			{
+				EMU_locktext();
 				EMU_gotoxy(0, 6); //Next row!
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+				EMU_unlocktext();
 				uint_64 sizecreated;
 				sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
+					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "%iMB", (sizecreated / 1024768)); //Image size
+					EMU_unlocktext();
 					iohdd1(filename, 0, 0, 0); //Mount the destination disk, allow writing!
 					FILEPOS sectornr;
+					EMU_locktext();
 					EMU_gotoxy(0, 6); //Next row!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+					EMU_unlocktext();
 					byte error = 0;
 					for (sectornr = 0; sectornr < sizecreated;) //Process all sectors!
 					{
@@ -1904,16 +1983,22 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 						}
 						if (!(sectornr % 5120)) //Update every 10 sectors!
 						{
+							EMU_locktext();
 							GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
+							EMU_unlocktext();
 						}
 						sectornr += 512; //Next sector!
 					}
+					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+					EMU_unlocktext();
 
 					//Verification!
 					if (!error) //OK?
 					{
+						EMU_locktext();
 						GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
+						EMU_unlocktext();
 						iohdd1(filename, 0, 1, 0); //Mount!
 						for (sectornr = 0; sectornr < size;) //Process all sectors!
 						{
@@ -1937,11 +2022,15 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 							}
 							if (!(sectornr % 5120)) //Update every 10 sectors!
 							{
+								EMU_locktext();
 								GPU_EMU_printscreen(18, 7, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+								EMU_unlocktext();
 							}
 							sectornr += 512; //Next sector!
 						}
+						EMU_locktext();
 						GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
 							remove(filename); //Try to remove the generated file!
@@ -1970,9 +2059,11 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 	uint_32 size = 0;
 	BIOS_Title("Convert dynamic to static HDD Image"); //Full clear!
 	generateFileList("sfdimg", 0, 1); //Generate file list for all .img files!
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Disk image: "); //Show selection init!
+	EMU_unlocktext();
 	int file = ExecuteList(12, 4, "", 256); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -1983,20 +2074,25 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 		break; //Just calmly return!
 	default: //File?
 		strcpy(filename, itemlist[file]); //Use this file!
+		EMU_locktext();
 		EMU_textcolor(BIOS_ATTR_TEXT);
+		EMU_unlocktext();
 
 		if (strcmp(filename, "") != 0) //Got input?
 		{
+			EMU_locktext();
 			EMU_gotoxy(0, 4); //Goto position for info!
 			GPU_EMU_printscreen(0, 4, "Filename: %s  ", filename); //Show the filename!
 			EMU_gotoxy(0, 5); //Next row!
 			GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
+			EMU_unlocktext();
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 			strcat(filename, ".img"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
 			dolog("BIOS", "Dynamic disk size: %i bytes = %i sectors", size, (size >> 9));
 			if (size != 0) //Got size?
 			{
+				EMU_locktext();
 				EMU_gotoxy(0, 6); //Next row!
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 				GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
@@ -2005,6 +2101,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				FILEPOS sectornr;
 				EMU_gotoxy(0, 6); //Next row!
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+				EMU_unlocktext();
 				byte error = 0;
 				FILE *dest;
 				dest = fopen64(filename, "wb"); //Open the destination!
@@ -2025,18 +2122,24 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					}
 					if (!(sectornr % 5120)) //Update every 10 sectors!
 					{
+						EMU_locktext();
 						GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+						EMU_unlocktext();
 					}
 					sectornr += 512; //Next sector!
 				}
 				fclose64(dest); //Close the file!
 
+				EMU_locktext();
 				GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+				EMU_unlocktext();
 
 				//Verification!
 				if (!error) //OK?
 				{
+					EMU_locktext();
 					GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
+					EMU_unlocktext();
 					iohdd1(filename, 0, 1, 0); //Mount!
 					for (sectornr = 0; sectornr < size;) //Process all sectors!
 					{
@@ -2060,11 +2163,15 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 						}
 						if (!(sectornr % 5120)) //Update every 10 sectors!
 						{
+							EMU_locktext();
 							GPU_EMU_printscreen(18, 7, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+							EMU_unlocktext();
 						}
 						sectornr += 512; //Next sector!
 					}
+					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+					EMU_unlocktext();
 					if (error) //Error occurred?
 					{
 						remove(filename); //Try to remove the generated file!
@@ -2092,9 +2199,11 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	uint_32 size = 0;
 	BIOS_Title("Defragment a dynamic HDD Image"); //Full clear!
 	generateFileList("sfdimg", 0, 1); //Generate file list for all .img files!
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Disk image: "); //Show selection init!
+	EMU_unlocktext();
 	int file = ExecuteList(12, 4, "", 256); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -2104,14 +2213,18 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 		break;
 	default: //File?
 		strcpy(filename, itemlist[file]); //Use this file!
+		EMU_locktext();
 		EMU_textcolor(BIOS_ATTR_TEXT);
+		EMU_unlocktext();
 
 		if (strcmp(filename, "") != 0) //Got input?
 		{
+			EMU_locktext();
 			EMU_gotoxy(0, 4); //Goto position for info!
 			GPU_EMU_printscreen(0, 4, "Filename: %s ", filename); //Show the filename!
 			EMU_gotoxy(0, 5); //Next row!
 			GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
+			EMU_unlocktext();
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 			bzero(&originalfilename, sizeof(originalfilename)); //Init!
 			strcpy(originalfilename, filename); //The original filename!
@@ -2119,15 +2232,19 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 			size = getdisksize(HDD0); //Get the original size!
 			if (size != 0) //Got size?
 			{
+				EMU_locktext();
 				EMU_gotoxy(0, 6); //Next row!
 				GPU_EMU_printscreen(0, 6, "Defragmenting image: "); //Start of percentage!
+				EMU_unlocktext();
 				uint_64 sizecreated;
 				sizecreated = generateDynamicImage(filename, size, 21, 6); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
+					EMU_locktext();
 					GPU_EMU_printscreen(21, 6, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "%iMB", (sizecreated / 1024768)); //Image size
+					EMU_unlocktext();
 					iohdd1(filename, 0, 0, 0); //Mount the destination disk, allow writing!
 					FILEPOS sectornr;
 					byte error = 0;
@@ -2148,16 +2265,22 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						}
 						if (!(sectornr % 5120)) //Update every 10 sectors!
 						{
+							EMU_locktext();
 							GPU_EMU_printscreen(21, 6, "%i%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
+							EMU_unlocktext();
 						}
 						sectornr += 512; //Next sector!
 					}
+					EMU_locktext();
 					GPU_EMU_printscreen(21, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+					EMU_unlocktext();
 
 					//Verification!
 					if (!error) //OK?
 					{
+						EMU_locktext();
 						GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
+						EMU_unlocktext();
 						iohdd1(filename, 0, 1, 0); //Mount!
 						for (sectornr = 0; sectornr < size;) //Process all sectors!
 						{
@@ -2181,11 +2304,15 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							}
 							if (!(sectornr % 5120)) //Update every 10 sectors!
 							{
+								EMU_locktext();
 								GPU_EMU_printscreen(18, 7, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+								EMU_unlocktext();
 							}
 							sectornr += 512; //Next sector!
 						}
+						EMU_locktext();
 						GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
 							dolog(filename, "Error %i validating dynamic image sector %i/%i@byte %i", error, sectornr / 512, size / 512, sectorposition); //Error at this sector!
@@ -2220,9 +2347,11 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 void BIOS_DebugMode()
 {
 	BIOS_Title("Debug mode");
+	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Debug mode: "); //Show selection init!
+	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = 4; //Ammount of Debug modes!
 	for (i=0; i<numlist; i++) //Process options!
@@ -2280,9 +2409,11 @@ void BIOS_DebugMode()
 void BIOS_ExecutionMode()
 {
 	BIOS_Title("Execution mode");
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Execution mode: "); //Show selection init!
+	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = 6; //Ammount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
@@ -2347,9 +2478,11 @@ void BIOS_ExecutionMode()
 void BIOS_DebugLog()
 {
 	BIOS_Title("Debugger log");
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Debugger log: "); //Show selection init!
+	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = 3; //Ammount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
@@ -2420,9 +2553,11 @@ void BIOS_MemReAlloc() //Reallocates BIOS memory!
 void BIOS_DirectPlotSetting()
 {
 	BIOS_Title("Direct plot");
+	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Direct plot: "); //Show selection init!
+	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = 3; //Ammount of Direct modes!
 	for (i=0; i<3; i++) //Process options!
@@ -2474,8 +2609,10 @@ void BIOS_DirectPlotSetting()
 void BIOS_FontSetting()
 {
 	BIOS_Title("Font");
+	EMU_locktext();
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"BIOS Font: "); //Show selection init!
+	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = NUMITEMS(BIOSMenu_Fonts); //Ammount of Direct modes!
 	for (i=0; i<numlist; i++) //Process options!
@@ -2533,9 +2670,11 @@ void BIOS_KeepAspectRatio()
 void BIOS_BWMonitor()
 {
 	BIOS_Title("Monitor");
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Monitor: "); //Show selection init!
+	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = 4; //Ammount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
@@ -2792,17 +2931,17 @@ void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 			for (;;)
 			{
 				delay(10000); //Wait a bit for input!
-				SDL_SemWait(keyboard_lock);
+				WaitSem(keyboard_lock)
 				if (input_buffer_shift != -1) //Given input yet?
 				{
 					disableKeyboard(); //Disable the keyboard!
 					BIOS_Changed |= ((BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] != input_buffer) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] != input_buffer_shift)); //Did we change?
 					BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] = input_buffer; //Set the new key!
 					BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] = input_buffer_shift; //Set the shift status!
-					SDL_SemPost(keyboard_lock); //We're done with input: release our lock!
+					PostSem(keyboard_lock) //We're done with input: release our lock!
 					break; //Break out of the loop: we're done!
 				}
-				SDL_SemPost(keyboard_lock);
+				PostSem(keyboard_lock)
 			}
 			//Keep in our own menu: we're not changing after a choise has been made, but simply allowing to select another button!
 		}
@@ -2879,9 +3018,11 @@ void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
 		BIOS_Title("LED active border color");
 		break;
 	}
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Color: "); //Show selection init!
+	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = 16; //Ammount of colors!
 	for (i = 0; i<numlist; i++) //Process options!
@@ -2954,9 +3095,11 @@ void BIOS_gamingKeyboardColorsMenu() //Manage stuff concerning input.
 void BIOS_VGANMISetting()
 {
 	BIOS_Title("VGA NMI");
+	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"VGA NMI: "); //Show selection init!
+	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = 2; //Ammount of Direct modes!
 	for (i=0; i<3; i++) //Process options!
@@ -3167,9 +3310,11 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 {
 	BIOS_Title("Mount Soundfont");
 	generateFileList("sf2", 0, 0); //Generate file list for all .sf2 files!
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Soundfont: "); //Show selection init!
+	EMU_unlocktext();
 
 	int file = ExecuteList(12, 4, BIOS_Settings.SoundFont, 256); //Show menu for the disk image!
 	switch (file) //Which file?
@@ -3204,9 +3349,11 @@ int BIOS_MIDI_selection() //MIDI selection menu, custom for this purpose!
 {
 	BIOS_Title("Select MIDI file to play");
 	generateFileList("mid|midi", 0, 0); //Generate file list for all .img files!
+	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "MIDI file: "); //Show selection init!
+	EMU_unlocktext();
 	BIOS_EnablePlay = 1; //Enable Play=OK!
 	int file = ExecuteList(12, 4, itemlist[MIDI_file], 256); //Show menu for the disk image!
 	BIOS_EnablePlay = 0; //Disable play again!
@@ -3246,11 +3393,15 @@ byte sound_playMIDIfile(byte showinfo)
 				return 0; //Allow our caller to execute the next step!
 			}
 		}
+		EMU_locktext();
 		EMU_textcolor(0x04); //Green on black!
 		GPU_EMU_printscreen(0, GPU_TEXTSURFACE_HEIGHT - 1, "Playing..."); //Show playing init!
+		EMU_unlocktext();
 		//Play the MIDI file!
 		playMIDIFile(&itemlist[MIDI_file][0], showinfo); //Play the MIDI file!
+		EMU_locktext();
 		GPU_EMU_printscreen(0, GPU_TEXTSURFACE_HEIGHT - 1, "          "); //Show playing finished!
+		EMU_unlocktext();
 	}
 	return 1; //Plain finish: just execute whatever you want!
 }

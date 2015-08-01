@@ -10,7 +10,7 @@
 #define __HW_DISABLED 0
 
 //Timer step in us! Originally 100ms now 10000?
-#define TIMER_STEP 1
+#define TIMER_STEP 100
 
 //Log running timers (error/timing search only!)
 //#define TIMER_LOG
@@ -106,7 +106,7 @@ void timer_thread() //Handler for timer!
 						if (timers[curtimer].lock) //To wait for using threads?
 						{
 							//Lock
-							SDL_SemWait(timers[curtimer].lock);
+							WaitSem(timers[curtimer].lock)
 						}
 						if (!(timers[curtimer].core&2)) //Not counter only timer?
 						{
@@ -143,7 +143,7 @@ void timer_thread() //Handler for timer!
 						if (timers[curtimer].lock) //To wait for using threads?
 						{
 							//Unlock
-							SDL_SemPost(timers[curtimer].lock);
+							PostSem(timers[curtimer].lock)
 						}
 					}
 				}

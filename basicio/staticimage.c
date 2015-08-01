@@ -106,7 +106,9 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 	f = fopen64(filename,"wb"); //Generate file!
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
+		EMU_locktext();
 		GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",0.0f); //Show first percentage!
+		EMU_unlocktext();
 	}
 
 	memset(buffer, 0, sizeof(buffer)); //Clear!
@@ -127,7 +129,9 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 			percentage = totalbyteswritten;
 			percentage /= (double)size;
 			percentage *= 100.0f;
+			EMU_locktext();
 			GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",(float)percentage); //Show percentage!
+			EMU_unlocktext();
 			#ifdef __PSP__
 				delay(1); //Allow update of the screen, if needed!
 			#endif
@@ -136,6 +140,8 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 	fclose64(f);
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
+		EMU_locktext();
 		GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",100.0f); //Show percentage!
+		EMU_unlocktext();
 	}
 }

@@ -1674,7 +1674,7 @@ void updateInput(SDL_Event *event) //Update all input!
 	switch (event->type)
 	{
 		case SDL_KEYUP: //Keyboard up?
-			SDL_SemWait(keyboard_lock); //Wait!
+			WaitSem(keyboard_lock) //Wait!
 			if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14))) //Gotten no joystick?
 			{
 				switch (event->key.keysym.sym) //What key?
@@ -1775,13 +1775,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					input.Buttons &= ~BUTTON_STOP; //Stop button!
 				}
 				updateMOD(event); //Update rest keys!
-				SDL_SemPost(keyboard_lock);
+				PostSem(keyboard_lock)
 			}
 			break;
 		case SDL_KEYDOWN: //Keyboard down?
 			if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14))) //Gotten no joystick?
 			{
-				SDL_SemWait(keyboard_lock);
+				WaitSem(keyboard_lock)
 				switch (event->key.keysym.sym) //What key?
 				{
 					//Special first
@@ -1866,13 +1866,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					input.Buttons |= BUTTON_STOP; //Stop button!
 				}
 				updateMOD(event); //Update rest keys!
-				SDL_SemPost(keyboard_lock);
+				PostSem(keyboard_lock)
 			}
 			break;
 		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
 			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14)) //Gotten a joystick?
 			{
-				SDL_SemWait(keyboard_lock);
+				WaitSem(keyboard_lock)
 				switch ( event->jaxis.axis) 
 				{
 					case 0: /* Left-right movement code goes here */
@@ -1882,13 +1882,13 @@ void updateInput(SDL_Event *event) //Update all input!
 						input.Ly = event->jaxis.value; //New value!
 						break;
 				}
-				SDL_SemPost(keyboard_lock);
+				PostSem(keyboard_lock)
 			}
 			break;
 		case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
 			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14)) //Gotten a joystick?
 			{
-				SDL_SemWait(keyboard_lock);
+				WaitSem(keyboard_lock)
 				switch (event->jbutton.button) //What button?
 				{
 					case INPUT_BUTTON_TRIANGLE:
@@ -1936,13 +1936,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					default: //Unknown button?
 						break;
 				}
-				SDL_SemPost(keyboard_lock);
+				PostSem(keyboard_lock)
 			}
 			break;
 		case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
 			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14)) //Gotten a joystick?
 			{
-				SDL_SemWait(keyboard_lock);
+				WaitSem(keyboard_lock)
 				switch (event->jbutton.button) //What button?
 				{
 					case INPUT_BUTTON_TRIANGLE:
@@ -1990,7 +1990,7 @@ void updateInput(SDL_Event *event) //Update all input!
 					default: //Unknown button?
 						break;
 				}
-				SDL_SemPost(keyboard_lock);
+				PostSem(keyboard_lock)
 			}
 			break;
 		case SDL_QUIT: //Quit?

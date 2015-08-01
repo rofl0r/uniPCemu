@@ -217,46 +217,49 @@ void initVideo(int show_framerate) //Initialises the video
 {
 	if (__HW_DISABLED) return; //Abort!
 
+	debugrow("Video: Initialising lock...");
 	if (!GPU_Lock) //No lock yet?
 	{
 		GPU_Lock = SDL_CreateSemaphore(1); //Add the lock for hardware/software conflicts!
 		atexit(&freeGPULock);
 	}
 
-	//dolog("GPU","Initialising screen buffers...");
+	debugrow("Video: Initialising screen buffers...");
 	
 	//dolog("zalloc","Allocating GPU EMU_screenbuffer...");
-	lockGPU();
-	GPU.emu_screenbuffer = (uint_32 *)zalloc(EMU_SCREENBUFFERSIZE * 4, "EMU_ScreenBuffer",GPU_Lock); //Emulator screen buffer, 32-bits (x4)!
+	debugrow("Video: Waiting for access to GPU...");
+	for (; !lockGPU();) delay(1); //Wait for access!
+	debugrow("Video: Allocating screen buffer...");
+	GPU.emu_screenbuffer = (uint_32 *)zalloc(EMU_SCREENBUFFERSIZE * 4, "EMU_ScreenBuffer", GPU_Lock); //Emulator screen buffer, 32-bits (x4)!
 	if (!GPU.emu_screenbuffer) //Failed to allocate?
 	{
 		unlockGPU(); //Unlock the GPU for Software access!
 		raiseError("GPU InitVideo", "Failed to allocate the emulator screen buffer!");
 	}
-	unlockGPU(); //Unlock the GPU for Software access!
-	//dolog("GPU","Setting up misc. settings...");
 
+	debugrow("Video: Setting up misc. settings...");
 	GPU.show_framerate = show_framerate; //Show framerate?
 
-	//dolog("GPU","Setting up frameskip...");
+	debugrow("Video: Setting up frameskip...");
 	setGPUFrameskip(0); //No frameskip, by default!
 //VRAM access enable!
-	//dolog("GPU","Setting up VRAM Access...");
+	debugrow("Video: Setting up VRAM Access...");
 	GPU.vram = (uint_32 *)VRAM_START; //VRAM access enabled!
 
-	//dolog("GPU","Setting up pixel emulation...");
+	debugrow("Video: Setting up pixel emulation...");
 	GPU.showpixels = ALLOW_GPU_GRAPHICS; //Video is turned on!
 
-	//dolog("GPU","Setting up video basic...");
+	debugrow("Video: Setting up video basic...");
 	GPU.video_on = 0; //Start video?
 
-	//dolog("GPU","Setting up debugger...");
+	debugrow("Video: Setting up debugger...");
 	resetVideo(); //Initialise the video!
 
 	GPU.use_Letterbox = 0; //Disable letterboxing by default!
 
 //We're running with SDL?
-	//dolog("GPU","Device ready.");
+	unlockGPU(); //Unlock the GPU for Software access!
+	debugrow("Video: Device ready.");
 }
 
 void updateVideo() //Update the screen resolution on change!

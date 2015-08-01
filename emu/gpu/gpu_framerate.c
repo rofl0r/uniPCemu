@@ -68,31 +68,30 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 {
 	if (__HW_DISABLED) return; //Disabled?
 	uint_64 timepassed;
-	//while (1) //Not done yet?
+	for (; !lockGPU();) delay(1); //Lock the GPU!
+	timepassed = getuspassed(&lastcheck); //Real time passed!
+	if (timepassed) //Time passed?
 	{
-		timepassed = getuspassed(&lastcheck); //Real time passed!
-		if (timepassed) //Time passed?
-		{
-			//Update total framerate data!
-			totalframes += frames; //Add to the total frames rendered!
-			totalstepssec += timepassed; //Add to total steps!
+		//Update total framerate data!
+		totalframes += frames; //Add to the total frames rendered!
+		totalstepssec += timepassed; //Add to total steps!
 
-			//Recalculate totals!
-			framerate = (frames+curscanlinepercentage)/(timepassed/1000000.0f); //Calculate framerate!
-			totalframerate = (totalframes+curscanlinepercentage)/(totalstepssec/1000000.0f); //Calculate total framerate!
+		//Recalculate totals!
+		framerate = (frames+curscanlinepercentage)/(timepassed/1000000.0f); //Calculate framerate!
+		totalframerate = (totalframes+curscanlinepercentage)/(totalstepssec/1000000.0f); //Calculate total framerate!
 
-			frames = 0; //Reset complete frames counted for future reference!
-		}
-		#ifdef LOG_VGA_SPEED
-		logVGASpeed(); //Log the speed for our frames!
-		#endif
-		//Finally delay for next update!
-		//delay(FRAMERATE_STEP); //Wait for the next update as good as we can!
-		for (; !lock("CPUIPS");) {} //Wait for the lock!
-		CPU_IPS = instructioncounter / (timepassed / 1000000.0f);
-		instructioncounter = 0; //Reset instruction counter!
-		unlock("CPUIPS"); //Release the IPS lock!
+		frames = 0; //Reset complete frames counted for future reference!
 	}
+	#ifdef LOG_VGA_SPEED
+	logVGASpeed(); //Log the speed for our frames!
+	#endif
+	//Finally delay for next update!
+	//delay(FRAMERATE_STEP); //Wait for the next update as good as we can!
+	for (; !lock("CPUIPS");) {} //Wait for the lock!
+	CPU_IPS = instructioncounter / (timepassed / 1000000.0f);
+	instructioncounter = 0; //Reset instruction counter!
+	unlock("CPUIPS"); //Release the IPS lock!
+	unlockGPU(); //Unlock the GPU!
 }
 
 void finish_screen() //Extra stuff after rendering!
@@ -185,6 +184,7 @@ void renderFramerateOnly()
 {
 	if (frameratesurface) //Existing surface?
 	{
+		lockGPU(); //Lock the GPU!
 		uint_32 *emptyrow = get_rowempty(); //Get empty row!
 		uint_32 y;
 		for (y=0;y<rendersurface->sdllayer->h;y++)
@@ -194,6 +194,7 @@ void renderFramerateOnly()
 
 		framerate_rendertime = GPU_textrenderer(frameratesurface); //Render it!
 		renderScreenFrame(); //Render our renderered framerate only!
+		unlockGPU(); //We're finished with the GPU!
 	}
 }
 

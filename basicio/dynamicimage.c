@@ -432,7 +432,9 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 	FILE *f;
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
+		EMU_locktext();
 		GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",0.0f); //Show first percentage!
+		EMU_unlocktext();
 	}
 
 	FILEPOS numblocks;
@@ -458,7 +460,9 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 	
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
+		EMU_locktext();
 		GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",100.0f); //Show final percentage!
+		EMU_unlocktext();
 	}
 	return (numblocks<<9); //Give generated size!
 }

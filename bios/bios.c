@@ -67,7 +67,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 {
 	if (showchecksumerrors)
 	{
-		GPU_EMU_printscreen(-1,-1,"BIOS Checksum Error. "); //Checksum error.
+		printmsg(0xF,"\r\nBIOS Checksum Error. "); //Checksum error.
 	}
 	
 	uint_32 oldmem = BIOS_Settings.memory; //Memory installed!
@@ -117,9 +117,8 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	}
 	if (showchecksumerrors)
 	{
-		GPU_EMU_printscreen(-1,-1,"Defaults loaded.\r\n"); //Show that the defaults are loaded.
+		printmsg(0xF,"Defaults loaded.\r\n"); //Show that the defaults are loaded.
 	}
-
 }
 
 int telleof(FILE *f) //Are we @eof?

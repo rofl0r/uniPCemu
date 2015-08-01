@@ -8,4 +8,8 @@ uint_32 getemucol16(byte color); //Special for the emulator, like the keyboard p
 void GPU_EMU_printscreen(sword x, sword y, char *text, ...); //Direct text output (from emu)!
 void EMU_clearscreen(); //Clear the screen!
 
+//Locking support for block actions!
+void EMU_locktext();
+void EMU_unlocktext();
+
 #endif

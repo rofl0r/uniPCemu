@@ -11,7 +11,7 @@
 void freeSurfacePtr(void **ptr, uint_32 size, SDL_sem *lock) //Free a pointer (used internally only) allocated with nzalloc/zalloc and our internal functions!
 {
 	GPU_SDL_Surface *surface = (GPU_SDL_Surface *)*ptr; //Take the surface out of the pointer!
-	if (surface->lock) SDL_SemWait(surface->lock);
+	if (surface->lock) WaitSem(surface->lock)
 	if (!(surface->flags&SDL_FLAG_NODELETE)) //The surface is allowed to be deleted?
 	{
 		//Start by freeing the surfaces in the handlers!
@@ -26,7 +26,7 @@ void freeSurfacePtr(void **ptr, uint_32 size, SDL_sem *lock) //Free a pointer (u
 			SDL_FreeSurface(surface->sdllayer); //Release the surface fully using native support!
 		}
 	}
-	if (surface->lock) SDL_SemPost(surface->lock); //We're done with the contents!
+	if (surface->lock) PostSem(surface->lock) //We're done with the contents!
 	changedealloc(surface, sizeof(*surface), getdefaultdealloc()); //Change the deallocation function back to it's default!
 	//We're always allowed to release the container.
 	if (surface->lock)

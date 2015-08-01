@@ -68,7 +68,7 @@ extern PIC i8259; //PIC processor!
 int emu_started = 0; //Emulator started (initEMU called)?
 
 //To debug init/doneemu?
-#define DEBUG_EMU 0
+#define DEBUG_EMU 1
 
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
@@ -130,9 +130,10 @@ void initEMU(int full) //Init!
 	debugrow("Initializing video...");
 	initVideo(DEBUG_FRAMERATE); //Reset video!
 
-	debugrow("Initializing emulator VGA and BIOS video service VGA...");	
+	debugrow("Initializing VGA...");	
 	//First, VGA allocations for seperate systems!
 	MainVGA = VGAalloc(0,1); //Allocate a main VGA, automatically by BIOS!
+	debugrow("Activating main VGA engine...");
 	setActiveVGA(MainVGA); //Initialise primary VGA using the BIOS settings, for the system itself!
 
 	debugrow("Initializing 8259...");

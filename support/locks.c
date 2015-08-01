@@ -38,14 +38,14 @@ SDL_sem *getLock(char *name)
 {
 	initLocks(); //Initialise locks first!
 	int i;
-	SDL_SemWait(LockLock);
+	WaitSem(LockLock)
 	for (i = 0; i < NUMITEMS(locks); i++)
 	{
 		if (locks[i].used) //Used lock?
 		{
 			if (strcmp(name, locks[i].name)==0) //Found?
 			{
-				SDL_SemPost(LockLock);
+				PostSem(LockLock)
 				return locks[i].lock; //Give the lock!
 			}
 		}
@@ -61,11 +61,11 @@ SDL_sem *getLock(char *name)
 				locks[i].lock = SDL_CreateSemaphore(1); //Create the lock!
 			}
 			locks[i].used = 1; //We're used!
-			SDL_SemPost(LockLock);
+			PostSem(LockLock)
 			return locks[i].lock; //Give the createn lock!
 		}
 	}
-	SDL_SemPost(LockLock);
+	PostSem(LockLock)
 	return NULL; //Unable to allocate: invalid lock!
 }
 
@@ -75,7 +75,7 @@ byte lock(char *name)
 	lock = getLock(name); //Get the lock!
 	if (lock) //Gotten the lock?
 	{
-		SDL_SemWait(lock); //Wait for it!
+		WaitSem(lock) //Wait for it!
 		return 1; //OK!
 	}
 	return 0; //Error!
@@ -87,6 +87,6 @@ void unlock(char *name)
 	lock = getLock(name); //Try and get the lock!
 	if (lock) //Gotten the lock?
 	{
-		SDL_SemPost(lock);
+		PostSem(lock)
 	}
 }

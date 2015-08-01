@@ -195,7 +195,10 @@ byte changedealloc(void *ptr, uint_32 size, DEALLOCFUNC dealloc) //Change the de
 //Core allocation/deallocation functions.
 void zalloc_free(void **ptr, uint_32 size, SDL_sem *lock) //Free a pointer (used internally only) allocated with nzalloc/zalloc!
 {
-	if (lock) SDL_SemWait(lock); //Wait for the lock!
+	if (lock)
+	{
+		WaitSem(lock) //Wait for the lock!
+	}
 	void *ptrdata = NULL;
 	initZalloc(); //Make sure we're started!
 	if (ptr) //Valid pointer to our pointer?
@@ -207,7 +210,10 @@ void zalloc_free(void **ptr, uint_32 size, SDL_sem *lock) //Free a pointer (used
 		}
 		*ptr = NULL; //Release the pointer given!
 	}
-	if (lock) SDL_SemPost(lock); //Release the lock!
+	if (lock)
+	{
+		PostSem(lock) //Release the lock!
+	}
 }
 
 DEALLOCFUNC getdefaultdealloc()

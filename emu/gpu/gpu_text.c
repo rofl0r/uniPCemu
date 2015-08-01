@@ -141,7 +141,6 @@ GPU_TEXTSURFACE *alloc_GPUtext()
 	}
 
 	surface->lock = SDL_CreateSemaphore(1); //Create our lock for when we are used!
-
 	return surface; //Give the allocated surface!
 }
 
@@ -333,12 +332,12 @@ void GPU_text_locksurface(GPU_TEXTSURFACE *surface) //Lock a surface for usage!
 {
 	if (!memprotect(surface,sizeof(*surface),"GPU_TEXTSURFACE")) return; //Invalid surface!
 	if (!surface->lock) return; //no lock?
-	SDL_SemWait(surface->lock); //Wait for us to be available and locked!
+	WaitSem(surface->lock) //Wait for us to be available and locked!
 }
 
 void GPU_text_releasesurface(GPU_TEXTSURFACE *surface) //Unlock a surface when done with it!
 {
 	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
 	if (!surface->lock) return; //no lock?
-	SDL_SemPost(surface->lock); //Release our lock: we're done!
+	PostSem(surface->lock) //Release our lock: we're done!
 }
