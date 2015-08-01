@@ -189,6 +189,8 @@ sword BIOS_Menu = 0; //What menu are we opening (-1 for closing!)?
 byte BIOS_SaveStat = 0; //To save the BIOS?
 byte BIOS_Changed = 0; //BIOS Changed?
 
+byte BIOS_EnablePlay = 0; //Enable play button=OK?
+
 GPU_TEXTSURFACE *BIOS_Surface; //Our very own BIOS Surface!
 
 int advancedoptions = 0; //Number of advanced options!
@@ -842,7 +844,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen) //Runs the file li
 			result &= 0xFF; //Only 255 entries max!
 			printCurrent(x, y, itemlist[result], maxlen); //Create our current entry!
 		}
-		else if ((key&BUTTON_CROSS)>0) //SELECT?
+		else if ((key&BUTTON_CROSS)>0 || (key&BUTTON_PLAY && BIOS_EnablePlay)) //OK?
 		{
 			delay(500000); //Wait a bit before continuing!
 			return result; //Give the result!
@@ -3205,8 +3207,9 @@ int BIOS_MIDI_selection() //MIDI selection menu, custom for this purpose!
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "MIDI file: "); //Show selection init!
-
+	BIOS_EnablePlay = 1; //Enable Play=OK!
 	int file = ExecuteList(12, 4, itemlist[MIDI_file], 256); //Show menu for the disk image!
+	BIOS_EnablePlay = 0; //Disable play again!
 	switch (file) //Which file?
 	{
 	case FILELIST_DEFAULT: //Execute default selection?

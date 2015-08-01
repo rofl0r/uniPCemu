@@ -58,6 +58,9 @@ typedef struct
 	void *processbuffer; //Channelbuffer function to use (determined by fillbuffer function)!
 } playing_t, *playing_p;
 
+byte audioticksready = 0; //Default: not ready yet!
+TicksHolder audioticks;
+
 //Our calls for data buffering and processing.
 typedef uint_32 (*fillbuffer_call)(playing_p currentchannel, uint_32 *relsample, uint_32 currentpos);
 typedef void (*processbuffer_call)(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample);
@@ -822,14 +825,12 @@ void Sound_AudioCallback(void *user_data, Uint8 *audio, int length)
 	//Now, mix all channels!
 	sample_stereo_p ubuf = (sample_stereo_p) audio; //Buffer!
 	#ifdef EXTERNAL_TIMING
-	TicksHolder ticks;
-	initTicksHolder(&ticks); //Init!
-	getuspassed(&ticks); //Init!
+	getuspassed(&audioticks); //Init!
 	#endif
 	uint_32 reallength = length/sizeof(*ubuf); //Total length!
 	mixaudio(ubuf,reallength); //Mix the audio!
 	#ifdef EXTERNAL_TIMING
-	uint_64 mspassed = getuspassed(&ticks); //Load the time passed!
+	uint_64 mspassed = getuspassed(&audioticks); //Load the time passed!
 	totaltime_audio += mspassed; //Total time!
 	++totaltimes_audio; //Total times increase!
 	totaltime_audio_avg = (uint_32)SAFEDIV(totaltime_audio,totaltimes_audio); //Recalculate AVG audio time!
@@ -859,6 +860,11 @@ void initAudio() //Initialises audio subsystem!
 	{
 		if (!SDLAudio_Loaded) //Not loaded yet?
 		{
+			if (!audioticksready) //Not ready yet?
+			{
+				initTicksHolder(&audioticks); //Init!
+				audioticksready = 1; //Ready!
+			}
 			//dolog("soundservice","Use SDL rendering...");
 			SDL_PauseAudio(1); //Disable the thread!
 			

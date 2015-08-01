@@ -42,7 +42,6 @@ SDL_sem *MIDLock = NULL;
 SDL_sem *MID_channel_Lock = NULL; //Our channel lock for counting running MIDI!
 
 uint_64 timing_pos = 0; //Current timing position!
-float BPM = 0.0f; //No BPM by default!
 uint_32 activetempo = 500000; //Current tempo!
 
 word MID_RUNNING = 0; //How many channels are still running/current channel running!
@@ -84,13 +83,12 @@ float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 	}
 	else
 	{
-		//PPQN method!
-		PPQN = (float)division; //Read PPQN!
-		speed = (float)tempo; //Convert to speed!
-		speed /= 1000000.0f; //Divide by 1 second!
-		speed /= PPQN; //Divide to get the ticks per second!
-		speed = 1.0f / speed; //Ammount per second!
-		speed *= 0.5f;
+		//tempo=us/quarter note
+		speed = (float)tempo; //Length of a quarter note in us!
+		//speede is now the amount of quarter notes per second!
+		speed /= (float)division; //Divide us by the PPQN(Pulses Per Quarter Note) to get the ammount of us/pulse!
+		speed = 1000000.0f / speed; //Convert us/pulse to pulse/second!
+		//Speed is now the ammount of pulses per second!
 	}
 
 	//We're counting in ticks!
@@ -142,7 +140,6 @@ void printMIDIChannelStatus()
 void resetMID() //Reset our settings for playback of a new file!
 {
 	SDL_SemWait(MID_BPM_Lock); //Wait for the lock!
-	BPM = 0.0f; //Reset BPM!
 	activetempo = 500000; //Default = 120BPM = 500000 microseconds/quarter note!
 	SDL_SemPost(MID_BPM_Lock); //Finish: we've set the BPM!
 
@@ -351,8 +348,6 @@ void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_
 				case 0x51: //Set tempo?
 					//Lock
 					SDL_SemWait(MID_BPM_Lock);
-					removetimer("MID_tempotimer"); //Remove old timer!
-
 					if (!consumeStream(midi_stream, track, &curdata)) return; //Tempo 1/3 failed?
 					activetempo = curdata; //Final byte!
 					activetempo <<= 8;
@@ -556,9 +551,9 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 			if (showinfo) printMIDIChannelStatus(); //Print the MIDI channel status!
 			SDL_SemPost(MID_channel_Lock);
 
-			if (psp_keypressed(BUTTON_CIRCLE)) //Circle pressed? Request to stop playback!
+			if (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
 			{
-				for (; psp_keypressed(BUTTON_CIRCLE);) {
+				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));) { //Wait for release while pressed!
 					delay(10000); //Wait for release!
 				} //Wait for release!
 				SDL_SemWait(MID_timing_pos_Lock); //Wait to update the flag!

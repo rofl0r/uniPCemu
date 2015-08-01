@@ -1763,6 +1763,16 @@ void updateInput(SDL_Event *event) //Update all input!
 							SDL_PushEvent(&quitevent); //Add an quit event!
 						}
 						break;
+					default: //Unknown?
+						break;
+				}
+				if (event->key.keysym.scancode == 34) //Play/pause?
+				{
+					input.Buttons &= ~BUTTON_PLAY; //Play button!
+				}
+				if (event->key.keysym.scancode == 36) //Stop?
+				{
+					input.Buttons &= ~BUTTON_STOP; //Stop button!
 				}
 				updateMOD(event); //Update rest keys!
 				SDL_SemPost(keyboard_lock);
@@ -1826,6 +1836,7 @@ void updateInput(SDL_Event *event) //Update all input!
 						break;
 					case SDLK_j: //Joy left?
 						input.keyboardjoy_direction |= 4; //Left!
+						input.Buttons |= BUTTON_STOP; //Stop!
 						break;
 					case SDLK_k: //Joy down?
 						input.keyboardjoy_direction |= 2; //Down!
@@ -1845,6 +1856,14 @@ void updateInput(SDL_Event *event) //Update all input!
 					case SDLK_KP2: //CROSS?
 						input.Buttons |= BUTTON_CROSS; //Pressed!
 						break;
+				}
+				if (event->key.keysym.scancode == 34) //Play/pause?
+				{
+					input.Buttons |= BUTTON_PLAY; //Play button!
+				}
+				if (event->key.keysym.scancode == 36) //Stop?
+				{
+					input.Buttons |= BUTTON_STOP; //Stop button!
 				}
 				updateMOD(event); //Update rest keys!
 				SDL_SemPost(keyboard_lock);

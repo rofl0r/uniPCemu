@@ -14,6 +14,8 @@ u64 tickspassed; //Ticks passed between the two measures (0 at the first call)!
 byte avg; //Are we averaging?
 u64 avg_sumpassed; //Total sum passed of getmspassed!
 uint_32 avg_oldtimes; //Total times of avg_sumpassed!
+char lockname[256]; //Full lock name!
+SDL_sem *lock; //Our lock when calculating time passed!
 } TicksHolder; //Info for checking differences between ticks!
 
 #define MS_SECOND 1000

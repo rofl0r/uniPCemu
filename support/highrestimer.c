@@ -1,6 +1,9 @@
 #include "headers/types.h" //Basic types!
 #include "headers/support/highrestimer.h" //Our own typedefs etc.
 #include "headers/support/log.h" //Logging support!
+#include "headers/support/locks.h" //Locking support!
+
+uint_32 locknumber = 0; //Our lock number!
 
 byte resolutioninit = 1; //Resolution is loaded?
 double tickresolution = 0.0f; //Our tick resolution, initialised!
@@ -8,9 +11,11 @@ byte tickresolution_win_SDL = 0; //Force SDL rendering?
 
 void initTicksHolder(TicksHolder *ticksholder)
 {
+	char lockname[256]; //Full lock name!
 	byte avg;
 	u64 oldpassed;
 	uint_32 oldtimes;
+	for (; !lock("HighresTimer");) { delay(1); } //Lock ourselves!
 	if (resolutioninit) //Not loaded yet?
 	{
 #ifdef __psp__
@@ -35,6 +40,9 @@ void initTicksHolder(TicksHolder *ticksholder)
 		resolutioninit = 0; //We're ready to run!
 	}
 	memset(ticksholder,0,sizeof(*ticksholder)); //Clear the holder!
+	sprintf(ticksholder->lockname, "HighresTimer%i", locknumber++); //Reserve a lock number!
+	ticksholder->lock = getLock(ticksholder->lockname); //Use this lock!
+	unlock("HighresTimer"); //Unlock ourselves!
 }
 
 void ticksholder_AVG(TicksHolder *ticksholder)
@@ -67,7 +75,7 @@ u64 getcurrentticks() //Retrieve the current ticks!
 	return (u64)SDL_GetTicks(); //Give the ticks passed using SDL default handling!
 }
 
-OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
+u64 getrealtickspassed(TicksHolder *ticksholder)
 {
     u64 temp;
 	u64 currentticks = getcurrentticks(); //Fist: get current ticks to be sure we're right!
@@ -96,7 +104,7 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 	return ticksholder->tickspassed; //Give the result: ammount of ticks passed!
 }
 
-OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, u64 secondfactor)
+uint_64 gettimepassed(TicksHolder *ticksholder, u64 secondfactor)
 {
 	uint_64 result;
 	u64 tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
@@ -136,7 +144,6 @@ uint_64 getnspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn
 
 void startHiresCounting(TicksHolder *ticksholder)
 {
-	initTicksHolder(ticksholder); //Init!
 	getrealtickspassed(ticksholder); //Start with counting!
 }
 

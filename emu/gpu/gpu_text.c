@@ -160,9 +160,6 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 {
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
-	TicksHolder ms_render_lastcheck; //For counting ms to render (GPU_framerate)!
-	initTicksHolder(&ms_render_lastcheck); //Init for counting time of rendering on the device directly from VGA data!
-	getuspassed(&ms_render_lastcheck); //Get first value!
 	register int y=0;
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 	for (;;) //Process all rows!
@@ -176,7 +173,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!
 	}
 	tsurface->flags &= ~TEXTSURFACE_FLAG_DIRTY; //Clear dirty flag!
-	return getuspassed(&ms_render_lastcheck); //Give processing time!
+	return 0; //Ignore processing time!
 }
 
 int GPU_textgetxy(GPU_TEXTSURFACE *surface,int x, int y, byte *character, uint_32 *font, uint_32 *border) //Read a character+attribute!
