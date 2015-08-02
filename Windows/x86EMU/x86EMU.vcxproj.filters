@@ -826,5 +826,8 @@
     <ClInclude Include="..\..\headers\bios\dskimage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\headers\hardware\vga_screen\vga_vramtext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
