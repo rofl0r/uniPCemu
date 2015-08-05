@@ -401,9 +401,9 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 		++numdrives;
 	}
 
-	if ((BIOS_Settings.emulated_CPU!=CPU_8086) && (BIOS_Settings.emulated_CPU!=CPU_80186)) //Invalid CPU detected?
+	if ((BIOS_Settings.emulated_CPU!=CPU_8086) && (BIOS_Settings.emulated_CPU!=CPU_80186) && (BIOS_Settings.emulated_CPU!=CPU_80286)) //Invalid CPU detected?
 	{
-		BIOS_Settings.emulated_CPU = CPU_8086; //Load default CPU!
+		BIOS_Settings.emulated_CPU = DEFAULT_CPU; //Load default CPU!
 		forceBIOSSave(); //Force the BIOS to be saved!
 	}
 
@@ -414,6 +414,10 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 	else if (BIOS_Settings.emulated_CPU==CPU_80186) //80186?
 	{
 		printmsg(0xF,"Installed CPU: Intel 80186\r\n"); //Emulated CPU!
+	}
+	else if (BIOS_Settings.emulated_CPU == CPU_80286) //80286?
+	{
+		printmsg(0xF, "Installed CPU: Intel 80286(unfinished)\r\n"); //Emulated CPU!
 	}
 	else //Unknown CPU?
 	{

@@ -13,6 +13,8 @@
 
 #include "headers/emu/emucore.h" //Emulation core!
 
+#include "headers/cpu/80286/protection.h" //PMode support!
+
 extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?
 extern PIC i8259; //PIC processor!
@@ -33,9 +35,8 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	int memloc = 0;
 	f = fopen(filename,"rb"); //First, load file!
 
-	stopVideo(); //Disable video emulation!
 	dolog("debugger","RUNROMVERIFY: initEMU...");
-	initEMU(0); //Init EMU first, no video!
+	initEMU(1); //Init EMU first, enable video!
 	dolog("debugger","RUNROMVERIFY: ready to go.");
 
 	if (!hasmemory()) //No memory present?
@@ -78,12 +79,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		dolog("ROM_log","Failed loading the verification ROM as a BIOS!");
 		return 0; //Failed!
 	}
-	
-	EMU_Shutdown(0);
-	cleartimers(); //Clear all timers!
-	
-	dolog("ROM_log","Terminating VGA...");
-	terminateVGA(); //Don't show VGA!
+
 	CPU[activeCPU].halt = 0; //Start without halt!
 	dolog("ROM_log","Starting verification ROM emulator...");
 	uint_32 erroraddr = 0xFFFFFFFF; //Error address (undefined)
@@ -91,7 +87,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	uint_32 erroraddr16 = 0x00000000; //16-bit segment:offset pair.
 	BIOS_registerROM(); //Register the BIOS ROM!
 	dolog("debugger","Starting debugging file %s",filename); //Log the file we're going to test!
-	LOG_MMU_WRITES = 1; //Enable logging!
+	LOG_MMU_WRITES = debugger_logging(); //Enable logging!
 	allow_debuggerstep = 1; //Allow stepping of the debugger!
 	for (;!CPU[activeCPU].halt;) //Still running?
 	{
@@ -112,6 +108,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 			HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
 			call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 		}
+		cpudebugger = needdebugger(); //Debugging?
 		CPU_exec(); //Run CPU!
 		debugger_step(); //Step debugger if needed!
 		CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!

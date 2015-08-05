@@ -311,15 +311,15 @@ void CPU_initRegisters() //Init the registers!
 
 	
 	//Code location
-	if (EMULATED_CPU>CPU_80186) //286+?
+	if (EMULATED_CPU>=CPU_80186) //186+?
 	{
 		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
 		CPU[activeCPU].registers->EIP = 0xFFF0; //We're starting at this offset!
 	}
 	else
 	{
-		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
 		CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
+		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
 	}
 	//Data registers!
 	CPU[activeCPU].registers->DS = 0; //Data segment!

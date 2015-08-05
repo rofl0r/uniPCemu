@@ -1290,6 +1290,9 @@ void BIOS_InitAdvancedText()
 		case CPU_80186: //80186?
 			strcat(menuoptions[advancedoptions++], "Intel 80186"); //Add installed CPU!
 			break;
+		case CPU_80286: //80286?
+			strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!
+			break;
 		default:
 			strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
 			break;
@@ -1432,19 +1435,24 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	GPU_EMU_printscreen(0,4,"Installed CPU: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 2; //Ammount of CPU types!
-	for (i=0; i<2; i++) //Process options!
+	numlist = 3; //Ammount of CPU types!
+	for (i=0; i<3; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[CPU_8086],"Intel 8086"); //Set filename from options!
 	strcpy(itemlist[CPU_80186],"Intel 80186"); //Set filename from options!
+	strcpy(itemlist[CPU_80286], "Intel 80286(unfinished)"); //Set filename from options!
 	int current = 0;
 	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
 	{
 		current = CPU_8086; //8086!
 	}
-	else //80186?
+	else if (BIOS_Settings.emulated_CPU == CPU_80286) //80286?
+	{
+		current = CPU_80286; //80286!
+	}
+	else //80186 (default)?
 	{
 		current = CPU_80186; //80186!
 	}
@@ -1467,6 +1475,9 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 				break;
 			case CPU_80186: //80186?
 				BIOS_Settings.emulated_CPU = CPU_80186; //Use the 80186!
+				break;
+			case CPU_80286: //80286?
+				BIOS_Settings.emulated_CPU = CPU_80286; //Use the 80286!
 				break;
 			default: //Unknown CPU?
 				BIOS_Settings.emulated_CPU = CPU_8086; //Use the 8086!
