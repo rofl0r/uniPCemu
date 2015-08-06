@@ -61,9 +61,10 @@ void flag_adc8(uint8_t v1, uint8_t v2, uint8_t v3)
 	flag_szp8(dst);
 	if (((dst ^ v1) & (dst ^ v2) & 0x80) == 0x80) FLAG_OF = 1;
 	else FLAG_OF = 0;
-	if ((((dst & 0xFF) < (v1 & 0xFF)) || (((FLAG_CF & (((v1 & 0xFF) + (v2 & 0xFF) + (v3 & 0xFF)) & 0xFF)) == (v1 & 0xFF)))))
+	/*if ((((dst & 0xFF) < (v1 & 0xFF)) || (((FLAG_CF & (((v1 & 0xFF) + (v2 & 0xFF) + (v3 & 0xFF)) & 0xFF)) == (v1 & 0xFF)))))
 		FLAG_CF = 1;
-	else FLAG_CF = 0;
+	else FLAG_CF = 0;*/
+	FLAG_CF = (dst & 0xFF00) ? 1 : 0; //Set the carry flag accordingly!
 	if (((v1 ^ v2 ^ dst) & 0x10) == 0x10) FLAG_AF = 1;
 	else FLAG_AF = 0;
 }
@@ -75,9 +76,11 @@ void flag_adc16(uint16_t v1, uint16_t v2, uint16_t v3)
 	flag_szp16(dst);
 	if (((dst ^ v1) & (dst ^ v2) & 0x8000) == 0x8000) FLAG_OF = 1;
 	else FLAG_OF = 0;
-	if ((((dst & 0xFFFF) < (v1 & 0xFFFF)) || (((FLAG_CF & (((v1 & 0xFFFF) + (v2 & 0xFFFF) + (v3 & 0xFFFF)) & 0xFFFF)) == (v1 & 0xFFFF)))))
+	/*if ((((dst & 0xFFFF) < (v1 & 0xFFFF)) || (((FLAG_CF & (((v1 & 0xFFFF) + (v2 & 0xFFFF) + (v3 & 0xFFFF)) & 0xFFFF)) == (v1 & 0xFFFF)))))
 		FLAG_CF = 1;
 	else FLAG_CF = 0;
+	*/
+	FLAG_CF = (dst & 0xFFFF0000) ? 1 : 0; //Set the carry flag accordingly!
 	if (((v1 ^ v2 ^ dst) & 0x10) == 0x10) FLAG_AF = 1;
 	else FLAG_AF = 0;
 }
@@ -110,12 +113,14 @@ void flag_add16(uint16_t v1, uint16_t v2)
 
 void flag_sbb8(uint8_t v1, uint8_t v2, uint8_t v3)
 {
-	int16_t dst;
-	v2 += v3;
-	dst = (int16_t)v1 - (int16_t)v2;
+	int16_t dst,sub;
+	sub = v2;
+	sub += v3;
+	dst = (int16_t)v1 - (int16_t)sub;
 	flag_szp8(dst & 0xFF);
-	if (v1 < v2) FLAG_CF = 1;
-	else FLAG_CF = 0;
+	/*if (v1 < v2) FLAG_CF = 1;
+	else FLAG_CF = 0;*/
+	FLAG_CF = (dst & 0xFF00) ? 1 : 0;
 	if ((dst ^ v1) & (v1 ^ v2) & 0x80) FLAG_OF = 1;
 	else FLAG_OF = 0;
 	if ((v1 ^ v2 ^ dst) & 0x10) FLAG_AF = 1;
@@ -124,12 +129,14 @@ void flag_sbb8(uint8_t v1, uint8_t v2, uint8_t v3)
 
 void flag_sbb16(uint16_t v1, uint16_t v2, uint16_t v3)
 {
-	int32_t dst;
-	v2 += v3;
-	dst = (int32_t)v1 - (int32_t)v2;
+	int32_t dst,sub;
+	sub = v2;
+	sub += v3;
+	dst = (int32_t)v1 - (int32_t)sub;
 	flag_szp16(dst & 0xFFFF);
-	if (v1 < v2) FLAG_CF = 1;
-	else FLAG_CF = 0;
+	/*if (v1 < v2) FLAG_CF = 1;
+	else FLAG_CF = 0;*/
+	FLAG_CF = (dst & 0xFFFF0000) ? 1 : 0;
 	if ((dst ^ v1) & (v1 ^ v2) & 0x8000) FLAG_OF = 1;
 	else FLAG_OF = 0;
 	if ((v1 ^ v2 ^ dst) & 0x10) FLAG_AF = 1;
@@ -141,8 +148,9 @@ void flag_sub8(uint8_t v1, uint8_t v2)
 	int16_t dst;
 	dst = (int16_t)v1 - (int16_t)v2;
 	flag_szp8(dst & 0xFF);
-	if (v1 < v2) FLAG_CF = 1;
-	else FLAG_CF = 0;
+	/*if (v1 < v2) FLAG_CF = 1;
+	else FLAG_CF = 0;*/
+	FLAG_CF = (dst & 0xFF00) ? 1 : 0; //Carry?
 	if ((dst ^ v1) & (v1 ^ v2) & 0x80) FLAG_OF = 1;
 	else FLAG_OF = 0;
 	if ((v1 ^ v2 ^ dst) & 0x10) FLAG_AF = 1;
@@ -154,8 +162,9 @@ void flag_sub16(uint16_t v1, uint16_t v2)
 	int32_t dst;
 	dst = (int32_t)v1 - (int32_t)v2;
 	flag_szp16(dst & 0xFFFF);
-	if (v1 < v2) FLAG_CF = 1;
-	else FLAG_CF = 0;
+	/*if (v1 < v2) FLAG_CF = 1;
+	else FLAG_CF = 0;*/
+	FLAG_CF = (dst & 0xFFFF0000) ? 1 : 0; //Carry?
 	if ((dst ^ v1) & (v1 ^ v2) & 0x8000) FLAG_OF = 1;
 	else FLAG_OF = 0;
 	if ((v1 ^ v2 ^ dst) & 0x10) FLAG_AF = 1;

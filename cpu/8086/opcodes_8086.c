@@ -811,16 +811,20 @@ void CPU8086_internal_DAA()
 }
 void CPU8086_internal_DAS()
 {
+	byte tempCF, tempAL;
+	tempAL = REG_AL;
+	tempCF = FLAG_CF; //Save old values!
 	CPUPROT1
 	if (((REG_AL&0xF)>9) || FLAG_AF)
 	{
 		oper1 = REG_AL-6;
 		REG_AL = oper1&255;
-		FLAG_CF = ((oper1&0xFF00)>0);
+		FLAG_CF = tempCF|((oper1&0xFF00)>0);
 		FLAG_AF = 1;
 	}
 	else FLAG_AF = 0;
-	if (((REG_AL&0xF0)>0x90) || FLAG_CF)
+
+	if ((tempAL>0x99) || tempCF)
 	{
 		REG_AL -= 0x60;
 		FLAG_CF = 1;
@@ -848,6 +852,7 @@ void CPU8086_internal_AAA()
 		FLAG_CF = 0;
 	}
 	REG_AL &= 0xF;
+	flag_szp8(REG_AL); //Basic flags!
 	CPUPROT2
 }
 void CPU8086_internal_AAS()
@@ -866,6 +871,7 @@ void CPU8086_internal_AAS()
 		FLAG_CF = 0;
 	}
 	REG_AL &= 0xF;
+	flag_szp8(REG_AL); //Basic flags!
 	CPUPROT2
 }
 
@@ -1132,8 +1138,8 @@ void CPU8086_internal_AAD(byte data)
 	CPUPROT1
 	REG_AX = ((REG_AH*data)+REG_AL);    //AAD
 	REG_AH = 0;
-	flag_szp16((REG_AH*data)+REG_AL); //Update the flags!
-	FLAG_SF = 0;
+	flag_szp8(REG_AL); //Update the flags!
+	FLAG_OF = FLAG_CF = FLAG_AF = 0; //Clear these!
 	CPUPROT2
 }
 
@@ -1916,10 +1922,10 @@ void CPU8086_OPF6() //GRP3a Eb
 			debugger_setcommand("NEGB %s",&modrm_param2);
 			break;
 		case 4: //MUL
-			debugger_setcommand("MULB %s,AL",&modrm_param2);
+			debugger_setcommand("MULB %s",&modrm_param2);
 			break;
 		case 5: //IMUL
-			debugger_setcommand("IMULB %s,AL",&modrm_param2);
+			debugger_setcommand("IMULB %s",&modrm_param2);
 			break;
 		case 6: //DIV
 			modrm_generateInstructionTEXT("DIVB",8,0,PARAM_MODRM2);

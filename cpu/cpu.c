@@ -685,6 +685,11 @@ void CPU_beforeexec()
 	default: //Unknown CPU?
 		break;
 	}
+
+	//This applies to all processors:
+	CPU[activeCPU].registers->SFLAGS.unmapped2 = 1; //Forced to 1!
+	CPU[activeCPU].registers->SFLAGS.unmapped8 = 0; //Forced to 0!
+	CPU[activeCPU].registers->SFLAGS.unmapped32 = 0; //Forced to 0!
 }
 
 byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0

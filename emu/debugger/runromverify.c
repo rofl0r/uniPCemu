@@ -144,18 +144,19 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	verified = 1; //Default: OK!
 	byte data; //Data to verify!
 	byte last; //Last data read in memory!
-	while (!feof(f)) //Data left?
+	for (;!feof(f);) //Data left?
 	{
-		fread(&data,1,sizeof(data),f); //Read data to verify!
-		last = MMU_rb(-1,datastart,memloc++,0); //One byte to compare from memory!
+		if (fread(&data, 1, sizeof(data), f) != sizeof(data)) break; //Read data to verify!
+		last = MMU_rb(-1,datastart,memloc,0); //One byte to compare from memory!
 		byte verified2;
 		verified2 = (data==last); //Verify with memory!
 		verified &= verified2; //Check for verified!
 		if (!verified2) //Error in verification byte?
 		{
-			dolog("ROM_log","Error address: %08X, expected: %02X, in memory: %02X",memloc-1,data,last); //Give the verification point that went wrong!
+			dolog("ROM_log","Error address: %08X, expected: %02X, in memory: %02X",memloc,data,last); //Give the verification point that went wrong!
 			//Continue checking for listing all errors!
 		}
+		++memloc; //Increase the location!
 	}
 	fclose(f); //Close the file!
 	//dolog("ROM_log","Finishing emulator...");	

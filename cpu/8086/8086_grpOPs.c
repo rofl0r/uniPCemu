@@ -59,7 +59,7 @@ byte op_grp2_8(byte cnt) {
 			s = s << 1;
 			s = s | FLAG_CF;
 		}
-		if (cnt==1) FLAG_OF = FLAG_CF ^ ((s >> 7) & 1);
+		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 7) & 1);
 		break;
 		
 		case 1: //ROR r/m8
@@ -67,7 +67,7 @@ byte op_grp2_8(byte cnt) {
 			FLAG_CF = s & 1;
 			s = (s >> 1) | (FLAG_CF << 7);
 		}
-		if (cnt==1) FLAG_OF = (s >> 7) ^ ((s >> 6) & 1);
+		if (cnt) FLAG_OF = (s >> 7) ^ ((s >> 6) & 1);
 		break;
 		
 		case 2: //RCL r/m8
@@ -77,7 +77,7 @@ byte op_grp2_8(byte cnt) {
 			s = s << 1;
 			s = s | oldCF;
 		}
-		if (cnt==1) FLAG_OF = FLAG_CF ^ ((s >> 7) & 1);
+		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 7) & 1);
 		break;
 		
 		case 3: //RCR r/m8
@@ -86,7 +86,7 @@ byte op_grp2_8(byte cnt) {
 			FLAG_CF = s & 1;
 			s = (s >> 1) | (oldCF << 7);
 		}
-		if (cnt==1) FLAG_OF = (s >> 7) ^ ((s >> 6) & 1);
+		if (cnt) FLAG_OF = (s >> 7) ^ ((s >> 6) & 1);
 		break;
 		
 		case 4: case 6: //SHL r/m8
@@ -94,11 +94,11 @@ byte op_grp2_8(byte cnt) {
 			if (s & 0x80) FLAG_CF = 1; else FLAG_CF = 0;
 			s = (s << 1) & 0xFF;
 		}
-		if ((cnt==1) && (FLAG_CF==(s>>7))) FLAG_OF = 0; else FLAG_OF = 1;
+		if (cnt) FLAG_OF = (FLAG_CF ^ (s >> 7));
 		flag_szp8(s); break;
 		
 		case 5: //SHR r/m8
-		if ((cnt==1) && (s & 0x80)) FLAG_OF = 1; else FLAG_OF = 0;
+		if (cnt == 1) FLAG_OF = (s & 0x80) ? 1 : 0; else FLAG_OF = 0;
 		for (shift=1; shift<=cnt; shift++) {
 			FLAG_CF = s & 1;
 			s = s >> 1;
@@ -106,14 +106,19 @@ byte op_grp2_8(byte cnt) {
 		flag_szp8(s); break;
 		
 		case 7: //SAR r/m8
-		for (shift=1; shift<=cnt; shift++) {
+			if (cnt) FLAG_OF = 0;
 			msb = s & 0x80;
+			for (shift=1; shift<=cnt; shift++) {
 			FLAG_CF = s & 1;
 			s = (s >> 1) | msb;
 		}
-		FLAG_OF = 0;
+		byte tempSF;
+		tempSF = FLAG_SF; //Save the SF!
 		flag_szp8(s); break;
-		
+		if (!cnt) //Nothing done?
+		{
+			FLAG_SF = tempSF; //We don't update when nothing's done!
+		}		
 	}
 	return(s & 0xFF);
 }
@@ -126,24 +131,24 @@ word op_grp2_16(byte cnt) {
 	s = oper1;
 	oldCF = FLAG_CF;
 	switch (reg) {
-		case 0: //ROL r/m8
+		case 0: //ROL r/m16
 		for (shift=1; shift<=cnt; shift++) {
 			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
 			s = s << 1;
 			s = s | FLAG_CF;
 		}
-		if (cnt==1) FLAG_OF = FLAG_CF ^ ((s >> 15) & 1);
+		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 15) & 1);
 		break;
 		
-		case 1: //ROR r/m8
+		case 1: //ROR r/m16
 		for (shift=1; shift<=cnt; shift++) {
 			FLAG_CF = s & 1;
 			s = (s >> 1) | (FLAG_CF << 15);
 		}
-		if (cnt==1) FLAG_OF = (s >> 15) ^ ((s >> 14) & 1);
+		if (cnt) FLAG_OF = (s >> 15) ^ ((s >> 14) & 1);
 		break;
 		
-		case 2: //RCL r/m8
+		case 2: //RCL r/m16
 		for (shift=1; shift<=cnt; shift++) {
 			oldCF = FLAG_CF;
 			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
@@ -153,11 +158,11 @@ word op_grp2_16(byte cnt) {
 			//s = (s<<1)+FLAG_CF;
 			//FLAG_CF = oldCF;
 		}
-		if (cnt==1) FLAG_OF = FLAG_CF ^ ((s >> 15) & 1);
+		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 15) & 1);
 		break;
-		
-		case 3: //RCR r/m8
-		if (cnt==1) FLAG_OF = ((s>>15)&1)^FLAG_CF;
+		 
+		case 3: //RCR r/m16
+		if (cnt) FLAG_OF = ((s>>15)&1)^FLAG_CF;
 		for (shift=1; shift<=cnt; shift++) {
 			oldCF = FLAG_CF;
 			FLAG_CF = s & 1;
@@ -166,33 +171,40 @@ word op_grp2_16(byte cnt) {
 			//s = (s<<1)+(FLAG_CF<<16);
 			//FLAG_CF = oldCF;
 		}
-		if (cnt==1) FLAG_OF = (s >> 15) ^ ((s >> 14) & 1);
+		if (cnt) FLAG_OF = (s >> 15) ^ ((s >> 14) & 1);
 		break;
 		
-		case 4: case 6: //SHL r/m8
+		case 4: case 6: //SHL r/m16
 		for (shift=1; shift<=cnt; shift++) {
 			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
 			s = (s << 1) & 0xFFFF;
 		}
-		if ((cnt==1) && (FLAG_CF==(s>>15))) FLAG_OF = 0; else FLAG_OF = 1;
+		if ((cnt) && (FLAG_CF==(s>>15))) FLAG_OF = 0; else FLAG_OF = 1;
 		flag_szp16(s); break;
 		
-		case 5: //SHR r/m8
-		if ((cnt==1) && (s & 0x8000)) FLAG_OF = 1; else FLAG_OF = 0;
+		case 5: //SHR r/m16
+		if (cnt) FLAG_OF = (s & 0x8000) ? 1 : 0;
 		for (shift=1; shift<=cnt; shift++) {
 			FLAG_CF = s & 1;
 			s = s >> 1;
 		}
 		flag_szp16(s); break;
 		
-		case 7: //SAR r/m8
-		for (shift=1; shift<=cnt; shift++) {
-			msb = s & 0x8000;
-			FLAG_CF = s & 1;
-			s = (s >> 1) | msb;
-		}
-		FLAG_OF = 0;
-		flag_szp16(s); break;
+		case 7: //SAR r/m16
+			if (cnt) FLAG_OF = 0;
+			msb = s & 0x8000; //Read the MSB!
+			for (shift=1; shift<=cnt; shift++) {
+				FLAG_CF = s & 1;
+				s = (s >> 1) | msb;
+			}
+			byte tempSF;
+			tempSF = FLAG_SF; //Save the SF!
+			flag_szp16(s);
+			if (!cnt) //Nothing done?
+			{
+				FLAG_SF = tempSF; //We don't update when nothing's done!
+			}
+			break;
 	}
 	return(s & 0xFFFF);
 }
@@ -303,7 +315,8 @@ void op_grp3_8() {
 		temp3.val32s *= temp2.val32s; //Multiply!
 		dolog("debugger","IMULB:%ix%i=%i",temp1.val32s,temp2.val32s,temp3.val32s); //Show the result!
 		REG_AX = temp3.val16; //Load into AX!
-		FLAG_CF = FLAG_OF = (REG_AH!=0);
+		flag_szp8(REG_AL); //Set the result flags!
+		FLAG_CF = (FLAG_OF = ((unsigned2signed8(REG_AL)!=unsigned2signed16(REG_AX))?1:0));
 		break;
 		
 		case 6: //DIV
@@ -419,7 +432,7 @@ void op_grp3_16() {
 		dolog("debugger","IMULW:%ix%i=%i",temp1.val32s,temp2.val32s,temp3.val32s); //Show the result!
 		REG_AX = temp3.val16; //into register ax
 		REG_DX = temp3.val16high; //into register dx
-		flag_szp16(temp3.val32);
+		flag_szp32(temp3.val32); //Affect the flags!
 		FLAG_CF = FLAG_OF = (temp3.val16s!=temp3.val32s); //Overflow occurred?
 		break;
 		case 6: //DIV
