@@ -421,9 +421,12 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 		//cylinder/track=2;head=3;sector=4;max sector number=6
 		if (++FLOPPY.commandbuffer[4] > FLOPPY.commandbuffer[6]) //Overflow next sector by parameter?
 		{
-			if ((FLOPPY.MT&&FLOPPY.commandbuffer[3]) || (!FLOPPY.MT)) //Multi-track and side 1, or not Multi-track?
+			if (!FLOPPY.DOR.Mode) //Non-DMA mode?
 			{
-				result = 0; //SPT finished!
+				if ((FLOPPY.MT && FLOPPY.commandbuffer[3]) || !FLOPPY.MT) //Multi-track and side 1, or not Multi-track?
+				{
+					result = 0; //SPT finished!
+				}
 			}
 			FLOPPY.commandbuffer[4] = 1; //Reset sector number!
 			if (++FLOPPY.commandbuffer[3] >= FLOPPY.geometries[floppy]->sides) //Side overflow?
