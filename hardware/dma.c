@@ -500,18 +500,6 @@ void DMA_tick()
 		//goto nextcycle; //Next cycle!!
 }
 
-void DMA_blocktick()
-{
-	int i;
-	WaitSem(DMA_Lock)
-	for (i = 0; i < 100;) //Process 100 ticks!
-	{
-		DMA_tick(); //Tick a DMA cycle!
-		++i; //Next item!
-	}
-	PostSem(DMA_Lock)
-}
-
 void initDMA()
 {
 	doneDMA(); //Stop DMA if needed!
@@ -527,7 +515,7 @@ void initDMA()
 	if (!__HW_DISABLED) //Enabled?
 	{
 		//We're up to 1.6MB/s, so for 1 channel 1.6 million bytes per second, for all channels, to 8 channel 204953.6 bytes per second!
-		addtimer(1639628.8f/100.0f,&DMA_blocktick,"DMA tick",100,0,NULL); //Just use timers!
+		addtimer(1639628.8f,&DMA_tick,"DMA tick",0,0,DMA_Lock); //Just use timers!
 	}
 }
 

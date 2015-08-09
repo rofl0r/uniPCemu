@@ -375,8 +375,6 @@ byte coreHandler()
 		return 0; //Stop!
 	}
 
-	startreached |= ((CPU[activeCPU].registers->CS==0x0000) && (CPU[activeCPU].registers->EIP==0x7C00)); //Start logging when we're at the boot sector!
-
 	//CPU execution, needs to be before the debugger!
 	interruptsaved = 0; //Reset PIC interrupt to not used!
 	if (activeCPU == 0) //Root CPU is active? We're allowed to do stuff!

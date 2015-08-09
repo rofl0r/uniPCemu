@@ -5,11 +5,13 @@
 #include "headers/hardware/pic.h" //PIC support!
 #include "headers/bios/dskimage.h" //DSK image support!
 
+#include "headers/debugger/debugger.h" //Debugger support!
+
 //Configuration of the FDC...
 
 //Double logging if FLOPPY_LOGFILE2 is defined!
-#define FLOPPY_LOGFILE "debugger"
-#define FLOPPY_LOGFILE2 "floppy"
+//#define FLOPPY_LOGFILE "debugger"
+//#define FLOPPY_LOGFILE2 "floppy"
 
 //What IRQ is expected of floppy disk I/O
 #define FLOPPY_IRQ 6
@@ -19,9 +21,9 @@
 //Automatic setup.
 #ifdef FLOPPY_LOGFILE
 #ifdef FLOPPY_LOGFILE2
-#define FLOPPY_LOG(...) dolog(FLOPPY_LOGFILE,__VA_ARGS__); dolog(FLOPPY_LOGFILE2,__VA_ARGS__);
+#define FLOPPY_LOG(...) if (debugger_logging()) { dolog(FLOPPY_LOGFILE,__VA_ARGS__); dolog(FLOPPY_LOGFILE2,__VA_ARGS__); }
 #else
-#define FLOPPY_LOG(...) dolog(FLOPPY_LOGFILE,__VA_ARGS__);
+#define FLOPPY_LOG(...) if (debugger_logging()) { dolog(FLOPPY_LOGFILE,__VA_ARGS__); }
 #endif
 #else
 #define FLOPPY_LOG(...)
@@ -419,7 +421,7 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 	if (FLOPPY.geometries[floppy]) //Do we have a valid geometry?
 	{
 		//cylinder/track=2;head=3;sector=4;max sector number=6
-		if (++FLOPPY.commandbuffer[4] > FLOPPY.commandbuffer[6]) //Overflow next sector by parameter?
+		if (++FLOPPY.commandbuffer[4] > FLOPPY.geometries[floppy]->SPT) //Overflow next sector by parameter?
 		{
 			if (!FLOPPY.DOR.Mode) //Non-DMA mode?
 			{
@@ -488,7 +490,10 @@ void FLOPPY_startData() //Start a Data transfer if needed!
 
 void floppy_readsector() //Request a read sector command!
 {
+	FILE *f;
+	char sectorfile[256];
 	char *DSKImageFile = NULL; //DSK image file to use?
+	uint_32 sector;
 	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
 
 	FLOPPY.MT = (FLOPPY.commandbuffer[0] >> 7); //Multiple track mode?
@@ -498,13 +503,14 @@ void floppy_readsector() //Request a read sector command!
 	{
 		FLOPPY.databuffersize = FLOPPY.commandbuffer[8]; //Use data length!
 	}
-	FLOPPY_LOG("FLOPPY: Read sector: Sector size: %i bytes", FLOPPY.databuffersize)
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Read sector: Sector size: %i bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos = floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4]); //The start position, in sectors!
+	sector = (uint_32)FLOPPY.disk_startpos; //Our sector!
 	FLOPPY_LOG("FLOPPY: Read sector #%i", FLOPPY.disk_startpos) //We're reading this sector!
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
-	FLOPPY_LOG("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize); //Transfer this many sectors!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize); } //Transfer this many sectors!
 
-	FLOPPY_LOG("FLOPPY: Read sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]); //Log our request!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Read sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]); } //Log our request!
 
 	if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 	{
@@ -554,13 +560,13 @@ void floppy_writesector() //Request a write sector command!
 	{
 		FLOPPY.databuffersize = FLOPPY.commandbuffer[8]; //Use data length!
 	}
-	FLOPPY_LOG("FLOPPY: Write sector: Sector size: %i bytes", FLOPPY.databuffersize)
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Write sector: Sector size: %i bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos = floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4]); //The start position, in sectors!
-	FLOPPY_LOG("FLOPPY: Write sector #%i", FLOPPY.disk_startpos) //We're reading this sector!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Write sector #%i", FLOPPY.disk_startpos) } //We're reading this sector!
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
-	FLOPPY_LOG("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize); //Transfer this many sectors!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize); } //Transfer this many sectors!
 
-	FLOPPY_LOG("FLOPPY: Write sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]); //Log our request!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Write sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]); } //Log our request!
 
 	if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 	{

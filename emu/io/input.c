@@ -25,6 +25,13 @@
 #include <SDL/SDL_events.h> //Event support!
 #endif
 
+byte mousebuttons = 0; //Active mouse buttons!
+
+//Use direct input in windows!
+byte Direct_Input = 0; //Direct input enabled?
+
+extern byte EMU_RUNNING; //Are we running?
+
 SDL_sem *keyboard_lock = NULL; //Our lock!
 
 enum input_button_map { //All buttons we support!
@@ -32,6 +39,130 @@ INPUT_BUTTON_TRIANGLE, INPUT_BUTTON_CIRCLE, INPUT_BUTTON_CROSS, INPUT_BUTTON_SQU
 INPUT_BUTTON_LTRIGGER, INPUT_BUTTON_RTRIGGER,
 INPUT_BUTTON_DOWN, INPUT_BUTTON_LEFT, INPUT_BUTTON_UP, INPUT_BUTTON_RIGHT,
 INPUT_BUTTON_SELECT, INPUT_BUTTON_START, INPUT_BUTTON_HOME, INPUT_BUTTON_HOLD };
+
+byte emu_keys_state[104]; //All states for all emulated keys!
+int emu_keys_SDL[104] = {
+	//column 1
+	SDLK_a, //A
+	SDLK_b, //B
+	SDLK_c, //C
+	SDLK_d,//D
+	SDLK_e, //E
+	SDLK_f, //F
+	SDLK_g, //G
+	SDLK_h, //H
+	SDLK_i, //I
+	SDLK_j, //J
+	SDLK_k, //K
+	SDLK_l, //L
+	SDLK_m, //M
+	SDLK_n, //N
+	SDLK_o, //O
+	SDLK_p, //P
+	SDLK_q, //Q
+	SDLK_r, //R
+	SDLK_s, //S
+	SDLK_t, //T
+	SDLK_u, //U
+	SDLK_v, //V
+	SDLK_w, //W
+	SDLK_x, //X
+	SDLK_y, //Y
+	SDLK_z, //Z
+
+	SDLK_0, //0
+	SDLK_1, //1
+	SDLK_2, //2
+	SDLK_3, //3
+	SDLK_4, //4
+	SDLK_5, //5
+	SDLK_6, //6
+	SDLK_7, //7
+	SDLK_8, //8
+	SDLK_9, //9
+
+		 //Column 2! (above '9' included)
+	SDLK_BACKQUOTE, //`
+	SDLK_MINUS, //-
+	SDLK_EQUALS, //=
+	SDLK_BACKSLASH, //'\'
+
+	SDLK_BACKSPACE, //BKSP
+	SDLK_SPACE, //SPACE
+	SDLK_TAB, //TAB
+	SDLK_CAPSLOCK, //CAPS
+
+	SDLK_LSHIFT, //L SHFT
+	SDLK_LCTRL, //L CTRL
+	SDLK_LSUPER, //L WIN
+	SDLK_LALT, //L ALT
+	SDLK_LSHIFT, //R SHFT
+	SDLK_RCTRL, //R CTRL
+	SDLK_RSUPER, //R WIN
+	SDLK_RALT, //R ALT
+
+	SDLK_MENU, //APPS
+	SDLK_RETURN, //ENTER
+	SDLK_ESCAPE, //ESC
+
+	SDLK_F1, //F1
+	SDLK_F2, //F2
+	SDLK_F3, //F3
+	SDLK_F4, //F4
+	SDLK_F5, //F5
+	SDLK_F6, //F6
+	SDLK_F7, //F7
+	SDLK_F8, //F8
+	SDLK_F9, //F9
+	SDLK_F10, //F10
+	SDLK_F11, //F11
+	SDLK_F12, //F12
+
+	SDLK_SYSREQ, //PRNT SCRN
+
+	SDLK_SCROLLOCK, //SCROLL
+	SDLK_PAUSE, //PAUSE
+
+			 //Column 3!
+	SDLK_LEFTBRACKET, //[
+
+	SDLK_INSERT, //INSERT
+	SDLK_HOME, //HOME
+	SDLK_PAGEUP, //PG UP
+	SDLK_DELETE, //DELETE
+	SDLK_END, //END
+	SDLK_PAGEDOWN, //PG DN
+	SDLK_UP, //U ARROW
+	SDLK_LEFT, //L ARROW
+	SDLK_DOWN, //D ARROW
+	SDLK_RIGHT, //R ARROW
+
+	SDLK_NUMLOCK, //NUM
+	SDLK_KP_DIVIDE, //KP /
+	SDLK_KP_MULTIPLY, //KP *
+	SDLK_KP_MINUS, //KP -
+	SDLK_KP_PLUS, //KP +
+	SDLK_KP_ENTER, //KP EN
+	SDLK_KP_PERIOD, //KP .
+
+	SDLK_KP0, //KP 0
+	SDLK_KP1, //KP 1
+	SDLK_KP2, //KP 2
+	SDLK_KP3, //KP 3
+	SDLK_KP4, //KP 4
+	SDLK_KP5, //KP 5
+	SDLK_KP6, //KP 6
+	SDLK_KP7, //KP 7
+	SDLK_KP8, //KP 8
+	SDLK_KP9, //KP 9
+
+	SDLK_RIGHTBRACKET, //]
+	SDLK_COLON, //;
+	SDLK_QUOTE, //'
+	SDLK_COMMA, //,
+	SDLK_PERIOD, //.
+	SDLK_SLASH  ///
+};
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -748,48 +879,56 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 		}
 	}
 
-	if (!curstat.mode && !curstat.gamingmode) //Mouse mode?
+	if (!Direct_Input) //Not direct input?
 	{
-		keyboard_display[KEYBOARD_NUMY-1][KEYBOARD_NUMX-4] = 'M'; //Mouse mode!
-		keyboard_attribute[KEYBOARD_NUMY-1][KEYBOARD_NUMX-4] = 2; //Special shift color inactive!
+		if (!curstat.mode && !curstat.gamingmode) //Mouse mode?
+		{
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 4] = 'M'; //Mouse mode!
+			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 4] = 2; //Special shift color inactive!
+		}
+
+		if (!curstat.gamingmode) //Not gaming mode?
+		{
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 3] = 'C'; //Ctrl!
+			if (currentctrl)
+			{
+				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 3] = 3; //Special shift color active!
+			}
+			else
+			{
+				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
+			}
+
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 'A'; //Alt!
+			if (currentalt)
+			{
+				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 3; //Special shift color active!
+			}
+			else
+			{
+				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
+			}
+
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'S'; //Shift!
+			if (currentshift)
+			{
+				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 3; //Special shift color active!
+			}
+			else
+			{
+				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
+			}
+		}
+		else //Gaming mode?
+		{
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'G'; //Gaming mode!
+			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
+		}
 	}
-
-	if (!curstat.gamingmode) //Not gaming mode?
+	else
 	{
-		keyboard_display[KEYBOARD_NUMY-1][KEYBOARD_NUMX-3] = 'C'; //Ctrl!
-		if (currentctrl)
-		{
-			keyboard_attribute[KEYBOARD_NUMY-1][KEYBOARD_NUMX-3] = 3; //Special shift color active!
-		}
-		else
-		{
-			keyboard_attribute[KEYBOARD_NUMY-1][KEYBOARD_NUMX-3] = 2; //Special shift color inactive!
-		}
-
-		keyboard_display[KEYBOARD_NUMY-1][KEYBOARD_NUMX-2] = 'A'; //Alt!
-		if (currentalt)
-		{
-			keyboard_attribute[KEYBOARD_NUMY-1][KEYBOARD_NUMX-2] = 3; //Special shift color active!
-		}
-		else
-		{
-			keyboard_attribute[KEYBOARD_NUMY-1][KEYBOARD_NUMX-2] = 2; //Special shift color inactive!
-		}
-
-		keyboard_display[KEYBOARD_NUMY-1][KEYBOARD_NUMX-1] = 'S'; //Shift!
-		if (currentshift)
-		{
-			keyboard_attribute[KEYBOARD_NUMY-1][KEYBOARD_NUMX-1] = 3; //Special shift color active!
-		}
-		else
-		{
-			keyboard_attribute[KEYBOARD_NUMY-1][KEYBOARD_NUMX-1] = 2; //Special shift color inactive!
-		}
-	}
-	else //Gaming mode?
-	{
-		keyboard_display[KEYBOARD_NUMY-1][KEYBOARD_NUMX-1] = 'G'; //Gaming mode!
-		keyboard_attribute[KEYBOARD_NUMY-1][KEYBOARD_NUMX-1] = 2; //Special shift color inactive!
+		keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 4] = 'D'; //Direct Input mode!
+		keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 4] = 2; //Special shift color inactive!
 	}
 }
 
@@ -979,153 +1118,205 @@ void handleKeyboardMouse() //Handles keyboard input during mouse operations!
 	} //Not buffering?
 }
 
+extern char keys_names[104][11]; //All names of the used keys (for textual representation/labeling)
+
+void handleKeyPressRelease(int key)
+{
+	switch (emu_keys_state[key]) //What state are we in?
+	{
+	case 0: //Released?
+		break;
+	case 1: //Pressed?
+		onKeyPress(&keys_names[key][0]); //Handle key press!
+		break;
+	case 2: //Releasing?
+		onKeyRelease(&keys_names[key][0]); //Handle key release!
+		emu_keys_state[key] = 0; //We're released!
+		break;
+	}
+}
+
 void handleKeyboard() //Handles keyboard input!
 {
-	static int lastkey=0, lastx=0, lasty=0, lastset=0, lastshift=0; //Previous key that was pressed!
-	setx = curstat.analogdirection_keyboard_x; //X in keyboard set!
-	sety = curstat.analogdirection_keyboard_y; //Y in keyboard set!
+	if (!Direct_Input)
+	{
+		static int lastkey = 0, lastx = 0, lasty = 0, lastset = 0, lastshift = 0; //Previous key that was pressed!
+		setx = curstat.analogdirection_keyboard_x; //X in keyboard set!
+		sety = curstat.analogdirection_keyboard_y; //Y in keyboard set!
 
-	//Now handle current keys!
-	currentkey = 0; //Default: no key pressed!
-	//Order of currentkey: Up left down right.
-	if (curstat.buttonpress&1) //Left?
-	{
-		currentkey = 2; //Pressed square!
-	}
-	else if (curstat.buttonpress&2) //Up?
-	{
-		currentkey = 1; //Pressed triangle!
-	}
-	else if (curstat.buttonpress&4) //Right?
-	{
-		currentkey = 4; //Circle pressed!
-	}
-	else if (curstat.buttonpress&8) //Down?
-	{
-		currentkey = 3; //Cross pressed!
-	}
+		//Now handle current keys!
+		currentkey = 0; //Default: no key pressed!
+		//Order of currentkey: Up left down right.
+		if (curstat.buttonpress & 1) //Left?
+		{
+			currentkey = 2; //Pressed square!
+		}
+		else if (curstat.buttonpress & 2) //Up?
+		{
+			currentkey = 1; //Pressed triangle!
+		}
+		else if (curstat.buttonpress & 4) //Right?
+		{
+			currentkey = 4; //Circle pressed!
+		}
+		else if (curstat.buttonpress & 8) //Down?
+		{
+			currentkey = 3; //Cross pressed!
+		}
 
-	//Now, process the keys!
+		//Now, process the keys!
 
-	shiftstatus = 0; //Init shift status!
-	shiftstatus |= ((curstat.buttonpress&512)>0)*SHIFTSTATUS_SHIFT; //Apply shift status!
-	if ((curstat.buttonpress&0x300)==0x300) //L&R hold?
-	{
-		shiftstatus &= ~SHIFTSTATUS_SHIFT; //Shift isn't pressed: it's CAPS LOCK special case!
-	}
-	shiftstatus |= ((curstat.buttonpress&(16|32))>0)*SHIFTSTATUS_CTRL; //Apply ctrl status!
-	shiftstatus |= ((curstat.buttonpress&(64|32))>0)*SHIFTSTATUS_ALT; //Apply alt status!
-	currentshift = (shiftstatus&SHIFTSTATUS_SHIFT)>0; //Shift pressed?
-	currentctrl = (shiftstatus&SHIFTSTATUS_CTRL)>0; //Ctrl pressed?
-	currentalt = (shiftstatus&SHIFTSTATUS_ALT)>0; //Alt pressed?
+		shiftstatus = 0; //Init shift status!
+		shiftstatus |= ((curstat.buttonpress & 512) > 0)*SHIFTSTATUS_SHIFT; //Apply shift status!
+		if ((curstat.buttonpress & 0x300) == 0x300) //L&R hold?
+		{
+			shiftstatus &= ~SHIFTSTATUS_SHIFT; //Shift isn't pressed: it's CAPS LOCK special case!
+		}
+		shiftstatus |= ((curstat.buttonpress&(16 | 32)) > 0)*SHIFTSTATUS_CTRL; //Apply ctrl status!
+		shiftstatus |= ((curstat.buttonpress&(64 | 32)) > 0)*SHIFTSTATUS_ALT; //Apply alt status!
+		currentshift = (shiftstatus&SHIFTSTATUS_SHIFT) > 0; //Shift pressed?
+		currentctrl = (shiftstatus&SHIFTSTATUS_CTRL) > 0; //Ctrl pressed?
+		currentalt = (shiftstatus&SHIFTSTATUS_ALT) > 0; //Alt pressed?
 
-	if (!input_buffer_input) //Not buffering?
-	{
-		//First, process Ctrl,Alt,Shift Releases!
-		if (((oldshiftstatus&SHIFTSTATUS_CTRL)>0) && (!currentctrl)) //Released CTRL?
+		if (!input_buffer_input) //Not buffering?
 		{
-			onKeyPress("lctrl");
-		}
-		if (((oldshiftstatus&SHIFTSTATUS_ALT)>0) && (!currentalt)) //Released ALT?
-		{
-			onKeyPress("lalt");
-		}
-		if (((oldshiftstatus&SHIFTSTATUS_SHIFT)>0) && (!currentshift)) //Released SHIFT?
-		{
-			onKeyPress("lshift");
-		}
-		//Next, process Ctrl,Alt,Shift presses!
-		if (currentctrl) //Pressed CTRL?
-		{
-			onKeyRelease("lctrl");
-		}
-		if (currentalt) //Pressed ALT?
-		{
-			onKeyRelease("lalt");
-		}
-		if (currentshift) //Pressed SHIFT?
-		{
-			onKeyRelease("lshift");
-		}
-		
-		if ((curstat.buttonpress&0x300)==0x300) //L&R hold? CAPS LOCK PRESSED! (Special case)
-		{
-			onKeyPress("capslock"); //Shift isn't pressed: it's CAPS LOCK special case!
-		}
-		else //No CAPS LOCK?
-		{
-			onKeyRelease("capslock"); //Release if needed, forming a button click!
-		}
-		
-		oldshiftstatus = shiftstatus; //Save shift status to old shift status!
-
-		if (currentkey) //Key pressed?
-		{
-			if (lastkey && ((lastkey!=currentkey) || (lastx!=setx) || (lasty!=sety) || (lastset!=currentset))) //We had a last key that's different?
+			//First, process Ctrl,Alt,Shift Releases!
+			if (((oldshiftstatus&SHIFTSTATUS_CTRL) > 0) && (!currentctrl)) //Released CTRL?
 			{
-				onKeyRelease(getkeyboard(shiftstatus,lastset,lasty,lastx,displaytokeyboard[lastkey])); //Release the last key!
+				onKeyPress("lctrl");
 			}
-			onKeyPress(getkeyboard(0,currentset,sety,setx,displaytokeyboard[currentkey]));
-			//Save the active key information!
-			lastset = currentset;
-			lastx = setx;
-			lasty = sety;
-			lastkey = currentkey;
-		}
-		else if (lastkey) //We have a last key with nothing pressed?
-		{
-			onKeyRelease(getkeyboard(0,lastset,lasty,lastx,displaytokeyboard[lastkey])); //Release the last key!
-			lastkey = 0; //We didn't have a last key!			
-		}
-	} //Not buffering?
-	else //Buffering?
-	{
-		if (!(shiftstatus&SHIFTSTATUS_CTRL) && ((lastshift&SHIFTSTATUS_CTRL)>0)) //Released CTRL?
-		{
-			goto keyreleased; //Released!
-		}
-		if (!(shiftstatus&SHIFTSTATUS_ALT) && ((lastshift&SHIFTSTATUS_ALT)>0)) //Released ALT?
-		{
-			goto keyreleased; //Released!
-		}
-		if (!(shiftstatus&SHIFTSTATUS_SHIFT) && ((lastshift&SHIFTSTATUS_SHIFT)>0)) //Released SHIFT?
-		{
-			goto keyreleased; //Released!
-		}
-
-		if (currentkey || shiftstatus) //More keys pressed?
-		{
-			if (lastkey && ((lastkey != currentkey) || (lastx != setx) || (lasty != sety) || (lastset != currentset))) //We had a last key that's different?
+			if (((oldshiftstatus&SHIFTSTATUS_ALT) > 0) && (!currentalt)) //Released ALT?
 			{
-				goto keyreleased; //Released after all!
+				onKeyPress("lalt");
 			}
-			//Save the active key information!
+			if (((oldshiftstatus&SHIFTSTATUS_SHIFT) > 0) && (!currentshift)) //Released SHIFT?
+			{
+				onKeyPress("lshift");
+			}
+			//Next, process Ctrl,Alt,Shift presses!
+			if (currentctrl) //Pressed CTRL?
+			{
+				onKeyRelease("lctrl");
+			}
+			if (currentalt) //Pressed ALT?
+			{
+				onKeyRelease("lalt");
+			}
+			if (currentshift) //Pressed SHIFT?
+			{
+				onKeyRelease("lshift");
+			}
 
-			lastset = currentset;
-			lastx = setx;
-			lasty = sety;
-			lastkey = currentkey;
-			lastshift = shiftstatus; //Shift status!
-		}
-		else //Key/shift released?
+			if ((curstat.buttonpress & 0x300) == 0x300) //L&R hold? CAPS LOCK PRESSED! (Special case)
+			{
+				onKeyPress("capslock"); //Shift isn't pressed: it's CAPS LOCK special case!
+			}
+			else //No CAPS LOCK?
+			{
+				onKeyRelease("capslock"); //Release if needed, forming a button click!
+			}
+
+			oldshiftstatus = shiftstatus; //Save shift status to old shift status!
+
+			if (currentkey) //Key pressed?
+			{
+				if (lastkey && ((lastkey != currentkey) || (lastx != setx) || (lasty != sety) || (lastset != currentset))) //We had a last key that's different?
+				{
+					onKeyRelease(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
+				}
+				onKeyPress(getkeyboard(0, currentset, sety, setx, displaytokeyboard[currentkey]));
+				//Save the active key information!
+				lastset = currentset;
+				lastx = setx;
+				lasty = sety;
+				lastkey = currentkey;
+			}
+			else if (lastkey) //We have a last key with nothing pressed?
+			{
+				onKeyRelease(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
+				lastkey = 0; //We didn't have a last key!			
+			}
+		} //Not buffering?
+		else //Buffering?
 		{
-			int key;
+			if (!(shiftstatus&SHIFTSTATUS_CTRL) && ((lastshift&SHIFTSTATUS_CTRL) > 0)) //Released CTRL?
+			{
+				goto keyreleased; //Released!
+			}
+			if (!(shiftstatus&SHIFTSTATUS_ALT) && ((lastshift&SHIFTSTATUS_ALT) > 0)) //Released ALT?
+			{
+				goto keyreleased; //Released!
+			}
+			if (!(shiftstatus&SHIFTSTATUS_SHIFT) && ((lastshift&SHIFTSTATUS_SHIFT) > 0)) //Released SHIFT?
+			{
+				goto keyreleased; //Released!
+			}
+
+			if (currentkey || shiftstatus) //More keys pressed?
+			{
+				if (lastkey && ((lastkey != currentkey) || (lastx != setx) || (lasty != sety) || (lastset != currentset))) //We had a last key that's different?
+				{
+					goto keyreleased; //Released after all!
+				}
+				//Save the active key information!
+
+				lastset = currentset;
+				lastx = setx;
+				lasty = sety;
+				lastkey = currentkey;
+				lastshift = shiftstatus; //Shift status!
+			}
+			else //Key/shift released?
+			{
+				int key;
 			keyreleased:
-			if (!lastkey && !lastshift) //Nothing yet?
-			{
-				return; //Abort: we're nothing pressed!
+				if (!lastkey && !lastshift) //Nothing yet?
+				{
+					return; //Abort: we're nothing pressed!
+				}
+				key = EMU_keyboard_handler_nametoid(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Our key?
+				input_buffer_shift = lastshift; //Set shift status!
+				input_buffer = key; //Last key!
+				//Update current information!
+				lastkey = 0; //Update current information!
+				lastx = setx;
+				lasty = sety;
+				lastset = currentset;
+				lastshift = shiftstatus;
 			}
-			key = EMU_keyboard_handler_nametoid(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Our key?
-			input_buffer_shift = lastshift; //Set shift status!
-			input_buffer = key; //Last key!
-			//Update current information!
-			lastkey = 0; //Update current information!
-			lastx = setx;
-			lasty = sety;
-			lastset = currentset;
-			lastshift = shiftstatus;
+			//Key presses aren't buffered: we only want to know the key and shift state when fully pressed, nothing more!
 		}
-		//Key presses aren't buffered: we only want to know the key and shift state when fully pressed, nothing more!
+	}
+	else //Direct input?
+	{
+		int key;
+		char name[256];
+		memset(name, 0, sizeof(name)); //Init name!
+
+		//Handle CTRL/ALT/Shift first!
+		int lctrl = EMU_keyboard_handler_nametoid("LCTRL");
+		handleKeyPressRelease(lctrl);
+		int rctrl = EMU_keyboard_handler_nametoid("RCTRL");
+		handleKeyPressRelease(rctrl);
+		int lalt = EMU_keyboard_handler_nametoid("LALT");
+		handleKeyPressRelease(lalt);
+		int ralt = EMU_keyboard_handler_nametoid("RALT");
+		handleKeyPressRelease(ralt);
+		int lshift = EMU_keyboard_handler_nametoid("LSHIFT");
+		handleKeyPressRelease(lshift);
+		int rshift = EMU_keyboard_handler_nametoid("RSHIFT");
+		handleKeyPressRelease(rshift);
+
+		for (key = 0;key < NUMITEMS(emu_keys_state);key++)
+		{
+			if (EMU_keyboard_handler_idtoname(key, &name[0])) //Found key?
+			{
+				if ((key != lctrl) && (key != rctrl) && (key != lalt) && (key != ralt) && (key != lshift) && (key != rshift)) //Not already handled?
+				{
+					handleKeyPressRelease(key); //Handle key press or release!
+				}
+			}
+		}
 	}
 }
 
@@ -1487,24 +1678,31 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 			//Determine stuff for output!
 			//Don't process shift atm!
 
-			if (curstat.gamingmode) //Gaming mode?
+			if (!Direct_Input)
 			{
-				handleGaming(); //Handle gaming input?
-			}
-			else //Normal input mode?
-			{
-				switch (curstat.mode) //What input mode?
+				if (curstat.gamingmode) //Gaming mode?
 				{
-				case 0: //Mouse mode?
-					handleKeyboardMouse(); //Handle keyboard input during mouse operations?
-					break;
-				case 1: //Keyboard mode?
-					handleKeyboard(); //Handle keyboard input?
-					break;
-				default: //Unknown state?
-					curstat.mode = 0; //Reset mode!
-					break;
+					handleGaming(); //Handle gaming input?
 				}
+				else //Normal input mode?
+				{
+					switch (curstat.mode) //What input mode?
+					{
+					case 0: //Mouse mode?
+						handleKeyboardMouse(); //Handle keyboard input during mouse operations?
+						break;
+					case 1: //Keyboard mode?
+						handleKeyboard(); //Handle keyboard input?
+						break;
+					default: //Unknown state?
+						curstat.mode = 0; //Reset mode!
+						break;
+					}
+				}
+			}
+			else
+			{
+				handleKeyboard(); //Handle keyboard input?
 			}
 		} //Input enabled?
 	} //While loop, muse be infinite to prevent closing!
@@ -1513,7 +1711,7 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 void psp_keyboard_refreshrate()
 {
 	float repeatrate = HWkeyboard_getrepeatrate();
-	if (!repeatrate) repeatrate = 10.0f; //10 times a second sampling!
+	if (!repeatrate) repeatrate = 30.0f; //30 times a second sampling!
 	addtimer(repeatrate,&keyboard_type_handler,"Keyboard PSP Type",1,1,keyboard_lock); //Our type handler!
 }
 
@@ -1669,102 +1867,116 @@ void updateMOD(SDL_Event *event)
 	input.Lx = axis; //Horizontal axis!
 }
 
+//Toggle direct input on/off!
+void toggleDirectInput()
+{
+	Direct_Input = !Direct_Input; //Toggle direct input!
+	if (Direct_Input) //Enabled?
+	{
+		SDL_WM_GrabInput(SDL_GRAB_ON); //Grab the mouse!
+	}
+	else //Disabled?
+	{
+		SDL_WM_GrabInput(SDL_GRAB_OFF); //Don't grab the mouse!
+	}
+}
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	switch (event->type)
 	{
-		case SDL_KEYUP: //Keyboard up?
-			WaitSem(keyboard_lock) //Wait!
-			if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14))) //Gotten no joystick?
+	case SDL_KEYUP: //Keyboard up?
+		WaitSem(keyboard_lock) //Wait!
+			if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14))) //Gotten no joystick?
 			{
 				switch (event->key.keysym.sym) //What key?
 				{
 					//Special first
-					case SDLK_LCTRL: //LCTRL!
-						input.cas |= CAS_LCTRL; //Pressed!
-						break;
-					case SDLK_RCTRL: //RCTRL!
-						input.cas |= CAS_RCTRL; //Pressed!
-						break;
-					case SDLK_LALT: //LALT!
-						input.cas |= CAS_LALT; //Pressed!
-						break;
-					case SDLK_RALT: //RALT!
-						input.cas |= CAS_RALT; //Pressed!
-						break;
-					case SDLK_LSHIFT: //LSHIFT!
-						input.cas |= CAS_LSHIFT; //Pressed!
-						break;
-					case SDLK_RSHIFT: //RSHIFT!
-						input.cas |= CAS_RCTRL; //Pressed!
-						break;
+				case SDLK_LCTRL: //LCTRL!
+					input.cas |= CAS_LCTRL; //Pressed!
+					break;
+				case SDLK_RCTRL: //RCTRL!
+					input.cas |= CAS_RCTRL; //Pressed!
+					break;
+				case SDLK_LALT: //LALT!
+					input.cas |= CAS_LALT; //Pressed!
+					break;
+				case SDLK_RALT: //RALT!
+					input.cas |= CAS_RALT; //Pressed!
+					break;
+				case SDLK_LSHIFT: //LSHIFT!
+					input.cas |= CAS_LSHIFT; //Pressed!
+					break;
+				case SDLK_RSHIFT: //RSHIFT!
+					input.cas |= CAS_RCTRL; //Pressed!
+					break;
 
 					//Normal keys
-					case SDLK_BACKSLASH: //HOLD?
-						input.Buttons &= ~BUTTON_HOLD; //Pressed!
-						break;
-					case SDLK_BACKSPACE: //SELECT?
-						input.Buttons &= ~BUTTON_SELECT; //Pressed!
-						break;
-					case SDLK_RETURN: //START?
-						input.Buttons &= ~BUTTON_START; //Pressed!
-						break;
-					case SDLK_UP: //UP?
-						input.Buttons &= ~BUTTON_UP; //Pressed!
-						break;
-					case SDLK_DOWN: //DOWN?
-						input.Buttons &= ~BUTTON_DOWN; //Pressed!
-						break;
-					case SDLK_LEFT: //LEFT?
-						input.Buttons &= ~BUTTON_LEFT; //Pressed!
-						break;
-					case SDLK_RIGHT: //RIGHT?
-						input.Buttons &= ~BUTTON_RIGHT; //Pressed!
-						break;
-					case SDLK_q: //LTRIGGER?
-						input.Buttons &= ~BUTTON_LTRIGGER; //Pressed!
-						break;
-					case SDLK_w: //RTRIGGER?
-						input.Buttons &= ~BUTTON_RTRIGGER; //Pressed!
-						break;
-					case SDLK_i: //Joy up?
-						input.keyboardjoy_direction &= ~1; //Up!
-						break;
-					case SDLK_j: //Joy left?
-						input.keyboardjoy_direction &= ~4; //Left!
-						break;
-					case SDLK_k: //Joy down?
-						input.keyboardjoy_direction &= ~2; //Down!
-						break;
-					case SDLK_l: //Joy right?
-						input.keyboardjoy_direction &= ~8; //Down!
-						break;
-					case SDLK_KP8: //TRIANGLE?
-						input.Buttons &= ~BUTTON_TRIANGLE; //Pressed!
-						break;
-					case SDLK_KP4: //SQUARE?
-						input.Buttons &= ~BUTTON_SQUARE; //Pressed!
-						break;
-					case SDLK_KP6: //CIRCLE?
-						input.Buttons &= ~BUTTON_CIRCLE; //Pressed!
-						break;
-					case SDLK_KP2: //CROSS?
-						input.Buttons &= ~BUTTON_CROSS; //Pressed!
-						break;
-					case SDLK_F12: //Fullscreen toggle?
-						GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
-						updateVideo(); //Force an update of video!
-						break;
-					case SDLK_F4: //F4?
-						if ((input.cas&CAS_LALT) || (input.cas&CAS_RALT)) //ALT-F4?
-						{
-							SDL_Event quitevent;
-							quitevent.quit.type = SDL_QUIT; //Add a quit to the queue!
-							SDL_PushEvent(&quitevent); //Add an quit event!
-						}
-						break;
-					default: //Unknown?
-						break;
+				case SDLK_BACKSLASH: //HOLD?
+					input.Buttons &= ~BUTTON_HOLD; //Pressed!
+					break;
+				case SDLK_BACKSPACE: //SELECT?
+					input.Buttons &= ~BUTTON_SELECT; //Pressed!
+					break;
+				case SDLK_RETURN: //START?
+					input.Buttons &= ~BUTTON_START; //Pressed!
+					break;
+				case SDLK_UP: //UP?
+					input.Buttons &= ~BUTTON_UP; //Pressed!
+					break;
+				case SDLK_DOWN: //DOWN?
+					input.Buttons &= ~BUTTON_DOWN; //Pressed!
+					break;
+				case SDLK_LEFT: //LEFT?
+					input.Buttons &= ~BUTTON_LEFT; //Pressed!
+					break;
+				case SDLK_RIGHT: //RIGHT?
+					input.Buttons &= ~BUTTON_RIGHT; //Pressed!
+					break;
+				case SDLK_q: //LTRIGGER?
+					input.Buttons &= ~BUTTON_LTRIGGER; //Pressed!
+					break;
+				case SDLK_w: //RTRIGGER?
+					input.Buttons &= ~BUTTON_RTRIGGER; //Pressed!
+					break;
+				case SDLK_i: //Joy up?
+					input.keyboardjoy_direction &= ~1; //Up!
+					break;
+				case SDLK_j: //Joy left?
+					input.keyboardjoy_direction &= ~4; //Left!
+					break;
+				case SDLK_k: //Joy down?
+					input.keyboardjoy_direction &= ~2; //Down!
+					break;
+				case SDLK_l: //Joy right?
+					input.keyboardjoy_direction &= ~8; //Down!
+					break;
+				case SDLK_KP8: //TRIANGLE?
+					input.Buttons &= ~BUTTON_TRIANGLE; //Pressed!
+					break;
+				case SDLK_KP4: //SQUARE?
+					input.Buttons &= ~BUTTON_SQUARE; //Pressed!
+					break;
+				case SDLK_KP6: //CIRCLE?
+					input.Buttons &= ~BUTTON_CIRCLE; //Pressed!
+					break;
+				case SDLK_KP2: //CROSS?
+					input.Buttons &= ~BUTTON_CROSS; //Pressed!
+					break;
+				case SDLK_F12: //Fullscreen toggle?
+					GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
+					updateVideo(); //Force an update of video!
+					break;
+				case SDLK_F4: //F4?
+					if ((input.cas&CAS_LALT) || (input.cas&CAS_RALT)) //ALT-F4?
+					{
+						SDL_Event quitevent;
+						quitevent.quit.type = SDL_QUIT; //Add a quit to the queue!
+						SDL_PushEvent(&quitevent); //Add an quit event!
+					}
+					break;
+				default: //Unknown?
+					break;
 				}
 				if (event->key.keysym.scancode == 34) //Play/pause?
 				{
@@ -1774,88 +1986,105 @@ void updateInput(SDL_Event *event) //Update all input!
 				{
 					input.Buttons &= ~BUTTON_STOP; //Stop button!
 				}
+				if (Direct_Input)
+				{
+					if (EMU_RUNNING) //Are we running?
+					{
+						input.Buttons = 0; //Ingore pressed buttons!
+						input.cas = 0; //Ignore pressed buttons!
+									   //Handle button press/releases!
+						int i;
+						for (i = 0;i < NUMITEMS(emu_keys_SDL);i++) //Check all keys!
+						{
+							if (event->key.keysym.sym == emu_keys_SDL[i]) //Released?
+							{
+								emu_keys_state[i] = 2; //We're released!
+							}
+						}
+					}
+				}
 				updateMOD(event); //Update rest keys!
 				PostSem(keyboard_lock)
 			}
-			break;
-		case SDL_KEYDOWN: //Keyboard down?
-			if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14))) //Gotten no joystick?
-			{
-				WaitSem(keyboard_lock)
+		break;
+	case SDL_KEYDOWN: //Keyboard down?
+		if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14))) //Gotten no joystick?
+		{
+			WaitSem(keyboard_lock)
 				switch (event->key.keysym.sym) //What key?
 				{
 					//Special first
-					case SDLK_LCTRL: //LCTRL!
-						input.cas &= ~CAS_LCTRL; //Released!
-						break;
-					case SDLK_RCTRL: //RCTRL!
-						input.cas &= ~CAS_RCTRL; //Released!
-						break;
-					case SDLK_LALT: //LALT!
-						input.cas &= ~CAS_LALT; //Released!
-						break;
-					case SDLK_RALT: //RALT!
-						input.cas &= ~CAS_RALT; //Released!
-						break;
-					case SDLK_LSHIFT: //LSHIFT!
-						input.cas &= ~CAS_LSHIFT; //Released!
-						break;
-					case SDLK_RSHIFT: //RSHIFT!
-						input.cas &= ~CAS_RSHIFT; //Released!
-						break;
+				case SDLK_LCTRL: //LCTRL!
+					input.cas &= ~CAS_LCTRL; //Released!
+					break;
+				case SDLK_RCTRL: //RCTRL!
+					input.cas &= ~CAS_RCTRL; //Released!
+					break;
+				case SDLK_LALT: //LALT!
+					input.cas &= ~CAS_LALT; //Released!
+					break;
+				case SDLK_RALT: //RALT!
+					input.cas &= ~CAS_RALT; //Released!
+					break;
+				case SDLK_LSHIFT: //LSHIFT!
+					input.cas &= ~CAS_LSHIFT; //Released!
+					break;
+				case SDLK_RSHIFT: //RSHIFT!
+					input.cas &= ~CAS_RSHIFT; //Released!
+					break;
 
-					case SDLK_BACKSLASH: //HOLD?
-						input.Buttons |= BUTTON_HOLD; //Pressed!
-						break;
-					case SDLK_BACKSPACE: //SELECT?
-						input.Buttons |= BUTTON_SELECT; //Pressed!
-						break;
-					case SDLK_RETURN: //START?
-						input.Buttons |= BUTTON_START; //Pressed!
-						break;
-					case SDLK_UP: //UP?
-						input.Buttons |= BUTTON_UP; //Pressed!
-						break;
-					case SDLK_DOWN: //DOWN?
-						input.Buttons |= BUTTON_DOWN; //Pressed!
-						break;
-					case SDLK_LEFT: //LEFT?
-						input.Buttons |= BUTTON_LEFT; //Pressed!
-						break;
-					case SDLK_RIGHT: //RIGHT?
-						input.Buttons |= BUTTON_RIGHT; //Pressed!
-						break;
-					case SDLK_q: //LTRIGGER?
-						input.Buttons |= BUTTON_LTRIGGER; //Pressed!
-						break;
-					case SDLK_w: //RTRIGGER?
-						input.Buttons |= BUTTON_RTRIGGER; //Pressed!
-						break;
-					case SDLK_i: //Joy up?
-						input.keyboardjoy_direction |= 1; //Up!
-						break;
-					case SDLK_j: //Joy left?
-						input.keyboardjoy_direction |= 4; //Left!
-						input.Buttons |= BUTTON_STOP; //Stop!
-						break;
-					case SDLK_k: //Joy down?
-						input.keyboardjoy_direction |= 2; //Down!
-						break;
-					case SDLK_l: //Joy right?
-						input.keyboardjoy_direction |= 8; //Down!
-						break;
-					case SDLK_KP8: //TRIANGLE?
-						input.Buttons |= BUTTON_TRIANGLE; //Pressed!
-						break;
-					case SDLK_KP4: //SQUARE?
-						input.Buttons |= BUTTON_SQUARE; //Pressed!
-						break;
-					case SDLK_KP6: //CIRCLE?
-						input.Buttons |= BUTTON_CIRCLE; //Pressed!
-						break;
-					case SDLK_KP2: //CROSS?
-						input.Buttons |= BUTTON_CROSS; //Pressed!
-						break;
+				case SDLK_BACKSLASH: //HOLD?
+					input.Buttons |= BUTTON_HOLD; //Pressed!
+					break;
+				case SDLK_BACKSPACE: //SELECT?
+					input.Buttons |= BUTTON_SELECT; //Pressed!
+					break;
+				case SDLK_RETURN: //START?
+					input.Buttons |= BUTTON_START; //Pressed!
+					break;
+				case SDLK_UP: //UP?
+					input.Buttons |= BUTTON_UP; //Pressed!
+					break;
+				case SDLK_DOWN: //DOWN?
+					input.Buttons |= BUTTON_DOWN; //Pressed!
+					break;
+				case SDLK_LEFT: //LEFT?
+					input.Buttons |= BUTTON_LEFT; //Pressed!
+					break;
+				case SDLK_RIGHT: //RIGHT?
+					input.Buttons |= BUTTON_RIGHT; //Pressed!
+					break;
+				case SDLK_q: //LTRIGGER?
+					input.Buttons |= BUTTON_LTRIGGER; //Pressed!
+					break;
+				case SDLK_w: //RTRIGGER?
+					input.Buttons |= BUTTON_RTRIGGER; //Pressed!
+					break;
+				case SDLK_i: //Joy up?
+					input.keyboardjoy_direction |= 1; //Up!
+					break;
+				case SDLK_j: //Joy left?
+					input.keyboardjoy_direction |= 4; //Left!
+					input.Buttons |= BUTTON_STOP; //Stop!
+					break;
+				case SDLK_k: //Joy down?
+					input.keyboardjoy_direction |= 2; //Down!
+					break;
+				case SDLK_l: //Joy right?
+					input.keyboardjoy_direction |= 8; //Down!
+					break;
+				case SDLK_KP8: //TRIANGLE?
+					input.Buttons |= BUTTON_TRIANGLE; //Pressed!
+					break;
+				case SDLK_KP4: //SQUARE?
+					input.Buttons |= BUTTON_SQUARE; //Pressed!
+					break;
+				case SDLK_KP6: //CIRCLE?
+					input.Buttons |= BUTTON_CIRCLE; //Pressed!
+					break;
+				case SDLK_KP2: //CROSS?
+					input.Buttons |= BUTTON_CROSS; //Pressed!
+					break;
 				}
 				if (event->key.keysym.scancode == 34) //Play/pause?
 				{
@@ -1865,6 +2094,24 @@ void updateInput(SDL_Event *event) //Update all input!
 				{
 					input.Buttons |= BUTTON_STOP; //Stop button!
 				}
+				if (Direct_Input)
+				{
+					if (EMU_RUNNING) //Are we running?
+					{
+						input.Buttons = 0; //Ingore pressed buttons!
+						input.cas = 0; //Ignore pressed buttons!
+
+						//Handle button press/releases!
+						int i;
+						for (i = 0;i < NUMITEMS(emu_keys_SDL);i++) //Check all keys!
+						{
+							if (event->key.keysym.sym == emu_keys_SDL[i]) //Pressed?
+							{
+								emu_keys_state[i] = 1; //We're pressed!
+							}
+						}
+					}
+				}
 				updateMOD(event); //Update rest keys!
 				PostSem(keyboard_lock)
 			}
@@ -1873,7 +2120,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14)) //Gotten a joystick?
 			{
 				WaitSem(keyboard_lock)
-				switch ( event->jaxis.axis) 
+				switch ( event->jaxis.axis)
 				{
 					case 0: /* Left-right movement code goes here */
 						input.Lx = event->jaxis.value; //New value!
@@ -1881,6 +2128,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					case 1: /* Up-Down movement code goes here */
 						input.Ly = event->jaxis.value; //New value!
 						break;
+				}
+				if (Direct_Input)
+				{
+					if (EMU_RUNNING) //Are we running?
+					{
+						input.Lx = input.Ly = 0; //Ignore pressed buttons!
+					}
 				}
 				PostSem(keyboard_lock)
 			}
@@ -1992,6 +2246,43 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				PostSem(keyboard_lock)
 			}
+			break;
+		case SDL_MOUSEBUTTONDOWN: //Button pressed?
+			WaitSem(keyboard_lock);
+			switch (event->button.button) //What button?
+			{
+			case SDL_BUTTON_LEFT:
+				mousebuttons |= 1; //Left pressed!
+				break;
+			case SDL_BUTTON_RIGHT:
+				mousebuttons |= 2; //Right pressed!
+				break;
+			}
+			PostSem(keyboard_lock);
+			break;
+		case SDL_MOUSEBUTTONUP: //Special mouse button action?
+			WaitSem(keyboard_lock);
+			switch (event->button.button) //What button?
+			{
+			case SDL_BUTTON_MIDDLE: //Middle released!
+				toggleDirectInput(); //Toggle direct input!
+				break;
+			case SDL_BUTTON_LEFT:
+				if (mousebuttons==3) //Were we both pressed? Special action!
+				{
+					toggleDirectInput(); //Toggle direct input!
+				}
+				mousebuttons &= ~1; //Left released!
+				break;
+			case SDL_BUTTON_RIGHT:
+				if (mousebuttons == 3) //Were we both pressed? Special action!
+				{
+					toggleDirectInput(); //Toggle direct input!
+				}
+				mousebuttons &= ~2; //Right released!
+				break;
+			}
+			PostSem(keyboard_lock);
 			break;
 		case SDL_QUIT: //Quit?
 			SDL_JoystickClose(joystick); //Finish our joystick!
