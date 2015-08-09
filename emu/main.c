@@ -320,6 +320,7 @@ int main(int argc, char * argv[])
 				running = 0; //Terminate our app!
 			}
 		}
+		keyboard_type_handler(); //Type handler at 1000Hz!
 		if (!threadRunning(rootthread, "X86EMU_CPU")) break; //Thread not running? Stop our running status!
 	}
 

@@ -25,6 +25,9 @@
 #include <SDL/SDL_events.h> //Event support!
 #endif
 
+//We're running each ms, so 1000 steps/second!
+#define KEYBOARD_MAXSTEP 1000
+
 byte mousebuttons = 0; //Active mouse buttons!
 
 //Use direct input in windows!
@@ -1064,12 +1067,12 @@ extern char keys_names[104][11]; //All names of the used keys (for textual repre
 
 void calculateKeyboardStep()
 {
-	keyboard_step = 1000.0f / HWkeyboard_getrepeatrate(); //Apply this count per keypress!
+	keyboard_step = KEYBOARD_MAXSTEP / HWkeyboard_getrepeatrate(); //Apply this count per keypress!
 }
 
 void KBD_keypress(char *key)
 {
-	EMU_keyboard_handler(key, 1); //We're pressed!
+	EMU_keyboard_handler(EMU_keyboard_handler_nametoid(key), 1); //We're pressed!
 }
 
 void tickKeyPress(char *key, byte *counting)
@@ -1095,7 +1098,7 @@ void handleKeyPressRelease(int key, byte *counting)
 	case 0: //Released?
 		break;
 	case 1: //Pressed?
-		tickKeyPress(&keys_names[key][0]); //Tick the keypress!
+		tickKeyPress(&keys_names[key][0],counting); //Tick the keypress!
 		break;
 	case 2: //Releasing?
 		onKeyRelease(&keys_names[key][0]); //Handle key release!
@@ -1331,17 +1334,17 @@ void handleKeyboard() //Handles keyboard input!
 
 		//Handle CTRL/ALT/Shift first!
 		int lctrl = EMU_keyboard_handler_nametoid("LCTRL");
-		handleKeyPressRelease(lctrl);
+		handleKeyPressRelease(lctrl,&counting);
 		int rctrl = EMU_keyboard_handler_nametoid("RCTRL");
-		handleKeyPressRelease(rctrl);
+		handleKeyPressRelease(rctrl,&counting);
 		int lalt = EMU_keyboard_handler_nametoid("LALT");
-		handleKeyPressRelease(lalt);
+		handleKeyPressRelease(lalt,&counting);
 		int ralt = EMU_keyboard_handler_nametoid("RALT");
-		handleKeyPressRelease(ralt);
+		handleKeyPressRelease(ralt,&counting);
 		int lshift = EMU_keyboard_handler_nametoid("LSHIFT");
-		handleKeyPressRelease(lshift);
+		handleKeyPressRelease(lshift,&counting);
 		int rshift = EMU_keyboard_handler_nametoid("RSHIFT");
-		handleKeyPressRelease(rshift);
+		handleKeyPressRelease(rshift,&counting);
 
 		for (key = 0;key < NUMITEMS(emu_keys_state);key++)
 		{
@@ -1349,7 +1352,7 @@ void handleKeyboard() //Handles keyboard input!
 			{
 				if ((key != lctrl) && (key != rctrl) && (key != lalt) && (key != ralt) && (key != lshift) && (key != rshift)) //Not already handled?
 				{
-					handleKeyPressRelease(key); //Handle key press or release!
+					handleKeyPressRelease(key,&counting); //Handle key press or release!
 				}
 			}
 		}
@@ -1704,6 +1707,7 @@ int request_type_term = 0;
 
 void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 {
+	WaitSem(keyboard_lock); //Wait for the lock!
 	//for(;;)
 	{
 		/*if (request_type_term) //Request termination?
@@ -1746,13 +1750,7 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 			}
 		} //Input enabled?
 	} //While loop, muse be infinite to prevent closing!
-}
-
-void psp_keyboard_refreshrate()
-{
-	float repeatrate = HWkeyboard_getrepeatrate();
-	if (!repeatrate) repeatrate = 30.0f; //30 times a second sampling!
-	addtimer(1000.0f,&keyboard_type_handler,"Keyboard PSP Type",1,1,keyboard_lock); //Our type handler!
+	PostSem(keyboard_lock); //Finish the lock!
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
@@ -1770,7 +1768,6 @@ void psp_keyboard_init()
 	}
 	
 	//dolog("osk","Starting type handler");
-	psp_keyboard_refreshrate(); //Handles keyboard typing: we're an interrupt!
 	//dolog("osk","Starting swap handler");
 	addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1,1,NULL); //Handles keyboard set swapping: we're an interrupt!
 	//dolog("osk","Starting mouse handler");
