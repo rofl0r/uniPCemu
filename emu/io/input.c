@@ -34,6 +34,10 @@ extern byte EMU_RUNNING; //Are we running?
 
 SDL_sem *keyboard_lock = NULL; //Our lock!
 
+uint_64 pressedkeytimer = 0; //Pressed key timer!
+uint_64 keyboard_step = 0; //How fast do we update the keys (repeated keys only)!
+byte keysactive; //Ammount of keys active!
+
 enum input_button_map { //All buttons we support!
 INPUT_BUTTON_TRIANGLE, INPUT_BUTTON_CIRCLE, INPUT_BUTTON_CROSS, INPUT_BUTTON_SQUARE,
 INPUT_BUTTON_LTRIGGER, INPUT_BUTTON_RTRIGGER,
@@ -1055,6 +1059,54 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 byte oldshiftstatus = 0; //Old shift status, used for keyboard/gaming mode!
 byte shiftstatus = 0; //New shift status!
 
+
+extern char keys_names[104][11]; //All names of the used keys (for textual representation/labeling)
+
+void calculateKeyboardStep()
+{
+	keyboard_step = 1000.0f / HWkeyboard_getrepeatrate(); //Apply this count per keypress!
+}
+
+void KBD_keypress(char *key)
+{
+	EMU_keyboard_handler(key, 1); //We're pressed!
+}
+
+void tickKeyPress(char *key, byte *counting)
+{
+	++keysactive; //We're active!
+	if (*counting) { if (!pressedkeytimer) onKeyPress(key); } //Handle key press when allowed!
+	else
+	{
+		if (++pressedkeytimer >= keyboard_step) //Pressed key expired?
+		{
+			KBD_keypress(key); //Handle key press!
+			calculateKeyboardStep(); //Calculate the next step rate!
+			pressedkeytimer = 0; //Reset timer!
+		}
+		*counting = 1; //We're counting now! Ingore the timer for following hits!
+	}
+}
+
+void handleKeyPressRelease(int key, byte *counting)
+{
+	switch (emu_keys_state[key]) //What state are we in?
+	{
+	case 0: //Released?
+		break;
+	case 1: //Pressed?
+		tickKeyPress(&keys_names[key][0]); //Tick the keypress!
+		break;
+	case 2: //Releasing?
+		onKeyRelease(&keys_names[key][0]); //Handle key release!
+		emu_keys_state[key] = 0; //We're released!
+		break;
+	default: //Unknown?
+		break;
+	}
+}
+
+
 void handleKeyboardMouse() //Handles keyboard input during mouse operations!
 {
 	shiftstatus = 0; //Init shift status!
@@ -1118,26 +1170,10 @@ void handleKeyboardMouse() //Handles keyboard input during mouse operations!
 	} //Not buffering?
 }
 
-extern char keys_names[104][11]; //All names of the used keys (for textual representation/labeling)
-
-void handleKeyPressRelease(int key)
-{
-	switch (emu_keys_state[key]) //What state are we in?
-	{
-	case 0: //Released?
-		break;
-	case 1: //Pressed?
-		onKeyPress(&keys_names[key][0]); //Handle key press!
-		break;
-	case 2: //Releasing?
-		onKeyRelease(&keys_names[key][0]); //Handle key release!
-		emu_keys_state[key] = 0; //We're released!
-		break;
-	}
-}
-
 void handleKeyboard() //Handles keyboard input!
 {
+	byte counting = 0;
+	keysactive = 0; //Reset keys active!
 	if (!Direct_Input)
 	{
 		static int lastkey = 0, lastx = 0, lasty = 0, lastset = 0, lastshift = 0; //Previous key that was pressed!
@@ -1183,15 +1219,15 @@ void handleKeyboard() //Handles keyboard input!
 			//First, process Ctrl,Alt,Shift Releases!
 			if (((oldshiftstatus&SHIFTSTATUS_CTRL) > 0) && (!currentctrl)) //Released CTRL?
 			{
-				onKeyPress("lctrl");
+				tickKeyPress("lctrl",&counting);
 			}
 			if (((oldshiftstatus&SHIFTSTATUS_ALT) > 0) && (!currentalt)) //Released ALT?
 			{
-				onKeyPress("lalt");
+				tickKeyPress("lalt",&counting);
 			}
 			if (((oldshiftstatus&SHIFTSTATUS_SHIFT) > 0) && (!currentshift)) //Released SHIFT?
 			{
-				onKeyPress("lshift");
+				tickKeyPress("lshift",&counting);
 			}
 			//Next, process Ctrl,Alt,Shift presses!
 			if (currentctrl) //Pressed CTRL?
@@ -1209,7 +1245,7 @@ void handleKeyboard() //Handles keyboard input!
 
 			if ((curstat.buttonpress & 0x300) == 0x300) //L&R hold? CAPS LOCK PRESSED! (Special case)
 			{
-				onKeyPress("capslock"); //Shift isn't pressed: it's CAPS LOCK special case!
+				tickKeyPress("capslock",&counting); //Shift isn't pressed: it's CAPS LOCK special case!
 			}
 			else //No CAPS LOCK?
 			{
@@ -1224,7 +1260,7 @@ void handleKeyboard() //Handles keyboard input!
 				{
 					onKeyRelease(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
 				}
-				onKeyPress(getkeyboard(0, currentset, sety, setx, displaytokeyboard[currentkey]));
+				tickKeyPress(getkeyboard(0, currentset, sety, setx, displaytokeyboard[currentkey]),&counting);
 				//Save the active key information!
 				lastset = currentset;
 				lastx = setx;
@@ -1317,6 +1353,10 @@ void handleKeyboard() //Handles keyboard input!
 				}
 			}
 		}
+	}
+	if (!keysactive) //No keys active anymore?
+	{
+		keyboard_step = 0; //Reset timer step!
 	}
 }
 
@@ -1712,7 +1752,7 @@ void psp_keyboard_refreshrate()
 {
 	float repeatrate = HWkeyboard_getrepeatrate();
 	if (!repeatrate) repeatrate = 30.0f; //30 times a second sampling!
-	addtimer(repeatrate,&keyboard_type_handler,"Keyboard PSP Type",1,1,keyboard_lock); //Our type handler!
+	addtimer(1000.0f,&keyboard_type_handler,"Keyboard PSP Type",1,1,keyboard_lock); //Our type handler!
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
