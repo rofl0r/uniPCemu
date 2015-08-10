@@ -1,5 +1,5 @@
 #include "headers/types.h" //Basic types!
-#include "headers/hardware/pic.h" //Interrupt support (IRQ 1)
+#include "headers/hardware/pic.h" //Interrupt support (IRQ 1&12)
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/hardware/8042.h" //Our own functions!
 #include "headers/mmu/mmu.h" //For wraparround 1/3/5/... MB! (A20 line)
@@ -349,6 +349,51 @@ void BIOS_done8042()
 {
 	if (__HW_DISABLED) return; //Abort!
 	free_fifobuffer(&Controller8042.buffer); //Free the buffer!
+}
+
+void IRQ8042() //Generates any IRQs needed on the 8042!
+{
+	byte temp;
+	byte primaryIRQ=0, secondaryIRQ=0;
+	if (Controller8042.portpeek[0]) //Gotten primary port?
+	{
+		if (Controller8042.portpeek[0](&temp)) //Valid data present?
+		{
+			if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
+			{
+				primaryIRQ = 1; //Call the interrupt if neccesary!
+			}
+		}
+	}
+
+	if (Controller8042.portpeek[1]) //Gotten secondary port?
+	{
+		if (Controller8042.portpeek[1](&temp)) //Valid data present?
+		{
+			if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
+			{
+				secondaryIRQ = 1; //Call the interrupt if neccesary!
+			}
+		}
+	}
+
+	if (primaryIRQ)
+	{
+		doirq(1); //Raise primary IRQ!
+	}
+	else
+	{
+		removeirq(1); //Lower primary IRQ!
+	}
+
+	if (secondaryIRQ)
+	{
+		doirq(12); //Raise secondary IRQ!
+	}
+	else
+	{
+		removeirq(12); //Lower secondary IRQ!
+	}
 }
 
 //Registration handlers!

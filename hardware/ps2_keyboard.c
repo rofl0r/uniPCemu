@@ -1,6 +1,5 @@
 #include "headers/hardware/8042.h" //Basic PS/2 Controller support!
 #include "headers/hardware/ps2_keyboard.h" //Basic keyboard support!
-#include "headers/hardware/pic.h" //PIC support!
 #include "headers/support/log.h" //Logging support!
 
 extern char keys_names[104][11]; //All names of the above keys (for textual representation/labeling)
@@ -111,10 +110,6 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 				{
 					give_keyboard_input(scancodesets[Keyboard.scancodeset][key].keyrelease[i]); //Give control byte(s) of keyrelease!
 				}			
-			}
-			if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
-			{
-				doirq(1); //Call the interrupt if neccesary!
 			}
 		}
 	}

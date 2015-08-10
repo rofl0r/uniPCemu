@@ -1,6 +1,5 @@
 #include "headers/hardware/8042.h" //PS/2 Controller support!
 #include "headers/hardware/ps2_mouse.h" //Our support!
-#include "headers/hardware/pic.h" //Interrupt support!
 #include "headers/support/fifobuffer.h"
 #include "headers/support/zalloc.h" //Zero free allocation for linked lists!
 #include "headers/emu/timers.h" //Timing support!
@@ -125,12 +124,7 @@ void mouse_packet_handler(MOUSE_PACKET *packet) //Packet muse be allocated using
 	if (!Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled) //We're enabled?
 	{
 		if (add_mouse_packet(packet)) //Add a mouse packet, and according to timing!
-		{
-			if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled && !MOUSE_DISABLED) //Enabled and interrupt?
-			{
-				doirq(12); //Call the interrupt if neccesary!
-			}
-		}
+		{} //Do nothing when added!
 	}
 }
 

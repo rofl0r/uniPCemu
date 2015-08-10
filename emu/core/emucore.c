@@ -408,6 +408,7 @@ byte coreHandler()
 
 			HWINT_saved = 0; //No HW interrupt by default!
 			CPU_beforeexec(); //Everything before the execution!
+			IRQ8042(); //Execute any 8042 IRQs pending!
 			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
 			{
 				if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt())
