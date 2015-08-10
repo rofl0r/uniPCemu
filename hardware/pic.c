@@ -60,7 +60,6 @@ void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
 			i8259.isr[PIC] ^= (1 << i);
 			return;
 		}
-
 }
 
 byte out8259(word portnum, byte value)
@@ -108,7 +107,7 @@ byte lastinterrupt = 0; //Last interrupt requested!
 byte PICInterrupt() //We have an interrupt ready to process?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if ((i8259.irr[0] & (~i8259.imr[0])) || interruptsaved) //Primary PIC interrupt?
+	if (((i8259.irr[0] & (~i8259.imr[0])) & (~i8259.isr[0])) || interruptsaved) //Primary PIC interrupt?
 	{
 		return 1;
 	}
@@ -122,7 +121,7 @@ byte PICInterrupt() //We have an interrupt ready to process?
 		return 0; //No second PIC, so no interrupt!
 	}
 	
-	if (i8259.irr[1] & (~i8259.imr[1])) //Secondary PIC interrupt?
+	if ((i8259.irr[1] & (~i8259.imr[1])) & (~i8259.isr[1])) //Secondary PIC interrupt?
 	{
 		return 1;
 	}
@@ -133,7 +132,7 @@ byte PICInterrupt() //We have an interrupt ready to process?
 byte IRRequested(byte PIC, byte IR) //We have this requested?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (PIC==2 && //Second PIC addressed?
+	if (PIC && //Second PIC addressed?
 			(
 			(i8259.icw[0][1]&2)|| //Only one PIC?
 			(i8259.icw[0][2]!=4)|| //Wrong IR to connect?
@@ -143,7 +142,10 @@ byte IRRequested(byte PIC, byte IR) //We have this requested?
 	{
 		return 0; //Disable interrupt!	
 	}
-	byte tmpirr = i8259.irr[PIC] & (~i8259.imr[PIC]); //XOR request register with inverted mask register
+	byte tmpirr;
+	tmpirr = i8259.irr[PIC]; //Are we requested?
+	tmpirr &= ~i8259.imr[PIC]; //We cannot be masked!
+	tmpirr &= ~i8259.isr[PIC]; //We cannot be in-service!
 	return ((tmpirr >> IR) & 1); //Interrupt requested?
 }
 
@@ -162,7 +164,11 @@ byte getint(byte PIC, byte IR) //Get interrupt!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	byte realir = IR; //Default: nothing changed!
-	if (realir==2 && PIC==1) realir = 9; //Reroute interrupt 2 to 9!
+	if ((realir == 2) && PIC) //IRQ9?
+	{
+		PIC = 0; //PIC1!
+		realir = 2; //Reroute IRQ 9 to 2!
+	}
 	return i8259.icw[PIC][2]+realir; //Get interrupt!
 }
 
@@ -183,8 +189,8 @@ byte nextintr()
 		byte realIR = (IR&7); //What IR within the PIC?
 		if (IRRequested(PICnr,realIR)) //Requested?
 		{
-			ACNIR(PICnr,realIR); //Acnowledge it!
-			lastinterrupt = getint(PICnr,realIR); //Give the interrupt number!
+			ACNIR(PICnr, realIR); //Acnowledge it!
+			lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
 			interruptsaved = 1; //Gotten an interrupt saved!
 			return lastinterrupt;
 		}

@@ -242,13 +242,24 @@ void handle_keyboard_data(byte data)
 		{
 			give_keyboard_input(0xFA); //ACK!
 			input_lastwrite_keyboard(); //Force 0xFA to user!
-			give_keyboard_input(Keyboard.scancodeset); //Get scan code set!
+			switch (Keyboard.scancodeset) //What set?
+			{
+			case 0:
+				give_keyboard_input(0x43); //Get scan code set!
+				break;
+			case 1:
+				give_keyboard_input(0x41); //Get scan code set!
+				break;
+			case 2:
+				give_keyboard_input(0x3F); //Get scan code set!
+				break;
+			}
 		}
 		else
 		{
-			if (data<3) //Valid mode (mode 3 still unsupported!)
+			if (data<4) //Valid mode
 			{
-				Keyboard.scancodeset = data; //Set scan code set!
+				Keyboard.scancodeset =(data-1); //Set scan code set!
 				give_keyboard_input(0xFA); //Give ACK first!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 			}

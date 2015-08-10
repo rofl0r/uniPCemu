@@ -1144,7 +1144,6 @@ void handleKeyboardMouse() //Handles keyboard input during mouse operations!
 
 void handleKeyboard() //Handles keyboard input!
 {
-	byte counting = 0;
 	keysactive = 0; //Reset keys active!
 	if (!Direct_Input)
 	{
@@ -1191,15 +1190,15 @@ void handleKeyboard() //Handles keyboard input!
 			//First, process Ctrl,Alt,Shift Releases!
 			if (((oldshiftstatus&SHIFTSTATUS_CTRL) > 0) && (!currentctrl)) //Released CTRL?
 			{
-				tickKeyPress("lctrl",&counting);
+				onKeyPress("lctrl");
 			}
 			if (((oldshiftstatus&SHIFTSTATUS_ALT) > 0) && (!currentalt)) //Released ALT?
 			{
-				tickKeyPress("lalt",&counting);
+				onKeyPress("lalt");
 			}
 			if (((oldshiftstatus&SHIFTSTATUS_SHIFT) > 0) && (!currentshift)) //Released SHIFT?
 			{
-				tickKeyPress("lshift",&counting);
+				onKeyPress("lshift");
 			}
 			//Next, process Ctrl,Alt,Shift presses!
 			if (currentctrl) //Pressed CTRL?
@@ -1217,7 +1216,7 @@ void handleKeyboard() //Handles keyboard input!
 
 			if ((curstat.buttonpress & 0x300) == 0x300) //L&R hold? CAPS LOCK PRESSED! (Special case)
 			{
-				tickKeyPress("capslock",&counting); //Shift isn't pressed: it's CAPS LOCK special case!
+				onKeyPress("capslock"); //Shift isn't pressed: it's CAPS LOCK special case!
 			}
 			else //No CAPS LOCK?
 			{
@@ -1232,7 +1231,7 @@ void handleKeyboard() //Handles keyboard input!
 				{
 					onKeyRelease(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
 				}
-				tickKeyPress(getkeyboard(0, currentset, sety, setx, displaytokeyboard[currentkey]),&counting);
+				onKeyPress(getkeyboard(0, currentset, sety, setx, displaytokeyboard[currentkey]));
 				//Save the active key information!
 				lastset = currentset;
 				lastx = setx;

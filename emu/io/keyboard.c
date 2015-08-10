@@ -38,15 +38,22 @@ void onKeyRelease(char *key) //On key release!
 
 extern char keys_names[104][11]; //Keys names!
 
-void calculateKeyboardStep()
+void calculateKeyboardStep(byte activekeys)
 {
-	if (keyboard_step) //Delay executed?
+	if (activekeys) //Keys pressed?
 	{
-		keyboard_step = KEYBOARD_MAXSTEP / HWkeyboard_getrepeatrate(); //Apply this count per keypress!
+		if (keyboard_step) //Delay executed?
+		{
+			keyboard_step = KEYBOARD_MAXSTEP / HWkeyboard_getrepeatrate(); //Apply this count per keypress!
+		}
+		else
+		{
+			keyboard_step = HWkeyboard_getrepeatdelay(); //Delay before giving the repeat rate!
+		}
 	}
-	else
+	else //No keys pressed?
 	{
-		keyboard_step = HWkeyboard_getrepeatdelay(); //Delay before giving the repeat rate!
+		keyboard_step = 0; //Immediately react!
 	}
 }
 
@@ -56,6 +63,7 @@ void tickPendingKeys() //Handle all pending keys from our emulation! Every 1/100
 	byte keys_active = 0;
 	if (++pressedkeytimer > keyboard_step) //Timer expired?
 	{
+		pressedkeytimer = 0; //Reset the timer!
 		for (i = 0;i < NUMITEMS(key_status);i++) //Process all keys needed!
 		{
 			if (key_status[i]) //Pressed?
@@ -77,6 +85,7 @@ void tickPendingKeys() //Handle all pending keys from our emulation! Every 1/100
 				}
 			}
 		}
+		calculateKeyboardStep(keys_active); //Calculate the step for pressed keys!
 	}
 }
 
