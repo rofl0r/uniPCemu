@@ -28,6 +28,8 @@ extern byte LOG_MMU_WRITES; //Log MMU writes?
 
 extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
+extern byte MMU_logging; //Are we logging MMU accesses?
+
 int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 {
 	dolog("debugger","RunROMVerify...");
@@ -109,6 +111,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 			call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 		}
 		cpudebugger = needdebugger(); //Debugging?
+		MMU_logging = debugger_logging(); //Are we logging?
 		CPU_exec(); //Run CPU!
 		debugger_step(); //Step debugger if needed!
 		CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!

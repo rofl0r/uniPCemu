@@ -29,7 +29,7 @@ typedef struct
 	FIFOBUFFER *buffer; //Buffer for output!
 } PS2_KEYBOARD; //Active keyboard settings!
 
-void EMU_keyboard_handler(byte key, byte pressed); //A key has been pressed (with interval) or released CALLED BY HARDWARE KEYBOARD (Virtual Keyboard?)?
+byte EMU_keyboard_handler(byte key, byte pressed); //A key has been pressed (with interval) or released CALLED BY HARDWARE KEYBOARD (Virtual Keyboard?)? 0 indicates failure sending it!
 void EMU_keyboard_handler_name(char *name, byte pressed); //Handle key press/hold(pressed=1) or release(pressed=0) by name for hardware!
 void EMU_mouse_handler(byte *data, byte datasize); //Mouse results (packets) handler!
 //Name/ID conversion functionality!

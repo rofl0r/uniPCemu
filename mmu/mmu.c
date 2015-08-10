@@ -14,6 +14,8 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
+byte MMU_logging = 0; //Are we logging?
+
 byte MMU_ignorewrites = 0; //Ignore writes to the MMU from the CPU?
 
 MMU_type MMU; //The MMU itself!
@@ -183,9 +185,9 @@ byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read without segm
 	{
 		data = MMU_directrb(realaddress); //Read the data from memory (and port I/O)!		
 	}
-	if (debugger_logging() && (!opcode)) //To log?
+	if (MMU_logging && (!opcode)) //To log?
 	{
-		dolog("debugger", "Read from memory: %08X=%02X (%c)", realaddress, data,data?data:0x20); //Log it!
+		dolog("debugger", "Read from memory: %08X=%02X (%c)", realaddress, data, data ? data : 0x20); //Log it!
 	}
 	return data;
 }
@@ -196,7 +198,7 @@ extern byte startreached; //Start reached to log?
 
 void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segment/offset translation&protection (from system/interrupt)!
 {
-	if (debugger_logging() && FullMemWritten) //To log?
+	if (MMU_logging && FullMemWritten) //To log?
 	{
 		dolog("debugger", "Writing to memory: %08X=%02X (%c)", realaddress, val,val?val:0x20); //Log it!
 	}

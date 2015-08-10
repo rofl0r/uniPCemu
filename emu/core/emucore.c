@@ -50,6 +50,8 @@
 
 #include "headers/emu/emu_vga.h" //VGA update support!
 
+#include "headers/support/highrestimer.h" //High resolution timer!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To debug VGA at MAX speed?
@@ -68,7 +70,7 @@ extern PIC i8259; //PIC processor!
 int emu_started = 0; //Emulator started (initEMU called)?
 
 //To debug init/doneemu?
-#define DEBUG_EMU 1
+#define DEBUG_EMU 0
 
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
@@ -367,6 +369,8 @@ extern byte REPPending; //REP pending reset?
 
 extern byte startreached; //Debugger start logging here?
 
+extern byte MMU_logging; //Are we logging from the MMU?
+
 byte coreHandler()
 {
 	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
@@ -422,6 +426,7 @@ byte coreHandler()
 				}
 			}
 			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+			MMU_logging = debugger_logging(); //Are we logging?
 			CPU_exec(); //Run CPU!
 		}
 		else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
@@ -456,8 +461,12 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 	EMU_RUNNING = 1; //The emulator is running now!
 
 	EMU_enablemouse(1); //Enable all mouse input packets!
-	enableKeyboard(0); //Enable standard keyboard!`
+	enableKeyboard(0); //Enable standard keyboard!
 	
+	TicksHolder inputtimer;
+	uint_64 inputtimerpassed=0; //How many us have passed!
+	initTicksHolder(&inputtimer); //Initialise the input timer!
+
 //Start normal emulation!
 	for (;;)
 	{
@@ -470,6 +479,13 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 		{
 			debugrow("Reset/shutdown detected!");
 			break;    //Shutdown or reset?
+		}
+
+		inputtimerpassed += getuspassed(&inputtimer); //How much time has passed!
+		for (;inputtimerpassed >= 1000;) //1000us passed?
+		{
+			inputtimerpassed -= 1000; //We're ticking the timer!
+			updateInputMain(1); //Update input from the CPU core!
 		}
 
 		if (!coreHandler()) //Run the core CPU+related handler, gotten abort?

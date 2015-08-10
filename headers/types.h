@@ -19,10 +19,6 @@
 #include <limits.h>
 #include <stdio.h>
 #ifdef _WIN32
-//Special debugger stuff:
-#ifdef _DEBUG
-#include "vld.h" //Visual Leak Detector for debugging!
-#endif
 //Normal SDL libraries
 #include "SDL.h" //SDL library for windows!
 #include "SDL_events.h" //SDL events!
@@ -226,4 +222,5 @@ void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 #endif
 
 double getCurrentClockSpeed(); //Retrieves the current clock speed!
+void updateInputMain(byte emu_running); //Frequency 1000Hz!
 #endif

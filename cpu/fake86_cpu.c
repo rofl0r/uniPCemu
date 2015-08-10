@@ -122,7 +122,7 @@ uint8_t	oper1b, oper2b, res8, disp8, temp8, nestlev, addrbyte;
 uint32_t temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32, ea;
 int32_t	result;
 
-uint8_t	running = 0;
+extern byte	running;
 
 void intcall86(uint8_t intnum);
 

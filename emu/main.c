@@ -153,6 +153,25 @@ OPTINLINE double getCurrentClockSpeed()
 	#endif
 }
 
+extern byte EMU_RUNNING; //Are we running?
+
+byte running = 0; //Are we running the main thread?
+
+void updateInputMain(byte emu_running) //Frequency 1000Hz!
+{
+	SDL_Event event;
+	for (;SDL_PollEvent(&event);) //Gotten events to handle?
+	{
+		//Handle an event!
+		updateInput(&event); //Update input status when needed!
+		if (event.type == SDL_QUIT) //Quitting requested?
+		{
+			running = 0; //Terminate our app!
+		}
+	}
+	if (EMU_RUNNING==emu_running) keyboard_type_handler(); //Type handler at 1000Hz when EMU isn't running!
+}
+
 int main(int argc, char * argv[])
 {
 //Basic PSP stuff!
@@ -305,22 +324,11 @@ int main(int argc, char * argv[])
 
 	//New SDL way!
 	/* Check for events */
-	SDL_Event event;
-	byte running;
 	running = 1; //Default: we're running!
 	for (;running;) //Still running?
 	{
-		delay(1); //Give threads some time!
-		for (;SDL_PollEvent(&event);) //Gotten events to handle?
-		{
-			//Handle an event!
-			updateInput(&event); //Update input status when needed!
-			if (event.type == SDL_QUIT) //Quitting requested?
-			{
-				running = 0; //Terminate our app!
-			}
-		}
-		keyboard_type_handler(); //Type handler at 1000Hz!
+		delay(1000); //Give threads some time!
+		updateInputMain(0); //Update input when the emu isn't running!
 		if (!threadRunning(rootthread, "X86EMU_CPU")) break; //Thread not running? Stop our running status!
 	}
 

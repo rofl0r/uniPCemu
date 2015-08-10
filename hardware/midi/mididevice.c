@@ -1099,7 +1099,10 @@ void init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 	soundfont = readSF(filename); //Read the soundfont, if available!
 	if (!soundfont) //Unable to load?
 	{
-		dolog("MPU","No soundfont found or could be loaded!");
+		if (filename[0]) //Valid filename?
+		{
+			dolog("MPU", "No soundfont found or could be loaded!");
+		}
 	}
 	else
 	{

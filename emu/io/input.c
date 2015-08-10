@@ -25,9 +25,6 @@
 #include <SDL/SDL_events.h> //Event support!
 #endif
 
-//We're running each ms, so 1000 steps/second!
-#define KEYBOARD_MAXSTEP 1000
-
 byte mousebuttons = 0; //Active mouse buttons!
 
 //Use direct input in windows!
@@ -37,8 +34,6 @@ extern byte EMU_RUNNING; //Are we running?
 
 SDL_sem *keyboard_lock = NULL; //Our lock!
 
-uint_64 pressedkeytimer = 0; //Pressed key timer!
-uint_64 keyboard_step = 0; //How fast do we update the keys (repeated keys only)!
 byte keysactive; //Ammount of keys active!
 
 enum input_button_map { //All buttons we support!
@@ -1065,40 +1060,14 @@ byte shiftstatus = 0; //New shift status!
 
 extern char keys_names[104][11]; //All names of the used keys (for textual representation/labeling)
 
-void calculateKeyboardStep()
-{
-	keyboard_step = KEYBOARD_MAXSTEP / HWkeyboard_getrepeatrate(); //Apply this count per keypress!
-}
-
-void KBD_keypress(char *key)
-{
-	EMU_keyboard_handler(EMU_keyboard_handler_nametoid(key), 1); //We're pressed!
-}
-
-void tickKeyPress(char *key, byte *counting)
-{
-	++keysactive; //We're active!
-	if (*counting) { if (!pressedkeytimer) onKeyPress(key); } //Handle key press when allowed!
-	else
-	{
-		if (++pressedkeytimer >= keyboard_step) //Pressed key expired?
-		{
-			KBD_keypress(key); //Handle key press!
-			calculateKeyboardStep(); //Calculate the next step rate!
-			pressedkeytimer = 0; //Reset timer!
-		}
-		*counting = 1; //We're counting now! Ingore the timer for following hits!
-	}
-}
-
-void handleKeyPressRelease(int key, byte *counting)
+void handleKeyPressRelease(int key)
 {
 	switch (emu_keys_state[key]) //What state are we in?
 	{
 	case 0: //Released?
 		break;
 	case 1: //Pressed?
-		tickKeyPress(&keys_names[key][0],counting); //Tick the keypress!
+		onKeyPress(&keys_names[key][0]); //Tick the keypress!
 		break;
 	case 2: //Releasing?
 		onKeyRelease(&keys_names[key][0]); //Handle key release!
@@ -1334,17 +1303,17 @@ void handleKeyboard() //Handles keyboard input!
 
 		//Handle CTRL/ALT/Shift first!
 		int lctrl = EMU_keyboard_handler_nametoid("LCTRL");
-		handleKeyPressRelease(lctrl,&counting);
+		handleKeyPressRelease(lctrl);
 		int rctrl = EMU_keyboard_handler_nametoid("RCTRL");
-		handleKeyPressRelease(rctrl,&counting);
+		handleKeyPressRelease(rctrl);
 		int lalt = EMU_keyboard_handler_nametoid("LALT");
-		handleKeyPressRelease(lalt,&counting);
+		handleKeyPressRelease(lalt);
 		int ralt = EMU_keyboard_handler_nametoid("RALT");
-		handleKeyPressRelease(ralt,&counting);
+		handleKeyPressRelease(ralt);
 		int lshift = EMU_keyboard_handler_nametoid("LSHIFT");
-		handleKeyPressRelease(lshift,&counting);
+		handleKeyPressRelease(lshift);
 		int rshift = EMU_keyboard_handler_nametoid("RSHIFT");
-		handleKeyPressRelease(rshift,&counting);
+		handleKeyPressRelease(rshift);
 
 		for (key = 0;key < NUMITEMS(emu_keys_state);key++)
 		{
@@ -1352,14 +1321,10 @@ void handleKeyboard() //Handles keyboard input!
 			{
 				if ((key != lctrl) && (key != rctrl) && (key != lalt) && (key != ralt) && (key != lshift) && (key != rshift)) //Not already handled?
 				{
-					handleKeyPressRelease(key,&counting); //Handle key press or release!
+					handleKeyPressRelease(key); //Handle key press or release!
 				}
 			}
 		}
-	}
-	if (!keysactive) //No keys active anymore?
-	{
-		keyboard_step = 0; //Reset timer step!
 	}
 }
 
@@ -1749,6 +1714,7 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 				handleKeyboard(); //Handle keyboard input?
 			}
 		} //Input enabled?
+		tickPendingKeys(); //Handle any pending keys if possible!
 	} //While loop, muse be infinite to prevent closing!
 	PostSem(keyboard_lock); //Finish the lock!
 }

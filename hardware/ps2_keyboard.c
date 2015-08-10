@@ -83,9 +83,9 @@ int EMU_keyboard_handler_idtoname(int id, char *name) //Same as above, but with 
 }
 
 //key is an index into the scancode set!
-void EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with interval) or released CALLED BY HARDWARE KEYBOARD (Virtual Keyboard?)?
+byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with interval) or released CALLED BY HARDWARE KEYBOARD (Virtual Keyboard?)?
 {
-	if (__HW_DISABLED) return; //Abort!
+	if (__HW_DISABLED) return 1; //Abort!
 	while (Keyboard.has_command) //Have a command: command mode inhabits keyboard input?
 	{
 		delay(10); //Wait for the command to be fully processed by our driver!
@@ -98,6 +98,7 @@ void EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 			waitforfreefifobuffer(Keyboard.buffer,scancodesets[Keyboard.scancodeset][key].keypress_size); //Wait for this to free in the buffer!
 			if (pressed) //Key pressed?
 			{
+				if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[Keyboard.scancodeset][key].keypress_size) return 0; //Buffer full: we can't add it!
 				for (i=0;i<scancodesets[Keyboard.scancodeset][key].keypress_size;i++) //Process keypress!
 				{
 					give_keyboard_input(scancodesets[Keyboard.scancodeset][key].keypress[i]); //Give control byte(s) of keypress!
@@ -105,6 +106,7 @@ void EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 			}
 			else //Released?
 			{
+				if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[Keyboard.scancodeset][key].keyrelease_size) return 0; //Buffer full: we can't add it!
 				for (i=0;i<scancodesets[Keyboard.scancodeset][key].keyrelease_size;i++) //Process keyrelease!
 				{
 					give_keyboard_input(scancodesets[Keyboard.scancodeset][key].keyrelease[i]); //Give control byte(s) of keyrelease!
@@ -116,6 +118,7 @@ void EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 			}
 		}
 	}
+	return 1; //OK: we're processed!
 }
 
 
