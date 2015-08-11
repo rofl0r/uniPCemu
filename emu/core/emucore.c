@@ -367,8 +367,6 @@ byte HWINT_nr = 0, HWINT_saved = 0; //HW interrupt saved?
 
 extern byte REPPending; //REP pending reset?
 
-extern byte startreached; //Debugger start logging here?
-
 extern byte MMU_logging; //Are we logging from the MMU?
 
 byte coreHandler()
@@ -408,7 +406,6 @@ byte coreHandler()
 
 			HWINT_saved = 0; //No HW interrupt by default!
 			CPU_beforeexec(); //Everything before the execution!
-			IRQ8042(); //Execute any 8042 IRQs pending!
 			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
 			{
 				if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt())

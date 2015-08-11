@@ -35,6 +35,7 @@ void resetKeyboard() //Reset the keyboard controller!
 	Keyboard.buffer = oldbuffer; //Restore the buffer!
 	give_keyboard_input(0xAA); //Give OK status code!
 	input_lastwrite_keyboard(); //Force to user!
+	IRQ8042(); //We've got data in our input buffer!
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
 }
 
@@ -102,6 +103,7 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 				{
 					give_keyboard_input(scancodesets[Keyboard.scancodeset][key].keypress[i]); //Give control byte(s) of keypress!
 				}
+				IRQ8042(); //We've got data in our input buffer!
 			}
 			else //Released?
 			{
@@ -109,7 +111,8 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 				for (i=0;i<scancodesets[Keyboard.scancodeset][key].keyrelease_size;i++) //Process keyrelease!
 				{
 					give_keyboard_input(scancodesets[Keyboard.scancodeset][key].keyrelease[i]); //Give control byte(s) of keyrelease!
-				}			
+				}
+				IRQ8042(); //We've got data in our input buffer!
 			}
 		}
 	}
@@ -135,36 +138,44 @@ void commandwritten_keyboard() //Command has been written?
 	case 0xFE: //Resend?
 		give_keyboard_input(Keyboard.last_send_byte); //Resend last non-0xFE byte!
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xFD: //Mode 3 change: Set Key Type Make
 		//No support, so give NAC
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		break;
 	case 0xFC: //Mode 3 change: 
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		break;
 	case 0xFB: //Mode 3 change:
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		break;
 	case 0xFA: //Mode 3 change:
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		break;
 	case 0xF9: //Mode 3 change:
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		break;
 	case 0xF8: //Mode 3 change:
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		break;
 	case 0xF7: //Set All Keys Typematic: every type is one character send only!
 		give_keyboard_input(0xFE);	
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		break;
 	//0xFD-0xF7 not supported, because we won't support mode 3!
 	case 0xF5: //Same as 0xF6, but with scanning stop!
@@ -188,26 +199,31 @@ void commandwritten_keyboard() //Command has been written?
 		input_lastwrite_keyboard(); //Force 0xFA to user!
 		give_keyboard_input(0xAB); //First byte!
 		give_keyboard_input(0x83); //Second byte given!
+		IRQ8042(); //We've got data in our input buffer!
 		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xF0: //Set Scan Code Set!
 		give_keyboard_input(0xFA); //Give ACK first!
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		break;
 	//Still need 0xF7-0xFD!
 	case 0xEE: //Echo 0xEE!
 		give_keyboard_input(0xEE); //Respond with "Echo"!
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xED: //Set/reset LEDs!
 		//Next parameter is data!
 		give_keyboard_input(0xFA); //Give ACK first!
 		input_lastwrite_keyboard(); //Force 0xFA to user!
+		IRQ8042(); //We've got data in our input buffer!
 		break;
 	default: //Unknown command?
 		give_keyboard_input(0xFE); //Error!
 		input_lastwrite_keyboard(); //Force 0xFE to user!
+		IRQ8042(); //We've got data in our input buffer!
 		return; //Abort!
 		break;
 	}
@@ -228,11 +244,13 @@ void handle_keyboard_data(byte data)
 			Keyboard.typematic_rate_delay = data; //Set typematic rate/delay!
 			give_keyboard_input(0xFA); //FA: Valid value!
 			input_lastwrite_keyboard(); //Force 0xFA to user!
+			IRQ8042(); //We've got data in our input buffer!
 		}
 		else //Invalid: bit 7 is never used?
 		{
 			give_keyboard_input(0xFE); //Error!
 			input_lastwrite_keyboard(); //Force 0xFE to user!
+			IRQ8042(); //We've got data in our input buffer!
 		}
 		Keyboard.has_command = 0; //No command anymore!
 		return; //Done!
@@ -254,6 +272,7 @@ void handle_keyboard_data(byte data)
 				give_keyboard_input(0x3F); //Get scan code set!
 				break;
 			}
+			IRQ8042(); //We've got data in our input buffer!
 		}
 		else
 		{
@@ -262,11 +281,13 @@ void handle_keyboard_data(byte data)
 				Keyboard.scancodeset =(data-1); //Set scan code set!
 				give_keyboard_input(0xFA); //Give ACK first!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
+				IRQ8042(); //We've got data in our input buffer!
 			}
 			else
 			{
 				give_keyboard_input(0xFE); //Give NAK first!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
+				IRQ8042(); //We've got data in our input buffer!
 			}
 			Keyboard.has_command = 0; //No command anymore!
 			return; //Done!
@@ -285,6 +306,7 @@ void handle_keyboard_data(byte data)
 		Keyboard.has_command = 0; //No command anymore!
 		give_keyboard_input(0xFA); //Give ACK: we're OK!
 		input_lastwrite_keyboard(); //Force to user!
+		IRQ8042(); //We've got data in our input buffer!
 		return; //Done!
 		break;
 	}

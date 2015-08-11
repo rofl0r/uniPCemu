@@ -61,11 +61,31 @@ void fill8042_input_buffer() //Fill input buffer from full buffer!
 						if (whatport) //AUX port?
 						{
 							Controller8042.status_buffer |= 0x20; //Set AUX bit!
+							if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
+							{
+								doirq(12); //Raise secondary IRQ!
+							}
+							else
+							{
+								removeirq(12); //Lower secondary IRQ!
+							}
+							removeirq(1); //Lower primary IRQ!
 						}
 						else //Non-AUX?
 						{
 							Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
+
+							if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
+							{
+								doirq(1); //Raise primary IRQ!
+							}
+							else
+							{
+								removeirq(1); //Lower primary IRQ!
+							}
+							removeirq(12); //Lower secondary IRQ!
 						}
+						return; //Finished!
 					}
 				}
 			}
@@ -317,6 +337,7 @@ case 0x60: //Data port: Read input buffer?
 	{
 		*result = Controller8042.input_buffer; //Read input buffer!
 		Controller8042.status_buffer &= ~0x22; //Clear input buffer full&AUX bits!
+		fill8042_input_buffer(); //Get the next byte if needed!
 	}
 	return 1; //We're processed!
 	break;
@@ -353,47 +374,7 @@ void BIOS_done8042()
 
 void IRQ8042() //Generates any IRQs needed on the 8042!
 {
-	byte temp;
-	byte primaryIRQ=0, secondaryIRQ=0;
-	if (Controller8042.portpeek[0]) //Gotten primary port?
-	{
-		if (Controller8042.portpeek[0](&temp)) //Valid data present?
-		{
-			if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
-			{
-				primaryIRQ = 1; //Call the interrupt if neccesary!
-			}
-		}
-	}
-
-	if (Controller8042.portpeek[1]) //Gotten secondary port?
-	{
-		if (Controller8042.portpeek[1](&temp)) //Valid data present?
-		{
-			if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
-			{
-				secondaryIRQ = 1; //Call the interrupt if neccesary!
-			}
-		}
-	}
-
-	if (primaryIRQ)
-	{
-		doirq(1); //Raise primary IRQ!
-	}
-	else
-	{
-		removeirq(1); //Lower primary IRQ!
-	}
-
-	if (secondaryIRQ)
-	{
-		doirq(12); //Raise secondary IRQ!
-	}
-	else
-	{
-		removeirq(12); //Lower secondary IRQ!
-	}
+	fill8042_input_buffer(); //Fill our input buffer!
 }
 
 //Registration handlers!

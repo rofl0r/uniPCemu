@@ -192,17 +192,12 @@ byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read without segm
 	return data;
 }
 
-byte FullMemWritten = 1; //Can we start logging memory writes?
-
-extern byte startreached; //Start reached to log?
-
 void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segment/offset translation&protection (from system/interrupt)!
 {
-	if (MMU_logging && FullMemWritten) //To log?
+	if (MMU_logging) //To log?
 	{
 		dolog("debugger", "Writing to memory: %08X=%02X (%c)", realaddress, val,val?val:0x20); //Log it!
 	}
-	FullMemWritten |= startreached; //Full memory is written to when this address is written to!
 	if (MMU_ignorewrites) return; //Ignore all written data: protect memory integrity!
 	if (MMU_IO_writehandler(realaddress, val)) //Normal memory access?
 	{
