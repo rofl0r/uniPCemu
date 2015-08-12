@@ -157,7 +157,7 @@ extern byte EMU_RUNNING; //Are we running?
 
 byte running = 0; //Are we running the main thread?
 
-void updateInputMain(byte emu_running) //Frequency 1000Hz!
+void updateInputMain() //Frequency 1000Hz!
 {
 	SDL_Event event;
 	for (;SDL_PollEvent(&event);) //Gotten events to handle?
@@ -169,7 +169,7 @@ void updateInputMain(byte emu_running) //Frequency 1000Hz!
 			running = 0; //Terminate our app!
 		}
 	}
-	if (EMU_RUNNING==emu_running) keyboard_type_handler(); //Type handler at 1000Hz when EMU isn't running!
+	keyboard_type_handler(); //Type handler at 1000Hz when EMU isn't running!
 }
 
 int main(int argc, char * argv[])
@@ -328,7 +328,7 @@ int main(int argc, char * argv[])
 	for (;running;) //Still running?
 	{
 		delay(1000); //Give threads some time!
-		updateInputMain(0); //Update input when the emu isn't running!
+		updateInputMain(); //Update input!
 		if (!threadRunning(rootthread, "X86EMU_CPU")) break; //Thread not running? Stop our running status!
 	}
 

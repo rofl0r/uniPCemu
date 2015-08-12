@@ -4,6 +4,7 @@
 #include "headers/hardware/8042.h" //Our own functions!
 #include "headers/mmu/mmu.h" //For wraparround 1/3/5/... MB! (A20 line)
 #include "headers/support/log.h" //Logging support!
+#include "headers/support/locks.h" //Locking support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -31,6 +32,7 @@ void input_lastwrite_8042()
 
 void fill8042_input_buffer() //Fill input buffer from full buffer!
 {
+	for (;!lock("8042");) delay(1); //Wait for locking!
 	if (Controller8042.status_buffer&2) //Buffer full?
 	{
 		//Nothing to do: buffer already full!
@@ -43,6 +45,7 @@ void fill8042_input_buffer() //Fill input buffer from full buffer!
 		{
 			Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
 			Controller8042.status_buffer |= 0x2; //Set input buffer full!
+			unlock("8042"); //We're done!
 			return; //Filled: we have something from the 8042 controller itself!
 		}
 
@@ -85,12 +88,14 @@ void fill8042_input_buffer() //Fill input buffer from full buffer!
 							}
 							removeirq(12); //Lower secondary IRQ!
 						}
+						unlock("8042"); //We're done!
 						return; //Finished!
 					}
 				}
 			}
 		}
 	}
+	unlock("8042"); //We're done!
 }
 
 void reset8042() //Reset 8042 up till loading BIOS!

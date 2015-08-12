@@ -222,5 +222,4 @@ void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 #endif
 
 double getCurrentClockSpeed(); //Retrieves the current clock speed!
-void updateInputMain(byte emu_running); //Frequency 1000Hz!
 #endif

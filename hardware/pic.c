@@ -104,10 +104,19 @@ byte out8259(word portnum, byte value)
 byte interruptsaved = 0; //Have we gotten a primary interrupt (first PIC)?
 byte lastinterrupt = 0; //Last interrupt requested!
 
+OPTINLINE byte getinterruptstoprocess(byte PIC)
+{
+	byte result;
+	result = i8259.irr[PIC];
+	result &= ~i8259.imr[PIC];
+	result &= ~i8259.isr[PIC];
+	return result; //Give the result!
+}
+
 byte PICInterrupt() //We have an interrupt ready to process?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (((i8259.irr[0] & (~i8259.imr[0])) & (~i8259.isr[0])) || interruptsaved) //Primary PIC interrupt?
+	if (getinterruptstoprocess(0) || interruptsaved) //Primary PIC interrupt?
 	{
 		return 1;
 	}
@@ -121,7 +130,7 @@ byte PICInterrupt() //We have an interrupt ready to process?
 		return 0; //No second PIC, so no interrupt!
 	}
 	
-	if ((i8259.irr[1] & (~i8259.imr[1])) & (~i8259.isr[1])) //Secondary PIC interrupt?
+	if (getinterruptstoprocess(1)) //Secondary PIC interrupt?
 	{
 		return 1;
 	}
@@ -142,11 +151,7 @@ byte IRRequested(byte PIC, byte IR) //We have this requested?
 	{
 		return 0; //Disable interrupt!	
 	}
-	byte tmpirr;
-	tmpirr = i8259.irr[PIC]; //Are we requested?
-	tmpirr &= ~i8259.imr[PIC]; //We cannot be masked!
-	tmpirr &= ~i8259.isr[PIC]; //We cannot be in-service!
-	return ((tmpirr >> IR) & 1); //Interrupt requested?
+	return ((getinterruptstoprocess(PIC) >> IR) & 1); //Interrupt requested?
 }
 
 void ACNIR(byte PIC, byte IR) //Acnowledge request!

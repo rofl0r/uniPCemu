@@ -461,10 +461,6 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 	EMU_enablemouse(1); //Enable all mouse input packets!
 	enableKeyboard(0); //Enable standard keyboard!
 	
-	TicksHolder inputtimer;
-	uint_64 inputtimerpassed=0; //How many us have passed!
-	initTicksHolder(&inputtimer); //Initialise the input timer!
-
 //Start normal emulation!
 	for (;;)
 	{
@@ -477,13 +473,6 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 		{
 			debugrow("Reset/shutdown detected!");
 			break;    //Shutdown or reset?
-		}
-
-		inputtimerpassed += getuspassed(&inputtimer); //How much time has passed!
-		for (;inputtimerpassed >= 1000;) //1000us passed?
-		{
-			inputtimerpassed -= 1000; //We're ticking the timer!
-			updateInputMain(1); //Update input from the CPU core!
 		}
 
 		if (!coreHandler()) //Run the core CPU+related handler, gotten abort?
