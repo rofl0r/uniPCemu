@@ -313,7 +313,6 @@ void op_grp3_8() {
 		//Multiply and convert to 16-bit!
 		temp3.val32s = temp1.val32s; //Load and...
 		temp3.val32s *= temp2.val32s; //Multiply!
-		dolog("debugger","IMULB:%ix%i=%i",temp1.val32s,temp2.val32s,temp3.val32s); //Show the result!
 		REG_AX = temp3.val16; //Load into AX!
 		flag_szp8(REG_AL); //Set the result flags!
 		FLAG_CF = (FLAG_OF = ((unsigned2signed8(REG_AL)!=unsigned2signed16(REG_AX))?1:0));
@@ -429,7 +428,6 @@ void op_grp3_16() {
 		if (temp2.val16 & 0x8000) temp2.val32 |= 0xFFFF0000;
 		temp3.val32s = temp1.val32s; //Load and...
 		temp3.val32s *= temp2.val32s; //Signed multiplication!
-		dolog("debugger","IMULW:%ix%i=%i",temp1.val32s,temp2.val32s,temp3.val32s); //Show the result!
 		REG_AX = temp3.val16; //into register ax
 		REG_DX = temp3.val16high; //into register dx
 		flag_szp32(temp3.val32); //Affect the flags!
