@@ -245,21 +245,33 @@ byte MIDI_IN()
 	return MIDI_readData(); //Read data from the MPU!
 }
 
-void initMPU(char *filename) //Initialise function!
+byte MPU_ready = 0;
+
+byte initMPU(char *filename) //Initialise function!
 {
-	memset(&MIDIDEV,0,sizeof(MIDIDEV)); //Clear the MIDI device!
-	MIDIDEV.inbuffer = allocfifobuffer(100); //Alloc FIFO buffer of 100 bytes!
-	MIDIDEV.command = -1; //Default: no command there!
-	init_MIDIDEVICE(filename); //Initialise the MIDI device!
-	resetMPU(); //Reset the MPU!
-	MPU401_Init(); //Init the dosbox handler for our MPU-401!
+	byte result;
+	result = init_MIDIDEVICE(filename); //Initialise the MIDI device!
+	MPU_ready = result; //Are we ready?
+	if (result) //Valid MIDI device?
+	{
+		memset(&MIDIDEV, 0, sizeof(MIDIDEV)); //Clear the MIDI device!
+		MIDIDEV.inbuffer = allocfifobuffer(100); //Alloc FIFO buffer of 100 bytes!
+		MIDIDEV.command = -1; //Default: no command there!
+		resetMPU(); //Reset the MPU!
+		MPU401_Init(); //Init the dosbox handler for our MPU-401!
+	}
+	return result; //Are we loaded?
 }
 
 void doneMPU() //Finish function!
 {
-	done_MIDIDEVICE(); //Finish the MIDI device!
-	free_fifobuffer(&MIDIDEV.inbuffer); //Free the FIFO buffer!
-	MPU401_Done(); //Finish our MPU-401 system: custom!
+	if (MPU_ready) //Are we loaded?
+	{
+		MPU_ready = 0; //We're not loaded anymore!
+		done_MIDIDEVICE(); //Finish the MIDI device!
+		free_fifobuffer(&MIDIDEV.inbuffer); //Free the FIFO buffer!
+		MPU401_Done(); //Finish our MPU-401 system: custom!
+	}
 }
 
 void MPU401_Done() //Finish our MPU system! Custom by superfury1!

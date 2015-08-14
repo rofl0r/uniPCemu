@@ -169,6 +169,7 @@ void updateInputMain() //Frequency 1000Hz!
 			running = 0; //Terminate our app!
 		}
 	}
+
 	keyboard_type_handler(); //Type handler at 1000Hz when EMU isn't running!
 }
 
@@ -327,7 +328,7 @@ int main(int argc, char * argv[])
 	running = 1; //Default: we're running!
 	for (;running;) //Still running?
 	{
-		delay(1000); //Give threads some time!
+		delay(0); //Give threads some time!
 		updateInputMain(); //Update input!
 		if (!threadRunning(rootthread, "X86EMU_CPU")) break; //Thread not running? Stop our running status!
 	}

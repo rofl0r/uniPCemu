@@ -17,6 +17,8 @@
 
 #include "headers/emu/timers.h" //Timer support!
 
+#include "headers/support/highrestimer.h" //High resolution timer support!
+
 #ifdef _WIN32
 #include "sdl_joystick.h" //Joystick support!
 #include "sdl_events.h" //Event support!
@@ -159,7 +161,7 @@ int emu_keys_SDL[104] = {
 	SDLK_KP9, //KP 9
 
 	SDLK_RIGHTBRACKET, //]
-	SDLK_COLON, //;
+	SDLK_SEMICOLON, //;
 	SDLK_QUOTE, //'
 	SDLK_COMMA, //,
 	SDLK_PERIOD, //.
@@ -835,8 +837,8 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	if (!curstat.gamingmode) //Not gaming mode (both mouse and keyboard mode)?
 	{
 		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-3] = 'C'; //Screen capture!
-		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-2] = 'A'; //Screen capture!
-		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-1] = 'P'; //Screen capture!
+		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-2] = 'a'; //Screen capture!
+		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-1] = 'p'; //Screen capture!
 
 		if (SCREEN_CAPTURE) //Screen capture status?
 		{
@@ -1731,6 +1733,8 @@ void psp_keyboard_init()
 	{
 		return; //Keyboard disabled?
 	}
+
+	initEMUKeyboard(); //Initialise the keyboard support!
 	
 	//dolog("osk","Starting type handler");
 	//dolog("osk","Starting swap handler");
@@ -1830,8 +1834,6 @@ void enableKeyboard(int bufferinput) //Enables the keyboard/mouse functionnality
 
 /* All update functionality for input */
 
-//ThreadParams_p input_thread = NULL;
-
 SDL_Joystick *joystick; //Our joystick!
 
 void updateMOD(SDL_Event *event)
@@ -1876,10 +1878,12 @@ void toggleDirectInput()
 	if (Direct_Input) //Enabled?
 	{
 		SDL_WM_GrabInput(SDL_GRAB_ON); //Grab the mouse!
+		SDL_ShowCursor(SDL_DISABLE); //Don't show the cursor!
 	}
 	else //Disabled?
 	{
 		SDL_WM_GrabInput(SDL_GRAB_OFF); //Don't grab the mouse!
+		SDL_ShowCursor(SDL_ENABLE); //Show the cursor!
 	}
 }
 
@@ -2285,6 +2289,12 @@ void updateInput(SDL_Event *event) //Update all input!
 				break;
 			}
 			PostSem(keyboard_lock);
+			break;
+		case SDL_MOUSEMOTION: //Mouse moved?
+			if (Direct_Input) //Direct input?
+			{
+				SDL_WarpMouse(event->motion.x + event->motion.xrel, event->motion.y + event->motion.yrel); //Disable mouse motion: keep the mouse at the same place!
+			}
 			break;
 		case SDL_QUIT: //Quit?
 			SDL_JoystickClose(joystick); //Finish our joystick!

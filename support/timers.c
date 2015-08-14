@@ -53,7 +53,7 @@ void timer_thread() //Handler for timer!
 {
 	char name[256];
 	int curtimer;
-	float numcounters;
+	uint_64 numcounters;
 	double clockspeedup;
 	double realpassed; //Real timer passed since last call!
 
@@ -127,8 +127,7 @@ void timer_thread() //Handler for timer!
 								timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
 								dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
 #endif
-								numcounters -= 1.0f; //Decrease number of counts left!
-								if (!numcounters) break; //Done? Process next counter!
+								if (!--numcounters) break; //Done? Process next counter!
 							}
 						}
 						else //We're a counter only?
@@ -137,7 +136,7 @@ void timer_thread() //Handler for timer!
 							counter = (uint_64 *)timers[curtimer].handler; //Handler is a counter!
 							if (counter && numcounters!=0.0f) //Loaded?
 							{
-								*counter += (uint_64)numcounters; //Add the counter!
+								*counter += numcounters; //Add the counter!
 							}
 						}
 						if (timers[curtimer].lock) //To wait for using threads?

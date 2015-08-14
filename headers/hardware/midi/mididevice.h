@@ -100,7 +100,7 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data); //Add a command to the bu
 //MIDICOMMAND *MIDIDEVICE_peekbuffer(); //Peek at the buffer!
 //int MIDIDEVICE_readbuffer(MIDICOMMAND *result); //Read from the buffer!
 
-void init_MIDIDEVICE(char *filename); //Initialise MIDI device for usage!
+byte init_MIDIDEVICE(char *filename); //Initialise MIDI device for usage!
 void done_MIDIDEVICE(); //Finish our midi device!
 
 #endif

@@ -122,7 +122,12 @@ void initEMU(int full) //Init!
 	initAdlib(); //Initialise adlib!
 	
 	debugrow("Initialising MPU...");
-	initMPU(&BIOS_Settings.SoundFont[0]); //Initialise our MPU! Use the selected soundfont!
+	if (!initMPU(&BIOS_Settings.SoundFont[0])) //Initialise our MPU! Use the selected soundfont!
+	{
+		//We've failed loading!
+		memset(&BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont));
+		forceBIOSSave(); //Save the new BIOS!
+	}
 
 	if (!DEBUG_SOUND) //Not sound only?
 	{
@@ -369,6 +374,8 @@ extern byte REPPending; //REP pending reset?
 
 extern byte MMU_logging; //Are we logging from the MMU?
 
+extern byte Direct_Input; //Are we in direct input mode?
+
 byte coreHandler()
 {
 	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
@@ -441,7 +448,9 @@ byte coreHandler()
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 
-	if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Run in-emulator BIOS menu and not gaming mode?
+	delay(1); //Wait minimal time for other threads to process data!
+
+	if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode() && !Direct_Input) //Run in-emulator BIOS menu and not gaming mode?
 	{
 		pauseEMU(); //Stop timers!
 		runBIOS(0); //Run the emulator BIOS!

@@ -309,6 +309,16 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	lvolume -= panningtemp; //Left percentage!
 	rvolume += panningtemp; //Right percentage!
 
+	if (lvolume > 1.0f)
+	{
+		lvolume = 1.0f; //Limit to max!
+	}
+
+	if (rvolume > 1.0f)
+	{
+		rvolume = 1.0f; //Limit to max!
+	}
+
 	voice->lvolume = lvolume; //Left panning!
 	voice->rvolume = rvolume; //Right panning!
 
@@ -1075,10 +1085,11 @@ void done_MIDIDEVICE() //Finish our midi device!
 	unlockaudio(1);
 }
 
-void init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
+byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 {
+	byte result;
 	#ifdef __HW_DISABLED
-		return; //We're disabled!
+		return 0; //We're disabled!
 	#endif
 	#ifdef _WIN32
 	#ifdef DIRECT_MIDI
@@ -1086,10 +1097,10 @@ void init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 		flag = midiOutOpen(&device, 0, 0, 0, CALLBACK_NULL);
 		if (flag != MMSYSERR_NOERROR) {
 			printf("Error opening MIDI Output.\n");
-			return;
+			return 0;
 		}
 		//We're directly sending MIDI to the output!
-		return; //Stop: ready!
+		return 1; //Stop: ready!
 	#endif
 	#endif
 	lockaudio();
@@ -1103,9 +1114,11 @@ void init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 		{
 			dolog("MPU", "No soundfont found or could be loaded!");
 		}
+		result = 0; //Error!
 	}
 	else
 	{
+		result = 1; //OK!
 		int i;
 		for (i=0;i<__MIDI_NUMVOICES;i++) //Assign all voices available!
 		{
@@ -1115,4 +1128,5 @@ void init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 	}
 	MIDIDEVICE_ActiveSenseInit(); //Initialise Active Sense!
 	unlockaudio(1);
+	return result;
 }

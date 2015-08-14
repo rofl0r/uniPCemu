@@ -315,7 +315,7 @@ void DMA_tick()
 	static byte controller; //Current controller!
 	byte transferred = 0; //Transferred data this time?
 	byte startcurrent = current; //Current backup for checking for finished!
-	//nextcycle: //Next cycle to process!
+	nextcycle: //Next cycle to process!
 		controller = ((current&4)>>2); //Init controller
 		byte channel = (current&3); //Channel to use! Channels 0 are unused (DRAM memory refresh (controller 0) and cascade DMA controller (controller 1))
 		if (!(DMAController[controller].CommandRegister&4) && channel) //Controller not disabled and valid channel to transfer?
@@ -485,10 +485,8 @@ void DMA_tick()
 			}
 		}
 	nextchannel: //Skipping this channel (used by cascade mode channels)
-		if (++current&(~0x7)) //Last controller finished (overflow channel counter)?
-		{
-			current = 0; //Reset controller!
-		}
+		++current; //Next channel!
+		current &= 0x7; //Wrap arround our 2 DMA controllers?
 		if (transferred)
 		{
 			return; //Transferred data? We're done!
@@ -497,7 +495,7 @@ void DMA_tick()
 		{
 			return; //Back to our original cycle? We don't have anything to transfer!
 		}
-		//goto nextcycle; //Next cycle!!
+		goto nextcycle; //Next cycle!!
 }
 
 void initDMA()

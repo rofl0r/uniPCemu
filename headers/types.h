@@ -39,7 +39,7 @@
 //Our basic functionality we need for running this program!
 //We have less accuracy using SDL delay: ms instead of us. Round to 0ms(minimal time) if needed!
 #ifdef __psp__
-#define delay(us) sceKernelDelayThread((us)?(us):1)
+#define delay(us) sceKernelDelayThread(us)
 #define sleep sceKernelSleepThread
 #define halt sceKernelExitGame
 #define mkdir(dir) sceIoMkdir(dir,0777)
@@ -48,7 +48,14 @@
 #else
 #define WaitSem(s) SDL_SemWait(s);
 #define PostSem(s) SDL_SemPost(s);
-#define delay(us) SDL_Delay((uint_32)((us)/1000))
+//Different delays for windows and other systems (linux etc.)!
+#ifdef _WIN32
+#define realdelay(x) (x)
+#else
+//Linux/*nix?
+#define realdelay(x) ((x)?(x):1)
+#endif
+#define delay(us) SDL_Delay(realdelay((uint_32)((us)/1000)))
 #define sleep() for (;;) delay(1000000)
 #define halt SDL_Quit
 #ifdef _WIN32
