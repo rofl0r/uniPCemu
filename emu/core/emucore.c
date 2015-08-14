@@ -52,6 +52,8 @@
 
 #include "headers/support/highrestimer.h" //High resolution timer!
 
+#include "headers/hardware/ide.h" //IDE/ATA support!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To debug VGA at MAX speed?
@@ -206,6 +208,9 @@ void initEMU(int full) //Init!
 	
 	debugrow("Initialising Floppy Disk Controller...");
 	initFDC(); //Initialise the Floppy Disk Controller!
+
+	debugrow("Initialising ATA...");
+	initATA();
 
 	debugrow("Initialising port E9 hack and emulator support functionality...");
 	BIOS_initDebugger(); //Initialise the port E9 hack and emulator support functionality!
