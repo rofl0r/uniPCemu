@@ -392,7 +392,7 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 
 	if (strcmp(BIOS_Settings.floppy1,"")!=0) //Have FLOPPY1?
 	{
-		printmsg(0xF,"Floppy disk detected: %s",BIOS_Settings.floppy0);
+		printmsg(0xF,"Floppy disk detected: %s",BIOS_Settings.floppy1);
 		if (BIOS_Settings.floppy1_readonly) //Read-only?
 		{
 			printmsg(0x4," <R>");

@@ -7,7 +7,7 @@
 //Primary hard disk IRQ!
 #define ATA_IRQ 14
 
-word portaddress = 0x300;
+word portaddress = 0x1F0;
 
 extern byte singlestep; //Enable single stepping when called?
 
@@ -190,6 +190,7 @@ void ATA_executeCommand(byte command) //Execute a command!
 	case 0xEC: //Identify drive?
 		ATA.command = 0xEC; //We're running this command!
 		memcpy(&ATA.result, &ATA.Drive[ATA_activeDrive()].driveparams, sizeof(ATA.Drive[ATA_activeDrive()].driveparams)); //Set drive parameters currently set!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveseekcomplete = 1; //We've completed seeking!
 		//Finish up!
 		ATA.resultpos = 0; //Initialise data position for the result!
 		ATA.resultsize = sizeof(ATA.Drive[ATA_activeDrive()].driveparams); //512 byte result!
