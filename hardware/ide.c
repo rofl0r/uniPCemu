@@ -15,22 +15,6 @@ struct
 	byte commandstatus; //Do we have a command?
 	struct
 	{
-		struct
-		{
-			union
-			{
-				struct
-				{
-					byte sectornumber; //LBA bits 0-7!
-					byte cylinderhigh; //LBA bits 8-15!
-					byte cylinderlow; //LBA bits 16-23!
-					byte drivehead; //LBA 24-27!
-				};
-				uint_32 LBA; //LBA address in LBA mode!
-			};
-			byte features;
-			byte sectorcount;
-		} PARAMETERS;
 		union
 		{
 			struct
@@ -61,7 +45,44 @@ struct
 			};
 			byte data;
 		} STATUSREGISTER;
-	} Drive[2]; //Master/slave configuration!
+
+		struct
+		{
+			union
+			{
+				struct
+				{
+					byte sectornumber; //LBA bits 0-7!
+					byte cylinderhigh; //LBA bits 8-15!
+					byte cylinderlow; //LBA bits 16-23!
+					union
+					{
+						byte drivehead; //LBA 24-27!
+						struct
+						{
+							byte head : 4; //What head?
+							byte slavedrive : 1; //What drive?
+							byte always1_1 : 1;
+							byte LBAMode_2 : 1; //LBA mode?
+							byte always1_2 : 1;
+						};
+						struct
+						{
+							byte LBAhigh : 6; //High 6 bits!
+							byte LBAMode : 1; //LBA mode?
+							byte always1_3 : 1;
+						};
+					};
+				};
+				uint_32 LBA; //LBA address in LBA mode (28 bits value)!
+			};
+			byte features;
+			byte sectorcount;
+		} PARAMETERS;
+	} Drive[2]; //Two drives!
+
+	byte activedrive; //What drive are we currently?
+
 	union
 	{
 		struct
@@ -95,7 +116,7 @@ struct
 
 byte ATA_activeDrive()
 {
-	return (ATA.port3f7.Drive0Select) ? 0 : (ATA.port3f7.Drive1Select ? 1 : 0xFF); //Give the drive or 0xFF if invalid!
+	return ATA.activedrive; //Give the drive or 0xFF if invalid!
 }
 
 byte ATA_resultIN()
@@ -105,7 +126,7 @@ byte ATA_resultIN()
 	{
 	case 0xEC: //Identify?
 		result = ATA.result[ATA.resultpos++]; //Read the result byte!
-		if (ATA.resultpos >= ATA.resultsize) //Fully read?
+		if (ATA.resultpos == ATA.resultsize) //Fully read?
 		{
 			ATA.commandstatus = 0; //Reset command!
 		}
@@ -139,6 +160,9 @@ void ATA_executeCommand(byte command) //Execute a command!
 {
 	switch (command) //What command?
 	{
+	case 0x91: //Initialise device parameters?
+		ATA.commandstatus = 0; //Requesting command again!
+		break;
 	case 0xEC: //Identify drive?
 		memset(ATA.result, 0, 512); //Clear the result: by default we have no info!
 		ATA.resultpos = 0; //Initialise data position for the result!
@@ -166,19 +190,23 @@ void ATA_updateStatus()
 	case 1: //Transferring data IN?
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 1; //Busy!
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1;
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data!
 		break;
 	case 2: //Transferring data OUT?
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 1; //Busy!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 0;
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1;
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data!
 		break;
 	case 3: //Transferring result?
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy!
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1; //Requesting data!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data!
 		break;
 	default: //Unknown?
 	case 0xFF: //Error?
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.error = 1; //Error!
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data!
 		break;
 	}
 }
@@ -190,7 +218,6 @@ byte outATA(word port, byte value)
 		if ((port == 0x3F6) || (port == 0x3F7)) goto port3_write;
 		return 0; //Not our port?
 	}
-	if (ATA_activeDrive() == 0xFF) return 0; //Abort: invalid selection!
 	switch (port & 7) //What port?
 	{
 	case 0: //DATA?
@@ -232,6 +259,7 @@ byte outATA(word port, byte value)
 		return 1; //OK!
 		break;
 	case 6: //Drive/head?
+		ATA.activedrive = (value >> 4) & 1; //The active drive!
 		ATA.Drive[ATA_activeDrive()].PARAMETERS.drivehead = value; //Set drive head!
 		return 1; //OK!
 		break;
@@ -262,7 +290,6 @@ byte inATA(word port, byte *result)
 		if ((port == 0x3F6) || (port == 0x3F7)) goto port3_read;
 		return 0; //Not our port?
 	}
-	if (ATA_activeDrive() == 0xFF) return 0; //Abort: invalid selection!
 	switch (port & 7) //What port?
 	{
 	case 0: //DATA?
