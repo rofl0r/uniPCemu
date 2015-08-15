@@ -462,6 +462,9 @@
     <ClCompile Include="..\..\basicio\dskimage.c">
       <Filter>Source Files\basicio</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\hardware\pci.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">
@@ -830,6 +833,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\hardware\ide.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\headers\hardware\pci.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

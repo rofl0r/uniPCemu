@@ -4,6 +4,13 @@
 #include "headers/bios/io.h" //I/O support!
 #include "headers/hardware/ports.h" //I/O port support!
 
+//Primary hard disk IRQ!
+#define ATA_IRQ 14
+
+word portaddress = 0x300;
+
+extern byte singlestep; //Enable single stepping when called?
+
 struct
 {
 	word datapos; //Data position?
@@ -79,6 +86,7 @@ struct
 			byte features;
 			byte sectorcount;
 		} PARAMETERS;
+		word driveparams[0x100]; //All drive parameters for a drive!
 	} Drive[2]; //Two drives!
 
 	byte activedrive; //What drive are we currently?
@@ -114,6 +122,21 @@ struct
 	byte TC; //Terminal count occurred in DMA transfer?
 } ATA;
 
+word get_cylinders(uint_64 disk_size)
+{
+	return floor(disk_size / (63 * 16)); //How many cylinders!
+}
+
+word get_heads(uint_64 disk_size)
+{
+	return 16;
+}
+
+word get_SPT(uint_64 disk_size)
+{
+	return 63;
+}
+
 byte ATA_activeDrive()
 {
 	return ATA.activedrive; //Give the drive or 0xFF if invalid!
@@ -130,6 +153,7 @@ byte ATA_resultIN()
 		{
 			ATA.commandstatus = 0; //Reset command!
 		}
+		return result; //Give the result byte!
 		break;
 	default: //Unknown?
 		break;
@@ -164,12 +188,16 @@ void ATA_executeCommand(byte command) //Execute a command!
 		ATA.commandstatus = 0; //Requesting command again!
 		break;
 	case 0xEC: //Identify drive?
-		memset(ATA.result, 0, 512); //Clear the result: by default we have no info!
+		ATA.command = 0xEC; //We're running this command!
+		memcpy(&ATA.result, &ATA.Drive[ATA_activeDrive()].driveparams, sizeof(ATA.Drive[ATA_activeDrive()].driveparams)); //Set drive parameters currently set!
+		//Finish up!
 		ATA.resultpos = 0; //Initialise data position for the result!
-		ATA.resultsize = 512; //512 byte result!
+		ATA.resultsize = sizeof(ATA.Drive[ATA_activeDrive()].driveparams); //512 byte result!
 		ATA.commandstatus = 3; //We're requesting data to be read!
+		doirq(ATA_IRQ); //Execute the IRQ!
 		break;
 	default: //Unknown command?
+		ATA.command = 0; //No command!
 		ATA.Drive[ATA_activeDrive()].ERRORREGISTER.data = 0; //Clear the error register!
 		ATA.Drive[ATA_activeDrive()].ERRORREGISTER.commandaborted = 1; //Aborted!
 		ATA.commandstatus = 0xFF; //Move to error mode!
@@ -183,9 +211,9 @@ void ATA_updateStatus()
 	{
 	case 0: //Ready for command?
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data and spun down!
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.error = 0; //No error!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1; //Requesting data!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 0; //Requesting data!
 		break;
 	case 1: //Transferring data IN?
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 1; //Busy!
@@ -213,7 +241,7 @@ void ATA_updateStatus()
 
 byte outATA(word port, byte value)
 {
-	if ((port & 0xFFF8) != 0x1F0)
+	if ((port & 0xFFF8) != portaddress)
 	{
 		if ((port == 0x3F6) || (port == 0x3F7)) goto port3_write;
 		return 0; //Not our port?
@@ -229,6 +257,7 @@ byte outATA(word port, byte value)
 		default: //Unknown status?
 			break;
 		}
+		return 1;
 		break;
 	case 1: //Features?
 		switch (value&1) //PIO vs DMA!
@@ -268,6 +297,7 @@ byte outATA(word port, byte value)
 		return 1; //OK!
 		break;
 	}
+	return 0; //Safety!
 port3_write: //Special port #3?
 	switch (port) //What port?
 	{
@@ -285,7 +315,7 @@ port3_write: //Special port #3?
 
 byte inATA(word port, byte *result)
 {
-	if ((port & 0xFFF8) != 0x1F0)
+	if ((port & 0xFFF8) != portaddress)
 	{
 		if ((port == 0x3F6) || (port == 0x3F7)) goto port3_read;
 		return 0; //Not our port?
@@ -308,30 +338,32 @@ byte inATA(word port, byte *result)
 		return 1; //Unsupported yet!
 		break;
 	case 1: //Error register?
-		return ATA.Drive[ATA_activeDrive()].ERRORREGISTER.data; //Error register!
+		*result = ATA.Drive[ATA_activeDrive()].ERRORREGISTER.data; //Error register!
+		return 1;
 		break;
 	case 2: //Sector count?
-		return ATA.Drive[ATA_activeDrive()].PARAMETERS.sectorcount; //Get sector count!
+		*result = ATA.Drive[ATA_activeDrive()].PARAMETERS.sectorcount; //Get sector count!
+		return 1;
 		break;
 	case 3: //Sector number?
-		return ATA.Drive[ATA_activeDrive()].PARAMETERS.sectornumber; //Get sector number!
+		*result = ATA.Drive[ATA_activeDrive()].PARAMETERS.sectornumber; //Get sector number!
 		return 1; //OK!
 		break;
 	case 4: //Cylinder low?
-		return ATA.Drive[ATA_activeDrive()].PARAMETERS.cylinderlow; //Get cylinder low!
+		*result = ATA.Drive[ATA_activeDrive()].PARAMETERS.cylinderlow; //Get cylinder low!
 		return 1; //OK!
 		break;
 	case 5: //Cylinder high?
-		return ATA.Drive[ATA_activeDrive()].PARAMETERS.cylinderhigh; //Get cylinder high!
+		*result = ATA.Drive[ATA_activeDrive()].PARAMETERS.cylinderhigh; //Get cylinder high!
 		return 1; //OK!
 		break;
 	case 6: //Drive/head?
-		return ATA.Drive[ATA_activeDrive()].PARAMETERS.drivehead; //Get drive/head!
+		*result = ATA.Drive[ATA_activeDrive()].PARAMETERS.drivehead; //Get drive/head!
 		return 1; //OK!
 		break;
 	case 7: //Status?
 		ATA_updateStatus(); //Update the status register if needed!
-		return ATA.Drive[ATA_activeDrive()].STATUSREGISTER.data; //Get status!
+		*result = ATA.Drive[ATA_activeDrive()].STATUSREGISTER.data; //Get status!
 		return 1; //OK!
 		break;
 	}
@@ -351,6 +383,37 @@ port3_read: //Special port #3?
 	return 0; //Unsupported!
 }
 
+void HDD_DiskChanged(int disk)
+{
+	uint_64 disk_size;
+	switch (disk)
+	{
+	case HDD0: //HDD0 changed?
+	case HDD1: //HDD1 changed?
+		if (has_drive(disk)) //Do we even have this drive?
+		{
+			disk_size = disksize(disk); //Get the disk's size!
+			disk_size >>= 9; //Get the disk size in sectors!
+			disk = (disk == HDD0) ? 0 : 1; //What disk are we?
+			ATA.Drive[disk].driveparams[0] = 0x02 | 0x40; //Hard sectored, Fixed drive!
+			ATA.Drive[disk].driveparams[1] = ATA.Drive[disk].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
+			ATA.Drive[disk].driveparams[2] = ATA.Drive[disk].driveparams[55] = get_heads(disk_size); //3=Number of heads
+			ATA.Drive[disk].driveparams[6] = ATA.Drive[disk].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
+			ATA.Drive[disk].driveparams[21] = 1; //512 byte buffer!
+			ATA.Drive[disk].driveparams[49] = 0x200; //LBA supported, DMA unsupported!
+			ATA.Drive[disk].driveparams[60] = (disk_size & 0xFFFF); //Number of addressable sectors, low word!
+			ATA.Drive[disk].driveparams[61] = (disk_size >> 16); //Number of addressable sectors, high word!
+		}
+		else //Drive not inserted?
+		{
+			memset(ATA.Drive[disk].driveparams, 0, sizeof(ATA.Drive[disk].driveparams)); //Clear the information on the drive: it's non-existant!
+		}
+		break;
+	default: //Unknown?
+		break;
+	}
+}
+
 void initATA()
 {
 	memset(&ATA, 0, sizeof(ATA)); //Initialise our data!
@@ -358,4 +421,8 @@ void initATA()
 	register_PORTIN(&inATA);
 	register_PORTOUT(&outATA);
 	//We don't implement DMA: this is done by our own DMA controller!
+	register_DISKCHANGE(HDD0, &HDD_DiskChanged);
+	register_DISKCHANGE(HDD1, &HDD_DiskChanged);
+	HDD_DiskChanged(HDD0); //Init HDD0!
+	HDD_DiskChanged(HDD1); //Init HDD1!
 }

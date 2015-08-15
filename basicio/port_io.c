@@ -4,7 +4,7 @@
 #include "headers/hardware/ports.h" //Full PORTIN/OUT compatibility!
 
 //Log unhandled port IN/OUT?
-//#define LOG_UNHANDLED_PORTS
+#define LOG_UNHANDLED_PORTS
 
 /*
 
@@ -86,11 +86,11 @@ uint_32 PORT_IN_DW(word port) //IN result,port
 			word low;
 			word high;
 		};
-		word w;
+		uint_32 dw;
 	} splitter;
 	splitter.low = PORT_IN_W(port); //Low first
 	splitter.high = PORT_IN_W(port+2); //High last!
-	return splitter.w; //Give word!
+	return splitter.dw; //Give dword!
 }
 
 
@@ -102,10 +102,10 @@ void PORT_OUT_DW(word port, uint_32 dw) //OUT port,w
 		{
 			word low;
 			word high;
-		} word;
+		};
 		uint_32 dw;
 	} splitter;
 	splitter.dw = dw; //Split!
-	PORT_OUT_W(port,splitter.word.low); //First low byte!
-	PORT_OUT_W(port+2,splitter.word.high); //Next high byte!
+	PORT_OUT_W(port,splitter.low); //First low byte!
+	PORT_OUT_W(port+2,splitter.high); //Next high byte!
 }

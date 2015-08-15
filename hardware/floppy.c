@@ -938,7 +938,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]; //Our idea of the current cylinder!
 			}
-			FLOPPY_LOG("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", FLOPPY.ST0.data, FLOPPY.currentcylinder)
+			FLOPPY_LOG("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", FLOPPY.ST0.data, FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber])
 			FLOPPY.resultbuffer[0] = FLOPPY.ST0.data; //Give ST0!
 			FLOPPY.resultposition = 0; //Start result!
 			FLOPPY.commandstep = 3; //Result phase!

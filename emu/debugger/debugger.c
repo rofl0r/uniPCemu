@@ -546,7 +546,6 @@ recheckdebugger: //For getting from the BIOS!
 				{
 				}
 				//If single stepping, keep doing so!
-				return; //Done!
 				break;
 			}
 			if (psp_keypressed(BUTTON_TRIANGLE)) //Skip 10 commands?
@@ -571,14 +570,13 @@ recheckdebugger: //For getting from the BIOS!
 				{
 				}
 				MMU_dumpmemory("memory.dat"); //Dump the MMU memory!
-				break;
 			}
 			if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Goto BIOS?
 			{
 				runBIOS(0); //Run the BIOS!
 				goto recheckdebugger; //Recheck the debugger!
 			}
-			delay(1); //Wait a bit!
+			delay(0); //Wait a bit!
 		} //While not done
 		if (skipopcodes) //Skipping?
 		{

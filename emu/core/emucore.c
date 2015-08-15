@@ -53,6 +53,7 @@
 #include "headers/support/highrestimer.h" //High resolution timer!
 
 #include "headers/hardware/ide.h" //IDE/ATA support!
+#include "headers/hardware/pci.h" //PCI support!
 
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
@@ -111,6 +112,9 @@ void initEMU(int full) //Init!
 	debugrow("Initializing I/O port handling...");
 	Ports_Init(); //Initialise I/O port support!
 	
+	debugrow("Initialising PCI...");
+	initPCI(); //Initialise PCI support!
+
 	debugrow("Initializing timer service...");
 	resetTimers(); //Reset all timers/disable them all!
 	
@@ -453,7 +457,7 @@ byte coreHandler()
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 
-	delay(1); //Wait minimal time for other threads to process data!
+	delay(0); //Wait minimal time for other threads to process data!
 
 	if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode() && !Direct_Input) //Run in-emulator BIOS menu and not gaming mode?
 	{

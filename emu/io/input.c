@@ -1889,6 +1889,7 @@ void toggleDirectInput()
 
 void updateInput(SDL_Event *event) //Update all input!
 {
+	static byte RALT = 0;
 	switch (event->type)
 	{
 	case SDL_KEYUP: //Keyboard up?
@@ -1899,22 +1900,23 @@ void updateInput(SDL_Event *event) //Update all input!
 				{
 					//Special first
 				case SDLK_LCTRL: //LCTRL!
-					input.cas |= CAS_LCTRL; //Pressed!
+					input.cas &= ~CAS_LCTRL; // Released!
 					break;
 				case SDLK_RCTRL: //RCTRL!
-					input.cas |= CAS_RCTRL; //Pressed!
+					input.cas &= ~CAS_RCTRL; //Released!
 					break;
 				case SDLK_LALT: //LALT!
-					input.cas |= CAS_LALT; //Pressed!
+					input.cas &= ~CAS_LALT; //Released!
 					break;
 				case SDLK_RALT: //RALT!
-					input.cas |= CAS_RALT; //Pressed!
+					input.cas &= ~CAS_RALT; //Pressed!
+					RALT = 0; //RALT is released!
 					break;
 				case SDLK_LSHIFT: //LSHIFT!
-					input.cas |= CAS_LSHIFT; //Pressed!
+					input.cas &= ~CAS_LSHIFT; //Pressed!
 					break;
 				case SDLK_RSHIFT: //RSHIFT!
-					input.cas |= CAS_RCTRL; //Pressed!
+					input.cas &= ~CAS_RCTRL; //Pressed!
 					break;
 
 					//Normal keys
@@ -1969,12 +1971,8 @@ void updateInput(SDL_Event *event) //Update all input!
 				case SDLK_KP2: //CROSS?
 					input.Buttons &= ~BUTTON_CROSS; //Pressed!
 					break;
-				case SDLK_F12: //Fullscreen toggle?
-					GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
-					updateVideo(); //Force an update of video!
-					break;
 				case SDLK_F4: //F4?
-					if ((input.cas&CAS_LALT) || (input.cas&CAS_RALT)) //ALT-F4?
+					if (RALT) //ALT-F4?
 					{
 						SDL_Event quitevent;
 						quitevent.quit.type = SDL_QUIT; //Add a quit to the queue!
@@ -2021,22 +2019,23 @@ void updateInput(SDL_Event *event) //Update all input!
 				{
 					//Special first
 				case SDLK_LCTRL: //LCTRL!
-					input.cas &= ~CAS_LCTRL; //Released!
+					input.cas |= CAS_LCTRL; //Pressed!
 					break;
 				case SDLK_RCTRL: //RCTRL!
-					input.cas &= ~CAS_RCTRL; //Released!
+					input.cas |= CAS_RCTRL; //Pressed!
 					break;
 				case SDLK_LALT: //LALT!
-					input.cas &= ~CAS_LALT; //Released!
+					input.cas |= CAS_LALT; //Pressed!
 					break;
 				case SDLK_RALT: //RALT!
-					input.cas &= ~CAS_RALT; //Released!
+					RALT = 1; //RALT is pressed!
+					input.cas |= CAS_RALT; //Pressed!
 					break;
 				case SDLK_LSHIFT: //LSHIFT!
-					input.cas &= ~CAS_LSHIFT; //Released!
+					input.cas |= CAS_LSHIFT; //Pressed!
 					break;
 				case SDLK_RSHIFT: //RSHIFT!
-					input.cas &= ~CAS_RSHIFT; //Released!
+					input.cas |= CAS_RSHIFT; //Pressed!
 					break;
 
 				case SDLK_BACKSLASH: //HOLD?
@@ -2047,6 +2046,12 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_RETURN: //START?
 					input.Buttons |= BUTTON_START; //Pressed!
+					if (RALT) //RALT pressed too?
+					{
+						GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
+						updateVideo(); //Force an update of video!
+						delay(500000); //Wait half a second to make sure nothing 
+					}
 					break;
 				case SDLK_UP: //UP?
 					input.Buttons |= BUTTON_UP; //Pressed!

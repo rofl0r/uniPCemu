@@ -19,7 +19,6 @@
 //SRC for registers: http://www.osdever.net/FreeVGA/vga/vga.htm
 //- Input/Output Register Information, before Indices.
 
-
 //First, the registers:
 
 //We're low endian, so low end first (DATA[0] is first item and First bit is lowest bit (so in 8-bits bit with value 1))
