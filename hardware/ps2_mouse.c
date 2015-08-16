@@ -101,6 +101,14 @@ void resend_lastpacket() //Resends the last packet!
 int add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse packet!
 {
 	if (__HW_DISABLED) return 1; //Abort!
+	if (Mouse.buttonstatus == packet->buttons) //Same button status?
+	{
+		if (!packet->xmove && !packet->ymove) //Nothing happened?
+		{
+			freez(&packet, sizeof(MOUSE_PACKET), "Mouse_EmptyPacket"); //Discard the packet!
+			return 0; //Discard the packet!
+		}
+	}
 	Mouse.buttonstatus = packet->buttons; //Save the current button status!
 	MOUSE_PACKET *currentpacket = Mouse.packets; //Current packet!
 	if (Mouse.packets) //Already have one?
@@ -142,7 +150,7 @@ int useMouseTimer()
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (MOUSE_DISABLED) return 0; //No usage!
-	if (!Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled) return 0; //No usage!
+	if (Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled) return 0; //No usage!
 	return 1; //We're enabled!
 }
 
@@ -250,7 +258,7 @@ void commandwritten_mouse() //Command has been written to the mouse?
 			break;
 		case 0xF4: //Enable data reporting?
 			Mouse.has_command = 0; //We're not a command anymore!
-			Mouse.data_reporting = 1; //Disable data reporting!
+			Mouse.data_reporting = 1; //Enable data reporting!
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			IRQ8042(); //We've got data in our input buffer!

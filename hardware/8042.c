@@ -33,7 +33,7 @@ void input_lastwrite_8042()
 void fill8042_input_buffer() //Fill input buffer from full buffer!
 {
 	for (;!lock("8042");) delay(1); //Wait for locking!
-	if (Controller8042.status_buffer&2) //Buffer full?
+	if (Controller8042.status_buffer&1) //Buffer full?
 	{
 		//Nothing to do: buffer already full!
 	}
@@ -44,7 +44,7 @@ void fill8042_input_buffer() //Fill input buffer from full buffer!
 		if (readfifobuffer(Controller8042.buffer,&Controller8042.input_buffer)) //Gotten something from 8042?
 		{
 			Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
-			Controller8042.status_buffer |= 0x2; //Set input buffer full!
+			Controller8042.status_buffer |= 0x1; //Set input buffer full!
 			unlock("8042"); //We're done!
 			return; //Filled: we have something from the 8042 controller itself!
 		}
@@ -60,11 +60,11 @@ void fill8042_input_buffer() //Fill input buffer from full buffer!
 					if (Controller8042.portpeek[whatport](&Controller8042.input_buffer)) //Got something?
 					{
 						Controller8042.input_buffer = Controller8042.portread[whatport](); //Execute the handler!
-						Controller8042.status_buffer |= 0x2; //Set input buffer full!
+						Controller8042.status_buffer |= 0x1; //Set input buffer full!
 						if (whatport) //AUX port?
 						{
 							Controller8042.status_buffer |= 0x20; //Set AUX bit!
-							if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
+							if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
 							{
 								doirq(12); //Raise secondary IRQ!
 							}
@@ -240,10 +240,10 @@ void datawritten_8042() //Data has been written?
 {
 	Controller8042.status_buffer &= ~0x8; //We have been written to!
 
-	if (Controller8042.port60toFirstPS2Input || Controller8042.port60toSecondPS2Input)
+	if (Controller8042.port60toFirstPS2Input || Controller8042.port60toSecondPS2Input) //Output to input?
 	{
 		Controller8042.input_buffer = Controller8042.output_buffer; //Write to input port!
-		Controller8042.status_buffer |= 0x2; //Set input buffer full!
+		Controller8042.status_buffer |= 0x1; //Set input buffer full!
 		if (Controller8042.port60toSecondPS2Input) //AUX port?
 		{
 			Controller8042.status_buffer |= 0x20; //Set AUX bit!
@@ -277,7 +277,7 @@ void datawritten_8042() //Data has been written?
 		{
 			if (Controller8042.portwrite[c]) //Gotten handler?
 			{
-				Controller8042.status_buffer &= ~0x1; //Cleared output buffer!
+				Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
 				Controller8042.portwrite[c](Controller8042.output_buffer); //Write data!
 				Controller8042.has_port[c] = 0; //Reset!
 				break; //Stop searching for a device to output!
@@ -288,6 +288,7 @@ void datawritten_8042() //Data has been written?
 
 byte write_8042(word port, byte value)
 {
+	if ((port & 0xFFF0) != 0x60) return 0; //Not our port!
 switch (port) //What port?
 {
 case 0x60: //Data port: write output buffer?
@@ -296,14 +297,14 @@ case 0x60: //Data port: write output buffer?
 		Controller8042.outputport = value; //Write the output port directly!
 		refresh_outputport(); //Handle the new output port!
 		Controller8042.writeoutputport = 0; //Not anymore!
-		Controller8042.status_buffer &= ~0x1; //Cleared output buffer!
+		Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
 		return 1; //Don't process normally!
 	}
 	if (Controller8042.Write_RAM) //Write to VRAM byte?
 	{
 		Controller8042.RAM[Controller8042.Write_RAM-1] = value; //Set data in RAM!
 		Controller8042.Write_RAM = 0; //Not anymore!
-		Controller8042.status_buffer &= ~0x1; //Cleared output buffer!
+		Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
 		return 1; //Don't process normally!
 	}
 
@@ -314,7 +315,7 @@ case 0x60: //Data port: write output buffer?
 	break;
 case 0x64: //Command port: send command?
 	Controller8042.command = value; //Set command!
-	Controller8042.status_buffer &= ~0x1; //Cleared output buffer!
+	Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
 	commandwritten_8042(); //Written handler!
 	return 1;
 	break;
@@ -324,7 +325,8 @@ return 0; //We're unhandled!
 
 byte read_8042(word port, byte *result)
 {
-switch (port)
+	if ((port & 0xFFF0) != 0x60) return 0; //Not our port!
+	switch (port)
 {
 case 0x60: //Data port: Read input buffer?
 	if (Controller8042.readoutputport) //Read the output port?
@@ -339,11 +341,11 @@ case 0x60: //Data port: Read input buffer?
 		return 1; //Don't process normally!
 	}
 	
-	fill8042_input_buffer(); //Fill the input buffer!
-	if (Controller8042.status_buffer&2) //Gotten data?
+	fill8042_input_buffer(); //Fill the input buffer if needed!
+	if (Controller8042.status_buffer&1) //Gotten data?
 	{
 		*result = Controller8042.input_buffer; //Read input buffer!
-		Controller8042.status_buffer &= ~0x22; //Clear input buffer full&AUX bits!
+		Controller8042.status_buffer &= ~0x21; //Clear input buffer full&AUX bits!
 		fill8042_input_buffer(); //Get the next byte if needed!
 	}
 	return 1; //We're processed!

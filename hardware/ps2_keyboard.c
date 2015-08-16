@@ -364,7 +364,7 @@ void keyboardControllerInit() //Part before the BIOS at computer bootup (self te
 	if (__HW_DISABLED) return; //Abort!
 	byte result; //For holding the result from the hardware!
 
-	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No self test passed result!");
 	}
@@ -376,7 +376,7 @@ void keyboardControllerInit() //Part before the BIOS at computer bootup (self te
 
 
 	PORT_OUT_B(0x60,0xED); //Set/reset status indicators!
-	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No set/reset status indicator command result:1!");
 	}
@@ -387,7 +387,7 @@ void keyboardControllerInit() //Part before the BIOS at computer bootup (self te
 	}
 
 	PORT_OUT_B(0x60,0x00); //Set/reset status indicators: all off!
-	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No set/reset status indicator parameter result!");
 	}
@@ -398,12 +398,12 @@ void keyboardControllerInit() //Part before the BIOS at computer bootup (self te
 	}
 
 	PORT_OUT_B(0x60,0xF2); //Read ID!
-	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No read ID command result!");
 	}
 
-	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No read ID ACK result!");
 	}
@@ -413,7 +413,7 @@ void keyboardControllerInit() //Part before the BIOS at computer bootup (self te
 		raiseError("Keyboard Hardware initialisation","Invalid function: 0xF2!",result);
 	}
 
-	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No read ID result byte 1!");
 	}
@@ -423,7 +423,7 @@ void keyboardControllerInit() //Part before the BIOS at computer bootup (self te
 		raiseError("Keyboard Hardware initialisation","Invalid ID#1! Result: %02X",result);
 	}
 
-	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No read ID result byte 2!");
 	}
