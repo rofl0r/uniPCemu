@@ -249,6 +249,7 @@ void datawritten_8042() //Data has been written?
 			Controller8042.status_buffer |= 0x20; //Set AUX bit!
 			if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
 			{
+				removeirq(1); //Remove the keyboard IRQ!
 				doirq(12); //Call the interrupt if neccesary!
 			}
 		}
@@ -257,6 +258,7 @@ void datawritten_8042() //Data has been written?
 			Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
 			if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
 			{
+				removeirq(12); //Remove the mouse IRQ!
 				doirq(1); //Call the interrupt if neccesary!
 			}
 		}

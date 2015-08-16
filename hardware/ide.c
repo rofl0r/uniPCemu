@@ -3,11 +3,12 @@
 #include "headers/types.h" //Basic types!
 #include "headers/bios/io.h" //I/O support!
 #include "headers/hardware/ports.h" //I/O port support!
+#include "headers/emu/timers.h" //Timer support!
 
 //Primary hard disk IRQ!
 #define ATA_IRQ 14
 
-word portaddress = 0x1F0;
+word portaddress = 0x300; //1F0 in normal configuration!
 
 extern byte singlestep; //Enable single stepping when called?
 
@@ -41,14 +42,14 @@ struct
 		{
 			struct
 			{
-				byte error : 1;
-				byte inlex : 1;
-				byte correcteddata : 1;
-				byte datarequestready : 1;
-				byte driveseekcomplete : 1;
-				byte drivewritefault : 1;
-				byte driveready : 1;
-				byte busy : 1;
+				byte error : 1; //An error has occurred when 1!
+				byte index : 1; //Set once per disk revolution.
+				byte correcteddata : 1; //Data has been corrected.
+				byte datarequestready : 1; //Ready to transfer a word or byte of data between the host and the drive.
+				byte driveseekcomplete : 1; //Drive heads are settled on a track.
+				byte drivewritefault : 1; //Write fault status.
+				byte driveready : 1; //Ready to accept a command?
+				byte busy : 1; //The drive has access to the Command Block Registers.
 			};
 			byte data;
 		} STATUSREGISTER;
@@ -180,17 +181,32 @@ void ATA_dataOUT(byte data) //Byte written to data!
 	}
 }
 
+void ATA_timer()
+{
+	removetimer("ATA"); //Remove our ATA timer!
+	switch (ATA.command) //What command are we executing?
+	{
+	default: //unknown command to time?
+		break;
+	}
+}
+
 void ATA_executeCommand(byte command) //Execute a command!
 {
 	switch (command) //What command?
 	{
 	case 0x91: //Initialise device parameters?
 		ATA.commandstatus = 0; //Requesting command again!
+		ATA.Drive[ATA_activeDrive()].ERRORREGISTER.data = 0; //No errors!
 		break;
 	case 0xEC: //Identify drive?
 		ATA.command = 0xEC; //We're running this command!
 		memcpy(&ATA.result, &ATA.Drive[ATA_activeDrive()].driveparams, sizeof(ATA.Drive[ATA_activeDrive()].driveparams)); //Set drive parameters currently set!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveseekcomplete = 1; //We've completed seeking!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.data = 0; //Clear any errors!
+		ATA.Drive[ATA_activeDrive()].ERRORREGISTER.data = 0; //No errors!
+		ATA.Drive[ATA_activeDrive()].PARAMETERS.cylinderlow = 0; //Needs to be 0 to detect!
+		ATA.Drive[ATA_activeDrive()].PARAMETERS.cylinderhigh = 0; //Needs to be 0 to detect!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.error = 0; //Not an error!
 		//Finish up!
 		ATA.resultpos = 0; //Initialise data position for the result!
 		ATA.resultsize = sizeof(ATA.Drive[ATA_activeDrive()].driveparams); //512 byte result!
@@ -211,31 +227,31 @@ void ATA_updateStatus()
 	switch (ATA.commandstatus) //What command status?
 	{
 	case 0: //Ready for command?
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data and spun down!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.error = 0; //No error!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 0; //Requesting data!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy! You can write to the CBRs!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process a command!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 0; //Not requesting data to transfer!
 		break;
 	case 1: //Transferring data IN?
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 1; //Busy!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1;
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy! You can write to the CBRs!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process a command!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1; //We're requesting data to transfer!
 		break;
 	case 2: //Transferring data OUT?
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 1; //Busy!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1;
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy! You can write to the CBRs!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process a command!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1; //We're requesting data to transfer!
 		break;
 	case 3: //Transferring result?
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1; //Requesting data!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy! You can write to the CBRs!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process a command!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1; //We're requesting data to transfer!
 		break;
 	default: //Unknown?
 	case 0xFF: //Error?
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy! You can write to the CBRs!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process a command!
+		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.datarequestready = 1; //We're requesting data to transfer!
 		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.error = 1; //Error!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.busy = 0; //Not busy!
-		ATA.Drive[ATA_activeDrive()].STATUSREGISTER.driveready = 1; //We're ready to process data!
 		break;
 	}
 }
@@ -244,7 +260,7 @@ byte outATA(word port, byte value)
 {
 	if ((port & 0xFFF8) != portaddress)
 	{
-		if ((port == 0x3F6) || (port == 0x3F7)) goto port3_write;
+		//if ((port == 0x3F6) || (port == 0x3F7)) goto port3_write;
 		return 0; //Not our port?
 	}
 	switch (port & 7) //What port?
@@ -261,15 +277,7 @@ byte outATA(word port, byte value)
 		return 1;
 		break;
 	case 1: //Features?
-		switch (value&1) //PIO vs DMA!
-		{
-		case 0: //PIO?
-			ATA.Drive[ATA_activeDrive()].PARAMETERS.features &= ~1; //Use the set mode!
-			break;
-		case 1: //DMA?
-			//Ignore: not supported yet!
-			break;
-		}
+		ATA.Drive[ATA_activeDrive()].PARAMETERS.features = value; //Use the set data!
 		return 1; //OK!
 		break;
 	case 2: //Sector count?
@@ -318,7 +326,7 @@ byte inATA(word port, byte *result)
 {
 	if ((port & 0xFFF8) != portaddress)
 	{
-		if ((port == 0x3F6) || (port == 0x3F7)) goto port3_read;
+		//if ((port == 0x3F6) || (port == 0x3F7)) goto port3_read;
 		return 0; //Not our port?
 	}
 	switch (port & 7) //What port?
@@ -404,6 +412,7 @@ void HDD_DiskChanged(int disk)
 			ATA.Drive[disk].driveparams[49] = 0x200; //LBA supported, DMA unsupported!
 			ATA.Drive[disk].driveparams[60] = (disk_size & 0xFFFF); //Number of addressable sectors, low word!
 			ATA.Drive[disk].driveparams[61] = (disk_size >> 16); //Number of addressable sectors, high word!
+			ATA.Drive[disk].driveparams[93] = (disk ? 0x1000 : 0); //Bit 12 is set on master!
 		}
 		else //Drive not inserted?
 		{
