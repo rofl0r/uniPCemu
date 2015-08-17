@@ -458,7 +458,7 @@ byte coreHandler()
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 
-	//delay(0); //Wait minimal time for other threads to process data!
+	delay(0); //Wait minimal time for other threads to process data!
 
 	if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode() && !Direct_Input) //Run in-emulator BIOS menu and not gaming mode?
 	{

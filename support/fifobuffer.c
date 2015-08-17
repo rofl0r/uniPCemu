@@ -76,14 +76,13 @@ uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 	}
 	uint_32 result;
 	WaitSem(buffer->lock)
-	if (buffer->readpos>=buffer->writepos) //Write after or at read index: we wrap arround? Difficule sum!
+	if (buffer->readpos>buffer->writepos) //Read after write index? We're a simple difference!
 	{
-		result = (buffer->size - buffer->readpos) + buffer->writepos; //Free space!
+		result = buffer->readpos - buffer->writepos;
 	}
-	else
+	else //The read position is before or at the write position? We wrap arround!
 	{
-		//Simple difference!
-		result = buffer->writepos - buffer->readpos; //Free space!
+		result = (buffer->size - buffer->writepos) + buffer->readpos;
 	}
 	PostSem(buffer->lock)
 	return result; //Give the result!

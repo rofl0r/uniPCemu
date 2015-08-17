@@ -15,31 +15,38 @@ extern Controller8042_t Controller8042; //The 8042 controller!
 
 struct
 {
-	byte has_command; //Have command?
-	byte command_step; //Command step!
-	byte command; //What command has been written?
-	byte last_was_error; //Last command was an error?
+	union //All mouse data!
+	{
+		struct
+		{
+			byte has_command; //Have command?
+			byte command_step; //Command step!
+			byte command; //What command has been written?
+			byte last_was_error; //Last command was an error?
 
-	/*byte wrap_mode; //Pass data back to the CPU?
-	byte stream_mode; //Automatic stream? =Data reporting.
-	byte remote_mode; //Same as stream mode, but no IRQ!
-	*/
-	byte mode; //0=default;1=wrap;2=stream;3=remote!
-	byte lastmode; //Last mode!
-	byte data_reporting; //Use data reporting?
+			/*byte wrap_mode; //Pass data back to the CPU?
+			byte stream_mode; //Automatic stream? =Data reporting.
+			byte remote_mode; //Same as stream mode, but no IRQ!
+			*/
+			byte mode; //0=default;1=wrap;2=stream;3=remote!
+			byte lastmode; //Last mode!
+			byte data_reporting; //Use data reporting?
 
+			byte packetindex; //For helping processing the current byte of a mouse packet!
+
+			byte samplerate; //Sample rate!
+			byte resolution; //Counts/mm
+			byte scaling21; //1:1=0 or 2:1=1
+			byte Resend; //Use last read once?
+			byte buttonstatus; //Button status for status bytes!
+			byte disabled; //Is the mouse input disabled atm?
+		};
+		byte data[14]; //All mouse data!
+	};
 	FIFOBUFFER *buffer; //FIFO buffer for commands etc.
 
 	MOUSE_PACKET *packets; //Contains all packets!
 	MOUSE_PACKET *lastpacket; //Last send packet!
-	byte packetindex; //For helping processing the current byte of a mouse packet!
-
-	byte samplerate; //Sample rate!
-	byte resolution; //Counts/mm
-	byte scaling21; //1:1=0 or 2:1=1
-	byte Resend; //Use last read once?
-	byte buttonstatus; //Button status for status bytes!
-	byte disabled; //Is the mouse input disabled atm?
 } Mouse; //Ourselves!
 
 void give_mouse_input(byte data)
@@ -167,7 +174,7 @@ void resetMouse()
 {
 	if (__HW_DISABLED) return; //Abort!
 	flushPackets(); //Flush all packets!
-	memset(&Mouse,0,sizeof(Mouse)); //Reset the mouse!
+	memset(&Mouse.data,0,sizeof(Mouse.data)); //Reset the mouse!
 	//No data reporting!
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
 }
