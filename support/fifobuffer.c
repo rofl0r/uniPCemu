@@ -76,6 +76,10 @@ uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 	}
 	uint_32 result;
 	WaitSem(buffer->lock)
+	if (buffer->readpos == buffer->writepos) //Either full or empty?
+	{
+		result = buffer->lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
+	}
 	if (buffer->readpos>buffer->writepos) //Read after write index? We're a simple difference!
 	{
 		result = buffer->readpos - buffer->writepos;
@@ -136,6 +140,7 @@ int readfifobuffer(FIFOBUFFER *buffer, byte *result)
 		WaitSem(buffer->lock)
 		*result = buffer->buffer[buffer->readpos];
 		buffer->readpos = SAFEMOD((buffer->readpos+1),buffer->size); //Update the position!
+		buffer->lastwaswrite = 0; //Last operation was a read operation!
 		PostSem(buffer->lock)
 		return 1; //Read!
 	}
@@ -163,6 +168,7 @@ int writefifobuffer(FIFOBUFFER *buffer, byte data)
 	WaitSem(buffer->lock)
 	buffer->buffer[buffer->writepos] = data; //Write!
 	buffer->writepos = SAFEMOD((buffer->writepos+1),buffer->size); //Next pos!
+	buffer->lastwaswrite = 1; //Last operation was a write operation!
 	PostSem(buffer->lock)
 	return 1; //Written!
 }
