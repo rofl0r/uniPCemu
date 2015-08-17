@@ -159,8 +159,11 @@ byte running = 0; //Are we running the main thread?
 
 void updateInputMain() //Frequency 1000Hz!
 {
+	static uint_32 lastticks = 0;
+	static byte haslastticks = 0;
+	uint_32 curticks;
 	SDL_Event event;
-	for (;SDL_PollEvent(&event);) //Gotten events to handle?
+	if (SDL_WaitEvent(&event)) //Gotten events to handle?
 	{
 		//Handle an event!
 		updateInput(&event); //Update input status when needed!
@@ -169,8 +172,20 @@ void updateInputMain() //Frequency 1000Hz!
 			running = 0; //Terminate our app!
 		}
 	}
-
-	keyboard_type_handler(); //Type handler at 1000Hz when EMU isn't running!
+	if (haslastticks) //Have last tick?
+	{
+		curticks = SDL_GetTicks(); //Get current ticks!
+		if ((curticks - lastticks) > 0) //Enough time passed?
+		{
+			lastticks = curticks; //Update current ticks!
+			keyboard_type_handler(); //Type handler at 100Hz when EMU isn't running!
+		}
+	}
+	else
+	{
+		lastticks = SDL_GetTicks(); //Update ticks!
+		haslastticks = 1; //We have it!
+	}
 }
 
 int main(int argc, char * argv[])
@@ -328,7 +343,6 @@ int main(int argc, char * argv[])
 	running = 1; //Default: we're running!
 	for (;running;) //Still running?
 	{
-		delay(0); //Give threads some time!
 		updateInputMain(); //Update input!
 		if (!threadRunning(rootthread, "X86EMU_CPU")) break; //Thread not running? Stop our running status!
 	}
