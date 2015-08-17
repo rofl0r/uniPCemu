@@ -1,5 +1,6 @@
 #include "headers/types.h" //Basic type support!
 #include "headers/hardware/pic.h" //Basic data!
+#include "headers/cpu/cpu.h" //CPU support!
 
 /* Note: This is not a very complete i8259 interrupt controller
    implementation, but for the purposes of a PC, it's acceptable. */
@@ -87,12 +88,48 @@ byte out8259(word portnum, byte value)
 		}
 		break;
 	case 1:
-		if ((i8259.icwstep[pic]==2) && (i8259.icw[pic][0] & 2)) ++i8259.icwstep[pic]; //single mode, so don't read ICW3
-		if ((i8259.icwstep[pic] == 3) && (i8259.icw[pic][0] & 1)) ++i8259.icwstep[pic]; //no ICW4 expected, so don't read ICW4
+		if ((i8259.icwstep[pic] == 2) && (i8259.icw[pic][0] & 2))
+		{
+			++i8259.icwstep[pic]; //single mode, so don't read ICW3
+			if (EMULATED_CPU <= CPU_80186) //PC/XT hack?
+			{
+				if (!pic) //PIC0?
+				{
+					i8259.icw[0][2] = 4; //Use IR Master!
+					i8259.icw[1][2] = 2; //Use IR Slave!
+				}
+			}
+		}
+		if ((i8259.icwstep[pic] == 3) && (i8259.icw[pic][0] & 1))
+		{
+			++i8259.icwstep[pic]; //no ICW4 expected, so don't read ICW4
+			if (EMULATED_CPU <= CPU_80186) //PC/XT hack?
+			{
+				if (!pic) //PIC0?
+				{
+					i8259.icw[0][3] = 1; //Set ICW4!
+					i8259.icw[1][3] = 1; //Set ICW4!
+				}
+			}
+		}
 		if (i8259.icwstep[pic]<4)
 		{
+			if (i8259.icwstep[pic] == 1) //Interrupt number?
+			{
+				if (EMULATED_CPU <= CPU_80186) //PC/XT hack?
+				{
+					if (!pic) //PIC0?
+					{
+						i8259.icw[1][1] = 0x70; //Set ICW2 interrupt base vector!
+					}
+				}
+			}
 			i8259.icw[pic][i8259.icwstep[pic]++] = value;
 			return 1;
+		}
+		else if (i8259.icw[0][0]&2) //Second PIC disabled?
+		{
+			i8259.icw[0][0] &= ~2; //Enable second PIC always!
 		}
 		//if we get to this point, this is just a new IMR value
 		i8259.imr[pic] = value;
@@ -106,14 +143,13 @@ byte lastinterrupt = 0; //Last interrupt requested!
 
 OPTINLINE byte enablePIC(byte PIC)
 {
-	return 1; //Ignore PIC channels!
 	if (!PIC) return 1; //PIC0 always enabled!
 	return !((i8259.icw[0][0] & 2) || //Only one PIC?
 		(i8259.icw[0][2] != 4) || //Wrong IR to connect?
 		(i8259.icw[1][2] != 2)); //Wrong IR to connect?
 }
 
-OPTINLINE byte getunprocessedinterrupt(byte PIC)
+byte getunprocessedinterrupt(byte PIC)
 {
 	if (!enablePIC(PIC)) return 0; //PIC disabled?
 	byte result;
@@ -187,6 +223,10 @@ byte nextintr()
 		{
 			ACNIR(PICnr, realIR); //Acnowledge it!
 			lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
+			if (((realIR == 1) && (!PICnr)) || PICnr) //Any valid to log?
+			{
+				dolog("PIC", "ACIR:%i,%i=%02X", PICnr, realIR, lastinterrupt); //Log the IR!
+			}
 			interruptsaved = 1; //Gotten an interrupt saved!
 			return lastinterrupt;
 		}
