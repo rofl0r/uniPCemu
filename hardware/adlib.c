@@ -85,7 +85,7 @@ struct structadlibop {
 	uint8_t wavesel;
 	float freq0, time; //The q0quency and current time of an operator!
 	float ModulatorFrequencyMultiple; //What harmonic to sound?
-} adlibop[0x16];
+} adlibop[0x20];
 
 struct structadlibchan {
 	uint16_t freq;
@@ -321,7 +321,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float modulator, float
 	return result; //Give the result!
 }
 
-OPTINLINE short adlibsample (uint8_t curchan) {
+OPTINLINE short adlibsample(uint8_t curchan) {
 	float modulatorresult, result; //The operator result and the final result!
 
 	if (curchan >= NUMITEMS(adlibch)) return 0; //No sample with invalid channel!

@@ -270,7 +270,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	float pitchcents, pitchinfluence, currentsamplespeedup, lvolume, rvolume, panningtemp;
 	byte currenton;
 	uint_32 requestbit;
-	register float VolumeEnvelope; //Current volume envelope data!
+	register float VolumeEnvelope=0; //Current volume envelope data!
 	//Initialised values!
 	MIDIDEVICE_VOICE *voice = (MIDIDEVICE_VOICE *)userdata;
 	sample_stereo_t* ubuf = (sample_stereo_t *)buf; //Our sample buffer!

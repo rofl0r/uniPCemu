@@ -71,7 +71,7 @@ byte startreached = 0;
 
 byte debugger_logging()
 {
-	byte enablelog; //Default: disabled!
+	byte enablelog=0; //Default: disabled!
 	switch (DEBUGGER_LOG) //What log method?
 	{
 	case DEBUGGERLOG_ALWAYS:

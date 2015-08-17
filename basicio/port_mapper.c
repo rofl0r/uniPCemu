@@ -77,7 +77,7 @@ byte EXEC_PORTOUT(word port, byte value)
 byte EXEC_PORTIN(word port, byte *result)
 {
 	word i;
-	byte executed = 0, temp, tempresult;
+	byte executed = 0, temp, tempresult=0;
 	byte actualresult=0;
 	if (port == 0x61) //Special register: System control port B!
 	{

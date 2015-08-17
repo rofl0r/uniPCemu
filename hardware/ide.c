@@ -394,6 +394,8 @@ port3_read: //Special port #3?
 
 void HDD_DiskChanged(int disk)
 {
+	byte disk_ATA;
+	disk_ATA = disk = (disk == HDD0) ? 0 : 1; //What disk are we?
 	uint_64 disk_size;
 	switch (disk)
 	{
@@ -403,20 +405,19 @@ void HDD_DiskChanged(int disk)
 		{
 			disk_size = disksize(disk); //Get the disk's size!
 			disk_size >>= 9; //Get the disk size in sectors!
-			disk = (disk == HDD0) ? 0 : 1; //What disk are we?
-			ATA.Drive[disk].driveparams[0] = 0x02 | 0x40; //Hard sectored, Fixed drive!
-			ATA.Drive[disk].driveparams[1] = ATA.Drive[disk].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
-			ATA.Drive[disk].driveparams[2] = ATA.Drive[disk].driveparams[55] = get_heads(disk_size); //3=Number of heads
-			ATA.Drive[disk].driveparams[6] = ATA.Drive[disk].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
-			ATA.Drive[disk].driveparams[21] = 1; //512 byte buffer!
-			ATA.Drive[disk].driveparams[49] = 0x200; //LBA supported, DMA unsupported!
-			ATA.Drive[disk].driveparams[60] = (disk_size & 0xFFFF); //Number of addressable sectors, low word!
-			ATA.Drive[disk].driveparams[61] = (disk_size >> 16); //Number of addressable sectors, high word!
-			ATA.Drive[disk].driveparams[93] = (disk ? 0x1000 : 0); //Bit 12 is set on master!
+			ATA.Drive[disk_ATA].driveparams[0] = 0x02 | 0x40; //Hard sectored, Fixed drive!
+			ATA.Drive[disk_ATA].driveparams[1] = ATA.Drive[disk_ATA].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
+			ATA.Drive[disk_ATA].driveparams[2] = ATA.Drive[disk_ATA].driveparams[55] = get_heads(disk_size); //3=Number of heads
+			ATA.Drive[disk_ATA].driveparams[6] = ATA.Drive[disk_ATA].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
+			ATA.Drive[disk_ATA].driveparams[21] = 1; //512 byte buffer!
+			ATA.Drive[disk_ATA].driveparams[49] = 0x200; //LBA supported, DMA unsupported!
+			ATA.Drive[disk_ATA].driveparams[60] = (disk_size & 0xFFFF); //Number of addressable sectors, low word!
+			ATA.Drive[disk_ATA].driveparams[61] = (disk_size >> 16); //Number of addressable sectors, high word!
+			ATA.Drive[disk_ATA].driveparams[93] = ((!disk_ATA) ? 0x1000 : 0); //Bit 12 is set on master!
 		}
 		else //Drive not inserted?
 		{
-			memset(ATA.Drive[disk].driveparams, 0, sizeof(ATA.Drive[disk].driveparams)); //Clear the information on the drive: it's non-existant!
+			memset(ATA.Drive[disk_ATA].driveparams, 0, sizeof(ATA.Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
 		}
 		break;
 	default: //Unknown?

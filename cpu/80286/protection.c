@@ -196,7 +196,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 			return NULL; //Error, by specified reason!
 		}
 		privilegedone = 1; //Privilege has been precalculated!
-		if (LOADEDDESCRIPTOR.desc.Type & 0x1D == 9) //Task gate?
+		if ((LOADEDDESCRIPTOR.desc.Type & 0x1D) == 9) //Task gate?
 		{
 			if (whatsegment != CPU_SEGMENT_CS) //Not code? We're not a task switch! We're trying to load the task segment into a data register. This is illegal!
 			{
