@@ -35,7 +35,7 @@ typedef struct
 	uint8_t irr[2]; //request register
 	uint8_t isr[2]; //service register
 	uint8_t icwstep[2]; //used during initialization to keep track of which ICW we're at
-	uint8_t icw[2][5];
+	uint8_t icw[2][4]; //4 ICW bytes are used!
 	uint8_t intoffset[2]; //interrupt vector offset
 	uint8_t priority[2]; //which IRQ has highest priority
 	uint8_t autoeoi[2]; //automatic EOI mode

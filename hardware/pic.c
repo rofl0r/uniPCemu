@@ -72,7 +72,7 @@ byte out8259(word portnum, byte value)
 	case 0:
 		if (value & 0x10)   //begin initialization sequence
 		{
-			i8259.icwstep[pic] = 1;
+			i8259.icwstep[pic] = 0; //Init ICWStep!
 			i8259.imr[pic] = 0; //clear interrupt mask register
 			i8259.icw[pic][i8259.icwstep[pic]++] = value;
 			return 1;
@@ -87,9 +87,9 @@ byte out8259(word portnum, byte value)
 		}
 		break;
 	case 1:
-		if ((i8259.icwstep[pic]==3) && (i8259.icw[pic][1] & 2)) i8259.icwstep[pic] = 4; //single mode, so don't read ICW3
-		if ((i8259.icwstep[pic] == 4) && (i8259.icw[pic][1] & 1)) i8259.icwstep[pic] = 5; //no ICW4 expected, so don't read ICW4
-		if (i8259.icwstep[pic]<5)
+		if ((i8259.icwstep[pic]==2) && (i8259.icw[pic][0] & 2)) ++i8259.icwstep[pic]; //single mode, so don't read ICW3
+		if ((i8259.icwstep[pic] == 3) && (i8259.icw[pic][0] & 1)) ++i8259.icwstep[pic]; //no ICW4 expected, so don't read ICW4
+		if (i8259.icwstep[pic]<4)
 		{
 			i8259.icw[pic][i8259.icwstep[pic]++] = value;
 			return 1;
@@ -104,8 +104,18 @@ byte out8259(word portnum, byte value)
 byte interruptsaved = 0; //Have we gotten a primary interrupt (first PIC)?
 byte lastinterrupt = 0; //Last interrupt requested!
 
-OPTINLINE byte getinterruptstoprocess(byte PIC)
+OPTINLINE byte enablePIC(byte PIC)
 {
+	return 1; //Ignore PIC channels!
+	if (!PIC) return 1; //PIC0 always enabled!
+	return !((i8259.icw[0][0] & 2) || //Only one PIC?
+		(i8259.icw[0][2] != 4) || //Wrong IR to connect?
+		(i8259.icw[1][2] != 2)); //Wrong IR to connect?
+}
+
+OPTINLINE byte getunprocessedinterrupt(byte PIC)
+{
+	if (!enablePIC(PIC)) return 0; //PIC disabled?
 	byte result;
 	result = i8259.irr[PIC];
 	result &= ~i8259.imr[PIC];
@@ -116,21 +126,12 @@ OPTINLINE byte getinterruptstoprocess(byte PIC)
 byte PICInterrupt() //We have an interrupt ready to process?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (getinterruptstoprocess(0) || interruptsaved) //Primary PIC interrupt?
+	if (getunprocessedinterrupt(0) || interruptsaved) //Primary PIC interrupt?
 	{
 		return 1;
 	}
 
-	if (
-		(i8259.icw[0][1]&2)|| //Only one PIC?
-		(i8259.icw[0][2]!=4)|| //Wrong IR to connect?
-		(i8259.icw[1][2]!=2) //Wrong IR to connect?
-		)
-	{
-		return 0; //No second PIC, so no interrupt!
-	}
-	
-	if (getinterruptstoprocess(1)) //Secondary PIC interrupt?
+	if (getunprocessedinterrupt(1)) //Secondary PIC interrupt?
 	{
 		return 1;
 	}
@@ -138,23 +139,13 @@ byte PICInterrupt() //We have an interrupt ready to process?
 	return 0; //No interrupt to process!
 }
 
-byte IRRequested(byte PIC, byte IR) //We have this requested?
+OPTINLINE byte IRRequested(byte PIC, byte IR) //We have this requested?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (PIC && //Second PIC addressed?
-			(
-			(i8259.icw[0][1]&2)|| //Only one PIC?
-			(i8259.icw[0][2]!=4)|| //Wrong IR to connect?
-			(i8259.icw[1][2]!=2) //Wrong IR to connect?
-			)
-			) //Disabled second PIC?
-	{
-		return 0; //Disable interrupt!	
-	}
-	return ((getinterruptstoprocess(PIC) >> IR) & 1); //Interrupt requested?
+	return ((getunprocessedinterrupt(PIC) >> IR) & 1); //Interrupt requested?
 }
 
-void ACNIR(byte PIC, byte IR) //Acnowledge request!
+OPTINLINE void ACNIR(byte PIC, byte IR) //Acnowledge request!
 {
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr[PIC] ^= (1 << IR); //Turn IRR off!
@@ -165,7 +156,7 @@ void ACNIR(byte PIC, byte IR) //Acnowledge request!
 	}
 }
 
-byte getint(byte PIC, byte IR) //Get interrupt!
+OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	byte realir = IR; //Default: nothing changed!
@@ -174,7 +165,7 @@ byte getint(byte PIC, byte IR) //Get interrupt!
 		PIC = 0; //PIC1!
 		realir = 2; //Reroute IRQ 9 to 2!
 	}
-	return i8259.icw[PIC][2]+realir; //Get interrupt!
+	return i8259.icw[PIC][1]+realir; //Get interrupt!
 }
 
 byte nextintr()
@@ -190,7 +181,7 @@ byte nextintr()
 	for (i=0; i<16; i++) //Process all IRs!
 	{
 		byte IR = i8259.IROrder[i]; //Get the prioritized IR!
-		byte PICnr = (IR>>3); //What pic?
+		byte PICnr = ((IR>>3)&1); //What pic?
 		byte realIR = (IR&7); //What IR within the PIC?
 		if (IRRequested(PICnr,realIR)) //Requested?
 		{

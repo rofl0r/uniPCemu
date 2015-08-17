@@ -243,6 +243,7 @@ void datawritten_8042() //Data has been written?
 	if (Controller8042.port60toFirstPS2Input || Controller8042.port60toSecondPS2Input) //Output to input?
 	{
 		Controller8042.input_buffer = Controller8042.output_buffer; //Write to input port!
+		Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
 		Controller8042.status_buffer |= 0x1; //Set input buffer full!
 		if (Controller8042.port60toSecondPS2Input) //AUX port?
 		{

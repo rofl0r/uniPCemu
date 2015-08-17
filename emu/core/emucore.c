@@ -424,19 +424,22 @@ byte coreHandler()
 			CPU_beforeexec(); //Everything before the execution!
 			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
 			{
-				if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt())
+				if (CPU[activeCPU].registers->SFLAGS.IF) //Interrupts available?
 				{
-					HWINT_nr = nextintr(); //Get the HW interrupt nr!
-					HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-					if (!((EMULATED_CPU == CPU_8086) && (CPU_segmentOverridden(activeCPU)) && REPPending)) //Not 8086, REP pending and segment override?
+					if (PICInterrupt()) //We have a hardware interrupt ready?
 					{
-						CPU_8086REPPending(); //Process pending REPs!
+						HWINT_nr = nextintr(); //Get the HW interrupt nr!
+						HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
+						if (!((EMULATED_CPU == CPU_8086) && (CPU_segmentOverridden(activeCPU)) && REPPending)) //Not 8086, REP pending and segment override?
+						{
+							CPU_8086REPPending(); //Process pending REPs!
+						}
+						else
+						{
+							REPPending = 0; //Clear the REP pending flag: this makes the bug in the 8086 not repeat anymore during interrupts in this case!
+						}
+						call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 					}
-					else
-					{
-						REPPending = 0; //Clear the REP pending flag: this makes the bug in the 8086 not repeat anymore during interrupts in this case!
-					}
-					call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 				}
 			}
 			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
