@@ -32,68 +32,74 @@ void input_lastwrite_8042()
 
 void fill8042_input_buffer() //Fill input buffer from full buffer!
 {
-	for (;!lock("8042");) delay(1); //Wait for locking!
-	if (Controller8042.status_buffer&1) //Buffer full?
-	{
-		//Nothing to do: buffer already full!
-	}
-	else //Buffer empty?
+	for (;!lock("8042");) delay(0); //Wait for locking!
+	if (!(Controller8042.status_buffer&1)) //Buffer empty?
 	{
 		Controller8042.input_buffer = 0; //Undefined to start with!
 
-		if (readfifobuffer(Controller8042.buffer,&Controller8042.input_buffer)) //Gotten something from 8042?
+		if (readfifobuffer(Controller8042.buffer, &Controller8042.input_buffer)) //Gotten something from 8042?
 		{
 			Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
 			Controller8042.status_buffer |= 0x1; //Set input buffer full!
-			unlock("8042"); //We're done!
-			return; //Filled: we have something from the 8042 controller itself!
 		}
-
-		byte portorder;
-		for (portorder=0;portorder<2;portorder++) //Process all our ports!
+		else //Input from hardware?
 		{
-			byte whatport = ControllerPriorities[portorder]; //The port to check!
-			if (whatport<2) //Port has priority and available?
+			byte portorder;
+			for (portorder = 0;portorder < 2;portorder++) //Process all our ports!
 			{
-				if (Controller8042.portread[whatport] && Controller8042.portpeek[whatport]) //Read handlers from the first PS/2 port available?
+				byte whatport = ControllerPriorities[portorder]; //The port to check!
+				if (whatport < 2) //Port has priority and available?
 				{
-					if (Controller8042.portpeek[whatport](&Controller8042.input_buffer)) //Got something?
+					if (Controller8042.portread[whatport] && Controller8042.portpeek[whatport]) //Read handlers from the first PS/2 port available?
 					{
-						Controller8042.input_buffer = Controller8042.portread[whatport](); //Execute the handler!
-						Controller8042.status_buffer |= 0x1; //Set input buffer full!
-						if (whatport) //AUX port?
+						if (Controller8042.portpeek[whatport](&Controller8042.input_buffer)) //Got something?
 						{
-							Controller8042.status_buffer |= 0x20; //Set AUX bit!
-							if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
+							Controller8042.input_buffer = Controller8042.portread[whatport](); //Execute the handler!
+							Controller8042.status_buffer |= 0x1; //Set input buffer full!
+							if (whatport) //AUX port?
 							{
-								doirq(12); //Raise secondary IRQ!
-							}
-							else
-							{
-								removeirq(12); //Lower secondary IRQ!
-							}
-							removeirq(1); //Lower primary IRQ!
-						}
-						else //Non-AUX?
-						{
-							Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
-
-							if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
-							{
-								doirq(1); //Raise primary IRQ!
-							}
-							else
-							{
+								Controller8042.status_buffer |= 0x20; //Set AUX bit!
+								if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
+								{
+									doirq(12); //Raise secondary IRQ!
+								}
+								else
+								{
+									removeirq(12); //Lower secondary IRQ!
+								}
 								removeirq(1); //Lower primary IRQ!
 							}
-							removeirq(12); //Lower secondary IRQ!
+							else //Non-AUX?
+							{
+								Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
+
+								if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
+								{
+									doirq(1); //Raise primary IRQ!
+								}
+								else
+								{
+									removeirq(1); //Lower primary IRQ!
+								}
+								removeirq(12); //Lower secondary IRQ!
+							}
+							break; //Finished!
 						}
-						unlock("8042"); //We're done!
-						return; //Finished!
 					}
 				}
 			}
 		}
+	}
+	if (
+		(Controller8042.port60toFirstPS2Input || Controller8042.port60toSecondPS2Input) //For PS/2 input?
+		|| (Controller8042.Write_RAM) //For PS/2 RAM?
+		) //For PS/2 device?
+	{
+		Controller8042.status_buffer |= 8; //For PS/2 controller!
+	}
+	else
+	{
+		Controller8042.status_buffer &= ~8; //For PS/2 device!
 	}
 	unlock("8042"); //We're done!
 }
@@ -238,8 +244,6 @@ void refresh_outputport()
 
 void datawritten_8042() //Data has been written?
 {
-	Controller8042.status_buffer &= ~0x8; //We have been written to!
-
 	if (Controller8042.port60toFirstPS2Input || Controller8042.port60toSecondPS2Input) //Output to input?
 	{
 		Controller8042.input_buffer = Controller8042.output_buffer; //Write to input port!
@@ -285,6 +289,7 @@ void datawritten_8042() //Data has been written?
 			}
 		}
 	}
+	fill8042_input_buffer(); //Update the input buffer!
 }
 
 byte write_8042(word port, byte value)
@@ -333,12 +338,14 @@ case 0x60: //Data port: Read input buffer?
 	if (Controller8042.readoutputport) //Read the output port?
 	{
 		*result = Controller8042.outputport; //Read the output port directly!
+		fill8042_input_buffer(); //Fill the input buffer if needed!
 		return 1; //Don't process normally!
 	}
 	if (Controller8042.Read_RAM) //Write to VRAM byte?
 	{
 		*result = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
 		Controller8042.Read_RAM = 0; //Not anymore!
+		fill8042_input_buffer(); //Fill the input buffer if needed!
 		return 1; //Don't process normally!
 	}
 	

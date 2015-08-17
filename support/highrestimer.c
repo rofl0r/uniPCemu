@@ -15,7 +15,7 @@ void initTicksHolder(TicksHolder *ticksholder)
 	byte avg;
 	u64 oldpassed;
 	uint_32 oldtimes;
-	for (; !lock("HighresTimer");) { delay(1); } //Lock ourselves!
+	for (; !lock("HighresTimer");) delay(0); //Lock ourselves!
 	if (resolutioninit) //Not loaded yet?
 	{
 #ifdef __psp__

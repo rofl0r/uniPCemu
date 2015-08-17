@@ -58,7 +58,7 @@ void timer_thread() //Handler for timer!
 	double realpassed; //Real timer passed since last call!
 
 
-	for (; !lock("Timer");) { delay(1); } //Wait for our lock!
+	for (; !lock("Timer");) delay(0); //Wait for our lock!
 	allow_running = 1; //Set our thread to active!
 	unlock("Timer"); //We're finished!
 
@@ -76,7 +76,7 @@ void timer_thread() //Handler for timer!
 
 	for (;;) //Keep running!
 	{
-		for (; !lock("Timer");) {delay(1);} //Wait for our lock!
+		for (; !lock("Timer");) delay(0); //Wait for our lock!
 		if (!allow_running)
 		{
 			unlock("Timer"); //We're done!
@@ -207,7 +207,7 @@ void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit, 
 	
 	if (timerpos!=-1) //Found a position to add?
 	{
-		for (; !lock("Timers");) { delay(1); }
+		for (; !lock("Timers");) delay(0);
 		timers[timerpos].handler = timer; //Set timer!
 		timers[timerpos].counter = 0; //Reset counter!
 		timers[timerpos].frequency = frequency; //Start timer!
@@ -249,7 +249,7 @@ void useTimer(char *name, byte use)
 		{
 			if (strcmp(timers[i].name,name)==0) //Found?
 			{
-				for (; !lock("Timers");) { delay(1); }
+				for (; !lock("Timers");) delay(0);
 				timers[i].enabled = use; //To use it?
 				unlock("Timers");
 				return; //Don't search any further: we've found our timer!
@@ -269,7 +269,7 @@ void removetimer(char *name) //Removes a timer!
 		{
 			if (strcmp(timers[i].name,name)==0) //Timer enabled and selected?
 			{
-				for (; !lock("Timers");) { delay(1); }
+				for (; !lock("Timers");) delay(0);
 				memset(&timers[i],0,sizeof(timers[i])); //Disable!
 				unlock("Timers");
 				break;
@@ -306,7 +306,7 @@ void stopTimers(byte core)
 	{
 		if (timerthread) //Running already (we can terminate it)?
 		{
-			for (; !lock("Timer");) { delay(1); } //Lock our thread!
+			for (; !lock("Timer");) delay(0); //Lock our thread!
 			allow_running = 0; //Request normal termination!
 			unlock("Timer"); //We're done!
 			waitThreadEnd(timerthread); //Wait for our thread to end!

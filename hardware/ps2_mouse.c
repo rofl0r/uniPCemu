@@ -213,7 +213,6 @@ void give_mouse_status() //Gives the mouse status buffer!
 void commandwritten_mouse() //Command has been written to the mouse?
 {
 	if (__HW_DISABLED) return; //Abort!
-	Controller8042.status_buffer |= 0x8; //We have been written to!
 	Mouse.has_command = 1; //We have a command!
 	Mouse.command_step = 0; //Reset command step!
 	//Handle mouse!
@@ -543,6 +542,9 @@ void BIOS_initMouse() //Initialise the mouse to reset mode?
 	register_PS2PortRead(1,&handle_mouseread,&handle_mousepeek); //Read functionality!
 
 	Mouse.buffer = allocfifobuffer(16); //Allocate a small mouse buffer!
+
+	resetMouse(); //Reset the mouse to power-on defaults!
+
 	update_mouseTimer(); //(Re)set mouse timer!
 	Mouse.disabled = 1; //Default: disabled!
 }

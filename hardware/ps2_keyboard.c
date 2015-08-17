@@ -127,7 +127,6 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 void commandwritten_keyboard() //Command has been written?
 {
 	if (__HW_DISABLED) return; //Abort!
-	Controller8042.status_buffer |= 0x8; //We have been written to!
 	Keyboard.has_command = 1; //We have a command!
 	Keyboard.command_step = 0; //Reset command step!
 	switch (Keyboard.command) //What command?
@@ -327,7 +326,6 @@ void handle_keyboardwrite(byte data)
 	else //Command itself?
 	{
 		Keyboard.command = Controller8042.output_buffer; //Becomes a command!
-		Controller8042.status_buffer &= ~0x1; //Cleared output buffer!
 		commandwritten_keyboard(); //Process keyboard command?
 		if (!Keyboard.has_command) //No command anymore?
 		{

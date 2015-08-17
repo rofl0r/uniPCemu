@@ -100,7 +100,6 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
 	if (needdebugger()) //To apply the debugger generator?
 	{
-		lock("debugger_beforeCPU"); //We're busy on our task!
 		static VERIFICATIONDATA verify, originalverify;
 		memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
 		//Initialise debugger texts!
@@ -195,7 +194,6 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 			}
 			++debugger_index; //Apply next index!
 		}
-		unlock("debugger_beforeCPU"); //We're finished!
 	} //Are we logging or needing info?
 }
 

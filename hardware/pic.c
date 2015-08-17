@@ -149,7 +149,7 @@ OPTINLINE byte enablePIC(byte PIC)
 		(i8259.icw[1][2] != 2)); //Wrong IR to connect?
 }
 
-byte getunprocessedinterrupt(byte PIC)
+OPTINLINE byte getunprocessedinterrupt(byte PIC)
 {
 	if (!enablePIC(PIC)) return 0; //PIC disabled?
 	byte result;
@@ -223,10 +223,6 @@ byte nextintr()
 		{
 			ACNIR(PICnr, realIR); //Acnowledge it!
 			lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
-			if (((realIR == 1) && (!PICnr)) || PICnr) //Any valid to log?
-			{
-				dolog("PIC", "ACIR:%i,%i=%02X", PICnr, realIR, lastinterrupt); //Log the IR!
-			}
 			interruptsaved = 1; //Gotten an interrupt saved!
 			return lastinterrupt;
 		}

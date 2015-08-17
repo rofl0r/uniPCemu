@@ -87,10 +87,8 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 	#endif
 	//Finally delay for next update!
 	//delay(FRAMERATE_STEP); //Wait for the next update as good as we can!
-	for (; !lock("CPUIPS");) {} //Wait for the lock!
 	CPU_IPS = instructioncounter / (timepassed / 1000000.0f);
 	instructioncounter = 0; //Reset instruction counter!
-	unlock("CPUIPS"); //Release the IPS lock!
 	unlockGPU(); //Unlock the GPU!
 }
 
