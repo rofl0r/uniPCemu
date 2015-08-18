@@ -90,17 +90,6 @@ void fill8042_input_buffer() //Fill input buffer from full buffer!
 			}
 		}
 	}
-	if (
-		(Controller8042.port60toFirstPS2Input || Controller8042.port60toSecondPS2Input) //For PS/2 input?
-		|| (Controller8042.Write_RAM) //For PS/2 RAM?
-		) //For PS/2 device?
-	{
-		Controller8042.status_buffer |= 8; //For PS/2 controller!
-	}
-	else
-	{
-		Controller8042.status_buffer &= ~8; //For PS/2 device!
-	}
 	unlock("8042"); //We're done!
 }
 
@@ -115,6 +104,7 @@ void reset8042() //Reset 8042 up till loading BIOS!
 void commandwritten_8042() //A command has been written to the 8042 controller?
 {
 	//Handle specific PS/2 commands!
+	Controller8042.status_buffer |= 8; //For PS/2 controller!
 	switch (Controller8042.command) //Special command?
 	{
 	case 0x60: //Write byte 0 from internal RAM!
@@ -130,8 +120,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 	case 0xA7: //Disable second PS/2 port! No ACK!
 		Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled = 1; //Disabled!
 		break;
-	case 0xA8: //Enable second PS/2 port! No ACK!
+	case 0xA8: //Enable second PS/2 port! ACK from keyboard!
 		Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled = 0; //Enabled!
+		give_keyboard_input(0xFA); //ACK!
+		IRQ8042(); //Process the input!
 		break;
 	case 0xA9: //Test second PS/2 port! Give 0x00 if passed (detected). 0x02-0x04=Not detected?
 		if (Controller8042.portwrite[1] && Controller8042.portread[1] && Controller8042.portpeek[1]) //Registered?
@@ -221,7 +213,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.has_port[1] = 1; //Send to second PS/2 port!
 		break;
 	case 0xF0: case 0xF1: case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF7: case 0xF8: case 0xF9: case 0xFA: case 0xFB: case 0xFC: case 0xFD: case 0xFE: case 0xFF: //Pulses!
-		if (!(Controller8042.command&0x1)) //CPU reset?
+		if (!(Controller8042.command&0x1)) //CPU reset (pulse line 0)?
 		{
 			if (!(Controller8042.outputport&0x1)) //PC reset triggered?
 			{
@@ -244,6 +236,7 @@ void refresh_outputport()
 
 void datawritten_8042() //Data has been written?
 {
+	Controller8042.status_buffer &= ~8; //For PS/2 device!
 	if (Controller8042.port60toFirstPS2Input || Controller8042.port60toSecondPS2Input) //Output to input?
 	{
 		Controller8042.input_buffer = Controller8042.output_buffer; //Write to input port!

@@ -547,6 +547,7 @@ int is_gamingmode()
 
 void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/second!)
 {
+	const float maxmousespeed = (1.0f / 32767.0f)*255.0f; //Scale to 255!
 	if (!curstat.mode || curstat.gamingmode) //Mouse mode or gaming mode?
 	{
 		if (useMouseTimer()) //We're using the mouse?
@@ -566,6 +567,8 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 				{
 					mousepacket->xmove = curstat.analogdirection_mouse_x; //X movement!
 					mousepacket->ymove = curstat.analogdirection_mouse_y; //Y movement!
+					mousepacket->xmove *= maxmousespeed; //Scale to destination scale!
+					mousepacket->ymove *= maxmousespeed; //Scale to destination scale!
 				}
 				else
 				{
@@ -1826,8 +1829,11 @@ void enableKeyboard(int bufferinput) //Enables the keyboard/mouse functionnality
 
 SDL_Joystick *joystick; //Our joystick!
 
+byte precisemousemovement = 0; //Precise mouse movement enabled?
+
 void updateMOD(SDL_Event *event)
 {
+	const float precisemovement = (100.0f / 32767.0f); //Precise mouse movement constant!
 	if (input.cas&CAS_CTRL) //Ctrl pressed?
 	{
 		input.Buttons |= BUTTON_HOME; //Pressed!
@@ -1859,6 +1865,11 @@ void updateMOD(SDL_Event *event)
 		axis += 32767; //Increase!
 	}
 	input.Lx = axis; //Horizontal axis!
+	if (precisemousemovement) //Enable precise movement?
+	{
+		input.Lx *= precisemovement; //Enable precise movement!
+		input.Ly *= precisemovement; //Enable precise movement!
+	}
 }
 
 //Toggle direct input on/off!
@@ -1960,6 +1971,9 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_KP2: //CROSS?
 					input.Buttons &= ~BUTTON_CROSS; //Pressed!
+					break;
+				case SDLK_p: //Precise mouse movement?
+					precisemousemovement = 0; //Disabled!
 					break;
 				case SDLK_F4: //F4?
 					if (RALT) //ALT-F4?
@@ -2085,6 +2099,9 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_KP2: //CROSS?
 					input.Buttons |= BUTTON_CROSS; //Pressed!
+					break;
+				case SDLK_p: //Precise mouse movement?
+					precisemousemovement = 1; //Enabled!
 					break;
 				}
 				if (event->key.keysym.scancode == 34) //Play/pause?

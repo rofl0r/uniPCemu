@@ -438,7 +438,7 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	//First, register ourselves!
 	register_PS2PortWrite(0,&handle_keyboardwrite); //Write functionality!
 	register_PS2PortRead(0,&handle_keyboardread,&handle_keyboardpeek); //Read functionality!		
-	Keyboard.buffer = allocfifobuffer(256); //Allocate a small keyboard buffer!
+	Keyboard.buffer = allocfifobuffer(16); //Allocate a small keyboard buffer!
 	resetKeyboard(); //Reset the keyboard controller!
 	keyboardControllerInit(); //Initialise the basic keyboard controller!
 }

@@ -6,8 +6,11 @@
 
 extern byte SCREEN_CAPTURE; //Screen capture requested?
 
+uint_64 key_pressed_counter = 0; //Counter for pressed keys!
+
 byte key_status[0x100]; //Status of all keys!
 byte keys_ispressed[0x100]; //All possible keys to be pressed!
+uint_64 key_pressed_time[0x100]; //What time was the key pressed?
 byte capture_status; //Capture key status?
 
 //We're running each ms, so 1000 steps/second!
@@ -22,12 +25,17 @@ void onKeyPress(char *key) //On key press/hold!
 	if (strcmp(key,"CAPTURE")==0) //Screen capture requested?
 	{
 		capture_status = 1; //We're pressed!
+		return; //Finished!
 	}
 	int keyid;
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
 	if (keyid!=-1) //Key found?
 	{
-		key_status[keyid] = 1; //We're pressed!
+		if (!key_status[keyid]) //New key pressed?
+		{
+			key_pressed_time[keyid] = key_pressed_counter++; //Increasing time of the key being pressed!
+		}
+		key_status[keyid] = 1; //We've pressed a new key!
 	}
 }
 
@@ -36,6 +44,7 @@ void onKeyRelease(char *key) //On key release!
 	if (strcmp(key, "CAPTURE") == 0) //Screen capture requested?
 	{
 		capture_status = 0; //We're released!
+		return; //Finished!
 	}
 	int keyid;
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
@@ -66,6 +75,21 @@ void calculateKeyboardStep(byte activekeys)
 	}
 }
 
+void releaseKeysReleased()
+{
+	int i;
+	for (i = 0;i < NUMITEMS(key_status);i++) //Process all keys needed!
+	{
+		if (keys_ispressed[i] && !key_status[i]) //Are we released?
+		{
+			if (EMU_keyboard_handler(i, 0)) //Fired the handler for releasing!
+			{
+				keys_ispressed[i] = 0; //We're not pressed anymore!
+			}
+		}
+	}
+}
+
 void tickPendingKeys() //Handle all pending keys from our emulation! Every 1/1000th second!
 {
 	int i;
@@ -86,24 +110,48 @@ void tickPendingKeys() //Handle all pending keys from our emulation! Every 1/100
 					keys_active = 1; //We're active!
 					SCREEN_CAPTURE = 1; //Screen capture next frame!
 				}
-				for (i = 0;i < NUMITEMS(key_status);i++) //Process all keys needed!
+				if (!keyboard_step) //Not repeating the last key (typematic)?
 				{
-					if (key_status[i]) //Pressed?
+					for (i = 0;i < NUMITEMS(key_status);i++) //Process all keys needed!
 					{
-						keys_active = 1; //We're active!
-						if (EMU_keyboard_handler(i, 1)) //Fired the handler for pressing!
+						if (key_status[i]) //Pressed?
 						{
-							keys_ispressed[i] = 1; //We're pressed!
+							keys_active = 1; //We're active!
+							if (EMU_keyboard_handler(i, 1)) //Fired the handler for pressing!
+							{
+								keys_ispressed[i] = 1; //We're pressed!
+							}
 						}
 					}
-					else //Released?
+					releaseKeysReleased(); //Release any unpressed keys!
+				}
+				else //Repeat the last key pressed only (typematic key)
+				{
+					//First, release any unpressed keys!
+					releaseKeysReleased(); //Release any unpressed keys!
+
+					int last_key_pressed = -1; //Last key pressed!
+					uint_64 last_key_pressed_time = 0; //Last key pressed time!
+
+					//Now, take the last pressed key, any press it!
+					for (i = 0;i < NUMITEMS(key_status);i++) //Process all keys pressed!
 					{
-						if (keys_ispressed[i]) //Are we pressed?
+						if (key_status[i]) //Pressed?
 						{
-							if (EMU_keyboard_handler(i, 0)) //Fired the handler for releasing!
+							if ((key_pressed_time[i] > last_key_pressed_time) || (last_key_pressed == -1)) //Pressed later or first one to check?
 							{
-								keys_ispressed[i] = 0; //We're not pressed anymore!
+								last_key_pressed = i; //This is the last key pressed!
+								last_key_pressed_time = key_pressed_time[i]; //The last key pressed time!
 							}
+						}
+					}
+
+					if (last_key_pressed != -1) //Still gotten a last key pressed?
+					{
+						keys_active = 1; //We're active!
+						if (EMU_keyboard_handler(last_key_pressed, 1)) //Fired the handler for pressing!
+						{
+							keys_ispressed[last_key_pressed] = 1; //We're pressed!
 						}
 					}
 				}
