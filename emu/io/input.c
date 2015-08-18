@@ -791,67 +791,10 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 		return; //Keyboard disabled: don't show!
 	}
 
-	if (curstat.mode==1 && !curstat.gamingmode) //Keyboard mode?
-	{
-		if (strcmp((char *)getkeyboard(0,currentset,sety,setx,0),"enable")==0) //Set enabled?
-		{
-			char *left = getkeyboard(currentshift,currentset,sety,setx,1);
-			char *right = getkeyboard(currentshift,currentset,sety,setx,2);
-			char *up = getkeyboard(currentshift,currentset,sety,setx,3);
-			char *down = getkeyboard(currentshift,currentset,sety,setx,4);
-
-			byte leftloc = CALCMIDDLE(CALCMIDDLE(KEYBOARD_NUMX,0),safe_strlen(left,0)); //Left location!
-			byte rightloc = CALCMIDDLE(KEYBOARD_NUMX,0); //Start at the right half!
-			rightloc += CALCMIDDLE(CALCMIDDLE(KEYBOARD_NUMX,0),safe_strlen(right,0)); //Right location!
-			byte uploc = CALCMIDDLE(KEYBOARD_NUMX,safe_strlen(up,0)); //Up location!
-			byte downloc = CALCMIDDLE(KEYBOARD_NUMX,safe_strlen(down,0)); //Down location!
-
-			memcpy(&keyboard_display[0][uploc],up,safe_strlen(up,0)); //Set up!
-			if (currentkey==1) //Got a key pressed?
-			{
-				memset(&keyboard_attribute[0][uploc],1,safe_strlen(up,0)); //Active key!
-			}
-
-			memcpy(&keyboard_display[1][leftloc],left,safe_strlen(left,0)); //Set left!
-			if (currentkey==2) //Got a key pressed?
-			{
-				memset(&keyboard_attribute[1][leftloc],1,safe_strlen(left,0)); //Active key!
-			}
-
-			memcpy(&keyboard_display[1][rightloc],right,safe_strlen(right,0)); //Set up!
-			if (currentkey==4) //Got a key pressed?
-			{
-				memset(&keyboard_attribute[1][rightloc],1,safe_strlen(right,0)); //Active key!
-			}
-
-			memcpy(&keyboard_display[2][downloc],down,safe_strlen(down,0)); //Set up!
-			if (currentkey==3) //Got a key pressed?
-			{
-				memset(&keyboard_attribute[2][downloc],1,safe_strlen(down,0)); //Active key!
-			}
-		}
-	} //Keyboard mode?
-
 	//LEDs on keyboard are always visible!
 	
-	if (!curstat.gamingmode) //Not gaming mode (both mouse and keyboard mode)?
+	if (!curstat.gamingmode) //Not gaming mode (mouse, keyboard and direct mode)?
 	{
-		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-3] = 'C'; //Screen capture!
-		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-2] = 'a'; //Screen capture!
-		keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-1] = 'p'; //Screen capture!
-
-		if (SCREEN_CAPTURE) //Screen capture status?
-		{
-			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-3] = 3; //Special shift color active!
-			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-2] = 3; //Special shift color active!
-			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-1] = 3; //Special shift color active!
-		}
-		else
-		{
-			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-3] = 2; //Special shift color inactive!
-			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-2] = 2; //Special shift color inactive!
-			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-1] = 2; //Special shift color inactive!
-		}
 		keyboard_display[KEYBOARD_NUMY-2][KEYBOARD_NUMX-3] = 'N'; //NumberLock!
 		if (Keyboard.LEDS&2) //NUMLOCK?
 		{
@@ -882,9 +825,66 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 			keyboard_attribute[KEYBOARD_NUMY-2][KEYBOARD_NUMX-1] = 2; //Special shift color inactive!
 		}
 	}
-
 	if (!Direct_Input) //Not direct input?
 	{
+		if (curstat.mode == 1 && !curstat.gamingmode) //Keyboard mode?
+		{
+			if (strcmp((char *)getkeyboard(0, currentset, sety, setx, 0), "enable") == 0) //Set enabled?
+			{
+				char *left = getkeyboard(currentshift, currentset, sety, setx, 1);
+				char *right = getkeyboard(currentshift, currentset, sety, setx, 2);
+				char *up = getkeyboard(currentshift, currentset, sety, setx, 3);
+				char *down = getkeyboard(currentshift, currentset, sety, setx, 4);
+
+				byte leftloc = CALCMIDDLE(CALCMIDDLE(KEYBOARD_NUMX, 0), safe_strlen(left, 0)); //Left location!
+				byte rightloc = CALCMIDDLE(KEYBOARD_NUMX, 0); //Start at the right half!
+				rightloc += CALCMIDDLE(CALCMIDDLE(KEYBOARD_NUMX, 0), safe_strlen(right, 0)); //Right location!
+				byte uploc = CALCMIDDLE(KEYBOARD_NUMX, safe_strlen(up, 0)); //Up location!
+				byte downloc = CALCMIDDLE(KEYBOARD_NUMX, safe_strlen(down, 0)); //Down location!
+
+				memcpy(&keyboard_display[0][uploc], up, safe_strlen(up, 0)); //Set up!
+				if (currentkey == 1) //Got a key pressed?
+				{
+					memset(&keyboard_attribute[0][uploc], 1, safe_strlen(up, 0)); //Active key!
+				}
+
+				memcpy(&keyboard_display[1][leftloc], left, safe_strlen(left, 0)); //Set left!
+				if (currentkey == 2) //Got a key pressed?
+				{
+					memset(&keyboard_attribute[1][leftloc], 1, safe_strlen(left, 0)); //Active key!
+				}
+
+				memcpy(&keyboard_display[1][rightloc], right, safe_strlen(right, 0)); //Set up!
+				if (currentkey == 4) //Got a key pressed?
+				{
+					memset(&keyboard_attribute[1][rightloc], 1, safe_strlen(right, 0)); //Active key!
+				}
+
+				memcpy(&keyboard_display[2][downloc], down, safe_strlen(down, 0)); //Set up!
+				if (currentkey == 3) //Got a key pressed?
+				{
+					memset(&keyboard_attribute[2][downloc], 1, safe_strlen(down, 0)); //Active key!
+				}
+			}
+		} //Keyboard mode?
+
+		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 'C'; //Screen capture!
+		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 'a'; //Screen capture!
+		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 'p'; //Screen capture!
+
+		if (SCREEN_CAPTURE) //Screen capture status?
+		{
+			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 3; //Special shift color active!
+			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 3; //Special shift color active!
+			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 3; //Special shift color active!
+		}
+		else
+		{
+			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
+			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
+			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
+		}
+
 		if (!curstat.mode && !curstat.gamingmode) //Mouse mode?
 		{
 			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 4] = 'M'; //Mouse mode!
@@ -1007,50 +1007,50 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 {
 	//while (1)
 	{
-		if (input_enabled) //Input enabled?
+		if (input_enabled && !Direct_Input) //Input enabled?
 		{
-		if (curstat.gamingmode) //Gaming mode?
-		{
-			if (psp_inputkey()&BUTTON_SELECT) //Quit gaming mode?
+			if (curstat.gamingmode) //Gaming mode?
 			{
-				curstat.gamingmode = 0; //Disable gaming mode!
+				if (psp_inputkey()&BUTTON_SELECT) //Quit gaming mode?
+				{
+					curstat.gamingmode = 0; //Disable gaming mode!
+				}
 			}
-		}
-		else if (curstat.mode==1 && input_enabled) //Keyboard active and on-screen?
-		{
-			int curkey;
-			curkey = psp_inputkey(); //Read current keys with delay!
-			if ((curkey&BUTTON_LTRIGGER) && (!(curkey&BUTTON_RTRIGGER))) //Not L&R (which is CAPS LOCK) special?
+			else if (curstat.mode==1 && input_enabled) //Keyboard active and on-screen?
 			{
-				currentset = (currentset+1)%3; //Next set!
-				currentkey = 0; //No keys pressed!
-				//Disable all output still standing!
-				ReleaseKeys(); //Release all keys!
+				int curkey;
+				curkey = psp_inputkey(); //Read current keys with delay!
+				if ((curkey&BUTTON_LTRIGGER) && (!(curkey&BUTTON_RTRIGGER))) //Not L&R (which is CAPS LOCK) special?
+				{
+					currentset = (currentset+1)%3; //Next set!
+					currentkey = 0; //No keys pressed!
+					//Disable all output still standing!
+					ReleaseKeys(); //Release all keys!
+				}
+				else if (curkey&BUTTON_DOWN) //Down pressed: swap to gaming mode!
+				{
+					currentkey = 0; //No keys pressed!
+					ReleaseKeys(); //Release all keys!
+					curstat.gamingmode = 1; //Enable gaming mode!
+				}
+				else if (curkey&BUTTON_START) //Swap to mouse mode!
+				{
+					currentkey = 0; //No keys pressed!
+					ReleaseKeys(); //Release all keys!
+					curstat.mode = 0; //Swap to mouse mode!
+				}
 			}
-			else if (curkey&BUTTON_DOWN) //Down pressed: swap to gaming mode!
+			else if (curstat.mode==0 && input_enabled) //Mouse active?
 			{
-				currentkey = 0; //No keys pressed!
-				ReleaseKeys(); //Release all keys!
-				curstat.gamingmode = 1; //Enable gaming mode!
+				if (psp_inputkey()&BUTTON_DOWN) //Down pressed: swap to gaming mode!
+				{
+					curstat.gamingmode = 1; //Enable gaming mode!
+				}
+				else if (psp_inputkey()&BUTTON_START) //Swap to keyboard mode!
+				{
+					curstat.mode = 1; //Swap to keyboard mode!
+				}
 			}
-			else if (curkey&BUTTON_START) //Swap to mouse mode!
-			{
-				currentkey = 0; //No keys pressed!
-				ReleaseKeys(); //Release all keys!
-				curstat.mode = 0; //Swap to mouse mode!
-			}
-		}
-		else if (curstat.mode==0 && input_enabled) //Mouse active?
-		{
-			if (psp_inputkey()&BUTTON_DOWN) //Down pressed: swap to gaming mode!
-			{
-				curstat.gamingmode = 1; //Enable gaming mode!
-			}
-			else if (psp_inputkey()&BUTTON_START) //Swap to keyboard mode!
-			{
-				curstat.mode = 1; //Swap to keyboard mode!
-			}
-		}
 		}
 		//delay(KEYSWAP_DELAY); //Wait a bit, for as precise as we can simply (1ms), slower is never worse!
 	}
@@ -1061,25 +1061,6 @@ byte shiftstatus = 0; //New shift status!
 
 
 extern char keys_names[104][11]; //All names of the used keys (for textual representation/labeling)
-
-void handleKeyPressRelease(int key)
-{
-	switch (emu_keys_state[key]) //What state are we in?
-	{
-	case 0: //Released?
-		break;
-	case 1: //Pressed?
-		onKeyPress(&keys_names[key][0]); //Tick the keypress!
-		break;
-	case 2: //Releasing?
-		onKeyRelease(&keys_names[key][0]); //Handle key release!
-		emu_keys_state[key] = 0; //We're released!
-		break;
-	default: //Unknown?
-		break;
-	}
-}
-
 
 void handleKeyboardMouse() //Handles keyboard input during mouse operations!
 {
@@ -1147,185 +1128,151 @@ void handleKeyboardMouse() //Handles keyboard input during mouse operations!
 void handleKeyboard() //Handles keyboard input!
 {
 	keysactive = 0; //Reset keys active!
-	if (!Direct_Input)
+	static int lastkey = 0, lastx = 0, lasty = 0, lastset = 0, lastshift = 0; //Previous key that was pressed!
+	setx = curstat.analogdirection_keyboard_x; //X in keyboard set!
+	sety = curstat.analogdirection_keyboard_y; //Y in keyboard set!
+
+	//Now handle current keys!
+	currentkey = 0; //Default: no key pressed!
+	//Order of currentkey: Up left down right.
+	if (curstat.buttonpress & 1) //Left?
 	{
-		static int lastkey = 0, lastx = 0, lasty = 0, lastset = 0, lastshift = 0; //Previous key that was pressed!
-		setx = curstat.analogdirection_keyboard_x; //X in keyboard set!
-		sety = curstat.analogdirection_keyboard_y; //Y in keyboard set!
-
-		//Now handle current keys!
-		currentkey = 0; //Default: no key pressed!
-		//Order of currentkey: Up left down right.
-		if (curstat.buttonpress & 1) //Left?
-		{
-			currentkey = 2; //Pressed square!
-		}
-		else if (curstat.buttonpress & 2) //Up?
-		{
-			currentkey = 1; //Pressed triangle!
-		}
-		else if (curstat.buttonpress & 4) //Right?
-		{
-			currentkey = 4; //Circle pressed!
-		}
-		else if (curstat.buttonpress & 8) //Down?
-		{
-			currentkey = 3; //Cross pressed!
-		}
-
-		//Now, process the keys!
-
-		shiftstatus = 0; //Init shift status!
-		shiftstatus |= ((curstat.buttonpress & 512) > 0)*SHIFTSTATUS_SHIFT; //Apply shift status!
-		if ((curstat.buttonpress & 0x300) == 0x300) //L&R hold?
-		{
-			shiftstatus &= ~SHIFTSTATUS_SHIFT; //Shift isn't pressed: it's CAPS LOCK special case!
-		}
-		shiftstatus |= ((curstat.buttonpress&(16 | 32)) > 0)*SHIFTSTATUS_CTRL; //Apply ctrl status!
-		shiftstatus |= ((curstat.buttonpress&(64 | 32)) > 0)*SHIFTSTATUS_ALT; //Apply alt status!
-		currentshift = (shiftstatus&SHIFTSTATUS_SHIFT) > 0; //Shift pressed?
-		currentctrl = (shiftstatus&SHIFTSTATUS_CTRL) > 0; //Ctrl pressed?
-		currentalt = (shiftstatus&SHIFTSTATUS_ALT) > 0; //Alt pressed?
-
-		if (!input_buffer_input) //Not buffering?
-		{
-			//First, process Ctrl,Alt,Shift Releases!
-			if (((oldshiftstatus&SHIFTSTATUS_CTRL) > 0) && (!currentctrl)) //Released CTRL?
-			{
-				onKeyPress("lctrl");
-			}
-			if (((oldshiftstatus&SHIFTSTATUS_ALT) > 0) && (!currentalt)) //Released ALT?
-			{
-				onKeyPress("lalt");
-			}
-			if (((oldshiftstatus&SHIFTSTATUS_SHIFT) > 0) && (!currentshift)) //Released SHIFT?
-			{
-				onKeyPress("lshift");
-			}
-			//Next, process Ctrl,Alt,Shift presses!
-			if (currentctrl) //Pressed CTRL?
-			{
-				onKeyRelease("lctrl");
-			}
-			if (currentalt) //Pressed ALT?
-			{
-				onKeyRelease("lalt");
-			}
-			if (currentshift) //Pressed SHIFT?
-			{
-				onKeyRelease("lshift");
-			}
-
-			if ((curstat.buttonpress & 0x300) == 0x300) //L&R hold? CAPS LOCK PRESSED! (Special case)
-			{
-				onKeyPress("capslock"); //Shift isn't pressed: it's CAPS LOCK special case!
-			}
-			else //No CAPS LOCK?
-			{
-				onKeyRelease("capslock"); //Release if needed, forming a button click!
-			}
-
-			oldshiftstatus = shiftstatus; //Save shift status to old shift status!
-
-			if (currentkey) //Key pressed?
-			{
-				if (lastkey && ((lastkey != currentkey) || (lastx != setx) || (lasty != sety) || (lastset != currentset))) //We had a last key that's different?
-				{
-					onKeyRelease(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
-				}
-				onKeyPress(getkeyboard(0, currentset, sety, setx, displaytokeyboard[currentkey]));
-				//Save the active key information!
-				lastset = currentset;
-				lastx = setx;
-				lasty = sety;
-				lastkey = currentkey;
-			}
-			else if (lastkey) //We have a last key with nothing pressed?
-			{
-				onKeyRelease(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
-				lastkey = 0; //We didn't have a last key!			
-			}
-		} //Not buffering?
-		else //Buffering?
-		{
-			if (!(shiftstatus&SHIFTSTATUS_CTRL) && ((lastshift&SHIFTSTATUS_CTRL) > 0)) //Released CTRL?
-			{
-				goto keyreleased; //Released!
-			}
-			if (!(shiftstatus&SHIFTSTATUS_ALT) && ((lastshift&SHIFTSTATUS_ALT) > 0)) //Released ALT?
-			{
-				goto keyreleased; //Released!
-			}
-			if (!(shiftstatus&SHIFTSTATUS_SHIFT) && ((lastshift&SHIFTSTATUS_SHIFT) > 0)) //Released SHIFT?
-			{
-				goto keyreleased; //Released!
-			}
-
-			if (currentkey || shiftstatus) //More keys pressed?
-			{
-				if (lastkey && ((lastkey != currentkey) || (lastx != setx) || (lasty != sety) || (lastset != currentset))) //We had a last key that's different?
-				{
-					goto keyreleased; //Released after all!
-				}
-				//Save the active key information!
-
-				lastset = currentset;
-				lastx = setx;
-				lasty = sety;
-				lastkey = currentkey;
-				lastshift = shiftstatus; //Shift status!
-			}
-			else //Key/shift released?
-			{
-				int key;
-			keyreleased:
-				if (!lastkey && !lastshift) //Nothing yet?
-				{
-					return; //Abort: we're nothing pressed!
-				}
-				key = EMU_keyboard_handler_nametoid(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Our key?
-				input_buffer_shift = lastshift; //Set shift status!
-				input_buffer = key; //Last key!
-				//Update current information!
-				lastkey = 0; //Update current information!
-				lastx = setx;
-				lasty = sety;
-				lastset = currentset;
-				lastshift = shiftstatus;
-			}
-			//Key presses aren't buffered: we only want to know the key and shift state when fully pressed, nothing more!
-		}
+		currentkey = 2; //Pressed square!
 	}
-	else //Direct input?
+	else if (curstat.buttonpress & 2) //Up?
 	{
-		int key;
-		char name[256];
-		memset(name, 0, sizeof(name)); //Init name!
+		currentkey = 1; //Pressed triangle!
+	}
+	else if (curstat.buttonpress & 4) //Right?
+	{
+		currentkey = 4; //Circle pressed!
+	}
+	else if (curstat.buttonpress & 8) //Down?
+	{
+		currentkey = 3; //Cross pressed!
+	}
 
-		//Handle CTRL/ALT/Shift first!
-		int lctrl = EMU_keyboard_handler_nametoid("LCTRL");
-		handleKeyPressRelease(lctrl);
-		int rctrl = EMU_keyboard_handler_nametoid("RCTRL");
-		handleKeyPressRelease(rctrl);
-		int lalt = EMU_keyboard_handler_nametoid("LALT");
-		handleKeyPressRelease(lalt);
-		int ralt = EMU_keyboard_handler_nametoid("RALT");
-		handleKeyPressRelease(ralt);
-		int lshift = EMU_keyboard_handler_nametoid("LSHIFT");
-		handleKeyPressRelease(lshift);
-		int rshift = EMU_keyboard_handler_nametoid("RSHIFT");
-		handleKeyPressRelease(rshift);
+	//Now, process the keys!
 
-		for (key = 0;key < NUMITEMS(emu_keys_state);key++)
+	shiftstatus = 0; //Init shift status!
+	shiftstatus |= ((curstat.buttonpress & 512) > 0)*SHIFTSTATUS_SHIFT; //Apply shift status!
+	if ((curstat.buttonpress & 0x300) == 0x300) //L&R hold?
+	{
+		shiftstatus &= ~SHIFTSTATUS_SHIFT; //Shift isn't pressed: it's CAPS LOCK special case!
+	}
+	shiftstatus |= ((curstat.buttonpress&(16 | 32)) > 0)*SHIFTSTATUS_CTRL; //Apply ctrl status!
+	shiftstatus |= ((curstat.buttonpress&(64 | 32)) > 0)*SHIFTSTATUS_ALT; //Apply alt status!
+	currentshift = (shiftstatus&SHIFTSTATUS_SHIFT) > 0; //Shift pressed?
+	currentctrl = (shiftstatus&SHIFTSTATUS_CTRL) > 0; //Ctrl pressed?
+	currentalt = (shiftstatus&SHIFTSTATUS_ALT) > 0; //Alt pressed?
+
+	if (!input_buffer_input) //Not buffering?
+	{
+		//First, process Ctrl,Alt,Shift Releases!
+		if (((oldshiftstatus&SHIFTSTATUS_CTRL) > 0) && (!currentctrl)) //Released CTRL?
 		{
-			if (EMU_keyboard_handler_idtoname(key, &name[0])) //Found key?
-			{
-				if ((key != lctrl) && (key != rctrl) && (key != lalt) && (key != ralt) && (key != lshift) && (key != rshift)) //Not already handled?
-				{
-					handleKeyPressRelease(key); //Handle key press or release!
-				}
-			}
+			onKeyPress("lctrl");
 		}
+		if (((oldshiftstatus&SHIFTSTATUS_ALT) > 0) && (!currentalt)) //Released ALT?
+		{
+			onKeyPress("lalt");
+		}
+		if (((oldshiftstatus&SHIFTSTATUS_SHIFT) > 0) && (!currentshift)) //Released SHIFT?
+		{
+			onKeyPress("lshift");
+		}
+		//Next, process Ctrl,Alt,Shift presses!
+		if (currentctrl) //Pressed CTRL?
+		{
+			onKeyRelease("lctrl");
+		}
+		if (currentalt) //Pressed ALT?
+		{
+			onKeyRelease("lalt");
+		}
+		if (currentshift) //Pressed SHIFT?
+		{
+			onKeyRelease("lshift");
+		}
+
+		if ((curstat.buttonpress & 0x300) == 0x300) //L&R hold? CAPS LOCK PRESSED! (Special case)
+		{
+			onKeyPress("capslock"); //Shift isn't pressed: it's CAPS LOCK special case!
+		}
+		else //No CAPS LOCK?
+		{
+			onKeyRelease("capslock"); //Release if needed, forming a button click!
+		}
+
+		oldshiftstatus = shiftstatus; //Save shift status to old shift status!
+
+		if (currentkey) //Key pressed?
+		{
+			if (lastkey && ((lastkey != currentkey) || (lastx != setx) || (lasty != sety) || (lastset != currentset))) //We had a last key that's different?
+			{
+				onKeyRelease(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
+			}
+			onKeyPress(getkeyboard(0, currentset, sety, setx, displaytokeyboard[currentkey]));
+			//Save the active key information!
+			lastset = currentset;
+			lastx = setx;
+			lasty = sety;
+			lastkey = currentkey;
+		}
+		else if (lastkey) //We have a last key with nothing pressed?
+		{
+			onKeyRelease(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
+			lastkey = 0; //We didn't have a last key!			
+		}
+	} //Not buffering?
+	else //Buffering?
+	{
+		if (!(shiftstatus&SHIFTSTATUS_CTRL) && ((lastshift&SHIFTSTATUS_CTRL) > 0)) //Released CTRL?
+		{
+			goto keyreleased; //Released!
+		}
+		if (!(shiftstatus&SHIFTSTATUS_ALT) && ((lastshift&SHIFTSTATUS_ALT) > 0)) //Released ALT?
+		{
+			goto keyreleased; //Released!
+		}
+		if (!(shiftstatus&SHIFTSTATUS_SHIFT) && ((lastshift&SHIFTSTATUS_SHIFT) > 0)) //Released SHIFT?
+		{
+			goto keyreleased; //Released!
+		}
+
+		if (currentkey || shiftstatus) //More keys pressed?
+		{
+			if (lastkey && ((lastkey != currentkey) || (lastx != setx) || (lasty != sety) || (lastset != currentset))) //We had a last key that's different?
+			{
+				goto keyreleased; //Released after all!
+			}
+			//Save the active key information!
+
+			lastset = currentset;
+			lastx = setx;
+			lasty = sety;
+			lastkey = currentkey;
+			lastshift = shiftstatus; //Shift status!
+		}
+		else //Key/shift released?
+		{
+			int key;
+		keyreleased:
+			if (!lastkey && !lastshift) //Nothing yet?
+			{
+				return; //Abort: we're nothing pressed!
+			}
+			key = EMU_keyboard_handler_nametoid(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Our key?
+			input_buffer_shift = lastshift; //Set shift status!
+			input_buffer = key; //Last key!
+			//Update current information!
+			lastkey = 0; //Update current information!
+			lastx = setx;
+			lasty = sety;
+			lastset = currentset;
+			lastshift = shiftstatus;
+		}
+		//Key presses aren't buffered: we only want to know the key and shift state when fully pressed, nothing more!
 	}
 }
 
@@ -1671,6 +1618,24 @@ void handleGaming() //Handles gaming mode input!
 
 int request_type_term = 0;
 
+void handleKeyPressRelease(int key)
+{
+	switch (emu_keys_state[key]) //What state are we in?
+	{
+	case 0: //Released?
+		break;
+	case 1: //Pressed?
+		onKeyPress(&keys_names[key][0]); //Tick the keypress!
+		break;
+	case 2: //Releasing?
+		onKeyRelease(&keys_names[key][0]); //Handle key release!
+		emu_keys_state[key] = 0; //We're released!
+		break;
+	default: //Unknown?
+		break;
+	}
+}
+
 void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 {
 	//for(;;)
@@ -1681,14 +1646,14 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 			return; //Terminate!
 		}*/
 
-		if (input_enabled && ALLOW_INPUT) //Input enabled?
+		if (!Direct_Input) //Not executing direct input?
 		{
-			get_analog_state(&curstat); //Get the analog&buttons status for the keyboard!
-			//Determine stuff for output!
-			//Don't process shift atm!
-
-			if (!Direct_Input)
+			if (input_enabled && ALLOW_INPUT) //Input enabled?
 			{
+				get_analog_state(&curstat); //Get the analog&buttons status for the keyboard!
+				//Determine stuff for output!
+				//Don't process shift atm!
+
 				if (curstat.gamingmode) //Gaming mode?
 				{
 					handleGaming(); //Handle gaming input?
@@ -1709,11 +1674,38 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 					}
 				}
 			}
-			else
-			{
-				handleKeyboard(); //Handle keyboard input?
-			}
 		} //Input enabled?
+		else //Direct input?
+		{
+			int key;
+			char name[256];
+			memset(name, 0, sizeof(name)); //Init name!
+
+										   //Handle CTRL/ALT/Shift first!
+			int lctrl = EMU_keyboard_handler_nametoid("LCTRL");
+			handleKeyPressRelease(lctrl);
+			int rctrl = EMU_keyboard_handler_nametoid("RCTRL");
+			handleKeyPressRelease(rctrl);
+			int lalt = EMU_keyboard_handler_nametoid("LALT");
+			handleKeyPressRelease(lalt);
+			int ralt = EMU_keyboard_handler_nametoid("RALT");
+			handleKeyPressRelease(ralt);
+			int lshift = EMU_keyboard_handler_nametoid("LSHIFT");
+			handleKeyPressRelease(lshift);
+			int rshift = EMU_keyboard_handler_nametoid("RSHIFT");
+			handleKeyPressRelease(rshift);
+
+			for (key = 0;key < NUMITEMS(emu_keys_state);key++)
+			{
+				if (EMU_keyboard_handler_idtoname(key, &name[0])) //Found key?
+				{
+					if ((key != lctrl) && (key != rctrl) && (key != lalt) && (key != ralt) && (key != lshift) && (key != rshift)) //Not already handled?
+					{
+						handleKeyPressRelease(key); //Handle key press or release!
+					}
+				}
+			}
+		}
 		tickPendingKeys(); //Handle any pending keys if possible!
 	} //While loop, muse be infinite to prevent closing!
 }
@@ -2314,7 +2306,7 @@ void psp_input_init()
 	SDL_JoystickEventState(SDL_ENABLE);
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
 	keyboard_lock = SDL_CreateSemaphore(1); //Our lock!
-	addtimer(1000.0f, &keyboard_type_handler, "Keyboard handler", 0, 0, keyboard_lock);
+	addtimer(1000.0f, &keyboard_type_handler, "Keyboard handler", 0, 1, keyboard_lock);
 }
 
 void psp_input_done()
