@@ -159,9 +159,6 @@ byte running = 0; //Are we running the main thread?
 
 void updateInputMain() //Frequency 1000Hz!
 {
-	static uint_32 lastticks = 0;
-	static byte haslastticks = 0;
-	uint_32 curticks;
 	SDL_Event event;
 	if (SDL_WaitEvent(&event)) //Gotten events to handle?
 	{
@@ -171,20 +168,6 @@ void updateInputMain() //Frequency 1000Hz!
 		{
 			running = 0; //Terminate our app!
 		}
-	}
-	if (haslastticks) //Have last tick?
-	{
-		curticks = SDL_GetTicks(); //Get current ticks!
-		if ((curticks - lastticks) > 0) //Enough time passed?
-		{
-			lastticks = curticks; //Update current ticks!
-			keyboard_type_handler(); //Type handler at 100Hz when EMU isn't running!
-		}
-	}
-	else
-	{
-		lastticks = SDL_GetTicks(); //Update ticks!
-		haslastticks = 1; //We have it!
 	}
 }
 
@@ -224,7 +207,7 @@ int main(int argc, char * argv[])
 		if (f1!=f2) //Memory changed on the second check?
 		{
 			dolog("zalloc_debug","Multiple freemem fail!");
-			halt(); //Quit
+			halt(0); //Quit
 		}
 
 		uint_32 f;
@@ -261,7 +244,7 @@ int main(int argc, char * argv[])
 		}
 		
 		dolog("zalloc_debug","All checks passed. Free memory: %i bytes Total memory: %i bytes",freemem(),f1);
-		halt(); //Quit!
+		halt(0); //Quit!
 	}
 	
 	if (DELETE_LOGS_ONBOOT) delete_file("logs","*.log"); //Delete any logs still there!
@@ -329,7 +312,7 @@ int main(int argc, char * argv[])
 		doneAudio(); //Finish audio processing!
 		debugrow("Terminating main video service...");		
 		doneVideoMain(); //Finish video!
-		halt(); //Exit software!
+		halt(0); //Exit software!
 		sleep(); //Wait forever if needed!
 	}
 
@@ -356,7 +339,7 @@ int main(int argc, char * argv[])
 
 	if (SLEEP_ON_MAIN_CLOSE) //Sleep on main thread close?
 	{
-		halt(); //Terminate the application!
+		halt(0); //Terminate the application!
 		return 0; //Sleep: The main thread has been closed! Dont reset/quit!
 	}
 

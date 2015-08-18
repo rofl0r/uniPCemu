@@ -39,8 +39,6 @@ uint_32 totalframes = 0;
 float totalscanlinepercentage = 0.0f;
 uint_32 totalsteps = 0;
 
-extern uint_32 ms_render; //MS it took to render (125000 for 8fps, which is plenty!)
-
 uint_32 SCREENS_RENDERED = 0; //Ammount of GPU screens rendered!
 extern uint_64 instructioncounter; //For calculating IPS!
 
@@ -200,13 +198,11 @@ void logVGASpeed()
 {
 	static uint_32 counter = 0;
 	char rendertime[20];
-	convertTime(ms_render,&rendertime[0]); //Convert to viewable time!
 	if (!(counter++%5)) //To log every 5 callcs?
 	{
-		dolog("Framerate","FPS: %02.5f, AVG: %02.5f, Render time: %s",
+		dolog("Framerate","FPS: %02.5f, AVG: %02.5f",
 			framerate, //Current framrate (FPS)
-			totalframerate, //AVG framerate (FPS)
-			rendertime //Time it took to render (MS))
+			totalframerate //AVG framerate (FPS)
 		); //Log the current framerate speed!
 	}
 }

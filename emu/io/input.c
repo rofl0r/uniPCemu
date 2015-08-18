@@ -1673,7 +1673,6 @@ int request_type_term = 0;
 
 void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 {
-	WaitSem(keyboard_lock); //Wait for the lock!
 	//for(;;)
 	{
 		/*if (request_type_term) //Request termination?
@@ -1717,7 +1716,6 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 		} //Input enabled?
 		tickPendingKeys(); //Handle any pending keys if possible!
 	} //While loop, muse be infinite to prevent closing!
-	PostSem(keyboard_lock); //Finish the lock!
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
@@ -2050,7 +2048,7 @@ void updateInput(SDL_Event *event) //Update all input!
 					{
 						GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
 						updateVideo(); //Force an update of video!
-						delay(500000); //Wait half a second to make sure nothing 
+						delay(500000); //Wait for release!
 					}
 					break;
 				case SDLK_UP: //UP?
@@ -2316,6 +2314,7 @@ void psp_input_init()
 	SDL_JoystickEventState(SDL_ENABLE);
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
 	keyboard_lock = SDL_CreateSemaphore(1); //Our lock!
+	addtimer(1000.0f, &keyboard_type_handler, "Keyboard handler", 0, 0, keyboard_lock);
 }
 
 void psp_input_done()

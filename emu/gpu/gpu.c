@@ -271,6 +271,7 @@ void updateVideo() //Update the screen resolution on change!
 	static byte fullscreen = 0; //Are we fullscreen?
 	if (rendersurface) //Already started?
 	{
+		lockGPU(); //Lock the GPU!
 		if ((xres!=GPU.xres) || (yres!=GPU.yres) || (fullscreen!=GPU.fullscreen)) //Resolution changed or fullscreen changed?
 		{
 			xres = GPU.xres;
@@ -283,6 +284,7 @@ void updateVideo() //Update the screen resolution on change!
 				registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 0); //Register, but don't allow release: this is done by SDL_Quit only!
 			}
 		}
+		unlockGPU(); //We're finished with the GPU!
 	}
 	#endif
 }

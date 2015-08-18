@@ -41,7 +41,6 @@
 #ifdef __psp__
 #define delay(us) sceKernelDelayThread(us)
 #define sleep sceKernelSleepThread
-#define halt sceKernelExitGame
 #define mkdir(dir) sceIoMkdir(dir,0777)
 #define WaitSem(s)
 #define PostSem(s)
@@ -57,13 +56,15 @@
 #endif
 #define delay(us) SDL_Delay(realdelay((uint_32)((us)/1000)))
 #define sleep() for (;;) delay(1000000)
-#define halt SDL_Quit
 #ifdef _WIN32
 //Windows-specific headers!
 #include <direct.h> //For mkdir!
 #define mkdir _mkdir
 #endif
 #endif
+
+//Halt is redirected to the exit function!
+#define halt exit
 
 #ifndef uint_64
 #define uint_64 uint64_t

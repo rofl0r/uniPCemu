@@ -17,6 +17,8 @@
 
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 
+word signal_x, signal_scanline; //Signal location!
+
 //Are we disabled?
 #define HW_DISABLED 0
 
@@ -202,7 +204,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	VGA_loadcharacterplanes(VGA, Sequencer, 0); //Initialise the character planes for usage!
 }
 
-byte Sequencer_Break; //Sequencer breaked (loop exit)?
+byte Sequencer_run; //Sequencer breaked (loop exit)?
 
 //Special states!
 byte blanking = 0; //Are we blanking!
@@ -240,7 +242,6 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->xres = 0; //Reset X resolution next frame if not specified (like a real screen)!
 	
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
-	Sequencer_Break = 1; //Not running anymore!
 }
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -260,9 +261,6 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->tempx = 0; //Reset the rendering position from the framebuffer!
 	VGA_Sequencer_calcScanlineData(VGA);
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
-	
-	//Stop running!
-	Sequencer_Break = 1; //Not running anymore!
 }
 
 //Retrace handlers!
@@ -285,23 +283,31 @@ typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attri
 //Blank handler!
 void VGA_Blank(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	drawPixel(VGA,RGB(0x00,0x00,0x00)); //Draw blank!
-	++VGA->CRTC.x; //Next x!
+	if (!hretrace)
+	{
+		drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
+		++VGA->CRTC.x; //Next x!
+	}
 }
 
-extern byte LOG_RENDER_BYTES; //From graphics mode operations!
-OPTINLINE void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	//Active display!
-	drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
-	++VGA->CRTC.x; //Next x!
+	if (!hretrace)
+	{
+		//Active display!
+		drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
+		++VGA->CRTC.x; //Next x!
+	}
 }
 
 void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	//Overscan!
-	drawPixel(VGA,VGA_DAC(VGA,VGA->precalcs.overscancolor)); //Draw overscan!
-	++VGA->CRTC.x; //Next x!
+	if (!hretrace)
+	{
+		//Overscan!
+		drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
+		++VGA->CRTC.x; //Next x!
+	}
 }
 
 //Active display handler!
@@ -364,12 +370,7 @@ void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 //All different signals!
 
-void VGA_SIGNAL_NOPQ(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal) //Nothing to do yet?
-{
-	Sequencer_Break = 1; //Not running anymore: we can't do anything without a signal!
-}
-
-void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 {
 	//Blankings
 	if (signal&VGA_SIGNAL_HBLANKSTART) //HBlank start?
@@ -411,38 +412,37 @@ void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 	blanking |= vblank; //Process blank!
 	
 	//Retraces
-	if (signal&VGA_SIGNAL_HRETRACESTART && !hretrace) //HRetrace start?
+	if (signal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
 	{
-		if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Enable sync?
+		if (!hretrace) //Not running yet?
 		{
-			hretrace = 1; //We're retracing!
-			VGA_HRetrace(Sequencer,VGA); //HRetrace!
+			VGA_HRetrace(Sequencer, VGA); //Execute the handler!
 		}
+		hretrace = 1; //We're retracing!
 	}
 	else if (hretrace)
 	{
 		if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
 		{
-			hretrace = 0;
+			hretrace = 0; //We're not retraing anymore!
 		}
 	}
-	
-	if (signal&VGA_SIGNAL_VRETRACESTART && !vretrace) //VRetrace start?
+
+	if (signal&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
 	{
-		if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Enable sync?
+		if (!vretrace) //Not running yet?
 		{
-			vretrace = 1; //We're retracing!
-			VGA_VRetrace(Sequencer,VGA); //VRetrace!
+			VGA_VRetrace(Sequencer, VGA); //Execute the handler!
 		}
+		vretrace = 1; //We're retracing!
 	}
 	else if (vretrace)
 	{
 		if (signal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
 		{
-			vretrace = 0;
+			vretrace = 0; //We're not retracing anymore!
 		}
 	}
-	
 	
 	retracing = hretrace;
 	retracing |= vretrace; //We're retracing?
@@ -469,15 +469,6 @@ void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 	totalretracing |= retracing; //Are we retracing?
 }
 
-void VGA_SIGNAL_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
-{
-	//We're a NOP operation for the signal: do nothing, also don't abort since we're not the renderer!
-	if (blankretraceendpending) //Anything pending?
-	{
-		VGA_SIGNAL_HANDLER(Sequencer,VGA,signal); //Handle our un-signals!
-	}
-}
-
 //Combination functions of the above:
 
 //Horizontal before vertical, retrace before total.
@@ -492,8 +483,6 @@ void initStateHandlers()
 	displayrenderhandler[2][0] = &VGA_NOP; //Default: no action!
 	displayrenderhandler[3][0] = &VGA_NOP; //Default: no action!
 
-	displaysignalhandler[0] = &VGA_SIGNAL_NOPQ; //No signal at all: simply abort!
-	
 	for (i=1;i<0x10000;i++) //Fill the normal entries!
 	{
 		//Total handler for total handlers!
@@ -503,9 +492,6 @@ void initStateHandlers()
 		
 		//Rendering handler without retrace AND total!
 		displayrenderhandler[0][i] = ((i&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)?&VGA_ActiveDisplay:&VGA_Overscan; //Not retracing or any total handler = display/overscan!
-		
-		//Signal handler, if any!
-		displaysignalhandler[i] = (i&VGA_SIGNAL_HASSIGNAL)?&VGA_SIGNAL_HANDLER:&VGA_SIGNAL_NOP; //Signal handler if needed!
 	}
 }
 
@@ -513,6 +499,7 @@ void VGA_Sequencer()
 {
 	if (HW_DISABLED) return;
 	if (!lockVGA()) return; //Lock ourselves!
+	static word displaystate = 0; //Last display state!
 	VGA_Type *VGA = getActiveVGA(); //Our active VGA!
 	if (!memprotect(VGA, sizeof(*VGA), "VGA_Struct")) //Invalid VGA? Don't do anything!
 	{
@@ -521,22 +508,13 @@ void VGA_Sequencer()
 	}
 
 	SEQ_DATA *Sequencer;
-	static word displaystate=0; //Current display state!
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
 
 	//All possible states!
-	if (!displaysignalhandler[0]) //Nothing set?
+	if (!displayrenderhandler[0][0]) //Nothing set?
 	{
 		initStateHandlers(); //Init our display states for usage!
 	}
-
-	displaysignalhandler[displaystate](Sequencer, VGA, displaystate); //Handle any change in display state first!
-
-	/*if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE) //Not doing anything?
-	{
-		unlockVGA();
-		return; //Abort: we're disabled!
-	}*/
 
 	if (!lockGPU()) //Lock the GPU for our access!
 	{
@@ -551,13 +529,14 @@ void VGA_Sequencer()
 	}
 
 	uint_32 i = PIXELBLOCKSIZE+1; //Process 1024000 pixels at a time!
-	for (; --i;)
+	Sequencer_run = 1; //We're running!
+	for (; --i && Sequencer_run;)
 	{
 		//Process one pixel only!
-		Sequencer_Break = 0; //Start running!
-		totalretracing &= 1; //Only count retracing for new pixels: total is only once!
+		signal_x = Sequencer->x;
+		signal_scanline = Sequencer->Scanline;
 		displaystate = get_display(VGA, Sequencer->Scanline, Sequencer->x++); //Current display state!
-		displaysignalhandler[displaystate](Sequencer, VGA, displaystate); //Handle any change in display state first!
+		VGA_SIGNAL_HANDLER(Sequencer, VGA, displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalretracing][displaystate](Sequencer, VGA); //Execute our signal!
 	}
 

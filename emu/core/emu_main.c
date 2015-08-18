@@ -115,7 +115,7 @@ void cputhread() //The main thread for the emulator!
 	case 0: //Shutdown
 		debugrow("Shutdown...");
 		finishEMU(); //Dismiss emulator!
-		halt();
+		halt(0);
 		return;
 	case 1: //Full reset emu
 		debugrow("Reset...");

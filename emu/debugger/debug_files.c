@@ -86,6 +86,6 @@ void DoDebugFiles() //Do the debug files!
 
 	GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Verification complete!");
 	refreshscreen(); //Update the screen now!
-	halt(); //Quit if possible!
+	halt(0); //Quit if possible!
 	sleep(); //Wait forever with the emulator active!
 }

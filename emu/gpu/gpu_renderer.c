@@ -23,9 +23,7 @@ byte SCREEN_CAPTURE = 0; //To capture a screen? Set to 1 to make a capture next 
 extern GPU_type GPU; //GPU!
 
 extern GPU_SDL_Surface *rendersurface; //The PSP's surface to use when flipping!
-TicksHolder ms_render_lastcheck; //For counting ms to render (GPU_framerate)!
 extern uint_32 frames; //Frames processed!
-extern uint_32 ms_render; //MS it took to render (125000 for 8fps, which is plenty!)
 
 uint_32 frames_rendered = 0;
 
@@ -172,7 +170,6 @@ void GPU_directRenderer() //Plot directly 1:1 on-screen!
 	//OK: rendered to PSP buffer!
 }
 
-uint_32 ms_render = 0; //MS it took to render (125000 for 8fps, which is plenty!)
 void render_EMU_screen() //Render the EMU buffer to the screen!
 {
 	uint_32 *srcrow; //Current pixel row rendering!
@@ -319,7 +316,7 @@ void renderFrames() //Render all frames to the screen!
 //Rendering functionality!
 void render_EMU_buffer() //Render the EMU to the buffer!
 {
-	getuspassed(&ms_render_lastcheck); //Init last check to current time!
+	lockGPU(); //Lock the GPU!
 	//Next, allocate all buffers!
 	//First, check the emulated screen for updates and update it if needed!
 	if (rendersurface && ((GPU.xres*GPU.yres)>0)) //Got emu screen to render to the PSP and not testing and dirty?
@@ -334,11 +331,17 @@ void render_EMU_buffer() //Render the EMU to the buffer!
 			xres = GPU.xres; //Load x resolution!
 			yres = GPU.yres; //Load y resolution!
 			//Limit broken = no display!
-			if (xres>EMU_MAX_X) return; //Limit to buffer!
-			if (yres>EMU_MAX_Y) return; //Limit to buffer!
-			lockGPU(); //Lock the GPU!
+			if (xres > EMU_MAX_X)
+			{
+				unlockGPU(); //Unlock the GPU!
+				return; //Limit to buffer!
+			}
+			if (yres > EMU_MAX_Y)
+			{
+				unlockGPU(); //Unlock the GPU!
+				return; //Limit to buffer!
+			}
 			GPU_SDL_Surface *emu_screen = createSurfaceFromPixels(GPU.xres, GPU.yres, GPU.emu_screenbuffer, EMU_MAX_X); //Create container 32BPP pixel mode!
-			unlockGPU(); //Free the GPU!
 			if (emu_screen) //Createn to render?
 			{
 				//Resize to resized!
@@ -351,11 +354,10 @@ void render_EMU_buffer() //Render the EMU to the buffer!
 				emu_screen = freeSurface(emu_screen); //Done with the emulator screen!
 			}
 			GPU.emu_buffer_dirty = 0; //Not dirty anymore: we've been updated!
+			unlockGPU(); //Free the GPU!
 		}
 	}
-	ms_render = getuspassed(&ms_render_lastcheck); //Update last check to current time processed!
-	char time[20];
-	convertTime(ms_render,&time[0]); //Convert!
+	unlockGPU(); //Unlock the GPU!
 }
 
 byte SplitScreen = 0; //Default: no split-screen!
@@ -405,6 +407,7 @@ void renderHWFrame() //Render a frame from hardware!
 				render_EMU_buffer(); //Render the EMU to the buffer, if updated! This is our main layer!
 			}
 		}
+		lockGPU();
 		if (SCREEN_CAPTURE) //Screen capture?
 		{
 			if (!--SCREEN_CAPTURE) //Capture this frame?
@@ -412,6 +415,7 @@ void renderHWFrame() //Render a frame from hardware!
 				writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),GPU.xres,GPU.yres,GPU.doublewidth,GPU.doubleheight,EMU_MAX_X); //Dump our raw screen!
 			}
 		}
+		unlockGPU();
 	}
 	
 	GPU_FrameRendered(); //A frame has been rendered, so update our stats!

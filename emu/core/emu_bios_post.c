@@ -333,7 +333,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		if (shuttingdown()) //Shut down?
 		{
 			EMU_Shutdown(0); //Done shutting down!
-			halt(); //Shut down!
+			halt(0); //Shut down!
 		}
 
 		//First debugger step: custom bios check!
