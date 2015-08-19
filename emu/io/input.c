@@ -29,6 +29,8 @@
 #include <SDL/SDL_events.h> //Event support!
 #endif
 
+int_64 mouse_xmove = 0, mouse_ymove = 0; //Movement of the mouse not processed yet!
+
 byte mousebuttons = 0; //Active mouse buttons!
 
 //Use direct input in windows!
@@ -37,6 +39,7 @@ byte Direct_Input = 0; //Direct input enabled?
 extern byte EMU_RUNNING; //Are we running?
 
 SDL_sem *keyboard_lock = NULL; //Our lock!
+SDL_sem *mouse_lock = NULL; //Our lock!
 
 byte keysactive; //Ammount of keys active!
 
@@ -549,7 +552,7 @@ int is_gamingmode()
 
 void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/second!)
 {
-	const float maxmousespeed = (1.0f / 32767.0f)*255.0f; //Scale to 255!
+	const float maxmousespeed = (1.0f / 32767.0f)*127.0f; //Scale to 127!
 	if (!curstat.mode || curstat.gamingmode) //Mouse mode or gaming mode?
 	{
 		if (useMouseTimer() || useSERMouse()) //We're using the mouse?
@@ -558,6 +561,9 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 		
 			if (mousepacket) //Not running out of memory?
 			{
+				mousepacket->xmove = 0; //No movement by default!
+				mousepacket->ymove = 0; //No movement by default!
+				
 				//Fill the mouse data!
 				if (!curstat.gamingmode || 
 					(curstat.gamingmode &&
@@ -567,16 +573,20 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 					 (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGDOWN]==-1)
 					)) //Not gaming mode OR gaming mode with no keyboard mappings: use mouse movement!
 				{
-					mousepacket->xmove = curstat.analogdirection_mouse_x; //X movement!
-					mousepacket->ymove = curstat.analogdirection_mouse_y; //Y movement!
-					mousepacket->xmove *= maxmousespeed; //Scale to destination scale!
-					mousepacket->ymove *= maxmousespeed; //Scale to destination scale!
+					WaitSem(mouse_lock);
+					if (mouse_xmove || mouse_ymove) //Any movement at all?
+					{
+						uint_32 xmove, ymove; //For calculating limits!
+						xmove = (mouse_xmove < -32767) ? -32767 : ((mouse_xmove>32767) ? 32767 : mouse_xmove); //Clip to max value!
+						ymove = (mouse_ymove < -32767) ? -32767 : ((mouse_ymove>32767) ? 32767 : mouse_ymove); //Clip to max value!
+						mouse_xmove -= xmove; //Rest value!
+						mouse_ymove -= ymove; //Rest value!
+						mousepacket->xmove = curstat.analogdirection_mouse_x*maxmousespeed; //X movement, scaled!
+						mousepacket->ymove = curstat.analogdirection_mouse_y*maxmousespeed; //Y movement, scaled!
+					}
+					PostSem(mouse_lock);
 				}
-				else
-				{
-					mousepacket->xmove = 0; //No movement!
-					mousepacket->ymove = 0; //No movement!
-				}
+
 				mousepacket->buttons = 0; //Default: no buttons!
 				
 				if (!curstat.gamingmode) //Not in gaming mode and in mouse mode? emulate left,right,middle mouse button too!
@@ -596,6 +606,7 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 						mousepacket->buttons |= 4; //Middle button pressed!
 					}
 				}
+
 				if (!PS2mouse_packet_handler(mousepacket)) //Add the mouse packet! Not supported PS/2 mouse?
 				{
 					SERmouse_packet_handler(mousepacket); //Send the mouse packet to the serial mouse!
@@ -1072,6 +1083,17 @@ extern char keys_names[104][11]; //All names of the used keys (for textual repre
 
 void handleKeyboardMouse() //Handles keyboard input during mouse operations!
 {
+	//Also handle mouse movement here (constant factor)!
+	WaitSem(mouse_lock);
+	static word mousemovementstep; //How many steps per movement!
+	if (++mousemovementstep == 100) //10 times a second...
+	{
+		mousemovementstep = 0; //Reset movement step!
+		mouse_xmove -= curstat.analogdirection_mouse_x; //Apply x direction (reversed)!
+		mouse_ymove -= curstat.analogdirection_mouse_y; //Apply y direction (reversed)!
+	}
+	PostSem(mouse_lock);
+
 	shiftstatus = 0; //Init shift status!
 	shiftstatus |= ((curstat.buttonpress&512)>0)*SHIFTSTATUS_SHIFT; //Apply shift status!
 	shiftstatus |= ((curstat.buttonpress&(16|32))>0)*SHIFTSTATUS_CTRL; //Apply ctrl status!
@@ -1718,6 +1740,11 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 	} //While loop, muse be infinite to prevent closing!
 }
 
+void setMouseRate(float packetspersecond)
+{
+	addtimer(packetspersecond, &mouse_handler, "PSP Mouse", 10, 0, NULL); //Handles mouse input: we're a normal timer!
+}
+
 int KEYBOARD_STARTED = 0; //Default not started yet!
 void psp_keyboard_init()
 {
@@ -1738,7 +1765,6 @@ void psp_keyboard_init()
 	//dolog("osk","Starting swap handler");
 	addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1,1,NULL); //Handles keyboard set swapping: we're an interrupt!
 	//dolog("osk","Starting mouse handler");
-	addtimer(256.0f,&mouse_handler,"PSP Mouse",10,0,NULL); //Handles mouse input: we're a normal timer!
 	KEYBOARD_STARTED = 1; //Started!
 	//dolog("osk","keyboard&mouse ready.");
 }
@@ -2328,6 +2354,7 @@ void psp_input_init()
 	SDL_JoystickEventState(SDL_ENABLE);
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
 	keyboard_lock = SDL_CreateSemaphore(1); //Our lock!
+	mouse_lock = SDL_CreateSemaphore(1); //Our lock!
 	addtimer(1000.0f, &keyboard_type_handler, "Keyboard handler", 0, 1, keyboard_lock);
 }
 

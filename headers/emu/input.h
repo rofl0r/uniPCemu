@@ -87,7 +87,7 @@ void keyboard_loadDefaults(); //Load the defaults for the keyboard!
 void initKeyboardOSK(); //Initialise keyboard (GPU init only)
 void doneKeyboardOSK(); //See above, but done!
 
-void mouse_handler(); //Mouse handler at MAXIMUM packet speed (256 packets/second!)
+void setMouseRate(float packetspersecond); //Set the mouse refresh rate!
 
 void load_keyboard_status(); //Load keyboard status from memory!
 void save_keyboard_status(); //Save keyboard status to memory!

@@ -169,10 +169,8 @@ void update_mouseTimer()
 {
 	if (__HW_DISABLED) return; //Abort!
 	if (MOUSE_DISABLED) return; //Mouse disabled?
-	addtimer(HWmouse_getsamplerate(),&mouse_handler,"MouseTimer",100,0,NULL); //Start using this samplerate!
+	setMouseRate(HWmouse_getsamplerate()); //Start using this samplerate!
 }
-
-
 
 void resetMouse()
 {

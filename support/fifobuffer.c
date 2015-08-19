@@ -17,7 +17,6 @@ result:
 
 */
 
-
 FIFOBUFFER* allocfifobuffer(uint_32 buffersize)
 {
 	FIFOBUFFER *container;
@@ -80,7 +79,7 @@ uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 	{
 		result = buffer->lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
 	}
-	if (buffer->readpos>buffer->writepos) //Read after write index? We're a simple difference!
+	else if (buffer->readpos>buffer->writepos) //Read after write index? We're a simple difference!
 	{
 		result = buffer->readpos - buffer->writepos;
 	}
@@ -185,6 +184,8 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 		return; //Error: invalid buffer!
 	}
 	
+	if (fifobuffer_freesize(buffer) == buffer->size) return; //Empty? We can't: there is nothing to go back to!
+
 	WaitSem(buffer->lock)
 	if (buffer->writepos-1<0) //Last pos?
 	{
