@@ -147,10 +147,6 @@ void MMU_directwb(uint_32 realaddress, byte value) //Direct write to real memory
 		execNMI(1); //Execute an NMI from memory!
 		return; //Abort: can't write here!
 	}
-	if (realaddress == 0x411) //Equipment high word?
-	{
-		value |= 8; //This is for the PS/2 mouse to be detected!
-	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	if (realaddress>user_memory_used) //More written than present in memory (first write to addr)?
 	{

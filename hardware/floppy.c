@@ -31,7 +31,7 @@
 
 //Logging with debugger only!
 #ifdef FLOPPY_LOGFILE
-#define FLOPPY_LOGD(...) if (debugger_logging()) FLOPPY_LOG(__VA_ARGS__)
+#define FLOPPY_LOGD(...) if (debugger_logging()) {FLOPPY_LOG(__VA_ARGS__)}
 #else
 #define FLOPPY_LOGD(...)
 #endif
@@ -395,7 +395,7 @@ void updateFloppyMSR() //Update the floppy MSR!
 	if (FLOPPY.MSR.data != oldMSR) //MSR changed?
 	{
 		oldMSR = FLOPPY.MSR.data; //Update old!
-		FLOPPY_LOGD("FLOPPY: MSR: %02x", FLOPPY.MSR.data); //The updated MSR!
+		FLOPPY_LOGD("FLOPPY: MSR: %02x", FLOPPY.MSR.data) //The updated MSR!
 	}
 }
 
@@ -480,7 +480,7 @@ void FLOPPY_startData() //Start a Data transfer if needed!
 	FLOPPY.databufferposition = 0; //Start with the new buffer!
 	if (FLOPPY.commandstep != 2) //Entering data phase?
 	{
-		FLOPPY_LOGD("FLOPPY: Start transfer of data...");
+		FLOPPY_LOGD("FLOPPY: Start transfer of data...")
 	}
 	FLOPPY.commandstep = 2; //Move to data phrase!
 	if (FLOPPY.DOR.Mode) //DMA mode?
@@ -510,7 +510,7 @@ void floppy_readsector() //Request a read sector command!
 	FLOPPY_LOG("FLOPPY: Read sector #%i", FLOPPY.disk_startpos) //We're reading this sector!
 	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize); } //Transfer this many sectors!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
 
 	if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 	{
@@ -556,7 +556,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 	++FLOPPY.sectorstransferred; //A sector has been transferred!
 	if (drivereadonly(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Read only drive?
 	{
-		FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred); //Log the completion of the sectors written!
+		FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0.data;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1.data;
@@ -673,9 +673,9 @@ void floppy_writesector() //Request a write sector command!
 	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Write sector #%i", FLOPPY.disk_startpos) } //We're reading this sector!
 	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize); } //Transfer this many sectors!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
 
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Write sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]); } //Log our request!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Write sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]) } //Log our request!
 
 	if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 	{
@@ -728,7 +728,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 						FLOPPY.ST0.NotReady = 0; //We're ready!
 						break;
 					}
-					FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred); //Log the completion of the sectors written!
+					FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 					FLOPPY.resultposition = 0;
 					FLOPPY.resultbuffer[0] = FLOPPY.ST0.data; //ST0!
 					FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //ST1!
@@ -744,7 +744,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 				{
 					if (drivereadonly(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Read-only drive?
 					{
-						FLOPPY_LOG("FLOPPY: Finished transfer of data (readonly)."); //Log the completion of the sectors written!
+						FLOPPY_LOG("FLOPPY: Finished transfer of data (readonly).") //Log the completion of the sectors written!
 						FLOPPY.resultposition = 0;
 						FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 						FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //Drive write-protected! ST1!
@@ -778,7 +778,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 									FLOPPY.ST0.NotReady = 0; //We're ready!
 									break;
 								}
-								FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred); //Log the completion of the sectors written!
+								FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 								FLOPPY.ST0.SeekEnd = 1; //Successfull write with implicit seek!
 								FLOPPY.resultposition = 0;
 								FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
@@ -845,7 +845,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber];
 				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
 				FLOPPY.commandstep = 3; //Move to result phrase and give the result!
-				FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sectors).", FLOPPY.sectorstransferred); //Log the completion of the sectors written!
+				FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sectors).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 				FLOPPY_raiseIRQ(); //Entering result phase!
 			}
 			else //Unfinished buffer? Terminate!
@@ -1135,7 +1135,7 @@ void floppy_writeData(byte value)
 			}
 			break;
 		case 1: //Parameters
-			FLOPPY_LOGD("FLOPPY: Parameter sent: %02X(#%i/%i)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0] & 0xF]); //Log the parameter!
+			FLOPPY_LOGD("FLOPPY: Parameter sent: %02X(#%i/%i)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0] & 0xF]) //Log the parameter!
 			FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
 			if (FLOPPY.commandposition > (commandlength[FLOPPY.commandbuffer[0] & 0xF])) //All parameters have been processed?
 			{
