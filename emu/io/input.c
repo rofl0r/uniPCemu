@@ -19,6 +19,8 @@
 
 #include "headers/support/highrestimer.h" //High resolution timer support!
 
+#include "headers/hardware/sermouse.h" //Serial mouse support!
+
 #ifdef _WIN32
 #include "sdl_joystick.h" //Joystick support!
 #include "sdl_events.h" //Event support!
@@ -550,7 +552,7 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 	const float maxmousespeed = (1.0f / 32767.0f)*255.0f; //Scale to 255!
 	if (!curstat.mode || curstat.gamingmode) //Mouse mode or gaming mode?
 	{
-		if (useMouseTimer()) //We're using the mouse?
+		if (useMouseTimer() || useSERMouse()) //We're using the mouse?
 		{
 			MOUSE_PACKET *mousepacket = (MOUSE_PACKET *)zalloc(sizeof(MOUSE_PACKET),"Mouse_Packet",NULL); //Allocate a mouse packet!
 		
@@ -594,7 +596,10 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 						mousepacket->buttons |= 4; //Middle button pressed!
 					}
 				}
-				mouse_packet_handler(mousepacket); //Add the mouse packet!
+				if (!PS2mouse_packet_handler(mousepacket)) //Add the mouse packet! Not supported PS/2 mouse?
+				{
+					SERmouse_packet_handler(mousepacket); //Send the mouse packet to the serial mouse!
+				}
 			}
 		}
 	}

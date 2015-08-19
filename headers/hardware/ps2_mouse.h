@@ -13,7 +13,7 @@ struct MOUSE_PACKET *next; //Next packet!
 } MOUSE_PACKET;
 
 void BIOS_initMouse(); //Initialise the mouse to reset mode?
-void mouse_packet_handler(MOUSE_PACKET *packet); //A packet has arrived (on mouse!)
+byte PS2mouse_packet_handler(MOUSE_PACKET *packet); //A packet has arrived (on mouse!)
 int useMouseTimer(); //Use the mouse timer?
 float HWmouse_getsamplerate(); //Which repeat rate to use after the repeat delay! (packets/second)
 

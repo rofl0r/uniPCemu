@@ -29,6 +29,8 @@ Info: ATA interface usually serves hard disks and CD drives.
 
 */
 
+typedef void(*IRQHandler)(byte IRQ);
+
 typedef struct
 {
 	uint8_t imr[2]; //mask register
@@ -42,6 +44,7 @@ typedef struct
 	uint8_t readmode[2]; //remember what to return on read register from OCW3
 	uint8_t enabled[2];
 	byte IROrder[16]; //The order we process!
+	IRQHandler acceptirq[0x10], finishirq[0x10]; //All IRQ handlers!
 } PIC;
 
 void init8259(); //For initialising the 8259 module!
@@ -49,6 +52,9 @@ byte in8259(word portnum, byte *result); //In port
 byte out8259(word portnum, byte value); //Out port
 byte PICInterrupt(); //We have an interrupt ready to process?
 byte nextintr(); //Next interrupt to handle
+
+void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ); //Register IRQ handler!
+
 void doirq(byte irqnum); //IRQ from hardware request!
 void removeirq(byte irqnum); //Remove IRQ from hardware request!
 #endif

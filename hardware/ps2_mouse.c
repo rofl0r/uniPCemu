@@ -4,6 +4,7 @@
 #include "headers/support/zalloc.h" //Zero free allocation for linked lists!
 #include "headers/emu/timers.h" //Timing support!
 #include "headers/emu/input.h" //For timing packets!
+#include "headers/cpu/cpu.h" //CPU support!
 
 //To disable the mouse?
 #define MOUSE_DISABLED Mouse.disabled
@@ -47,6 +48,7 @@ struct
 
 	MOUSE_PACKET *packets; //Contains all packets!
 	MOUSE_PACKET *lastpacket; //Last send packet!
+	byte supported; //PS/2 mouse supported on this system?
 } Mouse; //Ourselves!
 
 void give_mouse_input(byte data)
@@ -135,14 +137,16 @@ int add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse packet!
 }
 
 //Handle a mouse packet!
-void mouse_packet_handler(MOUSE_PACKET *packet) //Packet muse be allocated using zalloc!
+byte PS2mouse_packet_handler(MOUSE_PACKET *packet) //Packet muse be allocated using zalloc!
 {
-	if (__HW_DISABLED) return; //Abort!
+	if (__HW_DISABLED) return 0; //Abort!
+	if (!Mouse.supported) return 0; //PS/2 mouse not supported!
 	if (!Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled) //We're enabled?
 	{
 		if (add_mouse_packet(packet)) //Add a mouse packet, and according to timing!
 		{} //Do nothing when added!
 	}
+	return 1; //We're supported!
 }
 
 float HWmouse_getsamplerate() //Which repeat rate to use after the repeat delay! (chars/second)
@@ -177,6 +181,10 @@ void resetMouse()
 	memset(&Mouse.data,0,sizeof(Mouse.data)); //Reset the mouse!
 	//No data reporting!
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
+	give_mouse_input(0xAA); //Bat completion code!
+	input_lastwrite_mouse(); //Force to user!
+	give_mouse_input(0x00); //We're a mouse!
+	IRQ8042(); //We've got data in our input buffer!
 }
 
 void mouse_handleinvalidcall()
@@ -544,16 +552,22 @@ void EMU_enablemouse(byte enabled) //Enable mouse input (disable during EMU, ena
 void BIOS_initMouse() //Initialise the mouse to reset mode?
 {
 	if (__HW_DISABLED) return; //Abort!
-	//Register ourselves!
-	register_PS2PortWrite(1,&handle_mousewrite); //Write functionnality!
-	register_PS2PortRead(1,&handle_mouseread,&handle_mousepeek); //Read functionality!
+	memset(&Mouse.data, 0, sizeof(Mouse)); //Clear the mouse information!
+	Mouse.supported = 0; //Default: not supported!
+	if (EMULATED_CPU >= CPU_80286) //AT PC?
+	{
+		//Register ourselves!
+		register_PS2PortWrite(1, &handle_mousewrite); //Write functionnality!
+		register_PS2PortRead(1, &handle_mouseread, &handle_mousepeek); //Read functionality!
 
-	Mouse.buffer = allocfifobuffer(16); //Allocate a small mouse buffer!
+		Mouse.buffer = allocfifobuffer(16); //Allocate a small mouse buffer!
 
-	resetMouse(); //Reset the mouse to power-on defaults!
+		resetMouse(); //Reset the mouse to power-on defaults!
 
-	update_mouseTimer(); //(Re)set mouse timer!
-	Mouse.disabled = 1; //Default: disabled!
+		update_mouseTimer(); //(Re)set mouse timer!
+		Mouse.disabled = 1; //Default: disabled!
+		Mouse.supported = 1; //We're supported by the architecture!
+	}
 }
 
 void BIOS_doneMouse()

@@ -465,6 +465,9 @@
     <ClCompile Include="..\..\hardware\pci.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\hardware\sermouse.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">
@@ -836,6 +839,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\hardware\pci.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\headers\hardware\sermouse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

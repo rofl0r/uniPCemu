@@ -3,7 +3,7 @@
 //UART chip emulation.
 
 #include "headers/hardware/pic.h" //IRQ support!
-//#include "headers/hardware/uart.h" //UART support (ourselves)!
+#include "headers/hardware/uart.h" //UART support (ourselves)!
 #include "headers/hardware/ports.h"  //Port support!
 
 //Hardware disabled?
@@ -67,14 +67,36 @@ struct
 	//Seperate register alternative
 	word DLAB; //The speed of transmission, 115200/DLAB=Speed set.
 	//This speed is the ammount of bits (data bits), stop bits (0=1, 1=1.5(with 5 bits data)/2(all other cases)) and parity bit when set, that are transferred per second.
+
+	//The handlers for the device attached, if any!
+	UART_setmodemcontrol setmodemcontrol;
+	UART_receivedata receivedata;
+	UART_senddata senddata;
+	UART_hasdata hasdata;
+
+	byte interrupt_causes[4]; //All possible causes of an interrupt!
 } UART_port[4]; //All UART ports!
 
 void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 {
+	switch (cause) //What cause?
+	{
+	case 0: //Modem status changed?
+		if (!(UART_port[COMport].InterruptEnableRegister & 8)) return; //Don't trigger if it's disabled!
+		break;
+	case 1: //Ready to send?
+		if (!(UART_port[COMport].InterruptEnableRegister & 2)) return; //Don't trigger if it's disabled!
+		break;
+	case 2: //Received data?
+		if (!(UART_port[COMport].InterruptEnableRegister & 1)) return; //Don't trigger if it's disabled!
+		break;
+	case 3: //Receiver line status changed?
+		if (!(UART_port[COMport].InterruptEnableRegister & 4)) return; //Don't trigger if it's disabled!
+		break;
+	}
 	//Prepare our info!
-	UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset for our cause!
-	UART_port[COMport].InterruptCause.SimpleCause = (cause&3); //Load the simple cause (8250 way)!
-	UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //The interrupt will be pending now, we're the cuase!
+	UART_port[COMport].interrupt_causes[cause & 3] = 1; //We're requesting an interrupt for this cause!
+
 	//Finally launch the IRQ!
 	if (COMport&1) //COM2&COM4?
 	{
@@ -82,23 +104,45 @@ void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 	}
 	else //COM1&COM3?
 	{
-		doirq(3); //Do IRQ!
+		doirq(4); //Do IRQ!
+	}
+}
+
+void startUARTIRQ(byte IRQ)
+{
+	byte cause, port; //What cause are we?
+	byte portbase, actualport;
+	portbase = (IRQ == 4) ? 0 : 1; //Base port!
+	for (port = 0;port < 2;port++) //List ports!
+	{
+		actualport = portbase + (port << 1); //Take the actual port!
+		for (cause = 0;cause < 4;cause++) //Check all causes!
+		{
+			if (UART_port[actualport].interrupt_causes[cause]) //We're is the cause?
+			{
+				UART_port[actualport].interrupt_causes[cause] = 0; //Reset the cause!
+				UART_port[actualport].InterruptIdentificationRegister.data = 0; //Reset for our cause!
+				UART_port[actualport].InterruptCause.SimpleCause = (cause & 3); //Load the simple cause (8250 way)!
+				UART_port[actualport].InterruptIdentificationRegister.InterruptPending = 0; //We've activated!
+				return; //Stop scanning!
+			}
+		}
 	}
 }
 
 byte getCOMport(word port) //What COM port?
 {
 	byte highnibble = (port>>8); //3 or 2
-	byte lownibble = ((port>>4)&0xF); //F or E
+	byte lownibble = ((port>>3)&0x1F); //F or E
 	
 	byte COMport;
 	COMport = 0; //Init COM port!
 	switch (lownibble) //Get COM1/3?
 	{
-		case 0xF: //COM1/2
+		case 0x1F: //COM1/2
 			//Base 0
 			break;
-		case 0xE: //COM3/4
+		case 0x1D: //COM3/4
 			COMport |= 2; //Base 2 (port 3/4)
 			break;
 		default:
@@ -147,12 +191,18 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			else //Receiver buffer?
 			{
 				//Read from input buffer!
-				if (UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause==2) //We're to clear?
+				if (!UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause==2) //We're to clear?
 				{
 					UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
+					UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
 				}
 				//return value with bits toggled by Line Control Register!
-				*result = 0x00; //Not supported yet!
+				*result = 0x00; //Invalid input by default!
+				if (UART_port[COMport].receivedata)
+				{
+					*result = UART_port[COMport].receivedata(); //Receive the data!
+					UART_handleInputs(); //Handle the next byte to receive!
+				}
 			}
 			break;
 		case 1: //Interrupt Enable Register?
@@ -179,16 +229,26 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			*result = UART_port[COMport].ModemControlRegister; //Give the register!
 			break;
 		case 5: //Line Status Register?
-			if (UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause==3) //We're to clear?
+			if (!UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause == 3) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
+				UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
+			}
+			UART_port[COMport].LineStatusRegister &= ~1; //No data ready!
+			if (UART_port[COMport].hasdata) //Data check handler?
+			{
+				if (UART_port[COMport].hasdata()) //Gotten data?
+				{
+					UART_port[COMport].LineStatusRegister |= 1; //Data ready!
+				}
 			}
 			*result = UART_port[COMport].LineStatusRegister; //Give the register!
 			break;
 		case 6: //Modem Status Register?
-			if (UART_port[COMport].InterruptIdentificationRegister.InterruptPending && !UART_port[COMport].InterruptCause.SimpleCause) //We're to clear?
+			if (!UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause == 0) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
+				UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
 			}
 			*result = UART_port[COMport].ModemStatusRegister; //Give the register!
 			break;
@@ -219,11 +279,17 @@ byte PORT_writeUART(word port, byte value)
 			}
 			else //Output buffer?
 			{
-				if (UART_port[COMport].InterruptIdentificationRegister.InterruptPending && !UART_port[COMport].InterruptCause.SimpleCause==1) //We're to clear?
+				if (!UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause == 1) //We're to clear?
 				{
 					UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
-				}				
+					UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
+				}
 				//Write to output buffer, toggling bits by Line Control Register!
+				if (UART_port[COMport].senddata)
+				{
+					UART_port[COMport].senddata(value); //Send the data!
+				}
+
 			}
 			break;
 		case 1: //Interrupt Enable Register?
@@ -256,6 +322,10 @@ byte PORT_writeUART(word port, byte value)
 		case 4:  //Modem Control Register?
 			UART_port[COMport].ModemControlRegister = value; //Set the register!
 			//Handle anything concerning this?
+			if (UART_port[COMport].setmodemcontrol) //Line handler added?
+			{
+				UART_port[COMport].setmodemcontrol(value); //Update the output lines!
+			}
 			break;
 		case 7: //Scratch register?
 			UART_port[COMport].ScratchRegister = value; //Set the register!
@@ -267,10 +337,48 @@ byte PORT_writeUART(word port, byte value)
 	return 1; //We're supported!
 }
 
+void UART_handleInputs() //Handle any input to the UART!
+{
+	//First, lower the IRQs!
+	removeirq(3); //Lower IRQ!
+	removeirq(4); //Lower IRQ!
+
+	int i;
+
+	//Raise the IRQ for the first device to give input!
+	for (i = 0;i < 4;i++) //Process all ports!
+	{
+		if (UART_port[i].hasdata) //Port registered?
+		{
+			if (UART_port[i].hasdata()) //Has data?
+			{
+				launchUARTIRQ(i, 2); //We've received data!
+				return;
+			}
+		}
+	}
+}
+
+void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, UART_hasdata hasdata, UART_receivedata receivedata, UART_senddata senddata)
+{
+	if (portnumber > 3) return; //Invalid port!
+	//Register the handlers!
+	UART_port[portnumber].setmodemcontrol = setmodemcontrol;
+	UART_port[portnumber].hasdata = hasdata;
+	UART_port[portnumber].receivedata = receivedata;
+	UART_port[portnumber].senddata = senddata;
+}
+
 void initUART() //Init software debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	memset(&UART_port,0,sizeof(UART_port)); //Clear memory used!
 	register_PORTOUT(&PORT_writeUART);
 	register_PORTIN(&PORT_readUART);
+	registerIRQ(3, &startUARTIRQ, NULL); //Register our IRQ finish!
+	int i;
+	for (i = 0;i < 4;i++)
+	{
+		UART_port[i >> 4].InterruptIdentificationRegister.InterruptPending = 1; //We're not executing!
+	}
 }

@@ -59,6 +59,12 @@ void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
 		if ((i8259.isr[PIC] >> i) & 1)
 		{
 			i8259.isr[PIC] ^= (1 << i);
+			byte IRQ;
+			IRQ = (PIC << 3) | i; //The IRQ we've finished!
+			if (i8259.finishirq[IRQ]) //Gotten a handler?
+			{
+				i8259.finishirq[IRQ](IRQ); //We're done with this IRQ!
+			}
 			return;
 		}
 }
@@ -186,6 +192,12 @@ OPTINLINE void ACNIR(byte PIC, byte IR) //Acnowledge request!
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr[PIC] ^= (1 << IR); //Turn IRR off!
 	i8259.isr[PIC] |= (1 << IR); //Turn in-service on!
+	byte IRQ;
+	IRQ = (PIC << 3) | IR; //The IRQ we're accepting!
+	if (i8259.acceptirq[IRQ]) //Gotten a handler?
+	{
+		i8259.acceptirq[IRQ](IRQ); //We're accepting th
+	}
 	if ((i8259.icw[PIC][3]&2)==2) //Automatic EOI?
 	{
 		EOI(PIC); //Send an EOI!
@@ -244,4 +256,11 @@ void removeirq(byte irqnum)
 	if (__HW_DISABLED) return; //Abort!
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
 	i8259.irr[PIC] &= ~(1 << (irqnum&7)); //Remove the IRQ from request!
+}
+
+void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ)
+{
+	//Register the handlers!
+	i8259.acceptirq[IRQ] = acceptIRQ;
+	i8259.finishirq[IRQ] = finishIRQ;
 }

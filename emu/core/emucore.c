@@ -55,6 +55,8 @@
 #include "headers/hardware/ide.h" //IDE/ATA support!
 #include "headers/hardware/pci.h" //PCI support!
 
+#include "headers/hardware/sermouse.h" //Serial mouse support!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To debug VGA at MAX speed?
@@ -210,6 +212,9 @@ void initEMU(int full) //Init!
 	debugrow("Initialising UART...");
 	initUART(); //Initialise the UART (COM ports)!
 	
+	debugrow("Initialising serial mouse...");
+	initSERMouse(); //Initilialise the serial mouse!
+
 	debugrow("Initialising Floppy Disk Controller...");
 	initFDC(); //Initialise the Floppy Disk Controller!
 
