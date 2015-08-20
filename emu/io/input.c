@@ -29,7 +29,8 @@
 #include <SDL/SDL_events.h> //Event support!
 #endif
 
-int_64 mouse_xmove = 0, mouse_ymove = 0; //Movement of the mouse not processed yet!
+int_64 mouse_xmove = 0, mouse_ymove = 0; //Movement of the mouse not processed yet (in mm)!
+byte Mouse_buttons = 0; //Currently pressed mouse buttons. 1=Left, 2=Right, 4=Middle.
 
 byte mousebuttons = 0; //Active mouse buttons!
 
@@ -552,7 +553,6 @@ int is_gamingmode()
 
 void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/second!)
 {
-	const float maxmousespeed = (1.0f / 32767.0f)*127.0f; //Scale to 127!
 	if (!curstat.mode || curstat.gamingmode) //Mouse mode or gaming mode?
 	{
 		if (useMouseTimer() || useSERMouse()) //We're using the mouse?
@@ -565,47 +565,21 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 				mousepacket->ymove = 0; //No movement by default!
 				
 				//Fill the mouse data!
-				if (!curstat.gamingmode || 
-					(curstat.gamingmode &&
-					 (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGLEFT]==-1) &&
-					 (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGUP]==-1) &&
-					 (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGRIGHT]==-1) &&
-					 (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGDOWN]==-1)
-					)) //Not gaming mode OR gaming mode with no keyboard mappings: use mouse movement!
+				//Mouse movement!
+				WaitSem(mouse_lock);
+				if (mouse_xmove || mouse_ymove) //Any movement at all?
 				{
-					WaitSem(mouse_lock);
-					if (mouse_xmove || mouse_ymove) //Any movement at all?
-					{
-						uint_32 xmove, ymove; //For calculating limits!
-						xmove = (mouse_xmove < -32767) ? -32767 : ((mouse_xmove>32767) ? 32767 : mouse_xmove); //Clip to max value!
-						ymove = (mouse_ymove < -32767) ? -32767 : ((mouse_ymove>32767) ? 32767 : mouse_ymove); //Clip to max value!
-						mouse_xmove -= xmove; //Rest value!
-						mouse_ymove -= ymove; //Rest value!
-						mousepacket->xmove = curstat.analogdirection_mouse_x*maxmousespeed; //X movement, scaled!
-						mousepacket->ymove = curstat.analogdirection_mouse_y*maxmousespeed; //Y movement, scaled!
-					}
-					PostSem(mouse_lock);
+					sbyte xmove, ymove; //For calculating limits!
+					xmove = (mouse_xmove < -128) ? -128 : ((mouse_xmove>127) ? 127 : mouse_xmove); //Clip to max value!
+					ymove = (mouse_ymove < -128) ? -128 : ((mouse_ymove>127) ? 127 : mouse_ymove); //Clip to max value!
+					mouse_xmove -= xmove; //Rest value!
+					mouse_ymove -= ymove; //Rest value!
+					mousepacket->xmove = xmove; //X movement in mm!
+					mousepacket->ymove = ymove; //Y movement, scaled!
 				}
+				PostSem(mouse_lock);
 
-				mousepacket->buttons = 0; //Default: no buttons!
-				
-				if (!curstat.gamingmode) //Not in gaming mode and in mouse mode? emulate left,right,middle mouse button too!
-				{
-					if (curstat.buttonpress&1) //Left mouse button?
-					{
-						mousepacket->buttons |= 1; //Left button pressed!
-					}
-			
-					if (curstat.buttonpress&4) //Right mouse button?
-					{
-						mousepacket->buttons |= 2; //Right button pressed!
-					}
-			
-					if (curstat.buttonpress&2) //Middle mouse button?
-					{
-						mousepacket->buttons |= 4; //Middle button pressed!
-					}
-				}
+				mousepacket->buttons = Mouse_buttons; //Take the mouse buttons pressed directly!
 
 				if (!PS2mouse_packet_handler(mousepacket)) //Add the mouse packet! Not supported PS/2 mouse?
 				{
@@ -1022,6 +996,8 @@ int ticking = 0; //Already ticking?
 	ticking = 0; //Not ticking anymore!
 }*/
 
+byte req_quit_gamingmode = 0; //Requesting to quit gaming mode?
+
 void keyboard_swap_handler() //Swap handler for keyboard!
 {
 	//while (1)
@@ -1031,6 +1007,10 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 			if (curstat.gamingmode) //Gaming mode?
 			{
 				if (psp_inputkey()&BUTTON_SELECT) //Quit gaming mode?
+				{
+					req_quit_gamingmode = 1; //We're requesting to quit gaming mode!
+				}
+				else if (req_quit_gamingmode) //Select released and requesting to quit gaming mode?
 				{
 					curstat.gamingmode = 0; //Disable gaming mode!
 				}
@@ -1081,18 +1061,32 @@ byte shiftstatus = 0; //New shift status!
 
 extern char keys_names[104][11]; //All names of the used keys (for textual representation/labeling)
 
-void handleKeyboardMouse() //Handles keyboard input during mouse operations!
+void handleMouseMovement() //Handles mouse movement using the analog direction of the mouse!
 {
-	//Also handle mouse movement here (constant factor)!
 	WaitSem(mouse_lock);
 	static word mousemovementstep; //How many steps per movement!
 	if (++mousemovementstep == 100) //10 times a second...
 	{
 		mousemovementstep = 0; //Reset movement step!
-		mouse_xmove -= curstat.analogdirection_mouse_x; //Apply x direction (reversed)!
-		mouse_ymove -= curstat.analogdirection_mouse_y; //Apply y direction (reversed)!
+		if (curstat.analogdirection_mouse_x || curstat.analogdirection_mouse_y) //Mouse analog direction trigger?
+		{
+			mouse_xmove += (int_64)((float)(curstat.analogdirection_mouse_x / 32767.0f)*10.0f); //Apply x movement in mm (reversed)!
+			mouse_ymove += (int_64)((float)(curstat.analogdirection_mouse_y / 32767.0f)*10.0f); //Apply y movement in mm (reversed)!
+		}
 	}
 	PostSem(mouse_lock);
+}
+
+void handleKeyboardMouse() //Handles keyboard input during mouse operations!
+{
+	//Also handle mouse movement here (constant factor)!
+	handleMouseMovement(); //Handle mouse movement!
+
+	uint_32 last_buttons = 0;
+	Mouse_buttons = (curstat.buttonpress & 1) ? 1 : 0; //Left mouse button pressed?
+	Mouse_buttons |= (curstat.buttonpress & 4) ? 2 : 0; //Right mouse button pressed?
+	Mouse_buttons |= (curstat.buttonpress & 2) ? 4 : 0; //Middle mouse button pressed?
+	last_buttons = curstat.buttonpress; //update status!
 
 	shiftstatus = 0; //Init shift status!
 	shiftstatus |= ((curstat.buttonpress&512)>0)*SHIFTSTATUS_SHIFT; //Apply shift status!
@@ -1310,6 +1304,15 @@ void handleGaming() //Handles gaming mode input!
 {
 	//Test for all keys and process!
 	if (input_buffer_input) return; //Don't handle buffered input, we don't allow mapping gaming mode to gaming mode!
+
+	if ((BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGLEFT] == -1) &&
+		(BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGUP] == -1) &&
+		(BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGRIGHT] == -1) &&
+		(BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGDOWN] == -1)) //No analog assigned? Process analog mouse movement!
+	{
+		//Also handle mouse movement here (constant factor)!
+		handleMouseMovement(); //Handle mouse movement!
+	}
 
 	int keys[15]; //Key index for this key, -1 for none/nothing happened!
 	byte keys_pressed[15] = {0,0,0,0,0,0,0,0,0,0,0}; //We have pressed the key?
@@ -1864,7 +1867,7 @@ byte precisemousemovement = 0; //Precise mouse movement enabled?
 
 void updateMOD(SDL_Event *event)
 {
-	const float precisemovement = (100.0f / 32767.0f); //Precise mouse movement constant!
+	const float precisemovement = 0.2f; //Precise mouse movement constant!
 	if (input.cas&CAS_CTRL) //Ctrl pressed?
 	{
 		input.Buttons |= BUTTON_HOME; //Pressed!
@@ -1917,6 +1920,9 @@ void toggleDirectInput()
 		SDL_WM_GrabInput(SDL_GRAB_OFF); //Don't grab the mouse!
 		SDL_ShowCursor(SDL_ENABLE); //Show the cursor!
 	}
+
+	//Also disable mouse buttons pressed!
+	Mouse_buttons &= ~3; //Disable left/right mouse buttons!
 }
 
 void updateInput(SDL_Event *event) //Update all input!
@@ -2003,7 +2009,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				case SDLK_KP2: //CROSS?
 					input.Buttons &= ~BUTTON_CROSS; //Pressed!
 					break;
-				case SDLK_p: //Precise mouse movement?
+				case SDLK_t: //Precise mouse movement?
 					precisemousemovement = 0; //Disabled!
 					break;
 				case SDLK_F4: //F4?
@@ -2131,7 +2137,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				case SDLK_KP2: //CROSS?
 					input.Buttons |= BUTTON_CROSS; //Pressed!
 					break;
-				case SDLK_p: //Precise mouse movement?
+				case SDLK_t: //Precise mouse movement?
 					precisemousemovement = 1; //Enabled!
 					break;
 				}
@@ -2302,9 +2308,17 @@ void updateInput(SDL_Event *event) //Update all input!
 			{
 			case SDL_BUTTON_LEFT:
 				mousebuttons |= 1; //Left pressed!
+				if (Direct_Input) //Direct input enabled?
+				{
+					Mouse_buttons |= 1; //Left mouse button pressed!
+				}
 				break;
 			case SDL_BUTTON_RIGHT:
 				mousebuttons |= 2; //Right pressed!
+				if (Direct_Input) //Direct input enabled?
+				{
+					Mouse_buttons |= 2; //Right mouse button pressed!
+				}
 				break;
 			}
 			PostSem(keyboard_lock);
@@ -2322,6 +2336,10 @@ void updateInput(SDL_Event *event) //Update all input!
 					toggleDirectInput(); //Toggle direct input!
 				}
 				mousebuttons &= ~1; //Left released!
+				if (Direct_Input)
+				{
+					Mouse_buttons &= ~1; //button released!
+				}
 				break;
 			case SDL_BUTTON_RIGHT:
 				if (mousebuttons == 3) //Were we both pressed? Special action!
@@ -2329,6 +2347,10 @@ void updateInput(SDL_Event *event) //Update all input!
 					toggleDirectInput(); //Toggle direct input!
 				}
 				mousebuttons &= ~2; //Right released!
+				if (Direct_Input)
+				{
+					Mouse_buttons &= ~1; //button released!
+				}
 				break;
 			}
 			PostSem(keyboard_lock);
@@ -2336,7 +2358,8 @@ void updateInput(SDL_Event *event) //Update all input!
 		case SDL_MOUSEMOTION: //Mouse moved?
 			if (Direct_Input) //Direct input?
 			{
-				SDL_WarpMouse(event->motion.x + event->motion.xrel, event->motion.y + event->motion.yrel); //Disable mouse motion: keep the mouse at the same place!
+				mouse_xmove += event->motion.xrel; //Move the mouse horizontally!
+				mouse_ymove += event->motion.yrel; //Move the mouse vertically!
 			}
 			break;
 		case SDL_QUIT: //Quit?
