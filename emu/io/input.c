@@ -2349,7 +2349,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				mousebuttons &= ~2; //Right released!
 				if (Direct_Input)
 				{
-					Mouse_buttons &= ~1; //button released!
+					Mouse_buttons &= ~2; //button released!
 				}
 				break;
 			}
