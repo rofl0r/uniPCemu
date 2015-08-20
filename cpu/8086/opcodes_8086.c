@@ -2004,7 +2004,7 @@ void CPU8086_OPFE() //GRP4 Eb
 	byte tempcf;
 	modrm_readparams(&params,1,0);
 	word cb16;
-	modrm_debugger16(&params,1,2);
+	modrm_debugger8(&params,1,2);
 	switch (MODRM_REG(params.modrm)) //What function?
 	{
 	case 0: //INC

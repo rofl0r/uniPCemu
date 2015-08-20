@@ -4,6 +4,8 @@ VGA ROM and handling functions.
 
 */
 
+#define _IS_VGA
+
 //Rendering priority: same as input!
 #define VGARENDER_PRIORITY 0x20
 
@@ -242,16 +244,6 @@ void setupVGA() //Sets the VGA up for PC usage (CPU access etc.)!
 	VGAmemIO_reset(); //Initialise/reset memory mapped I/O!
 }
 
-byte lockVGA()
-{
-	return lock("VGA");
-}
-
-void unlockVGA()
-{
-	unlock("VGA");
-}
-
 /*
 
 Internal terminate and start functions!
@@ -308,11 +300,6 @@ void setActiveVGA(VGA_Type *VGA) //Sets the active VGA chipset!
 	//raiseError("VGA","SetActiveVGA: Started!");
 }
 
-VGA_Type *getActiveVGA() //Get the active VGA Chipset!
-{
-	return ActiveVGA; //Give the active VGA!
-}
-
 void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -342,16 +329,6 @@ void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 	unlockVGA();
 }
 
-//Text blink handler!
-void textBlinkHandler() //=Vertical Sync Rate/32 (Every two cursor blinks!, since it's at 16. 16*2=32!)
-{
-	if (getActiveVGA()) //Active?
-	{
-		getActiveVGA()->TextBlinkOn = !getActiveVGA()->TextBlinkOn; //Blink!
-	}
-}
-
-
 //Cursor blink handler!
 void cursorBlinkHandler() //Handled every 16 frames!
 {
@@ -361,7 +338,7 @@ void cursorBlinkHandler() //Handled every 16 frames!
 		getActiveVGA()->CursorOn = !getActiveVGA()->CursorOn; //Blink!
 		if (getActiveVGA()->CursorOn) //32 frames processed (we start at ON=1, becomes off first 16, becomes on second 16==32)
 		{
-			textBlinkHandler(); //32 frames processed!
+			getActiveVGA()->TextBlinkOn = !getActiveVGA()->TextBlinkOn; //Blink!
 		}
 	}
 }

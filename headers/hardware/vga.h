@@ -3,6 +3,7 @@
 #include "headers/types.h"
 #include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation support!
 #include "headers/emu/gpu/gpu.h" //For max X!
+#include "headers/support/locks.h" //Locking support!
 //Emulate VGA?
 #define EMU_VGA 1
 
@@ -668,6 +669,10 @@ typedef struct PACKED
 } VGA_Type; //VGA dataset!
 #include "headers/endpacked.h" //We're packed!
 
+#ifndef IS_VGA
+extern VGA_Type *ActiveVGA; //Currently active VGA chipset!
+#endif
+
 /*
 
 Read and write ports:
@@ -769,6 +774,19 @@ void VGA_plane2updated(VGA_Type *VGA, uint_32 address); //Plane 2 has been updat
 
 void setVGA_NMIonPrecursors(byte enabled); //Trigger an NMI when our precursors are called?
 
-byte lockVGA();
-void unlockVGA();
+OPTINLINE byte lockVGA()
+{
+	return lock("VGA");
+}
+
+OPTINLINE void unlockVGA()
+{
+	unlock("VGA");
+}
+
+OPTINLINE VGA_Type *getActiveVGA() //Get the active VGA Chipset!
+{
+	return ActiveVGA; //Give the active VGA!
+}
+
 #endif

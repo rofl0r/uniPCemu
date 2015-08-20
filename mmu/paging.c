@@ -5,10 +5,6 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 
 byte is_paging()
 {
-	if (EMU_RUNNING!=1) //Emu isn't running: disable paging for direct memory access!
-	{
-		return 0; //Paging disabled on our real-mode system!
-	}
 	if (getcpumode()==CPU_MODE_REAL) //Real mode (no paging)?
 	{
 		return 0; //Not paging in REAL mode!

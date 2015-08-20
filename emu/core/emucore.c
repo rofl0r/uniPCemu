@@ -392,6 +392,7 @@ extern byte Direct_Input; //Are we in direct input mode?
 
 byte coreHandler()
 {
+	static byte numopcodes = 0;
 	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
 	{
 		MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
@@ -463,7 +464,11 @@ byte coreHandler()
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 
-	delay(0); //Wait minimal time for other threads to process data!
+	if (++numopcodes == 100) //Every 100 opcodes(to allow for more timers/input to update)
+	{
+		numopcodes = 0; //Reset!
+		delay(0); //Wait minimal time for other threads to process data!
+	}
 
 	if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode() && !Direct_Input) //Run in-emulator BIOS menu and not gaming mode?
 	{

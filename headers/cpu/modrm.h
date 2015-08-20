@@ -4,16 +4,6 @@
 #include "headers/types.h" //Needs type support!
 #include "headers/cpu/cpu.h" //Need CPU support for types!
 
-typedef struct
-{
-	byte modrm; //MODR/M!
-	SIBType SIB; //SIB Byte if applied.
-	dwordsplitterb displacement; //byte/word/dword!
-	byte slashr; //Is this a /r MODR/M (=RM is reg2)?
-	byte reg_is_segmentregister; //REG is segment register?
-} MODRM_PARAMS;
-
-
 //MODR/M decoders:
 byte MODRM_MOD(byte modrm); //MOD
 byte MODRM_REG(byte modrm); //REG
@@ -159,19 +149,25 @@ typedef struct
 	uint_32 mem_offset; //Offset of memory address!
 } MODRM_PTR; //ModRM decoded pointer!
 
+typedef struct
+{
+	byte modrm; //MODR/M!
+	SIBType SIB; //SIB Byte if applied.
+	dwordsplitterb displacement; //byte/word/dword!
+	byte slashr; //Is this a /r MODR/M (=RM is reg2)?
+	byte reg_is_segmentregister; //REG is segment register?
+	MODRM_PTR info[3]; //All versions of info!
+} MODRM_PARAMS;
 
-
-
-
+#define MODRM_MOD(modrm) ((modrm & 0xC0) >> 6)
+#define MODRM_REG(modrm) ((modrm & 0x38) >> 3)
+#define MODRM_RM(modrm) (modrm & 0x07)
+#define modrm_isregister(params) (MODRM_MOD(params.modrm) == MOD_REG)
+#define modrm_ismemory(params) (MODRM_MOD(params.modrm)!=MOD_REG)
 
 /*
 Warning: SIB=Scaled index byte modes
 */
-
-//Now, the declaration for the functions that might be needed:
-int modrm_isregister(MODRM_PARAMS *params); //Register?
-int modrm_ismemory(MODRM_PARAMS *params); //Memory?
-int modrm_getmod(MODRM_PARAMS *params); //Get MOD bonus parameter size!
 
 //Direct addressing of MODR/M bytes:
 
@@ -188,10 +184,6 @@ uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister);
 void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value);
 void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJMPorCALL);
 void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value);
-
-//For retrieving the data from memory:
-int modrm_useSIB(MODRM_PARAMS *params, int size); //Use SIB byte?
-int modrm_useDisplacement(MODRM_PARAMS *params, int size); //Use displacement?
 
 //Just the adressing:
 word modrm_lea16(MODRM_PARAMS *params, int whichregister); //For LEA instructions!
@@ -212,9 +204,8 @@ char *unsigned2signedtext16(word c);
 char *unsigned2signedtext32(uint_32 c);
 
 //For 80186+
-
 void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //16-bit address/reg decoder!
 
 //For CPU itself:
-void modrm_readparams(MODRM_PARAMS *param, int size, int slashr); //Read params for modr/m processing from CS:(E)IP
+void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr); //Read params for modr/m processing from CS:(E)IP
 #endif

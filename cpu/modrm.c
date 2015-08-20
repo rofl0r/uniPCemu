@@ -23,18 +23,7 @@ void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister);
 void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //16-bit address/reg decoder!
 void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //32-bit address/reg decoder!
 
-
-int modrm_isregister(MODRM_PARAMS *params)
-{
-	return (MODRM_MOD(params->modrm)==MOD_REG); //Register?
-}
-
-int modrm_ismemory(MODRM_PARAMS *params)
-{
-	return (MODRM_MOD(params->modrm)!=MOD_REG); //No register (must be memory!)?
-}
-
-int modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
+OPTINLINE byte modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
 {
 	if (size==4) //32-bit mode?
 	{
@@ -46,7 +35,8 @@ int modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
 	return 0; //NO SIB!
 }
 
-int modrm_useDisplacement(MODRM_PARAMS *params, int size)
+
+OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 {
 	/*
 	Result:
@@ -115,22 +105,8 @@ int modrm_useDisplacement(MODRM_PARAMS *params, int size)
 byte modrm_addoffset = 0; //To add this to the calculated offset!
 
 //Retrieves base offset to use
-uint_32 modrm_internal_offset16(word regval) //Offset for word register!
-{
-	register uint_32 result = regval; //Load!
-	result &= 0xFFFF; //16-bit offset. Add EIP higher rest bits?
-	result += modrm_addoffset; //Add the offset specified (allows for greater reads than normal with default registers, e.g. dword in word portions)
-	return result; //Give the result!
-}
 
-uint_32 modrm_internal_offset32(uint_32 regval) //Offset for dword register!
-{
-	register uint_32 result = regval; //Load!
-	result += modrm_addoffset; //Add the offset specified (allows for greater reads than normal with default registers, e.g. 64-bit word in dword portions)
-	return result; //Use the register: 32-bits already!
-}
-
-int modrm_getmod(MODRM_PARAMS *params) //Get MOD bonus parameter size!
+OPTINLINE byte modrm_getmod(MODRM_PARAMS *params) //Get MOD bonus parameter size!
 {
 	if (MODRM_MOD(params->modrm)==0 || MODRM_MOD(params->modrm)==3) //None?
 	{
@@ -143,7 +119,7 @@ int modrm_getmod(MODRM_PARAMS *params) //Get MOD bonus parameter size!
 	return MODRM_MOD(params->modrm); //Dummy: not executed!
 }
 
-void modrm_updatedsegment(word *location, word value, byte isJMPorCALL) //Check for updated segment registers!
+OPTINLINE void modrm_updatedsegment(word *location, word value, byte isJMPorCALL) //Check for updated segment registers!
 {
 	//Check for updated registers!
 	int index = get_segment_index(location); //Get the index!
@@ -164,13 +140,11 @@ void reset_modrm()
 
 void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode8(params,&info,whichregister); //Get data!
 	byte *result; //The result holder if needed!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		result = (byte *)/*memprotect(*/info.reg8/*,1,"CPU_REGISTERS")*/; //Give register!
+		result = (byte *)/*memprotect(*/params->info[whichregister].reg8/*,1,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
 			*result = value; //Write the data to the result!
@@ -184,10 +158,10 @@ void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
-			modrm_lastsegment = info.mem_segment;
-			modrm_lastoffset = info.mem_offset;
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = params->info[whichregister].mem_offset;
 		}
-		MMU_wb(info.segmentregister_index,info.mem_segment,info.mem_offset,value); //Write the data to memory using byte depth!
+		MMU_wb(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, params->info[whichregister].mem_offset+modrm_addoffset,value); //Write the data to memory using byte depth!
 		break;
 		//return result; //Give memory!
 	default:
@@ -198,13 +172,11 @@ void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 
 void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJMPorCALL)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode16(params,&info,whichregister); //Get data!
 	word *result; //The result holder if needed!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		result = (word *)/*memprotect(*/info.reg16/*,2,"CPU_REGISTERS")*/; //Give register!
+		result = (word *)/*memprotect(*/params->info[whichregister].reg16/*,2,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
 			*result = value; //Write the data to the result!
@@ -219,10 +191,10 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
-			modrm_lastsegment = info.mem_segment;
-			modrm_lastoffset = info.mem_offset;
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = params->info[whichregister].mem_offset;
 		}
-		MMU_ww(info.segmentregister_index, info.mem_segment, info.mem_offset, value); //Write the data to memory using byte depth!
+		MMU_ww(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, params->info[whichregister].mem_offset+modrm_addoffset, value); //Write the data to memory using byte depth!
 		break;
 	default:
 		halt_modrm("MODRM: Unknown MODR/M16!");
@@ -232,13 +204,11 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 
 void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode32(params,&info,whichregister); //Get data!
 	uint_32 *result; //The result holder if needed!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		result = (uint_32 *)/*memprotect(*/info.reg32/*,4,"CPU_REGISTERS")*/; //Give register!
+		result = (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
 			*result = value; //Write the data to the result!
@@ -252,10 +222,10 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
-			modrm_lastsegment = info.mem_segment;
-			modrm_lastoffset = info.mem_offset;
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = params->info[whichregister].mem_offset;
 		}
-		MMU_wdw(info.segmentregister_index,info.mem_segment,info.mem_offset,value); //Write the data to memory using byte depth!
+		MMU_wdw(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, params->info[whichregister].mem_offset+modrm_addoffset,value); //Write the data to memory using byte depth!
 		break;
 	default:
 		halt_modrm("MODRM: Unknown MODR/M32!");
@@ -265,13 +235,11 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 
 byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode8(params,&info,whichregister); //Get data!
 	byte *result; //The result holder if needed!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		result = (byte *)/*memprotect(*/info.reg8/*,1,"CPU_REGISTERS")*/; //Give register!
+		result = (byte *)/*memprotect(*/params->info[whichregister].reg8/*,1,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Valid?
 		{
 			return *result; //Read register!
@@ -285,10 +253,10 @@ byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
-			modrm_lastsegment = info.mem_segment;
-			modrm_lastoffset = info.mem_offset;
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = params->info[whichregister].mem_offset;
 		}
-		return MMU_rb(info.segmentregister_index, info.mem_segment, info.mem_offset, 0); //Read the value from memory!
+		return MMU_rb(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, params->info[whichregister].mem_offset+modrm_addoffset, 0); //Read the value from memory!
 	default:
 		halt_modrm("MODRM: Unknown MODR/M8!");
 		return 0; //Unknown!
@@ -298,13 +266,11 @@ byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 
 word modrm_read16(MODRM_PARAMS *params, int whichregister)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode16(params,&info,whichregister); //Get data!
 	word *result; //The result holder if needed!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		result = (word *)/*memprotect(*/info.reg16/*,2,"CPU_REGISTERS")*/; //Give register!
+		result = (word *)/*memprotect(*/params->info[whichregister].reg16/*,2,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Valid?
 		{
 			return *result; //Read register!
@@ -318,10 +284,10 @@ word modrm_read16(MODRM_PARAMS *params, int whichregister)
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
-			modrm_lastsegment = info.mem_segment;
-			modrm_lastoffset = info.mem_offset;
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = params->info[whichregister].mem_offset;
 		}
-		return MMU_rw(info.segmentregister_index, info.mem_segment, info.mem_offset, 0); //Read the value from memory!
+		return MMU_rw(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, params->info[whichregister].mem_offset+modrm_addoffset, 0); //Read the value from memory!
 		
 	default:
 		halt_modrm("MODRM: Unknown MODR/M16!");
@@ -333,13 +299,11 @@ word modrm_read16(MODRM_PARAMS *params, int whichregister)
 
 uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode32(params,&info,whichregister); //Get data!
 	uint_32 *result; //The result holder if needed!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		result = (uint_32 *)/*memprotect(*/info.reg32/*,4,"CPU_REGISTERS")*/; //Give register!
+		result = (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Valid?
 		{
 			return *result; //Read register!
@@ -353,10 +317,10 @@ uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
-			modrm_lastsegment = info.mem_segment;
-			modrm_lastoffset = info.mem_offset;
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = params->info[whichregister].mem_offset;
 		}
-		return MMU_rdw(info.segmentregister_index, info.mem_segment, info.mem_offset, 0); //Read the value from memory!
+		return MMU_rdw(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, params->info[whichregister].mem_offset+modrm_addoffset, 0); //Read the value from memory!
 		
 	default:
 		halt_modrm("MODRM: Unknown MODR/M32!");
@@ -375,7 +339,7 @@ word dummy_ptr16; //16-bit dummy ptr!
 
 char signednumbertext[256];
 
-char *unsigned2signedtext8(byte c)
+OPTINLINE char *unsigned2signedtext8(byte c)
 {
 	bzero(signednumbertext,sizeof(signednumbertext));
 	char s;
@@ -391,7 +355,7 @@ char *unsigned2signedtext8(byte c)
 	return &signednumbertext[0]; //Give pointer!
 }
 
-char *unsigned2signedtext16(word c)
+OPTINLINE char *unsigned2signedtext16(word c)
 {
 	bzero(signednumbertext,sizeof(signednumbertext));
 	int s;
@@ -407,7 +371,7 @@ char *unsigned2signedtext16(word c)
 	return &signednumbertext[0]; //Give pointer!
 }
 
-char *unsigned2signedtext32(uint_32 c)
+OPTINLINE char *unsigned2signedtext32(uint_32 c)
 {
 	bzero(signednumbertext,sizeof(signednumbertext));
 	int_32 s;
@@ -425,23 +389,7 @@ char *unsigned2signedtext32(uint_32 c)
 
 //Our decoders:
 
-//Parts of modrm byte:
-byte MODRM_MOD(byte modrm)
-{
-	return ((modrm&0xC0)>>6); //MOD
-}
-
-byte MODRM_REG(byte modrm)
-{
-	return ((modrm&0x38)>>3); //REG
-}
-
-byte MODRM_RM(byte modrm)
-{
-	return (modrm&0x07); //RM
-}
-
-void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 is segment register!
+OPTINLINE void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 is segment register!
 {
 	result->isreg = 1; //Register!
 	result->regsize = 2; //Word register!
@@ -624,17 +572,6 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		halt_modrm("Unknown modr/m16REG: MOD:%i, REG: %i, operand size: %i", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
 	}
 
-
-
-
-
-
-
-
-
-
-
-
 	uint_32 index; //Going to contain the values for SIB!
 	uint_32 base; //Going to contain the values for SIB!
 	char indexstr[256]; //Index!
@@ -648,7 +585,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_EAX: //[EAX] etc.?
 			sprintf(result->text,"[%s:EAX]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_EAX); //Give addr!
+			result->mem_offset = REG_EAX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -656,7 +593,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_EBX: //EBX?
 			sprintf(result->text,"[%s:EBX]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_EBX); //Give addr!
+			result->mem_offset = REG_EBX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -664,7 +601,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_ECX: //ECX
 			sprintf(result->text,"[%s:ECX]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_ECX); //Give addr!
+			result->mem_offset = REG_ECX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -672,7 +609,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_EDX: //EDX
 			sprintf(result->text,"[%s:EDX]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_EDX); //Give addr!
+			result->mem_offset = REG_EDX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -680,7 +617,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_ESI: //ESI
 			sprintf(result->text,"[%s:ESI]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_ESI); //Give addr!
+			result->mem_offset = REG_ESI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -688,7 +625,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_EDI: //EDI
 			sprintf(result->text,"[%s:EDI]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_EDI); //Give addr!
+			result->mem_offset = REG_EDI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -702,7 +639,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 				sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<params->SIB.scale),basestr); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(index*(1<<params->SIB.scale)+base);
+				result->mem_offset = index*(1<<params->SIB.scale)+base;
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -711,14 +648,14 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			{
 				sprintf(result->text,"[%s:ESP]",CPU_textsegment(CPU_SEGMENT_SS));
 				result->mem_segment = CPU_segment(CPU_SEGMENT_SS); //Default to SS!
-				result->mem_offset = modrm_internal_offset32(REG_ESP); //Give addr!
+				result->mem_offset = REG_ESP; //Give addr!
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 			}
 			break;
 		case MODRM_MEM_DISP32: //EBP->32-bit Displacement-Only mode?
 			sprintf(result->text,"[%s:%08X]",CPU_textsegment(CPU_SEGMENT_SS),params->displacement.dword);
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(params->displacement.dword); //Give addr (Displacement Only)!
+			result->mem_offset = params->displacement.dword; //Give addr (Displacement Only)!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return;
@@ -734,7 +671,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_EAX: //EAX?
 			sprintf(result->text,"[%s:EAX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_EAX)+unsigned2signed8(params->displacement.low16_low); //Give addr!
+			result->mem_offset = REG_EAX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -742,7 +679,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_EBX: //EBX?
 			sprintf(result->text,"[%s:EBX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_EBX)+unsigned2signed8(params->displacement.low16_low); //Give addr!
+			result->mem_offset = REG_EBX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -750,7 +687,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_ECX: //ECX?
 			sprintf(result->text,"[%s:ECX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_ECX+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_ECX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -758,7 +695,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_EDX: //EDX?
 			sprintf(result->text,"[%s:EDX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_EDX+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_EDX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -766,7 +703,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_ESI: //ESI?
 			sprintf(result->text,"[%s:ESI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_ESI+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_ESI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -774,7 +711,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_EDI: //EDI?
 			sprintf(result->text,"[%s:EDI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_EDI+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_EDI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			return; //Give addr!
@@ -787,7 +724,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 				sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<params->SIB.scale),basestr); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(index*(1<<params->SIB.scale)+base);
+				result->mem_offset = index*(1<<params->SIB.scale)+base;
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return;
@@ -796,7 +733,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			{
 				sprintf(result->text,"[%s:ESP%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext8(params->displacement.low16_low));
 				result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-				result->mem_offset = modrm_internal_offset32(REG_ESP+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+				result->mem_offset = REG_ESP+unsigned2signed8(params->displacement.low16_low); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return;
@@ -805,7 +742,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_EBP: //EBP?
 			sprintf(result->text,"[%s:EBP%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low));
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset32(REG_EBP+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_EBP+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
@@ -824,7 +761,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_EAX: //EAX?
 				sprintf(result->text,"[%s:EAX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_EAX+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_EAX+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -832,7 +769,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_EBX: //EBX?
 				sprintf(result->text,"[%s:EBX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_EBX+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_EBX+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -840,7 +777,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_ECX: //ECX?
 				sprintf(result->text,"[%s:ECX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_ECX+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_ECX+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -848,7 +785,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_EDX: //EDX?
 				sprintf(result->text,"[%s:EDX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_EDX+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_EDX+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -856,7 +793,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_ESI: //ESI?
 				sprintf(result->text,"[%s:ESI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_ESI+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_ESI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -864,7 +801,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_EDI: //EDI?
 				sprintf(result->text,"[%s:EDI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_EDI+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_EDI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -877,7 +814,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 					sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<params->SIB.scale),basestr); //Give addr!
 					result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-					result->mem_offset = modrm_internal_offset32(index*(1<<params->SIB.scale)+base);
+					result->mem_offset = index*(1<<params->SIB.scale)+base;
 					result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 					result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 					return;
@@ -886,7 +823,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 				{
 					sprintf(result->text,"[%s:ESP%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext32(params->displacement.dword));
 					result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-					result->mem_offset = modrm_internal_offset32(REG_ESP+unsigned2signed32(params->displacement.dword)); //Give addr!
+					result->mem_offset = REG_ESP+unsigned2signed32(params->displacement.dword); //Give addr!
 					result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 					result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 					return;
@@ -895,7 +832,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_EBP: //EBP?
 				sprintf(result->text,"[%s:EBP%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword));
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_EBP+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_EBP+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
@@ -914,7 +851,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_EAX: //EAX?
 				sprintf(result->text,"[%s:EAX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16_low)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_EAX+unsigned2signed16(params->displacement.low16_low)); //Give addr!
+				result->mem_offset = REG_EAX+unsigned2signed16(params->displacement.low16_low); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -922,7 +859,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_EBX: //EBX?
 				sprintf(result->text,"[%s:EBX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16_low)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_EBX+unsigned2signed16(params->displacement.low16_low)); //Give addr!
+				result->mem_offset = REG_EBX+unsigned2signed16(params->displacement.low16_low); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -930,7 +867,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_ECX: //ECX?
 				sprintf(result->text,"[%s:ECX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16_low)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_ECX+unsigned2signed16(params->displacement.low16_low)); //Give addr!
+				result->mem_offset = REG_ECX+unsigned2signed16(params->displacement.low16_low); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -938,7 +875,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_EDX: //EDX?
 				sprintf(result->text,"[%s:EDX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16_low)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_EDX+unsigned2signed16(params->displacement.low16_low)); //Give addr!
+				result->mem_offset = REG_EDX+unsigned2signed16(params->displacement.low16_low); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -946,7 +883,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_ESI: //ESI?
 				sprintf(result->text,"[%s:ESI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16_low)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_ESI+unsigned2signed16(params->displacement.low16_low)); //Give addr!
+				result->mem_offset = REG_ESI+unsigned2signed16(params->displacement.low16_low); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -954,7 +891,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_EDI: //EDI?
 				sprintf(result->text,"[%s:EDI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16_low)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_EDI+unsigned2signed16(params->displacement.low16_low)); //Give addr!
+				result->mem_offset = REG_EDI+unsigned2signed16(params->displacement.low16_low); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -967,7 +904,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 					sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<params->SIB.scale),basestr); //Give addr!
 					result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-					result->mem_offset = modrm_internal_offset32(index*(1<<params->SIB.scale)+base);
+					result->mem_offset = index*(1<<params->SIB.scale)+base;
 					result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 					result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 					return;
@@ -976,7 +913,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 				{
 					sprintf(result->text,"[%s:ESP%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext16(params->displacement.low16_low));
 					result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-					result->mem_offset = modrm_internal_offset32(REG_ESP+unsigned2signed16(params->displacement.low16_low)); //Give addr!
+					result->mem_offset = REG_ESP+unsigned2signed16(params->displacement.low16_low); //Give addr!
 					result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 					result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 					return;
@@ -985,7 +922,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_EBP: //EBP?
 				sprintf(result->text,"[%s:EBP%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16_low));
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_EBP+unsigned2signed16(params->displacement.low16_low)); //Give addr!
+				result->mem_offset = REG_EBP+unsigned2signed16(params->displacement.low16_low); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return;
@@ -1105,56 +1042,56 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_BXSI: //BX+SI?
 			sprintf(result->text,"[%s:BX+SI]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(REG_BX+REG_SI); //Give addr!
+			result->mem_offset = REG_BX+REG_SI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_BXDI: //BX+DI?
 			sprintf(result->text,"[%s:BX+DI]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(REG_BX+REG_DI); //Give addr!
+			result->mem_offset = REG_BX+REG_DI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_BPSI: //BP+SI?
 			sprintf(result->text,"[%s:BP+SI]",CPU_textsegment(CPU_SEGMENT_SS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-			result->mem_offset = modrm_internal_offset16(REG_BP+REG_SI); //Give addr!
+			result->mem_offset = REG_BP+REG_SI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 			break;
 		case MODRM_MEM_BPDI: //BP+DI?
 			sprintf(result->text,"[%s:BP+DI]",CPU_textsegment(CPU_SEGMENT_SS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-			result->mem_offset = modrm_internal_offset16(REG_BP+REG_DI); //Give addr!
+			result->mem_offset = REG_BP+REG_DI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 			break;
 		case MODRM_MEM_SI: //SI?
 			sprintf(result->text,"[%s:SI]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(REG_SI); //Give addr!
+			result->mem_offset = REG_SI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_DI: //DI?
 			sprintf(result->text,"[%s:DI]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(REG_DI); //Give addr!
+			result->mem_offset = REG_DI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_DISP16: //BP = disp16?
 			sprintf(result->text,"[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),params->displacement.low16); //Simple [word] displacement!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(params->displacement.low16); //Give addr!
+			result->mem_offset = params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_BX: //BX?
 			sprintf(result->text,"[%s:BX]",CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(REG_BX); //Give addr!
+			result->mem_offset = REG_BX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
@@ -1171,56 +1108,56 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_BXSI: //BX+SI?
 			sprintf(result->text,"[%s:BX+SI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(REG_BX+REG_SI+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_BX+REG_SI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_BXDI: //BX+DI?
 			sprintf(result->text,"[%s:BX+DI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(REG_BX+REG_DI+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_BX+REG_DI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_BPSI: //BP+SI?
 			sprintf(result->text,"[%s:BP+SI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-			result->mem_offset = modrm_internal_offset16(REG_BP+REG_SI+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_BP+REG_SI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 			break;
 		case MODRM_MEM_BPDI: //BP+DI?
 			sprintf(result->text,"[%s:BP+DI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-			result->mem_offset = modrm_internal_offset16(REG_BP+REG_DI+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_BP+REG_DI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 			break;
 		case MODRM_MEM_SI: //SI?
 			sprintf(result->text,"[%s:SI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(REG_SI+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_SI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_DI: //DI?
 			sprintf(result->text,"[%s:DI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(REG_DI+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_DI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_BP: //BP?
 			sprintf(result->text,"[%s:BP%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-			result->mem_offset = modrm_internal_offset16(REG_BP+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_BP+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 			break;
 		case MODRM_MEM_BX: //BX?
 			sprintf(result->text,"[%s:BX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-			result->mem_offset = modrm_internal_offset16(REG_BX+unsigned2signed8(params->displacement.low16_low)); //Give addr!
+			result->mem_offset = REG_BX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
@@ -1240,56 +1177,56 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_BXSI: //BX+SI?
 				sprintf(result->text,"[%s:BX+SI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_BX+REG_SI+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_BX+REG_SI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
 			case MODRM_MEM_BXDI: //BX+DI?
 				sprintf(result->text,"[%s:BX+DI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_BX+REG_DI+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_BX+REG_DI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
 			case MODRM_MEM_BPSI: //BP+SI?
 				sprintf(result->text,"[%s:BP+SI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-				result->mem_offset = modrm_internal_offset32(REG_BP+REG_SI+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_BP+REG_SI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 				break;
 			case MODRM_MEM_BPDI: //BP+DI?
 				sprintf(result->text,"[%s:BP+DI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-				result->mem_offset = modrm_internal_offset32(REG_BP+REG_DI+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_BP+REG_DI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 				break;
 			case MODRM_MEM_SI: //SI?
 				sprintf(result->text,"[%s:SI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_SI+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_SI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
 			case MODRM_MEM_DI: //DI?
 				sprintf(result->text,"[%s:DI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_DI+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_DI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
 			case MODRM_MEM_BP: //BP?
 				sprintf(result->text,"[%s:BP%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-				result->mem_offset = modrm_internal_offset32(REG_BP+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_BP+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 				break;
 			case MODRM_MEM_BX: //BX?
 				sprintf(result->text,"[%s:BX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset32(REG_BX+unsigned2signed32(params->displacement.dword)); //Give addr!
+				result->mem_offset = REG_BX+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
@@ -1307,56 +1244,56 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_BXSI: //BX+SI?
 				sprintf(result->text,"[%s:BX+SI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset16(REG_BX+REG_SI+unsigned2signed16(params->displacement.low16)); //Give addr!
+				result->mem_offset = REG_BX+REG_SI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
 			case MODRM_MEM_BXDI: //BX+DI?
 				sprintf(result->text,"[%s:BX+DI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset16(REG_BX+REG_DI+unsigned2signed16(params->displacement.low16)); //Give addr!
+				result->mem_offset = REG_BX+REG_DI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
 			case MODRM_MEM_BPSI: //BP+SI?
 				sprintf(result->text,"[%s:BP+SI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-				result->mem_offset = modrm_internal_offset16(REG_BP+REG_SI+unsigned2signed16(params->displacement.low16)); //Give addr!
+				result->mem_offset = REG_BP+REG_SI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 				break;
 			case MODRM_MEM_BPDI: //BP+DI?
 				sprintf(result->text,"[%s:BP+DI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-				result->mem_offset = modrm_internal_offset16(REG_BP+REG_DI+unsigned2signed16(params->displacement.low16)); //Give addr!
+				result->mem_offset = REG_BP+REG_DI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 				break;
 			case MODRM_MEM_SI: //SI?
 				sprintf(result->text,"[%s:SI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset16(REG_SI+unsigned2signed16(params->displacement.low16)); //Give addr!
+				result->mem_offset = REG_SI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
 			case MODRM_MEM_DI: //DI?
 				sprintf(result->text,"[%s:DI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset16(REG_DI+unsigned2signed16(params->displacement.low16)); //Give addr!
+				result->mem_offset = REG_DI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
 			case MODRM_MEM_BP: //BP?
 				sprintf(result->text,"[%s:BP%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
-				result->mem_offset = modrm_internal_offset16(REG_BP+unsigned2signed16(params->displacement.low16)); //Give addr!
+				result->mem_offset = REG_BP+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 				break;
 			case MODRM_MEM_BX: //REG_BX?
 				sprintf(result->text,"[%s:BX%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = modrm_internal_offset16(REG_BX+unsigned2signed16(params->displacement.low16)); //Give addr!
+				result->mem_offset = REG_BX+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				break;
@@ -1474,49 +1411,17 @@ void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	result->isreg = 0; //Unknown modr/m!
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 byte *modrm_addr8(MODRM_PARAMS *params, int whichregister, int forreading)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode8(params,&info,whichregister); //Get data!
 	byte *result; //The result holder if needed!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		if (info.reg8==NULL)
+		if (params->info[whichregister].reg8==NULL)
 		{
-			halt_modrm("MODRM:NULL REG8\nValue:%s",info.text);
+			halt_modrm("MODRM:NULL REG8\nValue:%s", params->info[whichregister].text);
 		}
-		return (byte *)/*memprotect(*/info.reg8/*,1,"CPU_REGISTERS")*/; //Give register!
+		return (byte *)/*memprotect(*/params->info[whichregister].reg8/*,1,"CPU_REGISTERS")*/; //Give register!
 	case 2: //Memory?
 		return NULL; //We don't do memory addresses! Use direct memory access here!
 	default:
@@ -1527,17 +1432,15 @@ byte *modrm_addr8(MODRM_PARAMS *params, int whichregister, int forreading)
 
 word *modrm_addr16(MODRM_PARAMS *params, int whichregister, int forreading)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode16(params,&info,whichregister); //Get data!
 	word *result; //The result holder if needed!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		if (info.reg16==NULL)
+		if (params->info[whichregister].reg16==NULL)
 		{
-			halt_modrm("MODRM:NULL REG16\nValue:%s",info.text);
+			halt_modrm("MODRM:NULL REG16\nValue:%s",params->info[whichregister].text);
 		}
-		return (word *)/*memprotect(*/info.reg16/*,2,"CPU_REGISTERS")*/; //Give register!
+		return (word *)/*memprotect(*/params->info[whichregister].reg16/*,2,"CPU_REGISTERS")*/; //Give register!
 	case 2: //Memory?
 		return NULL; //We don't do memory addresses! Use direct memory access here!
 	default:
@@ -1548,23 +1451,17 @@ word *modrm_addr16(MODRM_PARAMS *params, int whichregister, int forreading)
 
 void modrm_text8(MODRM_PARAMS *params, int whichregister, char *result)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode8(params,&info,whichregister); //Get data!
-	strcpy(result,info.text); //Use the text representation!
+	strcpy(result,params->info[whichregister].text); //Use the text representation!
 }
 
 void modrm_text16(MODRM_PARAMS *params, int whichregister, char *result)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode16(params,&info,whichregister); //Get data!
-	strcpy(result,info.text); //Use the text representation!
+	strcpy(result,params->info[whichregister].text); //Use the text representation!
 }
 
 word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions!
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode16(params,&info,whichregister); //Get data!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
 		last_modrm = 1; //ModR/M!
@@ -1572,16 +1469,16 @@ word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions
 		{
 			modrm_lastsegment = 0; //No segment used!
 		}
-		return (modrm_lastoffset & 0xFFFF); //No registers allowed officially, but we return the last offset in this case (undocumented)!
+		return (modrm_lastoffset+modrm_addoffset & 0xFFFF); //No registers allowed officially, but we return the last offset in this case (undocumented)!
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
 			modrm_lastsegment = 0; //No segment used!
-			modrm_lastoffset = info.mem_offset;
+			modrm_lastoffset = params->info[whichregister].mem_offset;
 		}
 
-		return info.mem_offset; //Give memory offset!
+		return params->info[whichregister].mem_offset+modrm_addoffset; //Give memory offset!
 	default:
 		return 0; //Unknown!
 	}
@@ -1589,16 +1486,14 @@ word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions
 
 void modrm_lea16_text(MODRM_PARAMS *params, int whichregister, char *result) //For LEA instructions!
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode16(params,&info,whichregister); //Get data!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		strcpy(result,info.text); //No registers allowed!
+		strcpy(result,params->info[whichregister].text); //No registers allowed!
 		return;
 	case 2: //Memory?
-		//sprintf(result,"%04x",info.mem_offset); //Give memory offset!
-		strcpy(result,info.text); //Set the text literally!
+		//sprintf(result,"%04x",params->info[whichregister].mem_offset); //Give memory offset!
+		strcpy(result,params->info[whichregister].text); //Set the text literally!
 		return; //Memory is valid!
 	default:
 		strcpy(result,"<UNKNOWN>");
@@ -1609,20 +1504,18 @@ void modrm_lea16_text(MODRM_PARAMS *params, int whichregister, char *result) //F
 //modrm_offset16: same as lea16, but allow registers too!
 word modrm_offset16(MODRM_PARAMS *params, int whichregister) //Gives address for JMP, CALL etc.!
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode16(params,&info,whichregister); //Get data!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		return *info.reg16; //Give register value!
+		return *params->info[whichregister].reg16; //Give register value!
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
 			modrm_lastsegment = 0;
-			modrm_lastoffset = info.mem_offset;
+			modrm_lastoffset = params->info[whichregister].mem_offset+modrm_addoffset;
 		}
-		return info.mem_offset; //Give memory offset!
+		return params->info[whichregister].mem_offset+modrm_addoffset; //Give memory offset!
 	default:
 		return 0; //Unknown!
 	}
@@ -1631,22 +1524,20 @@ word modrm_offset16(MODRM_PARAMS *params, int whichregister) //Gives address for
 //Used for LDS, LES, LSS, LEA
 word *modrm_addr_reg16(MODRM_PARAMS *params, int whichregister) //For LEA related instructions, returning the register!
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode16(params,&info,whichregister); //Get data!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		if (info.reg16==NULL)
+		if (params->info[whichregister].reg16==NULL)
 		{
 			halt_modrm("NULL REG16LEA");
 		}
-		return info.reg16; //Give register itself!
+		return params->info[whichregister].reg16; //Give register itself!
 	case 2: //Memory?
-		if (info.segmentregister==NULL)
+		if (params->info[whichregister].segmentregister==NULL)
 		{
 			halt_modrm("NULL REG16LEA_SEGMENT");
 		}
-		return info.segmentregister; //Give the segment register of the MODR/M!
+		return params->info[whichregister].segmentregister; //Give the segment register of the MODR/M!
 	default:
 		halt_modrm("REG16LEA_UNK");
 		return NULL; //Unknown!
@@ -1673,23 +1564,21 @@ word *modrm_addr_reg16(MODRM_PARAMS *params, int whichregister) //For LEA relate
 
 uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading)
 {
-	MODRM_PTR info; //To contain the info!
-	modrm_decode32(params,&info,whichregister); //Get data!
 	uint_32 *result; //The result holder if needed!
-	switch (info.isreg) //What type?
+	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		if (info.reg32==NULL)
+		if (params->info[whichregister].reg32==NULL)
 		{
 			halt_modrm("NULL REG32");
 		}
-		return (uint_32 *)/*memprotect(*/info.reg32/*,4,"CPU_REGISTERS")*/; //Give register!
+		return (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
-			modrm_lastsegment = info.mem_segment;
-			modrm_lastoffset = info.mem_offset;
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = params->info[whichregister].mem_offset+modrm_addoffset;
 		}
 		return NULL; //We don't do memory addresses! Use direct memory access here!
 	default:
@@ -1720,9 +1609,7 @@ Slashr:
 
 */
 
-extern GPU_TEXTSURFACE *frameratesurface;
-
-void modrm_readparams(MODRM_PARAMS *param, int size, int slashr)
+void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 {
 	uint_32 startseg;
 	uint_32 startoffs;
@@ -1756,5 +1643,27 @@ void modrm_readparams(MODRM_PARAMS *param, int size, int slashr)
 		break;
 	default: //Unknown/no displacement?
 		break; //No displacement!
+	}
+
+	//Decode appropiately!
+	switch (size) //What size?
+	{
+	case 1: //8-bits?
+		modrm_decode8(param, &param->info[0], 0); //#0!
+		modrm_decode8(param, &param->info[1], 1); //#0!
+		modrm_decode8(param, &param->info[2], 2); //#0!
+		break;
+	case 2: //16-bits?
+		modrm_decode16(param, &param->info[0], 0); //#0!
+		modrm_decode16(param, &param->info[1], 1); //#0!
+		modrm_decode16(param, &param->info[2], 2); //#0!
+		break;
+	case 4: //32-bits?
+		modrm_decode32(param, &param->info[0], 0); //#0!
+		modrm_decode32(param, &param->info[1], 1); //#0!
+		modrm_decode32(param, &param->info[2], 2); //#0!
+		break;
+	default:
+		halt_modrm("Unknown decoder size: %i",size); //Unknown size!
 	}
 }

@@ -48,7 +48,7 @@ void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint
 
 	if (EMULATED_CPU<=CPU_80186) //-80186 wraps offset arround?
 	{
-		offset = SAFEMOD(offset,65536); //Wrap arround!
+		offset &= 0xFFFF; //Wrap arround!
 	}
 	else
 	{
@@ -222,10 +222,7 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) /
 	realaddress = CPU_MMU_start(segdesc, segment);
 	realaddress += offset; //Real adress!
 
-	if (MMU.wraparround) //-80186 wraps offset arround?
-	{
-		realaddress = BITOFF(realaddress,0x100000); //Wrap arround, disable A20!
-	}
+	realaddress &= MMU.wraparround; //Wrap arround, disable A20!
 	//We work!
 	//dolog("MMU","\nAddress translation: %04X:%08X=%08X",originalsegment,originaloffset,realaddress); //Log the converted address!
 	return realaddress; //Give real adress!
@@ -379,5 +376,5 @@ void MMU_resetaddr()
 void MMU_wraparround(byte dowrap) //To wrap arround 1MB limit?
 {
 	//dolog("MMU","Set A20 bit disabled: %i",dowrap); //To wrap arround?
-	MMU.wraparround = (dowrap>0);
+	MMU.wraparround = (dowrap>0)? BITOFF(~0, 0x100000):~0; //Wrap arround mask!
 }

@@ -19,6 +19,8 @@
 
 #include "headers/support/locks.h" //Lock support!
 
+#include "headers/hardware/vga.h" //VGA support for locks!
+
 #ifdef __psp__
 #include <pspkernel.h>
 PSP_MODULE_INFO("x86EMU", 0, 1, 0);

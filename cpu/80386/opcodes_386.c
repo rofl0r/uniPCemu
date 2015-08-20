@@ -134,7 +134,7 @@ void CPU_OP80_ADC()
 	modrm_write8(&params,((modrm_read8(&params,0)+addition)&0xFF),0);
 	CHECK_SF(modrm_read8(&params,0));
 	CHECK_ZF(modrm_read8(&params,0));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 //OP81 multihandler
 void CPU_OP81_ADC_IW()
@@ -145,7 +145,7 @@ void CPU_OP81_ADC_IW()
 	modrm_write16(&params,2,((modrm_read16(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,0));
 	CHECK_ZF(modrm_read16(&params,0));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP81_ADC_ID()
 {
@@ -155,7 +155,7 @@ void CPU_OP81_ADC_ID()
 	modrm_write32(&params,2,((modrm_read32(&params,0)+addition)&0xFFFF));
 	CHECK_SF(modrm_read32(&params,0));
 	CHECK_ZF(modrm_read32(&params,0));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP81_ADC()
 {
@@ -177,7 +177,7 @@ void CPU_OP83_ADC_IW()
 	modrm_write16(&params,2,((modrm_read16(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,0));
 	CHECK_ZF(modrm_read16(&params,0));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP83_ADC_ID()
 {
@@ -187,7 +187,7 @@ void CPU_OP83_ADC_ID()
 	modrm_write32(&params,2,((modrm_read32(&params,0)+addition)&0xFFFF));
 	CHECK_SF(modrm_read32(&params,0));
 	CHECK_ZF(modrm_read32(&params,0));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP83_ADC()
 {
@@ -210,7 +210,7 @@ void CPU_OP10()
 	modrm_write8(&params,2,((modrm_read8(&params,2)+addition)&0xFF));
 	CHECK_SF(modrm_read8(&params,2));
 	CHECK_ZF(modrm_read8(&params,2));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP11_IW()
 {
@@ -220,7 +220,7 @@ void CPU_OP11_IW()
 	modrm_write16(&params,2,((modrm_read16(&params,2)+addition)&0xFFFF),1);
 	CHECK_SF(modrm_read16(&params,2));
 	CHECK_ZF(modrm_read16(&params,2));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP11_ID()
 {
@@ -230,7 +230,7 @@ void CPU_OP11_ID()
 	modrm_write32(&params,2,((modrm_read32(&params,2)+addition)&0xFFFFFFFF));
 	CHECK_SF(modrm_read32(&params,2));
 	CHECK_ZF(modrm_read32(&params,2));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP11()
 {
@@ -253,7 +253,7 @@ void CPU_OP12()
 	modrm_write8(&params,2,((modrm_read8(&params,1)+addition)&0xFF));
 	CHECK_SF(modrm_read8(&params,1));
 	CHECK_ZF(modrm_read8(&params,1));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP13_IW()
 {
@@ -263,7 +263,7 @@ void CPU_OP13_IW()
 	modrm_write16(&params,2,((modrm_read16(&params,1)+addition)&0xFFFF),2);
 	CHECK_SF(modrm_read16(&params,1));
 	CHECK_ZF(modrm_read16(&params,1));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP13_ID()
 {
@@ -273,7 +273,7 @@ void CPU_OP13_ID()
 	modrm_write32(&params,2,((modrm_read32(&params,1)+addition)&0xFFFFFFFF));
 	CHECK_SF(modrm_read32(&params,1));
 	CHECK_ZF(modrm_read32(&params,1));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP13()
 {
@@ -357,7 +357,7 @@ void CPU_OP80_ADD()
 	modrm_write8(&params,((modrm_read8(&params,0)+addition)&0xFF),0);
 	CHECK_SF(modrm_read8(&params,0));
 	CHECK_ZF(modrm_read8(&params,0));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 //OP81 multihandler
 void CPU_OP81_ADD_IW()
@@ -368,7 +368,7 @@ void CPU_OP81_ADD_IW()
 	modrm_write16(&params,2,((modrm_read16(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,0));
 	CHECK_ZF(modrm_read16(&params,0));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP81_ADD_ID()
 {
@@ -378,7 +378,7 @@ void CPU_OP81_ADD_ID()
 	modrm_write32(&params,((modrm_read32(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read32(&params,0));
 	CHECK_ZF(modrm_read32(&params,0));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP81_ADD()
 {
@@ -400,7 +400,7 @@ void CPU_OP83_ADD_IW()
 	modrm_write16(&params,2,((modrm_read16(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,0));
 	CHECK_ZF(modrm_read16(&params,0));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP83_ADD_ID()
 {
@@ -410,7 +410,7 @@ void CPU_OP83_ADD_ID()
 	modrm_write32(&params,((modrm_read32(&params,0)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read32(&params,0));
 	CHECK_ZF(modrm_read32(&params,0));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP83_ADD()
 {
@@ -433,7 +433,7 @@ void CPU_OP00()
 	modrm_write8(&params,((modrm_read8(&params,2)+addition)&0xFF),1);
 	CHECK_SF(modrm_read8(&params,2));
 	CHECK_ZF(modrm_read8(&params,2));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP01_IW()
 {
@@ -443,7 +443,7 @@ void CPU_OP01_IW()
 	modrm_write16(&params,2,((modrm_read16(&params,2)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,2));
 	CHECK_ZF(modrm_read16(&params,2));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP01_ID()
 {
@@ -453,7 +453,7 @@ void CPU_OP01_ID()
 	modrm_write32(&params,((modrm_read32(&params,2)+addition)&0xFFFFFFFF),1);
 	CHECK_SF(modrm_read32(&params,2));
 	CHECK_ZF(modrm_read32(&params,2));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP01()
 {
@@ -476,7 +476,7 @@ void CPU_OP02()
 	modrm_write8(&params,((modrm_read8(&params,1)+addition)&0xFF),2);
 	CHECK_SF(modrm_read8(&params,1));
 	CHECK_ZF(modrm_read8(&params,1));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP03_IW()
 {
@@ -486,7 +486,7 @@ void CPU_OP03_IW()
 	modrm_write16(&params,2,((modrm_read16(&params,1)+addition)&0xFFFF),0);
 	CHECK_SF(modrm_read16(&params,1));
 	CHECK_ZF(modrm_read16(&params,1));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP03_ID()
 {
@@ -496,7 +496,7 @@ void CPU_OP03_ID()
 	modrm_write32(&params,((modrm_read32(&params,1)+addition)&0xFFFFFFFF),2);
 	CHECK_SF(modrm_read32(&params,1));
 	CHECK_ZF(modrm_read32(&params,1));
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP03()
 {
@@ -581,7 +581,7 @@ void CPU_OP80_AND()
 	CHECK_ZF(modrm_read8(&params,0));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 //OP81 multihandler
 void CPU_OP81_AND_IW()
@@ -594,7 +594,7 @@ void CPU_OP81_AND_IW()
 	CHECK_ZF(modrm_read16(&params,0));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP81_AND_ID()
 {
@@ -606,7 +606,7 @@ void CPU_OP81_AND_ID()
 	CHECK_ZF(modrm_read32(&params,0));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP81_AND()
 {
@@ -630,7 +630,7 @@ void CPU_OP83_AND_IW()
 	CHECK_ZF(modrm_read16(&params,0));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP83_AND_ID()
 {
@@ -642,7 +642,7 @@ void CPU_OP83_AND_ID()
 	CHECK_ZF(modrm_read32(&params,0));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP83_AND()
 {
@@ -667,7 +667,7 @@ void CPU_OP20()
 	CHECK_ZF(modrm_read8(&params,2));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP21_IW()
 {
@@ -679,7 +679,7 @@ void CPU_OP21_IW()
 	CHECK_ZF(modrm_read16(&params,2));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP21_ID()
 {
@@ -691,7 +691,7 @@ void CPU_OP21_ID()
 	CHECK_ZF(modrm_read32(&params,2));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP21()
 {
@@ -716,7 +716,7 @@ void CPU_OP22()
 	CHECK_ZF(modrm_read8(&params,1));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP23_IW()
 {
@@ -728,7 +728,7 @@ void CPU_OP23_IW()
 	CHECK_ZF(modrm_read16(&params,1));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP23_ID()
 {
@@ -740,7 +740,7 @@ void CPU_OP23_ID()
 	CHECK_ZF(modrm_read32(&params,1));
 	FLAG_CF = 0;
 	FLAG_OF = 0;
-	CPU[activeCPU].cycles_OP = modrm_isregister(&params)?2:7; /* 2 for register, 7 for memory */
+	CPU[activeCPU].cycles_OP = modrm_isregister(params)?2:7; /* 2 for register, 7 for memory */
 }
 void CPU_OP23()
 {

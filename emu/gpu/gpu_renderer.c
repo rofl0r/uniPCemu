@@ -58,15 +58,13 @@ uint_32 *row_empty = NULL; //A full row, non-initialised!
 uint_32 row_empty_size = 0; //No size!
 GPU_SDL_Surface *resized = NULL; //Standard resized data, keep between unchanged screens!
 
-extern SDL_sem *GPU_Lock; //The GPU lock!
-
 void init_rowempty()
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (!row_empty) //Not allocated yet?
 	{
 		row_empty_size = EMU_MAX_X*sizeof(uint_32); //Load the size of an empty row for deallocation purposes!
-		row_empty = (uint_32 *)zalloc(row_empty_size,"Empty row",GPU_Lock); //Initialise empty row!
+		row_empty = (uint_32 *)zalloc(row_empty_size,"Empty row",NULL); //Initialise empty row!
 	}
 }
 
