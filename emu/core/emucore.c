@@ -496,7 +496,6 @@ byte coreHandler()
 		if (runBIOS(0)) //Run the emulator BIOS!
 		{
 			reset = 1; //We're to reset!
-			return 1; //OK!
 		}
 		resumeEMU(); //Resume!
 	}
@@ -532,7 +531,7 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 		if (!coreHandler()) //Run the core CPU+related handler, gotten abort?
 		{
 			unlock("CPU"); //We're finished with the CPU!
-			return 0; //Abort!
+			break; //Abort!
 		}
 	}
 

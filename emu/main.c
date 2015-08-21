@@ -274,13 +274,13 @@ int main(int argc, char * argv[])
 	psp_input_init(); //Make sure input is checked!
 	initThreads(); //Initialise&reset thread subsystem!
 	initVideoLayer(); //We're for allocating the main video layer, only deallocated using SDL_Quit (when quitting the application)!
-	
-	resetmain: //Main reset!
 
-	debugrow("Initialising main video service...");	
+	debugrow("Initialising main video service...");
 	initVideoMain(); //All main video!
-	debugrow("Initialising main audio service...");	
+	debugrow("Initialising main audio service...");
 	initAudio(); //Initialise main audio!
+
+	resetmain: //Main reset!
 
 	IPS_Lock = getLock("IPS_Lock"); //Create the IPS lock!
 
@@ -345,17 +345,15 @@ int main(int argc, char * argv[])
 
 	stopTimers(1); //Stop all timers still running!
 
-	debugrow("Terminating main audio service...");		
-	doneAudio(); //Finish audio processing!
-	debugrow("Terminating main video service...");		
-	doneVideoMain(); //Finish video!
-
 	doneEMU(); //Finish up the emulator, if still required!
 	termThreads(); //Terminate all still running threads!
-	freezall(); //Free all pointers!
 
 	if (shuttingdown()) //Shutdown requested or SDL termination requested?
 	{
+		debugrow("Terminating main audio service...");
+		doneAudio(); //Finish audio processing!
+		debugrow("Terminating main video service...");
+		doneVideoMain(); //Finish video!
 		exit(0); //Quit using SDL, terminating the pspsurface!
 		return 0; //Finish to be safe!
 	}

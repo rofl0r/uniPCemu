@@ -3,6 +3,7 @@
 #include "headers/emu/timers.h" //Timing!
 #include "headers/support/log.h" //Logging support!
 #include "headers/bios/bios.h" //BIOS support!
+#include "headers/support/locks.h" //Locking support!
 
 //For time support!
 //#include <psprtc.h> //PSP Real Time Clock atm!
@@ -156,16 +157,6 @@ void RTC_PeriodicInterrupt() //Periodic Interrupt!
 
 void RTC_UpdateEndedInterrupt() //Update Ended Interrupt!
 {
-	//Apply time!
-	time_t t = time(0);
-	struct tm *curtime = localtime(&t); //Get the current time!
-	CMOS.info.RTC_Year = encodeBCD8(curtime->tm_year);
-	CMOS.info.RTC_Month = encodeBCD8(curtime->tm_mon);
-	CMOS.info.RTC_DateOfMonth = encodeBCD8(curtime->tm_mday);
-	CMOS.info.RTC_Hours = encodeBCD8(curtime->tm_hour);
-	CMOS.info.RTC_Minutes = encodeBCD8(curtime->tm_min);
-	CMOS.info.RTC_Seconds = encodeBCD8(curtime->tm_sec);
-	
 	CMOS.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
 
 	if (CMOS.data[0x0B]&0x10) //Enabled interrupt?
@@ -190,7 +181,9 @@ void CMOS_onRead() //When CMOS is being read (special actions).
 {
 	if (CMOS.ADDR==0x0C) //Enable all interrupts for RTC again?
 	{
+		for (;!lock("CMOS");) delay(0); //Wait for the lock!
 		CMOS.IRQ8_Disabled = 0; //Enable all!
+		unlock("CMOS");
 	}
 }
 
@@ -215,6 +208,21 @@ void RTC_Handler() //Handle RTC Timer Tick!
 	}
 }
 
+//Update the current Date/Time (1 times a second)!
+void RTC_updateDateTime()
+{
+	//Apply time!
+	time_t t = time(0);
+	struct tm *curtime = localtime(&t); //Get the current time!
+	CMOS.info.RTC_Year = encodeBCD8(curtime->tm_year);
+	CMOS.info.RTC_Month = encodeBCD8(curtime->tm_mon);
+	CMOS.info.RTC_DateOfMonth = encodeBCD8(curtime->tm_mday);
+	CMOS.info.RTC_Hours = encodeBCD8(curtime->tm_hour);
+	CMOS.info.RTC_Minutes = encodeBCD8(curtime->tm_min);
+	CMOS.info.RTC_Seconds = encodeBCD8(curtime->tm_sec);
+	RTC_Handler(); //Handle anything that the RTC has to handle!
+}
+
 uint_32 getIRQ8Rate()
 {
 	return 32768>>(CMOS.data[0xA]); //The frequency!
@@ -224,8 +232,10 @@ void CMOS_onWrite() //When written to CMOS!
 {
 	if (CMOS.ADDR==0xB) //Might have enabled IRQ8 functions!
 	{
-		addtimer((float)getIRQ8Rate(),&RTC_Handler,"RTC",10,0,NULL); //RTC handler!
+		lock("CMOS");
+		addtimer((float)getIRQ8Rate(),&RTC_updateDateTime,"RTC",10,0,NULL); //RTC handler!
 		CMOS.IRQ8_Disabled = 0; //Allow IRQ8 to be called by timer: we're enabled!
+		unlock("CMOS");
 	}
 }
 
@@ -237,7 +247,9 @@ byte PORT_readCMOS(word port) //Read from a port/register!
 		return CMOS.ADDR|(NMI<<7); //Give the address and NMI!
 	case 0x71:
 		CMOS_onRead(); //Execute handler!
+		for (;!lock("CMOS");) delay(0); //Lock the CMOS!
 		byte data =  CMOS.data[CMOS.ADDR]; //Give the data from the CMOS!
+		unlock("CMOS");
 		CMOS.ADDR = 0xD; //Reset address!
 		return data; //Give the data!
 	}
@@ -254,7 +266,9 @@ void PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		CMOS_onWrite(); //On write!
 		break;
 	case 0x71:
+		for (;!lock("CMOS");) delay(0); //Lock the CMOS!
 		CMOS.data[CMOS.ADDR] = value; //Set value in CMOS!
+		unlock("CMOS");
 		CMOS_onWrite(); //On write!
 		CMOS.ADDR = 0xD; //Reset address!		
 		break;
@@ -272,4 +286,5 @@ void initCMOS() //Initialises CMOS (apply solid init settings&read init if possi
 	//Register our I/O ports!
 	register_PORTIN(&PORT_readCMOS);
 	register_PORTOUT(&PORT_writeCMOS);
+	addtimer((float)getIRQ8Rate(), &RTC_updateDateTime, "RTC", 10, 0, NULL); //RTC handler!
 }

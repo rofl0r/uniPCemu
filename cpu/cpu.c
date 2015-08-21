@@ -861,9 +861,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	blockREP = 0; //Don't block REP anymore!
 	CPU[activeCPU].cycles += CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
 	CPU_afterexec(); //After executing OPCode stuff!
-	WaitSem(IPS_Lock);
 	++instructioncounter; //Increase the instruction counter!
-	PostSem(IPS_Lock);
 }
 
 void CPU_hard_RETI() //Hardware RETI!

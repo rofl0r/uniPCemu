@@ -307,8 +307,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
-    <ReferencePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\lib\x86;$(ReferencePath)</ReferencePath>
-    <LibraryPath>C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;C:\SDL\SDL-1.2.15\lib\x86;$(LibraryPath)</LibraryPath>
+    <ReferencePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25\(Platform)\Release;C:\SDL\SDL-1.2.15\lib\x86;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\SDL\SDL_gfx-2.0.25\(Platform)\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;C:\SDL\SDL-1.2.15\lib\x86;$(LibraryPath)</LibraryPath>
     <OutDir>\psp-projects_build\$(ProjectName)</OutDir>
     <IntDir>$(TEMP)\$(ProjectName)</IntDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>
@@ -348,8 +348,7 @@
     <Link>
       <AdditionalDependencies>Winmm.lib;SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>No</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
