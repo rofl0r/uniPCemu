@@ -3,8 +3,6 @@
 
 typedef byte (*SOUNDHANDLER)(void* buf, uint_32 length, byte stereo, void *userdata);    /* A pointer to a handler function */
 
-//Hardware set sample rate
-#define HW_SAMPLERATE 44100
 //PI
 #define PI 3.1415926535897932f
 

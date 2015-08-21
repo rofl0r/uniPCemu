@@ -161,6 +161,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	register int y=0;
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
+	WaitSem(tsurface->lock);
 	for (;;) //Process all rows!
 	{
 		register int x=0; //Reset x!
@@ -172,6 +173,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!
 	}
 	tsurface->flags &= ~TEXTSURFACE_FLAG_DIRTY; //Clear dirty flag!
+	PostSem(tsurface->lock); //We're finished with the surface!
 	return 0; //Ignore processing time!
 }
 

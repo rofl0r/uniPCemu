@@ -254,6 +254,10 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 	{
 		counter -= INPUT_INTERVAL; //One further!
 		delay(INPUT_INTERVAL); //Intervals of one!
+		if (shuttingdown()) //Request shutdown?
+		{
+			return 0; //No reset!
+		}
 		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun || FORCE_BIOS) //R trigger pressed or first run?
 		{
 			if (timeout) //Before boot?
@@ -265,8 +269,6 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 			if (runBIOS(!timeout)) //Run the BIOS! Show text if timeout is specified!
 			{
 				//We're dirty, so reset!
-				termThreads(); //Terminate all threads!
-				exit(0); //Quit: for some reason we don't reset correctly!
 				return 1; //We've to reset!
 			}
 		}
@@ -279,14 +281,6 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 	}
 	return 0; //No reset!
 }
-
-
-
-
-
-
-
-
 
 byte EMU_RUNNING = 0; //Emulator is running (are we using the IN-EMULATOR limited menus?) 0=Not running, 1=Running with CPU, 2=Running no CPU (BIOS Menu running?)
 
@@ -561,6 +555,11 @@ void BIOS_MenuChooser() //The menu chooser!
 		{
 			BIOS_InvMenu(); //Invalid menu!
 		}
+		if (shuttingdown()) //Are we requesting a shutdown?
+		{
+			BIOS_SaveStat = 0; //Ignore any changes!
+			return; //Shut down!
+		}
 	}
 }
 
@@ -608,6 +607,11 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 	int oldoption = -1; //Old option!
 	while (key!=BUTTON_CROSS) //Wait for the key to choose something!
 	{
+		if (shuttingdown()) //Cancel?
+		{
+			option = BIOSMENU_SPEC_CANCEL;
+			break;
+		}
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input a key with delay!
 		if ((key & BUTTON_UP)>0) //Up pressed?
 		{
@@ -819,7 +823,8 @@ void printCurrent(int x, int y, char *text, int maxlen) //Create the current ite
 
 int ExecuteList(int x, int y, char *defaultentry, int maxlen) //Runs the file list!
 {
-//First, no file check!
+	int key = 0;
+	//First, no file check!
 	if (!numlist) //No files?
 	{
 		EMU_locktext();
@@ -848,7 +853,10 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen) //Runs the file li
 	
 	while (1) //Doing selection?
 	{
-		int key = 0;
+		if (shuttingdown()) //Cancel?
+		{
+			return FILELIST_CANCEL; //Cancel!
+		}
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 
 		if ((key&BUTTON_UP)>0) //UP?
@@ -1468,6 +1476,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 		if (file!=current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
+			reboot_needed = 1; //We need to reboot: a different CPU has been selected!
 			switch (file) //Which CPU?
 			{
 			case CPU_8086: //8086?
@@ -1734,6 +1743,7 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 			}
 			break; //Cancel!
 		}
+		else if (shuttingdown()) break; //Cancel because of shutdown?
 	}
 	return 0; //No size: cancel!
 }
@@ -1750,6 +1760,11 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 	memset(&input, 0, sizeof(input)); //Init input to empty!
 	for (;;) //Main input loop!
 	{
+		if (shuttingdown)
+		{
+			disableKeyboard(); //Disable the keyboard!
+			return 0; //Cancel!
+		}
 		delay(10000); //Wait a bit for input!
 		WaitSem(keyboard_lock)
 		if (input_buffer_shift != -1) //Given input yet?
@@ -1979,6 +1994,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 					byte error = 0;
 					for (sectornr = 0; sectornr < sizecreated;) //Process all sectors!
 					{
+						if (shuttingdown())
+						{
+							error = 4; //Give the fourth error!
+							break;
+						}
 						if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
 						{
 							if (!writedata(HDD1, &sector, sectornr, 512)) //Error writing a sector?
@@ -2013,6 +2033,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 						iohdd1(filename, 0, 1, 0); //Mount!
 						for (sectornr = 0; sectornr < size;) //Process all sectors!
 						{
+							if (shuttingdown())
+							{
+								error = 4; //Give the fourth error!
+								break;
+							}
 							if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
 							{
 								if (!readdata(HDD1, &verificationsector, sectornr, 512)) //Error reading a sector?
@@ -2118,6 +2143,11 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				dest = fopen64(filename, "wb"); //Open the destination!
 				for (sectornr = 0; sectornr < size;) //Process all sectors!
 				{
+					if (shuttingdown())
+					{
+						error = 4; //Give the fourth error!
+						break;
+					}
 					if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
 					{
 						if (fwrite64(&sector,1,512,dest)!=512) //Error writing a sector?
@@ -2154,6 +2184,11 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					iohdd1(filename, 0, 1, 0); //Mount!
 					for (sectornr = 0; sectornr < size;) //Process all sectors!
 					{
+						if (shuttingdown())
+						{
+							error = 4; //Give the fourth error!
+							break;
+						}
 						if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
 						{
 							if (!readdata(HDD1, &verificationsector, sectornr, 512)) //Error reading a sector?
@@ -2261,6 +2296,11 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					byte error = 0;
 					for (sectornr = 0; sectornr < sizecreated;) //Process all sectors!
 					{
+						if (shuttingdown())
+						{
+							error = 4; //Give the fourth error!
+							break;
+						}
 						if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
 						{
 							if (!writedata(HDD1, &sector, sectornr, 512)) //Error writing a sector?
@@ -2295,6 +2335,11 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						iohdd1(filename, 0, 1, 0); //Mount!
 						for (sectornr = 0; sectornr < size;) //Process all sectors!
 						{
+							if (shuttingdown())
+							{
+								error = 4; //Give the fourth error!
+								break;
+							}
 							if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
 							{
 								if (!readdata(HDD1, &verificationsector, sectornr, 512)) //Error reading a sector?

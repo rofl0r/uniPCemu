@@ -101,7 +101,7 @@ int BIOS_load_ROM(byte nr)
  	{
 		BIOS_ROM_size[nr] = ftell(f); //Save the size!
 		fseek(f,0,SEEK_SET); //Goto BOF!
-		BIOS_ROMS[nr] = (byte *)nzalloc(BIOS_ROM_size[nr],filename,NULL); //Simple memory allocation for our ROM!
+		BIOS_ROMS[nr] = (byte *)nzalloc(BIOS_ROM_size[nr],filename,getLock("ROM")); //Simple memory allocation for our ROM!
 		if (!BIOS_ROMS[nr]) //Failed to allocate?
 		{
 			fclose(f); //Close the file!
@@ -142,7 +142,7 @@ int BIOS_load_custom(char *rom)
  	{
 		BIOS_custom_ROM_size = ftell(f); //Save the size!
 		fseek(f,0,SEEK_SET); //Goto BOF!
-		BIOS_custom_ROM = (byte *)nzalloc(BIOS_custom_ROM_size,filename,NULL); //Simple memory allocation for our ROM!
+		BIOS_custom_ROM = (byte *)nzalloc(BIOS_custom_ROM_size,filename,getLock("ROM")); //Simple memory allocation for our ROM!
 		if (!BIOS_custom_ROM) //Failed to allocate?
 		{
 			fclose(f); //Close the file!
@@ -244,6 +244,7 @@ byte OPTROM_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value)    /
 			if (OPTROM_location[i]<=reloffset && (OPTROM_location[i]+OPTROM_size[i])>reloffset) //Found ROM?
 			{
 				*value = OPT_ROMS[i][reloffset-OPTROM_location[i]]; //Read the data!
+				unlock("ROM"); //Finished!
 				return 1; //Done: we've been read!
 			}
 		}
@@ -253,9 +254,11 @@ byte OPTROM_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value)    /
 		if (reloffset < BIOS_custom_VGAROM_size) //OK?
 		{
 			*value = BIOS_custom_VGAROM[reloffset]; //Give the value!
+			unlock("ROM"); //Finished!
 			return 1;
 		}
 	}
+	unlock("ROM"); //Finished!
 	return 0; //No ROM here, allow read from nroaml memory!
 }
 
@@ -268,6 +271,7 @@ byte OPTROM_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /
 		{
 			if (OPTROM_location[i]<=reloffset && (OPTROM_location[i]+OPTROM_size[i])>reloffset) //Found ROM?
 			{
+				unlock("ROM"); //Finished!
 				return 1; //Handled: ignore writes to ROM!
 			}
 		}
@@ -276,9 +280,11 @@ byte OPTROM_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /
 	{
 		if (reloffset < BIOS_custom_VGAROM_size) //OK?
 		{
+			unlock("ROM"); //Finished!
 			return 1; //Ignore writes!
 		}
 	}
+	unlock("ROM"); //Finished!
 	return 0; //No ROM here, allow writes to normal memory!
 }
 
@@ -289,9 +295,14 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 	{
 		offset = reloffset;
 		offset &= 0xFFFF; //16-bit ROM!
-		if (BIOS_custom_ROM_size == 0x10000) return 1; //Unwritable BIOS!
+		if (BIOS_custom_ROM_size == 0x10000)
+		{
+			unlock("ROM"); //Finished!
+			return 1; //Unwritable BIOS!
+		}
 		if (offset>0xFFFF-BIOS_custom_ROM_size) //Within range?
 		{
+			unlock("ROM"); //Finished!
 			return 1; //Ignore writes!
 		}
 	}
@@ -309,6 +320,7 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 				{
 					if (BIOS_ROM_size[18]>offset) //Within range?
 					{
+						unlock("ROM"); //Finished!
 						return 1; //Ignore writes!
 					}
 				}
@@ -319,6 +331,7 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 				{
 					if (BIOS_ROM_size[19]>offset) //Within range?
 					{
+						unlock("ROM"); //Finished!
 						return 1; //Ignore writes!
 					}
 				}
@@ -337,6 +350,7 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 				{
 					if (BIOS_ROM_size[47]>offset) //Within range?
 					{
+						unlock("ROM"); //Finished!
 						return 1; //Ignore writes!
 					}
 				}
@@ -347,6 +361,7 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 				{
 					if (BIOS_ROM_size[27]>offset) //Within range?
 					{
+						unlock("ROM"); //Finished!
 						return 1; //Ignore writes!
 					}
 				}
@@ -356,11 +371,13 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 			break;
 	}
 
+	unlock("ROM"); //Finished!
 	return 0; //Not recognised, use normal RAM!
 }
 
 byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A pointer to a handler function */
 {
+	for (;!lock("ROM");) delay(0);
 	uint_32 offset; //Current offset within the segment!
 	if (BIOS_custom_ROM) //Custom/system ROM loaded?
 	{
@@ -369,12 +386,14 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 		if (BIOS_custom_ROM_size == 0x10000)
 		{
 			*value = BIOS_custom_ROM[offset]; //Give the value!
+			unlock("ROM"); //Finished!
 			return 1; //Direct offset used!
 		}
 		if (offset>(0xFFFF-BIOS_custom_ROM_size)) //Within range?
 		{
 			offset -= (0xFFFF - BIOS_custom_ROM_size)+1;
 			*value = BIOS_custom_ROM[offset]; //Give the value!
+			unlock("ROM"); //Finished!
 			return 1; //ROM offset from the end of RAM used!
 		}
 	}
@@ -394,6 +413,7 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 					if (BIOS_ROM_size[18]>offset) //Within range?
 					{
 						*value = BIOS_ROMS[18][offset]; //Give the value!
+						unlock("ROM"); //Finished!
 						return 1;
 					}
 				}
@@ -405,6 +425,7 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 					if (BIOS_ROM_size[19]>offset) //Within range?
 					{
 						*value = BIOS_ROMS[19][offset]; //Give the value!
+						unlock("ROM"); //Finished!
 						return 1;
 					}
 				}
@@ -424,6 +445,7 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 					if (BIOS_ROM_size[47]>offset) //Within range?
 					{
 						*value = BIOS_ROMS[47][offset]; //Give the value!
+						unlock("ROM"); //Finished!
 						return 1;
 					}
 				}
@@ -435,6 +457,7 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 					if (BIOS_ROM_size[27]>offset) //Within range?
 					{
 						*value = BIOS_ROMS[27][offset]; //Give the value!
+						unlock("ROM"); //Finished!
 						return 1;
 					}
 				}
@@ -444,6 +467,7 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 			break;
 	}
 
+	unlock("ROM"); //Finished!
 	return 0; //Not recognised, use normal RAM!
 }
 

@@ -87,28 +87,15 @@ http://webpages.charter.net/danrollins/techhelp/0114.HTM
 
 */
 
-SDL_sem *VGA_Lock; //Our lock!
-
-void freeVGALock(void)
-{
-	SDL_DestroySemaphore(VGA_Lock); //Add the lock for hardware/software conflicts!
-}
-
 VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA and gives the current set!
 {
 	if (__HW_DISABLED) return NULL; //Abort!
 
 	debugrow("VGA: Creating VGA lock if needed...");
 
-	if (!VGA_Lock) //No lock yet?
-	{
-		VGA_Lock = SDL_CreateSemaphore(1); //Add the lock for hardware/software conflicts!
-		atexit(&freeVGALock);
-	}
-
 	VGA_Type *VGA; //The VGA to be allocated!
 	debugrow("VGA: Allocating VGA...");
-	VGA = (VGA_Type *)zalloc(sizeof(*VGA),"VGA_Struct",VGA_Lock); //Allocate new VGA base to work with!
+	VGA = (VGA_Type *)zalloc(sizeof(*VGA),"VGA_Struct",getLock("VGA")); //Allocate new VGA base to work with!
 	if (!VGA)
 	{
 		raiseError("VGAalloc","Ran out of memory allocating VGA base!");
@@ -136,12 +123,12 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	VGA->VRAM_size = size; //Use the selected size!
 	
 	debugrow("VGA: Allocating VGA VRAM...");
-	VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM",VGA_Lock); //The VRAM allocated to 0!
+	VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM",getLock("VGA")); //The VRAM allocated to 0!
 	if (!VGA->VRAM)
 	{
 		VGA->VRAM_size = VRAM_SIZE; //Try Default VRAM size!
 		//dolog("zalloc","Allocating VGA VRAM default...");
-		VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM",VGA_Lock); //The VRAM allocated to 0!
+		VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM",getLock("VGA")); //The VRAM allocated to 0!
 		if (!VGA->VRAM) //Still not OK?
 		{
 			freez((void **)&VGA,sizeof(*VGA),"VGA@VGAAlloc_VRAM"); //Release the VGA!
@@ -158,7 +145,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	}
 
 	debugrow("VGA: Allocating VGA registers...");
-	VGA->registers = (VGA_REGISTERS *)zalloc(sizeof(*VGA->registers),"VGA_Registers",VGA_Lock); //Allocate registers!
+	VGA->registers = (VGA_REGISTERS *)zalloc(sizeof(*VGA->registers),"VGA_Registers",getLock("VGA")); //Allocate registers!
 	if (!VGA->registers) //Couldn't allocate the registers?
 	{
 		freez((void **)&VGA->VRAM, VGA->VRAM_size,"VGA_VRAM@VGAAlloc_Registers"); //Release VRAM!
@@ -189,7 +176,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	VGA->Request_Termination = 0; //We're not running a request for termination!
 	VGA->Terminated = 1; //We're not running yet, so run nothing yet, if enabled!
 	
-	VGA->Sequencer = (SEQ_DATA *)zalloc(sizeof(SEQ_DATA),"SEQ_DATA",VGA_Lock); //Sequencer data!
+	VGA->Sequencer = (SEQ_DATA *)zalloc(sizeof(SEQ_DATA),"SEQ_DATA",getLock("VGA")); //Sequencer data!
 	if (!VGA->Sequencer) //Failed to allocate?
 	{
 		freez((void **)&VGA->VRAM, VGA->VRAM_size,"VGA_VRAM@VGAAlloc_Registers"); //Release VRAM!
@@ -303,7 +290,6 @@ void setActiveVGA(VGA_Type *VGA) //Sets the active VGA chipset!
 void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 {
 	if (__HW_DISABLED) return; //Abort!
-	lockVGA();
 	VGA_Type *realVGA = *VGA; //The real VGA!
 
 	if (realVGA->VRAM) //Got allocated?
@@ -325,8 +311,6 @@ void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 			freez((void **)VGA,sizeof(*realVGA),"VGA@DoneVGA"); //Cleanup the real VGA structure finally!
 		}
 	}
-	//We're cleaned!
-	unlockVGA();
 }
 
 //Cursor blink handler!

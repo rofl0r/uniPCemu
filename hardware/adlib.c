@@ -27,8 +27,11 @@
 #include "headers/support/highrestimer.h" //High resoltion timer support!
 #include "headers/emu/emu_misc.h" //Random short support for noise generation!
 #include "headers/emu/timers.h" //Timer support for attack/decay!
+#include "headers/support/locks.h" //Locking support!
 //#include <stdint.h>
 //#include <stdio.h>
+
+#include "headers/support/highrestimer.h" //High resolution timer!
 
 #define uint8_t byte
 #define uint16_t word
@@ -41,6 +44,9 @@
 #define ADLIB_VOLUME 100.0f
 //What volume is the minimum volume to be heard!
 #define __MIN_VOL (1.0f / SHRT_MAX)
+
+//How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
+#define __ADLIB_SAMPLEBUFFERSIZE 0
 
 #define dB2factor(dB, fMaxLevelDB) pow(10, ((dB - fMaxLevelDB) / 20))
 
@@ -123,93 +129,152 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		}
 	if (portnum != (adlibport+1)) return 0; //Don't handle what's not ours!
 	portnum = adlibaddr;
+	if ((portnum > 1) && (portnum < 5)) //Index 2/3/4 are to be locked!
+	{
+		lock("TickAdlib");
+	}
 	adlibregmem[portnum] = value;
+	if ((portnum > 1) && (portnum < 5)) //Index 2/3/4 are to be locked!
+	{
+		unlock("TickAdlib");
+	}
 	lockaudio(); //Lock the audio: we're going to adjust audio information!
-	switch (portnum) {
-	case 0: //Waveform select enable
-		wavemask = (adlibregmem[0] & 0x20) ? 3 : 0; //Apply waveform mask!
-		break;
-			case 4: //timer control
-				if (value&0x80) {
-						adlibstatus &= 0x1F; //Reset status flags needed!
-					}
-				if (value&1) //Timer1 enabled?
-				{
-					timer80 = adlibregmem[2]; //Reload timer!
-				}
-				if (value&2) //Timer2 enabled?
-				{
-					timer320 = adlibregmem[3]; //Reload timer!					
-				}
-				break;
-			case 0xBD:
-				if (value & 0x10) adlibpercussion = 1;
-				else adlibpercussion = 0;
-				break;
-		}
-	if ((portnum >= 0x20) && (portnum <= 0x35)) //Various flags
+	switch (portnum & 0xF0) //What block to handle?
 	{
-		portnum &= 0x1F;
-		adlibop[portnum].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(value & 0xF); //Which harmonic to use?
-		adlibop[portnum].ReleaseImmediately = (value & 0x20) ? 0 : 1; //Release when not sustain until release!
-	}
-	else if ((portnum >= 0x40) && (portnum <= 0x55)) //KSL/Output level
-	{
-		portnum &= 0x1F;
-		adlibop[portnum].outputlevel = outputtable[value & 0x2F]; //Apply output level!
-	}
-	else if ( (portnum >= 0x60) && (portnum <= 0x75) ) { //attack/decay
-			portnum &= 0x1F;
-			adlibop[portnum].attack = attacktable[15- (value>>4) ]*1.006;
-			adlibop[portnum].decay = decaytable[value&15];
-		}
-	else if ((portnum >= 0x80) && (portnum <= 0x95)) //sustain/release
-	{
-		portnum &= 0x1F;
-		adlibop[portnum].sustain = sustaintable[value >> 4];
-		adlibop[portnum].release = decaytable[value & 15];
-	}
-	else if ( (portnum >= 0xA0) && (portnum <= 0xB8) )
-	{ //octave, freq, key on
-		if ((portnum & 0xF) < 9) //Ignore A9-AF!
+	case 0x00:
+		switch (portnum) //What primary port?
 		{
-			portnum &= 0xF; //Get the channel to use!
-			if (!adlibch[portnum].keyon && ((adlibregmem[0xB0 + portnum] >> 5) & 1))
-			{
-				adlibop[adliboperators[0][portnum]].volenvstatus = 1; //Start attacking!
-				adlibop[adliboperators[1][portnum]].volenvstatus = 1; //Start attacking!
-				adlibop[adliboperators[0][portnum]].volenv = 0.0025;
-				adlibop[adliboperators[1][portnum]].volenv = 0.0025;
-				adlibop[adliboperators[0][portnum]].freq0 = adlibop[adliboperators[0][portnum]].time = 0.0f; //Initialise operator signal!
-				adlibop[adliboperators[1][portnum]].freq0 = adlibop[adliboperators[1][portnum]].time = 0.0f; //Initialise operator signal!
+		case 1: //Waveform select enable
+			wavemask = (adlibregmem[0] & 0x20) ? 3 : 0; //Apply waveform mask!
+			break;
+		case 4: //timer control
+			if (value&0x83) lock("TickAdlib"); //Make sure we're not updating it!
+			if (value & 0x80) {
+				adlibstatus &= 0x1F; //Reset status flags needed!
 			}
-			adlibch[portnum].freq = adlibregmem[0xA0 + portnum] | ((adlibregmem[0xB0 + portnum] & 3) << 8);
-			adlibch[portnum].convfreq = ((double)adlibch[portnum].freq * 0.7626459);
-			adlibch[portnum].keyon = (adlibregmem[0xB0 + portnum] >> 5) & 1;
-			adlibch[portnum].octave = (adlibregmem[0xB0 + portnum] >> 2) & 7;
+			if (value & 1) //Timer1 enabled?
+			{
+				timer80 = adlibregmem[2]; //Reload timer!
+			}
+			if (value & 2) //Timer2 enabled?
+			{
+				timer320 = adlibregmem[3]; //Reload timer!					
+			}
+			if (value&0x83) unlock("TickAdlib");
+			break;
+		default: //Unknown?
+			break;
 		}
-	}
-	else if ((portnum >= 0xC0) && (portnum <= 0xC8))
-	{
-		portnum &= 0xF;
-		adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
-		byte feedback;
-		feedback = (adlibregmem[0xC0 + portnum] >> 1) & 3; //Get the feedback value used!
-		adlibch[portnum].feedback = feedbacklookup[feedback]; //Convert to a feedback of the modulator signal!
-	}
-	else if ( (portnum >= 0xE0) && (portnum <= 0xF5) ) //waveform select
-	{
-		portnum &= 0x1F;
-		adlibop[portnum].wavesel = value&3;
+	case 0x10: //Unused?
+		break;
+	case 0x20:
+	case 0x30:
+		if (portnum <= 0x35) //Various flags
+		{
+			portnum &= 0x1F;
+			adlibop[portnum].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(value & 0xF); //Which harmonic to use?
+			adlibop[portnum].ReleaseImmediately = (value & 0x20) ? 0 : 1; //Release when not sustain until release!
+		}
+		break;
+	case 0x40:
+	case 0x50:
+		if (portnum <= 0x55) //KSL/Output level
+		{
+			portnum &= 0x1F;
+			adlibop[portnum].outputlevel = outputtable[value & 0x2F]; //Apply output level!
+		}
+		break;
+	case 0x60:
+	case 0x70:
+		if (portnum <= 0x75) { //attack/decay
+			portnum &= 0x1F;
+			adlibop[portnum].attack = attacktable[15 - (value >> 4)] * 1.006;
+			adlibop[portnum].decay = decaytable[value & 15];
+		}
+		break;
+	case 0x80:
+	case 0x90:
+		if (portnum <= 0x95) //sustain/release
+		{
+			portnum &= 0x1F;
+			adlibop[portnum].sustain = sustaintable[value >> 4];
+			adlibop[portnum].release = decaytable[value & 15];
+		}
+		break;
+	case 0xA0:
+	case 0xB0:
+		if (portnum <= 0xB8)
+		{ //octave, freq, key on
+			if ((portnum & 0xF) < 9) //Ignore A9-AF!
+			{
+				portnum &= 0xF; //Get the channel to use!
+				if (!adlibch[portnum].keyon && ((adlibregmem[0xB0 + portnum] >> 5) & 1))
+				{
+					adlibop[adliboperators[0][portnum]].volenvstatus = 1; //Start attacking!
+					adlibop[adliboperators[1][portnum]].volenvstatus = 1; //Start attacking!
+					adlibop[adliboperators[0][portnum]].volenv = 0.0025;
+					adlibop[adliboperators[1][portnum]].volenv = 0.0025;
+					adlibop[adliboperators[0][portnum]].freq0 = adlibop[adliboperators[0][portnum]].time = 0.0f; //Initialise operator signal!
+					adlibop[adliboperators[1][portnum]].freq0 = adlibop[adliboperators[1][portnum]].time = 0.0f; //Initialise operator signal!
+				}
+				adlibch[portnum].freq = adlibregmem[0xA0 + portnum] | ((adlibregmem[0xB0 + portnum] & 3) << 8);
+				adlibch[portnum].convfreq = ((double)adlibch[portnum].freq * 0.7626459);
+				adlibch[portnum].keyon = (adlibregmem[0xB0 + portnum] >> 5) & 1;
+				adlibch[portnum].octave = (adlibregmem[0xB0 + portnum] >> 2) & 7;
+			}
+		}
+		break;
+	case 0xC0:
+		if (portnum <= 0xC8)
+		{
+			portnum &= 0xF;
+			adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
+			byte feedback;
+			feedback = (adlibregmem[0xC0 + portnum] >> 1) & 3; //Get the feedback value used!
+			adlibch[portnum].feedback = feedbacklookup[feedback]; //Convert to a feedback of the modulator signal!
+		}
+		break;
+	case 0xE0:
+	case 0xF0:
+		if (portnum <= 0xF5) //waveform select
+		{
+			portnum &= 0x1F;
+			adlibop[portnum].wavesel = value & 3;
+		}
+		break;
+	default: //Unsupported port?
+		break;
 	}
 	unlockaudio(1); //Finished with audio update!
 	return 1; //We're finished and handled!
 }
 
+byte adlib_ticked = 0; //Are we ticked?
+
 uint8_t inadlib (uint16_t portnum, byte *result) {
 	if (portnum == adlibport) //Status port?
 	{
+		//Delay 3.3 microseconds!
+		lock("TickAdlib"); //Lock the tickadlib function!
+		adlib_ticked = 0; //Reset!
+		unlock("TickAdlib"); //Free the threed to run!
+		TicksHolder adlib_ticks;
+		initTicksHolder(&adlib_ticks); //Initialise the ticks holder!
+		getuspassed(&adlib_ticks); //Initialise the time!
+		for (;getuspassed_k(&adlib_ticks) < 4;) //Delay at least 3.3us!
+		{
+			delay(0); //Wait for time to pass!
+		}
+		//Wait some extra time for the adlib tick!
+		lock("TickAdlib");
+		for (;!adlib_ticked;) //Not ticked yet?
+		{
+			unlock("TickAdlib"); //Release it!
+			delay(0); //Tick if available!
+			lock("TickAdlib"); //Wait for the tick!
+		}
 		*result = adlibstatus; //Give the current status!
+		unlock("TickAdlib"); //Enable the ticks again!
 		return 1; //We're handled!
 	}
 	return 0; //Not our port!
@@ -353,24 +418,7 @@ void tick_adlibtimer()
 	{
 		//Process CSM tick!
 	}
-}
-
-void adlib_timer80() //First timer!
-{
-	ticked80 = 0; //Default: not ticked!
-	if (adlibregmem[4] & 1) //Timer1 enabled?
-	{
-		if (++timer80 == 0) //Overflown?
-		{
-			timer80 = adlibregmem[2]; //Reload timer!
-			if ((~adlibregmem[4]) & 0x40) //Update status?
-			{
-				adlibstatus |= 0xC0; //Update status register and set the bits!
-			}
-			tick_adlibtimer(); //Tick either timer!
-			ticked80 = 1; //Ticked 80 clock!
-		}
-	}
+	doirq(0); //Execute a timer IRQ!
 }
 
 void adlib_timer320() //Second timer!
@@ -390,27 +438,44 @@ void adlib_timer320() //Second timer!
 	ticked80 = 0; //Reset 80 tick!
 }
 
+byte ticks80 = 0; //How many timer 80 ticks have been done?
+
+void adlib_timer80() //First timer!
+{
+	ticked80 = 0; //Default: not ticked!
+	if (adlibregmem[4] & 1) //Timer1 enabled?
+	{
+		if (++timer80 == 0) //Overflown?
+		{
+			timer80 = adlibregmem[2]; //Reload timer!
+			if ((~adlibregmem[4]) & 0x40) //Update status?
+			{
+				adlibstatus |= 0xC0; //Update status register and set the bits!
+			}
+			tick_adlibtimer(); //Tick either timer!
+			ticked80 = 1; //Ticked 80 clock!
+		}
+	}
+	if (++ticks80 == 4) //Every 4 timer 80 ticks gets 1 timer 320 tick!
+	{
+		ticks80 = 0; //Reset 80 ticks!
+		adlib_timer320(); //Execute a timer 320 tick!
+	}
+}
+
 float counter80step = 0.0f; //80us timer tick interval in samples!
-float counter320step = 0.0f; //320us timer tick interval in samples!
 
 void adlib_soundtick()
 {
 	counter80 += counter80step; //Tick he 80us counter!
-	counter320 += counter320step; //Tick the 320us counter!
-	for (;counter80>=1.0f;) //Ticks left?
+	if (counter80>=1.0f) //Ticks left?
 	{
 		adlib_timer80(); //Tick 80us timer!
 		counter80 -= 1.0f; //Decrease counter by 1 tick!
 	}
-	for (;counter320>=1.0f;) //Ticks left?
-	{
-		adlib_timer320(); //Tick 320us timer!
-		counter320 -= 1.0f; //Decrease counter by 1 tick!
-	}
 }
 
 OPTINLINE short adlibgensample() {
-	adlib_soundtick(); //Tick the sound!
 	uint8_t curchan;
 	short adlibaccum;
 	adlibaccum = 0;
@@ -428,6 +493,8 @@ float min_vol = __MIN_VOL;
 
 void tickadlib()
 {
+	adlib_ticked = 1; //We're ticked!
+	adlib_soundtick(); //Execute a sound tick!
 	uint8_t curop;
 	for (curop = 0; curop < NUMITEMS(adlibop); curop++)
 	{
@@ -495,11 +562,18 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 				break; //Stop searching!
 			}
 		}
-	
-	if (!filled) return SOUNDHANDLER_RESULT_NOTFILLED; //Not filled: nothing to sound!
-	
+
 	uint_32 c;
 	c = length; //Init c!
+
+	if (!filled)
+	{
+		for (;;) //Empty handling!
+		{
+			if (!--c) return SOUNDHANDLER_RESULT_NOTFILLED; //Not filled: nothing to sound!
+		}
+	}
+	
 	short *data_mono;
 	data_mono = (short *)buf; //The data in correct samples!
 	for (;;) //Fill it!
@@ -564,7 +638,7 @@ void initAdlib()
 
 	if (__SOUND_ADLIB)
 	{
-		if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,0,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
+		if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
 		{
 			dolog("adlib","Error registering sound channel for output!");
 		}
@@ -579,9 +653,8 @@ void initAdlib()
 	//All output!
 	register_PORTOUT(&outadlib); //Address port (W)
 	//dolog("adlib","Registering timer...");
-	addtimer(usesamplerate,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER,0,NULL); //We run at 49.716Khz, about every 20us.
+	addtimer(usesamplerate,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER,0,getLock("TickAdlib")); //We run at 49.716Khz, about every 20us.
 	counter80step = (1.0f / ((80.0f / 1000000.0f) / (1.0f / (14318180.0f / 288.0f)))); //80us timer tick interval in samples!
-	counter320step = (1.0f / ((320.0f / 1000000.0f) / (1.0f / (14318180.0f / 288.0f)))); //320us timer tick interval in samples!
 	//dolog("adlib","Ready"); //Ready to run!
 }
 

@@ -299,20 +299,12 @@ void freezall(void) //Free all allocated memory still allocated (on shutdown onl
 {
 	int i;
 	initZalloc(); //Make sure we're started!
-	if (!lockVGA()) return; //VGA lock has highest priority: don't allow the VGA to use any resources!
-	if (!lockGPU()) //Lock us!
-	{
-		unlockVGA();
-		return;
-	}
 	lockaudio(); //Make sure audio isn't running!
 	for (i=0;i<NUMITEMS(registeredpointers);i++)
 	{
 		freez(&registeredpointers[i].pointer,registeredpointers[i].size,"Unregisterptrall"); //Unregister a pointer when allowed!
 	}
 	unlockaudio(0); //Unlock the audio! Don't start playing automatically, since there's nothing to play!
-	unlockGPU(); //Enable again!
-	unlockVGA();
 }
 
 //Memory protection/verification function. Returns the pointer when valid, NULL on invalid.

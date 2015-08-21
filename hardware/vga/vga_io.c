@@ -250,7 +250,8 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	byte ok = 0;
 	if (!getActiveVGA()) //No active VGA?
 	{
-		raiseError("VGA","VGA Port Out, but no active VGA loaded!");
+		unlockVGA(); //We're finished!
+		return 0;
 	}
 	switch (port) //What port?
 	{
@@ -357,7 +358,8 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	lockVGA(); //Lock ourselves, we don't want to conflict with our renderer!
 	if (!getActiveVGA()) //No active VGA?
 	{
-		raiseError("VGA","VGA Port Out, but no active VGA loaded!");
+		unlockVGA(); //We're finished!
+		return 0;
 	}
 	byte ok = 0;
 	switch (port) //What port?

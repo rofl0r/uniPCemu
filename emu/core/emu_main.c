@@ -91,12 +91,6 @@ Main thread for emulation!
 
 void cputhread() //The main thread for the emulator!
 {
-	doneEMU(); //Make sure we're all cleaned up!
-
-	resetTimers(); //Stop all timers!
-
-	initEMUreset(); //Reset initialisation!
-
 	if (!hasmemory()) //No MMU?
 	{
 		dolog("BIOS","EMU_BIOSLoader: we have no memory!");
@@ -114,15 +108,11 @@ void cputhread() //The main thread for the emulator!
 	{
 	case 0: //Shutdown
 		debugrow("Shutdown...");
-		finishEMU(); //Dismiss emulator!
-		halt(0);
-		return;
+		EMU_Shutdown(1); //Execute shutdown!
 	case 1: //Full reset emu
-		debugrow("Reset...");
+		debugrow("Reset..."); //Not supported yet!
 	default: //Unknown status?
 		debugrow("Invalid EMU return code OR full reset requested!");
-		doneEMU(); //Dismiss emulator!
-		termThreads(); //Terminate all threads!
 		return; //Shut down our thread, returning to the main processor!
 	}
 }

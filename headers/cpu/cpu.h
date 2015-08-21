@@ -825,7 +825,6 @@ void CPU_resetOP(); //Rerun current Opcode? (From interrupt calls this recalls t
 
 //CPU executing functions:
 
-void CPU_exec_blocked(uint_32 minEIP, uint_32 maxEIP); //Run CPU till Quit or out of range.
 void CPU_beforeexec(); //Everything before the execution of the current CPU OPcode!
 void CPU_exec(); //Run one CPU OPCode!
 //void CPU_exec_DEBUGGER(); //Processes the opcode at CS:EIP (386) or CS:IP (8086) for debugging.

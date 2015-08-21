@@ -269,7 +269,7 @@ byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 
 void alloc_CPUregisters()
 {
-	CPU[activeCPU].registers = (CPU_registers *)zalloc(sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS", NULL); //Allocate the registers!
+	CPU[activeCPU].registers = (CPU_registers *)zalloc(sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS", getLock("CPU")); //Allocate the registers!
 	if (!CPU[activeCPU].registers)
 	{
 		raiseError("CPU","Failed to allocate the required registers!");
@@ -710,6 +710,8 @@ byte CPU_segmentOverridden(byte activeCPU)
 	return (CPU[activeCPU].segment_register != CPU_SEGMENT_DEFAULT); //Is the segment register overridden?
 }
 
+extern SDL_sem *IPS_Lock;
+
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
@@ -859,20 +861,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	blockREP = 0; //Don't block REP anymore!
 	CPU[activeCPU].cycles += CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
 	CPU_afterexec(); //After executing OPCode stuff!
+	WaitSem(IPS_Lock);
 	++instructioncounter; //Increase the instruction counter!
-}
-
-void CPU_exec_blocked(uint_32 minEIP, uint_32 maxEIP)
-{
-	CPU[activeCPU].blocked = 1; //Block: we're running till this is gone or over the limits.
-	while (CPU[activeCPU].blocked) //Still running?
-	{
-		CPU_exec(); //Run one OpCode!
-		if ((CPU[activeCPU].registers->EIP>maxEIP) || (CPU[activeCPU].registers->EIP<minEIP)) //Out of range?
-		{
-			break; //Terminate: out of range: we're done!
-		}
-	}
+	PostSem(IPS_Lock);
 }
 
 void CPU_hard_RETI() //Hardware RETI!

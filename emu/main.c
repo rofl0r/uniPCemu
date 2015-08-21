@@ -159,6 +159,8 @@ extern byte EMU_RUNNING; //Are we running?
 
 byte running = 0; //Are we running the main thread?
 
+SDL_sem *IPS_Lock = NULL;
+
 void updateInputMain() //Frequency 1000Hz!
 {
 	SDL_Event event;
@@ -169,6 +171,7 @@ void updateInputMain() //Frequency 1000Hz!
 		if (event.type == SDL_QUIT) //Quitting requested?
 		{
 			running = 0; //Terminate our app!
+			EMU_Shutdown(1); //Request a shutdown!
 		}
 	}
 }
@@ -279,6 +282,8 @@ int main(int argc, char * argv[])
 	debugrow("Initialising main audio service...");	
 	initAudio(); //Initialise main audio!
 
+	IPS_Lock = getLock("IPS_Lock"); //Create the IPS lock!
+
 	startTimers(1); //Start core timing!
 	startTimers(0); //Disable normal timing!
 
@@ -321,7 +326,11 @@ int main(int argc, char * argv[])
 	
 	ThreadParams_p rootthread; //The main thread we're going to use!
 	//Start of the visible part!
+
+	initEMUreset(); //Reset initialisation!
+
 	rootthread = startThread(&cputhread,"X86EMU_CPU",NULL, DEFAULT_PRIORITY); //Start the main thread (default priority)!
+	delay(1000000); //Wait for it to start up!
 
 	//New SDL way!
 	/* Check for events */
@@ -332,29 +341,20 @@ int main(int argc, char * argv[])
 		if (!threadRunning(rootthread, "X86EMU_CPU")) break; //Thread not running? Stop our running status!
 	}
 
-	stopTimers(1); //Make sure all timers are stopped!
+	for (;threadRunning(rootthread, "X86EMU_CPU");) delay(0); //Wait for the root thread to terminate!
 
-	if (ThreadsRunning()) //Still running?
-	{
-		termThreads(); //Terminate our threads!
-	}
+	stopTimers(1); //Stop all timers still running!
 
-	if (SLEEP_ON_MAIN_CLOSE) //Sleep on main thread close?
-	{
-		halt(0); //Terminate the application!
-		return 0; //Sleep: The main thread has been closed! Dont reset/quit!
-	}
-
-	termThreads(); //Terminate all still running threads (minimum threads included)!
-	
 	debugrow("Terminating main audio service...");		
 	doneAudio(); //Finish audio processing!
 	debugrow("Terminating main video service...");		
 	doneVideoMain(); //Finish video!
-	unlockVGA(); //Unlock the VGA if needed: it's not running anymore!
-	unlockGPU(); //Unlock the GPU if needed: it's not running anymore!
-	freezall(); //Finish up: free all used pointers!
-	if (shuttingdown() || !running) //Shutdown requested or SDL termination requested?
+
+	doneEMU(); //Finish up the emulator, if still required!
+	termThreads(); //Terminate all still running threads!
+	freezall(); //Free all pointers!
+
+	if (shuttingdown()) //Shutdown requested or SDL termination requested?
 	{
 		exit(0); //Quit using SDL, terminating the pspsurface!
 		return 0; //Finish to be safe!

@@ -6,10 +6,13 @@
 #include "headers/support/highrestimer.h" //High resolution clock for timing checks.
 #include "headers/support/signedness.h" //Signedness support!
 
+//Hardware set sample rate
+#define HW_SAMPLERATE 50000
+
 //Are we disabled?
 #define __HW_DISABLED 0
 //How many samples to process at once? Originally 2048; 64=Optimum
-#define SAMPLESIZE 4096
+#define SAMPLESIZE 512
 //Maximum samplerate in Hertz (200KHz)
 #define MAX_SAMPLERATE 50000.0f
 //Enable below if debugging speed is to be enabled.
@@ -20,7 +23,7 @@
 //#define DEBUG_SOUNDALLOC
 
 //Use external timing synchronization?
-//#define EXTERNAL_TIMING
+#define EXTERNAL_TIMING
 
 //#define __USE_EQUALIZER
 

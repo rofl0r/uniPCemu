@@ -36,7 +36,6 @@ void initLocks()
 
 SDL_sem *getLock(char *name)
 {
-	initLocks(); //Initialise locks first!
 	int i;
 	WaitSem(LockLock)
 	for (i = 0; i < NUMITEMS(locks); i++)

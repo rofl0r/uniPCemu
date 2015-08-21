@@ -77,6 +77,8 @@ int emu_started = 0; //Emulator started (initEMU called)?
 //To debug init/doneemu?
 #define DEBUG_EMU 0
 
+byte SLOWDOWN_CPU = 0; //Slow down the CPU?
+
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
 
@@ -101,15 +103,22 @@ VGA_Type *MainVGA; //The main VGA chipset!
 
 uint_32 initEMUmemory = 0;
 
+TicksHolder CPU_timing; //CPU timing counter!
+
 void initEMU(int full) //Init!
 {
 	doneEMU(); //Make sure we're finished too!
+
+	initTicksHolder(&CPU_timing); //Initialise the ticks holder!
+
 	psp_input_init(); //Make sure input is set up!
 
 	initEMUmemory = freemem(); //Log free mem!
 	
 	debugrow("Loading basic BIOS I/O...");
 	BIOS_LoadIO(0); //Load basic BIOS I/O, also VGA information, don't show checksum errors!
+
+	SLOWDOWN_CPU = (EMULATED_CPU <= CPU_80186); //Do we need to slow down the CPU to 4.77MHz?
 
 	debugrow("Initializing I/O port handling...");
 	Ports_Init(); //Initialise I/O port support!
@@ -390,14 +399,17 @@ extern byte MMU_logging; //Are we logging from the MMU?
 
 extern byte Direct_Input; //Are we in direct input mode?
 
+uint_32 numopcodes = 0; //Delay counter!
+
 byte coreHandler()
 {
-	static byte numopcodes = 0;
 	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
 	{
 		MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
 		return 0; //Stop!
 	}
+
+	if (!CPU[activeCPU].registers) return 0; //Invalid registers!
 
 	//CPU execution, needs to be before the debugger!
 	interruptsaved = 0; //Reset PIC interrupt to not used!
@@ -464,16 +476,28 @@ byte coreHandler()
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 
-	if (++numopcodes == 100) //Every 100 opcodes(to allow for more timers/input to update)
+	if (SLOWDOWN_CPU) //Needs slowdown here?
 	{
-		numopcodes = 0; //Reset!
-		delay(0); //Wait minimal time for other threads to process data!
+		getuspassed(&CPU_timing); //Update to current time!
+		for (;getuspassed_k(&CPU_timing) < 3;) delay(0);  //Wait 3us to get 330KIPS MAX!
+	}
+	else
+	{
+		if (++numopcodes==1000)//Every 1000 opcodes(to allow for more timers/input to update)
+		{
+			numopcodes = 0; //Reset!
+			delay(0); //Wait minimal time for other threads to process data!
+		}
 	}
 
 	if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode() && !Direct_Input) //Run in-emulator BIOS menu and not gaming mode?
 	{
 		pauseEMU(); //Stop timers!
-		runBIOS(0); //Run the emulator BIOS!
+		if (runBIOS(0)) //Run the emulator BIOS!
+		{
+			reset = 1; //We're to reset!
+			return 1; //OK!
+		}
 		resumeEMU(); //Resume!
 	}
 	return 1; //OK!
@@ -491,6 +515,7 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 	enableKeyboard(0); //Enable standard keyboard!
 	
 //Start normal emulation!
+	lock("CPU"); //Start by locking the CPU: we're busy!
 	for (;;)
 	{
 		if (!CPU[activeCPU].running || !hasmemory()) //Not running anymore or no memory present to use?
@@ -506,6 +531,7 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 
 		if (!coreHandler()) //Run the core CPU+related handler, gotten abort?
 		{
+			unlock("CPU"); //We're finished with the CPU!
 			return 0; //Abort!
 		}
 	}
@@ -515,23 +541,26 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 	if (shuttingdown()) //Shut down?
 	{
 		debugrow("Shutdown requested");
+		unlock("CPU"); //We're finished with the CPU!
 		return 0; //Shut down!
 	}
 
 	if (reset) //To soft-reset?
 	{
 		debugrow("Reset requested!");
+		unlock("CPU"); //We're finished with the CPU!
 		return 1; //Full reset emu!
 	}
 
 	if (!hasmemory()) //Forced termination?
 	{
-		doneEMU(); //Stop the EMU if running!
 		debugrow("No memory (anymore)! Reset requested!");
+		unlock("CPU"); //We're finished with the CPU!
 		return 1; //Full reset emu!
 	}
 
 	debugrow("Reset by default!");
+	unlock("CPU"); //We're finished with the CPU!
 	return 1; //Reset emu!
 }
 

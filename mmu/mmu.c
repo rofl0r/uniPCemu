@@ -28,7 +28,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS!
 
 void *MMU_directptr(uint_32 address, uint_32 size) //Full ptr to real MMU memory!
 {
-	if (address<=MMU.size && memprotect(&MMU.memory[address],size,"MMU_Memory")) //Within our limits of flat memory and not paged?
+	if (address<=MMU.size) //Within our limits of flat memory and not paged?
 	{
 		return &MMU.memory[address]; //Give the memory's start!
 	}

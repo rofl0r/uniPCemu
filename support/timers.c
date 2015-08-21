@@ -10,7 +10,7 @@
 #define __HW_DISABLED 0
 
 //Timer step in us! Originally 100ms now 10000?
-#define TIMER_STEP 100
+#define TIMER_STEP 1
 
 //Log running timers (error/timing search only!)
 //#define TIMER_LOG
@@ -66,11 +66,13 @@ void timer_thread() //Handler for timer!
 
 	bzero(name,sizeof(name)); //Init name!
 
+	for (;!lock("Timer");) delay(0);
 	if (!timer_init) //Not initialised yet?
 	{
 		initTicksHolder(&timer_lasttimer); //Init ticks holder for precision!
 		timer_init = 1; //Ready!
 	}
+	unlock("Timer");
 
 	getuspassed(&timer_lasttimer); //Initialise the timer to current time!
 
@@ -278,12 +280,6 @@ void removetimer(char *name) //Removes a timer!
 	}
 }
 
-void timer_quit(void)
-{
-	stopTimers(0); //Stop normal timers!
-	stopTimers(1); //Stop emu timers!
-}
-
 void startTimers(byte core)
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -291,8 +287,7 @@ void startTimers(byte core)
 	{
 		if (!timerthread) //Not already running?
 		{
-			startThread(&timer_thread, "X86EMU_Timing", NULL, DEFAULT_PRIORITY); //Timer thread start!
-			atexit(&timer_quit); //Register quit function!
+			timerthread = startThread(&timer_thread, "X86EMU_Timing", NULL, DEFAULT_PRIORITY); //Timer thread start!
 		}
 
 	}
@@ -304,13 +299,18 @@ void stopTimers(byte core)
 	if (__HW_DISABLED) return; //Abort!
 	if (core) //Are we the core?
 	{
+		for (;!lock("Timer");) delay(0);
 		if (timerthread) //Running already (we can terminate it)?
 		{
+			unlock("Timer");
 			for (; !lock("Timer");) delay(0); //Lock our thread!
 			allow_running = 0; //Request normal termination!
+			timerthread = NULL; //Finished!
 			unlock("Timer"); //We're done!
 			waitThreadEnd(timerthread); //Wait for our thread to end!
+			for (;!lock("Timer");) delay(0);
 		}
+		unlock("Timer"); //Finished!
 	}
 	EMU_Timers_Enabled = 0; //Enable timers!
 }
