@@ -79,7 +79,7 @@ void BIOS_freeOPTROMS()
 		{
 			char filename[100];
 			memset(&filename,0,sizeof(filename)); //Clear/init!
-			sprintf(filename,"ROM/OPTROM.%i",i); //Create the filename for the ROM!
+			sprintf(filename,"ROM/OPTROM.%i",i+1); //Create the filename for the ROM!
 			freez((void **)&OPT_ROMS[i],OPTROM_size[i],filename); //Release the OPT ROM!
 		}
 	}
