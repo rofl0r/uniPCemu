@@ -157,10 +157,10 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!
 
 	//Now calculate and give the planes to be used!
-	planesbuffer[0] = readVRAMplane(VGA, 0, loadedlocation, 0x80); //Read plane 0!
-	planesbuffer[1] = readVRAMplane(VGA, 1, loadedlocation, 0x80); //Read plane 1!
-	planesbuffer[2] = readVRAMplane(VGA, 2, loadedlocation, 0x80); //Read plane 2!
-	planesbuffer[3] = readVRAMplane(VGA, 3, loadedlocation, 0x80); //Read plane 3!
+	planesbuffer[0] = readVRAMplane(VGA, 0, loadedlocation, 0x81); //Read plane 0!
+	planesbuffer[1] = readVRAMplane(VGA, 1, loadedlocation, 0x81); //Read plane 1!
+	planesbuffer[2] = readVRAMplane(VGA, 2, loadedlocation, 0x81); //Read plane 2!
+	planesbuffer[3] = readVRAMplane(VGA, 3, loadedlocation, 0x81); //Read plane 3!
 	//Now the buffer is ready to be processed into pixels!
 
 	planesdecoder[VGA->precalcs.graphicsmode](VGA,loadedlocation); //Use the decoder to get the pixels or characters!

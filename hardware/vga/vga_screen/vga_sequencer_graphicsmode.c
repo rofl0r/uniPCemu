@@ -56,7 +56,7 @@ SHIFT REGISTER INTERLEAVE MODE
 
 void loadpackedshiftmode() //Packed shift mode!
 {
-	register byte temp, temp2, tempbuffer; //A buffer for our current pixel!
+	register byte temp, tempbuffer; //A buffer for our current pixel!
 	pixelbuffer[0] = pixelbuffer[1] = pixelbuffer[2] = pixelbuffer[3] = planesbuffer[2]; //Load high plane!
 	pixelbuffer[4] = pixelbuffer[5] = pixelbuffer[6] = pixelbuffer[7] = planesbuffer[3]; //Load high plane!
 	pixelbuffer[0] >>= 4;
@@ -79,32 +79,28 @@ void loadpackedshiftmode() //Packed shift mode!
 	tempbuffer = temp = planesbuffer[0]; //Load low plane!
 	tempbuffer &= 3;
 	pixelbuffer[3] |= tempbuffer;
-	temp >>= 2; //Shift to the next data!
-	tempbuffer = temp;
+	tempbuffer = (temp >>= 2); //Shift to the next data!
 	tempbuffer &= 3;
 	pixelbuffer[2] |= tempbuffer;
-	temp >>= 2; //Shift to the next data!
-	tempbuffer = temp;
+	tempbuffer = (temp >>= 2); //Shift to the next data!
 	tempbuffer &= 3;
 	pixelbuffer[1] |= tempbuffer;
 	temp >>= 2; //Shift to the next data!
-	temp &= 3;
+	tempbuffer &= 3;
 	pixelbuffer[0] |= temp;
 
 	//Second byte!
 	tempbuffer = temp = planesbuffer[1]; //Load low plane!
 	tempbuffer &= 3;
 	pixelbuffer[7] |= tempbuffer;
-	temp >>= 2; //Shift to the next data!
-	tempbuffer = temp;
+	tempbuffer = (temp >>= 2); //Shift to the next data!
 	tempbuffer &= 3;
 	pixelbuffer[6] |= tempbuffer;
-	temp >>= 2; //Shift to the next data!
-	tempbuffer = temp;
+	tempbuffer = (temp >>= 2); //Shift to the next data!
 	tempbuffer &= 3;
 	pixelbuffer[5] |= tempbuffer;
 	temp >>= 2; //Shift to the next data!
-	temp &= 3;
+	tempbuffer &= 3;
 	pixelbuffer[4] |= temp;
 }
 

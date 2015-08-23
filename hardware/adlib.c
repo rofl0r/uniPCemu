@@ -22,7 +22,7 @@
 #define __MIN_VOL (1.0f / SHRT_MAX)
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
-#define __ADLIB_SAMPLEBUFFERSIZE 0
+#define __ADLIB_SAMPLEBUFFERSIZE 4096
 
 #define dB2factor(dB, fMaxLevelDB) pow(10, ((dB - fMaxLevelDB) / 20))
 
@@ -208,6 +208,12 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 				unlockaudio(1); //Finished with audio update!
 			}
 		}
+		else if (portnum == 0xBD) //Percussion settings etc.
+		{
+			lockaudio();
+			adlibpercussion = (value & 0x10)?1:0; //Percussion enabled?
+			unlockaudio(1); //Finished with audio update!
+		}
 		break;
 	case 0xC0:
 		if (portnum <= 0xC8)
@@ -216,7 +222,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			portnum &= 0xF;
 			adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
 			byte feedback;
-			feedback = (adlibregmem[0xC0 + portnum] >> 1) & 3; //Get the feedback value used!
+			feedback = (adlibregmem[0xC0 + portnum] >> 1) & 7; //Get the feedback value used!
 			adlibch[portnum].feedback = feedbacklookup[feedback]; //Convert to a feedback of the modulator signal!
 			unlockaudio(1); //Finished with audio update!
 		}
@@ -302,7 +308,7 @@ OPTINLINE float adlibWave(byte signal, const float frequencytime) {
 	case 2: // Absolute?
 		if (result < 0) result = 0 - result; //Make positive!
 		return result; //Simply absolute!
-	case 4:
+	case 0xFF: //Random signal?
 		return RandomFloat(-1.0f, 1.0f); //Random noise!	
 	default: //Unknown signal?
 		return 0.0f;
@@ -328,7 +334,6 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float modulator, float
 
 	//Calculate the frequency to use!
 	frequency = adlibfreq(operator, curchan); //Effective carrier init!
-	if (adlibch[curchan].synthmode) modulator = 0.0f; //Don't FM using the first operator when needed, so no PM!
 
 	//Generate the signal!
 	if (frequency) //Gotten a frequency?
@@ -353,10 +358,10 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float modulator, float
 	}
 	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
 
-	if (feedback!=0.0f) //We're using feedback?
+	if (feedback) //We're using feedback?
 	{
 		result *= feedback; //Convert to feedback ratio!
-		return calcOperator(curchan, operator,result, 0); //Apply feedback using our own signal as the modulator!
+		return calcOperator(curchan, operator,result, 0.0f); //Apply feedback using our own signal as the modulator!
 	} //Disable feedback!
 
 	return result; //Give the result!
@@ -374,8 +379,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 	//Determine the type of modulation!
 	//Operator 1!
 	modulatorresult = calcOperator(curchan, adliboperators[0][curchan], 0,adlibch[curchan].feedback); //Calculate the modulator!
-	result = calcOperator(curchan, adliboperators[1][curchan], modulatorresult,0); //Calculate the carrier with applied modulator if needed!
-
+	result = calcOperator(curchan, adliboperators[1][curchan], adlibch[curchan].synthmode?0:modulatorresult,0); //Calculate the carrier with applied modulator if needed!
 	//Perform additive synthesis when asked to do so.
 	if (adlibch[curchan].synthmode) result += modulatorresult; //Perform additive synthesis when needed!
 

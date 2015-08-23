@@ -27,10 +27,7 @@ OPTINLINE word patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VR
 	SEQ_DATA *Sequencer;
 	Sequencer = (SEQ_DATA *)VGA->Sequencer; //The sequencer!
 
-	register word rowscancounter = Sequencer->Scanline; //Load the row scan counter!
-	rowscancounter = VGA->CRTC.charrowstatus[rowscancounter << 1]; //Take the row status as our source!
-	rowscancounter >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Apply scanline division!
-	rowscancounter >>= VGA->precalcs.scandoubling; //Apply Scan Doubling here: we take effect on content!
+	word rowscancounter = Sequencer->chary; //The row scan counter we use!
 
 	register word bit; //Load row scan counter!
 	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13) //a13=Bit 0 of the row scan counter!
