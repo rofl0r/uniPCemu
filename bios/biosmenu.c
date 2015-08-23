@@ -140,7 +140,10 @@ void BIOS_VGASettingsMenu(); //Manage stuff concerning input.
 void BIOS_VGANMISetting(); //VGA NMI setting!
 void BIOS_MIDISettingsMenu(); //Manage stuff concerning MIDI.
 void BIOS_SoundFont_selection(); //FLOPPY0 selection menu!
-void BIOS_MIDIPlayer(); //FLOPPY0 selection menu!
+void BIOS_MIDIPlayer(); //MIDI player!
+void BIOS_Mouse(); //Mouse selection menu!
+void BIOS_CPU(); //CPU menu!
+void BIOS_CPUSpeed(); //CPU speed selection!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -180,6 +183,9 @@ Handler BIOS_Menus[] =
 	,BIOS_MIDISettingsMenu //MIDI settings menu is #31!
 	,BIOS_SoundFont_selection //Soundfont selection menu is #32!
 	,BIOS_MIDIPlayer //MIDI Player is #33!
+	,BIOS_Mouse //Mouse menu is #34!
+	,BIOS_CPU //BIOS CPU menu is #35!
+	,BIOS_CPUSpeed //BIOS CPU speed is #36!
 };
 
 //Not implemented?
@@ -1279,7 +1285,7 @@ void BIOS_InitAdvancedText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i=0; i<10; i++) //Clear all possibilities!
+	for (i=0; i<11; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
 	}
@@ -1288,23 +1294,8 @@ void BIOS_InitAdvancedText()
 		optioninfo[advancedoptions] = 0; //Boot Order!
 		strcpy(menuoptions[advancedoptions],"Boot Order: "); //Change boot order!
 		strcat(menuoptions[advancedoptions++],BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
-		optioninfo[advancedoptions] = 1; //Installed CPU!
-		strcpy(menuoptions[advancedoptions],"Installed CPU: "); //Change installed CPU!
-		switch (BIOS_Settings.emulated_CPU) //8086?
-		{
-		case CPU_8086: //8086?
-			strcat(menuoptions[advancedoptions++],"Intel 8086"); //Add installed CPU!
-			break;
-		case CPU_80186: //80186?
-			strcat(menuoptions[advancedoptions++], "Intel 80186"); //Add installed CPU!
-			break;
-		case CPU_80286: //80286?
-			strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!
-			break;
-		default:
-			strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
-			break;
-		}
+		optioninfo[advancedoptions] = 1; //CPU menu!
+		strcpy(menuoptions[advancedoptions++],"CPU"); //Change installed CPU options!
 	}
 
 	optioninfo[advancedoptions] = 2; //Debug mode!
@@ -1402,6 +1393,24 @@ void BIOS_InitAdvancedText()
 
 	optioninfo[advancedoptions] = 9;
 	strcpy(menuoptions[advancedoptions++], "Input options");
+
+setMousetext: //For fixing it!
+	optioninfo[advancedoptions] = 11; //Mouse!
+	strcpy(menuoptions[advancedoptions], "Mouse: ");
+	switch (BIOS_Settings.PS2Mouse) //Mouse?
+	{
+	case 0:
+		strcat(menuoptions[advancedoptions++], "Serial");
+		break;
+	case 1:
+		strcat(menuoptions[advancedoptions++], "PS/2");
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.PS2Mouse = 0; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setMousetext; //Goto!
+		break;
+	}
 }
 
 void BIOS_BootOrderOption() //Manages the boot order
@@ -1495,7 +1504,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 		}
 		break;
 	}
-	BIOS_Menu = 8; //Return to Advanced menu!
+	BIOS_Menu = 35; //Return to CPU menu!
 }
 
 void BIOS_AdvancedMenu() //Manages the boot order etc!
@@ -1522,14 +1531,15 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 7:
 	case 8:
 	case 9:
-	case 10: //Valid option?
+	case 10:
+	case 11: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Boot order (plain)?
 			BIOS_Menu = 9; //Boot Order Menu!
 			break;
 		case 1: //Installed CPU?
-			BIOS_Menu = 10; //Installed CPU Menu!
+			BIOS_Menu = 35; //Installed CPU Menu!
 			break;
 		case 2: //Debug mode?
 			BIOS_Menu = 13; //Debug mode option!
@@ -1557,6 +1567,9 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 			break;
 		case 10:
 			BIOS_Menu = 31; //MIDI Settings menu!
+			break;
+		case 11:
+			BIOS_Menu = 34; //Mouse menu!
 			break;
 		}
 		break;
@@ -1765,7 +1778,8 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 			disableKeyboard(); //Disable the keyboard!
 			return 0; //Cancel!
 		}
-		delay(10000); //Wait a bit for input!
+		delay(0); //Wait a bit for input!
+		updateKeyboard(); //Update the input keyboard, based on timing!
 		WaitSem(keyboard_lock)
 		if (input_buffer_shift != -1) //Given input yet?
 		{
@@ -2986,7 +3000,7 @@ void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 			enableKeyboard(1); //Buffer input!
 			for (;;)
 			{
-				delay(10000); //Wait a bit for input!
+				updateKeyboard();
 				WaitSem(keyboard_lock)
 				if (input_buffer_shift != -1) //Given input yet?
 				{
@@ -3466,4 +3480,183 @@ void BIOS_MIDIPlayer() //MIDI Player!
 {
 	sound_playMIDIfile(0); //Play one or more MIDI files! Don't show any information!
 	BIOS_Menu = 31; //Return to the MIDI menu!
+}
+
+void BIOS_Mouse()
+{
+	BIOS_Title("Mouse");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Mouse: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 2; //Ammount of Direct modes!
+	for (i = 0; i<3; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[0], "Serial"); //Set filename from options!
+	strcpy(itemlist[1], "PS/2"); //Set filename from options!
+	int current = 0;
+	switch (BIOS_Settings.VGA_NMIonPrecursors) //What setting?
+	{
+	case 0: //Valid
+	case 1: //Valid
+		current = BIOS_Settings.PS2Mouse; //Valid: use!
+		break;
+	default: //Invalid
+		current = 0; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.PS2Mouse != current) //Invalid?
+	{
+		BIOS_Settings.PS2Mouse = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(7, 4, itemlist[current], 256); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+						  //We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0; //Default setting: Disabled!
+
+	case 0:
+	case 1:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.PS2Mouse = file; //Select NMI on Precursors setting!
+		}
+		break;
+	}
+	BIOS_Menu = 8; //Goto Advanced menu!
+}
+
+void BIOS_InitCPUText()
+{
+	advancedoptions = 0; //Init!
+	int i;
+	for (i = 0; i<2; i++) //Clear all possibilities!
+	{
+		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+	}
+
+	optioninfo[advancedoptions] = 0; //Installed CPU!
+	strcpy(menuoptions[advancedoptions], "Installed CPU: "); //Change installed CPU!
+	switch (BIOS_Settings.emulated_CPU) //8086?
+	{
+	case CPU_8086: //8086?
+		strcat(menuoptions[advancedoptions++], "Intel 8086"); //Add installed CPU!
+		break;
+	case CPU_80186: //80186?
+		strcat(menuoptions[advancedoptions++], "Intel 80186"); //Add installed CPU!
+		break;
+	case CPU_80286: //80286?
+		strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
+		break;
+	}
+
+	optioninfo[advancedoptions] = 1; //Change CPU speed!
+	strcpy(menuoptions[advancedoptions], "CPU Speed: ");
+	switch (BIOS_Settings.CPUSpeed)
+	{
+	case 0:
+		strcat(menuoptions[advancedoptions++], "Unlimited"); //Unlimited!
+		break;
+	case 1:
+		strcat(menuoptions[advancedoptions++], "Limited"); //Add uninstalled CPU!
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
+		break;
+	}
+}
+
+void BIOS_CPU() //CPU menu!
+{
+	BIOS_Title("CPU Menu");
+	BIOS_InitCPUText(); //Init text!
+	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
+	switch (menuresult)
+	{
+	case BIOSMENU_SPEC_CANCEL: //R: Main menu?
+		BIOS_Menu = 8; //Goto Advanced Menu!
+		break;
+
+	case 0:
+	case 1: //Valid option?
+		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
+		{
+		case 0: //Installed CPU?
+			BIOS_Menu = 10; //Installed CPU selection!
+			break;
+		case 1: //CPU speed?
+			BIOS_Menu = 36; //CPU speed selection!
+			break;
+		}
+		break;
+	default: //Unknown option?
+		BIOS_Menu = NOTIMPLEMENTED; //Not implemented yet!
+		break;
+	}
+}
+void BIOS_CPUSpeed() //CPU speed selection!
+{
+	BIOS_Title("CPU speed");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "CPU speed: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 2; //Ammount of Direct modes!
+	for (i = 0; i<3; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[0], "Unlimited"); //Set filename from options!
+	strcpy(itemlist[1], "Limited"); //Set filename from options!
+	int current = 0;
+	switch (BIOS_Settings.CPUSpeed) //What setting?
+	{
+	case 0: //Valid
+	case 1: //Valid
+		current = BIOS_Settings.CPUSpeed; //Valid: use!
+		break;
+	default: //Invalid
+		current = 0; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.CPUSpeed != current) //Invalid?
+	{
+		BIOS_Settings.CPUSpeed = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(11, 4, itemlist[current], 256); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+						  //We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0; //Default setting: Disabled!
+
+	case 0:
+	case 1:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.CPUSpeed = file; //Select CPU speed setting!
+		}
+		break;
+	}
+	BIOS_Menu = 35; //Goto CPU menu!
 }

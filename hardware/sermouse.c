@@ -7,6 +7,7 @@
 #include "headers/support/signedness.h" //Sign conversion!
 #include "headers/emu/timers.h" //Timing support!
 #include "headers/emu/input.h" //Input timing support!
+#include "headers/bios/bios.h" //BIOS support!
 
 struct
 {
@@ -85,11 +86,11 @@ byte serMouse_hasData() //Do we have data for input?
 	return peekfifobuffer(SERMouse.buffer, &temp); //Do we have data to receive?
 }
 
-void initSERMouse()
+void initSERMouse(byte enabled)
 {
 	memset(&SERMouse, 0, sizeof(SERMouse));
-	SERMouse.supported = (EMULATED_CPU <= CPU_80186); //Use serial mouse?
-	if (useSERMouse()) //Enabled this mouse?
+	SERMouse.supported = enabled; //Use serial mouse?
+	if (useSERMouse()) //Is this mouse enabled?
 	{
 		SERMouse.buffer = allocfifobuffer(16); //Small input buffer!
 		UART_registerdevice(0,&SERmouse_setModemControl,&serMouse_hasData,&serMouse_readData,NULL); //Register our UART device!

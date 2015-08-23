@@ -57,6 +57,9 @@
 
 #include "headers/hardware/sermouse.h" //Serial mouse support!
 
+#include "headers/emu/gpu/gpu_text.h" //GPU text surface support!
+#include "headers/bios/io.h" //I/O support!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To debug VGA at MAX speed?
@@ -77,8 +80,6 @@ int emu_started = 0; //Emulator started (initEMU called)?
 //To debug init/doneemu?
 #define DEBUG_EMU 0
 
-byte SLOWDOWN_CPU = 0; //Slow down the CPU?
-
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
 
@@ -87,6 +88,95 @@ byte SLOWDOWN_CPU = 0; //Slow down the CPU?
 debugging for us!
 
 */
+
+extern GPU_TEXTSURFACE *frameratesurface;
+
+void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
+{
+	switch (disk) //What disk?
+	{
+	case FLOPPY0:
+		GPU_text_locksurface(frameratesurface);
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH - 6, 1); //Goto second row!
+		if (busy) //Busy?
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00,0xFF,0x00), RGB(00,00,00), "A");
+		}
+		else
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00,0x00,0x00), RGB(0x00,0x00,0x00), " ");
+		}
+		GPU_text_releasesurface(frameratesurface);
+		break;
+	case FLOPPY1:
+		GPU_text_locksurface(frameratesurface);
+		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 5, 1); //Goto second row!
+		if (busy) //Busy?
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(00, 00, 00), "B");
+		}
+		else
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+		}
+		GPU_text_releasesurface(frameratesurface);
+		break;
+	case HDD0:
+		GPU_text_locksurface(frameratesurface);
+		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 4, 1); //Goto second row!
+		if (busy) //Busy?
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(00, 00, 00), "C");
+		}
+		else
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+		}
+		GPU_text_releasesurface(frameratesurface);
+		break;
+	case HDD1:
+		GPU_text_locksurface(frameratesurface);
+		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 3, 1); //Goto second row!
+		if (busy) //Busy?
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(00, 00, 00), "D");
+		}
+		else
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+		}
+		GPU_text_releasesurface(frameratesurface);
+		break;
+	case CDROM0:
+		GPU_text_locksurface(frameratesurface);
+		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 2, 1); //Goto second row!
+		if (busy) //Busy?
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(00, 00, 00), "E");
+		}
+		else
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+		}
+		GPU_text_releasesurface(frameratesurface);
+		break;
+	case CDROM1:
+		GPU_text_locksurface(frameratesurface);
+		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 1, 1); //Goto second row!
+		if (busy) //Busy?
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(00, 00, 00), "F");
+		}
+		else
+		{
+			GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+		}
+		GPU_text_releasesurface(frameratesurface);
+		break;
+	default:
+		break;
+	}
+}
 
 void debugrow(char *text)
 {
@@ -110,6 +200,7 @@ void initEMU(int full) //Init!
 	doneEMU(); //Make sure we're finished too!
 
 	initTicksHolder(&CPU_timing); //Initialise the ticks holder!
+	getuspassed(&CPU_timing); //Initialise our timing!
 
 	psp_input_init(); //Make sure input is set up!
 
@@ -117,8 +208,6 @@ void initEMU(int full) //Init!
 	
 	debugrow("Loading basic BIOS I/O...");
 	BIOS_LoadIO(0); //Load basic BIOS I/O, also VGA information, don't show checksum errors!
-
-	SLOWDOWN_CPU = (EMULATED_CPU <= CPU_80186); //Do we need to slow down the CPU to 4.77MHz?
 
 	debugrow("Initializing I/O port handling...");
 	Ports_Init(); //Initialise I/O port support!
@@ -179,7 +268,7 @@ void initEMU(int full) //Init!
 	BIOS_initKeyboard(); //Start up the keyboard!
 
 	debugrow("Initialising mouse...");
-	BIOS_initMouse(); //Start up the mouse!
+	PS2_initMouse(BIOS_Settings.PS2Mouse); //Start up the mouse!
 	}
 
 	//Load all BIOS presets!
@@ -222,7 +311,7 @@ void initEMU(int full) //Init!
 	initUART(); //Initialise the UART (COM ports)!
 	
 	debugrow("Initialising serial mouse...");
-	initSERMouse(); //Initilialise the serial mouse!
+	initSERMouse(!BIOS_Settings.PS2Mouse); //Initilialise the serial mouse!
 
 	debugrow("Initialising Floppy Disk Controller...");
 	initFDC(); //Initialise the Floppy Disk Controller!
@@ -401,6 +490,8 @@ extern byte Direct_Input; //Are we in direct input mode?
 
 uint_32 numopcodes = 0; //Delay counter!
 
+uint_64 timepassed = 0;
+
 byte coreHandler()
 {
 	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
@@ -410,6 +501,10 @@ byte coreHandler()
 	}
 
 	if (!CPU[activeCPU].registers) return 0; //Invalid registers!
+
+	updateKeyboard(); //Tick the keyboard timer if needed!
+	updateAdlib(); //Tick the adlib timer if needed!
+	updatePIT0(); //Tick the PIT timer if needed!
 
 	//CPU execution, needs to be before the debugger!
 	interruptsaved = 0; //Reset PIC interrupt to not used!
@@ -476,10 +571,14 @@ byte coreHandler()
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 
-	if (SLOWDOWN_CPU) //Needs slowdown here?
+	if (BIOS_Settings.CPUSpeed) //Needs slowdown here?
 	{
-		getuspassed(&CPU_timing); //Update to current time!
-		for (;getuspassed_k(&CPU_timing) < 3;) delay(0);  //Wait 3us to get 330KIPS MAX!
+		//Delay some time to get accurate timing!
+		static uint_64 last_timing=0; //Last timing!
+		last_timing += 3; //Increase last timing!
+		for (;getuspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
+		last_timing = getuspassed_k(&CPU_timing); //Set to current timing!
+		numopcodes = 0; //Make sure we don't count anymore!
 	}
 	else
 	{
@@ -565,7 +664,6 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 
 //All emulated timers for the user.
 char EMU_TIMERS[][256] = {
-				"PIT0", //Timer0!
 				"AddrPrint", //When debugging ROMs!
 				"RTC", //Real-time clock!
 				"PSP Mouse", //PS/2 mouse input!

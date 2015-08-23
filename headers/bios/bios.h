@@ -56,8 +56,10 @@ typedef struct PACKED
 
 			byte executionmode; //What mode to execute in during runtime?
 			byte VGA_NMIonPrecursors; //Enable VGA NMI on precursors?
+			byte PS2Mouse; //What mouse to use when using? 1=PS/2 mouse, 0=Serial mouse
+			byte CPUSpeed;
 		}; //Containing the data of the BIOS
-		byte data[1701]; //Data for checksum!
+		byte data[1703]; //Data for checksum!
 	};
 //Rest settings!
 } BIOS_Settings_TYPE; //BIOS Settings!

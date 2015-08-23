@@ -118,4 +118,6 @@ void updateInput(SDL_Event *event); //Update all input for SDL!
 #ifndef SDLK_AUDIOPLAY
 #define SDLK_AUDIOPLAY 0x40000105
 #endif
+
+void keyboard_type_handler(); //Handles keyboard typing: we're an interrupt at 1000 ticks/second!
 #endif

@@ -73,7 +73,6 @@
     <ClCompile Include="..\..\exception\exception.c" />
     <ClCompile Include="..\..\hardware\8042.c" />
     <ClCompile Include="..\..\hardware\adlib.c" />
-    <ClCompile Include="..\..\hardware\ATAPI.c" />
     <ClCompile Include="..\..\hardware\CMOS.c" />
     <ClCompile Include="..\..\hardware\dma.c" />
     <ClCompile Include="..\..\hardware\floppy.c" />

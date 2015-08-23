@@ -175,6 +175,7 @@ int convertrel(int src, int fromres, int tores); //Relative convert!
 uint_32 safe_strlen(char *str, int limit); //Safe safe_strlen function!
 char *constsprintf(char *str1, ...); //Concatinate strings (or constants)!
 
+void EMU_setDiskBusy(byte disk, byte busy); //Are we busy?
 void EMU_Shutdown(byte execshutdown); //Shut down the emulator?
 byte shuttingdown(); //Shutting down?
 void raiseError(char *source, char *text, ...); //Raises an error!

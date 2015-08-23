@@ -255,9 +255,6 @@
     <ClCompile Include="..\..\hardware\adlib.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\hardware\ATAPI.c">
-      <Filter>Source Files\hardware</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\hardware\CMOS.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>

@@ -1313,6 +1313,12 @@ byte PORT_IN_floppy(word port, byte *result)
 	return 0; //Unknown port!
 }
 
+void updateMotorControl()
+{
+	EMU_setDiskBusy(FLOPPY0, FLOPPY.DOR.MotorControl & 1); //Are we busy?
+	EMU_setDiskBusy(FLOPPY1, (FLOPPY.DOR.MotorControl & 2) >> 1); //Are we busy?
+}
+
 byte PORT_OUT_floppy(word port, byte value)
 {
 	if ((port&~7) != 0x3F0) return 0; //Not our address range!
@@ -1320,6 +1326,7 @@ byte PORT_OUT_floppy(word port, byte value)
 	{
 	case 2: //DOR?
 		FLOPPY.DOR.data = value; //Write to register!
+		updateMotorControl(); //Update the motor control!
 		if (!FLOPPY.DOR.REST) //Reset requested?
 		{
 			FLOPPY.DOR.REST = 1; //We're finished resetting!

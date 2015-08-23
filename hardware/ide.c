@@ -4,13 +4,44 @@
 #include "headers/bios/io.h" //I/O support!
 #include "headers/hardware/ports.h" //I/O port support!
 #include "headers/emu/timers.h" //Timer support!
+#include "headers/hardware/pci.h" //PCI support!
 
-//Primary hard disk IRQ!
-#define ATA_IRQ 14
-
-word portaddress = 0x300; //1F0 in normal configuration!
+//Hard disk IRQ!
+#define ATA_PRIMARYIRQ 14
+#define ATA_SECONDARYIRQ 15
 
 extern byte singlestep; //Enable single stepping when called?
+
+typedef struct
+{
+	word DeviceID;
+	word VendorID;
+	word Status;
+	word Command;
+	byte ClassCode;
+	byte Subclass;
+	byte ProgIF;
+	byte RevisionID;
+	byte BIST;
+	byte HeaderType;
+	byte LatencyTimer;
+	byte CacheLineSize;
+	uint_32 BAR[6]; //Our BARs!
+	uint_32 CardBusCISPointer;
+	word SubsystemID;
+	word SubsystemVendorID;
+	uint_32 ExpensionROMBaseAddress;
+	word ReservedLow;
+	byte ReservedHigh;
+	byte CapabilitiesPointer;
+	uint_32 Reserved;
+	byte MaxLatency;
+	byte MinGrant;
+	byte InterruptPIN;
+	byte InterruptLine;
+} PCI_DEVICE; //The entire PCI data structure!
+
+PCI_DEVICE PCI_IDE;
 
 struct
 {
@@ -123,6 +154,36 @@ struct
 	byte TC; //Terminal count occurred in DMA transfer?
 } ATA;
 
+uint_32 getPORTaddress(byte channel)
+{
+	switch (channel)
+	{
+	case 0: //First?
+		return (PCI_IDE.BAR[0] > 1) ? 0x1F0 : PCI_IDE.BAR[0]; //Give the BAR!
+		break;
+	case 1: //Second?
+		return (PCI_IDE.BAR[2] > 1) ? 0x1F0 : PCI_IDE.BAR[2]; //Give the BAR!
+		break;
+	default:
+		return ~0; //Error!
+	}
+}
+
+uint_32 getControlPORTaddress(byte channel)
+{
+	switch (channel)
+	{
+	case 0: //First?
+		return (PCI_IDE.BAR[1] > 1) ? 0x3F6 : PCI_IDE.BAR[1]; //Give the BAR!
+		break;
+	case 1: //Second?
+		return (PCI_IDE.BAR[3] > 1) ? 0x376 : PCI_IDE.BAR[3]; //Give the BAR!
+		break;
+	default:
+		return ~0; //Error!
+	}
+}
+
 word get_cylinders(uint_64 disk_size)
 {
 	return floor(disk_size / (63 * 16)); //How many cylinders!
@@ -211,7 +272,7 @@ void ATA_executeCommand(byte command) //Execute a command!
 		ATA.resultpos = 0; //Initialise data position for the result!
 		ATA.resultsize = sizeof(ATA.Drive[ATA_activeDrive()].driveparams); //512 byte result!
 		ATA.commandstatus = 3; //We're requesting data to be read!
-		doirq(ATA_IRQ); //Execute the IRQ!
+		doirq(ATA_PRIMARYIRQ); //Execute the IRQ!
 		break;
 	default: //Unknown command?
 		ATA.command = 0; //No command!
@@ -258,11 +319,12 @@ void ATA_updateStatus()
 
 byte outATA(word port, byte value)
 {
-	if ((port & 0xFFF8) != portaddress)
+	if ((port<getPORTaddress(0)) || (port>getPORTaddress(0)+0xD))
 	{
-		//if ((port == 0x3F6) || (port == 0x3F7)) goto port3_write;
+		if ((port >= getControlPORTaddress(0)) || (port <= getControlPORTaddress(0)+1)) goto port3_write;
 		return 0; //Not our port?
 	}
+	port -= getPORTaddress(0); //Get the port from the base!
 	switch (port & 7) //What port?
 	{
 	case 0: //DATA?
@@ -305,18 +367,23 @@ byte outATA(word port, byte value)
 		ATA_executeCommand(value); //Execute a command!
 		return 1; //OK!
 		break;
+	default: //Unsupported!
+		break;
 	}
 	return 0; //Safety!
 port3_write: //Special port #3?
+	port -= getControlPORTaddress(0); //Get the port from the base!
 	switch (port) //What port?
 	{
-	case 0x3F6: //Fixed disk controller data register?
+	case 0: //Fixed disk controller data register?
 		ATA.port3f6.data = (value & 0xF); //Select information!
 		return 1; //OK!
 		break;
-	case 0x3F7: //Drive 0 select?
+	case 1: //Drive 0 select?
 		ATA.port3f7.data = (value & 0x7F); //Select the data used!
 		return 1; //OK!
+		break;
+	default: //Unsupported!
 		break;
 	}
 	return 0; //Unsupported!
@@ -324,12 +391,13 @@ port3_write: //Special port #3?
 
 byte inATA(word port, byte *result)
 {
-	if ((port & 0xFFF8) != portaddress)
+	if ((port<getPORTaddress(0)) || (port>getPORTaddress(0) + 0xD))
 	{
-		//if ((port == 0x3F6) || (port == 0x3F7)) goto port3_read;
+		if ((port >= getControlPORTaddress(0)) || (port <= getControlPORTaddress(0) + 1)) goto port3_read;
 		return 0; //Not our port?
 	}
-	switch (port & 7) //What port?
+	port -= getPORTaddress(0); //Get the port from the base!
+	switch (port) //What port?
 	{
 	case 0: //DATA?
 		switch (ATA.commandstatus) //Current status?
@@ -375,6 +443,8 @@ byte inATA(word port, byte *result)
 		*result = ATA.Drive[ATA_activeDrive()].STATUSREGISTER.data; //Get status!
 		return 1; //OK!
 		break;
+	default: //Unsupported?
+		break;
 	}
 	return 0; //Unsupported!
 port3_read: //Special port #3?
@@ -387,6 +457,8 @@ port3_read: //Special port #3?
 	case 0x3F7: //Drive 0 select?
 		*result = ATA.port3f7.data; //Select the data used!
 		return 1; //OK!
+		break;
+	default: //Unsupported!
 		break;
 	}
 	return 0; //Unsupported!
@@ -436,4 +508,10 @@ void initATA()
 	register_DISKCHANGE(HDD1, &HDD_DiskChanged);
 	HDD_DiskChanged(HDD0); //Init HDD0!
 	HDD_DiskChanged(HDD1); //Init HDD1!
+	memset(&PCI_IDE, 0, sizeof(PCI_IDE)); //Initialise to 0!
+	register_PCI(&PCI_IDE, sizeof(PCI_IDE)); //Register the PCI data area!
+	//Initialise our data area!
+	PCI_IDE.DeviceID = 1;
+	PCI_IDE.VendorID = 1; //DEVICEID::VENDORID: We're a ATA device!
+	PCI_IDE.ProgIF = 0x80; //We're a Parralel IDE controller which uses IRQ 14&15!
 }

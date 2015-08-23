@@ -547,12 +547,12 @@ void EMU_enablemouse(byte enabled) //Enable mouse input (disable during EMU, ena
 	Mouse.disabled = !enabled; //Are we enabled?
 }
 
-void BIOS_initMouse() //Initialise the mouse to reset mode?
+void PS2_initMouse(byte enabled) //Initialise the mouse to reset mode?
 {
 	if (__HW_DISABLED) return; //Abort!
 	memset(&Mouse.data, 0, sizeof(Mouse)); //Clear the mouse information!
-	Mouse.supported = 0; //Default: not supported!
-	if (EMULATED_CPU >= CPU_80286) //AT PC?
+	Mouse.supported = enabled; //Are we enabled!
+	if (Mouse.supported) //Are we enabled?
 	{
 		//Register ourselves!
 		register_PS2PortWrite(1, &handle_mousewrite); //Write functionnality!
@@ -564,7 +564,6 @@ void BIOS_initMouse() //Initialise the mouse to reset mode?
 
 		update_mouseTimer(); //(Re)set mouse timer!
 		Mouse.disabled = 1; //Default: disabled!
-		Mouse.supported = 1; //We're supported by the architecture!
 	}
 }
 

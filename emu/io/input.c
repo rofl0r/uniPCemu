@@ -2368,6 +2368,24 @@ void updateInput(SDL_Event *event) //Update all input!
 	}
 }
 
+TicksHolder keyboard_ticker;
+uint_32 keyboard_ticktiming;
+
+//Check for timer occurrences.
+void updateKeyboard()
+{
+	keyboard_ticktiming += getuspassed(&keyboard_ticker); //Get the amount of time passed!
+	if (keyboard_ticktiming >= 1000) //Enough time passed?
+	{
+		for (;keyboard_ticktiming >= 1000;) //All that's left!
+		{
+			keyboard_type_handler(); //Tick 1ms timer!
+			keyboard_ticktiming -= 1000; //Decrease timer to get time left!
+		}
+	}
+}
+
+
 void psp_input_init()
 {
 	#ifdef SDL_SYS_JoystickInit
@@ -2378,11 +2396,11 @@ void psp_input_init()
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
 	keyboard_lock = SDL_CreateSemaphore(1); //Our lock!
 	mouse_lock = SDL_CreateSemaphore(1); //Our lock!
-	addtimer(1000.0f, &keyboard_type_handler, "Keyboard handler", 0, 1, keyboard_lock);
 }
 
 void psp_input_done()
 {
 	//Do nothing yet!
 	SDL_DestroySemaphore(keyboard_lock); //Release the lock!
+	initTicksHolder(&keyboard_ticktiming);
 }

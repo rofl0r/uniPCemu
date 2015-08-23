@@ -90,6 +90,10 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 	CPU_IPS = instructioncounter;
 	instructioncounter = 0; //Reset instruction counter as fast as possible!
 	CPU_IPS /= (timepassed / 1000000.0f); //Divide IPS by the time passed!
+	if (CPU_IPS > 100000000) //Too high: must be invalid!
+	{
+		CPU_IPS = 0; //Unused!
+	}
 	unlockGPU(); //Unlock the GPU!
 }
 
@@ -127,8 +131,6 @@ void renderFramerate()
 				IPS, //Time it took to render (MS)
 				scaletext[scale] //The scale the IPS is on!
 				); //Show the framerate and average!
-			GPU_textgotoxy(frameratesurface,0,1); //Goto row 1!
-			GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x22,0x22,0x22),"Frames rendered: %i",totalframes); //Total # of frames rendered!
 			#ifdef DEBUG_PIXEL_SPEED
 				SEQ_DATA *Sequencer;
 				VGA_Type *VGA;

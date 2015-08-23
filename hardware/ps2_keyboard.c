@@ -86,16 +86,12 @@ int EMU_keyboard_handler_idtoname(int id, char *name) //Same as above, but with 
 byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with interval) or released CALLED BY HARDWARE KEYBOARD (Virtual Keyboard?)?
 {
 	if (__HW_DISABLED) return 1; //Abort!
-	while (Keyboard.has_command) //Have a command: command mode inhabits keyboard input?
-	{
-		delay(10); //Wait for the command to be fully processed by our driver!
-	}
+	if (Keyboard.has_command) return 0; //Have a command: command mode inhabits keyboard input?
 	if (Keyboard.keyboard_enabled) //Keyboard enabled?
 	{
 		if (!Controller8042.PS2ControllerConfigurationByte.FirstPortDisabled) //We're enabled?
 		{
 			int i; //Counter for key codes!
-			waitforfreefifobuffer(Keyboard.buffer,scancodesets[Keyboard.scancodeset][key].keypress_size); //Wait for this to free in the buffer!
 			if (pressed) //Key pressed?
 			{
 				if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[Keyboard.scancodeset][key].keypress_size) return 0; //Buffer full: we can't add it!
