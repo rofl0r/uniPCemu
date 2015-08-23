@@ -210,11 +210,14 @@ int CPU_isPrefix(byte prefix)
 		case 0x36: //SS segment override prefix
 		case 0x3E: //DS segment override prefix
 		case 0x26: //ES segment override prefix
-		case 0x64: //FS segment override prefix
-		case 0x65: //GS segment override prefix
+			return 1; //Always a prefix!
 		case 0x66: //Operand-size override
 		case 0x67: //Address-size override
-			return 1; //Use!
+			if (EMULATED_CPU>=CPU_80286) return 1; //We're a prefix when 286+!
+			return 0; //No prefix!
+		case 0x64: //FS segment override prefix
+		case 0x65: //GS segment override prefix
+			if (EMULATED_CPU >= CPU_80386) return 1; //We're a prefix when 386+!
 		default: //It's a normal OPcode?
 			return 0; //No prefix!
 			break; //Not use others!

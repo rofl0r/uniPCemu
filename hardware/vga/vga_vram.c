@@ -104,6 +104,8 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value, byte mod
 	if (!VGA) return; //Invalid VGA!
 	if (!VGA->VRAM_size) return; //No size!
 	
+	if (mode & 1) offset = addresswrap(VGA, offset); //Apply address wrap?
+
 	plane &= 3; //Only 4 planes are available!
 
 	register uint_32 fulloffset2;
