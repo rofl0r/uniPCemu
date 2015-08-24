@@ -56,8 +56,16 @@ word PORT_IN_W(word port) //IN result,port
 		};
 		word w;
 	} splitter;
-	splitter.low = PORT_IN_B(port); //Low first
-	splitter.high = PORT_IN_B(port+1); //High last!
+	if (port & 1) //Not aligned?
+	{
+		goto bytetransferr; //Force byte transfer!
+	}
+	if (EXEC_PORTINW(port, &splitter.w)) //Passtrough!
+	{
+		bytetransferr:
+		splitter.low = PORT_IN_B(port); //Low first
+		splitter.high = PORT_IN_B(port + 1); //High last!
+	}
 	return splitter.w; //Give word!
 }
 
@@ -72,9 +80,17 @@ void PORT_OUT_W(word port, word w) //OUT port,w
 		} byte;
 		word w;
 	} splitter;
-	splitter.w = w; //Split!
-	PORT_OUT_B(port,splitter.byte.low); //First low byte!
-	PORT_OUT_B(port+1,splitter.byte.high); //Next high byte!
+	if (port & 1) //Not aligned?
+	{
+		goto bytetransferw; //Force byte transfer!
+	}
+	if (EXEC_PORTOUTW(port, w)) //Passtrough!
+	{
+		bytetransferw:
+		splitter.w = w; //Split!
+		PORT_OUT_B(port, splitter.byte.low); //First low byte!
+		PORT_OUT_B(port + 1, splitter.byte.high); //Next high byte!
+	}
 }
 
 uint_32 PORT_IN_DW(word port) //IN result,port
@@ -88,11 +104,18 @@ uint_32 PORT_IN_DW(word port) //IN result,port
 		};
 		uint_32 dw;
 	} splitter;
-	splitter.low = PORT_IN_W(port); //Low first
-	splitter.high = PORT_IN_W(port+2); //High last!
+	if (port & 3) //Not aligned?
+	{
+		goto wordtransferr; //Force word transfer!
+	}
+	if (EXEC_PORTIND(port, &splitter.dw)) //Passtrough!
+	{
+		wordtransferr:
+		splitter.low = PORT_IN_W(port); //Low first
+		splitter.high = PORT_IN_W(port + 2); //High last!
+	}
 	return splitter.dw; //Give dword!
 }
-
 
 void PORT_OUT_DW(word port, uint_32 dw) //OUT port,w
 {
@@ -105,7 +128,15 @@ void PORT_OUT_DW(word port, uint_32 dw) //OUT port,w
 		};
 		uint_32 dw;
 	} splitter;
-	splitter.dw = dw; //Split!
-	PORT_OUT_W(port,splitter.low); //First low byte!
-	PORT_OUT_W(port+2,splitter.high); //Next high byte!
+	if (port & 3) //Not aligned?
+	{
+		goto wordtransferw; //Force word transfer!
+	}
+	if (EXEC_PORTOUTD(port, dw)) //Passtrough!
+	{
+		wordtransferw:
+		splitter.dw = dw; //Split!
+		PORT_OUT_W(port, splitter.low); //First low byte!
+		PORT_OUT_W(port + 2, splitter.high); //Next high byte!
+	}
 }

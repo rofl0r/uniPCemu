@@ -2396,11 +2396,11 @@ void psp_input_init()
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
 	keyboard_lock = SDL_CreateSemaphore(1); //Our lock!
 	mouse_lock = SDL_CreateSemaphore(1); //Our lock!
+	initTicksHolder(&keyboard_ticker);
 }
 
 void psp_input_done()
 {
 	//Do nothing yet!
 	SDL_DestroySemaphore(keyboard_lock); //Release the lock!
-	initTicksHolder(&keyboard_ticktiming);
 }
