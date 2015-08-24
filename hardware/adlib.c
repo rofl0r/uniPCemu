@@ -362,7 +362,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float modulator, float
 	{
 		result *= feedback; //Convert to feedback ratio!
 		return calcOperator(curchan, operator,result, 0.0f); //Apply feedback using our own signal as the modulator!
-	} //Disable feedback!
+	}
 
 	return result; //Give the result!
 }
@@ -462,7 +462,7 @@ void updateAdlib()
 
 OPTINLINE short adlibgensample() {
 	uint8_t curchan;
-	short adlibaccum;
+	int_32 adlibaccum;
 	adlibaccum = 0;
 	for (curchan = 0; curchan < 9; curchan++)
 	{
@@ -471,7 +471,11 @@ OPTINLINE short adlibgensample() {
 			adlibaccum += adlibsample(curchan);
 		}
 	}
-	return (adlibaccum);
+	//Clip it!
+	if (adlibaccum > SHRT_MAX) adlibaccum = SHRT_MAX;
+	if (adlibaccum < SHRT_MIN) adlibaccum = SHRT_MIN;
+
+	return (short)(adlibaccum);
 }
 
 float min_vol = __MIN_VOL;

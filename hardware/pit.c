@@ -170,20 +170,17 @@ byte out8253(word portnum, byte value)
 	switch (portnum)
 	{
 		case 0x40: //pit 0 data port
-		switch (pit0command) {
-			case 0x36:
-			if (pit0latch==0) {
-				pit0divisor = (pit0divisor & 0xFF00) + (value & 0xFF);
-				pit0latch = 1;
-				return 1;
-				} else {
-				pit0divisor = (pit0divisor & 0xFF) + (value & 0xFF)*256;
-				pit0latch = 0;
-				if (pit0divisor==0) pit0divisor = 65536;
-				initTicksHolder(&timerticks); //Initialise the timer ticks!
-				timertime = 1000000.0f / SAFEDIV(1193180.0f, pit0divisor); //How much time do we take to expire?
-			} break;
-		}
+		if (pit0latch==0) {
+			pit0divisor = (pit0divisor & 0xFF00) + (value & 0xFF);
+			pit0latch = 1;
+			return 1;
+			} else {
+			pit0divisor = (pit0divisor & 0xFF) + (value & 0xFF)*256;
+			pit0latch = 0;
+			if (pit0divisor==0) pit0divisor = 65536;
+			initTicksHolder(&timerticks); //Initialise the timer ticks!
+			timertime = 1000000.0f / SAFEDIV(1193180.0f, pit0divisor); //How much time do we take to expire?
+		} break;
 		return 1;
 		break;
 		case 0x42: //speaker countdown
