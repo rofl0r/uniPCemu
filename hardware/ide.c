@@ -676,8 +676,7 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		//Invalid command?
 		invalidcommand:
 		dolog("ATA", "Invalid command,%i,%i: %02X",channel,ATA_activeDrive(channel), command);
-		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //Reset error register!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.commandaborted = 1; //Aborted!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 1; //Reset error register!
 		ATA[channel].commandstatus = 0xFF; //Move to error mode!
 		break;
 	}
