@@ -5,9 +5,9 @@
 #include "headers/hardware/ports.h" //I/O port support!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/pci.h" //PCI support!
-#include "headers/support/lba.h" //LBA support!
+#include "headers/support/highrestimer.h" //High resolution timer support!
 
-//Use WD BIOS by default assignment setting?
+//Use WD BIOS by default assignment setting for compatibility?
 #define WD_ATA
 
 //Hard disk IRQ!
@@ -126,7 +126,7 @@ struct
 			byte sectorcount;
 		} PARAMETERS;
 		word driveparams[0x100]; //All drive parameters for a drive!
-		uint_64 current_LBA_address; //Current LBA address!
+		uint_32 current_LBA_address; //Current LBA address!
 	} Drive[2]; //Two drives!
 
 	union
@@ -149,6 +149,23 @@ struct
 	byte TC; //Terminal count occurred in DMA transfer?
 } ATA[2]; //Two channels of ATA drives!
 
+uint_32 ATA_CHS2LBA(byte channel, byte slave, word cylinder, byte head, byte sector)
+{
+	return ((cylinder*ATA[channel].Drive[slave].driveparams[55]) + head)*ATA[channel].Drive[slave].driveparams[56]; //Give the LBA value!
+}
+
+void ATA_LBA2CHS(byte channel, byte slave, uint_32 LBA, word *cylinder, byte *head, byte *sector)
+{
+	uint_32 temp;
+	temp = (ATA[channel].Drive[slave].driveparams[55] * ATA[channel].Drive[slave].driveparams[56]); //Sectors per cylinder!
+	*cylinder = (word)(LBA / temp); //Cylinder!
+	LBA -= temp; //Decrease LBA to get heads&sectors!
+	temp = ATA[channel].Drive[slave].driveparams[57]; //SPT!
+	*head = (LBA / temp) & 0xF; //The head!
+	LBA -= temp; //Decrease LBA to get sectors!
+	*sector = (LBA & 0xFF); //The sector!
+}
+
 int ATA_Drives[2][2]; //All ATA mounted drives to disk conversion!
 byte ATA_DrivesReverse[4][2]; //All Drive to ATA mounted drives conversion!
 
@@ -166,6 +183,51 @@ void ATA_IRQ(byte channel, byte slave)
 			break;
 		default: //Unknown channel?
 			break;
+		}
+	}
+}
+
+TicksHolder ATATicks;
+struct
+{
+	uint_64 ATA_tickstiming;
+	uint_64 ATA_tickstimeout; //How big a timeout are we talking about?
+	byte type; //Type of timer!
+} IRQtimer[4]; //IRQ timer!
+
+void updateATA() //ATA timing!
+{
+	uint_64 passed = getuspassed_k(&ATATicks); //Get us passed!
+	if (passed) //Anything passed?
+	{
+		getuspassed(&ATATicks); //Passed some time!
+		int i;
+		for (i = 0;i < 4;i++) //Process all timers!
+		{
+			if (IRQtimer[i].ATA_tickstimeout) //Ticking?
+			{
+				IRQtimer[i].ATA_tickstiming += passed; //We've passed some!
+				if (IRQtimer[i].ATA_tickstiming >= IRQtimer[i].ATA_tickstimeout) //Expired?
+				{
+					IRQtimer[i].ATA_tickstimeout = 0; //Finished!
+					ATA_IRQ(i & 2, i & 1); //Do an IRQ from the source!
+					byte drive = (i & 1); //Drive!
+					byte channel = ((i & 2) >> 1); //Channel!
+					if (IRQtimer[i].type == 1) //Calibrate?
+					{
+						ATA[channel].Drive[drive].PARAMETERS.cylinderhigh = ATA[channel].Drive[drive].PARAMETERS.cylinderlow = 0; //Clear cylinder #!
+						ATA[channel].Drive[drive].STATUSREGISTER.driveseekcomplete = 1; //We've completed seeking!
+						ATA[channel].Drive[drive].ERRORREGISTER.data = 0; //No error!
+						ATA[channel].commandstatus = 0; //Reset status!
+					}
+					else if (IRQtimer[i].type == 2) //Seek?
+					{
+						ATA[channel].Drive[drive].STATUSREGISTER.driveseekcomplete = 1; //We've completed seeking!
+						ATA[channel].Drive[drive].ERRORREGISTER.data = 0; //No error!
+						ATA[channel].commandstatus = 0; //Reset status!
+					}
+				}
+			}
 		}
 	}
 }
@@ -257,7 +319,7 @@ void ATA_updatesector(byte channel) //Update the current sector!
 	else
 	{
 		uint_64 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 8) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
-		LBA2CHS(ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, &cylinder, &head, &sector, ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[55], disk_size); //Convert the current LBA address into a CHS value!
+		ATA_LBA2CHS(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, &cylinder, &head, &sector); //Convert the current LBA address into a CHS value!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ((cylinder >> 8) & 0xFF); //Cylinder high!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = (cylinder&0xFF); //Cylinder low!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head = head; //Head!
@@ -272,10 +334,9 @@ byte ATA_readsector(byte channel) //Read the current sector set up!
 	{
 		if (!--ATA[channel].datasize) //Finished?
 		{
-			ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our IRQ!
 			ATA_updatesector(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0; //We're back in command mode!
-			return 0; //We're finished!
+			return 1; //We're finished!
 		}
 	}
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address >= disk_size) //Past the end of the disk?
@@ -283,7 +344,7 @@ byte ATA_readsector(byte channel) //Read the current sector set up!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.idmarknotfound = 1; //Not found!
 		ATA_updatesector(channel); //Update the current sector!
 		ATA[channel].commandstatus = 0xFF; //Error!
-		return 0; //We're finished!
+		return 0; //Stop!
 	}
 
 	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Read the data from disk?
@@ -300,8 +361,9 @@ byte ATA_readsector(byte channel) //Read the current sector set up!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.idmarknotfound = 1; //Not found!
 		ATA_updatesector(channel); //Update the current sector!
 		ATA[channel].commandstatus = 0xFF; //Error!
+		return 0; //Stop!
 	}
-	return 0; //Nothing more to read!
+	return 1; //We're finished!
 }
 
 byte ATA_writesector(byte channel)
@@ -312,7 +374,7 @@ byte ATA_writesector(byte channel)
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.idmarknotfound = 1; //Not found!
 		ATA_updatesector(channel); //Update the current sector!
 		ATA[channel].commandstatus = 0xFF; //Error!
-		return 0; //We're finished!
+		return 1; //We're finished!
 	}
 
 	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Write the data to the disk?
@@ -321,10 +383,9 @@ byte ATA_writesector(byte channel)
 
 		if (!--ATA[channel].datasize) //Finished?
 		{
-			ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our finishing IRQ!
 			ATA_updatesector(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0; //We're back in command mode!
-			return 0; //We're finished!
+			return 1; //We're finished!
 		}
 
 		//Process next sector!
@@ -346,7 +407,7 @@ byte ATA_writesector(byte channel)
 		ATA_updatesector(channel); //Update the current sector!
 		ATA[channel].commandstatus = 0xFF; //Error!
 	}
-	return 0; //Nothing more to read!
+	return 0; //Finished!
 }
 
 byte ATA_dataIN(byte channel) //Byte read from data!
@@ -395,38 +456,29 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 {
 	ATA[channel].longop = 0; //Default: no long operation!
 	uint_64 disk_size;
+	int drive;
 	byte temp;
 	switch (command) //What command?
 	{
-	//case 0x98:
-	//case 0xE5: //Check power mode?
-		//Do nothing: we don't support standby mode or idle mode?
-		//break;
-	case 0xDE: //Door lock?
-	case 0xDF: //Door unlock?
-		//Do nothing: we can't lock the drive!
-		break;
 	case 0x90: //Execute drive diagnostic?
-		if (!ATA_Drives[channel][0]) //No master (drive not present)?
-		{
-			ATA[channel].Drive[0].ERRORREGISTER.data = 0; //Not present!
-			ATA[channel].Drive[1].ERRORREGISTER.data = 0; //Not present!
-		}
-		else if (!ATA_Drives[channel][1]) //No slave, but gotten master?
-		{
-			ATA[channel].Drive[0].ERRORREGISTER.data = 0x81; //Master OK, but slave failed!
-			ATA[channel].Drive[1].ERRORREGISTER.data = 0; //Not present!
-		}
-		else //Master and slave present?
-		{
-			ATA[channel].Drive[0].ERRORREGISTER.data = 1; //Master OK!
-			ATA[channel].Drive[1].ERRORREGISTER.data = 1; //Slave OK!
-		}
+		dolog("ATA", "DIAGNOSTICS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		ATA[channel].Drive[0].ERRORREGISTER.data = 0x1; //OK!
+		ATA[channel].Drive[1].ERRORREGISTER.data = 0x1; //OK!
 		ATA[channel].commandstatus = 0; //Reset status!
+		ATA_IRQ(channel, ATA_activeDrive(channel)); //IRQ!
 		break;
 	case 0xDB: //Acnowledge media change?
-		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.mediachanged = 0; //Not changed anymore!
-		ATA[channel].commandstatus = 0; //Reset status!
+		dolog("ATA", "ACNMEDIACHANGE:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		switch (ATA_Drives[channel][ATA_activeDrive(channel)]) //What kind of drive?
+		{
+		case CDROM0:
+		case CDROM1: //CD-ROM?
+			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.mediachanged = 0; //Not changed anymore!
+			ATA[channel].commandstatus = 0; //Reset status!
+			break;
+		default:
+			goto invalidcommand;
+		}
 		break;
 	case 0x10:
 	case 0x11:
@@ -444,15 +496,14 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 	case 0x1D:
 	case 0x1E:
 	case 0x1F: //Recalibrate?
+		dolog("ATA", "RECALIBRATE:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 		temp = (command & 0xF); //???
 		if (has_drive(ATA_Drives[channel][ATA_activeDrive(channel)])) //Gotten drive?
 		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0;
-			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Seek to cylinder 0!
-			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head = temp; //Seek to this head!
-			ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveseekcomplete = 1; //We've completed seeking!
-			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No error!
-			ATA[channel].commandstatus = 0; //Reset status!
+			memset(&IRQtimer[(channel << 1) | ATA_activeDrive(channel)], 0, sizeof(IRQtimer[(channel << 1) | ATA_activeDrive(channel)])); //Init timer!
+			ATA[channel].commandstatus = 4; //Waiting for completion!
+			IRQtimer[(channel << 1) | ATA_activeDrive(channel)].type = 1; //Execute an IRQ and clear the status and set drive seek complete!
+			IRQtimer[(channel << 1) | ATA_activeDrive(channel)].ATA_tickstimeout = 1; //100us timeout!
 		}
 		else
 		{
@@ -476,16 +527,16 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 	case 0x7D:
 	case 0x7E:
 	case 0x7F: //Seek?
+		dolog("ATA", "SEEK:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 		temp = (command & 0xF); //The head to select!
 		if (((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow) < ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[54]) //Cylinder correct?
 		{
 			if (temp < ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[55]) //Head within range?
 			{
-				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //Seek OK!
-				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveseekcomplete = 1; //We've completed!
-				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head = temp; //The head we've gotten to!
-				ATA[channel].commandstatus = 0; //Reset status!
-				ATA_IRQ(channel, ATA_activeDrive(channel)); //Execute an IRQ!
+				memset(&IRQtimer[(channel << 1) | ATA_activeDrive(channel)], 0, sizeof(IRQtimer[(channel << 1) | ATA_activeDrive(channel)])); //Init timer!
+				ATA[channel].commandstatus = 4; //Waiting for completion!
+				IRQtimer[(channel << 1) | ATA_activeDrive(channel)].type = 2; //Execute an IRQ and clear the status and set drive seek complete!
+				IRQtimer[(channel << 1) | ATA_activeDrive(channel)].ATA_tickstimeout = 100; //1us timeout!
 			}
 			else //Head not found!
 			{
@@ -507,6 +558,7 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA[channel].longop = 1; //Long operation!
 	case 0x20: //Read sector(s) (w/retry)?
 	case 0x21: //Read sector(s) (w/o retry)?
+		dolog("ATA", "READ(long):%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 8) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
@@ -515,12 +567,10 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		}
 		else //Normal CHS address?
 		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = CHS2LBA(
+			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = ATA_CHS2LBA(channel,ATA_activeDrive(channel),
 				((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow)),
 				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head,
-				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber,
-				ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[55],
-				(uint_64)disk_size); //The LBA address based on the CHS address!
+				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
 
 		}
 		if (ATA_readsector(channel)) //OK?
@@ -533,6 +583,7 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA[channel].longop = 1; //Long operation!
 	case 0x30: //Write sector(s) (w/retry)?
 	case 0x31: //Write sectors (w/o retry)?
+		dolog("ATA", "WRITE(LONG):%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 8) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
@@ -541,7 +592,7 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		}
 		else //Normal CHS address?
 		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = CHS2LBA(
+			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = ATA_CHS2LBA(
 				((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow)),
 				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head,
 				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber,
@@ -553,10 +604,14 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA[channel].commandstatus = 2; //Transferring data OUT!
 		break;
 	case 0x91: //Initialise device parameters?
+		dolog("ATA", "INITDRVPARAMS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 		ATA[channel].commandstatus = 0; //Requesting command again!
+		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[55] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head + 1); //Set the current maximum head!
+		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[56] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount); //Set the current sectors per track!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
 		break;
 	case 0xEC: //Identify drive?
+		dolog("ATA", "IDENTIFY:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 		ATA[channel].command = 0xEC; //We're running this command!
 		memcpy(&ATA[channel].result, &ATA[channel].Drive[ATA_activeDrive(channel)].driveparams, sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams)); //Set drive parameters currently set!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear any errors!
@@ -569,6 +624,25 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA[channel].resultsize = sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams); //512 byte result!
 		ATA[channel].commandstatus = 3; //We're requesting data to be read!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Execute an IRQ from us!
+		break;
+	case 0xDA: //Get media status?
+		dolog("ATA", "GETMEDIASTATUS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //CD-ROM drive?
+		{
+			drive = ATA_Drives[channel][ATA_activeDrive(channel)]; //Load the drive identifier!
+			if (has_drive(drive)) //Drive inserted?
+			{
+				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.uncorrectabledata = drivereadonly(drive); //Are we read-only!
+			}
+			else
+			{
+				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.uncorrectabledata = 0; //Are we read-only!
+			}
+			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.mediachanged = 0; //Not anymore!
+			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise IRQ!
+			ATA[channel].commandstatus = 0; //Reset status!
+		}
+		else goto invalidcommand;
 		break;
 	case 0xDC: //BIOS - post-boot?
 	case 0xDD: //BIOS - pre-boot?
@@ -600,9 +674,11 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 	case 0x3C: //Write verify?
 	default: //Unknown command?
 		//Invalid command?
+		invalidcommand:
+		dolog("ATA", "Invalid command,%i,%i: %02X",channel,ATA_activeDrive(channel), command);
+		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //Reset error register!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.commandaborted = 1; //Aborted!
 		ATA[channel].commandstatus = 0xFF; //Move to error mode!
-		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the IRQ!
 		break;
 	}
 }
@@ -630,6 +706,11 @@ void ATA_updateStatus(byte channel)
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.busy = 0; //Not busy! You can write to the CBRs!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 1; //We're ready to process a command!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.datarequestready = 1; //We're requesting data to transfer!
+		break;
+	case 4: //Busy waiting?
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.busy = 1; //Busy! You can write to the CBRs!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 0; //We're ready to process a command!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.datarequestready = 0; //We're requesting data to transfer!
 		break;
 	default: //Unknown?
 	case 0xFF: //Error?
@@ -696,7 +777,7 @@ byte outATA8(word port, byte value)
 		return 1;
 		break;
 	case 1: //Features?
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features = value; //Use the set data!
+		//ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features = value; //Use the set data! Ignore!
 		return 1; //OK!
 		break;
 	case 2: //Sector count?
@@ -912,15 +993,16 @@ void ATA_DiskChanged(int disk)
 		{
 			disk_size = disksize(disk); //Get the disk's size!
 			disk_size >>= 9; //Get the disk size in sectors!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[0] = 0x02 | 0x40; //Hard sectored, Fixed drive!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[0] = ((disk==CDROM0)||(disk==CDROM1))?0x80:0x40; //Hard sectored, Fixed drive/CDROM drive!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
 			ATA[disk_channel].Drive[disk_ATA].driveparams[2] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk_size); //3=Number of heads
 			ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
+			ATA[disk_channel].Drive[disk_ATA].driveparams[20] = 1; //One transfer at a time!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = 1; //512 byte buffer!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = 0x200; //LBA supported, DMA unsupported!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[53] = 1; //Using soft-sectoring!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (disk_size & 0xFFFF); //Number of addressable sectors, low word!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (disk_size >> 16); //Number of addressable sectors, high word!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[93] = ((!disk_ATA) ? 0x1000 : 0); //Bit 12 is set on master!
 		}
 		else //Drive not inserted?
 		{
@@ -934,7 +1016,9 @@ void ATA_DiskChanged(int disk)
 
 void initATA()
 {
+	initTicksHolder(&ATATicks);
 	memset(&ATA, 0, sizeof(ATA)); //Initialise our data!
+	memset(&IRQtimer, 0, sizeof(IRQtimer)); //Init timers!
 	//We don't register a disk change handler, because ATA doesn't change disks when running!
 	//8-bits ports!
 	register_PORTIN(&inATA8);

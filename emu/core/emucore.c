@@ -505,6 +505,7 @@ byte coreHandler()
 	updateKeyboard(); //Tick the keyboard timer if needed!
 	updateAdlib(); //Tick the adlib timer if needed!
 	updatePIT0(); //Tick the PIT timer if needed!
+	updateATA(); //Update the ATA timer!
 
 	//CPU execution, needs to be before the debugger!
 	interruptsaved = 0; //Reset PIC interrupt to not used!
