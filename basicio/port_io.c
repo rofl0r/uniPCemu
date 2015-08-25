@@ -4,7 +4,7 @@
 #include "headers/hardware/ports.h" //Full PORTIN/OUT compatibility!
 
 //Log unhandled port IN/OUT?
-//#define LOG_UNHANDLED_PORTS
+#define LOG_UNHANDLED_PORTS
 
 /*
 
@@ -23,13 +23,16 @@ void Ports_Init()
 	reset_ports(); //Passtrough: reset all ports!
 }
 
+extern word CPU_exec_CS; //OPCode CS
+extern uint_32 CPU_exec_EIP; //OPCode EIP
+
 byte PORT_IN_B(word port)
 {
 	byte result;
 	if (EXEC_PORTIN(port,&result)) //Passtrough!
 	{
 #ifdef LOG_UNHANDLED_PORTS
-		dolog("emu", "Warning: Unhandled PORT IN from port %04X", port);
+		dolog("emu", "Warning: Unhandled PORT IN from port %04X (src:%04X:%08X)", port,CPU_exec_CS,CPU_exec_EIP);
 #endif
 	}
 	return result; //Give the result!
@@ -40,7 +43,7 @@ void PORT_OUT_B(word port, byte b)
 	if (EXEC_PORTOUT(port, b)) //Passtrough and error?
 	{
 #ifdef LOG_UNHANDLED_PORTS
-		dolog("emu", "Warning: Unhandled PORT OUT to port %04X value %02X", port, b); //Report unhandled NMI!
+		dolog("emu", "Warning: Unhandled PORT OUT to port %04X value %02X (src:%04X:%08X)", port, b, CPU_exec_CS, CPU_exec_EIP); //Report unhandled NMI!
 #endif
 	}
 }

@@ -207,6 +207,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			{
 				if (!BIOS_load_ROM(18)) //Failed to load u18?
 				{
+					dolog("emu", "Failed loading BIOS ROM u18!");
 					CPU_INT(0x18); //Error: no ROM!
 					EMU_startInput(); //Start input again!
 					EMU_RUNNING = 1; //We're running again!
@@ -215,7 +216,8 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				}
 				if (!BIOS_load_ROM(19)) //Failed to load u19?
 				{
-					BIOS_free_ROM(19); //Release u27!
+					dolog("emu", "Failed loading BIOS ROM u19!");
+					BIOS_free_ROM(18); //Release u18!
 					CPU_INT(0x18); //Error: no ROM!
 					EMU_startInput(); //Start input again!
 					EMU_RUNNING = 1; //We're running again!
@@ -228,6 +230,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			{
 				if (!BIOS_load_ROM(27)) //Failed to load u27?
 				{
+					dolog("emu", "Failed loading BIOS ROM u27!");
 					CPU_INT(0x18); //Error: no ROM!
 					EMU_startInput(); //Start input again!
 					EMU_RUNNING = 1; //We're running again!
@@ -236,6 +239,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				}
 				if (!BIOS_load_ROM(47)) //Failed to load u47?
 				{
+					dolog("emu", "Failed loading BIOS ROM u47!");
 					BIOS_free_ROM(27); //Release u27!
 					CPU_INT(0x18); //Error: no ROM!
 					EMU_startInput(); //Start input again!
@@ -245,6 +249,8 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				}
 				verified = 1; //Verified!
 			}
+
+			BIOS_free_systemROM(); //Stop our own ROM: we're using the loaded ROMs now!
 
 			loadOPTROMS:
 

@@ -188,6 +188,7 @@ void BIOS_free_custom(char *rom)
 	{
 		freez((void **)&BIOS_custom_ROM,BIOS_custom_ROM_size,filename); //Release the BIOS ROM!
 	}
+	BIOS_custom_ROM = NULL; //No custom ROM anymore!
 }
 
 int BIOS_load_systemROM() //Load custom ROM from emulator itself!
@@ -196,6 +197,11 @@ int BIOS_load_systemROM() //Load custom ROM from emulator itself!
 	BIOS_custom_ROM_size = sizeof(EMU_BIOS); //Save the size!
 	BIOS_custom_ROM = &EMU_BIOS[0]; //Simple memory allocation for our ROM!
 	return 1; //Loaded!
+}
+
+void BIOS_free_systemROM()
+{
+	BIOS_free_custom(NULL); //Free the custom ROM, if needed and known!
 }
 
 void BIOS_DUMPSYSTEMROM() //Dump the SYSTEM ROM currently set (debugging purposes)!
