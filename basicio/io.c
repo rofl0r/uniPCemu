@@ -139,6 +139,8 @@ char *getDSKimage(int drive)
 //Startpos=sector number (start/512 bytes)!
 int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 {
+	byte *resultbuffer = (byte *)buffer; //The result buffer!
+	byte sectorbuffer[512]; //Full buffered sector!
 	if ((device&0xFF)!=device) //Invalid device?
 	{
 		dolog("IO","io.c: Unknown device: %i!",device);
@@ -174,14 +176,18 @@ int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 
 	uint_32 sector; //Current sector!
 	sector = (readpos>>9); //The sector we need must be a multiple of 512 bytes (standard sector size)!
+	uint_64 sectorpos = startpos; //Start of the data to read!
+	sectorpos -= (sector << 9); //Start within the sector!
 	FILEPOS bytesread = 0; //Init bytesread!
 	
 	SECTORHANDLER handler = disks[device].readhandler; //Our handler!
 	if (!handler) return 0; //Error: no handler registered!
 
+	word currentbytestoread; //How many bytes to read this time?
+
 	for (; bytesread<bytestoread;) //Still left to read?
 	{
-		if (!handler(dev,sector,(byte *)buffer+bytesread)) //Append at the buffer failed!
+		if (!handler(dev,sector,&sectorbuffer)) //Read to buffer!
 		{
 			if (disks[device].dynamicimage) //Dynamic?
 			{
@@ -193,7 +199,21 @@ int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 			}
 			return 0; //Error!
 		}
-		bytesread += 512; //1 sector read!
+		else //Successfully read?
+		{
+			currentbytestoread = 512;
+			if ((currentbytestoread + sectorpos)>512) //Less than the 512-byte buffer?
+			{
+				currentbytestoread -= sectorpos; //Bytes left to read!
+			}
+			if (currentbytestoread > (bytestoread - bytesread)) //More than we need?
+			{
+				currentbytestoread = (bytestoread - bytesread); //Only take what we need!
+			}
+			memcpy(&resultbuffer[sectorpos], &sectorbuffer, currentbytestoread); //Copy the bytes from the current sector to the destination (either partly or fully)!
+			sectorpos = 0; //The next sector is at position 0!
+		}
+		bytesread += currentbytestoread; //1 (partly) sector read!
 		++sector; //Next sector!
 	}
 	
@@ -213,6 +233,8 @@ int has_drive(int drive) //Device inserted?
 
 int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 {
+	byte *readbuffer = (byte *)buffer; //Data buffer!
+	byte sectorbuffer[512]; //A full sector buffered for editing!
 	char dev[256]; //Our device!
 	bzero(dev,sizeof(dev)); //Init device string!
 	uint_32 writepos; //Read pos!
@@ -251,27 +273,61 @@ int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 	sector = (writepos>>9); //The sector we need!
 	FILEPOS byteswritten = 0; //Init byteswritten!
 
-	SECTORHANDLER handler = disks[device].writehandler; //Our handler!
-	if (!handler) return 0; //Error: no handler registered!
+	SECTORHANDLER writehandler = disks[device].writehandler; //Our handler!
+	if (!writehandler) return 0; //Error: no handler registered!
 
-	for (;byteswritten<bytestowrite;) //Still left to written?
+	uint_64 sectorpos = startpos; //Start of the data to read!
+	sectorpos -= (sector << 9); //Start within the sector!
+	FILEPOS bytesread = 0; //Init bytesread!
+
+	SECTORHANDLER readhandler = disks[device].readhandler; //Our handler!
+	if (!readhandler) return 0; //Error: no handler registered!
+
+	word currentbytestowrite; //How many bytes to write this time?
+
+	for (; byteswritten<bytestowrite;) //Still left to read?
 	{
-		if (!handler(dev,sector,(byte *)buffer+byteswritten)) //Write failed!
+		if (!readhandler(dev, sector, &sectorbuffer)) //Read to buffer!
 		{
-			if (disks[device].dynamicimage) //Dynamic image?
+			if (disks[device].dynamicimage) //Dynamic?
 			{
-				dolog("IO","Error writing sector #%i to dynamic image %s",sector,dev);
+				dolog("IO", "io.c: Couldn't read dynamic image %s sector %i to overwrite", dev, sector);
 			}
-			else //Static image?
+			else //Static?
 			{
-				dolog("IO","Error writing sector #%i to static image %s",sector,dev);
+				dolog("IO", "io.c: Couldn't read static image %s sector %i to overwrite", dev, sector);
 			}
 			return 0; //Error!
 		}
-		//Successfully written?
-		byteswritten += 512; //1 sector written!
+		else //Successfully read?
+		{
+			currentbytestowrite = 512;
+			if ((currentbytestowrite + sectorpos)>512) //Less than the 512-byte buffer?
+			{
+				currentbytestowrite -= sectorpos; //Bytes left to read!
+			}
+			if (currentbytestowrite > (bytestowrite - byteswritten)) //More than we need?
+			{
+				currentbytestowrite = (bytestowrite - byteswritten); //Only take what we need!
+			}
+			memcpy(&sectorbuffer[sectorpos], &readbuffer[byteswritten], currentbytestowrite); //Copy the bytes from the current sector to the destination!
+			if (!writehandler(dev, sector, &sectorbuffer)) //Write new buffer!
+			{
+				if (disks[device].dynamicimage) //Dynamic?
+				{
+					dolog("IO", "io.c: Couldn't write dynamic image %s sector %i to overwrite", dev, sector);
+				}
+				else //Static?
+				{
+					dolog("IO", "io.c: Couldn't write static image %s sector %i to overwrite", dev, sector);
+				}
+				return 0; //Error!
+			}
+			sectorpos = 0; //The next sector is at position 0!
+		}
+		byteswritten += currentbytestowrite; //1 (partly) sector written!
 		++sector; //Next sector!
 	}
-	
+
 	return 1; //OK!
 }

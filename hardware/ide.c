@@ -8,7 +8,7 @@
 #include "headers/support/lba.h" //LBA support!
 
 //Use WD BIOS by default assignment setting?
-#define WD_ATA
+//#define WD_ATA
 
 //Hard disk IRQ!
 #define ATA_PRIMARYIRQ 14
