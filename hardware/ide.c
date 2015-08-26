@@ -179,7 +179,7 @@ OPTINLINE void ATA_IRQ(byte channel, byte slave)
 			doirq(ATA_PRIMARYIRQ); //Execute the IRQ!
 			break;
 		case 1:
-			doirq(ATA_PRIMARYIRQ); //Execute the IRQ!
+			doirq(ATA_SECONDARYIRQ); //Execute the IRQ!
 			break;
 		default: //Unknown channel?
 			break;
@@ -197,7 +197,7 @@ OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 			removeirq(ATA_PRIMARYIRQ); //Execute the IRQ!
 			break;
 		case 1:
-			removeirq(ATA_PRIMARYIRQ); //Execute the IRQ!
+			removeirq(ATA_SECONDARYIRQ); //Execute the IRQ!
 			break;
 		default: //Unknown channel?
 			break;
@@ -318,7 +318,7 @@ OPTINLINE void ATA_updatesector(byte channel) //Update the current sector!
 	byte head, sector;
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //LBA mode?
 	{
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA &= 0xFFFFFFF; //Clear the LBA part!
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA &= ~0xFFFFFFF; //Clear the LBA part!
 		ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address &= 0xFFFFFFF; //Truncate the address to it's size!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA |= ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address; //Set the LBA part only!
 	}
