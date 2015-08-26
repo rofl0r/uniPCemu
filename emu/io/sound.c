@@ -7,12 +7,12 @@
 #include "headers/support/signedness.h" //Signedness support!
 
 //Hardware set sample rate
-#define HW_SAMPLERATE 50000
+#define HW_SAMPLERATE 44100
 
 //Are we disabled?
 #define __HW_DISABLED 0
 //How many samples to process at once? Originally 2048; 64=Optimum
-#define SAMPLESIZE 512
+#define SAMPLESIZE 1024
 //Maximum samplerate in Hertz (200KHz)
 #define MAX_SAMPLERATE 50000.0f
 //Enable below if debugging speed is to be enabled.

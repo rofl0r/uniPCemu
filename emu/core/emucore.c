@@ -488,9 +488,9 @@ extern byte MMU_logging; //Are we logging from the MMU?
 
 extern byte Direct_Input; //Are we in direct input mode?
 
-uint_32 numopcodes = 0; //Delay counter!
+word numopcodes = 0; //Delay counter!
 
-uint_64 timepassed = 0;
+uint_64 last_timing = 0; //Last timing!
 
 byte coreHandler()
 {
@@ -509,81 +509,72 @@ byte coreHandler()
 
 	//CPU execution, needs to be before the debugger!
 	interruptsaved = 0; //Reset PIC interrupt to not used!
-	if (activeCPU == 0) //Root CPU is active? We're allowed to do stuff!
+	if (!CPU[activeCPU].halt) //Not halted?
 	{
-		if (!CPU[activeCPU].halt) //Not halted?
+		if (CPU[activeCPU].registers && doEMUsinglestep) //Single step enabled?
 		{
-			if (CPU[activeCPU].registers && doEMUsinglestep) //Single step enabled?
+			if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
 			{
-				if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
+				switch (getcpumode()) //What CPU mode are we to debug?
 				{
-					switch (getcpumode()) //What CPU mode are we to debug?
-					{
-					case CPU_MODE_REAL: //Real mode?
-						singlestep |= ((CPU[activeCPU].registers->CS == (singlestepaddress >> 16)) && (CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
-						break;
-					case CPU_MODE_PROTECTED: //Protected mode?
-					case CPU_MODE_8086: //Virtual 8086 mode?
-						singlestep |= ((CPU[activeCPU].registers->CS == singlestepaddress >> 32) && (CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
-						break;
-					default: //Invalid mode?
-						break;
-					}
+				case CPU_MODE_REAL: //Real mode?
+					singlestep |= ((CPU[activeCPU].registers->CS == (singlestepaddress >> 16)) && (CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
+					break;
+				case CPU_MODE_PROTECTED: //Protected mode?
+				case CPU_MODE_8086: //Virtual 8086 mode?
+					singlestep |= ((CPU[activeCPU].registers->CS == singlestepaddress >> 32) && (CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
+					break;
+				default: //Invalid mode?
+					break;
 				}
 			}
+		}
 
-			HWINT_saved = 0; //No HW interrupt by default!
-			CPU_beforeexec(); //Everything before the execution!
-			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
+		HWINT_saved = 0; //No HW interrupt by default!
+		CPU_beforeexec(); //Everything before the execution!
+		if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
+		{
+			if (CPU[activeCPU].registers->SFLAGS.IF) //Interrupts available?
 			{
-				if (CPU[activeCPU].registers->SFLAGS.IF) //Interrupts available?
+				if (PICInterrupt()) //We have a hardware interrupt ready?
 				{
-					if (PICInterrupt()) //We have a hardware interrupt ready?
+					HWINT_nr = nextintr(); //Get the HW interrupt nr!
+					HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
+					if (!((EMULATED_CPU == CPU_8086) && (CPU_segmentOverridden(activeCPU)) && REPPending)) //Not 8086, REP pending and segment override?
 					{
-						HWINT_nr = nextintr(); //Get the HW interrupt nr!
-						HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-						if (!((EMULATED_CPU == CPU_8086) && (CPU_segmentOverridden(activeCPU)) && REPPending)) //Not 8086, REP pending and segment override?
-						{
-							CPU_8086REPPending(); //Process pending REPs!
-						}
-						else
-						{
-							REPPending = 0; //Clear the REP pending flag: this makes the bug in the 8086 not repeat anymore during interrupts in this case!
-						}
-						call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
+						CPU_8086REPPending(); //Process pending REPs!
 					}
+					else
+					{
+						REPPending = 0; //Clear the REP pending flag: this makes the bug in the 8086 not repeat anymore during interrupts in this case!
+					}
+					call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 				}
 			}
-			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
-			MMU_logging = debugger_logging(); //Are we logging?
-			CPU_exec(); //Run CPU!
 		}
-		else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
-		{
-			CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
-		}
-
-		debugger_step(); //Step debugger if needed!
+		cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+		MMU_logging = debugger_logging(); //Are we logging?
+		CPU_exec(); //Run CPU!
 	}
-	else //Executing as fake86 port?
+	else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
 	{
-		exec86(); //Exec as a 80186 only!
+		CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 	}
+
+	debugger_step(); //Step debugger if needed!
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 
 	if (BIOS_Settings.CPUSpeed) //Needs slowdown here?
 	{
 		//Delay some time to get accurate timing!
-		static uint_64 last_timing=0; //Last timing!
 		last_timing += 3; //Increase last timing!
 		for (;getuspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
-		last_timing = getuspassed_k(&CPU_timing); //Set to current timing!
 		numopcodes = 0; //Make sure we don't count anymore!
 	}
 	else
 	{
-		if (++numopcodes==1000)//Every 1000 opcodes(to allow for more timers/input to update)
+		if (++numopcodes==10000)//Every 10000 opcodes(to allow for more timers/input to update)
 		{
 			numopcodes = 0; //Reset!
 			delay(0); //Wait minimal time for other threads to process data!
@@ -598,6 +589,10 @@ byte coreHandler()
 			reset = 1; //We're to reset!
 		}
 		resumeEMU(); //Resume!
+		if (BIOS_Settings.CPUSpeed) //Needs slowdown here?
+		{
+			last_timing = getuspassed_k(&CPU_timing); //We start off at this point!
+		}
 	}
 	return 1; //OK!
 }

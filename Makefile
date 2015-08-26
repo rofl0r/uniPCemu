@@ -98,8 +98,6 @@ OBJS += cpu\hardware_interrupts.o
 OBJS += emu\debugger\runromverify.o
 #MODR/M support:
 OBJS += cpu\modrm.o
-#8086,80186 GRP Opcodes:
-OBJS += cpu\8086\8086_grpOPs.o
 #Opcodes for CPU 8086,Debugger,Flags
 OBJS += cpu\8086\opcodes_8086.o
 #Opcodes for CPU 80186,Debugger

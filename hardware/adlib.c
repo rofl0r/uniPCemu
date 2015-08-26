@@ -22,7 +22,7 @@
 #define __MIN_VOL (1.0f / SHRT_MAX)
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
-#define __ADLIB_SAMPLEBUFFERSIZE 4096
+#define __ADLIB_SAMPLEBUFFERSIZE 0
 
 #define dB2factor(dB, fMaxLevelDB) pow(10, ((dB - fMaxLevelDB) / 20))
 
@@ -33,7 +33,8 @@ uint16_t baseport = 0x388; //Adlib address(w)/status(r) port, +1=Data port (writ
 
 //Sample based information!
 const float usesamplerate = 14318180.0f/288.0f; //The sample rate to use for output!
-const float adlib_sampleLength = 1.0f / (14318180.0f / 288.0f); //The increase for a sample!
+//The length of a sample step:
+#define adlib_sampleLength (1.0f / (14318180.0f / 288.0f))
 
 //Counter info
 float counter80 = 0.0f, counter320 = 0.0f; //Counter ticks!
@@ -63,7 +64,7 @@ struct structadlibop {
 	byte ReleaseImmediately; //Release even when the note is still turned on?
 
 	//Volume envelope
-	float attack, decay, sustain, release, volenv; //Volume envelope!
+	float attack, decay, sustain, release, volenv, volenvcalculated; //Volume envelope!
 	uint8_t volenvstatus;
 
 	//Signal generation
@@ -102,6 +103,16 @@ OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 	}
 }
 
+void lockAdlib()
+{
+	lockaudio(); //Lock the audio: we're going to adjust audio information!
+}
+
+void unlockAdlib()
+{
+	unlockaudio(1); //Finished with audio update!
+}
+
 byte outadlib (uint16_t portnum, uint8_t value) {
 	if (portnum==adlibport) {
 			adlibaddr = value;
@@ -116,9 +127,9 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		switch (portnum) //What primary port?
 		{
 		case 1: //Waveform select enable
-			lockaudio(); //Lock the audio: we're going to adjust audio information!
+			lockAdlib();
 			wavemask = (adlibregmem[0] & 0x20) ? 3 : 0; //Apply waveform mask!
-			unlockaudio(1); //Finished with audio update!
+			unlockAdlib();
 			break;
 		case 4: //timer control
 			if (value & 0x80) { //Special case: don't apply the value!
@@ -146,42 +157,42 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 	case 0x30:
 		if (portnum <= 0x35) //Various flags
 		{
-			lockaudio(); //Lock the audio: we're going to adjust audio information!
+			lockAdlib();
 			portnum &= 0x1F;
 			adlibop[portnum].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(value & 0xF); //Which harmonic to use?
 			adlibop[portnum].ReleaseImmediately = (value & 0x20) ? 0 : 1; //Release when not sustain until release!
-			unlockaudio(1); //Finished with audio update!
+			unlockAdlib();
 		}
 		break;
 	case 0x40:
 	case 0x50:
 		if (portnum <= 0x55) //KSL/Output level
 		{
-			lockaudio(); //Lock the audio: we're going to adjust audio information!
+			lockAdlib();
 			portnum &= 0x1F;
 			adlibop[portnum].outputlevel = outputtable[value & 0x2F]; //Apply output level!
-			unlockaudio(1); //Finished with audio update!
+			unlockAdlib();
 		}
 		break;
 	case 0x60:
 	case 0x70:
 		if (portnum <= 0x75) { //attack/decay
-			lockaudio(); //Lock the audio: we're going to adjust audio information!
+			lockAdlib();
 			portnum &= 0x1F;
 			adlibop[portnum].attack = attacktable[15 - (value >> 4)] * 1.006;
 			adlibop[portnum].decay = decaytable[value & 15];
-			unlockaudio(1); //Finished with audio update!
+			unlockAdlib();
 		}
 		break;
 	case 0x80:
 	case 0x90:
 		if (portnum <= 0x95) //sustain/release
 		{
-			lockaudio(); //Lock the audio: we're going to adjust audio information!
+			lockAdlib();
 			portnum &= 0x1F;
 			adlibop[portnum].sustain = sustaintable[value >> 4];
 			adlibop[portnum].release = decaytable[value & 15];
-			unlockaudio(1); //Finished with audio update!
+			unlockAdlib();
 		}
 		break;
 	case 0xA0:
@@ -190,14 +201,14 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		{ //octave, freq, key on
 			if ((portnum & 0xF) < 9) //Ignore A9-AF!
 			{
-				lockaudio(); //Lock the audio: we're going to adjust audio information!
+				lockAdlib();
 				portnum &= 0xF; //Get the channel to use!
 				if (!adlibch[portnum].keyon && ((adlibregmem[0xB0 + portnum] >> 5) & 1))
 				{
 					adlibop[adliboperators[0][portnum]].volenvstatus = 1; //Start attacking!
 					adlibop[adliboperators[1][portnum]].volenvstatus = 1; //Start attacking!
-					adlibop[adliboperators[0][portnum]].volenv = 0.0025;
-					adlibop[adliboperators[1][portnum]].volenv = 0.0025;
+					adlibop[adliboperators[0][portnum]].volenvcalculated = adlibop[adliboperators[0][portnum]].volenv = 0.0025;
+					adlibop[adliboperators[1][portnum]].volenvcalculated = adlibop[adliboperators[0][portnum]].volenv = 0.0025;
 					adlibop[adliboperators[0][portnum]].freq0 = adlibop[adliboperators[0][portnum]].time = 0.0f; //Initialise operator signal!
 					adlibop[adliboperators[1][portnum]].freq0 = adlibop[adliboperators[1][portnum]].time = 0.0f; //Initialise operator signal!
 				}
@@ -205,36 +216,36 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 				adlibch[portnum].convfreq = ((double)adlibch[portnum].freq * 0.7626459);
 				adlibch[portnum].keyon = (adlibregmem[0xB0 + portnum] >> 5) & 1;
 				adlibch[portnum].octave = (adlibregmem[0xB0 + portnum] >> 2) & 7;
-				unlockaudio(1); //Finished with audio update!
+				unlockAdlib();
 			}
 		}
 		else if (portnum == 0xBD) //Percussion settings etc.
 		{
-			lockaudio();
+			lockAdlib();
 			adlibpercussion = (value & 0x10)?1:0; //Percussion enabled?
-			unlockaudio(1); //Finished with audio update!
+			unlockAdlib();
 		}
 		break;
 	case 0xC0:
 		if (portnum <= 0xC8)
 		{
-			lockaudio(); //Lock the audio: we're going to adjust audio information!
+			lockAdlib();
 			portnum &= 0xF;
 			adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
 			byte feedback;
 			feedback = (adlibregmem[0xC0 + portnum] >> 1) & 7; //Get the feedback value used!
 			adlibch[portnum].feedback = feedbacklookup[feedback]; //Convert to a feedback of the modulator signal!
-			unlockaudio(1); //Finished with audio update!
+			unlockAdlib();
 		}
 		break;
 	case 0xE0:
 	case 0xF0:
 		if (portnum <= 0xF5) //waveform select
 		{
-			lockaudio(); //Lock the audio: we're going to adjust audio information!
+			lockAdlib();
 			portnum &= 0x1F;
 			adlibop[portnum].wavesel = value & 3;
-			unlockaudio(1); //Finished with audio update!
+			unlockAdlib();
 		}
 		break;
 	default: //Unsupported port?
@@ -253,13 +264,9 @@ uint8_t inadlib (uint16_t portnum, byte *result) {
 }
 
 uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
-	//uint8_t downoct[4] = { 3, 2, 1, 0 };
-	//uint8_t upoct[3] = { 1, 2, 3 };
 	if (chan > 8) return (0); //Invalid channel: we only have 9 channels!
 	uint16_t tmpfreq;
 	tmpfreq = (uint16_t) adlibch[chan].convfreq;
-	//if (adlibch[chan].octave<4) tmpfreq = tmpfreq>>1;
-	//if (adlibch[chan].octave>4) tmpfreq = tmpfreq<<1;
 	switch (adlibch[chan].octave) {
 			case 0:
 				tmpfreq = tmpfreq >> 4;
@@ -273,7 +280,6 @@ uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 			case 3:
 				tmpfreq = tmpfreq >> 1;
 				break;
-				//case 4: tmpfreq = tmpfreq >> 1; break;
 			case 5:
 				tmpfreq = tmpfreq << 1;
 				break;
@@ -282,6 +288,8 @@ uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 				break;
 			case 7:
 				tmpfreq = tmpfreq << 3;
+			default:
+				break;
 		}
 	if (operatornumber != -1) //Apply frequency multiplication factor?
 	{
@@ -290,51 +298,53 @@ uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 	return (tmpfreq);
 }
 
-float adlib_scaleFactor = (SHRT_MAX - 1.0f);
-
 OPTINLINE float adlibWave(byte signal, const float frequencytime) {
+	const static float PI2 = 2.0f * PI; //2PI!
 	double x;
-	float result = sinf(2.0f * PI * frequencytime); //The sinus function!
-	float t = modf(frequencytime, &x);
-
+	float result,t;
 	switch (signal) {
 	case 0: //SINE?
-		return result; //SINE!
-	case 1: // Negative=0?
-		if (t > 0.5f) return 0.0f; //Negative!
-		return result; //Positive!
-	case 3: // Absolute with second half=0?
-		if (fmod(t,0.5f) > 0.25) return 0.0f; //Are we the second half of the half period? Clear the signal if so!
-	case 2: // Absolute?
-		if (result < 0) result = 0 - result; //Make positive!
-		return result; //Simply absolute!
+		return sinf(PI2 * frequencytime); //The sinus function!
 	case 0xFF: //Random signal?
 		return RandomFloat(-1.0f, 1.0f); //Random noise!	
-	default: //Unknown signal?
-		return 0.0f;
+	default:
+		t = modf(frequencytime, &x); //Calculate rest for special signal information!
+		switch (signal) { //What special signal?
+		case 1: // Negative=0?
+			if (t > 0.5f) return 0.0f; //Negative!
+			result = sinf(PI2 * frequencytime); //The sinus function!
+			return result; //Positive!
+		case 3: // Absolute with second half=0?
+			if (fmod(t, 0.5f) > 0.25) return 0.0f; //Are we the second half of the half period? Clear the signal if so!
+		case 2: // Absolute?
+			result = sinf(PI2 * frequencytime); //The sinus function!
+			if (result < 0) result = 0 - result; //Make positive!
+			return result; //Simply absolute!
+		default: //Unknown signal?
+			return 0.0f;
+		}
 	}
 }
 
 OPTINLINE float calcAdlibSignal(byte wave, float phase, float frequency, float *freq0, float *time) //Calculates a signal for input to the adlib synth!
 {
+	float ftp;
 	if (frequency != *freq0) { //Frequency changed?
 		*time *= (*freq0 / frequency);
 	}
 
-	float result = adlibWave(wave, (frequency * *time)+phase); //Set the channels!
-
-	*freq0 = frequency;
-	return result; //Give the generated sample!
+	ftp = frequency; //Frequency!
+	ftp *= *time; //Time!
+	ftp += phase; //Add phase!
+	*freq0 = frequency; //Update new frequency!
+	return adlibWave(wave, ftp); //Give the generated sample!
 }
 
 //Calculate an operator signal!
-OPTINLINE float calcOperator(byte curchan, byte operator, float modulator, float feedback)
+OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float modulator, byte feedback)
 {
-	float frequency, result; //What frequency to generate?
-
-	//Calculate the frequency to use!
-	frequency = adlibfreq(operator, curchan); //Effective carrier init!
-
+	float result,temp; //Our variables?
+	double d;
 	//Generate the signal!
 	if (frequency) //Gotten a frequency?
 	{
@@ -344,9 +354,8 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float modulator, float
 		{
 			adlibop[operator].time += adlib_sampleLength; //Add 1 sample to the time!
 
-			float temp = adlibop[operator].time*frequency; //Calculate for overflow!
-			if (temp > 1.0f) { //Overflow?
-				double d;
+			temp = adlibop[operator].time*frequency; //Calculate for overflow!
+			if (temp >= 1.0f) { //Overflow?
 				adlibop[operator].time = modf(temp, &d) / frequency;
 			}
 		}
@@ -357,31 +366,42 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float modulator, float
 		result = adlibop[operator].lastsignal; //Hang the signal (used in some software to produce PCM sound using the output level)!
 	}
 	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
-
-	if (feedback) //We're using feedback?
-	{
-		result *= feedback; //Convert to feedback ratio!
-		return calcOperator(curchan, operator,result, 0.0f); //Apply feedback using our own signal as the modulator!
-	}
-
 	return result; //Give the result!
 }
 
 OPTINLINE short adlibsample(uint8_t curchan) {
-	float modulatorresult, result; //The operator result and the final result!
-
+	const static float adlib_scaleFactor = (SHRT_MAX - 1.0f);
+	float result; //The operator result and the final result!
+	byte op1,op2; //The two operators to use!
+	float op1frequency;
 	if (curchan >= NUMITEMS(adlibch)) return 0; //No sample with invalid channel!
 	if (adlibpercussion && (curchan >= 6) && (curchan <= 8)) //We're percussion?
 	{
 		return 0; //Percussion isn't supported yet!
 	}
 
-	//Determine the type of modulation!
+	//Determine the modulator and carrier to use!
+	op1 = adliboperators[0][curchan]; //First operator number!
+	op2 = adliboperators[1][curchan]; //Second operator number!
+	op1frequency = adlibfreq(op1, curchan); //Load the first frequency!
+
 	//Operator 1!
-	modulatorresult = calcOperator(curchan, adliboperators[0][curchan], 0,adlibch[curchan].feedback); //Calculate the modulator!
-	result = calcOperator(curchan, adliboperators[1][curchan], adlibch[curchan].synthmode?0:modulatorresult,0); //Calculate the carrier with applied modulator if needed!
-	//Perform additive synthesis when asked to do so.
-	if (adlibch[curchan].synthmode) result += modulatorresult; //Perform additive synthesis when needed!
+	//Calculate the frequency to use!
+	result = calcOperator(curchan, op1, op1frequency, 0,adlibch[curchan].feedback>0.0f); //Calculate the modulator!
+	if (adlibch[curchan].feedback) //We're using feedback (modulator self modulates)?
+	{
+		result *= adlibch[curchan].feedback; //Convert using feedback ratio!
+		result = calcOperator(curchan, op1, op1frequency,result, 0); //Apply feedback using the modulator signal as the modulator!
+	}
+
+	if (adlibch[curchan].synthmode) //Additive synthesis?
+	{
+		result += calcOperator(curchan, op2, adlibfreq(op2, curchan), 0, 0); //Calculate the carrier without applied modulator additive!
+	}
+	else //FM synthesis?
+	{
+		result = calcOperator(curchan, op2, adlibfreq(op2, curchan), result, 0); //Calculate the carrier with applied modulator!
+	}
 
 	result *= adlib_scaleFactor; //Convert to output scale (We're only going from -1.0 to +1.0 up to this point), convert to signed 16-bit scale!
 	return (short)result; //Give the result, converted to short!
@@ -464,12 +484,41 @@ OPTINLINE short adlibgensample() {
 	uint8_t curchan;
 	int_32 adlibaccum;
 	adlibaccum = 0;
-	for (curchan = 0; curchan < 9; curchan++)
+	if (adlibop[adliboperators[1][0]].volenvstatus) //Are we a running envelope?
 	{
-		if (adlibop[adliboperators[1][curchan]].volenvstatus) //Are we a running envelope?
-		{
-			adlibaccum += adlibsample(curchan);
-		}
+		adlibaccum += adlibsample(0);
+	}
+	if (adlibop[adliboperators[1][1]].volenvstatus) //Are we a running envelope?
+	{
+		adlibaccum += adlibsample(1);
+	}
+	if (adlibop[adliboperators[1][2]].volenvstatus) //Are we a running envelope?
+	{
+		adlibaccum += adlibsample(2);
+	}
+	if (adlibop[adliboperators[1][3]].volenvstatus) //Are we a running envelope?
+	{
+		adlibaccum += adlibsample(3);
+	}
+	if (adlibop[adliboperators[1][4]].volenvstatus) //Are we a running envelope?
+	{
+		adlibaccum += adlibsample(4);
+	}
+	if (adlibop[adliboperators[1][5]].volenvstatus) //Are we a running envelope?
+	{
+		adlibaccum += adlibsample(5);
+	}
+	if (adlibop[adliboperators[1][6]].volenvstatus) //Are we a running envelope?
+	{
+		adlibaccum += adlibsample(6);
+	}
+	if (adlibop[adliboperators[1][7]].volenvstatus) //Are we a running envelope?
+	{
+		adlibaccum += adlibsample(7);
+	}
+	if (adlibop[adliboperators[1][8]].volenvstatus) //Are we a running envelope?
+	{
+		adlibaccum += adlibsample(8);
 	}
 	//Clip it!
 	if (adlibaccum > SHRT_MAX) adlibaccum = SHRT_MAX;
@@ -480,7 +529,7 @@ OPTINLINE short adlibgensample() {
 
 float min_vol = __MIN_VOL;
 
-void tickadlib()
+OPTINLINE void tickadlib()
 {
 	uint8_t curop;
 	for (curop = 0; curop < NUMITEMS(adlibop); curop++)
@@ -492,19 +541,19 @@ void tickadlib()
 			switch (adlibop[curop].volenvstatus)
 			{
 			case 1: //Attacking?
-				adlibop[curop].volenv *= adlibop[curop].attack; //Attack!
-				if (adlibop[curop].volenv >= 1.0)
+				adlibop[curop].volenvcalculated *= adlibop[curop].attack; //Attack!
+				if (adlibop[curop].volenvcalculated >= 1.0)
 				{
-					adlibop[curop].volenv = 1.0; //We're at 1.0 to start decaying!
+					adlibop[curop].volenvcalculated = 1.0; //We're at 1.0 to start decaying!
 					++adlibop[curop].volenvstatus; //Enter next phase!
 					goto volenv_recheck;
 				}
 				break;
 			case 2: //Decaying?
-				adlibop[curop].volenv *= adlibop[curop].decay; //Decay!
-				if (adlibop[curop].volenv <= adlibop[curop].sustain) //Sustain level reached?
+				adlibop[curop].volenvcalculated *= adlibop[curop].decay; //Decay!
+				if (adlibop[curop].volenvcalculated <= adlibop[curop].sustain) //Sustain level reached?
 				{
-					adlibop[curop].volenv = adlibop[curop].sustain; //Sustain level!
+					adlibop[curop].volenvcalculated = adlibop[curop].sustain; //Sustain level!
 					++adlibop[curop].volenvstatus; //Enter next phase!
 					goto volenv_recheck;
 				}
@@ -517,10 +566,10 @@ void tickadlib()
 				}
 				break;
 			case 4: //Releasing?
-				adlibop[curop].volenv *= adlibop[curop].release; //Release!
-				if (adlibop[curop].volenv < min_vol) //Less than the format can provide?
+				adlibop[curop].volenvcalculated *= adlibop[curop].release; //Release!
+				if (adlibop[curop].volenvcalculated < min_vol) //Less than the format can provide?
 				{
-					adlibop[curop].volenv = 0.0f; //Clear the sound!
+					adlibop[curop].volenvcalculated = 0.0f; //Clear the sound!
 					adlibop[curop].volenvstatus = 0; //Terminate the signal: we're unused!
 				}
 				break;
@@ -528,9 +577,13 @@ void tickadlib()
 				adlibop[curop].volenvstatus = 0; //Disable this volume envelope!
 				break;
 			}
-			if (adlibop[curop].volenv < min_vol) //Below minimum?
+			if (adlibop[curop].volenvcalculated < min_vol) //Below minimum?
 			{
 				adlibop[curop].volenv = 0.0f; //No volume below minimum!
+			}
+			else
+			{
+				adlibop[curop].volenv = adlibop[curop].volenvcalculated; //No volume below minimum!
 			}
 		}
 	}
@@ -542,29 +595,25 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 	
 	byte filled,curchan;
 	filled = 0; //Default: not filled!
-	for (curchan=0; curchan<9; curchan++) { //Check for active channels!
-			if (adlibop[adliboperators[1][curchan]].volenvstatus) //Are we a running envelope?
-			{
-				filled = 1; //We're filled!
-				break; //Stop searching!
-			}
-		}
+	filled |= adlibop[adliboperators[1][0]].volenvstatus; //Channel 0?
+	filled |= adlibop[adliboperators[1][1]].volenvstatus; //Channel 1?
+	filled |= adlibop[adliboperators[1][2]].volenvstatus; //Channel 2?
+	filled |= adlibop[adliboperators[1][3]].volenvstatus; //Channel 3?
+	filled |= adlibop[adliboperators[1][4]].volenvstatus; //Channel 4?
+	filled |= adlibop[adliboperators[1][5]].volenvstatus; //Channel 5?
+	filled |= adlibop[adliboperators[1][6]].volenvstatus; //Channel 6?
+	filled |= adlibop[adliboperators[1][7]].volenvstatus; //Channel 7?
+	filled |= adlibop[adliboperators[1][8]].volenvstatus; //Channel 8?
+	if (!filled) return SOUNDHANDLER_RESULT_NOTFILLED; //Not filled: nothing to sound!
 
 	uint_32 c;
 	c = length; //Init c!
-
-	if (!filled)
-	{
-		for (;;) //Empty handling!
-		{
-			if (!--c) return SOUNDHANDLER_RESULT_NOTFILLED; //Not filled: nothing to sound!
-		}
-	}
 	
 	short *data_mono;
 	data_mono = (short *)buf; //The data in correct samples!
 	for (;;) //Fill it!
 	{
+		tickadlib(); //Tick us!
 		//Left and right are the same!
 		*data_mono++ = adlibgensample(); //Generate a mono sample!
 		if (!--c) return SOUNDHANDLER_RESULT_FILLED; //Next item!
@@ -616,7 +665,7 @@ void initAdlib()
 		adlibop[i].release = decaytable[0];
 
 		adlibop[i].volenvstatus = 0; //Initialise to unused ADSR!
-		adlibop[i].volenv = 0.0f; //Volume envelope to silence!
+		adlibop[i].volenvcalculated = 0.0f; //Volume envelope to silence!
 		adlibop[i].ReleaseImmediately = 1; //Release immediately by default!
 
 		adlibop[i].outputlevel = outputtable[0]; //Apply default output!
@@ -640,8 +689,6 @@ void initAdlib()
 	//All output!
 	register_PORTOUT(&outadlib); //Address port (W)
 	//dolog("adlib","Registering timer...");
-	addtimer(usesamplerate,&tickadlib,"AdlibAttackDecay",ADLIBMULTIPLIER,0,NULL); //We run at 49.716Khz, about every 20us.
-	//dolog("adlib","Ready"); //Ready to run!
 	initTicksHolder(&adlib_ticker); //Initialise our timing!
 	getuspassed(&adlib_ticker); //Initialise to current time!
 }

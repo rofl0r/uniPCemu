@@ -49,7 +49,7 @@ Start of help for debugging
 char modrm_param1[256]; //Contains param/reg1
 char modrm_param2[256]; //Contains param/reg2
 
-void modrm_debugger8(MODRM_PARAMS *params, byte whichregister1, byte whichregister2) //8-bit handler!
+OPTINLINE void modrm_debugger8(MODRM_PARAMS *params, byte whichregister1, byte whichregister2) //8-bit handler!
 {
 	bzero(modrm_param1,sizeof(modrm_param1));
 	bzero(modrm_param2,sizeof(modrm_param2));
@@ -57,7 +57,7 @@ void modrm_debugger8(MODRM_PARAMS *params, byte whichregister1, byte whichregist
 	modrm_text8(params,whichregister2,&modrm_param2[0]);
 }
 
-void modrm_debugger16(MODRM_PARAMS *params, byte whichregister1, byte whichregister2) //16-bit handler!
+OPTINLINE void modrm_debugger16(MODRM_PARAMS *params, byte whichregister1, byte whichregister2) //16-bit handler!
 {
 	bzero(modrm_param1,sizeof(modrm_param1));
 	bzero(modrm_param2,sizeof(modrm_param2));
@@ -86,7 +86,7 @@ parameters:
 	
 */
 
-void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type)
+OPTINLINE void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type)
 {
 	if (!cpudebugger) return; //Gotten no debugger on? Abort!
 	
@@ -153,7 +153,7 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 }
 
 char LEAtext[256];
-char *getLEAtext(MODRM_PARAMS *params)
+OPTINLINE char *getLEAtext(MODRM_PARAMS *params)
 {
 	modrm_lea16_text(params,2,&LEAtext[0]);    //Help function for LEA instruction!
 	return &LEAtext[0];
@@ -165,15 +165,19 @@ Start of help for opcode processing
 
 */
 
-void CPU8086_int(byte interrupt) //Software interrupt!
+OPTINLINE CPU8086_int(byte interrupt) //Software interrupt from us(internal call)!
 {
 	CPUPROT1
-	CPU8086_hardware_int(interrupt,0,0);
+		CPU8086_hardware_int(interrupt, 0, 0);
 	CPUPROT2
 }
 
+void CPU086_int(byte interrupt) //Software interrupt (external call)!
+{
+	CPU8086_int(interrupt); //Direct call!
+}
 
-void CPU8086_hardware_int(byte interrupt, byte has_errorcode, uint_32 errorcode) //See int, but for hardware interrupts (IRQs)!
+OPTINLINE void CPU8086_hardware_int(byte interrupt, byte has_errorcode, uint_32 errorcode) //See int, but for hardware interrupts (IRQs)!
 {
 	CPU_INT(interrupt); //Save adress to stack (We're going soft int!)!
 	if (has_errorcode) //Have error code too?
@@ -182,7 +186,7 @@ void CPU8086_hardware_int(byte interrupt, byte has_errorcode, uint_32 errorcode)
 	}
 }
 
-void CPU8086_IRET()
+OPTINLINE void CPU8086_IRET()
 {
 	CPUPROT1
 	CPU_IRET(); //IRET!
@@ -240,86 +244,84 @@ extern word res16; //Result 16-bit!
 extern byte reg; //For function number!
 extern uint_32 ea; //From RM offset (GRP5 Opcodes only!)
 
-uint_32 temp1, temp2, temp3, temp4, temp5,temp32, tempaddr32;
-
-void op_adc8() {
+OPTINLINE void op_adc8() {
 	res8 = oper1b + oper2b + FLAG_CF;
 	flag_adc8 (oper1b, oper2b, FLAG_CF);
 }
 
-void op_adc16() {
+OPTINLINE void op_adc16() {
 	res16 = oper1 + oper2 + FLAG_CF;
 	flag_adc16 (oper1, oper2, FLAG_CF);
 }
 
-void op_add8() {
+OPTINLINE void op_add8() {
 	res8 = oper1b + oper2b;
 	flag_add8 (oper1b, oper2b);
 }
 
-void op_add16() {
+OPTINLINE void op_add16() {
 	res16 = oper1 + oper2;
 	flag_add16 (oper1, oper2);
 }
 
-void op_and8() {
+OPTINLINE void op_and8() {
 	res8 = oper1b & oper2b;
 	flag_log8 (res8);
 }
 
-void op_and16() {
+OPTINLINE void op_and16() {
 	res16 = oper1 & oper2;
 	flag_log16 (res16);
 }
 
-void op_or8() {
+OPTINLINE void op_or8() {
 	res8 = oper1b | oper2b;
 	flag_log8 (res8);
 }
 
-void op_or16() {
+OPTINLINE void op_or16() {
 	res16 = oper1 | oper2;
 	flag_log16 (res16);
 }
 
-void op_xor8() {
+OPTINLINE void op_xor8() {
 	res8 = oper1b ^ oper2b;
 	flag_log8 (res8);
 }
 
-void op_xor16() {
+OPTINLINE void op_xor16() {
 	res16 = oper1 ^ oper2;
 	flag_log16 (res16);
 }
 
-void op_sub8() {
+OPTINLINE void op_sub8() {
 	res8 = oper1b - oper2b;
 	flag_sub8 (oper1b, oper2b);
 }
 
-void op_sub16() {
+OPTINLINE void op_sub16() {
 	res16 = oper1 - oper2;
 	flag_sub16 (oper1, oper2);
 }
 
-void op_sbb8() {
+OPTINLINE void op_sbb8() {
 	res8 = oper1b - (oper2b + FLAG_CF);
 	flag_sbb8 (oper1b, oper2b, FLAG_CF);
 }
 
-void op_sbb16() {
+OPTINLINE void op_sbb16() {
 	res16 = oper1 - (oper2 + FLAG_CF);
 	flag_sbb16 (oper1, oper2, FLAG_CF);
 }
 
-void CMP_w(word a, word b) //Compare instruction!
+OPTINLINE void CMP_w(word a, word b) //Compare instruction!
 {
 	CPUPROT1
 	flag_sub16(a,b); //Flags only!
 	CPUPROT2
 }
 
-void CMP_b(byte a, byte b)
+OPTINLINE void CMP_b(byte a, byte b)
 {
 	CPUPROT1
 	flag_sub8(a,b); //Flags only!
@@ -335,7 +337,7 @@ byte custommem = 0; //Used in some instructions!
 uint_32 offset; //Offset to use!
 
 //Help functions:
-void CPU8086_internal_INC16(word *reg)
+OPTINLINE void CPU8086_internal_INC16(word *reg)
 {
 	if (MMU_invaddr() || (reg==NULL))
 	{
@@ -357,7 +359,7 @@ void CPU8086_internal_INC16(word *reg)
 	}
 	CPUPROT2
 }
-void CPU8086_internal_DEC16(word *reg)
+OPTINLINE void CPU8086_internal_DEC16(word *reg)
 {
 	if (MMU_invaddr())
 	{
@@ -380,7 +382,7 @@ void CPU8086_internal_DEC16(word *reg)
 	CPUPROT2
 }
 
-void CPU8086_internal_INC8(byte *reg)
+OPTINLINE void CPU8086_internal_INC8(byte *reg)
 {
 	if (MMU_invaddr() || (reg==NULL))
 	{
@@ -400,7 +402,7 @@ void CPU8086_internal_INC8(byte *reg)
 	}
 	CPUPROT2
 }
-void CPU8086_internal_DEC8(byte *reg)
+OPTINLINE void CPU8086_internal_DEC8(byte *reg)
 {
 	if (MMU_invaddr())
 	{
@@ -422,7 +424,7 @@ void CPU8086_internal_DEC8(byte *reg)
 }
 
 //For ADD
-void CPU8086_internal_ADD8(byte *dest, byte addition)
+OPTINLINE void CPU8086_internal_ADD8(byte *dest, byte addition)
 {
 	if (MMU_invaddr())
 	{
@@ -442,7 +444,7 @@ void CPU8086_internal_ADD8(byte *dest, byte addition)
 	}
 	CPUPROT2
 }
-void CPU8086_internal_ADD16(word *dest, word addition)
+OPTINLINE void CPU8086_internal_ADD16(word *dest, word addition)
 {
 	if (MMU_invaddr())
 	{
@@ -464,7 +466,7 @@ void CPU8086_internal_ADD16(word *dest, word addition)
 }
 
 //For ADC
-void CPU8086_internal_ADC8(byte *dest, byte addition)
+OPTINLINE void CPU8086_internal_ADC8(byte *dest, byte addition)
 {
 	if (MMU_invaddr())
 	{
@@ -484,7 +486,7 @@ void CPU8086_internal_ADC8(byte *dest, byte addition)
 	}
 	CPUPROT2
 }
-void CPU8086_internal_ADC16(word *dest, word addition)
+OPTINLINE void CPU8086_internal_ADC16(word *dest, word addition)
 {
 	if (MMU_invaddr())
 	{
@@ -507,7 +509,7 @@ void CPU8086_internal_ADC16(word *dest, word addition)
 
 
 //For OR
-void CPU8086_internal_OR8(byte *dest, byte src)
+OPTINLINE void CPU8086_internal_OR8(byte *dest, byte src)
 {
 	if (MMU_invaddr())
 	{
@@ -527,7 +529,7 @@ void CPU8086_internal_OR8(byte *dest, byte src)
 	}
 	CPUPROT2
 }
-void CPU8086_internal_OR16(word *dest, word src)
+OPTINLINE void CPU8086_internal_OR16(word *dest, word src)
 {
 	if (MMU_invaddr())
 	{
@@ -549,7 +551,7 @@ void CPU8086_internal_OR16(word *dest, word src)
 }
 
 //For AND
-void CPU8086_internal_AND8(byte *dest, byte src)
+OPTINLINE void CPU8086_internal_AND8(byte *dest, byte src)
 {
 	CPUPROT1
 	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
@@ -565,7 +567,7 @@ void CPU8086_internal_AND8(byte *dest, byte src)
 	}
 	CPUPROT2
 }
-void CPU8086_internal_AND16(word *dest, word src)
+OPTINLINE void CPU8086_internal_AND16(word *dest, word src)
 {
 	CPUPROT1
 	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
@@ -584,7 +586,7 @@ void CPU8086_internal_AND16(word *dest, word src)
 
 
 //For SUB
-void CPU8086_internal_SUB8(byte *dest, byte addition)
+OPTINLINE void CPU8086_internal_SUB8(byte *dest, byte addition)
 {
 	if (MMU_invaddr())
 	{
@@ -604,7 +606,7 @@ void CPU8086_internal_SUB8(byte *dest, byte addition)
 	}
 	CPUPROT2
 }
-void CPU8086_internal_SUB16(word *dest, word addition)
+OPTINLINE void CPU8086_internal_SUB16(word *dest, word addition)
 {
 	if (MMU_invaddr())
 	{
@@ -626,7 +628,7 @@ void CPU8086_internal_SUB16(word *dest, word addition)
 }
 
 //For SBB
-void CPU8086_internal_SBB8(byte *dest, byte addition)
+OPTINLINE void CPU8086_internal_SBB8(byte *dest, byte addition)
 {
 	if (MMU_invaddr())
 	{
@@ -646,7 +648,7 @@ void CPU8086_internal_SBB8(byte *dest, byte addition)
 	}
 	CPUPROT2
 }
-void CPU8086_internal_SBB16(word *dest, word addition)
+OPTINLINE void CPU8086_internal_SBB16(word *dest, word addition)
 {
 	if (MMU_invaddr())
 	{
@@ -669,7 +671,7 @@ void CPU8086_internal_SBB16(word *dest, word addition)
 
 //For XOR
 //See AND, but XOR
-void CPU8086_internal_XOR8(byte *dest, byte src)
+OPTINLINE void CPU8086_internal_XOR8(byte *dest, byte src)
 {
 	if (MMU_invaddr())
 	{
@@ -689,7 +691,7 @@ void CPU8086_internal_XOR8(byte *dest, byte src)
 	}
 	CPUPROT2
 }
-void CPU8086_internal_XOR16(word *dest, word src)
+OPTINLINE void CPU8086_internal_XOR16(word *dest, word src)
 {
 	if (MMU_invaddr())
 	{
@@ -711,19 +713,19 @@ void CPU8086_internal_XOR16(word *dest, word src)
 }
 
 //TEST : same as AND, but discarding the result!
-void CPU8086_internal_TEST8(byte dest, byte src)
+OPTINLINE void CPU8086_internal_TEST8(byte dest, byte src)
 {
 	byte tmpdest = dest;
 	CPU8086_internal_AND8(&tmpdest,src);
 }
-void CPU8086_internal_TEST16(word dest, word src)
+OPTINLINE void CPU8086_internal_TEST16(word dest, word src)
 {
 	word tmpdest = dest;
 	CPU8086_internal_AND16(&tmpdest,src);
 }
 
 //MOV
-void CPU8086_internal_MOV8(byte *dest, byte val)
+OPTINLINE void CPU8086_internal_MOV8(byte *dest, byte val)
 {
 	if (MMU_invaddr())
 	{
@@ -747,7 +749,7 @@ void CPU8086_internal_MOV8(byte *dest, byte val)
 	}
 	CPUPROT2
 }
-void CPU8086_internal_MOV16(word *dest, word val)
+OPTINLINE void CPU8086_internal_MOV16(word *dest, word val)
 {
 	if (MMU_invaddr())
 	{
@@ -773,7 +775,7 @@ void CPU8086_internal_MOV16(word *dest, word val)
 }
 
 //LEA for LDS, LES
-word getLEA(MODRM_PARAMS *params)
+OPTINLINE word getLEA(MODRM_PARAMS *params)
 {
 	return modrm_lea16(params,2);
 }
@@ -786,7 +788,7 @@ Non-logarithmic opcodes!
 */
 
 
-void CPU8086_internal_DAA()
+OPTINLINE void CPU8086_internal_DAA()
 {
 	CPUPROT1
 	if (((REG_AL&0xF)>9) || FLAG_AF)
@@ -809,7 +811,7 @@ void CPU8086_internal_DAA()
 	flag_szp8(REG_AL);
 	CPUPROT2
 }
-void CPU8086_internal_DAS()
+OPTINLINE void CPU8086_internal_DAS()
 {
 	byte tempCF, tempAL;
 	tempAL = REG_AL;
@@ -836,7 +838,7 @@ void CPU8086_internal_DAS()
 	flag_szp8(REG_AL);
 	CPUPROT2
 }
-void CPU8086_internal_AAA()
+OPTINLINE void CPU8086_internal_AAA()
 {
 	CPUPROT1
 	if (((REG_AL&0xF)>9) || FLAG_AF)
@@ -855,7 +857,7 @@ void CPU8086_internal_AAA()
 	flag_szp8(REG_AL); //Basic flags!
 	CPUPROT2
 }
-void CPU8086_internal_AAS()
+OPTINLINE void CPU8086_internal_AAS()
 {
 	CPUPROT1
 	if (((REG_AL&0xF)>9) || FLAG_AF)
@@ -875,7 +877,7 @@ void CPU8086_internal_AAS()
 	CPUPROT2
 }
 
-void CPU8086_internal_CBW()
+OPTINLINE void CPU8086_internal_CBW()
 {
 	CPUPROT1
 	if ((REG_AL&0x80)==0x80)
@@ -888,7 +890,7 @@ void CPU8086_internal_CBW()
 	}
 	CPUPROT2
 }
-void CPU8086_internal_CWD()
+OPTINLINE void CPU8086_internal_CWD()
 {
 	CPUPROT1
 	if ((REG_AH&0x80)==0x80)
@@ -903,7 +905,7 @@ void CPU8086_internal_CWD()
 }
 
 //OK so far!
-void CPU8086_internal_MOVSB()
+OPTINLINE void CPU8086_internal_MOVSB()
 {
 	byte data;
 	if (blockREP) return; //Disabled REP!
@@ -924,7 +926,7 @@ void CPU8086_internal_MOVSB()
 	CPUPROT2
 	CPUPROT2
 }
-void CPU8086_internal_MOVSW()
+OPTINLINE void CPU8086_internal_MOVSW()
 {
 	word data;
 	if (blockREP) return; //Disabled REP!
@@ -945,7 +947,7 @@ void CPU8086_internal_MOVSW()
 	CPUPROT2
 	CPUPROT2
 }
-void CPU8086_internal_CMPSB()
+OPTINLINE void CPU8086_internal_CMPSB()
 {
 	byte data1, data2;
 	if (blockREP) return; //Disabled REP!
@@ -967,7 +969,7 @@ void CPU8086_internal_CMPSB()
 	CPUPROT2
 	CPUPROT2
 }
-void CPU8086_internal_CMPSW()
+OPTINLINE void CPU8086_internal_CMPSW()
 {
 	word data1, data2;
 	if (blockREP) return; //Disabled REP!
@@ -989,7 +991,7 @@ void CPU8086_internal_CMPSW()
 	CPUPROT2
 	CPUPROT2
 }
-void CPU8086_internal_STOSB()
+OPTINLINE void CPU8086_internal_STOSB()
 {
 	if (blockREP) return; //Disabled REP!
 	MMU_wb(CPU_segment_index(CPU_SEGMENT_ES),REG_ES,REG_DI,REG_AL);
@@ -1004,7 +1006,7 @@ void CPU8086_internal_STOSB()
 	}
 	CPUPROT2
 }
-void CPU8086_internal_STOSW()
+OPTINLINE void CPU8086_internal_STOSW()
 {
 	if (blockREP) return; //Disabled REP!
 	MMU_ww(CPU_segment_index(CPU_SEGMENT_ES),REG_ES,REG_DI,REG_AX);
@@ -1020,7 +1022,7 @@ void CPU8086_internal_STOSW()
 	CPUPROT2
 }
 //OK so far!
-void CPU8086_internal_LODSB()
+OPTINLINE void CPU8086_internal_LODSB()
 {
 	byte value;
 	if (blockREP) return; //Disabled REP!
@@ -1037,7 +1039,7 @@ void CPU8086_internal_LODSB()
 	}
 	CPUPROT2
 }
-void CPU8086_internal_LODSW()
+OPTINLINE void CPU8086_internal_LODSW()
 {
 	word value;
 	if (blockREP) return; //Disabled REP!
@@ -1054,7 +1056,7 @@ void CPU8086_internal_LODSW()
 	}
 	CPUPROT2
 }
-void CPU8086_internal_SCASB()
+OPTINLINE void CPU8086_internal_SCASB()
 {
 	byte cmp1;
 	if (blockREP) return; //Disabled REP!
@@ -1071,7 +1073,7 @@ void CPU8086_internal_SCASB()
 	}
 	CPUPROT2
 }
-void CPU8086_internal_SCASW()
+OPTINLINE void CPU8086_internal_SCASW()
 {
 	word cmp1;
 	if (blockREP) return; //Disabled REP!
@@ -1089,7 +1091,7 @@ void CPU8086_internal_SCASW()
 	CPUPROT2
 }
 
-void CPU8086_internal_RET(word popbytes)
+OPTINLINE void CPU8086_internal_RET(word popbytes)
 {
 	word val = CPU_POP16();    //Near return
 	CPUPROT1
@@ -1097,7 +1099,7 @@ void CPU8086_internal_RET(word popbytes)
 	REG_SP += popbytes;
 	CPUPROT2
 }
-void CPU8086_internal_RETF(word popbytes)
+OPTINLINE void CPU8086_internal_RETF(word popbytes)
 {
 	word val = CPU_POP16();    //Far return
 	CPUPROT1
@@ -1109,7 +1111,7 @@ void CPU8086_internal_RETF(word popbytes)
 	CPUPROT2
 }
 
-void CPU8086_internal_INTO()
+OPTINLINE void CPU8086_internal_INTO()
 {
 	CPUPROT1
 	if (FLAG_OF)
@@ -1119,7 +1121,7 @@ void CPU8086_internal_INTO()
 	CPUPROT2
 }
 
-void CPU8086_internal_AAM(byte data)
+OPTINLINE void CPU8086_internal_AAM(byte data)
 {
 	CPUPROT1
 	if (!data)
@@ -1133,7 +1135,7 @@ void CPU8086_internal_AAM(byte data)
 	FLAG_OF = FLAG_CF = FLAG_AF = 0; //Clear these!
 	CPUPROT2
 }
-void CPU8086_internal_AAD(byte data)
+OPTINLINE void CPU8086_internal_AAD(byte data)
 {
 	CPUPROT1
 	REG_AX = ((REG_AH*data)+REG_AL);    //AAD
@@ -1143,7 +1145,7 @@ void CPU8086_internal_AAD(byte data)
 	CPUPROT2
 }
 
-void CPU8086_internal_XLAT()
+OPTINLINE void CPU8086_internal_XLAT()
 {
 	if (cpudebugger) //Debugger on?
 	{
@@ -1163,7 +1165,7 @@ TODO: data1&2 protection, CPU opcodes themselves modrm1/2 specs.
 
 */
 
-void CPU8086_internal_XCHG8(byte *data1, byte *data2)
+OPTINLINE void CPU8086_internal_XCHG8(byte *data1, byte *data2)
 {
 	CPUPROT1
 	oper1b = data1?*data1:modrm_read8(&params,MODRM_src0);
@@ -1196,7 +1198,7 @@ void CPU8086_internal_XCHG8(byte *data1, byte *data2)
 	CPUPROT2
 }
 
-void CPU8086_internal_XCHG16(word *data1, word *data2)
+OPTINLINE void CPU8086_internal_XCHG16(word *data1, word *data2)
 {
 	CPUPROT1
 	oper1 = data1?*data1:modrm_read16(&params,MODRM_src0);
@@ -1232,7 +1234,7 @@ void CPU8086_internal_XCHG16(word *data1, word *data2)
 
 extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 
-void CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
+OPTINLINE void CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 {
 	CPUPROT1
 	word offset = modrm_read16(&params,2);
@@ -2087,39 +2089,6 @@ void CPU8086_OPFF() //GRP5 Ev
 	op_grp5();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
 
 Special stuff for NO COprocessor (8087) present/available (default)!
@@ -2145,3 +2114,454 @@ void unkOP_8086() //Unknown opcode on 8086?
 }
 
 //Gecontroleerd: 100% OK!
+
+//Now, the GRP opcodes!
+
+byte immb; //For CPU_readOP result!
+word immw; //For CPU_readOPw result!
+byte oper1b, oper2b; //Byte variants!
+word oper1, oper2; //Word variants!
+byte res8; //Result 8-bit!
+word res16; //Result 16-bit!
+byte reg; //For function number!
+uint_32 ea; //From RM OFfset (GRP5 Opcodes only!)
+byte tempCF;
+
+VAL32Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
+extern uint_32 temp32, tempaddr32; //Defined in opcodes_8086.c
+
+extern MODRM_PARAMS params; //The modr/m params!
+
+byte op_grp2_8(byte cnt) {
+	//word d,
+	word s, shift, oldCF, msb;
+	//if (cnt>0x8) return(oper1b); //80186+ limits shift count
+	s = oper1b;
+	oldCF = FLAG_CF;
+	if (EMULATED_CPU >= CPU_80186) cnt &= 0x1F; //Clear the upper 3 bits to become a 80186+!
+	switch (reg) {
+	case 0: //ROL r/m8
+		for (shift = 1; shift <= cnt; shift++) {
+			if (s & 0x80) FLAG_CF = 1; else FLAG_CF = 0;
+			s = s << 1;
+			s = s | FLAG_CF;
+		}
+		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 7) & 1);
+		break;
+
+	case 1: //ROR r/m8
+		for (shift = 1; shift <= cnt; shift++) {
+			FLAG_CF = s & 1;
+			s = (s >> 1) | (FLAG_CF << 7);
+		}
+		if (cnt) FLAG_OF = (s >> 7) ^ ((s >> 6) & 1);
+		break;
+
+	case 2: //RCL r/m8
+		for (shift = 1; shift <= cnt; shift++) {
+			oldCF = FLAG_CF;
+			if (s & 0x80) FLAG_CF = 1; else FLAG_CF = 0;
+			s = s << 1;
+			s = s | oldCF;
+		}
+		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 7) & 1);
+		break;
+
+	case 3: //RCR r/m8
+		for (shift = 1; shift <= cnt; shift++) {
+			oldCF = FLAG_CF;
+			FLAG_CF = s & 1;
+			s = (s >> 1) | (oldCF << 7);
+		}
+		if (cnt) FLAG_OF = (s >> 7) ^ ((s >> 6) & 1);
+		break;
+
+	case 4: case 6: //SHL r/m8
+		for (shift = 1; shift <= cnt; shift++) {
+			if (s & 0x80) FLAG_CF = 1; else FLAG_CF = 0;
+			s = (s << 1) & 0xFF;
+		}
+		if (cnt) FLAG_OF = (FLAG_CF ^ (s >> 7));
+		flag_szp8(s); break;
+
+	case 5: //SHR r/m8
+		if (cnt == 1) FLAG_OF = (s & 0x80) ? 1 : 0; else FLAG_OF = 0;
+		for (shift = 1; shift <= cnt; shift++) {
+			FLAG_CF = s & 1;
+			s = s >> 1;
+		}
+		flag_szp8(s); break;
+
+	case 7: //SAR r/m8
+		if (cnt) FLAG_OF = 0;
+		msb = s & 0x80;
+		for (shift = 1; shift <= cnt; shift++) {
+			FLAG_CF = s & 1;
+			s = (s >> 1) | msb;
+		}
+		byte tempSF;
+		tempSF = FLAG_SF; //Save the SF!
+		flag_szp8(s); break;
+		if (!cnt) //Nothing done?
+		{
+			FLAG_SF = tempSF; //We don't update when nothing's done!
+		}
+	}
+	return(s & 0xFF);
+}
+
+word op_grp2_16(byte cnt) {
+	//uint32_t d,
+	uint_32 s, shift, oldCF, msb;
+	//if (cnt>0x10) return(oper1); //80186+ limits shift count
+	if (EMULATED_CPU >= CPU_80186) cnt &= 0x1F; //Clear the upper 3 bits to become a 80186+!
+	s = oper1;
+	oldCF = FLAG_CF;
+	switch (reg) {
+	case 0: //ROL r/m16
+		for (shift = 1; shift <= cnt; shift++) {
+			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
+			s = s << 1;
+			s = s | FLAG_CF;
+		}
+		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 15) & 1);
+		break;
+
+	case 1: //ROR r/m16
+		for (shift = 1; shift <= cnt; shift++) {
+			FLAG_CF = s & 1;
+			s = (s >> 1) | (FLAG_CF << 15);
+		}
+		if (cnt) FLAG_OF = (s >> 15) ^ ((s >> 14) & 1);
+		break;
+
+	case 2: //RCL r/m16
+		for (shift = 1; shift <= cnt; shift++) {
+			oldCF = FLAG_CF;
+			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
+			s = s << 1;
+			s = s | oldCF;
+			//oldCF = ((s&0x8000)>>15)&1; //Save FLAG_CF!
+			//s = (s<<1)+FLAG_CF;
+			//FLAG_CF = oldCF;
+		}
+		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 15) & 1);
+		break;
+
+	case 3: //RCR r/m16
+		if (cnt) FLAG_OF = ((s >> 15) & 1) ^ FLAG_CF;
+		for (shift = 1; shift <= cnt; shift++) {
+			oldCF = FLAG_CF;
+			FLAG_CF = s & 1;
+			s = (s >> 1) | (oldCF << 15);
+			//oldCF = s&1;
+			//s = (s<<1)+(FLAG_CF<<16);
+			//FLAG_CF = oldCF;
+		}
+		if (cnt) FLAG_OF = (s >> 15) ^ ((s >> 14) & 1);
+		break;
+
+	case 4: case 6: //SHL r/m16
+		for (shift = 1; shift <= cnt; shift++) {
+			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
+			s = (s << 1) & 0xFFFF;
+		}
+		if ((cnt) && (FLAG_CF == (s >> 15))) FLAG_OF = 0; else FLAG_OF = 1;
+		flag_szp16(s); break;
+
+	case 5: //SHR r/m16
+		if (cnt) FLAG_OF = (s & 0x8000) ? 1 : 0;
+		for (shift = 1; shift <= cnt; shift++) {
+			FLAG_CF = s & 1;
+			s = s >> 1;
+		}
+		flag_szp16(s); break;
+
+	case 7: //SAR r/m16
+		if (cnt) FLAG_OF = 0;
+		msb = s & 0x8000; //Read the MSB!
+		for (shift = 1; shift <= cnt; shift++) {
+			FLAG_CF = s & 1;
+			s = (s >> 1) | msb;
+		}
+		byte tempSF;
+		tempSF = FLAG_SF; //Save the SF!
+		flag_szp16(s);
+		if (!cnt) //Nothing done?
+		{
+			FLAG_SF = tempSF; //We don't update when nothing's done!
+		}
+		break;
+	}
+	return(s & 0xFFFF);
+}
+
+OPTINLINE void op_div8(word valdiv, byte divisor) {
+	if (!divisor) { CPU_exDIV0(); return; }
+	if ((valdiv / (word)divisor) > 0xFF) { CPU_exDIV0(); return; }
+	REG_AH = valdiv % (word)divisor;
+	REG_AL = valdiv / (word)divisor;
+}
+
+OPTINLINE void op_idiv8(word valdiv, byte divisor) {
+	//word v1, v2,
+	if (divisor == 0) { CPU_exDIV0(); return; }
+	/*
+	word s1, s2, d1, d2;
+	int sign;
+	s1 = valdiv;
+	s2 = divisor;
+	sign = (((s1 ^ s2) & 0x8000) != 0);
+	s1 = (s1 < 0x8000) ? s1 : ((~s1 + 1) & 0xffff);
+	s2 = (s2 < 0x8000) ? s2 : ((~s2 + 1) & 0xffff);
+	d1 = s1 / s2;
+	d2 = s1 % s2;
+	if (d1 & 0xFF00) { CPU_exDIV0(); return; }
+	if (sign) {
+	d1 = (~d1 + 1) & 0xff;
+	d2 = (~d2 + 1) & 0xff;
+	}
+	REG_AH = d2;
+	REG_AL = d1;
+	*/
+
+	//Same, but with normal instructions!
+	union
+	{
+		word valdivw;
+		sword valdivs;
+	} dataw1, //For loading the signed value of the registers!
+		dataw2; //For performing calculations!
+
+	union
+	{
+		byte divisorb;
+		sbyte divisors;
+	} datab1, //For loading the data
+		datab2; //For loading the result and test it against overflow!
+				//For converting the data to signed values!
+
+	dataw1.valdivw = valdiv; //Load word!
+	datab1.divisorb = divisor; //Load divisor!
+
+	dataw2.valdivs = dataw1.valdivs; //Set and...
+	dataw2.valdivs /= datab1.divisors; //... Divide!
+
+	datab2.divisors = (sbyte)dataw2.valdivs; //Try to load the signed result!	
+	if (datab2.divisors != dataw2.valdivs) { CPU_exDIV0(); return; } //Overflow (data loss)!
+
+	REG_AL = datab2.divisors; //Divided!
+	dataw2.valdivs = dataw1.valdivs; //Reload and...
+	dataw2.valdivs %= datab1.divisors; //... Modulo!
+	datab1.divisors = (sbyte)dataw2.valdivs; //Convert to 8-bit!
+	REG_AH = datab1.divisorb; //Move rest into result!
+
+							  //if (valdiv > 32767) v1 = valdiv - 65536; else v1 = valdiv;
+							  //if (divisor > 127) v2 = divisor - 256; else v2 = divisor;
+							  //v1 = valdiv;
+							  //v2 = signext(divisor);
+							  //if ((v1/v2) > 255) { CPU8086_int(0); return; }
+							  //regs.byteregs[regal] = (v1/v2) & 255;
+							  //regs.byteregs[regah] = (v1 % v2) & 255;
+}
+
+void op_grp3_8() {
+	//uint32_t d1, d2, s1, s2, sign;
+	//word d, s;
+	oper1 = signext(oper1b); oper2 = signext(oper2b);
+	switch (reg) {
+	case 0: case 1: //TEST
+		flag_log8(oper1b & immb);
+		break;
+
+	case 2: //NOT
+		res8 = ~oper1b; break;
+
+	case 3: //NEG
+		res8 = (~oper1b) + 1;
+		flag_sub8(0, oper1b);
+		if (res8 == 0) FLAG_CF = 0; else FLAG_CF = 1;
+		break;
+
+	case 4: //MULB
+		temp1.val32 = (uint32_t)oper1b * (uint32_t)REG_AL;
+		REG_AX = temp1.val16 & 0xFFFF;
+		flag_szp8(temp1.val32);
+		FLAG_CF = FLAG_OF = (REG_AX != REG_AL);
+		break;
+
+	case 5: //IMULB
+		oper1 = oper1b;
+		temp1.val32 = REG_AL;
+		temp2.val32 = oper1b;
+		//Sign extend!
+		if ((temp1.val8 & 0x80) == 0x80) temp1.val32 |= 0xFFFFFF00;
+		if ((temp2.val8 & 0x80) == 0x80) temp2.val32 |= 0xFFFFFF00;
+		//Multiply and convert to 16-bit!
+		temp3.val32s = temp1.val32s; //Load and...
+		temp3.val32s *= temp2.val32s; //Multiply!
+		REG_AX = temp3.val16; //Load into AX!
+		flag_szp8(REG_AL); //Set the result flags!
+		FLAG_CF = (FLAG_OF = ((unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0));
+		break;
+
+	case 6: //DIV
+		op_div8(REG_AX, oper1b);
+		break;
+
+	case 7: //IDIV
+		op_idiv8(REG_AX, oper1b);
+		break;
+	}
+}
+
+OPTINLINE void op_div16(uint32_t valdiv, word divisor) {
+	//word v1, v2;
+	if (!divisor) { CPU_exDIV0(); return; }
+	if ((valdiv / (uint32_t)divisor) > 0xFFFF) { CPU_exDIV0(); return; }
+	REG_DX = valdiv % (uint32_t)divisor;
+	REG_AX = valdiv / (uint32_t)divisor;
+}
+
+OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
+	//uint32_t v1, v2,
+
+	if (!divisor) { CPU_exDIV0(); return; }
+	/*
+	uint_32 d1, d2, s1, s2;
+	int sign;
+	s1 = valdiv;
+	s2 = divisor;
+	s2 = (s2 & 0x8000) ? (s2 | 0xffff0000) : s2;
+	sign = (((s1 ^ s2) & 0x80000000) != 0);
+	s1 = (s1 < 0x80000000) ? s1 : ((~s1 + 1) & 0xffffffff);
+	s2 = (s2 < 0x80000000) ? s2 : ((~s2 + 1) & 0xffffffff);
+	d1 = s1 / s2;
+	d2 = s1 % s2;
+	if (d1 & 0xFFFF0000) { CPU_exDIV0(); return; }
+	if (sign) {
+	d1 = (~d1 + 1) & 0xffff;
+	d2 = (~d2 + 1) & 0xffff;
+	}
+	REG_AX = d1;
+	REG_DX = d2;
+	*/
+
+	//Same, but with normal instructions!
+	union
+	{
+		uint_32 valdivw;
+		int_32 valdivs;
+	} dataw1, //For loading the signed value of the registers!
+		dataw2; //For performing calculations!
+
+	union
+	{
+		word divisorb;
+		sword divisors;
+	} datab1, datab2; //For converting the data to signed values!
+
+	dataw1.valdivw = valdiv; //Load word!
+	datab1.divisorb = divisor; //Load divisor!
+
+	dataw2.valdivs = dataw1.valdivs; //Set and...
+	dataw2.valdivs /= datab1.divisors; //... Divide!
+
+	datab2.divisors = (sword)dataw2.valdivs; //Try to load the signed result!
+	if (dataw2.valdivw != datab2.divisors) { CPU_exDIV0(); return; } //Overflow (data loss)!
+
+	REG_AX = datab2.divisorb; //Divided!
+	dataw2.valdivs = dataw1.valdivs; //Reload and...
+	dataw2.valdivs %= datab1.divisors; //... Modulo!
+	datab1.divisors = (sword)dataw2.valdivs; //Convert to 8-bit!
+	REG_DX = datab1.divisorb; //Move rest into result!
+
+							  //if (valdiv > 0x7FFFFFFF) v1 = valdiv - 0xFFFFFFFF - 1; else v1 = valdiv;
+							  //if (divisor > 32767) v2 = divisor - 65536; else v2 = divisor;
+							  //if ((v1/v2) > 65535) { CPU8086_int(0); return; }
+							  //temp3 = (v1/v2) & 65535;
+							  //regs.wordregs[regax] = temp3;
+							  //temp3 = (v1%v2) & 65535;
+							  //regs.wordregs[regdx] = temp3;
+}
+
+void op_grp3_16() {
+	//uint32_t d1, d2, s1, s2, sign;
+	//word d, s;
+	//oper1 = signext(oper1b); oper2 = signext(oper2b);
+	//sprintf(msg, "  Oper1: %04X    Oper2: %04X\n", oper1, oper2); print(msg);
+	switch (reg) {
+	case 0: case 1: //TEST
+		flag_log16(oper1 & immw); break;
+	case 2: //NOT
+		res16 = ~oper1; break;
+	case 3: //NEG
+		res16 = (~oper1) + 1;
+		flag_sub16(0, oper1);
+		if (res16) FLAG_CF = 1; else FLAG_CF = 0;
+		break;
+	case 4: //MULW
+		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
+		REG_AX = temp1.val16;
+		REG_DX = (temp1.val32 >> 16);
+		flag_szp16(temp1.val32);
+		if (REG_DX) { FLAG_CF = FLAG_OF = 1; }
+		else { FLAG_CF = FLAG_OF = 0; }
+		break;
+	case 5: //IMULW
+		temp1.val32 = REG_AX;
+		temp2.val32 = oper1;
+		//Sign extend!
+		if (temp1.val16 & 0x8000) temp1.val32 |= 0xFFFF0000;
+		if (temp2.val16 & 0x8000) temp2.val32 |= 0xFFFF0000;
+		temp3.val32s = temp1.val32s; //Load and...
+		temp3.val32s *= temp2.val32s; //Signed multiplication!
+		REG_AX = temp3.val16; //into register ax
+		REG_DX = temp3.val16high; //into register dx
+		flag_szp32(temp3.val32); //Affect the flags!
+		FLAG_CF = FLAG_OF = (temp3.val16s != temp3.val32s); //Overflow occurred?
+		break;
+	case 6: //DIV
+		op_div16(((uint32_t)REG_DX << 16) | REG_AX, oper1); break;
+	case 7: //IDIV
+		op_idiv16(((uint32_t)REG_DX << 16) | REG_AX, oper1); break;
+	}
+}
+
+extern uint_32 destEIP; //For FAR JMP/call!
+
+void op_grp5() {
+	MODRM_PTR info; //To contain the info!
+	switch (reg) {
+	case 0: //INC Ev
+		oper2 = 1;
+		tempCF = FLAG_CF;
+		op_add16();
+		FLAG_CF = tempCF;
+		modrm_write16(&params, 2, res16, 0); break;
+	case 1: //DEC Ev
+		oper2 = 1;
+		tempCF = FLAG_CF;
+		op_sub16();
+		FLAG_CF = tempCF;
+		modrm_write16(&params, 2, res16, 0); break;
+	case 2: //CALL Ev
+		CPU_PUSH16(&REG_IP);
+		REG_IP = oper1; break;
+	case 3: //CALL Mp
+		CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP);
+		modrm_decode16(&params, &info, 2); //Get data!
+		destEIP = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);
+		segmentWritten(CPU_SEGMENT_CS, MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0), 2);
+		break;
+	case 4: //JMP Ev
+		REG_IP = oper1; break;
+	case 5: //JMP Mp
+		modrm_decode16(&params, &info, 2); //Get data!
+		destEIP = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);
+		segmentWritten(CPU_SEGMENT_CS, MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0), 1);
+		break;
+	case 6: //PUSH Ev
+		CPU_PUSH16(&oper1); break;
+	}
+}

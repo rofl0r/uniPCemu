@@ -41,7 +41,7 @@ extern word res16; //Result 16-bit!
 extern byte reg; //For function number!
 extern uint_32 ea; //From RM offset (GRP5 Opcodes only!)
 
-extern uint_32 temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32;
+extern VAL32Splitter temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32;
 
 //Help functions for debugging:
 extern char modrm_param1[256]; //Contains param/reg1
@@ -100,16 +100,16 @@ void CPU186_OP68()
 void CPU186_OP69()
 {
 	modrm_readparams(&params,2,0);
-	temp1 = modrm_read16(&params,2);
-	temp2 = CPU_readOPw();
+	temp1.val32 = modrm_read16(&params,2);
+	temp2.val32 = CPU_readOPw();
 	modrm_decode16(&params,&info,1);
 	debugger_setcommand("IMUL %s,%04X",info.text,temp2);
-	if ((temp1&0x8000)==0x8000) temp1 |= 0xFFFF0000;
-	if ((temp2&0x8000)==0x8000) temp2 |= 0xFFFF0000;
-	temp3 = ((temp1*temp2)&0xFFFFFFFF);
-	REG_AX = (temp3&0xFFFF);
-	REG_DX = ((temp3>>16)&0xFFFF);
-	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3)!=unsigned2signed16(REG_AX)); //Overflow occurred?
+	if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
+	if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
+	temp3.val32 = ((temp1.val32*temp2.val32)&0xFFFFFFFF);
+	REG_AX = (temp3.val32 &0xFFFF);
+	REG_DX = ((temp3.val32 >>16)&0xFFFF);
+	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3.val32)!=unsigned2signed16(REG_AX)); //Overflow occurred?
 }
 void CPU186_OP6A()
 {
@@ -120,22 +120,22 @@ void CPU186_OP6A()
 void CPU186_OP6B()
 {
 	modrm_readparams(&params,1,0);
-	temp1 = modrm_read16(&params,2); //Read R/M!
-	temp2 = CPU_readOP(); //Read unsigned!
+	temp1.val32 = modrm_read16(&params,2); //Read R/M!
+	temp2.val32 = CPU_readOP(); //Read unsigned!
 	modrm_decode16(&params,&info,2); //Store the address!
-	temp2 = (temp2&0x80<<8)|(temp2&0x7F); //Sign extend to 16 bits!
+	temp2.val32 = (temp2.val32 &0x80<<8)|(temp2.val32 &0x7F); //Sign extend to 16 bits!
 	debugger_setcommand("IMUL %s,%02X",info.text,temp2); //Command!
-	if ( (temp1 & 0x8000L) == 0x8000L) {
-			temp1 = temp1 | 0xFFFF0000L;
+	if ( (temp1.val32 & 0x8000L) == 0x8000L) {
+			temp1.val32 = temp1.val32 | 0xFFFF0000L;
 		}
 
-	if ( (temp2 & 0x8000L) == 0x8000L) {
-			temp2 = temp2 | 0xFFFF0000L;
+	if ( (temp2.val32 & 0x8000L) == 0x8000L) {
+			temp2.val32 = temp2.val32 | 0xFFFF0000L;
 		}
 
-	temp3 = signed2unsigned32(unsigned2signed32(temp1) * unsigned2signed32(temp2));
-	modrm_write16(&params,1, temp3 & 0xFFFFL,0); //Write to register!
-	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3)!=unsigned2signed16(temp3&0xFFFF)); //Overflow occurred?
+	temp3.val32 = signed2unsigned32(unsigned2signed32(temp1.val32) * unsigned2signed32(temp2.val32));
+	modrm_write16(&params,1, temp3.val32 & 0xFFFFL,0); //Write to register!
+	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3.val32)!=unsigned2signed16(temp3.val32&0xFFFF)); //Overflow occurred?
 }
 void CPU186_OP6C()
 {
@@ -348,7 +348,7 @@ void unkOP_186() //Unknown opcode on 186+?
 	debugger_setcommand("<80186+ #UD>"); //Command is unknown opcode!
 	//dolog("unkop","Unknown opcode on 80186+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
-	CPU8086_int(0x06); //Call interrupt with return addres of the OPcode!
+	CPU086_int(0x06); //Call interrupt with return addres of the OPcode!
 }
 
 //Fully checked, and the same as fake86.

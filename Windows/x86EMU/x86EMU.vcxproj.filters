@@ -144,9 +144,6 @@
     <ClCompile Include="..\..\cpu\unkop.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\cpu\8086\8086_grpOPs.c">
-      <Filter>Source Files\cpu\8086</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\cpu\8086\opcodes_8086.c">
       <Filter>Source Files\cpu\8086</Filter>
     </ClCompile>
@@ -440,9 +437,6 @@
     </ClCompile>
     <ClCompile Include="..\..\support\locks.c">
       <Filter>Source Files\support</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\cpu\fake86_cpu.c">
-      <Filter>Source Files\cpu</Filter>
     </ClCompile>
     <ClCompile Include="..\..\cpu\80486\opcodes_486.c">
       <Filter>Source Files\cpu\80486</Filter>

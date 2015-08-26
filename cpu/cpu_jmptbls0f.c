@@ -11,7 +11,7 @@
 void unkOP0F_286() //0F unknown opcode handler on 286+?
 {
 	CPU_resetOP(); //Go back to the opcode itself!
-	CPU8086_int(0x06); //Call interrupt!
+	CPU086_int(0x06); //Call interrupt!
 }
 
 //See normal opcode table, but for 0F opcodes!

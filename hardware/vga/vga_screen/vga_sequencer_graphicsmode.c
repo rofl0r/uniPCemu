@@ -113,8 +113,8 @@ SINGLE SHIFT MODE
 void loadplanarshiftmode() //Planar shift mode!
 {
 	//16-color mode!
-	register byte pixel, counter=8, result;
-	for (pixel = 7; counter--;)
+	register byte pixel=8, result=0;
+	for (;pixel;)
 	{
 		result = (planesbuffer[3] & 1); //Load plane 3!
 		planesbuffer[3] >>= 1; //Next bit!
@@ -131,7 +131,7 @@ void loadplanarshiftmode() //Planar shift mode!
 		result |= (planesbuffer[0] & 1); //Load plane 0!
 		planesbuffer[0] >>= 1; //Next bit!
 
-		pixelbuffer[pixel--] = result; //Load the result for usage!
+		pixelbuffer[--pixel] = result; //Load the result for usage!
 	}
 }
 
