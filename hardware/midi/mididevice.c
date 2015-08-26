@@ -156,7 +156,7 @@ OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float cur
 	return previousresult + (alpha*(currentsample - previousresult));
 }
 
-void applyLowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample)
+OPTINLINE void applyLowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample)
 {
 	if (!voice->lowpassfilter_freq) //No filter?
 	{
@@ -348,7 +348,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
-byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
+OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
 {
 	static uint_64 starttime = 0; //Calculated start time!
 	byte currentchannel, currenton, biton;

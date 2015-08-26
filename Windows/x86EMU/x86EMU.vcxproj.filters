@@ -135,9 +135,6 @@
     <ClCompile Include="..\..\cpu\flags.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\cpu\hardware_interrupts.c">
-      <Filter>Source Files\cpu</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\cpu\modrm.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
@@ -307,9 +304,6 @@
       <Filter>Source Files\hardware\vga</Filter>
     </ClCompile>
     <ClCompile Include="..\..\hardware\vga\vga_mmu.c">
-      <Filter>Source Files\hardware\vga</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\hardware\vga\vga_modes.c">
       <Filter>Source Files\hardware\vga</Filter>
     </ClCompile>
     <ClCompile Include="..\..\hardware\vga\vga_vram.c">

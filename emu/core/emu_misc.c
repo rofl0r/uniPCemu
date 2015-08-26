@@ -175,7 +175,7 @@ int move_file(char *fromfile, char *tofile)
 	return 0; //Error: file doesn't exist, so success!
 }
 
-float RandomFloat(float min, float max)
+OPTINLINE float RandomFloat(float min, float max)
 {
     if (min>max) //Needs to be swapped?
     {
@@ -197,7 +197,7 @@ float frand() //Floating point random
 	return RandomFloat(FLT_MIN,FLT_MAX); //Generate a random float!
 }
 
-short RandomShort(short min, short max)
+OPTINLINE short RandomShort(short min, short max)
 {
 	return (short)RandomFloat(min,max); //Short random generator!
 }

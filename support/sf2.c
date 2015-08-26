@@ -209,7 +209,7 @@ Next, Basic FLAG_SF open/close support!
 
 */
 
-byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
+OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 {
 	uint_32 filesize;
 	uint_32 finalentry; //For determining the final entry number!

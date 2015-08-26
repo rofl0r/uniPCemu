@@ -25,7 +25,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
 #define DEBUGGER_LOG BIOS_Settings.debugger_log
 
 void debugger_step(); //Debugging, if debugging (see below), after the CPU changes it''s registers!
-int debugging(); //Debugging?
+byte debugging(); //Debugging?
 byte debugger_logging(); //Are we logging?
 byte needdebugger(); //Do we need to generate debugging information?
 

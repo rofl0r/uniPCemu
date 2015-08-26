@@ -38,7 +38,6 @@
     <ClCompile Include="..\..\cpu\cpu_jmptbls.c" />
     <ClCompile Include="..\..\cpu\cpu_jmptbls0f.c" />
     <ClCompile Include="..\..\cpu\flags.c" />
-    <ClCompile Include="..\..\cpu\hardware_interrupts.c" />
     <ClCompile Include="..\..\cpu\modrm.c" />
     <ClCompile Include="..\..\cpu\unkop.c" />
     <ClCompile Include="..\..\emu\core\emucore.c" />
@@ -94,7 +93,6 @@
     <ClCompile Include="..\..\hardware\vga\vga_dac.c" />
     <ClCompile Include="..\..\hardware\vga\vga_io.c" />
     <ClCompile Include="..\..\hardware\vga\vga_mmu.c" />
-    <ClCompile Include="..\..\hardware\vga\vga_modes.c" />
     <ClCompile Include="..\..\hardware\vga\vga_screen\vga_attributecontroller.c" />
     <ClCompile Include="..\..\hardware\vga\vga_screen\vga_crtcontroller.c" />
     <ClCompile Include="..\..\hardware\vga\vga_screen\vga_dacrenderer.c" />
@@ -335,17 +333,16 @@
       <AdditionalIncludeDirectories>C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnablePREfast>false</EnablePREfast>
-      <MinimalRebuild>true</MinimalRebuild>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Disabled</Optimization>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Winmm.lib;SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <GenerateDebugInformation>No</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

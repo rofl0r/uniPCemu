@@ -19,7 +19,7 @@ int_64 currentsize; //The current file size, in bytes!
 
 int_64 lookuptable[4096]; //A full sector lookup table (4096 entries for either block (1024) or sector (4096) lookup)!
 
-byte writedynamicheader(char *filename, DYNAMICIMAGE_HEADER *header)
+OPTINLINE byte writedynamicheader(char *filename, DYNAMICIMAGE_HEADER *header)
 {
 	if (!isext(filename, "sfdimg")) //Not our dynamic image file?
 	{
@@ -36,8 +36,7 @@ byte writedynamicheader(char *filename, DYNAMICIMAGE_HEADER *header)
 	return 1; //We've been updated!
 }
 
-//Problem here!
-byte readdynamicheader(char *filename, DYNAMICIMAGE_HEADER *header)
+OPTINLINE byte readdynamicheader(char *filename, DYNAMICIMAGE_HEADER *header)
 {
 	if (!isext(filename, "sfdimg")) //Not our dynamic image file?
 	{
@@ -81,7 +80,7 @@ FILEPOS dynamicimage_getsize(char *filename)
 	}
 }
 
-byte dynamicimage_updatesize(char *filename, int_64 size)
+OPTINLINE byte dynamicimage_updatesize(char *filename, int_64 size)
 {
 	DYNAMICIMAGE_HEADER header;
 	if (!readdynamicheader(filename, &header)) //Header failed to read?
@@ -92,7 +91,7 @@ byte dynamicimage_updatesize(char *filename, int_64 size)
 	return writedynamicheader(filename,&header); //Try to update the header!
 }
 
-byte dynamicimage_allocatelookuptable(char *filename, int_64 *location, int_64 numentries) //Allocate a table with numentries entries, give location of allocation!
+OPTINLINE byte dynamicimage_allocatelookuptable(char *filename, int_64 *location, int_64 numentries) //Allocate a table with numentries entries, give location of allocation!
 {
 	FILE *f;
 	DYNAMICIMAGE_HEADER header;
@@ -120,7 +119,7 @@ byte dynamicimage_allocatelookuptable(char *filename, int_64 *location, int_64 n
 	return 0; //Error!
 }
 
-int_64 dynamicimage_readlookuptable(char *filename, int_64 location, int_64 numentries, int_64 entry) //Read a table with numentries entries, give location of an entry!
+OPTINLINE int_64 dynamicimage_readlookuptable(char *filename, int_64 location, int_64 numentries, int_64 entry) //Read a table with numentries entries, give location of an entry!
 {
 	FILE *f;
 	DYNAMICIMAGE_HEADER header;
@@ -150,7 +149,7 @@ int_64 dynamicimage_readlookuptable(char *filename, int_64 location, int_64 nume
 	return 0; //Error: not found!
 }
 
-byte dynamicimage_updatelookuptable(char *filename, int_64 location, int_64 numentries, int_64 entry, int_64 value) //Update a table with numentries entries, set location of an entry!
+OPTINLINE byte dynamicimage_updatelookuptable(char *filename, int_64 location, int_64 numentries, int_64 entry, int_64 value) //Update a table with numentries entries, set location of an entry!
 {
 	FILE *f;
 	DYNAMICIMAGE_HEADER header;
@@ -189,7 +188,7 @@ byte dynamicimage_updatelookuptable(char *filename, int_64 location, int_64 nume
 	return 0; //Error: not found!
 }
 
-int_64 dynamicimage_getindex(char *filename, uint_32 sector) //Get index!
+OPTINLINE int_64 dynamicimage_getindex(char *filename, uint_32 sector) //Get index!
 {
 	DYNAMICIMAGE_HEADER header;
 	int_64 index;
@@ -213,7 +212,7 @@ int_64 dynamicimage_getindex(char *filename, uint_32 sector) //Get index!
 	return index; //We're present at this index, if at all!
 }
 
-int dynamicimage_datapresent(char *filename, uint_32 sector) //Get present?
+OPTINLINE int dynamicimage_datapresent(char *filename, uint_32 sector) //Get present?
 {
 	int_64 index;
 	index = dynamicimage_getindex(filename, sector); //Try to get the index!
@@ -224,7 +223,7 @@ int dynamicimage_datapresent(char *filename, uint_32 sector) //Get present?
 	return (index!=0); //We're present?
 }
 
-byte dynamicimage_setindex(char *filename, uint_32 sector, int_64 index)
+OPTINLINE byte dynamicimage_setindex(char *filename, uint_32 sector, int_64 index)
 {
 	DYNAMICIMAGE_HEADER header;
 	int_64 firstlevellocation,secondlevellocation,sectorlevellocation;

@@ -26,8 +26,6 @@ byte activeCPU = 0; //What CPU is currently active?
 byte cpudebugger; //To debug the CPU?
 
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
-//extern Handler debug_jmptbl[NUMCPUS][0x100][2]; //x86 debug opcode table
-extern Handler soft_interrupt_jmptbl[]; //Interrupt call table (software INT instructions)
 
 //Opcode&Stack sizes: 0=16-bits, 1=32-bits!
 byte CPU_Operand_size[2] = { 0 , 0 }; //Operand size for this opcode!
@@ -68,20 +66,11 @@ void CPU_ErrorCallback_RESET() //Error callback with error code!
 	reset = 1; //Reset the emulator!
 }
 
-
-
-
-
-
-
-
 void copyint(byte src, byte dest) //Copy interrupt handler pointer to different interrupt!
 {
 	MMU_ww(-1,0x0000,(dest<<2),MMU_rw(-1,0x0000,(src<<2),0)); //Copy segment!
 	MMU_ww(-1,0x0000,(dest<<2)|2,MMU_rw(-1,0x0000,((src<<2)|2),0)); //Copy offset!
 }
-
-
 
 int STACK_SIZE = 2; //Stack item in bytes! (4 official for 32-bit, 2 for 16-bit?)
 
@@ -132,10 +121,6 @@ uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
 	result |= CPU_readOPw()<<16; //Read OPcode!
 	return result; //Give result!
 }
-
-
-
-
 
 /*
 0xF3 Used with string REP, REPE/REPZ

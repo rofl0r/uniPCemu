@@ -53,7 +53,7 @@ extern byte vga_palette[256][3];
 extern Bit8u cga_masks[4];
 extern Bit8u cga_masks2[8];
 
-void GPU_setresolution(word mode) //Sets the resolution based on current video mode byte!
+OPTINLINE void GPU_setresolution(word mode) //Sets the resolution based on current video mode byte!
 {
 	GPU.showpixels = ALLOW_GPU_GRAPHICS; //Show pixels!
 
@@ -64,7 +64,7 @@ void GPU_setresolution(word mode) //Sets the resolution based on current video m
 	//EMU_CPU_setCursorScanlines(getcharacterheight(int10_VGA)-2,getcharacterheight(int10_VGA)-1); //Reset scanlines to bottom!
 }
 
-byte getscreenwidth(byte displaypage) //Get the screen width (in characters), based on the video mode!
+OPTINLINE byte getscreenwidth(byte displaypage) //Get the screen width (in characters), based on the video mode!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	return MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0);
@@ -87,19 +87,19 @@ byte getscreenwidth(byte displaypage) //Get the screen width (in characters), ba
 	return result; //Give the result!
 }
 
-byte GPUgetvideomode()
+OPTINLINE byte GPUgetvideomode()
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	return MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0); //Give mode!
 }
 
-void GPUswitchvideomode(word mode)
+OPTINLINE void GPUswitchvideomode(word mode)
 {
 	GPU_setresolution(mode); //Set the resolution to use&rest data!
 }
 
 
-int GPU_getpixel(int x, int y, byte page, byte *pixel) //Get a pixel from the real emulated screen buffer!
+OPTINLINE int GPU_getpixel(int x, int y, byte page, byte *pixel) //Get a pixel from the real emulated screen buffer!
 {
 	if (__HW_DISABLED) return 0; //Abort!
         switch (CurMode->type) {
@@ -159,7 +159,7 @@ int GPU_getpixel(int x, int y, byte page, byte *pixel) //Get a pixel from the re
         return 1; //OK!
 }
 
-int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pixel to the real emulated screen buffer
+OPTINLINE int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pixel to the real emulated screen buffer
 {
 	if (__HW_DISABLED) return 0; //Abort!
         //static bool putpixelwarned = false;
@@ -285,12 +285,12 @@ int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pi
         return 1; //OK!
 }
 
-void ResetACTL() {
+OPTINLINE void ResetACTL() {
 	if (__HW_DISABLED) return; //Abort!
 	IO_Read(real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS) + 6);
 }
 
-void INT10_SetSinglePaletteRegister(Bit8u reg,Bit8u val) {
+OPTINLINE void INT10_SetSinglePaletteRegister(Bit8u reg,Bit8u val) {
 	if (__HW_DISABLED) return; //Abort!
 	//switch (machine) {
 /*	case MCH_PCJR:
@@ -345,7 +345,7 @@ void INT10_SetSinglePaletteRegister(Bit8u reg,Bit8u val) {
 	//}
 }
 
-void INT10_SetOverscanBorderColor(Bit8u val) {
+OPTINLINE void INT10_SetOverscanBorderColor(Bit8u val) {
 	/*switch (machine) {
 	case TANDY_ARCH_CASE:
 		IO_Read(VGAREG_TDY_RESET);
@@ -360,7 +360,7 @@ void INT10_SetOverscanBorderColor(Bit8u val) {
 	}*/
 }
 
-void INT10_SetAllPaletteRegisters(PhysPt data) {
+OPTINLINE void INT10_SetAllPaletteRegisters(PhysPt data) {
 	/*switch (machine) {
 	case TANDY_ARCH_CASE:
 		IO_Read(VGAREG_TDY_RESET);
@@ -389,7 +389,7 @@ void INT10_SetAllPaletteRegisters(PhysPt data) {
 	}*/
 }
 
-void INT10_SetColorSelect(Bit8u val) {
+OPTINLINE void INT10_SetColorSelect(Bit8u val) {
 	if (__HW_DISABLED) return; //Abort!
 	Bit8u temp=real_readb(BIOSMEM_SEG,BIOSMEM_CURRENT_PAL);
 	temp=(temp & 0xdf) | ((val & 1) ? 0x20 : 0x0);
@@ -433,7 +433,7 @@ void INT10_SetColorSelect(Bit8u val) {
 //	}
 }
 
-void INT10_ToggleBlinkingBit(Bit8u state) {
+OPTINLINE void INT10_ToggleBlinkingBit(Bit8u state) {
 	Bit8u value;
 //	state&=0x01;
 	//if ((state>1) && (svgaCard==SVGA_S3Trio)) return;
@@ -458,7 +458,7 @@ void INT10_ToggleBlinkingBit(Bit8u state) {
 	}
 }
 
-void INT10_GetSinglePaletteRegister(Bit8u reg,Bit8u * val) {
+OPTINLINE void INT10_GetSinglePaletteRegister(Bit8u reg,Bit8u * val) {
 	if(reg<=ACTL_MAX_REG) {
 		ResetACTL();
 		IO_Write(VGAREG_ACTL_ADDRESS,reg+32);
@@ -467,14 +467,14 @@ void INT10_GetSinglePaletteRegister(Bit8u reg,Bit8u * val) {
 	}
 }
 
-void INT10_GetOverscanBorderColor(Bit8u * val) {
+OPTINLINE void INT10_GetOverscanBorderColor(Bit8u * val) {
 	ResetACTL();
 	IO_Write(VGAREG_ACTL_ADDRESS,0x11+32);
 	*val=IO_Read(VGAREG_ACTL_READ_DATA);
 	IO_Write(VGAREG_ACTL_WRITE_DATA,*val);
 }
 
-void INT10_GetAllPaletteRegisters(PhysPt data) {
+OPTINLINE void INT10_GetAllPaletteRegisters(PhysPt data) {
 	ResetACTL();
 	// First the colors
 	Bit8u i;
@@ -490,7 +490,7 @@ void INT10_GetAllPaletteRegisters(PhysPt data) {
 	ResetACTL();
 }
 
-void updateCursorLocation()
+OPTINLINE void updateCursorLocation()
 {
 	if (__HW_DISABLED) return; //Abort!
 	int x;
@@ -509,7 +509,7 @@ void updateCursorLocation()
 	PORT_OUT_B(0x3D4,oldcrtc); //Restore old CRTC register!
 }
 
-void EMU_CPU_setCursorXY(byte displaypage, byte x, byte y)
+OPTINLINE void EMU_CPU_setCursorXY(byte displaypage, byte x, byte y)
 {
 	if (__HW_DISABLED) return; //Abort!
 //First: BDA entry update!
@@ -523,14 +523,14 @@ void EMU_CPU_setCursorXY(byte displaypage, byte x, byte y)
 	}
 }
 
-void EMU_CPU_getCursorScanlines(byte *start, byte *end)
+OPTINLINE void EMU_CPU_getCursorScanlines(byte *start, byte *end)
 {
 	if (__HW_DISABLED) return; //Abort!
 	*start = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, 0); //Get start line!
 	*end = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, 0); //Get end line!
 }
 
-void EMU_CPU_setCursorScanlines(byte start, byte end)
+OPTINLINE void EMU_CPU_setCursorScanlines(byte start, byte end)
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
@@ -563,7 +563,7 @@ void EMU_CPU_setCursorScanlines(byte start, byte end)
 	MMU_wb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, end); //Set end line!
 }
 
-void GPU_clearscreen() //Clears the screen!
+OPTINLINE void GPU_clearscreen() //Clears the screen!
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte oldmode;
@@ -573,13 +573,13 @@ void GPU_clearscreen() //Clears the screen!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,oldmode); //Restore old mode!
 }
 
-void GPU_clearscreen_BIOS() //Clears the screen for BIOS menus etc.!
+OPTINLINE void GPU_clearscreen_BIOS() //Clears the screen for BIOS menus etc.!
 {
 	if (__HW_DISABLED) return; //Abort!
 	GPU_clearscreen(); //Forward: we're using official VGA now!
 }
 
-void int10_nextcol(byte thepage)
+OPTINLINE void int10_nextcol(byte thepage)
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte x = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2),0);
@@ -630,7 +630,7 @@ void cursorXY(byte displaypage, byte x, byte y)
 
 //Below read/writecharacter based upon: https://code.google.com/p/dosbox-wii/source/browse/trunk/src/ints/int10_char.cpp
 
-void int10_vram_writecharacter(byte x, byte y, byte page, byte character, byte attribute) //Write character+attribute!
+OPTINLINE void int10_vram_writecharacter(byte x, byte y, byte page, byte character, byte attribute) //Write character+attribute!
 {
 	if (__HW_DISABLED) return; //Abort!
 	//dolog("interrupt10","int10_writecharacter: %i,%i@%02X=%02X=>%02X",x,y,page,character,attribute);
@@ -653,7 +653,7 @@ void int10_vram_writecharacter(byte x, byte y, byte page, byte character, byte a
 	}
 }
 
-void int10_vram_readcharacter(byte x, byte y, byte page, byte *character, byte *attribute) //Read character+attribute!
+OPTINLINE void int10_vram_readcharacter(byte x, byte y, byte page, byte *character, byte *attribute) //Read character+attribute!
 {
 	if (__HW_DISABLED) return; //Abort!
 	switch (CurMode->type)
@@ -674,7 +674,7 @@ void int10_vram_readcharacter(byte x, byte y, byte page, byte *character, byte *
 	}
 }
 
-void emu_setactivedisplaypage(byte page) //Set active display page!
+OPTINLINE void emu_setactivedisplaypage(byte page) //Set active display page!
 {
 	if (__HW_DISABLED) return; //Abort!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,page); //Active video page!
@@ -689,7 +689,7 @@ void emu_setactivedisplaypage(byte page) //Set active display page!
 	PORT_OUT_B(0x3D4,oldcrtc); //Restore old CRTC register!
 }
 
-byte emu_getdisplaypage()
+OPTINLINE byte emu_getdisplaypage()
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	return MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0); //Active page!
@@ -702,7 +702,7 @@ Font generator support!
 */
 
 
-void int10_ActivateFontBlocks(byte selector) //Activate a font!
+OPTINLINE void int10_ActivateFontBlocks(byte selector) //Activate a font!
 {
 	if (__HW_DISABLED) return; //Abort!
 	IO_Write(0x3c4,0x03); //Character map select register!
@@ -711,7 +711,7 @@ void int10_ActivateFontBlocks(byte selector) //Activate a font!
 
 word map_offset[8] = {0x0000,0x4000,0x8000,0xB000,0x2000,0x6000,0xA000,0xE000}; //Where do we map to?
 
-void int10_LoadFont(word segment, uint_32 offset, //font in dosbox!
+OPTINLINE void int10_LoadFont(word segment, uint_32 offset, //font in dosbox!
 				byte reload,
 				uint_32 count,
 				uint_32 vramoffset, uint_32 map, uint_32 height) //Load a custom font!
@@ -742,7 +742,7 @@ void int10_LoadFont(word segment, uint_32 offset, //font in dosbox!
 	}
 }
 
-void int10_LoadFontSystem(byte *data, //font in dosbox!
+OPTINLINE void int10_LoadFontSystem(byte *data, //font in dosbox!
 				byte reload,
 				uint_32 count,
 				uint_32 offset, uint_32 map, uint_32 height) //Load a custom font!
@@ -779,21 +779,21 @@ void int10_LoadFontSystem(byte *data, //font in dosbox!
 	VGALoadCharTable(getActiveVGA(),getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine+1,0x0000); //Reload the font at 0x0000!
 }*/ //Seperate!
 
-void INT10_SetSingleDacRegister(Bit8u index,Bit8u red,Bit8u green,Bit8u blue) {
+OPTINLINE void INT10_SetSingleDacRegister(Bit8u index,Bit8u red,Bit8u green,Bit8u blue) {
 	IO_Write(VGAREG_DAC_WRITE_ADDRESS,(Bit8u)index);
 	IO_Write(VGAREG_DAC_DATA,red);
 	IO_Write(VGAREG_DAC_DATA,green);
 	IO_Write(VGAREG_DAC_DATA,blue);
 }
 
-void INT10_GetSingleDacRegister(Bit8u index,Bit8u * red,Bit8u * green,Bit8u * blue) {
+OPTINLINE void INT10_GetSingleDacRegister(Bit8u index,Bit8u * red,Bit8u * green,Bit8u * blue) {
 	IO_Write(VGAREG_DAC_READ_ADDRESS,index);
 	*red=IO_Read(VGAREG_DAC_DATA);
 	*green=IO_Read(VGAREG_DAC_DATA);
 	*blue=IO_Read(VGAREG_DAC_DATA);
 }
 
-void INT10_SetDACBlock(Bit16u index,Bit16u count,PhysPt data) {
+OPTINLINE void INT10_SetDACBlock(Bit16u index,Bit16u count,PhysPt data) {
  	IO_Write(VGAREG_DAC_WRITE_ADDRESS,(Bit8u)index);
 	for (;count>0;count--) {
 		IO_Write(VGAREG_DAC_DATA,phys_readb(data++));
@@ -802,7 +802,7 @@ void INT10_SetDACBlock(Bit16u index,Bit16u count,PhysPt data) {
 	}
 }
 
-void INT10_GetDACBlock(Bit16u index,Bit16u count,PhysPt data) {
+OPTINLINE void INT10_GetDACBlock(Bit16u index,Bit16u count,PhysPt data) {
  	IO_Write(VGAREG_DAC_READ_ADDRESS,(Bit8u)index);
 	for (;count>0;count--) {
 		phys_writeb(data++,IO_Read(VGAREG_DAC_DATA));
@@ -811,7 +811,7 @@ void INT10_GetDACBlock(Bit16u index,Bit16u count,PhysPt data) {
 	}
 }
 
-void INT10_SelectDACPage(Bit8u function,Bit8u mode) {
+OPTINLINE void INT10_SelectDACPage(Bit8u function,Bit8u mode) {
 	ResetACTL();
 	IO_Write(VGAREG_ACTL_ADDRESS,0x10);
 	Bit8u old10=IO_Read(VGAREG_ACTL_READ_DATA);
@@ -830,7 +830,7 @@ void INT10_SelectDACPage(Bit8u function,Bit8u mode) {
 	IO_Write(VGAREG_ACTL_ADDRESS,32);		//Enable output and protect palette
 }
 
-void INT10_GetDACPage(Bit8u* mode,Bit8u* page) {
+OPTINLINE void INT10_GetDACPage(Bit8u* mode,Bit8u* page) {
 	ResetACTL();
 	IO_Write(VGAREG_ACTL_ADDRESS,0x10);
 	Bit8u reg10=IO_Read(VGAREG_ACTL_READ_DATA);
@@ -847,15 +847,15 @@ void INT10_GetDACPage(Bit8u* mode,Bit8u* page) {
 	}
 }
 
-void INT10_SetPelMask(Bit8u mask) {
+OPTINLINE void INT10_SetPelMask(Bit8u mask) {
 	IO_Write(VGAREG_PEL_MASK,mask);
 }	
 
-void INT10_GetPelMask(Bit8u *mask) {
+OPTINLINE void INT10_GetPelMask(Bit8u *mask) {
 	*mask=IO_Read(VGAREG_PEL_MASK);
 }	
 
-void INT10_SetBackgroundBorder(Bit8u val) {
+OPTINLINE void INT10_SetBackgroundBorder(Bit8u val) {
 	Bit8u temp=real_readb(BIOSMEM_SEG,BIOSMEM_CURRENT_PAL);
 	temp=(temp & 0xe0) | (val & 0x1f);
 	real_writeb(BIOSMEM_SEG,BIOSMEM_CURRENT_PAL,temp);
@@ -1194,7 +1194,7 @@ void int10_GetPixel()
 	ok = GPU_getpixel(REG_CX,REG_DX,REG_BH,&REG_AL); //Try to get the pixel, ignore result!
 }
 
-void int10_internal_outputchar(byte videopage, byte character, byte attribute)
+OPTINLINE void int10_internal_outputchar(byte videopage, byte character, byte attribute)
 {
 	//dolog("interrupt10","Output character@%02X: %02X;attr=%02X;(%c)",videopage,character,attribute,character);
 	//dolog("interrupt10","Total rows: %i",MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0));
@@ -1396,7 +1396,7 @@ void int10_Pallette() //REG_AH=10h,REG_AL=subfunc
 	}
 }
 
-uint_32 RealGetVec(byte interrupt)
+OPTINLINE uint_32 RealGetVec(byte interrupt)
 {
 	word segment, offset;
 	CPU_getint(interrupt,&segment,&offset);
@@ -1693,7 +1693,7 @@ void int10_DCC() //REG_AH=1Ah
 	}
 }
 
-Bitu INT10_VideoState_GetSize(Bitu state) {
+OPTINLINE Bitu INT10_VideoState_GetSize(Bitu state) {
 	// state: bit0=hardware, bit1=bios data, bit2=color regs/dac state
 	if ((state&7)==0) return 0;
 
@@ -1706,7 +1706,7 @@ Bitu INT10_VideoState_GetSize(Bitu state) {
 	return size;
 }
 
-bool INT10_VideoState_Save(Bitu state,RealPt buffer) {
+OPTINLINE bool INT10_VideoState_Save(Bitu state,RealPt buffer) {
 	Bitu ct;
 	if ((state&7)==0) return false;
 
@@ -1882,7 +1882,7 @@ bool INT10_VideoState_Save(Bitu state,RealPt buffer) {
 	return true;
 }
 
-bool INT10_VideoState_Restore(Bitu state,RealPt buffer) {
+OPTINLINE bool INT10_VideoState_Restore(Bitu state,RealPt buffer) {
 	Bitu ct;
 	if ((state&7)==0) return false;
 
@@ -2053,7 +2053,7 @@ bool INT10_VideoState_Restore(Bitu state,RealPt buffer) {
 	return true;
 }
 
-void INT10_GetFuncStateInformation(PhysPt save) {
+OPTINLINE void INT10_GetFuncStateInformation(PhysPt save) {
 	/* set static state pointer */
 	mem_writed(Phys2Real(save),int10.rom.static_state);
 	/* Copy BIOS Segment areas */
@@ -2185,19 +2185,19 @@ void int10_SaveRestoreVideoStateFns() //REG_AH=1Ch
 
 
 
-byte int2hex(byte b)
+OPTINLINE byte int2hex(byte b)
 {
 	byte translatetable[0x10] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'}; //The Hexdecimal notation!
 	return translatetable[b&0xF];
 }
 
-byte bytetonum(byte b, byte nibble)
+OPTINLINE byte bytetonum(byte b, byte nibble)
 {
 	if (!nibble) return int2hex(b&0xF); //Low nibble!
 	return int2hex((b>>4)&0xF); //High nibble!
 }
 
-void writehex(FILE *f, byte num) //Write a number (byte) to a file!
+OPTINLINE void writehex(FILE *f, byte num) //Write a number (byte) to a file!
 {
 	byte low = bytetonum(num,0); //Low!
 	byte high = bytetonum(num,1); //High!

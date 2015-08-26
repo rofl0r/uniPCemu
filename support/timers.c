@@ -155,7 +155,7 @@ void timer_thread() //Handler for timer!
 	}
 }
 
-void timer_calcfreq(int timer)
+OPTINLINE void timer_calcfreq(int timer)
 {
 	if (timers[timer].frequency!=0.0f)
 	{

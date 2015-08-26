@@ -145,20 +145,6 @@ void runcallback(uint_32 thid)
 	//dolog("threads","Callback RET.");
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //Running/stop etc. function for the thread!
 
 
@@ -406,7 +392,7 @@ void waitThreadEnd(ThreadParams_p thread) //Wait for this thread to end!
 	//Done with running the thread!
 }
 
-void quitThread() //Quit the current thread!
+OPTINLINE void quitThread() //Quit the current thread!
 {
 	uint_32 thid = SDL_ThreadID(); //Get the current thread ID!
 	terminateThread(thid); //Terminate ourselves!

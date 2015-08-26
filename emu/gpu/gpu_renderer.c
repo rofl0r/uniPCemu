@@ -27,7 +27,7 @@ extern uint_32 frames; //Frames processed!
 
 uint_32 frames_rendered = 0;
 
-void renderScreenFrame() //Render the screen frame!
+OPTINLINE void renderScreenFrame() //Render the screen frame!
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
@@ -40,7 +40,7 @@ void renderScreenFrame() //Render the screen frame!
 }
 
 char filename[256];
-char *get_screencapture_filename() //Filename for a screen capture!
+OPTINLINE char *get_screencapture_filename() //Filename for a screen capture!
 {
 	int dummy = mkdir("captures"); //Captures directory!
 	uint_32 i=0; //For the number!
@@ -58,7 +58,7 @@ uint_32 *row_empty = NULL; //A full row, non-initialised!
 uint_32 row_empty_size = 0; //No size!
 GPU_SDL_Surface *resized = NULL; //Standard resized data, keep between unchanged screens!
 
-void init_rowempty()
+OPTINLINE void init_rowempty()
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (!row_empty) //Not allocated yet?
@@ -68,7 +68,7 @@ void init_rowempty()
 	}
 }
 
-void GPU_finishRenderer() //Finish the rendered surface!
+OPTINLINE void GPU_finishRenderer() //Finish the rendered surface!
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (resized) //Resized still buffered?
@@ -87,14 +87,14 @@ void done_GPURenderer() //Cleanup only!
 	GPU_finishRenderer(); //Finish the renderer!
 }
 
-uint_32 *get_rowempty()
+OPTINLINE uint_32 *get_rowempty()
 {
 	if (__HW_DISABLED) return NULL; //Abort?
 	init_rowempty(); //Init empty row!
 	return row_empty; //Give the empty row!
 }
 
-void GPU_directRenderer() //Plot directly 1:1 on-screen!
+OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 {
 	if (__HW_DISABLED) return; //Abort?
 	init_rowempty(); //Init empty row!
@@ -168,7 +168,7 @@ void GPU_directRenderer() //Plot directly 1:1 on-screen!
 	//OK: rendered to PSP buffer!
 }
 
-void render_EMU_screen() //Render the EMU buffer to the screen!
+OPTINLINE void render_EMU_screen() //Render the EMU buffer to the screen!
 {
 	uint_32 *srcrow; //Current pixel row rendering!
 	if (VIDEO_DIRECT) //Direct mode?
@@ -261,7 +261,7 @@ OPTINLINE byte getresizeddirty() //Is the emulated screen dirty?
 	return resized ? ((resized->flags&SDL_FLAG_DIRTY)>0) : 0; //Are we dirty?
 }
 
-void renderFrames() //Render all frames to the screen!
+OPTINLINE void renderFrames() //Render all frames to the screen!
 {
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
 	{
@@ -312,7 +312,7 @@ void renderFrames() //Render all frames to the screen!
 }
 
 //Rendering functionality!
-void render_EMU_buffer() //Render the EMU to the buffer!
+OPTINLINE void render_EMU_buffer() //Render the EMU to the buffer!
 {
 	lockGPU(); //Lock the GPU!
 	//Next, allocate all buffers!
@@ -361,7 +361,7 @@ void render_EMU_buffer() //Render the EMU to the buffer!
 byte SplitScreen = 0; //Default: no split-screen!
 uint_32 SplitScreen_Start; //Start of split-screen operations!
 
-void GPU_fullRenderer()
+OPTINLINE void GPU_fullRenderer()
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?

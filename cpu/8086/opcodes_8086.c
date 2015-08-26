@@ -30,15 +30,23 @@ extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
 
 //Info: Ap = 32-bit segment:offset pointer (data: param 1:word segment, param 2:word offset)
 
-/*
-
-*ADD*=Change! FIND!
-
-*/
-
 //Simplifier!
 
 extern uint_32 destEIP; //Destination address for CS JMP instruction!
+
+byte immb; //For CPU_readOP result!
+word immw; //For CPU_readOPw result!
+byte oper1b, oper2b; //Byte variants!
+word oper1, oper2; //Word variants!
+byte res8; //Result 8-bit!
+word res16; //Result 16-bit!
+byte reg; //For function number!
+uint_32 ea; //From RM OFfset (GRP5 Opcodes only!)
+byte tempCF;
+
+VAL32Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
+uint_32 temp32, tempaddr32; //Defined in opcodes_8086.c
+
 
 /*
 
@@ -235,14 +243,6 @@ double CPU8086_instruction_speed = (14318.0f*1000.0f)/3.0f; //The clock speed of
 //First CMP instruction (for debugging) and directly related.
 
 //CMP: Substract and set flags according (Z,S,O,C); Help functions
-
-//For data help (fake86)!
-extern byte oper1b, oper2b; //Byte variants!
-extern word oper1, oper2; //Word variants!
-extern byte res8; //Result 8-bit!
-extern word res16; //Result 16-bit!
-extern byte reg; //For function number!
-extern uint_32 ea; //From RM offset (GRP5 Opcodes only!)
 
 OPTINLINE void op_adc8() {
 	res8 = oper1b + oper2b + FLAG_CF;
@@ -2117,21 +2117,6 @@ void unkOP_8086() //Unknown opcode on 8086?
 
 //Now, the GRP opcodes!
 
-byte immb; //For CPU_readOP result!
-word immw; //For CPU_readOPw result!
-byte oper1b, oper2b; //Byte variants!
-word oper1, oper2; //Word variants!
-byte res8; //Result 8-bit!
-word res16; //Result 16-bit!
-byte reg; //For function number!
-uint_32 ea; //From RM OFfset (GRP5 Opcodes only!)
-byte tempCF;
-
-VAL32Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
-extern uint_32 temp32, tempaddr32; //Defined in opcodes_8086.c
-
-extern MODRM_PARAMS params; //The modr/m params!
-
 byte op_grp2_8(byte cnt) {
 	//word d,
 	word s, shift, oldCF, msb;
@@ -2527,8 +2512,6 @@ void op_grp3_16() {
 		op_idiv16(((uint32_t)REG_DX << 16) | REG_AX, oper1); break;
 	}
 }
-
-extern uint_32 destEIP; //For FAR JMP/call!
 
 void op_grp5() {
 	MODRM_PTR info; //To contain the info!

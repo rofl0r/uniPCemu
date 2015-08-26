@@ -10,7 +10,7 @@
 #include "headers/bios/biosrom.h" //BIOS ROM support!
 
 uint_32 i;
-void MEM_BlockCopy(word segment, word offset, word fontseg, word fontoffs, Bitu height)
+OPTINLINE void MEM_BlockCopy(word segment, word offset, word fontseg, word fontoffs, Bitu height)
 {
 	for (i=0;i<height;i++)
 	{

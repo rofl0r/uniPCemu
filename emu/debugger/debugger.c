@@ -48,7 +48,7 @@ typedef struct PACKED
 } VERIFICATIONDATA;
 #include "headers/endpacked.h" //End packed!
 
-byte readverification(uint_32 index, VERIFICATIONDATA *entry)
+OPTINLINE byte readverification(uint_32 index, VERIFICATIONDATA *entry)
 {
 	const word size = sizeof(*entry);
 	FILE *f;
@@ -69,7 +69,7 @@ extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 byte startreached = 0;
 
-byte debugger_logging()
+OPTINLINE byte debugger_logging()
 {
 	byte enablelog=0; //Default: disabled!
 	switch (DEBUGGER_LOG) //What log method?
@@ -198,7 +198,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 }
 
 char flags[256]; //Flags as a text!
-char *debugger_generateFlags(CPU_registers *registers)
+OPTINLINE char *debugger_generateFlags(CPU_registers *registers)
 {
 	memset(&flags,0,sizeof(flags)); //Clear/init flags!
 	sprintf(flags,"%s%c",flags,registers->SFLAGS.CF?'C':'c');
@@ -273,7 +273,7 @@ char *debugger_generateFlags(CPU_registers *registers)
 	return &flags[0]; //Give the flags for quick reference!
 }
 
-void debugger_logregisters(CPU_registers *registers)
+OPTINLINE void debugger_logregisters(CPU_registers *registers)
 {
 	if (!registers) //Invalid?
 	{
@@ -321,7 +321,7 @@ extern byte last_modrm; //Is the last opcode a modr/m read?
 extern byte OPbuffer[256];
 extern byte OPlength; //The length of the OPbuffer!
 
-void debugger_autolog()
+OPTINLINE void debugger_autolog()
 {
 	if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised) && (!forcerepeat))
 	{
@@ -390,7 +390,7 @@ void debugger_autolog()
 
 extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 
-void debugger_screen() //Show debugger info on-screen!
+OPTINLINE void debugger_screen() //Show debugger info on-screen!
 {
 	if (frameratesurface) //We can show?
 	{
@@ -584,7 +584,7 @@ recheckdebugger: //For getting from the BIOS!
 	} //Step mode?
 }
 
-int debugging() //Debugging?
+OPTINLINE byte debugging() //Debugging?
 {
 	if (singlestep) //EMU enforced single step?
 	{

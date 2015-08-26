@@ -41,7 +41,7 @@ extern word res16; //Result 16-bit!
 extern byte reg; //For function number!
 extern uint_32 ea; //From RM offset (GRP5 Opcodes only!)
 
-extern VAL32Splitter temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32;
+extern VAL32Splitter temp1, temp2, temp3, temp4, temp5;
 
 //Help functions for debugging:
 extern char modrm_param1[256]; //Contains param/reg1

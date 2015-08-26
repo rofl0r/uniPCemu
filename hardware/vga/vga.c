@@ -314,7 +314,7 @@ void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 }
 
 //Cursor blink handler!
-void cursorBlinkHandler() //Handled every 16 frames!
+OPTINLINE void cursorBlinkHandler() //Handled every 16 frames!
 {
 	if (__HW_DISABLED) return; //Abort!
 	if (getActiveVGA()) //Active?

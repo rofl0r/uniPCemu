@@ -77,7 +77,7 @@ struct
 	byte interrupt_causes[4]; //All possible causes of an interrupt!
 } UART_port[4]; //All UART ports!
 
-void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
+OPTINLINE void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 {
 	switch (cause) //What cause?
 	{

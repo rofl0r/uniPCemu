@@ -229,7 +229,7 @@ byte floppy_sides(uint_64 floppy_size)
 	return 0; //Unknown!
 }
 
-void updateFloppyGeometries(byte floppy, byte side, byte track)
+OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 {
 	uint_64 floppysize = disksize(floppy); //Retrieve disk size for reference!
 	byte i;
@@ -262,7 +262,7 @@ void updateFloppyGeometries(byte floppy, byte side, byte track)
 	}
 }
 
-uint_32 floppy_LBA(byte floppy, word side, word track, word sector)
+OPTINLINE uint_32 floppy_LBA(byte floppy, word side, word track, word sector)
 {
 	updateFloppyGeometries(floppy,side,track); //Update the floppy geometries!
 	if (!FLOPPY.geometries[floppy]) return 0; //Unknown floppy geometry!
@@ -271,7 +271,7 @@ uint_32 floppy_LBA(byte floppy, word side, word track, word sector)
 
 //Sector size
 
-word translateSectorSize(byte size)
+OPTINLINE word translateSectorSize(byte size)
 {
 	return 128*pow(2,size); //Give the translated sector size!
 }
@@ -289,19 +289,19 @@ void FLOPPY_notifyDiskChanged(int disk)
 	}
 }
 
-void FLOPPY_raiseIRQ() //Execute an IRQ!
+OPTINLINE void FLOPPY_raiseIRQ() //Execute an IRQ!
 {
 	FLOPPY.IRQPending = 1; //We're waiting for an IRQ!
 	doirq(FLOPPY_IRQ); //Execute the IRQ!
 }
 
-void FLOPPY_lowerIRQ()
+OPTINLINE void FLOPPY_lowerIRQ()
 {
 	FLOPPY.IRQPending = 0;
 	removeirq(FLOPPY_IRQ); //Lower the IRQ!
 }
 
-void FLOPPY_reset() //Resets the floppy disk command!
+OPTINLINE void FLOPPY_reset() //Resets the floppy disk command!
 {
 	FLOPPY_LOG("FLOPPY: Reset requested!")
 	FLOPPY.DOR.MotorControl = 0; //Reset motors!
@@ -322,7 +322,7 @@ void FLOPPY_reset() //Resets the floppy disk command!
 
 //Execution after command and data phrases!
 
-void updateFloppyMSR() //Update the floppy MSR!
+OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 {
 	switch (FLOPPY.commandstep) //What command step?
 	{
@@ -399,19 +399,19 @@ void updateFloppyMSR() //Update the floppy MSR!
 	}
 }
 
-void updateFloppyDIR() //Update the floppy DIR!
+OPTINLINE void updateFloppyDIR() //Update the floppy DIR!
 {
 	FLOPPY.DIR.data = (FLOPPY.diskchanged[0] || FLOPPY.diskchanged[1]); //Disk changed?
 	FLOPPY.diskchanged[0] = 0; //Reset!
 	FLOPPY.diskchanged[1] = 0; //Reset!
 }
 
-void updateFloppyTrack0()
+OPTINLINE void updateFloppyTrack0()
 {
 	FLOPPY.ST0.SeekEnd = (FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] == 0); //Are we at cylinder 0?
 }
 
-void updateFloppyWriteProtected(byte iswrite)
+OPTINLINE void updateFloppyWriteProtected(byte iswrite)
 {
 	FLOPPY.ST1.data = (FLOPPY.ST1.data&~2); //Default: not write protected!
 	if (drivereadonly(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0) && iswrite) //Read-only drive and tried to write?
@@ -420,7 +420,7 @@ void updateFloppyWriteProtected(byte iswrite)
 	}
 }
 
-byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
+OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
 {
 	byte result = 1; //Default: read/write more
 	if (FLOPPY.geometries[floppy]) //Do we have a valid geometry?
@@ -467,7 +467,7 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 	return result; //Give the result: we've overflown the max sector number!
 }
 
-void FLOPPY_dataReady() //Data transfer ready to transfer!
+OPTINLINE void FLOPPY_dataReady() //Data transfer ready to transfer!
 {
 	if (FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].NDM) //Interrupt for each byte transferred?
 	{
@@ -475,7 +475,7 @@ void FLOPPY_dataReady() //Data transfer ready to transfer!
 	}
 }
 
-void FLOPPY_startData() //Start a Data transfer if needed!
+OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 {
 	FLOPPY.databufferposition = 0; //Start with the new buffer!
 	if (FLOPPY.commandstep != 2) //Entering data phase?
@@ -490,7 +490,7 @@ void FLOPPY_startData() //Start a Data transfer if needed!
 	FLOPPY_dataReady(); //We have data to transfer!
 }
 
-void floppy_readsector() //Request a read sector command!
+OPTINLINE void floppy_readsector() //Request a read sector command!
 {
 	FILE *f;
 	char sectorfile[256];
@@ -549,7 +549,7 @@ void floppy_readsector() //Request a read sector command!
 	}
 }
 
-void FLOPPY_formatsector() //Request a read sector command!
+OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 {
 	char *DSKImageFile;
 	SECTORINFORMATIONBLOCK sectorinfo;
@@ -658,7 +658,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 	FLOPPY_startData();
 }
 
-void floppy_writesector() //Request a write sector command!
+OPTINLINE void floppy_writesector() //Request a write sector command!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
@@ -699,7 +699,7 @@ void floppy_writesector() //Request a write sector command!
 	FLOPPY_startData(); //Start the DMA transfer if needed!
 }
 
-void floppy_executeData() //Execute a floppy command. Data is fully filled!
+OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully filled!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
 	switch (FLOPPY.commandbuffer[0] & 0xF) //What command!
@@ -873,7 +873,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 	}
 }
 
-void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
+OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
@@ -1062,14 +1062,14 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 	}
 }
 
-void floppy_abnormalpolling()
+OPTINLINE void floppy_abnormalpolling()
 {
 	FLOPPY.ST0.InterruptCode = 3; //Abnormal termination by polling!
 	FLOPPY.ST0.NotReady = 1; //We became not ready!
 	FLOPPY.commandstep = 0xFF; //Error!
 }
 
-void floppy_writeData(byte value)
+OPTINLINE void floppy_writeData(byte value)
 {
 	byte commandlength[0x10] = {
 		0, //0
@@ -1184,7 +1184,7 @@ void floppy_writeData(byte value)
 	}
 }
 
-byte floppy_readData()
+OPTINLINE byte floppy_readData()
 {
 	byte resultlength[0x10] = {
 		0, //0
@@ -1313,7 +1313,7 @@ byte PORT_IN_floppy(word port, byte *result)
 	return 0; //Unknown port!
 }
 
-void updateMotorControl()
+OPTINLINE void updateMotorControl()
 {
 	EMU_setDiskBusy(FLOPPY0, FLOPPY.DOR.MotorControl & 1); //Are we busy?
 	EMU_setDiskBusy(FLOPPY1, (FLOPPY.DOR.MotorControl & 2) >> 1); //Are we busy?

@@ -25,7 +25,7 @@ char moduler[100][20]; //Module names!
 byte numr; //Ammount registered!
 } MMUHANDLER;
 
-void MMUHANDLER_countwrites()
+OPTINLINE void MMUHANDLER_countwrites()
 {
 	MMUHANDLER.numw=NUMITEMS(MMUHANDLER.writehandlers); //Init!
 	for (;MMUHANDLER.numw;)
@@ -38,7 +38,7 @@ void MMUHANDLER_countwrites()
 	}
 }
 
-void MMUHANDLER_countreads()
+OPTINLINE void MMUHANDLER_countreads()
 {
 	MMUHANDLER.numr=NUMITEMS(MMUHANDLER.readhandlers); //Init!
 	for (;MMUHANDLER.numr;)

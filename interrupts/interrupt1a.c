@@ -3,7 +3,7 @@
 #include "headers/cpu/easyregs.h" //Easy register access!
 #include "headers/hardware/ports.h" //CMOS support!
 
-byte CMOS_readAutoBCD(byte number)
+OPTINLINE byte CMOS_readAutoBCD(byte number)
 {
 	PORT_OUT_B(0x70, 0xB); //Status register B!
 	byte SREGB = PORT_IN_B(0x71); //Read Status register B!

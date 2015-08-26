@@ -50,7 +50,7 @@ void ticksholder_AVG(TicksHolder *ticksholder)
 	ticksholder->avg = 1; //Enable average meter!
 }
 
-u64 getcurrentticks() //Retrieve the current ticks!
+OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 {
 	u64 result = 0; //The result!
 #ifdef __psp__
@@ -75,7 +75,7 @@ u64 getcurrentticks() //Retrieve the current ticks!
 	return (u64)SDL_GetTicks(); //Give the ticks passed using SDL default handling!
 }
 
-u64 getrealtickspassed(TicksHolder *ticksholder)
+OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 {
     u64 temp;
 	u64 currentticks = getcurrentticks(); //Fist: get current ticks to be sure we're right!
@@ -104,7 +104,7 @@ u64 getrealtickspassed(TicksHolder *ticksholder)
 	return ticksholder->tickspassed; //Give the result: ammount of ticks passed!
 }
 
-uint_64 gettimepassed(TicksHolder *ticksholder, u64 secondfactor)
+OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, u64 secondfactor)
 {
 	uint_64 result;
 	u64 tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!

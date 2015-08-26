@@ -51,7 +51,7 @@ byte in8259(word portnum, byte *result)
 	return 1; //The result is given!
 }
 
-void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
+OPTINLINE void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte i;

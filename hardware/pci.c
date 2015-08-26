@@ -20,7 +20,7 @@ byte configurationsizes[0x100]; //The size of the configuration!
 
 uint_32 PCI_address, PCI_data, PCI_status; //Address data and status buffers!
 
-byte PCI_read_data(uint_32 address, byte index) //Read data from the PCI space!
+OPTINLINE byte PCI_read_data(uint_32 address, byte index) //Read data from the PCI space!
 {
 	word device;
 	device = (address & 0xFFFF00) >> 8; //What device?
@@ -39,7 +39,7 @@ byte PCI_read_data(uint_32 address, byte index) //Read data from the PCI space!
 	return configurationspaces[device][address+index]; //Give the configuration entry!
 }
 
-void PCI_write_data(uint_32 address, byte index, byte value) //Write data to the PCI space!
+OPTINLINE void PCI_write_data(uint_32 address, byte index, byte value) //Write data to the PCI space!
 {
 	word device;
 	device = (address & 0xFFFF00) >> 8; //What device?

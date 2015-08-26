@@ -166,7 +166,7 @@ byte getdiskbymount(int drive) //Drive to disk converter (reverse of int13_init)
 	return 0xFF; //Unknown disk!
 }
 
-word gethddheads(uint_64 disksize)
+OPTINLINE word gethddheads(uint_64 disksize)
 {
 	if (disksize<=(1000*63*16*512)) //1-504MB?
 	{
@@ -188,17 +188,17 @@ word gethddheads(uint_64 disksize)
 	return 255; //255 heads!
 }
 
-word gethddspt()
+OPTINLINE word gethddspt()
 {
 	return 63; //Always 63 SPT!
 }
 
-word gethddbps()
+OPTINLINE word gethddbps()
 {
 	return 512; //Always 512 bytes per sector!
 }
 
-word gethddcylinders(uint_64 disksize)
+OPTINLINE word gethddcylinders(uint_64 disksize)
 {
 	return (word)(disksize/(gethddspt()*gethddheads(disksize)*gethddbps()));
 }
@@ -241,7 +241,7 @@ void getDiskGeometry(byte disk, word *heads, word *cylinders, uint_64 *sectors, 
 	}
 }
 
-byte GetBIOSType(byte disk)
+OPTINLINE byte GetBIOSType(byte disk)
 {
 //Not harddrive? Get from geometry list!
 	return 0; //Else: only HDD type!
@@ -251,7 +251,7 @@ byte GetBIOSType(byte disk)
 byte last_status; //Status of last operation
 byte last_drive; //Last drive something done to
 
-byte readdiskdata(uint_32 startpos)
+OPTINLINE byte readdiskdata(uint_32 startpos)
 {
 	byte readdata_result;
 	//Detect ammount of sectors to be able to read!
@@ -303,7 +303,7 @@ byte readdiskdata(uint_32 startpos)
 	return (byte)sector; //Give the ammount of sectors read!
 }
 
-byte writediskdata(uint_32 startpos)
+OPTINLINE byte writediskdata(uint_32 startpos)
 {
 	//Detect ammount of sectors to be able to read!
 	word sectors;

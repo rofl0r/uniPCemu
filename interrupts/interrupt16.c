@@ -119,7 +119,7 @@ struct {
       { 0x8600, 0x8800, 0x8a00, 0x8c00 }  /* F12 */
       };
 
-bool BIOS_AddKeyToBuffer(Bit16u code) {
+OPTINLINE bool BIOS_AddKeyToBuffer(Bit16u code) {
 	Bit16u start,end,head,tail,ttail;
 	if (mem_readb(BIOS_KEYBOARD_FLAGS2)&8) return true;
 	/*if (machine==MCH_PCJR) {
@@ -144,11 +144,11 @@ bool BIOS_AddKeyToBuffer(Bit16u code) {
 	return true;
 }
 
-void add_key(Bit16u code) {
+OPTINLINE void add_key(Bit16u code) {
 	if (code!=0) BIOS_AddKeyToBuffer(code);
 }
 
-bool get_key(Bit16u *code) {
+OPTINLINE bool get_key(Bit16u *code) {
 	Bit16u start,end,head,tail,thead;
 	/*if (machine==MCH_PCJR) {
 		/ should be done for cga and others as well, to be tested /
@@ -169,7 +169,7 @@ bool get_key(Bit16u *code) {
 	return true;
 }
 
-bool check_key(Bit16u *code) {
+OPTINLINE bool check_key(Bit16u *code) {
 	Bit16u head,tail;
 	head =mem_readw(BIOS_KEYBOARD_BUFFER_HEAD);
 	tail =mem_readw(BIOS_KEYBOARD_BUFFER_TAIL);
@@ -448,7 +448,7 @@ irq1_end:
 
 /* check whether key combination is enhanced or not,
    translate key if necessary */
-bool IsEnhancedKey(Bit16u *key) {
+OPTINLINE bool IsEnhancedKey(Bit16u *key) {
 	/* test for special keys (return and slash on numblock) */
 	if ((*key>>8)==0xe0) {
 		if (((*key&0xff)==0x0a) || ((*key&0xff)==0x0d)) {

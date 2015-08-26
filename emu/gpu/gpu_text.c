@@ -188,7 +188,7 @@ int GPU_textgetxy(GPU_TEXTSURFACE *surface,int x, int y, byte *character, uint_3
 	return 1; //OK!
 }
 
-void GPU_markdirty(GPU_TEXTSURFACE *surface, int x, int y) //Mark a character as dirty (GPU_text only, to prevent multirendering!)
+OPTINLINE void GPU_markdirty(GPU_TEXTSURFACE *surface, int x, int y) //Mark a character as dirty (GPU_text only, to prevent multirendering!)
 {
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
 	int rx;

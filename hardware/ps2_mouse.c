@@ -51,19 +51,19 @@ struct
 	byte supported; //PS/2 mouse supported on this system?
 } Mouse; //Ourselves!
 
-void give_mouse_input(byte data)
+OPTINLINE void give_mouse_input(byte data)
 {
 	if (__HW_DISABLED) return; //Abort!
 	writefifobuffer(Mouse.buffer,data); //Write to the buffer, ignore the result!
 }
 
-void input_lastwrite_mouse()
+OPTINLINE void input_lastwrite_mouse()
 {
 	if (__HW_DISABLED) return; //Abort!
 	fifobuffer_gotolast(Mouse.buffer); //Goto last!
 }
 
-void next_mousepacket() //Reads the next mouse packet, if any!
+OPTINLINE void next_mousepacket() //Reads the next mouse packet, if any!
 {
 	if (__HW_DISABLED) return; //Abort!
 	MOUSE_PACKET *oldpacket = Mouse.lastpacket; //Save the last packet!
@@ -80,7 +80,7 @@ void next_mousepacket() //Reads the next mouse packet, if any!
 	//Else: nothing to next!
 }
 
-void flushPackets() //Flushes all mouse packets!
+OPTINLINE void flushPackets() //Flushes all mouse packets!
 {
 	if (__HW_DISABLED) return; //Abort!
 	while (Mouse.packets)
@@ -95,7 +95,7 @@ void flushPackets() //Flushes all mouse packets!
 	
 }
 
-void resend_lastpacket() //Resends the last packet!
+OPTINLINE void resend_lastpacket() //Resends the last packet!
 {
 	if (__HW_DISABLED) return; //Abort!
 	if (Mouse.lastpacket && !Mouse.packetindex) //Gotten a last packet and at the start of a packet?
@@ -107,7 +107,7 @@ void resend_lastpacket() //Resends the last packet!
 	IRQ8042(); //We've got data in our input buffer!
 }
 
-int add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse packet!
+OPTINLINE byte add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse packet!
 {
 	if (__HW_DISABLED) return 1; //Abort!
 	if (Mouse.buttonstatus == packet->buttons) //Same button status?
@@ -149,7 +149,7 @@ byte PS2mouse_packet_handler(MOUSE_PACKET *packet) //Packet muse be allocated us
 	return 1; //We're supported!
 }
 
-float HWmouse_getsamplerate() //Which repeat rate to use after the repeat delay! (chars/second)
+OPTINLINE float HWmouse_getsamplerate() //Which repeat rate to use after the repeat delay! (chars/second)
 {
 	if (__HW_DISABLED) return 1.0f; //Abort!
 	float result;
@@ -172,7 +172,7 @@ void update_mouseTimer()
 	setMouseRate(HWmouse_getsamplerate()); //Start using this samplerate!
 }
 
-void resetMouse()
+OPTINLINE void resetMouse()
 {
 	if (__HW_DISABLED) return; //Abort!
 	flushPackets(); //Flush all packets!
@@ -185,7 +185,7 @@ void resetMouse()
 	IRQ8042(); //We've got data in our input buffer!
 }
 
-void mouse_handleinvalidcall()
+OPTINLINE void mouse_handleinvalidcall()
 {
 	if (__HW_DISABLED) return; //Abort!
 	if (!Mouse.last_was_error) //Last wasn't an error?
@@ -203,7 +203,7 @@ void mouse_handleinvalidcall()
 	Mouse.last_was_error = 1; //Last was an error!
 }
 
-void give_mouse_status() //Gives the mouse status buffer!
+OPTINLINE void give_mouse_status() //Gives the mouse status buffer!
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte buttonstatus = (
@@ -223,7 +223,7 @@ void give_mouse_status() //Gives the mouse status buffer!
 	give_mouse_input(Mouse.samplerate); //3rd byte is the sample rate!
 }
 
-void commandwritten_mouse() //Command has been written to the mouse?
+OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 {
 	if (__HW_DISABLED) return; //Abort!
 	Mouse.has_command = 1; //We have a command!
@@ -380,7 +380,7 @@ void commandwritten_mouse() //Command has been written to the mouse?
 	}
 }
 
-void datawritten_mouse(byte data) //Data has been written to the mouse?
+OPTINLINE void datawritten_mouse(byte data) //Data has been written to the mouse?
 {
 	if (__HW_DISABLED) return; //Abort!
 	switch (Mouse.command) //What command?
@@ -427,7 +427,7 @@ void handle_mousewrite(byte data)
 	}	
 }
 
-int apply_resolution(int movement) //Apply movement from joystick -255 - +255!
+OPTINLINE int apply_resolution(int movement) //Apply movement from joystick -255 - +255!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	switch (Mouse.resolution) //What resolution?
@@ -439,7 +439,7 @@ int apply_resolution(int movement) //Apply movement from joystick -255 - +255!
 	}
 }
 
-int apply_scaling(int movement) //Apply scaling on a mouse packet x/ymove!
+OPTINLINE int apply_scaling(int movement) //Apply scaling on a mouse packet x/ymove!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!Mouse.scaling21) return movement; //Unchanged!
@@ -461,13 +461,13 @@ int apply_scaling(int movement) //Apply scaling on a mouse packet x/ymove!
 	}	
 }
 
-int applypacketmovement(int movement)
+OPTINLINE int applypacketmovement(int movement)
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	return apply_scaling(apply_resolution(movement)); //Apply resolution (in mm), then scaling!
 }
 
-byte processMousePacket(MOUSE_PACKET *packet, byte index)
+OPTINLINE byte processMousePacket(MOUSE_PACKET *packet, byte index)
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!packet) return 0; //Nothing to process!
@@ -501,7 +501,7 @@ byte processMousePacket(MOUSE_PACKET *packet, byte index)
 	return 0; //Nothing to process!
 }
 
-byte handle_mouseread() //Read from the keyboard!
+byte handle_mouseread() //Read from the mouse!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	byte result;

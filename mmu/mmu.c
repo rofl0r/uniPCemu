@@ -178,7 +178,7 @@ void MMU_directwdw(uint_32 realaddress, uint_32 value)
 }
 
 //Direct memory access with Memory mapped I/O (for the CPU).
-byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read without segment/offset translation&protection (from system/interrupt)!
+OPTINLINE byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read without segment/offset translation&protection (from system/interrupt)!
 {
 	byte data;
 	if (MMU_IO_readhandler(realaddress,&data)) //Normal memory address?
@@ -192,7 +192,7 @@ byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read without segm
 	return data;
 }
 
-void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segment/offset translation&protection (from system/interrupt)!
+OPTINLINE void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segment/offset translation&protection (from system/interrupt)!
 {
 	if (MMU_logging) //To log?
 	{
@@ -208,7 +208,7 @@ void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segmen
 byte writeword = 0; //Hi-end word written?
 
 //Address translation routine.
-uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) //Real adress?
+OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) //Real adress?
 {
 	uint_32 realaddress;
 	//word originalsegment = segment;

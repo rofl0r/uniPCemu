@@ -20,13 +20,13 @@ void give_keyboard_input(byte data)
 	writefifobuffer(Keyboard.buffer,data); //Write to the buffer, ignore the result!
 }
 
-void input_lastwrite_keyboard()
+OPTINLINE void input_lastwrite_keyboard()
 {
 	if (__HW_DISABLED) return; //Abort!
 	fifobuffer_gotolast(Keyboard.buffer); //Goto last!
 }
 
-void resetKeyboard() //Reset the keyboard controller!
+OPTINLINE void resetKeyboard() //Reset the keyboard controller!
 {
 	if (__HW_DISABLED) return; //Abort!
 	FIFOBUFFER *oldbuffer = Keyboard.buffer; //Old buffer!
@@ -120,7 +120,7 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 
 
 //Unknown: respond with 0xFE: Resend!
-void commandwritten_keyboard() //Command has been written?
+OPTINLINE void commandwritten_keyboard() //Command has been written?
 {
 	if (__HW_DISABLED) return; //Abort!
 	Keyboard.has_command = 1; //We have a command!
@@ -228,7 +228,7 @@ void commandwritten_keyboard() //Command has been written?
 	}
 }
 
-void handle_keyboard_data(byte data)
+OPTINLINE void handle_keyboard_data(byte data)
 {
 	if (__HW_DISABLED) return; //Abort!
 	switch (Keyboard.command)
@@ -353,7 +353,7 @@ int handle_keyboardpeek(byte *result) //Peek at the keyboard!
 //Initialisation stuff!
 
 
-void keyboardControllerInit() //Part before the BIOS at computer bootup (self test)!
+OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootup (self test)!
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte result; //For holding the result from the hardware!

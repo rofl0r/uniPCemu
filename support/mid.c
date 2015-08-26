@@ -51,17 +51,17 @@ HEADER_CHNK header;
 byte *MID_data[100]; //Tempo and music track!
 TRACK_CHNK MID_tracks[100];
 
-word byteswap16(word value)
+OPTINLINE word byteswap16(word value)
 {
 	return ((value & 0xFF) << 8) | ((value & 0xFF00) >> 8); //Byteswap!
 }
 
-uint_32 byteswap32(uint_32 value)
+OPTINLINE uint_32 byteswap32(uint_32 value)
 {
 	return (byteswap16(value & 0xFFFF) << 8) | byteswap16((value & 0xFFFF0000) >> 16); //
 }
 
-float calcfreq(uint_32 tempo, HEADER_CHNK *header)
+OPTINLINE float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 {
 	float PPQN, speed;
 	byte frames;
@@ -95,7 +95,7 @@ float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 	return speed; //ticks per second!
 }
 
-void updateMIDTimer(HEADER_CHNK *header) //Request an update of our timer!
+OPTINLINE void updateMIDTimer(HEADER_CHNK *header) //Request an update of our timer!
 {
 	addtimer(calcfreq(activetempo, header), (Handler)&timing_pos, "MID_tempotimer", 0, 2, MID_timing_pos_Lock); //Add a counter timer!
 }
@@ -103,7 +103,7 @@ void updateMIDTimer(HEADER_CHNK *header) //Request an update of our timer!
 extern MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
 extern GPU_TEXTSURFACE *frameratesurface; //Our framerate surface!
 
-void printMIDIChannelStatus()
+OPTINLINE void printMIDIChannelStatus()
 {
 	int i;
 	uint_32 color; //The color to use!
@@ -247,7 +247,7 @@ void freeMID(TRACK_CHNK *tracks, byte **channels, word numchannels)
 	}
 }
 
-byte consumeStream(byte *stream, TRACK_CHNK *track, byte *result)
+OPTINLINE byte consumeStream(byte *stream, TRACK_CHNK *track, byte *result)
 {
 	byte *streamdata = stream + sizeof(uint_32); //Start of the data!
 	uint_32 *streampos = (uint_32 *)stream; //Position!
@@ -259,7 +259,7 @@ byte consumeStream(byte *stream, TRACK_CHNK *track, byte *result)
 	return 1; //Consumed!
 }
 
-byte peekStream(byte *stream, TRACK_CHNK *track, byte *result)
+OPTINLINE byte peekStream(byte *stream, TRACK_CHNK *track, byte *result)
 {
 	byte *streamdata = stream + sizeof(uint_32); //Start of the data!
 	uint_32 *streampos = (uint_32 *)stream; //Position!
@@ -270,7 +270,7 @@ byte peekStream(byte *stream, TRACK_CHNK *track, byte *result)
 	return 1; //Consumed!
 }
 
-byte read_VLV(byte *midi_stream, TRACK_CHNK *track, uint_32 *result)
+OPTINLINE byte read_VLV(byte *midi_stream, TRACK_CHNK *track, uint_32 *result)
 {
 	uint_32 temp = 0;
 	byte curdata;
@@ -288,7 +288,7 @@ byte read_VLV(byte *midi_stream, TRACK_CHNK *track, uint_32 *result)
 
 #define MIDI_ERROR(position) {error = position; goto abortMIDI;}
 
-void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_CHNK *track)
+OPTINLINE void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_CHNK *track)
 {
 	byte curdata;
 

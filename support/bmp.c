@@ -43,7 +43,7 @@ byte R; //Red
 } TRGB;
 #include "headers/endpacked.h" //We're packed!
 
-void swap(byte *a, byte *b)
+OPTINLINE void swap(byte *a, byte *b)
 {
 byte buf;
 buf = *a; //Store old a!
@@ -51,7 +51,7 @@ buf = *a; //Store old a!
 *b = buf; //Store old a in b!
 }
 
-uint_32 convertEndianness32(uint_32 val)
+OPTINLINE uint_32 convertEndianness32(uint_32 val)
 {
 union
 {
@@ -65,7 +65,7 @@ holder.data[3] = (byte)(val>>24); //High16High
 return holder.result; //Give the result!
 }
 
-word convertEndianness16(word val)
+OPTINLINE word convertEndianness16(word val)
 {
 union
 {

@@ -439,7 +439,7 @@ OPTINLINE void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 i
 
 //First the decoders:
 
-uint_32 modrm_SIB_reg(int reg, int mod, uint_32 disp32, int is_base, char *result)
+OPTINLINE uint_32 modrm_SIB_reg(int reg, int mod, uint_32 disp32, int is_base, char *result)
 {
 	if (is_base && mod==0 && reg==4)
 	{
@@ -485,7 +485,7 @@ uint_32 modrm_SIB_reg(int reg, int mod, uint_32 disp32, int is_base, char *resul
 	return 0; //Unknown register!
 }
 
-void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //32-bit address/reg decoder!
+OPTINLINE void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //32-bit address/reg decoder!
 {
 	bzero(result,sizeof(*result)); //Init!
 	byte curreg = 0;
@@ -943,7 +943,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	}
 }
 
-void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //16-bit address/reg decoder!
+OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //16-bit address/reg decoder!
 {
 	bzero(result,sizeof(*result)); //Init!
 	byte reg = 0;
@@ -1316,7 +1316,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 }
 
 
-void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
+OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 {
 	bzero(result,sizeof(*result)); //Init!
 	byte reg = 0;

@@ -35,7 +35,7 @@ VideoModeBlock *CurMode = &ModeList_VGA[0]; //Current video mode information blo
 uint_32 machine = M_VGA; //Active machine!
 //EGA/VGA?
 
-void INT10_SetSingleDACRegister(Bit8u index,Bit8u red,Bit8u green,Bit8u blue) {
+OPTINLINE void INT10_SetSingleDACRegister(Bit8u index,Bit8u red,Bit8u green,Bit8u blue) {
 	IO_Write(VGAREG_DAC_WRITE_ADDRESS,(Bit8u)index);
 	if ((real_readb(BIOSMEM_SEG,BIOSMEM_MODESET_CTL)&0x06)==0) {
 		IO_Write(VGAREG_DAC_DATA,red);
@@ -51,12 +51,12 @@ void INT10_SetSingleDACRegister(Bit8u index,Bit8u red,Bit8u green,Bit8u blue) {
 	}
 }
 
-void VGA_DAC_SetEntry(byte index, byte r, byte g, byte b)
+OPTINLINE void VGA_DAC_SetEntry(byte index, byte r, byte g, byte b)
 {
 	INT10_SetSingleDACRegister(index,r,g,b);
 }
 
-void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count) { //Creates a grayscale palette!
+OPTINLINE void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count) { //Creates a grayscale palette!
     Bitu ct;
 	Bit8u red, green, blue, ic;
 	Bit32u i;
@@ -74,7 +74,7 @@ void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count) { //Creates a 
 	}
 }
 
-int setCurMode(uint_32 type, word mode)
+OPTINLINE int setCurMode(uint_32 type, word mode)
 {
 	return (mode<=0x13); //Accepted?
 }
@@ -94,7 +94,7 @@ extern VideoModeBlock ModeList_VGA_Text_350lines[4];
 //Now the function itself (a big one)!
 /* Setup the BIOS */
 
-static bool SetCurMode(VideoModeBlock modeblock[],word mode)
+OPTINLINE static bool SetCurMode(VideoModeBlock modeblock[],word mode)
 {
 	if (mode > 0x13) return false; //Invalid mode!
 	byte i=0;
@@ -114,7 +114,7 @@ static bool SetCurMode(VideoModeBlock modeblock[],word mode)
 	return false;
 }
 
-void FinishSetMode(int clearmem)
+OPTINLINE void FinishSetMode(int clearmem)
 {
 	VGA_Type *currentVGA;
 	byte ct;

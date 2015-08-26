@@ -15,7 +15,7 @@ OPTINLINE double factor2dB(double factor, double fMaxLevelDB)
 
 //ADSR itself:
 
-float ADSR_release(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_release(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	if (adsr->release && adsr->releasefactor && adsr->releaselevel) //Gotten release and a factor to apply?
 	{
@@ -32,7 +32,7 @@ float ADSR_release(ADSR *adsr, int_64 play_counter, byte sustaining, byte releas
 	return 0.0f; //Nothing to sound!
 }
 
-float enterRelease(ADSR *adsr, int_64 play_counter, byte release_velocity, float releaselevel)
+OPTINLINE float enterRelease(ADSR *adsr, int_64 play_counter, byte release_velocity, float releaselevel)
 {
 	//Calculate the release information
 	if (!adsr->releasestarted)
@@ -52,14 +52,14 @@ float enterRelease(ADSR *adsr, int_64 play_counter, byte release_velocity, float
 	return ADSR_release(adsr,play_counter, 0, release_velocity); //Passthrough!
 }
 
-float ADSR_sustain(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_sustain(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	if (sustaining || (adsr->releasestarted && (play_counter < adsr->releasestart))) return adsr->sustainfactor; //Disable our voice when not sustaining anymore!
 	//Sustain expired?
 	return enterRelease(adsr,play_counter,release_velocity,adsr->sustainfactor); //Enter the release phase!
 }
 
-float ADSR_decay(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_decay(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	float result;
 	if (!sustaining && (!(adsr->releasestarted && (adsr->releasestart<play_counter)))) //Finished playing?
@@ -84,7 +84,7 @@ float ADSR_decay(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_
 	return ADSR_sustain(adsr,play_counter, sustaining, release_velocity); //Passthrough!
 }
 
-float ADSR_hold(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_hold(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	if (!sustaining && (!(adsr->releasestarted && (adsr->releasestart<play_counter)))) //Finished playing?
 	{
@@ -104,7 +104,7 @@ float ADSR_hold(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_v
 	return ADSR_decay(adsr, play_counter, sustaining, release_velocity); //Passthrough!
 }
 
-float ADSR_attack(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_attack(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	float result;
 	if (!sustaining && !(adsr->releasestarted && (adsr->releasestart<play_counter))) //Finished playing?
@@ -129,7 +129,7 @@ float ADSR_attack(ADSR *adsr, int_64 play_counter, byte sustaining, byte release
 	return ADSR_hold(adsr, play_counter, sustaining, release_velocity); //Passthrough!
 }
 
-float ADSR_delay(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_delay(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	if (adsr->delay) //Gotten delay?
 	{

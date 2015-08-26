@@ -19,7 +19,7 @@ void CPU_getint(byte intnr, word *segment, word *offset) //Set real mode IVT ent
 
 extern uint_32 destEIP;
 
-void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //Used by soft (below) and exceptions/hardware!
+OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //Used by soft (below) and exceptions/hardware!
 {
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{

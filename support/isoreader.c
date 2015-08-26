@@ -40,7 +40,7 @@ word ISOREADER_SEGMENT = 0x0000; //Segment read to load image!
 
 
 
-int WriteData(char *filename, void *buffer, uint_32 len) //Write buffer to file!
+OPTINLINE int WriteData(char *filename, void *buffer, uint_32 len) //Write buffer to file!
 {
 	FILE *f;
 	f = fopen(filename,"wb"); //Open file for writing!

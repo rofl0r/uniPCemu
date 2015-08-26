@@ -44,14 +44,14 @@ SOFTDEBUGGER softdebugger; //The software debugger for the CPU!
 //Next steps:
 
 //First phase
-void debugger_doError() //Give an error result!
+OPTINLINE void debugger_doError() //Give an error result!
 {
 	if (__HW_DISABLED) return; //Abort!
 	softdebugger.command = 1; //Reset!
 	softdebugger.readcommand = 1; //Give an error!
 }
 
-void debugger_doParameterPhase(word size) //Start a parameter phase!
+OPTINLINE void debugger_doParameterPhase(word size) //Start a parameter phase!
 {
 	if (__HW_DISABLED) return; //Abort!
 	softdebugger.command = 4; //Parameter phase when writing!
@@ -61,13 +61,13 @@ void debugger_doParameterPhase(word size) //Start a parameter phase!
 }
 
 //Execution phase
-void debugger_ackParameters() //Acnowledge parameters!
+OPTINLINE void debugger_ackParameters() //Acnowledge parameters!
 {
 	if (__HW_DISABLED) return; //Abort!
 	softdebugger.parametersack = 1; //Acnowledge!
 }
 
-void debugger_doResultPhase(uint_32 size) //Start a result phase!
+OPTINLINE void debugger_doResultPhase(uint_32 size) //Start a result phase!
 {
 	if (__HW_DISABLED) return; //Abort!
 	softdebugger.haveresult = 1; //We have a result!
@@ -75,7 +75,7 @@ void debugger_doResultPhase(uint_32 size) //Start a result phase!
 }
 
 //Functions that interpret given data:
-void quitdebugger() //Quits the debugger!
+OPTINLINE void quitdebugger() //Quits the debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	softdebugger.command = 0; //Move back to unexisting mode!
@@ -83,7 +83,7 @@ void quitdebugger() //Quits the debugger!
 	//Newlines stay the same: we keep the current system!
 }
 
-void enterdebugger()
+OPTINLINE void enterdebugger()
 {
 	if (__HW_DISABLED) return; //Abort!
 	softdebugger.command  = 1; //Enter command mode!
@@ -91,7 +91,7 @@ void enterdebugger()
 }
 
 //Output filename support!
-void outputfilename_specifylength()
+OPTINLINE void outputfilename_specifylength()
 {
 	if (__HW_DISABLED) return; //Abort!
 }
@@ -115,7 +115,7 @@ DebuggerCommandHandler commandhandlers[1][1][3] = { //[group][command][0=basic,1
 	};
 	
 //Basic command mode functionality!
-void write_command(byte data) //Write functionality
+OPTINLINE void write_command(byte data) //Write functionality
 {
 	if (__HW_DISABLED) return; //Abort!
 	switch (softdebugger.command) //What command?
@@ -170,7 +170,7 @@ void write_command(byte data) //Write functionality
 	}
 }
 
-byte read_command() //Read functionality
+OPTINLINE byte read_command() //Read functionality
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	byte result = ~0; //Result!
@@ -288,7 +288,7 @@ byte read_command() //Read functionality
 
 //Text (debugger) mode support!
 
-void debugger_flush()
+OPTINLINE void debugger_flush()
 {
 	if (__HW_DISABLED) return; //Abort!
 	if (!strcmp(softdebugger.writtendata,debugger_identifier)) //Enter/reset debugger mode?
@@ -303,7 +303,7 @@ void debugger_flush()
 	strcpy(softdebugger.writtendata,""); //Clear the data again!
 }
 
-void debugger_writecharacter(byte c) //Write a character to the debugger!
+OPTINLINE void debugger_writecharacter(byte c) //Write a character to the debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	if ((c=='\n') || (c=='\r')) //Newline character?

@@ -94,7 +94,7 @@ void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerele
 //Memory value comparision.
 
 //Returns 1 on not equal, 0 on equal!
-byte diffmem(void *start, byte value, uint_32 size)
+OPTINLINE byte diffmem(void *start, byte value, uint_32 size)
 {
 	byte *current = (byte *)start; //Convert to byte list!
 	byte result = 0; //Default: equal!
@@ -133,7 +133,7 @@ byte diffmem(void *start, byte value, uint_32 size)
 }
 
 //Returns 1 on not equal, 0 on equal!
-byte memdiff(void *start, void *value, uint_32 size)
+OPTINLINE byte memdiff(void *start, void *value, uint_32 size)
 {
 	byte *current = (byte *)start; //Convert to byte list!
 	byte *ref = (byte *)value; //To compare to!
@@ -174,7 +174,7 @@ byte memdiff(void *start, void *value, uint_32 size)
 }
 
 //Color key matching.
-void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest ){
+OPTINLINE void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest ){
 	if (!(src && dest)) return; //Abort: invalid src/dest!
 	if (!memprotect((void *)src,sizeof(*src),NULL) || !memprotect((void *)dest,sizeof(dest),NULL)) return; //Invalid?
 	if( src->sdllayer->flags & SDL_SRCCOLORKEY )
@@ -292,7 +292,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 }
 
 //Pixels between rows.
-uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference between two rows!
+OPTINLINE uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference between two rows!
 {
 	if (!surface) 
 	{
@@ -344,7 +344,7 @@ void put_pixel(GPU_SDL_Surface *surface, const int x, const int y, const Uint32 
 }
 
 //Retrieve a pixel/row(pixel=0).
-void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x)
+OPTINLINE void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x)
 {
 	if (!surface) return NULL; //Invalid surface altogether!
 	if (!memprotect(surface,sizeof(GPU_SDL_Surface),NULL))
@@ -582,7 +582,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 }
 
 //Generate a byte order for SDL.
-void loadByteOrder(uint_32 *rmask, uint_32 *gmask, uint_32 *bmask, uint_32 *amask)
+OPTINLINE void loadByteOrder(uint_32 *rmask, uint_32 *gmask, uint_32 *bmask, uint_32 *amask)
 {
 	//Entirely dependant upon the system itself!
 	*rmask = RGBA(0xFF,0x00,0x00,0x00);

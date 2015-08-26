@@ -140,7 +140,7 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 	return ((lastrow>>shift[newx])&1); //Give bit!
 }
 
-void VGA_dumpchar(VGA_Type *VGA, byte c)
+OPTINLINE void VGA_dumpchar(VGA_Type *VGA, byte c)
 {
 	byte y=0;
 	byte maxx=0;

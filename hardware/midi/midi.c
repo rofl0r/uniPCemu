@@ -44,7 +44,7 @@ Basic input/ouput functionality!
 
 */
 
-void MIDI_writeStatus(byte data) //Write a status byte to the MIDI device!
+OPTINLINE void MIDI_writeStatus(byte data) //Write a status byte to the MIDI device!
 {
 	/*if (((data&0xF0)!=0xF0) || MIDIDEV.command==-1) //Not System comamnd?
 	{
@@ -102,7 +102,7 @@ void MIDI_writeStatus(byte data) //Write a status byte to the MIDI device!
 	}
 }
 
-void MIDI_writeData(byte data) //Write a data byte to the MIDI device!
+OPTINLINE void MIDI_writeData(byte data) //Write a data byte to the MIDI device!
 {
 	switch ((MIDIDEV.command>>4)&0xF) //What command?
 	{
@@ -207,7 +207,7 @@ byte MIDI_has_data() //Do we have data to be read?
 	return 0; //We never have data to be read!
 }
 
-byte MIDI_readData() //Read data from the MPU!
+OPTINLINE byte MIDI_readData() //Read data from the MPU!
 {
 	if (MIDIDEV.inbuffer) //We're containing a FIFO buffer?
 	{
@@ -274,7 +274,7 @@ void doneMPU() //Finish function!
 	}
 }
 
-void MPU401_Done() //Finish our MPU system! Custom by superfury1!
+OPTINLINE void MPU401_Done() //Finish our MPU system! Custom by superfury1!
 {
 	removetimer("MPU"); //Remove the timer if it's still there!
 	removeirq(2); //Remove the irq if it's still there!
