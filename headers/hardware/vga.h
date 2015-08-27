@@ -774,19 +774,8 @@ void VGA_plane2updated(VGA_Type *VGA, uint_32 address); //Plane 2 has been updat
 
 void setVGA_NMIonPrecursors(byte enabled); //Trigger an NMI when our precursors are called?
 
-OPTINLINE byte lockVGA()
-{
-	return lock("VGA");
-}
-
-OPTINLINE void unlockVGA()
-{
-	unlock("VGA");
-}
-
-OPTINLINE VGA_Type *getActiveVGA() //Get the active VGA Chipset!
-{
-	return ActiveVGA; //Give the active VGA!
-}
-
+#define lockVGA() lock(LOCK_VGA)
+#define unlockVGA() unlock(LOCK_VGA)
+//Give the active VGA!
+#define getActiveVGA() ActiveVGA
 #endif

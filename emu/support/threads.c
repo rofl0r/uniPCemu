@@ -77,7 +77,7 @@ ThreadParams_p allocateThread() //Allocate a new thread to run (waits if none to
 			//Failed to allocate, passthrough!
 		}
 	}
-	delay(1); //Wait a bit for some space: allow other threads to!
+	delay(0); //Wait a bit for some space: allow other threads to!
 	goto newallocate; //Try again till we work!
 }
 
@@ -337,7 +337,7 @@ ThreadParams_p startThread(Handler thefunc, char *name, void *params, int priori
 	
 	if (!threadparams->thread) //Failed to create?
 	{
-		delay(100); //Wait a bit!
+		delay(0); //Wait a bit!
 		goto docreatethread; //Try again!
 	}
 	thid = SDL_GetThreadID(threadparams->thread); //Get the thread ID!

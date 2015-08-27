@@ -145,7 +145,7 @@ void BIOS_LoadData() //Load BIOS settings!
 {
 	if (__HW_DISABLED) return; //Abort!
 	FILE *f;
-	word bytesread;
+	word bytesread, bytestoread;
 	uint_32 CheckSum = 0; //Read checksum!
 
 	f = fopen(BIOS_FILE,"rb"); //Open BIOS file!
@@ -164,11 +164,26 @@ void BIOS_LoadData() //Load BIOS settings!
 		return; //We've loaded the defaults!
 	}
 
-	memset(&BIOS_Settings, 0, sizeof(BIOS_Settings)); //Clear all settings we have!
-	bytesread = fread(&BIOS_Settings,1,sizeof(BIOS_Settings),f); //Read settings!
+	fseek(f, 0, SEEK_END); //Goto EOF!
+	bytestoread = ftell(f); //How many bytes to read!
+	bytestoread -= sizeof(CheckSum); //Without the checksum!
+	if (bytestoread > sizeof(BIOS_Settings)) //Incompatible BIOS: we're newer than what we have?
+	{
+		BIOS_LoadDefaults(1); //Load the defaults, save!
+		return; //We've loaded the defaults because 
+	}
+	fseek(f, sizeof(CheckSum), SEEK_SET); //Goto start of settings!
+
+	memset(&BIOS_Settings, 0, sizeof(BIOS_Settings)); //Clear all settings we have: we want to start older BIOSes empty!
+	bytesread = fread(&BIOS_Settings,1,bytestoread,f); //Read settings!
 	fclose(f); //Close!
 
 //Verify the checksum!
+	if (bytesread != bytestoread) //Error reading data?
+	{
+		BIOS_LoadDefaults(1); //Load the defaults, save!
+		return; //We've loaded the defaults!
+	}
 
 	if (CheckSum!=BIOS_getChecksum()) //Checksum fault?
 	{
@@ -311,6 +326,12 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 			memset(BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont)); //Invalid soundfont!
 			bioschanged = 1; //BIOS changed!
 		}
+	}
+
+	if (BIOS_Settings.CPUSpeed > 1) //Invalid speed?
+	{
+		BIOS_Settings.CPUSpeed = 0; //Unlimited!
+		bioschanged = 1; //Changed!
 	}
 
 	if (bioschanged)

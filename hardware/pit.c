@@ -27,8 +27,6 @@ float currenttime = 0.0f; //Current time passed!
 
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 
-SDL_sem *PIT0Lock = NULL;
-
 void updatePIT0() //Timer tick Irq
 {
 	if (EMU_RUNNING==1) //Are we running?
@@ -130,9 +128,7 @@ byte in8253(word portnum, byte *result)
 			//Calculate the current PIT0 state by frequency and time passed!
 			uint_64 uspassed;
 			const static float tickduration = (1.0f/1193180.0f)*1000000.0f; //How long does it take to process one tick in us?
-			WaitSem(PIT0Lock); //Protect against corrupted values!
 			uspassed = getuspassed_k(&timerticks); //How many time has passed since the last full state?
-			PostSem(PIT0Lock);
 			calculatedpit0state = pit0divisor; //Load the current divisor (1-65536)
 			if (calculatedpit0state == 65536) calculatedpit0state = 0; //We start counting from 0 instead of 65536!
 			calculatedpit0state -= ((float)uspassed/tickduration); //Count down the current PIT0 state!
@@ -224,5 +220,4 @@ void init8253() {
 	if (__HW_DISABLED) return; //Abort!
 	register_PORTOUT(&out8253);
 	register_PORTIN(&in8253);
-	PIT0Lock = getLock("PIT0"); //Get our lock to use!
 }

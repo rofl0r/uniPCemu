@@ -131,14 +131,11 @@ byte MMU_IO_writehandler(uint_32 offset, byte value)
 	{
 		if (MMUHANDLER.writehandlers[i]) //Set?
 		{
-			if (strcmp(MMUHANDLER.modulew[i],"")!=0) //Set name?
+			if (offset>=MMUHANDLER.startoffsetw[i] && offset<=MMUHANDLER.endoffsetw[i]) //Within range?
 			{
-				if (offset>=MMUHANDLER.startoffsetw[i] && offset<=MMUHANDLER.endoffsetw[i]) //Within range?
+				if (MMUHANDLER.writehandlers[i](MMUHANDLER.startoffsetw[i],offset-MMUHANDLER.startoffsetw[i],value)) //Success?
 				{
-					if (MMUHANDLER.writehandlers[i](MMUHANDLER.startoffsetw[i],offset-MMUHANDLER.startoffsetw[i],value)) //Success?
-					{
-						return 0; //Abort searching: we're processed!
-					}
+					return 0; //Abort searching: we're processed!
 				}
 			}
 		}
@@ -154,14 +151,11 @@ byte MMU_IO_readhandler(uint_32 offset, byte *value)
 	{
 		if (MMUHANDLER.readhandlers[i]) //Set?
 		{
-			if (strcmp(MMUHANDLER.moduler[i],"")!=0) //Set name?
+			if (offset>=MMUHANDLER.startoffsetr[i] && offset<=MMUHANDLER.endoffsetr[i]) //Within range?
 			{
-				if (offset>=MMUHANDLER.startoffsetr[i] && offset<=MMUHANDLER.endoffsetr[i]) //Within range?
+				if (MMUHANDLER.readhandlers[i](MMUHANDLER.startoffsetr[i],offset-MMUHANDLER.startoffsetr[i],value)) //Success reading?
 				{
-					if (MMUHANDLER.readhandlers[i](MMUHANDLER.startoffsetr[i],offset-MMUHANDLER.startoffsetr[i],value)) //Success reading?
-					{
-						return 0; //Abort searching: we're processed!
-					}
+					return 0; //Abort searching: we're processed!
 				}
 			}
 		}

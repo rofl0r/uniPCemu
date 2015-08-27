@@ -44,8 +44,6 @@ uint_32 makeupticks; //From PIC?
 
 byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
 
-uint_64 instructioncounter; //Instruction counter!
-
 void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
 {
 //Now call handler!
@@ -257,7 +255,7 @@ byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 
 void alloc_CPUregisters()
 {
-	CPU[activeCPU].registers = (CPU_registers *)zalloc(sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS", getLock("CPU")); //Allocate the registers!
+	CPU[activeCPU].registers = (CPU_registers *)zalloc(sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS", getLock(LOCK_CPU)); //Allocate the registers!
 	if (!CPU[activeCPU].registers)
 	{
 		raiseError("CPU","Failed to allocate the required registers!");
@@ -698,8 +696,6 @@ byte CPU_segmentOverridden(byte activeCPU)
 	return (CPU[activeCPU].segment_register != CPU_SEGMENT_DEFAULT); //Is the segment register overridden?
 }
 
-extern SDL_sem *IPS_Lock;
-
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
@@ -849,9 +845,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	blockREP = 0; //Don't block REP anymore!
 	CPU[activeCPU].cycles += CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
 	CPU_afterexec(); //After executing OPCode stuff!
-	WaitSem(IPS_Lock); //Wait for the IPS!
-	++instructioncounter; //Increase the instruction counter!
-	PostSem(IPS_Lock); //Finished with the IPS!
 }
 
 void CPU_hard_RETI() //Hardware RETI!

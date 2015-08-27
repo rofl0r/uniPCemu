@@ -26,7 +26,7 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 {
 	if ((packet->xmove) || (packet->ymove) || (SERMouse.buttons != packet->buttons)) //Something to do?
 	{
-		for (;!lock("SERMouse");) delay(0); //Lock ourselves!
+		lock(LOCK_SERMOUSE); //Lock ourselves!
 		//Process the packet into the buffer, if possible!
 		if (fifobuffer_freesize(SERMouse.buffer) > 2) //Gotten enough space to process?
 		{
@@ -45,7 +45,7 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 			writefifobuffer(SERMouse.buffer, packet->ymove&63); //Y movement!
 			UART_handleInputs(); //Process the input given by the CPU!
 		}
-		unlock("SERMouse");
+		unlock(LOCK_SERMOUSE);
 	}
 	MOUSE_PACKET *temp;
 	temp = packet; //Load packet to delete!
@@ -54,7 +54,7 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 
 void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 {
-	for (;!lock("SERMouse");) delay(0); //Lock ourselves!
+	lock(LOCK_SERMOUSE); //Lock ourselves!
 	if (((line & 3) == 3) && ((SERMouse.modemcontrol&3)!=3)) //DTR&RTS set?
 	{
 		fifobuffer_gotolast(SERMouse.buffer); //Flush the FIFO buffer until last input!
@@ -67,7 +67,7 @@ void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 		UART_handleInputs(); //Update input!
 	}
 	SERMouse.modemcontrol = line; //Set the modem control lines for reference!
-	unlock("SERMouse");
+	unlock(LOCK_SERMOUSE);
 }
 
 byte serMouse_readData()

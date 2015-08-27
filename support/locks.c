@@ -1,12 +1,6 @@
 #include "headers/types.h" //Basic types!
 
-struct
-{
-	byte used; //Used lock?
-	SDL_sem *lock;
-	char name[256];
-} locks[100];
-
+SDL_sem *locks[100]; //All allocated locks!
 SDL_sem *LockLock; //Our own lock!
 
 void exitLocks(void)
@@ -14,10 +8,10 @@ void exitLocks(void)
 	int i;
 	for (i = 0; i < NUMITEMS(locks); i++)
 	{
-		if (locks[i].lock) //Gotten a lock?
+		if (locks[i]) //Gotten a lock?
 		{
-			SDL_DestroySemaphore(locks[i].lock);
-			memset(&locks[i], 0, sizeof(locks[i])); //Destroy the createn item to make it unusable!
+			SDL_DestroySemaphore(locks[i]);
+			locks[i] = NULL; //Destroy the createn item to make it unusable!
 		}
 	}
 }
@@ -34,56 +28,39 @@ void initLocks()
 	}
 }
 
-SDL_sem *getLock(char *name)
+SDL_sem *getLock(byte id)
 {
-	int i;
 	WaitSem(LockLock)
-	for (i = 0; i < NUMITEMS(locks); i++)
+	if (locks[id]) //Used lock?
 	{
-		if (locks[i].used) //Used lock?
-		{
-			if (strcmp(name, locks[i].name)==0) //Found?
-			{
-				PostSem(LockLock)
-				return locks[i].lock; //Give the lock!
-			}
-		}
+		PostSem(LockLock)
+		return locks[id]; //Give the lock!
 	}
 	//Not found? Allocate the lock!
-	for (i = 0; i < NUMITEMS(locks); i++)
+	if (!locks[id]) //Not used yet?
 	{
-		if (!locks[i].used) //Unused lock?
-		{
-			strcpy(locks[i].name, name); //Set the lock to used!
-			if (!locks[i].lock) //Not used yet?
-			{
-				locks[i].lock = SDL_CreateSemaphore(1); //Create the lock!
-			}
-			locks[i].used = 1; //We're used!
-			PostSem(LockLock)
-			return locks[i].lock; //Give the createn lock!
-		}
+		locks[id] = SDL_CreateSemaphore(1); //Create the lock!
 	}
 	PostSem(LockLock)
-	return NULL; //Unable to allocate: invalid lock!
+	return locks[id]; //Give the createn lock!
 }
 
-byte lock(char *name)
+byte lock(byte id)
 {
 	SDL_sem *lock;
-	lock = getLock(name); //Get the lock!
+	lock = getLock(id); //Get the lock!
 	if (lock) //Gotten the lock?
 	{
-		WaitSem(lock) //Wait for it!
+		WaitSem(lock); //Wait for it!
 		return 1; //OK!
 	}
 	return 0; //Error!
 }
 
-void unlock(char *name)
+void unlock(byte id)
 {
 	SDL_sem *lock;
-	lock = getLock(name); //Try and get the lock!
+	lock = getLock(id); //Try and get the lock!
 	if (lock) //Gotten the lock?
 	{
 		PostSem(lock)

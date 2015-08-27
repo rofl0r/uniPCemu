@@ -123,7 +123,6 @@ void GPU_removeTextSurface(void *surface); //Unregister a text surface (removes 
 
 void updateVideo(); //Update the screen resolution on change!
 
-byte lockGPU();
-void unlockGPU(); //GPU locking support for framebuffer access!
-
+#define lockGPU() lock(LOCK_GPU)
+#define unlockGPU() unlock(LOCK_GPU)
 #endif

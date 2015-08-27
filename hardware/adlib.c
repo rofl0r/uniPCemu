@@ -24,6 +24,8 @@
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
 #define __ADLIB_SAMPLEBUFFERSIZE 0
 
+#define PI2 (float)(2.0f * PI)
+
 #define dB2factor(dB, fMaxLevelDB) pow(10, ((dB - fMaxLevelDB) / 20))
 
 //extern void set_port_write_redirector (uint16_t startport, uint16_t endport, void *callback);
@@ -298,13 +300,17 @@ uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 	return (tmpfreq);
 }
 
+//Optimized sinf!
+//#define sinf(x) ((float)sin(x))
+
 OPTINLINE float adlibWave(byte signal, const float frequencytime) {
-	const static float PI2 = 2.0f * PI; //2PI!
 	double x;
 	float result,t;
+	result = PI2; //Load PI2!
+	result *= frequencytime; //Apply freqtime!
 	switch (signal) {
 	case 0: //SINE?
-		return sinf(PI2 * frequencytime); //The sinus function!
+		return sin(result); //The sinus function!
 	case 0xFF: //Random signal?
 		return RandomFloat(-1.0f, 1.0f); //Random noise!	
 	default:
@@ -312,12 +318,12 @@ OPTINLINE float adlibWave(byte signal, const float frequencytime) {
 		switch (signal) { //What special signal?
 		case 1: // Negative=0?
 			if (t > 0.5f) return 0.0f; //Negative!
-			result = sinf(PI2 * frequencytime); //The sinus function!
+			result = sinf(result); //The sinus function!
 			return result; //Positive!
 		case 3: // Absolute with second half=0?
 			if (fmod(t, 0.5f) > 0.25) return 0.0f; //Are we the second half of the half period? Clear the signal if so!
 		case 2: // Absolute?
-			result = sinf(PI2 * frequencytime); //The sinus function!
+			result = sinf(result); //The sinus function!
 			if (result < 0) result = 0 - result; //Make positive!
 			return result; //Simply absolute!
 		default: //Unknown signal?
@@ -537,39 +543,41 @@ OPTINLINE void tickadlib()
 		if (adliboperatorsreverse[curop] == 0xFF) continue; //Skip invalid operators!
 		if (adlibop[curop].volenvstatus) //Are we a running envelope?
 		{
-		volenv_recheck: //Recheck!
 			switch (adlibop[curop].volenvstatus)
 			{
 			case 1: //Attacking?
-				adlibop[curop].volenvcalculated *= adlibop[curop].attack; //Attack!
+				adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].attack); //Attack!
 				if (adlibop[curop].volenvcalculated >= 1.0)
 				{
 					adlibop[curop].volenvcalculated = 1.0; //We're at 1.0 to start decaying!
 					++adlibop[curop].volenvstatus; //Enter next phase!
-					goto volenv_recheck;
+					goto startdecay;
 				}
 				break;
 			case 2: //Decaying?
-				adlibop[curop].volenvcalculated *= adlibop[curop].decay; //Decay!
+				startdecay:
+				adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].decay); //Decay!
 				if (adlibop[curop].volenvcalculated <= adlibop[curop].sustain) //Sustain level reached?
 				{
 					adlibop[curop].volenvcalculated = adlibop[curop].sustain; //Sustain level!
 					++adlibop[curop].volenvstatus; //Enter next phase!
-					goto volenv_recheck;
+					goto startsustain;
 				}
 				break;
 			case 3: //Sustaining?
+				startsustain:
 				if ((!adlibch[adliboperatorsreverse[curop]].keyon) || adlibop[curop].ReleaseImmediately) //Release entered?
 				{
 					++adlibop[curop].volenvstatus; //Enter next phase!
-					goto volenv_recheck; //Check again!
+					goto startrelease; //Check again!
 				}
 				break;
 			case 4: //Releasing?
-				adlibop[curop].volenvcalculated *= adlibop[curop].release; //Release!
+				startrelease:
+				adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].release); //Release!
 				if (adlibop[curop].volenvcalculated < min_vol) //Less than the format can provide?
 				{
-					adlibop[curop].volenvcalculated = 0.0f; //Clear the sound!
+					adlibop[curop].volenv = adlibop[curop].volenvcalculated = 0.0f; //Clear the sound!
 					adlibop[curop].volenvstatus = 0; //Terminate the signal: we're unused!
 				}
 				break;
@@ -580,10 +588,6 @@ OPTINLINE void tickadlib()
 			if (adlibop[curop].volenvcalculated < min_vol) //Below minimum?
 			{
 				adlibop[curop].volenv = 0.0f; //No volume below minimum!
-			}
-			else
-			{
-				adlibop[curop].volenv = adlibop[curop].volenvcalculated; //No volume below minimum!
 			}
 		}
 	}

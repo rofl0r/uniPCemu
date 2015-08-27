@@ -247,10 +247,10 @@ int psp_inputkeydelay(uint_32 waittime) //Don't use within any timers! This will
 int psp_readkey() //Wait for keypress and release!
 {
 	int result;
-	result = psp_inputkeydelay(1); //Check for input!
+	result = psp_inputkeydelay(0); //Check for input!
 	while (result==0) //No input?
 	{
-		result = psp_inputkeydelay(1); //Check for input!
+		result = psp_inputkeydelay(0); //Check for input!
 	}
 	return result; //Give the pressed key!
 }

@@ -22,6 +22,8 @@ SDL_sem *lock; //Our lock when calculating time passed!
 #define US_SECOND 1000000
 #define NS_SECOND 1000000000
 
+void initHighresTimer(); //Global init!
+
 void initTicksHolder(TicksHolder *ticksholder); //Initialise ticks holder!
 uint_64 getuspassed(TicksHolder *ticksholder); //Get ammount of us passed since last use!
 uint_64 getnspassed(TicksHolder *ticksholder); //Get ammount of ns passed since last use!
