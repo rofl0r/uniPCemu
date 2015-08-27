@@ -64,7 +64,7 @@ OPTINLINE void GPU_setresolution(word mode) //Sets the resolution based on curre
 	//EMU_CPU_setCursorScanlines(getcharacterheight(int10_VGA)-2,getcharacterheight(int10_VGA)-1); //Reset scanlines to bottom!
 }
 
-OPTINLINE byte getscreenwidth(byte displaypage) //Get the screen width (in characters), based on the video mode!
+byte getscreenwidth(byte displaypage) //Get the screen width (in characters), based on the video mode!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	return MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0);

@@ -27,7 +27,7 @@ extern uint_32 frames; //Frames processed!
 
 uint_32 frames_rendered = 0;
 
-OPTINLINE void renderScreenFrame() //Render the screen frame!
+void renderScreenFrame() //Render the screen frame!
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?

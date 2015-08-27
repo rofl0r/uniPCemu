@@ -444,12 +444,13 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		}
 	}
 	
-	retracing = hretrace;
-	retracing |= vretrace; //We're retracing?
+	register byte isretrace;
+	isretrace = hretrace;
+	isretrace |= vretrace; //We're retracing?
 	//Retracing disables output!
 
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace; //Vertical retrace?
-	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing; //Vertical or horizontal retrace?
+	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing = isretrace; //Vertical or horizontal retrace?
 
 	totalling = 0; //Default: Not totalling!
 	//Totals

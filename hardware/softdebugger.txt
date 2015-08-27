@@ -56,11 +56,12 @@ Group #0: Basic functions.
 	Function #1:	Change output filename: Specify length.
 				Parameter:
 					WORD The size of the zero-terminated string containing the new filename (word).
+				Result:
+					1 on success, 0 on error.
 	Function #2:	Change output filename: Specify filename (after above function only).
-				Second call:
-					Parameter:
-					The zero-terminated string containing the new filename.
-Group #1: Disk functions.
+				Parameter:
+				The zero-terminated string containing the new filename, of the length in bytes of the specify length command.
+Group #1: Disk functions (unimplemented).
 	Function #0:	Check for disk mount
 			Parameters:
 				BYTE disk number (0,1=Floppy; 2,3=HDD, 4,5=CDROM, 6,7,8,9=USB)
@@ -83,6 +84,8 @@ Group #1: Disk functions.
 	Function #3:	Mount disk
 			Parameters:
 				WORD disk number
+Group #2: Soundfont
+	TODO
 
 //C routines for working with the debugger.
 

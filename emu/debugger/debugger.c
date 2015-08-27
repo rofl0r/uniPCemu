@@ -69,7 +69,7 @@ extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 byte startreached = 0;
 
-OPTINLINE byte debugger_logging()
+byte debugger_logging()
 {
 	byte enablelog=0; //Default: disabled!
 	switch (DEBUGGER_LOG) //What log method?

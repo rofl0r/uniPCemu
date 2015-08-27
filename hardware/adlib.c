@@ -236,7 +236,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
 			byte feedback;
 			feedback = (adlibregmem[0xC0 + portnum] >> 1) & 7; //Get the feedback value used!
-			adlibch[portnum].feedback = feedbacklookup[feedback]; //Convert to a feedback of the modulator signal!
+			//adlibch[portnum].feedback = feedbacklookup[feedback]; //Convert to a feedback of the modulator signal!
 			unlockAdlib();
 		}
 		break;

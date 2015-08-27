@@ -127,7 +127,8 @@ byte MMU_registerReadHandler(uint_32 startoffset, uint_32 endoffset, MMU_RHANDLE
 byte MMU_IO_writehandler(uint_32 offset, byte value)
 {
 	byte i=0;
-	for (;((i<NUMITEMS(MMUHANDLER.writehandlers)) && (i<MMUHANDLER.numw));) //Search all available handlers!
+	byte j = MIN(NUMITEMS(MMUHANDLER.writehandlers), MMUHANDLER.numw); //The amount of handlers to process!
+	for (;j;) //Search all available handlers!
 	{
 		if (MMUHANDLER.writehandlers[i]) //Set?
 		{
@@ -140,14 +141,17 @@ byte MMU_IO_writehandler(uint_32 offset, byte value)
 			}
 		}
 		++i; //Next!
+		--j;
 	}
 	return 1; //Normal memory access!
 }
+
 //Reading only!
 byte MMU_IO_readhandler(uint_32 offset, byte *value)
 {
 	byte i=0;
-	for (;((i<NUMITEMS(MMUHANDLER.readhandlers)) && (i<MMUHANDLER.numr));) //Search all available handlers!
+	byte j = MIN(NUMITEMS(MMUHANDLER.readhandlers), MMUHANDLER.numr); //The amount of handlers to process!
+	for (;j;) //Search all available handlers!
 	{
 		if (MMUHANDLER.readhandlers[i]) //Set?
 		{
@@ -160,6 +164,7 @@ byte MMU_IO_readhandler(uint_32 offset, byte *value)
 			}
 		}
 		++i; //Next!
+		--j;
 	}
 	return 1; //Normal memory access!
 }

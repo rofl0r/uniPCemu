@@ -175,7 +175,7 @@ int move_file(char *fromfile, char *tofile)
 	return 0; //Error: file doesn't exist, so success!
 }
 
-OPTINLINE float RandomFloat(float min, float max)
+float RandomFloat(float min, float max)
 {
     if (min>max) //Needs to be swapped?
     {
