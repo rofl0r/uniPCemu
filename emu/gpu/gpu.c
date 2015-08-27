@@ -196,16 +196,6 @@ void doneVideoMain() //Everything SDL POST-EMU!
 
 //Below is called during emulation itself!
 
-byte lockGPU()
-{
-	return lock("GPU");
-}
-
-void unlockGPU()
-{
-	unlock("GPU");
-}
-
 void initVideo(int show_framerate) //Initialises the video
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -214,7 +204,7 @@ void initVideo(int show_framerate) //Initialises the video
 	
 	//dolog("zalloc","Allocating GPU EMU_screenbuffer...");
 	debugrow("Video: Waiting for access to GPU...");
-	for (; !lockGPU();) delay(1); //Wait for access!
+	lockGPU(); //Wait for access!
 	debugrow("Video: Allocating screen buffer...");
 	GPU.emu_screenbuffer = (uint_32 *)zalloc(EMU_SCREENBUFFERSIZE * 4, "EMU_ScreenBuffer", NULL); //Emulator screen buffer, 32-bits (x4)!
 	if (!GPU.emu_screenbuffer) //Failed to allocate?

@@ -181,9 +181,9 @@ void CMOS_onRead() //When CMOS is being read (special actions).
 {
 	if (CMOS.ADDR==0x0C) //Enable all interrupts for RTC again?
 	{
-		for (;!lock("CMOS");) delay(0); //Wait for the lock!
+		lock(LOCK_CMOS);
 		CMOS.IRQ8_Disabled = 0; //Enable all!
-		unlock("CMOS");
+		unlock(LOCK_CMOS);
 	}
 }
 
@@ -232,10 +232,10 @@ void CMOS_onWrite() //When written to CMOS!
 {
 	if (CMOS.ADDR==0xB) //Might have enabled IRQ8 functions!
 	{
-		lock("CMOS");
+		lock(LOCK_CMOS);
 		addtimer((float)getIRQ8Rate(),&RTC_updateDateTime,"RTC",10,0,NULL); //RTC handler!
 		CMOS.IRQ8_Disabled = 0; //Allow IRQ8 to be called by timer: we're enabled!
-		unlock("CMOS");
+		unlock(LOCK_CMOS);
 	}
 }
 
@@ -247,9 +247,9 @@ byte PORT_readCMOS(word port) //Read from a port/register!
 		return CMOS.ADDR|(NMI<<7); //Give the address and NMI!
 	case 0x71:
 		CMOS_onRead(); //Execute handler!
-		for (;!lock("CMOS");) delay(0); //Lock the CMOS!
+		lock(LOCK_CMOS); //Lock the CMOS!
 		byte data =  CMOS.data[CMOS.ADDR]; //Give the data from the CMOS!
-		unlock("CMOS");
+		unlock(LOCK_CMOS);
 		CMOS.ADDR = 0xD; //Reset address!
 		return data; //Give the data!
 	}
@@ -266,9 +266,9 @@ void PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		CMOS_onWrite(); //On write!
 		break;
 	case 0x71:
-		for (;!lock("CMOS");) delay(0); //Lock the CMOS!
+		lock(LOCK_CMOS); //Lock the CMOS!
 		CMOS.data[CMOS.ADDR] = value; //Set value in CMOS!
-		unlock("CMOS");
+		unlock(LOCK_CMOS);
 		CMOS_onWrite(); //On write!
 		CMOS.ADDR = 0xD; //Reset address!		
 		break;

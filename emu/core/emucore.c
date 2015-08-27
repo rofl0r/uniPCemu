@@ -488,12 +488,31 @@ extern byte MMU_logging; //Are we logging from the MMU?
 
 extern byte Direct_Input; //Are we in direct input mode?
 
-word numopcodes = 0; //Delay counter!
-
 uint_64 last_timing = 0; //Last timing!
+
+extern SDL_sem *IPS_Lock;
+uint_64 instructioncounter; //Instruction counter!
+
+void CPU_Speed_Unlimited()
+{
+	static uint_32 numopcodes = 0; //Delay counter!
+	if (++numopcodes == 1000000)//Every 10000 opcodes(to allow for more timers/input to update)
+	{
+		numopcodes = 0; //Reset!
+		delay(0); //Wait minimal time for other threads to process data!
+	}
+}
+
+void CPU_Speed_Limited()
+{
+	//Delay some time to get accurate timing!
+	last_timing += 3; //Increase last timing!
+	for (;getuspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
+}
 
 byte coreHandler()
 {
+	static Handler SpeedLimit[2] = {CPU_Speed_Unlimited,CPU_Speed_Limited}; //CPU speed settings!
 	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
 	{
 		MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
@@ -561,37 +580,31 @@ byte coreHandler()
 		CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 	}
 
+	//Increase the instruction counter every instruction/HLT time!
+	WaitSem(IPS_Lock); //Wait for the IPS!
+	++instructioncounter; //Increase the instruction counter!
+	PostSem(IPS_Lock); //Finished with the IPS!
+
 	debugger_step(); //Step debugger if needed!
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 
-	if (BIOS_Settings.CPUSpeed) //Needs slowdown here?
-	{
-		//Delay some time to get accurate timing!
-		last_timing += 3; //Increase last timing!
-		for (;getuspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
-		numopcodes = 0; //Make sure we don't count anymore!
-	}
-	else
-	{
-		if (++numopcodes==10000)//Every 10000 opcodes(to allow for more timers/input to update)
-		{
-			numopcodes = 0; //Reset!
-			delay(0); //Wait minimal time for other threads to process data!
-		}
-	}
+	SpeedLimit[BIOS_Settings.CPUSpeed](); //Slowdown the CPU to the requested speed?
 
-	if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode() && !Direct_Input) //Run in-emulator BIOS menu and not gaming mode?
+	if (psp_keypressed(BUTTON_SELECT)) //Run in-emulator BIOS menu and not gaming mode?
 	{
-		pauseEMU(); //Stop timers!
-		if (runBIOS(0)) //Run the emulator BIOS!
+		if (!is_gamingmode() && !Direct_Input) //Not gaming/direct input mode?
 		{
-			reset = 1; //We're to reset!
-		}
-		resumeEMU(); //Resume!
-		if (BIOS_Settings.CPUSpeed) //Needs slowdown here?
-		{
-			last_timing = getuspassed_k(&CPU_timing); //We start off at this point!
+			pauseEMU(); //Stop timers!
+			if (runBIOS(0)) //Run the emulator BIOS!
+			{
+				reset = 1; //We're to reset!
+			}
+			resumeEMU(); //Resume!
+			if (BIOS_Settings.CPUSpeed) //Needs slowdown here?
+			{
+				last_timing = getuspassed_k(&CPU_timing); //We start off at this point!
+			}
 		}
 	}
 	return 1; //OK!
@@ -609,7 +622,7 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 	enableKeyboard(0); //Enable standard keyboard!
 	
 //Start normal emulation!
-	lock("CPU"); //Start by locking the CPU: we're busy!
+	lock(LOCK_CPU); //Start by locking the CPU: we're busy!
 	for (;;)
 	{
 		if (!CPU[activeCPU].running || !hasmemory()) //Not running anymore or no memory present to use?
@@ -625,36 +638,32 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 
 		if (!coreHandler()) //Run the core CPU+related handler, gotten abort?
 		{
-			unlock("CPU"); //We're finished with the CPU!
 			break; //Abort!
 		}
 	}
+	unlock(LOCK_CPU); //We're finished with the CPU!
 
 	EMU_RUNNING = 0; //We're not running anymore!
 	
 	if (shuttingdown()) //Shut down?
 	{
 		debugrow("Shutdown requested");
-		unlock("CPU"); //We're finished with the CPU!
 		return 0; //Shut down!
 	}
 
 	if (reset) //To soft-reset?
 	{
 		debugrow("Reset requested!");
-		unlock("CPU"); //We're finished with the CPU!
 		return 1; //Full reset emu!
 	}
 
 	if (!hasmemory()) //Forced termination?
 	{
 		debugrow("No memory (anymore)! Reset requested!");
-		unlock("CPU"); //We're finished with the CPU!
 		return 1; //Full reset emu!
 	}
 
 	debugrow("Reset by default!");
-	unlock("CPU"); //We're finished with the CPU!
 	return 1; //Reset emu!
 }
 

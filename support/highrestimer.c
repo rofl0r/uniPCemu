@@ -3,21 +3,11 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/locks.h" //Locking support!
 
-uint_32 locknumber = 0; //Our lock number!
-
-byte resolutioninit = 1; //Resolution is loaded?
 double tickresolution = 0.0f; //Our tick resolution, initialised!
 byte tickresolution_win_SDL = 0; //Force SDL rendering?
 
-void initTicksHolder(TicksHolder *ticksholder)
+void initHighresTimer()
 {
-	char lockname[256]; //Full lock name!
-	byte avg;
-	u64 oldpassed;
-	uint_32 oldtimes;
-	for (; !lock("HighresTimer");) delay(0); //Lock ourselves!
-	if (resolutioninit) //Not loaded yet?
-	{
 #ifdef __psp__
 		tickresolution = sceRtcGetTickResolution(); //Get the tick resolution, as defined on the PSP!
 #else
@@ -37,12 +27,11 @@ void initTicksHolder(TicksHolder *ticksholder)
 		tickresolution = 1000.0f; //We have a resolution in ms as given by SDL!
 #endif
 #endif
-		resolutioninit = 0; //We're ready to run!
-	}
-	memset(ticksholder,0,sizeof(*ticksholder)); //Clear the holder!
-	sprintf(ticksholder->lockname, "HighresTimer%i", locknumber++); //Reserve a lock number!
-	ticksholder->lock = getLock(ticksholder->lockname); //Use this lock!
-	unlock("HighresTimer"); //Unlock ourselves!
+}
+
+void initTicksHolder(TicksHolder *ticksholder)
+{
+	memset(ticksholder, 0, sizeof(*ticksholder)); //Clear the holder!}
 }
 
 void ticksholder_AVG(TicksHolder *ticksholder)

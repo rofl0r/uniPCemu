@@ -32,20 +32,7 @@ byte adlibgetstatus()
 
 int detectadlib()
 {
-	return 1; //Detected!
-	adlibsetreg(4,0x60); //Reset both timers!
-	adlibsetreg(4,0x80); //Enable the interrupts!
-	byte status = adlibgetstatus(); //Read the status for comparision!
-	adlibsetreg(2,0xFF); //FF in register 2!
-	adlibsetreg(4,0x21); //Start timer 1!
-	delay(80); //Wait at least 80us!
-	byte status2 = adlibgetstatus(); //Read the status for comparision!
-	adlibsetreg(4,0x60); //Reset both timers and disable the interrupts!
-	if (((status&0xE0)==0x00) && ((status2&0xE0)==0xC0)) //Detected?
-	{
-		return 1; //Detected!
-	}
-	return 0; //Not detected!
+	return 1; //Detected: we cannot be detected because the CPU isn't running!
 }
 
 byte PCspeakerFinished = 0;

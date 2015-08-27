@@ -26,7 +26,11 @@ void changeRowTimer(VGA_Type *VGA, word lines) //Change the VGA row processing t
 	#ifdef __HW_DISABLED
 	return; //Disabled?
 	#endif
-	addtimer(VGA_VerticalRefreshRate(VGA),&VGA_Sequencer,"VGA_ScanLine",__SCREEN_LINES_LIMIT,0,NULL); //Re-add the Scanline to the timers!
+	float rate;
+	rate = VGA_VerticalRefreshRate(VGA); //Get our rate first!
+	unlockVGA(); //Finished with the VGA: we need to update our sequencer!
+	addtimer(rate,&VGA_Sequencer,"VGA_ScanLine",__SCREEN_LINES_LIMIT,0,NULL); //Re-add the Scanline to the timers!
+	lockVGA(); //Lock us again!
 }
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Our settings!

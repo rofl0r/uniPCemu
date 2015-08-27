@@ -198,6 +198,18 @@ int main(int argc, char * argv[])
 
 	initLocks(); //Initialise all locks before anything: we have the highest priority!
 
+	//First, allocate all locks needed!
+	getLock(LOCK_VGA);
+	getLock(LOCK_GPU);
+	getLock(LOCK_CPU);
+	getLock(LOCK_IPS);
+	getLock(LOCK_8042);
+	getLock(LOCK_SERMOUSE);
+	getLock(LOCK_CMOS);
+	getLock(LOCK_TIMERS);
+
+	initHighresTimer(); //Global init of the high resoltion timer!
+
 	initlog(); //Initialise the logging system!
 
 	//Normal operations!
@@ -282,7 +294,7 @@ int main(int argc, char * argv[])
 
 	resetmain: //Main reset!
 
-	IPS_Lock = getLock("IPS_Lock"); //Create the IPS lock!
+	IPS_Lock = getLock(LOCK_IPS); //Create the IPS lock!
 
 	startTimers(1); //Start core timing!
 	startTimers(0); //Disable normal timing!
