@@ -71,11 +71,12 @@ OPTINLINE void debugger_doResultPhase(uint_32 size) //Start a result phase!
 {
 	if (__HW_DISABLED) return; //Abort!
 	softdebugger.haveresult = 1; //We have a result!
+	softdebugger.resultpos = 0; //Start at position 0!
 	softdebugger.resultsize = size; //Set size of parameters!
 }
 
 //Functions that interpret given data:
-OPTINLINE void quitdebugger() //Quits the debugger!
+void quitdebugger() //Quits the debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	softdebugger.command = 0; //Move back to unexisting mode!
@@ -83,7 +84,7 @@ OPTINLINE void quitdebugger() //Quits the debugger!
 	//Newlines stay the same: we keep the current system!
 }
 
-OPTINLINE void enterdebugger()
+void enterdebugger()
 {
 	if (__HW_DISABLED) return; //Abort!
 	softdebugger.command  = 1; //Enter command mode!
@@ -91,26 +92,80 @@ OPTINLINE void enterdebugger()
 }
 
 //Output filename support!
-OPTINLINE void outputfilename_specifylength()
+void outputfilename_specifylength()
 {
 	if (__HW_DISABLED) return; //Abort!
+	debugger_doParameterPhase(2); //Word sized parameters!
 }
+
+void outputfilename_specifylength_processparameters()
+{
+	word length;
+	length = softdebugger.parameterbuffer[0] | (softdebugger.parameterbuffer[1] << 8); //Length!
+	if (length < sizeof(softdebugger.data.outputfilename)) //Within limits?
+	{
+		if (length != softdebugger.data.outputfilename_length) //Length changed?
+		{
+			softdebugger.data.outputfilename_length = length; //Set the new length!
+		}
+		debugger_ackParameters(); //Acnowledge parameter!
+		softdebugger.resultbuffer[0] = 1; //We're set!
+		debugger_doResultPhase(1); //Enter result phase!
+	}
+	else
+	{
+		debugger_ackParameters(); //Acnowledge parameter!
+		softdebugger.resultbuffer[0] = 0; //We're invalid: too long length!
+		debugger_doResultPhase(1); //Enter result phase!
+	}
+}
+
+void outputfilename_setfilename()
+{
+	if (__HW_DISABLED) return; //Abort!
+	debugger_doParameterPhase(softdebugger.data.outputfilename_length); //The parameter is the new filename itself!
+}
+
+void outputfilename_setfilename_processparameters()
+{
+	if (softdebugger.parameterbuffer[0]) //Valid filename (not empty)?
+	{
+		memset(&softdebugger.data.outputfilename, 0, sizeof(softdebugger.data.outputfilename)); //Clear the filename!
+		memcpy(&softdebugger.data.outputfilename, &softdebugger.parameterbuffer, softdebugger.data.outputfilename_length); //Set the filename!
+		debugger_ackParameters(); //Acnowledge parameter!
+		softdebugger.resultbuffer[0] = 1; //We're set!
+		debugger_doResultPhase(1); //Enter result phase!
+	}
+	else
+	{
+		debugger_ackParameters(); //Acnowledge parameter!
+		softdebugger.resultbuffer[0] = 0; //We're invalid: no length as a string!
+		debugger_doResultPhase(1); //Enter result phase!
+	}
+}
+
 
 //The main handler function list!
 
 typedef void (*DebuggerCommandHandler)();    /* A pointer to a command handler function */
 
-DebuggerCommandHandler commandhandlers[1][1][3] = { //[group][command][0=basic,1=after parameters,2=Fill result]
+DebuggerCommandHandler commandhandlers[1][3][3] = { //[group][command][0=basic,1=after parameters,2=Fill result]
 	{ //Group 0
 		{ //Function 0: Quit to debugger (always)
 			quitdebugger, //Group 0, Command 0: Reset to debugger!
 			NULL, //There are no parameters, so no after parameters!
 			NULL //There is no result!
 		},
-		/*{ //Function 1: Change output filename: Specify length.
+		{ //Function 1: Group 0, Command 1: Change output filename: Specify length.
 			outputfilename_specifylength,
-			outputfilename_specifylength_processparameters
-		}*/
+			outputfilename_specifylength_processparameters,
+			NULL //There is no result!
+		},
+		{ //Function 2: Group 0, Command 2: Set output filename
+			outputfilename_setfilename,
+			outputfilename_setfilename_processparameters,
+			NULL //There is no result!
+		}
 	}
 	};
 	
