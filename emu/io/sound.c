@@ -23,7 +23,7 @@
 //#define DEBUG_SOUNDALLOC
 
 //Use external timing synchronization?
-#define EXTERNAL_TIMING
+//#define EXTERNAL_TIMING
 
 //#define __USE_EQUALIZER
 
