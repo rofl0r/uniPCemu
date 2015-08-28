@@ -71,9 +71,9 @@ struct structadlibop {
 
 	//Signal generation
 	uint8_t wavesel;
-	float freq0, time; //The q0quency and current time of an operator!
+	float freq0, time; //The frequency and current time of an operator!
 	float ModulatorFrequencyMultiple; //What harmonic to sound?
-	float lastsignal; //The last signal produced!
+	float lastsignal[2]; //The last signal produced!
 } adlibop[0x20];
 
 struct structadlibchan {
@@ -213,6 +213,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 					adlibop[adliboperators[1][portnum]].volenvcalculated = adlibop[adliboperators[0][portnum]].volenv = 0.0025;
 					adlibop[adliboperators[0][portnum]].freq0 = adlibop[adliboperators[0][portnum]].time = 0.0f; //Initialise operator signal!
 					adlibop[adliboperators[1][portnum]].freq0 = adlibop[adliboperators[1][portnum]].time = 0.0f; //Initialise operator signal!
+					memset(&adlibop[adliboperators[0][portnum]].lastsignal, 0, sizeof(adlibop[0].lastsignal)); //Reset the last signals!
+					memset(&adlibop[adliboperators[1][portnum]].lastsignal, 0, sizeof(adlibop[1].lastsignal)); //Reset the last signals!
 				}
 				adlibch[portnum].freq = adlibregmem[0xA0 + portnum] | ((adlibregmem[0xB0 + portnum] & 3) << 8);
 				adlibch[portnum].convfreq = ((double)adlibch[portnum].freq * 0.7626459);
@@ -236,7 +238,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
 			byte feedback;
 			feedback = (adlibregmem[0xC0 + portnum] >> 1) & 7; //Get the feedback value used!
-			//adlibch[portnum].feedback = feedbacklookup[feedback]; //Convert to a feedback of the modulator signal!
+			adlibch[portnum].feedback = feedbacklookup[feedback]; //Convert to a feedback of the modulator signal!
 			unlockAdlib();
 		}
 		break;
@@ -346,32 +348,39 @@ OPTINLINE float calcAdlibSignal(byte wave, float phase, float frequency, float *
 	return adlibWave(wave, ftp); //Give the generated sample!
 }
 
+OPTINLINE void incop(byte operator, float frequency)
+{
+	float temp;
+	double d;
+	adlibop[operator].time += adlib_sampleLength; //Add 1 sample to the time!
+
+	temp = adlibop[operator].time*frequency; //Calculate for overflow!
+	if (temp >= 1.0f) { //Overflow?
+		adlibop[operator].time = modf(temp, &d) / frequency;
+	}
+}
+
 //Calculate an operator signal!
 OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float modulator, byte feedback)
 {
-	float result,temp; //Our variables?
-	double d;
+	float result; //Our variables?
 	//Generate the signal!
-	if (frequency) //Gotten a frequency?
+	/*if (feedback && adlibch[curchan].feedback) //Apply feedback?
 	{
-		result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, modulator, frequency, &adlibop[operator].freq0, &adlibop[operator].time);
-		result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
-		if (!feedback) //To increase the signal position?
-		{
-			adlibop[operator].time += adlib_sampleLength; //Add 1 sample to the time!
+		modulator = adlibop[operator].lastsignal[0]; //Take the previous last signal!
+		modulator += adlibop[operator].lastsignal[1]; //Take the last signal!
+		modulator *= adlibch[curchan].feedback; //Calculate current feedback!
+	}*/
 
-			temp = adlibop[operator].time*frequency; //Calculate for overflow!
-			if (temp >= 1.0f) { //Overflow?
-				adlibop[operator].time = modf(temp, &d) / frequency;
-			}
-		}
-		adlibop[operator].lastsignal = result; //Save the last signal produced!
-	}
-	else
-	{
-		result = adlibop[operator].lastsignal; //Hang the signal (used in some software to produce PCM sound using the output level)!
-	}
+	//Generate the correct signal!
+	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, modulator, frequency, &adlibop[operator].freq0, &adlibop[operator].time);
+	//adlibop[operator].lastsignal[0] = adlibop[operator].lastsignal[1]; //Set last signal #0 to #1(shift)!
+	//adlibop[operator].lastsignal[1] = result; //Save the last signal produced!
+
 	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
+	result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
+
+	if (frequency) incop(operator,frequency); //Increase time for the operator!
 	return result; //Give the result!
 }
 
@@ -393,16 +402,11 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 
 	//Operator 1!
 	//Calculate the frequency to use!
-	result = calcOperator(curchan, op1, op1frequency, 0,adlibch[curchan].feedback>0.0f); //Calculate the modulator!
-	if (adlibch[curchan].feedback) //We're using feedback (modulator self modulates)?
-	{
-		result *= adlibch[curchan].feedback; //Convert using feedback ratio!
-		result = calcOperator(curchan, op1, op1frequency,result, 0); //Apply feedback using the modulator signal as the modulator!
-	}
+	result = calcOperator(curchan, op1, op1frequency, 0.0f,1); //Calculate the modulator for feedback!
 
 	if (adlibch[curchan].synthmode) //Additive synthesis?
 	{
-		result += calcOperator(curchan, op2, adlibfreq(op2, curchan), 0, 0); //Calculate the carrier without applied modulator additive!
+		result += calcOperator(curchan, op2, adlibfreq(op2, curchan), 0.0f, 0); //Calculate the carrier without applied modulator additive!
 	}
 	else //FM synthesis?
 	{
@@ -673,6 +677,7 @@ void initAdlib()
 		adlibop[i].ReleaseImmediately = 1; //Release immediately by default!
 
 		adlibop[i].outputlevel = outputtable[0]; //Apply default output!
+		memset(&adlibop[i].lastsignal,0,sizeof(adlibop[i].lastsignal)); //Reset the last signals!
 	}
 
 
