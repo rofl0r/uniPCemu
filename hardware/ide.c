@@ -431,6 +431,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
 			}
 		}
+        return result; //Give the result!
 		break;
 	default: //Unknown?
 		break;
