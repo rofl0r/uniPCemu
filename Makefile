@@ -165,17 +165,30 @@ OBJS += basicio\fopen64.o
 
 .PHONY: all clean distclean psp win
 
-#Default to the PSP build
-all: psp
+#Default to the Windows build
+all: win
 
-psp:
+#Our builds
+ifeq ($(MAKECMDGOALS),psp)
 include Makefile.psp
+endif
 
-win:
+ifeq ($(MAKECMDGOALS),win)
 include Makefile.win
+endif
 
 clean:
-    @- $(RM) $(TARGET)
-    @- $(RM) $(OBJS)
+ifeq ($(MAKECMDGOALS),clean)
+ifndef RM
+RM = rm
+endif
+ifdef RM
+ifdef TARGET
+$(RM) -f $(TARGET)
+endif
+
+$(RM) -f $(OBJS)
+endif
+endif
 
 distclean: clean

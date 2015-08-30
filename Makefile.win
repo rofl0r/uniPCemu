@@ -3,20 +3,28 @@
 #Output filename
 TARGET = x86EMU.exe
 
-TARGET = $(BUILD_DIR)/$(TARGET)
+TARGET := $(BUILD_DIR)/$(TARGET)
+
+OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
+
+ifndef CFLAGS
+CFLAGS = 
+endif
+
+ifndef CC
+CC = g++
+endif
 
 #General build rule
 all: $(TARGET)
 
-OBJS = $(patsubst %,$(BUILD_DIR)/%,$(_OBJS))
-
-$(BUILD_DIR)/%.o: %.cpp 
-    g++ -o $@ $< $(CFLAGS) 
+%.o:%.c
+$(CC) -o $@ $< $(CFLAGS)
 
 #Build rules for output
-$(TARGET) : $(OBJS)
-g++ -o $@ $<
+$(TARGET):$(OBJS)
+$(CC) -o $@ $<
 
 #Build rule for objects
 %.o:%.c
-gcc -c $<
+$(CC) -o $@ -c $<
