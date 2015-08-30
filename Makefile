@@ -1,23 +1,5 @@
-#Define our building directory for all output files!
-BUILD_DIR = ../../psp-projects_build/x86EMU
-
-TARGET = eboot
-
-#need prx to be able to run the exception handler!
-#BUILD_PRX = 1
-#atm. build_prx causes multithreading to fail?
-
-#Enable large memory detection? Disabled during developing.
-PSP_LARGE_MEMORY = 1
-
-#Init for below:
-OBJS = 
-CFLAGS = 
-CXXFLAGS = 
-LIBS = 
-#optimization flags: Nothing: Debugging, -O3 normal operations.
-OPTIMIZATIONFLAG = -O3
-#OPTIMIZATIONFLAG = 
+#Define our default building directory for all output files!
+BUILD_DIR = ../projects_build/x86EMU
 
 #Exception handler!
 OBJS += exception/exception.o
@@ -179,36 +161,21 @@ OBJS += emu\main.o
 #64-bit file support!
 OBJS += basicio\fopen64.o
 
-#Finally, everything PSP!
+#Finally, the desired platform to build for:
 
-CFLAGS += $(OPTIMIZATIONFLAG) -G0
+.PHONY: all clean distclean psp win
 
-#SDL
-CXXFLAGS += $(CFLAGS)
-ASFLAGS = $(CFLAGS)
-LIBS = -lpng -lz -lm -lstdc++
-#PSPLIBS1 = -lpspgu -lpsppower -lpspdebugkb
-PSPLIBS1 = -lpspdebugkb
-#Audio
-PSPLIBS1 += -lpspaudiolib -lpspaudio
-#Timing/RTC
-PSPLIBS1 += -lpsprtc
+#Default to the PSP build
+all: psp
 
-EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = x86 emulator
+psp:
+include Makefile.psp
 
-#Turn this line off when using SDL!
+win:
+include Makefile.win
 
-#SDL Specific!
-PSPBIN = $(PSPSDK)/../bin
-#CFLAGS = $(shell $(PSPBIN)/sdl-config --cflags)
-#LIBS += -lSDL  -lglut -lGLU -lGL -lc
-#PSPLIBS2 = -lpsputility -lpspdebug -lpspge -lpspdisplay -lpspctrl -lpspsdk -lpspvfpu -lpsplibc -lpspuser -lpspkernel -lpsphprm -lpspirkeyb -lpsppower
-PSPLIBS2 = -lSDL -lSDL_ttf -lSDL_image -lSDL_gfx -lpspirkeyb -lpspwlan -lpsppower -lGL -l freetype -ljpeg -lpng -lz -lm -lSDL -lpspgu -l psphprm -lpspaudio -lstdc++ -lpspvfpu -lpsprtc
+clean:
+    @- $(RM) $(TARGET)
+    @- $(RM) $(OBJS)
 
-#Link the final PSP libaries!
-LIBS += $(PSPLIBS2) $(PSPLIBS1)
-
-#Rest PSP!
-PSPSDK=$(shell psp-config --pspsdk-path)
-include ../tools/build.mak
+distclean: clean

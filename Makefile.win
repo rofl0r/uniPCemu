@@ -1,0 +1,18 @@
+#Windows makefile
+
+#Output filename
+TARGET = x86EMU.exe
+
+#General build rule
+all: $(TARGET)
+
+#Build rules for output
+$(TARGET) : $(OBJS)
+g++ -g -o $@ $^
+
+#Build rule for objects
+%.o:%.c
+gcc -c $<
+
+#Objects updates with headers
+%.o:%.h
