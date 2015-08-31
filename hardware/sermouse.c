@@ -49,7 +49,7 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 	}
 	MOUSE_PACKET *temp;
 	temp = packet; //Load packet to delete!
-	freez(&temp, sizeof(*temp), "SERMouse_FlushPacket");
+	freez((void **)&temp, sizeof(*temp), "SERMouse_FlushPacket");
 }
 
 void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!

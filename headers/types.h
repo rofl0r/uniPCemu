@@ -39,7 +39,7 @@
 //Our basic functionality we need for running this program!
 //We have less accuracy using SDL delay: ms instead of us. Round to 0ms(minimal time) if needed!
 #ifdef __psp__
-#define delay(us) sceKernelDelayThread(us)
+#define delay(us) sceKernelDelayThread(us?us:1)
 #define sleep sceKernelSleepThread
 #define mkdir(dir) sceIoMkdir(dir,0777)
 #define WaitSem(s)
