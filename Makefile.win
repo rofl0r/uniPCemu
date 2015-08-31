@@ -7,24 +7,18 @@ TARGET := $(BUILD_DIR)/$(TARGET)
 
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
-ifndef CFLAGS
-CFLAGS = 
-endif
+CFLAGS = -I.
+
+LIBS = -lSDL -lSDL_gfx
 
 ifndef CC
-CC = g++
+CC = gcc
 endif
 
-#General build rule
-all: $(TARGET)
+$(BUILD_DIR)/%.o:%.c
+	$(CC) $(CFLAGS) -o $@ -c $<
 
-%.o:%.c
-$(CC) -o $@ $< $(CFLAGS)
+$(TARGET): $(OBJS)
+	$(CC) $(LIBS) -o $(TARGET) $(OBJS)
 
-#Build rules for output
-$(TARGET):$(OBJS)
-$(CC) -o $@ $<
-
-#Build rule for objects
-%.o:%.c
-$(CC) -o $@ -c $<
+win: $(TARGET) 
