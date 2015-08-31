@@ -26,6 +26,43 @@ typedef struct
 #endif
 } BIGFILE; //64-bit fopen result!
 
+int64_t ftell64(FILE *stream)
+{
+	if (!stream) return -1LL; //Error!
+	BIGFILE *b = (BIGFILE *)stream; //Convert!
+	return b->position; //Our position!
+}
+
+int feof64(FILE *stream)
+{
+	if (!stream) return 1; //EOF!
+	BIGFILE *b = (BIGFILE *)stream; //Convert!
+	return (b->position >= b->size) ? 1 : 0; //Our eof marker is set with non-0 values!
+}
+
+int fseek64(FILE *stream, int64_t pos, int direction)
+{
+	if (!stream) return -1; //Error!
+	BIGFILE *b = (BIGFILE *)stream; //Convert!
+#ifdef __psp__
+									//Convert new direction!
+	int newdir = PSP_SEEK_CUR;
+	if (direction == SEEK_CUR) newdir = PSP_SEEK_CUR;
+	if (direction == SEEK_END) newdir = PSP_SEEK_END;
+	if (direction == SEEK_SET) newdir = PSP_SEEK_SET;
+	b->position = sceIoLseek(b->f, pos, newdir); //Update position!
+	return (b->position == pos) ? 0 : 1; //Give error (non-0) or OK(0)!
+#else
+									//Windows
+	int result;
+	if (!(result = _fseeki64(b->f, pos, direction))) //Direction is constant itself!
+	{
+		b->position = _ftelli64(b->f); //Use our own position indicator!
+	}
+	return result; //Give the result!
+#endif
+}
+
 FILE *fopen64(char *filename, char *mode)
 {
 	BIGFILE *stream;
@@ -116,29 +153,6 @@ FILE *fopen64(char *filename, char *mode)
 	return (FILE *)stream; //Opened!
 }
 
-int fseek64(FILE *stream, int64_t pos, int direction)
-{
-	if (!stream) return -1; //Error!
-	BIGFILE *b = (BIGFILE *)stream; //Convert!
-#ifdef __psp__
-	//Convert new direction!
-	int newdir = PSP_SEEK_CUR;
-	if (direction==SEEK_CUR) newdir = PSP_SEEK_CUR;
-	if (direction==SEEK_END) newdir = PSP_SEEK_END;
-	if (direction==SEEK_SET) newdir = PSP_SEEK_SET; 
-	b->position = sceIoLseek(b->f,pos,newdir); //Update position!
-	return (b->position == pos) ? 0 : 1; //Give error (non-0) or OK(0)!
-#else
-	//Windows
-	int result;
-	if (!(result = _fseeki64(b->f, pos, direction))) //Direction is constant itself!
-	{
-		b->position = _ftelli64(b->f); //Use our own position indicator!
-	}
-	return result; //Give the result!
-#endif
-}
-
 int64_t fwrite64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 {
 	if (!stream) return -1; //Error!
@@ -174,20 +188,6 @@ int64_t fread64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 		b->position += numread; //Add to the position!
 	}
 	return numread; //The size written!
-}
-
-int64_t ftell64(FILE *stream)
-{
-	if (!stream) return -1LL; //Error!
-	BIGFILE *b = (BIGFILE *)stream; //Convert!
-	return b->position; //Our position!
-}
-
-int feof64(FILE *stream)
-{
-	if (!stream) return 1; //EOF!
-	BIGFILE *b = (BIGFILE *)stream; //Convert!
-	return (b->position>=b->size)?1:0; //Our eof marker is set with non-0 values!
 }
 
 int fclose64(FILE *stream)
