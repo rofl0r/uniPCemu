@@ -100,7 +100,7 @@ int exit_callback(int arg1, int arg2, void *common)
 	{
 		SDL_Quit(); //Quit SDL, releasing everything still left!
 	}
-	halt(); //The emu has shut down!
+	halt(0); //The emu has shut down!
 	return 0; //Never arriving here!
 }
 
