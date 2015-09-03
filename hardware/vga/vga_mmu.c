@@ -5,7 +5,7 @@
 #include "headers/hardware/pci.h" //PCI support!
 
 //Our active VRAM read/write mode (processed in VGA_VRAM.c).
-#define VRAMMODE 1
+#define VRAMMODE 0
 
 uint_32 VGA_VRAM_START = 0xA0000; //VRAM start address default!
 
