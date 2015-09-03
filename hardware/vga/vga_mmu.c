@@ -2,9 +2,10 @@
 #include "headers/support/log.h" //Loggin support!
 #include "headers/hardware/vga_screen/vga_vram.h" //VRAM support!
 #include "headers/mmu/mmuhandler.h" //Handling support!
+#include "headers/hardware/pci.h" //PCI support!
 
 //Our active VRAM read/write mode (processed in VGA_VRAM.c).
-#define VRAMMODE 0
+#define VRAMMODE 1
 
 uint_32 VGA_VRAM_START = 0xA0000; //VRAM start address default!
 
@@ -27,20 +28,20 @@ OPTINLINE byte is_A000VRAM(uint_32 linearoffset) //In VRAM (for CPU), offset=rea
 		switch (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect) //What memory map?
 		{
 		case 0: //A0000-BFFFF (128K region)?
-			VGA_VRAM_START = 0; //Start!
-			return ((linearoffset>=0) && (linearoffset<0x20000)); //In range?
+			VGA_VRAM_START = 0xA0000; //Start!
+			return ((linearoffset>=0xA0000) && (linearoffset<0xC0000)); //In range?
 			break;
 		case 1: //A0000-AFFFF (64K region)?
-			VGA_VRAM_START = 0; //Start!
-			return ((linearoffset>=0) && (linearoffset<0x10000)); //In range?
+			VGA_VRAM_START = 0xA0000; //Start!
+			return ((linearoffset>=0xA0000) && (linearoffset<0xB0000)); //In range?
 			break;
 		case 2: //B0000-B7FFF (32K region)?
-			VGA_VRAM_START = 0x10000; //Start!
-			return ((linearoffset>=0x10000) && (linearoffset<0x18000)); //In range?
+			VGA_VRAM_START = 0xB0000; //Start!
+			return ((linearoffset>=0xB0000) && (linearoffset<0xB8000)); //In range?
 			break;
 		case 3: //B8000-BFFFF (32K region)?
-			VGA_VRAM_START = 0x18000; //Start!
-			return ((linearoffset>=0x18000) && (linearoffset<0x20000)); //In range?
+			VGA_VRAM_START = 0xB8000; //Start!
+			return ((linearoffset>=0xB8000) && (linearoffset<0xC0000)); //In range?
 			break;
 		}
 	}
@@ -264,24 +265,24 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 byte planes; //What planes to affect!
 uint_32 realoffset; //What offset to affect!
 
-byte VGAmemIO_rb(uint_32 baseoffset, uint_32 reloffset, byte *value)
+byte VGAmemIO_rb(uint_32 offset, byte *value)
 {
-	if (is_A000VRAM(reloffset)) //VRAM and within range?
+	if (is_A000VRAM(offset)) //VRAM and within range?
 	{
-		reloffset -= VGA_VRAM_START; //Calculate start offset into VRAM!
-		decodeCPUaddress(0, reloffset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
+		offset -= VGA_VRAM_START; //Calculate start offset into VRAM!
+		decodeCPUaddress(0, offset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 		*value = VGA_ReadModeOperation(planes, realoffset); //Apply the operation on read mode!
 		return 1; //Read!
 	}
 	return 0; //Not read!
 }
 
-byte VGAmemIO_wb(uint_32 baseoffset, uint_32 reloffset, byte value)
+byte VGAmemIO_wb(uint_32 offset, byte value)
 {
-	if (is_A000VRAM(reloffset)) //VRAM and within range?
+	if (is_A000VRAM(offset)) //VRAM and within range?
 	{
-		reloffset -= VGA_VRAM_START; //Calculate start offset into VRAM!
-		decodeCPUaddress(1, reloffset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
+		offset -= VGA_VRAM_START; //Calculate start offset into VRAM!
+		decodeCPUaddress(1, offset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 		VGA_WriteModeOperation(planes, realoffset, value); //Apply the operation on write mode!
 		return 1; //Written!
 	}
@@ -292,6 +293,6 @@ void VGAmemIO_reset()
 {
 	//Register/reset memory mapped I/O!
 	MMU_resetHandlers("VGA");
-	MMU_registerWriteHandler(0xA0000,0xBFFFF,&VGAmemIO_wb,"VGA");
-	MMU_registerReadHandler(0xA0000,0xBFFFF,&VGAmemIO_rb,"VGA");
+	MMU_registerWriteHandler(&VGAmemIO_wb,"VGA");
+	MMU_registerReadHandler(&VGAmemIO_rb,"VGA");
 }

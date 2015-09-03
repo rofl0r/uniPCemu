@@ -240,39 +240,61 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 }
 
 
-byte OPTROM_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value)    /* A pointer to a handler function */
+byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handler function */
 {
+	uint_32 basepos;
+	if ((offset<0xC0000) || (offset>0xEFFFF)) //Out of range (16-bit)?
+	{
+		if (offset<0xC0000000 || (offset>0xEFFFFFFF)) return 0; //Our of range (32-bit)?
+		else basepos = 0xC0000000; //Our base reference position!
+	}
+	else
+	{
+		basepos = 0xC0000; //Our base reference position!
+	}
+	offset -= basepos; //Calculate from the base position!
 	byte i;
 	for (i=0;i<NUMITEMS(OPT_ROMS);i++) //Check OPT ROMS!
 	{
 		if (OPT_ROMS[i]) //Enabled?
 		{
-			if (OPTROM_location[i]<=reloffset && (OPTROM_location[i]+OPTROM_size[i])>reloffset) //Found ROM?
+			if (OPTROM_location[i]<=offset && (OPTROM_location[i]+OPTROM_size[i])>offset) //Found ROM?
 			{
-				*value = OPT_ROMS[i][reloffset-OPTROM_location[i]]; //Read the data!
+				*value = OPT_ROMS[i][offset-OPTROM_location[i]]; //Read the data!
 				return 1; //Done: we've been read!
 			}
 		}
 	}
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
-		if (reloffset < BIOS_custom_VGAROM_size) //OK?
+		if (offset < BIOS_custom_VGAROM_size) //OK?
 		{
-			*value = BIOS_custom_VGAROM[reloffset]; //Give the value!
+			*value = BIOS_custom_VGAROM[offset]; //Give the value!
 			return 1;
 		}
 	}
 	return 0; //No ROM here, allow read from nroaml memory!
 }
 
-byte OPTROM_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* A pointer to a handler function */
+byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
+	uint_32 basepos;
+	if ((offset<0xC0000) || (offset>0xEFFFF)) //Out of range (16-bit)?
+	{
+		if (offset<0xC0000000 || (offset>0xEFFFFFFF)) return 0; //Our of range (32-bit)?
+		else basepos = 0xC0000000; //Our base reference position!
+	}
+	else
+	{
+		basepos = 0xC0000; //Our base reference position!
+	}
+	offset -= basepos; //Calculate from the base position!
 	byte i;
 	for (i=0;i<NUMITEMS(OPT_ROMS);i++) //Check OPT ROMS!
 	{
 		if (OPT_ROMS[i]) //Enabled?
 		{
-			if (OPTROM_location[i]<=reloffset && (OPTROM_location[i]+OPTROM_size[i])>reloffset) //Found ROM?
+			if (OPTROM_location[i]<=offset && (OPTROM_location[i]+OPTROM_size[i])>offset) //Found ROM?
 			{
 				return 1; //Handled: ignore writes to ROM!
 			}
@@ -280,7 +302,7 @@ byte OPTROM_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /
 	}
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
-		if (reloffset < BIOS_custom_VGAROM_size) //OK?
+		if (offset < BIOS_custom_VGAROM_size) //OK?
 		{
 			return 1; //Ignore writes!
 		}
@@ -288,31 +310,43 @@ byte OPTROM_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /
 	return 0; //No ROM here, allow writes to normal memory!
 }
 
-byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* A pointer to a handler function */
+byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
-	uint_32 offset; //Current offset within the segment!
+	uint_32 basepos, tempoffset;
+	if ((offset<0xF0000) || (offset>0xFFFFF)) //Out of range (16-bit)?
+	{
+		if (offset<0xF0000000 || (offset>0xFFFFFFFF)) return 0; //Our of range (32-bit)?
+		else basepos = 0xF0000000; //Our base reference position!
+	}
+	else
+	{
+		basepos = 0xF0000; //Our base reference position!
+	}
+	offset -= basepos; //Calculate from the base position!
+
 	if (BIOS_custom_ROM) //Custom/system ROM loaded?
 	{
-		offset = reloffset;
-		offset &= 0xFFFF; //16-bit ROM!
+		tempoffset = offset;
+		tempoffset &= 0xFFFF; //16-bit ROM!
 		if (BIOS_custom_ROM_size == 0x10000)
 		{
 			return 1; //Unwritable BIOS!
 		}
-		if (offset>0xFFFF-BIOS_custom_ROM_size) //Within range?
+		if (tempoffset>0xFFFF-BIOS_custom_ROM_size) //Within range?
 		{
 			return 1; //Ignore writes!
 		}
 	}
 
+	uint_32 originaloffset;
 	uint_32 segment; //Current segment!
 	switch (EMULATED_CPU) //What CPU is being emulated?
 	{
 		case CPU_8086:
 		case CPU_80186: //5160 PC!
-			offset = reloffset;
+			originaloffset = offset; //Save the original offset for reference!
 			offset &= 0x7FFF; //Our offset within the ROM!
-			if (reloffset&0x8000) //u18?
+			if (originaloffset&0x8000) //u18?
 			{
 				if (BIOS_ROMS[18]) //Set?
 				{
@@ -337,7 +371,7 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 		case CPU_80386:
 		case CPU_80486:
 		case CPU_PENTIUM: //5170 AT PC!
-			segment = offset = reloffset; //Load the offset!
+			segment = offset; //Load the offset!
 			offset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //u47?
@@ -368,22 +402,32 @@ byte BIOS_writehandler(uint_32 baseoffset, uint_32 reloffset, byte value)    /* 
 	return 0; //Not recognised, use normal RAM!
 }
 
-byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A pointer to a handler function */
+byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler function */
 {
-	uint_32 offset; //Current offset within the segment!
+	uint_32 basepos, tempoffset;
+	if ((offset<0xF0000) || (offset>0xFFFFF)) //Out of range (16-bit)?
+	{
+		if (offset<0xF0000000 || (offset>0xFFFFFFFF)) return 0; //Our of range (32-bit)?
+		else basepos = 0xF0000000; //Our base reference position!
+	}
+	else
+	{
+		basepos = 0xF0000; //Our base reference position!
+	}
+	offset -= basepos; //Calculate from the base position!
 	if (BIOS_custom_ROM) //Custom/system ROM loaded?
 	{
-		offset = reloffset; //Reload!
-		offset &= 0xFFFF; //16-bit ROM!
+		tempoffset = offset;
+		tempoffset &= 0xFFFF; //16-bit ROM!
 		if (BIOS_custom_ROM_size == 0x10000)
 		{
-			*value = BIOS_custom_ROM[offset]; //Give the value!
+			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
 			return 1; //Direct offset used!
 		}
-		if (offset>(0xFFFF-BIOS_custom_ROM_size)) //Within range?
+		if (tempoffset>(0xFFFF-BIOS_custom_ROM_size)) //Within range?
 		{
-			offset -= (0xFFFF - BIOS_custom_ROM_size)+1;
-			*value = BIOS_custom_ROM[offset]; //Give the value!
+			tempoffset -= (0xFFFF - BIOS_custom_ROM_size)+1;
+			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
 			return 1; //ROM offset from the end of RAM used!
 		}
 	}
@@ -394,15 +438,15 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 	{
 		case CPU_8086:
 		case CPU_80186: //5160 PC!
-			offset = reloffset;
-			offset &= 0x7FFF; //Our offset within the ROM!
-			if (reloffset&0x8000) //u18?
+			tempoffset = offset;
+			tempoffset &= 0x7FFF; //Our offset within the ROM!
+			if (tempoffset&0x8000) //u18?
 			{
 				if (BIOS_ROMS[18]) //Set?
 				{
-					if (BIOS_ROM_size[18]>offset) //Within range?
+					if (BIOS_ROM_size[18]>tempoffset) //Within range?
 					{
-						*value = BIOS_ROMS[18][offset]; //Give the value!
+						*value = BIOS_ROMS[18][tempoffset]; //Give the value!
 						return 1;
 					}
 				}
@@ -411,9 +455,9 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 			{
 				if (BIOS_ROMS[19]) //Set?
 				{
-					if (BIOS_ROM_size[19]>offset) //Within range?
+					if (BIOS_ROM_size[19]>tempoffset) //Within range?
 					{
-						*value = BIOS_ROMS[19][offset]; //Give the value!
+						*value = BIOS_ROMS[19][tempoffset]; //Give the value!
 						return 1;
 					}
 				}
@@ -423,16 +467,16 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 		case CPU_80386:
 		case CPU_80486:
 		case CPU_PENTIUM: //5170 AT PC!
-			segment = offset = reloffset; //Load the offset!
-			offset >>= 1; //The offset is at every 2 bytes of memory!
+			segment = tempoffset = offset; //Load the offset!
+			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //u47?
 			{
 				if (BIOS_ROMS[47]) //Loaded?
 				{
-					if (BIOS_ROM_size[47]>offset) //Within range?
+					if (BIOS_ROM_size[47]>tempoffset) //Within range?
 					{
-						*value = BIOS_ROMS[47][offset]; //Give the value!
+						*value = BIOS_ROMS[47][tempoffset]; //Give the value!
 						return 1;
 					}
 				}
@@ -441,9 +485,9 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 			{
 				if (BIOS_ROMS[27]) //Loaded?
 				{
-					if (BIOS_ROM_size[27]>offset) //Within range?
+					if (BIOS_ROM_size[27]>tempoffset) //Within range?
 					{
-						*value = BIOS_ROMS[27][offset]; //Give the value!
+						*value = BIOS_ROMS[27][tempoffset]; //Give the value!
 						return 1;
 					}
 				}
@@ -459,13 +503,9 @@ byte BIOS_readhandler(uint_32 baseoffset, uint_32 reloffset, byte *value) /* A p
 void BIOS_registerROM()
 {
 	//Register our read&write handlers for 16&32-bit CPUs!
-	MMU_registerWriteHandler(0xF0000,0xFFFFF,&BIOS_writehandler,"BIOSROM16");
-	MMU_registerReadHandler(0xF0000,0xFFFFF,&BIOS_readhandler,"BIOSROM16");
-	MMU_registerWriteHandler(0xFFFF0000,0xFFFFFFFF,&BIOS_writehandler,"BIOSROM32");
-	MMU_registerReadHandler(0xFFFF0000,0xFFFFFFFF,&BIOS_readhandler,"BIOSROM32");
+	MMU_registerWriteHandler(&BIOS_writehandler,"BIOSROM");
+	MMU_registerReadHandler(&BIOS_readhandler,"BIOSROM");
 
-	MMU_registerReadHandler(0xC0000,0xEFFFF,&OPTROM_readhandler,"OPTROM16");	
-	MMU_registerWriteHandler(0xC0000,0xEFFFF,&OPTROM_writehandler,"OPTROM16");	
-	MMU_registerReadHandler(0xFFFC0000,0xFFFEFFFF,&OPTROM_readhandler,"OPTROM32");
-	MMU_registerWriteHandler(0xFFFC0000,0xFFFEFFFF,&OPTROM_writehandler,"OPTROM32");
+	MMU_registerReadHandler(&OPTROM_readhandler,"OPTROM");
+	MMU_registerWriteHandler(&OPTROM_writehandler,"OPTROM");
 }

@@ -85,7 +85,7 @@ void MMU_resetHandlers(char *module) //Initialise/reset handlers!
 	}
 }
 
-byte MMU_registerWriteHandler(uint_32 startoffset, uint_32 endoffset, MMU_WHANDLER handler, char *module) //Register a write handler!
+byte MMU_registerWriteHandler(MMU_WHANDLER handler, char *module) //Register a write handler!
 {
 	byte i=0;
 	for (;i<NUMITEMS(MMUHANDLER.writehandlers);i++)
@@ -93,8 +93,6 @@ byte MMU_registerWriteHandler(uint_32 startoffset, uint_32 endoffset, MMU_WHANDL
 		if (!MMUHANDLER.writehandlers[i]) //Not set?
 		{
 			MMUHANDLER.writehandlers[i] = handler; //Set the handler to use!
-			MMUHANDLER.startoffsetw[i] = startoffset;
-			MMUHANDLER.endoffsetw[i] = endoffset;
 			memset(&MMUHANDLER.modulew[i],0,sizeof(&MMUHANDLER.modulew[i])); //Init module!
 			strcpy(MMUHANDLER.modulew[i],module); //Set module!
 			MMUHANDLER_countwrites(); //Recount!
@@ -104,7 +102,7 @@ byte MMU_registerWriteHandler(uint_32 startoffset, uint_32 endoffset, MMU_WHANDL
 	return 0; //Error: ran out of space!
 }
 
-byte MMU_registerReadHandler(uint_32 startoffset, uint_32 endoffset, MMU_RHANDLER handler, char *module) //Register a read handler!
+byte MMU_registerReadHandler(MMU_RHANDLER handler, char *module) //Register a read handler!
 {
 	byte i=0;
 	for (;i<NUMITEMS(MMUHANDLER.readhandlers);i++)
@@ -112,8 +110,6 @@ byte MMU_registerReadHandler(uint_32 startoffset, uint_32 endoffset, MMU_RHANDLE
 		if (!MMUHANDLER.readhandlers[i]) //Not set?
 		{
 			MMUHANDLER.readhandlers[i] = handler; //Set the handler to use!
-			MMUHANDLER.startoffsetr[i] = startoffset;
-			MMUHANDLER.endoffsetr[i] = endoffset;
 			memset(&MMUHANDLER.moduler[i],0,sizeof(&MMUHANDLER.moduler[i])); //Init module!
 			strcpy(MMUHANDLER.moduler[i],module); //Set module!
 			MMUHANDLER_countreads(); //Recount!
@@ -132,12 +128,9 @@ byte MMU_IO_writehandler(uint_32 offset, byte value)
 	{
 		if (MMUHANDLER.writehandlers[i]) //Set?
 		{
-			if (offset>=MMUHANDLER.startoffsetw[i] && offset<=MMUHANDLER.endoffsetw[i]) //Within range?
+			if (MMUHANDLER.writehandlers[i](offset,value)) //Success?
 			{
-				if (MMUHANDLER.writehandlers[i](MMUHANDLER.startoffsetw[i],offset-MMUHANDLER.startoffsetw[i],value)) //Success?
-				{
-					return 0; //Abort searching: we're processed!
-				}
+				return 0; //Abort searching: we're processed!
 			}
 		}
 		++i; //Next!
@@ -155,12 +148,9 @@ byte MMU_IO_readhandler(uint_32 offset, byte *value)
 	{
 		if (MMUHANDLER.readhandlers[i]) //Set?
 		{
-			if (offset>=MMUHANDLER.startoffsetr[i] && offset<=MMUHANDLER.endoffsetr[i]) //Within range?
+			if (MMUHANDLER.readhandlers[i](offset,value)) //Success reading?
 			{
-				if (MMUHANDLER.readhandlers[i](MMUHANDLER.startoffsetr[i],offset-MMUHANDLER.startoffsetr[i],value)) //Success reading?
-				{
-					return 0; //Abort searching: we're processed!
-				}
+				return 0; //Abort searching: we're processed!
 			}
 		}
 		++i; //Next!

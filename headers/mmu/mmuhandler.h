@@ -13,12 +13,12 @@ result:
 
 */
 
-typedef byte (*MMU_WHANDLER)(uint_32 baseoffset, uint_32 reloffset, byte value);    /* A pointer to a handler function */
-typedef byte (*MMU_RHANDLER)(uint_32 baseoffset, uint_32 reloffset, byte *value);    /* A pointer to a handler function */
+typedef byte (*MMU_WHANDLER)(uint_32 offset, byte value);    /* A pointer to a handler function */
+typedef byte (*MMU_RHANDLER)(uint_32 offset, byte *value);    /* A pointer to a handler function */
 
 void MMU_resetHandlers(char *module); //Initialise/reset handlers, no module (""/NULL) for all.
-byte MMU_registerWriteHandler(uint_32 startoffset, uint_32 endoffset, MMU_WHANDLER handler, char *module); //Register a write handler!
-byte MMU_registerReadHandler(uint_32 startoffset, uint_32 endoffset, MMU_RHANDLER handler, char *module); //Register a read handler!
+byte MMU_registerWriteHandler(MMU_WHANDLER handler, char *module); //Register a write handler!
+byte MMU_registerReadHandler(MMU_RHANDLER handler, char *module); //Register a read handler!
 
 //MMU specific handlers:
 byte MMU_IO_writehandler(uint_32 offset, byte value); //Handle MMU-device I/O!

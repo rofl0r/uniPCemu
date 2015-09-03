@@ -3,18 +3,6 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/ports.h" //I/O port support!
 
-#define PCI_VENDOR_ID 0x00	/* 16 bits */
-#define PCI_DEVICE_ID 0x02	/* 16 bits */
-#define PCI_COMMAND 0x04	/* 16 bits */
-#define PCI_BASE_ADDRESS_0 0x10	/* 32 bits */
-#define PCI_BASE_ADDRESS_1 0x14	/* 32 bits [htype 0,1 only] */
-#define PCI_BASE_ADDRESS_2 0x18	/* 32 bits [htype 0 only] */
-#define PCI_BASE_ADDRESS_3 0x1c	/* 32 bits */
-#define PCI_BASE_ADDRESS_4 0x20	/* 32 bits */
-#define PCI_BASE_ADDRESS_5 0x24	/* 32 bits */
-#define PCI_INTERRUPT_LINE 0x3c	/* 8 bits */
-#define PCI_CLASS_REVISION 0x08	/* High 24 bits are class, low 8 revision */
-
 byte *configurationspaces[0x100]; //All possible configuation spaces!
 byte configurationsizes[0x100]; //The size of the configuration!
 
