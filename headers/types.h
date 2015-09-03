@@ -38,15 +38,15 @@
 
 //Our basic functionality we need for running this program!
 //We have less accuracy using SDL delay: ms instead of us. Round to 0ms(minimal time) if needed!
+
+#define WaitSem(s) SDL_SemWait(s);
+#define PostSem(s) SDL_SemPost(s);
+
 #ifdef __psp__
 #define delay(us) sceKernelDelayThread(us?us:1)
 #define sleep sceKernelSleepThread
 #define mkdir(dir) sceIoMkdir(dir,0777)
-#define WaitSem(s)
-#define PostSem(s)
 #else
-#define WaitSem(s) SDL_SemWait(s);
-#define PostSem(s) SDL_SemPost(s);
 //Different delays for windows and other systems (linux etc.)!
 #ifdef _WIN32
 #define realdelay(x) (x)
