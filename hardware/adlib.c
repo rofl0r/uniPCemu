@@ -27,6 +27,7 @@
 #define PI2 (float)(2.0f * PI)
 
 #define dB2factor(dB, fMaxLevelDB) pow(10, ((dB - fMaxLevelDB) / 20))
+#define factor2dB(factor, fMaxLevelDB) (fMaxLevelDB + (20 * log(factor)))
 
 //extern void set_port_write_redirector (uint16_t startport, uint16_t endport, void *callback);
 //extern void set_port_read_redirector (uint16_t startport, uint16_t endport, void *callback);
@@ -365,22 +366,31 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 {
 	float result; //Our variables?
 	//Generate the signal!
-	/*if (feedback && adlibch[curchan].feedback) //Apply feedback?
+	/*if (feedback) //Apply feedback?
 	{
-		modulator = adlibop[operator].lastsignal[0]; //Take the previous last signal!
-		modulator += adlibop[operator].lastsignal[1]; //Take the last signal!
-		modulator *= adlibch[curchan].feedback; //Calculate current feedback!
+		if (adlibch[curchan].feedback) //Gotten feedback?
+		{
+			modulator = adlibop[operator].lastsignal[0]; //Take the previous last signal!
+			modulator += adlibop[operator].lastsignal[1]; //Take the last signal!
+			modulator *= pow(2, adlibch[curchan].feedback); //Calculate current feedback!
+		}
 	}*/
 
 	//Generate the correct signal!
 	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, modulator, frequency, &adlibop[operator].freq0, &adlibop[operator].time);
-	//adlibop[operator].lastsignal[0] = adlibop[operator].lastsignal[1]; //Set last signal #0 to #1(shift)!
-	//adlibop[operator].lastsignal[1] = result; //Save the last signal produced!
-
 	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
 	result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
+	adlibop[operator].lastsignal[0] = adlibop[operator].lastsignal[1]; //Set last signal #0 to #1(shift)!
+	adlibop[operator].lastsignal[1] = result; //Save the last signal produced!
 
 	if (frequency) incop(operator,frequency); //Increase time for the operator!
+	/*if (feedback) //Apply feedback?
+	{
+		if (adlibch[curchan].feedback) //Gotten feedback?
+		{
+			result = adlibop[operator].lastsignal[0]; //Take the last signal!
+		}
+	}*/
 	return result; //Give the result!
 }
 

@@ -39,7 +39,7 @@ void updatePIT0() //Timer tick Irq
 			{
 				if (timertime[channel])
 				{
-					currenttime[channel] %= (uint_64)timertime[channel]; //Decrease the timer time for as much as possible!
+					for (;currenttime[channel] >= timertime[channel];) currenttime[channel] -= timertime[channel]; //Reset!
 					if (!channel) doirq(0); //PIT0 executes an IRQ on timeout!
 				}
 				else

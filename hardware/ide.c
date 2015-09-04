@@ -25,9 +25,6 @@ struct
 	uint_32 datablock; //How large is a data block to be refreshed?
 	uint_32 datasize; //Data size?
 	byte data[512]; //Full sector data!
-	word resultpos; //Result position?
-	word resultsize; //Result size?
-	byte result[512]; //Full result data!
 	byte command;
 	byte commandstatus; //Do we have a command?
 	struct
@@ -427,8 +424,8 @@ byte ATA_dataIN(byte channel) //Byte read from data!
         return result; //Give the result!
 		break;
 	case 0xEC: //Identify?
-		result = ATA[channel].result[ATA[channel].resultpos++]; //Read the result byte!
-		if (ATA[channel].resultpos == ATA[channel].resultsize) //Fully read?
+		result = ATA[channel].data[ATA[channel].datapos++]; //Read the result byte!
+		if (ATA[channel].datapos == ATA[channel].datasize) //Fully read?
 		{
 			ATA[channel].commandstatus = 0; //Reset command!
 		}
@@ -623,7 +620,7 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 	case 0xEC: //Identify drive?
 		dolog("ATA", "IDENTIFY:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 		ATA[channel].command = 0xEC; //We're running this command!
-		memcpy(&ATA[channel].result, &ATA[channel].Drive[ATA_activeDrive(channel)].driveparams, sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams)); //Set drive parameters currently set!
+		memcpy(&ATA[channel].data, &ATA[channel].Drive[ATA_activeDrive(channel)].driveparams, sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams)); //Set drive parameters currently set!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear any errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Needs to be 0 to detect!
@@ -631,8 +628,8 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveseekcomplete = 1; //We have data now!
 		//Finish up!
-		ATA[channel].resultpos = 0; //Initialise data position for the result!
-		ATA[channel].resultsize = sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams); //512 byte result!
+		ATA[channel].datapos = 0; //Initialise data position for the result!
+		ATA[channel].datasize = sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams); //512 byte result!
 		ATA[channel].commandstatus = 1; //We're requesting data to be read!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Execute an IRQ from us!
 		break;

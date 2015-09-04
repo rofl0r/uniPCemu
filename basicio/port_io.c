@@ -4,7 +4,7 @@
 #include "headers/hardware/ports.h" //Full PORTIN/OUT compatibility!
 
 //Log unhandled port IN/OUT?
-//#define LOG_UNHANDLED_PORTS
+#define LOG_UNHANDLED_PORTS
 
 /*
 
