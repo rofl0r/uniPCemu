@@ -364,33 +364,25 @@ OPTINLINE void incop(byte operator, float frequency)
 //Calculate an operator signal!
 OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float modulator, byte feedback)
 {
-	float result; //Our variables?
+	float result,feedbackresult; //Our variables?
 	//Generate the signal!
-	/*if (feedback) //Apply feedback?
+	if (feedback) //Apply channel feedback?
 	{
-		if (adlibch[curchan].feedback) //Gotten feedback?
-		{
-			modulator = adlibop[operator].lastsignal[0]; //Take the previous last signal!
-			modulator += adlibop[operator].lastsignal[1]; //Take the last signal!
-			modulator *= pow(2, adlibch[curchan].feedback); //Calculate current feedback!
-		}
-	}*/
+		modulator = adlibop[operator].lastsignal[0]; //Take the previous last signal!
+		modulator += adlibop[operator].lastsignal[1]; //Take the last signal!
+		modulator *= adlibch[curchan].feedback; //Calculate current feedback!
+	}
 
 	//Generate the correct signal!
 	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, modulator, frequency, &adlibop[operator].freq0, &adlibop[operator].time);
 	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
 	result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
-	adlibop[operator].lastsignal[0] = adlibop[operator].lastsignal[1]; //Set last signal #0 to #1(shift)!
-	adlibop[operator].lastsignal[1] = result; //Save the last signal produced!
+	feedbackresult = result; //Load the current feedback value!
+	feedbackresult *= 0.125f*0.125f*0.5f; //Prevent overflow (we're adding two values together, so take half the value calculated)!
+	adlibop[operator].lastsignal[0] = adlibop[operator].lastsignal[1]; //Set last signal #0 to #1(shift into the older one)!
+	adlibop[operator].lastsignal[1] = feedbackresult; //Set the feedback result!
 
-	if (frequency) incop(operator,frequency); //Increase time for the operator!
-	/*if (feedback) //Apply feedback?
-	{
-		if (adlibch[curchan].feedback) //Gotten feedback?
-		{
-			result = adlibop[operator].lastsignal[0]; //Take the last signal!
-		}
-	}*/
+	if (frequency) incop(operator,frequency); //Increase time for the operator when allowed to increase (frequency=0 during PCM output)!
 	return result; //Give the result!
 }
 
