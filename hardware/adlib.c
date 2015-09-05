@@ -58,6 +58,7 @@ byte adliboperatorsreverse[0x16] = { 0, 1, 2, 0, 1, 2,
 									6, 7, 8, 6, 7, 8}; //Channel lookup of adlib operators!
 
 static const double feedbacklookup[8] = { 0, PI / 16.0, PI / 8.0, PI / 4.0, PI / 2.0, PI, PI*2.0, PI*4.0 }; //The feedback to use from opl3emu! Seems to be half a sinus wave per number!
+double feedbacklookup2[8]; //Actual feedback lookup value!
 
 byte wavemask = 0; //Wave select mask!
 
@@ -239,7 +240,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
 			byte feedback;
 			feedback = (adlibregmem[0xC0 + portnum] >> 1) & 7; //Get the feedback value used!
-			adlibch[portnum].feedback = feedbacklookup[feedback]; //Convert to a feedback of the modulator signal!
+			adlibch[portnum].feedback = feedbacklookup2[feedback]; //Convert to a feedback of the modulator signal!
 			unlockAdlib();
 		}
 		break;
@@ -378,7 +379,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
 	result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
 	feedbackresult = result; //Load the current feedback value!
-	feedbackresult *= 0.125f*0.125f*0.5f; //Prevent overflow (we're adding two values together, so take half the value calculated)!
+	feedbackresult *= 0.5f; //Prevent overflow (we're adding two values together, so take half the value calculated)!
 	adlibop[operator].lastsignal[0] = adlibop[operator].lastsignal[1]; //Set last signal #0 to #1(shift into the older one)!
 	adlibop[operator].lastsignal[1] = feedbackresult; //Set the feedback result!
 
@@ -387,7 +388,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 }
 
 OPTINLINE short adlibsample(uint8_t curchan) {
-	const static float adlib_scaleFactor = (SHRT_MAX - 1.0f);
+	const static float adlib_scaleFactor = 4095.0f; //We're running 8 channels in a 16-bit space, so 1/8 of SHRT_MAX
 	float result; //The operator result and the final result!
 	byte op1,op2; //The two operators to use!
 	float op1frequency;
@@ -532,9 +533,6 @@ OPTINLINE short adlibgensample() {
 	{
 		adlibaccum += adlibsample(8);
 	}
-	//Clip it!
-	if (adlibaccum > SHRT_MAX) adlibaccum = SHRT_MAX;
-	if (adlibaccum < SHRT_MIN) adlibaccum = SHRT_MIN;
 
 	return (short)(adlibaccum);
 }
@@ -682,6 +680,10 @@ void initAdlib()
 		memset(&adlibop[i].lastsignal,0,sizeof(adlibop[i].lastsignal)); //Reset the last signals!
 	}
 
+	for (i = 0;i < NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
+	{
+		feedbacklookup2[i] = feedbacklookup[i] * (1 / (4 * PI)); //Convert to a range of 0-1!
+	}
 
 	if (__SOUND_ADLIB)
 	{
