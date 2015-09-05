@@ -616,6 +616,7 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		break;
 	case 0xEC: //Identify drive?
 		dolog("ATA", "IDENTIFY:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //CDROM errors out!
 		ATA[channel].command = 0xEC; //We're running this command!
 		memcpy(&ATA[channel].data, &ATA[channel].Drive[ATA_activeDrive(channel)].driveparams, sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams)); //Set drive parameters currently set!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear any errors!
@@ -761,11 +762,11 @@ byte outATA8(word port, byte value)
 	byte channel = 0; //What channel?
 	if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Primary channel?
 	{
-		if ((port >= (getControlPORTaddress(channel))) && (port <= (getControlPORTaddress(channel)))) goto port3_write;
+		if (port == (getControlPORTaddress(channel)+2)) goto port3_write;
 		channel = 1; //Try secondary channel!
 		if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Secondary channel?
 		{
-			if ((port >= (getControlPORTaddress(channel))) && (port <= (getControlPORTaddress(channel)))) goto port3_write;
+			if (port == (getControlPORTaddress(channel)+2)) goto port3_write;
 			return 0; //Not our port?
 		}
 	}
@@ -799,6 +800,7 @@ byte outATA8(word port, byte value)
 	case 6: //Drive/head?
 		ATA[channel].activedrive = (value >> 4) & 1; //The active drive!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead = value; //Set drive head!
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //We're an PATA device!
 		return 1; //OK!
 		break;
 	case 7: //Command?
@@ -817,8 +819,8 @@ port3_write: //Special port #3?
 	}
 	switch (port) //What port?
 	{
-	case 0: //Control register?
-		ATA[channel].DriveControlRegister.data = value; //Give the drive control register!
+	case 2: //Control register?
+		ATA[channel].DriveControlRegister.data = value; //Set the data!
 		return 1; //OK!
 		break;
 	default: //Unsupported!
@@ -871,11 +873,11 @@ byte inATA8(word port, byte *result)
 	byte channel = 0; //What channel?
 	if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Primary channel?
 	{
-		if ((port >= (getControlPORTaddress(channel))) && (port <= (getControlPORTaddress(channel)))) goto port3_read;
+		if ((port >= (getControlPORTaddress(channel)+2)) && (port <= (getControlPORTaddress(channel)+3))) goto port3_read;
 		channel = 1; //Try secondary channel!
 		if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Secondary channel?
 		{
-			if ((port >= (getControlPORTaddress(channel))) && (port <= (getControlPORTaddress(channel)))) goto port3_read;
+			if ((port >= (getControlPORTaddress(channel)+2)) && (port <= (getControlPORTaddress(channel)+3))) goto port3_read;
 			return 0; //Not our port?
 		}
 	}
@@ -935,12 +937,12 @@ port3_read: //Special port #3?
 	}
 	switch (port) //What port?
 	{
-	case 0: //Alternate status register?
+	case 2: //Alternate status register?
 		ATA_updateStatus(channel); //Update the status register if needed!
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data; //Get status!
 		return 1; //OK!
 		break;
-	case 1: //Drive address register?
+	case 3: //Drive address register?
 		*result = ATA[channel].DriveAddressRegister.data; //Give the data!
 		return 1; //OK!
 		break;
@@ -991,24 +993,24 @@ void ATA_DiskChanged(int disk)
 		{
 			disk_size = disksize(disk); //Get the disk's size!
 			disk_size >>= 9; //Get the disk size in sectors!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[0] = ((disk==CDROM0)||(disk==CDROM1))? ((2 << 14) | (5 << 8) | (1 << 7) | (2 << 5) | (0 << 0)):0x40; //Hard sectored, Fixed drive/CDROM drive!
+			if ((disk == CDROM0) || (disk == CDROM1)) //CDROM?
+			{
+				ATA[disk_channel].Drive[disk_ATA].driveparams[0] = ((2 << 14) | (5 << 8) | (1 << 7) | (2 << 5) | (0 << 0)); //CDROM drive!
+			}
+			else
+			{
+				ATA[disk_channel].Drive[disk_ATA].driveparams[0] = 0x40; //Hard sectored, Fixed drive!
+			}
 			ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
 			ATA[disk_channel].Drive[disk_ATA].driveparams[2] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk_size); //3=Number of heads
 			ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
 			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = 0x200; //LBA supported, DMA unsupported!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer cycle timing mode
-			ATA[disk_channel].Drive[disk_ATA].driveparams[53] = 1; //Using soft-sectoring!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (disk_size & 0xFFFF); //Number of addressable sectors, low word!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (disk_size >> 16); //Number of addressable sectors, high word!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[80] = 2; //We're an ATA-1 drive!
 		}
 		else //Drive not inserted?
 		{
 			memset(ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
-			if ((disk == CDROM0) || (disk == CDROM1)) //CD-ROM which isn't inserted?
-			{
-				ATA[disk_channel].Drive[disk_ATA].driveparams[0] = ((2 << 14) | (5 << 8) | (1 << 7) | (2 << 5) | (0 << 0)); //CDROM drive!
-			}
 		}
 		break;
 	default: //Unknown?
