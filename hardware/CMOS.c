@@ -142,6 +142,7 @@ void saveCMOS()
 	if (!CMOS.Loaded) return; //Don't save when not loaded/initialised!
 	memcpy(&BIOS_Settings.CMOS,&CMOS.data,0x80); //Copy the CMOS to BIOS!
 	BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
+	forceBIOSSave(); //Save the BIOS data!
 }
 
 void RTC_PeriodicInterrupt() //Periodic Interrupt!

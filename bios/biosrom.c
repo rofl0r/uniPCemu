@@ -13,10 +13,17 @@ byte *OPT_ROMS[40]; //Up to 40 option roms!
 uint_32 OPTROM_size[40]; //All possible OPT ROM sizes!
 word OPTROM_location[40]; //All possible OPT ROM locations!
 
+byte OPTROM_writeSequence[40]; //Current write sequence command state!
+byte OPTROM_writeSequence_waitingforDisable[40]; //Waiting for disable command?
+byte OPTROM_writeenabled[40]; //Write enabled ROM?
+
 extern BIOS_Settings_TYPE BIOS_Settings;
 
 byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 {
+	memset(OPTROM_writeenabled, 0, sizeof(OPTROM_writeenabled)); //Disable all write enable flags by default!
+	memset(OPTROM_writeSequence, 0, sizeof(OPTROM_writeSequence)); //Disable all write enable flags by default!
+	memset(OPTROM_writeSequence_waitingforDisable, 0, sizeof(OPTROM_writeSequence_waitingforDisable)); //Disable all write enable flags by default!
 	byte i; //Current OPT ROM!
 	uint_32 location; //The location within the OPT ROM area!
 	location = 0; //Init location!
@@ -289,6 +296,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 		basepos = 0xC0000; //Our base reference position!
 	}
 	offset -= basepos; //Calculate from the base position!
+	uint_32 OPTROM_address; //The address calculated in the EEPROM!
 	byte i;
 	for (i=0;i<NUMITEMS(OPT_ROMS);i++) //Check OPT ROMS!
 	{
@@ -296,7 +304,95 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 		{
 			if (OPTROM_location[i]<=offset && (OPTROM_location[i]+OPTROM_size[i])>offset) //Found ROM?
 			{
-				return 1; //Handled: ignore writes to ROM!
+				OPTROM_address = offset;
+				OPTROM_address -= OPTROM_location[i]; //The location within the OPTROM!
+				switch (OPTROM_address)
+				{
+				case 0x1555:
+					if ((value == 0xAA) && !OPTROM_writeSequence[i]) //Start sequence!
+					{
+						OPTROM_writeSequence[i] = 1; //Next step!
+						return 1; //Ignore write!
+					}
+					else if (OPTROM_writeSequence[i] == 2) //We're a command byte!
+					{
+						switch (value)
+						{
+						case 0xA0: //Enable write protect!
+							OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
+							OPTROM_writeSequence[i] = 0; //Finished write sequence!
+							OPTROM_writeenabled[i] = 0; //We're disabling writes to the EEPROM!
+							return 1; //Ignore write!
+							break;
+						case 0x80: //Wait for 0x20 to disable write protect!
+							OPTROM_writeSequence_waitingforDisable[i] = 1; //Waiting for disable!
+							OPTROM_writeSequence[i] = 0; //Finished write sequence!
+							return 1; //Ignore write!
+							break;
+						case 0x20: //Disable write protect!
+							if (OPTROM_writeSequence_waitingforDisable[i]) //Waiting for disable?
+							{
+								OPTROM_writeenabled[i] = 1; //We're enabling writes to the EEPROM!
+							}
+							OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
+							OPTROM_writeSequence[i] = 0; //Finished write sequence!
+							return 1; //Ignore write!
+							break;
+						default: //Not a command!
+							OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
+							OPTROM_writeSequence[i] = 0; //Finished write sequence!
+							break;
+						}
+					}
+					else
+					{
+						OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
+						OPTROM_writeSequence[i] = 0; //Finished write sequence!
+					}
+					break;
+				case 0x0AAA:
+					if ((value == 0x55) && (OPTROM_writeSequence[i] == 1)) //Start of valid sequence which is command-specific?
+					{
+						OPTROM_writeSequence[i] = 2; //Start write command sequence!
+						return 1; //Ignore write!
+					}
+					else
+					{
+						OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
+						OPTROM_writeSequence[i] = 0; //Finished write sequence!
+					}
+					break;
+				default:
+					OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
+					OPTROM_writeSequence[i] = 0; //No sequence running!
+					break;
+				}
+				if (!OPTROM_writeenabled[i]) return 1; //Handled: ignore writes to ROM or protected ROM!
+				//We're a EEPROM with write protect disabled!
+				FILE *f; //For opening the ROM file!
+				char filename[100];
+				memset(&filename, 0, sizeof(filename)); //Clear/init!
+				sprintf(filename, "ROM/OPTROM.%i", i + 1); //Create the filename for the ROM!
+				f = fopen(filename, "rb+"); //Open the ROM for writing!
+				if (!f) return 1; //Couldn't open the ROM for writing!
+				if (fseek(f, OPTROM_address, SEEK_SET)) //Couldn't seek?
+				{
+					fclose(f); //Close the file!
+					return 1; //Abort!
+				}
+				if (ftell(f) != OPTROM_address) //Failed seek position?
+				{
+					fclose(f); //Close the file!
+					return 1; //Abort!
+				}
+				if (fwrite(&value, 1, 1, f) != 1) //Failed to write the data to the file?
+				{
+					fclose(f); //Close thefile!
+					return 1; //Abort!
+				}
+				fclose(f); //Close the file!
+				OPT_ROMS[i][OPTROM_address] = value; //Write the data to the ROM in memory!
+				return 1; //Ignore writes to memory: we've handled it!
 			}
 		}
 	}

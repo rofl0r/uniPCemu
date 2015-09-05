@@ -7,9 +7,6 @@
 #include "headers/hardware/pci.h" //PCI support!
 #include "headers/support/highrestimer.h" //High resolution timer support!
 
-//Use WD BIOS by default assignment setting for compatibility?
-#define WD_ATA
-
 //Hard disk IRQ!
 #define ATA_PRIMARYIRQ 14
 #define ATA_SECONDARYIRQ 15
@@ -1010,6 +1007,10 @@ void ATA_DiskChanged(int disk)
 		else //Drive not inserted?
 		{
 			memset(ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
+			if ((disk == CDROM0) || (disk == CDROM1)) //CD-ROM which isn't inserted?
+			{
+				ATA[disk_channel].Drive[disk_ATA].driveparams[0] = ((2 << 14) | (5 << 8) | (1 << 7) | (2 << 5) | (0 << 0)); //CDROM drive!
+			}
 		}
 		break;
 	default: //Unknown?
@@ -1088,8 +1089,4 @@ void initATA()
 	PCI_IDE.DeviceID = 1;
 	PCI_IDE.VendorID = 1; //DEVICEID::VENDORID: We're a ATA device!
 	PCI_IDE.ProgIF = 0x80; //We use our own set interrupts and we're a parallel ATA controller!
-
-#ifdef WD_ATA
-	PCI_IDE.BAR[0] = 0x300; //Single controller only!
-#endif
 }
