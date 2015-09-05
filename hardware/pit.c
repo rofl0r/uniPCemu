@@ -23,7 +23,7 @@ double timerfreq; //Done externally!
 
 TicksHolder timerticks[3];
 float timertime[3] = { 1000000.0f / 18.2f,0,0 }; //How much time does it take to expire (default to 0=18.2Hz timer)?
-uint_64 currenttime[3] = { 0.0f,0.0f,0.0f }; //Current time passed!
+float currenttime[3] = { 0.0f,0.0f,0.0f }; //Current time passed!
 
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 
@@ -35,17 +35,17 @@ void updatePIT0() //Timer tick Irq
 		for (channel = 0;channel < 3;channel++) //process all channels![
 		{
 			currenttime[channel] += getuspassed(&timerticks[channel]); //Add the time passed to the counter!
-			if (currenttime[channel] >= (uint_64)timertime[channel]) //Are we to trigger an interrupt?
+			if (currenttime[channel] >= timertime[channel]) //Are we to trigger an interrupt?
 			{
-				if (timertime[channel])
+				if (timertime[channel]) //Gotten a valid number?
 				{
-					for (;currenttime[channel] >= timertime[channel];) currenttime[channel] -= timertime[channel]; //Reset!
-					if (!channel) doirq(0); //PIT0 executes an IRQ on timeout!
+					currenttime[channel] = fmod(currenttime[channel],timertime[channel]); //Rest!
 				}
 				else
 				{
 					currenttime[channel] = 0; //Divide by 0 is 0!
 				}
+				if (!channel) doirq(0); //PIT0 executes an IRQ on timeout!
 			}
 		}
 	}

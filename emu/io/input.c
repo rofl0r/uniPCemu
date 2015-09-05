@@ -1906,17 +1906,21 @@ void updateMOD(SDL_Event *event)
 	}
 }
 
+byte DirectInput_Middle = 0; //Is direct input toggled by middle mouse button?
+
 //Toggle direct input on/off!
-void toggleDirectInput()
+void toggleDirectInput(byte middlebutton)
 {
 	Direct_Input = !Direct_Input; //Toggle direct input!
 	if (Direct_Input) //Enabled?
 	{
+		DirectInput_Middle = middlebutton; //Are we toggled on by the middle mouse button?
 		SDL_WM_GrabInput(SDL_GRAB_ON); //Grab the mouse!
 		SDL_ShowCursor(SDL_DISABLE); //Don't show the cursor!
 	}
 	else //Disabled?
 	{
+		DirectInput_Middle = 0; //Reset middle mouse button flag!
 		SDL_WM_GrabInput(SDL_GRAB_OFF); //Don't grab the mouse!
 		SDL_ShowCursor(SDL_ENABLE); //Show the cursor!
 	}
@@ -2328,12 +2332,12 @@ void updateInput(SDL_Event *event) //Update all input!
 			switch (event->button.button) //What button?
 			{
 			case SDL_BUTTON_MIDDLE: //Middle released!
-				toggleDirectInput(); //Toggle direct input!
+				toggleDirectInput(1); //Toggle direct input by middle button!
 				break;
 			case SDL_BUTTON_LEFT:
-				if (mousebuttons==3) //Were we both pressed? Special action!
+				if ((mousebuttons==3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
 				{
-					toggleDirectInput(); //Toggle direct input!
+					toggleDirectInput(0); //Toggle direct input by both buttons!
 				}
 				mousebuttons &= ~1; //Left released!
 				if (Direct_Input)
@@ -2342,9 +2346,9 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				break;
 			case SDL_BUTTON_RIGHT:
-				if (mousebuttons == 3) //Were we both pressed? Special action!
+				if ((mousebuttons == 3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
 				{
-					toggleDirectInput(); //Toggle direct input!
+					toggleDirectInput(0); //Toggle direct input by both buttons!
 				}
 				mousebuttons &= ~2; //Right released!
 				if (Direct_Input)
