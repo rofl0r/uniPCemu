@@ -107,12 +107,12 @@ OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 	}
 }
 
-void lockAdlib()
+OPTINLINE void lockAdlib()
 {
 	lockaudio(); //Lock the audio: we're going to adjust audio information!
 }
 
-void unlockAdlib()
+OPTINLINE void unlockAdlib()
 {
 	unlockaudio(1); //Finished with audio update!
 }
@@ -269,7 +269,7 @@ uint8_t inadlib (uint16_t portnum, byte *result) {
 	return 0; //Not our port!
 }
 
-uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
+OPTINLINE uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 	if (chan > 8) return (0); //Invalid channel: we only have 9 channels!
 	uint16_t tmpfreq;
 	tmpfreq = (uint16_t) adlibch[chan].convfreq;
@@ -424,7 +424,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 
 byte ticked80 = 0; //80 ticked?
 
-void tick_adlibtimer()
+OPTINLINE void tick_adlibtimer()
 {
 	//We don't have any IRQs assigned!
 	if (adlibregmem[8] & 0x80) //CSM enabled?
@@ -433,7 +433,7 @@ void tick_adlibtimer()
 	}
 }
 
-void adlib_timer320() //Second timer!
+OPTINLINE void adlib_timer320() //Second timer!
 {
 	if (adlibregmem[4] & 2) //Timer2 enabled?
 	{
@@ -451,7 +451,7 @@ void adlib_timer320() //Second timer!
 
 byte ticks80 = 0; //How many timer 80 ticks have been done?
 
-void adlib_timer80() //First timer!
+OPTINLINE void adlib_timer80() //First timer!
 {
 	ticked80 = 0; //Default: not ticked!
 	if (adlibregmem[4] & 1) //Timer1 enabled?
