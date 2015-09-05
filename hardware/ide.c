@@ -759,13 +759,13 @@ byte outATA16(word port, word value)
 byte outATA8(word port, byte value)
 {
 	byte channel = 0; //What channel?
-	if ((port<getPORTaddress(channel)) || (port>getPORTaddress(channel)+0xD)) //Primary channel?
+	if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Primary channel?
 	{
-		if ((port >= getControlPORTaddress(channel)) && (port <= getControlPORTaddress(channel)+1)) goto port3_write;
+		if ((port >= (getControlPORTaddress(channel))) && (port <= (getControlPORTaddress(channel)))) goto port3_write;
 		channel = 1; //Try secondary channel!
-		if ((port<getPORTaddress(channel)) || (port>getPORTaddress(channel) + 0xD)) //Secondary channel?
+		if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Secondary channel?
 		{
-			if ((port >= getControlPORTaddress(channel)) && (port <= getControlPORTaddress(channel) + 1)) goto port3_write;
+			if ((port >= (getControlPORTaddress(channel))) && (port <= (getControlPORTaddress(channel)))) goto port3_write;
 			return 0; //Not our port?
 		}
 	}
@@ -869,13 +869,13 @@ byte inATA16(word port, word *result)
 byte inATA8(word port, byte *result)
 {
 	byte channel = 0; //What channel?
-	if ((port<getPORTaddress(channel)) || (port>getPORTaddress(channel) + 0xD)) //Primary channel?
+	if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Primary channel?
 	{
-		if ((port >= getControlPORTaddress(channel)) && (port <= getControlPORTaddress(channel) + 1)) goto port3_read;
+		if ((port >= (getControlPORTaddress(channel))) && (port <= (getControlPORTaddress(channel)))) goto port3_read;
 		channel = 1; //Try secondary channel!
-		if ((port<getPORTaddress(channel)) || (port>getPORTaddress(channel) + 0xD)) //Secondary channel?
+		if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Secondary channel?
 		{
-			if ((port >= getControlPORTaddress(channel)) && (port <= getControlPORTaddress(channel) + 1)) goto port3_read;
+			if ((port >= (getControlPORTaddress(channel))) && (port <= (getControlPORTaddress(channel)))) goto port3_read;
 			return 0; //Not our port?
 		}
 	}
@@ -995,8 +995,6 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
 			ATA[disk_channel].Drive[disk_ATA].driveparams[2] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk_size); //3=Number of heads
 			ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
-			ATA[disk_channel].Drive[disk_ATA].driveparams[20] = 1; //One transfer at a time!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = 1; //1 sector long buffer!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = 0x200; //LBA supported, DMA unsupported!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer cycle timing mode
 			ATA[disk_channel].Drive[disk_ATA].driveparams[53] = 1; //Using soft-sectoring!
