@@ -185,6 +185,7 @@ struct
 
 void updateATA() //ATA timing!
 {
+	return; //Don't do this ATA timing!
 	uint_64 passed = getuspassed_k(&ATATicks); //Get us passed!
 	if (passed) //Anything passed?
 	{
