@@ -374,6 +374,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 		modulator = adlibop[operator].lastsignal[0]; //Take the previous last signal!
 		modulator += adlibop[operator].lastsignal[1]; //Take the last signal!
 		modulator *= adlibch[curchan].feedback; //Calculate current feedback!
+		modulator /= PI2; //Divide by 2PI to get a value to modulate!
 	}
 
 	//Generate the correct signal!
