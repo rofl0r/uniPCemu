@@ -39,6 +39,8 @@ const float usesamplerate = 14318180.0f/288.0f; //The sample rate to use for out
 //The length of a sample step:
 #define adlib_sampleLength (1.0f / (14318180.0f / 288.0f))
 
+const float modulatorfactor = 4084.0f / 1024.0f; //Modulation factor!
+
 //Counter info
 float counter80 = 0.0f, counter320 = 0.0f; //Counter ticks!
 byte timer80=0, timer320=0; //Timer variables for current timer ticks!
@@ -388,7 +390,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 }
 
 OPTINLINE short adlibsample(uint8_t curchan) {
-	const static float adlib_scaleFactor = 4095.0f; //We're running 8 channels in a 16-bit space, so 1/8 of SHRT_MAX
+	const static float adlib_scaleFactor = 4085.0f; //We're running 8 channels in a 16-bit space, so 1/8 of SHRT_MAX
 	float result; //The operator result and the final result!
 	byte op1,op2; //The two operators to use!
 	float op1frequency;
@@ -413,6 +415,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 	}
 	else //FM synthesis?
 	{
+		result *= modulatorfactor; //Convert modulator factor to 4085/1024 (each 1024 values adds 1 full wave, converting 1.0 range to ~4.0 range for the adlib)!
 		result = calcOperator(curchan, op2, adlibfreq(op2, curchan), result, 0); //Calculate the carrier with applied modulator!
 	}
 
