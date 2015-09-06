@@ -1773,7 +1773,7 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 	memset(&input, 0, sizeof(input)); //Init input to empty!
 	for (;;) //Main input loop!
 	{
-		if (shuttingdown)
+		if (shuttingdown()) //Are we shutting down?
 		{
 			disableKeyboard(); //Disable the keyboard!
 			return 0; //Cancel!
