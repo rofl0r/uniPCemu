@@ -22,6 +22,10 @@ int_64 lookuptable[4096]; //A full sector lookup table (4096 entries for either 
 OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	if (!f) return 0; //Failed!
+	if (fseek64(f, 0, SEEK_SET) != 0)
+	{
+		return 0; //Failed to seek to position 0!
+	}
 	if (fwrite64(header, 1, sizeof(*header), f) != sizeof(*header)) //Failed to write?
 	{
 		return 0; //Failed!
@@ -33,6 +37,10 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	if (f)
 	{
+		if (fseek64(f, 0, SEEK_SET) != 0)
+		{
+			return 0; //Failed to seek to position 0!
+		}
 		if (fread64(header,1,sizeof(*header),f)==sizeof(*header)) //Read the header?
 		{
 			char *sig = (char *)&header->SIG; //The signature!
@@ -281,13 +289,14 @@ OPTINLINE byte dynamicimage_setindex(FILE *f, uint_32 sector, int_64 index)
 int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!
 {
 	DYNAMICIMAGE_HEADER header, tempheader;
-	FILE *dev;
 	static byte emptyblock[512]; //An empty block!
 	static byte emptyready = 0;
 	int_64 newsize;
-	FILE *f = fopen64(filename, "rb+"); //Open for writing!
+	FILE *f;
+	f = fopen64(filename, "rb+"); //Open for writing!
 	if (!readdynamicheader(f, &header)) //Failed to read the header?
 	{
+		fclose64(f); //Close the device!
 		return FALSE; //Error: invalid file!
 	}
 	if (sector >= header.filesize) return FALSE; //We're over the limit of the image!
@@ -317,58 +326,68 @@ int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 			{
 				if (readdynamicheader(f, &header)) //Header updated?
 				{
-					dev = fopen64(filename, "rb+"); //Open file for reading!
-					if (fseek64(dev, header.currentsize, SEEK_SET)) //Goto EOF!
+					if (fseek64(f, header.currentsize, SEEK_SET)) //Goto EOF!
 					{
-						fclose64(dev);
+						fclose64(f);
 						return FALSE; //Error: couldn't goto EOF!
 					}
-					if (ftell64(dev) != header.currentsize) //Failed going to EOF?
+					if (ftell64(f) != header.currentsize) //Failed going to EOF?
 					{
-						fclose64(dev);
+						fclose64(f);
 						return FALSE; //Error: couldn't goto EOF!
 					}
-					if (fwrite64(buffer, 1, 512, dev) == 512) //Write the buffer to the file!
+					if (fwrite64(buffer, 1, 512, f) == 512) //Write the buffer to the file!
 					{
-						newsize = ftell64(dev); //New file size!
-						fclose64(dev); //Close the device!
+						newsize = ftell64(f); //New file size!
 						if (dynamicimage_updatesize(f, newsize)) //Updated the size?
 						{
 							if (dynamicimage_setindex(f, sector, header.currentsize)) //Assign our newly allocated block!
 							{
+								fclose64(f); //Close the device!
 								return TRUE; //OK: we're written!
 							}
 							else //Failed to assign?
 							{
 								dynamicimage_updatesize(f, header.currentsize); //Reverse sector allocation!
 							}
+							fclose64(f); //Close the device!
 							return FALSE; //An error has occurred: couldn't finish allocating the block!
 						}
+						fclose64(f); //Close it!
 						return FALSE; //ERROR!
 					}
-					fclose64(dev); //Close it!
 				}
+				fclose64(f); //Close the device!
 				return FALSE; //Error!
 			}
+			fclose64(f); //Close the device!
 			return FALSE; //Error!
 		}
 	}
 	else //Terminate loop: invalid sector!
 	{
+		fclose64(f); //Close the device!
 		return FALSE; //Error!
 	}
+	fclose64(f); //Close the device!
 	return TRUE; //Written!
 }
 
 int dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a 512-byte sector! Result=1 on success, 0 on error!
 {
 	DYNAMICIMAGE_HEADER header;
-	FILE *f = fopen64(filename, "rb"); //Open!
+	FILE *f;
+	f = fopen64(filename, "rb"); //Open!
 	if (!readdynamicheader(f, &header)) //Failed to read the header?
 	{
+		fclose64(f); //Close the device!
 		return FALSE; //Error: invalid file!
 	}
-	if (sector >= header.filesize) return FALSE; //We're over the limit of the image!
+	if (sector >= header.filesize)
+	{
+		fclose64(f); //Close the device!
+		return FALSE; //We're over the limit of the image!
+	}
 
 	int present = dynamicimage_datapresent(f,sector); //Data present?
 	if (present!=-1) //Valid sector?
