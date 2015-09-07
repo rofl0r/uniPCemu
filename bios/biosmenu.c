@@ -922,14 +922,14 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 	if (is_dynamicimage(filename)) //Dynamic image?
 	{
 		size = dynamicimage_getsize(filename); //Get the filesize!
-		GPU_EMU_printscreen(0, 20, "This is a Superfury Dynamic Disk Image file."); //Show selection init!
-		GPU_EMU_printscreen(0, 21, "Disk size: %08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
+		GPU_EMU_printscreen(0, 6, "This is a Superfury Dynamic Disk Image file."); //Show selection init!
+		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
 	}
 	else if (is_staticimage(filename)) //Static image?
 	{
 		size = staticimage_getsize(filename); //Get the filesize!
-		GPU_EMU_printscreen(0, 20, "This is a Static Disk Image file.           "); //Show selection init!
-		GPU_EMU_printscreen(0, 21, "Disk size: %08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
+		GPU_EMU_printscreen(0, 6, "This is a Static Disk Image file.           "); //Show selection init!
+		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
 	}
 	else if (is_DSKimage(filename)) //DSK disk image?
 	{
@@ -937,14 +937,14 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 		if (!readDSKInfo(filename, &dskinfo)) goto unknownimage;
 		size = dskinfo.NumberOfSides*dskinfo.NumberOfTracks*dskinfo.TrackSize; //Get the total disk image size!
 		size = dynamicimage_getsize(filename); //Get the filesize!
-		GPU_EMU_printscreen(0, 20, "This is a DSK Disk Image file.              "); //Show selection init!
-		GPU_EMU_printscreen(0, 21, "Disk size: %08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
+		GPU_EMU_printscreen(0, 6, "This is a DSK Disk Image file.              "); //Show selection init!
+		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
 	}
 	else //Unknown file type: no information?
 	{
 	unknownimage: //Unknown disk image?
-		GPU_EMU_printscreen(0, 20, "This is an unknown Disk Image file.         "); //Show selection init!
-		GPU_EMU_printscreen(0, 21, "                              "); //Clear file size info!
+		GPU_EMU_printscreen(0, 6, "This is an unknown Disk Image file.         "); //Show selection init!
+		GPU_EMU_printscreen(0, 7, "                              "); //Clear file size info!
 	}
 }
 
@@ -955,7 +955,7 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 {
 	BIOS_Title("Mount FLOPPY A");
-	generateFileList("img|dsk",0,0); //Generate file list for all .img files!
+	generateFileList("img|ima|dsk",0,0); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -983,7 +983,7 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 {
 	BIOS_Title("Mount FLOPPY B");
-	generateFileList("img|dsk",0,0); //Generate file list for all .img files!
+	generateFileList("img|ima|dsk",0,0); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -1022,6 +1022,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
+		reboot_needed = 1; //We need to reboot to apply the ATA changes!
 		strcpy(BIOS_Settings.hdd0,""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
@@ -1029,6 +1030,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 		break; //Just calmly return!
 	default: //File?
 		BIOS_Changed = 1; //Changed!
+		reboot_needed = 1; //We need to reboot to apply the ATA changes!
 		strcpy(BIOS_Settings.hdd0,itemlist[file]); //Use this file!
 	}
 	BIOS_Menu = 1; //Return to image menu!
@@ -1049,6 +1051,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
+		reboot_needed = 1; //We need to reboot to apply the ATA changes!
 		strcpy(BIOS_Settings.hdd1,""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
@@ -1056,6 +1059,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 		break; //Just calmly return!
 	default: //File?
 		BIOS_Changed = 1; //Changed!
+		reboot_needed = 1; //We need to reboot to apply the ATA changes!
 		strcpy(BIOS_Settings.hdd1,itemlist[file]); //Use this file!
 	}
 	BIOS_Menu = 1; //Return to image menu!
