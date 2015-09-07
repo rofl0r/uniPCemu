@@ -917,7 +917,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 
 void hdd_information(char *filename) //Displays information about a harddisk to mount!
 {
-	uint_64 size;
+	FILEPOS size;
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	if (is_dynamicimage(filename)) //Dynamic image?
 	{
@@ -1908,7 +1908,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 	BIOS_Title("Generate Static HDD Image");
 	char filename[256]; //Filename container!
 	bzero(filename,sizeof(filename)); //Init!
-	uint_32 size = 0;
+	FILEPOS size = 0;
 	BIOSClearScreen(); //Clear the screen!
 	BIOS_Title("Generate Dynamic HDD Image"); //Full clear!
 	EMU_locktext();
@@ -1949,7 +1949,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 	BIOS_Title("Generate Dynamic HDD Image");
 	char filename[256]; //Filename container!
 	bzero(filename,sizeof(filename)); //Init!
-	uint_32 size = 0;
+	FILEPOS size = 0;
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto position for info!
 	GPU_EMU_printscreen(0, 4, "Name: "); //Show the filename!
@@ -1976,7 +1976,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 					EMU_gotoxy(0, 6); //Next row!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
-					uint_32 sizecreated;
+					FILEPOS sizecreated;
 					sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
 				}
 			}
@@ -1992,7 +1992,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256]; //Filename container!
 	bzero(filename, sizeof(filename)); //Init!
-	uint_32 size = 0;
+	FILEPOS size = 0;
 	BIOS_Title("Convert static to dynamic HDD Image"); //Full clear!
 	generateFileList("img", 0, 0); //Generate file list for all .img files!
 	EMU_locktext();
@@ -2031,7 +2031,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 				EMU_gotoxy(0, 6); //Next row!
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 				EMU_unlocktext();
-				uint_64 sizecreated;
+				FILEPOS sizecreated;
 				sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
@@ -2147,7 +2147,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256]; //Filename container!
 	bzero(filename, sizeof(filename)); //Init!
-	uint_32 size = 0;
+	FILEPOS size = 0;
 	BIOS_Title("Convert dynamic to static HDD Image"); //Full clear!
 	generateFileList("sfdimg", 0, 1); //Generate file list for all .img files!
 	EMU_locktext();
@@ -2297,7 +2297,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256], originalfilename[256]; //Filename container!
 	bzero(filename, sizeof(filename)); //Init!
-	uint_32 size = 0;
+	FILEPOS size = 0;
 	BIOS_Title("Defragment a dynamic HDD Image"); //Full clear!
 	generateFileList("sfdimg", 0, 1); //Generate file list for all .img files!
 	EMU_locktext();
@@ -2337,7 +2337,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 				EMU_gotoxy(0, 6); //Next row!
 				GPU_EMU_printscreen(0, 6, "Defragmenting image: "); //Start of percentage!
 				EMU_unlocktext();
-				uint_64 sizecreated;
+				FILEPOS sizecreated;
 				sizecreated = generateDynamicImage(filename, size, 21, 6); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
