@@ -1944,6 +1944,10 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 	}
 	BIOS_Menu = 1; //Return to Disk Menu!
 }
+
+//Interval to update!
+#define SECTORUPDATEINTERVAL 51200000
+
 void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 {
 	BIOS_Title("Generate Dynamic HDD Image");
@@ -1986,9 +1990,13 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 	BIOS_Menu = 1; //Return to Disk Menu!
 }
 
+//How many sectors to be able to transfer at once?
+#define VERIFICATIONBLOCK 500
+
 void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static one!
 {
-	byte sector[512], verificationsector[512]; //Current sector!
+	byte sector[VERIFICATIONBLOCK*512], verificationsector[VERIFICATIONBLOCK*512]; //Current sector!
+	uint_64 datatotransfer; //How many sectors to transfer this block?
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256]; //Filename container!
 	bzero(filename, sizeof(filename)); //Init!
@@ -2054,9 +2062,18 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 							error = 4; //Give the fourth error!
 							break;
 						}
-						if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
+						if ((sizecreated - sectornr) > sizeof(sector)) //Too much to handle?
 						{
-							if (!writedata(HDD1, &sector, sectornr, 512)) //Error writing a sector?
+							datatotransfer = sizeof(sector); //Limit to max!
+						}
+						else
+						{
+							datatotransfer = sizecreated;
+							datatotransfer -= sectornr; //How many bytes of data to transfer?
+						}
+						if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
+						{
+							if (!writedata(HDD1, &sector, sectornr, datatotransfer)) //Error writing a sector?
 							{
 								error = 2;
 								break; //Stop reading!
@@ -2067,13 +2084,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 							error = 1;
 							break; //Stop reading!
 						}
-						if (!(sectornr % 5120)) //Update every 10 sectors!
+						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10 sectors!
 						{
-							EMU_locktext();
 							GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
-							EMU_unlocktext();
 						}
-						sectornr += 512; //Next sector!
+						sectornr += datatotransfer; //Next sector block!
 					}
 					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
@@ -2093,14 +2108,23 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 								error = 4; //Give the fourth error!
 								break;
 							}
-							if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
+							if ((sizecreated - sectornr) > sizeof(sector)) //Too much to handle?
 							{
-								if (!readdata(HDD1, &verificationsector, sectornr, 512)) //Error reading a sector?
+								datatotransfer = sizeof(sector); //Limit to max!
+							}
+							else
+							{
+								datatotransfer = sizecreated;
+								datatotransfer -= sectornr; //How many bytes of data to transfer?
+							}
+							if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
+							{
+								if (!readdata(HDD1, &verificationsector, sectornr, datatotransfer)) //Error reading a sector?
 								{
 									error = 2;
 									break; //Stop reading!
 								}
-								else if ((sectorposition = memcmp(&sector, &verificationsector, 512)) != 0)
+								else if ((sectorposition = memcmp(&sector, &verificationsector, datatotransfer)) != 0)
 								{
 									error = 3; //Verification error!
 									break; //Stop reading!
@@ -2111,13 +2135,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 								error = 1;
 								break; //Stop reading!
 							}
-							if (!(sectornr % 5120)) //Update every 10 sectors!
+							if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10 sectors!
 							{
-								EMU_locktext();
 								GPU_EMU_printscreen(18, 7, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
-								EMU_unlocktext();
 							}
-							sectornr += 512; //Next sector!
+							sectornr += datatotransfer; //Next sector!
 						}
 						EMU_locktext();
 						GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
@@ -2143,7 +2165,8 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 
 void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic one!
 {
-	byte sector[512], verificationsector[512]; //Current sector!
+	byte sector[VERIFICATIONBLOCK*512], verificationsector[VERIFICATIONBLOCK*512]; //Current sector!
+	uint_64 datatotransfer;
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256]; //Filename container!
 	bzero(filename, sizeof(filename)); //Init!
@@ -2203,9 +2226,18 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 						error = 4; //Give the fourth error!
 						break;
 					}
-					if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
+					if ((size - sectornr) > sizeof(sector)) //Too much to handle?
 					{
-						if (fwrite64(&sector,1,512,dest)!=512) //Error writing a sector?
+						datatotransfer = sizeof(sector); //Limit to max!
+					}
+					else //What's left?
+					{
+						datatotransfer = size;
+						datatotransfer -= sectornr; //How many bytes of data to transfer?
+					}
+					if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
+					{
+						if (fwrite64(&sector,1,datatotransfer,dest)!=datatotransfer) //Error writing a sector?
 						{
 							error = 2;
 							break; //Stop reading!
@@ -2216,13 +2248,11 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 						error = 1;
 						break; //Stop reading!
 					}
-					if (!(sectornr % 5120)) //Update every 10 sectors!
+					if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 					{
-						EMU_locktext();
 						GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
-						EMU_unlocktext();
 					}
-					sectornr += 512; //Next sector!
+					sectornr += datatotransfer; //Next sector!
 				}
 				fclose64(dest); //Close the file!
 
@@ -2244,14 +2274,23 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 							error = 4; //Give the fourth error!
 							break;
 						}
-						if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
+						if ((size - sectornr) > sizeof(sector)) //Too much to handle?
 						{
-							if (!readdata(HDD1, &verificationsector, sectornr, 512)) //Error reading a sector?
+							datatotransfer = sizeof(sector); //Limit to max!
+						}
+						else
+						{
+							datatotransfer = size;
+							datatotransfer -= sectornr; //How many bytes of data to transfer?
+						}
+						if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
+						{
+							if (!readdata(HDD1, &verificationsector, sectornr, datatotransfer)) //Error reading a sector?
 							{
 								error = 2;
 								break; //Stop reading!
 							}
-							else if ((sectorposition = memcmp(&sector,&verificationsector,512)) != 0)
+							else if ((sectorposition = memcmp(&sector,&verificationsector,datatotransfer)) != 0)
 							{
 								error = 3; //Verification error!
 								break; //Stop reading!
@@ -2262,13 +2301,11 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 							error = 1;
 							break; //Stop reading!
 						}
-						if (!(sectornr % 5120)) //Update every 10 sectors!
+						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 						{
-							EMU_locktext();
 							GPU_EMU_printscreen(18, 7, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
-							EMU_unlocktext();
 						}
-						sectornr += 512; //Next sector!
+						sectornr += datatotransfer; //Next sector!
 					}
 					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
@@ -2293,7 +2330,8 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 
 void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 {
-	byte sector[512], verificationsector[512]; //Current sector!
+	byte sector[VERIFICATIONBLOCK*512], verificationsector[VERIFICATIONBLOCK*512]; //Current sector!
+	word datatotransfer;
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256], originalfilename[256]; //Filename container!
 	bzero(filename, sizeof(filename)); //Init!
@@ -2356,9 +2394,18 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							error = 4; //Give the fourth error!
 							break;
 						}
-						if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
+						if ((sizecreated - sectornr) > sizeof(sector)) //Too much to handle?
 						{
-							if (!writedata(HDD1, &sector, sectornr, 512)) //Error writing a sector?
+							datatotransfer = sizeof(sector); //Limit to max!
+						}
+						else
+						{
+							datatotransfer = sizecreated;
+							datatotransfer -= sectornr; //How many bytes of data to transfer?
+						}
+						if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
+						{
+							if (!writedata(HDD1, &sector, sectornr, datatotransfer)) //Error writing a sector?
 							{
 								error = 2;
 								break; //Stop reading!
@@ -2369,13 +2416,11 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							error = 1;
 							break; //Stop reading!
 						}
-						if (!(sectornr % 5120)) //Update every 10 sectors!
+						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 						{
-							EMU_locktext();
 							GPU_EMU_printscreen(21, 6, "%i%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
-							EMU_unlocktext();
 						}
-						sectornr += 512; //Next sector!
+						sectornr += datatotransfer; //Next sector!
 					}
 					EMU_locktext();
 					GPU_EMU_printscreen(21, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
@@ -2395,14 +2440,23 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 								error = 4; //Give the fourth error!
 								break;
 							}
-							if (readdata(HDD0, &sector, sectornr, 512)) //Read a sector?
+							if ((sizecreated - sectornr) > sizeof(sector)) //Too much to handle?
 							{
-								if (!readdata(HDD1, &verificationsector, sectornr, 512)) //Error reading a sector?
+								datatotransfer = sizeof(sector); //Limit to max!
+							}
+							else
+							{
+								datatotransfer = sizecreated;
+								datatotransfer -= sectornr; //How many bytes of data to transfer?
+							}
+							if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
+							{
+								if (!readdata(HDD1, &verificationsector, sectornr, datatotransfer)) //Error reading a sector?
 								{
 									error = 2;
 									break; //Stop reading!
 								}
-								else if ((sectorposition = memcmp(&sector, &verificationsector, 512)) != 0)
+								else if ((sectorposition = memcmp(&sector, &verificationsector, datatotransfer)) != 0)
 								{
 									error = 3; //Verification error!
 									break; //Stop reading!
@@ -2413,13 +2467,11 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 								error = 1;
 								break; //Stop reading!
 							}
-							if (!(sectornr % 5120)) //Update every 10 sectors!
+							if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 							{
-								EMU_locktext();
 								GPU_EMU_printscreen(18, 7, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
-								EMU_unlocktext();
 							}
-							sectornr += 512; //Next sector!
+							sectornr += datatotransfer; //Next sector!
 						}
 						EMU_locktext();
 						GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
