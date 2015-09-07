@@ -7,6 +7,8 @@
 #include "headers/hardware/pci.h" //PCI support!
 #include "headers/support/highrestimer.h" //High resolution timer support!
 
+//#define ATA_LOG
+
 //Hard disk IRQ!
 #define ATA_PRIMARYIRQ 14
 #define ATA_SECONDARYIRQ 15
@@ -366,14 +368,18 @@ byte ATA_writesector(byte channel)
 	uint_64 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address >= disk_size) //Past the end of the disk?
 	{
-		//dolog("ATA", "Sector out of range!");
+#ifdef ATA_LOG
+		dolog("ATA", "Sector out of range!");
+#endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.idmarknotfound = 1; //Not found!
 		ATA_updatesector(channel); //Update the current sector!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		return 1; //We're finished!
 	}
 
-	//dolog("ATA", "Writing sector #%i!", ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address); //Log the sector we're writing to!
+#ifdef ATA_LOG
+	dolog("ATA", "Writing sector #%i!", ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address); //Log the sector we're writing to!
+#endif
 	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Write the data to the disk?
 	{
 		ATA_increasesector(channel); //Increase the current sector!
@@ -466,7 +472,9 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 	switch (command) //What command?
 	{
 	case 0x90: //Execute drive diagnostic?
-		//dolog("ATA", "DIAGNOSTICS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#ifdef ATA_LOG
+		dolog("ATA", "DIAGNOSTICS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#endif
 		ATA[channel].Drive[0].ERRORREGISTER.data = 0x1; //OK!
 		ATA[channel].Drive[1].ERRORREGISTER.data = 0x1; //OK!
 		ATA[channel].Drive[0].STATUSREGISTER.error = 0; //Not an error!
@@ -475,7 +483,9 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //IRQ!
 		break;
 	case 0xDB: //Acnowledge media change?
-		//dolog("ATA", "ACNMEDIACHANGE:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#ifdef ATA_LOG
+		dolog("ATA", "ACNMEDIACHANGE:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#endif
 		switch (ATA_Drives[channel][ATA_activeDrive(channel)]) //What kind of drive?
 		{
 		case CDROM0:
@@ -503,11 +513,15 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 	case 0x1D:
 	case 0x1E:
 	case 0x1F: //Recalibrate?
-		//dolog("ATA", "RECALIBRATE:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#ifdef ATA_LOG
+		dolog("ATA", "RECALIBRATE:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //Default to no error!
 		if (has_drive(ATA_Drives[channel][ATA_activeDrive(channel)]) && (ATA_Drives[channel][ATA_activeDrive(channel)]>=HDD0) && (ATA_Drives[channel][ATA_activeDrive(channel)]<=HDD1)) //Gotten drive and is a hard disk?
 		{
-			//dolog("ATA", "Recalibrated!");
+#ifdef ATA_LOG
+			dolog("ATA", "Recalibrated!");
+#endif
 			temp = (ATA[channel].command & 0xF); //???
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Clear cylinder #!
 			ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveseekcomplete = 1; //We've completed seeking!
@@ -540,13 +554,17 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 	case 0x7D:
 	case 0x7E:
 	case 0x7F: //Seek?
-		//dolog("ATA", "SEEK:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#ifdef ATA_LOG
+		dolog("ATA", "SEEK:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#endif
 		temp = (command & 0xF); //The head to select!
 		if (((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow) < ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[54]) //Cylinder correct?
 		{
 			if (temp < ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[55]) //Head within range?
 			{
-				//dolog("ATA", "Seeked!");
+#ifdef ATA_LOG
+				dolog("ATA", "Seeked!");
+#endif
 				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //No error!
 				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveseekcomplete = 1; //We've completed seeking!
 				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
@@ -563,7 +581,9 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA[channel].longop = 1; //Long operation!
 	case 0x20: //Read sector(s) (w/retry)?
 	case 0x21: //Read sector(s) (w/o retry)?
-		//dolog("ATA", "READ(long:%i):%i,%i=%02X", ATA[channel].longop,channel, ATA_activeDrive(channel), command);
+#ifdef ATA_LOG
+		dolog("ATA", "READ(long:%i):%i,%i=%02X", ATA[channel].longop,channel, ATA_activeDrive(channel), command);
+#endif
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
@@ -589,7 +609,9 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA[channel].longop = 1; //Long operation!
 	case 0x30: //Write sector(s) (w/retry)?
 	case 0x31: //Write sectors (w/o retry)?
-		//dolog("ATA", "WRITE(LONG:%i):%i,%i=%02X",ATA[channel].longop, channel, ATA_activeDrive(channel), command);
+#ifdef ATA_LOG
+		dolog("ATA", "WRITE(LONG:%i):%i,%i=%02X",ATA[channel].longop, channel, ATA_activeDrive(channel), command);
+#endif
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
@@ -612,7 +634,9 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA[channel].command = command; //We're executing this command!
 		break;
 	case 0x91: //Initialise device parameters?
-		//dolog("ATA", "INITDRVPARAMS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#ifdef ATA_LOG
+		dolog("ATA", "INITDRVPARAMS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#endif
 		ATA[channel].commandstatus = 0; //Requesting command again!
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[55] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head + 1); //Set the current maximum head!
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[56] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount); //Set the current sectors per track!
@@ -620,7 +644,9 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
 		break;
 	case 0xEC: //Identify drive?
-		//dolog("ATA", "IDENTIFY:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#ifdef ATA_LOG
+		dolog("ATA", "IDENTIFY:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //CDROM errors out!
 		ATA[channel].command = 0xEC; //We're running this command!
 		memcpy(&ATA[channel].data, &ATA[channel].Drive[ATA_activeDrive(channel)].driveparams, sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams)); //Set drive parameters currently set!
@@ -637,7 +663,9 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Execute an IRQ from us!
 		break;
 	case 0xDA: //Get media status?
-		//dolog("ATA", "GETMEDIASTATUS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#ifdef ATA_LOG
+		dolog("ATA", "GETMEDIASTATUS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#endif
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //CD-ROM drive?
 		{
 			drive = ATA_Drives[channel][ATA_activeDrive(channel)]; //Load the drive identifier!
@@ -657,7 +685,9 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		else goto invalidcommand;
 		break;
 	case 0xEF: //Set features?
-		//dolog("ATA", "Set features:%i,%i=%02X", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features); //Set these features!
+#ifdef ATA_LOG
+		dolog("ATA", "Set features:%i,%i=%02X", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features); //Set these features!
+#endif
 		switch (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features) //What features to set?
 		{
 		case 0x01: //Enable 8-bit data transfers!
@@ -701,7 +731,9 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 	default: //Unknown command?
 		//Invalid command?
 		invalidcommand:
-		//dolog("ATA", "INVALIDCOMMAND:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#ifdef ATA_LOG
+		dolog("ATA", "INVALIDCOMMAND:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+#endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 4; //Reset error register!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 1; //Ready!

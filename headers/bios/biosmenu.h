@@ -17,7 +17,8 @@ void initBIOSMenu(); //Stuff that take extra video memory etc. for seperated BIO
 int CheckBIOSMenu(uint_32 timeout); //To run the BIOS Menus! Result: to reboot?
 byte runBIOS(byte showloadingtext); //Run the BIOS!
 
-int ExecuteList(int x, int y, char *defaultentry, int maxlen); //Runs the file list!
+typedef void(*list_information)(char *filename); //Displays information about a harddisk to mount!
+int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information information_handler); //Runs the file list!
 
 byte sound_playMIDIfile(byte showinfo); //Play a MIDI file!
 #endif
