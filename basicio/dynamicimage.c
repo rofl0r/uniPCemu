@@ -30,6 +30,10 @@ OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 	{
 		return 0; //Failed!
 	}
+	if (fflush64(f)) //Error when flushing?
+	{
+		return 0; //We haven't been updated!
+	}
 	return 1; //We've been updated!
 }
 
@@ -113,6 +117,10 @@ OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_6
 		memset(&lookuptable, 0, (size_t)entrysize); //Init to empty block table!
 		if (fwrite64(&lookuptable, 1, entrysize, f) == entrysize) //Block table allocated?
 		{
+			if (fflush64(f)) //Error when flushing?
+			{
+				return 0; //We haven't been updated!
+			}
 			newsize = ftell64(f); //New file size!
 			return dynamicimage_updatesize(f, newsize); //Size successfully updated?
 		}
@@ -165,6 +173,10 @@ OPTINLINE byte dynamicimage_updatelookuptable(FILE *f, int_64 location, int_64 n
 				}
 				if (fwrite64(&lookuptable, 1, entrysize, f) == entrysize) //Updated?
 				{
+					if (fflush64(f)) //Error when flushing?
+					{
+						return 0; //We haven't been updated!
+					}
 					return 1; //Updated!
 				}
 			}
@@ -308,7 +320,16 @@ int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 			int_64 location;
 			location = dynamicimage_getindex(f, sector); //Load the location!
 			fseek64(f,location, SEEK_SET); //Goto location!
-			fwrite64(buffer,1,512,f); //Write sector always!
+			if (fwrite64(buffer, 1, 512, f) != 512) //Write sector always!
+			{
+				fclose64(f);
+				return FALSE; //We haven't been updated!
+			}
+			if (fflush64(f)) //Error when flushing?
+			{
+				fclose64(f); //Close!
+				return FALSE; //We haven't been updated!
+			}
 			fclose64(f); //Close!
 		}
 		else //Not written yet?
@@ -338,6 +359,11 @@ int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 					}
 					if (fwrite64(buffer, 1, 512, f) == 512) //Write the buffer to the file!
 					{
+						if (fflush64(f)) //Error when flushing?
+						{
+							fclose64(f);
+							return FALSE; //Error: couldn't flush!
+						}
 						newsize = ftell64(f); //New file size!
 						if (dynamicimage_updatesize(f, newsize)) //Updated the size?
 						{

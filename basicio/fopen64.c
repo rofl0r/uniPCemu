@@ -63,6 +63,18 @@ int fseek64(FILE *stream, int64_t pos, int direction)
 #endif
 }
 
+int fflush64(FILE *stream)
+{
+	if (!stream) return 1; //EOF!
+	BIGFILE *b = (BIGFILE *)stream; //Convert!
+#ifdef __psp__
+	return sceIoSync(b->f, 0); //Synchronize data on the device!
+#else
+	//Windows?
+	return fflush(b->f); //Give the fflush result!
+#endif
+}
+
 FILE *fopen64(char *filename, char *mode)
 {
 	BIGFILE *stream;
