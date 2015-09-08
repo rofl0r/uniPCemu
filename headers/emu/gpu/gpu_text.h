@@ -29,7 +29,6 @@ uint_32 font[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //Text surface font
 uint_32 border[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //Text surface border!
 
 //Dirty flags and rendered data (internal).
-byte dirty[GPU_TEXTPIXELSY][GPU_TEXTPIXELSX]; //This is dirty and needs to be updated?
 uint_32 notdirty[GPU_TEXTPIXELSY][GPU_TEXTPIXELSX]; //This is non-dirty, so use this then!
 
 //List for checking for borders, set by allocator!

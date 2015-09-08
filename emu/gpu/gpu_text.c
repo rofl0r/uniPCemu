@@ -77,7 +77,6 @@ OPTINLINE uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int b
 
 OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 {
-	surface->dirty[fy][fx] = 0; //We're going to un-dirty this!
 	//Undirty!
 	if (GPU_textget_pixel(surface,fx,fy)) //Font?
 	{
@@ -108,10 +107,10 @@ OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	surface->notdirty[fy][fx] = TRANSPARENTPIXEL;
 }
 
-OPTINLINE void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
+OPTINLINE void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy, byte redraw) //Get the pixel font, back or show through. Automatically plotted if set.
 {
 	if (!surface) return; //Invalid surface?
-	if (surface->dirty[fy][fx]) updateDirty(surface,fx,fy); //Update dirty if needed!
+	if (redraw) updateDirty(surface,fx,fy); //Update dirty if needed!
 	register uint_32 color = surface->notdirty[fy][fx];
 	if (color!=TRANSPARENTPIXEL)
 	{
@@ -131,7 +130,6 @@ GPU_TEXTSURFACE *alloc_GPUtext()
 	{
 		return NULL; //Failed to allocate!
 	}
-	memset(surface->dirty,1,sizeof(surface->dirty)); //All dirty, to be rendered!
 	//We don't need a screen, because we plot straight to the destination surface (is way faster than blitting)!
 	byte c;
 	for (c=0;c<8;c++)
@@ -162,12 +160,14 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	register int y=0;
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 	WaitSem(tsurface->lock);
+	byte redraw;
+	redraw = tsurface->flags&TEXTSURFACE_FLAG_DIRTY; //Redraw when dirty only?
 	for (;;) //Process all rows!
 	{
 		register int x=0; //Reset x!
 		for (;;) //Process all columns!
 		{
-			GPU_textput_pixel(rendersurface,tsurface,x,y); //Plot a pixel?
+			GPU_textput_pixel(rendersurface,tsurface,x,y,redraw); //Plot a pixel?
 			if (++x==GPU_TEXTPIXELSX) break; //Stop searching now!
 		}
 		if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!
@@ -188,33 +188,6 @@ int GPU_textgetxy(GPU_TEXTSURFACE *surface,int x, int y, byte *character, uint_3
 	return 1; //OK!
 }
 
-OPTINLINE void GPU_markdirty(GPU_TEXTSURFACE *surface, int x, int y) //Mark a character as dirty (GPU_text only, to prevent multirendering!)
-{
-	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
-	int rx;
-	int ry;
-
-	int cx, cy;
-	int tx, ty;
-	tx = x * 10;
-	ty = y * 10;
-	for (rx=-1;rx<12;) //Take one pixel extra for neighbouring pixels.
-	{
-		cx = tx + rx;
-		for (ry = -1; ry<12;)
-		{
-			cy = ty+ry;
-			if ((cx>=0) && (cy>=0)) //Valid positions?
-			{
-				surface->dirty[cy][cx] = 1; //Set dirty!
-			}
-			++ry;
-		}
-		++rx;
-	}
-	surface->flags |= TEXTSURFACE_FLAG_DIRTY; //Set dirty!
-}
-
 int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32 font, uint_32 border) //Write a character+attribute!
 {
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
@@ -233,7 +206,7 @@ int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32
 	change = character;
 	change |= font;
 	change |= border;
-	if (change) GPU_markdirty(surface,x,y); //Mark us as dirty when needed!
+	if (change) surface->flags |= TEXTSURFACE_FLAG_DIRTY; //Mark us as dirty when needed!
 	return 1; //OK!
 }
 
