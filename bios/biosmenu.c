@@ -326,7 +326,9 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 	stopEMUTimers(); //Stop our timers!
 	
+	GPU_text_locksurface(frameratesurface);
 	GPU_textclearscreen(frameratesurface); //Make sure the surface is empty for a neat BIOS!
+	GPU_text_releasesurface(frameratesurface);
 	
 	BIOS_LoadData(); //Now load/reset the BIOS
 	BIOS_Changed = 0; //Default: the BIOS hasn't been changed!
@@ -481,7 +483,9 @@ void clearrow(int row)
 void BIOSClearScreen() //Resets the BIOS's screen!
 {
 	if (__HW_DISABLED) return; //Abort!
+	GPU_text_locksurface(frameratesurface);
 	GPU_textclearscreen(frameratesurface); //Make sure the surface is empty for a neat BIOS!
+	GPU_text_releasesurface(frameratesurface);
 	char BIOSText[] = "x86 BIOS"; //The BIOS's text!
 	//cursorXY(0,0,0); //Goto top of the screen!
 

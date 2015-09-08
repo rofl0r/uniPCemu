@@ -44,8 +44,10 @@ void raiseError(char *source, char *text, ...)
 	//if (!THREADTEST) SDL_Quit(); //Stop SDL processing!
 	dolog("error","Displaying message...");
 
+	GPU_text_locksurface(frameratesurface);
 	GPU_textgotoxy(frameratesurface,0,0); //Goto 0,0!
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),result); //Show the message on our debug screen!
+	GPU_text_releasesurface(frameratesurface);
 	GPU_textrenderer(frameratesurface); //Render the framerate surface on top of all else!
 	renderFramerateOnly(); //Render the framerate only!
 

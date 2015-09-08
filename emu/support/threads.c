@@ -225,6 +225,7 @@ void debug_threads()
 		int numthreads = 0; //Number of installed threads running!
 		int i,i2;
 		int totalthreads = ThreadsRunning(); //Ammount of threads running!
+		GPU_text_locksurface(frameratesurface);
 		for (i=0;i<NUMITEMS(threadpool);i++)
 		{
 			if (threadpool[i].used) //Allocated?
@@ -244,6 +245,7 @@ void debug_threads()
 		}
 		GPU_textgotoxy(frameratesurface,0,30);
 		GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x00,0xFF,0x00),"Number of threads: %i",numthreads); //Debug the ammount of threads used!
+		GPU_text_releasesurface(frameratesurface);
 		delay(100000); //Wait 100ms!
 	}
 }

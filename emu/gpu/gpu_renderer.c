@@ -278,10 +278,12 @@ OPTINLINE void renderFrames() //Render all frames to the screen!
 				{
 					GPU.textrenderers[i](); //Execute the handler for filling the screen!
 				}
+				GPU_text_locksurface(GPU.textsurfaces[i]); //Lock the surface!
 				if (GPU_textdirty(GPU.textsurfaces[i])) //Marked dirty?
 				{
 					dirty = 1; //We're dirty!
 				}
+				GPU_text_releasesurface(GPU.textsurfaces[i]); //Release the surface lock!
 			}
 		}
 

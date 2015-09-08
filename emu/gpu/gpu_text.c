@@ -194,15 +194,17 @@ OPTINLINE void GPU_markdirty(GPU_TEXTSURFACE *surface, int x, int y) //Mark a ch
 	int rx;
 	int ry;
 
-	int tx = x * 10;
-	int ty = y * 10;
-	for (rx=-1;rx<11;) //Take one pixel extra for neighbouring pixels.
+	int cx, cy;
+	int tx, ty;
+	tx = x * 10;
+	ty = y * 10;
+	for (rx=-1;rx<12;) //Take one pixel extra for neighbouring pixels.
 	{
-		int cx = tx + rx;
-		for (ry = -1; ry<11;)
+		cx = tx + rx;
+		for (ry = -1; ry<12;)
 		{
-			int cy = ty+ry;
-			if (cx>=0 && cy>=0) //Valid positions?
+			cy = ty+ry;
+			if ((cx>=0) && (cy>=0)) //Valid positions?
 			{
 				surface->dirty[cy][cx] = 1; //Set dirty!
 			}

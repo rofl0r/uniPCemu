@@ -57,8 +57,10 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	int x,y; //X&Y coordinate!
 	int color; //The color for the coordinate!
 
+	GPU_text_locksurface(frameratesurface);
 	GPU_textgotoxy(frameratesurface,0,2); //Goto third row!
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Surface for mode %02X(Colors %03i): Rendering...",mode,maxcolor);
+	GPU_text_releasesurface(frameratesurface);
 	//VGA_waitforVBlank(); //Make sure we're ending drawing!
 
 	y = 0; //Init Y!
@@ -100,8 +102,10 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	
 	finishy: //Finish our operations!
 	
+	GPU_text_locksurface(frameratesurface);
 	GPU_textgotoxy(frameratesurface,33,2); //Goto Rendering... text!
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Rendered.   ",mode);
+	GPU_text_releasesurface(frameratesurface);
 
 	/*
 	startTimers(0); //Start timers again!
@@ -188,12 +192,14 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		*/ //80x25
 		//SCREEN_CAPTURE = 2; //Enable a screen capture please, on the second frame (first is incomplete, since we've changed VRAM)!
 		
+		GPU_text_locksurface(frameratesurface);
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Direct VRAM access 40x25-0...");
 
 		//VGA_DUMPATTR(); //Dump attribute controller info!
 
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Ready.");
+		GPU_text_releasesurface(frameratesurface);
 		/*debugTextModeScreenCapture(); //Debug a screen capture!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"SCREENCAPTURE CREATEN.");
 		*/
@@ -221,16 +227,19 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		printmsg(0xF,"E"); //End!
 		//printCRLF(); //Newline!
 		printmsg(0xF,"Third row!");
+		GPU_text_locksurface(frameratesurface);
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"40x25-0 Alltextcolors...");
-
+		GPU_text_releasesurface(frameratesurface);
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 10 seconds!
 
 		CPU[activeCPU].registers->AX = 0x81; //40x25, same, but with grayscale!
 		BIOS_int10();
+		GPU_text_locksurface(frameratesurface);
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"80x25-1 Alltextcolors...");
+		GPU_text_releasesurface(frameratesurface);
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 10 seconds!
 	
@@ -245,8 +254,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		}
 		printmsg(0xF,"E"); //End!
 		printmsg(0xF,"Third row!");
+		GPU_text_locksurface(frameratesurface);
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"80x25-2 WidthRows...");
+		GPU_text_releasesurface(frameratesurface);
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 1 seconds!
 	
@@ -260,8 +271,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 			BIOS_int10(); //Show the color!
 		}
 	
+		GPU_text_locksurface(frameratesurface);
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"80x25-2 Alltextcolors...");
+		GPU_text_releasesurface(frameratesurface);
 		debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 1 seconds!
 	
@@ -332,8 +345,10 @@ VGA Graphics debugging routine!
 
 void dumpVGA()
 {
+	GPU_text_locksurface(frameratesurface);
 	GPU_textgotoxy(frameratesurface,0,0);
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Dumping VGA data...");
+	GPU_text_releasesurface(frameratesurface);
 	FILE *f;
 	f = fopen("VGA.DAT","wb"); //Open it!
 	byte *b = (byte *)MainVGA->VRAM;

@@ -60,7 +60,9 @@ void EMU_clearscreen()
 {
 	if (BIOS_Surface)
 	{
+		GPU_text_locksurface(BIOS_Surface);
 		GPU_textclearscreen(BIOS_Surface); //Clear the screen!
+		GPU_text_releasesurface(BIOS_Surface);
 	}
 }
 

@@ -940,7 +940,9 @@ void keyboard_renderer() //Render the keyboard on-screen!
 		if (last_rendered) //We're rendered?
 		{
 			last_rendered = 0; //We're not rendered now!
+			GPU_text_locksurface(keyboardsurface);
 			GPU_textclearscreen(keyboardsurface); //Clear the rendered surface: there's nothing to show!
+			GPU_text_releasesurface(keyboardsurface);
 		}
 		return; //Keyboard disabled: don't show!
 	}
@@ -957,11 +959,11 @@ void keyboard_renderer() //Render the keyboard on-screen!
 
 	for (y=ybase;y<GPU_TEXTSURFACE_HEIGHT;y++)
 	{
-		for (x=xbase;x<GPU_TEXTSURFACE_WIDTH;x++)
+		for (x = xbase;x < GPU_TEXTSURFACE_WIDTH;x++)
 		{
 			uint_32 fontcolor = getemucol16(BIOS_Settings.input_settings.fontcolor); //Use font color by default!
 			uint_32 bordercolor = getemucol16(BIOS_Settings.input_settings.bordercolor); //Use border color by default!
-			switch (keyboard_attribute[y-ybase][x-xbase]) //What attribute?
+			switch (keyboard_attribute[y - ybase][x - xbase]) //What attribute?
 			{
 			case 1: //Active color?
 				bordercolor = getemucol16(BIOS_Settings.input_settings.activecolor); //Use active color!
@@ -977,7 +979,9 @@ void keyboard_renderer() //Render the keyboard on-screen!
 			default: //Default/standard border!
 				break;
 			}
-			GPU_textsetxy(keyboardsurface,x,y,keyboard_display[y-ybase][x-xbase],fontcolor,bordercolor);
+			GPU_text_locksurface(keyboardsurface); //Lock us!
+			GPU_textsetxy(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor);
+			GPU_text_releasesurface(keyboardsurface); //Unlock us!
 		}
 	}
 }

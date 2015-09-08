@@ -129,6 +129,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 	{
 	case 0xFF: //Reset?
 		resetKeyboard(); //Reset the Keyboard Controller!
+		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xFE: //Resend?
 		give_keyboard_input(Keyboard.last_send_byte); //Resend last non-0xFE byte!
@@ -141,36 +142,43 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
 		IRQ8042(); //We've got data in our input buffer!
+		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xFC: //Mode 3 change: 
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
 		IRQ8042(); //We've got data in our input buffer!
+		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xFB: //Mode 3 change:
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
 		IRQ8042(); //We've got data in our input buffer!
+		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xFA: //Mode 3 change:
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
 		IRQ8042(); //We've got data in our input buffer!
+		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xF9: //Mode 3 change:
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
 		IRQ8042(); //We've got data in our input buffer!
+		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xF8: //Mode 3 change:
 		give_keyboard_input(0xFE);
 		input_lastwrite_keyboard(); //Force 0xFA to user!
 		IRQ8042(); //We've got data in our input buffer!
+		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xF7: //Set All Keys Typematic: every type is one character send only!
 		give_keyboard_input(0xFE);	
 		input_lastwrite_keyboard(); //Force 0xFA to user!
 		IRQ8042(); //We've got data in our input buffer!
+		Keyboard.has_command = 0; //No command anymore!
 		break;
 	//0xFD-0xF7 not supported, because we won't support mode 3!
 	case 0xF5: //Same as 0xF6, but with scanning stop!
@@ -219,6 +227,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		give_keyboard_input(0xFE); //Error!
 		input_lastwrite_keyboard(); //Force 0xFE to user!
 		IRQ8042(); //We've got data in our input buffer!
+		Keyboard.has_command = 0; //No command anymore!
 		return; //Abort!
 		break;
 	}
@@ -291,10 +300,12 @@ OPTINLINE void handle_keyboard_data(byte data)
 	case 0xDD: //Disable A20 line?
 		Controller8042.outputport = Controller8042.outputport|(0x2); //Wrap arround: disable A20 line!
 		refresh_outputport(); //Handle the new output port!
+		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xDF: //Enable A20 line?
 		Controller8042.outputport = Controller8042.outputport&(~0x2); //Wrap arround: disable A20 line!
 		refresh_outputport(); //Handle the new output port!
+		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xED: //Set/reset LEDs?
 		Keyboard.LEDS = data; //Set/reset LEDs!

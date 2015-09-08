@@ -39,8 +39,10 @@ extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 void BREAKPOINT() //Break point!
 {
 	termThreads(); //Terminate all other threads!
+	GPU_text_locksurface(frameratesurface);
 	GPU_textgotoxy(frameratesurface,0,0); //Left-up!
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0,0,0),"Breakpoint reached!");
+	GPU_text_releasesurface(frameratesurface);
 	renderFramerateOnly(); //Render the framerate surface only!
 	sleep(); //Stop!
 }
