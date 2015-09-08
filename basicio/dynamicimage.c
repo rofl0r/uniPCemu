@@ -330,7 +330,7 @@ int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 				fclose64(f); //Close!
 				return FALSE; //We haven't been updated!
 			}
-			fclose64(f); //Close!
+			//Written correctly, passthrough!
 		}
 		else //Not written yet?
 		{
@@ -341,6 +341,7 @@ int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 			}
 			if (!memcmp(&emptyblock,buffer,sizeof(emptyblock))) //Empty?
 			{
+				fclose64(f); //Close the device!
 				return TRUE; //We don't need to allocate/write an empty block, as it's already empty by default!
 			}
 			if (dynamicimage_setindex(f, sector, 0)) //Assign to not allocated!

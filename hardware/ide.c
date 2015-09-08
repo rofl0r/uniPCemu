@@ -388,23 +388,38 @@ byte ATA_writesector(byte channel)
 		{
 			ATA_updatesector(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0; //We're back in command mode!
+#ifdef ATA_LOG
+			dolog("ATA", "All sectors to be written written! Ready.");
+#endif
 			return 1; //We're finished!
 		}
 
+#ifdef ATA_LOG
+		dolog("ATA", "Process next sector...");
+#endif
 		//Process next sector!
 		ATA[channel].datablock = 0x200; //We're refreshing after this many bytes!
 		ATA[channel].datapos = 0; //Initialise our data position!
-		ATA[channel].commandstatus = 1; //Transferring data IN!
+		ATA[channel].commandstatus = 2; //Transferring data OUT!
 		return 1; //Process the block!
 	}
 	else //Write failed?
 	{
+#ifdef ATA_LOG
+		dolog("ATA", "Write failed!"); //Log the sector we're writing to!
+#endif
 		if (drivereadonly(ATA_Drives[channel][ATA_activeDrive(channel)])) //R/O drive?
 		{
+#ifdef ATA_LOG
+			dolog("ATA", "Because the drive is readonly!"); //Log the sector we're writing to!
+#endif
 			ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.drivewritefault = 1; //Write fault!
 		}
 		else
 		{
+#ifdef ATA_LOG
+			dolog("ATA", "Because there was an error with the mounted disk image itself!"); //Log the sector we're writing to!
+#endif
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.uncorrectabledata = 1; //Not found!
 		}
 		ATA_updatesector(channel); //Update the current sector!
@@ -432,7 +447,7 @@ byte ATA_dataIN(byte channel) //Byte read from data!
 		break;
 	case 0xEC: //Identify?
 		result = ATA[channel].data[ATA[channel].datapos++]; //Read the result byte!
-		if (ATA[channel].datapos == ATA[channel].datasize) //Fully read?
+		if (ATA[channel].datapos == ATA[channel].datablock) //Fully read?
 		{
 			ATA[channel].commandstatus = 0; //Reset command!
 		}
@@ -610,7 +625,7 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 	case 0x30: //Write sector(s) (w/retry)?
 	case 0x31: //Write sectors (w/o retry)?
 #ifdef ATA_LOG
-		dolog("ATA", "WRITE(LONG:%i):%i,%i=%02X",ATA[channel].longop, channel, ATA_activeDrive(channel), command);
+		dolog("ATA", "WRITE(LONG:%i):%i,%i=%02X; Length=%02X", ATA[channel].longop, channel, ATA_activeDrive(channel), command, ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount);
 #endif
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
@@ -658,7 +673,7 @@ void ATA_executeCommand(byte channel, byte command) //Execute a command!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveseekcomplete = 1; //We have data now!
 		//Finish up!
 		ATA[channel].datapos = 0; //Initialise data position for the result!
-		ATA[channel].datasize = sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams); //512 byte result!
+		ATA[channel].datablock = sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams); //512 byte result!
 		ATA[channel].commandstatus = 1; //We're requesting data to be read!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Execute an IRQ from us!
 		break;
