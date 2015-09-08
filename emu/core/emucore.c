@@ -93,6 +93,8 @@ extern GPU_TEXTSURFACE *frameratesurface;
 
 void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 {
+	uint_32 busycolor;
+	busycolor = (busy == 1) ? RGB(0x00, 0xFF, 0x00) : RGB(0xFF, 0x66, 0x00); //Busy color Read/Write!
 	switch (disk) //What disk?
 	{
 	case FLOPPY0:
@@ -100,7 +102,7 @@ void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH - 6, 1); //Goto second row!
 		if (busy) //Busy?
 		{
-			GPU_textprintf(frameratesurface, RGB(0x00,0xFF,0x00), RGB(00,00,00), "A");
+			GPU_textprintf(frameratesurface, busycolor, RGB(00,00,00), "A");
 		}
 		else
 		{
@@ -113,7 +115,7 @@ void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 5, 1); //Goto second row!
 		if (busy) //Busy?
 		{
-			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(00, 00, 00), "B");
+			GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "B");
 		}
 		else
 		{
@@ -126,7 +128,7 @@ void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 4, 1); //Goto second row!
 		if (busy) //Busy?
 		{
-			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(00, 00, 00), "C");
+			GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "C");
 		}
 		else
 		{
@@ -139,7 +141,7 @@ void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 3, 1); //Goto second row!
 		if (busy) //Busy?
 		{
-			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(00, 00, 00), "D");
+			GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "D");
 		}
 		else
 		{
@@ -152,7 +154,7 @@ void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 2, 1); //Goto second row!
 		if (busy) //Busy?
 		{
-			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(00, 00, 00), "E");
+			GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "E");
 		}
 		else
 		{
@@ -165,7 +167,7 @@ void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 1, 1); //Goto second row!
 		if (busy) //Busy?
 		{
-			GPU_textprintf(frameratesurface, RGB(0x00, 0xFF, 0x00), RGB(00, 00, 00), "F");
+			GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "F");
 		}
 		else
 		{
