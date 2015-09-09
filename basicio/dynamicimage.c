@@ -17,8 +17,6 @@ int_64 firstlevellocation; //The location of the first level, in bytes!
 int_64 currentsize; //The current file size, in bytes!
 } DYNAMICIMAGE_HEADER; //Dynamic image .DAT header.
 
-int_64 lookuptable[4096]; //A full sector lookup table (4096 entries for either block (1024) or sector (4096) lookup)!
-
 OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	if (!f) return 0; //Failed!
@@ -101,6 +99,7 @@ OPTINLINE byte dynamicimage_updatesize(FILE *f, int_64 size)
 	return writedynamicheader(f,&header); //Try to update the header!
 }
 
+int_64 emptylookuptable[4096]; //A full sector lookup table (4096 entries for either block (1024) or sector (4096) lookup)!
 OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_64 numentries) //Allocate a table with numentries entries, give location of allocation!
 {
 	DYNAMICIMAGE_HEADER header;
@@ -113,9 +112,9 @@ OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_6
 		}
 		//We're at EOF!
 		*location = header.currentsize; //The location we've found to use!
-		entrysize = sizeof(lookuptable[0]) * numentries; //Size of the entry!
-		memset(&lookuptable, 0, (size_t)entrysize); //Init to empty block table!
-		if (fwrite64(&lookuptable, 1, entrysize, f) == entrysize) //Block table allocated?
+		entrysize = sizeof(emptylookuptable[0]) * numentries; //Size of the entry!
+		memset(&emptylookuptable, 0, (size_t)entrysize); //Init to empty block table!
+		if (fwrite64(&emptylookuptable, 1, entrysize, f) == entrysize) //Block table allocated?
 		{
 			if (fflush64(f)) //Error when flushing?
 			{
@@ -130,57 +129,38 @@ OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_6
 
 OPTINLINE int_64 dynamicimage_readlookuptable(FILE *f, DYNAMICIMAGE_HEADER *header, int_64 location, int_64 numentries, int_64 entry) //Read a table with numentries entries, give location of an entry!
 {
-	int_64 entrysize;
-	if (fseek64(f, location, SEEK_SET) != 0) //Error seeking to entry?
+	int_64 result;
+	if (entry >= numentries) return 0; //Invalid entry: out of bounds!
+	if (fseek64(f, location+(entry*sizeof(int_64)), SEEK_SET) != 0) //Error seeking to entry?
 	{
 		return 0; //Error!
 	}
 	//We're at EOF!
-	entrysize = sizeof(lookuptable[0])*numentries; //Size of the entry!
-	memset(&lookuptable, 0, (size_t)entrysize); //Clear all entries!
-	if (fread64(&lookuptable, 1, entrysize, f) == entrysize) //Block table read?
+	if (fread64(&result, 1, sizeof(result), f) == sizeof(result)) //Block table read?
 	{
-		if (entry < entrysize) //Lower than the ammount of entries?
-		{
-			return lookuptable[entry]; //Give the entry!
-		}
-		//We're invalid, passthrough!
+		return result; //Give the entry!
 	}
-	return 0; //Error: not found!
+	return 0; //Error: not readable!
 }
 
 OPTINLINE byte dynamicimage_updatelookuptable(FILE *f, int_64 location, int_64 numentries, int_64 entry, int_64 value) //Update a table with numentries entries, set location of an entry!
 {
 	DYNAMICIMAGE_HEADER header;
-	int_64 entrysize;
-	if (readdynamicheader(f, &header))
+	if (readdynamicheader(f, &header)) //Check the image first!
 	{
-		if (fseek64(f, location, SEEK_SET) != 0) //Error seeking to entry?
+		if (entry >= numentries) return 0; //Invalid entry: out of bounds!
+		if (fseek64(f, location+(entry*sizeof(int_64)), SEEK_SET) != 0) //Error seeking to entry?
 		{
 			return 0; //Error!
 		}
-		//We're at EOF!
-		entrysize = sizeof(lookuptable[0])*numentries; //Size of the entry!
-		memset(&lookuptable, 0, (size_t)entrysize); //Clear all entries!
-		if (fread64(&lookuptable, 1, entrysize, f) == entrysize) //Block table read?
+		//We're at the entry!
+		if (fwrite64(&value, 1, sizeof(int_64), f) == sizeof(int_64)) //Updated?
 		{
-			if (entrysize>entry) //Lower than the ammount of entries?
+			if (fflush64(f)) //Error when flushing?
 			{
-				lookuptable[entry] = value; //Update the entry!
-				if (fseek64(f, location, SEEK_SET) != 0) //Error seeking to entry?
-				{
-					return 0; //Error!
-				}
-				if (fwrite64(&lookuptable, 1, entrysize, f) == entrysize) //Updated?
-				{
-					if (fflush64(f)) //Error when flushing?
-					{
-						return 0; //We haven't been updated!
-					}
-					return 1; //Updated!
-				}
+				return 0; //We haven't been updated!
 			}
-			//We're invalid, passthrough!
+			return 1; //Updated!
 		}
 	}
 	return 0; //Error: not found!
@@ -210,7 +190,7 @@ OPTINLINE int_64 dynamicimage_getindex(FILE *f, uint_32 sector) //Get index!
 	return index; //We're present at this index, if at all!
 }
 
-OPTINLINE int dynamicimage_datapresent(FILE *f, uint_32 sector) //Get present?
+OPTINLINE byte dynamicimage_datapresent(FILE *f, uint_32 sector) //Get present?
 {
 	int_64 index;
 	index = dynamicimage_getindex(f, sector); //Try to get the index!
@@ -298,7 +278,7 @@ OPTINLINE byte dynamicimage_setindex(FILE *f, uint_32 sector, int_64 index)
 	return 1; //We've succeeded: the sector has been allocated and set!
 }
 
-int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!
+byte dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!
 {
 	DYNAMICIMAGE_HEADER header, tempheader;
 	static byte emptyblock[512]; //An empty block!
@@ -400,7 +380,7 @@ int dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 	return TRUE; //Written!
 }
 
-int dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a 512-byte sector! Result=1 on success, 0 on error!
+byte dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a 512-byte sector! Result=1 on success, 0 on error!
 {
 	DYNAMICIMAGE_HEADER header;
 	FILE *f;

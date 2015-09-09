@@ -3,7 +3,7 @@
 #include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
 #include "headers/fopen64.h" //64-bit fopen support!
 
-int is_staticimage(char *filename)
+byte is_staticimage(char *filename)
 {
 	FILE *f;
 	f = fopen64(filename, "rb"); //Open file!
@@ -46,7 +46,7 @@ FILEPOS staticimage_getsize(char *filename)
 	return result; //Give the result!
 }
 
-int staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!
+byte staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!
 {
 	FILE *f;
 	f = fopen64(filename,"rb+"); //Open!
@@ -77,7 +77,7 @@ int staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Write
 	return FALSE; //Error!
 }
 
-int staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a 512-byte sector! Result=1 on success, 0 on error!
+byte staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a 512-byte sector! Result=1 on success, 0 on error!
 {
 	FILE *f;
 	f = fopen64(filename,"rb"); //Open!

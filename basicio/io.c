@@ -13,7 +13,7 @@ void ioInit() //Resets/unmounts all disks!
 	memset(disks,0,sizeof(disks)); //Initialise disks!
 }
 
-int drivereadonly(int drive)
+byte drivereadonly(int drive)
 {
 	if (drive<0 || drive>0xFF) return 1; //Readonly with unknown drives!
 	switch (drive) //What drive?
@@ -137,7 +137,7 @@ char *getDSKimage(int drive)
 }
 
 //Startpos=sector number (start/512 bytes)!
-int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
+byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 {
 	byte *resultbuffer = (byte *)buffer; //The result buffer!
 	byte sectorbuffer[512]; //Full buffered sector!
@@ -197,7 +197,7 @@ int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 			{
 				dolog("IO","io.c: Couldn't read static image %s sector %i",dev,sector);
 			}
-			return 0; //Error!
+			return FALSE; //Error!
 		}
 		else //Successfully read?
 		{
@@ -217,10 +217,10 @@ int readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 		++sector; //Next sector!
 	}
 	
-	return 1; //OK!
+	return TRUE; //OK!
 }
 
-int has_drive(int drive) //Device inserted?
+byte has_drive(int drive) //Device inserted?
 {
 	if (drive<0 || drive>0xFF) return 0; //No disk available!
 	byte buf[512];
@@ -231,7 +231,7 @@ int has_drive(int drive) //Device inserted?
 	return TRUE; //Have drive!
 }
 
-int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
+byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 {
 	byte *readbuffer = (byte *)buffer; //Data buffer!
 	byte sectorbuffer[512]; //A full sector buffered for editing!
@@ -297,7 +297,7 @@ int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 			{
 				dolog("IO", "io.c: Couldn't read static image %s sector %i to overwrite", dev, sector);
 			}
-			return 0; //Error!
+			return FALSE; //Error!
 		}
 		else //Successfully read?
 		{
@@ -321,7 +321,7 @@ int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 				{
 					dolog("IO", "io.c: Couldn't write static image %s sector %i to overwrite", dev, sector);
 				}
-				return 0; //Error!
+				return FALSE; //Error!
 			}
 			sectorpos = 0; //The next sector is at position 0!
 		}
@@ -329,5 +329,5 @@ int writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 		++sector; //Next sector!
 	}
 
-	return 1; //OK!
+	return TRUE; //OK!
 }
