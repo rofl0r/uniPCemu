@@ -36,7 +36,7 @@ SPEAKER_INFO *pcspeaker = &speakers[0]; //The default, PC speaker to use by soft
 
 OPTINLINE float currentFunction(byte how,const float time) {
         double x;
-	float t = modf(time / (2 * PI), &x);
+	float t = (float)modf(time / (2 * PI), &x);
 
         switch(how) {
 	case 0: // SINE
@@ -121,7 +121,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	float temp = time*frequency; //Calculate!
 	if (temp > 1.0f) {
 		double d;
-		time = modf(temp, &d) / frequency;
+		time = (float)modf(temp, &d) / frequency;
 	}
 	
 	freq0 = frequency;

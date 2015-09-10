@@ -24,6 +24,8 @@
 
 #include "headers/emu/emu_bios_sound.h" //BIOS sound support!
 
+#include "headers/hardware/sermouse.h" //Serial mouse support!
+
 //All graphics now!
 
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
@@ -59,6 +61,8 @@
 
 #include "headers/emu/gpu/gpu_text.h" //GPU text surface support!
 #include "headers/bios/io.h" //I/O support!
+
+#include "headers/hardware/floppy.h" //Floppy disk controller!
 
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
@@ -447,6 +451,10 @@ void resumeEMU()
 		startEMUTimers(); //Start the timers!
 		EMU_startInput(); //Start the input!
 		EMU_RUNNING = 1; //We've restarted!
+		cleanKeyboard();
+		cleanAdlib(); //Tick the adlib timer if needed!
+		cleanPIT0(); //Tick the PIT timer if needed!
+		cleanATA(); //Update the ATA timer!
 	}
 }
 

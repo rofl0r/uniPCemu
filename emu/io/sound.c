@@ -623,7 +623,6 @@ uint_32 fillbuffer_existing(playing_p currentchannel, uint_32 *relsample, uint_3
 	rebuffer: //Rebuffer check!
 	if (*relsample>=C_BUFFERSIZE(currentchannel)) //Expired or empty, we've reached the end of the buffer (sample overflow)?
 	{
-		checkbuffer: //Check for an used buffer when unused!
 		#ifdef DEBUG_SOUNDBUFFER
 		buffering = 1; //We're buffering!
 		dolog("soundservice","Buffering @ %i/%i samples; extra data: %p; name: %s",*relsample,C_BUFFERSIZE(currentchannel),currentchannel->extradata,currentchannel->name);
@@ -674,8 +673,8 @@ void fillchannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *resul
 	int_32 sample_r = C_SAMPLE(currentchannel,C_GETSAMPLEPOS(currentchannel,1,relsample)); //The composed sample, based on the relative position!
 	
 	//Apply the channel volume!
-	sample_l *= volume;
-	sample_r *= volume;
+	sample_l = (int_32)(sample_l*volume);
+	sample_r = (int_32)(sample_r*volume);
 	
 	//Now we have the correct left and right channel data on our native samplerate.
 	
@@ -722,7 +721,11 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 	int_32 *activesample;
 	
 	//Stuff for Master gain
+#ifndef __psp__
+#ifdef __USE_EQUALIZER
 	double RMS_l = 0, RMS_r = 0, gainMaster_l, gainMaster_r; //Everything needed to apply the Master gain (equalizing using Mean value)
+#endif
+#endif
 	
 	channelsleft = soundchannels_used; //Load the channels to process!
 	if (!length) return; //Abort without length!

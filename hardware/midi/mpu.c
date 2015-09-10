@@ -264,7 +264,7 @@ void MPU401_WriteCommand(word port,Bit8u val) {
 			case 0x8: /* Play */
 				mpu.state.playing=true;
 				PIC_RemoveEvents(MPU401_Event);
-				PIC_AddEvent(MPU401_Event,60000000/(mpu.clock.tempo*mpu.clock.timebase*2));
+				PIC_AddEvent(MPU401_Event,(float)60000000.0f/(mpu.clock.tempo*mpu.clock.timebase*2));
 				mpu.state.irq_pending=false;
 				break;
 		}
@@ -648,7 +648,7 @@ next_event:
 	else {even_odd=false;mpu.clock.timer_pos++;}
 	PIC_RemoveEvents(MPU401_Event);
 	if ((new_time=mpu.clock.tempo*mpu.clock.timebase*2)==0) return;
-	PIC_AddEvent(MPU401_Event,60000000/new_time);
+	PIC_AddEvent(MPU401_Event,(float)60000000/new_time);
 }
 
 void MPU401_Reset() {

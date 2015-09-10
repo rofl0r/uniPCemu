@@ -1080,7 +1080,7 @@ void int10_WriteCharAttrAtCursor()
 	CX=Number of times to print character
 	*/
 
-	word tempx,tempy;
+	byte tempx,tempy;
 	tempx = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0); //Column!
 	tempy = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0); //Row!
 
@@ -1118,7 +1118,7 @@ void int10_WriteCharOnlyAtCursor()
 		int10_nextcol(REG_BH); //Next column!
 	}
 
-	cursorXY(REG_BH, tempx, tempy); //Return the cursor!
+	cursorXY(REG_BH, (byte)tempx, (byte)tempy); //Return the cursor!
 }
 
 void int10_SetBackColor() //REG_AH=0B REG_BH=00h

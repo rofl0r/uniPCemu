@@ -6,6 +6,7 @@
 #include "headers/support/mid.h" //Our own typedefs!
 #include "headers/emu/gpu/gpu_text.h" //Text surface support!
 #include "headers/hardware/midi/mididevice.h" //For the MIDI voices!
+#include "headers/support/log.h" //Logging support!
 
 //Enable this define to log all midi commands executed here!
 //#define MID_LOG
@@ -63,7 +64,7 @@ OPTINLINE uint_32 byteswap32(uint_32 value)
 
 OPTINLINE float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 {
-	float PPQN, speed;
+	float speed;
 	byte frames;
 	byte subframes; //Pulses per quarter note!
 	word division;
@@ -71,8 +72,8 @@ OPTINLINE float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 
 	if (division & 0x8000) //SMTPE?
 	{
-		frames = (float)((division >> 8) & 0x7F); //Frames!
-		subframes = (float)(division & 0xFF); //Subframes!
+		frames = (byte)((division >> 8) & 0x7F); //Frames!
+		subframes = (byte)(division & 0xFF); //Subframes!
 		speed = frames; //Default: we're the frames!
 		if (subframes)
 		{

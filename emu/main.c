@@ -20,6 +20,7 @@
 #include "headers/support/locks.h" //Lock support!
 
 #include "headers/hardware/vga.h" //VGA support for locks!
+#include "headers/support/highrestimer.h" //High resolution timer support!
 
 #ifdef __psp__
 #include <pspkernel.h>

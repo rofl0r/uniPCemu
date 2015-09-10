@@ -570,8 +570,8 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 				if (mouse_xmove || mouse_ymove) //Any movement at all?
 				{
 					sbyte xmove, ymove; //For calculating limits!
-					xmove = (mouse_xmove < -128) ? -128 : ((mouse_xmove>127) ? 127 : mouse_xmove); //Clip to max value!
-					ymove = (mouse_ymove < -128) ? -128 : ((mouse_ymove>127) ? 127 : mouse_ymove); //Clip to max value!
+					xmove = (mouse_xmove < -128) ? -128 : ((mouse_xmove>127) ? 127 : (sbyte)mouse_xmove); //Clip to max value!
+					ymove = (mouse_ymove < -128) ? -128 : ((mouse_ymove>127) ? 127 : (sbyte)mouse_ymove); //Clip to max value!
 					mouse_xmove -= xmove; //Rest value!
 					mouse_ymove -= ymove; //Rest value!
 					mousepacket->xmove = xmove; //X movement in mm!
@@ -1905,8 +1905,8 @@ void updateMOD(SDL_Event *event)
 	input.Lx = axis; //Horizontal axis!
 	if (precisemousemovement) //Enable precise movement?
 	{
-		input.Lx *= precisemovement; //Enable precise movement!
-		input.Ly *= precisemovement; //Enable precise movement!
+		input.Lx = (sword)(input.Lx*precisemovement); //Enable precise movement!
+		input.Ly *= (sword)(input.Ly*precisemovement); //Enable precise movement!
 	}
 }
 
@@ -2377,9 +2377,14 @@ void updateInput(SDL_Event *event) //Update all input!
 }
 
 TicksHolder keyboard_ticker;
-uint_32 keyboard_ticktiming;
+uint_64 keyboard_ticktiming;
 
 //Check for timer occurrences.
+void cleanKeyboard()
+{
+	getuspassed(&keyboard_ticker); //Discard the amount of time passed!
+}
+
 void updateKeyboard()
 {
 	keyboard_ticktiming += getuspassed(&keyboard_ticker); //Get the amount of time passed!

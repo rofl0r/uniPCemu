@@ -100,7 +100,7 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!((port < 0x20) || ((port >= 0xC0) && (port <= 0xE0)) || ((port >= 0x80) && (port <= 0x9F)))) return 0; //Not our DMA!
 	byte controller = ((port & 0xC0)==0xC0) ? 1 : 0; //What controller?
-	byte reg = port; //What register is selected, default to 1:1 mapping?
+	byte reg = (byte)port; //What register is selected, default to 1:1 mapping?
 	if (controller) //16-bit register (second DMA controller)?
 	{
 		reg -= 0xC0; //Take the base!
@@ -225,7 +225,7 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!((port < 0x20) || ((port >= 0xC0) && (port <= 0xE0)) || ((port >= 0x80) && (port <= 0x9F)))) return 0; //Not our DMA!
 	byte controller = (port>=0xC0)?1:0; //What controller?
-	byte reg = port; //What register is selected, default to 1:1 mapping?
+	byte reg = (byte)port; //What register is selected, default to 1:1 mapping?
 	if (controller) //16-bit register (second DMA controller)?
 	{
 		reg -= 0xC0; //Take the base!

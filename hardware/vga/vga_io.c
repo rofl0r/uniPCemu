@@ -1,6 +1,7 @@
 #include "headers/hardware/vga.h" //VGA!
 #include "headers/hardware/vga_screen/vga_precalcs.h" //Precalcs!
 #include "headers/hardware/ports.h" //Ports!
+#include "headers/cpu/cpu.h" //NMI support!
 
 /*
 
@@ -219,7 +220,7 @@ OPTINLINE byte PORT_read_DAC_3C9() //DAC Data register!
 
 OPTINLINE void PORT_write_DAC_3C9(byte value) //DAC Data register!
 {
-	word entrynumber = getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Current entry number!
+	byte entrynumber = getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Current entry number!
 	word index = entrynumber; //Load current DAC index!
 	index <<= 2; //Multiply for the index!
 	index |= getActiveVGA()->registers->current_3C9; //Current index!
@@ -228,11 +229,8 @@ OPTINLINE void PORT_write_DAC_3C9(byte value) //DAC Data register!
 	
 	if (++getActiveVGA()->registers->current_3C9>2) //Next entry?
 	{
-		if (++entrynumber>0xFF) //Overflow?
-		{
-			entrynumber = 0; //Reset!
-		}
-		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = entrynumber; //Update the entry number!
+		++entrynumber; //Overflow when needed!
+		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = (byte)entrynumber; //Update the entry number!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACWRITE); //Updated index!
 		getActiveVGA()->registers->current_3C9 = 0; //Reset!
 	}

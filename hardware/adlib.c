@@ -46,7 +46,7 @@ float counter80 = 0.0f, counter320 = 0.0f; //Counter ticks!
 byte timer80=0, timer320=0; //Timer variables for current timer ticks!
 
 //Registers itself
-uint16_t adlibregmem[0xFF], adlibaddr = 0;
+byte adlibregmem[0xFF], adlibaddr = 0;
 
 byte adliboperators[2][9] = { //Groupings of 22 registers! (20,40,60,80,E0)
 	{ 0x00, 0x01, 0x02, 0x08, 0x09, 0x0A, 0x10, 0x11, 0x12 },
@@ -89,9 +89,9 @@ struct structadlibchan {
 	float feedback; //The feedback strength of the modulator signal.
 } adlibch[0x10];
 
-double attacktable[0x10] = { 1.0003, 1.00025, 1.0002, 1.00015, 1.0001, 1.00009, 1.00008, 1.00007, 1.00006, 1.00005, 1.00004, 1.00003, 1.00002, 1.00001, 1.000005 }; //1.003, 1.05, 1.01, 1.015, 1.02, 1.025, 1.03, 1.035, 1.04, 1.045, 1.05, 1.055, 1.06, 1.065, 1.07, 1.075 };
-double decaytable[0x10] = { 0.99999, 0.999985, 0.99998, 0.999975, 0.99997, 0.999965, 0.99996, 0.999955, 0.99995, 0.999945, 0.99994, 0.999935, 0.99994, 0.999925, 0.99992, 0.99991 };
-double sustaintable[0x10], outputtable[0x40]; //Build using software formulas!
+float attacktable[0x10] = { 1.0003, 1.00025, 1.0002, 1.00015, 1.0001, 1.00009, 1.00008, 1.00007, 1.00006, 1.00005, 1.00004, 1.00003, 1.00002, 1.00001, 1.000005 }; //1.003, 1.05, 1.01, 1.015, 1.02, 1.025, 1.03, 1.035, 1.04, 1.045, 1.05, 1.055, 1.06, 1.065, 1.07, 1.075 };
+float decaytable[0x10] = { 0.99999, 0.999985, 0.99998, 0.999975, 0.99997, 0.999965, 0.99996, 0.999955, 0.99995, 0.999945, 0.99994, 0.999935, 0.99994, 0.999925, 0.99992, 0.99991 };
+float sustaintable[0x10], outputtable[0x40]; //Build using software formulas!
 
 uint8_t adlibpercussion = 0, adlibstatus = 0;
 
@@ -176,7 +176,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		{
 			lockAdlib();
 			portnum &= 0x1F;
-			adlibop[portnum].outputlevel = outputtable[value & 0x2F]; //Apply output level!
+			adlibop[portnum].outputlevel = (float)outputtable[value & 0x2F]; //Apply output level!
 			unlockAdlib();
 		}
 		break;
@@ -185,8 +185,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		if (portnum <= 0x75) { //attack/decay
 			lockAdlib();
 			portnum &= 0x1F;
-			adlibop[portnum].attack = attacktable[15 - (value >> 4)] * 1.006;
-			adlibop[portnum].decay = decaytable[value & 15];
+			adlibop[portnum].attack = (float)attacktable[15 - (value >> 4)] * 1.006f;
+			adlibop[portnum].decay = (float)decaytable[value & 15];
 			unlockAdlib();
 		}
 		break;
@@ -196,8 +196,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		{
 			lockAdlib();
 			portnum &= 0x1F;
-			adlibop[portnum].sustain = sustaintable[value >> 4];
-			adlibop[portnum].release = decaytable[value & 15];
+			adlibop[portnum].sustain = (float)sustaintable[value >> 4];
+			adlibop[portnum].release = (float)decaytable[value & 15];
 			unlockAdlib();
 		}
 		break;
@@ -213,8 +213,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 				{
 					adlibop[adliboperators[0][portnum]].volenvstatus = 1; //Start attacking!
 					adlibop[adliboperators[1][portnum]].volenvstatus = 1; //Start attacking!
-					adlibop[adliboperators[0][portnum]].volenvcalculated = adlibop[adliboperators[0][portnum]].volenv = 0.0025;
-					adlibop[adliboperators[1][portnum]].volenvcalculated = adlibop[adliboperators[0][portnum]].volenv = 0.0025;
+					adlibop[adliboperators[0][portnum]].volenvcalculated = adlibop[adliboperators[0][portnum]].volenv = 0.0025f;
+					adlibop[adliboperators[1][portnum]].volenvcalculated = adlibop[adliboperators[0][portnum]].volenv = 0.0025f;
 					adlibop[adliboperators[0][portnum]].freq0 = adlibop[adliboperators[0][portnum]].time = 0.0f; //Initialise operator signal!
 					adlibop[adliboperators[1][portnum]].freq0 = adlibop[adliboperators[1][portnum]].time = 0.0f; //Initialise operator signal!
 					memset(&adlibop[adliboperators[0][portnum]].lastsignal, 0, sizeof(adlibop[0].lastsignal)); //Reset the last signals!
@@ -242,7 +242,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
 			byte feedback;
 			feedback = (adlibregmem[0xC0 + portnum] >> 1) & 7; //Get the feedback value used!
-			adlibch[portnum].feedback = feedbacklookup2[feedback]; //Convert to a feedback of the modulator signal!
+			adlibch[portnum].feedback = (float)feedbacklookup2[feedback]; //Convert to a feedback of the modulator signal!
 			unlockAdlib();
 		}
 		break;
@@ -301,7 +301,7 @@ OPTINLINE uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 		}
 	if (operatornumber != -1) //Apply frequency multiplication factor?
 	{
-		tmpfreq *= adlibop[operatornumber].ModulatorFrequencyMultiple; //Apply the frequency multiplication factor!
+		tmpfreq = (word)(tmpfreq*adlibop[operatornumber].ModulatorFrequencyMultiple); //Apply the frequency multiplication factor!
 	}
 	return (tmpfreq);
 }
@@ -316,11 +316,11 @@ OPTINLINE float adlibWave(byte signal, const float frequencytime) {
 	result *= frequencytime; //Apply freqtime!
 	switch (signal) {
 	case 0: //SINE?
-		return sin(result); //The sinus function!
+		return (float)sin(result); //The sinus function!
 	case 0xFF: //Random signal?
 		return RandomFloat(-1.0f, 1.0f); //Random noise!	
 	default:
-		t = modf(frequencytime, &x); //Calculate rest for special signal information!
+		t = (float)modf(frequencytime, &x); //Calculate rest for special signal information!
 		switch (signal) { //What special signal?
 		case 1: // Negative=0?
 			if (t > 0.5f) return 0.0f; //Negative!
@@ -360,7 +360,7 @@ OPTINLINE void incop(byte operator, float frequency)
 
 	temp = adlibop[operator].time*frequency; //Calculate for overflow!
 	if (temp >= 1.0f) { //Overflow?
-		adlibop[operator].time = modf(temp, &d) / frequency;
+		adlibop[operator].time = (float)modf(temp, &d) / frequency;
 	}
 }
 
@@ -484,9 +484,14 @@ TicksHolder adlib_ticker;
 uint_32 adlib_ticktiming;
 
 //Check for timer occurrences.
+void cleanAdlib()
+{
+	getuspassed(&adlib_ticker); //Discard the amount of time passed!
+}
+
 void updateAdlib()
 {
-	adlib_ticktiming += getuspassed(&adlib_ticker); //Get the amount of time passed!
+	adlib_ticktiming += (uint_32)getuspassed(&adlib_ticker); //Get the amount of time passed!
 	if (adlib_ticktiming >= 80) //Enough time passed?
 	{
 		for (;adlib_ticktiming >= 80;) //All that's left!
@@ -498,7 +503,6 @@ void updateAdlib()
 }
 
 OPTINLINE short adlibgensample() {
-	uint8_t curchan;
 	int_32 adlibaccum;
 	adlibaccum = 0;
 	if (adlibop[adliboperators[1][0]].volenvstatus) //Are we a running envelope?
@@ -605,7 +609,7 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 {
 	if (stereo) return 0; //We don't support stereo!
 	
-	byte filled,curchan;
+	byte filled;
 	filled = 0; //Default: not filled!
 	filled |= adlibop[adliboperators[1][0]].volenvstatus; //Channel 0?
 	filled |= adlibop[adliboperators[1][1]].volenvstatus; //Channel 1?
@@ -650,13 +654,13 @@ void initAdlib()
 	//Build the needed tables!
 	for (i = 0; i < NUMITEMS(sustaintable); i++)
 	{
-		if (i==0xF) sustaintable[i] = dB2factor(93, 93); //Full volume exception with all bits set!
-		else sustaintable[i] = dB2factor((float)93-(float)(((i & 1) ? 3 : 0) +	((i & 2) ? 6 : 0) +	((i & 4) ? 12 : 0) + ((i & 8) ? 24 : 0)), 93); //Build a sustain table!
+		if (i==0xF) sustaintable[i] = (float)dB2factor(93, 93); //Full volume exception with all bits set!
+		else sustaintable[i] = (float)dB2factor((float)93-(float)(((i & 1) ? 3 : 0) +	((i & 2) ? 6 : 0) +	((i & 4) ? 12 : 0) + ((i & 8) ? 24 : 0)), 93); //Build a sustain table!
 	}
 
 	for (i = 0; i < NUMITEMS(outputtable); i++)
 	{
-		outputtable[i] = dB2factor((float)48 - (float)(
+		outputtable[i] = (float)dB2factor((float)48 - (float)(
 			((i & 1) ? 0.75:0)+
 			((i&2)?1.5:0)+
 			((i&4)?3:0)+
@@ -671,7 +675,7 @@ void initAdlib()
 		adlibop[i].freq0 = adlibop[i].time = 0.0f; //Initialise the signal!
 
 		//Apply default ADSR!
-		adlibop[i].attack = attacktable[15] * 1.006;
+		adlibop[i].attack = attacktable[15] * 1.006f;
 		adlibop[i].decay = decaytable[0];
 		adlibop[i].sustain = sustaintable[15];
 		adlibop[i].release = decaytable[0];

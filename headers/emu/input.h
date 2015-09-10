@@ -70,6 +70,10 @@ typedef struct
 //Minimal step before override!
 #define INPUTKEYDELAYSTEP 500000
 
+//Timing for the CPU!
+void cleanKeyboard();
+void updateKeyboard();
+
 int psp_inputkey(); //Current pressed key(s)?
 int psp_inputkeydelay(uint_32 delay); //Keypress and release, can return no keys!
 int psp_readkey(); //Wait for keypress and release!

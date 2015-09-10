@@ -121,7 +121,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		for (notes=0;notes<0x100;)
 		{
 			MIDIDEVICE.channels[channel].notes[notes].channel = channel;
-			MIDIDEVICE.channels[channel].notes[notes].note = notes;
+			MIDIDEVICE.channels[channel].notes[notes].note = (byte)notes;
 			++notes; //Next note!
 		}
 		MIDIDEVICE.channels[channel].bank = MIDIDEVICE.channels[channel].activebank = 0; //Reset!
@@ -150,8 +150,8 @@ Cents and DB conversion!
 
 OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
 {
-	float RC = 1.0 / (cutoff_freq * 2 * 3.14);
-	float dt = 1.0 / samplerate;
+	float RC = (float)1.0f / (cutoff_freq * (float)2 * (float)3.14);
+	float dt = (float)1.0f / samplerate;
 	float alpha = dt / (RC + dt);
 	return previousresult + (alpha*(currentsample - previousresult));
 }
@@ -169,7 +169,7 @@ OPTINLINE void applyLowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample)
 		voice->has_last = 1;
 		return; //Abort: don't filter the first sample!
 	}
-	voice->last_result = calcLowpassFilter(voice->lowpassfilter_freq, voice->sample.dwSampleRate, *currentsample, voice->last_sample, voice->last_result);
+	voice->last_result = (sword)calcLowpassFilter(voice->lowpassfilter_freq, (float)voice->sample.dwSampleRate, *currentsample, voice->last_sample, voice->last_result);
 	voice->last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = voice->last_result; //Give the new result!
 }
@@ -184,14 +184,13 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_counter
 {
 	//Our current rendering routine:
 	register uint_32 temp;
-	register int_64 temppos;
 	register int_64 samplepos;
 	sword lchannel, rchannel; //Both channels to use!
 	static sword readsample; //The sample retrieved!
 	byte loopflags; //Flags used during looping!
 
 	samplepos = play_counter; //Load the current play counter!
-	samplepos *= samplespeedup; //Affect speed through cents and other factors!
+	samplepos = (int_64)(samplepos*samplespeedup); //Affect speed through cents and other factors!
 	samplepos += voice->startaddressoffset; //The start of the sample!
 
 	//First: apply looping!
@@ -239,19 +238,19 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_counter
 		return; //Done!
 	}
 
-	if (getSFSample16(soundfont, samplepos, &readsample)) //Sample found?
+	if (getSFSample16(soundfont, (uint_32)samplepos, &readsample)) //Sample found?
 	{
-		lchannel = (float)readsample; //Convert to floating point for our calculations!
+		lchannel = readsample; //Convert to floating point for our calculations!
 
 		//First, apply filters and current envelope!
 		applyLowpassFilter(voice, &lchannel); //Low pass filter!
-		lchannel *= Volume; //Apply ADSR Volume envelope!
+		lchannel = (sword)(lchannel*Volume); //Apply ADSR Volume envelope!
 		//Now the sample is ready for output into the actual final volume!
 
 		rchannel = lchannel; //Load into both channels!
 		//Now, apply panning!
-		lchannel *= voice->lvolume; //Apply left panning, also according to the CC!
-		rchannel *= voice->rvolume; //Apply right panning, also according to the CC!
+		lchannel = (sword)(lchannel*voice->lvolume); //Apply left panning, also according to the CC!
+		rchannel = (sword)(rchannel*voice->rvolume); //Apply right panning, also according to the CC!
 
 		//Give the result!
 		sample->l = lchannel; //LChannel!
@@ -267,9 +266,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	return 0; //We're disabled!
 #endif
 	//Initialisation info
-	float pitchcents, pitchinfluence, currentsamplespeedup, lvolume, rvolume, panningtemp;
-	byte currenton;
-	uint_32 requestbit;
+	float pitchcents, currentsamplespeedup, lvolume, rvolume, panningtemp;
 	register float VolumeEnvelope=0; //Current volume envelope data!
 	//Initialised values!
 	MIDIDEVICE_VOICE *voice = (MIDIDEVICE_VOICE *)userdata;
@@ -289,14 +286,14 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unable to render anything!
 	if (!soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //The same!
 	//Calculate the pitch bend speedup!
-	pitchcents = (double)(channel->pitch%0x1FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
-	pitchcents -= 0x2000; //Convert to a signed value!
+	pitchcents = (float)(channel->pitch%0x1FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
+	pitchcents -= (float)0x2000; //Convert to a signed value!
 	pitchcents /= 128.0f; //Create a value between -1 and 1!
-	pitchcents *= cents2samplesfactor(voice->pitchwheelmod*pitchcents); //Influence by pitch wheel!
+	pitchcents *= (float)cents2samplesfactor(voice->pitchwheelmod*pitchcents); //Influence by pitch wheel!
 
 	//Now apply to the default speedup!
 	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
-	currentsamplespeedup *= cents2samplesfactor(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
+	currentsamplespeedup *= (float)cents2samplesfactor(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
 	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
 
 	velocity_factor = voice->note->noteon_velocity_factor; //Apply Note On key velocity first!
@@ -351,7 +348,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
 {
 	static uint_64 starttime = 0; //Calculated start time!
-	byte currentchannel, currenton, biton;
 	word pbag, ibag;
 	sword rootMIDITone; //Relative root MIDI tone!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
@@ -360,7 +356,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
 	sfPresetHeader currentpreset;
-	sfGenList instrumentptr, applypgen;
+	sfGenList instrumentptr;
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 	sfModList applymod;
@@ -520,10 +516,10 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
 
 	//Now the cents variable contains the diviation in cents.
-	voice->initsamplespeedup = cents2samplesfactor(cents); //Load the default speedup we need for our tone!
+	voice->initsamplespeedup = (float)cents2samplesfactor(cents); //Load the default speedup we need for our tone!
 
 	//Determine panning!
-	panningtemp = 0.0f; //Default: no panning at all: centered!
+	panningtemp = (float)0.0f; //Default: no panning at all: centered!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, pan, &applyigen)) //Gotten panning?
 	{
 		panningtemp = (float)applyigen.genAmount.shAmount; //Get the panning specified!
@@ -555,7 +551,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	voice->lowpassfilter_freq = 0.0f; //Default: no low pass filter!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, initialFilterFc, &applyigen)) //Filter enabled?
 	{
-		voice->lowpassfilter_freq = 8.176*cents2samplesfactor(applyigen.genAmount.shAmount); //Set a low pass filter to it's initial value!
+		voice->lowpassfilter_freq = (float)(8.176*cents2samplesfactor(applyigen.genAmount.shAmount)); //Set a low pass filter to it's initial value!
 	}
 
 	//Apply loop flags!
@@ -590,7 +586,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	//Final adjustments and set active!
 	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay);	//Initialise our Volume Envelope for use!
-	setSampleRate(&MIDIDEVICE_renderer, voice, voice->sample.dwSampleRate); //Use this new samplerate!
+	setSampleRate(&MIDIDEVICE_renderer, voice, (float)voice->sample.dwSampleRate); //Use this new samplerate!
 	voice->starttime = starttime++; //Take a new start time!
 	return 0; //Run: we're active!
 }
@@ -641,12 +637,10 @@ OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used
 {
 	word noteoff; //Current note to turn off!
 	//Note values
-	byte note32, note32_index;
-	uint_32 note32_value;
 	lockaudio(); //Lock the audio!
 	for (noteoff=0;noteoff<0x100;) //Process all notes!
 	{
-		MIDIDEVICE_noteOff(selectedchannel,channel,noteoff++,64); //Execute Note Off!
+		MIDIDEVICE_noteOff(selectedchannel,channel,(byte)noteoff++,64); //Execute Note Off!
 	}
 	unlockaudio(1); //Unlock the audio!
 	#ifdef MIDI_LOG

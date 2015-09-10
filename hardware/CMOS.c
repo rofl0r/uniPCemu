@@ -4,6 +4,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/support/locks.h" //Locking support!
+#include "headers/hardware/ports.h" //Port support!
 
 //For time support!
 //#include <psprtc.h> //PSP Real Time Clock atm!
@@ -240,24 +241,26 @@ void CMOS_onWrite() //When written to CMOS!
 	}
 }
 
-byte PORT_readCMOS(word port) //Read from a port/register!
+byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 {
 	switch (port)
 	{
 	case 0x70: //CMOS_ADDR
-		return CMOS.ADDR|(NMI<<7); //Give the address and NMI!
+		*result = CMOS.ADDR|(NMI<<7); //Give the address and NMI!
+		return 1;
 	case 0x71:
 		CMOS_onRead(); //Execute handler!
 		lock(LOCK_CMOS); //Lock the CMOS!
 		byte data =  CMOS.data[CMOS.ADDR]; //Give the data from the CMOS!
 		unlock(LOCK_CMOS);
 		CMOS.ADDR = 0xD; //Reset address!
-		return data; //Give the data!
+		*result = data; //Give the data!
+		return 1;
 	}
 	return 0; //None for now!
 }
 
-void PORT_writeCMOS(word port, byte value) //Write to a port/register!
+byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 {
 	switch (port)
 	{
@@ -265,6 +268,7 @@ void PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		CMOS.ADDR = (value&0x7F); //Take the value!
 		NMI = ((value&0x80)>>7); //NMI?
 		CMOS_onWrite(); //On write!
+		return 1;
 		break;
 	case 0x71:
 		lock(LOCK_CMOS); //Lock the CMOS!
@@ -272,10 +276,12 @@ void PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		unlock(LOCK_CMOS);
 		CMOS_onWrite(); //On write!
 		CMOS.ADDR = 0xD; //Reset address!		
+		return 1;
 		break;
 	default: //Unknown?
 		break; //Do nothing!
 	}
+	return 0; //Unsupported!
 }
 
 void initCMOS() //Initialises CMOS (apply solid init settings&read init if possible)!

@@ -6,8 +6,10 @@
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/pci.h" //PCI support!
 #include "headers/support/highrestimer.h" //High resolution timer support!
+#include "headers/hardware/pic.h" //PIC support!
+#include "headers/support/log.h" //Logging support for debugging!
 
-//#define ATA_LOG
+#define ATA_LOG
 
 //Hard disk IRQ!
 #define ATA_PRIMARYIRQ 14
@@ -186,9 +188,14 @@ struct
 	byte type; //Type of timer!
 } IRQtimer[4]; //IRQ timer!
 
+void cleanATA()
+{
+	getuspassed(&ATATicks); //Clean us!
+}
+
 void updateATA() //ATA timing!
 {
-	return; //Don't do this ATA timing!
+	return; //Don't handle any timers, since we're not used atm!
 	uint_64 passed = getuspassed_k(&ATATicks); //Get us passed!
 	if (passed) //Anything passed?
 	{
@@ -205,8 +212,7 @@ void updateATA() //ATA timing!
 					ATA_IRQ(i & 2, i & 1); //Do an IRQ from the source!
 					byte drive = (i & 1); //Drive!
 					byte channel = ((i & 2) >> 1); //Channel!
-					byte temp;
-					switch (ATA[channel].commandstatus)
+					/*switch (ATA[channel].commandstatus)
 					{
 					case 3: //Waiting for completion of a command?
 						switch (ATA[channel].command) //What command are we executing?
@@ -245,8 +251,8 @@ void updateATA() //ATA timing!
 						case 0x7E:
 						case 0x7F: //Seek?
 							break;
-						}
-					}
+						} //Unused atm!
+					}*/
 				}
 			}
 		}
@@ -285,7 +291,7 @@ OPTINLINE uint_32 getControlPORTaddress(byte channel)
 
 OPTINLINE word get_cylinders(uint_64 disk_size)
 {
-	return floor(disk_size / (63 * 16)); //How many cylinders!
+	return (word)floor((double)disk_size / (63 * 16)); //How many cylinders!
 }
 
 OPTINLINE word get_heads(uint_64 disk_size)
@@ -488,6 +494,9 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
 {
+#ifdef ATA_LOG
+	dolog("ATA", "ExecuteCommand: %02X", command); //Execute this command!
+#endif
 	ATA[channel].longop = 0; //Default: no long operation!
 	uint_64 disk_size;
 	int drive;
@@ -593,6 +602,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No error!
 				ATA[channel].commandstatus = 0; //Reset status!
+				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head = (command & 0xF); //Select the following head!
 				ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the IRQ!
 			}
 			else goto invalidcommand; //Error out!
@@ -719,10 +729,21 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		case 0x81: //Disable 8-bit data transfers!
 			ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers = 0; //Disable 8-bit transfers!
 			break;
+		case 0x02: //Enable write cache!
+			//OK! Ignore!
+			break;
+		case 0x82: //Disable write cache!
+			//OK! Ignore!
+			break;
 		default: //Invalid feature!
+#ifdef ATA_LOG
+			dolog("ATA", "Invalid feature set: %02X", ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features);
+#endif
 			goto invalidcommand; //Error out!
 			break;
 		}
+		ATA[channel].commandstatus = 0; //Reset command status!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Reset data register!
 		break;
 	case 0xDC: //BIOS - post-boot?
 	case 0xDD: //BIOS - pre-boot?
@@ -773,7 +794,6 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	switch (ATA[channel].commandstatus) //What command status?
 	{
 	case 0: //Ready for command?
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear all info!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 1; //We're ready to process a command!
 		break;
 	case 1: //Transferring data IN?
@@ -857,26 +877,44 @@ byte outATA8(word port, byte value)
 		return 0; //We're non-existant!
 		break;
 	case 1: //Features?
+#ifdef ATA_LOG
+		dolog("ATA", "Feature register write: %02X %i.%i", value,channel,ATA_activeDrive(channel));
+#endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features = value; //Use the set data! Ignore!
 		return 1; //OK!
 		break;
 	case 2: //Sector count?
+#ifdef ATA_LOG
+		dolog("ATA", "Sector count write: %02X %i.%i", value,channel, ATA_activeDrive(channel));
+#endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = value; //Set sector count!
 		return 1; //OK!
 		break;
 	case 3: //Sector number?
+#ifdef ATA_LOG
+		dolog("ATA", "Sector number write: %02X %i.%i", value, channel, ATA_activeDrive(channel));
+#endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = value; //Set sector number!
 		return 1; //OK!
 		break;
 	case 4: //Cylinder low?
+#ifdef ATA_LOG
+		dolog("ATA", "Cylinder low write: %02X %i.%i", value, channel, ATA_activeDrive(channel));
+#endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = value; //Set cylinder low!
 		return 1; //OK!
 		break;
 	case 5: //Cylinder high?
+#ifdef ATA_LOG
+		dolog("ATA", "Cylinder high write: %02X %i.%i", value, channel, ATA_activeDrive(channel));
+#endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = value; //Set cylinder high!
 		return 1; //OK!
 		break;
 	case 6: //Drive/head?
+#ifdef ATA_LOG
+		dolog("ATA", "Drive/head write: %02X %i.%i", value, channel, ATA_activeDrive(channel));
+#endif
 		ATA[channel].activedrive = (value >> 4) & 1; //The active drive!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead = value; //Set drive head!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //We're an PATA device!
@@ -899,6 +937,9 @@ port3_write: //Special port #3?
 	switch (port) //What port?
 	{
 	case 0: //Control register?
+#ifdef ATA_LOG
+		dolog("ATA", "Control register write: %02X %i.%i",value, channel, ATA_activeDrive(channel));
+#endif
 		ATA[channel].DriveControlRegister.data = value; //Set the data!
 		return 1; //OK!
 		break;
@@ -979,26 +1020,44 @@ byte inATA8(word port, byte *result)
 		break;
 	case 1: //Error register?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data; //Error register!
+#ifdef ATA_LOG
+		dolog("ATA", "Error register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+#endif
 		return 1;
 		break;
 	case 2: //Sector count?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Get sector count!
+#ifdef ATA_LOG
+		dolog("ATA", "Sector count register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+#endif
 		return 1;
 		break;
 	case 3: //Sector number?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber; //Get sector number!
+#ifdef ATA_LOG
+		dolog("ATA", "Sector number register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+#endif
 		return 1; //OK!
 		break;
 	case 4: //Cylinder low?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow; //Get cylinder low!
+#ifdef ATA_LOG
+		dolog("ATA", "Cylinder low read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+#endif
 		return 1; //OK!
 		break;
 	case 5: //Cylinder high?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh; //Get cylinder high!
+#ifdef ATA_LOG
+		dolog("ATA", "Cylinder high read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+#endif
 		return 1; //OK!
 		break;
 	case 6: //Drive/head?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead; //Get drive/head!
+#ifdef ATA_LOG
+		dolog("ATA", "Drive/head register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+#endif
 		return 1; //OK!
 		break;
 	case 7: //Status?
@@ -1006,6 +1065,9 @@ byte inATA8(word port, byte *result)
 		ATA_removeIRQ(channel,ATA_activeDrive(channel)); //Acnowledge IRQ!
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data; //Get status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.drivewritefault = 0; //Reset write fault flag!
+#ifdef ATA_LOG
+		dolog("ATA", "Status register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+#endif
 		return 1; //OK!
 		break;
 	default: //Unsupported?
@@ -1024,10 +1086,16 @@ port3_read: //Special port #3?
 	case 0: //Alternate status register?
 		ATA_updateStatus(channel); //Update the status register if needed!
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data; //Get status!
+#ifdef ATA_LOG
+		dolog("ATA", "Alternate status register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+#endif
 		return 1; //OK!
 		break;
 	case 1: //Drive address register?
 		*result = ATA[channel].DriveAddressRegister.data; //Give the data!
+#ifdef ATA_LOG
+		dolog("ATA", "Drive address register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+#endif
 		return 1; //OK!
 		break;
 	default: //Unsupported!
@@ -1084,11 +1152,11 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_ATA].driveparams[5] = 0x200; //512 bytes per sector!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[20] = 1; //Only single port I/O (no simultaneous transfers)!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = 1; //Buffer size in sectors!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = 0xFFFF; //Buffer size in sectors!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = (1<<9); //LBA supported, DMA unsupported!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer timing node!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (disk_size & 0xFFFF); //Number of addressable sectors, low word!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (disk_size >> 16); //Number of addressable sectors, high word!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable sectors, low word!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (word)(disk_size >> 16); //Number of addressable sectors, high word!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[80] = 0x02; //Supports ATA-1!
 		}
 		else //Drive not inserted?
@@ -1139,8 +1207,9 @@ void initATA()
 	{
 		CDROM_channel = 0; //Move CDROM to primary channel!
 	}
-	ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
-	ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as master!
+	//CDROM emulation isn't finished yet!
+	//ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
+	//ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as master!
 	int i,j,k;
 	int disk_reverse[4] = { HDD0,HDD1,CDROM0,CDROM1 }; //Our reverse lookup information values!
 	for (i = 0;i < 4;i++) //Check all drives mounted!

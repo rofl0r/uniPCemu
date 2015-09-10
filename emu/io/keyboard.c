@@ -62,7 +62,7 @@ void calculateKeyboardStep(byte activekeys)
 	{
 		if (keyboard_step) //Delay executed?
 		{
-			keyboard_step = KEYBOARD_MAXSTEP / HWkeyboard_getrepeatrate(); //Apply this count per keypress!
+			keyboard_step = (uint_64)(KEYBOARD_MAXSTEP / HWkeyboard_getrepeatrate()); //Apply this count per keypress!
 		}
 		else
 		{

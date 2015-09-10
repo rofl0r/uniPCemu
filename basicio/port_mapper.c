@@ -30,11 +30,15 @@ word PORT_OUTD_COUNT = 0;
 
 extern byte SystemControlPortB; //System control port B!
 
+byte PPI62, PPI63; //Default PPI switches!
+
 //Reset and register!
 
 void reset_ports()
 {
 	SystemControlPortB = 0x00; //Reset system control port B!
+	PPI62 = 0; //Set the default switches!
+	PPI63 = 0x40 | 0x20 | 0xC; //Set the default switches!
 	int i;
 	for (i=0;i<NUMITEMS(PORT_IN);i++) //Process all ports!
 	{
@@ -113,6 +117,16 @@ byte EXEC_PORTOUT(word port, byte value)
 		executed = 1; //Always executed!
 		SystemControlPortB = value; //Special case: system control port B!
 	}
+	else if (port == 0x62) //PPI62?
+	{
+		executed = 1; //Always executed!
+		PPI62 = value; //Special case: PPI! Ignore the floppy changes!
+	}
+	else if (port == 0x63) //PPI63?
+	{
+		executed = 1;
+		PPI63 = value; //Set the value!
+	}
 	#ifdef __LOG_PORT
 	dolog("emu","PORT OUT: %02X@%04X",value,port);
 	#endif
@@ -136,7 +150,17 @@ byte EXEC_PORTIN(word port, byte *result)
 		executed = 1; //Always executed!
 		actualresult = SystemControlPortB; //Special case: system control port B!
 	}
-	#ifdef __LOG_PORT
+	else if (port == 0x62) //PPI?
+	{
+		executed = 1; //Always executed!
+		actualresult = PPI62; //Special case: PPI!
+	}
+	else if (port == 0x63) //PPI#2?
+	{
+		executed = 1;
+		actualresult = PPI63; //Set the value!
+	}
+#ifdef __LOG_PORT
 	dolog("emu","PORT IN: %04X",port);
 	#endif
 	for (i = 0; i < PORT_OUT_COUNT; i++) //Process all ports!

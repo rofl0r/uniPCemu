@@ -92,7 +92,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					
 					if (enableblink) //Blink affects font?
 					{
-						if (getattributeback(VGA,textmode,Attribute,0x8)) //Blink enabled?
+						if (getattributeback(VGA,textmode,(byte)Attribute,0x8)) //Blink enabled?
 						{
 							fontstatus &= currentblink; //Need blink on to show!
 						}
@@ -101,11 +101,11 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					//Determine pixel font or back color to PAL index!
 					if (fontstatus)
 					{
-						CurrentDAC = Attribute; //Load attribute!
+						CurrentDAC = (byte)Attribute; //Load attribute!
 					}
 					else
 					{
-						CurrentDAC = getattributeback(VGA,textmode,Attribute,backgroundfilter); //Back!
+						CurrentDAC = getattributeback(VGA,textmode,(byte)Attribute,backgroundfilter); //Back!
 					}
 
 					CurrentDAC &= colorplanes; //Apply color planes!

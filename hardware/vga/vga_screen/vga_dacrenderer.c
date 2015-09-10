@@ -106,7 +106,7 @@ OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
 	case BWMONITOR_GREEN: //Green?
 		return RGB(0, a, 0); //Green scheme!
 	case BWMONITOR_BROWN: //Brown?
-		a *= brown_red; //Apply basic color: Create yellow tint (R/G)!
+		a = (byte)(((float)a)*brown_red); //Apply basic color: Create yellow tint (R/G)!
 		b = a; //Load a into b!
 		b >>= 1; //Green is halved to create brown
 		return RGB(a, b, 0); //Brown scheme!

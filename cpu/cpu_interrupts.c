@@ -4,6 +4,7 @@
 #include "headers/cpu/easyregs.h" //Easy registers!
 #include "headers/cpu/cb_manager.h" //Callback support!
 #include "headers/cpu/80286/protection.h" //Protection support!
+#include "headers/debugger/debugger.h" //For logging registers!
 
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!
 {
@@ -18,6 +19,8 @@ void CPU_getint(byte intnr, word *segment, word *offset) //Set real mode IVT ent
 }
 
 extern uint_32 destEIP;
+
+extern byte startreached; //When to start logging?
 
 OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //Used by soft (below) and exceptions/hardware!
 {

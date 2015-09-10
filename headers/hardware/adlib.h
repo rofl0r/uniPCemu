@@ -4,6 +4,7 @@
 void initAdlib(); //Initialise adlib!
 void doneAdlib(); //Finish adlib!
 
+void cleanAdlib();
 void updateAdlib(); //Sound tick. Executes every instruction.
 
 #endif

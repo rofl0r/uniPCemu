@@ -14,6 +14,7 @@
 #include "headers/support/highrestimer.h" //High resolution clock!
 #include "headers/support/zalloc.h" //Memory protection support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/hardware/vga_screen/vga_vram.h" //VGA VRAM support!
 
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 
@@ -47,7 +48,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 		return 0.0f; //Remove VGA Scanline counter: nothing to render!
 	}
 	
-	uint_64 result;
+	float result;
 	switch (VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect)
 	{
 	case 0: //25 MHz clock?
@@ -166,7 +167,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 	planesdecoder[VGA->precalcs.graphicsmode](VGA,loadedlocation); //Use the decoder to get the pixels or characters!
 
 	byte lookupprecalcs;
-	lookupprecalcs = ((SEQ_DATA *)Sequencer)->charinner_y;
+	lookupprecalcs = (byte)((SEQ_DATA *)Sequencer)->charinner_y;
 	lookupprecalcs <<= 1; //Make room!
 	lookupprecalcs |= CURRENTBLINK(VGA); //Blink!
 	lookupprecalcs <<= 1; //Make room for the pixelon!

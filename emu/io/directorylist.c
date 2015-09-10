@@ -14,7 +14,7 @@ byte isext(char *filename, char *extension)
 	strcat(temp, "|"); //Finishing delimiter!
 	char *curchar;
 	byte result;
-	int counter; //Counter!
+	uint_32 counter; //Counter!
 	extension = strtok(temp, "|"); //Start token!
 	for (;safe_strlen(extension,256);) //Not an empty string?
 	{
@@ -31,7 +31,7 @@ byte isext(char *filename, char *extension)
 			//Now we're at the startpos. MUST MATCH ALL CHARACTERS!
 			result = 1; //Default: match!
 			counter = 0; //Process the complete extension!
-			while (counter < safe_strlen(ext, 256)) //Not end of string?
+			while ((uint_32)counter < safe_strlen(ext, 256)) //Not end of string?
 			{
 				//Are we equal or not?
 				if (toupper((int)*curchar) != toupper((int)*comparedata)) //Not equal (case insensitive)?

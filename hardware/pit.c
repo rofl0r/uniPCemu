@@ -27,6 +27,13 @@ float currenttime[3] = { 0.0f,0.0f,0.0f }; //Current time passed!
 
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 
+void cleanPIT0()
+{
+	getuspassed(&timerticks[0]); //Discard the time passed to the counter!
+	getuspassed(&timerticks[1]); //Discard the time passed to the counter!
+	getuspassed(&timerticks[2]); //Discard the time passed to the counter!
+}
+
 void updatePIT0() //Timer tick Irq
 {
 	byte channel;
@@ -37,7 +44,7 @@ void updatePIT0() //Timer tick Irq
 			currenttime[channel] += (float)getuspassed(&timerticks[channel]); //Add the time passed to the counter!
 			if ((currenttime[channel] >= timertime[channel]) && timertime[channel]) //Are we to trigger an interrupt?
 			{
-				currenttime[channel] = fmod(currenttime[channel],timertime[channel]); //Rest!
+				currenttime[channel] = (float)fmod(currenttime[channel],timertime[channel]); //Rest!
 				if (!channel) doirq(0); //PIT0 executes an IRQ on timeout!
 			}
 		}
@@ -123,7 +130,7 @@ void updatePITState(byte channel)
 	uspassed = getuspassed_k(&timerticks[channel]); //How many time has passed since the last full state?
 	calculatedpitstate[channel] = pitdivisor[channel]; //Load the current divisor (1-65536)
 	if (calculatedpitstate[channel] == 65536) calculatedpitstate[channel] = 0; //We start counting from 0 instead of 65536!
-	calculatedpitstate[channel] -= ((float)uspassed / tickduration); //Count down the current PIT0 state!
+	calculatedpitstate[channel] -= (uint_32)((float)uspassed / (uint_32)tickduration); //Count down the current PIT0 state!
 	calculatedpitstate[channel] &= 0xFFFF; //Convert it to 16-bits value of the PIT!
 	pitlatch[channel] = calculatedpitstate[channel]; //Set the latch!
 }
@@ -139,7 +146,7 @@ byte in8253(word portnum, byte *result)
 		case 0x40:
 		case 0x41:
 		case 0x42:
-			pit = portnum;
+			pit = (byte)portnum;
 			pit &= 3; //PIT!
 			if (pitcommand[pit] & 0x30) //No latch mode?
 			{
@@ -192,7 +199,7 @@ byte out8253(word portnum, byte value)
 		case 0x40: //pit 0 data port
 		case 0x41: //pit 1 data port
 		case 0x42: //speaker data port
-			pit = portnum;
+			pit = (byte)portnum;
 			pit &= 3; //Low 2 bits only!
 			switch (pitcommand[pit]&0x30) //What input mode currently?
 			{

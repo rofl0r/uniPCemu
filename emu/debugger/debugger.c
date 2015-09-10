@@ -168,7 +168,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 				if (memcmp(&verify, &originalverify, sizeof(verify)) != 0) //Not equal?
 				{
 					dolog("debugger", "Invalid data according to debuggerverify.dat before executing the following instruction(Entry number %08X):",debugger_index); //Show where we got our error!
-					debugger_logregisters(&debuggerregisters); //Log the original registers!
+					debugger_logregisters("debugger",&debuggerregisters); //Log the original registers!
 					//Apply the debugger registers to the actual register set!
 					CPU[activeCPU].registers->CS = verify.CS;
 					CPU[activeCPU].registers->SS = verify.SS;
@@ -186,7 +186,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 					CPU[activeCPU].registers->FLAGS = verify.FLAGS;
 					updateCPUmode(); //Update the CPU mode: flags have been changed!
 					dolog("debugger", "Expected:");
-					debugger_logregisters(CPU[activeCPU].registers); //Log the correct registers!
+					debugger_logregisters("debugger",CPU[activeCPU].registers); //Log the correct registers!
 					//Refresh our debugger registers!
 					memcpy(&debuggerregisters,CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
 					forcerepeat = 1; //Force repeat log!
@@ -273,44 +273,44 @@ OPTINLINE char *debugger_generateFlags(CPU_registers *registers)
 	return &flags[0]; //Give the flags for quick reference!
 }
 
-OPTINLINE void debugger_logregisters(CPU_registers *registers)
+void debugger_logregisters(char *filename, CPU_registers *registers)
 {
-	if (!registers) //Invalid?
+	if (!registers || !filename) //Invalid?
 	{
-		dolog("debugger","Log registers called with invalid argument!");
+		dolog(filename,"Log registers called with invalid argument!");
 		return; //Abort!
 	}
 	if (EMULATED_CPU<CPU_80286) //Emulating 80(1)86?
 	{
 		#ifndef LOGFLAGSONLY
-		dolog("debugger","Registers:"); //Start of the registers!
-		dolog("debugger","AX: %04X, BX: %04X, CX: %04X, DX: %04X",registers->AX,registers->BX,registers->CX,registers->DX); //Basic registers!
-		dolog("debugger","CS: %04X, DS: %04X, ES: %04X, SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
-		dolog("debugger","SP: %04X, BP: %04X, SI: %04X, DI: %04X",registers->SP,registers->BP,registers->SI,registers->DI); //Segment registers!
-		dolog("debugger","IP: %04X, FLAGS: %04X",registers->IP,registers->FLAGS); //Rest!
+		dolog(filename,"Registers:"); //Start of the registers!
+		dolog(filename,"AX: %04X, BX: %04X, CX: %04X, DX: %04X",registers->AX,registers->BX,registers->CX,registers->DX); //Basic registers!
+		dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
+		dolog(filename,"SP: %04X, BP: %04X, SI: %04X, DI: %04X",registers->SP,registers->BP,registers->SI,registers->DI); //Segment registers!
+		dolog(filename,"IP: %04X, FLAGS: %04X",registers->IP,registers->FLAGS); //Rest!
 		#endif
-		dolog("debugger","FLAGSINFO:%s",debugger_generateFlags(registers)); //Log the flags!
+		dolog(filename,"FLAGSINFO:%s",debugger_generateFlags(registers)); //Log the flags!
 //More aren't implemented in the 8086!
 	}
 	else //80286+?
 	{
-		dolog("debugger","Registers:"); //Start of the registers!
+		dolog(filename,"Registers:"); //Start of the registers!
 		#ifndef LOGFLAGSONLY
-		dolog("debugger","EAX: %08x, EBX: %08x, ECX: %08x, EDX: %08x",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
+		dolog(filename,"EAX: %08x, EBX: %08x, ECX: %08x, EDX: %08x",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
 		
 		if (EMULATED_CPU<CPU_80386) //286-?
 		{
-			dolog("debugger","CS: %04X, DS: %04X, ES: %04X, SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
+			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
 		}
 		else //386+?
 		{
-			dolog("debugger","CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS); //Segment registers!
+			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS); //Segment registers!
 		}
-		dolog("debugger","ESP: %08x, EBP: %08x, ESI: %08x, EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
-		dolog("debugger","EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
+		dolog(filename,"ESP: %08x, EBP: %08x, ESI: %08x, EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
+		dolog(filename,"EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
 		#endif
 		//Finally, flags seperated!
-		dolog("debugger","FLAGSINFO:%s",debugger_generateFlags(registers)); //Log the flags!
+		dolog(filename,"FLAGSINFO:%s",debugger_generateFlags(registers)); //Log the flags!
 	}
 }
 
@@ -383,7 +383,7 @@ OPTINLINE void debugger_autolog()
 		{
 			dolog("debugger","%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 		}
-		debugger_logregisters(&debuggerregisters); //Log the previous (initial) register status!
+		debugger_logregisters("debugger",&debuggerregisters); //Log the previous (initial) register status!
 		dolog("debugger",""); //Empty line between comands!
 	} //Allow logging?
 }

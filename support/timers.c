@@ -54,7 +54,6 @@ void timer_thread() //Handler for timer!
 	char name[256];
 	int curtimer;
 	uint_64 numcounters;
-	double clockspeedup;
 	double realpassed; //Real timer passed since last call!
 
 
@@ -94,7 +93,7 @@ void timer_thread() //Handler for timer!
 				if ((timers[curtimer].core&1) || ((!(timers[curtimer].core&1)) && EMU_Timers_Enabled)) //Allowed to run?
 				{
 					timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
-					numcounters = floor(timers[curtimer].counter / timers[curtimer].overflowtime); //Ammount of times to count!
+					numcounters = (uint_64)floor(timers[curtimer].counter / timers[curtimer].overflowtime); //Ammount of times to count!
 					timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions! We skip any overflow!
 					if (timers[curtimer].counterlimit) //Gotten a limit?
 					{

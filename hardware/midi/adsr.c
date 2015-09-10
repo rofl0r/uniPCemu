@@ -151,7 +151,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 
 //Volume envelope information!
 	uint_32 delay, attack, hold, decay, sustain, release; //All lengths!
-	float attackfactor, decayfactor, sustainfactor, releasefactor, holdenvfactor, decayenvfactor;
+	float attackfactor, decayfactor, sustainfactor, holdenvfactor, decayenvfactor;
 	
 //Delay
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, delayLookup, &applyigen))
@@ -272,7 +272,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	else
 	{
-		delay = sampleRate*cents2samplesfactor((double)delay); //Calculate the ammount of samples!
+		delay = (uint_32)(sampleRate*cents2samplesfactor((double)delay)); //Calculate the ammount of samples!
 	}
 	if (cents2samplesfactor((double)attack) < 0.0002f) //0.0001 sec?
 	{
@@ -280,7 +280,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	else
 	{
-		attack = sampleRate*cents2samplesfactor((double)attack); //Calculate the ammount of samples!
+		attack = (uint_32)(sampleRate*cents2samplesfactor((double)attack)); //Calculate the ammount of samples!
 	}
 	if (cents2samplesfactor((double)hold) < 0.0002f) //0.0001 sec?
 	{
@@ -288,9 +288,9 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	else
 	{
-		hold = sampleRate*cents2samplesfactor((double)hold); //Calculate the ammount of samples!
+		hold = (uint_32)(sampleRate*cents2samplesfactor((double)hold)); //Calculate the ammount of samples!
 	}
-	hold *= cents2samplesfactor((double)(holdenvfactor*relKeynum)); //Apply key number!
+	hold = (uint_32)(hold*cents2samplesfactor((double)(holdenvfactor*relKeynum))); //Apply key number!
 
 	if (cents2samplesfactor((double)decay) < 0.0002f) //0.0001 sec?
 	{
@@ -298,11 +298,11 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	else
 	{
-		decay = sampleRate*cents2samplesfactor((double)decay); //Calculate the ammount of samples!
+		decay = (uint_32)(sampleRate*cents2samplesfactor((double)decay)); //Calculate the ammount of samples!
 	}
-	decay *= cents2samplesfactor((double)(decayenvfactor*relKeynum)); //Apply key number!
+	decay = (uint_32)(decay*cents2samplesfactor((double)(decayenvfactor*relKeynum))); //Apply key number!
 
-	sustainfactor = dB2factor((double)(1000 - sustain), 1000); //We're on a rate of 1000 cb!
+	sustainfactor = (float)dB2factor((double)(1000 - sustain), 1000); //We're on a rate of 1000 cb!
 	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
 	if (cents2samplesfactor((double)release) < 0.0002f) //0.0001 sec?
 	{
@@ -310,7 +310,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	else
 	{
-		release = sampleRate*cents2samplesfactor((double)release); //Calculate the ammount of samples!
+		release = (uint_32)(sampleRate*cents2samplesfactor((double)release)); //Calculate the ammount of samples!
 	}
 	
 	//Now calculate the steps for the envelope!
@@ -345,7 +345,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 			temp = 1; //Full volume!
 			temp -= sustainfactor; //Change to sustain factor difference!
 			temp /= decayfactor; //Calculate the new decay time needed to change to the sustain factor!
-			decay = temp; //Load the calculated decay time!
+			decay = (uint_32)temp; //Load the calculated decay time!
 		}
 	}
 	else
@@ -406,7 +406,7 @@ float ADSR_tick(ADSR *adsr, int_64 samplecounter, byte sustaining, float noteon_
 	{
 		result = ADSR_delay(adsr, samplecounter, sustaining, release_velocity); //Delay phase!
 	}
-	result = dB2factor(result, 1); //Give the current envelope, convert the linear factor to decibels!
-	result *= dB2factor(noteon_velocity, 1); //Apply note on velocity!
+	result = (float)dB2factor(result, 1); //Give the current envelope, convert the linear factor to decibels!
+	result *= (float)dB2factor(noteon_velocity, 1); //Apply note on velocity!
 	return result; 
 }

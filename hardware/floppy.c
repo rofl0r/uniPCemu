@@ -264,7 +264,7 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 
 OPTINLINE uint_32 floppy_LBA(byte floppy, word side, word track, word sector)
 {
-	updateFloppyGeometries(floppy,side,track); //Update the floppy geometries!
+	updateFloppyGeometries(floppy,(byte)side,(byte)track); //Update the floppy geometries!
 	if (!FLOPPY.geometries[floppy]) return 0; //Unknown floppy geometry!
 	return (uint_32)(((track*FLOPPY.geometries[floppy]->sides) + side) * FLOPPY.geometries[floppy]->SPT) + sector - 1; //Give LBA for floppy!
 }
@@ -273,7 +273,7 @@ OPTINLINE uint_32 floppy_LBA(byte floppy, word side, word track, word sector)
 
 OPTINLINE word translateSectorSize(byte size)
 {
-	return 128*pow(2,size); //Give the translated sector size!
+	return 128<<size; //Give the translated sector size!
 }
 
 void FLOPPY_notifyDiskChanged(int disk)
@@ -492,8 +492,6 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 
 OPTINLINE void floppy_readsector() //Request a read sector command!
 {
-	FILE *f;
-	char sectorfile[256];
 	char *DSKImageFile = NULL; //DSK image file to use?
 	uint_32 sector;
 	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
@@ -660,9 +658,6 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 
 OPTINLINE void floppy_writesector() //Request a write sector command!
 {
-	char *DSKImageFile = NULL; //DSK image file to use?
-	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
-
 	FLOPPY.MT = (FLOPPY.commandbuffer[0] >> 7); //Multiple track mode?
 	FLOPPY.databuffersize = translateSectorSize(FLOPPY.commandbuffer[5]); //Sector size into data buffer!
 	if (!FLOPPY.commandbuffer[5]) //Special case? Use given info!
@@ -968,7 +963,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 
 			//Invalid track?
 			FLOPPY.ST2.data |= 0x4; //Invalid seek!
-			FLOPPY.commandstep = FLOPPY.commandposition = 0; //Reset command!
+			FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0); //Reset command!
 			break;
 		case 0x4: //Check drive status
 			FLOPPY.resultbuffer[0] = FLOPPY.ST3.data; //Give ST3!

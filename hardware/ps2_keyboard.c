@@ -1,6 +1,7 @@
 #include "headers/hardware/8042.h" //Basic PS/2 Controller support!
 #include "headers/hardware/ps2_keyboard.h" //Basic keyboard support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/hardware/ports.h" //Port support!
 
 extern char keys_names[104][11]; //All names of the above keys (for textual representation/labeling)
 extern KEYBOARDENTRY scancodesets[3][104]; //All scan codes for all sets!
