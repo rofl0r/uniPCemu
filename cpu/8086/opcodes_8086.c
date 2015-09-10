@@ -1,6 +1,6 @@
 #include "headers/types.h" //Basic types
-#include "headers/cpu/CPU.h" //CPU needed!
-#include "headers/mmu/MMU.h" //MMU needed!
+#include "headers/cpu/cpu.h" //CPU needed!
+#include "headers/mmu/mmu.h" //MMU needed!
 #include "headers/cpu/easyregs.h" //Easy register compatibility!
 #include "headers/cpu/modrm.h" //MODR/M compatibility!
 #include "headers/support/signedness.h" //CPU support functions!
@@ -91,13 +91,13 @@ parameters:
 	debuggersize: Size of the debugger, if any (8/16/32/0 for none).
 	paramdata: The params to use when debuggersize set and using modr/m with correct type.
 	type: See above.
-	
+
 */
 
 OPTINLINE void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type)
 {
 	if (!cpudebugger) return; //Gotten no debugger on? Abort!
-	
+
 	//Process debugger!
 	char result[256];
 	bzero(result,sizeof(result));
@@ -1269,16 +1269,16 @@ void CPU8086_OP05() {word theimm = CPU_readOPw(); modrm_generateInstructionTEXT(
 void CPU8086_OP06() {modrm_generateInstructionTEXT("PUSH ES",0,0,PARAM_NONE); CPU_PUSH16(&REG_ES);/*PUSH ES*/ }
 void CPU8086_OP07() {modrm_generateInstructionTEXT("POP ES",0,0,PARAM_NONE); segmentWritten(CPU_SEGMENT_ES,CPU_POP16(),0); /*CS changed!*/ }
 void CPU8086_OP08() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ORB",8,0,PARAM_MODRM21); MODRM_src0 = 2; CPU8086_internal_OR8(modrm_addr8(&params,2,0),modrm_read8(&params,1)); }
-void CPU8086_OP09() {modrm_readparams(&params,2,0); modrm_generateInstructionTEXT("ORW",16,0,PARAM_MODRM21); MODRM_src0 = 2; CPU8086_internal_OR16(modrm_addr16(&params,2,0),modrm_read16(&params,1)); } 
-void CPU8086_OP0A() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ORB",8,0,PARAM_MODRM12); MODRM_src0 = 1; CPU8086_internal_OR8(modrm_addr8(&params,1,0),modrm_read8(&params,2)); } 
-void CPU8086_OP0B() {modrm_readparams(&params,2,0); modrm_generateInstructionTEXT("ORW",16,0,PARAM_MODRM12); MODRM_src0 = 1; CPU8086_internal_OR16(modrm_addr16(&params,1,0),modrm_read16(&params,2)); } 
-void CPU8086_OP0C() {byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("ORB AL,",0,theimm,PARAM_IMM8); CPU8086_internal_OR8(&REG_AL,theimm); } 
-void CPU8086_OP0D() {word theimm = CPU_readOPw(); modrm_generateInstructionTEXT("ORW AX,",0,theimm,PARAM_IMM16); CPU8086_internal_OR16(&REG_AX,theimm); } 
-void CPU8086_OP0E() {modrm_generateInstructionTEXT("PUSH CS",0,0,PARAM_NONE); CPU_PUSH16(&REG_CS);/*PUSH CS*/ } 
+void CPU8086_OP09() {modrm_readparams(&params,2,0); modrm_generateInstructionTEXT("ORW",16,0,PARAM_MODRM21); MODRM_src0 = 2; CPU8086_internal_OR16(modrm_addr16(&params,2,0),modrm_read16(&params,1)); }
+void CPU8086_OP0A() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ORB",8,0,PARAM_MODRM12); MODRM_src0 = 1; CPU8086_internal_OR8(modrm_addr8(&params,1,0),modrm_read8(&params,2)); }
+void CPU8086_OP0B() {modrm_readparams(&params,2,0); modrm_generateInstructionTEXT("ORW",16,0,PARAM_MODRM12); MODRM_src0 = 1; CPU8086_internal_OR16(modrm_addr16(&params,1,0),modrm_read16(&params,2)); }
+void CPU8086_OP0C() {byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("ORB AL,",0,theimm,PARAM_IMM8); CPU8086_internal_OR8(&REG_AL,theimm); }
+void CPU8086_OP0D() {word theimm = CPU_readOPw(); modrm_generateInstructionTEXT("ORW AX,",0,theimm,PARAM_IMM16); CPU8086_internal_OR16(&REG_AX,theimm); }
+void CPU8086_OP0E() {modrm_generateInstructionTEXT("PUSH CS",0,0,PARAM_NONE); CPU_PUSH16(&REG_CS);/*PUSH CS*/ }
 void CPU8086_OP0F() /*FLAG_OF: POP CS; shouldn't be used?*/ { modrm_generateInstructionTEXT("POP CS", 0, 0, PARAM_NONE); /*Don't handle: 8086 ignores this opcode, and you won't find it there!*/ destEIP = REG_EIP; segmentWritten(CPU_SEGMENT_CS, CPU_POP16(), 0); /*POP CS!*/ }
-void CPU8086_OP10() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ADCB",8,0,PARAM_MODRM21); MODRM_src0 = 2; CPU8086_internal_ADC8(modrm_addr8(&params,2,0),modrm_read8(&params,1)); } 
-void CPU8086_OP11() {modrm_readparams(&params,2,0); modrm_generateInstructionTEXT("ADCW",16,0,PARAM_MODRM21); MODRM_src0 = 2; CPU8086_internal_ADC16(modrm_addr16(&params,2,0),modrm_read16(&params,1)); } 
-void CPU8086_OP12() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ADCB",8,0,PARAM_MODRM12);  MODRM_src0 = 1; CPU8086_internal_ADC8(modrm_addr8(&params,1,0),modrm_read8(&params,2)); } 
+void CPU8086_OP10() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ADCB",8,0,PARAM_MODRM21); MODRM_src0 = 2; CPU8086_internal_ADC8(modrm_addr8(&params,2,0),modrm_read8(&params,1)); }
+void CPU8086_OP11() {modrm_readparams(&params,2,0); modrm_generateInstructionTEXT("ADCW",16,0,PARAM_MODRM21); MODRM_src0 = 2; CPU8086_internal_ADC16(modrm_addr16(&params,2,0),modrm_read16(&params,1)); }
+void CPU8086_OP12() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ADCB",8,0,PARAM_MODRM12);  MODRM_src0 = 1; CPU8086_internal_ADC8(modrm_addr8(&params,1,0),modrm_read8(&params,2)); }
 void CPU8086_OP13() {modrm_readparams(&params,2,0); modrm_generateInstructionTEXT("ADCW",16,0,PARAM_MODRM12); MODRM_src0 = 1; CPU8086_internal_ADC16(modrm_addr16(&params,1,0),modrm_read16(&params,2)); }
 void CPU8086_OP14() {byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("ADC AL,",0,theimm,PARAM_IMM8); CPU8086_internal_ADC8(&REG_AL,theimm); }
 void CPU8086_OP15() {word theimm = CPU_readOPw(); modrm_generateInstructionTEXT("ADC AX,",0,theimm,PARAM_IMM16); CPU8086_internal_ADC16(&REG_AX,theimm); }
@@ -2332,7 +2332,7 @@ OPTINLINE void op_idiv8(word valdiv, byte divisor) {
 	dataw2.valdivs = dataw1.valdivs; //Set and...
 	dataw2.valdivs /= datab1.divisors; //... Divide!
 
-	datab2.divisors = (sbyte)dataw2.valdivs; //Try to load the signed result!	
+	datab2.divisors = (sbyte)dataw2.valdivs; //Try to load the signed result!
 	if (datab2.divisors != dataw2.valdivs) { CPU_exDIV0(); return; } //Overflow (data loss)!
 
 	REG_AL = datab2.divisors; //Divided!

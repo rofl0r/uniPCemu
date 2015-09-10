@@ -1,6 +1,6 @@
 #include "headers/types.h" //Basic types
 #include "headers/cpu/cpu.h" //CPU needed!
-#include "headers/mmu/MMU.h" //MMU needed!
+#include "headers/mmu/mmu.h" //MMU needed!
 #include "headers/cpu/easyregs.h" //Easy register compatibility!
 #include "headers/cpu/modrm.h" //MODR/M compatibility!
 #include "headers/support/signedness.h" //CPU support functions!

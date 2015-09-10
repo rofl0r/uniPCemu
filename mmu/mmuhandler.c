@@ -1,5 +1,5 @@
 #include "headers/types.h" //Basic types!
-#include "headers/mmu/MMU.h" //MMU support!
+#include "headers/mmu/mmu.h" //MMU support!
 #include "headers/emu/gpu/gpu.h" //Read output module!
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/bios/bios.h" //BIOS support!
@@ -81,7 +81,7 @@ void MMU_resetHandlers(char *module) //Initialise/reset handlers!
 	else //Cleared one module: search for the last one used!
 	{
 		MMUHANDLER_countwrites();
-		MMUHANDLER_countreads();		
+		MMUHANDLER_countreads();
 	}
 }
 

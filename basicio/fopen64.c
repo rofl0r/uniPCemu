@@ -55,10 +55,17 @@ int fseek64(FILE *stream, int64_t pos, int direction)
 #else
 									//Windows
 	int result;
+#ifdef _WIN32
 	if (!(result = _fseeki64(b->f, pos, direction))) //Direction is constant itself!
 	{
 		b->position = _ftelli64(b->f); //Use our own position indicator!
 	}
+#else
+	if (!(result = fseek(b->f, pos, direction))) //Direction is constant itself!
+	{
+		b->position = ftell(b->f); //Use our own position indicator!
+	}
+#endif
 	return result; //Give the result!
 #endif
 }
@@ -90,7 +97,7 @@ FILE *fopen64(char *filename, char *mode)
 
 	stream = (BIGFILE *)zalloc(sizeof(BIGFILE),"BIGFILE",NULL); //Allocate the big file!
 	if (!stream) return NULL; //Nothing to be done!
-	
+
 	char *modeidentifier = mode; //First character of the mode!
 	if (strcmp(modeidentifier,"")==0) //Nothing?
 	{
@@ -154,7 +161,7 @@ FILE *fopen64(char *filename, char *mode)
 #endif
 	bzero(&stream->filename,sizeof(stream->filename)); //Init filename buffer!
 	strcpy(&stream->filename[0],filename); //Set the filename!
-	
+
 	//Detect file size!
 	if (!fseek64((FILE *)stream,0,SEEK_END)) //Seek to eof!
 	{
@@ -164,6 +171,7 @@ FILE *fopen64(char *filename, char *mode)
 	}
 	return (FILE *)stream; //Opened!
 }
+#endif
 
 int64_t fwrite64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 {
@@ -233,4 +241,3 @@ int fclose64(FILE *stream)
 	}
 	return 0; //OK!
 }
-#endif

@@ -92,7 +92,7 @@ typedef struct
 						u8 DPL : 2; //Descriptor Privilege level.
 						u8 P : 1; //Present in memory?
 					};
-					byte AccessRights; //Access rights!					
+					byte AccessRights; //Access rights!
 				};
 				u8 limit_high : 4; //High part of limit (if used).
 				u8 AVL : 1; //Available for programmers use.
@@ -104,7 +104,7 @@ typedef struct
 			byte bytes[8]; //The data as bytes!
 		};
 		uint_32 dwords[2]; //2 32-bit values for easy access!
-		uint_64 DATA64; //Full data for simple set!		
+		uint_64 DATA64; //Full data for simple set!
 	};
 } SEGMENT_DESCRIPTOR;
 
@@ -585,7 +585,7 @@ typedef struct //The registers!
 		}; //CR0-3!
 		//DR0-7; 4=6&5=7!
 	}; //Special registers!
-	
+
 } CPU_registers; //Registers
 
 
@@ -780,7 +780,7 @@ extern byte CPU_Address_size[2]; //Address size for this opcode!
 extern byte CPU_StackAddress_size[2]; //Address size for this opcode!
 #endif
 
-#include "headers/cpu/CPU_ops.h"
+#include "headers/cpu/cpu_ops.h"
 
 //Overrides:
 

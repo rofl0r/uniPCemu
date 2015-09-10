@@ -82,7 +82,7 @@ void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerele
 			}
 		}
 	}
-	
+
 	//Next our userdata!
 	surface->flags |= SDL_FLAG_DIRTY; //Initialise to a dirty surface (first rendering!)
 	if (!allowsurfacerelease) //Don't allow surface release?
@@ -196,7 +196,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 	{
 		return NULL; //Nothing to resize!
 	}
-	
+
 	//dolog("SDL","ResizeImage: valid surface to resize. Calculating new size...");
 	//Calculate destination resolution!
 	uint_32 n_width = newwidth;
@@ -215,7 +215,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 			n_width = (uint_32)(n_height*ar);
 		}
 	}
-	
+
 	//dolog("SDL","ResizeImage: Verifying new height/width...");
 	if (!n_width || !n_height) //No size in src or dest?
 	{
@@ -236,7 +236,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 	//Calculate factor to destination resolution!
 	double zoomx = SAFEDIV(n_width,(double)img->sdllayer->w); //Resize to new width!
 	double zoomy = SAFEDIV(n_height,(double)img->sdllayer->h); //Resize to new height!
-	
+
 	//dolog("SDL","ResizeImage: Checking memory requirements...");
 	//Calcualted required memory!
 	uint_32 memreq = (((n_width*n_height)*sizeof(uint_32))+sizeof(*img)); //Memory required for the new surface!
@@ -245,7 +245,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 		raiseError("SDL","Not enough memory left to resize: free:%i bytes, required: %i bytes; Shortage: %i bytes",freemem(),memreq,freemem()-memreq); //Log our shortage!
 		return NULL; //Disabled: not enough memory left!
 	}
-	
+
 	SDL_Surface* sized = NULL; //Sized?
 	if (zoomx && zoomy) //Valid?
 	{
@@ -294,7 +294,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 //Pixels between rows.
 OPTINLINE uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference between two rows!
 {
-	if (!surface) 
+	if (!surface)
 	{
 		dolog("GPP","Pitch: invalid NULL-surface!");
 		return 0; //No surface = no pitch!
@@ -359,7 +359,7 @@ OPTINLINE void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x
 		#ifdef PPRLOG
 			dolog("PPR","Get_pixel_ptr: Invalid surface!");
 		#endif
-		return NULL; //Unknown!	
+		return NULL; //Unknown!
 	}
 	if ((y<surface->sdllayer->h) && (x<surface->sdllayer->w)) //Within range?
 	{
@@ -370,7 +370,7 @@ OPTINLINE void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x
 			//No pitch? Use width to fall back!
 			if (memprotect(result,sizeof(uint_32),NULL)) //Valid?
 			{
-				return result; //The pixel ptr!		
+				return result; //The pixel ptr!
 			}
 			else
 			{
@@ -419,7 +419,7 @@ parameters:
 			=0: Clear both sides if available.
 			=1: Disable clearing
 	row_start: Where to start copying the pixels on the surface line. Only used when aligning left. Also affect left align clearing (As the screen is shifted to the right).
-	
+
 
 */
 
@@ -470,7 +470,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 							else
 							{
 								dolog("GPU_Renderer", "Invalid src/dest specified!");
-							}						
+							}
 						#endif
 						break;
 					case 1: //Use horizontal centering?
@@ -503,7 +503,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 								else
 								{
 									dolog("PPR","Invalid src/dest specified!");
-								}							
+								}
 							#endif
 							return; //Done: we've written the pixels at the center!
 						}
@@ -612,7 +612,7 @@ GPU_SDL_Surface *createSurfaceFromPixels(int columns, int rows, void *pixels, ui
 {
 	uint_32 rmask,gmask,bmask,amask; //Masks!
 	loadByteOrder(&rmask,&gmask,&bmask,&amask); //Load our masks!
-	
+
 	pixelpitch <<= 2; //4 bytes a pixel!
 	SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(pixels,columns,rows, 32, pixelpitch, rmask,gmask,bmask,amask); //Try to create it!
 	if (!surface) //Failed to allocate?
@@ -658,9 +658,9 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 					//Lock the surface
 					SDL_LockSurface( surface->sdllayer );
 				}
-				
+
 				SDL_Flip(surface->sdllayer); //Flip!
-				
+
 				//Unlock surface
 				if( SDL_MUSTLOCK( surface->sdllayer ) )
 				{

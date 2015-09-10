@@ -9,7 +9,9 @@
 #include "SDL_gfxPrimitives.h"
 #else
 #include "SDL/SDL_rotozoom.h" //Rotate&Zoom package for SDL!
-#include "SDL/SDL_gfxPrimitives.h" //Graphics primitives (plot pixel)
+/* these files missing, does not compile under linux */
+//#include "SDL/SDL_gfxPrimitives.h" //Graphics primitives (plot pixel)
+#include <SDL/SDL.h>
 #endif
 //Resolution of PSP Screen!
 #define PSP_SCREEN_ROWS 272
@@ -79,7 +81,7 @@ typedef struct
 	uint_32* vram; //Direct pointer to REAL vram of the PSP!
 //Visual screen to render after VGA etc.!
 	uint_32 *emu_screenbuffer; //Dynamic pointer to the emulator screen buffer!
-	
+
 	//Display resolution:
 	word xres; //X size of screen
 	word yres; //Y size of screen
@@ -97,7 +99,7 @@ typedef struct
 	byte show_framerate; //Show the framerate?
 	byte frameskip; //Frameskip!
 	uint_32 framenr; //Current frame number (for Frameskip, kept 0 elsewise.)
-	
+
 	uint_32 emu_buffer_dirty; //Emu screenbuffer dirty: needs re-rendering?
 
 	//Text surface support!
