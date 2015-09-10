@@ -2226,7 +2226,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				EMU_unlocktext();
 				byte error = 0;
 				FILE *dest;
-				dest = fopen64(filename, "wb"); //Open the destination!
+				dest = emufopen64(filename, "wb"); //Open the destination!
 				for (sectornr = 0; sectornr < size;) //Process all sectors!
 				{
 					if (shuttingdown())
@@ -2245,7 +2245,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					}
 					if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
 					{
-						if (fwrite64(&sector,1,datatotransfer,dest)!=datatotransfer) //Error writing a sector?
+						if (emufwrite64(&sector,1,datatotransfer,dest)!=datatotransfer) //Error writing a sector?
 						{
 							error = 2;
 							break; //Stop reading!
@@ -2262,7 +2262,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					}
 					sectornr += datatotransfer; //Next sector!
 				}
-				fclose64(dest); //Close the file!
+				emufclose64(dest); //Close the file!
 
 				EMU_locktext();
 				GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!

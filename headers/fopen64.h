@@ -3,16 +3,12 @@
 
 #include "headers/types.h" //Basic types!
 
-#ifdef _WIN32
-#ifndef fopen64
-FILE *fopen64(char *filename, char *mode);
-int fseek64(FILE *stream, int64_t pos, int direction);
-int fflush64(FILE *stream);
-int64_t ftell64(FILE *stream);
-int feof64(FILE *stream);
-int64_t fread64(void *data,int64_t multiplication,int64_t size,FILE *stream);
-int64_t fwrite64(void *data,int64_t multiplication,int64_t size,FILE *stream);
-int fclose64(FILE *stream);
-#endif
-#endif
+FILE *emufopen64(char *filename, char *mode);
+int emufseek64(FILE *stream, int64_t pos, int direction);
+int emufflush64(FILE *stream);
+int64_t emuftell64(FILE *stream);
+int emufeof64(FILE *stream);
+int64_t emufread64(void *data,int64_t multiplication,int64_t size,FILE *stream);
+int64_t emufwrite64(void *data,int64_t multiplication,int64_t size,FILE *stream);
+int emufclose64(FILE *stream);
 #endif

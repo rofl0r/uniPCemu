@@ -52,16 +52,16 @@ OPTINLINE byte readverification(uint_32 index, VERIFICATIONDATA *entry)
 {
 	const word size = sizeof(*entry);
 	FILE *f;
-	f = fopen64("debuggerverify16.dat", "rb"); //Open verify data!
-	if (fseek64(f, index*size, SEEK_SET) == 0) //OK?
+	f = emufopen64("debuggerverify16.dat", "rb"); //Open verify data!
+	if (emufseek64(f, index*size, SEEK_SET) == 0) //OK?
 	{
-		if (fread64(entry, 1, size, f) == size) //OK?
+		if (emufread64(entry, 1, size, f) == size) //OK?
 		{
-			fclose64(f); //Close the file!
+			emufclose64(f); //Close the file!
 			return 1; //Read!
 		}
 	}
-	fclose64(f); //Close the file!
+	emufclose64(f); //Close the file!
 	return 0; //Error reading the entry!
 }
 

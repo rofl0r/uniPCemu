@@ -20,15 +20,15 @@ int_64 currentsize; //The current file size, in bytes!
 OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	if (!f) return 0; //Failed!
-	if (fseek64(f, 0, SEEK_SET) != 0)
+	if (emufseek64(f, 0, SEEK_SET) != 0)
 	{
 		return 0; //Failed to seek to position 0!
 	}
-	if (fwrite64(header, 1, sizeof(*header), f) != sizeof(*header)) //Failed to write?
+	if (emufwrite64(header, 1, sizeof(*header), f) != sizeof(*header)) //Failed to write?
 	{
 		return 0; //Failed!
 	}
-	if (fflush64(f)) //Error when flushing?
+	if (emufflush64(f)) //Error when flushing?
 	{
 		return 0; //We haven't been updated!
 	}
@@ -39,11 +39,11 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	if (f)
 	{
-		if (fseek64(f, 0, SEEK_SET) != 0)
+		if (emufseek64(f, 0, SEEK_SET) != 0)
 		{
 			return 0; //Failed to seek to position 0!
 		}
-		if (fread64(header,1,sizeof(*header),f)==sizeof(*header)) //Read the header?
+		if (emufread64(header,1,sizeof(*header),f)==sizeof(*header)) //Read the header?
 		{
 			char *sig = (char *)&header->SIG; //The signature!
 			if (!memcmp(sig,&SIG,sizeof(header->SIG)) && header->headersize==sizeof(*header)) //Dynamic image?
@@ -65,16 +65,16 @@ int is_dynamicimage(char *filename)
 	{
 		return 0; //Not a dynamic image!
 	}
-	FILE *f = fopen64(filename, "rb"); //Open!
+	FILE *f = emufopen64(filename, "rb"); //Open!
 	result = readdynamicheader(f,&header); //Is dynamic?
-	fclose64(f);
+	emufclose64(f);
 	return result; //Give the result!
 }
 
 FILEPOS dynamicimage_getsize(char *filename)
 {
 	DYNAMICIMAGE_HEADER header; //Header to read!
-	FILE *f = fopen64(filename, "rb"); //Open!
+	FILE *f = emufopen64(filename, "rb"); //Open!
 	FILEPOS result;
 	if (readdynamicheader(f,&header)) //Is dynamic?
 	{
@@ -84,7 +84,7 @@ FILEPOS dynamicimage_getsize(char *filename)
 	{
 		result = 0; //No size!
 	}
-	fclose64(f);
+	emufclose64(f);
 	return result; //Give the result!
 }
 
@@ -106,7 +106,7 @@ OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_6
 	int_64 newsize, entrysize;
 	if (readdynamicheader(f, &header))
 	{
-		if (fseek64(f, header.currentsize, SEEK_SET) != 0) //Error seeking to EOF?
+		if (emufseek64(f, header.currentsize, SEEK_SET) != 0) //Error seeking to EOF?
 		{
 			return 0; //Error!
 		}
@@ -114,13 +114,13 @@ OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_6
 		*location = header.currentsize; //The location we've found to use!
 		entrysize = sizeof(emptylookuptable[0]) * numentries; //Size of the entry!
 		memset(&emptylookuptable, 0, (size_t)entrysize); //Init to empty block table!
-		if (fwrite64(&emptylookuptable, 1, entrysize, f) == entrysize) //Block table allocated?
+		if (emufwrite64(&emptylookuptable, 1, entrysize, f) == entrysize) //Block table allocated?
 		{
-			if (fflush64(f)) //Error when flushing?
+			if (emufflush64(f)) //Error when flushing?
 			{
 				return 0; //We haven't been updated!
 			}
-			newsize = ftell64(f); //New file size!
+			newsize = emuftell64(f); //New file size!
 			return dynamicimage_updatesize(f, newsize); //Size successfully updated?
 		}
 	}
@@ -131,12 +131,12 @@ OPTINLINE int_64 dynamicimage_readlookuptable(FILE *f, DYNAMICIMAGE_HEADER *head
 {
 	int_64 result;
 	if (entry >= numentries) return 0; //Invalid entry: out of bounds!
-	if (fseek64(f, location+(entry*sizeof(int_64)), SEEK_SET) != 0) //Error seeking to entry?
+	if (emufseek64(f, location+(entry*sizeof(int_64)), SEEK_SET) != 0) //Error seeking to entry?
 	{
 		return 0; //Error!
 	}
 	//We're at EOF!
-	if (fread64(&result, 1, sizeof(result), f) == sizeof(result)) //Block table read?
+	if (emufread64(&result, 1, sizeof(result), f) == sizeof(result)) //Block table read?
 	{
 		return result; //Give the entry!
 	}
@@ -149,14 +149,14 @@ OPTINLINE byte dynamicimage_updatelookuptable(FILE *f, int_64 location, int_64 n
 	if (readdynamicheader(f, &header)) //Check the image first!
 	{
 		if (entry >= numentries) return 0; //Invalid entry: out of bounds!
-		if (fseek64(f, location+(entry*sizeof(int_64)), SEEK_SET) != 0) //Error seeking to entry?
+		if (emufseek64(f, location+(entry*sizeof(int_64)), SEEK_SET) != 0) //Error seeking to entry?
 		{
 			return 0; //Error!
 		}
 		//We're at the entry!
-		if (fwrite64(&value, 1, sizeof(int_64), f) == sizeof(int_64)) //Updated?
+		if (emufwrite64(&value, 1, sizeof(int_64), f) == sizeof(int_64)) //Updated?
 		{
-			if (fflush64(f)) //Error when flushing?
+			if (emufflush64(f)) //Error when flushing?
 			{
 				return 0; //We haven't been updated!
 			}
@@ -285,10 +285,10 @@ byte dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Wri
 	static byte emptyready = 0;
 	int_64 newsize;
 	FILE *f;
-	f = fopen64(filename, "rb+"); //Open for writing!
+	f = emufopen64(filename, "rb+"); //Open for writing!
 	if (!readdynamicheader(f, &header)) //Failed to read the header?
 	{
-		fclose64(f); //Close the device!
+		emufclose64(f); //Close the device!
 		return FALSE; //Error: invalid file!
 	}
 	if (sector >= header.filesize) return FALSE; //We're over the limit of the image!
@@ -299,15 +299,15 @@ byte dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Wri
 		{
 			int_64 location;
 			location = dynamicimage_getindex(f, sector); //Load the location!
-			fseek64(f,location, SEEK_SET); //Goto location!
-			if (fwrite64(buffer, 1, 512, f) != 512) //Write sector always!
+			emufseek64(f,location, SEEK_SET); //Goto location!
+			if (emufwrite64(buffer, 1, 512, f) != 512) //Write sector always!
 			{
-				fclose64(f);
+				emufclose64(f);
 				return FALSE; //We haven't been updated!
 			}
-			if (fflush64(f)) //Error when flushing?
+			if (emufflush64(f)) //Error when flushing?
 			{
-				fclose64(f); //Close!
+				emufclose64(f); //Close!
 				return FALSE; //We haven't been updated!
 			}
 			//Written correctly, passthrough!
@@ -321,62 +321,62 @@ byte dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Wri
 			}
 			if (!memcmp(&emptyblock,buffer,sizeof(emptyblock))) //Empty?
 			{
-				fclose64(f); //Close the device!
+				emufclose64(f); //Close the device!
 				return TRUE; //We don't need to allocate/write an empty block, as it's already empty by default!
 			}
 			if (dynamicimage_setindex(f, sector, 0)) //Assign to not allocated!
 			{
 				if (readdynamicheader(f, &header)) //Header updated?
 				{
-					if (fseek64(f, header.currentsize, SEEK_SET)) //Goto EOF!
+					if (emufseek64(f, header.currentsize, SEEK_SET)) //Goto EOF!
 					{
-						fclose64(f);
+						emufclose64(f);
 						return FALSE; //Error: couldn't goto EOF!
 					}
-					if (ftell64(f) != header.currentsize) //Failed going to EOF?
+					if (emuftell64(f) != header.currentsize) //Failed going to EOF?
 					{
-						fclose64(f);
+						emufclose64(f);
 						return FALSE; //Error: couldn't goto EOF!
 					}
-					if (fwrite64(buffer, 1, 512, f) == 512) //Write the buffer to the file!
+					if (emufwrite64(buffer, 1, 512, f) == 512) //Write the buffer to the file!
 					{
-						if (fflush64(f)) //Error when flushing?
+						if (emufflush64(f)) //Error when flushing?
 						{
-							fclose64(f);
+							emufclose64(f);
 							return FALSE; //Error: couldn't flush!
 						}
-						newsize = ftell64(f); //New file size!
+						newsize = emuftell64(f); //New file size!
 						if (dynamicimage_updatesize(f, newsize)) //Updated the size?
 						{
 							if (dynamicimage_setindex(f, sector, header.currentsize)) //Assign our newly allocated block!
 							{
-								fclose64(f); //Close the device!
+								emufclose64(f); //Close the device!
 								return TRUE; //OK: we're written!
 							}
 							else //Failed to assign?
 							{
 								dynamicimage_updatesize(f, header.currentsize); //Reverse sector allocation!
 							}
-							fclose64(f); //Close the device!
+							emufclose64(f); //Close the device!
 							return FALSE; //An error has occurred: couldn't finish allocating the block!
 						}
-						fclose64(f); //Close it!
+						emufclose64(f); //Close it!
 						return FALSE; //ERROR!
 					}
 				}
-				fclose64(f); //Close the device!
+				emufclose64(f); //Close the device!
 				return FALSE; //Error!
 			}
-			fclose64(f); //Close the device!
+			emufclose64(f); //Close the device!
 			return FALSE; //Error!
 		}
 	}
 	else //Terminate loop: invalid sector!
 	{
-		fclose64(f); //Close the device!
+		emufclose64(f); //Close the device!
 		return FALSE; //Error!
 	}
-	fclose64(f); //Close the device!
+	emufclose64(f); //Close the device!
 	return TRUE; //Written!
 }
 
@@ -384,15 +384,15 @@ byte dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read
 {
 	DYNAMICIMAGE_HEADER header;
 	FILE *f;
-	f = fopen64(filename, "rb"); //Open!
+	f = emufopen64(filename, "rb"); //Open!
 	if (!readdynamicheader(f, &header)) //Failed to read the header?
 	{
-		fclose64(f); //Close the device!
+		emufclose64(f); //Close the device!
 		return FALSE; //Error: invalid file!
 	}
 	if (sector >= header.filesize)
 	{
-		fclose64(f); //Close the device!
+		emufclose64(f); //Close the device!
 		return FALSE; //We're over the limit of the image!
 	}
 
@@ -403,14 +403,14 @@ byte dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read
 		{
 			int_64 index;
 			index = dynamicimage_getindex(f,sector);
-			if (fseek64(f,index,SEEK_SET)) //Seek failed?
+			if (emufseek64(f,index,SEEK_SET)) //Seek failed?
 			{
-				fclose64(f);
+				emufclose64(f);
 				return FALSE; //Error: file is corrupt?
 			}
-			if (fread64(buffer,1,512,f)!=512) //Error reading sector?
+			if (emufread64(buffer,1,512,f)!=512) //Error reading sector?
 			{
-				fclose64(f);
+				emufclose64(f);
 				return FALSE; //Error: file is corrupt?
 			}
 		}
@@ -421,10 +421,10 @@ byte dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read
 	}
 	else //Terminate loop: invalid sector!
 	{
-		fclose64(f);
+		emufclose64(f);
 		return FALSE; //Error!
 	}
-	fclose64(f); //Close it!
+	emufclose64(f); //Close it!
 	return TRUE; //Read!
 }
 
@@ -445,19 +445,19 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 
 	if (size != 0) //Has size?
 	{
-		f = fopen64(filename, "wb"); //Start generating dynamic info!
+		f = emufopen64(filename, "wb"); //Start generating dynamic info!
 		memcpy(&header.SIG,SIG,sizeof(header.SIG)); //Set the signature!
 		header.headersize = sizeof(header); //The size of the header to validate!
 		header.filesize = numblocks; //Ammount of blocks!
 		header.sectorsize = 512; //512 bytes per sector!
 		header.currentsize = sizeof(header); //The current file size. This is updated as data is appended to the file.
 		header.firstlevellocation = 0; //No first level createn yet!
-		if (fwrite64(&header,1,sizeof(header),f)!=sizeof(header)) //Failed to write the header?
+		if (emufwrite64(&header,1,sizeof(header),f)!=sizeof(header)) //Failed to write the header?
 		{
-			fclose64(f); //Close the file!
+			emufclose64(f); //Close the file!
 			return 0; //Error: couldn't write the header!
 		}
-		fclose64(f); //Close info file!
+		emufclose64(f); //Close info file!
 	}
 	
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?

@@ -9,9 +9,11 @@
 #include "SDL_gfxPrimitives.h"
 #else
 #include "SDL/SDL_rotozoom.h" //Rotate&Zoom package for SDL!
-/* these files missing, does not compile under linux */
-//#include "SDL/SDL_gfxPrimitives.h" //Graphics primitives (plot pixel)
 #include <SDL/SDL.h>
+#ifdef __psp__
+//PSP only, doesn't compile under linux!
+#include "SDL/SDL_gfxPrimitives.h" //Graphics primitives (plot pixel)
+#endif
 #endif
 //Resolution of PSP Screen!
 #define PSP_SCREEN_ROWS 272

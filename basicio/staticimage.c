@@ -6,19 +6,19 @@
 byte is_staticimage(char *filename)
 {
 	FILE *f;
-	f = fopen64(filename, "rb"); //Open file!
+	f = emufopen64(filename, "rb"); //Open file!
 	if (!f)
 	{
 		return 0; //Invalid file: file not found!
 	}
-	if (fseek64(f, 0, SEEK_END)) //Failed to seek to EOF?
+	if (emufseek64(f, 0, SEEK_END)) //Failed to seek to EOF?
 	{
-		fclose64(f);
+		emufclose64(f);
 		return 0; //Not static!
 	}
 	int_64 filesize;
-	filesize = ftell64(f); //Get the file size!
-	fclose64(f); //Close the file!
+	filesize = emuftell64(f); //Get the file size!
+	emufclose64(f); //Close the file!
 	if (filesize <= 0) //Invalid size or empty?
 	{
 		return 0; //Not static: invalid file size!
@@ -34,65 +34,65 @@ FILEPOS staticimage_getsize(char *filename)
 {
 	if (strcmp(filename, "") == 0) return 0; //Not mountable!
 	FILE *f;
-	f = fopen64(filename,"rb"); //Open!
+	f = emufopen64(filename,"rb"); //Open!
 	if (!f) //Not found?
 	{
 		return 0; //No size!
 	}
-	fseek64(f,0,SEEK_END); //Find end!
+	emufseek64(f,0,SEEK_END); //Find end!
 	FILEPOS result;
-	result = ftell64(f); //Current pos = size!
-	fclose64(f); //Close the file!
+	result = emuftell64(f); //Current pos = size!
+	emufclose64(f); //Close the file!
 	return result; //Give the result!
 }
 
 byte staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!
 {
 	FILE *f;
-	f = fopen64(filename,"rb+"); //Open!
+	f = emufopen64(filename,"rb+"); //Open!
 	++sector; //Find the next sector!
-	if (fseek64(f, (uint_64)sector << 9, SEEK_SET)) //Invalid sector!
+	if (emufseek64(f, (uint_64)sector << 9, SEEK_SET)) //Invalid sector!
 	{
-		fclose64(f); //Close the file!
+		emufclose64(f); //Close the file!
 		return 0; //Limit broken!
 	}
-	if (ftell64(f) != ((uint_64)sector << 9)) //Invalid sector!
+	if (emuftell64(f) != ((uint_64)sector << 9)) //Invalid sector!
 	{
-		fclose64(f); //Close the file!
+		emufclose64(f); //Close the file!
 		return 0; //Limit broken!
 	}
 	--sector; //Goto selected sector!
-	fseek64(f, (uint_64)sector << 9, SEEK_SET); //Find block info!
-	if (ftell64(f) != ((uint_64)sector << 9)) //Not found?
+	emufseek64(f, (uint_64)sector << 9, SEEK_SET); //Find block info!
+	if (emuftell64(f) != ((uint_64)sector << 9)) //Not found?
 	{
-		fclose64(f); //Close the file!
+		emufclose64(f); //Close the file!
 		return FALSE; //Error!
 	}
-	if (fwrite64(buffer,1,512,f)==512) //Written?
+	if (emufwrite64(buffer,1,512,f)==512) //Written?
 	{
-		fclose64(f); //Close!
+		emufclose64(f); //Close!
 		return TRUE; //OK!
 	}
-	fclose64(f); //Close!
+	emufclose64(f); //Close!
 	return FALSE; //Error!
 }
 
 byte staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a 512-byte sector! Result=1 on success, 0 on error!
 {
 	FILE *f;
-	f = fopen64(filename,"rb"); //Open!
-	fseek64(f,(uint_64)sector<<9,SEEK_SET); //Find block info!
-	if (ftell64(f)!=((uint_64)sector<<9)) //Not found?
+	f = emufopen64(filename,"rb"); //Open!
+	emufseek64(f,(uint_64)sector<<9,SEEK_SET); //Find block info!
+	if (emuftell64(f)!=((uint_64)sector<<9)) //Not found?
 	{
-		fclose64(f); //Close the file!
+		emufclose64(f); //Close the file!
 		return FALSE; //Error!
 	}
-	if (fread64(buffer,1,512,f)==512) //Read?
+	if (emufread64(buffer,1,512,f)==512) //Read?
 	{
-		fclose64(f); //Close!
+		emufclose64(f); //Close!
 		return TRUE; //OK!
 	}
-	fclose64(f); //Close!
+	emufclose64(f); //Close!
 	return FALSE; //Error!
 }
 
@@ -103,7 +103,7 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 	double percentage;
 	FILE *f;
 	int_64 byteswritten, totalbyteswritten = 0;
-	f = fopen64(filename,"wb"); //Generate file!
+	f = emufopen64(filename,"wb"); //Generate file!
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
 		EMU_locktext();
@@ -115,10 +115,10 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 
 	while (sizeleft) //Left?
 	{
-		byteswritten = fwrite64(&buffer,1,sizeof(buffer),f); //We've processed some!
+		byteswritten = emufwrite64(&buffer,1,sizeof(buffer),f); //We've processed some!
 		if (byteswritten != sizeof(buffer)) //An error occurred!
 		{
-			fclose64(f); //Close the file!
+			emufclose64(f); //Close the file!
 			delete_file(".",filename); //Remove the file!
 			return; //Abort!
 		}
@@ -137,7 +137,7 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 			#endif
 		}
 	}
-	fclose64(f);
+	emufclose64(f);
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
 		EMU_locktext();

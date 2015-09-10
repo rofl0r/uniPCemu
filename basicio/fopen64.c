@@ -1,6 +1,5 @@
 #include "headers/types.h" //Basic types!
 #include "headers/support/zalloc.h" //Zero allocation support!
-#ifndef fopen64
 #ifdef __psp__
 //This is for the PSP only: we're missing normal 64-bit support!
 #include <pspkernel.h> //Kernel support!
@@ -21,26 +20,26 @@ typedef struct
 	SceUID f; //The file opened using sceIoOpen!
 	SceMode mode; //The mode!
 #else
-	//Windows?
+	//Windows/linux?
 	FILE *f; //We use normal file operations combined with 64-bit call alternatives!
 #endif
 } BIGFILE; //64-bit fopen result!
 
-int64_t ftell64(FILE *stream)
+int64_t emuftell64(FILE *stream)
 {
 	if (!stream) return -1LL; //Error!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
 	return b->position; //Our position!
 }
 
-int feof64(FILE *stream)
+int emufeof64(FILE *stream)
 {
 	if (!stream) return 1; //EOF!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
 	return (b->position >= b->size) ? 1 : 0; //Our eof marker is set with non-0 values!
 }
 
-int fseek64(FILE *stream, int64_t pos, int direction)
+int emufseek64(FILE *stream, int64_t pos, int direction)
 {
 	if (!stream) return -1; //Error!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
@@ -70,19 +69,19 @@ int fseek64(FILE *stream, int64_t pos, int direction)
 #endif
 }
 
-int fflush64(FILE *stream)
+int emufflush64(FILE *stream)
 {
 	if (!stream) return 1; //EOF!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
 #ifdef __psp__
 	return sceIoSync(b->f, 0); //Synchronize data on the device!
 #else
-	//Windows?
+	//Windows/linux?
 	return fflush(b->f); //Give the fflush result!
 #endif
 }
 
-FILE *fopen64(char *filename, char *mode)
+FILE *emufopen64(char *filename, char *mode)
 {
 	BIGFILE *stream;
 	int length;
@@ -163,17 +162,16 @@ FILE *fopen64(char *filename, char *mode)
 	strcpy(&stream->filename[0],filename); //Set the filename!
 
 	//Detect file size!
-	if (!fseek64((FILE *)stream,0,SEEK_END)) //Seek to eof!
+	if (!emufseek64((FILE *)stream,0,SEEK_END)) //Seek to eof!
 	{
-		stream->size = ftell64((FILE *)stream); //File size detected!
+		stream->size = emuftell64((FILE *)stream); //File size detected!
 		//Windows?
-		fseek64((FILE *)stream,0,SEEK_SET); //Seek to bof again!
+		emufseek64((FILE *)stream,0,SEEK_SET); //Seek to bof again!
 	}
 	return (FILE *)stream; //Opened!
 }
-#endif
 
-int64_t fwrite64(void *data,int64_t multiplication,int64_t size,FILE *stream)
+int64_t emufwrite64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 {
 	if (!stream) return -1; //Error!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
@@ -194,7 +192,7 @@ int64_t fwrite64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 	return numwritten; //The size written!
 }
 
-int64_t fread64(void *data,int64_t multiplication,int64_t size,FILE *stream)
+int64_t emufread64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 {
 	if (!stream) return -1; //Error!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
@@ -210,7 +208,7 @@ int64_t fread64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 	return numread; //The size written!
 }
 
-int fclose64(FILE *stream)
+int emufclose64(FILE *stream)
 {
 	if (!stream)
 	{
@@ -228,7 +226,6 @@ int fclose64(FILE *stream)
 	b->f = 0; //Nothing!
 #else
 	//Windows?
-	//Not supported!
 	if (fclose(b->f) == EOF)
 	{
 		return EOF; //Error closing the file!
