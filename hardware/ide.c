@@ -9,7 +9,7 @@
 #include "headers/hardware/pic.h" //PIC support!
 #include "headers/support/log.h" //Logging support for debugging!
 
-#define ATA_LOG
+//#define ATA_LOG
 
 //Hard disk IRQ!
 #define ATA_PRIMARYIRQ 14
