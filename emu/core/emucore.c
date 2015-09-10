@@ -498,7 +498,7 @@ uint_64 instructioncounter; //Instruction counter!
 void CPU_Speed_Unlimited()
 {
 	static uint_32 numopcodes = 0; //Delay counter!
-	if (++numopcodes == 1000000)//Every 10000 opcodes(to allow for more timers/input to update)
+	if (++numopcodes == 10000)//Every 10000 opcodes(to allow for more timers/input to update)
 	{
 		numopcodes = 0; //Reset!
 		delay(0); //Wait minimal time for other threads to process data!
