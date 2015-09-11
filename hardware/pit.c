@@ -22,7 +22,7 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 double timerfreq; //Done externally!
 
 TicksHolder timerticks[3];
-float timertime[3] = { 1000000.0f / 18.2f,0.0f,0.0f }; //How much time does it take to expire (default to 0=18.2Hz timer)?
+float timertime[3] = { 1000000000.0f / 18.2f,0.0f,0.0f }; //How much time does it take to expire (default to 0=18.2Hz timer)?
 float currenttime[3] = { 0.0f,0.0f,0.0f }; //Current time passed!
 
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
@@ -41,10 +41,10 @@ void updatePIT0() //Timer tick Irq
 	{
 		for (channel = 0;channel < 3;channel++) //process all channels![
 		{
-			currenttime[channel] += (float)getuspassed(&timerticks[channel]); //Add the time passed to the counter!
+			currenttime[channel] += (float)getnspassed(&timerticks[channel]); //Add the time passed to the counter!
 			if ((currenttime[channel] >= timertime[channel]) && timertime[channel]) //Are we to trigger an interrupt?
 			{
-				currenttime[channel] = (float)fmod(currenttime[channel],timertime[channel]); //Rest!
+				currenttime[channel] -= timertime[channel]; //Rest!
 				if (!channel) doirq(0); //PIT0 executes an IRQ on timeout!
 			}
 		}
@@ -126,7 +126,7 @@ void updatePITState(byte channel)
 {
 	//Calculate the current PIT0 state by frequency and time passed!
 	uint_64 uspassed;
-	const static float tickduration = (1.0f / 1193180.0f)*1000000.0f; //How long does it take to process one tick in us?
+	const static float tickduration = (1.0f / 1193180.0f)*1000000000.0f; //How long does it take to process one tick in us?
 	uspassed = getuspassed_k(&timerticks[channel]); //How many time has passed since the last full state?
 	calculatedpitstate[channel] = pitdivisor[channel]; //Load the current divisor (1-65536)
 	if (calculatedpitstate[channel] == 65536) calculatedpitstate[channel] = 0; //We start counting from 0 instead of 65536!
@@ -146,7 +146,7 @@ byte in8253(word portnum, byte *result)
 		case 0x40:
 		case 0x41:
 		case 0x42:
-			pit = (byte)portnum;
+			pit = (byte)(portnum&0xFF);
 			pit &= 3; //PIT!
 			if (pitcommand[pit] & 0x30) //No latch mode?
 			{
@@ -199,7 +199,7 @@ byte out8253(word portnum, byte value)
 		case 0x40: //pit 0 data port
 		case 0x41: //pit 1 data port
 		case 0x42: //speaker data port
-			pit = (byte)portnum;
+			pit = (byte)(portnum&0xFF);
 			pit &= 3; //Low 2 bits only!
 			switch (pitcommand[pit]&0x30) //What input mode currently?
 			{
@@ -225,7 +225,7 @@ byte out8253(word portnum, byte value)
 			}
 			if (!pitdivisor[pit]) pitdivisor[pit] = 0x10000;
 			initTicksHolder(&timerticks[pit]); //Initialise the timer ticks!
-			timertime[pit] = 1000000.0f / SAFEDIV(1193180.0f, pitdivisor[pit]); //How much time do we take to expire?
+			timertime[pit] = SAFEDIV(1000000000.0f,SAFEDIV(1193180.0f, pitdivisor[pit])); //How much time do we take to expire?
 			if (pit==2) //PC speaker?
 			{
 				PCSpeakerFrequency = pitdivisor[pit]; //The frequency of the PC speaker!
