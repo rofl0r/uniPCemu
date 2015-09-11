@@ -501,9 +501,6 @@ extern byte Direct_Input; //Are we in direct input mode?
 
 uint_64 last_timing = 0; //Last timing!
 
-extern SDL_sem *IPS_Lock;
-uint_64 instructioncounter; //Instruction counter!
-
 void CPU_Speed_Unlimited()
 {
 	static uint_32 numopcodes = 0; //Delay counter!
@@ -593,10 +590,6 @@ byte coreHandler()
 	}
 
 	//Increase the instruction counter every instruction/HLT time!
-	WaitSem(IPS_Lock); //Wait for the IPS!
-	++instructioncounter; //Increase the instruction counter!
-	PostSem(IPS_Lock); //Finished with the IPS!
-
 	debugger_step(); //Step debugger if needed!
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!

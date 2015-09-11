@@ -75,11 +75,8 @@ OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel)
 		uint_32 *screenpixel = &EMU_BUFFER(VGA->CRTC.x,VGA->CRTC.y); //Pointer to our pixel!
 		old = *screenpixel; //Read old!
 		old ^= pixel; //Check for differences!
-		if (old) //Changed anything?
-		{
-			GPU.emu_buffer_dirty = 1; //Update, set changed bits when changed!
-			*screenpixel = pixel; //Update whether it's needed or not!
-		}
+		GPU.emu_buffer_dirty |= old; //Update, set changed bits when changed!
+		*screenpixel = pixel; //Update whether it's needed or not!
 	}
 }
 

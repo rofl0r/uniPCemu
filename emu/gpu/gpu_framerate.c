@@ -40,9 +40,6 @@ float totalscanlinepercentage = 0.0f;
 uint_32 totalsteps = 0;
 
 uint_32 SCREENS_RENDERED = 0; //Ammount of GPU screens rendered!
-extern uint_64 instructioncounter; //For calculating IPS!
-
-float CPU_IPS; //Instruction per second counted!
 
 GPU_TEXTSURFACE *frameratesurface = NULL; //Framerate surface!
 
@@ -60,8 +57,6 @@ void GPU_FrameRendered() //A frame has been rendered?
 		curscanlinepercentage = 0.0f; //Reset for future references!
 	}
 }
-
-extern SDL_sem *IPS_Lock;
 
 //The main thread!
 void GPU_Framerate_tick() //One second has passed thread (called every second!)?
@@ -87,16 +82,6 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 	#endif
 	//Finally delay for next update!
 	//delay(FRAMERATE_STEP); //Wait for the next update as good as we can!
-	WaitSem(IPS_Lock); //Lock the IPS counter!
-	CPU_IPS = (float)instructioncounter;
-	instructioncounter = 0; //Reset instruction counter as fast as possible!
-	PostSem(IPS_Lock); //Finished!
-	CPU_IPS = SAFEDIV(CPU_IPS,(((float)(timepassed)) / 1000000.0f)); //Divide IPS by the time passed!
-	dolog("CPU", "IPS:%f", CPU_IPS);
-	if (CPU_IPS > 100000000) //Too high: must be invalid!
-	{
-		CPU_IPS = 0; //Unused!
-	}
 	unlockGPU(); //Unlock the GPU!
 }
 
@@ -115,24 +100,10 @@ void renderFramerate()
 		GPU_textgotoxy(frameratesurface,0,0); //For output!
 		if (GPU.show_framerate)
 		{
-			float IPS = (float)CPU_IPS;
-			byte scale = 0;
-			char scaletext[3][256] = { "IPS", "KIPS", "MIPS" };
-			for (scale = 0; scale < (NUMITEMS(scaletext)-1);)
-			{
-				if (IPS >= 1000.0f)
-				{
-					IPS /= 1000.0f; //Divide by 1000!
-					++scale; //Go up in scale!
-				}
-				else break; //Stop searching when found the scale!
-			}
 			GPU_textclearrow(frameratesurface, 0); //Clear the first row!
-			GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),"FPS: %02.5f, AVG: %02.5f, CPU@%1.3f%s",
+			GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),"FPS: %02.5f, AVG: %02.5f",
 				framerate, //Current framrate (FPS)
-				totalframerate, //AVG framerate (FPS)
-				IPS, //Time it took to render (MS)
-				scaletext[scale] //The scale the IPS is on!
+				totalframerate //AVG framerate (FPS)
 				); //Show the framerate and average!
 			#ifdef DEBUG_PIXEL_SPEED
 				SEQ_DATA *Sequencer;
