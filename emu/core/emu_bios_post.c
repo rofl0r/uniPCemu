@@ -124,10 +124,7 @@ void PIC_remap(int offset1, int offset2)
 void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 {
 	//Finally: interrupt callbacks!
-	word NULLsegment, NULLoffset;
 	addCBHandler(CB_IRET, NULL, 0x00); //IRET first!
-	NULLsegment = CB_datasegment;
-	NULLoffset = CB_dataoffset;
 	addCBHandler(CB_INTERRUPT, &BIOS_int05, 0x05); //Interrupt 05h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_IRQ0, 0x08); //IRQ0 overridable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int10, 0x10); //Interrupt 10h overrideable handler!
@@ -293,8 +290,6 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		//Now for the user visible part:
 
-		int OPcounter = 0;
-		OPcounter = 0; //Init!
 		if (DEBUG_VGA_ONLY)
 		{
 			DoDebugTextMode(1); //Text mode debugging only, finally sleep!

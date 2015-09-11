@@ -10,6 +10,7 @@ DMA Controller (8237A)
 #include "headers/emu/threads.h" //Threads support!
 #include "headers/hardware/8237A.h" //Our own header!
 #include "headers/emu/timers.h" //Timer support!
+#include "headers/support/highrestimer.h" //High resolution timer support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -96,7 +97,6 @@ void DMA_SetDREQ(byte channel, byte DREQ) //Set DREQ from hardware!
 
 byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 {
-	byte result = 1; //Default: PORT OK!
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!((port < 0x20) || ((port >= 0xC0) && (port <= 0xE0)) || ((port >= 0x80) && (port <= 0x9F)))) return 0; //Not our DMA!
 	byte controller = ((port & 0xC0)==0xC0) ? 1 : 0; //What controller?
@@ -498,6 +498,10 @@ void DMA_tick()
 		goto nextcycle; //Next cycle!!
 }
 
+TicksHolder DMATicks;
+float DMA_Frequency = (1000000000 / 1639628.8f); //DMA tick time!
+float DMA_timing = 0.0f; //How much time has passed!
+
 void initDMA()
 {
 	doneDMA(); //Stop DMA if needed!
@@ -510,17 +514,31 @@ void initDMA()
 	DMAController[0].CommandRegister |= 0x4; //Disable controller!
 	DMAController[1].CommandRegister |= 0x4; //Disable controller!
 
-	if (!__HW_DISABLED) //Enabled?
-	{
-		//We're up to 1.6MB/s, so for 1 channel 1.6 million bytes per second, for all channels, to 8 channel 204953.6 bytes per second!
-		addtimer(1639628.8f,&DMA_tick,"DMA tick",0,0,DMA_Lock); //Just use timers!
-	}
+	initTicksHolder(&DMATicks); //Init our ticks holder!
+	DMA_timing = 0.0f; //Initialise DMA timing!
 }
 
 void doneDMA()
 {
 	if (__HW_DISABLED) return; //Disabled!
-	removetimer("DMA Thread"); //Remove our timer!
+}
+
+void cleanDMA()
+{
+	getnspassed(&DMATicks); //Skip time passed!
+}
+
+void updateDMA()
+{
+	DMA_timing += getnspassed(&DMATicks); //Get time passed!
+	if (DMA_timing >= DMA_Frequency) //To tick?
+	{
+		for (;DMA_timing >= DMA_Frequency;) //While ticking?
+		{
+			DMA_tick(); //Tick the DMA!
+			DMA_timing -= DMA_Frequency; //Tick the DMA!
+		}
+	}
 }
 
 void registerDMA8(byte channel, DMAReadBHandler readhandler, DMAWriteBHandler writehandler)

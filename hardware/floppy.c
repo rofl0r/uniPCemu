@@ -6,6 +6,7 @@
 #include "headers/bios/dskimage.h" //DSK image support!
 
 #include "headers/debugger/debugger.h" //Debugger support!
+#include "headers/support/log.h" //Logging support!
 
 //Configuration of the FDC...
 
@@ -247,7 +248,7 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 	}
 
 	//Unknown geometry!
-	if (DSKImageFile = getDSKimage(floppy ? FLOPPY1 : FLOPPY0)) //Are we a DSK image file?
+	if ((DSKImageFile = getDSKimage((floppy) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 	{
 		if (readDSKInfo(DSKImageFile, &DSKInformation)) //Gotten information about the DSK image?
 		{
@@ -493,7 +494,6 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 OPTINLINE void floppy_readsector() //Request a read sector command!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
-	uint_32 sector;
 	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
 
 	FLOPPY.MT = (FLOPPY.commandbuffer[0] >> 7); //Multiple track mode?
@@ -504,7 +504,6 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 		FLOPPY.databuffersize = FLOPPY.commandbuffer[8]; //Use data length!
 	}
 	FLOPPY.disk_startpos = floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber], FLOPPY.currentsector[FLOPPY.DOR.DriveNumber]); //The start position, in sectors!
-	sector = (uint_32)FLOPPY.disk_startpos; //Our sector!
 	FLOPPY_LOG("FLOPPY: Read sector #%i", FLOPPY.disk_startpos) //We're reading this sector!
 	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
@@ -528,7 +527,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	}
 	else //DSK or error?
 	{
-		if (DSKImageFile = getDSKimage(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Are we a DSK image file?
+		if ((DSKImageFile = getDSKimage((FLOPPY.DOR.DriveNumber) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 		{
 			if (readDSKSectorData(DSKImageFile,FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber], FLOPPY.currentsector[FLOPPY.DOR.DriveNumber], FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
 			{
@@ -590,7 +589,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 		}
 
 		//Check disk specific information!
-		if (DSKImageFile = getDSKimage(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Are we a DSK image file?
+		if ((DSKImageFile = getDSKimage((FLOPPY.DOR.DriveNumber) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 		{
 			if (!readDSKSectorInfo(DSKImageFile, FLOPPY.databuffer[1], FLOPPY.databuffer[0], FLOPPY.databuffer[2], &sectorinfo)) //Failed to read sector information block?
 			{
@@ -753,7 +752,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 					}
 					else //DSK or error?
 					{
-						if (DSKImageFile = getDSKimage(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Are we a DSK image file?
+						if ((DSKImageFile = getDSKimage((FLOPPY.DOR.DriveNumber) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 						{
 							if (writeDSKSectorData(DSKImageFile, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
 							{
@@ -877,7 +876,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
 	if (FLOPPY.DOR.DriveNumber & 2) goto invaliddrive;
 	FLOPPY_LOGD("FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]) //Executing this command!
-	switch (FLOPPY.commandbuffer[0] & 0xF) //What cFommand!
+	switch (FLOPPY.commandbuffer[0] & 0xF) //What command!
 	{
 		case 0x5: //Write sector
 			FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[2]; //Current cylinder!
@@ -913,11 +912,11 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			//Reset IRQ line!
 			if (FLOPPY.reset_pending) //Reset is pending?
 			{
-				byte reset_drive = 4 - (FLOPPY.reset_pending--); //We're pending this drive!
+				byte reset_drive;
+				reset_drive = 4 - (FLOPPY.reset_pending--); //We're pending this drive!
 				FLOPPY.ST0.data &= 0xF8; //Clear low 3 bits!
 				FLOPPY.ST0.UnitSelect = reset_drive; //What drive are we giving!
 				FLOPPY.ST0.CurrentHead = (FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
-				FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[reset_drive]; //Our idea of the current cylinder!
 				if (!FLOPPY.reset_pending) //Finished reset?
 				{
 					FLOPPY.ST0.data = 0x00; //Reset the ST0 register after full reset!
@@ -927,14 +926,10 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			{
 				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
 				FLOPPY.ST0.data = 0x80; //Error!
-				FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]; //Our idea of the current cylinder!
-			}
-			else
-			{
-				FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]; //Our idea of the current cylinder!
 			}
 			FLOPPY_LOG("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", FLOPPY.ST0.data, FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber])
 			FLOPPY.resultbuffer[0] = FLOPPY.ST0.data; //Give ST0!
+			FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]; //Our idea of the current cylinder!
 			FLOPPY.resultposition = 0; //Start result!
 			FLOPPY.commandstep = 3; //Result phase!
 			break;
@@ -971,7 +966,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.commandstep = 3; //Result phase!
 			break;
 		case 0xA: //Read sector ID
-			if (DSKImageFile = getDSKimage(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Are we a DSK image file?
+			if ((DSKImageFile = getDSKimage((FLOPPY.DOR.DriveNumber) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
 				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber], FLOPPY.currentsector[FLOPPY.DOR.DriveNumber], &sectorinformation)) //Read the sector information too!
 				{
@@ -1028,7 +1023,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.commandstep = 0xFF; //Error!
 			}
 
-			if (DSKImageFile = getDSKimage(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Are we a DSK image file?
+			if ((DSKImageFile = getDSKimage((FLOPPY.DOR.DriveNumber) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
 				FLOPPY.databuffersize = 4; //We're 4 bytes per sector!
 				FLOPPY_startData(); //Start the data transfer!

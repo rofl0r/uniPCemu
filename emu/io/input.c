@@ -1088,11 +1088,9 @@ void handleKeyboardMouse() //Handles keyboard input during mouse operations!
 	//Also handle mouse movement here (constant factor)!
 	handleMouseMovement(); //Handle mouse movement!
 
-	uint_32 last_buttons = 0;
 	Mouse_buttons = (curstat.buttonpress & 1) ? 1 : 0; //Left mouse button pressed?
 	Mouse_buttons |= (curstat.buttonpress & 4) ? 2 : 0; //Right mouse button pressed?
 	Mouse_buttons |= (curstat.buttonpress & 2) ? 4 : 0; //Middle mouse button pressed?
-	last_buttons = curstat.buttonpress; //update status!
 
 	shiftstatus = 0; //Init shift status!
 	shiftstatus |= ((curstat.buttonpress&512)>0)*SHIFTSTATUS_SHIFT; //Apply shift status!
@@ -2150,6 +2148,8 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_t: //Precise mouse movement?
 					precisemousemovement = 1; //Enabled!
+					break;
+				default: //Unknown key?
 					break;
 				}
 				if (event->key.keysym.scancode == 34) //Play/pause?

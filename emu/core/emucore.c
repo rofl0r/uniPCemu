@@ -451,11 +451,12 @@ void resumeEMU()
 		startEMUTimers(); //Start the timers!
 		EMU_startInput(); //Start the input!
 		EMU_RUNNING = 1; //We've restarted!
-		cleanKeyboard();
-		cleanMouse();
-		cleanAdlib();
-		cleanPIT0();
+		cleanKeyboard(); //Clean the keyboard timer!
+		cleanMouse(); //Clean the mouse timer!
+		cleanAdlib(); //Clean the adlib timer!
+		cleanPIT0(); //Clean the PIT timer!
 		cleanATA(); //Update the ATA timer!
+		cleanDMA(); //Update te DMA timer!
 	}
 }
 
@@ -534,6 +535,7 @@ byte coreHandler()
 	updateAdlib(); //Tick the adlib timer if needed!
 	updatePIT0(); //Tick the PIT timer if needed!
 	updateATA(); //Update the ATA timer!
+	updateDMA(); //Update the DMA timer!
 
 	//CPU execution, needs to be before the debugger!
 	interruptsaved = 0; //Reset PIC interrupt to not used!

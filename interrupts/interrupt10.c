@@ -1174,8 +1174,7 @@ void int10_PutPixel()
 	DX=y
 	*/
 
-	int ok;
-	ok = GPU_putpixel(REG_CX,REG_DX,REG_BH,REG_AL); //Put the pixel, ignore result!
+	GPU_putpixel(REG_CX,REG_DX,REG_BH,REG_AL); //Put the pixel, ignore result!
 }
 
 void int10_GetPixel()
@@ -1190,8 +1189,7 @@ void int10_GetPixel()
 	AL=Color
 	*/
 
-	int ok;
-	ok = GPU_getpixel(REG_CX,REG_DX,REG_BH,&REG_AL); //Try to get the pixel, ignore result!
+	GPU_getpixel(REG_CX,REG_DX,REG_BH,&REG_AL); //Try to get the pixel, ignore result!
 }
 
 OPTINLINE void int10_internal_outputchar(byte videopage, byte character, byte attribute)

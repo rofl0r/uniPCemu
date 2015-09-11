@@ -18,7 +18,7 @@ void Dosbox_RealSetVec(byte interrupt, uint_32 realaddr)
 #define CAN_USE_LOCK 1
 #endif
 
-static Bitu call_int16,call_irq1,call_irq6;
+//static Bitu call_int16,call_irq1,call_irq6;
 
 /* Nice table from BOCHS i should feel bad for ripping this */
 #define none 0

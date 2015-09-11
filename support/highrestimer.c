@@ -41,8 +41,8 @@ void ticksholder_AVG(TicksHolder *ticksholder)
 
 OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 {
-	u64 result = 0; //The result!
 #ifdef __psp__
+	u64 result = 0; //The result!
 	if (!sceRtcGetCurrentTick(&result)) //Try to retrieve current ticks as old ticks until we get it!
 	{
 		return result; //Give the result!

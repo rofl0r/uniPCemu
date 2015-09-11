@@ -11,7 +11,6 @@ OPTINLINE byte CMOS_readAutoBCD(byte number)
 	PORT_OUT_B(0x70, number); //Select our register!
 	byte data, originaldata;
 	data = originaldata = PORT_IN_B(0x71); //Read the original value!
-	byte add12=0; //Add 12 hours for 24 hour mode?
 	byte PM = 0;
 	if ((SREGB & 0) && (number == 4)) //12 hour format and getting hours?
 	{

@@ -114,7 +114,7 @@ void CPU_OP15_ID()
 }
 void CPU_OP15()
 {
-	if (CPU_Operand_size)
+	if (CPU_Operand_size[activeCPU])
 	{
 		/* 32-bits? */ CPU_OP15_ID();
 	}
@@ -159,7 +159,7 @@ void CPU_OP81_ADC_ID()
 }
 void CPU_OP81_ADC()
 {
-	if (CPU_Operand_size)
+	if (CPU_Operand_size[activeCPU])
 	{
 		CPU_OP81_ADC_ID();
 	}
@@ -191,7 +191,7 @@ void CPU_OP83_ADC_ID()
 }
 void CPU_OP83_ADC()
 {
-	if (CPU_Operand_size)
+	if (CPU_Operand_size[activeCPU])
 	{
 		CPU_OP83_ADC_ID();
 	}
@@ -234,7 +234,7 @@ void CPU_OP11_ID()
 }
 void CPU_OP11()
 {
-	if (CPU_Operand_size)
+	if (CPU_Operand_size[activeCPU])
 	{
 		CPU_OP11_ID();
 	}
@@ -277,7 +277,7 @@ void CPU_OP13_ID()
 }
 void CPU_OP13()
 {
-	if (CPU_Operand_size)
+	if (CPU_Operand_size[activeCPU])
 	{
 		CPU_OP11_ID();
 	}
@@ -336,7 +336,7 @@ void CPU_OP05_ID()
 }
 void CPU_OP05()
 {
-	if (!CPU_Operand_size)
+	if (!CPU_Operand_size[activeCPU])
 	{
 		/* 16-bits? */ CPU_OP15_IW();
 	}
@@ -382,7 +382,7 @@ void CPU_OP81_ADD_ID()
 }
 void CPU_OP81_ADD()
 {
-	if (!CPU_Operand_size)
+	if (!CPU_Operand_size[activeCPU])
 	{
 		CPU_OP81_ADD_IW();
 	}
@@ -414,7 +414,7 @@ void CPU_OP83_ADD_ID()
 }
 void CPU_OP83_ADD()
 {
-	if (!CPU_Operand_size)
+	if (!CPU_Operand_size[activeCPU])
 	{
 		CPU_OP83_ADD_IW();
 	}
@@ -457,7 +457,7 @@ void CPU_OP01_ID()
 }
 void CPU_OP01()
 {
-	if (!CPU_Operand_size)
+	if (!CPU_Operand_size[activeCPU])
 	{
 		CPU_OP11_IW();
 	}
@@ -500,7 +500,7 @@ void CPU_OP03_ID()
 }
 void CPU_OP03()
 {
-	if (!CPU_Operand_size)
+	if (!CPU_Operand_size[activeCPU])
 	{
 		CPU_OP11_IW();
 	}
@@ -558,7 +558,7 @@ void CPU_OP25_ID()
 }
 void CPU_OP25()
 {
-	if (!CPU_Operand_size)
+	if (!CPU_Operand_size[activeCPU])
 	{
 		/* 16-bits? */ CPU_OP15_IW();
 	}
@@ -610,7 +610,7 @@ void CPU_OP81_AND_ID()
 }
 void CPU_OP81_AND()
 {
-	if (!CPU_Operand_size)
+	if (!CPU_Operand_size[activeCPU])
 	{
 		CPU_OP81_AND_IW();
 	}
@@ -646,7 +646,7 @@ void CPU_OP83_AND_ID()
 }
 void CPU_OP83_AND()
 {
-	if (!CPU_Operand_size)
+	if (!CPU_Operand_size[activeCPU])
 	{
 		CPU_OP83_AND_IW();
 	}
@@ -695,7 +695,7 @@ void CPU_OP21_ID()
 }
 void CPU_OP21()
 {
-	if (!CPU_Operand_size)
+	if (!CPU_Operand_size[activeCPU])
 	{
 		CPU_OP21_IW();
 	}
@@ -744,7 +744,7 @@ void CPU_OP23_ID()
 }
 void CPU_OP23()
 {
-	if (!CPU_Operand_size)
+	if (!CPU_Operand_size[activeCPU])
 	{
 		CPU_OP21_IW();
 	}

@@ -157,7 +157,6 @@ word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **cha
 {
 	FILE *f;
 	TRACK_CHNK currenttrack;
-	TRACK_CHNK *curtracks = tracks;
 	word currenttrackn = 0; //Ammount of tracks loaded!
 	uint_32 tracklength;
 

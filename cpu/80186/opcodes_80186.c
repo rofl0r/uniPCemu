@@ -64,11 +64,10 @@ void CPU186_OP60()
 void CPU186_OP61()
 {
 	debugger_setcommand("POPA");
-	word dummy;    //POPA
 	REG_DI = CPU_POP16();
 	REG_SI = CPU_POP16();
 	REG_BP = CPU_POP16();
-	dummy = CPU_POP16();
+	CPU_POP16();
 	REG_BX = CPU_POP16();
 	REG_DX = CPU_POP16();
 	REG_CX = CPU_POP16();
@@ -284,7 +283,7 @@ void CPU186_OPC8()
 	word stacksize = CPU_readOPw();
 	byte nestlev = CPU_readOP();
 	debugger_setcommand("ENTER %04X,%02X",stacksize,nestlev);
-	if (CPU_Operand_size)
+	if (CPU_Operand_size[activeCPU])
 	{
 	    CPU_PUSH32(&REG_EBP);
 	}
@@ -292,7 +291,7 @@ void CPU186_OPC8()
 	{
 	    CPU_PUSH16(&REG_BP);
 	}
-	if (CPU_Operand_size) //32-bit size?
+	if (CPU_Operand_size[activeCPU]) //32-bit size?
     {
     	uint_32 frametemp = REG_ESP;
     	if (nestlev)
@@ -323,7 +322,7 @@ void CPU186_OPC8()
     	REG_BP = frametemp;
 	}
 	
-	if (CPU_StackAddress_size) //32-bit size?
+	if (CPU_StackAddress_size[activeCPU]) //32-bit size?
 	{
         REG_ESP -= stacksize; //Zero extend!
 	}

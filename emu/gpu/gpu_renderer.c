@@ -42,7 +42,7 @@ void renderScreenFrame() //Render the screen frame!
 char filename[256];
 OPTINLINE char *get_screencapture_filename() //Filename for a screen capture!
 {
-	int dummy = mkdir("captures"); //Captures directory!
+	domkdir("captures"); //Captures directory!
 	uint_32 i=0; //For the number!
 	char filename2[256];
 	memset(&filename2,0,sizeof(filename2)); //Init filename!
@@ -98,7 +98,9 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 {
 	if (__HW_DISABLED) return; //Abort?
 	init_rowempty(); //Init empty row!
+#ifdef __psp__
 	int pspy = 0;
+#endif
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
 	{
 		uint_32 virtualrow = 0; //Virtual row to use! (From the source)
@@ -106,7 +108,7 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 		word y = 0; //Init Y to the beginning!
 		if (GPU.use_Letterbox) //Using letterbox for aspect ratio?
 		{
-			#ifdef _WIN32
+			#ifndef __psp__
 				if (VIDEO_DFORCED) //Forced video?
 				{
 					goto drawpixels; //No letterbox top!
@@ -120,7 +122,9 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 			}
 		}
 
+#ifndef __psp__
 		drawpixels:
+#endif
 		for (; virtualrow<GPU.yres;) //Process row-by-row!
 		{
 			put_pixel_row(rendersurface, y++, GPU.xres, &EMU_BUFFER(0, virtualrow++), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
@@ -445,12 +449,6 @@ void refreshscreen() //Handler for a screen frame (60 fps) MAXIMUM.
 		{
 			GPU_fullRenderer(); //Render a full frame, or direct when needed!
 		}
-	}
-
-	if (GPU.xres && GPU.yres)
-	{
-		int temp;
-		temp = 0; //Dummy!
 	}
 
 	renderFrames(); //Render all frames needed!

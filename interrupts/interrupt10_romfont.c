@@ -160,7 +160,7 @@ extern byte EMU_BIOS[0x10000]; //Our BIOS!
 void INT10_SetupRomMemory()
 {
 /* This should fill up certain structures inside the Video Bios Rom Area */
-	word rom_base=0xC000;
+	//word rom_base=0xC000;
 	if (IS_EGAVGA_ARCH) {
 		// set up the start of the ROM
 		EMU_VGAROM[0] = 0x55;
@@ -302,7 +302,7 @@ void INT10_SetupRomMemoryChecksum() {
 	if (IS_EGAVGA_ARCH) { //EGA/VGA. Just to be safe
 		/* Sum of all bytes in rom module 256 should be 0 */
 		Bit8u sum = 0;
-		uint_32 rom_base = 0;
+		//uint_32 rom_base = 0;
 		Bitu last_rombyte = 32*1024 - 1;		//32 KB romsize
 		Bitu i;
 		for (i = 0;i < last_rombyte;i++)

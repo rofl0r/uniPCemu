@@ -803,11 +803,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 	}
 
-	word oldCS;
-	oldCS = CPU[activeCPU].registers->CS;
-	word oldIP;
-	oldIP = CPU[activeCPU].registers->IP; //Save location!
-
 	if (gotREP) //Gotten REP?
 	{
 		if (CPU_getprefix(0xF2)) //REPNZ?

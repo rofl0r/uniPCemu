@@ -35,7 +35,6 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	static char CRLF[2] = {'\r','\n'}; //CRLF!
 	va_list args; //Going to contain the list!
 	uint_64 time;
-	int dummy;
 
 	//Lock
 	WaitSem(log_Lock) //Only one instance allowed!
@@ -68,7 +67,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	if ((!logfile) || (strcmp(lastfile,filenametmp)!=0)) //Other file or new file?
 	{
 		if (logfile) fclose(logfile); //Close the old log if needed!
-		dummy = mkdir("logs"); //Create a logs directory if needed!
+		domkdir("logs"); //Create a logs directory if needed!
 		logfile = fopen(filenametmp, "r"); //Open for testing!
 		if (logfile) //Existing?
 		{

@@ -328,7 +328,6 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 
 int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on bootable (image info set to imagefile), else FALSE!
 {
-	int result = 0;
 	byte buffer[CD_SEC_SIZE]; //1MB buffer!
 	int drivetype = 0; //Drive type!
 	int success = 0;
@@ -402,7 +401,7 @@ int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on boota
 
 //Now read the initial/default entry!
 
-	result = WriteData("DefaultEntry.DAT",buffer,sizeof(buffer)); //Write DefaultEntry dump!
+	WriteData("DefaultEntry.DAT",buffer,sizeof(buffer)); //Write DefaultEntry dump!
 
 	if (buffer[CD_BOOT_DEFAULTENTRY]!=CD_IND_BOOTABLE) //Not bootable?
 	{

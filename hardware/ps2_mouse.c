@@ -114,7 +114,7 @@ OPTINLINE byte add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse p
 	{
 		if (!packet->xmove && !packet->ymove) //Nothing happened?
 		{
-			freez(&packet, sizeof(MOUSE_PACKET), "Mouse_EmptyPacket"); //Discard the packet!
+			freez((void **)&packet, sizeof(MOUSE_PACKET), "Mouse_EmptyPacket"); //Discard the packet!
 			return 0; //Discard the packet!
 		}
 	}

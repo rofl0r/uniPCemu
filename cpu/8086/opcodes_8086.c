@@ -173,7 +173,7 @@ Start of help for opcode processing
 
 */
 
-OPTINLINE CPU8086_int(byte interrupt) //Software interrupt from us(internal call)!
+OPTINLINE void CPU8086_int(byte interrupt) //Software interrupt from us(internal call)!
 {
 	CPUPROT1
 		CPU8086_hardware_int(interrupt, 0, 0);

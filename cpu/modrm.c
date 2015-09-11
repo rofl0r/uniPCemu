@@ -756,7 +756,7 @@ OPTINLINE void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 		}
 		break;
 	case MOD_MEM_DISP32: //[register+DISP32]
-		if (CPU_Operand_size) //Operand size is 32-bits?
+		if (CPU_Operand_size[activeCPU]) //Operand size is 32-bits?
 		{
 			switch (reg) //Which register?
 			{
@@ -1172,7 +1172,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 		result->mem_offset &= 0xFFFF; //Only 16-bit offsets are used!		
 		break;
 	case MOD_MEM_DISP32: //[register+DISP32]
-		if (CPU_Operand_size) //Operand size is 32-bits?
+		if (CPU_Operand_size[activeCPU]) //Operand size is 32-bits?
 		{
 			switch (reg) //Which register?
 			{
@@ -1469,7 +1469,7 @@ word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions
 		{
 			modrm_lastsegment = 0; //No segment used!
 		}
-		return (modrm_lastoffset+modrm_addoffset & 0xFFFF); //No registers allowed officially, but we return the last offset in this case (undocumented)!
+		return ((modrm_lastoffset+modrm_addoffset) & 0xFFFF); //No registers allowed officially, but we return the last offset in this case (undocumented)!
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
 		if (!modrm_addoffset) //We're the offset itself?
@@ -1609,11 +1609,6 @@ Slashr:
 
 void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 {
-	uint_32 startseg;
-	uint_32 startoffs;
-	startseg = REG_CS;
-	startoffs = REG_EIP; //Our address!
-
 //Special data we already know:
 	param->reg_is_segmentregister = 0; //REG2 is NORMAL!
 

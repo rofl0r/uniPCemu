@@ -277,7 +277,6 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 
 	uint_64 sectorpos = startpos; //Start of the data to read!
 	sectorpos -= (sector << 9); //Start within the sector!
-	FILEPOS bytesread = 0; //Init bytesread!
 
 	SECTORHANDLER readhandler = disks[device].readhandler; //Our handler!
 	if (!readhandler) return 0; //Error: no handler registered!

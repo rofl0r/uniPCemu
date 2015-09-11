@@ -195,7 +195,7 @@ void cleanATA()
 
 void updateATA() //ATA timing!
 {
-	return; //Don't handle any timers, since we're not used atm!
+	/*return; //Don't handle any timers, since we're not used atm!
 	uint_64 passed = getuspassed_k(&ATATicks); //Get us passed!
 	if (passed) //Anything passed?
 	{
@@ -212,7 +212,7 @@ void updateATA() //ATA timing!
 					ATA_IRQ(i & 2, i & 1); //Do an IRQ from the source!
 					byte drive = (i & 1); //Drive!
 					byte channel = ((i & 2) >> 1); //Channel!
-					/*switch (ATA[channel].commandstatus)
+					switch (ATA[channel].commandstatus)
 					{
 					case 3: //Waiting for completion of a command?
 						switch (ATA[channel].command) //What command are we executing?
@@ -252,11 +252,11 @@ void updateATA() //ATA timing!
 						case 0x7F: //Seek?
 							break;
 						} //Unused atm!
-					}*/
+					}
 				}
 			}
 		}
-	}
+	}*/ //Not used atm!
 }
 
 OPTINLINE uint_32 getPORTaddress(byte channel)
@@ -498,7 +498,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	dolog("ATA", "ExecuteCommand: %02X", command); //Execute this command!
 #endif
 	ATA[channel].longop = 0; //Default: no long operation!
-	uint_64 disk_size;
 	int drive;
 	byte temp;
 	switch (command) //What command?
@@ -618,7 +617,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		dolog("ATA", "READ(long:%i):%i,%i=%02X", ATA[channel].longop,channel, ATA_activeDrive(channel), command);
 #endif
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
-		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA & 0xFFFFFFF); //The LBA address!
@@ -646,7 +644,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		dolog("ATA", "WRITE(LONG:%i):%i,%i=%02X; Length=%02X", ATA[channel].longop, channel, ATA_activeDrive(channel), command, ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount);
 #endif
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
-		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA & 0xFFFFFFF); //The LBA address!
@@ -1190,7 +1187,7 @@ void initATA()
 	//First, detect HDDs!
 	memset(ATA_Drives, 0, sizeof(ATA_Drives)); //Init drives to unused!
 	memset(ATA_DrivesReverse, 0, sizeof(ATA_DrivesReverse)); //Init reverse drives to unused!
-	byte CDROM_channel = 1; //CDROM is the second channel by default!
+	//byte CDROM_channel = 1; //CDROM is the second channel by default!
 	if (has_drive(HDD0)) //Have HDD0?
 	{
 		ATA_Drives[0][0] = HDD0; //Mount HDD0!
@@ -1203,10 +1200,10 @@ void initATA()
 	{
 		ATA_Drives[0][0] = HDD1; //Mount HDD1!
 	}
-	else
+	/*else
 	{
 		CDROM_channel = 0; //Move CDROM to primary channel!
-	}
+	}*/
 	//CDROM emulation isn't finished yet!
 	//ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
 	//ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as master!

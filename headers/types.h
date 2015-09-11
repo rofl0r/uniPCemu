@@ -42,10 +42,10 @@
 #define WaitSem(s) SDL_SemWait(s);
 #define PostSem(s) SDL_SemPost(s);
 
+//Universal delay/sleep support!
 #ifdef __psp__
 #define delay(us) sceKernelDelayThread(us?us:1)
 #define sleep sceKernelSleepThread
-#define mkdir(dir) sceIoMkdir(dir,0777)
 #else
 //Different delays for windows and other systems (linux etc.)!
 #ifdef _WIN32
@@ -56,10 +56,19 @@
 #endif
 #define delay(us) SDL_Delay(realdelay((uint_32)((us)/1000)))
 #define sleep() for (;;) delay(1000000)
+#endif
+
+//Universal mkdir support!
 #ifdef _WIN32
 //Windows-specific headers!
 #include <direct.h> //For mkdir!
-#define mkdir _mkdir
+#define domkdir _mkdir
+#else
+#ifdef __psp
+#define domkdir(dir) sceIoMkdir(dir,0777)
+#else
+//Linux/*nix?
+#define domkdir(path) mkdir(path, 0755)
 #endif
 #endif
 

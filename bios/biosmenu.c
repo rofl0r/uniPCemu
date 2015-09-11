@@ -148,6 +148,7 @@ void BIOS_MIDIPlayer(); //MIDI player!
 void BIOS_Mouse(); //Mouse selection menu!
 void BIOS_CPU(); //CPU menu!
 void BIOS_CPUSpeed(); //CPU speed selection!
+void BIOS_ClearCMOS(); //Clear the CMOS!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -190,6 +191,7 @@ Handler BIOS_Menus[] =
 	,BIOS_Mouse //Mouse menu is #34!
 	,BIOS_CPU //BIOS CPU menu is #35!
 	,BIOS_CPUSpeed //BIOS CPU speed is #36!
+	,BIOS_ClearCMOS //BIOS CMOS clear is #37!
 };
 
 //Not implemented?
@@ -1336,7 +1338,7 @@ void BIOS_InitAdvancedText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i=0; i<11; i++) //Clear all possibilities!
+	for (i=0; i<12; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
 	}
@@ -1462,6 +1464,9 @@ setMousetext: //For fixing it!
 		goto setMousetext; //Goto!
 		break;
 	}
+
+	optioninfo[advancedoptions] = 12; //Clear CMOS!
+	strcpy(menuoptions[advancedoptions++], "Clear CMOS data");
 }
 
 void BIOS_BootOrderOption() //Manages the boot order
@@ -1583,7 +1588,8 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 8:
 	case 9:
 	case 10:
-	case 11: //Valid option?
+	case 11:
+	case 12: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Boot order (plain)?
@@ -1621,6 +1627,9 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 			break;
 		case 11:
 			BIOS_Menu = 34; //Mouse menu!
+			break;
+		case 12:
+			BIOS_Menu = 37; //Clear CMOS menu!
 			break;
 		}
 		break;
@@ -3759,4 +3768,18 @@ void BIOS_CPUSpeed() //CPU speed selection!
 		break;
 	}
 	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_ClearCMOS() //Clear the CMOS!
+{
+	byte emptycmos[128];
+	memset(&emptycmos, 0, sizeof(emptycmos)); //Empty CMOS for comparision!
+	if ((BIOS_Settings.got_CMOS) || (memcmp(&BIOS_Settings.CMOS, emptycmos,sizeof(emptycmos)) != 0)) //Gotten a CMOS?
+	{
+		memset(BIOS_Settings.CMOS, 0, sizeof(BIOS_Settings.CMOS));
+		BIOS_Settings.got_CMOS = 0; //We haven't gotten a CMOS!
+		BIOS_Changed = 1; //We've changed!
+		reboot_needed = 1; //We're needing a reboot!
+	}
+	BIOS_Menu = 8; //Goto Advanced Menu!
 }

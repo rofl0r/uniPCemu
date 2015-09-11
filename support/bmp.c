@@ -88,8 +88,8 @@ OPTINLINE void getBMP(TRGB *pixel,int x, int y, uint_32 *image, int w, int h, in
 	w = originalw; //Apply double!
 	h = originalh; //Apply double!
 	index = (y*virtualwidth)+x; //Our index of our pixel!
-	a = (float)(GETA(image[(y*virtualwidth)+x]))/255.0f; //A gradient!
-	thepixel = image[(y*virtualwidth)+x];
+	a = (float)(GETA(image[index]))/255.0f; //A gradient!
+	thepixel = image[index];
 	r = (float)GETR(thepixel); //Get R!
 	g = (float)GETG(thepixel); //Get G!
 	b = (float)GETB(thepixel); //Get B!

@@ -37,8 +37,7 @@ byte showchecksumerrors = 0; //Show checksum errors?
 
 void forceBIOSSave()
 {
-	int ok;
-	ok = BIOS_SaveData(); //Save the BIOS, ignoring the result!
+	BIOS_SaveData(); //Save the BIOS, ignoring the result!
 }
 
 void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIOS?)

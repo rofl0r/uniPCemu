@@ -79,7 +79,7 @@ checkRIFFChunkLimits: Verify if a chunk within another chunk is valid to read (w
 OPTINLINE byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 entrysize) //Check an entry against it's limits!
 {
 	uint_32 containersize;
-	uint_32 containerstart, containerend, entrystart, entryend;
+	uint_64 containerstart, containerend, entrystart, entryend;
 	void *startData; //Start of the data!
 
 	containersize = RIFF_entryheadersize(container); //What header size?
@@ -88,10 +88,10 @@ OPTINLINE byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 e
 	startData = RIFF_start_data(container,containersize); //Get the start of the container data!
 	containersize = getRIFFChunkSize(container); //Get the size of the content of the container!
 
-	containerend = containerstart = (uint_32)startData;
+	containerend = containerstart = (uint_64)startData;
 	containerend += containersize; //What size!
 
-	entryend = entrystart = (uint_32)entry; //Start of the data!
+	entryend = entrystart = (uint_64)entry; //Start of the data!
 	entryend += entrysize;
 
 	if (entrystart<containerstart) //Out of container bounds (low)?
@@ -116,7 +116,6 @@ OPTINLINE RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a
 	static RIFF_LISTENTRY listentry;
 	static RIFF_DATAENTRY dataentry;
 	
-	static RIFF_ENTRY EntriesStart;
 	static RIFF_ENTRY CurrentEntry;
 	uint_32 foundid;
 	static RIFF_ENTRY temp_entry;
@@ -124,7 +123,6 @@ OPTINLINE RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a
 	if (!RIFFHeader.dataentry) return NULLRIFFENTRY(); //Invalid RIFF Entry specified!
 	
 	//Our entries for our usage!
-	EntriesStart = RIFFHeader;
 	CurrentEntry.voidentry = RIFF_start_data(RIFFHeader,RIFF_entryheadersize(RIFFHeader)); //Start of the data!
 
 	if (!CurrentEntry.voidentry) return NULLRIFFENTRY(); //Invalid RIFF Header data!
