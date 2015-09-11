@@ -58,7 +58,7 @@ void flag_adc8(uint8_t v1, uint8_t v2, uint8_t v3)
 {
 	int16_t dst;
 	dst = (int16_t)v1 + (int16_t)v2 + (int16_t)v3;
-	flag_szp8(dst);
+	flag_szp8((uint8_t)(dst&0xFF));
 	if (((dst ^ v1) & (dst ^ v2) & 0x80) == 0x80) FLAG_OF = 1;
 	else FLAG_OF = 0;
 	/*if ((((dst & 0xFF) < (v1 & 0xFF)) || (((FLAG_CF & (((v1 & 0xFF) + (v2 & 0xFF) + (v3 & 0xFF)) & 0xFF)) == (v1 & 0xFF)))))
@@ -89,7 +89,7 @@ void flag_add8(uint8_t v1, uint8_t v2)
 {
 	int16_t dst;
 	dst = (int16_t)v1 + (int16_t)v2;
-	flag_szp8(dst);
+	flag_szp8((uint8_t)(dst&0xFF));
 	if (dst & 0xFF00) FLAG_CF = 1;
 	else FLAG_CF = 0;
 	if (((dst ^ v1) & (dst ^ v2) & 0x80) == 0x80) FLAG_OF = 1;

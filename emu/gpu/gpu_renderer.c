@@ -133,7 +133,6 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 			++y; //Next row!
 		}
 
-		finishpixels:
 		GPU.emu_buffer_dirty = 0; //Not dirty anymore!
 		return; //Don't render anymore!
 	}

@@ -37,6 +37,12 @@
 #include "headers/interrupts/interrupt19.h"
 #include "headers/interrupts/interrupt1a.h" //Timer and IRQ0!
 
+#include "headers/hardware/ports.h" //I/O support!
+#include "headers/cpu/cpu.h" //CPU support!
+#include "headers/bios/bios.h" //Keyboard setup support!
+#include "headers/emu/emu_vga_bios.h" //VGA BIOS support!
+
+
 extern byte reset; //To fully reset emu?
 extern byte dosoftreset; //To fully softreset emu (start from booting)
 

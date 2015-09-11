@@ -1135,7 +1135,7 @@ void generate_opcode0F_jmptbl()
 		byte operandsize = currentoperandsize; //Operand size to use!
 		for (OP = 0; OP < 0x100; OP++) //Process all opcodes!
 		{
-			cpu = EMULATED_CPU; //Start with the emulated CPU and work up to the predesessors!
+			cpu = (byte)EMULATED_CPU; //Start with the emulated CPU and work up to the predesessors!
 			if (cpu >= CPU_80286) //286+?
 			{
 				cpu -= CPU_80286; //We start existing at the 286!

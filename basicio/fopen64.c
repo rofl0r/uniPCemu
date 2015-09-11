@@ -135,7 +135,6 @@ FILE *emufopen64(char *filename, char *mode)
 					break; //Ignore the flags!
 			#endif
 			default: //Unknown modifier?
-				dolog("fopen64", "Unknown identifier: (%i)%c", (int)*modeidentifier, *modeidentifier); //Log the invalid mode identifier!
 				freez((void **)&stream,sizeof(BIGFILE),"fopen64@UnknownModifier"); //Cleanup!
 				return NULL; //Failed!
 				break;
@@ -179,7 +178,7 @@ int64_t emufwrite64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 	SceSize numwritten = sceIoWrite(b->f,data,multiplication*size); //Try to write!
 #else
 	//Windows?
-	uint_64 numwritten = fwrite(data,multiplication,size,b->f); //nothing written!
+	uint_64 numwritten = fwrite(data,(size_t)multiplication,(size_t)size,b->f); //nothing written!
 #endif
 	if (numwritten>0) //No error?
 	{
@@ -199,7 +198,7 @@ int64_t emufread64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 #ifdef __psp__
 	SceSize numread = sceIoRead(b->f,data,multiplication*size); //Try to write!
 #else
-	uint_32 numread = fread(data,multiplication,size,b->f); //Nothing read!
+	uint_32 numread = fread(data,(size_t)multiplication,(size_t)size,b->f); //Nothing read!
 #endif
 	if (numread>0) //No error?
 	{

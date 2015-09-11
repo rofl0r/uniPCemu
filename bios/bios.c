@@ -10,6 +10,8 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
 #include "headers/hardware/8042.h" //Basic 8042 support for keyboard initialisation!
+#include "headers/emu/emu_misc.h" //FILE_EXISTS support!
+#include "headers/hardware/ports.h" //Port I/O support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -145,7 +147,7 @@ void BIOS_LoadData() //Load BIOS settings!
 {
 	if (__HW_DISABLED) return; //Abort!
 	FILE *f;
-	word bytesread, bytestoread;
+	size_t bytesread, bytestoread;
 	uint_32 CheckSum = 0; //Read checksum!
 
 	f = fopen(BIOS_FILE,"rb"); //Open BIOS file!
@@ -208,7 +210,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (__HW_DISABLED) return 1; //Abort!
 	uint_32 CheckSum = BIOS_getChecksum(); //CRC is over all but checksum!
 
-	word byteswritten;
+	size_t byteswritten;
 	FILE *f;
 	f = fopen(BIOS_FILE,"wb"); //Open for saving!
 	if (!f) //Not able to open?

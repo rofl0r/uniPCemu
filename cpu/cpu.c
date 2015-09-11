@@ -8,6 +8,7 @@
 #include "headers/emu/gpu/gpu.h" //Start&StopVideo!
 #include "headers/cpu/cb_manager.h" //CB support!
 #include "headers/cpu/80286/protection.h"
+#include "headers/cpu/80286/cpu_OP80286.h" //0F opcode support!
 #include "headers/support/zalloc.h" //For allocating registers etc.
 #include "headers/support/locks.h" //Locking support!
 

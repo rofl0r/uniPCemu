@@ -126,7 +126,7 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 		{
 			sizeleft -= byteswritten; //Less left to write!
 			totalbyteswritten += byteswritten; //Add to the ammount processed!
-			percentage = totalbyteswritten;
+			percentage = (double)totalbyteswritten;
 			percentage /= (double)size;
 			percentage *= 100.0f;
 			EMU_locktext();

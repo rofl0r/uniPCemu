@@ -117,7 +117,7 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 	descriptor_adress = (segment&4)?CPU[activeCPU].registers->LDTR.base:CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
 
-	if (descriptor_index>((segment&4)?CPU[activeCPU].registers->LDTR.limit:CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)descriptor_index>((segment&4)?CPU[activeCPU].registers->LDTR.limit:CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		THROWDESCGP(segment); //Throw error!
 		return 0; //Not present: limit exceeded!

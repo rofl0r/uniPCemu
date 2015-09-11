@@ -876,6 +876,8 @@ int getcpuwraparround(); //Wrap arround 1MB limit?
 
 void CPU_setBootstrap(); //Sets the valid bootstrap at address 0xFFFF0 after the CPU is initialised to run the BIOS POST!
 
+void copyint(byte src, byte dest); //Copy interrupt handler pointer to different interrupt!
+
 #define signext(value) ((((word)value&0x80)*0x1FE)|(word)value)
 #define signext32(value) ((((uint_32)value&0x8000)*0x1FFFE)|(uint_32)value)
 

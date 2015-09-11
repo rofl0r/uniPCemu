@@ -42,7 +42,7 @@ uint_32 totalsteps = 0;
 uint_32 SCREENS_RENDERED = 0; //Ammount of GPU screens rendered!
 extern uint_64 instructioncounter; //For calculating IPS!
 
-uint_64 CPU_IPS; //Instruction per second counted!
+float CPU_IPS; //Instruction per second counted!
 
 GPU_TEXTSURFACE *frameratesurface = NULL; //Framerate surface!
 
@@ -74,7 +74,7 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 	{
 		//Update total framerate data!
 		totalframes += frames; //Add to the total frames rendered!
-		totalstepssec += timepassed; //Add to total steps!
+		totalstepssec += (uint_32)timepassed; //Add to total steps!
 
 		//Recalculate totals!
 		framerate = (frames+curscanlinepercentage)/(timepassed/1000000.0f); //Calculate framerate!
@@ -88,10 +88,11 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 	//Finally delay for next update!
 	//delay(FRAMERATE_STEP); //Wait for the next update as good as we can!
 	WaitSem(IPS_Lock); //Lock the IPS counter!
-	CPU_IPS = instructioncounter;
+	CPU_IPS = (float)instructioncounter;
 	instructioncounter = 0; //Reset instruction counter as fast as possible!
 	PostSem(IPS_Lock); //Finished!
-	CPU_IPS /= (timepassed / 1000000.0f); //Divide IPS by the time passed!
+	CPU_IPS = SAFEDIV(CPU_IPS,(((float)(timepassed)) / 1000000.0f)); //Divide IPS by the time passed!
+	dolog("CPU", "IPS:%f", CPU_IPS);
 	if (CPU_IPS > 100000000) //Too high: must be invalid!
 	{
 		CPU_IPS = 0; //Unused!
@@ -190,12 +191,12 @@ void renderFramerateOnly()
 		lockGPU(); //Lock the GPU!
 		uint_32 *emptyrow = get_rowempty(); //Get empty row!
 		uint_32 y;
-		for (y=0;y<rendersurface->sdllayer->h;y++)
+		for (y=0;y<(uint_32)rendersurface->sdllayer->h;y++)
 		{
 			put_pixel_row(rendersurface,y,PSP_SCREEN_COLUMNS,emptyrow,0,0); //Clear the screen!
 		}
 
-		framerate_rendertime = GPU_textrenderer(frameratesurface); //Render it!
+		framerate_rendertime = (uint_32)GPU_textrenderer(frameratesurface); //Render it!
 		renderScreenFrame(); //Render our renderered framerate only!
 		unlockGPU(); //We're finished with the GPU!
 	}
@@ -204,7 +205,6 @@ void renderFramerateOnly()
 void logVGASpeed()
 {
 	static uint_32 counter = 0;
-	char rendertime[20];
 	if (!(counter++%5)) //To log every 5 callcs?
 	{
 		dolog("Framerate","FPS: %02.5f, AVG: %02.5f",

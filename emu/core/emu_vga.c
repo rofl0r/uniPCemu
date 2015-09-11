@@ -9,6 +9,7 @@
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer itself!
 #include "headers/emu/timers.h" //Timer support!
+#include "headers/hardware/vga_screen/vga_dacrenderer.h" //DAC renderer support!
 
 //How many lines to render at a time when limited.
 #define __SCREEN_LINES_LIMIT 1500

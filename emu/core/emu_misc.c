@@ -66,7 +66,7 @@ int FILE_EXISTS(char *filename)
 
 char *substr(char *s,int startpos) //Simple substr function, with string and starting position!
 {
-	if (strlen(s)<(startpos+1)) //Out of range?
+	if ((int)strlen(s)<(startpos+1)) //Out of range?
 	{
 		return NULL; //Nothing!
 	}

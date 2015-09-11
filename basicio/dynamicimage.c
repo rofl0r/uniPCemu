@@ -280,7 +280,7 @@ OPTINLINE byte dynamicimage_setindex(FILE *f, uint_32 sector, int_64 index)
 
 byte dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!
 {
-	DYNAMICIMAGE_HEADER header, tempheader;
+	DYNAMICIMAGE_HEADER header;
 	static byte emptyblock[512]; //An empty block!
 	static byte emptyready = 0;
 	int_64 newsize;

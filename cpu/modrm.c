@@ -1415,7 +1415,6 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 
 byte *modrm_addr8(MODRM_PARAMS *params, int whichregister, int forreading)
 {
-	byte *result; //The result holder if needed!
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
@@ -1434,7 +1433,6 @@ byte *modrm_addr8(MODRM_PARAMS *params, int whichregister, int forreading)
 
 word *modrm_addr16(MODRM_PARAMS *params, int whichregister, int forreading)
 {
-	word *result; //The result holder if needed!
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
@@ -1565,7 +1563,6 @@ word *modrm_addr_reg16(MODRM_PARAMS *params, int whichregister) //For LEA relate
 
 uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading)
 {
-	uint_32 *result; //The result holder if needed!
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?

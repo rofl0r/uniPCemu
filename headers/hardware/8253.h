@@ -17,5 +17,6 @@ typedef struct {
 } i8253_s;
 
 void init8253(); //Initialisation!
+void cleanPIT0(); //Timer tick Irq reset timing
 void updatePIT0(); //Timer tick Irq
 #endif

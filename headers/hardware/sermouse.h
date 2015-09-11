@@ -6,6 +6,6 @@
 
 byte useSERMouse(); //Serial mouse enabled?
 void SERmouse_packet_handler(MOUSE_PACKET *packet);
-void initSERmouse(byte enabled); //Inititialise serial mouse!
+void initSERMouse(byte enabled); //Inititialise serial mouse!
 
 #endif

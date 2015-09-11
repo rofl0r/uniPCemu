@@ -151,7 +151,6 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 	bzero(dev,sizeof(dev)); //Init device string!
 
 	FILEPOS readpos; //Read pos!
-	FILEPOS basepos; //Base pos!
 	readpos = disks[device].start; //Base position!
 	readpos += startpos; //Start position!
 	if (disks[device].customdisk.used) //Custom disk?
@@ -174,7 +173,7 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 		return FALSE; //Error: device not found!
 	}
 
-	uint_32 sector; //Current sector!
+	uint_64 sector; //Current sector!
 	sector = (readpos>>9); //The sector we need must be a multiple of 512 bytes (standard sector size)!
 	uint_64 sectorpos = startpos; //Start of the data to read!
 	sectorpos -= (sector << 9); //Start within the sector!
@@ -187,7 +186,7 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 
 	for (; bytesread<bytestoread;) //Still left to read?
 	{
-		if (!handler(dev,sector,&sectorbuffer)) //Read to buffer!
+		if (!handler(dev,(uint_32)sector,&sectorbuffer)) //Read to buffer!
 		{
 			if (disks[device].dynamicimage) //Dynamic?
 			{
@@ -204,11 +203,11 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 			currentbytestoread = 512;
 			if ((currentbytestoread + sectorpos)>512) //Less than the 512-byte buffer?
 			{
-				currentbytestoread -= sectorpos; //Bytes left to read!
+				currentbytestoread -= (word)sectorpos; //Bytes left to read!
 			}
 			if (currentbytestoread > (bytestoread - bytesread)) //More than we need?
 			{
-				currentbytestoread = (bytestoread - bytesread); //Only take what we need!
+				currentbytestoread = (word)(bytestoread - bytesread); //Only take what we need!
 			}
 			memcpy(&resultbuffer[sectorpos], &sectorbuffer, currentbytestoread); //Copy the bytes from the current sector to the destination (either partly or fully)!
 			sectorpos = 0; //The next sector is at position 0!
@@ -237,8 +236,8 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 	byte sectorbuffer[512]; //A full sector buffered for editing!
 	char dev[256]; //Our device!
 	bzero(dev,sizeof(dev)); //Init device string!
-	uint_32 writepos; //Read pos!
-	uint_32 basepos; //Base pos!
+	uint_64 writepos; //Read pos!
+	uint_64 basepos; //Base pos!
 	byte readonly; //Read only?
 
 	if ((device&0xFF)!=device) //Invalid device?
@@ -269,7 +268,7 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 	writepos = basepos; //Base position!
 	writepos += startpos; //Start position!
 
-	uint_32 sector; //Current sector!
+	uint_64 sector; //Current sector!
 	sector = (writepos>>9); //The sector we need!
 	FILEPOS byteswritten = 0; //Init byteswritten!
 
@@ -287,7 +286,7 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 
 	for (; byteswritten<bytestowrite;) //Still left to read?
 	{
-		if (!readhandler(dev, sector, &sectorbuffer)) //Read to buffer!
+		if (!readhandler(dev, (uint_32)sector, &sectorbuffer)) //Read to buffer!
 		{
 			if (disks[device].dynamicimage) //Dynamic?
 			{
@@ -304,14 +303,14 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 			currentbytestowrite = 512;
 			if ((currentbytestowrite + sectorpos)>512) //Less than the 512-byte buffer?
 			{
-				currentbytestowrite -= sectorpos; //Bytes left to read!
+				currentbytestowrite -= (word)sectorpos; //Bytes left to read!
 			}
 			if (currentbytestowrite > (bytestowrite - byteswritten)) //More than we need?
 			{
-				currentbytestowrite = (bytestowrite - byteswritten); //Only take what we need!
+				currentbytestowrite = (word)(bytestowrite - byteswritten); //Only take what we need!
 			}
 			memcpy(&sectorbuffer[sectorpos], &readbuffer[byteswritten], currentbytestowrite); //Copy the bytes from the current sector to the destination!
-			if (!writehandler(dev, sector, &sectorbuffer)) //Write new buffer!
+			if (!writehandler(dev, (uint_32)sector, &sectorbuffer)) //Write new buffer!
 			{
 				if (disks[device].dynamicimage) //Dynamic?
 				{

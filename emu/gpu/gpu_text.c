@@ -23,8 +23,8 @@ OPTINLINE void GPU_textcalcpixel(int *x, int *y, int *charx, int *chary)
 	int cy=*y;
 	int cx2, cy2;
 
-	cx *= 0.1f; //Shift to the character we're from!
-	cy *= 0.1f; //Shift to the character we're from!
+	cx /= 10; //Shift to the character we're from!
+	cy /= 10; //Shift to the character we're from!
 	*charx = cx; //Set!
 	*chary = cy; //Set!
 
@@ -243,7 +243,7 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 	int curx=surface->x; //Init x!
 	int cury=surface->y; //init y!
 	int i;
-	for (i=0; i<strlen(msg); i++) //Process text!
+	for (i=0; i<(int)strlen(msg); i++) //Process text!
 	{
 		while (curx>=GPU_TEXTSURFACE_WIDTH) //Overflow?
 		{

@@ -91,7 +91,6 @@ byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfi
 }
 byte readdirlist(DirListContainer_p dirlist, char *entry, byte *isfile) //Read an entry from the directory list! Gives the next entry, if any!
 {
-	char filename[256]; //Full filename!
 #ifdef _WIN32
 	//Windows?
 	if (FindNextFile(dirlist->hFind, &dirlist->ffd) != 0) //Found a next file?
@@ -106,6 +105,7 @@ byte readdirlist(DirListContainer_p dirlist, char *entry, byte *isfile) //Read a
 	dirlist->dirent = readdir( dirlist->dir ); //Try to read the next entry!
 	if (dirlist->dirent != NULL) //Valid entry?
 	{
+		char filename[256]; //Full filename!
 		strcpy(entry,dirlist->dirent->d_name); //Set the filename!
 		memset(filename,0,sizeof(filename)); //Init!
 		strcpy(filename,dirlist->path); //init to path!

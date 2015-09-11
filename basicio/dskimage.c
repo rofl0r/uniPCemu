@@ -47,12 +47,12 @@ byte readDSKSectorInformation(FILE *f, byte side, word track, byte sector, DISKI
 
 word getDSKSectorBlockSize(TRACKINFORMATIONBLOCK *trackinfo)
 {
-	return (word)powf((long)2, (int)trackinfo->sectorsize); //Apply sector size!
+	return (word)powf((long)2, (float)trackinfo->sectorsize); //Apply sector size!
 }
 
 word getDSKSectorSize(SECTORINFORMATIONBLOCK *sectorinfo)
 {
-	return (word)powf((long)2, (int)sectorinfo->SectorSize); //Apply sector size!
+	return (word)powf((long)2, (float)sectorinfo->SectorSize); //Apply sector size!
 }
 
 byte readDSKSector(FILE *f, byte side, word track, byte sector, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *trackinfo, SECTORINFORMATIONBLOCK *sectorinfo, byte sectorsize, void *result)
@@ -209,7 +209,6 @@ byte readDSKInfo(char *filename, DISKINFORMATIONBLOCK *result)
 	f = fopen(filename, "rb"); //Open the image!
 	if (!f) return 0; //Not opened!
 	DISKINFORMATIONBLOCK DSKInformation;
-	TRACKINFORMATIONBLOCK TrackInformation;
 	if (!readDSKInformation(f, &DSKInformation)) //Invalid header?
 	{
 		fclose(f); //Close the image!
@@ -225,8 +224,6 @@ byte readDSKTrackInfo(char *filename, byte side, byte track, TRACKINFORMATIONBLO
 	f = fopen(filename, "rb+"); //Open the image!
 	if (!f) return 0; //Not opened!
 	DISKINFORMATIONBLOCK DSKInformation;
-	TRACKINFORMATIONBLOCK TrackInformation;
-	SECTORINFORMATIONBLOCK SectorInformation;
 	if (!readDSKInformation(f, &DSKInformation)) //Invalid header?
 	{
 		fclose(f); //Close the image!

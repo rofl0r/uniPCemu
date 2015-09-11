@@ -10,9 +10,9 @@ typedef void(*DISKCHANGEDHANDLER)(int disk); //Disk has been changed!
 typedef struct
 {
 char filename[256]; //The filename of the disk!
-uint_32 start; //Base positions of the images in the files!
+uint_64 start; //Base positions of the images in the files!
 byte readonly; //Readonly!
-uint_32 size; //Disk size!
+uint_64 size; //Disk size!
 BOOTIMGINFO customdisk; //Boot image info!
 byte dynamicimage; //Are we a dynamic image?
 byte DSKimage; //Are we a DSK image?

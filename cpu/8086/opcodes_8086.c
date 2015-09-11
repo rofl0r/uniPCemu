@@ -2167,7 +2167,7 @@ byte op_grp2_8(byte cnt) {
 			s = (s << 1) & 0xFF;
 		}
 		if (cnt) FLAG_OF = (FLAG_CF ^ (s >> 7));
-		flag_szp8(s); break;
+		flag_szp8((uint8_t)(s&0xFF)); break;
 
 	case 5: //SHR r/m8
 		if (cnt == 1) FLAG_OF = (s & 0x80) ? 1 : 0; else FLAG_OF = 0;
@@ -2175,7 +2175,7 @@ byte op_grp2_8(byte cnt) {
 			FLAG_CF = s & 1;
 			s = s >> 1;
 		}
-		flag_szp8(s); break;
+		flag_szp8((uint8_t)(s & 0xFF)); break;
 
 	case 7: //SAR r/m8
 		if (cnt) FLAG_OF = 0;
@@ -2186,7 +2186,7 @@ byte op_grp2_8(byte cnt) {
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
-		flag_szp8(s); break;
+		flag_szp8((uint8_t)(s & 0xFF)); break;
 		if (!cnt) //Nothing done?
 		{
 			FLAG_SF = tempSF; //We don't update when nothing's done!

@@ -7,6 +7,7 @@
 #include "headers/mmu/bda.h" //BDA support!
 #include "headers/cpu/cb_manager.h" //CB support!
 #include "headers/cpu/80286/protection.h" //Protection support!
+#include "headers/hardware/floppy.h" //Floppy support!
 
 //Are we disabled?
 #define __HW_DISABLED 0

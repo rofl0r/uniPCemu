@@ -30,6 +30,8 @@
 
 #include "headers/bios/dskimage.h" //DSK image support!
 
+#include "headers/support/mid.h" //MIDI player support!
+
 #define __HW_DISABLED 0
 
 //Force the BIOS to open?
@@ -2079,9 +2081,9 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 							datatotransfer = sizecreated;
 							datatotransfer -= sectornr; //How many bytes of data to transfer?
 						}
-						if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
+						if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
 						{
-							if (!writedata(HDD1, &sector, sectornr, datatotransfer)) //Error writing a sector?
+							if (!writedata(HDD1, &sector, sectornr, (uint_32)datatotransfer)) //Error writing a sector?
 							{
 								error = 2;
 								break; //Stop reading!
@@ -2125,14 +2127,14 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 								datatotransfer = sizecreated;
 								datatotransfer -= sectornr; //How many bytes of data to transfer?
 							}
-							if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
+							if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
 							{
-								if (!readdata(HDD1, &verificationsector, sectornr, datatotransfer)) //Error reading a sector?
+								if (!readdata(HDD1, &verificationsector, sectornr, (uint_32)datatotransfer)) //Error reading a sector?
 								{
 									error = 2;
 									break; //Stop reading!
 								}
-								else if ((sectorposition = memcmp(&sector, &verificationsector, datatotransfer)) != 0)
+								else if ((sectorposition = memcmp(&sector, &verificationsector, (size_t)datatotransfer)) != 0)
 								{
 									error = 3; //Verification error!
 									break; //Stop reading!
@@ -2243,7 +2245,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 						datatotransfer = size;
 						datatotransfer -= sectornr; //How many bytes of data to transfer?
 					}
-					if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
+					if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
 					{
 						if (emufwrite64(&sector,1,datatotransfer,dest)!=datatotransfer) //Error writing a sector?
 						{
@@ -2291,14 +2293,14 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 							datatotransfer = size;
 							datatotransfer -= sectornr; //How many bytes of data to transfer?
 						}
-						if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
+						if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
 						{
-							if (!readdata(HDD1, &verificationsector, sectornr, datatotransfer)) //Error reading a sector?
+							if (!readdata(HDD1, &verificationsector, sectornr, (uint_32)datatotransfer)) //Error reading a sector?
 							{
 								error = 2;
 								break; //Stop reading!
 							}
-							else if ((sectorposition = memcmp(&sector,&verificationsector,datatotransfer)) != 0)
+							else if ((sectorposition = memcmp(&sector,&verificationsector,(size_t)datatotransfer)) != 0)
 							{
 								error = 3; //Verification error!
 								break; //Stop reading!
@@ -2339,7 +2341,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 {
 	byte sector[VERIFICATIONBLOCK*512], verificationsector[VERIFICATIONBLOCK*512]; //Current sector!
-	word datatotransfer;
+	uint_32 datatotransfer;
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256], originalfilename[256]; //Filename container!
 	bzero(filename, sizeof(filename)); //Init!
@@ -2408,8 +2410,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						}
 						else
 						{
-							datatotransfer = sizecreated;
-							datatotransfer -= sectornr; //How many bytes of data to transfer?
+							datatotransfer = (uint_32)(sizecreated - sectornr); //How many bytes of data to transfer?
 						}
 						if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
 						{
@@ -2454,8 +2455,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							}
 							else
 							{
-								datatotransfer = sizecreated;
-								datatotransfer -= sectornr; //How many bytes of data to transfer?
+								datatotransfer = (uint_32)(sizecreated-sectornr); //How many bytes of data to transfer?
 							}
 							if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
 							{

@@ -8,6 +8,8 @@
 #include "headers/hardware/vga.h" //VGA support!
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/bios/biosmenu.h" //BIOS menu option support!
+#include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
+#include "headers/emu/emu_vga_bios.h" //Cursor enable support!
 
 //Test the speaker?
 #define __DEBUG_SPEAKER
