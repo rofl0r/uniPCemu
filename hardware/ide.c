@@ -351,7 +351,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 		return 0; //Stop!
 	}
 
-	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Read the data from disk?
+	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Read the data from disk?
 	{
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
 		ATA_increasesector(channel); //Increase the current sector!
@@ -392,7 +392,7 @@ OPTINLINE byte ATA_writesector(byte channel)
 	dolog("ATA", "Writing sector #%i!", ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address); //Log the sector we're writing to!
 #endif
 	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 2); //We're writing!
-	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Write the data to the disk?
+	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Write the data to the disk?
 	{
 		ATA_increasesector(channel); //Increase the current sector!
 

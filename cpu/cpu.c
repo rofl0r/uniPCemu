@@ -273,14 +273,19 @@ void free_CPUregisters()
 
 void CPU_initRegisters() //Init the registers!
 {
-	static byte CSAccessRights = 0x93; //Default CS access rights, overwritten during first software reset!
+	byte CSAccessRights; //Default CS access rights, overwritten during first software reset!
 	if (CPU[activeCPU].registers) //Already allocated?
 	{
 		CSAccessRights = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights; //Save old CS acccess rights to use now (after first reset)!
 		free_CPUregisters(); //Free the CPU registers!
 	}
+	else
+	{
+		CSAccessRights = 0x93; //Initialise the CS access rights!
+	}
 	alloc_CPUregisters(); //Allocate the CPU registers!
 
+	if (!CPU[activeCPU].registers) return; //We can't work!
 	//Calculation registers
 	CPU[activeCPU].registers->EAX = 0;
 	CPU[activeCPU].registers->EBX = 0;
@@ -382,6 +387,7 @@ void CPU_resetMode() //Resets the mode!
 {
 	if (!CPU[activeCPU].registers) CPU_initRegisters(); //Make sure we have registers!
 	//Always start in REAL mode!
+	if (!CPU[activeCPU].registers) return; //We can't work now!
 	CPU[activeCPU].registers->SFLAGS.V8 = 0; //Disable Virtual 8086 mode!
 	CPU[activeCPU].registers->CR0.PE = 0; //Real mode!
 	updateCPUmode(); //Update the CPU mode!

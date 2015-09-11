@@ -452,8 +452,9 @@ void resumeEMU()
 		EMU_startInput(); //Start the input!
 		EMU_RUNNING = 1; //We've restarted!
 		cleanKeyboard();
-		cleanAdlib(); //Tick the adlib timer if needed!
-		cleanPIT0(); //Tick the PIT timer if needed!
+		cleanMouse();
+		cleanAdlib();
+		cleanPIT0();
 		cleanATA(); //Update the ATA timer!
 	}
 }
@@ -532,6 +533,7 @@ byte coreHandler()
 	if (!CPU[activeCPU].registers) return 0; //Invalid registers!
 
 	updateKeyboard(); //Tick the keyboard timer if needed!
+	updateMouse(); //Tick the mouse timer if needed!
 	updateAdlib(); //Tick the adlib timer if needed!
 	updatePIT0(); //Tick the PIT timer if needed!
 	updateATA(); //Update the ATA timer!

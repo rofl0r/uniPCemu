@@ -73,6 +73,8 @@ typedef struct
 //Timing for the CPU!
 void cleanKeyboard();
 void updateKeyboard();
+void cleanMouse();
+void updateMouse();
 
 int psp_inputkey(); //Current pressed key(s)?
 int psp_inputkeydelay(uint_32 delay); //Keypress and release, can return no keys!

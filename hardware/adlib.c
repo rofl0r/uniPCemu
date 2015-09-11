@@ -48,9 +48,9 @@ byte timer80=0, timer320=0; //Timer variables for current timer ticks!
 //Registers itself
 byte adlibregmem[0xFF], adlibaddr = 0;
 
-byte adliboperators[2][9] = { //Groupings of 22 registers! (20,40,60,80,E0)
-	{ 0x00, 0x01, 0x02, 0x08, 0x09, 0x0A, 0x10, 0x11, 0x12 },
-	{ 0x03, 0x04, 0x05, 0x0B, 0x0C, 0x0D, 0x13, 0x14, 0x15 }
+byte adliboperators[2][0x10] = { //Groupings of 22 registers! (20,40,60,80,E0)
+	{ 0x00, 0x01, 0x02, 0x08, 0x09, 0x0A, 0x10, 0x11, 0x12,0,0,0,0,0,0 },
+	{ 0x03, 0x04, 0x05, 0x0B, 0x0C, 0x0D, 0x13, 0x14, 0x15,0,0,0,0,0,0 }
 };
 
 byte adliboperatorsreverse[0x16] = { 0, 1, 2, 0, 1, 2,
@@ -395,6 +395,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 	float result; //The operator result and the final result!
 	byte op1,op2; //The two operators to use!
 	float op1frequency;
+	curchan &= 0xF;
 	if (curchan >= NUMITEMS(adlibch)) return 0; //No sample with invalid channel!
 	if (adlibpercussion && (curchan >= 6) && (curchan <= 8)) //We're percussion?
 	{

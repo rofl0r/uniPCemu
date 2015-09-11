@@ -44,6 +44,8 @@ SDL_sem *mouse_lock = NULL; //Our lock!
 
 byte keysactive; //Ammount of keys active!
 
+float mouse_interval = 0.0f; //Check never by default (unused timer)!
+
 enum input_button_map { //All buttons we support!
 INPUT_BUTTON_TRIANGLE, INPUT_BUTTON_CIRCLE, INPUT_BUTTON_CROSS, INPUT_BUTTON_SQUARE,
 INPUT_BUTTON_LTRIGGER, INPUT_BUTTON_RTRIGGER,
@@ -1749,7 +1751,7 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 
 void setMouseRate(float packetspersecond)
 {
-	addtimer(packetspersecond, &mouse_handler, "PSP Mouse", 10, 0, NULL); //Handles mouse input: we're a normal timer!
+	mouse_interval = (1000000.0f/packetspersecond); //Handles mouse input: we're a normal timer!
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
@@ -1771,6 +1773,7 @@ void psp_keyboard_init()
 	//dolog("osk","Starting type handler");
 	//dolog("osk","Starting swap handler");
 	addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1,1,NULL); //Handles keyboard set swapping: we're an interrupt!
+	setMouseRate(1.0f); //No mouse atm, so default to 1 packet/second!
 	//dolog("osk","Starting mouse handler");
 	KEYBOARD_STARTED = 1; //Started!
 	//dolog("osk","keyboard&mouse ready.");
@@ -2398,6 +2401,27 @@ void updateKeyboard()
 	}
 }
 
+TicksHolder mouse_ticker;
+float mouse_ticktiming;
+
+//Check for timer occurrences.
+void cleanMouse()
+{
+	getuspassed(&mouse_ticker); //Discard the amount of time passed!
+}
+
+void updateMouse()
+{
+	mouse_ticktiming += (float)getuspassed(&mouse_ticker); //Get the amount of time passed!
+	if (mouse_ticktiming >= mouse_interval) //Enough time passed?
+	{
+		for (;mouse_ticktiming >= mouse_interval;) //All that's left!
+		{
+			mouse_handler(); //Tick mouse timer!
+			mouse_ticktiming -= mouse_interval; //Decrease timer to get time left!
+		}
+	}
+}
 
 void psp_input_init()
 {

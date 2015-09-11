@@ -2003,9 +2003,10 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 //How many sectors to be able to transfer at once?
 #define VERIFICATIONBLOCK 500
 
+byte sector[VERIFICATIONBLOCK * 512], verificationsector[VERIFICATIONBLOCK * 512]; //Current sector!
+
 void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static one!
 {
-	byte sector[VERIFICATIONBLOCK*512], verificationsector[VERIFICATIONBLOCK*512]; //Current sector!
 	uint_64 datatotransfer; //How many sectors to transfer this block?
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256]; //Filename container!
@@ -2175,7 +2176,6 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 
 void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic one!
 {
-	byte sector[VERIFICATIONBLOCK*512], verificationsector[VERIFICATIONBLOCK*512]; //Current sector!
 	uint_64 datatotransfer;
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256]; //Filename container!
@@ -2340,7 +2340,6 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 
 void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 {
-	byte sector[VERIFICATIONBLOCK*512], verificationsector[VERIFICATIONBLOCK*512]; //Current sector!
 	uint_32 datatotransfer;
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256], originalfilename[256]; //Filename container!

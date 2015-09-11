@@ -188,7 +188,7 @@ OPTINLINE void write_command(byte data) //Write functionality
 			}
 			break;
 		case 2: //Command high?
-			if (data>NUMITEMS(commandhandlers[0])) //Too high?
+			if (data>=NUMITEMS(commandhandlers[0])) //Too high?
 			{
 				softdebugger.readcommand = 1; //Invalid command/parameter!
 				softdebugger.command = 1; //Return to the standard: group selection!
@@ -221,6 +221,8 @@ OPTINLINE void write_command(byte data) //Write functionality
 			break;
 		case 6: //Giving result mode? We cause the result mode to switch to validation mode to check if the read result is OK!
 			softdebugger.readcommand = 4; //Result valid detection during reading!
+			break;
+		default:
 			break;
 	}
 }
