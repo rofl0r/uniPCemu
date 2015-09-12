@@ -456,6 +456,9 @@
     <ClCompile Include="..\..\hardware\ppi.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\hardware\ems.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\emu\io\sound.txt">
@@ -845,6 +848,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\headers\hardware\ppi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\headers\hardware\ems.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

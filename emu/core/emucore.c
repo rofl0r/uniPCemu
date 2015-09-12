@@ -66,6 +66,8 @@
 
 #include "headers/hardware/ppi.h" //PPI support!
 
+#include "headers/hardware/ems.h" //EMS support!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To debug VGA at MAX speed?
@@ -303,6 +305,11 @@ void initEMU(int full) //Init!
 		sleep(); //Stop running: give the VGA maximum priority!
 	}
 
+	if (EMULATED_CPU <= CPU_80186) //-186 CPU?
+	{
+		initEMS(4 * 1024768); //4MB EMS memory!
+	}
+
 	debugrow("Initialising MMU...");
 	resetMMU(); //Initialise MMU (we need the BDA from now on!)!
 	setupVGA(); //Set the VGA up for int10&CPU usage!
@@ -386,7 +393,8 @@ void doneEMU()
 			doneCPU(); //Finish the CPU!
 			debugrow("doneEMU: finish MMU...");
 			doneMMU(); //Release memory!
-			debugrow("doneEMU: finish Adlib...");
+			debugrow("doneEMU: finish EMS if enabled...");
+			doneEMS(); //Finish EMS!
 		}
 		debugrow("doneEMU: Finishing MPU...");
 		doneMPU(); //Finish our MPU!
