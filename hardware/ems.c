@@ -6,7 +6,7 @@
 #include "headers/support/locks.h" //Locking support!
 
 word EMS_baseport = 0x260; //Base I/O port!
-uint_32 EMS_baseaddr = 0xD0000; //Base address!
+uint_32 EMS_baseaddr = 0xE0000; //Base address!
 
 byte *EMS = NULL; //EMS memory itself!
 uint_32 EMS_size = 0; //Size of EMS memory!
@@ -76,6 +76,6 @@ void initEMS(uint_32 memorysize)
 
 void doneEMS()
 {
-	freez(&EMS, EMS_size, "EMS"); //Free our memory!
+	freez((void **)&EMS, EMS_size, "EMS"); //Free our memory!
 	EMS_size = 0; //No size anymore!
 }

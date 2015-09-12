@@ -15,7 +15,7 @@ char name[256]; //The name of the allocated entry!
 DEALLOCFUNC dealloc; //Deallocation function!
 
 //Extra optimizations:
-uint_64 ptrstart, ptrend; //Start&end address of the pointer!
+ptrnum ptrstart, ptrend; //Start&end address of the pointer!
 SDL_sem *lock; //The lock applied to this pointer: if it's to be freed and this is set, wait for this lock to be free!
 } POINTERENTRY;
 
@@ -82,12 +82,12 @@ Result:
 
 OPTINLINE sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //Are we already in our list? Give the position!
 {
-	register uint_64 address_start, address_end, currentstart, currentend;
+	register ptrnum address_start, address_end, currentstart, currentend;
 	register int left=0;
 	initZalloc(); //Make sure we're started!
 	if (!ptr) return -2; //Not matched when NULL!
 	if (!size) return -2; //Not matched when no size (should be impossible)!
-	address_start = (uint_64)ptr;
+	address_start = (ptrnum)ptr;
 	address_start += index; //Start of data!
 	address_end = address_start; //Start of data!
 	address_end += size; //Add the size!
@@ -119,7 +119,7 @@ OPTINLINE sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //A
 byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc, SDL_sem *lock) //Register a pointer!
 {
 	uint_32 current; //Current!
-	uint_64 ptrend;
+	ptrnum ptrend;
 	initZalloc(); //Make sure we're started!
 	if (!ptr)
 	{
@@ -146,7 +146,7 @@ byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc, SDL_sem
 			registeredpointers[current].dealloc = dealloc; //The deallocation function to call, if any to use!
 			bzero(&registeredpointers[current].name,sizeof(registeredpointers[current].name)); //Initialise the name!
 			strcpy(registeredpointers[current].name,name); //Set the name!
-			registeredpointers[current].ptrstart = (uint_64)ptr; //Start of the pointer!
+			registeredpointers[current].ptrstart = (ptrnum)ptr; //Start of the pointer!
 			ptrend = registeredpointers[current].ptrstart;
 			ptrend += size; //Add the size!
 			--ptrend; //The end of the pointer is before the size!

@@ -23,3 +23,5 @@
 #define ENUMS16
 #define ENUM32
 #define ENUMS32
+
+typedef uint_32 ptrnum;

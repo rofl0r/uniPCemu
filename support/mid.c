@@ -51,7 +51,7 @@ word MID_RUNNING = 0; //How many channels are still running/current channel runn
 HEADER_CHNK header;
 byte *MID_data[100]; //Tempo and music track!
 TRACK_CHNK MID_tracks[100];
-
+word MID_tracknr[100];
 OPTINLINE word byteswap16(word value)
 {
 	return ((value & 0xFF) << 8) | ((value & 0xFF00) >> 8); //Byteswap!
@@ -478,16 +478,16 @@ OPTINLINE void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *head
 
 void handleMIDIChannel()
 {
-	word channel;
-	channel = (word)getthreadparams(); //Gotten a channel?
+	word *channel;
+	channel = (word *)getthreadparams(); //Gotten a channel?
 nextchannel: //Play next channel when type 2!
-	playMIDIStream(channel, MID_data[channel], &header, &MID_tracks[channel]); //Play the MIDI stream!
+	playMIDIStream(*channel, MID_data[*channel], &header, &MID_tracks[*channel]); //Play the MIDI stream!
 	WaitSem(MID_channel_Lock)
 	if (byteswap16(header.format) == 2) //Multiple tracks to be played after one another?
 	{
 		timing_pos = 0; //Reset the timing position!
 		++channel; //Process the next channel!
-		if (channel >= byteswap16(header.n)) goto finish; //Last channel processed?
+		if (*channel >= byteswap16(header.n)) goto finish; //Last channel processed?
 		PostSem(MID_channel_Lock)
 		goto nextchannel; //Process the next channel now!
 	}
@@ -524,7 +524,8 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 		{
 			if (!i || (byteswap16(header.format) == 1)) //One channel, or multiple channels with format 2!
 			{
-				startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)i, DEFAULT_PRIORITY); //Start a thread handling the output of the channel!
+			MID_tracknr[i] = i; //Track number
+	startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)&MID_tracknr[i], DEFAULT_PRIORITY); //Start a thread handling the output of the channel!
 			}
 		}
 		if (byteswap16(header.format) != 1) //One channel only?

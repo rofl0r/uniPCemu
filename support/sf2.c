@@ -79,7 +79,7 @@ checkRIFFChunkLimits: Verify if a chunk within another chunk is valid to read (w
 OPTINLINE byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 entrysize) //Check an entry against it's limits!
 {
 	uint_32 containersize;
-	uint_64 containerstart, containerend, entrystart, entryend;
+	ptrnum containerstart, containerend, entrystart, entryend;
 	void *startData; //Start of the data!
 
 	containersize = RIFF_entryheadersize(container); //What header size?

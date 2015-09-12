@@ -39,4 +39,10 @@
 #define ENUM32 :uint_32
 #define ENUMS32 :int_32
 
+#ifdef _WIN64
+typedef uint_64 ptrnum;
+#else
+typedef uint_32 ptrnum;
+#endif
+
 #endif
