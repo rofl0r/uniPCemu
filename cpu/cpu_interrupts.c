@@ -74,8 +74,8 @@ void CPU_IRET()
 	NMIMasked = 0; //We're allowing NMI again!
 }
 
-byte SystemControlPortA = 0x00; //System control port A data!
-byte SystemControlPortB = 0x00; //System control port B data!
+extern byte SystemControlPortA; //System control port A data!
+extern byte SystemControlPortB; //System control port B data!
 byte NMI = 1; //NMI Disabled?
 
 extern word CPU_exec_CS;

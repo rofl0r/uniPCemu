@@ -18,59 +18,27 @@
 #include <math.h>
 #include <limits.h>
 #include <stdio.h>
-#ifdef _WIN32
-//Normal SDL libraries
-#include "SDL.h" //SDL library for windows!
-#include "SDL_events.h" //SDL events!
-//Windows specific structures!
-#include <direct.h>
-#include <windows.h>
-#include <tchar.h> 
-#include <strsafe.h>
-#pragma comment(lib, "User32.lib")
-#else
-#include "SDL/SDL.h" //SDL library!
-#include "SDL/SDL_events.h" //SDL events!
-#endif
 
 //Enable inlining if set!
 #define __ENABLE_INLINE
+
+//Platform specific stuff!
+#ifdef _WIN32
+#include "headers/types_win.h" //Windows specific stuff!
+#else
+#include "headers/sdl_rest.h" //Rest SDL support!
+#ifdef __psp__
+#include "headers/types_psp.h" //PSP specific stuff!
+#else
+#include "headers/types_linux.h" //Linux specific stuff!
+#endif
+#endif
 
 //Our basic functionality we need for running this program!
 //We have less accuracy using SDL delay: ms instead of us. Round to 0ms(minimal time) if needed!
 
 #define WaitSem(s) SDL_SemWait(s);
 #define PostSem(s) SDL_SemPost(s);
-
-//Universal delay/sleep support!
-#ifdef __psp__
-#define delay(us) sceKernelDelayThread(us?us:1)
-#define sleep sceKernelSleepThread
-#else
-//Different delays for windows and other systems (linux etc.)!
-#ifdef _WIN32
-#define realdelay(x) (x)
-#else
-//Linux/*nix?
-#define realdelay(x) ((x)?(x):1)
-#endif
-#define delay(us) SDL_Delay(realdelay((uint_32)((us)/1000)))
-#define sleep() for (;;) delay(1000000)
-#endif
-
-//Universal mkdir support!
-#ifdef _WIN32
-//Windows-specific headers!
-#include <direct.h> //For mkdir!
-#define domkdir _mkdir
-#else
-#ifdef __psp
-#define domkdir(dir) sceIoMkdir(dir,0777)
-#else
-//Linux/*nix?
-#define domkdir(path) mkdir(path, 0755)
-#endif
-#endif
 
 //Halt is redirected to the exit function!
 #define halt exit
@@ -202,42 +170,6 @@ uint_32 OPTMUL32(uint_32 val, uint_32 multiplication);
 void debugrow(char *text); //Log a row to debugrow log!
 
 void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
-
-//INLINE options!
-#ifdef OPTINLINE
-#undef OPTINLINE
-#endif
-
-#ifdef __ENABLE_INLINE
-#ifdef _WIN32
-//Windows?
-//For some reason inline functions don't work on windows?
-#define OPTINLINE __inline
-#else
-//PSP?
-#define OPTINLINE inline
-#endif
-#else
-#define OPTINLINE
-#endif
-
-//Enum safety!
-#ifdef _WIN32
-#define ENUM8 :byte
-#define ENUMS8 :sbyte
-#define ENUM16 :word
-#define ENUMS16 :sword
-#define ENUM32 :uint_32
-#define ENUMS32 :int_32
-#else
-//PSP?
-#define ENUM8
-#define ENUMS8
-#define ENUM16
-#define ENUMS16
-#define ENUM32
-#define ENUMS32
-#endif
 
 double getCurrentClockSpeed(); //Retrieves the current clock speed!
 #endif

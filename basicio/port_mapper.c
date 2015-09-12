@@ -28,18 +28,10 @@ word PORT_OUTW_COUNT = 0;
 PORTOUTD PORT_OUTD[0x10000]; //For writing to ports!
 word PORT_OUTD_COUNT = 0;
 
-extern byte SystemControlPortB; //System control port B!
-extern byte SystemControlPortA; //System control port A!
-
-byte PPI62, PPI63; //Default PPI switches!
-
 //Reset and register!
 
 void reset_ports()
 {
-	SystemControlPortB = 0x00; //Reset system control port B!
-	PPI62 = 0; //Set the default switches!
-	PPI63 = 0x40 | 0x20 | 0xC; //Set the default switches!
 	int i;
 	for (i=0;i<NUMITEMS(PORT_IN);i++) //Process all ports!
 	{
@@ -113,27 +105,6 @@ byte EXEC_PORTOUT(word port, byte value)
 {
 	word i;
 	byte executed = 0;
-	switch (port)
-	{
-	case 0x61: //Special register: System control port B!
-		executed = 1; //Always executed!
-		SystemControlPortB = value; //Special case: system control port B!
-		break;
-	case 0x62: //PPI62?
-		executed = 1; //Always executed!
-		PPI62 = value; //Special case: PPI! Ignore the floppy changes!
-		break;
-	case 0x63: //PPI63?
-		executed = 1;
-		PPI63 = (value&0x3F)|(PPI63&0xC0); //Set the value, everything but floppy disk controllers!
-		break;
-	case 0x92: //System control port A?
-		executed = 1;
-		SystemControlPortA = value; //Set the port!
-		break;
-	default: //unknown port?
-		break;
-	}
 	#ifdef __LOG_PORT
 	dolog("emu","PORT OUT: %02X@%04X",value,port);
 	#endif
@@ -152,27 +123,6 @@ byte EXEC_PORTIN(word port, byte *result)
 	word i;
 	byte executed = 0, temp, tempresult=0;
 	byte actualresult=0;
-	switch (port) //Special register: System control port B!
-	{
-	case 0x61: //System control port B?
-		executed = 1; //Always executed!
-		actualresult = SystemControlPortB; //Special case: system control port B!
-		break;
-	case 0x62: //PPI62?
-		executed = 1; //Always executed!
-		actualresult = PPI62; //Special case: PPI!
-		break;
-	case 0x63: //PPI63?
-		executed = 1;
-		actualresult = PPI63; //Set the value!
-		break;
-	case 0x92: //System control port A?
-		executed = 1;
-		actualresult = SystemControlPortA; //Give the port!
-		break;
-	default: //unknown port?
-		break;
-	}
 #ifdef __LOG_PORT
 	dolog("emu","PORT IN: %04X",port);
 	#endif

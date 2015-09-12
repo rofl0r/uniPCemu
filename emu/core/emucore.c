@@ -64,6 +64,8 @@
 
 #include "headers/hardware/floppy.h" //Floppy disk controller!
 
+#include "headers/hardware/ppi.h" //PPI support!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To debug VGA at MAX speed?
@@ -218,6 +220,9 @@ void initEMU(int full) //Init!
 	debugrow("Initializing I/O port handling...");
 	Ports_Init(); //Initialise I/O port support!
 	
+	debugrow("Initialising PPI...");
+	initPPI();
+
 	debugrow("Initialising PCI...");
 	initPCI(); //Initialise PCI support!
 

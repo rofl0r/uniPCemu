@@ -82,6 +82,7 @@
     <ClCompile Include="..\..\hardware\pcspeaker.c" />
     <ClCompile Include="..\..\hardware\pic.c" />
     <ClCompile Include="..\..\hardware\pit.c" />
+    <ClCompile Include="..\..\hardware\ppi.c" />
     <ClCompile Include="..\..\hardware\ps2_keyboard.c" />
     <ClCompile Include="..\..\hardware\ps2_keyboard_data.c" />
     <ClCompile Include="..\..\hardware\ps2_mouse.c" />
@@ -211,6 +212,7 @@
     <ClInclude Include="..\..\headers\hardware\pcspeaker.h" />
     <ClInclude Include="..\..\headers\hardware\pic.h" />
     <ClInclude Include="..\..\headers\hardware\ports.h" />
+    <ClInclude Include="..\..\headers\hardware\ppi.h" />
     <ClInclude Include="..\..\headers\hardware\ps2_keyboard.h" />
     <ClInclude Include="..\..\headers\hardware\ps2_mouse.h" />
     <ClInclude Include="..\..\headers\hardware\sermouse.h" />
@@ -248,6 +250,7 @@
     <ClInclude Include="..\..\headers\mmu\mmuhandler.h" />
     <ClInclude Include="..\..\headers\mmu\paging.h" />
     <ClInclude Include="..\..\headers\packed.h" />
+    <ClInclude Include="..\..\headers\sdl_rest.h" />
     <ClInclude Include="..\..\headers\support\bmp.h" />
     <ClInclude Include="..\..\headers\support\crc32.h" />
     <ClInclude Include="..\..\headers\support\fifobuffer.h" />
@@ -262,6 +265,9 @@
     <ClInclude Include="..\..\headers\support\signedness.h" />
     <ClInclude Include="..\..\headers\support\zalloc.h" />
     <ClInclude Include="..\..\headers\types.h" />
+    <ClInclude Include="..\..\headers\types_linux.h" />
+    <ClInclude Include="..\..\headers\types_psp.h" />
+    <ClInclude Include="..\..\headers\types_win.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{087D6D2C-39CB-4118-A010-F28A50AEB005}</ProjectGuid>
