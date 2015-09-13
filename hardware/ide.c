@@ -635,6 +635,35 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
 		}
 		break;
+	case 0x40: //Read verify sector(s) (w/retry)?
+	case 0x41: //Read verify sector(s) (w/o retry)?
+		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA & 0xFFFFFFF); //The LBA address!
+		}
+		else //Normal CHS address?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = ATA_CHS2LBA(channel, ATA_activeDrive(channel),
+				((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow)),
+				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head,
+				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
+
+		}
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
+		nextverification: //Verify the next sector!
+		if (ATA_readsector(channel, command)) //OK?
+		{
+			if (ATA[channel].datasize && !ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error) //No error and still left?
+			{
+				goto nextverification; //Verify the next sector!
+			}
+		}
+		if (!ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error) //Finished OK?
+		{
+			ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise the OK IRQ!
+		}
+		break;
 	case 0x32: //Write long (w/retry)?
 	case 0x33: //Write long (w/o retry)?
 		ATA[channel].longop = 1; //Long operation!
@@ -754,8 +783,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0xC8: //Read DMA (w/retry)?
 	case 0xC9: //Read DMA (w/o retry)?
 	case 0xC4: //Read multiple?
-	case 0x40: //Read verify sector(s) (w/retry)?
-	case 0x41: //Read verify sector(s) (w/o retry)?
 	case 0xC6: //Set multiple mode?
 	case 0x99:
 	case 0xE6: //Sleep?
