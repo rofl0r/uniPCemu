@@ -6,6 +6,7 @@
 #include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer render counter support!
+
 //Works!
 OPTINLINE uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!
 {

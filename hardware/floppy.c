@@ -11,7 +11,7 @@
 //Configuration of the FDC...
 
 //Double logging if FLOPPY_LOGFILE2 is defined!
-//#define FLOPPY_LOGFILE "floppy"
+#define FLOPPY_LOGFILE "floppy"
 //#define FLOPPY_LOGFILE2 "debugger"
 
 //What IRQ is expected of floppy disk I/O
@@ -1277,16 +1277,14 @@ byte PORT_IN_floppy(word port, byte *result)
 	byte temp;
 	switch (port & 0x7) //What port?
 	{
-	case 0: //SRA?
-		temp = 0;
-		if (FLOPPY.IRQPending) temp |= 0x80; //Pending interrupt!
+	case 0: //diskette EHD controller board jumper settings (82072AA)
+		temp = 2|(2<<4); //Our two floppy disk controllers are 2.88M disk drives!
+		FLOPPY_LOG("Read port #0=%02X",temp);
 		*result = temp; //Give the result!
-		return 1; //Not used!
-	case 1: //SRB?
-		*result = 0;
-		return 1; //Not used!
+		return 1; //Used!
 	case 4: //MSR?
 		updateFloppyMSR(); //Update the MSR with current values!
+		FLOPPY_LOG("Read MSR=%02X",FLOPPY.MSR.data)
 		*result = FLOPPY.MSR.data; //Give MSR!
 		return 1;
 	case 5: //Data?
@@ -1295,11 +1293,13 @@ byte PORT_IN_floppy(word port, byte *result)
 		return 1;
 	case 7: //DIR?
 		updateFloppyDIR(); //Update the DIR register!
+		FLOPPY_LOG("Read DIR=%02X", FLOPPY.DIR.data)
 		*result = FLOPPY.DIR.data; //Give DIR!
 		return 1;
 	default: //Unknown port?
 		break;
 	}
+	FLOPPY_LOG("Read unknown %i",port&7);
 	return 0; //Unknown port!
 }
 
@@ -1315,6 +1315,7 @@ byte PORT_OUT_floppy(word port, byte value)
 	switch (port & 0x7) //What port?
 	{
 	case 2: //DOR?
+		FLOPPY_LOG("Write DOR=%02X", value)
 		FLOPPY.DOR.data = value; //Write to register!
 		updateMotorControl(); //Update the motor control!
 		if (!FLOPPY.DOR.REST) //Reset requested?
@@ -1324,6 +1325,7 @@ byte PORT_OUT_floppy(word port, byte value)
 		}
 		return 1; //Finished!
 	case 4: //DSR?
+		FLOPPY_LOG("Write DSR=%02X", value)
 		if (value & 0x80) //Reset requested?
 		{
 			value &= 0x7F; //Clear the reset bit automatically!
@@ -1335,11 +1337,13 @@ byte PORT_OUT_floppy(word port, byte value)
 		floppy_writeData(value); //Write data!
 		return 1; //Default handler!
 	case 7: //CCR?
+		FLOPPY_LOG("Write CCR=%02X", value)
 		FLOPPY.CCR.data = value; //Set CCR!
 		return 1;
 	default: //Unknown port?
 		break; //Unknown port!
 	}
+	FLOPPY_LOG("Write unknown %i=%02X", port & 7,value);
 	return 0; //Unknown port!
 }
 

@@ -69,6 +69,12 @@ OBJS += hardware/floppy.o
 #Software debugger/CPU emulator functions.
 OBJS += hardware/softdebugger.o
 
+#PPI
+OBJS += hardware/ppi.o
+
+#EMS
+OBJS += hardware/ems.o
+
 #BIOS:
 OBJS += bios/bios.o bios/biosmenu.o bios/initmem.o bios/biosrom.o
 #MMU:
@@ -80,25 +86,25 @@ OBJS += emu/debugger/runromverify.o
 #MODR/M support:
 OBJS += cpu/modrm.o
 #Opcodes for CPU 8086,Debugger,Flags
-OBJS += cpu/8086/opcodes_8086.o
+OBJS += cpu/opcodes_8086.o
 #Opcodes for CPU 80186,Debugger
-OBJS += cpu/80186/opcodes_80186.o
+OBJS += cpu/opcodes_80186.o
 #Opcodes for CPU 80286,Debugger&JMPTbl for 0F opcodes!
-OBJS += cpu/cpu_jmptbls0f.o cpu/80286/opcodes_80286.o
+OBJS += cpu/cpu_jmptbls0f.o cpu/opcodes_80286.o
 #Opcodes for CPU 80386&JMPTbl
-#OBJS += cpu/80386/opcodes0F_386.o cpu/80386/opcodes_386.o
+#OBJS += cpu/opcodes0F_386.o cpu/opcodes_386.o
 #Opcodes for CPU 80486
-OBJS += cpu/80486/opcodes_486.o
+OBJS += cpu/opcodes_486.o
 #Opcodes for CPU 80586 (Pentium)
-OBJS += cpu/80586/opcodes_586.o
+OBJS += cpu/opcodes_586.o
 #Opcodes: unknown opcodes and rest handler functions (386 0x0F, unknown opcode handler for 386&8086)
 OBJS += cpu/unkop.o
 #Now the jumptables for all CPUs!
 OBJS += cpu/cpu_jmptbls.o
 #Protection module of the CPU (286+).
-OBJS += cpu/80286/protection.o
+OBJS += cpu/protection.o
 #Multitasking module of the CPU (286+).
-OBJS += cpu/80286/multitasking.o
+OBJS += cpu/multitasking.o
 #finally CPU module itself and flag support (global)
 OBJS += cpu/flags.o cpu/cpu.o
 #Debugger
@@ -136,7 +142,7 @@ OBJS += basicio/boot.o
 #Emulator sound:
 OBJS += emu/io/sound.o
 #Emulator threads:
-OBJS += emu/support/threads.o
+OBJS += emu/core/threads.o
 #Emulator input:
 OBJS += emu/io/keyboard.o emu/io/input.o
 #All GPU parts!
@@ -145,7 +151,7 @@ OBJS += emu/gpu/gpu.o emu/gpu/gpu_debug.o emu/gpu/gpu_framerate.o emu/gpu/gpu_re
 OBJS += emu/gpu/gpu_sdl.o
 
 #Error handler!
-OBJS += emu/support/errors.o
+OBJS += emu/core/errors.o
 
 #Sound test utility.
 OBJS += emu/debugger/debug_sound.o
@@ -156,7 +162,7 @@ OBJS += emu/core/emucore.o
 OBJS += emu/core/emu_bios_post.o
 
 #Main subcores.
-OBJS += emu/core/emu_main.o emu/core/emu_misc.o emu/support/number_optimizations.o emu/core/emu_vga_bios.o emu/core/emu_vga.o emu/core/emu_bios_sound.o emu/debugger/debug_graphics.o emu/debugger/debug_files.o
+OBJS += emu/core/emu_main.o emu/core/emu_misc.o emu/core/number_optimizations.o emu/core/emu_vga_bios.o emu/core/emu_vga.o emu/core/emu_bios_sound.o emu/debugger/debug_graphics.o emu/debugger/debug_files.o
 
 #Directory listing support!
 OBJS += emu/io/directorylist.o
@@ -169,7 +175,7 @@ OBJS += basicio/fopen64.o
 
 #Finally, the desired platform to build for:
 
-.PHONY: all clean distclean psp win
+.PHONY: all clean distclean psp win psp-win
 
 #Our builds
 ifeq ($(MAKECMDGOALS),psp)

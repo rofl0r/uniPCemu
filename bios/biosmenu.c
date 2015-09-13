@@ -790,8 +790,6 @@ int cmpinsensitive(char *str1, char *str2, uint_32 maxlen) //Compare, case insen
 	return 0; //Not equal!
 }
 
-typedef void(*list_information)(char *filename); //Displays information about a harddisk to mount!
-
 void printCurrent(int x, int y, char *text, int maxlen, list_information information_handler) //Create the current item with maximum length!
 {
 	char buffer[1024]; //The buffered text!

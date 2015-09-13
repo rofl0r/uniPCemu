@@ -31,13 +31,16 @@
     <ClCompile Include="..\..\cpu\80386\opcodes_386.c" />
     <ClCompile Include="..\..\cpu\80486\opcodes_486.c" />
     <ClCompile Include="..\..\cpu\80586\opcodes_586.c" />
+    <ClCompile Include="..\..\cpu\8086\8086_grpOPs.c" />
     <ClCompile Include="..\..\cpu\8086\opcodes_8086.c" />
     <ClCompile Include="..\..\cpu\cb_manager.c" />
     <ClCompile Include="..\..\cpu\cpu.c" />
     <ClCompile Include="..\..\cpu\cpu_interrupts.c" />
     <ClCompile Include="..\..\cpu\cpu_jmptbls.c" />
     <ClCompile Include="..\..\cpu\cpu_jmptbls0f.c" />
+    <ClCompile Include="..\..\cpu\fake86_cpu.c" />
     <ClCompile Include="..\..\cpu\flags.c" />
+    <ClCompile Include="..\..\cpu\hardware_interrupts.c" />
     <ClCompile Include="..\..\cpu\modrm.c" />
     <ClCompile Include="..\..\cpu\unkop.c" />
     <ClCompile Include="..\..\emu\core\emucore.c" />
@@ -70,24 +73,21 @@
     <ClCompile Include="..\..\exception\exception.c" />
     <ClCompile Include="..\..\hardware\8042.c" />
     <ClCompile Include="..\..\hardware\adlib.c" />
+    <ClCompile Include="..\..\hardware\ATAPI.c" />
     <ClCompile Include="..\..\hardware\CMOS.c" />
     <ClCompile Include="..\..\hardware\dma.c" />
-    <ClCompile Include="..\..\hardware\ems.c" />
     <ClCompile Include="..\..\hardware\floppy.c" />
     <ClCompile Include="..\..\hardware\ide.c" />
     <ClCompile Include="..\..\hardware\midi\adsr.c" />
     <ClCompile Include="..\..\hardware\midi\midi.c" />
     <ClCompile Include="..\..\hardware\midi\mididevice.c" />
     <ClCompile Include="..\..\hardware\midi\mpu.c" />
-    <ClCompile Include="..\..\hardware\pci.c" />
     <ClCompile Include="..\..\hardware\pcspeaker.c" />
     <ClCompile Include="..\..\hardware\pic.c" />
     <ClCompile Include="..\..\hardware\pit.c" />
-    <ClCompile Include="..\..\hardware\ppi.c" />
     <ClCompile Include="..\..\hardware\ps2_keyboard.c" />
     <ClCompile Include="..\..\hardware\ps2_keyboard_data.c" />
     <ClCompile Include="..\..\hardware\ps2_mouse.c" />
-    <ClCompile Include="..\..\hardware\sermouse.c" />
     <ClCompile Include="..\..\hardware\softdebugger.c" />
     <ClCompile Include="..\..\hardware\uart.c" />
     <ClCompile Include="..\..\hardware\vga\vga.c" />
@@ -95,6 +95,7 @@
     <ClCompile Include="..\..\hardware\vga\vga_dac.c" />
     <ClCompile Include="..\..\hardware\vga\vga_io.c" />
     <ClCompile Include="..\..\hardware\vga\vga_mmu.c" />
+    <ClCompile Include="..\..\hardware\vga\vga_modes.c" />
     <ClCompile Include="..\..\hardware\vga\vga_screen\vga_attributecontroller.c" />
     <ClCompile Include="..\..\hardware\vga\vga_screen\vga_crtcontroller.c" />
     <ClCompile Include="..\..\hardware\vga\vga_screen\vga_dacrenderer.c" />
@@ -204,20 +205,15 @@
     <ClInclude Include="..\..\headers\hardware\8253.h" />
     <ClInclude Include="..\..\headers\hardware\adlib.h" />
     <ClInclude Include="..\..\headers\hardware\cmos.h" />
-    <ClInclude Include="..\..\headers\hardware\ems.h" />
     <ClInclude Include="..\..\headers\hardware\floppy.h" />
-    <ClInclude Include="..\..\headers\hardware\ide.h" />
     <ClInclude Include="..\..\headers\hardware\midi\adsr.h" />
     <ClInclude Include="..\..\headers\hardware\midi\midi.h" />
     <ClInclude Include="..\..\headers\hardware\midi\mididevice.h" />
-    <ClInclude Include="..\..\headers\hardware\pci.h" />
     <ClInclude Include="..\..\headers\hardware\pcspeaker.h" />
     <ClInclude Include="..\..\headers\hardware\pic.h" />
     <ClInclude Include="..\..\headers\hardware\ports.h" />
-    <ClInclude Include="..\..\headers\hardware\ppi.h" />
     <ClInclude Include="..\..\headers\hardware\ps2_keyboard.h" />
     <ClInclude Include="..\..\headers\hardware\ps2_mouse.h" />
-    <ClInclude Include="..\..\headers\hardware\sermouse.h" />
     <ClInclude Include="..\..\headers\hardware\softdebugger.h" />
     <ClInclude Include="..\..\headers\hardware\uart.h" />
     <ClInclude Include="..\..\headers\hardware\vga.h" />
@@ -232,7 +228,6 @@
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_sequencer_graphicsmode.h" />
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_sequencer_textmode.h" />
     <ClInclude Include="..\..\headers\hardware\vga_screen\vga_vram.h" />
-    <ClInclude Include="..\..\headers\hardware\vga_screen\vga_vramtext.h" />
     <ClInclude Include="..\..\headers\hardware\vga_trident8900.h" />
     <ClInclude Include="..\..\headers\header_dosbox.h" />
     <ClInclude Include="..\..\headers\header_dosboxmpu.h" />
@@ -252,7 +247,6 @@
     <ClInclude Include="..\..\headers\mmu\mmuhandler.h" />
     <ClInclude Include="..\..\headers\mmu\paging.h" />
     <ClInclude Include="..\..\headers\packed.h" />
-    <ClInclude Include="..\..\headers\sdl_rest.h" />
     <ClInclude Include="..\..\headers\support\bmp.h" />
     <ClInclude Include="..\..\headers\support\crc32.h" />
     <ClInclude Include="..\..\headers\support\fifobuffer.h" />
@@ -267,16 +261,11 @@
     <ClInclude Include="..\..\headers\support\signedness.h" />
     <ClInclude Include="..\..\headers\support\zalloc.h" />
     <ClInclude Include="..\..\headers\types.h" />
-    <ClInclude Include="..\..\headers\types_base.h" />
-    <ClInclude Include="..\..\headers\types_linux.h" />
-    <ClInclude Include="..\..\headers\types_psp.h" />
-    <ClInclude Include="..\..\headers\types_win.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{087D6D2C-39CB-4118-A010-F28A50AEB005}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>x86EMU</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -290,7 +279,6 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
-    <UseOfMfc>false</UseOfMfc>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -305,16 +293,16 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IntDir>$(OutDir)\temp\</IntDir>
     <IncludePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
-    <ReferencePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25\(Platform)\Release;C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(ReferencePath)</ReferencePath>
-    <LibraryPath>C:\SDL\SDL_gfx-2.0.25\(Platform)\Release;C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(LibraryPath)</LibraryPath>
+    <ReferencePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\lib\x86;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\lib\x86;$(LibraryPath)</LibraryPath>
     <OutDir>\psp-projects_build\$(ProjectName)\</OutDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
-    <ReferencePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25\(Platform)\Release;C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(ReferencePath)</ReferencePath>
-    <LibraryPath>C:\SDL\SDL_gfx-2.0.25\(Platform)\Release;C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(LibraryPath)</LibraryPath>
+    <ReferencePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\lib\x86;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\SDL\SDL_gfx-2.0.25\Release;C:\SDL\SDL-1.2.15\lib\x86;$(LibraryPath)</LibraryPath>
     <OutDir>\psp-projects_build\$(ProjectName)</OutDir>
     <IntDir>$(TEMP)\$(ProjectName)</IntDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>
@@ -323,23 +311,19 @@
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <PreprocessorDefinitions>_WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>C:\SDL-1.2.15\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <EnablePREfast>false</EnablePREfast>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>MaxSpeed</Optimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <WarningLevel>Level3</WarningLevel>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Winmm.lib;SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;vld.lib;SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>Debug</GenerateDebugInformation>
-      <IgnoreSpecificDefaultLibraries>
-      </IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -349,24 +333,15 @@
       <AdditionalIncludeDirectories>C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnablePREfast>false</EnablePREfast>
-      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <Optimization>MaxSpeed</Optimization>
+      <MinimalRebuild>true</MinimalRebuild>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Winmm.lib;SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>Debug</GenerateDebugInformation>
-      <OptimizeReferences>false</OptimizeReferences>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <IgnoreSpecificDefaultLibraries>
-      </IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

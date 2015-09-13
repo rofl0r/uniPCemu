@@ -1,5 +1,0 @@
-Extra support:
-
-soundhandler for added channels: result byte.
-
-When result&1: Do mix samples, Else: Don't mix samples: Assume all 0 (support for disabled added channels).

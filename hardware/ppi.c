@@ -59,9 +59,9 @@ byte PPI_writeIO(word port, byte value)
 
 void initPPI()
 {
-	SystemControlPortB = 0x00; //Reset system control port B!
-	PPI62 = 0; //Set the default switches!
-	PPI63 = 0x6C; //Set the default switches!
+	SystemControlPortB = 0xFF; //Reset system control port B!
+	PPI62 = 0xFF; //Set the default switches!
+	PPI63 = 0xFF; //Set the default switches!
 
 	register_PORTIN(&PPI_readIO);
 	register_PORTOUT(&PPI_writeIO);

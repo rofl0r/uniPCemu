@@ -1,0 +1,298 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="PSP|Win32">
+      <Configuration>PSP</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\basicio\boot.c" />
+    <ClCompile Include="..\basicio\dskimage.c" />
+    <ClCompile Include="..\basicio\dynamicimage.c" />
+    <ClCompile Include="..\basicio\fopen64.c" />
+    <ClCompile Include="..\basicio\io.c" />
+    <ClCompile Include="..\basicio\port_io.c" />
+    <ClCompile Include="..\basicio\port_mapper.c" />
+    <ClCompile Include="..\basicio\staticimage.c" />
+    <ClCompile Include="..\bios\bios.c" />
+    <ClCompile Include="..\bios\biosmenu.c" />
+    <ClCompile Include="..\bios\biosrom.c" />
+    <ClCompile Include="..\bios\initmem.c" />
+    <ClCompile Include="..\cpu\cb_manager.c" />
+    <ClCompile Include="..\cpu\cpu.c" />
+    <ClCompile Include="..\cpu\cpu_interrupts.c" />
+    <ClCompile Include="..\cpu\cpu_jmptbls.c" />
+    <ClCompile Include="..\cpu\cpu_jmptbls0f.c" />
+    <ClCompile Include="..\cpu\flags.c" />
+    <ClCompile Include="..\cpu\modrm.c" />
+    <ClCompile Include="..\cpu\multitasking.c" />
+    <ClCompile Include="..\cpu\opcodes0F_386.c" />
+    <ClCompile Include="..\cpu\opcodes_386.c" />
+    <ClCompile Include="..\cpu\opcodes_486.c" />
+    <ClCompile Include="..\cpu\opcodes_586.c" />
+    <ClCompile Include="..\cpu\opcodes_80186.c" />
+    <ClCompile Include="..\cpu\opcodes_80286.c" />
+    <ClCompile Include="..\cpu\opcodes_8086.c" />
+    <ClCompile Include="..\cpu\protection.c" />
+    <ClCompile Include="..\cpu\unkop.c" />
+    <ClCompile Include="..\emu\core\emucore.c" />
+    <ClCompile Include="..\emu\core\emu_bios_post.c" />
+    <ClCompile Include="..\emu\core\emu_bios_sound.c" />
+    <ClCompile Include="..\emu\core\emu_main.c" />
+    <ClCompile Include="..\emu\core\emu_misc.c" />
+    <ClCompile Include="..\emu\core\emu_vga.c" />
+    <ClCompile Include="..\emu\core\emu_vga_bios.c" />
+    <ClCompile Include="..\emu\core\errors.c" />
+    <ClCompile Include="..\emu\core\number_optimizations.c" />
+    <ClCompile Include="..\emu\core\threads.c" />
+    <ClCompile Include="..\emu\debugger\debugger.c" />
+    <ClCompile Include="..\emu\debugger\debug_files.c" />
+    <ClCompile Include="..\emu\debugger\debug_graphics.c" />
+    <ClCompile Include="..\emu\debugger\debug_sound.c" />
+    <ClCompile Include="..\emu\debugger\runromverify.c" />
+    <ClCompile Include="..\emu\gpu\gpu.c" />
+    <ClCompile Include="..\emu\gpu\gpu_debug.c" />
+    <ClCompile Include="..\emu\gpu\gpu_emu.c" />
+    <ClCompile Include="..\emu\gpu\gpu_framerate.c" />
+    <ClCompile Include="..\emu\gpu\gpu_renderer.c" />
+    <ClCompile Include="..\emu\gpu\gpu_sdl.c" />
+    <ClCompile Include="..\emu\gpu\gpu_text.c" />
+    <ClCompile Include="..\emu\io\directorylist.c" />
+    <ClCompile Include="..\emu\io\input.c" />
+    <ClCompile Include="..\emu\io\keyboard.c" />
+    <ClCompile Include="..\emu\io\sound.c" />
+    <ClCompile Include="..\emu\main.c" />
+    <ClCompile Include="..\exception\exception.c" />
+    <ClCompile Include="..\hardware\8042.c" />
+    <ClCompile Include="..\hardware\adlib.c" />
+    <ClCompile Include="..\hardware\CMOS.c" />
+    <ClCompile Include="..\hardware\dma.c" />
+    <ClCompile Include="..\hardware\ems.c" />
+    <ClCompile Include="..\hardware\floppy.c" />
+    <ClCompile Include="..\hardware\ide.c" />
+    <ClCompile Include="..\hardware\midi\adsr.c" />
+    <ClCompile Include="..\hardware\midi\midi.c" />
+    <ClCompile Include="..\hardware\midi\mididevice.c" />
+    <ClCompile Include="..\hardware\midi\mpu.c" />
+    <ClCompile Include="..\hardware\pci.c" />
+    <ClCompile Include="..\hardware\pcspeaker.c" />
+    <ClCompile Include="..\hardware\pic.c" />
+    <ClCompile Include="..\hardware\pit.c" />
+    <ClCompile Include="..\hardware\ppi.c" />
+    <ClCompile Include="..\hardware\ps2_keyboard.c" />
+    <ClCompile Include="..\hardware\ps2_keyboard_data.c" />
+    <ClCompile Include="..\hardware\ps2_mouse.c" />
+    <ClCompile Include="..\hardware\sermouse.c" />
+    <ClCompile Include="..\hardware\softdebugger.c" />
+    <ClCompile Include="..\hardware\uart.c" />
+    <ClCompile Include="..\hardware\vga\vga.c" />
+    <ClCompile Include="..\hardware\vga\vga_colorconversion.c" />
+    <ClCompile Include="..\hardware\vga\vga_dac.c" />
+    <ClCompile Include="..\hardware\vga\vga_io.c" />
+    <ClCompile Include="..\hardware\vga\vga_mmu.c" />
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_attributecontroller.c" />
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_crtcontroller.c" />
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_dacrenderer.c" />
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_precalcs.c" />
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_sequencer.c" />
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_sequencer_graphicsmode.c" />
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_sequencer_textmode.c" />
+    <ClCompile Include="..\hardware\vga\vga_vram.c" />
+    <ClCompile Include="..\hardware\vga\vga_vramtext.c" />
+    <ClCompile Include="..\interrupts\interrupt10.c" />
+    <ClCompile Include="..\interrupts\interrupt10_modelist_vga.c" />
+    <ClCompile Include="..\interrupts\interrupt10_romfont.c" />
+    <ClCompile Include="..\interrupts\interrupt10_switchvideomode.c" />
+    <ClCompile Include="..\interrupts\interrupt10_textmodedata.c" />
+    <ClCompile Include="..\interrupts\interrupt11.c" />
+    <ClCompile Include="..\interrupts\interrupt12.c" />
+    <ClCompile Include="..\interrupts\interrupt13.c" />
+    <ClCompile Include="..\interrupts\interrupt15.c" />
+    <ClCompile Include="..\interrupts\interrupt16.c" />
+    <ClCompile Include="..\interrupts\interrupt18.c" />
+    <ClCompile Include="..\interrupts\interrupt19.c" />
+    <ClCompile Include="..\interrupts\interrupt1a.c" />
+    <ClCompile Include="..\interrupts\interrupt5.c" />
+    <ClCompile Include="..\interrupts\unkint.c" />
+    <ClCompile Include="..\mmu\mmu.c" />
+    <ClCompile Include="..\mmu\mmuhandler.c" />
+    <ClCompile Include="..\mmu\paging.c" />
+    <ClCompile Include="..\support\bmp.c" />
+    <ClCompile Include="..\support\crc32.c" />
+    <ClCompile Include="..\support\fifobuffer.c" />
+    <ClCompile Include="..\support\highrestimer.c" />
+    <ClCompile Include="..\support\isoreader.c" />
+    <ClCompile Include="..\support\lba.c" />
+    <ClCompile Include="..\support\locks.c" />
+    <ClCompile Include="..\support\log.c" />
+    <ClCompile Include="..\support\mid.c" />
+    <ClCompile Include="..\support\sf2.c" />
+    <ClCompile Include="..\support\signedness.c" />
+    <ClCompile Include="..\support\state.c" />
+    <ClCompile Include="..\support\timers.c" />
+    <ClCompile Include="..\support\zalloc.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\emu\io\sound.txt" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{087D6D2C-39CB-4118-A010-F28A50AEB005}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>x86EMU</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <UseOfMfc>false</UseOfMfc>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PSP|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <UseOfMfc>false</UseOfMfc>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='PSP|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IntDir>$(OutDir)\temp\</IntDir>
+    <IncludePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
+    <ReferencePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25\(Platform)\Release;C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\SDL\SDL_gfx-2.0.25\(Platform)\Release;C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(LibraryPath)</LibraryPath>
+    <OutDir>\psp-projects_build\$(ProjectName)\</OutDir>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
+    <ReferencePath>\psp-projects\x86EMU;C:\SDL\SDL_gfx-2.0.25\(Platform)\Release;C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\SDL\SDL_gfx-2.0.25\(Platform)\Release;C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(LibraryPath)</LibraryPath>
+    <OutDir>\psp-projects_build\$(ProjectName)</OutDir>
+    <IntDir>$(TEMP)\$(ProjectName)</IntDir>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PSP|Win32'">
+    <IncludePath>C:\pspsdk\psp\sdk\include</IncludePath>
+    <ReferencePath>
+    </ReferencePath>
+    <LibraryPath>
+    </LibraryPath>
+    <OutDir>\psp-projects_build\$(ProjectName)</OutDir>
+    <IntDir>$(TEMP)\$(ProjectName)</IntDir>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <LibraryWPath />
+    <SourcePath />
+    <ExcludePath />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <PreprocessorDefinitions>_WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\SDL-1.2.15\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <EnablePREfast>false</EnablePREfast>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <WarningLevel>Level3</WarningLevel>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Winmm.lib;SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>Debug</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <AdditionalIncludeDirectories>C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnablePREfast>false</EnablePREfast>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Winmm.lib;SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>Debug</GenerateDebugInformation>
+      <OptimizeReferences>false</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='PSP|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <AdditionalIncludeDirectories>C:\SDL\SDL_gfx-2.0.25;C:\SDL\SDL-1.2.15\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>
+      </PreprocessorDefinitions>
+      <EnablePREfast>false</EnablePREfast>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Winmm.lib;SDL.lib;SDLmain.lib;SDL_gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>Debug</GenerateDebugInformation>
+      <OptimizeReferences>false</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

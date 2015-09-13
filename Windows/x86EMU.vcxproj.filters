@@ -1,0 +1,447 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\basicio">
+      <UniqueIdentifier>{bba731f3-6dd2-4935-b752-16b214e769e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\bios">
+      <UniqueIdentifier>{a6f50b40-5a1f-497f-8fe6-d7e28f34c8f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\cpu">
+      <UniqueIdentifier>{b0a250ff-53e7-4618-ac3a-63f90ee1b239}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\emu">
+      <UniqueIdentifier>{cb802722-75fc-4b18-9a3f-5b89d24c289c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\exception">
+      <UniqueIdentifier>{465c5513-b0c5-4ee2-8be5-261eb6fbbb78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\hardware">
+      <UniqueIdentifier>{33d06b07-4627-4b63-a188-550026a25d24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\interrupts">
+      <UniqueIdentifier>{1097e508-3045-44f7-acbd-465040afc1f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\mmu">
+      <UniqueIdentifier>{985c688f-f02e-42bd-9b37-63983b2dc498}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\support">
+      <UniqueIdentifier>{8fc296bb-e9fa-4523-b237-c12bf23b3a21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\emu\core">
+      <UniqueIdentifier>{257ae53f-b392-486a-804a-4b32dd9f7164}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\emu\debugger">
+      <UniqueIdentifier>{54ecb851-6be2-40d2-b317-9f8241556973}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\emu\gpu">
+      <UniqueIdentifier>{bb00bd28-c62b-4e09-b01f-9d9c0755a8ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\emu\io">
+      <UniqueIdentifier>{5837b09e-68ce-46ff-b77f-ebdb28ac5543}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\hardware\midi">
+      <UniqueIdentifier>{dbab9532-9023-42a8-b256-310c7a2a07fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\hardware\vga">
+      <UniqueIdentifier>{d27df0b2-3cc1-4df9-bded-cd495086b566}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\hardware\vga\vga_screen">
+      <UniqueIdentifier>{1d70445e-9adb-4018-85e7-c929dae01ffc}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\basicio\boot.c">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\basicio\dskimage.c">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\basicio\dynamicimage.c">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\basicio\fopen64.c">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\basicio\io.c">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\basicio\port_io.c">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\basicio\port_mapper.c">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\basicio\staticimage.c">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\bios\bios.c">
+      <Filter>Source Files\bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\bios\biosmenu.c">
+      <Filter>Source Files\bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\bios\biosrom.c">
+      <Filter>Source Files\bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\bios\initmem.c">
+      <Filter>Source Files\bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\main.c">
+      <Filter>Source Files\emu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\emu_bios_post.c">
+      <Filter>Source Files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\emu_bios_sound.c">
+      <Filter>Source Files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\emu_main.c">
+      <Filter>Source Files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\emu_misc.c">
+      <Filter>Source Files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\emu_vga.c">
+      <Filter>Source Files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\emu_vga_bios.c">
+      <Filter>Source Files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\emucore.c">
+      <Filter>Source Files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\debugger\debug_files.c">
+      <Filter>Source Files\emu\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\debugger\debug_graphics.c">
+      <Filter>Source Files\emu\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\debugger\debug_sound.c">
+      <Filter>Source Files\emu\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\debugger\debugger.c">
+      <Filter>Source Files\emu\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\debugger\runromverify.c">
+      <Filter>Source Files\emu\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\gpu\gpu.c">
+      <Filter>Source Files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\gpu\gpu_debug.c">
+      <Filter>Source Files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\gpu\gpu_emu.c">
+      <Filter>Source Files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\gpu\gpu_framerate.c">
+      <Filter>Source Files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\gpu\gpu_renderer.c">
+      <Filter>Source Files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\gpu\gpu_sdl.c">
+      <Filter>Source Files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\gpu\gpu_text.c">
+      <Filter>Source Files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\io\directorylist.c">
+      <Filter>Source Files\emu\io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\io\input.c">
+      <Filter>Source Files\emu\io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\io\keyboard.c">
+      <Filter>Source Files\emu\io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\io\sound.c">
+      <Filter>Source Files\emu\io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exception\exception.c">
+      <Filter>Source Files\exception</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\8042.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\adlib.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\CMOS.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\dma.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\ems.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\floppy.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\ide.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\pci.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\pcspeaker.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\pic.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\pit.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\ppi.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\ps2_keyboard.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\ps2_keyboard_data.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\ps2_mouse.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\sermouse.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\softdebugger.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\uart.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\midi\adsr.c">
+      <Filter>Source Files\hardware\midi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\midi\midi.c">
+      <Filter>Source Files\hardware\midi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\midi\mididevice.c">
+      <Filter>Source Files\hardware\midi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\midi\mpu.c">
+      <Filter>Source Files\hardware\midi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga.c">
+      <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_colorconversion.c">
+      <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_dac.c">
+      <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_io.c">
+      <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_mmu.c">
+      <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_vram.c">
+      <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_vramtext.c">
+      <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_attributecontroller.c">
+      <Filter>Source Files\hardware\vga\vga_screen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_crtcontroller.c">
+      <Filter>Source Files\hardware\vga\vga_screen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_dacrenderer.c">
+      <Filter>Source Files\hardware\vga\vga_screen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_precalcs.c">
+      <Filter>Source Files\hardware\vga\vga_screen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_sequencer.c">
+      <Filter>Source Files\hardware\vga\vga_screen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_sequencer_graphicsmode.c">
+      <Filter>Source Files\hardware\vga\vga_screen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_screen\vga_sequencer_textmode.c">
+      <Filter>Source Files\hardware\vga\vga_screen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt1a.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt5.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt10.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt10_modelist_vga.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt10_romfont.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt10_switchvideomode.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt10_textmodedata.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt11.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt12.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt13.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt15.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt16.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt18.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\interrupt19.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\interrupts\unkint.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mmu\mmu.c">
+      <Filter>Source Files\mmu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mmu\mmuhandler.c">
+      <Filter>Source Files\mmu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mmu\paging.c">
+      <Filter>Source Files\mmu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\bmp.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\crc32.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\fifobuffer.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\highrestimer.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\isoreader.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\lba.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\locks.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\log.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\mid.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\sf2.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\signedness.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\state.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\timers.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\support\zalloc.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\cb_manager.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\cpu.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\cpu_interrupts.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\cpu_jmptbls.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\cpu_jmptbls0f.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\flags.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\modrm.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\multitasking.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\opcodes_386.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\opcodes_486.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\opcodes_586.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\opcodes_8086.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\opcodes_80186.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\opcodes_80286.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\opcodes0F_386.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\protection.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpu\unkop.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\errors.c">
+      <Filter>Source Files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\number_optimizations.c">
+      <Filter>Source Files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\threads.c">
+      <Filter>Source Files\emu\core</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\emu\io\sound.txt">
+      <Filter>Source Files\emu\io</Filter>
+    </Text>
+  </ItemGroup>
+</Project>

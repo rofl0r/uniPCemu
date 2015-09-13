@@ -16,7 +16,7 @@
 #define __HW_DISABLED 0
 
 //Show BIOS data area Equipment word?
-//#define SHOW_EQUIPMENT_WORD
+#define SHOW_EQUIPMENT_WORD
 
 
 //Define pixel(stage/(scan&)newline) speed?
