@@ -91,7 +91,7 @@ void resetMMU()
 		}
 	}
 	memory_allowresize = 1; //Allow resizing again!
-	if (!MMU.size) //No size?
+	if (!MMU.size || !MMU.memory) //No size?
 	{
 		raiseError("MMU","No memory available to use!");
 	}

@@ -14,7 +14,7 @@ byte PPI_readIO(word port, byte *result)
 		return 1;
 		break;
 	case 0x62: //PPI62?
-		*result = PPI62; //Read the value!
+		*result = ((PPI62|4)&~8); //Read the value, only 2 floppy drives (bit 3=0)!
 		return 1;
 		break;
 	case 0x63: //PPI63?

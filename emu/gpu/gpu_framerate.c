@@ -16,7 +16,7 @@
 #define __HW_DISABLED 0
 
 //Show BIOS data area Equipment word?
-#define SHOW_EQUIPMENT_WORD
+//#define SHOW_EQUIPMENT_WORD
 
 
 //Define pixel(stage/(scan&)newline) speed?
@@ -122,8 +122,11 @@ void renderFramerate()
 				}
 			#endif
 			#ifdef SHOW_EQUIPMENT_WORD
-				GPU_textgotoxy(frameratesurface,0, 2);
-				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0x22, 0x22, 0x22), "%04X", MMU_directrw(0x410)); //Show the BIOS equipment word!
+				if (hasmemory())
+				{
+					GPU_textgotoxy(frameratesurface,0, 2);
+					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0x22, 0x22, 0x22), "%04X", MMU_directrw(0x410)); //Show the BIOS equipment word!
+				}
 			#endif
 		}
 		else //Don't debug framerate, but still render?
