@@ -533,6 +533,7 @@ void updateDMA()
 	DMA_timing += getnspassed(&DMATicks); //Get time passed!
 	if (DMA_timing >= DMA_Frequency) //To tick?
 	{
+		DMA_timing = (float)fmod(DMA_timing,10000.0f); //No more than 10000 at a time!
 		for (;DMA_timing >= DMA_Frequency;) //While ticking?
 		{
 			DMA_tick(); //Tick the DMA!

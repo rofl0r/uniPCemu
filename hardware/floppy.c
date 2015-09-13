@@ -11,7 +11,7 @@
 //Configuration of the FDC...
 
 //Double logging if FLOPPY_LOGFILE2 is defined!
-#define FLOPPY_LOGFILE "floppy"
+//#define FLOPPY_LOGFILE "floppy"
 //#define FLOPPY_LOGFILE2 "debugger"
 
 //What IRQ is expected of floppy disk I/O

@@ -353,7 +353,7 @@ OPTINLINE void debugger_flush()
 		softdebugger.command = 1; //Enter command mode!
 		softdebugger.readcommand = 1; //Read causes invalid data!
 	}
-	else if (!strcmp(softdebugger.writtendata,"")) //Plain output and not an empty line?
+	else if (strcmp(softdebugger.writtendata,"")!=0) //Plain output and not an empty line?
 	{
 		dolog(softdebugger.data.outputfilename,softdebugger.writtendata); //Add the written data to the debugger on a new line!
 	}
