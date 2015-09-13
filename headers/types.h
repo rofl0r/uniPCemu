@@ -24,12 +24,15 @@
 
 //Platform specific stuff!
 #ifdef _WIN32
+//Windows?
 #include "headers/types_win.h" //Windows specific stuff!
 #else
 #include "headers/sdl_rest.h" //Rest SDL support!
 #ifdef __psp__
+//PSP?
 #include "headers/types_psp.h" //PSP specific stuff!
 #else
+//Linux?
 #include "headers/types_linux.h" //Linux specific stuff!
 #endif
 #endif
@@ -42,16 +45,6 @@
 
 //Halt is redirected to the exit function!
 #define halt exit
-
-#ifndef uint_64
-#define uint_64 uint64_t
-#define int_64 int64_t
-#endif
-
-#ifndef uint_32
-#define uint_32 uint32_t
-#define int_32 int32_t
-#endif
 
 //Short versions of 64-bit integers!
 #define u64 uint_64

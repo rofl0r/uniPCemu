@@ -1,5 +1,7 @@
-#ifndef __EMUTYPES_WIN_H
-#define __EMUTYPES_WIN_H
+#ifndef __EMU_WIN_H
+#define __EMU_WIN_H
+
+#include "headers/types_base.h" //Base types!
 
 //Normal SDL libraries
 #include "SDL.h" //SDL library for windows!

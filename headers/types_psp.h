@@ -1,4 +1,7 @@
-#pragma once
+#ifndef __EMU_PSP_H
+#define __EMU_PSP_H
+
+#include "headers/types_base.h" //Base types!
 
 #define delay(us) sceKernelDelayThread(us?us:1)
 #define sleep sceKernelSleepThread
@@ -24,4 +27,7 @@
 #define ENUM32
 #define ENUMS32
 
+//PSP pointers are always 32-bit!
 typedef uint_32 ptrnum;
+
+#endif

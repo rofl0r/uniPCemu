@@ -267,6 +267,7 @@
     <ClInclude Include="..\..\headers\support\signedness.h" />
     <ClInclude Include="..\..\headers\support\zalloc.h" />
     <ClInclude Include="..\..\headers\types.h" />
+    <ClInclude Include="..\..\headers\types_base.h" />
     <ClInclude Include="..\..\headers\types_linux.h" />
     <ClInclude Include="..\..\headers\types_psp.h" />
     <ClInclude Include="..\..\headers\types_win.h" />

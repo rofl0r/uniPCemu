@@ -853,5 +853,8 @@
     <ClInclude Include="..\..\headers\hardware\ems.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\headers\types_base.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

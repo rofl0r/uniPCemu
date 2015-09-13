@@ -1,5 +1,8 @@
-#ifndef __EMUTYPES_LINUX_H
-#define __EMUTYPES_LINUX_H
+#ifndef __EMU_LINUX_H
+#define __EMU_LINUX_H
+
+#include "headers/types_base.h" //Base types!
+
 
 #include <sys/stat.h>
 
