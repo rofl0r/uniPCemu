@@ -515,6 +515,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	ATA[channel].longop = 0; //Default: no long operation!
 	int drive;
 	byte temp;
+	uint_32 disk_size; //For checking against boundaries!
 	switch (command) //What command?
 	{
 	case 0x90: //Execute drive diagnostic?
@@ -652,6 +653,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		break;
 	case 0x40: //Read verify sector(s) (w/retry)?
 	case 0x41: //Read verify sector(s) (w/o retry)?
+		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
 		{
@@ -667,12 +669,21 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
 		nextverification: //Verify the next sector!
-		if (ATA_readsector(channel, command)) //OK?
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address<=disk_size) //OK?
 		{
-			if (ATA[channel].datasize && !ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error) //No error and still left?
+			++ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address; //Next sector!
+			if (--ATA[channel].datasize) //Still left?
 			{
 				goto nextverification; //Verify the next sector!
 			}
+		}
+		else //Out of range?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //Reset error register!
+			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.idmarknotfound = 1; //Not found!
+			ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 1; //Error!
+			ATA_updatesector(channel); //Update the current sector!
+			ATA[channel].commandstatus = 0xFF; //Error!
 		}
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error) //Finished OK?
 		{
