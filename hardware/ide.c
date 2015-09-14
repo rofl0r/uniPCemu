@@ -124,9 +124,14 @@ OPTINLINE byte ATA_activeDrive(byte channel)
 	return ATA[channel].activedrive; //Give the drive or 0xFF if invalid!
 }
 
+OPTINLINE uint_32 read_LBA(byte channel)
+{
+	return (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA & 0xFFFFFFF); //Give the LBA register contents!
+}
+
 OPTINLINE uint_32 ATA_CHS2LBA(byte channel, byte slave, word cylinder, byte head, byte sector)
 {
-	return ((cylinder*ATA[channel].Drive[slave].driveparams[55]) + head)*ATA[channel].Drive[slave].driveparams[56]+sector-1; //Give the LBA value!
+	return ((cylinder*ATA[channel].Drive[slave].driveparams[55]) + head)*ATA[channel].Drive[slave].driveparams[56] + sector - 1; //Give the LBA value!
 }
 
 OPTINLINE void ATA_LBA2CHS(byte channel, byte slave, uint_32 LBA, word *cylinder, byte *head, byte *sector)
@@ -146,7 +151,7 @@ byte ATA_DrivesReverse[4][2]; //All Drive to ATA mounted drives conversion!
 
 OPTINLINE void ATA_IRQ(byte channel, byte slave)
 {
-	if (!ATA[channel].DriveControlRegister.nIEN) //Allow interrupts?
+	if ((!ATA[channel].DriveControlRegister.nIEN) && (!ATA[channel].DriveControlRegister.SRST) && (ATA_activeDrive(channel)==slave)) //Allow interrupts?
 	{
 		switch (channel)
 		{
@@ -164,7 +169,7 @@ OPTINLINE void ATA_IRQ(byte channel, byte slave)
 
 OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 {
-	if (!ATA[channel].DriveControlRegister.nIEN) //Allow interrupts?
+	if ((!ATA[channel].DriveControlRegister.nIEN) && (!ATA[channel].DriveControlRegister.SRST) && (ATA_activeDrive(channel) == slave)) //Allow interrupts?
 	{
 		switch (channel)
 		{
@@ -291,7 +296,10 @@ OPTINLINE uint_32 getControlPORTaddress(byte channel)
 
 OPTINLINE word get_cylinders(uint_64 disk_size)
 {
-	return (word)floor((double)disk_size / (63 * 16)); //How many cylinders!
+	uint_32 cylinders=0;
+	cylinders = (uint_32)floor((double)disk_size / (63 * 16)); //How many cylinders!
+	++cylinders; //We start at 1, not 0!
+	return (cylinders<=0xFFFF)?cylinders:0xFFFF; //Give the maximum amount of cylinders!
 }
 
 OPTINLINE word get_heads(uint_64 disk_size)
@@ -331,7 +339,7 @@ OPTINLINE void ATA_updatesector(byte channel) //Update the current sector!
 
 OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sector set up!
 {
-	uint_64 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
+	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 	if (ATA[channel].commandstatus == 1) //We're reading already?
 	{
 		if (!--ATA[channel].datasize) //Finished?
@@ -342,8 +350,11 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 			return 1; //We're finished!
 		}
 	}
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address >= disk_size) //Past the end of the disk?
+	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
 	{
+#ifdef ATA_LOG
+		dolog("ATA", "Read Sector out of range:%i,%i=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, disk_size);
+#endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.idmarknotfound = 1; //Not found!
 		ATA_updatesector(channel); //Update the current sector!
 		ATA[channel].commandstatus = 0xFF; //Error!
@@ -375,11 +386,11 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 
 OPTINLINE byte ATA_writesector(byte channel)
 {
-	uint_64 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address >= disk_size) //Past the end of the disk?
+	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
+	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
 	{
 #ifdef ATA_LOG
-		dolog("ATA", "Sector out of range!");
+		dolog("ATA", "Write Sector out of range:%i,%i=%08X/%08X!",channel,ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address,disk_size);
 #endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.idmarknotfound = 1; //Not found!
 		ATA_updatesector(channel); //Update the current sector!
@@ -449,6 +460,8 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 	{
 	case 0x20:
 	case 0x21: //Read sectors?
+	case 0x22: //Read long (w/retry)?
+	case 0x23: //Read long (w/o retry)?
 		result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 		if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 		{
@@ -478,6 +491,8 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 	{
 	case 0x30: //Write sector(s) (w/retry)?
 	case 0x31: //Write sectors (w/o retry)?
+	case 0x32: //Write long (w/retry)?
+	case 0x33: //Write long (w/o retry)?
 		ATA[channel].data[ATA[channel].datapos++] = data; //Write the data byte!
 		if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 		{
@@ -619,7 +634,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
 		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA & 0xFFFFFFF); //The LBA address!
+			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = read_LBA(channel); //The LBA address!
 		}
 		else //Normal CHS address?
 		{
@@ -640,7 +655,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
 		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA & 0xFFFFFFF); //The LBA address!
+			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = read_LBA(channel); //The LBA address!
 		}
 		else //Normal CHS address?
 		{
@@ -661,7 +676,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error) //Finished OK?
 		{
-			ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise the OK IRQ!
+			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the OK IRQ!
 		}
 		break;
 	case 0x32: //Write long (w/retry)?
@@ -675,7 +690,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
 		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA & 0xFFFFFFF); //The LBA address!
+			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = read_LBA(channel); //The LBA address!
 		}
 		else //Normal CHS address?
 		{
@@ -1179,6 +1194,7 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = 0xFFFF; //Buffer size in sectors!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = (1<<9); //LBA supported, DMA unsupported!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer timing node!
+			--disk_size; //LBA is 0-based, not 1 based!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable sectors, low word!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (word)(disk_size >> 16); //Number of addressable sectors, high word!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[80] = 0x02; //Supports ATA-1!
