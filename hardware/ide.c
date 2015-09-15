@@ -299,7 +299,7 @@ OPTINLINE word get_cylinders(uint_64 disk_size)
 	uint_32 cylinders=0;
 	cylinders = (uint_32)floor((double)disk_size / (63 * 16)); //How many cylinders!
 	++cylinders; //We start at 1, not 0!
-	return (cylinders<=0xFFFF)?cylinders:0xFFFF; //Give the maximum amount of cylinders!
+	return (cylinders>=0x3FFF)?0x3FFF:cylinders; //Give the maximum amount of cylinders allowed!
 }
 
 OPTINLINE word get_heads(uint_64 disk_size)
