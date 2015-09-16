@@ -294,6 +294,17 @@ OPTINLINE uint_32 getControlPORTaddress(byte channel)
 	}
 }
 
+void ATA_updateCapacity(byte channel, byte slave)
+{
+	uint_32 sectors;
+	sectors = ATA[channel].Drive[slave].driveparams[54]; //Current cylinders!
+	sectors *= ATA[channel].Drive[slave].driveparams[55]; //Current heads!
+	sectors *= ATA[channel].Drive[slave].driveparams[56]; //Current sectors per track!
+	ATA[channel].Drive[slave].driveparams[57] = (word)(sectors&0xFFFF);
+	sectors >>= 16;
+	ATA[channel].Drive[slave].driveparams[58] = (word)(sectors&0xFFFF);
+}
+
 word get_cylinders(uint_64 disk_size)
 {
 	uint_32 cylinders=0;
@@ -724,6 +735,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].commandstatus = 0; //Requesting command again!
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[55] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head + 1); //Set the current maximum head!
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[56] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount); //Set the current sectors per track!
+		ATA_updateCapacity(channel,ATA_activeDrive(channel)); //Update the capacity!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
 		break;
@@ -1208,6 +1220,7 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable sectors, low word!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (word)(disk_size >> 16); //Number of addressable sectors, high word!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[80] = 0x02; //Supports ATA-1!
+			ATA_updateCapacity(disk_channel,disk_ATA); //Update the drive capacity!
 		}
 		else //Drive not inserted?
 		{
