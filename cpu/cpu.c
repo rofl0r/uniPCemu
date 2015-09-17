@@ -637,17 +637,7 @@ void CPU_OP(byte OP) //Normal CPU opcode execution!
 
 void CPU_beforeexec()
 {
-	if (CPU[activeCPU].registers->SFLAGS.TF) //Trapped?
-	{
-		CPU_exSingleStep(); //Type-1 interrupt: Single step interrupt!
-		CPU_afterexec(); //All after execution fixing!
-		CPU[activeCPU].trapped = 1; //We're trapped! Don't allow hardware interrupts to intervene!
-	}
-	else
-	{
-		CPU[activeCPU].trapped = 0; //We're not trapped (allow hardware interrupts)!
-	}
-
+	CPU[activeCPU].trapped = CPU[activeCPU].registers->SFLAGS.TF; //Are we to be trapped this instruction?
 	switch (EMULATED_CPU)
 	{
 	case CPU_8086:
@@ -905,6 +895,12 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 		CPU[activeCPU].registers->EFLAGS &= 0xFFFF; //Convert to 16-bits: we only have 16-bits flags!
 	}
 	CPU[activeCPU].faultraised = 0; //We don't have a fault anymore! Continue on!
+
+	if (CPU[activeCPU].registers->SFLAGS.TF && CPU[activeCPU].trapped) //Trapped and to be trapped this instruction?
+	{
+		CPU_exSingleStep(); //Type-1 interrupt: Single step interrupt!
+		CPU_afterexec(); //All after execution fixing!
+	}
 }
 
 void CPU_debugger_STOP() //Stops on debugging!
