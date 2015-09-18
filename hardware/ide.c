@@ -30,6 +30,8 @@ struct
 	byte commandstatus; //Do we have a command?
 	struct
 	{
+		byte ATAPI_processingPACKET; //Are we processing a packet or data for the ATAPI device?
+		byte ATAPI_PACKET[12]; //Full ATAPI packet!
 		union
 		{
 			struct
@@ -463,6 +465,49 @@ OPTINLINE byte ATA_writesector(byte channel)
 	return 0; //Finished!
 }
 
+OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
+{
+	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
+	if (ATA[channel].commandstatus == 1) //We're reading already?
+	{
+		if (!--ATA[channel].datasize) //Finished?
+		{
+			ATA[channel].commandstatus = 0; //We're back in command mode!
+			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
+			return 1; //We're finished!
+		}
+	}
+	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
+	{
+#ifdef ATA_LOG
+		dolog("ATA", "Read Sector out of range:%i,%i=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, disk_size);
+#endif
+		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.idmarknotfound = 1; //Not found!
+		ATA[channel].commandstatus = 0xFF; //Error!
+		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
+		return 0; //Stop!
+	}
+
+	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x800)) //Read the data from disk?
+	{
+		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
+		ATA_increasesector(channel); //Increase the current sector!
+
+		ATA[channel].datablock = 0x800; //We're refreshing after this many bytes!
+		ATA[channel].datapos = 0; //Initialise our data position!
+		ATA[channel].commandstatus = 1; //Transferring data IN!
+		return 1; //Process the block!
+	}
+	else //Error reading?
+	{
+		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.idmarknotfound = 1; //Not found!
+		ATA[channel].commandstatus = 0xFF; //Error!
+		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
+		return 0; //Stop!
+	}
+	return 1; //We're finished!
+}
+
 OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 {
 	byte result;
@@ -482,7 +527,35 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 		}
         return result; //Give the result!
 		break;
+	case 0xA0: //PACKET?
+		if (!ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET) //Sending data?
+		{
+			switch (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[0]) //What command?
+			{
+			case 0x25: //Read capacity?
+				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
+				if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
+				{
+
+				}
+				break;
+			case 0xA8: //Read sector?
+				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
+				if (ATA[channel].datapos==ATA[channel].datablock) //Full block read?
+				{
+					if (ATAPI_readsector(channel)) //Next sector read?
+					{
+						ATA[channel].datapos = 0; //Start the next sector!
+					}
+				}
+				break;
+			default: //Unknown command?
+				break;
+			}
+		}
+		break;
 	case 0xEC: //Identify?
+	case 0xA1: //IDENTIFY PACKET DEVICE?
 		result = ATA[channel].data[ATA[channel].datapos++]; //Read the result byte!
 		if (ATA[channel].datapos == ATA[channel].datablock) //Fully read?
 		{
@@ -494,6 +567,9 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 	}
 	return 0; //Unknown data!
 }
+
+void ATAPI_executeCommand(byte channel); //Prototype for ATAPI execute Command!
+void ATAPI_executeData(byte channel); //Prototype for ATAPI data processing!
 
 OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 {
@@ -512,10 +588,89 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 			}
 		}
 		break;
+	case 0xA0: //ATAPI: PACKET!
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET) //Are we processing a packet?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[ATA[channel].datapos++] = data; //Add the packet byte!
+			if (ATA[channel].datapos==12) //Full packet written?
+			{
+				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not processing a packet anymore, from now on we're data only!
+				ATA_IRQ(channel,ATA_activeDrive(channel)); //We're not DMA, so execute an IRQ: we're ready to process data!
+				ATAPI_executeCommand(channel); //Execute the ATAPI command!
+			}
+		}
+		else //We're processing data for an ATAPI packet?
+		{
+			ATA[channel].data[ATA[channel].datapos++] = data; //Write the data byte!
+			if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
+			{
+				ATAPI_executeData(channel); //Execute the data process!
+			}
+		}
+		break;
 	default: //Unknown?
 		break;
 	}
 }
+
+void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
+{
+	switch (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[0]) //What command?
+	{
+	case 0xA8: //Read sectors command!
+		ATA[channel].commandstatus = 0; //Reset status: we're done!
+		ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're done!
+		break;
+	}	
+}
+
+void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
+{
+	byte drive;
+	drive = ATA_activeDrive(channel); //The current drive!
+	uint_32 disk_size,LBA,sectors;
+	disk_size = (ATA[channel].Drive[drive].driveparams[61]<<16) | ATA[channel].Drive[drive].driveparams[60]; //Disk size in 512 byte sectors!
+	disk_size >>= 2; //We're 4096 byte sectors instead of 512 byte sectors!
+	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
+	{
+	case 0xA8: //Read sectors command!
+		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
+		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
+		if (LBA>disk_size) goto ATAPI_invalidcommand; //Error out when invalid sector!
+		sectors = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //How many sectors to transfer?
+		ATA[channel].datapos = 0; //Start of data!
+		ATA[channel].datablock = 0x800; //Size of a sector to transfer!
+		goto ATAPI_invalidcommand; //Error out: not finished yet!
+		break;
+	case 0x25: //Read capacity?
+		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		ATA[channel].datapos = 0; //Start of data!
+		ATA[channel].datablock = 8; //Size of a block of information to transfer!
+		ATA[channel].data[0] = (disk_size&0xFF);
+		ATA[channel].data[1] = ((disk_size>>8) & 0xFF);
+		ATA[channel].data[2] = ((disk_size>>16) & 0xFF);
+		ATA[channel].data[3] = ((disk_size>>24) & 0xFF);
+		ATA[channel].data[4] = 0;
+		ATA[channel].data[5] = 8;
+		ATA[channel].data[6] = 0;
+		ATA[channel].data[7] = 0; //We're 4096 byte sectors!
+		ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're finished!
+		break;
+	default:
+		dolog("ATAPI","Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
+		ATAPI_invalidcommand:
+		ATA[channel].Drive[drive].ERRORREGISTER.data = 4; //Reset error register!
+		ATA[channel].Drive[drive].STATUSREGISTER.data = 0; //Clear status!
+		ATA[channel].Drive[drive].STATUSREGISTER.driveready = 1; //Ready!
+		ATA[channel].Drive[drive].STATUSREGISTER.error = 1; //Ready!
+		//Reset of the status register is 0!
+		ATA[channel].commandstatus = 0xFF; //Move to error mode!
+		ATA_IRQ(channel, ATA_activeDrive(channel));
+		break;
+	}
+}
+
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
 {
@@ -739,12 +894,20 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
 		break;
+	case 0xA1: //ATAPI: IDENTIFY PACKET DEVICE!
+		if (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0 && ATA_Drives[channel][ATA_activeDrive(channel)]) //CDROM drive?
+		{
+			ATA[channel].command = 0xA1; //We're running this command!
+			goto CDROMIDENTIFY; //Execute CDROM identification!
+		}
+		goto invalidcommand; //We're an invalid command: we're not a CDROM drive!
 	case 0xEC: //Identify drive?
 #ifdef ATA_LOG
 		dolog("ATA", "IDENTIFY:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //CDROM errors out!
 		ATA[channel].command = 0xEC; //We're running this command!
+		CDROMIDENTIFY:
 		memcpy(&ATA[channel].data, &ATA[channel].Drive[ATA_activeDrive(channel)].driveparams, sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams)); //Set drive parameters currently set!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear any errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
@@ -757,6 +920,19 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].datablock = sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams); //512 byte result!
 		ATA[channel].commandstatus = 1; //We're requesting data to be read!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Execute an IRQ from us!
+		break;
+	case 0xA0: //ATAPI: PACKET!
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
+		ATA[channel].command = 0xA0; //We're sending a ATAPI packet!
+		ATA[channel].datablock = 12; //We're receiving 12 bytes for the ATAPI packet!
+		ATA[channel].datapos = 0; //Initialise data position for the packet!
+		ATA[channel].commandstatus = 2; //We're requesting data to be written!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear any errors!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 12; //We're requesting...
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0; //12 bytes of data to be transferred!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 1; //We're processing an ATAPI/SCSI packet!
+		ATA_IRQ(channel,ATA_activeDrive(channel)); //Execute an IRQ: we're ready to receive the packet!
 		break;
 	case 0xDA: //Get media status?
 #ifdef ATA_LOG
@@ -1253,7 +1429,7 @@ void initATA()
 	//First, detect HDDs!
 	memset(ATA_Drives, 0, sizeof(ATA_Drives)); //Init drives to unused!
 	memset(ATA_DrivesReverse, 0, sizeof(ATA_DrivesReverse)); //Init reverse drives to unused!
-	//byte CDROM_channel = 1; //CDROM is the second channel by default!
+	byte CDROM_channel = 1; //CDROM is the second channel by default!
 	if (has_drive(HDD0)) //Have HDD0?
 	{
 		ATA_Drives[0][0] = HDD0; //Mount HDD0!
@@ -1266,13 +1442,12 @@ void initATA()
 	{
 		ATA_Drives[0][0] = HDD1; //Mount HDD1!
 	}
-	/*else
+	else
 	{
 		CDROM_channel = 0; //Move CDROM to primary channel!
-	}*/
-	//CDROM emulation isn't finished yet!
-	//ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
-	//ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as master!
+	}
+	ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
+	ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as master!
 	int i,j,k;
 	int disk_reverse[4] = { HDD0,HDD1,CDROM0,CDROM1 }; //Our reverse lookup information values!
 	for (i = 0;i < 4;i++) //Check all drives mounted!
