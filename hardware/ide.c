@@ -25,7 +25,7 @@ struct
 	uint_32 datapos; //Data position?
 	uint_32 datablock; //How large is a data block to be refreshed?
 	uint_32 datasize; //Data size?
-	byte data[512]; //Full sector data!
+	byte data[4096]; //Full sector data!
 	byte command;
 	byte commandstatus; //Do we have a command?
 	struct
@@ -545,7 +545,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				{
 					if (ATAPI_readsector(channel)) //Next sector read?
 					{
-						ATA[channel].datapos = 0; //Start the next sector!
+						ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 					}
 				}
 				break;
@@ -628,23 +628,28 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 {
 	byte drive;
 	drive = ATA_activeDrive(channel); //The current drive!
-	uint_32 disk_size,LBA,sectors;
+	uint_32 disk_size,LBA;
 	disk_size = (ATA[channel].Drive[drive].driveparams[61]<<16) | ATA[channel].Drive[drive].driveparams[60]; //Disk size in 512 byte sectors!
 	disk_size >>= 2; //We're 4096 byte sectors instead of 512 byte sectors!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0xA8: //Read sectors command!
 		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
-		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
+																				 //[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 		if (LBA>disk_size) goto ATAPI_invalidcommand; //Error out when invalid sector!
-		sectors = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //How many sectors to transfer?
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = 0x800; //Size of a sector to transfer!
-		goto ATAPI_invalidcommand; //Error out: not finished yet!
+		ATA[channel].datasize = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //How many sectors to transfer
+		if (ATAPI_readsector(channel)) //Sector read?
+		{
+			ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+		}
 		break;
 	case 0x25: //Read capacity?
 		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = 8; //Size of a block of information to transfer!
 		ATA[channel].data[0] = (disk_size&0xFF);
@@ -895,7 +900,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
 		break;
 	case 0xA1: //ATAPI: IDENTIFY PACKET DEVICE!
-		if (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0 && ATA_Drives[channel][ATA_activeDrive(channel)]) //CDROM drive?
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0) && ATA_Drives[channel][ATA_activeDrive(channel)]) //CDROM drive?
 		{
 			ATA[channel].command = 0xA1; //We're running this command!
 			goto CDROMIDENTIFY; //Execute CDROM identification!
@@ -905,7 +910,17 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 		dolog("ATA", "IDENTIFY:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
-		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //CDROM errors out!
+		if (!ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //No drive errors out!
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Identify not for us?
+		{
+			//Enter reserved ATAPI result!
+			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 1; //Passed!
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 0x01;
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0xEB;
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0x14;
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = 0x01;
+			goto invalidcommand_noerror; //Execute an invalid command result!
+		}
 		ATA[channel].command = 0xEC; //We're running this command!
 		CDROMIDENTIFY:
 		memcpy(&ATA[channel].data, &ATA[channel].Drive[ATA_activeDrive(channel)].driveparams, sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams)); //Set drive parameters currently set!
@@ -1016,6 +1031,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		dolog("ATA", "INVALIDCOMMAND:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 4; //Reset error register!
+		invalidcommand_noerror:
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 1; //Ready!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 1; //Ready!
@@ -1388,7 +1404,7 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
 			ATA[disk_channel].Drive[disk_ATA].driveparams[5] = 0x200; //512 bytes per sector!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[20] = 1; //Only single port I/O (no simultaneous transfers)!
+			//ATA[disk_channel].Drive[disk_ATA].driveparams[20] = 1; //Only single port I/O (no simultaneous transfers)!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = 0xFFFF; //Buffer size in sectors!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = (1<<9); //LBA supported, DMA unsupported!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer timing node!
@@ -1402,10 +1418,10 @@ void ATA_DiskChanged(int disk)
 		{
 			memset(ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
 		}
-		if ((disk == CDROM0) || (disk == CDROM1)) //CDROM?
+		/*if ((disk == CDROM0) || (disk == CDROM1)) //CDROM?
 		{
 			ATA[disk_channel].Drive[disk_ATA].driveparams[0] = ((2 << 14) | (5 << 8) | (1 << 7) | (2 << 5) | (0 << 0)); //CDROM drive!
-		}
+		}*/
 		break;
 	default: //Unknown?
 		break;
@@ -1446,8 +1462,8 @@ void initATA()
 	{
 		CDROM_channel = 0; //Move CDROM to primary channel!
 	}
-	ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
-	ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as master!
+	//ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
+	//ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as master!
 	int i,j,k;
 	int disk_reverse[4] = { HDD0,HDD1,CDROM0,CDROM1 }; //Our reverse lookup information values!
 	for (i = 0;i < 4;i++) //Check all drives mounted!
