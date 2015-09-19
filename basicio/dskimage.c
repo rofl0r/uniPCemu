@@ -1,4 +1,4 @@
-#include "headers/bios/dskimage.h" //Our header!
+#include "headers/basicio/dskimage.h" //Our header!
 #include "headers/emu/directorylist.h" //isext() support!
 
 //First, functions to actually read&write the DSK file&sectors.

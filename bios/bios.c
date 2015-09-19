@@ -1,5 +1,5 @@
 #include "headers/types.h" //Basic types etc.
-#include "headers/bios/io.h" //Basic I/O support for BIOS!
+#include "headers/basicio/io.h" //Basic I/O support for BIOS!
 #include "headers/support/crc32.h" //CRC32 support!
 #include "headers/mmu/mmu.h" //CRC32 support!
 #include "headers/bios/bios.h" //BIOS basic type support etc!
@@ -19,12 +19,10 @@
 BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
 byte showchecksumerrors = 0; //Show checksum errors?
 
-//One Megabyte of Memory!
-#define MBMEMORY 1024768
 //Block size of memory (blocks of 16KB for IBM PC Compatibility)!
-#define MEMORY_BLOCKSIZE 16384
+#define MEMORY_BLOCKSIZE 0x4000
 //What to leave for functions! 1MB for normal operations, plus 5 screens for VGA rendering resizing (2 screens for double sizing(never x&y together) and 1 screen for the final result)!
-#define FREEMEMALLOC (1024768+(5*(PSP_SCREEN_COLUMNS*PSP_SCREEN_ROWS*sizeof(uint_32))))
+#define FREEMEMALLOC (MBMEMORY+(5*(PSP_SCREEN_COLUMNS*PSP_SCREEN_ROWS*sizeof(uint_32))))
 
 //What file to use for saving the BIOS!
 #define BIOS_FILE "BIOS.DAT"

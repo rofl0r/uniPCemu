@@ -18,8 +18,8 @@
 } SEQ_PRECALCS; //We are needed for the VGA!
 */
 #include "headers/emu/gpu/gpu.h" //GPU!
-#include "headers/hardware/vga.h" //VGA!
-#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller!
+#include "headers/hardware/vga/vga.h" //VGA!
+#include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller!
 
 typedef struct
 {

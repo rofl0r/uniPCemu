@@ -3,7 +3,7 @@
 #include "headers/cpu/interrupts.h" //BOOT loader!
 #include "headers/interrupts/interrupt18.h" //Interrupt 18h support!
 #include "headers/mmu/mmu.h" //MMU support!
-#include "headers/cpu/80286/protection.h" //For CPU_segment_index!
+#include "headers/cpu/protection.h" //For CPU_segment_index!
 #include "headers/emu/emu_main.h" //For BIOS POST!
 
 extern byte reset; //To reset the emulator?

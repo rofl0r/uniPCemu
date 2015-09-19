@@ -2,9 +2,9 @@
 
 #include "headers/types.h" //Basic types!
 //Our signaling!
-#include "headers/hardware/vga.h" //VGA support!
-#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
-#include "headers/hardware/vga_screen/vga_dacrenderer.h" //Our defs!
+#include "headers/hardware/vga/vga.h" //VGA support!
+#include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
+#include "headers/hardware/vga/vga_dacrenderer.h" //Our defs!
 #include "headers/header_dosbox.h" //Screen modes from DOSBox!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/bmp.h" //BMP support for dumping color information!

@@ -5,7 +5,7 @@
 #include "headers/mmu/mmu.h" //Types in memory!
 #include "headers/cpu/cpu.h" //CPU functionality!
 #include "headers/emu/gpu/gpu.h" //GPU functionality!
-#include "headers/hardware/vga.h" //VGA functionality
+#include "headers/hardware/vga/vga.h" //VGA functionality
 #include "headers/mmu/bda.h" //BDA support!
 #include "headers/cpu/cb_manager.h" //Callbacks!
 

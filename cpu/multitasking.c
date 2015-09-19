@@ -1,5 +1,5 @@
 #include "headers/cpu/cpu.h" //CPU reqs!
-#include "headers/cpu/80286/multitasking.h" //Our typedefs!
+#include "headers/cpu/multitasking.h" //Our typedefs!
 
 //Everything concerning TSS.
 

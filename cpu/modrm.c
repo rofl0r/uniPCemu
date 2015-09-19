@@ -4,13 +4,13 @@
 #include "headers/mmu/mmu.h" //For MMU!
 #include "headers/cpu/easyregs.h" //Easy register compatibility!
 #include "headers/support/signedness.h" //Basic CPU support (mainly for unsigned2signed)
-#include "headers/cpu/80286/protection.h" //Protection support!
+#include "headers/cpu/protection.h" //Protection support!
 #include "headers/support/zalloc.h" //memory and cpu register protection!
 #include "headers/support/log.h" //For logging invalid registers!
 
 //For CPU support:
 #include "headers/cpu/modrm.h" //MODR/M (type) support!
-#include "headers/debugger/debugger.h" //debugging() functionality!
+#include "headers/emu/debugger/debugger.h" //debugging() functionality!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 
 //Log invalid registers?

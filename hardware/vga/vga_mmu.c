@@ -1,6 +1,6 @@
-#include "headers/hardware/vga.h" //Basic defs!
+#include "headers/hardware/vga/vga.h" //Basic defs!
 #include "headers/support/log.h" //Loggin support!
-#include "headers/hardware/vga_screen/vga_vram.h" //VRAM support!
+#include "headers/hardware/vga/vga_vram.h" //VRAM support!
 #include "headers/mmu/mmuhandler.h" //Handling support!
 #include "headers/hardware/pci.h" //PCI support!
 

@@ -1,10 +1,10 @@
 #include "headers/types.h"
 #include "headers/mmu/mmu.h" //MMU support!
-#include "headers/hardware/vga_rest/textmodedata.h" //Text mode data itself!
+#include "headers/interrupts/textmodedata.h" //Text mode data itself!
 #include "headers/header_dosbox.h" //Dosbox support!
 #include "headers/hardware/ports.h" //Ports support!
 #include "headers/cpu/cb_manager.h" //Callback support!
-#include "headers/cpu/80286/protection.h" //Protection support!
+#include "headers/cpu/protection.h" //Protection support!
 
 #include "headers/support/log.h" //Debugging only!
 #include "headers/bios/biosrom.h" //BIOS ROM support!

@@ -1,7 +1,7 @@
 #ifndef BIOS_INTERRUPTS_H
 #define BIOS_INTERRUPTS_H
 
-#include "headers/hardware/vga.h" //VGA support!
+#include "headers/hardware/vga/vga.h" //VGA support!
 
 void CPU_setint(byte intnr, word segment, word offset); //Set real mode IVT entry!
 void CPU_INT(byte intnr); //Call an interrupt!

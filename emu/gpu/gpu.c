@@ -4,11 +4,10 @@
 #include "headers/types.h" //Global stuff!
 #include "headers/emu/gpu/gpu.h" //Our stuff!
 #include "headers/mmu/mmu.h" //TEXT mode data!
-#include "headers/hardware/vga_rest/textmodedata.h" //TEXT mode data!
-#include "headers/hardware/vga_rest/colorconversion.h" //Color conversion functions!
+#include "headers/interrupts/textmodedata.h" //TEXT mode data!
 #include "headers/cpu/interrupts.h" //For int10 refresh function!
 #include "headers/mmu/bda.h" //BDA support!
-#include "headers/hardware/vga.h" //VGA support!
+#include "headers/hardware/vga/vga.h" //VGA support!
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/support/highrestimer.h" //High resolution timer!
 #include "headers/emu/input.h" //For the on-screen keyboard!

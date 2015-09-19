@@ -5,15 +5,15 @@
 #include "headers/cpu/modrm.h" //MODR/M compatibility!
 #include "headers/support/signedness.h" //CPU support functions!
 #include "headers/hardware/ports.h" //Ports compatibility!
-#include "headers/cpu/8086/cpu_OP8086.h" //Our own opcode presets!
-#include "headers/cpu/8087/fpu_OP8087.h" //Our own opcode presets!
+#include "headers/cpu/cpu_OP8086.h" //Our own opcode presets!
+#include "headers/cpu/fpu_OP8087.h" //Our own opcode presets!
 #include "headers/cpu/cb_manager.h" //For OPFE!
 #include "headers/cpu/flags.h" //Flag support!
-#include "headers/cpu/8086/8086_grpOPs.h" //GRP Opcode extensions!
+#include "headers/cpu/8086_grpOPs.h" //GRP Opcode extensions!
 #include "headers/cpu/interrupts.h" //Basic interrupt support!
-#include "headers/debugger/debugger.h" //CPU debugger support!
+#include "headers/emu/debugger/debugger.h" //CPU debugger support!
 #include "headers/bios/bios.h" //BIOS support!
-#include "headers/cpu/80286/protection.h"
+#include "headers/cpu/protection.h"
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?

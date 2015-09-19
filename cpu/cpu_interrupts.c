@@ -3,8 +3,8 @@
 #include "headers/bios/bios.h" //BIOS!
 #include "headers/cpu/easyregs.h" //Easy registers!
 #include "headers/cpu/cb_manager.h" //Callback support!
-#include "headers/cpu/80286/protection.h" //Protection support!
-#include "headers/debugger/debugger.h" //For logging registers!
+#include "headers/cpu/protection.h" //Protection support!
+#include "headers/emu/debugger/debugger.h" //For logging registers!
 
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!
 {

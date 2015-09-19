@@ -1,7 +1,7 @@
 #include "headers/types.h" //Basic types!
 
 #include "headers/mmu/mmu.h" //For MMU
-#include "headers/bios/io.h" //For mounting!
+#include "headers/basicio/io.h" //For mounting!
 #include "headers/bios/bios.h" //For BIOS!
 #include "headers/bios/biosrom.h" //BIOS ROM support!
 #include "headers/bios/initmem.h" //BIOS Memory support!
@@ -21,7 +21,7 @@
 
 #include "headers/emu/soundtest.h" //Sound test support!
 
-#include "headers/cpu/80286/protection.h" //Basic protection support!
+#include "headers/cpu/protection.h" //Basic protection support!
 
 #include "headers/emu/emu_main.h" //Main stuff!
 #include "headers/emu/emu_vga_bios.h" //VGA BIOS support for output!

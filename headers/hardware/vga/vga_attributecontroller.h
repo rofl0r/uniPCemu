@@ -2,7 +2,7 @@
 #define VGA_ATTRIBUTECONTROLLER_H
 
 #include "headers/types.h" //Basic types!
-#include "headers/hardware/vga.h" //VGA!
+#include "headers/hardware/vga/vga.h" //VGA!
 
 typedef struct
 {

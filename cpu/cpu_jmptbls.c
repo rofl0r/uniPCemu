@@ -1,12 +1,9 @@
 #include "headers/cpu/cpu.h" //Need basic CPU support!
-#include "headers/cpu/8086/cpu_OP8086.h" //8086 REAL opcode functions!
-#include "headers/cpu/8087/fpu_OP8087.h" //8086 REAL opcode functions!
-#include "headers/debugger/8086/debug_OP8086.h" //8086 DEBUG opcode functions!
-#include "headers/debugger/8087/debug_OP8087.h" //8086 DEBUG opcode functions!
-#include "headers/cpu/80186/cpu_OP80186.h" //80186 REAL opcode functions!
-#include "headers/debugger/80186/debug_OP80186.h" //80186 DEBUG opcode functions!
-#include "headers/cpu/80286/cpu_OP80286.h" //Unknown opcodes under 80286+!
-#include "headers/debugger/80286/debug_OP80286.h" //Unknown opcodes under 80286+!
+#include "headers/cpu/cpu_OP8086.h" //8086 REAL opcode functions!
+#include "headers/cpu/fpu_OP8087.h" //8086 REAL opcode functions!
+#include "headers/cpu/cpu_OP80186.h" //80186 REAL opcode functions!
+#include "headers/cpu/cpu_OP80286.h" //Unknown opcodes under 80286+!
+
 /*
 
 Indexes:

@@ -1,13 +1,13 @@
 #define VGA_SEQUENCER_TEXTMODE
 
-#include "headers/hardware/vga.h" //Our typedefs etc!
-#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller for typedef of attribute info!
-#include "headers/hardware/vga_screen/vga_crtcontroller.h" //CRT Controller!
-#include "headers/hardware/vga_screen/vga_vram.h" //Our VRAM support!
-#include "headers/hardware/vga_screen/vga_vramtext.h" //Our VRAM text support!
-#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
+#include "headers/hardware/vga/vga.h" //Our typedefs etc!
+#include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller for typedef of attribute info!
+#include "headers/hardware/vga/vga_crtcontroller.h" //CRT Controller!
+#include "headers/hardware/vga/vga_vram.h" //Our VRAM support!
+#include "headers/hardware/vga/vga_vramtext.h" //Our VRAM text support!
+#include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/support/log.h" //Logging support!
-#include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer!
+#include "headers/hardware/vga/vga_sequencer.h" //Sequencer!
 
 //Character is cursor position?
 #define CHARISCURSOR (Sequencer_textmode_charindex==VGA->precalcs.cursorlocation)

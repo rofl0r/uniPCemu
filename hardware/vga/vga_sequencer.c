@@ -2,19 +2,19 @@
 
 #include "headers/types.h" //Basic types!
 #include "headers/emu/gpu/gpu.h" //GPU!
-#include "headers/hardware/vga.h" //VGA!
-#include "headers/hardware/vga_screen/vga_sequencer.h" //Ourselves!
-#include "headers/hardware/vga_screen/vga_sequencer_graphicsmode.h" //Text mode!
-#include "headers/hardware/vga_screen/vga_sequencer_textmode.h" //Text mode!
-#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller!
-#include "headers/hardware/vga_screen/vga_crtcontroller.h" //CRT Controller for finishing up!
-#include "headers/hardware/vga_screen/vga_dacrenderer.h" //DAC support!
+#include "headers/hardware/vga/vga.h" //VGA!
+#include "headers/hardware/vga/vga_sequencer.h" //Ourselves!
+#include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Text mode!
+#include "headers/hardware/vga/vga_sequencer_textmode.h" //Text mode!
+#include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller!
+#include "headers/hardware/vga/vga_crtcontroller.h" //CRT Controller for finishing up!
+#include "headers/hardware/vga/vga_dacrenderer.h" //DAC support!
 #include "headers/hardware/pic.h" //IRQ support!
 #include "headers/cpu/interrupts.h" //For get/putpixel variant!
 #include "headers/support/highrestimer.h" //High resolution clock!
 #include "headers/support/zalloc.h" //Memory protection support!
 #include "headers/support/log.h" //Logging support!
-#include "headers/hardware/vga_screen/vga_vram.h" //VGA VRAM support!
+#include "headers/hardware/vga/vga_vram.h" //VGA VRAM support!
 
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 

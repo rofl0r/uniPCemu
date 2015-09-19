@@ -3,12 +3,12 @@
 #include "headers/cpu/interrupts.h"
 #include "headers/mmu/mmu.h"
 #include "headers/support/signedness.h" //CPU support!
-#include "headers/cpu/8086/cpu_OP8086.h" //8086 comp.
-#include "headers/debugger/debugger.h" //Debugger support!
+#include "headers/cpu/cpu_OP8086.h" //8086 comp.
+#include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/emu/gpu/gpu.h" //Start&StopVideo!
 #include "headers/cpu/cb_manager.h" //CB support!
-#include "headers/cpu/80286/protection.h"
-#include "headers/cpu/80286/cpu_OP80286.h" //0F opcode support!
+#include "headers/cpu/protection.h"
+#include "headers/cpu/cpu_OP80286.h" //0F opcode support!
 #include "headers/support/zalloc.h" //For allocating registers etc.
 #include "headers/support/locks.h" //Locking support!
 

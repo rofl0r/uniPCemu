@@ -1,5 +1,5 @@
 #include "headers/types.h" //Basic types!
-#include "headers/hardware/vga.h" //VGA support!
+#include "headers/hardware/vga/vga.h" //VGA support!
 
 //Are we a blinking 16-bit color?
 OPTINLINE byte col16_blink(byte color)

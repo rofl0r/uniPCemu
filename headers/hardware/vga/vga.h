@@ -2,7 +2,7 @@
 #define EMU_VGA_H
 
 #include "headers/types.h"
-#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation support!
+#include "headers/hardware/vga/vga_precalcs.h" //Precalculation support!
 #include "headers/emu/gpu/gpu.h" //For max X!
 #include "headers/support/locks.h" //Locking support!
 //Emulate VGA?

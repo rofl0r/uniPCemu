@@ -4,7 +4,7 @@
 #include "headers/emu/threads.h" //Multithreading support!
 #include "headers/emu/directorylist.h" //Directory listing support!
 #include "headers/bios/bios.h" //Basic BIOS compatibility!
-#include "headers/hardware/vga.h" //VGA compatibility.
+#include "headers/hardware/vga/vga.h" //VGA compatibility.
 
 int convertrel(int src, int fromres, int tores) //Relative int conversion!
 {

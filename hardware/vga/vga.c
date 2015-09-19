@@ -13,16 +13,16 @@ VGA ROM and handling functions.
 #include "headers/hardware/ports.h" //Basic PORT compatibility!
 
 #include "headers/bios/bios.h" //For VRAM memory size!
-#include "headers/hardware/vga.h" //VGA data!
+#include "headers/hardware/vga/vga.h" //VGA data!
 #include "headers/mmu/mmu.h" //For CPU passtrough!
-#include "headers/hardware/vga_screen/vga_sequencer.h" //For precalcs!
-#include "headers/hardware/vga_screen/vga_crtcontroller.h" //For getyres for display rate!
-#include "headers/hardware/vga_screen/vga_vram.h" //VRAM read!
+#include "headers/hardware/vga/vga_sequencer.h" //For precalcs!
+#include "headers/hardware/vga/vga_crtcontroller.h" //For getyres for display rate!
+#include "headers/hardware/vga/vga_vram.h" //VRAM read!
 #include "headers/emu/threads.h" //Multithread support!
 
 #include "headers/emu/gpu/gpu.h" //GPU!
 #include "headers/cpu/interrupts.h" //int10 support!
-#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculations!
+#include "headers/hardware/vga/vga_precalcs.h" //Precalculations!
 
 #include "headers/support/zalloc.h" //Memory allocation!
 

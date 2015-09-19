@@ -1,5 +1,5 @@
-#include "headers/hardware/vga.h" //VGA!
-#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalcs!
+#include "headers/hardware/vga/vga.h" //VGA!
+#include "headers/hardware/vga/vga_precalcs.h" //Precalcs!
 #include "headers/hardware/ports.h" //Ports!
 #include "headers/cpu/cpu.h" //NMI support!
 

@@ -2,12 +2,12 @@
 #include "headers/bios/bios.h" //Basic BIOS compatibility types etc including myself!
 #include "headers/cpu/cpu.h" //CPU constants!
 #include "headers/emu/gpu/gpu.h" //GPU compatibility!
-#include "headers/bios/staticimage.h" //Static image compatibility!
-#include "headers/bios/dynamicimage.h" //Dynamic image compatibility!
-#include "headers/bios/io.h" //Basic I/O comp!
+#include "headers/basicio/staticimage.h" //Static image compatibility!
+#include "headers/basicio/dynamicimage.h" //Dynamic image compatibility!
+#include "headers/basicio/io.h" //Basic I/O comp!
 #include "headers/emu/input.h" //Basic key input!
 #include "headers/mmu/bda.h" //Bios Data Area!
-#include "headers/hardware/vga.h" //VGA!
+#include "headers/hardware/vga/vga.h" //VGA!
 #include "headers/cpu/interrupts.h" //Interrupt support (int10 mostly)
 #include "headers/support/zalloc.h" //Memory allocation!
 #include "headers/bios/biosmenu.h" //Our defines!
@@ -28,7 +28,7 @@
 
 #include "headers/emu/emu_vga.h" //VGA update support!
 
-#include "headers/bios/dskimage.h" //DSK image support!
+#include "headers/basicio/dskimage.h" //DSK image support!
 
 #include "headers/support/mid.h" //MIDI player support!
 
@@ -515,7 +515,7 @@ void BIOSClearScreen() //Resets the BIOS's screen!
 	EMU_unlocktext();
 	printcenter(BIOSText,0); //Show the BIOS's text!
 	EMU_locktext();
-	GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen("MEM:12MB",256),0,"MEM:%02iMB",(BIOS_Settings.memory/1024768)); //Show ammount of memory to be able to use!
+	GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen("MEM:12MB",256),0,"MEM:%02iMB",(BIOS_Settings.memory/MBMEMORY)); //Show ammount of memory to be able to use!
 	EMU_textcolor(BIOS_ATTR_TEXT); //Std: display text!
 	EMU_unlocktext();
 }
@@ -2064,7 +2064,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
-					GPU_EMU_printscreen(12, 5, "%iMB", (sizecreated / 1024768)); //Image size
+					GPU_EMU_printscreen(12, 5, "%iMB", (sizecreated / MBMEMORY)); //Image size
 					EMU_unlocktext();
 					iohdd1(filename, 0, 0, 0); //Mount the destination disk, allow writing!
 					FILEPOS sectornr;
@@ -2228,7 +2228,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 				GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
 				GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
-				GPU_EMU_printscreen(12, 5, "%iMB", (size / 1024768)); //Image size
+				GPU_EMU_printscreen(12, 5, "%iMB", (size / MBMEMORY)); //Image size
 				FILEPOS sectornr;
 				EMU_gotoxy(0, 6); //Next row!
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
@@ -2398,7 +2398,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					EMU_locktext();
 					GPU_EMU_printscreen(21, 6, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
-					GPU_EMU_printscreen(12, 5, "%iMB", (sizecreated / 1024768)); //Image size
+					GPU_EMU_printscreen(12, 5, "%iMB", (sizecreated / MBMEMORY)); //Image size
 					EMU_unlocktext();
 					iohdd1(filename, 0, 0, 0); //Mount the destination disk, allow writing!
 					FILEPOS sectornr;

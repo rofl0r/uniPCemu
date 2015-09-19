@@ -1,5 +1,5 @@
 #include "headers/types.h" //Types!
-#include "headers/hardware/vga.h" //VGA!
+#include "headers/hardware/vga/vga.h" //VGA!
 
 void readDAC(VGA_Type *VGA, byte entrynumber,DACEntry *entry) //Read a DAC entry
 {

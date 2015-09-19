@@ -2,7 +2,7 @@
 #include "headers/cpu/cpu.h" //CPU!
 #include "headers/interrupts/interrupt10.h" //INT10 support!
 #include "headers/support/log.h" //Log!
-#include "headers/debugger/runromverify.h" //runROMVerify support!
+#include "headers/emu/debugger/runromverify.h" //runROMVerify support!
 #include "headers/emu/emu_misc.h" //file support!
 #include "headers/emu/gpu/gpu_emu.h" //EMU debugging text support!
 #include "headers/emu/gpu/gpu_text.h" //Text surface support!

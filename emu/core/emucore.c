@@ -2,8 +2,8 @@
 
 #include "headers/mmu/mmu.h" //For MMU
 #include "headers/cpu/cpu.h" //For CPU
-#include "headers/debugger/debugger.h" //Debugger support!
-#include "headers/hardware/vga.h" //For savestate support!
+#include "headers/emu/debugger/debugger.h" //Debugger support!
+#include "headers/hardware/vga/vga.h" //For savestate support!
 
 #include "headers/emu/state.h" //SaveState holder!
 #include "headers/hardware/pic.h" //Interrupt controller support!
@@ -45,8 +45,8 @@
 #include "headers/emu/threads.h" //Multithreading support!
 #include "headers/hardware/pcspeaker.h" //PC Speakers support!
 
-#include "headers/hardware/vga_screen/vga_sequencer.h" //VGA sequencer for direct MAX speed dump!
-#include "headers/hardware/vga_screen/vga_dacrenderer.h" //DAC support!
+#include "headers/hardware/vga/vga_sequencer.h" //VGA sequencer for direct MAX speed dump!
+#include "headers/hardware/vga/vga_dacrenderer.h" //DAC support!
 
 #include "headers/hardware/uart.h" //UART support!
 
@@ -60,7 +60,7 @@
 #include "headers/hardware/sermouse.h" //Serial mouse support!
 
 #include "headers/emu/gpu/gpu_text.h" //GPU text surface support!
-#include "headers/bios/io.h" //I/O support!
+#include "headers/basicio/io.h" //I/O support!
 
 #include "headers/hardware/floppy.h" //Floppy disk controller!
 
@@ -307,7 +307,7 @@ void initEMU(int full) //Init!
 
 	if (EMULATED_CPU <= CPU_80186) //-186 CPU?
 	{
-		initEMS(4 * 1024768); //4MB EMS memory!
+		initEMS(4 * MBMEMORY); //4MB EMS memory!
 	}
 
 	debugrow("Initialising MMU...");

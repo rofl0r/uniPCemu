@@ -1,11 +1,11 @@
 #include "headers/types.h"
 #include "headers/cpu/cpu.h"
-#include "headers/debugger/debugger.h"
+#include "headers/emu/debugger/debugger.h"
 #include "headers/emu/gpu/gpu.h"
 #include "headers/emu/timers.h"
 #include "headers/hardware/pic.h" //For interrupts!
 //#include "headers/cpu/interrupts.h" //Interrupts!
-#include "headers/cpu/8086/cpu_OP8086.h" //hardware interrupt function!
+#include "headers/cpu/cpu_OP8086.h" //hardware interrupt function!
 #include "headers/support/log.h" //Log support!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/cpu/cb_manager.h" //CPU callback support!
@@ -13,7 +13,7 @@
 
 #include "headers/emu/emucore.h" //Emulation core!
 
-#include "headers/cpu/80286/protection.h" //PMode support!
+#include "headers/cpu/protection.h" //PMode support!
 
 extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?

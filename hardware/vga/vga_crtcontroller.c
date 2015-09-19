@@ -1,9 +1,9 @@
 #define VGA_CRTCONTROLLER
 
-#include "headers/hardware/vga.h"
-#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
-#include "headers/hardware/vga_screen/vga_sequencer_textmode.h" //VGA Attribute controller!
-#include "headers/hardware/vga_screen/vga_crtcontroller.h"
+#include "headers/hardware/vga/vga.h"
+#include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
+#include "headers/hardware/vga/vga_sequencer_textmode.h" //VGA Attribute controller!
+#include "headers/hardware/vga/vga_crtcontroller.h"
 
 //Horizontal information!
 

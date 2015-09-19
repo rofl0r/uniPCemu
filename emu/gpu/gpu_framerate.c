@@ -6,8 +6,8 @@
 #include "headers/emu/gpu/gpu_sdl.h" //Emulator support text/debug output for displaying framerate only!
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/gpu/gpu_renderer.h" //For empty rows!
-#include "headers/hardware/vga.h" //VGA!
-#include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer support!
+#include "headers/hardware/vga/vga.h" //VGA!
+#include "headers/hardware/vga/vga_sequencer.h" //Sequencer support!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/zalloc.h" //Protection for pointers!
 #include "headers/support/locks.h" //Locking support!

@@ -4,16 +4,16 @@
 /*
 #include "headers/cpu/cpu.h" //For CPU
 #include "headers/bios/boot.h" //For booting mounted disks!
-#include "headers/bios/io.h" //For mounting!
+#include "headers/basicio/io.h" //For mounting!
 */
 #include "headers/bios/bios.h" //For BIOS!
 /*
 #include "headers/bios/biosmenu.h" //For key support!
 #include "headers/emu/gpu/gpu.h" //For GPU!
 #include "headers/cpu/interrupts.h" //For int 18 support!
-#include "headers/debugger/debugger.h" //Debugger support!
+#include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/emu/input.h" //Input support!
-#include "headers/hardware/vga.h" //For savestate support!
+#include "headers/hardware/vga/vga.h" //For savestate support!
 #include "headers/emu/state.h" //SaveState holder!
 #include "headers/support/crc32.h" //CRC32 function support!
 #include "headers/mmu/bda.h" //BDA support!
@@ -30,7 +30,7 @@
 #include "headers/hardware/8042.h" //For void BIOS_init8042()
 #include "headers/hardware/8253.h" //82C54 support!
 #include "headers/hardware/ports.h" //Port support!
-#include "headers/hardware/vga_screen/vga_displaygeneration_crtcontroller.h" //For get/putpixel
+#include "headers/hardware/vga/vga_displaygeneration_crtcontroller.h" //For get/putpixel
 #include "headers/emu/threads.h" //Thead support for errors!
 */
 #include "headers/support/log.h" //Log support!
@@ -52,7 +52,7 @@
 #include "headers/emu/graphics_debug.h" //Graphics debug!
 #include "headers/emu/file_debug.h" //File debug!
 
-#include "headers/cpu/80286/protection.h" //Basic protection support!
+#include "headers/cpu/protection.h" //Basic protection support!
 
 #include "headers/emu/emu_main.h" //Ourselves!
 

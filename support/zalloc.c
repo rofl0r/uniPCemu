@@ -2,7 +2,7 @@
 #include "headers/support/zalloc.h" //Our own definitions!
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/gpu/gpu.h" //Locking support!
-#include "headers/hardware/vga.h" //Locking support!
+#include "headers/hardware/vga/vga.h" //Locking support!
 #include "headers/emu/sound.h" //Sound support!
 
 #include <malloc.h> //Specific to us only!

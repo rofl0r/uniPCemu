@@ -1,9 +1,9 @@
 #define VGA_ATTRIBUTECONTROLLER
 
-#include "headers/hardware/vga.h"
-#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Our own typedefs!
-#include "headers/hardware/vga_screen/vga_sequencer_graphicsmode.h" //For masking planes!
-#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
+#include "headers/hardware/vga/vga.h"
+#include "headers/hardware/vga/vga_attributecontroller.h" //Our own typedefs!
+#include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //For masking planes!
+#include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
 
 #include "headers/support/log.h" //Debugger!
 extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c

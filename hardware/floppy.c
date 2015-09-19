@@ -1,11 +1,11 @@
 #include "headers/types.h" //Basic typedefs!
 #include "headers/hardware/8237A.h" //DMA controller support!
 #include "headers/hardware/ports.h" //Port support!
-#include "headers/bios/io.h" //Basic I/O functionality!
+#include "headers/basicio/io.h" //Basic I/O functionality!
 #include "headers/hardware/pic.h" //PIC support!
-#include "headers/bios/dskimage.h" //DSK image support!
+#include "headers/basicio/dskimage.h" //DSK image support!
 
-#include "headers/debugger/debugger.h" //Debugger support!
+#include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/support/log.h" //Logging support!
 
 //Configuration of the FDC...

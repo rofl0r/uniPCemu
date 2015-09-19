@@ -1,8 +1,8 @@
 #include "headers/cpu/cpu.h" //Need CPU comp.
 #include "headers/support/lba.h" //Need some support for LBA!
-#include "headers/bios/io.h" //Basic I/O comp.
+#include "headers/basicio/io.h" //Basic I/O comp.
 #include "headers/cpu/easyregs.h" //Easy register functionality last!
-#include "headers/debugger/debugger.h" //For logging registers debugging!
+#include "headers/emu/debugger/debugger.h" //For logging registers debugging!
 #include "headers/cpu/cb_manager.h" //Callback support!
 
 #include "headers/support/log.h" //Logging support for debugging!

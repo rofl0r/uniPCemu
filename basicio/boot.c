@@ -2,7 +2,7 @@
 #include "headers/cpu/cpu.h" //Need CPU comp!
 #include "headers/mmu/mmu.h" //Need MMU comp!
 #include "headers/emu/gpu/gpu.h" //Need GPU comp!
-#include "headers/bios/io.h" //Need low level I/O comp!
+#include "headers/basicio/io.h" //Need low level I/O comp!
 #include "headers/support/isoreader.h" //Need ISO reading comp!
 #include "headers/bios/bios.h" //Need BIOS comp!
 #include "headers/emu/gpu/gpu_emu.h" //GPU EMU functionality!

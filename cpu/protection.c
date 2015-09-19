@@ -1,7 +1,7 @@
 #include "headers/cpu/cpu.h" //Basic CPU info!
 #include "headers/cpu/cpu.h" //Basic CPU info!
-#include "headers/cpu/80286/protection.h" //Protection support!
-#include "headers/cpu/80286/multitasking.h" //Multitasking support!
+#include "headers/cpu/protection.h" //Protection support!
+#include "headers/cpu/multitasking.h" //Multitasking support!
 #include "headers/support/zalloc.h" //Memory/register protection support!
 
 /*

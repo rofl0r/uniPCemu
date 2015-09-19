@@ -3,7 +3,7 @@
 #include "headers/cpu/interrupts.h" //BOOT loader!
 #include "headers/cpu/easyregs.h" //Easy registers!
 #include "headers/cpu/cb_manager.h" //Callback support!
-#include "headers/cpu/80286/protection.h" //Protection support!
+#include "headers/cpu/protection.h" //Protection support!
 #include "headers/header_dosbox.h" //Basic DOSBox compatibility.
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/hardware/ports.h" //Port support!

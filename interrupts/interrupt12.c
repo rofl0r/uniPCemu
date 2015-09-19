@@ -3,7 +3,7 @@
 #include "headers/cpu/easyregs.h" //Easy registers!
 #include "headers/mmu/mmu.h" //Basic MMU support!
 #include "headers/cpu/cb_manager.h" //Callback support!
-#include "headers/cpu/80286/protection.h" //Protection support!
+#include "headers/cpu/protection.h" //Protection support!
 
 
 void BIOS_int12() //Get BIOS memory size

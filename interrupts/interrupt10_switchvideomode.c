@@ -3,10 +3,10 @@
 //#include "headers/cpu/cpu.h" //CPU module!
 //#include "headers/cpu/easyregs.h" //Easy register access!
 //#include "headers/cpu/cpu_OP8086.h" //8086 comp.
-//#include "headers/hardware/vga_rest/colorconversion.h" //Color conversion compatibility for text output!
+//#include "headers/hardware/vga/colorconversion.h" //Color conversion compatibility for text output!
 #include "headers/cpu/interrupts.h" //Interrupt support for GRAPHIC modes!
-#include "headers/hardware/vga.h" //Basic typedefs!
-//#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller for debug screen output!
+#include "headers/hardware/vga/vga.h" //Basic typedefs!
+//#include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller for debug screen output!
 #include "headers/header_dosbox.h" //Screen modes from DOSBox!
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/mmu/mmu.h" //MMU access!
@@ -14,7 +14,7 @@
 
 #include "headers/interrupts/interrupt10.h" //Our typedefs!
 #include "headers/cpu/cb_manager.h" //Callback support!
-#include "headers/cpu/80286/protection.h" //Protection support!
+#include "headers/cpu/protection.h" //Protection support!
 
 //Log options!
 #define LOG_SWITCHMODE 0

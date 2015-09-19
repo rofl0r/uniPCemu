@@ -1,11 +1,11 @@
 #include "headers/hardware/ports.h" //Port support!
-#include "headers/hardware/vga.h" //VGA support!
+#include "headers/hardware/vga/vga.h" //VGA support!
 #include "headers/hardware/pcspeaker.h" //PC speaker support!
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/emu/sound.h" //Sound support for our callback!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/mid.h" //MIDI file support!
-#include "headers/hardware/vga.h" //VGA support!
+#include "headers/hardware/vga/vga.h" //VGA support!
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/bios/biosmenu.h" //BIOS menu option support!
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!

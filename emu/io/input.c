@@ -1,7 +1,7 @@
 #include "headers/types.h"
 #include "headers/emu/input.h" //Own typedefs.
 #include "headers/bios/bios.h" //BIOS Settings for keyboard input!
-#include "headers/hardware/vga.h" //VGA for simple 8x8 font!
+#include "headers/hardware/vga/vga.h" //VGA for simple 8x8 font!
 #include "headers/emu/gpu/gpu.h" //GPU support!
 #include "headers/hardware/ps2_keyboard.h" //PS/2 keyboard support!
 #include "headers/hardware/ps2_mouse.h" //PS/2 mouse controller support!

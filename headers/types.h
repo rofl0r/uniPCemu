@@ -165,4 +165,8 @@ void debugrow(char *text); //Log a row to debugrow log!
 void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 
 double getCurrentClockSpeed(); //Retrieves the current clock speed!
+
+//One Megabyte of Memory!
+#define MBMEMORY 0x100000
+
 #endif

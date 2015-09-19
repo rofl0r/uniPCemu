@@ -1,7 +1,7 @@
 #ifndef VGA_PRECALCS_H
 #define VGA_PRECALCS_H
 
-#include "headers/hardware/vga.h" //VGA basics!
+#include "headers/hardware/vga/vga.h" //VGA basics!
 
 //Where were we updated (what values to update?)
 //ALL update? (for init)

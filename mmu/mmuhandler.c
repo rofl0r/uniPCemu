@@ -3,7 +3,7 @@
 #include "headers/emu/gpu/gpu.h" //Read output module!
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/bios/bios.h" //BIOS support!
-#include "headers/hardware/vga.h" //VGA support!
+#include "headers/hardware/vga/vga.h" //VGA support!
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/mmu/mmuhandler.h" //Our typedefs!
 

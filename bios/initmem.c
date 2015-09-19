@@ -2,11 +2,11 @@
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/cpu/interrupts.h" //Interrupt support!
 #include "headers/interrupts/interrupt13.h" //INT13 support!
-#include "headers/bios/io.h" //Basic I/O support!
+#include "headers/basicio/io.h" //Basic I/O support!
 #include "headers/mmu/mmu.h" //MMU support!
 #include "headers/mmu/bda.h" //BDA support!
 #include "headers/cpu/cb_manager.h" //CB support!
-#include "headers/cpu/80286/protection.h" //Protection support!
+#include "headers/cpu/protection.h" //Protection support!
 #include "headers/hardware/floppy.h" //Floppy support!
 
 //Are we disabled?

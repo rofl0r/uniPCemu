@@ -1,47 +1,9 @@
-#include "headers/hardware/vga.h" //Basic VGA stuff!
-#include "headers/hardware/vga_screen/vga_vram.h" //VRAM!
-#include "headers/hardware/vga_rest/textmodedata.h" //Text mode data for loading!
-#include "headers/hardware/vga_screen/vga_crtcontroller.h" //For character sizes!
-#include "headers/hardware/vga_screen/vga_vramtext.h" //Our VRAM text support!
+#include "headers/hardware/vga/vga.h" //Basic VGA stuff!
+#include "headers/hardware/vga/vga_vram.h" //VRAM!
+#include "headers/hardware/vga/vga_crtcontroller.h" //For character sizes!
+#include "headers/hardware/vga/vga_vramtext.h" //Our VRAM text support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //High resolution timing!
-
-extern byte is_loadchartable; //Loading character table?
-
-void VGALoadCharTable(VGA_Type *VGA, int rows, word startaddr) //Load a character table from ROM to VRAM!
-{
-	if (!VGA) //No active VGA?
-	{
-		raiseError("VGA","VGA Load Character Table, but no VGA loaded!");
-	}
-	is_loadchartable = 1; //Loading character table!
-	uint_32 counter;
-	switch (rows)
-	{
-	case 14:
-		for (counter=0;counter<sizeof(int10_font_14);counter++) //Write font!
-		{
-			writeVRAMplane(getActiveVGA(),2,startaddr+counter,int10_font_14[counter],0); //Write font byte!
-		}
-		break;
-	case 8:
-		for (counter=0;counter<sizeof(int10_font_08);counter++) //Write font!
-		{
-			writeVRAMplane(getActiveVGA(),2,startaddr+counter,int10_font_08[counter],0); //Write font byte!
-		}
-		break;
-	case 16:
-		for (counter=0;counter<sizeof(int10_font_16);counter++) //Write font!
-		{
-			writeVRAMplane(getActiveVGA(),2,startaddr+counter,int10_font_16[counter],0); //Write font byte!
-		}
-		break;
-	default: //Unknown ammount of rows!
-		//Do nothing: we don't know what font to use!
-		break;
-	}
-	is_loadchartable = 0; //Not loading character table!
-}
 
 OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 {

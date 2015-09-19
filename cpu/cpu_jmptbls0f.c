@@ -1,10 +1,10 @@
 #include "headers/cpu/cpu.h" //Need basic CPU support!
-#include "headers/cpu/8086/cpu_OP8086.h" //Unknown opcodes under 8086!
-#include "headers/cpu/80186/cpu_OP80186.h" //Unknown opcodes under 80186+ and more!
-#include "headers/cpu/80286/cpu_OP80286.h" //Unknown opcodes under 80286+ and more!
-#include "headers/cpu/80386/cpu_OP80386.h" //Unknown opcodes under 80386+ and more!
-#include "headers/cpu/80486/cpu_OP80486.h" //Unknown opcodes under 80486+ and more!
-#include "headers/cpu/80586/cpu_OP80586.h" //Unknown opcodes under 80586+ and more!
+#include "headers/cpu/cpu_OP8086.h" //Unknown opcodes under 8086!
+#include "headers/cpu/cpu_OP80186.h" //Unknown opcodes under 80186+ and more!
+#include "headers/cpu/cpu_OP80286.h" //Unknown opcodes under 80286+ and more!
+#include "headers/cpu/cpu_OP80386.h" //Unknown opcodes under 80386+ and more!
+#include "headers/cpu/cpu_OP80486.h" //Unknown opcodes under 80486+ and more!
+#include "headers/cpu/cpu_OP80586.h" //Unknown opcodes under 80586+ and more!
 
 //0F opcode extensions:
 

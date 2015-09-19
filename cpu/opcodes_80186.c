@@ -4,12 +4,12 @@
 #include "headers/cpu/modrm.h" //MODR/M compatibility!
 #include "headers/support/signedness.h" //CPU support functions!
 #include "headers/hardware/ports.h" //Ports compatibility!
-#include "headers/debugger/debugger.h" //Debug compatibility!
-#include "headers/cpu/8086/cpu_OP8086.h" //8086 function specific compatibility!
-#include "headers/cpu/8086/8086_grpOPs.h" //GRP Opcode support (C0&C1 Opcodes!)
-#include "headers/cpu/80186/cpu_OP80186.h" //80186 function specific compatibility!
+#include "headers/emu/debugger/debugger.h" //Debug compatibility!
+#include "headers/cpu/cpu_OP8086.h" //8086 function specific compatibility!
+#include "headers/cpu/8086_grpOPs.h" //GRP Opcode support (C0&C1 Opcodes!)
+#include "headers/cpu/cpu_OP80186.h" //80186 function specific compatibility!
 #include "headers/support/log.h" //Logging support!
-#include "headers/cpu/80286/protection.h" //Protection support!
+#include "headers/cpu/protection.h" //Protection support!
 
 extern MODRM_PARAMS params;    //For getting all params!
 extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0

@@ -3,7 +3,7 @@
 #include "headers/mmu/mmu.h" //MMU support for opcode!
 #include "headers/emu/input.h" //Input support!
 #include "headers/cpu/interrupts.h" //Interrupt support!
-#include "headers/debugger/debugger.h" //Constant support!
+#include "headers/emu/debugger/debugger.h" //Constant support!
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/emu/gpu/gpu.h" //GPU support!
 #include "headers/support/log.h" //Log support!

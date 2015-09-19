@@ -1,11 +1,11 @@
-#include "headers/hardware/vga.h" //VGA support (plus precalculation!)
-#include "headers/hardware/vga_screen/vga_precalcs.h" //Precalculation typedefs etc.
-#include "headers/hardware/vga_rest/colorconversion.h" //Color conversion for DAC precalculation!
+#include "headers/hardware/vga/vga.h" //VGA support (plus precalculation!)
+#include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
+#include "headers/hardware/vga/colorconversion.h" //Color conversion for DAC precalculation!
 #include "headers/emu/gpu/gpu.h" //Relative conversion!
-#include "headers/hardware/vga_screen/vga_crtcontroller.h"
-#include "headers/hardware/vga_screen/vga_attributecontroller.h" //Attribute controller support!
+#include "headers/hardware/vga/vga_crtcontroller.h"
+#include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller support!
 #include "headers/support/log.h" //Logging support!
-#include "headers/hardware/vga_screen/vga_sequencer.h" //Sequencer render counter support!
+#include "headers/hardware/vga/vga_sequencer.h" //Sequencer render counter support!
 
 //Works!
 OPTINLINE uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!

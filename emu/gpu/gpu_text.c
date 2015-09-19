@@ -1,7 +1,7 @@
 #include "headers/emu/gpu/gpu.h" //Basic GPU!
 #include "headers/emu/gpu/gpu_text.h" //Our prototypes!
 #include "headers/emu/gpu/gpu_sdl.h" //Our prototypes!
-#include "headers/hardware/vga_rest/textmodedata.h" //VGA for font!
+#include "headers/interrupts/textmodedata.h" //VGA for font!
 #include "headers/support/zalloc.h" //Zero allocation support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/bmp.h" //Bitmap support!

@@ -1,5 +1,5 @@
 #include "headers/types.h" //Basic types!
-#include "headers/hardware/vga.h" //VGA VBlank support!
+#include "headers/hardware/vga/vga.h" //VGA VBlank support!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/cpu/cpu.h" //CPU!
 #include "headers/interrupts/interrupt10.h" //INT10 support!
@@ -7,8 +7,8 @@
 
 //Debugger functions!
 #include "headers/emu/timers.h" //Timer support!
-#include "headers/hardware/vga_screen/vga_precalcs.h" //For the CRT precalcs dump!
-#include "headers/hardware/vga_screen/vga_dac.h" //DAC support!
+#include "headers/hardware/vga/vga_precalcs.h" //For the CRT precalcs dump!
+#include "headers/hardware/vga/vga_dac.h" //DAC support!
 //To make a screen capture of all of the debug screens active?
 #define LOG_VGA_SCREEN_CAPTURE 0
 //For text-mode debugging! 40 and 80 character modes!
