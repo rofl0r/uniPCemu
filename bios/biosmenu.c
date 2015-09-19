@@ -929,13 +929,13 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 	{
 		size = dynamicimage_getsize(filename); //Get the filesize!
 		GPU_EMU_printscreen(0, 6, "This is a Superfury Dynamic Disk Image file."); //Show selection init!
-		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
+		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 	}
 	else if (is_staticimage(filename)) //Static image?
 	{
 		size = staticimage_getsize(filename); //Get the filesize!
 		GPU_EMU_printscreen(0, 6, "This is a Static Disk Image file.           "); //Show selection init!
-		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
+		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 	}
 	else if (is_DSKimage(filename)) //DSK disk image?
 	{
@@ -944,7 +944,7 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 		size = dskinfo.NumberOfSides*dskinfo.NumberOfTracks*dskinfo.TrackSize; //Get the total disk image size!
 		size = dynamicimage_getsize(filename); //Get the filesize!
 		GPU_EMU_printscreen(0, 6, "This is a DSK Disk Image file.              "); //Show selection init!
-		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
+		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 	}
 	else //Unknown file type: no information?
 	{
@@ -1727,7 +1727,7 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 	{
 		EMU_locktext();
 		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
-		GPU_EMU_printscreen(x, y, "%08i MB %04i KB", (uint_32)(result/1024000), (uint_32)((result%1024000)/1024)); //Show current size!
+		GPU_EMU_printscreen(x, y, "%08i MB %04i KB", (uint_32)(result/MBMEMORY), (uint_32)((result%MBMEMORY)/1024)); //Show current size!
 		EMU_unlocktext();
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 		//1GB steps!
@@ -1736,20 +1736,20 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 			if (result == 0) {}
 			else
 			{
-				if (((int_64)(result - 1024000000)) <= 0)
+				if (((int_64)(result - (1024*MBMEMORY))) <= 0)
 				{
 					result = 0;    //1GB steps!
 				}
 				else
 				{
-					result -= 1024000000;
+					result -= 1024*MBMEMORY;
 				}
 			}
 		}
 		else if ((key & BUTTON_RTRIGGER)>0)
 		{
 			oldvalue = result; //Save the old value!
-			result += 1024000000; //Add 1GB!
+			result += 1024*MBMEMORY; //Add 1GB!
 			if (result < oldvalue) //We've overflown?
 			{
 				result = oldvalue; //Undo: we've overflown!
@@ -1761,20 +1761,20 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve t
 			if (result==0) { }
 			else
 			{
-				if (((int_64)(result-1024000))<=0)
+				if (((int_64)(result-MBMEMORY))<=0)
 				{
 					result = 0;    //1MB steps!
 				}
 				else
 				{
-					result -= 1024000;
+					result -= MBMEMORY;
 				}
 			}
 		}
 		else if ((key & BUTTON_RIGHT)>0)
 		{
 			oldvalue = result; //Save the old value!
-			result += 1024000; //Add 1MB!
+			result += MBMEMORY; //Add 1MB!
 			if (result < oldvalue) //We've overflown?
 			{
 				result = oldvalue; //Undo: we've overflown!
@@ -1934,7 +1934,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 	bzero(filename,sizeof(filename)); //Init!
 	FILEPOS size = 0;
 	BIOSClearScreen(); //Clear the screen!
-	BIOS_Title("Generate Dynamic HDD Image"); //Full clear!
+	BIOS_Title("Generate Static HDD Image"); //Full clear!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto position for info!
 	GPU_EMU_printscreen(0, 4, "Name: "); //Show the filename!
@@ -1956,7 +1956,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 				if (size != 0) //Got size?
 				{
 					EMU_locktext();
-					GPU_EMU_printscreen(-1, -1, "%08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
+					GPU_EMU_printscreen(12, 5, "%08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 					EMU_gotoxy(0, 6); //Next row!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
@@ -2005,7 +2005,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 				if (size != 0) //Got size?
 				{
 					EMU_locktext();
-					GPU_EMU_printscreen(-1, -1, "%08i MB %04i KB", (uint_32)(size / 1024000), (uint_32)((size % 1024000) / 1024)); //Show size too!
+					GPU_EMU_printscreen(12, 5, "%08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 					EMU_gotoxy(0, 6); //Next row!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
