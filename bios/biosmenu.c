@@ -411,7 +411,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 
-	return reboot_needed; //Do we need to reboot?
+	return (reboot_needed==2) || ((reboot_needed==1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
 }
 
 
@@ -1661,7 +1661,14 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	}
 
 	optioninfo[advancedoptions] = 1; //Discard option!
-	strcpy(menuoptions[advancedoptions++],"Discard Changes & Resume emulation"); //Option #1!
+	if (!(reboot_needed==2)) //Able to continue running: Reboot is optional?
+	{
+		strcpy(menuoptions[advancedoptions++],"Discard Changes & Resume emulation"); //Option #1!
+	}
+	else
+	{
+		strcpy(menuoptions[advancedoptions++], "Discard Changes & Reboot"); //Option #1!
+	}
 	
 	
 	if (!EMU_RUNNING) //Emulator isn't running?
@@ -1690,7 +1697,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		case 2: //Load defaults?
 			BIOSMenu_LoadDefaults(); //Load BIOS defaults option!
 			BIOS_Changed = 1; //The BIOS has been changed!
-			reboot_needed = 1; //We need a reboot!
+			reboot_needed = 2; //We need a reboot!
 			break;
 		}
 		break;
@@ -1954,6 +1961,11 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
 					generateStaticImage(filename, size, 18, 6); //Generate a static image!
+					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
+					{
+						BIOS_Changed = 1; //We've changed!
+						reboot_needed = 2; //We're in need of a reboot!
+					}
 				}
 			}
 			//If we're too long, ignore it!
@@ -1999,6 +2011,11 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 					EMU_unlocktext();
 					FILEPOS sizecreated;
 					sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
+					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
+					{
+						BIOS_Changed = 1; //We've changed!
+						reboot_needed = 2; //We're in need of a reboot!
+					}
 				}
 			}
 			//If we're too long, ignore it!
@@ -2061,6 +2078,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 				sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
+					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
+					{
+						BIOS_Changed = 1; //We've changed!
+						reboot_needed = 2; //We're in need of a reboot!
+					}
 					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
@@ -2223,6 +2245,11 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 			dolog("BIOS", "Dynamic disk size: %i bytes = %i sectors", size, (size >> 9));
 			if (size != 0) //Got size?
 			{
+				if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
+				{
+					BIOS_Changed = 1; //We've changed!
+					reboot_needed = 2; //We're in need of a reboot!
+				}
 				EMU_locktext();
 				EMU_gotoxy(0, 6); //Next row!
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
@@ -2724,7 +2751,7 @@ void BIOS_MemReAlloc() //Reallocates BIOS memory!
 	
 	BIOS_Changed = 1; //Changed!
 	BIOS_Menu = 8; //Goto Advanced menu!
-	reboot_needed = 1; //We need to reboot!
+	reboot_needed = 2; //We need to reboot!
 }
 
 void BIOS_DirectPlotSetting()
@@ -3777,7 +3804,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 		memset(BIOS_Settings.CMOS, 0, sizeof(BIOS_Settings.CMOS));
 		BIOS_Settings.got_CMOS = 0; //We haven't gotten a CMOS!
 		BIOS_Changed = 1; //We've changed!
-		reboot_needed = 1; //We're needing a reboot!
+		reboot_needed = 2; //We're needing a reboot!
 	}
 	BIOS_Menu = 8; //Goto Advanced Menu!
 }

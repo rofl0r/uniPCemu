@@ -171,6 +171,7 @@
     <ClInclude Include="..\headers\cpu\modrm.h" />
     <ClInclude Include="..\headers\cpu\multitasking.h" />
     <ClInclude Include="..\headers\cpu\protection.h" />
+    <ClInclude Include="..\headers\directorylisting.h" />
     <ClInclude Include="..\headers\emu\directorylist.h" />
     <ClInclude Include="..\headers\emu\emucore.h" />
     <ClInclude Include="..\headers\emu\emu_bios_sound.h" />
@@ -194,6 +195,8 @@
     <ClInclude Include="..\headers\emu\state.h" />
     <ClInclude Include="..\headers\emu\threads.h" />
     <ClInclude Include="..\headers\emu\timers.h" />
+    <ClInclude Include="..\headers\endpacked.h" />
+    <ClInclude Include="..\headers\fopen64.h" />
     <ClInclude Include="..\headers\hardware\8042.h" />
     <ClInclude Include="..\headers\hardware\8237A.h" />
     <ClInclude Include="..\headers\hardware\8253.h" />
@@ -228,6 +231,8 @@
     <ClInclude Include="..\headers\hardware\vga\vga_trident8900.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_vram.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_vramtext.h" />
+    <ClInclude Include="..\headers\header_dosbox.h" />
+    <ClInclude Include="..\headers\header_dosboxmpu.h" />
     <ClInclude Include="..\headers\interrupts\interrupt05.h" />
     <ClInclude Include="..\headers\interrupts\interrupt10.h" />
     <ClInclude Include="..\headers\interrupts\interrupt11.h" />
@@ -244,6 +249,8 @@
     <ClInclude Include="..\headers\mmu\mmu.h" />
     <ClInclude Include="..\headers\mmu\mmuhandler.h" />
     <ClInclude Include="..\headers\mmu\paging.h" />
+    <ClInclude Include="..\headers\packed.h" />
+    <ClInclude Include="..\headers\sdl_rest.h" />
     <ClInclude Include="..\headers\support\bmp.h" />
     <ClInclude Include="..\headers\support\crc32.h" />
     <ClInclude Include="..\headers\support\fifobuffer.h" />
@@ -257,6 +264,11 @@
     <ClInclude Include="..\headers\support\sf2.h" />
     <ClInclude Include="..\headers\support\signedness.h" />
     <ClInclude Include="..\headers\support\zalloc.h" />
+    <ClInclude Include="..\headers\types.h" />
+    <ClInclude Include="..\headers\types_base.h" />
+    <ClInclude Include="..\headers\types_linux.h" />
+    <ClInclude Include="..\headers\types_psp.h" />
+    <ClInclude Include="..\headers\types_win.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{087D6D2C-39CB-4118-A010-F28A50AEB005}</ProjectGuid>

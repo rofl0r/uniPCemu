@@ -811,5 +811,41 @@
     <ClInclude Include="..\headers\basicio\staticimage.h">
       <Filter>Header Files\basicio</Filter>
     </ClInclude>
+    <ClInclude Include="..\headers\directorylisting.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\endpacked.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\fopen64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\header_dosbox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\header_dosboxmpu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\packed.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\sdl_rest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\types_base.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\types_linux.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\types_psp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\types_win.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
