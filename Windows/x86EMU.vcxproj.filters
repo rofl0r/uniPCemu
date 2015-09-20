@@ -138,9 +138,6 @@
     <ClCompile Include="..\emu\core\emu_bios_sound.c">
       <Filter>Source Files\emu\core</Filter>
     </ClCompile>
-    <ClCompile Include="..\emu\core\emu_main.c">
-      <Filter>Source Files\emu\core</Filter>
-    </ClCompile>
     <ClCompile Include="..\emu\core\emu_misc.c">
       <Filter>Source Files\emu\core</Filter>
     </ClCompile>
@@ -467,6 +464,9 @@
     </ClCompile>
     <ClCompile Include="..\hardware\vga\vga_sequencer_textmode.c">
       <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\core\emu_main.c">
+      <Filter>Source Files\emu\core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

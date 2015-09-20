@@ -6,10 +6,10 @@
 #include "headers/support/zalloc.h" //Memory protections for our inline function!
 
 //We're using a 8x8 font!
-#define GPU_TEXTSURFACE_HEIGHT (int)(PSP_SCREEN_ROWS/10)
-#define GPU_TEXTSURFACE_WIDTH (int)(PSP_SCREEN_COLUMNS/10)
-#define GPU_TEXTPIXELSY (GPU_TEXTSURFACE_HEIGHT*10)
-#define GPU_TEXTPIXELSX (GPU_TEXTSURFACE_WIDTH*10)
+#define GPU_TEXTSURFACE_HEIGHT (int)(PSP_SCREEN_ROWS>>3)
+#define GPU_TEXTSURFACE_WIDTH (int)(PSP_SCREEN_COLUMNS>>3)
+#define GPU_TEXTPIXELSY (GPU_TEXTSURFACE_HEIGHT<<3)
+#define GPU_TEXTPIXELSX (GPU_TEXTSURFACE_WIDTH<<3)
 
 //Flags:
 //Dirty flag!

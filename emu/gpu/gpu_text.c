@@ -17,26 +17,31 @@ extern GPU_SDL_Surface *rendersurface; //The PSP's surface to use when flipping!
 word TEXT_xdelta = 0;
 word TEXT_ydelta = 0; //Delta x,y!
 
-OPTINLINE void GPU_textcalcpixel(int *x, int *y, int *charx, int *chary)
+OPTINLINE byte GPU_textcalcpixel(int *x, int *y, int *charx, int *chary)
 {
-	int cx=*x;
-	int cy=*y;
-	int cx2, cy2;
-
-	cx /= 10; //Shift to the character we're from!
-	cy /= 10; //Shift to the character we're from!
+	register int cx;
+	register int cy;
+	cx = *x;
+	cy = *y;
+	cx >>= 3; //Shift to the character we're from!
+	cy >>= 3; //Shift to the character we're from!
 	*charx = cx; //Set!
 	*chary = cy; //Set!
 
+	//Check for overflowing character coordinates!
+	if (cx<0) return 1; //Invalid x!
+	if (cy<0) return 1; //Invalid y!
+	if (cx>=GPU_TEXTPIXELSX) return 1; //Invalid x!
+	if (cy>=GPU_TEXTPIXELSY) return 1; //Invalid y!
+
 	//Now the pixel within!
-	cx2 = *x; //Read original x!
-	cy2 = *y; //Read original y!
-	cx *= 10; //Get original pixel!
-	cy *= 10; //Get original pixel!
-	cx2 -= cx; //Substract from the pixel!
-	cy2 -= cy; //Substract from the pixel!
-	*x = cx2; //Our inner x!
-	*y = cy2; //Our inner y!
+	cx = *x;
+	cy = *y;
+	cx &= 7; //8x only!
+	cy &= 7; //8y only!
+	*x = cx; //Our inner x!
+	*y = cy; //Our inner y!
+	return 0; //Valid!
 }
 
 OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
@@ -53,23 +58,21 @@ OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters
 		lastcharinfo = ((lastrow << 16) | (character << 8) | 0x80 | y); //Last character info loaded!
 	}
 
-	byte bitpos = 23 - (x % 8); //x or 7-x for reverse?
+	byte bitpos = 23 - (x & 7); //x or 7-x for reverse?
 	return ((lastcharinfo&(1 << bitpos)) >> bitpos); //Give result!
 }
 
 
 OPTINLINE byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
 {
-	if (((x<0) || (y<0) || ((y/10)>=GPU_TEXTSURFACE_HEIGHT) || ((x/10)>=GPU_TEXTSURFACE_WIDTH))) return 0; //None when out of bounds!
 	int charx, chary, x2=x, y2=y;
-	GPU_textcalcpixel(&x2, &y2, &charx, &chary); //Calculate our info!
-	if ((x2 < 0) || (x2 >= 8) || (y2 < 0) || (y2 >= 8)) return 0; //Out of range = background!
+	if (GPU_textcalcpixel(&x2, &y2, &charx, &chary)) return 0; //Calculate our info. Our of range = Background!
 	return getcharxy_8(surface->text[chary][charx], x2, y2); //Give the pixel of the character!
 }
 
 OPTINLINE uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
 {
-	if (((x<0) || (y<0) || ((y / 10) >= GPU_TEXTSURFACE_HEIGHT) || ((x / 10) >= GPU_TEXTSURFACE_WIDTH))) return TRANSPARENTPIXEL; //None when out of bounds!
+	if (((x<0) || (y<0) || ((y >> 3) >= GPU_TEXTSURFACE_HEIGHT) || ((x >> 3) >= GPU_TEXTSURFACE_WIDTH))) return TRANSPARENTPIXEL; //None when out of bounds!
 	int charx, chary, x2=x, y2=y;
 	GPU_textcalcpixel(&x2, &y2, &charx, &chary); //Calculate our info!
 	return border ? surface->border[chary][charx] : surface->font[chary][charx]; //Give the border or font of the character!
@@ -139,6 +142,7 @@ GPU_TEXTSURFACE *alloc_GPUtext()
 	}
 
 	surface->lock = SDL_CreateSemaphore(1); //Create our lock for when we are used!
+
 	return surface; //Give the allocated surface!
 }
 

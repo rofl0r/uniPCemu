@@ -88,6 +88,9 @@ int emu_started = 0; //Emulator started (initEMU called)?
 //To debug init/doneemu?
 #define DEBUG_EMU 0
 
+//To get a reasonable speed on slow systems, make this number higher (at the cost of other threads)!
+#define UNLIMITEDOPCODES_SPEED 160000
+
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
 
@@ -518,7 +521,7 @@ uint_64 last_timing = 0; //Last timing!
 void CPU_Speed_Unlimited()
 {
 	static uint_32 numopcodes = 0; //Delay counter!
-	if (++numopcodes == 10000)//Every 10000 opcodes(to allow for more timers/input to update)
+	if (++numopcodes == UNLIMITEDOPCODES_SPEED)//Every X opcodes(to allow for more timers/input to update)
 	{
 		numopcodes = 0; //Reset!
 		delay(0); //Wait minimal time for other threads to process data!
