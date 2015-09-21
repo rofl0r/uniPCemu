@@ -374,7 +374,6 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 		modulator = adlibop[operator].lastsignal[0]; //Take the previous last signal!
 		modulator += adlibop[operator].lastsignal[1]; //Take the last signal!
 		modulator *= adlibch[curchan].feedback; //Calculate current feedback!
-		modulator /= PI2; //Divide by 2PI to get a value to modulate!
 	}
 
 	//Generate the correct signal!
@@ -691,7 +690,7 @@ void initAdlib()
 
 	for (i = 0;i < NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
 	{
-		feedbacklookup2[i] = feedbacklookup[i] * (1 / (4 * PI)); //Convert to a range of 0-1!
+		feedbacklookup2[i] = feedbacklookup[i] * (1.0f / (4.0f * PI)) * (1.0f/PI2); //Convert to a range of 0-1!
 	}
 
 	if (__SOUND_ADLIB)
