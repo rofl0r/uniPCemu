@@ -975,12 +975,14 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.floppy0,""); //Unmount!
+		BIOS_Settings.floppy0_readonly = 0; //Not readonly!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break;
 	default: //File?
 		BIOS_Changed = 1; //Changed!
+		if (strcmp(BIOS_Settings.floppy0,itemlist[file])!=0) BIOS_Settings.floppy0_readonly = 0; //Different resets readonly flag!
 		strcpy(BIOS_Settings.floppy0,itemlist[file]); //Use this file!
 	}
 	BIOS_Menu = 1; //Return to image menu!
@@ -1002,12 +1004,14 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
 		strcpy(BIOS_Settings.floppy1,""); //Unmount!
+		BIOS_Settings.floppy0_readonly = 0; //Different resets readonly flag!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	default: //File?
 		BIOS_Changed = 1; //Changed!
+		if (strcmp(BIOS_Settings.floppy1, itemlist[file]) != 0) BIOS_Settings.floppy1_readonly = 0; //Different resets readonly flag!
 		strcpy(BIOS_Settings.floppy1,itemlist[file]); //Use this file!
 	}
 	BIOS_Menu = 1; //Return to image menu!
@@ -1029,6 +1033,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
 		reboot_needed = 1; //We need to reboot to apply the ATA changes!
+		BIOS_Settings.hdd0_readonly = 0; //Different resets readonly flag!
 		strcpy(BIOS_Settings.hdd0,""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
@@ -1037,6 +1042,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 	default: //File?
 		BIOS_Changed = 1; //Changed!
 		reboot_needed = 1; //We need to reboot to apply the ATA changes!
+		if (strcmp(BIOS_Settings.hdd0, itemlist[file]) != 0) BIOS_Settings.hdd0_readonly = 0; //Different resets readonly flag!
 		strcpy(BIOS_Settings.hdd0,itemlist[file]); //Use this file!
 	}
 	BIOS_Menu = 1; //Return to image menu!
@@ -1058,6 +1064,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
 		reboot_needed = 1; //We need to reboot to apply the ATA changes!
+		BIOS_Settings.hdd1_readonly = 0; //Different resets readonly flag!
 		strcpy(BIOS_Settings.hdd1,""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
@@ -1066,6 +1073,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 	default: //File?
 		BIOS_Changed = 1; //Changed!
 		reboot_needed = 1; //We need to reboot to apply the ATA changes!
+		if (strcmp(BIOS_Settings.hdd1, itemlist[file]) != 0) BIOS_Settings.hdd1_readonly = 0; //Different resets readonly flag!
 		strcpy(BIOS_Settings.hdd1,itemlist[file]); //Use this file!
 	}
 	BIOS_Menu = 1; //Return to image menu!
@@ -1196,9 +1204,9 @@ void BIOS_InitDisksText()
 	else
 	{
 		strcat(menuoptions[3],BIOS_Settings.hdd1); //Add disk image!
-		if (BIOS_Settings.hdd0_readonly) //Read-only?
+		if (BIOS_Settings.hdd1_readonly) //Read-only?
 		{
-			strcat(menuoptions[2]," <R>"); //Show readonly tag!
+			strcat(menuoptions[3]," <R>"); //Show readonly tag!
 		}
 	}
 
