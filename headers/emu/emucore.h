@@ -20,8 +20,10 @@ void EMU_startInput();
 
 
 //DoEmulator results:
+//-1: Keep running: execute next instruction!
 //0:Shutdown
 //1:Reset emu
-int DoEmulator(); //Run the emulator!
+byte cpurun(); //Run the emulator CPU (called from main thread)!
+int DoEmulator(); //Run the emulator execution itself!
 
 #endif

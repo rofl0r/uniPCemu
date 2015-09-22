@@ -89,23 +89,17 @@ Main thread for emulation!
 
 */
 
-void cputhread() //The main thread for the emulator!
+byte cpurun() //The main thread for the emulator!
 {
-	if (!hasmemory()) //No MMU?
-	{
-		dolog("BIOS","EMU_BIOSLoader: we have no memory!");
-		BIOS_LoadIO(1); //Load basic BIOS I/O (disks), don't show checksum errors!
-		autoDetectMemorySize(0); //Check&Save memory size if needed!
-		EMU_Shutdown(0); //No shutdown!
-		return; //Reset!
-	}
-	
 //At this point everything is ready to go!
-	byte emu_status;
+	int emu_status;
 	emu_status = DoEmulator(); //Run the emulator!
 	debugrow("Checking return status...");
 	switch (emu_status) //What to do next?
 	{
+	case -1: //Continue running?
+		return 0; //Continue running!
+		break;
 	case 0: //Shutdown
 		debugrow("Shutdown...");
 		EMU_Shutdown(1); //Execute shutdown!
@@ -113,7 +107,7 @@ void cputhread() //The main thread for the emulator!
 		debugrow("Reset..."); //Not supported yet!
 	default: //Unknown status?
 		debugrow("Invalid EMU return code OR full reset requested!");
-		return; //Shut down our thread, returning to the main processor!
+		return 1; //Shut down our thread, returning to the main processor!
 	}
 }
 

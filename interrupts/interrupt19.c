@@ -5,6 +5,7 @@
 #include "headers/mmu/mmu.h" //MMU support!
 #include "headers/cpu/protection.h" //For CPU_segment_index!
 #include "headers/emu/emu_main.h" //For BIOS POST!
+#include "headers/emu/threads.h" //Thread support!
 
 extern byte reset; //To reset the emulator?
 extern BIOS_Settings_TYPE BIOS_Settings; //Our BIOS Settings!
@@ -40,7 +41,23 @@ note 1) Reads track 0, sector 1 into address 0000h:7C00h, then transfers
      7) 8255 port 60h bit 0 = 1 if booting from diskette.
 */
 
-void BIOS_int19()
+extern ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
+
+void POSTThread()
 {
 	reset = EMU_BIOSPOST(); //Execute POST, process emulator reset if needed!
+}
+
+void BIOS_int19()
+{
+	if (BIOSMenuThread) //Gotten a POST thread?
+	{
+		if (threadRunning(BIOSMenuThread, "BIOSMenu"))
+		{
+			return; //Don't re-start the POST thread when already running: keep idle looping(waiting for it to finish) while it's running!
+		}
+	}
+	CPU_resetOP(); //Reset the CPU to re-run this opcode by default!
+	BIOSMenuThread = startThread(&POSTThread,"BIOSMenu",NULL,DEFAULT_PRIORITY); //Start the POST thread at default priority!
+	delay(50000); //Wait a bit to start up the thread!
 }

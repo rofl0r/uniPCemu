@@ -185,7 +185,6 @@ int threadhandler(/*SceSize args, void *params*/ void *data)
 	return 0; //Shouldn't be here?
 }
 
-
 void termThreads() //Terminate all threads but our own!
 {
 	//dolog("threads","termThreads...");

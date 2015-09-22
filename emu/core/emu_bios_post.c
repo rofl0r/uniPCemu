@@ -198,7 +198,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			byte verified;
 			verified = 0; //Default: not verified!
-
+			lock(LOCK_CPU);
 			if (file_exists("ROM/BIOSROM.BIN")) //Fully custom BIOS ROM, for the entire BIOS segment?
 			{
 				verified = BIOS_load_custom("ROM/BIOSROM.BIN"); //Try to load a custom BIOS ROM!
@@ -215,6 +215,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					EMU_startInput(); //Start input again!
 					EMU_RUNNING = 1; //We're running again!
 					allow_debuggerstep = 1; //Allow stepping from now on!
+					unlock(LOCK_CPU);
 					return 0; //No reset!
 				}
 				if (!BIOS_load_ROM(19)) //Failed to load u19?
@@ -225,6 +226,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					EMU_startInput(); //Start input again!
 					EMU_RUNNING = 1; //We're running again!
 					allow_debuggerstep = 1; //Allow stepping from now on!
+					unlock(LOCK_CPU);
 					return 0; //No reset!
 				}
 				verified = 1; //Verified!
@@ -238,6 +240,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					EMU_startInput(); //Start input again!
 					EMU_RUNNING = 1; //We're running again!
 					allow_debuggerstep = 1; //Allow stepping from now on!
+					unlock(LOCK_CPU);
 					return 0; //No reset!
 				}
 				if (!BIOS_load_ROM(47)) //Failed to load u47?
@@ -248,6 +251,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					EMU_startInput(); //Start input again!
 					EMU_RUNNING = 1; //We're running again!
 					allow_debuggerstep = 1; //Allow stepping from now on!
+					unlock(LOCK_CPU);
 					return 0; //No reset!
 				}
 				verified = 1; //Verified!
@@ -267,6 +271,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				CPU_INT(0x18); //Error: no ROM!
 				EMU_startInput(); //Start input again!
 				EMU_RUNNING = 1; //We're running again!
+				unlock(LOCK_CPU);
 				return 0; //No reset!
 			}
 			else //Boot rom ready?
@@ -278,6 +283,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				allow_debuggerstep = 1; //Allow stepping from now on!
 				startTimers(0); //Make sure we're running fully!
 				startTimers(1); //Make sure we're running fully!
+				unlock(LOCK_CPU);
 				return 0; //No reset, start the BIOS!
 			}
 		}

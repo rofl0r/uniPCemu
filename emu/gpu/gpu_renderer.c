@@ -400,7 +400,6 @@ void renderHWFrame() //Render a frame from hardware!
 
 	if (ALLOW_HWRENDERING)
 	{
-		updateVideo(); //Change display resolution of output when needed!
 		init_rowempty(); //Init empty row!
 		//Start the rendering!
 		if (!VIDEO_DIRECT) //To do scaled mapping to the screen?

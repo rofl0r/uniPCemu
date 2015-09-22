@@ -22,6 +22,8 @@
 #include "headers/hardware/vga/vga.h" //VGA support for locks!
 #include "headers/support/highrestimer.h" //High resolution timer support!
 
+#include "headers/mmu/mmu.h" //MMU support!
+
 #ifdef __psp__
 #include <pspkernel.h>
 PSP_MODULE_INFO("x86EMU", 0, 1, 0);
@@ -162,10 +164,12 @@ byte running = 0; //Are we running the main thread?
 
 SDL_sem *IPS_Lock = NULL;
 
+TicksHolder VideoUpdate;
+
 void updateInputMain() //Frequency 1000Hz!
 {
 	SDL_Event event;
-	if (SDL_WaitEvent(&event)) //Gotten events to handle?
+	if (SDL_PollEvent(&event)) //Gotten events to handle?
 	{
 		//Handle an event!
 		updateInput(&event); //Update input status when needed!
@@ -174,6 +178,11 @@ void updateInputMain() //Frequency 1000Hz!
 			running = 0; //Terminate our app!
 			EMU_Shutdown(1); //Request a shutdown!
 		}
+	}
+	if (getnspassed_k(&VideoUpdate)>=(1000000000.0f/10.0f)) //To update video every 1/60th second?
+	{
+		getuspassed(&VideoUpdate); //We're updating, so update status!
+		updateVideo(); //Change display resolution of output when needed!
 	}
 }
 
@@ -210,6 +219,7 @@ int main(int argc, char * argv[])
 	getLock(LOCK_TIMERS);
 
 	initHighresTimer(); //Global init of the high resoltion timer!
+	initTicksHolder(&VideoUpdate); //Initialise the Video Update timer!
 
 	initlog(); //Initialise the logging system!
 
@@ -337,25 +347,33 @@ int main(int argc, char * argv[])
 	}
 
 	
-	ThreadParams_p rootthread; //The main thread we're going to use!
 	//Start of the visible part!
 
 	initEMUreset(); //Reset initialisation!
 
-	rootthread = startThread(&cputhread,"X86EMU_CPU",NULL, DEFAULT_PRIORITY); //Start the main thread (default priority)!
-	delay(1000000); //Wait for it to start up!
+	if (!hasmemory()) //No MMU?
+	{
+		dolog("BIOS", "EMU_BIOSLoader: we have no memory!");
+		BIOS_LoadIO(1); //Load basic BIOS I/O (disks), don't show checksum errors!
+		autoDetectMemorySize(0); //Check&Save memory size if needed!
+		EMU_Shutdown(0); //No shutdown!
+		goto stopcpu; //Reset!
+	}
 
 	//New SDL way!
 	/* Check for events */
 	running = 1; //Default: we're running!
+	getuspassed(&VideoUpdate); //Start updating the video if needed!
 	for (;running;) //Still running?
 	{
 		updateInputMain(); //Update input!
-		if (!threadRunning(rootthread, "X86EMU_CPU")) break; //Thread not running? Stop our running status!
+		lock(LOCK_CPU); //Lock the CPU: we're running!
+		if (cpurun()) goto stopcpu; //Stop running the CPU?
+		unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
 	}
 
-	for (;threadRunning(rootthread, "X86EMU_CPU");) delay(0); //Wait for the root thread to terminate!
-
+	stopcpu: //Stopped the CPU?
+	unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
 	stopTimers(1); //Stop all timers still running!
 
 	doneEMU(); //Finish up the emulator, if still required!

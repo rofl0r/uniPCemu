@@ -535,8 +535,32 @@ void CPU_Speed_Limited()
 	for (;getuspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
 }
 
+ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
+
+void BIOSMenuExecution()
+{
+	pauseEMU(); //Stop timers!
+	if (runBIOS(0)) //Run the emulator BIOS!
+	{
+		reset = 1; //We're to reset!
+	}
+	resumeEMU(); //Resume!
+	if (BIOS_Settings.CPUSpeed) //Needs slowdown here?
+	{
+		last_timing = getuspassed_k(&CPU_timing); //We start off at this point!
+	}
+}
+
 byte coreHandler()
 {
+	if (BIOSMenuThread)
+	{
+		if (threadRunning(BIOSMenuThread, "BIOSMenu")) //Are we running the BIOS menu?
+		{
+			return 1; //OK, but skipped!
+		}
+	}
+	BIOSMenuThread = NULL; //We don't run the BIOS menu!
 	static Handler SpeedLimit[2] = {CPU_Speed_Unlimited,CPU_Speed_Limited}; //CPU speed settings!
 	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
 	{
@@ -618,53 +642,44 @@ byte coreHandler()
 	{
 		if (!is_gamingmode() && !Direct_Input) //Not gaming/direct input mode?
 		{
-			pauseEMU(); //Stop timers!
-			if (runBIOS(0)) //Run the emulator BIOS!
-			{
-				reset = 1; //We're to reset!
-			}
-			resumeEMU(); //Resume!
-			if (BIOS_Settings.CPUSpeed) //Needs slowdown here?
-			{
-				last_timing = getuspassed_k(&CPU_timing); //We start off at this point!
-			}
+			BIOSMenuThread = startThread(&BIOSMenuExecution,"BIOSMenu",NULL,DEFAULT_PRIORITY); //Start the BIOS menu thread!
+			delay(50000); //Wait a bit for the thread to start up!
 		}
 	}
 	return 1; //OK!
 }
 
 //DoEmulator results:
+//-1: Execute next instruction!
 //0:Shutdown
 //1:Softreset
 //2:Reset emu
 int DoEmulator() //Run the emulator (starting with the BIOS always)!
 {
-	EMU_RUNNING = 1; //The emulator is running now!
-
 	EMU_enablemouse(1); //Enable all mouse input packets!
 	enableKeyboard(0); //Enable standard keyboard!
-	
-//Start normal emulation!
-	lock(LOCK_CPU); //Start by locking the CPU: we're busy!
-	for (;;)
-	{
-		if (!CPU[activeCPU].running || !hasmemory()) //Not running anymore or no memory present to use?
-		{
-			break; //Stop running!
-		}
-		
-		if (shuttingdown() || reset)
-		{
-			debugrow("Reset/shutdown detected!");
-			break;    //Shutdown or reset?
-		}
 
-		if (!coreHandler()) //Run the core CPU+related handler, gotten abort?
-		{
-			break; //Abort!
-		}
+	EMU_RUNNING = 1; //The emulator is running now!
+
+//Start normal emulation!
+	if (!CPU[activeCPU].running || !hasmemory()) //Not running anymore or no memory present to use?
+	{
+		goto skipcpu; //Stop running!
 	}
-	unlock(LOCK_CPU); //We're finished with the CPU!
+		
+	if (shuttingdown() || reset)
+	{
+		debugrow("Reset/shutdown detected!");
+		goto skipcpu; //Shutdown or reset?
+	}
+
+	if (!coreHandler()) //Run the core CPU+related handler, gotten abort?
+	{
+		goto skipcpu; //Abort!
+	}
+	goto runcpu;
+
+skipcpu: //Finish the CPU loop!
 
 	EMU_RUNNING = 0; //We're not running anymore!
 	
@@ -688,6 +703,9 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 
 	debugrow("Reset by default!");
 	return 1; //Reset emu!
+
+	runcpu: //Keep running the CPU?
+	return -1; //Keep running!
 }
 
 //All emulated timers for the user.

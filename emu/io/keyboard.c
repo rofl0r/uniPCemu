@@ -4,11 +4,11 @@
 //Basic keyboard support for emulator, mapping key presses and releases to the PS/2 keyboard!
 
 //How many ns to wait to check for input (1000000=1ms)!
-#define KEYBOARD_CHECKTIME 10000
+#define KEYBOARD_CHECKTIME 1000000
 //How many us to take for each rapid fire divider (up to x/30 us)!
-#define KEYBOARD_MAXSTEP 100000
+#define KEYBOARD_MAXSTEP 1000
 //Multiplier on keyboard delay (in ms) to get equal to check time (KEYBOARD_CHECKTIME/10 => KEYBOARD_DELAYSTEP*10).
-#define KEYBOARD_DELAYSTEP 100
+#define KEYBOARD_DELAYSTEP 1
 
 
 extern byte SCREEN_CAPTURE; //Screen capture requested?
