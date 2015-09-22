@@ -73,6 +73,7 @@ typedef struct
 //Timing for the CPU!
 void cleanKeyboard();
 void updateKeyboard();
+void cleanEMUKeyboard(); //Internal use only!
 void cleanMouse();
 void updateMouse();
 
