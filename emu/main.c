@@ -169,7 +169,7 @@ TicksHolder VideoUpdate;
 void updateInputMain() //Frequency 1000Hz!
 {
 	SDL_Event event;
-	if (SDL_PollEvent(&event)) //Gotten events to handle?
+	for (;SDL_PollEvent(&event);) //Gotten events to handle?
 	{
 		//Handle an event!
 		updateInput(&event); //Update input status when needed!

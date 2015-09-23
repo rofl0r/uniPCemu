@@ -48,17 +48,21 @@ OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters
 {
 	static uint_32 lastcharinfo; //attribute|character|0x80|row, bit8=Set?
 
-	if ((lastcharinfo & 0xFFFF) != ((character << 8) | 0x80 | y)) //Last row not yet loaded?
+	if ((lastcharinfo & 0xFFF) != (0x800|(character << 3)|y)) //Last row not yet loaded?
 	{
 		uint_32 addr = 0; //Address for old method!
 		addr += character << 3; //Start adress of character!
 		addr += (y & 7); //1 byte per row!
 
 		byte lastrow = int10_font_08[addr]; //Read the row from the character generator!
-		lastcharinfo = ((lastrow << 16) | (character << 8) | 0x80 | y); //Last character info loaded!
+		//Save our loaded information for next time!
+		lastcharinfo = (lastrow << 12);
+		lastcharinfo |= 0x800;
+		lastcharinfo |= (character << 3);
+		lastcharinfo |= y; //Last character info loaded!
 	}
 
-	byte bitpos = 23 - (x & 7); //x or 7-x for reverse?
+	byte bitpos = 19 - (x & 7); //x or maxbit-x for reverse?
 	return ((lastcharinfo&(1 << bitpos)) >> bitpos); //Give result!
 }
 
