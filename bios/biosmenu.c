@@ -706,7 +706,7 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 			}
 			oldoption = option; //Save our changes!
 		}
-		delay(1); //Wait for other threads!
+		delay(0); //Wait for other threads!
 	}
 	return option; //Give the chosen option!
 }

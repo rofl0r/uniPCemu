@@ -302,7 +302,7 @@ void initEMU(int full) //Init!
 		while (1)
 		{
 			VGA_Sequencer(getActiveVGA()); //Generate one line!
-			delay(1); //Allow other threads!
+			delay(0); //Allow other threads!
 			logVGASpeed(); //Log any VGA speeds!
 		}
 		sleep(); //Stop running: give the VGA maximum priority!
@@ -658,8 +658,6 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 {
 	EMU_enablemouse(1); //Enable all mouse input packets!
 	enableKeyboard(0); //Enable standard keyboard!
-
-	EMU_RUNNING = 1; //The emulator is running now!
 
 //Start normal emulation!
 	if (!CPU[activeCPU].running || !hasmemory()) //Not running anymore or no memory present to use?

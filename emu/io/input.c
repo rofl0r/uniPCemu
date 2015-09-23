@@ -1975,6 +1975,11 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_RETURN: //START?
 					input.Buttons &= ~BUTTON_START; //Pressed!
+					if (RALT) //RALT pressed too?
+					{
+						GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
+						updateVideo(); //Force an update of video!
+					}
 					break;
 				case SDLK_UP: //UP?
 					input.Buttons &= ~BUTTON_UP; //Pressed!
@@ -2096,12 +2101,6 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_RETURN: //START?
 					input.Buttons |= BUTTON_START; //Pressed!
-					if (RALT) //RALT pressed too?
-					{
-						GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
-						updateVideo(); //Force an update of video!
-						delay(500000); //Wait for release!
-					}
 					break;
 				case SDLK_UP: //UP?
 					input.Buttons |= BUTTON_UP; //Pressed!

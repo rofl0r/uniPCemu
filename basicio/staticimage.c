@@ -133,7 +133,7 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 			GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",(float)percentage); //Show percentage!
 			EMU_unlocktext();
 			#ifdef __PSP__
-				delay(1); //Allow update of the screen, if needed!
+				delay(0); //Allow update of the screen, if needed!
 			#endif
 		}
 	}

@@ -94,10 +94,7 @@ uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 void waitforfreefifobuffer(FIFOBUFFER *buffer, uint_32 size)
 {
 	if (__HW_DISABLED) return; //Abort!
-	while (fifobuffer_freesize(buffer)<size) //Not enough?
-	{
-		delay(0); //Wait for the buffer to have enough free size!
-	}
+	for (;fifobuffer_freesize(buffer)<size;) delay(0); //Wait for the buffer to have enough free size!
 }
 
 int peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read?
