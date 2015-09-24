@@ -1398,7 +1398,7 @@ void ATA_DiskChanged(int disk)
 		{
 			disk_size = disksize(disk); //Get the disk's size!
 			disk_size >>= 9; //Get the disk size in sectors!
-			if ((disk ==HDD0) || (disk==HDD1)) ATA[disk_channel].Drive[disk_ATA].driveparams[0] = 0x40; //Hard sectored, Fixed drive!
+			if ((disk ==HDD0) || (disk==HDD1)) ATA[disk_channel].Drive[disk_ATA].driveparams[0] = 0x40|(1<<10); //Hard sectored, Fixed drive! Disk transfer rate>10MBs.
 			ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
 			ATA[disk_channel].Drive[disk_ATA].driveparams[3] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk_size); //3=Number of heads
 			ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk_size); //6=Sectors per track

@@ -164,22 +164,28 @@ byte running = 0; //Are we running the main thread?
 
 SDL_sem *IPS_Lock = NULL;
 
-TicksHolder VideoUpdate;
+TicksHolder VideoUpdate, CPUUpdate;
+
+uint_64 CPU_time = 0; //Total CPU time before delay!
 
 void updateInputMain() //Frequency 1000Hz!
 {
 	SDL_Event event;
-	for (;SDL_PollEvent(&event);) //Gotten events to handle?
+	if (SDL_PollEvent(&event)) //Gotten an event to process?
 	{
-		//Handle an event!
-		updateInput(&event); //Update input status when needed!
-		if (event.type == SDL_QUIT) //Quitting requested?
+		do //Gotten events to handle?
 		{
-			running = 0; //Terminate our app!
-			EMU_Shutdown(1); //Request a shutdown!
+			//Handle an event!
+			updateInput(&event); //Update input status when needed!
+			if (event.type == SDL_QUIT) //Quitting requested?
+			{
+				running = 0; //Terminate our app!
+				EMU_Shutdown(1); //Request a shutdown!
+			}
 		}
+		while (SDL_PollEvent(&event)); //Keep polling while available!
 	}
-	if (getnspassed_k(&VideoUpdate)>=(1000000000.0f/10.0f)) //To update video every 1/60th second?
+	if (getnspassed_k(&VideoUpdate)>=100000000) //To update video every 1/10th second?
 	{
 		getuspassed(&VideoUpdate); //We're updating, so update status!
 		updateVideo(); //Change display resolution of output when needed!
@@ -220,6 +226,7 @@ int main(int argc, char * argv[])
 
 	initHighresTimer(); //Global init of the high resoltion timer!
 	initTicksHolder(&VideoUpdate); //Initialise the Video Update timer!
+	initTicksHolder(&CPUUpdate); //Initialise the Video Update timer!
 
 	initlog(); //Initialise the logging system!
 
@@ -364,12 +371,20 @@ int main(int argc, char * argv[])
 	/* Check for events */
 	running = 1; //Default: we're running!
 	getuspassed(&VideoUpdate); //Start updating the video if needed!
+	getuspassed(&CPUUpdate);
+	lock(LOCK_CPU); //Lock the CPU: we're running!
 	for (;running;) //Still running?
 	{
 		updateInputMain(); //Update input!
-		lock(LOCK_CPU); //Lock the CPU: we're running!
+		CPU_time += getuspassed(&CPUUpdate); //Update the CPU time passed!
+		if (CPU_time>=1000000) //Allow other threads to lock the CPU requirements once in a while!
+		{
+			CPU_time -= 1000000; //Rest!
+			unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
+			delay(0); //Wait minimum amount of time!
+			lock(LOCK_CPU); //Lock the CPU: we're running!
+		}
 		if (cpurun()) goto stopcpu; //Stop running the CPU?
-		unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
 	}
 
 	stopcpu: //Stopped the CPU?
