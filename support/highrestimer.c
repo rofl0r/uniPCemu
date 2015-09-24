@@ -95,9 +95,12 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 
 OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, u64 secondfactor)
 {
-	uint_64 result;
-	u64 tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
+	uint_64 result, tickspassed;
+	tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
+	tickspassed += ticksholder->ticksrest; //Add the time we've left unused last time!
 	result = (uint_64)(((double)tickspassed/tickresolution)*secondfactor); //The ammount of ms that has passed as precise as we can!
+	tickspassed -= ((double)result/(double)secondfactor)*tickresolution; //The ticks left unprocessed this call!
+	ticksholder->ticksrest = (tickspassed>0)?tickspassed:0; //Add the rest ticks unprocessed to the next time we're counting!
 	if (ticksholder->avg) //Average enabled?
 	{
 		ticksholder->avg_sumpassed += result; //Add to the sum!

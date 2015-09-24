@@ -9,7 +9,7 @@ u64 oldticks; //Old ticks!
 u64 newticks; //New ticks!
 byte haveoldticks; //Have old ticks?
 u64 tickspassed; //Ticks passed between the two measures (0 at the first call)!
-
+u64 ticksrest; //Ticks left after ticks have been processed (ticks left after division to destination time rate (ms/us/ns))
 //Average support!
 byte avg; //Are we averaging?
 u64 avg_sumpassed; //Total sum passed of getmspassed!
