@@ -160,10 +160,6 @@ OPTINLINE double getCurrentClockSpeed()
 
 extern byte EMU_RUNNING; //Are we running?
 
-byte running = 0; //Are we running the main thread?
-
-SDL_sem *IPS_Lock = NULL;
-
 TicksHolder VideoUpdate, CPUUpdate;
 
 uint_64 CPU_time = 0; //Total CPU time before delay!
@@ -179,7 +175,6 @@ void updateInputMain() //Frequency 1000Hz!
 			updateInput(&event); //Update input status when needed!
 			if (event.type == SDL_QUIT) //Quitting requested?
 			{
-				running = 0; //Terminate our app!
 				EMU_Shutdown(1); //Request a shutdown!
 			}
 		}
@@ -218,9 +213,6 @@ int main(int argc, char * argv[])
 	getLock(LOCK_VGA);
 	getLock(LOCK_GPU);
 	getLock(LOCK_CPU);
-	getLock(LOCK_IPS);
-	getLock(LOCK_8042);
-	getLock(LOCK_SERMOUSE);
 	getLock(LOCK_CMOS);
 	getLock(LOCK_TIMERS);
 
@@ -312,8 +304,6 @@ int main(int argc, char * argv[])
 
 	resetmain: //Main reset!
 
-	IPS_Lock = getLock(LOCK_IPS); //Create the IPS lock!
-
 	startTimers(1); //Start core timing!
 	startTimers(0); //Disable normal timing!
 
@@ -369,11 +359,10 @@ int main(int argc, char * argv[])
 
 	//New SDL way!
 	/* Check for events */
-	running = 1; //Default: we're running!
 	getuspassed(&VideoUpdate); //Start updating the video if needed!
 	getuspassed(&CPUUpdate);
 	lock(LOCK_CPU); //Lock the CPU: we're running!
-	for (;running;) //Still running?
+	for (;;) //Still running?
 	{
 		updateInputMain(); //Update input!
 		CPU_time += getuspassed(&CPUUpdate); //Update the CPU time passed!

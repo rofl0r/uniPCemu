@@ -33,7 +33,6 @@ void input_lastwrite_8042()
 
 void fill8042_input_buffer() //Fill input buffer from full buffer!
 {
-	lock(LOCK_8042); //Wait for locking!
 	if (!(Controller8042.status_buffer&1)) //Buffer empty?
 	{
 		Controller8042.input_buffer = 0; //Undefined to start with!
@@ -91,7 +90,6 @@ void fill8042_input_buffer() //Fill input buffer from full buffer!
 			}
 		}
 	}
-	unlock(LOCK_8042); //We're done!
 }
 
 void reset8042() //Reset 8042 up till loading BIOS!

@@ -1069,18 +1069,11 @@ extern char keys_names[104][11]; //All names of the used keys (for textual repre
 
 void handleMouseMovement() //Handles mouse movement using the analog direction of the mouse!
 {
-	WaitSem(mouse_lock);
-	static word mousemovementstep; //How many steps per movement!
-	if (++mousemovementstep == 100) //10 times a second...
+	if (curstat.analogdirection_mouse_x || curstat.analogdirection_mouse_y) //Mouse analog direction trigger?
 	{
-		mousemovementstep = 0; //Reset movement step!
-		if (curstat.analogdirection_mouse_x || curstat.analogdirection_mouse_y) //Mouse analog direction trigger?
-		{
-			mouse_xmove += (int_64)((float)(curstat.analogdirection_mouse_x / 32767.0f)*10.0f); //Apply x movement in mm (reversed)!
-			mouse_ymove += (int_64)((float)(curstat.analogdirection_mouse_y / 32767.0f)*10.0f); //Apply y movement in mm (reversed)!
-		}
+		mouse_xmove += (int_64)((float)(curstat.analogdirection_mouse_x / 32767.0f)*10.0f); //Apply x movement in mm (reversed)!
+		mouse_ymove += (int_64)((float)(curstat.analogdirection_mouse_y / 32767.0f)*10.0f); //Apply y movement in mm (reversed)!
 	}
-	PostSem(mouse_lock);
 }
 
 void handleKeyboardMouse() //Handles keyboard input during mouse operations!

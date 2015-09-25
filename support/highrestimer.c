@@ -6,6 +6,8 @@
 double tickresolution = 0.0f; //Our tick resolution, initialised!
 byte tickresolution_win_SDL = 0; //Force SDL rendering?
 
+float usfactor, usfactor_reversed, nsfactor, nsfactor_reversed; //The factors and reverse multiplication factor!
+
 void initHighresTimer()
 {
 #ifdef __psp__
@@ -27,6 +29,11 @@ void initHighresTimer()
 		tickresolution = 1000.0f; //We have a resolution in ms as given by SDL!
 #endif
 #endif
+		//Calculate needed precalculated factors!
+		usfactor = (1/ tickresolution)*US_SECOND; //US factor!
+		nsfactor = (1/tickresolution)*NS_SECOND; //NS factor!
+		usfactor_reversed = (1/usfactor); //Reversed!
+		nsfactor_reversed = (1/nsfactor); //Reversed!
 }
 
 void initTicksHolder(TicksHolder *ticksholder)
@@ -93,13 +100,13 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 	return ticksholder->tickspassed; //Give the result: ammount of ticks passed!
 }
 
-OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, u64 secondfactor)
+OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, float secondfactor_reversed)
 {
 	uint_64 result, tickspassed;
 	tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	tickspassed += ticksholder->ticksrest; //Add the time we've left unused last time!
-	result = (uint_64)(((double)tickspassed/tickresolution)*secondfactor); //The ammount of ms that has passed as precise as we can!
-	tickspassed -= ((double)result/(double)secondfactor)*tickresolution; //The ticks left unprocessed this call!
+	result = (uint_64)(tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can!
+	tickspassed -= (result*secondfactor_reversed); //The ticks left unprocessed this call!
 	ticksholder->ticksrest = (tickspassed>0)?tickspassed:0; //Add the rest ticks unprocessed to the next time we're counting!
 	if (ticksholder->avg) //Average enabled?
 	{
@@ -112,12 +119,12 @@ OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, u64 secondfactor)
 
 uint_64 getuspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
 {
-	return gettimepassed(ticksholder,US_SECOND); //Factor us!
+	return gettimepassed(ticksholder,usfactor,usfactor_reversed); //Factor us!
 }
 
 uint_64 getnspassed(TicksHolder *ticksholder)
 {
-	return gettimepassed(ticksholder,NS_SECOND); //Factor ns!
+	return gettimepassed(ticksholder,nsfactor,nsfactor_reversed); //Factor ns!
 }
 
 uint_64 getuspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
