@@ -354,7 +354,7 @@ int main(int argc, char * argv[])
 		BIOS_LoadIO(1); //Load basic BIOS I/O (disks), don't show checksum errors!
 		autoDetectMemorySize(0); //Check&Save memory size if needed!
 		EMU_Shutdown(0); //No shutdown!
-		goto stopcpu; //Reset!
+		goto skipcpu; //Reset!
 	}
 
 	//New SDL way!
@@ -368,16 +368,16 @@ int main(int argc, char * argv[])
 		CPU_time += getuspassed(&CPUUpdate); //Update the CPU time passed!
 		if (CPU_time>=1000000) //Allow other threads to lock the CPU requirements once in a while!
 		{
-			CPU_time -= 1000000; //Rest!
+			CPU_time %= 1000000; //Rest!
 			unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
 			delay(0); //Wait minimum amount of time!
 			lock(LOCK_CPU); //Lock the CPU: we're running!
 		}
-		if (cpurun()) goto stopcpu; //Stop running the CPU?
+		if (cpurun()) break; //Stop running the CPU?
 	}
 
-	stopcpu: //Stopped the CPU?
 	unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
+	skipcpu: //No CPU to execute?
 	stopTimers(1); //Stop all timers still running!
 
 	doneEMU(); //Finish up the emulator, if still required!

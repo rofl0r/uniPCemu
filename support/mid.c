@@ -543,7 +543,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 		running = 1; //We start running!
 		for (;;) //Wait to end!
 		{
-			delay(50000); //Wait 1sec intervals!
+			delay(50000); //Wait little intervals to update status display!
 			WaitSem(MID_channel_Lock)
 			if (!MID_RUNNING)
 			{
@@ -554,9 +554,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 
 			if (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
 			{
-				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));) { //Wait for release while pressed!
-					delay(10000); //Wait for release!
-				} //Wait for release!
+				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));) delay(0); //Wait for release while pressed!
 				WaitSem(MID_timing_pos_Lock) //Wait to update the flag!
 				MID_TERM = 1; //Set termination flag to request a termination!
 				PostSem(MID_timing_pos_Lock) //We're updated!

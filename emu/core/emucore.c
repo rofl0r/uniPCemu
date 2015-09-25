@@ -70,12 +70,8 @@
 
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
-//To debug VGA at MAX speed?
-#define DEBUG_VGA_SPEED 0
 //To show the framerate?
 #define DEBUG_FRAMERATE 1
-//Debug any sound devices? (PC Speaker, Adlib, MPU(to be tested in software), SB16?)
-#define DEBUG_SOUND 0
 //All external variables!
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 extern byte reset; //To fully reset emu?
@@ -251,8 +247,6 @@ void initEMU(int full) //Init!
 		forceBIOSSave(); //Save the new BIOS!
 	}
 
-	if (!DEBUG_SOUND) //Not sound only?
-	{
 	debugrow("Initializing PSP OSK...");
 	psp_keyboard_init(); //Initialise the PSP's on-screen keyboard for the emulator!
 
@@ -269,13 +263,7 @@ void initEMU(int full) //Init!
 	init8259(); //Initialise the 8259 (PIC)!
 
 	debugrow("Starting video subsystem...");
-	if (full) //Enable video?
-	{
-		if (!DEBUG_VGA_SPEED) //Not to debug speed only?
-		{
-			startVideo(); //Start the video functioning!
-		}
-	}
+	if (full) startVideo(); //Start the video functioning!
 	
 	debugrow("Initializing 8042...");
 	BIOS_init8042(); //Init 8042 PS/2 controller!
@@ -285,28 +273,13 @@ void initEMU(int full) //Init!
 
 	debugrow("Initialising mouse...");
 	PS2_initMouse(BIOS_Settings.PS2Mouse); //Start up the mouse!
-	}
 
 	//Load all BIOS presets!
 	debugrow("Initializing 8253...");
 	init8253(); //Init Timer&PC Speaker!
 	
-	if (!DEBUG_SOUND) //Not sound only?
-	{
 	debugrow("Starting VGA...");
 	startVGA(); //Start the current VGA!
-	if (DEBUG_VGA_SPEED) //To debug the VGA MAX speed?
-	{
-		debugrow("Debugging Maximum VGA speed...");
-		startTimers(1); //Start the timers!
-		while (1)
-		{
-			VGA_Sequencer(getActiveVGA()); //Generate one line!
-			delay(0); //Allow other threads!
-			logVGASpeed(); //Log any VGA speeds!
-		}
-		sleep(); //Stop running: give the VGA maximum priority!
-	}
 
 	if (EMULATED_CPU <= CPU_80186) //-186 CPU?
 	{
@@ -357,7 +330,6 @@ void initEMU(int full) //Init!
 	{
 		debugrow("No timers enabled.");
 	}
-	} //Not debugging sound only!
 
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 
@@ -365,11 +337,6 @@ void initEMU(int full) //Init!
 	emu_started = 1; //We've started!
 
 	debugrow("EMU Ready to run.");
-	if (DEBUG_SOUND) //Debugging sound only?
-	{
-		dosoundtest();
-		termThreads(); //Terminate our thread for max priority, if possible!
-	}
 }
 
 void doneEMU()
@@ -378,49 +345,40 @@ void doneEMU()
 	{
 		debugrow("doneEMU: resetTimers");
 		resetTimers(); //Stop the timers!
-		if (!DEBUG_SOUND) //Not sound only?
-		{
-			debugrow("doneEMU: Finishing port E9 hack and emulator support functionality...");
-			BIOS_doneDebugger(); //Finish the port E9 hack and emulator support functionality!
-			debugrow("doneEMU: Finish DMA Controller...");
-			doneDMA(); //Initialise the DMA Controller!
-			debugrow("doneEMU: Saving CMOS...");
-			saveCMOS(); //Save the CMOS!
-			debugrow("doneEMU: stopVideo...");
-			stopVideo(); //Video can't process without MMU!
-			debugrow("doneEMU: Finish keyboard PSP...");
-			psp_keyboard_done(); //We're done with the keyboard!
-			debugrow("doneEMU: finish active VGA...");
-			doneVGA(&MainVGA); //We're done with the VGA!
-			debugrow("doneEMU: finish CPU.");
-			doneCPU(); //Finish the CPU!
-			debugrow("doneEMU: finish MMU...");
-			doneMMU(); //Release memory!
-			debugrow("doneEMU: finish EMS if enabled...");
-			doneEMS(); //Finish EMS!
-		}
+		debugrow("doneEMU: Finishing port E9 hack and emulator support functionality...");
+		BIOS_doneDebugger(); //Finish the port E9 hack and emulator support functionality!
+		debugrow("doneEMU: Finish DMA Controller...");
+		doneDMA(); //Initialise the DMA Controller!
+		debugrow("doneEMU: Saving CMOS...");
+		saveCMOS(); //Save the CMOS!
+		debugrow("doneEMU: stopVideo...");
+		stopVideo(); //Video can't process without MMU!
+		debugrow("doneEMU: Finish keyboard PSP...");
+		psp_keyboard_done(); //We're done with the keyboard!
+		debugrow("doneEMU: finish active VGA...");
+		doneVGA(&MainVGA); //We're done with the VGA!
+		debugrow("doneEMU: finish CPU.");
+		doneCPU(); //Finish the CPU!
+		debugrow("doneEMU: finish MMU...");
+		doneMMU(); //Release memory!
+		debugrow("doneEMU: finish EMS if enabled...");
+		doneEMS(); //Finish EMS!
 		debugrow("doneEMU: Finishing MPU...");
 		doneMPU(); //Finish our MPU!
 		debugrow("doneEMU: Finishing Adlib...");
 		doneAdlib(); //Finish adlib!
 		debugrow("doneEMU: Finishing PC Speaker...");
 		doneSpeakers();
-		if (!DEBUG_SOUND)
-		{
-			debugrow("doneEMU: finish Keyboard chip...");
-			BIOS_doneKeyboard(); //Done with the keyboard!
-			debugrow("doneEMU: finish Mouse chip...");
-			BIOS_doneMouse(); //Done with the mouse!
-			debugrow("doneEMU: finish 8042...");
-			BIOS_done8042(); //Done with PS/2 communications!~
-			debugrow("doneEMU: reset audio channels...");
-		}
+		debugrow("doneEMU: finish Keyboard chip...");
+		BIOS_doneKeyboard(); //Done with the keyboard!
+		debugrow("doneEMU: finish Mouse chip...");
+		BIOS_doneMouse(); //Done with the mouse!
+		debugrow("doneEMU: finish 8042...");
+		BIOS_done8042(); //Done with PS/2 communications!~
+		debugrow("doneEMU: reset audio channels...");
 		resetchannels(); //Release audio!
-		if (!DEBUG_SOUND)
-		{
-			debugrow("doneEMU: finish Video...");
-			doneVideo(); //Cleanup screen buffers!
-		}
+		debugrow("doneEMU: finish Video...");
+		doneVideo(); //Cleanup screen buffers!
 		debugrow("doneEMU: EMU finished!");
 		emu_started = 0; //Not started anymore!
 		EMU_RUNNING = 0; //We aren't running anymore!
@@ -643,7 +601,7 @@ byte coreHandler()
 		if (!is_gamingmode() && !Direct_Input) //Not gaming/direct input mode?
 		{
 			BIOSMenuThread = startThread(&BIOSMenuExecution,"BIOSMenu",NULL,DEFAULT_PRIORITY); //Start the BIOS menu thread!
-			delay(50000); //Wait a bit for the thread to start up!
+			delay(0); //Wait a bit for the thread to start up!
 		}
 	}
 	return 1; //OK!

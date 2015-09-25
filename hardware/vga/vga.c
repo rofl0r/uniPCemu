@@ -373,7 +373,7 @@ void VGA_waitforVBlank() //Wait for a VBlank to happen?
 	while (!getActiveVGA()->VGA_vblank) //Not happened yet?
 	{
 		unlockVGA(); //Allow some running time!
-		delay(50000); //Wait a bit for the VBlank to occur!
+		delay(0); //Wait a bit for the VBlank to occur!
 		lockVGA(); //Lock it for our checking!
 	}
 	unlockVGA(); //Allow to run again!
