@@ -12,7 +12,7 @@
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC renderer support!
 
 //How many lines to render at a time when limited.
-#define __SCREEN_LINES_LIMIT 1500
+#define __SCREEN_LINES_LIMIT 1000
 
 //#define __HW_DISABLED
 

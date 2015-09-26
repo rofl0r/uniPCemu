@@ -85,7 +85,7 @@ int emu_started = 0; //Emulator started (initEMU called)?
 #define DEBUG_EMU 0
 
 //To get a reasonable speed on slow systems, make this number higher (at the cost of other threads)!
-#define UNLIMITEDOPCODES_SPEED 40000
+#define UNLIMITEDOPCODES_SPEED 320000
 
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
@@ -98,6 +98,8 @@ debugging for us!
 
 extern GPU_TEXTSURFACE *frameratesurface;
 
+byte currentbusy[6] = {0,0,0,0,0,0}; //Current busy status; default none!
+
 void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 {
 	uint_32 busycolor;
@@ -105,82 +107,106 @@ void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 	switch (disk) //What disk?
 	{
 	case FLOPPY0:
-		GPU_text_locksurface(frameratesurface);
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH - 6, 1); //Goto second row!
-		if (busy) //Busy?
+		if (currentbusy[0]!=busy) //Changed?
 		{
-			GPU_textprintf(frameratesurface, busycolor, RGB(00,00,00), "A");
+			GPU_text_locksurface(frameratesurface);
+			GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH - 6, 1); //Goto second row!
+			if (busy) //Busy?
+			{
+				GPU_textprintf(frameratesurface, busycolor, RGB(00,00,00), "A");
+			}
+			else
+			{
+				GPU_textprintf(frameratesurface, RGB(0x00,0x00,0x00), RGB(0x00,0x00,0x00), " ");
+			}
+			GPU_text_releasesurface(frameratesurface);
+			currentbusy[0] = busy; //New busy status!
 		}
-		else
-		{
-			GPU_textprintf(frameratesurface, RGB(0x00,0x00,0x00), RGB(0x00,0x00,0x00), " ");
-		}
-		GPU_text_releasesurface(frameratesurface);
 		break;
 	case FLOPPY1:
-		GPU_text_locksurface(frameratesurface);
-		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 5, 1); //Goto second row!
-		if (busy) //Busy?
+		if (currentbusy[1] != busy) //Changed?
 		{
-			GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "B");
+			GPU_text_locksurface(frameratesurface);
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 5, 1); //Goto second row!
+			if (busy) //Busy?
+			{
+				GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "B");
+			}
+			else
+			{
+				GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+			}
+			GPU_text_releasesurface(frameratesurface);
+			currentbusy[1] = busy; //New busy status!
 		}
-		else
-		{
-			GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
-		}
-		GPU_text_releasesurface(frameratesurface);
 		break;
 	case HDD0:
-		GPU_text_locksurface(frameratesurface);
-		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 4, 1); //Goto second row!
-		if (busy) //Busy?
+		if (currentbusy[2] != busy) //Changed?
 		{
-			GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "C");
+			GPU_text_locksurface(frameratesurface);
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 4, 1); //Goto second row!
+			if (busy) //Busy?
+			{
+				GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "C");
+			}
+			else
+			{
+				GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+			}
+			GPU_text_releasesurface(frameratesurface);
+			currentbusy[2] = busy; //New busy status!
 		}
-		else
-		{
-			GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
-		}
-		GPU_text_releasesurface(frameratesurface);
 		break;
 	case HDD1:
-		GPU_text_locksurface(frameratesurface);
-		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 3, 1); //Goto second row!
-		if (busy) //Busy?
+		if (currentbusy[3] != busy) //Changed?
 		{
-			GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "D");
+			GPU_text_locksurface(frameratesurface);
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 3, 1); //Goto second row!
+			if (busy) //Busy?
+			{
+				GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "D");
+			}
+			else
+			{
+				GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+			}
+			GPU_text_releasesurface(frameratesurface);
+			currentbusy[3] = busy; //New busy status!
 		}
-		else
-		{
-			GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
-		}
-		GPU_text_releasesurface(frameratesurface);
 		break;
 	case CDROM0:
-		GPU_text_locksurface(frameratesurface);
-		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 2, 1); //Goto second row!
-		if (busy) //Busy?
+		if (currentbusy[4] != busy) //Changed?
 		{
-			GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "E");
+			GPU_text_locksurface(frameratesurface);
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 2, 1); //Goto second row!
+			if (busy) //Busy?
+			{
+				GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "E");
+			}
+			else
+			{
+				GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+			}
+			GPU_text_releasesurface(frameratesurface);
+			currentbusy[4] = busy; //New busy status!
 		}
-		else
-		{
-			GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
-		}
-		GPU_text_releasesurface(frameratesurface);
 		break;
 	case CDROM1:
-		GPU_text_locksurface(frameratesurface);
-		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 1, 1); //Goto second row!
-		if (busy) //Busy?
+		if (currentbusy[5] != busy) //Changed?
 		{
-			GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "F");
+			GPU_text_locksurface(frameratesurface);
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 1, 1); //Goto second row!
+			if (busy) //Busy?
+			{
+				GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), "F");
+			}
+			else
+			{
+				GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+			}
+			GPU_text_releasesurface(frameratesurface);
+			currentbusy[5] = busy; //New busy status!
 		}
-		else
-		{
-			GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
-		}
-		GPU_text_releasesurface(frameratesurface);
 		break;
 	default:
 		break;
@@ -252,6 +278,7 @@ void initEMU(int full) //Init!
 
 	debugrow("Initializing video...");
 	initVideo(DEBUG_FRAMERATE); //Reset video!
+	memset(&currentbusy,0,sizeof(currentbusy)); //Initialise busy status!
 
 	debugrow("Initializing VGA...");	
 	//First, VGA allocations for seperate systems!

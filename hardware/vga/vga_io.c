@@ -331,10 +331,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3BA:	//Read: Input Status #1 Register (mono)	DATA
 	case 0x3DA: //Input Status #1 Register (color)	DATA
 		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.DataState = 0; //Reset flipflop for 3C0!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x24); //We have been updated!		
-		lockVGA(); //Lock the VGA: we don't want to conflict with our renderer!
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
-		unlockVGA(); //We're finished with the VGA register!
 		ok = 1;
 		break;
 	
@@ -428,9 +425,13 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		{
 			getActiveVGA()->registers->CRTControllerDontRender = 0x00; //Reset, effectively enabling VGA rendering!
 		}
-		unlockVGA();
-		if (getActiveVGA()->registers->SequencerRegisters_Index>=sizeof(getActiveVGA()->registers->SequencerRegisters.DATA)) break; //Out of range!
+		if (getActiveVGA()->registers->SequencerRegisters_Index>=sizeof(getActiveVGA()->registers->SequencerRegisters.DATA))
+		{
+			unlockVGA(); //Finished with the VGA!
+			break; //Out of range!
+		}
 		getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index] = value; //Set!
+		unlockVGA();
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_SEQUENCER|getActiveVGA()->registers->SequencerRegisters_Index); //We have been updated!		
 		ok = 1;
 		break;

@@ -160,10 +160,9 @@ OPTINLINE double getCurrentClockSpeed()
 
 extern byte EMU_RUNNING; //Are we running?
 
-TicksHolder VideoUpdate, CPUUpdate;
+TicksHolder CPUUpdate;
 
 uint_64 CPU_time = 0; //Total CPU time before delay!
-uint_64 VideoUpdate_time = 0; //Total Video update time before delay!
 
 void updateInputMain() //Frequency 1000Hz!
 {
@@ -180,12 +179,6 @@ void updateInputMain() //Frequency 1000Hz!
 			}
 		}
 		while (SDL_PollEvent(&event)); //Keep polling while available!
-	}
-	VideoUpdate_time += getuspassed(&VideoUpdate); //How much time has passed for video updates?
-	if (VideoUpdate_time>=1000000) //To update video every 1/10th second?
-	{
-		VideoUpdate_time %= 1000000; //We're updating, so update status!
-		updateVideo(); //Change display resolution of output when needed!
 	}
 }
 
@@ -219,7 +212,6 @@ int main(int argc, char * argv[])
 	getLock(LOCK_TIMERS);
 
 	initHighresTimer(); //Global init of the high resoltion timer!
-	initTicksHolder(&VideoUpdate); //Initialise the Video Update timer!
 	initTicksHolder(&CPUUpdate); //Initialise the Video Update timer!
 
 	initlog(); //Initialise the logging system!
@@ -361,7 +353,6 @@ int main(int argc, char * argv[])
 
 	//New SDL way!
 	/* Check for events */
-	getuspassed(&VideoUpdate); //Start updating the video if needed!
 	getuspassed(&CPUUpdate);
 	lock(LOCK_CPU); //Lock the CPU: we're running!
 	for (;;) //Still running?
@@ -375,6 +366,7 @@ int main(int argc, char * argv[])
 			delay(0); //Wait minimum amount of time!
 			lock(LOCK_CPU); //Lock the CPU: we're running!
 		}
+		CPU_updateVideo(); //Update the video if needed from the CPU!
 		if (cpurun()) break; //Stop running the CPU?
 	}
 

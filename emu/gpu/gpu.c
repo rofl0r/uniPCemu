@@ -237,6 +237,27 @@ void initVideo(int show_framerate) //Initialises the video
 	debugrow("Video: Device ready.");
 }
 
+byte needvideoupdate = 0; //Default: no update needed!
+
+void CPU_updateVideo()
+{
+	lock(LOCK_VIDEO);
+	if (needvideoupdate)
+	{
+		unlock(LOCK_VIDEO);
+		lockGPU(); //Lock the GPU: we're working on it!
+		freez((void **)&rendersurface, sizeof(*rendersurface), "SDL Main Rendering Surface"); //Release the rendering surface!
+		if (getGPUSurface()) //Update the current surface if needed!
+		{
+			rendersurface = getSurfaceWrapper(originalrenderer); //New wrapper!
+			registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 0); //Register, but don't allow release: this is done by SDL_Quit only!
+		}
+		needvideoupdate = 0; //Not needed anymore!
+		unlockGPU(); //We're finished with the GPU!
+	}
+	else unlock(LOCK_VIDEO); //We're done with the video!
+}
+
 void updateVideo() //Update the screen resolution on change!
 {
 	//We're disabled with the PSP: it doesn't update resolution!
@@ -244,23 +265,20 @@ void updateVideo() //Update the screen resolution on change!
 	static word xres=0;
 	static word yres=0;
 	static byte fullscreen = 0; //Are we fullscreen?
+	lockGPU();
 	if (rendersurface) //Already started?
 	{
-		lockGPU(); //Lock the GPU!
 		if ((xres!=GPU.xres) || (yres!=GPU.yres) || (fullscreen!=GPU.fullscreen)) //Resolution changed or fullscreen changed?
 		{
 			xres = GPU.xres;
 			yres = GPU.yres;
 			fullscreen = GPU.fullscreen; //Save the new values for comparing the next time we're changed!
-			freez((void **)&rendersurface,sizeof(*rendersurface),"SDL Main Rendering Surface"); //Release the rendering surface!
-			if (getGPUSurface()) //Update the current surface if needed!
-			{
-				rendersurface = getSurfaceWrapper(originalrenderer); //New wrapper!
-				registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 0); //Register, but don't allow release: this is done by SDL_Quit only!
-			}
+			lock(LOCK_VIDEO); //We're needing to update the video!
+			needvideoupdate = 1; //We need a video update!
+			unlock(LOCK_VIDEO); //Ready to update the video!
 		}
-		unlockGPU(); //We're finished with the GPU!
 	}
+	unlockGPU(); //Finished with the GPU!
 	#endif
 }
 
