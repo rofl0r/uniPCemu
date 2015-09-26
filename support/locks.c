@@ -14,6 +14,7 @@ void exitLocks(void)
 			locks[i] = NULL; //Destroy the createn item to make it unusable!
 		}
 	}
+	SDL_DestroySemaphore(LockLock); //Finally: destroy our own lock: we're finished!
 }
 
 void initLocks()
@@ -30,17 +31,13 @@ void initLocks()
 
 SDL_sem *getLock(byte id)
 {
-	WaitSem(LockLock)
 	if (locks[id]) //Used lock?
 	{
-		PostSem(LockLock)
 		return locks[id]; //Give the lock!
 	}
 	//Not found? Allocate the lock!
-	if (!locks[id]) //Not used yet?
-	{
-		locks[id] = SDL_CreateSemaphore(1); //Create the lock!
-	}
+	WaitSem(LockLock)
+	locks[id] = SDL_CreateSemaphore(1); //Create the lock!
 	PostSem(LockLock)
 	return locks[id]; //Give the createn lock!
 }

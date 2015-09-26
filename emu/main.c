@@ -163,6 +163,7 @@ extern byte EMU_RUNNING; //Are we running?
 TicksHolder VideoUpdate, CPUUpdate;
 
 uint_64 CPU_time = 0; //Total CPU time before delay!
+uint_64 VideoUpdate_time = 0; //Total Video update time before delay!
 
 void updateInputMain() //Frequency 1000Hz!
 {
@@ -180,9 +181,10 @@ void updateInputMain() //Frequency 1000Hz!
 		}
 		while (SDL_PollEvent(&event)); //Keep polling while available!
 	}
-	if (getnspassed_k(&VideoUpdate)>=100000000) //To update video every 1/10th second?
+	VideoUpdate_time += getuspassed(&VideoUpdate); //How much time has passed for video updates?
+	if (VideoUpdate_time>=1000000) //To update video every 1/10th second?
 	{
-		getuspassed(&VideoUpdate); //We're updating, so update status!
+		VideoUpdate_time %= 1000000; //We're updating, so update status!
 		updateVideo(); //Change display resolution of output when needed!
 	}
 }

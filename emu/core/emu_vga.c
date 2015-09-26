@@ -22,6 +22,8 @@ Renderer mini-optimizations.
 
 */
 
+float oldrate = 0.0f; //The old rate we're using!
+
 void changeRowTimer(VGA_Type *VGA, word lines) //Change the VGA row processing timer the ammount of lines on display!
 {
 	#ifdef __HW_DISABLED
@@ -29,9 +31,20 @@ void changeRowTimer(VGA_Type *VGA, word lines) //Change the VGA row processing t
 	#endif
 	float rate;
 	rate = VGA_VerticalRefreshRate(VGA); //Get our rate first!
-	unlockVGA(); //Finished with the VGA: we need to update our sequencer!
-	addtimer(rate,&VGA_Sequencer,"VGA_ScanLine",__SCREEN_LINES_LIMIT,0,NULL); //Re-add the Scanline to the timers!
-	lockVGA(); //Lock us again!
+	if (rate!=oldrate) //New rate has been specified?
+	{
+		oldrate = rate; //We've updated to this rate!
+		unlockVGA(); //Finished with the VGA: we need to update our sequencer!
+		addtimer(rate,&VGA_Sequencer,"VGA_ScanLine",__SCREEN_LINES_LIMIT,0,NULL); //Re-add the Scanline to the timers!
+		lockVGA(); //Lock us again!
+	}
+}
+
+void VGA_initTimer()
+{
+	lockVGA(); //Make sure we update correctly!
+	oldrate = 0.0f; //We're starting with no rate: we don't have any timer running by default!
+	unlockVGA(); //We've finished updating!
 }
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Our settings!

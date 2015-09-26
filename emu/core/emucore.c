@@ -255,6 +255,9 @@ void initEMU(int full) //Init!
 
 	debugrow("Initializing VGA...");	
 	//First, VGA allocations for seperate systems!
+
+	VGA_initTimer(); //Initialise the VGA timer for usage!
+
 	MainVGA = VGAalloc(0,1); //Allocate a main VGA, automatically by BIOS!
 	debugrow("Activating main VGA engine...");
 	setActiveVGA(MainVGA); //Initialise primary VGA using the BIOS settings, for the system itself!
