@@ -261,10 +261,8 @@ void terminateVGA() //Terminate running VGA and disable it! Only to be used by r
 void startVGA() //Starts the current VGA! (See terminateVGA!)
 {
 	if (__HW_DISABLED) return; //Abort!
-	lockVGA();
 	getActiveVGA()->Terminated = DISABLE_VGA; //Reset termination flag, effectively starting the rendering!
 	VGA_calcprecalcs(getActiveVGA(),0); //Update full VGA to make sure we're running!
-	unlockVGA();
 }
 
 /*
