@@ -90,7 +90,7 @@ OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanl
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
 
 	//Determine panning
-	bytepanning = VGA->registers->CRTControllerRegisters.REGISTERS.PRESETROWSCANREGISTER.BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
+	bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
 
 	//Determine shifts and reset the start map if needed!
 	byte reset_startmap;
@@ -100,7 +100,7 @@ OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanl
 	if (Sequencer->Scanline>VGA->precalcs.topwindowstart) //Top window reached?
 	{
 		reset_startmap = 1; //Enforce start of map to 0 for the top window!
-		if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PixelPanningMode)
+		if (VGA->precalcs.AttributeModeControlRegister_PixelPanningMode)
 		{
 			bytepanning = 0; //Act like no byte panning is enabled!
 			allow_pixelshiftcount = 0; //Don't allow it anymore!
@@ -181,7 +181,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
 	}
-	row >>= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Apply scanline division!
+	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply scanline division!
 	row >>= VGA->precalcs.scandoubling; //Apply Scan Doubling here: we take effect on content!
 	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
 
@@ -329,7 +329,7 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
 
-	if (++Sequencer->active_pixelrate > VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) //To write back the pixel clock every or every other pixel?
+	if (++Sequencer->active_pixelrate > VGA->precalcs.ClockingModeRegister_DCR) //To write back the pixel clock every or every other pixel?
 	{
 		Sequencer->active_pixelrate = 0; //Reset for the new block!
 		if (nibbled) //We've nibbled?

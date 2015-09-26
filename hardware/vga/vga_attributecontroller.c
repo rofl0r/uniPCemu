@@ -184,5 +184,5 @@ byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Typ
 	static VGA_AttributeController_Mode attributecontroller_modes[2] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit }; //Both modes we use!
 
 	//Our changing variables that are required!
-	return attributecontroller_modes[VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit](Sequencer_attributeinfo, VGA, Sequencer); //Passthrough!
+	return attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit](Sequencer_attributeinfo, VGA, Sequencer); //Passthrough!
 }

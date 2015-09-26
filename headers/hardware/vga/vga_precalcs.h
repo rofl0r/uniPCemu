@@ -105,6 +105,17 @@ typedef struct //Contains the precalculated values!
 	
 	//Extra info for debugging!
 	uint_32 mainupdate; //Main update counter for debugging updates to VRAMMode!
+
+	//Register data used during rendering and barely updated at all:
+	byte AttributeModeControlRegister_ColorEnable8Bit;
+	byte CursorStartRegister_CursorScanLineStart;
+	byte CursorEndRegister_CursorScanLineEnd;
+	byte CursorStartRegister_CursorDisable;
+	byte GraphicsModeRegister_ShiftRegister;
+	byte PresetRowScanRegister_BytePanning;
+	byte AttributeModeControlRegister_PixelPanningMode;
+	byte CRTCModeControlRegister_SLDIV; //Scanline divisor!
+	byte ClockingModeRegister_DCR; //Dot Clock Rate!
 } VGA_PRECALCS; //VGA pre-calculations!
 
 void VGA_calcprecalcs(void *VGA, uint_32 whereupdated); //Calculate them!

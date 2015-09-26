@@ -244,11 +244,9 @@ Finally: the read/write handlers themselves!
 
 byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 {
-	lockVGA(); //Lock ourselves, we don't want to conflict with our renderer!
 	byte ok = 0;
 	if (!getActiveVGA()) //No active VGA?
 	{
-		unlockVGA(); //We're finished!
 		return 0;
 	}
 	switch (port) //What port?
@@ -334,7 +332,9 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3DA: //Input Status #1 Register (color)	DATA
 		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.DataState = 0; //Reset flipflop for 3C0!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x24); //We have been updated!		
+		lockVGA(); //Lock the VGA: we don't want to conflict with our renderer!
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
+		unlockVGA(); //We're finished with the VGA register!
 		ok = 1;
 		break;
 	
@@ -347,16 +347,13 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	default: //Unknown?
 		break; //Not used address!
 	}
-	unlockVGA(); //The rendering can start again!
 	return ok; //Disabled for now or unknown port!
 }
 
 byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 {
-	lockVGA(); //Lock ourselves, we don't want to conflict with our renderer!
 	if (!getActiveVGA()) //No active VGA?
 	{
-		unlockVGA(); //We're finished!
 		return 0;
 	}
 	byte ok = 0;
@@ -421,6 +418,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		ok = 1;
 		break;
 	case 0x3C5: //Sequencer Data Register			DATA
+		lockVGA();
 		if (getActiveVGA()->registers->SequencerRegisters_Index>7) break; //Invalid data!
 		if (getActiveVGA()->registers->SequencerRegisters_Index==7) //Disable display till write to sequencer registers 0-6?
 		{
@@ -430,6 +428,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		{
 			getActiveVGA()->registers->CRTControllerDontRender = 0x00; //Reset, effectively enabling VGA rendering!
 		}
+		unlockVGA();
 		if (getActiveVGA()->registers->SequencerRegisters_Index>=sizeof(getActiveVGA()->registers->SequencerRegisters.DATA)) break; //Out of range!
 		getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index] = value; //Set!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_SEQUENCER|getActiveVGA()->registers->SequencerRegisters_Index); //We have been updated!		
@@ -480,6 +479,5 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break; //Not used!
 	}
 	finishoutput: //Finisher?
-	unlockVGA(); //The rendering can start again!
 	return ok; //Give if we're handled!
 }

@@ -158,7 +158,7 @@ void VGA_GraphicsDecoder(VGA_Type *VGA, word loadedlocation) //Graphics decoder!
 		load256colorshiftmode,
 		load256colorshiftmode
 	}; //All the getpixel functionality!
-	loadpixel_jmptbl[VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister](); //Split the pixels from the buffer!
+	loadpixel_jmptbl[VGA->precalcs.GraphicsModeRegister_ShiftRegister](); //Split the pixels from the buffer!
 }
 
 void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)

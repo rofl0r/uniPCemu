@@ -85,7 +85,7 @@ int emu_started = 0; //Emulator started (initEMU called)?
 #define DEBUG_EMU 0
 
 //To get a reasonable speed on slow systems, make this number higher (at the cost of other threads)!
-#define UNLIMITEDOPCODES_SPEED 4000000
+#define UNLIMITEDOPCODES_SPEED 40000
 
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK

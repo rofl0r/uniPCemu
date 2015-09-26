@@ -168,15 +168,23 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 //Calculate the precalcs!
 	//Sequencer_Textmode: we update this always!
 
+	lockVGA(); //We don't want to corrupt the renderer's data!
+	
 	if ((whereupdated==(WHEREUPDATED_SEQUENCER|0x01)) || FullUpdate || !VGA->precalcs.characterwidth) //Sequencer register updated?
 	{
 		//dolog("VGA","VTotal before charwidth: %i",VGA->precalcs.verticaltotal);
 		VGA->precalcs.characterwidth = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9; //Character width!
+		VGA->precalcs.ClockingModeRegister_DCR = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Dot Clock Rate!
 		whereupdated = WHEREUPDATED_CRTCONTROLLER; //We affect the CRTController fully too with above!
 		//dolog("VGA","VTotal after charwidth: %i",VGA->precalcs.verticaltotal); //Log it!
 		charwidthupdated = 1; //The character width has been updated, so update the corresponding registers too!
 	}
 	
+	if (FullUpdate || (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x5))) //Graphics mode register?
+	{
+		VGA->precalcs.GraphicsModeRegister_ShiftRegister = VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister; //Update shift mode!
+	}
+
 	if ((whereupdated==(WHEREUPDATED_GRAPHICSCONTROLLER|0x06)) || FullUpdate) //Misc graphics register?
 	{
 		VGA->precalcs.graphicsmode = VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable; //Update Graphics mode!
@@ -197,6 +205,22 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 		byte overflowupdated = FullUpdate||(whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x7)); //Overflow register has been updated?
 		
+		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x8))) //Preset row scan?
+		{
+			VGA->precalcs.PresetRowScanRegister_BytePanning = VGA->registers->CRTControllerRegisters.REGISTERS.PRESETROWSCANREGISTER.BytePanning; //Update byte panning!
+		}
+
+		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xA))) //Cursor start register?
+		{
+			VGA->precalcs.CursorStartRegister_CursorScanLineStart = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart; //Update!
+			VGA->precalcs.CursorStartRegister_CursorDisable = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable; //Update!
+		}
+
+		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xB))) //Cursor end register?
+		{
+			VGA->precalcs.CursorEndRegister_CursorScanLineEnd = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd; //Update!
+		}
+
 		//CRT Controller registers:
 		byte hendstartupdated = 0;
 		if (CRTUpdatedCharwidth || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x3))) //Updated?
@@ -392,7 +416,12 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			//dolog("VGA","VTotal after topwindowstart: %i",VGA->precalcs.verticaltotal); //Log it!
 			recalcScanline = 1; //Recalc scanline data!
 		}
-		
+
+		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x17))) //Mode control updated?
+		{
+			VGA->precalcs.CRTCModeControlRegister_SLDIV = VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Update!
+		}
+
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x14))
 			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x17))) //Updated?
 		{
@@ -517,7 +546,13 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			VGA->precalcs.overscancolor = VGA->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER; //Update the overscan color!
 			//dolog("VGA","VTotal after overscancolor: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
-		
+
+		if (AttrUpdated || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER | 0x10))) //Mode control updated?
+		{
+			VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit;
+			VGA->precalcs.AttributeModeControlRegister_PixelPanningMode = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PixelPanningMode;
+		}
+
 		if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x13))
 			|| (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10))
 			|| charwidthupdated) //Updated?
@@ -628,4 +663,5 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		VGA_AttributeController_calcAttributes(VGA); //Recalc pixel logic!	
 	}
+	unlockVGA(); //We're finished with the VGA!
 }
