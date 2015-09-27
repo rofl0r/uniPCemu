@@ -102,7 +102,7 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 
 OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, float secondfactor_reversed)
 {
-	uint_64 result, tickspassed;
+	register uint_64 result, tickspassed;
 	tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	tickspassed += ticksholder->ticksrest; //Add the time we've left unused last time!
 	result = (uint_64)(tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can!

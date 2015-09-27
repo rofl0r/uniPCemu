@@ -17,6 +17,8 @@ extern GPU_SDL_Surface *rendersurface; //The PSP's surface to use when flipping!
 word TEXT_xdelta = 0;
 word TEXT_ydelta = 0; //Delta x,y!
 
+BACKLISTITEM backlist[8] = { { 1,1 },{ 1,0 },{ 0,1 },{ 1,-1 },{ -1,1 },{ 0,-1 },{ -1,0 },{ -1,-1 } }; //Default back list!
+
 OPTINLINE byte GPU_textcalcpixel(int *x, int *y, int *charx, int *chary)
 {
 	register int cx;
@@ -48,22 +50,26 @@ OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters
 {
 	static uint_32 lastcharinfo; //attribute|character|0x80|row, bit8=Set?
 
+	x &= 7;
+	y &= 7;
+
 	if ((lastcharinfo & 0xFFF) != (0x800|(character << 3)|y)) //Last row not yet loaded?
 	{
-		uint_32 addr = 0; //Address for old method!
-		addr += character << 3; //Start adress of character!
-		addr += (y & 7); //1 byte per row!
+		word addr = (character<<3); //Address of the character!
+		addr |= y; //The row to select!
 
 		byte lastrow = int10_font_08[addr]; //Read the row from the character generator!
 		//Save our loaded information for next time!
 		lastcharinfo = (lastrow << 12);
-		lastcharinfo |= 0x800;
+		lastcharinfo |= 0x800; //We're loaded!
 		lastcharinfo |= (character << 3);
 		lastcharinfo |= y; //Last character info loaded!
 	}
 
-	byte bitpos = 19 - (x & 7); //x or maxbit-x for reverse?
-	return ((lastcharinfo&(1 << bitpos)) >> bitpos); //Give result!
+	register byte bitpos;
+	bitpos = 19; //Load initial value!
+	bitpos -= x; //Substract to get the bit!
+	return ((lastcharinfo>>bitpos)&1); //Give result!
 }
 
 
@@ -92,22 +98,14 @@ OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	}
 
 	//We're background/transparent!
-	BACKLISTITEM *curbacklist = &surface->backlist[0]; //The current backlist!
-	register int x, y;
 	register byte c = 0;
-	for (;;)
+	for (;c<8;++c)
 	{
-		x = fx;
-		y = fy;
-		x += curbacklist->x;
-		y += curbacklist->y;
-		if (GPU_textget_pixel(surface,x,y)) //Border?
+		if (GPU_textget_pixel(surface, fx + backlist[c].x, fy + backlist[c].y)) //Border?
 		{
-			surface->notdirty[fy][fx] = GPU_textgetcolor(surface,x,y,1); //Back of the related pixel!
-			return; //Done!
+			surface->notdirty[fy][fx] = GPU_textgetcolor(surface,fx,fy,1); //Back of the current character!
+			return; //Done: we've gotten a pixel!
 		}
-		if (++c==8) break; //Stop searching!
-		++curbacklist; //Next backlist item!
 	}
 
 	//We're transparent!
@@ -128,8 +126,6 @@ OPTINLINE void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface
 	//We're transparent, do don't plot!
 }
 
-BACKLISTITEM defaultbacklist[8] = {{1,1},{1,0},{0,1},{1,-1},{-1,1},{0,-1},{-1,0},{-1,-1}}; //Default back list!
-
 GPU_TEXTSURFACE *alloc_GPUtext()
 {
 	GPU_TEXTSURFACE *surface = (GPU_TEXTSURFACE *)zalloc(sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE",NULL); //Create an empty initialised surface!
@@ -138,12 +134,6 @@ GPU_TEXTSURFACE *alloc_GPUtext()
 		return NULL; //Failed to allocate!
 	}
 	//We don't need a screen, because we plot straight to the destination surface (is way faster than blitting)!
-	byte c;
-	for (c=0;c<8;c++)
-	{
-		surface->backlist[c].x = defaultbacklist[c].x; //Copy x!
-		surface->backlist[c].y = defaultbacklist[c].y; //Copy y!
-	}
 
 	surface->lock = SDL_CreateSemaphore(1); //Create our lock for when we are used!
 

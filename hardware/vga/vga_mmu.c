@@ -96,40 +96,53 @@ Core read/write operations!
 
 */
 
+typedef uint_32 (*VGA_WriteMode)(uint_32 data);
+
+uint_32 VGA_WriteMode0(uint_32 data) //Read-Modify-Write operation!
+{
+	register byte curplane;
+	data = (byte)ror((byte)data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.RotateCount); //Rotate it! Keep 8-bit data!
+	data = getActiveVGA()->ExpandTable[data]; //Make sure the data is on the all planes!
+
+	for (curplane = 0;curplane<4;curplane++)
+	{
+		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.ENABLESETRESETREGISTER.EnableSetReset&(1 << curplane)) //Enable set/reset? (Mode 3 ignores this flag)
+		{
+			data = (data&(~getActiveVGA()->FillTable[(1 << curplane)])) | getActiveVGA()->FillTable[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER.SetReset&(1 << curplane)]; //Turn all those bits off, and the set/reset plane ON=0xFF for the plane and OFF=0x00!
+		}
+	}
+	data = LogicalOperation(data); //Execute the logical operation!
+	data = BitmaskOperation(data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER); //Execute the bitmask operation!
+	return data; //Give the resulting data!
+}
+
+uint_32 VGA_WriteMode1(uint_32 data) //Video-to-video transfer
+{
+	return getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch; //Use the latch!
+}
+
+uint_32 VGA_WriteMode2(uint_32 data) //Write color to all pixels in the source address byte of VRAM. Use Bit Mask Register.
+{
+	data = getActiveVGA()->FillTable[data]; //Replicate across all 8 bits of their respective planes.
+	data = LogicalOperation(data); //Execute the logical operation!
+	data = BitmaskOperation(data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER); //Execute the bitmask operation fully!
+	return data;
+}
+
+uint_32 VGA_WriteMode3(uint_32 data) //Ignore enable set reset register!
+{
+	data = ror(data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.RotateCount); //Rotate it! Keep 8-bit data!
+	data &= getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER; //AND with the Bit Mask field.
+	data = BitmaskOperation(getActiveVGA()->ExpandTable[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER.SetReset], data); //Use the generated data on the Set/Reset register
+	return data;
+}
+
 OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 {
-	byte curplane; //For plane loops!
-	uint_32 data = val; //Default to the value given!
-	switch (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode) //What write mode?
-	{
-	case 0: //Read-Modify-Write operation!
-		data = (byte)ror((byte)val,getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.RotateCount); //Rotate it! Keep 8-bit data!
-		data = getActiveVGA()->ExpandTable[data]; //Make sure the data is on the all planes!
-		
-		for (curplane=0;curplane<4;curplane++)
-		{
-			if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.ENABLESETRESETREGISTER.EnableSetReset&(1<<curplane)) //Enable set/reset? (Mode 3 ignores this flag)
-			{
-				data = (data&(~getActiveVGA()->FillTable[(1<<curplane)])) | getActiveVGA()->FillTable[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER.SetReset&(1<<curplane)]; //Turn all those bits off, and the set/reset plane ON=0xFF for the plane and OFF=0x00!
-			}
-		}
-		data = LogicalOperation(data); //Execute the logical operation!
-		data = BitmaskOperation(data,getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER); //Execute the bitmask operation!
-		break;
-	case 1: //Video-to-video transfer
-		data = getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch; //Use the latch!
-		break;
-	case 2: //Write color to all pixels in the source address byte of VRAM. Use Bit Mask Register.
-		data = getActiveVGA()->FillTable[data]; //Replicate across all 8 bits of their respective planes.
-		data = LogicalOperation(data); //Execute the logical operation!
-		data = BitmaskOperation(data,getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER); //Execute the bitmask operation fully!
-		break;
-	case 3: //Ignore enable set reset register!
-		data = ror(val,getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.RotateCount); //Rotate it! Keep 8-bit data!
-		data &= getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER; //AND with the Bit Mask field.
-		data = BitmaskOperation(getActiveVGA()->ExpandTable[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER.SetReset],data); //Use the generated data on the Set/Reset register
-		break;
-	}
+	const static VGA_WriteMode VGA_WRITE[4] = {VGA_WriteMode0,VGA_WriteMode1,VGA_WriteMode2,VGA_WriteMode3}; //All write modes!
+	register byte curplane; //For plane loops!
+	register uint_32 data; //Default to the value given!
+	data = VGA_WRITE[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode]((uint_32)val); //What write mode?
 
 	byte planeenable = getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable; //What planes to try to write to!
 	planeenable &= planes; //The actual planes to write to!
@@ -155,43 +168,49 @@ OPTINLINE void loadlatch(uint_32 offset)
 	VGA_updateLatches(); //Update the latch data mirroring!
 }
 
+typedef byte (*VGA_ReadMode)(byte planes, uint_32 offset);
+
+byte VGA_ReadMode0(byte planes, uint_32 offset) //Read mode 0: Just read the normal way!
+{
+	register byte curplane;
+	for (curplane = 0; curplane < 4;)
+	{
+		if (planes&1) //Read from this plane?
+		{
+			return readVRAMplane(getActiveVGA(), curplane, offset, VRAMMODE); //Read directly from vram using the selected plane!
+		}
+		++curplane; //Next plane!
+		planes >>= 1; //Next plane!
+	}
+	return 0; //Unknown plane! Give 0!
+}
+
+byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display memory with color defined by the Color Compare field. Colors Don't care field are not considered.
+{
+	register byte curplane;
+	register byte result; //The value we return, default to 0 if undefined!
+	//Each bit in the result represents one comparision between the reference color, with the bit being set if the comparision is true.
+	for (curplane = 0;curplane<4;curplane++) //Check all planes!
+	{
+		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER.ColorCare&(1 << curplane)) //We care about this plane?
+		{
+			if (readVRAMplane(getActiveVGA(), curplane, offset, VRAMMODE) == getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER.ColorCompare) //Equal?
+			{
+				result |= (1 << curplane); //Set the bit: the comparision is true!
+			}
+		}
+	}
+	return result; //Give the value!
+}
+
 OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
 {
+	const static VGA_ReadMode READ[2] = {VGA_ReadMode0,VGA_ReadMode1}; //Read modes!
 	byte curplane;
 	byte val=0; //The value we return, default to 0 if undefined!
 	loadlatch(offset); //Load the latches!
 
-	switch (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode) //What read mode?
-	{
-	case 0: //Read mode 0: Just read the normal way!
-		for (curplane = 0; curplane < 4;)
-		{
-			if (planes&(1 << curplane)) //Read from this plane?
-			{
-				return readVRAMplane(getActiveVGA(), curplane, offset, VRAMMODE); //Read directly from vram using the selected plane!
-			}
-			++curplane; //Next plane!
-		}
-		break;
-	case 1: //Read mode 1: Compare display memory with color defined by the Color Compare field. Colors Don't care field are not considered.
-		val = 0; //Reset data to not equal!
-		//Each bit in the result represents one comparision between the reference color, with the bit being set if the comparision is true.
-		for (curplane=0;curplane<4;curplane++) //Check all planes!
-		{
-			if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER.ColorCare&(1<<curplane)) //We care about this plane?
-			{
-				if (readVRAMplane(getActiveVGA(),curplane,offset,VRAMMODE)==getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER.ColorCompare) //Equal?
-				{
-					val |= (1<<curplane); //Set the bit: the comparision is true!
-				}
-			}
-		}
-		break;
-	default: //Shouldn't be here!
-		break;
-	}
-
-	return val; //Give the result of the read mode operation!
+	return READ[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode](planes,offset); //What read mode?
 }
 
 /*
