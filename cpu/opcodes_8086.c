@@ -173,6 +173,15 @@ Start of help for opcode processing
 
 */
 
+OPTINLINE void CPU8086_hardware_int(byte interrupt, byte has_errorcode, uint_32 errorcode) //See int, but for hardware interrupts (IRQs)!
+{
+	CPU_INT(interrupt); //Save adress to stack (We're going soft int!)!
+	if (has_errorcode) //Have error code too?
+	{
+		CPU_PUSH32(&errorcode); //Push error code on stack!
+	}
+}
+
 OPTINLINE void CPU8086_int(byte interrupt) //Software interrupt from us(internal call)!
 {
 	CPUPROT1
@@ -183,15 +192,6 @@ OPTINLINE void CPU8086_int(byte interrupt) //Software interrupt from us(internal
 void CPU086_int(byte interrupt) //Software interrupt (external call)!
 {
 	CPU8086_int(interrupt); //Direct call!
-}
-
-OPTINLINE void CPU8086_hardware_int(byte interrupt, byte has_errorcode, uint_32 errorcode) //See int, but for hardware interrupts (IRQs)!
-{
-	CPU_INT(interrupt); //Save adress to stack (We're going soft int!)!
-	if (has_errorcode) //Have error code too?
-	{
-		CPU_PUSH32(&errorcode); //Push error code on stack!
-	}
 }
 
 OPTINLINE void CPU8086_IRET()

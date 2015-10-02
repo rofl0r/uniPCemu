@@ -524,6 +524,7 @@ void CPU_Speed_Limited()
 }
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
+extern ThreadParams_p debugger_thread; //Debugger menu thread!
 
 void BIOSMenuExecution()
 {
@@ -541,6 +542,13 @@ void BIOSMenuExecution()
 
 byte coreHandler()
 {
+	if (debugger_thread)
+	{
+		if (threadRunning(debugger_thread, "debugger")) //Are we running the debugger?
+		{
+			return 1; //OK, but skipped!
+		}
+	}
 	if (BIOSMenuThread)
 	{
 		if (threadRunning(BIOSMenuThread, "BIOSMenu")) //Are we running the BIOS menu?
@@ -645,7 +653,6 @@ byte coreHandler()
 int DoEmulator() //Run the emulator (starting with the BIOS always)!
 {
 	EMU_enablemouse(1); //Enable all mouse input packets!
-	enableKeyboard(0); //Enable standard keyboard!
 
 //Start normal emulation!
 	if (!CPU[activeCPU].running || !hasmemory()) //Not running anymore or no memory present to use?

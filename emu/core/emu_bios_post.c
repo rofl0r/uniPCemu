@@ -175,6 +175,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 	softreboot: //Little software reboot internal jump!
 	allow_debuggerstep = 0; //Default: don't allow to step!
 
+	pauseEMU(); //Stop the emu&input from running!
 	if (MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0) != 0x1234) //Normal BIOS POST?
 	{
 		debugrow("Running BIOS POST!");
@@ -182,7 +183,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		EMU_RUNNING = 0; //We're not running atm!
 		if (CheckBIOSMenu(3000000)) //Run BIOS Menu if needed for a short time!
 		{
-			EMU_RUNNING = 1; //We're running again!
+			resumeEMU(); //Start the emulator back up again!
 			return 1; //Reset after the BIOS!
 		}
 	#endif
@@ -212,9 +213,8 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				{
 					dolog("emu", "Failed loading BIOS ROM u18!");
 					CPU_INT(0x18); //Error: no ROM!
-					EMU_startInput(); //Start input again!
-					EMU_RUNNING = 1; //We're running again!
 					allow_debuggerstep = 1; //Allow stepping from now on!
+					resumeEMU(); //Resume the emulator!
 					unlock(LOCK_CPU);
 					return 0; //No reset!
 				}
@@ -223,8 +223,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					dolog("emu", "Failed loading BIOS ROM u19!");
 					BIOS_free_ROM(18); //Release u18!
 					CPU_INT(0x18); //Error: no ROM!
-					EMU_startInput(); //Start input again!
-					EMU_RUNNING = 1; //We're running again!
+					resumeEMU(); //Resume the emulator!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					unlock(LOCK_CPU);
 					return 0; //No reset!
@@ -237,9 +236,8 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				{
 					dolog("emu", "Failed loading BIOS ROM u27!");
 					CPU_INT(0x18); //Error: no ROM!
-					EMU_startInput(); //Start input again!
-					EMU_RUNNING = 1; //We're running again!
 					allow_debuggerstep = 1; //Allow stepping from now on!
+					resumeEMU(); //Resume the emulator!
 					unlock(LOCK_CPU);
 					return 0; //No reset!
 				}
@@ -248,8 +246,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					dolog("emu", "Failed loading BIOS ROM u47!");
 					BIOS_free_ROM(27); //Release u27!
 					CPU_INT(0x18); //Error: no ROM!
-					EMU_startInput(); //Start input again!
-					EMU_RUNNING = 1; //We're running again!
+					resumeEMU(); //Resume the emulator!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					unlock(LOCK_CPU);
 					return 0; //No reset!
@@ -269,8 +266,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			if (!verified) //Error reading ROM?
 			{
 				CPU_INT(0x18); //Error: no ROM!
-				EMU_startInput(); //Start input again!
-				EMU_RUNNING = 1; //We're running again!
+				resumeEMU(); //Resume the emulator!
 				unlock(LOCK_CPU);
 				return 0; //No reset!
 			}
@@ -279,10 +275,10 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				BIOS_registerROM(); //Register the BIOS ROMS!
 				EMU_startInput(); //Start input again!
 				resetCPU(); //Reset the CPU to load the BIOS!
-				EMU_RUNNING = 1; //We're running again!
 				allow_debuggerstep = 1; //Allow stepping from now on!
 				startTimers(0); //Make sure we're running fully!
 				startTimers(1); //Make sure we're running fully!
+				resumeEMU(); //Resume the emulator!
 				unlock(LOCK_CPU);
 				return 0; //No reset, start the BIOS!
 			}
@@ -328,8 +324,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		if (CheckBIOSMenu(0)) //Run BIOS Menu if needed!
 		{
 			BIOS_enableCursor(1); //Re-enable the cursor!
-			EMU_RUNNING = 1; //We're running again!
-			EMU_startInput(); //Start input again!
+			resumeEMU(); //Resume the emulator!
 			return 1; //Reset after the BIOS!
 		}
 #endif
@@ -339,7 +334,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		if (DEBUG_VIDEOCARD) //Debugging text mode?
 		{
 			DoDebugTextMode(0); //Do the debugging!
-			EMU_RUNNING = 1; //We're running again!
+			resumeEMU(); //Resume the emulator!
 			return 1; //Full reset emulator!
 		}
 
@@ -360,8 +355,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		case EXECUTIONMODE_TEST:
 			debugrow("Debugging files!");
 			DoDebugFiles(); //Do the debug files!
-			EMU_startInput(); //Start input again!
-			EMU_RUNNING = 1; //We're running again!
+			resumeEMU(); //Resume the emulator!
 			return 1; //Reboot!
 
 		case EXECUTIONMODE_SOUND:
@@ -421,8 +415,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		if (NOEMU)
 		{
-			EMU_startInput(); //Start input again!
-			EMU_RUNNING = 1; //We're running again!
+			resumeEMU(); //Resume the emulator!
 			return 1; //Don't emulate: just reset!
 		}
 
@@ -481,14 +474,12 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		else //We're booted?
 		{
 			BIOS_DUMPSYSTEMROM(); //Dump our system ROM for debugging purposes, if enabled!
-			EMU_startInput(); //Start input again!
 			allow_debuggerstep = 1; //Allow stepping from now on!
 		}
-		EMU_RUNNING = 1; //We're running again!
+		resumeEMU(); //Resume the emulator!
 		return 0; //Continue normally: we've booted, or give an error message!
 	}
 
-	EMU_RUNNING = 1; //We're running again!
-	EMU_startInput(); //Start input again!
+	resumeEMU(); //Resume the emulator!
 	return 0; //Plain run!
 }

@@ -334,12 +334,12 @@ OPTINLINE void render_EMU_buffer() //Render the EMU to the buffer!
 			xres = GPU.xres; //Load x resolution!
 			yres = GPU.yres; //Load y resolution!
 			//Limit broken = no display!
-			if (xres > EMU_MAX_X)
+			if ((xres > EMU_MAX_X) || (!xres))
 			{
 				unlockGPU(); //Unlock the GPU!
 				return; //Limit to buffer!
 			}
-			if (yres > EMU_MAX_Y)
+			if ((yres > EMU_MAX_Y) || (!yres))
 			{
 				unlockGPU(); //Unlock the GPU!
 				return; //Limit to buffer!
@@ -357,7 +357,6 @@ OPTINLINE void render_EMU_buffer() //Render the EMU to the buffer!
 				emu_screen = freeSurface(emu_screen); //Done with the emulator screen!
 			}
 			GPU.emu_buffer_dirty = 0; //Not dirty anymore: we've been updated!
-			unlockGPU(); //Free the GPU!
 		}
 	}
 	unlockGPU(); //Unlock the GPU!

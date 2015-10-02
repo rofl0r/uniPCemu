@@ -74,7 +74,8 @@ int emufflush64(FILE *stream)
 	if (!stream) return 1; //EOF!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
 #ifdef __psp__
-	return sceIoSync(b->f, 0); //Synchronize data on the device!
+	//return sceIoSync("ms0:", 0); //Synchronize data on the device!
+	return 1; //Seems to be fine without it?
 #else
 	//Windows/linux?
 	return fflush(b->f); //Give the fflush result!

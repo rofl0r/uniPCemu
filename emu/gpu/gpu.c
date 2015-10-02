@@ -31,8 +31,8 @@ extern BIOS_Settings_TYPE BIOS_Settings; //Current settings!
 
 GPU_type GPU; //The GPU itself!
 
-GPU_SDL_Surface *rendersurface = NULL; //The PSP's surface to use when flipping! We can only be freed using SDL_Quit.
-SDL_Surface *originalrenderer = NULL; //Original renderer from above! Above is just the wrapper!
+GPU_SDL_Surface *rendersurface = NULL; //The PSP's surface to use when flipping!
+SDL_Surface *originalrenderer = NULL; //Original renderer from above! We can only be freed using SDL_Quit. Above is just the wrapper!
 
 byte rshift=0, gshift=0, bshift=0, ashift=0; //All shift values!
 uint_32 rmask=0, gmask=0, bmask=0, amask=0; //All mask values!

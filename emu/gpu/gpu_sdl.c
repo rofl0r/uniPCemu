@@ -292,7 +292,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 }
 
 //Pixels between rows.
-OPTINLINE uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference between two rows!
+uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference between two rows!
 {
 	if (!surface)
 	{

@@ -48,15 +48,15 @@ OBJS += hardware/vga/vga_colorconversion.o hardware/vga/vga_vram.o hardware/vga/
 OBJS += hardware/vga/vga_mmu.o hardware/vga/vga_io.o
 #VGA view:
 # *1*: Sequencer Operation
-OBJS += hardware/vga/vga_screen/vga_sequencer.o hardware/vga/vga_screen/vga_sequencer_graphicsmode.o hardware/vga/vga_screen/vga_sequencer_textmode.o
+OBJS += hardware/vga/vga_sequencer.o hardware/vga/vga_sequencer_graphicsmode.o hardware/vga/vga_sequencer_textmode.o
 # *2*: Attribute Controller Operation
-OBJS += hardware/vga/vga_screen/vga_attributecontroller.o
+OBJS += hardware/vga/vga_attributecontroller.o
 # *3*: DAC Operation
-OBJS += hardware/vga/vga_screen/vga_dacrenderer.o
+OBJS += hardware/vga/vga_dacrenderer.o
 # *4*: CRTC
-OBJS += hardware/vga/vga_screen/vga_crtcontroller.o
+OBJS += hardware/vga/vga_crtcontroller.o
 # Help: precalcs for VGA rendering!
-OBJS += hardware/vga/vga_screen/vga_precalcs.o
+OBJS += hardware/vga/vga_precalcs.o
 #VRAM text-mode data
 OBJS += hardware/vga/vga_vramtext.o
 

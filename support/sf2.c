@@ -88,10 +88,10 @@ OPTINLINE byte checkRIFFChunkLimits(RIFF_ENTRY container, void *entry, uint_32 e
 	startData = RIFF_start_data(container,containersize); //Get the start of the container data!
 	containersize = getRIFFChunkSize(container); //Get the size of the content of the container!
 
-	containerend = containerstart = (uint_64)startData;
+	containerend = containerstart = (ptrnum)startData;
 	containerend += containersize; //What size!
 
-	entryend = entrystart = (uint_64)entry; //Start of the data!
+	entryend = entrystart = (ptrnum)entry; //Start of the data!
 	entryend += entrysize;
 
 	if (entrystart<containerstart) //Out of container bounds (low)?

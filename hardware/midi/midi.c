@@ -274,7 +274,7 @@ void doneMPU() //Finish function!
 	}
 }
 
-OPTINLINE void MPU401_Done() //Finish our MPU system! Custom by superfury1!
+void MPU401_Done() //Finish our MPU system! Custom by superfury1!
 {
 	removetimer("MPU"); //Remove the timer if it's still there!
 	removeirq(2); //Remove the irq if it's still there!

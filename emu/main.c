@@ -25,7 +25,6 @@
 #include "headers/mmu/mmu.h" //MMU support!
 
 #ifdef __psp__
-#include <pspkernel.h>
 PSP_MODULE_INFO("x86EMU", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER); //Make sure we're user mode!
 PSP_HEAP_SIZE_MAX(); //Free maximum for us: need this for the memory allocation (m/zalloc)!

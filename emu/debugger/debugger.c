@@ -13,6 +13,7 @@
 #include "headers/emu/emucore.h" //for pause/resumeEMU support!
 #include "headers/fopen64.h" //64-bit fopen support!
 #include "headers/support/locks.h" //Locking support!
+#include "headers/emu/threads.h" //Thread support!
 
 //Log flags only?
 //#define LOGFLAGSONLY
@@ -68,6 +69,27 @@ OPTINLINE byte readverification(uint_32 index, VERIFICATIONDATA *entry)
 extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 byte startreached = 0;
+
+OPTINLINE byte debugging() //Debugging?
+{
+	if (singlestep) //EMU enforced single step?
+	{
+		return 1; //We're enabled now!
+	}
+	if (!(DEBUGGER_ENABLED && allow_debuggerstep))
+	{
+		return 0; //No debugger enabled!
+	}
+	else if (DEBUGGER_ALWAYS_DEBUG)
+	{
+		return 1; //Always debug!
+	}
+	else if ((psp_keypressed(BUTTON_RTRIGGER) || (DEBUGGER_ALWAYS_STEP > 0))) //Forced step?
+	{
+		return 1; //Always step!
+	}
+	return psp_keypressed(BUTTON_LTRIGGER); //Debugging according to LTRIGGER!!!
+}
 
 byte debugger_logging()
 {
@@ -511,98 +533,95 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 	}
 }
 
-void debugger_step() //Processes the debugging step!
+void debuggerThread()
 {
 	static byte skipopcodes = 0; //Skip none!
-	debugger_autolog(); //Log when enabled!
-recheckdebugger: //For getting from the BIOS!
-	if (debugging()) //Debugging step or single step enforced?
+	pauseEMU(); //Pause it!
+
+	restartdebugger: //Restart the debugger during debugging!
+	debugger_screen(); //Show debugger info on-screen!
+	int done = 0;
+	done = 0; //Init: not done yet!
+	for (;!(done || skipopcodes);) //Still not done or skipping?
 	{
-		pauseEMU(); //Pause it!
-
-		debugger_screen(); //Show debugger info on-screen!
-		int done = 0;
-		done = 0; //Init: not done yet!
-		for (;!(done || skipopcodes);) //Still not done or skipping?
+		if (DEBUGGER_ALWAYS_STEP || singlestep) //Always step?
 		{
-			if (DEBUGGER_ALWAYS_STEP || singlestep) //Always step?
-			{
-				//We're going though like a normal STEP. Ignore RTRIGGER.
-			}
-			else if (DEBUGGER_KEEP_RUNNING) //Always keep running?
-			{
-				done = 1; //Keep running!
-			}
-			else
-			{
-				done = (!psp_keypressed(BUTTON_RTRIGGER)); //Continue when release hold (except when forcing stepping), singlestep prevents this!
-			}
-
-			if (psp_keypressed(BUTTON_CROSS)) //Step (wait for release and break)?
-			{
-				while (psp_keypressed(BUTTON_CROSS)) //Wait for release!
-				{
-				}
-				//If single stepping, keep doing so!
-				break;
-			}
-			if (psp_keypressed(BUTTON_TRIANGLE)) //Skip 10 commands?
-			{
-				while (psp_keypressed(BUTTON_TRIANGLE)) //Wait for release!
-				{
-				}
-				skipopcodes = 9; //Skip 9 additional opcodes!
-				break;
-			}
-			if (psp_keypressed(BUTTON_SQUARE)) //Refresh screen?
-			{
-				renderHWFrame(); //Refresh it!
-				while (psp_keypressed(BUTTON_SQUARE)) //Wait for release to show debugger again!
-				{
-				}
-				debugger_screen(); //Show the debugger again!
-			}
-			if (psp_keypressed(BUTTON_CIRCLE)) //Dump memory?
-			{
-				while (psp_keypressed(BUTTON_CIRCLE)) //Wait for release!
-				{
-				}
-				MMU_dumpmemory("memory.dat"); //Dump the MMU memory!
-			}
-			if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Goto BIOS?
-			{
-				runBIOS(0); //Run the BIOS!
-				goto recheckdebugger; //Recheck the debugger!
-			}
-			delay(0); //Wait a bit!
-		} //While not done
-		if (skipopcodes) //Skipping?
-		{
-			--skipopcodes; //Skipped one opcode!
+			//We're going though like a normal STEP. Ignore RTRIGGER.
 		}
-		resumeEMU(); //Resume it!
-	} //Step mode?
+		else if (DEBUGGER_KEEP_RUNNING) //Always keep running?
+		{
+			done = 1; //Keep running!
+		}
+		else
+		{
+			done = (!psp_keypressed(BUTTON_RTRIGGER)); //Continue when release hold (except when forcing stepping), singlestep prevents this!
+		}
+
+		if (psp_keypressed(BUTTON_CROSS)) //Step (wait for release and break)?
+		{
+			while (psp_keypressed(BUTTON_CROSS)) //Wait for release!
+			{
+			}
+			//If single stepping, keep doing so!
+			break;
+		}
+		if (psp_keypressed(BUTTON_TRIANGLE)) //Skip 10 commands?
+		{
+			while (psp_keypressed(BUTTON_TRIANGLE)) //Wait for release!
+			{
+			}
+			skipopcodes = 9; //Skip 9 additional opcodes!
+			break;
+		}
+		if (psp_keypressed(BUTTON_SQUARE)) //Refresh screen?
+		{
+			renderHWFrame(); //Refresh it!
+			while (psp_keypressed(BUTTON_SQUARE)) //Wait for release to show debugger again!
+			{
+			}
+			debugger_screen(); //Show the debugger again!
+		}
+		if (psp_keypressed(BUTTON_CIRCLE)) //Dump memory?
+		{
+			while (psp_keypressed(BUTTON_CIRCLE)) //Wait for release!
+			{
+			}
+			MMU_dumpmemory("memory.dat"); //Dump the MMU memory!
+		}
+		if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Goto BIOS?
+		{
+			runBIOS(0); //Run the BIOS!
+			if (debugging()) //Recheck the debugger!
+			{
+				goto restartdebugger; //Restart the debugger!
+			}
+		}
+		delay(0); //Wait a bit!
+	} //While not done
+	if (skipopcodes) //Skipping?
+	{
+		--skipopcodes; //Skipped one opcode!
+	}
+	resumeEMU(); //Resume it!
 }
 
-OPTINLINE byte debugging() //Debugging?
+ThreadParams_p debugger_thread = NULL; //The debugger thread, if any!
+
+void debugger_step() //Processes the debugging step!
 {
-	if (singlestep) //EMU enforced single step?
+	if (debugger_thread) //Debugger not running yet?
 	{
-		return 1; //We're enabled now!
+		if (threadRunning(debugger_thread,"debugger")) //Still running?
+		{
+			return; //We're still running, so start nothing!
+		}
 	}
-	if (!(DEBUGGER_ENABLED && allow_debuggerstep))
+	debugger_thread = NULL; //Not a running thread!
+	debugger_autolog(); //Log when enabled!
+	if (debugging()) //Debugging step or single step enforced?
 	{
-		return 0; //No debugger enabled!
-	}
-	else if (DEBUGGER_ALWAYS_DEBUG)
-	{
-		return 1; //Always debug!
-	}
-	else if ((psp_keypressed(BUTTON_RTRIGGER) || (DEBUGGER_ALWAYS_STEP > 0))) //Forced step?
-	{
-		return 1; //Always step!
-	}
-	return psp_keypressed(BUTTON_LTRIGGER); //Debugging according to LTRIGGER!!!
+		debugger_thread = startThread(debuggerThread,"debugger",NULL,DEFAULT_PRIORITY); //Start the debugger!
+	} //Step mode?
 }
 
 void debugger_setcommand(char *text, ...)

@@ -1,6 +1,7 @@
 #ifndef __EMU_PSP_H
 #define __EMU_PSP_H
 
+#include <pspkernel.h>
 #include "headers/types_base.h" //Base types!
 
 #define delay(us) sceKernelDelayThread(us?us:1)

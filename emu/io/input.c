@@ -936,6 +936,7 @@ uint_32 keyboard_rendertime; //Time for framerate rendering!
 void keyboard_renderer() //Render the keyboard on-screen!
 {
 	static byte last_rendered = 0; //Last rendered keyboard status: 1=ON, 0=OFF!
+	lock(LOCK_INPUT);
 	if (!KEYBOARD_ENABLED) return; //Disabled?
 	if (!input_enabled) //Keyboard disabled atm OR Gaming mode?
 	{
@@ -946,6 +947,7 @@ void keyboard_renderer() //Render the keyboard on-screen!
 			GPU_textclearscreen(keyboardsurface); //Clear the rendered surface: there's nothing to show!
 			GPU_text_releasesurface(keyboardsurface);
 		}
+		unlock(LOCK_INPUT);
 		return; //Keyboard disabled: don't show!
 	}
 
@@ -986,6 +988,7 @@ void keyboard_renderer() //Render the keyboard on-screen!
 			GPU_text_releasesurface(keyboardsurface); //Unlock us!
 		}
 	}
+	unlock(LOCK_INPUT);
 }
 
 int ticking = 0; //Already ticking?
@@ -1006,6 +1009,7 @@ byte req_quit_gamingmode = 0; //Requesting to quit gaming mode?
 
 void keyboard_swap_handler() //Swap handler for keyboard!
 {
+	lock(LOCK_INPUT);
 	//while (1)
 	{
 		if (input_enabled && !Direct_Input) //Input enabled?
@@ -1059,6 +1063,7 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 		}
 		//delay(KEYSWAP_DELAY); //Wait a bit, for as precise as we can simply (1ms), slower is never worse!
 	}
+	unlock(LOCK_INPUT);
 }
 
 byte oldshiftstatus = 0; //Old shift status, used for keyboard/gaming mode!
@@ -1676,6 +1681,7 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 			return; //Terminate!
 		}*/
 
+		lock(LOCK_INPUT);
 		if (!Direct_Input) //Not executing direct input?
 		{
 			if (input_enabled && ALLOW_INPUT) //Input enabled?
@@ -1738,6 +1744,7 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 		}
 		tickPendingKeys(); //Handle any pending keys if possible!
 	} //While loop, muse be infinite to prevent closing!
+	unlock(LOCK_INPUT);
 }
 
 void setMouseRate(float packetspersecond)
@@ -1750,12 +1757,14 @@ void psp_keyboard_init()
 {
 	if (__HW_DISABLED) return; //Abort!
 	//dolog("osk","Keyboard init...");
+	lock(LOCK_INPUT);
 	input_enabled = 0; //Default: input disabled!
 	oldshiftstatus = 0; //Init!
 	curstat.mode = DEFAULT_KEYBOARD; //Keyboard mode enforced by default for now!
 
 	if (!KEYBOARD_ENABLED) //Keyboard disabled?
 	{
+		unlock(LOCK_INPUT);
 		return; //Keyboard disabled?
 	}
 
@@ -1768,6 +1777,7 @@ void psp_keyboard_init()
 	//dolog("osk","Starting mouse handler");
 	KEYBOARD_STARTED = 1; //Started!
 	//dolog("osk","keyboard&mouse ready.");
+	unlock(LOCK_INPUT);
 }
 
 void psp_keyboard_done()
@@ -1829,32 +1839,40 @@ int input_enabled;
 
 void save_keyboard_status() //Save keyboard status to memory!
 {
+	lock(LOCK_INPUT);
 	SAVED_KEYBOARD_STATUS.input_buffer_shift = input_buffer_shift;
 	SAVED_KEYBOARD_STATUS.input_buffer = input_buffer;
 	SAVED_KEYBOARD_STATUS.input_buffer_input = input_buffer_input;
 	SAVED_KEYBOARD_STATUS.input_enabled = input_enabled; //Save all!
+	unlock(LOCK_INPUT);
 }
 
 void load_keyboard_status() //Load keyboard status from memory!
 {
+	lock(LOCK_INPUT);
 	input_buffer_shift = SAVED_KEYBOARD_STATUS.input_buffer_shift;
 	input_buffer = SAVED_KEYBOARD_STATUS.input_buffer;
 	input_buffer_input = SAVED_KEYBOARD_STATUS.input_buffer_input;
 	input_enabled = SAVED_KEYBOARD_STATUS.input_enabled; //Load all that was saved!
+	unlock(LOCK_INPUT);
 }
 
-void disableKeyboard() //Disables the keyboard/mouse functionnality!
+void disableKeyboard() //Disables the keyboard/mouse functionality!
 {
+	lock(LOCK_INPUT);
 	input_enabled = 0; //Disable input!
+	unlock(LOCK_INPUT);
 }
 
 void enableKeyboard(int bufferinput) //Enables the keyboard/mouse functionnality param: to buffer into input_buffer?!
 {
 	disableKeyboard(); //Make sure the keyboard if off to start with!
+	lock(LOCK_INPUT);
 	input_buffer = -1; //Nothing pressed yet!
 	input_buffer_shift = -1; //Shift status: nothing pressed yet!
 	input_buffer_input = bufferinput; //To buffer?
 	input_enabled = ALLOW_INPUT; //Enable input!
+	unlock(LOCK_INPUT);
 }
 
 /* All update functionality for input */
