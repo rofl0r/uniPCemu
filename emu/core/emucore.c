@@ -85,7 +85,7 @@ int emu_started = 0; //Emulator started (initEMU called)?
 #define DEBUG_EMU 0
 
 //To get a reasonable speed on slow systems, make this number higher (at the cost of other threads)!
-#define UNLIMITEDOPCODES_SPEED 640000
+#define UNLIMITEDOPCODES_SPEED 3000
 
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
@@ -230,6 +230,8 @@ uint_32 initEMUmemory = 0;
 
 TicksHolder CPU_timing; //CPU timing counter!
 
+void updateSpeedLimit(); //Prototype!
+
 void initEMU(int full) //Init!
 {
 	doneEMU(); //Make sure we're finished too!
@@ -365,6 +367,8 @@ void initEMU(int full) //Init!
 
 	//Finally: signal we're ready!
 	emu_started = 1; //We've started!
+
+	updateSpeedLimit(); //Update the speed limit!
 
 	debugrow("EMU Ready to run.");
 }
@@ -512,16 +516,20 @@ void CPU_Speed_Unlimited()
 	if (++numopcodes == UNLIMITEDOPCODES_SPEED)//Every X opcodes(to allow for more timers/input to update)
 	{
 		numopcodes = 0; //Reset!
-		delay(0); //Wait minimal time for other threads to process data!
+		++last_timing; //Increase timing with 1us!
+		for (;getuspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
 	}
 }
 
 void CPU_Speed_Limited()
 {
 	//Delay some time to get accurate timing!
-	last_timing += 3; //Increase last timing!
+	last_timing += 3; //Increase last timing, 3us for each instruction to get 333333IPS!
 	for (;getuspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
 }
+
+static Handler SpeedLimits[2] = { CPU_Speed_Unlimited,CPU_Speed_Limited }; //CPU speed settings!
+Handler SpeedLimit = CPU_Speed_Unlimited; //Current CPU speed handler!
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
@@ -534,13 +542,20 @@ void BIOSMenuExecution()
 		reset = 1; //We're to reset!
 	}
 	resumeEMU(); //Resume!
+	//Update CPU speed!
 	if (BIOS_Settings.CPUSpeed) //Needs slowdown here?
 	{
 		last_timing = getuspassed_k(&CPU_timing); //We start off at this point!
 	}
+	updateSpeedLimit(); //Update the speed limit!
 }
 
-byte coreHandler()
+void updateSpeedLimit()
+{
+	SpeedLimit = SpeedLimits[BIOS_Settings.CPUSpeed]; //Set the current speed limit!
+}
+
+OPTINLINE byte coreHandler()
 {
 	if (debugger_thread)
 	{
@@ -557,8 +572,7 @@ byte coreHandler()
 		}
 	}
 	BIOSMenuThread = NULL; //We don't run the BIOS menu!
-	static Handler SpeedLimit[2] = {CPU_Speed_Unlimited,CPU_Speed_Limited}; //CPU speed settings!
-	if ((romsize!=0) && (CPU[activeCPU].halt)) //Debug HLT?
+	if (romsize && CPU[activeCPU].halt) //Debug HLT?
 	{
 		MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
 		return 0; //Stop!
@@ -632,7 +646,7 @@ byte coreHandler()
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 
-	SpeedLimit[BIOS_Settings.CPUSpeed](); //Slowdown the CPU to the requested speed?
+	SpeedLimit(); //Slowdown the CPU to the requested speed?
 
 	if (psp_keypressed(BUTTON_SELECT)) //Run in-emulator BIOS menu and not gaming mode?
 	{
