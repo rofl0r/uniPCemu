@@ -53,15 +53,20 @@ byte EMU_IsShuttingDown = 0; //Shut down (default: NO)?
 
 void EMU_Shutdown(byte execshutdown)
 {
+	lock(LOCK_SHUTDOWN); //Lock the CPU: we're running!
 	EMU_IsShuttingDown = execshutdown; //Call shutdown or not!
+	unlock(LOCK_SHUTDOWN); //Finished with the CPU: we're running!
 }
 
 byte shuttingdown() //Shutting down?
 {
+	lock(LOCK_SHUTDOWN); //Lock the CPU: we're running!
 	if (EMU_IsShuttingDown)
 	{
+		unlock(LOCK_SHUTDOWN); //Finished with the CPU: we're running!
 		return 1; //Shutting down!
 	}
+	unlock(LOCK_SHUTDOWN); //Finished with the CPU: we're running!
 	return 0; //Not shutting down (anymore)!
 }
 

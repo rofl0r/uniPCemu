@@ -14,5 +14,6 @@ SDL_sem *getLock(byte id); //For termination of locks!
 #define LOCK_CMOS 4
 #define LOCK_TIMERS 5
 #define LOCK_INPUT 6
+#define LOCK_SHUTDOWN 7
 
 #endif

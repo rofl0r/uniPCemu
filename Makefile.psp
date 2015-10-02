@@ -34,7 +34,7 @@ PSPLIBS1 += -lpspaudiolib -lpspaudio
 PSPLIBS1 += -lpsprtc
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = x86 emulator
+PSP_EBOOT_TITLE = x86EMU
 
 #Turn this line off when using SDL!
 
