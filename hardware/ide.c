@@ -1462,8 +1462,8 @@ void initATA()
 	{
 		CDROM_channel = 0; //Move CDROM to primary channel!
 	}
-	//ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
-	//ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as master!
+	ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
+	ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as master!
 	int i,j,k;
 	int disk_reverse[4] = { HDD0,HDD1,CDROM0,CDROM1 }; //Our reverse lookup information values!
 	for (i = 0;i < 4;i++) //Check all drives mounted!
