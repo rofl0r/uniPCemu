@@ -126,6 +126,7 @@ void GPU_addTextSurface(void *surface, Handler handler); //Register a text surfa
 void GPU_removeTextSurface(void *surface); //Unregister a text surface (removes above added surface)!
 
 void updateVideo(); //Update the screen resolution on change!
+void CPU_updateVideo(); //Actual video update from the CPU side of things!
 
 #define lockGPU() lock(LOCK_GPU)
 #define unlockGPU() unlock(LOCK_GPU)

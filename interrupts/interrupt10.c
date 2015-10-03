@@ -2312,8 +2312,6 @@ void init_int10() //Initialises int10&VGA for usage!
 {
 	//if (__HW_DISABLED) return; //Abort!
 	
-	INT10_SetupRomMemory(); //Initialise the VGA ROM memory if not initialised yet!
-	
 	//int10_VGA = getActiveVGA(); //Use the active VGA for int10 by default!
 	
 //Initialise variables!

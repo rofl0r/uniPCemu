@@ -64,8 +64,22 @@ byte allow_debuggerstep; //Do we allow the debugger to step through?
 extern byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
 extern word CB_datasegment; //Reserved segment when adding callback!
 extern word CB_dataoffset; //Reserved offset when adding callback!
+
+void BIOS_int10entry() //Interrupt 10 BIOS ROM entry point!
+{
+	//Set up the Video BIOS interrupt and return!
+	CPU_setint(0x10, 0xC000, int10.rom.used); //Interrupt 10h overridable handler at the end of the VGA ROM!
+	INT10_SetupRomMemory(1); //Setup ROM memory with interrupts!
+}
+
 void BIOS_initStart() //Memory defaults for the CPU with our internal BIOS!
 {
+	//Initialise VGA ROM memory!
+	INT10_SetupRomMemory(0); //Setup ROM memory without interrupts!
+	addCBHandler(CB_VIDEOINTERRUPT,&BIOS_int10,0x10); //Unassigned interrupt #10: Video BIOS. This is reserved in the emulator!
+	addCBHandler(CB_VIDEOENTRY,&BIOS_int10entry,0x00); //Interrupt 10h entry point!
+	INT10_SetupRomMemoryChecksum(); //Set the checksum for detection!
+
 	debugrow("Setting up the initial emulator JMP to internal BIOS ROM executable...");
 	//Our core handlers!
 	addCBHandler(CB_UNASSIGNEDINTERRUPT, &BIOS_int19, 0x19); //Second is used by the Bootstrap/BIOS loader! Don't assign to an interrupt!
@@ -127,7 +141,7 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	addCBHandler(CB_IRET, NULL, 0x00); //IRET first!
 	addCBHandler(CB_INTERRUPT, &BIOS_int05, 0x05); //Interrupt 05h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_IRQ0, 0x08); //IRQ0 overridable handler!
-	addCBHandler(CB_INTERRUPT, &BIOS_int10, 0x10); //Interrupt 10h overrideable handler!
+	CPU_setint(0x10,0xC000,int10.rom.used); //Interrupt 10h overridable handler at the end of the VGA ROM!
 	addCBHandler(CB_INTERRUPT, &BIOS_int11, 0x11); //Interrupt 11h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int12, 0x12); //Interrupt 12h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int13, 0x13); //Interrupt 13h overrideable handler!

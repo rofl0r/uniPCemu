@@ -4,8 +4,12 @@
 #include "headers/cpu/easyregs.h" //Easy register support for DOSBox!
 
 #include "headers/interrupts/interrupt16.h" //For Dosbox compatibility.
+#include "headers/interrupts/interrupt10.h" //For Video BIOS compatibility.
 
 extern byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
+extern byte EMU_VGAROM[0x8000]; //Full VGA BIOS from 0xC0000-0xC8000 for the emulator and normal BIOS to use!
+
+extern Int10Data int10; //Our VGA ROM data!
 
 extern byte EMU_RUNNING;
 
@@ -67,6 +71,12 @@ void clearCBHandlers() //Reset callbacks!
 word CB_datasegment; //Reserved segment when adding callback!
 word CB_dataoffset; //Reserved offset when adding callback!
 word CB_realoffset; //Real offset we're loaded at within the custom BIOS!
+
+void write_VGAw(uint_32 offset, word value)
+{
+	EMU_VGAROM[offset] = value & 0xFF; //Low byte!
+	EMU_VGAROM[offset + 1] = (value >> 8); //High byte!
+}
 
 void write_BIOSw(uint_32 offset, word value)
 {
@@ -143,6 +153,16 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 
 	switch (type) //Extra handlers?
 	{
+		case CB_VIDEOINTERRUPT: //Video interrupt, unassigned!
+			CB_datasegment = 0xC000;
+			CB_dataoffset = int10.rom.used; //Entry point the end of the VGA BIOS!
+			CB_realoffset = CB_dataoffset; //Offset within the custom bios is this!
+			break;
+		case CB_VIDEOENTRY: //Video BIOS entry interrupt, unassigned!
+			CB_datasegment = 0xC000;
+			CB_dataoffset = 0x0003; //Entry point in the VGA BIOS for the hooking of our interrupts!
+			CB_realoffset = CB_dataoffset; //Offset within the custom bios is this!
+			break;
 		//Dosbox stuff!
 		case CB_DOSBOX_IRQ0:
 		case CB_DOSBOX_IRQ1:
@@ -180,6 +200,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	case CB_UNASSIGNEDINTERRUPT: //Unassigned interrupt?
 	case CB_IRET: //Interrupt return?
 	case CB_INTERRUPT: //Normal BIOS interrupt?
+	case CB_VIDEOINTERRUPT: //Video (interrupt 10h) interrupt?
 		switch (intnr) //What interrupt?
 		{
 		case 0x15:
@@ -239,6 +260,31 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 
 	switch (type)
 	{
+	case CB_VIDEOINTERRUPT:
+	case CB_VIDEOENTRY:
+		EMU_VGAROM[incoffset] = 0x9A; //CALL ...
+		write_VGAw(incoffset, CB_dataoffset + 6); //... Our interrupt handler, as a function call!
+		++dataoffset; //Word address!
+		write_VGAw(incoffset, CB_datasegment); //... Our interrupt handler, as a function call!
+		++dataoffset; //Word address!
+		if (type == CB_VIDEOENTRY) //Video entry point call?
+		{
+			EMU_VGAROM[incoffset] = 0xCB; //RETF!
+		}
+		else //Normal interrupt?
+		{
+			EMU_VGAROM[incoffset] = 0xCF; //RETI: We're an interrupt handler!
+		}
+
+		//Next, our handler as a simple FAR CALL function.
+		EMU_VGAROM[incoffset] = 0xFE; //OpCode FE: Special case!
+
+		EMU_VGAROM[incoffset] = 0x38; //Special case: call internal interrupt number!
+		EMU_VGAROM[incoffset] = curhandler & 0xFF; //Call our (interrupt) handler?
+		EMU_VGAROM[incoffset] = (curhandler >> 8) & 0xFF;
+
+		EMU_VGAROM[incoffset] = 0xCB; //RETF!
+		break;
 	case CB_UNASSIGNEDINTERRUPT: //Same as below, but unassigned to an interrupt!
 	case CB_INTERRUPT: //Interrupt call?
 		//First: add to jmptbl!

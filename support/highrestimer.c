@@ -30,8 +30,8 @@ void initHighresTimer()
 #endif
 #endif
 		//Calculate needed precalculated factors!
-		usfactor = (1/ tickresolution)*US_SECOND; //US factor!
-		nsfactor = (1/tickresolution)*NS_SECOND; //NS factor!
+		usfactor = (float)(1.0f/ tickresolution)*US_SECOND; //US factor!
+		nsfactor = (float)(1.0f/tickresolution)*NS_SECOND; //NS factor!
 		usfactor_reversed = (1/usfactor); //Reversed!
 		nsfactor_reversed = (1/nsfactor); //Reversed!
 }
@@ -106,7 +106,7 @@ OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, fl
 	tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	tickspassed += ticksholder->ticksrest; //Add the time we've left unused last time!
 	result = (uint_64)(tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can!
-	tickspassed -= (result*secondfactor_reversed); //The ticks left unprocessed this call!
+	tickspassed -= (uint_64)((float)result*secondfactor_reversed); //The ticks left unprocessed this call!
 	ticksholder->ticksrest = (tickspassed>0)?tickspassed:0; //Add the rest ticks unprocessed to the next time we're counting!
 	if (ticksholder->avg) //Average enabled?
 	{

@@ -19,6 +19,8 @@ byte OPTROM_writeenabled[40]; //Write enabled ROM?
 
 extern BIOS_Settings_TYPE BIOS_Settings;
 
+int BIOS_load_VGAROM(); //Prototype: Load custom ROM from emulator itself!
+
 byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 {
 	memset(OPTROM_writeenabled, 0, sizeof(OPTROM_writeenabled)); //Disable all write enable flags by default!
@@ -36,6 +38,11 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		f = fopen(filename,"rb");
 		if (!f)
 		{
+			if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
+			{
+				location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
+				BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+			}
 			continue; //Failed to load!
 		}
 		fseek(f,0,SEEK_END); //Goto EOF!
@@ -45,6 +52,11 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			fseek(f,0,SEEK_SET); //Goto BOF!
 			if ((location+OPTROM_size[i])>0x20000) //Overflow?
 			{
+				if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
+				{
+					location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
+					BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+				}
 				BIOS_ROM_size[i] = 0; //Reset!
 				continue; //We're skipping this ROM: it's too big!
 			}
@@ -52,12 +64,22 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			if (!OPT_ROMS[i]) //Failed to allocate?
 			{
 				fclose(f); //Close the file!
+				if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
+				{
+					location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
+					BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+				}
 				continue; //Failed to allocate!
 			}
 			if (fread(OPT_ROMS[i],1,OPTROM_size[i],f)!=OPTROM_size[i]) //Not fully read?
 			{
 				freez((void **)&OPT_ROMS[i],OPTROM_size[i],filename); //Failed to read!
 				fclose(f); //Close the file!
+				if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
+				{
+					location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
+					BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+				}
 				continue; //Failed to read!
 			}
 			fclose(f); //Close the file!

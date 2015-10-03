@@ -34,6 +34,10 @@
 #define CB_DOSBOX_MOUSE 0x0B
 #define CB_DOSBOX_INT16 0x0C
 
+//Special interrupts for the Video BIOS!
+#define CB_VIDEOINTERRUPT 0x0D
+#define CB_VIDEOENTRY 0x0E
+
 void CB_handler(word handlernr); //Call an handler (from CB_Handler)?
 void addCBHandler(byte type, Handler CBhandler, uint_32 intnr); //Add a callback!
 void clearCBHandlers(); //Reset callbacks!

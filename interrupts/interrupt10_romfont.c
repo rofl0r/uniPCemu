@@ -157,7 +157,7 @@ Int10Data int10; //Our interrupt data!
 extern byte EMU_VGAROM[0x8000]; //Our VGA ROM!
 extern byte EMU_BIOS[0x10000]; //Our BIOS!
 
-void INT10_SetupRomMemory()
+void INT10_SetupRomMemory(byte setinterrupts)
 {
 /* This should fill up certain structures inside the Video Bios Rom Area */
 	//word rom_base=0xC000;
@@ -197,7 +197,10 @@ void INT10_SetupRomMemory()
 	for (i=0;i<128*8;i++) {
 		EMU_BIOS[i+0xfa6e] = int10_font_08[i]; //Small ROM!
 	}
-	RealSetVec(0x1F,0xC000,int10.rom.font_8_second);
+	if (setinterrupts)
+	{
+		RealSetVec(0x1F,0xC000,int10.rom.font_8_second);
+	}
 	int10.rom.font_14_alternate=RealMake(0xC000,int10.rom.used);
 	int10.rom.font_16_alternate=RealMake(0xC000,int10.rom.used);
 	EMU_BIOS[int10.rom.used++] = 0x00;	// end of table (empty)

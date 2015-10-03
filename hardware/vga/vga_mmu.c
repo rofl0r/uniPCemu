@@ -206,7 +206,6 @@ byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display m
 OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
 {
 	const static VGA_ReadMode READ[2] = {VGA_ReadMode0,VGA_ReadMode1}; //Read modes!
-	byte curplane;
 	byte val=0; //The value we return, default to 0 if undefined!
 	loadlatch(offset); //Load the latches!
 
