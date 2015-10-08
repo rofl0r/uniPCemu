@@ -164,25 +164,28 @@ OPTINLINE double getCurrentClockSpeed()
 
 extern byte EMU_RUNNING; //Are we running?
 
-TicksHolder CPUUpdate;
+TicksHolder CPUUpdate, InputUpdate;
 
 uint_64 CPU_time = 0; //Total CPU time before delay!
 
 void updateInputMain() //Frequency 1000Hz!
 {
 	SDL_Event event;
-	if (SDL_PollEvent(&event)) //Gotten an event to process?
+	if (getmspassed(&InputUpdate)) //To update input every ms!
 	{
-		do //Gotten events to handle?
+		if (SDL_PollEvent(&event)) //Gotten an event to process?
 		{
-			//Handle an event!
-			updateInput(&event); //Update input status when needed!
-			if (event.type == SDL_QUIT) //Quitting requested?
+			do //Gotten events to handle?
 			{
-				EMU_Shutdown(1); //Request a shutdown!
+				//Handle an event!
+				updateInput(&event); //Update input status when needed!
+				if (event.type == SDL_QUIT) //Quitting requested?
+				{
+					EMU_Shutdown(1); //Request a shutdown!
+				}
 			}
+			while (SDL_PollEvent(&event)); //Keep polling while available!
 		}
-		while (SDL_PollEvent(&event)); //Keep polling while available!
 	}
 }
 
@@ -358,6 +361,7 @@ int main(int argc, char * argv[])
 	//New SDL way!
 	/* Check for events */
 	getuspassed(&CPUUpdate);
+	getuspassed(&InputUpdate);
 	lock(LOCK_CPU); //Lock the CPU: we're running!
 	for (;;) //Still running?
 	{

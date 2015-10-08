@@ -6,7 +6,7 @@
 double tickresolution = 0.0f; //Our tick resolution, initialised!
 byte tickresolution_win_SDL = 0; //Force SDL rendering?
 
-float usfactor, usfactor_reversed, nsfactor, nsfactor_reversed; //The factors and reverse multiplication factor!
+float msfactor, msfactor_reversed, usfactor, usfactor_reversed, nsfactor, nsfactor_reversed; //The factors and reverse multiplication factor!
 
 void initHighresTimer()
 {
@@ -32,8 +32,10 @@ void initHighresTimer()
 		//Calculate needed precalculated factors!
 		usfactor = (float)(1.0f/ tickresolution)*US_SECOND; //US factor!
 		nsfactor = (float)(1.0f/tickresolution)*NS_SECOND; //NS factor!
+		msfactor = (float)(1.0f/tickresolution)*MS_SECOND; //MS factor!
 		usfactor_reversed = (1/usfactor); //Reversed!
 		nsfactor_reversed = (1/nsfactor); //Reversed!
+		msfactor_reversed = (1/msfactor); //Reversed!
 }
 
 void initTicksHolder(TicksHolder *ticksholder)
@@ -117,6 +119,11 @@ OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, fl
 	return result; //Ordinary result!
 }
 
+uint_64 getmspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
+{
+	return gettimepassed(ticksholder, msfactor, msfactor_reversed); //Factor us!
+}
+
 uint_64 getuspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
 {
 	return gettimepassed(ticksholder,usfactor,usfactor_reversed); //Factor us!
@@ -125,6 +132,13 @@ uint_64 getuspassed(TicksHolder *ticksholder) //Get ammount of ms passed since l
 uint_64 getnspassed(TicksHolder *ticksholder)
 {
 	return gettimepassed(ticksholder,nsfactor,nsfactor_reversed); //Factor ns!
+}
+
+uint_64 getmspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
+{
+	TicksHolder temp;
+	memcpy(&temp, ticksholder, sizeof(temp)); //Copy the old one!
+	return getmspassed(&temp); //Give the ammount of time passed!
 }
 
 uint_64 getuspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.

@@ -25,8 +25,10 @@ SDL_sem *lock; //Our lock when calculating time passed!
 void initHighresTimer(); //Global init!
 
 void initTicksHolder(TicksHolder *ticksholder); //Initialise ticks holder!
+uint_64 getmspassed(TicksHolder *ticksholder); //Get ammount of ms passed since last use!
 uint_64 getuspassed(TicksHolder *ticksholder); //Get ammount of us passed since last use!
 uint_64 getnspassed(TicksHolder *ticksholder); //Get ammount of ns passed since last use!
+uint_64 getmspassed_k(TicksHolder *ticksholder); //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
 uint_64 getuspassed_k(TicksHolder *ticksholder); //Same as above, but keep old time data!
 uint_64 getnspassed_k(TicksHolder *ticksholder); //Same as above, but keep old time data!
 

@@ -999,6 +999,8 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].commandstatus = 0; //Reset command status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Reset data register!
 		break;
+	case 0x00: //NOP (Required)?
+		break;
 	case 0xDC: //BIOS - post-boot?
 	case 0xDD: //BIOS - pre-boot?
 	case 0x50: //Format track?
@@ -1006,7 +1008,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0xE3: //Idle?
 	case 0x95:
 	case 0xE1: //Idle immediate?
-	case 0x00: //NOP?
 	case 0xE4: //Read buffer?
 	case 0xC8: //Read DMA (w/retry)?
 	case 0xC9: //Read DMA (w/o retry)?
