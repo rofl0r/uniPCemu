@@ -659,6 +659,8 @@ OPTINLINE byte coreHandler()
 	return 1; //OK!
 }
 
+word shutdowncounter = 0;
+
 //DoEmulator results:
 //-1: Execute next instruction!
 //0:Shutdown
@@ -674,10 +676,20 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 		goto skipcpu; //Stop running!
 	}
 		
-	if (shuttingdown() || reset)
+	if (reset)
 	{
+		doshutdown:
 		debugrow("Reset/shutdown detected!");
 		goto skipcpu; //Shutdown or reset?
+	}
+
+	if (++shutdowncounter >= 1000) //Check for shutdown every X opcodes?
+	{
+		shutdowncounter = 0; //Reset counter!
+		if (shuttingdown())
+		{
+			goto doshutdown; //Execute the shutdown procedure!
+		}
 	}
 
 	if (!coreHandler()) //Run the core CPU+related handler, gotten abort?
