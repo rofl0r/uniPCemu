@@ -171,21 +171,18 @@ uint_64 CPU_time = 0; //Total CPU time before delay!
 void updateInputMain() //Frequency 1000Hz!
 {
 	SDL_Event event;
-	if (getmspassed(&InputUpdate)) //To update input every ms!
+	if (SDL_PollEvent(&event)) //Gotten an event to process?
 	{
-		if (SDL_PollEvent(&event)) //Gotten an event to process?
+		do //Gotten events to handle?
 		{
-			do //Gotten events to handle?
+			//Handle an event!
+			updateInput(&event); //Update input status when needed!
+			if (event.type == SDL_QUIT) //Quitting requested?
 			{
-				//Handle an event!
-				updateInput(&event); //Update input status when needed!
-				if (event.type == SDL_QUIT) //Quitting requested?
-				{
-					EMU_Shutdown(1); //Request a shutdown!
-				}
+				EMU_Shutdown(1); //Request a shutdown!
 			}
-			while (SDL_PollEvent(&event)); //Keep polling while available!
 		}
+		while (SDL_PollEvent(&event)); //Keep polling while available!
 	}
 }
 
