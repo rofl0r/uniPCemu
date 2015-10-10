@@ -521,14 +521,21 @@ void CPU_Speed_Unlimited()
 	}
 }
 
-void CPU_Speed_Limited()
+void CPU_Speed_8086General()
 {
 	//Delay some time to get accurate timing!
-	last_timing += 3; //Increase last timing, 3us for each instruction to get 333333IPS!
-	for (;getuspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
+	last_timing += 3233; //Increase last timing, 3233ns for each instruction to get 1.0MIPS with general instructions!
+	for (;getnspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
 }
 
-static Handler SpeedLimits[2] = { CPU_Speed_Unlimited,CPU_Speed_Limited }; //CPU speed settings!
+void CPU_Speed_8086Performance()
+{
+	//Delay some time to get accurate timing!
+	last_timing += 3843; //Increase last timing, 3233ns for each instruction to get 1.0MIPS with general instructions!
+	for (;getnspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
+}
+
+static Handler SpeedLimits[3] = { CPU_Speed_Unlimited,CPU_Speed_8086Performance,CPU_Speed_8086General }; //CPU speed settings!
 Handler SpeedLimit = CPU_Speed_Unlimited; //Current CPU speed handler!
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!

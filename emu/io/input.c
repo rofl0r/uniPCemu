@@ -21,6 +21,8 @@
 
 #include "headers/hardware/sermouse.h" //Serial mouse support!
 
+#include "headers/support/signedness.h" //Signedness support!
+
 #ifdef _WIN32
 #include "sdl_joystick.h" //Joystick support!
 #include "sdl_events.h" //Event support!
@@ -175,6 +177,9 @@ int emu_keys_SDL[104] = {
 	SDLK_PERIOD, //.
 	SDLK_SLASH  ///
 };
+
+uint_32 emu_keys_sdl_rev_size = 0; //EMU_KEYS_SDL_REV size!
+int emu_keys_sdl_rev[UINT16_MAX+1]; //Reverse of emu_keys_sdl!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -1651,9 +1656,7 @@ void handleGaming() //Handles gaming mode input!
 	}
 }
 
-int request_type_term = 0;
-
-void handleKeyPressRelease(int key)
+OPTINLINE void handleKeyPressRelease(int key)
 {
 	switch (emu_keys_state[key]) //What state are we in?
 	{
@@ -1673,77 +1676,46 @@ void handleKeyPressRelease(int key)
 
 void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 {
-	//for(;;)
+	lock(LOCK_INPUT);
+	if (!Direct_Input) //Not executing direct input?
 	{
-		/*if (request_type_term) //Request termination?
+		if (input_enabled && ALLOW_INPUT) //Input enabled?
 		{
-			request_type_term = 0; //Terminated!
-			return; //Terminate!
-		}*/
+			get_analog_state(&curstat); //Get the analog&buttons status for the keyboard!
+			//Determine stuff for output!
+			//Don't process shift atm!
 
-		lock(LOCK_INPUT);
-		if (!Direct_Input) //Not executing direct input?
-		{
-			if (input_enabled && ALLOW_INPUT) //Input enabled?
+			if (curstat.gamingmode) //Gaming mode?
 			{
-				get_analog_state(&curstat); //Get the analog&buttons status for the keyboard!
-				//Determine stuff for output!
-				//Don't process shift atm!
-
-				if (curstat.gamingmode) //Gaming mode?
-				{
-					handleGaming(); //Handle gaming input?
-				}
-				else //Normal input mode?
-				{
-					switch (curstat.mode) //What input mode?
-					{
-					case 0: //Mouse mode?
-						handleKeyboardMouse(); //Handle keyboard input during mouse operations?
-						break;
-					case 1: //Keyboard mode?
-						handleKeyboard(); //Handle keyboard input?
-						break;
-					default: //Unknown state?
-						curstat.mode = 0; //Reset mode!
-						break;
-					}
-				}
+				handleGaming(); //Handle gaming input?
 			}
-		} //Input enabled?
-		else //Direct input?
-		{
-			int key;
-			char name[256];
-			memset(name, 0, sizeof(name)); //Init name!
-
-										   //Handle CTRL/ALT/Shift first!
-			int lctrl = EMU_keyboard_handler_nametoid("LCTRL");
-			handleKeyPressRelease(lctrl);
-			int rctrl = EMU_keyboard_handler_nametoid("RCTRL");
-			handleKeyPressRelease(rctrl);
-			int lalt = EMU_keyboard_handler_nametoid("LALT");
-			handleKeyPressRelease(lalt);
-			int ralt = EMU_keyboard_handler_nametoid("RALT");
-			handleKeyPressRelease(ralt);
-			int lshift = EMU_keyboard_handler_nametoid("LSHIFT");
-			handleKeyPressRelease(lshift);
-			int rshift = EMU_keyboard_handler_nametoid("RSHIFT");
-			handleKeyPressRelease(rshift);
-
-			for (key = 0;key < NUMITEMS(emu_keys_state);key++)
+			else //Normal input mode?
 			{
-				if (EMU_keyboard_handler_idtoname(key, &name[0])) //Found key?
+				switch (curstat.mode) //What input mode?
 				{
-					if ((key != lctrl) && (key != rctrl) && (key != lalt) && (key != ralt) && (key != lshift) && (key != rshift)) //Not already handled?
-					{
-						handleKeyPressRelease(key); //Handle key press or release!
-					}
+				case 0: //Mouse mode?
+					handleKeyboardMouse(); //Handle keyboard input during mouse operations?
+					break;
+				case 1: //Keyboard mode?
+					handleKeyboard(); //Handle keyboard input?
+					break;
+				default: //Unknown state?
+					curstat.mode = 0; //Reset mode!
+					break;
 				}
 			}
 		}
-		tickPendingKeys(); //Handle any pending keys if possible!
-	} //While loop, muse be infinite to prevent closing!
+	} //Input enabled?
+	else //Direct input?
+	{
+		//SLOWNESS!
+		int key;
+		for (key = 0;key < NUMITEMS(emu_keys_state);)
+		{
+			handleKeyPressRelease(key++); //Handle key press or release!
+		}
+	}
+	tickPendingKeys(); //Handle any pending keys if possible!
 	unlock(LOCK_INPUT);
 }
 
@@ -2060,15 +2032,18 @@ void updateInput(SDL_Event *event) //Update all input!
 				{
 					if (EMU_RUNNING) //Are we running?
 					{
+						//SLOWNESS!
 						input.Buttons = 0; //Ingore pressed buttons!
 						input.cas = 0; //Ignore pressed buttons!
 									   //Handle button press/releases!
-						int i;
-						for (i = 0;i < NUMITEMS(emu_keys_SDL);i++) //Check all keys!
+						register word index;
+						register int key;
+						index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
+						if (index<NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
 						{
-							if (event->key.keysym.sym == emu_keys_SDL[i]) //Released?
+							if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 							{
-								emu_keys_state[i] = 2; //We're released!
+								emu_keys_state[key] = 2; //We're released!
 							}
 						}
 					}
@@ -2174,16 +2149,19 @@ void updateInput(SDL_Event *event) //Update all input!
 				{
 					if (EMU_RUNNING) //Are we running?
 					{
+						//SLOWNESS!
 						input.Buttons = 0; //Ingore pressed buttons!
 						input.cas = 0; //Ignore pressed buttons!
 
 						//Handle button press/releases!
-						int i;
-						for (i = 0;i < NUMITEMS(emu_keys_SDL);i++) //Check all keys!
+						register word index;
+						register int key;
+						index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
+						if (index<NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
 						{
-							if (event->key.keysym.sym == emu_keys_SDL[i]) //Pressed?
+							if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 							{
-								emu_keys_state[i] = 1; //We're pressed!
+								emu_keys_state[key] = 1; //We're pressed!
 							}
 						}
 					}
@@ -2424,6 +2402,7 @@ void updateMouse()
 
 void psp_input_init()
 {
+	uint_32 i;
 	#ifdef SDL_SYS_JoystickInit
 		//Gotten initialiser for joystick?
 		if (SDL_SYS_JoystickInit()==-1) halt(); //No joystick present!
@@ -2432,6 +2411,17 @@ void psp_input_init()
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
 	keyboard_lock = SDL_CreateSemaphore(1); //Our lock!
 	mouse_lock = SDL_CreateSemaphore(1); //Our lock!
+	for (i = 0;i < NUMITEMS(emu_keys_sdl_rev);i++) //Initialise all keys!
+	{
+		emu_keys_sdl_rev[i] = -1; //Default to unused!
+		++i; //Next!
+	}
+	for (i = 0;i < NUMITEMS(emu_keys_SDL);) //Process all keys!
+	{
+		emu_keys_sdl_rev[signed2unsigned16(emu_keys_SDL[i])] = i; //Reverse lookup of the table!
+		++i; //Next!
+	}
+	SDL_EnableKeyRepeat(0,0); //Don't repeat pressed keys!
 }
 
 void psp_input_done()

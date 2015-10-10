@@ -98,6 +98,7 @@ void write_BIOSw(uint_32 offset, word value)
 #define Bit16u word
 
 #define incoffset (dataoffset++&0xFFFF)
+#define incoffsetv (incoffset&0x7FFF)
 
 //In the case of CB_INTERRUPT, how much to add to the address to get the CALL version
 #define CB_INTERRUPT_CALLSIZE 10
@@ -272,33 +273,33 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	{
 	case CB_VIDEOINTERRUPT:
 	case CB_VIDEOENTRY:
-		EMU_VGAROM[incoffset] = 0xFE; //OpCode FE: Special case!
-		EMU_VGAROM[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_VGAROM[incoffset] = 0; //Call our (interrupt) handler?
-		EMU_VGAROM[incoffset] = 0; //We're a zero callback!
+		EMU_VGAROM[incoffsetv] = 0xFE; //OpCode FE: Special case!
+		EMU_VGAROM[incoffsetv] = 0x38; //Special case: call internal interrupt number!
+		EMU_VGAROM[incoffsetv] = 0; //Call our (interrupt) handler?
+		EMU_VGAROM[incoffsetv] = 0; //We're a zero callback!
 
-		EMU_VGAROM[incoffset] = 0x9A; //CALL ...
-		write_VGAw(incoffset, CB_dataoffset + CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
+		EMU_VGAROM[incoffsetv] = 0x9A; //CALL ...
+		write_VGAw(incoffsetv, CB_dataoffset + CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
 		++dataoffset; //Word address!
-		write_VGAw(incoffset, CB_datasegment); //... Our interrupt handler, as a function call!
+		write_VGAw(incoffsetv, CB_datasegment); //... Our interrupt handler, as a function call!
 		++dataoffset; //Word address!
 		if (type == CB_VIDEOENTRY) //Video entry point call?
 		{
-			EMU_VGAROM[incoffset] = 0xCB; //RETF!
+			EMU_VGAROM[incoffsetv] = 0xCB; //RETF!
 		}
 		else //Normal interrupt?
 		{
-			EMU_VGAROM[incoffset] = 0xCF; //RETI: We're an interrupt handler!
+			EMU_VGAROM[incoffsetv] = 0xCF; //RETI: We're an interrupt handler!
 		}
 
 		//Next, our handler as a simple FAR CALL function.
-		EMU_VGAROM[incoffset] = 0xFE; //OpCode FE: Special case!
+		EMU_VGAROM[incoffsetv] = 0xFE; //OpCode FE: Special case!
 
-		EMU_VGAROM[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_VGAROM[incoffset] = curhandler & 0xFF; //Call our (interrupt) handler?
-		EMU_VGAROM[incoffset] = (curhandler >> 8) & 0xFF;
+		EMU_VGAROM[incoffsetv] = 0x38; //Special case: call internal interrupt number!
+		EMU_VGAROM[incoffsetv] = curhandler & 0xFF; //Call our (interrupt) handler?
+		EMU_VGAROM[incoffsetv] = (curhandler >> 8) & 0xFF;
 
-		EMU_VGAROM[incoffset] = 0xCB; //RETF!
+		EMU_VGAROM[incoffsetv] = 0xCB; //RETF!
 		break;
 	case CB_UNASSIGNEDINTERRUPT: //Same as below, but unassigned to an interrupt!
 	case CB_INTERRUPT: //Interrupt call?

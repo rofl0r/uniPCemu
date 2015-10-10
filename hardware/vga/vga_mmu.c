@@ -188,7 +188,7 @@ byte VGA_ReadMode0(byte planes, uint_32 offset) //Read mode 0: Just read the nor
 byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display memory with color defined by the Color Compare field. Colors Don't care field are not considered.
 {
 	register byte curplane;
-	register byte result; //The value we return, default to 0 if undefined!
+	register byte result=0; //The value we return, default to 0 if undefined!
 	//Each bit in the result represents one comparision between the reference color, with the bit being set if the comparision is true.
 	for (curplane = 0;curplane<4;curplane++) //Check all planes!
 	{

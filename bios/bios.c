@@ -327,7 +327,7 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 		}
 	}
 
-	if (BIOS_Settings.CPUSpeed > 1) //Invalid speed?
+	if (BIOS_Settings.CPUSpeed > 2) //Invalid speed?
 	{
 		BIOS_Settings.CPUSpeed = 0; //Unlimited!
 		bioschanged = 1; //Changed!

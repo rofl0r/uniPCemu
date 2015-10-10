@@ -3713,7 +3713,10 @@ void BIOS_InitCPUText()
 		strcat(menuoptions[advancedoptions++], "Unlimited"); //Unlimited!
 		break;
 	case 1:
-		strcat(menuoptions[advancedoptions++], "Limited"); //Add uninstalled CPU!
+		strcat(menuoptions[advancedoptions++], "Limited(performance)"); //Add uninstalled CPU!
+		break;
+	case 2:
+		strcat(menuoptions[advancedoptions++], "Limited(general)"); //Add uninstalled CPU!
 		break;
 	default:
 		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
@@ -3758,18 +3761,21 @@ void BIOS_CPUSpeed() //CPU speed selection!
 	GPU_EMU_printscreen(0, 4, "CPU speed: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 2; //Ammount of Direct modes!
+	numlist = 3; //Ammount of Direct modes!
 	for (i = 0; i<3; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0], "Unlimited"); //Set filename from options!
-	strcpy(itemlist[1], "Limited"); //Set filename from options!
+	strcpy(itemlist[1], "Limited(performance)"); //Set filename from options!
+	strcpy(itemlist[2], "Limited(general)"); //Set filename from options!
+
 	int current = 0;
 	switch (BIOS_Settings.CPUSpeed) //What setting?
 	{
 	case 0: //Valid
 	case 1: //Valid
+	case 2: //Valid
 		current = BIOS_Settings.CPUSpeed; //Valid: use!
 		break;
 	default: //Invalid
