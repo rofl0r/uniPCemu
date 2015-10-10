@@ -1708,7 +1708,6 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 	} //Input enabled?
 	else //Direct input?
 	{
-		//SLOWNESS!
 		int key;
 		for (key = 0;key < NUMITEMS(emu_keys_state);)
 		{
@@ -2032,7 +2031,6 @@ void updateInput(SDL_Event *event) //Update all input!
 				{
 					if (EMU_RUNNING) //Are we running?
 					{
-						//SLOWNESS!
 						input.Buttons = 0; //Ingore pressed buttons!
 						input.cas = 0; //Ignore pressed buttons!
 									   //Handle button press/releases!
@@ -2149,7 +2147,6 @@ void updateInput(SDL_Event *event) //Update all input!
 				{
 					if (EMU_RUNNING) //Are we running?
 					{
-						//SLOWNESS!
 						input.Buttons = 0; //Ingore pressed buttons!
 						input.cas = 0; //Ignore pressed buttons!
 

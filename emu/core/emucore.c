@@ -85,7 +85,9 @@ int emu_started = 0; //Emulator started (initEMU called)?
 #define DEBUG_EMU 0
 
 //To get a reasonable speed on slow systems, make this number higher (at the cost of other threads)!
-#define UNLIMITEDOPCODES_SPEED 300000
+#define UNLIMITEDOPCODES_SPEED 30000
+#define SPEED_8086GENERAL 287
+#define SPEED_8086PERFORMANCE 3000
 
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
@@ -517,22 +519,30 @@ void CPU_Speed_Unlimited()
 	{
 		numopcodes = 0; //Reset!
 		++last_timing; //Increase timing with 1us!
-		for (;getuspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
+		for (;getmspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
 	}
 }
 
 void CPU_Speed_8086General()
 {
-	//Delay some time to get accurate timing!
-	last_timing += 3233; //Increase last timing, 3233ns for each instruction to get 1.0MIPS with general instructions!
-	for (;getnspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
+	static uint_32 numopcodes = 0; //Delay counter!
+	if (++numopcodes == SPEED_8086GENERAL)//Every X opcodes(to allow for more timers/input to update)
+	{
+		numopcodes = 0; //Reset!
+		++last_timing; //Increase timing with 1us!
+		for (;getmspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
+	}
 }
 
 void CPU_Speed_8086Performance()
 {
-	//Delay some time to get accurate timing!
-	last_timing += 3843; //Increase last timing, 3233ns for each instruction to get 1.0MIPS with general instructions!
-	for (;getnspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
+	static uint_32 numopcodes = 0; //Delay counter!
+	if (++numopcodes == SPEED_8086PERFORMANCE)//Every X opcodes(to allow for more timers/input to update)
+	{
+		numopcodes = 0; //Reset!
+		++last_timing; //Increase timing with 1us!
+		for (;getmspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
+	}
 }
 
 static Handler SpeedLimits[3] = { CPU_Speed_Unlimited,CPU_Speed_8086Performance,CPU_Speed_8086General }; //CPU speed settings!

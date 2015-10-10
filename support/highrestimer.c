@@ -6,7 +6,7 @@
 double tickresolution = 0.0f; //Our tick resolution, initialised!
 byte tickresolution_win_SDL = 0; //Force SDL rendering?
 
-float msfactor, msfactor_reversed, usfactor, usfactor_reversed, nsfactor, nsfactor_reversed; //The factors and reverse multiplication factor!
+float msfactor, usfactor, nsfactor; //The factors!
 
 void initHighresTimer()
 {
@@ -30,12 +30,9 @@ void initHighresTimer()
 #endif
 #endif
 		//Calculate needed precalculated factors!
-		usfactor = (float)(1.0f/ tickresolution)*US_SECOND; //US factor!
+		usfactor = (float)(1.0f/tickresolution)*US_SECOND; //US factor!
 		nsfactor = (float)(1.0f/tickresolution)*NS_SECOND; //NS factor!
 		msfactor = (float)(1.0f/tickresolution)*MS_SECOND; //MS factor!
-		usfactor_reversed = (1/usfactor); //Reversed!
-		nsfactor_reversed = (1/nsfactor); //Reversed!
-		msfactor_reversed = (1/msfactor); //Reversed!
 }
 
 void initTicksHolder(TicksHolder *ticksholder)
@@ -102,14 +99,14 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 	return ticksholder->tickspassed; //Give the result: ammount of ticks passed!
 }
 
-OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, float secondfactor_reversed)
+OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor)
 {
 	register uint_64 result, tickspassed;
 	tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	tickspassed += ticksholder->ticksrest; //Add the time we've left unused last time!
-	result = (uint_64)(tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can!
-	tickspassed -= (uint_64)((float)result*secondfactor_reversed); //The ticks left unprocessed this call!
-	ticksholder->ticksrest = (tickspassed>0)?tickspassed:0; //Add the rest ticks unprocessed to the next time we're counting!
+	result = (uint_64)((float)tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can use!
+	tickspassed -= (uint_64)(result/secondfactor); //The ticks left unprocessed this call!
+	ticksholder->ticksrest = tickspassed; //Add the rest ticks unprocessed to the next time we're counting!
 	if (ticksholder->avg) //Average enabled?
 	{
 		ticksholder->avg_sumpassed += result; //Add to the sum!
@@ -121,17 +118,17 @@ OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, fl
 
 uint_64 getmspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
 {
-	return gettimepassed(ticksholder, msfactor, msfactor_reversed); //Factor us!
+	return gettimepassed(ticksholder, msfactor); //Factor us!
 }
 
 uint_64 getuspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
 {
-	return gettimepassed(ticksholder,usfactor,usfactor_reversed); //Factor us!
+	return gettimepassed(ticksholder,usfactor); //Factor us!
 }
 
 uint_64 getnspassed(TicksHolder *ticksholder)
 {
-	return gettimepassed(ticksholder,nsfactor,nsfactor_reversed); //Factor ns!
+	return gettimepassed(ticksholder,nsfactor); //Factor ns!
 }
 
 uint_64 getmspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
