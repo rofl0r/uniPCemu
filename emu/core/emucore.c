@@ -84,10 +84,8 @@ int emu_started = 0; //Emulator started (initEMU called)?
 //To debug init/doneemu?
 #define DEBUG_EMU 0
 
-//To get a reasonable speed on slow systems, make this number higher (at the cost of other threads)!
-#define UNLIMITEDOPCODES_SPEED 30000
-#define SPEED_8086GENERAL 287
-#define SPEED_8086PERFORMANCE 3000
+//The default CPU speed!
+#define DEFAULT_SPEED 3000
 
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
@@ -512,10 +510,10 @@ extern byte Direct_Input; //Are we in direct input mode?
 
 uint_64 last_timing = 0; //Last timing!
 
-void CPU_Speed_Unlimited()
+void CPU_Speed_Default()
 {
 	static uint_32 numopcodes = 0; //Delay counter!
-	if (++numopcodes == UNLIMITEDOPCODES_SPEED)//Every X opcodes(to allow for more timers/input to update)
+	if (++numopcodes == DEFAULT_SPEED)//Every X opcodes(to allow for more timers/input to update)
 	{
 		numopcodes = 0; //Reset!
 		++last_timing; //Increase timing with 1us!
@@ -523,10 +521,10 @@ void CPU_Speed_Unlimited()
 	}
 }
 
-void CPU_Speed_8086General()
+void CPU_Speed_Cycles()
 {
 	static uint_32 numopcodes = 0; //Delay counter!
-	if (++numopcodes == SPEED_8086GENERAL)//Every X opcodes(to allow for more timers/input to update)
+	if (++numopcodes >= BIOS_Settings.CPUSpeed)//Every X opcodes(to allow for more timers/input to update)
 	{
 		numopcodes = 0; //Reset!
 		++last_timing; //Increase timing with 1us!
@@ -534,19 +532,7 @@ void CPU_Speed_8086General()
 	}
 }
 
-void CPU_Speed_8086Performance()
-{
-	static uint_32 numopcodes = 0; //Delay counter!
-	if (++numopcodes == SPEED_8086PERFORMANCE)//Every X opcodes(to allow for more timers/input to update)
-	{
-		numopcodes = 0; //Reset!
-		++last_timing; //Increase timing with 1us!
-		for (;getmspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
-	}
-}
-
-static Handler SpeedLimits[3] = { CPU_Speed_Unlimited,CPU_Speed_8086Performance,CPU_Speed_8086General }; //CPU speed settings!
-Handler SpeedLimit = CPU_Speed_Unlimited; //Current CPU speed handler!
+Handler SpeedLimit = CPU_Speed_Default; //Current CPU speed handler!
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
@@ -560,16 +546,20 @@ void BIOSMenuExecution()
 	}
 	resumeEMU(); //Resume!
 	//Update CPU speed!
-	if (BIOS_Settings.CPUSpeed) //Needs slowdown here?
-	{
-		last_timing = getuspassed_k(&CPU_timing); //We start off at this point!
-	}
+	last_timing = getuspassed_k(&CPU_timing); //We start off at this point!
 	updateSpeedLimit(); //Update the speed limit!
 }
 
 void updateSpeedLimit()
 {
-	SpeedLimit = SpeedLimits[BIOS_Settings.CPUSpeed]; //Set the current speed limit!
+	if (BIOS_Settings.CPUSpeed) //Gotten speed cycles set?
+	{
+		SpeedLimit = &CPU_Speed_Cycles; //Cycles to limit!
+	}
+	else
+	{
+		SpeedLimit = &CPU_Speed_Default; //Default speed!
+	}
 }
 
 OPTINLINE byte coreHandler()

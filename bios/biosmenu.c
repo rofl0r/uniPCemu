@@ -2134,12 +2134,12 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 						}
 						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10 sectors!
 						{
-							GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
+							GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
 						}
 						sectornr += datatotransfer; //Next sector block!
 					}
 					EMU_locktext();
-					GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+					GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 					EMU_unlocktext();
 
 					//Verification!
@@ -2185,23 +2185,23 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 							}
 							if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10 sectors!
 							{
-								GPU_EMU_printscreen(18, 7, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 							}
 							sectornr += datatotransfer; //Next sector!
 						}
 						EMU_locktext();
-						GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
 							remove(filename); //Try to remove the generated file!
-							dolog(filename, "Error %i validating dynamic image sector %i/%i@byte %i", error, sectornr / 512, size / 512, sectorposition); //Error at this sector!
+							dolog(filename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr / 512, size / 512, sectorposition); //Error at this sector!
 						}
 					}
 					else //Error occurred?
 					{
 						remove(filename); //Try to remove the generated file!
-						dolog(filename, "Error #%i copying static image sector %i/%i", error, sectornr / 512, sizecreated / 512); //Error at this sector!
+						dolog(filename, "Error #%u copying static image sector %u/%u", error, sectornr / 512, sizecreated / 512); //Error at this sector!
 					}
 				}
 			}
@@ -2250,7 +2250,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 			strcat(filename, ".img"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
-			dolog("BIOS", "Dynamic disk size: %i bytes = %i sectors", size, (size >> 9));
+			dolog("BIOS", "Dynamic disk size: %u bytes = %u sectors", size, (size >> 9));
 			if (size != 0) //Got size?
 			{
 				if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
@@ -2302,14 +2302,14 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					}
 					if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 					{
-						GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 					}
 					sectornr += datatotransfer; //Next sector!
 				}
 				emufclose64(dest); //Close the file!
 
 				EMU_locktext();
-				GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+				GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 				EMU_unlocktext();
 
 				//Verification!
@@ -2355,23 +2355,23 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 						}
 						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 						{
-							GPU_EMU_printscreen(18, 7, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+							GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 						}
 						sectornr += datatotransfer; //Next sector!
 					}
 					EMU_locktext();
-					GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+					GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 					EMU_unlocktext();
 					if (error) //Error occurred?
 					{
 						remove(filename); //Try to remove the generated file!
-						dolog(filename, "Error #%i validating static image sector %i/%i@byte %i", error, sectornr / 512, size / 512,sectorposition); //Error at this sector!
+						dolog(filename, "Error #%u validating static image sector %u/%u@byte %u", error, sectornr / 512, size / 512,sectorposition); //Error at this sector!
 					}
 				}
 				else //Error occurred?
 				{
 					remove(filename); //Try to remove the generated file!
-					dolog(filename, "Error #%i copying dynamic image sector %i/%i", error, sectornr / 512, size / 512); //Error at this sector!
+					dolog(filename, "Error #%u copying dynamic image sector %u/%u", error, sectornr / 512, size / 512); //Error at this sector!
 				}
 			}
 		}
@@ -2468,12 +2468,12 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						}
 						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 						{
-							GPU_EMU_printscreen(21, 6, "%i%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
+							GPU_EMU_printscreen(21, 6, "%u%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
 						}
 						sectornr += datatotransfer; //Next sector!
 					}
 					EMU_locktext();
-					GPU_EMU_printscreen(21, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+					GPU_EMU_printscreen(21, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 					EMU_unlocktext();
 
 					//Verification!
@@ -2518,16 +2518,16 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							}
 							if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 							{
-								GPU_EMU_printscreen(18, 7, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 							}
 							sectornr += datatotransfer; //Next sector!
 						}
 						EMU_locktext();
-						GPU_EMU_printscreen(18, 6, "%i%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
-							dolog(filename, "Error %i validating dynamic image sector %i/%i@byte %i", error, sectornr / 512, size / 512, sectorposition); //Error at this sector!
+							dolog(filename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr / 512, size / 512, sectorposition); //Error at this sector!
 						}
 						else //We've been defragmented?
 						{
@@ -2546,7 +2546,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					}
 					else //Error occurred?
 					{
-						dolog(filename, "Error #%i copying dynamic image sector %i/%i", error, sectornr / 512, sizecreated / 512); //Error at this sector!
+						dolog(filename, "Error #%u copying dynamic image sector %u/%u", error, sectornr / 512, sizecreated / 512); //Error at this sector!
 					}
 				}
 			}
@@ -3707,19 +3707,14 @@ void BIOS_InitCPUText()
 
 	optioninfo[advancedoptions] = 1; //Change CPU speed!
 	strcpy(menuoptions[advancedoptions], "CPU Speed: ");
-	switch (BIOS_Settings.CPUSpeed)
+	switch (BIOS_Settings.CPUSpeed) //What CPU speed limit?
 	{
-	case 0:
-		strcat(menuoptions[advancedoptions++], "Unlimited"); //Unlimited!
+	case 0: //Default cycles?
+		strcat(menuoptions[advancedoptions++], "Default"); //Default!
 		break;
-	case 1:
-		strcat(menuoptions[advancedoptions++], "Limited(4.77 performance)"); //Add uninstalled CPU!
-		break;
-	case 2:
-		strcat(menuoptions[advancedoptions++], "Limited(4.77 general)"); //Add uninstalled CPU!
-		break;
-	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
+	default: //Limited cycles?
+		sprintf(menuoptions[advancedoptions], "%sLimited to %u cycles",menuoptions[advancedoptions],BIOS_Settings.CPUSpeed); //Cycle limit!
+		++advancedoptions;
 		break;
 	}
 }
@@ -3752,6 +3747,109 @@ void BIOS_CPU() //CPU menu!
 		break;
 	}
 }
+
+int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 for none!
+{
+	int key = 0;
+	key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	while ((key&BUTTON_CROSS)>0) //Pressed? Wait for release!
+	{
+		key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	}
+	uint_32 result = CPUSpeed; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
+	uint_32 oldvalue; //To check for high overflow!
+	for (;;) //Get input; break on error!
+	{
+		EMU_locktext();
+		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
+		if (!result) //Default cycles?
+		{
+			GPU_EMU_printscreen(x, y, "Default cycles                                         ", result); //Show current size!
+		}
+		else
+		{
+			GPU_EMU_printscreen(x, y, "Limited to %u cycles", result); //Show current size!
+		}
+		EMU_unlocktext();
+		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+												  //1GB steps!
+		if ((key & BUTTON_LTRIGGER)>0)
+		{
+			if (result == 0) {}
+			else
+			{
+				oldvalue = result; //Load the old value!
+				result -= 100; //Decrease!
+				if (result>oldvalue) result = 0; //Underflow!
+			}
+		}
+		else if ((key & BUTTON_RTRIGGER)>0)
+		{
+			oldvalue = result; //Save the old value!
+			result += 100; //Add 100!
+			if (result < oldvalue) result = oldvalue; //We've overflown?
+		}
+		else if ((key & BUTTON_LEFT)>0)
+		{
+			if (result == 0) {}
+			else
+			{
+				oldvalue = result;
+				result -= 10;
+				if (result>oldvalue) result = 0; //Underflow!
+			}
+		}
+		else if ((key & BUTTON_RIGHT)>0)
+		{
+			oldvalue = result; //Save the old value!
+			result += 10; //Add 10!
+			if (result < oldvalue) result = oldvalue; //We've overflown?
+		}
+		else if ((key & BUTTON_DOWN)>0)
+		{
+			if (result == 0) {}
+			else
+			{
+				oldvalue = result;
+				--result;
+				if (result>oldvalue) result = 0; //Underflow!
+			}
+		}
+		else if ((key & BUTTON_UP)>0)
+		{
+			oldvalue = result; //Save the old value!
+			++result; //Add 1 cycle!
+			if (result < oldvalue) result = oldvalue; //We've overflown?
+		}
+		else if ((key & BUTTON_CROSS)>0)
+		{
+			while ((key&BUTTON_CROSS)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			return (int_64)result;
+		}
+		else if ((key & BUTTON_CIRCLE)>0)
+		{
+			while ((key&BUTTON_CIRCLE)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			break; //Cancel!
+		}
+		else if ((key & BUTTON_TRIANGLE)>0)
+		{
+			while ((key&BUTTON_TRIANGLE)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			return 0; //Default!
+		}
+		else if (shuttingdown()) break; //Cancel because of shutdown?
+	}
+	return FILELIST_CANCEL; //No size: cancel!
+}
+
 void BIOS_CPUSpeed() //CPU speed selection!
 {
 	BIOS_Title("CPU speed");
@@ -3766,40 +3864,26 @@ void BIOS_CPUSpeed() //CPU speed selection!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0], "Unlimited"); //Set filename from options!
-	strcpy(itemlist[1], "Limited(4.77 performance)"); //Set filename from options!
-	strcpy(itemlist[2], "Limited(4.77 general)"); //Set filename from options!
-
-	int current = 0;
-	switch (BIOS_Settings.CPUSpeed) //What setting?
+	switch (BIOS_Settings.CPUSpeed) //What CPU speed limit?
 	{
-	case 0: //Valid
-	case 1: //Valid
-	case 2: //Valid
-		current = BIOS_Settings.CPUSpeed; //Valid: use!
+	case 0: //Default cycles?
+		strcat(menuoptions[advancedoptions++], "Default"); //Default!
 		break;
-	default: //Invalid
-		current = 0; //Default: none!
+	default: //Limited cycles?
+		sprintf(menuoptions[advancedoptions], "%sLimited to %u cycles",menuoptions[advancedoptions], BIOS_Settings.CPUSpeed); //Add uninstalled CPU!
+		++advancedoptions;
 		break;
 	}
-	if (BIOS_Settings.CPUSpeed != current) //Invalid?
-	{
-		BIOS_Settings.CPUSpeed = current; //Safety!
-		BIOS_Changed = 1; //Changed!
-	}
-	int file = ExecuteList(11, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	int_64 file = GetCPUSpeed(11, 4, BIOS_Settings.CPUSpeed); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
-						  //We do nothing with the selected disk!
+		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
 		file = 0; //Default setting: Disabled!
-
-	case 0:
-	case 1:
 	default: //Changed?
-		if (file != current) //Not current?
+		if (file != BIOS_Settings.CPUSpeed) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
 			BIOS_Settings.CPUSpeed = file; //Select CPU speed setting!

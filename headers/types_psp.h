@@ -4,7 +4,7 @@
 #include <pspkernel.h>
 #include "headers/types_base.h" //Base types!
 
-#define delay(us) sceKernelDelayThread(us?us:1)
+#define delay(us) sceKernelDelayThread(us)
 #define sleep sceKernelSleepThread
 
 #define domkdir(dir) sceIoMkdir(dir,0777)
