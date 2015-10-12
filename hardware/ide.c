@@ -676,6 +676,13 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	}
 }
 
+OPTINLINE void giveATAPISignature(byte channel)
+{
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 0x01;
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0xEB;
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0x14;
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = 0x01;
+}
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
 {
@@ -688,7 +695,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	uint_32 disk_size; //For checking against boundaries!
 	switch (command) //What command?
 	{
-	case 0x90: //Execute drive diagnostic?
+	case 0x90: //Execute drive diagnostic (Mandatory)?
 #ifdef ATA_LOG
 		dolog("ATA", "DIAGNOSTICS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
@@ -703,6 +710,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 		dolog("ATA", "ACNMEDIACHANGE:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		switch (ATA_Drives[channel][ATA_activeDrive(channel)]) //What kind of drive?
 		{
 		case CDROM0:
@@ -733,6 +741,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 		dolog("ATA", "RECALIBRATE:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //Default to no error!
 		if (has_drive(ATA_Drives[channel][ATA_activeDrive(channel)]) && (ATA_Drives[channel][ATA_activeDrive(channel)]>=HDD0) && (ATA_Drives[channel][ATA_activeDrive(channel)]<=HDD1)) //Gotten drive and is a hard disk?
 		{
@@ -774,6 +783,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 		dolog("ATA", "SEEK:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		temp = (command & 0xF); //The head to select!
 		if (((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow) < ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[54]) //Cylinder correct?
 		{
@@ -794,14 +804,21 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		else goto invalidcommand; //Error out!
 		break;
-	case 0x22: //Read long (w/retry)?
-	case 0x23: //Read long (w/o retry)?
+	case 0x22: //Read long (w/retry, ATAPI Mandatory)?
+	case 0x23: //Read long (w/o retry, ATAPI Mandatory)?
 		ATA[channel].longop = 1; //Long operation!
-	case 0x20: //Read sector(s) (w/retry)?
-	case 0x21: //Read sector(s) (w/o retry)?
+	case 0x20: //Read sector(s) (w/retry, ATAPI Mandatory)?
+	case 0x21: //Read sector(s) (w/o retry, ATAPI Mandatory)?
 #ifdef ATA_LOG
 		dolog("ATA", "READ(long:%i):%i,%i=%02X", ATA[channel].longop,channel, ATA_activeDrive(channel), command);
 #endif
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Special action for CD-ROM drives?
+		{
+			//Enter reserved ATAPI result!
+			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 1; //Passed!
+			giveATAPISignature();
+			goto invalidcommand_noerror; //Execute an invalid command result!
+		}
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
 		{
@@ -823,6 +840,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		break;
 	case 0x40: //Read verify sector(s) (w/retry)?
 	case 0x41: //Read verify sector(s) (w/o retry)?
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
@@ -865,6 +883,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].longop = 1; //Long operation!
 	case 0x30: //Write sector(s) (w/retry)?
 	case 0x31: //Write sectors (w/o retry)?
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 #ifdef ATA_LOG
 		dolog("ATA", "WRITE(LONG:%i):%i,%i=%02X; Length=%02X", ATA[channel].longop, channel, ATA_activeDrive(channel), command, ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount);
 #endif
@@ -892,6 +911,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 		dolog("ATA", "INITDRVPARAMS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].commandstatus = 0; //Requesting command again!
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[55] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head + 1); //Set the current maximum head!
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[56] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount); //Set the current sectors per track!
@@ -899,26 +919,23 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
 		break;
-	case 0xA1: //ATAPI: IDENTIFY PACKET DEVICE!
+	case 0xA1: //ATAPI: IDENTIFY PACKET DEVICE (ATAPI Mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0) && ATA_Drives[channel][ATA_activeDrive(channel)]) //CDROM drive?
 		{
 			ATA[channel].command = 0xA1; //We're running this command!
 			goto CDROMIDENTIFY; //Execute CDROM identification!
 		}
 		goto invalidcommand; //We're an invalid command: we're not a CDROM drive!
-	case 0xEC: //Identify drive?
+	case 0xEC: //Identify device (Mandatory)?
 #ifdef ATA_LOG
 		dolog("ATA", "IDENTIFY:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		if (!ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //No drive errors out!
-		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Identify not for us?
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Special action for CD-ROM drives?
 		{
 			//Enter reserved ATAPI result!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 1; //Passed!
-			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 0x01;
-			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0xEB;
-			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0x14;
-			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = 0x01;
+			giveATAPISignature();
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
 		ATA[channel].command = 0xEC; //We're running this command!
@@ -936,7 +953,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].commandstatus = 1; //We're requesting data to be read!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Execute an IRQ from us!
 		break;
-	case 0xA0: //ATAPI: PACKET!
+	case 0xA0: //ATAPI: PACKET (ATAPI mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
 		ATA[channel].command = 0xA0; //We're sending a ATAPI packet!
 		ATA[channel].datablock = 12; //We're receiving 12 bytes for the ATAPI packet!
@@ -953,6 +970,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 		dolog("ATA", "GETMEDIASTATUS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //CD-ROM drive?
 		{
 			drive = ATA_Drives[channel][ATA_activeDrive(channel)]; //Load the drive identifier!
@@ -971,7 +989,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		else goto invalidcommand;
 		break;
-	case 0xEF: //Set features?
+	case 0xEF: //Set features (Mandatory)?
 #ifdef ATA_LOG
 		dolog("ATA", "Set features:%i,%i=%02X", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features); //Set these features!
 #endif
@@ -999,7 +1017,11 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].commandstatus = 0; //Reset command status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Reset data register!
 		break;
-	case 0x00: //NOP (Required)?
+	case 0x00: //NOP (ATAPI Mandatory)?
+		break;
+	case 0x08: //DEVICE RESET(ATAPI Mandatory)?
+		ATA[channel].commandstatus = 0; //Reset command status!
+		ATA[channel].command = 0; //Full reset!
 		break;
 	case 0xDC: //BIOS - post-boot?
 	case 0xDD: //BIOS - pre-boot?
@@ -1419,10 +1441,10 @@ void ATA_DiskChanged(int disk)
 		{
 			memset(ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
 		}
-		/*if ((disk == CDROM0) || (disk == CDROM1)) //CDROM?
+		if ((disk == CDROM0) || (disk == CDROM1)) //CDROM?
 		{
 			ATA[disk_channel].Drive[disk_ATA].driveparams[0] = ((2 << 14) | (5 << 8) | (1 << 7) | (2 << 5) | (0 << 0)); //CDROM drive!
-		}*/
+		}
 		break;
 	default: //Unknown?
 		break;
@@ -1464,7 +1486,7 @@ void initATA()
 		CDROM_channel = 0; //Move CDROM to primary channel!
 	}
 	ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
-	ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as master!
+	ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as slave!
 	int i,j,k;
 	int disk_reverse[4] = { HDD0,HDD1,CDROM0,CDROM1 }; //Our reverse lookup information values!
 	for (i = 0;i < 4;i++) //Check all drives mounted!
