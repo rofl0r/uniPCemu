@@ -547,7 +547,7 @@ void BIOSMenuExecution()
 	resumeEMU(); //Resume!
 	//Update CPU speed!
 	lock(LOCK_CPU); //We're updating the CPU!
-	last_timing = getuspassed_k(&CPU_timing); //We start off at this point!
+	last_timing = getmspassed_k(&CPU_timing); //We start off at this point!
 	updateSpeedLimit(); //Update the speed limit!
 	unlock(LOCK_CPU);
 }
