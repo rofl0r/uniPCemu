@@ -41,7 +41,6 @@ typedef struct
 
 TIMER timers[100]; //We use up to 100 timers!
 
-ThreadParams_p timerthread = NULL; //Our thread!
 byte allow_running = 0;
 
 extern double clockspeed; //Default clockspeed we use, in Hz!
@@ -49,7 +48,7 @@ extern double clockspeed; //Default clockspeed we use, in Hz!
 byte EMU_Timers_Enabled = 1; //Are emulator timers enabled?
 
 //This handles all current used timers!
-void timer_thread() //Handler for timer!
+void tickTimers() //Handler for timers!
 {
 	char name[256];
 	int curtimer;
@@ -57,35 +56,26 @@ void timer_thread() //Handler for timer!
 	double realpassed; //Real timer passed since last call!
 
 
-	lock(LOCK_TIMERS); //Wait for our lock!
-	allow_running = 1; //Set our thread to active!
-	unlock(LOCK_TIMERS); //We're finished!
-
 	if (__HW_DISABLED) return; //Abort!
 
 	bzero(name,sizeof(name)); //Init name!
 
-	lock(LOCK_TIMERS);
 	if (!timer_init) //Not initialised yet?
 	{
 		initTicksHolder(&timer_lasttimer); //Init ticks holder for precision!
+		getuspassed(&timer_lasttimer); //Initialise the timer to current time!
 		timer_init = 1; //Ready!
 	}
-	unlock(LOCK_TIMERS);
 
-	getuspassed(&timer_lasttimer); //Initialise the timer to current time!
+	realpassed = (double)getuspassed(&timer_lasttimer); //How many time has passed for real!
 
-	for (;;) //Keep running!
+	if (realpassed) //Anything passed at all?
 	{
-		lock(LOCK_TIMERS); //Wait for our lock!
+		lock(LOCK_TIMERS);
 		if (!allow_running)
 		{
-			unlock(LOCK_TIMERS); //We're done!
 			return; //To stop running?
 		}
-		
-		realpassed = (double)getuspassed(&timer_lasttimer); //How many time has passed for real!
-
 		for (curtimer=0; curtimer<NUMITEMS(timers); curtimer++) //Process timers!
 		{
 			if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
@@ -113,21 +103,21 @@ void timer_thread() //Handler for timer!
 						{
 							for (;;) //Overflow multi?
 							{
-#ifdef TIMER_LOG
+	#ifdef TIMER_LOG
 								strcpy(name,timers[curtimer].name); //Set name!
 								dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
 								TicksHolder singletimer;
 								startHiresCounting(&singletimer); //Start counting!
-#endif
+	#endif
 								if (timers[curtimer].handler) //Gotten a handler?
 								{
 									timers[curtimer].handler(); //Run the handler!
 								}
-#ifdef TIMER_LOG
+	#ifdef TIMER_LOG
 								++timers[curtimer].calls; //For debugging the ammount of calls!
 								timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
 								dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
-#endif
+	#endif
 								if (!--numcounters) break; //Done? Process next counter!
 							}
 						}
@@ -150,7 +140,6 @@ void timer_thread() //Handler for timer!
 			}
 		}
 		unlock(LOCK_TIMERS); //Release our lock!
-		delay(TIMER_STEP); //Lousy, take 100ms breaks!
 	}
 }
 
@@ -282,13 +271,11 @@ void removetimer(char *name) //Removes a timer!
 void startTimers(byte core)
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (core) //Core?
+	if (core)
 	{
-		if (!timerthread) //Not already running?
-		{
-			timerthread = startThread(&timer_thread, "X86EMU_Timing", NULL, DEFAULT_PRIORITY); //Timer thread start!
-		}
-
+		lock(LOCK_TIMERS);
+		allow_running = 1; //Start timing!
+		unlock(LOCK_TIMERS);
 	}
 	EMU_Timers_Enabled = 1; //Enable timers!
 }
@@ -298,18 +285,9 @@ void stopTimers(byte core)
 	if (__HW_DISABLED) return; //Abort!
 	if (core) //Are we the core?
 	{
-		lock(LOCK_TIMERS);
-		if (timerthread) //Running already (we can terminate it)?
-		{
-			unlock(LOCK_TIMERS);
-			lock(LOCK_TIMERS); //Lock our thread!
-			allow_running = 0; //Request normal termination!
-			timerthread = NULL; //Finished!
-			unlock(LOCK_TIMERS); //We're done!
-			waitThreadEnd(timerthread); //Wait for our thread to end!
-			lock(LOCK_TIMERS);
-		}
-		unlock(LOCK_TIMERS); //Finished!
+		lock(LOCK_TIMERS); //Lock our thread!
+		allow_running = 0; //Request normal termination!
+		unlock(LOCK_TIMERS); //We're done!
 	}
 	EMU_Timers_Enabled = 0; //Enable timers!
 }

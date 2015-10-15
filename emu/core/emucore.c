@@ -515,6 +515,7 @@ void CPU_Speed_Default()
 	static uint_32 numopcodes = 0; //Delay counter!
 	if (++numopcodes == DEFAULT_SPEED)//Every X opcodes(to allow for more timers/input to update)
 	{
+		tickTimers(); //Ticks any timers that need ticking!
 		numopcodes = 0; //Reset!
 		++last_timing; //Increase timing with 1us!
 		for (;getmspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
@@ -526,6 +527,7 @@ void CPU_Speed_Cycles()
 	static uint_32 numopcodes = 0; //Delay counter!
 	if (++numopcodes >= BIOS_Settings.CPUSpeed)//Every X opcodes(to allow for more timers/input to update)
 	{
+		tickTimers(); //Ticks any timers that need ticking!
 		numopcodes = 0; //Reset!
 		++last_timing; //Increase timing with 1us!
 		for (;getmspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!

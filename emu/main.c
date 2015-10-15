@@ -368,6 +368,7 @@ int main(int argc, char * argv[])
 		{
 			CPU_time %= 1000000; //Rest!
 			unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
+			tickTimers(); //Ticks any timers that need ticking!
 			delay(0); //Wait minimum amount of time!
 			lock(LOCK_CPU); //Lock the CPU: we're running!
 		}

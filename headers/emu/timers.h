@@ -1,7 +1,7 @@
 #ifndef TIMERS_H
 #define TIMERS_H
 
-void timer_thread(); //Handler for timer!
+void tickTimers(); //Handler for timers!
 
 void resetTimers(); //Reset all timers to off and turn off handler!
 void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit, byte coretimer, SDL_sem *uselock);
