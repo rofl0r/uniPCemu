@@ -2096,7 +2096,7 @@ Special stuff for NO COprocessor (8087) present/available (default)!
 */
 
 
-void FPU8087_OPDBE3(){debugger_setcommand("<UNKOP8087: FNINIT>");}
+/*void FPU8087_OPDBE3(){debugger_setcommand("<UNKOP8087: FNINIT>");}
 
 void FPU8087_OPDB()
 {byte subOP = CPU_readOP(); CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE3){FPU8087_OPDBE3();} else{REG_CS = oldCS; REG_IP = oldIP; FPU8087_noCOOP();} CPUPROT2 }
@@ -2106,7 +2106,12 @@ void FPU8087_OPDDslash7(){debugger_setcommand("<UNKOP8087: FNSTSW>");}
 void FPU8087_OPDD(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; modrm_readparams(&params,1,0); CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU8087_OPDDslash7();}else {REG_CS = oldCS; REG_IP = oldIP; FPU8087_noCOOP();} CPUPROT2}
 void FPU8087_OPD9slash7(){debugger_setcommand("<UNKOP8087: FNSTCW>");}
 void FPU8087_OPD9(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; modrm_readparams(&params,1,0); CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU8087_OPD9slash7();} else {REG_CS = oldCS; REG_IP = oldIP; FPU8087_noCOOP();} CPUPROT2}
-void FPU8087_noCOOP(){debugger_setcommand("<No COprocessor OPcodes implemented!>"); CPU_resetOP(); CPU_COOP_notavailable();}
+*/
+void FPU8087_noCOOP(){
+	debugger_setcommand("<No COprocessor OPcodes implemented!>");
+	/*CPU_resetOP(); CPU_COOP_notavailable();*/ //Only on 286+!
+	modrm_readparams(&params, 1, 0); //Read params and discard data!
+}
 
 void unkOP_8086() //Unknown opcode on 8086?
 {

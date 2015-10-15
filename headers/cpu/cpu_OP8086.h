@@ -258,11 +258,11 @@ void CPU8086_OPFF();
 //Stuff for CoProcessor minimum:
 
 
-void CPU8086_OPD9(); //For FPU!
+/*void CPU8086_OPD9(); //For FPU!
 void CPU8086_OPDB(); //For FPU!
 void CPU8086_OPDD(); //For FPU!
 void CPU8086_OPDF(); //For FPU!
-
+*/
 
 void CPU8086_noCOOP(); //Coprosessor opcodes handler!
 
