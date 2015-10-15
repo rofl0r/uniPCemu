@@ -2358,6 +2358,9 @@ void updateInput(SDL_Event *event) //Update all input!
 				mouse_ymove += event->motion.yrel; //Move the mouse vertically!
 			}
 			break;
+		case SDL_QUIT: //Quit?
+			SDL_JoystickClose(joystick); //Finish our joystick!
+			break;
 	}
 }
 
@@ -2422,5 +2425,4 @@ void psp_input_done()
 {
 	//Do nothing yet!
 	SDL_DestroySemaphore(keyboard_lock); //Release the lock!
-	SDL_JoystickClose(joystick); //Finish our joystick!
 }

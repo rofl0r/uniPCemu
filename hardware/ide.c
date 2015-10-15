@@ -816,7 +816,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			//Enter reserved ATAPI result!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 1; //Passed!
-			giveATAPISignature(channel);
+			giveATAPISignature();
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
@@ -935,7 +935,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			//Enter reserved ATAPI result!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 1; //Passed!
-			giveATAPISignature(channel);
+			giveATAPISignature();
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
 		ATA[channel].command = 0xEC; //We're running this command!
