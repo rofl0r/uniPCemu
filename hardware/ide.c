@@ -633,6 +633,15 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	disk_size >>= 2; //We're 4096 byte sectors instead of 512 byte sectors!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
+	case 0x00: //TEST UNIT READY(Mandatory)?
+	case 0x01: //REZERO UNIT(Mandatory)?
+	case 0x03: //REQUEST SENSE(Mandatory)?
+	case 0x12: //INQUIRY(Mandatory)?
+	case 0x46: //GET CONFIGURATION(Mandatory)?
+	case 0x4A: //GET EVENT STATUS NOTIFICATION(Mandatory)?
+	case 0x55: //MODE SELECT(Mandatory)?
+	case 0x5A: //MODE SENSE(Mandatory)?
+		break;
 	case 0xA8: //Read sectors command!
 		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
