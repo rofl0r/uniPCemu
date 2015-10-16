@@ -32,6 +32,10 @@ void onKeyPress(char *key) //On key press/hold!
 {
 	if (strcmp(key,"CAPTURE")==0) //Screen capture requested?
 	{
+		if (!capture_status) //New key pressed?
+		{
+			++keys_pressed; //Increase the ammount of keys pressed!
+		}
 		capture_status = 1; //We're pressed!
 		return; //Finished!
 	}
@@ -52,6 +56,10 @@ void onKeyRelease(char *key) //On key release!
 {
 	if (strcmp(key, "CAPTURE") == 0) //Screen capture requested?
 	{
+		if (capture_status) //Pressed?
+		{
+			--keys_pressed; //One key has been released!
+		}
 		capture_status = 0; //We're released!
 		return; //Finished!
 	}
@@ -103,14 +111,14 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 	if (capture_status) //Pressed?
 	{
 		keys_active = 1; //We're active!
-		SCREEN_CAPTURE = 1; //Screen capture next frame!
+		SCREEN_CAPTURE = 1; //Do a screen capture next frame!
 	}
 	if (keyboard_step) //Typematic key?
 	{
 		int last_key_pressed = -1; //Last key pressed!
 		uint_64 last_key_pressed_time = 0; //Last key pressed time!
 
-										   //Now, take the last pressed key, any press it!
+		//Now, take the last pressed key, any press it!
 		for (i = 0;i < NUMITEMS(key_status);i++) //Process all keys pressed!
 		{
 			if (key_status[i]) //Pressed?
@@ -159,7 +167,7 @@ void tickPendingKeys() //Handle all pending keys from our emulation! Updating ev
 	{
 		if (!keys_pressed) //No keys pressed anymore?
 		{
-			keyboard_step = 0; //Release the timer: we're restarting to count!
+			keyboard_step = 0; //Release the timer: we're restarting the count!
 		}
 	}
 

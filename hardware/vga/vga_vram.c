@@ -19,7 +19,7 @@
 //Bit from left to right starts with 0(value 128) ends with 7(value 1)
 
 //Below patches input addresses for rendering only.
-OPTINLINE word patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VRAM address!
+OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VRAM address!
 { //Check this!
 	word memoryaddress = addresscounter; //New row scan to use!
 	SEQ_DATA *Sequencer;
@@ -51,10 +51,10 @@ OPTINLINE word patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VR
 	return memoryaddress; //Give the linear address!
 }
 
-OPTINLINE uint_32 addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arround 64k!
+OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memory arround 64k!
 {
-	register word address2; //Load the initial value for calculating!
-	register word result;
+	register uint_32 address2; //Load the initial value for calculating!
+	register uint_32 result;
 	register byte temp;
 	if (VGA->precalcs.BWDModeShift == 1) //Word mode?
 	{
@@ -76,15 +76,14 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte mode) //Read fro
 {
 	if (!VGA) return 0; //Invalid VGA!
 	if (!VGA->VRAM_size) return 0; //No size!
-	word patchedoffset = offset; //Default offset to use!
+	register uint_32 fulloffset2;
+	fulloffset2 = offset; //Default offset to use!
 
-	if (mode&1) patchedoffset = addresswrap(VGA,patchedoffset); //Apply address wrap?
-	if (mode&0x80) patchedoffset = patch_map1314(VGA, patchedoffset); //Patch MAP13&14!
+	if (mode&1) fulloffset2 = addresswrap(VGA,fulloffset2); //Apply address wrap?
+	if (mode&0x80) fulloffset2 = patch_map1314(VGA, fulloffset2); //Patch MAP13&14!
 
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
 
-	register uint_32 fulloffset2;
-	fulloffset2 = patchedoffset; //Load the offset!
 	fulloffset2 <<= 2; //We cylce through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
 
@@ -103,6 +102,7 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value, byte mod
 	if (!VGA->VRAM_size) return; //No size!
 	
 	if (mode & 1) offset = addresswrap(VGA, offset); //Apply address wrap?
+	if (mode & 0x80) offset = patch_map1314(VGA, offset); //Patch MAP13&14!
 
 	plane &= 3; //Only 4 planes are available!
 

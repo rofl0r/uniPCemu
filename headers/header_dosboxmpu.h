@@ -10,7 +10,7 @@
 //Our own typedefs for easier changing of the dosbox code!
 #define MIDI_RawOutByte MIDI_OUT
 #define MIDI_Available() 1
-#define MPU_IRQ 2
+#define MPU_IRQ 9
 
 //Remove overflow used in math.h
 #undef OVERFLOW

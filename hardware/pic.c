@@ -208,7 +208,7 @@ OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	byte realir = IR; //Default: nothing changed!
-	if ((realir == 2) && PIC) //IRQ9?
+	if ((realir == 1) && PIC) //IRQ9?
 	{
 		PIC = 0; //PIC1!
 		realir = 2; //Reroute IRQ 9 to 2!
