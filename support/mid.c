@@ -525,7 +525,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 			if (!i || (byteswap16(header.format) == 1)) //One channel, or multiple channels with format 2!
 			{
 			MID_tracknr[i] = i; //Track number
-	startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)&MID_tracknr[i], DEFAULT_PRIORITY); //Start a thread handling the output of the channel!
+	startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)&MID_tracknr[i]); //Start a thread handling the output of the channel!
 			}
 		}
 		if (byteswap16(header.format) != 1) //One channel only?

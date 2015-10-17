@@ -136,9 +136,8 @@ int telleof(FILE *f) //Are we @eof?
 
 uint_32 BIOS_getChecksum() //Get the BIOS checksum!
 {
-	return CRC32((char *)&BIOS_Settings.data,sizeof(BIOS_Settings)); //Give the checksum of the loaded settings!
+	return CRC32((char *)&BIOS_Settings,sizeof(BIOS_Settings)); //Give the checksum of the loaded settings!
 }
-
 
 void BIOS_LoadData() //Load BIOS settings!
 {
@@ -325,12 +324,6 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 			memset(BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont)); //Invalid soundfont!
 			bioschanged = 1; //BIOS changed!
 		}
-	}
-
-	if (BIOS_Settings.CPUSpeed > 2) //Invalid speed?
-	{
-		BIOS_Settings.CPUSpeed = 0; //Unlimited!
-		bioschanged = 1; //Changed!
 	}
 
 	if (bioschanged)

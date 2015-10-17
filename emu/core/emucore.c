@@ -661,7 +661,7 @@ OPTINLINE byte coreHandler()
 	{
 		if (!is_gamingmode() && !Direct_Input) //Not gaming/direct input mode?
 		{
-			BIOSMenuThread = startThread(&BIOSMenuExecution,"BIOSMenu",NULL,DEFAULT_PRIORITY); //Start the BIOS menu thread!
+			BIOSMenuThread = startThread(&BIOSMenuExecution,"BIOSMenu",NULL); //Start the BIOS menu thread!
 			delay(0); //Wait a bit for the thread to start up!
 		}
 	}

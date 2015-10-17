@@ -14,54 +14,46 @@
 #include "headers/packed.h" //We're packed!
 typedef struct PACKED
 {
-	union PACKED
-	{
-		struct PACKED
-		{
-			byte version; //The version number of the BIOS; should match with current version number!
+	byte version; //The version number of the BIOS; should match with current version number!
 
 //First, the mounted harddisks:
-			char floppy0[256];
-			char floppy1[256];
-			char hdd0[256];
-			char hdd1[256];
-			char cdrom0[256];
-			char cdrom1[256];
-			char SoundFont[256]; //What soundfont to use?
+	byte floppy0[256];
+	byte floppy1[256];
+	byte hdd0[256];
+	byte hdd1[256];
+	byte cdrom0[256];
+	byte cdrom1[256];
+	byte SoundFont[256]; //What soundfont to use?
 
-			int floppy0_readonly; //read-only?
-			int floppy1_readonly; //read-only?
-			int hdd0_readonly; //read-only?
-			int hdd1_readonly; //read-only?
+	word floppy0_readonly; //read-only?
+	word floppy1_readonly; //read-only?
+	word hdd0_readonly; //read-only?
+	word hdd1_readonly; //read-only?
 
-			uint_32 memory; //Memory used by the emulator!
-			word emulated_CPU; //Emulated CPU?
+	uint_32 memory; //Memory used by the emulator!
+	word emulated_CPU; //Emulated CPU?
 
-			byte bootorder; //Boot order?
-			byte debugmode; //What debug mode?
-			byte debugger_log; //Log when using the debugger?
+	byte bootorder; //Boot order?
+	byte debugmode; //What debug mode?
+	byte debugger_log; //Log when using the debugger?
 
-			INPUT_SETTINGS input_settings; //Settings for input!
+	INPUT_SETTINGS input_settings; //Settings for input!
 
-			byte VGA_AllowDirectPlot; //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
-			uint_32 VRAM_size; //VGA VRAM size!
-			byte bwmonitor; //Are we a b/w monitor?
-			byte keepaspectratio; //Keep the aspect ratio?
+	byte VGA_AllowDirectPlot; //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
+	uint_32 VRAM_size; //VGA VRAM size!
+	byte bwmonitor; //Are we a b/w monitor?
+	byte keepaspectratio; //Keep the aspect ratio?
 
-			byte BIOSmenu_font; //The selected font for the BIOS menu!
-			byte firstrun; //Is this the first run of this BIOS?
+	byte BIOSmenu_font; //The selected font for the BIOS menu!
+	byte firstrun; //Is this the first run of this BIOS?
 
-			byte CMOS[0x80]; //The full saved CMOS!
-			byte got_CMOS; //Gotten an CMOS?
+	byte CMOS[0x80]; //The full saved CMOS!
+	byte got_CMOS; //Gotten an CMOS?
 
-			byte executionmode; //What mode to execute in during runtime?
-			byte VGA_NMIonPrecursors; //Enable VGA NMI on precursors?
-			byte PS2Mouse; //What mouse to use when using? 1=PS/2 mouse, 0=Serial mouse
-			uint_32 CPUSpeed;
-		}; //Containing the data of the BIOS
-		byte data[1706]; //Data for checksum!
-	};
-//Rest settings!
+	byte executionmode; //What mode to execute in during runtime?
+	byte VGA_NMIonPrecursors; //Enable VGA NMI on precursors?
+	byte PS2Mouse; //What mouse to use when using? 1=PS/2 mouse, 0=Serial mouse
+	uint_32 CPUSpeed;
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 

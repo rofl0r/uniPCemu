@@ -620,7 +620,7 @@ void debugger_step() //Processes the debugging step!
 	debugger_autolog(); //Log when enabled!
 	if (debugging()) //Debugging step or single step enforced?
 	{
-		debugger_thread = startThread(debuggerThread,"debugger",NULL,DEFAULT_PRIORITY); //Start the debugger!
+		debugger_thread = startThread(debuggerThread,"debugger",NULL); //Start the debugger!
 	} //Step mode?
 }
 

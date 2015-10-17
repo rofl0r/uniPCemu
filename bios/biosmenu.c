@@ -1353,9 +1353,10 @@ void BIOS_InitAdvancedText()
 		optioninfo[advancedoptions] = 0; //Boot Order!
 		strcpy(menuoptions[advancedoptions],"Boot Order: "); //Change boot order!
 		strcat(menuoptions[advancedoptions++],BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
-		optioninfo[advancedoptions] = 1; //CPU menu!
-		strcpy(menuoptions[advancedoptions++],"CPU"); //Change installed CPU options!
 	}
+
+	optioninfo[advancedoptions] = 1; //CPU menu!
+	strcpy(menuoptions[advancedoptions++],"CPU"); //Change installed CPU options!
 
 	optioninfo[advancedoptions] = 2; //Debug mode!
 	strcpy(menuoptions[advancedoptions],"Debug mode: ");
@@ -3687,22 +3688,25 @@ void BIOS_InitCPUText()
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
 
-	optioninfo[advancedoptions] = 0; //Installed CPU!
-	strcpy(menuoptions[advancedoptions], "Installed CPU: "); //Change installed CPU!
-	switch (BIOS_Settings.emulated_CPU) //8086?
+	if (!EMU_RUNNING) //Just plain menu (not an running emu?)?
 	{
-	case CPU_8086: //8086?
-		strcat(menuoptions[advancedoptions++], "Intel 8086"); //Add installed CPU!
-		break;
-	case CPU_80186: //80186?
-		strcat(menuoptions[advancedoptions++], "Intel 80186"); //Add installed CPU!
-		break;
-	case CPU_80286: //80286?
-		strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!
-		break;
-	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
-		break;
+		optioninfo[advancedoptions] = 0; //Installed CPU!
+		strcpy(menuoptions[advancedoptions], "Installed CPU: "); //Change installed CPU!
+		switch (BIOS_Settings.emulated_CPU) //8086?
+		{
+		case CPU_8086: //8086?
+			strcat(menuoptions[advancedoptions++], "Intel 8086"); //Add installed CPU!
+			break;
+		case CPU_80186: //80186?
+			strcat(menuoptions[advancedoptions++], "Intel 80186"); //Add installed CPU!
+			break;
+		case CPU_80286: //80286?
+			strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!
+			break;
+		default:
+			strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
+			break;
+		}
 	}
 
 	optioninfo[advancedoptions] = 1; //Change CPU speed!

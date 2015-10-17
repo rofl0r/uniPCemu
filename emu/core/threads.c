@@ -262,7 +262,7 @@ void initThreads() //Initialise&reset thread subsystem!
 	//dolog("threads","debugThreads?...");
 	atexit(&onThreadExit); //Register out cleanup function!
 	memset(threadpool,0,sizeof(threadpool)); //Clear thread pool!
-	if (DEBUG_THREADS) startThread(&debug_threads,"X86EMU_Thread Debugger",NULL,DEFAULT_PRIORITY); //Plain debug threads!
+	if (DEBUG_THREADS) startThread(&debug_threads,"X86EMU_Thread Debugger",NULL); //Plain debug threads!
 	//dolog("threads","initThreads: RET...");
 }
 
@@ -308,7 +308,7 @@ byte threadRunning(ThreadParams_p thread, char *name)
 	return 0; //Not running!
 }
 
-ThreadParams_p startThread(Handler thefunc, char *name, void *params, int priority) //Start a thread!
+ThreadParams_p startThread(Handler thefunc, char *name, void *params) //Start a thread!
 {
 	//dolog("threads","startThread (%s)...",name);
 	if (!thefunc || thefunc==NULL) //No func?
