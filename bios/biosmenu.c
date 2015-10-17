@@ -3773,54 +3773,39 @@ int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 f
 		EMU_unlocktext();
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 												  //1GB steps!
-		if ((key & BUTTON_LTRIGGER)>0)
+		if ((key & BUTTON_LTRIGGER)>0) //1000 step down?
 		{
 			if (result == 0) {}
 			else
 			{
 				oldvalue = result; //Load the old value!
-				result -= 100; //Decrease!
+				result -= (key&BUTTON_RIGHT) ? 100000 : ((key&BUTTON_LEFT) ? 10000 : 1000); //x100 or x10 or x1!
 				if (result>oldvalue) result = 0; //Underflow!
 			}
 		}
-		else if ((key & BUTTON_RTRIGGER)>0)
+		else if ((key & BUTTON_RTRIGGER)>0) //1000 step up?
 		{
 			oldvalue = result; //Save the old value!
-			result += 100; //Add 100!
+			result += (key&BUTTON_RIGHT) ? 100000 : ((key&BUTTON_LEFT) ? 10000 : 1000); //x100 or x10 or x1!
 			if (result < oldvalue) result = oldvalue; //We've overflown?
 		}
-		else if ((key & BUTTON_LEFT)>0)
+		else if ((key & BUTTON_DOWN)>0) //1 step up?
 		{
 			if (result == 0) {}
 			else
 			{
 				oldvalue = result;
-				result -= 10;
+				result -= (key&BUTTON_RIGHT)?100:((key&BUTTON_LEFT)?10:1); //x100 or x10 or x1!
 				if (result>oldvalue) result = 0; //Underflow!
 			}
 		}
-		else if ((key & BUTTON_RIGHT)>0)
+		else if ((key & BUTTON_UP)>0) //1 step down?
 		{
 			oldvalue = result; //Save the old value!
-			result += 10; //Add 10!
+			result += (key&BUTTON_RIGHT) ? 100 : ((key&BUTTON_LEFT) ? 10 : 1); //x100 or x10 or x1!
 			if (result < oldvalue) result = oldvalue; //We've overflown?
 		}
-		else if ((key & BUTTON_DOWN)>0)
-		{
-			if (result == 0) {}
-			else
-			{
-				oldvalue = result;
-				--result;
-				if (result>oldvalue) result = 0; //Underflow!
-			}
-		}
-		else if ((key & BUTTON_UP)>0)
-		{
-			oldvalue = result; //Save the old value!
-			++result; //Add 1 cycle!
-			if (result < oldvalue) result = oldvalue; //We've overflown?
-		}
+		//Confirmation buttons etc.
 		else if ((key & BUTTON_CROSS)>0)
 		{
 			while ((key&BUTTON_CROSS)>0) //Wait for release!
