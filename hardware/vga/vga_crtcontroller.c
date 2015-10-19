@@ -80,6 +80,7 @@ word get_display_y(VGA_Type *VGA, word scanline) //Vertical check!
 {
 	word signal;
 	signal = VGA_OVERSCAN; //Init to overscan!
+	scanline >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply scanline division!
 	if (scanline>=getVerticalTotal(VGA)) //VTotal?
 	{
 		signal |= VGA_SIGNAL_VTOTAL; //VTotal notify!

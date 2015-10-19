@@ -133,7 +133,7 @@ VGA_AttributeInfo attributeinfo; //Our current collected attribute info!
 
 OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
 {
-	word loadedlocation; //The location we load at!
+	register word loadedlocation; //The location we load at!
 	//Horizontal logic
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
 	loadedlocation = x; //X!
@@ -163,7 +163,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 
 	planesdecoder[VGA->precalcs.graphicsmode](VGA,loadedlocation); //Use the decoder to get the pixels or characters!
 
-	byte lookupprecalcs;
+	register byte lookupprecalcs;
 	lookupprecalcs = (byte)((SEQ_DATA *)Sequencer)->charinner_y;
 	lookupprecalcs <<= 1; //Make room!
 	lookupprecalcs |= CURRENTBLINK(VGA); //Blink!
@@ -181,7 +181,6 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
 	}
-	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply scanline division!
 	row >>= VGA->precalcs.scandoubling; //Apply Scan Doubling here: we take effect on content!
 	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
 
