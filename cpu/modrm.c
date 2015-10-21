@@ -46,12 +46,9 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 	4: DWord displacement
 	*/
 
-	if (params->slashr==1) //No displacement on /r operands: REQUIRED FOR SOME OPCODES!!!
-	{
-		return 0; //No displacement!
-	}
+	if (params->slashr==1) return 0; //No displacement on /r operands: REQUIRED FOR SOME OPCODES!!!
 
-	if ((size==2) || (size==1))   //16 bits operand size?
+	if (size<2)   //16 bits operand size?
 	{
 		//figure out 16 bit displacement size
 		switch (MODRM_MOD(params->modrm)) //MOD?
@@ -74,14 +71,14 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 			break;
 		}
 	}
-	else     //32/64 bit operand size?
+	else //32/64 bit operand size?
 	{
 		//figure out 32/64 bit displacement size
 		switch (MODRM_MOD(params->modrm)) //MOD?
 		{
 		case 0:
 			if (MODRM_RM(params->modrm) == 6) //[sword]?
-				return 4; //DWord displacement!
+				return 3; //DWord displacement!
 			else
 				return 0; //No displacement!
 			break;
@@ -89,7 +86,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 			return 1; //Byte displacement!
 			break;
 		case 2:
-			return 4; //DWord displacement!
+			return 3; //DWord displacement!
 			break;
 		default:
 		case 3:
@@ -511,7 +508,7 @@ OPTINLINE void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 	byte curreg = 0;
 	byte reg; //What register?
 
-	if (whichregister!=1) //reg2?
+	if (whichregister) //reg2?
 	{
 		reg = MODRM_RM(params->modrm); //Take reg2!
 		curreg = 2; //reg2!
@@ -524,7 +521,7 @@ OPTINLINE void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 
 	int isregister;
 	isregister = 0; //Init!
-	if (whichregister==1) //REG1?
+	if (!whichregister) //REG1?
 	{
 		isregister = 1; //Register!
 	}
@@ -968,7 +965,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 	bzero(result,sizeof(*result)); //Init!
 	byte reg = 0;
 
-	if (whichregister!=1) //reg2?
+	if (whichregister) //reg2?
 	{
 		reg = MODRM_RM(params->modrm); //Take rm!
 	}
@@ -979,7 +976,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 
 	bzero(result->text,sizeof(result->text)); //Init text!
 
-	if (params->reg_is_segmentregister && (whichregister==1)) //Segment register?
+	if (params->reg_is_segmentregister && (!whichregister)) //Segment register?
 	{
 		modrm_get_segmentregister(reg,result); //Return segment register!
 		return; //Give the segment register!
@@ -987,7 +984,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 
 	int isregister;
 	isregister = 0; //Init!
-	if (whichregister==1) //REG1?
+	if (!whichregister) //REG1?
 	{
 		isregister = 1; //Register!
 	}
@@ -1341,7 +1338,7 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 	bzero(result,sizeof(*result)); //Init!
 	byte reg = 0;
 
-	if (whichregister!=1) //reg2?
+	if (whichregister) //reg2?
 	{
 		reg = MODRM_RM(params->modrm); //Take reg2/RM!
 	}
@@ -1353,7 +1350,7 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 	bzero(result->text,sizeof(result->text)); //Init text!
 
 	int isregister;
-	if (whichregister==1) //REG1?
+	if (!whichregister) //REG1?
 	{
 		isregister = 1; //Register!
 	}
@@ -1661,7 +1658,7 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 	case 2: //DISP16?
 		param->displacement.low16 = CPU_readOPw(); //Use 16-bit!
 		break;
-	case 4: //DISP32?
+	case 3: //DISP32?
 		param->displacement.dword = CPU_readOPdw(); //Use 32-bit!
 		break;
 	default: //Unknown/no displacement?
@@ -1671,20 +1668,17 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 	//Decode appropiately!
 	switch (size) //What size?
 	{
-	case 1: //8-bits?
+	case 0: //8-bits?
 		modrm_decode8(param, &param->info[0], 0); //#0!
 		modrm_decode8(param, &param->info[1], 1); //#0!
-		modrm_decode8(param, &param->info[2], 2); //#0!
 		break;
-	case 2: //16-bits?
+	case 1: //16-bits?
 		modrm_decode16(param, &param->info[0], 0); //#0!
 		modrm_decode16(param, &param->info[1], 1); //#0!
-		modrm_decode16(param, &param->info[2], 2); //#0!
 		break;
-	case 4: //32-bits?
+	case 2: //32-bits?
 		modrm_decode32(param, &param->info[0], 0); //#0!
 		modrm_decode32(param, &param->info[1], 1); //#0!
-		modrm_decode32(param, &param->info[2], 2); //#0!
 		break;
 	default:
 		halt_modrm("Unknown decoder size: %i",size); //Unknown size!

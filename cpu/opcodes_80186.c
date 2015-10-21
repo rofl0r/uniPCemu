@@ -77,12 +77,12 @@ void CPU186_OP61()
 void CPU186_OP62()
 {
 	word bound_min, bound_max;
-	modrm_readparams(&params,2,0);
-	word theval = modrm_read16(&params,1);
-	modrm_decode16(&params,&info,2);
+	modrm_readparams(&params,1,0);
+	word theval = modrm_read16(&params,0);
+	modrm_decode16(&params,&info,1);
 	bound_min=MMU_rw(get_segment_index(info.segmentregister),info.mem_segment,info.mem_offset,0);
 	bound_max=MMU_rw(get_segment_index(info.segmentregister),info.mem_segment,info.mem_offset+2,0);
-	modrm_debugger16(&params,1,2); //Debug the location!
+	modrm_debugger16(&params,0,1); //Debug the location!
 	debugger_setcommand("BOUND %s,%s",modrm_param1,modrm_param2); //Opcode!
 	if ((theval<bound_min) || (theval>bound_max))
 	{
@@ -98,10 +98,10 @@ void CPU186_OP68()
 }
 void CPU186_OP69()
 {
-	modrm_readparams(&params,2,0);
-	temp1.val32 = modrm_read16(&params,2);
+	modrm_readparams(&params,1,0);
+	temp1.val32 = modrm_read16(&params,1);
 	temp2.val32 = CPU_readOPw();
-	modrm_decode16(&params,&info,1);
+	modrm_decode16(&params,&info,0);
 	debugger_setcommand("IMUL %s,%04X",info.text,temp2);
 	if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
 	if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
@@ -118,10 +118,10 @@ void CPU186_OP6A()
 }
 void CPU186_OP6B()
 {
-	modrm_readparams(&params,1,0);
-	temp1.val32 = modrm_read16(&params,2); //Read R/M!
+	modrm_readparams(&params,0,0);
+	temp1.val32 = modrm_read16(&params,1); //Read R/M!
 	temp2.val32 = CPU_readOP(); //Read unsigned!
-	modrm_decode16(&params,&info,2); //Store the address!
+	modrm_decode16(&params,&info,1); //Store the address!
 	temp2.val32 = (temp2.val32 &0x80<<8)|(temp2.val32 &0x7F); //Sign extend to 16 bits!
 	debugger_setcommand("IMUL %s,%02X",info.text,temp2); //Command!
 	if ( (temp1.val32 & 0x8000L) == 0x8000L) {
@@ -133,7 +133,7 @@ void CPU186_OP6B()
 		}
 
 	temp3.val32 = signed2unsigned32(unsigned2signed32(temp1.val32) * unsigned2signed32(temp2.val32));
-	modrm_write16(&params,1, temp3.val32 & 0xFFFFL,0); //Write to register!
+	modrm_write16(&params,0, temp3.val32 & 0xFFFFL,0); //Write to register!
 	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3.val32)!=unsigned2signed16(temp3.val32&0xFFFF)); //Overflow occurred?
 }
 void CPU186_OP6C()
@@ -195,13 +195,13 @@ void CPU186_OP6F()
 
 void CPU186_OPC0()
 {
-	modrm_readparams(&params,1,0);
+	modrm_readparams(&params,0,0);
 
-	oper1b = modrm_read8(&params,2);
+	oper1b = modrm_read8(&params,1);
 	oper2b = CPU_readOP();
 	reg = MODRM_REG(params.modrm);
 
-	modrm_decode16(&params,&info,2); //Store the address for debugging!
+	modrm_decode16(&params,&info,1); //Store the address for debugging!
 	switch (reg) //What function?
 	{
 		case 0: //ROL
@@ -233,18 +233,18 @@ void CPU186_OPC0()
 	}
 		
 	
-	modrm_write8(&params,2,op_grp2_8(oper2b));
+	modrm_write8(&params,1,op_grp2_8(oper2b));
 } //GRP2 Eb,Ib
 
 void CPU186_OPC1()
 {
-	modrm_readparams(&params,2,0);
+	modrm_readparams(&params,1,0);
 
-	oper1 = modrm_read16(&params,2);
+	oper1 = modrm_read16(&params,1);
 	oper2 = (word)CPU_readOP();
 	reg = MODRM_REG(params.modrm);
 
-	modrm_decode16(&params,&info,2); //Store the address for debugging!
+	modrm_decode16(&params,&info,1); //Store the address for debugging!
 	switch (reg) //What function?
 	{
 		case 0: //ROL
@@ -275,7 +275,7 @@ void CPU186_OPC1()
 			break;
 	}
 	
-	modrm_write16(&params,2,op_grp2_16((byte)oper2),0);
+	modrm_write16(&params,1,op_grp2_16((byte)oper2),0);
 } //GRP2 Ev,Ib
 void CPU186_OPC8()
 {
