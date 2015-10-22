@@ -77,7 +77,7 @@ holder.data[1] = (byte)(val>>8); //High!
 return holder.result; //Give the result!
 }
 
-OPTINLINE void getBMP(TRGB *pixel,int x, int y, uint_32 *image, int w, int h, int virtualwidth, byte doublexres, byte doubleyres, int originalw, int originalh)
+OPTINLINE void getBMP(TRGB *pixel,int x, int y, uint_32 *image, int h, int virtualwidth, byte doublexres, byte doubleyres, int originalw, int originalh)
 {
 	uint_32 index;
 	float a,r,g,b;
@@ -85,7 +85,7 @@ OPTINLINE void getBMP(TRGB *pixel,int x, int y, uint_32 *image, int w, int h, in
 	x >>= doublexres; //Apply double!
 	y = (h-y-1); //The pixel Y is reversed in the BMP, so reverse it!
 	y >>= doubleyres; //Apply double!
-	w = originalw; //Apply double!
+	int w = originalw; //Apply double!
 	h = originalh; //Apply double!
 	index = (y*virtualwidth)+x; //Our index of our pixel!
 	a = (float)(GETA(image[index]))/255.0f; //A gradient!
@@ -167,7 +167,7 @@ byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, 
 	{
 		for (x=0;x<w;x++) //Process all columns!
 		{
-			getBMP(&pixel,x,y,image,w,h,virtualwidth,doublexres,doubleyres,originalw,originalh); //Get the pixel to be written!
+			getBMP(&pixel,x,y,image,h,virtualwidth,doublexres,doubleyres,originalw,originalh); //Get the pixel to be written!
 			fwrite(&pixel,1,sizeof(pixel),f); //Write the pixel to the file!
 		}
 		fwrite(&bmppad,1,rowpadding,f); //Write the padding!

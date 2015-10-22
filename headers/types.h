@@ -37,6 +37,9 @@
 #endif
 #endif
 
+//Univeral 8-bit character type? Given as a define!
+#define CharacterType char
+
 //Our basic functionality we need for running this program!
 //We have less accuracy using SDL delay: ms instead of us. Round to 0ms(minimal time) if needed!
 

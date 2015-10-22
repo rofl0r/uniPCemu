@@ -236,7 +236,7 @@ int psp_inputkeydelay(uint_32 waittime) //Don't use within any timers! This will
 		counter = waittime; //Init counter!
 		while ((int_64)counter>0) //Still waiting?
 		{
-			if (counter>INPUTKEYDELAYSTEP) //Big block?
+			if (counter>(uint_32)INPUTKEYDELAYSTEP) //Big block?
 			{
 				delay(INPUTKEYDELAYSTEP); //Wait a delay step!
 				counter -= INPUTKEYDELAYSTEP; //Substract!
