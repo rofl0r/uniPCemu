@@ -181,7 +181,10 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
 	}
-	row >>= VGA->precalcs.scandoubling; //Apply Scan Doubling here: we take effect on content!
+	row >>= VGA->precalcs.scandoubling; //Apply Scan Doubling on the row scan counter: we take effect on content (double scanning)!
+	Sequencer->rowscancounter = row; //Set the current row scan counter!
+
+	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply scanline division to the current row timing!
 	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
 
 	//Row now is an index into charrowstatus

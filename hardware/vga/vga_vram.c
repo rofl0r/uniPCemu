@@ -25,7 +25,7 @@ OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full
 	SEQ_DATA *Sequencer;
 	Sequencer = (SEQ_DATA *)VGA->Sequencer; //The sequencer!
 
-	word rowscancounter = Sequencer->chary; //The row scan counter we use!
+	word rowscancounter = Sequencer->rowscancounter; //The row scan counter we use!
 
 	register word bit; //Load row scan counter!
 	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13) //a13=Bit 0 of the row scan counter!
