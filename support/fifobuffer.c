@@ -184,7 +184,7 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 	if (fifobuffer_freesize(buffer) == buffer->size) return; //Empty? We can't: there is nothing to go back to!
 
 	WaitSem(buffer->lock)
-	if ((int_64)(buffer->writepos-1)<0) //Last pos?
+	if ((((int_64)buffer->writepos)-1)<0) //Last pos?
 	{
 		buffer->readpos = buffer->size-1; //Goto end!
 	}
