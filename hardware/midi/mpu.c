@@ -172,7 +172,7 @@ struct {
 	Bit8u queue[MPU_QUEUE];
 	Bitu queue_pos,queue_used;
 	struct type_t{
-		Bits counter;
+		int_32 counter;
 		Bit8u value[8];
 		Bit8u vlength;
 		MpuDataType type;
@@ -239,13 +239,13 @@ void ClrRequestQueue() {
 	mpu.rq_used=0;
 }
 
-Bit8u MPU401_ReadStatus(word port) {
+Bit8u MPU401_ReadStatus() {
 	Bit8u ret=0x3f;	/* Bith 6 and 7 clear */
 	if (!mpu.queue_used) ret|=0x80;
 	return ret;
 }
 
-void MPU401_WriteCommand(word port,Bit8u val) {
+void MPU401_WriteCommand(Bit8u val) {
 	Bitu i;
 	//LOG(LOG_MISC,LOG_NORMAL)("MPU-401:Command %x",val);
 	if (val && val<=0x2f) {
@@ -406,7 +406,7 @@ void MPU401_WriteCommand(word port,Bit8u val) {
 	QueueByte(MSG_CMD_ACK);
 }
 
-Bit8u MPU401_ReadData(word port) {
+Bit8u MPU401_ReadData() {
 	Bit8u ret=MSG_CMD_ACK;
 	if (mpu.queue_used) {
 		ret=mpu.queue[mpu.queue_pos];
@@ -432,7 +432,7 @@ Bit8u MPU401_ReadData(word port) {
 	return ret;
 }
 
-void MPU401_WriteData(word port,Bit8u val) {
+void MPU401_WriteData(Bit8u val) {
 	if (mpu.mode==M_UART) {MIDI_RawOutByte(val);return;}
 	switch (mpu.state.command_byte) {
 		case 0:
@@ -609,10 +609,10 @@ void MPU401_Event() {
 	if (mpu.state.conductor) {
 		if (mpu.condbuf.counter--<0) {
 			if (mpu.condbuf.type!=OVERFLOW) {
-				MPU401_WriteCommand(0x331,mpu.condbuf.value[0]);
+				MPU401_WriteCommand(mpu.condbuf.value[0]);
 				if (mpu.state.command_byte) {
 					mpu.state.cond_req=0;
-					MPU401_WriteData(0x330,mpu.condbuf.value[1]);
+					MPU401_WriteData(mpu.condbuf.value[1]);
 				}
 			}
 			mpu.condbuf.vlength=0;
@@ -689,11 +689,11 @@ byte MPU401_OUT(word port, byte data)
 	switch (port)
 	{
 	case 0x330: //Data port?
-		MPU401_WriteData(port, data);
+		MPU401_WriteData(data);
 		return 1;
 		break;
 	case 0x331: //Command port?
-		MPU401_WriteCommand(port, data);
+		MPU401_WriteCommand(data);
 		return 1;
 		break;
 	}
@@ -705,11 +705,11 @@ byte MPU401_IN(word port, byte *result)
 	switch (port)
 	{
 	case 0x330: //Data port?
-		*result = MPU401_ReadData(port);
+		*result = MPU401_ReadData();
 		return 1;
 		break;
 	case 0x331: //Status port?
-		*result = MPU401_ReadStatus(port);
+		*result = MPU401_ReadStatus();
 		return 1;
 		break;
 	}

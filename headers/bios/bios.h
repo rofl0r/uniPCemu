@@ -17,13 +17,13 @@ typedef struct PACKED
 	byte version; //The version number of the BIOS; should match with current version number!
 
 //First, the mounted harddisks:
-	byte floppy0[256];
-	byte floppy1[256];
-	byte hdd0[256];
-	byte hdd1[256];
-	byte cdrom0[256];
-	byte cdrom1[256];
-	byte SoundFont[256]; //What soundfont to use?
+	sbyte floppy0[256];
+	sbyte floppy1[256];
+	sbyte hdd0[256];
+	sbyte hdd1[256];
+	sbyte cdrom0[256];
+	sbyte cdrom1[256];
+	sbyte SoundFont[256]; //What soundfont to use?
 
 	word floppy0_readonly; //read-only?
 	word floppy1_readonly; //read-only?

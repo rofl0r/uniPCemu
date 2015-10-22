@@ -14,25 +14,25 @@ We handle mapping input and output to ports!
 
 //Input!
 PORTIN PORT_IN[0x10000]; //For reading from ports!
-word PORT_IN_COUNT = 0;
+uint_32 PORT_IN_COUNT = 0;
 PORTINW PORT_INW[0x10000]; //For reading from ports!
-word PORT_INW_COUNT = 0;
+uint_32 PORT_INW_COUNT = 0;
 PORTIND PORT_IND[0x10000]; //For reading from ports!
-word PORT_IND_COUNT = 0;
+uint_32 PORT_IND_COUNT = 0;
 
 //Output!
 PORTOUT PORT_OUT[0x10000]; //For writing to ports!
-word PORT_OUT_COUNT = 0;
+uint_32 PORT_OUT_COUNT = 0;
 PORTOUTW PORT_OUTW[0x10000]; //For writing to ports!
-word PORT_OUTW_COUNT = 0;
+uint_32 PORT_OUTW_COUNT = 0;
 PORTOUTD PORT_OUTD[0x10000]; //For writing to ports!
-word PORT_OUTD_COUNT = 0;
+uint_32 PORT_OUTD_COUNT = 0;
 
 //Reset and register!
 
 void reset_ports()
 {
-	int i;
+	uint_32 i;
 	for (i=0;i<NUMITEMS(PORT_IN);i++) //Process all ports!
 	{
 		PORT_IN[i] = NULL; //Reset PORT IN!

@@ -2458,7 +2458,7 @@ OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
 	dataw2.valdivs /= datab1.divisors; //... Divide!
 
 	datab2.divisors = (sword)dataw2.valdivs; //Try to load the signed result!
-	if (dataw2.valdivw != datab2.divisors) { CPU_exDIV0(); return; } //Overflow (data loss)!
+	if ((int_32)dataw2.valdivw != (int_32)datab2.divisors) { CPU_exDIV0(); return; } //Overflow (data loss)!
 
 	REG_AX = datab2.divisorb; //Divided!
 	dataw2.valdivs = dataw1.valdivs; //Reload and...

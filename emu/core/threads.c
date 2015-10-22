@@ -38,7 +38,7 @@ ThreadParams threadpool[MAX_THREAD]; //Thread pool!
 int getthreadpoolindex(uint_32 thid) //Get index of thread in thread pool!
 {
 	int i;
-	for (i=0;i<NUMITEMS(threadpool);i++) //Process all known indexes!
+	for (i=0;i<(int)NUMITEMS(threadpool);i++) //Process all known indexes!
 	{
 		if (threadpool[i].used && threadpool[i].threadID==thid) //Used and found?
 		{
@@ -152,7 +152,7 @@ int ThreadsRunning() //Are there any threads running or ready to run?
 {
 	int i;
 	int numthreads = 0; //Number of running threads?
-	for (i=0;i<NUMITEMS(threadpool);i++) //Check all threads!
+	for (i=0;i<(int)NUMITEMS(threadpool);i++) //Check all threads!
 	{
 		if (threadpool[i].used) //Allocated?
 		{
@@ -190,7 +190,7 @@ void termThreads() //Terminate all threads but our own!
 	//dolog("threads","termThreads...");
 	int i;
 	uint_32 my_thid = SDL_ThreadID(); //My own thread ID!
-	for (i=0;i<NUMITEMS(threadpool);i++) //Process all of our threads!
+	for (i=0;i<(int)NUMITEMS(threadpool);i++) //Process all of our threads!
 	{
 		if (threadpool[i].used && (threadpool[i].threadID!=my_thid)) //Used and not ourselves?
 		{
@@ -225,7 +225,7 @@ void debug_threads()
 		int i,i2;
 		int totalthreads = ThreadsRunning(); //Ammount of threads running!
 		GPU_text_locksurface(frameratesurface);
-		for (i=0;i<NUMITEMS(threadpool);i++)
+		for (i=0;i<(int)NUMITEMS(threadpool);i++)
 		{
 			if (threadpool[i].used) //Allocated?
 			{

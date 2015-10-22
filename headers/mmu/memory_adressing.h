@@ -3,6 +3,6 @@
 
 #include "headers/types.h"
 
-uint_32 CPU_MMU_start(word segment, word segmentval); //Determines the start of the segment!
+uint_32 CPU_MMU_start(sword segment, word segmentval); //Determines the start of the segment!
 
 #endif

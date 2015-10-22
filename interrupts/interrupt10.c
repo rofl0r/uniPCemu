@@ -64,7 +64,7 @@ OPTINLINE void GPU_setresolution(word mode) //Sets the resolution based on curre
 	//EMU_CPU_setCursorScanlines(getcharacterheight(int10_VGA)-2,getcharacterheight(int10_VGA)-1); //Reset scanlines to bottom!
 }
 
-byte getscreenwidth(byte displaypage) //Get the screen width (in characters), based on the video mode!
+byte getscreenwidth() //Get the screen width (in characters), based on the video mode!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	return MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0);
@@ -586,7 +586,7 @@ OPTINLINE void int10_nextcol(byte thepage)
 	byte y = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2)+1,0);
 	//dolog("interrupt10","Nextcol: %i,%i becomes:",x,y);
 	++x; //Next X!
-	if (x>=getscreenwidth(thepage)) //Overflow?
+	if (x>=getscreenwidth()) //Overflow?
 	{
 		x = 0; //Reset!
 		++y; //Next Y!
@@ -2220,7 +2220,7 @@ void int10_dumpscreen() //Dump screen to file!
 
 	writehex(f,MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)); //Current display mode!
 	writehex(f,displaypage); //Write the display page first!
-	writehex(f,getscreenwidth(displaypage)); //Screen width!
+	writehex(f,getscreenwidth()); //Screen width!
 
 	char lb[3];
 	bzero(lb,sizeof(lb));
@@ -2238,7 +2238,7 @@ void int10_dumpscreen() //Dump screen to file!
 		{
 			firstrow = 0; //Reset!
 		}
-		for (x=0; x<getscreenwidth(displaypage); x++) //Process columns!
+		for (x=0; x<getscreenwidth(); x++) //Process columns!
 		{
 			byte c,a; //Character&attribute!
 			int10_vram_readcharacter(x,y,0,&c,&a);

@@ -320,7 +320,7 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	othernibble: //Retrieve the current DAC index!
 	Sequencer->activex = tempx++; //Active X!
 	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
-	if (VGA_AttributeController(&attributeinfo,VGA,Sequencer))
+	if (VGA_AttributeController(&attributeinfo,VGA))
 	{
 		nibbled = 1; //We're processing 2 nibbles instead of 1 nibble!
 		goto othernibble; //Apply the attribute through the attribute controller!

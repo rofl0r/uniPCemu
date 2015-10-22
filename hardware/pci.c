@@ -100,14 +100,14 @@ byte outPCI(word port, byte value)
 void register_PCI(void *config, byte size)
 {
 	int i;
-	for (i = 0;i < NUMITEMS(configurationspaces);i++) //Check for available configuration space!
+	for (i = 0;i < (int)NUMITEMS(configurationspaces);i++) //Check for available configuration space!
 	{
 		if (configurationspaces[i] == config) //Already registered?
 		{
 			return; //Abort: we've already been registered!
 		}
 	}
-	for (i = 0;i < NUMITEMS(configurationspaces);i++) //Check for available configuration space!
+	for (i = 0;i < (int)NUMITEMS(configurationspaces);i++) //Check for available configuration space!
 	{
 		if (!configurationspaces[i]) //Not set yet?
 		{

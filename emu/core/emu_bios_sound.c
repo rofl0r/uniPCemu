@@ -86,7 +86,7 @@ word musical[10] = {1,1000,2,1000,3,1000,4,1000,5,1000}; //Size: 2*notes even in
 void domusical()
 {
 	int i;
-	for (i=0;i<NUMITEMS(musical);i+=2)
+	for (i=0;i<(int)NUMITEMS(musical);i+=2)
 	{
 		speakerOut(musical[i]); //Sound!
 		delay((uint_32)(musical[i+1]*1000)); //Wait for the period!

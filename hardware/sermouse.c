@@ -29,7 +29,6 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 		//Process the packet into the buffer, if possible!
 		if (fifobuffer_freesize(SERMouse.buffer) > 2) //Gotten enough space to process?
 		{
-			byte infobits = 0;
 			byte buttons = 0;
 			SERMouse.buttons = packet->buttons; //Last button status!
 			//Convert buttons (packet=1=left, 2=right, 4=middle) to output (1=right, 2=left)!

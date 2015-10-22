@@ -74,11 +74,6 @@ OPTINLINE void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count) { //
 	}
 }
 
-OPTINLINE int setCurMode(uint_32 type, word mode)
-{
-	return (mode<=0x13); //Accepted?
-}
-
 //All palettes:
 extern byte text_palette[64][3];
 extern byte mtext_palette[64][3];

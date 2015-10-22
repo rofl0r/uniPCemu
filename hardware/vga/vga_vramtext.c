@@ -63,7 +63,7 @@ void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been update
 //This is heavy: it doubles (with about 25ms) the rendering time needed to render a line.
 byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from table!
 {
-	const static byte shift[8] = { 7, 6, 5, 4, 3, 2, 1, 0 }; //Shift for the pixel!
+	static const byte shift[8] = { 7, 6, 5, 4, 3, 2, 1, 0 }; //Shift for the pixel!
 	static byte lastrow; //Last retrieved character row data!
 	static word lastcharinfo = 0; //attribute|character|row|1, bit0=Set?
 	register word lastlookup;

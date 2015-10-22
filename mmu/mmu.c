@@ -28,7 +28,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS!
 
 void *MMU_directptr(uint_32 address, uint_32 size) //Full ptr to real MMU memory!
 {
-	if (address<=MMU.size) //Within our limits of flat memory and not paged?
+	if ((address<=MMU.size) && ((address+size)<=MMU.size)) //Within our limits of flat memory and not paged?
 	{
 		return &MMU.memory[address]; //Give the memory's start!
 	}
@@ -230,7 +230,7 @@ OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte
 
 //OPcodes for the debugger!
 byte OPbuffer[256]; //A large opcode buffer!
-byte OPlength = 0; //The length of the opcode buffer!
+word OPlength = 0; //The length of the opcode buffer!
 
 void MMU_addOP(byte data)
 {

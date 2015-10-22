@@ -203,7 +203,7 @@ FLOPPY_GEOMETRY geometries[] = { //Differently formatted disks, and their corres
 byte floppy_spt(uint_64 floppy_size)
 {
 	int i;
-	for (i = 0; i<NUMITEMS(geometries); i++)
+	for (i = 0; i<(int)NUMITEMS(geometries); i++)
 	{
 		if (geometries[i].KB == KB(floppy_size)) return geometries[i].SPT; //Found?
 	}
@@ -213,7 +213,7 @@ byte floppy_spt(uint_64 floppy_size)
 byte floppy_tracks(uint_64 floppy_size)
 {
 	int i;
-	for (i = 0; i<NUMITEMS(geometries); i++)
+	for (i = 0; i<(int)NUMITEMS(geometries); i++)
 	{
 		if (geometries[i].KB == KB(floppy_size)) return geometries[i].tracks; //Found?
 	}
@@ -223,7 +223,7 @@ byte floppy_tracks(uint_64 floppy_size)
 byte floppy_sides(uint_64 floppy_size)
 {
 	int i;
-	for (i = 0; i<NUMITEMS(geometries); i++)
+	for (i = 0; i<(int)NUMITEMS(geometries); i++)
 	{
 		if (geometries[i].KB == KB(floppy_size)) return geometries[i].sides; //Found?
 	}

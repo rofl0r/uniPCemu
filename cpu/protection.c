@@ -130,7 +130,7 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 	}
 	
 	int i;
-	for (i=0;i<sizeof(container->descdata);i++) //Process the descriptor data!
+	for (i=0;i<(int)sizeof(container->descdata);i++) //Process the descriptor data!
 	{
 		container->descdata[i] = MMU_directrb(descriptor_adress+i); //Read a descriptor byte directly from flat memory!
 	}
@@ -374,7 +374,7 @@ MMU: memory start!
 
 */
 
-uint_32 CPU_MMU_start(word segment, word segmentval) //Determines the start of the segment!
+uint_32 CPU_MMU_start(sword segment, word segmentval) //Determines the start of the segment!
 {
 //Determine the Base!
 	if (getcpumode()!=CPU_MODE_PROTECTED) //Real or 8086 mode, or unknown segment to use?
@@ -459,7 +459,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 			return 1; //Error!
 		}
 	}
-	else if ((offset<0) || (offset>limit)) //Normal operations? 0-limit!
+	else if (offset>limit) //Normal operations? 0-limit!
 	{
 		THROWDESCGP(segmentval); //Throw fault!
 		return 1; //Error!

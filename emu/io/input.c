@@ -1709,7 +1709,7 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 	else //Direct input?
 	{
 		int key;
-		for (key = 0;key < NUMITEMS(emu_keys_state);)
+		for (key = 0;key < (int)NUMITEMS(emu_keys_state);)
 		{
 			handleKeyPressRelease(key++); //Handle key press or release!
 		}
@@ -1793,7 +1793,7 @@ void keyboard_loadDefaults() //Load the defaults for the keyboard font etc.!
 	//Standard keys:
 	int i;
 	for (i = 0; i < 6; i++) keyboard_loadDefaultColor(i); //Load all default colors!
-	for (i = 0; i<NUMITEMS(BIOS_Settings.input_settings.keyboard_gamemodemappings); i++) //Process all keymappings!
+	for (i = 0; i<(int)NUMITEMS(BIOS_Settings.input_settings.keyboard_gamemodemappings); i++) //Process all keymappings!
 	{
 		BIOS_Settings.input_settings.keyboard_gamemodemappings[i] = -1; //Disable by default!
 		BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[i] = -1; //Disable by default!
@@ -1852,7 +1852,7 @@ SDL_Joystick *joystick; //Our joystick!
 
 byte precisemousemovement = 0; //Precise mouse movement enabled?
 
-void updateMOD(SDL_Event *event)
+void updateMOD()
 {
 	const float precisemovement = 0.2f; //Precise mouse movement constant!
 	if (input.cas&CAS_CTRL) //Ctrl pressed?
@@ -2037,7 +2037,7 @@ void updateInput(SDL_Event *event) //Update all input!
 						register word index;
 						register int key;
 						index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
-						if (index<NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
+						if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
 						{
 							if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 							{
@@ -2046,7 +2046,7 @@ void updateInput(SDL_Event *event) //Update all input!
 						}
 					}
 				}
-				updateMOD(event); //Update rest keys!
+				updateMOD(); //Update rest keys!
 				PostSem(keyboard_lock)
 			}
 		break;
@@ -2154,7 +2154,7 @@ void updateInput(SDL_Event *event) //Update all input!
 						register word index;
 						register int key;
 						index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
-						if (index<NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
+						if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
 						{
 							if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 							{
@@ -2163,7 +2163,7 @@ void updateInput(SDL_Event *event) //Update all input!
 						}
 					}
 				}
-				updateMOD(event); //Update rest keys!
+				updateMOD(); //Update rest keys!
 				PostSem(keyboard_lock)
 			}
 			break;

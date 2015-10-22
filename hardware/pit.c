@@ -126,7 +126,7 @@ void updatePITState(byte channel)
 {
 	//Calculate the current PIT0 state by frequency and time passed!
 	uint_64 uspassed;
-	const static float tickduration = (1.0f / 1193180.0f)*1000000000.0f; //How long does it take to process one tick in us?
+	static const float tickduration = (1.0f / 1193180.0f)*1000000000.0f; //How long does it take to process one tick in us?
 	uspassed = getuspassed_k(&timerticks[channel]); //How many time has passed since the last full state?
 	calculatedpitstate[channel] = pitdivisor[channel]; //Load the current divisor (1-65536)
 	if (calculatedpitstate[channel] == 65536) calculatedpitstate[channel] = 0; //We start counting from 0 instead of 65536!

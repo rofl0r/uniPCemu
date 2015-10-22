@@ -139,7 +139,7 @@ uint_32 VGA_WriteMode3(uint_32 data) //Ignore enable set reset register!
 
 OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 {
-	const static VGA_WriteMode VGA_WRITE[4] = {VGA_WriteMode0,VGA_WriteMode1,VGA_WriteMode2,VGA_WriteMode3}; //All write modes!
+	static const VGA_WriteMode VGA_WRITE[4] = {VGA_WriteMode0,VGA_WriteMode1,VGA_WriteMode2,VGA_WriteMode3}; //All write modes!
 	register byte curplane; //For plane loops!
 	register uint_32 data; //Default to the value given!
 	data = VGA_WRITE[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode]((uint_32)val); //What write mode?
@@ -205,8 +205,7 @@ byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display m
 
 OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
 {
-	const static VGA_ReadMode READ[2] = {VGA_ReadMode0,VGA_ReadMode1}; //Read modes!
-	byte val=0; //The value we return, default to 0 if undefined!
+	static const VGA_ReadMode READ[2] = {VGA_ReadMode0,VGA_ReadMode1}; //Read modes!
 	loadlatch(offset); //Load the latches!
 
 	return READ[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode](planes,offset); //What read mode?

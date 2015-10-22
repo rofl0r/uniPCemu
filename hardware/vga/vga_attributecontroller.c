@@ -8,7 +8,7 @@
 #include "headers/support/log.h" //Debugger!
 extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c
 
-OPTINLINE byte getattributeback(VGA_Type *VGA,byte textmode, byte attr,byte filter)
+OPTINLINE byte getattributeback(byte textmode, byte attr,byte filter)
 {
 	register byte temp = attr;
 	//Only during text mode: shift!
@@ -92,7 +92,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					
 					if (enableblink) //Blink affects font?
 					{
-						if (getattributeback(VGA,textmode,(byte)Attribute,0x8)) //Blink enabled?
+						if (getattributeback(textmode,(byte)Attribute,0x8)) //Blink enabled?
 						{
 							fontstatus &= currentblink; //Need blink on to show!
 						}
@@ -105,7 +105,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					}
 					else
 					{
-						CurrentDAC = getattributeback(VGA,textmode,(byte)Attribute,backgroundfilter); //Back!
+						CurrentDAC = getattributeback(textmode,(byte)Attribute,backgroundfilter); //Back!
 					}
 
 					CurrentDAC &= colorplanes; //Apply color planes!
@@ -148,7 +148,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	}
 }
 
-OPTINLINE byte VGA_getAttributeDACIndex(byte attribute, VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer)
+OPTINLINE byte VGA_getAttributeDACIndex(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
 {
 	register word lookup;
 	lookup = Sequencer_attributeinfo->attribute; //Take the latched nibbles as attribute!
@@ -158,31 +158,31 @@ OPTINLINE byte VGA_getAttributeDACIndex(byte attribute, VGA_AttributeInfo *Seque
 	return VGA->precalcs.attributeprecalcs[lookup]; //Give the data from the lookup table!
 }
 
-byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer)
+byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
 {
 	static byte curnibble = 0;
 	static byte latchednibbles = 0; //What nibble are we currently?
 
 	//First, execute the shift and add required in this mode!
 	latchednibbles <<= 4; //Shift high!
-	latchednibbles |= (VGA_getAttributeDACIndex(Sequencer_attributeinfo->attribute,Sequencer_attributeinfo,VGA,Sequencer)&0xF); //Latch to DAC Nibble!
+	latchednibbles |= (VGA_getAttributeDACIndex(Sequencer_attributeinfo,VGA)&0xF); //Latch to DAC Nibble!
 
 	curnibble ^= 1; //Reverse current nibble!
 	Sequencer_attributeinfo->attribute = latchednibbles; //Look the DAC Index up!
 	return curnibble; //Give us the next nibble, when needed, please!
 }
 
-byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer)
+byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
 {
-	Sequencer_attributeinfo->attribute = VGA_getAttributeDACIndex(Sequencer_attributeinfo->attribute, Sequencer_attributeinfo, VGA, Sequencer); //Look the DAC Index up!
+	Sequencer_attributeinfo->attribute = VGA_getAttributeDACIndex(Sequencer_attributeinfo, VGA); //Look the DAC Index up!
 	return 0; //We're ready to execute: we contain a pixel to plot!
 }
 
-byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA, void *Sequencer) //Process attribute to DAC index!
+byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA) //Process attribute to DAC index!
 {
 	//Originally: VGA_Type *VGA, word Scanline, word x, VGA_AttributeInfo *info
 	static VGA_AttributeController_Mode attributecontroller_modes[2] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit }; //Both modes we use!
 
 	//Our changing variables that are required!
-	return attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit](Sequencer_attributeinfo, VGA, Sequencer); //Passthrough!
+	return attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit](Sequencer_attributeinfo, VGA); //Passthrough!
 }

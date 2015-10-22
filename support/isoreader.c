@@ -46,8 +46,8 @@ OPTINLINE int WriteData(char *filename, void *buffer, uint_32 len) //Write buffe
 	f = fopen(filename,"wb"); //Open file for writing!
 	if (f) //Opened?
 	{
-		int dummy = 0;
-		dummy = fwrite(buffer,1,len,f); //Write data!
+		uint_32 dummy = 0;
+		dummy = (uint_32)fwrite(buffer,1,len,f); //Write data!
 		fclose(f); //Close file!
 		if (dummy!=len) //Error writing?
 		{

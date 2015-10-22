@@ -390,7 +390,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 }
 
 OPTINLINE short adlibsample(uint8_t curchan) {
-	const static float adlib_scaleFactor = 4085.0f; //We're running 8 channels in a 16-bit space, so 1/8 of SHRT_MAX
+	static const float adlib_scaleFactor = 4085.0f; //We're running 8 channels in a 16-bit space, so 1/8 of SHRT_MAX
 	float result; //The operator result and the final result!
 	byte op1,op2; //The two operators to use!
 	float op1frequency;
@@ -652,13 +652,13 @@ void initAdlib()
 	}
 
 	//Build the needed tables!
-	for (i = 0; i < NUMITEMS(sustaintable); i++)
+	for (i = 0; i < (int)NUMITEMS(sustaintable); i++)
 	{
 		if (i==0xF) sustaintable[i] = (float)dB2factor(93, 93); //Full volume exception with all bits set!
 		else sustaintable[i] = (float)dB2factor((float)93-(float)(((i & 1) ? 3 : 0) +	((i & 2) ? 6 : 0) +	((i & 4) ? 12 : 0) + ((i & 8) ? 24 : 0)), 93); //Build a sustain table!
 	}
 
-	for (i = 0; i < NUMITEMS(outputtable); i++)
+	for (i = 0; i < (int)NUMITEMS(outputtable); i++)
 	{
 		outputtable[i] = (float)dB2factor((float)48 - (float)(
 			((i & 1) ? 0.75:0)+
@@ -670,7 +670,7 @@ void initAdlib()
 			),48.0f);
 	}
 
-	for (i = 0; i < NUMITEMS(adlibop); i++) //Process all channels!
+	for (i = 0; i < (int)NUMITEMS(adlibop); i++) //Process all channels!
 	{
 		adlibop[i].freq0 = adlibop[i].time = 0.0f; //Initialise the signal!
 
@@ -688,7 +688,7 @@ void initAdlib()
 		memset(&adlibop[i].lastsignal,0,sizeof(adlibop[i].lastsignal)); //Reset the last signals!
 	}
 
-	for (i = 0;i < NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
+	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
 	{
 		feedbacklookup2[i] = feedbacklookup[i] * (1.0f / (4.0f * PI)) * (1.0f/PI2); //Convert to a range of 0-1!
 	}

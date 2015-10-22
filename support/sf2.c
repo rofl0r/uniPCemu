@@ -348,7 +348,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: PMOD chunk is missing!");
 		return 0; //Corrupt file!
 	}
-	if (getRIFFChunkSize(pmod)!=((10*finalpbag.wModNdx)+10)) //Invalid PMOD size?
+	if (getRIFFChunkSize(pmod)!=(uint_32)((10*finalpbag.wModNdx)+10)) //Invalid PMOD size?
 	{
 		dolog("SF2","validateSF: Invalid PMOD chunk size!");
 		return 0;
@@ -360,7 +360,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: PGEN chunk is missing!");
 		return 0; //Corrupt file!
 	}
-	if (getRIFFChunkSize(pgen)!=((finalpbag.wGenNdx<<2)+4)) //Invalid PGEN size?
+	if (getRIFFChunkSize(pgen)!=(uint_32)((finalpbag.wGenNdx<<2)+4)) //Invalid PGEN size?
 	{
 		dolog("SF2","validateSF: Invalid PGEN chunk size: %i; Expected %i!",getRIFFChunkSize(pgen),((finalpbag.wGenNdx<<2)+4));
 		return 0;
@@ -402,7 +402,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: IBAG chunk is missing!");
 		return 0; //Corrupt file!
 	}
-	if (getRIFFChunkSize(ibag)!=((4*finalInst.wInstBagNdx)+4))
+	if (getRIFFChunkSize(ibag)!=(uint_32)((4*finalInst.wInstBagNdx)+4))
 	{
 		dolog("SF2","validateSF: Invalid IBAG chunk size!");
 		return 0; //Corrupt file!
@@ -431,7 +431,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: IMOD chunk is missing!");
 		return 0; //Corrupt file!
 	}
-	if (getRIFFChunkSize(imod)!=((10*finalibag.wInstModNdx)+10))
+	if (getRIFFChunkSize(imod)!=(uint_32)((10*finalibag.wInstModNdx)+10))
 	{
 		dolog("SF2","validateSF: Invalid INST chunk size!");
 		return 0; //Corrupt file!
@@ -449,7 +449,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: IGEN chunk is missing!");
 		return 0; //Corrupt file!
 	}
-	if (getRIFFChunkSize(igen)!=((4*finalibag.wInstGenNdx)+4))
+	if (getRIFFChunkSize(igen)!=(uint_32)((4*finalibag.wInstGenNdx)+4))
 	{
 		dolog("SF2","validateSF: Invalid IGEN chunk size!");
 		return 0; //Corrupt file!

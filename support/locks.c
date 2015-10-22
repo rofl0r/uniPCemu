@@ -6,7 +6,7 @@ SDL_sem *LockLock; //Our own lock!
 void exitLocks(void)
 {
 	int i;
-	for (i = 0; i < NUMITEMS(locks); i++)
+	for (i = 0; i < (int)NUMITEMS(locks); i++)
 	{
 		if (locks[i]) //Gotten a lock?
 		{

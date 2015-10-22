@@ -65,7 +65,7 @@ byte readDSKSector(FILE *f, byte side, word track, byte sector, DISKINFORMATIONB
 	actualtracknr += side; //Add the side to the item to retrieve! This creates interleaved sides!
 	position = sizeof(*info) + (info->TrackSize*actualtracknr);
 	position += 100; //We always start 100 bytes after the track information block start!
-	position += getDSKSectorBlockSize(trackinfo); //The start of the sector!
+	position += getDSKSectorBlockSize(trackinfo)*sector; //The start of the sector!
 	fseek(f, position, SEEK_SET); //Goto position of the track!
 	if (ftell(f) != position) return 0; //Invalid track number!
 	if (fread(result, 1, getDSKSectorSize(sectorinfo), f) != getDSKSectorSize(sectorinfo)) return 0; //Failed!
@@ -82,7 +82,7 @@ byte writeDSKSector(FILE *f, byte side, word track, byte sector, DISKINFORMATION
 	actualtracknr += side; //Add the side to the item to retrieve! This creates interleaved sides!
 	position = sizeof(*info) + (info->TrackSize*actualtracknr);
 	position += 100; //We always start 100 bytes after the track information block start!
-	position += getDSKSectorBlockSize(trackinfo); //The start of the sector!
+	position += getDSKSectorBlockSize(trackinfo)*sector; //The start of the sector!
 	fseek(f, position, SEEK_SET); //Goto position of the track!
 	if (ftell(f) != position) return 0; //Invalid track number!
 	if (fwrite(sectordata, 1, getDSKSectorSize(sectorinfo), f) != getDSKSectorSize(sectorinfo)) return 0; //Failed!
@@ -208,8 +208,7 @@ byte readDSKInfo(char *filename, DISKINFORMATIONBLOCK *result)
 	FILE *f;
 	f = fopen(filename, "rb"); //Open the image!
 	if (!f) return 0; //Not opened!
-	DISKINFORMATIONBLOCK DSKInformation;
-	if (!readDSKInformation(f, &DSKInformation)) //Invalid header?
+	if (!readDSKInformation(f, result)) //Invalid header?
 	{
 		fclose(f); //Close the image!
 		return 0; //Not a valid DSK file!

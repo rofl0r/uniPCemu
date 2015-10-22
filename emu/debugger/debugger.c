@@ -341,7 +341,7 @@ extern uint_32 modrm_lastoffset;
 extern byte last_modrm; //Is the last opcode a modr/m read?
 
 extern byte OPbuffer[256];
-extern byte OPlength; //The length of the OPbuffer!
+extern word OPlength; //The length of the OPbuffer!
 
 OPTINLINE void debugger_autolog()
 {
@@ -379,7 +379,7 @@ OPTINLINE void debugger_autolog()
 		if (!debugger_set) //No debugger set?
 		{
 			strcpy(fullcmd,"<Debugger not implemented: "); //Set to the last opcode!
-			for (i = 0; i < OPlength; i++) //List the full command!
+			for (i = 0; i < (int)OPlength; i++) //List the full command!
 			{
 				sprintf(fullcmd, "%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
 			}
@@ -388,7 +388,7 @@ OPTINLINE void debugger_autolog()
 		else
 		{
 			strcpy(fullcmd, "(");
-			for (i = 0; i < OPlength; i++) //List the full command!
+			for (i = 0; i < (int)OPlength; i++) //List the full command!
 			{
 				sprintf(fullcmd, "%s%02X", fullcmd, OPbuffer[i]); //Add part of the opcode!
 			}

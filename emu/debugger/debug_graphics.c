@@ -121,7 +121,10 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	//VGA_LOGCRTCSTATUS(); //Dump the current CRTC status!
 	//dump_CRTCTiming(); //Dump the current CRTC timing!
 	startTimers(0); //Start the timers!
-	debugTextModeScreenCapture(); //Debug a screen capture!
+	if (screencapture) //To create a screen capture?
+	{
+		debugTextModeScreenCapture(); //Debug a screen capture!
+	}
 	delay(5000000); //Wait a bit!
 }
 
@@ -334,7 +337,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!
 	//halt(); //Stop!
-	sleep(); //Wait forever till user Quits the game!
+	if (waitforever) //Waiting forever?
+	{
+		sleep(); //Wait forever till user Quits the game!
+	}
 }
 
 /*

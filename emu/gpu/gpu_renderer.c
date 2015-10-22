@@ -42,7 +42,7 @@ void renderScreenFrame() //Render the screen frame!
 char filename[256];
 OPTINLINE char *get_screencapture_filename() //Filename for a screen capture!
 {
-	int dummy = domkdir("captures"); //Captures directory!
+	domkdir("captures"); //Captures directory!
 	uint_32 i=0; //For the number!
 	char filename2[256];
 	memset(&filename2,0,sizeof(filename2)); //Init filename!
@@ -273,7 +273,7 @@ OPTINLINE void renderFrames() //Render all frames to the screen!
 
 		int i; //For processing surfaces!
 		//Check for dirty text surfaces!
-		for (i=0;i<NUMITEMS(GPU.textsurfaces);i++) //Process all text surfaces!
+		for (i=0;i<(int)NUMITEMS(GPU.textsurfaces);i++) //Process all text surfaces!
 		{
 			if (GPU.textsurfaces[i]) //Surface specified?
 			{
@@ -293,7 +293,7 @@ OPTINLINE void renderFrames() //Render all frames to the screen!
 		if (dirty) //Any surfaces dirty?
 		{
 			render_EMU_screen(); //Render the emulator surface to the screen!
-			for (i=0;i<NUMITEMS(GPU.textsurfaces);i++) //Render the text surfaces to the screen!
+			for (i=0;i<(int)NUMITEMS(GPU.textsurfaces);i++) //Render the text surfaces to the screen!
 			{
 				if (GPU.textsurfaces[i]) //Specified?
 				{

@@ -90,7 +90,7 @@ void calculateKeyboardStep()
 void releaseKeysReleased()
 {
 	int i;
-	for (i = 0;i < NUMITEMS(key_status);i++) //Process all keys needed!
+	for (i = 0;i < (int)NUMITEMS(key_status);i++) //Process all keys needed!
 	{
 		if (keys_ispressed[i] && !key_status[i]) //Are we released?
 		{
@@ -119,7 +119,7 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 		uint_64 last_key_pressed_time = 0; //Last key pressed time!
 
 		//Now, take the last pressed key, any press it!
-		for (i = 0;i < NUMITEMS(key_status);i++) //Process all keys pressed!
+		for (i = 0;i < (int)NUMITEMS(key_status);i++) //Process all keys pressed!
 		{
 			if (key_status[i]) //Pressed?
 			{
@@ -142,7 +142,7 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 	}
 	else //Not repeating the last key (non-typematic)?
 	{
-		for (i = 0;i < NUMITEMS(key_status);i++) //Process all keys needed!
+		for (i = 0;i < (int)NUMITEMS(key_status);i++) //Process all keys needed!
 		{
 			if (key_status[i]) //Pressed?
 			{
@@ -191,7 +191,7 @@ extern char keys_names[104][11]; //Keys names!
 void ReleaseKeys() //Force release all normal keys currently pressed!
 {
 	int i;
-	for (i=0;i<NUMITEMS(keys_names);i++) //Process all keys!
+	for (i=0;i<(int)NUMITEMS(keys_names);i++) //Process all keys!
 	{
 		if (key_status[i]) //We're pressed?
 		{

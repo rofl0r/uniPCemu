@@ -20,7 +20,7 @@ void dumpscreen()
 
 	char message[256];
 	bzero(message,sizeof(message)); //Init!
-	sprintf(message,"Screen width: %i",getscreenwidth(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)));
+	sprintf(message,"Screen width: %i",getscreenwidth());
 
 	fwrite(&message,1,safe_strlen(message,sizeof(message)),f); //Write message!
 	fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!

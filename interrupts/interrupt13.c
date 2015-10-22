@@ -244,7 +244,7 @@ void getDiskGeometry(byte disk, word *heads, word *cylinders, uint_64 *sectors, 
 
 OPTINLINE byte GetBIOSType(byte disk)
 {
-//Not harddrive? Get from geometry list!
+	//Not harddrive? Get from geometry list! Not implemented yet!
 	return 0; //Else: only HDD type!
 }
 

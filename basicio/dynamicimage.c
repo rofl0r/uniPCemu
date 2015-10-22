@@ -127,7 +127,7 @@ OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_6
 	return 0; //Error!
 }
 
-OPTINLINE int_64 dynamicimage_readlookuptable(FILE *f, DYNAMICIMAGE_HEADER *header, int_64 location, int_64 numentries, int_64 entry) //Read a table with numentries entries, give location of an entry!
+OPTINLINE int_64 dynamicimage_readlookuptable(FILE *f, int_64 location, int_64 numentries, int_64 entry) //Read a table with numentries entries, give location of an entry!
 {
 	int_64 result;
 	if (entry >= numentries) return 0; //Invalid entry: out of bounds!
@@ -175,15 +175,15 @@ OPTINLINE int_64 dynamicimage_getindex(FILE *f, uint_32 sector) //Get index!
 		return -1; //Error: not dynamic!
 	}
 	if (!header.firstlevellocation) return 0; //Not present: no first level lookup table!
-	if (!(index = dynamicimage_readlookuptable(f, &header, header.firstlevellocation, 1024, ((sector >> 22) & 0x3FF)))) //First level lookup!
+	if (!(index = dynamicimage_readlookuptable(f, header.firstlevellocation, 1024, ((sector >> 22) & 0x3FF)))) //First level lookup!
 	{
 		return 0; //Not present!
 	}
-	if (!(index = dynamicimage_readlookuptable(f, &header, index, 1024, ((sector >> 12) & 0x3FF)))) //Second level lookup!
+	if (!(index = dynamicimage_readlookuptable(f, index, 1024, ((sector >> 12) & 0x3FF)))) //Second level lookup!
 	{
 		return 0; //Not present!
 	}
-	if (!(index = dynamicimage_readlookuptable(f, &header, index, 4096, (sector & 0xFFF)))) //Sector level lookup!
+	if (!(index = dynamicimage_readlookuptable(f, index, 4096, (sector & 0xFFF)))) //Sector level lookup!
 	{
 		return 0; //Not present!
 	}
@@ -234,7 +234,7 @@ OPTINLINE byte dynamicimage_setindex(FILE *f, uint_32 sector, int_64 index)
 		}
 	}
 	//We're present: process the first level lookup table!
-	if (!(secondlevellocation = dynamicimage_readlookuptable(f, &header, firstlevellocation, 1024, firstlevelentry))) //First level lookup failed?
+	if (!(secondlevellocation = dynamicimage_readlookuptable(f, firstlevellocation, 1024, firstlevelentry))) //First level lookup failed?
 	{
 		if (!dynamicimage_allocatelookuptable(f, &secondlevellocation, 1024)) //Lookup table failed to allocate?
 		{
@@ -252,7 +252,7 @@ OPTINLINE byte dynamicimage_setindex(FILE *f, uint_32 sector, int_64 index)
 		}
 		//Now, allow the next level to be updated: we're ready to process!
 	}
-	if (!(sectorlevellocation = dynamicimage_readlookuptable(f, &header, secondlevellocation, 1024,secondlevelentry))) //Second level lookup failed?
+	if (!(sectorlevellocation = dynamicimage_readlookuptable(f, secondlevellocation, 1024,secondlevelentry))) //Second level lookup failed?
 	{
 		if (!dynamicimage_allocatelookuptable(f, &sectorlevellocation, 4096)) //Lookup table failed to allocate?
 		{

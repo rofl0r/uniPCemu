@@ -148,7 +148,7 @@ Cents and DB conversion!
 
 //Low&high pass filters!
 
-OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
+OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
 {
 	float RC = (float)1.0f / (cutoff_freq * (float)2 * (float)3.14);
 	float dt = (float)1.0f / samplerate;
@@ -169,7 +169,7 @@ OPTINLINE void applyLowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample)
 		voice->has_last = 1;
 		return; //Abort: don't filter the first sample!
 	}
-	voice->last_result = (sword)calcLowpassFilter(voice->lowpassfilter_freq, (float)voice->sample.dwSampleRate, *currentsample, voice->last_sample, voice->last_result);
+	voice->last_result = (sword)calcLowpassFilter(voice->lowpassfilter_freq, (float)voice->sample.dwSampleRate, *currentsample, voice->last_result);
 	voice->last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = voice->last_result; //Give the new result!
 }
@@ -265,6 +265,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 #ifdef __HW_DISABLED
 	return 0; //We're disabled!
 #endif
+	if (!stereo) return 0; //Can't handle non-stereo output!
 	//Initialisation info
 	float pitchcents, currentsamplespeedup, lvolume, rvolume, panningtemp;
 	register float VolumeEnvelope=0; //Current volume envelope data!

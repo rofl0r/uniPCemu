@@ -52,7 +52,7 @@ void logpointers(char *cause) //Logs any changes in memory usage!
 	uint_32 total_memory = 0; //For checking total memory count!
 	initZalloc(); //Make sure we're started!
 	dolog("zalloc","Starting dump of allocated pointers (cause: %s)...",cause);
-	for (current=0;current<NUMITEMS(registeredpointers);current++)
+	for (current=0;current<(int)NUMITEMS(registeredpointers);current++)
 	{
 		if (registeredpointers[current].pointer && registeredpointers[current].size) //Registered?
 		{
@@ -94,7 +94,7 @@ OPTINLINE sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //A
 	--address_end; //End of data!
 
 
-	for (;left<NUMITEMS(registeredpointers);++left) //Process matchable options!
+	for (;left<(int)NUMITEMS(registeredpointers);++left) //Process matchable options!
 	{
 		currentstart = registeredpointers[left].ptrstart; //Start of addressing!
 		if (currentstart==0) continue; //Gotten anything at all?
@@ -300,7 +300,7 @@ void freezall(void) //Free all allocated memory still allocated (on shutdown onl
 	int i;
 	initZalloc(); //Make sure we're started!
 	lockaudio(); //Make sure audio isn't running!
-	for (i=0;i<NUMITEMS(registeredpointers);i++)
+	for (i=0;i<(int)NUMITEMS(registeredpointers);i++)
 	{
 		freez(&registeredpointers[i].pointer,registeredpointers[i].size,"Unregisterptrall"); //Unregister a pointer when allowed!
 	}

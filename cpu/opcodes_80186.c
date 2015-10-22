@@ -339,7 +339,7 @@ void CPU186_OPC9()
 }
 
 extern byte OPbuffer[256]; //A large opcode buffer!
-extern byte OPlength; //The length of the opcode buffer!
+extern word OPlength; //The length of the opcode buffer!
 char command[50]; //A command buffer for storing our command (up to 10 bytes)!
 void unkOP_186() //Unknown opcode on 186+?
 {

@@ -325,7 +325,7 @@ void resetVideo() //Resets the screen (clears)
 void GPU_addTextSurface(void *surface, Handler handler) //Register a text surface for usage with the GPU!
 {
 	int i=0;
-	for (;i<NUMITEMS(GPU.textsurfaces);i++)
+	for (;i<(int)NUMITEMS(GPU.textsurfaces);i++)
 	{
 		if (GPU.textsurfaces[i]==surface) //Already registered?
 		{
@@ -333,7 +333,7 @@ void GPU_addTextSurface(void *surface, Handler handler) //Register a text surfac
 		}
 	}
 	i = 0; //Reset!
-	for (;i<NUMITEMS(GPU.textsurfaces);i++) //Process all entries!
+	for (;i<(int)NUMITEMS(GPU.textsurfaces);i++) //Process all entries!
 	{
 		if (!GPU.textsurfaces[i]) //Unused?
 		{
@@ -347,7 +347,7 @@ void GPU_addTextSurface(void *surface, Handler handler) //Register a text surfac
 void GPU_removeTextSurface(void *surface)
 {
 	int i=0;
-	for (;i<NUMITEMS(GPU.textsurfaces);i++)
+	for (;i<(int)NUMITEMS(GPU.textsurfaces);i++)
 	{
 		if (GPU.textsurfaces[i]==surface) //Already registered?
 		{

@@ -75,7 +75,7 @@ int EMU_keyboard_handler_nametoid(char *name) //Same as above, but with unique n
 
 int EMU_keyboard_handler_idtoname(int id, char *name) //Same as above, but with unique names from the keys_names table!
 {
-	if (id<NUMITEMS(keys_names)) //Valid?
+	if (id<(int)NUMITEMS(keys_names)) //Valid?
 	{
 		strcpy(name,keys_names[id]); //Set name!
 		return 1; //Gotten!

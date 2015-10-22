@@ -753,7 +753,7 @@ char EMU_TIMERS[][256] = {
 void stopEMUTimers()
 {
 	int i;
-	for (i=0;i<NUMITEMS(EMU_TIMERS);i++) //Process all emulator timers!
+	for (i=0;i<(int)NUMITEMS(EMU_TIMERS);i++) //Process all emulator timers!
 	{
 		useTimer(EMU_TIMERS[i],0); //Disable it, if there!
 	}
@@ -762,7 +762,7 @@ void stopEMUTimers()
 void startEMUTimers()
 {
 	int i;
-	for (i=0;i<NUMITEMS(EMU_TIMERS);i++) //Process all emulator timers!
+	for (i=0;i<(int)NUMITEMS(EMU_TIMERS);i++) //Process all emulator timers!
 	{
 		useTimer(EMU_TIMERS[i],1); //Enable it, if there!
 	}

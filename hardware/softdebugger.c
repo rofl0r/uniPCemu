@@ -100,7 +100,7 @@ void outputfilename_specifylength()
 
 void outputfilename_specifylength_processparameters()
 {
-	word length;
+	uint_32 length;
 	length = softdebugger.parameterbuffer[0] | (softdebugger.parameterbuffer[1] << 8); //Length!
 	if (length < sizeof(softdebugger.data.outputfilename)) //Within limits?
 	{

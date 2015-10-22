@@ -563,7 +563,7 @@ void BIOS_MenuChooser() //The menu chooser!
 	while (BIOS_Menu!=-1) //Still in the BIOS to open a menu?
 	{
 		BIOSClearScreen(); //Init the BIOS Background!
-		if (BIOS_Menu>=0 && BIOS_Menu<NUMITEMS(BIOS_Menus)) //Within range of menus?
+		if (BIOS_Menu>=0 && BIOS_Menu<(sword)(NUMITEMS(BIOS_Menus))) //Within range of menus?
 		{
 			BIOS_Menus[BIOS_Menu](); //Call the menu!
 		}
@@ -771,11 +771,11 @@ void generateFileList(char *extensions, int allowms0, int allowdynamic)
 int cmpinsensitive(char *str1, char *str2, uint_32 maxlen) //Compare, case insensitive!
 {
 	if (str1==NULL || str2==NULL) return 0; //Error: give not equal!
-	if (strlen(str1)!=strlen(str2)) //Not equal in length?
+	if (safe_strlen(str1,maxlen)!=safe_strlen(str2,maxlen)) //Not equal in length?
 	{
 		return 0; //Not equal in length!
 	}
-	int length = strlen(str1); //Length!
+	int length = safe_strlen(str1,maxlen); //Length!
 	int counter = 0;
 	while (toupper((int)*str1)==toupper((int)*str2) && *str1!='\0' && counter<length) //Equal and no overflow?
 	{
@@ -802,7 +802,7 @@ void printCurrent(int x, int y, char *text, int maxlen, list_information informa
 	{
 		max = maxlen; //Truncate to maximum length!
 	}
-	if (max>(sizeof(buffer)-1)) //Too much?
+	if (max>(int)(sizeof(buffer)-1)) //Too much?
 	{
 		max = sizeof(buffer)-1; //Limit to buffer!
 	}
@@ -815,7 +815,7 @@ void printCurrent(int x, int y, char *text, int maxlen, list_information informa
 	//Next: compose filler!
 	j = 0; //Init second filler!
 	int max2 = maxlen; //Maximum length!
-	if (max2>(sizeof(filler)-1)) //Limit breached?
+	if (max2>(int)(sizeof(filler)-1)) //Limit breached?
 	{
 		max2 = sizeof(filler)-1; //Limit!
 	}
@@ -1722,7 +1722,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	}
 }
 
-FILEPOS ImageGenerator_GetImageSize(byte x, byte y, int dynamichdd) //Retrieve the size, or 0 for none!
+FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 for none!
 {
 	int key = 0;
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
@@ -1961,7 +1961,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 				EMU_gotoxy(0, 5); //Next row!
 				GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
 				EMU_unlocktext();
-				size = ImageGenerator_GetImageSize(12, 5, 0); //Get the size!
+				size = ImageGenerator_GetImageSize(12, 5); //Get the size!
 				if (size != 0) //Got size?
 				{
 					EMU_locktext();
@@ -2010,7 +2010,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 				EMU_gotoxy(0, 5); //Next row!
 				GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
 				EMU_unlocktext();
-				size = ImageGenerator_GetImageSize(12, 5, 1); //Get the size!
+				size = ImageGenerator_GetImageSize(12, 5); //Get the size!
 				if (size != 0) //Got size?
 				{
 					EMU_locktext();
@@ -2018,8 +2018,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 					EMU_gotoxy(0, 6); //Next row!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
-					FILEPOS sizecreated;
-					sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
+					generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
@@ -2290,7 +2289,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					}
 					if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
 					{
-						if (emufwrite64(&sector,1,datatotransfer,dest)!=datatotransfer) //Error writing a sector?
+						if (emufwrite64(&sector,1,datatotransfer,dest)!=(int_64)datatotransfer) //Error writing a sector?
 						{
 							error = 2;
 							break; //Stop reading!
@@ -2856,7 +2855,7 @@ void BIOS_FontSetting()
 	case FILELIST_DEFAULT: //Default?
 		font = 0; //Default font: Standard!
 	default: //Changed?
-		if (font!=current && current<NUMITEMS(BIOSMenu_Fonts)) //Not current?
+		if (font!=current && current<(int)NUMITEMS(BIOSMenu_Fonts)) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
 			BIOS_Settings.BIOSmenu_font = font; //Select Direct Plot setting!

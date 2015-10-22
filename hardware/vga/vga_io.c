@@ -208,10 +208,7 @@ OPTINLINE byte PORT_read_DAC_3C9() //DAC Data register!
 	if (++getActiveVGA()->registers->current_3C9>2) //Next entry?
 	{
 		++getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER; //Next entry!
-		if (getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER>0xFF) //Overflow?
-		{
-			getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER = 0; //Reset!
-		}
+		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER &= 0xFF; //Reset when needed!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACREAD); //Updated index!
 		getActiveVGA()->registers->current_3C9 = 0; //Reset!
 	}

@@ -56,14 +56,14 @@ byte staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 		emufclose64(f); //Close the file!
 		return 0; //Limit broken!
 	}
-	if (emuftell64(f) != ((uint_64)sector << 9)) //Invalid sector!
+	if (emuftell64(f) != ((int_64)sector << 9)) //Invalid sector!
 	{
 		emufclose64(f); //Close the file!
 		return 0; //Limit broken!
 	}
 	--sector; //Goto selected sector!
 	emufseek64(f, (uint_64)sector << 9, SEEK_SET); //Find block info!
-	if (emuftell64(f) != ((uint_64)sector << 9)) //Not found?
+	if (emuftell64(f) != ((int_64)sector << 9)) //Not found?
 	{
 		emufclose64(f); //Close the file!
 		return FALSE; //Error!
@@ -82,7 +82,7 @@ byte staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read 
 	FILE *f;
 	f = emufopen64(filename,"rb"); //Open!
 	emufseek64(f,(uint_64)sector<<9,SEEK_SET); //Find block info!
-	if (emuftell64(f)!=((uint_64)sector<<9)) //Not found?
+	if (emuftell64(f)!=((int_64)sector<<9)) //Not found?
 	{
 		emufclose64(f); //Close the file!
 		return FALSE; //Error!

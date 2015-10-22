@@ -22,7 +22,7 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 	for (c=0;c<0x100;c++)
 	{
 		DACVal = getActiveVGA()->precalcs.DAC[c]; //The DAC value!
-		if ((DACVal==RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
+		if ((DACVal==(uint_32)RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
 		{
 			DACBitmap[c] = 0; //Clear entry!
 		}
@@ -46,7 +46,7 @@ void VGA_DUMPDAC() //Dumps the full DAC!
 		//The lookup points to the index!
 		register uint_32 DACVal;
 		DACVal = getActiveVGA()->precalcs.DAC[getActiveVGA()->precalcs.attributeprecalcs[lookup]]; //The DAC value looked up!
-		if ((DACVal==RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
+		if ((DACVal==(uint_32)RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
 		{
 			DACBitmap[c] = 0; //Clear entry!
 		}

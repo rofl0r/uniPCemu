@@ -64,7 +64,7 @@ void DoDebugFiles() //Do the debug files!
 				refreshscreen(); //Update the screen now!
 				dolog("ROM_log", "%s has been verified!", file_name);
 				//Move the files to the finish directory!
-				int dummy = domkdir("debugsucceeded"); //Make sure the directory exists!
+				domkdir("debugsucceeded"); //Make sure the directory exists!
 				move_file(file_name,finish_name); //Move file!
 				move_file(file_nameres,finish_nameres); //Move file!
 			}

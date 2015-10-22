@@ -64,7 +64,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	const float sampleLength = 1.0f / 44100.0f;
 	const float scaleFactor = (SHRT_MAX - 1.0f);
 	//float currentfactor;
-	int i;
+	uint_32 i;
 	SPEAKER_INFO *speaker; //Convert to the current speaker!
 	float time;
 	float frequency;

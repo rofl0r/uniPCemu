@@ -86,7 +86,7 @@ void timer_thread() //Handler for timer!
 		
 		realpassed = (double)getuspassed(&timer_lasttimer); //How many time has passed for real!
 
-		for (curtimer=0; curtimer<NUMITEMS(timers); curtimer++) //Process timers!
+		for (curtimer=0; curtimer<(int)NUMITEMS(timers); curtimer++) //Process timers!
 		{
 			if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
 			{
@@ -182,7 +182,7 @@ void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit, 
 		removetimer(name); //Remove the timer if it's there!
 		return; //Don't add without frequency: 0 times/sec is never!
 	}
-	for (i=0; i<NUMITEMS(timers); i++) //Check for existing timer!
+	for (i=0; i<(int)NUMITEMS(timers); i++) //Check for existing timer!
 	{
 		if (!strcmp(timers[i].name,name)) //Found?
 		{
@@ -195,7 +195,7 @@ void addtimer(float frequency, Handler timer, char *name, uint_32 counterlimit, 
 	if (timerpos==-1) //New timer?
 	{
 		i = 0; //Reset current!
-		for (; i<NUMITEMS(timers);)
+		for (; i<(int)NUMITEMS(timers);)
 		{
 			if (!timers[i].frequency) //Not set?
 			{
@@ -228,7 +228,7 @@ void cleartimers() //Clear all running timers!
 {
 	int i;
 	if (__HW_DISABLED) return; //Abort!
-	for (i=0; i<NUMITEMS(timers); i++)
+	for (i=0; i<(int)NUMITEMS(timers); i++)
 	{
 		if (timers[i].frequency!=0.0) //Set?
 		{
@@ -244,7 +244,7 @@ void useTimer(char *name, byte use)
 {
 	int i;
 	if (__HW_DISABLED) return; //Abort!
-	for (i=0; i<NUMITEMS(timers); i++)
+	for (i=0; i<(int)NUMITEMS(timers); i++)
 	{
 		if (timers[i].frequency!=0.0) //Set?
 		{
@@ -264,7 +264,7 @@ void removetimer(char *name) //Removes a timer!
 {
 	int i;
 	if (__HW_DISABLED) return; //Abort!
-	for (i=0; i<NUMITEMS(timers); i++)
+	for (i=0; i<(int)NUMITEMS(timers); i++)
 	{
 		if (timers[i].frequency!=0.0) //Enabled?
 		{
@@ -319,7 +319,7 @@ void resetTimers() //Init/Reset all timers to go off and turn off all handlers!
 	if (__HW_DISABLED) return; //Abort!
 	stopTimers(0); //Stop normal timers!
 	int i;
-	for (i = 0; i < NUMITEMS(timers); i++)
+	for (i = 0; i < (int)NUMITEMS(timers); i++)
 	{
 		if (!timers[i].core) //Not a core timer?
 		{

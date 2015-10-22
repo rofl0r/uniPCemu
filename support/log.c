@@ -67,7 +67,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	if ((!logfile) || (strcmp(lastfile,filenametmp)!=0)) //Other file or new file?
 	{
 		if (logfile) fclose(logfile); //Close the old log if needed!
-		int dummy = domkdir("logs"); //Create a logs directory if needed!
+		domkdir("logs"); //Create a logs directory if needed!
 		logfile = fopen(filenametmp, "r"); //Open for testing!
 		if (logfile) //Existing?
 		{
