@@ -105,7 +105,6 @@ void doneMMU()
 		freez((void **)&MMU.memory,MMU.size,"doneMMU_Memory"); //Release memory!
 		MMU.size = 0; //Reset: none allocated!
 	}
-	MMU_resetHandlers(NULL); //Reset all linked handlers!
 }
 
 

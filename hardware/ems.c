@@ -17,8 +17,9 @@ byte readEMSMem(uint_32 address, byte *value)
 {
 	byte block;
 	uint_32 memoryaddress;
-	if ((address < EMS_baseaddr) || (address >= (EMS_baseaddr + 0x10000))) return 0; //No EMS!
+	if (address < EMS_baseaddr) return 0; //No EMS!
 	address -= EMS_baseaddr; //Get the EMS address!
+	if (address >= 0x10000) return 0; //No EMS!
 	block = (address >> 14); //What block are we?
 	address &= 0x3FFF; //What address witin the page?
 	memoryaddress = (EMS_pages[block] << 14); //Block in memory!
@@ -32,8 +33,9 @@ byte writeEMSMem(uint_32 address, byte value)
 {
 	byte block;
 	uint_32 memoryaddress;
-	if ((address < EMS_baseaddr) || (address >= (EMS_baseaddr + 0x10000))) return 0; //No EMS!
+	if (address < EMS_baseaddr) return 0; //No EMS!
 	address -= EMS_baseaddr; //Get the EMS address!
+	if (address >= 0x10000) return 0; //No EMS!
 	block = (address >> 14); //What block are we?
 	address &= 0x3FFF; //What address witin the page?
 	memoryaddress = (EMS_pages[block] << 14); //Block in memory!
@@ -45,16 +47,18 @@ byte writeEMSMem(uint_32 address, byte value)
 
 byte readEMSIO(word port, byte *value)
 {
-	if ((port<EMS_baseport) || (port>=EMS_baseport + NUMITEMS(EMS_pages))) return 0; //No EMS!
+	if (port<EMS_baseport) return 0; //No EMS!
 	port -= EMS_baseport; //Get the EMS port!
+	if (port>=NUMITEMS(EMS_pages)) return 0; //No EMS!
 	*value = EMS_pages[port]; //Get the page!
 	return 1; //Give the value!
 }
 
 byte writeEMSIO(word port, byte value)
 {
-	if ((port<EMS_baseport) || (port >= EMS_baseport + NUMITEMS(EMS_pages))) return 0; //No EMS!
+	if (port<EMS_baseport) return 0; //No EMS!
 	port -= EMS_baseport; //Get the EMS port!
+	if (port >= NUMITEMS(EMS_pages)) return 0; //No EMS!
 	EMS_pages[port] = value; //Set the page!
 	return 1; //Give the value!
 }

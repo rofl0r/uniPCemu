@@ -236,6 +236,8 @@ void initEMU(int full) //Init!
 {
 	doneEMU(); //Make sure we're finished too!
 
+	MMU_resetHandlers(NULL); //Reset all memory handlers before starting!
+
 	initTicksHolder(&CPU_timing); //Initialise the ticks holder!
 	getuspassed(&CPU_timing); //Initialise our timing!
 
