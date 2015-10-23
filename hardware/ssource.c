@@ -13,7 +13,7 @@ byte getssourcebyte() {
 	byte result;
 	if (!readfifobuffer(ssourcestream, &result)) //Nothing gotten?
 	{
-		result = 0; //No result, so 0!
+		result = 0x80; //No result, so 0 converted from signed to unsigned!
 	}
 	return result;
 }
@@ -46,11 +46,10 @@ byte outsoundsource(word port, byte value) {
 	switch (port) {
 	case 0x378: //Data output?
 		last378 = value; //Last data output!
-		putssourcebyte(value);
 		return 1; //We're handled!
 		break;
 	case 0x37A: //Control register?
-		if ((value & 4) && !(last37a & 4)) putssourcebyte(last378);
+		if ((value & 8) && !(last37a & 8)) putssourcebyte(last378);
 		last37a = value;
 		return 1; //We're handled!
 		break;
