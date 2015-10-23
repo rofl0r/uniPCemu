@@ -4,7 +4,7 @@
 #include "headers/emu/sound.h" //Sound output support!
 
 //Sound source sample rate!
-#define __SSOURCE_RATE 44100.0f
+#define __SSOURCE_RATE 7000.0f
 
 byte ssource_ready = 0; //Are we running?
 FIFOBUFFER *ssourcestream = NULL; //Sound source data stream!
