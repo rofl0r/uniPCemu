@@ -68,6 +68,8 @@
 
 #include "headers/hardware/ems.h" //EMS support!
 
+#include "headers/hardware/ssource.h" //Disney Sound Source support!
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To show the framerate?
@@ -268,7 +270,10 @@ void initEMU(int full) //Init!
 
 	debugrow("Initialising Adlib...");
 	initAdlib(); //Initialise adlib!
-	
+
+	debugrow("Initialising Disney Sound Source...");
+	initSoundsource(); //Initialise Disney Sound Source!
+
 	debugrow("Initialising MPU...");
 	if (!initMPU(&BIOS_Settings.SoundFont[0])) //Initialise our MPU! Use the selected soundfont!
 	{
@@ -401,6 +406,8 @@ void doneEMU()
 		doneEMS(); //Finish EMS!
 		debugrow("doneEMU: Finishing MPU...");
 		doneMPU(); //Finish our MPU!
+		debugrow("doneEMU: Finishing Disney Sound Source...");
+		doneSoundsource(); //Finish Disney Sound Source!
 		debugrow("doneEMU: Finishing Adlib...");
 		doneAdlib(); //Finish adlib!
 		debugrow("doneEMU: Finishing PC Speaker...");

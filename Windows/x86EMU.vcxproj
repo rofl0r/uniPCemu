@@ -93,6 +93,7 @@
     <ClCompile Include="..\hardware\ps2_mouse.c" />
     <ClCompile Include="..\hardware\sermouse.c" />
     <ClCompile Include="..\hardware\softdebugger.c" />
+    <ClCompile Include="..\hardware\ssource.c" />
     <ClCompile Include="..\hardware\uart.c" />
     <ClCompile Include="..\hardware\vga\vga.c" />
     <ClCompile Include="..\hardware\vga\vga_attributecontroller.c" />
@@ -217,6 +218,7 @@
     <ClInclude Include="..\headers\hardware\ps2_mouse.h" />
     <ClInclude Include="..\headers\hardware\sermouse.h" />
     <ClInclude Include="..\headers\hardware\softdebugger.h" />
+    <ClInclude Include="..\headers\hardware\ssource.h" />
     <ClInclude Include="..\headers\hardware\uart.h" />
     <ClInclude Include="..\headers\hardware\vga\colorconversion.h" />
     <ClInclude Include="..\headers\hardware\vga\vga.h" />

@@ -468,6 +468,9 @@
     <ClCompile Include="..\emu\core\emu_main.c">
       <Filter>Source Files\emu\core</Filter>
     </ClCompile>
+    <ClCompile Include="..\hardware\ssource.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">
@@ -846,6 +849,9 @@
     </ClInclude>
     <ClInclude Include="..\headers\types_win.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\hardware\ssource.h">
+      <Filter>Header Files\hardware</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
