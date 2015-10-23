@@ -53,7 +53,7 @@ OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters
 	x &= 7;
 	y &= 7;
 
-	if ((lastcharinfo & 0xFFF) != (0x800|(character << 3)|(byte)y)) //Last row not yet loaded?
+	if ((lastcharinfo & 0xFFF) != (0x800U|(character << 3)|(byte)y)) //Last row not yet loaded?
 	{
 		word addr = (character<<3); //Address of the character!
 		addr |= y; //The row to select!

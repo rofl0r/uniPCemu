@@ -63,6 +63,9 @@ OBJS += hardware/vga/vga_vramtext.o
 #Adlib!
 OBJS += hardware/adlib.o
 
+#Disney Sound Source
+OBJS += hardware/ssource.o
+
 #Floppy
 OBJS += hardware/floppy.o
 
