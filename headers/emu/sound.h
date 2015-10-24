@@ -17,6 +17,10 @@ typedef struct {
 #define SMPL16S 2
 #define SMPL8S 3
 #define SMPLFLT 4
+//Same as SMPL16, but linear from -32768 to 32767.
+#define SMPL16U 5
+//Same as SMPL8, but linear from -256 to 255.
+#define SMPL8U 6
 
 //Is the buffer filled or skipped (unused)?
 #define SOUNDHANDLER_RESULT_NOTFILLED 0

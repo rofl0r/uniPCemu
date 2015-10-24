@@ -354,10 +354,12 @@ OPTINLINE uint_32 samplesize(uint_32 samples, byte method)
 	{
 		case SMPL16: //16 bit unsigned?
 		case SMPL16S: //16 bit signed?
+		case SMPL16U: //16 bit unsigned linear?
 			return (samples<<1)*sizeof(short);
 			break;
 		case SMPL8: //8 bit unsigned?
 		case SMPL8S: //8 bit signed?
+		case SMPL8U: //8 bit unsigned linear?
 			return (samples<<1)*sizeof(char);
 			break;
 		case SMPLFLT: //Floating point numbers?
@@ -558,6 +560,12 @@ int_32 getsample_16s(playing_p channel, uint_32 position)
 	return ys[position];
 }
 
+int_32 getsample_16u(playing_p channel, uint_32 position)
+{
+	word *y = (word *)channel->sound.samples;
+	return (int_32)(y[position]-0x8000);
+}
+
 int_32 getsample_8(playing_p channel, uint_32 position)
 {
 	byte *x = (byte *)channel->sound.samples;	
@@ -570,6 +578,12 @@ int_32 getsample_8s(playing_p channel, uint_32 position)
 	return (int_32)(xs[position]<<8);
 }
 
+int_32 getsample_8u(playing_p channel, uint_32 position)
+{
+	byte *x = (byte *)channel->sound.samples;
+	return (int_32)(((int_32)x[position]-0x80)<<8);
+}
+
 int_32 getsample_flt(playing_p channel, uint_32 position)
 {
 	float *z = (float *)channel->sound.samples;
@@ -580,7 +594,7 @@ typedef int_32 (*SAMPLEHANDLER)(playing_p channel, uint_32 position); //Sample h
 
 OPTINLINE int_32 getsample(playing_p channel, uint_32 position) //Get 16-bit sample from sample buffer, convert as needed!
 {
-	static SAMPLEHANDLER handlers[5] = {getsample_16,getsample_8,getsample_16s,getsample_8s,getsample_flt};
+	static SAMPLEHANDLER handlers[7] = {getsample_16,getsample_8,getsample_16s,getsample_8s,getsample_flt,getsample_16u,getsample_8u};
 	register byte method = channel->samplemethod; //Load the method!
 	if (method>5)
 	{

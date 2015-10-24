@@ -90,7 +90,7 @@ void initSoundsource() {
 	ssourcestream = allocfifobuffer(16); //Our FIFO buffer!
 	if (ssourcestream) //Allocated buffer?
 	{
-		if (addchannel(&ssourceoutput, NULL, "Sound Source", __SSOURCE_RATE, 1, 0, SMPL8)) //Channel added?
+		if (addchannel(&ssourceoutput, NULL, "Sound Source", __SSOURCE_RATE, 1, 0, SMPL8U)) //Channel added?
 		{
 			register_PORTIN(&insoundsource); //Register the read handler!
 			register_PORTOUT(&outsoundsource); //Register the write handler!
