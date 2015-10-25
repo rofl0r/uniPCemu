@@ -355,12 +355,12 @@ OPTINLINE uint_32 samplesize(uint_32 samples, byte method)
 		case SMPL16: //16 bit unsigned?
 		case SMPL16S: //16 bit signed?
 		case SMPL16U: //16 bit unsigned linear?
-			return (samples<<1)*sizeof(short);
+			return (samples<<1)*sizeof(word);
 			break;
 		case SMPL8: //8 bit unsigned?
 		case SMPL8S: //8 bit signed?
 		case SMPL8U: //8 bit unsigned linear?
-			return (samples<<1)*sizeof(char);
+			return (samples<<1)*sizeof(byte);
 			break;
 		case SMPLFLT: //Floating point numbers?
 			return (samples<<1)*sizeof(float);
@@ -375,6 +375,10 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 {
 	if (__HW_DISABLED) return 0; //Disabled?
 	if (!handler) return 0; //Invalid handler!
+	if (method>6) //Invalid method?
+	{
+		return 0; //Nothing: unsupported method!
+	}
 
 	#ifdef DEBUG_SOUNDALLOC
 	dolog("soundservice","Request: Adding channel at %fHz, buffer every %i samples, Stereo: %i",samplerate,samples,stereo);
@@ -390,7 +394,7 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 		samples = (uint_32)((float)samplerate*((float)(SAMPLESIZE)/(float)SW_SAMPLERATE)); //Calculate samples based on samplesize samples out of hardware samplerate!
 		//dolog("soundservice","Autodetect: %i samples buffer!",samples);
 	}
-	
+
 	//Check for existant update!
 	if (setSampleRate(handler,extradata,samplerate)) //Set?
 	{
@@ -563,7 +567,7 @@ int_32 getsample_16s(playing_p channel, uint_32 position)
 int_32 getsample_16u(playing_p channel, uint_32 position)
 {
 	word *y = (word *)channel->sound.samples;
-	return (int_32)(y[position]-0x8000);
+	return (int_32)(((int_32)y[position])-0x8000);
 }
 
 int_32 getsample_8(playing_p channel, uint_32 position)
@@ -581,7 +585,7 @@ int_32 getsample_8s(playing_p channel, uint_32 position)
 int_32 getsample_8u(playing_p channel, uint_32 position)
 {
 	byte *x = (byte *)channel->sound.samples;
-	return (int_32)(((int_32)x[position]-0x80)<<8);
+	return (int_32)((((int_32)x[position])-0x80)<<8);
 }
 
 int_32 getsample_flt(playing_p channel, uint_32 position)
@@ -595,12 +599,7 @@ typedef int_32 (*SAMPLEHANDLER)(playing_p channel, uint_32 position); //Sample h
 OPTINLINE int_32 getsample(playing_p channel, uint_32 position) //Get 16-bit sample from sample buffer, convert as needed!
 {
 	static SAMPLEHANDLER handlers[7] = {getsample_16,getsample_8,getsample_16s,getsample_8s,getsample_flt,getsample_16u,getsample_8u};
-	register byte method = channel->samplemethod; //Load the method!
-	if (method>5)
-	{
-		return 0; //Nothing!
-	}
-	return handlers[method](channel,position); //Execute handler if available!
+	return handlers[channel->samplemethod](channel,position); //Execute handler if available!
 }
 
 //Simple macros for checking samples!
