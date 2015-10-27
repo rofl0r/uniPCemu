@@ -3,17 +3,25 @@
 #include "headers/support/fifobuffer.h" //FIFO buffer support!
 #include "headers/emu/sound.h" //Sound output support!
 
-//Sound source sample rate!
+//Sound source sample rate and buffer size!
 #define __SSOURCE_RATE 7000.0f
+//Primary buffer is always 16 bytes large (needed for full detection)!
+#define __SSOURCE_BUFFER 16
+//Secondary buffer needs to be large enough for a good sound!
+#define __SSOURCE_HWBUFFER 1024
 
 byte ssource_ready = 0; //Are we running?
-FIFOBUFFER *ssourcestream = NULL; //Sound source data stream!
+FIFOBUFFER *ssourcestream = NULL, *ssourcestream2 = NULL; //Sound source data stream and secondary buffer!
+byte forcefull = 0; //Forced full buffer?
 
 byte getssourcebyte() {
 	byte result;
-	if (!readfifobuffer(ssourcestream, &result)) //Nothing gotten?
+	if (!readfifobuffer(ssourcestream2, &result)) //Nothing gotten from the secondary buffer?
 	{
-		result = 0x80; //No result, so 0 converted from signed to unsigned!
+		if (!readfifobuffer(ssourcestream, &result)) //Primary buffer has no data as well?
+		{
+			result = 0x80; //No result, so 0 converted from signed to unsigned!
+		}
 	}
 	return result;
 }
@@ -32,11 +40,25 @@ byte ssourceoutput(void* buf, uint_32 length, byte stereo, void *userdata)
 
 
 void putssourcebyte(byte value) {
-	writefifobuffer(ssourcestream,value); //Add to the buffer!
+	byte transfer;
+	if (writefifobuffer(ssourcestream, value)) //Add to the primary buffer!
+	{
+		if (!fifobuffer_freesize(ssourcestream) && fifobuffer_freesize(ssourcestream2)>=__SSOURCE_BUFFER) //Primary buffer full and enough space to store it in the second buffer?
+		{
+			lockaudio(); //Make sure the audio thread isn't using our data!
+			for (;readfifobuffer(ssourcestream,&transfer);) writefifobuffer(ssourcestream2,transfer); //Transfer data to the second buffer!
+			forcefull = 1; //We're forced full to allow detection of 'full' buffer!
+			unlockaudio(1); //We're finished locking!
+		}
+	}
 }
 
 byte ssourcefull() {
-	if (!fifobuffer_freesize(ssourcestream)) return (0x40);
+	if (!fifobuffer_freesize(ssourcestream) || forcefull)
+	{
+		forcefull = 0; //Not forced full anymore! We're needing filling if possible next check!
+		return (0x40);
+	}
 	else return (0x00);
 }
 
@@ -81,20 +103,30 @@ void doneSoundsource()
 	{
 		removechannel(&ssourceoutput, NULL, 0); //Remove the channel!
 		free_fifobuffer(&ssourcestream); //Finish the stream if it's there!
+		free_fifobuffer(&ssourcestream2); //Finish the stream if it's there!
 		ssource_ready = 0; //We're finished!
 	}
 }
 
 void initSoundsource() {
 	doneSoundsource(); //Make sure we're not already running!
-	ssourcestream = allocfifobuffer(16); //Our FIFO buffer!
+	ssourcestream = allocfifobuffer(__SSOURCE_BUFFER); //Our FIFO buffer!
 	if (ssourcestream) //Allocated buffer?
 	{
-		if (addchannel(&ssourceoutput, NULL, "Sound Source", __SSOURCE_RATE, 1, 0, SMPL8U)) //Channel added?
+		ssourcestream2 = allocfifobuffer(__SSOURCE_HWBUFFER); //Our FIFO hardware buffer!
+		if (ssourcestream2) //Allocated buffer?
 		{
-			register_PORTIN(&insoundsource); //Register the read handler!
-			register_PORTOUT(&outsoundsource); //Register the write handler!
-			ssource_ready = 1; //We're running!
+			if (addchannel(&ssourceoutput, NULL, "Sound Source", __SSOURCE_RATE, __SSOURCE_HWBUFFER, 0, SMPL8U)) //Channel added?
+			{
+				register_PORTIN(&insoundsource); //Register the read handler!
+				register_PORTOUT(&outsoundsource); //Register the write handler!
+				ssource_ready = 1; //We're running!
+			}
+			else
+			{
+				free_fifobuffer(&ssourcestream2); //Finish the stream if it's there!
+				free_fifobuffer(&ssourcestream); //Finish the stream if it's there!
+			}
 		}
 		else
 		{

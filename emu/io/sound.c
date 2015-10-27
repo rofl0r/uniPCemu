@@ -12,7 +12,7 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 //How many samples to process at once? Originally 2048; 64=Optimum
-#define SAMPLESIZE 1024
+#define SAMPLESIZE 2048
 //Maximum samplerate in Hertz (200KHz)
 #define MAX_SAMPLERATE 50000.0f
 //Enable below if debugging speed is to be enabled.
