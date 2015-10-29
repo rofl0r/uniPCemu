@@ -12,6 +12,7 @@
 #include "headers/hardware/8042.h" //Basic 8042 support for keyboard initialisation!
 #include "headers/emu/emu_misc.h" //FILE_EXISTS support!
 #include "headers/hardware/ports.h" //Port I/O support!
+#include "headers/emu/sound.h" //Volume support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -616,4 +617,13 @@ void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 	PS2ControllerConfigurationByte |= 1; //Enable our interrupt!
 	PORT_OUT_B(0x64, 0x60); //Write PS2ControllerConfigurationByte!
 	PORT_OUT_B(0x60, PS2ControllerConfigurationByte); //Write the new configuration byte!
+}
+
+float BIOS_ConvertVolume(float volume) //Convert a volume (1.0f=100%) to volume to use!
+{
+	if (volume) //Gotten volume?
+	{
+		return dB2factor(volume,1); //Convert dB scale to factor!
+	}
+	return 0.0f; //Default: no volume!
 }

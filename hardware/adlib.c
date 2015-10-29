@@ -26,9 +26,6 @@
 
 #define PI2 (float)(2.0f * PI)
 
-#define dB2factor(dB, fMaxLevelDB) pow(10, ((dB - fMaxLevelDB) / 20))
-#define factor2dB(factor, fMaxLevelDB) (fMaxLevelDB + (20 * log(factor)))
-
 //extern void set_port_write_redirector (uint16_t startport, uint16_t endport, void *callback);
 //extern void set_port_read_redirector (uint16_t startport, uint16_t endport, void *callback);
 

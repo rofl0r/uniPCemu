@@ -39,4 +39,7 @@ byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate); //Set sam
 void lockaudio();
 void unlockaudio(byte startplaying);
 
+#define dB2factor(dB, fMaxLevelDB) pow(10, (((dB) - (fMaxLevelDB)) / 20))
+#define factor2dB(factor, fMaxLevelDB) ((fMaxLevelDB) + (20 * log(factor)))
+
 #endif

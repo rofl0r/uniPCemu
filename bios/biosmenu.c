@@ -414,7 +414,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	EMU_startInput(); //Start all emu input again!
 
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
-	ssource_setVolume(BIOS_Settings.SoundSource_Volume); //Set the current volume!
+	ssource_setVolume(BIOS_ConvertVolume(BIOS_Settings.SoundSource_Volume)); //Set the current volume!
 
 	return (reboot_needed==2) || ((reboot_needed==1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
 }
