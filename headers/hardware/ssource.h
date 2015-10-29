@@ -3,5 +3,6 @@
 
 void initSoundsource();
 void doneSoundsource();
+void ssource_setVolume(float volume); //SSource volume knob!
 
 #endif

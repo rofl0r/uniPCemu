@@ -97,6 +97,11 @@ byte insoundsource(word port, byte *result) {
 	return 0; //Not supported port!
 }
 
+void ssource_setVolume(float volume)
+{
+	setVolume(&ssourceoutput, NULL, volume); //Set the volume!
+}
+
 void doneSoundsource()
 {
 	if (ssource_ready) //Are we running?
@@ -118,6 +123,7 @@ void initSoundsource() {
 		{
 			if (addchannel(&ssourceoutput, NULL, "Sound Source", __SSOURCE_RATE, __SSOURCE_HWBUFFER, 0, SMPL8U)) //Channel added?
 			{
+				ssource_setVolume(1.0f); //Default volume: 100%!
 				register_PORTIN(&insoundsource); //Register the read handler!
 				register_PORTOUT(&outsoundsource); //Register the write handler!
 				ssource_ready = 1; //We're running!

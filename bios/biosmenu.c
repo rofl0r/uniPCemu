@@ -32,6 +32,8 @@
 
 #include "headers/support/mid.h" //MIDI player support!
 
+#include "headers/hardware/ssource.h" //Sound Source volume knob support!
+
 #define __HW_DISABLED 0
 
 //Force the BIOS to open?
@@ -142,13 +144,14 @@ void BIOSClearScreen(); //Resets the BIOS's screen!
 void BIOSDoneScreen(); //Cleans up the BIOS's screen!
 void BIOS_VGASettingsMenu(); //Manage stuff concerning input.
 void BIOS_VGANMISetting(); //VGA NMI setting!
-void BIOS_MIDISettingsMenu(); //Manage stuff concerning MIDI.
+void BIOS_SoundMenu(); //Manage stuff concerning MIDI.
 void BIOS_SoundFont_selection(); //FLOPPY0 selection menu!
 void BIOS_MIDIPlayer(); //MIDI player!
 void BIOS_Mouse(); //Mouse selection menu!
 void BIOS_CPU(); //CPU menu!
 void BIOS_CPUSpeed(); //CPU speed selection!
 void BIOS_ClearCMOS(); //Clear the CMOS!
+void BIOS_SoundSourceVolume(); //Set the Sound Source volume!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -185,13 +188,14 @@ Handler BIOS_Menus[] =
 	,BIOS_gamingKeyboardColor //Keyboard color menu is #28!
 	,BIOS_VGASettingsMenu //Manage stuff concerning VGA Settings is #29!
 	,BIOS_VGANMISetting //VGA NMI setting is #30!
-	,BIOS_MIDISettingsMenu //MIDI settings menu is #31!
+	,BIOS_SoundMenu //MIDI settings menu is #31!
 	,BIOS_SoundFont_selection //Soundfont selection menu is #32!
 	,BIOS_MIDIPlayer //MIDI Player is #33!
 	,BIOS_Mouse //Mouse menu is #34!
 	,BIOS_CPU //BIOS CPU menu is #35!
 	,BIOS_CPUSpeed //BIOS CPU speed is #36!
 	,BIOS_ClearCMOS //BIOS CMOS clear is #37!
+	,BIOS_SoundSourceVolume //Sound Source Volume is #38!
 };
 
 //Not implemented?
@@ -410,6 +414,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	EMU_startInput(); //Start all emu input again!
 
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
+	ssource_setVolume(BIOS_Settings.SoundSource_Volume); //Set the current volume!
 
 	return (reboot_needed==2) || ((reboot_needed==1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
 }
@@ -1449,7 +1454,7 @@ void BIOS_InitAdvancedText()
 	strcpy(menuoptions[advancedoptions++], "VGA Settings");
 
 	optioninfo[advancedoptions] = 10;
-	strcpy(menuoptions[advancedoptions++], "MIDI Settings");
+	strcpy(menuoptions[advancedoptions++], "Sound Settings");
 
 	optioninfo[advancedoptions] = 9;
 	strcpy(menuoptions[advancedoptions++], "Input options");
@@ -1630,7 +1635,7 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 			BIOS_Menu = 25; //Input submenu!
 			break;
 		case 10:
-			BIOS_Menu = 31; //MIDI Settings menu!
+			BIOS_Menu = 31; //Sound Settings menu!
 			break;
 		case 11:
 			BIOS_Menu = 34; //Mouse menu!
@@ -3462,11 +3467,11 @@ void BIOS_VGASettingsMenu() //Manage stuff concerning input.
 	}
 }
 
-void BIOS_InitMIDISettingsText()
+void BIOS_InitSoundText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i = 0; i<2; i++) //Clear all possibilities!
+	for (i = 0; i<3; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
@@ -3484,15 +3489,18 @@ void BIOS_InitMIDISettingsText()
 
 	if (!EMU_RUNNING)
 	{
-		optioninfo[advancedoptions] = 1; //Monitor!
+		optioninfo[advancedoptions] = 1; //MIDI player!
 		strcpy(menuoptions[advancedoptions++], "MIDI Player");
 	}
+
+	optioninfo[advancedoptions] = 2; //Sound Source Volume!
+	sprintf(menuoptions[advancedoptions++],"Sound Source Volume: %i%%",(int)(BIOS_Settings.SoundSource_Volume*100.0f)); //Sound source volume as a whole number!
 }
 
-void BIOS_MIDISettingsMenu() //Manage stuff concerning input.
+void BIOS_SoundMenu() //Manage stuff concerning input.
 {
-	BIOS_Title("MIDI Settings Menu");
-	BIOS_InitMIDISettingsText(); //Init text!
+	BIOS_Title("Sound Menu");
+	BIOS_InitSoundText(); //Init text!
 	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
@@ -3509,6 +3517,9 @@ void BIOS_MIDISettingsMenu() //Manage stuff concerning input.
 			break;
 		case 1: //Play MIDI file(s)?
 			BIOS_Menu = 33; //Play MIDI file(s)!
+			break;
+		case 2: //Sound Source Volume?
+			BIOS_Menu = 38; //Sound Source Volume setting!
 			break;
 		}
 		break;
@@ -3552,7 +3563,7 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 		strcpy(BIOS_Settings.SoundFont, itemlist[file]); //Use this file!
 		break;
 	}
-	BIOS_Menu = 31; //Return to the MIDI menu!
+	BIOS_Menu = 31; //Return to the Sound menu!
 }
 
 int MIDI_file = 0; //The file selected!
@@ -3560,7 +3571,7 @@ int MIDI_file = 0; //The file selected!
 int BIOS_MIDI_selection() //MIDI selection menu, custom for this purpose!
 {
 	BIOS_Title("Select MIDI file to play");
-	generateFileList("mid|midi", 0, 0); //Generate file list for all .img files!
+	generateFileList("mid|midi", 0, 0); //Generate file list for all MIDI files!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -3621,7 +3632,7 @@ byte sound_playMIDIfile(byte showinfo)
 void BIOS_MIDIPlayer() //MIDI Player!
 {
 	sound_playMIDIfile(0); //Play one or more MIDI files! Don't show any information!
-	BIOS_Menu = 31; //Return to the MIDI menu!
+	BIOS_Menu = 31; //Return to the Sound menu!
 }
 
 void BIOS_Mouse()
@@ -3846,27 +3857,11 @@ void BIOS_CPUSpeed() //CPU speed selection!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "CPU speed: "); //Show selection init!
 	EMU_unlocktext();
-	int i = 0; //Counter!
-	numlist = 3; //Ammount of Direct modes!
-	for (i = 0; i<3; i++) //Process options!
-	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
-	}
-	switch (BIOS_Settings.CPUSpeed) //What CPU speed limit?
-	{
-	case 0: //Default cycles?
-		strcat(menuoptions[advancedoptions++], "Default"); //Default!
-		break;
-	default: //Limited cycles?
-		sprintf(menuoptions[advancedoptions], "%sLimited to %u cycles",menuoptions[advancedoptions], BIOS_Settings.CPUSpeed); //Add uninstalled CPU!
-		++advancedoptions;
-		break;
-	}
-	int_64 file = GetCPUSpeed(11, 4, BIOS_Settings.CPUSpeed); //Show options for the installed CPU!
+	int_64 file = GetCPUSpeed(11, 4, BIOS_Settings.CPUSpeed); //Show options for the CPU speed!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
-		//We do nothing with the selected disk!
+		//We do nothing with the selected speed!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
 		file = 0; //Default setting: Disabled!
@@ -3893,4 +3888,113 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 		reboot_needed = 2; //We're needing a reboot!
 	}
 	BIOS_Menu = 8; //Goto Advanced Menu!
+}
+
+int_64 GetPercentage(byte x, byte y, float Percentage) //Retrieve the size, or 0 for none!
+{
+	int key = 0;
+	key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	while ((key&BUTTON_CROSS)>0) //Pressed? Wait for release!
+	{
+		key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	}
+	Percentage *= 100.0f; //Start by converting the percentage to percents instead of a factor!
+	uint_32 result = Percentage; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
+	uint_32 oldvalue; //To check for high overflow!
+	for (;;) //Get input; break on error!
+	{
+		EMU_locktext();
+		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
+		GPU_EMU_printscreen(x, y, "%i%%                                                      ", result); //Show current percentage!
+		EMU_unlocktext();
+		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+												  //1GB steps!
+		if ((key & BUTTON_LTRIGGER)>0) //1000 step down?
+		{
+			if (result == 0) {}
+			else
+			{
+				oldvalue = result; //Load the old value!
+				result -= (key&BUTTON_RIGHT) ? 100000 : ((key&BUTTON_LEFT) ? 10000 : 1000); //x100 or x10 or x1!
+				if (result>oldvalue) result = 0; //Underflow!
+			}
+		}
+		else if ((key & BUTTON_RTRIGGER)>0) //1000 step up?
+		{
+			oldvalue = result; //Save the old value!
+			result += (key&BUTTON_RIGHT) ? 100000 : ((key&BUTTON_LEFT) ? 10000 : 1000); //x100 or x10 or x1!
+			if (result < oldvalue) result = oldvalue; //We've overflown?
+		}
+		else if ((key & BUTTON_DOWN)>0) //1 step up?
+		{
+			if (result == 0) {}
+			else
+			{
+				oldvalue = result;
+				result -= (key&BUTTON_RIGHT) ? 100 : ((key&BUTTON_LEFT) ? 10 : 1); //x100 or x10 or x1!
+				if (result>oldvalue) result = 0; //Underflow!
+			}
+		}
+		else if ((key & BUTTON_UP)>0) //1 step down?
+		{
+			oldvalue = result; //Save the old value!
+			result += (key&BUTTON_RIGHT) ? 100 : ((key&BUTTON_LEFT) ? 10 : 1); //x100 or x10 or x1!
+			if (result < oldvalue) result = oldvalue; //We've overflown?
+		}
+		//Confirmation buttons etc.
+		else if ((key & BUTTON_CROSS)>0)
+		{
+			while ((key&BUTTON_CROSS)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			return result*0.01f; //Convert back to an ordinary factor!
+		}
+		else if ((key & BUTTON_CIRCLE)>0)
+		{
+			while ((key&BUTTON_CIRCLE)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			break; //Cancel!
+		}
+		else if ((key & BUTTON_TRIANGLE)>0)
+		{
+			while ((key&BUTTON_TRIANGLE)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			return 0; //Default!
+		}
+		else if (shuttingdown()) break; //Cancel because of shutdown?
+	}
+	return FILELIST_CANCEL; //No size: cancel!
+}
+
+void BIOS_SoundSourceVolume()
+{
+	BIOS_clearscreen(); //Clear our screen first!
+	BIOS_Title("Sound Source Volume");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Sound Source Volume: "); //Show selection init!
+	EMU_unlocktext();
+	float file = GetPercentage(21, 4, BIOS_Settings.SoundSource_Volume); //Show options for the installed CPU!
+	switch ((int)file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected percentage!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0.0f; //Default setting: Quiet!
+	default: //Changed?
+		if (file != BIOS_Settings.SoundSource_Volume) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.SoundSource_Volume = file; //Select Sound Source Volume setting!
+		}
+		break;
+	}
+	BIOS_Menu = 31; //Goto Advanced menu!
 }

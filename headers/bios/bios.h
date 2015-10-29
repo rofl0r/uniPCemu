@@ -54,6 +54,7 @@ typedef struct PACKED
 	byte VGA_NMIonPrecursors; //Enable VGA NMI on precursors?
 	byte PS2Mouse; //What mouse to use when using? 1=PS/2 mouse, 0=Serial mouse
 	uint_32 CPUSpeed;
+	float SoundSource_Volume; //The sound source volume knob!
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 
