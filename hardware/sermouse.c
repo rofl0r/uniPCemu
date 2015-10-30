@@ -87,7 +87,7 @@ void initSERMouse(byte enabled)
 	SERMouse.supported = enabled; //Use serial mouse?
 	if (useSERMouse()) //Is this mouse enabled?
 	{
-		SERMouse.buffer = allocfifobuffer(16); //Small input buffer!
+		SERMouse.buffer = allocfifobuffer(16,1); //Small input buffer!
 		UART_registerdevice(0,&SERmouse_setModemControl,&serMouse_hasData,&serMouse_readData,NULL); //Register our UART device!
 		setMouseRate(40.0f); //We run at 40 packets per second!
 	}

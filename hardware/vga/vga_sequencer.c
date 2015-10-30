@@ -69,15 +69,13 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 
 OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel)
 {
-	if ((VGA->CRTC.y<EMU_MAX_Y) && (VGA->CRTC.x<EMU_MAX_X)) //Valid pixel to render?
-	{
-		register uint_32 old;
-		uint_32 *screenpixel = &EMU_BUFFER(VGA->CRTC.x,VGA->CRTC.y); //Pointer to our pixel!
-		old = *screenpixel; //Read old!
-		old ^= pixel; //Check for differences!
-		GPU.emu_buffer_dirty |= old; //Update, set changed bits when changed!
-		*screenpixel = pixel; //Update whether it's needed or not!
-	}
+	register uint_32 old;
+	uint_32 *screenpixel = &EMU_BUFFER(VGA->CRTC.x,VGA->CRTC.y); //Pointer to our pixel!
+	if (screenpixel>=&EMU_BUFFER(EMU_MAX_X,EMU_MAX_Y)) return; //Out of bounds?
+	old = *screenpixel; //Read old!
+	old ^= pixel; //Check for differences!
+	GPU.emu_buffer_dirty |= old; //Update, set changed bits when changed!
+	*screenpixel = pixel; //Update whether it's needed or not!
 }
 
 OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data for the sequencer!
@@ -228,7 +226,7 @@ void VGA_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA) //NOP for pixels!
 {}
 
 //Total handlers!
-void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
+OPTINLINE void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//First, render ourselves to the screen!
 	GPU.xres = Sequencer->xres; //Apply x resolution!
@@ -244,7 +242,7 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 }
 
-void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
+OPTINLINE void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Process HBlank: reload display data for the next scanline!
 	//Sequencer itself
@@ -264,13 +262,13 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 }
 
 //Retrace handlers!
-void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
+OPTINLINE void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	Sequencer->yres = VGA->CRTC.y; //Update Y resolution!
 	VGA->CRTC.y = 0; //Reset destination row!
 }
 
-void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
+OPTINLINE void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	Sequencer->xres = VGA->CRTC.x; //Update X resolution!
 	VGA->CRTC.x = 0; //Reset destination column!

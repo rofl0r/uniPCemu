@@ -17,7 +17,7 @@ result:
 
 */
 
-FIFOBUFFER* allocfifobuffer(uint_32 buffersize)
+FIFOBUFFER* allocfifobuffer(uint_32 buffersize, byte lockable)
 {
 	FIFOBUFFER *container;
 	if (__HW_DISABLED) return NULL; //Abort!
@@ -31,12 +31,15 @@ FIFOBUFFER* allocfifobuffer(uint_32 buffersize)
 			return NULL; //Not allocated!
 		}
 		container->size = buffersize; //Set the buffer size!
-		container->lock = SDL_CreateSemaphore(1); //Create our lock!
-		if (!container->lock) //Failed to lock?
+		if (lockable) //Lockable FIFO buffer?
 		{
-			freez((void **)&container, sizeof(FIFOBUFFER), "Failed FIFOBuffer"); //Release the container!
-			freez((void **)&container->buffer,buffersize, "FIFOBuffer_Buffer"); //Release the buffer!
-			return NULL; //Not allocated: can't lock!
+			container->lock = SDL_CreateSemaphore(1); //Create our lock!
+			if (!container->lock) //Failed to lock?
+			{
+				freez((void **)&container, sizeof(FIFOBUFFER), "Failed FIFOBuffer"); //Release the container!
+				freez((void **)&container->buffer, buffersize, "FIFOBuffer_Buffer"); //Release the buffer!
+				return NULL; //Not allocated: can't lock!
+			}
 		}
 		//The reset is ready to work with: all 0!
 	}
@@ -74,7 +77,7 @@ uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 		return 0; //Error: invalid buffer!
 	}
 	uint_32 result;
-	WaitSem(buffer->lock)
+	if (buffer->lock) WaitSem(buffer->lock)
 	if (buffer->readpos == buffer->writepos) //Either full or empty?
 	{
 		result = buffer->lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
@@ -87,7 +90,7 @@ uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 	{
 		result = (buffer->size - buffer->writepos) + buffer->readpos;
 	}
-	PostSem(buffer->lock)
+	if (buffer->lock) PostSem(buffer->lock)
 	return result; //Give the result!
 }
 
@@ -111,9 +114,9 @@ int peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read?
 
 	if (fifobuffer_freesize(buffer)<buffer->size) //Filled?
 	{
-		WaitSem(buffer->lock)
+		if (buffer->lock) WaitSem(buffer->lock)
 		*result = buffer->buffer[buffer->readpos]; //Give the data!
-		PostSem(buffer->lock)
+		if (buffer->lock) PostSem(buffer->lock)
 		return 1; //Something to peek at!
 	}
 	return 0; //Nothing to peek at!
@@ -133,11 +136,11 @@ int readfifobuffer(FIFOBUFFER *buffer, byte *result)
 
 	if (fifobuffer_freesize(buffer)<buffer->size) //Filled?
 	{
-		WaitSem(buffer->lock)
+		if (buffer->lock) WaitSem(buffer->lock)
 		*result = buffer->buffer[buffer->readpos];
 		buffer->readpos = SAFEMOD((buffer->readpos+1),buffer->size); //Update the position!
 		buffer->lastwaswrite = 0; //Last operation was a read operation!
-		PostSem(buffer->lock)
+		if (buffer->lock) PostSem(buffer->lock)
 		return 1; //Read!
 	}
 
@@ -161,11 +164,11 @@ int writefifobuffer(FIFOBUFFER *buffer, byte data)
 		return 0; //Error: buffer full!
 	}
 	
-	WaitSem(buffer->lock)
+	if (buffer->lock) WaitSem(buffer->lock)
 	buffer->buffer[buffer->writepos] = data; //Write!
 	buffer->writepos = SAFEMOD((buffer->writepos+1),buffer->size); //Next pos!
 	buffer->lastwaswrite = 1; //Last operation was a write operation!
-	PostSem(buffer->lock)
+	if (buffer->lock) PostSem(buffer->lock)
 	return 1; //Written!
 }
 
@@ -183,7 +186,7 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 	
 	if (fifobuffer_freesize(buffer) == buffer->size) return; //Empty? We can't: there is nothing to go back to!
 
-	WaitSem(buffer->lock)
+	if (buffer->lock) WaitSem(buffer->lock)
 	if ((((int_64)buffer->writepos)-1)<0) //Last pos?
 	{
 		buffer->readpos = buffer->size-1; //Goto end!
@@ -192,5 +195,5 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 	{
 		buffer->readpos = buffer->writepos-1; //Last write!
 	}
-	PostSem(buffer->lock)
+	if (buffer->lock) PostSem(buffer->lock)
 }

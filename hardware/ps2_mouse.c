@@ -558,7 +558,7 @@ void PS2_initMouse(byte enabled) //Initialise the mouse to reset mode?
 		register_PS2PortWrite(1, &handle_mousewrite); //Write functionnality!
 		register_PS2PortRead(1, &handle_mouseread, &handle_mousepeek); //Read functionality!
 
-		Mouse.buffer = allocfifobuffer(16); //Allocate a small mouse buffer!
+		Mouse.buffer = allocfifobuffer(16,1); //Allocate a small mouse buffer!
 
 		resetMouse(); //Reset the mouse to power-on defaults!
 

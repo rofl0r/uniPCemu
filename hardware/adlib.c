@@ -113,7 +113,7 @@ OPTINLINE void lockAdlib()
 
 OPTINLINE void unlockAdlib()
 {
-	unlockaudio(1); //Finished with audio update!
+	unlockaudio(); //Finished with audio update!
 }
 
 byte outadlib (uint16_t portnum, uint8_t value) {

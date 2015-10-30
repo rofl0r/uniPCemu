@@ -41,25 +41,29 @@ byte ssourceoutput(void* buf, uint_32 length, byte stereo, void *userdata)
 
 void putssourcebyte(byte value) {
 	byte transfer;
+	lockaudio(); //Make sure the audio thread isn't using our data!
 	if (writefifobuffer(ssourcestream, value)) //Add to the primary buffer!
 	{
 		if (!fifobuffer_freesize(ssourcestream) && fifobuffer_freesize(ssourcestream2)>=__SSOURCE_BUFFER) //Primary buffer full and enough space to store it in the second buffer?
 		{
-			lockaudio(); //Make sure the audio thread isn't using our data!
 			for (;readfifobuffer(ssourcestream,&transfer);) writefifobuffer(ssourcestream2,transfer); //Transfer data to the second buffer!
 			forcefull = 1; //We're forced full to allow detection of 'full' buffer!
-			unlockaudio(1); //We're finished locking!
 		}
 	}
+	unlockaudio(); //We're finished locking!
 }
 
 byte ssourcefull() {
+	lockaudio(); //Lock the audio!
 	if (!fifobuffer_freesize(ssourcestream) || forcefull)
 	{
 		forcefull = 0; //Not forced full anymore! We're needing filling if possible next check!
+		unlockaudio(); //Unlock the audio!
 		return (0x40);
 	}
-	else return (0x00);
+
+	unlockaudio(); //Unlock the audio!
+	return (0x00);
 }
 
 byte outsoundsource(word port, byte value) {
@@ -115,10 +119,10 @@ void doneSoundsource()
 
 void initSoundsource() {
 	doneSoundsource(); //Make sure we're not already running!
-	ssourcestream = allocfifobuffer(__SSOURCE_BUFFER); //Our FIFO buffer!
+	ssourcestream = allocfifobuffer(__SSOURCE_BUFFER,0); //Our FIFO buffer! Don't lock: This is done using a sound lock!
 	if (ssourcestream) //Allocated buffer?
 	{
-		ssourcestream2 = allocfifobuffer(__SSOURCE_HWBUFFER); //Our FIFO hardware buffer!
+		ssourcestream2 = allocfifobuffer(__SSOURCE_HWBUFFER,0); //Our FIFO hardware buffer! Don't lock: This is done using a sound lock!
 		if (ssourcestream2) //Allocated buffer?
 		{
 			if (addchannel(&ssourceoutput, NULL, "Sound Source", __SSOURCE_RATE, __SSOURCE_HWBUFFER, 0, SMPL8U)) //Channel added?

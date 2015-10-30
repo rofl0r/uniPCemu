@@ -85,7 +85,6 @@ uint_32 samplepos_size; //Size of the sample position precalcs (both of them)
 //Default samplerate is HW_SAMPLERATE, Real samplerate is SW_SAMPLERATE
 
 word audiolocklvl = 0; //Audio lock level!
-byte audiolock_paused = 0; //We're paused?
 
 void lockaudio()
 {
@@ -93,15 +92,13 @@ void lockaudio()
 	{
 		if (SDL_WasInit(SDL_INIT_AUDIO)) //Using SDL and audio enabled?
 		{
-			SDL_PauseAudio(1); //Pause and lock the sound system so we can safely change our sound data!
-			audiolock_paused = 1; //We're paused!
 			SDL_LockAudio(); //Lock the audio!
-		}		
+		}
 	}
 	++audiolocklvl; //Increase the lock level!
 }
 
-void unlockaudio(byte startplaying)
+void unlockaudio()
 {
 	--audiolocklvl; //Decrease the lock level!
 	if (!audiolocklvl) //Root level?
@@ -110,14 +107,6 @@ void unlockaudio(byte startplaying)
 		if (SDL_WasInit(SDL_INIT_AUDIO)) //SDL loaded and audio enabled?
 		{
 			SDL_UnlockAudio(); //Unlock the audio!
-			if (audiolock_paused) //We're paused?
-			{
-				if (startplaying) //Start playing again?
-				{
-					SDL_PauseAudio(0); //Pause and lock the sound system so we can safely change our sound data!
-				}
-				audiolock_paused = 0; //Not paused anymore!
-			}
 		}
 	}
 }
@@ -197,7 +186,7 @@ byte setStereo(SOUNDHANDLER handler, void *extradata, byte stereo) //Channel&Vol
 		{
 			lockaudio();
 			soundchannels[n].stereo = stereo; //Are we a stereo channel?
-			unlockaudio(1); //Unlock the audio!
+			unlockaudio(); //Unlock the audio!
 			return 1; //Done: check no more!
 		}
 	}
@@ -219,7 +208,7 @@ byte setStereo(SOUNDHANDLER handler, void *extradata, byte stereo) //Channel&Vol
 			convert_sampleratesize[rate] = 0; //Release the size, setting it to unused!
 		}
 	}
-	unlockaudio(1); //Unlock the audio: we're done!
+	unlockaudio(); //Unlock the audio: we're done!
 }*/
 
 //Conversion of samplerate!
@@ -248,7 +237,7 @@ byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate)
 			{
 				soundchannels[n].samplerate = 0; //Disabled!
 				dolog("soundservice","Samplerate overflow: %i",samplerate); //Invalid samplerate!
-				unlockaudio(1); //Unlock the audio: we're done!
+				unlockaudio(); //Unlock the audio: we're done!
 				return 0; //Error: invalid samplerate!
 			}
 			
@@ -273,7 +262,7 @@ byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate)
 				{
 					releaseSamplerate(old_samplerate); //Release the old samplerate!
 				}
-				unlockaudio(1); //Unlock the audio!
+				unlockaudio(); //Unlock the audio!
 				return 0; //Error: couldn't allocate the samplerate precalcs!
 			}
 			
@@ -300,7 +289,7 @@ byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate)
 			if (rate>(float)MAX_SAMPLERATE) //Too much?
 			{
 				dolog("soundservice","Maximum samplerate passed: %f",rate); //Maximum samplerate passed!
-				unlockaudio(1);
+				unlockaudio();
 				return 0; //Invalid samplerate!
 			}
 			
@@ -319,11 +308,11 @@ byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate)
 			dolog("soundservice","Convert samplerate: x%10.5f=SW:%10.5f,Channel:%10.5f; REQ:%10.5f",soundchannels[n].convert_samplerate,SW_SAMPLERATE,samplerate,rate);
 			#endif
 			
-			unlockaudio(1); //Unlock the audio!
+			unlockaudio(); //Unlock the audio!
 			return 1; //OK: we're ready to run!
 		}
 	}
-	unlockaudio(1); //Unlock the audio!
+	unlockaudio(); //Unlock the audio!
 	return 0; //Not found!
 }
 
@@ -338,11 +327,11 @@ byte setVolume(SOUNDHANDLER handler, void *extradata, float p_volume) //Channel&
 		{
 			soundchannels[n].volume = p_volume; //Set the volume of the channel!
 			soundchannels[n].volume_percent = p_volume?dB2factor(p_volume*0.01f,1):0; //The volume in linear percent, with 0dB=silence!
-			unlockaudio(1); //Unlock the audio!
+			unlockaudio(); //Unlock the audio!
 			return 1; //Done: check no more!
 		}
 	}
-	unlockaudio(1); //Unlock the audio!
+	unlockaudio(); //Unlock the audio!
 	return 0; //Not found!
 }
 
@@ -437,13 +426,13 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 			if (!setSampleRate(handler,extradata,samplerate)) //The sample rate to use!
 			{
 				removechannel(handler,extradata,0);
-				unlockaudio(1); //Unlock audio and start playing!
+				unlockaudio(); //Unlock audio and start playing!
 				return 0; //Abort!
 			}
 			if (!setStereo(handler,extradata,stereo)) //Stereo output?
 			{
 				removechannel(handler,extradata,0);
-				unlockaudio(1); //Unlock audio and start playing!
+				unlockaudio(); //Unlock audio and start playing!
 				return 0; //Abort!
 			}
 
@@ -459,7 +448,7 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 			dolog("soundservice","Channel allocated and ready to run: handler: %p, extra data: %p, samplerate: %f, sample buffer size: %i, stereo: %i",soundchannels[n].soundhandler,soundchannels[n].extradata,soundchannels[n].samplerate,soundchannels[n].sound.numsamples,soundchannels[n].stereo);
 			dolog("soundservice",""); //Empty row!
 			#endif
-			unlockaudio(1); //Unlock audio and start playing!
+			unlockaudio(); //Unlock audio and start playing!
 			return 1; //Add a channel and give the pointer to the current one!
 		}
 	}
@@ -468,7 +457,7 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 	dolog("soundservice","Ran out of free channels!");
 	#endif
 	
-	unlockaudio(1); //Unlock audio and start playing!
+	unlockaudio(); //Unlock audio and start playing!
 	return 0; //No channel available!
 }
 
@@ -529,11 +518,11 @@ void removechannel(SOUNDHANDLER handler, void *extradata, byte is_hw) //Removes 
 			}
 			memset(&soundchannels[n].name,0,sizeof(soundchannels[n].name)); //Clear the name!
 			
-			unlockaudio(!(is_hw&2)); //Unlock the audio and start playing again?
+			unlockaudio(); //Unlock the audio and start playing again?
 			return; //Done!
 		}
 	}
-	unlockaudio(!(is_hw&2)); //Unlock the audio and start playing again?
+	unlockaudio(); //Unlock the audio and start playing again?
 }
 
 void resetchannels()
@@ -936,7 +925,6 @@ void doneAudio()
 	if (SDL_WasInit(SDL_INIT_AUDIO)) //Audio loaded?
 	{
 		//dolog("soundservice","Closing audio.");
-		SDL_PauseAudio(1); //Lock the system!
 		SDL_CloseAudio(); //Close the audio system!
 		//dolog("soundservice","Audio closed.");
 		SDLAudio_Loaded = 0; //Not loaded anymore!

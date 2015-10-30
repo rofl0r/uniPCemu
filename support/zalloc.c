@@ -304,7 +304,7 @@ void freezall(void) //Free all allocated memory still allocated (on shutdown onl
 	{
 		freez(&registeredpointers[i].pointer,registeredpointers[i].size,"Unregisterptrall"); //Unregister a pointer when allowed!
 	}
-	unlockaudio(0); //Unlock the audio! Don't start playing automatically, since there's nothing to play!
+	unlockaudio(); //Unlock the audio! Don't start playing automatically, since there's nothing to play!
 }
 
 //Memory protection/verification function. Returns the pointer when valid, NULL on invalid.

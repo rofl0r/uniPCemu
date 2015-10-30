@@ -18,13 +18,14 @@ SDL_sem *lock; //Our lock for single access!
 allocfifobuffer: generates a new buffer to work with.
 parameters:
 	buffersize: the size of the buffer!
+	lockable: 1 to lock during accesses, 0 to use external locking when needed!
 result:
 	Buffer when allocated, NULL for error when allocating!
 
 */
 
 
-FIFOBUFFER* allocfifobuffer(uint_32 buffersize); //Creates a new FIFO buffer!
+FIFOBUFFER* allocfifobuffer(uint_32 buffersize, byte lockable); //Creates a new FIFO buffer!
 
 /*
 

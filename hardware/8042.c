@@ -367,7 +367,7 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	{
 		free_fifobuffer(&Controller8042.buffer); //Release our buffer, if we have one!
 	}
-	Controller8042.buffer = allocfifobuffer(64); //Allocate a small buffer for us to use to commands/data!
+	Controller8042.buffer = allocfifobuffer(64,1); //Allocate a small buffer for us to use to commands/data!
 
 	//First: initialise all hardware ports for emulating!
 	register_PORTOUT(&write_8042);
