@@ -618,12 +618,3 @@ void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 	PORT_OUT_B(0x64, 0x60); //Write PS2ControllerConfigurationByte!
 	PORT_OUT_B(0x60, PS2ControllerConfigurationByte); //Write the new configuration byte!
 }
-
-float BIOS_ConvertVolume(float volume) //Convert a volume (1.0f=100%) to volume to use!
-{
-	if (volume) //Gotten volume?
-	{
-		return dB2factor(volume,1); //Convert dB scale to factor!
-	}
-	return 0.0f; //Default: no volume!
-}

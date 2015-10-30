@@ -273,7 +273,7 @@ void initEMU(int full) //Init!
 
 	debugrow("Initialising Disney Sound Source...");
 	initSoundsource(); //Initialise Disney Sound Source!
-	ssource_setVolume(BIOS_ConvertVolume(BIOS_Settings.SoundSource_Volume)); //Set the sound source volume!
+	ssource_setVolume(BIOS_Settings.SoundSource_Volume); //Set the sound source volume!
 
 	debugrow("Initialising MPU...");
 	if (!initMPU(&BIOS_Settings.SoundFont[0])) //Initialise our MPU! Use the selected soundfont!

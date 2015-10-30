@@ -118,6 +118,4 @@ void forceBIOSSave(); //Forces BIOS to save!
 
 void BIOSKeyboardInit(); //BIOS part of keyboard initialisation!
 
-float BIOS_ConvertVolume(float volume); //Convert a volume (1.0f=100%) to volume to use!
-
 #endif
