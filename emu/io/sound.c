@@ -617,12 +617,12 @@ OPTINLINE int_32 getsample(playing_p channel, uint_32 position) //Get 16-bit sam
 
 //Processing functions prototypes!
 void emptychannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample); //Empty buffer channel handler!
-void fillchannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample); //Full buffer channel handler!
+void filledchannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample); //Full buffer channel handler!
 
 
 OPTINLINE void processbufferflags(playing_p currentchannel)
 {
-	currentchannel->processbuffer = (currentchannel->bufferflags&1)?&fillchannelbuffer:&emptychannelbuffer; //Either the filled or empty channel buffer to use!
+	currentchannel->processbuffer = (currentchannel->bufferflags&1)?&filledchannelbuffer:&emptychannelbuffer; //Either the filled or empty channel buffer to use!
 }
 
 uint_32 fillbuffer_existing(playing_p currentchannel, uint_32 *relsample, uint_32 currentpos)
@@ -679,7 +679,7 @@ uint_32 fillbuffer_new(playing_p currentchannel, uint_32 *relsample, uint_32 cur
 	return 0; //We start at the beginning!
 }
 
-void fillchannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample)
+void filledchannelbuffer(playing_p currentchannel, int_32 *result_l, int_32 *result_r, uint_32 relsample)
 {
 	float volume = C_VOLUMEPERCENT(currentchannel); //Retrieve the current volume!
 	int_32 sample_l = C_SAMPLE(currentchannel,C_GETSAMPLEPOS(currentchannel,0,relsample)); //The composed sample, based on the relative position!
@@ -706,7 +706,7 @@ OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int_32 *re
 	//Process multichannel!
 	uint_32 relsample; //Current channel and relative sample!
 	//Channel specific data
-	uint_32 currentpos; //Current sample pos!
+	register uint_32 currentpos; //Current sample pos!
 	
 	//First, initialise our variables!
 	
@@ -727,7 +727,7 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 	//Variables first
 	//Current data numbers
 	uint_32 currentsample, channelsleft; //The ammount of channels to mix!
-	int_32 result_l, result_r; //Sample buffer!
+	register int_32 result_l, result_r; //Sample buffer!
 	//Active data
 	playing_p activechannel; //Current channel!
 	int_32 *firstactivesample;
@@ -763,7 +763,7 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 					{
 						firstactivesample = activesample++; //First channel sample!
 						mixchannel(activechannel,firstactivesample,activesample++); //L&R channel!
-						if (!--currentsample) break; //Next sample when still noit done!
+						if (!--currentsample) break; //Next sample when still not done!
 					}
 				}
 			}
