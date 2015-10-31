@@ -281,16 +281,14 @@ typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attri
 //Blank handler!
 void VGA_Blank(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (!hretrace)
-	{
-		drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
-		++VGA->CRTC.x; //Next x!
-	}
+	if (hretrace) return; //Don't handle during horizontal retraces!
+	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
+	++VGA->CRTC.x; //Next x!
 }
 
 void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (!hretrace)
+	if (!hretrace) //Don't handle during horizontal retraces!
 	{
 		//Active display!
 		drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
@@ -300,12 +298,10 @@ void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attrib
 
 void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (!hretrace)
-	{
-		//Overscan!
-		drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
-		++VGA->CRTC.x; //Next x!
-	}
+	if (hretrace) return; //Don't handle during horizontal retraces!
+	//Overscan!
+	drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
+	++VGA->CRTC.x; //Next x!
 }
 
 //Active display handler!
