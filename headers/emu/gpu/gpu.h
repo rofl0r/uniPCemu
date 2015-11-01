@@ -109,6 +109,7 @@ typedef struct
 	void *textsurfaces[10]; //Up to 10 text surfaces available!
 
 	byte fullscreen; //Are we in fullscreen view?
+	byte forceRedraw; //We need a redraw explicitly?
 } GPU_type; //GPU data
 
 void initVideoLayer(); //We're for allocating the main video layer, only deallocated using SDL_Quit (when quitting the application)!

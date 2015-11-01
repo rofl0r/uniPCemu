@@ -336,8 +336,9 @@ OPTINLINE void render_EMU_buffer() //Render the EMU to the buffer!
 	{
 		//Move entire emulator buffer to the rendering buffer when needed (updated)!
 		
-		if (GPU.emu_buffer_dirty) //Dirty = to render again, if allowed!
+		if (GPU.emu_buffer_dirty || GPU.forceRedraw) //Dirty = to render again, if allowed!
 		{
+			GPU.forceRedraw = 0; //Not needed anymore: we're processing now!
 			GPU_finishRenderer(); //Done with the resizing!
 			//First, init&fill emu_screen data!
 			word xres, yres;

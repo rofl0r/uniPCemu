@@ -275,11 +275,12 @@ void updateVideo() //Update the screen resolution on change!
 	static byte fullscreen = 0; //Are we fullscreen?
 	static byte aspectratio = 0; //Aspect ratio to use!
 	static byte resolutiontype = 0; //Last resolution type!
+	static byte plotsetting = 0; //Direct plot setting!
 	lockGPU();
 	if (rendersurface) //Already started?
 	{
 		byte reschange = 0, restype = 0; //Resolution change and type!
-		if (!VIDEO_DIRECT && !GPU.aspectratio) //Direct aspect ratio?
+		if (((!VIDEO_DIRECT) && (!GPU.aspectratio)) || (VIDEO_DFORCED && (!GPU.aspectratio))) //Direct aspect ratio?
 		{
 			reschange = ((xres != GPU.xres) || (yres != GPU.yres)); //This is the effective resolution!
 			restype = 0; //Default resolution type!
@@ -289,10 +290,12 @@ void updateVideo() //Update the screen resolution on change!
 			reschange = ((xres!=resized->sdllayer->w) || (yres!=resized->sdllayer->h)); //This is the effective resolution!
 			restype = 1; //Resized resolution type!
 		}
-		if (reschange || (fullscreen!=GPU.fullscreen) || (aspectratio!=GPU.aspectratio) || (resolutiontype!=restype)) //Resolution (type) changed or fullscreen changed?
+		if (reschange || (fullscreen!=GPU.fullscreen) || (aspectratio!=GPU.aspectratio) || (resolutiontype!=restype) || (BIOS_Settings.VGA_AllowDirectPlot!=plotsetting)) //Resolution (type) changed or fullscreen changed or plot setting changed?
 		{
+			GPU.forceRedraw = 1; //We're forcing a full redraw next frame to make sure the screen is always updated nicely!
 			xres = restype?resized->sdllayer->w:GPU.xres;
 			yres = restype?resized->sdllayer->h:GPU.yres;
+			plotsetting = BIOS_Settings.VGA_AllowDirectPlot; //Update the plot setting!
 			resolutiontype = restype; //Last resolution type!
 			fullscreen = GPU.fullscreen;
 			aspectratio = GPU.aspectratio; //Save the new values for comparing the next time we're changed!
