@@ -325,19 +325,25 @@ void doneVideo() //We're done with video operations?
 void startVideo()
 {
 	if (__HW_DISABLED) return; //Abort!
+	lock(LOCK_GPU); //Lock us!
 	GPU.video_on = ALLOW_VIDEO; //Turn video on when allowed!
+	unlock(LOCK_GPU); //Unlock us!
 }
 
 void stopVideo()
 {
 	if (__HW_DISABLED) return; //Abort!
+	lock(LOCK_GPU); //Lock us!
 	GPU.video_on = 0; //Turn video off!
+	unlock(LOCK_GPU); //Unlock us!
 }
 
 void GPU_AspectRatio(byte aspectratio) //Keep aspect ratio with letterboxing?
 {
 	if (__HW_DISABLED) return; //Abort!
+	lock(LOCK_GPU); //Lock us!
 	GPU.aspectratio = (aspectratio<3)?aspectratio:0; //To use aspect ratio?
+	unlock(LOCK_GPU); //Unlock us!
 }
 
 void resetVideo() //Resets the screen (clears)

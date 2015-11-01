@@ -210,5 +210,7 @@ void setGPUFrameskip(byte Frameskip)
 
 void setGPUFramerate(byte Show)
 {
+	lock(LOCK_GPU); //Lock us!
 	GPU.show_framerate = Show?1:0; //Show the framerate?
+	unlock(LOCK_GPU); //Unlock us!
 }
