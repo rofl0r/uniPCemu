@@ -22,9 +22,9 @@
 //Maximum ammount of display pages used by the GPU
 #define PC_MAX_DISPLAYPAGES 8
 //Maximum resolution X (row size)
-#define EMU_MAX_X 1024
+#define EMU_MAX_X 800
 //Maximum resolution Y (number of rows max)
-#define EMU_MAX_Y 1024
+#define EMU_MAX_Y 600
 //We're emulating a VGA screen adapter?
 #define EMU_VGA 1
 
