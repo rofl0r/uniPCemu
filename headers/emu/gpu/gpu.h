@@ -87,7 +87,7 @@ typedef struct
 	//Display resolution:
 	word xres; //X size of screen
 	word yres; //Y size of screen
-	byte use_Letterbox; //Enable GPU letterbox (keeping aspect ratio) while rendering?
+	byte aspectratio; //Enable GPU letterbox (keeping aspect ratio) while rendering?
 
 	//Extra tricks:
 	byte doublewidth; //Double x resolution by duplicating every pixel horizontally!
@@ -117,7 +117,7 @@ void initVideo(int show_framerate); //Resets the screen (clears); used at start 
 void doneVideo(); //We're done with video operations?
 void startVideo(); //Turn video on!
 void stopVideo(); //Turn video off!
-void GPU_keepAspectRatio(byte letterbox); //Keep aspect ratio with letterboxing?
+void GPU_AspectRatio(byte aspectratio); //Set aspect ratio!
 
 void initVideoMain(); //Resets the screen (clears); used at start of emulator only!
 void doneVideoMain(); //Resets the screen (clears); used at end of emulator only!

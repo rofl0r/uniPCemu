@@ -42,7 +42,7 @@ typedef struct PACKED
 	byte VGA_AllowDirectPlot; //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
 	uint_32 VRAM_size; //VGA VRAM size!
 	byte bwmonitor; //Are we a b/w monitor?
-	byte keepaspectratio; //Keep the aspect ratio?
+	byte aspectratio; //The aspect ratio to use?
 
 	byte BIOSmenu_font; //The selected font for the BIOS menu!
 	byte firstrun; //Is this the first run of this BIOS?
@@ -55,6 +55,7 @@ typedef struct PACKED
 	byte PS2Mouse; //What mouse to use when using? 1=PS/2 mouse, 0=Serial mouse
 	uint_32 CPUSpeed;
 	float SoundSource_Volume; //The sound source volume knob!
+	byte ShowFramerate; //Show the frame rate?
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 

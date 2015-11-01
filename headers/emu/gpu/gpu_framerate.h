@@ -20,5 +20,6 @@ Frameskip support!
 */
 
 void setGPUFrameskip(byte Frameskip);
+void setGPUFramerate(byte Show); 
 
 #endif

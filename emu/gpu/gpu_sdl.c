@@ -184,8 +184,32 @@ OPTINLINE void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest 
 	}
 }
 
+void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, uint_32 newwidth, uint_32 newheight, uint_32 *n_width, uint_32 *n_height)
+{
+	*n_width = newwidth;
+	*n_height = newheight; //New width/height!
+	if (aspectratio) //Keeping the aspect ratio?
+	{
+		double ar = (double)originalwidth / (double)originalheight; //Source surface aspect ratio!
+		double newAr = (double)*n_width / (double)*n_height; //Destination surface aspect ratio!
+		if (aspectratio == 2) //Force 4:3 aspect ratio?
+		{
+			ar = (double)(4.0 / 3.0); //We're taking 4:3 aspect ratio instead of the aspect ratio of the image!
+		}
+		double f = MAX(ar, newAr);
+		if (f == ar) //Fit to width?
+		{
+			*n_height = (uint_32)(((double)*n_width) / ar);
+		}
+		else //Fit to height?
+		{
+			*n_width = (uint_32)(*n_height*ar);
+		}
+	}
+}
+
 //Resizing.
-GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, const uint_32 newheight, byte doublexres, byte doubleyres, int keepaspectratio)
+GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, const uint_32 newheight, byte doublexres, byte doubleyres, int aspectratio)
 {
 	//dolog("SDL","ResizeImage called!");
 	if (!img) //No image to resize?
@@ -199,22 +223,8 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 
 	//dolog("SDL","ResizeImage: valid surface to resize. Calculating new size...");
 	//Calculate destination resolution!
-	uint_32 n_width = newwidth;
-	uint_32 n_height = newheight; //New width/height!
-	if (keepaspectratio) //Keeping the aspect ratio?
-	{
-		double ar = (double)img->sdllayer->w / (double)img->sdllayer->h;
-		double newAr = (double)n_width / (double)n_height;
-		double f = MAX(ar,newAr);
-		if (f==ar) //Fit to width?
-		{
-			n_height = (uint_32)(((double)n_width)/ar);
-		}
-		else //Fit to height?
-		{
-			n_width = (uint_32)(n_height*ar);
-		}
-	}
+	uint_32 n_width, n_height;
+	calcResize(aspectratio,img->sdllayer->w,img->sdllayer->h,newwidth,newheight,&n_width,&n_height); //Calculate the resize size!
 
 	//dolog("SDL","ResizeImage: Verifying new height/width...");
 	if (!n_width || !n_height) //No size in src or dest?
@@ -275,7 +285,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 			if (doubleres) //Apply double resolution?
 			{
 				GPU_SDL_Surface *aftereffect;
-				aftereffect = resizeImage(wrapper,newwidth,newheight,0,0,keepaspectratio); //Try and resize to destination resolution normally!
+				aftereffect = resizeImage(wrapper,newwidth,newheight,0,0,aspectratio); //Try and resize to destination resolution normally!
 				freeSurface(wrapper); //Free our generated surface of our double sized step!
 				if (!aftereffect) //Failed to generate?
 				{

@@ -130,7 +130,7 @@ void BIOS_ExecutionMode(); //Switch execution mode!
 void BIOS_MemReAlloc(); //Reallocate memory!
 void BIOS_DirectPlotSetting(); //Direct Plot Setting!
 void BIOS_FontSetting(); //BIOS Font Setting!
-void BIOS_KeepAspectRatio(); //Keep aspect ratio?
+void BIOS_AspectRatio(); //Keep aspect ratio?
 void BIOS_ConvertStaticDynamicHDD(); //Convert static to dynamic HDD?
 void BIOS_ConvertDynamicStaticHDD(); //Generate Static HDD Image from a dynamic one!
 void BIOS_DefragmentDynamicHDD(); //Defragment a dynamic HDD Image!
@@ -142,7 +142,7 @@ void BIOS_gamingKeyboardColor(); //Select a gaming keyboard color!
 void BIOSMenu_LoadDefaults(); //Load the defaults option!
 void BIOSClearScreen(); //Resets the BIOS's screen!
 void BIOSDoneScreen(); //Cleans up the BIOS's screen!
-void BIOS_VGASettingsMenu(); //Manage stuff concerning input.
+void BIOS_VideoSettingsMenu(); //Manage stuff concerning video output.
 void BIOS_VGANMISetting(); //VGA NMI setting!
 void BIOS_SoundMenu(); //Manage stuff concerning MIDI.
 void BIOS_SoundFont_selection(); //FLOPPY0 selection menu!
@@ -152,6 +152,7 @@ void BIOS_CPU(); //CPU menu!
 void BIOS_CPUSpeed(); //CPU speed selection!
 void BIOS_ClearCMOS(); //Clear the CMOS!
 void BIOS_SoundSourceVolume(); //Set the Sound Source volume!
+void BIOS_ShowFramerate(); //Show framerate setting!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -174,7 +175,7 @@ Handler BIOS_Menus[] =
 	,BIOS_MemReAlloc //Memory reallocation is #14!
 	,BIOS_DirectPlotSetting //Direct Plot setting is #15!
 	,BIOS_FontSetting //Font setting is #16!
-	,BIOS_KeepAspectRatio //Keep aspect ratio setting is #17!
+	,BIOS_AspectRatio //Aspect ratio setting is #17!
 	,BIOSMenu_LoadDefaults //Load defaults setting is #18!
 	,BIOS_ConvertStaticDynamicHDD //Convert static to dynamic HDD is #19!
 	,BIOS_ConvertDynamicStaticHDD //Convert dynamic to static HDD is #20!
@@ -186,7 +187,7 @@ Handler BIOS_Menus[] =
 	,BIOS_gamingModeButtonsMenu //Gaming mode buttons menu is #26!
 	,BIOS_gamingKeyboardColorsMenu //Keyboard colors menu is #27!
 	,BIOS_gamingKeyboardColor //Keyboard color menu is #28!
-	,BIOS_VGASettingsMenu //Manage stuff concerning VGA Settings is #29!
+	,BIOS_VideoSettingsMenu //Manage stuff concerning Video Settings is #29!
 	,BIOS_VGANMISetting //VGA NMI setting is #30!
 	,BIOS_SoundMenu //MIDI settings menu is #31!
 	,BIOS_SoundFont_selection //Soundfont selection menu is #32!
@@ -196,6 +197,7 @@ Handler BIOS_Menus[] =
 	,BIOS_CPUSpeed //BIOS CPU speed is #36!
 	,BIOS_ClearCMOS //BIOS CMOS clear is #37!
 	,BIOS_SoundSourceVolume //Sound Source Volume is #38!
+	,BIOS_ShowFramerate //Show Framerate is #39!
 };
 
 //Not implemented?
@@ -320,8 +322,6 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	showchecksumerrors = 0; //Not showing any checksum errors!
 
 //Now reset/save all we need to run the BIOS!
-	byte frameratebackup = GPU.show_framerate; //Backup!
-
 	GPU.show_framerate = 0; //Hide the framerate surface!	
 	
 //Now do the BIOS stuff!
@@ -405,16 +405,16 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	BIOSDoneScreen(); //Clean up the screen!
 //Now return to the emulator to reboot!
 	BIOS_ValidateData(); //Validate&reload all disks!
-	GPU_keepAspectRatio(BIOS_Settings.keepaspectratio); //Keep the aspect ratio?
 
 //Restore all states saved for the BIOS!
-	GPU.show_framerate = frameratebackup; //Restore!
 	startEMUTimers(); //Start our timers up again!
 	startVGA(); //Start the VGA up again!
 	EMU_startInput(); //Start all emu input again!
 
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 	ssource_setVolume(BIOS_Settings.SoundSource_Volume); //Set the current volume!
+	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
+	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
 
 	return (reboot_needed==2) || ((reboot_needed==1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
 }
@@ -1384,7 +1384,7 @@ void BIOS_InitAdvancedText()
 		break;
 	}
 
-	optioninfo[advancedoptions] = 7; //We're debug log setting!
+	optioninfo[advancedoptions] = 6; //We're debug log setting!
 	strcpy(menuoptions[advancedoptions], "Debugger log: ");
 	switch (BIOS_Settings.debugger_log)
 	{
@@ -1402,7 +1402,7 @@ void BIOS_InitAdvancedText()
 		strcat(menuoptions[advancedoptions++], "Never"); //Set filename from options!
 		break;
 	}
-	optioninfo[advancedoptions] = 8; //Execution mode!
+	optioninfo[advancedoptions] = 7; //Execution mode!
 	strcpy(menuoptions[advancedoptions], "Execution mode: ");
 	switch (BIOS_Settings.executionmode) //What debug mode is active?
 	{
@@ -1439,28 +1439,17 @@ void BIOS_InitAdvancedText()
 	strcpy(menuoptions[advancedoptions],"BIOS Font: ");
 	strcat(menuoptions[advancedoptions++],ActiveBIOSPreset.name); //BIOS font selected!
 	
-	optioninfo[advancedoptions] = 6; //Keep aspect ratio!
-	strcpy(menuoptions[advancedoptions],"Aspect ratio: ");
-	if (BIOS_Settings.keepaspectratio) //Keep aspect ratio?
-	{
-		strcat(menuoptions[advancedoptions++],"Keep the same");
-	}
-	else
-	{
-		strcat(menuoptions[advancedoptions++],"Fullscreen stretching");
-	}
-	
-	optioninfo[advancedoptions] = 4; //VGA Settings
-	strcpy(menuoptions[advancedoptions++], "VGA Settings");
-
-	optioninfo[advancedoptions] = 10;
-	strcpy(menuoptions[advancedoptions++], "Sound Settings");
+	optioninfo[advancedoptions] = 4; //Video Settings
+	strcpy(menuoptions[advancedoptions++], "Video Settings");
 
 	optioninfo[advancedoptions] = 9;
+	strcpy(menuoptions[advancedoptions++], "Sound Settings");
+
+	optioninfo[advancedoptions] = 8;
 	strcpy(menuoptions[advancedoptions++], "Input options");
 
 setMousetext: //For fixing it!
-	optioninfo[advancedoptions] = 11; //Mouse!
+	optioninfo[advancedoptions] = 10; //Mouse!
 	strcpy(menuoptions[advancedoptions], "Mouse: ");
 	switch (BIOS_Settings.PS2Mouse) //Mouse?
 	{
@@ -1477,7 +1466,7 @@ setMousetext: //For fixing it!
 		break;
 	}
 
-	optioninfo[advancedoptions] = 12; //Clear CMOS!
+	optioninfo[advancedoptions] = 11; //Clear CMOS!
 	strcpy(menuoptions[advancedoptions++], "Clear CMOS data");
 }
 
@@ -1616,31 +1605,28 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 		case 3: //Memory reallocation?
 			BIOS_Menu = 14; //Memory reallocation!
 			break;
-		case 4: //VGA Settings setting?
-			BIOS_Menu = 29; //VGA Settings setting!
+		case 4: //Video Settings setting?
+			BIOS_Menu = 29; //Video Settings setting!
 			break;
 		case 5: //BIOS Font?
 			BIOS_Menu = 16; //BIOS Font setting!
 			break;
-		case 6: //Aspect ratio setting!
-			BIOS_Menu = 17; //Aspect ratio setting!
-			break;
-		case 7:
+		case 6:
 			BIOS_Menu = 23; //Debugger log setting!
 			break;
-		case 8:
+		case 7:
 			BIOS_Menu = 24; //Execution mode option!
 			break;
-		case 9:
+		case 8:
 			BIOS_Menu = 25; //Input submenu!
 			break;
-		case 10:
+		case 9:
 			BIOS_Menu = 31; //Sound Settings menu!
 			break;
-		case 11:
+		case 10:
 			BIOS_Menu = 34; //Mouse menu!
 			break;
-		case 12:
+		case 11:
 			BIOS_Menu = 37; //Clear CMOS menu!
 			break;
 		}
@@ -2820,7 +2806,7 @@ void BIOS_DirectPlotSetting()
 		}
 		break;
 	}
-	BIOS_Menu = 29; //Goto VGA Settings menu!
+	BIOS_Menu = 29; //Goto Video Settings menu!
 }
 
 void BIOS_FontSetting()
@@ -2870,18 +2856,60 @@ void BIOS_FontSetting()
 	BIOS_Menu = 8; //Goto Advanced menu!
 }
 
-void BIOS_KeepAspectRatio()
+void BIOS_AspectRatio()
 {
-	if (BIOS_Settings.keepaspectratio)
+	BIOS_Title("Aspect ratio");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Aspect ratio: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 3; //Ammount of Aspect Ratio modes!
+	for (i = 0; i<3; i++) //Process options!
 	{
-		BIOS_Settings.keepaspectratio = 0; //Reset!
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
 	}
-	else
+	strcpy(itemlist[0], "Fullscreen stretching"); //Set filename from options!
+	strcpy(itemlist[1], "Keep the same"); //Set filename from options!
+	strcpy(itemlist[2], "Force 4:3"); //Set filename from options!
+	int current = 0;
+	switch (BIOS_Settings.aspectratio) //What direct plot?
 	{
-		BIOS_Settings.keepaspectratio = 1; //Set!
+	case 0: //Valid
+	case 1: //Valid
+	case 2: //Valid
+		current = BIOS_Settings.aspectratio; //Valid: use!
+		break;
+	default: //Invalid
+		current = 0; //Default: none!
+		break;
 	}
-	BIOS_Changed = 1; //We've changed!
-	BIOS_Menu = 8; //Goto Advanced menu!
+	if (BIOS_Settings.aspectratio != current) //Invalid?
+	{
+		BIOS_Settings.aspectratio = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(15, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0; //Default direct plot: None!
+
+	case 0:
+	case 1:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.aspectratio = file; //Select Aspect Ratio setting!
+		}
+		break;
+	}
+	BIOS_Menu = 29; //Goto Video menu!
 }
 
 void BIOS_BWMonitor()
@@ -2943,7 +2971,7 @@ void BIOS_BWMonitor()
 		}
 		break;
 	}
-	BIOS_Menu = 29; //Goto VGA Settings menu!
+	BIOS_Menu = 29; //Goto Video Settings menu!
 }
 
 void BIOSMenu_LoadDefaults() //Load the defaults option!
@@ -3360,10 +3388,10 @@ void BIOS_VGANMISetting()
 		}
 		break;
 	}
-	BIOS_Menu = 29; //Goto VGA Settings menu!
+	BIOS_Menu = 29; //Goto Video Settings menu!
 }
 
-void BIOS_InitVGASettingsText()
+void BIOS_InitVideoSettingsText()
 {
 	advancedoptions = 0; //Init!
 	int i;
@@ -3390,6 +3418,27 @@ setdirectplottext: //For fixing it!
 		BIOS_Settings.VGA_AllowDirectPlot = 0; //Reset/Fix!
 		BIOS_Changed = 1; //We've changed!
 		goto setdirectplottext; //Goto!
+		break;
+	}
+
+setaspectratiotext:
+	optioninfo[advancedoptions] = 3; //Keep aspect ratio!
+	strcpy(menuoptions[advancedoptions], "Aspect ratio: ");
+	switch (BIOS_Settings.aspectratio) //Keep aspect ratio?
+	{
+	case 0:
+		strcat(menuoptions[advancedoptions++], "Fullscreen stretching");
+		break;
+	case 1:
+		strcat(menuoptions[advancedoptions++], "Keep the same");
+		break;
+	case 2:
+		strcat(menuoptions[advancedoptions++], "Force 4:3");
+		break;
+	default:
+		BIOS_Settings.aspectratio = 0; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setaspectratiotext;
 		break;
 	}
 
@@ -3434,12 +3483,24 @@ setVGANMItext: //For fixing it!
 		goto setVGANMItext; //Goto!
 		break;
 	}
+
+setFrameratetext:
+	optioninfo[advancedoptions] = 4; //Show framerate!
+	strcpy(menuoptions[advancedoptions], "Show framerate: ");
+	if (BIOS_Settings.ShowFramerate)
+	{
+		strcat(menuoptions[advancedoptions++], "Enabled");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "Disabled");
+	}
 }
 
-void BIOS_VGASettingsMenu() //Manage stuff concerning input.
+void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
 {
-	BIOS_Title("VGA Settings Menu");
-	BIOS_InitVGASettingsText(); //Init text!
+	BIOS_Title("Video Settings Menu");
+	BIOS_InitVideoSettingsText(); //Init text!
 	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
@@ -3448,7 +3509,9 @@ void BIOS_VGASettingsMenu() //Manage stuff concerning input.
 		break;
 	case 0:
 	case 1:
-	case 2: //Valid option?
+	case 2:
+	case 3:
+	case 4: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Direct plot setting?
@@ -3459,6 +3522,13 @@ void BIOS_VGASettingsMenu() //Manage stuff concerning input.
 			break;
 		case 2: //VGA NMI?
 			BIOS_Menu = 30; //VGA NMI setting!
+			break;
+		case 3: //Aspect ratio setting!
+			BIOS_Menu = 17; //Aspect ratio setting!
+			break;
+		case 4: //Show framerate setting!
+			BIOS_Menu = 39; //Show framerate setting!
+			break;
 		}
 		break;
 	default: //Unknown option?
@@ -3997,4 +4067,11 @@ void BIOS_SoundSourceVolume()
 		break;
 	}
 	BIOS_Menu = 31; //Goto Advanced menu!
+}
+
+void BIOS_ShowFramerate()
+{
+	BIOS_Settings.ShowFramerate = !BIOS_Settings.ShowFramerate; //Reverse!
+	BIOS_Changed = 1; //We've changed!
+	BIOS_Menu = 29; //Goto Video Settings menu!
 }

@@ -40,6 +40,8 @@ GPU_SDL_Surface *createSurface(int columns, int rows); //Create a 32BPP surface!
 GPU_SDL_Surface *createSurfaceFromPixels(int columns, int rows, void *pixels, uint_32 pixelpitch); //Create a 32BPP surface, but from an allocated/solid buffer (not deallocated when freed)! Can be used for persistent buffers (always there, like the GPU screen buffer itself)
 GPU_SDL_Surface *freeSurface(GPU_SDL_Surface *surface);
 void safeFlip(GPU_SDL_Surface *surface); //Safe flipping (non-null)
-GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, const uint_32 newheight, byte doublexres, byte doubleyres, int keepaspectratio);
+GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, const uint_32 newheight, byte doublexres, byte doubleyres, int aspectratio);
+
+void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, uint_32 newwidth, uint_32 newheight, uint_32 *n_width, uint_32 *n_height); //Calculates resize dimensions!
 
 #endif

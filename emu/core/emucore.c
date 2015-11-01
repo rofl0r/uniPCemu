@@ -288,6 +288,9 @@ void initEMU(int full) //Init!
 
 	debugrow("Initializing video...");
 	initVideo(DEBUG_FRAMERATE); //Reset video!
+	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio is cleared by default by the GPU initialisation?
+	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
+
 	memset(&currentbusy,0,sizeof(currentbusy)); //Initialise busy status!
 
 	debugrow("Initializing VGA...");	

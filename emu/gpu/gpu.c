@@ -33,6 +33,7 @@ GPU_type GPU; //The GPU itself!
 
 GPU_SDL_Surface *rendersurface = NULL; //The PSP's surface to use when flipping!
 SDL_Surface *originalrenderer = NULL; //Original renderer from above! We can only be freed using SDL_Quit. Above is just the wrapper!
+extern GPU_SDL_Surface *resized; //Standard resized data, keep between unchanged screens!
 
 byte rshift=0, gshift=0, bshift=0, ashift=0; //All shift values!
 uint_32 rmask=0, gmask=0, bmask=0, amask=0; //All mask values!
@@ -63,11 +64,18 @@ SDL_Surface *getGPUSurface()
 	}
 
 	//Other architecture?
-	word xres, yres; //Our determinated resolution!
+	uint_32 xres, yres; //Our determinated resolution!
 	if (VIDEO_DFORCED) //Forced?
 	{
-		xres = GPU.xres; //Literal x resolution!
-		yres = GPU.yres; //Literal y resolution!
+		if (resized && GPU.aspectratio) //Keep aspect ratio set and gotten something to take information from?
+		{
+			calcResize(GPU.aspectratio,GPU.xres,GPU.yres,EMU_MAX_X,EMU_MAX_Y,&xres,&yres); //Calculate resize using aspect ratio set for our screen on maximum size!
+		}
+		else //Default: Take the information from the monitor input resolution!
+		{
+			xres = GPU.xres; //Literal x resolution!
+			yres = GPU.yres; //Literal y resolution!
+		}
 	}
 	else //Normal operations? Use PSP resolution!
 	{
@@ -230,7 +238,7 @@ void initVideo(int show_framerate) //Initialises the video
 	debugrow("Video: Setting up debugger...");
 	resetVideo(); //Initialise the video!
 
-	GPU.use_Letterbox = 0; //Disable letterboxing by default!
+	GPU.aspectratio = 0; //Default aspect ratio by default!
 
 //We're running with SDL?
 	unlockGPU(); //Unlock the GPU for Software access!
@@ -265,14 +273,29 @@ void updateVideo() //Update the screen resolution on change!
 	static word xres=0;
 	static word yres=0;
 	static byte fullscreen = 0; //Are we fullscreen?
+	static byte aspectratio = 0; //Aspect ratio to use!
+	static byte resolutiontype = 0; //Last resolution type!
 	lockGPU();
 	if (rendersurface) //Already started?
 	{
-		if ((xres!=GPU.xres) || (yres!=GPU.yres) || (fullscreen!=GPU.fullscreen)) //Resolution changed or fullscreen changed?
+		byte reschange = 0, restype = 0; //Resolution change and type!
+		if (!VIDEO_DIRECT && !GPU.aspectratio) //Direct aspect ratio?
 		{
-			xres = GPU.xres;
-			yres = GPU.yres;
-			fullscreen = GPU.fullscreen; //Save the new values for comparing the next time we're changed!
+			reschange = ((xres != GPU.xres) || (yres != GPU.yres)); //This is the effective resolution!
+			restype = 0; //Default resolution type!
+		}
+		else if (resized) //Resized available?
+		{
+			reschange = ((xres!=resized->sdllayer->w) || (yres!=resized->sdllayer->h)); //This is the effective resolution!
+			restype = 1; //Resized resolution type!
+		}
+		if (reschange || (fullscreen!=GPU.fullscreen) || (aspectratio!=GPU.aspectratio) || (resolutiontype!=restype)) //Resolution (type) changed or fullscreen changed?
+		{
+			xres = restype?resized->sdllayer->w:GPU.xres;
+			yres = restype?resized->sdllayer->h:GPU.yres;
+			resolutiontype = restype; //Last resolution type!
+			fullscreen = GPU.fullscreen;
+			aspectratio = GPU.aspectratio; //Save the new values for comparing the next time we're changed!
 			lock(LOCK_VIDEO); //We're needing to update the video!
 			needvideoupdate = 1; //We need a video update!
 			unlock(LOCK_VIDEO); //Ready to update the video!
@@ -308,17 +331,15 @@ void stopVideo()
 	GPU.video_on = 0; //Turn video off!
 }
 
-void GPU_keepAspectRatio(byte letterbox) //Keep aspect ratio with letterboxing?
+void GPU_AspectRatio(byte aspectratio) //Keep aspect ratio with letterboxing?
 {
 	if (__HW_DISABLED) return; //Abort!
-	GPU.use_Letterbox = (letterbox>0); //To use letterbox?
+	GPU.aspectratio = (aspectratio<3)?aspectratio:0; //To use aspect ratio?
 }
 
 void resetVideo() //Resets the screen (clears)
 {
 	if (__HW_DISABLED) return; //Abort!
-	//Debugger:
-	//dolog("GPU","Setting basic white text color...");
 	EMU_textcolor(0xF); //Default color: white on black!
 }
 

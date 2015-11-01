@@ -106,7 +106,7 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 		uint_32 virtualrow = 0; //Virtual row to use! (From the source)
 		uint_32 start = 0; //Start row of the drawn part!
 		word y = 0; //Init Y to the beginning!
-		if (GPU.use_Letterbox) //Using letterbox for aspect ratio?
+		if (GPU.aspectratio) //Using letterbox for aspect ratio?
 		{
 			#ifndef __psp__
 				if (VIDEO_DFORCED) //Forced video?
@@ -125,9 +125,19 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 #ifndef __psp__
 		drawpixels:
 #endif
-		for (; virtualrow<GPU.yres;) //Process row-by-row!
+		if (GPU.aspectratio && resized) //Using aspect ratio?
 		{
-			put_pixel_row(rendersurface, y++, GPU.xres, &EMU_BUFFER(0, virtualrow++), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+			for (; virtualrow<resized->sdllayer->h;) //Process row-by-row!
+			{
+				put_pixel_row(rendersurface, y++, resized->sdllayer->w, get_pixel_ptr(resized,virtualrow++,0), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+			}
+		}
+		else //Simple direct plot?
+		{
+			for (; virtualrow<GPU.yres;) //Process row-by-row!
+			{
+				put_pixel_row(rendersurface, y++, GPU.xres, &EMU_BUFFER(0, virtualrow++), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+			}
 		}
 
 		//Always clear the bottom: letterbox and direct plot both have to clear the bottom!
@@ -192,7 +202,7 @@ OPTINLINE void render_EMU_screen() //Render the EMU buffer to the screen!
 			word count;
 			uint_32 virtualrow = 0; //Virtual row to use! (From the source)
 			
-			byte letterbox = GPU.use_Letterbox; //Use letterbox?
+			byte letterbox = GPU.aspectratio; //Use letterbox?
 			if (letterbox) //Using letterbox for aspect ratio?
 			{
 				count = ((rendersurface->sdllayer->h/2) - (resized->sdllayer->h/2))-1; //The total ammount to process: up to end+1!
@@ -216,7 +226,7 @@ OPTINLINE void render_EMU_screen() //Render the EMU buffer to the screen!
 						if (!resized) goto startbottomrendering; //Skip when no resized anymore!
 						srcrow = get_pixel_row(resized, virtualrow++, 0); //Get the current pixel row!
 						if (!srcrow) goto startbottomrendering; //Skip unknown rows!
-						put_pixel_row(rendersurface, y++, resized->sdllayer->w, srcrow, (letterbox & 1), 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+						put_pixel_row(rendersurface, y++, resized->sdllayer->w, srcrow, letterbox?1:0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
 						goto nextrowemu;
 					}
 				}
@@ -348,7 +358,7 @@ OPTINLINE void render_EMU_buffer() //Render the EMU to the buffer!
 			if (emu_screen) //Createn to render?
 			{
 				//Resize to resized!
-				resized = resizeImage(emu_screen,rendersurface->sdllayer->w,rendersurface->sdllayer->h,GPU.doublewidth,GPU.doubleheight,GPU.use_Letterbox); //Render it to the PSP screen, keeping aspect ratio with letterboxing!
+				resized = resizeImage(emu_screen,rendersurface->sdllayer->w,rendersurface->sdllayer->h,GPU.doublewidth,GPU.doubleheight,GPU.aspectratio); //Render it to the PSP screen, keeping aspect ratio with letterboxing!
 				if (!resized) //Error?
 				{
 					dolog("GPU","Error resizing the EMU screenbuffer to the PSP screen!");
@@ -402,7 +412,7 @@ void renderHWFrame() //Render a frame from hardware!
 		updateVideo(); //Update the video resolution if needed!
 		init_rowempty(); //Init empty row!
 		//Start the rendering!
-		if (!VIDEO_DIRECT) //To do scaled mapping to the screen?
+		if ((!VIDEO_DIRECT) || GPU.aspectratio) //To do scaled mapping to the screen?
 		{
 			if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Allowed rendering?
 			{
@@ -442,9 +452,9 @@ void refreshscreen() //Handler for a screen frame (60 fps) MAXIMUM.
 		GPU.framenr = (GPU.framenr+1)%(GPU.frameskip+1); //Next frame!
 	}
 	
-	if (do_render && !GPU.video_on) //Disable when Video is turned off or skipped!
+	if (do_render && GPU.video_on) //Disable when Video is turned off or skipped!
 	{
-		if (!VIDEO_DIRECT) //To do scaled mapping to the screen?
+		if ((!VIDEO_DIRECT) || GPU.aspectratio) //To do scaled mapping to the screen?
 		{
 			GPU_fullRenderer(); //Render a full frame, or direct when needed!
 		}

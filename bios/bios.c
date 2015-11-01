@@ -105,7 +105,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 
 	keyboard_loadDefaults(); //Load the defaults for the keyboard font etc.!
 	BIOS_Settings.VGA_AllowDirectPlot = 1; //Default: automatic 1:1 mapping!
-	BIOS_Settings.keepaspectratio = 0; //Don't keep aspect ratio by default!
+	BIOS_Settings.aspectratio = 0; //Don't keep aspect ratio by default!
 	
 	
 	BIOS_Settings.version = BIOS_VERSION; //Current version loaded!
@@ -348,7 +348,7 @@ void BIOS_LoadIO(int showchecksumerrors) //Loads basic I/O drives from BIOS!
 	showchecksumerrors = showchecksumerrors; //Allow checksum errors to be shown!
 	BIOS_LoadData();//Load BIOS options!
 	BIOS_ValidateData(); //Validate all data!
-	GPU_keepAspectRatio(BIOS_Settings.keepaspectratio); //Keep the aspect ratio?
+	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
 	showchecksumerrors = 0; //Don't Allow checksum errors to be shown!
 }
 

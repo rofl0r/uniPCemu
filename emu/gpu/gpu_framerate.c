@@ -207,3 +207,8 @@ void setGPUFrameskip(byte Frameskip)
 	GPU.framenr = 0; //Reset frame nr to draw immediately!
 	GPU.frameskip = Frameskip;
 }
+
+void setGPUFramerate(byte Show)
+{
+	GPU.show_framerate = Show?1:0; //Show the framerate?
+}
