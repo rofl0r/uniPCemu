@@ -40,6 +40,11 @@ OPTINLINE void resetKeyboard() //Reset the keyboard controller!
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
 }
 
+void resetKeyboard_8042()
+{
+	resetKeyboard(); //Reset us!
+}
+
 float HWkeyboard_getrepeatrate() //Which repeat rate to use after the repeat delay! (chars/second)
 {
 	if (__HW_DISABLED) return 1.0f; //Abort!
@@ -364,10 +369,12 @@ int handle_keyboardpeek(byte *result) //Peek at the keyboard!
 
 //Initialisation stuff!
 
+extern byte force8042; //Force 8042 style handling?
 
 OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootup (self test)!
 {
 	if (__HW_DISABLED) return; //Abort!
+	force8042 = 1; //We're forcing 8042 style init!
 	byte result; //For holding the result from the hardware!
 
 	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
@@ -438,6 +445,7 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	{
 		raiseError("Keyboard Hardware initialisation","Invalid ID#2! Result: %02X",result);
 	}
+	force8042 = 0; //Disable 8042 style init!
 }
 
 void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!

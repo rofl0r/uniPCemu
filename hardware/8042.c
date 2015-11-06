@@ -10,6 +10,8 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
+byte force8042 = 0; //Force 8042 controller handling?
+
 /*
 
 PS/2 Controller chip (8042)
@@ -286,78 +288,101 @@ void datawritten_8042() //Data has been written?
 
 byte write_8042(word port, byte value)
 {
-	if ((port & 0xFFF0) != 0x60) return 0; //Not our port!
-switch (port) //What port?
-{
-case 0x60: //Data port: write output buffer?
-	if (Controller8042.writeoutputport) //Write the output port?
+	if ((port & 0xFFFC) != 0x60) return 0; //Not our port!
+	switch (port) //What port?
 	{
-		Controller8042.outputport = value; //Write the output port directly!
-		refresh_outputport(); //Handle the new output port!
-		Controller8042.writeoutputport = 0; //Not anymore!
-		Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
-		return 1; //Don't process normally!
-	}
-	if (Controller8042.Write_RAM) //Write to VRAM byte?
-	{
-		Controller8042.RAM[Controller8042.Write_RAM-1] = value; //Set data in RAM!
-		Controller8042.Write_RAM = 0; //Not anymore!
-		Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
-		return 1; //Don't process normally!
-	}
+	case 0x60: //Data port: write output buffer?
+		if (Controller8042.writeoutputport) //Write the output port?
+		{
+			Controller8042.outputport = value; //Write the output port directly!
+			refresh_outputport(); //Handle the new output port!
+			Controller8042.writeoutputport = 0; //Not anymore!
+			Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
+			return 1; //Don't process normally!
+		}
+		if (Controller8042.Write_RAM) //Write to VRAM byte?
+		{
+			Controller8042.RAM[Controller8042.Write_RAM-1] = value; //Set data in RAM!
+			Controller8042.Write_RAM = 0; //Not anymore!
+			Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
+			return 1; //Don't process normally!
+		}
 
-	Controller8042.output_buffer = value; //Write to output buffer to process!
+		Controller8042.output_buffer = value; //Write to output buffer to process!
 
-	datawritten_8042(); //Written handler!
-	return 1;
-	break;
-case 0x64: //Command port: send command?
-	Controller8042.command = value; //Set command!
-	Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
-	commandwritten_8042(); //Written handler!
-	return 1;
-	break;
-}
-return 0; //We're unhandled!
+		datawritten_8042(); //Written handler!
+		return 1;
+		break;
+	case 0x61: //PPI keyboard functionality for XT!
+		if ((value & 0x80) && (EMULATED_CPU<CPU_80286)) //Clear interrupt flag and we're a XT system?
+		{
+			Controller8042.status_buffer &= ~0x21; //Clear input buffer full&AUX bits!
+			fill8042_input_buffer(); //Fill the next byte to use!
+		}
+		if ((value & 0x40) && (!Controller8042.PortB & 0x40)) //Set when unset?
+		{
+			resetKeyboard_8042(); //Reset the keyboard manually!
+		}
+		Controller8042.PortB = (value&0xC0); //Save values for reference!
+		return 1;
+		break;
+	case 0x64: //Command port: send command?
+		Controller8042.command = value; //Set command!
+		Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
+		commandwritten_8042(); //Written handler!
+		return 1;
+		break;
+	}
+	return 0; //We're unhandled!
 }
 
 byte read_8042(word port, byte *result)
 {
-	if ((port & 0xFFF0) != 0x60) return 0; //Not our port!
+	if ((port & 0xFFFC) != 0x60) return 0; //Not our port!
 	switch (port)
-{
-case 0x60: //Data port: Read input buffer?
-	if (Controller8042.readoutputport) //Read the output port?
 	{
-		*result = Controller8042.outputport; //Read the output port directly!
-		fill8042_input_buffer(); //Fill the input buffer if needed!
-		return 1; //Don't process normally!
-	}
-	if (Controller8042.Read_RAM) //Write to VRAM byte?
-	{
-		*result = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
-		Controller8042.Read_RAM = 0; //Not anymore!
-		fill8042_input_buffer(); //Fill the input buffer if needed!
-		return 1; //Don't process normally!
-	}
+	case 0x60: //Data port: Read input buffer?
+		if (Controller8042.readoutputport) //Read the output port?
+		{
+			*result = Controller8042.outputport; //Read the output port directly!
+			fill8042_input_buffer(); //Fill the input buffer if needed!
+			return 1; //Don't process normally!
+		}
+		if (Controller8042.Read_RAM) //Write to VRAM byte?
+		{
+			*result = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
+			Controller8042.Read_RAM = 0; //Not anymore!
+			fill8042_input_buffer(); //Fill the input buffer if needed!
+			return 1; //Don't process normally!
+		}
 	
-	fill8042_input_buffer(); //Fill the input buffer if needed!
-	if (Controller8042.status_buffer&1) //Gotten data?
-	{
-		*result = Controller8042.input_buffer; //Read input buffer!
-		Controller8042.status_buffer &= ~0x21; //Clear input buffer full&AUX bits!
-		fill8042_input_buffer(); //Get the next byte if needed!
+		fill8042_input_buffer(); //Fill the input buffer if needed!
+		if (Controller8042.status_buffer&1) //Gotten data?
+		{
+			*result = Controller8042.input_buffer; //Read input buffer!
+			if ((EMULATED_CPU>=CPU_80286) || force8042) //We're an AT system?
+			{
+				Controller8042.status_buffer &= ~0x21; //Clear input buffer full&AUX bits!
+				fill8042_input_buffer(); //Get the next byte if needed!
+			}
+		}
+		else
+		{
+			*result = 0; //Nothing to give: input buffer is empty!
+		}
+		return 1; //We're processed!
+		break;
+	case 0x61: //PPI keyboard functionality for XT!
+		*result = 0; //We're not having bit 0x80 set!
+		return 1; //We're processed!
+		break;
+	case 0x64: //Command port: read status register?
+		if ((EMULATED_CPU >= CPU_80286) || force8042) fill8042_input_buffer(); //Fill the input buffer if needed!
+		*result = Controller8042.status_buffer; //Read status buffer!
+		return 1; //We're processed!
+		break;
 	}
-	return 1; //We're processed!
-	break;
-
-case 0x64: //Command port: read status register?
-	fill8042_input_buffer(); //Fill the input buffer if needed!
-	*result = Controller8042.status_buffer; //Read status buffer!
-	return 1; //We're processed!
-	break;
-}
-return 0; //Undefined!
+	return 0; //Undefined!
 }
 
 void BIOS_init8042() //Init 8042&Load all BIOS!

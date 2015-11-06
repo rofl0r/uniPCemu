@@ -36,7 +36,7 @@ byte PPI_writeIO(word port, byte value)
 	switch (port)
 	{
 	case 0x61: //System control port B?
-		SystemControlPortB = value; //Set the port!
+		SystemControlPortB = (value&0x7F); //Set the port, highest bit isn't ours!
 		return 1;
 		break;
 	case 0x62: //PPI62?

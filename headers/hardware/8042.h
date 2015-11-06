@@ -73,6 +73,7 @@ typedef struct
 	//The output buffer itself!
 	FIFOBUFFER *buffer; //The buffer for our data!
 	
+	byte PortB; //Port B?
 } Controller8042_t; //The 8042 Controller!
 
 void BIOS_init8042(); //Init 8042&Load all BIOS!
