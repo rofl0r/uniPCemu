@@ -216,13 +216,16 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 	case 0xF0: case 0xF1: case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF7: case 0xF8: case 0xF9: case 0xFA: case 0xFB: case 0xFC: case 0xFD: case 0xFE: case 0xFF: //Pulses!
 		if (!(Controller8042.command&0x1)) //CPU reset (pulse line 0)?
 		{
-			/*if (!(Controller8042.outputport&0x1)) //PC reset triggered?
-			{
-				sleep(); //The CPU needs to lock up!
-			}*/
-
 			resetCPU(); //Process CPU reset!
 		}
+		break;
+	case 0xDD: //Disable A20 line?
+		Controller8042.outputport = Controller8042.outputport&(~0x2); //Wrap arround: disable A20 line!
+		refresh_outputport(); //Handle the new output port!
+		break;
+	case 0xDF: //Enable A20 line?
+		Controller8042.outputport = Controller8042.outputport|(0x2); //Wrap arround: enable A20 line!
+		refresh_outputport(); //Handle the new output port!
 		break;
 	default: //Default: output to the keyboard controller!
 		//Unknown device!
@@ -231,8 +234,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 }
 
 void refresh_outputport()
-{
-	MMU_wraparround(!((Controller8042.outputport&2)>>1)); //Enable/disable wrap arround depending on bit 2 (1=Disable wrap, 0=Enable wrap(disable A20 line))!
+{	MMU_setA20(0,(Controller8042.outputport&2)); //Enable/disable wrap arround depending on bit 2 (1=Enable, 0=Disable)!
 }
 
 void datawritten_8042() //Data has been written?

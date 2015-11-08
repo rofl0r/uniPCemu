@@ -48,7 +48,12 @@ byte PPI_writeIO(word port, byte value)
 		return 1;
 		break;
 	case 0x92: //System control port A?
-		SystemControlPortA = value; //Set the port!
+		MMU_setA20(1,value&2); //Fast A20!
+		if (value&1) //Fast reset?
+		{
+			resetCPU(); //Reset the CPU!
+		}
+		SystemControlPortA = (value&(~1)); //Set the port!
 		return 1;
 		break;
 	default: //unknown port?

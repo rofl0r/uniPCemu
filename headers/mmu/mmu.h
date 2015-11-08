@@ -10,6 +10,7 @@ typedef struct
 	byte *memory; //The memory itself!
 	int invaddr; //Invalid adress in memory with MMU_ptr?
 	uint_32 wraparround; //To wrap arround memory mask?
+	byte wrapdisabled[2];
 } MMU_type;
 
 typedef struct
@@ -79,6 +80,6 @@ byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode); //Read without seg
 //Rest support
 void MMU_dumpmemory(char *filename); //Dump the memory to a file!
 //uint_32 MMU_realaddr(int segdesc, word segment, uint_32 offset); //Real adress in real (direct) memory?
-void MMU_wraparround(byte dowrap); //To wrap arround 1/3/5/... MB limit?
+void MMU_setA20(byte where, byte enabled); //Set A20 line enabled?
 void MMU_clearOP(); //Clear the OPcode cache!
 #endif

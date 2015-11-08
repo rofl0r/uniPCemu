@@ -303,16 +303,6 @@ OPTINLINE void handle_keyboard_data(byte data)
 			return; //Done!
 		}
 		break;
-	case 0xDD: //Disable A20 line?
-		Controller8042.outputport = Controller8042.outputport|(0x2); //Wrap arround: disable A20 line!
-		refresh_outputport(); //Handle the new output port!
-		Keyboard.has_command = 0; //No command anymore!
-		break;
-	case 0xDF: //Enable A20 line?
-		Controller8042.outputport = Controller8042.outputport&(~0x2); //Wrap arround: disable A20 line!
-		refresh_outputport(); //Handle the new output port!
-		Keyboard.has_command = 0; //No command anymore!
-		break;
 	case 0xED: //Set/reset LEDs?
 		Keyboard.LEDS = data; //Set/reset LEDs!
 		Keyboard.has_command = 0; //No command anymore!
