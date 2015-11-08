@@ -376,6 +376,5 @@ void MMU_resetaddr()
 void MMU_setA20(byte where, byte enabled) //To enable A20?
 {
 	MMU.wrapdisabled[where] = enabled; //Enabled?
-	//dolog("MMU","Set A20 bit disabled: %i",dowrap); //To wrap arround?
 	MMU.wraparround = (MMU.wrapdisabled[0]|MMU.wrapdisabled[1])?(~0):BITOFF(~0, 0x100000); //Wrap arround mask for A20 line!
 }

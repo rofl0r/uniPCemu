@@ -234,7 +234,8 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 }
 
 void refresh_outputport()
-{	MMU_setA20(0,(Controller8042.outputport&2)); //Enable/disable wrap arround depending on bit 2 (1=Enable, 0=Disable)!
+{
+	MMU_setA20(0,(Controller8042.outputport&2)); //Enable/disable wrap arround depending on bit 2 (1=Enable, 0=Disable)!
 }
 
 void datawritten_8042() //Data has been written?
