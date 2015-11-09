@@ -633,8 +633,6 @@ byte CPU_segmentOverridden(byte activeCPU)
 	return (CPU[activeCPU].segment_register != CPU_SEGMENT_DEFAULT); //Is the segment register overridden?
 }
 
-extern byte cpudebugger; //To debug the CPU?
-
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
