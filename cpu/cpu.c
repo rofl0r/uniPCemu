@@ -554,9 +554,9 @@ char *CPU_textsegment(byte defaultsegment) //Plain segment to use!
 {
 	if (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
 	{
-		return &textsegments[defaultsegment]; //Default segment!
+		return &textsegments[defaultsegment][0]; //Default segment!
 	}
-	return &textsegments[CPU[activeCPU].segment_register]; //Use Data Segment (or different in case) for data!
+	return &textsegments[CPU[activeCPU].segment_register][0]; //Use Data Segment (or different in case) for data!
 }
 
 void CPU_afterexec(); //Prototype for below!
@@ -836,11 +836,6 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 		CPU_exSingleStep(); //Type-1 interrupt: Single step interrupt!
 		CPU_afterexec(); //All after execution fixing!
 	}
-}
-
-byte getcpuwraparround() //Wrap arround 1MB limit?
-{
-	return (getcpumode()!=CPU_MODE_PROTECTED); //Wrap arround when not in protected mode!
 }
 
 extern uint_32 destEIP;

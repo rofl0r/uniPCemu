@@ -828,7 +828,7 @@ void CPU_resetOP(); //Rerun current Opcode? (From interrupt calls this recalls t
 void CPU_beforeexec(); //Everything before the execution of the current CPU OPcode!
 void CPU_exec(); //Run one CPU OPCode!
 //void CPU_exec_DEBUGGER(); //Processes the opcode at CS:EIP (386) or CS:IP (8086) for debugging.
-int have_interrupt(byte nr); //We have this interrupt in the IVT?
+byte have_interrupt(byte nr); //We have this interrupt in the IVT?
 
 
 
@@ -871,8 +871,6 @@ void CPU_hard_RETI(); //RETI from hardware!
 void CPU_debugger_STOP(); //After each RET function.
 
 word *CPU_segment_ptr(byte defaultsegment); //Plain segment to use, direct access!
-
-int getcpuwraparround(); //Wrap arround 1MB limit?
 
 void CPU_setBootstrap(); //Sets the valid bootstrap at address 0xFFFF0 after the CPU is initialised to run the BIOS POST!
 

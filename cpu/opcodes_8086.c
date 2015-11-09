@@ -57,20 +57,26 @@ Start of help for debugging
 char modrm_param1[256]; //Contains param/reg1
 char modrm_param2[256]; //Contains param/reg2
 
-OPTINLINE void modrm_debugger8(MODRM_PARAMS *params, byte whichregister1, byte whichregister2) //8-bit handler!
+void modrm_debugger8(MODRM_PARAMS *params, byte whichregister1, byte whichregister2) //8-bit handler!
 {
-	bzero(modrm_param1,sizeof(modrm_param1));
-	bzero(modrm_param2,sizeof(modrm_param2));
-	modrm_text8(params,whichregister1,&modrm_param1[0]);
-	modrm_text8(params,whichregister2,&modrm_param2[0]);
+	if (cpudebugger)
+	{
+		bzero(modrm_param1,sizeof(modrm_param1));
+		bzero(modrm_param2,sizeof(modrm_param2));
+		modrm_text8(params,whichregister1,&modrm_param1[0]);
+		modrm_text8(params,whichregister2,&modrm_param2[0]);
+	}
 }
 
-OPTINLINE void modrm_debugger16(MODRM_PARAMS *params, byte whichregister1, byte whichregister2) //16-bit handler!
+void modrm_debugger16(MODRM_PARAMS *params, byte whichregister1, byte whichregister2) //16-bit handler!
 {
-	bzero(modrm_param1,sizeof(modrm_param1));
-	bzero(modrm_param2,sizeof(modrm_param2));
-	modrm_text16(params,whichregister1,&modrm_param1[0]);
-	modrm_text16(params,whichregister2,&modrm_param2[0]);
+	if (cpudebugger)
+	{
+		bzero(modrm_param1,sizeof(modrm_param1));
+		bzero(modrm_param2,sizeof(modrm_param2));
+		modrm_text16(params,whichregister1,&modrm_param1[0]);
+		modrm_text16(params,whichregister2,&modrm_param2[0]);
+	}
 }
 
 //The types of parameters used in the instruction for the instruction text debugger!
