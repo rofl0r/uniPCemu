@@ -135,7 +135,7 @@ uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
 0x67 Address-size override
 */
 
-void CPU_setprefix(byte prefix) //Sets a prefix on!
+OPTINLINE void CPU_setprefix(byte prefix) //Sets a prefix on!
 {
 	CPU_prefixes[activeCPU][(prefix>>3)] |= (128>>(prefix&7)); //Have prefix!
 	switch (prefix) //Which prefix?
@@ -168,21 +168,17 @@ byte CPU_getprefix(byte prefix) //Prefix set?
 	return (CPU_prefixes[activeCPU][prefix>>3]&(128>>(prefix&7)))>0; //Get prefix set or reset!
 }
 
-void CPU_initPrefixes()
+OPTINLINE void CPU_resetPrefixes() //Resets all prefixes we use!
 {
-	byte c;
-	for (c=0; c<sizeof(CPU_prefixes[0]); c++)
-	{
-		CPU_prefixes[activeCPU][c] = 0; //Reset!
-	}
+	memset(&CPU_prefixes[activeCPU],0,sizeof(CPU_prefixes[activeCPU])); //Reset prefixes!
 }
 
-void CPU_resetPrefixes() //Resets all prefixes we use!
+OPTINLINE void CPU_initPrefixes()
 {
-	memset(CPU_prefixes[activeCPU],0,sizeof(CPU_prefixes[activeCPU])); //Reset prefixes!
+	CPU_resetPrefixes(); //This is the same: just reset all prefixes to zero!
 }
 
-int CPU_isPrefix(byte prefix)
+OPTINLINE byte CPU_isPrefix(byte prefix)
 {
 	switch (prefix) //What prefix/opcode?
 	{
@@ -197,11 +193,10 @@ int CPU_isPrefix(byte prefix)
 			return 1; //Always a prefix!
 		case 0x66: //Operand-size override
 		case 0x67: //Address-size override
-			if (EMULATED_CPU>=CPU_80286) return 1; //We're a prefix when 286+!
-			return 0; //No prefix!
+			return (EMULATED_CPU>=CPU_80286); //We're a prefix when 286+!
 		case 0x64: //FS segment override prefix
 		case 0x65: //GS segment override prefix
-			if (EMULATED_CPU >= CPU_80386) return 1; //We're a prefix when 386+!
+			return (EMULATED_CPU >= CPU_80386); //We're a prefix when 386+!
 		default: //It's a normal OPcode?
 			return 0; //No prefix!
 			break; //Not use others!
@@ -210,7 +205,7 @@ int CPU_isPrefix(byte prefix)
 	return 0; //No prefix!
 }
 
-int DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
+byte DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
 {
 	if (EMULATED_CPU<=CPU_80186) //8086-80186?
 	{
@@ -222,7 +217,7 @@ int DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRI
 
 
 
-byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
+OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 {
 	byte OP; //The current opcode!
 	CPU_resetPrefixes(); //Reset all prefixes for this opcode!
@@ -254,7 +249,7 @@ byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	return OP; //Give the OPCode!
 }
 
-void alloc_CPUregisters()
+OPTINLINE void alloc_CPUregisters()
 {
 	CPU[activeCPU].registers = (CPU_registers *)zalloc(sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS", getLock(LOCK_CPU)); //Allocate the registers!
 	if (!CPU[activeCPU].registers)
@@ -263,7 +258,7 @@ void alloc_CPUregisters()
 	}
 }
 
-void free_CPUregisters()
+OPTINLINE void free_CPUregisters()
 {
 	if (CPU[activeCPU].registers) //Still allocated?
 	{
@@ -271,7 +266,7 @@ void free_CPUregisters()
 	}
 }
 
-void CPU_initRegisters() //Init the registers!
+OPTINLINE void CPU_initRegisters() //Init the registers!
 {
 	byte CSAccessRights; //Default CS access rights, overwritten during first software reset!
 	if (CPU[activeCPU].registers) //Already allocated?
@@ -412,39 +407,24 @@ byte getcpumode() //Retrieves the current mode!
 	return CPUmode; //Give the current CPU mode!
 }
 
-
-
-
-
-
-
-
-
-
-
-
 //PUSH and POP values!
 
-int topdown_stack() //Top-down stack?
+byte topdown_stack() //Top-down stack?
 {
-	if (EMULATED_CPU<=CPU_80186) //8086-80186?
-	{
-		return 1; //Always to-down!
-	}
-	//We're a 286+, so detect it!
+	//We're a 286+, so detect it! Older processors are always in real mode!
 	if (getcpumode()==CPU_MODE_REAL)
 	{
 		return 1; //Real mode!
 	}
-	return !((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].Type & 4)>0); //Real mode=8086; Other=SS segment, bit 4 (off=Topdown stack!)
+	return !(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].Type & 4); //Real mode=8086; Other=SS segment, bit 4 (off=Topdown stack!)
 }
 
-uint_32 getstackaddrsizelimiter()
+OPTINLINE uint_32 getstackaddrsizelimiter()
 {
 	return CPU_StackAddress_size[activeCPU]? 0xFFFFFFFF : 0xFFFF; //Stack address size!
 }
 
-//Memory is the same as PSP: 1234h is 34h 12h, in stack terms reversed, because of back-to-start (top-down) stack!
+//Memory is the same as PSP: 1234h is 34h 12h, in stack terms reversed, because of top-down stack!
 
 //Use below functions for the STACK!
 
@@ -459,7 +439,7 @@ byte CPU_POP8()
 	return (CPU_POP16()&0xFF); //Give the result!
 }
 
-void stack_push(byte dword) //Push 16/32-bits to stack!
+OPTINLINE void stack_push(byte dword) //Push 16/32-bits to stack!
 {
 	if (topdown_stack()) //--?
 	{
@@ -485,7 +465,7 @@ void stack_push(byte dword) //Push 16/32-bits to stack!
 	}
 }
 
-void stack_pop(byte dword) //Push 16/32-bits to stack!
+OPTINLINE void stack_pop(byte dword) //Push 16/32-bits to stack!
 {
 	if (topdown_stack()) //++?
 	{
@@ -558,25 +538,7 @@ uint_32 CPU_POP32() //Full stack used!
 	return result; //Give the result!
 }
 
-
-
-
-
-
-
-
-
-
-
 //Final stuff:
-
-
-
-
-
-
-
-
 
 char textsegments[][3] =   //Comply to CPU_REGISTER_XX order!
 {
@@ -592,32 +554,10 @@ char *CPU_textsegment(byte defaultsegment) //Plain segment to use!
 {
 	if (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
 	{
-		return (char *)&textsegments[defaultsegment]; //Default segment!
+		return &textsegments[defaultsegment]; //Default segment!
 	}
-	return (char *)&textsegments[CPU[activeCPU].segment_register]; //Use Data Segment (or different in case) for data!
+	return &textsegments[CPU[activeCPU].segment_register]; //Use Data Segment (or different in case) for data!
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void CPU_afterexec(); //Prototype for below!
 
@@ -693,6 +633,8 @@ byte CPU_segmentOverridden(byte activeCPU)
 	return (CPU[activeCPU].segment_register != CPU_SEGMENT_DEFAULT); //Is the segment register overridden?
 }
 
+extern byte cpudebugger; //To debug the CPU?
+
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
@@ -708,10 +650,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
 
-	byte OP; //The opcode!
+	register byte OP; //The opcode!
 	OP = CPU_readOP_prefix(); //Process prefix(es) and read OPCode!
 	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
-	debugger_setprefix(""); //Reset prefix for the debugger!
+	if (cpudebugger) debugger_setprefix(""); //Reset prefix for the debugger!
 	gotREP = 0; //Default: no REP-prefix used!
 	byte REPZ = 0; //Default to REP!
 	if (CPU_getprefix(0xF2)) //REPNE Opcode set?
@@ -795,19 +737,22 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 	if (gotREP) //Gotten REP?
 	{
-		if (CPU_getprefix(0xF2)) //REPNZ?
+		if (cpudebugger) //Need to set any debugger info?
 		{
-			debugger_setprefix("REPNZ "); //Set prefix!
-		}
-		else if (CPU_getprefix(0xF3)) //REP/REPZ?
-		{
-			if (REPZ) //REPZ?
+			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
-				debugger_setprefix("REPZ "); //Set prefix!
+				debugger_setprefix("REPNZ "); //Set prefix!
 			}
-			else //REP?
+			else if (CPU_getprefix(0xF3)) //REP/REPZ?
 			{
-				debugger_setprefix("REP "); //Set prefix!
+				if (REPZ) //REPZ?
+				{
+					debugger_setprefix("REPZ "); //Set prefix!
+				}
+				else //REP?
+				{
+					debugger_setprefix("REP "); //Set prefix!
+				}
 			}
 		}
 		if (!CPU[activeCPU].registers->CX) //REP and finished?
@@ -845,16 +790,12 @@ void CPU_hard_RETI() //Hardware RETI!
 	{
 		CPU_OP(0xCF); //Execute!
 	}
-	else //80386?
-	{
-//Not implemented yet!
-	}
 }
 
 //have interrupt must be improven disable overrides for now!!!
 
 
-int have_interrupt(byte nr) //We have this interrupt in the IVT?
+byte have_interrupt(byte nr) //We have this interrupt in the IVT?
 {
 	if (EMULATED_CPU<=CPU_80186) //80(1)86?
 	{
@@ -877,10 +818,6 @@ int have_interrupt(byte nr) //We have this interrupt in the IVT?
 
 void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks etc.)
 {
-	if (MMU_invaddr()) //Invalid adress called?
-	{
-		//Do something on invalid adress?
-	}
 	if (EMULATED_CPU <= CPU_80186) //16-bits mode (protect too high data)?
 	{
 		CPU[activeCPU].registers->EAX &= 0xFFFF; //Convert to 16-bits!
@@ -903,12 +840,7 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 	}
 }
 
-void CPU_debugger_STOP() //Stops on debugging!
-{
-	//We do nothing!
-}
-
-int getcpuwraparround() //Wrap arround 1MB limit?
+byte getcpuwraparround() //Wrap arround 1MB limit?
 {
 	return (getcpumode()!=CPU_MODE_PROTECTED); //Wrap arround when not in protected mode!
 }
