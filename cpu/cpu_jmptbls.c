@@ -532,7 +532,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{NULL,NULL}, //D3h:
 		{NULL,NULL}, //D4h:
 		{NULL,NULL}, //D5h:
-		{unkOP_186,NULL}, //D6h: UNK
+		{NULL,NULL}, //D6h:
 		{NULL,NULL}, //D7h:
 		{NULL,NULL}, //D8h: UNK
 		{NULL,NULL}, //D9h: CoProcessor Minimum
