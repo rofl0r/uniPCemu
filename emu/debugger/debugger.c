@@ -480,13 +480,13 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 			//Pointers and indexes!
 
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, GPU_TEXT_DEBUGGERROW + 11); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debugrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "SP:%04X", debuggerregisters.SP); //Debug DX!
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, GPU_TEXT_DEBUGGERROW + 12); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debugrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "BP:%04X", debuggerregisters.BP); //Debug DX!
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, GPU_TEXT_DEBUGGERROW + 13); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debugrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "SI:%04X", debuggerregisters.SI); //Debug DX!
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, GPU_TEXT_DEBUGGERROW + 14); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debugrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "DI:%04X", debuggerregisters.DI); //Debug DX!
 		}
 		else //286+?
@@ -502,13 +502,13 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 			//Pointers and indexes!
 
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 12, GPU_TEXT_DEBUGGERROW + 11); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 12, debugrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "ESP:%08X", debuggerregisters.ESP); //Debug ESP!
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 12, GPU_TEXT_DEBUGGERROW + 12); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 12, debugrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "EBP:%08X", debuggerregisters.EBP); //Debug EBP!
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 12, GPU_TEXT_DEBUGGERROW + 13); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 12, debugrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "ESI:%08X", debuggerregisters.ESI); //Debug ESI!
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 12, GPU_TEXT_DEBUGGERROW + 14); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 12, debugrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "EDI:%08X", debuggerregisters.EDI); //Debug EDI!
 		}
 
@@ -516,18 +516,18 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		//First, flags fully...
 		if (getcpumode() == CPU_MODE_REAL) //Real mode?
 		{
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, GPU_TEXT_DEBUGGERROW + 15); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debugrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "F :%04X", debuggerregisters.FLAGS); //Debug FLAGS!
 		}
 		else //286+
 		{
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 11, GPU_TEXT_DEBUGGERROW + 15); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 11, debugrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "F :%08X", debuggerregisters.EFLAGS); //Debug FLAGS!
 		}
 
 		//Finally, flags seperated!
 		char *flags = debugger_generateFlags(&debuggerregisters); //Generate the flags as text!
-		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - strlen(flags), GPU_TEXT_DEBUGGERROW + 16); //Second flags row!
+		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - strlen(flags), debugrow++); //Second flags row!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s", flags); //All flags, seperated!
 		GPU_text_releasesurface(frameratesurface); //Unlock!
 	}
