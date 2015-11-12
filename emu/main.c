@@ -107,7 +107,7 @@ int exit_callback(int arg1, int arg2, void *common)
 	{
 		SDL_Quit(); //Quit SDL, releasing everything still left!
 	}
-	halt(0); //The emu has shut down!
+	quitemu(0); //The emu has shut down!
 	return 0; //Never arriving here!
 }
 
@@ -237,7 +237,7 @@ int main(int argc, char * argv[])
 		if (f1!=f2) //Memory changed on the second check?
 		{
 			dolog("zalloc_debug","Multiple freemem fail!");
-			halt(0); //Quit
+			quitemu(0); //Quit
 		}
 
 		uint_32 f;
@@ -274,7 +274,7 @@ int main(int argc, char * argv[])
 		}
 		
 		dolog("zalloc_debug","All checks passed. Free memory: %i bytes Total memory: %i bytes",freemem(),f1);
-		halt(0); //Quit!
+		quitemu(0); //Quit!
 	}
 	
 	if (DELETE_LOGS_ONBOOT) delete_file("logs","*.log"); //Delete any logs still there!
@@ -342,7 +342,7 @@ int main(int argc, char * argv[])
 		doneAudio(); //Finish audio processing!
 		debugrow("Terminating main video service...");		
 		doneVideoMain(); //Finish video!
-		halt(0); //Exit software!
+		quitemu(0); //Exit software!
 		sleep(); //Wait forever if needed!
 	}
 

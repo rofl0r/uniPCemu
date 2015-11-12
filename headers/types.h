@@ -47,7 +47,7 @@
 #define PostSem(s) SDL_SemPost(s);
 
 //Halt is redirected to the exit function!
-#define halt exit
+#define quitemu exit
 
 //Short versions of 64-bit integers!
 #define u64 uint_64

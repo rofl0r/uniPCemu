@@ -497,7 +497,7 @@ void initEMUreset() //Simple reset emulator!
 		debugrow("shutdown!");
 		doneEMU(); //Clean up if needed!
 		EMU_Shutdown(0); //Done shutting down!
-		halt(0); //Shut down!
+		quitemu(0); //Shut down!
 	}
 
 	debugrow("initemu!");

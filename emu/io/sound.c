@@ -12,7 +12,13 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 //How many samples to process at once? Originally 2048; 64=Optimum
-#define SAMPLESIZE 2048
+#ifdef __psp__
+//PSP?
+#define SAMPLESIZE 64
+#else
+//Windows/Linux?
+#define SAMPLESIZE 512
+#endif
 //Maximum samplerate in Hertz (200KHz)
 #define MAX_SAMPLERATE 50000.0f
 //Enable below if debugging speed is to be enabled.

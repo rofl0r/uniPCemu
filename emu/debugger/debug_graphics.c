@@ -336,7 +336,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!
-	//halt(); //Stop!
+	//quitemu(); //Stop!
 	if (waitforever) //Waiting forever?
 	{
 		sleep(); //Wait forever till user Quits the game!

@@ -34,29 +34,17 @@ void protection_nextOP() //We're executing the next OPcode?
 
 word CPU_segment(byte defaultsegment) //Plain segment to use!
 {
-	if (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
-	{
-		return *CPU[activeCPU].SEGMENT_REGISTERS[defaultsegment]; //Default segment!
-	}
-	return *CPU[activeCPU].SEGMENT_REGISTERS[CPU[activeCPU].segment_register]; //Use Data Segment (or different in case ) for data!
+	return (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) ? *CPU[activeCPU].SEGMENT_REGISTERS[defaultsegment] : *CPU[activeCPU].SEGMENT_REGISTERS[CPU[activeCPU].segment_register]; //Use Data Segment (or different) for data!
 }
 
 word *CPU_segment_ptr(byte defaultsegment) //Plain segment to use, direct access!
 {
-	if (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
-	{
-		return CPU[activeCPU].SEGMENT_REGISTERS[defaultsegment]; //Default segment!
-	}
-	return CPU[activeCPU].SEGMENT_REGISTERS[CPU[activeCPU].segment_register]; //Use Data Segment (or different in case ) for data!
+	return (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) ? CPU[activeCPU].SEGMENT_REGISTERS[defaultsegment] : CPU[activeCPU].SEGMENT_REGISTERS[CPU[activeCPU].segment_register]; //Use Data Segment (or different) for data!
 }
 
 int CPU_segment_index(byte defaultsegment) //Plain segment to use, direct access!
 {
-	if (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) //Default segment?
-	{
-		return defaultsegment; //Default segment!
-	}
-	return CPU[activeCPU].segment_register; //Use Data Segment (or different in case) for data!
+	return (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) ? defaultsegment : CPU[activeCPU].segment_register; //Use Data Segment (or different in case) for data!
 }
 
 int get_segment_index(word *location)
@@ -324,7 +312,7 @@ uint_32 destEIP; //Destination address for CS JMP instruction!
 void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
 	if (CPU[activeCPU].faultraised) return; //Abort if already an fault has been raised!
-	if (getcpumode()!=CPU_MODE_REAL) //Not real mode, must be protected or V8086 mode, so update the segment descriptor cache!
+	if (getcpumode()==CPU_MODE_PROTECTED) //Not real mode, must be protected or V8086 mode, so update the segment descriptor cache!
 	{
 		SEGMENT_DESCRIPTOR *descriptor = getsegment_seg(segment,value,isJMPorCALL); //Read the segment!
 		if (descriptor) //Loaded&valid?
@@ -376,7 +364,7 @@ MMU: memory start!
 
 uint_32 CPU_MMU_start(sword segment, word segmentval) //Determines the start of the segment!
 {
-//Determine the Base!
+	//Determine the Base!
 	if (getcpumode()!=CPU_MODE_PROTECTED) //Real or 8086 mode, or unknown segment to use?
 	{
 		return (segmentval<<4); //Behave like a 8086!
@@ -387,7 +375,7 @@ uint_32 CPU_MMU_start(sword segment, word segmentval) //Determines the start of 
 		return (segmentval << 4); //Behave like a 8086!
 	}
 
-//Protected mode!
+	//Protected mode!
 	return ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Base!
 }
 
@@ -401,8 +389,8 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 {
 //Determine the Limit!
 
-	if (CPU[activeCPU].faultraised) return 1; //Abort if already an fault has been raised!
 	if (EMULATED_CPU < CPU_80286) return 0; //Don't give errors: handle like a 80(1)86!
+	if (CPU[activeCPU].faultraised) return 1; //Abort if already an fault has been raised!
 	if ((getcpumode()!=CPU_MODE_PROTECTED) || (segment==-1)) //Real or 8086 mode, or unknown segment to use?
 	{
 		if (segment!=-1) //Normal operations (called for the CPU for sure)?

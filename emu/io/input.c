@@ -2402,7 +2402,7 @@ void psp_input_init()
 	uint_32 i;
 	#ifdef SDL_SYS_JoystickInit
 		//Gotten initialiser for joystick?
-		if (SDL_SYS_JoystickInit()==-1) halt(); //No joystick present!
+		if (SDL_SYS_JoystickInit()==-1) quitemu(0); //No joystick present!
 	#endif
 	SDL_JoystickEventState(SDL_ENABLE);
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
