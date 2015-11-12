@@ -232,7 +232,6 @@ byte out8253(word portnum, byte value)
 				updatePCSpeaker(); //Update the PC speaker!
 			}
 			return 1;
-		break;
 		case 0x43: //pit command port
 			if ((value & 0xC0) == 0xC0) //Read-back command?
 			{
@@ -242,7 +241,7 @@ byte out8253(word portnum, byte value)
 			{
 				byte channel;
 				channel = (value >> 6);
-				channel &= 2; //The channel!
+				channel &= 3; //The channel!
 				pitcommand[channel] = value; //Set the command for the port!
 				switch (value&0x30) {
 				case 0x00: //Latch count value?
@@ -257,9 +256,7 @@ byte out8253(word portnum, byte value)
 				lastpit = channel; //The last channel effected!
 				pitcurrentlatch[channel] = 0; //Reset the latch always!
 			}
-			break;
-		return 1;
-		break;
+			return 1;
 		//From above original:
 	case 0x61: //PC Speaker?
 		old61 = PCSpeakerPort; //Old value!
@@ -269,7 +266,6 @@ byte out8253(word portnum, byte value)
 			updatePCSpeaker(); //The PC Speaker status has been updated!
 		}
 		return 1;
-		break;
 	default:
 		break;
 	}
