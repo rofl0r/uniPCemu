@@ -120,17 +120,17 @@ void updatePCSpeaker() //PC Speaker register has been updated!
 }
 
 //NEW HANDLER
-uint_32 calculatedpitstate[3]; //Calculate state by time and last time handled!
+uint_64 calculatedpitstate[3]; //Calculate state by time and last time handled!
 
 void updatePITState(byte channel)
 {
 	//Calculate the current PIT0 state by frequency and time passed!
-	uint_64 uspassed;
-	static const float tickduration = (1.0f / 1193180.0f)*1000000000.0f; //How long does it take to process one tick in us?
-	uspassed = getuspassed_k(&timerticks[channel]); //How many time has passed since the last full state?
+	uint_64 timepassed;
+	static const float tickduration = (1.0f / 1193180.0f)*1000000000.0f; //How long does it take to process one tick in ns?
+	timepassed = getnspassed_k(&timerticks[channel]); //How many time has passed since the last full state?
 	calculatedpitstate[channel] = pitdivisor[channel]; //Load the current divisor (1-65536)
 	if (calculatedpitstate[channel] == 65536) calculatedpitstate[channel] = 0; //We start counting from 0 instead of 65536!
-	calculatedpitstate[channel] -= (uint_32)((float)uspassed / (uint_32)tickduration); //Count down the current PIT0 state!
+	calculatedpitstate[channel] -= (uint_64)((float)timepassed / (float)tickduration); //Count down the current PIT0 state!
 	calculatedpitstate[channel] &= 0xFFFF; //Convert it to 16-bits value of the PIT!
 	pitlatch[channel] = calculatedpitstate[channel]; //Set the latch!
 }
@@ -246,7 +246,6 @@ byte out8253(word portnum, byte value)
 				switch (value&0x30) {
 				case 0x00: //Latch count value?
 					updatePITState(channel); //Update the state!
-					pitlatch[channel] = calculatedpitstate[channel]; //Load the latch with the most recent value!
 					break;
 				case 0x10: //Mode lo only!
 				case 0x20: //Mode hi only!
