@@ -214,51 +214,63 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			byte verified;
 			verified = 0; //Default: not verified!
 			lock(LOCK_CPU);
-			//Load a normal BIOS ROM, according to the chips! If not found, try BIOSROM.BIN
-			if (EMULATED_CPU < CPU_80286) //5160 PC?
-			{
-				if (!BIOS_load_ROM(18)) //Failed to load u18?
-				{
-					goto loadBIOSROM; //Try and load the BIOSROM.BIN!
-				}
-				if (!BIOS_load_ROM(19)) //Failed to load u19?
-				{
-					dolog("emu", "Failed loading BIOS ROM u19!");
-					BIOS_free_ROM(18); //Release u18!
-					goto loadBIOSROM; //Try and load the BIOSROM.BIN!
-				}
-			}
-			else //5170 PC?
-			{
-				if (!BIOS_load_ROM(27)) //Failed to load u27?
-				{
-					goto loadBIOSROM; //Try and load the BIOSROM.BIN!
-				}
-				if (!BIOS_load_ROM(47)) //Failed to load u47?
-				{
-					dolog("emu", "Failed loading BIOS ROM u47!");
-					BIOS_free_ROM(27); //Release u27!
-					goto loadBIOSROM; //Try and load the BIOSROM.BIN!
-				}
-			}
-			verified = 1; //Verified!
-			goto loadOPTROMS; //Try and load the OPTROMS!
-
-		loadBIOSROM: //Try to load BIOSROM.BIN!
 			if (file_exists("ROM/BIOSROM.BIN")) //Fully custom BIOS ROM, for the entire BIOS segment?
 			{
 				verified = BIOS_load_custom("ROM/BIOSROM.BIN"); //Try to load a custom BIOS ROM!
 				if (verified) goto loadOPTROMS; //Loaded the BIOS?
 			}
 
-			//No BIOS to use?
-			CPU_INT(0x18); //Error: no ROM!
-			resumeEMU(); //Resume the emulator!
-			allow_debuggerstep = 1; //Allow stepping from now on!
-			unlock(LOCK_CPU);
-			return 0; //No reset!
+			//Load a normal BIOS ROM, according to the chips!
+			if (EMULATED_CPU < CPU_80286) //5160 PC?
+			{
+				if (!BIOS_load_ROM(18)) //Failed to load u18?
+				{
+					dolog("emu", "Failed loading BIOS ROM u18!");
+					CPU_INT(0x18); //Error: no ROM!
+					allow_debuggerstep = 1; //Allow stepping from now on!
+					resumeEMU(); //Resume the emulator!
+					unlock(LOCK_CPU);
+					return 0; //No reset!
+				}
+				if (!BIOS_load_ROM(19)) //Failed to load u19?
+				{
+					dolog("emu", "Failed loading BIOS ROM u19!");
+					BIOS_free_ROM(18); //Release u18!
+					CPU_INT(0x18); //Error: no ROM!
+					resumeEMU(); //Resume the emulator!
+					allow_debuggerstep = 1; //Allow stepping from now on!
+					unlock(LOCK_CPU);
+					return 0; //No reset!
+				}
+				verified = 1; //Verified!
+			}
+			else //5170 PC?
+			{
+				if (!BIOS_load_ROM(27)) //Failed to load u27?
+				{
+					dolog("emu", "Failed loading BIOS ROM u27!");
+					CPU_INT(0x18); //Error: no ROM!
+					allow_debuggerstep = 1; //Allow stepping from now on!
+					resumeEMU(); //Resume the emulator!
+					unlock(LOCK_CPU);
+					return 0; //No reset!
+				}
+				if (!BIOS_load_ROM(47)) //Failed to load u47?
+				{
+					dolog("emu", "Failed loading BIOS ROM u47!");
+					BIOS_free_ROM(27); //Release u27!
+					CPU_INT(0x18); //Error: no ROM!
+					resumeEMU(); //Resume the emulator!
+					allow_debuggerstep = 1; //Allow stepping from now on!
+					unlock(LOCK_CPU);
+					return 0; //No reset!
+				}
+				verified = 1; //Verified!
+			}
 
-			loadOPTROMS:
+			BIOS_free_systemROM(); //Stop our own ROM: we're using the loaded ROMs now!
+
+		loadOPTROMS:
 
 			if (verified) //Ready to boot, but need option ROMS?
 			{
@@ -274,7 +286,6 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			else //Boot rom ready?
 			{
-				BIOS_free_systemROM(); //Stop our own ROM: we're using the loaded ROMs now!
 				BIOS_registerROM(); //Register the BIOS ROMS!
 				EMU_startInput(); //Start input again!
 				resetCPU(); //Reset the CPU to load the BIOS!
