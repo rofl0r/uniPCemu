@@ -19,8 +19,6 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 //Are we disabled?
 #define __HW_DISABLED 0
 
-double timerfreq; //Done externally!
-
 TicksHolder timerticks[3];
 float timertime[3] = { 1000000000.0f / 18.2f,0.0f,0.0f }; //How much time does it take to expire (default to 0=18.2Hz timer)?
 float currenttime[3] = { 0.0f,0.0f,0.0f }; //Current time passed!
@@ -29,9 +27,9 @@ extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CP
 
 void cleanPIT0()
 {
-	getuspassed(&timerticks[0]); //Discard the time passed to the counter!
-	getuspassed(&timerticks[1]); //Discard the time passed to the counter!
-	getuspassed(&timerticks[2]); //Discard the time passed to the counter!
+	getnspassed(&timerticks[0]); //Discard the time passed to the counter!
+	getnspassed(&timerticks[1]); //Discard the time passed to the counter!
+	getnspassed(&timerticks[2]); //Discard the time passed to the counter!
 }
 
 void updatePIT0() //Timer tick Irq
@@ -39,7 +37,7 @@ void updatePIT0() //Timer tick Irq
 	byte channel;
 	if (EMU_RUNNING==1) //Are we running?
 	{
-		for (channel = 0;channel < 3;channel++) //process all channels![
+		for (channel = 0;channel < 3;) //process all channels![
 		{
 			currenttime[channel] += (float)getnspassed(&timerticks[channel]); //Add the time passed to the counter!
 			if ((currenttime[channel] >= timertime[channel]) && timertime[channel]) //Are we to trigger an interrupt?
@@ -47,6 +45,7 @@ void updatePIT0() //Timer tick Irq
 				currenttime[channel] -= timertime[channel]; //Rest!
 				if (!channel) doirq(0); //PIT0 executes an IRQ on timeout!
 			}
+			++channel; //Process next channel!
 		}
 	}
 }
@@ -125,14 +124,10 @@ uint_64 calculatedpitstate[3]; //Calculate state by time and last time handled!
 void updatePITState(byte channel)
 {
 	//Calculate the current PIT0 state by frequency and time passed!
-	uint_64 timepassed;
 	static const float tickduration = (1.0f / 1193180.0f)*1000000000.0f; //How long does it take to process one tick in ns?
-	timepassed = getnspassed_k(&timerticks[channel]); //How many time has passed since the last full state?
-	calculatedpitstate[channel] = pitdivisor[channel]; //Load the current divisor (1-65536)
-	if (calculatedpitstate[channel] == 65536) calculatedpitstate[channel] = 0; //We start counting from 0 instead of 65536!
-	calculatedpitstate[channel] -= (uint_64)((float)timepassed / (float)tickduration); //Count down the current PIT0 state!
-	calculatedpitstate[channel] &= 0xFFFF; //Convert it to 16-bits value of the PIT!
-	pitlatch[channel] = calculatedpitstate[channel]; //Set the latch!
+	calculatedpitstate[channel] = pitdivisor[channel]; //Load the current divisor (1-65536) to count down from!
+	calculatedpitstate[channel] -= (uint_64)((float)currenttime[channel] / (float)tickduration); //Count down to the current PIT0 state!
+	pitlatch[channel] = (calculatedpitstate[channel] &= 0xFFFF); //Convert it to 16-bits value of the PIT and latch it!
 }
 
 byte lastpit = 0;
@@ -243,14 +238,9 @@ byte out8253(word portnum, byte value)
 				channel = (value >> 6);
 				channel &= 3; //The channel!
 				pitcommand[channel] = value; //Set the command for the port!
-				switch (value&0x30) {
-				case 0x00: //Latch count value?
-					updatePITState(channel); //Update the state!
-					break;
-				case 0x10: //Mode lo only!
-				case 0x20: //Mode hi only!
-				case 0x30: //Mode lo/hi!
-					break;
+				if (!(value&0x30)) //Latch count value?
+				{
+					updatePITState(channel); //Update the latch!
 				}
 				lastpit = channel; //The last channel effected!
 				pitcurrentlatch[channel] = 0; //Reset the latch always!
