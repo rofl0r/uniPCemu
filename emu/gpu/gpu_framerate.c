@@ -131,7 +131,9 @@ void renderFramerate()
 		}
 		else //Don't debug framerate, but still render?
 		{
-			GPU_textclearscreen(frameratesurface); //Clear the rows we use!
+			GPU_textclearrow(frameratesurface, 0); //Clear the rows we use!
+			GPU_textclearrow(frameratesurface, 1); //Clear the rows we use!
+			GPU_textclearrow(frameratesurface, 2); //Clear the rows we use!
 		}
 		GPU_text_releasesurface(frameratesurface); //Unlock!
 	}

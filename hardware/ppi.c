@@ -1,5 +1,7 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/ports.h" //I/O support!
+#include "headers/mmu/mmu.h" //MMU support!
+#include "headers/cpu/cpu.h" //CPU support!
 
 byte SystemControlPortB; //System control port B!
 byte SystemControlPortA; //System control port A!
@@ -51,6 +53,7 @@ byte PPI_writeIO(word port, byte value)
 		MMU_setA20(1,value&2); //Fast A20!
 		if (value&1) //Fast reset?
 		{
+			doneCPU();
 			resetCPU(); //Reset the CPU!
 		}
 		SystemControlPortA = (value&(~1)); //Set the port!

@@ -41,6 +41,8 @@ byte CPU_prefixes[2][32]; //All prefixes, packed in a bitfield!
 
 uint_32 makeupticks; //From PIC?
 
+extern byte PIQSizes[NUMCPUS]; //The PIQ buffer sizes!
+
 //Now the code!
 
 byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
@@ -73,7 +75,7 @@ void copyint(byte src, byte dest) //Copy interrupt handler pointer to different 
 
 int STACK_SIZE = 2; //Stack item in bytes! (4 official for 32-bit, 2 for 16-bit?)
 
-void resetCPU() //Initialises CPU!
+void resetCPU() //Initialises the currently selected CPU!
 {
 	memset(&CPU,0,sizeof(CPU)); //Reset the CPU fully!
 	CPU_initRegisters(); //Initialise the registers!
@@ -96,13 +98,28 @@ void resetCPU() //Initialises CPU!
 	CPU[activeCPU].lastopcode = 0; //Last opcode, default to 0 and unknown?
 	generate_opcode_jmptbl(); //Generate the opcode jmptbl for the current CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
+	if (PIQSizes[EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
+	{
+		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[EMULATED_CPU],0); //Our PIQ we use!
+	}
 }
 
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h
 
 byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 {
-	return MMU_rb(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP++,1); //Read OPcode!
+	byte result; //Buffer from the PIQ and actual memory data!
+	uint_32 instructionEIP = CPU[activeCPU].registers->EIP++; //Our current instruction position is increased always!
+	if (CPU[activeCPU].PIQ) //PIQ present?
+	{
+		if (readfifobuffer(CPU[activeCPU].PIQ,&result)) //Read from PIQ?
+		{
+			return result; //Give the prefetched data!
+		}
+		//Not enough data in the PIQ? Just read from normal memory
+		CPU[activeCPU].PIQ_EIP = CPU[activeCPU].registers->EIP; //Start reading the next instruction from here instead of end of buffer!
+	}
+	return MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 1); //Read OPcode directly from memory!
 }
 
 word CPU_readOPw() //Reads the operation (word) at CS:EIP
@@ -308,6 +325,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 		CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
 		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
 	}
+	CPU_flushPIQ(); //We're jumping to another address!
 	//Data registers!
 	CPU[activeCPU].registers->DS = 0; //Data segment!
 	CPU[activeCPU].registers->ES = 0; //Extra segment!
@@ -371,6 +389,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 void doneCPU() //Finish the CPU!
 {
 	free_CPUregisters(); //Finish the allocated registers!
+	free_fifobuffer(&CPU[activeCPU].PIQ); //Release our PIQ!
 }
 
 CPU_registers dummyregisters; //Dummy registers!
@@ -394,12 +413,17 @@ void updateCPUmode() //Update the CPU mode!
 {
 	static const byte modes[4] = { CPU_MODE_REAL, CPU_MODE_PROTECTED, CPU_MODE_REAL, CPU_MODE_8086 }; //All possible modes (VM86 mode can't exist without Protected Mode!)
 	byte mode = 0;
+	static byte lastmode = CPU_MODE_REAL; //Our last CPU mode!
 	if (!CPU[activeCPU].registers) CPU_initRegisters(); //Make sure we have registers!
 	if (!CPU[activeCPU].registers) CPU[activeCPU].registers = &dummyregisters; //Dummy registers!
 	mode = CPU[activeCPU].registers->SFLAGS.V8; //VM86 mode?
 	mode <<= 1;
 	mode |= CPU[activeCPU].registers->CR0.PE; //Protected mode?
 	CPUmode = modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
+	if (lastmode != CPUmode) //Mode change flushes PIQ?
+	{
+		CPU_flushPIQ(); //Flush the PIQ!
+	}
 }
 
 byte getcpumode() //Retrieves the current mode!
@@ -645,6 +669,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
 	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
 
+	CPU_fillPIQ(); //Fill the PIQ as needed!
+	fifobuffer_save(CPU[activeCPU].PIQ); //Save the current status of the PIQ: we want to be able to return if executing repeating instructions!
+
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
 
@@ -842,8 +869,8 @@ extern uint_32 destEIP;
 
 void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 {
-	destEIP = CPU_exec_EIP; //Destination address!
-	segmentWritten(CPU_SEGMENT_CS,CPU_exec_CS,0); //CS changed and rerun ...
+	CPU[activeCPU].registers->EIP = CPU_exec_EIP; //Destination address is reset!
+	fifobuffer_restore(CPU[activeCPU].PIQ); //Restore the PIQ to the current address to be able to rerun the current opcode!
 }
 
 //Read signed numbers from CS:(E)IP!
@@ -891,4 +918,21 @@ void CPU_COOP_notavailable() //COProcessor not available!
 {
 	//Point to opcode origins!
 	CPU_customint(7,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+}
+
+void CPU_flushPIQ()
+{
+	if (CPU[activeCPU].PIQ) fifobuffer_clear(CPU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
+	CPU[activeCPU].PIQ_EIP = CPU[activeCPU].registers->EIP; //Save the PIQ EIP to the current address!
+}
+
+void CPU_fillPIQ() //Fill the PIQ until it's full!
+{
+	if (CPU[activeCPU].PIQ) //Gotten a PIQ?
+	{
+		for (;fifobuffer_freesize(CPU[activeCPU].PIQ);) //Gotten data to fill into the PIQ?
+		{
+			writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 1)); //Add the next byte from memory into the buffer!
+		}
+	}
 }

@@ -205,7 +205,7 @@ void fifobuffer_save(FIFOBUFFER *buffer)
 		return; //Error: invalid buffer!
 	}
 	if (buffer->lock) WaitSem(buffer->lock)
-	memcpy(&buffer->position[1],&buffer->position[0],sizeof(buffer->position)); //Backup!
+	memcpy(&buffer->position[1],&buffer->position[0],sizeof(buffer->position[1])); //Backup!
 	if (buffer->lock) PostSem(buffer->lock)
 }
 
@@ -216,7 +216,7 @@ void fifobuffer_restore(FIFOBUFFER *buffer)
 		return; //Error: invalid buffer!
 	}
 	if (buffer->lock) WaitSem(buffer->lock)
-	memcpy(&buffer->position[0], &buffer->position[1], sizeof(buffer->position)); //Restore!
+	memcpy(&buffer->position[0], &buffer->position[1], sizeof(buffer->position[0])); //Restore!
 	if (buffer->lock) PostSem(buffer->lock)
 }
 

@@ -1103,6 +1103,7 @@ OPTINLINE void CPU8086_internal_RET(word popbytes)
 	word val = CPU_POP16();    //Near return
 	CPUPROT1
 	REG_IP = val;
+	CPU_flushPIQ(); //We're jumping to another address!
 	REG_SP += popbytes;
 	CPUPROT2
 }
@@ -1110,7 +1111,7 @@ OPTINLINE void CPU8086_internal_RETF(word popbytes)
 {
 	word val = CPU_POP16();    //Far return
 	CPUPROT1
-		destEIP = val; //Load IP!
+	destEIP = val; //Load IP!
 	segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),2); //CS changed!
 	CPUPROT1
 		REG_SP += popbytes; //Process SP!
@@ -1359,22 +1360,22 @@ void CPU8086_OP5C() {modrm_generateInstructionTEXT("POP SP",0,0,PARAM_NONE);/*PO
 void CPU8086_OP5D() {modrm_generateInstructionTEXT("POP BP",0,0,PARAM_NONE);/*POP BP*/ REG_BP = CPU_POP16();/*POP BP*/ }
 void CPU8086_OP5E() {modrm_generateInstructionTEXT("POP SI",0,0,PARAM_NONE);/*POP SI*/ REG_SI = CPU_POP16();/*POP SI*/ }
 void CPU8086_OP5F() {modrm_generateInstructionTEXT("POP DI",0,0,PARAM_NONE);/*POP DI*/ REG_DI = CPU_POP16();/*POP DI*/ }
-void CPU8086_OP70() {signed char rel8;/*JO rel8: (FLAG_OF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JO",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP71() {signed char rel8;/*JNO rel8 : (FLAG_OF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNO",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP72() {signed char rel8;/*JC rel8: (FLAG_CF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JC",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_CF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP73() {signed char rel8;/*JNC rel8 : (FLAG_CF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNC",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_CF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP74() {signed char rel8;/*JZ rel8: (FLAG_ZF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JZ",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP75() {signed char rel8;/*JNZ rel8 : (FLAG_ZF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNZ",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP76() {signed char rel8;/*JBE rel8 : (FLAG_CF=1|FLAG_ZF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JBE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_CF||FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP77() {signed char rel8;/*JA rel8: (FLAG_CF=0&FLAG_ZF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JA",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_CF && !FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP78() {signed char rel8;/*JS rel8: (FLAG_SF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JS",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP79() {signed char rel8;/*JNS rel8 : (FLAG_SF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNS",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_SF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP7A() {signed char rel8;/*JP rel8 : (FLAG_PF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JP",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_PF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP7B() {signed char rel8;/*JNP rel8 : (FLAG_PF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNP",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_PF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP7C() {signed char rel8;/*JL rel8: (FLAG_SF!=FLAG_OF)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JL",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF!=FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP7D() {signed char rel8;/*JGE rel8 : (FLAG_SF=FLAG_OF)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JGE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF==FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP7E() {signed char rel8;/*JLE rel8 : (FLAG_ZF|(FLAG_SF!=FLAG_OF))*/ rel8 = imm8(); modrm_generateInstructionTEXT("JLE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if ((FLAG_SF!=FLAG_OF) || FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ } }
-void CPU8086_OP7F() {signed char rel8;/*JG rel8: ((FLAG_ZF=0)&&(FLAG_SF=FLAG_OF))*/ rel8 = imm8(); modrm_generateInstructionTEXT("JG",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_ZF && (FLAG_SF==FLAG_OF)) {REG_IP += rel8; /* JUMP to destination? */ } }
+void CPU8086_OP70() {signed char rel8;/*JO rel8: (FLAG_OF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JO",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ } }
+void CPU8086_OP71() {signed char rel8;/*JNO rel8 : (FLAG_OF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNO",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP72() {signed char rel8;/*JC rel8: (FLAG_CF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JC",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_CF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP73() {signed char rel8;/*JNC rel8 : (FLAG_CF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNC",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_CF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP74() {signed char rel8;/*JZ rel8: (FLAG_ZF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JZ",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP75() {signed char rel8;/*JNZ rel8 : (FLAG_ZF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNZ",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP76() {signed char rel8;/*JBE rel8 : (FLAG_CF=1|FLAG_ZF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JBE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_CF||FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP77() {signed char rel8;/*JA rel8: (FLAG_CF=0&FLAG_ZF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JA",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_CF && !FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP78() {signed char rel8;/*JS rel8: (FLAG_SF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JS",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP79() {signed char rel8;/*JNS rel8 : (FLAG_SF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNS",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_SF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP7A() {signed char rel8;/*JP rel8 : (FLAG_PF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JP",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_PF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP7B() {signed char rel8;/*JNP rel8 : (FLAG_PF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNP",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_PF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP7C() {signed char rel8;/*JL rel8: (FLAG_SF!=FLAG_OF)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JL",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF!=FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP7D() {signed char rel8;/*JGE rel8 : (FLAG_SF=FLAG_OF)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JGE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF==FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP7E() {signed char rel8;/*JLE rel8 : (FLAG_ZF|(FLAG_SF!=FLAG_OF))*/ rel8 = imm8(); modrm_generateInstructionTEXT("JLE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if ((FLAG_SF!=FLAG_OF) || FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP7F() {signed char rel8;/*JG rel8: ((FLAG_ZF=0)&&(FLAG_SF=FLAG_OF))*/ rel8 = imm8(); modrm_generateInstructionTEXT("JG",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_ZF && (FLAG_SF==FLAG_OF)) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
 void CPU8086_OP84() {modrm_readparams(&params,0,0); modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("TESTB",8,0,PARAM_MODRM12); CPU8086_internal_TEST8(modrm_read8(&params,0),modrm_read8(&params,1)); }
 void CPU8086_OP85() {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("TESTW",16,0,PARAM_MODRM12); CPU8086_internal_TEST16(modrm_read16(&params,0),modrm_read16(&params,1)); }
 void CPU8086_OP86() {modrm_readparams(&params,0,0); modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("XCHGB",8,0,PARAM_MODRM12); MODRM_src0 = 0; MODRM_src1 = 1; CPU8086_internal_XCHG8(modrm_addr8(&params,0,0),modrm_addr8(&params,1,1)); /*XCHG reg8,r/m8*/ }
@@ -1452,19 +1453,19 @@ void CPU8086_OPD4() {byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("
 void CPU8086_OPD5() {byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("AAD",0,theimm,PARAM_IMM8);/*AAD*/ CPU8086_internal_AAD(theimm);/*AAD*/ }
 void CPU8086_OPD6(){REG_AL=FLAG_CF?0xFF:0x00;} //Special case on the 8086: SALC!
 void CPU8086_OPD7(){CPU8086_internal_XLAT();}
-void CPU8086_OPE0(){signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_IP+rel8)&0xFFFF),PARAM_IMM16); if ((--REG_CX) && (!FLAG_ZF)){REG_IP += rel8;}}
+void CPU8086_OPE0(){signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_IP+rel8)&0xFFFF),PARAM_IMM16); if ((--REG_CX) && (!FLAG_ZF)){REG_IP += rel8; CPU_flushPIQ(); /*We're jumping to another address*/}}
 //Hier gebleven met modrm_generateInstructionTEXT!
-void CPU8086_OPE1(){signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPZ",0, ((REG_IP+rel8)&0xFFFF),PARAM_IMM16);if ((--REG_CX) && (FLAG_ZF)){REG_IP += rel8;}}
-void CPU8086_OPE2(){signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOP", 0,((REG_IP+rel8)&0xFFFF),PARAM_IMM16);if (--REG_CX){REG_IP += rel8;}}
-void CPU8086_OPE3(){signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("JCXZ",0,((REG_IP+rel8)&0xFFFF),PARAM_IMM16); if (!REG_CX){REG_IP += rel8;}}
+void CPU8086_OPE1(){signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPZ",0, ((REG_IP+rel8)&0xFFFF),PARAM_IMM16);if ((--REG_CX) && (FLAG_ZF)){REG_IP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/}}
+void CPU8086_OPE2(){signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOP", 0,((REG_IP+rel8)&0xFFFF),PARAM_IMM16);if (--REG_CX){REG_IP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/}}
+void CPU8086_OPE3(){signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("JCXZ",0,((REG_IP+rel8)&0xFFFF),PARAM_IMM16); if (!REG_CX){REG_IP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/}}
 void CPU8086_OPE4(){byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("IN AL,",0,theimm,PARAM_IMM8);REG_AL = PORT_IN_B(theimm);}
 void CPU8086_OPE5(){byte theimm = CPU_readOP();modrm_generateInstructionTEXT("IN AX,",0,theimm,PARAM_IMM8);REG_AX = PORT_IN_W(theimm);}
 void CPU8086_OPE6(){byte theimm = CPU_readOP();debugger_setcommand("OUT %02X,AL",theimm);PORT_OUT_B(theimm,REG_AL);}
 void CPU8086_OPE7(){byte theimm = CPU_readOP(); debugger_setcommand("OUT %02X,AX",theimm); PORT_OUT_W(theimm,REG_AX);}
-void CPU8086_OPE8(){sword reloffset = imm16(); modrm_generateInstructionTEXT("CALL",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); CPU_PUSH16(&REG_IP); REG_IP += reloffset;}
-void CPU8086_OPE9(){sword reloffset = imm16(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); REG_IP += reloffset;}
+void CPU8086_OPE8(){sword reloffset = imm16(); modrm_generateInstructionTEXT("CALL",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); CPU_PUSH16(&REG_IP); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/}
+void CPU8086_OPE9(){sword reloffset = imm16(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/}
 void CPU8086_OPEA(){ word offset = CPU_readOPw(); word segment = CPU_readOPw(); debugger_setcommand("JMP %04X:%04X", segment, offset); destEIP = offset; segmentWritten(CPU_SEGMENT_CS, segment, 1); }
-void CPU8086_OPEB(){signed char reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16);REG_IP += reloffset;}
+void CPU8086_OPEB(){signed char reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/}
 void CPU8086_OPEC(){modrm_generateInstructionTEXT("IN AL,DX",0,0,PARAM_NONE);REG_AL = PORT_IN_B(REG_DX);}
 void CPU8086_OPED(){modrm_generateInstructionTEXT("IN AX,DX",0,0,PARAM_NONE); REG_AX = PORT_IN_W(REG_DX);}
 void CPU8086_OPEE(){modrm_generateInstructionTEXT("OUT DX,AL",0,0,PARAM_NONE); PORT_OUT_B(REG_DX,REG_AL);}
@@ -2542,7 +2543,9 @@ void op_grp5() {
 		modrm_write16(&params, 1, res16, 0); break;
 	case 2: //CALL Ev
 		CPU_PUSH16(&REG_IP);
-		REG_IP = oper1; break;
+		REG_IP = oper1;
+		CPU_flushPIQ(); //We're jumping to another address!
+		break;
 	case 3: //CALL Mp
 		CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP);
 		modrm_decode16(&params, &info, 1); //Get data!
@@ -2550,7 +2553,9 @@ void op_grp5() {
 		segmentWritten(CPU_SEGMENT_CS, MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0), 2);
 		break;
 	case 4: //JMP Ev
-		REG_IP = oper1; break;
+		REG_IP = oper1;
+		CPU_flushPIQ(); //We're jumping to another address!
+		break;
 	case 5: //JMP Mp
 		modrm_decode16(&params, &info, 1); //Get data!
 		destEIP = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);

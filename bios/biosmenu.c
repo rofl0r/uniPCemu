@@ -34,6 +34,8 @@
 
 #include "headers/hardware/ssource.h" //Sound Source volume knob support!
 
+#include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
+
 #define __HW_DISABLED 0
 
 //Force the BIOS to open?
@@ -3484,7 +3486,6 @@ setVGANMItext: //For fixing it!
 		break;
 	}
 
-setFrameratetext:
 	optioninfo[advancedoptions] = 4; //Show framerate!
 	strcpy(menuoptions[advancedoptions], "Show framerate: ");
 	if (BIOS_Settings.ShowFramerate)
@@ -3939,7 +3940,7 @@ void BIOS_CPUSpeed() //CPU speed selection!
 		if (file != BIOS_Settings.CPUSpeed) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
-			BIOS_Settings.CPUSpeed = file; //Select CPU speed setting!
+			BIOS_Settings.CPUSpeed = (uint_32)file; //Select CPU speed setting!
 		}
 		break;
 	}
@@ -3960,7 +3961,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	BIOS_Menu = 8; //Goto Advanced Menu!
 }
 
-int_64 GetPercentage(byte x, byte y, float Percentage) //Retrieve the size, or 0 for none!
+float GetPercentage(byte x, byte y, float Percentage) //Retrieve the size, or 0 for none!
 {
 	int key = 0;
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
@@ -3969,7 +3970,7 @@ int_64 GetPercentage(byte x, byte y, float Percentage) //Retrieve the size, or 0
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
 	}
 	Percentage *= 100.0f; //Start by converting the percentage to percents instead of a factor!
-	uint_32 result = Percentage; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
+	uint_32 result = (uint_32)Percentage; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
 	uint_32 oldvalue; //To check for high overflow!
 	for (;;) //Get input; break on error!
 	{
@@ -4018,7 +4019,7 @@ int_64 GetPercentage(byte x, byte y, float Percentage) //Retrieve the size, or 0
 			{
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 			}
-			return result*0.01f; //Convert back to an ordinary factor!
+			return (result*0.01f); //Convert back to an ordinary factor!
 		}
 		else if ((key & BUTTON_CIRCLE)>0)
 		{

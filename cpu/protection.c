@@ -325,6 +325,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			if (segment == CPU_SEGMENT_CS) //CS register?
 			{
 				CPU[activeCPU].registers->EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
+				CPU_flushPIQ(); //We're jumping to another address!
 			}
 		}
 	}
@@ -341,6 +342,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0;
 			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0;
 			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
+			CPU_flushPIQ(); //We're jumping to another address!
 		}
 	}
 	//Real mode doesn't use the descriptors?

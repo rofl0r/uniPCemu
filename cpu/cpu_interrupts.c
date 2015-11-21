@@ -64,6 +64,7 @@ void CPU_IRET()
 	{
 		REG_IP = CPU_POP16();
 		REG_CS = CPU_POP16();
+		CPU_flushPIQ(); //We're jumping to another address!
 		REG_FLAGS = CPU_POP16();
 	}
 	else //Use protected mode IRET?

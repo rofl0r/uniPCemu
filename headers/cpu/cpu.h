@@ -4,6 +4,7 @@
 #include "headers/types.h"
 #include "headers/mmu/mmu.h"
 #include "headers/bios/bios.h" //Basic BIOS!
+#include "headers/support/fifobuffer.h" //Prefetch Input Queue support!
 
 //CPU?
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determining emulating CPU)
@@ -613,6 +614,8 @@ typedef struct
 	byte lastopcode; //Currently/last running opcode!
 	byte faultraised; //Has a fault been raised by the protection module?
 	byte trapped; //Have we been trapped? Don't execute hardware interrupts!
+	FIFOBUFFER *PIQ; //Our Prefetch Input Queue!
+	uint_32 PIQ_EIP; //EIP of the current PIQ data!
 } CPU_type;
 
 
@@ -911,4 +914,7 @@ byte CPU_segmentOverridden(byte activeCPU);
 void CPU_8086REPPending(); //Execute this before CPU_exec!
 
 byte execNMI(byte causeisMemory); //Execute an NMI!
+
+void CPU_flushPIQ(); //Flush the PIQ!
+void CPU_fillPIQ(); //Fill the PIQ until it's full!
 #endif

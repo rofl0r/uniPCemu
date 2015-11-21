@@ -26,6 +26,8 @@
 
 #include "headers/hardware/sermouse.h" //Serial mouse support!
 
+#include "headers/mmu/mmuhandler.h" //MMu handler support!
+
 //All graphics now!
 
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!

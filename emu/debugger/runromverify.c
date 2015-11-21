@@ -50,6 +50,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	memloc = 0; //Init location!
 
 	word datastart = 0; //Start of data segment!
+	doneCPU();
 	resetCPU(); //Make sure we're loading the ROM correctly (start at 0xF000:FFFF)
 
 	if (!f)

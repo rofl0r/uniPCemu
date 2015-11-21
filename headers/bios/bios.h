@@ -25,10 +25,10 @@ typedef struct PACKED
 	CharacterType cdrom1[256];
 	CharacterType SoundFont[256]; //What soundfont to use?
 
-	word floppy0_readonly; //read-only?
-	word floppy1_readonly; //read-only?
-	word hdd0_readonly; //read-only?
-	word hdd1_readonly; //read-only?
+	byte floppy0_readonly; //read-only?
+	byte floppy1_readonly; //read-only?
+	byte hdd0_readonly; //read-only?
+	byte hdd1_readonly; //read-only?
 
 	uint_32 memory; //Memory used by the emulator!
 	word emulated_CPU; //Emulated CPU?

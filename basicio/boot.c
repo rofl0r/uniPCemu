@@ -36,6 +36,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 		{
 			CPU[activeCPU].registers->CS = loadedsegment; //Loaded segment!
 			CPU[activeCPU].registers->EIP = BOOT_OFFSET; //Loaded boot sector executable!
+			CPU_flushPIQ(); //We're jumping to another address!
 			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
 			return BOOT_OK; //Booted!
 		}
@@ -51,6 +52,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 			{
 				CPU[activeCPU].registers->CS = loadedsegment; //Loaded segment
 				CPU[activeCPU].registers->EIP = BOOT_OFFSET; //Loaded MBR executable!
+				CPU_flushPIQ(); //We're jumping to another address!
 				CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
 				return BOOT_OK; //Booted!
 			}
@@ -87,6 +89,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 			}
 			CPU[activeCPU].registers->CS = ISOREADER_SEGMENT; //Loaded segment!
 			CPU[activeCPU].registers->IP = 0x7C00; //Loaded executable!
+			CPU_flushPIQ(); //We're jumping to another address!
 			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
 			return BOOT_OK; //Booted!
 			break;

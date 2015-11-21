@@ -332,7 +332,7 @@ byte setVolume(SOUNDHANDLER handler, void *extradata, float p_volume) //Channel&
 		if (soundchannels[n].soundhandler && (soundchannels[n].soundhandler==handler) && (soundchannels[n].extradata==extradata)) //Found?
 		{
 			soundchannels[n].volume = p_volume; //Set the volume of the channel!
-			soundchannels[n].volume_percent = p_volume?dB2factor(p_volume*0.01f,1):0; //The volume in linear percent, with 0dB=silence!
+			soundchannels[n].volume_percent = p_volume?(float)dB2factor(p_volume*0.01f,1):0; //The volume in linear percent, with 0dB=silence!
 			unlockaudio(); //Unlock the audio!
 			return 1; //Done: check no more!
 		}

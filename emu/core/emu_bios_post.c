@@ -279,15 +279,18 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 			if (!verified) //Error reading ROM?
 			{
+				unlock(LOCK_CPU);
 				CPU_INT(0x18); //Error: no ROM!
 				resumeEMU(); //Resume the emulator!
-				unlock(LOCK_CPU);
 				return 0; //No reset!
 			}
 			else //Boot rom ready?
 			{
 				BIOS_registerROM(); //Register the BIOS ROMS!
 				EMU_startInput(); //Start input again!
+				unlock(LOCK_CPU);
+				doneCPU();
+				lock(LOCK_CPU);
 				resetCPU(); //Reset the CPU to load the BIOS!
 				allow_debuggerstep = 1; //Allow stepping from now on!
 				startTimers(0); //Make sure we're running fully!
@@ -404,6 +407,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				}
 				CPU[activeCPU].registers->CS = CPU[activeCPU].registers->DS = CPU[activeCPU].registers->ES = 0;
 				CPU[activeCPU].registers->IP = 0; //Run ROM!
+				CPU_flushPIQ(); //We're jumping to another address!
 				CPU[activeCPU].registers->SS = 0;
 				CPU[activeCPU].registers->SP = 0x100; //For ROM specific!
 				fclose(f); //Close boot rom!
@@ -477,6 +481,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x0000, 0x0472, 0); //Clear reboot flag!
 		REG_CS = 0xF000; //Go back to our bootstrap, by using a simulated jump to ROM!
 		REG_IP = 0xFFFF;
+		CPU_flushPIQ(); //We're jumping to another address!
 	}
 	else //We can boot safely?
 	{

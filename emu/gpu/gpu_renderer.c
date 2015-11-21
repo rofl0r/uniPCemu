@@ -127,7 +127,7 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 #endif
 		if (GPU.aspectratio && resized) //Using aspect ratio?
 		{
-			for (; virtualrow<resized->sdllayer->h;) //Process row-by-row!
+			for (; (int_32)virtualrow<(int_32)resized->sdllayer->h;) //Process row-by-row!
 			{
 				put_pixel_row(rendersurface, y++, resized->sdllayer->w, get_pixel_ptr(resized,virtualrow++,0), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
 			}

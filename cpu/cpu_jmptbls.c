@@ -21,6 +21,8 @@ Indexes:
 
 */
 
+byte PIQSizes[NUMCPUS] = {6,4,15,15,15,15}; //The PIQ buffer sizes!
+
 //Structure: opcode_jmptbl[whatcpu][opcode][addresssize]
 //address size=0 for 16-bits, 1 for 32-bits.
 
