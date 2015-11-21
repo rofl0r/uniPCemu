@@ -33,9 +33,7 @@ struct
 
 void resetMPU() //Fully resets the MPU!
 {
-	fifobuffer_gotolast(MIDIDEV.inbuffer); //Clear the FIFO buffer!
-	byte dummy;
-	readfifobuffer(MIDIDEV.inbuffer,&dummy); //Make sure it's cleared by clearing the final byte!
+	fifobuffer_clear(MIDIDEV.inbuffer); //Clear the FIFO buffer!
 }
 
 /*

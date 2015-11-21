@@ -245,6 +245,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			Mouse.has_command = 0; //We're not a command anymore!
 			resend_lastpacket(); //Resend the last (if possible) or current packet.
 			input_lastwrite_mouse(); //Give byte to the user!
+			IRQ8042(); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break; //Not used?
 		case 0xF6: //Set defaults!

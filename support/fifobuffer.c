@@ -78,17 +78,17 @@ uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 	}
 	uint_32 result;
 	if (buffer->lock) WaitSem(buffer->lock)
-	if (buffer->readpos == buffer->writepos) //Either full or empty?
+	if (buffer->position[0].readpos == buffer->position[0].writepos) //Either full or empty?
 	{
-		result = buffer->lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
+		result = buffer->position[0].lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
 	}
-	else if (buffer->readpos>buffer->writepos) //Read after write index? We're a simple difference!
+	else if (buffer->position[0].readpos>buffer->position[0].writepos) //Read after write index? We're a simple difference!
 	{
-		result = buffer->readpos - buffer->writepos;
+		result = buffer->position[0].readpos - buffer->position[0].writepos;
 	}
 	else //The read position is before or at the write position? We wrap arround!
 	{
-		result = (buffer->size - buffer->writepos) + buffer->readpos;
+		result = (buffer->size - buffer->position[0].writepos) + buffer->position[0].readpos;
 	}
 	if (buffer->lock) PostSem(buffer->lock)
 	return result; //Give the result!
@@ -115,7 +115,7 @@ int peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read?
 	if (fifobuffer_freesize(buffer)<buffer->size) //Filled?
 	{
 		if (buffer->lock) WaitSem(buffer->lock)
-		*result = buffer->buffer[buffer->readpos]; //Give the data!
+		*result = buffer->buffer[buffer->position[0].readpos]; //Give the data!
 		if (buffer->lock) PostSem(buffer->lock)
 		return 1; //Something to peek at!
 	}
@@ -137,9 +137,9 @@ int readfifobuffer(FIFOBUFFER *buffer, byte *result)
 	if (fifobuffer_freesize(buffer)<buffer->size) //Filled?
 	{
 		if (buffer->lock) WaitSem(buffer->lock)
-		*result = buffer->buffer[buffer->readpos];
-		buffer->readpos = SAFEMOD((buffer->readpos+1),buffer->size); //Update the position!
-		buffer->lastwaswrite = 0; //Last operation was a read operation!
+		*result = buffer->buffer[buffer->position[0].readpos];
+		buffer->position[0].readpos = SAFEMOD((buffer->position[0].readpos+1),buffer->size); //Update the position!
+		buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
 		if (buffer->lock) PostSem(buffer->lock)
 		return 1; //Read!
 	}
@@ -165,9 +165,9 @@ int writefifobuffer(FIFOBUFFER *buffer, byte data)
 	}
 	
 	if (buffer->lock) WaitSem(buffer->lock)
-	buffer->buffer[buffer->writepos] = data; //Write!
-	buffer->writepos = SAFEMOD((buffer->writepos+1),buffer->size); //Next pos!
-	buffer->lastwaswrite = 1; //Last operation was a write operation!
+	buffer->buffer[buffer->position[0].writepos] = data; //Write!
+	buffer->position[0].writepos = SAFEMOD((buffer->position[0].writepos+1),buffer->size); //Next pos!
+	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
 	if (buffer->lock) PostSem(buffer->lock)
 	return 1; //Written!
 }
@@ -187,13 +187,46 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 	if (fifobuffer_freesize(buffer) == buffer->size) return; //Empty? We can't: there is nothing to go back to!
 
 	if (buffer->lock) WaitSem(buffer->lock)
-	if ((((int_64)buffer->writepos)-1)<0) //Last pos?
+	if ((((int_64)buffer->position[0].writepos)-1)<0) //Last pos?
 	{
-		buffer->readpos = buffer->size-1; //Goto end!
+		buffer->position[0].readpos = buffer->size-1; //Goto end!
 	}
 	else
 	{
-		buffer->readpos = buffer->writepos-1; //Last write!
+		buffer->position[0].readpos = buffer->position[0].writepos-1; //Last write!
 	}
 	if (buffer->lock) PostSem(buffer->lock)
+}
+
+void fifobuffer_save(FIFOBUFFER *buffer)
+{
+	if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
+	{
+		return; //Error: invalid buffer!
+	}
+	if (buffer->lock) WaitSem(buffer->lock)
+	memcpy(&buffer->position[1],&buffer->position[0],sizeof(buffer->position)); //Backup!
+	if (buffer->lock) PostSem(buffer->lock)
+}
+
+void fifobuffer_restore(FIFOBUFFER *buffer)
+{
+	if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
+	{
+		return; //Error: invalid buffer!
+	}
+	if (buffer->lock) WaitSem(buffer->lock)
+	memcpy(&buffer->position[0], &buffer->position[1], sizeof(buffer->position)); //Restore!
+	if (buffer->lock) PostSem(buffer->lock)
+}
+
+void fifobuffer_clear(FIFOBUFFER *buffer)
+{
+	byte temp; //Saved data to discard!
+	if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
+	{
+		return; //Error: invalid buffer!
+	}
+	fifobuffer_gotolast(buffer); //Goto last!
+	readfifobuffer(buffer,&temp); //Clean out the last byte if it's there!
 }

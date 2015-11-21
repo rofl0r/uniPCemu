@@ -53,12 +53,11 @@ void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 {
 	if (((line & 3) == 3) && ((SERMouse.modemcontrol&3)!=3)) //DTR&RTS set?
 	{
-		fifobuffer_gotolast(SERMouse.buffer); //Flush the FIFO buffer until last input!
+		fifobuffer_clear(SERMouse.buffer); //Flush the FIFO buffer until last input!
 		int i;
 		for (i = 0;i < 7;i++) //How many bytes to send?
 		{
 			writefifobuffer(SERMouse.buffer, 'M'); //with a bunch of ASCII 'M' characters.
-			if (!i) fifobuffer_gotolast(SERMouse.buffer); //Flush the FIFO buffer final byte and start our packet!
 		}
 		UART_handleInputs(); //Update input!
 	}
