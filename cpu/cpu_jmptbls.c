@@ -21,7 +21,7 @@ Indexes:
 
 */
 
-byte PIQSizes[NUMCPUS] = {6,4,15,15,15,15}; //The PIQ buffer sizes!
+byte PIQSizes[NUMCPUS] = {6,6,6,16,32,64}; //The PIQ buffer sizes! Pentium has two 64-byte queues.
 
 //Structure: opcode_jmptbl[whatcpu][opcode][addresssize]
 //address size=0 for 16-bits, 1 for 32-bits.
