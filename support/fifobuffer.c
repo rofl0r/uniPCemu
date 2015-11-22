@@ -172,6 +172,86 @@ int writefifobuffer(FIFOBUFFER *buffer, byte data)
 	return 1; //Written!
 }
 
+int peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be read?
+{
+	if (__HW_DISABLED) return 0; //Abort!
+	if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
+	{
+		return 0; //Error: invalid buffer!
+	}
+	if (!memprotect(buffer->buffer, buffer->size, NULL)) //Error?
+	{
+		return 0; //Error: invalid buffer!
+	}
+
+	if (fifobuffer_freesize(buffer)<(buffer->size-1)) //Filled?
+	{
+		if (buffer->lock) WaitSem(buffer->lock)
+		*result = buffer->buffer[buffer->position[0].readpos]; //Give the data high!
+		*result <<= 8; //Shift high!
+		*result |= buffer->buffer[SAFEMOD((buffer->position[0].readpos+1),buffer->size)]; //Next byte is the low data!
+		if (buffer->lock) PostSem(buffer->lock)
+		return 1; //Something to peek at!
+	}
+	return 0; //Nothing to peek at!
+}
+
+int readfifobuffer16(FIFOBUFFER *buffer, word *result)
+{
+	if (__HW_DISABLED) return 0; //Abort!
+	if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
+	{
+		return 0; //Error: invalid buffer!
+	}
+	if (!memprotect(buffer->buffer, buffer->size, NULL)) //Error?
+	{
+		return 0; //Error: invalid buffer!
+	}
+
+	if (fifobuffer_freesize(buffer)<(buffer->size-1)) //Filled?
+	{
+		if (buffer->lock) WaitSem(buffer->lock)
+		*result = buffer->buffer[buffer->position[0].readpos]; //High!
+		buffer->position[0].readpos = SAFEMOD((buffer->position[0].readpos + 1), buffer->size); //Update the position!
+		*result <<= 8; //Shift high!
+		*result |= buffer->buffer[buffer->position[0].readpos]; //Low!
+		buffer->position[0].readpos = SAFEMOD((buffer->position[0].readpos + 1), buffer->size); //Update the position!
+		buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
+		if (buffer->lock) PostSem(buffer->lock)
+		return 1; //Read!
+	}
+
+	return 0; //Nothing to read!
+}
+
+int writefifobuffer16(FIFOBUFFER *buffer, word data)
+{
+	if (__HW_DISABLED) return 0; //Abort!
+	if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
+	{
+		return 0; //Error: invalid buffer!
+	}
+	if (!memprotect(buffer->buffer, buffer->size, NULL)) //Error?
+	{
+		return 0; //Error: invalid buffer!
+	}
+
+	if (fifobuffer_freesize(buffer)<2) //Buffer full?
+	{
+		return 0; //Error: buffer full!
+	}
+
+	if (buffer->lock) WaitSem(buffer->lock)
+	buffer->buffer[buffer->position[0].writepos] = (data>>8); //Write high!
+	buffer->position[0].writepos = SAFEMOD((buffer->position[0].writepos + 1), buffer->size); //Next pos!
+	buffer->buffer[buffer->position[0].writepos] = (data&0xFF); //Write low!
+	buffer->position[0].writepos = SAFEMOD((buffer->position[0].writepos + 1), buffer->size); //Next pos!
+	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
+	if (buffer->lock) PostSem(buffer->lock)
+	return 1; //Written!
+}
+
+
 void fifobuffer_gotolast(FIFOBUFFER *buffer)
 {
 	if (__HW_DISABLED) return; //Abort!

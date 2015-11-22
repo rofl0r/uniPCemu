@@ -141,4 +141,11 @@ parameters:
 
 void fifobuffer_clear(FIFOBUFFER *buffer);
 
+/* 16-bit adjustments */
+
+int peekfifobuffer16(FIFOBUFFER *buffer, word *result); //Is there data to be read?
+int readfifobuffer16(FIFOBUFFER *buffer, word *result);
+int writefifobuffer16(FIFOBUFFER *buffer, word data);
+
+
 #endif

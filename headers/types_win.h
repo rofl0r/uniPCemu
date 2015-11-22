@@ -7,10 +7,8 @@
 #include "SDL.h" //SDL library for windows!
 #include "SDL_events.h" //SDL events!
 //Windows specific structures!
-#include <direct.h>
+#include <direct.h> //For mkdir and directory support!
 #include <windows.h>
-#include <tchar.h> 
-#include <strsafe.h>
 #pragma comment(lib, "User32.lib")
 
 #define realdelay(x) (x)
@@ -18,7 +16,6 @@
 #define delay(us) SDL_Delay(realdelay((uint_32)((us)/1000)))
 #define sleep() for (;;) delay(1000000)
 
-#include <direct.h> //For mkdir!
 #define domkdir _mkdir
 
 //INLINE options!

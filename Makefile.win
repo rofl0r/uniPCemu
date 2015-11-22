@@ -1,5 +1,7 @@
 #Windows makefile
 
+BUILD_DIR = ../../psp-projects_build/x86emu
+
 #Output filename
 TARGET = x86EMU.exe
 
@@ -7,7 +9,7 @@ TARGET := $(BUILD_DIR)/$(TARGET)
 
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
-CFLAGS = -I.
+CFLAGS = -I. -IC:\MinGW\include -IC:\MinGW\include\SDL
 
 LIBS = -lSDL -lSDL_gfx
 
