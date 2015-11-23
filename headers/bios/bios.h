@@ -9,7 +9,7 @@
 #define BIOS_INPUTDELAY 250000
 
 //BIOS Version!
-#define BIOS_VERSION 2
+#define BIOS_VERSION 3
 
 #include "headers/packed.h" //We're packed!
 typedef struct PACKED
