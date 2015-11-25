@@ -46,6 +46,7 @@ void CB_handleCallbacks() //Handle callbacks after CPU usage!
 {
 	if (currentcallback.hascallback) //Valid set?
 	{
+		currentcallback.hascallback = 0; //Reset to not used: we're being handled!
 		if (!currentcallback.handlernr) //Special handler?
 		{
 			callbackzero = 1; //We're a zero callback!
@@ -56,7 +57,6 @@ void CB_handleCallbacks() //Handle callbacks after CPU usage!
 			{
 				if (CBHandlers[currentcallback.handlernr]) //Gotten a handler set?
 				{
-					currentcallback.hascallback = 0; //Reset to not used: we're being handled!
 					CB_SetCallback(1); //Callback!
 					CBHandlers[currentcallback.handlernr](); //Run the handler!
 					CB_SetCallback(0); //Not anymore!
