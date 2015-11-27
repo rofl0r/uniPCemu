@@ -309,6 +309,10 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		//Now for the user visible part:
 
+		//Start the required timers first!
+		useTimer("VGA_ScanLine",1); //Enable VGA rendering!
+		useTimer("Framerate",1); //Enable framerate display too, if used!
+
 		if (DEBUG_VGA_ONLY)
 		{
 			DoDebugTextMode(1); //Text mode debugging only, finally sleep!

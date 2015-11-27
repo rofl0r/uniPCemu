@@ -403,11 +403,6 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	PORT_OUT_B(0x60,0xF2); //Read ID!
 	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
-		raiseError("Keyboard Hardware initialisation","No read ID command result!");
-	}
-
-	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
-	{
 		raiseError("Keyboard Hardware initialisation","No read ID ACK result!");
 	}
 	result = PORT_IN_B(0x60); //Must be 0xFA!

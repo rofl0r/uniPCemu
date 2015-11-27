@@ -31,8 +31,17 @@ byte showchecksumerrors = 0; //Show checksum errors?
 #define DEFAULT_BOOT_ORDER 0
 #define DEFAULT_CPU CPU_80186
 #define DEFAULT_DEBUGMODE DEBUGMODE_NONE
-#define DEFAULT_EXECUTIONMODE EXECUTIONMODE_NONE
+#define DEFAULT_EXECUTIONMODE EXECUTIONMODE_BIOS
 #define DEFAULT_DEBUGGERLOG DEBUGGERLOG_NONE
+#define DEFAULT_ASPECTRATIO 2
+#ifdef __psp__
+#define DEFAULT_DIRECTPLOT 0
+#else
+#define DEFAULT_DIRECTPLOT 2
+#endif
+#define DEFAULT_BWMONITOR BWMONITOR_NONE
+#define DEFAULT_SSOURCEVOL 1.0f
+#define DEFAULT_FRAMERATE 0
 
 void forceBIOSSave()
 {
@@ -104,8 +113,11 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.debugger_log = DEFAULT_DEBUGGERLOG; //Default debugger logging!
 
 	keyboard_loadDefaults(); //Load the defaults for the keyboard font etc.!
-	BIOS_Settings.VGA_AllowDirectPlot = 1; //Default: automatic 1:1 mapping!
-	BIOS_Settings.aspectratio = 0; //Don't keep aspect ratio by default!
+	BIOS_Settings.VGA_AllowDirectPlot = DEFAULT_DIRECTPLOT; //Default: automatic 1:1 mapping!
+	BIOS_Settings.aspectratio = DEFAULT_ASPECTRATIO; //Don't keep aspect ratio by default!
+	BIOS_Settings.bwmonitor = DEFAULT_BWMONITOR; //Default B/W monitor setting!
+	BIOS_Settings.SoundSource_Volume = DEFAULT_SSOURCEVOL; //Default soundsource volume knob!
+	BIOS_Settings.ShowFramerate = DEFAULT_FRAMERATE; //Default framerate setting!
 	
 	
 	BIOS_Settings.version = BIOS_VERSION; //Current version loaded!
@@ -578,10 +590,13 @@ void BIOS_writeKBDCMD(byte cmd)
 	write_8042(0x60,cmd); //Write the command directly to the controller!
 }
 
+extern byte force8042; //Force 8042 style handling?
+
 void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte result; //For holding the result from the hardware!
+	force8042 = 1; //We're forcing 8042 style init!
 
 	BIOS_writeKBDCMD(0xED); //Set/reset status indicators!
 	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
@@ -617,4 +632,5 @@ void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 	PS2ControllerConfigurationByte |= 1; //Enable our interrupt!
 	PORT_OUT_B(0x64, 0x60); //Write PS2ControllerConfigurationByte!
 	PORT_OUT_B(0x60, PS2ControllerConfigurationByte); //Write the new configuration byte!
+	force8042 = 0; //Disable 8042 style init!
 }

@@ -33,6 +33,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	static char logtext[256];
 	static char timestamp[256];
 	static char CRLF[2] = {'\r','\n'}; //CRLF!
+	static int mkdirres = 0;
 	va_list args; //Going to contain the list!
 	uint_64 time;
 
@@ -67,7 +68,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	if ((!logfile) || (strcmp(lastfile,filenametmp)!=0)) //Other file or new file?
 	{
 		if (logfile) fclose(logfile); //Close the old log if needed!
-		domkdir("logs"); //Create a logs directory if needed!
+		mkdirres = domkdir("logs"); //Create a logs directory if needed!
 		logfile = fopen(filenametmp, "r"); //Open for testing!
 		if (logfile) //Existing?
 		{

@@ -50,7 +50,8 @@ void updatePIT0() //Timer tick Irq
 	}
 }
 
-uint_32 pitcurrentlatch[3], pitlatch[3], pitcommand[3], pitdivisor[3];
+uint_32 pitcurrentlatch[4], pitlatch[4], pitdivisor[4]; //Latches & divisors are 32-bits large!
+byte pitcommand[4]; //PIT command is only 1 byte large!
 
 //PC Speaker functionality in PIT
 

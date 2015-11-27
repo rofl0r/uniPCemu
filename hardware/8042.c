@@ -323,7 +323,7 @@ byte write_8042(word port, byte value)
 			Controller8042.status_buffer &= ~0x21; //Clear input buffer full&AUX bits!
 			fill8042_input_buffer(); //Fill the next byte to use!
 		}
-		if ((value & 0x40) && (!Controller8042.PortB & 0x40)) //Set when unset?
+		if ((value & 0x40) && (!(Controller8042.PortB & 0x40))) //Set when unset?
 		{
 			resetKeyboard_8042(); //Reset the keyboard manually!
 		}

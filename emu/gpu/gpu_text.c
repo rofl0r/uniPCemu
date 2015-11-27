@@ -24,25 +24,22 @@ OPTINLINE byte GPU_textcalcpixel(int *x, int *y, int *charx, int *chary)
 	register int cx;
 	register int cy;
 	cx = *x;
-	cy = *y;
 	cx >>= 3; //Shift to the character we're from!
-	cy >>= 3; //Shift to the character we're from!
-	*charx = cx; //Set!
-	*chary = cy; //Set!
-
 	//Check for overflowing character coordinates!
 	if (cx<0) return 1; //Invalid x!
+	if (cx >= GPU_TEXTPIXELSX) return 1; //Invalid x!
+	*charx = cx; //Set!
+
+	cy = *y;
+	cy >>= 3; //Shift to the character we're from!
+	//Check for overflowing character coordinates!
 	if (cy<0) return 1; //Invalid y!
-	if (cx>=GPU_TEXTPIXELSX) return 1; //Invalid x!
-	if (cy>=GPU_TEXTPIXELSY) return 1; //Invalid y!
+	if (cy >= GPU_TEXTPIXELSY) return 1; //Invalid y!
+	*chary = cy; //Set!
 
 	//Now the pixel within!
-	cx = *x;
-	cy = *y;
-	cx &= 7; //8x only!
-	cy &= 7; //8y only!
-	*x = cx; //Our inner x!
-	*y = cy; //Our inner y!
+	*x &= 7; //8x only!
+	*y &= 7; //8x only!
 	return 0; //Valid!
 }
 
@@ -55,10 +52,10 @@ OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters
 
 	if ((lastcharinfo & 0xFFF) != (0x800U|(character << 3)|(byte)y)) //Last row not yet loaded?
 	{
-		word addr = (character<<3); //Address of the character!
+		register word addr = (character<<3); //Address of the character!
 		addr |= y; //The row to select!
 
-		byte lastrow = int10_font_08[addr]; //Read the row from the character generator!
+		register byte lastrow = int10_font_08[addr]; //Read the row from the character generator!
 		//Save our loaded information for next time!
 		lastcharinfo = (lastrow << 12);
 		lastcharinfo |= 0x800; //We're loaded!
