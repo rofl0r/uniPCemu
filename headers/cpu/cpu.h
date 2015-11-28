@@ -616,6 +616,7 @@ typedef struct
 	byte trapped; //Have we been trapped? Don't execute hardware interrupts!
 	FIFOBUFFER *PIQ; //Our Prefetch Input Queue!
 	uint_32 PIQ_EIP; //EIP of the current PIQ data!
+	byte PIQ_Overflow; //PIQ Overflow occurred while executing an instruction?
 } CPU_type;
 
 

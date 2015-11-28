@@ -112,12 +112,15 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 	uint_32 instructionEIP = CPU[activeCPU].registers->EIP++; //Our current instruction position is increased always!
 	if (CPU[activeCPU].PIQ) //PIQ present?
 	{
+		PIQ_retry: //Retry after refilling PIQ!
 		if (readfifobuffer(CPU[activeCPU].PIQ,&result)) //Read from PIQ?
 		{
 			return result; //Give the prefetched data!
 		}
-		//Not enough data in the PIQ? Just read from normal memory
-		CPU[activeCPU].PIQ_EIP = CPU[activeCPU].registers->EIP; //Start reading the next instruction from here instead of end of buffer!
+		//Not enough data in the PIQ? Refill for the next data!
+		CPU_fillPIQ(); //Fill instruction cache with next data!
+		CPU[activeCPU].PIQ_Overflow = 1; //Signal overflow: we can't return without flushing!
+		goto PIQ_retry; //Read again!
 	}
 	return MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 1); //Read OPcode directly from memory!
 }
@@ -669,6 +672,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
 	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
 
+	CPU[activeCPU].PIQ_Overflow = 0; //We've reset, so no overflow anymore!
 	CPU_fillPIQ(); //Fill the PIQ as needed!
 	fifobuffer_save(CPU[activeCPU].PIQ); //Save the current status of the PIQ: we want to be able to return if executing repeating instructions!
 
@@ -870,7 +874,15 @@ extern uint_32 destEIP;
 void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 {
 	CPU[activeCPU].registers->EIP = CPU_exec_EIP; //Destination address is reset!
-	fifobuffer_restore(CPU[activeCPU].PIQ); //Restore the PIQ to the current address to be able to rerun the current opcode!
+	if (CPU[activeCPU].PIQ_Overflow) //We can't return without flushing the buffer?
+	{
+		CPU_flushPIQ(); //Flush the PIQ!
+		CPU[activeCPU].PIQ_EIP = CPU_exec_EIP; //Destination address of the PIQ is reset too!
+	}
+	else //Return to the instruction itself!
+	{ 
+		fifobuffer_restore(CPU[activeCPU].PIQ); //Restore the PIQ to the current address to be able to rerun the current opcode!
+	}
 }
 
 //Read signed numbers from CS:(E)IP!
