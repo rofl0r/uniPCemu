@@ -769,19 +769,23 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 		if (cpudebugger) //Need to set any debugger info?
 		{
+			if (CPU_getprefix(0xF0)) //LOCK?
+			{
+				debugger_setprefix("LOCK"); //LOCK!
+			}
 			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
-				debugger_setprefix("REPNZ "); //Set prefix!
+				debugger_setprefix("REPNZ"); //Set prefix!
 			}
 			else if (CPU_getprefix(0xF3)) //REP/REPZ?
 			{
 				if (REPZ) //REPZ?
 				{
-					debugger_setprefix("REPZ "); //Set prefix!
+					debugger_setprefix("REPZ"); //Set prefix!
 				}
 				else //REP?
 				{
-					debugger_setprefix("REP "); //Set prefix!
+					debugger_setprefix("REP"); //Set prefix!
 				}
 			}
 		}
