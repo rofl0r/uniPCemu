@@ -155,6 +155,7 @@ void BIOS_CPUSpeed(); //CPU speed selection!
 void BIOS_ClearCMOS(); //Clear the CMOS!
 void BIOS_SoundSourceVolume(); //Set the Sound Source volume!
 void BIOS_ShowFramerate(); //Show framerate setting!
+void BIOS_DataBusSizeSetting(); //Data bus size setting!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -200,6 +201,7 @@ Handler BIOS_Menus[] =
 	,BIOS_ClearCMOS //BIOS CMOS clear is #37!
 	,BIOS_SoundSourceVolume //Sound Source Volume is #38!
 	,BIOS_ShowFramerate //Show Framerate is #39!
+	,BIOS_DataBusSizeSetting //Data Bus size setting is #40!
 };
 
 //Not implemented?
@@ -1516,8 +1518,8 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[CPU_8086],"Intel 8086"); //Set filename from options!
-	strcpy(itemlist[CPU_80186],"Intel 80186"); //Set filename from options!
+	strcpy(itemlist[CPU_8086],"Intel 8086/8088"); //Set filename from options!
+	strcpy(itemlist[CPU_80186],"Intel 80186/80188"); //Set filename from options!
 	strcpy(itemlist[CPU_80286], "Intel 80286(unfinished)"); //Set filename from options!
 	int current = 0;
 	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
@@ -3776,16 +3778,34 @@ void BIOS_InitCPUText()
 		switch (BIOS_Settings.emulated_CPU) //8086?
 		{
 		case CPU_8086: //8086?
-			strcat(menuoptions[advancedoptions++], "Intel 8086"); //Add installed CPU!
+			strcat(menuoptions[advancedoptions++], "Intel 8086/8088"); //Add installed CPU!
 			break;
 		case CPU_80186: //80186?
-			strcat(menuoptions[advancedoptions++], "Intel 80186"); //Add installed CPU!
+			strcat(menuoptions[advancedoptions++], "Intel 80186/80188"); //Add installed CPU!
 			break;
 		case CPU_80286: //80286?
 			strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!
 			break;
 		default:
 			strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
+			break;
+		}
+
+	setDataBusSize: //For fixing it!
+		optioninfo[advancedoptions] = 2; //VGA NMI!
+		strcpy(menuoptions[advancedoptions], "Data bus size: ");
+		switch (BIOS_Settings.DataBusSize) //VGA NMI?
+		{
+		case 0:
+			strcat(menuoptions[advancedoptions++], "16/32-bit data bus");
+			break;
+		case 1:
+			strcat(menuoptions[advancedoptions++], "8-bit data bus when possible");
+			break;
+		default: //Error: fix it!
+			BIOS_Settings.DataBusSize = 0; //Reset/Fix!
+			BIOS_Changed = 1; //We've changed!
+			goto setDataBusSize; //Goto!
 			break;
 		}
 	}
@@ -3816,7 +3836,8 @@ void BIOS_CPU() //CPU menu!
 		break;
 
 	case 0:
-	case 1: //Valid option?
+	case 1:
+	case 2: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Installed CPU?
@@ -3824,6 +3845,9 @@ void BIOS_CPU() //CPU menu!
 			break;
 		case 1: //CPU speed?
 			BIOS_Menu = 36; //CPU speed selection!
+			break;
+		case 2: //Data bus size?
+			BIOS_Menu = 40; //Data bus size!
 			break;
 		}
 		break;
@@ -4075,4 +4099,59 @@ void BIOS_ShowFramerate()
 	BIOS_Settings.ShowFramerate = !BIOS_Settings.ShowFramerate; //Reverse!
 	BIOS_Changed = 1; //We've changed!
 	BIOS_Menu = 29; //Goto Video Settings menu!
+}
+
+void BIOS_DataBusSizeSetting()
+{
+	BIOS_Title("Data bus size");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Data bus size: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 2; //Ammount of Direct modes!
+	for (i = 0; i<2; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[0], "16/32-bit data bus"); //Set filename from options!
+	strcpy(itemlist[1], "8-bit data bus when possible"); //Set filename from options!
+	int current = 0;
+	switch (BIOS_Settings.DataBusSize) //What setting?
+	{
+	case 0: //Valid
+	case 1: //Valid
+		current = BIOS_Settings.DataBusSize; //Valid: use!
+		break;
+	default: //Invalid
+		current = 0; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.DataBusSize != current) //Invalid?
+	{
+		BIOS_Settings.DataBusSize = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(15, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+						  //We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0; //Default setting: Disabled!
+
+	case 0:
+	case 1:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			reboot_needed = 1; //A reboot is needed!
+			BIOS_Settings.DataBusSize = file; //Select Data bus size setting!
+		}
+		break;
+	}
+	BIOS_Menu = 35; //Goto CPU menu!
 }

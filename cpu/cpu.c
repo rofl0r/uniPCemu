@@ -41,7 +41,7 @@ byte CPU_prefixes[2][32]; //All prefixes, packed in a bitfield!
 
 uint_32 makeupticks; //From PIC?
 
-extern byte PIQSizes[NUMCPUS]; //The PIQ buffer sizes!
+extern byte PIQSizes[2][NUMCPUS]; //The PIQ buffer sizes!
 
 //Now the code!
 
@@ -74,6 +74,7 @@ void copyint(byte src, byte dest) //Copy interrupt handler pointer to different 
 }
 
 int STACK_SIZE = 2; //Stack item in bytes! (4 official for 32-bit, 2 for 16-bit?)
+byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 
 void resetCPU() //Initialises the currently selected CPU!
 {
@@ -98,9 +99,9 @@ void resetCPU() //Initialises the currently selected CPU!
 	CPU[activeCPU].lastopcode = 0; //Last opcode, default to 0 and unknown?
 	generate_opcode_jmptbl(); //Generate the opcode jmptbl for the current CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
-	if (PIQSizes[EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
+	if (PIQSizes[CPU_databussize][EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
 	{
-		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[EMULATED_CPU],0); //Our PIQ we use!
+		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
 	}
 }
 

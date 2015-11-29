@@ -346,12 +346,17 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 		}
 	}
 
+	if (BIOS_Settings.DataBusSize > 1) //Invalid bus size?
+	{
+		BIOS_Settings.DataBusSize = 0; //Default bus size!
+		bioschanged = 1; //BIOS changed!
+	}
+
 	if (bioschanged)
 	{
 		forceBIOSSave(); //Force saving!
 	}
 }
-
 
 void BIOS_LoadIO(int showchecksumerrors) //Loads basic I/O drives from BIOS!
 {
@@ -442,11 +447,25 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 
 	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
 	{
-		printmsg(0xF,"Installed CPU: Intel 8086\r\n"); //Emulated CPU!
+		if (BIOS_Settings.DataBusSize) //8-bit bus?
+		{
+			printmsg(0xF, "Installed CPU: Intel 8088\r\n"); //Emulated CPU!
+		}
+		else //16-bit bus?
+		{
+			printmsg(0xF,"Installed CPU: Intel 8086\r\n"); //Emulated CPU!
+		}
 	}
 	else if (BIOS_Settings.emulated_CPU==CPU_80186) //80186?
 	{
-		printmsg(0xF,"Installed CPU: Intel 80186\r\n"); //Emulated CPU!
+		if (BIOS_Settings.DataBusSize) //8-bit bus?
+		{
+			printmsg(0xF, "Installed CPU: Intel 80188\r\n"); //Emulated CPU!
+		}
+		else //16-bit bus?
+		{
+			printmsg(0xF, "Installed CPU: Intel 80186\r\n"); //Emulated CPU!
+		}
 	}
 	else if (BIOS_Settings.emulated_CPU == CPU_80286) //80286?
 	{
@@ -454,7 +473,7 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 	}
 	else //Unknown CPU?
 	{
-		printmsg(0x4,"Installed CPU: None\r\n"); //Emulated CPU!
+		printmsg(0x4,"Installed CPU: Unknown\r\n"); //Emulated CPU!
 	}
 
 	if (numdrives==0) //No drives?

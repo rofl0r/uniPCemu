@@ -21,7 +21,10 @@ Indexes:
 
 */
 
-byte PIQSizes[NUMCPUS] = {6,6,6,16,32,64}; //The PIQ buffer sizes! Pentium has two 64-byte queues.
+byte PIQSizes[2][NUMCPUS] = { //0=16/32-bit bus, 1=8-bit bus when available!
+								{6,6,6,16,32,64},
+								{4,4,6,16,32,64} //Only 8088/80188 supported in 8-bit bus!
+							}; //The PIQ buffer sizes! Pentium has two 64-byte queues. Apply settings for both 8-bit bus(8088/80188) and 16/32-bit bus (other CPUs)!
 
 //Structure: opcode_jmptbl[whatcpu][opcode][addresssize]
 //address size=0 for 16-bits, 1 for 32-bits.

@@ -236,6 +236,8 @@ TicksHolder CPU_timing; //CPU timing counter!
 
 void updateSpeedLimit(); //Prototype!
 
+extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
+
 void initEMU(int full) //Init!
 {
 	doneEMU(); //Make sure we're finished too!
@@ -338,6 +340,7 @@ void initEMU(int full) //Init!
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 
 	debugrow("Initializing CPU...");
+	CPU_databussize = BIOS_Settings.DataBusSize; //Apply the bus to use for our emulation!
 	resetCPU(); //Initialise CPU!
 	
 	debugrow("Initialising CMOS...");
