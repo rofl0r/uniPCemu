@@ -116,11 +116,11 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 		PIQ_retry: //Retry after refilling PIQ!
 		if (readfifobuffer(CPU[activeCPU].PIQ,&result)) //Read from PIQ?
 		{
+			CPU_fillPIQ(); //Fill instruction cache with next data always!
 			return result; //Give the prefetched data!
 		}
 		//Not enough data in the PIQ? Refill for the next data!
 		CPU_fillPIQ(); //Fill instruction cache with next data!
-		CPU[activeCPU].PIQ_Overflow = 1; //Signal overflow: we can't return without flushing!
 		goto PIQ_retry; //Read again!
 	}
 	return MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 1); //Read OPcode directly from memory!
@@ -664,24 +664,32 @@ byte CPU_segmentOverridden(byte activeCPU)
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
-	debugger_beforeCPU(); //Everything that needs to be deone before the CPU executes!
+	debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 	MMU_resetaddr(); //Reset invalid address for our usage!
 
 	CPU_8086REPPending(); //Process pending REP!
 
 	CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
-	CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
-	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
+	if (!CPU[activeCPU].repeating) //Not repeating instructions?
+	{
+		CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
+		CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
+	}
 
-	CPU[activeCPU].PIQ_Overflow = 0; //We've reset, so no overflow anymore!
 	CPU_fillPIQ(); //Fill the PIQ as needed!
-	fifobuffer_save(CPU[activeCPU].PIQ); //Save the current status of the PIQ: we want to be able to return if executing repeating instructions!
 
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
 
 	register byte OP; //The opcode!
-	OP = CPU_readOP_prefix(); //Process prefix(es) and read OPCode!
+	if (CPU[activeCPU].repeating) //REPeating instruction?
+	{
+		OP = CPU[activeCPU].lastopcode; //Execute the last opcode again!
+	}
+	else //Not a repeating instruction?
+	{
+		OP = CPU_readOP_prefix(); //Process prefix(es) and read OPCode!
+	}
 	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
 	if (cpudebugger) debugger_setprefix(""); //Reset prefix for the debugger!
 	gotREP = 0; //Default: no REP-prefix used!
@@ -810,8 +818,16 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 		if (CPU[activeCPU].registers->CX-- && gotREP) //Still looping and allowed? Decrease CX after checking for the final item!
 		{
-			REPPending = 1; //Run the current instruction again!
+			REPPending = CPU[activeCPU].repeating = 1; //Run the current instruction again and flag repeat!
 		}
+		else
+		{
+			CPU[activeCPU].repeating = 0; //Not repeating anymore!
+		}
+	}
+	else
+	{
+		REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 	}
 	blockREP = 0; //Don't block REP anymore!
 	CPU[activeCPU].cycles += CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
@@ -879,15 +895,8 @@ extern uint_32 destEIP;
 void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 {
 	CPU[activeCPU].registers->EIP = CPU_exec_EIP; //Destination address is reset!
-	if (CPU[activeCPU].PIQ_Overflow) //We can't return without flushing the buffer?
-	{
-		CPU_flushPIQ(); //Flush the PIQ!
-		CPU[activeCPU].PIQ_EIP = CPU_exec_EIP; //Destination address of the PIQ is reset too!
-	}
-	else //Return to the instruction itself!
-	{ 
-		fifobuffer_restore(CPU[activeCPU].PIQ); //Restore the PIQ to the current address to be able to rerun the current opcode!
-	}
+	CPU_flushPIQ(); //Flush the PIQ!
+	CPU[activeCPU].PIQ_EIP = CPU_exec_EIP; //Destination address of the PIQ is reset too!
 }
 
 //Read signed numbers from CS:(E)IP!
@@ -941,6 +950,7 @@ void CPU_flushPIQ()
 {
 	if (CPU[activeCPU].PIQ) fifobuffer_clear(CPU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
 	CPU[activeCPU].PIQ_EIP = CPU[activeCPU].registers->EIP; //Save the PIQ EIP to the current address!
+	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
 }
 
 void CPU_fillPIQ() //Fill the PIQ until it's full!

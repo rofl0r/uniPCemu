@@ -614,9 +614,13 @@ typedef struct
 	byte lastopcode; //Currently/last running opcode!
 	byte faultraised; //Has a fault been raised by the protection module?
 	byte trapped; //Have we been trapped? Don't execute hardware interrupts!
+
+	//PIQ support!
 	FIFOBUFFER *PIQ; //Our Prefetch Input Queue!
 	uint_32 PIQ_EIP; //EIP of the current PIQ data!
-	byte PIQ_Overflow; //PIQ Overflow occurred while executing an instruction?
+
+	//REP support (ignore re-reading instruction bytes from memory)
+	byte repeating; //We're executing a REP* instruction?
 } CPU_type;
 
 
