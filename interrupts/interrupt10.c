@@ -538,12 +538,13 @@ OPTINLINE void EMU_CPU_setCursorScanlines(byte start, byte end)
 	start &= 0x3F; //Take our usable data only!
 	end &= 0x1F; //Take our usable data only!
 
+	//Process cursor start!
 	PORT_OUT_B(0x3D4,0xA); //Select start register!
 	byte cursorStart = PORT_IN_B(0x3D5); //Read current cursor start!
 
 	cursorStart &= ~0x3F; //Clear our data location!
 	cursorStart |= start; //Add the usable data!
-	PORT_OUT_B(0x3D5,start); //Start!
+	PORT_OUT_B(0x3D5,cursorStart); //Start!
 
 	//Process cursor end!
 	PORT_OUT_B(0x3D4,0xB); //Select end register!
@@ -552,11 +553,9 @@ OPTINLINE void EMU_CPU_setCursorScanlines(byte start, byte end)
 	cursorEnd &= ~0x1F; //Clear our data location!
 	cursorEnd |= end; //Create the cursor end data!
 
-	PORT_OUT_B(0x3D5,end); //Write new cursor end!
+	PORT_OUT_B(0x3D5,cursorEnd); //Write new cursor end!
 	
 	PORT_OUT_B(0x3D4,oldcrtc); //Restore old CRTC register address!
-
-	start &= 0x1F; //Take our usable data only!
 
 	//Update our values!
 	MMU_wb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, start); //Set start line!
@@ -948,6 +947,7 @@ void int10_ReadLightPenPosition()
 {
 	//Not used on VGA systems!
 	REG_AH = 0; //Invalid function!
+	REG_BX = REG_CX = REG_DX = 0; //0,0 and character 0,0!
 }
 
 void int10_SelectActiveDisplayPage()
@@ -1293,9 +1293,16 @@ void int10_GetCurrentVideoMode()
 {
 	/*
 	Returns:
+	AH=Columns
 	AL=Video Mode
+	BH=Video page
 	*/
+	if (CurMode) //Valid mode set?
+	{
+		REG_AH = CurMode->twidth; //Text width in AH!
+	}
 	REG_AL = GPUgetvideomode(); //Give video mode!
+	REG_BH = emu_getdisplaypage(); //Get the current display page!
 }
 
 void int10_WriteString()
@@ -2344,6 +2351,7 @@ void BIOS_int10() //Handler!
 	if (!dohandle) //Not within list to execute?
 	{
 		REG_AX = 0; //Break!
+		CALLBACK_SCF(1); //Set carry flag to indicate an error!
 	}
 	else //To handle?
 	{
