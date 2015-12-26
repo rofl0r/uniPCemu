@@ -196,8 +196,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	Sequencer->charystart = charystart; //What row to start with our pixels!
 
 	//Some attribute controller special 8-bit mode support!
-	Sequencer->active_pixelrate = 0; //Reset pixel load rate status for odd sized screens.
-	Sequencer->active_nibblerate = 0; //Reset nibble load rate status for odd sized screens.
+	Sequencer->active_pixelrate = Sequencer->active_nibblerate = 0; //Reset pixel load rate status & nibble load rate status for odd sized screens.
 
 	VGA_loadcharacterplanes(VGA, Sequencer, 0); //Initialise the character planes for usage!
 }
@@ -250,10 +249,7 @@ OPTINLINE void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	++Sequencer->Scanline; //Next scanline to process!
 	
 	//CRT
-	if (!vretrace) //Not retracing vertically?
-	{
-		++VGA->CRTC.y; //Next row on-screen!
-	}
+	if (!vretrace) ++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
 	
 	//Sequencer rendering data
 	Sequencer->tempx = 0; //Reset the rendering position from the framebuffer!
@@ -288,12 +284,10 @@ void VGA_Blank(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributei
 
 void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (!hretrace) //Don't handle during horizontal retraces!
-	{
-		//Active display!
-		drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
-		++VGA->CRTC.x; //Next x!
-	}
+	if (hretrace) return; //Don't handle during horizontal retraces!
+	//Active display!
+	drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
+	++VGA->CRTC.x; //Next x!
 }
 
 void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -311,8 +305,8 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//Render our active display here! Start with text mode!		
 	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
 	static VGA_Sequencer_Mode activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
-	byte nibbled=0; //Did we process two nibbles instead of one nibble?
-	word tempx = Sequencer->tempx; //Load tempx!
+	register byte nibbled=0; //Did we process two nibbles instead of one nibble?
+	register word tempx = Sequencer->tempx; //Load tempx!
 
 	othernibble: //Retrieve the current DAC index!
 	Sequencer->activex = tempx++; //Active X!
@@ -437,13 +431,14 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 			vretrace = 0; //We're not retracing anymore!
 		}
 	}
-	
+
+	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace; //Vertical retrace?
+
 	register byte isretrace;
 	isretrace = hretrace;
 	isretrace |= vretrace; //We're retracing?
 	//Retracing disables output!
 
-	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace; //Vertical retrace?
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing = isretrace; //Vertical or horizontal retrace?
 
 	totalling = 0; //Default: Not totalling!

@@ -40,7 +40,7 @@ extern byte planesbuffer[4]; //All read planes for the current processing!
 
 void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 {
-	byte x;
+	register byte x;
 	//We do nothing: text mode uses multiple planes at the same time!
 	character = planesbuffer[0]; //Character!
 	attribute = planesbuffer[1]; //Attribute!

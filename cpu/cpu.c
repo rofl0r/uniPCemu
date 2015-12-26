@@ -383,7 +383,6 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = CSAccessRights; //Load CS default access rights!
 	if (EMULATED_CPU>CPU_80186) //286+?
 	{
-		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
 		//Pulled low on first load, pulled high on reset:
 		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF;
 		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0xFF;
@@ -418,8 +417,11 @@ void updateCPUmode() //Update the CPU mode!
 	static const byte modes[4] = { CPU_MODE_REAL, CPU_MODE_PROTECTED, CPU_MODE_REAL, CPU_MODE_8086 }; //All possible modes (VM86 mode can't exist without Protected Mode!)
 	byte mode = 0;
 	static byte lastmode = CPU_MODE_REAL; //Our last CPU mode!
-	if (!CPU[activeCPU].registers) CPU_initRegisters(); //Make sure we have registers!
-	if (!CPU[activeCPU].registers) CPU[activeCPU].registers = &dummyregisters; //Dummy registers!
+	if (!CPU[activeCPU].registers)
+	{
+		CPU_initRegisters(); //Make sure we have registers!
+		if (!CPU[activeCPU].registers) CPU[activeCPU].registers = &dummyregisters; //Dummy registers!
+	}
 	mode = CPU[activeCPU].registers->SFLAGS.V8; //VM86 mode?
 	mode <<= 1;
 	mode |= CPU[activeCPU].registers->CR0.PE; //Protected mode?
