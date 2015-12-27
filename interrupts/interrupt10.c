@@ -88,7 +88,6 @@ void GPUswitchvideomode(word mode)
 
 	//Now all BIOS data!
 	INT10_Internal_SetVideoMode(mode); //Switch video modes!
-	//EMU_CPU_setCursorScanlines(getcharacterheight(int10_VGA)-2,getcharacterheight(int10_VGA)-1); //Reset scanlines to bottom!
 }
 
 
@@ -492,7 +491,7 @@ OPTINLINE void updateCursorLocation()
 	y = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2)+1,0); //Y
 	word address; //Address of the cursor location!
 	address = MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)+
-			(y*MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+(x<<1);
+			(y*MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x;
 
 	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
 	PORT_OUT_B(0x3D4,0xF); //Select cursor location low register!
@@ -526,17 +525,26 @@ OPTINLINE void EMU_CPU_getCursorScanlines(byte *start, byte *end)
 OPTINLINE void EMU_CPU_setCursorScanlines(byte start, byte end)
 {
 	if (__HW_DISABLED) return; //Abort!
-	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
+	byte start2, end2;
 
-	start &= 0x3F; //Take our usable data only!
-	end &= 0x1F; //Take our usable data only!
+	float cheight = (float)(CurMode->cheight-1); //Character height value!
+	start2 = (byte)(((float)(start&0x7)/7.0f)*cheight); //Scale to character height!
+	end2 = (byte)(((float)end / 7.0f)*cheight); //Scale to character height!
+
+	if (start & 0x20) //Disable the cursor?
+	{
+		start2 |= 0x20; //We're disabling the cursor too!
+	}
+
+	//Translate start2 and end2 to size!
+	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
 
 	//Process cursor start!
 	PORT_OUT_B(0x3D4,0xA); //Select start register!
 	byte cursorStart = PORT_IN_B(0x3D5); //Read current cursor start!
 
 	cursorStart &= ~0x3F; //Clear our data location!
-	cursorStart |= start; //Add the usable data!
+	cursorStart |= (start2&0x3F); //Add the usable data!
 	PORT_OUT_B(0x3D5,cursorStart); //Start!
 
 	//Process cursor end!
@@ -544,7 +552,7 @@ OPTINLINE void EMU_CPU_setCursorScanlines(byte start, byte end)
 	byte cursorEnd = PORT_IN_B(0x3D5); //Read old end!
 
 	cursorEnd &= ~0x1F; //Clear our data location!
-	cursorEnd |= end; //Create the cursor end data!
+	cursorEnd |= (end2&0x1F); //Create the cursor end data!
 
 	PORT_OUT_B(0x3D5,cursorEnd); //Write new cursor end!
 	
@@ -581,7 +589,7 @@ OPTINLINE void int10_nextcol(byte thepage)
 	{
 		x = 0; //Reset!
 		++y; //Next Y!
-		if (y>MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0)) //Overflow?
+		if (y>=MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0)) //Overflow?
 		{
 			y = 0; //Reset!
 		}

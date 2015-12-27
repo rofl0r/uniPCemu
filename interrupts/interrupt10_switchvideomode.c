@@ -109,6 +109,11 @@ OPTINLINE static bool SetCurMode(VideoModeBlock modeblock[],word mode)
 	return false;
 }
 
+OPTINLINE void RealSetVec2(byte interrupt, word segment, word offset)
+{
+	CPU_setint(interrupt, segment, offset); //Set the interrupt!
+}
+
 OPTINLINE void FinishSetMode(int clearmem)
 {
 	VGA_Type *currentVGA;
@@ -171,13 +176,20 @@ OPTINLINE void FinishSetMode(int clearmem)
 	// Set cursor shape
 	if (CurMode->type==M_TEXT)
 	{
-		EMU_CPU_setCursorScanlines(CurMode->theight-2,CurMode->theight-1);
+		EMU_CPU_setCursorScanlines(0x06,0x07);
 	}
 
 	// Set cursor pos for page 0..7
 	for (ct=0; ct<8; ct++) cursorXY(ct,0,0);
 	// Set active page 0
 	emu_setactivedisplaypage(0);
+
+	/* Set some interrupt vectors */
+	switch (CurMode->cheight) {
+	case 8:RealSetVec2(0x43,0xC000, int10.rom.font_8_first);break;
+	case 14:RealSetVec2(0x43,0xC000, int10.rom.font_14);break;
+	case 16:RealSetVec2(0x43,0xC000, int10.rom.font_16);break;
+	}
 }
 
 int INT10_Internal_SetVideoMode(word mode)
