@@ -68,8 +68,7 @@ extern word CB_dataoffset; //Reserved offset when adding callback!
 void BIOS_int10entry() //Interrupt 10 BIOS ROM entry point!
 {
 	//Set up the Video BIOS interrupt and return!
-	CPU_setint(0x10, 0xC000, int10.rom.used); //Interrupt 10h overridable handler at the end of the VGA ROM!
-	INT10_SetupRomMemory(1); //Setup ROM memory with interrupts!
+	int10_BIOSInit(); //Call the initialisation routine of interrupt 10h!
 }
 
 void BIOS_initStart() //Memory defaults for the CPU with our internal BIOS!

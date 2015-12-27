@@ -34,7 +34,14 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		FILE *f;
 		char filename[100];
 		memset(&filename,0,sizeof(filename)); //Clear/init!
-		sprintf(filename,"ROM/OPTROM.%i",i+1); //Create the filename for the ROM!
+		if (i) //Not VGA ROM?
+		{
+			sprintf(filename,"ROM/OPTROM.%i",i); //Create the filename for the ROM!
+		}
+		else
+		{
+			strcpy(filename,"ROM/VGAROM.BIN"); //VGA ROM!
+		}
 		f = fopen(filename,"rb");
 		if (!f)
 		{
@@ -108,7 +115,14 @@ void BIOS_freeOPTROMS()
 		{
 			char filename[100];
 			memset(&filename,0,sizeof(filename)); //Clear/init!
-			sprintf(filename,"ROM/OPTROM.%i",i+1); //Create the filename for the ROM!
+			if (i) //Not VGA ROM?
+			{
+				sprintf(filename,"ROM/OPTROM.%i",i); //Create the filename for the ROM!
+			}
+			else
+			{
+				strcpy(filename, "ROM/VGAROM.BIN"); //VGA ROM!
+			}
 			freez((void **)&OPT_ROMS[i],OPTROM_size[i],filename); //Release the OPT ROM!
 		}
 	}
@@ -394,7 +408,14 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 				FILE *f; //For opening the ROM file!
 				char filename[100];
 				memset(&filename, 0, sizeof(filename)); //Clear/init!
-				sprintf(filename, "ROM/OPTROM.%i", i + 1); //Create the filename for the ROM!
+				if (i) //Not VGA ROM?
+				{
+					sprintf(filename, "ROM/OPTROM.%i", i); //Create the filename for the ROM!
+				}
+				else //VGA ROM?
+				{
+					strcpy(filename, "ROM/VGAROM.BIN"); //VGA ROM!
+				}
 				f = fopen(filename, "rb+"); //Open the ROM for writing!
 				if (!f) return 1; //Couldn't open the ROM for writing!
 				if (fseek(f, OPTROM_address, SEEK_SET)) //Couldn't seek?

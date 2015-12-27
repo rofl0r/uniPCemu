@@ -3,6 +3,7 @@
 
 #include "headers/header_dosbox.h" //Dosbox support!
 
+void int10_BIOSInit(); //Initisation of the BIOS routine!
 void BIOS_int10(); //Interrupt #10h: (Video Services)! Overridable!
 
 //Stuff for VGA screen/INT10!

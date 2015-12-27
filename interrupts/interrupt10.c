@@ -53,17 +53,6 @@ extern byte vga_palette[256][3];
 extern Bit8u cga_masks[4];
 extern Bit8u cga_masks2[8];
 
-OPTINLINE void GPU_setresolution(word mode) //Sets the resolution based on current video mode byte!
-{
-	GPU.showpixels = ALLOW_GPU_GRAPHICS; //Show pixels!
-
-	//Now all BIOS data!
-	//dolog("emu","Setting int10 video mode...");
-	INT10_Internal_SetVideoMode(mode); //Switch video modes!
-	//dolog("emu","Setting scanlines...");
-	//EMU_CPU_setCursorScanlines(getcharacterheight(int10_VGA)-2,getcharacterheight(int10_VGA)-1); //Reset scanlines to bottom!
-}
-
 byte getscreenwidth() //Get the screen width (in characters), based on the video mode!
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -93,9 +82,13 @@ OPTINLINE byte GPUgetvideomode()
 	return MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0); //Give mode!
 }
 
-OPTINLINE void GPUswitchvideomode(word mode)
+void GPUswitchvideomode(word mode)
 {
-	GPU_setresolution(mode); //Set the resolution to use&rest data!
+	GPU.showpixels = ALLOW_GPU_GRAPHICS; //Show pixels!
+
+	//Now all BIOS data!
+	INT10_Internal_SetVideoMode(mode); //Switch video modes!
+	//EMU_CPU_setCursorScanlines(getcharacterheight(int10_VGA)-2,getcharacterheight(int10_VGA)-1); //Reset scanlines to bottom!
 }
 
 
@@ -568,7 +561,7 @@ OPTINLINE void GPU_clearscreen() //Clears the screen!
 	byte oldmode;
 	oldmode = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0); //Active video mode!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,oldmode&0x7F); //Clear!
-	GPU_setresolution(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)); //Reset the resolution!
+	GPU_switchvideomode(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)); //Reset the resolution!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,oldmode); //Restore old mode!
 }
 
@@ -583,7 +576,6 @@ OPTINLINE void int10_nextcol(byte thepage)
 	if (__HW_DISABLED) return; //Abort!
 	byte x = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2),0);
 	byte y = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2)+1,0);
-	//dolog("interrupt10","Nextcol: %i,%i becomes:",x,y);
 	++x; //Next X!
 	if (x>=getscreenwidth()) //Overflow?
 	{
@@ -632,7 +624,6 @@ void cursorXY(byte displaypage, byte x, byte y)
 OPTINLINE void int10_vram_writecharacter(byte x, byte y, byte page, byte character, byte attribute) //Write character+attribute!
 {
 	if (__HW_DISABLED) return; //Abort!
-	//dolog("interrupt10","int10_writecharacter: %i,%i@%02X=%02X=>%02X",x,y,page,character,attribute);
 	switch (CurMode->type)
 	{
 	case M_TEXT: //Text mode?
@@ -921,7 +912,6 @@ void int10_SetCursorPosition()
 		DH=Row
 		DL=Column
 	*/
-	//dolog("interrupt10","Gotoxy@%02X: %i,%i",REG_BH,REG_DL,REG_DH);
 	cursorXY(REG_BH,REG_DL,REG_DH); //Goto x,y!
 }
 
@@ -940,7 +930,6 @@ void int10_GetCursorPositionAndSize()
 	REG_DL = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0); //Cursor x!
 	REG_DH = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,0); //Cursor y!
 	EMU_CPU_getCursorScanlines(&REG_CH,&REG_CL); //Scan lines of the cursor!
-	//dolog("interrupt10","GetCursorPositionAndSize:%i,%i; Size: %i-%i",REG_DL,REG_DH,REG_CH,REG_CL);
 }
 
 void int10_ReadLightPenPosition()
@@ -1194,10 +1183,6 @@ void int10_GetPixel()
 
 OPTINLINE void int10_internal_outputchar(byte videopage, byte character, byte attribute)
 {
-	//dolog("interrupt10","Output character@%02X: %02X;attr=%02X;(%c)",videopage,character,attribute,character);
-	//dolog("interrupt10","Total rows: %i",MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0));
-	//dolog("interrupt10","Cursor pos: %i,%i",MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0),
-	//					  MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0)); //Show coordinates!
 	switch (character) //What character?
 	{
 		//Control character?
@@ -2317,14 +2302,8 @@ Handler int10functions[] =
 
 void init_int10() //Initialises int10&VGA for usage!
 {
-	//if (__HW_DISABLED) return; //Abort!
-	
-	//int10_VGA = getActiveVGA(); //Use the active VGA for int10 by default!
-	
 //Initialise variables!
-	//dolog("int10","Switching video mode to mode #0...");
-	GPUswitchvideomode(0); //Init video mode #0!
-	//dolog("int10","Ready.");
+	GPUswitchvideomode(3); //Init video mode #3!
 }
 
 void initint10() //Fully initialise interrupt 10h!
@@ -2350,7 +2329,7 @@ void BIOS_int10() //Handler!
 
 	if (!dohandle) //Not within list to execute?
 	{
-		REG_AX = 0; //Break!
+		REG_AH = 0xFF; //Break!
 		CALLBACK_SCF(1); //Set carry flag to indicate an error!
 	}
 	else //To handle?
@@ -2365,4 +2344,11 @@ void BIOS_int10() //Handler!
 			CALLBACK_SCF(1); //Set carry flag to indicate an error!
 		}
 	}
+}
+
+void int10_BIOSInit() //Initisation of the BIOS routine!
+{
+	INT10_SetupRomMemory(1); //Setup ROM memory with interrupts!
+	CPU_setint(0x10, 0xC000, int10.rom.used); //Interrupt 10h overridable handler at the end of the VGA ROM!
+	initint10(); //Enter interrupt 10h defaults for our video card!
 }
