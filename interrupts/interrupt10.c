@@ -955,7 +955,7 @@ void int10_SelectActiveDisplayPage()
 	emu_setactivedisplaypage(REG_AL); //Set!
 }
 
-void int10_ScrollDownWindow_real(byte linestoscroll, byte backgroundcolor, byte page, byte x1, byte x2, byte y1, byte y2)
+void int10_ScrollDownWindow_real(byte linestoscroll, byte backgroundcolor, byte page, byte x1, byte y1, byte x2, byte y2)
 {
 	int x; //Current x!
 	int y; //Current y!
@@ -966,25 +966,54 @@ void int10_ScrollDownWindow_real(byte linestoscroll, byte backgroundcolor, byte 
 	rowstoclear = linestoscroll; //Default!
 	if (linestoscroll==0)
 	{
-		rowstoclear = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0); /* Clear all! */
+		rowstoclear = (y2-y1)+1; /* Clear all! */
 	}
-	for (c=0; c<rowstoclear; c++) //Process!
+	for (y=y2; y>=y1; --y) //Rows!
 	{
-		for (y=y1; y<=y2; y++) //Rows!
+		for (x=x1; x<x2; ++x) //Columns!
 		{
-			for (x=x1; x<x2; x++) //Columns!
+			oldchar = 0;
+			oldattr = backgroundcolor; //Init to off-screen!
+			if (linestoscroll) //Get from coordinates (not clearing entire screen)?
 			{
-				oldchar = 0;
-				oldattr = backgroundcolor; //Init to off-screen!
-				if (linestoscroll!=0) //Get from coordinates?
+				if ((y-rowstoclear)>=y1) //Not at top of window (bottom fill empty)?
 				{
-					if (y<y2) //Not at bottom (bottom fill empty)?
-					{
-						int10_vram_readcharacter(x,y+1,page,&oldchar,&oldattr); //Use character below this one!
-					}
+					int10_vram_readcharacter(x,y-rowstoclear,page,&oldchar,&oldattr); //Use character rows above this one!
 				}
-				int10_vram_writecharacter(x,y,page,oldchar,oldattr); //Set our character!
 			}
+			int10_vram_writecharacter(x,y,page,oldchar,oldattr); //Set our character!
+		}
+	}
+}
+
+void int10_ScrollUpWindow_real(byte linestoscroll, byte backgroundcolor, byte page, byte x1, byte y1, byte x2, byte y2)
+{
+	int x; //Current x!
+	int y; //Current y!
+	int c; //Rows scrolled!
+	byte oldchar;
+	byte oldattr;
+	int rowstoclear;
+	rowstoclear = linestoscroll; //Default!
+	if (linestoscroll == 0)
+	{
+		rowstoclear = (y2 - y1) + 1; /* Clear all! */
+	}
+
+	for (y = y1; y <= y2; ++y) //Rows top to bottom!
+	{
+		for (x = x1; x <= x2; ++x) //Columns!
+		{
+			oldchar = 0;
+			oldattr = backgroundcolor; //Init to off-screen empty!
+			if (linestoscroll) //Get from coordinates (not clearing entire screen)?
+			{
+				if ((y + rowstoclear)<=y2) //Not at bottom of window (bottom fill empty)?
+				{
+					int10_vram_readcharacter(x, y + rowstoclear, page, &oldchar, &oldattr); //Use character above this one!
+				}
+			}
+			int10_vram_writecharacter(x, y, page, oldchar, oldattr); //Clear!
 		}
 	}
 }
@@ -1000,7 +1029,7 @@ void int10_ScrollDownWindow() //Top off screen is lost, bottom goes up.
 		CL=Left column number
 		DL=Right column number
 	*/
-	int10_ScrollDownWindow_real(REG_AL,REG_BH,emu_getdisplaypage(),REG_CH,REG_CL,REG_DH,REG_DL); //Scroll down this window!
+	int10_ScrollDownWindow_real(REG_AL,REG_BH,emu_getdisplaypage(),REG_CL,REG_CH,REG_DL,REG_DH); //Scroll down this window!
 }
 
 void int10_ScrollUpWindow() //Bottom off screen is lost, top goes down.
@@ -1014,36 +1043,7 @@ void int10_ScrollUpWindow() //Bottom off screen is lost, top goes down.
 		CL=Left column number
 		DL=Right column number
 	*/
-	int x; //Current x!
-	int y; //Current y!
-	int c; //Rows scrolled!
-	byte oldchar;
-	byte oldattr;
-	int rowstoclear;
-	rowstoclear = REG_AL; //Default!
-	if (REG_AL==0)
-	{
-		rowstoclear = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0); /* Clear all! */
-	}
-	for (c=0; c<rowstoclear; c++) //Process!
-	{
-		for (y=REG_DH; y>=REG_CH; y--) //Rows!
-		{
-			for (x=REG_CL; x<REG_DL; x++) //Columns!
-			{
-				oldchar = 0;
-				oldattr = REG_BH; //Init to off-screen!
-				if (REG_AL!=0) //Get from coordinates?
-				{
-					if (y>REG_CH) //Not at top (top fill empty)?
-					{
-						int10_vram_readcharacter(x,y-1,emu_getdisplaypage(),&oldchar,&oldattr); //Use character above this one!
-					}
-				}
-				int10_vram_writecharacter(x,y,emu_getdisplaypage(),oldchar,oldattr); //Clear!
-			}
-		}
-	}
+	int10_ScrollUpWindow_real(REG_AL, REG_BH, emu_getdisplaypage(), REG_CL, REG_CH, REG_DL, REG_DH); //Scroll down this window!
 }
 
 
@@ -1238,30 +1238,28 @@ OPTINLINE void int10_internal_outputchar(byte videopage, byte character, byte at
 		int10_nextcol(videopage); //Next column!
 		break;
 	}
-	byte maxrows = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0); //Maximum number of rows!
-	if (maxrows) //Have max?
+	byte maxrows = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0); //Maximum number of rows minus 1!
+	++maxrows; //Row at which to scroll is one past maximum rows!
+	for (;MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0)>=maxrows;) //Past limit: scroll one down!
 	{
-		while (MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0)>=maxrows) //Past limit: scroll one down!
+		byte currow = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0); //Current row!
+		switch (MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)) //Active video mode?
 		{
-			byte currow = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0); //Current row!
-			switch (MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)) //Active video mode?
-			{
-			case 2:
-			case 3:
-			case 6:
-			case 7:
-			case 0:
-			case 1:
-				int10_ScrollDownWindow_real(1,0,videopage,0,0,MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0),
-										  MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0)); //XxY rows?
-				MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,
-					BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1, //Row=...
-					currow-1 //One row up!
-					);
-				break;
-			default: //Not supported: graphics mode?
-				break;
-			}
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+		case 7:
+			int10_ScrollUpWindow_real(1,attribute,videopage,0,0,MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0)-1,
+										MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0)); //XxY rows?
+			MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,
+				BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1, //Row=...
+				currow-1 //One row up!
+				);
+			break;
+		default: //Not supported: graphics mode?
+			return; //Abort scrolling: unsupported!
+			break;
 		}
 	}
 }
