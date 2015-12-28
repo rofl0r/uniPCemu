@@ -26,4 +26,6 @@ void EMU_startInput();
 byte cpurun(); //Run the emulator CPU (called from main thread)!
 int DoEmulator(); //Run the emulator execution itself!
 
+void EMU_drawBusy(byte disk); //Draw busy on-screen!
+
 #endif

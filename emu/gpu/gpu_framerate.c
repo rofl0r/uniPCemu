@@ -11,6 +11,7 @@
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/zalloc.h" //Protection for pointers!
 #include "headers/support/locks.h" //Locking support!
+#include "headers/emu/emucore.h" //Core support for busy flags!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -134,6 +135,12 @@ void renderFramerate()
 			GPU_textclearrow(frameratesurface, 0); //Clear the rows we use!
 			GPU_textclearrow(frameratesurface, 1); //Clear the rows we use!
 			GPU_textclearrow(frameratesurface, 2); //Clear the rows we use!
+			EMU_drawBusy(0); //Draw busy flag disk A!
+			EMU_drawBusy(1); //Draw busy flag disk B!
+			EMU_drawBusy(2); //Draw busy flag disk C!
+			EMU_drawBusy(3); //Draw busy flag disk D!
+			EMU_drawBusy(4); //Draw busy flag disk E!
+			EMU_drawBusy(5); //Draw busy flag disk F!
 		}
 		GPU_text_releasesurface(frameratesurface); //Unlock!
 	}

@@ -242,7 +242,7 @@ typedef byte *PhysPt; //Physical pointer!
 
 //Physical 2 real support
 #define Phys2Real1(x) (uint_32)(((byte *)x)-((byte *)MMU_ptr(-1,0,0,0,0)))
-#define Phys2Real(x) (Phys2Real1(x)&0xF)|((Phys2Real1(x)&(~0xF))<<16)
+#define Phys2Real(x) (RealMake((Phys2Real1(x)>>4),(Phys2Real1(x)&0xF)))
 
 //Real 2 physical
 #define Real2Phys(x) PhysMake((((x)>>16)&0xFFFF),((x)&0xFFFF))
