@@ -79,16 +79,6 @@ void modrm_debugger16(MODRM_PARAMS *params, byte whichregister1, byte whichregis
 	}
 }
 
-//The types of parameters used in the instruction for the instruction text debugger!
-#define PARAM_NONE 0
-#define PARAM_MODRM1 1
-#define PARAM_MODRM2 2
-#define PARAM_MODRM12 3
-#define PARAM_MODRM21 4
-#define PARAM_IMM8 5
-#define PARAM_IMM16 6
-#define PARAM_IMM32 7
-
 /*
 
 modrm_generateInstructionTEXT: Generates text for an instruction into the debugger.

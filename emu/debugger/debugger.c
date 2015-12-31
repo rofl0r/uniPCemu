@@ -14,6 +14,7 @@
 #include "headers/fopen64.h" //64-bit fopen support!
 #include "headers/support/locks.h" //Locking support!
 #include "headers/emu/threads.h" //Thread support!
+#include "headers/hardware/pic.h" //Interrupt support!
 
 //Log flags only?
 //#define LOGFLAGSONLY
@@ -36,6 +37,8 @@ CPU_registers debuggerregisters; //Backup of the CPU's register states before th
 
 extern uint_32 MMU_lastwaddr; //What address is last addresses in actual memory?
 extern byte MMU_lastwdata;
+
+extern PIC i8259;
 
 #include "headers/packed.h" //Packed!
 typedef struct PACKED
@@ -532,6 +535,13 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - strlen(flags), debuggerrow++); //Second flags row!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s", flags); //All flags, seperated!
 		GPU_text_releasesurface(frameratesurface); //Unlock!
+
+		//Full interrupt status!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-16,debuggerrow++); //Interrupt status!
+		for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
+		{
+			GPU_textprintf(frameratesurface,fontcolor,backcolor,"%i",(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
+		}
 	}
 }
 

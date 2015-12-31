@@ -13,6 +13,7 @@
 
 extern MODRM_PARAMS params;    //For getting all params!
 extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
+extern byte MODRM_src0; //What source is our modr/m? (1/2)
 MODRM_PTR info; //For storing ModR/M Info!
 
 /*
@@ -192,6 +193,8 @@ void CPU186_OP6F()
 		REG_DI += 2;
 	}
 }
+
+void CPU186_OP8E() { modrm_readparams(&params, 1, 2); if (params.info[0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, 0, 1); modrm_generateInstructionTEXT("MOVW", 16, 0, PARAM_MODRM12); MODRM_src0 = 0; CPU8086_internal_MOV16(modrm_addr16(&params, 0, 0), modrm_read16(&params, 1)); }
 
 void CPU186_OPC0()
 {
