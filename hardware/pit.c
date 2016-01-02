@@ -27,9 +27,16 @@ extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CP
 
 void cleanPIT0()
 {
-	getnspassed(&timerticks[0]); //Discard the time passed to the counter!
-	getnspassed(&timerticks[1]); //Discard the time passed to the counter!
-	getnspassed(&timerticks[2]); //Discard the time passed to the counter!
+	byte channel;
+	for (channel = 0;channel < 3;) //process all channels!
+	{
+		getnspassed(&timerticks[channel]); //Discard the time passed to the counter!
+		if ((currenttime[channel] >= timertime[channel]) && timertime[channel]) //Are we to trigger an interrupt?
+		{
+			currenttime[channel] = fmod(currenttime[channel],timertime[channel]); //Tick until there's nothing left1
+		}
+		++channel; //Process next channel!
+	}
 }
 
 void updatePIT0() //Timer tick Irq
@@ -37,7 +44,7 @@ void updatePIT0() //Timer tick Irq
 	byte channel;
 	if (EMU_RUNNING==1) //Are we running?
 	{
-		for (channel = 0;channel < 3;) //process all channels![
+		for (channel = 0;channel < 3;) //process all channels!
 		{
 			currenttime[channel] += (float)getnspassed(&timerticks[channel]); //Add the time passed to the counter!
 			if ((currenttime[channel] >= timertime[channel]) && timertime[channel]) //Are we to trigger an interrupt?

@@ -460,7 +460,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{NULL,NULL}, //8Bh:
 		{NULL,NULL}, //8Ch:
 		{NULL,NULL}, //8Dh:
-		{NULL,NULL}, //8Eh:
+		{CPU186_OP8E,NULL}, //8Eh:
 		{NULL,NULL}, //8Fh:
 //0x90:
 		{NULL,NULL}, //90h:

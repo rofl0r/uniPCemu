@@ -12,6 +12,7 @@ void CPU186_OP6C(); //INS Yb,DX
 void CPU186_OP6D(); //INS Yz,DX
 void CPU186_OP6E(); //OUTS DX,Xb
 void CPU186_OP6F(); //OUTS DX,Xz
+void CPU186_OP8E(); //MOV segreg,reg
 void CPU186_OPC0(); //GRP2 Eb,Ib
 void CPU186_OPC1(); //GRP2 Ev,Ib
 void CPU186_OPC8(); //ENTER Iw,Ib
