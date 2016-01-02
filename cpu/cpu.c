@@ -922,8 +922,16 @@ int_32 imm32()
 
 void CPU_exDIV0() //Division by 0!
 {
-	//Points to next opcode!
-	CPU_customint(0,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+	if (EMULATED_CPU == CPU_8086) //We point to the instruction following the division?
+	{
+		//Points to next opcode!
+		CPU_INT(0); //Execute INT0 normally using current CS:(E)IP!
+	}
+	else
+	{
+		//Points to next opcode!
+		CPU_customint(0,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+	}
 }
 
 extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?

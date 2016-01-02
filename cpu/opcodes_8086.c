@@ -2384,7 +2384,7 @@ void op_grp3_8() {
 	case 4: //MULB
 		temp1.val32 = (uint32_t)oper1b * (uint32_t)REG_AL;
 		REG_AX = temp1.val16 & 0xFFFF;
-		flag_szp8(temp1.val32);
+		flag_szp16(temp1.val32);
 		FLAG_CF = FLAG_OF = (REG_AX != REG_AL);
 		break;
 
@@ -2399,7 +2399,7 @@ void op_grp3_8() {
 		temp3.val32s = temp1.val32s; //Load and...
 		temp3.val32s *= temp2.val32s; //Multiply!
 		REG_AX = temp3.val16; //Load into AX!
-		flag_szp8(REG_AL); //Set the result flags!
+		flag_szp16(REG_AX); //Set the result flags!
 		FLAG_CF = (FLAG_OF = ((unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0));
 		break;
 
@@ -2502,7 +2502,7 @@ void op_grp3_16() {
 		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
 		REG_AX = temp1.val16;
 		REG_DX = (temp1.val32 >> 16);
-		flag_szp16(temp1.val32);
+		flag_szp32(temp1.val32);
 		if (REG_DX) { FLAG_CF = FLAG_OF = 1; }
 		else { FLAG_CF = FLAG_OF = 0; }
 		break;
