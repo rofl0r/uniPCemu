@@ -2405,7 +2405,7 @@ void op_grp3_8() {
 		flag_szp16(REG_AX); //Set the result flags!
 		FLAG_SF = tmps;
 		FLAG_PF = tmpp;*/
-		FLAG_CF = (FLAG_OF = ((sword)(unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0));
+		FLAG_CF = FLAG_OF = ((sword)(unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0);
 		break;
 
 	case 6: //DIV
