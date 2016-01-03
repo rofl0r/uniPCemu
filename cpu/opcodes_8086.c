@@ -2378,14 +2378,7 @@ void op_grp3_8() {
 	case 4: //MULB
 		temp1.val32 = (uint32_t)oper1b * (uint32_t)REG_AL;
 		REG_AX = temp1.val16 & 0xFFFF;
-		if ((EMULATED_CPU==CPU_8086) && (CPU_databussize==1)) //8088 CPU?
-		{
-			tmps = FLAG_SF;
-			tmpp = FLAG_PF; //Only affect zero flag for detection!
-			flag_szp16(temp1.val32);
-			FLAG_SF = tmps;
-			FLAG_PF = tmpp; //According to the manual this doesn't affect the zero flag. According to the Super PC/Turbo XT BIOS 2.5, it does?
-		}
+		if ((EMULATED_CPU==CPU_8086) && REG_AX) FLAG_ZF = 0; //8086/8088 clear Zero flag when not zero only.
 		FLAG_CF = FLAG_OF = ((word)REG_AL != REG_AX)?1:0;
 		break;
 
@@ -2400,11 +2393,6 @@ void op_grp3_8() {
 		temp3.val32s = temp1.val32s; //Load and...
 		temp3.val32s *= temp2.val32s; //Multiply!
 		REG_AX = temp3.val16; //Load into AX!
-		/*tmps = FLAG_SF;
-		tmpp = FLAG_PF;
-		flag_szp16(REG_AX); //Set the result flags!
-		FLAG_SF = tmps;
-		FLAG_PF = tmpp;*/
 		FLAG_CF = FLAG_OF = ((sword)(unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0);
 		break;
 
@@ -2506,12 +2494,8 @@ void op_grp3_16() {
 	case 4: //MULW
 		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
 		REG_AX = temp1.val16;
-		REG_DX = (temp1.val32 >> 16);
-		/*tmps = FLAG_SF;
-		tmpp = FLAG_PF; //Only affect zero flag for detection!
-		flag_szp32(temp1.val32);
-		FLAG_SF = tmps;
-		FLAG_PF = tmpp;*/
+		REG_DX = temp1.val16high;
+		if ((EMULATED_CPU==CPU_8086) && temp1.val32) FLAG_ZF = 0; //8086/8088 clear Zero flag when not zero only.
 		if (REG_DX) { FLAG_CF = FLAG_OF = 1; }
 		else { FLAG_CF = FLAG_OF = 0; }
 		break;
@@ -2525,11 +2509,6 @@ void op_grp3_16() {
 		temp3.val32s *= temp2.val32s; //Signed multiplication!
 		REG_AX = temp3.val16; //into register ax
 		REG_DX = temp3.val16high; //into register dx
-		/*tmps = FLAG_SF;
-		tmpp = FLAG_PF;
-		flag_szp32(temp3.val32); //Affect the flags!
-		FLAG_SF = tmps;
-		FLAG_PF = tmpp;*/
 		FLAG_CF = FLAG_OF = ((int_32)temp3.val16s != temp3.val32s)?1:0; //Overflow occurred?
 		break;
 	case 6: //DIV
