@@ -153,6 +153,7 @@ void tickSpeakers() //Ticks all PC speakers available!
 	register float time;
 	float frequency;
 	float freq0; //Old frequency!
+	float temp; //Overflow detection!
 	register byte function; //What!
 
 	speaker_ticktiming += (uint_64)getnspassed(&speaker_ticker); //Get the amount of time passed!
@@ -192,7 +193,7 @@ void tickSpeakers() //Ticks all PC speakers available!
 
 			finishedsamples:
 			//We've processed all samples!
-			float temp = time*frequency; //Calculate!
+			temp = time*frequency; //Calculate!
 			if (temp > 1.0f) {
 				double d;
 				time = (float)modf(temp, &d) / frequency;

@@ -76,6 +76,135 @@ void copyint(byte src, byte dest) //Copy interrupt handler pointer to different 
 int STACK_SIZE = 2; //Stack item in bytes! (4 official for 32-bit, 2 for 16-bit?)
 byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 
+OPTINLINE void CPU_resetPrefixes() //Resets all prefixes we use!
+{
+	memset(&CPU_prefixes[activeCPU], 0, sizeof(CPU_prefixes[activeCPU])); //Reset prefixes!
+}
+
+OPTINLINE void CPU_initPrefixes()
+{
+	CPU_resetPrefixes(); //This is the same: just reset all prefixes to zero!
+}
+
+OPTINLINE void alloc_CPUregisters()
+{
+	CPU[activeCPU].registers = (CPU_registers *)zalloc(sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS", getLock(LOCK_CPU)); //Allocate the registers!
+	if (!CPU[activeCPU].registers)
+	{
+		raiseError("CPU", "Failed to allocate the required registers!");
+	}
+}
+
+OPTINLINE void free_CPUregisters()
+{
+	if (CPU[activeCPU].registers) //Still allocated?
+	{
+		freez((void **)&CPU[activeCPU].registers, sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS"); //Release the registers if needed!
+	}
+}
+
+OPTINLINE void CPU_initRegisters() //Init the registers!
+{
+	byte CSAccessRights; //Default CS access rights, overwritten during first software reset!
+	if (CPU[activeCPU].registers) //Already allocated?
+	{
+		CSAccessRights = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights; //Save old CS acccess rights to use now (after first reset)!
+		free_CPUregisters(); //Free the CPU registers!
+	}
+	else
+	{
+		CSAccessRights = 0x93; //Initialise the CS access rights!
+	}
+	alloc_CPUregisters(); //Allocate the CPU registers!
+
+	if (!CPU[activeCPU].registers) return; //We can't work!
+										   //Calculation registers
+	CPU[activeCPU].registers->EAX = 0;
+	CPU[activeCPU].registers->EBX = 0;
+	CPU[activeCPU].registers->ECX = 0;
+	CPU[activeCPU].registers->EDX = 0;
+
+	//Index registers
+	CPU[activeCPU].registers->EBP = 0; //Init offset of BP?
+	CPU[activeCPU].registers->ESI = 0; //Source index!
+	CPU[activeCPU].registers->EDI = 0; //Destination index!
+
+									   //Stack registers
+	CPU[activeCPU].registers->ESP = 0; //Init offset of stack (top-1)
+	CPU[activeCPU].registers->SS = 0; //Stack segment!
+
+
+									  //Code location
+	if (EMULATED_CPU >= CPU_80186) //186+?
+	{
+		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
+		CPU[activeCPU].registers->EIP = 0xFFF0; //We're starting at this offset!
+	}
+	else
+	{
+		CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
+		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
+	}
+	CPU_flushPIQ(); //We're jumping to another address!
+					//Data registers!
+	CPU[activeCPU].registers->DS = 0; //Data segment!
+	CPU[activeCPU].registers->ES = 0; //Extra segment!
+	CPU[activeCPU].registers->FS = 0; //Far segment (extra segment)
+	CPU[activeCPU].registers->GS = 0; //??? segment (extra segment like FS)
+	CPU[activeCPU].registers->EFLAGS = 0x2; //Flags!
+
+											//Now the handling of solid state segments (might change, use index for that!)
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = &CPU[activeCPU].registers->CS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_SS] = &CPU[activeCPU].registers->SS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_DS] = &CPU[activeCPU].registers->DS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_ES] = &CPU[activeCPU].registers->ES; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS] = &CPU[activeCPU].registers->FS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS] = &CPU[activeCPU].registers->GS; //Link!
+
+	memset(CPU[activeCPU].SEG_DESCRIPTOR, 0, sizeof(CPU[activeCPU].SEG_DESCRIPTOR)); //Clear the descriptor cache!
+																					 //Now, load the default descriptors!
+
+																					 //IDTR
+	CPU[activeCPU].registers->IDTR.base = 0;
+	CPU[activeCPU].registers->IDTR.limit = 0x3FF;
+
+	//GDTR
+	CPU[activeCPU].registers->GDTR.base = 0;
+	CPU[activeCPU].registers->GDTR.limit = 0xFFFF; //From bochs!
+
+												   //LDTR (invalid)
+	CPU[activeCPU].registers->LDTR.base = CPU[activeCPU].registers->LDTR.limit = 0; //None and invalid!
+
+																					//TR (also invalid)
+	CPU[activeCPU].registers->TR = 0; //No TR!
+
+	CPU[activeCPU].registers->CR0_full &= 0x7FFFFFE0; //Clear bit 32 and 4-0!
+
+	byte reg = 0;
+	for (reg = 0; reg<NUMITEMS(CPU[activeCPU].SEG_DESCRIPTOR); reg++) //Process all segment registers!
+	{
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_high = 0;
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_mid = 0;
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_low = 0;
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_low = 0xFFFF; //64k limit!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_high = 0; //No high limit!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].G = 0; //Byte granularity!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].DATASEGMENT.E = 0; //Expand up!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].DATASEGMENT.W = 1; //Writable!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].P = 1; //Present!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].DPL = 0;
+	}
+
+	//CS specific!
+	CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = CSAccessRights; //Load CS default access rights!
+	if (EMULATED_CPU>CPU_80186) //286+?
+	{
+		//Pulled low on first load, pulled high on reset:
+		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF;
+		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0xFF;
+	}
+}
+
 void resetCPU() //Initialises the currently selected CPU!
 {
 	memset(&CPU,0,sizeof(CPU)); //Reset the CPU fully!
@@ -189,16 +318,6 @@ byte CPU_getprefix(byte prefix) //Prefix set?
 	return (CPU_prefixes[activeCPU][prefix>>3]&(128>>(prefix&7)))>0; //Get prefix set or reset!
 }
 
-OPTINLINE void CPU_resetPrefixes() //Resets all prefixes we use!
-{
-	memset(&CPU_prefixes[activeCPU],0,sizeof(CPU_prefixes[activeCPU])); //Reset prefixes!
-}
-
-OPTINLINE void CPU_initPrefixes()
-{
-	CPU_resetPrefixes(); //This is the same: just reset all prefixes to zero!
-}
-
 OPTINLINE byte CPU_isPrefix(byte prefix)
 {
 	switch (prefix) //What prefix/opcode?
@@ -268,125 +387,6 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 		CPU_Address_size[activeCPU] = !CPU_Address_size[activeCPU]; //Invert!
 	}
 	return OP; //Give the OPCode!
-}
-
-OPTINLINE void alloc_CPUregisters()
-{
-	CPU[activeCPU].registers = (CPU_registers *)zalloc(sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS", getLock(LOCK_CPU)); //Allocate the registers!
-	if (!CPU[activeCPU].registers)
-	{
-		raiseError("CPU","Failed to allocate the required registers!");
-	}
-}
-
-OPTINLINE void free_CPUregisters()
-{
-	if (CPU[activeCPU].registers) //Still allocated?
-	{
-		freez((void **)&CPU[activeCPU].registers,sizeof(*CPU[activeCPU].registers),"CPU_REGISTERS"); //Release the registers if needed!
-	}
-}
-
-OPTINLINE void CPU_initRegisters() //Init the registers!
-{
-	byte CSAccessRights; //Default CS access rights, overwritten during first software reset!
-	if (CPU[activeCPU].registers) //Already allocated?
-	{
-		CSAccessRights = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights; //Save old CS acccess rights to use now (after first reset)!
-		free_CPUregisters(); //Free the CPU registers!
-	}
-	else
-	{
-		CSAccessRights = 0x93; //Initialise the CS access rights!
-	}
-	alloc_CPUregisters(); //Allocate the CPU registers!
-
-	if (!CPU[activeCPU].registers) return; //We can't work!
-	//Calculation registers
-	CPU[activeCPU].registers->EAX = 0;
-	CPU[activeCPU].registers->EBX = 0;
-	CPU[activeCPU].registers->ECX = 0;
-	CPU[activeCPU].registers->EDX = 0;
-	
-	//Index registers
-	CPU[activeCPU].registers->EBP = 0; //Init offset of BP?
-	CPU[activeCPU].registers->ESI = 0; //Source index!
-	CPU[activeCPU].registers->EDI = 0; //Destination index!
-
-	//Stack registers
-	CPU[activeCPU].registers->ESP = 0; //Init offset of stack (top-1)
-	CPU[activeCPU].registers->SS = 0; //Stack segment!
-
-	
-	//Code location
-	if (EMULATED_CPU>=CPU_80186) //186+?
-	{
-		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
-		CPU[activeCPU].registers->EIP = 0xFFF0; //We're starting at this offset!
-	}
-	else
-	{
-		CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
-		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
-	}
-	CPU_flushPIQ(); //We're jumping to another address!
-	//Data registers!
-	CPU[activeCPU].registers->DS = 0; //Data segment!
-	CPU[activeCPU].registers->ES = 0; //Extra segment!
-	CPU[activeCPU].registers->FS = 0; //Far segment (extra segment)
-	CPU[activeCPU].registers->GS = 0; //??? segment (extra segment like FS)
-	CPU[activeCPU].registers->EFLAGS = 0x2; //Flags!
-
-//Now the handling of solid state segments (might change, use index for that!)
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = &CPU[activeCPU].registers->CS; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_SS] = &CPU[activeCPU].registers->SS; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_DS] = &CPU[activeCPU].registers->DS; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_ES] = &CPU[activeCPU].registers->ES; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS] = &CPU[activeCPU].registers->FS; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS] = &CPU[activeCPU].registers->GS; //Link!
-	
-	memset(CPU[activeCPU].SEG_DESCRIPTOR, 0, sizeof(CPU[activeCPU].SEG_DESCRIPTOR)); //Clear the descriptor cache!
-	//Now, load the default descriptors!
-	
-	//IDTR
-	CPU[activeCPU].registers->IDTR.base = 0;
-	CPU[activeCPU].registers->IDTR.limit = 0x3FF;
-	
-	//GDTR
-	CPU[activeCPU].registers->GDTR.base = 0;
-	CPU[activeCPU].registers->GDTR.limit = 0xFFFF; //From bochs!
-	
-	//LDTR (invalid)
-	CPU[activeCPU].registers->LDTR.base = CPU[activeCPU].registers->LDTR.limit = 0; //None and invalid!
-	
-	//TR (also invalid)
-	CPU[activeCPU].registers->TR = 0; //No TR!
-	
-	CPU[activeCPU].registers->CR0_full &= 0x7FFFFFE0; //Clear bit 32 and 4-0!
-	
-	byte reg=0;
-	for (reg = 0; reg<NUMITEMS(CPU[activeCPU].SEG_DESCRIPTOR); reg++) //Process all segment registers!
-	{
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_high = 0;
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_mid = 0;
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_low = 0;
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_low = 0xFFFF; //64k limit!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_high = 0; //No high limit!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].G = 0; //Byte granularity!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].DATASEGMENT.E = 0; //Expand up!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].DATASEGMENT.W = 1; //Writable!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].P = 1; //Present!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].DPL = 0;
-	}
-	
-	//CS specific!
-	CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = CSAccessRights; //Load CS default access rights!
-	if (EMULATED_CPU>CPU_80186) //286+?
-	{
-		//Pulled low on first load, pulled high on reset:
-		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF;
-		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0xFF;
-	}
 }
 
 void doneCPU() //Finish the CPU!

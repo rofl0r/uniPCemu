@@ -569,7 +569,7 @@ OPTINLINE void GPU_clearscreen() //Clears the screen!
 	byte oldmode;
 	oldmode = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0); //Active video mode!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,oldmode&0x7F); //Clear!
-	GPU_switchvideomode(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)); //Reset the resolution!
+	GPUswitchvideomode(MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)); //Reset the resolution!
 	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,oldmode); //Restore old mode!
 }
 

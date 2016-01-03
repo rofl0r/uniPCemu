@@ -822,9 +822,7 @@ void moveinttable16(word segment, uint_32 offset); //Move interrupt table somewh
 byte CPU_readOP(); //Reads the operation (byte) at CS:EIP
 word CPU_readOPw(); //Reads the operation (word) at CS:EIP
 uint_32 CPU_readOPdw(); //Reads the operation (32-bit unsigned integer) at CS:EIP
-void CPU_initPrefixes(); //Initialises prefixes (initialised by global init).
 void CPU_initDescriptors(); //Initialises descriptors (see above)
-void CPU_initRegisters(); //Initialises the registers! (see above)
 void CPU_resetMode(); //Reset the mode to the default mode! (see above)
 byte CPU_getprefix(byte prefix); //Prefix set? (might be used by OPcodes!)
 byte getcpumode(); //Get current CPU mode (see CPU modes above!)
