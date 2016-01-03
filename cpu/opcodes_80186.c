@@ -134,7 +134,7 @@ void CPU186_OP6B()
 		}
 
 	temp3.val32 = signed2unsigned32(unsigned2signed32(temp1.val32) * unsigned2signed32(temp2.val32));
-	flag_szp32(temp3.val32); //Our flags!
+	//flag_szp32(temp3.val32); //Our flags!
 	modrm_write16(&params,0, temp3.val32 & 0xFFFFL,0); //Write to register!
 	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3.val32)!=unsigned2signed16(temp3.val32&0xFFFF)); //Overflow occurred?
 }
