@@ -96,13 +96,14 @@ OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 
 	//We're background/transparent!
 	register byte c = 0;
-	for (;c<8;++c)
+	for (;;)
 	{
 		if (GPU_textget_pixel(surface, fx + backlist[c].x, fy + backlist[c].y)) //Border?
 		{
 			surface->notdirty[fy][fx] = GPU_textgetcolor(surface,fx,fy,1); //Back of the current character!
 			return; //Done: we've gotten a pixel!
 		}
+		if (++c==8) break; //Abort when finished!
 	}
 
 	//We're transparent!
