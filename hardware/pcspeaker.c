@@ -65,34 +65,15 @@ OPTINLINE float currentFunction(byte how,const float time) {
 }
 
 byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
-	const float sampleLength = 1.0f / 44100.0f;
-	const float scaleFactor = (SHRT_MAX - 1.0f);
-	//float currentfactor;
 	uint_32 i;
 	SPEAKER_INFO *speaker; //Convert to the current speaker!
-	float time;
-	float frequency;
-	float freq0; //Old frequency!
-	register byte function; //What!
 	short s; //The sample!
 
 	if (__HW_DISABLED) return 0; //Abort!	
 	
 	//First, our information sources!
 	speaker = (SPEAKER_INFO *)userdata; //Active speaker!
-	function = speaker->function; //The function to use!
-	//Load current info!
-	time = speaker->time; //Take the current time to update!
-	frequency = speaker->frequency; //Take the current frequency to sound!
-	freq0 = speaker->freq0; //Old frequency!
-
-	if (frequency != freq0) { //Frequency changed?
-		time *= (freq0 / frequency);
-	}
-
-	float defaultfreq;
-	defaultfreq = 2.0f*PI*frequency; //Change in frequency for all times!
-
+	
 	i = 0; //Init counter!
 	if (stereo) //Stereo samples?
 	{
@@ -101,8 +82,6 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 		{ //Process full length!
 			if (!readfifobuffer16(speaker->buffer,&s)) //Not readable from the buffer?
 			{
-				//s = (short) (scaleFactor * currentFunction(function,defaultfreq * time)); //Set the channels!
-				//time += sampleLength; //Add 1 sample to the time!
 				s = 0; //Silence!
 			}
 
@@ -118,8 +97,6 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 		{ //Process full length!
 			if (!readfifobuffer16(speaker->buffer, &s)) //Not readable from the buffer?
 			{
-				//s = (short)(scaleFactor * currentFunction(function, defaultfreq * time)); //Set the channels!
-				//time += sampleLength; //Add 1 sample to the time!
 				s = 0; //Silence!
 			}
 			*ubuf_mono = s; //Mono channel!
@@ -128,23 +105,12 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 		}
 	}
 
-	/*float temp = time*frequency; //Calculate!
-	if (temp > 1.0f) {
-		double d;
-		time = (float)modf(temp, &d) / frequency;
-	}
-	
-	freq0 = frequency;
-
-	//Update changed info!
-	speaker->time = time; //Update the time!
-	speaker->freq0 = freq0; //Update the frequency!
-	*/
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
 void tickSpeakers() //Ticks all PC speakers available!
 {
+	if (__HW_DISABLED) return;
 	const float sampleLength = 1.0f / 44100.0f;
 	const float scaleFactor = (SHRT_MAX - 1.0f);
 	byte speaker; //Current speaker!
@@ -165,9 +131,6 @@ void tickSpeakers() //Ticks all PC speakers available!
 		//Ticks the speaker when needed!
 		for (speaker = 0;speaker<MAX_SPEAKERS;speaker++)
 		{
-			if (__HW_DISABLED) continue; //Abort!	
-
-			lockaudio(); //Lock the audio output!
 			//First, our information sources!
 			function = speakers[speaker].function; //The function to use!
 			//Load current info!
@@ -202,7 +165,6 @@ void tickSpeakers() //Ticks all PC speakers available!
 			//Update changed info!
 			speakers[speaker].time = time; //Update the time!
 			speakers[speaker].freq0 = frequency; //Update the frequency!
-			unlockaudio(); //We're finished with outputting audio!
 			//Speaker is up-to-date!
 		}
 	}
@@ -216,7 +178,7 @@ void initSpeakers()
 	word speaker;
 	for (speaker=0;speaker<MAX_SPEAKERS;speaker++)
 	{
-		speakers[speaker].buffer = allocfifobuffer(2048,0); //Lockable FIFO with 1024 word-sized samples with lock!
+		speakers[speaker].buffer = allocfifobuffer(2048,1); //Lockable FIFO with 1024 word-sized samples with lock!
 		speakers[speaker].function = 0xFF; //Off!
 		speakers[speaker].frequency = 1.0f; //1, all but 0!
 		speakers[speaker].freq0 = 0.0f; //Old frequency!
