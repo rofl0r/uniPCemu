@@ -246,6 +246,7 @@ byte out8253(word portnum, byte value)
 				channel = (value >> 6);
 				channel &= 3; //The channel!
 				pitcommand[channel] = value; //Set the command for the port!
+				if (channel==2) setPCSpeakerMode(0,(value>>1)&7); //Update the PC speaker mode when needed!
 				if (!(value&0x30)) //Latch count value?
 				{
 					updatePITState(channel); //Update the latch!

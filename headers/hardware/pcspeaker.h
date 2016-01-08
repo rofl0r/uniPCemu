@@ -8,5 +8,6 @@ void setSpeakerFrequency(byte speaker, float newfrequency); //Set the new freque
 void initSpeakers(); //Initialises the speaker and sets it up!
 void doneSpeakers(); //Finishes the speaker and removes it!
 void tickSpeakers(); //Ticks all PC speakers available!
+void setPCSpeakerMode(byte speaker, byte mode); //Set the current rendering mode!
 
 #endif
