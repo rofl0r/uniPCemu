@@ -32,6 +32,11 @@ PC SPEAKER
 TicksHolder speaker_ticker;
 uint_64 speaker_ticktiming, oneshot_ticktiming;
 uint_64 speaker_tick = (uint_64)(1000000000.0f/SPEAKER_RATE); //Time of a tick in the PC speaker sample!
+uint_64 oneshot_tick = (uint_64)(1000000000.0f / TIME_RATE); //Time of a tick in the PIT!
+float oneshot_samples = 0.0f; //Oneshot samples to process for the current audio tick!
+uint_64 oneshot_running = 0; //The total time a oneshot is running!
+float oneshot_samplesleft = 0.0f; //Samples left
+FIFOBUFFER *rawsignal; //The raw signal buffer for the oneshot mode!
 
 byte oldPCSpeakerPort=0x00;
 extern byte PCSpeakerPort; //Port 0x61 for the PC Speaker! Bit0=Gate, Bit1=Data enable
@@ -45,7 +50,6 @@ typedef struct
 	float time;
 	byte status; //Status of the counter!
 	FIFOBUFFER *buffer; //Output buffer for rendering!
-	FIFOBUFFER *rawsignal; //The raw signal buffer!
 } SPEAKER_INFO; //One speaker!
 
 SPEAKER_INFO speakers[MAX_SPEAKERS]; //All possible PC speakers, whether used or not!
@@ -124,7 +128,8 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 void tickSpeakers() //Ticks all PC speakers available!
 {
 	if (__HW_DISABLED) return;
-	const float sampleLength = 1.0f / 44100.0f;
+	const float sampleLength = 1.0f / SPEAKER_RATE;
+	const float oneshotlength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of one shot samples to read every sample!
 	const float scaleFactor = (SHRT_MAX - 1.0f);
 	byte speaker; //Current speaker!
 	register uint_32 length; //Amount of samples to generate!
@@ -135,42 +140,60 @@ void tickSpeakers() //Ticks all PC speakers available!
 	float temp; //Overflow detection!
 	register byte function; //What!
 	uint_64 timepassed;
+	float oneshot_temptiming, oneshot_timing;
+	uint_64 oneshot_tickcounter, oneshot_ticktotal;
+	uint_32 oneshot_tick; //A one shot tick!
 
 	timepassed = (uint_64)getnspassed(&speaker_ticker); //Get the amount of time passed!
 	speaker_ticktiming += timepassed; //Get the amount of time passed!
 
 	//Ticks the speaker when needed!
 
-	byte speaker0_status = 0; //Default: empty!
-
+	static byte speaker0_status = 0; //Current speaker status!
+	
 	if (speakers[0].mode == 1) //One-shot mode?
 	{
-		switch (speakers[0].status) //What status?
+		if (PCSpeakerPort & 2) //Speaker is turned on?
 		{
-		case 1: //Output goes high?
-			speaker0_status = 1; //We're high!
-			break;
-		case 2: //Wait for next rising edge of gate input?
-			speaker0_status = 1; //We're high!
-			break;
-		case 3: //Output goes low and we start counting to rise! After timeout we become 4(inactive)!
-			speaker0_status = 0; //We're low!
-			oneshot_ticktiming += timepassed; //Count the one-shot ticks!
-			if (oneshot_ticktiming >= (1000000000.0f / speakers[0].frequency)) //Timeout? We're done!
+			//Render 1.19MHz samples for the time that has passed!
+			length = SAFEDIV(oneshot_ticktiming, oneshot_tick); //How many ticks to tick?
+			oneshot_ticktiming -= (length*oneshot_tick); //Rest the amount of ticks!
+
+			oneshot_ticktotal = SPEAKER_RATE/speakers[0].frequency; //Total amount of ticks before passing!
+
+			for (oneshot_tickcounter=0;oneshot_tickcounter<length;oneshot_tickcounter++) //Tick all needed!
 			{
-				speaker0_status = 1; //We're high again!
-				speakers[0].mode = 4; //We're inactive!
+				//Length counts the amount of ticks to render!
+				switch (speakers[0].status) //What status?
+				{
+				case 1: //Output goes high?
+					speaker0_status = 1; //We're high!
+					break;
+				case 2: //Wait for next rising edge of gate input?
+					speaker0_status = 1; //We're high!
+					break;
+				case 3: //Output goes low and we start counting to rise! After timeout we become 4(inactive)!
+					speaker0_status = 0; //We're low during this phase!
+					++oneshot_running; //Increase running time!
+					if (oneshot_running >= oneshot_ticktotal) //Timeout? We're done!
+					{
+						speaker0_status = 1; //We're high again!
+						speakers[0].mode = 4; //We're inactive!
+						oneshot_running = 0; //Reset running!
+					}
+					break;
+				case 4: //Inactive?
+					speaker0_status = 1; //We're high!
+					break;
+				default: //Unsupported! Ignore any input!
+					break;
+				}
+				writefifobuffer(rawsignal,speaker0_status); //Add the data to the raw signal!
 			}
-			break;
-		case 4: //Inactive?
-			speaker0_status = 1; //We're high!
-			break;
-		default: //Unsupported!
-			break;
 		}
 	}
 
-	if (speaker_ticktiming >= speaker_tick) //Enough time passed?
+	if (speaker_ticktiming >= speaker_tick) //Enough time passed to render?
 	{
 		length = SAFEDIV(speaker_ticktiming,speaker_tick); //How many ticks to tick?
 		speaker_ticktiming -= (length*speaker_tick); //Rest the amount of ticks!
@@ -199,9 +222,17 @@ void tickSpeakers() //Ticks all PC speakers available!
 				{
 				case 1: //Hardware Re-triggerable One-shot?
 					if (speaker) goto quietness; //Generate a quiet signal: we're not supported!
-					short s = speaker0_status ? 32767 : -32768; //Set the channels! Not yet known how to do this. We generate 1 sample of output here!
+					short s; //Set the channels! We generate 1 sample of output here!
+					goto quietness; //Disable rendering for now!
+					//Generate the samples from the output signal!
 					for (;;) //Generate samples!
 					{
+						//Average our input ticks!
+						oneshot_samplesleft += oneshotlength; //Add our time to the one-shot samples!
+						oneshot_tick = (uint_32)oneshot_samplesleft; //Take the rounded number of samples to process!
+						oneshot_samplesleft -=oneshot_tick;
+
+						//Add the result to our buffer!
 						time += sampleLength; //Add 1 sample to the time!
 						writefifobuffer16(speakers[speaker].buffer, s); //Write the sample to the buffer (mono buffer)!
 						if (++i == length) break; //Next item!
@@ -256,10 +287,10 @@ void initSpeakers()
 	initTicksHolder(&speaker_ticker); //Initialise our ticks holder!
 	//First speaker defaults!
 	word speaker;
+	rawsignal = allocfifobuffer(((uint_64)((float)2048/SPEAKER_RATE)*TIME_RATE)+1, 0); //Nonlockable FIFO with 1024 word-sized samples with lock (TICK_RATE)!
 	for (speaker=0;speaker<MAX_SPEAKERS;speaker++)
 	{
 		speakers[speaker].buffer = allocfifobuffer(2048,1); //Lockable FIFO with 1024 word-sized samples with lock!
-		speakers[speaker].rawsignal = allocfifobuffer(2048, 0); //Nonlockable FIFO with 1024 word-sized samples with lock ((2048/SPEAKER_RATE)*TICK_RATE)!
 		speakers[speaker].function = 0xFF; //Off!
 		speakers[speaker].frequency = 1.0f; //1, all but 0!
 		speakers[speaker].freq0 = 0.0f; //Old frequency!
