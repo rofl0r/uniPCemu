@@ -142,7 +142,9 @@ void tickSpeakers() //Ticks all PC speakers available!
 	uint_64 timepassed;
 	float oneshot_temptiming, oneshot_timing;
 	uint_64 oneshot_tickcounter, oneshot_ticktotal;
-	uint_32 oneshot_tick; //A one shot tick!
+	uint_32 oneshot_tick2; //A one shot tick!
+	uint_32 dutycycle, dutycyclei; //Calculated duty cycle!
+	byte currentsample; //Saved sample in the 1.19MHz samples!
 
 	timepassed = (uint_64)getnspassed(&speaker_ticker); //Get the amount of time passed!
 	speaker_ticktiming += timepassed; //Get the amount of time passed!
@@ -229,8 +231,30 @@ void tickSpeakers() //Ticks all PC speakers available!
 					{
 						//Average our input ticks!
 						oneshot_samplesleft += oneshotlength; //Add our time to the one-shot samples!
-						oneshot_tick = (uint_32)oneshot_samplesleft; //Take the rounded number of samples to process!
-						oneshot_samplesleft -=oneshot_tick;
+						oneshot_tick2 = (uint_32)oneshot_samplesleft; //Take the rounded number of samples to process!
+						oneshot_samplesleft -= (float)oneshot_tick; //Take off the samples we've processed!
+
+
+
+						//oneshot_tick2 contains the samples to process! Calculate the duty cycle and use it to generate a sample!
+						for (dutycyclei = 0;dutycyclei < oneshot_tick2;)
+						{
+							++dutycyclei; //Next value!
+							if (readfifobuffer(rawsignal, &currentsample)) //Failed to read the sample?
+							{
+								currentsample = 0; //Count as a 0!
+							}
+							dutycycle += currentsample; //Add the sample to the duty cycle!
+						}
+
+						if (!dutycyclei) //Valid?
+						{
+							s = 0; //Nothing to process!
+						}
+						else
+						{
+							s = (short)((((float)(dutycycle/dutycyclei))*(float)USHRT_MAX)-SHRT_MIN); //Convert duty cycle to full factor!
+						}
 
 						//Add the result to our buffer!
 						time += sampleLength; //Add 1 sample to the time!
