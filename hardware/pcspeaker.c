@@ -22,9 +22,14 @@ PC SPEAKER
 //Maximum ammount of active speakers!
 #define MAX_SPEAKERS 3
 
+//Speaker playback rate!
+#define SPEAKER_RATE 44100.0f
+//Speaker buffer size!
+#define SPEAKER_BUFFER 512
+
 TicksHolder speaker_ticker;
 uint_64 speaker_ticktiming;
-uint_64 speaker_tick = (uint_64)(1000000000.0f/44100.0f); //Time of a tick in the PC speaker sample!
+uint_64 speaker_tick = (uint_64)(1000000000.0f/SPEAKER_RATE); //Time of a tick in the PC speaker sample!
 
 typedef struct
 {
@@ -157,7 +162,7 @@ void tickSpeakers() //Ticks all PC speakers available!
 			finishedsamples:
 			//We've processed all samples!
 			temp = time*frequency; //Calculate!
-			if (temp > 1.0f) {
+			if (temp > 1.0f) { //End of wave?
 				double d;
 				time = (float)modf(temp, &d) / frequency;
 			}
@@ -183,7 +188,7 @@ void initSpeakers()
 		speakers[speaker].frequency = 1.0f; //1, all but 0!
 		speakers[speaker].freq0 = 0.0f; //Old frequency!
 		speakers[speaker].time = 0.0f; //Reset the time!
-		addchannel(&speakerCallback,&speakers[speaker],"PC Speaker",44100.0f,512,0,SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
+		addchannel(&speakerCallback,&speakers[speaker],"PC Speaker",SPEAKER_RATE,SPEAKER_BUFFER,0,SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
 		setVolume(&speakerCallback,&speakers[speaker],SPEAKER_VOLUME); //What volume?
 	}
 }
