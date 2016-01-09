@@ -66,66 +66,6 @@ uint_32 PCSpeakerFrequency=0x10000; //PC Speaker Frequency from the PIT!
 byte PCSpeakerPort; //Port 0x61 for the PC Speaker!
 byte PCSpeakerIsRunning; //Speaker is running?
 
-void startOrUpdateSpeaker(float frequency) //Start or update the running frequency!
-{
-	if (__HW_DISABLED) return; //Abort!
-	if (PCSpeakerIsRunning) //Already running: need to update the speaker?
-	{
-		//Update speaker frequency!
-		setSpeakerFrequency(0,frequency);
-	}
-	else //Start the speaker at the given frequency!
-	{
-		//Start speaker with given frequency!
-		PCSpeakerIsRunning = 1; //We're running!
-		setSpeakerFrequency(0,frequency); //Set the frequency first!
-		enableSpeaker(0); //Finally: enable the speaker!
-	}
-}
-
-void stopSpeaker() //Stop the running speaker!
-{
-	if (__HW_DISABLED) return; //Abort!
-	if (PCSpeakerIsRunning) //Running: able to stop?
-	{
-		//Stop the speaker!
-		disableSpeaker(0); //Disable the speaker!
-		PCSpeakerIsRunning = 0; //Not running anymore!
-	}
-}
-
-void updatePCSpeakerFrequency() //PC Speaker frequency has been updated!
-{
-	if (__HW_DISABLED) return; //Abort!
-	float frequency;
-	frequency = (1193180.0f/ PCSpeakerFrequency); //Calculate the frequency (Hz)
-	if ((PCSpeakerPort&0x3)==0x3) //Enabled?
-	{
-		//Now, do hardware stuff!
-		startOrUpdateSpeaker(frequency); //Start or update the speaker!
-	}
-	else //Disabled?
-	{
-		//Now, do hardware stuff!
-		stopSpeaker(); //Stop a speaker if running!
-	}
-}
-
-void updatePCSpeaker() //PC Speaker register has been updated!
-{
-	if (__HW_DISABLED) return; //Abort!
-	if ((PCSpeakerPort&0x3)==0x3) //Enabled?
-	{
-		//Enable PC speaker!
-		updatePCSpeakerFrequency(); //Enable it!
-	}
-	else //Disabled?
-	{
-		//Disable PC speaker!
-		updatePCSpeakerFrequency(); //Disable it!
-	}
-}
-
 //NEW HANDLER
 uint_64 calculatedpitstate[3]; //Calculate state by time and last time handled!
 
@@ -232,7 +172,7 @@ byte out8253(word portnum, byte value)
 			if (pit==2) //PC speaker?
 			{
 				PCSpeakerFrequency = pitdivisor[pit]; //The frequency of the PC speaker!
-				updatePCSpeaker(); //Update the PC speaker!
+				setSpeakerFrequency(pitdivisor[pit]); //Set the new divisor!
 			}
 			return 1;
 		case 0x43: //pit command port
@@ -246,7 +186,7 @@ byte out8253(word portnum, byte value)
 				channel = (value >> 6);
 				channel &= 3; //The channel!
 				pitcommand[channel] = value; //Set the command for the port!
-				if (channel==2) setPCSpeakerMode(0,(value>>1)&7); //Update the PC speaker mode when needed!
+				if (channel==2) setPCSpeakerMode((value>>1)&7); //Update the PC speaker mode when needed!
 				if (!(value&0x30)) //Latch count value?
 				{
 					updatePITState(channel); //Update the latch!
@@ -259,10 +199,7 @@ byte out8253(word portnum, byte value)
 	case 0x61: //PC Speaker?
 		old61 = PCSpeakerPort; //Old value!
 		PCSpeakerPort = (value&3); //Set the new port value, only low 2 bits are used!
-		if (old61!=PCSpeakerPort) //Port changed?
-		{
-			updatePCSpeaker(); //The PC Speaker status has been updated!
-		}
+		speakerGateUpdated(); //Gate has been updated!
 		return 1;
 	default:
 		break;

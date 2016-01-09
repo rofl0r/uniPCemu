@@ -37,47 +37,6 @@ int detectadlib()
 	return 1; //Detected: we cannot be detected because the CPU isn't running!
 }
 
-byte PCspeakerFinished = 0;
-
-void testtimer()
-{
-	byte loops = 5;
-	static byte count = 0;
-	next: //Next speaker callback!
-	switch (count++) //What timer?
-	{
-		case 0: //First timer!
-			disableSpeaker(0); //Disable the first speaker!
-			break;
-		case 1: //Second timer!
-			enableSpeaker(0); //Enable the first speaker!
-			disableSpeaker(1); //Disable the second speaker!
-			break;
-		case 2: //Third timer!
-			enableSpeaker(1); //Enable the second speaker!
-			disableSpeaker(2); //Disable the third speaker!
-			break;
-		case 3: //Fourth timer!
-			enableSpeaker(2); //Enable the third speaker to enable all speakers again!
-			disableSpeaker(0); //Disable the first speaker!
-			break;
-		case 4: //Fifth timer!
-			enableSpeaker(0); //Enable all speakers!
-			break;
-		case 5: //Sixth timer!
-		default: //Unknown status?
-			count = 0; //Reset!
-			if (!--loops)
-			{
-				disableSpeaker(0); //Disable the final speaker!
-				return; //Abort: finished!
-			}
-			break;
-	}
-	delay(1000000); //Wait 1 second!
-	goto next; //Next loop/item!
-}
-
 void dosoundtest()
 {
 	CPU[activeCPU].registers->AH = 0x00; //Init video mode!
@@ -94,21 +53,18 @@ void dosoundtest()
 	#ifdef __DEBUG_SPEAKER
 	printmsg(0xF,"Debugging PC Speaker...\r\n");
 	//setSpeakerFrequency(0,261.626f);
-	setSpeakerFrequency(0,100.0f); //Low!
-	enableSpeaker(0); //Enable the second speaker!
+	setSpeakerFrequency((word)(1190000.0f/100.0f)); //Low!
+	PORT_OUT_B(0x61,(PORT_IN_B(0x61)|3)); //Enable the second speaker!
+	delay(1000000);
 	
-	
-	//Program second speaker manually.
-	setSpeakerFrequency(1,1000.0f); //MID!
-	enableSpeaker(0); //Enable the second speaker!
+	setSpeakerFrequency((word)(1190000.0f/1000.0f)); //Medium!
+	delay(1000000);
 
-	setSpeakerFrequency(2,2000.0f);
-	enableSpeaker(0); //Enable the second speaker!
+	setSpeakerFrequency((word)(1190000.0f/2000.0f)); //High!
+	delay(1000000);
 
-	testtimer(); //Run PC speakers test!
-	disableSpeaker(0);
-	disableSpeaker(1);
-	disableSpeaker(2); //Disable all speakers!
+	PORT_OUT_B(0x61, (PORT_IN_B(0x61) & 0xFC)); //Disable the speaker!
+
 	delay(4000000); //Wait 1 second for the next test!
 #endif
 

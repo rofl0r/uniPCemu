@@ -2,12 +2,11 @@
 #define PCSPEAKER_H
 
 //PC speaker!
-void enableSpeaker(byte speaker); //Enables the speaker!
-void disableSpeaker(byte speaker); //Disables the speaker!
-void setSpeakerFrequency(byte speaker, float newfrequency); //Set the new frequency!
+void setSpeakerFrequency(word newfrequency); //Set the new frequency!
 void initSpeakers(); //Initialises the speaker and sets it up!
 void doneSpeakers(); //Finishes the speaker and removes it!
 void tickSpeakers(); //Ticks all PC speakers available!
-void setPCSpeakerMode(byte speaker, byte mode); //Set the current rendering mode!
+void setPCSpeakerMode(byte mode); //Set the current rendering mode!
+void speakerGateUpdated(); //Gate has been updated?
 
 #endif

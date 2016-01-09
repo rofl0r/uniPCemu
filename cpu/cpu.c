@@ -678,8 +678,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
 	}
 
-	CPU_fillPIQ(); //Fill the PIQ as needed!
-
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
 
@@ -965,11 +963,14 @@ void CPU_flushPIQ()
 
 void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
+	byte size;
 	if (CPU[activeCPU].PIQ) //Gotten a PIQ?
 	{
-		for (;fifobuffer_freesize(CPU[activeCPU].PIQ);) //Gotten data to fill into the PIQ?
+		size = fifobuffer_freesize(CPU[activeCPU].PIQ); //The size to fill!
+		for (;size;) //Gotten data to fill into the PIQ?
 		{
 			writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 1)); //Add the next byte from memory into the buffer!
+			--size; //Next data!
 		}
 	}
 }
