@@ -160,23 +160,23 @@ void tickSpeakers() //Ticks all PC speakers available!
 			//Length counts the amount of ticks to render!
 			switch (speaker.status) //What status?
 			{
-			case 1: //Output goes high?
-				speaker_status = 1; //We're high!
+			case 1: //Output goes low/high?
+				speaker_status = speaker.mode; //We're high when mode 1, else low!
 				break;
 			case 2: //Wait for next rising edge of gate input?
-				if (!speaker.mode)
+				if (!speaker.mode) //No wait on mode 0?
 				{
 					speaker.status = 3;
 					goto mode0_3;
 				}
 				break;
-			case 3: //Output goes low and we start counting to rise! After timeout we become 4(inactive)!
+			case 3: //Output goes low and we start counting to rise! After timeout we become 4(inactive) with mode 1!
 				mode0_3:
 				speaker_status = 0; //We're low during this phase!
 				if (--speaker.ticker == 0xFFFF) //Timeout? We're done!
 				{
 					speaker_status = 1; //We're high again!
-					speaker.mode = 4; //We're inactive!
+					if (speaker.mode) speaker.status = 4; //We're inactive with Single Shot!
 				}
 				break;
 			case 4: //Inactive?
@@ -189,6 +189,9 @@ void tickSpeakers() //Ticks all PC speakers available!
 		}
 		break;
 	default: //Unsupported mode Default to square wave mode!
+	//Mode 2 is useless for generating sound?
+	//mode 2==6 and mode 3==7.
+	case 7: //Also Square Wave mode?
 	case 3: //Square Wave mode?
 		for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
 		{
@@ -343,7 +346,7 @@ void setSpeakerFrequency(word frequency) //Set the new frequency!
 	speaker.frequency = frequency;
 	if (speaker.status == 0) //First step?
 	{
-		if ((speaker.mode == 1) || (speaker.mode == 3)) //Wait for next rising edge of gate input(mode 1) or start counting (mode 3)?
+		if ((!speaker.mode) || (speaker.mode == 1) || (speaker.mode == 3) || (speaker.mode == 7)) //Wait for next rising edge of gate input(mode 1) or start counting (mode 0/3/7)?
 		{
 			speaker.status = 1; //Wait for next rising edge of gate input!
 		}
@@ -354,7 +357,7 @@ void setPCSpeakerMode(byte mode)
 {
 	if (__HW_DISABLED) return; //Abort!
 	speaker.mode = mode; //Set the current PC speaker mode!
-	if ((mode == 1) || (mode == 3)) //Output goes high when set?
+	if ((mode == 1) || (mode == 3) || (mode==7)) //Output goes high when set?
 	{
 		speaker.status = 0; //Output going high! Wait for reload to be set!
 	}
