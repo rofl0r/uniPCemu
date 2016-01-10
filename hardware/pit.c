@@ -153,6 +153,7 @@ void tickSpeakers() //Ticks all PC speakers available!
 
 	switch (speaker.mode) //One-shot mode?
 	{
+	case 0: //Interrupt on Terminal Count? Is One-Shot without Gate Input?
 	case 1: //One-shot mode?
 		for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
 		{
@@ -163,8 +164,14 @@ void tickSpeakers() //Ticks all PC speakers available!
 				speaker_status = 1; //We're high!
 				break;
 			case 2: //Wait for next rising edge of gate input?
+				if (!speaker.mode)
+				{
+					speaker.status = 3;
+					goto mode0_3;
+				}
 				break;
 			case 3: //Output goes low and we start counting to rise! After timeout we become 4(inactive)!
+				mode0_3:
 				speaker_status = 0; //We're low during this phase!
 				if (--speaker.ticker == 0xFFFF) //Timeout? We're done!
 				{
