@@ -80,7 +80,6 @@
     <ClCompile Include="..\hardware\midi\mididevice.c" />
     <ClCompile Include="..\hardware\midi\mpu.c" />
     <ClCompile Include="..\hardware\pci.c" />
-    <ClCompile Include="..\hardware\pcspeaker.c" />
     <ClCompile Include="..\hardware\pic.c" />
     <ClCompile Include="..\hardware\pit.c" />
     <ClCompile Include="..\hardware\ppi.c" />

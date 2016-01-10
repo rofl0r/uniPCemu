@@ -225,9 +225,6 @@
     <ClCompile Include="..\hardware\pci.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
-    <ClCompile Include="..\hardware\pcspeaker.c">
-      <Filter>Source Files\hardware</Filter>
-    </ClCompile>
     <ClCompile Include="..\hardware\pic.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
