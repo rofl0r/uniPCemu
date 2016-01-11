@@ -116,7 +116,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 
 void reloadticker()
 {
-	speaker.ticker = speaker.frequency; //Reload!
+	speaker.ticker = speaker.frequency; //Reload the start value!
 }
 
 void tickSpeakers() //Ticks all PC speakers available!
@@ -173,7 +173,7 @@ void tickSpeakers() //Ticks all PC speakers available!
 			case 3: //Output goes low and we start counting to rise! After timeout we become 4(inactive) with mode 1!
 				mode0_3:
 				speaker_status = 0; //We're low during this phase!
-				if (--speaker.ticker == 0xFFFF) //Timeout? We're done!
+				if (!--speaker.ticker) //Timeout? We're done!
 				{
 					speaker_status = 1; //We're high again!
 					if (speaker.mode) speaker.status = 4; //We're inactive with Single Shot!
@@ -212,7 +212,7 @@ void tickSpeakers() //Ticks all PC speakers available!
 				oldvalue = speaker.ticker; //Save old ticker for checking for overflow!
 				if (PCSpeakerPort & 1) --speaker.ticker; //Decrement by 2?
 				--speaker.ticker; //Always decrease by 1 at least!
-				if (speaker.ticker > oldvalue) //Timeout? We're done!
+				if (((speaker.ticker == 0xFFFF) && oldticker) || (!speaker.ticker)) //Timeout when ticks to 0 or overflow with two ticks? We're done!
 				{
 					speaker_status = !speaker_status; //We're toggling during this phase!
 					reloadticker();
