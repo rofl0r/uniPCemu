@@ -205,7 +205,6 @@
     <ClInclude Include="..\headers\hardware\midi\midi.h" />
     <ClInclude Include="..\headers\hardware\midi\mididevice.h" />
     <ClInclude Include="..\headers\hardware\pci.h" />
-    <ClInclude Include="..\headers\hardware\pcspeaker.h" />
     <ClInclude Include="..\headers\hardware\pic.h" />
     <ClInclude Include="..\headers\hardware\ports.h" />
     <ClInclude Include="..\headers\hardware\ppi.h" />

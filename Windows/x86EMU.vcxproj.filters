@@ -637,9 +637,6 @@
     <ClInclude Include="..\headers\hardware\pci.h">
       <Filter>Header Files\hardware</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\hardware\pcspeaker.h">
-      <Filter>Header Files\hardware</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\hardware\pic.h">
       <Filter>Header Files\hardware</Filter>
     </ClInclude>

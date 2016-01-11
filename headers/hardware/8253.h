@@ -17,6 +17,14 @@ typedef struct {
 } i8253_s;
 
 void init8253(); //Initialisation!
-void cleanPIT0(); //Timer tick Irq reset timing
-void updatePIT0(); //Timer tick Irq
+void cleanPIT(); //Timer tick Irq reset timing
+
+//PC speaker!
+void setChannelFrequency(byte channel, word newfrequency); //Set the new frequency!
+void initSpeakers(); //Initialises the speaker and sets it up!
+void doneSpeakers(); //Finishes the speaker and removes it!
+void tickPIT(); //Ticks all PIT timers/speakers available!
+void setPITMode(byte channel, byte mode); //Set the current rendering mode!
+void speakerGateUpdated(); //Gate has been updated?
+
 #endif

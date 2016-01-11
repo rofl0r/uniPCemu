@@ -376,7 +376,7 @@ int main(int argc, char * argv[])
 			delay(0); //Wait minimum amount of time!
 			lock(LOCK_CPU); //Lock the CPU: we're running!
 		}
-		tickSpeakers(); //Ticks PC speakers!
+		tickPIT(); //Ticks PIT timers!
 		CPU_updateVideo(); //Update the video if needed from the CPU!
 		if (cpurun()) break; //Stop running the CPU?
 	}

@@ -1,6 +1,6 @@
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/hardware/vga/vga.h" //VGA support!
-#include "headers/hardware/pcspeaker.h" //PC speaker support!
+#include "headers/hardware/8253.h" //PC speaker support!
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/emu/sound.h" //Sound support for our callback!
 #include "headers/emu/timers.h" //Timer support!
@@ -53,14 +53,14 @@ void dosoundtest()
 	#ifdef __DEBUG_SPEAKER
 	printmsg(0xF,"Debugging PC Speaker...\r\n");
 	//setSpeakerFrequency(0,261.626f);
-	setSpeakerFrequency((word)(1190000.0f/100.0f)); //Low!
+	setPITFrequency(2,(word)(1190000.0f/100.0f)); //Low!
 	PORT_OUT_B(0x61,(PORT_IN_B(0x61)|3)); //Enable the second speaker!
 	delay(1000000);
 	
-	setSpeakerFrequency((word)(1190000.0f/1000.0f)); //Medium!
+	setPITFrequency(2,(word)(1190000.0f/1000.0f)); //Medium!
 	delay(1000000);
 
-	setSpeakerFrequency((word)(1190000.0f/2000.0f)); //High!
+	setPITFrequency(2,(word)(1190000.0f/2000.0f)); //High!
 	delay(1000000);
 
 	PORT_OUT_B(0x61, (PORT_IN_B(0x61) & 0xFC)); //Disable the speaker!

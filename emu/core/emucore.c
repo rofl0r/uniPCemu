@@ -45,7 +45,6 @@
 
 #include "headers/bios/biosrom.h" //BIOS ROM support!
 #include "headers/emu/threads.h" //Multithreading support!
-#include "headers/hardware/pcspeaker.h" //PC Speakers support!
 
 #include "headers/hardware/vga/vga_sequencer.h" //VGA sequencer for direct MAX speed dump!
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC support!
@@ -450,7 +449,7 @@ void resumeEMU()
 		cleanKeyboard(); //Clean the keyboard timer!
 		cleanMouse(); //Clean the mouse timer!
 		cleanAdlib(); //Clean the adlib timer!
-		cleanPIT0(); //Clean the PIT timer!
+		cleanPIT(); //Clean the PIT timers!
 		cleanATA(); //Update the ATA timer!
 		cleanDMA(); //Update te DMA timer!
 	}
@@ -580,7 +579,6 @@ OPTINLINE byte coreHandler()
 	updateKeyboard(); //Tick the keyboard timer if needed!
 	updateMouse(); //Tick the mouse timer if needed!
 	updateAdlib(); //Tick the adlib timer if needed!
-	updatePIT0(); //Tick the PIT timer if needed!
 	updateATA(); //Update the ATA timer!
 	updateDMA(); //Update the DMA timer!
 

@@ -12,7 +12,6 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/8253.h" //Our own typedefs etc.
 
-#include "headers/hardware/pcspeaker.h" //PC speaker support!
 #include "headers/support/highrestimer.h" //High resolution timer support for current value!
 #include "headers/support/locks.h" //Locking support!
 
@@ -45,13 +44,17 @@ PC SPEAKER
 
 #define TIME_RATE 1193182.0f
 
-TicksHolder speaker_ticker;
-uint_64 speaker_ticktiming, time_ticktiming; //Both current clocks!
+TicksHolder timer_ticker;
+uint_64 speaker_ticktiming; //Both current clocks!
 uint_64 speaker_tick = (uint_64)(1000000000.0f / SPEAKER_RATE); //Time of a tick in the PC speaker sample!
 uint_64 time_tick = (uint_64)(1000000000.0f / TIME_RATE); //Time of a tick in the PIT!
 
+byte IRQ0_status = 0; //Current IRQ0 status!
+
 byte oldPCSpeakerPort = 0x00;
 extern byte PCSpeakerPort; //Port 0x61 for the PC Speaker! Bit0=Gate, Bit1=Data enable
+
+extern byte EMU_RUNNING; //Current emulator status!
 
 typedef struct
 {
@@ -61,24 +64,27 @@ typedef struct
 	FIFOBUFFER *buffer; //Output buffer for rendering!
 	word ticker; //16-bit ticks!
 	byte reload; //Reload requested?
+	byte channel_status; //Current output status!
+	uint_64 time_ticktiming; //Current timing!
+	byte gatewenthigh; //Gate went high?
 
-				 //Output generating timer!
+	//Output generating timer!
 	float samples; //Output samples to process for the current audio tick!
 	float samplesleft; //Samples left to process!
 	FIFOBUFFER *rawsignal; //The raw signal buffer for the oneshot mode!
-} SPEAKER_INFO; //One speaker!
+} PITCHANNEL; // speaker!
 
-SPEAKER_INFO speaker; //All possible PC speakers, whether used or not!
+PITCHANNEL PITchannels[3]; //All possible PC speakers, whether used or not!
 
 byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	uint_32 i;
-	SPEAKER_INFO *speaker; //Convert to the current speaker!
+	PITCHANNEL *speaker; //Convert to the current speaker!
 	short s; //The sample!
 
 	if (__HW_DISABLED) return 0; //Abort!	
 
 								 //First, our information sources!
-	speaker = (SPEAKER_INFO *)userdata; //Active speaker!
+	speaker = (PITCHANNEL *)userdata; //Active speaker!
 
 	i = 0; //Init counter!
 	if (stereo) //Stereo samples?
@@ -114,17 +120,16 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
-void reloadticker()
+OPTINLINE void reloadticker(byte channel)
 {
-	speaker.ticker = speaker.frequency; //Reload the start value!
+	PITchannels[channel].ticker = PITchannels[channel].frequency; //Reload the start value!
 }
 
-byte speaker_reload = 0; //To reload the speaker next cylcle?
+byte channel_reload[3] = {0,0,0}; //To reload the channel next cylcle?
 
-void tickSpeakers() //Ticks all PC speakers available!
+void tickPIT() //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
-	//const float sampleLength = 1.0f / SPEAKER_RATE;
 	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of one shot samples to read every sample!
 	const float scaleFactor = 2.0f*(SHRT_MAX - 1.0f); //Scaling from -0.5-0.5
 	register uint_32 length; //Amount of samples to generate!
@@ -139,104 +144,175 @@ void tickSpeakers() //Ticks all PC speakers available!
 	uint_32 dutycyclei; //Calculated duty cycle!
 	uint_32 dutycycle; //Total counted duty cycle!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
+	byte channel; //Current channel?
 
-	timepassed = (uint_64)getnspassed(&speaker_ticker); //Get the amount of time passed!
-	speaker_ticktiming += timepassed; //Get the amount of time passed!
-	time_ticktiming += timepassed; //Get the amount of time passed!
+	timepassed = (uint_64)getnspassed(&timer_ticker); //Get the amount of time passed!
+	speaker_ticktiming += timepassed; //Get the amount of time passed for the PC speaker!
 
-	//Ticks the speaker when needed!
-
-	static byte speaker_status = 0; //Current speaker status!
-
-	//Render 1.19MHz samples for the time that has passed!
-	length = SAFEDIV(time_ticktiming, time_tick); //How many ticks to tick?
-	time_ticktiming -= (length*time_tick); //Rest the amount of ticks!
-
-	switch (speaker.mode) //What mode are we rendering?
+	for (channel=0;channel<3;channel++)
 	{
-	case 0: //Interrupt on Terminal Count? Is One-Shot without Gate Input?
-	case 1: //One-shot mode?
-		for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
+		PITchannels[channel].time_ticktiming += timepassed; //Get the amount of time passed!
+
+		//Render 1.19MHz samples for the time that has passed!
+		length = SAFEDIV(PITchannels[channel].time_ticktiming, time_tick); //How many ticks to tick?
+		PITchannels[channel].time_ticktiming -= (length*time_tick); //Rest the amount of ticks!
+
+		byte mode;
+		mode = PITchannels[channel].mode; //Current mode!
+
+		switch (mode) //What mode are we rendering?
 		{
-			//Length counts the amount of ticks to render!
-			switch (speaker.status) //What status?
+		default: //Unsupported modes are ignored and used as a default mode!
+		case 0: //Interrupt on Terminal Count? Is One-Shot without Gate Input?
+		case 1: //One-shot mode?
+			if (mode>1) mode = 0; //Default to mode 0 with unknown modes(fallback)!
+			for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
 			{
-			case 0: //Output goes low/high?
-				speaker_status = speaker.mode; //We're high when mode 1, else low!
-				break;
-			case 1: //Wait for next rising edge of gate input?
-				if (!speaker.mode) //No wait on mode 0?
+				//Length counts the amount of ticks to render!
+				switch (PITchannels[channel].status) //What status?
 				{
-					speaker.status = 2;
-					goto mode0_2;
-				}
-				break;
-			case 2: //Output goes low and we start counting to rise! After timeout we become 4(inactive) with mode 1!
-				mode0_2:
-				if (speaker_reload)
-				{
-					speaker_reload = 0; //Not reloading anymore!
-					speaker_status = 0; //Lower output!
-					reloadticker(); //Reload the counter!
-				}
+				case 0: //Output goes low/high?
+					PITchannels[channel].channel_status = mode; //We're high when mode 1, else low!
+					PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
+					break;
+				case 1: //Wait for next rising edge of gate input?
+					if (!mode) //No wait on mode 0?
+					{
+						PITchannels[channel].status = 2;
+						goto mode0_2;
+					}
+					break;
+				case 2: //Output goes low and we start counting to rise! After timeout we become 4(inactive) with mode 1!
+					mode0_2:
+					if (PITchannels[channel].reload)
+					{
+						PITchannels[channel].reload = 0; //Not reloading anymore!
+						PITchannels[channel].channel_status = 0; //Lower output!
+						reloadticker(channel); //Reload the counter!
+					}
 
-				oldvalue = speaker.ticker; //Save old ticker for checking for overflow!
+					oldvalue = PITchannels[channel].ticker; //Save old ticker for checking for overflow!
 
-				if (speaker.mode) --speaker.ticker; //Mode 1 always ticks?
-				else if (PCSpeakerPort&1) --speaker.ticker; //Mode 0 ticks when gate is high!
+					if (mode) --PITchannels[channel].ticker; //Mode 1 always ticks?
+					else if ((PCSpeakerPort&1) || (channel<2)) --PITchannels[channel].ticker; //Mode 0 ticks when gate is high!
 
-				if ((!speaker.ticker) && oldvalue) //Timeout when ticking? We're done!
-				{
-					speaker_status = 1; //We're high again!
+					if ((!PITchannels[channel].ticker) && oldvalue) //Timeout when ticking? We're done!
+					{
+						PITchannels[channel].channel_status = 1; //We're high again!
+					}
+					break;
+				case 4: //Inactive?
+					break;
+				default: //Unsupported! Ignore any input!
+					break;
 				}
-				break;
-			case 4: //Inactive?
-				break;
-			default: //Unsupported! Ignore any input!
-				break;
+				writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status); //Add the data to the raw signal!
 			}
-			if (!(PCSpeakerPort & 2)) continue; //Speaker is not turned on? Don't generate a signal!
-			writefifobuffer(speaker.rawsignal, speaker_status); //Add the data to the raw signal!
-		}
-		break;
-	//Mode 2 is useless for generating sound?
-	//mode 2==6 and mode 3==7.
-	case 7: //Also Square Wave mode?
-	case 3: //Square Wave mode?
-		for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
-		{
-			//Length counts the amount of ticks to render!
-			switch (speaker.status) //What status?
+			break;
+		case 2: //Also Rate Generator mode?
+		case 6: //Rate Generator mode?
+			for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
 			{
-			case 0: //Output going high! See below! Wait for reload register to be written!
-				speaker_status = 1; //We're high!
-				break;
-			case 1: //We start counting to rise!!
-				if (speaker_reload)
+				//Length counts the amount of ticks to render!
+				switch (PITchannels[channel].status) //What status?
 				{
-					speaker_reload = 0; //Not reloading!
-					reloadticker(); //Reload the counter!
+				case 0: //Output going high! See below! Wait for reload register to be written!
+					PITchannels[channel].channel_status = 1; //We're high!
+					break;
+				case 1: //We're starting the count?
+					if (PITchannels[channel].reload)
+					{
+						reload2:
+						PITchannels[channel].reload = 0; //Not reloading!
+						reloadticker(channel); //Reload the counter!
+						PITchannels[channel].status = 2; //Start counting!
+					}
+					break;
+				case 2: //We start counting to rise!!
+					if (PITchannels[channel].gatewenthigh) //Gate went high?
+					{
+						PITchannels[channel].gatewenthigh = 0; //Not anymore!
+						goto reload2; //Reload and execute!
+					}
+					if (((PCSpeakerPort & 1) && (channel==2)) || (channel<2)) //We're high or undefined?
+					{
+						--PITchannels[channel].ticker; //Decrement?
+						switch (PITchannels[channel].ticker) //Two to one? Go low!
+						{
+						case 1:
+							PITchannels[channel].channel_status = 0; //We're going low during this phase!
+							break;
+						case 0:
+							PITchannels[channel].channel_status = 1; //We're going high again during this phase!
+							reloadticker(channel); //Reload the counter!
+							break;
+						default: //No action taken!
+							break;
+						}
+					}
+					else //We're low? Output=High and wait for reload!
+					{
+						PITchannels[channel].channel_status = 1; //We're going high again during this phase!
+					}
+					break;
+				default: //Unsupported! Ignore any input!
+					break;
 				}
-				oldvalue = speaker.ticker; //Save old ticker for checking for overflow!
-				if (PCSpeakerPort & 1) --speaker.ticker; //Decrement by 2?
-				--speaker.ticker; //Always decrease by 1 at least!
-				if (((speaker.ticker == 0xFFFF) && oldvalue) || (!speaker.ticker)) //Timeout when ticks to 0 or overflow with two ticks? We're done!
-				{
-					speaker_status = !speaker_status; //We're toggling during this phase!
-					reloadticker();
-				}
-				break;
-			default: //Unsupported! Ignore any input!
-				break;
+				writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status); //Add the data to the raw signal!
 			}
-			if (!(PCSpeakerPort & 2)) continue; //Speaker is not turned on? Don't generate a signal!
-			writefifobuffer(speaker.rawsignal, speaker_status); //Add the data to the raw signal!
+			break;
+		//mode 2==6 and mode 3==7.
+		case 7: //Also Square Wave mode?
+		case 3: //Square Wave mode?
+			for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
+			{
+				//Length counts the amount of ticks to render!
+				switch (PITchannels[channel].status) //What status?
+				{
+				case 0: //Output going high! See below! Wait for reload register to be written!
+					PITchannels[channel].channel_status = 1; //We're high!
+					break;
+				case 1: //We start counting to rise!!
+					if (PITchannels[channel].reload)
+					{
+						PITchannels[channel].reload = 0; //Not reloading!
+						reloadticker(channel); //Reload the counter!
+					}
+					oldvalue = PITchannels[channel].ticker; //Save old ticker for checking for overflow!
+					if ((PCSpeakerPort & 1) && (channel==2)) --PITchannels[channel].ticker; //Decrement by 2?
+					--PITchannels[channel].ticker; //Always decrease by 1 at least!
+					if (((PITchannels[channel].ticker == 0xFFFF) && oldvalue) || (!PITchannels[channel].ticker)) //Timeout when ticks to 0 or overflow with two ticks? We're done!
+					{
+						PITchannels[channel].channel_status = !PITchannels[channel].channel_status; //We're toggling during this phase!
+						reloadticker(channel);
+					}
+					break;
+				default: //Unsupported! Ignore any input!
+					break;
+				}
+				writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status); //Add the data to the raw signal!
+			}
+			break;
 		}
-		break;
-	default: //Unsupported modes are ignored!
-		break;
 	}
 
+	//IRQ0 output!
+	if (EMU_RUNNING == 1) //Are we running? We allow timers to execute!
+	{
+		for (;readfifobuffer(PITchannels[0].rawsignal,&currentsample);) //Anything left to process?
+		{
+			if (((currentsample^IRQ0_status)&1) && !IRQ0_status) //Raised?
+			{
+				doirq(0); //Raise IRQ0!
+			}
+			IRQ0_status = currentsample; //Update status!
+		}
+	}
+
+	//Timer 1 output is discarded! We're not connected to anything or unneeded to emulate DRAM refresh!
+	fifobuffer_clear(PITchannels[1].rawsignal); //Discard channel 1 output!
+
+	//PC speaker output!
 	if (speaker_ticktiming >= speaker_tick) //Enough time passed to render?
 	{
 		length = SAFEDIV(speaker_ticktiming, speaker_tick); //How many ticks to tick?
@@ -252,20 +328,20 @@ void tickSpeakers() //Ticks all PC speakers available!
 		if (PCSpeakerPort & 2) //Speaker is turned on?
 		{
 			short s; //Set the channels! We generate 1 sample of output here!
-					 //Generate the samples from the output signal!
+			//Generate the samples from the output signal!
 			for (;;) //Generate samples!
 			{
 				//Average our input ticks!
-				speaker.samplesleft += ticklength; //Add our time to the one-shot samples!
-				tempf = floor((double)speaker.samplesleft); //Take the rounded number of samples to process!
-				speaker.samplesleft -= tempf; //Take off the samples we've processed!
+				PITchannels[2].samplesleft += ticklength; //Add our time to the one-shot samples!
+				tempf = floor((double)PITchannels[2].samplesleft); //Take the rounded number of samples to process!
+				PITchannels[2].samplesleft -= tempf; //Take off the samples we've processed!
 				render_ticks = (uint_32)tempf; //The ticks to render!
 
 											   //render_ticks contains the samples to process! Calculate the duty cycle and use it to generate a sample!
 				dutycycle = 0; //Start with nothing!
 				for (dutycyclei = render_ticks;dutycyclei;)
 				{
-					if (!readfifobuffer(speaker.rawsignal, &currentsample)) break; //Failed to read the sample? Stop counting!
+					if (!readfifobuffer(PITchannels[2].rawsignal, &currentsample)) break; //Failed to read the sample? Stop counting!
 					dutycycle += currentsample; //Add the sample to the duty cycle!
 					--dutycyclei; //Decrease!
 				}
@@ -280,7 +356,7 @@ void tickSpeakers() //Ticks all PC speakers available!
 				}
 
 				//Add the result to our buffer!
-				writefifobuffer16(speaker.buffer, s); //Write the sample to the buffer (mono buffer)!
+				writefifobuffer16(PITchannels[2].buffer, s); //Write the sample to the buffer (mono buffer)!
 				if (++i == length)
 				{
 					if (!FIFOBUFFER_LOCK) //Not locked?
@@ -297,7 +373,7 @@ void tickSpeakers() //Ticks all PC speakers available!
 			//Generate a quiet signal!
 			for (;;) //Generate samples!
 			{
-				writefifobuffer16(speaker.buffer, 0); //Write the sample to the buffer (mono buffer)!
+				writefifobuffer16(PITchannels[2].buffer, 0); //Write the sample to the buffer (mono buffer)!
 				if (++i == length)
 				{
 					if (!FIFOBUFFER_LOCK) //Not locked?
@@ -318,97 +394,82 @@ void tickSpeakers() //Ticks all PC speakers available!
 void initSpeakers()
 {
 	if (__HW_DISABLED) return; //Abort!
-	initTicksHolder(&speaker_ticker); //Initialise our ticks holder!
+	initTicksHolder(&timer_ticker); //Initialise our ticks holder!
 	//First speaker defaults!
-	memset(&speaker, 0, sizeof(speaker)); //Initialise our data!
-	speaker.rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 1024 word-sized samples with lock (TICK_RATE)!
-	speaker.buffer = allocfifobuffer(2048, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with 1024 word-sized samples with lock!
-	addchannel(&speakerCallback, &speaker, "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
-	setVolume(&speakerCallback, &speaker, SPEAKER_VOLUME); //What volume?
+	memset(&PITchannels, 0, sizeof(PITchannels)); //Initialise our data!
+	byte i;
+	for (i=0;i<3;i++)
+	{
+		PITchannels[i].rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 1024 word-sized samples with lock (TICK_RATE)!
+		if (i==2) //Speaker?
+		{
+			PITchannels[i].bufferintermediate = allocfifobuffer(2048, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with 1024 word-sized samples with lock!
+			PITchannels[i].buffer = allocfifobuffer(2048, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with 1024 word-sized samples with lock!
+		}
+	}
+	addchannel(&speakerCallback, &PITchannels[2], "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
+	setVolume(&speakerCallback, &PITchannels[2], SPEAKER_VOLUME); //What volume?
 }
 
 void doneSpeakers()
 {
 	if (__HW_DISABLED) return;
-	removechannel(&speakerCallback, &speaker, 0); //Remove the speaker!
-	free_fifobuffer(&speaker.buffer); //Release the FIFO buffer we use!
-	//Cleanup the speaker info!
-	speaker.frequency = 0; //Start the divider with 0!
-	speaker.ticker = 0; //Start the ticker with 0!
+	removechannel(&speakerCallback, &PITchannels[2], 0); //Remove the speaker!
+	byte i;
+	for (i=0;i<3;i++)
+	{
+		free_fifobuffer(&PITchannels[i].rawsignal); //Release the FIFO buffer we use!
+		if (i==2) //Speaker?
+		{
+			free_fifobuffer(&PITchannels[i].buffer); //Release the FIFO buffer we use!
+			free_fifobuffer(&PITchannels[i].bufferintermediate); //Release the FIFO buffer we use!
+		}
+	}
 }
 
 void speakerGateUpdated()
 {
-	if ((speaker.mode == 1) && (speaker.status == 1)) //Wait for next rising edge of gate input?
+	if (((oldPCSpeakerPort ^ PCSpeakerPort) & 0x1) && (PCSpeakerPort & 0x1)) //Risen?
 	{
-		if (((oldPCSpeakerPort ^ PCSpeakerPort) & 0x1) && (PCSpeakerPort & 0x1)) //Risen?
+		if ((PITchannels[2].mode == 1) && (PITchannels[2].status == 1)) //Wait for next rising edge of gate input?
 		{
-			speaker.status = 2; //Output goes low and we start counting to rise!
+			PITchannels[2].status = 2; //Output goes low and we start counting to rise!
 		}
+		PITchannels[2].gatewenthigh = 1; //We went high!
 	}
 	oldPCSpeakerPort = PCSpeakerPort; //Save new value!
 }
 
-void setSpeakerFrequency(word frequency) //Set the new frequency!
+void setPITFrequency(byte channel, word frequency) //Set the new frequency!
 {
 	if (__HW_DISABLED) return; //Abort!
-	speaker.frequency = frequency;
-	speaker_reload = 1; //We've been reloaded!
-	if (speaker.status == 0) //First step?
+	PITchannels[channel].frequency = frequency;
+	PITchannels[channel].reload = 1; //We've been reloaded!
+	if (PITchannels[channel].status == 0) //First step?
 	{
-		if ((!speaker.mode) || (speaker.mode == 1) || (speaker.mode == 3) || (speaker.mode == 7)) //Wait for next rising edge of gate input(mode 1) or start counting (mode 0/3/7)?
+		if ((PITchannels[channel].mode < 4) || (PITchannels[channel].mode > 5)) //Wait for next rising edge of gate input(mode 1) or start counting (mode 0/1/2/3/6/7)?
 		{
-			speaker.status = 1; //Wait for next rising edge of gate input!
+			PITchannels[channel].status = 1; //Wait for next rising edge of gate input!
 		}
 	}
 }
 
-void setPCSpeakerMode(byte mode)
+void setPITMode(byte channel, byte mode)
 {
 	if (__HW_DISABLED) return; //Abort!
-	speaker.mode = mode; //Set the current PC speaker mode!
-	if ((mode < 2) || (mode == 3) || (mode==7)) //Output goes high/low when set?
+	PITchannels[channel].mode = mode; //Set the current PC speaker mode!
+	if ((mode < 4) || (mode > 5)) //Output goes high/low when set?
 	{
-		speaker.status = 0; //Output going high! Wait for reload to be set!
+		PITchannels[channel].status = 0; //Output going high! Wait for reload to be set!
+		PITchannels[channel].reload = 0; //Init to be sure!
 	}
 }
-
-TicksHolder timerticks[3];
-float timertime[3] = { 1000000000.0f / 18.2f,0.0f,0.0f }; //How much time does it take to expire (default to 0=18.2Hz timer)?
-float currenttime[3] = { 0.0f,0.0f,0.0f }; //Current time passed!
 
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 
-void cleanPIT0()
+void cleanPIT()
 {
-	byte channel;
-	for (channel = 0;channel < 3;) //process all channels!
-	{
-		getnspassed(&timerticks[channel]); //Discard the time passed to the counter!
-		if ((currenttime[channel] >= timertime[channel]) && timertime[channel]) //Are we to trigger an interrupt?
-		{
-			currenttime[channel] = fmod(currenttime[channel],timertime[channel]); //Tick until there's nothing left1
-		}
-		++channel; //Process next channel!
-	}
-}
-
-void updatePIT0() //Timer tick Irq
-{
-	byte channel;
-	if (EMU_RUNNING==1) //Are we running?
-	{
-		for (channel = 0;channel < 3;) //process all channels!
-		{
-			currenttime[channel] += (float)getnspassed(&timerticks[channel]); //Add the time passed to the counter!
-			if ((currenttime[channel] >= timertime[channel]) && timertime[channel]) //Are we to trigger an interrupt?
-			{
-				currenttime[channel] -= timertime[channel]; //Rest!
-				if (!channel) doirq(0); //PIT0 executes an IRQ on timeout!
-			}
-			++channel; //Process next channel!
-		}
-	}
+	initTicksHolder(&timer_ticker); //Discard any time passed to the counter!
 }
 
 uint_32 pitcurrentlatch[4], pitlatch[4], pitdivisor[4]; //Latches & divisors are 32-bits large!
@@ -426,10 +487,7 @@ uint_64 calculatedpitstate[3]; //Calculate state by time and last time handled!
 void updatePITState(byte channel)
 {
 	//Calculate the current PIT0 state by frequency and time passed!
-	static const float tickduration = (1.0f / 1193180.0f)*1000000000.0f; //How long does it take to process one tick in ns?
-	calculatedpitstate[channel] = pitdivisor[channel]; //Load the current divisor (1-65536) to count down from!
-	calculatedpitstate[channel] -= (uint_64)((float)currenttime[channel] / (float)tickduration); //Count down to the current PIT0 state!
-	pitlatch[channel] = (calculatedpitstate[channel] &= 0xFFFF); //Convert it to 16-bits value of the PIT and latch it!
+	pitlatch[channel] = PITchannels[channel].ticker; //Convert it to 16-bits value of the PIT and latch it!
 }
 
 byte lastpit = 0;
@@ -520,14 +578,7 @@ byte out8253(word portnum, byte value)
 				}
 				break;
 			}
-			if (!pitdivisor[pit]) pitdivisor[pit] = 0x10000;
-			initTicksHolder(&timerticks[pit]); //Initialise the timer ticks!
-			timertime[pit] = SAFEDIV(1000000000.0f,SAFEDIV(1193180.0f, pitdivisor[pit])); //How much time do we take to expire?
-			if (pit==2) //PC speaker?
-			{
-				PCSpeakerFrequency = pitdivisor[pit]; //The frequency of the PC speaker!
-				setSpeakerFrequency(pitdivisor[pit]); //Set the new divisor!
-			}
+			setPITFrequency(pit,pitdivisor[pit]); //Set the new divisor!
 			return 1;
 		case 0x43: //pit command port
 			if ((value & 0xC0) == 0xC0) //Read-back command?
@@ -540,8 +591,11 @@ byte out8253(word portnum, byte value)
 				channel = (value >> 6);
 				channel &= 3; //The channel!
 				pitcommand[channel] = value; //Set the command for the port!
-				if (channel==2) setPCSpeakerMode((value>>1)&7); //Update the PC speaker mode when needed!
-				if (!(value&0x30)) //Latch count value?
+				if (value&0x30) //Not latching?
+				{
+					setPITMode(channel,(value>>1)&7); //Update the PIT mode when needed!
+				}
+				else //Latch count value?
 				{
 					updatePITState(channel); //Update the latch!
 				}
