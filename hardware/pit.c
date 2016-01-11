@@ -119,6 +119,8 @@ void reloadticker()
 	speaker.ticker = speaker.frequency; //Reload the start value!
 }
 
+byte speaker_reload = 0; //To reload the speaker next cylcle?
+
 void tickSpeakers() //Ticks all PC speakers available!
 {
 	if (__HW_DISABLED) return;
@@ -142,16 +144,15 @@ void tickSpeakers() //Ticks all PC speakers available!
 	speaker_ticktiming += timepassed; //Get the amount of time passed!
 	time_ticktiming += timepassed; //Get the amount of time passed!
 
-								   //Ticks the speaker when needed!
+	//Ticks the speaker when needed!
 
-	static byte speaker_reload = 0;
 	static byte speaker_status = 0; //Current speaker status!
 
-									//Render 1.19MHz samples for the time that has passed!
+	//Render 1.19MHz samples for the time that has passed!
 	length = SAFEDIV(time_ticktiming, time_tick); //How many ticks to tick?
 	time_ticktiming -= (length*time_tick); //Rest the amount of ticks!
 
-	switch (speaker.mode) //One-shot mode?
+	switch (speaker.mode) //What mode are we rendering?
 	{
 	case 0: //Interrupt on Terminal Count? Is One-Shot without Gate Input?
 	case 1: //One-shot mode?
@@ -160,23 +161,33 @@ void tickSpeakers() //Ticks all PC speakers available!
 			//Length counts the amount of ticks to render!
 			switch (speaker.status) //What status?
 			{
-			case 1: //Output goes low/high?
+			case 0: //Output goes low/high?
 				speaker_status = speaker.mode; //We're high when mode 1, else low!
 				break;
-			case 2: //Wait for next rising edge of gate input?
+			case 1: //Wait for next rising edge of gate input?
 				if (!speaker.mode) //No wait on mode 0?
 				{
-					speaker.status = 3;
-					goto mode0_3;
+					speaker.status = 2;
+					goto mode0_2;
 				}
 				break;
-			case 3: //Output goes low and we start counting to rise! After timeout we become 4(inactive) with mode 1!
-				mode0_3:
-				speaker_status = 0; //We're low during this phase!
-				if (!--speaker.ticker) //Timeout? We're done!
+			case 2: //Output goes low and we start counting to rise! After timeout we become 4(inactive) with mode 1!
+				mode0_2:
+				if (speaker_reload)
+				{
+					speaker_reload = 0; //Not reloading anymore!
+					speaker_status = 0; //Lower output!
+					reloadticker(); //Reload the counter!
+				}
+
+				oldvalue = speaker.ticker; //Save old ticker for checking for overflow!
+
+				if (speaker.mode) --speaker.ticker; //Mode 1 always ticks?
+				else if (PCSpeakerPort&1) --speaker.ticker; //Mode 0 ticks when gate is high!
+
+				if ((!speaker.ticker) && oldvalue) //Timeout when ticking? We're done!
 				{
 					speaker_status = 1; //We're high again!
-					if (speaker.mode) speaker.status = 4; //We're inactive with Single Shot!
 				}
 				break;
 			case 4: //Inactive?
@@ -188,7 +199,6 @@ void tickSpeakers() //Ticks all PC speakers available!
 			writefifobuffer(speaker.rawsignal, speaker_status); //Add the data to the raw signal!
 		}
 		break;
-	default: //Unsupported mode Default to square wave mode!
 	//Mode 2 is useless for generating sound?
 	//mode 2==6 and mode 3==7.
 	case 7: //Also Square Wave mode?
@@ -200,19 +210,17 @@ void tickSpeakers() //Ticks all PC speakers available!
 			{
 			case 0: //Output going high! See below! Wait for reload register to be written!
 				speaker_status = 1; //We're high!
-				speaker_reload = 1; //Request reload next cycle we're active!
 				break;
-			case 1: //Output goes low and we start counting to rise! After timeout we become 4(inactive)!
+			case 1: //We start counting to rise!!
 				if (speaker_reload)
 				{
 					speaker_reload = 0; //Not reloading!
-					reloadticker(); //Reload the counter without ticking it!
-					goto speaker3ready; //Don't tick!
+					reloadticker(); //Reload the counter!
 				}
 				oldvalue = speaker.ticker; //Save old ticker for checking for overflow!
 				if (PCSpeakerPort & 1) --speaker.ticker; //Decrement by 2?
 				--speaker.ticker; //Always decrease by 1 at least!
-				if (((speaker.ticker == 0xFFFF) && oldticker) || (!speaker.ticker)) //Timeout when ticks to 0 or overflow with two ticks? We're done!
+				if (((speaker.ticker == 0xFFFF) && oldvalue) || (!speaker.ticker)) //Timeout when ticks to 0 or overflow with two ticks? We're done!
 				{
 					speaker_status = !speaker_status; //We're toggling during this phase!
 					reloadticker();
@@ -221,10 +229,11 @@ void tickSpeakers() //Ticks all PC speakers available!
 			default: //Unsupported! Ignore any input!
 				break;
 			}
-		speaker3ready: //Speaker #3 ready to process?
 			if (!(PCSpeakerPort & 2)) continue; //Speaker is not turned on? Don't generate a signal!
 			writefifobuffer(speaker.rawsignal, speaker_status); //Add the data to the raw signal!
 		}
+		break;
+	default: //Unsupported modes are ignored!
 		break;
 	}
 
@@ -310,7 +319,7 @@ void initSpeakers()
 {
 	if (__HW_DISABLED) return; //Abort!
 	initTicksHolder(&speaker_ticker); //Initialise our ticks holder!
-									  //First speaker defaults!
+	//First speaker defaults!
 	memset(&speaker, 0, sizeof(speaker)); //Initialise our data!
 	speaker.rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 1024 word-sized samples with lock (TICK_RATE)!
 	speaker.buffer = allocfifobuffer(2048, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with 1024 word-sized samples with lock!
@@ -323,18 +332,18 @@ void doneSpeakers()
 	if (__HW_DISABLED) return;
 	removechannel(&speakerCallback, &speaker, 0); //Remove the speaker!
 	free_fifobuffer(&speaker.buffer); //Release the FIFO buffer we use!
-									  //Cleanup the speaker info!
+	//Cleanup the speaker info!
 	speaker.frequency = 0; //Start the divider with 0!
 	speaker.ticker = 0; //Start the ticker with 0!
 }
 
 void speakerGateUpdated()
 {
-	if ((speaker.mode == 1) && (speaker.status == 2)) //Wait for next rising edge of gate input?
+	if ((speaker.mode == 1) && (speaker.status == 1)) //Wait for next rising edge of gate input?
 	{
 		if (((oldPCSpeakerPort ^ PCSpeakerPort) & 0x1) && (PCSpeakerPort & 0x1)) //Risen?
 		{
-			speaker.status = 3; //Output goes low and we start counting to rise! After timeout we become 4(inactive)!
+			speaker.status = 2; //Output goes low and we start counting to rise!
 		}
 	}
 	oldPCSpeakerPort = PCSpeakerPort; //Save new value!
@@ -344,6 +353,7 @@ void setSpeakerFrequency(word frequency) //Set the new frequency!
 {
 	if (__HW_DISABLED) return; //Abort!
 	speaker.frequency = frequency;
+	speaker_reload = 1; //We've been reloaded!
 	if (speaker.status == 0) //First step?
 	{
 		if ((!speaker.mode) || (speaker.mode == 1) || (speaker.mode == 3) || (speaker.mode == 7)) //Wait for next rising edge of gate input(mode 1) or start counting (mode 0/3/7)?
@@ -357,7 +367,7 @@ void setPCSpeakerMode(byte mode)
 {
 	if (__HW_DISABLED) return; //Abort!
 	speaker.mode = mode; //Set the current PC speaker mode!
-	if ((mode == 1) || (mode == 3) || (mode==7)) //Output goes high when set?
+	if ((mode < 2) || (mode == 3) || (mode==7)) //Output goes high/low when set?
 	{
 		speaker.status = 0; //Output going high! Wait for reload to be set!
 	}

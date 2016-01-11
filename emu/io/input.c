@@ -1740,10 +1740,14 @@ void psp_keyboard_init()
 	}
 
 	initEMUKeyboard(); //Initialise the keyboard support!
+	unlock(LOCK_INPUT);
+
 	
 	//dolog("osk","Starting type handler");
 	//dolog("osk","Starting swap handler");
 	addtimer(3.0f,&keyboard_swap_handler,"Keyboard PSP Swap",1,1,NULL); //Handles keyboard set swapping: we're an interrupt!
+	
+	lock(LOCK_INPUT);
 	setMouseRate(1.0f); //No mouse atm, so default to 1 packet/second!
 	//dolog("osk","Starting mouse handler");
 	KEYBOARD_STARTED = 1; //Started!
