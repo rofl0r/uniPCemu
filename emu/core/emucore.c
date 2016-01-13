@@ -71,6 +71,9 @@
 
 #include "headers/hardware/ssource.h" //Disney Sound Source support!
 
+//CPU default clock speeds (in Hz)!
+#define CPU808X_CLOCK (14318000.0f/3.0f)
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To show the framerate?
@@ -497,7 +500,7 @@ extern byte Direct_Input; //Are we in direct input mode?
 
 double last_timing = 0; //Last timing!
 
-double CPU_speed_cycle = 1000000000.0f/5000000.0f; //5MHz signal cycles by default!
+double CPU_speed_cycle = 1000000000.0f/CPU808X_CLOCK; //808X signal cycles by default!
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
@@ -525,7 +528,7 @@ void updateSpeedLimit()
 	}
 	else //CPU speed cycles not set?
 	{
-		CPU_speed_cycle = 1000000000.0f/5000000.0f; //5MHz signal, since there's no CPU speeds known yet!	
+		CPU_speed_cycle = 1000000000.0f/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
 	}
 }
 
