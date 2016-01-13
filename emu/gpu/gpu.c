@@ -247,10 +247,12 @@ void initVideo(int show_framerate) //Initialises the video
 
 byte needvideoupdate = 0; //Default: no update needed!
 
+extern byte WindowHidden; //Are we minimized on-screen?
+
 void CPU_updateVideo()
 {
 	lock(LOCK_VIDEO);
-	if (needvideoupdate)
+	if (needvideoupdate && (!WindowHidden)) //We need to update the screen resolution and we're not hidden (We can't update the Window resolution correctly when we're hidden)?
 	{
 		unlock(LOCK_VIDEO);
 		lockGPU(); //Lock the GPU: we're working on it!
