@@ -2367,18 +2367,13 @@ void updateInput(SDL_Event *event) //Update all input!
 		case SDL_QUIT: //Quit?
 			SDL_JoystickClose(joystick); //Finish our joystick!
 			break;
-		case SDL_WINDOWEVENT: //Window event?
-			switch (event->window.event)
+		case SDL_ACTIVEEVENT: //Window event?
+			switch (event->active.state)
 			{
-				case SDL_WINDOWEVENT_MINIMIZED: //Minimized?
-					WindowHidden = 1; //We're hidden!
-					break;
-				case SDL_WINDOWEVENT_MAXIMIZED: //Maximized?
-				case SDL_WINDOWEVENT_RESTORED: //Restored?
-					WindowHidden = 0; //We're shown again!
-					break;
-				default: //Unsupported?
-					break;
+			case SDL_APPACTIVE: //Iconified/Restored?
+				WindowHidden = !event->active.gain; //0=Iconified, 1=Restored.
+			default: //Unsupported?
+				break;
 			}
 			break;
 	}

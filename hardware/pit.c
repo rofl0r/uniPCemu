@@ -403,7 +403,7 @@ void initSpeakers()
 		PITchannels[i].rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 1024 word-sized samples with lock (TICK_RATE)!
 		if (i==2) //Speaker?
 		{
-			PITchannels[i].bufferintermediate = allocfifobuffer(2048, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with 1024 word-sized samples with lock!
+			//PITchannels[i].bufferintermediate = allocfifobuffer(2048, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with 1024 word-sized samples with lock!
 			PITchannels[i].buffer = allocfifobuffer(2048, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with 1024 word-sized samples with lock!
 		}
 	}
@@ -422,7 +422,7 @@ void doneSpeakers()
 		if (i==2) //Speaker?
 		{
 			free_fifobuffer(&PITchannels[i].buffer); //Release the FIFO buffer we use!
-			free_fifobuffer(&PITchannels[i].bufferintermediate); //Release the FIFO buffer we use!
+			//free_fifobuffer(&PITchannels[i].bufferintermediate); //Release the FIFO buffer we use!
 		}
 	}
 }
