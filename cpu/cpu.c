@@ -831,6 +831,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 	blockREP = 0; //Don't block REP anymore!
 	CPU[activeCPU].cycles += CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
+	CPU[activeCPU].cycles = 1; //Instead of actually using cycles per second, we use instructions per second for now!
 	CPU_afterexec(); //After executing OPCode stuff!
 }
 
