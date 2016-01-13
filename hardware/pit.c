@@ -127,6 +127,30 @@ OPTINLINE void reloadticker(byte channel)
 
 byte channel_reload[3] = {0,0,0}; //To reload the channel next cylcle?
 
+OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
+{
+	float RC = (float)1.0f / (cutoff_freq * (float)2 * (float)3.14);
+	float dt = (float)1.0f / samplerate;
+	float alpha = dt / (RC + dt);
+	return previousresult + (alpha*(currentsample - previousresult));
+}
+
+OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
+{
+	static sword last_result = 0, last_sample = 0;
+	static byte first_sample = 1;
+
+	if (first_sample) //No last?
+	{
+		last_result = last_sample = *currentsample; //Save the current sample!
+		first_sample = 0;
+		return; //Abort: don't filter the first sample!
+	}
+	last_result = (sword)calcLowpassFilter(20000.0f, TIME_RATE, (float)*currentsample, last_result);
+	last_sample = *currentsample; //The last sample that was processed!
+	*currentsample = last_result; //Give the new result!
+}
+
 void tickPIT() //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
@@ -142,7 +166,7 @@ void tickPIT() //Ticks all PIT timers available!
 	float tempf;
 	uint_32 render_ticks; //A one shot tick!
 	uint_32 dutycyclei; //Calculated duty cycle!
-	uint_32 dutycycle; //Total counted duty cycle!
+	uint_64 dutycycle; //Total counted duty cycle!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
 	byte channel; //Current channel?
 
@@ -328,6 +352,7 @@ void tickPIT() //Ticks all PIT timers available!
 		if (PCSpeakerPort & 2) //Speaker is turned on?
 		{
 			short s; //Set the channels! We generate 1 sample of output here!
+			sword sample; //Current sample!
 			//Generate the samples from the output signal!
 			for (;;) //Generate samples!
 			{
@@ -337,12 +362,14 @@ void tickPIT() //Ticks all PIT timers available!
 				PITchannels[2].samplesleft -= tempf; //Take off the samples we've processed!
 				render_ticks = (uint_32)tempf; //The ticks to render!
 
-											   //render_ticks contains the samples to process! Calculate the duty cycle and use it to generate a sample!
+				//render_ticks contains the samples to process! Calculate the duty cycle and use it to generate a sample!
 				dutycycle = 0; //Start with nothing!
 				for (dutycyclei = render_ticks;dutycyclei;)
 				{
 					if (!readfifobuffer(PITchannels[2].rawsignal, &currentsample)) break; //Failed to read the sample? Stop counting!
-					dutycycle += currentsample; //Add the sample to the duty cycle!
+					sample = currentsample?SHRT_MAX:SHRT_MIN; //Convert sample to 16-bit!
+					applySpeakerLowpassFilter(&sample); //Low pass filter the signal!
+					dutycycle += sample; //Add the sample to the duty cycle!
 					--dutycyclei; //Decrease!
 				}
 
@@ -352,7 +379,7 @@ void tickPIT() //Ticks all PIT timers available!
 				}
 				else
 				{
-					s = (short)(((((float)((float)dutycycle / (float)render_ticks)) - 0.5f)*scaleFactor)); //Convert duty cycle to full factor!
+					s = (short)(((float)dutycycle)/((float)render_ticks)); //Convert duty cycle to full average factor!
 				}
 
 				//Add the result to our buffer!
