@@ -495,9 +495,9 @@ extern byte MMU_logging; //Are we logging from the MMU?
 
 extern byte Direct_Input; //Are we in direct input mode?
 
-uint_64 last_timing = 0; //Last timing!
+double last_timing = 0; //Last timing!
 
-float CPU_speed_cycle = 1000000000.0f/5000000.0f; //5MHz signal cycles by default!
+double CPU_speed_cycle = 1000000000.0f/5000000.0f; //5MHz signal cycles by default!
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
