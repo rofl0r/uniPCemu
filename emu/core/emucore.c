@@ -451,7 +451,7 @@ void resumeEMU()
 		cleanAdlib(); //Clean the adlib timer!
 		cleanPIT(); //Clean the PIT timers!
 		cleanATA(); //Update the ATA timer!
-		cleanDMA(); //Update te DMA timer!
+		cleanDMA(); //Update the DMA timer!
 	}
 }
 
@@ -497,29 +497,7 @@ extern byte Direct_Input; //Are we in direct input mode?
 
 uint_64 last_timing = 0; //Last timing!
 
-void CPU_Speed_Default()
-{
-	static uint_32 numopcodes = 0; //Delay counter!
-	if (++numopcodes == DEFAULT_SPEED)//Every X opcodes(to allow for more timers/input to update)
-	{
-		numopcodes = 0; //Reset!
-		++last_timing; //Increase timing with 1us!
-		for (;getmspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
-	}
-}
-
-void CPU_Speed_Cycles()
-{
-	static uint_32 numopcodes = 0; //Delay counter!
-	if (++numopcodes >= BIOS_Settings.CPUSpeed)//Every X opcodes(to allow for more timers/input to update)
-	{
-		numopcodes = 0; //Reset!
-		++last_timing; //Increase timing with 1us!
-		for (;getmspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time!
-	}
-}
-
-Handler SpeedLimit = CPU_Speed_Default; //Current CPU speed handler!
+float CPU_speed_cycle = 1000000000.0f/5000000.0f; //5MHz signal cycles by default!
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
@@ -534,7 +512,7 @@ void BIOSMenuExecution()
 	resumeEMU(); //Resume!
 	//Update CPU speed!
 	lock(LOCK_CPU); //We're updating the CPU!
-	last_timing = getmspassed_k(&CPU_timing); //We start off at this point!
+	last_timing = getnspassed(&CPU_timing); //We start off at this point with no time running!
 	updateSpeedLimit(); //Update the speed limit!
 	unlock(LOCK_CPU);
 }
@@ -543,11 +521,11 @@ void updateSpeedLimit()
 {
 	if (BIOS_Settings.CPUSpeed) //Gotten speed cycles set?
 	{
-		SpeedLimit = &CPU_Speed_Cycles; //Cycles to limit!
+		CPU_speed_cycle = 1000000.0f/(float)BIOS_Settings.CPUSpeed; //Cycles per ms is used!
 	}
-	else
+	else //CPU speed cycles not set?
 	{
-		SpeedLimit = &CPU_Speed_Default; //Default speed!
+		CPU_speed_cycle = 1000000000.0f/5000000.0f; //5MHz signal, since there's no CPU speeds known yet!	
 	}
 }
 
@@ -641,8 +619,11 @@ OPTINLINE byte coreHandler()
 
 	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 
-	SpeedLimit(); //Slowdown the CPU to the requested speed?
+	//Slowdown to requested speed!
+	last_timing += CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
+	for (;getnspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time every instruction according to cycles passed!
 
+	//Check for BIOS menu!
 	if (psp_keypressed(BUTTON_SELECT)) //Run in-emulator BIOS menu and not gaming mode?
 	{
 		if (!is_gamingmode() && !Direct_Input) //Not gaming/direct input mode?
