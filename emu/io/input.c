@@ -1920,6 +1920,8 @@ void toggleDirectInput(byte middlebutton)
 	Mouse_buttons &= ~3; //Disable left/right mouse buttons!
 }
 
+byte WindowHidden = 0; //Are we minimized on-screen?
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	static byte RALT = 0;
@@ -2364,6 +2366,20 @@ void updateInput(SDL_Event *event) //Update all input!
 			break;
 		case SDL_QUIT: //Quit?
 			SDL_JoystickClose(joystick); //Finish our joystick!
+			break;
+		case SDL_WINDOWEVENT: //Window event?
+			switch (event->window.event)
+			{
+				case SDL_WINDOWEVENT_MINIMIZED: //Minimized?
+					WindowHidden = 1; //We're hidden!
+					break;
+				case SDL_WINDOWEVENT_MAXIMIZED: //Maximized?
+				case SDL_WINDOWEVENT_RESTORED: //Restored?
+					WindowHidden = 0; //We're shown again!
+					break;
+				default: //Unsupported?
+					break;
+			}
 			break;
 	}
 }
