@@ -125,9 +125,9 @@ OPTINLINE void reloadticker(byte channel)
 	PITchannels[channel].ticker = PITchannels[channel].frequency; //Reload the start value!
 }
 
-byte channel_reload[3] = {0,0,0}; //To reload the channel next cylcle?
+byte channel_reload[3] = {0,0,0}; //To reload the channel next cycle?
 
-OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
+OPTINLINE float calcSpeakerLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
 {
 	float RC = (float)1.0f / (cutoff_freq * (float)2 * (float)3.14);
 	float dt = (float)1.0f / samplerate;
@@ -146,7 +146,7 @@ OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 		first_sample = 0;
 		return; //Abort: don't filter the first sample!
 	}
-	last_result = (sword)calcLowpassFilter(20000.0f, TIME_RATE, (float)*currentsample, last_result);
+	last_result = (sword)calcSpeakerLowpassFilter(20000.0f, TIME_RATE, (float)*currentsample, last_result);
 	last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = last_result; //Give the new result!
 }
@@ -178,7 +178,7 @@ void tickPIT() //Ticks all PIT timers available!
 		PITchannels[channel].time_ticktiming += timepassed; //Get the amount of time passed!
 
 		//Render 1.19MHz samples for the time that has passed!
-		length = SAFEDIV(PITchannels[channel].time_ticktiming, time_tick); //How many ticks to tick?
+		length = (uint_32)SAFEDIV(PITchannels[channel].time_ticktiming, time_tick); //How many ticks to tick?
 		PITchannels[channel].time_ticktiming -= (length*time_tick); //Rest the amount of ticks!
 
 		byte mode;
@@ -339,7 +339,7 @@ void tickPIT() //Ticks all PIT timers available!
 	//PC speaker output!
 	if (speaker_ticktiming >= speaker_tick) //Enough time passed to render?
 	{
-		length = SAFEDIV(speaker_ticktiming, speaker_tick); //How many ticks to tick?
+		length = (uint_32)SAFEDIV(speaker_ticktiming, speaker_tick); //How many ticks to tick?
 		speaker_ticktiming -= (length*speaker_tick); //Rest the amount of ticks!
 
 		if (!FIFOBUFFER_LOCK) //Not locked?
@@ -358,7 +358,7 @@ void tickPIT() //Ticks all PIT timers available!
 			{
 				//Average our input ticks!
 				PITchannels[2].samplesleft += ticklength; //Add our time to the one-shot samples!
-				tempf = floor((double)PITchannels[2].samplesleft); //Take the rounded number of samples to process!
+				tempf = floorf(PITchannels[2].samplesleft); //Take the rounded number of samples to process!
 				PITchannels[2].samplesleft -= tempf; //Take off the samples we've processed!
 				render_ticks = (uint_32)tempf; //The ticks to render!
 
@@ -396,7 +396,6 @@ void tickPIT() //Ticks all PIT timers available!
 		}
 		else //Not on? Generate quiet signal!
 		{
-		quietness:
 			//Generate a quiet signal!
 			for (;;) //Generate samples!
 			{

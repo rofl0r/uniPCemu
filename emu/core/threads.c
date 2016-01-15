@@ -29,7 +29,7 @@
 //Stuff for easy thread functions.
 
 //Threads don't need stacks, but give it some to be sure!
-#define THREAD_STACKSIZE 0x10000
+#define THREAD_STACKSIZE 0x100000
 
 ThreadParams threadpool[MAX_THREAD]; //Thread pool!
 

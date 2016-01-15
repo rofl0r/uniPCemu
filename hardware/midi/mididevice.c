@@ -7,6 +7,7 @@
 #include "headers/support/highrestimer.h" //High resolution timer support!
 #include "headers/hardware/midi/adsr.h" //ADSR support!
 #include "headers/emu/timers.h" //Use timers for Active Sensing!
+#include "headers/support/locks.h" //Locking support!
 
 //Use direct windows MIDI processor if available?
 //#define DIRECT_MIDI
@@ -148,7 +149,7 @@ Cents and DB conversion!
 
 //Low&high pass filters!
 
-OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
+OPTINLINE float calcMIDILowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
 {
 	float RC = (float)1.0f / (cutoff_freq * (float)2 * (float)3.14);
 	float dt = (float)1.0f / samplerate;
@@ -156,7 +157,7 @@ OPTINLINE float calcLowpassFilter(float cutoff_freq, float samplerate, float cur
 	return previousresult + (alpha*(currentsample - previousresult));
 }
 
-OPTINLINE void applyLowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample)
+OPTINLINE void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample)
 {
 	if (!voice->lowpassfilter_freq) //No filter?
 	{
@@ -169,7 +170,7 @@ OPTINLINE void applyLowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample)
 		voice->has_last = 1;
 		return; //Abort: don't filter the first sample!
 	}
-	voice->last_result = (sword)calcLowpassFilter(voice->lowpassfilter_freq, (float)voice->sample.dwSampleRate, *currentsample, voice->last_result);
+	voice->last_result = (sword)calcMIDILowpassFilter(voice->lowpassfilter_freq, (float)voice->sample.dwSampleRate, *currentsample, voice->last_result);
 	voice->last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = voice->last_result; //Give the new result!
 }
@@ -243,7 +244,7 @@ OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_counter
 		lchannel = readsample; //Convert to floating point for our calculations!
 
 		//First, apply filters and current envelope!
-		applyLowpassFilter(voice, &lchannel); //Low pass filter!
+		applyMIDILowpassFilter(voice, &lchannel); //Low pass filter!
 		lchannel = (sword)(lchannel*Volume); //Apply ADSR Volume envelope!
 		//Now the sample is ready for output into the actual final volume!
 
@@ -277,15 +278,28 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	float velocity_factor; //Current velocity factor!
 	uint_32 numsamples = length; //How many samples to buffer!
 	++numsamples; //Take one sample more!
+	lock(voice->locknumber); //Lock us!
 
 #ifdef LOG_MIDI_TIMING
 	static TicksHolder ticks; //Our ticks holder!
 	startHiresCounting(&ticks);
 	ticksholder_AVG(&ticks); //Enable averaging!
 #endif
-	if (!voice->VolumeEnvelope.active) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
-	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unable to render anything!
-	if (!soundfont) return SOUNDHANDLER_RESULT_NOTFILLED; //The same!
+	if (!voice->VolumeEnvelope.active)
+	{
+		unlock(voice->locknumber); //Lock us!
+		return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
+	}
+	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont)
+	{
+		unlock(voice->locknumber); //Lock us!
+		return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unable to render anything!
+	}
+	if (!soundfont)
+	{
+		unlock(voice->locknumber); //Lock us!
+		return SOUNDHANDLER_RESULT_NOTFILLED; //The same!
+	}
 	//Calculate the pitch bend speedup!
 	pitchcents = (float)(channel->pitch%0x1FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
 	pitchcents -= (float)0x2000; //Convert to a signed value!
@@ -298,7 +312,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
 
 	velocity_factor = voice->note->noteon_velocity_factor; //Apply Note On key velocity first!
-
 
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
@@ -343,6 +356,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	stopHiresCounting("MIDIDEV", "MIDIRenderer", &ticks); //Log our active counting!
 #endif
 
+	unlock(voice->locknumber); //Lock us!
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
@@ -364,7 +378,12 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return 0; //We're unable to render anything!
 	if (!soundfont) return 0; //We're unable to render anything!
-	if (voice->VolumeEnvelope.active) return 1; //Active voices can't be allocated!
+	lock(voice->locknumber); //Lock us!
+	if (voice->VolumeEnvelope.active)
+	{
+		unlock(voice->locknumber); //Lock us!
+		return 1; //Active voices can't be allocated!
+	}
 
 	memset(voice, 0, sizeof(*voice)); //Clear the voice!
 
@@ -382,41 +401,49 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	if (!lookupPresetByInstrument(soundfont, channel->program, channel->activebank, &preset)) //Preset not found?
 	{
+		unlock(voice->locknumber); //Lock us!
 		return 0; //No samples!
 	}
 
 	if (!getSFPreset(soundfont, preset, &currentpreset))
 	{
+		unlock(voice->locknumber); //Lock us!
 		return 0;
 	}
 
 	if (!lookupPBagByMIDIKey(soundfont, preset, note->note, note->noteon_velocity, &pbag)) //Preset bag not found?
 	{
+		unlock(voice->locknumber); //Lock us!
 		return 0; //No samples!
 	}
 
 	if (!lookupSFPresetGen(soundfont, preset, pbag, instrument, &instrumentptr))
 	{
+		unlock(voice->locknumber); //Lock us!
 		return 0; //No samples!
 	}
 
 	if (!getSFInstrument(soundfont, instrumentptr.genAmount.wAmount, &currentinstrument))
 	{
+		unlock(voice->locknumber); //Lock us!
 		return 0;
 	}
 
 	if (!lookupIBagByMIDIKey(soundfont, instrumentptr.genAmount.wAmount, note->note, note->noteon_velocity, &ibag, 1))
 	{
+		unlock(voice->locknumber); //Lock us!
 		return 0; //No samples!
 	}
 
 	if (!lookupSFInstrumentGen(soundfont, instrumentptr.genAmount.wAmount, ibag, sampleID, &sampleptr))
 	{
+		unlock(voice->locknumber); //Lock us!
 		return 0; //No samples!
 	}
 
 	if (!getSFSampleInformation(soundfont, sampleptr.genAmount.wAmount, &voice->sample))
 	{
+		unlock(voice->locknumber); //Lock us!
 		return 0; //No samples!
 	}
 
@@ -587,6 +614,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	//Final adjustments and set active!
 	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay);	//Initialise our Volume Envelope for use!
+	unlock(voice->locknumber); //Unlock us!
 	setSampleRate(&MIDIDEVICE_renderer, voice, (float)voice->sample.dwSampleRate); //Use this new samplerate!
 	voice->starttime = starttime++; //Take a new start time!
 	return 0; //Run: we're active!
@@ -622,6 +650,7 @@ OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note,
 		int i;
 		for (i = 0; i < __MIDI_NUMVOICES; i++) //Process all voices!
 		{
+			lock(activevoices[i].locknumber); //Lock us!
 			if (activevoices[i].VolumeEnvelope.active) //Active note?
 			{
 				if ((activevoices[i].note->channel == channel) && (activevoices[i].note->note == note)) //Note found?
@@ -630,6 +659,7 @@ OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note,
 					activevoices[i].note->noteoff_velocity = velocity; //Note off velocity!
 				}
 			}
+			unlock(activevoices[i].locknumber); //Unlock us!
 		}
 	}
 }
@@ -638,12 +668,10 @@ OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used
 {
 	word noteoff; //Current note to turn off!
 	//Note values
-	lockaudio(); //Lock the audio!
 	for (noteoff=0;noteoff<0x100;) //Process all notes!
 	{
 		MIDIDEVICE_noteOff(selectedchannel,channel,(byte)noteoff++,64); //Execute Note Off!
 	}
-	unlockaudio(); //Unlock the audio!
 	#ifdef MIDI_LOG
 	dolog("MPU","MIDIDEVICE: ALL NOTES OFF: %i",selectedchannel); //Log it!
 	#endif
@@ -718,6 +746,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 			{
 				if (MIDIDEVICE_newvoice(&activevoices[voice], channel, note)) //Failed to allocate?
 				{
+					lock(activevoices[voice].locknumber); //Lock us!
 					if (activevoices[voice].VolumeEnvelope.active) //Are we active?
 					{
 						//Create ranking by scoring the voice!
@@ -758,6 +787,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 						foundvoice = voice; //Found this voice!
 						break;
 					}
+					unlock(activevoices[voice].locknumber); //unlock us!
 				}
 				else //Allocated?
 				{
@@ -771,7 +801,9 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 			//Perform voice stealing using voicetosteal, if available!
 			if (voicetosteal != -1) //Something to steal?
 			{
+				lock(activevoices[voice].locknumber); //Lock us!
 				activevoices[voicetosteal].VolumeEnvelope.active = 0; //Make inactive!
+				unlock(activevoices[voice].locknumber); //unlock us!
 				MIDIDEVICE_newvoice(&activevoices[voicetosteal], channel,note); //Steal the selected voice!
 			}
 		}
@@ -797,32 +829,28 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			#ifdef MIDI_LOG
 				if ((command & 0xF0) == 0x90) dolog("MPU", "MIDIDEVICE: NOTE ON: Redirected to NOTE OFF.");
 			#endif
-			lockaudio(); //Lock the audio!
 			for (channel=0;channel<0x10;) //Process all channels!
 			{
 				MIDIDEVICE_noteOff(currentchannel,channel++,firstparam,current->buffer[1]); //Execute Note Off!
 			}
-			unlockaudio(); //Unlock the audio!
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: NOTE OFF: Channel %i Note %i Velocity %i",currentchannel,firstparam,current->buffer[1]); //Log it!
 			#endif
 			break;
 		case 0x90: //Note on?
 			if (!current->buffer[1]) goto noteoff; //Actually a note off?
-			lockaudio(); //Lock the audio!
 			for (channel=0;channel<0x10;) //Process all channels!
 			{
 				MIDIDEVICE_noteOn(currentchannel, channel++, firstparam, current->buffer[1]); //Execute Note On!
 			}
-			unlockaudio(); //Unlock the audio!
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: NOTE ON: Channel %i Note %i Velocity %i",currentchannel,firstparam,current->buffer[1]); //Log it!
 			#endif
 			break;
 		case 0xA0: //Aftertouch?
-			lockaudio(); //Lock the audio!
+			//lockaudio(); //Lock the audio!
 			MIDIDEVICE.channels[currentchannel].notes[firstparam].pressure = current->buffer[1];
-			unlockaudio(); //Unlock the audio!
+			//unlockaudio(); //Unlock the audio!
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: Aftertouch: %i-%i",currentchannel,MIDIDEVICE.channels[currentchannel].notes[firstparam].pressure); //Log it!
 			#endif
@@ -836,10 +864,10 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					#endif
 						if (currentchannel != MIDI_DRUMCHANNEL) //Don't receive on channel 9: it's locked!
 						{
-							lockaudio(); //Lock the audio!
+							//lockaudio(); //Lock the audio!
 							MIDIDEVICE.channels[currentchannel].bank &= 0x3F80; //Only keep MSB!
 							MIDIDEVICE.channels[currentchannel].bank |= current->buffer[1]; //Set LSB!
-							unlockaudio(); //Unlock the audio!
+							//unlockaudio(); //Unlock the audio!
 						}
 					break;
 				case 0x20: //Bank Select (LSB) (see cc0)
@@ -848,10 +876,10 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 #endif
 					if (currentchannel != MIDI_DRUMCHANNEL) //Don't receive on channel 9: it's locked!
 					{
-						lockaudio(); //Lock the audio!
+						//lockaudio(); //Lock the audio!
 						MIDIDEVICE.channels[currentchannel].bank &= 0x7F; //Only keep LSB!
 						MIDIDEVICE.channels[currentchannel].bank |= (current->buffer[1] << 7); //Set MSB!
-						unlockaudio(); //Unlock the audio!
+						//unlockaudio(); //Unlock the audio!
 					}
 					break;
 
@@ -859,19 +887,19 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					#ifdef MIDI_LOG
 						dolog("MPU", "MIDIDEVICE: Volume MSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
 					#endif
-					lockaudio(); //Lock the audio!
+					//lockaudio(); //Lock the audio!
 					MIDIDEVICE.channels[currentchannel].volume &= 0x3F80; //Only keep MSB!
 					MIDIDEVICE.channels[currentchannel].volume |= current->buffer[1]; //Set LSB!
-					unlockaudio(); //Unlock the audio!
+					//unlockaudio(); //Unlock the audio!
 					break;
 				case 0x27: //Volume (LSB)
 #ifdef MIDI_LOG
 					dolog("MPU", "MIDIDEVICE: Volume LSB on channel %i: %02X", currentchannel, current->buffer[1]); //Log it!
 #endif
-					lockaudio(); //Lock the audio!
+					//lockaudio(); //Lock the audio!
 					MIDIDEVICE.channels[currentchannel].volume &= 0x7F; //Only keep LSB!
 					MIDIDEVICE.channels[currentchannel].volume |= (current->buffer[1] << 7); //Set MSB!
-					unlockaudio(); //Unlock the audio!
+					//unlockaudio(); //Unlock the audio!
 					break;
 
 				case 0x0A: //Pan position (MSB)
@@ -937,13 +965,13 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 				case 0x7D: //Omni Mode On
 				case 0x7E: //Mono operation
 				case 0x7F: //Poly Operation
-					lockaudio(); //Lock the audio!
 					for (channel=0;channel<0x10;)
 					{
 						MIDIDEVICE_AllNotesOff(currentchannel,channel++); //Turn all notes off!
 					}
 					if ((firstparam&0x7C)==0x7C) //Mode change command?
 					{
+						//lockaudio(); //Lock the audio!
 						switch (firstparam&3) //What mode change?
 						{
 						case 0: //Omni Mode Off
@@ -989,8 +1017,8 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 							MIDIDEVICE.channels[currentchannel].mode |= MIDIDEVICE_POLY; //Enable Poly mode!
 							break;
 						}
+						//unlockaudio(); //Unlock the audio!
 					}
-					unlockaudio(); //Unlock the audio!
 					break;
 				default: //Unknown controller?
 					#ifdef MIDI_LOG
@@ -1000,18 +1028,18 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			}
 			break;
 		case 0xC0: //Program change?
-			lockaudio(); //Lock the audio!
+			//lockaudio(); //Lock the audio!
 			MIDIDEVICE.channels[currentchannel].program = firstparam; //What program?
 			MIDIDEVICE.channels[currentchannel].activebank = MIDIDEVICE.channels[currentchannel].bank; //Apply bank from Bank Select Messages!
-			unlockaudio(); //Unlock the audio!
+			//unlockaudio(); //Unlock the audio!
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: Program change: %i=%i",currentchannel,MIDIDEVICE.channels[currentchannel].program); //Log it!
 			#endif
 			break;
 		case 0xD0: //Channel pressure?
-			lockaudio(); //Lock the audio!
+			//lockaudio(); //Lock the audio!
 			MIDIDEVICE.channels[currentchannel].pressure = firstparam;
-			unlockaudio(); //Unlock the audio!
+			//unlockaudio(); //Unlock the audio!
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: Channel pressure: %i=%i",currentchannel,MIDIDEVICE.channels[currentchannel].pressure); //Log it!
 			#endif
@@ -1098,6 +1126,17 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 		return 1; //Stop: ready!
 	#endif
 	#endif
+	for (result=0;result<__MIDI_NUMVOICES;result++) //Process all voices!
+	{
+		if (getLock(result + MIDI_LOCKSTART)) //Our MIDI lock!
+		{
+			activevoices[result].locknumber = result+MIDI_LOCKSTART; //Our locking number!
+		}
+		else
+		{
+			return 0; //We're disabled!
+		}
+	}
 	lockaudio();
 	done_MIDIDEVICE(); //Start finished!
 	reset_MIDIDEVICE(); //Reset our MIDI device!
@@ -1117,7 +1156,7 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 		int i;
 		for (i=0;i<__MIDI_NUMVOICES;i++) //Assign all voices available!
 		{
-			activevoices[i].purpose = (i < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice?
+			activevoices[i].purpose = (((__MIDI_NUMVOICES-i)-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
 			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
 		}
 	}

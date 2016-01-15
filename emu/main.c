@@ -24,6 +24,8 @@
 
 #include "headers/mmu/mmu.h" //MMU support!
 
+#include "headers/hardware/8253.h" //PIT support!
+
 #ifdef __psp__
 PSP_MODULE_INFO("x86EMU", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER); //Make sure we're user mode!

@@ -115,9 +115,6 @@ OBJS += emu/debugger/debugger.o
 #Signed VS unsigned conversion support!
 OBJS += support/signedness.o
 
-#PC Speaker&Std sound output!
-OBJS += hardware/pcspeaker.o
-
 #MIDI and SF2 support!
 OBJS += support/sf2.o hardware/midi/mpu.o hardware/midi/midi.o hardware/midi/mididevice.o hardware/midi/adsr.o
 #MID file support!

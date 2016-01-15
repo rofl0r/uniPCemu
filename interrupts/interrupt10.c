@@ -959,7 +959,6 @@ void int10_ScrollDownWindow_real(byte linestoscroll, byte backgroundcolor, byte 
 {
 	int x; //Current x!
 	int y; //Current y!
-	int c; //Rows scrolled!
 	byte oldchar;
 	byte oldattr;
 	int rowstoclear;
@@ -990,7 +989,6 @@ void int10_ScrollUpWindow_real(byte linestoscroll, byte backgroundcolor, byte pa
 {
 	int x; //Current x!
 	int y; //Current y!
-	int c; //Rows scrolled!
 	byte oldchar;
 	byte oldattr;
 	int rowstoclear;

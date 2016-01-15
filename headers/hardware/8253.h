@@ -20,7 +20,7 @@ void init8253(); //Initialisation!
 void cleanPIT(); //Timer tick Irq reset timing
 
 //PC speaker!
-void setChannelFrequency(byte channel, word newfrequency); //Set the new frequency!
+void setPITFrequency(byte channel, word newfrequency); //Set the new frequency!
 void initSpeakers(); //Initialises the speaker and sets it up!
 void doneSpeakers(); //Finishes the speaker and removes it!
 void tickPIT(); //Ticks all PIT timers/speakers available!

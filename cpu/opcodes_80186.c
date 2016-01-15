@@ -47,7 +47,102 @@ extern VAL32Splitter temp1, temp2, temp3, temp4, temp5;
 //Help functions for debugging:
 extern char modrm_param1[256]; //Contains param/reg1
 extern char modrm_param2[256]; //Contains param/reg2
+extern byte cpudebugger; //CPU debugger active?
+extern byte custommem; //Custom memory address?
 
+OPTINLINE void modrm186_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type) //Copy of 8086 version!
+{
+	if (cpudebugger) //Gotten no debugger to process?
+	{
+		//Process debugger!
+		char result[256];
+		bzero(result, sizeof(result));
+		strcpy(result, instruction); //Set the instruction!
+		switch (type)
+		{
+		case PARAM_MODRM1: //Param1 only?
+		case PARAM_MODRM2: //Param2 only?
+		case PARAM_MODRM12: //param1,param2
+		case PARAM_MODRM21: //param2,param1
+							//We use modr/m decoding!
+			switch (debuggersize)
+			{
+			case 8:
+				modrm_debugger8(&params, 0, 1);
+				break;
+			case 16:
+				modrm_debugger16(&params, 0, 1);
+				break;
+			default: //None?
+					 //Don't use modr/m!
+				break;
+			}
+			break;
+		}
+		switch (type)
+		{
+		case PARAM_NONE: //No params?
+			debugger_setcommand(result); //Nothing!
+			break;
+		case PARAM_MODRM1: //Param1 only?
+			strcat(result, " %s"); //1 param!
+			debugger_setcommand(result, modrm_param1);
+			break;
+		case PARAM_MODRM2: //Param2 only?
+			strcat(result, " %s"); //1 param!
+			debugger_setcommand(result, modrm_param2);
+			break;
+		case PARAM_MODRM12: //param1,param2
+			strcat(result, " %s,%s"); //2 params!
+			debugger_setcommand(result, modrm_param1, modrm_param2);
+			break;
+		case PARAM_MODRM21: //param2,param1
+			strcat(result, " %s,%s"); //2 params!
+			debugger_setcommand(result, modrm_param2, modrm_param1);
+			break;
+		case PARAM_IMM8: //imm8
+			strcat(result, " %02X"); //1 param!
+			debugger_setcommand(result, paramdata);
+			break;
+		case PARAM_IMM16: //imm16
+			strcat(result, " %04X"); //1 param!
+			debugger_setcommand(result, paramdata);
+			break;
+		case PARAM_IMM32: //imm32
+			strcat(result, " %08X"); //1 param!
+			debugger_setcommand(result, paramdata);
+		default: //Unknown?
+			break;
+		}
+	}
+}
+
+extern uint_32 offset; //Offset to use!
+
+OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 version!
+{
+	if (MMU_invaddr())
+	{
+		return;
+	}
+	CPUPROT1
+		if (dest) //Register?
+		{
+			*dest = val;
+		}
+		else //Memory?
+		{
+			if (custommem)
+			{
+				MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), offset, val); //Write to memory directly!
+			}
+			else //ModR/M?
+			{
+				modrm_write16(&params, MODRM_src0, val, 0); //Write the result to memory!
+			}
+		}
+	CPUPROT2
+}
 
 void CPU186_OP60()
 {
@@ -188,7 +283,7 @@ void CPU186_OP6F()
 	}
 }
 
-void CPU186_OP8E() { modrm_readparams(&params, 1, 2); if (params.info[0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, 0, 1); modrm_generateInstructionTEXT("MOVW", 16, 0, PARAM_MODRM12); MODRM_src0 = 0; CPU8086_internal_MOV16(modrm_addr16(&params, 0, 0), modrm_read16(&params, 1)); }
+void CPU186_OP8E() { modrm_readparams(&params, 1, 2); if (params.info[0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, 0, 1); modrm186_generateInstructionTEXT("MOVW", 16, 0, PARAM_MODRM12); MODRM_src0 = 0; CPU186_internal_MOV16(modrm_addr16(&params, 0, 0), modrm_read16(&params, 1)); }
 
 void CPU186_OPC0()
 {
