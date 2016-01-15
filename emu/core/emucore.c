@@ -501,6 +501,7 @@ extern byte Direct_Input; //Are we in direct input mode?
 double last_timing = 0; //Last timing!
 
 double CPU_speed_cycle = 1000000000.0f/CPU808X_CLOCK; //808X signal cycles by default!
+byte DosboxClock = 1; //We're executing using the Dosbox clock cycles?
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
@@ -522,12 +523,21 @@ void BIOSMenuExecution()
 
 void updateSpeedLimit()
 {
+	DosboxClock = 1; //We're executing using Dosbox clocks!
 	if (BIOS_Settings.CPUSpeed) //Gotten speed cycles set?
 	{
-		CPU_speed_cycle = 1000000.0f/(float)BIOS_Settings.CPUSpeed; //Cycles per ms is used!
+		if (DosboxClock) //Dosbox clock cycles?
+		{
+			CPU_speed_cycle = 1000000.0f/(float)BIOS_Settings.CPUSpeed; //Cycles per ms is used!
+		}
+		else //Actual clock cycles?
+		{
+			CPU_speed_cycle = 1000000000.0f / (float)BIOS_Settings.CPUSpeed; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+		}
 	}
-	else //CPU speed cycles not set?
+	else //CPU speed cycles not set? No Dosbox cycles here normally (until implemented)!
 	{
+		DosboxClock = 0; //We're executing using actual clocks!
 		CPU_speed_cycle = 1000000000.0f/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
 	}
 }
@@ -565,8 +575,25 @@ OPTINLINE byte coreHandler()
 
 	//CPU execution, needs to be before the debugger!
 	interruptsaved = 0; //Reset PIC interrupt to not used!
-	if (!CPU[activeCPU].halt) //Not halted?
+	if (CPU[activeCPU].halt) //Halted?
 	{
+		if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
+		{
+			CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
+			goto resumeFromHLT; //We're resuming from HLT state!
+		}
+		if (DosboxClock) //Execute using Dosbox clocks?
+		{
+			CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now!
+		}
+		else //Execute using actual CPU clocks!
+		{
+			CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
+		}
+	}
+	else //We're not halted? Execute the CPU routines!
+	{
+		resumeFromHLT:
 		if (CPU[activeCPU].registers && doEMUsinglestep) //Single step enabled?
 		{
 			if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
@@ -611,10 +638,6 @@ OPTINLINE byte coreHandler()
 		cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
 		MMU_logging = debugger_logging(); //Are we logging?
 		CPU_exec(); //Run CPU!
-	}
-	else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
-	{
-		CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 	}
 
 	//Increase the instruction counter every instruction/HLT time!

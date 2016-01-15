@@ -19,7 +19,8 @@
 //Show BIOS data area Equipment word?
 //#define SHOW_EQUIPMENT_WORD
 
-
+//Debug CPU speed?
+#define DEBUG_CPU_SPEED
 //Define pixel(stage/(scan&)newline) speed?
 //#define DEBUG_PIXEL_SPEED
 //Framerate step in times per second!
@@ -43,6 +44,8 @@ float totalframerate = 0.0f;
 uint_32 totalframes = 0;
 float totalscanlinepercentage = 0.0f;
 uint_32 totalsteps = 0;
+
+byte framerateupdated = 0;
 
 uint_32 SCREENS_RENDERED = 0; //Ammount of GPU screens rendered!
 
@@ -81,6 +84,7 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 		totalframerate = (totalframes+curscanlinepercentage)/(totalstepssec/1000000.0f); //Calculate total framerate!
 
 		frames = 0; //Reset complete frames counted for future reference!
+		framerateupdated = 1; //We're updated!
 	}
 	#ifdef LOG_VGA_SPEED
 	logVGASpeed(); //Log the speed for our frames!
@@ -95,17 +99,19 @@ void finish_screen() //Extra stuff after rendering!
 	++SCREENS_RENDERED; //Count ammount of screens rendered!
 }
 
-extern double clockspeed; //Default clock speed!
+extern double last_timing; //Last timing!
+extern TicksHolder CPU_timing; //CPU timing counter!
 
 void renderFramerate()
 {
+	static uint_32 CPUspeed; //Current CPU speed!
 	if (frameratesurface) //Existing surface and showing?
 	{
 		GPU_text_locksurface(frameratesurface); //Lock!
-		GPU_textgotoxy(frameratesurface,0,0); //For output!
 		if (GPU.show_framerate)
 		{
 			GPU_textclearrow(frameratesurface, 0); //Clear the first row!
+			GPU_textgotoxy(frameratesurface, 0, 0); //For output!
 			GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),"FPS: %02.5f, AVG: %02.5f",
 				framerate, //Current framrate (FPS)
 				totalframerate //AVG framerate (FPS)
@@ -122,6 +128,14 @@ void renderFramerate()
 					}
 				}
 			#endif
+			#ifdef DEBUG_CPU_SPEED
+				if (framerateupdated) //We're updated!
+				{
+					framerateupdated = 0; //Not anymore!
+					CPUspeed = (byte)roundf(SAFEDIV(last_timing, (double)getnspassed_k(&CPU_timing))*100.0f); //Current CPU speed percentage (how much the current time is compared to required time)!
+				}
+				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
+			#endif
 			#ifdef SHOW_EQUIPMENT_WORD
 				if (hasmemory())
 				{
@@ -133,6 +147,15 @@ void renderFramerate()
 		else //Don't debug framerate, but still render?
 		{
 			GPU_textclearrow(frameratesurface, 0); //Clear the rows we use!
+			#ifdef DEBUG_CPU_SPEED
+				if (framerateupdated) //We're to be updated with the framerate rate!
+				{
+					framerateupdated = 0; //Not anymore!
+					CPUspeed = (byte)roundf(SAFEDIV(last_timing, (double)getnspassed_k(&CPU_timing))*100.0f); //Current CPU speed percentage (how much the current time is compared to required time)!
+				}
+				GPU_textgotoxy(frameratesurface, 0, 0); //For output!
+				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "CPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
+			#endif
 			GPU_textclearrow(frameratesurface, 1); //Clear the rows we use!
 			GPU_textclearrow(frameratesurface, 2); //Clear the rows we use!
 			EMU_drawBusy(0); //Draw busy flag disk A!
