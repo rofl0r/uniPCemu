@@ -39,8 +39,10 @@ PC SPEAKER
 
 //Speaker playback rate!
 #define SPEAKER_RATE 44100.0f
+//Use actual response as speaker rate! 60us responses!
+//#define SPEAKER_RATE (1000000.0f/60.0f)
 //Speaker buffer size!
-#define SPEAKER_BUFFER 512
+#define SPEAKER_BUFFER 1024
 
 #define TIME_RATE 1193182.0f
 
@@ -77,9 +79,9 @@ typedef struct
 PITCHANNEL PITchannels[3]; //All possible PC speakers, whether used or not!
 
 byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
+	static sword s = 0; //Last sample!
 	uint_32 i;
 	PITCHANNEL *speaker; //Convert to the current speaker!
-	short s; //The sample!
 
 	if (__HW_DISABLED) return 0; //Abort!	
 
@@ -92,10 +94,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 		register sample_stereo_p ubuf_stereo = (sample_stereo_p)buf; //Active buffer!
 		for (;;) //Process all samples!
 		{ //Process full length!
-			if (!readfifobuffer16(speaker->buffer, &s)) //Not readable from the buffer?
-			{
-				s = 0; //Silence!
-			}
+			readfifobuffer16(speaker->buffer, &s); //Not readable from the buffer? Duplicate last sample!
 
 			ubuf_stereo->l = ubuf_stereo->r = s; //Single channel!
 			++ubuf_stereo; //Next item!
@@ -107,10 +106,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 		register sample_p ubuf_mono = (sample_p)buf; //Active buffer!
 		for (;;)
 		{ //Process full length!
-			if (!readfifobuffer16(speaker->buffer, &s)) //Not readable from the buffer?
-			{
-				s = 0; //Silence!
-			}
+			readfifobuffer16(speaker->buffer, &s); //Not readable from the buffer? Duplicate last sample!
 			*ubuf_mono = s; //Mono channel!
 			++ubuf_mono; //Next item!
 			if (++i == length) break; //Next item!
@@ -384,7 +380,7 @@ void tickPIT() //Ticks all PIT timers available!
 
 				//Add the result to our buffer!
 				writefifobuffer16(PITchannels[2].buffer, s); //Write the sample to the buffer (mono buffer)!
-				if (++i == length)
+				if (++i == length) //Fully rendered?
 				{
 					if (!FIFOBUFFER_LOCK) //Not locked?
 					{

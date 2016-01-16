@@ -1920,7 +1920,9 @@ void toggleDirectInput(byte middlebutton)
 	Mouse_buttons &= ~3; //Disable left/right mouse buttons!
 }
 
-byte WindowHidden = 0; //Are we minimized on-screen?
+byte haswindowactive = 1; //Are we displayed on-screen?
+byte hasmousefocus = 1; //Do we have mouse focus?
+byte hasinputfocus = 1; //Do we have input focus?
 
 void updateInput(SDL_Event *event) //Update all input!
 {
@@ -1929,7 +1931,7 @@ void updateInput(SDL_Event *event) //Update all input!
 	{
 	case SDL_KEYUP: //Keyboard up?
 		WaitSem(keyboard_lock) //Wait!
-			if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14))) //Gotten no joystick?
+			if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
 			{
 				switch (event->key.keysym.sym) //What key?
 				{
@@ -2057,7 +2059,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			}
 		break;
 	case SDL_KEYDOWN: //Keyboard down?
-		if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14))) //Gotten no joystick?
+		if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
 		{
 			WaitSem(keyboard_lock)
 				switch (event->key.keysym.sym) //What key?
@@ -2174,7 +2176,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			}
 			break;
 		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
-			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14)) //Gotten a joystick?
+			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
 			{
 				WaitSem(keyboard_lock)
 				switch ( event->jaxis.axis)
@@ -2197,7 +2199,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			}
 			break;
 		case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
-			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14)) //Gotten a joystick?
+			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
 			{
 				WaitSem(keyboard_lock)
 				switch (event->jbutton.button) //What button?
@@ -2251,7 +2253,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			}
 			break;
 		case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
-			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14)) //Gotten a joystick?
+			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
 			{
 				WaitSem(keyboard_lock)
 				switch (event->jbutton.button) //What button?
@@ -2305,60 +2307,66 @@ void updateInput(SDL_Event *event) //Update all input!
 			}
 			break;
 		case SDL_MOUSEBUTTONDOWN: //Button pressed?
-			WaitSem(keyboard_lock);
-			switch (event->button.button) //What button?
+			if (hasmousefocus) //Do we have mouse focus?
 			{
-			case SDL_BUTTON_LEFT:
-				mousebuttons |= 1; //Left pressed!
-				if (Direct_Input) //Direct input enabled?
+				WaitSem(keyboard_lock);
+				switch (event->button.button) //What button?
 				{
-					Mouse_buttons |= 1; //Left mouse button pressed!
+				case SDL_BUTTON_LEFT:
+					mousebuttons |= 1; //Left pressed!
+					if (Direct_Input) //Direct input enabled?
+					{
+						Mouse_buttons |= 1; //Left mouse button pressed!
+					}
+					break;
+				case SDL_BUTTON_RIGHT:
+					mousebuttons |= 2; //Right pressed!
+					if (Direct_Input) //Direct input enabled?
+					{
+						Mouse_buttons |= 2; //Right mouse button pressed!
+					}
+					break;
 				}
-				break;
-			case SDL_BUTTON_RIGHT:
-				mousebuttons |= 2; //Right pressed!
-				if (Direct_Input) //Direct input enabled?
-				{
-					Mouse_buttons |= 2; //Right mouse button pressed!
-				}
-				break;
+				PostSem(keyboard_lock);
 			}
-			PostSem(keyboard_lock);
 			break;
 		case SDL_MOUSEBUTTONUP: //Special mouse button action?
-			WaitSem(keyboard_lock);
-			switch (event->button.button) //What button?
+			if (hasmousefocus)
 			{
-			case SDL_BUTTON_MIDDLE: //Middle released!
-				toggleDirectInput(1); //Toggle direct input by middle button!
-				break;
-			case SDL_BUTTON_LEFT:
-				if ((mousebuttons==3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
+				WaitSem(keyboard_lock);
+				switch (event->button.button) //What button?
 				{
-					toggleDirectInput(0); //Toggle direct input by both buttons!
+				case SDL_BUTTON_MIDDLE: //Middle released!
+					toggleDirectInput(1); //Toggle direct input by middle button!
+					break;
+				case SDL_BUTTON_LEFT:
+					if ((mousebuttons==3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
+					{
+						toggleDirectInput(0); //Toggle direct input by both buttons!
+					}
+					mousebuttons &= ~1; //Left released!
+					if (Direct_Input)
+					{
+						Mouse_buttons &= ~1; //button released!
+					}
+					break;
+				case SDL_BUTTON_RIGHT:
+					if ((mousebuttons == 3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
+					{
+						toggleDirectInput(0); //Toggle direct input by both buttons!
+					}
+					mousebuttons &= ~2; //Right released!
+					if (Direct_Input)
+					{
+						Mouse_buttons &= ~2; //button released!
+					}
+					break;
 				}
-				mousebuttons &= ~1; //Left released!
-				if (Direct_Input)
-				{
-					Mouse_buttons &= ~1; //button released!
-				}
-				break;
-			case SDL_BUTTON_RIGHT:
-				if ((mousebuttons == 3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
-				{
-					toggleDirectInput(0); //Toggle direct input by both buttons!
-				}
-				mousebuttons &= ~2; //Right released!
-				if (Direct_Input)
-				{
-					Mouse_buttons &= ~2; //button released!
-				}
-				break;
+				PostSem(keyboard_lock);
 			}
-			PostSem(keyboard_lock);
 			break;
 		case SDL_MOUSEMOTION: //Mouse moved?
-			if (Direct_Input) //Direct input?
+			if (Direct_Input && hasmousefocus) //Direct input?
 			{
 				mouse_xmove += event->motion.xrel; //Move the mouse horizontally!
 				mouse_ymove += event->motion.yrel; //Move the mouse vertically!
@@ -2368,12 +2376,17 @@ void updateInput(SDL_Event *event) //Update all input!
 			SDL_JoystickClose(joystick); //Finish our joystick!
 			break;
 		case SDL_ACTIVEEVENT: //Window event?
-			switch (event->active.state)
+			if (event->active.state&SDL_APPMOUSEFOCUS)
 			{
-			case SDL_APPACTIVE: //Iconified/Restored?
-				WindowHidden = !event->active.gain; //0=Iconified, 1=Restored.
-			default: //Unsupported?
-				break;
+				hasmousefocus = event->active.gain; //Do we have mouse focus?
+			}
+			if (event->active.state&SDL_APPINPUTFOCUS) //Gain/lose keyboard focus?
+			{
+				hasinputfocus = event->active.gain; //Do we have input focus?
+			}
+			if (event->active.state&SDL_APPACTIVE) //Iconified/Restored?
+			{
+				haswindowactive = event->active.gain; //0=Iconified, 1=Restored.
 			}
 			break;
 	}

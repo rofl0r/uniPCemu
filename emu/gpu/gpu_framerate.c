@@ -20,7 +20,7 @@
 //#define SHOW_EQUIPMENT_WORD
 
 //Debug CPU speed?
-#define DEBUG_CPU_SPEED
+//#define DEBUG_CPU_SPEED
 //Define pixel(stage/(scan&)newline) speed?
 //#define DEBUG_PIXEL_SPEED
 //Framerate step in times per second!
