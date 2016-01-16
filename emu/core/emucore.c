@@ -544,21 +544,6 @@ void updateSpeedLimit()
 
 OPTINLINE byte coreHandler()
 {
-	if (debugger_thread)
-	{
-		if (threadRunning(debugger_thread, "debugger")) //Are we running the debugger?
-		{
-			return 1; //OK, but skipped!
-		}
-	}
-	if (BIOSMenuThread)
-	{
-		if (threadRunning(BIOSMenuThread, "BIOSMenu")) //Are we running the BIOS menu?
-		{
-			return 1; //OK, but skipped!
-		}
-	}
-	BIOSMenuThread = NULL; //We don't run the BIOS menu!
 	if (romsize && CPU[activeCPU].halt) //Debug HLT?
 	{
 		MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
@@ -567,86 +552,113 @@ OPTINLINE byte coreHandler()
 
 	if (!CPU[activeCPU].registers) return 0; //Invalid registers!
 
-	updateKeyboard(); //Tick the keyboard timer if needed!
-	updateMouse(); //Tick the mouse timer if needed!
-	updateAdlib(); //Tick the adlib timer if needed!
-	updateATA(); //Update the ATA timer!
-	updateDMA(); //Update the DMA timer!
-
 	//CPU execution, needs to be before the debugger!
-	interruptsaved = 0; //Reset PIC interrupt to not used!
-	if (CPU[activeCPU].halt) //Halted?
+	uint_64 currentCPUtime = getnspassed_k(&CPU_timing); //Current CPU time to update to!
+	uint_64 timeoutCPUtime = last_timing+100000; //When we're timed out 10000x/second!
+	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
 	{
-		if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
+		if (debugger_thread)
 		{
-			CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
-			goto resumeFromHLT; //We're resuming from HLT state!
-		}
-		if (DosboxClock) //Execute using Dosbox clocks?
-		{
-			CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now!
-		}
-		else //Execute using actual CPU clocks!
-		{
-			CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
-		}
-	}
-	else //We're not halted? Execute the CPU routines!
-	{
-		resumeFromHLT:
-		if (CPU[activeCPU].registers && doEMUsinglestep) //Single step enabled?
-		{
-			if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
+			if (threadRunning(debugger_thread, "debugger")) //Are we running the debugger?
 			{
-				switch (getcpumode()) //What CPU mode are we to debug?
-				{
-				case CPU_MODE_REAL: //Real mode?
-					singlestep |= ((CPU[activeCPU].registers->CS == (singlestepaddress >> 16)) && (CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
-					break;
-				case CPU_MODE_PROTECTED: //Protected mode?
-				case CPU_MODE_8086: //Virtual 8086 mode?
-					singlestep |= ((CPU[activeCPU].registers->CS == singlestepaddress >> 32) && (CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
-					break;
-				default: //Invalid mode?
-					break;
-				}
+				return 1; //OK, but skipped!
 			}
 		}
-
-		HWINT_saved = 0; //No HW interrupt by default!
-		CPU_beforeexec(); //Everything before the execution!
-		if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
+		if (BIOSMenuThread)
 		{
-			if (CPU[activeCPU].registers->SFLAGS.IF) //Interrupts available?
+			if (threadRunning(BIOSMenuThread, "BIOSMenu")) //Are we running the BIOS menu?
 			{
-				if (PICInterrupt()) //We have a hardware interrupt ready?
-				{
-					HWINT_nr = nextintr(); //Get the HW interrupt nr!
-					HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-					if (!((EMULATED_CPU == CPU_8086) && (CPU_segmentOverridden(activeCPU)) && REPPending)) //Not 8086, REP pending and segment override?
-					{
-						CPU_8086REPPending(); //Process pending REPs!
-					}
-					else
-					{
-						REPPending = 0; //Clear the REP pending flag: this makes the bug in the 8086 not repeat anymore during interrupts in this case!
-					}
-					call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
-				}
+				return 1; //OK, but skipped!
 			}
 		}
-		cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
-		MMU_logging = debugger_logging(); //Are we logging?
-		CPU_exec(); //Run CPU!
-	}
+		BIOSMenuThread = NULL; //We don't run the BIOS menu!
 
-	//Increase the instruction counter every instruction/HLT time!
-	debugger_step(); //Step debugger if needed!
+		updateKeyboard(); //Tick the keyboard timer if needed!
+		updateMouse(); //Tick the mouse timer if needed!
+		updateAdlib(); //Tick the adlib timer if needed!
+		updateATA(); //Update the ATA timer!
+		updateDMA(); //Update the DMA timer!
 
-	CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
+		interruptsaved = 0; //Reset PIC interrupt to not used!
+		if (CPU[activeCPU].halt) //Halted?
+		{
+			if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
+			{
+				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
+				goto resumeFromHLT; //We're resuming from HLT state!
+			}
+			if (DosboxClock) //Execute using Dosbox clocks?
+			{
+				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now!
+			}
+			else //Execute using actual CPU clocks!
+			{
+				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
+			}
+		}
+		else //We're not halted? Execute the CPU routines!
+		{
+			resumeFromHLT:
+			if (CPU[activeCPU].registers && doEMUsinglestep) //Single step enabled?
+			{
+				if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
+				{
+					switch (getcpumode()) //What CPU mode are we to debug?
+					{
+					case CPU_MODE_REAL: //Real mode?
+						singlestep |= ((CPU[activeCPU].registers->CS == (singlestepaddress >> 16)) && (CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
+						break;
+					case CPU_MODE_PROTECTED: //Protected mode?
+					case CPU_MODE_8086: //Virtual 8086 mode?
+						singlestep |= ((CPU[activeCPU].registers->CS == singlestepaddress >> 32) && (CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
+						break;
+					default: //Invalid mode?
+						break;
+					}
+				}
+			}
 
-	//Slowdown to requested speed!
-	last_timing += CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
+			HWINT_saved = 0; //No HW interrupt by default!
+			CPU_beforeexec(); //Everything before the execution!
+			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
+			{
+				if (CPU[activeCPU].registers->SFLAGS.IF) //Interrupts available?
+				{
+					if (PICInterrupt()) //We have a hardware interrupt ready?
+					{
+						HWINT_nr = nextintr(); //Get the HW interrupt nr!
+						HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
+						if (!((EMULATED_CPU == CPU_8086) && (CPU_segmentOverridden(activeCPU)) && REPPending)) //Not 8086, REP pending and segment override?
+						{
+							CPU_8086REPPending(); //Process pending REPs!
+						}
+						else
+						{
+							REPPending = 0; //Clear the REP pending flag: this makes the bug in the 8086 not repeat anymore during interrupts in this case!
+						}
+						call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
+					}
+				}
+			}
+			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+			MMU_logging = debugger_logging(); //Are we logging?
+			CPU_exec(); //Run CPU!
+
+			//Increase the instruction counter every instruction/HLT time!
+			debugger_step(); //Step debugger if needed!
+
+			CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
+		}
+
+		//Update current timing with calculated cycles we've executed!
+		last_timing += CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
+		if (last_timing >= timeoutCPUtime) //Timeout? We're not fast enough to run at full speed!
+		{
+			break; //Continue execution: we're not fast enough!
+		}
+	} //CPU cycle loop!
+
+	//Slowdown to requested speed if needed!
 	for (;getnspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time every instruction according to cycles passed!
 
 	//Check for BIOS menu!
