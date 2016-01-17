@@ -11,3 +11,4 @@
 *.pdb
 *.log
 Windows/x86EMU/~AutoRecover.x86EMU.vcxproj
+*.opendb
