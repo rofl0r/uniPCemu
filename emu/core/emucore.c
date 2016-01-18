@@ -652,6 +652,7 @@ OPTINLINE byte coreHandler()
 
 		//Update current timing with calculated cycles we've executed!
 		last_timing += CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
+		tickPIT(CPU[activeCPU].cycles*CPU_speed_cycle); //Tick the PIT as much as we need to keep us in sync!
 		if (last_timing >= timeoutCPUtime) //Timeout? We're not fast enough to run at full speed!
 		{
 			break; //Continue execution: we're not fast enough!
