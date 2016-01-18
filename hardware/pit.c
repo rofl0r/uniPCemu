@@ -471,7 +471,6 @@ void tickPIT(float timepassed) //Ticks all PIT timers available!
 void initSpeakers()
 {
 	if (__HW_DISABLED) return; //Abort!
-	initTicksHolder(&timer_ticker); //Initialise our ticks holder!
 	//First speaker defaults!
 	memset(&PITchannels, 0, sizeof(PITchannels)); //Initialise our data!
 	byte i;

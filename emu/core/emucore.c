@@ -544,14 +544,6 @@ void updateSpeedLimit()
 
 OPTINLINE byte coreHandler()
 {
-	if (romsize && CPU[activeCPU].halt) //Debug HLT?
-	{
-		MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
-		return 0; //Stop!
-	}
-
-	if (!CPU[activeCPU].registers) return 0; //Invalid registers!
-
 	//CPU execution, needs to be before the debugger!
 	uint_64 currentCPUtime = getnspassed_k(&CPU_timing); //Current CPU time to update to!
 	uint_64 timeoutCPUtime = last_timing+100000; //When we're timed out 10000x/second!
@@ -580,8 +572,18 @@ OPTINLINE byte coreHandler()
 		updateDMA(); //Update the DMA timer!
 
 		interruptsaved = 0; //Reset PIC interrupt to not used!
+		if (!CPU[activeCPU].registers) //We need registers at this point, but have none to use?
+		{
+			return 0; //Invalid registers: abort, since we're invalid!
+		}
 		if (CPU[activeCPU].halt) //Halted?
 		{
+			if (romsize) //Debug HLT?
+			{
+				MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
+				return 0; //Stop execution!
+			}
+
 			if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt()) //We have an interrupt? Clear Halt State!
 			{
 				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
