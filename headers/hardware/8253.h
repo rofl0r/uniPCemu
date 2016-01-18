@@ -23,7 +23,7 @@ void cleanPIT(); //Timer tick Irq reset timing
 void setPITFrequency(byte channel, word newfrequency); //Set the new frequency!
 void initSpeakers(); //Initialises the speaker and sets it up!
 void doneSpeakers(); //Finishes the speaker and removes it!
-void tickPIT(); //Ticks all PIT timers/speakers available!
+void tickPIT(float timepassed); //Ticks all PIT timers/speakers available!
 void setPITMode(byte channel, byte mode); //Set the current rendering mode!
 void speakerGateUpdated(); //Gate has been updated?
 
