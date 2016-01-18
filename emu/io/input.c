@@ -41,9 +41,6 @@ byte Direct_Input = 0; //Direct input enabled?
 
 extern byte EMU_RUNNING; //Are we running?
 
-SDL_sem *keyboard_lock = NULL; //Our lock!
-SDL_sem *mouse_lock = NULL; //Our lock!
-
 byte keysactive; //Ammount of keys active!
 
 float mouse_interval = 0.0f; //Check never by default (unused timer)!
@@ -573,7 +570,7 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 				
 				//Fill the mouse data!
 				//Mouse movement!
-				WaitSem(mouse_lock);
+				lock(LOCK_INPUT);
 				if (mouse_xmove || mouse_ymove) //Any movement at all?
 				{
 					sbyte xmove, ymove; //For calculating limits!
@@ -584,7 +581,7 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 					mousepacket->xmove = xmove; //X movement in mm!
 					mousepacket->ymove = ymove; //Y movement, scaled!
 				}
-				PostSem(mouse_lock);
+				unlock(LOCK_INPUT);
 
 				mousepacket->buttons = Mouse_buttons; //Take the mouse buttons pressed directly!
 
@@ -1930,7 +1927,7 @@ void updateInput(SDL_Event *event) //Update all input!
 	switch (event->type)
 	{
 	case SDL_KEYUP: //Keyboard up?
-		WaitSem(keyboard_lock) //Wait!
+		lock(LOCK_INPUT); //Wait!
 			if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
 			{
 				switch (event->key.keysym.sym) //What key?
@@ -2055,13 +2052,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					}
 				}
 				updateMOD(); //Update rest keys!
-				PostSem(keyboard_lock)
+				unlock(LOCK_INPUT);
 			}
 		break;
 	case SDL_KEYDOWN: //Keyboard down?
 		if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
 		{
-			WaitSem(keyboard_lock)
+			lock(LOCK_INPUT);
 				switch (event->key.keysym.sym) //What key?
 				{
 					//Special first
@@ -2172,13 +2169,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					}
 				}
 				updateMOD(); //Update rest keys!
-				PostSem(keyboard_lock)
+				unlock(LOCK_INPUT);
 			}
 			break;
 		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
 			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
 			{
-				WaitSem(keyboard_lock)
+				lock(LOCK_INPUT);
 				switch ( event->jaxis.axis)
 				{
 					case 0: /* Left-right movement code goes here */
@@ -2195,13 +2192,13 @@ void updateInput(SDL_Event *event) //Update all input!
 						input.Lx = input.Ly = 0; //Ignore pressed buttons!
 					}
 				}
-				PostSem(keyboard_lock)
+				unlock(LOCK_INPUT);
 			}
 			break;
 		case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
 			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
 			{
-				WaitSem(keyboard_lock)
+				lock(LOCK_INPUT);
 				switch (event->jbutton.button) //What button?
 				{
 					case INPUT_BUTTON_TRIANGLE:
@@ -2249,13 +2246,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					default: //Unknown button?
 						break;
 				}
-				PostSem(keyboard_lock)
+				unlock(LOCK_INPUT);
 			}
 			break;
 		case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
 			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
 			{
-				WaitSem(keyboard_lock)
+				lock(LOCK_INPUT);
 				switch (event->jbutton.button) //What button?
 				{
 					case INPUT_BUTTON_TRIANGLE:
@@ -2303,13 +2300,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					default: //Unknown button?
 						break;
 				}
-				PostSem(keyboard_lock)
+				unlock(LOCK_INPUT);
 			}
 			break;
 		case SDL_MOUSEBUTTONDOWN: //Button pressed?
 			if (hasmousefocus) //Do we have mouse focus?
 			{
-				WaitSem(keyboard_lock);
+				lock(LOCK_INPUT);
 				switch (event->button.button) //What button?
 				{
 				case SDL_BUTTON_LEFT:
@@ -2327,13 +2324,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					}
 					break;
 				}
-				PostSem(keyboard_lock);
+				unlock(LOCK_INPUT);
 			}
 			break;
 		case SDL_MOUSEBUTTONUP: //Special mouse button action?
 			if (hasmousefocus)
 			{
-				WaitSem(keyboard_lock);
+				lock(LOCK_INPUT);
 				switch (event->button.button) //What button?
 				{
 				case SDL_BUTTON_MIDDLE: //Middle released!
@@ -2362,15 +2359,17 @@ void updateInput(SDL_Event *event) //Update all input!
 					}
 					break;
 				}
-				PostSem(keyboard_lock);
+				unlock(LOCK_INPUT);
 			}
 			break;
 		case SDL_MOUSEMOTION: //Mouse moved?
+			lock(LOCK_INPUT);
 			if (Direct_Input && hasmousefocus) //Direct input?
 			{
 				mouse_xmove += event->motion.xrel; //Move the mouse horizontally!
 				mouse_ymove += event->motion.yrel; //Move the mouse vertically!
 			}
+			unlock(LOCK_INPUT);
 			break;
 		case SDL_QUIT: //Quit?
 			SDL_JoystickClose(joystick); //Finish our joystick!
@@ -2434,8 +2433,6 @@ void psp_input_init()
 	#endif
 	SDL_JoystickEventState(SDL_ENABLE);
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
-	keyboard_lock = SDL_CreateSemaphore(1); //Our lock!
-	mouse_lock = SDL_CreateSemaphore(1); //Our lock!
 	for (i = 0;i < NUMITEMS(emu_keys_sdl_rev);i++) //Initialise all keys!
 	{
 		emu_keys_sdl_rev[i] = -1; //Default to unused!
@@ -2451,6 +2448,5 @@ void psp_input_init()
 
 void psp_input_done()
 {
-	//Do nothing yet!
-	SDL_DestroySemaphore(keyboard_lock); //Release the lock!
+	//Do nothing for now!
 }

@@ -47,8 +47,8 @@ PC SPEAKER
 #define TIME_RATE 1193182.0f
 
 double speaker_ticktiming; //Both current clocks!
-uint_64 speaker_tick = (uint_64)(1000000000.0f / SPEAKER_RATE); //Time of a tick in the PC speaker sample!
-uint_64 time_tick = (uint_64)(1000000000.0f / TIME_RATE); //Time of a tick in the PIT!
+double speaker_tick = (1000000000.0f / SPEAKER_RATE); //Time of a tick in the PC speaker sample!
+double time_tick = (1000000000.0f / TIME_RATE); //Time of a tick in the PIT!
 
 byte IRQ0_status = 0; //Current IRQ0 status!
 
@@ -56,6 +56,8 @@ byte oldPCSpeakerPort = 0x00;
 extern byte PCSpeakerPort; //Port 0x61 for the PC Speaker! Bit0=Gate, Bit1=Data enable
 
 extern byte EMU_RUNNING; //Current emulator status!
+
+double time_ticktiming; //Current timing!
 
 typedef struct
 {
@@ -66,7 +68,6 @@ typedef struct
 	word ticker; //16-bit ticks!
 	byte reload; //Reload requested?
 	byte channel_status; //Current output status!
-	uint_64 time_ticktiming; //Current timing!
 	byte gatewenthigh; //Gate went high?
 
 	//Output generating timer!
@@ -146,7 +147,7 @@ OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 	*currentsample = last_result; //Give the new result!
 }
 
-void tickPIT(float timepassed) //Ticks all PIT timers available!
+void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
 	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of one shot samples to read every sample!
@@ -164,19 +165,20 @@ void tickPIT(float timepassed) //Ticks all PIT timers available!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
 	byte channel; //Current channel?
 
-	for (channel=0;channel<3;channel++)
+	time_ticktiming += timepassed; //Add the amount of time passed to the PIT timing!
+
+	//Render 1.19MHz samples for the time that has passed!
+	length = (uint_32)SAFEDIV(time_ticktiming, time_tick); //How many ticks to tick?
+	time_ticktiming -= (length*time_tick); //Rest the amount of ticks!
+
+
+	if (length) //Anything to tick at all?
 	{
-		PITchannels[channel].time_ticktiming += timepassed; //Add the amount of time passed!
-
-		//Render 1.19MHz samples for the time that has passed!
-		length = (uint_32)SAFEDIV(PITchannels[channel].time_ticktiming, time_tick); //How many ticks to tick?
-		PITchannels[channel].time_ticktiming -= (length*time_tick); //Rest the amount of ticks!
-
-		byte mode;
-		mode = PITchannels[channel].mode; //Current mode!
-
-		if (length) //Anything to tick at all?
+		for (channel=0;channel<3;channel++)
 		{
+			byte mode;
+			mode = PITchannels[channel].mode; //Current mode!
+
 			switch (mode) //What mode are we rendering?
 			{
 			case 0: //Interrupt on Terminal Count? Is One-Shot without Gate Input?
@@ -387,7 +389,7 @@ void tickPIT(float timepassed) //Ticks all PIT timers available!
 	fifobuffer_clear(PITchannels[1].rawsignal); //Discard channel 1 output!
 
 	//PC speaker output!
-	speaker_ticktiming += (double)timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
+	speaker_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
 	if (speaker_ticktiming >= speaker_tick) //Enough time passed to render?
 	{
 		length = (uint_32)SAFEDIV(speaker_ticktiming, speaker_tick); //How many ticks to tick?

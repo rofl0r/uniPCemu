@@ -498,7 +498,7 @@ extern byte MMU_logging; //Are we logging from the MMU?
 
 extern byte Direct_Input; //Are we in direct input mode?
 
-double last_timing = 0; //Last timing!
+double last_timing = 0.0; //Last timing!
 
 double CPU_speed_cycle = 1000000000.0f/CPU808X_CLOCK; //808X signal cycles by default!
 byte DosboxClock = 1; //We're executing using the Dosbox clock cycles?
@@ -546,7 +546,8 @@ OPTINLINE byte coreHandler()
 {
 	//CPU execution, needs to be before the debugger!
 	uint_64 currentCPUtime = getnspassed_k(&CPU_timing); //Current CPU time to update to!
-	uint_64 timeoutCPUtime = last_timing+100000; //When we're timed out 10000x/second!
+	uint_64 timeoutCPUtime = currentCPUtime+100000; //We're timed out this far in the future!
+	double instructiontime; //How much time did the instruction last?
 	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
 	{
 		if (debugger_thread)
@@ -653,12 +654,11 @@ OPTINLINE byte coreHandler()
 		}
 
 		//Update current timing with calculated cycles we've executed!
-		last_timing += CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
-		tickPIT(CPU[activeCPU].cycles*CPU_speed_cycle); //Tick the PIT as much as we need to keep us in sync!
-		if (last_timing >= timeoutCPUtime) //Timeout? We're not fast enough to run at full speed!
-		{
-			break; //Continue execution: we're not fast enough!
-		}
+		instructiontime = CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
+		last_timing += instructiontime; //Increase CPU time executed!
+		tickPIT(instructiontime); //Tick the PIT as much as we need to keep us in sync!
+		if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
+		updateInputMain(); //Keep input up-to-date anyway!
 	} //CPU cycle loop!
 
 	//Slowdown to requested speed if needed!

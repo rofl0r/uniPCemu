@@ -221,6 +221,7 @@ int main(int argc, char * argv[])
 	getLock(LOCK_CPU);
 	getLock(LOCK_CMOS);
 	getLock(LOCK_TIMERS);
+	getLock(LOCK_INPUT);
 
 	initHighresTimer(); //Global init of the high resoltion timer!
 	initTicksHolder(&CPUUpdate); //Initialise the Video Update timer!

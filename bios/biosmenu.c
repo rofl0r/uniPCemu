@@ -1830,7 +1830,6 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 	return 0; //No size: cancel!
 }
 
-extern SDL_sem *keyboard_lock; //For keyboard input!
 extern int input_buffer_shift; //Ctrl-Shift-Alt Status for the pressed key!
 extern int input_buffer; //To contain the pressed key!
 
@@ -1848,16 +1847,16 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 			return 0; //Cancel!
 		}
 		delay(0); //Wait a bit for input!
-		updateKeyboard(); //Update the input keyboard, based on timing!
-		WaitSem(keyboard_lock)
+		updateKeyboard(); //Update the OSK keyboard!
+		lock(LOCK_INPUT);
 		if (input_buffer_shift != -1) //Given input yet?
 		{
 			if (EMU_keyboard_handler_idtoname(input_buffer,&input[0])) //Valid key?
 			{
 				if (!strcmp(input, "enter") || !strcmp(input,"esc")) //Enter or Escape? We're finished!
 				{
+					unlock(LOCK_INPUT);
 					disableKeyboard(); //Disable the keyboard!
-					PostSem(keyboard_lock) //We're done with input: release our lock!
 					EMU_locktext();
 					EMU_gotoxy(x, y); //Goto position for info!
 					EMU_textcolor(BIOS_ATTR_TEXT);
@@ -1927,7 +1926,7 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 				delay(100000); //Wait a bit!
 			}
 		}
-		PostSem(keyboard_lock)
+		unlock(LOCK_INPUT);
 	}
 }
 
@@ -3179,18 +3178,21 @@ void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 			enableKeyboard(1); //Buffer input!
 			for (;;)
 			{
-				updateKeyboard();
-				WaitSem(keyboard_lock)
+				updateKeyboard(); //Update the OSK keyboard!
+				lock(LOCK_INPUT);
 				if (input_buffer_shift != -1) //Given input yet?
 				{
+					unlock(LOCK_INPUT);
 					disableKeyboard(); //Disable the keyboard!
+					lock(LOCK_INPUT);
 					BIOS_Changed |= ((BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] != input_buffer) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] != input_buffer_shift)); //Did we change?
 					BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] = input_buffer; //Set the new key!
 					BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] = input_buffer_shift; //Set the shift status!
-					PostSem(keyboard_lock) //We're done with input: release our lock!
+					unlock(LOCK_INPUT); //We're done with input: release our lock!
 					break; //Break out of the loop: we're done!
 				}
-				PostSem(keyboard_lock)
+				unlock(LOCK_INPUT);
+				delay(0); //Wait for the next key!
 			}
 			//Keep in our own menu: we're not changing after a choise has been made, but simply allowing to select another button!
 		}

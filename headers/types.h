@@ -169,6 +169,8 @@ void speakerOut(word frequency); //Set the PC speaker to a sound or 0 for none!
 
 double getCurrentClockSpeed(); //Retrieves the current clock speed!
 
+void updateInputMain(); //Update input before an instruction (main thread only!)!
+
 //One Megabyte of Memory!
 #define MBMEMORY 0x100000
 
