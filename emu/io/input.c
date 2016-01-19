@@ -2394,26 +2394,25 @@ void updateInput(SDL_Event *event) //Update all input!
 //Check for timer occurrences.
 void cleanKeyboard()
 {
-	cleanEMUKeyboard(); //Untick the timer!
+	//Untick the timer!
 }
 
-void updateKeyboard()
+void updateKeyboard(double timepassed)
 {
-	keyboard_type_handler(); //Tick the timer!
+	keyboard_type_handler(timepassed); //Tick the timer!
 }
 
-TicksHolder mouse_ticker;
-float mouse_ticktiming;
+double mouse_ticktiming=0;
 
 //Check for timer occurrences.
 void cleanMouse()
 {
-	getuspassed(&mouse_ticker); //Discard the amount of time passed!
+	//Discard the amount of time passed!
 }
 
-void updateMouse()
+void updateMouse(double timepassed)
 {
-	mouse_ticktiming += (float)getuspassed(&mouse_ticker); //Get the amount of time passed!
+	mouse_ticktiming += timepassed; //Get the amount of time passed!
 	if (mouse_ticktiming >= mouse_interval) //Enough time passed?
 	{
 		for (;mouse_ticktiming >= mouse_interval;) //All that's left!
