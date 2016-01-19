@@ -43,7 +43,7 @@ extern byte EMU_RUNNING; //Are we running?
 
 byte keysactive; //Ammount of keys active!
 
-float mouse_interval = 0.0f; //Check never by default (unused timer)!
+double mouse_interval = 0.0f; //Check never by default (unused timer)!
 
 enum input_button_map { //All buttons we support!
 INPUT_BUTTON_TRIANGLE, INPUT_BUTTON_CIRCLE, INPUT_BUTTON_CROSS, INPUT_BUTTON_SQUARE,
@@ -1717,7 +1717,7 @@ void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're a
 
 void setMouseRate(float packetspersecond)
 {
-	mouse_interval = (1000000.0f/packetspersecond); //Handles mouse input: we're a normal timer!
+	mouse_interval = (1000000000.0f/packetspersecond); //Handles mouse input: we're a normal timer!
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
@@ -2413,7 +2413,7 @@ void cleanMouse()
 void updateMouse(double timepassed)
 {
 	mouse_ticktiming += timepassed; //Get the amount of time passed!
-	if (mouse_ticktiming >= mouse_interval) //Enough time passed?
+	if (mouse_ticktiming >= mouse_interval && mouse_interval) //Enough time passed?
 	{
 		for (;mouse_ticktiming >= mouse_interval;) //All that's left!
 		{
