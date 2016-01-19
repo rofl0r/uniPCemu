@@ -423,27 +423,6 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	return (reboot_needed==2) || ((reboot_needed==1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
 
 
@@ -452,16 +431,11 @@ Now comes our menus:
 
 */
 
-
 /*
 
 First all global stuff:
 
 */
-
-
-
-
 
 //Calculates the middle of the screen!
 #define CALCMIDDLE(rowwidth,textwidth) (rowwidth/2)-(textwidth/2)
@@ -529,17 +503,6 @@ void BIOSClearScreen() //Resets the BIOS's screen!
 	EMU_unlocktext();
 }
 
-
-
-
-
-
-
-
-
-
-
-
 void BIOSDoneScreen() //Cleans up the BIOS's screen!
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -547,10 +510,6 @@ void BIOSDoneScreen() //Cleans up the BIOS's screen!
 	BIOS_clearscreen();
 	EMU_gotoxy(0,0); //First row, first column!
 }
-
-
-
-
 
 /*
 
@@ -1839,6 +1798,9 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 	enableKeyboard(1); //Buffer input!
 	char input[256];
 	memset(&input, 0, sizeof(input)); //Init input to empty!
+	TicksHolder ticks;
+	initTicksHolder(&ticks); //Initialise!
+	getnspassed(&ticks); //Initialise counter!
 	for (;;) //Main input loop!
 	{
 		if (shuttingdown()) //Are we shutting down?
@@ -1847,7 +1809,7 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 			return 0; //Cancel!
 		}
 		delay(0); //Wait a bit for input!
-		updateKeyboard(); //Update the OSK keyboard!
+		updateKeyboard(getnspassed(&ticks)); //Update the OSK keyboard with a little time!
 		lock(LOCK_INPUT);
 		if (input_buffer_shift != -1) //Given input yet?
 		{
@@ -3176,9 +3138,12 @@ void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 			//Valid option?
 			delay(100000); //Wait a bit!
 			enableKeyboard(1); //Buffer input!
+			TicksHolder ticks;
+			initTicksHolder(&ticks); //Initialise!
+			getnspassed(&ticks); //Initialise counter!
 			for (;;)
 			{
-				updateKeyboard(); //Update the OSK keyboard!
+				updateKeyboard(getnspassed(&ticks)); //Update the OSK keyboard!
 				lock(LOCK_INPUT);
 				if (input_buffer_shift != -1) //Given input yet?
 				{
