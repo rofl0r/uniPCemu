@@ -24,9 +24,7 @@ byte capture_status; //Capture key status?
 //We're running each ms, so 1000 steps/second!
 uint_64 pressedkeytimer = 0; //Pressed key timer!
 uint_64 keyboard_step = 0; //How fast do we update the keys (repeated keys only)!
-uint_64 keyboard_time = 0; //Total time currently counted!
-
-TicksHolder keyboard_ticks;
+double keyboard_time = 0; //Total time currently counted!
 
 void onKeyPress(char *key) //On key press/hold!
 {
@@ -156,9 +154,9 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 	}
 }
 
-void tickPendingKeys() //Handle all pending keys from our emulation! Updating every 1/1000th second!
+void tickPendingKeys(double timepassed) //Handle all pending keys from our emulation! Updating every 1/1000th second!
 {
-	keyboard_time += getnspassed(&keyboard_ticks); //Add the ammount of nanoseconds passed!
+	keyboard_time += timepassed; //Add the ammount of nanoseconds passed!
 
 	//Release keys as fast as possible!
 	releaseKeysReleased(); //Release any unpressed keys!
@@ -208,11 +206,9 @@ void onKeySetChange() //PSP input: keyset change!
 
 void initEMUKeyboard() //Initialise the keyboard support for emulating!
 {
-	initTicksHolder(&keyboard_ticks); //Initialise the ticks holder for our timing!
-	getuspassed(&keyboard_ticks); //Initialise to current time!
+	keyboard_time = 0; //Initialise our time!
 }
 
 void cleanEMUKeyboard()
 {
-	getuspassed(&keyboard_ticks); //Initialise to current time!
 }
