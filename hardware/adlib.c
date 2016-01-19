@@ -477,24 +477,23 @@ OPTINLINE void adlib_timer80() //First timer!
 
 float counter80step = 0.0f; //80us timer tick interval in samples!
 
-TicksHolder adlib_ticker;
-uint_32 adlib_ticktiming;
+double adlib_ticktiming;
 
 //Check for timer occurrences.
 void cleanAdlib()
 {
-	getuspassed(&adlib_ticker); //Discard the amount of time passed!
+	//Discard the amount of time passed!
 }
 
-void updateAdlib()
+void updateAdlib(double timepassed)
 {
-	adlib_ticktiming += (uint_32)getuspassed(&adlib_ticker); //Get the amount of time passed!
-	if (adlib_ticktiming >= 80) //Enough time passed?
+	adlib_ticktiming += timepassed; //Get the amount of time passed!
+	if (adlib_ticktiming >= 80000) //Enough time passed?
 	{
-		for (;adlib_ticktiming >= 80;) //All that's left!
+		for (;adlib_ticktiming >= 80000;) //All that's left!
 		{
 			adlib_timer80(); //Tick 80us timer!
-			adlib_ticktiming -= 80; //Decrease timer to get time left!
+			adlib_ticktiming -= 80000; //Decrease timer to get time left!
 		}
 	}
 }
