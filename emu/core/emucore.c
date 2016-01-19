@@ -566,12 +566,6 @@ OPTINLINE byte coreHandler()
 		}
 		BIOSMenuThread = NULL; //We don't run the BIOS menu!
 
-		updateKeyboard(); //Tick the keyboard timer if needed!
-		updateMouse(); //Tick the mouse timer if needed!
-		updateAdlib(); //Tick the adlib timer if needed!
-		updateATA(); //Update the ATA timer!
-		updateDMA(); //Update the DMA timer!
-
 		interruptsaved = 0; //Reset PIC interrupt to not used!
 		if (!CPU[activeCPU].registers) //We need registers at this point, but have none to use?
 		{
@@ -657,6 +651,11 @@ OPTINLINE byte coreHandler()
 		instructiontime = CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
 		last_timing += instructiontime; //Increase CPU time executed!
 		tickPIT(instructiontime); //Tick the PIT as much as we need to keep us in sync!
+		updateKeyboard(instructiontime); //Tick the keyboard timer if needed!
+		updateMouse(instructiontime); //Tick the mouse timer if needed!
+		updateAdlib(instructiontime); //Tick the adlib timer if needed!
+		updateATA(instructiontime); //Update the ATA timer!
+		updateDMA(instructiontime); //Update the DMA timer!
 		if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
 		updateInputMain(); //Keep input up-to-date anyway!
 	} //CPU cycle loop!
