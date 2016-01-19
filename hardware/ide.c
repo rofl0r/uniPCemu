@@ -200,19 +200,17 @@ void cleanATA()
 	getuspassed(&ATATicks); //Clean us!
 }
 
-void updateATA() //ATA timing!
+void updateATA(double timepassed) //ATA timing!
 {
 	/*return; //Don't handle any timers, since we're not used atm!
-	uint_64 passed = getuspassed_k(&ATATicks); //Get us passed!
-	if (passed) //Anything passed?
+	if (timepassed) //Anything passed?
 	{
-		getuspassed(&ATATicks); //Passed some time!
 		int i;
 		for (i = 0;i < 4;i++) //Process all timers!
 		{
 			if (IRQtimer[i].ATA_tickstimeout) //Ticking?
 			{
-				IRQtimer[i].ATA_tickstiming += passed; //We've passed some!
+				IRQtimer[i].ATA_tickstiming += timepassed; //We've passed some!
 				if (IRQtimer[i].ATA_tickstiming >= IRQtimer[i].ATA_tickstimeout) //Expired?
 				{
 					IRQtimer[i].ATA_tickstimeout = 0; //Finished!
