@@ -1671,7 +1671,7 @@ OPTINLINE void handleKeyPressRelease(int key)
 	}
 }
 
-void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
+void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're an interrupt!
 {
 	lock(LOCK_INPUT);
 	if (!Direct_Input) //Not executing direct input?
@@ -1711,7 +1711,7 @@ void keyboard_type_handler() //Handles keyboard typing: we're an interrupt!
 			handleKeyPressRelease(key++); //Handle key press or release!
 		}
 	}
-	tickPendingKeys(); //Handle any pending keys if possible!
+	tickPendingKeys(timepassed); //Handle any pending keys if possible!
 	unlock(LOCK_INPUT);
 }
 
