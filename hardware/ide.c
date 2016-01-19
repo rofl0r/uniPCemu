@@ -187,7 +187,6 @@ OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 	}
 }
 
-TicksHolder ATATicks;
 struct
 {
 	uint_64 ATA_tickstiming;
@@ -197,7 +196,6 @@ struct
 
 void cleanATA()
 {
-	getuspassed(&ATATicks); //Clean us!
 }
 
 void updateATA(double timepassed) //ATA timing!
@@ -1460,7 +1458,6 @@ void ATA_DiskChanged(int disk)
 
 void initATA()
 {
-	initTicksHolder(&ATATicks);
 	memset(&ATA, 0, sizeof(ATA)); //Initialise our data!
 	memset(&IRQtimer, 0, sizeof(IRQtimer)); //Init timers!
 	//We don't register a disk change handler, because ATA doesn't change disks when running!

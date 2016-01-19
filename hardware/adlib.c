@@ -706,8 +706,6 @@ void initAdlib()
 	//All output!
 	register_PORTOUT(&outadlib); //Address port (W)
 	//dolog("adlib","Registering timer...");
-	initTicksHolder(&adlib_ticker); //Initialise our timing!
-	getuspassed(&adlib_ticker); //Initialise to current time!
 }
 
 void doneAdlib()

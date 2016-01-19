@@ -35,6 +35,7 @@
 #include "headers/hardware/ssource.h" //Sound Source volume knob support!
 
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
+#include "headers/support/highrestimer.h" //High resolution clock support!
 
 #define __HW_DISABLED 0
 

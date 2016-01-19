@@ -161,7 +161,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	float tempf;
 	uint_32 render_ticks; //A one shot tick!
 	uint_32 dutycyclei; //Calculated duty cycle!
-	uint_64 dutycycle; //Total counted duty cycle!
+	int_64 dutycycle; //Total counted duty cycle!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
 	byte channel; //Current channel?
 
