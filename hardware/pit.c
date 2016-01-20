@@ -64,7 +64,7 @@ typedef struct
 	byte mode; //PC speaker mode!
 	word frequency; //Frequency divider that has been set!
 	byte status; //Status of the counter!
-	FIFOBUFFER *buffer; //Output buffer for rendering!
+	FIFOBUFFER *buffer; //Output buffers for rendering!
 	word ticker; //16-bit ticks!
 	byte reload; //Reload requested?
 	byte channel_status; //Current output status!
@@ -150,8 +150,8 @@ OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
-	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of one shot samples to read every sample!
-	const float scaleFactor = 2.0f*(SHRT_MAX - 1.0f); //Scaling from -0.5-0.5
+	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to read every output sample!
+	const float speakerMovement = 0.0f; //Speaker movement (in positive signed 16-bits) for every positive/negative PIT sample!
 	register uint_32 length; //Amount of samples to generate!
 	uint_32 i;
 	//float oneshot_temptiming, oneshot_timing;
@@ -387,7 +387,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 
 	//Timer 1 output is discarded! We're not connected to anything or unneeded to emulate DRAM refresh!
 	fifobuffer_clear(PITchannels[1].rawsignal); //Discard channel 1 output!
-
+	
 	//PC speaker output!
 	speaker_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
 	if (speaker_ticktiming >= speaker_tick) //Enough time passed to render?
@@ -402,65 +402,52 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 
 		//Ticks the speaker when needed!
 		i = 0; //Init counter!
-		if (PCSpeakerPort & 2) //Speaker is turned on?
+		short s; //Set the channels! We generate 1 sample of output here!
+		sword sample; //Current sample!
+		static float currentduty=0.0f; //Currently calculated duty for the current sample(s)!
+		//Generate the samples from the output signal!
+		for (;;) //Generate samples!
 		{
-			short s; //Set the channels! We generate 1 sample of output here!
-			sword sample; //Current sample!
-			//Generate the samples from the output signal!
-			for (;;) //Generate samples!
+			//Average our input ticks!
+			PITchannels[2].samplesleft += ticklength; //Add our time to the one-shot samples!
+			tempf = floorf(PITchannels[2].samplesleft); //Take the rounded number of samples to process!
+			PITchannels[2].samplesleft -= tempf; //Take off the samples we've processed!
+			render_ticks = (uint_32)tempf; //The ticks to render!
+
+			//render_ticks contains the samples to process! Calculate the duty cycle and use it to generate a sample!
+			for (dutycyclei = render_ticks;dutycyclei;)
 			{
-				//Average our input ticks!
-				PITchannels[2].samplesleft += ticklength; //Add our time to the one-shot samples!
-				tempf = floorf(PITchannels[2].samplesleft); //Take the rounded number of samples to process!
-				PITchannels[2].samplesleft -= tempf; //Take off the samples we've processed!
-				render_ticks = (uint_32)tempf; //The ticks to render!
-
-				//render_ticks contains the samples to process! Calculate the duty cycle and use it to generate a sample!
-				dutycycle = 0; //Start with nothing!
-				for (dutycyclei = render_ticks;dutycyclei;)
+				if (!readfifobuffer(PITchannels[2].rawsignal, &currentsample)) break; //Failed to read the sample? Stop counting!
+				if (currentsample) //Increase to 1?
 				{
-					if (!readfifobuffer(PITchannels[2].rawsignal, &currentsample)) break; //Failed to read the sample? Stop counting!
-					sample = currentsample?SHRT_MAX:SHRT_MIN; //Convert sample to 16-bit!
-					applySpeakerLowpassFilter(&sample); //Low pass filter the signal!
-					dutycycle += sample; //Add the sample to the duty cycle!
-					--dutycyclei; //Decrease!
-				}
-
-				if (!render_ticks) //Invalid?
-				{
-					s = 0; //Nothing to process!
-				}
-				else
-				{
-					s = (short)(((float)dutycycle)/((float)render_ticks)); //Convert duty cycle to full average factor!
-				}
-
-				//Add the result to our buffer!
-				writefifobuffer16(PITchannels[2].buffer, s); //Write the sample to the buffer (mono buffer)!
-				if (++i == length) //Fully rendered?
-				{
-					if (!FIFOBUFFER_LOCK) //Not locked?
+					if (currentduty<SHRT_MAX) //Not full yet?
 					{
-						unlockaudio(); //Unlock the audio!
+						currentduty += speakermovement; //Move ON!
+						if (currentduty>=SHRT_MAX) currentduty = SHRT_MAX; //Limit to maximum voltage!
 					}
-					return; //Next item!
+				}
+				else //Decrease to 0?
+				{
+					if (currentduty>SHRT_MIN) //Not full yet?
+					{
+						currentduty -= speakermovement; //Move ON!
+						if (currentduty<=SHRT_MIN) currentduty = SHRT_MIN; //Limit to minimum voltage!
+					}
 				}
 			}
-		}
-		else //Not on? Generate quiet signal!
-		{
-			//Generate a quiet signal!
-			for (;;) //Generate samples!
+
+			s = (short)currentduty; //Convert available duty cycle to full average factor!
+			applySpeakerLowpassFilter(&s); //Low pass filter the signal for safety to output!
+
+			//Add the result to our buffer!
+			writefifobuffer16(PITchannels[2].buffer, s); //Write the sample to the buffer (mono buffer)!
+			if (++i == length) //Fully rendered?
 			{
-				writefifobuffer16(PITchannels[2].buffer, 0); //Write the sample to the buffer (mono buffer)!
-				if (++i == length)
+				if (!FIFOBUFFER_LOCK) //Not locked?
 				{
-					if (!FIFOBUFFER_LOCK) //Not locked?
-					{
-						unlockaudio(); //Lock the audio!
-					}
-					return; //Next item!
+					unlockaudio(); //Unlock the audio!
 				}
+				return; //Next item!
 			}
 		}
 		if (!FIFOBUFFER_LOCK) //Not locked?
@@ -478,10 +465,9 @@ void initSpeakers()
 	byte i;
 	for (i=0;i<3;i++)
 	{
-		PITchannels[i].rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 1024 word-sized samples with lock (TICK_RATE)!
+		PITchannels[i].rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 2048 word-sized samples with lock (TICK_RATE)!
 		if (i==2) //Speaker?
 		{
-			//PITchannels[i].bufferintermediate = allocfifobuffer(2048, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with 1024 word-sized samples with lock!
 			PITchannels[i].buffer = allocfifobuffer(2048, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with 1024 word-sized samples with lock!
 		}
 	}
@@ -500,7 +486,6 @@ void doneSpeakers()
 		if (i==2) //Speaker?
 		{
 			free_fifobuffer(&PITchannels[i].buffer); //Release the FIFO buffer we use!
-			//free_fifobuffer(&PITchannels[i].bufferintermediate); //Release the FIFO buffer we use!
 		}
 	}
 }
