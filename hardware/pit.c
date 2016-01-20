@@ -150,7 +150,7 @@ OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 		first_sample = 0;
 		return; //Abort: don't filter the first sample!
 	}
-	last_result = (sword)calcSpeakerLowpassFilter(20000.0f, TIME_RATE, (float)*currentsample, last_result); //20kHz low pass filter!
+	last_result = (sword)calcSpeakerLowpassFilter(22050.0f, TIME_RATE, (float)*currentsample, last_result); //20kHz low pass filter!
 	last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = last_result; //Give the new result!
 }
@@ -636,10 +636,10 @@ byte out8253(word portnum, byte value)
 			switch (pitcommand[pit]&0x30) //What input mode currently?
 			{
 			case 0x10: //Lo mode?
-				pitdivisor[pit] = (pitdivisor[pit] & 0xFF00) + (value & 0xFF);
+				pitdivisor[pit] = (value & 0xFF);
 				break;
 			case 0x20: //Hi mode?
-				pitdivisor[pit] = (pitdivisor[pit] & 0xFF) + ((value & 0xFF)<<8);
+				pitdivisor[pit] = ((value & 0xFF)<<8);
 				break;
 			case 0x00: //Latch mode?
 			case 0x30: //Lo/hi mode?
