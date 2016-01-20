@@ -269,6 +269,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 							reload2:
 							PITchannels[channel].reload = 0; //Not reloading!
 							reloadticker(channel); //Reload the counter!
+							PITchannels[channel].channel_status = 1; //We're high!
 							PITchannels[channel].status = 2; //Start counting!
 						}
 						break;
