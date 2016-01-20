@@ -131,6 +131,14 @@ OPTINLINE float calcSpeakerLowpassFilter(float cutoff_freq, float samplerate, fl
 	return previousresult + (alpha*(currentsample - previousresult));
 }
 
+OPTINLINE float calcSpeakerHighpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
+{
+	float RC = 1.0 / (cutoff_freq * 2 * 3.14);
+	float dt = 1.0 / samplerate;
+	float alpha = RC / (RC + dt);
+	return alpha * (previousresult + currentsample - previoussample);
+}
+
 OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 {
 	static sword last_result = 0, last_sample = 0;
@@ -142,7 +150,23 @@ OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 		first_sample = 0;
 		return; //Abort: don't filter the first sample!
 	}
-	last_result = (sword)calcSpeakerLowpassFilter(20000.0f, TIME_RATE, (float)*currentsample, last_result);
+	last_result = (sword)calcSpeakerLowpassFilter(20000.0f, TIME_RATE, (float)*currentsample, last_result); //20kHz low pass filter!
+	last_sample = *currentsample; //The last sample that was processed!
+	*currentsample = last_result; //Give the new result!
+}
+
+OPTINLINE void applySpeakerHighpassFilter(sword *currentsample)
+{
+	static sword last_result = 0, last_sample = 0;
+	static byte first_sample = 1;
+
+	if (first_sample) //No last?
+	{
+		last_result = last_sample = *currentsample; //Save the current sample!
+		first_sample = 0;
+		return; //Abort: don't filter the first sample!
+	}
+	last_result = (sword)calcSpeakerHighpassFilter(1.0f, TIME_RATE, (float)*currentsample, last_sample,last_result); //1Hz high pass filter!
 	last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = last_result; //Give the new result!
 }
@@ -419,7 +443,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 				{
 					if (currentduty<SHRT_MAX) //Not full yet?
 					{
-						currentduty += speakermovement; //Move ON!
+						currentduty += speakerMovement; //Move ON!
 						if (currentduty>=SHRT_MAX) currentduty = SHRT_MAX; //Limit to maximum voltage!
 					}
 				}
@@ -427,7 +451,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 				{
 					if (currentduty>SHRT_MIN) //Not full yet?
 					{
-						currentduty -= speakermovement; //Move ON!
+						currentduty -= speakerMovement; //Move ON!
 						if (currentduty<=SHRT_MIN) currentduty = SHRT_MIN; //Limit to minimum voltage!
 					}
 				}
@@ -435,6 +459,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 
 			s = (short)currentduty; //Convert available duty cycle to full average factor!
 			applySpeakerLowpassFilter(&s); //Low pass filter the signal for safety to output!
+			applySpeakerHighpassFilter(&s); //High pass filter for the same reason!
 
 			//Add the result to our buffer!
 			writefifobuffer16(PITchannels[2].buffer, s); //Write the sample to the buffer (mono buffer)!
@@ -465,7 +490,7 @@ void initSpeakers()
 		PITchannels[i].rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 2048 word-sized samples with lock (TICK_RATE)!
 		if (i==2) //Speaker?
 		{
-			PITchannels[i].buffer = allocfifobuffer(2048, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with 1024 word-sized samples with lock!
+			PITchannels[i].buffer = allocfifobuffer((SPEAKER_BUFFER+1)<<1, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with X word-sized samples with lock!
 		}
 	}
 	addchannel(&speakerCallback, &PITchannels[2], "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
