@@ -166,7 +166,7 @@ OPTINLINE void applySpeakerHighpassFilter(sword *currentsample)
 		first_sample = 0;
 		return; //Abort: don't filter the first sample!
 	}
-	last_result = (sword)calcSpeakerHighpassFilter(1.0f, TIME_RATE, (float)*currentsample, last_sample,last_result); //1Hz high pass filter!
+	last_result = (sword)calcSpeakerHighpassFilter(18.2f, TIME_RATE, (float)*currentsample, last_sample,last_result); //1Hz high pass filter!
 	last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = last_result; //Give the new result!
 }

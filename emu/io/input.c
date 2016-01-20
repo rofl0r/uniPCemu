@@ -581,9 +581,9 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 					mousepacket->xmove = xmove; //X movement in mm!
 					mousepacket->ymove = ymove; //Y movement, scaled!
 				}
+				mousepacket->buttons = Mouse_buttons; //Take the mouse buttons pressed directly!
 				unlock(LOCK_INPUT);
 
-				mousepacket->buttons = Mouse_buttons; //Take the mouse buttons pressed directly!
 
 				if (!PS2mouse_packet_handler(mousepacket)) //Add the mouse packet! Not supported PS/2 mouse?
 				{
@@ -2397,8 +2397,11 @@ void cleanKeyboard()
 	//Untick the timer!
 }
 
+TicksHolder Keyboardticker; //Actual keyboard timing!
+
 void updateKeyboard(double timepassed)
 {
+	timepassed = getnspassed(&Keyboardticker); //Actual time passed is used insteaed!
 	keyboard_type_handler(timepassed); //Tick the timer!
 }
 
@@ -2430,6 +2433,7 @@ void psp_input_init()
 		//Gotten initialiser for joystick?
 		if (SDL_SYS_JoystickInit()==-1) quitemu(0); //No joystick present!
 	#endif
+	initTicksHolder(&Keyboardticker); //Initialise our timing!
 	SDL_JoystickEventState(SDL_ENABLE);
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
 	for (i = 0;i < NUMITEMS(emu_keys_sdl_rev);i++) //Initialise all keys!

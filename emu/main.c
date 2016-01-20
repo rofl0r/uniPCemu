@@ -169,27 +169,22 @@ extern byte EMU_RUNNING; //Are we running?
 TicksHolder CPUUpdate, InputUpdate;
 
 uint_64 CPU_time = 0; //Total CPU time before delay!
-byte inputcounter = 0; //Input counter!
 
 void updateInputMain() //Frequency 1000Hz!
 {
 	SDL_Event event;
-	if (++inputcounter==7) //Counting and trigger every X instructions?
+	if (SDL_PollEvent(&event)) //Gotten an event to process?
 	{
-		inputcounter = 0; //Reset counter!
-		if (SDL_PollEvent(&event)) //Gotten an event to process?
+		do //Gotten events to handle?
 		{
-			do //Gotten events to handle?
+			//Handle an event!
+			updateInput(&event); //Update input status when needed!
+			if (event.type == SDL_QUIT) //Quitting requested?
 			{
-				//Handle an event!
-				updateInput(&event); //Update input status when needed!
-				if (event.type == SDL_QUIT) //Quitting requested?
-				{
-					EMU_Shutdown(1); //Request a shutdown!
-				}
+				EMU_Shutdown(1); //Request a shutdown!
 			}
-			while (SDL_PollEvent(&event)); //Keep polling while available!
 		}
+		while (SDL_PollEvent(&event)); //Keep polling while available!
 	}
 }
 
