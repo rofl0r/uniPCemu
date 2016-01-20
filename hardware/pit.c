@@ -171,13 +171,13 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	length = (uint_32)SAFEDIV(time_ticktiming, time_tick); //How many ticks to tick?
 	time_ticktiming -= (length*time_tick); //Rest the amount of ticks!
 
-
 	if (length) //Anything to tick at all?
 	{
 		for (channel=0;channel<3;channel++)
 		{
-			byte mode;
+			byte mode,outputmask;
 			mode = PITchannels[channel].mode; //Current mode!
+			outputmask = (channel==2)?((PCSpeakerPort&2)>>1):1; //Mask output on/off for this timer!
 
 			switch (mode) //What mode are we rendering?
 			{
@@ -229,7 +229,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					default: //Unsupported! Ignore any input!
 						break;
 					}
-					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status); //Add the data to the raw signal!
+					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
 				}
 				break;
 			case 2: //Also Rate Generator mode?
@@ -281,7 +281,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					default: //Unsupported! Ignore any input!
 						break;
 					}
-					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status); //Add the data to the raw signal!
+					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
 				}
 				break;
 			//mode 2==6 and mode 3==7.
@@ -313,7 +313,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					default: //Unsupported! Ignore any input!
 						break;
 					}
-					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status); //Add the data to the raw signal!
+					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
 				}
 				break;
 			case 4: //Software Triggered Strobe?
@@ -365,7 +365,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					default: //Unsupported mode! Ignore any input!
 						break;
 					}
-					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status); //Add the data to the raw signal!
+					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
 				}
 				break;
 			}
@@ -390,7 +390,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	
 	//PC speaker output!
 	speaker_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
-	if (speaker_ticktiming >= speaker_tick) //Enough time passed to render?
+	if (speaker_ticktiming >= speaker_tick) //Enough time passed to render the physical PC speaker?
 	{
 		length = (uint_32)SAFEDIV(speaker_ticktiming, speaker_tick); //How many ticks to tick?
 		speaker_ticktiming -= (length*speaker_tick); //Rest the amount of ticks!
