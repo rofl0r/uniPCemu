@@ -151,17 +151,14 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
 	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to read every output sample!
-	const float speakerMovement = 0.0f; //Speaker movement (in positive signed 16-bits) for every positive/negative PIT sample!
+	const float speakerMovement = (USHRT_MAX/((60.0f/1000000.0f)*TIME_RATE)); //Speaker movement (in 16-bits) for every positive/negative PIT sample(linear movement)!
 	register uint_32 length; //Amount of samples to generate!
 	uint_32 i;
-	//float oneshot_temptiming, oneshot_timing;
 	uint_64 tickcounter;
-	//word oneshot_ticktotal; //Total amount of ticks for the oneshot!
 	word oldvalue; //Old value before decrement!
 	float tempf;
 	uint_32 render_ticks; //A one shot tick!
 	uint_32 dutycyclei; //Calculated duty cycle!
-	int_64 dutycycle; //Total counted duty cycle!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
 	byte channel; //Current channel?
 
