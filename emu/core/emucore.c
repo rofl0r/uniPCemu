@@ -657,7 +657,6 @@ OPTINLINE byte coreHandler()
 		updateATA(instructiontime); //Update the ATA timer!
 		updateDMA(instructiontime); //Update the DMA timer!
 		if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
-		updateInputMain(); //Keep input up-to-date anyway!
 	} //CPU cycle loop!
 
 	//Slowdown to requested speed if needed!
