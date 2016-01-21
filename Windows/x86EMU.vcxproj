@@ -135,6 +135,7 @@
     <ClCompile Include="..\support\signedness.c" />
     <ClCompile Include="..\support\state.c" />
     <ClCompile Include="..\support\timers.c" />
+    <ClCompile Include="..\support\wave.c" />
     <ClCompile Include="..\support\zalloc.c" />
   </ItemGroup>
   <ItemGroup>
@@ -259,6 +260,7 @@
     <ClInclude Include="..\headers\support\mid.h" />
     <ClInclude Include="..\headers\support\sf2.h" />
     <ClInclude Include="..\headers\support\signedness.h" />
+    <ClInclude Include="..\headers\support\wave.h" />
     <ClInclude Include="..\headers\support\zalloc.h" />
     <ClInclude Include="..\headers\types.h" />
     <ClInclude Include="..\headers\types_base.h" />

@@ -18,6 +18,7 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 //PC speaker support functionality:
 #include "headers/emu/emu_misc.h" //Random generators!
 #include "headers/support/fifobuffer.h" //FIFO sample buffer support!
+#include "headers/support/wave.h" //Wave support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -38,16 +39,26 @@ PC SPEAKER
 #define SPEAKER_VOLUME 100.0f
 
 //Speaker playback rate!
-#define SPEAKER_RATE 44100.0f
+#define SPEAKER_RATE 44100
 //Use actual response as speaker rate! 60us responses!
 //#define SPEAKER_RATE (1000000.0f/60.0f)
 //Speaker buffer size!
-#define SPEAKER_BUFFER 1024
+#define SPEAKER_BUFFER 16384
 //Speaker low&high pass filter values!
 #define SPEAKER_LOWPASS 22050.0f
 #define SPEAKER_HIGHPASS 18.2f
 
 #define TIME_RATE 1193182.0f
+
+//Log the speaker to this .wav file when defined!
+#define SPEAKER_LOG "speaker.wav"
+
+//End of defines!
+
+
+#ifdef SPEAKER_LOG
+	WAVEFILE *speakerlog = NULL; //The log file for the speaker output!
+#endif
 
 double speaker_ticktiming; //Both current clocks!
 double speaker_tick = (1000000000.0f / SPEAKER_RATE); //Time of a tick in the PC speaker sample!
@@ -460,6 +471,9 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			applySpeakerLowpassFilter(&s); //Low pass filter the signal for safety to output!
 
 			//Add the result to our buffer!
+			#ifdef SPEAKER_LOG
+				writeWAVMonoSample(speakerlog,s); //Log the mono sample to the WAV file!
+			#endif
 			writefifobuffer16(PITchannels[2].buffer, s); //Write the sample to the buffer (mono buffer)!
 			if (++i == length) //Fully rendered?
 			{
@@ -493,6 +507,10 @@ void initSpeakers()
 	}
 	addchannel(&speakerCallback, &PITchannels[2], "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
 	setVolume(&speakerCallback, &PITchannels[2], SPEAKER_VOLUME); //What volume?
+
+#ifdef SPEAKER_LOG
+	speakerlog = createWAV(SPEAKER_LOG,1,(uint_32)SPEAKER_RATE); //Start wave file logging!
+#endif
 }
 
 void doneSpeakers()
@@ -508,6 +526,9 @@ void doneSpeakers()
 			free_fifobuffer(&PITchannels[i].buffer); //Release the FIFO buffer we use!
 		}
 	}
+	#ifdef SPEAKER_LOG
+		closeWAV(&speakerlog); //Stop wave file logging!
+	#endif
 }
 
 void speakerGateUpdated()
