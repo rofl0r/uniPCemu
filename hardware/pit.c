@@ -43,6 +43,9 @@ PC SPEAKER
 //#define SPEAKER_RATE (1000000.0f/60.0f)
 //Speaker buffer size!
 #define SPEAKER_BUFFER 1024
+//Speaker low&high pass filter values!
+#define SPEAKER_LOWPASS 22050.0f
+#define SPEAKER_HIGHPASS 18.2f
 
 #define TIME_RATE 1193182.0f
 
@@ -150,7 +153,7 @@ OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 		first_sample = 0;
 		return; //Abort: don't filter the first sample!
 	}
-	last_result = (sword)calcSpeakerLowpassFilter(22050.0f, TIME_RATE, (float)*currentsample, last_result); //20kHz low pass filter!
+	last_result = (sword)calcSpeakerLowpassFilter(SPEAKER_LOWPASS, SPEAKER_RATE, (float)*currentsample, last_result); //20kHz low pass filter!
 	last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = last_result; //Give the new result!
 }
@@ -166,7 +169,7 @@ OPTINLINE void applySpeakerHighpassFilter(sword *currentsample)
 		first_sample = 0;
 		return; //Abort: don't filter the first sample!
 	}
-	last_result = (sword)calcSpeakerHighpassFilter(18.2f, TIME_RATE, (float)*currentsample, last_sample,last_result); //1Hz high pass filter!
+	last_result = (sword)calcSpeakerHighpassFilter(SPEAKER_HIGHPASS, SPEAKER_RATE, (float)*currentsample, last_sample,last_result); //1Hz high pass filter!
 	last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = last_result; //Give the new result!
 }
@@ -174,15 +177,14 @@ OPTINLINE void applySpeakerHighpassFilter(sword *currentsample)
 void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
-	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to read every output sample!
-	const float speakerMovement = (USHRT_MAX/((60.0f/1000000.0f)*TIME_RATE)); //Speaker movement (in 16-bits) for every positive/negative PIT sample(linear movement)!
+	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to process every output sample!
+	const float speakerlength = ((60.0f/1000000.0f)*TIME_RATE); //Speaker time for each PCM output sample in PIT ticks averaging!
 	register uint_32 length; //Amount of samples to generate!
 	uint_32 i;
 	uint_64 tickcounter;
 	word oldvalue; //Old value before decrement!
 	float tempf;
 	uint_32 render_ticks; //A one shot tick!
-	uint_32 dutycyclei; //Calculated duty cycle!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
 	byte channel; //Current channel?
 
@@ -427,40 +429,35 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 		short s; //Set the channels! We generate 1 sample of output here!
 		sword sample; //Current sample!
 		static float currentduty=0.0f; //Currently calculated duty for the current sample(s)!
+		static uint_32 dutycycle=0; //Total duty cycle to calculate!
+		static float dutycyclelen=0.0f; //How many duty cycles are accumulated(fractions are shared samples between current and next sample)?
+		uint_32 dutycyclei; //Input samples to process!
 		//Generate the samples from the output signal!
 		for (;;) //Generate samples!
 		{
 			//Average our input ticks!
-			PITchannels[2].samplesleft += ticklength; //Add our time to the one-shot samples!
+			PITchannels[2].samplesleft += ticklength; //Add our time to the sample time processed!
 			tempf = floorf(PITchannels[2].samplesleft); //Take the rounded number of samples to process!
 			PITchannels[2].samplesleft -= tempf; //Take off the samples we've processed!
 			render_ticks = (uint_32)tempf; //The ticks to render!
 
-			//render_ticks contains the samples to process! Calculate the duty cycle and use it to generate a sample!
+			//render_ticks contains the output samples to process! Calculate the duty cycle and use it to generate a sample!
 			for (dutycyclei = render_ticks;dutycyclei;)
 			{
 				if (!readfifobuffer(PITchannels[2].rawsignal, &currentsample)) break; //Failed to read the sample? Stop counting!
-				if (currentsample) //Increase to 1?
+				dutycycle += currentsample; //Add the current sample to the average duty!
+				dutycyclelen += 1.0f; //We've read one duty cycle!
+				if (dutycyclelen>=speakerlength) //Enough to process a PCM sample?
 				{
-					if (currentduty<SHRT_MAX) //Not full yet?
-					{
-						currentduty += speakerMovement; //Move ON!
-						if (currentduty>=SHRT_MAX) currentduty = SHRT_MAX; //Limit to maximum voltage!
-					}
-				}
-				else //Decrease to 0?
-				{
-					if (currentduty>SHRT_MIN) //Not full yet?
-					{
-						currentduty -= speakerMovement; //Move ON!
-						if (currentduty<=SHRT_MIN) currentduty = SHRT_MIN; //Limit to minimum voltage!
-					}
+					currentduty = ((float)dutycycle/dutycyclelen)*SHRT_MAX; //Average the duty cycles for the new PWM->PCM sample!
+					dutycyclelen = fmod(dutycyclelen,speakerlength); //Decrease timing until rest is left(next PWM data to process)!
+					dutycycle = (dutycyclelen>0.0f)?currentsample:0.0f; //Start with the current sample when we're part of next data too(fraction sample)!
 				}
 			}
 
 			s = (short)currentduty; //Convert available duty cycle to full average factor!
+			applySpeakerHighpassFilter(&s); //High pass filter to disable too slow signals!
 			applySpeakerLowpassFilter(&s); //Low pass filter the signal for safety to output!
-			applySpeakerHighpassFilter(&s); //High pass filter for the same reason!
 
 			//Add the result to our buffer!
 			writefifobuffer16(PITchannels[2].buffer, s); //Write the sample to the buffer (mono buffer)!
