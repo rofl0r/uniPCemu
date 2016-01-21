@@ -51,7 +51,7 @@ PC SPEAKER
 #define TIME_RATE 1193182.0f
 
 //Log the speaker to this .wav file when defined!
-#define SPEAKER_LOG "speaker.wav"
+//#define SPEAKER_LOG "captures/speaker.wav"
 
 //End of defines!
 
@@ -509,6 +509,8 @@ void initSpeakers()
 	setVolume(&speakerCallback, &PITchannels[2], SPEAKER_VOLUME); //What volume?
 
 #ifdef SPEAKER_LOG
+	int mkdirres;
+	mkdirres = domkdir("captures"); //Captures directory!
 	speakerlog = createWAV(SPEAKER_LOG,1,(uint_32)SPEAKER_RATE); //Start wave file logging!
 #endif
 }
