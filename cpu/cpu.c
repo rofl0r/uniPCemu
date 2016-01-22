@@ -663,6 +663,8 @@ byte CPU_segmentOverridden(byte activeCPU)
 	return (CPU[activeCPU].segment_register != CPU_SEGMENT_DEFAULT); //Is the segment register overridden?
 }
 
+extern byte DosboxClock; //Dosbox clocking?
+
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
@@ -830,8 +832,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 	}
 	blockREP = 0; //Don't block REP anymore!
-	CPU[activeCPU].cycles += CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
-	CPU[activeCPU].cycles = 1; //Instead of actually using cycles per second, we use instructions per second for now!
+	if (DosboxClock) CPU[activeCPU].cycles = 1; //Instead of actually using cycles per second, we use instructions per second for now!
+	else //Use normal cycles dependent on the CPU?
+		//CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
+		CPU[activeCPU].cycles = 4; //Take 4 cycles per instruction for now(1 PIT tick)!
 	CPU_afterexec(); //After executing OPCode stuff!
 }
 

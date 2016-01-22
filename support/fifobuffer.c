@@ -144,8 +144,8 @@ int readfifobuffer(FIFOBUFFER *buffer, byte *result)
 	if (fifobuffer_freesize(buffer)<buffer->size) //Filled?
 	{
 		if (buffer->lock) WaitSem(buffer->lock)
-		*result = buffer->buffer[buffer->position[0].readpos];
-		buffer->position[0].readpos = SAFEMOD((buffer->position[0].readpos+1),buffer->size); //Update the position!
+		*result = buffer->buffer[buffer->position[0].readpos++]; //Read and update!
+		if (buffer->position[0].readpos>=buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
 		buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
 		if (buffer->lock) PostSem(buffer->lock)
 		return 1; //Read!
@@ -176,8 +176,8 @@ int writefifobuffer(FIFOBUFFER *buffer, byte data)
 	}
 	
 	if (buffer->lock) WaitSem(buffer->lock)
-	buffer->buffer[buffer->position[0].writepos] = data; //Write!
-	buffer->position[0].writepos = SAFEMOD((buffer->position[0].writepos+1),buffer->size); //Next pos!
+	buffer->buffer[buffer->position[0].writepos++] = data; //Write and update!
+	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
 	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
 	if (buffer->lock) PostSem(buffer->lock)
 	return 1; //Written!
@@ -199,10 +199,13 @@ int peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be rea
 
 	if (fifobuffer_freesize(buffer)<(buffer->size-1)) //Filled?
 	{
+		uint_32 readpos;
+		readpos = buffer->position[0].readpos; //Current reading position!
 		if (buffer->lock) WaitSem(buffer->lock)
-		*result = buffer->buffer[buffer->position[0].readpos]; //Give the data high!
+		*result = buffer->buffer[readpos++]; //Read and update!
+		if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
 		*result <<= 8; //Shift high!
-		*result |= buffer->buffer[SAFEMOD((buffer->position[0].readpos+1),buffer->size)]; //Next byte is the low data!
+		*result |= buffer->buffer[readpos]; //Read and update!
 		if (buffer->lock) PostSem(buffer->lock)
 		return 1; //Something to peek at!
 	}
@@ -226,11 +229,11 @@ int readfifobuffer16(FIFOBUFFER *buffer, word *result)
 	if (fifobuffer_freesize(buffer)<(buffer->size-1)) //Filled?
 	{
 		if (buffer->lock) WaitSem(buffer->lock)
-		*result = buffer->buffer[buffer->position[0].readpos]; //High!
-		buffer->position[0].readpos = SAFEMOD((buffer->position[0].readpos + 1), buffer->size); //Update the position!
+		*result = buffer->buffer[buffer->position[0].readpos++]; //Read and update high!
+		if (buffer->position[0].readpos >= buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
 		*result <<= 8; //Shift high!
-		*result |= buffer->buffer[buffer->position[0].readpos]; //Low!
-		buffer->position[0].readpos = SAFEMOD((buffer->position[0].readpos + 1), buffer->size); //Update the position!
+		*result |= buffer->buffer[buffer->position[0].readpos++]; //Read and update low!
+		if (buffer->position[0].readpos >= buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
 		buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
 		if (buffer->lock) PostSem(buffer->lock)
 		return 1; //Read!
@@ -259,10 +262,10 @@ int writefifobuffer16(FIFOBUFFER *buffer, word data)
 	}
 
 	if (buffer->lock) WaitSem(buffer->lock)
-	buffer->buffer[buffer->position[0].writepos] = (data>>8); //Write high!
-	buffer->position[0].writepos = SAFEMOD((buffer->position[0].writepos + 1), buffer->size); //Next pos!
-	buffer->buffer[buffer->position[0].writepos] = (data&0xFF); //Write low!
-	buffer->position[0].writepos = SAFEMOD((buffer->position[0].writepos + 1), buffer->size); //Next pos!
+	buffer->buffer[buffer->position[0].writepos++] = (data>>8); //Write high and update!
+	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
+	buffer->buffer[buffer->position[0].writepos++] = (data&0xFF); //Write low and update!
+	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
 	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
 	if (buffer->lock) PostSem(buffer->lock)
 	return 1; //Written!

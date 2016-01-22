@@ -235,8 +235,6 @@ WE START WITH ALL HELP FUNCTIONS
 
 */
 
-double CPU8086_instruction_speed = (14318.0f*1000.0f)/3.0f; //The clock speed of the 8086 (14.318MHz divided by 3)!
-
 //First CMP instruction (for debugging) and directly related.
 
 //CMP: Substract and set flags according (Z,S,O,C); Help functions

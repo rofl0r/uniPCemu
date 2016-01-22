@@ -43,12 +43,14 @@ PC SPEAKER
 //Use actual response as speaker rate! 60us responses!
 //#define SPEAKER_RATE (1000000.0f/60.0f)
 //Speaker buffer size!
-#define SPEAKER_BUFFER 16384
+#define SPEAKER_BUFFER 512
 //Speaker low&high pass filter values!
 #define SPEAKER_LOWPASS 22050.0f
 #define SPEAKER_HIGHPASS 18.2f
 
-#define TIME_RATE 1193182.0f
+//Precise timing rate!
+//The clock speed of the PIT (14.31818MHz divided by 12)!
+#define TIME_RATE (14318180.0f/12.0f)
 
 //Log the speaker to this .wav file when defined!
 //#define SPEAKER_LOG "captures/speaker.wav"
@@ -198,6 +200,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	uint_32 render_ticks; //A one shot tick!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
 	byte channel; //Current channel?
+	byte getIRQ; //IRQ triggered?
 
 	time_ticktiming += timepassed; //Add the amount of time passed to the PIT timing!
 
@@ -410,18 +413,21 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	//IRQ0 output!
 	if (EMU_RUNNING == 1) //Are we running? We allow timers to execute!
 	{
+		getIRQ = 0; //Default: no IRQ yet!
 		for (;readfifobuffer(PITchannels[0].rawsignal,&currentsample);) //Anything left to process?
 		{
 			if (((currentsample^IRQ0_status)&1) && currentsample) //Raised?
 			{
 				doirq(0); //Raise IRQ0!
+				getIRQ = 1; //We've gotten an IRQ!
 			}
 			IRQ0_status = currentsample; //Update status!
+			if (getIRQ) break; //IRQ gotten? Abort to receive the IRQ at the full speed possible! Take any other IRQs the next time we check for IRQs!
 		}
 	}
 
 	//Timer 1 output is discarded! We're not connected to anything or unneeded to emulate DRAM refresh!
-	fifobuffer_clear(PITchannels[1].rawsignal); //Discard channel 1 output!
+	//fifobuffer_clear(PITchannels[1].rawsignal); //Discard channel 1 output!
 	
 	//PC speaker output!
 	speaker_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!

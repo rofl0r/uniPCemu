@@ -9,9 +9,11 @@ byte EMU_VGAROM[0x8000]; //Maximum size custom BIOS VGA ROM!
 byte *BIOS_ROMS[0x100]; //All possible BIOS roms!
 uint_32 BIOS_ROM_size[0x100]; //All possible BIOS ROM sizes!
 
+byte numOPT_ROMS = 0;
 byte *OPT_ROMS[40]; //Up to 40 option roms!
 uint_32 OPTROM_size[40]; //All possible OPT ROM sizes!
 word OPTROM_location[40]; //All possible OPT ROM locations!
+word OPTROM_end[40]; //One byte past the end of the OPT ROM location!
 
 byte OPTROM_writeSequence[40]; //Current write sequence command state!
 byte OPTROM_writeSequence_waitingforDisable[40]; //Waiting for disable command?
@@ -23,6 +25,7 @@ int BIOS_load_VGAROM(); //Prototype: Load custom ROM from emulator itself!
 
 byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 {
+	numOPT_ROMS = 0; //Initialise the number of OPTROMS!
 	memset(OPTROM_writeenabled, 0, sizeof(OPTROM_writeenabled)); //Disable all write enable flags by default!
 	memset(OPTROM_writeSequence, 0, sizeof(OPTROM_writeSequence)); //Disable all write enable flags by default!
 	memset(OPTROM_writeSequence_waitingforDisable, 0, sizeof(OPTROM_writeSequence_waitingforDisable)); //Disable all write enable flags by default!
@@ -94,10 +97,12 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			OPTROM_location[i] = location; //The option ROM location we're loaded at!
 			
 			location += OPTROM_size[i]; //Next ROM position!
+			OPTROM_end[i] = location; //The end location of the option ROM!
 			if (OPTROM_size[i]&0x7FF) //Not 2KB alligned?
 			{
 				location += 0x800-(OPTROM_size[i]&0x7FF); //2KB align!
 			}
+			numOPT_ROMS = i+1; //We've loaded this many ROMS!
 			continue; //Loaded!
 		}
 		
@@ -286,26 +291,20 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handler function */
 {
 	uint_32 basepos;
-	if ((offset<0xC0000) || (offset>0xEFFFF)) //Out of range (16-bit)?
+	if ((offset >= 0xC0000) && (offset<0xF0000)) basepos = 0xC0000; //Our base reference position!
+	else //Out of range (16-bit)?
 	{
-		if (offset<0xC0000000 || (offset>0xEFFFFFFF)) return 0; //Our of range (32-bit)?
-		else basepos = 0xC0000000; //Our base reference position!
-	}
-	else
-	{
-		basepos = 0xC0000; //Our base reference position!
+		if ((offset >= 0xC0000000) || (offset <= 0xEFFFFFFF)) basepos = 0xC0000000; //Our base reference position!
+		else return 0; //Our of range (32-bit)?
 	}
 	offset -= basepos; //Calculate from the base position!
 	byte i;
-	for (i=0;i<NUMITEMS(OPT_ROMS);i++) //Check OPT ROMS!
+	for (i=0;i<numOPT_ROMS;i++) //Check OPT ROMS!
 	{
-		if (OPT_ROMS[i]) //Enabled?
+		if ((OPTROM_location[i]<=offset) && (OPTROM_end[i]>offset) && OPT_ROMS[i]) //Found ROM?
 		{
-			if (OPTROM_location[i]<=offset && (OPTROM_location[i]+OPTROM_size[i])>offset) //Found ROM?
-			{
-				*value = OPT_ROMS[i][offset-OPTROM_location[i]]; //Read the data!
-				return 1; //Done: we've been read!
-			}
+			*value = OPT_ROMS[i][offset-OPTROM_location[i]]; //Read the data!
+			return 1; //Done: we've been read!
 		}
 	}
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
@@ -322,23 +321,20 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
 	uint_32 basepos;
-	if ((offset<0xC0000) || (offset>0xEFFFF)) //Out of range (16-bit)?
+	if ((offset>=0xC0000) && (offset<0xF0000)) basepos = 0xC0000; //Our base reference position!
+	else //Out of range (16-bit)?
 	{
-		if (offset<0xC0000000 || (offset>0xEFFFFFFF)) return 0; //Our of range (32-bit)?
-		else basepos = 0xC0000000; //Our base reference position!
-	}
-	else
-	{
-		basepos = 0xC0000; //Our base reference position!
+		if ((offset>=0xC0000000) || (offset<=0xEFFFFFFF)) basepos = 0xC0000000; //Our base reference position!
+		else return 0; //Our of range (32-bit)?
 	}
 	offset -= basepos; //Calculate from the base position!
 	uint_32 OPTROM_address; //The address calculated in the EEPROM!
 	byte i;
-	for (i=0;i<NUMITEMS(OPT_ROMS);i++) //Check OPT ROMS!
+	for (i=0;i<numOPT_ROMS;i++) //Check OPT ROMS!
 	{
 		if (OPT_ROMS[i]) //Enabled?
 		{
-			if (OPTROM_location[i]<=offset && (OPTROM_location[i]+OPTROM_size[i])>offset) //Found ROM?
+			if ((OPTROM_location[i] <= offset) && (OPTROM_end[i]>offset)) //Found ROM?
 			{
 				OPTROM_address = offset;
 				OPTROM_address -= OPTROM_location[i]; //The location within the OPTROM!
@@ -452,14 +448,11 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
 	uint_32 basepos, tempoffset;
-	if ((offset<0xF0000) || (offset>0xFFFFF)) //Out of range (16-bit)?
+	if ((offset >= 0xF0000) && (offset < 0x100000)) basepos = 0xF0000; //Our base reference position!
+	else //Out of range (16-bit)?
 	{
-		if (offset<0xF0000000 || (offset>0xFFFFFFFF)) return 0; //Our of range (32-bit)?
-		else basepos = 0xF0000000; //Our base reference position!
-	}
-	else
-	{
-		basepos = 0xF0000; //Our base reference position!
+		if ((offset >= 0xF0000000) || (offset <= 0xFFFFFFFF)) basepos = 0xF0000000; //Our base reference position!
+		return 0; //Our of range (32-bit)?
 	}
 	offset -= basepos; //Calculate from the base position!
 
@@ -544,14 +537,11 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler function */
 {
 	uint_32 basepos, tempoffset;
-	if ((offset<0xF0000) || (offset>0xFFFFF)) //Out of range (16-bit)?
+	if ((offset >= 0xF0000) && (offset < 0x100000)) basepos = 0xF0000; //Our base reference position!
+	else //Out of range (16-bit)?
 	{
-		if (offset<0xF0000000 || (offset>0xFFFFFFFF)) return 0; //Our of range (32-bit)?
-		else basepos = 0xF0000000; //Our base reference position!
-	}
-	else
-	{
-		basepos = 0xF0000; //Our base reference position!
+		if ((offset>=0xF0000000) || (offset<=0xFFFFFFFF)) basepos = 0xF0000000; //Our base reference position!
+		return 0; //Our of range (32-bit)?
 	}
 	offset -= basepos; //Calculate from the base position!
 	if (BIOS_custom_ROM) //Custom/system ROM loaded?

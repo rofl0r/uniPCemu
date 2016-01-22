@@ -94,6 +94,7 @@ word audiolocklvl = 0; //Audio lock level!
 
 void lockaudio()
 {
+	if (__HW_DISABLED) return; //Nothing to lock!
 	if (!audiolocklvl) //Root level?
 	{
 		if (SDL_WasInit(SDL_INIT_AUDIO)) //Using SDL and audio enabled?
@@ -106,6 +107,7 @@ void lockaudio()
 
 void unlockaudio()
 {
+	if (__HW_DISABLED) return; //Nothing to lock!
 	--audiolocklvl; //Decrease the lock level!
 	if (!audiolocklvl) //Root level?
 	{

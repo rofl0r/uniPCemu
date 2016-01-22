@@ -16,6 +16,7 @@ extern byte SCREEN_CAPTURE; //Screen capture requested?
 uint_64 key_pressed_counter = 0; //Counter for pressed keys!
 uint_32 keys_pressed = 0; //Currently ammount of keys pressed!
 
+word keys_arepressed; //How many keys of keys_ispressed are actually pressed?
 byte key_status[0x100]; //Status of all keys!
 byte keys_ispressed[0x100]; //All possible keys to be pressed!
 uint_64 key_pressed_time[0x100]; //What time was the key pressed?
@@ -88,13 +89,17 @@ void calculateKeyboardStep()
 void releaseKeysReleased()
 {
 	int i;
-	for (i = 0;i < (int)NUMITEMS(key_status);i++) //Process all keys needed!
+	if (keys_arepressed) //Are there actually keys pressed to be released?
 	{
-		if (keys_ispressed[i] && !key_status[i]) //Are we released?
+		for (i = 0;i < (int)NUMITEMS(key_status);i++) //Process all keys needed!
 		{
-			if (EMU_keyboard_handler(i, 0)) //Fired the handler for releasing!
+			if (keys_ispressed[i] && !key_status[i]) //Are we released?
 			{
-				keys_ispressed[i] = 0; //We're not pressed anymore!
+				if (EMU_keyboard_handler(i, 0)) //Fired the handler for releasing!
+				{
+					--keys_arepressed; //A key has been released, so decrease the counter!
+					keys_ispressed[i] = 0; //We're not pressed anymore!
+				}
 			}
 		}
 	}
@@ -134,6 +139,7 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 			keys_active = 1; //We're active!
 			if (EMU_keyboard_handler(last_key_pressed, 1)) //Fired the handler for pressing!
 			{
+				if (!keys_ispressed[last_key_pressed]) ++keys_arepressed; //A new key has been pressed!
 				keys_ispressed[last_key_pressed] = 1; //We're pressed!
 			}
 		}
@@ -147,6 +153,7 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 				keys_active = 1; //We're active!
 				if (EMU_keyboard_handler(i, 1)) //Fired the handler for pressing!
 				{
+					if (!keys_ispressed[i]) ++keys_arepressed; //A new key has been pressed!
 					keys_ispressed[i] = 1; //We're pressed!
 				}
 			}

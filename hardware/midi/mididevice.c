@@ -300,6 +300,11 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		unlock(voice->locknumber); //Lock us!
 		return SOUNDHANDLER_RESULT_NOTFILLED; //The same!
 	}
+	if (!channel) //Unknown channel?
+	{
+		unlock(voice->locknumber); //Lock us!
+		return SOUNDHANDLER_RESULT_NOTFILLED; //The same!
+	}
 	//Calculate the pitch bend speedup!
 	pitchcents = (float)(channel->pitch%0x1FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
 	pitchcents -= (float)0x2000; //Convert to a signed value!

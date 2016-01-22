@@ -180,6 +180,11 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 //Calculate the precalcs!
 	//Sequencer_Textmode: we update this always!
 
+	if ((whereupdated == (WHEREUPDATED_MISCOUTPUTREGISTER)) || FullUpdate) //Misc output register updated?
+	{
+		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
+	}
+
 	if ((whereupdated==(WHEREUPDATED_SEQUENCER|0x01)) || FullUpdate || !VGA->precalcs.characterwidth) //Sequencer register updated?
 	{
 		lockVGA(); //We don't want to corrupt the renderer's data!
@@ -203,6 +208,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		lockVGA(); //We don't want to corrupt the renderer's data!
 		VGA->precalcs.graphicsmode = VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable; //Update Graphics mode!
+		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
 		//dolog("VGA","VTotal after gm: %i",VGA->precalcs.verticaltotal); //Log it!
 		unlockVGA(); //We're finished with the VGA!
 		VerticalClocksUpdated = 1; //Update vertical clocks!

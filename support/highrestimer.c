@@ -84,17 +84,17 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 	//We're not initialising/first call?
 	ticksholder->oldticks = ticksholder->newticks; //Move new ticks to old ticks!
 	ticksholder->newticks = currentticks; //Get current ticks as new ticks!
-	if (ticksholder->newticks>=ticksholder->oldticks) //Not overflown?
-	{
-	    	ticksholder->tickspassed = ticksholder->newticks;
-	    	ticksholder->tickspassed -= ticksholder->oldticks; //Ticks passed!
-	}
-	else //Overflow?
+	if (ticksholder->newticks<ticksholder->oldticks)//Overflow?
 	{
 	    temp = ticksholder->oldticks;
 	    temp -= ticksholder->newticks; //Difference between the numbers!
 	    ticksholder->tickspassed = ~0; //Max!
 	    ticksholder->tickspassed -= temp; //Substract difference from max to get ticks passed!
+	}
+	else //Not overflown?
+	{
+		ticksholder->tickspassed = ticksholder->newticks;
+		ticksholder->tickspassed -= ticksholder->oldticks; //Ticks passed!
 	}
 	return ticksholder->tickspassed; //Give the result: ammount of ticks passed!
 }

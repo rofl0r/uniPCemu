@@ -72,7 +72,9 @@
 #include "headers/hardware/ssource.h" //Disney Sound Source support!
 
 //CPU default clock speeds (in Hz)!
-#define CPU808X_CLOCK (14318000.0f/3.0f)
+
+//The clock speed of the 8086 (14.31818MHz divided by 3)!
+#define CPU808X_CLOCK (14318180.0f/3.0f)
 
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
@@ -89,9 +91,6 @@ int emu_started = 0; //Emulator started (initEMU called)?
 
 //To debug init/doneemu?
 #define DEBUG_EMU 0
-
-//The default CPU speed!
-#define DEFAULT_SPEED 3000
 
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
@@ -547,7 +546,7 @@ OPTINLINE byte coreHandler()
 	//CPU execution, needs to be before the debugger!
 	uint_64 currentCPUtime = getnspassed_k(&CPU_timing); //Current CPU time to update to!
 	uint_64 timeoutCPUtime = currentCPUtime+100000; //We're timed out this far in the future!
-	double instructiontime; //How much time did the instruction last?
+	double instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
 	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
 	{
 		if (debugger_thread)
@@ -650,8 +649,8 @@ OPTINLINE byte coreHandler()
 		//Update current timing with calculated cycles we've executed!
 		instructiontime = CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
 		last_timing += instructiontime; //Increase CPU time executed!
+		timeexecuted += instructiontime; //Increase CPU executed time executed this block!
 		tickPIT(instructiontime); //Tick the PIT as much as we need to keep us in sync!
-		updateKeyboard(instructiontime); //Tick the keyboard timer if needed!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		updateAdlib(instructiontime); //Tick the adlib timer if needed!
 		updateATA(instructiontime); //Update the ATA timer!
@@ -661,6 +660,8 @@ OPTINLINE byte coreHandler()
 
 	//Slowdown to requested speed if needed!
 	for (;getnspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time every instruction according to cycles passed!
+
+	updateKeyboard(timeexecuted); //Tick the keyboard timer if needed!
 
 	//Check for BIOS menu!
 	if (psp_keypressed(BUTTON_SELECT)) //Run in-emulator BIOS menu and not gaming mode?

@@ -8,11 +8,40 @@
 #define VRAMMODE 0
 
 uint_32 VGA_VRAM_START = 0xA0000; //VRAM start address default!
+uint_32 VGA_VRAM_END = 0xC0000; //VRAM end address default!
+
+byte VGA_RAMEnable = 1; //Is our RAM enabled?
+byte VGA_MemoryMapSelect = 0; //What memory map is active?
 
 OPTINLINE void VGA_updateLatches()
 {
 	//Update the latch the software can read.
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.GraphicsControllerDataLatches.LatchN = getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect]; //Update the latch the software reads (R/O)
+}
+
+void VGA_updateVRAMmaps(VGA_Type *VGA)
+{
+	VGA_RAMEnable = VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable; //RAM enabled?
+	VGA_MemoryMapSelect = VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect; //Update the selected memory map!
+	switch (VGA_MemoryMapSelect) //What memory map?
+	{
+	case 0: //A0000-BFFFF (128K region)?
+		VGA_VRAM_START = 0xA0000; //Start!
+		VGA_VRAM_END = 0xC0000; //End!
+		break;
+	case 1: //A0000-AFFFF (64K region)?
+		VGA_VRAM_START = 0xA0000; //Start!
+		VGA_VRAM_END = 0xB0000; //End!
+		break;
+	case 2: //B0000-B7FFF (32K region)?
+		VGA_VRAM_START = 0xB0000; //Start!
+		VGA_VRAM_END = 0xB8000; //End!
+		break;
+	case 3: //B8000-BFFFF (32K region)?
+		VGA_VRAM_START = 0xB8000; //Start!
+		VGA_VRAM_END = 0xC0000; //End!
+		break;
+	}
 }
 
 /*
@@ -23,27 +52,9 @@ VRAM base offset!
 
 OPTINLINE byte is_A000VRAM(uint_32 linearoffset) //In VRAM (for CPU), offset=real memory address (linear memory)?
 {
-	if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable) //VRAM Access by CPU Enabled?
+	if (VGA_RAMEnable) //VRAM Access by CPU Enabled?
 	{
-		switch (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect) //What memory map?
-		{
-		case 0: //A0000-BFFFF (128K region)?
-			VGA_VRAM_START = 0xA0000; //Start!
-			return ((linearoffset>=0xA0000) && (linearoffset<0xC0000)); //In range?
-			break;
-		case 1: //A0000-AFFFF (64K region)?
-			VGA_VRAM_START = 0xA0000; //Start!
-			return ((linearoffset>=0xA0000) && (linearoffset<0xB0000)); //In range?
-			break;
-		case 2: //B0000-B7FFF (32K region)?
-			VGA_VRAM_START = 0xB0000; //Start!
-			return ((linearoffset>=0xB0000) && (linearoffset<0xB8000)); //In range?
-			break;
-		case 3: //B8000-BFFFF (32K region)?
-			VGA_VRAM_START = 0xB8000; //Start!
-			return ((linearoffset>=0xB8000) && (linearoffset<0xC0000)); //In range?
-			break;
-		}
+		return ((linearoffset>=VGA_VRAM_START) && (linearoffset<VGA_VRAM_END)); //In range?
 	}
 	return 0; //Don't read/write from VRAM!
 }
