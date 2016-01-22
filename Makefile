@@ -19,6 +19,9 @@ OBJS += support/log.o
 #Lock support!
 OBJS += support/locks.o
 
+#WAV file support!
+OBJS += support/wave.o
+
 #Basic Callback manager in-memory!
 OBJS += cpu/cb_manager.o
 #first, interrupts

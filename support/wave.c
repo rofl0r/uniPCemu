@@ -84,7 +84,7 @@ WAVEFILE *createWAV(char *filename, byte channels, uint_32 samplerate)
 	if (!f) return NULL; //Cannot allocate structure!
 	if (!changedealloc(f, sizeof(WAVEFILE), &WAVdealloc)) //Failed to register our deallocation function?
 	{
-		freez(&f, sizeof(WAVEFILE), "WAVEFILE"); //Free the file!
+		freez((void **)&f, sizeof(WAVEFILE), "WAVEFILE"); //Free the file!
 		return NULL; //Failed to unregister!
 	}
 	//Create basic header!
@@ -107,7 +107,7 @@ WAVEFILE *createWAV(char *filename, byte channels, uint_32 samplerate)
 	f->f = fopen(filename, "wb+"); //Open the WAV file!
 	if (fwrite(&f->header, 1, sizeof(f->header), f->f) != sizeof(f->header)) //Failed to write the header?
 	{
-		freez(&f, sizeof(WAVEFILE), "WAVEFILE"); //Free the file!
+		freez((void **)&f, sizeof(WAVEFILE), "WAVEFILE"); //Free the file!
 		return NULL; //Failed to unregister!
 	}
 
@@ -116,5 +116,5 @@ WAVEFILE *createWAV(char *filename, byte channels, uint_32 samplerate)
 
 void closeWAV(WAVEFILE **f)
 {
-	freez(f,sizeof(WAVEFILE),"closeWAV"); //Save and close the file, taking advantage of the auto-cleanup feature of zalloc!
+	freez((void **)f,sizeof(WAVEFILE),"closeWAV"); //Save and close the file, taking advantage of the auto-cleanup feature of zalloc!
 }
