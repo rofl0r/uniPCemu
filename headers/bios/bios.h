@@ -57,6 +57,7 @@ typedef struct PACKED
 	float SoundSource_Volume; //The sound source volume knob!
 	byte ShowFramerate; //Show the frame rate?
 	byte DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	byte ShowCPUSpeed; //Show the relative CPU speed together with the framerate?
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 

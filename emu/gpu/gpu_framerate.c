@@ -128,26 +128,28 @@ void renderFramerate()
 					}
 				}
 			#endif
-			#ifdef DEBUG_CPU_SPEED
-				if (framerateupdated) //We're updated!
-				{
-					framerateupdated = 0; //Not anymore!
-					CPUspeed = (byte)roundf(SAFEDIV(last_timing, (double)getnspassed_k(&CPU_timing))*100.0f); //Current CPU speed percentage (how much the current time is compared to required time)!
-				}
-				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
-			#endif
 			#ifdef SHOW_EQUIPMENT_WORD
 				if (hasmemory())
 				{
-					GPU_textgotoxy(frameratesurface,0, 2);
+					GPU_textgotoxy(frameratesurface, 0, 2);
 					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0x22, 0x22, 0x22), "%04X", MMU_directrw(0x410)); //Show the BIOS equipment word!
 				}
 			#endif
+				if (BIOS_Settings.ShowCPUSpeed) //Are we to show the CPU speed?
+				{
+					if (framerateupdated) //We're updated!
+					{
+						framerateupdated = 0; //Not anymore!
+						CPUspeed = (byte)roundf(SAFEDIV(last_timing, (double)getnspassed_k(&CPU_timing))*100.0f); //Current CPU speed percentage (how much the current time is compared to required time)!
+					}
+					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
+				}
 		}
 		else //Don't debug framerate, but still render?
 		{
 			GPU_textclearrow(frameratesurface, 0); //Clear the rows we use!
-			#ifdef DEBUG_CPU_SPEED
+			if (BIOS_Settings.ShowCPUSpeed) //Showing the CPU speed?
+			{
 				if (framerateupdated) //We're to be updated with the framerate rate!
 				{
 					framerateupdated = 0; //Not anymore!
@@ -155,7 +157,7 @@ void renderFramerate()
 				}
 				GPU_textgotoxy(frameratesurface, 0, 0); //For output!
 				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "CPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
-			#endif
+			}
 			GPU_textclearrow(frameratesurface, 1); //Clear the rows we use!
 			GPU_textclearrow(frameratesurface, 2); //Clear the rows we use!
 			EMU_drawBusy(0); //Draw busy flag disk A!

@@ -157,12 +157,12 @@ void BIOS_ClearCMOS(); //Clear the CMOS!
 void BIOS_SoundSourceVolume(); //Set the Sound Source volume!
 void BIOS_ShowFramerate(); //Show framerate setting!
 void BIOS_DataBusSizeSetting(); //Data bus size setting!
+void BIOS_ShowCPUSpeed(); //Show CPU speed setting!
 
 //First, global handler!
 Handler BIOS_Menus[] =
 {
 	BIOS_MainMenu //The main menu is #0!
-	//BIOS_TestMenu //The testing of menu's? ;is #0!
 	,BIOS_DisksMenu //The Disks menu is #1!
 	,BIOS_floppy0_selection //FLOPPY0 selection for the disks menu is #2!
 	,BIOS_floppy1_selection //FLOPPY1 selection for the disks menu is #3!
@@ -203,6 +203,7 @@ Handler BIOS_Menus[] =
 	,BIOS_SoundSourceVolume //Sound Source Volume is #38!
 	,BIOS_ShowFramerate //Show Framerate is #39!
 	,BIOS_DataBusSizeSetting //Data Bus size setting is #40!
+	,BIOS_ShowCPUSpeed //Show CPU speed is #41!
 };
 
 //Not implemented?
@@ -887,6 +888,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 		{
 			return FILELIST_DEFAULT; //Unmount!
 		}
+		delay(0); //Wait some at least!
 	}
 }
 
@@ -3790,6 +3792,24 @@ void BIOS_InitCPUText()
 		++advancedoptions;
 		break;
 	}
+
+	setShowCPUSpeed:
+	optioninfo[advancedoptions] = 3; //Change CPU speed!
+	strcpy(menuoptions[advancedoptions], "Show CPU Speed: ");
+	switch (BIOS_Settings.ShowCPUSpeed) //What CPU speed limit?
+	{
+	case 0: //No?
+		strcat(menuoptions[advancedoptions++], "Disabled"); //Disabled!
+		break;
+	case 1: //Yes?
+		strcat(menuoptions[advancedoptions++], "Enabled"); //Enabled!
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.ShowCPUSpeed = 0; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setShowCPUSpeed; //Goto!
+		break;
+	}
 }
 
 void BIOS_CPU() //CPU menu!
@@ -3805,7 +3825,8 @@ void BIOS_CPU() //CPU menu!
 
 	case 0:
 	case 1:
-	case 2: //Valid option?
+	case 2:
+	case 3: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Installed CPU?
@@ -3816,6 +3837,9 @@ void BIOS_CPU() //CPU menu!
 			break;
 		case 2: //Data bus size?
 			BIOS_Menu = 40; //Data bus size!
+			break;
+		case 3: //CPU speed display setting?
+			BIOS_Menu = 41; //CPU speed display setting!
 			break;
 		}
 		break;
@@ -4121,5 +4145,12 @@ void BIOS_DataBusSizeSetting()
 		}
 		break;
 	}
+	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_ShowCPUSpeed()
+{
+	BIOS_Settings.ShowCPUSpeed = !BIOS_Settings.ShowCPUSpeed; //Reverse!
+	BIOS_Changed = 1; //We've changed!
 	BIOS_Menu = 35; //Goto CPU menu!
 }

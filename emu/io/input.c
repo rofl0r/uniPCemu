@@ -1927,9 +1927,9 @@ void updateInput(SDL_Event *event) //Update all input!
 	switch (event->type)
 	{
 	case SDL_KEYUP: //Keyboard up?
-		lock(LOCK_INPUT); //Wait!
 			if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
 			{
+				lock(LOCK_INPUT); //Wait!
 				switch (event->key.keysym.sym) //What key?
 				{
 					//Special first
@@ -2059,7 +2059,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
 		{
 			lock(LOCK_INPUT);
-				switch (event->key.keysym.sym) //What key?
+			switch (event->key.keysym.sym) //What key?
 				{
 					//Special first
 				case SDLK_LCTRL: //LCTRL!
@@ -2363,18 +2363,19 @@ void updateInput(SDL_Event *event) //Update all input!
 			}
 			break;
 		case SDL_MOUSEMOTION: //Mouse moved?
-			lock(LOCK_INPUT);
 			if (Direct_Input && hasmousefocus) //Direct input?
 			{
+				lock(LOCK_INPUT);
 				mouse_xmove += event->motion.xrel; //Move the mouse horizontally!
 				mouse_ymove += event->motion.yrel; //Move the mouse vertically!
+				unlock(LOCK_INPUT);
 			}
-			unlock(LOCK_INPUT);
 			break;
 		case SDL_QUIT: //Quit?
 			SDL_JoystickClose(joystick); //Finish our joystick!
 			break;
 		case SDL_ACTIVEEVENT: //Window event?
+			lock(LOCK_INPUT);
 			if (event->active.state&SDL_APPMOUSEFOCUS)
 			{
 				hasmousefocus = event->active.gain; //Do we have mouse focus?
@@ -2387,6 +2388,9 @@ void updateInput(SDL_Event *event) //Update all input!
 			{
 				haswindowactive = event->active.gain; //0=Iconified, 1=Restored.
 			}
+			unlock(LOCK_INPUT);
+			break;
+		default: //Unhandled event?
 			break;
 	}
 }

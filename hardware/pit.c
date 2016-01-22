@@ -173,6 +173,7 @@ OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 
 OPTINLINE void applySpeakerHighpassFilter(sword *currentsample)
 {
+	return; //Don't apply a high pass filter for now!
 	static sword last_result = 0, last_sample = 0;
 	static byte first_sample = 1;
 
@@ -332,20 +333,34 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					{
 					case 0: //Output going high! See below! Wait for reload register to be written!
 						PITchannels[channel].channel_status = 1; //We're high!
-						break;
-					case 1: //We start counting to rise!!
 						if (PITchannels[channel].reload)
 						{
 							PITchannels[channel].reload = 0; //Not reloading!
 							reloadticker(channel); //Reload the counter!
+							PITchannels[channel].status = 1; //Next status: we're loaded and ready to run!
 						}
-						oldvalue = PITchannels[channel].ticker; //Save old ticker for checking for overflow!
-						if ((PCSpeakerPort & 1) && (channel==2)) --PITchannels[channel].ticker; //Decrement by 2?
-						--PITchannels[channel].ticker; //Always decrease by 1 at least!
-						if (((PITchannels[channel].ticker == 0xFFFF) && oldvalue) || (!PITchannels[channel].ticker)) //Timeout when ticks to 0 or overflow with two ticks? We're done!
+						break;
+					case 1: //We start counting to rise!!
+						if (PITchannels[channel].gatewenthigh)
 						{
-							PITchannels[channel].channel_status = !PITchannels[channel].channel_status; //We're toggling during this phase!
-							reloadticker(channel);
+							PITchannels[channel].gatewenthigh = 0; //Not anymore!
+							PITchannels[channel].reload = 0; //Reloaded!
+							reloadticker(channel); //Gate going high reloads the ticker immediately!
+						}
+						if ((PCSpeakerPort&1) || (channel<2)) //To tick at all?
+						{
+							PITchannels[channel].ticker -= 2; //Decrement by 2 instead?
+							switch (PITchannels[channel].ticker)
+							{
+							case 0: //Even counts decreased to 0!
+							case 0xFFFF: //Odd counts decreased to -1/0xFFFF.
+								PITchannels[channel].channel_status ^= 1; //We're toggling during this phase!
+								PITchannels[channel].reload = 0; //Reloaded!
+								reloadticker(channel); //Reload the next value to tick!
+								break;
+							default: //No action taken!
+								break;
+							}
 						}
 						break;
 					default: //Unsupported! Ignore any input!

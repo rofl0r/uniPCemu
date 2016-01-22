@@ -4,6 +4,10 @@
 #include <pspkernel.h>
 #include "headers/types_base.h" //Base types!
 
+//We disable semaphores on the PSP: we're a single-tasking system which is otherwise too slow!
+#define WaitSem(sem) {}
+#define PostSem(sem) {}
+
 #define delay(us) sceKernelDelayThread(us)
 #define sleep sceKernelSleepThread
 

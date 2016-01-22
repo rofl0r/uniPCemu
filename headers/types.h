@@ -43,8 +43,11 @@
 //Our basic functionality we need for running this program!
 //We have less accuracy using SDL delay: ms instead of us. Round to 0ms(minimal time) if needed!
 
+//Semaphores not defined yet?
+#ifndef WaitSem
 #define WaitSem(s) SDL_SemWait(s);
 #define PostSem(s) SDL_SemPost(s);
+#endif
 
 //Halt is redirected to the exit function!
 #define quitemu exit

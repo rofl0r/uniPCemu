@@ -545,7 +545,9 @@ OPTINLINE byte coreHandler()
 {
 	//CPU execution, needs to be before the debugger!
 	uint_64 currentCPUtime = getnspassed_k(&CPU_timing); //Current CPU time to update to!
-	uint_64 timeoutCPUtime = currentCPUtime+100000; //We're timed out this far in the future!
+#ifndef __PSP
+	uint_64 timeoutCPUtime = currentCPUtime+1000000; //We're timed out this far in the future (1ms)!
+#endif
 	double instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
 	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
 	{
@@ -655,7 +657,9 @@ OPTINLINE byte coreHandler()
 		updateAdlib(instructiontime); //Tick the adlib timer if needed!
 		updateATA(instructiontime); //Update the ATA timer!
 		updateDMA(instructiontime); //Update the DMA timer!
-		if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
+		#ifndef __PSP__
+			if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
+		#endif
 	} //CPU cycle loop!
 
 	//Slowdown to requested speed if needed!
