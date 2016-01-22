@@ -1315,131 +1315,6 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 
 extern char BOOT_ORDER_STRING[15][30]; //Boot order, string values!
 
-void BIOS_InitAdvancedText()
-{
-	advancedoptions = 0; //Init!
-	int i;
-	for (i=0; i<12; i++) //Clear all possibilities!
-	{
-		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
-	}
-	if (!EMU_RUNNING) //Just plain menu (not an running emu?)?
-	{
-		optioninfo[advancedoptions] = 0; //Boot Order!
-		strcpy(menuoptions[advancedoptions],"Boot Order: "); //Change boot order!
-		strcat(menuoptions[advancedoptions++],BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
-	}
-
-	optioninfo[advancedoptions] = 1; //CPU menu!
-	strcpy(menuoptions[advancedoptions++],"CPU"); //Change installed CPU options!
-
-	optioninfo[advancedoptions] = 2; //Debug mode!
-	strcpy(menuoptions[advancedoptions],"Debug mode: ");
-	switch (BIOS_Settings.debugmode) //What debug mode is active?
-	{
-	case DEBUGMODE_NONE:
-		strcat(menuoptions[advancedoptions++],"No debugger enabled"); //Set filename from options!
-		break;
-	case DEBUGMODE_RTRIGGER:
-		strcat(menuoptions[advancedoptions++],"Enabled, RTrigger=Step"); //Set filename from options!
-		break;
-	case DEBUGMODE_STEP:
-		strcat(menuoptions[advancedoptions++],"Enabled, Step through"); //Set filename from options!
-		break;
-	case DEBUGMODE_SHOW_RUN:
-		strcat(menuoptions[advancedoptions++],"Enabled, just run, ignore shoulder buttons"); //Set filename from options!
-		break;
-	default:
-		strcat(menuoptions[advancedoptions++],"<UNKNOWN. CHECK BIOS VERSION>");
-		break;
-	}
-
-	optioninfo[advancedoptions] = 6; //We're debug log setting!
-	strcpy(menuoptions[advancedoptions], "Debugger log: ");
-	switch (BIOS_Settings.debugger_log)
-	{
-	case DEBUGGERLOG_NONE: //None
-		strcat(menuoptions[advancedoptions++], "Don't log"); //Set filename from options!
-		break;
-	case DEBUGGERLOG_DEBUGGING: //Only when debugging
-		strcat(menuoptions[advancedoptions++], "Only when debugging"); //Set filename from options!
-		break;
-	case DEBUGGERLOG_ALWAYS: //Always
-		strcat(menuoptions[advancedoptions++], "Always log"); //Set filename from options!
-		break;
-		break;
-	default:
-		strcat(menuoptions[advancedoptions++], "Never"); //Set filename from options!
-		break;
-	}
-	optioninfo[advancedoptions] = 7; //Execution mode!
-	strcpy(menuoptions[advancedoptions], "Execution mode: ");
-	switch (BIOS_Settings.executionmode) //What debug mode is active?
-	{
-	case EXECUTIONMODE_NONE:
-		strcat(menuoptions[advancedoptions++], "Normal operations"); //Set filename from options!
-		break;
-	case EXECUTIONMODE_TEST:
-		strcat(menuoptions[advancedoptions++], "Run debug directory files"); //Set filename from options!
-		break;
-	case EXECUTIONMODE_TESTROM:
-		strcat(menuoptions[advancedoptions++], "Run TESTROM.DAT at 0000:0000"); //Set filename from options!
-		break;
-	case EXECUTIONMODE_VIDEOCARD:
-		strcat(menuoptions[advancedoptions++], "Debug video card output"); //Set filename from options!
-		break;
-	case EXECUTIONMODE_BIOS:
-		strcat(menuoptions[advancedoptions++], "Load BIOS from ROM directory."); //Set filename from options!
-		break;
-	case EXECUTIONMODE_SOUND:
-		strcat(menuoptions[advancedoptions++], "Run sound test"); //Set filename from options!
-		break;
-	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>");
-		break;
-	}
-
-	if (!EMU_RUNNING) //Emulator not running (allow memory size change?)
-	{
-		optioninfo[advancedoptions] = 3; //Memory detect!
-		strcpy(menuoptions[advancedoptions++],"Redetect available memory");
-	}
-
-	optioninfo[advancedoptions] = 5; //Select BIOS Font!
-	strcpy(menuoptions[advancedoptions],"BIOS Font: ");
-	strcat(menuoptions[advancedoptions++],ActiveBIOSPreset.name); //BIOS font selected!
-	
-	optioninfo[advancedoptions] = 4; //Video Settings
-	strcpy(menuoptions[advancedoptions++], "Video Settings");
-
-	optioninfo[advancedoptions] = 9;
-	strcpy(menuoptions[advancedoptions++], "Sound Settings");
-
-	optioninfo[advancedoptions] = 8;
-	strcpy(menuoptions[advancedoptions++], "Input options");
-
-setMousetext: //For fixing it!
-	optioninfo[advancedoptions] = 10; //Mouse!
-	strcpy(menuoptions[advancedoptions], "Mouse: ");
-	switch (BIOS_Settings.PS2Mouse) //Mouse?
-	{
-	case 0:
-		strcat(menuoptions[advancedoptions++], "Serial");
-		break;
-	case 1:
-		strcat(menuoptions[advancedoptions++], "PS/2");
-		break;
-	default: //Error: fix it!
-		BIOS_Settings.PS2Mouse = 0; //Reset/Fix!
-		BIOS_Changed = 1; //We've changed!
-		goto setMousetext; //Goto!
-		break;
-	}
-
-	optioninfo[advancedoptions] = 11; //Clear CMOS!
-	strcpy(menuoptions[advancedoptions++], "Clear CMOS data");
-}
-
 void BIOS_BootOrderOption() //Manages the boot order
 {
 	BIOS_Title("Boot Order");
@@ -1467,7 +1342,7 @@ void BIOS_BootOrderOption() //Manages the boot order
 		BIOS_Changed = 1; //Changed!
 		BIOS_Settings.bootorder = (byte)file; //Use this option (need to typecast)!
 	}
-	BIOS_Menu = 8; //Return to Advanced menu!
+	BIOS_Menu = 35; //Return to CPU menu!
 }
 
 void BIOS_InstalledCPUOption() //Manages the installed CPU!
@@ -1534,6 +1409,42 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	BIOS_Menu = 35; //Return to CPU menu!
 }
 
+void BIOS_InitAdvancedText()
+{
+	advancedoptions = 0; //Init!
+	int i;
+	for (i = 0; i<12; i++) //Clear all possibilities!
+	{
+		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+	}
+
+	optioninfo[advancedoptions] = 0; //CPU menu!
+	strcpy(menuoptions[advancedoptions++], "CPU Settings"); //Change installed CPU options!
+
+	optioninfo[advancedoptions] = 1; //Video Settings
+	strcpy(menuoptions[advancedoptions++], "Video Settings");
+
+	optioninfo[advancedoptions] = 2; //Sound Settings
+	strcpy(menuoptions[advancedoptions++], "Sound Settings");
+
+	optioninfo[advancedoptions] = 3;
+	strcpy(menuoptions[advancedoptions++], "Input Settings");
+
+	optioninfo[advancedoptions] = 4; //Clear CMOS!
+	strcpy(menuoptions[advancedoptions++], "Clear CMOS data");
+
+
+	if (!EMU_RUNNING) //Emulator not running (allow memory size change?)
+	{
+		optioninfo[advancedoptions] = 5; //Memory detect!
+		strcpy(menuoptions[advancedoptions++], "Redetect available memory");
+	}
+
+	optioninfo[advancedoptions] = 6; //Select BIOS Font!
+	strcpy(menuoptions[advancedoptions], "BIOS Font: ");
+	strcat(menuoptions[advancedoptions++], ActiveBIOSPreset.name); //BIOS font selected!
+}
+
 void BIOS_AdvancedMenu() //Manages the boot order etc!
 {
 	BIOS_Title("Advanced Menu");
@@ -1555,49 +1466,29 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 4:
 	case 5:
 	case 6:
-	case 7:
-	case 8:
-	case 9:
-	case 10:
-	case 11:
-	case 12: //Valid option?
+	case 7: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
-		case 0: //Boot order (plain)?
-			BIOS_Menu = 9; //Boot Order Menu!
+		case 0:
+			BIOS_Menu = 35; //CPU Menu!
 			break;
-		case 1: //Installed CPU?
-			BIOS_Menu = 35; //Installed CPU Menu!
-			break;
-		case 2: //Debug mode?
-			BIOS_Menu = 13; //Debug mode option!
-			break;
-		case 3: //Memory reallocation?
-			BIOS_Menu = 14; //Memory reallocation!
-			break;
-		case 4: //Video Settings setting?
+		case 1:
 			BIOS_Menu = 29; //Video Settings setting!
 			break;
-		case 5: //BIOS Font?
-			BIOS_Menu = 16; //BIOS Font setting!
-			break;
-		case 6:
-			BIOS_Menu = 23; //Debugger log setting!
-			break;
-		case 7:
-			BIOS_Menu = 24; //Execution mode option!
-			break;
-		case 8:
-			BIOS_Menu = 25; //Input submenu!
-			break;
-		case 9:
+		case 2:
 			BIOS_Menu = 31; //Sound Settings menu!
 			break;
-		case 10:
-			BIOS_Menu = 34; //Mouse menu!
+		case 3:
+			BIOS_Menu = 25; //Input submenu!
 			break;
-		case 11:
-			BIOS_Menu = 37; //Clear CMOS menu!
+		case 4:
+			BIOS_Menu = 37; //Clear CMOS!
+			break;
+		case 5:
+			BIOS_Menu = 14; //Memory reallocation!
+			break;
+		case 6:
+			BIOS_Menu = 16; //BIOS Font setting!
 			break;
 		}
 		break;
@@ -2578,7 +2469,7 @@ void BIOS_DebugMode()
 		}
 		break;
 	}
-	BIOS_Menu = 8; //Goto Advanced menu!
+	BIOS_Menu = 35; //Goto CPU menu!
 }
 
 void BIOS_ExecutionMode()
@@ -2647,7 +2538,7 @@ void BIOS_ExecutionMode()
 		}
 		break;
 	}
-	BIOS_Menu = 8; //Goto Advanced menu!
+	BIOS_Menu = 35; //Goto CPU menu!
 }
 
 void BIOS_DebugLog()
@@ -2706,12 +2597,13 @@ void BIOS_DebugLog()
 		}
 		break;
 	}
-	BIOS_Menu = 8; //Goto Advanced menu!
+	BIOS_Menu = 35; //Goto CPU menu!
 }
 extern byte force_memoryredetect; //From the MMU: force memory redetect on load?
 
 void BIOS_MemReAlloc() //Reallocates BIOS memory!
 {
+	BIOS_Menu = 8; //Goto Advanced menu!
 	return; //Disable due to the fact that memory allocations aren't 100% OK atm.
 
 	force_memoryredetect = 1; //We're forcing memory redetect!
@@ -2969,11 +2861,29 @@ void BIOS_InitInputText()
 	strcpy(menuoptions[advancedoptions++], "Map gaming mode buttons"); //Gaming mode buttons!
 	optioninfo[advancedoptions] = 1; //Keyboard colors!
 	strcpy(menuoptions[advancedoptions++], "Assign keyboard colors"); //Assign keyboard colors!
+
+setMousetext: //For fixing it!
+	optioninfo[advancedoptions] = 2; //Mouse!
+	strcpy(menuoptions[advancedoptions], "Mouse: ");
+	switch (BIOS_Settings.PS2Mouse) //Mouse?
+	{
+	case 0:
+		strcat(menuoptions[advancedoptions++], "Serial");
+		break;
+	case 1:
+		strcat(menuoptions[advancedoptions++], "PS/2");
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.PS2Mouse = 0; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setMousetext; //Goto!
+		break;
+	}
 }
 
 void BIOS_inputMenu() //Manage stuff concerning input.
 {
-	BIOS_Title("Input Menu");
+	BIOS_Title("Input Settings Menu");
 	BIOS_InitInputText(); //Init text!
 	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
@@ -2982,7 +2892,8 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 		BIOS_Menu = 8; //Goto Advanced Menu!
 		break;
 	case 0:
-	case 1: //Valid option?
+	case 1:
+	case 2: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Gaming mode buttons?
@@ -2990,6 +2901,9 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 			break;
 		case 1: //Keyboard colors?
 			BIOS_Menu = 27; //Assign keyboard colors Menu!
+			break;
+		case 2:
+			BIOS_Menu = 34; //Mouse option!
 			break;
 		}
 		break;
@@ -3556,7 +3470,7 @@ void BIOS_InitSoundText()
 
 void BIOS_SoundMenu() //Manage stuff concerning input.
 {
-	BIOS_Title("Sound Menu");
+	BIOS_Title("Sound Settings Menu");
 	BIOS_InitSoundText(); //Init text!
 	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
@@ -3732,7 +3646,7 @@ void BIOS_Mouse()
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
-						  //We do nothing with the selected disk!
+		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
 		file = 0; //Default setting: Disabled!
@@ -3747,7 +3661,7 @@ void BIOS_Mouse()
 		}
 		break;
 	}
-	BIOS_Menu = 8; //Goto Advanced menu!
+	BIOS_Menu = 25; //Goto Input menu!
 }
 
 void BIOS_InitCPUText()
@@ -3780,7 +3694,7 @@ void BIOS_InitCPUText()
 		}
 
 	setDataBusSize: //For fixing it!
-		optioninfo[advancedoptions] = 2; //VGA NMI!
+		optioninfo[advancedoptions] = 1; //Data bus size!
 		strcpy(menuoptions[advancedoptions], "Data bus size: ");
 		switch (BIOS_Settings.DataBusSize) //VGA NMI?
 		{
@@ -3798,7 +3712,7 @@ void BIOS_InitCPUText()
 		}
 	}
 
-	optioninfo[advancedoptions] = 1; //Change CPU speed!
+	optioninfo[advancedoptions] = 2; //Change CPU speed!
 	strcpy(menuoptions[advancedoptions], "CPU Speed: ");
 	switch (BIOS_Settings.CPUSpeed) //What CPU speed limit?
 	{
@@ -3811,7 +3725,7 @@ void BIOS_InitCPUText()
 		break;
 	}
 
-	setShowCPUSpeed:
+setShowCPUSpeed:
 	optioninfo[advancedoptions] = 3; //Change CPU speed!
 	strcpy(menuoptions[advancedoptions], "Show CPU Speed: ");
 	switch (BIOS_Settings.ShowCPUSpeed) //What CPU speed limit?
@@ -3828,11 +3742,85 @@ void BIOS_InitCPUText()
 		goto setShowCPUSpeed; //Goto!
 		break;
 	}
+
+	if (!EMU_RUNNING) //Just plain menu (not an running emu?)?
+	{
+		optioninfo[advancedoptions] = 4; //Boot Order!
+		strcpy(menuoptions[advancedoptions], "Boot Order: "); //Change boot order!
+		strcat(menuoptions[advancedoptions++], BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
+	}
+
+	optioninfo[advancedoptions] = 5; //Execution mode!
+	strcpy(menuoptions[advancedoptions], "Execution mode: ");
+	switch (BIOS_Settings.executionmode) //What debug mode is active?
+	{
+	case EXECUTIONMODE_NONE:
+		strcat(menuoptions[advancedoptions++], "Normal operations"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_TEST:
+		strcat(menuoptions[advancedoptions++], "Run debug directory files"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_TESTROM:
+		strcat(menuoptions[advancedoptions++], "Run TESTROM.DAT at 0000:0000"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_VIDEOCARD:
+		strcat(menuoptions[advancedoptions++], "Debug video card output"); //Set filename from options!
+		break;
+	case EXECUTIONMODE_BIOS:
+		strcat(menuoptions[advancedoptions++], "Load BIOS from ROM directory."); //Set filename from options!
+		break;
+	case EXECUTIONMODE_SOUND:
+		strcat(menuoptions[advancedoptions++], "Run sound test"); //Set filename from options!
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>");
+		break;
+	}
+
+	optioninfo[advancedoptions] = 6; //Debug mode!
+	strcpy(menuoptions[advancedoptions], "Debug mode: ");
+	switch (BIOS_Settings.debugmode) //What debug mode is active?
+	{
+	case DEBUGMODE_NONE:
+		strcat(menuoptions[advancedoptions++], "No debugger enabled"); //Set filename from options!
+		break;
+	case DEBUGMODE_RTRIGGER:
+		strcat(menuoptions[advancedoptions++], "Enabled, RTrigger=Step"); //Set filename from options!
+		break;
+	case DEBUGMODE_STEP:
+		strcat(menuoptions[advancedoptions++], "Enabled, Step through"); //Set filename from options!
+		break;
+	case DEBUGMODE_SHOW_RUN:
+		strcat(menuoptions[advancedoptions++], "Enabled, just run, ignore shoulder buttons"); //Set filename from options!
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>");
+		break;
+	}
+
+	optioninfo[advancedoptions] = 7; //We're debug log setting!
+	strcpy(menuoptions[advancedoptions], "Debugger log: ");
+	switch (BIOS_Settings.debugger_log)
+	{
+	case DEBUGGERLOG_NONE: //None
+		strcat(menuoptions[advancedoptions++], "Don't log"); //Set filename from options!
+		break;
+	case DEBUGGERLOG_DEBUGGING: //Only when debugging
+		strcat(menuoptions[advancedoptions++], "Only when debugging"); //Set filename from options!
+		break;
+	case DEBUGGERLOG_ALWAYS: //Always
+		strcat(menuoptions[advancedoptions++], "Always log"); //Set filename from options!
+		break;
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "Never"); //Set filename from options!
+		break;
+	}
 }
 
 void BIOS_CPU() //CPU menu!
 {
-	BIOS_Title("CPU Menu");
+	BIOS_Title("CPU Settings Menu");
 	BIOS_InitCPUText(); //Init text!
 	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
@@ -3844,20 +3832,39 @@ void BIOS_CPU() //CPU menu!
 	case 0:
 	case 1:
 	case 2:
-	case 3: //Valid option?
+	case 3:
+	case 4:
+	case 5:
+	case 6:
+	case 7: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
+		//CPU settings
 		case 0: //Installed CPU?
 			BIOS_Menu = 10; //Installed CPU selection!
 			break;
-		case 1: //CPU speed?
-			BIOS_Menu = 36; //CPU speed selection!
-			break;
-		case 2: //Data bus size?
+		case 1: //Data bus size?
 			BIOS_Menu = 40; //Data bus size!
+			break;
+		case 2: //CPU speed?
+			BIOS_Menu = 36; //CPU speed selection!
 			break;
 		case 3: //CPU speed display setting?
 			BIOS_Menu = 41; //CPU speed display setting!
+			break;
+		//Basic execution information
+		case 4: //Boot order?
+			BIOS_Menu = 9; //Boot Order Menu!
+			break;
+		case 5:
+			BIOS_Menu = 24; //Execution mode option!
+			break;
+		//Debugger information
+		case 6: //Debug mode?
+			BIOS_Menu = 13; //Debug mode option!
+			break;
+		case 7:
+			BIOS_Menu = 23; //Debugger log setting!
 			break;
 		}
 		break;
