@@ -26,6 +26,7 @@ typedef struct
 {
 	FILE *f; //The file itself!
 	WAVEHEADER header; //Full version of the WAVE header to be written to the file when closed!
+	char filename[256]; //Full filename!
 } WAVEFILE;
 
 WAVEFILE *createWAV(char *filename, byte channels, uint_32 samplerate);

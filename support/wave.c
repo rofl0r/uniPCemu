@@ -64,6 +64,10 @@ void WAVdealloc(void **ptr, uint_32 size, SDL_sem *lock)
 				fwrite(&f2->header,1,sizeof(f2->header),f2->f); //Overwrite the file's header!
 				//Finally, close the file!
 				fclose(f2->f); //Close the file!
+				if (finalposition == sizeof(f2->header)) //Empty file?
+				{
+					remove(f2->filename); //Remove the file: it's invalid!
+				}
 				f2->f = NULL; //Not allocated anymore!
 			}
 		}
@@ -99,7 +103,7 @@ WAVEFILE *createWAV(char *filename, byte channels, uint_32 samplerate)
 
 	f->header.Subchunk2ID = RIFF_DATA; //DATA chunk start!
 	f->header.Subchunk2Size = 0; //We don't have any data recorded yet, so 0 bytes atm!
-
+	strcpy(f->filename,filename); //Set the filename to be removed if empty!
 	f->f = fopen(filename, "wb+"); //Open the WAV file!
 	if (fwrite(&f->header, 1, sizeof(f->header), f->f) != sizeof(f->header)) //Failed to write the header?
 	{

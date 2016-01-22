@@ -35,6 +35,10 @@ void resetchannels(); //Stop all channels&reset!
 byte setVolume(SOUNDHANDLER handler, void *extradata, float p_volume); //Channel&Volume(100.0f=100%)
 byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate); //Set sample rate!
 
+byte sound_isRecording(); //Are we recording?
+void sound_startRecording(); //Start sound recording?
+void sound_stopRecording(); //Stop sound recording!
+
 //Audio locking!
 void lockaudio();
 void unlockaudio();

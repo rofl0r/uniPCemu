@@ -5,6 +5,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //High resolution clock for timing checks.
 #include "headers/support/signedness.h" //Signedness support!
+#include "headers/support/wave.h" //WAV file log support!
 
 //Hardware set sample rate
 #define HW_SAMPLERATE 44100
@@ -719,6 +720,8 @@ OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int_32 *re
 
 int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!
 
+WAVEFILE *recording = NULL; //We are recording when set.
+
 OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio channels to buffer!
 {
 	//Variables first
@@ -816,6 +819,8 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 		if (result_r>SHRT_MAX) result_r = SHRT_MAX;
 		if (result_r<SHRT_MIN) result_r = SHRT_MIN;
 
+		if (recording) writeWAVStereoSample(recording,result_l,result_r); //Write the recording to the file if needed!
+
 		buffer->l = (sample_t)result_l; //Left channel!
 		buffer->r = (sample_t)result_r; //Right channel!
 		if (!--currentsample) return; //Finished!
@@ -824,6 +829,46 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 }
 
 //Audio callbacks!
+
+byte sound_isRecording() //Are we recording?
+{
+	return recording?1:0; //Are we recording?
+}
+
+void sound_stopRecording() //Stop sound recording!
+{
+	lockaudio();
+	closeWAV(&recording); //Stop recording!
+	unlockaudio();
+}
+
+char recordingfilename[256];
+OPTINLINE char *get_soundrecording_filename() //Filename for a screen capture!
+{
+	int mkdirres;
+	mkdirres = domkdir("captures"); //Captures directory!
+	uint_32 i = 0; //For the number!
+	char filename2[256];
+	memset(&filename2, 0, sizeof(filename2)); //Init filename!
+	memset(&recordingfilename, 0, sizeof(recordingfilename)); //Init filename!
+	do
+	{
+		sprintf(filename2, "captures/recording_%i.wav", ++i); //Next bitmap file!
+	} while (file_exists(filename2)); //Still exists?
+	sprintf(recordingfilename, "captures/recording_%i.wav", i); //The capture filename!
+	return &recordingfilename[0]; //Give the filename for quick reference!
+}
+
+void sound_startRecording() //Start sound recording?
+{
+	if (recording) //Already recording?
+	{
+		sound_stopRecording(); //Stop recording first!
+	}
+	lockaudio();
+	recording = createWAV(get_soundrecording_filename(),2,SW_SAMPLERATE); //Start recording to this file!
+	unlockaudio();
+}
 
 //SDL audio callback:
 
@@ -862,8 +907,6 @@ void Sound_AudioCallback(void *user_data, Uint8 *audio, int length)
 	}
 	#endif
 }
-
-
 
 byte SDLAudio_Loaded = 0; //Are we loaded (kept forever till quitting)
 

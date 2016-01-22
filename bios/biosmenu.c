@@ -37,6 +37,8 @@
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
 #include "headers/support/highrestimer.h" //High resolution clock support!
 
+#include "headers/emu/sound.h" //Recording support!
+
 #define __HW_DISABLED 0
 
 //Force the BIOS to open?
@@ -158,6 +160,7 @@ void BIOS_SoundSourceVolume(); //Set the Sound Source volume!
 void BIOS_ShowFramerate(); //Show framerate setting!
 void BIOS_DataBusSizeSetting(); //Data bus size setting!
 void BIOS_ShowCPUSpeed(); //Show CPU speed setting!
+void BIOS_SoundStartStopRecording(); //Start/stop recording sound!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -204,6 +207,7 @@ Handler BIOS_Menus[] =
 	,BIOS_ShowFramerate //Show Framerate is #39!
 	,BIOS_DataBusSizeSetting //Data Bus size setting is #40!
 	,BIOS_ShowCPUSpeed //Show CPU speed is #41!
+	,BIOS_SoundStartStopRecording //Start/stop recording sound!
 };
 
 //Not implemented?
@@ -3538,6 +3542,16 @@ void BIOS_InitSoundText()
 
 	optioninfo[advancedoptions] = 2; //Sound Source Volume!
 	sprintf(menuoptions[advancedoptions++],"Sound Source Volume: %i%%",(int)(BIOS_Settings.SoundSource_Volume*100.0f)); //Sound source volume as a whole number!
+
+	optioninfo[advancedoptions] = 3; //Start/stop recording sound!
+	if (!sound_isRecording()) //Not recording yet?
+	{
+		strcpy(menuoptions[advancedoptions++], "Start recording sound"); //Sound source volume as a whole number!
+	}
+	else
+	{
+		strcpy(menuoptions[advancedoptions++], "Stop recording sound"); //Sound source volume as a whole number!
+	}
 }
 
 void BIOS_SoundMenu() //Manage stuff concerning input.
@@ -3552,7 +3566,8 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 		break;
 	case 0:
 	case 1:
-	case 2: //Valid option?
+	case 2:
+	case 3: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Soundfont selection?
@@ -3563,6 +3578,9 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 			break;
 		case 2: //Sound Source Volume?
 			BIOS_Menu = 38; //Sound Source Volume setting!
+			break;
+		case 3: //Sound recording?
+			BIOS_Menu = 42; //Start/stop sound recording!
 			break;
 		}
 		break;
@@ -4153,4 +4171,17 @@ void BIOS_ShowCPUSpeed()
 	BIOS_Settings.ShowCPUSpeed = !BIOS_Settings.ShowCPUSpeed; //Reverse!
 	BIOS_Changed = 1; //We've changed!
 	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_SoundStartStopRecording()
+{
+	if (sound_isRecording()) //Are we recording?
+	{
+		sound_stopRecording(); //Stop recording!
+	}
+	else
+	{
+		sound_startRecording(); //Start recording!
+	}
+	BIOS_Menu = 31; //Goto Sound menu!
 }
