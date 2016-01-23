@@ -246,6 +246,19 @@ void freeBIOSMenu() //Free up all BIOS related memory!
 
 extern byte showchecksumerrors; //Show checksum errors?
 
+byte BIOS_printopentext(uint_32 timeout)
+{
+	byte result=SETXYCLICKED_OK;
+	if (timeout) //Specified? We're before boot!
+	{
+		GPU_text_locksurface(BIOS_Surface);
+		GPU_textgotoxy(BIOS_Surface,0,0); //Goto our location!
+		result = GPU_textprintfclickable(BIOS_Surface,getemucol16(0xE),getemucol16(0x6), "Press SELECT to bring out the BIOS");
+		GPU_text_releasesurface(BIOS_Surface);
+	}
+	return result; //Give the result!
+}
+
 int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -259,34 +272,29 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 	{
 		counter = BIOS_TIME; //Default!
 	}
-
-	if (timeout) //Specified? We're before boot!
-	{
-		EMU_locktext();
-		EMU_textcolor(0xE); //Yellow on black!
-		GPU_EMU_printscreen(0,0,"Press SELECT to bring out the BIOS");
-		EMU_unlocktext();
-	}
-	else //Normal BIOS POST!
-	{
-		EMU_locktext();
-		printmsg(0xE,"Press SELECT to run BIOS SETUP");
-		EMU_unlocktext();
-	}
 	
 	showchecksumerrors = 0; //Don't show!
 	BIOS_LoadData(); //Now load/reset the BIOS
 	showchecksumerrors = 1; //Reset!
+
+	if (!timeout) //Normal opening the BIOS?
+	{
+		EMU_locktext();
+		printmsg(0xE, "Press SELECT to run BIOS SETUP");
+		EMU_unlocktext();
+	}
 	
+	byte BIOSClicked = 0;
 	while (counter>0) //Time left?
 	{
+		BIOSClicked = (BIOS_printopentext(timeout)&SETXYCLICKED_CLICKED); //Are we clicked?
 		counter -= INPUT_INTERVAL; //One further!
 		delay(INPUT_INTERVAL); //Intervals of one!
 		if (shuttingdown()) //Request shutdown?
 		{
 			return 0; //No reset!
 		}
-		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun || FORCE_BIOS) //R trigger pressed or first run?
+		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun || FORCE_BIOS || BIOSClicked) //R trigger pressed or first run? Also when clicked!
 		{
 			if (timeout) //Before boot?
 			{
@@ -589,6 +597,18 @@ char menuoptions[256][256]; //Going to contain the menu's for BIOS_ShowMenu!
 //SQUARE option pressed, item selected returned.
 #define BIOSMENU_STAT_SQUARE 1
 
+byte BIOS_printscreen(word x, word y, byte attr, char *text, ...)
+{
+	char buffer[256]; //Going to contain our output data!
+	va_list args; //Going to contain the list!
+	va_start(args, text); //Start list!
+	vsprintf(buffer, text, args); //Compile list!
+
+	//Now display and return!
+	GPU_textgotoxy(BIOS_Surface,x,y); //Goto coordinates!
+	return GPU_textprintfclickable(BIOS_Surface,getemucol16(attr&0xF),getemucol16((attr>>4)&0xF),buffer); //Give the contents!
+}
+
 int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 {
 	*stat = BIOSMENU_STAT_OK; //Plain status for default!
@@ -659,26 +679,27 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 
 //Now that the options have been chosen, show them:
 
-		if (oldoption!=option) //Option changed?
+		int cur = 0; //Current option
+		for (cur=0; cur<numitems; cur++) //Process all options!
 		{
-			int cur = 0; //Current option
-			for (cur=0; cur<numitems; cur++) //Process all options!
+			EMU_locktext();
+			if (cur==option) //Option?
 			{
-				EMU_locktext();
-				EMU_gotoxy(0,startrow+cur); //Goto start of item row!
-				if (cur==option) //Option?
+				if (BIOS_printscreen(0,startrow+cur,BIOS_ATTR_ACTIVE,"> %s",menuoptions[cur])&SETXYCLICKED_CLICKED) //Clicked?
 				{
-					EMU_textcolor(BIOS_ATTR_ACTIVE); //Active item!
-					GPU_EMU_printscreen(0,startrow+cur,"> %s",menuoptions[cur]);
+					EMU_unlocktext();
+					return cur;
 				}
-				else //Not option?
-				{
-					EMU_textcolor(BIOS_ATTR_INACTIVE); //Inactive item!
-					GPU_EMU_printscreen(0,startrow+cur,"  %s",menuoptions[cur]); //Plain option!
-				}
-				EMU_unlocktext();
 			}
-			oldoption = option; //Save our changes!
+			else //Not option?
+			{
+				if (BIOS_printscreen(0,startrow+cur,BIOS_ATTR_INACTIVE,"  %s",menuoptions[cur])&SETXYCLICKED_CLICKED) //Clicked?
+				{
+					EMU_unlocktext();
+					return cur;
+				}
+			}
+			EMU_unlocktext();
 		}
 		delay(0); //Wait for other threads!
 	}

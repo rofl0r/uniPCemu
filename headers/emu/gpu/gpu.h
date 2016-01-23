@@ -129,6 +129,10 @@ void GPU_removeTextSurface(void *surface); //Unregister a text surface (removes 
 void updateVideo(); //Update the screen resolution on change!
 void CPU_updateVideo(); //Actual video update from the CPU side of things!
 
+//Clicking support!
+void GPU_mousebuttondown(word x, word y); //We've been clicked at these coordinates!
+void GPU_mousebuttonup(word x, word y); //We've been released at these coordinates!
+
 #define lockGPU() lock(LOCK_GPU)
 #define unlockGPU() unlock(LOCK_GPU)
 #endif

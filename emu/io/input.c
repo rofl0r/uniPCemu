@@ -23,6 +23,8 @@
 
 #include "headers/support/signedness.h" //Signedness support!
 
+#include "headers/emu/gpu/gpu_text.h" //GPU text support! 
+
 #ifdef _WIN32
 #include "sdl_joystick.h" //Joystick support!
 #include "sdl_events.h" //Event support!
@@ -617,7 +619,6 @@ void initKeyboardOSK()
 	}
 	GPU_enableDelta(keyboardsurface, 1, 1); //Enable both x and y delta coordinates: we want to be at the bottom-right of the screen always!
 	GPU_addTextSurface(keyboardsurface,&keyboard_renderer); //Register our renderer!
-
 	//dolog("GPU","Keyboard OSK allocated.");
 }
 
@@ -1852,6 +1853,7 @@ void enableKeyboard(int bufferinput) //Enables the keyboard/mouse functionnality
 SDL_Joystick *joystick; //Our joystick!
 
 byte precisemousemovement = 0; //Precise mouse movement enabled?
+word mouse_x=0, mouse_y=0; //Current mouse coordinates of the actual mouse!
 
 void updateMOD()
 {
@@ -2315,6 +2317,10 @@ void updateInput(SDL_Event *event) //Update all input!
 					{
 						Mouse_buttons |= 1; //Left mouse button pressed!
 					}
+					if (!Direct_Input) //Not executing direct input?
+					{
+						GPU_mousebuttondown(mouse_x, mouse_y); //We're pressed at these coordinates!
+					}
 					break;
 				case SDL_BUTTON_RIGHT:
 					mousebuttons |= 2; //Right pressed!
@@ -2361,13 +2367,27 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				unlock(LOCK_INPUT);
 			}
-			break;
-		case SDL_MOUSEMOTION: //Mouse moved?
-			if (Direct_Input && hasmousefocus) //Direct input?
+			
+			if (event->button.button==SDL_BUTTON_LEFT) //Release left button inside or outside our window?
 			{
 				lock(LOCK_INPUT);
-				mouse_xmove += event->motion.xrel; //Move the mouse horizontally!
-				mouse_ymove += event->motion.yrel; //Move the mouse vertically!
+				GPU_mousebuttonup(mouse_x, mouse_y); //We're released at the current coordinates!
+				unlock(LOCK_INPUT);
+			}
+			break;
+		case SDL_MOUSEMOTION: //Mouse moved?
+			if (hasmousefocus) //Do we have mouse focus?
+			{
+				lock(LOCK_INPUT);
+				if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
+				{
+					mouse_xmove += event->motion.xrel; //Move the mouse horizontally!
+					mouse_ymove += event->motion.yrel; //Move the mouse vertically!
+				}
+
+				//Always update mouse coordinates for our own GUI handling!
+				mouse_x = event->motion.x; //X coordinate on the window!
+				mouse_y = event->motion.y; //Y coordinate on the window!
 				unlock(LOCK_INPUT);
 			}
 			break;

@@ -21,12 +21,17 @@ typedef struct
 	int y;
 } BACKLISTITEM; //Background list coordinate!
 
+//SetXYclicked and printfclicked result bit values!
+#define SETXYCLICKED_OK 1
+#define SETXYCLICKED_CLICKED 2
+
 typedef struct
 {
 //First, the text data (modified during write/read)!
 byte text[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //Text surface text!
 uint_32 font[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //Text surface font!
 uint_32 border[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //Text surface border!
+uint_32 clickable[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //Text surface click status!
 
 //Dirty flags and rendered data (internal).
 uint_32 notdirty[GPU_TEXTPIXELSY][GPU_TEXTPIXELSX]; //This is non-dirty, so use this then!
@@ -58,4 +63,11 @@ void GPU_text_updatedelta(SDL_Surface *surface); //Update delta!
 void GPU_text_locksurface(GPU_TEXTSURFACE *surface); //Lock a surface for usage!
 void GPU_text_releasesurface(GPU_TEXTSURFACE *surface); //Unlock a surface when we're done with it!
 
+//GPU Clicking support!
+void GPU_textbuttondown(GPU_TEXTSURFACE *surface, word x, word y); //We've been clicked at these coordinates!
+void GPU_textbuttonup(GPU_TEXTSURFACE *surface, word x, word y); //We've been released at these coordinates!
+
+//TEXT Clicking support!
+byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte character, uint_32 font, uint_32 border); //Set x/y coordinates for clickable character! Result is bit value of SETXYCLICKED_*
+byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...); //Same as normal GPU_textprintf, but with clickable support! Result is bit value of SETXYCLICKED_*
 #endif

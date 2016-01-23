@@ -12,6 +12,14 @@
 //\n is newline? Else \r\n is newline!
 #define USESLASHN 1
 
+//Clickable bit values (used internally)!
+//Clickable character!
+#define CLICKABLE_CLICKABLE 1
+//Mouse has been pressed!
+#define CLICKABLE_BUTTONDOWN 2
+//Mouse has clicked!
+#define CLICKABLE_CLICKED 4
+
 extern GPU_SDL_Surface *rendersurface; //The PSP's surface to use when flipping!
 
 word TEXT_xdelta = 0;
@@ -184,6 +192,33 @@ int GPU_textgetxy(GPU_TEXTSURFACE *surface,int x, int y, byte *character, uint_3
 	return 1; //OK!
 }
 
+byte GPU_startClickable(GPU_TEXTSURFACE *surface, word x, word y); //Internal: start clickable character prototype!
+void GPU_stopClickableXY(GPU_TEXTSURFACE *surface, word x, word y); //Internal: stop clickable character prototype!
+
+byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte character, uint_32 font, uint_32 border) //Set x/y coordinates for clickable character! Result is bit value of SETXYCLICKED_*
+{
+	byte result;
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
+	if (y >= GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
+	if (x >= GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
+	byte oldtext = surface->text[y][x];
+	uint_32 oldfont = surface->font[y][x];
+	uint_32 oldborder = surface->font[y][x];
+	surface->text[y][x] = character;
+	surface->font[y][x] = font;
+	surface->border[y][x] = border;
+	result = GPU_startClickable(surface, x, y) ? (SETXYCLICKED_OK | SETXYCLICKED_CLICKED) : SETXYCLICKED_OK; //We're starting to be clickable if not yet clickable! Give 3 for clicked and 1 for normal success without click!
+	uint_32 change;
+	character ^= oldtext;
+	font ^= oldfont;
+	border ^= oldborder;
+	change = character;
+	change |= font;
+	change |= border;
+	if (change) surface->flags |= TEXTSURFACE_FLAG_DIRTY; //Mark us as dirty when needed!
+	return result; //OK with error condition!
+}
+
 int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32 font, uint_32 border) //Write a character+attribute!
 {
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
@@ -195,6 +230,7 @@ int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32
 	surface->text[y][x] = character;
 	surface->font[y][x] = font;
 	surface->border[y][x] = border;
+	GPU_stopClickableXY(surface,x,y); //We're stopping being clickable: we're a normal character from now on!
 	uint_32 change;
 	character ^= oldtext;
 	font ^= oldfont;
@@ -264,6 +300,56 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 	surface->y = cury; //Update y!
 }
 
+byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...)
+{
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
+	char msg[256];
+	bzero(msg, sizeof(msg)); //Init!
+
+	va_list args; //Going to contain the list!
+	va_start(args, text); //Start list!
+	vsprintf(msg, text, args); //Compile list!
+
+	int curx = surface->x; //Init x!
+	int cury = surface->y; //init y!
+	int i;
+	byte result = SETXYCLICKED_OK; //Default: we're OK!
+	byte setstatus; //Status when setting!
+	for (i = 0; i<(int)strlen(msg); i++) //Process text!
+	{
+		while (curx >= GPU_TEXTSURFACE_WIDTH) //Overflow?
+		{
+			++cury; //Next row!
+			curx -= GPU_TEXTSURFACE_WIDTH; //Decrease columns for every row size!
+		}
+		if ((msg[i] == '\r' && !USESLASHN) || (msg[i] == '\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
+		{
+			curx = 0; //Move to the left!
+		}
+		if (msg[i] == '\n') //CR?
+		{
+			++cury; //Next Y!
+		}
+		else if (msg[i] != '\r') //Never display \r!
+		{
+			setstatus = GPU_textsetxyclickable(surface, curx, cury, (byte)msg[i], font, border); //Write the character to our screen!
+			if (!(setstatus&SETXYCLICKED_OK)) //Invalid character location or unknown status value?
+			{
+				result &= ~SETXYCLICKED_OK; //Error out: we have one or more invalid writes!
+			}
+
+			if (setstatus&SETXYCLICKED_CLICKED) //Are we clicked?
+			{
+				result |= SETXYCLICKED_CLICKED; //We're clicked!
+			}
+			++curx; //Next character!
+		}
+	}
+	surface->x = curx; //Update x!
+	surface->y = cury; //Update y!
+	return result; //Give the result!
+}
+
 void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 {
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
@@ -303,7 +389,7 @@ void GPU_text_updatedelta(SDL_Surface *surface)
 
 void GPU_text_locksurface(GPU_TEXTSURFACE *surface) //Lock a surface for usage!
 {
-	if (!memprotect(surface,sizeof(*surface),"GPU_TEXTSURFACE")) return; //Invalid surface!
+	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
 	if (!surface->lock) return; //no lock?
 	WaitSem(surface->lock) //Wait for us to be available and locked!
 }
@@ -313,4 +399,95 @@ void GPU_text_releasesurface(GPU_TEXTSURFACE *surface) //Unlock a surface when d
 	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
 	if (!surface->lock) return; //no lock?
 	PostSem(surface->lock) //Release our lock: we're done!
+}
+
+void GPU_textbuttondown(GPU_TEXTSURFACE *surface, word x, word y) //We've been clicked at these coordinates!
+{
+	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
+	word x1, y1;
+	x1 = 0;
+	y1 = 0;
+	if (surface->xdelta) x1 += TEXT_xdelta; //Apply delta position to the output pixel!
+	if (surface->ydelta) y1 += TEXT_ydelta; //Apply delta position to the output pixel!
+
+	//Now x1,y1 is the start of the surface!
+	if (x >= x1) //Within x range?
+	{
+		if (y >= y1) //Within y range?
+		{
+			x -= x1; //X coordinate within the surface!
+			y -= y1;  //Y coordinate within the surface!
+			if (x < GPU_TEXTPIXELSX) //Within horizontal range?
+			{
+				if (y < GPU_TEXTPIXELSY) //Within vertical range?
+				{
+					x >>= 3; //X character within the surface!
+					y >>= 3; //Y character within the surface!
+					if (surface->clickable[y][x] & CLICKABLE_CLICKABLE) //Is this a clickable character?
+					{
+						surface->clickable[y][x] |= CLICKABLE_BUTTONDOWN; //Set button down flag!
+					}
+				}
+			}
+		}
+	}
+}
+
+void GPU_textbuttonup(GPU_TEXTSURFACE *surface, word x, word y) //We've been released at these coordinates!
+{
+	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
+
+	word sx, sy;
+	for (sx = 0;sx < GPU_TEXTSURFACE_WIDTH;)
+	{
+		for (sy = 0;sy < GPU_TEXTSURFACE_HEIGHT;)
+		{
+			byte clickable;
+			clickable = surface->clickable[sy][sx]; //Load clickable info on the current character!
+			if (clickable & CLICKABLE_CLICKABLE) //Clickable character?
+			{
+				if (clickable&CLICKABLE_BUTTONDOWN) //We're pressed?
+				{
+					clickable &= ~CLICKABLE_BUTTONDOWN; //Release hold!
+					clickable |= CLICKABLE_CLICKED; //We've been clicked!
+					surface->clickable[sy][sx] = clickable; //Update clicked information!
+				}
+			}
+			++sy;
+		}
+		++sx;
+	}
+}
+
+byte GPU_startClickable(GPU_TEXTSURFACE *surface, word x, word y) //Internal: start clickable character!
+{
+	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return 0; //Invalid surface!
+	byte result = 0;
+	if (!(surface->clickable[y][x] & CLICKABLE_CLICKABLE)) //We're not clickable yet?
+	{
+		surface->clickable[y][x] = CLICKABLE_CLICKABLE; //Enable clickable and start fresh!
+	}
+	else
+	{
+		if (surface->clickable[y][x] & CLICKABLE_CLICKED) //Are we clicked?
+		{
+			surface->clickable[y][x] &= ~CLICKABLE_CLICKED; //We're processing the click now!
+			result = 1; //We're clicked!
+		}
+	}
+	return result; //Give if we're clicked or not!
+}
+
+byte GPU_isclicked(GPU_TEXTSURFACE *surface, word x, word y) //Are we clicked?
+{
+	byte result;
+	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return 0; //Invalid surface!
+	result = (surface->clickable[y][x]&(CLICKABLE_CLICKABLE|CLICKABLE_CLICKED))== (CLICKABLE_CLICKABLE | CLICKABLE_CLICKED); //Give if we're clickable and clicked!
+	return result; //Give the result if we're clicked!
+}
+
+void GPU_stopClickableXY(GPU_TEXTSURFACE *surface, word x, word y)
+{
+	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
+	surface->clickable[y][x] = 0; //Destroy any click information! We're a normal character again!
 }
