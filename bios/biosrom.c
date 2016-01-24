@@ -290,7 +290,7 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 
 byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handler function */
 {
-	uint_32 basepos;
+	register uint_32 basepos;
 	if ((offset >= 0xC0000) && (offset<0xF0000)) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
@@ -298,15 +298,18 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 		else return 0; //Our of range (32-bit)?
 	}
 	offset -= basepos; //Calculate from the base position!
-	byte i;
-	for (i=0;i<numOPT_ROMS;i++) //Check OPT ROMS!
+	register byte i=0;
+	if (!numOPT_ROMS) goto noOPTROMSR;
+	for (;;) //Check OPT ROMS!
 	{
 		if ((OPTROM_location[i]<=offset) && (OPTROM_end[i]>offset) && OPT_ROMS[i]) //Found ROM?
 		{
 			*value = OPT_ROMS[i][offset-OPTROM_location[i]]; //Read the data!
 			return 1; //Done: we've been read!
 		}
+		if (++i==numOPT_ROMS) break; //Finished searching?
 	}
+	noOPTROMSR:
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
 		if (offset < BIOS_custom_VGAROM_size) //OK?
@@ -320,7 +323,7 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 
 byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
-	uint_32 basepos;
+	register uint_32 basepos;
 	if ((offset>=0xC0000) && (offset<0xF0000)) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
@@ -328,9 +331,10 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 		else return 0; //Our of range (32-bit)?
 	}
 	offset -= basepos; //Calculate from the base position!
-	uint_32 OPTROM_address; //The address calculated in the EEPROM!
-	byte i;
-	for (i=0;i<numOPT_ROMS;i++) //Check OPT ROMS!
+	register uint_32 OPTROM_address; //The address calculated in the EEPROM!
+	register byte i=0;
+	if (!numOPT_ROMS) goto noOPTROMSW;
+	for (;;) //Check OPT ROMS!
 	{
 		if (OPT_ROMS[i]) //Enabled?
 		{
@@ -434,7 +438,9 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 				return 1; //Ignore writes to memory: we've handled it!
 			}
 		}
+		if (++i == numOPT_ROMS) break; //Finished searching?
 	}
+	noOPTROMSW:
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
 		if (offset < BIOS_custom_VGAROM_size) //OK?
@@ -447,7 +453,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 
 byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
-	uint_32 basepos, tempoffset;
+	register uint_32 basepos, tempoffset;
 	if ((offset >= 0xF0000) && (offset < 0x100000)) basepos = 0xF0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
@@ -470,8 +476,8 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 		}
 	}
 
-	uint_32 originaloffset;
-	uint_32 segment; //Current segment!
+	register uint_32 originaloffset;
+	register uint_32 segment; //Current segment!
 	switch (EMULATED_CPU) //What CPU is being emulated?
 	{
 		case CPU_8086:
@@ -536,7 +542,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 
 byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler function */
 {
-	uint_32 basepos, tempoffset;
+	register uint_32 basepos, tempoffset;
 	if ((offset >= 0xF0000) && (offset < 0x100000)) basepos = 0xF0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
@@ -561,7 +567,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 		}
 	}
 
-	uint_32 segment; //Current segment!
+	register uint_32 segment; //Current segment!
 	//dolog("CPU","BIOS Read handler: %08X+%08X",baseoffset,reloffset);
 	switch (EMULATED_CPU) //What CPU is being emulated?
 	{

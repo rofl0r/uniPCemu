@@ -53,26 +53,22 @@ OPTINLINE byte GPU_textcalcpixel(int *x, int *y, int *charx, int *chary)
 
 OPTINLINE byte getcharxy_8(byte character, int x, int y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
 {
-	static uint_32 lastcharinfo; //attribute|character|0x80|row, bit8=Set?
+	static uint_32 lastcharinfo=0; //attribute|character|0x80|row, bit8=Set?
 
 	x &= 7;
 	y &= 7;
 
 	if ((lastcharinfo & 0xFFF) != (0x800U|(character << 3)|(byte)y)) //Last row not yet loaded?
 	{
-		register word addr = (character<<3); //Address of the character!
-		addr |= y; //The row to select!
-
-		register byte lastrow = int10_font_08[addr]; //Read the row from the character generator!
-		//Save our loaded information for next time!
-		lastcharinfo = (lastrow << 12);
-		lastcharinfo |= 0x800; //We're loaded!
-		lastcharinfo |= (character << 3);
-		lastcharinfo |= y; //Last character info loaded!
+		register uint_32 lastrow = int10_font_08[(character << 3)|y]; //Read the row from the character generator!
+		lastrow <<= 12; //Create room for further operations!
+		lastrow |= 0x800; //We're loaded!
+		lastrow |= (character << 3);
+		lastrow |= y; //Last character info loaded!
+		lastcharinfo = lastrow; //Save the last row!
 	}
 
-	register byte bitpos;
-	bitpos = 19; //Load initial value!
+	register byte bitpos=19; //Load initial value!
 	bitpos -= x; //Substract to get the bit!
 	return ((lastcharinfo>>bitpos)&1); //Give result!
 }
