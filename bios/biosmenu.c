@@ -2007,9 +2007,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 							error = 1;
 							break; //Stop reading!
 						}
-						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10 sectors!
+						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 						{
-							GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
+							EMU_locktext();
+							GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+							EMU_unlocktext();
 						}
 						sectornr += datatotransfer; //Next sector block!
 					}
@@ -2058,14 +2060,16 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 								error = 1;
 								break; //Stop reading!
 							}
-							if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10 sectors!
+							if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 							{
+								EMU_locktext();
 								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+								EMU_unlocktext();
 							}
 							sectornr += datatotransfer; //Next sector!
 						}
 						EMU_locktext();
-						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+						GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
@@ -2177,7 +2181,9 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					}
 					if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 					{
+						EMU_locktext();
 						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+						EMU_unlocktext();
 					}
 					sectornr += datatotransfer; //Next sector!
 				}
@@ -2230,7 +2236,9 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 						}
 						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 						{
+							EMU_locktext();
 							GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+							EMU_unlocktext();
 						}
 						sectornr += datatotransfer; //Next sector!
 					}
@@ -2257,6 +2265,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 
 void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 {
+	FILEPOS updateinterval=1,updatenr;
 	char filename[256], originalfilename[256]; //Filename container!
 	bzero(filename, sizeof(filename)); //Init!
 	FILEPOS size = 0;
@@ -2309,7 +2318,10 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					EMU_unlocktext();
 					FILEPOS sectornr;
 					byte error = 0;
-					sizecreated >>= 9; //Convert to actual 512-byte sector numbers: we're allowed in this case!
+					size >>= 9; //Convert to actual 512-byte sector numbers: we're allowed in this case!
+					updateinterval = (size/100); //Update interval in sectors: every 1% updated!
+					if (!updateinterval) updateinterval = 1; //Minimum of 1 sector interval!
+					updatenr = 0; //Reset update number!
 					for (sectornr = 0; sectornr < size;) //Process all sectors from the source image!
 					{
 						sectorposition = 0; //Default: no position!
@@ -2318,25 +2330,20 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							error = 4; //Give the fourth error!
 							break;
 						}
-						if (dynamicimage_hassector(originalfilename,sectornr)) //Sector exists? Then try to copy it to the new disk image!
+						if (dynamicimage_readexistingsector(originalfilename,sectornr,&sector)) //Sector exists and non-empty? Then try to copy it to the new disk image!
 						{
-							if (dynamicimage_readsector(originalfilename, sectornr, &sector)) //Read a sector?
+							if (!dynamicimage_writesector(filename, sectornr, &sector)) //Error writing a sector?
 							{
-								if (!dynamicimage_writesector(filename, sectornr, &sector)) //Error writing a sector?
-								{
-									error = 2;
-									break; //Stop reading!
-								}
-							}
-							else //Error reading sector?
-							{
-								error = 1;
+								error = 2;
 								break; //Stop reading!
 							}
 						}
-						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
+						if (++updatenr==updateinterval)) //Update every 1% sectors!
 						{
+							updatenr = 0; //Reset!
+							EMU_locktext();
 							GPU_EMU_printscreen(21, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+							EMU_unlocktext();
 						}
 						++sectornr; //Next sector!
 					}
@@ -2350,6 +2357,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						EMU_locktext();
 						GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
 						EMU_unlocktext();
+						updatenr = 0; //Reset update number!
 						for (sectornr = 0; sectornr < size;) //Process all sectors!
 						{
 							sectorposition = 0; //Default: no position!
@@ -2359,29 +2367,16 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 								break;
 							}
 
-							if (dynamicimage_hassector(originalfilename,sectornr)) //Sector exists in the old disk image? Then try to check it to the new disk image!
+							if (dynamicimage_readexistingsector(originalfilename,sectornr,&sector)) //Sector exists in the old disk image? Then try to check it to the new disk image!
 							{
-								if (dynamicimage_hassector(filename,sectornr)) //Sector exists in the new disk image? Then try to check it from the new disk image!
+								if (dynamicimage_readexistingsector(filename,sectornr,&verificationsector)) //Sector exists in the new disk image? Then try to check it from the new disk image!
 								{
-									if (dynamicimage_readsector(originalfilename, sectornr, &sector)) //Read a sector?
+									if ((sectorposition = memcmp(&sector, &verificationsector, 512)) != 0) //Data error?
 									{
-										if (!dynamicimage_readsector(filename, sectornr, &sector)) //Error reading from original disk image?
-										{
-											error = 2;
-											break; //Stop reading!
-										}
-										else if ((sectorposition = memcmp(&sector, &verificationsector, datatotransfer)) != 0) //Data error?
-										{
-											error = 3; //Verification error!
-											break; //Stop reading!
-										}
-										//We're a valid written sector!
-									}
-									else //Error reading sector in the old disk image?
-									{
-										error = 1; //Read error!
+										error = 3; //Verification error!
 										break; //Stop reading!
 									}
+									//We're a valid written sector!
 								}
 								else //Missing defragemented sector!
 								{
@@ -2389,16 +2384,19 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 									break; //Stop reading!
 								}
 							}
-							else if (dynamicimage_hassector(filename,sectornr)) //Sector exists in the new disk image but not in the old disk image?
+							else if (dynamicimage_readexistingsector(filename,sectornr,&verificationsector)) //Sector exists in the new disk image but not in the old disk image?
 							{
-								error = 3; //Verification error!
+								error = 3; //Verification error: exists within defragemented image but not in source image!
 								break; //Stop reading!
 							}
 							//We're a valid written or non-existing sector!
 
-							if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
+							if (++updatenr==updateinterval)) //Update every 1% sectors!
 							{
+								updatenr = 0; //Reset!
+								EMU_locktext();
 								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+								EMU_unlocktext();
 							}
 							++sectornr; //Next sector!
 						}
@@ -2407,7 +2405,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
-							dolog(filename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr / 512, size / 512, sectorposition); //Error at this sector!
+							dolog(filename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr, size, sectorposition); //Error at this sector!
 						}
 						else //We've been defragmented?
 						{
@@ -2426,7 +2424,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					}
 					else //Error occurred?
 					{
-						dolog(filename, "Error #%u copying dynamic image sector %u/%u", error, sectornr / 512, sizecreated / 512); //Error at this sector!
+						dolog(filename, "Error #%u copying dynamic image sector to defragmented image sector %u/%u", error, sectornr, size); //Error at this sector!
 					}
 				}
 			}
