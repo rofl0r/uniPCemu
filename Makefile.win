@@ -13,7 +13,7 @@ OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
 CFLAGS = -Wall -O3 -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
 
-LIBS = -L/mingw/lib -lmingw32 -lSDL -lSDL_gfx -lSDLmain
+LIBS = -L/mingw/lib -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 
 ifndef CC
 CC = gcc
