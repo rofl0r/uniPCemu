@@ -2322,7 +2322,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						{
 							if (dynamicimage_readsector(originalfilename, sectornr, &sector)) //Read a sector?
 							{
-								if (!dynamicimage_writesector(filenmae, sectornr, &sector)) //Error writing a sector?
+								if (!dynamicimage_writesector(filename, sectornr, &sector)) //Error writing a sector?
 								{
 									error = 2;
 									break; //Stop reading!
@@ -2336,7 +2336,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						}
 						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 						{
-							GPU_EMU_printscreen(21, 6, "%u%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
+							GPU_EMU_printscreen(21, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 						}
 						++sectornr; //Next sector!
 					}
