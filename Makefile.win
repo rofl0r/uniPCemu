@@ -2,32 +2,30 @@
 
 BUILD_DIR = ../projects_build/x86emu
 
-LDFLAGS=-mwindows -static-libgcc -static-libstdc++ -s
+CC = gcc
+RM = rm -f
+
+#Different kinds of flags!
+CFLAGS = -Wall -O3 -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
+LDFLAGS=--enable-core-inline -static-libgcc -static-libstdc++
+LIBS = -L/mingw/lib -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 
 #Name of the destination application!
 TARGET = x86EMU
 
-#Output filename
+#Apply build directory etc.
 TARGET := $(BUILD_DIR)/$(TARGET).exe
-
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
-CFLAGS = -Wall -O3 -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
-
-LIBS = -L/mingw/lib -lmingw32 -lSDLmain -lSDL -lSDL_gfx
-
-ifndef CC
-CC = gcc
-endif
-
-ifndef RM
-RM = rm -f
-endif
-
+#Rules themselves!
 $(BUILD_DIR)/%.o:%.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(TARGET): $(OBJS)
-	$(CC) $(OBJS) $(LDFLAGS) -o $@ $(LIBS)
+.PHONY: all
+all: $(TARGET)
 
-win: $(TARGET)
+$(TARGET): $(OBJS)
+	$(CC) $(OBJS) $(LIBS) $(LDFLAGS) -o $@
+
+.PHONY: win
+win: all
