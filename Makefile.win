@@ -2,8 +2,9 @@
 
 BUILD_DIR = ../projects_build/x86emu
 
-LDFLAGS=-static-libgcc -static-libstdc++ -s
+LDFLAGS=-mwindows -static-libgcc -static-libstdc++ -s
 
+#Name of the destination application!
 TARGET = x86EMU
 
 #Output filename
@@ -20,7 +21,7 @@ CC = gcc
 endif
 
 ifndef RM
-RM = rm
+RM = rm -f
 endif
 
 $(BUILD_DIR)/%.o:%.c
@@ -29,8 +30,4 @@ $(BUILD_DIR)/%.o:%.c
 $(TARGET): $(OBJS)
 	$(CC) $(OBJS) $(LDFLAGS) -o $@ $(LIBS)
 
-clean:
-	-$(RM) $(OBJS)
-
 win: $(TARGET)
-.PHONY:win clean

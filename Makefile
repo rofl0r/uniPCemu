@@ -188,19 +188,3 @@ endif
 ifeq ($(MAKECMDGOALS),win)
 include Makefile.win
 endif
-
-clean:
-ifeq ($(MAKECMDGOALS),clean)
-ifndef RM
-	RM = rm -f
-endif
-ifdef RM
-ifdef TARGET
-	$(RM) $(TARGET)
-endif
-
-	$(RM) $(OBJS)
-endif
-endif
-
-distclean: clean
