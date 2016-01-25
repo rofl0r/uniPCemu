@@ -1,26 +1,36 @@
 #Windows makefile
 
-BUILD_DIR = ../../psp-projects_build/x86emu
+BUILD_DIR = ../projects_build/x86emu
+
+LDFLAGS=-static-libgcc -static-libstdc++ -s
+
+TARGET = x86EMU
 
 #Output filename
-TARGET = x86EMU.exe
-
-TARGET := $(BUILD_DIR)/$(TARGET)
+TARGET := $(BUILD_DIR)/$(TARGET).exe
 
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
-CFLAGS = -I. -IC:\MinGW\include -IC:\MinGW\include\SDL
+CFLAGS = -Wall -O3 -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
 
-LIBS = -lSDL -lSDL_gfx
+LIBS = -L/mingw/lib -lmingw32 -lSDL -lSDL_gfx -lSDLmain
 
 ifndef CC
 CC = gcc
+endif
+
+ifndef RM
+RM = rm
 endif
 
 $(BUILD_DIR)/%.o:%.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(TARGET): $(OBJS)
-	$(CC) $(LIBS) -o $(TARGET) $(OBJS)
+	$(CC) $(OBJS) $(LDFLAGS) -o $@ $(LIBS)
 
-win: $(TARGET) 
+clean:
+	-$(RM) $(OBJS)
+
+win: $(TARGET)
+.PHONY:win clean

@@ -1,3 +1,6 @@
+#ifdef PACKED
+#undef PACKED
+#endif
 #ifdef _WIN32
 //Visual C++ Assumed
 #define PACKED

@@ -54,10 +54,15 @@ int emufseek64(FILE *stream, int64_t pos, int direction)
 #else
 									//Windows
 	int result;
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_fseeki64)
 	if (!(result = _fseeki64(b->f, pos, direction))) //Direction is constant itself!
 	{
 		b->position = _ftelli64(b->f); //Use our own position indicator!
+	}
+#elif defined(_WIN32) && defined(fseeko64)
+	if (!(result = fseeko64(b->f, pos, direction))) //Direction is constant itself!
+	{
+		b->position = ftello64(b->f); //Use our own position indicator!
 	}
 #else
 	if (!(result = fseek(b->f, pos, direction))) //Direction is constant itself!
