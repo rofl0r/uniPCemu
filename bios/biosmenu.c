@@ -2257,8 +2257,6 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 
 void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 {
-	uint_32 datatotransfer;
-	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256], originalfilename[256]; //Filename container!
 	bzero(filename, sizeof(filename)); //Init!
 	FILEPOS size = 0;
@@ -2290,11 +2288,10 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 			EMU_gotoxy(0, 5); //Next row!
 			GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
 			EMU_unlocktext();
-			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 			bzero(&originalfilename, sizeof(originalfilename)); //Init!
 			strcpy(originalfilename, filename); //The original filename!
 			strcat(filename, ".tmp.sfdimg"); //Generate destination filename!
-			size = getdisksize(HDD0); //Get the original size!
+			size = dynamicimage_getsize(originalfilename); //Get the original size!
 			if (size != 0) //Got size?
 			{
 				EMU_locktext();
@@ -2310,42 +2307,38 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "%iMB", (sizecreated / MBMEMORY)); //Image size
 					EMU_unlocktext();
-					iohdd1(filename, 0, 0, 0); //Mount the destination disk, allow writing!
 					FILEPOS sectornr;
 					byte error = 0;
-					for (sectornr = 0; sectornr < sizecreated;) //Process all sectors!
+					sizecreated >>= 9; //Convert to actual 512-byte sector numbers: we're allowed in this case!
+					for (sectornr = 0; sectornr < size;) //Process all sectors from the source image!
 					{
+						sectorposition = 0; //Default: no position!
 						if (shuttingdown())
 						{
 							error = 4; //Give the fourth error!
 							break;
 						}
-						if ((sizecreated - sectornr) > sizeof(sector)) //Too much to handle?
+						if (dynamicimage_hassector(originalfilename,sectornr)) //Sector exists? Then try to copy it to the new disk image!
 						{
-							datatotransfer = sizeof(sector); //Limit to max!
-						}
-						else
-						{
-							datatotransfer = (uint_32)(sizecreated - sectornr); //How many bytes of data to transfer?
-						}
-						if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
-						{
-							if (!writedata(HDD1, &sector, sectornr, datatotransfer)) //Error writing a sector?
+							if (dynamicimage_readsector(originalfilename, sectornr, &sector)) //Read a sector?
 							{
-								error = 2;
+								if (!dynamicimage_writesector(filenmae, sectornr, &sector)) //Error writing a sector?
+								{
+									error = 2;
+									break; //Stop reading!
+								}
+							}
+							else //Error reading sector?
+							{
+								error = 1;
 								break; //Stop reading!
 							}
-						}
-						else //Error reading sector?
-						{
-							error = 1;
-							break; //Stop reading!
 						}
 						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 						{
 							GPU_EMU_printscreen(21, 6, "%u%%", (int)(((float)sectornr / (float)sizecreated)*100.0f)); //Current progress!
 						}
-						sectornr += datatotransfer; //Next sector!
+						++sectornr; //Next sector!
 					}
 					EMU_locktext();
 					GPU_EMU_printscreen(21, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
@@ -2357,45 +2350,57 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						EMU_locktext();
 						GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
 						EMU_unlocktext();
-						iohdd1(filename, 0, 1, 0); //Mount!
 						for (sectornr = 0; sectornr < size;) //Process all sectors!
 						{
+							sectorposition = 0; //Default: no position!
 							if (shuttingdown())
 							{
 								error = 4; //Give the fourth error!
 								break;
 							}
-							if ((sizecreated - sectornr) > sizeof(sector)) //Too much to handle?
+
+							if (dynamicimage_hassector(originalfilename,sectornr)) //Sector exists in the old disk image? Then try to check it to the new disk image!
 							{
-								datatotransfer = sizeof(sector); //Limit to max!
-							}
-							else
-							{
-								datatotransfer = (uint_32)(sizecreated-sectornr); //How many bytes of data to transfer?
-							}
-							if (readdata(HDD0, &sector, sectornr, datatotransfer)) //Read a sector?
-							{
-								if (!readdata(HDD1, &verificationsector, sectornr, datatotransfer)) //Error reading a sector?
+								if (dynamicimage_hassector(filename,sectornr)) //Sector exists in the new disk image? Then try to check it from the new disk image!
 								{
-									error = 2;
-									break; //Stop reading!
+									if (dynamicimage_readsector(originalfilename, sectornr, &sector)) //Read a sector?
+									{
+										if (!dynamicimage_readsector(filename, sectornr, &sector)) //Error reading from original disk image?
+										{
+											error = 2;
+											break; //Stop reading!
+										}
+										else if ((sectorposition = memcmp(&sector, &verificationsector, datatotransfer)) != 0) //Data error?
+										{
+											error = 3; //Verification error!
+											break; //Stop reading!
+										}
+										//We're a valid written sector!
+									}
+									else //Error reading sector in the old disk image?
+									{
+										error = 1; //Read error!
+										break; //Stop reading!
+									}
 								}
-								else if ((sectorposition = memcmp(&sector, &verificationsector, datatotransfer)) != 0)
+								else //Missing defragemented sector!
 								{
 									error = 3; //Verification error!
 									break; //Stop reading!
 								}
 							}
-							else //Error reading sector?
+							else if (dynamicimage_hassector(filename,sectornr)) //Sector exists in the new disk image but not in the old disk image?
 							{
-								error = 1;
+								error = 3; //Verification error!
 								break; //Stop reading!
 							}
+							//We're a valid written or non-existing sector!
+
 							if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
 							{
 								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 							}
-							sectornr += datatotransfer; //Next sector!
+							++sectornr; //Next sector!
 						}
 						EMU_locktext();
 						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
