@@ -444,6 +444,12 @@ byte dynamicimage_hassector(char *filename,uint_32 sector) //Has a 512-byte sect
 		emufclose64(f); //Close the device!
 		return FALSE; //We're over the limit of the image!
 	}
+	
+	if (!emptyready)
+	{
+		memset(&emptyblock,0,sizeof(emptyblock)); //To detect an empty block!
+		emptyready = 1; //We're ready to be used!
+	}
 
 	int present = dynamicimage_datapresent(f,sector); //Data present?
 	if (present!=-1) //Valid sector?
