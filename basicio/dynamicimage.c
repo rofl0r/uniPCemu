@@ -428,8 +428,7 @@ byte dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read
 	return TRUE; //Read!
 }
 
-byte checkemptybuffer[512]; //Our 512-byte buffer!
-byte dynamicimage_hassector(char *filename,uint_32 sector) //Has a 512-byte sector! Result=1 on present&filled, 0 on not present or error! Used for simply copying the sector to a different image!
+byte dynamicimage_readexistingsector(char *filename,uint_32 sector, void *buffer) //Has a 512-byte sector! Result=1 on present&filled(buffer filled), 0 on not present or error! Used for simply copying the sector to a different image!
 {
 	DYNAMICIMAGE_HEADER header;
 	FILE *f;
@@ -445,12 +444,6 @@ byte dynamicimage_hassector(char *filename,uint_32 sector) //Has a 512-byte sect
 		return FALSE; //We're over the limit of the image!
 	}
 	
-	if (!emptyready)
-	{
-		memset(&emptyblock,0,sizeof(emptyblock)); //To detect an empty block!
-		emptyready = 1; //We're ready to be used!
-	}
-
 	int present = dynamicimage_datapresent(f,sector); //Data present?
 	if (present!=-1) //Valid sector?
 	{
@@ -469,14 +462,19 @@ byte dynamicimage_hassector(char *filename,uint_32 sector) //Has a 512-byte sect
 				emufclose64(f);
 				return FALSE; //Error: file is corrupt?				
 			}
-			if (emufread64(&checkemptybuffer,1,512,f)!=512) //Read failed?
+			if (emufread64(buffer,1,512,f)!=512) //Read failed?
 			{
 				emufclose64(f);
 				return FALSE; //Error: file is corrupt?								
 			}
 			emufclose64(f);
 			//We exist! Buffer contains the data!
-			return (!memcmp(&emptyblock,&checkemptybuffer,sizeof(emptyblock)))?FALSE:TRUE; //Do we exist and are filled is the result!
+			if (!emptyready)
+			{
+				memset(&emptyblock,0,sizeof(emptyblock)); //To detect an empty block!
+				emptyready = 1; //We're ready to be used!
+			}
+			return (!memcmp(&emptyblock,buffer,sizeof(emptyblock)))?FALSE:TRUE; //Do we exist and are filled is the result!
 		}
 		else //Present, but not written yet?
 		{
