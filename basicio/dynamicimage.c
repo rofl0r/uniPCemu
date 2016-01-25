@@ -428,6 +428,65 @@ byte dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read
 	return TRUE; //Read!
 }
 
+byte checkemptybuffer[512]; //Our 512-byte buffer!
+byte dynamicimage_hassector(char *filename,uint_32 sector) //Has a 512-byte sector! Result=1 on present&filled, 0 on not present or error! Used for simply copying the sector to a different image!
+{
+	DYNAMICIMAGE_HEADER header;
+	FILE *f;
+	f = emufopen64(filename, "rb"); //Open!
+	if (!readdynamicheader(f, &header)) //Failed to read the header?
+	{
+		emufclose64(f); //Close the device!
+		return FALSE; //Error: invalid file!
+	}
+	if (sector >= header.filesize)
+	{
+		emufclose64(f); //Close the device!
+		return FALSE; //We're over the limit of the image!
+	}
+
+	int present = dynamicimage_datapresent(f,sector); //Data present?
+	if (present!=-1) //Valid sector?
+	{
+		if (present) //Data present?
+		{
+			int_64 index;
+			index = dynamicimage_getindex(f,sector);
+			if (emufseek64(f,index+512,SEEK_SET)) //Seek failed?
+			{
+				emufclose64(f);
+				return FALSE; //Error: file is corrupt?
+			}
+			emufclose64(f);
+			if (emufseek64(f,index,SEEK_SET)) //Seek failed?
+			{
+				emufclose64(f);
+				return FALSE; //Error: file is corrupt?				
+			}
+			if (emufread64(&checkemptybuffer,1,512,f)!=512) //Read failed?
+			{
+				emufclose64(f);
+				return FALSE; //Error: file is corrupt?								
+			}
+			emufclose64(f);
+			//We exist! Buffer contains the data!
+			return (!memcmp(&emptyblock,&checkemptybuffer,sizeof(emptyblock)))?FALSE:TRUE; //Do we exist and are filled is the result!
+		}
+		else //Present, but not written yet?
+		{
+			emufclose64(f);
+			return FALSE; //Empty sector: not present!
+		}
+	}
+	else //Terminate loop: invalid sector!
+	{
+		emufclose64(f);
+		return FALSE; //Error!
+	}
+	emufclose64(f); //Close it!
+	return FALSE; //Not present by default!
+}
+
 FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int percentagey)
 {
 	DYNAMICIMAGE_HEADER header;
