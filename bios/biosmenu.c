@@ -2079,8 +2079,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 					}
 					else //Error occurred?
 					{
-						remove(filename); //Try to remove the generated file!
 						dolog(filename, "Error #%u copying static image sector %u/%u", error, sectornr / 512, sizecreated / 512); //Error at this sector!
+						if (!remove(filename)) //Defragmented file can be removed?
+						{
+							dolog(filename, "Error cleaning up the new defragmented image!");
+						}
 					}
 				}
 			}
@@ -2253,8 +2256,11 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				}
 				else //Error occurred?
 				{
-					remove(filename); //Try to remove the generated file!
 					dolog(filename, "Error #%u copying dynamic image sector %u/%u", error, sectornr / 512, size / 512); //Error at this sector!
+					if (!remove(filename)) //Defragmented file can be removed?
+					{
+						dolog(filename, "Error cleaning up the new defragmented image!");
+					}
 				}
 			}
 		}
@@ -2268,7 +2274,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	FILEPOS updateinterval=1,updatenr;
 	char filename[256], originalfilename[256]; //Filename container!
 	bzero(filename, sizeof(filename)); //Init!
-	FILEPOS size = 0;
+	FILEPOS size = 0, sectorposition;
 	BIOS_Title("Defragment a dynamic HDD Image"); //Full clear!
 	generateFileList("sfdimg", 0, 1); //Generate file list for all .img files!
 	EMU_locktext();
@@ -2338,7 +2344,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 								break; //Stop reading!
 							}
 						}
-						if (++updatenr==updateinterval)) //Update every 1% sectors!
+						if (++updatenr==updateinterval) //Update every 1% sectors!
 						{
 							updatenr = 0; //Reset!
 							EMU_locktext();
@@ -2391,7 +2397,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							}
 							//We're a valid written or non-existing sector!
 
-							if (++updatenr==updateinterval)) //Update every 1% sectors!
+							if (++updatenr==updateinterval) //Update every 1% sectors!
 							{
 								updatenr = 0; //Reset!
 								EMU_locktext();
@@ -2405,7 +2411,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
-							dolog(filename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr, size, sectorposition); //Error at this sector!
+							dolog(originalfilename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr, size, sectorposition); //Error at this sector!
 						}
 						else //We've been defragmented?
 						{
@@ -2413,18 +2419,22 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							{
 								if (!rename(filename, originalfilename)) //The destination is the new original!
 								{
-									dolog("BIOS", "Error renaming the new defragmented image to the original filename!");
+									dolog(originalfilename, "Error renaming the new defragmented image to the original filename!");
 								}
 							}
 							else
 							{
-								dolog("BIOS", "Error replacing the old image with the defragmented image!");
+								dolog(originalfilename, "Error replacing the old image with the defragmented image!");
 							}
 						}
 					}
 					else //Error occurred?
 					{
-						dolog(filename, "Error #%u copying dynamic image sector to defragmented image sector %u/%u", error, sectornr, size); //Error at this sector!
+						dolog(originalfilename, "Error #%u copying dynamic image sector to defragmented image sector %u/%u", error, sectornr, size); //Error at this sector!
+						if (!remove(filename)) //Defragmented file can be removed?
+						{
+							dolog(originalfilename, "Error cleaning up the new defragmented image!");
+						}
 					}
 				}
 			}

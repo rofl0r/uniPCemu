@@ -17,6 +17,9 @@ int_64 firstlevellocation; //The location of the first level, in bytes!
 int_64 currentsize; //The current file size, in bytes!
 } DYNAMICIMAGE_HEADER; //Dynamic image .DAT header.
 
+byte emptylookuptable_ready = 0;
+int_64 emptylookuptable[4096]; //A full sector lookup table (4096 entries for either block (1024) or sector (4096) lookup)!
+
 OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	if (!f) return 0; //Failed!
@@ -37,6 +40,11 @@ OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 
 OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
+	if (!emptylookuptable_ready) //Not allocated yet?
+	{
+		memset(&emptylookuptable,0,sizeof(emptylookuptable)); //Initialise the lookup table!
+		emptylookuptable_ready = 1; //Ready!
+	}
 	if (f)
 	{
 		if (emufseek64(f, 0, SEEK_SET) != 0)
@@ -99,7 +107,6 @@ OPTINLINE byte dynamicimage_updatesize(FILE *f, int_64 size)
 	return writedynamicheader(f,&header); //Try to update the header!
 }
 
-int_64 emptylookuptable[4096]; //A full sector lookup table (4096 entries for either block (1024) or sector (4096) lookup)!
 OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_64 numentries) //Allocate a table with numentries entries, give location of allocation!
 {
 	DYNAMICIMAGE_HEADER header;
@@ -113,7 +120,6 @@ OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_6
 		//We're at EOF!
 		*location = header.currentsize; //The location we've found to use!
 		entrysize = sizeof(emptylookuptable[0]) * numentries; //Size of the entry!
-		memset(&emptylookuptable, 0, (size_t)entrysize); //Init to empty block table!
 		if (emufwrite64(&emptylookuptable, 1, entrysize, f) == entrysize) //Block table allocated?
 		{
 			if (emufflush64(f)) //Error when flushing?
@@ -456,7 +462,6 @@ byte dynamicimage_readexistingsector(char *filename,uint_32 sector, void *buffer
 				emufclose64(f);
 				return FALSE; //Error: file is corrupt?
 			}
-			emufclose64(f);
 			if (emufseek64(f,index,SEEK_SET)) //Seek failed?
 			{
 				emufclose64(f);
@@ -469,12 +474,7 @@ byte dynamicimage_readexistingsector(char *filename,uint_32 sector, void *buffer
 			}
 			emufclose64(f);
 			//We exist! Buffer contains the data!
-			if (!emptyready)
-			{
-				memset(&emptyblock,0,sizeof(emptyblock)); //To detect an empty block!
-				emptyready = 1; //We're ready to be used!
-			}
-			return (!memcmp(&emptyblock,buffer,sizeof(emptyblock)))?FALSE:TRUE; //Do we exist and are filled is the result!
+			return (!memcmp(&emptylookuptable,buffer,512))?FALSE:TRUE; //Do we exist and are filled is the result!
 		}
 		else //Present, but not written yet?
 		{
