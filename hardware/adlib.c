@@ -8,6 +8,7 @@
 #include "headers/support/locks.h" //Locking support!
 
 #include "headers/support/highrestimer.h" //High resolution timer!
+#include "headers/support/fifobuffer.h" //FIFO buffer support!
 
 #define uint8_t byte
 #define uint16_t word
@@ -22,7 +23,7 @@
 #define __MIN_VOL (1.0f / SHRT_MAX)
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
-#define __ADLIB_SAMPLEBUFFERSIZE 0
+#define __ADLIB_SAMPLEBUFFERSIZE 4096
 
 #define PI2 (float)(2.0f * PI)
 
@@ -106,16 +107,6 @@ OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 	}
 }
 
-OPTINLINE void lockAdlib()
-{
-	lockaudio(); //Lock the audio: we're going to adjust audio information!
-}
-
-OPTINLINE void unlockAdlib()
-{
-	unlockaudio(); //Finished with audio update!
-}
-
 byte outadlib (uint16_t portnum, uint8_t value) {
 	if (portnum==adlibport) {
 			adlibaddr = value;
@@ -130,9 +121,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		switch (portnum) //What primary port?
 		{
 		case 1: //Waveform select enable
-			lockAdlib();
 			wavemask = (adlibregmem[0] & 0x20) ? 3 : 0; //Apply waveform mask!
-			unlockAdlib();
 			break;
 		case 4: //timer control
 			if (value & 0x80) { //Special case: don't apply the value!
@@ -160,42 +149,34 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 	case 0x30:
 		if (portnum <= 0x35) //Various flags
 		{
-			lockAdlib();
 			portnum &= 0x1F;
 			adlibop[portnum].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(value & 0xF); //Which harmonic to use?
 			adlibop[portnum].ReleaseImmediately = (value & 0x20) ? 0 : 1; //Release when not sustain until release!
-			unlockAdlib();
 		}
 		break;
 	case 0x40:
 	case 0x50:
 		if (portnum <= 0x55) //KSL/Output level
 		{
-			lockAdlib();
 			portnum &= 0x1F;
 			adlibop[portnum].outputlevel = (float)outputtable[value & 0x2F]; //Apply output level!
-			unlockAdlib();
 		}
 		break;
 	case 0x60:
 	case 0x70:
 		if (portnum <= 0x75) { //attack/decay
-			lockAdlib();
 			portnum &= 0x1F;
 			adlibop[portnum].attack = (float)attacktable[15 - (value >> 4)] * 1.006f;
 			adlibop[portnum].decay = (float)decaytable[value & 15];
-			unlockAdlib();
 		}
 		break;
 	case 0x80:
 	case 0x90:
 		if (portnum <= 0x95) //sustain/release
 		{
-			lockAdlib();
 			portnum &= 0x1F;
 			adlibop[portnum].sustain = (float)sustaintable[value >> 4];
 			adlibop[portnum].release = (float)decaytable[value & 15];
-			unlockAdlib();
 		}
 		break;
 	case 0xA0:
@@ -204,7 +185,6 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		{ //octave, freq, key on
 			if ((portnum & 0xF) < 9) //Ignore A9-AF!
 			{
-				lockAdlib();
 				portnum &= 0xF; //Get the channel to use!
 				if (!adlibch[portnum].keyon && ((adlibregmem[0xB0 + portnum] >> 5) & 1))
 				{
@@ -221,36 +201,29 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 				adlibch[portnum].convfreq = ((double)adlibch[portnum].freq * 0.7626459);
 				adlibch[portnum].keyon = (adlibregmem[0xB0 + portnum] >> 5) & 1;
 				adlibch[portnum].octave = (adlibregmem[0xB0 + portnum] >> 2) & 7;
-				unlockAdlib();
 			}
 		}
 		else if (portnum == 0xBD) //Percussion settings etc.
 		{
-			lockAdlib();
 			adlibpercussion = (value & 0x10)?1:0; //Percussion enabled?
-			unlockAdlib();
 		}
 		break;
 	case 0xC0:
 		if (portnum <= 0xC8)
 		{
-			lockAdlib();
 			portnum &= 0xF;
 			adlibch[portnum].synthmode = (adlibregmem[0xC0 + portnum] & 1); //Save the synthesis mode!
 			byte feedback;
 			feedback = (adlibregmem[0xC0 + portnum] >> 1) & 7; //Get the feedback value used!
 			adlibch[portnum].feedback = (float)feedbacklookup2[feedback]; //Convert to a feedback of the modulator signal!
-			unlockAdlib();
 		}
 		break;
 	case 0xE0:
 	case 0xF0:
 		if (portnum <= 0xF5) //waveform select
 		{
-			lockAdlib();
 			portnum &= 0x1F;
 			adlibop[portnum].wavesel = value & 3;
-			unlockAdlib();
 		}
 		break;
 	default: //Unsupported port?
@@ -477,27 +450,6 @@ OPTINLINE void adlib_timer80() //First timer!
 
 float counter80step = 0.0f; //80us timer tick interval in samples!
 
-double adlib_ticktiming;
-
-//Check for timer occurrences.
-void cleanAdlib()
-{
-	//Discard the amount of time passed!
-}
-
-void updateAdlib(double timepassed)
-{
-	adlib_ticktiming += timepassed; //Get the amount of time passed!
-	if (adlib_ticktiming >= 80000) //Enough time passed?
-	{
-		for (;adlib_ticktiming >= 80000;) //All that's left!
-		{
-			adlib_timer80(); //Tick 80us timer!
-			adlib_ticktiming -= 80000; //Decrease timer to get time left!
-		}
-	}
-}
-
 OPTINLINE short adlibgensample() {
 	int_32 adlibaccum;
 	adlibaccum = 0;
@@ -601,33 +553,67 @@ OPTINLINE void tickadlib()
 	}
 }
 
+//Check for timer occurrences.
+void cleanAdlib()
+{
+	//Discard the amount of time passed!
+}
+
+double adlib_ticktiming=0.0f,adlib_soundtiming=0.0f;
+void updateAdlib(double timepassed)
+{
+	//Adlib timer!
+	adlib_ticktiming += timepassed; //Get the amount of time passed!
+	if (adlib_ticktiming >= 80000) //Enough time passed?
+	{
+		for (;adlib_ticktiming >= 80000;) //All that's left!
+		{
+			adlib_timer80(); //Tick 80us timer!
+			adlib_ticktiming -= 80000; //Decrease timer to get time left!
+		}
+	}
+	
+	//Adlib sound output
+	adlib_soundtiming += timepassed; //Get the amount of time passed!
+	if (adlib_soundtiming>=adlib_soundtick)
+	{
+		for (;adlib_soundtiming>=adlib_soundtick;)
+		{
+			byte filled;
+			filled = 0; //Default: not filled!
+			filled |= adlibop[adliboperators[1][0]].volenvstatus; //Channel 0?
+			filled |= adlibop[adliboperators[1][1]].volenvstatus; //Channel 1?
+			filled |= adlibop[adliboperators[1][2]].volenvstatus; //Channel 2?
+			filled |= adlibop[adliboperators[1][3]].volenvstatus; //Channel 3?
+			filled |= adlibop[adliboperators[1][4]].volenvstatus; //Channel 4?
+			filled |= adlibop[adliboperators[1][5]].volenvstatus; //Channel 5?
+			filled |= adlibop[adliboperators[1][6]].volenvstatus; //Channel 6?
+			filled |= adlibop[adliboperators[1][7]].volenvstatus; //Channel 7?
+			filled |= adlibop[adliboperators[1][8]].volenvstatus; //Channel 8?
+			if (!filled) writefifobuffer16(adlibsound,0); //Not filled: nothing to sound!
+			else writefifobuffer16(adlibsound,adlibgensample()); //Add the sample to our sound buffer!
+			tickadlib(); //Tick us to the next timing if needed!
+			adlib_soundtiming -= adlib_soundtick; //Decrease timer to get time left!
+		}
+	}
+}
+
 byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata) //Generate a sample!
 {
 	if (stereo) return 0; //We don't support stereo!
 	
-	byte filled;
-	filled = 0; //Default: not filled!
-	filled |= adlibop[adliboperators[1][0]].volenvstatus; //Channel 0?
-	filled |= adlibop[adliboperators[1][1]].volenvstatus; //Channel 1?
-	filled |= adlibop[adliboperators[1][2]].volenvstatus; //Channel 2?
-	filled |= adlibop[adliboperators[1][3]].volenvstatus; //Channel 3?
-	filled |= adlibop[adliboperators[1][4]].volenvstatus; //Channel 4?
-	filled |= adlibop[adliboperators[1][5]].volenvstatus; //Channel 5?
-	filled |= adlibop[adliboperators[1][6]].volenvstatus; //Channel 6?
-	filled |= adlibop[adliboperators[1][7]].volenvstatus; //Channel 7?
-	filled |= adlibop[adliboperators[1][8]].volenvstatus; //Channel 8?
-	if (!filled) return SOUNDHANDLER_RESULT_NOTFILLED; //Not filled: nothing to sound!
-
 	uint_32 c;
 	c = length; //Init c!
+	
+	static short last=0;
 	
 	short *data_mono;
 	data_mono = (short *)buf; //The data in correct samples!
 	for (;;) //Fill it!
 	{
-		tickadlib(); //Tick us!
-		//Left and right are the same!
-		*data_mono++ = adlibgensample(); //Generate a mono sample!
+		//Left and right samples are the same: we're a mono signal!
+		readfifobuffer16(adlibsound,&last); //Generate a mono sample if it's available!
+		*data_mono++ = last; //Load the last generated sample!
 		if (!--c) return SOUNDHANDLER_RESULT_FILLED; //Next item!
 	}
 }
@@ -689,15 +675,21 @@ void initAdlib()
 		feedbacklookup2[i] = feedbacklookup[i] * (1.0f / (4.0f * PI)) * (1.0f/PI2); //Convert to a range of 0-1!
 	}
 
+	adlib_ticktiming = adlib_soundtiming = 0.0f; //Reset our output timing!
+
 	if (__SOUND_ADLIB)
 	{
-		if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
+		adlibsound = allocfifobuffer(__ADLIB_SAMPLEBUFFERSIZE+1,1); //Generate our buffer!
+		if (adlibsound) //Valid buffer?
 		{
-			dolog("adlib","Error registering sound channel for output!");
-		}
-		else
-		{
-			setVolume(&adlib_soundGenerator,NULL,ADLIB_VOLUME);
+			if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
+			{
+				dolog("adlib","Error registering sound channel for output!");
+			}
+			else
+			{
+				setVolume(&adlib_soundGenerator,NULL,ADLIB_VOLUME);
+			}
 		}
 	}
 	//dolog("adlib","sound channel added. registering ports...");
@@ -711,9 +703,12 @@ void initAdlib()
 void doneAdlib()
 {
 	if (__HW_DISABLED) return; //Abort!
-	removetimer("AdlibAttackDecay"); //Stop the audio channel!
 	if (__SOUND_ADLIB)
 	{
 		removechannel(&adlib_soundGenerator,NULL,0); //Stop the sound emulation?
+		if (adlibsound) //Valid buffer?
+		{
+			free_fifobuffer(&adlibsound); //Free our sound buffer!
+		}
 	}
 }
