@@ -253,7 +253,7 @@ byte BIOS_printopentext(uint_32 timeout)
 	{
 		GPU_text_locksurface(BIOS_Surface);
 		GPU_textgotoxy(BIOS_Surface,0,0); //Goto our location!
-		result = GPU_textprintfclickable(BIOS_Surface,getemucol16(0xE),getemucol16(0x6), "Press SELECT to bring out the BIOS");
+		result = GPU_textprintfclickable(BIOS_Surface,getemucol16(0xE),getemucol16(0x0), "Press SELECT to bring out the BIOS");
 		GPU_text_releasesurface(BIOS_Surface);
 	}
 	return result; //Give the result!
