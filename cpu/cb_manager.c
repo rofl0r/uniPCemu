@@ -607,7 +607,7 @@ uint_32 FLAGS_offset()
 }
 
 void CALLBACK_SZF(byte val) {
-	uint_32 flags;
+	uint_32 flags=0;
 	if (EMU_RUNNING == 1)
 	{
 		flags = REG_EFLAGS; //Read flags!
@@ -623,7 +623,7 @@ void CALLBACK_SZF(byte val) {
 }
 
 void CALLBACK_SCF(byte val) {
-	uint_32 flags;
+	uint_32 flags=0;
 	if (EMU_RUNNING == 1)
 	{
 		flags = REG_EFLAGS; //Read flags!
@@ -639,7 +639,7 @@ void CALLBACK_SCF(byte val) {
 }
 
 void CALLBACK_SIF(byte val) {
-	uint_32 flags;
+	uint_32 flags=0;
 	if (EMU_RUNNING == 1)
 	{
 		flags = REG_EFLAGS; //Read flags!

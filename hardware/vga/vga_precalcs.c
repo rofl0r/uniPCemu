@@ -7,6 +7,8 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer render counter support!
 
+void VGA_updateVRAMmaps(VGA_Type *VGA); //VRAM map updater prototype!
+
 //Works!
 OPTINLINE uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!
 {

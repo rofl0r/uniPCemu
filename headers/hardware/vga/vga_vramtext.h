@@ -4,6 +4,5 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/vga/vga.h" //VGA basic types!
 
-OPTINLINE byte getcharxy_8(byte character, int x, int y);
 byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y);
 #endif

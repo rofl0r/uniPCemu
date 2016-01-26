@@ -34,6 +34,7 @@ uint16_t baseport = 0x388; //Adlib address(w)/status(r) port, +1=Data port (writ
 
 //Sample based information!
 const float usesamplerate = 14318180.0f/288.0f; //The sample rate to use for output!
+const float adlib_soundtick = 1000000000.0f/(14318180.0f/288.0f); //The length of a sample in ns!
 //The length of a sample step:
 #define adlib_sampleLength (1.0f / (14318180.0f / 288.0f))
 
@@ -61,6 +62,8 @@ static const double feedbacklookup[8] = { 0, PI / 16.0, PI / 8.0, PI / 4.0, PI /
 double feedbacklookup2[8]; //Actual feedback lookup value!
 
 byte wavemask = 0; //Wave select mask!
+
+FIFOBUFFER *adlibsound = NULL; //Our sound buffer for rendering!
 
 struct structadlibop {
 	//Effects
@@ -591,7 +594,7 @@ void updateAdlib(double timepassed)
 			filled |= adlibop[adliboperators[1][7]].volenvstatus; //Channel 7?
 			filled |= adlibop[adliboperators[1][8]].volenvstatus; //Channel 8?
 			if (!filled) writefifobuffer16(adlibsound,0); //Not filled: nothing to sound!
-			else writefifobuffer16(adlibsound,adlibgensample()); //Add the sample to our sound buffer!
+			else writefifobuffer16(adlibsound,(word)adlibgensample()); //Add the sample to our sound buffer!
 			tickadlib(); //Tick us to the next timing if needed!
 			adlib_soundtiming -= adlib_soundtick; //Decrease timer to get time left!
 		}
@@ -612,7 +615,7 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 	for (;;) //Fill it!
 	{
 		//Left and right samples are the same: we're a mono signal!
-		readfifobuffer16(adlibsound,&last); //Generate a mono sample if it's available!
+		readfifobuffer16(adlibsound,(word *)&last); //Generate a mono sample if it's available!
 		*data_mono++ = last; //Load the last generated sample!
 		if (!--c) return SOUNDHANDLER_RESULT_FILLED; //Next item!
 	}

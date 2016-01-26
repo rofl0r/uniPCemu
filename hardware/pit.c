@@ -110,7 +110,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 		register sample_stereo_p ubuf_stereo = (sample_stereo_p)buf; //Active buffer!
 		for (;;) //Process all samples!
 		{ //Process full length!
-			readfifobuffer16(speaker->buffer, &s); //Not readable from the buffer? Duplicate last sample!
+			readfifobuffer16(speaker->buffer, (word *)&s); //Not readable from the buffer? Duplicate last sample!
 
 			ubuf_stereo->l = ubuf_stereo->r = s; //Single channel!
 			++ubuf_stereo; //Next item!
@@ -122,7 +122,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 		register sample_p ubuf_mono = (sample_p)buf; //Active buffer!
 		for (;;)
 		{ //Process full length!
-			readfifobuffer16(speaker->buffer, &s); //Not readable from the buffer? Duplicate last sample!
+			readfifobuffer16(speaker->buffer, (word *)&s); //Not readable from the buffer? Duplicate last sample!
 			*ubuf_mono = s; //Mono channel!
 			++ubuf_mono; //Next item!
 			if (++i == length) break; //Next item!
@@ -155,37 +155,19 @@ OPTINLINE float calcSpeakerHighpassFilter(float cutoff_freq, float samplerate, f
 	return alpha * (previousresult + currentsample - previoussample);
 }
 
+sword speaker_last_result = 0, speaker_last_sample = 0;
+byte speaker_first_sample = 1;
 OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 {
-	static sword last_result = 0, last_sample = 0;
-	static byte first_sample = 1;
-
-	if (first_sample) //No last?
+	if (speaker_first_sample) //No last?
 	{
-		last_result = last_sample = *currentsample; //Save the current sample!
-		first_sample = 0;
+		speaker_last_result = speaker_last_sample = *currentsample; //Save the current sample!
+		speaker_first_sample = 0;
 		return; //Abort: don't filter the first sample!
 	}
-	last_result = (sword)calcSpeakerLowpassFilter(SPEAKER_LOWPASS, SPEAKER_RATE, (float)*currentsample, last_result); //20kHz low pass filter!
-	last_sample = *currentsample; //The last sample that was processed!
-	*currentsample = last_result; //Give the new result!
-}
-
-OPTINLINE void applySpeakerHighpassFilter(sword *currentsample)
-{
-	return; //Don't apply a high pass filter for now!
-	static sword last_result = 0, last_sample = 0;
-	static byte first_sample = 1;
-
-	if (first_sample) //No last?
-	{
-		last_result = last_sample = *currentsample; //Save the current sample!
-		first_sample = 0;
-		return; //Abort: don't filter the first sample!
-	}
-	last_result = (sword)calcSpeakerHighpassFilter(SPEAKER_HIGHPASS, SPEAKER_RATE, (float)*currentsample, last_sample,last_result); //1Hz high pass filter!
-	last_sample = *currentsample; //The last sample that was processed!
-	*currentsample = last_result; //Give the new result!
+	speaker_last_result = (sword)calcSpeakerLowpassFilter(SPEAKER_LOWPASS, SPEAKER_RATE, (float)*currentsample, speaker_last_result); //20kHz low pass filter!
+	speaker_last_sample = *currentsample; //The last sample that was processed!
+	*currentsample = speaker_last_result; //Give the new result!
 }
 
 void tickPIT(double timepassed) //Ticks all PIT timers available!
@@ -459,7 +441,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 		//Ticks the speaker when needed!
 		i = 0; //Init counter!
 		short s; //Set the channels! We generate 1 sample of output here!
-		sword sample; //Current sample!
 		static float currentduty=0.0f; //Currently calculated duty for the current sample(s)!
 		static uint_32 dutycycle=0; //Total duty cycle to calculate!
 		static float dutycyclelen=0.0f; //How many duty cycles are accumulated(fractions are shared samples between current and next sample)?
@@ -488,7 +469,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			}
 
 			s = (short)currentduty; //Convert available duty cycle to full average factor!
-			applySpeakerHighpassFilter(&s); //High pass filter to disable too slow signals!
 			applySpeakerLowpassFilter(&s); //Low pass filter the signal for safety to output!
 
 			//Add the result to our buffer!
@@ -666,7 +646,7 @@ byte in8253(word portnum, byte *result)
 byte out8253(word portnum, byte value)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	byte old61; //For tracking updates!
+	byte old61=0; //For tracking updates!
 	byte pit;
 	switch (portnum)
 	{

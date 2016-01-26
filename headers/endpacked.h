@@ -1,7 +1,9 @@
-#ifdef _WIN32
+#ifdef VISUALC
 //Visual C++ Assumed
 #pragma pack(pop)
-#undef PACKED
-#else
+#endif
+
+//We're finished!
+#ifdef PACKED
 #undef PACKED
 #endif

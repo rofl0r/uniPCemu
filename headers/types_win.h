@@ -9,7 +9,14 @@
 //Windows specific structures!
 #include <direct.h> //For mkdir and directory support!
 #include <windows.h>
+
+#ifdef _WIN32
+#ifndef __GNUC__
+#ifndef __MINGW32__
 #pragma comment(lib, "User32.lib")
+#endif
+#endif
+#endif
 
 #define realdelay(x) (x)
 

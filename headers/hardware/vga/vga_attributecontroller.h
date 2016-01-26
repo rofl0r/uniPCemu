@@ -15,7 +15,7 @@ typedef struct
 } VGA_AttributeInfo; //Attribute info!
 
 //Precalcs!
-OPTINLINE byte getHorizontalPixelPanning(VGA_Type *VGA); //Active horizontal pixel panning when enabled?
+byte getHorizontalPixelPanning(VGA_Type *VGA); //Active horizontal pixel panning when enabled?
 void VGA_AttributeController_calcAttributes(VGA_Type *VGA); //Update attributes!
 //Seperate attribute modes!
 typedef byte(*VGA_AttributeController_Mode)(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA); //An attribute controller mode!

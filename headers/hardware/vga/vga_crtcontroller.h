@@ -47,7 +47,7 @@
 //Give the start of the row!
 #define getVRAMScanlineStart(VGA, Scanline) OPTMUL(VGA->precalcs.scanlinesize, Scanline)
 
-OPTINLINE word getHorizontalTotal(VGA_Type *VGA); //Get horizontal total (for calculating refresh speed timer)
+word getHorizontalTotal(VGA_Type *VGA); //Get horizontal total (for calculating refresh speed timer)
 
 //For precalcs only!
 word get_display_y(VGA_Type *VGA, word scanline); //Vertical check!
