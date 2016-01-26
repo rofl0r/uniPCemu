@@ -526,6 +526,7 @@ void initSpeakers()
 			PITchannels[i].buffer = allocfifobuffer((SPEAKER_BUFFER+1)<<1, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with X word-sized samples with lock!
 		}
 	}
+	speaker_ticktiming = time_ticktiming = 0.0f; //Initialise our timing!
 	addchannel(&speakerCallback, &PITchannels[2], "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
 	setVolume(&speakerCallback, &PITchannels[2], SPEAKER_VOLUME); //What volume?
 
