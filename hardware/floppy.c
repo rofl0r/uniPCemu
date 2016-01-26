@@ -322,7 +322,7 @@ OPTINLINE void FLOPPY_reset() //Resets the floppy disk command!
 }
 
 //Execution after command and data phrases!
-static byte oldMSR = 0; //Old MSR!
+byte oldMSR = 0; //Old MSR!
 
 OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 {

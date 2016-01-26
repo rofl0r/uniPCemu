@@ -806,9 +806,9 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 			//Perform voice stealing using voicetosteal, if available!
 			if (voicetosteal != -1) //Something to steal?
 			{
-				lock(activevoices[voice].locknumber); //Lock us!
+				lock(activevoices[voicetosteal].locknumber); //Lock us!
 				activevoices[voicetosteal].VolumeEnvelope.active = 0; //Make inactive!
-				unlock(activevoices[voice].locknumber); //unlock us!
+				unlock(activevoices[voicetosteal].locknumber); //unlock us!
 				MIDIDEVICE_newvoice(&activevoices[voicetosteal], channel,note); //Steal the selected voice!
 			}
 		}

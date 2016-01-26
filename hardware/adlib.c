@@ -500,8 +500,9 @@ float min_vol = __MIN_VOL;
 
 OPTINLINE void tickadlib()
 {
+	const byte maxop = MIN(NUMITEMS(adlibop), NUMITEMS(adliboperatorsreverse)); //Maximum OP count!
 	uint8_t curop;
-	for (curop = 0; curop < NUMITEMS(adlibop); curop++)
+	for (curop = 0; curop < maxop; curop++)
 	{
 		if (adliboperatorsreverse[curop] == 0xFF) continue; //Skip invalid operators!
 		if (adlibop[curop].volenvstatus) //Are we a running envelope?

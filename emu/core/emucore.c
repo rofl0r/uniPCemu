@@ -125,8 +125,6 @@ void EMU_drawBusy(byte disk) //Draw busy on-screen!
 
 void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 {
-	uint_32 busycolor;
-	busycolor = (busy == 1) ? RGB(0x00, 0xFF, 0x00) : RGB(0xFF, 0x66, 0x00); //Busy color Read/Write!
 	switch (disk) //What disk?
 	{
 	case FLOPPY0:

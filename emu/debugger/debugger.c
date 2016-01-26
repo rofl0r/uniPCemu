@@ -223,7 +223,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 }
 
 char flags[256]; //Flags as a text!
-OPTINLINE char *debugger_generateFlags(CPU_registers *registers)
+static char *debugger_generateFlags(CPU_registers *registers)
 {
 	memset(&flags,0,sizeof(flags)); //Clear/init flags!
 	sprintf(flags,"%s%c",flags,registers->SFLAGS.CF?'C':'c');
@@ -346,7 +346,7 @@ extern byte last_modrm; //Is the last opcode a modr/m read?
 extern byte OPbuffer[256];
 extern word OPlength; //The length of the OPbuffer!
 
-OPTINLINE void debugger_autolog()
+OPTINLINE static void debugger_autolog()
 {
 	if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised) && (!forcerepeat))
 	{

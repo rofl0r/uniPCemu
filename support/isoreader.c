@@ -200,7 +200,7 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 
 	StartingSector = dwbuf.thedword; //Starting sector
 
-	VirtSectorCount = *((WORD *)&buffer[0x06+CD_BOOT_DEFAULTENTRY]); //Sector count
+	VirtSectorCount = buffer[0x06 + CD_BOOT_DEFAULTENTRY] + (buffer[0x07 + CD_BOOT_DEFAULTENTRY] << 8); //Sector count
 
 	ReadSecCount = 0; //Copy for now (default)!
 
@@ -426,7 +426,7 @@ int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on boota
 
 	StartingSector = dwbuf.thedword; //Starting sector
 
-	VirtSectorCount = *((WORD *)&buffer[0x06+CD_BOOT_DEFAULTENTRY]); //Sector count
+	VirtSectorCount = buffer[0x06 + CD_BOOT_DEFAULTENTRY] + (buffer[0x07 + CD_BOOT_DEFAULTENTRY]<<8); //Sector count
 
 	ReadSecCount = 0; //Copy for now (default)!
 

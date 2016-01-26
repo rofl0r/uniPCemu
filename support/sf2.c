@@ -20,7 +20,7 @@ OPTINLINE uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct
 {
 	uint_32 result = 0; //Default: not found!
 	if (!container.voidentry) return 0; //Invalid container!
-	static RIFF_DATAENTRY temp;
+	RIFF_DATAENTRY temp;
 	memcpy(&temp,container.voidentry,sizeof(temp));
 	if ((temp.ckID==CKID_LIST) || (temp.ckID==CKID_RIFF)) //Valid RIFF/LIST type?
 	{
@@ -36,7 +36,7 @@ OPTINLINE uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct
 OPTINLINE uint_32 getRIFFChunkSize(RIFF_ENTRY entry) //Checked & correct!
 {
 	uint_32 chunksize;
-	static RIFF_DATAENTRY data;
+	RIFF_DATAENTRY data;
 	if (!entry.voidentry) return 0; //No size: we're an invalid entry!
 	memcpy(&data,entry.voidentry,sizeof(data)); //Copy for usage!
 	chunksize = data.ckSize; //The chunk size!
@@ -65,7 +65,7 @@ OPTINLINE void *RIFF_start_data(RIFF_ENTRY container, uint_32 headersize)
 
 OPTINLINE RIFF_ENTRY NULLRIFFENTRY()
 {
-	static RIFF_ENTRY result;
+	RIFF_ENTRY result;
 	result.voidentry = NULL;
 	return result; //Give the result!
 }
@@ -113,12 +113,12 @@ getRIFFEntry: Retrieves an RIFF Entry from a RIFF Chunk!
 
 OPTINLINE RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a RIFF Subchunk from a RIFF chunk.
 {
-	static RIFF_LISTENTRY listentry;
-	static RIFF_DATAENTRY dataentry;
+	RIFF_LISTENTRY listentry;
+	RIFF_DATAENTRY dataentry;
 	
-	static RIFF_ENTRY CurrentEntry;
+	RIFF_ENTRY CurrentEntry;
 	uint_32 foundid;
-	static RIFF_ENTRY temp_entry;
+	RIFF_ENTRY temp_entry;
 	uint_32 headersize; //Header size, precalculated!
 	if (!RIFFHeader.dataentry) return NULLRIFFENTRY(); //Invalid RIFF Entry specified!
 	
@@ -179,7 +179,7 @@ result:
 
 OPTINLINE byte getRIFFData(RIFF_ENTRY RIFFHeader, uint_32 index, uint_32 size, void *result)
 {
-	static RIFF_DATAENTRY temp;
+	RIFF_DATAENTRY temp;
 	byte *entrystart;
 	if (!RIFFHeader.voidentry) return 0; //Invalid entry!
 	memcpy(&temp,RIFFHeader.voidentry,sizeof(temp)); //Get an entry!
@@ -212,12 +212,12 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 	uint_32 filesize;
 	uint_32 finalentry; //For determining the final entry number!
 	uint_64 detectedsize;
-	static RIFF_ENTRY sfbkentry, infoentry, version, soundentries, hydra, phdr, pbag, pmod, pgen, inst, ibag, imod, igen, shdr;
-	static sfVersionTag versiontag;
-	static sfPresetHeader finalpreset;
-	static sfPresetBag finalpbag;
-	static sfInst finalInst;
-	static sfInstBag finalibag;
+	RIFF_ENTRY sfbkentry, infoentry, version, soundentries, hydra, phdr, pbag, pmod, pgen, inst, ibag, imod, igen, shdr;
+	sfVersionTag versiontag;
+	sfPresetHeader finalpreset;
+	sfPresetBag finalpbag;
+	sfInst finalInst;
+	sfInstBag finalibag;
 	if (memprotect(RIFF,sizeof(RIFFHEADER),NULL)!=RIFF) //Error?
 	{
 		dolog("SF2","validateSF: Archive pointer is invalid!");
@@ -1170,6 +1170,7 @@ byte lookupPresetByInstrument(RIFFHEADER *sf, word preset, word bank, uint_32 *r
 {
 	uint_32 currentpreset;
 	sfPresetHeader activepreset; //Current preset data!
+	memset(&activepreset,0,sizeof(activepreset)); //init to something at least!
 	for (currentpreset=0;currentpreset<0xFFFFFFFF;) //Check for the correct preset!
 	{
 		if (getSFPreset(sf,currentpreset,&activepreset)) //Get the preset!
