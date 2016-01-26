@@ -2,30 +2,35 @@
 
 BUILD_DIR = ../projects_build/x86emu
 
-CC = gcc
-RM = rm -f
-
-#Different kinds of flags!
-CFLAGS = -Wall -O3 -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
-LDFLAGS=--enable-core-inline -static-libgcc -static-libstdc++
-LIBS = -L/mingw/lib -lmingw32 -lSDLmain -lSDL -lSDL_gfx
+#Settings
 
 #Name of the destination application!
 TARGET = x86EMU
+
+#Programs
+CC = gcc
+RM = rm -f
+
+WARNS = -Wall
+
+INCLUDE_DIRS = -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
+
+#Different kinds of flags!
+CFLAGS = -O3 -std=c99 -D _WIN32_IE=0x0500 -D WINVER=0x500 ${WARNS} -enable-core-inline -static-libgcc -static-libstdc++
+LDFLAGS = -s -lmingw32 -lSDLmain -lSDL -lSDL_gfx
+#Windows subsystem in LDFLAGS can't be enabled! This causes a linker error!
+#-Wl,--subsystem,windows
 
 #Apply build directory etc.
 TARGET := $(BUILD_DIR)/$(TARGET).exe
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
 #Rules themselves!
+#Build command!
+build: $(TARGET)
+
+$(TARGET): ${OBJS}
+	${CC} -o "$@" ${OBJS} ${LDFLAGS}
+
 $(BUILD_DIR)/%.o:%.c
-	$(CC) $(CFLAGS) -o $@ -c $<
-
-.PHONY: all
-all: $(TARGET)
-
-$(TARGET): $(OBJS)
-	$(CC) $(OBJS) $(LIBS) $(LDFLAGS) -o $@
-
-.PHONY: win
-win: all
+	${CC} ${CFLAGS} ${INCLUDE_DIRS} -c $< -o $@

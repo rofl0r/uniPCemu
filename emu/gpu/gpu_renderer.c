@@ -88,7 +88,7 @@ void done_GPURenderer() //Cleanup only!
 	GPU_finishRenderer(); //Finish the renderer!
 }
 
-OPTINLINE uint_32 *get_rowempty()
+uint_32 *get_rowempty()
 {
 	if (__HW_DISABLED) return NULL; //Abort?
 	init_rowempty(); //Init empty row!

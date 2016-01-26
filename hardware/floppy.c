@@ -263,7 +263,7 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 	}
 }
 
-OPTINLINE uint_32 floppy_LBA(byte floppy, word side, word track, word sector)
+uint_32 floppy_LBA(byte floppy, word side, word track, word sector)
 {
 	updateFloppyGeometries(floppy,(byte)side,(byte)track); //Update the floppy geometries!
 	if (!FLOPPY.geometries[floppy]) return 0; //Unknown floppy geometry!

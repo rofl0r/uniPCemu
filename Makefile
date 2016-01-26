@@ -177,14 +177,26 @@ OBJS += emu/main.o
 OBJS += basicio/fopen64.o
 
 #Finally, the desired platform to build for:
-
-.PHONY: all clean distclean psp win psp-win
-
-#Our builds
-ifeq ($(MAKECMDGOALS),psp)
-include Makefile.psp
+ifneq (,$(findstring psp,$(MAKECMDGOALS)))
+PLATFORM = psp
 endif
 
-ifeq ($(MAKECMDGOALS),win)
-include Makefile.win
+ifneq (,$(findstring win,$(MAKECMDGOALS)))
+PLATFORM = win
+endif
+
+ifeq (,$(PLATFORM))
+$(error Please specify a platform (psp or win) and action (build or clean), e.g. make win build or make win clean)
+endif
+
+ifneq (,$(PLATFORM))
+include Makefile.$(PLATFORM)
+endif
+
+.PHONY: all clean psp win distclean
+
+clean:
+ifneq (,$(PLATFORM))
+	-$(RM) $(OBJS)
+	-$(RM) $(TARGET)
 endif
