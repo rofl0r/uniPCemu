@@ -845,8 +845,7 @@ void sound_stopRecording() //Stop sound recording!
 char recordingfilename[256];
 OPTINLINE static char *get_soundrecording_filename() //Filename for a screen capture!
 {
-	int mkdirres;
-	mkdirres = domkdir("captures"); //Captures directory!
+	domkdir("captures"); //Captures directory!
 	uint_32 i = 0; //For the number!
 	char filename2[256];
 	memset(&filename2, 0, sizeof(filename2)); //Init filename!

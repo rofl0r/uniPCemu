@@ -511,8 +511,7 @@ void initSpeakers()
 	setVolume(&speakerCallback, &PITchannels[2], SPEAKER_VOLUME); //What volume?
 
 #ifdef SPEAKER_LOG
-	int mkdirres;
-	mkdirres = domkdir("captures"); //Captures directory!
+	domkdir("captures"); //Captures directory!
 	speakerlog = createWAV(SPEAKER_LOG,1,(uint_32)SPEAKER_RATE); //Start wave file logging!
 #endif
 }

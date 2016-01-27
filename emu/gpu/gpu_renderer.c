@@ -40,10 +40,9 @@ void renderScreenFrame() //Render the screen frame!
 }
 
 char filename[256];
-OPTINLINE char *get_screencapture_filename() //Filename for a screen capture!
+OPTINLINE static char *get_screencapture_filename() //Filename for a screen capture!
 {
-	int mkdirres;
-	mkdirres = domkdir("captures"); //Captures directory!
+	domkdir("captures"); //Captures directory!
 	uint_32 i=0; //For the number!
 	char filename2[256];
 	memset(&filename2,0,sizeof(filename2)); //Init filename!

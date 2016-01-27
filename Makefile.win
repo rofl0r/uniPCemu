@@ -16,10 +16,13 @@ WARNS = -Wall
 INCLUDE_DIRS = -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
 
 #Different kinds of flags!
-CFLAGS = -O3 -std=c99 ${WARNS} -enable-core-inline -static-libgcc -static-libstdc++
-LDFLAGS = -s -lmingw32 -lSDLmain -lSDL -lSDL_gfx
+CFLAGS = -O3 -std=c99 ${WARNS}
+# -enable-core-inline -static-libgcc -static-libstdc++
+#WINBUILD = -Wl,--subsystem,windows
+WINBUILD =
+LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx -s $(WINBUILD)
 #Windows subsystem in LDFLAGS can't be enabled! This causes a linker error!
-#-Wl,--subsystem,windows
+
 
 #Apply build directory etc.
 TARGET := $(BUILD_DIR)/$(TARGET).exe
