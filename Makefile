@@ -200,3 +200,5 @@ ifneq (,$(PLATFORM))
 	-$(RM) $(OBJS)
 	-$(RM) $(TARGET)
 endif
+
+rebuild: clean build
