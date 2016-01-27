@@ -14,6 +14,9 @@
 #ifndef __GNUC__
 #ifndef __MINGW32__
 #pragma comment(lib, "User32.lib")
+#ifndef VISUALC
+#define VISUALC
+#endif
 #endif
 #endif
 #endif
@@ -23,7 +26,11 @@
 #define delay(us) SDL_Delay(realdelay((uint_32)((us)/1000)))
 #define sleep() for (;;) delay(1000000)
 
+#ifndef VISUALC
 #define domkdir(dir) int ok = _mkdir(dir)
+#else
+#define domkdir(dir) _mkdir(dir)
+#endif
 
 //INLINE options!
 #ifdef OPTINLINE
