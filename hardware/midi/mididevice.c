@@ -47,8 +47,6 @@ struct
 
 MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
 
-OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current); //MIDI device UART mode execution!
-
 /* MIDI direct output support*/
 
 #ifdef _WIN32
@@ -58,57 +56,9 @@ HMIDIOUT device;    // MIDI device interface for sending MIDI output
 #endif
 #endif
 
-/* Buffer support */
-
-void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buffer!
-{
-	#ifdef __HW_DISABLED
-	return; //We're disabled!
-	#endif
-
-	#ifdef _WIN32
-	#ifdef DIRECT_MIDI
-		//We're directly sending MIDI to the output!
-		union { unsigned long word; unsigned char data[4]; } message;
-		message.data[0] = command; //The command!
-		message.data[1] = data->buffer[0];
-		message.data[2] = data->buffer[1];
-		message.data[3] = 0; //Unused!
-		switch (command&0xF0) //What command?
-		{
-		case 0x80:
-		case 0x90:
-		case 0xA0:
-		case 0xB0:
-		case 0xC0:
-		case 0xD0:
-		case 0xE0:
-		case 0xF0:
-			if (command != 0xFF) //Not resetting?
-			{
-				flag = midiOutShortMsg(device, message.word);
-				if (flag != MMSYSERR_NOERROR) {
-					printf("Warning: MIDI Output is not open.\n");
-				}
-			}
-			else
-			{
-				// turn any MIDI notes currently playing:
-				midiOutReset(device);
-			}
-			break;
-		}
-		return; //Stop: ready!
-	#endif
-	#endif
-
-	data->command = command; //Set the command to use!
-	MIDIDEVICE_execMIDI(data); //Execute directly!
-}
-
 /* Reset support */
 
-OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
+OPTINLINE static void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 {
 	//First, our variables!
 	byte channel;
@@ -149,7 +99,7 @@ Cents and DB conversion!
 
 //Low&high pass filters!
 
-OPTINLINE float calcMIDILowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
+OPTINLINE static float calcMIDILowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
 {
 	float RC = (float)1.0f / (cutoff_freq * (float)2 * (float)3.14);
 	float dt = (float)1.0f / samplerate;
@@ -157,7 +107,7 @@ OPTINLINE float calcMIDILowpassFilter(float cutoff_freq, float samplerate, float
 	return previousresult + (alpha*(currentsample - previousresult));
 }
 
-OPTINLINE void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample)
+OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample)
 {
 	if (!voice->lowpassfilter_freq) //No filter?
 	{
@@ -181,14 +131,14 @@ Voice support
 
 */
 
-OPTINLINE void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_counter, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume) //Get a sample from an MIDI note!
+OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_counter, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	register uint_32 temp;
 	register int_64 samplepos;
 	sword lchannel, rchannel; //Both channels to use!
-	static sword readsample; //The sample retrieved!
 	byte loopflags; //Flags used during looping!
+	static sword readsample = 0; //The sample retrieved!
 
 	samplepos = play_counter; //Load the current play counter!
 	samplepos = (int_64)(samplepos*samplespeedup); //Affect speed through cents and other factors!
@@ -365,9 +315,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
-OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
+OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
 {
-	static uint_64 starttime = 0; //Calculated start time!
 	word pbag, ibag;
 	sword rootMIDITone; //Relative root MIDI tone!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
@@ -380,6 +329,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 	sfModList applymod;
+	static uint_64 starttime = 0; //Increasing start time counter (1 each note on)!
 
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return 0; //We're unable to render anything!
 	if (!soundfont) return 0; //We're unable to render anything!
@@ -627,7 +577,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 /* Execution flow support */
 
-OPTINLINE byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
+OPTINLINE static byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
 {
 	if (!(MIDIDEVICE.channels[channel].mode&MIDIDEVICE_OMNI)) //No Omni mode?
 	{
@@ -648,7 +598,7 @@ OPTINLINE byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
 	return 1;
 }
 
-OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note, byte velocity)
+OPTINLINE static void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note, byte velocity)
 {
 	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel)) //To be applied?
 	{
@@ -669,7 +619,7 @@ OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note,
 	}
 }
 
-OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used with command, mode change and Mono Mode.
+OPTINLINE static void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used with command, mode change and Mono Mode.
 {
 	word noteoff; //Current note to turn off!
 	//Note values
@@ -731,7 +681,7 @@ void MIDIDEVICE_ActiveSenseInit()
 	addtimer(300.0f / 1000.0f, &MIDIDEVICE_activeSense_Timer, "MIDI Active Sense Timeout", 1, 1, activeSenseLock); //Add the Active Sense timer!
 }
 
-OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity)
+OPTINLINE static void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity)
 {
 	byte purpose;
 
@@ -816,7 +766,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 	}
 }
 
-OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
+OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
 {
 	//First, our variables!
 	byte command, currentchannel, channel, firstparam;
@@ -1080,6 +1030,54 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 			#endif
 			break; //Do nothing!
 	}
+}
+
+/* Buffer support */
+
+void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buffer!
+{
+	#ifdef __HW_DISABLED
+	return; //We're disabled!
+	#endif
+
+	#ifdef _WIN32
+	#ifdef DIRECT_MIDI
+		//We're directly sending MIDI to the output!
+		union { unsigned long word; unsigned char data[4]; } message;
+		message.data[0] = command; //The command!
+		message.data[1] = data->buffer[0];
+		message.data[2] = data->buffer[1];
+		message.data[3] = 0; //Unused!
+		switch (command&0xF0) //What command?
+		{
+		case 0x80:
+		case 0x90:
+		case 0xA0:
+		case 0xB0:
+		case 0xC0:
+		case 0xD0:
+		case 0xE0:
+		case 0xF0:
+			if (command != 0xFF) //Not resetting?
+			{
+				flag = midiOutShortMsg(device, message.word);
+				if (flag != MMSYSERR_NOERROR) {
+					printf("Warning: MIDI Output is not open.\n");
+				}
+			}
+			else
+			{
+				// turn any MIDI notes currently playing:
+				midiOutReset(device);
+			}
+			break;
+		}
+		return; //Stop: ready!
+	#endif
+	#endif
+
+	data->command = command; //Set the command to use!
+	MIDIDEVICE_execMIDI(data); //Execute directly!
 }
 
 /* Init/destroy support */

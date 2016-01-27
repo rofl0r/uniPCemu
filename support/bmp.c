@@ -85,7 +85,6 @@ OPTINLINE void getBMP(TRGB *pixel,int x, int y, uint_32 *image, int h, int virtu
 	x >>= doublexres; //Apply double!
 	y = (h-y-1); //The pixel Y is reversed in the BMP, so reverse it!
 	y >>= doubleyres; //Apply double!
-	int w = originalw; //Apply double!
 	h = originalh; //Apply double!
 	index = (y*virtualwidth)+x; //Our index of our pixel!
 	a = (float)(GETA(image[index]))/255.0f; //A gradient!

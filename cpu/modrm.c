@@ -456,7 +456,7 @@ OPTINLINE void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 i
 
 //First the decoders:
 
-OPTINLINE uint_32 modrm_SIB_reg(int reg, int mod, uint_32 disp32, int is_base, char *result)
+OPTINLINE static uint_32 modrm_SIB_reg(int reg, int mod, uint_32 disp32, int is_base, char *result)
 {
 	if (is_base && mod==0 && reg==4)
 	{

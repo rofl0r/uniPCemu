@@ -16,7 +16,7 @@ WARNS = -Wall
 INCLUDE_DIRS = -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
 
 #Different kinds of flags!
-CFLAGS = -O3 -std=c99 -D _WIN32_IE=0x0500 -D WINVER=0x500 ${WARNS} -enable-core-inline -static-libgcc -static-libstdc++
+CFLAGS = -O3 -std=c99 ${WARNS} -enable-core-inline -static-libgcc -static-libstdc++
 LDFLAGS = -s -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 #Windows subsystem in LDFLAGS can't be enabled! This causes a linker error!
 #-Wl,--subsystem,windows

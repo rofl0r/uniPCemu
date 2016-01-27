@@ -614,7 +614,6 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 	*stat = BIOSMENU_STAT_OK; //Plain status for default!
 	int key = 0; //Currently pressed key(s)
 	int option = 0; //What option to choose?
-	int oldoption = -1; //Old option!
 	while (key!=BUTTON_CROSS) //Wait for the key to choose something!
 	{
 		if (shuttingdown()) //Cancel?

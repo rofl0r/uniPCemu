@@ -646,7 +646,6 @@ byte in8253(word portnum, byte *result)
 byte out8253(word portnum, byte value)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	byte old61=0; //For tracking updates!
 	byte pit;
 	switch (portnum)
 	{
@@ -704,7 +703,6 @@ byte out8253(word portnum, byte value)
 			return 1;
 		//From above original:
 	case 0x61: //PC Speaker?
-		old61 = PCSpeakerPort; //Old value!
 		PCSpeakerPort = (value&3); //Set the new port value, only low 2 bits are used!
 		speakerGateUpdated(); //Gate has been updated!
 		return 1;

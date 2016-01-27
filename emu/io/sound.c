@@ -594,7 +594,7 @@ int_32 getsample_flt(playing_p channel, uint_32 position)
 
 typedef int_32 (*SAMPLEHANDLER)(playing_p channel, uint_32 position); //Sample handler!
 
-OPTINLINE int_32 getsample(playing_p channel, uint_32 position) //Get 16-bit sample from sample buffer, convert as needed!
+OPTINLINE static int_32 getsample(playing_p channel, uint_32 position) //Get 16-bit sample from sample buffer, convert as needed!
 {
 	static SAMPLEHANDLER handlers[7] = {getsample_16,getsample_8,getsample_16s,getsample_8s,getsample_flt,getsample_16u,getsample_8u};
 	return handlers[channel->samplemethod](channel,position); //Execute handler if available!
@@ -843,7 +843,7 @@ void sound_stopRecording() //Stop sound recording!
 }
 
 char recordingfilename[256];
-OPTINLINE char *get_soundrecording_filename() //Filename for a screen capture!
+OPTINLINE static char *get_soundrecording_filename() //Filename for a screen capture!
 {
 	int mkdirres;
 	mkdirres = domkdir("captures"); //Captures directory!
