@@ -23,7 +23,7 @@
 #define delay(us) SDL_Delay(realdelay((uint_32)((us)/1000)))
 #define sleep() for (;;) delay(1000000)
 
-#define domkdir _mkdir
+#define domkdir(dir) int ok = _mkdir(dir)
 
 //INLINE options!
 #ifdef OPTINLINE

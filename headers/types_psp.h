@@ -8,7 +8,7 @@
 #define WaitSem(sem) {}
 #define PostSem(sem) {}
 
-#define delay(us) sceKernelDelayThread(us)
+#define delay(us) sceKernelDelayThread(us?us:1)
 #define sleep sceKernelSleepThread
 
 #define domkdir(dir) sceIoMkdir(dir,0777)
