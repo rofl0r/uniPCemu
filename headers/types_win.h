@@ -26,9 +26,11 @@
 #define delay(us) SDL_Delay(realdelay((uint_32)((us)/1000)))
 #define sleep() for (;;) delay(1000000)
 
-#ifndef VISUALC
+#ifdef VISUALC
+//Visual C++ needs the result!
 #define domkdir(dir) int ok = _mkdir(dir)
 #else
+//Don't use the result with MinGW!
 #define domkdir(dir) _mkdir(dir)
 #endif
 

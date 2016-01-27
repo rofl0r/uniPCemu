@@ -13,10 +13,10 @@ RM = rm -f
 
 WARNS = -Wall
 
-INCLUDE_DIRS = -I. -I/mingw/include -I/mingw/include/SDL
+INCLUDE_DIRS = -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
 
 #Different kinds of flags!
-CFLAGS = -O3 ${WARNS} -enable-core-inline -static-libgcc -static-libstdc++ 
+CFLAGS = -O3 -std=c99 -D _WIN32_IE=0x0500 -D WINVER=0x500 ${WARNS} -enable-core-inline -static-libgcc -static-libstdc++
 LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx -s
 
 #Apply build directory etc.
@@ -28,7 +28,7 @@ OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 build: $(TARGET)
 
 $(TARGET): ${OBJS}
-	${CC} ${OBJS} ${LDFLAGS} -o "$@"
+	${CC} -o "$@" ${OBJS} ${LDFLAGS}
 
 $(BUILD_DIR)/%.o:%.c
 	${CC} ${CFLAGS} ${INCLUDE_DIRS} -c $< -o $@
