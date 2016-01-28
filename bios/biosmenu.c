@@ -369,7 +369,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	if (BIOS_Settings.firstrun) //First run?
 	{
 		BIOS_Settings.firstrun = 0; //Not the first run anymore!
-		BIOS_Changed = 1; //We've been changed!
+		forceBIOSSave(); //Save: we're not running again!
 	}
 	
 	if (BIOS_SaveStat && BIOS_Changed) //To save the BIOS and BIOS has been changed?
