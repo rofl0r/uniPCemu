@@ -1,11 +1,15 @@
-#Windows makefile
+#Windows makefile test project settings
 
-BUILD_DIR = ../projects_build/x86emu
-
-#Settings
+BUILD_DIR = ../projects_build/$(BUILD_NAME)
 
 #Name of the destination application!
-TARGET = x86EMU
+TARGET = $(BUILD_NAME)
+
+
+# ###################################################
+
+
+#Our actual building script doing all the hard work:
 
 #Programs
 CC = gcc
@@ -16,8 +20,8 @@ WARNS = -Wall
 INCLUDE_DIRS = -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
 
 #Different kinds of flags!
-CFLAGS = -O3 -std=c99 -D _WIN32_IE=0x0500 -D WINVER=0x500 ${WARNS} -enable-core-inline -static-libgcc -static-libstdc++
-LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx -s
+CFLAGS = -O3 -std=c99 -DWIN32_LEAN_AND_MEAN -D _WIN32_IE=0x0500 -D WINVER=0x500 ${WARNS} -enable-core-inline -static-libgcc -static-libstdc++
+LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 
 #Apply build directory etc.
 TARGET := $(BUILD_DIR)/$(TARGET).exe
@@ -28,7 +32,7 @@ OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 build: $(TARGET)
 
 $(TARGET): ${OBJS}
-	${CC} -o "$@" ${OBJS} ${LDFLAGS}
+	${CC} -mwindows ${OBJS} -o "$@" ${LDFLAGS}
 
 $(BUILD_DIR)/%.o:%.c
 	${CC} ${CFLAGS} ${INCLUDE_DIRS} -c $< -o $@

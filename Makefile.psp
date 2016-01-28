@@ -1,5 +1,5 @@
 #Define our building directory for all output files!
-BUILD_DIR = ../../psp-projects_build/x86EMU
+BUILD_DIR = ../../psp-projects_build/$(BUILD_NAME)
 
 TARGET = eboot
 
@@ -34,7 +34,7 @@ PSPLIBS1 += -lpspaudiolib -lpspaudio
 PSPLIBS1 += -lpsprtc
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = x86EMU
+PSP_EBOOT_TITLE = $(BUILD_NAME)
 
 #Turn this line off when using SDL!
 

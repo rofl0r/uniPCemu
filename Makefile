@@ -1,8 +1,12 @@
 #Define our default building directory for all output files!
 BUILD_DIR = ../../projects_build/x86emu
 
+BUILD_NAME = x86EMU
+
+#Now, our modules!
+
 #Exception handler!
-OBJS += exception/exception.o
+OBJS = exception/exception.o
 
 #Memory allocation!
 OBJS += support/zalloc.o
@@ -176,29 +180,5 @@ OBJS += emu/main.o
 #64-bit file support!
 OBJS += basicio/fopen64.o
 
-#Finally, the desired platform to build for:
-ifneq (,$(findstring psp,$(MAKECMDGOALS)))
-PLATFORM = psp
-endif
-
-ifneq (,$(findstring win,$(MAKECMDGOALS)))
-PLATFORM = win
-endif
-
-ifeq (,$(PLATFORM))
-$(error Please specify a platform (psp or win) and action (build or clean), e.g. make win build or make win clean)
-endif
-
-ifneq (,$(PLATFORM))
-include Makefile.$(PLATFORM)
-endif
-
-.PHONY: all clean psp win distclean
-
-clean:
-ifneq (,$(PLATFORM))
-	-$(RM) $(OBJS)
-	-$(RM) $(TARGET)
-endif
-
-rebuild: clean build
+#Support multi platform builds:
+include Makefile.multiplatform

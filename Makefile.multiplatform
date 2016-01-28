@@ -1,0 +1,26 @@
+#Finally, the desired platform to build for:
+ifneq (,$(findstring psp,$(MAKECMDGOALS)))
+PLATFORM = psp
+endif
+
+ifneq (,$(findstring win,$(MAKECMDGOALS)))
+PLATFORM = win
+endif
+
+ifeq (,$(PLATFORM))
+$(error Please specify a platform (psp or win) and action (build or clean), e.g. make win build or make win clean)
+endif
+
+ifneq (,$(PLATFORM))
+include Makefile.$(PLATFORM)
+endif
+
+.PHONY: all clean psp win distclean
+
+clean:
+ifneq (,$(PLATFORM))
+	-$(RM) $(OBJS)
+	-$(RM) $(TARGET)
+endif
+
+rebuild: clean build
