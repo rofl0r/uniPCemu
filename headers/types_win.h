@@ -21,7 +21,7 @@
 
 
 //Windows specific structures!
-#ifdef VISUALC
+#ifdef _WIN32
 #include <direct.h> //For mkdir and directory support! Visual C++ only!
 #endif
 

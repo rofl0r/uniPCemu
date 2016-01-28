@@ -607,7 +607,7 @@ void MPU401_Event() {
 			}
 			mpu.condbuf.vlength=0;
 			mpu.condbuf.type=OVERFLOW;
-			mpu.playbuf[i].counter=MSG_TIMING_OVERFLOW;
+			if (i<NUMITEMS(mpu.playbuf)) mpu.playbuf[i].counter=MSG_TIMING_OVERFLOW; //Patched for safety!
 			QueueRequest(MSG_REQUEST_COMMAND);
 		}
 	}
