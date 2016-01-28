@@ -370,7 +370,20 @@ OPTINLINE static void debugger_autolog()
 		}
 		if (MMU_invaddr()) //We've detected an invalid address?
 		{
-			dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is not paged, protected or non-existant.");
+			switch (MMU_invaddr()) //What error?
+			{
+			case 0: //OK!
+				break;
+			case 1: //Memory not found!
+				dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is non-existant.");
+				break;
+			case 2: //Paging or protection fault!
+				dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is not paged or protected.");
+				break;
+			default:
+				dolog("debugger", "MMU has detected that the addressed data isn't valid! The cause is unknown.");
+				break;
+			}
 		}
 		if (CPU[activeCPU].faultraised) //Fault has been raised?
 		{

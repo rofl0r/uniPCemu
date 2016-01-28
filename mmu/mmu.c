@@ -33,7 +33,7 @@ void *MMU_directptr(uint_32 address, uint_32 size) //Full ptr to real MMU memory
 		return &MMU.memory[address]; //Give the memory's start!
 	}
 
-	MMU.invaddr = 1; //Invalid address!
+	//Don't signal invalid memory address: we're internal emulator call!
 	return NULL; //Not found!	
 }
 
@@ -254,14 +254,14 @@ byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adre
 	{
 		//dolog("MMU","R:No memory present!");
 		MMU.invaddr = 1; //Invalid adress!
-		return 0; //Out of bounds!
+		return 0xFF; //Out of bounds!
 	}
 
 	if (CPU_MMU_checklimit(segdesc,segment,offset,1|(opcode<<1))) //Disallowed?
 	{
 		//dolog("MMU","R:Limit break:%04X:%08X!",segment,offset);
-		MMU.invaddr = 1; //Invalid address!
-		return 0; //Not found.
+		MMU.invaddr = 2; //Invalid address!
+		return 0xFF; //Not found.
 	}
 
 	realaddress = MMU_realaddr(segdesc,segment,offset,writeword); //Real adress!
@@ -296,20 +296,20 @@ void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
 {
 	uint_32 realaddress;
 	if (MMU.invaddr) return; //Abort!
-	if ((MMU.memory==NULL) || !MMU.size) //No mem?
-	{
-		//dolog("MMU","W:No memory present!");
-		return; //Out of bounds!
-	}
-	
 	if (CPU[activeCPU].faultraised && EMU_RUNNING) //Fault has been raised while emulator is running?
 	{
 		return; //Disable writes to memory when a fault has been raised!
 	}
-
+	if ((MMU.memory==NULL) || !MMU.size) //No mem?
+	{
+		//dolog("MMU","W:No memory present!");
+		MMU.invaddr = 1; //Invalid address signaling!
+		return; //Out of bounds!
+	}
+	
 	if (CPU_MMU_checklimit(segdesc,segment,offset,0)) //Disallowed?
 	{
-		MMU.invaddr = 1; //Invalid address signaling!
+		MMU.invaddr = 2; //Invalid address signaling!
 		return; //Not found.
 	}
 	
