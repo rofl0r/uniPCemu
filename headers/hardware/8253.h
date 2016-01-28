@@ -1,11 +1,6 @@
 #ifndef HW82C54_H
 #define HW82C54_H
 
-#define PIT_MODE_LATCHCOUNT	0
-#define PIT_MODE_LOBYTE	1
-#define PIT_MODE_HIBYTE	2
-#define PIT_MODE_TOGGLE	3
-
 typedef struct {
 	uint16_t chandata[3];
 	uint8_t accessmode[3];
