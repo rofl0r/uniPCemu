@@ -4,7 +4,7 @@
 #include "headers/types_base.h" //Base types!
 
 
-#include <sys/stat.h>
+#include <sys/stat.h> //Directory listing & file check support!
 
 #define realdelay(x) ((x)?(x):1)
 

@@ -46,7 +46,6 @@ PC SPEAKER
 #define SPEAKER_BUFFER 512
 //Speaker low&high pass filter values!
 #define SPEAKER_LOWPASS 22050.0f
-#define SPEAKER_HIGHPASS 18.2f
 
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
@@ -54,6 +53,9 @@ PC SPEAKER
 
 //Log the speaker to this .wav file when defined!
 //#define SPEAKER_LOG "captures/speaker.wav"
+
+//The double buffering threshold!
+#define PITDOUBLE_THRESHOLD 1024
 
 //End of defines!
 
@@ -80,7 +82,7 @@ typedef struct
 	byte mode; //PC speaker mode!
 	word frequency; //Frequency divider that has been set!
 	byte status; //Status of the counter!
-	FIFOBUFFER *buffer; //Output buffers for rendering!
+	FIFOBUFFER *buffer, *doublebuffer; //Output buffers for rendering!
 	word ticker; //16-bit ticks!
 	byte reload; //Reload requested?
 	byte channel_status; //Current output status!
@@ -145,14 +147,6 @@ OPTINLINE float calcSpeakerLowpassFilter(float cutoff_freq, float samplerate, fl
 	float dt = (float)1.0f / samplerate;
 	float alpha = dt / (RC + dt);
 	return previousresult + (alpha*(currentsample - previousresult));
-}
-
-OPTINLINE float calcSpeakerHighpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
-{
-	float RC = 1.0 / (cutoff_freq * 2 * 3.14);
-	float dt = 1.0 / samplerate;
-	float alpha = RC / (RC + dt);
-	return alpha * (previousresult + currentsample - previoussample);
 }
 
 sword speaker_last_result = 0, speaker_last_sample = 0;
@@ -441,9 +435,9 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 		//Ticks the speaker when needed!
 		i = 0; //Init counter!
 		short s; //Set the channels! We generate 1 sample of output here!
-		static float currentduty=0.0f; //Currently calculated duty for the current sample(s)!
-		static uint_32 dutycycle=0; //Total duty cycle to calculate!
-		static float dutycyclelen=0.0f; //How many duty cycles are accumulated(fractions are shared samples between current and next sample)?
+		static double currentduty=0.0f; //Currently calculated duty for the current sample(s)!
+		static double dutycycle=0; //Total duty cycle to calculate!
+		static double dutycyclelen=0.0f; //How many duty cycles are accumulated(fractions are shared samples between current and next sample)?
 		uint_32 dutycyclei; //Input samples to process!
 		//Generate the samples from the output signal!
 		for (;;) //Generate samples!
@@ -462,7 +456,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 				dutycyclelen += 1.0f; //We've read one duty cycle!
 				if (dutycyclelen>=speakerlength) //Enough to process a PCM sample?
 				{
-					currentduty = ((float)dutycycle/dutycyclelen)*SHRT_MAX; //Average the duty cycles for the new PWM->PCM sample!
+					currentduty = (dutycycle/dutycyclelen)*SHRT_MAX; //Average the duty cycles for the new PWM->PCM sample!
 					dutycyclelen = fmod(dutycyclelen,speakerlength); //Decrease timing until rest is left(next PWM data to process)!
 					dutycycle = (dutycyclelen>0.0f)?currentsample:0.0f; //Start with the current sample when we're part of next data too(fraction sample)!
 				}
@@ -475,7 +469,8 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			#ifdef SPEAKER_LOG
 				writeWAVMonoSample(speakerlog,s); //Log the mono sample to the WAV file!
 			#endif
-			writefifobuffer16(PITchannels[2].buffer, s); //Write the sample to the buffer (mono buffer)!
+			writefifobuffer16(PITchannels[2].doublebuffer, s); //Write the sample to the buffer (mono buffer)!
+			movefifobuffer16(PITchannels[2].doublebuffer,PITchannels[2].buffer,PITDOUBLE_THRESHOLD); //Move any data to the destination once filled!
 			if (++i == length) //Fully rendered?
 			{
 				if (!FIFOBUFFER_LOCK) //Not locked?
@@ -504,6 +499,7 @@ void initSpeakers()
 		if (i==2) //Speaker?
 		{
 			PITchannels[i].buffer = allocfifobuffer((SPEAKER_BUFFER+1)<<1, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with X word-sized samples with lock!
+			PITchannels[i].doublebuffer = allocfifobuffer((SPEAKER_BUFFER + 1) << 1, 0); //FIFO with X word-sized samples without lock!
 		}
 	}
 	speaker_ticktiming = time_ticktiming = 0.0f; //Initialise our timing!
@@ -527,6 +523,7 @@ void doneSpeakers()
 		if (i==2) //Speaker?
 		{
 			free_fifobuffer(&PITchannels[i].buffer); //Release the FIFO buffer we use!
+			free_fifobuffer(&PITchannels[i].doublebuffer); //Release the FIFO buffer we use!
 		}
 	}
 	#ifdef SPEAKER_LOG

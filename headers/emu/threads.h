@@ -2,7 +2,7 @@
 #define THREADS_H
 
 #include "headers/types.h" //Basic type support!
-#ifdef _WIN32
+#ifdef VISUALC
 #include <SDL_thread.h> //Multithreading support!
 #else
 #include <SDL/SDL_thread.h> //Multithreading support!

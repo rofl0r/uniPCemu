@@ -40,15 +40,14 @@ byte ssourceoutput(void* buf, uint_32 length, byte stereo, void *userdata)
 
 
 void putssourcebyte(byte value) {
-	byte transfer;
 	lockaudio(); //Make sure the audio thread isn't using our data!
 	if (writefifobuffer(ssourcestream, value)) //Add to the primary buffer!
 	{
-		if (!fifobuffer_freesize(ssourcestream) && fifobuffer_freesize(ssourcestream2)>=__SSOURCE_BUFFER) //Primary buffer full and enough space to store it in the second buffer?
+		if (!fifobuffer_freesize(ssourcestream)) //Buffer full?
 		{
-			for (;readfifobuffer(ssourcestream,&transfer);) writefifobuffer(ssourcestream2,transfer); //Transfer data to the second buffer!
 			forcefull = 1; //We're forced full to allow detection of 'full' buffer!
 		}
+		movefifobuffer8(ssourcestream,ssourcestream2,__SSOURCE_BUFFER); //Move data to the destination buffer once we're full!
 	}
 	unlockaudio(); //We're finished locking!
 }

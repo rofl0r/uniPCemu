@@ -3,7 +3,6 @@
 //PSP Only: exception handler!
 //Use original sleep!
 #undef sleep
-#include <pspkernel.h>
 #include <pspsdk.h>
 #include <pspctrl.h>
 #include <unistd.h>

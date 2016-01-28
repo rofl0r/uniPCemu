@@ -167,7 +167,7 @@ byte getCOMport(word port) //What COM port?
 
 /*
 
-Gebleven @http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming#Modem_Control_Register
+Processed until http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming#Modem_Control_Register
 
 */
 

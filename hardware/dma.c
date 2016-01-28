@@ -504,8 +504,8 @@ void DMA_tick()
 }
 
 TicksHolder DMATicks;
-float DMA_Frequency = (1000000000 / 1639628.8f); //DMA tick time!
-float DMA_timing = 0.0f; //How much time has passed!
+double DMA_Frequency = (1000000000 / 1639628.8f); //DMA tick time!
+double DMA_timing = 0.0f; //How much time has passed!
 
 void initDMA()
 {

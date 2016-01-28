@@ -25,6 +25,9 @@
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
 #define __ADLIB_SAMPLEBUFFERSIZE 4096
 
+//The double buffering threshold!
+#define ADLIBDOUBLE_THRESHOLD 1024
+
 #define PI2 (float)(2.0f * PI)
 
 //extern void set_port_write_redirector (uint16_t startport, uint16_t endport, void *callback);
@@ -63,7 +66,7 @@ double feedbacklookup2[8]; //Actual feedback lookup value!
 
 byte wavemask = 0; //Wave select mask!
 
-FIFOBUFFER *adlibsound = NULL; //Our sound buffer for rendering!
+FIFOBUFFER *adlibsound = NULL, *adlibdouble = NULL; //Our sound buffer for rendering!
 
 struct structadlibop {
 	//Effects
@@ -79,6 +82,7 @@ struct structadlibop {
 	float freq0, time; //The frequency and current time of an operator!
 	float ModulatorFrequencyMultiple; //What harmonic to sound?
 	float lastsignal[2]; //The last signal produced!
+	float lastfreq; //Last valid set frequency!
 } adlibop[0x20];
 
 struct structadlibchan {
@@ -350,7 +354,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	}
 
 	//Generate the correct signal!
-	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, modulator, frequency, &adlibop[operator].freq0, &adlibop[operator].time);
+	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, modulator, frequency?frequency:adlibop[operator].lastfreq, &adlibop[operator].freq0, &adlibop[operator].time); //Take the last frequency or current frequency!
 	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
 	result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
 	feedbackresult = result; //Load the current feedback value!
@@ -358,7 +362,11 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	adlibop[operator].lastsignal[0] = adlibop[operator].lastsignal[1]; //Set last signal #0 to #1(shift into the older one)!
 	adlibop[operator].lastsignal[1] = feedbackresult; //Set the feedback result!
 
-	if (frequency) incop(operator,frequency); //Increase time for the operator when allowed to increase (frequency=0 during PCM output)!
+	if (frequency) //Running operator?
+	{
+		adlibop[operator].lastfreq = frequency; //We were last running at this frequency!
+		incop(operator,frequency); //Increase time for the operator when allowed to increase (frequency=0 during PCM output)!
+	}
 	return result; //Give the result!
 }
 
@@ -594,8 +602,9 @@ void updateAdlib(double timepassed)
 			filled |= adlibop[adliboperators[1][6]].volenvstatus; //Channel 6?
 			filled |= adlibop[adliboperators[1][7]].volenvstatus; //Channel 7?
 			filled |= adlibop[adliboperators[1][8]].volenvstatus; //Channel 8?
-			if (!filled) writefifobuffer16(adlibsound,0); //Not filled: nothing to sound!
-			else writefifobuffer16(adlibsound,(word)adlibgensample()); //Add the sample to our sound buffer!
+			if (!filled) writefifobuffer16(adlibdouble,0); //Not filled: nothing to sound!
+			else writefifobuffer16(adlibdouble,(word)adlibgensample()); //Add the sample to our sound buffer!
+			movefifobuffer16(adlibdouble,adlibsound,ADLIBDOUBLE_THRESHOLD); //Move any data to the destination once filled!
 			tickadlib(); //Tick us to the next timing if needed!
 			adlib_soundtiming -= adlib_soundtick; //Decrease timer to get time left!
 		}
@@ -632,9 +641,7 @@ void initAdlib()
 	int i;
 	for (i = 0; i < 9; i++)
 	{
-		adlibch[i].keyon = 0; //Initialise key on!
-		adlibch[i].feedback = 0.0f; //No feedback!
-		adlibch[i].synthmode = 0; //Default synth mode (FM Synthesis)!
+		memset(&adlibch[i],0,sizeof(adlibch[i])); //Initialise all channels!
 	}
 
 	//Build the needed tables!
@@ -658,6 +665,7 @@ void initAdlib()
 
 	for (i = 0; i < (int)NUMITEMS(adlibop); i++) //Process all channels!
 	{
+		memset(&adlibop[i],0,sizeof(adlibop[i])); //Initialise the channel!
 		adlibop[i].freq0 = adlibop[i].time = 0.0f; //Initialise the signal!
 
 		//Apply default ADSR!
@@ -671,6 +679,8 @@ void initAdlib()
 		adlibop[i].ReleaseImmediately = 1; //Release immediately by default!
 
 		adlibop[i].outputlevel = outputtable[0]; //Apply default output!
+		adlibop[i].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(0); //Which harmonic to use?
+		adlibop[i].ReleaseImmediately = 1; //We're defaulting to value being 0=>Release immediately.
 		memset(&adlibop[i].lastsignal,0,sizeof(adlibop[i].lastsignal)); //Reset the last signals!
 	}
 
@@ -684,6 +694,7 @@ void initAdlib()
 	if (__SOUND_ADLIB)
 	{
 		adlibsound = allocfifobuffer(__ADLIB_SAMPLEBUFFERSIZE+1,1); //Generate our buffer!
+		adlibdouble = allocfifobuffer(__ADLIB_SAMPLEBUFFERSIZE + 1, 1); //Generate our buffer!
 		if (adlibsound) //Valid buffer?
 		{
 			if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
@@ -713,6 +724,10 @@ void doneAdlib()
 		if (adlibsound) //Valid buffer?
 		{
 			free_fifobuffer(&adlibsound); //Free our sound buffer!
+		}
+		if (adlibdouble) //Valid buffer?
+		{
+			free_fifobuffer(&adlibdouble); //Free our sound buffer!
 		}
 	}
 }

@@ -1,14 +1,12 @@
 #include "headers/types.h" //Basic types!
 #include "headers/support/zalloc.h" //Zero allocation support!
-#ifdef __psp__
-//This is for the PSP only: we're missing normal 64-bit support!
-#include <pspkernel.h> //Kernel support!
-#endif
+
 /*
 
 This is a custom PSP&PC library for adding 64-bit fopen support to the project using platform-specific calls.
 
 */
+
 typedef struct
 {
 	FILE filedummy; //For compatibility only!
@@ -54,7 +52,7 @@ int emufseek64(FILE *stream, int64_t pos, int direction)
 #else
 									//Windows
 	int result;
-#if defined(_WIN32) && defined(_fseeki64)
+#ifdef VISUALC
 	if (!(result = _fseeki64(b->f, pos, direction))) //Direction is constant itself!
 	{
 		b->position = _ftelli64(b->f); //Use our own position indicator!

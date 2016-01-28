@@ -12,7 +12,7 @@
 //Use direct windows MIDI processor if available?
 //#define DIRECT_MIDI
 
-#ifdef _WIN32
+#ifdef VISUALC
 #ifdef DIRECT_MIDI
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
 #endif
@@ -49,7 +49,7 @@ MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
 
 /* MIDI direct output support*/
 
-#ifdef _WIN32
+#ifdef VISUALC
 #ifdef DIRECT_MIDI
 int flag;           // monitor the status of returning functions
 HMIDIOUT device;    // MIDI device interface for sending MIDI output
@@ -1040,7 +1040,7 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buf
 	return; //We're disabled!
 	#endif
 
-	#ifdef _WIN32
+	#ifdef VISUALC
 	#ifdef DIRECT_MIDI
 		//We're directly sending MIDI to the output!
 		union { unsigned long word; unsigned char data[4]; } message;
@@ -1087,7 +1087,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 	#ifdef __HW_DISABLED
 		return; //We're disabled!
 	#endif
-	#ifdef _WIN32
+	#ifdef VISUALC
 	#ifdef DIRECT_MIDI
 		// turn any MIDI notes currently playing:
 		midiOutReset(device);
@@ -1117,7 +1117,7 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 	#ifdef __HW_DISABLED
 		return 0; //We're disabled!
 	#endif
-	#ifdef _WIN32
+	#ifdef VISUALC
 	#ifdef DIRECT_MIDI
 		// Open the MIDI output port
 		flag = midiOutOpen(&device, 0, 0, 0, CALLBACK_NULL);

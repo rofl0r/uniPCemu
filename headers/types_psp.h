@@ -1,7 +1,7 @@
 #ifndef __EMU_PSP_H
 #define __EMU_PSP_H
 
-#include <pspkernel.h>
+#include <pspkernel.h> //PSP kernel support!
 #include "headers/types_base.h" //Base types!
 
 //We disable semaphores on the PSP: we're a single-tasking system which is otherwise too slow!

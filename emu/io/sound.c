@@ -865,7 +865,7 @@ void sound_startRecording() //Start sound recording?
 		sound_stopRecording(); //Stop recording first!
 	}
 	lockaudio();
-	recording = createWAV(get_soundrecording_filename(),2,SW_SAMPLERATE); //Start recording to this file!
+	recording = createWAV(get_soundrecording_filename(),2,(uint_32)SW_SAMPLERATE); //Start recording to this file!
 	unlockaudio();
 }
 

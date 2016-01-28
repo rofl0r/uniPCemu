@@ -14,9 +14,10 @@ void Dosbox_RealSetVec(byte interrupt, uint_32 realaddr)
 	RealSetVec(interrupt,realaddr>>16,realaddr&0xFFFF); //Set the interrupt vector in real mode!
 }
 
-#if SDL_VERSION_ATLEAST(1, 2, 14)
+//#if SDL_VERSION_ATLEAST(1, 2, 14)
+//We always can use lock since we don't depend on SDL for it, but generate input for processing ourselves!
 #define CAN_USE_LOCK 1
-#endif
+//#endif
 
 //static Bitu call_int16,call_irq1,call_irq6;
 

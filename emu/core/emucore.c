@@ -543,7 +543,7 @@ OPTINLINE byte coreHandler()
 {
 	//CPU execution, needs to be before the debugger!
 	uint_64 currentCPUtime = getnspassed_k(&CPU_timing); //Current CPU time to update to!
-#ifndef __PSP
+#ifndef __PSP__
 	uint_64 timeoutCPUtime = currentCPUtime+1000000; //We're timed out this far in the future (1ms)!
 #endif
 	double instructiontime,timeexecuted=0.0f; //How much time did the instruction last?

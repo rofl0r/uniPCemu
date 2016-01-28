@@ -2321,7 +2321,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "%iMB", (sizecreated / MBMEMORY)); //Image size
 					EMU_unlocktext();
-					FILEPOS sectornr;
+					uint_32 sectornr;
 					byte error = 0;
 					size >>= 9; //Convert to actual 512-byte sector numbers: we're allowed in this case!
 					updateinterval = (size/100); //Update interval in sectors: every 1% updated!

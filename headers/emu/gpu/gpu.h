@@ -4,11 +4,11 @@
 #include "headers/types.h" //Global types
 #include "headers/bios/bios.h" //BIOS Settings support (for VIDEO_DIRECT)
 
-#ifdef _WIN32
+#ifdef VISUALC
 #include "SDL_rotozoom.h"
 #include "SDL_gfxPrimitives.h"
 #else
-#include "SDL/SDL_rotozoom.h" //Rotate&Zoom package for SDL!
+#include <SDL/SDL_rotozoom.h> //Rotate&Zoom package for SDL_gfx!
 #include <SDL/SDL.h>
 #ifdef __psp__
 //PSP only, doesn't compile under linux!

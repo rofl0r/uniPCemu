@@ -140,7 +140,7 @@ void renderFramerate()
 					if (framerateupdated) //We're updated!
 					{
 						framerateupdated = 0; //Not anymore!
-						CPUspeed = (byte)roundf(SAFEDIV(last_timing, (double)getnspassed_k(&CPU_timing))*100.0f); //Current CPU speed percentage (how much the current time is compared to required time)!
+						CPUspeed = (byte)round(SAFEDIV(last_timing, (double)getnspassed_k(&CPU_timing))*100.0f); //Current CPU speed percentage (how much the current time is compared to required time)!
 					}
 					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
 				}
@@ -153,7 +153,7 @@ void renderFramerate()
 				if (framerateupdated) //We're to be updated with the framerate rate!
 				{
 					framerateupdated = 0; //Not anymore!
-					CPUspeed = (byte)roundf(SAFEDIV(last_timing, (double)getnspassed_k(&CPU_timing))*100.0f); //Current CPU speed percentage (how much the current time is compared to required time)!
+					CPUspeed = (byte)round(SAFEDIV(last_timing, (double)getnspassed_k(&CPU_timing))*100.0f); //Current CPU speed percentage (how much the current time is compared to required time)!
 				}
 				GPU_textgotoxy(frameratesurface, 0, 0); //For output!
 				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "CPU speed: %i%%", CPUspeed); //Current CPU speed percentage!

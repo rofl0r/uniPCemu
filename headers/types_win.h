@@ -6,10 +6,8 @@
 //Normal SDL libraries
 #include "SDL.h" //SDL library for windows!
 #include "SDL_events.h" //SDL events!
-//Windows specific structures!
-#include <direct.h> //For mkdir and directory support!
-#include <windows.h>
 
+//Convert the current info to support Visual C++ vs MinGW/GNU detection!
 #ifdef _WIN32
 #ifndef __GNUC__
 #ifndef __MINGW32__
@@ -20,6 +18,14 @@
 #endif
 #endif
 #endif
+
+
+//Windows specific structures!
+#ifdef VISUALC
+#include <direct.h> //For mkdir and directory support! Visual C++ only!
+#endif
+
+#include <windows.h> //Both for Visual c++ and MinGW/GNU, this is used!
 
 #define realdelay(x) (x)
 

@@ -141,11 +141,23 @@ parameters:
 
 void fifobuffer_clear(FIFOBUFFER *buffer);
 
+/*
+
+movefifobuffer8: Moved threshold items from the source to the destination buffer once threshold bytes are used.
+parameters:
+	src: pointer to the source buffer.
+	dest: pointer to the destination buffer.
+	threshold: The threshold, in FIFO buffer items.
+
+*/
+
+void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
+
 /* 16-bit adjustments */
 
 int peekfifobuffer16(FIFOBUFFER *buffer, word *result); //Is there data to be read?
 int readfifobuffer16(FIFOBUFFER *buffer, word *result);
 int writefifobuffer16(FIFOBUFFER *buffer, word data);
-
+void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
 
 #endif

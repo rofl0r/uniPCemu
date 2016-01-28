@@ -127,6 +127,13 @@ int peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read?
 	return 0; //Nothing to peek at!
 }
 
+void readfifobufferunlocked(FIFOBUFFER *buffer, byte *result)
+{
+	*result = buffer->buffer[buffer->position[0].readpos++]; //Read and update!
+	if (buffer->position[0].readpos >= buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
+	buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
+}
+
 int readfifobuffer(FIFOBUFFER *buffer, byte *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -144,14 +151,19 @@ int readfifobuffer(FIFOBUFFER *buffer, byte *result)
 	if (fifobuffer_freesize(buffer)<buffer->size) //Filled?
 	{
 		if (buffer->lock) WaitSem(buffer->lock)
-		*result = buffer->buffer[buffer->position[0].readpos++]; //Read and update!
-		if (buffer->position[0].readpos>=buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
-		buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
+		readfifobufferunlocked(buffer,result); //Read the FIFO buffer without lock!
 		if (buffer->lock) PostSem(buffer->lock)
 		return 1; //Read!
 	}
 
 	return 0; //Nothing to read!
+}
+
+void writefifobufferunlocked(FIFOBUFFER *buffer, byte data)
+{
+	buffer->buffer[buffer->position[0].writepos++] = data; //Write and update!
+	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
+	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
 }
 
 int writefifobuffer(FIFOBUFFER *buffer, byte data)
@@ -176,9 +188,7 @@ int writefifobuffer(FIFOBUFFER *buffer, byte data)
 	}
 	
 	if (buffer->lock) WaitSem(buffer->lock)
-	buffer->buffer[buffer->position[0].writepos++] = data; //Write and update!
-	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
-	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
+	writefifobufferunlocked(buffer,data); //Write the FIFO buffer without lock!
 	if (buffer->lock) PostSem(buffer->lock)
 	return 1; //Written!
 }
@@ -212,6 +222,16 @@ int peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be rea
 	return 0; //Nothing to peek at!
 }
 
+void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
+{
+	*result = buffer->buffer[buffer->position[0].readpos++]; //Read and update high!
+	if (buffer->position[0].readpos >= buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
+	*result <<= 8; //Shift high!
+	*result |= buffer->buffer[buffer->position[0].readpos++]; //Read and update low!
+	if (buffer->position[0].readpos >= buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
+	buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
+}
+
 int readfifobuffer16(FIFOBUFFER *buffer, word *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -229,17 +249,21 @@ int readfifobuffer16(FIFOBUFFER *buffer, word *result)
 	if (fifobuffer_freesize(buffer)<(buffer->size-1)) //Filled?
 	{
 		if (buffer->lock) WaitSem(buffer->lock)
-		*result = buffer->buffer[buffer->position[0].readpos++]; //Read and update high!
-		if (buffer->position[0].readpos >= buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
-		*result <<= 8; //Shift high!
-		*result |= buffer->buffer[buffer->position[0].readpos++]; //Read and update low!
-		if (buffer->position[0].readpos >= buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
-		buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
+		readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock!
 		if (buffer->lock) PostSem(buffer->lock)
 		return 1; //Read!
 	}
 
 	return 0; //Nothing to read!
+}
+
+void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
+{
+	buffer->buffer[buffer->position[0].writepos++] = (data >> 8); //Write high and update!
+	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
+	buffer->buffer[buffer->position[0].writepos++] = (data & 0xFF); //Write low and update!
+	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
+	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
 }
 
 int writefifobuffer16(FIFOBUFFER *buffer, word data)
@@ -262,11 +286,7 @@ int writefifobuffer16(FIFOBUFFER *buffer, word data)
 	}
 
 	if (buffer->lock) WaitSem(buffer->lock)
-	buffer->buffer[buffer->position[0].writepos++] = (data>>8); //Write high and update!
-	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
-	buffer->buffer[buffer->position[0].writepos++] = (data&0xFF); //Write low and update!
-	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
-	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
+	writefifobuffer16unlocked(buffer,data); //Write the FIFO buffer without lock!
 	if (buffer->lock) PostSem(buffer->lock)
 	return 1; //Written!
 }
@@ -337,4 +357,63 @@ void fifobuffer_clear(FIFOBUFFER *buffer)
 
 	fifobuffer_gotolast(buffer); //Goto last!
 	readfifobuffer(buffer,&temp); //Clean out the last byte if it's there!
+}
+
+void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
+{
+	if (src == dest) return; //Can't move to itself!
+	uint_32 current; //Current thresholded data index!
+	byte buffer; //our buffer for the transfer!
+	if (!src) return; //Invalid source!
+	if (!dest) return; //Invalid destination!
+	if (fifobuffer_freesize(src) < (src->size - threshold)) //Buffered enough words of data?
+	{
+		if (fifobuffer_freesize(dest) >= threshold) //Enough free space left?
+		{
+			threshold >>= 1; //Make it into actual data items!
+							 //Transfer the data!
+			if (src->lock) WaitSem(src->lock) //Lock the source!
+			if (dest->lock) WaitSem(dest->lock) //Lock the destination!
+			//Now quickly move the thesholded data from the source to the destination!
+			current = threshold; //Move threshold items!
+			for (;;) //Process all items fast!
+			{
+				readfifobufferunlocked(src, &buffer); //Read 8-bit data!
+				writefifobufferunlocked(dest, buffer); //Write 8-bit data!
+				if (!--current) break; //Next data!
+			}
+			if (dest->lock) PostSem(dest->lock) //Unlock the destination!
+			if (src->lock) PostSem(src->lock) //Unlock the source!
+		}
+	}
+}
+
+void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
+{
+	if (src==dest) return; //Can't move to itself!
+	uint_32 current; //Current thresholded data index!
+	word buffer; //our buffer for the transfer!
+	if (!src) return; //Invalid source!
+	if (!dest) return; //Invalid destination!
+	threshold &= ~1; //Make the threshold word-sized rounded for safety!
+	if (fifobuffer_freesize(src) < (src->size - threshold)) //Buffered enough words of data?
+	{
+		if (fifobuffer_freesize(dest) >= threshold) //Enough free space left?
+		{
+			threshold >>= 1; //Make it into actual data items!
+			//Transfer the data!
+			if (src->lock) WaitSem(src->lock) //Lock the source!
+			if (dest->lock) WaitSem(dest->lock) //Lock the destination!
+			//Now quickly move the thesholded data from the source to the destination!
+			current = threshold; //Move threshold items!
+			for (;;) //Process all items fast!
+			{
+				readfifobuffer16unlocked(src,&buffer); //Read 16-bit data!
+				writefifobuffer16unlocked(dest,buffer); //Write 16-bit data!
+				if (!--current) break; //Next data!
+			}
+			if (dest->lock) PostSem(dest->lock) //Unlock the destination!
+			if (src->lock) PostSem(src->lock) //Unlock the source!
+		}
+	}
 }

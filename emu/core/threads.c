@@ -3,10 +3,10 @@
 #include "headers/support/log.h" //Logging!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 
-#ifdef _WIN32
+#ifdef VISUALC
 #include <sdl_thread.h> //Multithreading support!
 #else
-//PSP?
+//PSP/MinGW?
 #include <SDL/SDL_thread.h> //Multithreading support!
 #endif
 

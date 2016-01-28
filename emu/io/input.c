@@ -25,7 +25,7 @@
 
 #include "headers/emu/gpu/gpu_text.h" //GPU text support! 
 
-#ifdef _WIN32
+#ifdef VISUALC
 #include "sdl_joystick.h" //Joystick support!
 #include "sdl_events.h" //Event support!
 #else
@@ -2425,7 +2425,7 @@ TicksHolder Keyboardticker; //Actual keyboard timing!
 
 void updateKeyboard(double timepassed)
 {
-	timepassed = getnspassed(&Keyboardticker); //Actual time passed is used instead!
+	timepassed += (double)getnspassed(&Keyboardticker); //Actual time passed is used instead!
 	keyboard_type_handler(timepassed); //Tick the timer!
 }
 
