@@ -1,6 +1,4 @@
-#Define our default building directory for all output files!
-BUILD_DIR = ../../projects_build/x86emu
-
+#Define our default building directory and executable name/title for all output files!
 BUILD_NAME = x86EMU
 
 #Now, our modules!
