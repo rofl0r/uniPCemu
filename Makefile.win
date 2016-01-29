@@ -3,8 +3,8 @@
 BUILD_DIR = ../projects_build/$(BUILD_NAME)
 
 #Name of the destination application!
-TARGET = $(BUILD_NAME)
-
+TARGET = $(BUILD_NAME).exe
+TARGET_EXE := $(TARGET)
 
 # ###################################################
 
@@ -24,15 +24,23 @@ CFLAGS = -O3 -std=c99 -DWIN32_LEAN_AND_MEAN -D _WIN32_IE=0x0500 -D WINVER=0x500 
 LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 
 #Apply build directory etc.
-TARGET := $(BUILD_DIR)/$(TARGET).exe
+TARGET := $(BUILD_DIR)/$(TARGET)
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
 #Rules themselves!
 #Build command!
 build: $(TARGET)
 
+debug: $(TARGET)
+	#First, delete our executable we don't need, if it exists!
+	rm -f $(TARGET)
+	#Compile into debug mode!
+	${CC} -g ${OBJS} -o "$(TARGET)" ${LDFLAGS}
+	#Run debugger now on the executable!
+	gdb -w --cd="$(BUILD_DIR)" --se="$(TARGET_EXE)"
+
 $(TARGET): ${OBJS}
-	${CC} -mwindows ${OBJS} -o "$@" ${LDFLAGS}
+	${CC} ${OBJS} -o "$@" ${LDFLAGS}
 
 $(BUILD_DIR)/%.o:%.c
 	${CC} ${CFLAGS} ${INCLUDE_DIRS} -c $< -o $@
