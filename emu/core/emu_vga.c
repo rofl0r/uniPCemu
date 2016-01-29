@@ -24,6 +24,9 @@ Renderer mini-optimizations.
 
 float oldrate = 0.0f; //The old rate we're using!
 
+double VGA_timing = 0.0f; //No timing yet!
+double VGA_rendertiming = 0.0f; //Time for the renderer to tick!
+
 void changeRowTimer(VGA_Type *VGA, word lines) //Change the VGA row processing timer the ammount of lines on display!
 {
 	#ifdef __HW_DISABLED
@@ -34,17 +37,32 @@ void changeRowTimer(VGA_Type *VGA, word lines) //Change the VGA row processing t
 	if (rate!=oldrate) //New rate has been specified?
 	{
 		oldrate = rate; //We've updated to this rate!
-		unlockVGA(); //Finished with the VGA: we need to update our sequencer!
-		addtimer(rate,&VGA_Sequencer,"VGA_ScanLine",__SCREEN_LINES_LIMIT,0,NULL); //Re-add the Scanline to the timers!
-		lockVGA(); //Lock us again!
+		VGA_rendertiming = 1000000000.0f/rate; //Handle this rate from now on! Keep us locked though to prevent screen updates messing with this!
 	}
 }
 
 void VGA_initTimer()
 {
-	lockVGA(); //Make sure we update correctly!
-	oldrate = 0.0f; //We're starting with no rate: we don't have any timer running by default!
-	unlockVGA(); //We've finished updating!
+	VGA_timing = 0.0f; //We're starting to run now!
+	oldrate = VGA_VerticalRefreshRate(getActiveVGA()); //Initialise the default rate!
+	VGA_rendertiming = 1000000000.0f/oldrate; //Handle this rate from now on!
+}
+
+//CPU cycle locked version of VGA rendering!
+void updateVGA(double timepassed)
+{
+	VGA_timing += timepassed; //Time has passed!
+	if (VGA_timing >= VGA_rendertiming) //Might have passed?
+	{
+		if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Thread safe solution to verify!
+		{
+			for (;VGA_timing >= VGA_rendertiming;) //Ticks left to tick?
+			{
+				VGA_Sequencer(); //Tick the VGA once!
+				VGA_timing -= VGA_rendertiming; //Decrease the time left to render!
+			}
+		}
+	}
 }
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Our settings!

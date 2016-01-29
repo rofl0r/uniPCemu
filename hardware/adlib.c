@@ -114,6 +114,25 @@ OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 	}
 }
 
+void writeadlibKeyON(byte channel, byte forcekeyon)
+{
+	if ((!adlibch[channel].keyon && ((adlibregmem[0xB0 + channel] >> 5) & 1)) || forcekeyon) //Key turned on
+	{
+		adlibop[adliboperators[0][channel]].volenvstatus = 1; //Start attacking!
+		adlibop[adliboperators[1][channel]].volenvstatus = 1; //Start attacking!
+		adlibop[adliboperators[0][channel]].volenvcalculated = adlibop[adliboperators[0][channel]].volenv = 0.0025f;
+		adlibop[adliboperators[1][channel]].volenvcalculated = adlibop[adliboperators[0][channel]].volenv = 0.0025f;
+		adlibop[adliboperators[0][channel]].freq0 = adlibop[adliboperators[0][channel]].time = 0.0f; //Initialise operator signal!
+		adlibop[adliboperators[1][channel]].freq0 = adlibop[adliboperators[1][channel]].time = 0.0f; //Initialise operator signal!
+		memset(&adlibop[adliboperators[0][channel]].lastsignal, 0, sizeof(adlibop[0].lastsignal)); //Reset the last signals!
+		memset(&adlibop[adliboperators[1][channel]].lastsignal, 0, sizeof(adlibop[1].lastsignal)); //Reset the last signals!
+	}
+	adlibch[channel].freq = adlibregmem[0xA0 + channel] | ((adlibregmem[0xB0 + channel] & 3) << 8);
+	adlibch[channel].convfreq = ((double)adlibch[channel].freq * 0.7626459);
+	adlibch[channel].keyon = ((adlibregmem[0xB0 + channel] >> 5) & 1) || forcekeyon; //Key is turned on?
+	adlibch[channel].octave = (adlibregmem[0xB0 + channel] >> 2) & 7;
+}
+
 byte outadlib (uint16_t portnum, uint8_t value) {
 	if (portnum==adlibport) {
 			adlibaddr = value;
@@ -190,25 +209,9 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 	case 0xB0:
 		if (portnum <= 0xB8)
 		{ //octave, freq, key on
-			if ((portnum & 0xF) < 9) //Ignore A9-AF!
-			{
-				portnum &= 0xF; //Get the channel to use!
-				if (!adlibch[portnum].keyon && ((adlibregmem[0xB0 + portnum] >> 5) & 1))
-				{
-					adlibop[adliboperators[0][portnum]].volenvstatus = 1; //Start attacking!
-					adlibop[adliboperators[1][portnum]].volenvstatus = 1; //Start attacking!
-					adlibop[adliboperators[0][portnum]].volenvcalculated = adlibop[adliboperators[0][portnum]].volenv = 0.0025f;
-					adlibop[adliboperators[1][portnum]].volenvcalculated = adlibop[adliboperators[0][portnum]].volenv = 0.0025f;
-					adlibop[adliboperators[0][portnum]].freq0 = adlibop[adliboperators[0][portnum]].time = 0.0f; //Initialise operator signal!
-					adlibop[adliboperators[1][portnum]].freq0 = adlibop[adliboperators[1][portnum]].time = 0.0f; //Initialise operator signal!
-					memset(&adlibop[adliboperators[0][portnum]].lastsignal, 0, sizeof(adlibop[0].lastsignal)); //Reset the last signals!
-					memset(&adlibop[adliboperators[1][portnum]].lastsignal, 0, sizeof(adlibop[1].lastsignal)); //Reset the last signals!
-				}
-				adlibch[portnum].freq = adlibregmem[0xA0 + portnum] | ((adlibregmem[0xB0 + portnum] & 3) << 8);
-				adlibch[portnum].convfreq = ((double)adlibch[portnum].freq * 0.7626459);
-				adlibch[portnum].keyon = (adlibregmem[0xB0 + portnum] >> 5) & 1;
-				adlibch[portnum].octave = (adlibregmem[0xB0 + portnum] >> 2) & 7;
-			}
+			if ((portnum & 0xF) > 8) goto unsupporteditem; //Ignore A9-AF!
+			portnum &= 0xF; //Only take the lower nibble (the channel)!
+			writeadlibKeyON(portnum,0); //Write to this port! Don't force the key on!
 		}
 		else if (portnum == 0xBD) //Percussion settings etc.
 		{
@@ -236,7 +239,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 	default: //Unsupported port?
 		break;
 	}
-	return 1; //We're finished and handled!
+	unsupporteditem:
+	return 1; //We're finished and handled, even non-used registers!
 }
 
 uint8_t inadlib (uint16_t portnum, byte *result) {
@@ -407,14 +411,19 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 
 //Timer ticks!
 
-byte ticked80 = 0; //80 ticked?
+byte ticked80_320 = 0; //80/320 ticked?
 
 OPTINLINE void tick_adlibtimer()
 {
-	//We don't have any IRQs assigned!
 	if (adlibregmem[8] & 0x80) //CSM enabled?
 	{
 		//Process CSM tick!
+		byte channel=0;
+		for (;;)
+		{
+			writeadlibKeyON(channel,1); //Force the key to turn on!
+			if (++channel==9) break; //Finished!
+		}
 	}
 }
 
@@ -429,7 +438,7 @@ OPTINLINE void adlib_timer320() //Second timer!
 				adlibstatus |= 0xA0; //Update status register and set the bits!
 			}
 			timer320 = adlibregmem[3]; //Reload timer!
-			if (!ticked80) tick_adlibtimer(); //Tick either if not already ticked!
+			ticked80_320 = 1; //We're ticked!
 		}
 	}
 }
@@ -438,7 +447,7 @@ byte ticks80 = 0; //How many timer 80 ticks have been done?
 
 OPTINLINE void adlib_timer80() //First timer!
 {
-	ticked80 = 0; //Default: not ticked!
+	ticked80_320 = 0; //Default: not ticked!
 	if (adlibregmem[4] & 1) //Timer1 enabled?
 	{
 		if (++timer80 == 0) //Overflown?
@@ -448,8 +457,7 @@ OPTINLINE void adlib_timer80() //First timer!
 			{
 				adlibstatus |= 0xC0; //Update status register and set the bits!
 			}
-			tick_adlibtimer(); //Tick either timer!
-			ticked80 = 1; //Ticked 80 clock!
+			ticked80_320 = 1; //Ticked 320 clock!
 		}
 	}
 	if (++ticks80 == 4) //Every 4 timer 80 ticks gets 1 timer 320 tick!
@@ -457,6 +465,7 @@ OPTINLINE void adlib_timer80() //First timer!
 		ticks80 = 0; //Reset counter to count 320us ticks!
 		adlib_timer320(); //Execute a timer 320 tick!
 	}
+	if (ticked80_320) tick_adlibtimer(); //Tick by either timer!
 }
 
 float counter80step = 0.0f; //80us timer tick interval in samples!
@@ -576,12 +585,12 @@ void updateAdlib(double timepassed)
 {
 	//Adlib timer!
 	adlib_ticktiming += timepassed; //Get the amount of time passed!
-	if (adlib_ticktiming >= 80000) //Enough time passed?
+	if (adlib_ticktiming >= 80000.0) //Enough time passed?
 	{
-		for (;adlib_ticktiming >= 80000;) //All that's left!
+		for (;adlib_ticktiming >= 80000.0;) //All that's left!
 		{
 			adlib_timer80(); //Tick 80us timer!
-			adlib_ticktiming -= 80000; //Decrease timer to get time left!
+			adlib_ticktiming -= 80000.0; //Decrease timer to get time left!
 		}
 	}
 	

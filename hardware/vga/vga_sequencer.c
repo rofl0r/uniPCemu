@@ -488,12 +488,17 @@ void initStateHandlers()
 void VGA_Sequencer()
 {
 	if (HW_DISABLED) return;
-	if (!lockVGA()) return; //Lock ourselves!
+	//if (!lockVGA()) return; //Lock ourselves!
 	static word displaystate = 0; //Last display state!
 	VGA_Type *VGA = getActiveVGA(); //Our active VGA!
 	if (!memprotect(VGA, sizeof(*VGA), "VGA_Struct")) //Invalid VGA? Don't do anything!
 	{
-		unlockVGA();
+		//unlockVGA();
+		return; //Abort: we're disabled!
+	}
+
+	if (!(VGA->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR && VGA->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR)) //Reset sequencer?
+	{
 		return; //Abort: we're disabled!
 	}
 
@@ -506,14 +511,14 @@ void VGA_Sequencer()
 		initStateHandlers(); //Init our display states for usage!
 	}
 
-	if (!lockGPU()) //Lock the GPU for our access!
+	/*if (!lockGPU()) //Lock the GPU for our access!
 	{
-		unlockVGA();
+		//unlockVGA();
 		return;
-	}
+	}*/
 	if (!memprotect(GPU.emu_screenbuffer, 4, "EMU_ScreenBuffer")) //Invalid framebuffer? Don't do anything!
 	{
-		unlockVGA();
+		//unlockVGA();
 		unlockGPU(); //Unlock the VGA&GPU for Software access!
 		return; //Abort: we're disabled!
 	}
@@ -530,6 +535,6 @@ void VGA_Sequencer()
 		displayrenderhandler[totalretracing][displaystate](Sequencer, VGA); //Execute our signal!
 	}
 
-	unlockVGA(); //Unlock the VGA for Software access!
+	//unlockVGA(); //Unlock the VGA for Software access!
 	unlockGPU(); //Unlock the GPU for Software access!
 }

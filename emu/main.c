@@ -360,8 +360,8 @@ int main(int argc, char * argv[])
 
 	//New SDL way!
 	/* Check for events */
-	getuspassed(&CPUUpdate);
-	getuspassed(&InputUpdate);
+	getnspassed(&CPUUpdate);
+	getnspassed(&InputUpdate);
 	lock(LOCK_CPU); //Lock the CPU: we're running!
 	for (;;) //Still running?
 	{

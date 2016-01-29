@@ -655,6 +655,7 @@ OPTINLINE byte coreHandler()
 		updateAdlib(instructiontime); //Tick the adlib timer if needed!
 		updateATA(instructiontime); //Update the ATA timer!
 		updateDMA(instructiontime); //Update the DMA timer!
+		updateVGA(instructiontime); //Update the VGA timer!
 		#ifndef __PSP__
 			if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
 		#endif

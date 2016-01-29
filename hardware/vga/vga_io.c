@@ -412,7 +412,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		ok = 1;
 		break;
 	case 0x3C5: //Sequencer Data Register			DATA
-		lockVGA();
+		//lockVGA();
 		if (getActiveVGA()->registers->SequencerRegisters_Index>7) break; //Invalid data!
 		if (getActiveVGA()->registers->SequencerRegisters_Index==7) //Disable display till write to sequencer registers 0-6?
 		{
@@ -424,11 +424,11 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		}
 		if (getActiveVGA()->registers->SequencerRegisters_Index>=sizeof(getActiveVGA()->registers->SequencerRegisters.DATA))
 		{
-			unlockVGA(); //Finished with the VGA!
+			//unlockVGA(); //Finished with the VGA!
 			break; //Out of range!
 		}
 		getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index] = value; //Set!
-		unlockVGA();
+		//unlockVGA();
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_SEQUENCER|getActiveVGA()->registers->SequencerRegisters_Index); //We have been updated!		
 		ok = 1;
 		break;
