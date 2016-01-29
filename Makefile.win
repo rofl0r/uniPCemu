@@ -11,8 +11,8 @@ TARGET = $(BUILD_NAME).exe
 #Our actual building script doing all the hard work:
 
 #Our filenames of the targets (release and debug)!
-TARGET_RELEASE := $(TARGET)
-TARGET_DEBUG := dbg$(TARGET)
+TARGET_RELEASE = $(TARGET)
+TARGET_DEBUG = dbg$(TARGET)
 
 #Programs
 CC = gcc
@@ -27,13 +27,13 @@ OPTIMIZATIONFLAGS = -O3
 
 #Building for debugging optimization flags
 ifneq (,$(findstring debug,$(MAKECMDGOALS)))
-OPTIMIZATIONFLAGS = -O0
+OPTIMIZATIONFLAGS =
 endif
 
 #Building for debugger and normal CFLAGS
 BUILD_CFLAGS = -enable-core-inline -static-libgcc -static-libstdc++
 ifneq (,$(findstring debug,$(MAKECMDGOALS)))
-BUILD_CFLAGS = 
+BUILD_CFLAGS = -Og
 endif
 
 #Different kinds of flags!
@@ -41,24 +41,29 @@ CFLAGS = -std=c99  ${WARNS} -DWIN32_LEAN_AND_MEAN -D _WIN32_IE=0x0500 -D WINVER=
 LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 
 #Apply build directory etc.
-TARGET_RELEASE := $(BUILD_DIR)/$(TARGET_RELEASE)
-TARGET_DEBUG := $(BUILD_DIR)/$(TARGET_DEBUG)
+BUILD_RELEASE = $(BUILD_DIR)/$(TARGET_RELEASE)
+BUILD_DEBUG = $(BUILD_DIR)/$(TARGET_DEBUG)
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
 #Rules themselves!
-#Build&debug command!
-build: $(TARGET_RELEASE)
+#Build&debug command support!
+
+.phony: all build debug clean redebug
+build: $(BUILD_RELEASE)
+win: build
 
 #Run debugger now on the executable!
-debug: clean $(TARGET_DEBUG)
+debug: $(BUILD_DEBUG)
 	gdb -w --cd="$(BUILD_DIR)" --se="$(TARGET_DEBUG)"
 
+redebug: clean debug
+
 #Compile into debug mode without stripping (-s)!
-$(TARGET_DEBUG): ${OBJS}
+$(BUILD_DEBUG): ${OBJS}
 	${CC} -g $(OBJS) -o "$@" ${LDFLAGS}
 
 #Compile into release mode with stripping (-s)!
-$(TARGET_RELEASE): ${OBJS}
+$(BUILD_RELEASE): ${OBJS}
 	${CC} ${OBJS} $(STRIP) -o "$@" ${LDFLAGS}
 
 #Normal compilation of seperate modules!

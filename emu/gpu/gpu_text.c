@@ -76,7 +76,7 @@ OPTINLINE static byte getcharxy_8(byte character, int x, int y) //Retrieve a cha
 
 OPTINLINE static byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
 {
-	int charx, chary, x2=x, y2=y;
+	int charx=0, chary=0, x2=x, y2=y;
 	if (GPU_textcalcpixel(&x2, &y2, &charx, &chary)) return 0; //Calculate our info. Our of range = Background!
 	return getcharxy_8(surface->text[chary][charx], x2, y2); //Give the pixel of the character!
 }
@@ -84,7 +84,7 @@ OPTINLINE static byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) 
 OPTINLINE static uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
 {
 	if (((x<0) || (y<0) || ((y >> 3) >= GPU_TEXTSURFACE_HEIGHT) || ((x >> 3) >= GPU_TEXTSURFACE_WIDTH))) return TRANSPARENTPIXEL; //None when out of bounds!
-	int charx, chary, x2=x, y2=y;
+	int charx=0, chary=0, x2=x, y2=y;
 	GPU_textcalcpixel(&x2, &y2, &charx, &chary); //Calculate our info!
 	return border ? surface->border[chary][charx] : surface->font[chary][charx]; //Give the border or font of the character!
 }

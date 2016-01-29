@@ -273,7 +273,7 @@ OPTINLINE byte peekStream(byte *stream, TRACK_CHNK *track, byte *result)
 OPTINLINE byte read_VLV(byte *midi_stream, TRACK_CHNK *track, uint_32 *result)
 {
 	uint_32 temp = 0;
-	byte curdata;
+	byte curdata=0;
 	if (!consumeStream(midi_stream, track, &curdata)) return 0; //Read first VLV failed?
 	for (;;) //Process/read the VLV!
 	{
@@ -294,7 +294,7 @@ OPTINLINE void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *head
 
 	//Metadata event!
 	byte meta_type;
-	uint_32 length, length_counter; //Our metadata variable length!
+	uint_32 length=0, length_counter; //Our metadata variable length!
 
 	uint_64 play_pos = 0; //Current play position!
 
