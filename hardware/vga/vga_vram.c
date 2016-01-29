@@ -89,6 +89,8 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte mode) //Read fro
 
 	fulloffset2 &= 0x3FFFF; //Wrap arround memory! Maximum of 256K memory!
 
+	if (!VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
+
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
 		return VGA->VRAM[fulloffset2]; //Read the data from VRAM!
@@ -112,6 +114,8 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value, byte mod
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
 
 	fulloffset2 &= 0x3FFFF; //Wrap arround memory!
+
+	if (!VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
