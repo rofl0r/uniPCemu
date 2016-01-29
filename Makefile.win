@@ -4,12 +4,15 @@ BUILD_DIR = ../projects_build/$(BUILD_NAME)
 
 #Name of the destination application!
 TARGET = $(BUILD_NAME).exe
-TARGET_EXE := $(TARGET)
 
 # ###################################################
 
 
 #Our actual building script doing all the hard work:
+
+#Our filenames of the targets (release and debug)!
+TARGET_RELEASE := $(TARGET)
+TARGET_DEBUG := dbg$(TARGET)
 
 #Programs
 CC = gcc
@@ -19,28 +22,45 @@ WARNS = -Wall
 
 INCLUDE_DIRS = -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
 
+#Default optimization flags!
+OPTIMIZATIONFLAGS = -O3
+
+#Building for debugging optimization flags
+ifneq (,$(findstring debug,$(MAKECMDGOALS)))
+OPTIMIZATIONFLAGS = -O0
+endif
+
+#Building for debugger and normal CFLAGS
+BUILD_CFLAGS = -enable-core-inline -static-libgcc -static-libstdc++
+ifneq (,$(findstring debug,$(MAKECMDGOALS)))
+BUILD_CFLAGS = 
+endif
+
 #Different kinds of flags!
-CFLAGS = -O3 -std=c99 -DWIN32_LEAN_AND_MEAN -D _WIN32_IE=0x0500 -D WINVER=0x500 ${WARNS} -enable-core-inline -static-libgcc -static-libstdc++
+CFLAGS = -std=c99  ${WARNS} -DWIN32_LEAN_AND_MEAN -D _WIN32_IE=0x0500 -D WINVER=0x500
 LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 
 #Apply build directory etc.
-TARGET := $(BUILD_DIR)/$(TARGET)
+TARGET_RELEASE := $(BUILD_DIR)/$(TARGET_RELEASE)
+TARGET_DEBUG := $(BUILD_DIR)/$(TARGET_DEBUG)
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
 #Rules themselves!
-#Build command!
-build: $(TARGET)
+#Build&debug command!
+build: $(TARGET_RELEASE)
 
-debug: $(TARGET)
-	#First, delete our executable we don't need, if it exists!
-	rm -f $(TARGET)
-	#Compile into debug mode!
-	${CC} -g ${OBJS} -o "$(TARGET)" ${LDFLAGS}
-	#Run debugger now on the executable!
-	gdb -w --cd="$(BUILD_DIR)" --se="$(TARGET_EXE)"
+#Run debugger now on the executable!
+debug: clean $(TARGET_DEBUG)
+	gdb -w --cd="$(BUILD_DIR)" --se="$(TARGET_DEBUG)"
 
-$(TARGET): ${OBJS}
-	${CC} ${OBJS} -o "$@" ${LDFLAGS}
+#Compile into debug mode without stripping (-s)!
+$(TARGET_DEBUG): ${OBJS}
+	${CC} -g $(OBJS) -o "$@" ${LDFLAGS}
 
+#Compile into release mode with stripping (-s)!
+$(TARGET_RELEASE): ${OBJS}
+	${CC} ${OBJS} $(STRIP) -o "$@" ${LDFLAGS}
+
+#Normal compilation of seperate modules!
 $(BUILD_DIR)/%.o:%.c
-	${CC} ${CFLAGS} ${INCLUDE_DIRS} -c $< -o $@
+	${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@
