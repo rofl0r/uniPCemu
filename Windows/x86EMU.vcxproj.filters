@@ -471,6 +471,9 @@
     <ClCompile Include="..\support\wave.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
+    <ClCompile Include="..\hardware\parallel.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">
@@ -852,6 +855,9 @@
     </ClInclude>
     <ClInclude Include="..\headers\support\wave.h">
       <Filter>Header Files\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\hardware\parallel.h">
+      <Filter>Header Files\hardware</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

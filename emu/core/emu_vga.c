@@ -56,6 +56,13 @@ void updateVGA(double timepassed)
 	{
 		if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Thread safe solution to verify!
 		{
+			if (__SCREEN_LINES_LIMIT) //Limit set?
+			{
+				if (VGA_timing>=(__SCREEN_LINES_LIMIT*VGA_rendertiming)) //Limit broken?
+				{
+					VGA_timing = __SCREEN_LINES_LIMIT*VGA_rendertiming; //Limit the processing!
+				}
+			}
 			for (;VGA_timing >= VGA_rendertiming;) //Ticks left to tick?
 			{
 				VGA_Sequencer(); //Tick the VGA once!

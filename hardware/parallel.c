@@ -107,6 +107,7 @@ byte outparallel(word port, byte value)
 		if (PARALLELPORT[Parallelport].outputhandler) //Valid?
 		{
 			PARALLELPORT[Parallelport].outputhandler(value); //Output the new data
+			PARALLELPORT[Parallelport].outputdata = value; //We've written data on this port!
 		}
 		return 1; //We're handled!
 		break;

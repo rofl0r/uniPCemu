@@ -387,8 +387,8 @@ typedef union PACKED
 		struct
 		{
 			byte VerticalRetraceEnd : 4; //Determines the end of the vertical retrace pulse, and this it's length. Lower 4 bits of Vertical Retrace End register.
-			byte VerticalInterrupt_Enabled : 1; //Set to 0 clears a pending VRetrace interrupt. Set to enable generation of VBlank interrupt.
-			byte VerticalInterrupt_Disabled : 1; //1: Disable the generation of an interrupt of each VRetrace.
+			byte VerticalInterrupt_NotCleared : 1; //Set to 0 clears a pending VRetrace interrupt. Set to enable generation of VBlank interrupt.
+			byte VerticalInterrupt_Disabled : 1; //1: Disable the generation of an interrupt of each VRetrace. 0: Enable vertical retrace interrupt (on IRQ2, which also sets Input Status register 0 bit 7)
 			byte Bandwidth : 1; //Memory Refresh Bandwidth: Unused by VGA.
 			byte Protect : 1; //Protect CRTC Registers? 1=Ignore writes to indexes 00h-07h, except bit 4 of the Overflow Register.
 		} VERTICALRETRACEENDREGISTER; //Index #11

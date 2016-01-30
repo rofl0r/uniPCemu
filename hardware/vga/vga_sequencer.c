@@ -25,7 +25,10 @@ word signal_x, signal_scanline; //Signal location!
 
 #define CURRENTBLINK(VGA) VGA->TextBlinkOn
 
-#define PIXELBLOCKSIZE 1024
+#define PIXELBLOCKSIZE 16
+
+//Our IRQ to use when enabled (EGA compatibility)!
+#define VGA_IRQ 2
 
 typedef uint_32(*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
 extern byte DAC_whatBWMonitor; //Default: color monitor!
@@ -421,6 +424,16 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		if (!vretrace) //Not running yet?
 		{
 			VGA_VRetrace(Sequencer, VGA); //Execute the handler!
+
+			//VGA/EGA vertical retrace interrupt support!
+			if (VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_NotCleared) //Enabled vertical retrace interrupt?
+			{
+				if (!VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Disabled) //Generate vertical retrace interrupts?
+				{
+					doirq(VGA_IRQ); //Execute the CRT interrupt when possible!
+				}
+				VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 1; //We're pending an CRT interrupt!
+			}
 		}
 		vretrace = 1; //We're retracing!
 	}

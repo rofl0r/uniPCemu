@@ -6,7 +6,7 @@
     <RemoteDebuggerWorkingDirectory>$(OutDir)</RemoteDebuggerWorkingDirectory>
     <RemoteDebuggerDebuggerType>NativeOnly</RemoteDebuggerDebuggerType>
     <RemoteDebuggerAttach>false</RemoteDebuggerAttach>
-    <DeploymentDirectory>C:\psp-projects_build\x86emu</DeploymentDirectory>
+    <DeploymentDirectory>\psp-projects_build\x86emu</DeploymentDirectory>
     <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
     <AdditionalFiles>C:\SDL\SDL-1.2.15\lib\x86\SDL.dll;C:\SDL\SDL_gfx-2.0.25\Release\SDL_gfx.dll</AdditionalFiles>
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>

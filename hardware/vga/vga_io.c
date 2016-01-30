@@ -145,9 +145,9 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 		if (index==0x11) //Bit 4&5 of the Vertical Retrace End register have other effects!
 		{
 			//Bit 5: Input status Register 0, bit 7 needs to be updated with Bit 5?
-			if (getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Enabled && !getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Disabled) //Vertical interrupt enabled?
+			if (!getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_NotCleared) //Vertical interrupt cleared?
 			{
-				getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 1; //Enable pending interrupt till VBlank occurrs!
+				getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 0; //Clear the vertical interrupt pending flag!
 			}
 		}
 		if (!getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EVRA) //Force to 1?

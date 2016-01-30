@@ -211,7 +211,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		{ //octave, freq, key on
 			if ((portnum & 0xF) > 8) goto unsupporteditem; //Ignore A9-AF!
 			portnum &= 0xF; //Only take the lower nibble (the channel)!
-			writeadlibKeyON(portnum,0); //Write to this port! Don't force the key on!
+			writeadlibKeyON((byte)portnum,0); //Write to this port! Don't force the key on!
 		}
 		else if (portnum == 0xBD) //Percussion settings etc.
 		{

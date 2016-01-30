@@ -2429,7 +2429,7 @@ void updateKeyboard(double timepassed)
 	keyboard_type_handler(timepassed); //Tick the timer!
 }
 
-double mouse_ticktiming=0;
+double mouse_ticktiming=0.0f;
 
 //Check for timer occurrences.
 void cleanMouse()
@@ -2471,6 +2471,7 @@ void psp_input_init()
 		++i; //Next!
 	}
 	SDL_EnableKeyRepeat(0,0); //Don't repeat pressed keys!
+	mouse_ticktiming = 0.0f; //Initialise mouse timing!
 }
 
 void psp_input_done()

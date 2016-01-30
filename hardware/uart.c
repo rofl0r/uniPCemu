@@ -11,6 +11,7 @@
 
 struct
 {
+	byte used; //Are we an used UART port?
 	//+0 is data register (transmit or receive data)
 	//+1 as well as +0 have alternative
 	byte InterruptEnableRegister; //Either this register or Divisor Latch when 
@@ -79,6 +80,7 @@ struct
 
 OPTINLINE void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 {
+	if (!UART_port[COMport].used) return; //Unused COM port!
 	switch (cause) //What cause?
 	{
 	case 0: //Modem status changed?
@@ -162,7 +164,7 @@ byte getCOMport(word port) //What COM port?
 			break;
 	}
 	
-	return COMport; //Give the COM port!
+	return UART_port[COMport].used?COMport:4; //Give the COM port or 4 for unregistered COM port!
 }
 
 /*
@@ -363,6 +365,7 @@ void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, 
 {
 	if (portnumber > 3) return; //Invalid port!
 	//Register the handlers!
+	UART_port[portnumber].used = 1; //We're an used UART port!
 	UART_port[portnumber].setmodemcontrol = setmodemcontrol;
 	UART_port[portnumber].hasdata = hasdata;
 	UART_port[portnumber].receivedata = receivedata;

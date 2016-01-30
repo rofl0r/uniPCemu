@@ -213,7 +213,7 @@ void onKeySetChange() //PSP input: keyset change!
 
 void initEMUKeyboard() //Initialise the keyboard support for emulating!
 {
-	keyboard_time = 0; //Initialise our time!
+	keyboard_time = 0.0f; //Initialise our time!
 }
 
 void cleanEMUKeyboard()
