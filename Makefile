@@ -128,6 +128,9 @@ OBJS += support/mid.o
 #UART
 OBJS += hardware/uart.o
 
+#Parallel
+OBJS += hardware/parallel.o
+
 #Mouse
 OBJS += hardware/sermouse.o
 

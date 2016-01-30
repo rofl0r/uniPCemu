@@ -1,7 +1,7 @@
 #include "headers/types.h" //Basic types!
-#include "headers/hardware/ports.h" //I/O support!
 #include "headers/support/fifobuffer.h" //FIFO buffer support!
 #include "headers/emu/sound.h" //Sound output support!
+#include "headers/hardware/parallel.h" //Parallel port support!
 
 //Sound source sample rate and buffer size!
 #define __SSOURCE_RATE 7000.0f
@@ -14,8 +14,8 @@ byte ssource_ready = 0; //Are we running?
 FIFOBUFFER *ssourcestream = NULL, *ssourcestream2 = NULL; //Sound source data stream and secondary buffer!
 byte forcefull = 0; //Forced full buffer?
 
-byte getssourcebyte() {
-	byte result;
+OPTINLINE static byte getssourcebyte() {
+	static byte result=0;
 	if (!readfifobuffer(ssourcestream2, &result)) //Nothing gotten from the secondary buffer?
 	{
 		if (!readfifobuffer(ssourcestream, &result)) //Primary buffer has no data as well?
@@ -39,65 +39,47 @@ byte ssourceoutput(void* buf, uint_32 length, byte stereo, void *userdata)
 }
 
 
-void putssourcebyte(byte value) {
-	lockaudio(); //Make sure the audio thread isn't using our data!
-	if (writefifobuffer(ssourcestream, value)) //Add to the primary buffer!
-	{
-		if (!fifobuffer_freesize(ssourcestream)) //Buffer full?
-		{
-			forcefull = 1; //We're forced full to allow detection of 'full' buffer!
-		}
-		movefifobuffer8(ssourcestream,ssourcestream2,__SSOURCE_BUFFER); //Move data to the destination buffer once we're full!
-	}
-	unlockaudio(); //We're finished locking!
+byte outbuffer = 0x00; //Our outgoing data buffer!
+byte lastcontrol = 0x00; //Our current control data!
+
+void soundsourceoutput(byte data)
+{
+	outbuffer = data; //Last data set on our lines!
 }
 
-byte ssourcefull() {
-	lockaudio(); //Lock the audio!
-	if (!fifobuffer_freesize(ssourcestream) || forcefull)
+void soundsourcecontrolout(byte control)
+{
+	if (control&4) //Is this output for the Sound Source?
+	{
+		if ((control & 8) && !(lastcontrol & 8)) //Toggling this bit on sends the data to the DAC!
+		{
+			if (writefifobuffer(ssourcestream, outbuffer)) //Add to the primary buffer!
+			{
+				forcefull = !fifobuffer_freesize(ssourcestream); //Buffer full?
+				movefifobuffer8(ssourcestream,ssourcestream2,__SSOURCE_BUFFER); //Move data to the destination buffer once we're full!
+			}
+			else //Write failed with buffer full or error?
+			{
+				forcefull = !fifobuffer_freesize(ssourcestream); //Buffer full?
+			}
+		}
+	}
+	lastcontrol = control; //Save the last status for checking the bits!
+}
+
+byte soundsourcecontrolin()
+{
+	return lastcontrol; //Give our last control byte!
+}
+
+byte soundsourcestatus()
+{
+	if (!fifobuffer_freesize(ssourcestream) || forcefull) //Buffer full or forced full?
 	{
 		forcefull = 0; //Not forced full anymore! We're needing filling if possible next check!
-		unlockaudio(); //Unlock the audio!
-		return (0x40);
+		return (0x40); //We have a full buffer!
 	}
-
-	unlockaudio(); //Unlock the audio!
-	return (0x00);
-}
-
-byte outsoundsource(word port, byte value) {
-	static byte lastcontrol = 0;
-	static byte databuffer = 0;
-	switch (port) {
-	case 0x378: //Data output?
-		databuffer = value; //Last data output!
-		return 1; //We're handled!
-		break;
-	case 0x37A: //Control register?
-		if (value&4) //Is this output for the Sound Source?
-		{
-			if ((value & 8) && !(lastcontrol & 8)) putssourcebyte(databuffer); //Toggling this bit on sends the data to the DAC!
-			lastcontrol = value; //Save the last status for checking the bits!
-		}
-		return 1; //We're handled!
-		break;
-	default:
-		break;
-	}
-	return 0; //We're not handled!
-}
-
-byte insoundsource(word port, byte *result) {
-	switch (port)
-	{
-	case 0x379: //Status?
-		*result = ssourcefull();
-		return 1; //We're handled!
-		break;
-	default: //Unknown port?
-		break;
-	}
-	return 0; //Not supported port!
+	return (0x00); //We have an empty buffer!
 }
 
 void ssource_setVolume(float volume)
@@ -126,9 +108,9 @@ void initSoundsource() {
 		{
 			if (addchannel(&ssourceoutput, NULL, "Sound Source", __SSOURCE_RATE, __SSOURCE_HWBUFFER, 0, SMPL8U)) //Channel added?
 			{
+				outbuffer = lastcontrol = 0; //Reset output buffer and last control!
 				ssource_setVolume(1.0f); //Default volume: 100%!
-				register_PORTIN(&insoundsource); //Register the read handler!
-				register_PORTOUT(&outsoundsource); //Register the write handler!
+				registerParallel(0,&soundsourceoutput,&soundsourcecontrolout,&soundsourcecontrolin,&soundsourcestatus); //Register out parallel port for handling!
 				ssource_ready = 1; //We're running!
 			}
 			else

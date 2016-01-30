@@ -2425,7 +2425,7 @@ TicksHolder Keyboardticker; //Actual keyboard timing!
 
 void updateKeyboard(double timepassed)
 {
-	timepassed += (double)getnspassed(&Keyboardticker); //Actual time passed is used instead!
+	timepassed = (double)getnspassed(&Keyboardticker); //Actual time passed is used instead!
 	keyboard_type_handler(timepassed); //Tick the timer!
 }
 

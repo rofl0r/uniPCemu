@@ -71,6 +71,8 @@
 
 #include "headers/hardware/ssource.h" //Disney Sound Source support!
 
+#include "headers/hardware/parallel.h" //Parallel port support!
+
 //CPU default clock speeds (in Hz)!
 
 //The clock speed of the 8086 (14.31818MHz divided by 3)!
@@ -244,6 +246,9 @@ void initEMU(int full) //Init!
 	debugrow("Initialising Adlib...");
 	initAdlib(); //Initialise adlib!
 
+	debugrow("Initialising Parallel ports...");
+	initParallelPorts(); //Initialise the Parallel ports (LPT ports)!
+
 	debugrow("Initialising Disney Sound Source...");
 	initSoundsource(); //Initialise Disney Sound Source!
 	ssource_setVolume(BIOS_Settings.SoundSource_Volume); //Set the sound source volume!
@@ -320,7 +325,7 @@ void initEMU(int full) //Init!
 
 	debugrow("Initialising UART...");
 	initUART(); //Initialise the UART (COM ports)!
-	
+
 	debugrow("Initialising serial mouse...");
 	initSERMouse(!BIOS_Settings.PS2Mouse); //Initilialise the serial mouse!
 
