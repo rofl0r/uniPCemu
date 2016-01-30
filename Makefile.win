@@ -33,7 +33,7 @@ endif
 #Building for debugger and normal CFLAGS
 BUILD_CFLAGS = -enable-core-inline -static-libgcc -static-libstdc++
 ifneq (,$(findstring debug,$(MAKECMDGOALS)))
-BUILD_CFLAGS = -Og
+BUILD_CFLAGS = -Og -DDEBUG
 endif
 
 #Different kinds of flags!
@@ -48,9 +48,7 @@ OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 #Rules themselves!
 #Build&debug command support!
 
-.phony: all build debug clean redebug
 build: $(BUILD_RELEASE)
-win: build
 
 #Run debugger now on the executable!
 debug: $(BUILD_DEBUG)

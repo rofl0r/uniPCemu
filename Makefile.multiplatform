@@ -15,7 +15,8 @@ ifneq (,$(PLATFORM))
 include Makefile.$(PLATFORM)
 endif
 
-.PHONY: all clean psp win distclean
+#Disable parsing of the platforms themselves!
+.PHONY: psp win
 
 clean:
 ifneq (,$(PLATFORM))

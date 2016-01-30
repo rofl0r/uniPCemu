@@ -268,6 +268,13 @@ void CPU_updateVideo()
 	else unlock(LOCK_VIDEO); //We're done with the video!
 }
 
+void triggerCPUVideoUpdate()
+{
+	lock(LOCK_VIDEO); //We're needing to update the video!
+	needvideoupdate = 1; //We need a video update!
+	unlock(LOCK_VIDEO); //Ready to update the video!
+}
+
 void updateVideo() //Update the screen resolution on change!
 {
 	//We're disabled with the PSP: it doesn't update resolution!
@@ -301,9 +308,7 @@ void updateVideo() //Update the screen resolution on change!
 			resolutiontype = restype; //Last resolution type!
 			fullscreen = GPU.fullscreen;
 			aspectratio = GPU.aspectratio; //Save the new values for comparing the next time we're changed!
-			lock(LOCK_VIDEO); //We're needing to update the video!
-			needvideoupdate = 1; //We need a video update!
-			unlock(LOCK_VIDEO); //Ready to update the video!
+			triggerCPUVideoUpdate(); //Trigger the CPU to update the video!
 		}
 	}
 	unlockGPU(); //Finished with the GPU!
