@@ -44,6 +44,7 @@ VIDEO BASICS!
 
 */
 
+byte firstwindow = 1;
 word window_xres = 0;
 word window_yres = 0;
 byte video_aspectratio = 0; //Current aspect ratio!
@@ -100,7 +101,11 @@ SDL_Surface *getGPUSurface()
 
 	updateWindow(xres,yres,flags); //Update the window resolution if needed!
 
-	SDL_WM_SetCaption( "x86EMU", 0 );
+	if (firstwindow)
+	{
+		firstwindow = 0; //Not anymore!
+		SDL_WM_SetCaption( "x86EMU", 0 ); //Initialise our window title!
+	}
 	GPU_text_updatedelta(originalrenderer); //Update delta if needed, so the text is at the correct position!
 	#endif
 
