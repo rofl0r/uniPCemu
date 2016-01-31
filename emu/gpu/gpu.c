@@ -54,7 +54,6 @@ void updateWindow(word xres, word yres, uint_32 flags)
 	window_xres = xres;
 	window_yres = yres;
 	originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
-	dolog("video","X: %i Y: %i Aspect: %i",window_xres,window_yres,video_aspectratio); //Log our information!
 }
 
 SDL_Surface *getGPUSurface()
@@ -215,7 +214,6 @@ void initVideo(int show_framerate) //Initialises the video
 
 	debugrow("Video: Initialising screen buffers...");
 	
-	//dolog("zalloc","Allocating GPU EMU_screenbuffer...");
 	debugrow("Video: Waiting for access to GPU...");
 	lockGPU(); //Wait for access!
 	debugrow("Video: Allocating screen buffer...");
