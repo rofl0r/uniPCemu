@@ -975,7 +975,7 @@ void CPU_fillPIQ() //Fill the PIQ until it's full!
 		for (;size;) //Gotten data to fill into the PIQ?
 		{
 			writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 1)); //Add the next byte from memory into the buffer!
-			--size; //Next data!
+			--size; //Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
 		}
 	}
 }
