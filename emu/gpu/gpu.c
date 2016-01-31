@@ -44,32 +44,32 @@ VIDEO BASICS!
 
 */
 
+word window_xres = 0;
+word window_yres = 0;
+byte video_aspectratio = 0; //Current aspect ratio!
+
+void updateWindow(word xres, word yres, uint_32 flags)
+{
+	window_xres = xres;
+	window_yres = yres;
+	originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	dolog("video","X: %i Y: %i Aspect: %i",window_xres,window_yres,video_aspectratio); //Log our information!
+}
+
 SDL_Surface *getGPUSurface()
 {
 	#ifdef __psp__
 	//PSP?
-	originalrenderer = SDL_SetVideoMode(PSP_SCREEN_COLUMNS, PSP_SCREEN_ROWS, 32, SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	updateWindow(PSP_SCREEN_COLUMNS,PSP_SCREEN_ROWS,32,SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 	#else
 	//Windows etc?
-	//If the limit is broken, don't change resolution! Keep old resolution!
-	if (GPU.xres > EMU_MAX_X)
-	{
-		if (originalrenderer) return originalrenderer; //Unchanged!
-		GPU.xres = 0; //Discard: overflow!
-	}
-	if (GPU.yres > EMU_MAX_Y)
-	{
-		if (originalrenderer) return originalrenderer; //Unchanged!
-		GPU.yres = 0; //Discard: overflow!
-	}
-
 	//Other architecture?
 	uint_32 xres, yres; //Our determinated resolution!
 	if (VIDEO_DFORCED) //Forced?
 	{
-		if (resized && GPU.aspectratio) //Keep aspect ratio set and gotten something to take information from?
+		if (video_aspectratio) //Keep aspect ratio set and gotten something to take information from?
 		{
-			calcResize(GPU.aspectratio,GPU.xres,GPU.yres,EMU_MAX_X,EMU_MAX_Y,&xres,&yres); //Calculate resize using aspect ratio set for our screen on maximum size!
+			calcResize(video_aspectratio,GPU.xres,GPU.yres,EMU_MAX_X,EMU_MAX_Y,&xres,&yres); //Calculate resize using aspect ratio set for our screen on maximum size!
 		}
 		else //Default: Take the information from the monitor input resolution!
 		{
@@ -83,8 +83,9 @@ SDL_Surface *getGPUSurface()
 		yres = PSP_SCREEN_ROWS; //PSP resolution y!
 	}
 
+	//Apply limits!
 	if (xres > EMU_MAX_X) xres = EMU_MAX_X;
-	if (yres > EMU_MAX_Y) yres = EMU_MAX_Y; //Apply limits!
+	if (yres > EMU_MAX_Y) yres = EMU_MAX_Y;
 	
 	//Determine minimum by text/screen resolution!
 	word minx, miny;
@@ -97,7 +98,7 @@ SDL_Surface *getGPUSurface()
 	uint_32 flags = SDL_SWSURFACE; //Default flags!
 	if (GPU.fullscreen) flags |= SDL_FULLSCREEN; //Goto fullscreen mode!
 
-	originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	updateWindow(xres,yres,flags); //Update the window resolution if needed!
 
 	SDL_WM_SetCaption( "x86EMU", 0 );
 	GPU_text_updatedelta(originalrenderer); //Update delta if needed, so the text is at the correct position!
@@ -238,7 +239,7 @@ void initVideo(int show_framerate) //Initialises the video
 	debugrow("Video: Setting up debugger...");
 	resetVideo(); //Initialise the video!
 
-	GPU.aspectratio = 0; //Default aspect ratio by default!
+	GPU.aspectratio = video_aspectratio = 0; //Default aspect ratio by default!
 
 //We're running with SDL?
 	unlockGPU(); //Unlock the GPU for Software access!
@@ -279,37 +280,38 @@ void updateVideo() //Update the screen resolution on change!
 {
 	//We're disabled with the PSP: it doesn't update resolution!
 	#ifndef __psp__
+	byte reschange = 0, restype = 0; //Resolution change and type!
 	static word xres=0;
 	static word yres=0;
 	static byte fullscreen = 0; //Are we fullscreen?
-	static byte aspectratio = 0; //Aspect ratio to use!
 	static byte resolutiontype = 0; //Last resolution type!
 	static byte plotsetting = 0; //Direct plot setting!
+	static byte aspectratio = 0; //Last aspect ratio!
 	lockGPU();
-	if (rendersurface) //Already started?
+	if ((VIDEO_DIRECT || VIDEO_DFORCED) && (!video_aspectratio)) //Direct aspect ratio?
 	{
-		byte reschange = 0, restype = 0; //Resolution change and type!
-		if (((!VIDEO_DIRECT) && (!GPU.aspectratio)) || (VIDEO_DFORCED && (!GPU.aspectratio))) //Direct aspect ratio?
-		{
-			reschange = ((xres != GPU.xres) || (yres != GPU.yres)); //This is the effective resolution!
-			restype = 0; //Default resolution type!
-		}
-		else if (resized) //Resized available?
-		{
-			reschange = ((xres!=resized->sdllayer->w) || (yres!=resized->sdllayer->h)); //This is the effective resolution!
-			restype = 1; //Resized resolution type!
-		}
-		if (reschange || (fullscreen!=GPU.fullscreen) || (aspectratio!=GPU.aspectratio) || (resolutiontype!=restype) || (BIOS_Settings.VGA_AllowDirectPlot!=plotsetting)) //Resolution (type) changed or fullscreen changed or plot setting changed?
-		{
-			GPU.forceRedraw = 1; //We're forcing a full redraw next frame to make sure the screen is always updated nicely!
-			xres = restype?resized->sdllayer->w:GPU.xres;
-			yres = restype?resized->sdllayer->h:GPU.yres;
-			plotsetting = BIOS_Settings.VGA_AllowDirectPlot; //Update the plot setting!
-			resolutiontype = restype; //Last resolution type!
-			fullscreen = GPU.fullscreen;
-			aspectratio = GPU.aspectratio; //Save the new values for comparing the next time we're changed!
-			triggerCPUVideoUpdate(); //Trigger the CPU to update the video!
-		}
+		reschange = ((window_xres!=GPU.xres) || (window_yres!=GPU.yres)); //Resolution update based on Window Resolution?
+		restype = 0; //Default resolution type!
+	}
+	else if (resized) //Resized available?
+	{
+		reschange = ((xres!=resized->sdllayer->w) || (yres!=resized->sdllayer->h)); //This is the effective resolution!
+		restype = 1; //Resized resolution type!
+	}
+	else
+	{
+		reschange = 0; //No resolution change when unknown!
+	}
+	if (reschange || (fullscreen!=GPU.fullscreen) || (aspectratio!=video_aspectratio) || (resolutiontype!=restype) || (BIOS_Settings.VGA_AllowDirectPlot!=plotsetting)) //Resolution (type) changed or fullscreen changed or plot setting changed?
+	{
+		GPU.forceRedraw = 1; //We're forcing a full redraw next frame to make sure the screen is always updated nicely!
+		xres = restype?resized->sdllayer->w:GPU.xres;
+		yres = restype?resized->sdllayer->h:GPU.yres;
+		plotsetting = BIOS_Settings.VGA_AllowDirectPlot; //Update the plot setting!
+		resolutiontype = restype; //Last resolution type!
+		fullscreen = GPU.fullscreen;
+		aspectratio = video_aspectratio; //Save the new values for comparing the next time we're changed!
+		triggerCPUVideoUpdate(); //Trigger the CPU to update the video!
 	}
 	unlockGPU(); //Finished with the GPU!
 	#endif
@@ -349,7 +351,8 @@ void GPU_AspectRatio(byte aspectratio) //Keep aspect ratio with letterboxing?
 {
 	if (__HW_DISABLED) return; //Abort!
 	lock(LOCK_GPU); //Lock us!
-	GPU.aspectratio = (aspectratio<3)?aspectratio:0; //To use aspect ratio?
+	GPU.aspectratio = video_aspectratio = (aspectratio<3)?aspectratio:0; //To use aspect ratio?
+	GPU.forceRedraw = 1; //We're forcing a redraw of the screen using the new aspect ratio!
 	unlock(LOCK_GPU); //Unlock us!
 }
 

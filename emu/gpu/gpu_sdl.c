@@ -374,6 +374,8 @@ OPTINLINE void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x
 	if ((y<surface->sdllayer->h) && (x<surface->sdllayer->w)) //Within range?
 	{
 		uint_32 *pixels = (uint_32 *)surface->sdllayer->pixels;
+		if (!memprotect(surface->sdllayer,sizeof(*surface->sdllayer),NULL)) return NULL; //Invalid data!
+		if (memprotect(surface->sdllayer,sizeof(*surface->sdllayer),NULL)!=surface->sdllayer) return NULL; //Invalid data, we don't match!
 		if (memprotect(pixels,get_pixelrow_pitch(surface)*surface->sdllayer->h*sizeof(uint_32),NULL)) //Valid pixels?
 		{
 			uint_32 *result = &pixels[ ( y * get_pixelrow_pitch(surface) ) + x ]; //Our result!
