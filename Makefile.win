@@ -38,7 +38,7 @@ endif
 
 #Different kinds of flags!
 CFLAGS = -std=c99  ${WARNS} -DWIN32_LEAN_AND_MEAN -D _WIN32_IE=0x0500 -D WINVER=0x500
-LDFLAGS = -Wl,-gc-sections -lmingw32 -lSDLmain -lSDL -lSDL_gfx
+LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 
 #Apply build directory etc.
 BUILD_RELEASE = $(BUILD_DIR)/$(TARGET_RELEASE)
@@ -58,7 +58,7 @@ redebug: clean debug
 
 #Compile into debug mode without stripping (-s)!
 $(BUILD_DEBUG): ${OBJS}
-	${CC} -ggdb $(OBJS) -o "$@" ${LDFLAGS}
+	${CC} -ggdb $(OBJS) -o "$@" -Wl,-gc-sections ${LDFLAGS}
 
 #Compile into release mode with stripping (-s)!
 $(BUILD_RELEASE): ${OBJS}
