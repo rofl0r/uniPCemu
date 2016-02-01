@@ -12,7 +12,7 @@
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC renderer support!
 
 //How many lines to render at a time when limited.
-#define __SCREEN_LINES_LIMIT 1000
+#define __SCREEN_LINES_LIMIT 10000
 
 //#define __HW_DISABLED
 
@@ -52,23 +52,24 @@ void VGA_initTimer()
 void updateVGA(double timepassed)
 {
 	VGA_timing += timepassed; //Time has passed!
-	if (VGA_timing >= VGA_rendertiming) //Might have passed?
+	if (VGA_timing >= VGA_rendertiming && VGA_rendertiming) //Might have passed?
 	{
-		if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Thread safe solution to verify!
+		uint_32 renderings;
+		renderings = (VGA_timing/VGA_rendertiming); //Ammount of times to render!
+		VGA_timing -= renderings*VGA_rendertiming; //Rest the amount we can process!
+
+		if (__SCREEN_LINES_LIMIT) //Limit set?
 		{
-			if (__SCREEN_LINES_LIMIT) //Limit set?
+			if (renderings>__SCREEN_LINES_LIMIT) //Limit broken?
 			{
-				if (VGA_timing>=(__SCREEN_LINES_LIMIT*VGA_rendertiming)) //Limit broken?
-				{
-					VGA_timing = __SCREEN_LINES_LIMIT*VGA_rendertiming; //Limit the processing!
-				}
-			}
-			for (;VGA_timing >= VGA_rendertiming;) //Ticks left to tick?
-			{
-				VGA_Sequencer(); //Tick the VGA once!
-				VGA_timing -= VGA_rendertiming; //Decrease the time left to render!
+				renderings = __SCREEN_LINES_LIMIT; //Limit the processing to the amount of time specified!
 			}
 		}
+		
+		do 
+		{
+			VGA_Sequencer(); //Tick the VGA once!
+		} while (--renderings); //Ticks left to tick?
 	}
 }
 

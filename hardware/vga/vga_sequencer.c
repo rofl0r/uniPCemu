@@ -532,7 +532,7 @@ void VGA_Sequencer()
 	if (!memprotect(GPU.emu_screenbuffer, 4, "EMU_ScreenBuffer")) //Invalid framebuffer? Don't do anything!
 	{
 		//unlockVGA();
-		unlockGPU(); //Unlock the VGA&GPU for Software access!
+		//unlockGPU(); //Unlock the VGA&GPU for Software access!
 		return; //Abort: we're disabled!
 	}
 
@@ -549,5 +549,5 @@ void VGA_Sequencer()
 	}
 
 	//unlockVGA(); //Unlock the VGA for Software access!
-	unlockGPU(); //Unlock the GPU for Software access!
+	//unlockGPU(); //Unlock the GPU for Software access!
 }

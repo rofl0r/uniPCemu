@@ -139,18 +139,18 @@ byte getCOMport(word port) //What COM port?
 	byte highnibble = (port>>8); //3 or 2
 	byte lownibble = ((port>>3)&0x1F); //F or E
 	
-	byte COMport;
-	COMport = 0; //Init COM port!
+	byte result;
+	result = 0; //Init COM port!
 	switch (lownibble) //Get COM1/3?
 	{
 		case 0x1F: //COM1/2
 			//Base 0
 			break;
 		case 0x1D: //COM3/4
-			COMport |= 2; //Base 2 (port 3/4)
+			result |= 2; //Base 2 (port 3/4)
 			break;
 		default:
-			COMport = 4; //Illegal!
+			result = 4; //Illegal!
 			break;
 	}
 
@@ -159,10 +159,10 @@ byte getCOMport(word port) //What COM port?
 		case 0x3: //Even COM port (COM1/2)
 			break;
 		case 0x2: //Odd COM port (COM3/4)
-			COMport |= 1; //Add 1!
+			result |= 1; //Add 1!
 			break;
 		default:
-			COMport = 4; //Illegal!
+			result = 4; //Illegal!
 			break;
 	}
 	
@@ -378,7 +378,7 @@ void initUART(byte numports) //Init software debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	memset(&UART_port,0,sizeof(UART_port)); //Clear memory used!
-	numuartports = numports;
+	numUARTports = numports;
 	register_PORTOUT(&PORT_writeUART);
 	register_PORTIN(&PORT_readUART);
 	registerIRQ(3, &startUARTIRQ, NULL); //Register our IRQ finish!

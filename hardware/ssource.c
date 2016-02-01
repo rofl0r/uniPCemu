@@ -33,9 +33,9 @@ byte ssource_output(void* buf, uint_32 length, byte stereo, void *userdata)
 	byte lastssourcesample=0x80;
 	for (;lengthleft--;) //While length left!
 	{
-		if (!readfifobuffer(ssourcerenderstream, &result)) //Nothing gotten from the rendering buffer?
+		if (!readfifobuffer(ssourcerenderstream, &lastssourcesample)) //Nothing gotten from the rendering buffer?
 		{
-			result = 0x80; //No result, so 0 converted from signed to unsigned (0-255=>-128-127)!
+			lastssourcesample = 0x80; //No result, so 0 converted from signed to unsigned (0-255=>-128-127)!
 		}
 		*sample++ = lastssourcesample; //Fill the output buffer!
 	}
@@ -47,7 +47,7 @@ byte covox_output(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (!stereo) return SOUNDHANDLER_RESULT_NOTFILLED; //Stereo needs to be supported!
 	byte *sample = (byte *)buf; //Sample buffer!
 	uint_32 lengthleft = length; //Our stereo samples!
-	static byte lastcovoxsample = 0x8080; //Last sample read for both channels!
+	static word lastcovoxsample = 0x8080; //Last sample read for both channels!
 	for (;lengthleft--;)
 	{
 		readfifobuffer16(covoxrenderstream,&lastcovoxsample); //Try to read the left sample if it's there! If it doesn't exist, use the last samples read(repeat the samples)!
@@ -72,11 +72,11 @@ void soundsource_covox_controlout(byte control)
 			writefifobuffer(ssourcestream, outbuffer); //Add to the primary buffer when possible!
 		}
 	}
-	if ((control&1) && (!lastcontrol&1)) //Covox speech thing left channel pulse?
+	if ((control&1) && (!(lastcontrol&1))) //Covox speech thing left channel pulse?
 	{
 		covox_left = outbuffer; //Set left channel value!
 	}
-	if ((control&2) && (!lastcontrol&2)) //Covox speech thing right channel pulse?
+	if ((control&2) && (!(lastcontrol&2))) //Covox speech thing right channel pulse?
 	{
 		covox_right = outbuffer; //Set right channel value!
 	}	
@@ -127,8 +127,8 @@ void tickssourcecovox(double timepassed)
 
 void ssource_setVolume(float volume)
 {
-	setVolume(&ssourceoutput, NULL, volume); //Set the volume!
-	setVolume(&covoxoutput, NULL, volume); //Set the volume!
+	setVolume(&ssource_output, NULL, volume); //Set the volume!
+	setVolume(&covox_output, NULL, volume); //Set the volume!
 }
 
 void doneSoundsource()
@@ -139,9 +139,9 @@ void doneSoundsource()
 		removechannel(&covox_output, NULL, 0); //Remove the channel!
 		free_fifobuffer(&ssourcestream); //Finish the stream if it's there!
 		free_fifobuffer(&ssourcestream2); //Finish the stream if it's there!
-		free_fifobuffer(&ssourcestream3); //Finish the stream if it's there!
+		free_fifobuffer(&ssourcerenderstream); //Finish the stream if it's there!
 		free_fifobuffer(&covoxstream); //Finish the stream if it's there!
-		free_fifobuffer(&covoxstream2); //Finish the stream if it's there!
+		free_fifobuffer(&covoxrenderstream); //Finish the stream if it's there!
 		ssource_ready = 0; //We're finished!
 	}
 }

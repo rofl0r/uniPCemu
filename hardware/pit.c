@@ -42,6 +42,8 @@ PC SPEAKER
 #define SPEAKER_RATE 44100
 //Use actual response as speaker rate! 60us responses!
 //#define SPEAKER_RATE (1000000.0f/60.0f)
+//The double buffering threshold!
+#define PITDOUBLE_THRESHOLD 256
 //Speaker buffer size!
 #define SPEAKER_BUFFER 512
 //Speaker low&high pass filter values!
@@ -53,9 +55,6 @@ PC SPEAKER
 
 //Log the speaker to this .wav file when defined!
 //#define SPEAKER_LOG "captures/speaker.wav"
-
-//The double buffering threshold!
-#define PITDOUBLE_THRESHOLD 1024
 
 //End of defines!
 
@@ -499,7 +498,7 @@ void initSpeakers()
 		if (i==2) //Speaker?
 		{
 			PITchannels[i].buffer = allocfifobuffer((SPEAKER_BUFFER+1)<<1, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with X word-sized samples with lock!
-			PITchannels[i].doublebuffer = allocfifobuffer((SPEAKER_BUFFER + 1) << 1, 0); //FIFO with X word-sized samples without lock!
+			PITchannels[i].doublebuffer = allocfifobuffer((PITDOUBLE_THRESHOLD+1) << 1, 0); //FIFO with X word-sized samples without lock!
 		}
 	}
 	speaker_ticktiming = time_ticktiming = 0.0f; //Initialise our timing!
