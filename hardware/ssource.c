@@ -57,7 +57,7 @@ byte covox_output(void* buf, uint_32 length, byte stereo, void *userdata)
 	static byte lastcovoxsample = 0x8080; //Last sample read for both channels!
 	for (;lengthleft--;)
 	{
-		readfifobuffer16(covoxstream2,&lastcovoxsample); //Try to read the left sample if it's there! If it doesn't exist, use the last samples!
+		readfifobuffer16(covoxstream2,&lastcovoxsample); //Try to read the left sample if it's there! If it doesn't exist, use the last samples read(repeat the samples)!
 		*sample++ = (lastcovoxsample&0xFF); //Left channel!
 		*sample++ = (lastcovoxsample>>8); //Right channel!
 	}
@@ -114,17 +114,20 @@ void tickssourcecovox(double timepassed)
 	{
 		for (;ssourcetiming>=ssourcetick;)
 		{
-			movefifobuffer8(ssourcestream,ssourcestream2,1); //Move data to the destination buffer one at a time!
-			ssourcetiming -= ssourcetick; //Ticked!
+			movefifobuffer8(ssourcestream,ssourcestream2,1); //Move data to the destination buffer one sample at a time!
+			ssourcetiming -= ssourcetick; //Ticked one sample!
 		}
 	}
 	
 	covoxtiming += covoxtick; //Tick the Covox Speech Thing!
 	if (covoxtiming>=covoxtick)
 	{
-		covoxtiming = modf(covoxtiming,covoxtick); //Rest!
 		//Write both left and right channels at the destination to get the sample rate converted, since we don't have a input buffer(just a state at any moment in time)!
-		writefifobuffer16(covoxstream, covox_left|(covox_right<<8)); //Add to the primary buffer when possible!
+		for (;covoxtiming>=covoxtick;)
+		{
+			writefifobuffer16(covoxstream, covox_left|(covox_right<<8)); //Add to the primary buffer when possible!
+			covoxtiming -= covoxtick; //Ticked one sample!
+		}
 	}
 	
 	//Move to renderer when needed!
@@ -142,7 +145,8 @@ void doneSoundsource()
 {
 	if (ssource_ready) //Are we running?
 	{
-		removechannel(&ssourceoutput, NULL, 0); //Remove the channel!
+		removechannel(&ssource_output, NULL, 0); //Remove the channel!
+		removechannel(&covox_output, NULL, 0); //Remove the channel!
 		free_fifobuffer(&ssourcestream); //Finish the stream if it's there!
 		free_fifobuffer(&ssourcestream2); //Finish the stream if it's there!
 		free_fifobuffer(&ssourcestream3); //Finish the stream if it's there!
@@ -154,15 +158,15 @@ void doneSoundsource()
 
 void initSoundsource() {
 	doneSoundsource(); //Make sure we're not already running!
-	ssourcestream = allocfifobuffer(__SSOURCE_BUFFER,0); //Our FIFO buffer! Don't lock: This is done using a sound lock!
-	ssourcestream2 = allocfifobuffer(__SSOURCE_HWBUFFER,1); //Our FIFO hardware buffer! Do lock!
-	ssourcestream3 = allocfifobuffer(__SSOURCE_HWBUFFER,1); //Our FIFO hardware buffer! Do lock!
-	covoxstream = allocfifobuffer(__COVOX_BUFFER<<1,0); //Our FIFO buffer! Don't lock: This is done using a sound lock!
-	covoxstream2 = allocfifobuffer(__COVOX_HWBUFFER<<1,1); //Our FIFO hardware buffer! Do lock!
+	ssourcestream = allocfifobuffer(__SSOURCE_BUFFER,0); //Our FIFO buffer! This is the buffer the CPU writes to!
+	ssourcestream2 = allocfifobuffer(__SSOURCE_HWBUFFER,0); //Our FIFO hardware buffer! Don't lock! This is the buffer we render immediate samples to!
+	ssourcestream3 = allocfifobuffer(__SSOURCE_HWBUFFER,1); //Our FIFO rendering buffer! Do lock! This is the buffer the renderer uses(double buffering with ssourcestream2).
+	covoxstream = allocfifobuffer(__COVOX_BUFFER<<1,0); //Our stereo FIFO hardware buffer! Don't lock! This is the buffer we render immediate samples to!
+	covoxstream2 = allocfifobuffer(__COVOX_HWBUFFER<<1,1); //Our stereo FIFO rendering buffer! Do lock! This is the buffer the renderer uses(double buffering with covoxstream).
 
 	ssourcetiming = covoxtiming = 0.0f; //Initialise our timing!
 
-	if (ssourcestream && ssourcestream2 && covox_leftstream && covox_leftstream2 && covox_rightstream && covox_rightstream2) //Allocated buffer?
+	if (ssourcestream && ssourcestream2 && ssourcestream3 && covoxstream && covoxstream2) //Allocated buffer?
 	{
 		if (addchannel(&covox_output, NULL, "Covox Speech Thing", __COVOX_RATE, __COVOX_HWBUFFER, 1, SMPL8U)) //Covox channel added?
 		{
