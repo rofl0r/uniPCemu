@@ -28,19 +28,16 @@ byte lastcontrol = 0x00; //Our current control data!
 OPTINLINE static byte getssourcebyte() {
 	static byte result=0;
 	sbyte temp;
-	if (!readfifobuffer(ssourcestream2, &result)) //Nothing gotten from the secondary buffer?
+	if (!readfifobuffer(ssourcestream3, &result)) //Nothing gotten from the tertiary buffer?
 	{
-		if (!readfifobuffer(ssourcestream, &result)) //Primary buffer has no data as well?
-		{
-			result = 0x80; //No result, so 0 converted from signed to unsigned!
-		}
+		result = 0x80; //No result, so 0 converted from signed to unsigned!
 		//Data goes from 0-128=>-128-0, 129-255=1-127. Convert to signed value!
 		//result = (result&0x80)?result&0x7F:signed2unsigned8((sbyte)((sword)(-128)+((sword)result&0x7F))); //Convert data from 0-255 to -128-127!
 	}
 	return result;
 }
 
-byte ssourceoutput(void* buf, uint_32 length, byte stereo, void *userdata)
+byte ssource_output(void* buf, uint_32 length, byte stereo, void *userdata)
 {
 	if (stereo) return SOUNDHANDLER_RESULT_NOTFILLED; //Stereo not supported!
 	byte *sample = (byte *)buf; //Sample buffer!
@@ -52,17 +49,27 @@ byte ssourceoutput(void* buf, uint_32 length, byte stereo, void *userdata)
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
-byte covoxoutput(void* buf, uint_32 length, byte stereo, void *userdata)
+byte covox_output(void* buf, uint_32 length, byte stereo, void *userdata)
 {
-	return SOUNDHANDLER_RESULT_NOTFILLED; //Stereo not supported yet!
+	if (!stereo) return SOUNDHANDLER_RESULT_NOTFILLED; //Stereo needs to be supported!
+	byte *sample = (byte *)buf; //Sample buffer!
+	uint_32 lengthleft = length; //Our stereo samples!
+	static byte lastcovoxsample = 0x8080; //Last sample read for both channels!
+	for (;lengthleft--;)
+	{
+		readfifobuffer16(covoxstream2,&lastcovoxsample); //Try to read the left sample if it's there! If it doesn't exist, use the last samples!
+		*sample++ = (lastcovoxsample&0xFF); //Left channel!
+		*sample++ = (lastcovoxsample>>8); //Right channel!
+	}
+	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
-void soundsourcecovoxoutput(byte data)
+void soundsource_covox_output(byte data)
 {
 	outbuffer = data; //Last data set on our lines!
 }
 
-void soundsourcecovoxcontrolout(byte control)
+void soundsource_covox_controlout(byte control)
 {
 	//bit0=Covox left channel tick, bit1=Covox right channel tick, bit 3=Sound source mono channel tick. Bit 2=Sound source ON.
 	if (control&4) //Is this output for the Sound Source?
@@ -83,18 +90,19 @@ void soundsourcecovoxcontrolout(byte control)
 	lastcontrol = control; //Save the last status for checking the bits!
 }
 
-byte soundsourcecovoxcontrolin()
+byte soundsource_covox_controlin()
 {
 	return lastcontrol; //Give our last control byte!
 }
 
-byte soundsourcecovoxstatus()
+byte soundsource_covox_status()
 {
+	//Bits 0-3 is set to detect. Bit 2 is cleared with a full buffer. Bit 6 is set with a full buffer. Output buffer bit 7(pin 9) is wired to status bit 0(pin 11). According to Dosbox.
 	if (!fifobuffer_freesize(ssourcestream)) //Buffer full?
 	{
-		return (0x40); //We have a full buffer!
+		return (0x43)|(outbuffer&0x80); //We have a full buffer!
 	}
-	return (0x00); //We have an empty buffer!
+	return (0x07)|(outbuffer&0x80); //We have an empty buffer!
 }
 
 void tickssourcecovox(double timepassed)
@@ -115,14 +123,13 @@ void tickssourcecovox(double timepassed)
 	if (covoxtiming>=covoxtick)
 	{
 		covoxtiming = modf(covoxtiming,covoxtick); //Rest!
-		//Write both left and right channels to get the sample rate!
-		writefifobuffer(covoxstream, covox_left); //Add to the primary buffer when possible!
-		writefifobuffer(covoxstream, covox_right); //Add to the primary buffer when possible!		
+		//Write both left and right channels at the destination to get the sample rate converted, since we don't have a input buffer(just a state at any moment in time)!
+		writefifobuffer16(covoxstream, covox_left|(covox_right<<8)); //Add to the primary buffer when possible!
 	}
 	
 	//Move to renderer when needed!
 	movefifobuffer8(ssourcestream2,ssourcestream3,__SSOURCE_TRESHOLD); //Move data to the destination buffer once we're full enough!
-	movefifobuffer8(covoxstream,covoxstream2,(__COVOX_TRESHOLD<<1)); //Move data to the destination buffer once we're full enough, both channels at the same time (left and right)!
+	movefifobuffer16(covoxstream,covoxstream2,__COVOX_TRESHOLD); //Move data to the destination buffer once we're full enough, both channels at the same time (left and right)!
 }
 
 void ssource_setVolume(float volume)
@@ -153,17 +160,17 @@ void initSoundsource() {
 	covoxstream = allocfifobuffer(__COVOX_BUFFER<<1,0); //Our FIFO buffer! Don't lock: This is done using a sound lock!
 	covoxstream2 = allocfifobuffer(__COVOX_HWBUFFER<<1,1); //Our FIFO hardware buffer! Do lock!
 
-	ssourcecovoxtiming = 0.0f; //Initialise our timing!
+	ssourcetiming = covoxtiming = 0.0f; //Initialise our timing!
 
 	if (ssourcestream && ssourcestream2 && covox_leftstream && covox_leftstream2 && covox_rightstream && covox_rightstream2) //Allocated buffer?
 	{
-		if (addchannel(&covoxoutput, NULL, "Covox Speech Thing", __COVOX_RATE, __COVOX_HWBUFFER, 1, SMPL8U)) //Covox channel added?
+		if (addchannel(&covox_output, NULL, "Covox Speech Thing", __COVOX_RATE, __COVOX_HWBUFFER, 1, SMPL8U)) //Covox channel added?
 		{
-			if (addchannel(&ssourceoutput, NULL, "Sound Source", __SSOURCE_RATE, __SSOURCE_HWBUFFER, 0, SMPL8U)) //Sound source channel added?
+			if (addchannel(&ssource_output, NULL, "Sound Source", __SSOURCE_RATE, __SSOURCE_HWBUFFER, 0, SMPL8U)) //Sound source channel added?
 			{
 				outbuffer = lastcontrol = 0; //Reset output buffer and last control!
 				ssource_setVolume(1.0f); //Default volume: 100%!
-				registerParallel(0,&soundsourceoutput,&soundsourcecontrolout,&soundsourcecontrolin,&soundsourcestatus); //Register out parallel port for handling!
+				registerParallel(0,&soundsource_covox_output,&soundsource_covox_controlout,&soundsource_covox_controlin,&soundsource_covox_status); //Register out parallel port for handling!
 				ssource_ready = 1; //We're running!
 			}
 		}
