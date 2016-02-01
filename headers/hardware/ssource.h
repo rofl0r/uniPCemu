@@ -4,5 +4,6 @@
 void initSoundsource();
 void doneSoundsource();
 void ssource_setVolume(float volume); //SSource volume knob!
+void tickssourcecovox(double timepassed); //Tick the sound source and covox speech thing!
 
 #endif
