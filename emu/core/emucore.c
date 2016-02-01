@@ -661,6 +661,7 @@ OPTINLINE byte coreHandler()
 		updateATA(instructiontime); //Update the ATA timer!
 		updateDMA(instructiontime); //Update the DMA timer!
 		tickParallel(instructiontime); //Update the Parallel timer!
+		tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing!
 		updateVGA(instructiontime); //Update the VGA timer!
 		#ifndef __PSP__
 			if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
