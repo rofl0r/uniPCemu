@@ -78,6 +78,8 @@ struct
 	byte interrupt_causes[4]; //All possible causes of an interrupt!
 } UART_port[4]; //All UART ports!
 
+byte numUARTports = 0; //How many ports?
+
 OPTINLINE void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 {
 	if (!UART_port[COMport].used) return; //Unused COM port!
@@ -148,7 +150,7 @@ byte getCOMport(word port) //What COM port?
 			COMport |= 2; //Base 2 (port 3/4)
 			break;
 		default:
-			return 4; //Illegal!
+			COMport = 4; //Illegal!
 			break;
 	}
 
@@ -160,11 +162,11 @@ byte getCOMport(word port) //What COM port?
 			COMport |= 1; //Add 1!
 			break;
 		default:
-			return 4; //Illegal!
+			COMport = 4; //Illegal!
 			break;
 	}
 	
-	return UART_port[COMport].used?COMport:4; //Give the COM port or 4 for unregistered COM port!
+	return ((result<numUARTports) && (result<4))?result:4; //Invalid by default!; //Give the COM port or 4 for unregistered COM port!
 }
 
 /*
@@ -372,10 +374,11 @@ void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, 
 	UART_port[portnumber].senddata = senddata;
 }
 
-void initUART() //Init software debugger!
+void initUART(byte numports) //Init software debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	memset(&UART_port,0,sizeof(UART_port)); //Clear memory used!
+	numuartports = numports;
 	register_PORTOUT(&PORT_writeUART);
 	register_PORTIN(&PORT_readUART);
 	registerIRQ(3, &startUARTIRQ, NULL); //Register our IRQ finish!

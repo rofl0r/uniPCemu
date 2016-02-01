@@ -14,6 +14,7 @@ byte controldata; //Mirror of last written control!
 byte IRQEnabled; //IRQs enabled?
 byte IRQraised; //IRQ raised?
 } PARALLELPORT[4]; //All parallel ports!
+byte numparallelports = 0; //How many ports?
 
 void registerParallel(byte port, ParallelOutputHandler outputhandler, ParallelControlOUTHandler controlouthandler, ParallelControlINHandler controlinhandler, ParallelStatusHandler statushandler)
 {
@@ -70,25 +71,25 @@ void tickParallel(double timepassed)
 
 byte getParallelport(word port) //What COM port?
 {
+	byte result=4;
 	byte highnibble = (port>>8); //3 or 2
 	byte lownibble = ((port>>2)&0x3F); //2F=0, 1E=1/2
 	
 	switch (lownibble)
 	{
 	case 0x2F: //Might be port 0?
-		return (highnibble==3)?2:4; //LPT3 or invalid!
+		result = (highnibble==3)?2:4; break; //LPT3 or invalid!
 	case 0x1E: //Might be port 1/2?
 		switch (highnibble)
 		{
-			case 3: return 0; //LPT1!
-			case 2: return 1; //LPT2!
-			default: return 4; //Invalid!
+			case 3: result = 0; break; //LPT1!
+			case 2: result = 1; break; //LPT2!
+			default: result = 4; //Invalid!
 		}
 		break;
-	default:
-		break;
+	default: result = 4; break;
 	}
-	return 4; //Invalid by default!
+	return ((result<numparallelports) && (result<4))?result:4; //Invalid by default!
 }
 
 //Offset calculator!
@@ -157,9 +158,10 @@ byte inparallel(word port, byte *result)
 	return 0; //Not supported port!
 }
 
-void initParallelPorts()
+void initParallelPorts(byte numports)
 {
 	memset(&PARALLELPORT,0,sizeof(PARALLELPORT)); //Initialise our ports!
+	numparallelports = numports;
 	register_PORTIN(&inparallel); //Register the read handler!
 	register_PORTOUT(&outparallel); //Register the write handler!	
 }

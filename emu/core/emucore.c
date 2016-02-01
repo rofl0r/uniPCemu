@@ -247,7 +247,7 @@ void initEMU(int full) //Init!
 	initAdlib(); //Initialise adlib!
 
 	debugrow("Initialising Parallel ports...");
-	initParallelPorts(); //Initialise the Parallel ports (LPT ports)!
+	initParallelPorts(1); //Initialise the Parallel ports (LPT ports)!
 
 	debugrow("Initialising Disney Sound Source...");
 	initSoundsource(); //Initialise Disney Sound Source!
@@ -324,7 +324,7 @@ void initEMU(int full) //Init!
 	initDMA(); //Initialise the DMA Controller!
 
 	debugrow("Initialising UART...");
-	initUART(); //Initialise the UART (COM ports)!
+	initUART(1); //Initialise the UART (COM ports)!
 
 	debugrow("Initialising serial mouse...");
 	initSERMouse(!BIOS_Settings.PS2Mouse); //Initilialise the serial mouse!

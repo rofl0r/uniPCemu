@@ -9,6 +9,6 @@ typedef byte (*ParallelStatusHandler)();
 void registerParallel(byte port, ParallelOutputHandler outputhandler, ParallelControlOUTHandler controlouthandler, ParallelControlINHandler controlinhandler, ParallelStatusHandler statushandler);
 void setParallelIRQ(byte port, byte raised);
 void tickParallel(double timepassed);
-void initParallelPorts();
+void initParallelPorts(byte numports);
 
 #endif
