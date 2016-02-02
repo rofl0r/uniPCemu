@@ -223,17 +223,18 @@ OPTINLINE void render_EMU_screen() //Render the EMU buffer to the screen!
 		{
 			//rendered = 1; //We're rendered from here on!
 			word y = 0; //Current row counter!
-			word count;
+			word count, width;
 			uint_32 virtualrow = 0; //Virtual row to use! (From the source)
 			
 			byte letterbox = GPU.aspectratio; //Use letterbox?
 			if (letterbox) //Using letterbox for aspect ratio?
 			{
+width = MIN(rendersurface->sdllayer->w,EMU_MAX_X);
 				count = ((rendersurface->sdllayer->h/2) - (resized->sdllayer->h/2))-1; //The total ammount to process: up to end+1!
 				nextrowtop: //Process top!
 				{
 					if (!count--) goto startemurendering; //Done?
-					put_pixel_row(rendersurface,y++,PSP_SCREEN_COLUMNS,get_rowempty(),0,0); //Plot empty row, don't care about more black!
+					put_pixel_row(rendersurface,y++,width,get_rowempty(),0,0); //Plot empty row, don't care about more black!
 					goto nextrowtop; //Next row!
 				}
 			}
@@ -266,7 +267,7 @@ OPTINLINE void render_EMU_screen() //Render the EMU buffer to the screen!
 				nextrowbottom: //Process bottom!
 				{
 					if (!count--) goto finishbottomrendering; //Stop when done!
-					put_pixel_row(rendersurface,y++,PSP_SCREEN_COLUMNS,get_rowempty(),0,0); //Plot empty row for the bottom, don't care about more black!
+					put_pixel_row(rendersurface,y++,width,get_rowempty(),0,0); //Plot empty row for the bottom, don't care about more black!
 					goto nextrowbottom;
 				}
 			}
