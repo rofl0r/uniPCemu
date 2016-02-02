@@ -103,7 +103,7 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 	init_rowempty(); //Init empty row!
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
 	{
-		word width,height; //Width and height to process!
+		word width; //Width and height to process!
 		if (!rendersurface->sdllayer) return; //Abort with invalid rendering surface!
 		uint_32 virtualrow = 0; //Virtual row to use! (From the source)
 		uint_32 start = 0; //Start row of the drawn part!
@@ -118,10 +118,9 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 			#endif
 			if (!rendersurface) goto abortrendering; //Error occurred?
 			if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
-			start = (rendersurface->sdllayer->h / 2) - (GPU.yres / 2); //Calculate start row of contents!
+			start = (rendersurface->sdllayer->h / 2) - (resized->sdllayer->h / 2); //Calculate start row of contents!
 			width = MIN(MIN(PSP_SCREEN_COLUMNS,rendersurface->sdllayer->w),EMU_MAX_X);
-			height = MIN(start,rendersurface->sdllayer->h);
-			for (y = 0; y<height;) //Process top!
+			for (;y<start;) //Process top!
 			{
 				put_pixel_row(rendersurface, y++, width, &row_empty[0], 0, 0); //Plot empty row, don't care about more black!
 				if (!rendersurface) goto abortrendering; //Error occurred?
@@ -129,34 +128,35 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 			}
 		}
 
-#ifndef __psp__
 		drawpixels:
-#endif
-		if (((!VIDEO_DIRECT) || GPU.aspectratio) && resized && rendersurface) //Using aspect ratio?
+		if (rendersurface) //Valid surface to render?
 		{
-			if (!resized->sdllayer) goto cantrender;
-			width = MIN(resized->sdllayer->w,rendersurface->sdllayer->w);
-			for (;
-				((int_32)virtualrow<(int_32)resized->sdllayer->h) //Protect against source overflow!
-				&& ((int_32)y<rendersurface->sdllayer->h) //Protect against destination overflow!
-				;) //Process row-by-row!
+			if (resized) //Using aspect ratio?
 			{
-				put_pixel_row(rendersurface, y++, width, get_pixel_ptr(resized,virtualrow++,0), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
-				if (!resized) goto cantrender; //Error occurred?
-				if (!resized->sdllayer) goto cantrender; //Error occurred?
+				if (!resized->sdllayer) goto cantrender;
+				width = MIN(resized->sdllayer->w,rendersurface->sdllayer->w);
+				for (;
+					((int_32)virtualrow<(int_32)resized->sdllayer->h) //Protect against source overflow!
+					&& ((int_32)y<rendersurface->sdllayer->h) //Protect against destination overflow!
+					;) //Process row-by-row!
+				{
+					put_pixel_row(rendersurface, y++, width, get_pixel_ptr(resized,virtualrow++,0), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+					if (!resized) goto cantrender; //Error occurred?
+					if (!resized->sdllayer) goto cantrender; //Error occurred?
+				}
 			}
+			else //Simple direct plot from input buffer?
+			{
+				width = MIN(GPU.xres,rendersurface->sdllayer->w); //Width to process!
+				GPU.emu_buffer_dirty = 0; //Not dirty anymore! We're rendered!
+				for (; (virtualrow<MIN(GPU.yres,EMU_MAX_Y))
+					&& (y<rendersurface->sdllayer->h);) //Process row-by-row!
+				{
+					put_pixel_row(rendersurface, y++, width, &EMU_BUFFER(0, virtualrow++), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+					if (!rendersurface) goto abortrendering; //Error occurred?
+					if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
+				}
 		}
-		else if (rendersurface) //Simple direct plot?
-		{
-			width = MIN(GPU.xres,rendersurface->sdllayer->w); //Width to process!
-			GPU.emu_buffer_dirty = 0; //Not dirty anymore! We're rendered!
-			for (; (virtualrow<MIN(GPU.yres,EMU_MAX_Y))
-				&& (y<rendersurface->sdllayer->h);) //Process row-by-row!
-			{
-				put_pixel_row(rendersurface, y++, width, &EMU_BUFFER(0, virtualrow++), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
-				if (!rendersurface) goto abortrendering; //Error occurred?
-				if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
-			}
 		}
 		cantrender:
 
@@ -262,7 +262,7 @@ OPTINLINE void render_EMU_screen() //Render the EMU buffer to the screen!
 			startbottomrendering:
 			if (letterbox) //Using letterbox for aspect ratio?
 			{
-				count = PSP_SCREEN_ROWS-y; //How many left to process!
+				count = rendersurface->sdllayer->h-y; //How many left to process!
 				nextrowbottom: //Process bottom!
 				{
 					if (!count--) goto finishbottomrendering; //Stop when done!
@@ -270,13 +270,13 @@ OPTINLINE void render_EMU_screen() //Render the EMU buffer to the screen!
 					goto nextrowbottom;
 				}
 			}
-		}
-		
-		finishbottomrendering:
-		if (memprotect(resized, sizeof(*resized), NULL) && resized)
-		{
-			resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
-		}
+
+			finishbottomrendering:
+			if (memprotect(resized, sizeof(*resized), NULL) && resized) //Using resized?
+			{
+				resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
+			}
+		}		
 	}
 }
 
@@ -325,11 +325,6 @@ OPTINLINE void renderFrames() //Render all frames to the screen!
 					GPU_textrenderer(GPU.textsurfaces[i]); //Render the text layer!
 				}
 			} //Leave these for now!
-		}
-		
-		if (getresizeddirty() && resized) //Still dirty?
-		{
-			dolog("GPU","Warning: resized is still dirty after rendering?");
 		}
 		
 		//Render the frame!
