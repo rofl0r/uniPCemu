@@ -96,11 +96,11 @@ uint_32 *get_rowempty()
 
 OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 {
-	if (__HW_DISABLED) return; //Abort?
-	init_rowempty(); //Init empty row!
 #ifdef __psp__
 	int pspy = 0;
 #endif
+	if (__HW_DISABLED) return; //Abort?
+	init_rowempty(); //Init empty row!
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
 	{
 		word width,height; //Width and height to process!
@@ -132,7 +132,7 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 #ifndef __psp__
 		drawpixels:
 #endif
-		if (GPU.aspectratio && resized && rendersurface) //Using aspect ratio?
+		if (((!VIDEO_DIRECT) || GPU.aspectratio) && resized && rendersurface) //Using aspect ratio?
 		{
 			if (!resized->sdllayer) goto cantrender;
 			width = MIN(resized->sdllayer->w,rendersurface->sdllayer->w);
@@ -149,6 +149,7 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 		else if (rendersurface) //Simple direct plot?
 		{
 			width = MIN(GPU.xres,rendersurface->sdllayer->w); //Width to process!
+			GPU.emu_buffer_dirty = 0; //Not dirty anymore! We're rendered!
 			for (; (virtualrow<MIN(GPU.yres,EMU_MAX_Y))
 				&& (y<rendersurface->sdllayer->h);) //Process row-by-row!
 			{
@@ -171,7 +172,6 @@ OPTINLINE void GPU_directRenderer() //Plot directly 1:1 on-screen!
 			if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
 		}
 		abortrendering:
-		GPU.emu_buffer_dirty = 0; //Not dirty anymore!
 		return; //Don't render anymore!
 	}
 
@@ -278,23 +278,11 @@ OPTINLINE void render_EMU_screen() //Render the EMU buffer to the screen!
 			resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
 		}
 	}
-	/*if (!rendered) //Nothing to render = clear screen!
-	{
-		word count2 = rendersurface->sdllayer->h; //How many to process!
-		if (count2) //Got something to render?
-		{
-			for (;;)
-			{
-				put_pixel_row(rendersurface,--count2,PSP_SCREEN_COLUMNS,get_rowempty(),0,0); //Clear the screen row!
-				if (!count2) break; //Done?
-			}
-		}
-	}*/
 }
 
 OPTINLINE byte getresizeddirty() //Is the emulated screen dirty?
 {
-	if (VIDEO_DIRECT)
+	if (VIDEO_DIRECT) //Direct, whether forced or not?
 	{
 		return GPU.emu_buffer_dirty; //Force dirty from EMU Buffer when in direct mode!
 	}
@@ -339,7 +327,7 @@ OPTINLINE void renderFrames() //Render all frames to the screen!
 			} //Leave these for now!
 		}
 		
-		if (getresizeddirty()) //Still dirty?
+		if (getresizeddirty() && resized) //Still dirty?
 		{
 			dolog("GPU","Warning: resized is still dirty after rendering?");
 		}
@@ -393,8 +381,8 @@ OPTINLINE void render_EMU_buffer() //Render the EMU to the buffer!
 				}
 				//Clean up and reset flags!
 				emu_screen = freeSurface(emu_screen); //Done with the emulator screen!
+				GPU.emu_buffer_dirty = 0; //Not dirty anymore: we've been updated when possible!
 			}
-			GPU.emu_buffer_dirty = 0; //Not dirty anymore: we've been updated!
 		}
 	}
 }
@@ -446,6 +434,10 @@ void renderHWFrame() //Render a frame from hardware!
 			{
 				render_EMU_buffer(); //Render the EMU to the buffer, if updated! This is our main layer!
 			}
+		}
+		else //Finish renderer!
+		{
+			GPU_finishRenderer(); //Done with the resizing!
 		}
 		if (SCREEN_CAPTURE) //Screen capture?
 		{
