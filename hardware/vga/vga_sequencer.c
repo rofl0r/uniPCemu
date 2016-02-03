@@ -40,7 +40,8 @@ OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *
 
 uint_32 getPixelBlockSize()
 {
-	return PIXELBLOCKSIZE; //Give the block size!
+	word blocksize = PIXELBLOCKSIZE; //Our block size!
+	return blocksize; //Give the block size!
 }
 
 extern GPU_type GPU; //GPU!
