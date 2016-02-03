@@ -634,7 +634,7 @@ GPU_SDL_Surface *createSurfaceFromPixels(int columns, int rows, void *pixels, ui
 	GPU_SDL_Surface *wrapper;
 	wrapper = getSurfaceWrapper(surface); //Give the surface we've allocated in the standard wrapper!
 	registerSurface(wrapper,"SDL_Surface",1); //Register the surface we've wrapped!
-	surface->flags |= SDL_FLAG_NODELETE_PIXELS; //Don't delete the pixels: we're protected from being deleted together with the surface!
+	wrapper->flags |= SDL_FLAG_NODELETE_PIXELS; //Don't delete the pixels: we're protected from being deleted together with the surface!
 	return wrapper;
 }
 

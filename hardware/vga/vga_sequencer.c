@@ -38,12 +38,6 @@ OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *
 	return monitors[DAC_whatBWMonitor](VGA, DACValue); //Do color mode or B/W mode!
 }
 
-uint_32 getPixelBlockSize()
-{
-	word blocksize = PIXELBLOCKSIZE; //Our block size!
-	return blocksize; //Give the block size!
-}
-
 extern GPU_type GPU; //GPU!
 
 typedef void (*DisplayRenderHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA); //Our rendering handler for all signals!
@@ -71,7 +65,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 		break;
 	}
 
-	return (result/getPixelBlockSize()); //Calculate the ammount of horizontal clocks per second!
+	return (result/PIXELBLOCKSIZE); //Our block size!); //Calculate the ammount of horizontal clocks per second!
 }
 
 //Main rendering routine: renders pixels to the emulated screen.
@@ -544,7 +538,7 @@ void VGA_Sequencer()
 	}
 
 	Sequencer_run = 1; //We're running!
-	i = getPixelBlockSize(); //Retrieve the pixel block size!
+	i = PIXELBLOCKSIZE+1; //Retrieve the pixel block size!
 	do
 	{
 		//Process one pixel only!
