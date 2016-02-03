@@ -33,7 +33,9 @@
 #include <SDL/SDL_events.h> //Event support!
 #endif
 
-int_64 mouse_xmove = 0, mouse_ymove = 0; //Movement of the mouse not processed yet (in mm)!
+const float keyboard_mouseinterval = (1000000000.0f/30.0f); //Check mouse 30 times per second during mouse mode!
+
+float mouse_xmove = 0, mouse_ymove = 0; //Movement of the mouse not processed yet (in mm)!
 byte Mouse_buttons = 0; //Currently pressed mouse buttons. 1=Left, 2=Right, 4=Middle.
 
 byte mousebuttons = 0; //Active mouse buttons!
@@ -597,7 +599,7 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 }
 
 //Rows: 3, one for top, middle, bottom.
-#define KEYBOARD_NUMY 3
+#define KEYBOARD_NUMY 4
 //Columns: 21: 10 for left, 1 space, 10 for right
 #define KEYBOARD_NUMX 21
 
@@ -825,6 +827,16 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	}
 	if (!Direct_Input) //Not direct input?
 	{
+		if (input.cas&CAS_LSHIFT)
+		{
+			keyboard_display[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 'S';
+			keyboard_attribute[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 3; //Special shift color active!
+		}
+		else
+		{
+			keyboard_display[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = ' ';
+			keyboard_attribute[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 0; //Special shift color active!
+		}
 		if (curstat.mode == 1 && !curstat.gamingmode) //Keyboard mode?
 		{
 			if (strcmp((char *)getkeyboard(0, currentset, sety, setx, 0), "enable") == 0) //Set enabled?
@@ -1075,19 +1087,26 @@ byte shiftstatus = 0; //New shift status!
 
 extern char keys_names[104][11]; //All names of the used keys (for textual representation/labeling)
 
-void handleMouseMovement() //Handles mouse movement using the analog direction of the mouse!
+float keyboard_mousetiming = 0.0f; //Current timing!
+
+void handleMouseMovement(double timepassed) //Handles mouse movement using the analog direction of the mouse!
 {
-	if (curstat.analogdirection_mouse_x || curstat.analogdirection_mouse_y) //Mouse analog direction trigger?
+	keyboard_mousetiming += timepassed; //Tick time!
+	for (;keyboard_mousetiming>=keyboard_mouseinterval;) //Interval passed?
 	{
-		mouse_xmove += (int_64)((float)(curstat.analogdirection_mouse_x / 32767.0f)*10.0f); //Apply x movement in mm (reversed)!
-		mouse_ymove += (int_64)((float)(curstat.analogdirection_mouse_y / 32767.0f)*10.0f); //Apply y movement in mm (reversed)!
+		if (curstat.analogdirection_mouse_x || curstat.analogdirection_mouse_y) //Mouse analog direction trigger?
+		{
+			mouse_xmove += (int_64)((float)(curstat.analogdirection_mouse_x / 32767.0f)*10.0f); //Apply x movement in mm (reversed)!
+			mouse_ymove += (int_64)((float)(curstat.analogdirection_mouse_y / 32767.0f)*10.0f); //Apply y movement in mm (reversed)!
+		}
+		keyboard_mousetiming -= keyboard_mouseinterval; //Substract interval to next tick!
 	}
 }
 
-void handleKeyboardMouse() //Handles keyboard input during mouse operations!
+void handleKeyboardMouse(double timepassed) //Handles keyboard input during mouse operations!
 {
 	//Also handle mouse movement here (constant factor)!
-	handleMouseMovement(); //Handle mouse movement!
+	handleMouseMovement(timepassed); //Handle mouse movement!
 
 	Mouse_buttons = (curstat.buttonpress & 1) ? 1 : 0; //Left mouse button pressed?
 	Mouse_buttons |= (curstat.buttonpress & 4) ? 2 : 0; //Right mouse button pressed?
@@ -1305,7 +1324,7 @@ void handleKeyboard() //Handles keyboard input!
 	}
 }
 
-void handleGaming() //Handles gaming mode input!
+void handleGaming(double timepassed) //Handles gaming mode input!
 {
 	//Test for all keys and process!
 	if (input_buffer_input) return; //Don't handle buffered input, we don't allow mapping gaming mode to gaming mode!
@@ -1316,7 +1335,7 @@ void handleGaming() //Handles gaming mode input!
 		(BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGDOWN] == -1)) //No analog assigned? Process analog mouse movement!
 	{
 		//Also handle mouse movement here (constant factor)!
-		handleMouseMovement(); //Handle mouse movement!
+		handleMouseMovement(timepassed); //Handle mouse movement!
 	}
 
 	int keys[15]; //Key index for this key, -1 for none/nothing happened!
@@ -1685,14 +1704,14 @@ void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're a
 
 			if (curstat.gamingmode) //Gaming mode?
 			{
-				handleGaming(); //Handle gaming input?
+				handleGaming(timepassed); //Handle gaming input?
 			}
 			else //Normal input mode?
 			{
 				switch (curstat.mode) //What input mode?
 				{
 				case 0: //Mouse mode?
-					handleKeyboardMouse(); //Handle keyboard input during mouse operations?
+					handleKeyboardMouse(timepassed); //Handle keyboard input during mouse operations?
 					break;
 				case 1: //Keyboard mode?
 					handleKeyboard(); //Handle keyboard input?
@@ -1857,14 +1876,23 @@ word mouse_x=0, mouse_y=0; //Current mouse coordinates of the actual mouse!
 
 void updateMOD()
 {
-	const float precisemovement = 0.2f; //Precise mouse movement constant!
-	if (input.cas&CAS_CTRL) //Ctrl pressed?
+	const float precisemovement = 0.0000002f; //Precise mouse movement constant!
+	if ((input.cas&CAS_RCTRL) && (!Direct_Input)) //Ctrl pressed, mapped to home?
 	{
 		input.Buttons |= BUTTON_HOME; //Pressed!
 	}
 	else
 	{
 		input.Buttons &= ~BUTTON_HOME; //Released!
+	}
+
+	if ((input.cas&CAS_RSHIFT) && (!Direct_Input)) //Shift pressed, mapped to mouse slowdown?
+	{
+		precisemousemovement = 1; //Enabled!
+	}
+	else
+	{
+		precisemousemovement = 0; //Disabled!
 	}
 
 	sword axis;
@@ -1891,8 +1919,8 @@ void updateMOD()
 	input.Lx = axis; //Horizontal axis!
 	if (precisemousemovement) //Enable precise movement?
 	{
-		input.Lx = (sword)(input.Lx*precisemovement); //Enable precise movement!
-		input.Ly *= (sword)(input.Ly*precisemovement); //Enable precise movement!
+		input.Lx = (sword)((float)input.Lx*precisemovement); //Enable precise movement!
+		input.Ly = (sword)((float)input.Ly*precisemovement); //Enable precise movement!
 	}
 }
 
@@ -1952,7 +1980,7 @@ void updateInput(SDL_Event *event) //Update all input!
 					input.cas &= ~CAS_LSHIFT; //Pressed!
 					break;
 				case SDLK_RSHIFT: //RSHIFT!
-					input.cas &= ~CAS_RCTRL; //Pressed!
+					input.cas &= ~CAS_RSHIFT; //Pressed!
 					break;
 
 					//Normal keys
@@ -2011,9 +2039,6 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_KP2: //CROSS?
 					input.Buttons &= ~BUTTON_CROSS; //Pressed!
-					break;
-				case SDLK_t: //Precise mouse movement?
-					precisemousemovement = 0; //Disabled!
 					break;
 				case SDLK_F4: //F4?
 					if (RALT) //ALT-F4?
@@ -2135,9 +2160,6 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_KP2: //CROSS?
 					input.Buttons |= BUTTON_CROSS; //Pressed!
-					break;
-				case SDLK_t: //Precise mouse movement?
-					precisemousemovement = 1; //Enabled!
 					break;
 				default: //Unknown key?
 					break;
@@ -2471,7 +2493,7 @@ void psp_input_init()
 		++i; //Next!
 	}
 	SDL_EnableKeyRepeat(0,0); //Don't repeat pressed keys!
-	mouse_ticktiming = 0.0f; //Initialise mouse timing!
+	keyboard_mousetiming = mouse_ticktiming = 0.0f; //Initialise mouse timing!
 }
 
 void psp_input_done()

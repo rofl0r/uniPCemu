@@ -26,7 +26,7 @@
 #define __ADLIB_SAMPLEBUFFERSIZE 4096
 
 //The double buffering threshold!
-#define ADLIBDOUBLE_THRESHOLD 1024
+#define ADLIBDOUBLE_THRESHOLD 16
 
 #define PI2 (float)(2.0f * PI)
 

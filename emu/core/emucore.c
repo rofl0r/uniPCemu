@@ -500,7 +500,7 @@ extern byte MMU_logging; //Are we logging from the MMU?
 
 extern byte Direct_Input; //Are we in direct input mode?
 
-double last_timing = 0.0; //Last timing!
+double last_timing = 0.0, last_timing_start = 0.0; //Last timing!
 
 double CPU_speed_cycle = 1000000000.0f/CPU808X_CLOCK; //808X signal cycles by default!
 byte DosboxClock = 1; //We're executing using the Dosbox clock cycles?
@@ -518,7 +518,7 @@ void BIOSMenuExecution()
 	resumeEMU(); //Resume!
 	//Update CPU speed!
 	lock(LOCK_CPU); //We're updating the CPU!
-	last_timing = (double)getnspassed_k(&CPU_timing); //We start off at this point with no time running!
+	last_timing = last_timing_start = (double)getnspassed_k(&CPU_timing); //We start off at this point with no time running! We start counting the last timing from now!
 	updateSpeedLimit(); //Update the speed limit!
 	unlock(LOCK_CPU);
 }

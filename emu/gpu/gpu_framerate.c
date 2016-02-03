@@ -100,11 +100,32 @@ void finish_screen() //Extra stuff after rendering!
 }
 
 extern double last_timing; //Last timing!
+extern double last_timing_start; //Start of valid last timing to start counting from!
 extern TicksHolder CPU_timing; //CPU timing counter!
+
+OPTINLINE byte getCPUSpeedPercentage()
+{
+	double result, last_timing_current, last_timing_start_current, timenow;
+	//First, get current state!
+	//lock(LOCK_CPU); //Lock the CPU!
+	timenow = (double)getnspassed_k(&CPU_timing); //Current time!
+	last_timing_current = last_timing; //Last timing!
+	last_timing_start_current = last_timing_start; //Last timing start!
+	//unlock(LOCK_CPU); //Finished with the CPU!
+	
+	//Apply start time to get the relative time since last check!
+	last_timing_current -= last_timing_start_current; //Decrease by the timing when we started!
+	timenow -= last_timing_start_current; //Decrease by the timing when we started!
+
+	//Give the current result!
+	if (!timenow) return 0; //Nothing yet, since no time has passed yet!
+	result = (last_timing_current/timenow)*100.0f; //Give the current speed percentage (still in ns percision)!
+	return (byte)round(result); //Give the current speed percentage!
+}
 
 void renderFramerate()
 {
-	static uint_32 CPUspeed; //Current CPU speed!
+	static byte CPUspeed; //Current CPU speed!
 	if (frameratesurface) //Existing surface and showing?
 	{
 		GPU_text_locksurface(frameratesurface); //Lock!
@@ -140,7 +161,7 @@ void renderFramerate()
 					if (framerateupdated) //We're updated!
 					{
 						framerateupdated = 0; //Not anymore!
-						CPUspeed = (byte)round(SAFEDIV(last_timing, (double)getnspassed_k(&CPU_timing))*100.0f); //Current CPU speed percentage (how much the current time is compared to required time)!
+						CPUspeed = getCPUSpeedPercentage(); //Current CPU speed percentage (how much the current time is compared to required time)!
 					}
 					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
 				}
@@ -153,7 +174,7 @@ void renderFramerate()
 				if (framerateupdated) //We're to be updated with the framerate rate!
 				{
 					framerateupdated = 0; //Not anymore!
-					CPUspeed = (byte)round(SAFEDIV(last_timing, (double)getnspassed_k(&CPU_timing))*100.0f); //Current CPU speed percentage (how much the current time is compared to required time)!
+					CPUspeed = getCPUSpeedPercentage(); //Current CPU speed percentage (how much the current time is compared to required time)!
 				}
 				GPU_textgotoxy(frameratesurface, 0, 0); //For output!
 				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "CPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
