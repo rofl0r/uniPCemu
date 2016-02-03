@@ -86,12 +86,12 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 		frames = 0; //Reset complete frames counted for future reference!
 		framerateupdated = 1; //We're updated!
 	}
-	#ifdef LOG_VGA_SPEED
-	logVGASpeed(); //Log the speed for our frames!
-	#endif
 	//Finally delay for next update!
 	//delay(FRAMERATE_STEP); //Wait for the next update as good as we can!
 	unlockGPU(); //Unlock the GPU!
+	#ifdef LOG_VGA_SPEED
+	logVGASpeed(); //Log the speed for our frames!
+	#endif
 }
 
 void finish_screen() //Extra stuff after rendering!
@@ -238,13 +238,15 @@ Frameskip support!
 
 void setGPUFrameskip(byte Frameskip)
 {
+	lockGPU(); //Lock us!
 	GPU.framenr = 0; //Reset frame nr to draw immediately!
 	GPU.frameskip = Frameskip;
+	unlockGPU(); //Lock us!
 }
 
 void setGPUFramerate(byte Show)
 {
-	lock(LOCK_GPU); //Lock us!
+	lockGPU(); //Lock us!
 	GPU.show_framerate = Show?1:0; //Show the framerate?
-	unlock(LOCK_GPU); //Unlock us!
+	unlockGPU(); //Unlock us!
 }

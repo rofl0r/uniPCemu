@@ -227,8 +227,6 @@ void initVideo(int show_framerate) //Initialises the video
 	debugrow("Video: Setting up misc. settings...");
 	GPU.show_framerate = show_framerate; //Show framerate?
 
-	debugrow("Video: Setting up frameskip...");
-	setGPUFrameskip(0); //No frameskip, by default!
 //VRAM access enable!
 	debugrow("Video: Setting up VRAM Access...");
 	GPU.vram = (uint_32 *)VRAM_START; //VRAM access enabled!
@@ -246,6 +244,10 @@ void initVideo(int show_framerate) //Initialises the video
 
 //We're running with SDL?
 	unlockGPU(); //Unlock the GPU for Software access!
+
+	debugrow("Video: Setting up frameskip...");
+	setGPUFrameskip(0); //No frameskip, by default!
+
 	debugrow("Video: Device ready.");
 }
 
@@ -337,26 +339,26 @@ void doneVideo() //We're done with video operations?
 void startVideo()
 {
 	if (__HW_DISABLED) return; //Abort!
-	lock(LOCK_GPU); //Lock us!
+	lockGPU(); //Lock us!
 	GPU.video_on = ALLOW_VIDEO; //Turn video on when allowed!
-	unlock(LOCK_GPU); //Unlock us!
+	unlockGPU(); //Unlock us!
 }
 
 void stopVideo()
 {
 	if (__HW_DISABLED) return; //Abort!
-	lock(LOCK_GPU); //Lock us!
+	lockGPU(); //Lock us!
 	GPU.video_on = 0; //Turn video off!
-	unlock(LOCK_GPU); //Unlock us!
+	unlockGPU(); //Unlock us!
 }
 
 void GPU_AspectRatio(byte aspectratio) //Keep aspect ratio with letterboxing?
 {
 	if (__HW_DISABLED) return; //Abort!
-	lock(LOCK_GPU); //Lock us!
+	lockGPU(); //Lock us!
 	GPU.aspectratio = video_aspectratio = (aspectratio<3)?aspectratio:0; //To use aspect ratio?
 	GPU.forceRedraw = 1; //We're forcing a redraw of the screen using the new aspect ratio!
-	unlock(LOCK_GPU); //Unlock us!
+	unlockGPU(); //Unlock us!
 }
 
 void resetVideo() //Resets the screen (clears)
