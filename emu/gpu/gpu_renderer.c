@@ -96,7 +96,6 @@ uint_32 *get_rowempty()
 
 OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 {
-	byte emptycause = 0xFF; //Default: unknown cause!
 #ifdef __psp__
 	int pspy = 0;
 #endif
@@ -148,19 +147,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 							if (!resized->sdllayer) goto cantrender; //Error occurred?
 						}
 					}
-					else
-					{
-						emptycause = 3;
-					}
 				}
-				else
-				{
-					emptycause = 2;
-				}
-			}
-			else
-			{
-				emptycause = 1;
 			}
 		}
 		cantrender:
@@ -374,11 +361,11 @@ OPTINLINE static void render_EMU_buffer() //Render the EMU to the buffer!
 					resized = resizeImage(emu_screen,rendersurface->sdllayer->w,rendersurface->sdllayer->h,GPU.doublewidth,GPU.doubleheight,GPU.aspectratio); //Render it to the PSP screen, keeping aspect ratio with letterboxing!
 					if (!memprotect(resized,sizeof(*resized),NULL)) //Error resizing?
 					{
-						dolog("GPU","Error resizing the EMU screenbuffer to the PSP screen!");
+						dolog("GPU","Error resizing the EMU screenbuffer to the displayed screen!");
 					}
 					else if (!memprotect(resized->sdllayer,sizeof(*resized->sdllayer),NULL)) //Invalid layer?
 					{
-						dolog("GPU","Error resizing the EMU screenbuffer to the PSP screen!");
+						dolog("GPU","Error resizing the EMU screenbuffer to the displayed screen!");
 					}
 
 					//Clean up and reset flags!
@@ -387,12 +374,16 @@ OPTINLINE static void render_EMU_buffer() //Render the EMU to the buffer!
 				}
 				else //No resizing needed?
 				{
+					if (resized) //Still allocated?
+					{
+						GPU_finishRenderer(); //Free the emulated screen if it's still there! Else we keep allocating a surface each time, never releasing it!
+					}
 					resized = emu_screen; //Use the screen directly!
 					GPU.emu_buffer_dirty = 0; //Not dirty anymore: we've been updated when possible!
 					emu_screen = NULL; //Not used anymore!
 					if (!resized) //invalid?
 					{
-						dolog("GPU","Error creating resized for direct plotting!");
+						dolog("GPU","Error creating the EMU screenbuffer for direct plotting!");
 					}
 				}
 			}
