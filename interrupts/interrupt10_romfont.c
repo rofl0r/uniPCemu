@@ -309,7 +309,7 @@ void INT10_SetupRomMemoryChecksum() {
 		Bitu last_rombyte = 32*1024 - 1;		//32 KB romsize
 		Bitu i;
 		for (i = 0;i < last_rombyte;i++)
-			sum += EMU_VGAROM[i];	//OVERFLOW IS OKAY
+			sum += (Bit8u)EMU_VGAROM[i];	//OVERFLOW IS OKAY
 		sum = (Bit8u)((256 - (Bitu)sum)&0xff);
 		EMU_VGAROM[last_rombyte] = sum;
 	}

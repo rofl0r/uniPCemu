@@ -101,14 +101,14 @@ void activeThread(uint_32 threadid, ThreadParams_p thread)
 void terminateThread(uint_32 thid) //Terminate the thread!
 {
 	//dolog("threads","terminateThread: Terminating thread: %x",thid);
-	SDL_Thread *thread;
+	SDL_Thread *thread=NULL;
 	int thnr;
 	if ((thnr = getthreadpoolindex(thid))!=-1) //Found the thread?
 	{
 		thread = threadpool[thnr].thread; //Get the thread!
 	}
 	releasePool(thid); //Release from pool if available!
-	if (thnr!=-1) //Valid thread to kill?
+	if (thnr!=-1 && thread) //Valid thread to kill?
 	{
 		SDL_KillThread(thread); //Kill this thread!
 	}

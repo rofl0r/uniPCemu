@@ -38,6 +38,11 @@ OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *
 	return monitors[DAC_whatBWMonitor](VGA, DACValue); //Do color mode or B/W mode!
 }
 
+uint_32 getPixelBlockSize()
+{
+	return PIXELBLOCKSIZE; //Give the block size!
+}
+
 extern GPU_type GPU; //GPU!
 
 typedef void (*DisplayRenderHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA); //Our rendering handler for all signals!
@@ -65,7 +70,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 		break;
 	}
 
-	return (result/PIXELBLOCKSIZE); //Calculate the ammount of horizontal clocks per second!
+	return (result/getPixelBlockSize()); //Calculate the ammount of horizontal clocks per second!
 }
 
 //Main rendering routine: renders pixels to the emulated screen.
@@ -500,6 +505,7 @@ void initStateHandlers()
 
 void VGA_Sequencer()
 {
+	uint_32 i; //Process 1024000 pixels at a time!
 	if (HW_DISABLED) return;
 	//if (!lockVGA()) return; //Lock ourselves!
 	static word displaystate = 0; //Last display state!
@@ -536,9 +542,9 @@ void VGA_Sequencer()
 		return; //Abort: we're disabled!
 	}
 
-	uint_32 i = PIXELBLOCKSIZE+1; //Process 1024000 pixels at a time!
 	Sequencer_run = 1; //We're running!
-	for (; --i && Sequencer_run;)
+	i = getPixelBlockSize(); //Retrieve the pixel block size!
+	do
 	{
 		//Process one pixel only!
 		signal_x = Sequencer->x;
@@ -546,7 +552,7 @@ void VGA_Sequencer()
 		displaystate = get_display(VGA, Sequencer->Scanline, Sequencer->x++); //Current display state!
 		VGA_SIGNAL_HANDLER(Sequencer, VGA, displaystate); //Handle any change in display state first!
 		displayrenderhandler[totalretracing][displaystate](Sequencer, VGA); //Execute our signal!
-	}
+	} while (--i && Sequencer_run); //Process pixels!
 
 	//unlockVGA(); //Unlock the VGA for Software access!
 	//unlockGPU(); //Unlock the GPU for Software access!

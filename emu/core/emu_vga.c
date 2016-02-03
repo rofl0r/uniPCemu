@@ -54,8 +54,8 @@ void updateVGA(double timepassed)
 	VGA_timing += timepassed; //Time has passed!
 	if (VGA_timing >= VGA_rendertiming && VGA_rendertiming) //Might have passed?
 	{
-		uint_32 renderings;
-		renderings = (VGA_timing/VGA_rendertiming); //Ammount of times to render!
+		uint_64 renderings;
+		renderings = (uint_64)(VGA_timing/VGA_rendertiming); //Ammount of times to render!
 		VGA_timing -= renderings*VGA_rendertiming; //Rest the amount we can process!
 
 		if (__SCREEN_LINES_LIMIT) //Limit set?

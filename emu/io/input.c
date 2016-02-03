@@ -49,6 +49,8 @@ byte keysactive; //Ammount of keys active!
 
 double mouse_interval = 0.0f; //Check never by default (unused timer)!
 
+byte precisemousemovement = 0; //Precise mouse movement enabled?
+
 enum input_button_map { //All buttons we support!
 INPUT_BUTTON_TRIANGLE, INPUT_BUTTON_CIRCLE, INPUT_BUTTON_CROSS, INPUT_BUTTON_SQUARE,
 INPUT_BUTTON_LTRIGGER, INPUT_BUTTON_RTRIGGER,
@@ -827,7 +829,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	}
 	if (!Direct_Input) //Not direct input?
 	{
-		if (input.cas&CAS_LSHIFT)
+		if (precisemousemovement)
 		{
 			keyboard_display[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 'S';
 			keyboard_attribute[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 3; //Special shift color active!
@@ -1087,7 +1089,7 @@ byte shiftstatus = 0; //New shift status!
 
 extern char keys_names[104][11]; //All names of the used keys (for textual representation/labeling)
 
-float keyboard_mousetiming = 0.0f; //Current timing!
+double keyboard_mousetiming = 0.0f; //Current timing!
 
 void handleMouseMovement(double timepassed) //Handles mouse movement using the analog direction of the mouse!
 {
@@ -1871,12 +1873,11 @@ void enableKeyboard(int bufferinput) //Enables the keyboard/mouse functionnality
 
 SDL_Joystick *joystick; //Our joystick!
 
-byte precisemousemovement = 0; //Precise mouse movement enabled?
 word mouse_x=0, mouse_y=0; //Current mouse coordinates of the actual mouse!
 
 void updateMOD()
 {
-	const float precisemovement = 0.0000002f; //Precise mouse movement constant!
+	const float precisemovement = 0.5f; //Precise mouse movement constant!
 	if ((input.cas&CAS_RCTRL) && (!Direct_Input)) //Ctrl pressed, mapped to home?
 	{
 		input.Buttons |= BUTTON_HOME; //Pressed!
@@ -1886,7 +1887,7 @@ void updateMOD()
 		input.Buttons &= ~BUTTON_HOME; //Released!
 	}
 
-	if ((input.cas&CAS_RSHIFT) && (!Direct_Input)) //Shift pressed, mapped to mouse slowdown?
+	if ((input.cas&CAS_LSHIFT) && (!Direct_Input)) //Shift pressed, mapped to mouse slowdown?
 	{
 		precisemousemovement = 1; //Enabled!
 	}
@@ -1919,8 +1920,14 @@ void updateMOD()
 	input.Lx = axis; //Horizontal axis!
 	if (precisemousemovement) //Enable precise movement?
 	{
-		input.Lx = (sword)((float)input.Lx*precisemovement); //Enable precise movement!
-		input.Ly = (sword)((float)input.Ly*precisemovement); //Enable precise movement!
+		if (input.Lx)
+		{
+			input.Lx = (sword)((float)input.Lx*precisemovement); //Enable precise movement!
+		}
+		if (input.Ly)
+		{
+			input.Ly = (sword)((float)input.Ly*precisemovement); //Enable precise movement!
+		}
 	}
 }
 

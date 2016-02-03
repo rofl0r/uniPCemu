@@ -19,6 +19,13 @@
 #endif
 #endif
 
+#ifdef VISUALC
+#ifdef _DEBUG
+//Visual Leak detector when debugging!
+#include <vld.h>
+#endif
+#endif
+
 
 //Windows specific structures!
 #ifdef _WIN32
