@@ -379,7 +379,7 @@ void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 			{
 				readfifobufferunlocked(src, &buffer); //Read 8-bit data!
 				writefifobufferunlocked(dest, buffer); //Write 8-bit data!
-			} while (!--current);
+			} while (--current);
 			if (dest->lock) PostSem(dest->lock) //Unlock the destination!
 			if (src->lock) PostSem(src->lock) //Unlock the source!
 		}
