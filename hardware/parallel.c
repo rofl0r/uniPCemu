@@ -138,7 +138,7 @@ byte inparallel(word port, byte *result)
 		return 1; //We're handled!
 		break;
 	case 2: //Control register?
-		*result = PARALLELPORT[Parallelport].controlinhandler()|PARALLELPORT[Parallelport].controldata;
+		*result = (PARALLELPORT[Parallelport].controlinhandler()&0xF)|PARALLELPORT[Parallelport].controldata;
 		return 1; //We're handled!
 		break;
 	default: //Unknown port?

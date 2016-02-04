@@ -84,7 +84,6 @@ void soundsource_covox_controlout(byte control)
 		dolog("ssource","CR:%02x",outbuffer);
 		covox_right = outbuffer; //Set right channel value!
 	}
-	dolog("ssource","C:%02X",control); //Setten this control byte!
 	lastcontrol = control; //Save the last status for checking the bits!
 }
 
