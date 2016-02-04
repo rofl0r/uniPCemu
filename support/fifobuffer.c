@@ -127,7 +127,7 @@ int peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read?
 	return 0; //Nothing to peek at!
 }
 
-void readfifobufferunlocked(FIFOBUFFER *buffer, byte *result)
+OPTINLINE static void readfifobufferunlocked(FIFOBUFFER *buffer, byte *result)
 {
 	*result = buffer->buffer[buffer->position[0].readpos++]; //Read and update!
 	if (buffer->position[0].readpos >= buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
@@ -159,7 +159,7 @@ int readfifobuffer(FIFOBUFFER *buffer, byte *result)
 	return 0; //Nothing to read!
 }
 
-void writefifobufferunlocked(FIFOBUFFER *buffer, byte data)
+OPTINLINE static void writefifobufferunlocked(FIFOBUFFER *buffer, byte data)
 {
 	buffer->buffer[buffer->position[0].writepos++] = data; //Write and update!
 	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
@@ -222,7 +222,7 @@ int peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be rea
 	return 0; //Nothing to peek at!
 }
 
-void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
+OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
 {
 	*result = buffer->buffer[buffer->position[0].readpos++]; //Read and update high!
 	if (buffer->position[0].readpos >= buffer->size) buffer->position[0].readpos = 0; //Wrap arround when needed!
@@ -257,7 +257,7 @@ int readfifobuffer16(FIFOBUFFER *buffer, word *result)
 	return 0; //Nothing to read!
 }
 
-void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
+OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 {
 	buffer->buffer[buffer->position[0].writepos++] = (data >> 8); //Write high and update!
 	if (buffer->position[0].writepos >= buffer->size) buffer->position[0].writepos = 0; //Wrap arround when needed!
@@ -361,7 +361,7 @@ void fifobuffer_clear(FIFOBUFFER *buffer)
 
 void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 {
-	if (src == dest) return; //Can't move to itself!
+	if ((src == dest) || (!threshold)) return; //Can't move to itself!
 	uint_32 current; //Current thresholded data index!
 	byte buffer; //our buffer for the transfer!
 	if (!src) return; //Invalid source!
@@ -375,12 +375,11 @@ void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 			if (dest->lock) WaitSem(dest->lock) //Lock the destination!
 			//Now quickly move the thesholded data from the source to the destination!
 			current = threshold; //Move threshold items!
-			for (;;) //Process all items fast!
+			do //Process all items fast!
 			{
 				readfifobufferunlocked(src, &buffer); //Read 8-bit data!
 				writefifobufferunlocked(dest, buffer); //Write 8-bit data!
-				if (!--current) break; //Next data!
-			}
+			} while (!--current);
 			if (dest->lock) PostSem(dest->lock) //Unlock the destination!
 			if (src->lock) PostSem(src->lock) //Unlock the source!
 		}
@@ -389,7 +388,7 @@ void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 
 void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 {
-	if (src==dest) return; //Can't move to itself!
+	if ((src==dest) || (!threshold)) return; //Can't move to itself!
 	uint_32 current; //Current thresholded data index!
 	word buffer; //our buffer for the transfer!
 	if (!src) return; //Invalid source!
@@ -405,12 +404,11 @@ void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 			threshold >>= 1; //Make it into actual data items!
 			//Now quickly move the thesholded data from the source to the destination!
 			current = threshold; //Move threshold items!
-			for (;;) //Process all items fast!
+			do //Process all items fast!
 			{
 				readfifobuffer16unlocked(src,&buffer); //Read 16-bit data!
 				writefifobuffer16unlocked(dest,buffer); //Write 16-bit data!
-				if (!--current) break; //Next data!
-			}
+			} while (--current);
 			if (dest->lock) PostSem(dest->lock) //Unlock the destination!
 			if (src->lock) PostSem(src->lock) //Unlock the source!
 		}
