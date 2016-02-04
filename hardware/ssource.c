@@ -2,6 +2,7 @@
 #include "headers/support/fifobuffer.h" //FIFO buffer support!
 #include "headers/emu/sound.h" //Sound output support!
 #include "headers/hardware/parallel.h" //Parallel port support!
+#include "headers/support/log.h" //Logging support!
 
 //Sound source sample rate and buffer size!
 #define __SSOURCE_RATE 7000.0f
@@ -10,10 +11,10 @@
 //The Convox buffer is undefined(theoretically has no buffer since it's a simple resistor ladder, but it does in this emulation), the threshold size is used instead in this case(CPU speed handles the playback rate).
 #define __SSOURCE_BUFFER 16
 //Treshold for primary(Convox)/secondary(Sound Source) to render buffer! Lower this number for better response on the renderer, but worse response on the CPU(the reverse also applies)!
-#define __SSOURCE_TRESHOLD 4
-#define __COVOX_TRESHOLD 409
+#define __SSOURCE_TRESHOLD 2048
+#define __COVOX_TRESHOLD 2048
 //Rendering buffer needs to be large enough for a good sound!
-#define __SSOURCE_HWBUFFER 1024
+#define __SSOURCE_HWBUFFER 4096
 #define __COVOX_HWBUFFER 4096
 
 double ssourcetiming = 0.0f, covoxtiming = 0.0f, ssourcetick=(1000000000.0f/__SSOURCE_RATE), covoxtick=(1000000000.0f/__COVOX_RATE);
@@ -65,21 +66,25 @@ void soundsource_covox_output(byte data)
 void soundsource_covox_controlout(byte control)
 {
 	//bit0=Covox left channel tick, bit1=Covox right channel tick, bit 3=Sound source mono channel tick. Bit 2=Sound source ON.
-	if (control&4) //Is this output for the Sound Source?
+	//bit0/1/3 transition from high to low ticks sound!
+	if (control&4) //Is the Sound Source powered up?
 	{
-		if ((control & 8) && !(lastcontrol & 8)) //Toggling this bit on sends the data to the DAC!
+		if ((!(control & 8)) && (lastcontrol & 8)) //Toggling this bit on sends the data to the DAC!
 		{
 			writefifobuffer(ssourcestream, outbuffer); //Add to the primary buffer when possible!
 		}
 	}
-	if ((control&1) && (!(lastcontrol&1))) //Covox speech thing left channel pulse?
+	if ((!(control&1)) && (lastcontrol&1)) //Covox speech thing left channel pulse?
 	{
+		dolog("ssource","CL:%02x",outbuffer);
 		covox_left = outbuffer; //Set left channel value!
 	}
-	if ((control&2) && (!(lastcontrol&2))) //Covox speech thing right channel pulse?
+	if ((!(control&2)) && (lastcontrol&2)) //Covox speech thing right channel pulse?
 	{
+		dolog("ssource","CR:%02x",outbuffer);
 		covox_right = outbuffer; //Set right channel value!
-	}	
+	}
+	dolog("ssource","C:%02X",control); //Setten this control byte!
 	lastcontrol = control; //Save the last status for checking the bits!
 }
 
@@ -88,26 +93,40 @@ byte soundsource_covox_controlin()
 	return lastcontrol; //Give our last control byte!
 }
 
+byte ssource_full = 0; //Sound source full status!
+
 byte soundsource_covox_status()
 {
+	byte result; //The result to use!
+	result = (3|((~outbuffer)&0x80)); //Default for detection!
 	//Bits 0-3 is set to detect. Bit 2 is cleared with a full buffer. Bit 6 is set with a full buffer. Output buffer bit 7(pin 9) is wired to status bit 0(pin 11). According to Dosbox.
-	if (!fifobuffer_freesize(ssourcestream)) //Buffer full?
+	if (ssource_full) //Sound source buffer full?
 	{
-		return ((0x43)|(outbuffer&0x80)); //We have a full buffer!
+		result |= 0x40; //We have a full buffer!
 	}
-	return (7|(outbuffer&0x80)); //We have an empty buffer!
+	return result; //We have an empty buffer!
 }
 
 void tickssourcecovox(double timepassed)
 {
 	//HW emulation of ticking the sound source in CPU time!
+	ssource_full = (!fifobuffer_freesize(ssourcestream))?1:0; //We're full when nothing's there!
+	setParallelIRQ(0,ssource_full); //Set our interrupt status before rendering to detect!
+
 	ssourcetiming += timepassed; //Tick the sound source!
 	if (ssourcetiming>=ssourcetick) //Enough time passed to tick?
 	{
 		do
 		{
-			movefifobuffer8(ssourcestream,ssourcestream2,1); //Move data to the destination buffer one sample at a time!
-			movefifobuffer8(ssourcestream2,ssourcerenderstream,__SSOURCE_TRESHOLD); //Move data to the rener buffer once we're full enough!
+			if (lastcontrol&4) //Is the Sound Source powered up?
+			{
+				movefifobuffer8(ssourcestream,ssourcestream2,1); //Move data to the destination buffer one sample at a time!
+				movefifobuffer8(ssourcestream2,ssourcerenderstream,__SSOURCE_TRESHOLD); //Move data to the render buffer once we're full enough!
+			}
+			else //Sound source is powered down?
+			{
+				movefifobuffer8(ssourcestream2,ssourcerenderstream,__SSOURCE_HWBUFFER-fifobuffer_freesize(ssourcestream2)); //Move rest data to the render buffer once we're full enough!
+			}
 			ssourcetiming -= ssourcetick; //Ticked one sample!
 		} while (ssourcetiming>=ssourcetick); //Do ... while, because we execute at least once!
 	}
@@ -149,13 +168,15 @@ void doneSoundsource()
 void initSoundsource() {
 	doneSoundsource(); //Make sure we're not already running!
 	
+	ssource_full = 0; //Initialise status!
+
 	//Sound source streams!
 	ssourcestream = allocfifobuffer(__SSOURCE_BUFFER,0); //Our FIFO buffer! This is the buffer the CPU writes to!
-	ssourcestream2 = allocfifobuffer(__SSOURCE_TRESHOLD,0); //Our FIFO hardware buffer! Don't lock! This is the buffer we render immediate samples to!
+	ssourcestream2 = allocfifobuffer(__SSOURCE_HWBUFFER,0); //Our FIFO hardware buffer! Don't lock! This is the buffer we render immediate samples to!
 	ssourcerenderstream = allocfifobuffer(__SSOURCE_HWBUFFER,1); //Our FIFO rendering buffer! Do lock! This is the buffer the renderer uses(double buffering with ssourcestream2).
 	
 	//Covox streams!
-	covoxstream = allocfifobuffer(__COVOX_TRESHOLD<<1,0); //Our stereo FIFO hardware buffer! Don't lock! This is the buffer we render immediate samples to!
+	covoxstream = allocfifobuffer(__COVOX_HWBUFFER<<1,0); //Our stereo FIFO hardware buffer! Don't lock! This is the buffer we render immediate samples to!
 	covoxrenderstream = allocfifobuffer(__COVOX_HWBUFFER<<1,1); //Our stereo FIFO rendering buffer! Do lock! This is the buffer the renderer uses(double buffering with covoxstream).
 
 	ssourcetiming = covoxtiming = 0.0f; //Initialise our timing!

@@ -13,7 +13,6 @@ byte outputdata; //Mirror of last written data!
 byte controldata; //Mirror of last written control!
 byte IRQEnabled; //IRQs enabled?
 byte IRQraised; //IRQ raised?
-byte IRQstatus; //Current IRQ status!
 } PARALLELPORT[4]; //All parallel ports!
 byte numparallelports = 0; //How many ports?
 
@@ -27,7 +26,7 @@ void registerParallel(byte port, ParallelOutputHandler outputhandler, ParallelCo
 
 void setParallelIRQ(byte port, byte raised)
 {
-	PARALLELPORT[port].IRQraised = raised; //Raise the IRQ from the hardware if set, lower when cleared!
+	PARALLELPORT[port].IRQraised = (PARALLELPORT[port].IRQraised&~1)|(raised&1); //Raise the IRQ from the hardware if set, lower when cleared!
 }
 
 void tickParallel(double timepassed)
@@ -35,7 +34,7 @@ void tickParallel(double timepassed)
 	byte port;
 	for (port=0;port<MIN(numparallelports,NUMITEMS(PARALLELPORT));port++) //Only process the ports we have!
 	{
-		if (PARALLELPORT[port].IRQraised && (!PARALLELPORT[port].prevIRQraised) && PARALLELPORT[port].IRQEnabled) //Enabled and raised high?
+		if (((PARALLELPORT[port].IRQraised&3)==1) && PARALLELPORT[port].IRQEnabled) //Enabled and raised high?
 		{
 			switch (port)
 			{
@@ -48,10 +47,11 @@ void tickParallel(double timepassed)
 				case 2: //IRQ 5!
 					doirq(5); //Throw the IRQ!
 				default: //unknown IRQ?
+					//Don't handle: we're an unknown IRQ!
 					break;
 			}
+			PARALLELPORT[port].IRQraised |= 2; //Not raised anymore! Set to a special bit value to detect by software!
 		}
-		PARALLELPORT[port].prevIRQraised = PARALLELPORT[port].IRQraised; //Save as the new status!
 	}
 }
 
@@ -132,6 +132,9 @@ byte inparallel(word port, byte *result)
 		{
 			*result = PARALLELPORT[Parallelport].statushandler(); //Output the data?
 		}
+		*result &= ~4; //Clear IRQ status bit by default(IRQ occurred)!
+		*result |= ((~PARALLELPORT[Parallelport].IRQraised)&1)<<2; //Set the nIRQ bit if an interrupt didn't occurred!
+		PARALLELPORT[Parallelport].IRQraised &= ~2; //Clear the interrupt raised flag! We've been acnowledged if existant!
 		return 1; //We're handled!
 		break;
 	case 2: //Control register?
