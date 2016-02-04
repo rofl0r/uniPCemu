@@ -13,6 +13,7 @@ byte outputdata; //Mirror of last written data!
 byte controldata; //Mirror of last written control!
 byte IRQEnabled; //IRQs enabled?
 byte IRQraised; //IRQ raised?
+byte IRQstatus; //Current IRQ status!
 } PARALLELPORT[4]; //All parallel ports!
 byte numparallelports = 0; //How many ports?
 
@@ -32,40 +33,25 @@ void setParallelIRQ(byte port, byte raised)
 void tickParallel(double timepassed)
 {
 	byte port;
-	for (port=0;port<4;port++)
+	for (port=0;port<MIN(numparallelports,NUMITEMS(PARALLELPORT));port++) //Only process the ports we have!
 	{
-		if (PARALLELPORT[port].IRQraised && PARALLELPORT[port].IRQEnabled) //Enabled and raised?
+		if (PARALLELPORT[port].IRQraised && (!PARALLELPORT[port].prevIRQraised) && PARALLELPORT[port].IRQEnabled) //Enabled and raised high?
 		{
 			switch (port)
 			{
 				case 0: //IRQ 7!
-					doirq(7);
+					doirq(7); //Throw the IRQ!
 					break;
 				case 1: //IRQ 6!
-					doirq(6);
+					doirq(6); //Throw the IRQ!
 					break;
 				case 2: //IRQ 5!
-					doirq(5);
+					doirq(5); //Throw the IRQ!
 				default: //unknown IRQ?
 					break;
 			}
 		}
-		else
-		{
-			switch (port)
-			{
-				case 0: //IRQ 7!
-					removeirq(7);
-					break;
-				case 1: //IRQ 6!
-					removeirq(6);
-					break;
-				case 2: //IRQ 5!
-					removeirq(5);
-				default: //unknown IRQ?
-					break;
-			}
-		}
+		PARALLELPORT[port].prevIRQraised = PARALLELPORT[port].IRQraised; //Save as the new status!
 	}
 }
 
