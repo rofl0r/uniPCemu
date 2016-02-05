@@ -26,6 +26,9 @@ byte covox_left=0x80, covox_right=0x80; //Current status for the covox speech th
 byte outbuffer = 0x00; //Our outgoing data buffer!
 byte lastcontrol = 0x00; //Our current control data!
 
+byte covox_mono = 0; //Current covox mode!
+byte covox_ticking = 0; //When overflows past 5 it's mono!
+
 byte ssource_output(void* buf, uint_32 length, byte stereo, void *userdata)
 {
 	if (stereo) return SOUNDHANDLER_RESULT_NOTFILLED; //Stereo not supported!
@@ -61,6 +64,15 @@ byte covox_output(void* buf, uint_32 length, byte stereo, void *userdata)
 void soundsource_covox_output(byte data)
 {
 	outbuffer = data; //Last data set on our lines!
+	if (covox_mono) //Covox mono output?
+	{
+		covox_left = covox_right = outbuffer; //Write the data as mono sound!
+	}
+	else if (++covox_ticking==5) //Covox mono detected when 5 samples are written without control change?
+	{
+		covox_mono = 1;
+		covox_ticking = 4; //We're not ticking anymore! Reset the ticker to prepare for invalid mono state!
+	}
 }
 
 void soundsource_covox_controlout(byte control)
@@ -72,17 +84,20 @@ void soundsource_covox_controlout(byte control)
 		if ((!(control & 8)) && (lastcontrol & 8)) //Toggling this bit on sends the data to the DAC!
 		{
 			writefifobuffer(ssourcestream, outbuffer); //Add to the primary buffer when possible!
+			covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 		}
 	}
 	if ((!(control&1)) && (lastcontrol&1)) //Covox speech thing left channel pulse?
 	{
 		dolog("ssource","CL:%02x",outbuffer);
 		covox_left = outbuffer; //Set left channel value!
+		covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 	}
 	if ((!(control&2)) && (lastcontrol&2)) //Covox speech thing right channel pulse?
 	{
 		dolog("ssource","CR:%02x",outbuffer);
 		covox_right = outbuffer; //Set right channel value!
+		covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 	}
 	lastcontrol = control; //Save the last status for checking the bits!
 }
