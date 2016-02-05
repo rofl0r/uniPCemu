@@ -25,8 +25,6 @@ word signal_x, signal_scanline; //Signal location!
 
 #define CURRENTBLINK(VGA) VGA->TextBlinkOn
 
-#define PIXELBLOCKSIZE 16
-
 //Our IRQ to use when enabled (EGA compatibility)!
 #define VGA_IRQ 2
 
@@ -65,7 +63,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 		break;
 	}
 
-	return (result/PIXELBLOCKSIZE); //Our block size!); //Calculate the ammount of horizontal clocks per second!
+	return result; //Calculate the ammount of horizontal clocks per second: full speed for the CPU!
 }
 
 //Main rendering routine: renders pixels to the emulated screen.
@@ -498,26 +496,33 @@ void initStateHandlers()
 	}
 }
 
+byte doVGA_Sequencer() //Do we even execute?
+{
+	if (!memprotect(getActiveVGA(), sizeof(VGA_Type), "VGA_Struct")) //Invalid VGA? Don't do anything!
+	{
+		//unlockVGA();
+		return 0; //Abort: we're disabled without a invalid VGA!
+	}
+	if (!(getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR && getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR)) //Reset sequencer?
+	{
+		return 0; //Abort: we're disabled!
+	}
+	if (!memprotect(GPU.emu_screenbuffer, 4, "EMU_ScreenBuffer")) //Invalid framebuffer? Don't do anything!
+	{
+		//unlockVGA();
+		//unlockGPU(); //Unlock the VGA&GPU for Software access!
+		return 0; //Abort: we're disabled!
+	}
+	return 1; //We can render something!
+}
+
 void VGA_Sequencer()
 {
-	uint_32 i; //Process 1024000 pixels at a time!
 	if (HW_DISABLED) return;
 	//if (!lockVGA()) return; //Lock ourselves!
 	static word displaystate = 0; //Last display state!
-	VGA_Type *VGA = getActiveVGA(); //Our active VGA!
-	if (!memprotect(VGA, sizeof(*VGA), "VGA_Struct")) //Invalid VGA? Don't do anything!
-	{
-		//unlockVGA();
-		return; //Abort: we're disabled!
-	}
-
-	if (!(VGA->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR && VGA->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR)) //Reset sequencer?
-	{
-		return; //Abort: we're disabled!
-	}
-
 	SEQ_DATA *Sequencer;
-	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
+	Sequencer = GETSEQUENCER(getActiveVGA()); //Our sequencer!
 
 	//All possible states!
 	if (!displayrenderhandler[0][0]) //Nothing set?
@@ -530,24 +535,15 @@ void VGA_Sequencer()
 		//unlockVGA();
 		return;
 	}*/
-	if (!memprotect(GPU.emu_screenbuffer, 4, "EMU_ScreenBuffer")) //Invalid framebuffer? Don't do anything!
-	{
-		//unlockVGA();
-		//unlockGPU(); //Unlock the VGA&GPU for Software access!
-		return; //Abort: we're disabled!
-	}
 
 	Sequencer_run = 1; //We're running!
-	i = PIXELBLOCKSIZE+1; //Retrieve the pixel block size!
-	do
-	{
-		//Process one pixel only!
-		signal_x = Sequencer->x;
-		signal_scanline = Sequencer->Scanline;
-		displaystate = get_display(VGA, Sequencer->Scanline, Sequencer->x++); //Current display state!
-		VGA_SIGNAL_HANDLER(Sequencer, VGA, displaystate); //Handle any change in display state first!
-		displayrenderhandler[totalretracing][displaystate](Sequencer, VGA); //Execute our signal!
-	} while (--i && Sequencer_run); //Process pixels!
+
+	//Process one pixel only!
+	signal_x = Sequencer->x;
+	signal_scanline = Sequencer->Scanline;
+	displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
+	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), displaystate); //Handle any change in display state first!
+	displayrenderhandler[totalretracing][displaystate](Sequencer, getActiveVGA()); //Execute our signal!
 
 	//unlockVGA(); //Unlock the VGA for Software access!
 	//unlockGPU(); //Unlock the GPU for Software access!

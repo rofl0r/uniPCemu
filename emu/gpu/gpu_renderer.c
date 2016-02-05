@@ -280,18 +280,18 @@ OPTINLINE void renderFrames() //Render all frames to the screen!
 		//Check for dirty text surfaces!
 		for (i=0;i<(int)NUMITEMS(GPU.textsurfaces);i++) //Process all text surfaces!
 		{
-			if (GPU.textsurfaces[i]) //Surface specified?
+			if (GPU.textsurfaces[i]) //Stop on first surface not specified?
 			{
 				if (GPU.textrenderers[i]) //Gotten a handler?
 				{
 					GPU.textrenderers[i](); //Execute the handler for filling the screen!
 				}
-				GPU_text_locksurface(GPU.textsurfaces[i]); //Lock the surface!
+				GPU_text_locksurface(GPU.textsurfaces[i]); //Lock before checking!
 				if (GPU_textdirty(GPU.textsurfaces[i])) //Marked dirty?
 				{
 					dirty = 1; //We're dirty!
 				}
-				GPU_text_releasesurface(GPU.textsurfaces[i]); //Release the surface lock!
+				GPU_text_releasesurface(GPU.textsurfaces[i]); //Unlock now!
 			}
 		}
 
@@ -412,8 +412,8 @@ void renderHWFrame() //Render a frame from hardware!
 	GPU_is_rendering = 1; //We're rendering, so block other renderers!
 	if (ALLOW_HWRENDERING)
 	{
-		updateVideo(); //Update the video resolution if needed!
 		lockGPU(); //Make sure we're locked!
+		updateVideo(); //Update the video resolution if needed!
 		//Start the rendering!
 		if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Allowed rendering?
 		{
@@ -426,12 +426,10 @@ void renderHWFrame() //Render a frame from hardware!
 				writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),GPU.xres,GPU.yres,GPU.doublewidth,GPU.doubleheight,EMU_MAX_X); //Dump our raw screen!
 			}
 		}
+		GPU_FrameRendered(); //A frame has been rendered, so update our stats!
+		unlockGPU();
 	}
-	else lockGPU(); //Make sure we're locked anyway!
-	
-	GPU_FrameRendered(); //A frame has been rendered, so update our stats!
 	GPU_is_rendering = 0; //We're not rendering anymore!
-	unlockGPU();
 }
 
 /*

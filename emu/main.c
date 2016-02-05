@@ -380,6 +380,7 @@ int main(int argc, char * argv[])
 			lock(LOCK_CPU); //Lock the CPU: we're running!
 		}
 		CPU_updateVideo(); //Update the video if needed from the CPU!
+		GPU_tickVideo(); //Tick the video display to keep it up-to-date!
 		if (cpurun()) break; //Stop running the CPU?
 	}
 

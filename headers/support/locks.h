@@ -15,7 +15,8 @@ SDL_sem *getLock(byte id); //For termination of locks!
 #define LOCK_TIMERS 5
 #define LOCK_INPUT 6
 #define LOCK_SHUTDOWN 7
+#define LOCK_FRAMERATE 8
 //Finally MIDI locks!
-#define MIDI_LOCKSTART 8
+#define MIDI_LOCKSTART 9
 
 #endif

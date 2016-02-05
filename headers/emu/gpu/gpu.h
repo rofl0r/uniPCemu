@@ -133,6 +133,8 @@ void CPU_updateVideo(); //Actual video update from the CPU side of things!
 void GPU_mousebuttondown(word x, word y); //We've been clicked at these coordinates!
 void GPU_mousebuttonup(word x, word y); //We've been released at these coordinates!
 
+void GPU_tickVideo(); //Tick the video display!
+
 #define lockGPU() lock(LOCK_GPU)
 #define unlockGPU() unlock(LOCK_GPU)
 #endif

@@ -55,6 +55,7 @@ int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32
 void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...); //Write a string on the debug screen!
 void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y); //Goto coordinates!
 void GPU_textclearrow(GPU_TEXTSURFACE *surface, int y); //Clear a row!
+void GPU_textclearcurrentrownext(GPU_TEXTSURFACE *surface); //For clearing the rest of the current row!
 void GPU_textclearscreen(GPU_TEXTSURFACE *surface); //Clear a text screen!
 #define GPU_textdirty(surface) memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)?(((GPU_TEXTSURFACE *)surface)->flags&TEXTSURFACE_FLAG_DIRTY):0
 void GPU_enableDelta(GPU_TEXTSURFACE *surface, byte xdelta, byte ydelta); //Enable delta coordinates on the x/y axis!

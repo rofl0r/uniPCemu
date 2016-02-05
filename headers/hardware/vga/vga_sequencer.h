@@ -96,6 +96,7 @@ typedef struct
 
 float VGA_VerticalRefreshRate(VGA_Type *VGA); //Scanline speed for one line in Hz!
 
+byte doVGA_Sequencer(); //Do we even execute?
 void VGA_Sequencer(); //Process active VGA sequencer scanline etc.!
 void VGA_Sequencer_calcScanlineData(VGA_Type *VGA);
 

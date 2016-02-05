@@ -49,6 +49,10 @@ word window_xres = 0;
 word window_yres = 0;
 byte video_aspectratio = 0; //Current aspect ratio!
 
+TicksHolder renderTiming;
+double currentRenderTiming = 0.0;
+double renderTimeout = 1000000000.0f/30.0f; //30Hz refresh!
+
 void updateWindow(word xres, word yres, uint_32 flags)
 {
 	window_xres = xres;
@@ -194,7 +198,7 @@ void initVideoMain() //Everything SDL PRE-EMU!
 		initFramerate(); //Start the framerate handler!
 		initKeyboardOSK(); //Start the OSK handler!
 		allocBIOSMenu(); //BIOS menu has the highest priority!
-		addtimer(60.0, &refreshscreen, "RefreshScreen", 1, 1,NULL); //Refresh the screen at this frequency MAX!
+		//addtimer(60.0, &refreshscreen, "RefreshScreen", 1, 1,NULL); //Refresh the screen at this frequency MAX!
 	}
 }
 
@@ -249,6 +253,9 @@ void initVideo(int show_framerate) //Initialises the video
 	setGPUFrameskip(0); //No frameskip, by default!
 
 	debugrow("Video: Device ready.");
+
+	initTicksHolder(&renderTiming);
+	currentRenderTiming = 0.0; //Init!
 }
 
 byte needvideoupdate = 0; //Default: no update needed!
@@ -274,13 +281,6 @@ void CPU_updateVideo()
 	else unlock(LOCK_VIDEO); //We're done with the video!
 }
 
-void triggerCPUVideoUpdate()
-{
-	lock(LOCK_VIDEO); //We're needing to update the video!
-	needvideoupdate = 1; //We need a video update!
-	unlock(LOCK_VIDEO); //Ready to update the video!
-}
-
 void updateVideo() //Update the screen resolution on change!
 {
 	//We're disabled with the PSP: it doesn't update resolution!
@@ -292,11 +292,12 @@ void updateVideo() //Update the screen resolution on change!
 	static byte resolutiontype = 0; //Last resolution type!
 	static byte plotsetting = 0; //Direct plot setting!
 	static byte aspectratio = 0; //Last aspect ratio!
-	lockGPU();
 	if ((VIDEO_DIRECT || VIDEO_DFORCED) && (!video_aspectratio)) //Direct aspect ratio?
 	{
+		lock(LOCK_VIDEO);
 		reschange = ((window_xres!=GPU.xres) || (window_yres!=GPU.yres)); //Resolution update based on Window Resolution?
 		restype = 0; //Default resolution type!
+		unlock(LOCK_VIDEO);
 	}
 	else if (resized) //Resized available?
 	{
@@ -309,6 +310,7 @@ void updateVideo() //Update the screen resolution on change!
 	}
 	if (reschange || (fullscreen!=GPU.fullscreen) || (aspectratio!=video_aspectratio) || (resolutiontype!=restype) || (BIOS_Settings.VGA_AllowDirectPlot!=plotsetting)) //Resolution (type) changed or fullscreen changed or plot setting changed?
 	{
+		lock(LOCK_VIDEO);
 		GPU.forceRedraw = 1; //We're forcing a full redraw next frame to make sure the screen is always updated nicely!
 		xres = restype?resized->sdllayer->w:GPU.xres;
 		yres = restype?resized->sdllayer->h:GPU.yres;
@@ -316,9 +318,9 @@ void updateVideo() //Update the screen resolution on change!
 		resolutiontype = restype; //Last resolution type!
 		fullscreen = GPU.fullscreen;
 		aspectratio = video_aspectratio; //Save the new values for comparing the next time we're changed!
-		triggerCPUVideoUpdate(); //Trigger the CPU to update the video!
+		needvideoupdate = 1; //We need a video update!
+		unlock(LOCK_VIDEO); //Finished with the GPU!
 	}
-	unlockGPU(); //Finished with the GPU!
 	#endif
 }
 
@@ -424,5 +426,15 @@ void GPU_mousebuttonup(word x, word y)
 		{
 			GPU_textbuttonup(GPU.textsurfaces[i], x, y); //We're released here!
 		}
+	}
+}
+
+void GPU_tickVideo()
+{
+	currentRenderTiming += (double)getnspassed(&renderTiming); //Add the time passed to calculate!
+	if (currentRenderTiming >= renderTimeout) //Timeout?
+	{
+		currentRenderTiming = fmod(currentRenderTiming,renderTimeout); //Rest time to count!
+		refreshscreen(); //Refresh the screen!
 	}
 }

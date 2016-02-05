@@ -398,10 +398,10 @@ void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 	{
 		if (fifobuffer_freesize(dest) >= threshold) //Enough free space left?
 		{
+			threshold >>= 1; //Make it into actual data items!
 			//Transfer the data!
 			if (src->lock) WaitSem(src->lock) //Lock the source!
 			if (dest->lock) WaitSem(dest->lock) //Lock the destination!
-			threshold >>= 1; //Make it into actual data items!
 			//Now quickly move the thesholded data from the source to the destination!
 			current = threshold; //Move threshold items!
 			do //Process all items fast!

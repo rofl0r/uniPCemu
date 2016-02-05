@@ -26,7 +26,7 @@
 #define __ADLIB_SAMPLEBUFFERSIZE 4096
 
 //The double buffering threshold!
-#define ADLIBDOUBLE_THRESHOLD 16
+#define __ADLIBDOUBLE_THRESHOLD 2048
 
 #define PI2 (float)(2.0f * PI)
 
@@ -613,7 +613,7 @@ void updateAdlib(double timepassed)
 			filled |= adlibop[adliboperators[1][8]].volenvstatus; //Channel 8?
 			if (!filled) writefifobuffer16(adlibdouble,0); //Not filled: nothing to sound!
 			else writefifobuffer16(adlibdouble,(word)adlibgensample()); //Add the sample to our sound buffer!
-			movefifobuffer16(adlibdouble,adlibsound,ADLIBDOUBLE_THRESHOLD); //Move any data to the destination once filled!
+			movefifobuffer16(adlibdouble,adlibsound,__ADLIBDOUBLE_THRESHOLD); //Move any data to the destination once filled!
 			tickadlib(); //Tick us to the next timing if needed!
 			adlib_soundtiming -= adlib_soundtick; //Decrease timer to get time left!
 		}
@@ -702,8 +702,8 @@ void initAdlib()
 
 	if (__SOUND_ADLIB)
 	{
-		adlibsound = allocfifobuffer(__ADLIB_SAMPLEBUFFERSIZE+1,1); //Generate our buffer!
-		adlibdouble = allocfifobuffer(__ADLIB_SAMPLEBUFFERSIZE + 1, 1); //Generate our buffer!
+		adlibsound = allocfifobuffer(__ADLIB_SAMPLEBUFFERSIZE,1); //Generate our buffer!
+		adlibdouble = allocfifobuffer((__ADLIBDOUBLE_THRESHOLD+1), 0); //Generate our buffer!
 		if (adlibsound) //Valid buffer?
 		{
 			if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?

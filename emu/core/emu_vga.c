@@ -11,8 +11,8 @@
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC renderer support!
 
-//How many lines to render at a time when limited.
-#define __SCREEN_LINES_LIMIT 10000
+//How many blocks to render at a time when limited.
+#define __SCREEN_BLOCKS_LIMIT 0
 
 //#define __HW_DISABLED
 
@@ -58,13 +58,13 @@ void updateVGA(double timepassed)
 		renderings = (uint_64)(VGA_timing/VGA_rendertiming); //Ammount of times to render!
 		VGA_timing -= renderings*VGA_rendertiming; //Rest the amount we can process!
 
-		if (__SCREEN_LINES_LIMIT) //Limit set?
+		if (renderings>__SCREEN_BLOCKS_LIMIT && __SCREEN_BLOCKS_LIMIT) //Limit broken?
 		{
-			if (renderings>__SCREEN_LINES_LIMIT) //Limit broken?
-			{
-				renderings = __SCREEN_LINES_LIMIT; //Limit the processing to the amount of time specified!
-			}
+			renderings = __SCREEN_BLOCKS_LIMIT; //Limit the processing to the amount of time specified!
 		}
+		if (!renderings) return; //Nothing to render!
+
+		if (!doVGA_Sequencer()) return; //Don't execute the sequencer if requested to!
 		
 		do 
 		{

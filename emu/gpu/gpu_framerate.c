@@ -61,8 +61,10 @@ void GPU_FrameRendered() //A frame has been rendered?
 {
 	if (GPU.xres && GPU.yres) //Gotten anything rendered?
 	{
+		lock(LOCK_FRAMERATE);
 		++frames; //A frame has been rendered!
 		curscanlinepercentage = 0.0f; //Reset for future references!
+		unlock(LOCK_FRAMERATE);
 	}
 }
 
@@ -71,7 +73,7 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 {
 	if (__HW_DISABLED) return; //Disabled?
 	uint_64 timepassed;
-	lockGPU(); //Lock the GPU!
+	lock(LOCK_FRAMERATE); //Lock us!
 	timepassed = getuspassed(&lastcheck); //Real time passed!
 	if (timepassed) //Time passed?
 	{
@@ -88,7 +90,7 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 	}
 	//Finally delay for next update!
 	//delay(FRAMERATE_STEP); //Wait for the next update as good as we can!
-	unlockGPU(); //Unlock the GPU!
+	unlock(LOCK_FRAMERATE); //Unlock us!
 	#ifdef LOG_VGA_SPEED
 	logVGASpeed(); //Log the speed for our frames!
 	#endif
@@ -133,10 +135,13 @@ void renderFramerate()
 		{
 			GPU_textclearrow(frameratesurface, 0); //Clear the first row!
 			GPU_textgotoxy(frameratesurface, 0, 0); //For output!
+			lock(LOCK_FRAMERATE); //We're using framerate info!
 			GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x22,0x22,0x22),"FPS: %02.5f, AVG: %02.5f",
 				framerate, //Current framrate (FPS)
 				totalframerate //AVG framerate (FPS)
 				); //Show the framerate and average!
+			GPU_textclearcurrentrownext(frameratesurface); //Clear the rest of the current row!
+			unlock(LOCK_FRAMERATE);
 			#ifdef DEBUG_PIXEL_SPEED
 				SEQ_DATA *Sequencer;
 				VGA_Type *VGA;
@@ -168,7 +173,6 @@ void renderFramerate()
 		}
 		else //Don't debug framerate, but still render?
 		{
-			GPU_textclearrow(frameratesurface, 0); //Clear the rows we use!
 			if (BIOS_Settings.ShowCPUSpeed) //Showing the CPU speed?
 			{
 				if (framerateupdated) //We're to be updated with the framerate rate!
@@ -178,15 +182,25 @@ void renderFramerate()
 				}
 				GPU_textgotoxy(frameratesurface, 0, 0); //For output!
 				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "CPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
+				GPU_textclearcurrentrownext(frameratesurface); //Clear the rest of the current row!
 			}
-			GPU_textclearrow(frameratesurface, 1); //Clear the rows we use!
-			GPU_textclearrow(frameratesurface, 2); //Clear the rows we use!
+			else
+			{
+				GPU_textclearrow(frameratesurface, 0); //Clear the rows we use!
+			}
+			int i;
+			for (i = 0;i < (GPU_TEXTSURFACE_WIDTH - 6);i++)
+			{
+				GPU_textsetxy(frameratesurface,i,1,0,0,0); //Clear a bit until the busy indicators!
+			}
+			GPU_textclearrow(frameratesurface, 2); //Clear the rows we don't use!
 			EMU_drawBusy(0); //Draw busy flag disk A!
 			EMU_drawBusy(1); //Draw busy flag disk B!
 			EMU_drawBusy(2); //Draw busy flag disk C!
 			EMU_drawBusy(3); //Draw busy flag disk D!
 			EMU_drawBusy(4); //Draw busy flag disk E!
 			EMU_drawBusy(5); //Draw busy flag disk F!
+			GPU_textclearcurrentrownext(frameratesurface); //Clear the rest of the current row!
 		}
 		GPU_text_releasesurface(frameratesurface); //Unlock!
 	}

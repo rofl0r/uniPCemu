@@ -10,7 +10,7 @@
 #define __HW_DISABLED 0
 
 //Timer step in us! Originally 100ms now 10000?
-#define TIMER_STEP 0
+#define TIMER_STEP 1000
 
 //Log running timers (error/timing search only!)
 //#define TIMER_LOG
@@ -88,62 +88,68 @@ void timer_thread() //Handler for timer!
 
 		for (curtimer=0; curtimer<(int)NUMITEMS(timers); curtimer++) //Process timers!
 		{
-			if (timers[curtimer].handler && timers[curtimer].frequency && timers[curtimer].enabled) //Timer set, valid and enabled?
+			if (timers[curtimer].enabled) //Timer set, valid and enabled?
 			{
-				if ((timers[curtimer].core&1) || ((!(timers[curtimer].core&1)) && EMU_Timers_Enabled)) //Allowed to run?
+				if (timers[curtimer].handler) //Valid entry?
 				{
-					timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
-					numcounters = (uint_64)floor(timers[curtimer].counter / timers[curtimer].overflowtime); //Ammount of times to count!
-					timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions! We skip any overflow!
-					if (timers[curtimer].counterlimit) //Gotten a limit?
+					if (timers[curtimer].frequency) //Valid frequency?
 					{
-						if (numcounters>timers[curtimer].counterlimit)
+						if ((timers[curtimer].core&1) || ((!(timers[curtimer].core&1)) && EMU_Timers_Enabled)) //Allowed to run?
 						{
-							numcounters = timers[curtimer].counterlimit;
-						}
-					}
-					if (numcounters) //Are we to fire?
-					{
-						if (timers[curtimer].lock) //To wait for using threads?
-						{
-							//Lock
-							WaitSem(timers[curtimer].lock)
-						}
-						if (!(timers[curtimer].core&2)) //Not counter only timer?
-						{
-							for (;;) //Overflow multi?
+							timers[curtimer].counter += realpassed; //Increase counter using high precision timer!
+							numcounters = (uint_64)(timers[curtimer].counter / timers[curtimer].overflowtime); //Ammount of times to count!
+							timers[curtimer].counter -= (numcounters*timers[curtimer].overflowtime); //Decrease counter by the executions! We skip any overflow!
+							if (timers[curtimer].counterlimit) //Gotten a limit?
 							{
-#ifdef TIMER_LOG
-								strcpy(name,timers[curtimer].name); //Set name!
-								dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
-								TicksHolder singletimer;
-								startHiresCounting(&singletimer); //Start counting!
-#endif
-								if (timers[curtimer].handler) //Gotten a handler?
+								if (numcounters>timers[curtimer].counterlimit)
 								{
-									timers[curtimer].handler(); //Run the handler!
+									numcounters = timers[curtimer].counterlimit;
 								}
-#ifdef TIMER_LOG
-								++timers[curtimer].calls; //For debugging the ammount of calls!
-								timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
-								dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
-#endif
-								if (!--numcounters) break; //Done? Process next counter!
 							}
-						}
-						else //We're a counter only?
-						{
-							uint_64 *counter;
-							counter = (uint_64 *)timers[curtimer].handler; //Handler is a counter!
-							if (counter && numcounters!=0.0f) //Loaded?
+							if (numcounters) //Are we to fire?
 							{
-								*counter += numcounters; //Add the counter!
+								if (timers[curtimer].lock) //To wait for using threads?
+								{
+									//Lock
+									WaitSem(timers[curtimer].lock)
+								}
+								if (!(timers[curtimer].core&2)) //Not counter only timer?
+								{
+									for (;;) //Overflow multi?
+									{
+		#ifdef TIMER_LOG
+										strcpy(name,timers[curtimer].name); //Set name!
+										dolog("emu","firing timer: %s",timers[curtimer].name); //Log our timer firing!
+										TicksHolder singletimer;
+										startHiresCounting(&singletimer); //Start counting!
+		#endif
+										if (timers[curtimer].handler) //Gotten a handler?
+										{
+											timers[curtimer].handler(); //Run the handler!
+										}
+		#ifdef TIMER_LOG
+										++timers[curtimer].calls; //For debugging the ammount of calls!
+										timers[curtimer].total_timetaken += getuspassed(&singletimer); //Add the time that has passed for this timer!
+										dolog("emu","returning timer: %s",timers[curtimer].name); //Log our timer return!
+		#endif
+										if (!--numcounters) break; //Done? Process next counter!
+									}
+								}
+								else //We're a counter only?
+								{
+									uint_64 *counter;
+									counter = (uint_64 *)timers[curtimer].handler; //Handler is a counter!
+									if (counter && numcounters!=0.0f) //Loaded?
+									{
+										*counter += numcounters; //Add the counter!
+									}
+								}
+								if (timers[curtimer].lock) //To wait for using threads?
+								{
+									//Unlock
+									PostSem(timers[curtimer].lock)
+								}
 							}
-						}
-						if (timers[curtimer].lock) //To wait for using threads?
-						{
-							//Unlock
-							PostSem(timers[curtimer].lock)
 						}
 					}
 				}
