@@ -31,7 +31,7 @@ OPTIMIZATIONFLAGS = -Og
 endif
 
 #Building for debugger and normal CFLAGS
-BUILD_CFLAGS = -enable-core-inline -static-libgcc -static-libstdc++ -march=i386 -mtune=generic
+BUILD_CFLAGS = -enable-core-inline -static-libgcc -static-libstdc++
 ifneq (,$(findstring debug,$(MAKECMDGOALS)))
 BUILD_CFLAGS = -ggdb -ffunction-sections
 endif
