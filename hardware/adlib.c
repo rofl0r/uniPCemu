@@ -26,7 +26,7 @@
 #define __ADLIB_SAMPLEBUFFERSIZE 4096
 
 //The double buffering threshold!
-#define __ADLIBDOUBLE_THRESHOLD 2048
+#define __ADLIBDOUBLE_THRESHOLD 4096
 
 #define PI2 (float)(2.0f * PI)
 
@@ -702,8 +702,8 @@ void initAdlib()
 
 	if (__SOUND_ADLIB)
 	{
-		adlibsound = allocfifobuffer(__ADLIB_SAMPLEBUFFERSIZE,1); //Generate our buffer!
-		adlibdouble = allocfifobuffer((__ADLIBDOUBLE_THRESHOLD+1), 0); //Generate our buffer!
+		adlibsound = allocfifobuffer(__ADLIB_SAMPLEBUFFERSIZE<<1,1); //Generate our buffer!
+		adlibdouble = allocfifobuffer((__ADLIBDOUBLE_THRESHOLD+1)<<1, 0); //Generate our buffer!
 		if (adlibsound) //Valid buffer?
 		{
 			if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
