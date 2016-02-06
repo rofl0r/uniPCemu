@@ -773,6 +773,8 @@ int setx = 0; //X within set -1 to 1!
 int sety = 0; //Y within set -1 to 1!
 
 byte keyboard_attribute[KEYBOARD_NUMY][KEYBOARD_NUMX];
+
+byte keyboard_special[KEYBOARD_NUMY][KEYBOARD_NUMX];
 byte keyboard_display[KEYBOARD_NUMY][KEYBOARD_NUMX];
 
 //Keyboard layout: shift,set,sety,setx,itemnr,values
@@ -787,6 +789,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	memset(keyboard_display,0,sizeof(keyboard_display)); //Init keyboard display!
 	memcpy(&active_keyboard,&keyboards[keyboard_active],sizeof(active_keyboard)); //Set the active keyboard to the defined keyboard!
 	memset(keyboard_attribute,0,sizeof(keyboard_attribute)); //Default attributes to font color!
+memset(keyboard_special,0,sizeof(keyboard_special)); //Default attributes to font color!
 
 	if (!input_enabled) //Input disabled atm?
 	{
@@ -881,8 +884,11 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 		} //Keyboard mode?
 
 		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 'C'; //Screen capture!
+keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 1; 
 		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 'a'; //Screen capture!
+keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 1;
 		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 'p'; //Screen capture!
+keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 1;
 
 		if (SCREEN_CAPTURE) //Screen capture status?
 		{
@@ -1001,6 +1007,10 @@ void keyboard_renderer() //Render the keyboard on-screen!
 				break;
 			}
 			GPU_text_locksurface(keyboardsurface); //Lock us!
+if (keyboard_special[y - ybase][x - xbase]&1) //Screen capture?
+{
+SCREEN_CAPTURE |= (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED)?1:0; //Screen capture on click?
+}
 			GPU_textsetxy(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor);
 			GPU_text_releasesurface(keyboardsurface); //Unlock us!
 		}
