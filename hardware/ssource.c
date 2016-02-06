@@ -10,12 +10,12 @@
 //The Sound Source buffer is always 16 bytes large (needed for full detection of the Sound Source) on the Sound Source(required for full buffer detection)!
 //The Convox buffer is undefined(theoretically has no buffer since it's a simple resistor ladder, but it does in this emulation), the threshold size is used instead in this case(CPU speed handles the playback rate).
 #define __SSOURCE_BUFFER 16
-//Threshold for primary(Convox)/secondary(Sound Source) to render buffer! Lower this number for better response on the renderer, but worse response on the CPU(the reverse also applies)!
-#define __SSOURCE_THRESHOLD 4096
-#define __COVOX_THRESHOLD 4096
 //Rendering buffer needs to be large enough for a good sound!
-#define __SSOURCE_HWBUFFER 4096
+#define __SSOURCE_HWBUFFER 651
 #define __COVOX_HWBUFFER 4096
+//Threshold for primary(Convox)/secondary(Sound Source) to render buffer! Lower this number for better response on the renderer, but worse response on the CPU(the reverse also applies)!
+#define __SSOURCE_THRESHOLD __SSOURCE_HWBUFFER
+#define __COVOX_THRESHOLD __COVOX_HWBUFFER
 
 double ssourcetiming = 0.0f, covoxtiming = 0.0f, ssourcetick=(1000000000.0f/__SSOURCE_RATE), covoxtick=(1000000000.0f/__COVOX_RATE);
 byte ssource_ready = 0; //Are we running?

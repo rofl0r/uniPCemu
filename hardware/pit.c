@@ -42,10 +42,10 @@ PC SPEAKER
 #define SPEAKER_RATE 44100
 //Use actual response as speaker rate! 60us responses!
 //#define SPEAKER_RATE (1000000.0f/60.0f)
-//The double buffering threshold!
-#define PITDOUBLE_THRESHOLD 4096
 //Speaker buffer size!
 #define SPEAKER_BUFFER 4096
+//The double buffering threshold!
+#define PITDOUBLE_THRESHOLD SPEAKER_BUFFER
 //Speaker low&high pass filter values!
 #define SPEAKER_LOWPASS 22050.0f
 
