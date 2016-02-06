@@ -25,6 +25,9 @@ INCLUDE_DIRS = -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
 #Default optimization flags!
 OPTIMIZATIONFLAGS = -O3
 
+#Execute stripping if set below!
+STRIP = -s
+
 #Building for debugging optimization flags
 ifneq (,$(findstring debug,$(MAKECMDGOALS)))
 OPTIMIZATIONFLAGS = -Og
@@ -37,7 +40,7 @@ BUILD_CFLAGS = -ggdb -ffunction-sections
 endif
 
 #Different kinds of flags!
-CFLAGS = -std=c99 ${WARNS} -DWIN32_LEAN_AND_MEAN -D _WIN32_IE=0x0500 -D WINVER=0x500
+CFLAGS = -std=c99 ${WARNS}
 LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 
 #Apply build directory etc.
@@ -58,11 +61,11 @@ redebug: clean debug
 
 #Compile into debug mode without stripping (-s)!
 $(BUILD_DEBUG): ${OBJS}
-	${CC} -ggdb $(OBJS) -o "$@" -Wl,-gc-sections ${LDFLAGS}
+	${CC} -ggdb -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
 
 #Compile into release mode with stripping (-s)!
 $(BUILD_RELEASE): ${OBJS}
-	${CC} ${OBJS} $(STRIP) -o "$@" ${LDFLAGS}
+	${CC} -o "$@" ${OBJS} $(STRIP) ${LDFLAGS}
 
 #Normal compilation of seperate modules!
 $(BUILD_DIR)/%.o:%.c
