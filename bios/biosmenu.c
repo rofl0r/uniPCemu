@@ -733,7 +733,7 @@ void generateFileList(char *extensions, int allowms0, int allowdynamic)
 	if (allowms0) //Allow Memory Stick option?
 	{
         #ifdef __psp__
-               addList("ms0:\0"); //Add filename (Memory Stick)!
+               addList("ms0:"); //Add filename (Memory Stick)!
         #endif
 	}
 	char direntry[256];

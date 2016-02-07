@@ -547,7 +547,6 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		char *flags = debugger_generateFlags(&debuggerregisters); //Generate the flags as text!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - strlen(flags), debuggerrow++); //Second flags row!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s", flags); //All flags, seperated!
-		GPU_text_releasesurface(frameratesurface); //Unlock!
 
 		//Full interrupt status!
 		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-16,debuggerrow++); //Interrupt status!
@@ -555,6 +554,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		{
 			GPU_textprintf(frameratesurface,fontcolor,backcolor,"%i",(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 		}
+		GPU_text_releasesurface(frameratesurface); //Unlock!
 	}
 }
 
