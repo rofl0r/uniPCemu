@@ -64,7 +64,7 @@ SDL_Surface *getGPUSurface()
 {
 	#ifdef __psp__
 	//PSP?
-	updateWindow(PSP_SCREEN_COLUMNS,PSP_SCREEN_ROWS,32,SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	updateWindow(PSP_SCREEN_COLUMNS,PSP_SCREEN_ROWS,SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 	#else
 	//Windows etc?
 	//Other architecture?
