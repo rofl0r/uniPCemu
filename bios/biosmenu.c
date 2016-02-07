@@ -3465,7 +3465,7 @@ void BIOS_InitSoundText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i = 0; i<3; i++) //Clear all possibilities!
+	for (i = 0; i<4; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
@@ -3488,7 +3488,8 @@ void BIOS_InitSoundText()
 	}
 
 	optioninfo[advancedoptions] = 2; //Sound Source Volume!
-	sprintf(menuoptions[advancedoptions++],"Sound Source Volume: %i%%",(int)(BIOS_Settings.SoundSource_Volume*100.0f)); //Sound source volume as a whole number!
+	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %i",(int)(BIOS_Settings.SoundSource_Volume*100.0f)); //Sound source volume as a whole number!
+	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
 
 	optioninfo[advancedoptions] = 3; //Start/stop recording sound!
 	if (!sound_isRecording()) //Not recording yet?
