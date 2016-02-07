@@ -118,12 +118,21 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 			#endif
 			if (!rendersurface) goto abortrendering; //Error occurred?
 			if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
-			start = (rendersurface->sdllayer->h / 2) - (resized->sdllayer->h / 2); //Calculate start row of contents!
-			for (;y<start;) //Process top!
+			if (resized) //Valid?
 			{
-				put_pixel_row(rendersurface, y++, widthclear, get_rowempty(), 0, 0); //Plot empty row, don't care about more black!
-				if (!rendersurface) goto abortrendering; //Error occurred?
-				if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
+				if (resized->sdllayer)
+				{
+					if (resized->sdllayer->h) //Gotten height?
+					{
+						start = (rendersurface->sdllayer->h / 2) - (resized->sdllayer->h / 2); //Calculate start row of contents!
+						for (;y<start;) //Process top!
+						{
+							put_pixel_row(rendersurface, y++, widthclear, get_rowempty(), 0, 0); //Plot empty row, don't care about more black!
+							if (!rendersurface) goto abortrendering; //Error occurred?
+							if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
+						}
+					}
+				}
 			}
 		}
 
@@ -134,7 +143,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 			{
 				if (resized->sdllayer) //Valid layer?
 				{
-					if (resized->sdllayer->h) //Gotten height?
+					if (resized->sdllayer->h && resized->sdllayer->w) //Gotten height and width?
 					{
 						width = MIN(resized->sdllayer->w,rendersurface->sdllayer->w);
 						for (;
@@ -155,7 +164,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 		if (!rendersurface) goto abortrendering; //Error occurred?
 		if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
 
-		//Always clear the bottom: letterbox and direct plot both have to clear the bottom!
+		//Always clear the bottom: nothing, letterbox and direct plot both have to clear the bottom!
 		for (; y<rendersurface->sdllayer->h;) //Process bottom!
 		{
 			put_pixel_row(rendersurface, y++, widthclear, get_rowempty(), 0, 0); //Plot empty row for the bottom, don't care about more black!
@@ -202,64 +211,59 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 	if (!memprotect(rendersurface->sdllayer,sizeof(*rendersurface->sdllayer),NULL)) return; //Nothing to render to!
 	//Now, render our screen, or clear it!
 	//byte rendered = 0;
-	if (memprotect(resized,sizeof(*resized),NULL)) //Resized available (anti-NULL protection)?
+	if (memprotect(resized,sizeof(*resized),NULL)==resized) //Resized anti-invalid protection?
 	{
-		if (memprotect(resized->sdllayer,sizeof(*resized->sdllayer),NULL))
+		//rendered = 1; //We're rendered from here on!
+		word y = 0; //Current row counter!
+		word count, clearwidth;
+		uint_32 virtualrow = 0; //Virtual row to use! (From the source)
+		clearwidth = MIN(rendersurface->sdllayer->w,EMU_MAX_X); //Our width to be able to render empty data!
+		
+		byte letterbox = GPU.aspectratio; //Use letterbox?
+		if (letterbox && resized) //Using letterbox for aspect ratio?
 		{
-			//rendered = 1; //We're rendered from here on!
-			word y = 0; //Current row counter!
-			word count, clearwidth;
-			uint_32 virtualrow = 0; //Virtual row to use! (From the source)
-			clearwidth = MIN(rendersurface->sdllayer->w,EMU_MAX_X); //Our width to be able to render empty data!
-			
-			byte letterbox = GPU.aspectratio; //Use letterbox?
-			if (letterbox) //Using letterbox for aspect ratio?
+			count = ((rendersurface->sdllayer->h/2) - (resized->sdllayer->h/2))-1; //The total ammount to process: up to end+1!
+			nextrowtop: //Process top!
 			{
-				count = ((rendersurface->sdllayer->h/2) - (resized->sdllayer->h/2))-1; //The total ammount to process: up to end+1!
-				nextrowtop: //Process top!
-				{
-					if (!count--) goto startemurendering; //Done?
-					put_pixel_row(rendersurface,y++,clearwidth,get_rowempty(),0,0); //Plot empty row, don't care about more black!
-					goto nextrowtop; //Next row!
-				}
+				if (!count--) goto startemurendering; //Done?
+				put_pixel_row(rendersurface,y++,clearwidth,get_rowempty(),0,0); //Plot empty row, don't care about more black!
+				goto nextrowtop; //Next row!
 			}
-			
+		}
+		
 		startemurendering:
-			if (resized) //Valid layer?
+		if (resized) //Valid layer?
+		{
+			if (resized->sdllayer) //Valid layer?
 			{
-				if (resized->sdllayer) //Valid layer?
+				if (resized->sdllayer->h && resized->sdllayer->w) //Gotten height and width?
 				{
-					if (resized->sdllayer->h) //Gotten height?
+					count = resized->sdllayer->h; //How many!
+					nextrowemu: //Process row-by-row!
 					{
-						count = resized->sdllayer->h; //How many!
-						nextrowemu: //Process row-by-row!
-						{
-							if (!count--) goto startbottomrendering; //Stop when done!
-							if (!resized) goto startbottomrendering; //Skip when no resized anymore!
-							put_pixel_row(rendersurface, y++, resized->sdllayer->w, get_pixel_ptr(resized,virtualrow++,0), letterbox?1:0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
-							goto nextrowemu;
-						}
+						if (!count--) goto startbottomrendering; //Stop when done!
+						if (!resized) goto startbottomrendering; //Skip when no resized anymore!
+						put_pixel_row(rendersurface, y++, resized->sdllayer->w, get_pixel_ptr(resized,virtualrow++,0), letterbox?1:0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+						goto nextrowemu;
 					}
 				}
 			}
-			
-			startbottomrendering:
-			if (letterbox) //Using letterbox for aspect ratio?
-			{
-				count = rendersurface->sdllayer->h-y; //How many left to process!
-				nextrowbottom: //Process bottom!
-				{
-					if (!count--) goto finishbottomrendering; //Stop when done!
-					put_pixel_row(rendersurface,y++,clearwidth,get_rowempty(),0,0); //Plot empty row for the bottom, don't care about more black!
-					goto nextrowbottom;
-				}
-			}
+		}
+		
+		//Always clear the bottom: nothing, letterbox and direct plot both have to clear the bottom!
+		startbottomrendering:
+		count = rendersurface->sdllayer->h-y; //How many left to process!
+		nextrowbottom: //Process bottom!
+		{
+			if (!count--) goto finishbottomrendering; //Stop when done!
+			put_pixel_row(rendersurface,y++,clearwidth,get_rowempty(),0,0); //Plot empty row for the bottom, don't care about more black!
+			goto nextrowbottom;
+		}
 
-			finishbottomrendering:
-			if (memprotect(resized, sizeof(*resized), NULL) && resized) //Using resized?
-			{
-				resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
-			}
+		finishbottomrendering:
+		if (memprotect(resized, sizeof(*resized), NULL) && resized) //Using resized?
+		{
+			resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
 		}
 	}
 }
