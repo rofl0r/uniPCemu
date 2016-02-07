@@ -122,6 +122,10 @@ OPTINLINE byte getCPUSpeedPercentage()
 	//Give the current result!
 	if (!timenow) return 0; //Nothing yet, since no time has passed yet!
 	result = (last_timing_current/timenow)*100.0f; //Give the current speed percentage (still in ns percision)!
+	if (result<1.0) //<1.0%?
+	{
+		result = (result>0.0)?1.0:0.0; //Patch 0%-1% to 1% and 0% to 0%!
+	}
 	return (byte)round(result); //Give the current speed percentage!
 }
 

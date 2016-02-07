@@ -423,7 +423,12 @@ void renderHWFrame() //Render a frame from hardware!
 		{
 			if (!--SCREEN_CAPTURE) //Capture this frame?
 			{
-				writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),GPU.xres,GPU.yres,GPU.doublewidth,GPU.doubleheight,EMU_MAX_X); //Dump our raw screen!
+				word tempx, tempy;
+				tempx = GPU.xres;
+				tempy = GPU.yres;
+				tempx = (tempx>EMU_MAX_X)?EMU_MAX_X:tempx;
+				tempy = (tempy>EMU_MAX_Y)?EMU_MAX_Y:tempy; //Apply limits!
+				writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),tempx,tempy,GPU.doublewidth,GPU.doubleheight,EMU_MAX_X); //Dump our raw screen!
 			}
 		}
 		GPU_FrameRendered(); //A frame has been rendered, so update our stats!

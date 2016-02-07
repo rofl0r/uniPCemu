@@ -1007,11 +1007,14 @@ void keyboard_renderer() //Render the keyboard on-screen!
 				break;
 			}
 			GPU_text_locksurface(keyboardsurface); //Lock us!
-if (keyboard_special[y - ybase][x - xbase]&1) //Screen capture?
-{
-SCREEN_CAPTURE |= (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED)?1:0; //Screen capture on click?
-}
-			GPU_textsetxy(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor);
+			if (keyboard_special[y - ybase][x - xbase]&1) //Screen capture?
+			{
+				SCREEN_CAPTURE |= (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED)?1:0; //Screen capture on click?
+			}
+			else //Normal character?
+			{
+				GPU_textsetxy(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor); //Render normal character!
+			}
 			GPU_text_releasesurface(keyboardsurface); //Unlock us!
 		}
 	}
