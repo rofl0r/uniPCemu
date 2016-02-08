@@ -1278,7 +1278,12 @@ byte PORT_IN_floppy(word port, byte *result)
 	switch (port & 0x7) //What port?
 	{
 	case 0: //diskette EHD controller board jumper settings (82072AA)
-		temp = 2|(2<<4); //Our two floppy disk controllers are 2.88M disk drives!
+		if (EMULATED_CPU>=CPU_80286) temp = 2|(2<<4); //Our two floppy disk controllers are 2.88M disk drives!
+		else //Plain floppy drive?
+		{
+			temp = 0; //Init!
+			if (FLOPPY.IRQPending) temp |= 0x80; //Pending interrupt!
+		}
 		FLOPPY_LOG("Read port #0=%02X",temp);
 		*result = temp; //Give the result!
 		return 1; //Used!
