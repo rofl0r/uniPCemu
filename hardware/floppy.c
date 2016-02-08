@@ -8,6 +8,9 @@
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/support/log.h" //Logging support!
 
+#include "headers/hardware/floppy.h" //Our type definitions!
+
+
 //Configuration of the FDC...
 
 //Double logging if FLOPPY_LOGFILE2 is defined!
@@ -36,14 +39,6 @@
 #else
 #define FLOPPY_LOGD(...)
 #endif
-
-typedef struct
-{
-	uint_64 KB;
-	byte SPT;
-	byte sides;
-	byte tracks;
-} FLOPPY_GEOMETRY; //All floppy geometries!
 
 struct
 {
@@ -167,33 +162,35 @@ struct
 
 /*
 {  KB,SPT,SIDES,TRACKS,  }
-{ 160,  8, 1   , 40   , 0},
-{ 180,  9, 1   , 40   , 0},
-{ 200, 10, 1   , 40   , 0},
-{ 320,  8, 2   , 40   , 1},
-{ 360,  9, 2   , 40   , 1},
-{ 400, 10, 2   , 40   , 1},
-{ 720,  9, 2   , 80   , 3},
-{1200, 15, 2   , 80   , 2},
-{1440, 18, 2   , 80   , 4},
-{2880, 36, 2   , 80   , 6},
+{ 160,  8, 1   , 40   , 0 },
+{ 180,  9, 1   , 40   , 0 },
+{ 200, 10, 1   , 40   , 0 },
+{ 320,  8, 2   , 40   , 1 },
+{ 360,  9, 2   , 40   , 1 },
+{ 400, 10, 2   , 40   , 1 },
+{ 720,  9, 2   , 80   , 3 },
+{1200, 15, 2   , 80   , 2 },
+{1440, 18, 2   , 80   , 4 },
+{2880, 36, 2   , 80   , 6 },
 
 */
 
-FLOPPY_GEOMETRY geometries[] = { //Differently formatted disks, and their corresponding geometries
-	{ 160, 8, 1, 40 }, //160K 5.25"
-	{ 320, 8, 2, 40 }, //320K 5.25"
-	{ 180, 9, 1, 40 }, //180K 5.25"
-	{ 360, 9, 2, 40 }, //360K 5.25"
-	{ 720, 9, 2, 80 }, //720K 3.5"
-	{ 200, 10, 1, 40 }, //200K 5.25"
-	{ 400, 10, 2, 40 }, //400K 5.25"
-	{ 1200, 15, 2, 80 }, //1200K 5.25"
-	{ 1440, 18, 2, 80 }, //1.44M 3.5"
-	{ 2880, 36, 2, 80 }, //2.88M 3.5"
-	{ 1680, 21, 2, 80 }, //1.68M 3.5"
-	{ 1722, 21, 2, 82 }, //1.722M 3.5"
-	{ 1840, 23, 2, 80 } //1.84M 3.5"
+FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES] = { //Differently formatted disks, and their corresponding geometries
+	//First, 5"
+	{ 160,  8,  1, 40, 0,0 }, //160K 5.25"
+	{ 180,  9,  1, 40, 0,0 }, //180K 5.25"
+	{ 200, 10,  1, 40, 0,0 }, //200K 5.25"
+	{ 320,  8,  2, 40, 0,0 }, //320K 5.25"
+	{ 360,  9,  2, 40, 0,0 }, //360K 5.25"
+	{ 400, 10,  2, 40, 0,0 }, //400K 5.25"
+	{1200, 15,  2, 80, 0,0 }, //1200K 5.25"
+	//Now 3.5"
+	{ 720,  9,  2, 80, 1,1 }, //720K 3.5"
+	{1440, 18,  2, 80, 3,1 }, //1.44M 3.5"
+	{1680, 21,  2, 80, 3,1 }, //1.68M 3.5"
+	{1722, 21,  2, 82, 3,1 }, //1.722M 3.5"
+	{1840, 23,  2, 80, 3,1 }, //1.84M 3.5"
+	{2880, 36,  2, 80, 2,1 } //2.88M 3.5"
 };
 
 //BPS=512 always(except differently programmed)!
@@ -203,9 +200,9 @@ FLOPPY_GEOMETRY geometries[] = { //Differently formatted disks, and their corres
 byte floppy_spt(uint_64 floppy_size)
 {
 	int i;
-	for (i = 0; i<(int)NUMITEMS(geometries); i++)
+	for (i = 0; i<(int)NUMITEMS(floppygeometries); i++)
 	{
-		if (geometries[i].KB == KB(floppy_size)) return geometries[i].SPT; //Found?
+		if (floppygeometries[i].KB == KB(floppy_size)) return floppygeometries[i].SPT; //Found?
 	}
 	return 0; //Unknown!
 }
@@ -213,9 +210,9 @@ byte floppy_spt(uint_64 floppy_size)
 byte floppy_tracks(uint_64 floppy_size)
 {
 	int i;
-	for (i = 0; i<(int)NUMITEMS(geometries); i++)
+	for (i = 0; i<(int)NUMITEMS(floppygeometries); i++)
 	{
-		if (geometries[i].KB == KB(floppy_size)) return geometries[i].tracks; //Found?
+		if (floppygeometries[i].KB == KB(floppy_size)) return floppygeometries[i].tracks; //Found?
 	}
 	return 0; //Unknown!
 }
@@ -223,9 +220,9 @@ byte floppy_tracks(uint_64 floppy_size)
 byte floppy_sides(uint_64 floppy_size)
 {
 	int i;
-	for (i = 0; i<(int)NUMITEMS(geometries); i++)
+	for (i = 0; i<(int)NUMITEMS(floppygeometries); i++)
 	{
-		if (geometries[i].KB == KB(floppy_size)) return geometries[i].sides; //Found?
+		if (floppygeometries[i].KB == KB(floppy_size)) return floppygeometries[i].sides; //Found?
 	}
 	return 0; //Unknown!
 }
@@ -238,11 +235,11 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 	DISKINFORMATIONBLOCK DSKInformation;
 	TRACKINFORMATIONBLOCK DSKTrackInformation;
 	FLOPPY.geometries[floppy] = NULL; //Init geometry to unknown!
-	for (i = 0; i < NUMITEMS(geometries); i++) //Update the geometry!
+	for (i = 0; i < NUMITEMS(floppygeometries); i++) //Update the geometry!
 	{
-		if (geometries[i].KB == KB(floppysize)) //Found?
+		if (floppygeometries[i].KB == KB(floppysize)) //Found?
 		{
-			FLOPPY.geometries[floppy] = &geometries[i]; //The geometry we use!
+			FLOPPY.geometries[floppy] = &floppygeometries[i]; //The geometry we use!
 			return; //Stop searching!
 		}
 	}
@@ -1271,6 +1268,15 @@ OPTINLINE byte floppy_readData()
 	return ~0; //Not used yet!
 }
 
+byte getfloppydisktype(byte floppy)
+{
+	if (FLOPPY.geometries[floppy]) //Gotten a known geometry?
+	{
+		return FLOPPY.geometries[floppy]->boardjumpersetting; //Our board jumper settings for this drive!
+	}
+	return 2; //Default to 2.8MB to fit all!
+}
+
 byte PORT_IN_floppy(word port, byte *result)
 {
 	if ((port&~7) != 0x3F0) return 0; //Not our port range!
@@ -1278,12 +1284,14 @@ byte PORT_IN_floppy(word port, byte *result)
 	switch (port & 0x7) //What port?
 	{
 	case 0: //diskette EHD controller board jumper settings (82072AA)
-		if (EMULATED_CPU>=CPU_80286) temp = 2|(2<<4); //Our two floppy disk controllers are 2.88M disk drives!
-		else //Plain floppy drive?
-		{
-			temp = 0; //Init!
-			if (FLOPPY.IRQPending) temp |= 0x80; //Pending interrupt!
-		}
+		//Create floppy flags!
+		temp = getfloppydisktype(3); //Floppy #3!
+		temp <<= 2;
+		temp = getfloppydisktype(2); //Floppy #2!
+		temp <<= 2;
+		temp = getfloppydisktype(1); //Floppy #1!
+		temp <<= 2;
+		temp = getfloppydisktype(0); //Floppy #0!
 		FLOPPY_LOG("Read port #0=%02X",temp);
 		*result = temp; //Give the result!
 		return 1; //Used!

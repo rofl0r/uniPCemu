@@ -39,6 +39,8 @@
 
 #include "headers/emu/sound.h" //Recording support!
 
+#include "headers/hardware/floppy.h" //Floppy disk support!
+
 #define __HW_DISABLED 0
 
 //Force the BIOS to open?
@@ -161,6 +163,7 @@ void BIOS_ShowFramerate(); //Show framerate setting!
 void BIOS_DataBusSizeSetting(); //Data bus size setting!
 void BIOS_ShowCPUSpeed(); //Show CPU speed setting!
 void BIOS_SoundStartStopRecording(); //Start/stop recording sound!
+void BIOS_GenerateFloppyDisk(); //Generate an floppy disk image!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -207,7 +210,8 @@ Handler BIOS_Menus[] =
 	,BIOS_ShowFramerate //Show Framerate is #39!
 	,BIOS_DataBusSizeSetting //Data Bus size setting is #40!
 	,BIOS_ShowCPUSpeed //Show CPU speed is #41!
-	,BIOS_SoundStartStopRecording //Start/stop recording sound!
+	,BIOS_SoundStartStopRecording //Start/stop recording sound is #42!
+	,BIOS_GenerateFloppyDisk //Generate a floppy disk is #43!
 };
 
 //Not implemented?
@@ -1133,7 +1137,7 @@ word Menu_Stat; //Menu status!
 void BIOS_InitDisksText()
 {
 	int i;
-	for (i=0; i<11; i++)
+	for (i=0; i<12; i++)
 	{
 		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
 	}
@@ -1143,11 +1147,12 @@ void BIOS_InitDisksText()
 	strcpy(menuoptions[3],"Second HDD: ");
 	strcpy(menuoptions[4],"First CD-ROM: ");
 	strcpy(menuoptions[5],"Second CD-ROM: ");
-	strcpy(menuoptions[6],"Generate Static HDD Image");
-	strcpy(menuoptions[7],"Generate Dynamic HDD Image");
-	strcpy(menuoptions[8], "Convert static to dynamic HDD Image");
-	strcpy(menuoptions[9], "Convert dynamic to static HDD Image");
-	strcpy(menuoptions[10], "Defragment a dynamic HDD Image");
+	strcpy(menuoptions[6],"Generate Floppy Image");
+	strcpy(menuoptions[7],"Generate Static HDD Image");
+	strcpy(menuoptions[8],"Generate Dynamic HDD Image");
+	strcpy(menuoptions[9], "Convert static to dynamic HDD Image");
+	strcpy(menuoptions[10], "Convert dynamic to static HDD Image");
+	strcpy(menuoptions[11], "Defragment a dynamic HDD Image");
 
 //FLOPPY0
 	if (strcmp(BIOS_Settings.floppy0,"")==0) //No disk?
@@ -1297,31 +1302,37 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 			BIOS_Menu = 7; //CDROM1 selection!
 		}
 		break;
-	case 6: //Generate Static HDD?
+	case 6: //Generate Floppy Image?
+		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
+		{
+			BIOS_Menu = 43; //Generate Floppy Image!
+		}
+		break;
+	case 7: //Generate Static HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 11; //Generate Static HDD!
 		}
 		break;
-	case 7: //Generate Dynamic HDD?
+	case 8: //Generate Dynamic HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 12; //Generate Dynamic HDD!
 		}
 		break;
-	case 8: //Convert static to dynamic HDD?
+	case 9: //Convert static to dynamic HDD?
 		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 19; //Convert static to dynamic HDD!
 		}
 		break;
-	case 9: //Convert dynamic to static HDD?
+	case 10: //Convert dynamic to static HDD?
 		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 20; //Convert dynamic to static HDD!
 		}
 		break;
-	case 10: //Defragment a dynamic HDD Image?
+	case 11: //Defragment a dynamic HDD Image?
 		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 21; //Defragment a dynamic HDD Image!
@@ -4225,4 +4236,133 @@ void BIOS_SoundStartStopRecording()
 		sound_startRecording(); //Start recording!
 	}
 	BIOS_Menu = 31; //Goto Sound menu!
+}
+
+
+extern FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES]; //All possible floppy geometries to create!
+
+void BIOS_GenerateFloppyDisk()
+{
+	word size; //The size to generate, in KB!
+	byte i;
+	char filename[256]; //Filename container!
+	bzero(filename, sizeof(filename)); //Init!
+	for (i=0;i<NUMFLOPPYGEOMETRIES;i++) //Process all geometries into a list!
+	{
+		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
+		if (floppygeometries[i].KB>=1024) //1024K+?
+		{
+			if (floppygeometries[i].measurement) //3.5"?
+			{
+				if (floppygeometries[i].KB%1000) //Not whole MB?
+				{
+					if (floppygeometries[i].KB%10) //3 digits?
+					{
+						sprintf(itemlist[i],"%.3fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
+					}
+					else if (floppygeometries[i].KB%100) //2 digits?
+					{
+						sprintf(itemlist[i],"%.2fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
+					}
+					else //1 digit?
+					{
+						sprintf(itemlist[i],"%.1fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
+					}
+				}
+				else //Whole MB?
+				{
+					sprintf(itemlist[i],"%iMB disk 3.5\"",floppygeometries[i].KB/1000); //Disk!
+				}
+			}
+			else //5.25"?
+			{
+				if (floppygeometries[i].KB%1000) //Not whole MB?
+				{
+					if (floppygeometries[i].KB%10) //3 digits?
+					{
+						sprintf(itemlist[i],"%.3fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
+					}
+					else if (floppygeometries[i].KB%100) //2 digits?
+					{
+						sprintf(itemlist[i],"%.2fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
+					}
+					else //1 digit?
+					{
+						sprintf(itemlist[i],"%.1fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
+					}
+				}
+				else //Whole MB?
+				{
+					sprintf(itemlist[i],"%iMB disk 5.25\"",floppygeometries[i].KB/1000); //Disk!
+				}
+			}
+		}
+		else //<1MB?
+		{
+			if (floppygeometries[i].measurement) //3.5"?
+			{
+				sprintf(itemlist[i],"%iKB disk 3.5\"",floppygeometries[i].KB); //Disk!
+			}
+			else //5.25"?
+			{
+				sprintf(itemlist[i],"%iKB disk 5.25\"",floppygeometries[i].KB); //Disk!
+			}
+		}
+	}
+	numlist = NUMFLOPPYGEOMETRIES; //The size of the list!
+
+	BIOS_Title("Generate floppy image");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Floppy image size: "); //Show selection init!
+	EMU_unlocktext();
+	int result;
+	result = ExecuteList(19,4,itemlist[0],256,NULL); //Get our result!
+	if ((result>=0) && (result<NUMFLOPPYGEOMETRIES)) //Valid item?
+	{
+		EMU_locktext();
+		EMU_gotoxy(0, 4); //Goto position for info!
+		GPU_EMU_printscreen(0, 5, "Name: "); //Show the filename!
+		EMU_unlocktext();
+		if (BIOS_InputText(6, 5, &filename[0], 255-4)) //Input text confirmed?
+		{
+			if (strcmp(filename, "") != 0) //Got input?
+			{
+				if (strlen(filename) <= (255 - 4)) //Not too long?
+				{
+					strcat(filename, ".img"); //Add the extension!
+					EMU_locktext();
+					EMU_gotoxy(0, 5); //Goto position for info!
+					GPU_EMU_printscreen(0, 5, "Filename: %s", filename); //Show the filename!
+					EMU_gotoxy(0, 5); //Next row!
+					GPU_EMU_printscreen(0, 6, "Image size: "); //Show image size selector!!
+					EMU_unlocktext();
+					size = floppygeometries[result].KB; //The size of the floppy in KB!
+					if (size != 0) //Got size?
+					{
+						EMU_locktext();
+						GPU_EMU_printscreen(12, 6, "%s", itemlist[result]); //Show size we selected!
+						EMU_gotoxy(0, 6); //Next row!
+						GPU_EMU_printscreen(0, 7, "Generating image: "); //Start of percentage!
+						EMU_unlocktext();
+						generateFloppyImage(filename, size, 18, 7); //Generate a floppy image!
+						//Check for disk changes on mounted floppy disks (we might be getting a new size, when we're recreaten)!
+						if (!memcmp(BIOS_Settings.floppy0,filename,sizeof(BIOS_Settings.floppy0))) //Floppy #0 changed?
+						{
+							iofloppy0("",0,BIOS_Settings.floppy0_readonly,0); //Unmount!
+							iofloppy0(BIOS_Settings.floppy0,0,BIOS_Settings.floppy0_readonly,0); //Remount to update!
+						}
+						if (!memcmp(BIOS_Settings.floppy1,filename,sizeof(BIOS_Settings.floppy1))) //Floppy #1 changed?
+						{
+							iofloppy1("",0,BIOS_Settings.floppy1_readonly,0); //Unmount!
+							iofloppy1(BIOS_Settings.floppy1,0,BIOS_Settings.floppy1_readonly,0); //Remount to update!
+						}
+					}
+				}
+				//If we're too long, ignore it!
+			}
+		}
+	}
+	BIOS_Menu = 1; //Return to Disk Menu!
 }

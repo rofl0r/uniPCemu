@@ -9,5 +9,6 @@ byte staticimage_readsector(char *filename,uint_32 sector, void *buffer); //Read
 FILEPOS staticimage_getsize(char *filename);
 
 void generateStaticImage(char *filename, FILEPOS size, int percentagex, int percentagey); //Generate a static image!
+void generateFloppyImage(char *filename, word KB, int percentagex, int percentagey); //Generate a floppy image!
 
 #endif

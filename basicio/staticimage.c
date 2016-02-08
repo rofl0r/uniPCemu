@@ -145,3 +145,56 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 		EMU_unlocktext();
 	}
 }
+
+void generateFloppyImage(char *filename, word KB, int percentagex, int percentagey) //Generate a floppy image!
+{
+	FILEPOS size = (FILEPOS)KB; //Init KB!
+	FILEPOS sizeleft; //Init size left!
+	size <<= 10; //Convert kb to Kilobytes of data!
+	sizeleft = size; //Load the size that's left!
+	byte buffer[1024]; //Buffer!
+	double percentage;
+	FILE *f;
+	int_64 byteswritten, totalbyteswritten = 0;
+	f = emufopen64(filename,"wb"); //Generate file!
+	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
+	{
+		EMU_locktext();
+		GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",0.0f); //Show first percentage!
+		EMU_unlocktext();
+	}
+
+	memset(buffer, 0, sizeof(buffer)); //Clear!
+
+	while (sizeleft) //Left?
+	{
+		byteswritten = emufwrite64(&buffer,1,sizeof(buffer),f); //We've processed some!
+		if (byteswritten != sizeof(buffer)) //An error occurred!
+		{
+			emufclose64(f); //Close the file!
+			delete_file(".",filename); //Remove the file!
+			return; //Abort!
+		}
+		if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
+		{
+			sizeleft -= byteswritten; //Less left to write!
+			totalbyteswritten += byteswritten; //Add to the ammount processed!
+			percentage = (double)totalbyteswritten;
+			percentage /= (double)size;
+			percentage *= 100.0f;
+			EMU_locktext();
+			GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",(float)percentage); //Show percentage!
+			EMU_unlocktext();
+			#ifdef __PSP__
+				delay(0); //Allow update of the screen, if needed!
+			#endif
+		}
+	}
+	emufclose64(f);
+	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
+	{
+		EMU_locktext();
+		GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",100.0f); //Show percentage!
+		EMU_unlocktext();
+	}
+}
