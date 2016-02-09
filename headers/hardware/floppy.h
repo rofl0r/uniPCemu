@@ -11,6 +11,9 @@ typedef struct
 	byte tracks;
 	byte boardjumpersetting; //The board jumper setting (0-3) for this drive!
 	byte measurement; //0=5", 1=3.5"
+	byte supportedrates; //Up to 4 supported rates (2 bits per rate) with this format!
+	byte MediaDescriptorByte; //The floppy media descriptor byte!
+	word ClusterSize; //Cluster size, multiple of 512 bytes!
 } FLOPPY_GEOMETRY; //All floppy geometries!
 
 #define NUMFLOPPYGEOMETRIES 13

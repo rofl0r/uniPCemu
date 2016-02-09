@@ -4258,15 +4258,15 @@ void BIOS_GenerateFloppyDisk()
 				{
 					if (floppygeometries[i].KB%10) //3 digits?
 					{
-						sprintf(itemlist[i],"%.3fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
+						sprintf(itemlist[i],"%01.3fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 					else if (floppygeometries[i].KB%100) //2 digits?
 					{
-						sprintf(itemlist[i],"%.2fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
+						sprintf(itemlist[i],"%01.2fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 					else //1 digit?
 					{
-						sprintf(itemlist[i],"%.1fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
+						sprintf(itemlist[i],"%01.1fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 				}
 				else //Whole MB?
@@ -4280,15 +4280,15 @@ void BIOS_GenerateFloppyDisk()
 				{
 					if (floppygeometries[i].KB%10) //3 digits?
 					{
-						sprintf(itemlist[i],"%.3fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
+						sprintf(itemlist[i],"%01.3fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 					else if (floppygeometries[i].KB%100) //2 digits?
 					{
-						sprintf(itemlist[i],"%.2fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
+						sprintf(itemlist[i],"%01.2fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 					else //1 digit?
 					{
-						sprintf(itemlist[i],"%.1fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
+						sprintf(itemlist[i],"%01.1fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 				}
 				else //Whole MB?
@@ -4346,7 +4346,7 @@ void BIOS_GenerateFloppyDisk()
 						EMU_gotoxy(0, 6); //Next row!
 						GPU_EMU_printscreen(0, 7, "Generating image: "); //Start of percentage!
 						EMU_unlocktext();
-						generateFloppyImage(filename, size, 18, 7); //Generate a floppy image!
+						generateFloppyImage(filename, &floppygeometries[result], 18, 7); //Generate a floppy image according to geometry data!
 						//Check for disk changes on mounted floppy disks (we might be getting a new size, when we're recreaten)!
 						if (!memcmp(BIOS_Settings.floppy0,filename,sizeof(BIOS_Settings.floppy0))) //Floppy #0 changed?
 						{
