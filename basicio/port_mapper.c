@@ -126,7 +126,7 @@ byte EXEC_PORTIN(word port, byte *result)
 #ifdef __LOG_PORT
 	dolog("emu","PORT IN: %04X",port);
 	#endif
-	for (i = 0; i < PORT_OUT_COUNT; i++) //Process all ports!
+	for (i = 0; i < PORT_IN_COUNT; i++) //Process all ports!
 	{
 		if (PORT_IN[i]) //Valid port?
 		{
@@ -214,7 +214,7 @@ byte EXEC_PORTIND(word port, uint_32 *result)
 #endif
 	for (i = 0; i < PORT_IND_COUNT; i++) //Process all ports!
 	{
-		if (PORT_INW[i]) //Valid port?
+		if (PORT_IND[i]) //Valid port?
 		{
 			temp = PORT_IND[i](port, &tempresult); //PORT IN on this port!
 			executed |= temp; //OR into the result: we're executed?
