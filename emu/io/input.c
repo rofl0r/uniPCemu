@@ -1710,38 +1710,32 @@ OPTINLINE void handleKeyPressRelease(int key)
 		{
 			currentshiftstatus_inputbuffer |= SHIFTSTATUS_SHIFT;
 		}
-		else if (input_buffer_input) //Buffering?
+		else if (input_buffer_input && (input_buffer==-1)) //Buffering and input non-shiftstatus?
 		{
-			if (input_buffer==-1) //We can press?
-			{
-				input_buffer_shift = currentshiftstatus_inputbuffer; //Set shift status to the current state!
-				input_buffer = key; //Last key pressed!
-			}
+			input_buffer_shift = currentshiftstatus_inputbuffer; //Set shift status to the current state!
+			input_buffer = key; //Last key pressed!
 		}
-		else //Not buffering?
-		{
-			onKeyPress(&keys_names[key][0]); //Tick the keypress!
-		}
+
+		//Normal handling always!
+		onKeyPress(&keys_names[key][0]); //Tick the keypress!
 		break;
 	case 2: //Releasing?
 		//Shift status for buffering!
 		if (key==emu_keys_sdl_rev[SDLK_LCTRL])
 		{
-			input_buffer_shift &= ~SHIFTSTATUS_CTRL; //Release CTRL!
+			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_CTRL; //Release CTRL!
 		}
 		else if (key==emu_keys_sdl_rev[SDLK_LALT])
 		{
-			input_buffer_shift &= ~SHIFTSTATUS_ALT; //Release ALT!
+			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_ALT; //Release ALT!
 		}
 		else if (key==emu_keys_sdl_rev[SDLK_LSHIFT]) //Release Shift!
 		{
-			input_buffer_shift &= ~SHIFTSTATUS_SHIFT;
+			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_SHIFT; //Release SHIFT!
 		}
 
-		if (!input_buffer_input) //Not buffering?
-		{
-			onKeyRelease(&keys_names[key][0]); //Handle key release!
-		}
+		//Normal handling always!
+		onKeyRelease(&keys_names[key][0]); //Handle key release!
 		emu_keys_state[key] = 0; //We're released!
 		break;
 	default: //Unknown?
