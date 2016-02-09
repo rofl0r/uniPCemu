@@ -282,10 +282,10 @@ OPTINLINE uint_32 getControlPORTaddress(byte channel)
 	switch (channel)
 	{
 	case 0: //First?
-		return (PCI_IDE.BAR[1] > 1) ? PCI_IDE.BAR[1] : 0x3F6; //Give the BAR!
+		return (PCI_IDE.BAR[1] > 1) ? PCI_IDE.BAR[1]+2 : 0x3F6; //Give the BAR!
 		break;
 	case 1: //Second?
-		return (PCI_IDE.BAR[3] > 1) ? PCI_IDE.BAR[3] : 0x376; //Give the BAR!
+		return (PCI_IDE.BAR[3] > 1) ? PCI_IDE.BAR[3]+2 : 0x376; //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
@@ -1373,7 +1373,7 @@ port3_read: //Special port #3?
 		return 1; //OK!
 		break;
 	case 1: //Drive address register?
-		*result = ATA[channel].DriveAddressRegister.data; //Give the data!
+		*result = (ATA[channel].DriveAddressRegister.data&0x7F); //Give the data, make sure we don't apply the flag shared with the Floppy Disk Controller!
 #ifdef ATA_LOG
 		dolog("ATA", "Drive address register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
 #endif

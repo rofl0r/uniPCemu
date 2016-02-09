@@ -399,9 +399,11 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 
 OPTINLINE void updateFloppyDIR() //Update the floppy DIR!
 {
-	FLOPPY.DIR.data = (FLOPPY.diskchanged[0] || FLOPPY.diskchanged[1]); //Disk changed?
+	FLOPPY.DIR.data = (FLOPPY.diskchanged[0] | FLOPPY.diskchanged[1] | FLOPPY.diskchanged[2] | FLOPPY.diskchanged[3])<<7; //Disk changed for any disk?
 	FLOPPY.diskchanged[0] = 0; //Reset!
 	FLOPPY.diskchanged[1] = 0; //Reset!
+	FLOPPY.diskchanged[2] = 0; //Reset!
+	FLOPPY.diskchanged[3] = 0; //Reset!
 }
 
 OPTINLINE void updateFloppyTrack0()
