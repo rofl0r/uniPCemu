@@ -381,7 +381,7 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 	case 0: //Command?
 		FLOPPY.sectorstransferred = 0; //There's nothing transferred yet!
 		FLOPPY.MSR.CommandBusy = 0; //Not busy: we're waiting for a command!
-		FLOPPY.MSR.RQM = 1; //Ready for data transfer!
+		FLOPPY.MSR.RQM = FLOPPY.DOR.REST && (!FLOPPY.DSR.SWReset); //Ready for data transfer when not being reset according to the two registers!
 		FLOPPY.MSR.HaveDataForCPU = 0; //We don't have data for the CPU!
 		break;
 	case 1: //Parameters?
@@ -1014,12 +1014,13 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.ST0.CurrentHead = (FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
 				if (!FLOPPY.reset_pending) //Finished reset?
 				{
+					FLOPPY_LOG("FLOPPY: Reset for all drives has been finished!");
 					FLOPPY.ST0.data = 0x00; //Reset the ST0 register after full reset!
 				}
 			}
 			else if (!FLOPPY.IRQPending) //Not an pending IRQ?
 			{
-				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
+				FLOPPY_LOG("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
 				FLOPPY.ST0.data = 0x80; //Error!
 			}
 			FLOPPY_LOG("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", FLOPPY.ST0.data, FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber])
@@ -1460,6 +1461,7 @@ byte PORT_OUT_floppy(word port, byte value)
 		if (!FLOPPY.DOR.REST) //Reset requested?
 		{
 			FLOPPY.DOR.REST = 1; //We're finished resetting!
+			FLOPPY_LOG("FLOPPY: DOR Floppy Reset triggered.");
 			FLOPPY_reset(); //Execute a reset!
 		}
 		return 1; //Finished!
@@ -1470,6 +1472,7 @@ byte PORT_OUT_floppy(word port, byte value)
 			if (value & 0x80) //Reset requested?
 			{
 				value &= 0x7F; //Clear the reset bit automatically!
+				FLOPPY_LOG("FLOPPY: DSR Floppy Reset triggered.");
 				FLOPPY_reset(); //Execute a reset!
 			}
 			FLOPPY.DSR.data = value; //Write to register!
