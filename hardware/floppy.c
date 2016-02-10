@@ -1044,6 +1044,10 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 					FLOPPY_LOG("FLOPPY: Reset for all drives has been finished!");
 					FLOPPY.ST0.data = 0x00; //Reset the ST0 register after full reset!
 				}
+				else //Still pending?
+				{
+					FLOPPY.ST0.data |= 0xC0; //Give the ST0 register before full reset!
+				}
 			}
 			else if (!FLOPPY.IRQPending) //Not an pending IRQ?
 			{
