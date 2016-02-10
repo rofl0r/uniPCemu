@@ -183,6 +183,7 @@ struct
 	byte TC; //Terminal count triggered?
 	uint_32 sectorstransferred; //Ammount of sectors transferred!
 	byte MT; //MT bit, as set by the command, if any!
+	byte floppy_resetted; //Are we resetted?
 } FLOPPY; //Our floppy drive data!
 
 
@@ -352,23 +353,49 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 	return 0; //Unsupported rate!
 }
 
-OPTINLINE void FLOPPY_reset() //Resets the floppy disk command!
+OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command when needed!
 {
-	FLOPPY_LOG("FLOPPY: Reset requested!")
-	FLOPPY.DOR.MotorControl = 0; //Reset motors!
-	FLOPPY.DOR.DriveNumber = 0; //Reset drives!
-	FLOPPY.DOR.Mode = 0; //IRQ channel!
-	FLOPPY.MSR.data = 0; //Default to no data!
-	FLOPPY.commandposition = 0; //No command!
-	FLOPPY.commandstep = 0; //Reset step!
-	FLOPPY.ST0.data = 0xC0; //Reset ST0 to the correct value: drive became not ready!
-	FLOPPY.ST1.data = FLOPPY.ST2.data = 0; //Reset the ST data!
-	FLOPPY.reset_pending = 4; //We have a reset pending for all 4 drives!
-	memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
-	memset(FLOPPY.currentcylinder, 0, sizeof(FLOPPY.currentcylinder)); //Clear the current heads!
-	memset(FLOPPY.currentsector, 0, sizeof(FLOPPY.currentsector)); //Clear the current heads!
-	FLOPPY.TC = 0; //Disable TC identifier!
-	FLOPPY_raiseIRQ(); //Raise the IRQ flag!
+	if ((!FLOPPY.DOR.REST) || FLOPPY.DSR.SWReset) //We're to reset by either one enabled?
+	{
+		if (!FLOPPY.floppy_resetted) //Not resetting yet?
+		{
+			if (source==1)
+			{
+				FLOPPY_LOG("FLOPPY: Reset requested by DSR!")
+			}
+			else
+			{
+				FLOPPY_LOG("FLOPPY: Reset requested by DOR!")
+			}
+			FLOPPY.DOR.MotorControl = 0; //Reset motors!
+			FLOPPY.DOR.DriveNumber = 0; //Reset drives!
+			FLOPPY.DOR.Mode = 0; //IRQ channel!
+			FLOPPY.MSR.data = 0; //Default to no data!
+			FLOPPY.commandposition = 0; //No command!
+			FLOPPY.commandstep = 0; //Reset step!
+			FLOPPY.ST0.data = 0xC0; //Reset ST0 to the correct value: drive became not ready!
+			FLOPPY.ST1.data = FLOPPY.ST2.data = 0; //Reset the ST data!
+			FLOPPY.reset_pending = 4; //We have a reset pending for all 4 drives!
+			memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
+			memset(FLOPPY.currentcylinder, 0, sizeof(FLOPPY.currentcylinder)); //Clear the current heads!
+			memset(FLOPPY.currentsector, 0, sizeof(FLOPPY.currentsector)); //Clear the current heads!
+			FLOPPY.TC = 0; //Disable TC identifier!
+			FLOPPY.floppy_resetted = 1; //We're resetted!
+		}
+	}
+	else if (FLOPPY.floppy_resetted) //We were resetted and are activated?
+	{
+		FLOPPY_raiseIRQ(); //Raise the IRQ: We're reset and have been activated!
+		FLOPPY.floppy_resetted = 0; //Not resetted anymore!
+		if (source==1)
+		{
+			FLOPPY_LOG("FLOPPY: Activation requested by DSR!")
+		}
+		else
+		{
+			FLOPPY_LOG("FLOPPY: Activation requested by DOR!")
+		}
+	}
 }
 
 //Execution after command and data phrases!
@@ -1458,24 +1485,16 @@ byte PORT_OUT_floppy(word port, byte value)
 		FLOPPY_LOG("Write DOR=%02X", value)
 		FLOPPY.DOR.data = value; //Write to register!
 		updateMotorControl(); //Update the motor control!
-		if (!FLOPPY.DOR.REST) //Reset requested?
-		{
-			FLOPPY.DOR.REST = 1; //We're finished resetting!
-			FLOPPY_LOG("FLOPPY: DOR Floppy Reset triggered.");
-			FLOPPY_reset(); //Execute a reset!
-		}
+		FLOPPY_handlereset(0); //Execute a reset by DOR!
 		return 1; //Finished!
 	case 4: //DSR?
 		if (EMULATED_CPU>=CPU_80286) //AT?
 		{
 			FLOPPY_LOG("Write DSR=%02X", value)
-			if (value & 0x80) //Reset requested?
-			{
-				value &= 0x7F; //Clear the reset bit automatically!
-				FLOPPY_LOG("FLOPPY: DSR Floppy Reset triggered.");
-				FLOPPY_reset(); //Execute a reset!
-			}
-			FLOPPY.DSR.data = value; //Write to register!
+			FLOPPY.DSR.data = value; //Write to register to check for reset first!
+			FLOPPY_handlereset(1); //Execute a reset by DSR!
+			if (FLOPPY.DSR.SWReset) FLOPPY.DSR.SWReset = 0; //Reset requested? Clear the reset bit automatically!
+			FLOPPY_handlereset(1); //Execute a reset by DSR if needed!
 			FLOPPY.CCR.rate = FLOPPY.DSR.DRATESEL; //Setting one sets the other!
 			return 1; //Finished!
 		}
