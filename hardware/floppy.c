@@ -221,10 +221,10 @@ FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES] = { //Differently formatte
 	{ 320,  8,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFF,512  }, //320K 5.25" supports 250kbits, 300kbits
 	{ 360,  9,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024 }, //360K 5.25" supports 250kbits, 300kbits
 	{ 400, 10,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024 }, //400K 5.25" supports 250kbits, 300kbits
-	{1200, 15,  2, 80, 0, 0, TRANSFERRATE_300k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF9,512  }, //1200K 5.25" supports 300kbits, 500kbits
+	{1200, 15,  2, 80, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF9,512  }, //1200K 5.25" supports 300kbits, 500kbits
 	//Now 3.5"
 	{ 720,  9,  2, 80, 1, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xF9,1024 }, //720K 3.5" supports 250kbits, 300kbits
-	{1440, 18,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512  }, //1.44M 3.5" supports 250kbits, 500kbits
+	{1440, 18,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512  }, //1.44M 3.5" supports 250kbits, 500kbits
 	{1680, 21,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512  }, //1.68M 3.5" supports 250kbits, 500kbits
 	{1722, 21,  2, 82, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512  }, //1.722M 3.5" supports 250kbits, 500kbits
 	{1840, 23,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512  }, //1.84M 3.5" supports 250kbits, 500kbits
@@ -339,10 +339,10 @@ OPTINLINE void FLOPPY_lowerIRQ()
 
 OPTINLINE byte FLOPPY_supportsrate(byte disk)
 {
-	if (!FLOPPY.geometries[disk]) return 0; //No disk geometry, so not supported!
+	if (!FLOPPY.geometries[disk]) return 1; //No disk geometry, so supported by default(unknown drive)!
 	byte supported = 0, current=0, currentrate;
 	supported = FLOPPY.geometries[disk]->supportedrates; //Load the supported rates!
-	currentrate = FLOPPY.CCR.rate; //Current rate we use!
+	currentrate = FLOPPY.CCR.rate; //Current rate we use (both CCR and DSR can be used, since they're both updated when either changes)!
 	for (;current<4;) //Check all available rates!
 	{
 		if (currentrate==(supported&3)) return 1; //We're a supported rate!
@@ -1463,6 +1463,7 @@ byte PORT_OUT_floppy(word port, byte value)
 			FLOPPY_reset(); //Execute a reset!
 		}
 		FLOPPY.DSR.data = value; //Write to register!
+		FLOPPY.CCR.rate = FLOPPY.DSR.DRATESEL; //Setting one sets the other!
 		return 1; //Finished!
 	case 5: //Data?
 		floppy_writeData(value); //Write data!
@@ -1470,6 +1471,7 @@ byte PORT_OUT_floppy(word port, byte value)
 	case 7: //CCR?
 		FLOPPY_LOG("Write CCR=%02X", value)
 		FLOPPY.CCR.data = value; //Set CCR!
+		FLOPPY.DSR.DRATESEL = FLOPPY.CCR.rate; //Setting one sets the other!
 		return 1;
 	default: //Unknown port?
 		break; //Unknown port!
