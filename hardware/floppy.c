@@ -473,7 +473,7 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 	if (FLOPPY.MSR.data != oldMSR) //MSR changed?
 	{
 		oldMSR = FLOPPY.MSR.data; //Update old!
-		FLOPPY_LOGD("FLOPPY: MSR: %02x", FLOPPY.MSR.data) //The updated MSR!
+		FLOPPY_LOG("FLOPPY: MSR changed: %02x", FLOPPY.MSR.data) //The updated MSR!
 	}
 }
 
@@ -996,7 +996,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 	FLOPPY.resultposition = 0; //Default: start of the result!
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
 	if (FLOPPY.DOR.DriveNumber & 2) goto invaliddrive;
-	FLOPPY_LOGD("FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]) //Executing this command!
+	FLOPPY_LOG("FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]) //Executing this command!
 	switch (FLOPPY.commandbuffer[0] & 0xF) //What command!
 	{
 		case 0x5: //Write sector
@@ -1233,7 +1233,7 @@ OPTINLINE void floppy_writeData(byte value)
 		case 0: //Command
 			FLOPPY.commandstep = 1; //Start inserting parameters!
 			FLOPPY.commandposition = 1; //Start at position 1 with out parameters/data!
-			FLOPPY_LOGD("FLOPPY: Command byte sent: %02X", value) //Log our information about the command byte!
+			FLOPPY_LOG("FLOPPY: Command byte sent: %02X", value) //Log our information about the command byte!
 			switch (value) //What command?
 			{
 				case 0x8: //Check interrupt status
@@ -1273,7 +1273,7 @@ OPTINLINE void floppy_writeData(byte value)
 			}
 			break;
 		case 1: //Parameters
-			FLOPPY_LOGD("FLOPPY: Parameter sent: %02X(#%i/%i)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0] & 0xF]) //Log the parameter!
+			FLOPPY_LOG("FLOPPY: Parameter sent: %02X(#%i/%i)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0] & 0xF]) //Log the parameter!
 			FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
 			if (FLOPPY.commandposition > (commandlength[FLOPPY.commandbuffer[0] & 0xF])) //All parameters have been processed?
 			{
@@ -1397,7 +1397,7 @@ OPTINLINE byte floppy_readData()
 				case 0x8: //Check interrupt status
 				case 0xA: //Read sector ID
 				case 0xF: //Seek/park head
-					FLOPPY_LOGD("FLOPPY: Reading result byte %i/%i",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0xF])
+					FLOPPY_LOG("FLOPPY: Reading result byte %i/%i",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0xF])
 					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]&0xF]) //Result finished?
 					{
 						FLOPPY.commandstep = 0; //Reset step!
