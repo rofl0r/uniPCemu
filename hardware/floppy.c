@@ -1031,31 +1031,32 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			//Set result
 			updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			FLOPPY.commandstep = 3; //Move to result phrase!
+byte datatemp;
+datatemp = FLOPPY.ST0.data; //Save default!
 			//Reset IRQ line!
 			if (FLOPPY.reset_pending) //Reset is pending?
 			{
 				byte reset_drive;
-				reset_drive = 4 - (FLOPPY.reset_pending--); //We're pending this drive!
+				reset_drive = 3 - (--FLOPPY.reset_pending); //We're pending this drive!
 				FLOPPY.ST0.data &= 0xF8; //Clear low 3 bits!
 				FLOPPY.ST0.UnitSelect = reset_drive; //What drive are we giving!
 				FLOPPY.ST0.CurrentHead = (FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
+				datatemp = FLOPPY.ST0.data; //Use the current data, not the cleared data!
 				if (!FLOPPY.reset_pending) //Finished reset?
 				{
 					FLOPPY_LOG("FLOPPY: Reset for all drives has been finished!");
-					FLOPPY.ST0.data = 0x00; //Reset the ST0 register after full reset!
-				}
-				else //Still pending?
-				{
-					FLOPPY.ST0.data |= 0xC0; //Give the ST0 register before full reset!
+	
+ 				FLOPPY.ST0.data = 0x00; //Reset the ST0 register after we've all been read!
 				}
 			}
 			else if (!FLOPPY.IRQPending) //Not an pending IRQ?
 			{
 				FLOPPY_LOG("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
 				FLOPPY.ST0.data = 0x80; //Error!
+				datatemp = FLOPPY.ST0.data; //Use the current data, not the cleared data!
 			}
-			FLOPPY_LOG("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", FLOPPY.ST0.data, FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber])
-			FLOPPY.resultbuffer[0] = FLOPPY.ST0.data; //Give ST0!
+			FLOPPY_LOG("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber])
+			FLOPPY.resultbuffer[0] = datatemp; //Give old ST0 if changed this call!
 			FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]; //Our idea of the current cylinder!
 			FLOPPY.resultposition = 0; //Start result!
 			FLOPPY.commandstep = 3; //Result phase!
