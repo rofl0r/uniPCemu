@@ -77,6 +77,13 @@ struct
 	union
 	{
 		byte data; //DIR data!
+		struct
+		{
+			byte HighDensity : 1; //1 if high density, 0 otherwise.
+			byte DataRate : 2; //0=500, 1=300, 2=250, 3=1MBit/s
+			byte AlwaysF : 4; //Always 0xF
+			byte DiskChange : 1; //1 when disk changed. Executing a command clears this.
+		};
 	} DIR; //DIR
 	union
 	{
@@ -447,6 +454,11 @@ OPTINLINE void updateFloppyDIR() //Update the floppy DIR!
 {
 	FLOPPY.DIR.data = (FLOPPY.diskchanged[0] | FLOPPY.diskchanged[1] | FLOPPY.diskchanged[2] | FLOPPY.diskchanged[3])<<7; //Disk changed for any disk?
 	//Rest of the bits are reserved on an AT!
+}
+
+OPTINLINE void clearDiskChanged()
+{
+	//Reset state for all drives!
 	FLOPPY.diskchanged[0] = 0; //Reset!
 	FLOPPY.diskchanged[1] = 0; //Reset!
 	FLOPPY.diskchanged[2] = 0; //Reset!
@@ -985,6 +997,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = 0; //Goto cylinder #0!
 			FLOPPY.ST0.data = 0x20; //Completed command!
 			updateFloppyWriteProtected(0); //Try to read with(out) protection!
+			clearDiskChanged(); //Clear the disk changed flag for the new command!
 			FLOPPY_raiseIRQ(); //We're finished!
 			break;
 		case 0x8: //Check interrupt status
@@ -1022,12 +1035,14 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			{
 				FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x32) | 0x14 | FLOPPY.DOR.DriveNumber; //Error: drive not ready!
 				FLOPPY.commandstep = 0; //Reset command!
+				clearDiskChanged(); //Clear the disk changed flag for the new command!
 				return; //Abort!
 			}
 			if (!has_drive(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Floppy not inserted?
 			{
 				FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x30) | 0x18 | FLOPPY.DOR.DriveNumber; //Error: drive not ready!
 				FLOPPY.commandstep = 0; //Reset command!
+				clearDiskChanged(); //Clear the disk changed flag for the new command!
 				return; //Abort!
 			}
 			if (FLOPPY.commandbuffer[2] < floppy_tracks(disksize(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0))) //Valid track?
@@ -1035,6 +1050,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[2]; //Set the current cylinder!
 				FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x30) | 0x20 | FLOPPY.DOR.DriveNumber; //Valid command!
 				FLOPPY_raiseIRQ(); //Finished executing phase!
+				clearDiskChanged(); //Clear the disk changed flag for the new command!
 				return; //Give an error!
 			}
 
