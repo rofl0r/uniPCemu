@@ -14,7 +14,7 @@
 //Configuration of the FDC...
 
 //Double logging if FLOPPY_LOGFILE2 is defined!
-//#define FLOPPY_LOGFILE "floppy"
+#define FLOPPY_LOGFILE "floppy"
 //#define FLOPPY_LOGFILE2 "debugger"
 
 //What IRQ is expected of floppy disk I/O
@@ -1402,17 +1402,21 @@ byte PORT_IN_floppy(word port, byte *result)
 	switch (port & 0x7) //What port?
 	{
 	case 0: //diskette EHD controller board jumper settings (82072AA)!
-		//Create floppy flags!
-		temp = getfloppydisktype(3); //Floppy #3!
-		temp <<= 2;
-		temp = getfloppydisktype(2); //Floppy #2!
-		temp <<= 2;
-		temp = getfloppydisktype(1); //Floppy #1!
-		temp <<= 2;
-		temp = getfloppydisktype(0); //Floppy #0!
-		FLOPPY_LOG("Read port #0=%02X",temp);
-		*result = temp; //Give the result!
-		return 1; //Used!
+		if (EMULATED_CPU>=CPU_80286) //AT?
+		{
+			//Create floppy flags!
+			temp = getfloppydisktype(3); //Floppy #3!
+			temp <<= 2;
+			temp = getfloppydisktype(2); //Floppy #2!
+			temp <<= 2;
+			temp = getfloppydisktype(1); //Floppy #1!
+			temp <<= 2;
+			temp = getfloppydisktype(0); //Floppy #0!
+			FLOPPY_LOG("Read port #0=%02X",temp);
+			*result = temp; //Give the result!
+			return 1; //Used!
+		}
+		break;
 	case 4: //MSR?
 		updateFloppyMSR(); //Update the MSR with current values!
 		FLOPPY_LOG("Read MSR=%02X",FLOPPY.MSR.data)
@@ -1423,14 +1427,18 @@ byte PORT_IN_floppy(word port, byte *result)
 		*result = floppy_readData(); //Read data!
 		return 1;
 	case 7: //DIR?
-		updateFloppyDIR(); //Update the DIR register!
-		FLOPPY_LOG("Read DIR=%02X", FLOPPY.DIR.data)
-		*result = FLOPPY.DIR.data; //Give DIR!
-		return 1;
+		if (EMULATED_CPU>=CPU_80286) //AT?
+		{
+			updateFloppyDIR(); //Update the DIR register!
+			FLOPPY_LOG("Read DIR=%02X", FLOPPY.DIR.data)
+			*result = FLOPPY.DIR.data; //Give DIR!
+			return 1;
+		}
+		break;
 	default: //Unknown port?
 		break;
 	}
-	FLOPPY_LOG("Read unknown %i",port&7);
+	//Not one of our ports?
 	return 0; //Unknown port!
 }
 
@@ -1456,27 +1464,34 @@ byte PORT_OUT_floppy(word port, byte value)
 		}
 		return 1; //Finished!
 	case 4: //DSR?
-		FLOPPY_LOG("Write DSR=%02X", value)
-		if (value & 0x80) //Reset requested?
+		if (EMULATED_CPU>=CPU_80286) //AT?
 		{
-			value &= 0x7F; //Clear the reset bit automatically!
-			FLOPPY_reset(); //Execute a reset!
+			FLOPPY_LOG("Write DSR=%02X", value)
+			if (value & 0x80) //Reset requested?
+			{
+				value &= 0x7F; //Clear the reset bit automatically!
+				FLOPPY_reset(); //Execute a reset!
+			}
+			FLOPPY.DSR.data = value; //Write to register!
+			FLOPPY.CCR.rate = FLOPPY.DSR.DRATESEL; //Setting one sets the other!
+			return 1; //Finished!
 		}
-		FLOPPY.DSR.data = value; //Write to register!
-		FLOPPY.CCR.rate = FLOPPY.DSR.DRATESEL; //Setting one sets the other!
-		return 1; //Finished!
 	case 5: //Data?
 		floppy_writeData(value); //Write data!
 		return 1; //Default handler!
 	case 7: //CCR?
-		FLOPPY_LOG("Write CCR=%02X", value)
-		FLOPPY.CCR.data = value; //Set CCR!
-		FLOPPY.DSR.DRATESEL = FLOPPY.CCR.rate; //Setting one sets the other!
-		return 1;
+		if (EMULATED_CPU>=CPU_80286) //AT?
+		{
+			FLOPPY_LOG("Write CCR=%02X", value)
+			FLOPPY.CCR.data = value; //Set CCR!
+			FLOPPY.DSR.DRATESEL = FLOPPY.CCR.rate; //Setting one sets the other!
+			return 1;
+		}
+		break;
 	default: //Unknown port?
 		break; //Unknown port!
 	}
-	FLOPPY_LOG("Write unknown %i=%02X", port & 7,value);
+	//Not one of our ports!
 	return 0; //Unknown port!
 }
 

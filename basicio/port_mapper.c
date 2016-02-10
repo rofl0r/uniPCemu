@@ -11,6 +11,8 @@ We handle mapping input and output to ports!
 
 //Log port input/output?
 //#define __LOG_PORT
+//Log port conflicts on port reads?
+//#define __LOG_PORTCONFLICTS
 
 //Input!
 PORTIN PORT_IN[0x10000]; //For reading from ports!
@@ -131,6 +133,12 @@ byte EXEC_PORTIN(word port, byte *result)
 		if (PORT_IN[i]) //Valid port?
 		{
 			temp = PORT_IN[i](port, &tempresult); //PORT IN on this port!
+			#ifdef __LOG_PORTCONFLICTS
+			if (temp && executed) //Already executed?
+			{
+				dolog("IO","Possible port conflict: port %04X', Value: %02X=>%02X",port,actualresult,tempresult); //We're adding these two bits!
+			}
+			#endif
 			executed |= temp; //OR into the result: we're executed?
 			if (temp) actualresult |= tempresult; //Add to the result if we're used!
 		}
@@ -174,6 +182,12 @@ byte EXEC_PORTINW(word port, word *result)
 		if (PORT_INW[i]) //Valid port?
 		{
 			temp = PORT_INW[i](port, &tempresult); //PORT IN on this port!
+			#ifdef __LOG_PORTCONFLICTS
+			if (temp && executed) //Already executed?
+			{
+				dolog("IO","Possible port conflict: port %04X', Value: %04X=>%04X",port,actualresult,tempresult); //We're adding these two bits!
+			}
+			#endif
 			executed |= temp; //OR into the result: we're executed?
 			if (temp) actualresult |= tempresult; //Add to the result if we're used!
 		}
@@ -217,6 +231,12 @@ byte EXEC_PORTIND(word port, uint_32 *result)
 		if (PORT_IND[i]) //Valid port?
 		{
 			temp = PORT_IND[i](port, &tempresult); //PORT IN on this port!
+			#ifdef __LOG_PORTCONFLICTS
+			if (temp && executed) //Already executed?
+			{
+				dolog("IO","Possible port conflict: port %04X', Value: %08X=>%08X",port,actualresult,tempresult); //We're adding these two bits!
+			}
+			#endif
 			executed |= temp; //OR into the result: we're executed?
 			if (temp) actualresult |= tempresult; //Add to the result if we're used!
 		}
