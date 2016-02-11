@@ -14,6 +14,8 @@ typedef struct
 	byte supportedrates; //Up to 4 supported rates (2 bits per rate) with this format!
 	byte MediaDescriptorByte; //The floppy media descriptor byte!
 	word ClusterSize; //Cluster size, multiple of 512 bytes!
+	byte FATSize; //FAT Size in sectors
+	byte DirectorySize; //Directory size in entries
 } FLOPPY_GEOMETRY; //All floppy geometries!
 
 #define NUMFLOPPYGEOMETRIES 13
