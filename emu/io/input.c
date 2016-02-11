@@ -1233,28 +1233,28 @@ void handleKeyboard() //Handles keyboard input!
 		//First, process Ctrl,Alt,Shift Releases!
 		if (((oldshiftstatus&SHIFTSTATUS_CTRL) > 0) && (!currentctrl)) //Released CTRL?
 		{
-			onKeyPress("lctrl");
+			onKeyRelease("lctrl");
 		}
 		if (((oldshiftstatus&SHIFTSTATUS_ALT) > 0) && (!currentalt)) //Released ALT?
 		{
-			onKeyPress("lalt");
+			onKeyRelease("lalt");
 		}
 		if (((oldshiftstatus&SHIFTSTATUS_SHIFT) > 0) && (!currentshift)) //Released SHIFT?
 		{
-			onKeyPress("lshift");
+			onKeyRelease("lshift");
 		}
 		//Next, process Ctrl,Alt,Shift presses!
 		if (currentctrl) //Pressed CTRL?
 		{
-			onKeyRelease("lctrl");
+			onKeyPress("lctrl");
 		}
 		if (currentalt) //Pressed ALT?
 		{
-			onKeyRelease("lalt");
+			onKeyPress("lalt");
 		}
 		if (currentshift) //Pressed SHIFT?
 		{
-			onKeyRelease("lshift");
+			onKeyPress("lshift");
 		}
 
 		if ((curstat.buttonpress & 0x300) == 0x300) //L&R hold? CAPS LOCK PRESSED! (Special case)
@@ -1274,7 +1274,10 @@ void handleKeyboard() //Handles keyboard input!
 			{
 				onKeyRelease(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
 			}
-			onKeyPress(getkeyboard(0, currentset, sety, setx, displaytokeyboard[currentkey]));
+			if (strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lctrl") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lalt") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lshift") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"capslock")) //Ignore already processed keys!
+			{
+				onKeyPress(getkeyboard(0, currentset, sety, setx, displaytokeyboard[currentkey]));
+			}
 			//Save the active key information!
 			lastset = currentset;
 			lastx = setx;
@@ -1283,7 +1286,10 @@ void handleKeyboard() //Handles keyboard input!
 		}
 		else if (lastkey) //We have a last key with nothing pressed?
 		{
-			onKeyRelease(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
+			if (strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lctrl") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lalt") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lshift") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"capslock")) //Ignore already processed keys!
+			{
+				onKeyRelease(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
+			}
 			lastkey = 0; //We didn't have a last key!			
 		}
 	} //Not buffering?
@@ -1642,28 +1648,28 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 	//First, process Ctrl,Alt,Shift Releases!
 	if (((oldshiftstatus&SHIFTSTATUS_CTRL)>0) && (!(shiftstatus&SHIFTSTATUS_CTRL))) //Released CTRL?
 	{
-		onKeyPress("lctrl");
+		onKeyRelease("lctrl");
 	}
 	if (((oldshiftstatus&SHIFTSTATUS_ALT)>0) && (!(shiftstatus&SHIFTSTATUS_ALT))) //Released ALT?
 	{
-		onKeyPress("lalt");
+		onKeyRelease("lalt");
 	}
 	if (((oldshiftstatus&SHIFTSTATUS_SHIFT)>0) && (!(shiftstatus&SHIFTSTATUS_SHIFT))) //Released SHIFT?
 	{
-		onKeyPress("lshift");
+		onKeyRelease("lshift");
 	}
 	//Next, process Ctrl,Alt,Shift presses!
 	if ((shiftstatus&SHIFTSTATUS_CTRL)>0) //Pressed CTRL?
 	{
-		onKeyRelease("lctrl");
+		onKeyPress("lctrl");
 	}
 	if ((shiftstatus&SHIFTSTATUS_ALT)>0) //Pressed ALT?
 	{
-		onKeyRelease("lalt");
+		onKeyPress("lalt");
 	}
 	if ((shiftstatus&SHIFTSTATUS_SHIFT)>0) //Pressed SHIFT?
 	{
-		onKeyRelease("lshift");
+		onKeyPress("lshift");
 	}
 	oldshiftstatus = shiftstatus; //Save shift status to old shift status!
 	//Next, process the keys!
@@ -1674,13 +1680,16 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			char keyname[256]; //For storing the name of the key!
 			if (EMU_keyboard_handler_idtoname(keys[i],&keyname[0])) //Gotten ID (valid key)?
 			{
-				if (keys_pressed[i]) //Pressed?
+				if (strcmp(keyname,"lctrl") && strcmp(keyname,"lalt") && strcmp(keyname,"lshift")) //Ignore already processed keys!
 				{
-					onKeyPress(keyname); //Press the key!
-				}
-				else //Released?
-				{
-					onKeyRelease(keyname); //Release the key!
+					if (keys_pressed[i]) //Pressed?
+					{
+						onKeyPress(keyname); //Press the key!
+					}
+					else //Released?
+					{
+						onKeyRelease(keyname); //Release the key!
+					}
 				}
 			}
 		}
