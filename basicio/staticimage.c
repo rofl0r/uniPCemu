@@ -188,17 +188,22 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 			buffer[11] = (bps&0xFF); //This is...
 			buffer[12] = (bps>>8)&0xFF; //... X bytes per sector!
 			byte counter=0x80; //Maximum value for sectors per cluster!
+			uint_32 countersize = 0x10000; //The size for that counter!
 			word sectorsize = geometry->ClusterSize; //The sector size is actually the cluster size!
-			for (;(((bps<<counter)>sectorsize) && counter);) counter >>= 1; //Try to find the cluster size if possible! Default to sector size!
-			if (!counter) counter = 1; //Default to 512 bytes!
+			for (;((countersize>sectorsize) && counter);)
+			{
+				counter >>= 1; //Try to find the cluster size if possible! Default to sector size!
+				countersize >>= 1; //As the counter is divided, so is the effective size!
+			}
+			if (!counter) counter = 1; //Default to 512 bytes (counter value of 1)!
 			buffer[13] = counter; //Sectors per cluster, multiple of 2!
 			buffer[14] = 1; //This is...
 			buffer[15] = 0; //Reserved sectors!
 			buffer[16] = 1; //1 FAT copy!
 			buffer[17] = 224; //Number of...
 			buffer[18] = 0; //Root directory entries!
-			buffer[19] = (geometry->KB>>8)&0xFF; //Ammount of sectors on the disk, in sectors!
-			buffer[20] = ((geometry->KB>>8)>>8)&0xFF; //See above.
+			buffer[19] = (geometry->KB<<1)&0xFF; //Ammount of sectors on the disk, in sectors!
+			buffer[20] = (geometry->KB>>7)&0xFF; //See above.
 			buffer[21] = geometry->MediaDescriptorByte; //Our media descriptor byte!
 			buffer[22] = 9; //Number of sectors per FAT!
 			buffer[23] = 0; //High byte of above.
