@@ -364,11 +364,11 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 		{
 			if (source==1)
 			{
-				FLOPPY_LOG("FLOPPY: Reset requested by DSR!")
+				FLOPPY_LOGD("FLOPPY: Reset requested by DSR!")
 			}
 			else
 			{
-				FLOPPY_LOG("FLOPPY: Reset requested by DOR!")
+				FLOPPY_LOGD("FLOPPY: Reset requested by DOR!")
 			}
 			FLOPPY.DOR.MotorControl = 0; //Reset motors!
 			FLOPPY.DOR.DriveNumber = 0; //Reset drives!
@@ -394,11 +394,11 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 		FLOPPY.floppy_resetted = 0; //Not resetted anymore!
 		if (source==1)
 		{
-			FLOPPY_LOG("FLOPPY: Activation requested by DSR!")
+			FLOPPY_LOGD("FLOPPY: Activation requested by DSR!")
 		}
 		else
 		{
-			FLOPPY_LOG("FLOPPY: Activation requested by DOR!")
+			FLOPPY_LOGD("FLOPPY: Activation requested by DOR!")
 		}
 	}
 }
@@ -478,7 +478,7 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 	if (FLOPPY.MSR.data != oldMSR) //MSR changed?
 	{
 		oldMSR = FLOPPY.MSR.data; //Update old!
-		FLOPPY_LOG("FLOPPY: MSR changed: %02x", FLOPPY.MSR.data) //The updated MSR!
+		FLOPPY_LOGD("FLOPPY: MSR changed: %02x", FLOPPY.MSR.data) //The updated MSR!
 	}
 }
 
@@ -571,7 +571,7 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 	FLOPPY.databufferposition = 0; //Start with the new buffer!
 	if (FLOPPY.commandstep != 2) //Entering data phase?
 	{
-		FLOPPY_LOG("FLOPPY: Start transfer of data...")
+		FLOPPY_LOGD("FLOPPY: Start transfer of data...")
 	}
 	FLOPPY.commandstep = 2; //Move to data phrase!
 	if (FLOPPY.DOR.Mode) //DMA mode?
@@ -594,14 +594,14 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 		FLOPPY.databuffersize = FLOPPY.commandbuffer[8]; //Use data length!
 	}
 	FLOPPY.disk_startpos = floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber], FLOPPY.currentsector[FLOPPY.DOR.DriveNumber]); //The start position, in sectors!
-	FLOPPY_LOG("FLOPPY: Read sector #%i", FLOPPY.disk_startpos) //We're reading this sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
+	FLOPPY_LOGD("FLOPPY: Read sector #%i", FLOPPY.disk_startpos) //We're reading this sector!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
 
 	if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 	{
-		FLOPPY_LOG("FLOPPY: Error: drive motor not ON!")
+		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
 	}
@@ -655,7 +655,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 	}
 	if (drivereadonly(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Read only drive?
 	{
-		FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0.data;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1.data;
@@ -760,16 +760,16 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 		FLOPPY.databuffersize = FLOPPY.commandbuffer[8]; //Use data length!
 	}
 	FLOPPY.disk_startpos = floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4]); //The start position, in sectors!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Write sector #%i", FLOPPY.disk_startpos) } //We're reading this sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Write sector #%i", FLOPPY.disk_startpos) } //We're reading this sector!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
 
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Write sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]) } //Log our request!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Write sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]) } //Log our request!
 
 	if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 	{
-		FLOPPY_LOG("FLOPPY: Error: drive motor not ON!")
+		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
 		FLOPPY.ST0.data = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
@@ -823,7 +823,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 						FLOPPY.ST0.NotReady = 0; //We're ready!
 						break;
 					}
-					FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+					FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 					FLOPPY.resultposition = 0;
 					FLOPPY.resultbuffer[0] = FLOPPY.ST0.data; //ST0!
 					FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //ST1!
@@ -839,7 +839,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				{
 					if (drivereadonly(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Read-only drive?
 					{
-						FLOPPY_LOG("FLOPPY: Finished transfer of data (readonly).") //Log the completion of the sectors written!
+						FLOPPY_LOGD("FLOPPY: Finished transfer of data (readonly).") //Log the completion of the sectors written!
 						FLOPPY.resultposition = 0;
 						FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 						FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //Drive write-protected! ST1!
@@ -873,7 +873,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 									FLOPPY.ST0.NotReady = 0; //We're ready!
 									break;
 								}
-								FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+								FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 								FLOPPY.ST0.SeekEnd = 1; //Successfull write with implicit seek!
 								FLOPPY.resultposition = 0;
 								FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
@@ -941,7 +941,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber];
 				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
 				FLOPPY.commandstep = 3; //Move to result phrase and give the result!
-				FLOPPY_LOG("FLOPPY: Finished transfer of data (%i sectors).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+				FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sectors).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 				FLOPPY_raiseIRQ(); //Entering result phase!
 			}
 			else //Unfinished buffer? Terminate!
@@ -1002,7 +1002,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 	FLOPPY.resultposition = 0; //Default: start of the result!
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
 	if (FLOPPY.DOR.DriveNumber & 2) goto invaliddrive;
-	FLOPPY_LOG("FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]) //Executing this command!
+	FLOPPY_LOGD("FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]) //Executing this command!
 	switch (FLOPPY.commandbuffer[0] & 0xF) //What command!
 	{
 		case 0x5: //Write sector
@@ -1050,19 +1050,19 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				datatemp = FLOPPY.ST0.data; //Use the current data, not the cleared data!
 				if (!FLOPPY.reset_pending) //Finished reset?
 				{
-					FLOPPY_LOG("FLOPPY: Reset for all drives has been finished!");
+					FLOPPY_LOGD("FLOPPY: Reset for all drives has been finished!");
 	 				FLOPPY.ST0.data = 0x00; //Reset the ST0 register after we've all been read!
 				}
 			}
 			else if (!FLOPPY.IRQPending) //Not an pending IRQ?
 			{
-				FLOPPY_LOG("FLOPPY: Warning: Checking interrupt status without IRQ pending! Locking up controller!")
+				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending! Locking up controller!")
 				FLOPPY.ignorecommands = 1; //Ignore commands until a reset!
 				FLOPPY.ST0.data = 0x80; //Error!
 				FLOPPY.commandstep = 0xFF; //Error out!
 				return; //Error out now!
 			}
-			FLOPPY_LOG("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber])
+			FLOPPY_LOGD("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber])
 			FLOPPY.resultbuffer[0] = datatemp; //Give old ST0 if changed this call!
 			FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]; //Our idea of the current cylinder!
 			FLOPPY.resultposition = 0; //Start result!
@@ -1161,7 +1161,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			updateFloppyGeometries(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]); //Update the floppy geometries!
 			if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 			{
-				FLOPPY_LOG("FLOPPY: Error: drive motor not ON!")
+				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
 				FLOPPY.ST0.data = 0x40; //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Move to error phase!
 				return;
@@ -1242,7 +1242,7 @@ OPTINLINE void floppy_writeData(byte value)
 			if (FLOPPY.ignorecommands) return; //Ignore commands: we're locked up!
 			FLOPPY.commandstep = 1; //Start inserting parameters!
 			FLOPPY.commandposition = 1; //Start at position 1 with out parameters/data!
-			FLOPPY_LOG("FLOPPY: Command byte sent: %02X", value) //Log our information about the command byte!
+			FLOPPY_LOGD("FLOPPY: Command byte sent: %02X", value) //Log our information about the command byte!
 			switch (value) //What command?
 			{
 				case 0x8: //Check interrupt status
@@ -1276,14 +1276,14 @@ OPTINLINE void floppy_writeData(byte value)
 				case 0x9: //Write deleted sector
 				case 0xC: //Read deleted sector
 				default: //Invalid command
-					FLOPPY_LOG("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
+					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
 					FLOPPY.ST0.data = 0x80; //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error!
 					break;
 			}
 			break;
 		case 1: //Parameters
-			FLOPPY_LOG("FLOPPY: Parameter sent: %02X(#%i/%i)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0] & 0xF]) //Log the parameter!
+			FLOPPY_LOGD("FLOPPY: Parameter sent: %02X(#%i/%i)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0] & 0xF]) //Log the parameter!
 			FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
 			if (FLOPPY.commandposition > (commandlength[FLOPPY.commandbuffer[0] & 0xF])) //All parameters have been processed?
 			{
@@ -1408,7 +1408,7 @@ OPTINLINE byte floppy_readData()
 				case 0x8: //Check interrupt status
 				case 0xA: //Read sector ID
 				case 0xF: //Seek/park head
-					FLOPPY_LOG("FLOPPY: Reading result byte %i/%i",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0xF])
+					FLOPPY_LOGD("FLOPPY: Reading result byte %i/%i",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0xF])
 					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]&0xF]) //Result finished?
 					{
 						FLOPPY.commandstep = 0; //Reset step!
@@ -1446,24 +1446,22 @@ byte PORT_IN_floppy(word port, byte *result)
 	switch (port & 0x7) //What port?
 	{
 	case 0: //diskette EHD controller board jumper settings (82072AA)!
-		if (EMULATED_CPU>=CPU_80286) //AT?
-		{
-			//Create floppy flags!
-			temp = getfloppydisktype(3); //Floppy #3!
-			temp <<= 2;
-			temp = getfloppydisktype(2); //Floppy #2!
-			temp <<= 2;
-			temp = getfloppydisktype(1); //Floppy #1!
-			temp <<= 2;
-			temp = getfloppydisktype(0); //Floppy #0!
-			FLOPPY_LOG("FLOPPY: Read port Diskette EHD controller board jumper settings=%02X",temp);
-			*result = temp; //Give the result!
-			return 1; //Used!
-		}
+		//Officially only on AT systems, but use on XT as well for proper detection!
+		//Create floppy flags!
+		temp = getfloppydisktype(3); //Floppy #3!
+		temp <<= 2;
+		temp = getfloppydisktype(2); //Floppy #2!
+		temp <<= 2;
+		temp = getfloppydisktype(1); //Floppy #1!
+		temp <<= 2;
+		temp = getfloppydisktype(0); //Floppy #0!
+		FLOPPY_LOGD("FLOPPY: Read port Diskette EHD controller board jumper settings=%02X",temp);
+		*result = temp; //Give the result!
+		return 1; //Used!
 		break;
 	case 4: //MSR?
 		updateFloppyMSR(); //Update the MSR with current values!
-		FLOPPY_LOG("FLOPPY: Read MSR=%02X",FLOPPY.MSR.data)
+		FLOPPY_LOGD("FLOPPY: Read MSR=%02X",FLOPPY.MSR.data)
 		*result = FLOPPY.MSR.data; //Give MSR!
 		return 1;
 	case 5: //Data?
@@ -1474,7 +1472,7 @@ byte PORT_IN_floppy(word port, byte *result)
 		if (EMULATED_CPU>=CPU_80286) //AT?
 		{
 			updateFloppyDIR(); //Update the DIR register!
-			FLOPPY_LOG("FLOPPY: Read DIR=%02X", FLOPPY.DIR.data)
+			FLOPPY_LOGD("FLOPPY: Read DIR=%02X", FLOPPY.DIR.data)
 			*result = FLOPPY.DIR.data; //Give DIR!
 			return 1;
 		}
@@ -1498,7 +1496,7 @@ byte PORT_OUT_floppy(word port, byte value)
 	switch (port & 0x7) //What port?
 	{
 	case 2: //DOR?
-		FLOPPY_LOG("FLOPPY: Write DOR=%02X", value)
+		FLOPPY_LOGD("FLOPPY: Write DOR=%02X", value)
 		FLOPPY.DOR.data = value; //Write to register!
 		updateMotorControl(); //Update the motor control!
 		FLOPPY_handlereset(0); //Execute a reset by DOR!
@@ -1506,7 +1504,7 @@ byte PORT_OUT_floppy(word port, byte value)
 	case 4: //DSR?
 		if (EMULATED_CPU>=CPU_80286) //AT?
 		{
-			FLOPPY_LOG("FLOPPY: Write DSR=%02X", value)
+			FLOPPY_LOGD("FLOPPY: Write DSR=%02X", value)
 			FLOPPY.DSR.data = value; //Write to register to check for reset first!
 			FLOPPY_handlereset(1); //Execute a reset by DSR!
 			if (FLOPPY.DSR.SWReset) FLOPPY.DSR.SWReset = 0; //Reset requested? Clear the reset bit automatically!
@@ -1520,7 +1518,7 @@ byte PORT_OUT_floppy(word port, byte value)
 	case 7: //CCR?
 		if (EMULATED_CPU>=CPU_80286) //AT?
 		{
-			FLOPPY_LOG("FLOPPY: Write CCR=%02X", value)
+			FLOPPY_LOGD("FLOPPY: Write CCR=%02X", value)
 			FLOPPY.CCR.data = value; //Set CCR!
 			FLOPPY.DSR.DRATESEL = FLOPPY.CCR.rate; //Setting one sets the other!
 			return 1;
