@@ -183,7 +183,7 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 			buffer[7] = 'N';
 			buffer[8] = '4';
 			buffer[9] = '.';
-			buffer[10] = '1'; //Microsoft recommens MSWIN4.1
+			buffer[10] = '1'; //Microsoft recommends MSWIN4.1
 			word bps = 512; //Bytes per sector! Use 512 in our case!
 			buffer[11] = (bps&0xFF); //This is...
 			buffer[12] = (bps>>8)&0xFF; //... X bytes per sector!
@@ -200,13 +200,13 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 			buffer[14] = 1; //This is...
 			buffer[15] = 0; //Reserved sectors!
 			buffer[16] = 1; //1 FAT copy!
-			buffer[17] = 224; //Number of...
-			buffer[18] = 0; //Root directory entries!
+			buffer[17] = geometry->DirectorySize&0xFF; //Number of...
+			buffer[18] = (geometry->DirectorySize>>8)&0xFF; //Root directory entries!
 			buffer[19] = (geometry->KB<<1)&0xFF; //Ammount of sectors on the disk, in sectors!
 			buffer[20] = (geometry->KB>>7)&0xFF; //See above.
 			buffer[21] = geometry->MediaDescriptorByte; //Our media descriptor byte!
-			buffer[22] = 9; //Number of sectors per FAT!
-			buffer[23] = 0; //High byte of above.
+			buffer[22] = geometry->FATSize&0xFF; //Number of sectors per FAT!
+			buffer[23] = (geometry->FATSize>>8)&0xFF; //High byte of above.
 			buffer[24] = (geometry->SPT&0xFF);
 			buffer[25] = (geometry->SPT>>8)&0xFF; //Sectors per track!
 			buffer[26] = geometry->sides;
