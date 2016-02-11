@@ -205,7 +205,7 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 			buffer[19] = (geometry->KB<<1)&0xFF; //Ammount of sectors on the disk, in sectors!
 			buffer[20] = (geometry->KB>>7)&0xFF; //See above.
 			buffer[21] = geometry->MediaDescriptorByte; //Our media descriptor byte!
-			buffer[22] = geometry->FATSize; //Number of sectors per FAT!
+			buffer[22] = geometry->FATSize&0xFF; //Number of sectors per FAT!
 			buffer[23] = (geometry->FATSize>>8)&0xFF; //High byte of above.
 			buffer[24] = (geometry->SPT&0xFF);
 			buffer[25] = (geometry->SPT>>8)&0xFF; //Sectors per track!
