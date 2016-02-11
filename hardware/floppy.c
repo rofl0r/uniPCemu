@@ -566,7 +566,7 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 	FLOPPY.databufferposition = 0; //Start with the new buffer!
 	if (FLOPPY.commandstep != 2) //Entering data phase?
 	{
-		FLOPPY_LOGD("FLOPPY: Start transfer of data...")
+		FLOPPY_LOG("FLOPPY: Start transfer of data...")
 	}
 	FLOPPY.commandstep = 2; //Move to data phrase!
 	if (FLOPPY.DOR.Mode) //DMA mode?
@@ -590,9 +590,9 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	}
 	FLOPPY.disk_startpos = floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber], FLOPPY.currentsector[FLOPPY.DOR.DriveNumber]); //The start position, in sectors!
 	FLOPPY_LOG("FLOPPY: Read sector #%i", FLOPPY.disk_startpos) //We're reading this sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
 
 	if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 	{
@@ -758,7 +758,7 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Write sector #%i", FLOPPY.disk_startpos) } //We're reading this sector!
 	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
 
 	if (FLOPPY.commandstep != 2) { FLOPPY_LOG("FLOPPY: Write sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]) } //Log our request!
 
@@ -1267,6 +1267,7 @@ OPTINLINE void floppy_writeData(byte value)
 				case 0x9: //Write deleted sector
 				case 0xC: //Read deleted sector
 				default: //Invalid command
+					FLOPPY_LOG("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
 					FLOPPY.ST0.data = 0x80; //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error!
 					break;
@@ -1445,14 +1446,14 @@ byte PORT_IN_floppy(word port, byte *result)
 			temp = getfloppydisktype(1); //Floppy #1!
 			temp <<= 2;
 			temp = getfloppydisktype(0); //Floppy #0!
-			FLOPPY_LOG("Read port #0=%02X",temp);
+			FLOPPY_LOG("FLOPPY: Read port Diskette EHD controller board jumper settings=%02X",temp);
 			*result = temp; //Give the result!
 			return 1; //Used!
 		}
 		break;
 	case 4: //MSR?
 		updateFloppyMSR(); //Update the MSR with current values!
-		FLOPPY_LOG("Read MSR=%02X",FLOPPY.MSR.data)
+		FLOPPY_LOG("FLOPPY: Read MSR=%02X",FLOPPY.MSR.data)
 		*result = FLOPPY.MSR.data; //Give MSR!
 		return 1;
 	case 5: //Data?
@@ -1463,7 +1464,7 @@ byte PORT_IN_floppy(word port, byte *result)
 		if (EMULATED_CPU>=CPU_80286) //AT?
 		{
 			updateFloppyDIR(); //Update the DIR register!
-			FLOPPY_LOG("Read DIR=%02X", FLOPPY.DIR.data)
+			FLOPPY_LOG("FLOPPY: Read DIR=%02X", FLOPPY.DIR.data)
 			*result = FLOPPY.DIR.data; //Give DIR!
 			return 1;
 		}
@@ -1487,7 +1488,7 @@ byte PORT_OUT_floppy(word port, byte value)
 	switch (port & 0x7) //What port?
 	{
 	case 2: //DOR?
-		FLOPPY_LOG("Write DOR=%02X", value)
+		FLOPPY_LOG("FLOPPY: Write DOR=%02X", value)
 		FLOPPY.DOR.data = value; //Write to register!
 		updateMotorControl(); //Update the motor control!
 		FLOPPY_handlereset(0); //Execute a reset by DOR!
@@ -1495,7 +1496,7 @@ byte PORT_OUT_floppy(word port, byte value)
 	case 4: //DSR?
 		if (EMULATED_CPU>=CPU_80286) //AT?
 		{
-			FLOPPY_LOG("Write DSR=%02X", value)
+			FLOPPY_LOG("FLOPPY: Write DSR=%02X", value)
 			FLOPPY.DSR.data = value; //Write to register to check for reset first!
 			FLOPPY_handlereset(1); //Execute a reset by DSR!
 			if (FLOPPY.DSR.SWReset) FLOPPY.DSR.SWReset = 0; //Reset requested? Clear the reset bit automatically!
@@ -1509,7 +1510,7 @@ byte PORT_OUT_floppy(word port, byte value)
 	case 7: //CCR?
 		if (EMULATED_CPU>=CPU_80286) //AT?
 		{
-			FLOPPY_LOG("Write CCR=%02X", value)
+			FLOPPY_LOG("FLOPPY: Write CCR=%02X", value)
 			FLOPPY.CCR.data = value; //Set CCR!
 			FLOPPY.DSR.DRATESEL = FLOPPY.CCR.rate; //Setting one sets the other!
 			return 1;
