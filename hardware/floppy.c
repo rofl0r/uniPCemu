@@ -40,6 +40,10 @@
 #define FLOPPY_LOGD(...)
 #endif
 
+//Redirect to direct log always!
+#undef FLOPPY_LOGD
+#define FLOPPY_LOGD FLOPPY_LOG
+
 struct
 {
 	union
@@ -183,11 +187,12 @@ struct
 	byte currentcylinder[4], currenthead[4], currentsector[4]; //Current head for all 4 drives!
 	byte TC; //Terminal count triggered?
 	uint_32 sectorstransferred; //Ammount of sectors transferred!
-	byte MT; //MT bit, as set by the command, if any!
+	byte MT,DoubleDensity,Skip; //MT bit, Double Density bit and Skip bit  as set by the command, if any!
 	byte floppy_resetted; //Are we resetted?
 	byte ignorecommands; //Locked up by an invalid Sense Interrupt?
 } FLOPPY; //Our floppy drive data!
 
+byte density_forced = 0; //Default: don't ignore the density with the CPU!
 
 //Normal floppy specific stuff
 
@@ -211,27 +216,47 @@ struct
 
 */
 
+//Allowed transfer rates!
 #define TRANSFERRATE_500k 0
 #define TRANSFERRATE_300k 1
 #define TRANSFERRATE_250k 2
 #define TRANSFERRATE_1M 3
 
+//Allowed gap length!
+#define GAPLENGTH_IGNORE 0
+#define GAPLENGTH_STD 42
+#define GAPLENGTH_5_14 32
+#define GAPLENGTH_3_5 27
+
+//Flags when executing commands!
+#define CMD_EXT_SKIPDELETEDADDRESSMARKS 0x20
+#define CMD_EXT_DOUBLEDENSITYMODE 0x40
+#define CMD_EXT_MULTITRACKOPERATION 0x80
+
+//Density limits and specification!
+#define DENSITY_SINGLE 0
+#define DENSITY_DOUBLE 1
+#define DENSITY_HD 2
+#define DENSITY_ED 4
+//Ignore density on specific target BIOS/CPU?
+#define DENSITY_IGNORE 8
+
 FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES] = { //Differently formatted disks, and their corresponding geometries
 	//First, 5"
-	{ 160,  8,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFE,512  }, //160K 5.25" supports 250kbits, 300kbits
-	{ 180,  9,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFC,512  }, //180K 5.25" supports 250kbits, 300kbits
-	{ 200, 10,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFC,512  }, //200K 5.25" supports 250kbits, 300kbits
-	{ 320,  8,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFF,512  }, //320K 5.25" supports 250kbits, 300kbits
-	{ 360,  9,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024 }, //360K 5.25" supports 250kbits, 300kbits
-	{ 400, 10,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024 }, //400K 5.25" supports 250kbits, 300kbits
-	{1200, 15,  2, 80, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF9,512  }, //1200K 5.25" supports 300kbits, 500kbits
+	{ 160,  8,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFE,512 ,DENSITY_SINGLE,GAPLENGTH_5_14   }, //160K 5.25" supports 250kbits, 300kbits SD!
+	{ 180,  9,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFC,512 ,DENSITY_SINGLE,GAPLENGTH_5_14   }, //180K 5.25" supports 250kbits, 300kbits SD!
+	{ 200, 10,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFC,512 ,DENSITY_SINGLE,GAPLENGTH_5_14   }, //200K 5.25" supports 250kbits, 300kbits SD!
+	{ 320,  8,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFF,512 ,DENSITY_SINGLE,GAPLENGTH_5_14   }, //320K 5.25" supports 250kbits, 300kbits SD!
+	{ 360,  9,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024,DENSITY_DOUBLE,GAPLENGTH_5_14   }, //360K 5.25" supports 250kbits, 300kbits DD!
+	{ 400, 10,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024,DENSITY_SINGLE,GAPLENGTH_5_14   }, //400K 5.25" supports 250kbits, 300kbits SD!
+	{1200, 15,  2, 80, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF9,512 ,DENSITY_SINGLE,GAPLENGTH_5_14   }, //1200K 5.25" supports 300kbits, 500kbits SD!
 	//Now 3.5"
-	{ 720,  9,  2, 80, 1, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xF9,1024 }, //720K 3.5" supports 250kbits, 300kbits
-	{1440, 18,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512  }, //1.44M 3.5" supports 250kbits, 500kbits
-	{1680, 21,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512  }, //1.68M 3.5" supports 250kbits, 500kbits
-	{1722, 21,  2, 82, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512  }, //1.722M 3.5" supports 250kbits, 500kbits
-	{1840, 23,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512  }, //1.84M 3.5" supports 250kbits, 500kbits
-	{2880, 36,  2, 80, 2, 1, TRANSFERRATE_1M|(TRANSFERRATE_1M<<2)|(TRANSFERRATE_1M<<4)|(TRANSFERRATE_1M<<6),        0xF0,1024 } //2.88M 3.5" supports 1Mbits
+	{ 720,  9,  2, 80, 1, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xF9,1024,DENSITY_DOUBLE,GAPLENGTH_IGNORE }, //720K 3.5" supports 250kbits, 300kbits DD! Disable gap length checking here because we need to work without it on a XT!
+	{1440, 18,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 ,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_IGNORE }, //1.44M 3.5" supports 250kbits, 500kbits HD! Disable gap length checking here because we need to work without it on a XT!
+	{1680, 21,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 ,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5    }, //1.68M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
+	{1722, 21,  2, 82, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 ,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5    }, //1.722M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
+	{1840, 23,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 ,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5    }, //1.84M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
+	{2880, 36,  2, 80, 2, 1, TRANSFERRATE_1M|(TRANSFERRATE_1M<<2)|(TRANSFERRATE_1M<<4)|(TRANSFERRATE_1M<<6),        0xF0,1024,DENSITY_IGNORE|DENSITY_ED,GAPLENGTH_IGNORE } //2.88M 3.5" supports 1Mbits ED!
 };
 
 //BPS=512 always(except differently programmed)!
@@ -586,7 +611,20 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	char *DSKImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
 
-	FLOPPY.MT = (FLOPPY.commandbuffer[0] >> 7); //Multiple track mode?
+	if (!FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //Not inserted or valid?
+	{
+		FLOPPY_LOGD("FLOPPY: Error: Invalid drive!")
+		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		return;
+	}
+	if ((FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity&DENSITY_IGNORE) || density_forced)) //Wrong density?
+	{
+		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
+		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		return;
+	}
 
 	FLOPPY.databuffersize = translateSectorSize(FLOPPY.commandbuffer[5]); //Sector size into data buffer!
 	if (!FLOPPY.commandbuffer[5]) //Special case? Use given info!
@@ -603,6 +641,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	{
 		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		FLOPPY.ST0.data = 0x40; //Abnormal termination!
 		return;
 	}
 
@@ -611,13 +650,19 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	FLOPPY.ST0.NotReady = 1; //We're not ready yet!
 	FLOPPY.ST0.UnitCheck = FLOPPY.ST0.SeekEnd = FLOPPY.ST0.InterruptCode = 0; //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 
-	if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber)) //We don't support the rate?
+	if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber) || !FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //We don't support the rate or geometry?
 	{
 		goto floppy_errorread; //Error out!
 	}
 
 	if (readdata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
 	{
+		if ((FLOPPY.commandbuffer[7]!=FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength) && (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength!=GAPLENGTH_IGNORE)) //Wrong GAP length?
+		{
+			FLOPPY.ST0.data = 0x40; //Abnormal termination!
+			FLOPPY.commandstep = 0xFF; //Move to error phase!
+			return;					
+		}
 		FLOPPY.ST0.SeekEnd = 1; //Successfull read with implicit seek!
 		FLOPPY_startData();
 	}
@@ -649,10 +694,34 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 	char *DSKImageFile;
 	SECTORINFORMATIONBLOCK sectorinfo;
 	++FLOPPY.sectorstransferred; //A sector has been transferred!
-	if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber)) //We don't support the rate?
+	if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber) || !FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //We don't support the rate or geometry?
 	{
 		goto floppy_errorformat; //Error out!
 	}
+
+	if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber) || !FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //We don't support the rate or geometry?
+	{
+		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		return;
+	}
+
+	if ((FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity&DENSITY_IGNORE) || density_forced)) //Wrong density?
+	{
+		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
+		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		return;					
+	}
+
+	if ((FLOPPY.commandbuffer[5]!=FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength) && (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength!=GAPLENGTH_IGNORE)) //Wrong GAP length?
+	{
+		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		return;					
+	}
+
+
 	if (drivereadonly(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Read only drive?
 	{
 		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
@@ -753,7 +822,6 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 
 OPTINLINE void floppy_writesector() //Request a write sector command!
 {
-	FLOPPY.MT = (FLOPPY.commandbuffer[0] >> 7); //Multiple track mode?
 	FLOPPY.databuffersize = translateSectorSize(FLOPPY.commandbuffer[5]); //Sector size into data buffer!
 	if (!FLOPPY.commandbuffer[5]) //Special case? Use given info!
 	{
@@ -770,6 +838,13 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 	if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
+		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		return;
+	}
+
+	if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber) || !FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //We don't support the rate or geometry?
+	{
 		FLOPPY.ST0.data = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
@@ -801,9 +876,19 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 			updateFloppyWriteProtected(1); //Try to write with(out) protection!
 			if (FLOPPY.databufferposition == FLOPPY.databuffersize) //Fully buffered?
 			{
-				if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber)) //We don't support the rate?
+				if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber) || !FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //We don't support the rate or geometry?
 				{
-					goto floppy_errorwrite; //Error out!
+					FLOPPY_LOGD("FLOPPY: Error: Invalid disk rate/geometry!")
+					FLOPPY.ST0.data = 0x40; //Abnormal termination!
+					FLOPPY.commandstep = 0xFF; //Move to error phase!
+					return;
+				}
+				if ((FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity&DENSITY_IGNORE) || density_forced)) //Wrong density?
+				{
+					FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
+					FLOPPY.ST0.data = 0x40; //Abnormal termination!
+					FLOPPY.commandstep = 0xFF; //Move to error phase!
+					return;					
 				}
 				if (writedata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Written the data to disk?
 				{
@@ -888,7 +973,6 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 								return;
 							}
 						}
-						floppy_errorwrite:
 						//Plain error!
 						FLOPPY.ST0.data = 0x40; //Invalid command!
 						FLOPPY.commandstep = 0xFF; //Error!
@@ -1003,6 +1087,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
 	if (FLOPPY.DOR.DriveNumber & 2) goto invaliddrive;
 	FLOPPY_LOGD("FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]) //Executing this command!
+	updateFloppyGeometries(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]); //Update the floppy geometries!
 	switch (FLOPPY.commandbuffer[0] & 0xF) //What command!
 	{
 		case 0x5: //Write sector
@@ -1158,7 +1243,6 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			return; //Incorrect read!
 			break;
 		case 0xD: //Format sector
-			updateFloppyGeometries(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]); //Update the floppy geometries!
 			if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
@@ -1243,6 +1327,9 @@ OPTINLINE void floppy_writeData(byte value)
 			FLOPPY.commandstep = 1; //Start inserting parameters!
 			FLOPPY.commandposition = 1; //Start at position 1 with out parameters/data!
 			FLOPPY_LOGD("FLOPPY: Command byte sent: %02X", value) //Log our information about the command byte!
+			FLOPPY.MT = (FLOPPY.commandbuffer[0] & CMD_EXT_MULTITRACKOPERATION)?1:0; //Multiple track mode?
+			FLOPPY.DoubleDensity = (FLOPPY.commandbuffer[0] & CMD_EXT_DOUBLEDENSITYMODE)?1:0; //Multiple track mode?
+			FLOPPY.Skip = (FLOPPY.commandbuffer[0] & CMD_EXT_SKIPDELETEDADDRESSMARKS)?1:0; //Multiple track mode?
 			switch (value) //What command?
 			{
 				case 0x8: //Check interrupt status
@@ -1560,6 +1647,7 @@ void FLOPPY_DMATC() //Terminal count triggered?
 
 void initFDC()
 {
+	density_forced = EMULATED_CPU>=CPU_80286; //Allow force density check if 286+ (non XT)!
 	memset(&FLOPPY, 0, sizeof(FLOPPY)); //Initialise floppy!
 	//Initialise DMA controller settings for the FDC!
 	DMA_SetDREQ(FLOPPY_DMA,0); //No DREQ!
