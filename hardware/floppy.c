@@ -179,11 +179,13 @@ struct
 	FLOPPY_GEOMETRY *geometries[4]; //Disk geometries!
 	FLOPPY_GEOMETRY customgeometry[4]; //Custom disk geometries!
 	byte reset_pending; //Reset pending?
+	byte reset_pending_size; //Size of the pending reset max value! A maximum set of 3 with 4 drives reset!
 	byte currentcylinder[4], currenthead[4], currentsector[4]; //Current head for all 4 drives!
 	byte TC; //Terminal count triggered?
 	uint_32 sectorstransferred; //Ammount of sectors transferred!
 	byte MT; //MT bit, as set by the command, if any!
 	byte floppy_resetted; //Are we resetted?
+	byte ignorecommands; //Locked up by an invalid Sense Interrupt?
 } FLOPPY; //Our floppy drive data!
 
 
@@ -340,6 +342,7 @@ OPTINLINE void FLOPPY_lowerIRQ()
 
 OPTINLINE byte FLOPPY_supportsrate(byte disk)
 {
+	return 1; //Support all rates officially!
 	if (!FLOPPY.geometries[disk]) return 1; //No disk geometry, so supported by default(unknown drive)!
 	byte supported = 0, current=0, currentrate;
 	supported = FLOPPY.geometries[disk]->supportedrates; //Load the supported rates!
@@ -372,15 +375,17 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.DOR.Mode = 0; //IRQ channel!
 			FLOPPY.MSR.data = 0; //Default to no data!
 			FLOPPY.commandposition = 0; //No command!
-			FLOPPY.commandstep = 0; //Reset step!
+			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
 			FLOPPY.ST0.data = 0xC0; //Reset ST0 to the correct value: drive became not ready!
 			FLOPPY.ST1.data = FLOPPY.ST2.data = 0; //Reset the ST data!
-			FLOPPY.reset_pending = 4; //We have a reset pending for all 4 drives!
+			FLOPPY.reset_pending = (EMULATED_CPU<CPU_80286)?1:4; //We have a reset pending for all 4 drives(286+), or just 1 drive with older systems!
+			FLOPPY.reset_pending_size = (EMULATED_CPU<CPU_80286)?0:3; //We have a reset pending for all 4 drives(286+), or just 1 drive with older systems!
 			memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
 			memset(FLOPPY.currentcylinder, 0, sizeof(FLOPPY.currentcylinder)); //Clear the current heads!
 			memset(FLOPPY.currentsector, 0, sizeof(FLOPPY.currentsector)); //Clear the current heads!
 			FLOPPY.TC = 0; //Disable TC identifier!
 			FLOPPY.floppy_resetted = 1; //We're resetted!
+			FLOPPY.ignorecommands = 0; //We're enabling commands again!
 		}
 	}
 	else if (FLOPPY.floppy_resetted) //We were resetted and are activated?
@@ -765,6 +770,7 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 	if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 	{
 		FLOPPY_LOG("FLOPPY: Error: drive motor not ON!")
+		FLOPPY.ST0.data = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
 	}
@@ -1031,13 +1037,13 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			//Set result
 			updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			FLOPPY.commandstep = 3; //Move to result phrase!
-byte datatemp;
-datatemp = FLOPPY.ST0.data; //Save default!
+			byte datatemp;
+			datatemp = FLOPPY.ST0.data; //Save default!
 			//Reset IRQ line!
 			if (FLOPPY.reset_pending) //Reset is pending?
 			{
 				byte reset_drive;
-				reset_drive = 3 - (--FLOPPY.reset_pending); //We're pending this drive!
+				reset_drive = FLOPPY.reset_pending_size - (--FLOPPY.reset_pending); //We're pending this drive!
 				FLOPPY.ST0.data &= 0xF8; //Clear low 3 bits!
 				FLOPPY.ST0.UnitSelect = reset_drive; //What drive are we giving!
 				FLOPPY.ST0.CurrentHead = (FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
@@ -1045,15 +1051,16 @@ datatemp = FLOPPY.ST0.data; //Save default!
 				if (!FLOPPY.reset_pending) //Finished reset?
 				{
 					FLOPPY_LOG("FLOPPY: Reset for all drives has been finished!");
-	
- 				FLOPPY.ST0.data = 0x00; //Reset the ST0 register after we've all been read!
+	 				FLOPPY.ST0.data = 0x00; //Reset the ST0 register after we've all been read!
 				}
 			}
 			else if (!FLOPPY.IRQPending) //Not an pending IRQ?
 			{
-				FLOPPY_LOG("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
+				FLOPPY_LOG("FLOPPY: Warning: Checking interrupt status without IRQ pending! Locking up controller!")
+				FLOPPY.ignorecommands = 1; //Ignore commands until a reset!
 				FLOPPY.ST0.data = 0x80; //Error!
-				datatemp = FLOPPY.ST0.data; //Use the current data, not the cleared data!
+				FLOPPY.commandstep = 0xFF; //Error out!
+				return; //Error out now!
 			}
 			FLOPPY_LOG("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber])
 			FLOPPY.resultbuffer[0] = datatemp; //Give old ST0 if changed this call!
@@ -1155,19 +1162,20 @@ datatemp = FLOPPY.ST0.data; //Save default!
 			if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 			{
 				FLOPPY_LOG("FLOPPY: Error: drive motor not ON!")
+				FLOPPY.ST0.data = 0x40; //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Move to error phase!
 				return;
 			}
 
 			if (!FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //No geometry?
 			{
-				FLOPPY.ST0.data = 0x80; //Invalid command!
+				FLOPPY.ST0.data = 0x40; //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
 			}
 
 			if (FLOPPY.commandbuffer[3] != FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->SPT) //Invalid SPT?
 			{
-				FLOPPY.ST0.data = 0x80; //Invalid command!
+				FLOPPY.ST0.data = 0x40; //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
 			}
 
@@ -1180,7 +1188,7 @@ datatemp = FLOPPY.ST0.data; //Save default!
 			{
 				if (FLOPPY.commandbuffer[2] != 0x2) //Not 512 bytes/sector?
 				{
-					FLOPPY.ST0.data = 0x80; //Invalid command!
+					FLOPPY.ST0.data = 0x40; //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error!
 				}
 				else
@@ -1195,7 +1203,7 @@ datatemp = FLOPPY.ST0.data; //Save default!
 		case 0xC: //Read deleted sector
 			invaliddrive: //Invalid drive detected?
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
-			FLOPPY.ST0.data = 0x80; //Invalid command!
+			FLOPPY.ST0.data = 0x40; //Invalid command!
 			break;
 	}
 }
@@ -1231,6 +1239,7 @@ OPTINLINE void floppy_writeData(byte value)
 	switch (FLOPPY.commandstep) //What step are we at?
 	{
 		case 0: //Command
+			if (FLOPPY.ignorecommands) return; //Ignore commands: we're locked up!
 			FLOPPY.commandstep = 1; //Start inserting parameters!
 			FLOPPY.commandposition = 1; //Start at position 1 with out parameters/data!
 			FLOPPY_LOG("FLOPPY: Command byte sent: %02X", value) //Log our information about the command byte!
@@ -1347,6 +1356,7 @@ OPTINLINE byte floppy_readData()
 	switch (FLOPPY.commandstep) //What step are we at?
 	{
 		case 0: //Command
+			if (FLOPPY.ignorecommands) return 0; //Ignore commands: we're locked up!
 			floppy_abnormalpolling(); //Abnormal polling!
 			break; //Nothing to read during command phrase!
 		case 1: //Parameters
@@ -1410,7 +1420,7 @@ OPTINLINE byte floppy_readData()
 					break;
 			}
 			break;
-		case 0xFF: //Error
+		case 0xFF: //Error or reset result
 			FLOPPY.commandstep = 0; //Reset step!
 			return FLOPPY.ST0.data; //Give ST0, containing an error!
 			break;

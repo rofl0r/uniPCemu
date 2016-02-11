@@ -181,7 +181,6 @@ int emu_keys_SDL[104] = {
 	SDLK_SLASH  ///
 };
 
-uint_32 emu_keys_sdl_rev_size = 0; //EMU_KEYS_SDL_REV size!
 int emu_keys_sdl_rev[UINT16_MAX+1]; //Reverse of emu_keys_sdl!
 
 //Are we disabled?
@@ -1698,40 +1697,39 @@ OPTINLINE void handleKeyPressRelease(int key)
 		break;
 	case 1: //Pressed?
 		//Shift status for buffering!
-		if (key==emu_keys_sdl_rev[SDLK_LCTRL])
+		if (!strcmp(keys_names[key],"LCTRL"))
 		{
 			currentshiftstatus_inputbuffer |= SHIFTSTATUS_CTRL;
 		}
-		else if (key==emu_keys_sdl_rev[SDLK_LALT])
+		else if (!strcmp(keys_names[key],"LALT"))
 		{
 			currentshiftstatus_inputbuffer |= SHIFTSTATUS_ALT;
 		}
-		else if (key==emu_keys_sdl_rev[SDLK_LSHIFT])
+		else if (!strcmp(keys_names[key],"LSHIFT"))
 		{
 			currentshiftstatus_inputbuffer |= SHIFTSTATUS_SHIFT;
 		}
-		else if (input_buffer_input && (input_buffer==-1)) //Buffering and input non-shiftstatus?
-		{
-			input_buffer_shift = currentshiftstatus_inputbuffer; //Set shift status to the current state!
-			input_buffer = key; //Last key pressed!
-		}
-
 		//Normal handling always!
 		onKeyPress(&keys_names[key][0]); //Tick the keypress!
 		break;
 	case 2: //Releasing?
 		//Shift status for buffering!
-		if (key==emu_keys_sdl_rev[SDLK_LCTRL])
+		if (!strcmp(keys_names[key],"LCTRL"))
 		{
 			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_CTRL; //Release CTRL!
 		}
-		else if (key==emu_keys_sdl_rev[SDLK_LALT])
+		else if (!strcmp(keys_names[key],"LALT"))
 		{
 			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_ALT; //Release ALT!
 		}
-		else if (key==emu_keys_sdl_rev[SDLK_LSHIFT]) //Release Shift!
+		else if (!strcmp(keys_names[key],"LSHIFT"))
 		{
 			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_SHIFT; //Release SHIFT!
+		}
+		else if (input_buffer_input) //Buffering and input non-shiftstatus?
+		{
+			input_buffer_shift = currentshiftstatus_inputbuffer; //Set shift status to the current state!
+			input_buffer = key; //Last key pressed!
 		}
 
 		//Normal handling always!
