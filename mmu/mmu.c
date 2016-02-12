@@ -8,6 +8,7 @@
 #include "headers/support/zalloc.h" //Memory allocation!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/protection.h" //Protection support!
+#include "headers/mmu/paging.h" //Protection support!
 #include "headers/mmu/mmuhandler.h" //MMU Handler support!
 #include "headers/emu/debugger/debugger.h" //Debugger support for logging MMU accesses!
 
@@ -266,6 +267,11 @@ byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adre
 
 	realaddress = MMU_realaddr(segdesc,segment,offset,writeword); //Real adress!
 	
+	if (is_paging()) //Are we paging?
+	{
+		realaddress = mappage(realaddress); //Map it using the paging mechanism!
+	}
+
 	result = MMU_directrb_realaddr(realaddress,opcode); //Read from MMU/hardware!
 
 	if (opcode == 1) //We're an OPcode retrieval?
@@ -319,6 +325,11 @@ void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
 	}*/
 
 	realaddress = MMU_realaddr(segdesc,segment,offset,writeword); //Real adress!
+
+	if (is_paging()) //Are we paging?
+	{
+		realaddress = mappage(realaddress); //Map it using the paging mechanism!
+	}
 
 	MMU_directwb_realaddr(realaddress,val); //Set data!
 }

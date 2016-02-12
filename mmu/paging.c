@@ -68,7 +68,6 @@ void FLAG_PF(uint_32 address, word flags)
 	//Call interrupt!
 }
 
-#define getCPL() CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].DPL
 OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte RW, byte US) //userlevel=CPL or 0 (with special instructions LDT, GDT, TSS, IDT, ring-crossing CALL/INT)
 {
 	if (!US && getUserLevel(userlevel)) //User when not an user page?

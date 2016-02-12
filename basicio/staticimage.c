@@ -3,6 +3,7 @@
 #include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
 #include "headers/fopen64.h" //64-bit fopen support!
 #include "headers/hardware/floppy.h" //Disk image size suppor
+#include "headers/cpu/modrm.h" //MODR/M support for boot loader creation.
 
 byte is_staticimage(char *filename)
 {
@@ -147,6 +148,8 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 	}
 }
 
+byte bootmessage[] = "This is a non-bootable disk.\r\nPress any key to reboot...\r\n\0"; //Our boot message!
+
 void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percentagex, int percentagey) //Generate a floppy image!
 {
 	if (!geometry) return; //Invalid geometry?
@@ -213,12 +216,67 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 			buffer[27] = (geometry->sides>>8)&0xFF; //How many sides!
 			buffer[28] = 0; //No hidden...
 			buffer[29] = 0; //... Sectors!
-			//Now the bootstrap!
-			buffer[30] = 0xCD; //We're an
-			buffer[31] = 0x18; //Non-bootable disk until overwritten by an OS!
+			//Now the bootstrap required!
+			word bootprogram;
+			word bootmessagelocation; //The location of our boot message indicator!
+			bootprogram = 0x3E; //Start of the boot program!
+			buffer[bootprogram++] = 0xFA; //CLI: We don't want to be interrupted!
+			buffer[bootprogram++] = 0x31;
+			buffer[bootprogram++] = 0xC0; //XOR AX,AX
+			buffer[bootprogram++] = 0x8C; //MOV Sreg,reg
+			buffer[bootprogram++] = 0xC0|(MODRM_SEG_DS<<3); //MOV DS,AX
+			buffer[bootprogram++] = 0x8C; //MOV Sreg,reg
+			buffer[bootprogram++] = 0xC0|(MODRM_SEG_ES<<3); //MOV ES,AX
+			buffer[bootprogram++] = 0xBE; //MOV SI,imm16 ; Load the location of our message to display!
+			bootmessagelocation = bootprogram; //This is where our boot message location is stored!
+			buffer[bootprogram++] = 0x00; //Address to!
+			buffer[bootprogram++] = 0x00; //Our text to display is inserted here!
+			buffer[bootprogram++] = 0xFB; //STI: We can be interrupted again!
+			
+			//Start of output of our little text display!
+			buffer[bootprogram++] = 0xAC; //LODSB: Load the current character!
+			buffer[bootprogram++] = 0x3C; //CMP AL,imm8
+			buffer[bootprogram++] = 0x00; //Are we zero?
+			buffer[bootprogram++] = 0x74; //Jump if zero=End of String...
+			buffer[bootprogram++] = 0x8; //Perform the next step, so skip over the output!
+
+			//We still have input, so process it!
+			buffer[bootprogram++] = 0xB4; //MOV AH,imm8
+			buffer[bootprogram++] = 0xE; //We're teletyping output!
+			buffer[bootprogram++] = 0xB3; //MOV BL,imm8
+			buffer[bootprogram++] = 0; //Page #0!
+			buffer[bootprogram++] = 0xCD; //INT
+			buffer[bootprogram++] = 0x10; //Teletype a character for input!
+			buffer[bootprogram++] = 0xEB; //JMP back to...
+			buffer[bootprogram++] = 0xF3; //the start of our little procedure to check again!
+
+			//Wait for a key!
+			buffer[bootprogram++] = 0xB8; //MOV AX,imm16
+			buffer[bootprogram++] = 0x00;
+			buffer[bootprogram++] = 0x00; //Clear AX to call the interrupt!
+			buffer[bootprogram++] = 0xCD; //INT
+			buffer[bootprogram++] = 0x16; //Wait for input!
+
+			//Reboot now!
+			buffer[bootprogram++] = 0xCD; //INT
+			buffer[bootprogram++] = 0x19; //Try next drive, else reboot normally!
+			buffer[bootprogram++] = 0xEA; //We're an
+			buffer[bootprogram++] = 0x00; //Non-bootable disk until overwritten by an OS!
+			buffer[bootprogram++] = 0x00; //This is a ...
+			buffer[bootprogram++] = 0xFF; //...
+			buffer[bootprogram++] = 0xFF; //JMP to reboot instead, for safety only (when interrupt 19h returns we don't want to crash)!
+			
+			//Finally, our little boot message with patching it into the createn code!
+			word location;
+			location = bootprogram; //Load the final position of the boot program!
+			location += 0x7C00; //Add the start of our segment to give the actual segment!
+			buffer[bootmessagelocation] = (location&0xFF); //Low!
+			buffer[bootmessagelocation+1] = (location>>8)&0xFF; //High!
+			memcpy(&buffer[bootprogram],bootmessage,sizeof(bootmessage)); //Set our boot message!
+			
 			//Finally, our signature!
-			buffer[510] = 0x55; //Signature 55 aa
-			buffer[511] = 0xAA; //Signature 55 aa
+			buffer[510] = 0x55; //Signature 55 aa for booting.
+			buffer[511] = 0xAA; //Signature 55 aa. Don't insert the signature: we're not bootable!
 			//Now the FAT itself (empty)!
 			buffer[512] = geometry->MediaDescriptorByte; //Copy of the media descriptor byte!
 			buffer[513] = 0xF8; //High 4 bits of the first entry is F. The second entry contains FF8 for EOF.

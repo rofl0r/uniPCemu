@@ -13,6 +13,8 @@ typedef struct
 	};
 } SEGDESCRIPTOR_TYPE;
 
+#define getCPL() CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].DPL
+
 int CPU_segment_index(byte defaultsegment); //Plain segment to use, direct access!
 int get_segment_index(word *location);
 void protection_nextOP(); //We're executing the next OPcode?

@@ -10,6 +10,7 @@
 
 #include "headers/hardware/floppy.h" //Our type definitions!
 
+#include "headers/bios/biosrom.h" //ROM support for Turbo XT BIOS detection!
 
 //Configuration of the FDC...
 
@@ -198,8 +199,30 @@ byte density_forced = 0; //Default: don't ignore the density with the CPU!
 
 #define KB(x) (x/1024)
 
-
-
+//Floppy commands from OSDev.
+enum FloppyCommands
+{
+   READ_TRACK =                 2,	// generates IRQ6
+   SPECIFY =                    3,      // * set drive parameters
+   SENSE_DRIVE_STATUS =         4,
+   WRITE_DATA =                 5,      // * write to the disk
+   READ_DATA =                  6,      // * read from the disk
+   RECALIBRATE =                7,      // * seek to cylinder 0
+   SENSE_INTERRUPT =            8,      // * ack IRQ6, get status of last command
+   WRITE_DELETED_DATA =         9,
+   READ_ID =                    10,	// generates IRQ6
+   READ_DELETED_DATA =          12,
+   FORMAT_TRACK =               13,     // *
+   SEEK =                       15,     // * seek both heads to cylinder X
+   VERSION =                    16,	// * used during initialization, once
+   SCAN_EQUAL =                 17,
+   PERPENDICULAR_MODE =         18,	// * used during initialization, once, maybe
+   CONFIGURE =                  19,     // * set controller parameters
+   LOCK =                       20,     // * protect controller params from a reset
+   VERIFY =                     22,
+   SCAN_LOW_OR_EQUAL =          25,
+   SCAN_HIGH_OR_EQUAL =         29
+};
 
 /*
 {  KB,SPT,SIDES,TRACKS,  }
@@ -383,6 +406,7 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 
 OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command when needed!
 {
+	byte pending_size; //Our currently pending size to use!
 	if ((!FLOPPY.DOR.REST) || FLOPPY.DSR.SWReset) //We're to reset by either one enabled?
 	{
 		if (!FLOPPY.floppy_resetted) //Not resetting yet?
@@ -403,8 +427,14 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
 			FLOPPY.ST0.data = 0xC0; //Reset ST0 to the correct value: drive became not ready!
 			FLOPPY.ST1.data = FLOPPY.ST2.data = 0; //Reset the ST data!
-			FLOPPY.reset_pending = (EMULATED_CPU<CPU_80286)?1:4; //We have a reset pending for all 4 drives(286+), or just 1 drive with older systems!
-			FLOPPY.reset_pending_size = (EMULATED_CPU<CPU_80286)?0:3; //We have a reset pending for all 4 drives(286+), or just 1 drive with older systems!
+			pending_size = 4; //Default: full size!
+			if (isTurboXTBIOS()) //Are we reset by the Turbo XT BIOS?
+			{
+				FLOPPY_LOGD("Pending 1 Sense Interrupt because of a bug in the Turbo XT BIOS!")
+				pending_size = 1; //Bug: 1 instead!
+			}
+			FLOPPY.reset_pending = pending_size; //We have a reset pending for all 4 drives(286+), or just 1 drive with older systems!
+			FLOPPY.reset_pending_size = pending_size?0:(pending_size-1); //We have a reset pending for all 4 drives(286+), or just 1 drive with older systems!
 			memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
 			memset(FLOPPY.currentcylinder, 0, sizeof(FLOPPY.currentcylinder)); //Clear the current heads!
 			memset(FLOPPY.currentsector, 0, sizeof(FLOPPY.currentsector)); //Clear the current heads!
@@ -438,7 +468,7 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 	case 0: //Command?
 		FLOPPY.sectorstransferred = 0; //There's nothing transferred yet!
 		FLOPPY.MSR.CommandBusy = 0; //Not busy: we're waiting for a command!
-		FLOPPY.MSR.RQM = FLOPPY.DOR.REST && (!FLOPPY.DSR.SWReset); //Ready for data transfer when not being reset according to the two registers!
+		FLOPPY.MSR.RQM = !FLOPPY.floppy_resetted; //Ready for data transfer when not being reset!
 		FLOPPY.MSR.HaveDataForCPU = 0; //We don't have data for the CPU!
 		break;
 	case 1: //Parameters?
@@ -451,11 +481,11 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		//Check DMA, RQM and Busy flag!
 		switch (FLOPPY.commandbuffer[0]) //What command are we processing?
 		{
-		case 0x5: //Write sector?
-		case 0x9: //Write deleted sector?
-		case 0xD: //Format sector?
-		case 0x6: //Read sector?
-		case 0xC: //Read deleted sector?
+		case WRITE_DATA: //Write sector?
+		case WRITE_DELETED_DATA: //Write deleted sector?
+		case FORMAT_TRACK: //Format sector?
+		case READ_DATA: //Read sector?
+		case READ_DELETED_DATA: //Read deleted sector?
 			FLOPPY.MSR.NonDMA = (!FLOPPY.DOR.Mode); //Not in DMA mode?
 			if (FLOPPY.MSR.NonDMA) //Not in DMA mode?
 			{
@@ -473,13 +503,13 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		//Check data direction!
 		switch (FLOPPY.commandbuffer[0]) //Process input/output to/from controller!
 		{
-		case 0x5: //Write sector?
-		case 0x9: //Write deleted sector?
-		case 0xD: //Format sector?
+		case WRITE_DATA: //Write sector?
+		case WRITE_DELETED_DATA: //Write deleted sector?
+		case FORMAT_TRACK: //Format sector?
 			FLOPPY.MSR.HaveDataForCPU = 0; //We request data from the CPU!
 			break;
-		case 0x6: //Read sector?
-		case 0xC: //Read deleted sector?
+		case READ_DATA: //Read sector?
+		case READ_DELETED_DATA: //Read deleted sector?
 			FLOPPY.MSR.HaveDataForCPU = 1; //We have data for the CPU!
 			break;
 		default: //Unknown direction?
@@ -868,10 +898,10 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully filled!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
-	switch (FLOPPY.commandbuffer[0] & 0xF) //What command!
+	switch (FLOPPY.commandbuffer[0]) //What command!
 	{
-		case 0x5: //Write sector
-		case 0x9: //Write deleted sector
+		case WRITE_DATA: //Write sector
+		case WRITE_DELETED_DATA: //Write deleted sector
 			//Write sector to disk!
 			updateFloppyWriteProtected(1); //Try to write with(out) protection!
 			if (FLOPPY.databufferposition == FLOPPY.databuffersize) //Fully buffered?
@@ -993,9 +1023,9 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY_raiseIRQ(); //Entering result phase!
 			}
 			break;
-		case 0x2: //Read complete track
-		case 0x6: //Read sector
-		case 0xC: //Read deleted sector
+		case READ_TRACK: //Read complete track
+		case READ_DATA: //Read sector
+		case READ_DELETED_DATA: //Read deleted sector
 			//We've finished reading the read data!
 			updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			if (FLOPPY.databufferposition == FLOPPY.databuffersize) //Fully processed?
@@ -1042,7 +1072,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY_raiseIRQ(); //Entering result phase!
 			}
 			break;
-		case 0xD: //Format sector
+		case FORMAT_TRACK: //Format sector
 			updateFloppyWriteProtected(1); //Try to write with(out) protection!
 			FLOPPY_formatsector(); //Execute a format sector command!
 			break;
@@ -1088,28 +1118,28 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 	if (FLOPPY.DOR.DriveNumber & 2) goto invaliddrive;
 	FLOPPY_LOGD("FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]) //Executing this command!
 	updateFloppyGeometries(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]); //Update the floppy geometries!
-	switch (FLOPPY.commandbuffer[0] & 0xF) //What command!
+	switch (FLOPPY.commandbuffer[0]) //What command!
 	{
-		case 0x5: //Write sector
+		case WRITE_DATA: //Write sector
 			FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[2]; //Current cylinder!
 			FLOPPY.currenthead[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[3]; //Current head!
 			FLOPPY.currentsector[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[4]; //Current sector!
 			floppy_writesector(); //Start writing a sector!
 			break;
-		case 0x6: //Read sector
+		case READ_DATA: //Read sector
 			FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[2]; //Current cylinder!
 			FLOPPY.currenthead[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[3]; //Current head!
 			FLOPPY.currentsector[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[4]; //Current sector!
 			floppy_readsector(); //Start reading a sector!
 			break;
-		case 0x3: //Fix drive data/specify command
+		case SPECIFY: //Fix drive data/specify command
 			FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].data[0] = FLOPPY.databuffer[0]; //Set setting byte 1/2!
 			FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].data[1] = FLOPPY.databuffer[1]; //Set setting byte 2/2!
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			FLOPPY.ST0.data = 0x00; //Correct command!
 			updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			break;
-		case 0x7: //Calibrate drive
+		case RECALIBRATE: //Calibrate drive
 			//Execute interrupt!
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = 0; //Goto cylinder #0!
@@ -1118,7 +1148,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			clearDiskChanged(); //Clear the disk changed flag for the new command!
 			FLOPPY_raiseIRQ(); //We're finished!
 			break;
-		case 0x8: //Check interrupt status
+		case SENSE_INTERRUPT: //Check interrupt status
 			//Set result
 			updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			FLOPPY.commandstep = 3; //Move to result phrase!
@@ -1153,7 +1183,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultposition = 0; //Start result!
 			FLOPPY.commandstep = 3; //Result phase!
 			break;
-		case 0xF: //Seek/park head
+		case SEEK: //Seek/park head
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			if (FLOPPY.DOR.DriveNumber >= 2) //Invalid drive?
@@ -1183,13 +1213,13 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.ST2.data |= 0x4; //Invalid seek!
 			FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0); //Reset command!
 			break;
-		case 0x4: //Check drive status
+		case SENSE_DRIVE_STATUS: //Check drive status
 			updateST3(); //Update ST3 only!
 			FLOPPY.resultbuffer[0] = FLOPPY.ST3.data; //Give ST3!
 			FLOPPY.resultposition = 0; //Start the result!
 			FLOPPY.commandstep = 3; //Result phase!
 			break;
-		case 0xA: //Read sector ID
+		case READ_ID: //Read sector ID
 			if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber)) //We don't support the rate?
 			{
 				goto floppy_errorReadID; //Error out!
@@ -1242,7 +1272,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber]; //Sector!
 			return; //Incorrect read!
 			break;
-		case 0xD: //Format sector
+		case FORMAT_TRACK: //Format sector
 			if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
@@ -1282,9 +1312,9 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				}
 			}
 			break;
-		case 0x2: //Read complete track!
-		case 0x9: //Write deleted sector
-		case 0xC: //Read deleted sector
+		case READ_TRACK: //Read complete track!
+		case WRITE_DELETED_DATA: //Write deleted sector
+		case READ_DELETED_DATA: //Read deleted sector
 			invaliddrive: //Invalid drive detected?
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0.data = 0x40; //Invalid command!
@@ -1301,7 +1331,7 @@ OPTINLINE void floppy_abnormalpolling()
 
 OPTINLINE void floppy_writeData(byte value)
 {
-	byte commandlength[0x10] = {
+	byte commandlength[0x20] = {
 		0, //0
 		0, //1
 		8, //2
@@ -1318,6 +1348,7 @@ OPTINLINE void floppy_writeData(byte value)
 		5, //D
 		0, //E
 		2 //F
+		,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 //10-1F: Unsupported
 		};
 	//TODO: handle floppy writes!
 	switch (FLOPPY.commandstep) //What step are we at?
@@ -1327,41 +1358,29 @@ OPTINLINE void floppy_writeData(byte value)
 			FLOPPY.commandstep = 1; //Start inserting parameters!
 			FLOPPY.commandposition = 1; //Start at position 1 with out parameters/data!
 			FLOPPY_LOGD("FLOPPY: Command byte sent: %02X", value) //Log our information about the command byte!
-			FLOPPY.MT = (FLOPPY.commandbuffer[0] & CMD_EXT_MULTITRACKOPERATION)?1:0; //Multiple track mode?
-			FLOPPY.DoubleDensity = (FLOPPY.commandbuffer[0] & CMD_EXT_DOUBLEDENSITYMODE)?1:0; //Multiple track mode?
-			FLOPPY.Skip = (FLOPPY.commandbuffer[0] & CMD_EXT_SKIPDELETEDADDRESSMARKS)?1:0; //Multiple track mode?
+			FLOPPY.MT = (value & CMD_EXT_MULTITRACKOPERATION)?1:0; //Multiple track mode?
+			FLOPPY.DoubleDensity = (value & CMD_EXT_DOUBLEDENSITYMODE)?1:0; //Multiple track mode?
+			FLOPPY.Skip = (value & CMD_EXT_SKIPDELETEDADDRESSMARKS)?1:0; //Multiple track mode?
+			value &= 0x1F; //Make sure that the high data is filtered out!
 			switch (value) //What command?
 			{
-				case 0x8: //Check interrupt status
+				case SENSE_INTERRUPT: //Check interrupt status
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					floppy_executeCommand(); //Execute the command!
 					break;
-				case 0x2: //Read complete track
-				case 0x22: //same
-				case 0x42: //same
-				case 0x62: //same
-				case 0x5: //Write sector
-				case 0x45: //same
-				case 0x85: //same
-				case 0xC5: //same
-				case 0x6: //Read sector
-				case 0x26: //same
-				case 0x46: //same
-				case 0x66: //same
-				case 0x86: //same
-				case 0xA6: //same
-				case 0xC6: //same
-				case 0xE6: //same
-				case 0x3: //Fix drive data
-				case 0x4: //Check drive status
-				case 0x7: //Calibrate drive
-				case 0xF: //Seek/park head
-				case 0xA: //Read sector ID
-				case 0xD: //Format sector
+				case READ_TRACK: //Read complete track
+				case WRITE_DATA: //Write sector
+				case READ_DATA: //Read sector
+				case SPECIFY: //Fix drive data
+				case SENSE_DRIVE_STATUS: //Check drive status
+				case RECALIBRATE: //Calibrate drive
+				case SEEK: //Seek/park head
+				case READ_ID: //Read sector ID
+				case FORMAT_TRACK: //Format sector
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					break;
-				case 0x9: //Write deleted sector
-				case 0xC: //Read deleted sector
+				case WRITE_DELETED_DATA: //Write deleted sector
+				case READ_DELETED_DATA: //Read deleted sector
 				default: //Invalid command
 					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
 					FLOPPY.ST0.data = 0x80; //Invalid command!
@@ -1370,20 +1389,20 @@ OPTINLINE void floppy_writeData(byte value)
 			}
 			break;
 		case 1: //Parameters
-			FLOPPY_LOGD("FLOPPY: Parameter sent: %02X(#%i/%i)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0] & 0xF]) //Log the parameter!
+			FLOPPY_LOGD("FLOPPY: Parameter sent: %02X(#%i/%i)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0]]) //Log the parameter!
 			FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
-			if (FLOPPY.commandposition > (commandlength[FLOPPY.commandbuffer[0] & 0xF])) //All parameters have been processed?
+			if (FLOPPY.commandposition > (commandlength[FLOPPY.commandbuffer[0]])) //All parameters have been processed?
 			{
 				floppy_executeCommand(); //Execute!
 				break;
 			}
 			break;
 		case 2: //Data
-			switch (FLOPPY.commandbuffer[0]&0xF) //What command?
+			switch (FLOPPY.commandbuffer[0]) //What command?
 			{
-				case 0x5: //Write sector
-				case 0x9: //Write deleted sector
-				case 0xD: //Format track
+				case WRITE_DATA: //Write sector
+				case WRITE_DELETED_DATA: //Write deleted sector
+				case FORMAT_TRACK: //Format track
 					FLOPPY.databuffer[FLOPPY.databufferposition++] = value; //Set the command to use!
 					if (FLOPPY.databufferposition==FLOPPY.databuffersize) //Finished?
 					{
@@ -1450,11 +1469,11 @@ OPTINLINE byte floppy_readData()
 			floppy_abnormalpolling(); //Abnormal polling!
 			break; //Nothing to read during parameter phrase!
 		case 2: //Data
-			switch (FLOPPY.commandbuffer[0]&0xF) //What command?
+			switch (FLOPPY.commandbuffer[0]) //What command?
 			{
-				case 0x2: //Read complete track
-				case 0x6: //Read sector
-				case 0xC: //Read deleted sector
+				case READ_TRACK: //Read complete track
+				case READ_DATA: //Read sector
+				case READ_DELETED_DATA: //Read deleted sector
 					temp = FLOPPY.databuffer[FLOPPY.databufferposition++]; //Read data!
 					if (FLOPPY.databufferposition==FLOPPY.databuffersize) //Finished?
 					{
@@ -1481,22 +1500,22 @@ OPTINLINE byte floppy_readData()
 			break;
 		case 3: //Result
 			temp = FLOPPY.resultbuffer[FLOPPY.resultposition++]; //Read a result byte!
-			switch (FLOPPY.commandbuffer[0]&0xF) //What command?
+			switch (FLOPPY.commandbuffer[0]) //What command?
 			{
-				case 0x2: //Read complete track
-				case 0x5: //Write sector
-				case 0x6: //Read sector
-				case 0x9: //Write deleted sector
-				case 0xC: //Read deleted sector
-				case 0xD: //Format sector
-				case 0x3: //Fix drive data
-				case 0x4: //Check drive status
-				case 0x7: //Calibrate drive
-				case 0x8: //Check interrupt status
-				case 0xA: //Read sector ID
-				case 0xF: //Seek/park head
-					FLOPPY_LOGD("FLOPPY: Reading result byte %i/%i",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0xF])
-					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]&0xF]) //Result finished?
+				case READ_TRACK: //Read complete track
+				case WRITE_DATA: //Write sector
+				case READ_DATA: //Read sector
+				case WRITE_DELETED_DATA: //Write deleted sector
+				case READ_DELETED_DATA: //Read deleted sector
+				case FORMAT_TRACK: //Format sector
+				case SPECIFY: //Fix drive data
+				case SENSE_DRIVE_STATUS: //Check drive status
+				case RECALIBRATE: //Calibrate drive
+				case SENSE_INTERRUPT: //Check interrupt status
+				case READ_ID: //Read sector ID
+				case SEEK: //Seek/park head
+					FLOPPY_LOGD("FLOPPY: Reading result byte %i/%i",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]])
+					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]]) //Result finished?
 					{
 						FLOPPY.commandstep = 0; //Reset step!
 					}
