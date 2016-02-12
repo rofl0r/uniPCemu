@@ -5,9 +5,9 @@
 
 typedef struct
 {
-	uint_64 KB;
-	byte SPT;
-	byte sides;
+	word KB;
+	word SPT;
+	word sides;
 	byte tracks;
 	byte boardjumpersetting; //The board jumper setting (0-3) for this drive!
 	byte measurement; //0=5", 1=3.5"

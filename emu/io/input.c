@@ -1706,43 +1706,52 @@ OPTINLINE void handleKeyPressRelease(int key)
 		break;
 	case 1: //Pressed?
 		//Shift status for buffering!
-		if (!strcmp(keys_names[key],"LCTRL"))
+		if (!strcmp(keys_names[key],"lctrl"))
 		{
 			currentshiftstatus_inputbuffer |= SHIFTSTATUS_CTRL;
 		}
-		else if (!strcmp(keys_names[key],"LALT"))
+		else if (!strcmp(keys_names[key],"lalt"))
 		{
 			currentshiftstatus_inputbuffer |= SHIFTSTATUS_ALT;
 		}
-		else if (!strcmp(keys_names[key],"LSHIFT"))
+		else if (!strcmp(keys_names[key],"lshift"))
 		{
 			currentshiftstatus_inputbuffer |= SHIFTSTATUS_SHIFT;
 		}
-		//Normal handling always!
-		onKeyPress(&keys_names[key][0]); //Tick the keypress!
+		else if (!input_buffer_input) //Not inputting anything though the buffer?
+		{
+			//Normal handling always!
+			onKeyPress(&keys_names[key][0]); //Tick the keypress!
+		}
 		break;
 	case 2: //Releasing?
 		//Shift status for buffering!
-		if (!strcmp(keys_names[key],"LCTRL"))
+		if (!strcmp(keys_names[key],"lctrl"))
 		{
 			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_CTRL; //Release CTRL!
 		}
-		else if (!strcmp(keys_names[key],"LALT"))
+		else if (!strcmp(keys_names[key],"lalt"))
 		{
 			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_ALT; //Release ALT!
 		}
-		else if (!strcmp(keys_names[key],"LSHIFT"))
+		else if (!strcmp(keys_names[key],"lshift"))
 		{
 			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_SHIFT; //Release SHIFT!
 		}
 		else if (input_buffer_input) //Buffering and input non-shiftstatus?
 		{
-			input_buffer_shift = currentshiftstatus_inputbuffer; //Set shift status to the current state!
-			input_buffer = key; //Last key pressed!
+			if (strcmp(keys_names[key],"rctrl")!=0 && strcmp(keys_names[key],"ralt")!=0 && strcmp(keys_names[key],"rshift")!=0) //Ignore Ctrl, Alt and Shift!
+			{
+				input_buffer_shift = currentshiftstatus_inputbuffer; //Set shift status to the current state!
+				input_buffer = key; //Last key pressed!
+			}
 		}
 
 		//Normal handling always!
-		onKeyRelease(&keys_names[key][0]); //Handle key release!
+		if (!input_buffer_input) //Not buffering input?
+		{
+			onKeyRelease(&keys_names[key][0]); //Handle key release!
+		}
 		emu_keys_state[key] = 0; //We're released!
 		break;
 	default: //Unknown?
