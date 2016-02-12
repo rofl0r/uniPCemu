@@ -1718,7 +1718,7 @@ OPTINLINE void handleKeyPressRelease(int key)
 		{
 			currentshiftstatus_inputbuffer |= SHIFTSTATUS_SHIFT;
 		}
-		else if (!input_buffer_input) //Not inputting anything though the buffer?
+		if (!input_buffer_input) //Not inputting anything though the buffer?
 		{
 			//Normal handling always!
 			onKeyPress(&keys_names[key][0]); //Tick the keypress!
