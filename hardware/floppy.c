@@ -53,7 +53,7 @@ struct
 		{
 			byte DriveNumber : 2; //What drive to address?
 			byte REST : 1; //Enable controller when set!
-			byte Mode : 1; //0=IRQ channel, 1=DMA mode
+			byte DMA : 1; //0=IRQ channel, 1=DMA mode
 			byte MotorControl : 4; //All drive motor statuses!
 		};
 		byte data; //DOR data!
@@ -266,20 +266,20 @@ enum FloppyCommands
 
 FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES] = { //Differently formatted disks, and their corresponding geometries
 	//First, 5"
-	{ 160,  8,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFE,512 , 1, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14   }, //160K 5.25" supports 250kbits, 300kbits SD!
-	{ 180,  9,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFC,512 , 2, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14   }, //180K 5.25" supports 250kbits, 300kbits SD!
-	{ 200, 10,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFC,512 , 2, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14   }, //200K 5.25" supports 250kbits, 300kbits SD!
-	{ 320,  8,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFF,512 , 1, 112,DENSITY_SINGLE           ,GAPLENGTH_5_14   }, //320K 5.25" supports 250kbits, 300kbits SD!
-	{ 360,  9,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024, 2, 112,DENSITY_DOUBLE           ,GAPLENGTH_5_14   }, //360K 5.25" supports 250kbits, 300kbits DD!
-	{ 400, 10,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024, 2, 112,DENSITY_SINGLE           ,GAPLENGTH_5_14   }, //400K 5.25" supports 250kbits, 300kbits SD!
-	{1200, 15,  2, 80, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF9,512 , 7, 224,DENSITY_SINGLE           ,GAPLENGTH_5_14   }, //1200K 5.25" supports 300kbits, 500kbits SD!
+	{ 160,  8,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFE,512 , 1, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14,0x00   }, //160K 5.25" supports 250kbits, 300kbits SD!
+	{ 180,  9,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFC,512 , 2, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14,0x00   }, //180K 5.25" supports 250kbits, 300kbits SD!
+	{ 200, 10,  1, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFC,512 , 2, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14,0x00   }, //200K 5.25" supports 250kbits, 300kbits SD!
+	{ 320,  8,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFF,512 , 1, 112,DENSITY_SINGLE           ,GAPLENGTH_5_14,0x00   }, //320K 5.25" supports 250kbits, 300kbits SD!
+	{ 360,  9,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024, 2, 112,DENSITY_DOUBLE           ,GAPLENGTH_5_14,0x00   }, //360K 5.25" supports 250kbits, 300kbits DD!
+	{ 400, 10,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024, 2, 112,DENSITY_SINGLE           ,GAPLENGTH_5_14,0x00   }, //400K 5.25" supports 250kbits, 300kbits SD!
+	{1200, 15,  2, 80, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF9,512 , 7, 224,DENSITY_SINGLE           ,GAPLENGTH_5_14,0x00   }, //1200K 5.25" supports 300kbits, 500kbits SD!
 	//Now 3.5"
-	{ 720,  9,  2, 80, 1, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xF9,1024, 3, 112,DENSITY_DOUBLE           ,GAPLENGTH_IGNORE }, //720K 3.5" supports 250kbits, 300kbits DD! Disable gap length checking here because we need to work without it on a XT!
-	{1440, 18,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_IGNORE }, //1.44M 3.5" supports 250kbits, 500kbits HD! Disable gap length checking here because we need to work without it on a XT!
-	{1680, 21,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5    }, //1.68M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
-	{1722, 21,  2, 82, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5    }, //1.722M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
-	{1840, 23,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5    }, //1.84M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
-	{2880, 36,  2, 80, 2, 1, TRANSFERRATE_1M|(TRANSFERRATE_1M<<2)|(TRANSFERRATE_1M<<4)|(TRANSFERRATE_1M<<6),        0xF0,1024, 9, 240,DENSITY_IGNORE|DENSITY_ED,GAPLENGTH_IGNORE } //2.88M 3.5" supports 1Mbits ED!
+	{ 720,  9,  2, 80, 1, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xF9,1024, 3, 112,DENSITY_DOUBLE           ,GAPLENGTH_IGNORE,0xC0 }, //720K 3.5" supports 250kbits, 300kbits DD! Disable gap length checking here because we need to work without it on a XT!
+	{1440, 18,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_IGNORE,0x80 }, //1.44M 3.5" supports 250kbits, 500kbits HD! Disable gap length checking here because we need to work without it on a XT!
+	{1680, 21,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,0x80    }, //1.68M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
+	{1722, 21,  2, 82, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,0x80    }, //1.722M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
+	{1840, 23,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,0x80    }, //1.84M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
+	{2880, 36,  2, 80, 2, 1, TRANSFERRATE_1M|(TRANSFERRATE_1M<<2)|(TRANSFERRATE_1M<<4)|(TRANSFERRATE_1M<<6),        0xF0,1024, 9, 240,DENSITY_IGNORE|DENSITY_ED,GAPLENGTH_IGNORE,0x40 } //2.88M 3.5" supports 1Mbits ED!
 };
 
 //BPS=512 always(except differently programmed)!
@@ -388,6 +388,11 @@ OPTINLINE void FLOPPY_lowerIRQ()
 	removeirq(FLOPPY_IRQ); //Lower the IRQ!
 }
 
+OPTINLINE byte FLOPPY_useDMA()
+{
+	return FLOPPY.DOR.DMA; //Are we using DMA?
+}
+
 OPTINLINE byte FLOPPY_supportsrate(byte disk)
 {
 	return 1; //Support all rates officially!
@@ -421,7 +426,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			}
 			FLOPPY.DOR.MotorControl = 0; //Reset motors!
 			FLOPPY.DOR.DriveNumber = 0; //Reset drives!
-			FLOPPY.DOR.Mode = 0; //IRQ channel!
+			FLOPPY.DOR.DMA = 0; //IRQ channel!
 			FLOPPY.MSR.data = 0; //Default to no data!
 			FLOPPY.commandposition = 0; //No command!
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
@@ -486,17 +491,10 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		case FORMAT_TRACK: //Format sector?
 		case READ_DATA: //Read sector?
 		case READ_DELETED_DATA: //Read deleted sector?
-			FLOPPY.MSR.NonDMA = (!FLOPPY.DOR.Mode); //Not in DMA mode?
-			if (FLOPPY.MSR.NonDMA) //Not in DMA mode?
-			{
-				FLOPPY.MSR.RQM = 1; //Data transfer!
-			}
-			else //DMA mode transfer?
-			{
-				FLOPPY.MSR.RQM = 0; //No transfer!
-			}
+			FLOPPY.MSR.RQM = FLOPPY.MSR.NonDMA = !FLOPPY_useDMA(); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
 			break;
 		default: //Unknown command?
+			FLOPPY.MSR.RQM = FLOPPY.MSR.NonDMA = 1; //Use no DMA by default, for safety!
 			break; //Don't process!
 		}
 
@@ -539,7 +537,23 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 
 OPTINLINE void updateFloppyDIR() //Update the floppy DIR!
 {
-	FLOPPY.DIR.data = (FLOPPY.diskchanged[0] | FLOPPY.diskchanged[1] | FLOPPY.diskchanged[2] | FLOPPY.diskchanged[3])<<7; //Disk changed for any disk?
+	FLOPPY.DIR.data = 0; //Init to not changed!
+	if (FLOPPY.diskchanged[0] && (FLOPPY.DOR.MotorControl&1))
+	{
+		FLOPPY.DIR.data = 0x80; //Set our bit!
+	}
+	if (FLOPPY.diskchanged[1] && (FLOPPY.DOR.MotorControl&2))
+	{
+		FLOPPY.DIR.data = 0x80; //Set our bit!
+	}
+	if (FLOPPY.diskchanged[2] && (FLOPPY.DOR.MotorControl&4))
+	{
+		FLOPPY.DIR.data = 0x80; //Set our bit!
+	}
+	if (FLOPPY.diskchanged[3] && (FLOPPY.DOR.MotorControl&8))
+	{
+		FLOPPY.DIR.data = 0x80; //Set our bit!
+	}
 	//Rest of the bits are reserved on an AT!
 }
 
@@ -573,7 +587,7 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 	{
 		if (++FLOPPY.currentsector[floppy] > FLOPPY.geometries[floppy]->SPT) //Overflow next sector by parameter?
 		{
-			if (!FLOPPY.DOR.Mode) //Non-DMA mode?
+			if (!FLOPPY_useDMA()) //Non-DMA mode?
 			{
 				if ((FLOPPY.MT && FLOPPY.currenthead[floppy]) || !FLOPPY.MT) //Multi-track and side 1, or not Multi-track?
 				{
@@ -594,7 +608,7 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 
 	FLOPPY.ST0.CurrentHead = FLOPPY.currenthead[floppy]; //Our idea of the current head!
 
-	if (FLOPPY.DOR.Mode) //DMA mode determines our triggering?
+	if (FLOPPY_useDMA()) //DMA mode determines our triggering?
 	{
 		if (result) //OK to transfer more?
 		{
@@ -626,10 +640,10 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 	FLOPPY.databufferposition = 0; //Start with the new buffer!
 	if (FLOPPY.commandstep != 2) //Entering data phase?
 	{
-		FLOPPY_LOGD("FLOPPY: Start transfer of data...")
+		FLOPPY_LOGD("FLOPPY: Start transfer of data (DMA: %i)...",FLOPPY_useDMA())
 	}
 	FLOPPY.commandstep = 2; //Move to data phrase!
-	if (FLOPPY.DOR.Mode) //DMA mode?
+	if (FLOPPY_useDMA()) //DMA mode?
 	{
 		FLOPPY.DMAPending = 1; //Pending DMA!
 	}
@@ -1133,8 +1147,8 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppy_readsector(); //Start reading a sector!
 			break;
 		case SPECIFY: //Fix drive data/specify command
-			FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].data[0] = FLOPPY.databuffer[0]; //Set setting byte 1/2!
-			FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].data[1] = FLOPPY.databuffer[1]; //Set setting byte 2/2!
+			FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].data[0] = FLOPPY.commandbuffer[1]; //Set setting byte 1/2!
+			FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].data[1] = FLOPPY.commandbuffer[2]; //Set setting byte 2/2!
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			FLOPPY.ST0.data = 0x00; //Correct command!
 			updateFloppyWriteProtected(0); //Try to read with(out) protection!
@@ -1408,17 +1422,11 @@ OPTINLINE void floppy_writeData(byte value)
 					{
 						floppy_executeData(); //Execute the command with the given data!
 					}
-					else if (FLOPPY.DOR.Mode) //DMA mode and not completed?
+					else //Not completed?
 					{
 						FLOPPY_dataReady(); //We have data ready to transfer!
-						if (FLOPPY.TC) //Terminal count? We're ending too soon!
-						{
+						if (FLOPPY_useDMA() && FLOPPY.TC) //DMA mode, Terminal count and not completed? We're ending too soon!
 							floppy_executeData(); //Execute the command with the given data!
-						}
-					}
-					else //Non-DMA mode and not completed?
-					{
-						FLOPPY_dataReady(); //We have data ready to transfer!
 					}
 					break;
 				default: //Invalid command
@@ -1479,17 +1487,11 @@ OPTINLINE byte floppy_readData()
 					{
 						floppy_executeData(); //Execute the data finished phrase!
 					}
-					else if (FLOPPY.DOR.Mode) //DMA mode and not completed?
+					else //Not completed?
 					{
 						FLOPPY_dataReady(); //We have data ready to transfer!
-						if (FLOPPY.TC) //Terminal count? We're ending too soon!
-						{
+						if (FLOPPY_useDMA() && FLOPPY.TC) //DMA mode, Terminal count and not completed? We're ending too soon!
 							floppy_executeData(); //Execute the command with the given data!
-						}
-					}
-					else //Non-DMA mode and not completed?
-					{
-						FLOPPY_dataReady(); //We have data ready to transfer!
 					}
 					return temp; //Give the result!
 					break;
@@ -1562,6 +1564,20 @@ byte PORT_IN_floppy(word port, byte *result)
 		temp <<= 2;
 		temp = getfloppydisktype(0); //Floppy #0!
 		FLOPPY_LOGD("FLOPPY: Read port Diskette EHD controller board jumper settings=%02X",temp);
+		*result = temp; //Give the result!
+		return 1; //Used!
+		break;
+	case 2: //DOR?
+		*result = FLOPPY.DOR.data; //Give the DOR!
+		return 1; //Used!
+		break;
+	case 3: //Tape Drive register (82077AA)?
+		temp = 0x20; //No drive present here by default!
+		if (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //Nothing there?
+		{
+			temp = FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->TapeDriveRegister; //What format are we?
+		}
+		FLOPPY_LOGD("FLOPPY: Read port Tape Drive Register=%02X",temp);
 		*result = temp; //Give the result!
 		return 1; //Used!
 		break;
@@ -1651,7 +1667,7 @@ byte DMA_floppyread()
 
 void FLOPPY_DMADREQ() //For checking any new DREQ signals!
 {
-	DMA_SetDREQ(FLOPPY_DMA, (FLOPPY.commandstep == 2) && FLOPPY.DOR.Mode); //Set DREQ from hardware when in the data phase and using DMA transfers and not busy yet(pending)!
+	DMA_SetDREQ(FLOPPY_DMA, (FLOPPY.commandstep == 2) && FLOPPY_useDMA()); //Set DREQ from hardware when in the data phase and using DMA transfers and not busy yet(pending)!
 }
 
 void FLOPPY_DMADACK() //For processing DACK signal!

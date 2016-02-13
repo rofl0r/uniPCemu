@@ -34,6 +34,9 @@
 
 //#define __USE_EQUALIZER
 
+//What frequency to filter our sound for (higher than 0Hz!)
+#define SOUND_HIGHPASS 18.2
+
 typedef struct
 {
 	void *samples; //All samples!
@@ -718,16 +721,40 @@ OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int_32 *re
 	C_SAMPLEPOS(currentchannel) = currentpos; //Store the current position for next usage!
 }
 
+OPTINLINE static float calcSoundHighpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
+{
+	float RC = 1.0 / (cutoff_freq * 2 * 3.14);
+	float dt = 1.0 / samplerate;
+	float alpha = RC / (RC + dt);
+	return alpha * (previousresult + currentsample - previoussample);
+}
+
+OPTINLINE static void applySoundHighpassFilter(sword *currentsample, sword *sound_last_result, sword *sound_last_sample)
+{
+	*sound_last_result = (sword)calcSoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, (float)*currentsample, *sound_last_sample, *sound_last_result); //20kHz low pass filter!
+	*sound_last_sample = *currentsample; //The last sample that was processed!
+	*currentsample = *sound_last_result; //Give the new result!
+}
+
+OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
+{
+	//Our information for filtering!
+	static sword sound_last_result_l = 0, sound_last_sample_l = 0, sound_last_result_r = 0, sound_last_sample_r = 0;
+	applySoundHighpassFilter(leftsample,&sound_last_result_l,&sound_last_sample_l);
+	applySoundHighpassFilter(rightsample,&sound_last_result_r,&sound_last_sample_r);
+}
+
 int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!
 
 WAVEFILE *recording = NULL; //We are recording when set.
 
-OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio channels to buffer!
+OPTINLINE static void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio channels to buffer!
 {
 	//Variables first
 	//Current data numbers
 	uint_32 currentsample, channelsleft; //The ammount of channels to mix!
 	register int_32 result_l, result_r; //Sample buffer!
+	sword temp_l, temp_r; //Filtered values!
 	//Active data
 	playing_p activechannel; //Current channel!
 	int_32 *firstactivesample;
@@ -819,8 +846,17 @@ OPTINLINE void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio chan
 		if (result_r>SHRT_MAX) result_r = SHRT_MAX;
 		if (result_r<SHRT_MIN) result_r = SHRT_MIN;
 
+		//Apply our filters!
+		temp_l = result_l;
+		temp_r = result_r; //Load the temp values!
+		applySoundFilters(&temp_l,&temp_r); //Apply our sound filters!
+		result_l = temp_l; //Write back!
+		result_r = temp_r; //Write back!
+
+		//Apply recording of sound!
 		if (recording) writeWAVStereoSample(recording,result_l,result_r); //Write the recording to the file if needed!
 
+		//Give the output!
 		buffer->l = (sample_t)result_l; //Left channel!
 		buffer->r = (sample_t)result_r; //Right channel!
 		if (!--currentsample) return; //Finished!

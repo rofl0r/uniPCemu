@@ -20,6 +20,7 @@ typedef struct
 	//More stuff for accurate emulation of errors:
 	byte DoubleDensity; //Are we a double density drive?
 	byte GAPLength; //The default GAP length used by this format!
+	byte TapeDriveRegister; //Our Tape Drive Register value for this disk!
 } FLOPPY_GEOMETRY; //All floppy geometries!
 
 #define NUMFLOPPYGEOMETRIES 13
