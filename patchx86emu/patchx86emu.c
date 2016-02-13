@@ -1,6 +1,5 @@
 #include <stdio.h> //I/O support!
 #include <windows.h>
-#include <commctrl.h>
 
 // Our application entry point.
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
