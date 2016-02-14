@@ -386,13 +386,12 @@ OPTINLINE void FLOPPY_raiseIRQ() //Execute an IRQ!
 
 OPTINLINE void FLOPPY_lowerIRQ()
 {
-	FLOPPY.IRQPending = 0;
-	removeirq(FLOPPY_IRQ); //Lower the IRQ!
+	FLOPPY.IRQPending = 0; //We're not pending anymore!
 }
 
 OPTINLINE byte FLOPPY_useDMA()
 {
-	return FLOPPY.DOR.DMA; //Are we using DMA?
+	return (FLOPPY.DOR.DMA && (!FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].NDM)); //Are we using DMA?
 }
 
 OPTINLINE byte FLOPPY_supportsrate(byte disk)
@@ -1043,7 +1042,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 		case READ_DATA: //Read sector
 		case READ_DELETED_DATA: //Read deleted sector
 			//We've finished reading the read data!
-			updateFloppyWriteProtected(0); //Try to read with(out) protection!
+			//updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			if (FLOPPY.databufferposition == FLOPPY.databuffersize) //Fully processed?
 			{
 				switch (floppy_increasesector(FLOPPY.DOR.DriveNumber)) //Goto next sector!
@@ -1340,6 +1339,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 
 OPTINLINE void floppy_abnormalpolling()
 {
+	FLOPPY_LOGD("FLOPPY: Abnormal termination because of abnormal polling!")
 	FLOPPY.ST0.InterruptCode = 3; //Abnormal termination by polling!
 	FLOPPY.ST0.NotReady = 1; //We became not ready!
 	FLOPPY.commandstep = 0xFF; //Error!
@@ -1428,7 +1428,10 @@ OPTINLINE void floppy_writeData(byte value)
 					{
 						FLOPPY_dataReady(); //We have data ready to transfer!
 						if (FLOPPY_useDMA() && FLOPPY.TC) //DMA mode, Terminal count and not completed? We're ending too soon!
+						{
+							FLOPPY_LOGD("FLOPPY: Terminal count reached in the middle of a data transfer! Position: %i/%i bytes",FLOPPY.databufferposition,FLOPPY.databuffersize)
 							floppy_executeData(); //Execute the command with the given data!
+						}
 					}
 					break;
 				default: //Invalid command
@@ -1493,7 +1496,10 @@ OPTINLINE byte floppy_readData()
 					{
 						FLOPPY_dataReady(); //We have data ready to transfer!
 						if (FLOPPY_useDMA() && FLOPPY.TC) //DMA mode, Terminal count and not completed? We're ending too soon!
+						{
+							FLOPPY_LOGD("FLOPPY: Terminal count reached in the middle of a data transfer! Position: %i/%i bytes",FLOPPY.databufferposition,FLOPPY.databuffersize)
 							floppy_executeData(); //Execute the command with the given data!
+						}
 					}
 					return temp; //Give the result!
 					break;
@@ -1518,7 +1524,7 @@ OPTINLINE byte floppy_readData()
 				case SENSE_INTERRUPT: //Check interrupt status
 				case READ_ID: //Read sector ID
 				case SEEK: //Seek/park head
-					FLOPPY_LOGD("FLOPPY: Reading result byte %i/%i",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]])
+					FLOPPY_LOGD("FLOPPY: Reading result byte %i/%i=%02X",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]],temp)
 					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]]) //Result finished?
 					{
 						FLOPPY.commandstep = 0; //Reset step!
