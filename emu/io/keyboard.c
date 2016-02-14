@@ -161,8 +161,11 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 	}
 }
 
+extern byte EMU_RUNNING; //Are we running?
+
 void tickPendingKeys(double timepassed) //Handle all pending keys from our emulation! Updating every 1/1000th second!
 {
+	if (EMU_RUNNING!=1) return; //Only process pending keys when running! 
 	keyboard_time += timepassed; //Add the ammount of nanoseconds passed!
 
 	//Release keys as fast as possible!

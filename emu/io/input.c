@@ -1759,9 +1759,9 @@ OPTINLINE void handleKeyPressRelease(int key)
 void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're an interrupt!
 {
 	lock(LOCK_INPUT);
-	if (!Direct_Input) //Not executing direct input?
+	if (input_enabled && ALLOW_INPUT) //Input enabled?
 	{
-		if (input_enabled && ALLOW_INPUT) //Input enabled?
+		if (!Direct_Input) //Not executing direct input?
 		{
 			get_analog_state(&curstat); //Get the analog&buttons status for the keyboard!
 			//Determine stuff for output!
@@ -1783,17 +1783,17 @@ void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're a
 					break;
 				default: //Unknown state?
 					curstat.mode = 0; //Reset mode!
-					break;
+				break;
 				}
 			}
-		}
-	} //Input enabled?
-	else //Direct input?
-	{
-		int key;
-		for (key = 0;key < (int)NUMITEMS(emu_keys_state);)
+		} //Input enabled?
+		else //Direct input?
 		{
-			handleKeyPressRelease(key++); //Handle key press or release!
+			int key;
+			for (key = 0;key < (int)NUMITEMS(emu_keys_state);)
+			{
+				handleKeyPressRelease(key++); //Handle key press or release!
+			}
 		}
 	}
 	tickPendingKeys(timepassed); //Handle any pending keys if possible!
@@ -1882,7 +1882,7 @@ void keyboard_loadDefaults() //Load the defaults for the keyboard font etc.!
 	for (i = 0; i<(int)NUMITEMS(BIOS_Settings.input_settings.keyboard_gamemodemappings); i++) //Process all keymappings!
 	{
 		BIOS_Settings.input_settings.keyboard_gamemodemappings[i] = -1; //Disable by default!
-		BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[i] = -1; //Disable by default!
+		BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[i] = 0; //Disable by default!
 	}
 }
 
