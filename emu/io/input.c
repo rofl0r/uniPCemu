@@ -98,7 +98,7 @@ int emu_keys_SDL[104] = {
 	SDLK_8, //8
 	SDLK_9, //9
 
-		 //Column 2! (above '9' included)
+	//Column 2! (above '9' included)
 	SDLK_BACKQUOTE, //`
 	SDLK_MINUS, //-
 	SDLK_EQUALS, //=
@@ -113,7 +113,7 @@ int emu_keys_SDL[104] = {
 	SDLK_LCTRL, //L CTRL
 	SDLK_LSUPER, //L WIN
 	SDLK_LALT, //L ALT
-	SDLK_LSHIFT, //R SHFT
+	SDLK_RSHIFT, //R SHFT
 	SDLK_RCTRL, //R CTRL
 	SDLK_RSUPER, //R WIN
 	SDLK_RALT, //R ALT
@@ -199,9 +199,18 @@ int emu_keys_sdl_rev[UINT16_MAX+1]; //Reverse of emu_keys_sdl!
 extern GPU_type GPU; //The real GPU, for rendering the keyboard!
 
 byte input_enabled = 0; //To show the input dialog?
-byte input_buffer_input = 0; //To buffer, instead of straight into emulation (giving the below value the key index)?
-int input_buffer_shift = -1; //Ctrl-Shift-Alt Status for the pressed key!
-int input_buffer = -1; //To contain the pressed key!
+byte input_buffer_enabled = 0; //To buffer, instead of straight into emulation (giving the below value the key index)?
+byte input_buffer_shift = 0; //Ctrl-Shift-Alt Status for the pressed key!
+sword input_buffer = -1; //To contain the pressed key!
+
+byte oldshiftstatus = 0; //Old shift status, used for keyboard/gaming mode!
+byte shiftstatus = 0; //New shift status!
+byte currentshiftstatus_inputbuffer = 0; //Current input buffer shift status latch!
+sword last_input_key = -1; //The last key to have been released (or pressed if unavailable)!
+
+sword lastkey = 0, lastx = 0, lasty = 0, lastset = 0;
+byte lastshift = 0; //Previous key that was pressed!
+
 
 PSP_INPUTSTATE curstat; //Current status!
 
@@ -286,52 +295,55 @@ void get_analog_state(PSP_INPUTSTATE *state) //Get the current state for mouse/a
 	int y; //Analog y!
 	x = input.Lx; //Convert to signed!
 	y = input.Ly; //Convert to signed!
+
+	sword minrange;
+	minrange = ((sword)BIOS_Settings.input_settings.analog_minrange<<8); //Minimum horizontal&vertical range!
 	
 	//Now, apply analog_minrange!
 	
 	if (x>0) //High?
 	{
-		if (x<BIOS_Settings.input_settings.analog_minrange) //Not enough?
+		if (x<minrange) //Not enough?
 		{
 			x = 0; //Nothing!
 		}
 		else //Patch?
 		{
-			x -= BIOS_Settings.input_settings.analog_minrange; //Patch!
+			x -= minrange; //Patch!
 		}
 	}
 	else if (x<0) //Low?
 	{
-		if (x>(0-BIOS_Settings.input_settings.analog_minrange)) //Not enough?
+		if (x>(0-minrange)) //Not enough?
 		{
 			x = 0; //Nothing!
 		}
 		else //Patch?
 		{
-			x += BIOS_Settings.input_settings.analog_minrange; //Patch!
+			x += minrange; //Patch!
 		}
 	}
 
 	if (y>0) //High?
 	{
-		if (y<BIOS_Settings.input_settings.analog_minrange) //Not enough?
+		if (y<minrange) //Not enough?
 		{
 			y = 0; //Nothing!
 		}
 		else //Patch?
 		{
-			y -= BIOS_Settings.input_settings.analog_minrange; //Patch!
+			y -= minrange; //Patch!
 		}
 	}
 	else if (y<0) //Low?
 	{
-		if (y>(0-BIOS_Settings.input_settings.analog_minrange)) //Not enough?
+		if (y>(0-minrange)) //Not enough?
 		{
 			y = 0; //Nothing!
 		}
 		else //Patch?
 		{
-			y += BIOS_Settings.input_settings.analog_minrange; //Patch!
+			y += minrange; //Patch!
 		}
 	}
 	if (state->gamingmode) //Gaming mode?
@@ -589,7 +601,6 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 				mousepacket->buttons = Mouse_buttons; //Take the mouse buttons pressed directly!
 				unlock(LOCK_INPUT);
 
-
 				if (!PS2mouse_packet_handler(mousepacket)) //Add the mouse packet! Not supported PS/2 mouse?
 				{
 					SERmouse_packet_handler(mousepacket); //Send the mouse packet to the serial mouse!
@@ -765,9 +776,9 @@ pspkey = 1=square,2=circle,3=triangle,4=cross
 
 int currentset = 0; //Active set?
 int currentkey = 0; //Current key. 0=none, next 1=triangle, square, cross, circle?
-int currentshift = 0; //No shift (1=shift)
-int currentctrl = 0; //No ctrl (1=Ctrl)
-int currentalt = 0; //No alt (1=Alt)
+byte currentshift = 0; //No shift (1=shift)
+byte currentctrl = 0; //No ctrl (1=Ctrl)
+byte currentalt = 0; //No alt (1=Alt)
 int setx = 0; //X within set -1 to 1!
 int sety = 0; //Y within set -1 to 1!
 
@@ -833,7 +844,7 @@ memset(keyboard_special,0,sizeof(keyboard_special)); //Default attributes to fon
 	{
 		if (precisemousemovement)
 		{
-			keyboard_display[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 'S';
+			keyboard_display[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 'P';
 			keyboard_attribute[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 3; //Special shift color active!
 		}
 		else
@@ -1041,7 +1052,7 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 	lock(LOCK_INPUT);
 	//while (1)
 	{
-		if (input_enabled && !Direct_Input) //Input enabled?
+		if (input_enabled && (!Direct_Input)) //Input enabled?
 		{
 			if (curstat.gamingmode) //Gaming mode?
 			{
@@ -1095,10 +1106,6 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 	unlock(LOCK_INPUT);
 }
 
-byte oldshiftstatus = 0; //Old shift status, used for keyboard/gaming mode!
-byte shiftstatus = 0; //New shift status!
-
-
 extern char keys_names[104][11]; //All names of the used keys (for textual representation/labeling)
 
 double keyboard_mousetiming = 0.0f; //Current timing!
@@ -1134,41 +1141,20 @@ void handleKeyboardMouse(double timepassed) //Handles keyboard input during mous
 	currentctrl = (shiftstatus&SHIFTSTATUS_CTRL)>0; //Ctrl pressed?
 	currentalt = (shiftstatus&SHIFTSTATUS_ALT)>0; //Alt pressed?
 
-	if (!input_buffer_input) //Not buffering?
+	if (!input_buffer_enabled) //Not buffering?
 	{
 		//First, process Ctrl,Alt,Shift Releases!
 		if (((oldshiftstatus&SHIFTSTATUS_CTRL)>0) && (!(shiftstatus&SHIFTSTATUS_CTRL))) //Released CTRL?
 		{
-			if (input_buffer_input)
-			{
-				input_buffer_shift = oldshiftstatus; //Set shift status!
-			}
-			else
-			{
-				onKeyRelease("lctrl");
-			}
+			onKeyRelease("lctrl");
 		}
 		if (((oldshiftstatus&SHIFTSTATUS_ALT)>0) && (!(shiftstatus&SHIFTSTATUS_ALT))) //Released ALT?
 		{
-			if (input_buffer_input)
-			{
-				input_buffer_shift = oldshiftstatus; //Set shift status!
-			}
-			else
-			{
-				onKeyRelease("lalt");
-			}
+			onKeyRelease("lalt");
 		}
 		if (((oldshiftstatus&SHIFTSTATUS_SHIFT)>0) && (!(shiftstatus&SHIFTSTATUS_SHIFT))) //Released SHIFT?
 		{
-			if (input_buffer_input)
-			{
-				input_buffer_shift = oldshiftstatus; //Set shift status!
-			}
-			else
-			{
-				onKeyRelease("lshift");
-			}
+			onKeyRelease("lshift");
 		}
 		//Next, process Ctrl,Alt,Shift presses!
 		if ((shiftstatus&SHIFTSTATUS_CTRL)>0) //Pressed CTRL?
@@ -1190,7 +1176,6 @@ void handleKeyboardMouse(double timepassed) //Handles keyboard input during mous
 void handleKeyboard() //Handles keyboard input!
 {
 	keysactive = 0; //Reset keys active!
-	static int lastkey = 0, lastx = 0, lasty = 0, lastset = 0, lastshift = 0; //Previous key that was pressed!
 	setx = curstat.analogdirection_keyboard_x; //X in keyboard set!
 	sety = curstat.analogdirection_keyboard_y; //Y in keyboard set!
 
@@ -1228,7 +1213,7 @@ void handleKeyboard() //Handles keyboard input!
 	currentctrl = (shiftstatus&SHIFTSTATUS_CTRL) > 0; //Ctrl pressed?
 	currentalt = (shiftstatus&SHIFTSTATUS_ALT) > 0; //Alt pressed?
 
-	if (!input_buffer_input) //Not buffering?
+	if (!input_buffer_enabled) //Not buffering?
 	{
 		//First, process Ctrl,Alt,Shift Releases!
 		if (((oldshiftstatus&SHIFTSTATUS_CTRL) > 0) && (!currentctrl)) //Released CTRL?
@@ -1324,15 +1309,18 @@ void handleKeyboard() //Handles keyboard input!
 		}
 		else //Key/shift released?
 		{
-			int key;
+			sword key;
 		keyreleased:
 			if (!lastkey && !lastshift) //Nothing yet?
 			{
 				return; //Abort: we're nothing pressed!
 			}
 			key = EMU_keyboard_handler_nametoid(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Our key?
-			input_buffer_shift = lastshift; //Set shift status!
-			input_buffer = key; //Last key!
+			if (input_buffer_enabled && (input_buffer==-1) && (!input_buffer_shift)) //Buffering?
+			{
+				input_buffer_shift = lastshift; //Set shift status!
+				input_buffer = key; //Last key!
+			}
 			//Update current information!
 			lastkey = 0; //Update current information!
 			lastx = setx;
@@ -1347,7 +1335,7 @@ void handleKeyboard() //Handles keyboard input!
 void handleGaming(double timepassed) //Handles gaming mode input!
 {
 	//Test for all keys and process!
-	if (input_buffer_input) return; //Don't handle buffered input, we don't allow mapping gaming mode to gaming mode!
+	if (input_buffer_enabled) return; //Don't handle buffered input, we don't allow mapping gaming mode to gaming mode!
 
 	if ((BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGLEFT] == -1) &&
 		(BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGUP] == -1) &&
@@ -1696,10 +1684,9 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 	}
 }
 
-byte currentshiftstatus_inputbuffer = 0; //Current input buffer shift status latch!
-
 OPTINLINE void handleKeyPressRelease(int key)
 {
+	byte lastshiftstatus;
 	switch (emu_keys_state[key]) //What state are we in?
 	{
 	case 0: //Released?
@@ -1718,7 +1705,11 @@ OPTINLINE void handleKeyPressRelease(int key)
 		{
 			currentshiftstatus_inputbuffer |= SHIFTSTATUS_SHIFT;
 		}
-		if (!input_buffer_input) //Not inputting anything though the buffer? We don't count those as input for emulation!
+		else if (strcmp(keys_names[key],"rctrl")!=0 && strcmp(keys_names[key],"ralt")!=0 && strcmp(keys_names[key],"rshift")!=0) //Ignore Right Ctrl, Alt and Shift!
+		{
+			last_input_key = key; //Save the last key for input!
+		}
+		if (!input_buffer_enabled) //Not inputting anything though the buffer? We don't count those as input for emulation!
 		{
 			//Normal handling always!
 			onKeyPress(&keys_names[key][0]); //Tick the keypress!
@@ -1726,6 +1717,7 @@ OPTINLINE void handleKeyPressRelease(int key)
 		break;
 	case 2: //Releasing?
 		//Shift status for buffering!
+		lastshiftstatus = currentshiftstatus_inputbuffer; //Save the last shift status for comparison!
 		if (!strcmp(keys_names[key],"lctrl"))
 		{
 			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_CTRL; //Release CTRL!
@@ -1738,18 +1730,22 @@ OPTINLINE void handleKeyPressRelease(int key)
 		{
 			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_SHIFT; //Release SHIFT!
 		}
-		else if (input_buffer_input && (input_buffer==-1)) //Buffering and input not buffered yet?
+		else if (strcmp(keys_names[key],"rctrl")!=0 && strcmp(keys_names[key],"ralt")!=0 && strcmp(keys_names[key],"rshift")!=0) //Ignore Right Ctrl, Alt and Shift!
 		{
-			if (strcmp(keys_names[key],"rctrl")!=0 && strcmp(keys_names[key],"ralt")!=0 && strcmp(keys_names[key],"rshift")!=0) //Ignore Ctrl, Alt and Shift!
-			{
-				input_buffer_shift = currentshiftstatus_inputbuffer; //Set shift status to the current state!
-				input_buffer = key; //Last key pressed!
-			}
+			last_input_key = key; //This is the key we need to use, since we're a normal released key, else use the last key pressed!
+		}
+		
+		if (input_buffer_enabled && (input_buffer==-1) && (!input_buffer_shift)) //Buffering and input not buffered yet?
+		{
+			input_buffer_shift = lastshiftstatus; //Set shift status to the last state!
+			input_buffer = last_input_key; //Last key pressed, if any(don't report Ctrl/Alt/Shift)!
 		}
 
 		//Normal handling always, as a release when not running must be repressed anyways!
-		onKeyRelease(&keys_names[key][0]); //Handle key release!
-		emu_keys_state[key] = 0; //We're released!
+		if (onKeyRelease(&keys_names[key][0])) //Handle key release!
+		{
+			emu_keys_state[key] = 0; //We're released when released(not pending anymore)!
+		}
 		break;
 	default: //Unknown?
 		break;
@@ -1761,6 +1757,11 @@ void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're a
 	lock(LOCK_INPUT);
 	if (input_enabled && ALLOW_INPUT) //Input enabled?
 	{
+		int key;
+		for (key = 0;key < (int)NUMITEMS(emu_keys_state);) //Make sure to process our internal key handlers first, to process and clean up any leftover input as well.
+		{
+			handleKeyPressRelease(key++); //Handle key press or release!
+		}
 		if (!Direct_Input) //Not executing direct input?
 		{
 			get_analog_state(&curstat); //Get the analog&buttons status for the keyboard!
@@ -1787,14 +1788,6 @@ void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're a
 				}
 			}
 		} //Input enabled?
-		else //Direct input?
-		{
-			int key;
-			for (key = 0;key < (int)NUMITEMS(emu_keys_state);)
-			{
-				handleKeyPressRelease(key++); //Handle key press or release!
-			}
-		}
 	}
 	tickPendingKeys(timepassed); //Handle any pending keys if possible!
 	unlock(LOCK_INPUT);
@@ -1812,7 +1805,7 @@ void psp_keyboard_init()
 	//dolog("osk","Keyboard init...");
 	lock(LOCK_INPUT);
 	input_enabled = 0; //Default: input disabled!
-	oldshiftstatus = 0; //Init!
+	oldshiftstatus = shiftstatus = currentshiftstatus_inputbuffer =  0; //Init all shifts to unused/not pressed!
 	curstat.mode = DEFAULT_KEYBOARD; //Keyboard mode enforced by default for now!
 
 	if (!KEYBOARD_ENABLED) //Keyboard disabled?
@@ -1874,7 +1867,7 @@ void keyboard_loadDefaultColor(byte color)
 
 void keyboard_loadDefaults() //Load the defaults for the keyboard font etc.!
 {
-	BIOS_Settings.input_settings.analog_minrange = (int)(127/2); //Default to half to use!
+	BIOS_Settings.input_settings.analog_minrange = (byte)(127/2); //Default to half to use!
 	//Default: no game mode mappings!
 	//Standard keys:
 	int i;
@@ -1890,8 +1883,8 @@ struct
 {
 byte input_buffer_shift;
 int input_buffer;
-int input_buffer_input;
-int input_enabled;
+byte input_buffer_enabled;
+byte input_enabled;
 } SAVED_KEYBOARD_STATUS;
 
 void save_keyboard_status() //Save keyboard status to memory!
@@ -1899,7 +1892,7 @@ void save_keyboard_status() //Save keyboard status to memory!
 	lock(LOCK_INPUT);
 	SAVED_KEYBOARD_STATUS.input_buffer_shift = input_buffer_shift;
 	SAVED_KEYBOARD_STATUS.input_buffer = input_buffer;
-	SAVED_KEYBOARD_STATUS.input_buffer_input = input_buffer_input;
+	SAVED_KEYBOARD_STATUS.input_buffer_enabled = input_buffer_enabled;
 	SAVED_KEYBOARD_STATUS.input_enabled = input_enabled; //Save all!
 	unlock(LOCK_INPUT);
 }
@@ -1909,25 +1902,42 @@ void load_keyboard_status() //Load keyboard status from memory!
 	lock(LOCK_INPUT);
 	input_buffer_shift = SAVED_KEYBOARD_STATUS.input_buffer_shift;
 	input_buffer = SAVED_KEYBOARD_STATUS.input_buffer;
-	input_buffer_input = SAVED_KEYBOARD_STATUS.input_buffer_input;
+	input_buffer_enabled = SAVED_KEYBOARD_STATUS.input_buffer_enabled;
 	input_enabled = SAVED_KEYBOARD_STATUS.input_enabled; //Load all that was saved!
 	unlock(LOCK_INPUT);
+}
+
+void clearBuffers() //Clear any input buffers still filled!
+{
+	uint_32 i;
+	for (i=0;i<NUMITEMS(emu_keys_state);i++) //Process all keys!
+	{
+		if (emu_keys_state[i]==1) //We're still pressed, even though the buffers need to be cleared?
+		{
+			emu_keys_state[i] = 2; //Emulate the release of the key!
+			handleKeyPressRelease(i); //Release the key, since we become unwanted data after we've reset, triggering a new key input instead of a new one
+		}
+	}
+	oldshiftstatus = shiftstatus = currentshiftstatus_inputbuffer = 0; //Init all shifts to unused/not pressed!
+	input_buffer_shift = 0; //Shift status: nothing pressed yet!
+	input_buffer = last_input_key = -1; //Disable any output!
+	lastkey = lastshift = 0; //Disable keyboard status, leave x, y and set alone(not required to clear)!
+	memset(&input,0,sizeof(input)); //Clear all currently set input from the PSP (emulation) subsystem!
 }
 
 void disableKeyboard() //Disables the keyboard/mouse functionality!
 {
 	lock(LOCK_INPUT);
 	input_enabled = 0; //Disable input!
+	clearBuffers(); //Make sure our buffers are cleared!
 	unlock(LOCK_INPUT);
 }
 
-void enableKeyboard(int bufferinput) //Enables the keyboard/mouse functionnality param: to buffer into input_buffer?!
+void enableKeyboard(byte bufferinput) //Enables the keyboard/mouse functionnality param: to buffer into input_buffer?!
 {
-	disableKeyboard(); //Make sure the keyboard if off to start with!
+	disableKeyboard(); //Make sure the keyboard if off to start with and all things are cleared!
 	lock(LOCK_INPUT);
-	input_buffer = -1; //Nothing pressed yet!
-	input_buffer_shift = -1; //Shift status: nothing pressed yet!
-	input_buffer_input = bufferinput; //To buffer?
+	input_buffer_enabled = bufferinput; //To buffer?
 	input_enabled = ALLOW_INPUT; //Enable input!
 	unlock(LOCK_INPUT);
 }
@@ -1950,7 +1960,7 @@ void updateMOD()
 		input.Buttons &= ~BUTTON_HOME; //Released!
 	}
 
-	if ((input.cas&CAS_LSHIFT) && (!Direct_Input)) //Shift pressed, mapped to mouse slowdown?
+	if ((input.cas&CAS_LSHIFT) && ((!Direct_Input) && (!curstat.mode) && (!curstat.gamingmode))) //Shift pressed, mapped to mouse slowdown?
 	{
 		precisemousemovement = 1; //Enabled!
 	}
@@ -2015,6 +2025,7 @@ void toggleDirectInput(byte middlebutton)
 
 	//Also disable mouse buttons pressed!
 	Mouse_buttons &= ~3; //Disable left/right mouse buttons!
+	clearBuffers(); //Make sure the buffers are cleared when toggling, so we start fresh!
 }
 
 byte haswindowactive = 1; //Are we displayed on-screen?
@@ -2131,9 +2142,9 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				if (Direct_Input)
 				{
-					input.Buttons = 0; //Ingore pressed buttons!
+					input.Buttons = 0; //Ignore pressed buttons!
 					input.cas = 0; //Ignore pressed buttons!
-									  //Handle button press/releases!
+					//Handle button press/releases!
 					register int index;
 					register int key;
 					index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
@@ -2141,7 +2152,10 @@ void updateInput(SDL_Event *event) //Update all input!
 					{
 						if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 						{
+							if (emu_keys_state[key]==1) //We're pressed?
+							{
 								emu_keys_state[key] = 2; //We're released!
+							}
 						}
 					}
 				}
@@ -2241,7 +2255,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				if (Direct_Input)
 				{
-					input.Buttons = 0; //Ingore pressed buttons!
+					input.Buttons = 0; //Ignore pressed buttons!
 					input.cas = 0; //Ignore pressed buttons!
 
 					//Handle button press/releases!
@@ -2252,7 +2266,7 @@ void updateInput(SDL_Event *event) //Update all input!
 					{
 						if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 						{
-							emu_keys_state[key] = 1; //We're pressed!
+							emu_keys_state[key] = 1; //We're pressed from now on!
 						}
 					}
 				}
@@ -2273,12 +2287,10 @@ void updateInput(SDL_Event *event) //Update all input!
 						input.Ly = event->jaxis.value; //New value!
 						break;
 				}
-				if (Direct_Input)
+
+				if (Direct_Input) //Direct input enabled? Ignore the joystick!
 				{
-					if (EMU_RUNNING) //Are we running?
-					{
-						input.Lx = input.Ly = 0; //Ignore pressed buttons!
-					}
+					input.Lx = input.Ly = 0; //Ignore pressed buttons!
 				}
 				unlock(LOCK_INPUT);
 			}
@@ -2403,7 +2415,7 @@ void updateInput(SDL_Event *event) //Update all input!
 					{
 						Mouse_buttons |= 1; //Left mouse button pressed!
 					}
-					if (!Direct_Input) //Not executing direct input?
+					else //Not executing direct input?
 					{
 						GPU_mousebuttondown(mouse_x, mouse_y); //We're pressed at these coordinates!
 					}

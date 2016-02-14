@@ -42,8 +42,10 @@
 #endif
 
 //Redirect to direct log always!
+/*
 #undef FLOPPY_LOGD
 #define FLOPPY_LOGD FLOPPY_LOG
+*/
 
 struct
 {

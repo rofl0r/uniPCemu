@@ -1718,13 +1718,12 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 	return 0; //No size: cancel!
 }
 
-extern int input_buffer_shift; //Ctrl-Shift-Alt Status for the pressed key!
-extern int input_buffer; //To contain the pressed key!
+extern byte input_buffer_shift; //Ctrl-Shift-Alt Status for the pressed key!
+extern sword input_buffer; //To contain the pressed key!
 
 byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 {
-	byte bigdelay = 0;
-	delay(100000); //Wait a bit!
+	delay(100000); //Wait a bit to make sure nothing's pressed!
 	enableKeyboard(1); //Buffer input!
 	char input[256];
 	memset(&input, 0, sizeof(input)); //Init input to empty!
@@ -1732,8 +1731,8 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 	initTicksHolder(&ticks); //Initialise!
 	getnspassed(&ticks); //Initialise counter!
 
-lock(LOCK_INPUT);
-goto updatescreeninput; //Start screen with input&cursor!
+	lock(LOCK_INPUT);
+	goto updatescreeninput; //Start screen with input&cursor!
 
 	for (;;) //Main input loop!
 	{
@@ -1742,13 +1741,12 @@ goto updatescreeninput; //Start screen with input&cursor!
 			disableKeyboard(); //Disable the keyboard!
 			return 0; //Cancel!
 		}
-		delay(bigdelay?100000:0); //Wait a bit for input, depending on input done!
-		bigdelay = 0; //Finished big delay!
+		delay(0); //Wait a bit for input, depending on input done!
 		updateKeyboard(getnspassed(&ticks)); //Update the OSK keyboard with a little time!
 		lock(LOCK_INPUT);
-		if (input_buffer_shift != -1) //Given input yet?
+		if (input_buffer!=-1) //Given input yet?
 		{
-			if (EMU_keyboard_handler_idtoname(input_buffer,&input[0])) //Valid key?
+			if (EMU_keyboard_handler_idtoname(input_buffer,&input[0])) //Valid key(Don't count shift statuses only)?
 			{
 				if (!strcmp(input, "enter") || !strcmp(input,"esc")) //Enter or Escape? We're finished!
 				{
@@ -1797,7 +1795,7 @@ goto updatescreeninput; //Start screen with input&cursor!
 							{
 								if ((input[0] >= 'a') && (input[0] <= 'z')) //Able to use shift on this key?
 								{
-									input[0] += ((int)'A' - (int)'a'); //Convert to uppercase!
+									input[0] += (char)((int)'A' - (int)'a'); //Convert to uppercase!
 									strcat(filename, input); //Add the input to the filename!
 								}
 								//Invalid uppercase is ignored!
@@ -1810,9 +1808,8 @@ goto updatescreeninput; //Start screen with input&cursor!
 					}
 				}
 
-				bigdelay = 1; //Delay big instead!
-
-updatescreeninput:				EMU_locktext();
+				updatescreeninput:
+				EMU_locktext();
 				EMU_gotoxy(x, y); //Goto position for info!
 				EMU_textcolor(BIOS_ATTR_TEXT);
 				GPU_EMU_printscreen(x, y, "%s", filename); //Show the filename!
@@ -1821,7 +1818,7 @@ updatescreeninput:				EMU_locktext();
 				EMU_textcolor(BIOS_ATTR_TEXT); //Back to text!
 				GPU_EMU_printscreen(-1, -1, " "); //Clear output after!
 				EMU_unlocktext();
-				input_buffer_shift = -1; //Reset!
+				input_buffer_shift = 0; //Reset!
 				input_buffer = -1; //Nothing input!
 			}
 		}
@@ -2970,11 +2967,11 @@ void BIOS_addInputText(char *s, byte inputnumber)
 	int input_key;
 	int shiftstatus;
 	char name[256]; //A little buffer for a name!
-	if ((BIOS_Settings.input_settings.keyboard_gamemodemappings[inputnumber] != -1) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[inputnumber] >0)) //Got anything?
+	if ((BIOS_Settings.input_settings.keyboard_gamemodemappings[inputnumber] != -1) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[inputnumber])) //Got anything?
 	{
 		shiftstatus = BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[inputnumber]; //Load shift status!
 		input_key = BIOS_Settings.input_settings.keyboard_gamemodemappings[inputnumber]; //Load shift status!
-		if (shiftstatus > 0) //Gotten alt status?
+		if (shiftstatus) //Gotten alt status?
 		{
 			if (shiftstatus&SHIFTSTATUS_CTRL)
 			{
@@ -3108,6 +3105,7 @@ void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 		}
 		else //Normal option selected?
 		{
+			dolog("MGM","StartInput!");
 			//Valid option?
 			delay(100000); //Wait a bit!
 			enableKeyboard(1); //Buffer input!
@@ -3116,21 +3114,21 @@ void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 			getnspassed(&ticks); //Initialise counter!
 			for (;;)
 			{
+				dolog("MGM","UpdateKeyboard!");
 				updateKeyboard(getnspassed(&ticks)); //Update the OSK keyboard!
 				lock(LOCK_INPUT);
-				if (input_buffer_shift != -1) //Given input yet?
+				if ((input_buffer!=-1) || (input_buffer_shift)) //Given input yet?
 				{
-					unlock(LOCK_INPUT);
-					disableKeyboard(); //Disable the keyboard!
-					lock(LOCK_INPUT);
+					dolog("MGM","KeyPressed: %i, %02X!",input_buffer,input_buffer_shift);
 					BIOS_Changed |= ((BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] != input_buffer) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] != input_buffer_shift)); //Did we change?
 					BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] = input_buffer; //Set the new key!
 					BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] = input_buffer_shift; //Set the shift status!
 					unlock(LOCK_INPUT); //We're done with input: release our lock!
+					disableKeyboard(); //Disable the keyboard!
 					break; //Break out of the loop: we're done!
 				}
 				unlock(LOCK_INPUT);
-				delay(0); //Wait for the next key!
+				delay(0); //Wait for the key input!
 			}
 			//Keep in our own menu: we're not changing after a choise has been made, but simply allowing to select another button!
 		}

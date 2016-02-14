@@ -87,7 +87,7 @@ void psp_keyboard_done(); //Finishes the on-screen keyboard!
 void keyboard_renderer(); //Render the keyboard on-screen (must be called to update on-screen)!
 
 void disableKeyboard(); //Disables the keyboard/mouse functionnality!
-void enableKeyboard(int bufferinput); //Enables the keyboard/mouse functionnality param: to buffer into input_buffer?!
+void enableKeyboard(byte bufferinput); //Enables the keyboard/mouse functionnality param: to buffer into input_buffer?!
 
 void keyboard_loadDefaults(); //Load the defaults for the keyboard!
 

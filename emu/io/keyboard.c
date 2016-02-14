@@ -51,7 +51,7 @@ void onKeyPress(char *key) //On key press/hold!
 	}
 }
 
-void onKeyRelease(char *key) //On key release!
+byte onKeyRelease(char *key) //On key release!
 {
 	if (strcmp(key, "CAPTURE") == 0) //Screen capture requested?
 	{
@@ -60,7 +60,7 @@ void onKeyRelease(char *key) //On key release!
 			--keys_pressed; //One key has been released!
 		}
 		capture_status = 0; //We're released!
-		return; //Finished!
+		return 1; //Finished!
 	}
 	int keyid;
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
@@ -71,7 +71,9 @@ void onKeyRelease(char *key) //On key release!
 			--keys_pressed; //One key has been released!
 		}
 		key_status[keyid] = 0; //We're released!
+		return 1; //We're released!
 	}
+	return 1; //Unhandled input, so ignore release!
 }
 
 void calculateKeyboardStep()
