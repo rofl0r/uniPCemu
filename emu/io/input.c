@@ -1718,7 +1718,7 @@ OPTINLINE void handleKeyPressRelease(int key)
 		{
 			currentshiftstatus_inputbuffer |= SHIFTSTATUS_SHIFT;
 		}
-		if (!input_buffer_input) //Not inputting anything though the buffer?
+		if (!input_buffer_input) //Not inputting anything though the buffer? We don't count those as input for emulation!
 		{
 			//Normal handling always!
 			onKeyPress(&keys_names[key][0]); //Tick the keypress!
@@ -1738,7 +1738,7 @@ OPTINLINE void handleKeyPressRelease(int key)
 		{
 			currentshiftstatus_inputbuffer &= ~SHIFTSTATUS_SHIFT; //Release SHIFT!
 		}
-		else if (input_buffer_input) //Buffering and input non-shiftstatus?
+		else if (input_buffer_input && (input_buffer==-1)) //Buffering and input not buffered yet?
 		{
 			if (strcmp(keys_names[key],"rctrl")!=0 && strcmp(keys_names[key],"ralt")!=0 && strcmp(keys_names[key],"rshift")!=0) //Ignore Ctrl, Alt and Shift!
 			{
@@ -1747,11 +1747,8 @@ OPTINLINE void handleKeyPressRelease(int key)
 			}
 		}
 
-		//Normal handling always!
-		if (!input_buffer_input) //Not buffering input?
-		{
-			onKeyRelease(&keys_names[key][0]); //Handle key release!
-		}
+		//Normal handling always, as a release when not running must be repressed anyways!
+		onKeyRelease(&keys_names[key][0]); //Handle key release!
 		emu_keys_state[key] = 0; //We're released!
 		break;
 	default: //Unknown?
@@ -2134,20 +2131,17 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				if (Direct_Input)
 				{
-					if (EMU_RUNNING) //Are we running?
+					input.Buttons = 0; //Ingore pressed buttons!
+					input.cas = 0; //Ignore pressed buttons!
+									  //Handle button press/releases!
+					register int index;
+					register int key;
+					index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
+					if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
 					{
-						input.Buttons = 0; //Ingore pressed buttons!
-						input.cas = 0; //Ignore pressed buttons!
-									   //Handle button press/releases!
-						register int index;
-						register int key;
-						index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
-						if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
+						if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 						{
-							if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
-							{
 								emu_keys_state[key] = 2; //We're released!
-							}
 						}
 					}
 				}
@@ -2247,21 +2241,18 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				if (Direct_Input)
 				{
-					if (EMU_RUNNING) //Are we running?
-					{
-						input.Buttons = 0; //Ingore pressed buttons!
-						input.cas = 0; //Ignore pressed buttons!
+					input.Buttons = 0; //Ingore pressed buttons!
+					input.cas = 0; //Ignore pressed buttons!
 
-						//Handle button press/releases!
-						register int index;
-						register int key;
-						index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
-						if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
+					//Handle button press/releases!
+					register int index;
+					register int key;
+					index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
+					if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
+					{
+						if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 						{
-							if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
-							{
-								emu_keys_state[key] = 1; //We're pressed!
-							}
+							emu_keys_state[key] = 1; //We're pressed!
 						}
 					}
 				}

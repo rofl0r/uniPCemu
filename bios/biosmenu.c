@@ -1723,6 +1723,7 @@ extern int input_buffer; //To contain the pressed key!
 
 byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 {
+	byte bigdelay = 0;
 	delay(100000); //Wait a bit!
 	enableKeyboard(1); //Buffer input!
 	char input[256];
@@ -1730,6 +1731,10 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 	TicksHolder ticks;
 	initTicksHolder(&ticks); //Initialise!
 	getnspassed(&ticks); //Initialise counter!
+
+lock(LOCK_INPUT);
+goto updatescreeninput; //Start screen with input&cursor!
+
 	for (;;) //Main input loop!
 	{
 		if (shuttingdown()) //Are we shutting down?
@@ -1737,7 +1742,8 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 			disableKeyboard(); //Disable the keyboard!
 			return 0; //Cancel!
 		}
-		delay(0); //Wait a bit for input!
+		delay(bigdelay?100000:0); //Wait a bit for input, depending on input done!
+		bigdelay = 0; //Finished big delay!
 		updateKeyboard(getnspassed(&ticks)); //Update the OSK keyboard with a little time!
 		lock(LOCK_INPUT);
 		if (input_buffer_shift != -1) //Given input yet?
@@ -1803,7 +1809,10 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 						}
 					}
 				}
-				EMU_locktext();
+
+				bigdelay = 1; //Delay big instead!
+
+updatescreeninput:				EMU_locktext();
 				EMU_gotoxy(x, y); //Goto position for info!
 				EMU_textcolor(BIOS_ATTR_TEXT);
 				GPU_EMU_printscreen(x, y, "%s", filename); //Show the filename!
@@ -1814,7 +1823,6 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 				EMU_unlocktext();
 				input_buffer_shift = -1; //Reset!
 				input_buffer = -1; //Nothing input!
-				delay(100000); //Wait a bit!
 			}
 		}
 		unlock(LOCK_INPUT);
