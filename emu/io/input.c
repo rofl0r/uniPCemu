@@ -1067,7 +1067,7 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 					curstat.gamingmode = 0; //Disable gaming mode!
 				}
 			}
-			else if (curstat.mode==1 && input_enabled) //Keyboard active and on-screen?
+			else if (curstat.mode==1) //Keyboard active and on-screen?
 			{
 				int curkey;
 				curkey = psp_inputkey(); //Read current keys with delay!
@@ -1091,7 +1091,7 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 					curstat.mode = 0; //Swap to mouse mode!
 				}
 			}
-			else if (curstat.mode==0 && input_enabled) //Mouse active?
+			else if (curstat.mode==0) //Mouse active?
 			{
 				if (psp_inputkey()&BUTTON_DOWN) //Down pressed: swap to gaming mode!
 				{
@@ -1175,7 +1175,6 @@ void handleKeyboardMouse(double timepassed) //Handles keyboard input during mous
 		{
 			onKeyPress("lshift");
 		}
-		oldshiftstatus = shiftstatus; //Save shift status to old shift status!
 	} //Not buffering?
 	else //Buffering input?
 	{
@@ -1279,8 +1278,6 @@ void handleKeyboard() //Handles keyboard input!
 		{
 			onKeyRelease("capslock"); //Release if needed, forming a button click!
 		}
-
-		oldshiftstatus = shiftstatus; //Save shift status to old shift status!
 
 		if (currentkey) //Key pressed?
 		{
@@ -1969,7 +1966,7 @@ void clearBuffers() //Clear any input buffers still filled!
 	input_buffer_shift = input_buffer_mouse = 0; //Shift/mouse status: nothing pressed yet!
 	input_buffer = last_input_key = -1; //Disable any output!
 	lastkey = lastshift = oldMouse_buttons = 0; //Disable keyboard status, mouse buttons, leave x, y and set alone(not required to clear)!
-	memset(&input,0,sizeof(input)); //Clear all currently set input from the PSP (emulation) subsystem!
+	//memset(&input,0,sizeof(input)); //Clear all currently set input from the PSP (emulation) subsystem!
 }
 
 void disableKeyboard() //Disables the keyboard/mouse functionality!
@@ -2270,7 +2267,6 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_j: //Joy left?
 					input.keyboardjoy_direction |= 4; //Left!
-					input.Buttons |= BUTTON_STOP; //Stop!
 					break;
 				case SDLK_k: //Joy down?
 					input.keyboardjoy_direction |= 2; //Down!
