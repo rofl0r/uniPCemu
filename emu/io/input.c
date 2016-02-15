@@ -1966,6 +1966,7 @@ void clearBuffers() //Clear any input buffers still filled!
 	input_buffer_shift = input_buffer_mouse = 0; //Shift/mouse status: nothing pressed yet!
 	input_buffer = last_input_key = -1; //Disable any output!
 	lastkey = lastshift = oldMouse_buttons = 0; //Disable keyboard status, mouse buttons, leave x, y and set alone(not required to clear)!
+	req_quit_gamingmode = 0; //Not requesting quitting the gaming mode anymore!
 	//memset(&input,0,sizeof(input)); //Clear all currently set input from the PSP (emulation) subsystem!
 }
 
