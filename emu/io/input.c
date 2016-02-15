@@ -201,9 +201,11 @@ extern GPU_type GPU; //The real GPU, for rendering the keyboard!
 byte input_enabled = 0; //To show the input dialog?
 byte input_buffer_enabled = 0; //To buffer, instead of straight into emulation (giving the below value the key index)?
 byte input_buffer_shift = 0; //Ctrl-Shift-Alt Status for the pressed key!
+byte input_buffer_mouse = 0; //Mouse input buffer!
 sword input_buffer = -1; //To contain the pressed key!
 
-byte oldshiftstatus = 0; //Old shift status, used for keyboard/gaming mode!
+byte oldshiftstatus = 0, oldMouse_buttons = 0; //Old shift status, used for keyboard/gaming mode!
+byte currentmouse = 0; //Calculate current mouse status!
 byte shiftstatus = 0; //New shift status!
 byte currentshiftstatus_inputbuffer = 0; //Current input buffer shift status latch!
 sword last_input_key = -1; //The last key to have been released (or pressed if unavailable)!
@@ -1129,10 +1131,14 @@ void handleKeyboardMouse(double timepassed) //Handles keyboard input during mous
 	//Also handle mouse movement here (constant factor)!
 	handleMouseMovement(timepassed); //Handle mouse movement!
 
-	Mouse_buttons = (curstat.buttonpress & 1) ? 1 : 0; //Left mouse button pressed?
-	Mouse_buttons |= (curstat.buttonpress & 4) ? 2 : 0; //Right mouse button pressed?
-	Mouse_buttons |= (curstat.buttonpress & 2) ? 4 : 0; //Middle mouse button pressed?
+	if (!input_buffer_enabled) //Not buffering input?
+	{
+		Mouse_buttons = (curstat.buttonpress & 1) ? 1 : 0; //Left mouse button pressed?
+		Mouse_buttons |= (curstat.buttonpress & 4) ? 2 : 0; //Right mouse button pressed?
+		Mouse_buttons |= (curstat.buttonpress & 2) ? 4 : 0; //Middle mouse button pressed?
+	}
 
+	oldshiftstatus = shiftstatus; //Save the old shift status!
 	shiftstatus = 0; //Init shift status!
 	shiftstatus |= ((curstat.buttonpress&512)>0)*SHIFTSTATUS_SHIFT; //Apply shift status!
 	shiftstatus |= ((curstat.buttonpress&(16|32))>0)*SHIFTSTATUS_CTRL; //Apply ctrl status!
@@ -1171,6 +1177,28 @@ void handleKeyboardMouse(double timepassed) //Handles keyboard input during mous
 		}
 		oldshiftstatus = shiftstatus; //Save shift status to old shift status!
 	} //Not buffering?
+	else //Buffering input?
+	{
+		oldMouse_buttons = currentmouse; //Save the old mouse buttons!
+
+		//Calculate current mouse state!
+		currentmouse = (curstat.buttonpress & 1) ? 1 : 0; //Left mouse button pressed?
+		currentmouse |= (curstat.buttonpress & 4) ? 2 : 0; //Right mouse button pressed?
+		currentmouse |= (curstat.buttonpress & 2) ? 4 : 0; //Middle mouse button pressed?
+		
+		if ((currentmouse<oldMouse_buttons) || (shiftstatus<oldshiftstatus)) //Less buttons/keys pressed than earlier?
+		{
+			if ((input_buffer==-1) && (!input_buffer_shift) && (!input_buffer_mouse)) //No input yet?
+			{
+				if (oldMouse_buttons || oldshiftstatus) //Mouse button release or shift status release?
+				{
+					input_buffer_shift = oldshiftstatus; //Shift status!
+					input_buffer_mouse = oldMouse_buttons; //Mouse status!
+					input_buffer = -1; //No key!
+				}
+			}
+		}
+	}
 }
 
 void handleKeyboard() //Handles keyboard input!
@@ -1201,6 +1229,7 @@ void handleKeyboard() //Handles keyboard input!
 
 	//Now, process the keys!
 
+	oldshiftstatus = shiftstatus; //Make sure to save the old status!
 	shiftstatus = 0; //Init shift status!
 	shiftstatus |= ((curstat.buttonpress & 512) > 0)*SHIFTSTATUS_SHIFT; //Apply shift status!
 	if ((curstat.buttonpress & 0x300) == 0x300) //L&R hold?
@@ -1316,10 +1345,11 @@ void handleKeyboard() //Handles keyboard input!
 				return; //Abort: we're nothing pressed!
 			}
 			key = EMU_keyboard_handler_nametoid(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Our key?
-			if (input_buffer_enabled && (input_buffer==-1) && (!input_buffer_shift)) //Buffering?
+			if (input_buffer_enabled && (input_buffer==-1) && (!input_buffer_shift) && (!input_buffer_mouse)) //Buffering?
 			{
 				input_buffer_shift = lastshift; //Set shift status!
 				input_buffer = key; //Last key!
+				input_buffer_mouse = 0; //No mouse input during this mode!
 			}
 			//Update current information!
 			lastkey = 0; //Update current information!
@@ -1355,7 +1385,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 	{
 		keys[i] = -1; //We have no index and nothing happened!
 	}
-	shiftstatus = 0; //Default new shift status: none!
+	shiftstatus = Mouse_buttons = 0; //Default new shift status: none!
 
 	if (curstat.buttonpress&1) //Square?
 	{
@@ -1364,6 +1394,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_SQUARE] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_SQUARE]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_SQUARE] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_SQUARE]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_SQUARE]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_SQUARE]) //Try release!
@@ -1382,6 +1413,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_TRIANGLE] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_TRIANGLE]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_TRIANGLE] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_TRIANGLE]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_TRIANGLE]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_TRIANGLE]) //Try release!
@@ -1400,6 +1432,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_CIRCLE] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_CIRCLE]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_CIRCLE] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_CIRCLE]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_CIRCLE]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_CIRCLE]) //Try release!
@@ -1418,6 +1451,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_CROSS] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_CROSS]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_CROSS] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_CROSS]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_CROSS]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_CROSS]) //Try release!
@@ -1437,6 +1471,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_LEFT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_LEFT]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_LEFT] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_LEFT]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_LEFT]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_LEFT]) //Try release!
@@ -1456,6 +1491,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_UP] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_UP]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_UP] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_UP]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_UP]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_UP]) //Try release!
@@ -1475,6 +1511,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_RIGHT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_RIGHT]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_RIGHT] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_RIGHT]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_RIGHT]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_RIGHT]) //Try release!
@@ -1494,6 +1531,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_DOWN] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_DOWN]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_DOWN] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_DOWN]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_DOWN]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_DOWN]) //Try release!
@@ -1513,6 +1551,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_LTRIGGER] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_LTRIGGER]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_LTRIGGER] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_LTRIGGER]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_LTRIGGER]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_LTRIGGER]) //Try release!
@@ -1532,6 +1571,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_RTRIGGER] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_RTRIGGER]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_RTRIGGER] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_RTRIGGER]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_RTRIGGER]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_RTRIGGER]) //Try release!
@@ -1550,6 +1590,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_START] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_START]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_START] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_START]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_START]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_START]) //Try release!
@@ -1568,6 +1609,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_ANALOGLEFT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGLEFT]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_ANALOGLEFT] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_ANALOGLEFT]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_ANALOGLEFT]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_ANALOGLEFT]) //Try release!
@@ -1586,6 +1628,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_ANALOGUP] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGUP]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_ANALOGUP] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_ANALOGUP]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_ANALOGUP]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_ANALOGUP]) //Try release!
@@ -1604,6 +1647,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_ANALOGRIGHT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGRIGHT]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_ANALOGRIGHT] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_ANALOGRIGHT]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_ANALOGRIGHT]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_ANALOGRIGHT]) //Try release!
@@ -1622,6 +1666,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 			keys[GAMEMODE_ANALOGDOWN] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGDOWN]; //Set the key: we've changed!
 			keys_pressed[GAMEMODE_ANALOGDOWN] = 1; //We're pressed!
 			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_ANALOGDOWN]; //Ctrl-alt-shift status!
+			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_ANALOGDOWN]; //Mouse status!
 		}
 	}
 	else if (keys_pressed[GAMEMODE_ANALOGDOWN]) //Try release!
@@ -1735,10 +1780,11 @@ OPTINLINE void handleKeyPressRelease(int key)
 			last_input_key = key; //This is the key we need to use, since we're a normal released key, else use the last key pressed!
 		}
 		
-		if (input_buffer_enabled && (input_buffer==-1) && (!input_buffer_shift)) //Buffering and input not buffered yet?
+		if (input_buffer_enabled && (input_buffer==-1) && (!input_buffer_shift) && (!input_buffer_mouse)) //Buffering and input not buffered yet?
 		{
 			input_buffer_shift = lastshiftstatus; //Set shift status to the last state!
 			input_buffer = last_input_key; //Last key pressed, if any(don't report Ctrl/Alt/Shift)!
+			input_buffer_mouse = mousebuttons; //Mouse button status!
 		}
 
 		//Normal handling always, as a release when not running must be repressed anyways!
@@ -1876,6 +1922,7 @@ void keyboard_loadDefaults() //Load the defaults for the keyboard font etc.!
 	{
 		BIOS_Settings.input_settings.keyboard_gamemodemappings[i] = -1; //Disable by default!
 		BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[i] = 0; //Disable by default!
+		BIOS_Settings.input_settings.mouse_gamemodemappings[i] = 0; //Disable by default!
 	}
 }
 
@@ -1919,9 +1966,9 @@ void clearBuffers() //Clear any input buffers still filled!
 		}
 	}
 	oldshiftstatus = shiftstatus = currentshiftstatus_inputbuffer = 0; //Init all shifts to unused/not pressed!
-	input_buffer_shift = 0; //Shift status: nothing pressed yet!
+	input_buffer_shift = input_buffer_mouse = 0; //Shift/mouse status: nothing pressed yet!
 	input_buffer = last_input_key = -1; //Disable any output!
-	lastkey = lastshift = 0; //Disable keyboard status, leave x, y and set alone(not required to clear)!
+	lastkey = lastshift = oldMouse_buttons = 0; //Disable keyboard status, mouse buttons, leave x, y and set alone(not required to clear)!
 	memset(&input,0,sizeof(input)); //Clear all currently set input from the PSP (emulation) subsystem!
 }
 
@@ -1929,6 +1976,7 @@ void disableKeyboard() //Disables the keyboard/mouse functionality!
 {
 	lock(LOCK_INPUT);
 	input_enabled = 0; //Disable input!
+	input_buffer_enabled = 0; //Not buffering input!
 	clearBuffers(); //Make sure our buffers are cleared!
 	unlock(LOCK_INPUT);
 }
@@ -2445,22 +2493,40 @@ void updateInput(SDL_Event *event) //Update all input!
 					{
 						toggleDirectInput(0); //Toggle direct input by both buttons!
 					}
-					mousebuttons &= ~1; //Left released!
 					if (Direct_Input)
 					{
+						if (input_buffer_enabled) //Buffering?
+						{
+							if ((input_buffer==-1) && (!input_buffer_shift) && (!input_buffer_mouse)) //Nothing pressed yet?
+							{
+								input_buffer = last_input_key; //The last key pressed is used!
+								input_buffer_shift = currentshiftstatus_inputbuffer; //The last shift is used, if any!
+								input_buffer_mouse = mousebuttons; //Left/Right button is pressed!
+							}
+						}
 						Mouse_buttons &= ~1; //button released!
 					}
+					mousebuttons &= ~1; //Left released!
 					break;
 				case SDL_BUTTON_RIGHT:
 					if ((mousebuttons == 3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
 					{
 						toggleDirectInput(0); //Toggle direct input by both buttons!
 					}
-					mousebuttons &= ~2; //Right released!
 					if (Direct_Input)
 					{
+						if (input_buffer_enabled) //Buffering?
+						{
+							if ((input_buffer==-1) && (!input_buffer_shift) && (!input_buffer_mouse)) //Nothing pressed yet?
+							{
+								input_buffer = last_input_key; //The last key pressed is used!
+								input_buffer_shift = currentshiftstatus_inputbuffer; //The last shift is used, if any!
+								input_buffer_mouse = mousebuttons; //Left/Right button is pressed!
+							}
+						}
 						Mouse_buttons &= ~2; //button released!
 					}
+					mousebuttons &= ~2; //Right released!
 					break;
 				}
 				unlock(LOCK_INPUT);

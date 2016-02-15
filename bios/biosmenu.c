@@ -1720,6 +1720,7 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 
 extern byte input_buffer_shift; //Ctrl-Shift-Alt Status for the pressed key!
 extern sword input_buffer; //To contain the pressed key!
+extern byte input_buffer_mouse; //Mouse button input also supported!
 
 byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 {
@@ -1821,6 +1822,10 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 				input_buffer_shift = 0; //Reset!
 				input_buffer = -1; //Nothing input!
 			}
+		}
+		else if (input_buffer_shift || input_buffer_mouse) //Shift/mouse are ignored!
+		{
+			input_buffer_shift = input_buffer_mouse = 0; //Ignore!
 		}
 		unlock(LOCK_INPUT);
 	}
@@ -2147,7 +2152,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 			strcat(filename, ".img"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
-			dolog("BIOS", "Dynamic disk size: %u bytes = %u sectors", size, (size >> 9));
+			//dolog("BIOS", "Dynamic disk size: %u bytes = %u sectors", size, (size >> 9));
 			if (size != 0) //Got size?
 			{
 				if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
@@ -2965,12 +2970,15 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 void BIOS_addInputText(char *s, byte inputnumber)
 {
 	int input_key;
-	int shiftstatus;
+	byte shiftstatus;
+	byte mousestatus;	
+
 	char name[256]; //A little buffer for a name!
-	if ((BIOS_Settings.input_settings.keyboard_gamemodemappings[inputnumber] != -1) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[inputnumber])) //Got anything?
+	if ((BIOS_Settings.input_settings.keyboard_gamemodemappings[inputnumber] != -1) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[inputnumber]) || (BIOS_Settings.input_settings.mouse_gamemodemappings[inputnumber])) //Got anything?
 	{
 		shiftstatus = BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[inputnumber]; //Load shift status!
 		input_key = BIOS_Settings.input_settings.keyboard_gamemodemappings[inputnumber]; //Load shift status!
+		mousestatus = BIOS_Settings.input_settings.mouse_gamemodemappings[inputnumber]; //Load mouse status!
 		if (shiftstatus) //Gotten alt status?
 		{
 			if (shiftstatus&SHIFTSTATUS_CTRL)
@@ -2993,7 +3001,7 @@ void BIOS_addInputText(char *s, byte inputnumber)
 			{
 				strcat(s, "Shift");
 			}
-			if (input_key != -1) //Gotten a key?
+			if ((input_key != -1) || mousestatus) //Gotten a key/mouse?
 			{
 				strcat(s, "-"); //Seperator!
 			}
@@ -3008,6 +3016,33 @@ void BIOS_addInputText(char *s, byte inputnumber)
 			else
 			{
 				strcat(s, "<Unidentified key>");
+			}
+			if (mousestatus)
+			{
+				strcat(s, "-"); //Seperator!
+			}
+		}
+		if (mousestatus) //Gotten a mouse input?
+		{
+			if (mousestatus&1) //Left button?
+			{
+				strcat(s,"Mouse left");
+				if ((mousestatus&1)!=mousestatus) //More buttons?
+				{
+					strcat(s,"-"); //Seperator!
+				}
+			}
+			if (mousestatus&2) //Right button?
+			{
+				strcat(s,"Mouse right");
+				if ((mousestatus&3)!=mousestatus) //More buttons?
+				{
+					strcat(s,"-");
+				}
+			}
+			if (mousestatus&4) //Middle button?
+			{
+				strcat(s,"Mouse middle");
 			}
 		}
 	}
@@ -3105,7 +3140,6 @@ void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 		}
 		else //Normal option selected?
 		{
-			dolog("MGM","StartInput!");
 			//Valid option?
 			delay(100000); //Wait a bit!
 			enableKeyboard(1); //Buffer input!
@@ -3114,15 +3148,14 @@ void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 			getnspassed(&ticks); //Initialise counter!
 			for (;;)
 			{
-				dolog("MGM","UpdateKeyboard!");
 				updateKeyboard(getnspassed(&ticks)); //Update the OSK keyboard!
 				lock(LOCK_INPUT);
-				if ((input_buffer!=-1) || (input_buffer_shift)) //Given input yet?
+				if ((input_buffer!=-1) || (input_buffer_shift) || (input_buffer_mouse)) //Given input yet?
 				{
-					dolog("MGM","KeyPressed: %i, %02X!",input_buffer,input_buffer_shift);
-					BIOS_Changed |= ((BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] != input_buffer) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] != input_buffer_shift)); //Did we change?
+					BIOS_Changed |= ((BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] != input_buffer) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] != input_buffer_shift) || (BIOS_Settings.input_settings.mouse_gamemodemappings[menuresult] != input_buffer_mouse)); //Did we change?
 					BIOS_Settings.input_settings.keyboard_gamemodemappings[menuresult] = input_buffer; //Set the new key!
 					BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[menuresult] = input_buffer_shift; //Set the shift status!
+					BIOS_Settings.input_settings.mouse_gamemodemappings[menuresult] = input_buffer_mouse; //Set the shift status!
 					unlock(LOCK_INPUT); //We're done with input: release our lock!
 					disableKeyboard(); //Disable the keyboard!
 					break; //Break out of the loop: we're done!

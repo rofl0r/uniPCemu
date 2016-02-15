@@ -52,6 +52,7 @@ typedef struct
 	byte analog_minrange; //Minimum adjustment x&y(0,0) for keyboard&mouse to change states (from center)
 	sword keyboard_gamemodemappings[15]; //11 Buttons to map: START, LEFT, UP, RIGHT, DOWN, L, R, TRIANGLE, CIRCLE, CROSS, SQUARE, Then LEFT,UP,RIGHT,DOWN for analog stick (when not assigned, assign mouse movement) -1 for not assigned!
 	byte keyboard_gamemodemappings_alt[15]; //Ctrl,alt,shift states!
+	byte mouse_gamemodemappings[15]; //Mouse button mappings!
 	union
 	{
 		struct

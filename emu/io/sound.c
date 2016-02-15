@@ -399,10 +399,10 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 	//Check for existant update!
 	if (setSampleRate(handler,extradata,samplerate)) //Set?
 	{
-		dolog("soundservice","Sample rate changed to %f",samplerate);
+		//dolog("soundservice","Sample rate changed to %f",samplerate);
 		if (setStereo(handler,extradata,stereo)) //Set?
 		{
-			dolog("soundservice","Stereo changed to %i",stereo);
+			//dolog("soundservice","Stereo changed to %i",stereo);
 			#ifdef DEBUG_SOUNDALLOC
 			dolog("soundservice","Channel changed and ready to run: handler: %p, extra data: %p, samplerate: %i, stereo: %i",handler,extradata,samplerate,stereo);
 			dolog("soundservice",""); //Empty row!
