@@ -109,15 +109,9 @@ void releaseKeysReleased()
 
 byte keys_active = 0;
 
-void tickPressedKeys() //Tick any keys needed to be pressed!
+void tickPressedKey(byte keytime)
 {
 	int i;
-	keys_active = 0; //Initialise keys active!
-	if (capture_status) //Pressed?
-	{
-		keys_active = 1; //We're active!
-		SCREEN_CAPTURE = 1; //Do a screen capture next frame!
-	}
 	if (keyboard_step) //Typematic key?
 	{
 		int last_key_pressed = -1; //Last key pressed!
@@ -136,7 +130,7 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 			}
 		}
 
-		if (last_key_pressed != -1) //Still gotten a last key pressed?
+		if ((last_key_pressed != -1) && (last_key_pressed_time==keytime)) //Still gotten a last key pressed and acted upon?
 		{
 			keys_active = 1; //We're active!
 			if (EMU_keyboard_handler(last_key_pressed, 1)) //Fired the handler for pressing!
@@ -150,7 +144,7 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 	{
 		for (i = 0;i < (int)NUMITEMS(key_status);i++) //Process all keys needed!
 		{
-			if (key_status[i]) //Pressed?
+			if (key_status[i] && (key_pressed_time[i]==keytime)) //Pressed and acted upon?
 			{
 				keys_active = 1; //We're active!
 				if (EMU_keyboard_handler(i, 1)) //Fired the handler for pressing!
@@ -161,6 +155,19 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 			}
 		}
 	}
+}
+
+void tickPressedKeys() //Tick any keys needed to be pressed!
+{
+	int i;
+	keys_active = 0; //Initialise keys active!
+	if (capture_status) //Pressed?
+	{
+		keys_active = 1; //We're active!
+		SCREEN_CAPTURE = 1; //Do a screen capture next frame!
+	}
+	for (i=0;i<key_pressed_counter;i++) //Tick all pressed keys in order of time!
+		tickPressedKey(i); //Tick the timed key!
 }
 
 extern byte EMU_RUNNING; //Are we running?
