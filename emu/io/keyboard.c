@@ -1,5 +1,6 @@
 #include "headers/hardware/ps2_keyboard.h" //Keyboard support!
 #include "headers/support/highrestimer.h" //High resolution timer support!
+#include "headers/support/log.h"
 
 //Basic keyboard support for emulator, mapping key presses and releases to the PS/2 keyboard!
 
@@ -13,13 +14,13 @@
 
 extern byte SCREEN_CAPTURE; //Screen capture requested?
 
-uint_64 key_pressed_counter = 0; //Counter for pressed keys!
+int_64 key_pressed_counter = 0; //Counter for pressed keys!
 uint_32 keys_pressed = 0; //Currently ammount of keys pressed!
 
 word keys_arepressed; //How many keys of keys_ispressed are actually pressed?
 byte key_status[0x100]; //Status of all keys!
 byte keys_ispressed[0x100]; //All possible keys to be pressed!
-uint_64 key_pressed_time[0x100]; //What time was the key pressed?
+int_64 key_pressed_time[0x100]; //What time was the key pressed?
 byte capture_status; //Capture key status?
 
 //We're running each ms, so 1000 steps/second!
@@ -29,7 +30,7 @@ double keyboard_time = 0; //Total time currently counted!
 
 void onKeyPress(char *key) //On key press/hold!
 {
-	if (strcmp(key,"CAPTURE")==0) //Screen capture requested?
+	if (!strcmp(key,"CAPTURE")) //Screen capture requested?
 	{
 		if (!capture_status) //New key pressed?
 		{
@@ -40,11 +41,13 @@ void onKeyPress(char *key) //On key press/hold!
 	}
 	int keyid;
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
+	//dolog("input","Current mode: Pressed key: %s",key); //Log us!
 	if (keyid!=-1) //Key found?
 	{
 		if (!key_status[keyid]) //New key pressed?
 		{
 			key_pressed_time[keyid] = key_pressed_counter++; //Increasing time of the key being pressed!
+			//dolog("input","Current mode: Pressed key: %i",keyid); //Log us!
 			++keys_pressed; //Increase the ammount of keys pressed!
 		}
 		key_status[keyid] = 1; //We've pressed a new key!
@@ -53,7 +56,7 @@ void onKeyPress(char *key) //On key press/hold!
 
 byte onKeyRelease(char *key) //On key release!
 {
-	if (strcmp(key, "CAPTURE") == 0) //Screen capture requested?
+	if (!strcmp(key, "CAPTURE")) //Screen capture requested?
 	{
 		if (capture_status) //Pressed?
 		{
@@ -62,6 +65,7 @@ byte onKeyRelease(char *key) //On key release!
 		capture_status = 0; //We're released!
 		return 1; //Finished!
 	}
+	//dolog("input","Current mode: Released key: %s",key); //Log us!
 	int keyid;
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
 	if (keyid!=-1) //Key found and pressed atm?
@@ -69,6 +73,7 @@ byte onKeyRelease(char *key) //On key release!
 		if (key_status[keyid]) //Pressed?
 		{
 			--keys_pressed; //One key has been released!
+			//dolog("input","Current mode: Released key: %i",keyid); //Log us!
 		}
 		key_status[keyid] = 0; //We're released!
 		return 1; //We're released!
@@ -88,14 +93,14 @@ void calculateKeyboardStep()
 	}
 }
 
-void releaseKeysReleased()
+void releaseKeyReleased(uint_64 keytime)
 {
-	int i;
-	if (keys_arepressed) //Are there actually keys pressed to be released?
+	int_64 i;
+	for (i = 0;i < (int)NUMITEMS(key_status);i++) //Process all keys needed!
 	{
-		for (i = 0;i < (int)NUMITEMS(key_status);i++) //Process all keys needed!
+		if (keys_ispressed[i] && (key_pressed_time[i]==keytime)) //Are we pressed and allowed to release?
 		{
-			if (keys_ispressed[i] && !key_status[i]) //Are we released?
+			if (!key_status[i]) //Are we released?
 			{
 				if (EMU_keyboard_handler(i, 0)) //Fired the handler for releasing!
 				{
@@ -107,9 +112,19 @@ void releaseKeysReleased()
 	}
 }
 
+void releaseKeysReleased()
+{
+	int_64 i;
+	if (keys_arepressed) //Are there actually keys pressed to be released?
+	{
+		for (i=0;i<key_pressed_counter;i++)
+			releaseKeyReleased(i); //Release this time's key if applicable!
+	}
+}
+
 byte keys_active = 0;
 
-void tickPressedKey(byte keytime)
+void tickPressedKey(uint_64 keytime)
 {
 	int i;
 	if (keyboard_step) //Typematic key?
@@ -133,6 +148,7 @@ void tickPressedKey(byte keytime)
 		if ((last_key_pressed != -1) && (last_key_pressed_time==keytime)) //Still gotten a last key pressed and acted upon?
 		{
 			keys_active = 1; //We're active!
+			//dolog("input","pressedkey_repeated: %i",last_key_pressed); //Log us!
 			if (EMU_keyboard_handler(last_key_pressed, 1)) //Fired the handler for pressing!
 			{
 				if (!keys_ispressed[last_key_pressed]) ++keys_arepressed; //A new key has been pressed!
@@ -147,6 +163,7 @@ void tickPressedKey(byte keytime)
 			if (key_status[i] && (key_pressed_time[i]==keytime)) //Pressed and acted upon?
 			{
 				keys_active = 1; //We're active!
+				//dolog("input","pressedkey1: %i",i); //Log us!
 				if (EMU_keyboard_handler(i, 1)) //Fired the handler for pressing!
 				{
 					if (!keys_ispressed[i]) ++keys_arepressed; //A new key has been pressed!
@@ -159,7 +176,7 @@ void tickPressedKey(byte keytime)
 
 void tickPressedKeys() //Tick any keys needed to be pressed!
 {
-	int i;
+	uint_64 i;
 	keys_active = 0; //Initialise keys active!
 	if (capture_status) //Pressed?
 	{
@@ -184,7 +201,7 @@ void tickPendingKeys(double timepassed) //Handle all pending keys from our emula
 	{
 		if (!keys_pressed) //No keys pressed anymore?
 		{
-			keyboard_step = 0; //Release the timer: we're restarting the count!
+			keyboard_step = key_pressed_counter = 0; //Release the timer: we're restarting the count!
 		}
 	}
 
