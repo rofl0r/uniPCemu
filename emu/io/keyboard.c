@@ -41,13 +41,11 @@ void onKeyPress(char *key) //On key press/hold!
 	}
 	int keyid;
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
-	//dolog("input","Current mode: Pressed key: %s",key); //Log us!
 	if (keyid!=-1) //Key found?
 	{
 		if (!key_status[keyid]) //New key pressed?
 		{
 			key_pressed_time[keyid] = key_pressed_counter++; //Increasing time of the key being pressed!
-			//dolog("input","Current mode: Pressed key: %i",keyid); //Log us!
 			++keys_pressed; //Increase the ammount of keys pressed!
 		}
 		key_status[keyid] = 1; //We've pressed a new key!
@@ -65,7 +63,6 @@ byte onKeyRelease(char *key) //On key release!
 		capture_status = 0; //We're released!
 		return 1; //Finished!
 	}
-	//dolog("input","Current mode: Released key: %s",key); //Log us!
 	int keyid;
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
 	if (keyid!=-1) //Key found and pressed atm?
@@ -73,7 +70,6 @@ byte onKeyRelease(char *key) //On key release!
 		if (key_status[keyid]) //Pressed?
 		{
 			--keys_pressed; //One key has been released!
-			//dolog("input","Current mode: Released key: %i",keyid); //Log us!
 		}
 		key_status[keyid] = 0; //We're released!
 		return 1; //We're released!
@@ -148,7 +144,6 @@ void tickPressedKey(uint_64 keytime)
 		if ((last_key_pressed != -1) && (last_key_pressed_time==keytime)) //Still gotten a last key pressed and acted upon?
 		{
 			keys_active = 1; //We're active!
-			//dolog("input","pressedkey_repeated: %i",last_key_pressed); //Log us!
 			if (EMU_keyboard_handler(last_key_pressed, 1)) //Fired the handler for pressing!
 			{
 				if (!keys_ispressed[last_key_pressed]) ++keys_arepressed; //A new key has been pressed!
@@ -163,7 +158,6 @@ void tickPressedKey(uint_64 keytime)
 			if (key_status[i] && (key_pressed_time[i]==keytime)) //Pressed and acted upon?
 			{
 				keys_active = 1; //We're active!
-				//dolog("input","pressedkey1: %i",i); //Log us!
 				if (EMU_keyboard_handler(i, 1)) //Fired the handler for pressing!
 				{
 					if (!keys_ispressed[i]) ++keys_arepressed; //A new key has been pressed!

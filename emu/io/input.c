@@ -1048,6 +1048,10 @@ int ticking = 0; //Already ticking?
 }*/
 
 byte req_quit_gamingmode = 0; //Requesting to quit gaming mode?
+byte req_enter_gamingmode = 0; //Requesting to quit gaming mode?
+
+void clearBuffers(); //Clear any input buffers still filled! prototype!
+
 
 void keyboard_swap_handler() //Swap handler for keyboard!
 {
@@ -1064,42 +1068,49 @@ void keyboard_swap_handler() //Swap handler for keyboard!
 				}
 				else if (req_quit_gamingmode) //Select released and requesting to quit gaming mode?
 				{
+					clearBuffers(); //Make sure all buffers are cleared!
 					curstat.gamingmode = 0; //Disable gaming mode!
+					req_quit_gamingmode = 0; //Not anymore!
 				}
 			}
-			else if (curstat.mode==1) //Keyboard active and on-screen?
+			else //Either mouse or keyboard mode?
 			{
 				int curkey;
 				curkey = psp_inputkey(); //Read current keys with delay!
-				if ((curkey&BUTTON_LTRIGGER) && (!(curkey&BUTTON_RTRIGGER))) //Not L&R (which is CAPS LOCK) special?
+				if (curkey&BUTTON_DOWN) //Down pressed: swap to gaming mode!
 				{
-					currentset = (currentset+1)%3; //Next set!
-					currentkey = 0; //No keys pressed!
-					//Disable all output still standing!
-					ReleaseKeys(); //Release all keys!
+					req_enter_gamingmode = 1; //We're requesting to enter gaming mode!
 				}
-				else if (curkey&BUTTON_DOWN) //Down pressed: swap to gaming mode!
+				else if (req_enter_gamingmode) //Down released and requesting to enter gaming mode?
 				{
 					currentkey = 0; //No keys pressed!
 					ReleaseKeys(); //Release all keys!
 					curstat.gamingmode = 1; //Enable gaming mode!
+					req_enter_gamingmode = 0; //Not anymore!
 				}
-				else if (curkey&BUTTON_START) //Swap to mouse mode!
+				else if (curstat.mode==1) //Keyboard active and on-screen?
 				{
-					currentkey = 0; //No keys pressed!
-					ReleaseKeys(); //Release all keys!
-					curstat.mode = 0; //Swap to mouse mode!
+					if ((curkey&BUTTON_LTRIGGER) && (!(curkey&BUTTON_RTRIGGER))) //Not L&R (which is CAPS LOCK) special?
+					{
+						currentset = (currentset+1)%3; //Next set!
+						currentkey = 0; //No keys pressed!
+						//Disable all output still standing!
+						ReleaseKeys(); //Release all keys!
+					}
+					else if (curkey&BUTTON_START) //Swap to mouse mode!
+					{
+						currentkey = 0; //No keys pressed!
+						ReleaseKeys(); //Release all keys!
+						curstat.mode = 0; //Swap to mouse mode!
+					}
 				}
-			}
-			else if (curstat.mode==0) //Mouse active?
-			{
-				if (psp_inputkey()&BUTTON_DOWN) //Down pressed: swap to gaming mode!
+				else if (curstat.mode==0) //Mouse active?
 				{
-					curstat.gamingmode = 1; //Enable gaming mode!
-				}
-				else if (psp_inputkey()&BUTTON_START) //Swap to keyboard mode!
-				{
-					curstat.mode = 1; //Swap to keyboard mode!
+					if (psp_inputkey()&BUTTON_START) //Swap to keyboard mode!
+					{
+						ReleaseKeys(); //Release all keys!
+						curstat.mode = 1; //Swap to keyboard mode!
+					}
 				}
 			}
 		}
@@ -1359,320 +1370,71 @@ void handleKeyboard() //Handles keyboard input!
 	}
 }
 
+byte gamingmode_keys_pressed[15] = {0,0,0,0,0,0,0,0,0,0,0}; //We have pressed the key?
+
 void handleGaming(double timepassed) //Handles gaming mode input!
 {
 	//Test for all keys and process!
 	if (input_buffer_enabled) return; //Don't handle buffered input, we don't allow mapping gaming mode to gaming mode!
 
-	if ((BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGLEFT] == -1) &&
-		(BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGUP] == -1) &&
-		(BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGRIGHT] == -1) &&
-		(BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGDOWN] == -1)) //No analog assigned? Process analog mouse movement!
-	{
-		//Also handle mouse movement here (constant factor)!
-		handleMouseMovement(timepassed); //Handle mouse movement!
-	}
-
-	int keys[15]; //Key index for this key, -1 for none/nothing happened!
-	byte keys_pressed[15] = {0,0,0,0,0,0,0,0,0,0,0}; //We have pressed the key?
+	sword keys[15]; //Key index for this key, -1 for none/nothing happened!
+	byte keymappings[15] = {GAMEMODE_START, GAMEMODE_LEFT, GAMEMODE_UP, GAMEMODE_RIGHT, GAMEMODE_DOWN, GAMEMODE_LTRIGGER, GAMEMODE_RTRIGGER, GAMEMODE_TRIANGLE, GAMEMODE_CIRCLE, GAMEMODE_CROSS, GAMEMODE_SQUARE, GAMEMODE_ANALOGLEFT, GAMEMODE_ANALOGUP, GAMEMODE_ANALOGRIGHT, GAMEMODE_ANALOGDOWN};
 	//Order: START, LEFT, UP, RIGHT, DOWN, L, R, TRIANGLE, CIRCLE, CROSS, SQUARE, ANALOGLEFT, ANALOGUP, ANALOGRIGHT, ANALOGDOWN
+	uint_32 keybits[15] = {1024,16,32,64,128,256,512,2.4,8,1,0,0,0,0}; //Button mapped to input, analog=0.
+	byte analogmapped; //Is analog mapped?
+
+	oldshiftstatus = shiftstatus; //Save backup for press/release!
+	shiftstatus = Mouse_buttons = 0; //Default new shift/mouse status: none!
+	analogmapped = 0; //Default: analog isn't mapped!
 
 	int i;
+	byte keystat,keymapping,isanalog;
 	for (i=0;i<15;i++)
 	{
 		keys[i] = -1; //We have no index and nothing happened!
-	}
-	shiftstatus = Mouse_buttons = 0; //Default new shift status: none!
+		isanalog = 0;
+		if (keybits[i]) //Mapped to a key?
+		{
+			keystat = ((curstat.buttonpress&keybits[i])>0);
+		}
+		else //Mapped to analog?
+		{
+			isanalog = 1; //Default: analog (below cases)!
+			switch (keymappings[i]) //What analog key?
+			{
+				case GAMEMODE_ANALOGLEFT: keystat = ((curstat.analogdirection_keyboard_x<0) && (!curstat.analogdirection_keyboard_y)); break; //ANALOG LEFT?
+				case GAMEMODE_ANALOGRIGHT: keystat = ((curstat.analogdirection_keyboard_x>0) && (!curstat.analogdirection_keyboard_y)); break; //ANALOG RIGHT?
+				case GAMEMODE_ANALOGUP: keystat = ((!curstat.analogdirection_keyboard_x) && (curstat.analogdirection_keyboard_y<0)); break; //ANALOG UP?
+				case GAMEMODE_ANALOGDOWN: keystat = ((!curstat.analogdirection_keyboard_x) && (curstat.analogdirection_keyboard_y>0)); break; //ANALOG DOWN?
+				default: keystat = isanalog = 0; break; //Unknown key! Not analog!
+				break;
+			}
+		}
+		keymapping = keymappings[i]; //Mapping to use for this key.
 
-	if (curstat.buttonpress&1) //Square?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_SQUARE]!=-1) //Mapped on?
+		//Process press/release of key!
+		if ((BIOS_Settings.input_settings.keyboard_gamemodemappings[keymapping]!=-1) || (BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[keymapping]) || (BIOS_Settings.input_settings.mouse_gamemodemappings[keymapping])) //Mapped on?
 		{
-			keys[GAMEMODE_SQUARE] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_SQUARE]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_SQUARE] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_SQUARE]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_SQUARE]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_SQUARE]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_SQUARE]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_SQUARE] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_SQUARE]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_SQUARE] = 0; //We're released!
-		}
-	}
-
-	if (curstat.buttonpress&2) //Triangle?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_TRIANGLE]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_TRIANGLE] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_TRIANGLE]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_TRIANGLE] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_TRIANGLE]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_TRIANGLE]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_TRIANGLE]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_TRIANGLE]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_TRIANGLE] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_TRIANGLE]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_TRIANGLE] = 0; //We're released!
+			analogmapped |= isanalog; //Analog is mapped when we're analog!
+			if (keystat) //Pressed?
+			{
+				keys[i] = BIOS_Settings.input_settings.keyboard_gamemodemappings[keymapping]; //Set the key: we've changed!
+				gamingmode_keys_pressed[i] = 1; //We're pressed!
+				shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[keymapping]; //Ctrl-alt-shift status!
+				Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[keymapping]; //Mouse status!
+			}
+			else if (gamingmode_keys_pressed[i]) //Try release!
+			{
+				keys[i] = BIOS_Settings.input_settings.keyboard_gamemodemappings[keymapping]; //Set the key: we've changed!
+				gamingmode_keys_pressed[i] = 0; //We're released!
+			}
 		}
 	}
 
-	if (curstat.buttonpress&4) //Circle?
+	if (!analogmapped) //No analog assigned? Process analog mouse movement!
 	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_CIRCLE]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_CIRCLE] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_CIRCLE]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_CIRCLE] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_CIRCLE]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_CIRCLE]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_CIRCLE]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_CIRCLE]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_CIRCLE] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_CIRCLE]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_CIRCLE] = 0; //We're released!
-		}
-	}
-
-	if (curstat.buttonpress&8) //Cross?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_CROSS]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_CROSS] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_CROSS]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_CROSS] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_CROSS]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_CROSS]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_CROSS]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_CROSS]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_CROSS] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_CROSS]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_CROSS] = 0; //We're released!
-		}
-	}
-
-
-	if (curstat.buttonpress&16) //Left?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_LEFT]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_LEFT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_LEFT]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_LEFT] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_LEFT]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_LEFT]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_LEFT]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_LEFT]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_LEFT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_LEFT]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_LEFT] = 0; //We're released!
-		}
-	}
-
-
-	if (curstat.buttonpress&32) //Up?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_UP]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_UP] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_UP]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_UP] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_UP]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_UP]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_UP]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_UP]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_UP] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_UP]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_UP] = 0; //We're released!
-		}
-	}
-
-
-	if (curstat.buttonpress&64) //Right?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_RIGHT]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_RIGHT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_RIGHT]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_RIGHT] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_RIGHT]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_RIGHT]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_RIGHT]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_RIGHT]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_RIGHT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_RIGHT]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_RIGHT] = 0; //We're released!
-		}
-	}
-
-
-	if (curstat.buttonpress&128) //Down?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_DOWN]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_DOWN] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_DOWN]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_DOWN] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_DOWN]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_DOWN]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_DOWN]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_DOWN]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_DOWN] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_DOWN]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_DOWN] = 0; //We're released!
-		}
-	}
-
-
-	if (curstat.buttonpress&256) //L?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_LTRIGGER]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_LTRIGGER] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_LTRIGGER]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_LTRIGGER] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_LTRIGGER]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_LTRIGGER]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_LTRIGGER]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_LTRIGGER]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_LTRIGGER] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_LTRIGGER]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_LTRIGGER] = 0; //We're released!
-		}
-	}
-
-
-	if (curstat.buttonpress&512) //R?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_RTRIGGER]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_RTRIGGER] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_RTRIGGER]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_RTRIGGER] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_RTRIGGER]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_RTRIGGER]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_RTRIGGER]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_RTRIGGER]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_RTRIGGER] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_RTRIGGER]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_RTRIGGER] = 0; //We're released!
-		}
-	}
-
-	if (curstat.buttonpress&1024) //START?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_START]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_START] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_START]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_START] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_START]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_START]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_START]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_START]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_START] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_START]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_START] = 0; //We're released!
-		}
-	}
-
-	if (curstat.analogdirection_keyboard_x<0 && !curstat.analogdirection_keyboard_y) //ANALOG LEFT?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGLEFT]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_ANALOGLEFT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGLEFT]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_ANALOGLEFT] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_ANALOGLEFT]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_ANALOGLEFT]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_ANALOGLEFT]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGLEFT]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_ANALOGLEFT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGLEFT]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_ANALOGLEFT] = 0; //We're released!
-		}
-	}
-
-	if (!curstat.analogdirection_keyboard_x && curstat.analogdirection_keyboard_y<0) //ANALOG UP?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGUP]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_ANALOGUP] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGUP]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_ANALOGUP] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_ANALOGUP]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_ANALOGUP]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_ANALOGUP]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGUP]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_ANALOGUP] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGUP]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_ANALOGUP] = 0; //We're released!
-		}
-	}
-
-	if (curstat.analogdirection_keyboard_x>0 && !curstat.analogdirection_keyboard_y) //ANALOG RIGHT?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGRIGHT]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_ANALOGRIGHT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGRIGHT]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_ANALOGRIGHT] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_ANALOGRIGHT]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_ANALOGRIGHT]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_ANALOGRIGHT]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGRIGHT]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_ANALOGRIGHT] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGRIGHT]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_ANALOGRIGHT] = 0; //We're released!
-		}
-	}
-
-	if (!curstat.analogdirection_keyboard_x && curstat.analogdirection_keyboard_y>0) //ANALOG DOWN?
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGDOWN]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_ANALOGDOWN] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGDOWN]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_ANALOGDOWN] = 1; //We're pressed!
-			shiftstatus |= BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[GAMEMODE_ANALOGDOWN]; //Ctrl-alt-shift status!
-			Mouse_buttons |= BIOS_Settings.input_settings.mouse_gamemodemappings[GAMEMODE_ANALOGDOWN]; //Mouse status!
-		}
-	}
-	else if (keys_pressed[GAMEMODE_ANALOGDOWN]) //Try release!
-	{
-		if (BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGDOWN]!=-1) //Mapped on?
-		{
-			keys[GAMEMODE_ANALOGDOWN] = BIOS_Settings.input_settings.keyboard_gamemodemappings[GAMEMODE_ANALOGDOWN]; //Set the key: we've changed!
-			keys_pressed[GAMEMODE_ANALOGDOWN] = 0; //We're released!
-		}
+		//Also handle mouse movement here (constant factor)!
+		handleMouseMovement(timepassed); //Handle mouse movement!
 	}
 
 	//First, process Ctrl,Alt,Shift Releases!
@@ -1701,18 +1463,18 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 	{
 		onKeyPress("lshift");
 	}
-	oldshiftstatus = shiftstatus; //Save shift status to old shift status!
+
 	//Next, process the keys!
-	for (i=0;i<10;i++) //Process all keys!
+	for (i=0;i<15;i++) //Process all keys!
 	{
-		if (keys[i]!=-1) //Action?
+		if (keys[i]!=-1) //Action is mapped?
 		{
 			char keyname[256]; //For storing the name of the key!
 			if (EMU_keyboard_handler_idtoname(keys[i],&keyname[0])) //Gotten ID (valid key)?
 			{
 				if (strcmp(keyname,"lctrl") && strcmp(keyname,"lalt") && strcmp(keyname,"lshift")) //Ignore already processed keys!
 				{
-					if (keys_pressed[i]) //Pressed?
+					if (gamingmode_keys_pressed[i]) //Pressed?
 					{
 						onKeyPress(keyname); //Press the key!
 					}
@@ -1966,8 +1728,10 @@ void clearBuffers() //Clear any input buffers still filled!
 	input_buffer_shift = input_buffer_mouse = 0; //Shift/mouse status: nothing pressed yet!
 	input_buffer = last_input_key = -1; //Disable any output!
 	lastkey = lastshift = oldMouse_buttons = 0; //Disable keyboard status, mouse buttons, leave x, y and set alone(not required to clear)!
-	req_quit_gamingmode = 0; //Not requesting quitting the gaming mode anymore!
+	req_quit_gamingmode = req_enter_gamingmode = 0; //Not requesting quitting/entering the gaming mode anymore!
 	//memset(&input,0,sizeof(input)); //Clear all currently set input from the PSP (emulation) subsystem!
+	ReleaseKeys(); //Release all keys still pressed, if possible!
+	memset(&gamingmode_keys_pressed,0,sizeof(gamingmode_keys_pressed)); //Clear gaming mode keys pressed: we're all released!
 }
 
 void disableKeyboard() //Disables the keyboard/mouse functionality!
@@ -2214,7 +1978,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		{
 			lock(LOCK_INPUT);
 			switch (event->key.keysym.sym) //What key?
-				{
+			{
 					//Special first
 				case SDLK_LCTRL: //LCTRL!
 					input.cas |= CAS_LCTRL; //Pressed!
