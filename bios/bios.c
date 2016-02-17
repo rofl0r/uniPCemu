@@ -188,7 +188,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	bytestoread -= sizeof(CheckSum); //Without the checksum!
 	if (bytestoread > sizeof(BIOS_Settings)) //Incompatible BIOS: we're newer than what we have?
 	{
-		dolog("BIOS","Error: BIOS is too large.");
+		dolog("BIOS","Error: BIOS is too large (Maximum: %i bytes, Actually: %i bytes).",sizeof(BIOS_Settings),bytestoread);
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults because 
 	}
