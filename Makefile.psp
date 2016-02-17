@@ -25,13 +25,14 @@ CFLAGS += $(OPTIMIZATIONFLAG) -G0
 #SDL
 CXXFLAGS += $(CFLAGS)
 ASFLAGS = $(CFLAGS)
-LIBS = -lpng -lz -lm -lstdc++
 #PSPLIBS1 = -lpspgu -lpsppower -lpspdebugkb
 PSPLIBS1 = -lpspdebugkb
 #Audio
 PSPLIBS1 += -lpspaudiolib -lpspaudio
 #Timing/RTC
 PSPLIBS1 += -lpsprtc
+#SDL requirements
+PSPLIBS1 += -lpspirkeyb -lpsppower -lpsphprm -lpspgu -lm
 
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = $(BUILD_NAME)
@@ -43,7 +44,10 @@ PSPBIN = $(PSPSDK)/../bin
 #CFLAGS = $(shell $(PSPBIN)/sdl-config --cflags)
 #LIBS += -lSDL  -lglut -lGLU -lGL -lc
 #PSPLIBS2 = -lpsputility -lpspdebug -lpspge -lpspdisplay -lpspctrl -lpspsdk -lpspvfpu -lpsplibc -lpspuser -lpspkernel -lpsphprm -lpspirkeyb -lpsppower
-PSPLIBS2 = -lSDL -lSDL_ttf -lSDL_image -lSDL_gfx -lpspirkeyb -lpspwlan -lpsppower -lGL -l freetype -ljpeg -lpng -lz -lm -lSDL -lpspgu -l psphprm -lpspaudio -lstdc++ -lpspvfpu -lpsprtc
+#PSPLIBS2 = -lSDL -lSDL_image -lSDL_gfx -lpspirkeyb -lpspwlan -lpsppower -lGL -l freetype -ljpeg -lpng -lz -lm -lpspgu -lpsphprm -lpspaudio -lstdc++ -lpspvfpu -lpsprtc
+
+#Basic SDL libraries!
+PSPLIBS2 = -lSDL -lSDL_gfx
 
 #Link the final PSP libaries!
 LIBS += $(PSPLIBS2) $(PSPLIBS1)
