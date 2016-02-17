@@ -40,7 +40,8 @@ BUILD_CFLAGS = -ggdb -ffunction-sections
 endif
 
 #Different kinds of flags!
-CFLAGS = -std=c99 ${WARNS}
+#Add -mno-ms-bitfields to fix broken bitfields and type sizes in MinGW.
+CFLAGS = -std=c99 ${WARNS} -mno-ms-bitfields
 LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 
 #Apply build directory etc.
