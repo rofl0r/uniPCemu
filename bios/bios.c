@@ -178,7 +178,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	if (bytesread!=sizeof(CheckSum) || feof(f)) //Not read?
 	{
 		fclose(f); //Close!
-		dolog("BIOS","Error reading BIOS checksum.");
+		dolog("BIOS","Error reading BIOS settings checksum.");
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults!
 	}
@@ -186,11 +186,10 @@ void BIOS_LoadData() //Load BIOS settings!
 	fseek(f, 0, SEEK_END); //Goto EOF!
 	bytestoread = ftell(f); //How many bytes to read!
 	bytestoread -= sizeof(CheckSum); //Without the checksum!
-	dolog("BIOS","BIOS size requested: %i bytes",bytestoread);
-	dolog("BIOS","BIOS size to read: %i bytes(checksum: %i bytes)",sizeof(BIOS_Settings),sizeof(CheckSum));
+
 	if (bytestoread > sizeof(BIOS_Settings)) //Incompatible BIOS: we're newer than what we have?
 	{
-		dolog("BIOS","Error: BIOS is too large (Maximum: %i bytes, Actually: %i bytes).",sizeof(BIOS_Settings),bytestoread);
+		dolog("BIOS","Error: BIOS settings data is too large (Maximum: %i bytes, Actually: %i bytes).",sizeof(BIOS_Settings),bytestoread);
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults because 
 	}
@@ -203,14 +202,14 @@ void BIOS_LoadData() //Load BIOS settings!
 //Verify the checksum!
 	if (bytesread != bytestoread) //Error reading data?
 	{
-		dolog("BIOS","Error: BIOS data to read doesn't match bytes read.");
+		dolog("BIOS","Error: BIOS settings data to read doesn't match bytes read.");
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults!
 	}
 
 	if (CheckSum!=BIOS_getChecksum()) //Checksum fault?
 	{
-		dolog("BIOS","Error: Invalid checksum.");
+		dolog("BIOS","Error: Invalid BIOS settings checksum.");
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults!
 	}
@@ -218,7 +217,7 @@ void BIOS_LoadData() //Load BIOS settings!
 
 	if (BIOS_Settings.version!=BIOS_VERSION) //Not compatible with our version?
 	{
-		dolog("BIOS","Error: Invalid BIOS version.");
+		dolog("BIOS","Error: Invalid BIOS settings version.");
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults because 
 	}
@@ -247,8 +246,6 @@ int BIOS_SaveData() //Save BIOS settings!
 		fclose(f); //Close!
 		return 0; //Failed to write!
 	}
-
-	dolog("BIOS","BIOS size to write: %i bytes(checksum: %i bytes)",sizeof(BIOS_Settings),sizeof(CheckSum));
 
 	byteswritten = fwrite(&BIOS_Settings,1,sizeof(BIOS_Settings),f); //Write data!
 	if (byteswritten!=sizeof(BIOS_Settings)) //Failed to save?
