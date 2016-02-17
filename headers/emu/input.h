@@ -47,7 +47,8 @@ typedef struct
 	byte mode; //Which mode: 0=Mouse, 1=Keyboard!
 } PSP_INPUTSTATE; //Contains the state of PSP input buttons!
 
-typedef struct
+#include "headers/packed.h" //Packed support!
+typedef struct PACKED
 {
 	byte analog_minrange; //Minimum adjustment x&y(0,0) for keyboard&mouse to change states (from center)
 	sword keyboard_gamemodemappings[15]; //11 Buttons to map: START, LEFT, UP, RIGHT, DOWN, L, R, TRIANGLE, CIRCLE, CROSS, SQUARE, Then LEFT,UP,RIGHT,DOWN for analog stick (when not assigned, assign mouse movement) -1 for not assigned!
@@ -67,6 +68,7 @@ typedef struct
 		byte colors[6]; //All our colors!
 	};
 } INPUT_SETTINGS; //Settings for the above!
+#include "headers/endpacked.h" //Finished packed data!
 
 //Minimal step before override!
 #define INPUTKEYDELAYSTEP 500000
