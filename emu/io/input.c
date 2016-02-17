@@ -801,7 +801,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	memset(keyboard_display,0,sizeof(keyboard_display)); //Init keyboard display!
 	memcpy(&active_keyboard,&keyboards[keyboard_active],sizeof(active_keyboard)); //Set the active keyboard to the defined keyboard!
 	memset(keyboard_attribute,0,sizeof(keyboard_attribute)); //Default attributes to font color!
-memset(keyboard_special,0,sizeof(keyboard_special)); //Default attributes to font color!
+	memset(keyboard_special,0,sizeof(keyboard_special)); //Default attributes to font color!
 
 	if (!input_enabled) //Input disabled atm?
 	{
@@ -1051,7 +1051,6 @@ byte req_quit_gamingmode = 0; //Requesting to quit gaming mode?
 byte req_enter_gamingmode = 0; //Requesting to quit gaming mode?
 
 void clearBuffers(); //Clear any input buffers still filled! prototype!
-
 
 void keyboard_swap_handler() //Swap handler for keyboard!
 {
@@ -1729,7 +1728,6 @@ void clearBuffers() //Clear any input buffers still filled!
 	input_buffer = last_input_key = -1; //Disable any output!
 	lastkey = lastshift = oldMouse_buttons = 0; //Disable keyboard status, mouse buttons, leave x, y and set alone(not required to clear)!
 	req_quit_gamingmode = req_enter_gamingmode = 0; //Not requesting quitting/entering the gaming mode anymore!
-	//memset(&input,0,sizeof(input)); //Clear all currently set input from the PSP (emulation) subsystem!
 	ReleaseKeys(); //Release all keys still pressed, if possible!
 	memset(&gamingmode_keys_pressed,0,sizeof(gamingmode_keys_pressed)); //Clear gaming mode keys pressed: we're all released!
 }
