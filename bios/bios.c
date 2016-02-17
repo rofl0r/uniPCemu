@@ -186,6 +186,8 @@ void BIOS_LoadData() //Load BIOS settings!
 	fseek(f, 0, SEEK_END); //Goto EOF!
 	bytestoread = ftell(f); //How many bytes to read!
 	bytestoread -= sizeof(CheckSum); //Without the checksum!
+	dolog("BIOS","BIOS size requested: %i bytes",bytestoread);
+	dolog("BIOS","BIOS size to read: %i bytes(checksum: %i bytes)",sizeof(BIOS_Settings),sizeof(CheckSum));
 	if (bytestoread > sizeof(BIOS_Settings)) //Incompatible BIOS: we're newer than what we have?
 	{
 		dolog("BIOS","Error: BIOS is too large (Maximum: %i bytes, Actually: %i bytes).",sizeof(BIOS_Settings),bytestoread);
@@ -245,6 +247,8 @@ int BIOS_SaveData() //Save BIOS settings!
 		fclose(f); //Close!
 		return 0; //Failed to write!
 	}
+
+	dolog("BIOS","BIOS size to write: %i bytes(checksum: %i bytes)",sizeof(BIOS_Settings),sizeof(CheckSum));
 
 	byteswritten = fwrite(&BIOS_Settings,1,sizeof(BIOS_Settings),f); //Write data!
 	if (byteswritten!=sizeof(BIOS_Settings)) //Failed to save?
