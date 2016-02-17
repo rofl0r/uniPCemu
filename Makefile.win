@@ -5,6 +5,9 @@ BUILD_DIR = ../projects_build/$(BUILD_NAME)
 #Name of the destination application!
 TARGET = $(BUILD_NAME).exe
 
+#GProf switches!
+GPROF_SWITCHES = -l
+
 # ###################################################
 
 
@@ -13,6 +16,7 @@ TARGET = $(BUILD_NAME).exe
 #Our filenames of the targets (release and debug)!
 TARGET_RELEASE = $(TARGET)
 TARGET_DEBUG = dbg$(TARGET)
+TARGET_PROFILE = prof$(TARGET)
 
 #Programs
 CC = gcc
@@ -39,6 +43,10 @@ ifneq (,$(findstring debug,$(MAKECMDGOALS)))
 BUILD_CFLAGS = -ggdb -ffunction-sections
 endif
 
+ifneq (,$(findstring profile,$(MAKECMDGOALS)))
+BUILD_CFLAGS = -g -pg -ffunction-sections -enable-core-inline -static-libgcc -static-libstdc++
+endif
+
 #Different kinds of flags!
 #Add -mno-ms-bitfields to fix broken bitfields and type sizes in MinGW.
 CFLAGS = -std=c99 ${WARNS} -mno-ms-bitfields
@@ -47,12 +55,23 @@ LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx
 #Apply build directory etc.
 BUILD_RELEASE = $(BUILD_DIR)/$(TARGET_RELEASE)
 BUILD_DEBUG = $(BUILD_DIR)/$(TARGET_DEBUG)
+BUILD_PROFILE = $(BUILD_DIR)/$(TARGET_PROFILE)
+BUILD_PROFILE_GMON = $(BUILD_DIR)/gmon.out
+BUILD_PROFILE_GMON_TXT = $(BUILD_DIR)/profiler.txt
+
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
 #Rules themselves!
 #Build&debug command support!
 
 build: $(BUILD_RELEASE)
+
+profile: $(BUILD_PROFILE)
+
+profile_use: $(BUILD_PROFILE)
+	gprof $(GPROF_SWITCHES) $(BUILD_PROFILE) $(BUILD_PROFILE_GMON) > $(BUILD_PROFILE_GMON_TXT)
+
+reprofile: clean profile	
 
 #Run debugger now on the executable!
 debug: $(BUILD_DEBUG)
@@ -63,6 +82,9 @@ redebug: clean debug
 #Compile into debug mode without stripping (-s)!
 $(BUILD_DEBUG): ${OBJS}
 	${CC} -ggdb -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
+
+$(BUILD_PROFILE): ${OBJS}
+	${CC} -g -pg -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
 
 #Compile into release mode with stripping (-s)!
 $(BUILD_RELEASE): ${OBJS}
