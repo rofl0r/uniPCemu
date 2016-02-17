@@ -1,6 +1,7 @@
 #ifdef PACKED
 #undef PACKED
 #endif
+
 #ifdef _WIN32
 #ifndef __GNUC__
 #ifndef __MINGW32__
@@ -8,14 +9,14 @@
 #define PACKED
 #pragma pack(push,1)
 //Our VisualC flag for end detection!
-#ifndef VISUALC
-#define VISUALC
+#ifndef VCPACKED
+#define VCPACKED
 #endif
 #endif
 #endif
 #endif
 
-#ifndef VISUALC
+#ifndef VCPACKED
 //GCC assumed
 #define PACKED __attribute__ ((__packed__))
 #endif

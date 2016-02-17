@@ -1,4 +1,4 @@
-#ifdef VISUALC
+#ifdef VCPACKED
 //Visual C++ Assumed
 #pragma pack(pop)
 #endif
