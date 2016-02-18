@@ -21,6 +21,9 @@
 #include "headers/hardware/vga/vga.h" //VGA!
 #include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller!
 
+//Our IRQ to use when enabled (EGA compatibility)!
+#define VGA_IRQ 2
+
 typedef struct
 {
 	//Global info
@@ -96,11 +99,23 @@ typedef struct
 
 float VGA_VerticalRefreshRate(VGA_Type *VGA); //Scanline speed for one line in Hz!
 
-byte doVGA_Sequencer(); //Do we even execute?
-void VGA_Sequencer(); //Process active VGA sequencer scanline etc.!
 void VGA_Sequencer_calcScanlineData(VGA_Type *VGA);
 
 //Retrieve the Sequencer from a VGA!
 #define GETSEQUENCER(VGA) ((SEQ_DATA *)(VGA->Sequencer))
+
+//Our different rendering handlers!
+void VGA_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA); //NOP for pixels!
+
+void initStateHandlers(); //Initialise the state handlers for the VGA to run!
+
+typedef void (*DisplaySignalHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal); //Our signal handler for all signals!
+typedef void (*DisplayRenderHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA); //Our rendering handler for all signals!
+
+//Total&Retrace handlers!
+void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA);
+void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA);
+void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA);
+void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA);
 
 #endif

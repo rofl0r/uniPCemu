@@ -57,28 +57,33 @@ OPTINLINE byte GPU_textcalcpixel(byte *x, byte *y, word *charx, word *chary, int
 	return 0; //Valid!
 }
 
-uint_32 lastcharinfo = 0; //attribute|character|0x80|row, bit8=Set?
+OPTINLINE static byte reverse8(byte b) { //Reverses byte value bits!
+	b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4); //Swap 4 high and low bits!
+	b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2); //Swap 2 high and low bits of both nibbles!
+	b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1); //Swap odd and even bits!
+	return b;
+}
 
-OPTINLINE byte getcharxy_8(byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
+OPTINLINE static byte getcharxy_8(byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
 {
-	register uint_32 location;
+	static word lastcharinfo = 0; //attribute|character, bit31=Set?
+	static byte lastrow = 0; //The last loaded row!
+	register word location;
 
-	x &= 7;
-	y &= 7;
-	location = 0x800 | (character << 3) | y; //The location to look up!
+	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
+	location = 0x8000 | (character << 3) | y; //The location to look up!
 
-	if ((lastcharinfo & 0xFFF) != location) //Last row not yet loaded?
+	if (lastcharinfo != location) //Last row not yet loaded?
 	{
-		lastcharinfo = (int10_font_08[location&~0x800]<<12)|location; //Read the row from the character generator!
+		lastrow = reverse8(int10_font_08[(lastcharinfo = location)^0x8000]); //Read the row from the character generator to use! Also reverse the bits for faster usage!
 	}
 
-	register byte bitpos=19; //Load initial value!
-	bitpos -= x; //Substract to get the bit!
-	return ((lastcharinfo>>bitpos)&1); //Give result!
+	//Take the pixel we need!
+	return ((lastrow>>x)&1); //Give result from the reversed data!
 }
 
 
-OPTINLINE byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
+OPTINLINE static byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
 {
 	byte x2, y2;
 	word charx, chary;
@@ -86,7 +91,7 @@ OPTINLINE byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) //Get d
 	return getcharxy_8(surface->text[chary][charx], x2, y2); //Give the pixel of the character!
 }
 
-OPTINLINE uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
+OPTINLINE static uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
 {
 	if (((x<0) || (y<0) || ((y >> 3) >= GPU_TEXTSURFACE_HEIGHT) || ((x >> 3) >= GPU_TEXTSURFACE_WIDTH))) return TRANSPARENTPIXEL; //None when out of bounds!
 	word charx=0, chary=0;
@@ -95,7 +100,7 @@ OPTINLINE uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int b
 	return border ? surface->border[chary][charx] : surface->font[chary][charx]; //Give the border or font of the character!
 }
 
-OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
+OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 {
 	//Undirty!
 	if (GPU_textget_pixel(surface,fx,fy)) //Font?
@@ -120,7 +125,7 @@ OPTINLINE void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	surface->notdirty[fy][fx] = TRANSPARENTPIXEL;
 }
 
-OPTINLINE void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy, byte redraw) //Get the pixel font, back or show through. Automatically plotted if set.
+OPTINLINE static void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy, byte redraw) //Get the pixel font, back or show through. Automatically plotted if set.
 {
 	if (!surface) return; //Invalid surface?
 	if (redraw) updateDirty(surface,fx,fy); //Update dirty if needed!
@@ -164,17 +169,18 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	register int y=0;
+	register int x; //Reset x!
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 	WaitSem(tsurface->lock);
 	byte redraw;
 	redraw = tsurface->flags&TEXTSURFACE_FLAG_DIRTY; //Redraw when dirty only?
 	for (;;) //Process all rows!
 	{
-		register int x=0; //Reset x!
+		x = 0; //Init X!
 		for (;;) //Process all columns!
 		{
-			GPU_textput_pixel(rendersurface,tsurface,x,y,redraw); //Plot a pixel?
-			if (++x==GPU_TEXTPIXELSX) break; //Stop searching now!
+			GPU_textput_pixel(rendersurface,tsurface,x++,y,redraw); //Plot a pixel?
+			if (x==GPU_TEXTPIXELSX) break; //Stop searching now!
 		}
 		if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!
 	}

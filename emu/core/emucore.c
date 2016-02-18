@@ -78,6 +78,9 @@
 //The clock speed of the 8086 (14.31818MHz divided by 3)!
 #define CPU808X_CLOCK (14318180.0f/3.0f)
 
+//Timeout CPU time! 44100Hz or 1ms!
+#define TIMEOUT_TIME 1000000
+
 //Allow GPU rendering (to show graphics)?
 #define ALLOW_GRAPHICS 1
 //To show the framerate?
@@ -548,9 +551,8 @@ OPTINLINE byte coreHandler()
 {
 	//CPU execution, needs to be before the debugger!
 	uint_64 currentCPUtime = getnspassed_k(&CPU_timing); //Current CPU time to update to!
-#ifndef __PSP__
-	uint_64 timeoutCPUtime = currentCPUtime+1000000; //We're timed out this far in the future (1ms)!
-#endif
+	uint_64 timeoutCPUtime = currentCPUtime+TIMEOUT_TIME; //We're timed out this far in the future (1ms)!
+
 	double instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
 	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
 	{
@@ -663,9 +665,7 @@ OPTINLINE byte coreHandler()
 		tickParallel(instructiontime); //Update the Parallel timer!
 		tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing!
 		updateVGA(instructiontime); //Update the VGA timer!
-		#ifndef __PSP__
-			if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
-		#endif
+		if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
 	} //CPU cycle loop!
 
 	//Slowdown to requested speed if needed!

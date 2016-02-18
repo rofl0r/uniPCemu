@@ -5,6 +5,13 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //High resolution timing!
 
+OPTINLINE byte reverse8_VGA(byte b) { //Reverses byte value bits!
+	b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4); //Swap 4 high and low bits!
+	b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2); //Swap 2 high and low bits of both nibbles!
+	b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1); //Swap odd and even bits!
+	return b;
+}
+
 OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 {
 	byte *getcharxy_values;
@@ -44,8 +51,7 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 				characterset_offset += character2; //Start of the character!
 				characterset_offset += y; //Add the row!
 				
-				byte row = readVRAMplane(VGA,2,characterset_offset,0); //Read the row from the character generator! Don't do anything special, just because we're from the renderer!
-				getcharxy_values[(character<<6)|(y<<1)|attribute] = row; //Store the row for the character generator!
+				getcharxy_values[(character<<6)|(y<<1)|attribute] = reverse8_VGA(readVRAMplane(VGA,2,characterset_offset,0)); //Read the row from the character generator! Don't do anything special, just because we're from the renderer! Also reverse the data in the byte for a little speedup! Store the row for the character generator!
 				++y; //Next row!
 			}
 			++attribute; //Next attribute!
@@ -63,10 +69,10 @@ void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been update
 //This is heavy: it doubles (with about 25ms) the rendering time needed to render a line.
 byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from table!
 {
-	static const byte shift[8] = { 7, 6, 5, 4, 3, 2, 1, 0 }; //Shift for the pixel!
 	static byte lastrow; //Last retrieved character row data!
 	static word lastcharinfo = 0; //attribute|character|row|1, bit0=Set?
 	register word lastlookup;
+	register word charloc;
 	register byte newx = x; //Default: use the 9th bit if needed!
 
 	attribute >>= 2; //...
@@ -80,16 +86,9 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 		}
 	}
 	
-	lastlookup = character;
-	lastlookup <<= 1;
-	lastlookup |= attribute;
-	lastlookup <<= 5;
-	lastlookup |= y;
-	lastlookup <<= 1;
-	lastlookup |= 1; //A filled record!
-	if (lastcharinfo!=lastlookup) //Last row not yet loaded?
+	lastlookup = ((((character<<1)|attribute)<<5)|y)|0x8000; //We're to lookup this value to check!
+	if (lastcharinfo!=lastlookup) //Row not yet loaded?
 	{
-		register word charloc;
 		charloc = character; //Character position!
 		charloc <<= 5;
 		charloc |= y;
@@ -99,7 +98,7 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 		lastcharinfo = lastlookup; //Save the loaded row as the current row!
 	}
 	
-	return ((lastrow>>shift[newx])&1); //Give bit!
+	return ((lastrow>>newx)&1); //Give bit!
 }
 
 OPTINLINE void VGA_dumpchar(VGA_Type *VGA, byte c)

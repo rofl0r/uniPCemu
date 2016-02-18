@@ -10,6 +10,8 @@
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer itself!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC renderer support!
+#include "headers/hardware/vga/vga_crtcontroller.h" //CRT Controller for finishing up!
+#include "headers/hardware/pic.h" //IRQ support!
 
 //How many blocks to render at a time when limited.
 #define __SCREEN_BLOCKS_LIMIT 0
@@ -48,6 +50,181 @@ void VGA_initTimer()
 	VGA_rendertiming = 1000000000.0f/oldrate; //Handle this rate from now on!
 }
 
+extern GPU_type GPU;
+
+OPTINLINE byte doVGA_Sequencer() //Do we even execute?
+{
+	if (!memprotect(getActiveVGA(), sizeof(VGA_Type), "VGA_Struct")) //Invalid VGA? Don't do anything!
+	{
+		//unlockVGA();
+		return 0; //Abort: we're disabled without a invalid VGA!
+	}
+	if (!(getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR && getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR)) //Reset sequencer?
+	{
+		return 0; //Abort: we're disabled!
+	}
+	if (!memprotect(GPU.emu_screenbuffer, 4, "EMU_ScreenBuffer")) //Invalid framebuffer? Don't do anything!
+	{
+		//unlockVGA();
+		//unlockGPU(); //Unlock the VGA&GPU for Software access!
+		return 0; //Abort: we're disabled!
+	}
+	return 1; //We can render something!
+}
+
+extern word signal_x, signal_scanline; //Signal location!
+byte Sequencer_run; //Sequencer breaked (loop exit)?
+
+//Special states!
+extern byte blanking; //Are we blanking!
+extern byte retracing; //Allow rendering by retrace!
+extern byte totalling; //Allow rendering by total!
+extern byte totalretracing; //Combined flags of retracing/totalling!
+
+extern byte hblank, hretrace; //Horizontal blanking/retrace?
+extern byte vblank, vretrace; //Vertical blanking/retrace?
+extern word blankretraceendpending; //Ending blank/retrace pending? bits set for any of them!
+
+OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+{
+	//Blankings
+	if (signal&VGA_SIGNAL_HBLANKSTART) //HBlank start?
+	{
+		hblank = 1; //We're blanking!
+	}
+	else if (hblank)
+	{
+		if (signal&VGA_SIGNAL_HBLANKEND) //HBlank end?
+		{
+			blankretraceendpending |= VGA_SIGNAL_HBLANKEND;
+		}
+		else if (blankretraceendpending&VGA_SIGNAL_HBLANKEND) //End pending HBlank!
+		{
+			hblank = 0; //We're not blanking anymore!
+			blankretraceendpending &= ~VGA_SIGNAL_HBLANKEND; //Remove from flags pending!
+		}
+	}
+
+	if (signal&VGA_SIGNAL_VBLANKSTART) //VBlank start?
+	{
+		vblank = 1; //We're blanking!
+	}
+	else if (vblank)
+	{
+		if (signal&VGA_SIGNAL_VBLANKEND) //VBlank end?
+		{
+			blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
+		}
+		else if (blankretraceendpending&VGA_SIGNAL_VBLANKEND) //End pending HBlank!
+		{
+			vblank = 0; //We're not blanking anymore!
+			blankretraceendpending &= ~VGA_SIGNAL_VBLANKEND; //Remove from flags pending!
+		}
+	}
+	
+	//Both H&VBlank count!
+	blanking = hblank;
+	blanking |= vblank; //Process blank!
+	
+	//Retraces
+	if (signal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
+	{
+		if (!hretrace) //Not running yet?
+		{
+			VGA_HRetrace(Sequencer, VGA); //Execute the handler!
+		}
+		hretrace = 1; //We're retracing!
+	}
+	else if (hretrace)
+	{
+		if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
+		{
+			hretrace = 0; //We're not retraing anymore!
+		}
+	}
+
+	if (signal&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
+	{
+		if (!vretrace) //Not running yet?
+		{
+			VGA_VRetrace(Sequencer, VGA); //Execute the handler!
+
+			//VGA/EGA vertical retrace interrupt support!
+			if (VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_NotCleared) //Enabled vertical retrace interrupt?
+			{
+				if (!VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Disabled) //Generate vertical retrace interrupts?
+				{
+					doirq(VGA_IRQ); //Execute the CRT interrupt when possible!
+				}
+				VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 1; //We're pending an CRT interrupt!
+			}
+		}
+		vretrace = 1; //We're retracing!
+	}
+	else if (vretrace)
+	{
+		if (signal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
+		{
+			vretrace = 0; //We're not retracing anymore!
+		}
+	}
+
+	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace; //Vertical retrace?
+
+	register byte isretrace;
+	isretrace = hretrace;
+	isretrace |= vretrace; //We're retracing?
+	//Retracing disables output!
+
+	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing = isretrace; //Vertical or horizontal retrace?
+
+	totalling = 0; //Default: Not totalling!
+	//Totals
+	if (signal&VGA_SIGNAL_HTOTAL) //HTotal?
+	{
+		VGA_HTotal(Sequencer,VGA); //Process HTotal!
+		totalling = 1; //Total reached!
+	}
+	if (signal&VGA_SIGNAL_VTOTAL) //VTotal?
+	{
+		VGA_VTotal(Sequencer,VGA); //Process VTotal!
+		totalling = 1; //Total reached!
+	}
+	
+	totalretracing = totalling;
+	totalretracing <<= 1; //1 bit needed more!
+	totalretracing |= retracing; //Are we retracing?
+}
+
+extern DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for all pixels!
+
+OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
+{
+	//if (!lockVGA()) return; //Lock ourselves!
+	static word displaystate = 0; //Last display state!
+	
+	//All possible states!
+	if (!displayrenderhandler[0][0]) initStateHandlers(); //Init our display states for usage when needed!
+
+	/*if (!lockGPU()) //Lock the GPU for our access!
+	{
+		//unlockVGA();
+		return;
+	}*/
+
+	Sequencer_run = 1; //We're running!
+
+	//Process one pixel only!
+	signal_x = Sequencer->x;
+	signal_scanline = Sequencer->Scanline;
+	displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
+	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), displaystate); //Handle any change in display state first!
+	displayrenderhandler[totalretracing][displaystate](Sequencer, getActiveVGA()); //Execute our signal!
+
+	//unlockVGA(); //Unlock the VGA for Software access!
+	//unlockGPU(); //Unlock the GPU for Software access!
+}
+
 //CPU cycle locked version of VGA rendering!
 void updateVGA(double timepassed)
 {
@@ -65,10 +242,36 @@ void updateVGA(double timepassed)
 		if (!renderings) return; //Nothing to render!
 
 		if (!doVGA_Sequencer()) return; //Don't execute the sequencer if requested to!
+
+		SEQ_DATA *Sequencer;
+		Sequencer = GETSEQUENCER(getActiveVGA()); //Our sequencer!
 		
-		do 
+		do
 		{
-			VGA_Sequencer(); //Tick the VGA once!
+			if (renderings>=20) //20+ optimization?
+			{
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				renderings -= 19; //We've processed 19 more!
+			}
+			VGA_Sequencer(Sequencer); //Tick the VGA once!
 		} while (--renderings); //Ticks left to tick?
 	}
 }

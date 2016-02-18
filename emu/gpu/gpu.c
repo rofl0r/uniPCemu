@@ -27,6 +27,9 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
+//How many frames to render max?
+#define GPU_FRAMERATE 30.0f
+
 extern BIOS_Settings_TYPE BIOS_Settings; //Current settings!
 
 GPU_type GPU; //The GPU itself!
@@ -51,7 +54,7 @@ byte video_aspectratio = 0; //Current aspect ratio!
 
 TicksHolder renderTiming;
 double currentRenderTiming = 0.0;
-double renderTimeout = 1000000000.0f/30.0f; //30Hz refresh!
+double renderTimeout = 1000000000.0f/GPU_FRAMERATE; //60Hz refresh!
 
 void updateWindow(word xres, word yres, uint_32 flags)
 {
