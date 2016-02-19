@@ -662,7 +662,6 @@ OPTINLINE static void applySoundHighpassFilter(float *currentsample, float *soun
 	*sound_last_result = calcSoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, *currentsample, *sound_last_sample, *sound_last_result); //High pass filter!
 	*sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = *sound_last_result; //Give the new result!
-	return;
 	#endif
 }
 
@@ -673,7 +672,6 @@ OPTINLINE static void applySoundLowpassFilter(float *currentsample, float *sound
 	*sound_last_result = (sword)calcSoundLowpassFilter(SOUND_LOWPASS, SW_SAMPLERATE, *currentsample, *sound_last_result); //Low pass filter!
 	*sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = *sound_last_result; //Give the new result!
-	return;
 	#endif
 }
 
