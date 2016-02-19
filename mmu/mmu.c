@@ -71,6 +71,8 @@ void resetMMU()
 	resetmmu:
 	//dolog("MMU","Initialising MMU...");
 	MMU.size = BIOS_GetMMUSize(); //Take over predefined: don't try to detect!
+	
+	if ((EMULATED_CPU<=CPU_80186) && (MMU.size>0x100000)) MMU.size = 0x100000; //Limit unsupported sizes by the CPU!
 	//dolog("zalloc","Allocating MMU memory...");
 	MMU.memory = (byte *)zalloc(MMU.size,"MMU_Memory",NULL); //Allocate the memory available for the segments
 	MMU.invaddr = 0; //Default: MMU address OK!
