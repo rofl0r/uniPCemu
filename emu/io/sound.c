@@ -35,7 +35,7 @@
 //#define __USE_EQUALIZER
 
 //What frequency to filter our sound for (higher than 0Hz!) Currently the high pass filter disturbs sound too much, so it's disabled. Low pass works fine though.
-//#define SOUND_HIGHPASS 1.0f
+#define SOUND_HIGHPASS 1.0f
 #define SOUND_LOWPASS (HW_SAMPLERATE/2)
 
 typedef struct
@@ -206,27 +206,6 @@ byte setStereo(SOUNDHANDLER handler, void *extradata, byte stereo) //Channel&Vol
 	return 0; //Not found!
 }
 
-/*void releaseSamplerate(word rate) //Release a samplerate precalcs if needed!
-{
-	lockaudio(); //Lock the audio!
-	if (samplerate_used[rate]) //Still used?
-	{
-		--samplerate_used[rate]; //Decrease the ammount of users for this samplerate!
-	}
-	if (!samplerate_used[rate] && convert_samplerate[rate]) //Not used anymore, but still allocated?
-	{
-		freez((void **)&convert_samplerate[rate],convert_sampleratesize[rate],"Samplerate precalcs"); //Release the sample rate!
-		if (!convert_samplerate[rate]) //Not allocated anymore?
-		{
-			convert_sampleratesize[rate] = 0; //Release the size, setting it to unused!
-		}
-	}
-	unlockaudio(); //Unlock the audio: we're done!
-}*/
-
-//Conversion of samplerate!
-//#define C_CONVERTSAMPLERATE(t,samplerate) (word)(SAFEDIV(t,(float)SW_SAMPLERATE)*samplerate)
-
 byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate)
 {
 	if (__HW_DISABLED) return 0; //Disabled?
@@ -237,68 +216,6 @@ byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate)
 	{
 		if (soundchannels[n].soundhandler && (soundchannels[n].soundhandler==handler) && (soundchannels[n].extradata==extradata)) //Found?
 		{
-			
-			/*uint_32 old_samplerate = soundchannels[n].samplerate; //Old samplerate!
-			uint_32 samplerate = rate;
-			if (!samplerate) //Rate not specified?
-			{
-				 samplerate = SW_SAMPLERATE; //Default: hardware samplerate!
-			}
-			soundchannels[n].samplerate = samplerate; //Save the actual samplerate used!
-			
-			if (samplerate>MAX_SAMPLERATE) //Overflow?
-			{
-				soundchannels[n].samplerate = 0; //Disabled!
-				dolog("soundservice","Samplerate overflow: %i",samplerate); //Invalid samplerate!
-				unlockaudio(); //Unlock the audio: we're done!
-				return 0; //Error: invalid samplerate!
-			}
-			
-			if (convert_samplerate[rate]) //Already allocated?
-			{
-				if (rate!=old_samplerate) //Changed?
-				{
-					++samplerate_used[rate]; //Increase the ammount of users of this samplerate!
-				}
-				goto ready; 
-			}
-			
-			//We need to be allocated!
-			word realrate = soundchannels[n].samplerate; //Final sample rate!
-			convert_samplerate[realrate] = zalloc(realrate*sizeof(*convert_samplerate[realrate]),"Samplerate precalcs"); //Allocate double the maximum sample rate!
-			if (!convert_samplerate[rate]) //Error allocating the samplerate precalcs?
-			{
-				dolog("soundservice","Allocating sample rate failed.");
-				soundchannels[n].samplerate = 0; //No samplerate available!
-				
-				if (old_samplerate) //Old samplerate was set?
-				{
-					releaseSamplerate(old_samplerate); //Release the old samplerate!
-				}
-				unlockaudio(); //Unlock the audio!
-				return 0; //Error: couldn't allocate the samplerate precalcs!
-			}
-			
-			//Samplerate allocated, so fill the samplerate precalcs!
-			
-			//First, release the old samplerate!
-			if (old_samplerate!=samplerate) //Different old samplerate? We've changed samplerates!
-			{
-				releaseSamplerate(old_samplerate); //Release the old samplerate first!
-			}
-			
-			word time = 0;
-			for (;;)
-			{
-				convert_samplerate[rate][time] = C_CONVERTSAMPLERATE(time,realrate); //Precalculate rate conversion channel indexes!
-				if (++time>=realrate) break; //Next rate position!
-			}
-			
-			samplerate_used[rate] = 1; //We're the only user of this samplerate atm!
-			
-			ready: //We're ready to execute!
-			*/
-
 			if (rate>(float)MAX_SAMPLERATE) //Too much?
 			{
 				dolog("soundservice","Maximum samplerate passed: %f",rate); //Maximum samplerate passed!
@@ -738,37 +655,51 @@ OPTINLINE static float calcSoundLowpassFilter(float cutoff_freq, float samplerat
 	return previousresult + (alpha*(currentsample - previousresult));
 }
 
-OPTINLINE static void applySoundHighpassFilter(sword *currentsample, sword *sound_last_result, sword *sound_last_sample)
+OPTINLINE static void applySoundHighpassFilter(float *currentsample, float *sound_last_result, float *sound_last_sample)
 {
 	#ifdef SOUND_HIGHPASS
 	//We're using a high pass filter!
-	*sound_last_result = (sword)calcSoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, (float)*currentsample, *sound_last_sample, *sound_last_result); //High pass filter!
+	*sound_last_result = calcSoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, *currentsample, *sound_last_sample, *sound_last_result); //High pass filter!
 	*sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = *sound_last_result; //Give the new result!
+	return;
 	#endif
 }
 
-OPTINLINE static void applySoundLowpassFilter(sword *currentsample, sword *sound_last_result, sword *sound_last_sample)
+OPTINLINE static void applySoundLowpassFilter(float *currentsample, float *sound_last_result, float *sound_last_sample)
 {
 	#ifdef SOUND_LOWPASS
 	//We're using a high pass filter!
-	*sound_last_result = (sword)calcSoundLowpassFilter(SOUND_LOWPASS, SW_SAMPLERATE, (float)*currentsample, *sound_last_result); //Low pass filter!
+	*sound_last_result = (sword)calcSoundLowpassFilter(SOUND_LOWPASS, SW_SAMPLERATE, *currentsample, *sound_last_result); //Low pass filter!
 	*sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = *sound_last_result; //Give the new result!
+	return;
 	#endif
 }
 
 OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
 {
+	float sample_l, sample_r;
+
 	//Our information for filtering!
-	static sword soundhigh_last_result_l = 0, soundhigh_last_sample_l = 0, soundhigh_last_result_r = 0, soundhigh_last_sample_r = 0; //High pass
-	static sword soundlow_last_result_l = 0, soundlow_last_sample_l = 0, soundlow_last_result_r = 0, soundlow_last_sample_r = 0;
+	static float soundhigh_last_result_l = 0, soundhigh_last_sample_l = 0, soundhigh_last_result_r = 0, soundhigh_last_sample_r = 0; //High pass
+	static float soundlow_last_result_l = 0, soundlow_last_sample_l = 0, soundlow_last_result_r = 0, soundlow_last_sample_r = 0;
+
+	//Load the samples to process!
+	sample_l = (float)*leftsample; //Load the left sample to process!
+	sample_r = (float)*rightsample; //Load the right sample to process!
+
 	//First, as high pass to filter anything too low!
-	applySoundHighpassFilter(leftsample,&soundhigh_last_result_l,&soundhigh_last_sample_l);
-	applySoundHighpassFilter(rightsample,&soundhigh_last_result_r,&soundhigh_last_sample_r);
+	applySoundHighpassFilter(&sample_l,&soundhigh_last_result_l,&soundhigh_last_sample_l);
+	applySoundHighpassFilter(&sample_r,&soundhigh_last_result_r,&soundhigh_last_sample_r);
+
 	//Finally, a low pass to filter anything too high (or createn during the high pass filtering)
-	applySoundLowpassFilter(leftsample,&soundlow_last_result_l,&soundlow_last_sample_l);
-	applySoundLowpassFilter(rightsample,&soundlow_last_result_r,&soundlow_last_sample_r);
+	applySoundLowpassFilter(&sample_l,&soundlow_last_result_l,&soundlow_last_sample_l);
+	applySoundLowpassFilter(&sample_r,&soundlow_last_result_r,&soundlow_last_sample_r);
+
+	//Write back the samples we've processed!
+	*leftsample = (sword)sample_l;
+	*rightsample = (sword)sample_r;
 }
 
 int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!
