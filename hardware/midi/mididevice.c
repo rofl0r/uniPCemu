@@ -111,7 +111,7 @@ OPTINLINE static float calcMIDILowpassFilter(float cutoff_freq, float samplerate
 	return previousresult + (alpha*(currentsample - previousresult));
 }
 
-OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, sword *currentsample, float Modulation)
+OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, int_32 *currentsample, float Modulation)
 {
 	if (!voice->lowpassfilter_freq) //No filter?
 	{
@@ -140,7 +140,7 @@ OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_
 	//Our current rendering routine:
 	register uint_32 temp;
 	register int_64 samplepos;
-	sword lchannel, rchannel; //Both channels to use!
+	int_32 lchannel, rchannel; //Both channels to use!
 	byte loopflags; //Flags used during looping!
 	static sword readsample = 0; //The sample retrieved!
 
@@ -200,17 +200,17 @@ OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_
 
 	if (getSFSample16(soundfont, (uint_32)samplepos, &readsample)) //Sample found?
 	{
-		lchannel = readsample; //Convert to floating point for our calculations!
+		lchannel = (int_32)readsample; //Convert to floating point for our calculations!
 
 		//First, apply filters and current envelope!
 		applyMIDILowpassFilter(voice, &lchannel, Modulation); //Low pass filter!
-		lchannel = (sword)(lchannel*Volume); //Apply ADSR Volume envelope!
+		lchannel = (lchannel*Volume); //Apply ADSR Volume envelope!
 		//Now the sample is ready for output into the actual final volume!
 
 		rchannel = lchannel; //Load into both channels!
 		//Now, apply panning!
-		lchannel = (sword)(lchannel*voice->lvolume); //Apply left panning, also according to the CC!
-		rchannel = (sword)(rchannel*voice->rvolume); //Apply right panning, also according to the CC!
+		lchannel = (lchannel*voice->lvolume); //Apply left panning, also according to the CC!
+		rchannel = (rchannel*voice->rvolume); //Apply right panning, also according to the CC!
 
 		//Clip the samples to prevent overflow!
 		if (lchannel>SHRT_MAX) lchannel = SHRT_MAX;
@@ -219,8 +219,8 @@ OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_
 		if (rchannel<SHRT_MIN) rchannel = SHRT_MIN;
 
 		//Give the result!
-		sample->l = lchannel; //LChannel!
-		sample->r = rchannel; //RChannel!
+		sample->l = (sword)lchannel; //LChannel!
+		sample->r = (sword)rchannel; //RChannel!
 		return;
 	}
 	sample->l = sample->r = 0; //No sample to be found!
