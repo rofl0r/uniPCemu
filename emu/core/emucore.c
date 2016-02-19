@@ -307,7 +307,7 @@ void initEMU(int full) //Init!
 
 	if (EMULATED_CPU <= CPU_80186) //-186 CPU?
 	{
-		initEMS(4 * MBMEMORY); //4MB EMS memory!
+		initEMS(2 * MBMEMORY); //2MB EMS memory!
 	}
 
 	debugrow("Initialising MMU...");
