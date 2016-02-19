@@ -34,8 +34,9 @@
 
 //#define __USE_EQUALIZER
 
-//What frequency to filter our sound for (higher than 0Hz!)
-#define SOUND_HIGHPASS 18.2
+//What frequency to filter our sound for (higher than 0Hz!) Currently the high pass filter disturbs sound too much, so it's disabled. Low pass works fine though.
+//#define SOUND_HIGHPASS 1.0f
+#define SOUND_LOWPASS (HW_SAMPLERATE/2)
 
 typedef struct
 {
@@ -729,19 +730,45 @@ OPTINLINE static float calcSoundHighpassFilter(float cutoff_freq, float samplera
 	return alpha * (previousresult + currentsample - previoussample);
 }
 
+OPTINLINE static float calcSoundLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
+{
+	float RC = (float)1.0f / (cutoff_freq * (float)2 * (float)3.14);
+	float dt = (float)1.0f / samplerate;
+	float alpha = dt / (RC + dt);
+	return previousresult + (alpha*(currentsample - previousresult));
+}
+
 OPTINLINE static void applySoundHighpassFilter(sword *currentsample, sword *sound_last_result, sword *sound_last_sample)
 {
-	*sound_last_result = (sword)calcSoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, (float)*currentsample, *sound_last_sample, *sound_last_result); //20kHz low pass filter!
+	#ifdef SOUND_HIGHPASS
+	//We're using a high pass filter!
+	*sound_last_result = (sword)calcSoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, (float)*currentsample, *sound_last_sample, *sound_last_result); //High pass filter!
 	*sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = *sound_last_result; //Give the new result!
+	#endif
+}
+
+OPTINLINE static void applySoundLowpassFilter(sword *currentsample, sword *sound_last_result, sword *sound_last_sample)
+{
+	#ifdef SOUND_LOWPASS
+	//We're using a high pass filter!
+	*sound_last_result = (sword)calcSoundLowpassFilter(SOUND_LOWPASS, SW_SAMPLERATE, (float)*currentsample, *sound_last_result); //Low pass filter!
+	*sound_last_sample = *currentsample; //The last sample that was processed!
+	*currentsample = *sound_last_result; //Give the new result!
+	#endif
 }
 
 OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
 {
 	//Our information for filtering!
-	static sword sound_last_result_l = 0, sound_last_sample_l = 0, sound_last_result_r = 0, sound_last_sample_r = 0;
-	applySoundHighpassFilter(leftsample,&sound_last_result_l,&sound_last_sample_l);
-	applySoundHighpassFilter(rightsample,&sound_last_result_r,&sound_last_sample_r);
+	static sword soundhigh_last_result_l = 0, soundhigh_last_sample_l = 0, soundhigh_last_result_r = 0, soundhigh_last_sample_r = 0; //High pass
+	static sword soundlow_last_result_l = 0, soundlow_last_sample_l = 0, soundlow_last_result_r = 0, soundlow_last_sample_r = 0;
+	//First, as high pass to filter anything too low!
+	applySoundHighpassFilter(leftsample,&soundhigh_last_result_l,&soundhigh_last_sample_l);
+	applySoundHighpassFilter(rightsample,&soundhigh_last_result_r,&soundhigh_last_sample_r);
+	//Finally, a low pass to filter anything too high (or createn during the high pass filtering)
+	applySoundLowpassFilter(leftsample,&soundlow_last_result_l,&soundlow_last_sample_l);
+	applySoundLowpassFilter(rightsample,&soundlow_last_result_r,&soundlow_last_sample_r);
 }
 
 int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!

@@ -78,8 +78,12 @@ typedef struct
 	float effectivesamplespeedup; //The speedup of the samples!
 	float lvolume, rvolume; //Left and right panning!
 	float lowpassfilter_freq; //What frequency to filter? 0.0f=No filter!
+	float lowpassfilter_modenvfactor; //How many cents to apply to the frequency of the low pass filter?
+
 	float CurrentVolumeEnvelope; //Current volume envelope!
 	float CurrentModulationEnvelope; //Current modulation envelope!
+
+	float modenv_pitchfactor; //How many cents to apply to the frequency of the sound?
 
 	sfSample sample; //The sample to be played back!
 	ADSR VolumeEnvelope; //The volume envelope!

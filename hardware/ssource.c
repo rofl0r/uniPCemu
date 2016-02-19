@@ -4,6 +4,9 @@
 #include "headers/hardware/parallel.h" //Parallel port support!
 #include "headers/support/log.h" //Logging support!
 
+//Are we disabled?
+#define __HW_DISABLED 0
+
 //Sound source sample rate and buffer size!
 #define __SSOURCE_RATE 7000.0f
 #define __COVOX_RATE 44100.0f
@@ -31,6 +34,7 @@ byte covox_ticking = 0; //When overflows past 5 it's mono!
 
 byte ssource_output(void* buf, uint_32 length, byte stereo, void *userdata)
 {
+	if (__HW_DISABLED) return SOUNDHANDLER_RESULT_NOTFILLED; //We're disabled!
 	if (stereo) return SOUNDHANDLER_RESULT_NOTFILLED; //Stereo not supported!
 	byte *sample = (byte *)buf; //Sample buffer!
 	uint_32 lengthleft = length; //Load the length!
@@ -48,6 +52,7 @@ byte ssource_output(void* buf, uint_32 length, byte stereo, void *userdata)
 
 byte covox_output(void* buf, uint_32 length, byte stereo, void *userdata)
 {
+	if (__HW_DISABLED) return SOUNDHANDLER_RESULT_NOTFILLED; //We're disabled!
 	if (!stereo) return SOUNDHANDLER_RESULT_NOTFILLED; //Stereo needs to be supported!
 	byte *sample = (byte *)buf; //Sample buffer!
 	uint_32 lengthleft = length; //Our stereo samples!
@@ -123,6 +128,7 @@ byte soundsource_covox_status()
 
 void tickssourcecovox(double timepassed)
 {
+	if (__HW_DISABLED) return; //We're disabled!
 	//HW emulation of ticking the sound source in CPU time!
 	ssource_full = (!fifobuffer_freesize(ssourcestream))?1:0; //We're full when nothing's there!
 	setParallelIRQ(0,ssource_full); //Set our interrupt status before rendering to detect!
@@ -160,12 +166,14 @@ void tickssourcecovox(double timepassed)
 
 void ssource_setVolume(float volume)
 {
+	if (__HW_DISABLED) return; //We're disabled!
 	setVolume(&ssource_output, NULL, volume); //Set the volume!
 	setVolume(&covox_output, NULL, volume); //Set the volume!
 }
 
 void doneSoundsource()
 {
+	if (__HW_DISABLED) return; //We're disabled!
 	if (ssource_ready) //Are we running?
 	{
 		removechannel(&ssource_output, NULL, 0); //Remove the channel!
@@ -180,6 +188,7 @@ void doneSoundsource()
 }
 
 void initSoundsource() {
+	if (__HW_DISABLED) return; //We're disabled!
 	doneSoundsource(); //Make sure we're not already running!
 	
 	ssource_full = 0; //Initialise status!
