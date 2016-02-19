@@ -832,10 +832,21 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 	}
 	blockREP = 0; //Don't block REP anymore!
-	if (DosboxClock) CPU[activeCPU].cycles = 1; //Instead of actually using cycles per second, we use instructions per second for now!
-	else //Use normal cycles dependent on the CPU?
-		//CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP; //Add cycles executed to total ammount of cycles!
-		CPU[activeCPU].cycles = 4; //Take 4 cycles per instruction for now(1 PIT tick)!
+	if (DosboxClock) CPU[activeCPU].cycles = 1; //Instead of actually using cycles per second(CPS) , we use instructions per second for this setting(IPS)!
+	else
+	{ //Use normal cycles dependent on the CPU (CPS)?
+		//CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP; //Add cycles executed to total amount of cycles!
+		switch (EMULATED_CPU) //What CPU to use?
+		{
+		case CPU_8086: //8086/8088?
+		case CPU_80186: //80186/80188?
+			CPU[activeCPU].cycles = 8; //Placeholder until 8086/8088 cycles are fully implemented.
+			break;
+		default: //Not implemented yet?
+			CPU[activeCPU].cycles = 4; //Take 4 cycles per instruction for now(1 PIT tick at 8086 speed)!
+			break;
+		}
+	}
 	CPU_afterexec(); //After executing OPCode stuff!
 }
 
