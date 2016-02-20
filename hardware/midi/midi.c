@@ -75,15 +75,19 @@ OPTINLINE void MIDI_writeStatus(byte data) //Write a status byte to the MIDI dev
 					break;
 				case 0xA: //MIDI Start?
 					//Execute MIDI Start!
+					MIDIDEVICE_addbuffer(0xFA,&MIDIDEV.current); //Add MIDI Start!
 					break;
 				case 0xB: //MIDI Continue?
 					//Execute MIDI Continue!
+					MIDIDEVICE_addbuffer(0xFB,&MIDIDEV.current); //Add MIDI Continue!
 					break;
 				case 0xC: //MIDI Stop?
 					//Execute MIDI Stop!
+					MIDIDEVICE_addbuffer(0xFC,&MIDIDEV.current); //Add MIDI Stop!
 					break;
 				case 0xE: //Active Sense?
 					//Execute Active Sense!
+					MIDIDEVICE_addbuffer(0xFE,&MIDIDEV.current); //Add MIDI Active Sense!
 					break;
 				case 0xF: //Reset?
 					//Execute Reset!
@@ -91,6 +95,7 @@ OPTINLINE void MIDI_writeStatus(byte data) //Write a status byte to the MIDI dev
 					MIDIDEV.bufferpos = 0;
 					memset(MIDIDEV.current.buffer,0,sizeof(MIDIDEV.current.buffer));
 					//We're reset!
+					MIDIDEVICE_addbuffer(0xFF,&MIDIDEV.current); //Add MIDI reset!
 					break;
 				default: //Unknown?
 					//Ignore the data: we're not supported yet!

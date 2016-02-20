@@ -7,7 +7,8 @@
 //A dynamic image .DAT data:
 byte SIG[7] = {'S','F','D','I','M','G','\0'}; //Signature!
 
-typedef struct
+#include "headers/packed.h"
+typedef struct PACKED
 {
 byte SIG[7]; //SFDIMG\0
 uint_32 headersize; //The size of this header!
@@ -16,6 +17,7 @@ word sectorsize; //The size of a sector (512)
 int_64 firstlevellocation; //The location of the first level, in bytes!
 int_64 currentsize; //The current file size, in bytes!
 } DYNAMICIMAGE_HEADER; //Dynamic image .DAT header.
+#include "headers/endpacked.h"
 
 byte emptylookuptable_ready = 0;
 int_64 emptylookuptable[4096]; //A full sector lookup table (4096 entries for either block (1024) or sector (4096) lookup)!

@@ -41,6 +41,13 @@
 
 #include "headers/hardware/floppy.h" //Floppy disk support!
 
+//Define below to enable the sound test with recording!
+//#define SOUND_TEST
+
+#ifdef SOUND_TEST
+#include "headers/hardware/ports.h" //I/O support!
+#endif
+
 #define __HW_DISABLED 0
 
 //Force the BIOS to open?
@@ -4292,10 +4299,35 @@ void BIOS_SoundStartStopRecording()
 	if (sound_isRecording()) //Are we recording?
 	{
 		sound_stopRecording(); //Stop recording!
+		#ifdef SOUND_TEST
+		PORT_OUT_B(0x330,0xB0); //Control change!
+		PORT_OUT_B(0x330,0x7B); //All notes off!
+		PORT_OUT_B(0x330,0x00); //Nothing more!
+
+		PORT_OUT_B(0x331,0xFF); //Reset ourselves!
+		PORT_OUT_B(0x330,0xFF); //Reset ourselves!
+		#endif
 	}
 	else
 	{
 		sound_startRecording(); //Start recording!
+		#ifdef SOUND_TEST
+		PORT_OUT_B(0x331,0xFF); //Reset ourselves!
+		PORT_OUT_B(0x330,0xFF); //Reset ourselves!
+
+		PORT_OUT_B(0x330,0xB0); //Control change!
+		PORT_OUT_B(0x330,0x00); //Bank change MSB!
+		PORT_OUT_B(0x330,0x00); //Bank change 0!
+		PORT_OUT_B(0x330,0x20); //Bank change LSB!
+		PORT_OUT_B(0x330,0x00); //Bank change 0!
+
+		PORT_OUT_B(0x330,0xC0); //Instrument change!
+		PORT_OUT_B(0x330,74); //Instrument change to flute!
+
+		PORT_OUT_B(0x330,0x90); //Start note!
+		PORT_OUT_B(0x330,0x60); //Central C+32 tones!
+		PORT_OUT_B(0x330,0x40); //At default volume!
+		#endif
 	}
 	BIOS_Menu = 31; //Goto Sound menu!
 }
