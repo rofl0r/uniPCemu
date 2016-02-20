@@ -4322,7 +4322,7 @@ void BIOS_SoundStartStopRecording()
 		PORT_OUT_B(0x330,0x00); //Bank change 0!
 
 		PORT_OUT_B(0x330,0xC0); //Instrument change!
-		PORT_OUT_B(0x330,74); //Instrument change to flute!
+		PORT_OUT_B(0x330,73); //Instrument change to flute!
 
 		PORT_OUT_B(0x330,0x90); //Start note!
 		PORT_OUT_B(0x330,0x60); //Central C+32 tones!
