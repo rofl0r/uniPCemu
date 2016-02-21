@@ -3556,59 +3556,63 @@ void BIOS_InitSoundText()
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
 
-	optioninfo[advancedoptions] = 0; //We're direct plot setting!
-	strcpy(menuoptions[advancedoptions], "MPU Soundfont: ");
-	if (strcmp(BIOS_Settings.SoundFont, "") != 0)
-	{
-		strcat(menuoptions[advancedoptions++], BIOS_Settings.SoundFont); //The selected soundfont!
-	}
-	else
-	{
-		strcat(menuoptions[advancedoptions++], "<None>");
-	}
-
 	if (!EMU_RUNNING)
 	{
-		optioninfo[advancedoptions] = 1; //MIDI player!
-		strcpy(menuoptions[advancedoptions++], "MIDI Player");
-	}
+		optioninfo[advancedoptions] = 0; //MPU Soundfont!
+		strcpy(menuoptions[advancedoptions], "MPU Soundfont: ");
+		if (strcmp(BIOS_Settings.SoundFont, "") != 0)
+		{
+			strcat(menuoptions[advancedoptions++], BIOS_Settings.SoundFont); //The selected soundfont!
+		}
+		else
+		{
+			strcat(menuoptions[advancedoptions++], "<None>");
+		}
 
-	optioninfo[advancedoptions] = 2; //Sound Source Volume!
+
+		optioninfo[advancedoptions] = 1; //PC Speaker!
+		strcpy(menuoptions[advancedoptions], "PC Speaker: ");
+		if (BIOS_Settings.usePCSpeaker)
+		{
+			strcat(menuoptions[advancedoptions++], "Sound");
+		}
+		else
+		{
+			strcat(menuoptions[advancedoptions++], "No sound");
+		}
+	
+		optioninfo[advancedoptions] = 2; //Adlib!
+		strcpy(menuoptions[advancedoptions], "Adlib: ");
+		if (BIOS_Settings.useAdlib)
+		{
+			strcat(menuoptions[advancedoptions++], "Enabled");
+		}
+		else
+		{
+			strcat(menuoptions[advancedoptions++], "Disabled");
+		}
+	
+		optioninfo[advancedoptions] = 3; //LPT DAC!
+		strcpy(menuoptions[advancedoptions], "LPT DAC: ");
+		if (BIOS_Settings.useLPTDAC)
+		{
+			strcat(menuoptions[advancedoptions++], "Enabled");
+		}
+		else
+		{
+			strcat(menuoptions[advancedoptions++], "Disabled");
+		}
+	}
+	optioninfo[advancedoptions] = 4; //Sound Source Volume!
 	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %i",(int)(BIOS_Settings.SoundSource_Volume*100.0f)); //Sound source volume as a whole number!
 	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
 
-optioninfo[advancedoptions] = 3; //Show framerate!
-	strcpy(menuoptions[advancedoptions], "PC Speaker: ");
-	if (BIOS_Settings.usePCSpeaker)
+	if (!EMU_RUNNING)
 	{
-		strcat(menuoptions[advancedoptions++], "Sound");
-	}
-	else
-	{
-		strcat(menuoptions[advancedoptions++], "No sound");
+		optioninfo[advancedoptions] = 5; //MIDI player!
+		strcpy(menuoptions[advancedoptions++], "MIDI Player");
 	}
 
-optioninfo[advancedoptions] = 4; //Show framerate!
-	strcpy(menuoptions[advancedoptions], "Adlib: ");
-	if (BIOS_Settings.ShowFramerate)
-	{
-		strcat(menuoptions[advancedoptions++], "Enabled");
-	}
-	else
-	{
-		strcat(menuoptions[advancedoptions++], "Disabled");
-	}
-
-optioninfo[advancedoptions] = 5; //Show framerate!
-	strcpy(menuoptions[advancedoptions], "LPT DAC: ");
-	if (BIOS_Settings.ShowFramerate)
-	{
-		strcat(menuoptions[advancedoptions++], "Enabled");
-	}
-	else
-	{
-		strcat(menuoptions[advancedoptions++], "Disabled");
-	}
 	optioninfo[advancedoptions] = 6; //Start/stop recording sound!
 	if (!sound_isRecording()) //Not recording yet?
 	{
@@ -3640,22 +3644,22 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Soundfont selection?
-			BIOS_Menu = 32; //Direct plot setting!
+			BIOS_Menu = 32; //Soundfont setting!
 			break;
-		case 1: //Play MIDI file(s)?
-			BIOS_Menu = 33; //Play MIDI
-			break;
-		case 2: //Sound Source Volume?
-			BIOS_Menu = 38; //Sound Source Volume setting!
-			break;
-		case 3: //PC Speaker?
+		case 1: //PC Speaker?
 			BIOS_Menu = 44; //PC Speaker setting!
 			break;
-		case 4: //Adlib?
+		case 2: //Adlib?
 			BIOS_Menu = 45; //Adlib setting!
-			break; file(s)!
-		case 5: //LPT DAC?
+			break;
+		case 3: //LPT DAC?
 			BIOS_Menu = 46; //LPT DAC setting!
+			break;
+		case 4: //Sound Source Volume?
+			BIOS_Menu = 38; //Sound Source Volume setting!
+			break;
+		case 5: //Play MIDI file(s)?
+			BIOS_Menu = 33; //Play MIDI file(s)!
 			break;
 		case 6: //Sound recording?
 			BIOS_Menu = 42; //Start/stop sound recording!

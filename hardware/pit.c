@@ -58,6 +58,7 @@ PC SPEAKER
 
 //End of defines!
 
+byte enablespeaker = 0; //Are we sounding the PC speaker?
 
 #ifdef SPEAKER_LOG
 	WAVEFILE *speakerlog = NULL; //The log file for the speaker output!
@@ -491,7 +492,7 @@ void initSpeakers(byte soundspeaker)
 	if (__HW_DISABLED) return; //Abort!
 	//First speaker defaults!
 	memset(&PITchannels, 0, sizeof(PITchannels)); //Initialise our data!
-	enableSpeaker = soundspeaker; //Are we to sound the speaker?
+	enablespeaker = soundspeaker; //Are we to sound the speaker?
 	byte i;
 	for (i=0;i<3;i++)
 	{
