@@ -3644,6 +3644,7 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 			break;
 		case 1: //Play MIDI file(s)?
 			BIOS_Menu = 33; //Play MIDI
+			break;
 		case 2: //Sound Source Volume?
 			BIOS_Menu = 38; //Sound Source Volume setting!
 			break;
