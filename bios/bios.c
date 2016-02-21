@@ -123,6 +123,9 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.version = BIOS_VERSION; //Current version loaded!
 	keyboard_loadDefaults(); //Load the defaults for the keyboard!
 	
+	BIOS_Settings.useAdlib = 0; //Emulate Adlib?
+	BIOS_Settings.useLPTDAC = 0; //Emulate Covox/Disney Sound Source?
+	BIOS_Settings.usePCSpeaker = 0; //Sound PC Speaker?
 	if (tosave) //Save settings?
 	{
 		forceBIOSSave(); //Save the BIOS!

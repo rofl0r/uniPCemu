@@ -421,7 +421,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	
 	//PC speaker output!
 	speaker_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
-	if (speaker_ticktiming >= speaker_tick) //Enough time passed to render the physical PC speaker?
+	if ((speaker_ticktiming >= speaker_tick) && enablespeaker) //Enough time passed to render the physical PC speaker and enabled?
 	{
 		length = (uint_32)SAFEDIV(speaker_ticktiming, speaker_tick); //How many ticks to tick?
 		speaker_ticktiming -= (length*speaker_tick); //Rest the amount of ticks!
@@ -486,29 +486,33 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	}
 }
 
-void initSpeakers()
+void initSpeakers(byte soundspeaker)
 {
 	if (__HW_DISABLED) return; //Abort!
 	//First speaker defaults!
 	memset(&PITchannels, 0, sizeof(PITchannels)); //Initialise our data!
+	enableSpeaker = soundspeaker; //Are we to sound the speaker?
 	byte i;
 	for (i=0;i<3;i++)
 	{
 		PITchannels[i].rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 2048 word-sized samples with lock (TICK_RATE)!
-		if (i==2) //Speaker?
+		if (i==2 && enablespeaker) //Speaker?
 		{
 			PITchannels[i].buffer = allocfifobuffer(SPEAKER_BUFFER<<1, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with X word-sized samples with lock!
 			PITchannels[i].doublebuffer = allocfifobuffer((PITDOUBLE_THRESHOLD+1)<<1, 0); //FIFO with X word-sized samples without lock!
 		}
 	}
 	speaker_ticktiming = time_ticktiming = 0.0f; //Initialise our timing!
-	addchannel(&speakerCallback, &PITchannels[2], "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
-	setVolume(&speakerCallback, &PITchannels[2], SPEAKER_VOLUME); //What volume?
+	if (enablespeaker)
+	{
+		addchannel(&speakerCallback, &PITchannels[2], "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
+		setVolume(&speakerCallback, &PITchannels[2], SPEAKER_VOLUME); //What volume?
 
 #ifdef SPEAKER_LOG
-	domkdir("captures"); //Captures directory!
-	speakerlog = createWAV(SPEAKER_LOG,1,(uint_32)SPEAKER_RATE); //Start wave file logging!
+		domkdir("captures"); //Captures directory!
+		speakerlog = createWAV(SPEAKER_LOG,1,(uint_32)SPEAKER_RATE); //Start wave file logging!
 #endif
+	}
 }
 
 void doneSpeakers()
@@ -519,14 +523,17 @@ void doneSpeakers()
 	for (i=0;i<3;i++)
 	{
 		free_fifobuffer(&PITchannels[i].rawsignal); //Release the FIFO buffer we use!
-		if (i==2) //Speaker?
+		if (i==2 && enablespeaker) //Speaker?
 		{
 			free_fifobuffer(&PITchannels[i].buffer); //Release the FIFO buffer we use!
 			free_fifobuffer(&PITchannels[i].doublebuffer); //Release the FIFO buffer we use!
 		}
 	}
 	#ifdef SPEAKER_LOG
-		closeWAV(&speakerlog); //Stop wave file logging!
+		if (enablespeaker)
+		{
+			closeWAV(&speakerlog); //Stop wave file logging!
+		}
 	#endif
 }
 

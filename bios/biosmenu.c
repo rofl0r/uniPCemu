@@ -171,6 +171,9 @@ void BIOS_DataBusSizeSetting(); //Data bus size setting!
 void BIOS_ShowCPUSpeed(); //Show CPU speed setting!
 void BIOS_SoundStartStopRecording(); //Start/stop recording sound!
 void BIOS_GenerateFloppyDisk(); //Generate an floppy disk image!
+void BIOS_usePCSpeaker();
+void BIOS_useAdlib();
+void BIOS_useLPTDAC();
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -219,6 +222,9 @@ Handler BIOS_Menus[] =
 	,BIOS_ShowCPUSpeed //Show CPU speed is #41!
 	,BIOS_SoundStartStopRecording //Start/stop recording sound is #42!
 	,BIOS_GenerateFloppyDisk //Generate a floppy disk is #43!
+	,BIOS_usePCSpeaker //Use PC Speaker is#44!
+	,BIOS_useAdlib //Use Adlib is#45!
+	,BIOS_useLPTDAC //Use LPT DAC is#46!
 };
 
 //Not implemented?
@@ -3545,7 +3551,7 @@ void BIOS_InitSoundText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i = 0; i<4; i++) //Clear all possibilities!
+	for (i = 0; i<7; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
@@ -3571,7 +3577,39 @@ void BIOS_InitSoundText()
 	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %i",(int)(BIOS_Settings.SoundSource_Volume*100.0f)); //Sound source volume as a whole number!
 	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
 
-	optioninfo[advancedoptions] = 3; //Start/stop recording sound!
+optioninfo[advancedoptions] = 3; //Show framerate!
+	strcpy(menuoptions[advancedoptions], "PC Speaker: ");
+	if (BIOS_Settings.usePCSpeaker)
+	{
+		strcat(menuoptions[advancedoptions++], "Sound");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "No sound");
+	}
+
+optioninfo[advancedoptions] = 4; //Show framerate!
+	strcpy(menuoptions[advancedoptions], "Adlib: ");
+	if (BIOS_Settings.ShowFramerate)
+	{
+		strcat(menuoptions[advancedoptions++], "Enabled");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "Disabled");
+	}
+
+optioninfo[advancedoptions] = 5; //Show framerate!
+	strcpy(menuoptions[advancedoptions], "LPT DAC: ");
+	if (BIOS_Settings.ShowFramerate)
+	{
+		strcat(menuoptions[advancedoptions++], "Enabled");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "Disabled");
+	}
+	optioninfo[advancedoptions] = 6; //Start/stop recording sound!
 	if (!sound_isRecording()) //Not recording yet?
 	{
 		strcpy(menuoptions[advancedoptions++], "Start recording sound"); //Sound source volume as a whole number!
@@ -3595,19 +3633,30 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 	case 0:
 	case 1:
 	case 2:
-	case 3: //Valid option?
+	case 3:
+	case 4:
+	case 5:
+	case 6: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Soundfont selection?
 			BIOS_Menu = 32; //Direct plot setting!
 			break;
 		case 1: //Play MIDI file(s)?
-			BIOS_Menu = 33; //Play MIDI file(s)!
-			break;
+			BIOS_Menu = 33; //Play MIDI
 		case 2: //Sound Source Volume?
 			BIOS_Menu = 38; //Sound Source Volume setting!
 			break;
-		case 3: //Sound recording?
+		case 3: //PC Speaker?
+			BIOS_Menu = 44; //PC Speaker setting!
+			break;
+		case 4: //Adlib?
+			BIOS_Menu = 45; //Adlib setting!
+			break; file(s)!
+		case 5: //LPT DAC?
+			BIOS_Menu = 46; //LPT DAC setting!
+			break;
+		case 6: //Sound recording?
 			BIOS_Menu = 42; //Start/stop sound recording!
 			break;
 		}
@@ -4459,4 +4508,28 @@ void BIOS_GenerateFloppyDisk()
 		}
 	}
 	BIOS_Menu = 1; //Return to Disk Menu!
+}
+
+void BIOS_usePCSpeaker()
+{
+	BIOS_Settings.usePCSpeaker = !BIOS_Settings.usePCSpeaker; //Reverse!
+	BIOS_Changed = 1; //We've changed!
+	reboot_needed = 1; //A reboot is needed!
+	BIOS_Menu = 31; //Goto CPU menu!
+}
+
+void BIOS_useAdlib()
+{
+	BIOS_Settings.useAdlib = !BIOS_Settings.useAdlib; //Reverse!
+	BIOS_Changed = 1; //We've changed!
+	reboot_needed = 1; //A reboot is needed!
+	BIOS_Menu = 31; //Goto CPU menu!
+}
+
+void BIOS_useLPTDAC()
+{
+	BIOS_Settings.useLPTDAC = !BIOS_Settings.useLPTDAC; //Reverse!
+	BIOS_Changed = 1; //We've changed!
+	reboot_needed = 1; //A reboot is needed!
+	BIOS_Menu = 31; //Goto CPU menu!
 }

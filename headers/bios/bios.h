@@ -58,6 +58,9 @@ typedef struct PACKED
 	byte ShowFramerate; //Show the frame rate?
 	byte DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	byte ShowCPUSpeed; //Show the relative CPU speed together with the framerate?
+	byte usePCSpeaker; //Emulate PC Speaker sound?
+	byte useAdlib; //Emulate Adlib?
+	byte useLPTDAC; //Emulate Covox/Disney Sound Source?
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 

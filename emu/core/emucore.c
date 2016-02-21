@@ -244,17 +244,22 @@ void initEMU(int full) //Init!
 	resetchannels(); //Reset all channels!
 	
 	debugrow("Initialising PC Speaker...");
-	initSpeakers(); //Initialise the speaker(s)!
-
-	debugrow("Initialising Adlib...");
-	initAdlib(); //Initialise adlib!
+	initSpeakers(BIOS_Settings.usePCSpeaker); //Initialise the speaker. Enable/disable sound according to the setting!
+	if (BIOS_Settings.useAdlib)
+	{
+		debugrow("Initialising Adlib...");
+		initAdlib(); //Initialise adlib!
+	}
 
 	debugrow("Initialising Parallel ports...");
 	initParallelPorts(1); //Initialise the Parallel ports (LPT ports)!
 
-	debugrow("Initialising Disney Sound Source...");
-	initSoundsource(); //Initialise Disney Sound Source!
-	ssource_setVolume(BIOS_Settings.SoundSource_Volume); //Set the sound source volume!
+	if (BIOS_Settings.useLPTDAC)
+	{
+		debugrow("Initialising Disney Sound Source...");
+		initSoundsource(); //Initialise Disney Sound Source!
+		ssource_setVolume(BIOS_Settings.SoundSource_Volume); //Set the sound source volume!
+	}
 
 	debugrow("Initialising MPU...");
 	if (!initMPU(&BIOS_Settings.SoundFont[0])) //Initialise our MPU! Use the selected soundfont!
@@ -659,11 +664,11 @@ OPTINLINE byte coreHandler()
 		timeexecuted += instructiontime; //Increase CPU executed time executed this block!
 		tickPIT(instructiontime); //Tick the PIT as much as we need to keep us in sync!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
-		updateAdlib(instructiontime); //Tick the adlib timer if needed!
+		if (BIOS_Settings.useAdlib) updateAdlib(instructiontime); //Tick the adlib timer if needed!
 		updateATA(instructiontime); //Update the ATA timer!
 		updateDMA(instructiontime); //Update the DMA timer!
 		tickParallel(instructiontime); //Update the Parallel timer!
-		tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing!
+		if (BIOS_Settings.useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		updateVGA(instructiontime); //Update the VGA timer!
 		if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
 	} //CPU cycle loop!
