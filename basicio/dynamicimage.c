@@ -6,12 +6,11 @@
 
 //A dynamic image .DAT data:
 byte SIG[7] = {'S','F','D','I','M','G','\0'}; //Signature!
-byte SIG2[8] = {'S','F','D','I','M','G','2','\0'}; //v2.0 signature!
 
 #include "headers/packed.h"
 typedef struct PACKED
 {
-byte SIG[8]; //SFDIMG2\0
+byte SIG[7]; //SFDIMG\0
 uint_32 headersize; //The size of this header!
 int_64 filesize; //The size of the dynamic image, in sectors.
 word sectorsize; //The size of a sector (512)
@@ -20,8 +19,7 @@ int_64 currentsize; //The current file size, in bytes!
 } DYNAMICIMAGE_HEADER; //Dynamic image .DAT header.
 #include "headers/endpacked.h"
 
-#include "headers/packed.h"
-typedef struct PACKED
+typedef struct
 {
 	byte SIG[7]; //SFDIMG\0
 	uint_32 headersize; //The size of this header!
@@ -29,8 +27,7 @@ typedef struct PACKED
 	word sectorsize; //The size of a sector (512)
 	int_64 firstlevellocation; //The location of the first level, in bytes!
 	int_64 currentsize; //The current file size, in bytes!
-} OLDDYNAMICIMAGE_HEADER; 
-#include "headers/endpacked.h"
+} PADDEDDYNAMICIMAGE_HEADER; 
 
 byte emptylookuptable_ready = 0;
 int_64 emptylookuptable[4096]; //A full sector lookup table (4096 entries for either block (1024) or sector (4096) lookup)!
@@ -38,7 +35,6 @@ int_64 emptylookuptable[4096]; //A full sector lookup table (4096 entries for ei
 OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	if (!f) return 0; //Failed!
-	if (memcmp(header->SIG,&SIG,sizeof(header->SIG))) return 0; //Prevent writing the old signature to the file: we're obsolete(readonly)!
 	if (emufseek64(f, 0, SEEK_SET) != 0)
 	{
 		return 0; //Failed to seek to position 0!
@@ -56,7 +52,7 @@ OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 
 OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
-	OLDDYNAMICIMAGE_HEADER oldheader; //The older header data!
+	PADDEDDYNAMICIMAGE_HEADER oldheader; //The older header data!
 	if (!emptylookuptable_ready) //Not allocated yet?
 	{
 		memset(&emptylookuptable,0,sizeof(emptylookuptable)); //Initialise the lookup table!
@@ -78,9 +74,9 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 				header->currentsize = oldheader.currentsize;
 				header->filesize = oldheader.filesize;
 				header->firstlevellocation = oldheader.firstlevellocation;
-				header->headersize = oldheader.headersize;
+				header->headersize = sizeof(*header); //Patch the size to the new size!
 				header->sectorsize = oldheader.sectorsize;
-				return 1; //Is dynamic (old-style read-only)!
+				return 1; //Is dynamic!
 			}
 		}
 		if (emufseek64(f, 0, SEEK_SET) != 0)
@@ -90,7 +86,7 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 		if (emufread64(header, 1, sizeof(*header), f) == sizeof(*header)) //Read the new header?
 		{
 			char *sig = (char *)&header->SIG; //The signature!
-			if (!memcmp(sig, &SIG2, sizeof(header->SIG)) && (header->headersize == sizeof(*header))) //Dynamic image?
+			if (!memcmp(sig, &SIG, sizeof(header->SIG)) && (header->headersize == sizeof(*header))) //Dynamic image?
 			{
 				return 1; //Is dynamic!
 			}
@@ -332,11 +328,6 @@ byte dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Wri
 	{
 		emufclose64(f); //Close the device!
 		return FALSE; //Error: invalid file!
-	}
-	if (!memcmp(header.SIG, SIG, sizeof(SIG))) //Old type doesn't allow writes?
-	{
-		emufclose64(f); //Close the device!
-		return FALSE; //Error: invalid file to write: we're read-only!
 	}
 	if (sector >= header.filesize) return FALSE; //We're over the limit of the image!
 	int present = dynamicimage_datapresent(f,sector); //Data present?
