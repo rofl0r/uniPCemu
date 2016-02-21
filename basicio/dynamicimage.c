@@ -64,19 +64,20 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 		{
 			return 0; //Failed to seek to position 0!
 		}
-		if (emufread64(&oldheader,1,sizeof(oldheader),f)==sizeof(oldheader)) //Read the old header?
+		if (emufread64(&oldheader,1,sizeof(oldheader),f)==sizeof(oldheader)) //Read the unpadded header?
 		{
 			char *sig = (char *)&oldheader.SIG; //The signature!
-			if (!memcmp(sig,&SIG,sizeof(oldheader.SIG)) && (oldheader.headersize==sizeof(oldheader))) //Dynamic image?
+			if ((!memcmp(sig,&SIG,sizeof(oldheader.SIG))) && (oldheader.headersize==sizeof(oldheader))) //Dynamic image?
 			{
+				//Copy valid data to the new structured header!
 				memset(header,0,sizeof(*header)); //Initialise the new header for filling!
-				strcpy(header->SIG,oldheader.SIG); //Old signature in new header!
+				memcpy(&header->SIG,&SIG,sizeof(header->SIG)); //Create the new signature in the new header!
 				header->currentsize = oldheader.currentsize;
 				header->filesize = oldheader.filesize;
 				header->firstlevellocation = oldheader.firstlevellocation;
 				header->headersize = sizeof(*header); //Patch the size to the new size!
 				header->sectorsize = oldheader.sectorsize;
-				return 1; //Is dynamic!
+				return 1; //Is dynamic (compatibility mode)!
 			}
 		}
 		if (emufseek64(f, 0, SEEK_SET) != 0)
@@ -86,7 +87,7 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 		if (emufread64(header, 1, sizeof(*header), f) == sizeof(*header)) //Read the new header?
 		{
 			char *sig = (char *)&header->SIG; //The signature!
-			if (!memcmp(sig, &SIG, sizeof(header->SIG)) && (header->headersize == sizeof(*header))) //Dynamic image?
+			if ((!memcmp(sig, &SIG, sizeof(header->SIG))) && (header->headersize == sizeof(*header))) //Dynamic image?
 			{
 				return 1; //Is dynamic!
 			}
