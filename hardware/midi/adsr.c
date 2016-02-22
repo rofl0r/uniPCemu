@@ -1,17 +1,7 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/midi/adsr.h" //Our own typedefs!
 #include "headers/support/sf2.h" //Soundfont support!
-
-//Helper functions
-OPTINLINE double dB2factor(double dB, double fMaxLevelDB)
-{
-	return pow(10, ((dB - fMaxLevelDB) / 20));
-}
-
-OPTINLINE double factor2dB(double factor, double fMaxLevelDB)
-{
-	return (fMaxLevelDB + (20 * log(factor)));
-}
+#include "headers/emu/sound.h" //dB support!
 
 //ADSR itself:
 
@@ -302,7 +292,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	decay = (uint_32)(decay*cents2samplesfactor((double)(decayenvfactor*relKeynum))); //Apply key number!
 
-	sustainfactor = (float)dB2factor((double)(1000 - sustain), 1000); //We're on a rate of 1000 cb!
+	sustainfactor = dB2factor((double)((1000.0f-sustain)/10.0f),100.0f); //We're on a rate of 1000 cb!
 	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
 	if (cents2samplesfactor((double)release) < 0.0002f) //0.0001 sec?
 	{

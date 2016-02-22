@@ -12,6 +12,9 @@
 //Use direct windows MIDI processor if available?
 //#define DIRECT_MIDI
 
+//Our volume to use!
+#define MIDI_VOLUME 100.0f
+
 #ifdef VISUALC
 #ifdef DIRECT_MIDI
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
@@ -111,7 +114,7 @@ OPTINLINE static float calcMIDILowpassFilter(float cutoff_freq, float samplerate
 	return previousresult + (alpha*(currentsample - previousresult));
 }
 
-OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, int_32 *currentsample, float Modulation)
+OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation)
 {
 	if (!voice->lowpassfilter_freq) //No filter?
 	{
@@ -140,7 +143,7 @@ OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_
 	//Our current rendering routine:
 	register uint_32 temp;
 	register int_64 samplepos;
-	int_32 lchannel, rchannel; //Both channels to use!
+	float lchannel, rchannel; //Both channels to use!
 	byte loopflags; //Flags used during looping!
 	static sword readsample = 0; //The sample retrieved!
 
@@ -200,18 +203,18 @@ OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_
 
 	if (getSFSample16(soundfont, (uint_32)samplepos, &readsample)) //Sample found?
 	{
-		lchannel = (int_32)readsample; //Convert to floating point for our calculations!
+		lchannel = (float)readsample; //Convert to floating point for our calculations!
 
 		//First, apply filters and current envelope!
 		applyMIDILowpassFilter(voice, &lchannel, Modulation); //Low pass filter!
-		lchannel = (lchannel*Volume); //Apply ADSR Volume envelope!
-		lchannel = (lchannel*voice->initialAttenuation); //The volume of the samples!
+		lchannel *= Volume; //Apply ADSR Volume envelope!
+		lchannel *= voice->initialAttenuation; //The volume of the samples!
 		//Now the sample is ready for output into the actual final volume!
 
 		rchannel = lchannel; //Load into both channels!
 		//Now, apply panning!
-		lchannel = (lchannel*voice->lvolume); //Apply left panning, also according to the CC!
-		rchannel = (rchannel*voice->rvolume); //Apply right panning, also according to the CC!
+		lchannel *= voice->lvolume; //Apply left panning, also according to the CC!
+		rchannel *= voice->rvolume; //Apply right panning, also according to the CC!
 
 		//Clip the samples to prevent overflow!
 		if (lchannel>SHRT_MAX) lchannel = SHRT_MAX;
@@ -520,9 +523,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	{
 		attenuation = 0.0f; //Default!
 	}
-	
-	attenuation = (float)dB2factor((double)(1440.0f - attenuation), 1440.0f); //We're on a rate of 1440 cb!
-	if (attenuation > 1.0f) attenuation = 1.0f; //Limit of 100%!
+	attenuation = dB2factor((double)((1440.0f-attenuation)/10.0f),144.0f); //We're on a rate of 1440 cb!
 	voice->initialAttenuation = attenuation; //Our sample volume!
 
 	//Determine panning!
@@ -1203,6 +1204,7 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 		{
 			activevoices[i].purpose = (((__MIDI_NUMVOICES-i)-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
 			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
+			setVolume(&MIDIDEVICE_renderer,&activevoices[i],MIDI_VOLUME); //We're at 40% volume!
 		}
 	}
 	MIDIDEVICE_ActiveSenseInit(); //Initialise Active Sense!

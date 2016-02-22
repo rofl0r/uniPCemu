@@ -10,6 +10,9 @@
 //Hardware set sample rate
 #define HW_SAMPLERATE 44100
 
+//Our global volume setting to use!
+#define SOUND_VOLUME 100.0f
+
 //Are we disabled?
 #define __HW_DISABLED 0
 //How many samples to process at once? Originally 2048; 64=Optimum
@@ -256,7 +259,7 @@ byte setVolume(SOUNDHANDLER handler, void *extradata, float p_volume) //Channel&
 		if (soundchannels[n].soundhandler && (soundchannels[n].soundhandler==handler) && (soundchannels[n].extradata==extradata)) //Found?
 		{
 			soundchannels[n].volume = p_volume; //Set the volume of the channel!
-			soundchannels[n].volume_percent = p_volume?(float)dB2factor(p_volume*0.01f,1):0; //The volume in linear percent, with 0dB=silence!
+			soundchannels[n].volume_percent = p_volume?dB2factor(p_volume,100.0f)*dB2factor(SOUND_VOLUME,100.0f):0; //The volume in linear percent, with 0dB=silence!
 			unlockaudio(); //Unlock the audio!
 			return 1; //Done: check no more!
 		}

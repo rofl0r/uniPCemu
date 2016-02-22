@@ -65,8 +65,8 @@ typedef struct
 	uint_32 endaddressoffset;
 	uint_32 endloopaddressoffset;
 
-	int_32 last_sample; //Last retrieved sample!
-	int_32 last_result; //Last result of the high pass filter!
+	float last_sample; //Last retrieved sample!
+	float last_result; //Last result of the high pass filter!
 
 	//Stuff for voice stealing
 	uint_64 starttime; //When have we started our voice?
