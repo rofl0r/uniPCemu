@@ -840,7 +840,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 		case CPU_8086: //8086/8088?
 		case CPU_80186: //80186/80188?
-			CPU[activeCPU].cycles = 8; //Placeholder until 8086/8088 cycles are fully implemented.
+			//Placeholder until 8086/8088 cycles are fully implemented. Originally 8. 9 works better with 8088 MPH(better sound). 10 works worse than 9(sound disappears into the background)?
+			CPU[activeCPU].cycles = (CPU_databussize>=1)?9:8; //Use 9 with 8088MPH CPU(8088 CPU), normal 8 with 8086.
 			break;
 		default: //Not implemented yet?
 			CPU[activeCPU].cycles = 4; //Take 4 cycles per instruction for now(1 PIT tick at 8086 speed)!
