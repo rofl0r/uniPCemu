@@ -41,10 +41,7 @@ byte ssource_output(void* buf, uint_32 length, byte stereo, void *userdata)
 	byte lastssourcesample=0x80;
 	for (;lengthleft--;) //While length left!
 	{
-		if (!readfifobuffer(ssourcerenderstream, &lastssourcesample)) //Nothing gotten from the rendering buffer?
-		{
-			lastssourcesample = 0x80; //No result, so 0 converted from signed to unsigned (0-255=>-128-127)!
-		}
+		if (!readfifobuffer(ssourcerenderstream, &lastssourcesample)) lastssourcesample = 0x80; //No result, so 0 converted from signed to unsigned (0-255=>-128-127)!
 		*sample++ = lastssourcesample; //Fill the output buffer!
 	}
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
@@ -56,12 +53,12 @@ byte covox_output(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (!stereo) return SOUNDHANDLER_RESULT_NOTFILLED; //Stereo needs to be supported!
 	byte *sample = (byte *)buf; //Sample buffer!
 	uint_32 lengthleft = length; //Our stereo samples!
-	static word lastcovoxsample = 0x8080; //Last sample read for both channels!
+	word covoxsample=0x8080; //Dual channel sample!
 	for (;lengthleft--;)
 	{
-		readfifobuffer16(covoxrenderstream,&lastcovoxsample); //Try to read the left sample if it's there! If it doesn't exist, use the last samples read(repeat the samples)!
-		*sample++ = (lastcovoxsample&0xFF); //Left channel!
-		*sample++ = (lastcovoxsample>>8); //Right channel!
+		if (!readfifobuffer16(covoxrenderstream,&covoxsample)) covoxsample = 0x8080; //Try to read the samples if it's there, else zero out!
+		*sample++ = (covoxsample&0xFF); //Left channel!
+		*sample++ = (covoxsample>>8); //Right channel!
 	}
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
@@ -94,13 +91,11 @@ void soundsource_covox_controlout(byte control)
 	}
 	if ((!(control&1)) && (lastcontrol&1)) //Covox speech thing left channel pulse?
 	{
-		dolog("ssource","CL:%02x",outbuffer);
 		covox_left = outbuffer; //Set left channel value!
 		covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 	}
 	if ((!(control&2)) && (lastcontrol&2)) //Covox speech thing right channel pulse?
 	{
-		dolog("ssource","CR:%02x",outbuffer);
 		covox_right = outbuffer; //Set right channel value!
 		covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 	}
