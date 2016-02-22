@@ -96,7 +96,7 @@ Cents and DB conversion!
 
 */
 
-//Low&high pass filters!
+//Low pass filters!
 
 OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation)
 {

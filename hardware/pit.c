@@ -47,8 +47,8 @@ PC SPEAKER
 //The double buffering threshold!
 #define PITDOUBLE_THRESHOLD SPEAKER_BUFFER
 //Speaker low&high pass filter values!
-#define SPEAKER_LOWPASS 22050.0f
-#define SPEAKER_HIGHPASS 18.2f-0.00001f
+//#define SPEAKER_LOWPASS 22050.0f
+//#define SPEAKER_HIGHPASS 18.2f-0.00001f
 
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
@@ -162,9 +162,9 @@ float currentsamplepit = 0, pit_last_result = 0, pit_last_sample = 0;
 
 OPTINLINE static void applySpeakerHighpassFilter(float *currentsample, float *sound_last_result, float *sound_last_sample)
 {
-	#ifdef SOUND_HIGHPASS
+	#ifdef SPEAKER_HIGHPASS
 	//We're using a high pass filter!
-	*sound_last_result = calcSoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, *currentsample, *sound_last_sample, *sound_last_result); //High pass filter!
+	*sound_last_result = calcSoundHighpassFilter(SPEAKER_HIGHPASS, SW_SAMPLERATE, *currentsample, *sound_last_sample, *sound_last_result); //High pass filter!
 	*sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = *sound_last_result; //Give the new result!
 	#endif
@@ -174,6 +174,7 @@ sword speaker_last_result = 0, speaker_last_sample = 0;
 byte speaker_first_sample = 1;
 OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 {
+	#ifdef SPEAKER_LOWPASS
 	if (speaker_first_sample) //No last?
 	{
 		speaker_last_result = speaker_last_sample = *currentsample; //Save the current sample!
@@ -183,6 +184,7 @@ OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
 	speaker_last_result = (sword)calcSpeakerLowpassFilter(SPEAKER_LOWPASS, SPEAKER_RATE, (float)*currentsample, speaker_last_result); //20kHz low pass filter!
 	speaker_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = speaker_last_result; //Give the new result!
+	#endif
 }
 
 void tickPIT(double timepassed) //Ticks all PIT timers available!

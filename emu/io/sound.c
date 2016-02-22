@@ -11,7 +11,7 @@
 #define HW_SAMPLERATE 44100
 
 //Our global volume setting to use!
-#define SOUND_VOLUME 80.0f
+#define SOUND_VOLUME 100.0f
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -38,8 +38,8 @@
 //#define __USE_EQUALIZER
 
 //What frequency to filter our sound for (higher than 0Hz!) Currently the high pass filter disturbs sound too much, so it's disabled. Low pass works fine though.
-#define SOUND_HIGHPASS 1.0f
-#define SOUND_LOWPASS (HW_SAMPLERATE/2)
+//#define SOUND_HIGHPASS 1.0f
+//#define SOUND_LOWPASS (HW_SAMPLERATE/2.0f)
 
 typedef struct
 {
