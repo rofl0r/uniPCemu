@@ -205,6 +205,7 @@ OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_
 		//First, apply filters and current envelope!
 		applyMIDILowpassFilter(voice, &lchannel, Modulation); //Low pass filter!
 		lchannel = (lchannel*Volume); //Apply ADSR Volume envelope!
+		lchannel = (lchannel*voice->initialAttenuation); //The volume of the samples!
 		//Now the sample is ready for output into the actual final volume!
 
 		rchannel = lchannel; //Load into both channels!
@@ -330,7 +331,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	word pbag, ibag;
 	sword rootMIDITone; //Relative root MIDI tone!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
-	float cents, tonecents, panningtemp, pitchwheeltemp;
+	float cents, tonecents, panningtemp, pitchwheeltemp,attenuation;
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
@@ -510,6 +511,19 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 
 	//Now the cents variable contains the diviation in cents.
 	voice->initsamplespeedup = (float)cents2samplesfactor(cents); //Load the default speedup we need for our tone!
+	
+	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, initialAttenuation, &applyigen))
+	{
+		attenuation = (float)applyigen.genAmount.shAmount; //Apply semitone factor in percent for each tone!
+	}
+	else
+	{
+		attenuation = 0.0f; //Default!
+	}
+	
+	attenuation = (float)dB2factor((double)(1440.0f - attenuation), 1440.0f); //We're on a rate of 1440 cb!
+	if (attenuation > 1.0f) attenuation = 1.0f; //Limit of 100%!
+	voice->initialAttenuation = attenuation; //Our sample volume!
 
 	//Determine panning!
 	panningtemp = (float)0.0f; //Default: no panning at all: centered!

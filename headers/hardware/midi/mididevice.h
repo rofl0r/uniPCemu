@@ -98,6 +98,7 @@ typedef struct
 	word bank; //What bank are we playing from?
 	byte instrument; //What instrument are we playing?
 	byte locknumber; //What lock number do we have?
+	float initialAttenuation; //Initial attenuation!
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
