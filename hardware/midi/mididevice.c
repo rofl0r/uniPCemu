@@ -106,30 +106,10 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation)
 	return frequency; //Give the frequency to use for the low pass filter!
 }
 
-OPTINLINE static float calcMIDILowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
-{
-	float RC = (float)1.0f / (cutoff_freq * (float)2 * (float)3.14);
-	float dt = (float)1.0f / samplerate;
-	float alpha = dt / (RC + dt);
-	return previousresult + (alpha*(currentsample - previousresult));
-}
-
 OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation)
 {
-	if (!voice->lowpassfilter_freq) //No filter?
-	{
-		voice->has_last = 0; //No last (anymore)!
-		return; //Abort: nothing to filter!
-	}
-	if (!voice->has_last) //No last?
-	{
-		voice->last_result = voice->last_sample = *currentsample; //Save the current sample!
-		voice->has_last = 1;
-		return; //Abort: don't filter the first sample!
-	}
-	voice->last_result = (sword)calcMIDILowpassFilter(modulateLowpass(voice,Modulation), (float)voice->sample.dwSampleRate, *currentsample, voice->last_result);
-	voice->last_sample = *currentsample; //The last sample that was processed!
-	*currentsample = voice->last_result; //Give the new result!
+	if (!voice->lowpassfilter_freq) return; //No filter?
+	applySoundLowpassFilter(modulateLowpass(voice,Modulation),(float)voice->sample.dwSampleRate, currentsample, &voice->last_result, &voice->last_sample, &voice->lowpass_isfirst); //Apply a low pass filter!
 }
 
 /*
@@ -363,6 +343,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	voice->note = note = &voice->channel->notes[request_note]; //What note!
 
 	voice->play_counter = 0; //Reset play counter!
+	voice->lowpass_isfirst = 1; //We're starting at the first sample!
 
 	//First, our precalcs!
 

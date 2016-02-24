@@ -231,18 +231,22 @@ OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 void updateVGA(double timepassed)
 {
 	uint_64 limitcalc;
+	double timeprocessed;
 	VGA_timing += timepassed; //Time has passed!
-	if (VGA_timing >= VGA_rendertiming && VGA_rendertiming) //Might have passed?
+	if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Might have passed?
 	{
 		uint_64 renderings,renderingsbackup;
-		renderings = renderingsbackup = (uint_64)(VGA_timing/VGA_rendertiming); //Ammount of times to render!
-		VGA_timing -= renderings*VGA_rendertiming; //Rest the amount we can process!
+		renderings = (uint_64)(VGA_timing/VGA_rendertiming); //Ammount of times to render!
+		VGA_timing -= (renderings*VGA_rendertiming); //Rest the amount we can process!
 
 		if ((renderings>VGA_limit) && VGA_limit) //Limit broken?
 		{
 			renderings = VGA_limit; //Limit the processing to the amount of time specified!
 		}
 		if (!renderings) return; //Nothing to render!
+		timeprocessed = (renderings*VGA_rendertiming); //How much are we processing?
+		timeprocessed *= 0.50; //We're running too slow at full rendering, so split 50/50!
+		renderingsbackup = renderings; //Save the backup for comparision!
 
 		if (!doVGA_Sequencer()) return; //Don't execute the sequencer if requested to!
 
@@ -250,7 +254,6 @@ void updateVGA(double timepassed)
 		Sequencer = GETSEQUENCER(getActiveVGA()); //Our sequencer!
 
 		getnspassed(&VGA_test);
-
 		do
 		{
 			if (renderings>=20) //20+ optimization?
@@ -278,10 +281,11 @@ void updateVGA(double timepassed)
 			}
 			VGA_Sequencer(Sequencer); //Tick the VGA once!
 		} while (--renderings); //Ticks left to tick?
-
 		limitcalc = getnspassed(&VGA_test); //How long have we taken?
-		//timepassed=how much time to use, limitcalc=how much time we have taken, renderingsbackup=How many pixels have we processed.
-		VGA_limit = (uint_64)(((float)renderingsbackup/(float)limitcalc)*(float)timepassed)/20; //Don't process any more than we're allowed to (timepassed).
+
+		//timeprocessed=how much time to use, limitcalc=how much time we have taken, renderingsbackup=How many pixels have we processed.
+		VGA_limit = (uint_64)(((float)renderingsbackup/(float)limitcalc)*timeprocessed); //Don't process any more than we're allowed to (timepassed).
+		if (limitcalc<=timeprocessed) VGA_limit = 0; //Don't limit if we're running at full speed (we're below time we are allowed to process)!
 	}
 }
 

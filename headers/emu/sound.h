@@ -46,4 +46,8 @@ void unlockaudio();
 #define dB2factor(dB, fMaxLevelDB) pow(10, (((dB) - (fMaxLevelDB)) / 20))
 #define factor2dB(factor, fMaxLevelDB) ((fMaxLevelDB) + (20 * log(factor)))
 
+//Global high and low pass filters support!
+void applySoundHighpassFilter(float cutoff_freq, float samplerate, float *currentsample, float *sound_last_result, float *sound_last_sample, byte *isFirstSample);
+void applySoundLowpassFilter(float cutoff_freq, float samplerate, float *currentsample, float *sound_last_result, float *sound_last_sample, byte *isFirstSample);
+
 #endif

@@ -91,7 +91,7 @@ typedef struct
 
 	byte currentloopflags; //What loopflags are active?
 	byte request_off; //Are we to be turned off? Start the release phase when enabled!
-	byte has_last; //Gotten last?
+	byte lowpass_isfirst; //Are we the first sample to filter?
 	byte has_finallooppos; //Do we have a final loop position?
 
 	byte purpose; //0=Normal voice, 1=Drum channel!

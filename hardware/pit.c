@@ -46,9 +46,8 @@ PC SPEAKER
 #define SPEAKER_BUFFER 4096
 //The double buffering threshold!
 #define PITDOUBLE_THRESHOLD SPEAKER_BUFFER
-//Speaker low&high pass filter values!
-//#define SPEAKER_LOWPASS 22050.0f
-//#define SPEAKER_HIGHPASS 18.2f-0.00001f
+//Speaker low pass filter values (if defined, it's used)!
+#define SPEAKER_LOWPASS 20000.0f
 
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
@@ -142,50 +141,8 @@ OPTINLINE void reloadticker(byte channel)
 
 byte channel_reload[3] = {0,0,0}; //To reload the channel next cycle?
 
-OPTINLINE float calcSpeakerLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
-{
-	float RC = (float)1.0f / (cutoff_freq * (float)2 * (float)3.14);
-	float dt = (float)1.0f / samplerate;
-	float alpha = dt / (RC + dt);
-	return previousresult + (alpha*(currentsample - previousresult));
-}
-
-OPTINLINE static float calcSpeakerHighpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
-{
-	float RC = 1.0 / (cutoff_freq * 2 * 3.14);
-	float dt = 1.0 / samplerate;
-	float alpha = RC / (RC + dt);
-	return alpha * (previousresult + currentsample - previoussample);
-}
-
-float currentsamplepit = 0, pit_last_result = 0, pit_last_sample = 0;
-
-OPTINLINE static void applySpeakerHighpassFilter(float *currentsample, float *sound_last_result, float *sound_last_sample)
-{
-	#ifdef SPEAKER_HIGHPASS
-	//We're using a high pass filter!
-	*sound_last_result = calcSoundHighpassFilter(SPEAKER_HIGHPASS, SW_SAMPLERATE, *currentsample, *sound_last_sample, *sound_last_result); //High pass filter!
-	*sound_last_sample = *currentsample; //The last sample that was processed!
-	*currentsample = *sound_last_result; //Give the new result!
-	#endif
-}
-
-sword speaker_last_result = 0, speaker_last_sample = 0;
+float speaker_currentsample = 0, speaker_last_result = 0, speaker_last_sample = 0;
 byte speaker_first_sample = 1;
-OPTINLINE void applySpeakerLowpassFilter(sword *currentsample)
-{
-	#ifdef SPEAKER_LOWPASS
-	if (speaker_first_sample) //No last?
-	{
-		speaker_last_result = speaker_last_sample = *currentsample; //Save the current sample!
-		speaker_first_sample = 0;
-		return; //Abort: don't filter the first sample!
-	}
-	speaker_last_result = (sword)calcSpeakerLowpassFilter(SPEAKER_LOWPASS, SPEAKER_RATE, (float)*currentsample, speaker_last_result); //20kHz low pass filter!
-	speaker_last_sample = *currentsample; //The last sample that was processed!
-	*currentsample = speaker_last_result; //Give the new result!
-	#endif
-}
 
 void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
@@ -457,10 +414,10 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 
 		//Ticks the speaker when needed!
 		i = 0; //Init counter!
-		short s; //Set the channels! We generate 1 sample of output here!
-		static double currentduty=0.0f; //Currently calculated duty for the current sample(s)!
-		static double dutycycle=0; //Total duty cycle to calculate!
-		static double dutycyclelen=0.0f; //How many duty cycles are accumulated(fractions are shared samples between current and next sample)?
+		float s; //Set the channels! We generate 1 sample of output here!
+		static float currentduty=0.0f; //Currently calculated duty for the current sample(s)!
+		static float dutycycle=0.0f; //Total duty cycle to calculate!
+		static float dutycyclelen=0.0f; //How many duty cycles are accumulated(fractions are shared samples between current and next sample)?
 		uint_32 dutycyclei; //Input samples to process!
 		//Generate the samples from the output signal!
 		for (;;) //Generate samples!
@@ -485,17 +442,20 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 				}
 			}
 
-			s = (short)currentduty; //Convert available duty cycle to full average factor!
-			currentsamplepit = (float)s;
-			applySpeakerHighpassFilter(&currentsamplepit, &pit_last_result, &pit_last_sample);
-			s = (sword)currentsamplepit;
-			applySpeakerLowpassFilter(&s); //Low pass filter the signal for safety to output!
+			s = currentduty; //Convert available duty cycle to full average factor!
+
+			#ifdef SPEAKER_LOWPASS
+			//We're applying the low pass filter for the speaker!
+			speaker_currentsample = s;
+			applySoundLowpassFilter(SPEAKER_LOWPASS, SPEAKER_RATE, &speaker_currentsample, &speaker_last_result, &speaker_last_sample, &speaker_first_sample);
+			s = speaker_currentsample;
+			#endif
 
 			//Add the result to our buffer!
 			#ifdef SPEAKER_LOG
-				writeWAVMonoSample(speakerlog,s); //Log the mono sample to the WAV file!
+				writeWAVMonoSample(speakerlog,(short)s); //Log the mono sample to the WAV file!
 			#endif
-			writefifobuffer16(PITchannels[2].doublebuffer, s); //Write the sample to the buffer (mono buffer)!
+			writefifobuffer16(PITchannels[2].doublebuffer, (short)s); //Write the sample to the buffer (mono buffer)!
 			movefifobuffer16(PITchannels[2].doublebuffer,PITchannels[2].buffer,PITDOUBLE_THRESHOLD); //Move any data to the destination once filled!
 			if (++i == length) //Fully rendered?
 			{

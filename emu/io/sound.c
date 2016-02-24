@@ -37,9 +37,8 @@
 
 //#define __USE_EQUALIZER
 
-//What frequency to filter our sound for (higher than 0Hz!) Currently the high pass filter disturbs sound too much, so it's disabled. Low pass works fine though.
+//What frequency to filter our sound for (higher than 0Hz!) Currently the high pass filter disturbs sound too much, so it's disabled. Low pass is set to half the rendering frequency!
 #define SOUND_HIGHPASS 1.0f
-//#define SOUND_LOWPASS (HW_SAMPLERATE/2.0f)
 
 typedef struct
 {
@@ -658,24 +657,32 @@ OPTINLINE static float calcSoundLowpassFilter(float cutoff_freq, float samplerat
 	return previousresult + (alpha*(currentsample - previousresult));
 }
 
-OPTINLINE static void applySoundHighpassFilter(float *currentsample, float *sound_last_result, float *sound_last_sample)
+void applySoundHighpassFilter(float cutoff_freq, float samplerate, float *currentsample, float *sound_last_result, float *sound_last_sample, byte *isFirstSample)
 {
-	#ifdef SOUND_HIGHPASS
 	//We're using a high pass filter!
-	*sound_last_result = calcSoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, *currentsample, *sound_last_sample, *sound_last_result); //High pass filter!
+	if (*isFirstSample) //No last? Only executed once when starting playback!
+	{
+		*sound_last_result = *sound_last_sample = *currentsample; //Save the current sample!
+		*isFirstSample = 0; //Not the first sample anymore!
+		return; //Abort: don't filter the first sample!
+	}
+	*sound_last_result = calcSoundHighpassFilter(cutoff_freq, samplerate, *currentsample, *sound_last_sample, *sound_last_result); //High pass filter!
 	*sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = *sound_last_result; //Give the new result!
-	#endif
 }
 
-OPTINLINE static void applySoundLowpassFilter(float *currentsample, float *sound_last_result, float *sound_last_sample)
+void applySoundLowpassFilter(float cutoff_freq, float samplerate, float *currentsample, float *sound_last_result, float *sound_last_sample, byte *isFirstSample)
 {
-	#ifdef SOUND_LOWPASS
-	//We're using a high pass filter!
-	*sound_last_result = (sword)calcSoundLowpassFilter(SOUND_LOWPASS, SW_SAMPLERATE, *currentsample, *sound_last_result); //Low pass filter!
+	//We're using a low pass filter!
+	if (*isFirstSample) //No last? Only executed once when starting playback!
+	{
+		*sound_last_result = *sound_last_sample = *currentsample; //Save the current sample!
+		*isFirstSample = 0; //Not the first sample anymore!
+		return; //Abort: don't filter the first sample!
+	}
+	*sound_last_result = calcSoundLowpassFilter(cutoff_freq, samplerate, *currentsample, *sound_last_result); //Low pass filter!
 	*sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = *sound_last_result; //Give the new result!
-	#endif
 }
 
 OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
@@ -683,20 +690,20 @@ OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
 	float sample_l, sample_r;
 
 	//Our information for filtering!
+	#ifdef SOUND_HIGHPASS
 	static float soundhigh_last_result_l = 0, soundhigh_last_sample_l = 0, soundhigh_last_result_r = 0, soundhigh_last_sample_r = 0; //High pass
-	static float soundlow_last_result_l = 0, soundlow_last_sample_l = 0, soundlow_last_result_r = 0, soundlow_last_sample_r = 0;
+	static byte soundhigh_first_l = 1, soundhigh_first_r = 1; //First sample to process?
+	#endif
 
 	//Load the samples to process!
 	sample_l = (float)*leftsample; //Load the left sample to process!
 	sample_r = (float)*rightsample; //Load the right sample to process!
 
 	//First, as high pass to filter anything too low!
-	applySoundHighpassFilter(&sample_l,&soundhigh_last_result_l,&soundhigh_last_sample_l);
-	applySoundHighpassFilter(&sample_r,&soundhigh_last_result_r,&soundhigh_last_sample_r);
-
-	//Finally, a low pass to filter anything too high (or createn during the high pass filtering)
-	applySoundLowpassFilter(&sample_l,&soundlow_last_result_l,&soundlow_last_sample_l);
-	applySoundLowpassFilter(&sample_r,&soundlow_last_result_r,&soundlow_last_sample_r);
+	#ifdef SOUND_HIGHPASS
+	applySoundHighpassFilter(SOUND_HIGHPASS,SW_SAMPLERATE,&sample_l,&soundhigh_last_result_l,&soundhigh_last_sample_l,&soundhigh_first_l);
+	applySoundHighpassFilter(SOUND_HIGHPASS,SW_SAMPLERATE,&sample_r,&soundhigh_last_result_r,&soundhigh_last_sample_r,&soundhigh_first_r);
+	#endif
 
 	//Write back the samples we've processed!
 	*leftsample = (sword)sample_l;
