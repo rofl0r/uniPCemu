@@ -397,6 +397,5 @@ float ADSR_tick(ADSR *adsr, int_64 samplecounter, byte sustaining, float noteon_
 		result = ADSR_delay(adsr, samplecounter, sustaining, release_velocity); //Delay phase!
 	}
 	result = (float)dB2factor(result, 1); //Give the current envelope, convert the linear factor to decibels!
-	result *= (float)dB2factor(noteon_velocity, 1); //Apply note on velocity!
 	return result; 
 }

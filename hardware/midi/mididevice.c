@@ -226,7 +226,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	ADSR *VolumeADSR = &voice->VolumeEnvelope; //Our used volume envelope ADSR!
 	ADSR *ModulationADSR = &voice->ModulationEnvelope; //Our used modulation envelope ADSR!
 	MIDIDEVICE_CHANNEL *channel = voice->channel; //Get the channel to use!
-	float velocity_factor; //Current velocity factor!
 	uint_32 numsamples = length; //How many samples to buffer!
 	++numsamples; //Take one sample more!
 	lock(voice->locknumber); //Lock us!
@@ -267,8 +266,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	currentsamplespeedup *= (float)cents2samplesfactor(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
 	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
 
-	velocity_factor = voice->note->noteon_velocity_factor; //Apply Note On key velocity first!
-
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
 	panningtemp = voice->initpanning; //Get the panning specified!
@@ -293,8 +290,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Now produce the sound itself!
 	for (; --numsamples;) //Produce the samples!
 	{
-		VolumeEnvelope = ADSR_tick(VolumeADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),velocity_factor, voice->note->noteoff_velocity); //Apply Volume Envelope!
-		ModulationEnvelope = ADSR_tick(ModulationADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),velocity_factor, voice->note->noteoff_velocity); //Apply Modulation Envelope!
+		VolumeEnvelope = ADSR_tick(VolumeADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Volume Envelope!
+		ModulationEnvelope = ADSR_tick(ModulationADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
 		MIDIDEVICE_getsample(ubuf++, voice->play_counter++, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope); //Get the sample from the MIDI device!
 	}
 
@@ -308,6 +305,17 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	unlock(voice->locknumber); //Lock us!
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
+
+OPTINLINE float MIDIconcave(float value, float maxvalue)
+{
+	return log(sqrt(value*value)/(maxvalue*maxvalue)); //Give the concave fashion!
+}
+
+OPTINLINE float MIDIconvex(float value, float maxvalue)
+{
+	return log(sqrt(maxvalue-(value*value))/(maxvalue*maxvalue)); //Give the convex fashion: same as concave, but start and end points are reversed!
+}
+
 
 OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
 {
@@ -496,19 +504,28 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	//Now the cents variable contains the diviation in cents.
 	voice->initsamplespeedup = (float)cents2samplesfactor(cents); //Load the default speedup we need for our tone!
 	
+	attenuation = 0.0f; //Init to default value!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, initialAttenuation, &applyigen))
 	{
 		attenuation = (float)applyigen.genAmount.shAmount; //Apply semitone factor in percent for each tone!
+		if (attenuation>1440.0f) attenuation = 1440.0f; //Limit to max!
+		if (attenuation<0.0f) attenuation = 0.0f; //Limit to min!
 	}
-	else
+
+	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount,ibag,0x0502,&applymod)) //Gotten Note On velocity to Initial Attenuation?
 	{
-		attenuation = 0.0f; //Default!
+		if (applymod.modAmount>960) applymod.modAmount = 960; //Limit to max value if needed!
+		else if (applymod.modAmount<0) applymod.modAmount = 0; //Limit to min value if needed!
+		attenuation += MIDIconcave((float)applymod.modAmount*((127.0f-((float)note->noteon_velocity-1))/127.0f),960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
 	}
-	attenuation = dB2factor((double)((1440.0f-attenuation)/10.0f),144.0f); //We're on a rate of 1440 cb!
-	voice->initialAttenuation = attenuation; //Our sample volume!
+
+	if (attenuation>1440.0f) attenuation = 1440.0f; //Limit to max!
+	if (attenuation<0.0f) attenuation = 0.0f; //Limit to min!
+
+	voice->initialAttenuation = dB2factor(((1440.0f-(double)attenuation)/10.0f),144.0f); //We're on a rate of 1440 cb!
 
 	//Determine panning!
-	panningtemp = (float)0.0f; //Default: no panning at all: centered!
+	panningtemp = 0.0f; //Default: no panning at all: centered!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, pan, &applyigen)) //Gotten panning?
 	{
 		panningtemp = (float)applyigen.genAmount.shAmount; //Get the panning specified!
@@ -516,7 +533,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	}
 	voice->initpanning = panningtemp; //Set the initial panning, as a factor!
 
-	panningtemp = -1; //Default to none!
+	panningtemp = 0.0f; //Default to none!
 	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount,ibag,0x028A,&applymod)) //Gotten panning modulator?
 	{
 		panningtemp = (float)applymod.modAmount; //Get the amount specified!
@@ -536,10 +553,11 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	voice->CurrentModulationEnvelope = 0.0f; //Default: nothing tet, so no modulation!
 
 	//Apply low pass filter!
-	voice->lowpassfilter_freq = 0.0f; //Default: no low pass filter!
+	voice->lowpassfilter_freq = 13500.0f; //Default: no low pass filter!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, initialFilterFc, &applyigen)) //Filter enabled?
 	{
 		voice->lowpassfilter_freq = (float)(8.176*cents2samplesfactor(applyigen.genAmount.shAmount)); //Set a low pass filter to it's initial value!
+		if (voice->lowpassfilter_freq>20000.0f) voice->lowpassfilter_freq = 20000.0f; //Apply maximum!
 	}
 
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, modEnvToFilterFc, &applyigen)) //Gotten a filter on the modulation envelope's Frequency cutoff?
@@ -579,12 +597,6 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 			break;
 		}
 	}
-
-	//Calculate the velocity factor!
-	float noteon_velocity; //The velocity calculated!
-	noteon_velocity = note->noteon_velocity;
-	noteon_velocity /= 64.0f; //Adjust velocity, based on the key hit! It's always 1+, since 0 is a release of the key.
-	note->noteon_velocity_factor = noteon_velocity; //The velocity calculated!
 
 	//Save our instrument we're playing!
 	voice->instrument = channel->program;
