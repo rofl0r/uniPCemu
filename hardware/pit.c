@@ -54,8 +54,8 @@ PC SPEAKER
 #define TIME_RATE (14318180.0f/12.0f)
 
 //Log the speaker to this .wav file when defined (raw and duty cycles log)!
-//#define SPEAKER_LOGRAW "captures/speaker.wav"
-//#define SPEAKER_LOGDUTY "captures/speaker.wav"
+#define SPEAKER_LOGRAW "captures/speakerraw.wav"
+#define SPEAKER_LOGDUTY "captures/speakerduty.wav"
 
 //End of defines!
 
@@ -509,7 +509,7 @@ void initSpeakers(byte soundspeaker)
 #endif
 #ifdef SPEAKER_LOGDUTY
 		domkdir("captures"); //Captures directory!
-		speakerlogduty = createWAV(SPEAKER_LOGDUTY,1,(uint_32)(SPEAKER_RATE/((60.0f/1000000.0f)*TIME_RATE))); //Start duty wave file logging!
+		speakerlogduty = createWAV(SPEAKER_LOGDUTY,1,(uint_32)(1.0f/(60.0f/1000000.0f))); //Start duty wave file logging!
 #endif
 
 	}
