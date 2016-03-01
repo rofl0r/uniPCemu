@@ -53,15 +53,19 @@ PC SPEAKER
 //The clock speed of the PIT (14.31818MHz divided by 12)!
 #define TIME_RATE (14318180.0f/12.0f)
 
-//Log the speaker to this .wav file when defined!
-//#define SPEAKER_LOG "captures/speaker.wav"
+//Log the speaker to this .wav file when defined (raw and duty cycles log)!
+//#define SPEAKER_LOGRAW "captures/speaker.wav"
+//#define SPEAKER_LOGDUTY "captures/speaker.wav"
 
 //End of defines!
 
 byte enablespeaker = 0; //Are we sounding the PC speaker?
 
-#ifdef SPEAKER_LOG
-	WAVEFILE *speakerlog = NULL; //The log file for the speaker output!
+#ifdef SPEAKER_LOGRAW
+	WAVEFILE *speakerlograw = NULL; //The log file for the speaker output!
+#endif
+#ifdef SPEAKER_LOGDUTY
+	WAVEFILE *speakerlogduty = NULL; //The log file for the speaker output!
 #endif
 
 double speaker_ticktiming; //Both current clocks!
@@ -433,12 +437,19 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			{
 				if (!readfifobuffer(PITchannels[2].rawsignal, &currentsample)) break; //Failed to read the sample? Stop counting!
 				dutycycle += currentsample; //Add the current sample to the average duty!
+				#ifdef SPEAKER_LOGRAW
+					writeWAVMonoSample(speakerlograw,(short)(currentsample*SHRT_MAX)); //Log the mono sample to the WAV file, converted as needed!
+				#endif
 				dutycyclelen += 1.0f; //We've read one duty cycle!
 				if (dutycyclelen>=speakerlength) //Enough to process a PCM sample?
 				{
 					currentduty = (dutycycle/dutycyclelen)*SHRT_MAX; //Average the duty cycles for the new PWM->PCM sample!
 					dutycyclelen = fmod(dutycyclelen,speakerlength); //Decrease timing until rest is left(next PWM data to process)!
 					dutycycle = (dutycyclelen>0.0f)?currentsample:0.0f; //Start with the current sample when we're part of next data too(fraction sample)!
+					#ifdef SPEAKER_LOGDUTY
+						writeWAVMonoSample(speakerlogduty,(short)currentduty); //Log the mono sample to the WAV file!
+					#endif
+
 				}
 			}
 
@@ -452,9 +463,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			#endif
 
 			//Add the result to our buffer!
-			#ifdef SPEAKER_LOG
-				writeWAVMonoSample(speakerlog,(short)s); //Log the mono sample to the WAV file!
-			#endif
 			writefifobuffer16(PITchannels[2].doublebuffer, (short)s); //Write the sample to the buffer (mono buffer)!
 			movefifobuffer16(PITchannels[2].doublebuffer,PITchannels[2].buffer,PITDOUBLE_THRESHOLD); //Move any data to the destination once filled!
 			if (++i == length) //Fully rendered?
@@ -495,10 +503,15 @@ void initSpeakers(byte soundspeaker)
 		addchannel(&speakerCallback, &PITchannels[2], "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
 		setVolume(&speakerCallback, &PITchannels[2], SPEAKER_VOLUME); //What volume?
 
-#ifdef SPEAKER_LOG
+#ifdef SPEAKER_LOGRAW
 		domkdir("captures"); //Captures directory!
-		speakerlog = createWAV(SPEAKER_LOG,1,(uint_32)SPEAKER_RATE); //Start wave file logging!
+		speakerlograw = createWAV(SPEAKER_LOGRAW,1,(uint_32)TIME_RATE); //Start raw wave file logging!
 #endif
+#ifdef SPEAKER_LOGDUTY
+		domkdir("captures"); //Captures directory!
+		speakerlogduty = createWAV(SPEAKER_LOGDUTY,1,(uint_32)(SPEAKER_RATE/((60.0f/1000000.0f)*TIME_RATE))); //Start duty wave file logging!
+#endif
+
 	}
 }
 
@@ -516,10 +529,16 @@ void doneSpeakers()
 			free_fifobuffer(&PITchannels[i].doublebuffer); //Release the FIFO buffer we use!
 		}
 	}
-	#ifdef SPEAKER_LOG
+	#ifdef SPEAKER_LOGRAW
 		if (enablespeaker)
 		{
-			closeWAV(&speakerlog); //Stop wave file logging!
+			closeWAV(&speakerlograw); //Stop wave file logging!
+		}
+	#endif
+	#ifdef SPEAKER_LOGDUTY
+		if (enablespeaker)
+		{
+			closeWAV(&speakerlogduty); //Stop wave file logging!
 		}
 	#endif
 }
