@@ -509,9 +509,8 @@ void initSpeakers(byte soundspeaker)
 #endif
 #ifdef SPEAKER_LOGDUTY
 		domkdir("captures"); //Captures directory!
-		speakerlogduty = createWAV(SPEAKER_LOGDUTY,1,(uint_32)(TIME_RATE/72))); //Start duty wave file logging!
+		speakerlogduty = createWAV(SPEAKER_LOGDUTY,1,(uint_32)(TIME_RATE/72)); //Start duty wave file logging!
 #endif
-
 	}
 }
 
