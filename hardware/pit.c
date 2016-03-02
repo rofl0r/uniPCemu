@@ -152,7 +152,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
 	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to process every output sample!
-	const float speakerlength = ((60.0f/1000000.0f)*TIME_RATE); //Speaker time for each PCM output sample in PIT ticks averaging!
+	const float speakerlength = 72; //Speaker time for each PCM output sample in PIT ticks averaging!
 	register uint_32 length; //Amount of samples to generate!
 	uint_32 i;
 	uint_64 tickcounter;
