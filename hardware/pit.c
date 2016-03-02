@@ -47,7 +47,7 @@ PC SPEAKER
 //The double buffering threshold!
 #define PITDOUBLE_THRESHOLD SPEAKER_BUFFER
 //Speaker low pass filter values (if defined, it's used)!
-#define SPEAKER_LOWPASS 20000.0f
+#define SPEAKER_LOWPASS (1000000.0f/60.0f)
 
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
@@ -152,7 +152,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
 	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to process every output sample!
-	const float speakerlength = 72; //Speaker time for each PCM output sample in PIT ticks averaging!
 	register uint_32 length; //Amount of samples to generate!
 	uint_32 i;
 	uint_64 tickcounter;
@@ -418,10 +417,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 
 		//Ticks the speaker when needed!
 		i = 0; //Init counter!
-		float s; //Set the channels! We generate 1 sample of output here!
-		static float currentduty=0.0f; //Currently calculated duty for the current sample(s)!
-		static float dutycycle=0.0f; //Total duty cycle to calculate!
-		static float dutycyclelen=0.0f; //How many duty cycles are accumulated(fractions are shared samples between current and next sample)?
 		uint_32 dutycyclei; //Input samples to process!
 		//Generate the samples from the output signal!
 		for (;;) //Generate samples!
@@ -432,38 +427,25 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			PITchannels[2].samplesleft -= tempf; //Take off the samples we've processed!
 			render_ticks = (uint_32)tempf; //The ticks to render!
 
-			//render_ticks contains the output samples to process! Calculate the duty cycle and use it to generate a sample!
+			//render_ticks contains the output samples to process! Calculate the duty cycle by low pass filter and use it to generate a sample!
 			for (dutycyclei = render_ticks;dutycyclei;)
 			{
 				if (!readfifobuffer(PITchannels[2].rawsignal, &currentsample)) break; //Failed to read the sample? Stop counting!
-				dutycycle += currentsample; //Add the current sample to the average duty!
+				speaker_currentsample = currentsample?SHRT_MAX:SHRT_MIN; //Convert the current result to the 16-bit data, signed instead of unsigned!
 				#ifdef SPEAKER_LOGRAW
-					writeWAVMonoSample(speakerlograw,(short)(currentsample*SHRT_MAX)); //Log the mono sample to the WAV file, converted as needed!
+					writeWAVMonoSample(speakerlograw,(short)speaker_currentsample); //Log the mono sample to the WAV file, converted as needed!
 				#endif
-				dutycyclelen += 1.0f; //We've read one duty cycle!
-				if (dutycyclelen>=speakerlength) //Enough to process a PCM sample?
-				{
-					currentduty = (dutycycle/dutycyclelen)*SHRT_MAX; //Average the duty cycles for the new PWM->PCM sample!
-					dutycyclelen = fmod(dutycyclelen,speakerlength); //Decrease timing until rest is left(next PWM data to process)!
-					dutycycle = (dutycyclelen>0.0f)?currentsample:0.0f; //Start with the current sample when we're part of next data too(fraction sample)!
-					#ifdef SPEAKER_LOGDUTY
-						writeWAVMonoSample(speakerlogduty,(short)currentduty); //Log the mono sample to the WAV file!
-					#endif
-
-				}
+				#ifdef SPEAKER_LOWPASS
+					//We're applying the low pass filter for the speaker!
+					applySoundLowpassFilter(SPEAKER_LOWPASS, TIME_RATE, &speaker_currentsample, &speaker_last_result, &speaker_last_sample, &speaker_first_sample);
+				#endif
+				#ifdef SPEAKER_LOGDUTY
+					writeWAVMonoSample(speakerlogduty,(short)speaker_currentsample); //Log the mono sample to the WAV file, converted as needed!
+				#endif
 			}
 
-			s = currentduty; //Convert available duty cycle to full average factor!
-
-			#ifdef SPEAKER_LOWPASS
-			//We're applying the low pass filter for the speaker!
-			speaker_currentsample = s;
-			applySoundLowpassFilter(SPEAKER_LOWPASS, SPEAKER_RATE, &speaker_currentsample, &speaker_last_result, &speaker_last_sample, &speaker_first_sample);
-			s = speaker_currentsample;
-			#endif
-
 			//Add the result to our buffer!
-			writefifobuffer16(PITchannels[2].doublebuffer, (short)s); //Write the sample to the buffer (mono buffer)!
+			writefifobuffer16(PITchannels[2].doublebuffer, (short)speaker_currentsample); //Write the sample to the buffer (mono buffer)!
 			movefifobuffer16(PITchannels[2].doublebuffer,PITchannels[2].buffer,PITDOUBLE_THRESHOLD); //Move any data to the destination once filled!
 			if (++i == length) //Fully rendered?
 			{
@@ -509,7 +491,7 @@ void initSpeakers(byte soundspeaker)
 #endif
 #ifdef SPEAKER_LOGDUTY
 		domkdir("captures"); //Captures directory!
-		speakerlogduty = createWAV(SPEAKER_LOGDUTY,1,(uint_32)(TIME_RATE/72)); //Start duty wave file logging!
+		speakerlogduty = createWAV(SPEAKER_LOGDUTY,1,(uint_32)TIME_RATE); //Start duty wave file logging!
 #endif
 	}
 }
