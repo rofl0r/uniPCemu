@@ -29,7 +29,7 @@ PC SPEAKER
 
 */
 
-//To lock the FIFO buffer during rendering? If disabled, the entire audio thread is locked instead (might have consequences on other audio output).
+//To lock the FIFO buffer during rendering? If commented, the entire audio thread is locked instead (might have consequences on other audio output). When defined either lock or don't use locks at all!
 #define FIFOBUFFER_LOCK 1
 
 //Are we disabled?
@@ -47,7 +47,7 @@ PC SPEAKER
 //The double buffering threshold!
 #define PITDOUBLE_THRESHOLD SPEAKER_BUFFER
 //Speaker low pass filter values (if defined, it's used)!
-#define SPEAKER_LOWPASS (1000000.0f/60.0f)
+#define SPEAKER_LOWPASS 20000.0f
 
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
@@ -410,10 +410,9 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 		length = (uint_32)SAFEDIV(speaker_ticktiming, speaker_tick); //How many ticks to tick?
 		speaker_ticktiming -= (length*speaker_tick); //Rest the amount of ticks!
 
-		if (!FIFOBUFFER_LOCK) //Not locked?
-		{
+		#ifndef FIFOBUFFER_LOCK
 			lockaudio(); //Lock the audio!
-		}
+		#endif
 
 		//Ticks the speaker when needed!
 		i = 0; //Init counter!
@@ -449,17 +448,15 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			movefifobuffer16(PITchannels[2].doublebuffer,PITchannels[2].buffer,PITDOUBLE_THRESHOLD); //Move any data to the destination once filled!
 			if (++i == length) //Fully rendered?
 			{
-				if (!FIFOBUFFER_LOCK) //Not locked?
-				{
+				#ifndef FIFOBUFFER_LOCK
 					unlockaudio(); //Unlock the audio!
-				}
+				#endif
 				return; //Next item!
 			}
 		}
-		if (!FIFOBUFFER_LOCK) //Not locked?
-		{
+		#ifndef FIFOBUFFER_LOCK
 			unlockaudio(); //Unlock the audio!
-		}
+		#endif
 	}
 }
 
@@ -475,7 +472,11 @@ void initSpeakers(byte soundspeaker)
 		PITchannels[i].rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 2048 word-sized samples with lock (TICK_RATE)!
 		if (i==2 && enablespeaker) //Speaker?
 		{
+			#ifdef FIFOBUFFER_LOCK
 			PITchannels[i].buffer = allocfifobuffer(SPEAKER_BUFFER<<1, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with X word-sized samples with lock!
+			#else
+			PITchannels[i].buffer = allocfifobuffer(SPEAKER_BUFFER<<1, 0); //(non-)Lockable FIFO with X word-sized samples without lock!
+			#endif
 			PITchannels[i].doublebuffer = allocfifobuffer((PITDOUBLE_THRESHOLD+1)<<1, 0); //FIFO with X word-sized samples without lock!
 		}
 	}
