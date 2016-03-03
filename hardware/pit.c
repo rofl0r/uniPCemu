@@ -187,8 +187,11 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					{
 					case 0: //Output goes low/high?
 						PITchannels[channel].channel_status = mode; //We're high when mode 1, else low with mode 0!
-						PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
-						goto mode0_1; //Skip to step 1!
+						if (PITchannels[channel].reload)
+						{
+							PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
+							goto mode0_1; //Skip to step 1!
+						}
 						break;
 					case 1: //Wait for next rising edge of gate input?
 						mode0_1:
@@ -222,8 +225,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 						{
 							PITchannels[channel].channel_status = 1; //We're high again!
 						}
-						break;
-					case 4: //Inactive?
 						break;
 					default: //Unsupported! Ignore any input!
 						break;
@@ -557,6 +558,7 @@ void setPITMode(byte channel, byte mode)
 	PITchannels[channel].mode = (mode&7); //Set the current PC speaker mode! Protect against invalid modes!
 	PITchannels[channel].status = 0; //Output going high! Wait for reload to be set!
 	PITchannels[channel].reload = 0; //Init to be sure!
+	PITchannels[channel].gatewenthigh = 0; //Reset gate status to be sure, since we're reset!
 }
 
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
