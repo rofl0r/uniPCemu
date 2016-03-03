@@ -188,8 +188,10 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					case 0: //Output goes low/high?
 						PITchannels[channel].channel_status = mode; //We're high when mode 1, else low with mode 0!
 						PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
+						goto mode0_1; //Skip to step 1!
 						break;
 					case 1: //Wait for next rising edge of gate input?
+						mode0_1:
 						if (!mode) //No wait on mode 0?
 						{
 							PITchannels[channel].status = 2;
@@ -238,8 +240,11 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					{
 					case 0: //Output going high! See below! Wait for reload register to be written!
 						PITchannels[channel].channel_status = 1; //We're high!
+						PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
+						goto mode2_1; //Skip to step 1!
 						break;
 					case 1: //We're starting the count?
+						mode2_1:
 						if (PITchannels[channel].reload)
 						{
 							reload2:
@@ -283,8 +288,8 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 				}
 				break;
 			//mode 2==6 and mode 3==7.
-			case 7: //Also Square Wave mode?
 			case 3: //Square Wave mode?
+			case 7: //Also Square Wave mode?
 				for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
 				{
 					//Length counts the amount of ticks to render!
@@ -297,9 +302,11 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 							PITchannels[channel].reload = 0; //Not reloading!
 							reloadticker(channel); //Reload the counter!
 							PITchannels[channel].status = 1; //Next status: we're loaded and ready to run!
+							goto mode3_1; //Skip to step 1!
 						}
 						break;
 					case 1: //We start counting to rise!!
+						mode3_1:
 						if (PITchannels[channel].gatewenthigh)
 						{
 							PITchannels[channel].gatewenthigh = 0; //Not anymore!
@@ -336,8 +343,11 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					{
 					case 0: //Output going high! See below! Wait for reload register to be written!
 						PITchannels[channel].channel_status = 1; //We're high!
+						PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
+						goto mode4_1; //Skip to step 1!
 						break;
 					case 1: //We're starting the count or waiting for rising gate(mode 5)?
+						mode4_1:
 						if (PITchannels[channel].reload)
 						{
 						pit45_reload: //Reload PIT modes 4&5!
@@ -539,11 +549,6 @@ void setPITFrequency(byte channel, word frequency) //Set the new frequency!
 	if (__HW_DISABLED) return; //Abort!
 	PITchannels[channel].frequency = frequency;
 	PITchannels[channel].reload = 1; //We've been reloaded!
-	if (PITchannels[channel].status == 0) //First step?
-	{
-		//Wait for next rising edge of gate input(mode 1/4) or start counting (mode 0/2/3/5/6/7)?
-		PITchannels[channel].status = 1; //Wait for next rising edge of gate input!
-	}
 }
 
 void setPITMode(byte channel, byte mode)
@@ -566,9 +571,7 @@ byte pitcommand[4]; //PIT command is only 1 byte large!
 
 //PC Speaker functionality in PIT
 
-uint_32 PCSpeakerFrequency=0x10000; //PC Speaker Frequency from the PIT!
 byte PCSpeakerPort; //Port 0x61 for the PC Speaker!
-byte PCSpeakerIsRunning; //Speaker is running?
 
 //NEW HANDLER
 uint_64 calculatedpitstate[3]; //Calculate state by time and last time handled!
