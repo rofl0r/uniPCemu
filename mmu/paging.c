@@ -64,8 +64,14 @@ void FLAG_PF(uint_32 address, word flags)
 	{
 		CPU[activeCPU].registers->CR2 = address; //Fill CR2 with the address cause!
 	}
-	CPU_PUSH16(&flags);
 	//Call interrupt!
+	CPU_resetOP(); //Go back to the start of the instruction!
+	call_hard_inthandler(EXCEPTION_PAGEFAULT); //Call IVT entry #13 decimal!
+	uint_32 errorcode;
+	errorcode = (uint_32)flags; //Convert to 32-bit!
+	CPU_PUSH32(&errorcode); //Error code!
+	//Execute the interrupt!
+	CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
 }
 
 OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte RW, byte US) //userlevel=CPL or 0 (with special instructions LDT, GDT, TSS, IDT, ring-crossing CALL/INT)

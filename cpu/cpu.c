@@ -940,12 +940,12 @@ void CPU_exDIV0() //Division by 0!
 	if (EMULATED_CPU == CPU_8086) //We point to the instruction following the division?
 	{
 		//Points to next opcode!
-		CPU_INT(0); //Execute INT0 normally using current CS:(E)IP!
+		CPU_INT(EXCEPTION_DIVIDEERROR); //Execute INT0 normally using current CS:(E)IP!
 	}
 	else
 	{
 		//Points to next opcode!
-		CPU_customint(0,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+		CPU_customint(EXCEPTION_DIVIDEERROR,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
 	}
 }
 
@@ -956,19 +956,19 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	HWINT_nr = 1; //Trapped INT NR!
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
-	CPU_INT(1); //Execute INT1 normally using current CS:(E)IP!
+	CPU_INT(EXCEPTION_DEBUG); //Execute INT1 normally using current CS:(E)IP!
 }
 
 void CPU_BoundException() //Bound exception!
 {
 	//Point to opcode origins!
-	CPU_customint(5,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+	CPU_customint(EXCEPTION_BOUNDSCHECK,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
 }
 
 void CPU_COOP_notavailable() //COProcessor not available!
 {
 	//Point to opcode origins!
-	CPU_customint(7,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+	CPU_customint(EXCEPTION_NOCOPROCESSOR,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
 }
 
 void CPU_flushPIQ()

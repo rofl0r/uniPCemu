@@ -21,7 +21,27 @@ void CPU_GP(int toinstruction,uint_32 errorcode)
 		CPU_resetOP(); //Point to the faulting instruction!
 	}
 	
-	call_hard_inthandler(13); //Call IVT entry #13 decimal!
+	call_hard_inthandler(EXCEPTION_GENERALPROTECTIONFAULT); //Call IVT entry #13 decimal!
+	CPU_PUSH32(&errorcode); //Error code!
+	//Execute the interrupt!
+	CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
+}
+
+void CPU_SegNotPresent(uint_32 errorcode)
+{
+	CPU_resetOP(); //Point to the faulting instruction!
+	
+	call_hard_inthandler(EXCEPTION_SEGMENTNOTPRESENT); //Call IVT entry #11 decimal!
+	CPU_PUSH32(&errorcode); //Error code!
+	//Execute the interrupt!
+	CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
+}
+
+void CPU_StackFault(uint_32 errorcode)
+{
+	CPU_resetOP(); //Point to the faulting instruction!
+	
+	call_hard_inthandler(EXCEPTION_STACKFAULT); //Call IVT entry #12 decimal!
 	CPU_PUSH32(&errorcode); //Error code!
 	//Execute the interrupt!
 	CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
@@ -97,6 +117,16 @@ void THROWDESCGP(word segment)
 	CPU_GP(1,(segment&(0xFFFB))|(segment&4)); //#GP with an error in the LDT/GDT (index@bits 3-15)!
 }
 
+void THROWDESCSP(word segment, byte external)
+{
+	CPU_StackFault((external<<0)|(segment&(0xFFFB))|(segment&4)); //#StackFault with an error in the LDT/GDT (index@bits 3-15)!
+}
+
+void THROWDESCSeg(word segment, byte external)
+{
+	CPU_SegNotPresent((external<<0)|(segment&(0xFFFB))|(segment&4)); //#SegFault with an error in the LDT/GDT (index@bits 3-15)!
+}
+
 //Another source: http://en.wikipedia.org/wiki/General_protection_fault
 
 int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
@@ -130,7 +160,7 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 		)
 		)
 	{
-		THROWDESCGP(segment); //Throw error!
+		THROWDESCSP(segment,0); //Throw error!
 		return 0; //Not present: limit exceeded!	
 	}
 
@@ -181,6 +211,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 		segment = (GATEDESCRIPTOR.desc.base_high << 3) | (segment & 7); //We're loading this segment now!
 		if (!LOADDESCRIPTOR(whatsegment, segment, &LOADEDDESCRIPTOR)) //Error loading current descriptor?
 		{
+			THROWDESCGP(segment); //Throw error!
 			return NULL; //Error, by specified reason!
 		}
 		privilegedone = 1; //Privilege has been precalculated!
@@ -268,7 +299,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 		{
 			if (!LOADEDDESCRIPTOR.desc.P) //Not present?
 			{
-				THROWDESCGP(segment); //Throw error!
+				THROWDESCSeg(segment,1); //Throw error!
 				return NULL; //We're an invalid TSS to execute!
 			}
 			//Handle the task switch!
@@ -367,18 +398,18 @@ MMU: memory start!
 uint_32 CPU_MMU_start(sword segment, word segmentval) //Determines the start of the segment!
 {
 	//Determine the Base!
-	if (getcpumode()!=CPU_MODE_PROTECTED) //Real or 8086 mode, or unknown segment to use?
+	if (getcpumode()==CPU_MODE_PROTECTED) //Not Real or 8086 mode?
 	{
-		return (segmentval<<4); //Behave like a 8086!
+		if (segment == -1) //Forced 8086 mode by the emulators?
+		{
+			return (segmentval << 4); //Behave like a 8086!
+		}
+	
+		//Protected mode addressing!
+		return ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Base!
 	}
 
-	if (segment == -1) //Forced 8086 mode?
-	{
-		return (segmentval << 4); //Behave like a 8086!
-	}
-
-	//Protected mode!
-	return ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Base!
+	return (segmentval<<4); //Behave like a 80(1)86!
 }
 
 /*
@@ -386,80 +417,89 @@ uint_32 CPU_MMU_start(sword segment, word segmentval) //Determines the start of 
 MMU: Memory limit!
 
 */
-
+	
 int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forreading) //Determines the limit of the segment, forreading=2 when reading an opcode!
 {
-//Determine the Limit!
-
-	if (EMULATED_CPU < CPU_80286) return 0; //Don't give errors: handle like a 80(1)86!
-	if (CPU[activeCPU].faultraised) return 1; //Abort if already an fault has been raised!
-	if ((getcpumode()!=CPU_MODE_PROTECTED) || (segment==-1)) //Real or 8086 mode, or unknown segment to use?
+	//Determine the Limit!
+	if (EMULATED_CPU >= CPU_80286) //Handle like a 80286+?
 	{
-		if (segment!=-1) //Normal operations (called for the CPU for sure)?
+		if (segment==-1) return 0; //Enable: we're an emulator call!
+		if (CPU[activeCPU].faultraised) return 1; //Abort if already an fault has been raised!
+		if ((getcpumode()!=CPU_MODE_PROTECTED) || (segment==-1)) //Real or 8086 mode, or unknown segment to use?
 		{
-			return (offset>0xFFFF); //Behave like a 8086: overflow casts error!
+			if (segment!=-1) //Normal operations (called for the CPU for sure)?
+			{
+				return (offset>0xFFFF); //Behave like a 8086: overflow casts error!
+			}
+			else //System hardware (emulator itself)?
+			{
+				return 0; //Enable all, we're direct after all!
+			}
 		}
-		else //System hardware (emulator itself)?
-		{
-			return 0; //Enable all, we're direct after all!
-		}
-	}
-	
-	if (segment!=CPU_SEGMENT_CS && segment!=CPU_SEGMENT_SS && !getDescriptorIndex(segmentval)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
-	{
-		THROWDESCGP(segmentval); //Throw fault!
-		return 1; //Error!
-	}
-	
-	SEGMENT_DESCRIPTOR *SEG_DESCRIPTOR = &CPU[activeCPU].SEG_DESCRIPTOR[segment]; //Look it up!
-	//First: type checking!
-	
-	if (segment==CPU_SEGMENT_CS && !(SEG_DESCRIPTOR->EXECSEGMENT.ISEXEC && SEG_DESCRIPTOR->nonS) && (forreading==3)) //Non-executable segment execution?
-	{
-		THROWDESCGP(segmentval); //Throw fault!
-		return 1; //Error!
-	}
-	else if (((SEG_DESCRIPTOR->EXECSEGMENT.ISEXEC) || !(SEG_DESCRIPTOR->DATASEGMENT.OTHERSTRUCT || SEG_DESCRIPTOR->DATASEGMENT.W)) && SEG_DESCRIPTOR->nonS && !forreading) //Writing to executable segment or read-only data segment?
-	{
-		THROWDESCGP(segmentval); //Throw fault!
-		return 1; //Error!
-	}
-	else if (SEG_DESCRIPTOR->EXECSEGMENT.ISEXEC && !SEG_DESCRIPTOR->EXECSEGMENT.R && SEG_DESCRIPTOR->nonS && forreading==1) //Reading execute-only segment?
-	{
-		THROWDESCGP(segmentval); //Throw fault!
-		return 1; //Error!	
-	}
-	
-	//Next: limit checking!
-
-	uint_32 limit; //The limit!
-
-	limit = ((SEG_DESCRIPTOR->limit_high<<8)|SEG_DESCRIPTOR->limit_low); //Base limit!
-
-	if (SEG_DESCRIPTOR->G) //Granularity?
-	{
-		limit = ((limit << 12)|0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
-	}
-	
-	if (SEG_DESCRIPTOR->nonS && !SEG_DESCRIPTOR->DATASEGMENT.OTHERSTRUCT && SEG_DESCRIPTOR->DATASEGMENT.E) //DATA segment and expand-down?
-	{
-		if ((offset<(limit+1)) || (offset>(SEG_DESCRIPTOR->G?0xFFFFFFFF:0xFFFF))) //Limit+1 to 64K/64G!
+		
+		if (segment!=CPU_SEGMENT_CS && segment!=CPU_SEGMENT_SS && !getDescriptorIndex(segmentval)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
 		{
 			THROWDESCGP(segmentval); //Throw fault!
 			return 1; //Error!
 		}
-	}
-	else if (offset>limit) //Normal operations? 0-limit!
-	{
-		THROWDESCGP(segmentval); //Throw fault!
-		return 1; //Error!
-	}
+		
+		SEGMENT_DESCRIPTOR *SEG_DESCRIPTOR = &CPU[activeCPU].SEG_DESCRIPTOR[segment]; //Look it up!
+		//First: type checking!
 	
-	//Third: privilege levels!
+		if (!SEG_DESCRIPTOR->P) //Not present?
+		{
+			THROWDESCSeg(segment,0); //Throw error: accessing non-present segment descriptor!
+			return 1; //Erorr!
+		}
 
-	//Fouth: Restrict access to data!
+		if (segment==CPU_SEGMENT_CS && !(SEG_DESCRIPTOR->EXECSEGMENT.ISEXEC && SEG_DESCRIPTOR->nonS) && (forreading==3)) //Non-executable segment execution?
+		{
+			THROWDESCGP(segmentval); //Throw fault!
+			return 1; //Error!
+		}
+		else if (((SEG_DESCRIPTOR->EXECSEGMENT.ISEXEC) || !(SEG_DESCRIPTOR->DATASEGMENT.OTHERSTRUCT || SEG_DESCRIPTOR->DATASEGMENT.W)) && SEG_DESCRIPTOR->nonS && !forreading) //Writing to executable segment or read-only data segment?
+		{
+			THROWDESCGP(segmentval); //Throw fault!
+			return 1; //Error!
+		}
+		else if (SEG_DESCRIPTOR->EXECSEGMENT.ISEXEC && !SEG_DESCRIPTOR->EXECSEGMENT.R && SEG_DESCRIPTOR->nonS && forreading==1) //Reading execute-only segment?
+		{
+			THROWDESCGP(segmentval); //Throw fault!
+			return 1; //Error!	
+		}
+		
+		//Next: limit checking!
 	
-	//Fifth: Accessing data in Code segments?
-
-	return 0; //OK!
+		uint_32 limit; //The limit!
+	
+		limit = ((SEG_DESCRIPTOR->limit_high<<8)|SEG_DESCRIPTOR->limit_low); //Base limit!
+	
+		if (SEG_DESCRIPTOR->G) //Granularity?
+		{
+			limit = ((limit << 12)|0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
+		}
+		
+		if (SEG_DESCRIPTOR->nonS && !SEG_DESCRIPTOR->DATASEGMENT.OTHERSTRUCT && SEG_DESCRIPTOR->DATASEGMENT.E) //DATA segment and expand-down?
+		{
+			if ((offset<(limit+1)) || (offset>(SEG_DESCRIPTOR->G?0xFFFFFFFF:0xFFFF))) //Limit+1 to 64K/64G!
+			{
+				THROWDESCGP(segmentval); //Throw fault!
+				return 1; //Error!
+			}
+		}
+		else if (offset>limit) //Normal operations? 0-limit!
+		{
+			THROWDESCGP(segmentval); //Throw fault!
+			return 1; //Error!
+		}
+		
+		//Third: privilege levels!
+	
+		//Fouth: Restrict access to data!
+		
+		//Fifth: Accessing data in Code segments?
+	
+		return 0; //OK!
+	}
+	return 0; //Don't give errors: handle like a 80(1)86!
 }

@@ -816,6 +816,24 @@ extern byte CPU_StackAddress_size[2]; //Address size for this opcode!
 #define CPU_MODE_8086 2
 #define CPU_MODE_UNKNOWN 3
 
+//Exception interrupt numbers!
+#define EXCEPTION_DIVIDEERROR 0
+#define EXCEPTION_DEBUG 1
+#define EXCEPTION_NMI 2
+#define EXCEPTION_CPUBREAKPOINT 3
+#define EXCEPTION_OVERFLOW 4
+#define EXCEPTION_BOUNDSCHECK 5
+#define EXCEPTION_BADOPCODE 6
+#define EXCEPTION_NOCOPROCESSOR 7
+#define EXCEPTION_DOUBLEFAULT 8
+#define EXCEPTION_COPROCESSOROVERRUN 9
+#define EXCEPTION_INVALIDTSSSEGMENT 0xA
+#define EXCEPTION_SEGMENTNOTPRESENT 0xB
+#define EXCEPTION_STACKFAULT 0xC
+#define EXCEPTION_GENERALPROTECTIONFAULT 0xD
+#define EXCEPTION_PAGEFAULT 0xE
+#define EXCEPTION_COPROCESSORERROR 0x10
+
 void resetCPU(); //Initialises CPU!
 void doneCPU(); //Finish the CPU!
 void moveinttable16(word segment, uint_32 offset); //Move interrupt table somewhere else!
