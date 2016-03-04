@@ -91,6 +91,8 @@ typedef struct
 	byte reload; //Reload requested?
 	byte channel_status; //Current output status!
 	byte gatewenthigh; //Gate went high?
+	byte gatelistening; //Listening to gate going high?
+	byte reloadlistening; //Listening to reloading?
 
 	//Output generating timer!
 	float samples; //Output samples to process for the current audio tick!
@@ -154,6 +156,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to process every output sample!
 	register uint_32 length; //Amount of samples to generate!
 	uint_32 i;
+	uint_32 dutycyclei; //Input samples to process!
 	uint_64 tickcounter;
 	word oldvalue; //Old value before decrement!
 	float tempf;
@@ -175,20 +178,20 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			byte mode,outputmask;
 			mode = PITchannels[channel].mode; //Current mode!
 			outputmask = (channel==2)?((PCSpeakerPort&2)>>1):1; //Mask output on/off for this timer!
-
-			switch (mode) //What mode are we rendering?
+			for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
 			{
-			case 0: //Interrupt on Terminal Count? Is One-Shot without Gate Input?
-			case 1: //One-shot mode?
-				for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
+				switch (mode) //What mode are we rendering?
 				{
-					//Length counts the amount of ticks to render!
+				case 0: //Interrupt on Terminal Count? Is One-Shot without Gate Input?
+				case 1: //One-shot mode?
 					switch (PITchannels[channel].status) //What status?
 					{
 					case 0: //Output goes low/high?
 						PITchannels[channel].channel_status = mode; //We're high when mode 1, else low with mode 0!
+						PITchannels[channel].reloadlistening = 1; //We're listening to reloads!
 						if (PITchannels[channel].reload)
 						{
+							PITchannels[channel].gatelistening = mode; //We're listening to gate with mode 1!
 							PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
 							goto mode0_1; //Skip to step 1!
 						}
@@ -203,6 +206,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 						else if (PITchannels[channel].gatewenthigh) //Mode 1 waits for gate to become high!
 						{
 							PITchannels[channel].gatewenthigh = 0; //Not went high anymore!
+							PITchannels[channel].gatelistening = 0; //We're not listening to gate with mode 1 anymore!
 							PITchannels[channel].status = 2;
 							goto mode0_2;
 						}
@@ -217,7 +221,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 						}
 
 						oldvalue = PITchannels[channel].ticker; //Save old ticker for checking for overflow!
-
 						if (mode) --PITchannels[channel].ticker; //Mode 1 always ticks?
 						else if ((PCSpeakerPort&1) || (channel<2)) --PITchannels[channel].ticker; //Mode 0 ticks when gate is high!
 
@@ -229,19 +232,15 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					default: //Unsupported! Ignore any input!
 						break;
 					}
-					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
-				}
-				break;
-			case 2: //Also Rate Generator mode?
-			case 6: //Rate Generator mode?
-				for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
-				{
-					//Length counts the amount of ticks to render!
+					break;
+				case 2: //Also Rate Generator mode?
+				case 6: //Rate Generator mode?
 					switch (PITchannels[channel].status) //What status?
 					{
 					case 0: //Output going high! See below! Wait for reload register to be written!
 						PITchannels[channel].channel_status = 1; //We're high!
 						PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
+						PITchannels[channel].reloadlistening = 1; //We're listening to reloads!
 						goto mode2_1; //Skip to step 1!
 						break;
 					case 1: //We're starting the count?
@@ -253,6 +252,8 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 							reloadticker(channel); //Reload the counter!
 							PITchannels[channel].channel_status = 1; //We're high!
 							PITchannels[channel].status = 2; //Start counting!
+							PITchannels[channel].reloadlistening = 0; //We're not listening to reloads anymore!
+							PITchannels[channel].gatelistening = 1; //We're listening to the gate!
 						}
 						break;
 					case 2: //We start counting to rise!!
@@ -285,24 +286,21 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					default: //Unsupported! Ignore any input!
 						break;
 					}
-					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
-				}
-				break;
-			//mode 2==6 and mode 3==7.
-			case 3: //Square Wave mode?
-			case 7: //Also Square Wave mode?
-				for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
-				{
-					//Length counts the amount of ticks to render!
+				//mode 2==6 and mode 3==7.
+				case 3: //Square Wave mode?
+				case 7: //Also Square Wave mode?
 					switch (PITchannels[channel].status) //What status?
 					{
 					case 0: //Output going high! See below! Wait for reload register to be written!
 						PITchannels[channel].channel_status = 1; //We're high!
+						PITchannels[channel].reloadlistening = 1; //We're listening to reloads!
 						if (PITchannels[channel].reload)
 						{
 							PITchannels[channel].reload = 0; //Not reloading!
 							reloadticker(channel); //Reload the counter!
 							PITchannels[channel].status = 1; //Next status: we're loaded and ready to run!
+							PITchannels[channel].reloadlistening = 0; //We're not listening to reloads anymore!
+							PITchannels[channel].gatelistening = 1; //We're listening to the gate!
 							goto mode3_1; //Skip to step 1!
 						}
 						break;
@@ -333,18 +331,16 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 					default: //Unsupported! Ignore any input!
 						break;
 					}
-					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
-				}
-				break;
-			case 4: //Software Triggered Strobe?
-			case 5: //Hardware Triggered Strobe?
-				for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
-				{
+					break;
+				case 4: //Software Triggered Strobe?
+				case 5: //Hardware Triggered Strobe?
 					switch (PITchannels[channel].status) //What status?
 					{
 					case 0: //Output going high! See below! Wait for reload register to be written!
 						PITchannels[channel].channel_status = 1; //We're high!
 						PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
+						PITchannels[channel].reloadlistening = 1; //We're listening to reloads!
+						PITchannels[channel].gatelistening = 1; //We're listening to the gate!
 						goto mode4_1; //Skip to step 1!
 						break;
 					case 1: //We're starting the count or waiting for rising gate(mode 5)?
@@ -385,12 +381,13 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 							PITchannels[channel].channel_status = 1; //We're going high again during this phase!
 						}
 						break;
-					default: //Unsupported mode! Ignore any input!
-						break;
 					}
-					writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
+					break;
+				default: //Unsupported mode! Ignore any input!
+					break;
 				}
-				break;
+				//We're ready for the current result!
+				writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
 			}
 		}
 	}
@@ -427,7 +424,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 
 		//Ticks the speaker when needed!
 		i = 0; //Init counter!
-		uint_32 dutycyclei; //Input samples to process!
 		//Generate the samples from the output signal!
 		for (;;) //Generate samples!
 		{
@@ -540,7 +536,7 @@ void speakerGateUpdated()
 {
 	if (((oldPCSpeakerPort ^ PCSpeakerPort) & 0x1) && (PCSpeakerPort & 0x1)) //Risen?
 	{
-		PITchannels[2].gatewenthigh = 1; //We went high!
+		PITchannels[2].gatewenthigh |= PITchannels[2].gatelistening; //We went high if listening on PIT2!
 	}
 	oldPCSpeakerPort = PCSpeakerPort; //Save new value!
 }
@@ -549,7 +545,7 @@ void setPITFrequency(byte channel, word frequency) //Set the new frequency!
 {
 	if (__HW_DISABLED) return; //Abort!
 	PITchannels[channel].frequency = frequency;
-	PITchannels[channel].reload = 1; //We've been reloaded!
+	PITchannels[channel].reload |= PITchannels[channel].reloadlistening; //We've been reloaded!
 }
 
 void setPITMode(byte channel, byte mode)
@@ -559,6 +555,7 @@ void setPITMode(byte channel, byte mode)
 	PITchannels[channel].status = 0; //Output going high! Wait for reload to be set!
 	PITchannels[channel].reload = 0; //Init to be sure!
 	PITchannels[channel].gatewenthigh = 0; //Reset gate status to be sure, since we're reset!
+	PITchannels[channel].gatelistening = PITchannels[channel].reloadlistening = 0; //Not listening to anything right now!
 }
 
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
