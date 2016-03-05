@@ -14,6 +14,10 @@
 
 //Configuration of the FDC...
 
+//Enable density errors or gap length errors?
+#define EMULATE_DENSITY 0
+#define EMULATE_GAPLENGTH 0
+
 //Double logging if FLOPPY_LOGFILE2 is defined!
 #define FLOPPY_LOGFILE "floppy"
 //#define FLOPPY_LOGFILE2 "debugger"
@@ -276,8 +280,8 @@ FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES] = { //Differently formatte
 	{ 400, 10,  2, 40, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xFD,1024, 2, 112,DENSITY_SINGLE           ,GAPLENGTH_5_14,0x00   }, //400K 5.25" supports 250kbits, 300kbits SD!
 	{1200, 15,  2, 80, 0, 0, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF9,512 , 7, 224,DENSITY_SINGLE           ,GAPLENGTH_5_14,0x00   }, //1200K 5.25" supports 300kbits, 500kbits SD!
 	//Now 3.5"
-	{ 720,  9,  2, 80, 1, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xF9,1024, 3, 112,DENSITY_DOUBLE           ,GAPLENGTH_IGNORE,0xC0 }, //720K 3.5" supports 250kbits, 300kbits DD! Disable gap length checking here because we need to work without it on a XT!
-	{1440, 18,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_IGNORE,0x80 }, //1.44M 3.5" supports 250kbits, 500kbits HD! Disable gap length checking here because we need to work without it on a XT!
+	{ 720,  9,  2, 80, 1, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_300k<<4)|(TRANSFERRATE_300k<<6),0xF9,1024, 3, 112,DENSITY_DOUBLE           ,GAPLENGTH_3_5,0xC0 }, //720K 3.5" supports 250kbits, 300kbits DD! Disable gap length checking here because we need to work without it on a XT?
+	{1440, 18,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,0x80 }, //1.44M 3.5" supports 250kbits, 500kbits HD! Disable gap length checking here because we need to work without it on a XT?
 	{1680, 21,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,0x80    }, //1.68M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
 	{1722, 21,  2, 82, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,0x80    }, //1.722M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
 	{1840, 23,  2, 80, 3, 1, TRANSFERRATE_250k|(TRANSFERRATE_500k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_500k<<6),0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,0x80    }, //1.84M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
@@ -663,7 +667,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
 	}
-	if ((FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity&DENSITY_IGNORE) || density_forced)) //Wrong density?
+	if ((FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 		FLOPPY.ST0.data = 0x40; //Abnormal termination!
@@ -702,7 +706,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 
 	if (readdata(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
 	{
-		if ((FLOPPY.commandbuffer[7]!=FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength) && (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength!=GAPLENGTH_IGNORE)) //Wrong GAP length?
+		if ((FLOPPY.commandbuffer[7]!=FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength) && (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
 		{
 			FLOPPY.ST0.data = 0x40; //Abnormal termination!
 			FLOPPY.commandstep = 0xFF; //Move to error phase!
@@ -751,7 +755,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 		return;
 	}
 
-	if ((FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity&DENSITY_IGNORE) || density_forced)) //Wrong density?
+	if ((FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 		FLOPPY.ST0.data = 0x40; //Abnormal termination!
@@ -759,7 +763,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 		return;					
 	}
 
-	if ((FLOPPY.commandbuffer[5]!=FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength) && (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength!=GAPLENGTH_IGNORE)) //Wrong GAP length?
+	if ((FLOPPY.commandbuffer[5]!=FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength) && (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
 	{
 		FLOPPY.ST0.data = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
@@ -928,7 +932,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 					FLOPPY.commandstep = 0xFF; //Move to error phase!
 					return;
 				}
-				if ((FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity&DENSITY_IGNORE) || density_forced)) //Wrong density?
+				if ((FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 				{
 					FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 					FLOPPY.ST0.data = 0x40; //Abnormal termination!
