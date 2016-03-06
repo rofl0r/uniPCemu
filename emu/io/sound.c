@@ -38,7 +38,7 @@
 //#define __USE_EQUALIZER
 
 //What frequency to filter our sound for (higher than 0Hz!) Currently the high pass filter disturbs sound too much, so it's disabled. Low pass is set to half the rendering frequency!
-#define SOUND_HIGHPASS 1.0f
+#define SOUND_HIGHPASS 18.2f
 
 typedef struct
 {
