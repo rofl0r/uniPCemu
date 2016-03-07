@@ -621,6 +621,7 @@ typedef struct PACKED
 	word charrowstatus[0x1000]; //Character row status (double the row status, for character and inner)
 	word colstatus[0x1000]; //Column status!
 	word charcolstatus[0x2000]; //Character column status (double the row status, for character and inner)
+	word extrahorizontalstatus[0x2000]; //Extra status information for rendering active display!
 	//Current processing coordinates on-screen!
 	word x; //X coordinate on the screen!
 	word y; //Y coordinate on the screen!

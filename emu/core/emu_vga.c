@@ -210,6 +210,7 @@ OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 	
 	//All possible states!
 	if (!displayrenderhandler[0][0]) initStateHandlers(); //Init our display states for usage when needed!
+	if (!Sequencer->extrastatus) Sequencer->extrastatus = &getActiveVGA()->CRTC.extrahorizontalstatus[0]; //Start our extra status at the beginning of the row!
 
 	/*if (!lockGPU()) //Lock the GPU for our access!
 	{

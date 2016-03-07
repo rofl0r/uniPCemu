@@ -43,6 +43,8 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 	//Horizontal coordinates!
 	charsize = getcharacterwidth(VGA); //Now, based on width!
 	current = 0; //Init!
+	byte pixelrate=0;
+	word extrastatus;
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
 		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
@@ -50,6 +52,17 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 		realtiming = current; //Same rate as the basic rate!
 		realtiming >>= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Apply dot clock rate!
 		VGA->CRTC.colstatus[current] = get_display_x(VGA,realtiming); //Translate to display rate!
+		//Determine some extra information!
+		extrastatus = 0; //Initialise extra horizontal status!
+		
+		if (++pixelrate>VGA->precalcs.ClockingModeRegister_DCR) //To write back the pixel clock every or every other pixel?
+		{
+			extrastatus |= 1; //Reset for the new block!
+			pixelrate = 0; //Reset!
+		}
+		VGA->CRTC.extrahorizontalstatus[current] = extrastatus; //Extra status to apply!
+
+		//Finished horizontal timing!
 		++current; //Next!
 	}
 	
@@ -193,6 +206,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//dolog("VGA","VTotal before charwidth: %i",VGA->precalcs.verticaltotal);
 		VGA->precalcs.characterwidth = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9; //Character width!
 		VGA->precalcs.ClockingModeRegister_DCR = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Dot Clock Rate!
+		updateCRTC = 1; //We need to update the CRTC!
 		whereupdated = WHEREUPDATED_CRTCONTROLLER; //We affect the CRTController fully too with above!
 		//dolog("VGA","VTotal after charwidth: %i",VGA->precalcs.verticaltotal); //Log it!
 		//unlockVGA(); //We're finished with the VGA!

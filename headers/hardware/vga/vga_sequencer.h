@@ -95,6 +95,8 @@ typedef struct
 	//Pixel precision for timing with sound:
 	uint_64 pixelstorender; //Ammount of pixels to render to delay!
 	uint_64 pixelsrendered; //Ammount of pixels rendered, cleared on above overflow.
+
+	word *extrastatus; //Our current extra status!
 } SEQ_DATA; //Sequencer used data!
 
 float VGA_VerticalRefreshRate(VGA_Type *VGA); //Scanline speed for one line in Hz!

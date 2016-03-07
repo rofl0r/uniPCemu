@@ -191,7 +191,8 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	Sequencer->charystart = charystart; //What row to start with our pixels!
 
 	//Some attribute controller special 8-bit mode support!
-	Sequencer->active_pixelrate = Sequencer->active_nibblerate = 0; //Reset pixel load rate status & nibble load rate status for odd sized screens.
+	Sequencer->active_nibblerate = 0; //Reset pixel load rate status & nibble load rate status for odd sized screens.
+	Sequencer->extrastatus = &VGA->CRTC.extrahorizontalstatus[0]; //Start our extra status at the beginning of the row!
 
 	VGA_loadcharacterplanes(VGA, Sequencer, 0); //Initialise the character planes for usage!
 }
@@ -311,33 +312,31 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
 
-	if (++Sequencer->active_pixelrate > VGA->precalcs.ClockingModeRegister_DCR) //To write back the pixel clock every or every other pixel?
+	if ((*Sequencer->extrastatus++)&1) //To write back the pixel clock every or every other pixel?
 	{
-		Sequencer->active_pixelrate = 0; //Reset for the new block!
 		if (nibbled) //We've nibbled?
 		{
-			if (++Sequencer->active_nibblerate>1) //Nibble expired?
+			Sequencer->active_nibblerate ^= 1; //Reverse nibble!
+			if (!Sequencer->active_nibblerate) //Nibble expired?
 			{
-				Sequencer->active_nibblerate = 0; //Reset for the new block!
 				nibbled = 0; //We're done with the pixel!
 			}
 		}
-		if (!nibbled) //Finished with the nibble&pixel? We're ready to check for the next one!
+		if (nibbled) return; //Are we not finished with the nibble? Abort!
+		//Finished with the nibble&pixel? We're ready to check for the next one!
+		if (VGA->precalcs.graphicsmode) //Graphics mode?
 		{
-			if (VGA->precalcs.graphicsmode) //Graphics mode?
-			{
-				loadcharacterplanes = ((tempx & 7)==0); //Load the character planes?
-			}
-			else //Text mode?
-			{
-				loadcharacterplanes = (VGA->CRTC.charcolstatus[(Sequencer->tempx<<1)] != VGA->CRTC.charcolstatus[(tempx<<1)]); //Load the character planes?
-			}
-			if (loadcharacterplanes) //First of a new block? Reload our pixel buffer!
-			{
-				VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
-			}
-			Sequencer->tempx = tempx; //Write back tempx!
+			loadcharacterplanes = ((tempx & 7)==0); //Load the character planes?
 		}
+		else //Text mode?
+		{
+			loadcharacterplanes = (VGA->CRTC.charcolstatus[(Sequencer->tempx<<1)] != VGA->CRTC.charcolstatus[(tempx<<1)]); //Load the character planes?
+		}
+		if (loadcharacterplanes) //First of a new block? Reload our pixel buffer!
+		{
+			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
+		}
+		Sequencer->tempx = tempx; //Write back tempx!
 	}
 }
 
