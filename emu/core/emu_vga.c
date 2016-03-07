@@ -14,7 +14,10 @@
 #include "headers/hardware/pic.h" //IRQ support!
 #include "headers/support/highrestimer.h" //Automatic timer support!
 
+//Are we disabled?
 //#define __HW_DISABLED
+//Are we to limit the VGA emulation based on the host CPU speed?
+#define VGA_LIMITER
 
 /*
 
@@ -230,43 +233,39 @@ OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 //CPU cycle locked version of VGA rendering!
 void updateVGA(double timepassed)
 {
-	uint_64 limitcalc;
+	#ifdef VGA_LIMITER
+	uint_64 limitcalc,renderingsbackup;
 	double timeprocessed;
+	#endif
 	VGA_timing += timepassed; //Time has passed!
 	if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Might have passed?
 	{
-		uint_64 renderings,renderingsbackup;
+		uint_64 renderings;
 		renderings = (uint_64)(VGA_timing/VGA_rendertiming); //Ammount of times to render!
 		VGA_timing -= (renderings*VGA_rendertiming); //Rest the amount we can process!
 
+		#ifdef VGA_LIMITER
 		if ((renderings>VGA_limit) && VGA_limit) //Limit broken?
 		{
 			renderings = VGA_limit; //Limit the processing to the amount of time specified!
 		}
 		if (!renderings) return; //Nothing to render!
 		timeprocessed = (renderings*VGA_rendertiming); //How much are we processing?
-		timeprocessed *= 0.50; //We're running too slow at full rendering, so split 50/50!
 		renderingsbackup = renderings; //Save the backup for comparision!
+		#endif
 
 		if (!doVGA_Sequencer()) return; //Don't execute the sequencer if requested to!
 
 		SEQ_DATA *Sequencer;
 		Sequencer = GETSEQUENCER(getActiveVGA()); //Our sequencer!
 
+		#ifdef VGA_LIMITER
 		getnspassed(&VGA_test);
+		#endif
 		do
 		{
-			if (renderings>=20) //20+ optimization?
+			if (renderings>=10) //10+ optimization?
 			{
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
@@ -279,13 +278,18 @@ void updateVGA(double timepassed)
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
 				renderings -= 19; //We've processed 19 more!
 			}
-			VGA_Sequencer(Sequencer); //Tick the VGA once!
+			else //Only one?
+			{
+				VGA_Sequencer(Sequencer); //Tick the VGA once!
+			}
 		} while (--renderings); //Ticks left to tick?
+		#ifdef VGA_LIMITER
 		limitcalc = getnspassed(&VGA_test); //How long have we taken?
 
 		//timeprocessed=how much time to use, limitcalc=how much time we have taken, renderingsbackup=How many pixels have we processed.
-		VGA_limit = (uint_64)(((float)renderingsbackup/(float)limitcalc)*timeprocessed); //Don't process any more than we're allowed to (timepassed).
 		if (limitcalc<=timeprocessed) VGA_limit = 0; //Don't limit if we're running at full speed (we're below time we are allowed to process)!
+		else VGA_limit = (uint_64)(((float)renderingsbackup/(float)limitcalc)*timeprocessed); //Don't process any more than we're allowed to (timepassed) otherwise.
+		#endif
 	}
 }
 

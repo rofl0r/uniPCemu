@@ -48,14 +48,16 @@ PC SPEAKER
 #define PITDOUBLE_THRESHOLD SPEAKER_BUFFER
 //Speaker low pass filter values (if defined, it's used)!
 #define SPEAKER_LOWPASS 20000.0f
+//Speaker volume during filtering!
+#define SPEAKER_LOWPASSVOLUME 0.5f
 
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
 #define TIME_RATE (14318180.0f/12.0f)
 
 //Log the speaker to this .wav file when defined (raw and duty cycles log)!
-#define SPEAKER_LOGRAW "captures/speakerraw.wav"
-#define SPEAKER_LOGDUTY "captures/speakerduty.wav"
+//#define SPEAKER_LOGRAW "captures/speakerraw.wav"
+//#define SPEAKER_LOGDUTY "captures/speakerduty.wav"
 
 //End of defines!
 
@@ -437,7 +439,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			for (dutycyclei = render_ticks;dutycyclei;)
 			{
 				if (!readfifobuffer(PITchannels[2].rawsignal, &currentsample)) break; //Failed to read the sample? Stop counting!
-				speaker_currentsample = currentsample?SHRT_MAX:SHRT_MIN; //Convert the current result to the 16-bit data, signed instead of unsigned!
+				speaker_currentsample = currentsample?(SHRT_MAX*SPEAKER_LOWPASSVOLUME):(SHRT_MIN*SPEAKER_LOWPASSVOLUME); //Convert the current result to the 16-bit data, signed instead of unsigned!
 				#ifdef SPEAKER_LOGRAW
 					writeWAVMonoSample(speakerlograw,(short)speaker_currentsample); //Log the mono sample to the WAV file, converted as needed!
 				#endif
