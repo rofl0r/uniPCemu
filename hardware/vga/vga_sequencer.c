@@ -34,30 +34,22 @@ OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *
 
 extern GPU_type GPU; //GPU!
 
+float VGA_clocks[4] = {
+			25175000.0f, //25MHz
+			28322000.0f, //28MHz
+			0.0f, //Unused
+			0.0f //Unused
+			}; //Our clocks!
+
 float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
 {
-//Horizontal Refresh Rate=Clock Frequency (in Hz)/horizontal pixels
-//Vertical Refresh rate=Horizontal Refresh Rate/total scan lines!
+	//Horizontal Refresh Rate=Clock Frequency (in Hz)/horizontal pixels
+	//Vertical Refresh rate=Horizontal Refresh Rate/total scan lines!
 	if (!memprotect(VGA,sizeof(*VGA),NULL)) //No VGA?
 	{
 		return 0.0f; //Remove VGA Scanline counter: nothing to render!
 	}
-	
-	float result;
-	switch (VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect)
-	{
-	case 0: //25 MHz clock?
-		result = 25175000.0; //25MHz clock!
-		break;
-	case 1: //28 MHz clock?
-		result = 28322000.0; //28 MHz clock!
-		break;
-	default: //Unknown clock?
-		result = 0.0f; //Nothing!
-		break;
-	}
-
-	return result; //Calculate the ammount of horizontal clocks per second: full speed for the CPU!
+	return VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3)];
 }
 
 //Main rendering routine: renders pixels to the emulated screen.
@@ -303,7 +295,6 @@ OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinf
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	byte loadcharacterplanes;
 	//Render our active display here! Start with text mode!		
 	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
 	static VGA_Sequencer_Mode activedisplayhandlers[2] = {VGA_ActiveDisplay_noblanking,VGA_Blank}; //For giving the correct output sub-level!
@@ -325,25 +316,23 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	{
 		if (nibbled) //We've nibbled?
 		{
-			Sequencer->active_nibblerate ^= 1; //Reverse nibble!
-			if (!Sequencer->active_nibblerate) //Nibble expired?
-			{
-				nibbled = 0; //We're done with the pixel!
-			}
+			nibbled &= !(Sequencer->active_nibblerate ^= 1); //Nibble expired?
 		}
 		if (nibbled) return; //Are we not finished with the nibble? Abort!
 		//Finished with the nibble&pixel? We're ready to check for the next one!
 		if (VGA->precalcs.graphicsmode) //Graphics mode?
 		{
-			loadcharacterplanes = ((tempx & 7)==0); //Load the character planes?
+			if ((tempx & 7)==0) //First of a new block? Reload our pixel buffer!
+			{
+				VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
+			}
 		}
 		else //Text mode?
 		{
-			loadcharacterplanes = (VGA->CRTC.charcolstatus[(Sequencer->tempx<<1)] != VGA->CRTC.charcolstatus[(tempx<<1)]); //Load the character planes?
-		}
-		if (loadcharacterplanes) //First of a new block? Reload our pixel buffer!
-		{
-			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
+			if ((VGA->CRTC.charcolstatus[(Sequencer->tempx<<1)] != VGA->CRTC.charcolstatus[(tempx<<1)])) //First of a new block? Reload our pixel buffer!
+			{
+				VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
+			}
 		}
 		Sequencer->tempx = tempx; //Write back tempx!
 	}
