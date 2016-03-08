@@ -57,12 +57,15 @@ OPTINLINE byte GPU_textcalcpixel(byte *x, byte *y, word *charx, word *chary, int
 	return 0; //Valid!
 }
 
-OPTINLINE static byte reverse8(byte b) { //Reverses byte value bits!
+OPTINLINE static byte reverse8(register byte b) { //Reverses byte value bits!
 	b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4); //Swap 4 high and low bits!
 	b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2); //Swap 2 high and low bits of both nibbles!
 	b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1); //Swap odd and even bits!
 	return b;
 }
+
+byte reversedinit = 1;
+byte int10_font_08_reversed[256*8]; //Full font, reversed for optimized display!
 
 OPTINLINE static byte getcharxy_8(byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
 {
@@ -75,7 +78,7 @@ OPTINLINE static byte getcharxy_8(byte character, byte x, byte y) //Retrieve a c
 
 	if (lastcharinfo != location) //Last row not yet loaded?
 	{
-		lastrow = reverse8(int10_font_08[(lastcharinfo = location)^0x8000]); //Read the row from the character generator to use! Also reverse the bits for faster usage!
+		lastrow = int10_font_08_reversed[(lastcharinfo = location)^0x8000]; //Read the row from the character generator to use! Also reverse the bits for faster usage, which is already done!
 	}
 
 	//Take the pixel we need!
@@ -149,6 +152,16 @@ GPU_TEXTSURFACE *alloc_GPUtext()
 	//We don't need a screen, because we plot straight to the destination surface (is way faster than blitting)!
 
 	surface->lock = SDL_CreateSemaphore(1); //Create our lock for when we are used!
+
+	if (reversedinit) //Initialising?
+	{
+		reversedinit = 0; //Not anymore: we're generating values!
+		uint_32 b;
+		for (b=0;b<sizeof(int10_font_08_reversed);b++) //Precalc all reversed values!
+		{
+			int10_font_08_reversed[b] = reverse8(int10_font_08[b]); //Reverse it into our own ROM for fast rendering!
+		}
+	}
 
 	return surface; //Give the allocated surface!
 }

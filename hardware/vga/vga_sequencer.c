@@ -66,7 +66,7 @@ OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel)
 {
 	register uint_32 old;
 	uint_32 *screenpixel = &EMU_BUFFER(VGA->CRTC.x,VGA->CRTC.y); //Pointer to our pixel!
-	if (((VGA->CRTC.y*EMU_MAX_X)+VGA->CRTC.x)>=EMU_SCREENBUFFERSIZE) return; //Out of bounds?
+	if (screenpixel>=EMU_SCREENBUFFEREND) return; //Out of bounds?
 	old = *screenpixel; //Read old!
 	old ^= pixel; //Check for differences!
 	GPU.emu_buffer_dirty |= old; //Update, set changed bits when changed!

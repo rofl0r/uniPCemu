@@ -52,6 +52,7 @@
 #define EMU_BUFFER(x,y) GPU.emu_screenbuffer[(y*EMU_MAX_X)+x]
 
 #define EMU_SCREENBUFFERSIZE (EMU_MAX_Y*EMU_MAX_X) //Video buffer (of max 640x480 pixels!)
+#define EMU_SCREENBUFFEREND (GPU.emu_screenbufferend)
 #define PSP_SCREENBUFFERSIZE (PSP_SCREEN_ROWS*512) //The PSP's screen buffer we're rendering!
 
 //Show the framerate?
@@ -83,6 +84,7 @@ typedef struct
 	uint_32* vram; //Direct pointer to REAL vram of the PSP!
 //Visual screen to render after VGA etc.!
 	uint_32 *emu_screenbuffer; //Dynamic pointer to the emulator screen buffer!
+	uint_32 *emu_screenbufferend; //Pointer to the emulator screen buffer end (1 byte after) where we overflow into invalid memory!
 
 	//Display resolution:
 	word xres; //X size of screen

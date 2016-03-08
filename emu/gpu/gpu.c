@@ -230,6 +230,7 @@ void initVideo(int show_framerate) //Initialises the video
 		unlockGPU(); //Unlock the GPU for Software access!
 		raiseError("GPU InitVideo", "Failed to allocate the emulator screen buffer!");
 	}
+	GPU.emu_screenbufferend = GPU.emu_screenbuffer+(EMU_SCREENBUFFERSIZE*4); //A quick reference to end of buffer!
 
 	debugrow("Video: Setting up misc. settings...");
 	GPU.show_framerate = show_framerate; //Show framerate?
