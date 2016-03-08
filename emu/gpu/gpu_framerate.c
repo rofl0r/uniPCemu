@@ -172,7 +172,7 @@ void renderFramerate()
 						framerateupdated = 0; //Not anymore!
 						CPUspeed = getCPUSpeedPercentage(); //Current CPU speed percentage (how much the current time is compared to required time)!
 					}
-					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
+					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%  ", CPUspeed); //Current CPU speed percentage!
 				}
 		}
 		else //Don't debug framerate, but still render?
@@ -185,7 +185,7 @@ void renderFramerate()
 					CPUspeed = getCPUSpeedPercentage(); //Current CPU speed percentage (how much the current time is compared to required time)!
 				}
 				GPU_textgotoxy(frameratesurface, 0, 0); //For output!
-				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "CPU speed: %i%%", CPUspeed); //Current CPU speed percentage!
+				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "CPU speed: %i%%  ", CPUspeed); //Current CPU speed percentage!
 				GPU_textclearcurrentrownext(frameratesurface); //Clear the rest of the current row!
 			}
 			else

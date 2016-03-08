@@ -291,6 +291,15 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 	++VGA->CRTC.x; //Next x!
 }
 
+OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA) //Process attribute to DAC index!
+{
+	//Originally: VGA_Type *VGA, word Scanline, word x, VGA_AttributeInfo *info
+	static VGA_AttributeController_Mode attributecontroller_modes[2] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit }; //Both modes we use!
+
+	//Our changing variables that are required!
+	return attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit](Sequencer_attributeinfo, VGA); //Passthrough!
+}
+
 //Active display handler!
 void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {

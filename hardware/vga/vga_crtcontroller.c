@@ -154,24 +154,3 @@ word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 	
 	return signal; //What signal!
 }
-
-OPTINLINE word getrowsize(VGA_Type *VGA) //Give the size of a row in VRAM!
-{
-	return VGA->precalcs.rowsize; //Size of a text OR graphics row!
-}
-
-OPTINLINE word getTopWindowStart(VGA_Type *VGA)
-{
-	return VGA->precalcs.topwindowstart; //Give top window start scanline!
-}
-
-word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
-{
-	register word stat; //The status of the pixel!
-	//We are a maximum of 4096x1024 size!
-	Scanline &= 0x3FF; //Range safety: 1024 scanlines!
-	x &= 0xFFF; //Range safety: 4095 columns!
-	stat = VGA->CRTC.rowstatus[Scanline]; //Get row status!
-	stat |= VGA->CRTC.colstatus[x]; //Get column status!
-	return stat; //Give the combined (OR'ed) status!
-}

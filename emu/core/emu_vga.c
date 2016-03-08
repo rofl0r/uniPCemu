@@ -203,6 +203,17 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 
 extern DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for all pixels!
 
+OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
+{
+	register word stat; //The status of the pixel!
+	//We are a maximum of 4096x1024 size!
+	Scanline &= 0x3FF; //Range safety: 1024 scanlines!
+	x &= 0xFFF; //Range safety: 4095 columns!
+	stat = VGA->CRTC.rowstatus[Scanline]; //Get row status!
+	stat |= VGA->CRTC.colstatus[x]; //Get column status!
+	return stat; //Give the combined (OR'ed) status!
+}
+
 OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 {
 	//if (!lockVGA()) return; //Lock ourselves!
