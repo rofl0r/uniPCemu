@@ -17,7 +17,7 @@
 //Disable this hardware?
 //#define __HW_DISABLED
 //Limit the VGA to run slower on too slow PCs?
-//#define LIMITVGA
+#define LIMITVGA
 
 /*
 

@@ -55,6 +55,10 @@ PC SPEAKER
 //The clock speed of the PIT (14.31818MHz divided by 12)!
 #define TIME_RATE (14318180.0f/12.0f)
 
+//Run the low pass at the 72 raw samples rate instead (16571Hz)!
+#undef SPEAKER_LOWPASS
+#define SPEAKER_LOWPASS (TIME_RATE/72.0f)
+
 //Log the speaker to this .wav file when defined (raw and duty cycles log)!
 //#define SPEAKER_LOGRAW "captures/speakerraw.wav"
 //#define SPEAKER_LOGDUTY "captures/speakerduty.wav"
