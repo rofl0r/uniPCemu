@@ -179,6 +179,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 {
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
+	if (!rendersurface) return 0; //No rendering surface used yet?
 	register int y=0;
 	register int x; //Reset x!
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
@@ -191,7 +192,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 			x = 0; //Init X!
 			for (;;) //Process all columns!
 			{
-				updateDirty(surface,x++,y); //Update dirty if needed!
+				updateDirty(tsurface,x++,y); //Update dirty if needed!
 				if (x==GPU_TEXTPIXELSX) break; //Stop searching now!
 			}
 			if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!			
