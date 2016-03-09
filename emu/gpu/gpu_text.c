@@ -128,10 +128,8 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	surface->notdirty[fy][fx] = TRANSPARENTPIXEL;
 }
 
-OPTINLINE static void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy, byte redraw) //Get the pixel font, back or show through. Automatically plotted if set.
+OPTINLINE static void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
 {
-	if (!surface) return; //Invalid surface?
-	if (redraw) updateDirty(surface,fx,fy); //Update dirty if needed!
 	register uint_32 color = surface->notdirty[fy][fx];
 	if (color!=TRANSPARENTPIXEL)
 	{
@@ -185,14 +183,27 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	register int x; //Reset x!
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 	WaitSem(tsurface->lock);
-	byte redraw;
-	redraw = tsurface->flags&TEXTSURFACE_FLAG_DIRTY; //Redraw when dirty only?
+
+	if (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) //Redraw when dirty only?
+	{
+		for (;;) //Process all rows!
+		{
+			x = 0; //Init X!
+			for (;;) //Process all columns!
+			{
+				updateDirty(surface,x++,y); //Update dirty if needed!
+				if (x==GPU_TEXTPIXELSX) break; //Stop searching now!
+			}
+			if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!			
+		}
+	}
+
 	for (;;) //Process all rows!
 	{
 		x = 0; //Init X!
 		for (;;) //Process all columns!
 		{
-			GPU_textput_pixel(rendersurface,tsurface,x++,y,redraw); //Plot a pixel?
+			GPU_textput_pixel(rendersurface,tsurface,x++,y); //Plot a pixel?
 			if (x==GPU_TEXTPIXELSX) break; //Stop searching now!
 		}
 		if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!
