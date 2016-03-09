@@ -113,15 +113,15 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	}
 
 	//We're background/transparent!
-	register byte c = 0;
+	register BACKLISTITEM *back = &backlist[0]; //Start of our backlist!
 	for (;;)
 	{
-		if (GPU_textget_pixel(surface, fx + backlist[c].x, fy + backlist[c].y)) //Border?
+		if (GPU_textget_pixel(surface, fx + back->x, fy + back->y)) //Border?
 		{
 			surface->notdirty[fy][fx] = GPU_textgetcolor(surface,fx,fy,1); //Back of the current character!
 			return; //Done: we've gotten a pixel!
 		}
-		if (++c==8) break; //Abort when finished!
+		if (++back==&backlist[8]) break; //Abort when finished!
 	}
 
 	//We're transparent!
@@ -198,6 +198,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 			if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!			
 		}
 		x = y = 0; //Reset coordinates: we're to render now!
+		tsurface->flags &= ~TEXTSURFACE_FLAG_DIRTY; //Clear dirty flag!
 	}
 
 	for (;;) //Process all rows!
@@ -210,7 +211,6 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		}
 		if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!
 	}
-	tsurface->flags &= ~TEXTSURFACE_FLAG_DIRTY; //Clear dirty flag!
 	PostSem(tsurface->lock); //We're finished with the surface!
 	return 0; //Ignore processing time!
 }
