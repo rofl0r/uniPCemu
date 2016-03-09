@@ -80,34 +80,52 @@ byte DAC_BWColor(byte use) //What B/W color to use?
 	return DAC_whatBWColor;
 }
 
+byte BWconversion_ready = 0; //Are we to initialise our tables?
+word BWconversion[0x10000]; //Conversion table for b/w totals!
+word BWconversion_brown[0x10000]; //Brown channel conversion!
+
+void VGA_initBWConversion()
+{
+	if (BWconversion_ready) return; //Abort when already ready!
+	BWconversion_ready = 1; //We're ready after this!
+	const float brown_red = ((float)0xAA / (float)255); //Red part!
+	register word a,b; //16-bit!
+	register uint_32 n; //32-bit!
+	for (n=0;n<0x10000;n++) //Process all possible values!
+	{
+		//Optimized way of dividing?
+		a = n >> 2;
+		b = (a >> 2);
+		a += b;
+		b >>= 2;
+		a += b;
+		b >>= 2;
+		a += b;
+		b >>= 2;
+		a += b;
+		//Now store the results for greyscale and brown!
+		BWconversion[n] = a;
+		BWconversion_brown[n] = (byte)(((float)a)*brown_red); //Apply basic color: Create yellow tint (R/G)!
+	}
+}
+
 OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
 {
-	const float brown_red = ((float)0xAA / (float)255); //Red part!
-	word n = GETR(color); //Red channel!
-	n += GETG(color); //Green channel!
-	n += GETB(color); //Blue channel!
+	register word a, b; //Our registers we use!
+	a = GETR(color); //Load Red channel!
+	a += GETG(color); //Load Green channel!
+	a += GETB(color); //Load Blue channel!
 	
-	//Optimized way of dividing?
-	register word a,b;
-    a = n >> 2;
-    b = (a >> 2);
-    a += b;
-    b = (b >> 2);
-    a += b;
-    b = (b >> 2);
-    a += b;
-    b = (b >> 2);
-    a += b;
-
 	switch (DAC_whatBWColor) //What color scheme?
 	{
 	case BWMONITOR_BLACK: //Back/white?
+		a = BWconversion[a]; //Translate using our lookup table into a 8-bit value!
 		return RGB(a, a, a); //RGB Greyscale!
 	case BWMONITOR_GREEN: //Green?
+		a = BWconversion[a]; //Translate using our lookup table into a 8-bit value!
 		return RGB(0, a, 0); //Green scheme!
 	case BWMONITOR_BROWN: //Brown?
-		a = (byte)(((float)a)*brown_red); //Apply basic color: Create yellow tint (R/G)!
-		b = a; //Load a into b!
+		b = a = BWconversion_brown[a]; //Translate using our lookup table into a 8-bit value for red&green!
 		b >>= 1; //Green is halved to create brown
 		return RGB(a, b, 0); //Brown scheme!
 	default:

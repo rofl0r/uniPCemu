@@ -32,6 +32,8 @@ VGA ROM and handling functions.
 
 #include "headers/support/locks.h" //Lock support!
 
+#include "headers/hardware/vga/vga_dacrenderer.h" //DAC support for initialisation!
+
 //Are we disabled?
 #define __HW_DISABLED 0
 #define __RENDERER_DISABLED 0
@@ -263,6 +265,7 @@ void startVGA() //Starts the current VGA! (See terminateVGA!)
 	if (__HW_DISABLED) return; //Abort!
 	getActiveVGA()->Terminated = DISABLE_VGA; //Reset termination flag, effectively starting the rendering!
 	VGA_calcprecalcs(getActiveVGA(),0); //Update full VGA to make sure we're running!
+	VGA_initBWConversion(); //Initialise B/W conversion data!
 }
 
 /*

@@ -4,6 +4,7 @@
 #include "headers/hardware/vga/vga.h" //VGA support!
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer!
 
+void VGA_initBWConversion(); //Init B/W conversion data!
 uint_32 getcol256(VGA_Type *VGA,byte color); //Convert color to RGB!
 uint_32 DAC_BWmonitor(VGA_Type *VGA, byte DACValue);
 uint_32 DAC_colorMonitor(VGA_Type *VGA, byte DACValue);
