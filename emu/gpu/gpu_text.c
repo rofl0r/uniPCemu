@@ -197,6 +197,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 			}
 			if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!			
 		}
+		x = y = 0; //Reset coordinates: we're to render now!
 	}
 
 	for (;;) //Process all rows!
