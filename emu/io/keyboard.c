@@ -98,12 +98,12 @@ void releaseKeyReleased(uint_64 keytime)
 		{
 			if (((key_status[i]&3)==3) || ((key_status[i]&1) && releaseall)) //Are we pressed&released or releasing this key(together with all keys)?
 			{
-				if (((key_status[i]&2)!=2) && releaseall) //Releasing a key not normally released?
+				if ((!(key_status[i]&2)) && releaseall) //Releasing a key by the standard instead of the user?
 				{
 					if (EMU_keyboard_handler_idtoname(i,&releasekeyname[0])) //Gotten name?
 					{
-						if ((!strcmp(releasekeyname,"LCTRL")) || (!strcmp(releasekeyname,"LALT")) || (!strcmp(releasekeyname,"LSHIFT"))
-							||(!strcmp(releasekeyname,"RCTRL")) || (!strcmp(releasekeyname,"RALT")) || (!strcmp(releasekeyname,"RSHIFT"))) continue; //Ignore ctrl/alt/shift!
+						if ((!strcmp(releasekeyname,"lctrl")) || (!strcmp(releasekeyname,"lalt")) || (!strcmp(releasekeyname,"lshift"))
+							||(!strcmp(releasekeyname,"rctrl")) || (!strcmp(releasekeyname,"ralt")) || (!strcmp(releasekeyname,"rshift"))) continue; //Ignore ctrl/alt/shift!
 					}
 				}
 				if (EMU_keyboard_handler(i, 0)) //Fired the handler for releasing!
