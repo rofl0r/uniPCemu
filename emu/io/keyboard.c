@@ -39,7 +39,7 @@ void onKeyPress(char *key) //On key press/hold!
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
 	if (keyid!=-1) //Key found?
 	{
-		if (!(key_status[keyid]&1)) //New key pressed?
+		if (!(key_status[keyid]&5)) //New key pressed and allowed to press?
 		{
 			key_pressed_time[keyid] = key_pressed_counter++; //Increasing time of the key being pressed!
 			key_status[keyid] = 1; //We've pressed a new key, not released!
@@ -63,6 +63,10 @@ byte onKeyRelease(char *key) //On key release!
 		{
 			key_status[keyid] |= 2; //We're released now!
 		}
+		else if (key_status[keyid]&4) //Pending to release?
+		{
+			key_status[keyid] = 0; //We're released now, we're allowed to be repressed!
+		}
 		return 1; //We're released!
 	}
 	return 1; //Unhandled input, so ignore release!
@@ -80,16 +84,16 @@ void calculateKeyboardStep()
 	}
 }
 
-char logname[256];
-
 void releaseKeyReleased(uint_64 keytime)
 {
+	byte releaseall=0;
 	int_64 i;
+	releaseallkeys:
 	for (i = 0;i < (int)NUMITEMS(key_status);i++) //Process all keys needed!
 	{
-		if (keys_ispressed[i] && (key_pressed_time[i]==keytime)) //Are we pressed and allowed to release?
+		if (keys_ispressed[i] && ((key_pressed_time[i]==keytime) || ((key_status[i]&1) && releaseall))) //Are we pressed and allowed to release?
 		{
-			if ((key_status[i]&3)==3) //Are we pressed&released?
+			if (((key_status[i]&3)==3) || ((key_status[i]&1) && releaseall)) //Are we pressed&released or releasing this key(together with all keys)?
 			{
 				if (EMU_keyboard_handler(i, 0)) //Fired the handler for releasing!
 				{
@@ -97,6 +101,16 @@ void releaseKeyReleased(uint_64 keytime)
 					--keys_arepressed; //A key has been released, so decrease the counter!
 					keys_ispressed[i] = 0; //We're not pressed anymore!
 					key_status[i] = 0; //We're released, so clear our status!
+					keyboard_step = 0; //Typematic repeat stops when any key is released!
+					if (!releaseall) //One key releases all keys!
+					{
+						releaseall = 1; //Release all other keys!
+						goto releaseallkeys; //Release all keys!
+					}
+					else //part of release all? Ignore any pending inputs!
+					{
+						key_status[i] = 4; //Ignore any more input for now until released!
+					}
 				}
 			}
 		}
@@ -110,12 +124,6 @@ void releaseKeysReleased()
 	{
 		for (i=0;i<key_pressed_counter;i++)
 			releaseKeyReleased(i); //Release this time's key if applicable!
-	}
-	else //Unpressed keys that are still handled?
-	{
-		/*for (i=0;i<key_pressed_counter;i++)
-			releaseKeyReleased(i); //Release this time's key if applicable!
-		*/
 	}
 }
 
@@ -147,10 +155,6 @@ void tickPressedKey(uint_64 keytime)
 			keys_active = 1; //We're active!
 			if (EMU_keyboard_handler(last_key_pressed, 1)) //Fired the handler for pressing!
 			{
-				if (EMU_keyboard_handler_idtoname(last_key_pressed,&logname[0]))
-				{
-					dolog("keyboard","ordered repress: %i=%s",(int)keytime,logname); //Log our release!
-				}
 				if (!keys_ispressed[last_key_pressed]) ++keys_arepressed; //A new key has been pressed!
 				keys_ispressed[last_key_pressed] = 1; //We're pressed!
 			}
@@ -165,10 +169,6 @@ void tickPressedKey(uint_64 keytime)
 				keys_active = 1; //We're active!
 				if (EMU_keyboard_handler(i, 1)) //Fired the handler for pressing!
 				{
-					if (EMU_keyboard_handler_idtoname(i,&logname[0]))
-					{
-						dolog("keyboard","ordered press:   %i=%s",(int)keytime,logname); //Log our release!
-					}
 					if (!keys_ispressed[i]) ++keys_arepressed; //A new key has been pressed!
 					keys_ispressed[i] = 1; //We're pressed!
 				}
@@ -199,14 +199,6 @@ void tickPendingKeys(double timepassed) //Handle all pending keys from our emula
 
 	//Release keys as fast as possible!
 	releaseKeysReleased(); //Release any unpressed keys!
-
-	if (keyboard_step) //Waiting for a key?
-	{
-		if (!keys_pressed) //No keys pressed anymore?
-		{
-			keyboard_step = key_pressed_counter = 0; //Release the timer: we're restarting the count!
-		}
-	}
 
 	if (keyboard_time >= KEYBOARD_CHECKTIME) //1ms passed or more?
 	{
@@ -247,7 +239,6 @@ void initEMUKeyboard() //Initialise the keyboard support for emulating!
 {
 	keyboard_time = 0.0f; //Initialise our time!
 	memset(&key_status,0,sizeof(key_status)); //Reset our full status to unpressed!
-	memset(&logname,0,sizeof(logname)); //Clear the log name for debugging!
 }
 
 void cleanEMUKeyboard()
