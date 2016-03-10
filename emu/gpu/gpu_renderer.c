@@ -407,8 +407,11 @@ byte candraw = 0; //Can we draw (determined by max framerate)?
 byte GPU_is_rendering = 0; //We're rendering currently: for preventing multirendering?
 extern float curscanlinepercentage; //Current scanline percentage (0.0-1.0)!
 
+extern byte VGA_vtotal; //VTotal detection?
+
 void renderHWFrame() //Render a frame from hardware!
 {
+	VGA_vtotal = 1; //We're detected if detecting!
 	if (__HW_DISABLED) return; //Abort?
 	if (!ALLOW_RENDERING) return; //Disable when not allowed to render!
 

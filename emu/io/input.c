@@ -1492,7 +1492,7 @@ OPTINLINE void handleKeyPressRelease(int key)
 	byte lastshiftstatus;
 	switch (emu_keys_state[key]) //What state are we in?
 	{
-	case 0: //Released?
+	case 0: //Not pressed?
 		break;
 	case 1: //Pressed?
 		//Shift status for buffering!
@@ -1518,7 +1518,10 @@ OPTINLINE void handleKeyPressRelease(int key)
 			onKeyPress(&keys_names[key][0]); //Tick the keypress!
 		}
 		break;
-	case 2: //Releasing?
+	case 2: //Released without pressed?
+		emu_keys_state[key] = 0; //Fix us: we're not pressed after all!
+		break;
+	case 3: //Releasing?
 		//Shift status for buffering!
 		lastshiftstatus = currentshiftstatus_inputbuffer; //Save the last shift status for comparison!
 		if (!strcmp(keys_names[key],"lctrl"))
@@ -1561,11 +1564,6 @@ void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're a
 	lock(LOCK_INPUT);
 	if (input_enabled && ALLOW_INPUT) //Input enabled?
 	{
-		int key;
-		for (key = 0;key < (int)NUMITEMS(emu_keys_state);) //Make sure to process our internal key handlers first, to process and clean up any leftover input as well.
-		{
-			handleKeyPressRelease(key++); //Handle key press or release!
-		}
 		if (!Direct_Input) //Not executing direct input?
 		{
 			get_analog_state(&curstat); //Get the analog&buttons status for the keyboard!
@@ -1717,9 +1715,9 @@ void clearBuffers() //Clear any input buffers still filled!
 	uint_32 i;
 	for (i=0;i<NUMITEMS(emu_keys_state);i++) //Process all keys!
 	{
-		if (emu_keys_state[i]==1) //We're still pressed, even though the buffers need to be cleared?
+		if (emu_keys_state[i]&1) //We're still pressed, even though the buffers need to be cleared?
 		{
-			emu_keys_state[i] = 2; //Emulate the release of the key!
+			emu_keys_state[i] |= 2; //Emulate the release of the key!
 			handleKeyPressRelease(i); //Release the key, since we become unwanted data after we've reset, triggering a new key input instead of a new one
 		}
 	}
@@ -1960,9 +1958,10 @@ void updateInput(SDL_Event *event) //Update all input!
 					{
 						if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 						{
-							if (emu_keys_state[key]==1) //We're pressed?
+							if (emu_keys_state[key]&1) //We're pressed at all?
 							{
-								emu_keys_state[key] = 2; //We're released!
+								emu_keys_state[key] |= 2; //We're released!
+								handleKeyPressRelease(key); //Handle release immediately!
 							}
 						}
 					}
@@ -2073,7 +2072,11 @@ void updateInput(SDL_Event *event) //Update all input!
 					{
 						if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 						{
-							emu_keys_state[key] = 1; //We're pressed from now on!
+							emu_keys_state[key] = 1; //We're pressed from now on, not released!
+							if (input_enabled && ALLOW_INPUT) //Input enabled? Then we allow key presses!
+							{
+								handleKeyPressRelease(key); //Handle key press or release immediately!
+							}
 						}
 					}
 				}

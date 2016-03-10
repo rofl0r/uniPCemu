@@ -309,17 +309,17 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 		else return 0; //Our of range (32-bit)?
 	}
 	offset -= basepos; //Calculate from the base position!
-	register byte i=0;
+	register byte i=0,j=numOPT_ROMS;
 	if (!numOPT_ROMS) goto noOPTROMSR;
-	for (;;) //Check OPT ROMS!
+	do //Check OPT ROMS!
 	{
 		if ((OPTROM_location[i]<=offset) && (OPTROM_end[i]>offset) && OPT_ROMS[i]) //Found ROM?
 		{
 			*value = OPT_ROMS[i][offset-OPTROM_location[i]]; //Read the data!
 			return 1; //Done: we've been read!
 		}
-		if (++i==numOPT_ROMS) break; //Finished searching?
-	}
+		++i;
+	} while (--j);
 	noOPTROMSR:
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
@@ -343,9 +343,9 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 	}
 	offset -= basepos; //Calculate from the base position!
 	register uint_32 OPTROM_address; //The address calculated in the EEPROM!
-	register byte i=0;
+	register byte i=0,j=numOPT_ROMS;
 	if (!numOPT_ROMS) goto noOPTROMSW;
-	for (;;) //Check OPT ROMS!
+	do //Check OPT ROMS!
 	{
 		if (OPT_ROMS[i]) //Enabled?
 		{
@@ -449,8 +449,8 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 				return 1; //Ignore writes to memory: we've handled it!
 			}
 		}
-		if (++i == numOPT_ROMS) break; //Finished searching?
-	}
+		++i;
+	} while (--j);
 	noOPTROMSW:
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{

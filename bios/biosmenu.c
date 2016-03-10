@@ -174,6 +174,7 @@ void BIOS_GenerateFloppyDisk(); //Generate an floppy disk image!
 void BIOS_usePCSpeaker();
 void BIOS_useAdlib();
 void BIOS_useLPTDAC();
+void BIOS_VGASynchronization();
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -222,9 +223,10 @@ Handler BIOS_Menus[] =
 	,BIOS_ShowCPUSpeed //Show CPU speed is #41!
 	,BIOS_SoundStartStopRecording //Start/stop recording sound is #42!
 	,BIOS_GenerateFloppyDisk //Generate a floppy disk is #43!
-	,BIOS_usePCSpeaker //Use PC Speaker is#44!
-	,BIOS_useAdlib //Use Adlib is#45!
-	,BIOS_useLPTDAC //Use LPT DAC is#46!
+	,BIOS_usePCSpeaker //Use PC Speaker is #44!
+	,BIOS_useAdlib //Use Adlib is #45!
+	,BIOS_useLPTDAC //Use LPT DAC is #46!
+	,BIOS_VGASynchronization //Change VGA Synchronization setting is #47!
 };
 
 //Not implemented?
@@ -3505,6 +3507,23 @@ setVGANMItext: //For fixing it!
 	{
 		strcat(menuoptions[advancedoptions++], "Disabled");
 	}
+
+	optioninfo[advancedoptions] = 5; //VGA Synchronization!
+	strcpy(menuoptions[advancedoptions], "VGA Synchronization: ");
+	switch (BIOS_Settings.VGASynchronization)
+	{
+		default: //Unknown?
+		case 0: //Old synchronization method?
+			strcat(menuoptions[advancedoptions++], "Old synchronization depending on host");
+			break;
+		case 1: //Synchronize depending on the Host?
+			strcat(menuoptions[advancedoptions++], "Synchronize depending on host");
+			break;
+		case 2: //Full CPU synchronization?
+			strcat(menuoptions[advancedoptions++], "Full CPU synchronization");
+			break;
+	}
+
 }
 
 void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
@@ -3521,7 +3540,8 @@ void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
 	case 1:
 	case 2:
 	case 3:
-	case 4: //Valid option?
+	case 4:
+	case 5: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Direct plot setting?
@@ -3538,6 +3558,9 @@ void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
 			break;
 		case 4: //Show framerate setting!
 			BIOS_Menu = 39; //Show framerate setting!
+			break;
+		case 5: //VGA Synchronization setting!
+			BIOS_Menu = 47; //VGA Synchronization setting!
 			break;
 		}
 		break;
@@ -4322,7 +4345,7 @@ void BIOS_DataBusSizeSetting()
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
-						  //We do nothing with the selected disk!
+		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
 		file = 0; //Default setting: Disabled!
@@ -4537,4 +4560,61 @@ void BIOS_useLPTDAC()
 	BIOS_Changed = 1; //We've changed!
 	reboot_needed = 1; //A reboot is needed!
 	BIOS_Menu = 31; //Goto CPU menu!
+}
+
+void BIOS_VGASynchronization()
+{
+	BIOS_Title("VGA Synchronization");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "VGA Synchronization: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 3; //Ammount of Synchronization modes!
+	for (i = 0; i<3; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[0], "Old synchronization depending on host"); //Set filename from options!
+	strcpy(itemlist[1], "Synchronize depending on host"); //Set filename from options!
+	strcpy(itemlist[2], "Full CPU synchronization"); //Set filename from options!
+	int current = 0;
+	switch (BIOS_Settings.VGASynchronization) //What setting?
+	{
+	case 0: //Valid
+	case 1: //Valid
+	case 2: //Valid
+		current = BIOS_Settings.VGASynchronization; //Valid: use!
+		break;
+	default: //Invalid
+		current = 0; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.VGASynchronization != current) //Invalid?
+	{
+		BIOS_Settings.VGASynchronization = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(21, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0; //Default setting: Disabled!
+
+	case 0:
+	case 1:
+	case 2:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.VGASynchronization = file; //Select Data bus size setting!
+		}
+		break;
+	}
+	BIOS_Menu = 29; //Goto Video menu!
 }

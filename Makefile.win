@@ -6,7 +6,7 @@ BUILD_DIR = ../projects_build/$(BUILD_NAME)
 TARGET = $(BUILD_NAME).exe
 
 #GProf switches!
-GPROF_SWITCHES = -l
+GPROF_SWITCHES =
 
 # ###################################################
 

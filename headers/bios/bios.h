@@ -61,6 +61,7 @@ typedef struct PACKED
 	byte usePCSpeaker; //Emulate PC Speaker sound?
 	byte useAdlib; //Emulate Adlib?
 	byte useLPTDAC; //Emulate Covox/Disney Sound Source?
+	byte VGASynchronization; //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 

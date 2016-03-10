@@ -16,8 +16,8 @@
 
 //Disable this hardware?
 //#define __HW_DISABLED
-//Limit the VGA to run slower on too slow PCs?
-#define LIMITVGA
+//Limit the VGA to run slower on too slow PCs? Check at least this many pixels if defined before locking on the speed!
+#define LIMITVGA 1000
 
 /*
 
@@ -33,6 +33,50 @@ double VGA_rendertiming = 0.0f; //Time for the renderer to tick!
 TicksHolder VGA_test;
 uint_64 VGA_limit = 0.0f; //Our speed factor!
 
+#ifdef LIMITVGA
+uint_32 passedcounter = LIMITVGA; //Times to check for speed with LIMITVGA
+#endif
+
+byte VGA_vtotal = 0; //Are we detecting VTotal?
+
+byte currentVGASpeed = 0; //Default: run at 100%!
+byte SynchronizationMode = 0; //Synchronization mode when used: 0=Old style, 1=New style
+
+//0=Automatic synchronization, 1=Tightly synchronized with the CPU emulation.
+void setVGASpeed(byte setting)
+{
+	if (setting) //New style setting?
+	{
+		if (setting==1) //Modern Automatic synchronization and request to tightly synchronize?
+		{
+			if (currentVGASpeed) //Set?
+			{
+				currentVGASpeed = 0; //Start tight synchronization!
+			}
+		}
+		else if ((!currentVGASpeed) && (setting==2)) //Tightly synchronized and request to use automatic synchronization?
+		{
+			passedcounter = LIMITVGA; //Start speed detection with this many items!
+			currentVGASpeed = 1; //Start automatic synchronization!
+			SynchronizationMode = 1; //New style synchronization!
+		}
+		//When there's no change, do nothing!
+	}
+	else //Old style synchronization method?
+	{
+		currentVGASpeed = 1; //Start automatic synchronization!
+		passedcounter = 1; //Don't apply passed counter! As long as we're >0 to apply synchronization!
+		SynchronizationMode = 0; //Old style synchronization!		
+	}
+}
+
+void adjustVGASpeed()
+{
+	#ifdef LIMITVGA
+	passedcounter = LIMITVGA; //Start counting this many times before locking to the speed!
+	#endif
+}
+
 void changeRowTimer(VGA_Type *VGA, word lines) //Change the VGA row processing timer the ammount of lines on display!
 {
 	#ifdef __HW_DISABLED
@@ -44,6 +88,7 @@ void changeRowTimer(VGA_Type *VGA, word lines) //Change the VGA row processing t
 	{
 		oldrate = rate; //We've updated to this rate!
 		VGA_rendertiming = 1000000000.0f/rate; //Handle this rate from now on! Keep us locked though to prevent screen updates messing with this!
+		adjustVGASpeed(); //Auto-adjust our speed!
 	}
 }
 
@@ -53,13 +98,14 @@ void VGA_initTimer()
 	oldrate = VGA_VerticalRefreshRate(getActiveVGA()); //Initialise the default rate!
 	VGA_rendertiming = 1000000000.0f/oldrate; //Handle this rate from now on!
 	initTicksHolder(&VGA_test);
+	adjustVGASpeed(); //Auto-adjust our speed!
 }
 
 extern GPU_type GPU;
 
 OPTINLINE byte doVGA_Sequencer() //Do we even execute?
 {
-	if (!memprotect(getActiveVGA(), sizeof(VGA_Type), "VGA_Struct")) //Invalid VGA? Don't do anything!
+	if (!getActiveVGA()) //Invalid VGA? Don't do anything!
 	{
 		//unlockVGA();
 		return 0; //Abort: we're disabled without a invalid VGA!
@@ -68,7 +114,8 @@ OPTINLINE byte doVGA_Sequencer() //Do we even execute?
 	{
 		return 0; //Abort: we're disabled!
 	}
-	if (!memprotect(GPU.emu_screenbuffer, 4, "EMU_ScreenBuffer")) //Invalid framebuffer? Don't do anything!
+	//if (!memprotect(GPU.emu_screenbuffer, 4, "EMU_ScreenBuffer")) //Invalid framebuffer? Don't do anything!
+	if (!GPU.emu_screenbuffer) //Invalid screen buffer?
 	{
 		//unlockVGA();
 		//unlockGPU(); //Unlock the VGA&GPU for Software access!
@@ -246,8 +293,8 @@ OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 void updateVGA(double timepassed)
 {
 	#ifdef LIMITVGA
-	uint_64 limitcalc,renderingsbackup;
-	double timeprocessed;
+	uint_64 limitcalc=0,renderingsbackup=0;
+	double timeprocessed=0.0;
 	#endif
 	VGA_timing += timepassed; //Time has passed!
 	if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Might have passed?
@@ -264,9 +311,13 @@ void updateVGA(double timepassed)
 		#endif
 		if (!renderings) return; //Nothing to render!
 		#ifdef LIMITVGA
-		timeprocessed = (renderings*VGA_rendertiming); //How much are we processing?
-		timeprocessed *= 0.50; //We're running too slow at full rendering, so split 50/50!
-		renderingsbackup = renderings; //Save the backup for comparision!
+		if (passedcounter && currentVGASpeed) //Still counting?
+		{
+			timeprocessed = (renderings*VGA_rendertiming); //How much are we processing?
+			timeprocessed *= 0.50; //We're running too slow at full rendering, so split 50/50!
+			renderingsbackup = renderings; //Save the backup for comparision!
+			VGA_vtotal = 0; //Reset our flag to detect finish of a frame while measuring!
+		}
 		#endif
 
 		if (!doVGA_Sequencer()) return; //Don't execute the sequencer if requested to!
@@ -275,7 +326,7 @@ void updateVGA(double timepassed)
 		Sequencer = GETSEQUENCER(getActiveVGA()); //Our sequencer!
 
 		#ifdef LIMITVGA
-		getnspassed(&VGA_test);
+		if (passedcounter && currentVGASpeed) getnspassed(&VGA_test); //Still counting? Then count our interval!
 		#endif
 		do
 		{
@@ -295,11 +346,15 @@ void updateVGA(double timepassed)
 			VGA_Sequencer(Sequencer); //Tick the VGA once!
 		} while (--renderings); //Ticks left to tick?
 		#ifdef LIMITVGA
-		limitcalc = getnspassed(&VGA_test); //How long have we taken?
+		if (passedcounter && currentVGASpeed) //Still counting?
+		{
+			limitcalc = getnspassed(&VGA_test); //How long have we taken?
 
-		//timeprocessed=how much time to use, limitcalc=how much time we have taken, renderingsbackup=How many pixels have we processed.
-		VGA_limit = (uint_64)(((float)renderingsbackup/(float)limitcalc)*timeprocessed); //Don't process any more than we're allowed to (timepassed).
-		if (limitcalc<=timeprocessed) VGA_limit = 0; //Don't limit if we're running at full speed (we're below time we are allowed to process)!
+			//timeprocessed=how much time to use, limitcalc=how much time we have taken, renderingsbackup=How many pixels have we processed.
+			VGA_limit = (uint_64)(((float)renderingsbackup/(float)limitcalc)*timeprocessed); //Don't process any more than we're allowed to (timepassed).
+			if (limitcalc<=timeprocessed) VGA_limit = 0; //Don't limit if we're running at full speed (we're below time we are allowed to process)!
+			if (SynchronizationMode) --passedcounter; //A part has been rendered! Only with
+		}
 		#endif
 	}
 }
@@ -314,4 +369,5 @@ void EMU_update_VGA_Settings() //Update the VGA settings!
 		DAC_BWColor(BIOS_Settings.bwmonitor); //Set the color to use!
 	}
 	setVGA_NMIonPrecursors(BIOS_Settings.VGA_NMIonPrecursors); //Set NMI on precursors!
+	setVGASpeed(BIOS_Settings.VGASynchronization); //Apply VGA synchronization setting!
 }

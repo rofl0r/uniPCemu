@@ -180,38 +180,40 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (!rendersurface) return 0; //No rendering surface used yet?
-	register int y=0;
-	register int x; //Reset x!
+	word x,y;
+	uint_32 pixeln;
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
-	WaitSem(tsurface->lock);
 
 	if (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) //Redraw when dirty only?
 	{
-		for (;;) //Process all rows!
+		WaitSem(tsurface->lock);
+		x = y = 0; //Init coordinates!
+		pixeln = GPU_TEXTPIXELSX*GPU_TEXTPIXELSY; //The number of pixels to process!
+		do //Process all rows!
 		{
-			x = 0; //Init X!
-			for (;;) //Process all columns!
+			updateDirty(tsurface,x++,y); //Update dirty if needed!
+			if (x==GPU_TEXTPIXELSX) //End of row reached?
 			{
-				updateDirty(tsurface,x++,y); //Update dirty if needed!
-				if (x==GPU_TEXTPIXELSX) break; //Stop searching now!
+				x = 0; //Reset horizontal coordinate!
+				++y; //Goto Next row!
 			}
-			if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!			
-		}
-		x = y = 0; //Reset coordinates: we're to render now!
+		} while (--pixeln); //Stop searching now!	
 		tsurface->flags &= ~TEXTSURFACE_FLAG_DIRTY; //Clear dirty flag!
+		PostSem(tsurface->lock); //We're finished with the surface!
 	}
 
-	for (;;) //Process all rows!
+	x = y = 0; //Init coordinates!
+	pixeln = GPU_TEXTPIXELSX*GPU_TEXTPIXELSY; //The number of pixels to process!
+	do //Process all rows!
 	{
-		x = 0; //Init X!
-		for (;;) //Process all columns!
+		GPU_textput_pixel(rendersurface,tsurface,x++,y); //Plot a pixel?
+		if (x==GPU_TEXTPIXELSX) //End of row reached?
 		{
-			GPU_textput_pixel(rendersurface,tsurface,x++,y); //Plot a pixel?
-			if (x==GPU_TEXTPIXELSX) break; //Stop searching now!
+			x = 0; //Reset horizontal coordinate!
+			++y; //Goto Next row!
 		}
-		if (++y==GPU_TEXTPIXELSY) break; //Stop searching now!
-	}
-	PostSem(tsurface->lock); //We're finished with the surface!
+	} while (--pixeln); //Stop searching now!
+
 	return 0; //Ignore processing time!
 }
 

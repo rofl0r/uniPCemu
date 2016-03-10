@@ -204,7 +204,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		//lockVGA(); //We don't want to corrupt the renderer's data!
 		//dolog("VGA","VTotal before charwidth: %i",VGA->precalcs.verticaltotal);
+		if (VGA->precalcs.characterwidth != VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.characterwidth = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9; //Character width!
+		if (VGA->precalcs.ClockingModeRegister_DCR != VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.ClockingModeRegister_DCR = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Dot Clock Rate!
 		updateCRTC = 1; //We need to update the CRTC!
 		whereupdated = WHEREUPDATED_CRTCONTROLLER; //We affect the CRTController fully too with above!
@@ -216,6 +218,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	if (FullUpdate || (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x5))) //Graphics mode register?
 	{
 		//lockVGA(); //We don't want to corrupt the renderer's data!
+		if (VGA->precalcs.GraphicsModeRegister_ShiftRegister!=VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.GraphicsModeRegister_ShiftRegister = VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister; //Update shift mode!
 		//unlockVGA(); //We're finished with the VGA!
 	}
@@ -223,11 +226,13 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	if ((whereupdated==(WHEREUPDATED_GRAPHICSCONTROLLER|0x06)) || FullUpdate) //Misc graphics register?
 	{
 		//lockVGA(); //We don't want to corrupt the renderer's data!
+		if (VGA->precalcs.graphicsmode != VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable) adjustVGASpeed(); //Auto-adjust VGA speed!
 		VGA->precalcs.graphicsmode = VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable; //Update Graphics mode!
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
 		//dolog("VGA","VTotal after gm: %i",VGA->precalcs.verticaltotal); //Log it!
 		//unlockVGA(); //We're finished with the VGA!
 		VerticalClocksUpdated = 1; //Update vertical clocks!
+		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CRTCONTROLLER) || FullUpdate || charwidthupdated) //(some) CRT Controller values need to be updated?
@@ -236,6 +241,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //We have been updated?
 		{
 			//lockVGA(); //We don't want to corrupt the renderer's data!
+			if (VGA->precalcs.characterheight != VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine+1) adjustVGASpeed(); //Auto-adjust our VGA speed!
 			VGA->precalcs.characterheight = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine+1; //Character height!
 			//dolog("VGA","VTotal after charheight: %i",VGA->precalcs.verticaltotal); //Log it!
 			//unlockVGA(); //We're finished with the VGA!
@@ -256,6 +262,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.CursorStartRegister_CursorScanLineStart = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart; //Update!
+			if (VGA->precalcs.CursorStartRegister_CursorDisable != VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable) adjustVGASpeed(); //Changed speed!
 			VGA->precalcs.CursorStartRegister_CursorDisable = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable; //Update!
 			//unlockVGA(); //We're finished with the VGA!
 		}
@@ -276,6 +283,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			hstart = VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.DisplayEnableSkew;
 			hstart *= VGA->precalcs.characterwidth; //We're a character width!
 			hendstartupdated = (VGA->precalcs.horizontaldisplaystart != hstart); //Update!
+			if (VGA->precalcs.horizontaldisplaystart != hstart) adjustVGASpeed(); //Auto-adjust our speed!
 			VGA->precalcs.horizontaldisplaystart = hstart; //Load!
 			//dolog("VGA","HStart updated: %i",hstart);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
@@ -293,6 +301,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			htotal *= VGA->precalcs.characterwidth; //We're character units!
 			//dolog("VGA","HTotal updated: %i",htotal);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
+			if (htotal!=VGA->precalcs.horizontaltotal) adjustVGASpeed(); //Update our speed!
 			updateCRTC |= (VGA->precalcs.horizontaltotal != htotal); //Update!
 			VGA->precalcs.horizontaltotal = htotal; //Load!
 			//unlockVGA(); //We're finished with the VGA!
@@ -307,6 +316,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			hdispend *= VGA->precalcs.characterwidth; //Original!
 			//dolog("VGA","HDispEnd updated: %i",hdispend);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
+			if (VGA->precalcs.horizontaldisplayend != hdispend) adjustVGASpeed(); //Update our speed!
 			hendstartupdated |= (VGA->precalcs.horizontaldisplayend != hdispend); //Update!
 			updateCRTC |= (VGA->precalcs.horizontaldisplayend != hdispend); //Update!
 			VGA->precalcs.horizontaldisplayend = hdispend; //Load!
@@ -322,6 +332,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			hblankstart *= VGA->precalcs.characterwidth;
 			//dolog("VGA","HBlankStart updated: %i",hblankstart);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
+			if (VGA->precalcs.horizontalblankingstart != hblankstart) adjustVGASpeed(); //Update our speed!
 			updateCRTC |= (VGA->precalcs.horizontalblankingstart != hblankstart); //Update!
 			VGA->precalcs.horizontalblankingstart = hblankstart; //Load!
 			//unlockVGA(); //We're finished with the VGA!
@@ -336,6 +347,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			hblankend |= VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EndHorizontalBlanking;
 			//dolog("VGA","HBlankEnd updated: %i",hblankend);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
+			if (VGA->precalcs.horizontalblankingend != hblankend) adjustVGASpeed(); //Update our speed!
 			updateCRTC |= (VGA->precalcs.horizontalblankingend != hblankend); //Update!
 			VGA->precalcs.horizontalblankingend = hblankend; //Load!
 			//unlockVGA(); //We're finished with the VGA!
@@ -350,6 +362,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			++hretracestart; //We start after this!
 			//dolog("VGA","HRetStart updated: %i",hretracestart);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
+			if (VGA->precalcs.horizontalretracestart != hretracestart) adjustVGASpeed(); //Update our speed!
 			updateCRTC |= (VGA->precalcs.horizontalretracestart != hretracestart); //Update!
 			VGA->precalcs.horizontalretracestart = hretracestart; //Load!
 			//unlockVGA(); //We're finished with the VGA!
@@ -360,6 +373,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			//dolog("VGA","HRetEnd updated: %i",VGA->precalcs.horizontalretraceend);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
 			//lockVGA(); //We don't want to corrupt the renderer's data!
+			if (VGA->precalcs.horizontalretraceend != VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER.EndHorizontalRetrace) adjustVGASpeed();
 			updateCRTC |= (VGA->precalcs.horizontalretraceend != VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER.EndHorizontalRetrace); //Update!
 			VGA->precalcs.horizontalretraceend = VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER.EndHorizontalRetrace; //Load!
 			//unlockVGA(); //We're finished with the VGA!
@@ -378,6 +392,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			VGA->precalcs.yres = vdispend;
 			//dolog("VGA","VDispEnd updated: %i",vdispend);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
+			if (VGA->precalcs.verticaldisplayend != vdispend) adjustVGASpeed(); //Update our speed?
 			updateCRTC |= (VGA->precalcs.verticaldisplayend != vdispend); //Update!
 			VGA->precalcs.verticaldisplayend = vdispend;
 			//unlockVGA(); //We're finished with the VGA!
@@ -394,6 +409,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			//dolog("VGA","VBlankStart updated: %i",vblankstart);
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
+			if (VGA->precalcs.verticalblankingstart != vblankstart) adjustVGASpeed(); //Update our speed?
 			updateCRTC |= (VGA->precalcs.verticalblankingstart != vblankstart); //Update!
 			VGA->precalcs.verticalblankingstart = vblankstart;
 			//unlockVGA(); //We're finished with the VGA!
@@ -401,6 +417,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x16)))
 		{
+			if (VGA->precalcs.verticalblankingend != VGA->registers->CRTControllerRegisters.REGISTERS.ENDVERTICALBLANKINGREGISTER.EndVerticalBlanking) adjustVGASpeed(); //Update our speed?
 			updateCRTC |= (VGA->precalcs.verticalblankingend != VGA->registers->CRTControllerRegisters.REGISTERS.ENDVERTICALBLANKINGREGISTER.EndVerticalBlanking); //Update!
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.verticalblankingend = VGA->registers->CRTControllerRegisters.REGISTERS.ENDVERTICALBLANKINGREGISTER.EndVerticalBlanking;
@@ -420,6 +437,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			//dolog("VGA","VRetraceStart updated: %i",vretracestart);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
 			//lockVGA(); //We don't want to corrupt the renderer's data!
+			if (VGA->precalcs.verticalretracestart != vretracestart) adjustVGASpeed(); //Update our speed?
 			updateCRTC |= (VGA->precalcs.verticalretracestart != vretracestart); //Update!
 			VGA->precalcs.verticalretracestart = vretracestart;
 			//unlockVGA(); //We're finished with the VGA!
@@ -438,6 +456,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VerticalClocksUpdated |= (VGA->precalcs.verticaltotal != vtotal);
+			if (VGA->precalcs.verticaltotal != vtotal) adjustVGASpeed(); //Update our speed?
 			updateCRTC |= (VGA->precalcs.verticaltotal != vtotal); //Update!
 			VGA->precalcs.verticaltotal = vtotal;
 			//unlockVGA(); //We're finished with the VGA!
@@ -445,6 +464,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x11))) //Updated?
 		{
+			if (VGA->precalcs.verticalretraceend != VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalRetraceEnd) adjustVGASpeed(); //Update our speed?
 			updateCRTC |= (VGA->precalcs.verticalretraceend != VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalRetraceEnd); //Update!
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.verticalretraceend = VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalRetraceEnd; //Load!
@@ -770,6 +790,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//lockVGA(); //We don't want to corrupt the renderer's data!
 		VGA_calcprecalcs_CRTC(VGA); //Update the CRTC timing data!
 		//unlockVGA(); //We're finished with the VGA!
+		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 	
 	if (recalcAttr) //Update attribute controller?
@@ -777,5 +798,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//lockVGA(); //We don't want to corrupt the renderer's data!
 		VGA_AttributeController_calcAttributes(VGA); //Recalc pixel logic!	
 		//unlockVGA(); //We're finished with the VGA!
+		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 }

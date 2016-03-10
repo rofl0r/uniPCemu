@@ -779,4 +779,6 @@ void setVGA_NMIonPrecursors(byte enabled); //Trigger an NMI when our precursors 
 #define unlockVGA() unlock(LOCK_VGA)
 //Give the active VGA!
 #define getActiveVGA() ActiveVGA
+
+void adjustVGASpeed(); //Auto-adjust our VGA speed!
 #endif
