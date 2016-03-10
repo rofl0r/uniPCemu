@@ -27,6 +27,8 @@ typedef struct
 	byte last_send_byte; //Last send byte from keyboard controller!
 
 	FIFOBUFFER *buffer; //Buffer for output!
+	byte repeatMake; //Repeat make codes?
+	byte allowBreak; //Allow break codes?
 } PS2_KEYBOARD; //Active keyboard settings!
 
 void give_keyboard_input(byte data); //For the 8042!

@@ -21,6 +21,7 @@ word keys_arepressed; //How many keys of keys_ispressed are actually pressed?
 byte key_status[0x100]; //Status of all keys!
 byte keys_ispressed[0x100]; //All possible keys to be pressed!
 int_64 key_pressed_time[0x100]; //What time was the key pressed?
+int_64 last_key_pressed_time_saved = -1; //Last key pressed time!
 byte capture_status; //Capture key status?
 
 //We're running each ms, so 1000 steps/second!
@@ -84,6 +85,8 @@ void calculateKeyboardStep()
 	}
 }
 
+char releasekeyname[256]; //Special key for detection!
+
 void releaseKeyReleased(uint_64 keytime)
 {
 	byte releaseall=0;
@@ -95,6 +98,14 @@ void releaseKeyReleased(uint_64 keytime)
 		{
 			if (((key_status[i]&3)==3) || ((key_status[i]&1) && releaseall)) //Are we pressed&released or releasing this key(together with all keys)?
 			{
+				if (((key_status[i]&2)!=2) && releaseall) //Releasing a key not normally released?
+				{
+					if (EMU_keyboard_handler_idtoname(i,&releasekeyname[0])) //Gotten name?
+					{
+						if ((!strcmp(releasekeyname,"LCTRL")) || (!strcmp(releasekeyname,"LALT")) || (!strcmp(releasekeyname,"LSHIFT"))
+							||(!strcmp(releasekeyname,"RCTRL")) || (!strcmp(releasekeyname,"RALT")) || (!strcmp(releasekeyname,"RSHIFT"))) continue; //Ignore ctrl/alt/shift!
+					}
+				}
 				if (EMU_keyboard_handler(i, 0)) //Fired the handler for releasing!
 				{
 					--keys_pressed; //A key has been released!
@@ -102,6 +113,7 @@ void releaseKeyReleased(uint_64 keytime)
 					keys_ispressed[i] = 0; //We're not pressed anymore!
 					key_status[i] = 0; //We're released, so clear our status!
 					keyboard_step = 0; //Typematic repeat stops when any key is released!
+					last_key_pressed_time_saved = -1; //No key pressed last time, so start anew!
 					if (!releaseall) //One key releases all keys!
 					{
 						releaseall = 1; //Release all other keys!
@@ -152,8 +164,13 @@ void tickPressedKey(uint_64 keytime)
 
 		if ((last_key_pressed != -1) && (last_key_pressed_time==keytime)) //Still gotten a last key pressed and acted upon?
 		{
+			if (last_key_pressed_time_saved!=last_key_pressed_time) //Different key pressed now?
+			{
+				last_key_pressed_time_saved = last_key_pressed_time; //Save the new value!
+				keyboard_step = 0; //Start the delay again!
+			}
 			keys_active = 1; //We're active!
-			if (EMU_keyboard_handler(last_key_pressed, 1)) //Fired the handler for pressing!
+			if (EMU_keyboard_handler(last_key_pressed, 1|(keyboard_step?0:2))) //Fired the handler for pressing(repeating when the same as last time)!
 			{
 				if (!keys_ispressed[last_key_pressed]) ++keys_arepressed; //A new key has been pressed!
 				keys_ispressed[last_key_pressed] = 1; //We're pressed!
@@ -171,6 +188,7 @@ void tickPressedKey(uint_64 keytime)
 				{
 					if (!keys_ispressed[i]) ++keys_arepressed; //A new key has been pressed!
 					keys_ispressed[i] = 1; //We're pressed!
+					last_key_pressed_time_saved = key_pressed_time[i]; //Save the last time we're pressed as the current time!
 				}
 			}
 		}
@@ -239,6 +257,7 @@ void initEMUKeyboard() //Initialise the keyboard support for emulating!
 {
 	keyboard_time = 0.0f; //Initialise our time!
 	memset(&key_status,0,sizeof(key_status)); //Reset our full status to unpressed!
+	memset(&releasekeyname,0,sizeof(releasekeyname)); //Initialise our text for detecting Ctrl/Alt/Shift!
 }
 
 void cleanEMUKeyboard()
