@@ -15,6 +15,9 @@
 //Our volume to use!
 #define MIDI_VOLUME 100.0f
 
+//Effective volume vs samples!
+#define VOLUME 0.3f
+
 #ifdef VISUALC
 #ifdef DIRECT_MIDI
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
@@ -195,6 +198,9 @@ OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_
 		//Now, apply panning!
 		lchannel *= voice->lvolume; //Apply left panning, also according to the CC!
 		rchannel *= voice->rvolume; //Apply right panning, also according to the CC!
+
+		lchannel *= VOLUME;
+		rchannel *= VOLUME;
 
 		//Clip the samples to prevent overflow!
 		if (lchannel>SHRT_MAX) lchannel = SHRT_MAX;
