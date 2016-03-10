@@ -314,7 +314,6 @@ void updateVGA(double timepassed)
 		if (passedcounter && currentVGASpeed) //Still counting?
 		{
 			timeprocessed = (renderings*VGA_rendertiming); //How much are we processing?
-			timeprocessed *= 0.50; //We're running too slow at full rendering, so split 50/50!
 			renderingsbackup = renderings; //Save the backup for comparision!
 			VGA_vtotal = 0; //Reset our flag to detect finish of a frame while measuring!
 		}
