@@ -2396,7 +2396,7 @@ void psp_input_init()
 		emu_keys_sdl_rev[signed2unsigned16(emu_keys_SDL[i])] = i; //Reverse lookup of the table!
 		++i; //Next!
 	}
-	SDL_EnableKeyRepeat(0,0); //Don't repeat pressed keys!
+	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,SDL_DEFAULT_REPEAT_INTERVAL); //Repeat pressed keys for logging!
 	keyboard_mousetiming = mouse_ticktiming = 0.0f; //Initialise mouse timing!
 }
 
