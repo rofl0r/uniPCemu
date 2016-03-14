@@ -33,7 +33,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	enableblink = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable; //Enable blink?	
 	
 	byte underlinelocation;
-	underlinelocation = VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation; //Underline location!	
+	underlinelocation = VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation+1; //Underline location is the value desired minus 1!
 	
 	byte textmode;
 	textmode = !VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable; //Text mode?
@@ -45,6 +45,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	attributeprecalcs = &VGA->precalcs.attributeprecalcs[0]; //The attribute precalcs!	
 
 	byte fontstatus;
+	byte tempattr;
 	
 	byte palletteenable=0;
 	byte pallette54=0; //Pallette 5-4 used?
@@ -83,14 +84,11 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					//Underline capability!
 					if (monomode) //Only in mono mode do we have underline capability!
 					{
-						if (!fontstatus) //Not already foreground?
+						if (charinnery==underlinelocation) //Underline (Non-graphics monochrome mode only)? Ignore textmode?
 						{
-							if ((charinnery==underlinelocation) && textmode) //Underline (Non-graphics monochrome mode only)?
+							if ((Attribute&77)==1) //Underline used for this character? Bits 6-4=0 and 2-0=1 only according to freeVGA!
 							{
-								if ((Attribute&0x73)==0x01) //Underline?
-								{
-									fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
-								}
+								fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
 							}
 						}
 					}
@@ -104,14 +102,15 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						}
 					}
 
-					if (monomode) //Special actions need to be taken care of?
+					if (monomode) //Special actions need to be taken care of on the pixel being on/off?
 					{
-						if ((Attribute&0x70)==0x70) //Are we reversed?
+						tempattr = Attribute;
+						tempattr &= 0x7F; //Don't look at the blink bit, if it's there!
+						if ((tempattr==0x70) || (tempattr==0x78)) //We're reversed with 0x70, 0x78, 0xF0 and 0xF8?
 						{
-							fontstatus ^= 1; //We're reversed font/background!
+							fontstatus = !fontstatus; //We're reversed font/background!
 						}
-	
-						if (((Attribute&0x88)==Attribute) && monomode) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
+						if ((Attribute&0x88)==Attribute) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
 						{
 							fontstatus = 0; //Force background!
 						}
