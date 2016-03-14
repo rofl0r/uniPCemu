@@ -38,6 +38,9 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	byte textmode;
 	textmode = !VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable; //Text mode?
 
+	byte monomode;
+	monomode = !VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation; //Monochrome emulation mode?
+
 	byte *attributeprecalcs;
 	attributeprecalcs = &VGA->precalcs.attributeprecalcs[0]; //The attribute precalcs!	
 
@@ -76,25 +79,41 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 				for (Attribute=0;Attribute<0x100;Attribute++)
 				{
 					fontstatus = pixelon; //What font status? By default this is the font/back status!
-					//Blinking capability!
-					
+
 					//Underline capability!
-					if (!fontstatus) //Not already foreground?
+					if (monomode) //Only in mono mode do we have underline capability!
 					{
-						if ((charinnery==underlinelocation) && textmode) //Underline (Non-graphics mode only)?
+						if (!fontstatus) //Not already foreground?
 						{
-							if ((Attribute&0x73)==0x01) //Underline?
+							if ((charinnery==underlinelocation) && textmode) //Underline (Non-graphics monochrome mode only)?
 							{
-								fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
+								if ((Attribute&0x73)==0x01) //Underline?
+								{
+									fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
+								}
 							}
 						}
 					}
 					
+					//Blinking capability!
 					if (enableblink) //Blink affects font?
 					{
 						if (getattributeback(textmode,(byte)Attribute,0x8)) //Blink enabled?
 						{
 							fontstatus &= currentblink; //Need blink on to show!
+						}
+					}
+
+					if (monomode) //Special actions need to be taken care of?
+					{
+						if ((Attribute&0x70)==0x70) //Are we reversed?
+						{
+							fontstatus ^= 1; //We're reversed font/background!
+						}
+	
+						if (((Attribute&0x88)==Attribute) && monomode) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
+						{
+							fontstatus = 0; //Force background!
 						}
 					}
 					

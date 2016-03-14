@@ -16,6 +16,7 @@ Interrupt 10h: Video interrupt
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation support!
 #include "headers/hardware/vga/vga_sequencer_textmode.h" //For character size detection!
+#include "headers/hardware/vga/vga_dacrenderer.h" //For color/mono detection!
 #include "headers/support/log.h" //Logging support!
 
 #include "headers/interrupts/interrupt10.h" //Our typedefs etc.
@@ -2307,7 +2308,14 @@ Handler int10functions[] =
 void init_int10() //Initialises int10&VGA for usage!
 {
 //Initialise variables!
-	GPUswitchvideomode(3); //Init video mode #3!
+	if (DAC_Use_BWMonitor(0xFF)) //Are we using a B/W monitor?
+	{
+		GPUswitchvideomode(7); //Init video mode #7(mono)!
+	}
+	else //Color monitor?
+	{
+		GPUswitchvideomode(3); //Init video mode #3(color)!
+	}
 }
 
 void initint10() //Fully initialise interrupt 10h!
