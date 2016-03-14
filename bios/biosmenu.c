@@ -41,6 +41,8 @@
 
 #include "headers/hardware/floppy.h" //Floppy disk support!
 
+#include "headers/hardware/vga/vga_dacrenderer.h" //Renderer logging support of DAC colors!
+
 //Define below to enable the sound test with recording!
 //#define SOUND_TEST
 
@@ -4702,6 +4704,8 @@ void BIOS_DumpVGA()
 		f = fopen("captures/vga_externalregs.dat","wb");
 		fwrite(&VGA->registers->ExternalRegisters,1,sizeof(VGA->registers->ExternalRegisters),f); //Literal color registers!
 		fclose(f);
+
+		VGA_DUMPColors(); //Dump all colors!
 	}
 
 	BIOS_Menu = 29; //Goto Video menu!
