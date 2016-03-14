@@ -175,6 +175,7 @@ void BIOS_usePCSpeaker();
 void BIOS_useAdlib();
 void BIOS_useLPTDAC();
 void BIOS_VGASynchronization();
+void BIOS_DumpVGA();
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -227,6 +228,7 @@ Handler BIOS_Menus[] =
 	,BIOS_useAdlib //Use Adlib is #45!
 	,BIOS_useLPTDAC //Use LPT DAC is #46!
 	,BIOS_VGASynchronization //Change VGA Synchronization setting is #47!
+	,BIOS_DumpVGA //Dump the VGA fully is #48!
 };
 
 //Not implemented?
@@ -3408,7 +3410,7 @@ void BIOS_InitVideoSettingsText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i=0; i<3; i++) //Clear all possibilities!
+	for (i=0; i<6; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
 	}
@@ -3524,6 +3526,8 @@ setVGANMItext: //For fixing it!
 			break;
 	}
 
+	optioninfo[advancedoptions] = 6; //Dump VGA!
+	strcpy(menuoptions[advancedoptions++],"Dump VGA");
 }
 
 void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
@@ -3541,7 +3545,8 @@ void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
 	case 2:
 	case 3:
 	case 4:
-	case 5: //Valid option?
+	case 5:
+	case 6: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Direct plot setting?
@@ -3561,6 +3566,12 @@ void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
 			break;
 		case 5: //VGA Synchronization setting!
 			BIOS_Menu = 47; //VGA Synchronization setting!
+			break;
+		case 6: //Dump VGA?
+			BIOS_Menu = 48; //Dump VGA!
+			break;
+		default:
+			BIOS_Menu = NOTIMPLEMENTED; //Not implemented yet!
 			break;
 		}
 		break;
@@ -4616,5 +4627,82 @@ void BIOS_VGASynchronization()
 		}
 		break;
 	}
+	BIOS_Menu = 29; //Goto Video menu!
+}
+
+void BIOS_DumpVGA()
+{
+	FILE *f;
+	int DACIndex;
+	uint_32 DACPos;
+	BIOS_Title("Dumping VGA data");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Dumping VGA..."); //Show selection init!
+	EMU_unlocktext();
+
+	//Now dump the VGA data...
+	VGA_Type *VGA = getActiveVGA(); //Get the current VGA!
+	if (VGA) //Valid VGA?
+	{
+		mkdir("captures"); //Make sure to create the directory we need!
+		f = fopen("captures/vga_vram.dat","wb");
+		if (f)
+		{
+			fwrite(VGA->VRAM,1,VGA->VRAM_size,f); //Write the VRAM to the file!
+			fclose(f); //We've written the VRAM to the file!
+		}
+		f = fopen("captures/vga_graphregs.dat","wb");
+		if (f)
+		{
+			fwrite(&VGA->registers->GraphicsRegisters.DATA,1,sizeof(VGA->registers->GraphicsRegisters.DATA),f);
+			fclose(f); //We've written the Graphics Registers to the file!
+		}
+		f = fopen("captures/vga_seqregs.dat","wb");
+		if (f)
+		{
+			fwrite(&VGA->registers->SequencerRegisters.DATA,1,sizeof(VGA->registers->SequencerRegisters.DATA),f);
+			fclose(f); //We've written the Sequencer Registers to the file!
+		}
+
+		f = fopen("captures/vga_attrregs.dat","wb");
+		if (f)
+		{
+			fwrite(&VGA->registers->AttributeControllerRegisters.DATA,1,sizeof(VGA->registers->AttributeControllerRegisters.DATA),f);
+			fclose(f); //We've written the Attribute Controller Registers to the file!
+		}
+
+		f = fopen("captures/vga_crtcregs.dat","wb");
+		if (f)
+		{
+			fwrite(&VGA->registers->CRTControllerRegisters.DATA,1,sizeof(VGA->registers->CRTControllerRegisters.DATA),f);
+			fclose(f); //We've written the Graphics Registers to the file!
+		}
+
+		f = fopen("captures/vga_dacregs.dat","wb");
+		if (f)
+		{
+			DACPos = 0; //Start with the first entry!
+			for (DACIndex=0;DACIndex<0x100;DACIndex++) //Process DAC entries!
+			{
+				fwrite(&VGA->registers->DAC[DACPos++],1,1,f); //Write the DAC R!
+				fwrite(&VGA->registers->DAC[DACPos++],1,1,f); //Write the DAC G!
+				fwrite(&VGA->registers->DAC[DACPos++],1,1,f); //Write the DAC B!
+				++DACPos; //Skip the DAC entry for the fourth entry: we're unused!
+			}
+			fwrite(&VGA->registers->DACMaskRegister,1,1,f); //Finish with the DAC mask register!
+			fclose(f); //We've written the Graphics Registers to the file!
+		}
+		
+		f = fopen("captures/vga_colorregs.dat","wb");
+		fwrite(&VGA->registers->ColorRegisters,1,sizeof(VGA->registers->ColorRegisters),f); //Literal color registers!
+		fclose(f);
+
+		f = fopen("captures/vga_externalregs.dat","wb");
+		fwrite(&VGA->registers->ExternalRegisters,1,sizeof(VGA->registers->ExternalRegisters),f); //Literal color registers!
+		fclose(f);
+	}
+
 	BIOS_Menu = 29; //Goto Video menu!
 }
