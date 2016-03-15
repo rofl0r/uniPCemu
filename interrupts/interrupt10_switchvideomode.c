@@ -199,7 +199,7 @@ int INT10_Internal_SetVideoMode(word mode)
 	uint_32 i;
 	byte modeset_ctl;
 	word crtc_base;
-	bool mono_mode=(mode == 7) || (mode==0xf);
+	bool mono_mode=0;
 	byte misc_output;
 	byte seq_data[SEQ_REGS];
 	byte overflow=0;
@@ -216,6 +216,8 @@ int INT10_Internal_SetVideoMode(word mode)
 	byte gfx_data[GFX_REGS];
 	byte att_data[ATT_REGS];
 	byte feature;
+
+	mono_mode = ((mode == 7) || (mode==0xf)); //Are we in mono mode?
 
 	if (__HW_DISABLED) return true; //Abort!
 
@@ -652,6 +654,7 @@ att_text16:
 				att_data[i]=0x08;
 				att_data[i+8]=0x18;
 			}
+			att_data[0x10] |= 2; //Enable monochrome emulation mode! Added by superfury for full VGA compatibility!
 		}
 		else
 		{
