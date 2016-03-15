@@ -33,7 +33,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	enableblink = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable; //Enable blink?	
 	
 	byte underlinelocation;
-	underlinelocation = VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation+1; //Underline location is the value desired minus 1!
+	underlinelocation = VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation; //Underline location is the value desired minus 1!
 	
 	byte textmode;
 	textmode = !VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable; //Text mode?
@@ -45,8 +45,6 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	attributeprecalcs = &VGA->precalcs.attributeprecalcs[0]; //The attribute precalcs!	
 
 	byte fontstatus;
-	byte tempattr;
-	
 	byte palletteenable=0;
 	byte pallette54=0; //Pallette 5-4 used?
 	byte colorselect54=0; //Color select bits 5-4!
@@ -92,6 +90,18 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 							}
 						}
 					}
+
+					if (monomode) //Special actions need to be taken care of on the pixel being on/off?
+					{
+						if ((Attribute==0x70) || (Attribute==0x78) || (Attribute==0xF0) || (Attribute==0xF8)) //We're reversed with 0x70, 0x78, 0xF0 and 0xF8?
+						{
+							fontstatus = !fontstatus; //We're reversed font/background!
+						}
+						else if ((Attribute==0) || (Attribute==8) || (Attribute==0x80) || (Attribute==0x88)) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
+						{
+							fontstatus = 0; //Force background!
+						}
+					}
 					
 					//Blinking capability!
 					if (enableblink) //Blink affects font?
@@ -102,20 +112,6 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						}
 					}
 
-					if (monomode) //Special actions need to be taken care of on the pixel being on/off?
-					{
-						tempattr = Attribute;
-						tempattr &= 0x7F; //Don't look at the blink bit, if it's there!
-						if ((tempattr==0x70) || (tempattr==0x78)) //We're reversed with 0x70, 0x78, 0xF0 and 0xF8?
-						{
-							fontstatus = !fontstatus; //We're reversed font/background!
-						}
-						if ((Attribute&0x88)==Attribute) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
-						{
-							fontstatus = 0; //Force background!
-						}
-					}
-					
 					//Determine pixel font or back color to PAL index!
 					if (fontstatus)
 					{

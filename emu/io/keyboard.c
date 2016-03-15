@@ -4,6 +4,9 @@
 
 //Basic keyboard support for emulator, mapping key presses and releases to the PS/2 keyboard!
 
+//Log input and output to compare?
+//#define __DEBUG_INPUT
+
 //How many ns to wait to check for input (1000000=1ms)!
 #define KEYBOARD_CHECKTIME 1000000
 //How many us to take for each rapid fire divider (up to x/30 us)!
@@ -44,7 +47,9 @@ void onKeyPress(char *key) //On key press/hold!
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
 	if (keyid!=-1) //Key found?
 	{
+		#ifdef __DEBUG_INPUT
 		dolog("input","Keypress:%s",key);
+		#endif
 		if (!(key_status[keyid]&5)) //New key pressed and allowed to press?
 		{
 			key_pressed_time[keyid] = key_pressed_counter++; //Increasing time of the key being pressed!
@@ -65,7 +70,9 @@ byte onKeyRelease(char *key) //On key release!
 	keyid = EMU_keyboard_handler_nametoid(key); //Try to find the name!
 	if (keyid!=-1) //Key found and pressed atm?
 	{
+		#ifdef __DEBUG_INPUT
 		dolog("input","Keyrelease:%s",key);
+		#endif
 		if (key_status[keyid]&1) //Pressed?
 		{
 			key_status[keyid] |= 2; //We're released now!
@@ -108,10 +115,12 @@ void releaseKeyReleased(uint_64 keytime)
 					key_status[i] |= 4; //Ignore any more input for now until we're released!
 					continue; //Don't release us: we're only flagging to be blocked, not released!
 				}
+				#ifdef __DEBUG_INPUT
 				if (EMU_keyboard_handler_idtoname(i,releasename)) //Name found?
 				{
 					dolog("keyboard","Key release: %s",releasename); //Log our release input!
 				}
+				#endif
 				if (EMU_keyboard_handler(i, 0)) //Fired the handler for releasing!
 				{
 					--keys_pressed; //A key has been released!
@@ -174,10 +183,12 @@ void tickPressedKey(uint_64 keytime)
 			}
 			if ((i==lctrlindex) || (i==laltindex) || (i==lshiftindex) || (i==rctrlindex) || (i==raltindex) || (i==rshiftindex)) key_status[last_key_pressed] |= 4; //Ignore ctrl/alt/shift after it's pressed until it's released! We're not typematic!
 			keys_active = 1; //We're active!
+			#ifdef __DEBUG_INPUT
 			if (EMU_keyboard_handler_idtoname(last_key_pressed,releasename)) //Name found?
 			{
 				dolog("keyboard","Key press: %s",releasename); //Log our release input!
 			}
+			#endif
 			if (EMU_keyboard_handler(last_key_pressed, 1|(keyboard_step?0:2))) //Fired the handler for pressing(repeating when the same as last time)!
 			{
 				if (!keys_ispressed[last_key_pressed]) ++keys_arepressed; //A new key has been pressed!
@@ -193,10 +204,12 @@ void tickPressedKey(uint_64 keytime)
 			{
 				keys_active = 1; //We're active!
 				if (key_status[i]&4) continue; //Blocked from repeating until repressed?
+				#ifdef __DEBUG_INPUT
 				if (EMU_keyboard_handler_idtoname(i,releasename)) //Name found?
 				{
 					dolog("keyboard","Key press: %s",releasename); //Log our release input!
 				}
+				#endif
 				if (EMU_keyboard_handler(i, 1)) //Fired the handler for pressing!
 				{
 					if (!keys_ispressed[i]) ++keys_arepressed; //A new key has been pressed!
