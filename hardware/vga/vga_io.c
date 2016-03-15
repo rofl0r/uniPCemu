@@ -107,11 +107,8 @@ OPTINLINE byte PORT_readCRTC_3B5() //Read CRTC registers!
 OPTINLINE void PORT_write_CRTC_3B5(byte value)
 {
 	byte temp; //For index 7 write protected!
-	byte index = getActiveVGA()->registers->CRTControllerRegisters_Index; //What index?
-	/*if ((index>0xF) && (index<0x12) && (!getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EVRA)) //Writing to light pen location registers?
-	{
-		return; //Write protected: light pen registers, they don't exist!
-	}*/
+	byte index;
+	index = getActiveVGA()->registers->CRTControllerRegisters_Index; //What index?
 	if ((index<8) && (getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.Protect)) //Protected?
 	{
 		if (index==7) //Overflow register (allow changes in the bit 4 (line compare))
@@ -251,8 +248,11 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3B0:
 	case 0x3B2:
 	case 0x3B6: //Decodes to 3B4!
-	case 0x3B4: //CRTC Controller Address Register		ADDRESS
+		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
+		goto readcrtaddress;
 	case 0x3D4: //CRTC Controller Address Register		ADDRESS
+		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
+		readcrtaddress:
 		*result = getActiveVGA()->registers->CRTControllerRegisters_Index; //Give!
 		ok = 1;
 		break;
@@ -260,7 +260,11 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3B3:
 	case 0x3B7: //Decodes to 3B5!
 	case 0x3B5: //CRTC Controller Data Register		DATA
+		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
+		goto readcrtvalue;
 	case 0x3D5: //CRTC Controller Data Register		DATA
+		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
+		readcrtvalue:
 		*result = PORT_readCRTC_3B5(); //Read port 3B5!
 		ok = 1;
 		break;
@@ -308,7 +312,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		*result = PORT_read_DAC_3C9(); //Read port 3C9!
 		ok = 1;
 		break;
-	case 0x3CA: //Read: Feature Control Register (mono Read)	DATA
+	case 0x3CA: //Read: Feature Control Register		DATA
 		*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA; //Give!
 		ok = 1;
 		break;
@@ -341,6 +345,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	default: //Unknown?
 		break; //Not used address!
 	}
+	finishinput:
 	return ok; //Disabled for now or unknown port!
 }
 
