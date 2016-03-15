@@ -39,7 +39,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	textmode = !VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable; //Text mode?
 
 	byte monomode;
-	monomode = !VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation; //Monochrome emulation mode?
+	monomode = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation; //Monochrome emulation mode?
 
 	byte *attributeprecalcs;
 	attributeprecalcs = &VGA->precalcs.attributeprecalcs[0]; //The attribute precalcs!	
