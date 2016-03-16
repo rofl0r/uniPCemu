@@ -13,8 +13,8 @@ void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 	bzero(filename,sizeof(filename)); //Init
 	mkdir("captures"); //Make sure our directory exists!
 	strcpy(&filename[0],"captures/VGA_DAC"); //Generate log of this mode!
-	int c;
-	uint_32 DACBitmap[0x400]; //Full DAC 1-row bitmap!
+	int c,r;
+	uint_32 DACBitmap[0x8000]; //Full DAC 1-row bitmap!
 	register uint_32 DACVal;
 	for (c=0;c<0x100;c++)
 	{
@@ -30,32 +30,36 @@ void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 	}
 	writeBMP(filename,&DACBitmap[0],16,16,4,4,16); //Simple 1-row dump of the DAC results!
 	//Now, write the Attribute results through the DAC pallette!
-	for (c=0;c<0x400;c++) //All possible attributes (font and back color)!
+	for (r=0;r<0x20;r++) //Show all lines available to render!
 	{
-		word lookup;
-		word ordering;
-		lookup = (c&0xFF); //What attribute!
-		lookup <<= 7; //Make room for charinner_y and blink/font!
-		//No charinner_y (fixed to row #0)!
-		ordering = 3; //Load for ordering(blinking on with foreground by default, giving foreground when possible)!
-		if (c&0x200) ordering &= 1; //3nd row+? This is our unblinked(force background) value!
-		if (c&0x100) ordering &= 2; //Odd row? This is our background pixel!
-		lookup |= ordering; //Apply the font/back and blink status!
-		//The lookup points to the index!
-		register uint_32 DACVal;
-		DACVal = getActiveVGA()->precalcs.DAC[getActiveVGA()->precalcs.attributeprecalcs[lookup]]; //The DAC value looked up!
-		if ((DACVal==(uint_32)RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
+		for (c=0;c<0x400;c++) //All possible attributes (font and back color)!
 		{
-			DACBitmap[c] = 0; //Clear entry!
+			word lookup;
+			word ordering;
+			lookup = (c&0xFF); //What attribute!
+			lookup <<= 5; //Make room for charinner_y and blink/font!
+			lookup |= r; //Add the row to dump!
+			lookup <<= 2; //Generate room for the ordering!
+			ordering = 3; //Load for ordering(blinking on with foreground by default, giving foreground when possible)!
+			if (c&0x200) ordering &= 1; //3nd row+? This is our unblinked(force background) value!
+			if (c&0x100) ordering &= 2; //Odd row? This is our background pixel!
+			lookup |= ordering; //Apply the font/back and blink status!
+			//The lookup points to the index!
+			register uint_32 DACVal;
+			DACVal = getActiveVGA()->precalcs.DAC[getActiveVGA()->precalcs.attributeprecalcs[lookup]]; //The DAC value looked up!
+			if ((DACVal==(uint_32)RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
+			{
+				DACBitmap[(r<<10)|c] = 0; //Clear entry!
+			}
+			else
+			{
+				DACBitmap[(r<<10)|c] = DACVal; //Load the DAC value!
+			}		
 		}
-		else
-		{
-			DACBitmap[c] = DACVal; //Load the DAC value!
-		}		
 	}
 	//Attributes are in order top to bottom: attribute foreground, attribute background, attribute foreground blink, attribute background blink affected for all attributes!
 	strcpy(&filename[0],"captures/VGA_ATT"); //Generate log of this mode!
-	writeBMP(filename,&DACBitmap[0],256,4,4,4,256); //Simple 4-row dump of the attributes through the DAC!
+	writeBMP(filename,&DACBitmap[0],256,4*0x20,0,0,256); //Simple 4-row dump of every scanline of the attributes through the DAC!
 }
 
 byte DAC_whatBWColor = 0; //Default: none!

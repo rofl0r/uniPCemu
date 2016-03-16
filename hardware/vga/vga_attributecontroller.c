@@ -68,6 +68,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	colorplanes &= 0xF; //Only 4 bits can be used!
 
 	register byte CurrentDAC; //Current DAC to use!
+	register word pos;
 
 	for (pixelon=0;pixelon<2;pixelon++) //All values of pixelon!
 	{
@@ -79,7 +80,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 				{
 					fontstatus = pixelon; //What font status? By default this is the font/back status!
 
-					//Underline capability!
+					//Underline&Off capability!
 					if (monomode) //Only in mono mode do we have underline capability and other stuff!
 					{
 						if (charinnery==underlinelocation) //Underline (Non-graphics monochrome mode only)? Ignore textmode?
@@ -89,27 +90,27 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 								fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
 							}
 						}
-
 						if ((Attribute==0) || (Attribute==8) || (Attribute==0x80) || (Attribute==0x88)) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
 						{
 							fontstatus = 0; //Force background!
 						}
 					}
-					
-					//Blinking capability!
+
+					//Blinking capability! Applies to the font/background only!
 					if (enableblink) //Blink affects font?
 					{
 						if (getattributeback(textmode,(byte)Attribute,0x8)) //Blink enabled?
 						{
-							fontstatus &= currentblink; //Need blink on to show!
+							fontstatus &= currentblink; //Need blink on to show foreground!
 						}
 					}
 
-					if (monomode) //Special actions need to be taken care of on the pixel being on/off?
+					//Reverse capability!
+					if (monomode) //In mono mode, we have reversed font/background capability!
 					{
 						if ((Attribute==0x70) || (Attribute==0x78) || (Attribute==0xF0) || (Attribute==0xF8)) //We're reversed with 0x70, 0x78, 0xF0 and 0xF8?
 						{
-							fontstatus = !fontstatus; //We're reversed font/background!
+							fontstatus ^= 1; //We're reversed font/background!
 						}
 					}
 
@@ -148,7 +149,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						}
 					}
 
-					word pos = Attribute;
+					pos = Attribute;
 					pos <<= 5; //Create room!
 					pos |= charinnery; //Add!
 					pos <<= 1; //Create room!
