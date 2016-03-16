@@ -63,7 +63,7 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 
 void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been updated?
 {
-	fillgetcharxy_values(VGA,(address>>5)); //Update the character: character number is every 32 locations (5 bits), with 2-bit plane (2 bits), totalling 7 bits per character!
+	fillgetcharxy_values(VGA,(address>>5)&0xFF); //Update the character: character number is increased every 32 locations (5 bits row index), but we include the character set too(bits 13-15), so ignore that for correct character and character set handling!
 }
 
 //This is heavy: it doubles (with about 25ms) the rendering time needed to render a line.
