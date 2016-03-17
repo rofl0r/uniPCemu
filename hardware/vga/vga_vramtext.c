@@ -110,10 +110,11 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 	static word lastcharinfo = 0; //attribute|character|row|1, bit0=Set?
 	register word lastlookup;
 	register word charloc;
-	register byte newx = x; //Default: use the 9th bit if needed!
+	register byte newx;
+	newx = x; //Default: use the 9th bit if needed! Otherwise use the horizontal coordinate within the character!
 
-	attribute >>= 2; //...
-	attribute &= 1; //... Take bit 2 to get the actual attribute we need!
+	attribute >>= 3; //...
+	attribute &= 1; //... Take bit 3 to get the actual attribute we need!
 	if (newx&0xF8) //Extra ninth bit?
 	{
 		newx = 7; //Only 7 max!
