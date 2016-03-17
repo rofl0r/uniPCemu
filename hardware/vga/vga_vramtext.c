@@ -30,20 +30,27 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 			for (;y<0x20;) //33 rows!
 			{
 				uint_32 characterset_offset, add2000; //First, the character set, later translated to the real charset offset!
-				if (attribute) //Charset A? (bit 2 (value 0x4) set?)
+				if (VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) //Memory maps are enabled?
 				{
-					characterset_offset = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetASelect_low;
-					add2000 = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetASelect_high; //Charset A!
+					if (attribute) //Charset A? (bit 2 (value 0x4) set?)
+					{
+						characterset_offset = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetASelect_low;
+						add2000 = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetASelect_high; //Charset A!
+					}
+					else //Charset B?
+					{
+						characterset_offset = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetBSelect_low;
+						add2000 = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetBSelect_high; //Charset B!
+					}
+	
+					characterset_offset <<= 1; //Calculated 0,4,8,c! Add room for 0x2000!
+					characterset_offset |= add2000; //Add the 2000 mark!
+					characterset_offset <<= 13; //Shift to the start position: 0,4,8,c,2,6,a,e!
 				}
-				else //Charset B?
+				else //Force character set #0?
 				{
-					characterset_offset = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetBSelect_low;
-					add2000 = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetBSelect_high; //Charset B!
+					characterset_offset = 0; //We're at the start of VRAM plane 2 always!
 				}
-
-				characterset_offset <<= 1; //Calculated 0,4,8,c! Add room for 0x2000!
-				characterset_offset |= add2000; //Add the 2000 mark!
-				characterset_offset <<= 13; //Shift to the start position: 0,4,8,c,2,6,a,e!
 
 				word character2;
 				character2 = character; //Load!
@@ -64,6 +71,11 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been updated?
 {
 	fillgetcharxy_values(VGA,(address>>5)&0xFF); //Update the character: character number is increased every 32 locations (5 bits row index), but we include the character set too(bits 13-15), so ignore that for correct character and character set handling!
+}
+
+void VGA_charsetupdated(VGA_Type *VGA)
+{
+	fillgetcharxy_values(VGA,-1); //Update all characters: the character sets are updated!	
 }
 
 //This is heavy: it doubles (with about 25ms) the rendering time needed to render a line.

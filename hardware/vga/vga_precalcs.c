@@ -6,6 +6,7 @@
 #include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer render counter support!
+#include "headers/hardware/vga/vga_vramtext.h" //VRAM text support!
 
 void VGA_updateVRAMmaps(VGA_Type *VGA); //VRAM map updater prototype!
 
@@ -213,6 +214,11 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//dolog("VGA","VTotal after charwidth: %i",VGA->precalcs.verticaltotal); //Log it!
 		//unlockVGA(); //We're finished with the VGA!
 		charwidthupdated = 1; //The character width has been updated, so update the corresponding registers too!
+	}
+
+	if ((whereupdated==(WHEREUPDATED_SEQUENCER|0x03)) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x04)) || FullUpdate) //Sequencer character map register updated?
+	{
+		VGA_charsetupdated(VGA); //The character sets have been updated! Apply all changes to the active characters!
 	}
 	
 	if (FullUpdate || (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x5))) //Graphics mode register?
