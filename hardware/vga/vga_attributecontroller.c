@@ -85,7 +85,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					{
 						if (charinnery==underlinelocation) //Underline (Non-graphics monochrome mode only)? Ignore textmode?
 						{
-							if ((Attribute&77)==1) //Underline used for this character? Bits 6-4=0 and 2-0=1 only according to freeVGA!
+							if ((Attribute&7)==1) //Underline used for this character? Bits 6-4=0(not according to seasip.info/VintagePC/mda.html, so ignore that fact!) and 2-0=1 only according to freeVGA!
 							{
 								fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
 							}
@@ -101,7 +101,10 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					{
 						if (getattributeback(textmode,(byte)Attribute,0x8)) //Blink enabled?
 						{
-							fontstatus &= currentblink; //Need blink on to show foreground!
+							//if (monomode) //Mono has different blink way?
+							//	fontstatus ^= currentblink; //Need blink on to show foreground/background flip!
+							//else //Color blink?
+								fontstatus &= currentblink; //Need blink on to show foreground!
 						}
 					}
 
@@ -115,6 +118,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					}
 
 					//Determine pixel font or back color to PAL index!
+					
 					if (fontstatus)
 					{
 						CurrentDAC = (byte)Attribute; //Load attribute!
@@ -149,6 +153,12 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						}
 					}
 
+					
+					/*if (monomode) //In mono mode, we check our results!
+					{
+						CurrentDAC = fontstatus?0x18:0x00; //(1)8/(1)0 combinations!
+					}*/
+
 					pos = Attribute;
 					pos <<= 5; //Create room!
 					pos |= charinnery; //Add!
@@ -162,6 +172,15 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 			}
 		}
 	}
+}
+
+char p[50] = ""; //Our string(original pattern)!
+char a[50] = ""; //Our string(attributes itself)!
+char t[50] = "", t2[50] = ""; //Temp value!
+
+OPTINLINE char int2hex(byte n)
+{
+	return (n>=10)?(n+55):(n+48);
 }
 
 OPTINLINE byte VGA_getAttributeDACIndex(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
