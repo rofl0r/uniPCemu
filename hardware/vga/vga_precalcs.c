@@ -745,7 +745,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		if (UPDATE_SECTION(whereupdated) || (whereupdated==WHEREUPDATED_DACMASKREGISTER) || FullUpdate) //DAC Fully needs to be updated?
 		{
-			if (VGA->precalcs.lastDACMask!=VGA->registers->DACMaskRegister) //DAC Mask changed only?
+			if (UPDATE_SECTION(whereupdated) || ((whereupdated==WHEREUPDATED_DACMASKREGISTER) && VGA->precalcs.lastDACMask!=VGA->registers->DACMaskRegister) || FullUpdate) //DAC Mask changed only?
 			{
 				int colorval;
 				colorval = 0; //Init!
