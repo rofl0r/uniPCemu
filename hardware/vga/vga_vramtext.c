@@ -4,6 +4,7 @@
 #include "headers/hardware/vga/vga_vramtext.h" //Our VRAM text support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //High resolution timing!
+#include "headers/support/bmp.h" //BMP dumping support!
 
 OPTINLINE byte reverse8_VGA(byte b) { //Reverses byte value bits!
 	b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4); //Swap 4 high and low bits!
@@ -66,6 +67,30 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 		++character; //Next character!
 		if (singlecharacter!=-1) return; //Stop on single character update!
 	}
+}
+
+void dumpVGATextFonts()
+{
+	uint_32 displayindex;
+	uint_32 textdisplay[32*8*256*2]; //All possible output!
+	byte *getcharxy_values;
+
+	byte currentattribute;
+	byte currentcharacter;
+	byte currentrow;
+	byte currentpixel;
+
+	getcharxy_values = &getActiveVGA()->getcharxy_values[0]; //The values!
+	for (displayindex=0;displayindex<NUMITEMS(textdisplay);displayindex++)
+	{
+		currentpixel = (displayindex&7); //Every pixel we change the font/back pixel!
+		currentcharacter = ((displayindex>>3)&0xFF); //The character changes every 8 pixels!
+		currentrow = ((displayindex>>11)&0x1F); //The row changes every 256 characters!
+		currentattribute = ((displayindex>>16)&1); //The attribute changes every 32 rows!
+		textdisplay[displayindex] = ((getcharxy_values[(currentcharacter<<6)|(currentrow<<1)|currentattribute]>>currentpixel)&1)?RGB(0xFF,0xFF,0xFF):RGB(0x00,0x00,0x00);
+	}
+	mkdir("captures"); //Make sure we can log!
+	writeBMP("captures/VRAMText",&textdisplay[0],256*8,32*2,0,0,256*8); //Dump our font to the BMP file! We're two characters high (one for every font table) and 256 characters wide(total characters in the font).
 }
 
 void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been updated?

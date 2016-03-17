@@ -26,6 +26,7 @@ void raiseError(char *source, char *text, ...)
 	char msg[256];
 	char result[256]; //Result!
 	bzero(msg,sizeof(msg)); //Init!
+	bzero(result,sizeof(result)); //Init!
 
 	va_list args; //Going to contain the list!
 	va_start (args, text); //Start list!

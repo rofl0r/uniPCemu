@@ -42,6 +42,7 @@
 #include "headers/hardware/floppy.h" //Floppy disk support!
 
 #include "headers/hardware/vga/vga_dacrenderer.h" //Renderer logging support of DAC colors!
+#include "headers/hardware/vga/vga_vramtext.h" //VRAM font table logging support!
 
 //Define below to enable the sound test with recording!
 //#define SOUND_TEST
@@ -4706,6 +4707,7 @@ void BIOS_DumpVGA()
 		fclose(f);
 
 		VGA_DUMPColors(); //Dump all colors!
+		dumpVGATextFonts(); //Dump all fonts used!
 	}
 
 	BIOS_Menu = 29; //Goto Video menu!
