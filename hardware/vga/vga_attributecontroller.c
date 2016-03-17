@@ -61,7 +61,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 		}
 		colorselect76 = VGA->precalcs.colorselect76; //Retrieve pallete bits 7-6!
 	}
-	backgroundfilter = (~(enableblink<<3))&0xF; //Background filter depends on blink & full background!
+	backgroundfilter = monomode?0x7:((~(enableblink<<3))&0xF); //Background filter depends on blink & full background when not in monochrome mode!
 
 	byte colorplanes;
 	colorplanes = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA; //Read colorplane 256-color!
@@ -101,10 +101,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					{
 						if (getattributeback(textmode,(byte)Attribute,0x8)) //Blink enabled?
 						{
-							//if (monomode) //Mono has different blink way?
-							//	fontstatus ^= currentblink; //Need blink on to show foreground/background flip!
-							//else //Color blink?
-								fontstatus &= currentblink; //Need blink on to show foreground!
+							fontstatus &= currentblink; //Need blink on to show foreground!
 						}
 					}
 
@@ -135,7 +132,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						//Use original 16 color palette!
 						CurrentDAC = VGA->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[CurrentDAC].InternalPaletteIndex; //Translate base index into DAC Base index!
 
-						if (color256) //8-bit colors?
+						if (color256 && (!monomode)) //8-bit colors and not monochrome mode?
 						{
 							CurrentDAC &= 0xF; //Take 4 bits only!
 						}
@@ -152,12 +149,6 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 							CurrentDAC |= colorselect76; //Apply bits 6&7!
 						}
 					}
-
-					
-					/*if (monomode) //In mono mode, we check our results!
-					{
-						CurrentDAC = fontstatus?0x18:0x00; //(1)8/(1)0 combinations!
-					}*/
 
 					pos = Attribute;
 					pos <<= 5; //Create room!
