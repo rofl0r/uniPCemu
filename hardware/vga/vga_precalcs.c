@@ -200,17 +200,20 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	if ((whereupdated == (WHEREUPDATED_MISCOUTPUTREGISTER)) || FullUpdate) //Misc output register updated?
 	{
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
-		if (DAC_Use_BWMonitor(0xFF)) //Are we using a b/w monitor?
+
+		//Update our dipswitches according to the emulated monitor!
+		//Dipswitch source: https://groups.google.com/d/msg/comp.sys.ibm.pc.classic/O-oivadTYck/kLe4xxf7wDIJ
+		if (DAC_Use_BWMonitor(0xFF)) //Are we using a non-color monitor?
 		{
-		//Pattern 0010: MDA/High resolution 80x25
+			//Pattern 0010: Monochrome
 			VGA->registers->switches[2] = 1;
 			VGA->registers->switches[0] = VGA->registers->switches[1] = VGA->registers->switches[3] = 0;
 		}
 		else //Color monitor?
 		{
-			//Pattern 0111: color 80x25/MDA, 0110 according to Dosbox's VGA
-			VGA->registers->switches[0] = 0;
-			VGA->registers->switches[1] = VGA->registers->switches[2] = VGA->registers->switches[2] = 1;
+			//Pattern 0110: Enhanced Color - Enhanced Mode, 0110 according to Dosbox's VGA
+			VGA->registers->switches[1] = VGA->registers->switches[2] = 1;
+			VGA->registers->switches[0] = VGA->registers->switches[3] = 0;
 		}
 	}
 
