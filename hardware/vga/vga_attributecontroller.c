@@ -39,7 +39,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	textmode = !VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable; //Text mode?
 
 	byte monomode;
-	monomode = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation; //Monochrome emulation mode?
+	monomode = !VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS; //Monochrome emulation mode?
 
 	byte *attributeprecalcs;
 	attributeprecalcs = &VGA->precalcs.attributeprecalcs[0]; //The attribute precalcs!	
@@ -83,14 +83,17 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					//Underline&Off capability!
 					if (monomode) //Only in mono mode do we have underline capability and other stuff!
 					{
-						if (charinnery==underlinelocation) //Underline (Non-graphics monochrome mode only)? Ignore textmode?
+						if (textmode) //This is active in text mode only!
 						{
-							if ((Attribute&7)==1) //Underline used for this character? Bits 6-4=0(not according to seasip.info/VintagePC/mda.html, so ignore that fact!) and 2-0=1 only according to freeVGA!
+							if (charinnery==underlinelocation) //Underline (Non-graphics monochrome mode only)? Ignore textmode?
 							{
-								fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
+								if ((Attribute&7)==1) //Underline used for this character? Bits 6-4=0(not according to seasip.info/VintagePC/mda.html, so ignore that fact!) and 2-0=1 only according to freeVGA!
+								{
+									fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
+								}
 							}
 						}
-						if ((Attribute==0) || (Attribute==8) || (Attribute==0x80) || (Attribute==0x88)) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
+						if ((Attribute&0x88)==Attribute) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
 						{
 							fontstatus = 0; //Force background!
 						}
@@ -102,15 +105,6 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						if (getattributeback(textmode,(byte)Attribute,0x8)) //Blink enabled?
 						{
 							fontstatus &= currentblink; //Need blink on to show foreground!
-						}
-					}
-
-					//Reverse capability!
-					if (monomode) //In mono mode, we have reversed font/background capability!
-					{
-						if ((Attribute==0x70) || (Attribute==0x78) || (Attribute==0xF0) || (Attribute==0xF8)) //We're reversed with 0x70, 0x78, 0xF0 and 0xF8?
-						{
-							fontstatus ^= 1; //We're reversed font/background!
 						}
 					}
 
@@ -132,7 +126,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						//Use original 16 color palette!
 						CurrentDAC = VGA->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[CurrentDAC].InternalPaletteIndex; //Translate base index into DAC Base index!
 
-						if (color256 && (!monomode)) //8-bit colors and not monochrome mode?
+						if (color256) //8-bit colors and not monochrome mode?
 						{
 							CurrentDAC &= 0xF; //Take 4 bits only!
 						}

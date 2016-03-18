@@ -379,6 +379,8 @@ void doneEMU()
 		resetTimers(); //Stop the timers!
 		debugrow("doneEMU: Finishing port E9 hack and emulator support functionality...");
 		BIOS_doneDebugger(); //Finish the port E9 hack and emulator support functionality!
+		debugrow("doneEMU: Finishing serial mouse...");
+		doneSERMouse(); //Finish the serial mouse, if present!
 		debugrow("doneEMU: Finish DMA Controller...");
 		doneDMA(); //Initialise the DMA Controller!
 		debugrow("doneEMU: Saving CMOS...");

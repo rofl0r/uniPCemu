@@ -40,6 +40,10 @@ void onKeyPress(char *key) //On key press/hold!
 {
 	if (!strcmp(key,"CAPTURE")) //Screen capture requested?
 	{
+		if ((!SCREEN_CAPTURE) && (!capture_status)) //Not capturing yet and now instructed to start capturing?
+		{
+			SCREEN_CAPTURE = 1; //Do a screen capture next frame!
+		}
 		capture_status = 1; //We're pressed!
 		return; //Finished!
 	}
@@ -226,11 +230,6 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 {
 	uint_64 i;
 	keys_active = 0; //Initialise keys active!
-	if (capture_status) //Pressed?
-	{
-		keys_active = 1; //We're active!
-		SCREEN_CAPTURE = 1; //Do a screen capture next frame!
-	}
 	for (i=0;i<key_pressed_counter;i++) //Tick all pressed keys in order of time!
 		tickPressedKey(i); //Tick the timed key!
 }

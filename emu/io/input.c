@@ -33,6 +33,9 @@
 #include <SDL/SDL_events.h> //Event support!
 #endif
 
+//Log input and output to compare?
+//#define __DEBUG_INPUT
+
 const float keyboard_mouseinterval = (1000000000.0f/30.0f); //Check mouse 30 times per second during mouse mode!
 
 float mouse_xmove = 0, mouse_ymove = 0; //Movement of the mouse not processed yet (in mm)!
@@ -2396,7 +2399,11 @@ void psp_input_init()
 		emu_keys_sdl_rev[signed2unsigned16(emu_keys_SDL[i])] = i; //Reverse lookup of the table!
 		++i; //Next!
 	}
+	#ifdef __DEBUG_INPUT
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,SDL_DEFAULT_REPEAT_INTERVAL); //Repeat pressed keys for logging!
+	#else
+	SDL_EnableKeyRepeat(0,0); //Don't repeat pressed keys: this isn't required while using normal input without logging!
+	#endif
 	keyboard_mousetiming = mouse_ticktiming = 0.0f; //Initialise mouse timing!
 }
 

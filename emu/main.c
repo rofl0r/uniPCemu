@@ -33,15 +33,15 @@ PSP_HEAP_SIZE_MAX(); //Free maximum for us: need this for the memory allocation 
 #endif
 
 //Debug zalloc allocations?
-#define DEBUG_ZALLOC 0
+//#define DEBUG_ZALLOC
 
 //Delete all logs on boot?
 #define DELETE_LOGS_ONBOOT 1
-//Delete all bitmaps on boot?
-#define DELETE_BMP_ONBOOT 1
+//Delete all bitmaps captured on boot?
+#define DELETE_BMP_ONBOOT 0
 
-//Find emulator memory leaks during allocation/deallocation?
-#define FIND_EMU_MEMORY_LEAKS 0
+//Find emulator memory leaks during allocation/deallocation when defined?
+//#define FIND_EMU_MEMORY_LEAKS
 
 extern byte active_screen; //Active screen: 0=bottom, 1=Top, 2=Left/Right, 3=Right/Left!
 
@@ -229,7 +229,8 @@ int main(int argc, char * argv[])
 	//Normal operations!
 	resetTimers(); //Make sure all timers are ready!
 	
-	if (DEBUG_ZALLOC) //Verify zalloc functionality?
+	#ifdef DEBUG_ZALLOC
+	//Verify zalloc functionality?
 	{
 		//First ensure freemem is valid!
 		uint_32 f1,f2;
@@ -277,12 +278,13 @@ int main(int argc, char * argv[])
 		dolog("zalloc_debug","All checks passed. Free memory: %i bytes Total memory: %i bytes",freemem(),f1);
 		quitemu(0); //Quit!
 	}
+	#endif
 	
 	if (DELETE_LOGS_ONBOOT) delete_file("logs","*.log"); //Delete any logs still there!
 	if (DELETE_BMP_ONBOOT) delete_file("captures","*.bmp"); //Delete any bitmaps still there!
 	
 	#ifdef __psp__
-		if (FILE_EXISTS("profiler.txt")) //Enable profiler: doesn't work in EMU?
+		if (FILE_EXISTS("profiler.txt")) //Enable profiler: doesn't work in x86EMU?
 		{
 			// Clear the existing profile regs
 			pspDebugProfilerClear();
@@ -313,13 +315,13 @@ int main(int argc, char * argv[])
 
 //First, support for I/O on the PSP!
 
-	if (FIND_EMU_MEMORY_LEAKS) //Find memory leaks?
-	{
+	#ifdef FIND_EMU_MEMORY_LEAKS
+	//Find memory leaks?
 		uint_32 freememstart;
 		freememstart = freemem(); //Freemem at the start!
 		logpointers("initEMU(simple test)..."); //Log pointers at the start!
 		dolog("zalloc","");
-		initEMU(0); //Start the EMU partially, not running!
+		initEMU(0); //Start the EMU partially, not running video!
 		logpointers("doneEMU..."); //Log pointers at work!
 		doneEMU(); //Finish the EMU!
 		
@@ -345,7 +347,7 @@ int main(int argc, char * argv[])
 		doneVideoMain(); //Finish video!
 		quitemu(0); //Exit software!
 		sleep(); //Wait forever if needed!
-	}
+	#endif
 
 	
 	//Start of the visible part!

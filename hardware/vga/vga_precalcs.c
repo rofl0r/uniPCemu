@@ -201,6 +201,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
 
+		recalcAttr |= (VGA->precalcs.LastMiscOutputRegister^VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA)&1; //We've updated bit 1 of the misc output register? Then update monochrome vs color emulation mode!
+		VGA->precalcs.LastMiscOutputRegister = VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA; //Save the last version of us!
+
 		//Update our dipswitches according to the emulated monitor!
 		//Dipswitch source: https://groups.google.com/d/msg/comp.sys.ibm.pc.classic/O-oivadTYck/kLe4xxf7wDIJ
 		if (DAC_Use_BWMonitor(0xFF)) //Are we using a non-color monitor?

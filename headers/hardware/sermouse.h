@@ -7,5 +7,6 @@
 byte useSERMouse(); //Serial mouse enabled?
 void SERmouse_packet_handler(MOUSE_PACKET *packet);
 void initSERMouse(byte enabled); //Inititialise serial mouse!
+void doneSERMouse(); //Finish our serial mouse hardware emulation!
 
 #endif

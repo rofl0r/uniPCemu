@@ -90,4 +90,16 @@ void initSERMouse(byte enabled)
 		UART_registerdevice(0,&SERmouse_setModemControl,&serMouse_hasData,&serMouse_readData,NULL); //Register our UART device!
 		setMouseRate(40.0f); //We run at 40 packets per second!
 	}
+	else
+	{
+		SERMouse.buffer = NULL; //No buffer present!
+	}
+}
+
+void doneSERMouse()
+{
+	if (SERMouse.buffer) //Allocated?
+	{
+		free_fifobuffer(&SERMouse.buffer); //Free our buffer!
+	}
 }

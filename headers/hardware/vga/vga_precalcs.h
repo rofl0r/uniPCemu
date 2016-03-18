@@ -116,6 +116,7 @@ typedef struct //Contains the precalculated values!
 	byte AttributeModeControlRegister_PixelPanningMode;
 	byte CRTCModeControlRegister_SLDIV; //Scanline divisor!
 	byte ClockingModeRegister_DCR; //Dot Clock Rate!
+	byte LastMiscOutputRegister; //Last value written to the Misc Output Register!
 } VGA_PRECALCS; //VGA pre-calculations!
 
 void VGA_calcprecalcs(void *VGA, uint_32 whereupdated); //Calculate them!
