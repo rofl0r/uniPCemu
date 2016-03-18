@@ -611,6 +611,7 @@ typedef struct PACKED
 	byte VerticalDisplayTotalReached; //Set when Scanline>max. Setting this causes Scanline to reset!
 	byte lightpen_high; //Lightpen high register!
 	byte lightpen_low; //Lightpen low register!
+	byte switches[4]; //Lightpen low register!
 } VGA_REGISTERS;
 #include "headers/endpacked.h" //We're packed!
 

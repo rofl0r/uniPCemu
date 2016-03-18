@@ -7,6 +7,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer render counter support!
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM text support!
+#include "headers/hardware/vga/vga_dacrenderer.h" //B/W detection support!
 
 void VGA_updateVRAMmaps(VGA_Type *VGA); //VRAM map updater prototype!
 
@@ -199,6 +200,18 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	if ((whereupdated == (WHEREUPDATED_MISCOUTPUTREGISTER)) || FullUpdate) //Misc output register updated?
 	{
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
+		if (DAC_Use_BWMonitor(0xFF)) //Are we using a b/w monitor?
+		{
+		//Pattern 0010: MDA/High resolution 80x25
+			VGA->registers->switches[2] = 1;
+			VGA->registers->switches[0] = VGA->registers->switches[1] = VGA->registers->switches[3] = 0;
+		}
+		else //Color monitor?
+		{
+			//Pattern 0111: color 80x25/MDA, 0110 according to Dosbox's VGA
+			VGA->registers->switches[0] = 0;
+			VGA->registers->switches[1] = VGA->registers->switches[2] = VGA->registers->switches[2] = 1;
+		}
 	}
 
 	if ((whereupdated==(WHEREUPDATED_SEQUENCER|0x01)) || FullUpdate || !VGA->precalcs.characterwidth) //Sequencer register updated?
