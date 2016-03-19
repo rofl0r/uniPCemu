@@ -279,7 +279,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		ok = 1;
 		break;
 	case 0x3C2: //Read: Input Status #0 Register		DATA
-		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER.SwitchSense = ((getActiveVGA()->registers->switches[getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3]&1)^1); //Depends on the switches. This is the reverse of the actual switches used! Originally stuck to 1s, but reported as 0110!
+		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER.SwitchSense = (((~getActiveVGA()->registers->switches)>>(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3))&1); //Depends on the switches. This is the reverse of the actual switches used! Originally stuck to 1s, but reported as 0110!
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER.DATA; //Give the register!
 		ok = 1;
 		break;

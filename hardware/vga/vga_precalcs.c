@@ -191,7 +191,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 {
 	//All our flags for updating sections related!
 	byte recalcScanline = 0, recalcAttr = 0, VerticalClocksUpdated = 0, updateCRTC = 0, charwidthupdated = 0, underlinelocationupdated = 0; //Default: don't update!
-	
+	byte pattern; //The pattern to use!
 	VGA_Type *VGA = (VGA_Type *)useVGA; //The VGA!
 	byte FullUpdate = (whereupdated==0); //Fully updated?
 //Calculate the precalcs!
@@ -206,18 +206,14 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 		//Update our dipswitches according to the emulated monitor!
 		//Dipswitch source: https://groups.google.com/d/msg/comp.sys.ibm.pc.classic/O-oivadTYck/kLe4xxf7wDIJ
+		pattern = 0x6; //Pattern 0110: Enhanced Color - Enhanced Mode, 0110 according to Dosbox's VGA
 		if (DAC_Use_BWMonitor(0xFF)) //Are we using a non-color monitor?
 		{
-			//Pattern 0010: Monochrome
-			VGA->registers->switches[2] = 1;
-			VGA->registers->switches[0] = VGA->registers->switches[1] = VGA->registers->switches[3] = 0;
-		}
-		else //Color monitor?
-		{
-			//Pattern 0110: Enhanced Color - Enhanced Mode, 0110 according to Dosbox's VGA
-			VGA->registers->switches[1] = VGA->registers->switches[2] = 1;
-			VGA->registers->switches[0] = VGA->registers->switches[3] = 0;
-		}
+			pattern |= 1; //Bit 1=Monochrome?, originally 0010 for Monochrome!
+		} //Not working correctly yet!
+
+		//Set the dipswitches themselves!
+		VGA->registers->switches = pattern; //Set the pattern to use!
 	}
 
 	if ((whereupdated==(WHEREUPDATED_SEQUENCER|0x01)) || FullUpdate || !VGA->precalcs.characterwidth) //Sequencer register updated?
