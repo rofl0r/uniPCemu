@@ -369,4 +369,8 @@ void EMU_update_VGA_Settings() //Update the VGA settings!
 	}
 	setVGA_NMIonPrecursors(BIOS_Settings.VGA_NMIonPrecursors); //Set NMI on precursors!
 	setVGASpeed(BIOS_Settings.VGASynchronization); //Apply VGA synchronization setting!
+	if (getActiveVGA()) //Gotten an active VGA?
+	{
+		DAC_updateEntries(getActiveVGA()); //Update all DAC entries according to the current/new color settings!
+	}
 }

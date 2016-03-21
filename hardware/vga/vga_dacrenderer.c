@@ -124,20 +124,29 @@ OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
 	return color; //Can't convert: take the original color!
 }
 
-uint_32 DAC_BWmonitor(VGA_Type *VGA, byte DACValue)
-{
-	return color2bw(VGA->precalcs.DAC[DACValue]); //Lookup!
-}
-
-uint_32 DAC_colorMonitor(VGA_Type *VGA,byte DACValue)
-{
-	return VGA->precalcs.DAC[DACValue]; //Lookup!
-}
-
 byte DAC_whatBWMonitor = 0; //Default: color monitor!
 
 byte DAC_Use_BWMonitor(byte use)
 {
 	if (use<2) DAC_whatBWMonitor = use; //Use?
 	return DAC_whatBWMonitor; //Give the data!
+}
+
+void DAC_updateEntry(VGA_Type *VGA, byte entry) //Update a DAC entry for rendering!
+{
+	if (DAC_whatBWMonitor) //Are we using a B/W monitor?
+	{
+		VGA->precalcs.effectiveDAC[entry] = color2bw(VGA->precalcs.DAC[entry]); //Set the B/W entry!
+		return;
+	}
+	VGA->precalcs.effectiveDAC[entry] = VGA->precalcs.DAC[entry]; //Set the color entry!	
+}
+
+void DAC_updateEntries(VGA_Type *VGA)
+{
+	int i;
+	for (i=0;i<0x100;i++) //Process all entries!
+	{
+		DAC_updateEntry(VGA,i); //Update this entry with current values!
+	}
 }

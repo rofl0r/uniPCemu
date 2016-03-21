@@ -768,6 +768,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				for (;;) //Precalculate colors for DAC!
 				{
 					VGA->precalcs.DAC[colorval] = getcol256(VGA,colorval); //Translate directly through DAC for output!
+					DAC_updateEntry(VGA,colorval); //Update a DAC entry for rendering!
 					if (++colorval&0xFF00) break; //Overflow?
 				}
 				VGA->precalcs.lastDACMask = VGA->registers->DACMaskRegister; //Save the DAC mask for future checking if it's changed!
@@ -778,6 +779,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.DAC[whereupdated&0xFF] = getcol256(VGA,whereupdated&0xFF); //Translate directly through DAC for output, single color only!
+			DAC_updateEntry(VGA,whereupdated&0xFF); //Update a DAC entry for rendering!
 			//unlockVGA(); //We're finished with the VGA!
 		}
 		//dolog("VGA","VTotal after DAC: %i",VGA->precalcs.verticaltotal); //Log it!

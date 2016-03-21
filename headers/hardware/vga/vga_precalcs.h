@@ -91,6 +91,7 @@ typedef struct //Contains the precalculated values!
 	byte colorselect54; //Precalculate!
 	byte colorselect76; //Precalculate!
 	uint_32 DAC[0x100]; //Full DAC saved lookup table!
+	uint_32 effectiveDAC[0x100]; //The same DAC as above, but with color conversions applied for rendering!
 	byte lastDACMask; //To determine if the DAC Mask is updated or not!
 	
 	byte renderedlines; //Actual ammount of lines rendered, graphics mode included!

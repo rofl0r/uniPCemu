@@ -24,13 +24,8 @@ word signal_x, signal_scanline; //Signal location!
 
 #define CURRENTBLINK(VGA) VGA->TextBlinkOn
 
-typedef uint_32(*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
-extern byte DAC_whatBWMonitor; //Default: color monitor!
-OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *VGA, word x
-{
-	static const DAC_monitor monitors[2] = { DAC_colorMonitor, DAC_BWmonitor }; //What kind of monitor?
-	return monitors[DAC_whatBWMonitor](VGA, DACValue); //Do color mode or B/W mode!
-}
+//Do color mode or B/W mode DAC according to our settings!
+#define VGA_DAC(VGA,DACValue) (VGA->precalcs.effectiveDAC[(DACValue)])
 
 extern GPU_type GPU; //GPU!
 
