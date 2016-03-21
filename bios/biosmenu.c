@@ -2570,7 +2570,7 @@ void BIOS_ExecutionMode()
 	strcpy(itemlist[EXECUTIONMODE_SOUND], "Run sound test"); //Debug sound test!
 
 	int current = 0;
-	switch (BIOS_Settings.executionmode) //What debug mode?
+	switch (BIOS_Settings.executionmode) //What execution mode?
 	{
 	case EXECUTIONMODE_NONE: //Valid
 	case EXECUTIONMODE_TEST: //Test files or biosrom.dat!
@@ -2636,7 +2636,7 @@ void BIOS_DebugLog()
 	strcpy(itemlist[DEBUGGERLOG_ALWAYS], "Always log"); //Set filename from options!
 
 	int current = 0;
-	switch (BIOS_Settings.debugger_log) //What debug mode?
+	switch (BIOS_Settings.debugger_log) //What debugger log mode?
 	{
 	case DEBUGGERLOG_NONE: //None
 	case DEBUGGERLOG_DEBUGGING: //Only when debugging
@@ -2867,17 +2867,17 @@ void BIOS_BWMonitor()
 	}
 
 	strcpy(itemlist[BWMONITOR_NONE], "Color"); //Set filename from options!
-	strcpy(itemlist[BWMONITOR_BLACK], "B/W monitor: black"); //Set filename from options!
+	strcpy(itemlist[BWMONITOR_WHITE], "B/W monitor: white"); //Set filename from options!
 	strcpy(itemlist[BWMONITOR_GREEN], "B/W monitor: green"); //Set filename from options!
-	strcpy(itemlist[BWMONITOR_BROWN], "B/W monitor: brown"); //Set filename from options!
+	strcpy(itemlist[BWMONITOR_AMBER], "B/W monitor: amber"); //Set filename from options!
 
 	int current = 0;
-	switch (BIOS_Settings.bwmonitor) //What debug mode?
+	switch (BIOS_Settings.bwmonitor) //What B/W monitor mode?
 	{
 	case BWMONITOR_NONE: //None
-	case BWMONITOR_BLACK: //Black/White
-	case BWMONITOR_GREEN: //Greenscale
-	case BWMONITOR_BROWN: //Brownscale
+	case BWMONITOR_WHITE: //Black/White
+	case BWMONITOR_GREEN: //Green
+	case BWMONITOR_AMBER: //Amber
 		current = BIOS_Settings.bwmonitor; //Valid: use!
 		break;
 	default: //Invalid
@@ -2899,9 +2899,9 @@ void BIOS_BWMonitor()
 		file = DEBUGGERLOG_NONE; //Default execution mode: None!
 
 	case BWMONITOR_NONE: //None
-	case BWMONITOR_BLACK: //Black/White
+	case BWMONITOR_WHITE: //Black/White
 	case BWMONITOR_GREEN: //Greenscale
-	case BWMONITOR_BROWN: //Brownscale
+	case BWMONITOR_AMBER: //Amberscale
 	default: //Changed?
 		if (file != current) //Not current?
 		{
@@ -3295,7 +3295,7 @@ void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
 	}
 
 	int current = 0;
-	switch (BIOS_Settings.input_settings.colors[gamingKeyboardColor]) //What debug mode?
+	switch (BIOS_Settings.input_settings.colors[gamingKeyboardColor]) //What color?
 	{
 	case 0:case 1:case 2:case 3:case 4:case 5:case 6:case 7:case 8:case 9:case 0xA:case 0xB:case 0xC:case 0xD:case 0xE:case 0xF:
 		current = BIOS_Settings.input_settings.colors[gamingKeyboardColor]; //Valid: use!
@@ -3465,14 +3465,14 @@ setmonitortext: //For fixing it!
 	strcpy(menuoptions[advancedoptions], "Monitor: ");
 	switch (BIOS_Settings.bwmonitor) //B/W monitor?
 	{
-	case BWMONITOR_BLACK:
-		strcat(menuoptions[advancedoptions++], "B/W monitor: black");
+	case BWMONITOR_WHITE:
+		strcat(menuoptions[advancedoptions++], "B/W monitor: white");
 		break;
 	case BWMONITOR_GREEN:
 		strcat(menuoptions[advancedoptions++], "B/W monitor: green");
 		break;
-	case BWMONITOR_BROWN:
-		strcat(menuoptions[advancedoptions++], "B/W monitor: brown");
+	case BWMONITOR_AMBER:
+		strcat(menuoptions[advancedoptions++], "B/W monitor: amber");
 		break;
 	case BWMONITOR_NONE:
 		strcat(menuoptions[advancedoptions++], "Color monitor");
@@ -3957,7 +3957,7 @@ setShowCPUSpeed:
 
 	optioninfo[advancedoptions] = 5; //Execution mode!
 	strcpy(menuoptions[advancedoptions], "Execution mode: ");
-	switch (BIOS_Settings.executionmode) //What debug mode is active?
+	switch (BIOS_Settings.executionmode) //What execution mode is active?
 	{
 	case EXECUTIONMODE_NONE:
 		strcat(menuoptions[advancedoptions++], "Normal operations"); //Set filename from options!

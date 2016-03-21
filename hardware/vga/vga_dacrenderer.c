@@ -71,14 +71,16 @@ byte DAC_BWColor(byte use) //What B/W color to use?
 }
 
 byte BWconversion_ready = 0; //Are we to initialise our tables?
-word BWconversion[0x10000]; //Conversion table for b/w totals!
-word BWconversion_brown[0x10000]; //Brown channel conversion!
+uint_32 BWconversion_white[0x10000]; //Conversion table for b/w totals(white)!
+uint_32 BWconversion_green[0x10000]; //Green channel conversion!
+uint_32 BWconversion_amber[0x10000]; //Amber channel conversion!
 
 void VGA_initBWConversion()
 {
 	if (BWconversion_ready) return; //Abort when already ready!
 	BWconversion_ready = 1; //We're ready after this!
-	const float brown_red = ((float)0xAA / (float)255); //Red part!
+	const float amber_red = ((float)0xB9 / (float)255); //Red part!
+	const float amber_green = ((float)0x80 / (float)255); //Green part!
 	register word a,b; //16-bit!
 	register uint_32 n; //32-bit!
 	for (n=0;n<0x10000;n++) //Process all possible values!
@@ -94,31 +96,29 @@ void VGA_initBWConversion()
 		b >>= 2;
 		a += b;
 		//Now store the results for greyscale and brown!
-		BWconversion[n] = a;
-		BWconversion_brown[n] = (byte)(((float)a)*brown_red); //Apply basic color: Create yellow tint (R/G)!
+		BWconversion_white[n] = RGB(a,a,a); //Normal 0-255 scale for White and Green monochrome!
+		BWconversion_green[n] = RGB(0,a,0); //Normal 0-255 scale for White and Green monochrome!
+		BWconversion_amber[n] = RGB((byte)(((float)a)*amber_red), (byte)(((float)a)*amber_green), 0); //Apply basic color: Create RGB in amber!
 	}
 }
 
 OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
 {
-	register word a, b; //Our registers we use!
+	register word a; //Our registers we use!
 	a = GETR(color); //Load Red channel!
 	a += GETG(color); //Load Green channel!
 	a += GETB(color); //Load Blue channel!
 	
 	switch (DAC_whatBWColor) //What color scheme?
 	{
-	case BWMONITOR_BLACK: //Back/white?
-		a = BWconversion[a]; //Translate using our lookup table into a 8-bit value!
-		return RGB(a, a, a); //RGB Greyscale!
+	case BWMONITOR_WHITE: //Black/white?
+		return BWconversion_white[a]; //RGB Greyscale!
 	case BWMONITOR_GREEN: //Green?
-		a = BWconversion[a]; //Translate using our lookup table into a 8-bit value!
-		return RGB(0, a, 0); //Green scheme!
-	case BWMONITOR_BROWN: //Brown?
-		b = a = BWconversion_brown[a]; //Translate using our lookup table into a 8-bit value for red&green!
-		b >>= 1; //Green is halved to create brown
-		return RGB(a, b, 0); //Brown scheme!
-	default:
+		return BWconversion_green[a]; //RGB Green monitor!
+	case BWMONITOR_AMBER: //Brown?
+		return BWconversion_amber[a]; //RGB Amber monitor!
+	default: //Unknown scheme?
+		return color; //Can't convert due to an invalid scheme: take the original color!
 		break; //Use default!
 	}
 	return color; //Can't convert: take the original color!

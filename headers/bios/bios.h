@@ -104,9 +104,9 @@ typedef struct PACKED
 //B/W monitor setting:
 //Color mode
 #define BWMONITOR_NONE 0
-#define BWMONITOR_BLACK 1
+#define BWMONITOR_WHITE 1
 #define BWMONITOR_GREEN 2
-#define BWMONITOR_BROWN 3
+#define BWMONITOR_AMBER 3
 
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!

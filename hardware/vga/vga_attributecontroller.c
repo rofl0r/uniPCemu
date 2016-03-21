@@ -61,7 +61,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 		}
 		colorselect76 = VGA->precalcs.colorselect76; //Retrieve pallete bits 7-6!
 	}
-	backgroundfilter = monomode?0x7:((~(enableblink<<3))&0xF); //Background filter depends on blink & full background when not in monochrome mode!
+	backgroundfilter = ((~(enableblink<<3))&0xF); //Background filter depends on blink & full background when not in monochrome mode!
 
 	byte colorplanes;
 	colorplanes = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA; //Read colorplane 256-color!
@@ -80,7 +80,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 				{
 					fontstatus = pixelon; //What font status? By default this is the font/back status!
 
-					//Underline&Off capability!
+					//Underline(text mode)&Off capability!
 					if (monomode) //Only in mono mode do we have underline capability and other stuff!
 					{
 						if (textmode) //This is active in text mode only!
@@ -119,7 +119,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						CurrentDAC = getattributeback(textmode,(byte)Attribute,backgroundfilter); //Back!
 					}
 
-					CurrentDAC &= colorplanes; //Apply color planes!
+					CurrentDAC &= colorplanes; //Apply color planes(4-bits)!
 
 					if (palletteenable) //Internal palette enable?
 					{
