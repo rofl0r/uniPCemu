@@ -3364,18 +3364,20 @@ void BIOS_VGANMISetting()
 	GPU_EMU_printscreen(0,4,"VGA NMI: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 2; //Ammount of Direct modes!
+	numlist = 3; //Ammount of NMI modes!
 	for (i=0; i<3; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0],"Disabled"); //Set filename from options!
 	strcpy(itemlist[1],"Enabled"); //Set filename from options!
+	strcpy(itemlist[2],"Precursor compatibility mode"); //Special CGA compatibility mode!
 	int current = 0;
 	switch (BIOS_Settings.VGA_NMIonPrecursors) //What setting?
 	{
 	case 0: //Valid
 	case 1: //Valid
+	case 2: //Valid
 		current = BIOS_Settings.VGA_NMIonPrecursors; //Valid: use!
 		break;
 	default: //Invalid
@@ -3398,6 +3400,7 @@ void BIOS_VGANMISetting()
 
 	case 0:
 	case 1:
+	case 2:
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
@@ -3494,6 +3497,9 @@ setVGANMItext: //For fixing it!
 		break;
 	case 1:
 		strcat(menuoptions[advancedoptions++], "Enabled");
+		break;
+	case 2:
+		strcat(menuoptions[advancedoptions++], "Precursor compatibility mode");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.VGA_NMIonPrecursors = 0; //Reset/Fix!

@@ -30,9 +30,9 @@ word signal_x, signal_scanline; //Signal location!
 extern GPU_type GPU; //GPU!
 
 float VGA_clocks[4] = {
-			25175000.0f, //25MHz
-			28322000.0f, //28MHz
-			0.0f, //Unused
+			25175000.0f, //25MHz: VGA standard clock
+			28322000.0f, //28MHz: VGA standard clock
+			0.0f, //external clock: not connected!
 			0.0f //Unused
 			}; //Our clocks!
 
@@ -44,6 +44,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 	{
 		return 0.0f; //Remove VGA Scanline counter: nothing to render!
 	}
+	if (VGA->registers->specialCGAflags&1) return 15750000.0f; //Special CGA compatibility mode: change our refresh speed to match it!
 	return VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3)];
 }
 

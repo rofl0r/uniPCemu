@@ -612,6 +612,11 @@ typedef struct PACKED
 	byte lightpen_high; //Lightpen high register!
 	byte lightpen_low; //Lightpen low register!
 	byte switches; //The switches for the EGA/VGA!
+	//CGA/MDA compatibility registers, when enabled!
+	byte Compatibility_MDAModeControl;
+	byte Compatibility_CGAModeControl;
+	byte Compatibility_CGAPaletteRegister;
+	byte specialCGAflags; //Special flags concerning CGA/MDA emulation!
 } VGA_REGISTERS;
 #include "headers/endpacked.h" //We're packed!
 
