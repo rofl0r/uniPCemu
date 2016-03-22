@@ -403,6 +403,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3B8: //MDA Mode Control Register
 		if (NMIPrecursors==2) //Not NMI used on MDA-specific registers being called? Modify our clock to CGA-speeds for compatibility!
 		{
+			getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 			*result = getActiveVGA()->registers->Compatibility_MDAModeControl; //Set the MDA Mode Control Register!
 			ok = 1; //OK!
 		}
