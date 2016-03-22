@@ -239,10 +239,15 @@ void applyCGAPaletteRegister()
 
 void applyCGAModeControl()
 {
-	getActiveVGA()->registers->specialCGAflags |= 2; //Enable scan doubling by CGA compatibility!
-	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|9); //We're updated!
-	getActiveVGA()->registers->specialCGAflags |= 1; //Enable CGA mode for following calls to us!
-	
+	if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x8) //Video enabled on the CGA?
+	{
+		getActiveVGA()->registers->specialCGAflags |= 3; //Enable scan doubling and CGA mode for CGA compatibility!
+		//Don't do anything more: this is already handled by the automatic update!
+	}
+	else
+	{
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
+	}
 }
 
 void applyMDAModeControl()
@@ -358,27 +363,24 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	
 	//Precursors compatibility
 	case 0x3D8: //CGA mode control register
-		if (NMIPrecursors==2) //Not NMI used on CGA-specific registers being called? Modify our clock to CGA-speeds for compatibility!
+		if ((NMIPrecursors==2) && (getActiveVGA()->registers->specialCGAflags&1)) //Not NMI used on CGA-specific registers being called? Modify our clock to CGA-speeds for compatibility!
 		{
-			applyCGAModeControl();
 			*result = getActiveVGA()->registers->Compatibility_CGAModeControl; //Set the MDA Mode Control Register!
 			ok = 1; //OK!
 		}
 		else if (NMIPrecursors) ok = !execNMI(0); //Execute an NMI from Bus!
 		break;
 	case 0x3D9: //CGA palette register
-		if (NMIPrecursors==2) //Not NMI used on CGA-specific registers being called? Modify our clock to CGA-speeds for compatibility!
+		if ((NMIPrecursors==2) && (getActiveVGA()->registers->specialCGAflags&1)) //Not NMI used on CGA-specific registers being called? Modify our clock to CGA-speeds for compatibility!
 		{
-			applyCGAPaletteRegister();
 			*result = getActiveVGA()->registers->Compatibility_CGAPaletteRegister; //Set the MDA Mode Control Register!
 			ok = 1; //OK!
 		}
-		else if (NMIPrecursors) ok = !execNMI(0); //Execute an NMI from Bus!
+		else if (NMIPrecursors==1) ok = !execNMI(0); //Execute an NMI from Bus!
 		break;
 	case 0x3B8: //MDA Mode Control Register
 		if (NMIPrecursors==2) //Not NMI used on MDA-specific registers being called? Modify our clock to CGA-speeds for compatibility!
 		{
-			applyMDAModeControl();
 			*result = getActiveVGA()->registers->Compatibility_MDAModeControl; //Set the MDA Mode Control Register!
 			ok = 1; //OK!
 		}
@@ -392,7 +394,6 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 
 byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 {
-	byte CGAflagsbackup;
 	if (!getActiveVGA()) //No active VGA?
 	{
 		return 0;
@@ -422,7 +423,6 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3D5: //CRTC Controller Data Register		DATA
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accesscrtvalue:
-		CGAflagsbackup = getActiveVGA()->registers->specialCGAflags; //Check for updating!
 		if (getActiveVGA()->registers->specialCGAflags&1) //Special CGA flag set?
 		{
 			if (getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.Protect) //Are we protected?
@@ -459,10 +459,6 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 				getActiveVGA()->registers->specialCGAflags = 0; //Disable single line frame buffer and CGA mode!
 			}
 		}
-		if (getActiveVGA()->registers->specialCGAflags!=CGAflagsbackup) //CGA flags updated?
-		{
-			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL_SECTION|WHEREUPDATED_CRTCONTROLLER); //We have been updated! Update the whole section, as we don't know anything about the exact registers affected by the special action!
-		}
 		ok = 1;
 		break;
 	case 0x3BA: //Write: Feature Control Register (mono)		DATA
@@ -477,6 +473,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		ok = 1;
 		break;
 	case 0x3C0: //Attribute Address/Data register		ADDRESS/DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable full CGA mode!
 		PORT_write_ATTR_3C0(value); //Write to 3C0!
 		ok = 1;
 		break;
@@ -583,8 +580,15 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		else if (NMIPrecursors) ok = !execNMI(0); //Execute an NMI from Bus!
 		break;
 	default: //Unknown?
+		goto finishoutput; //Unknown port! Ignore our call!
 		break; //Not used!
 	}
-	finishoutput: //Finisher?
+	//Extra universal handling!
+	if (getActiveVGA()->registers->specialCGAflags!=getActiveVGA()->precalcs.LastCGAFlags) //CGA flags updated?
+	{
+		getActiveVGA()->precalcs.LastCGAFlags = getActiveVGA()->registers->specialCGAflags; //Update the last value used!
+		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL_SECTION|WHEREUPDATED_CRTCONTROLLER); //We have been updated! Update the whole section, as we don't know anything about the exact registers affected by the special action!
+	}
+	finishoutput: //Finishing up our call?
 	return ok; //Give if we're handled!
 }
