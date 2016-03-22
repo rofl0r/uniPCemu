@@ -157,6 +157,10 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 		}
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|index); //We have been updated!
 	}
+	if (index>=0xD3) //Invalid CGA?
+	{
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
+	}
 }
 
 //ATTRIBUTE CONTROLLER
@@ -239,7 +243,7 @@ void applyCGAPaletteRegister()
 
 void applyCGAModeControl()
 {
-	if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x8) //Video enabled on the CGA?
+	if (!(getActiveVGA()->registers->Compatibility_CGAModeControl&0xC0)) //Valid for the CGA? High bits shouldn't be filled to make sense!
 	{
 		getActiveVGA()->registers->specialCGAflags |= 3; //Enable scan doubling and CGA mode for CGA compatibility!
 		//Don't do anything more: this is already handled by the automatic update!
@@ -253,6 +257,7 @@ void applyCGAModeControl()
 void applyMDAModeControl()
 {
 	//Apply the new MDA mode control register?
+	getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 }
 
 /*
@@ -274,6 +279,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3B2:
 	case 0x3B6: //Decodes to 3B4!
 		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		goto readcrtaddress;
 	case 0x3D4: //CRTC Controller Address Register		ADDRESS
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
@@ -286,6 +292,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3B7: //Decodes to 3B5!
 	case 0x3B5: //CRTC Controller Data Register		DATA
 		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		goto readcrtvalue;
 	case 0x3D5: //CRTC Controller Data Register		DATA
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
@@ -294,67 +301,82 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		ok = 1;
 		break;
 	case 0x3C0: //Attribute Address/Data register		ADDRESS/DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		//Do nothing: write only port! Undefined!
 		*result = (VGA_3C0_PAL<<5)|VGA_3C0_INDEX; //Give the saved information!
 		ok = 1;
 		break;
 	case 0x3C1: //Attribute Data Read Register		DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		if (VGA_3C0_INDEX>=sizeof(getActiveVGA()->registers->AttributeControllerRegisters.DATA)) break; //Out of range!
 		*result = getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEX]; //Read from current index!
 		ok = 1;
 		break;
 	case 0x3C2: //Read: Input Status #0 Register		DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER.SwitchSense = (((~getActiveVGA()->registers->switches)>>(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3))&1); //Depends on the switches. This is the reverse of the actual switches used! Originally stuck to 1s, but reported as 0110!
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER.DATA; //Give the register!
 		ok = 1;
 		break;
 	case 0x3C3: //Video subsystem enable?
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		*result = getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable; //RAM enabled?
 		ok = 1;
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		*result = getActiveVGA()->registers->SequencerRegisters_Index; //Give the index!
 		ok = 1;
 		break;
 	case 0x3C5: //Sequencer Data Register			DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		if (getActiveVGA()->registers->SequencerRegisters_Index>=sizeof(getActiveVGA()->registers->SequencerRegisters.DATA)) break; //Out of range!
 		*result = getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index]; //Give the data!
 		ok = 1;
 		break;
 	case 0x3C6: //DAC Mask Register?
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		*result = getActiveVGA()->registers->DACMaskRegister; //Give!
 		ok = 1;
 		break;
 	case 0x3C7: //Read: DAC State Register			DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		*result = getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER.DATA; //Give!
 		ok = 1;
 		break;
 	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		*result = getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Give!
 		ok = 1;
 		break;
 	case 0x3C9: //DAC Data Register				DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		*result = PORT_read_DAC_3C9(); //Read port 3C9!
 		ok = 1;
 		break;
 	case 0x3CA: //Read: Feature Control Register		DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA; //Give!
 		ok = 1;
 		break;
 	case 0x3CC: //Read: Miscellaneous Output Register	DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		*result = getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA; //Give!
 		ok = 1;
 		break;
 	case 0x3CE: //Graphics Controller Address Register	ADDRESS
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		*result = getActiveVGA()->registers->GraphicsRegisters_Index; //Give!
 		ok = 1;
 		break;
 	case 0x3CF: //Graphics Controller Data Register		DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		if (getActiveVGA()->registers->GraphicsRegisters_Index>=sizeof(getActiveVGA()->registers->GraphicsRegisters.DATA)) break; //Out of range!
 		*result = getActiveVGA()->registers->GraphicsRegisters.DATA[getActiveVGA()->registers->GraphicsRegisters_Index]; //Give!
 		ok = 1;
 		break;
 	case 0x3BA:	//Read: Input Status #1 Register (mono)	DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 	case 0x3DA: //Input Status #1 Register (color)	DATA
 		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.DataState = 0; //Reset flipflop for 3C0!
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
@@ -406,6 +428,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3B6: //Decodes to 3B4!
 	case 0x3B4: //CRTC Controller Address Register		ADDRESS
 		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		goto accesscrtaddress;
 	case 0x3D4: //CRTC Controller Address Register		ADDRESS
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
@@ -419,6 +442,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3B7: //Decodes to 3B5!
 	case 0x3B5: //CRTC Controller Data Register		DATA
 		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		goto accesscrtvalue;
 	case 0x3D5: //CRTC Controller Data Register		DATA
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
@@ -463,8 +487,10 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break;
 	case 0x3BA: //Write: Feature Control Register (mono)		DATA
 		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		goto accessfc;
 	case 0x3CA: //Same as above!
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 	case 0x3DA: //Same!
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accessfc: //Allow!
@@ -482,20 +508,24 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break;*/
 	case 0x3C2: //Write: Miscellaneous Output Register	DATA
 	case 0x3CC: //Same as above!
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		PORT_write_MISC_3C2(value); //Write to 3C2!
 		ok = 1;
 		break;
 	case 0x3C3: //Video subsystem enable
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		value &= 1; //Only 1 bit!
 		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = value; //Enable RAM?
 		ok = 1;
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		getActiveVGA()->registers->SequencerRegisters_Index = value; //Set!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_SEQUENCER); //Updated index!
 		ok = 1;
 		break;
 	case 0x3C5: //Sequencer Data Register			DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		//lockVGA();
 		if (getActiveVGA()->registers->SequencerRegisters_Index>7) break; //Invalid data!
 		if (getActiveVGA()->registers->SequencerRegisters_Index==7) //Disable display till write to sequencer registers 0-6?
@@ -517,11 +547,13 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		ok = 1;
 		break;
 	case 0x3C6: //DAC Mask Register?
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		getActiveVGA()->registers->DACMaskRegister = value; //Set!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We have been updated!				
 		ok = 1;
 		break;
 	case 0x3C7: //Write: DAC Address Read Mode Register	ADDRESS
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER = value; //Set!
 		getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER.DACState = 0; //Prepared for reads!
 		getActiveVGA()->registers->current_3C9 = 0; //Reset!
@@ -529,6 +561,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		ok = 1;
 		break;
 	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = value; //Set index!
 		getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER.DACState = 3; //Prepared for writes!
 		getActiveVGA()->registers->current_3C9 = 0; //Reset!
@@ -536,15 +569,18 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		ok = 1;
 		break;
 	case 0x3C9: //DAC Data Register				DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		PORT_write_DAC_3C9(value); //Write to 3C9!
 		ok = 1;
 		break;
 	case 0x3CE: //Graphics Controller Address Register	ADDRESS
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		getActiveVGA()->registers->GraphicsRegisters_Index = value; //Set index!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_GRAPHICSCONTROLLER); //Updated index!
 		ok = 1;
 		break;
 	case 0x3CF: //Graphics Controller Data Register		DATA
+		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 		if (getActiveVGA()->registers->GraphicsRegisters_Index>=sizeof(getActiveVGA()->registers->GraphicsRegisters.DATA)) break; //Invalid index!
 		getActiveVGA()->registers->GraphicsRegisters.DATA[getActiveVGA()->registers->GraphicsRegisters_Index] = value; //Set!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_GRAPHICSCONTROLLER|getActiveVGA()->registers->GraphicsRegisters_Index); //We have been updated!				
@@ -573,6 +609,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3B8: //MDA Mode Control Register
 		if (NMIPrecursors==2) //Not NMI used on MDA-specific registers being called? Modify our clock to CGA-speeds for compatibility!
 		{
+			getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
 			getActiveVGA()->registers->Compatibility_MDAModeControl = value; //Set the MDA Mode Control Register!
 			ok = 1; //OK!
 			applyMDAModeControl();
