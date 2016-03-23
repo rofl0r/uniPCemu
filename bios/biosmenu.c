@@ -3364,7 +3364,7 @@ void BIOS_VGANMISetting()
 	GPU_EMU_printscreen(0,4,"VGA NMI: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 3; //Ammount of NMI modes!
+	numlist = 2; //Ammount of NMI modes! Only use two modes, as the precursor compatibility mode(CGA) isn't finished yet!
 	for (i=0; i<3; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
