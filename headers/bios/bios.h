@@ -51,7 +51,7 @@ typedef struct PACKED
 	byte got_CMOS; //Gotten an CMOS?
 
 	byte executionmode; //What mode to execute in during runtime?
-	byte VGA_NMIonPrecursors; //Enable VGA NMI on precursors?
+	byte VGA_Mode; //Enable VGA NMI on precursors?
 	byte PS2Mouse; //What mouse to use when using? 1=PS/2 mouse, 0=Serial mouse
 	uint_32 CPUSpeed;
 	float SoundSource_Volume; //The sound source volume knob!

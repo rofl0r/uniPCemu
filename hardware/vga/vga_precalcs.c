@@ -510,7 +510,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x13))) //Updated?
 		{
 			word rowsize;
-			if ((VGA->registers->specialCGAflags&0xC)==0xC) //Ignore the row size?
+			if ((VGA->registers->specialCGAflags&0xD)==0xD) //Ignore the row size?
 			{
 				rowsize = 0; //Ignore us!
 			}
@@ -591,7 +591,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //Updated?
 		{
 			//lockVGA(); //We don't want to corrupt the renderer's data!
-			VGA->precalcs.scandoubling = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.ScanDoubling | ((VGA->registers->specialCGAflags&2)>>1); //Scan doubling enabled?
+			VGA->precalcs.scandoubling = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.ScanDoubling | (((VGA->registers->specialCGAflags&2)>>1)&(VGA->registers->specialCGAflags&1)); //Scan doubling enabled?
 			//dolog("VGA","VTotal after SD: %i",VGA->precalcs.verticaltotal); //Log it!
 			//unlockVGA(); //We're finished with the VGA!
 		}

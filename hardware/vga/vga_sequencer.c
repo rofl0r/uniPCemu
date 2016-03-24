@@ -219,6 +219,7 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->yres = 0; //Reset Y resolution next frame if not specified (like a real screen)!
 	Sequencer->xres = 0; //Reset X resolution next frame if not specified (like a real screen)!
 	
+	VGA_Sequencer_calcScanlineData(VGA);
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 }
 

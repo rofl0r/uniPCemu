@@ -119,6 +119,7 @@ typedef struct //Contains the precalculated values!
 	byte ClockingModeRegister_DCR; //Dot Clock Rate!
 	byte LastMiscOutputRegister; //Last value written to the Misc Output Register!
 	byte LastCGAFlags; //Last used CGA flags!
+	byte LastMDAFlags; //Last used MDA flags!
 } VGA_PRECALCS; //VGA pre-calculations!
 
 void VGA_calcprecalcs(void *VGA, uint_32 whereupdated); //Calculate them!

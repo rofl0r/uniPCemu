@@ -367,7 +367,40 @@ void EMU_update_VGA_Settings() //Update the VGA settings!
 	{
 		DAC_BWColor(BIOS_Settings.bwmonitor); //Set the color to use!
 	}
-	setVGA_NMIonPrecursors(BIOS_Settings.VGA_NMIonPrecursors); //Set NMI on precursors!
+	switch (BIOS_Settings.VGA_Mode) //What precursor compatibility mode?
+	{
+		default: //Pure VGA?
+		case 0: //Pure VGA?
+			setVGA_NMIonPrecursors(0); //No NMI on precursors!
+			setVGA_CGA(0); //No CGA!
+			setVGA_MDA(0); //No MDA!
+			break;
+		case 1: //VGA with NMI?
+			setVGA_NMIonPrecursors(BIOS_Settings.VGA_Mode); //Set NMI on precursors!
+			setVGA_CGA(0); //No CGA!
+			setVGA_MDA(0); //No MDA!
+			break;
+		case 2: //VGA with CGA?
+			setVGA_NMIonPrecursors(0); //Disable NMI on precursors!
+			setVGA_CGA(2); //CGA enabled with VGA!
+			setVGA_MDA(0); //No MDA!
+			break;
+		case 3: //VGA with MDA?
+			setVGA_NMIonPrecursors(0); //Disable NMI on precursors!
+			setVGA_CGA(0); //No CGA!
+			setVGA_MDA(2); //MDA enabled with VGA!
+			break;
+		case 4: //Pure CGA?
+			setVGA_NMIonPrecursors(0); //Disable NMI on precursors!
+			setVGA_CGA(1); //Pure CGA!
+			setVGA_MDA(0); //No MDA!
+			break;
+		case 5: //Pure MDA?
+			setVGA_NMIonPrecursors(0); //Disable NMI on precursors!
+			setVGA_CGA(0); //No CGA!
+			setVGA_MDA(1); //Pure MDA!
+			break;
+	}
 	setVGASpeed(BIOS_Settings.VGASynchronization); //Apply VGA synchronization setting!
 	if (getActiveVGA()) //Gotten an active VGA?
 	{
