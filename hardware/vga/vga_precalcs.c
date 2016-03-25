@@ -57,10 +57,29 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 		//Determine some extra information!
 		extrastatus = 0; //Initialise extra horizontal status!
 		
-		if (++pixelrate>VGA->precalcs.ClockingModeRegister_DCR || (VGA->registers->specialCGAflags&1)) //To write back the pixel clock every or every other pixel(forced every clock in CGA mode)?
+		if (VGA->registers->specialCGAflags&1) //Affect by 620x200/320x200 mode?
 		{
-			extrastatus |= 1; //Reset for the new block/next pixel!
-			pixelrate = 0; //Reset!
+			++pixelrate;
+			if (VGA->registers->Compatibility_CGAModeControl&0x10) //640x200?
+			{
+				extrastatus |= 1; //Reset for the new block/next pixel!
+			}
+			else //320x200?
+			{
+				if (pixelrate>1) //Increase by 2!
+				{
+					extrastatus |= 1; //Reset for the new block/next pixel!					
+					pixelrate = 0; //Reset every 2!
+				}
+			}
+		}
+		else //Normal VGA?
+		{
+			if (++pixelrate>VGA->precalcs.ClockingModeRegister_DCR) //To write back the pixel clock every or every other pixel(forced every clock in CGA mode)?
+			{
+				extrastatus |= 1; //Reset for the new block/next pixel!
+				pixelrate = 0; //Reset!
+			}
 		}
 		VGA->CRTC.extrahorizontalstatus[current] = extrastatus; //Extra status to apply!
 
