@@ -317,13 +317,23 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3B1:
 	case 0x3B3:
 	case 0x3B7: //Decodes to 3B5!
-	case 0x3B5: //CRTC Controller Data Register		DATA
+	case 0x3B5: //CRTC Controller Data Register		5DATA
 		if (((getActiveVGA()->registers->specialCGAflags&0x81)==1) || ((getActiveVGA()->registers->specialMDAflags&0x81)==1)) goto finishinput; //CGA doesn't have VGA registers!
 		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
 		goto readcrtvalue;
 	case 0x3D5: //CRTC Controller Data Register		DATA
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
 		readcrtvalue:
+		if (((getActiveVGA()->registers->specialCGAflags&0x81)==1) || ((getActiveVGA()->registers->specialMDAflags&0x81)==1)) //Special CGA flag set?
+		{
+			if (getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.Protect) //Are we protected?
+			{
+				if (getActiveVGA()->registers->CRTControllerRegisters_Index>=18) goto finishinput; //Invalid register, just handle normally!
+				*result = getActiveVGA()->registers->CGARegisters[getActiveVGA()->registers->CRTControllerRegisters_Index]; //Give the CGA register!
+				ok = 1;
+				goto finishinput; //Finish us! Don't use the VGA registers!
+			}
+		}
 		*result = PORT_readCRTC_3B5(); //Read port 3B5!
 		ok = 1;
 		break;
@@ -512,18 +522,18 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 					{
 					case 0:
 					case 2: //Normal Sync mode(Non-interlace)? All memory addresses are from low RAM upwards!
-						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP13 = 0; //Direct mapping!
-						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP14 = 0; //Direct mapping!
+						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 0; //Direct mapping!
+						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 0; //Direct mapping!
 						break;
 					case 1: //Interlace Sync Mode(Low/High RAM doubling row(0 low, 0 high, 1 low, 1 high etc.))
-						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP13 = 1; //Normal mapping!
-						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP14 = 1; //Normal mapping!
-						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.AW = 1; //Odd scanlines are counting divided by 2!
+						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //Normal mapping!
+						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //Normal mapping!
+						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //Odd scanlines are counting divided by 2!
 						break;
 					case 3: //11=Interlace Sync & Video Mode(0 low, 1 high, 2 low, 3 high etc.)
-						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP13 = 1; //Normal mapping!
-						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP14 = 1; //Normal mapping!
-						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.AW = 0; //Odd scanlines are counting up in lines!
+						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //Normal mapping!
+						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //Normal mapping!
+						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 0; //Odd scanlines are counting up in lines!
 						break;
 					}
 					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x17); //CRT Mode Control Register has been updated!

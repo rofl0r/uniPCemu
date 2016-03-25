@@ -73,7 +73,7 @@ OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display
 {
 	uint_32 i;
 	if (CGALineSize>1024) CGALineSize = 1024; //Limit to what we have available!
-	if (VGA->registers->Compatibility_CGAModeControlRegister&0x2) //Monochrome CGA mode?
+	if (VGA->registers->Compatibility_CGAModeControl&0x2) //Monochrome CGA mode?
 	{
 		for (i=0;i<CGALineSize;i++)
 			drawPixel_real(VGA,CGALineBuffer[i]?getemucol16(0xF):getemucol16(0x0),i,VGA->CRTC.y);//As a placeholder, just use the standard 2 color B/W for now!
