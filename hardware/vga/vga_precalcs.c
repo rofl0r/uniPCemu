@@ -57,9 +57,9 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 		//Determine some extra information!
 		extrastatus = 0; //Initialise extra horizontal status!
 		
-		if (++pixelrate>VGA->precalcs.ClockingModeRegister_DCR) //To write back the pixel clock every or every other pixel?
+		if (++pixelrate>VGA->precalcs.ClockingModeRegister_DCR || (VGA->registers->specialCGAflags&1)) //To write back the pixel clock every or every other pixel(forced every clock in CGA mode)?
 		{
-			extrastatus |= 1; //Reset for the new block!
+			extrastatus |= 1; //Reset for the new block/next pixel!
 			pixelrate = 0; //Reset!
 		}
 		VGA->CRTC.extrahorizontalstatus[current] = extrastatus; //Extra status to apply!
@@ -220,8 +220,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		//lockVGA(); //We don't want to corrupt the renderer's data!
 		//dolog("VGA","VTotal before charwidth: %i",VGA->precalcs.verticaltotal);
-		if (VGA->precalcs.characterwidth != VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9) adjustVGASpeed(); //Auto-adjust our VGA speed!
-		VGA->precalcs.characterwidth = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9; //Character width!
+		//CGA forces character width to 8 wide!
+		if (VGA->precalcs.characterwidth != (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8&((~VGA->registers->specialCGAflags)&1))?8:9) adjustVGASpeed(); //Auto-adjust our VGA speed!
+		VGA->precalcs.characterwidth = (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8&((~VGA->registers->specialCGAflags)&1))?8:9; //Character width!
 		if (VGA->precalcs.ClockingModeRegister_DCR != VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.ClockingModeRegister_DCR = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Dot Clock Rate!
 		updateCRTC = 1; //We need to update the CRTC!

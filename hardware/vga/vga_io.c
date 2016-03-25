@@ -478,19 +478,19 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		{
 			if (getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.Protect) //Are we protected?
 			{
-				if (getActiveVGA()->registers->CRTControllerRegisters_Index==8) //Special CGA compatibilty action? Interlace mode register!
+				if (getActiveVGA()->registers->CRTControllerRegisters_Index>=18) goto writeCGACRT; //Invalid register, just handle normally!
+				getActiveVGA()->registers->CGARegisters[getActiveVGA()->registers->CRTControllerRegisters_Index] = value; //Set the CGA register!
+				switch (getActiveVGA()->registers->CRTControllerRegisters_Index) //Check address registers to translate from the CGA!
 				{
-					if (value==2) //Single line frame buffer emulation possible?
-					{
-						getActiveVGA()->registers->specialCGAflags |= 4; //Enable single line interlace buffer!
-					}
-					else
-					{
-						getActiveVGA()->registers->specialCGAflags &= ~4; //Disable single line interlace buffer!
-					}
-				}
-				else if (getActiveVGA()->registers->CRTControllerRegisters_Index==4)  //Special CGA compatibilty action? Vertical total register?
-				{
+				case 0x0: //HTotal?
+					break;
+				case 0x1: //H Displayed?
+					break;
+				case 0x2: //H Sync Position?
+					break;
+				case 0x3: //H Sync Width?
+					break;
+				case 0x4:  //Special CGA compatibilty action? Vertical total register?
 					if (value==1) //Single line frame buffer?
 					{
 						getActiveVGA()->registers->specialCGAflags |= 8; //Enable single line frame buffer!
@@ -499,10 +499,57 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 					{
 						getActiveVGA()->registers->specialCGAflags &= ~8; //Disable single line frame buffer!
 					}
+					break;
+				case 0x5: //V Total Adjust?
+					break;
+				case 0x6: //V Displayed?
+					break;
+				case 0x7: //V Sync Position?
+					break;
+				case 0x8: //Interlace mode register?
+					//00&10=Normal Sync Mode(Non-interlace), 01=Interlace Sync Mode(Low/High RAM doubling row(0 low, 0 high, 1 low, 1 high etc.)), 11=Interlace Sync & Video Mode(0 low, 1 high, 2 low, 3 high etc.)
+					switch (value&3) //What sync setting?
+					{
+					case 0:
+					case 2: //Normal Sync mode(Non-interlace)? All memory addresses are from low RAM upwards!
+						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP13 = 0; //Direct mapping!
+						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP14 = 0; //Direct mapping!
+						break;
+					case 1: //Interlace Sync Mode(Low/High RAM doubling row(0 low, 0 high, 1 low, 1 high etc.))
+						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP13 = 1; //Normal mapping!
+						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP14 = 1; //Normal mapping!
+						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.AW = 1; //Odd scanlines are counting divided by 2!
+						break;
+					case 3: //11=Interlace Sync & Video Mode(0 low, 1 high, 2 low, 3 high etc.)
+						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP13 = 1; //Normal mapping!
+						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.MAP14 = 1; //Normal mapping!
+						getActiveVGA()->registers->CRTControllerRegisters->CRTModeControlRegister.AW = 0; //Odd scanlines are counting up in lines!
+						break;
+					}
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x17); //CRT Mode Control Register has been updated!
+					break;
+				case 0x9: //Max scan line address?
+					break;
+				case 0xA: //Cursor Start?
+					//Bit 6&5: 00=Non-blink(ON), 01=Non-Display(OFF), 10=Blink 1/16 field rate, 11=Blink 1/32 field rate!
+					break;
+				case 0xB: //Cursor End?
+				case 0xC: //Start address(H)?
+				case 0xD: //Start address(L)?
+				case 0xE: //Cursor(H)?
+				case 0xF: //Cursor(L)?
+				case 0x10: //Light Pen(H)?
+				case 0x11: //Light Pen(L)?
+					break; //Not handled yet!
+				default:
+					break;
 				}
+				goto skipVGACRT; //Don't apply the VGA CRT normally!
 			}
 		}
+		writeCGACRT:
 		PORT_write_CRTC_3B5(value); //Write CRTC!
+		skipVGACRT: //Skip the CRT handling?
 		ok = 1;
 		break;
 	case 0x3BA: //Write: Feature Control Register (mono)		DATA
