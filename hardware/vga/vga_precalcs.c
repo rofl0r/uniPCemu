@@ -591,7 +591,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //Updated?
 		{
 			//lockVGA(); //We don't want to corrupt the renderer's data!
-			VGA->precalcs.scandoubling = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.ScanDoubling | (((VGA->registers->specialCGAflags&2)>>1)&(VGA->registers->specialCGAflags&1)); //Scan doubling enabled?
+			VGA->precalcs.scandoubling = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.ScanDoubling & (~(((VGA->registers->specialCGAflags&2)>>1)&(VGA->registers->specialCGAflags&1))); //Scan doubling enabled? CGA disables scanline doubling for compatibility.
 			//dolog("VGA","VTotal after SD: %i",VGA->precalcs.verticaltotal); //Log it!
 			//unlockVGA(); //We're finished with the VGA!
 		}
