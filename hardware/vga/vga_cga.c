@@ -1,4 +1,6 @@
 #include "headers/types.h" //Basic types!
+#include "headers/hardware/vga/vga.h" //Precalculation support for CRT timing!
+#include "headers/hardware/vga/vga_crtcontroller.h" //Our CRT timing we use!
 
 byte int10_font_08[256 * 8] =
 {
@@ -267,7 +269,7 @@ OPTINLINE static byte reverse8_CGA(register byte b) { //Reverses byte value bits
 	return b;
 }
 
-byte reversedinit = 1;
+byte CGA_reversedinit = 1;
 byte int10_font_08_reversed[256*8]; //Full font, reversed for optimized display!
 
 byte getcharxy_CGA(byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
@@ -290,13 +292,71 @@ byte getcharxy_CGA(byte character, byte x, byte y) //Retrieve a characters x,y p
 
 void fillCGAfont()
 {
-	if (reversedinit) //Need to initialise?
+	if (CGA_reversedinit) //Need to initialise?
 	{
 		word row;
-		for (row=0;row<sizeof(int10_font_08_reversed);i++)
+		for (row=0;row<sizeof(int10_font_08_reversed);row++)
 		{
 			int10_font_08_reversed[row] = reverse8_CGA(int10_font_08[row]);
 		}
-		reversedinit = 0; //Finished initialising!
+		CGA_reversedinit = 0; //Finished initialising!
 	}
+}
+
+word get_display_CGA_x(VGA_Type *VGA, word x)
+{
+	word result=0;
+	x >>= 3; //Divide by 8 to get the character clock!
+	if (x>=VGA->registers->CGARegisters[0]) //Are we the final clock?
+	{
+		result |= VGA_SIGNAL_HTOTAL; //Horizontal total and retrace!
+	}
+	else
+	{
+		result |= VGA_SIGNAL_HRETRACEEND; //We're ending horizontal retrace now!
+	}
+	if (x<VGA->registers->CGARegisters[1]) //Are we displayed?
+	{
+		result |= VGA_HACTIVEDISPLAY; //Horizontal displayed!
+	}
+	else //We're retrace period!
+	{
+		result |= VGA_SIGNAL_HRETRACESTART; //Horizontal retrace!
+	}
+	result |= VGA_OVERSCAN; //We're overscan by default!
+	return result; //Give the signal!
+}
+
+word get_display_CGA_y(VGA_Type *VGA, word y)
+{
+	word result=0;
+	word row;
+	row = y;
+	row /= (VGA->registers->CGARegisters[9]&0x1F)+1; //The row we're at!
+	if (y>=(VGA->registers->CGARegisters[4]&0x7F)) //Past maximum line?
+	{
+		//Display the line as usual!
+		if (y>=(VGA->registers->CGARegisters[4]&0x7F)+(VGA->registers->CGARegisters[5])) //Vertical total reaced?
+		{
+			result |= VGA_SIGNAL_VTOTAL|VGA_SIGNAL_VRETRACESTART; //End of display: start the next frame!
+		}
+		else
+		{
+			result |= VGA_SIGNAL_VRETRACESTART;
+		}
+	}
+	else //Active vertical scanline?
+	{
+		result |= VGA_SIGNAL_VRETRACEEND; //End vertical retrace!
+		if (row<(VGA->registers->CGARegisters[6]&0x7F))
+		{
+			result |= VGA_VACTIVEDISPLAY; //We're active display!
+			if ((row+1)==(VGA->registers->CGARegisters[6]&0x7F)) //Next is end of display?
+			{
+				result |= VGA_SIGNAL_VRETRACESTART; //Start retracing next!
+			}
+		}
+	}
+	result |= VGA_OVERSCAN; //We're overscan by default!
+	return result; //Give the signal!
 }

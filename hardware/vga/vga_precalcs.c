@@ -60,16 +60,34 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 		if (VGA->registers->specialCGAflags&1) //Affect by 620x200/320x200 mode?
 		{
 			++pixelrate;
-			if (VGA->registers->Compatibility_CGAModeControl&0x10) //640x200?
+			if (VGA->registers->Compatibility_CGAModeControl&0x2) //Graphics mode?
 			{
-				extrastatus |= 1; //Reset for the new block/next pixel!
-			}
-			else //320x200?
-			{
-				if (pixelrate>1) //Increase by 2!
+				if (VGA->registers->Compatibility_CGAModeControl&0x10) //640x200?
 				{
-					extrastatus |= 1; //Reset for the new block/next pixel!					
-					pixelrate = 0; //Reset every 2!
+					extrastatus |= 1; //Reset for the new block/next pixel!
+				}
+				else //320x200?
+				{
+					if (pixelrate>1) //Increase by 2!
+					{
+						extrastatus |= 1; //Reset for the new block/next pixel!					
+						pixelrate = 0; //Reset every 2!
+					}
+				}
+			}
+			else //Text mode?
+			{
+				if (VGA->registers->Compatibility_CGAModeControl&0x1) //640x200?
+				{
+					extrastatus |= 1; //Reset for the new block/next pixel!
+				}
+				else //320x200?
+				{
+					if (pixelrate>1) //Increase by 2!
+					{
+						extrastatus |= 1; //Reset for the new block/next pixel!					
+						pixelrate = 0; //Reset every 2!
+					}
 				}
 			}
 		}
@@ -274,6 +292,47 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//unlockVGA(); //We're finished with the VGA!
 		VerticalClocksUpdated = 1; //Update vertical clocks!
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
+	}
+
+	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL)) //CGA horizontal timing updated?
+	{
+		updateCRTC = 1; //Update the CRTC!
+	}
+
+	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_VERTICAL)) //CGA vertical timing updated?
+	{
+		updateCRTC = 1; //Update the CRTC!
+		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x9)) //Character height updated?
+		{
+			VGA->precalcs.characterheight = VGA->registers->CGARegisters[9]+1; //Character height is set!
+		}
+	}
+	
+	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER)) //CGA CRT misc. stuff updated?
+	{
+		//Don't handle these registers just yet!
+		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0x8)) //Interlace Register updated?
+		{
+			//00&10=Normal Sync Mode(Non-interlace), 01=Interlace Sync Mode(Low/High RAM doubling row(0 low, 0 high, 1 low, 1 high etc.)), 11=Interlace Sync & Video Mode(0 low, 1 high, 2 low, 3 high etc.)
+			switch (VGA->registers->CGARegisters[8]&3) //What sync setting?
+			{
+			case 0:
+			case 2: //Normal Sync mode(Non-interlace)? All memory addresses are from low RAM upwards!
+				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 0; //Direct mapping!
+				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 0; //Direct mapping!
+				break;
+			case 1: //Interlace Sync Mode(Low/High RAM doubling row(0 low, 0 high, 1 low, 1 high etc.))
+				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //Normal mapping!
+				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //Normal mapping!
+				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //Odd scanlines are counting divided by 2!
+				break;
+			case 3: //11=Interlace Sync & Video Mode(0 low, 1 high, 2 low, 3 high etc.)
+				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //Normal mapping!
+				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //Normal mapping!
+				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 0; //Odd scanlines are counting up in lines!
+				break;
+			}
+		}
 	}
 
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CRTCONTROLLER) || FullUpdate || charwidthupdated) //(some) CRT Controller values need to be updated?

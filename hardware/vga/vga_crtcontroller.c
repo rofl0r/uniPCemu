@@ -78,6 +78,7 @@ OPTINLINE word getVerticalTotal(VGA_Type *VGA)
 
 word get_display_y(VGA_Type *VGA, word scanline) //Vertical check!
 {
+	if (VGA->registers->specialCGAflags&1) return get_display_CGA_y(VGA,scanline); //Give CGA timing!
 	word signal;
 	signal = VGA_OVERSCAN; //Init to overscan!
 	if (scanline>=getVerticalTotal(VGA)) //VTotal?
@@ -116,6 +117,7 @@ word get_display_y(VGA_Type *VGA, word scanline) //Vertical check!
 
 word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 {
+	if (VGA->registers->specialCGAflags&1) return get_display_CGA_x(VGA,x); //Give CGA timing!
 	word signal;
 	signal = VGA_OVERSCAN; //Init to overscan!
 	word hchar = VGA->CRTC.charcolstatus[x<<1]; //What character?

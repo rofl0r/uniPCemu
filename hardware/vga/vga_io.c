@@ -493,63 +493,49 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 				switch (getActiveVGA()->registers->CRTControllerRegisters_Index) //Check address registers to translate from the CGA!
 				{
 				case 0x0: //HTotal?
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x00); //This CRT Register has been updated!
 					break;
 				case 0x1: //H Displayed?
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x01); //This CRT Register has been updated!
 					break;
 				case 0x2: //H Sync Position?
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x02); //This CRT Register has been updated!
 					break;
 				case 0x3: //H Sync Width?
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x03); //This CRT Register has been updated!
 					break;
 				case 0x4:  //Special CGA compatibilty action? Vertical total register?
-					if (value==1) //Single line frame buffer?
-					{
-						getActiveVGA()->registers->specialCGAflags |= 8; //Enable single line frame buffer!
-					}
-					else
-					{
-						getActiveVGA()->registers->specialCGAflags &= ~8; //Disable single line frame buffer!
-					}
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x04); //This CRT Register has been updated!
 					break;
 				case 0x5: //V Total Adjust?
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x05); //This CRT Register has been updated!
 					break;
 				case 0x6: //V Displayed?
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x06); //This CRT Register has been updated!
 					break;
 				case 0x7: //V Sync Position?
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x07); //This CRT Register has been updated!
 					break;
 				case 0x8: //Interlace mode register?
-					//00&10=Normal Sync Mode(Non-interlace), 01=Interlace Sync Mode(Low/High RAM doubling row(0 low, 0 high, 1 low, 1 high etc.)), 11=Interlace Sync & Video Mode(0 low, 1 high, 2 low, 3 high etc.)
-					switch (value&3) //What sync setting?
-					{
-					case 0:
-					case 2: //Normal Sync mode(Non-interlace)? All memory addresses are from low RAM upwards!
-						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 0; //Direct mapping!
-						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 0; //Direct mapping!
-						break;
-					case 1: //Interlace Sync Mode(Low/High RAM doubling row(0 low, 0 high, 1 low, 1 high etc.))
-						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //Normal mapping!
-						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //Normal mapping!
-						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //Odd scanlines are counting divided by 2!
-						break;
-					case 3: //11=Interlace Sync & Video Mode(0 low, 1 high, 2 low, 3 high etc.)
-						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //Normal mapping!
-						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //Normal mapping!
-						getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 0; //Odd scanlines are counting up in lines!
-						break;
-					}
-					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x17); //CRT Mode Control Register has been updated!
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|0x8); //CRT Mode Control Register has been updated!
 					break;
 				case 0x9: //Max scan line address?
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|0x9); //This CRT Register has been updated!
 					break;
 				case 0xA: //Cursor Start?
 					//Bit 6&5: 00=Non-blink(ON), 01=Non-Display(OFF), 10=Blink 1/16 field rate, 11=Blink 1/32 field rate!
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|0xA); //This CRT Register has been updated!
 					break;
 				case 0xB: //Cursor End?
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|0xB); //This CRT Register has been updated!
+					break;
 				case 0xC: //Start address(H)?
 				case 0xD: //Start address(L)?
 				case 0xE: //Cursor(H)?
 				case 0xF: //Cursor(L)?
 				case 0x10: //Light Pen(H)?
 				case 0x11: //Light Pen(L)?
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|getActiveVGA()->registers->CRTControllerRegisters_Index); //This CRT Register has been updated!
 					break; //Not handled yet!
 				default:
 					break;

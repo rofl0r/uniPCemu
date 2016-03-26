@@ -62,4 +62,8 @@ word get_display(VGA_Type *VGA, word Scanline, word x); //Get/adjust the current
 
 #define getcharacterheight(VGA) VGA->precalcs.characterheight
 //The character height!
+
+//CGA compatibility support!
+word get_display_CGA_x(VGA_Type *VGA, word x);
+word get_display_CGA_y(VGA_Type *VGA, word y);
 #endif

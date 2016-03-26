@@ -43,6 +43,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 	byte i; //Current OPT ROM!
 	uint_32 location; //The location within the OPT ROM area!
 	location = 0; //Init location!
+	byte ISVGA = 0; //Are we a VGA ROM?
 	for (i=0;(i<NUMITEMS(OPT_ROMS)) && (location!=0x20000);i++) //Process all ROMS we can process!
 	{
 		FILE *f;
@@ -50,19 +51,36 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		memset(&filename,0,sizeof(filename)); //Clear/init!
 		if (i) //Not VGA ROM?
 		{
+			ISVGA = 0; //No VGA!
 			sprintf(filename,"ROM/OPTROM.%i",i); //Create the filename for the ROM!
 		}
 		else
 		{
-			strcpy(filename,"ROM/VGAROM.BIN"); //VGA ROM!
+			ISVGA = 0; //No VGA!
+			if (BIOS_Settings.VGA_Mode==4) //Pure CGA?
+			{
+				strcpy(filename,"ROM/CGAROM.BIN"); //CGA ROM!
+			}
+			else if (BIOS_Settings.VGA_Mode==5) //Pure MDA?
+			{
+				strcpy(filename,"ROM/MDAROM.BIN"); //MDA ROM!
+			}
+			else
+			{	
+				ISVGA = 1; //We're a VGA!
+				strcpy(filename,"ROM/VGAROM.BIN"); //VGA ROM!
+			}
 		}
 		f = fopen(filename,"rb");
 		if (!f)
 		{
 			if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
 			{
-				location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
-				BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+				if (ISVGA) //Are we the VGA ROM?
+				{
+					location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
+					BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+				}
 			}
 			continue; //Failed to load!
 		}
@@ -137,7 +155,18 @@ void BIOS_freeOPTROMS()
 			}
 			else
 			{
-				strcpy(filename, "ROM/VGAROM.BIN"); //VGA ROM!
+				if (BIOS_Settings.VGA_Mode==4) //Pure CGA?
+				{
+					strcpy(filename,"ROM/CGAROM.BIN"); //CGA ROM!
+				}
+				else if (BIOS_Settings.VGA_Mode==5) //Pure MDA?
+				{
+					strcpy(filename,"ROM/MDAROM.BIN"); //MDA ROM!
+				}
+				else
+				{	
+					strcpy(filename,"ROM/VGAROM.BIN"); //VGA ROM!
+				}
 			}
 			freez((void **)&OPT_ROMS[i],OPTROM_size[i],filename); //Release the OPT ROM!
 		}
