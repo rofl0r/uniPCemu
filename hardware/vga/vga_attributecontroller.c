@@ -50,9 +50,11 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	byte colorselect54=0; //Color select bits 5-4!
 	byte colorselect76=0; //Color select bits 7-6!
 	byte backgroundfilter=0;
+	byte VGAMode = 1;
 	
+	if ((VGA->registers->specialCGAflags&1)^1) VGAMode = 0; //Disable the VGA color processing with CGA!
+
 	paletteenable = VGA->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.PAL; //Internal palette enabled?
-	paletteenable &= (VGA->registers->specialCGAflags&1)^1; //Disable the palette when processing as a CGA!
 	if (paletteenable) //Precalcs for palette?
 	{
 		palette54 = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PaletteBits54Select; //Use palette bits 5-4?
@@ -128,21 +130,24 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						//Use original 16 color palette!
 						CurrentDAC = VGA->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[CurrentDAC].InternalPaletteIndex; //Translate base index into DAC Base index!
 
-						if (color256) //8-bit colors and not monochrome mode?
+						if (VGAMode) //Are we not on a CGA?
 						{
-							CurrentDAC &= 0xF; //Take 4 bits only!
-						}
-						else //Process fully to a DAC index!
-						{
-							//First, bit 4&5 processing if needed!
-							if (palette54) //Bit 4&5 map to the C45 field of the Color Select Register, determined by bit 7?
+							if (color256) //8-bit colors and not monochrome mode?
 							{
-								CurrentDAC &= 0xF; //Take only the first 4 bits!
-								CurrentDAC |= colorselect54; //Use them as 4th&5th bit!
+								CurrentDAC &= 0xF; //Take 4 bits only!
 							}
-							//Else: already 6 bits wide fully!
-							//Finally, bit 6&7 always processing!
-							CurrentDAC |= colorselect76; //Apply bits 6&7!
+							else //Process fully to a DAC index!
+							{
+								//First, bit 4&5 processing if needed!
+									if (palette54) //Bit 4&5 map to the C45 field of the Color Select Register, determined by bit 7?
+								{
+									CurrentDAC &= 0xF; //Take only the first 4 bits!
+									CurrentDAC |= colorselect54; //Use them as 4th&5th bit!
+								}
+								//Else: already 6 bits wide fully!
+								//Finally, bit 6&7 always processing!
+								CurrentDAC |= colorselect76; //Apply bits 6&7!
+							}
 						}
 					}
 
