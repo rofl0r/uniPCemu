@@ -24,22 +24,20 @@ word signal_x, signal_scanline; //Signal location!
 
 #define CURRENTBLINK(VGA) VGA->TextBlinkOn
 
-typedef uint_32(*DAC_monitor)(VGA_Type *VGA, byte DACValue); //Monitor handler!
-extern byte DAC_whatBWMonitor; //Default: color monitor!
-OPTINLINE uint_32 VGA_DAC(VGA_Type *VGA, byte DACValue) //Originally: VGA_Type *VGA, word x
-{
-	static const DAC_monitor monitors[2] = { DAC_colorMonitor, DAC_BWmonitor }; //What kind of monitor?
-	return monitors[DAC_whatBWMonitor](VGA, DACValue); //Do color mode or B/W mode!
-}
+//Do color mode or B/W mode DAC according to our settings!
+#define VGA_DAC(VGA,DACValue) (VGA->precalcs.effectiveDAC[(DACValue)])
 
 extern GPU_type GPU; //GPU!
 
 float VGA_clocks[4] = {
-			25175000.0f, //25MHz
-			28322000.0f, //28MHz
-			0.0f, //Unused
+			25175000.0f, //25MHz: VGA standard clock
+			28322000.0f, //28MHz: VGA standard clock
+			0.0f, //external clock: not connected!
 			0.0f //Unused
 			}; //Our clocks!
+
+uint_32 CGALineSize = 0; //How long is our line!
+byte CGALineBuffer[1024]; //Full CGA scanline buffer!
 
 float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
 {
@@ -49,20 +47,42 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 	{
 		return 0.0f; //Remove VGA Scanline counter: nothing to render!
 	}
+	if (VGA->registers->specialCGAflags&1) return 15750000.0f; //Special CGA compatibility mode: change our refresh speed to match it!
 	return VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3)];
 }
 
 //Main rendering routine: renders pixels to the emulated screen.
 
-OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel)
+OPTINLINE void drawPixel_real(VGA_Type *VGA, uint_32 pixel, uint_32 x, uint_32 y) //Manual version for CGA conversion!
 {
 	register uint_32 old;
-	uint_32 *screenpixel = &EMU_BUFFER(VGA->CRTC.x,VGA->CRTC.y); //Pointer to our pixel!
+	uint_32 *screenpixel = &EMU_BUFFER(x,y); //Pointer to our pixel!
 	if (screenpixel>=EMU_SCREENBUFFEREND) return; //Out of bounds?
 	old = *screenpixel; //Read old!
 	old ^= pixel; //Check for differences!
 	GPU.emu_buffer_dirty |= old; //Update, set changed bits when changed!
 	*screenpixel = pixel; //Update whether it's needed or not!
+}
+
+OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel) //Normal VGA version!
+{
+	drawPixel_real(VGA,pixel,VGA->CRTC.x,VGA->CRTC.y); //Draw our pixel on the display!
+}
+
+OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display!
+{
+	uint_32 i;
+	if (CGALineSize>1024) CGALineSize = 1024; //Limit to what we have available!
+	if (VGA->registers->Compatibility_CGAModeControl&0x2) //Monochrome CGA mode?
+	{
+		for (i=0;i<CGALineSize;i++)
+			drawPixel_real(VGA,CGALineBuffer[i]?getemucol16(0xF):getemucol16(0x0),i,VGA->CRTC.y);//As a placeholder, just use the standard 2 color B/W for now!
+	}
+	else //Colour CGA mode?
+	{
+		for (i=0;i<CGALineSize;i++)
+			drawPixel_real(VGA,getemucol16(CGALineBuffer[i]),i,VGA->CRTC.y);//As a placeholder, just use the standard 16 color RGBI for now!
+	}
 }
 
 OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data for the sequencer!
@@ -223,11 +243,17 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->yres = 0; //Reset Y resolution next frame if not specified (like a real screen)!
 	Sequencer->xres = 0; //Reset X resolution next frame if not specified (like a real screen)!
 	
+	VGA_Sequencer_calcScanlineData(VGA);
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 }
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
+	if (VGA->registers->specialCGAflags&1) //To perform CGA to display conversion?
+	{
+		drawCGALine(VGA); //Draw the current CGA line using NTSC colours!	
+	}
+
 	//Process HBlank: reload display data for the next scanline!
 	//Sequencer itself
 	Sequencer->x = 0; //Reset for the next scanline!
@@ -251,7 +277,7 @@ void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	Sequencer->xres = VGA->CRTC.x; //Update X resolution!
+	Sequencer->xres = CGALineSize = VGA->CRTC.x; //Update X resolution!
 	VGA->CRTC.x = 0; //Reset destination column!
 }
 
@@ -271,7 +297,15 @@ void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attrib
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
-	drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
+	if (VGA->registers->specialCGAflags&1) //CGA mode?
+	{
+		//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
+		CGALineBuffer[VGA->CRTC.x] = attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
+	}
+	else
+	{
+		drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
+	}
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -279,6 +313,7 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
+	CGALineBuffer[VGA->CRTC.x] = VGA->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER; //Take the literal overscan color of the CGA!
 	drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
 	++VGA->CRTC.x; //Next x!
 }

@@ -85,20 +85,19 @@ OPTINLINE uint_32 LogicalOperation(uint_32 input)
 
 OPTINLINE uint_32 BitmaskOperation(uint_32 input, byte bitmaskregister)
 {
-	uint_32 result = 0; //Default: the result!4
-	byte bit;
-	for (bit=0;bit<32;bit++) //Process all available bits!
-	{
-		if (bitmaskregister&(1<<(bit&7))) //Use bit from input?
-		{
-			result |= input&(1<<bit); //Use the bit from input!
-		}
-		else //Use bit from latch?
-		{
-			result |= getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch&(1<<bit); //Use the bit from the latch!
-		}
-	}
-	return result; //Give the result!
+	register uint_32 result = 0; //The result built!
+	register uint_32 mask,inputdata; //Latch and extended mask!
+	//Load the mask to use, extend to all four planes!
+	mask = getActiveVGA()->ExpandTable[bitmaskregister]; //Load the current mask(one plane) expanded!
+	//Convert the value&latch to result using the mask!
+	inputdata = input; //Load the input to process!
+	inputdata &= mask; //Apply the mask to get the bits to turn on!
+	result |= inputdata; //Apply the bits to turn on to the result!
+	mask ^= 0xFFFFFFFF; //Flip the mask bits to get the bits to retrieve from the latch!
+	inputdata = getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch; //Load the latch!
+	inputdata &= mask; //Apply the mask to get the bits to turn on!
+	result |= inputdata; //Apply the bits to turn on to the result!
+	return result; //Give the resulting value!
 }
 
 /*

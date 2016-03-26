@@ -57,10 +57,29 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 		//Determine some extra information!
 		extrastatus = 0; //Initialise extra horizontal status!
 		
-		if (++pixelrate>VGA->precalcs.ClockingModeRegister_DCR) //To write back the pixel clock every or every other pixel?
+		if (VGA->registers->specialCGAflags&1) //Affect by 620x200/320x200 mode?
 		{
-			extrastatus |= 1; //Reset for the new block!
-			pixelrate = 0; //Reset!
+			++pixelrate;
+			if (VGA->registers->Compatibility_CGAModeControl&0x10) //640x200?
+			{
+				extrastatus |= 1; //Reset for the new block/next pixel!
+			}
+			else //320x200?
+			{
+				if (pixelrate>1) //Increase by 2!
+				{
+					extrastatus |= 1; //Reset for the new block/next pixel!					
+					pixelrate = 0; //Reset every 2!
+				}
+			}
+		}
+		else //Normal VGA?
+		{
+			if (++pixelrate>VGA->precalcs.ClockingModeRegister_DCR) //To write back the pixel clock every or every other pixel(forced every clock in CGA mode)?
+			{
+				extrastatus |= 1; //Reset for the new block/next pixel!
+				pixelrate = 0; //Reset!
+			}
 		}
 		VGA->CRTC.extrahorizontalstatus[current] = extrastatus; //Extra status to apply!
 
@@ -207,10 +226,10 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//Update our dipswitches according to the emulated monitor!
 		//Dipswitch source: https://groups.google.com/d/msg/comp.sys.ibm.pc.classic/O-oivadTYck/kLe4xxf7wDIJ
 		pattern = 0x6; //Pattern 0110: Enhanced Color - Enhanced Mode, 0110 according to Dosbox's VGA
-		if (DAC_Use_BWMonitor(0xFF)) //Are we using a non-color monitor?
+		/*if (DAC_Use_BWMonitor(0xFF)) //Are we using a non-color monitor?
 		{
 			pattern |= 1; //Bit 1=Monochrome?, originally 0010 for Monochrome!
-		} //Not working correctly yet!
+		}*/ //Not working correctly yet, so disable this!
 
 		//Set the dipswitches themselves!
 		VGA->registers->switches = pattern; //Set the pattern to use!
@@ -220,8 +239,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		//lockVGA(); //We don't want to corrupt the renderer's data!
 		//dolog("VGA","VTotal before charwidth: %i",VGA->precalcs.verticaltotal);
-		if (VGA->precalcs.characterwidth != VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9) adjustVGASpeed(); //Auto-adjust our VGA speed!
-		VGA->precalcs.characterwidth = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9; //Character width!
+		//CGA forces character width to 8 wide!
+		if (VGA->precalcs.characterwidth != (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8&((~VGA->registers->specialCGAflags)&1))?8:9) adjustVGASpeed(); //Auto-adjust our VGA speed!
+		VGA->precalcs.characterwidth = (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8&((~VGA->registers->specialCGAflags)&1))?8:9; //Character width!
 		if (VGA->precalcs.ClockingModeRegister_DCR != VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.ClockingModeRegister_DCR = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Dot Clock Rate!
 		updateCRTC = 1; //We need to update the CRTC!
@@ -510,7 +530,14 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x13))) //Updated?
 		{
 			word rowsize;
-			rowsize = VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER;
+			if ((VGA->registers->specialCGAflags&0xD)==0xD) //Ignore the row size?
+			{
+				rowsize = 0; //Ignore us!
+			}
+			else //Apply normally?
+			{
+				rowsize = VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER;
+			}
 			rowsize <<= 1;
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.rowsize = rowsize; //=Offset*2
@@ -584,7 +611,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //Updated?
 		{
 			//lockVGA(); //We don't want to corrupt the renderer's data!
-			VGA->precalcs.scandoubling = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.ScanDoubling;
+			VGA->precalcs.scandoubling = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.ScanDoubling & (~(((VGA->registers->specialCGAflags&2)>>1)&(VGA->registers->specialCGAflags&1))); //Scan doubling enabled? CGA disables scanline doubling for compatibility.
 			//dolog("VGA","VTotal after SD: %i",VGA->precalcs.verticaltotal); //Log it!
 			//unlockVGA(); //We're finished with the VGA!
 		}
@@ -768,6 +795,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				for (;;) //Precalculate colors for DAC!
 				{
 					VGA->precalcs.DAC[colorval] = getcol256(VGA,colorval); //Translate directly through DAC for output!
+					DAC_updateEntry(VGA,colorval); //Update a DAC entry for rendering!
 					if (++colorval&0xFF00) break; //Overflow?
 				}
 				VGA->precalcs.lastDACMask = VGA->registers->DACMaskRegister; //Save the DAC mask for future checking if it's changed!
@@ -778,6 +806,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.DAC[whereupdated&0xFF] = getcol256(VGA,whereupdated&0xFF); //Translate directly through DAC for output, single color only!
+			DAC_updateEntry(VGA,whereupdated&0xFF); //Update a DAC entry for rendering!
 			//unlockVGA(); //We're finished with the VGA!
 		}
 		//dolog("VGA","VTotal after DAC: %i",VGA->precalcs.verticaltotal); //Log it!

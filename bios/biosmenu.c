@@ -160,7 +160,7 @@ void BIOSMenu_LoadDefaults(); //Load the defaults option!
 void BIOSClearScreen(); //Resets the BIOS's screen!
 void BIOSDoneScreen(); //Cleans up the BIOS's screen!
 void BIOS_VideoSettingsMenu(); //Manage stuff concerning video output.
-void BIOS_VGANMISetting(); //VGA NMI setting!
+void BIOS_VGAModeSetting(); //VGA Mode setting!
 void BIOS_SoundMenu(); //Manage stuff concerning MIDI.
 void BIOS_SoundFont_selection(); //FLOPPY0 selection menu!
 void BIOS_MIDIPlayer(); //MIDI player!
@@ -213,7 +213,7 @@ Handler BIOS_Menus[] =
 	,BIOS_gamingKeyboardColorsMenu //Keyboard colors menu is #27!
 	,BIOS_gamingKeyboardColor //Keyboard color menu is #28!
 	,BIOS_VideoSettingsMenu //Manage stuff concerning Video Settings is #29!
-	,BIOS_VGANMISetting //VGA NMI setting is #30!
+	,BIOS_VGAModeSetting //VGA Mode setting is #30!
 	,BIOS_SoundMenu //MIDI settings menu is #31!
 	,BIOS_SoundFont_selection //Soundfont selection menu is #32!
 	,BIOS_MIDIPlayer //MIDI Player is #33!
@@ -2570,7 +2570,7 @@ void BIOS_ExecutionMode()
 	strcpy(itemlist[EXECUTIONMODE_SOUND], "Run sound test"); //Debug sound test!
 
 	int current = 0;
-	switch (BIOS_Settings.executionmode) //What debug mode?
+	switch (BIOS_Settings.executionmode) //What execution mode?
 	{
 	case EXECUTIONMODE_NONE: //Valid
 	case EXECUTIONMODE_TEST: //Test files or biosrom.dat!
@@ -2636,7 +2636,7 @@ void BIOS_DebugLog()
 	strcpy(itemlist[DEBUGGERLOG_ALWAYS], "Always log"); //Set filename from options!
 
 	int current = 0;
-	switch (BIOS_Settings.debugger_log) //What debug mode?
+	switch (BIOS_Settings.debugger_log) //What debugger log mode?
 	{
 	case DEBUGGERLOG_NONE: //None
 	case DEBUGGERLOG_DEBUGGING: //Only when debugging
@@ -2867,17 +2867,17 @@ void BIOS_BWMonitor()
 	}
 
 	strcpy(itemlist[BWMONITOR_NONE], "Color"); //Set filename from options!
-	strcpy(itemlist[BWMONITOR_BLACK], "B/W monitor: black"); //Set filename from options!
+	strcpy(itemlist[BWMONITOR_WHITE], "B/W monitor: white"); //Set filename from options!
 	strcpy(itemlist[BWMONITOR_GREEN], "B/W monitor: green"); //Set filename from options!
-	strcpy(itemlist[BWMONITOR_BROWN], "B/W monitor: brown"); //Set filename from options!
+	strcpy(itemlist[BWMONITOR_AMBER], "B/W monitor: amber"); //Set filename from options!
 
 	int current = 0;
-	switch (BIOS_Settings.bwmonitor) //What debug mode?
+	switch (BIOS_Settings.bwmonitor) //What B/W monitor mode?
 	{
 	case BWMONITOR_NONE: //None
-	case BWMONITOR_BLACK: //Black/White
-	case BWMONITOR_GREEN: //Greenscale
-	case BWMONITOR_BROWN: //Brownscale
+	case BWMONITOR_WHITE: //Black/White
+	case BWMONITOR_GREEN: //Green
+	case BWMONITOR_AMBER: //Amber
 		current = BIOS_Settings.bwmonitor; //Valid: use!
 		break;
 	default: //Invalid
@@ -2899,9 +2899,9 @@ void BIOS_BWMonitor()
 		file = DEBUGGERLOG_NONE; //Default execution mode: None!
 
 	case BWMONITOR_NONE: //None
-	case BWMONITOR_BLACK: //Black/White
+	case BWMONITOR_WHITE: //Black/White
 	case BWMONITOR_GREEN: //Greenscale
-	case BWMONITOR_BROWN: //Brownscale
+	case BWMONITOR_AMBER: //Amberscale
 	default: //Changed?
 		if (file != current) //Not current?
 		{
@@ -3295,7 +3295,7 @@ void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
 	}
 
 	int current = 0;
-	switch (BIOS_Settings.input_settings.colors[gamingKeyboardColor]) //What debug mode?
+	switch (BIOS_Settings.input_settings.colors[gamingKeyboardColor]) //What color?
 	{
 	case 0:case 1:case 2:case 3:case 4:case 5:case 6:case 7:case 8:case 9:case 0xA:case 0xB:case 0xC:case 0xD:case 0xE:case 0xF:
 		current = BIOS_Settings.input_settings.colors[gamingKeyboardColor]; //Valid: use!
@@ -3355,39 +3355,48 @@ void BIOS_gamingKeyboardColorsMenu() //Manage stuff concerning input.
 	}
 }
 
-void BIOS_VGANMISetting()
+void BIOS_VGAModeSetting()
 {
-	BIOS_Title("VGA NMI");
+	BIOS_Title("VGA Mode");
 	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
-	GPU_EMU_printscreen(0,4,"VGA NMI: "); //Show selection init!
+	GPU_EMU_printscreen(0,4,"VGA Mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 2; //Ammount of Direct modes!
-	for (i=0; i<3; i++) //Process options!
+	numlist = 6; //Ammount of VGA modes! Only use two modes, as the precursor compatibility mode(CGA) isn't finished yet!
+	for (i=0; i<6; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0],"Disabled"); //Set filename from options!
-	strcpy(itemlist[1],"Enabled"); //Set filename from options!
+	strcpy(itemlist[0],"Pure VGA"); //Set filename from options!
+	strcpy(itemlist[1],"VGA with NMI"); //Set filename from options!
+	strcpy(itemlist[2],"VGA with CGA"); //Special CGA compatibility mode!
+	strcpy(itemlist[3],"VGA with MDA"); //Special MDA compatibility mode!
+	strcpy(itemlist[4],"Pure CGA"); //Special CGA pure mode!
+	strcpy(itemlist[5],"Pure MDA"); //Special MDA pure mode!
+
 	int current = 0;
-	switch (BIOS_Settings.VGA_NMIonPrecursors) //What setting?
+	switch (BIOS_Settings.VGA_Mode) //What setting?
 	{
 	case 0: //Valid
 	case 1: //Valid
-		current = BIOS_Settings.VGA_NMIonPrecursors; //Valid: use!
+	case 2: //Valid
+	case 3: //Valid
+	case 4: //Valid
+	case 5: //Valid
+		current = BIOS_Settings.VGA_Mode; //Valid: use!
 		break;
 	default: //Invalid
 		current = 0; //Default: none!
 		break;
 	}
-	if (BIOS_Settings.VGA_NMIonPrecursors!=current) //Invalid?
+	if (BIOS_Settings.VGA_Mode!=current) //Invalid?
 	{
-		BIOS_Settings.VGA_NMIonPrecursors = current; //Safety!
+		BIOS_Settings.VGA_Mode = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(15,4,itemlist[current],256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(10,4,itemlist[current],256,NULL); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -3398,11 +3407,15 @@ void BIOS_VGANMISetting()
 
 	case 0:
 	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
-			BIOS_Settings.VGA_NMIonPrecursors = file; //Select NMI on Precursors setting!
+			BIOS_Settings.VGA_Mode = file; //Select VGA Mode setting!
 		}
 		break;
 	}
@@ -3465,14 +3478,14 @@ setmonitortext: //For fixing it!
 	strcpy(menuoptions[advancedoptions], "Monitor: ");
 	switch (BIOS_Settings.bwmonitor) //B/W monitor?
 	{
-	case BWMONITOR_BLACK:
-		strcat(menuoptions[advancedoptions++], "B/W monitor: black");
+	case BWMONITOR_WHITE:
+		strcat(menuoptions[advancedoptions++], "B/W monitor: white");
 		break;
 	case BWMONITOR_GREEN:
 		strcat(menuoptions[advancedoptions++], "B/W monitor: green");
 		break;
-	case BWMONITOR_BROWN:
-		strcat(menuoptions[advancedoptions++], "B/W monitor: brown");
+	case BWMONITOR_AMBER:
+		strcat(menuoptions[advancedoptions++], "B/W monitor: amber");
 		break;
 	case BWMONITOR_NONE:
 		strcat(menuoptions[advancedoptions++], "Color monitor");
@@ -3484,21 +3497,33 @@ setmonitortext: //For fixing it!
 		break;
 	}
 
-setVGANMItext: //For fixing it!
-	optioninfo[advancedoptions] = 2; //VGA NMI!
-	strcpy(menuoptions[advancedoptions], "VGA NMI: ");
-	switch (BIOS_Settings.VGA_NMIonPrecursors) //VGA NMI?
+setVGAModetext: //For fixing it!
+	optioninfo[advancedoptions] = 2; //VGA Mode!
+	strcpy(menuoptions[advancedoptions], "VGA Mode: ");
+	switch (BIOS_Settings.VGA_Mode) //VGA Mode?
 	{
 	case 0:
-		strcat(menuoptions[advancedoptions++], "Disabled");
+		strcat(menuoptions[advancedoptions++], "Pure VGA");
 		break;
 	case 1:
-		strcat(menuoptions[advancedoptions++], "Enabled");
+		strcat(menuoptions[advancedoptions++], "VGA with NMI");
+		break;
+	case 2:
+		strcat(menuoptions[advancedoptions++], "VGA with CGA");
+		break;
+	case 3:
+		strcat(menuoptions[advancedoptions++], "VGA with MDA");
+		break;
+	case 4:
+		strcat(menuoptions[advancedoptions++], "Pure CGA");
+		break;
+	case 5:
+		strcat(menuoptions[advancedoptions++], "Pure MDA");
 		break;
 	default: //Error: fix it!
-		BIOS_Settings.VGA_NMIonPrecursors = 0; //Reset/Fix!
+		BIOS_Settings.VGA_Mode = 0; //Reset/Fix!
 		BIOS_Changed = 1; //We've changed!
-		goto setVGANMItext; //Goto!
+		goto setVGAModetext; //Goto!
 		break;
 	}
 
@@ -3558,8 +3583,8 @@ void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
 		case 1: //Monitor?
 			BIOS_Menu = 22; //Monitor setting!
 			break;
-		case 2: //VGA NMI?
-			BIOS_Menu = 30; //VGA NMI setting!
+		case 2: //VGA Mode?
+			BIOS_Menu = 30; //VGA Mode setting!
 			break;
 		case 3: //Aspect ratio setting!
 			BIOS_Menu = 17; //Aspect ratio setting!
@@ -3832,7 +3857,7 @@ void BIOS_Mouse()
 	strcpy(itemlist[0], "Serial"); //Set filename from options!
 	strcpy(itemlist[1], "PS/2"); //Set filename from options!
 	int current = 0;
-	switch (BIOS_Settings.VGA_NMIonPrecursors) //What setting?
+	switch (BIOS_Settings.PS2Mouse) //What setting?
 	{
 	case 0: //Valid
 	case 1: //Valid
@@ -3862,7 +3887,7 @@ void BIOS_Mouse()
 		if (file != current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
-			BIOS_Settings.PS2Mouse = file; //Select NMI on Precursors setting!
+			BIOS_Settings.PS2Mouse = file; //Select PS/2 Mouse setting!
 		}
 		break;
 	}
@@ -3901,7 +3926,7 @@ void BIOS_InitCPUText()
 	setDataBusSize: //For fixing it!
 		optioninfo[advancedoptions] = 1; //Data bus size!
 		strcpy(menuoptions[advancedoptions], "Data bus size: ");
-		switch (BIOS_Settings.DataBusSize) //VGA NMI?
+		switch (BIOS_Settings.DataBusSize) //Data bus size?
 		{
 		case 0:
 			strcat(menuoptions[advancedoptions++], "16/32-bit data bus");
@@ -3957,7 +3982,7 @@ setShowCPUSpeed:
 
 	optioninfo[advancedoptions] = 5; //Execution mode!
 	strcpy(menuoptions[advancedoptions], "Execution mode: ");
-	switch (BIOS_Settings.executionmode) //What debug mode is active?
+	switch (BIOS_Settings.executionmode) //What execution mode is active?
 	{
 	case EXECUTIONMODE_NONE:
 		strcat(menuoptions[advancedoptions++], "Normal operations"); //Set filename from options!

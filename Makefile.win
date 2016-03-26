@@ -5,6 +5,9 @@ BUILD_DIR = ../projects_build/$(BUILD_NAME)
 #Name of the destination application!
 TARGET = $(BUILD_NAME).exe
 
+TARGET_PROFILE_TXT = profiler.txt
+TARGET_PROFILE_CMP_TXT = profiler2.txt
+
 #GProf switches!
 GPROF_SWITCHES =
 
@@ -57,21 +60,23 @@ BUILD_RELEASE = $(BUILD_DIR)/$(TARGET_RELEASE)
 BUILD_DEBUG = $(BUILD_DIR)/$(TARGET_DEBUG)
 BUILD_PROFILE = $(BUILD_DIR)/$(TARGET_PROFILE)
 BUILD_PROFILE_GMON = $(BUILD_DIR)/gmon.out
-BUILD_PROFILE_GMON_TXT = $(BUILD_DIR)/profiler.txt
+BUILD_PROFILE_GMON_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_TXT)
+BUILD_PROFILE_GMON_CMP_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_CMP_TXT)
 
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
 #Rules themselves!
-#Build&debug command support!
+#Build,debug and analyze(profile subcommand) command support!
 
-build: $(BUILD_RELEASE)
-
-profile: $(BUILD_PROFILE)
-
-profile_use: $(BUILD_PROFILE)
+analyze: profile
 	gprof $(GPROF_SWITCHES) $(BUILD_PROFILE) $(BUILD_PROFILE_GMON) > $(BUILD_PROFILE_GMON_TXT)
 
-reprofile: clean profile	
+analyze2: profile
+	gprof $(GPROF_SWITCHES) $(BUILD_PROFILE) $(BUILD_PROFILE_GMON) > $(BUILD_PROFILE_GMON_CMP_TXT)
+
+build: $(BUILD_RELEASE)
+profile: $(BUILD_PROFILE)
+reprofile: clean profile
 
 #Run debugger now on the executable!
 debug: $(BUILD_DEBUG)

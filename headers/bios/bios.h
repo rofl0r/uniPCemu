@@ -51,7 +51,7 @@ typedef struct PACKED
 	byte got_CMOS; //Gotten an CMOS?
 
 	byte executionmode; //What mode to execute in during runtime?
-	byte VGA_NMIonPrecursors; //Enable VGA NMI on precursors?
+	byte VGA_Mode; //Enable VGA NMI on precursors?
 	byte PS2Mouse; //What mouse to use when using? 1=PS/2 mouse, 0=Serial mouse
 	uint_32 CPUSpeed;
 	float SoundSource_Volume; //The sound source volume knob!
@@ -104,9 +104,9 @@ typedef struct PACKED
 //B/W monitor setting:
 //Color mode
 #define BWMONITOR_NONE 0
-#define BWMONITOR_BLACK 1
+#define BWMONITOR_WHITE 1
 #define BWMONITOR_GREEN 2
-#define BWMONITOR_BROWN 3
+#define BWMONITOR_AMBER 3
 
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!

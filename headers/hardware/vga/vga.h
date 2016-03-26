@@ -612,6 +612,13 @@ typedef struct PACKED
 	byte lightpen_high; //Lightpen high register!
 	byte lightpen_low; //Lightpen low register!
 	byte switches; //The switches for the EGA/VGA!
+	//CGA/MDA compatibility registers, when enabled!
+	byte Compatibility_MDAModeControl;
+	byte Compatibility_CGAModeControl;
+	byte Compatibility_CGAPaletteRegister;
+	byte specialCGAflags; //Special flags concerning CGA emulation!
+	byte specialMDAflags; //Special flags concerning MDA emulation!
+	byte CGARegisters[18]; //18 CGA registers!
 } VGA_REGISTERS;
 #include "headers/endpacked.h" //We're packed!
 
@@ -775,6 +782,8 @@ void VGA_dumpFonts(); //Dump all VGA fonts!
 void VGA_plane2updated(VGA_Type *VGA, uint_32 address); //Plane 2 has been updated?
 
 void setVGA_NMIonPrecursors(byte enabled); //Trigger an NMI when our precursors are called?
+void setVGA_CGA(byte enabled); //0=Disabled, 1=Enable with disabled VGA, 2=Enabled with enabled VGA!
+void setVGA_MDA(byte enabled); //0=Disabled, 1=Enable with disabled VGA, 2=Enabled with enabled VGA!
 
 #define lockVGA() lock(LOCK_VGA)
 #define unlockVGA() unlock(LOCK_VGA)
