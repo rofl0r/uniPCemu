@@ -18,6 +18,7 @@ VGA ROM and handling functions.
 #include "headers/hardware/vga/vga_sequencer.h" //For precalcs!
 #include "headers/hardware/vga/vga_crtcontroller.h" //For getyres for display rate!
 #include "headers/hardware/vga/vga_vram.h" //VRAM read!
+#include "headers/hardware/vga/vga_vramtext.h" //VRAM text read!
 #include "headers/emu/threads.h" //Multithread support!
 
 #include "headers/emu/gpu/gpu.h" //GPU!
@@ -189,6 +190,9 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = 1; //Display disabled by default!
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 1; //Vertical Retrace by default!
 	
+	debugrow("VGA: Initialising CGA compatibility font support...");
+	fillCGAfont(); //Initialise the CGA font map if needed to use it!
+
 	debugrow("VGA: Executing initial precalculations...");
 	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!
 	

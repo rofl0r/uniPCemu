@@ -103,7 +103,6 @@ void VGA_charsetupdated(VGA_Type *VGA)
 	fillgetcharxy_values(VGA,-1); //Update all characters: the character sets are updated!	
 }
 
-//This is heavy: it doubles (with about 25ms) the rendering time needed to render a line.
 byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from table!
 {
 	static byte lastrow; //Last retrieved character row data!
