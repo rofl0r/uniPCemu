@@ -93,6 +93,7 @@
     <ClCompile Include="..\hardware\uart.c" />
     <ClCompile Include="..\hardware\vga\vga.c" />
     <ClCompile Include="..\hardware\vga\vga_attributecontroller.c" />
+    <ClCompile Include="..\hardware\vga\vga_cga.c" />
     <ClCompile Include="..\hardware\vga\vga_colorconversion.c" />
     <ClCompile Include="..\hardware\vga\vga_crtcontroller.c" />
     <ClCompile Include="..\hardware\vga\vga_dac.c" />

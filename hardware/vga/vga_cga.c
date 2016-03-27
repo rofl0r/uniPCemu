@@ -306,15 +306,15 @@ void fillCGAfont()
 word get_display_CGA_x(VGA_Type *VGA, word x)
 {
 	word result=0;
+	if (!x)	result |= VGA_SIGNAL_HRETRACEEND; //Horizontal retrace is finished now!
 	x >>= 3; //Divide by 8 to get the character clock!
-	if (x>=VGA->registers->CGARegisters[0]) //Are we the final clock?
+	if (x>VGA->registers->CGARegisters[0]) //Are we the final clock?
 	{
-		result |= VGA_SIGNAL_HTOTAL; //Horizontal total and retrace!
+		result |= VGA_SIGNAL_HTOTAL|VGA_SIGNAL_HRETRACESTART; //Horizontal total and retrace!
 	}
-	if (x<VGA->registers->CGARegisters[1]) //Are we displayed?
+	if (x<=VGA->registers->CGARegisters[1]) //Are we displayed?
 	{
 		result |= VGA_HACTIVEDISPLAY; //Horizontal displayed!
-		if (!x)	result |= VGA_SIGNAL_HRETRACEEND; //Horizontal retrace is finished now!
 	}
 	else //We're retrace/overscan period!
 	{
@@ -333,7 +333,7 @@ word get_display_CGA_y(VGA_Type *VGA, word y)
 	if (y>=(VGA->registers->CGARegisters[4]&0x7F)) //Past maximum line?
 	{
 		//Display the line as usual!
-		if (y>=(VGA->registers->CGARegisters[4]&0x7F)+(VGA->registers->CGARegisters[5])) //Vertical total reaced?
+		if (y>(VGA->registers->CGARegisters[4]&0x7F)+(VGA->registers->CGARegisters[5])) //Vertical total reaced?
 		{
 			result |= VGA_SIGNAL_VTOTAL|VGA_SIGNAL_VRETRACESTART; //End of display: start the next frame!
 		}
@@ -342,12 +342,20 @@ word get_display_CGA_y(VGA_Type *VGA, word y)
 			result |= VGA_SIGNAL_VRETRACESTART;
 		}
 	}
+	else if (y>(VGA->registers->CGARegisters[4] & 0x7F) + (VGA->registers->CGARegisters[5])) //Vertical total reached?
+	{
+		result |= VGA_SIGNAL_VTOTAL|VGA_SIGNAL_VRETRACESTART; //End of display: start the next frame!
+	}
 	else //Active vertical scanline?
 	{
 		if (!y) result |= VGA_SIGNAL_VRETRACEEND; //End vertical retrace if still there!
 		if (row<(VGA->registers->CGARegisters[6]&0x7F)) //Active display?
 		{
 			result |= VGA_VACTIVEDISPLAY; //We're active display!
+		}
+		else
+		{
+			result |= VGA_SIGNAL_VRETRACESTART; //Vertical retrace period!
 		}
 	}
 	result |= VGA_OVERSCAN; //We're overscan by default!

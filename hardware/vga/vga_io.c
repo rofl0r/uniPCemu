@@ -365,8 +365,8 @@ void applyCGAPaletteRegister() //Update the CGA colors!
 void setCGAMode(byte useGraphics, byte GraphicsMode)
 {
 		//Stop rendering!
-		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR = 1;
-		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR = 1;
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR = 0;
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR = 0;
 
 		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode = 0;
 		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode = 0;
@@ -405,8 +405,8 @@ void setCGAMode(byte useGraphics, byte GraphicsMode)
 		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.FC1 = 1; //CGA!
 
 		//Start rendering!
-		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR = 0;
-		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR = 0;
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR = 1;
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR = 1;
 }
 
 void applyCGAModeControl()

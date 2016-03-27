@@ -474,6 +474,9 @@
     <ClCompile Include="..\hardware\parallel.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_cga.c">
+      <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">
