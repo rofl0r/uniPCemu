@@ -311,19 +311,16 @@ word get_display_CGA_x(VGA_Type *VGA, word x)
 	{
 		result |= VGA_SIGNAL_HTOTAL; //Horizontal total and retrace!
 	}
-	else
-	{
-		result |= VGA_SIGNAL_HRETRACEEND; //We're ending horizontal retrace now!
-	}
 	if (x<VGA->registers->CGARegisters[1]) //Are we displayed?
 	{
 		result |= VGA_HACTIVEDISPLAY; //Horizontal displayed!
+		if (!x)	result |= VGA_SIGNAL_HRETRACEEND; //Horizontal retrace is finished now!
 	}
-	else //We're retrace period!
+	else //We're retrace/overscan period!
 	{
 		result |= VGA_SIGNAL_HRETRACESTART; //Horizontal retrace!
+		result |= VGA_OVERSCAN; //We're overscan by default!
 	}
-	result |= VGA_OVERSCAN; //We're overscan by default!
 	return result; //Give the signal!
 }
 
@@ -340,21 +337,17 @@ word get_display_CGA_y(VGA_Type *VGA, word y)
 		{
 			result |= VGA_SIGNAL_VTOTAL|VGA_SIGNAL_VRETRACESTART; //End of display: start the next frame!
 		}
-		else
+		else //Space before totalling? Just retrace here, no output!
 		{
 			result |= VGA_SIGNAL_VRETRACESTART;
 		}
 	}
 	else //Active vertical scanline?
 	{
-		result |= VGA_SIGNAL_VRETRACEEND; //End vertical retrace!
-		if (row<(VGA->registers->CGARegisters[6]&0x7F))
+		if (!y) result |= VGA_SIGNAL_VRETRACEEND; //End vertical retrace if still there!
+		if (row<(VGA->registers->CGARegisters[6]&0x7F)) //Active display?
 		{
 			result |= VGA_VACTIVEDISPLAY; //We're active display!
-			if ((row+1)==(VGA->registers->CGARegisters[6]&0x7F)) //Next is end of display?
-			{
-				result |= VGA_SIGNAL_VRETRACESTART; //Start retracing next!
-			}
 		}
 	}
 	result |= VGA_OVERSCAN; //We're overscan by default!

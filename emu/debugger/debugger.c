@@ -15,6 +15,7 @@
 #include "headers/support/locks.h" //Locking support!
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/hardware/pic.h" //Interrupt support!
+#include "headers/hardware/vga/vga_sequencer.h" //Sequencer support!
 
 //Log flags only?
 //#define LOGFLAGSONLY
@@ -553,6 +554,12 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
 		{
 			GPU_textprintf(frameratesurface,fontcolor,backcolor,"%i",(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
+		}
+
+		if (getActiveVGA()) //Gotten an active VGA?
+		{
+			GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-16,debuggerrow++); //CRT status!
+			GPU_textprintf(frameratesurface,fontcolor,backcolor,"VGA@%i,%i",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline);
 		}
 		GPU_text_releasesurface(frameratesurface); //Unlock!
 	}

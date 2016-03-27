@@ -23,6 +23,7 @@ void VGA_updateVRAMmaps(VGA_Type *VGA)
 {
 	VGA_RAMEnable = VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable; //RAM enabled?
 	VGA_MemoryMapSelect = VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect; //Update the selected memory map!
+	if ((VGA->registers->specialCGAflags&0x81)==1) VGA_MemoryMapSelect = 3; //Apply CGA memory map in CGA mode!
 	switch (VGA_MemoryMapSelect) //What memory map?
 	{
 	case 0: //A0000-BFFFF (128K region)?

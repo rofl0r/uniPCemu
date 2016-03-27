@@ -4731,8 +4731,27 @@ void BIOS_DumpVGA()
 		fwrite(&VGA->registers->ExternalRegisters,1,sizeof(VGA->registers->ExternalRegisters),f); //Literal color registers!
 		fclose(f);
 
+		if (VGA->registers->specialCGAflags&1) //CGA compatiblity enabled?
+		{
+			f = fopen("captures/vga_cgacrtcregs.dat","wb");
+			fwrite(&VGA->registers->CGARegisters,1,sizeof(VGA->registers->CGARegisters),f); //CGA CRTC registers!
+			fclose(f);
+
+			f = fopen("captures/vga_compregs.dat","wb");
+			fwrite(&VGA->registers->Compatibility_CGAModeControl,1,1,f); //CGA mode control register!
+			fwrite(&VGA->registers->Compatibility_CGAPaletteRegister,1,1,f); //CGA mode control register!
+			fwrite(&VGA->registers->Compatibility_MDAModeControl,1,1,f); //MDA mode control register!
+			fclose(f);
+		}
+		else //Clean up CGA compatiblity register dumps: we're not supposed to be used!
+		{
+			delete_file("captures","vga_cgacrtcregs.dat");
+			delete_file("captures","vga_compregs.dat");
+		}
+
 		VGA_DUMPColors(); //Dump all colors!
 		dumpVGATextFonts(); //Dump all fonts used!
+		dump_CRTCTiming(); //Dump all CRTC timing currently in use!
 	}
 
 	BIOS_Menu = 29; //Goto Video menu!

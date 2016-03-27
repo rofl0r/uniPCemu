@@ -297,6 +297,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL)) //CGA horizontal timing updated?
 	{
 		updateCRTC = 1; //Update the CRTC!
+		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_VERTICAL)) //CGA vertical timing updated?
@@ -306,6 +307,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			VGA->precalcs.characterheight = VGA->registers->CGARegisters[9]+1; //Character height is set!
 		}
+		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 	
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER)) //CGA CRT misc. stuff updated?
@@ -314,7 +316,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0x8)) //Interlace Register updated?
 		{
 			//00&10=Normal Sync Mode(Non-interlace), 01=Interlace Sync Mode(Low/High RAM doubling row(0 low, 0 high, 1 low, 1 high etc.)), 11=Interlace Sync & Video Mode(0 low, 1 high, 2 low, 3 high etc.)
-			switch (VGA->registers->CGARegisters[8]&3) //What sync setting?
+			/*switch (VGA->registers->CGARegisters[8]&3) //What sync setting?
 			{
 			case 0:
 			case 2: //Normal Sync mode(Non-interlace)? All memory addresses are from low RAM upwards!
@@ -331,8 +333,10 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //Normal mapping!
 				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 0; //Odd scanlines are counting up in lines!
 				break;
-			}
+			}*/
+			//This is applied to the renderer only!
 		}
+		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CRTCONTROLLER) || FullUpdate || charwidthupdated) //(some) CRT Controller values need to be updated?

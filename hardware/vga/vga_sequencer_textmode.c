@@ -45,7 +45,7 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 	character = planesbuffer[0]; //Character!
 	attribute = planesbuffer[1]; //Attribute!
 	iscursor = is_cursorscanline(VGA, (byte)((SEQ_DATA *)VGA->Sequencer)->charinner_y, loadedlocation); //Are we a cursor?
-	if (VGA->registers->specialCGAflags&1) //CGA mode?
+	if ((VGA->registers->specialCGAflags&0x81)==1) //Pure CGA mode?
 	{
 		//Read all 8 pixels with a possibility of 9 pixels to be safe!
 		characterpixels[0] = getcharxy_CGA(character, 0, (byte)((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!

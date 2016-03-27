@@ -126,6 +126,7 @@ OPTINLINE byte doVGA_Sequencer() //Do we even execute?
 
 extern word signal_x, signal_scanline; //Signal location!
 byte Sequencer_run; //Sequencer breaked (loop exit)?
+byte isoutputdisabled = 0; //Output disabled?
 
 //Special states!
 extern byte blanking; //Are we blanking!
@@ -148,10 +149,12 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	{
 		if (signal&VGA_SIGNAL_HBLANKEND) //HBlank end?
 		{
+			if (VGA->registers->specialCGAflags&1) goto CGAendhblank;
 			blankretraceendpending |= VGA_SIGNAL_HBLANKEND;
 		}
 		else if (blankretraceendpending&VGA_SIGNAL_HBLANKEND) //End pending HBlank!
 		{
+			CGAendhblank:
 			hblank = 0; //We're not blanking anymore!
 			blankretraceendpending &= ~VGA_SIGNAL_HBLANKEND; //Remove from flags pending!
 		}
@@ -165,14 +168,23 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	{
 		if (signal&VGA_SIGNAL_VBLANKEND) //VBlank end?
 		{
+			if (VGA->registers->specialCGAflags&1) goto CGAendvblank;
 			blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
 		}
 		else if (blankretraceendpending&VGA_SIGNAL_VBLANKEND) //End pending HBlank!
 		{
+			CGAendvblank:
 			vblank = 0; //We're not blanking anymore!
 			blankretraceendpending &= ~VGA_SIGNAL_VBLANKEND; //Remove from flags pending!
 		}
 	}
+
+	if (VGA->registers->specialCGAflags&1) //CGA compatibility mode?
+	{
+		isoutputdisabled = (((~VGA->registers->Compatibility_CGAModeControl)&8)>>3); //This bit disables input!
+	}
+
+	hblank |= isoutputdisabled; //We're enforcing blanking when output is disabled!
 	
 	//Both H&VBlank count!
 	blanking = hblank;
@@ -226,9 +238,9 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	register byte isretrace;
 	isretrace = hretrace;
 	isretrace |= vretrace; //We're retracing?
-	//Retracing disables output!
 
-	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing = isretrace; //Vertical or horizontal retrace?
+	//Retracing disables output!
+	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = (retracing = isretrace)&isoutputdisabled; //Vertical or horizontal retrace?
 
 	totalling = 0; //Default: Not totalling!
 	//Totals

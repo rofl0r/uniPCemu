@@ -73,16 +73,8 @@ OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display
 {
 	uint_32 i;
 	if (CGALineSize>1024) CGALineSize = 1024; //Limit to what we have available!
-	if (VGA->registers->Compatibility_CGAModeControl&0x2) //Monochrome CGA mode?
-	{
-		for (i=0;i<CGALineSize;i++)
-			drawPixel_real(VGA,CGALineBuffer[i]?getemucol16(0xF):getemucol16(0x0),i,VGA->CRTC.y);//As a placeholder, just use the standard 2 color B/W for now!
-	}
-	else //Colour CGA mode?
-	{
-		for (i=0;i<CGALineSize;i++)
-			drawPixel_real(VGA,getemucol16(CGALineBuffer[i]),i,VGA->CRTC.y);//As a placeholder, just use the standard 16 color RGBI for now!
-	}
+	for (i=0;i<CGALineSize;i++) //Process all pixels!
+		drawPixel_real(VGA,getemucol16(CGALineBuffer[i]),i,VGA->CRTC.y); //This is a placeholder, just use the standard 16 color RGBI for now! Convert to proper NTSC signal once we're working!
 }
 
 OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data for the sequencer!
@@ -197,7 +189,30 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	Sequencer->chary = row = *currowstatus++; //First is chary (effective character/graphics row)!
 	Sequencer->charinner_y = *currowstatus; //Second is charinner_y!
 
+	byte oddCGAmemory = 0; //High CGA memory to apply?
+	if (VGA->registers->specialCGAflags&1) //CGA mode?
+	{
+		switch (VGA->registers->CGARegisters[8]&3) //What CGA row mode?
+		{
+			case 0:
+			case 2: //Normal mode?
+				//No special effect! We just increase in low memory linearly!
+				break;
+			case 1: //Even scanlines divide by 2, Odd sanlines equal to the even ones, but higher memory(0,0,1,1,2,2,3,3 as E,O,E,O,E,O)!
+				oddCGAmemory = row&1; //High when odd rows!
+				row >>= 1; //Divide by 2(half the rate)!
+				break;
+			case 3: //Even scanlines are even numbers, Odd scanlines are odd numbers (0,1,2,3,4,5,6,7 as E,O,E,O,E,O)
+				oddCGAmemory = row&1; //High when odd rows!
+				//Memory addresses increase linearly!
+				break;
+		}
+	}
 	charystart = getVRAMScanlineStart(VGA, row); //Calculate row start!
+	if (oddCGAmemory) //Odd CGA memory?
+	{
+		charystart += 0x8000; //Apply the odd scanline source!
+	}
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
 	charystart += Sequencer->bytepanning; //Apply byte panning!
 	Sequencer->charystart = charystart; //What row to start with our pixels!
@@ -300,6 +315,7 @@ void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attrib
 	if (VGA->registers->specialCGAflags&1) //CGA mode?
 	{
 		//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
+		attributeinfo->attribute = 1; //Test attribute for active display!
 		CGALineBuffer[VGA->CRTC.x] = attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
 	else
