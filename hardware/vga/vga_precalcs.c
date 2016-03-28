@@ -306,18 +306,18 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_VERTICAL)) //CGA vertical timing updated?
 	{
 		updateCRTC = 1; //Update the CRTC!
-		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x9)) //Character height updated?
-		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine = (VGA->registers->CGARegisters[9]&0x1F); //Character height is set!
-			adjustVGASpeed(); //Auto-adjust our VGA speed!
-			goto updatecharheight;
-		}
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 	
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER)) //CGA CRT misc. stuff updated?
 	{
 		//Don't handle these registers just yet!
+		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0x9)) //Character height updated?
+		{
+			VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine = (VGA->registers->CGARegisters[9]&0x1F); //Character height is set!
+			adjustVGASpeed(); //Auto-adjust our VGA speed!
+			goto updatecharheight;
+		}
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xA)) //Cursor Start Register updated?
 		{
 			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart = (getActiveVGA()->registers->CGARegisters[0xA]&0x1F); //Cursor scanline start!

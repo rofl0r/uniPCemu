@@ -237,6 +237,8 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	isretrace = hretrace;
 	isretrace |= vretrace; //We're retracing?
 
+	isoutputdisabled |= ((signal&VGA_DISPLAYMASK)!=VGA_DISPLAYACTIVE); //Are we not displaying anyway? The report that!
+
 	//Retracing disables output!
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = (retracing = isretrace)|isoutputdisabled; //Vertical or horizontal retrace?
 
