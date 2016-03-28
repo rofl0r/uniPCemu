@@ -572,7 +572,8 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		if (port==0x3BA) //3BA doesn't have bit 4? Bit4=Mono operation!
 		{
 			*result &= ~8; //Clear the VRetrace bit: we're mono operation, as we're the monochrome port used!
-			*result ^= 0x1; //Bit 0 is reversed in the MDA?
+			*result &= ~0x1; //Bit 0 is different in the MDA? Clear it to be set if needed!
+			if (getActiveVGA()->CRTC.DisplayDriven) *result |= 1; //Are we driving display(Display Enable bit) on the output?
 		}
 		ok = 1;
 		break;

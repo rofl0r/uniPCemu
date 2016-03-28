@@ -239,6 +239,8 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 
 	isoutputdisabled |= ((signal&VGA_DISPLAYMASK)!=VGA_DISPLAYACTIVE); //Are we not displaying anyway? The report that!
 
+	VGA->CRTC.DisplayDriven = ((signal&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE); //Are we rendering display?
+
 	//Retracing disables output!
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = (retracing = isretrace)|isoutputdisabled; //Vertical or horizontal retrace?
 
