@@ -791,4 +791,7 @@ void setVGA_MDA(byte enabled); //0=Disabled, 1=Enable with disabled VGA, 2=Enabl
 #define getActiveVGA() ActiveVGA
 
 void adjustVGASpeed(); //Auto-adjust our VGA speed!
+
+//CGA/MDA pure mode support for initialisation!
+void VGA_initIO(); //Initialise all I/O support for the VGA/EGA/CGA/MDA!
 #endif

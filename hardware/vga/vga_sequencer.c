@@ -47,7 +47,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 	{
 		return 0.0f; //Remove VGA Scanline counter: nothing to render!
 	}
-	if (VGA->registers->specialCGAflags&1) return 15750000.0f; //Special CGA compatibility mode: change our refresh speed to match it!
+	if (VGA->registers->specialCGAflags&1) return (float)(15750000>>((~VGA->registers->Compatibility_CGAModeControl)&1)); //Special CGA compatibility mode: change our refresh speed to match it!
 	return VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3)];
 }
 

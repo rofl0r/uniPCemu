@@ -233,6 +233,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	byte FullUpdate = (whereupdated==0); //Fully updated?
 //Calculate the precalcs!
 	//Sequencer_Textmode: we update this always!
+	byte CRTUpdated=0;
+	byte CRTUpdatedCharwidth=0;
+	byte overflowupdated=0;
 
 	if ((whereupdated == (WHEREUPDATED_MISCOUTPUTREGISTER)) || FullUpdate) //Misc output register updated?
 	{
@@ -313,35 +316,48 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER)) //CGA CRT misc. stuff updated?
 	{
 		//Don't handle these registers just yet!
-		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0x8)) //Interlace Register updated?
+		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xA)) //Cursor Start Register updated?
 		{
-			//00&10=Normal Sync Mode(Non-interlace), 01=Interlace Sync Mode(Low/High RAM doubling row(0 low, 0 high, 1 low, 1 high etc.)), 11=Interlace Sync & Video Mode(0 low, 1 high, 2 low, 3 high etc.)
-			/*switch (VGA->registers->CGARegisters[8]&3) //What sync setting?
-			{
-			case 0:
-			case 2: //Normal Sync mode(Non-interlace)? All memory addresses are from low RAM upwards!
-				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 0; //Direct mapping!
-				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 0; //Direct mapping!
-				break;
-			case 1: //Interlace Sync Mode(Low/High RAM doubling row(0 low, 0 high, 1 low, 1 high etc.))
-				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //Normal mapping!
-				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //Normal mapping!
-				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //Odd scanlines are counting divided by 2!
-				break;
-			case 3: //11=Interlace Sync & Video Mode(0 low, 1 high, 2 low, 3 high etc.)
-				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //Normal mapping!
-				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //Normal mapping!
-				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 0; //Odd scanlines are counting up in lines!
-				break;
-			}*/
-			//This is applied to the renderer only!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart = (getActiveVGA()->registers->CGARegisters[0xA]&0x1F); //Cursor scanline start!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable = ((~getActiveVGA()->registers->CGARegisters[0xA])&0x40)>>6; //Disable the cursor?
+			goto updateCursorStart; //Update us!
 		}
+		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xA)) //Cursor Start Register updated?
+		{
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd = (getActiveVGA()->registers->CGARegisters[0xB]&0x1F); //Cursor scanline end!
+			goto updateCursorEnd; //Update us!
+		}
+
+		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xC)) //Start address High register updated?
+		{
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (getActiveVGA()->registers->CGARegisters[0xC]&0x1F); //Apply the start address high register!
+			goto updateStartAddress;
+		}
+
+		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xD)) //Start address Low register updated?
+		{
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER = getActiveVGA()->registers->CGARegisters[0xD]; //Apply the start address low register!
+			goto updateStartAddress;
+		}
+
+		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xE)) //Start address High register updated?
+		{
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER = (getActiveVGA()->registers->CGARegisters[0xE]&0x1F); //Apply the start address high register!
+			goto updateCursorLocation;
+		}
+
+		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xF)) //Start address Low register updated?
+		{
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER = getActiveVGA()->registers->CGARegisters[0xF]; //Apply the start address low register!
+			goto updateCursorLocation;
+		}		
+
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CRTCONTROLLER) || FullUpdate || charwidthupdated) //(some) CRT Controller values need to be updated?
 	{
-		byte CRTUpdated = UPDATE_SECTION(whereupdated)||FullUpdate; //Fully updated?
+		CRTUpdated = UPDATE_SECTION(whereupdated)||FullUpdate; //Fully updated?
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //We have been updated?
 		{
 			//lockVGA(); //We don't want to corrupt the renderer's data!
@@ -351,9 +367,8 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			//unlockVGA(); //We're finished with the VGA!
 		}
 
-		byte CRTUpdatedCharwidth = CRTUpdated||charwidthupdated; //Character width has been updated, for following registers using those?
-
-		byte overflowupdated = FullUpdate||(whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x7)); //Overflow register has been updated?
+		CRTUpdatedCharwidth = CRTUpdated||charwidthupdated; //Character width has been updated, for following registers using those?
+		overflowupdated = FullUpdate||(whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x7)); //Overflow register has been updated?
 		
 		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x8))) //Preset row scan?
 		{
@@ -364,6 +379,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xA))) //Cursor start register?
 		{
+			updateCursorStart:
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.CursorStartRegister_CursorScanLineStart = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart; //Update!
 			if (VGA->precalcs.CursorStartRegister_CursorDisable != VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable) adjustVGASpeed(); //Changed speed!
@@ -373,6 +389,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xB))) //Cursor end register?
 		{
+			updateCursorEnd:
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.CursorEndRegister_CursorScanLineEnd = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd; //Update!
 			//unlockVGA(); //We're finished with the VGA!
@@ -701,6 +718,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				   ) //Updated?
 		{
 			word cursorlocation;
+			updateCursorLocation:
 			cursorlocation = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER;
 			cursorlocation <<= 8;
 			cursorlocation |= VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER;
@@ -725,6 +743,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 						|| (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xD))) //Updated?
 		{
 			word startaddress;
+			updateStartAddress:
 			startaddress = VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER;
 			startaddress <<= 8;
 			startaddress |= VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER;

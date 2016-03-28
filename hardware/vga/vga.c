@@ -231,10 +231,8 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 void setupVGA() //Sets the VGA up for PC usage (CPU access etc.)!
 {
 	if (__HW_DISABLED) return; //Abort!
-//Our own settings we use:
-	register_PORTIN(&PORT_readVGA);
-	register_PORTOUT(&PORT_writeVGA);
 	VGAmemIO_reset(); //Initialise/reset memory mapped I/O!
+	VGA_initIO(); //Initialise I/O suppport!
 }
 
 /*

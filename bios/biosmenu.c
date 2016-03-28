@@ -357,6 +357,7 @@ byte reboot_needed = 0; //Default: no reboot needed!
 void BIOS_MenuChooser(); //The menu chooser prototype for runBIOS!
 byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
 {
+	byte oldVGAMode;
 	if (__HW_DISABLED) return 0; //Abort!
 	EMU_stopInput(); //Stop all emu input!
 	terminateVGA(); //Terminate currently running VGA for a speed up!
@@ -386,6 +387,8 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	showchecksumerrors = 0; //Default: not showing checksum errors!
 	BIOS_clearscreen(); //Clear the screen!
 	BIOS_Menu = 0; //We're opening the main menu!
+
+	oldVGAMode = BIOS_Settings.VGA_Mode; //Our old VGA mode!
 
 	reboot_needed = 0; //Do we need to reboot?
 	BIOS_MenuChooser(); //Show the BIOS's menu we've selected!
@@ -454,6 +457,10 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	EMU_startInput(); //Start all emu input again!
 
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
+	if (BIOS_Settings.VGA_Mode!=oldVGAMode) //Mode changed?
+	{
+		VGA_initIO(); //Initialise/update the VGA if needed!
+	}
 	ssource_setVolume(BIOS_Settings.SoundSource_Volume); //Set the current volume!
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
 	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?

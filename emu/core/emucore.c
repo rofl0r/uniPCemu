@@ -231,9 +231,6 @@ void initEMU(int full) //Init!
 	debugrow("Initializing I/O port handling...");
 	Ports_Init(); //Initialise I/O port support!
 	
-	debugrow("Initialising PPI...");
-	initPPI();
-
 	debugrow("Initialising PCI...");
 	initPCI(); //Initialise PCI support!
 
@@ -307,9 +304,6 @@ void initEMU(int full) //Init!
 	debugrow("Initializing 8253...");
 	init8253(); //Init Timer&PC Speaker!
 	
-	debugrow("Starting VGA...");
-	startVGA(); //Start the current VGA!
-
 	if (EMULATED_CPU <= CPU_80186) //-186 CPU?
 	{
 		initEMS(2 * MBMEMORY); //2MB EMS memory!
@@ -317,9 +311,13 @@ void initEMU(int full) //Init!
 
 	debugrow("Initialising MMU...");
 	resetMMU(); //Initialise MMU (we need the BDA from now on!)!
-	setupVGA(); //Set the VGA up for int10&CPU usage!
 
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
+	setupVGA(); //Set the VGA up for int10&CPU usage!
+
+	//PPI after VGA because we're dependant on the CGA/MDA only mode!
+	debugrow("Initialising PPI...");
+	initPPI();
 
 	debugrow("Initializing CPU...");
 	CPU_databussize = BIOS_Settings.DataBusSize; //Apply the bus to use for our emulation!
@@ -361,12 +359,13 @@ void initEMU(int full) //Init!
 		debugrow("No timers enabled.");
 	}
 
-	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
-
 	//Finally: signal we're ready!
 	emu_started = 1; //We've started!
 
 	updateSpeedLimit(); //Update the speed limit!
+
+	debugrow("Starting VGA...");
+	startVGA(); //Start the current VGA!
 
 	debugrow("EMU Ready to run.");
 }
@@ -765,12 +764,7 @@ char EMU_TIMERS[][256] = {
 				"AddrPrint", //When debugging ROMs!
 				"RTC", //Real-time clock!
 				"PSP Mouse", //PS/2 mouse input!
-				"VGA_ScanLine", //VGA rendering!
 				"AdlibAttackDecay",
-				//"Keyboard PSP Type",
-				//"Keyboard PSP Swap", //Keyboard timers aren't EMU only: the admin can change these!
-				"PSP Mouse",
-				"DMA tick",
 				"Framerate"
 				}; //All emulator (used when running the emulator) timers, which aren't used outside the emulator itself!
 

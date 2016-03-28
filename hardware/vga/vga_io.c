@@ -396,7 +396,6 @@ void setCGAMode(byte useGraphics, byte GraphicsMode)
 		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //CGA mapping!
 		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //CGA mapping!
 
-		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS = 1; //CGA!
 		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = 1; //CGA!
 		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage = 0; //CGA!
 		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.HSyncP = 0; //CGA!
@@ -462,7 +461,8 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	{
 	case 0x3B0:
 	case 0x3B2:
-	case 0x3B6: //Decodes to 3B4!
+	case 0x3B6:
+	case 0x3B4: //Decodes to 3B4!
 		if (((getActiveVGA()->registers->specialCGAflags&0x81)==1) || ((getActiveVGA()->registers->specialMDAflags&0x81)==1)) goto finishinput; //CGA doesn't have VGA registers!
 		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
 		getActiveVGA()->registers->specialCGAflags = 0; //Disable scan doubling and CGA mode for CGA compatibility!
@@ -569,10 +569,18 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		ok = 1;
 		break;
 	case 0x3BA:	//Read: Input Status #1 Register (mono)	DATA
-		//if (((getActiveVGA()->registers->specialCGAflags&0x81)==1) || ((getActiveVGA()->registers->specialMDAflags&0x81)==1)) goto finishinput; //CGA doesn't have VGA registers! Edit: Apparently it does, as Turbo XT BIOS's CGA uses it!
+		if ((getActiveVGA()->registers->specialCGAflags&0x81)==1) goto readInputStatus1; //CGA only calling MDA input check? Allow us!
+		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
+		goto readInputStatus1;
 	case 0x3DA: //Input Status #1 Register (color)	DATA
+		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
+		readInputStatus1:
 		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.DataState = 0; //Reset flipflop for 3C0!
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
+		if (port==0x3BA) //3BA doesn't have bit 4? Bit4=Mono operation!
+		{
+			*result &= ~8; //Clear the VRetrace bit: we're mono operation, as we're the monochrome port used!
+		}
 		ok = 1;
 		break;
 	
@@ -620,6 +628,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3B2:
 	case 0x3B6: //Decodes to 3B4!
 	case 0x3B4: //CRTC Controller Address Register		ADDRESS
+		if ((getActiveVGA()->registers->specialCGAflags&0x81)==1) goto accesscrtaddress; //Little hack: allow the CGA only to access the CGA/MDA CRT registers!
 		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
 		if (((getActiveVGA()->registers->specialCGAflags&0x81)==1) || ((getActiveVGA()->registers->specialMDAflags&0x81)==1)) goto finishoutput; //CGA doesn't have VGA registers!
 		goto accesscrtaddress;
@@ -844,4 +853,25 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	}
 	finishoutput: //Finishing up our call?
 	return ok; //Give if we're handled!
+}
+
+void VGA_initIO()
+{
+	//Our own settings we use:
+	register_PORTIN(&PORT_readVGA);
+	register_PORTOUT(&PORT_writeVGA);
+	if (getActiveVGA()) //Gotten active VGA? Initialise the full hardware if needed!
+	{
+		if ((getActiveVGA()->registers->specialMDAflags&0x81)==1) //Pure MDA mode?
+		{
+			getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS = 0; //Mono mode!
+			applyMDAModeControl();
+		}
+		if ((getActiveVGA()->registers->specialCGAflags&0x81)==1) //Pure CGA mode?
+		{
+			getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS = 1; //Color mode!
+			applyCGAModeControl();
+			applyCGAPaletteRegister();
+		}
+	}
 }

@@ -181,7 +181,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 
 	if (VGA->registers->specialCGAflags&1) //CGA compatibility mode?
 	{
-		isoutputdisabled = (((~VGA->registers->Compatibility_CGAModeControl)&8)>>3); //This bit disables input!
+		isoutputdisabled = (((~VGA->registers->Compatibility_CGAModeControl)>>3)&1); //This bit disables input!
 	}
 	
 	//Both H&VBlank count!
