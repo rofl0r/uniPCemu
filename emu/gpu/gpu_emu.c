@@ -34,7 +34,7 @@ uint_32 getemucol16(byte color) //Special for the emulator, like the keyboard pr
 		default:
 			 return RGB(0x00,0x00,0x00);
 	}
-	return 0; //Shouldn't be here, but just in case!
+	return RGB(0x00,0x00,0x00); //Shouldn't be here, but just in case!
 }
 
 /*

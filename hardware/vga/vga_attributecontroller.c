@@ -51,8 +51,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	byte colorselect76=0; //Color select bits 7-6!
 	byte backgroundfilter=0;
 	byte VGAMode = 1;
-	
-	if ((VGA->registers->specialCGAflags&1)^1) VGAMode = 0; //Disable the VGA color processing with CGA!
+	if (VGA->registers->specialCGAflags&1) VGAMode = 0; //Disable the VGA color processing with CGA!
 
 	paletteenable = VGA->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.PAL; //Internal palette enabled?
 	if (paletteenable) //Precalcs for palette?
@@ -113,7 +112,6 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					}
 
 					//Determine pixel font or back color to PAL index!
-					
 					if (fontstatus)
 					{
 						CurrentDAC = (byte)Attribute; //Load attribute!

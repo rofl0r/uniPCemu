@@ -308,7 +308,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		updateCRTC = 1; //Update the CRTC!
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x9)) //Character height updated?
 		{
-			VGA->precalcs.characterheight = VGA->registers->CGARegisters[9]+1; //Character height is set!
+			VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine = (VGA->registers->CGARegisters[9]&0x1F); //Character height is set!
+			adjustVGASpeed(); //Auto-adjust our VGA speed!
+			goto updatecharheight;
 		}
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
@@ -360,6 +362,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		CRTUpdated = UPDATE_SECTION(whereupdated)||FullUpdate; //Fully updated?
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //We have been updated?
 		{
+			updatecharheight:
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			if (VGA->precalcs.characterheight != VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine+1) adjustVGASpeed(); //Auto-adjust our VGA speed!
 			VGA->precalcs.characterheight = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine+1; //Character height!

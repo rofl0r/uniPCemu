@@ -53,7 +53,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 
 //Main rendering routine: renders pixels to the emulated screen.
 
-OPTINLINE void drawPixel_real(VGA_Type *VGA, uint_32 pixel, uint_32 x, uint_32 y) //Manual version for CGA conversion!
+OPTINLINE void drawPixel_real(uint_32 pixel, uint_32 x, uint_32 y) //Manual version for CGA conversion!
 {
 	register uint_32 old;
 	uint_32 *screenpixel = &EMU_BUFFER(x,y); //Pointer to our pixel!
@@ -66,7 +66,7 @@ OPTINLINE void drawPixel_real(VGA_Type *VGA, uint_32 pixel, uint_32 x, uint_32 y
 
 OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel) //Normal VGA version!
 {
-	drawPixel_real(VGA,pixel,VGA->CRTC.x,VGA->CRTC.y); //Draw our pixel on the display!
+	drawPixel_real(pixel,VGA->CRTC.x,VGA->CRTC.y); //Draw our pixel on the display!
 }
 
 OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display!
@@ -74,7 +74,7 @@ OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display
 	uint_32 i;
 	if (CGALineSize>1024) CGALineSize = 1024; //Limit to what we have available!
 	for (i=0;i<CGALineSize;i++) //Process all pixels!
-		drawPixel_real(VGA,getemucol16(CGALineBuffer[i]),i,VGA->CRTC.y); //This is a placeholder, just use the standard 16 color RGBI for now! Convert to proper NTSC signal once we're working!
+		drawPixel_real(getemucol16(CGALineBuffer[i]),i,VGA->CRTC.y); //This is a placeholder, just use the standard 16 color RGBI for now! Convert to proper NTSC signal once we're working!
 }
 
 OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data for the sequencer!
@@ -286,13 +286,14 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 //Retrace handlers!
 void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	Sequencer->yres = VGA->CRTC.y; //Update Y resolution!
+	if (VGA->CRTC.y>Sequencer->yres) Sequencer->yres = VGA->CRTC.y; //Current y resolution!
 	VGA->CRTC.y = 0; //Reset destination row!
 }
 
 void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	Sequencer->xres = CGALineSize = VGA->CRTC.x; //Update X resolution!
+	CGALineSize = VGA->CRTC.x; //Update X resolution!
+	if (VGA->CRTC.x>Sequencer->xres) Sequencer->xres = VGA->CRTC.x; //Current x resolution!
 	VGA->CRTC.x = 0; //Reset destination column!
 }
 
@@ -304,7 +305,15 @@ typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attri
 void VGA_Blank(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
-	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
+	if (VGA->registers->specialCGAflags&1) //CGA mode?
+	{
+		//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
+		CGALineBuffer[VGA->CRTC.x] = 0; //Take the literal pixel color of the CGA for later NTSC conversion!
+	}
+	else
+	{
+		drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
+	}
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -315,7 +324,6 @@ void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attrib
 	if (VGA->registers->specialCGAflags&1) //CGA mode?
 	{
 		//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
-		attributeinfo->attribute = 1; //Test attribute for active display!
 		CGALineBuffer[VGA->CRTC.x] = attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
 	else
@@ -329,8 +337,15 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
-	CGALineBuffer[VGA->CRTC.x] = VGA->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER; //Take the literal overscan color of the CGA!
-	drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
+	if (VGA->registers->specialCGAflags&1) //CGA mode?
+	{
+		//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
+		CGALineBuffer[VGA->CRTC.x] = VGA->precalcs.overscancolor; //Take the literal pixel color of the CGA for later NTSC conversion!
+	}
+	else
+	{
+		drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
+	}
 	++VGA->CRTC.x; //Next x!
 }
 

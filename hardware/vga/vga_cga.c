@@ -313,45 +313,60 @@ word get_display_CGA_x(VGA_Type *VGA, word x)
 	{
 		result |= VGA_SIGNAL_HTOTAL|VGA_SIGNAL_HRETRACESTART; //End of display: start the next frame!
 	}
-	if ((column>=(VGA->registers->CGARegisters[2]&0x7F)) && (((VGA->registers->CGARegisters[2]&0x7F)<<3)+VGA->registers->CGARegisters[3])<x) //Horizontal sync?
+	if ((column>=(VGA->registers->CGARegisters[2]&0x7F)) && (column<((VGA->registers->CGARegisters[2]&0x7F)+VGA->registers->CGARegisters[3]))) //Horizontal sync?
 	{
 		result |= VGA_SIGNAL_HRETRACESTART; //Vertical sync is simply blanking space!
 	}
 	if (column<VGA->registers->CGARegisters[1]) //Are we displayed?
 	{
-		result |= VGA_HACTIVEDISPLAY; //Horizontal displayed!
+		result |= VGA_HACTIVEDISPLAY|VGA_SIGNAL_HRETRACEEND; //Horizontal displayed!
 	}
-	result |= VGA_OVERSCAN; //We're overscan by default!
+	else
+	{
+		result |= VGA_OVERSCAN; //We're overscan by default!
+	}
 	return result; //Give the signal!
 }
 
 word get_display_CGA_y(VGA_Type *VGA, word y)
 {
 	word result=0;
+	if (!y) result |= VGA_SIGNAL_VRETRACEEND|VGA_SIGNAL_VBLANKEND; //End vertical retrace&blank if still there!
 	word row;
 	byte charheight;
-	row = y;
 	charheight = (VGA->registers->CGARegisters[9]&0x1F)+1; //Character height!
+	row = y;
 	row /= charheight; //The row we're at!
-	if (!y) result |= VGA_SIGNAL_VRETRACEEND|VGA_SIGNAL_VBLANKEND; //End vertical retrace&blank if still there!
-	if (y>((VGA->registers->CGARegisters[4]&0x7F)*charheight)) //Past total specified?
+	if (row>(VGA->registers->CGARegisters[4]&0x7F)) //Past total specified?
 	{
-		if ((((VGA->registers->CGARegisters[4]&0x7F)*charheight)+VGA->registers->CGARegisters[5])<y) //Vertical total reaced?
+		if ((((VGA->registers->CGARegisters[4]&0x7F)*charheight)+VGA->registers->CGARegisters[5])<y) //Vertical total adjustment reaced?
 		{
 			result |= VGA_SIGNAL_VTOTAL|VGA_SIGNAL_VRETRACESTART; //End of display: start the next frame!
 		}
-		result |= VGA_SIGNAL_VBLANKSTART; //We're blanking always
+		else if ((row>=(VGA->registers->CGARegisters[7]&0x7F)) && (row<((VGA->registers->CGARegisters[7]&0x7F)+0x10))) //Vertical sync? Always 16 lines!
+		{
+			result |= VGA_SIGNAL_VRETRACESTART; //Vertical sync is simply blanking space!
+		}
+		else
+		{
+			result |= VGA_SIGNAL_VRETRACEEND; //End of retrace period, if any!
+		}
+		result |= VGA_SIGNAL_VBLANKSTART; //We're blanking always after end of display!
 	}
-
-	if ((row>=(VGA->registers->CGARegisters[7]&0x7F)) && (((VGA->registers->CGARegisters[2]&0x7F)<<3)+0x10)<y) //Vertical sync? Always 16 lines!
+	else //Normal display?
 	{
-		result |= VGA_SIGNAL_VRETRACESTART; //Vertical sync is simply blanking space!
+		if ((row>=(VGA->registers->CGARegisters[7]&0x7F)) && (y<(((VGA->registers->CGARegisters[7]&0x7F)*charheight)+0x10))) //Vertical sync? It's always 16 lines!
+		{
+			result |= VGA_SIGNAL_VRETRACESTART; //Vertical sync is simply blanking space!
+		}
+		else if (row<(VGA->registers->CGARegisters[6]&0x7F)) //Active display?
+		{
+			result |= VGA_VACTIVEDISPLAY|VGA_SIGNAL_VRETRACEEND; //We're active display!
+		}
+		else
+		{
+			result |= VGA_OVERSCAN|VGA_SIGNAL_VRETRACEEND; //We're overscan by default!
+		}
 	}
-	
-	if (row<(VGA->registers->CGARegisters[6]&0x7F)) //Active display?
-	{
-		result |= VGA_VACTIVEDISPLAY; //We're active display!
-	}
-	result |= VGA_OVERSCAN; //We're overscan by default!
 	return result; //Give the signal!
 }

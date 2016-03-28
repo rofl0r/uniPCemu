@@ -187,7 +187,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	//Both H&VBlank count!
 	blanking = hblank;
 	blanking |= vblank; //Process blank!
-	blanking |= isoutputdisabled; //We're enforcing blanking when output is disabled!	
+
 	//Retraces
 	if (signal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
 	{

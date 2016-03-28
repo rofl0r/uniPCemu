@@ -364,10 +364,6 @@ void applyCGAPaletteRegister() //Update the CGA colors!
 //useGraphics: 0 for text mode, 1 for graphics mode! GraphicsMode: 0=Text mode, 1=4 color graphics, 2=B/W graphics
 void setCGAMode(byte useGraphics, byte GraphicsMode)
 {
-		//Stop rendering!
-		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR = 0;
-		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR = 0;
-
 		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode = 0;
 		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode = 0;
 		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode = 1;
@@ -402,10 +398,6 @@ void setCGAMode(byte useGraphics, byte GraphicsMode)
 		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.VSyncP = 0; //CGA!
 		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.FC0 = 0; //CGA!
 		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.FC1 = 1; //CGA!
-
-		//Start rendering!
-		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR = 1;
-		getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR = 1;
 }
 
 void applyCGAModeControl()
@@ -866,12 +858,16 @@ void VGA_initIO()
 		{
 			getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS = 0; //Mono mode!
 			applyMDAModeControl();
+			getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR = 1;
+			getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR = 1;
 		}
 		if ((getActiveVGA()->registers->specialCGAflags&0x81)==1) //Pure CGA mode?
 		{
 			getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS = 1; //Color mode!
 			applyCGAModeControl();
 			applyCGAPaletteRegister();
+			getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR = 1;
+			getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR = 1;
 		}
 	}
 }
