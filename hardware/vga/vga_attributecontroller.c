@@ -164,15 +164,6 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	}
 }
 
-char p[50] = ""; //Our string(original pattern)!
-char a[50] = ""; //Our string(attributes itself)!
-char t[50] = "", t2[50] = ""; //Temp value!
-
-OPTINLINE char int2hex(byte n)
-{
-	return (n>=10)?(n+55):(n+48);
-}
-
 OPTINLINE byte VGA_getAttributeDACIndex(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
 {
 	register word lookup;
