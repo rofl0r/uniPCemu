@@ -87,7 +87,21 @@ void dumpVGATextFonts()
 		currentcharacter = ((displayindex>>3)&0xFF); //The character changes every 8 pixels!
 		currentrow = ((displayindex>>11)&0x1F); //The row changes every 256 characters!
 		currentattribute = ((displayindex>>16)&1); //The attribute changes every 32 rows!
-		textdisplay[displayindex] = ((getcharxy_values[(currentcharacter<<6)|(currentrow<<1)|currentattribute]>>currentpixel)&1)?RGB(0xFF,0xFF,0xFF):RGB(0x00,0x00,0x00);
+		if (getActiveVGA())
+		{
+			if (getActiveVGA()->registers->specialCGAflags&1) //CGA font is used instead?
+			{
+				textdisplay[displayindex] = getcharxy_CGA(currentcharacter,currentpixel,currentrow&7)?RGB(0xFF,0xFF,0xFF):RGB(0x00,0x00,0x00);
+			}
+			else //VGA mode?
+			{
+				textdisplay[displayindex] = ((getcharxy_values[(currentcharacter<<6)|(currentrow<<1)|currentattribute]>>currentpixel)&1)?RGB(0xFF,0xFF,0xFF):RGB(0x00,0x00,0x00);
+			}
+		}
+		else
+		{
+			textdisplay[displayindex] = ((getcharxy_values[(currentcharacter<<6)|(currentrow<<1)|currentattribute]>>currentpixel)&1)?RGB(0xFF,0xFF,0xFF):RGB(0x00,0x00,0x00);
+		}
 	}
 	mkdir("captures"); //Make sure we can log!
 	writeBMP("captures/VRAMText",&textdisplay[0],256*8,32*2,0,0,256*8); //Dump our font to the BMP file! We're two characters high (one for every font table) and 256 characters wide(total characters in the font).
