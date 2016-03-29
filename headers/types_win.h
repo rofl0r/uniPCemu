@@ -21,8 +21,10 @@
 
 #ifdef VISUALC
 #ifdef _DEBUG
+#ifdef _VLD
 //Visual Leak detector when debugging!
 #include <vld.h>
+#endif
 #endif
 #endif
 
