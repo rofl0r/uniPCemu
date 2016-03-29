@@ -52,6 +52,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	byte backgroundfilter=0;
 	byte VGAMode = 1;
 	if (VGA->registers->specialCGAflags&1) VGAMode = 0; //Disable the VGA color processing with CGA!
+	if (VGA->registers->specialMDAflags&1) VGAMode = 0; //Disable the VGA color processing with MDA!
 
 	paletteenable = VGA->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.PAL; //Internal palette enabled?
 	if (paletteenable) //Precalcs for palette?

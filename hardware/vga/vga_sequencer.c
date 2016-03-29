@@ -69,12 +69,22 @@ OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel) //Normal VGA version!
 	drawPixel_real(pixel,VGA->CRTC.x,VGA->CRTC.y); //Draw our pixel on the display!
 }
 
+uint_32 MDAcolors[4] = {0,0,0,0}; //All 4 MDA colours accourding to http://www.seasip.info/VintagePC/mda.html
+
 OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display!
 {
 	uint_32 i;
 	if (CGALineSize>1024) CGALineSize = 1024; //Limit to what we have available!
-	for (i=0;i<CGALineSize;i++) //Process all pixels!
-		drawPixel_real(getemucol16(CGALineBuffer[i]),i,VGA->CRTC.y); //This is a placeholder, just use the standard 16 color RGBI for now! Convert to proper NTSC signal once we're working!
+	if ((VGA->registers->Compatibility_MDAModeControl&8) && ((VGA->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
+	{
+		for (i=0;i<CGALineSize;i++) //Process all pixels!
+			drawPixel_real(MDAcolors[CGALineBuffer[i]&3],i,VGA->CRTC.y); //This is a placeholder, just use the standard 16 color RGBI for now! Convert to proper NTSC signal once we're working!
+	}
+	else //CGA mode?
+	{
+		for (i=0;i<CGALineSize;i++) //Process all pixels!
+			drawPixel_real(getemucol16(CGALineBuffer[i]),i,VGA->CRTC.y); //This is a placeholder, just use the standard 16 color RGBI for now! Convert to proper NTSC signal once we're working!
+	}
 }
 
 OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data for the sequencer!
@@ -264,7 +274,7 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	if (VGA->registers->specialCGAflags&1) //To perform CGA to display conversion?
+	if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) //To perform CGA/MDA to display conversion?
 	{
 		drawCGALine(VGA); //Draw the current CGA line using NTSC colours!	
 	}
@@ -435,4 +445,10 @@ void initStateHandlers()
 		//Rendering handler without retrace AND total!
 		displayrenderhandler[0][i] = ((i&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)?&VGA_ActiveDisplay:&VGA_Overscan; //Not retracing or any total handler = display/overscan!
 	}
+
+	//Initialise the four MDA colors used!
+	MDAcolors[0] = RGB(0x00,0x00,0x00);
+	MDAcolors[1] = RGB(0x00,0xC0,0x00);
+	MDAcolors[2] = RGB(0x00,0x00,0x00);
+	MDAcolors[3] = RGB(0x00,0xFF,0x00);
 }
