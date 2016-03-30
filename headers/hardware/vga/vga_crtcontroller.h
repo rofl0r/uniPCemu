@@ -15,9 +15,11 @@
 #define VGA_SIGNAL_HBLANKSTART 0x80
 #define VGA_SIGNAL_VBLANKEND 0x100
 #define VGA_SIGNAL_HBLANKEND 0x200
-#define VGA_VACTIVEDISPLAY 0x400
-#define VGA_HACTIVEDISPLAY 0x800
-#define VGA_OVERSCAN 0x1000
+#define VGA_SIGNAL_VSYNCRESET 0x400
+#define VGA_SIGNAL_HSYNCRESET 0x800
+#define VGA_VACTIVEDISPLAY 0x1000
+#define VGA_HACTIVEDISPLAY 0x2000
+#define VGA_OVERSCAN 0x4000
 
 //Display check
 //Bits to check:
@@ -26,7 +28,7 @@
 #define VGA_DISPLAYACTIVE (VGA_VACTIVEDISPLAY|VGA_HACTIVEDISPLAY)
 
 //Do we have a signal with these bits on!
-#define VGA_SIGNAL_HASSIGNAL 0x3FF
+#define VGA_SIGNAL_HASSIGNAL 0xFFF
 
 //Pixel manipulation!
 //OPTINLINE byte getVRAMScanlineMultiplier(VGA_Type *VGA); //VRAM scanline multiplier!

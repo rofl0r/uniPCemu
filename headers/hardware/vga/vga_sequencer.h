@@ -34,6 +34,7 @@ typedef struct
 	word yres; //The full resolution currently counted!
 	
 	word Scanline; //Current scanline to process! Also the VGA's row scan counter!
+	word syncscanline; //Current scanline for sync signal!
 	
 	
 	//Pixel specific
