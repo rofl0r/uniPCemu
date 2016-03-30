@@ -78,7 +78,7 @@ void initPPI()
 		if (((getActiveVGA()->registers->specialCGAflags&0x81)==1)) //Pure CGA mode?
 		{
 			PPI62 &= ~0x30; //Clear our mode bits!
-			PPI62 |= 0x10; //40x25 color (mono mode)!
+			//80x25 color=00!
 		}
 		else if (((getActiveVGA()->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
 		{
