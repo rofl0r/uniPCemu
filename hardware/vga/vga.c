@@ -192,6 +192,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	
 	debugrow("VGA: Initialising CGA compatibility font support...");
 	fillCGAfont(); //Initialise the CGA font map if needed to use it!
+	fillMDAfont(); //Initialise the MDA font map if needed to use it!
 
 	debugrow("VGA: Executing initial precalculations...");
 	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!

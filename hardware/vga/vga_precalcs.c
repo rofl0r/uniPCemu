@@ -322,43 +322,43 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//Don't handle these registers just yet!
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0x9)) //Character height updated?
 		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine = (VGA->registers->CGARegisters[9]&0x1F); //Character height is set!
+			VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine = (VGA->registers->CGARegistersMasked[9]); //Character height is set!
 			adjustVGASpeed(); //Auto-adjust our VGA speed!
 			goto updatecharheight;
 		}
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xA)) //Cursor Start Register updated?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart = (getActiveVGA()->registers->CGARegisters[0xA]&0x1F); //Cursor scanline start!
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable = ((~getActiveVGA()->registers->CGARegisters[0xA])&0x40)>>6; //Disable the cursor?
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart = (getActiveVGA()->registers->CGARegistersMasked[0xA]&0x1F); //Cursor scanline start!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable = ((~getActiveVGA()->registers->CGARegistersMasked[0xA])&0x40)>>6; //Disable the cursor?
 			goto updateCursorStart; //Update us!
 		}
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xA)) //Cursor Start Register updated?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd = (getActiveVGA()->registers->CGARegisters[0xB]&0x1F); //Cursor scanline end!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd = (getActiveVGA()->registers->CGARegistersMasked[0xB]&0x1F); //Cursor scanline end!
 			goto updateCursorEnd; //Update us!
 		}
 
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xC)) //Start address High register updated?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (getActiveVGA()->registers->CGARegisters[0xC]&0x1F); //Apply the start address high register!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (getActiveVGA()->registers->CGARegistersMasked[0xC]); //Apply the start address high register!
 			goto updateStartAddress;
 		}
 
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xD)) //Start address Low register updated?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER = getActiveVGA()->registers->CGARegisters[0xD]; //Apply the start address low register!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER = getActiveVGA()->registers->CGARegistersMasked[0xD]; //Apply the start address low register!
 			goto updateStartAddress;
 		}
 
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xE)) //Start address High register updated?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER = (getActiveVGA()->registers->CGARegisters[0xE]&0x1F); //Apply the start address high register!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER = (getActiveVGA()->registers->CGARegistersMasked[0xE]); //Apply the start address high register!
 			goto updateCursorLocation;
 		}
 
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xF)) //Start address Low register updated?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER = getActiveVGA()->registers->CGARegisters[0xF]; //Apply the start address low register!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER = getActiveVGA()->registers->CGARegistersMasked[0xF]; //Apply the start address low register!
 			goto updateCursorLocation;
 		}		
 

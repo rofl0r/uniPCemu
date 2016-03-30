@@ -413,6 +413,10 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode)
 		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect = ((useGraphics&&(GraphicsMode==2)) || (!useGraphics && (GraphicsMode==1)))?2:3; //Use map B000 or B800, depending on the graphics mode!
 		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER = 0xFF; //Use all bits supplied by the CPU!
 		getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable = 3; //Write to planes 0/1 only, since we're emulating CGA!
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.S4 = 0; //CGA display!
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR = 0; //CGA display! Single pixels only!
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.SLR = 0; //CGA display! Single load rate!
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8 = 1; //CGA display! 8 dots/character!
 		getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.OEDisabled = 0; //Write to planes 0/1 only, since we're emulating CGA!
 		getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.Chain4Enable = 0; //Write to planes 0/1 only, since we're emulating CGA!
 		getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable = useGraphics; //Text mode!
@@ -454,11 +458,11 @@ void applyCGAModeControl()
 	{
 		if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x1) //80 column text mode?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 160; //We're 80 column text!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 80; //We're 80 column text!
 		}
 		else //40 column text mode?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 80; //We're 40 column text!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 40; //We're 40 column text!
 		}
 		setCGAMDAMode(0,0); //Text mode!
 	}
@@ -487,7 +491,7 @@ void applyMDAModeControl()
 		{
 			getActiveVGA()->registers->Compatibility_CGAModeControl &= ~8; //Disable the CGA!
 		}
-		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 160; //We're 80 column text!
+		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 80; //We're 80 column text!
 		setCGAMDAMode(0,1); //Set special CGA/VGA MDA compatible text mode!
 	}
 	applyCGAPaletteRegisters(); //Apply the palette registers according to our settings!
@@ -716,6 +720,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 			accessCGACRT: //Access CGA CRT!
 			if (getActiveVGA()->registers->CRTControllerRegisters_Index>=18) goto skipVGACRTwrite; //Invalid register, just handle normally(skip it)!
 			getActiveVGA()->registers->CGARegisters[getActiveVGA()->registers->CRTControllerRegisters_Index] = value; //Set the CGA register!
+			getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value; //Set the CGA register(unmasked)!
 			switch (getActiveVGA()->registers->CRTControllerRegisters_Index) //Check address registers to translate from the CGA!
 			{
 			case 0x0: //HTotal?
@@ -728,38 +733,59 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x02); //This CRT Register has been updated!
 				break;
 			case 0x3: //H Sync Width?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0xF; //Set the CGA register(masked)!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x03); //This CRT Register has been updated!
 				break;
 			case 0x4:  //Special CGA compatibilty action? Vertical total register?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x7F; //Set the CGA register(masked)!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x04); //This CRT Register has been updated!
 				break;
 			case 0x5: //V Total Adjust?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x1F; //Set the CGA register(masked)!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x05); //This CRT Register has been updated!
 				break;
 			case 0x6: //V Displayed?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x7F; //Set the CGA register(masked)!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x06); //This CRT Register has been updated!
 				break;
 			case 0x7: //V Sync Position?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x7F; //Set the CGA register(masked)!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x07); //This CRT Register has been updated!
 				break;
 			case 0x8: //Interlace mode register?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x3; //Set the CGA register(masked)!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|0x8); //CRT Mode Control Register has been updated!
 				break;
 			case 0x9: //Max scan line address?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x1F; //Set the CGA register(masked)!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|0x9); //This CRT Register has been updated!
 				break;
 			case 0xA: //Cursor Start?
 				//Bit 6&5: 00=Non-blink(ON), 01=Non-Display(OFF), 10=Blink 1/16 field rate, 11=Blink 1/32 field rate!
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x7F; //Set the CGA register(masked)!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|0xA); //This CRT Register has been updated!
 				break;
 			case 0xB: //Cursor End?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x1F; //Set the CGA register(masked)!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|0xB); //This CRT Register has been updated!
 				break;
 			case 0xC: //Start address(H)?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x3F; //Set the CGA register(masked)!
+				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|getActiveVGA()->registers->CRTControllerRegisters_Index); //This CRT Register has been updated!
+				break;
 			case 0xD: //Start address(L)?
+				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|getActiveVGA()->registers->CRTControllerRegisters_Index); //This CRT Register has been updated!
+				break;
 			case 0xE: //Cursor(H)?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x3F; //Set the CGA register(masked)!
+				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|getActiveVGA()->registers->CRTControllerRegisters_Index); //This CRT Register has been updated!
+				break;
 			case 0xF: //Cursor(L)?
+				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|getActiveVGA()->registers->CRTControllerRegisters_Index); //This CRT Register has been updated!
+				break;
 			case 0x10: //Light Pen(H)?
+				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x3F; //Set the CGA register(masked)!
+				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|getActiveVGA()->registers->CRTControllerRegisters_Index); //This CRT Register has been updated!
 			case 0x11: //Light Pen(L)?
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|getActiveVGA()->registers->CRTControllerRegisters_Index); //This CRT Register has been updated!
 				break; //Not handled yet!

@@ -619,6 +619,7 @@ typedef struct PACKED
 	byte specialCGAflags; //Special flags concerning CGA emulation!
 	byte specialMDAflags; //Special flags concerning MDA emulation!
 	byte CGARegisters[18]; //18 CGA registers!
+	byte CGARegistersMasked[18]; //18 Masked CGA registers!
 } VGA_REGISTERS;
 #include "headers/endpacked.h" //We're packed!
 
