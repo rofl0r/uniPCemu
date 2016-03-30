@@ -60,7 +60,11 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 		if (VGA->registers->specialCGAflags&1) //Affect by 620x200/320x200 mode?
 		{
 			++pixelrate;
-			if (VGA->registers->Compatibility_CGAModeControl&0x2) //Graphics mode?
+			if (VGA->registers->Compatibility_MDAModeControl & 8) //MDA mode?
+			{
+				extrastatus |= 1; //Reset for the new block/next pixel!
+			}
+			else if (VGA->registers->Compatibility_CGAModeControl&0x2) //Graphics mode?
 			{
 				if (VGA->registers->Compatibility_CGAModeControl&0x10) //640x200?
 				{
@@ -90,6 +94,7 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 					}
 				}
 			}
+			extrastatus |= 1; //Always render like we are asked, at full resolution single pixels!
 		}
 		else //Normal VGA?
 		{
