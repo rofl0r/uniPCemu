@@ -34,12 +34,13 @@ typedef struct
 	word yres; //The full resolution currently counted!
 	
 	word Scanline; //Current scanline to process! Also the VGA's row scan counter!
-	word syncscanline; //Current scanline for sync signal!
+	word Scanline_sync; //Current scanline for sync signal!
 	
 	
 	//Pixel specific
 	VGA_AttributeInfo Attributeinfo; //Attribute info, kept between pixels!
 	word x; //Current pixel on the scanline!
+	word x_sync; //Current pixel on the sync!
 	word tempx; //Current X (Sequencer)!
 	word activex; //Real current X to process (Sequencer)!
 	byte active_pixelrate; //Current pixel rate position (0-1)!

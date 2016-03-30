@@ -8,6 +8,7 @@
 #include "headers/emu/gpu/gpu.h" //GPU support!
 #include "headers/support/log.h" //Log support!
 #include "headers/interrupts/interrupt10.h" //Interrupt10h support!
+#include "headers/emu/gpu/gpu.h" //GPU resolution support!
 #include "headers/emu/gpu/gpu_renderer.h" //GPU renderer support!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/emu/emucore.h" //for pause/resumeEMU support!
@@ -40,6 +41,8 @@ extern uint_32 MMU_lastwaddr; //What address is last addresses in actual memory?
 extern byte MMU_lastwdata;
 
 extern PIC i8259;
+
+extern GPU_type GPU; //GPU itself!
 
 #include "headers/packed.h" //Packed!
 typedef struct PACKED
@@ -558,8 +561,10 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 		if (getActiveVGA()) //Gotten an active VGA?
 		{
-			GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-16,debuggerrow++); //CRT status!
-			GPU_textprintf(frameratesurface,fontcolor,backcolor,"VGA@%i,%i",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline);
+			GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-48,debuggerrow++); //CRT status!
+			GPU_textprintf(frameratesurface,fontcolor,backcolor,"VGA@%i,%i(CRT:%i,%i; Sync:%i,%i)",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline,getActiveVGA()->CRTC.x,getActiveVGA()->CRTC.y,((SEQ_DATA *)getActiveVGA()->Sequencer)->x_sync,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline_sync);
+			GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-48,debuggerrow++); //CRT status!
+			GPU_textprintf(frameratesurface,fontcolor,backcolor,"Display=%i,%i",GPU.xres,GPU.yres);
 		}
 		GPU_text_releasesurface(frameratesurface); //Unlock!
 	}

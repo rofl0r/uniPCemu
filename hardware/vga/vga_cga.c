@@ -303,6 +303,16 @@ void fillCGAfont()
 	}
 }
 
+byte CGA_is_hsync(VGA_Type *VGA, word x) //Are we vsync?
+{
+	if ((x>=((VGA->registers->CGARegisters[2]&0x7F)<<3)) && (x<(((VGA->registers->CGARegisters[2]&0x7F)<<3)+(VGA->registers->CGARegisters[3]<<3)))) //Horizontal sync?
+	{
+		return 1; //Horizontal sync!
+	}
+	return 0;
+}
+
+
 word get_display_CGA_x(VGA_Type *VGA, word x)
 {
 	word result=0;
@@ -311,21 +321,42 @@ word get_display_CGA_x(VGA_Type *VGA, word x)
 	column >>= 3; //Divide by 8 to get the character clock!
 	if (column>((VGA->registers->CGARegisters[0]&0x7F))) //Past total specified?
 	{
-		result |= VGA_SIGNAL_HTOTAL|VGA_SIGNAL_HRETRACESTART; //End of display: start the next frame!
+		result |= VGA_SIGNAL_HTOTAL; //End of display: start the next frame!
+		if (CGA_is_hsync(VGA,x-(VGA->registers->CGARegisters[3]<<3)) && x) //HSync within range?
+		{
+			result |= VGA_SIGNAL_HSYNCRESET; //Reset HSync!
+		}
 	}
-	if ((column>=(VGA->registers->CGARegisters[2]&0x7F)) && (column<((VGA->registers->CGARegisters[2]&0x7F)+VGA->registers->CGARegisters[3]))) //Horizontal sync?
+	if (CGA_is_hsync(VGA,x)) //Horizontal sync?
 	{
-		result |= VGA_SIGNAL_HRETRACESTART; //Vertical sync is simply blanking space!
+		result |= VGA_SIGNAL_HRETRACESTART; //Start horizontal sync!
+	}
+	else if (x && CGA_is_hsync(VGA,x-1)) //Previous was hsync?
+	{
+		if (column>((VGA->registers->CGARegisters[0]&0x7F))) //HSync out of range?
+		{
+			result |= VGA_SIGNAL_HSYNCRESET; //Reset HSync!
+		}
+		result |= VGA_SIGNAL_HRETRACEEND; //End horizontal sync!
 	}
 	if (column<VGA->registers->CGARegisters[1]) //Are we displayed?
 	{
-		result |= VGA_HACTIVEDISPLAY|VGA_SIGNAL_HRETRACEEND; //Horizontal displayed!
+		result |= VGA_HACTIVEDISPLAY; //Horizontal displayed!
 	}
 	else
 	{
 		result |= VGA_OVERSCAN; //We're overscan by default!
 	}
 	return result; //Give the signal!
+}
+
+byte CGA_is_vsync(VGA_Type *VGA, word y, byte charheight) //Are we vsync?
+{
+	if ((y>=(VGA->registers->CGARegisters[7]&0x7F)*charheight) && (y<(((VGA->registers->CGARegisters[7]&0x7F)*charheight)+0x10))) //Vertical sync? It's always 16 lines!
+	{
+		return 1; //Vertical sync!
+	}
+	return 0;
 }
 
 word get_display_CGA_y(VGA_Type *VGA, word y)
@@ -341,32 +372,37 @@ word get_display_CGA_y(VGA_Type *VGA, word y)
 	{
 		if ((((VGA->registers->CGARegisters[4]&0x7F)*charheight)+VGA->registers->CGARegisters[5])<y) //Vertical total adjustment reaced?
 		{
-			result |= VGA_SIGNAL_VTOTAL|VGA_SIGNAL_VRETRACESTART; //End of display: start the next frame!
-		}
-		else if ((row>=(VGA->registers->CGARegisters[7]&0x7F)) && (row<((VGA->registers->CGARegisters[7]&0x7F)+0x10))) //Vertical sync? Always 16 lines!
-		{
-			result |= VGA_SIGNAL_VRETRACESTART; //Vertical sync is simply blanking space!
-		}
-		else
-		{
-			result |= VGA_SIGNAL_VRETRACEEND; //End of retrace period, if any!
+			result |= VGA_SIGNAL_VTOTAL; //End of display: start the next frame!
+			if (CGA_is_vsync(VGA,y-16,charheight) && y) //VSync within range?
+			{
+				result |= VGA_SIGNAL_VSYNCRESET; //Reset VSync!
+			}
 		}
 		result |= VGA_SIGNAL_VBLANKSTART; //We're blanking always after end of display!
 	}
 	else //Normal display?
 	{
-		if ((row>=(VGA->registers->CGARegisters[7]&0x7F)) && (y<(((VGA->registers->CGARegisters[7]&0x7F)*charheight)+0x10))) //Vertical sync? It's always 16 lines!
+		if (row<(VGA->registers->CGARegisters[6]&0x7F)) //Active display?
 		{
-			result |= VGA_SIGNAL_VRETRACESTART; //Vertical sync is simply blanking space!
-		}
-		else if (row<(VGA->registers->CGARegisters[6]&0x7F)) //Active display?
-		{
-			result |= VGA_VACTIVEDISPLAY|VGA_SIGNAL_VRETRACEEND; //We're active display!
+			result |= VGA_VACTIVEDISPLAY; //We're active display!
 		}
 		else
 		{
-			result |= VGA_OVERSCAN|VGA_SIGNAL_VRETRACEEND; //We're overscan by default!
+			result |= VGA_OVERSCAN; //We're overscan by default!
 		}
+	}
+
+	if (CGA_is_vsync(VGA,y,charheight)) //Vertical sync?
+	{
+		result |= VGA_SIGNAL_VRETRACESTART; //Vertical sync is simply blanking space!
+	}
+	else if (y && CGA_is_vsync(VGA,y-1,charheight)) //Previous was vsync?
+	{
+		if (row>(VGA->registers->CGARegisters[4]&0x7F)) //VSync end out of range?
+		{
+			result |= VGA_SIGNAL_VSYNCRESET; //Reset VSync!
+		}
+		result |= VGA_SIGNAL_VRETRACEEND; //End of retrace period, if any!
 	}
 	return result; //Give the signal!
 }

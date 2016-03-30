@@ -83,7 +83,7 @@ word get_display_y(VGA_Type *VGA, word scanline) //Vertical check!
 	signal = VGA_OVERSCAN; //Init to overscan!
 	if (scanline>=getVerticalTotal(VGA)) //VTotal?
 	{
-		signal |= VGA_SIGNAL_VTOTAL; //VTotal notify!
+		signal |= VGA_SIGNAL_VTOTAL|VGA_SIGNAL_VSYNCRESET; //VTotal&Sync reset notify!
 	}
 	
 	if (scanline==getVerticalRetraceStart(VGA)) //Retracing to line 0?
@@ -123,7 +123,7 @@ word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 	word hchar = VGA->CRTC.charcolstatus[x<<1]; //What character?
 	if (x>=getHorizontalTotal(VGA)) //HTotal?
 	{
-		signal |= VGA_SIGNAL_HTOTAL; //HTotal notify!
+		signal |= VGA_SIGNAL_HTOTAL|VGA_SIGNAL_HSYNCRESET; //HTotal&Sync reset notify!
 	}
 	//First, check vertical/horizontal retrace, blanking, overline!
 	if (x==getHorizontalRetraceStart(VGA)) //Might be retracing to pixel 0?

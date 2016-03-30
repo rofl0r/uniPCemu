@@ -151,6 +151,10 @@ void dump_CRTCTiming()
 		{
 			sprintf(information,"%s+OVERSCAN",information); //Add!
 		}
+		if (status&VGA_SIGNAL_VSYNCRESET)
+		{
+			sprintf(information,"%s+VSYNCRESET",information); //Add!
+		}
 		dolog("VGA","%s",information);
 		if (status&VGA_SIGNAL_VTOTAL) break; //Total reached? Don't look any further!
 	}
@@ -187,6 +191,10 @@ void dump_CRTCTiming()
 		if (status&VGA_OVERSCAN)
 		{
 			sprintf(information,"%s+OVERSCAN",information); //Add!
+		}
+		if (status&VGA_SIGNAL_HSYNCRESET)
+		{
+			sprintf(information,"%s+HSYNCRESET",information); //Add!
 		}
 		dolog("VGA","%s",information);
 		if (status&VGA_SIGNAL_HTOTAL)

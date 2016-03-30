@@ -283,6 +283,7 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//Sequencer itself
 	Sequencer->x = 0; //Reset for the next scanline!
 	++Sequencer->Scanline; //Next scanline to process!
+	++Sequencer->Scanline_sync; //Next VSync scanline to process!
 	
 	//CRT
 	if (!vretrace) ++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!

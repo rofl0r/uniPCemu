@@ -21,7 +21,10 @@
 #include <stdio.h>
 
 //Enable inlining if set!
+#ifndef _DEBUG
+//Disable inlining when debugging!
 #define __ENABLE_INLINE
+#endif
 
 //Platform specific stuff!
 #ifdef _WIN32

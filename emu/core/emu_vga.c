@@ -124,7 +124,7 @@ OPTINLINE byte doVGA_Sequencer() //Do we even execute?
 	return 1; //We can render something!
 }
 
-extern word signal_x, signal_scanline; //Signal location!
+extern word signal_x, signal_scanline, signal_; //Signal location!
 byte Sequencer_run; //Sequencer breaked (loop exit)?
 byte isoutputdisabled = 0; //Output disabled?
 
@@ -138,7 +138,7 @@ extern byte hblank, hretrace; //Horizontal blanking/retrace?
 extern byte vblank, vretrace; //Vertical blanking/retrace?
 extern word blankretraceendpending; //Ending blank/retrace pending? bits set for any of them!
 
-OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal, word sync)
 {
 	//Blankings
 	if (signal&VGA_SIGNAL_HBLANKSTART) //HBlank start?
@@ -183,13 +183,19 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	{
 		isoutputdisabled = (((~(VGA->registers->Compatibility_CGAModeControl|VGA->registers->Compatibility_MDAModeControl))>>3)&1); //This bit disables rendering input on CGA&MDA! If neither is 1, no display enable occurs!
 	}
+	else
+	{
+		isoutputdisabled = 0; //Output is always enabled!
+	}
 	
 	//Both H&VBlank count!
 	blanking = hblank;
 	blanking |= vblank; //Process blank!
 
-	//Retraces
-	if (signal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
+	//Now process the Retraces/Sync!
+
+	//HSync
+	if (sync&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
 	{
 		if (!hretrace) //Not running yet?
 		{
@@ -199,13 +205,14 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	}
 	else if (hretrace)
 	{
-		if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
+		if (sync&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
 		{
 			hretrace = 0; //We're not retraing anymore!
 		}
 	}
 
-	if (signal&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
+	//VSync
+	if (sync&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
 	{
 		if (!vretrace) //Not running yet?
 		{
@@ -225,10 +232,21 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	}
 	else if (vretrace)
 	{
-		if (signal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
+		if (sync&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
 		{
 			vretrace = 0; //We're not retracing anymore!
 		}
+	}
+
+	//Process resetting the HSync/VSync counters!
+	if (sync&VGA_SIGNAL_HSYNCRESET) //Reset HSync?
+	{
+		Sequencer->x_sync = 0; //Reset HSync!
+	}
+
+	if (sync&VGA_SIGNAL_VSYNCRESET) //Reset VSync?
+	{
+		Sequencer->Scanline_sync = 0; //Reset VSync!
 	}
 
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace; //Vertical retrace?
@@ -239,13 +257,13 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 
 	isoutputdisabled |= ((signal&VGA_DISPLAYMASK)!=VGA_DISPLAYACTIVE); //Are we not displaying anyway? The report that!
 
-	VGA->CRTC.DisplayDriven = hretrace?1:0; //Are we retracing horizontally? According to http://www.seasip.info/VintagePC/mda.html
+	VGA->CRTC.DisplayDriven = isretrace?1:0; //Are we retracing horizontally? According to http://www.seasip.info/VintagePC/mda.html
 
 	//Retracing disables output!
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = (retracing = isretrace)|isoutputdisabled; //Vertical or horizontal retrace?
 
+	//Process HTotal/VTotal
 	totalling = 0; //Default: Not totalling!
-	//Totals
 	if (signal&VGA_SIGNAL_HTOTAL) //HTotal?
 	{
 		VGA_HTotal(Sequencer,VGA); //Process HTotal!
@@ -278,7 +296,7 @@ OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust th
 OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 {
 	//if (!lockVGA()) return; //Lock ourselves!
-	static word displaystate = 0; //Last display state!
+	static word displaystate = 0, displaystate_sync=0; //Last display state!
 	
 	//All possible states!
 	if (!displayrenderhandler[0][0]) initStateHandlers(); //Init our display states for usage when needed!
@@ -296,7 +314,8 @@ OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 	signal_x = Sequencer->x;
 	signal_scanline = Sequencer->Scanline;
 	displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), displaystate); //Handle any change in display state first!
+	displaystate_sync = get_display(getActiveVGA(), Sequencer->Scanline_sync, Sequencer->x_sync++); //Current display state of the sync lines!
+	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), displaystate, displaystate_sync); //Handle any change in display state first!
 	displayrenderhandler[totalretracing][displaystate](Sequencer, getActiveVGA()); //Execute our signal!
 
 	//unlockVGA(); //Unlock the VGA for Software access!
