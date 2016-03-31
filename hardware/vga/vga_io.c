@@ -2,6 +2,7 @@
 #include "headers/hardware/vga/vga_precalcs.h" //Precalcs!
 #include "headers/hardware/ports.h" //Ports!
 #include "headers/cpu/cpu.h" //NMI support!
+#include "headers/hardware/vga/vga_cga_ntsc.h" //NTSC palette update support!
 
 /*
 
@@ -272,7 +273,7 @@ void setVGA_MDA(byte enabled)
 
 //Foreground colors: Red green yellow(not set), Magenta cyan white(set), Black red cyan white on a color monitor(RGB)!
 byte CGA_lowcolors[3][4] = {{0,0x4,0x2,0xE},{0,0x5,0x3,0xF},{0,0x4,0x3,0xF}};
-byte CGA_RGB = 0; //Are we a RGB monitor(1) or Composite monitor(0)?
+extern byte CGA_RGB; //Are we a RGB monitor(1) or Composite monitor(0)?
 
 //Compatibility handling on both writes and reads to compatibility registers!
 void applyCGAPaletteRegisters()
@@ -385,6 +386,7 @@ void applyCGAPaletteRegisters()
 		}
 	}
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL_SECTION|WHEREUPDATED_ATTRIBUTECONTROLLER); //We have been updated(whole attribute controller mode)!
+	RENDER_updateCGAColors(); //Update the NTSC color translation if required!
 }
 
 void applyCGAPaletteRegister() //Update the CGA colors!

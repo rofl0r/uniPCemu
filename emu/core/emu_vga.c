@@ -438,5 +438,10 @@ void EMU_update_VGA_Settings() //Update the VGA settings!
 	if (getActiveVGA()) //Gotten an active VGA?
 	{
 		DAC_updateEntries(getActiveVGA()); //Update all DAC entries according to the current/new color settings!
+		byte CGAMode;
+		CGAMode = BIOS_Settings.CGAModel; //What CGA is emulated?
+		if ((CGAMode&3)!=CGAMode) CGAMode = 0; //Default to RGB, old-style CGA!
+		setCGA_NTSC(CGAMode&1); //RGB with modes 0&2, NTSC with modes 1&3
+		setCGA_NewCGA(CGAMode&2); //New-style with modes 2&3, Old-style with modes 0&1
 	}
 }

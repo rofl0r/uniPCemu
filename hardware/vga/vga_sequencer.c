@@ -2,6 +2,7 @@
 
 #include "headers/types.h" //Basic types!
 #include "headers/emu/gpu/gpu.h" //GPU!
+#include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/hardware/vga/vga.h" //VGA!
 #include "headers/hardware/vga/vga_sequencer.h" //Ourselves!
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Text mode!
@@ -9,13 +10,12 @@
 #include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller!
 #include "headers/hardware/vga/vga_crtcontroller.h" //CRT Controller for finishing up!
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC support!
+#include "headers/hardware/vga/vga_vram.h" //VGA VRAM support!
+#include "headers/hardware/vga/vga_cga_ntsc.h" //CGA NTSC support!
 #include "headers/cpu/interrupts.h" //For get/putpixel variant!
 #include "headers/support/highrestimer.h" //High resolution clock!
 #include "headers/support/zalloc.h" //Memory protection support!
 #include "headers/support/log.h" //Logging support!
-#include "headers/hardware/vga/vga_vram.h" //VGA VRAM support!
-
-#include "headers/emu/gpu/gpu_text.h" //Text support!
 
 word signal_x, signal_scanline; //Signal location!
 
@@ -38,6 +38,7 @@ float VGA_clocks[4] = {
 
 uint_32 CGALineSize = 0; //How long is our line!
 byte CGALineBuffer[1024]; //Full CGA scanline buffer!
+uint_32 CGAOutputBuffer[1024]; //Full CGA NTSC buffer!
 
 float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
 {
@@ -71,6 +72,8 @@ OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel) //Normal VGA version!
 
 uint_32 MDAcolors[4] = {0,0,0,0}; //All 4 MDA colours accourding to http://www.seasip.info/VintagePC/mda.html
 
+extern byte CGA_RGB; //Are we a RGB monitor(1) or Composite monitor(0)?
+
 OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display!
 {
 	uint_32 i;
@@ -82,8 +85,9 @@ OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display
 	}
 	else //CGA mode?
 	{
-		for (i=0;i<CGALineSize;i++) //Process all pixels!
-			drawPixel_real(getemucol16(CGALineBuffer[i]),i,VGA->CRTC.y); //This is a placeholder, just use the standard 16 color RGBI for now! Convert to proper NTSC signal once we're working!
+		RENDER_convertCGAOutput(&CGALineBuffer[0],&CGAOutputBuffer[0],CGALineSize); //Convert the CGA line to RGB output!
+		for (i=0;i<CGALineSize;i++) //Render all pixels!
+			drawPixel_real(CGAOutputBuffer[i],i,VGA->CRTC.y); //Render the converted CGA output signal!
 	}
 }
 

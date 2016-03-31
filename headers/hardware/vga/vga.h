@@ -785,6 +785,8 @@ void VGA_plane2updated(VGA_Type *VGA, uint_32 address); //Plane 2 has been updat
 
 void setVGA_NMIonPrecursors(byte enabled); //Trigger an NMI when our precursors are called?
 void setVGA_CGA(byte enabled); //0=Disabled, 1=Enable with disabled VGA, 2=Enabled with enabled VGA!
+void setCGA_NewCGA(byte enabled); //Use New-style CGA emulation?
+void setCGA_NTSC(byte enabled); //Use NTSC CGA signal output?
 void setVGA_MDA(byte enabled); //0=Disabled, 1=Enable with disabled VGA, 2=Enabled with enabled VGA!
 
 #define lockVGA() lock(LOCK_VGA)

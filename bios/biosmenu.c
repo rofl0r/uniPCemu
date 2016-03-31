@@ -179,6 +179,7 @@ void BIOS_useAdlib();
 void BIOS_useLPTDAC();
 void BIOS_VGASynchronization();
 void BIOS_DumpVGA();
+void BIOS_CGAModel();
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -232,6 +233,7 @@ Handler BIOS_Menus[] =
 	,BIOS_useLPTDAC //Use LPT DAC is #46!
 	,BIOS_VGASynchronization //Change VGA Synchronization setting is #47!
 	,BIOS_DumpVGA //Dump the VGA fully is #48!
+	,BIOS_CGAModel //Select the CGA Model is #49!
 };
 
 //Not implemented?
@@ -3460,7 +3462,7 @@ setdirectplottext: //For fixing it!
 	}
 
 setaspectratiotext:
-	optioninfo[advancedoptions] = 3; //Keep aspect ratio!
+	optioninfo[advancedoptions] = 4; //Keep aspect ratio!
 	strcpy(menuoptions[advancedoptions], "Aspect ratio: ");
 	switch (BIOS_Settings.aspectratio) //Keep aspect ratio?
 	{
@@ -3534,7 +3536,31 @@ setVGAModetext: //For fixing it!
 		break;
 	}
 
-	optioninfo[advancedoptions] = 4; //Show framerate!
+setCGAModeltext: //For fixing it!
+	optioninfo[advancedoptions] = 3; //CGA Model!
+	strcpy(menuoptions[advancedoptions], "CGA Model: ");
+	switch (BIOS_Settings.CGAModel) //CGA Model?
+	{
+	case 0:
+		strcat(menuoptions[advancedoptions++], "Old-style RGB");
+		break;
+	case 1:
+		strcat(menuoptions[advancedoptions++], "Old-style NTSC");
+		break;
+	case 2:
+		strcat(menuoptions[advancedoptions++], "New-style RGB");
+		break;
+	case 3:
+		strcat(menuoptions[advancedoptions++], "New-style NTSC");
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.CGAModel = 0; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setCGAModeltext; //Goto!
+		break;
+	}
+
+	optioninfo[advancedoptions] = 5; //Show framerate!
 	strcpy(menuoptions[advancedoptions], "Show framerate: ");
 	if (BIOS_Settings.ShowFramerate)
 	{
@@ -3545,7 +3571,7 @@ setVGAModetext: //For fixing it!
 		strcat(menuoptions[advancedoptions++], "Disabled");
 	}
 
-	optioninfo[advancedoptions] = 5; //VGA Synchronization!
+	optioninfo[advancedoptions] = 6; //VGA Synchronization!
 	strcpy(menuoptions[advancedoptions], "VGA Synchronization: ");
 	switch (BIOS_Settings.VGASynchronization)
 	{
@@ -3561,7 +3587,7 @@ setVGAModetext: //For fixing it!
 			break;
 	}
 
-	optioninfo[advancedoptions] = 6; //Dump VGA!
+	optioninfo[advancedoptions] = 7; //Dump VGA!
 	strcpy(menuoptions[advancedoptions++],"Dump VGA");
 }
 
@@ -3593,16 +3619,19 @@ void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
 		case 2: //VGA Mode?
 			BIOS_Menu = 30; //VGA Mode setting!
 			break;
-		case 3: //Aspect ratio setting!
+		case 3: //CGA Model
+			BIOS_Menu = 49; //CGA Model!
+			break;
+		case 4: //Aspect ratio setting!
 			BIOS_Menu = 17; //Aspect ratio setting!
 			break;
-		case 4: //Show framerate setting!
+		case 5: //Show framerate setting!
 			BIOS_Menu = 39; //Show framerate setting!
 			break;
-		case 5: //VGA Synchronization setting!
+		case 6: //VGA Synchronization setting!
 			BIOS_Menu = 47; //VGA Synchronization setting!
 			break;
-		case 6: //Dump VGA?
+		case 7: //Dump VGA?
 			BIOS_Menu = 48; //Dump VGA!
 			break;
 		default:
@@ -4761,5 +4790,65 @@ void BIOS_DumpVGA()
 		dump_CRTCTiming(); //Dump all CRTC timing currently in use!
 	}
 
+	BIOS_Menu = 29; //Goto Video menu!
+}
+
+void BIOS_CGAModel()
+{
+	BIOS_Title("CGA Model");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "VGA Model: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 4; //Ammount of CGA Models!
+	for (i = 0; i<4; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[0], "Old-style RGB"); //Old-style RGB!
+	strcpy(itemlist[1], "Old-style NTSC"); //Old-style NTSC!
+	strcpy(itemlist[2], "New-style RGB"); //New-style RGB!
+	strcpy(itemlist[3], "New-style NTSC"); //New-style NTSC!
+	int current = 0;
+	switch (BIOS_Settings.CGAModel) //What setting?
+	{
+	case 0: //Valid
+	case 1: //Valid
+	case 2: //Valid
+	case 3: //Valid
+		current = BIOS_Settings.CGAModel; //Valid: use!
+		break;
+	default: //Invalid
+		current = 0; //Default to the first option!
+		break;
+	}
+	if (BIOS_Settings.CGAModel != current) //Invalid?
+	{
+		BIOS_Settings.CGAModel = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(11, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	default: //Unknown result?
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0; //Default setting!
+
+	case 0:
+	case 1:
+	case 2:
+	case 3:
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.CGAModel = file; //Select Data bus size setting!
+		}
+		break;
+	}
 	BIOS_Menu = 29; //Goto Video menu!
 }

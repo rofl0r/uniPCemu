@@ -65,7 +65,7 @@ OBJS += hardware/vga/vga_precalcs.o
 #VRAM text-mode data
 OBJS += hardware/vga/vga_vramtext.o
 #CGA support!
-OBJS += hardware/vga/vga_cga.o
+OBJS += hardware/vga/vga_cga.o hardware/vga/vga_cga_ntsc.o
 
 #Adlib!
 OBJS += hardware/adlib.o
