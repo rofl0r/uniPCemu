@@ -75,7 +75,7 @@ OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display
 {
 	uint_32 i;
 	if (CGALineSize>1024) CGALineSize = 1024; //Limit to what we have available!
-	if ((VGA->registers->Compatibility_MDAModeControl&8) && ((VGA->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
+	if ((VGA->registers->specialMDAflags&0x81)==1) //Pure MDA mode?
 	{
 		for (i=0;i<CGALineSize;i++) //Process all pixels!
 			drawPixel_real(MDAcolors[CGALineBuffer[i]&3],i,VGA->CRTC.y); //This is a placeholder, just use the standard 16 color RGBI for now! Convert to proper NTSC signal once we're working!
@@ -316,7 +316,7 @@ typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attri
 void VGA_Blank(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
-	if (VGA->registers->specialCGAflags&1) //CGA mode?
+	if ((VGA->registers->specialCGAflags&1) || (VGA->registers->specialMDAflags&1)) //CGA/MDA mode?
 	{
 		//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
 		CGALineBuffer[VGA->CRTC.x] = 0; //Take the literal pixel color of the CGA for later NTSC conversion!
@@ -332,7 +332,7 @@ void VGA_ActiveDisplay_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attrib
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
-	if (VGA->registers->specialCGAflags&1) //CGA mode?
+	if ((VGA->registers->specialCGAflags&1) || (VGA->registers->specialMDAflags&1)) //CGA/MDA mode?
 	{
 		//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
 		CGALineBuffer[VGA->CRTC.x] = attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
@@ -348,7 +348,7 @@ void VGA_Overscan_noblanking(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
-	if (VGA->registers->specialCGAflags&1) //CGA mode?
+	if ((VGA->registers->specialCGAflags&1) || (VGA->registers->specialMDAflags&1)) //CGA/MDA mode?
 	{
 		//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
 		CGALineBuffer[VGA->CRTC.x] = VGA->precalcs.overscancolor; //Take the literal pixel color of the CGA for later NTSC conversion!
