@@ -418,6 +418,7 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode)
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation = ((!useGraphics) && (GraphicsMode==1)); //CGA attributes!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable = 1; //CGA line graphics!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PixelPanningMode = 0; //CGA pixel panning mode!
+	VGA_3C0_PAL = 1; //Enable the palette!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA = 0xF; //CGA: enable all color planes!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4 = 0; //CGA normal mode!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DW = 0; //CGA normal mode!
