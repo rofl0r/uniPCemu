@@ -17,7 +17,7 @@ byte PPI_readIO(word port, byte *result)
 		return 1;
 		break;
 	case 0x62: //PPI62?
-		*result = ((PPI62|4)&~8); //Read the value, only 2 floppy drives (bit 3=0)!
+		*result = PPI62; //Read the value!
 		return 1;
 		break;
 	case 0x63: //PPI63?
@@ -32,6 +32,17 @@ byte PPI_readIO(word port, byte *result)
 		break;
 	}
 	return 0; //No PPI!
+}
+
+void setPPI62()
+{
+	PPI62 &= 0xF0; //Clear our mode bits: We're filling in now!
+	if (((getActiveVGA()->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
+	{
+		PPI62 |= 0x3; //MDA 80x25!
+	}
+	//80x25 color=00, so already set!
+	PPI62 |= (1<<2); //Read the value, only 2 floppy drives(this number is the amount of floppy drives minus one)!
 }
 
 byte PPI_writeIO(word port, byte value)
@@ -75,15 +86,7 @@ void initPPI()
 	if (EMULATED_CPU<=CPU_80186) //XT machine?
 	{
 		//Check for reserved hardware settings!
-		if (((getActiveVGA()->registers->specialCGAflags&0x81)==1)) //Pure CGA mode?
-		{
-			PPI62 &= ~0x30; //Clear our mode bits!
-			//80x25 color=00!
-		}
-		else if (((getActiveVGA()->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
-		{
-			PPI62 |= 0x30; //MDA 80x25!
-		}
+		setPPI62(); //Set PPI62!
 	}
 
 	register_PORTIN(&PPI_readIO);

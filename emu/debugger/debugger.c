@@ -572,7 +572,8 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 void debuggerThread()
 {
-	static byte skipopcodes = 0; //Skip none!
+	static uint_32 skipopcodes = 0; //Skip none!
+	static byte skipstep = 0; //Skip while stepping?
 	int i;
 	pauseEMU(); //Pause it!
 
@@ -580,7 +581,16 @@ void debuggerThread()
 	debugger_screen(); //Show debugger info on-screen!
 	int done = 0;
 	done = 0; //Init: not done yet!
-	for (;!(done || skipopcodes);) //Still not done or skipping?
+
+	if (skipstep) //Finished?
+	{
+		if (!CPU[activeCPU].repeating) //Finished repeating?
+		{
+			skipstep = 0; //Disable skip step!
+		}
+	}
+
+	for (;!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating));) //Still not done or skipping?
 	{
 		if (DEBUGGER_ALWAYS_STEP || singlestep) //Always step?
 		{
@@ -611,13 +621,13 @@ void debuggerThread()
 			skipopcodes = 9; //Skip 9 additional opcodes!
 			break;
 		}
-		if (psp_keypressed(BUTTON_SQUARE)) //Refresh screen?
+		if (psp_keypressed(BUTTON_SQUARE)) //Skip 1000 commands?
 		{
-			renderHWFrame(); //Refresh it!
-			while (psp_keypressed(BUTTON_SQUARE)) //Wait for release to show debugger again!
+			while (psp_keypressed(BUTTON_SQUARE)) //Wait for release!
 			{
 			}
-			debugger_screen(); //Show the debugger again!
+			skipstep = 1; //Skip all REP additional opcodes!
+			break;
 		}
 		if (psp_keypressed(BUTTON_CIRCLE)) //Dump memory?
 		{
