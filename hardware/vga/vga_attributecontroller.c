@@ -138,7 +138,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 							else //Process fully to a DAC index!
 							{
 								//First, bit 4&5 processing if needed!
-									if (palette54) //Bit 4&5 map to the C45 field of the Color Select Register, determined by bit 7?
+								if (palette54) //Bit 4&5 map to the C45 field of the Color Select Register, determined by bit 7?
 								{
 									CurrentDAC &= 0xF; //Take only the first 4 bits!
 									CurrentDAC |= colorselect54; //Use them as 4th&5th bit!

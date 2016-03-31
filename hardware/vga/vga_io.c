@@ -292,24 +292,6 @@ void applyCGAPaletteRegisters()
 			{
 				color |= 1; //Set on attribute!
 			}
-			if ((getActiveVGA()->registers->specialCGAflags&81)==1) //CGA only mode? Translate to CGA colors!
-			{
-				switch (color) //What color to use of the MDA palette?
-				{
-					default:
-					case 0: //Black?
-						break; //Black=Black!
-					case 1: //Dark on?
-						color = 2; //Dark green!
-						break;
-					case 2: //Bright black?
-						color = 8; //Dark gray!
-						break;
-					case 3: //Full strength?
-						color = 10; //Light green!
-						break;
-				}
-			}
 			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[i].DATA = i; //Make us equal!
 		}
 		getActiveVGA()->precalcs.overscancolor = 0; //This forces black overscan! We don't have overscan!		
