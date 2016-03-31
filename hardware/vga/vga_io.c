@@ -373,7 +373,7 @@ void applyCGAPaletteRegisters()
 					}
 					else //Background?
 					{
-						color = 0; //Background color!
+						color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Background color!
 					}
 					if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x10) //Display in low intensity?
 					{
@@ -893,27 +893,36 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3D8: //CGA mode control register
 		if (getActiveVGA()->registers->specialCGAflags&0x1) //Not NMI used on CGA-specific registers being called?
 		{
-			getActiveVGA()->registers->Compatibility_CGAModeControl = value; //Set the MDA Mode Control Register!
+			if (getActiveVGA()->registers->Compatibility_CGAModeControl!=value) //Value changed?
+			{
+				getActiveVGA()->registers->Compatibility_CGAModeControl = value; //Set the MDA Mode Control Register!
+				applyCGAModeControl(); //Only apply when needed!			
+			}
 			ok = 1; //OK!
-			applyCGAModeControl();
 		}
 		else if (NMIPrecursors) ok = !execNMI(0); //Execute an NMI from Bus!
 		break;
 	case 0x3D9: //CGA palette register
 		if (getActiveVGA()->registers->specialCGAflags&0x1) //Not NMI used on CGA-specific registers being called?
 		{
-			getActiveVGA()->registers->Compatibility_CGAPaletteRegister = value; //Set the MDA Mode Control Register!
+			if (getActiveVGA()->registers->Compatibility_CGAPaletteRegister!=value) //Value changed?
+			{
+				getActiveVGA()->registers->Compatibility_CGAPaletteRegister = value; //Set the MDA Mode Control Register!
+				applyCGAPaletteRegister();
+			}
 			ok = 1; //OK!
-			applyCGAPaletteRegister();
 		}
 		else if (NMIPrecursors) ok = !execNMI(0); //Execute an NMI from Bus!
 		break;
 	case 0x3B8: //MDA Mode Control Register
 		if (getActiveVGA()->registers->specialMDAflags&0x1) //Not NMI used on MDA-specific registers being called? Also emulate with CGA enabled!
 		{
-			getActiveVGA()->registers->Compatibility_MDAModeControl = value; //Set the MDA Mode Control Register!
+			if (getActiveVGA()->registers->Compatibility_MDAModeControl!=value) //Value changed?
+			{
+				getActiveVGA()->registers->Compatibility_MDAModeControl = value; //Set the MDA Mode Control Register!
+				applyMDAModeControl();
+			}
 			ok = 1; //OK!
-			applyMDAModeControl();
 		}
 		else if (NMIPrecursors) ok = !execNMI(0); //Execute an NMI from Bus!
 		break;
