@@ -459,11 +459,11 @@ void applyCGAModeControl()
 	{
 		if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x1) //80 column text mode?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 40; //We're 80 column text!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 80; //We're 80 column text!
 		}
 		else //40 column text mode?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 20; //We're 40 column text!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 40; //We're 40 column text!
 		}
 		setCGAMDAMode(0,0); //Text mode!
 	}
@@ -477,7 +477,7 @@ void applyCGAModeControl()
 		{
 			setCGAMDAMode(1,1); //Set up basic 4-color graphics!
 		}
-		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 40; //We're 80 bytes per row(divide by 2)!
+		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 80; //We're 80 bytes per row(divide by 2)!
 	}
 	applyCGAPaletteRegisters(); //Apply the palette registers according to our settings!
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //We have been updated!	
@@ -492,7 +492,7 @@ void applyMDAModeControl()
 		{
 			getActiveVGA()->registers->Compatibility_CGAModeControl &= ~8; //Disable the CGA!
 		}
-		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 40; //We're 80(x2) column text!
+		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 80; //We're 80 column text!
 		setCGAMDAMode(0,1); //Set special CGA/VGA MDA compatible text mode!
 	}
 	applyCGAPaletteRegisters(); //Apply the palette registers according to our settings!

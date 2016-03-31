@@ -181,7 +181,11 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 
 	if (VGA->registers->specialCGAflags&1) //CGA compatibility mode?
 	{
-		isoutputdisabled = (((~(VGA->registers->Compatibility_CGAModeControl|VGA->registers->Compatibility_MDAModeControl))>>3)&1); //This bit disables rendering input on CGA&MDA! If neither is 1, no display enable occurs!
+		isoutputdisabled = (((~VGA->registers->Compatibility_CGAModeControl)>>3)&1); //This bit disables rendering input on CGA&MDA! If neither is 1, no display enable occurs!
+	}
+	else if (VGA->registers->specialMDAflags&1) //MDA compatibility mode?
+	{
+		isoutputdisabled = (((~VGA->registers->Compatibility_MDAModeControl)>>3)&1); //This bit disables rendering input on CGA&MDA! If neither is 1, no display enable occurs!
 	}
 	else
 	{
