@@ -1818,8 +1818,10 @@ byte DirectInput_Middle = 0; //Is direct input toggled by middle mouse button?
 //Toggle direct input on/off!
 void toggleDirectInput(byte middlebutton)
 {
-	Direct_Input = !Direct_Input; //Toggle direct input!
-	if (Direct_Input) //Enabled?
+	if (Direct_Input && (middlebutton!=DirectInput_Middle)) return; //Disable toggling off with other methods than we originally started with!
+	//OK to toggle on/off? Toggle direct input!
+	Direct_Input = !Direct_Input;
+	if (Direct_Input) //Enabled Direct Input?
 	{
 		DirectInput_Middle = middlebutton; //Are we toggled on by the middle mouse button?
 		SDL_WM_GrabInput(SDL_GRAB_ON); //Grab the mouse!
@@ -1833,7 +1835,7 @@ void toggleDirectInput(byte middlebutton)
 	}
 
 	//Also disable mouse buttons pressed!
-	Mouse_buttons &= ~3; //Disable left/right mouse buttons!
+	Mouse_buttons &= ~3; //Disable left/right mouse buttons being input!
 	clearBuffers(); //Make sure the buffers are cleared when toggling, so we start fresh!
 }
 

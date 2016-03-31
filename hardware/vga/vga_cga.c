@@ -820,10 +820,6 @@ word get_display_CGA_x(VGA_Type *VGA, word x)
 	{
 		result |= VGA_SIGNAL_HRETRACEEND; //End horizontal sync!
 	}
-	if (column>(VGA->registers->CGARegistersMasked[0])) //HSync out of range?
-	{
-		result |= VGA_SIGNAL_HSYNCRESET; //Reset HSync!
-	}
 	if (column<VGA->registers->CGARegistersMasked[1]) //Are we displayed?
 	{
 		result |= VGA_HACTIVEDISPLAY; //Horizontal displayed!
@@ -879,10 +875,6 @@ word get_display_CGA_y(VGA_Type *VGA, word y)
 	else if (y && CGA_is_vsync(VGA,y-1,charheight)) //Previous was vsync?
 	{
 		result |= VGA_SIGNAL_VRETRACEEND; //End of retrace period, if any!
-	}
-	else if (row>=((VGA->registers->CGARegistersMasked[7]*charheight)+0x10)) //VSync end out of range?
-	{
-		result |= VGA_SIGNAL_VSYNCRESET; //End of retrace counter, if any!
 	}
 	return result; //Give the signal!
 }

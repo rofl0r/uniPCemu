@@ -328,22 +328,19 @@ void applyCGAPaletteRegisters()
 	}
 	else //Graphics mode?
 	{
-		if ((getActiveVGA()->registers->Compatibility_CGAModeControl&0x12)==0x10) //High resolution graphics mode(640 pixels)?
+		if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x10) //High resolution graphics mode(640 pixels)?
 		{
 			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = 0; //Black overscan!
 		}
-		else if ((getActiveVGA()->registers->Compatibility_CGAModeControl&0x12)==2) //Low resolution graphics mode (320 pixels)?
+		else //Low resolution graphics mode (320 pixels)?
 		{
 			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Use the specified color for border!
 		}
-		else //Disabled border?
-		{
-			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = 0; //Black overscan!
-		}
+
 		for (i=0;i<0x10;i++) //Process all colours!
 		{
 			color = i; //Default to the normal color!
-			if ((getActiveVGA()->registers->Compatibility_CGAModeControl&0x4)) //Monochrome mode?
+			if (((getActiveVGA()->registers->Compatibility_CGAModeControl&0x14)==0x14) && (!CGA_RGB)) //Monochrome mode on NTSC only?
 			{
 				if (i) //We're on?
 				{
@@ -354,16 +351,20 @@ void applyCGAPaletteRegisters()
 			{
 				if (!i) //Background color?
 				{
-					if ((getActiveVGA()->registers->Compatibility_CGAModeControl&0x12)) //320x200 graphics mode?
+					if (!(getActiveVGA()->registers->Compatibility_CGAModeControl&0x10)) //320x200 graphics mode?
 					{
 						color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Use the specified background color!
+					}
+					else
+					{
+						color = 0; //Use black background!
 					}
 				}
 				else //Three foreground colors?
 				{
 					if (i&3) //Foreground color?
 					{
-						if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x4) //B/W set applies 3rd palette?
+						if ((getActiveVGA()->registers->Compatibility_CGAModeControl&0x4) && CGA_RGB) //B/W set applies 3rd palette on RGB monitor?
 						{
 							color = CGA_lowcolors[2][color&3]; //Use the RGB-specific 3rd palette!
 						}
@@ -376,10 +377,14 @@ void applyCGAPaletteRegisters()
 					{
 						color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Background color!
 					}
-					if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x10) //Display in low intensity?
-					{
-						color &= 7; //Apply low intensity!
-					}
+				}
+			}
+			if (!(getActiveVGA()->registers->Compatibility_CGAModeControl&0x10)) //320x200 mode has intensity switches?
+			{
+				color |= 8; //Default: display in high intensity!
+				if (!(getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x10)) //Display in low intensity?
+				{
+					color &= 7; //Apply low intensity!
 				}
 			}
 			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[i].DATA = color; //Make us the specified value!
