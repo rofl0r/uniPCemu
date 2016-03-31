@@ -4,28 +4,19 @@
 #include "headers/emu/gpu/gpu_emu.h" //RGBI support!
 #include "headers/hardware/vga/vga_cga_ntsc.h" //Our own definitions!
 
-double hue_offset = 0.0f; //Hue offset!
-
 //Main functions for rendering NTSC and RGBI by superfury:
 
+//Little fix for the code!
+#ifdef OUT
+#undef OUT
+#endif
+
 byte CGA_RGB = 1; //Are we a RGB monitor(1) or Composite monitor(0)?
-byte New_CGA = 0; //Emulate a new-style CGA?
 
-void setCGA_NTSC(byte enabled) //Use NTSC CGA signal output?
-{
-	byte needupdate = 0;
-	needupdate = (CGA_RGB^(enabled?0:1)); //Do we need to update the palette?
-	CGA_RGB = enabled?0:1; //RGB or NTSC monitor!
-	if (needupdate) RENDER_updateCGAColors(); //Update colors if we're changed!
-}
+byte cga_color_burst = 1; //Color burst!
 
-void setCGA_NewCGA(byte enabled)
-{
-	byte needupdate = 0;
-	needupdate = (New_CGA^(enabled?1:0)); //Do we need to update the palette?
-	New_CGA = enabled?1:0; //Use New Style CGA as set with protection?
-	if (needupdate) RENDER_updateCGAColors(); //Update colors if we're changed!
-}
+//Simple patch for New-style CGA rendering of PCEm-X!
+#define new_cga New_CGA
 
 //Our main conversion functions!
 //RGBI conversion
@@ -36,22 +27,17 @@ OPTINLINE static void RENDER_convertRGBI(byte *pixels, uint_32 *renderdestinatio
 		renderdestination[current] = getemucol16(pixels[current]); //Just use RGBI colors!
 }
 
+void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u *TempLine); //PROTOTYPE: Superfury: Used to return a pointer(not used?). Replaced with void.
+
+uint_32 templine[2048]; //Our temporary line!
+
 //NTSC conversion
-uint_32 NTSCPAL[0x100]; //NTSC palette for all specified indexes(8-bit indexes with 16-bit RGB)!
 OPTINLINE static void RENDER_convertNTSC(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
 {
 	//RENDER_convertRGBI(pixels,renderdestination,size); return; //Test by converting to RGBI instead!
-	uint_32 current;
-	for (current=0;current<size;current++) //Process all pixels!
-	{
-		renderdestination[current] = NTSCPAL[((current&0xF)<<4)|pixels[current]]; //Render using the NTSC palette!
-	}
-}
-
-OPTINLINE static void RENDER_SetPal(Bit8u index, int r, int g, int b) //Dosbox compatibility function by Superfury: Apparently this simply sets the NTSC 256-color palette, according to https://github.com/joncampbell123/dosbox-x/blob/a6ef524002c560254bc705e8629df72ff173c2eb/src/hardware/hardware.cpp!
-{
-	//Convert the renderer data to data for ourselves! Just store for now!
-	NTSCPAL[index] = RGB(r,g,b); //Set the RGB palette of NTSC mode!
+	memcpy(&templine,pixels,size); //Copy the pixels to the display to convert!
+	Composite_Process(0,size>>2,(uint8_t *)&templine); //Convert to NTSC composite!
+	memcpy(renderdestination,&templine,size*sizeof(uint_32)); //Copy the pixels to the result!
 }
 
 //Functions to call to update our data and render it according to our settings!
@@ -67,159 +53,292 @@ void RENDER_convertCGAOutput(byte *pixels, uint_32 *renderdestination, uint_32 s
 	}
 }
 
-//Dosbox conversion function itself, Converted from Dosbox-X(Parameters added with information from the emulated CGA)!
+//Dosbox conversion function itself, Converted from PCEm-X(Parameters added with information from the emulated CGA): https://github.com/OBattler/PCem-X/blob/master/PCem/vid_cga_comp.c
+//Some defines to make us easier to work with for patching the code:
+#define CGA_MODECONTROL getActiveVGA()->registers->Compatibility_CGAModeControl
+#define CGA_PALLETTE getActiveVGA()->registers->Compatibility_CGAPaletteRegister
 
-OPTINLINE static void update_cga16_color(byte CGA_paletteregister, byte CGA_modecontrolregister) {
-// New algorithm based on code by reenigne
-// Works in all CGA graphics modes/color settings and can simulate older and newer CGA revisions
-	static const double tau = 6.28318531; // == 2*pi
-	static const double ns = 567.0/440;  // degrees of hue shift per nanosecond
+//Finally, the code and rest support!
 
-	double tv_brightness = 0.0; // hardcoded for simpler implementation
-	double tv_saturation = (New_CGA ? 0.7 : 0.6);
+int CGA_Composite_Table[1024];
 
-	bool bw = (CGA_modecontrolregister&4) != 0;
-	bool color_sel = (CGA_paletteregister&0x20) != 0;
-	bool background_i = (CGA_paletteregister&0x10) != 0;	// Really foreground intensity, but this is what the CGA schematic calls it.
-	bool bpp1 = (CGA_modecontrolregister&0x10) != 0;
-	Bit8u overscan = CGA_paletteregister&0x0f;  // aka foreground colour in 1bpp mode
+static double brightness = 0;
+static double contrast = 100;
+static double saturation = 100;
+static double sharpness = 0;
+static double hue_offset = 0;
 
-	double chroma_coefficient = New_CGA ? 0.29 : 0.72;
-	double b_coefficient = New_CGA ? 0.07 : 0;
-	double g_coefficient = New_CGA ? 0.22 : 0;
-	double r_coefficient = New_CGA ? 0.1 : 0;
-	double i_coefficient = New_CGA ? 0.32 : 0.28;
-	double rgbi_coefficients[0x10];
-	for (int c = 0; c < 0x10; c++) {
-		double v = 0;
-		if ((c & 1) != 0)
-			v += b_coefficient;
-		if ((c & 2) != 0)
-			v += g_coefficient;
-		if ((c & 4) != 0)
-			v += r_coefficient;
-		if ((c & 8) != 0)
-			v += i_coefficient;
-		rgbi_coefficients[c] = v;
-	}
+// New algorithm by reenigne
+// Works in all CGA modes/color settings and can simulate older and newer CGA revisions
 
-	// The pixel clock delay calculation is not accurate for 2bpp, but the difference is small and a more accurate calculation would be too slow.
-	static const double rgbi_pixel_delay = 15.5*ns;
-	static const double chroma_pixel_delays[8] = {
-		0,        // Black:   no chroma
-		35*ns,    // Blue:    no XORs
-		44.5*ns,  // Green:   XOR on rising and falling edges
-		39.5*ns,  // Cyan:    XOR on falling but not rising edge
-		44.5*ns,  // Red:     XOR on rising and falling edges
-		39.5*ns,  // Magenta: XOR on falling but not rising edge
-		44.5*ns,  // Yellow:  XOR on rising and falling edges
-		39.5*ns}; // White:   XOR on falling but not rising edge
-	double pixel_clock_delay;
-	int o = overscan == 0 ? 15 : overscan;
-	if (overscan == 8)
-		pixel_clock_delay = rgbi_pixel_delay;
-	else {
-		double d = rgbi_coefficients[o];
-		pixel_clock_delay = (chroma_pixel_delays[o & 7]*chroma_coefficient + rgbi_pixel_delay*d)/(chroma_coefficient + d);
-	}
-	pixel_clock_delay -= 21.5*ns;  // correct for delay of color burst
+static const double tau = 6.28318531; // == 2*pi
 
-	double hue_adjust = (-(90-33)-hue_offset+pixel_clock_delay)*tau/360.0;
-	double chroma_signals[8][4];
-	for (Bit8u i=0; i<4; i++) {
-		chroma_signals[0][i] = 0;
-		chroma_signals[7][i] = 1;
-		for (Bit8u j=0; j<6; j++) {
-			static const double phases[6] = {
-				270 - 21.5*ns,  // blue
-				135 - 29.5*ns,  // green
-				180 - 21.5*ns,  // cyan
-				  0 - 21.5*ns,  // red
-				315 - 29.5*ns,  // magenta
-				 90 - 21.5*ns}; // yellow/burst
-			// All the duty cycle fractions are the same, just under 0.5 as the rising edge is delayed 2ns more than the falling edge.
-			static const double duty = 0.5 - 2*ns/360.0;
+static unsigned char chroma_multiplexer[256] = {
+	  2,  2,  2,  2, 114,174,  4,  3,   2,  1,133,135,   2,113,150,  4,
+	133,  2,  1, 99, 151,152,  2,  1,   3,  2, 96,136, 151,152,151,152,
+	  2, 56, 62,  4, 111,250,118,  4,   0, 51,207,137,   1,171,209,  5,
+	140, 50, 54,100, 133,202, 57,  4,   2, 50,153,149, 128,198,198,135,
+	 32,  1, 36, 81, 147,158,  1, 42,  33,  1,210,254,  34,109,169, 77,
+	177,  2,  0,165, 189,154,  3, 44,  33,  0, 91,197, 178,142,144,192,
+	  4,  2, 61, 67, 117,151,112, 83,   4,  0,249,255,   3,107,249,117,
+	147,  1, 50,162, 143,141, 52, 54,   3,  0,145,206, 124,123,192,193,
+	 72, 78,  2,  0, 159,208,  4,  0,  53, 58,164,159,  37,159,171,  1,
+	248,117,  4, 98, 212,218,  5,  2,  54, 59, 93,121, 176,181,134,130,
+	  1, 61, 31,  0, 160,255, 34,  1,   1, 58,197,166,   0,177,194,  2,
+	162,111, 34, 96, 205,253, 32,  1,   1, 57,123,125, 119,188,150,112,
+	 78,  4,  0, 75, 166,180, 20, 38,  78,  1,143,246,  42,113,156, 37,
+	252,  4,  1,188, 175,129,  1, 37, 118,  4, 88,249, 202,150,145,200,
+	 61, 59, 60, 60, 228,252,117, 77,  60, 58,248,251,  81,212,254,107,
+	198, 59, 58,169, 250,251, 81, 80, 100, 58,154,250, 251,252,252,252};
 
-			// We have a rectangle wave with period 1 (in units of the reciprocal of the color burst frequency) and duty
-			// cycle fraction "duty" and phase "phase". We band-limit this wave to frequency 2 and sample it at intervals of 1/4.
-			// We model our band-limited wave with 4 frequency components:
-			//   f(x) = a + b*sin(x*tau) + c*cos(x*tau) + d*sin(x*2*tau)
-			// Then:
-			//   a =   integral(0, 1, f(x)*dx) = duty
-			//   b = 2*integral(0, 1, f(x)*sin(x*tau)*dx) = 2*integral(0, duty, sin(x*tau)*dx) = 2*(1-cos(x*tau))/tau
-			//   c = 2*integral(0, 1, f(x)*cos(x*tau)*dx) = 2*integral(0, duty, cos(x*tau)*dx) = 2*sin(duty*tau)/tau
-			//   d = 2*integral(0, 1, f(x)*sin(x*2*tau)*dx) = 2*integral(0, duty, sin(x*4*pi)*dx) = 2*(1-cos(2*tau*duty))/(2*tau)
-			double a = duty;
-			double b = 2.0*(1.0-cos(duty*tau))/tau;
-			double c = 2.0*sin(duty*tau)/tau;
-			double d = 2.0*(1.0-cos(duty*2*tau))/(2*tau);
+static double intensity[4] = {
+	77.175381, 88.654656, 166.564623, 174.228438};
 
-			double x = (phases[j] + 21.5*ns + pixel_clock_delay)/360.0 + i/4.0;
+#define NEW_CGA(c,i,r,g,b) (((c)/0.72)*0.29 + ((i)/0.28)*0.32 + ((r)/0.28)*0.1 + ((g)/0.28)*0.22 + ((b)/0.28)*0.07)
 
-			chroma_signals[j+1][i] = a + b*sin(x*tau) + c*cos(x*tau) + d*sin(x*2*tau);
-		}
-	}
-	Bitu CGApal[4] = {
-		overscan,
-		(Bitu)(2 + (color_sel||bw ? 1 : 0) + (background_i ? 8 : 0)),
-		(Bitu)(4 + (color_sel&&!bw? 1 : 0) + (background_i ? 8 : 0)),
-		(Bitu)(6 + (color_sel||bw ? 1 : 0) + (background_i ? 8 : 0))
-	};
-	for (Bit8u x=0; x<4; x++) {	 // Position of pixel in question
-		bool even = (x & 1) == 0;
-		for (Bit8u bits=0; bits<(even ? 0x10 : 0x40); ++bits) {
-			double Y=0, I=0, Q=0;
-			for (Bit8u p=0; p<4; p++) {  // Position within color carrier cycle
-				// generate pixel pattern.
-				Bit8u rgbi;
-				if (bpp1)
-					rgbi = ((bits >> (3-p)) & (even ? 1 : 2)) != 0 ? overscan : 0;
-				else
-					if (even)
-						rgbi = CGApal[(bits >> (2-(p&2)))&3];
-					else
-						rgbi = CGApal[(bits >> (4-((p+1)&6)))&3];
-				Bit8u c = rgbi & 7;
-				if (bw && c != 0)
-					c = 7;
+double mode_brightness;
+double mode_contrast;
+double mode_hue;
+double min_v;
+double max_v;
 
-				// calculate composite output
-				double chroma = chroma_signals[c][(p+x)&3]*chroma_coefficient;
-				double composite = chroma + rgbi_coefficients[rgbi];
+double video_ri, video_rq, video_gi, video_gq, video_bi, video_bq;
+int video_sharpness;
+//int tandy_mode_control = 0; //Uses VGA directly by superfury
 
-				Y+=composite;
-				if (!bw) { // burst on
-					I+=composite*2*cos(hue_adjust + (p+x)*tau/4.0);
-					Q+=composite*2*sin(hue_adjust + (p+x)*tau/4.0);
-				}
-			}
+static bool new_cga = 0;
+//static bool is_bw = 0; //Superfury: not used!
+//static bool is_bpp1 = 0; //Superfury: not used!
 
-			double contrast = 1 - tv_brightness;
+//static uint8_t comp_pal[256][3];
 
-			Y = (contrast*Y/4.0) + tv_brightness; if (Y>1.0) Y=1.0; if (Y<0.0) Y=0.0;
-			I = (contrast*I/4.0) * tv_saturation; if (I>0.5957) I=0.5957; if (I<-0.5957) I=-0.5957;
-			Q = (contrast*Q/4.0) * tv_saturation; if (Q>0.5226) Q=0.5226; if (Q<-0.5226) Q=-0.5226;
+//static Bit8u byte_clamp_other(int v) { return v < 0 ? 0 : (v > 255 ? 255 : v); } //Superfury: defined but not used!
 
-			static const double gamma = 2.2;
+FILE *df;
 
-			double R = Y + 0.9563*I + 0.6210*Q;	R = (R - 0.075) / (1-0.075); if (R<0) R=0; if (R>1) R=1;
-			double G = Y - 0.2721*I - 0.6474*Q;	G = (G - 0.075) / (1-0.075); if (G<0) G=0; if (G>1) G=1;
-			double B = Y - 1.1069*I + 1.7046*Q;	B = (B - 0.075) / (1-0.075); if (B<0) B=0; if (B>1) B=1;
-			R = pow(R, gamma);
-			G = pow(G, gamma);
-			B = pow(B, gamma);
+void update_cga16_color() { //Superfury: Removed the parameter: we access the emulation directly!
+	int x;
+	//Bit32u x2;
 
-			int r = (int)(255*pow( 1.5073*R -0.3725*G -0.0832*B, 1/gamma)); if (r<0) r=0; if (r>255) r=255;
-			int g = (int)(255*pow(-0.0275*R +0.9350*G +0.0670*B, 1/gamma)); if (g<0) g=0; if (g>255) g=255;
-			int b = (int)(255*pow(-0.0272*R -0.0401*G +1.1677*B, 1/gamma)); if (b<0) b=0; if (b>255) b=255;
+        if (!new_cga) {
+                min_v = chroma_multiplexer[0] + intensity[0];
+                max_v = chroma_multiplexer[255] + intensity[3];
+        }
+        else {
+                double i0 = intensity[0];
+                double i3 = intensity[3];
+                min_v = NEW_CGA(chroma_multiplexer[0], i0, i0, i0, i0);
+                max_v = NEW_CGA(chroma_multiplexer[255], i3, i3, i3, i3);
+        }
+        mode_contrast = 256/(max_v - min_v);
+        mode_brightness = -min_v*mode_contrast;
+        if ((CGA_MODECONTROL & 3) == 1)
+                mode_hue = 14;
+        else
+                mode_hue = 4;
 
-			Bit8u index = bits | ((x & 1) == 0 ? 0x30 : 0x80) | ((x & 2) == 0 ? 0x40 : 0);
-			RENDER_SetPal(index,r,g,b);
-		}
-	}
+        mode_contrast *= contrast * (new_cga ? 1.2 : 1)/100;             // new CGA: 120%
+        mode_brightness += (new_cga ? brightness-10 : brightness)*5;     // new CGA: -10
+        double mode_saturation = (new_cga ? 4.35 : 2.9)*saturation/100;  // new CGA: 150%
+
+        for (x = 0; x < 1024; ++x) {
+                int phase = x & 3;
+                int right = (x >> 2) & 15;
+                int left = (x >> 6) & 15;
+                int rc = right;
+                int lc = left;
+                if ((CGA_MODECONTROL & 4) != 0) {
+                        rc = (right & 8) | ((right & 7) != 0 ? 7 : 0);
+                        lc = (left & 8) | ((left & 7) != 0 ? 7 : 0);
+                }
+                double c =
+                        chroma_multiplexer[((lc & 7) << 5) | ((rc & 7) << 2) | phase];
+                double i = intensity[(left >> 3) | ((right >> 2) & 2)];
+                double v;
+                if (!new_cga)
+                        v = c + i;
+                else {
+                        double r = intensity[((left >> 2) & 1) | ((right >> 1) & 2)];
+                        double g = intensity[((left >> 1) & 1) | (right & 2)];
+                        double b = intensity[(left & 1) | ((right << 1) & 2)];
+                        v = NEW_CGA(c, i, r, g, b);
+                }
+                CGA_Composite_Table[x] = (int) (v*mode_contrast + mode_brightness);
+        }
+
+        double i = CGA_Composite_Table[6*68] - CGA_Composite_Table[6*68 + 2];
+        double q = CGA_Composite_Table[6*68 + 1] - CGA_Composite_Table[6*68 + 3];
+
+        double a = tau*(33 + 90 + hue_offset + mode_hue)/360.0;
+        double c = cos(a);
+        double s = sin(a);
+        double r = 256*mode_saturation/sqrt(i*i+q*q);
+
+        double iq_adjust_i = -(i*c + q*s)*r;
+        double iq_adjust_q = (q*c - i*s)*r;
+
+        static const double ri = 0.9563;
+        static const double rq = 0.6210;
+        static const double gi = -0.2721;
+        static const double gq = -0.6474;
+        static const double bi = -1.1069;
+        static const double bq = 1.7046;
+
+        video_ri = (int) (ri*iq_adjust_i + rq*iq_adjust_q);
+        video_rq = (int) (-ri*iq_adjust_q + rq*iq_adjust_i);
+        video_gi = (int) (gi*iq_adjust_i + gq*iq_adjust_q);
+        video_gq = (int) (-gi*iq_adjust_q + gq*iq_adjust_i);
+        video_bi = (int) (bi*iq_adjust_i + bq*iq_adjust_q);
+        video_bq = (int) (-bi*iq_adjust_q + bq*iq_adjust_i);
+        video_sharpness = (int) (sharpness*256/100);
+
+#if 0
+	df = fopen("CGA_Composite_Table.dmp", "wb");
+	fwrite(CGA_Composite_Table, 1024, sizeof(int), df);
+	fclose(df);
+#endif
 }
+
+#if 0
+void configure_comp(double h, uint8_t n, uint8_t bw, uint8_t b1)
+{
+	hue_offset = h;
+	new_cga = n;
+	is_bw = bw;
+	is_bpp1 = b1;
+}
+#endif
+
+static Bit8u byte_clamp(int v) {
+        v >>= 13;
+        return v < 0 ? 0 : (v > 255 ? 255 : v);
+}
+
+/* 2048x1536 is the maximum we can possibly support. */ //Superfury: We only support 800 pixels wide(VGA renderer)!
+#define SCALER_MAXWIDTH 800
+
+static int temp[SCALER_MAXWIDTH + 10]={0};
+static int atemp[SCALER_MAXWIDTH + 2]={0};
+static int btemp[SCALER_MAXWIDTH + 2]={0};
+
+void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u *TempLine) //Superfury: Used to return a pointer(not used?). Replaced with void.
+{
+	int x;
+	Bit32u x2;
+
+        int w = blocks*4;
+
+/* PCem-X's CGA code already accounts for that before feeding the buffer to processing. */
+#if 0
+        if (doublewidth) {
+                Bit8u * source = TempLine + w - 1;
+                Bit8u * dest = TempLine + w*2 - 2;
+                for (x = 0; x < w; ++x) {
+                        *dest = *source;
+                        *(dest + 1) = *source;
+                        --source;
+                        dest -= 2;
+                }
+                blocks *= 2;
+                w *= 2;
+        }
+#endif
+
+#define COMPOSITE_CONVERT(I, Q) do { \
+        i[1] = (i[1]<<3) - ap[1]; \
+        a = ap[0]; \
+        b = bp[0]; \
+        c = i[0]+i[0]; \
+        d = i[-1]+i[1]; \
+        y = ((c+d)<<8) + video_sharpness*(c-d); \
+        rr = y + video_ri*(I) + video_rq*(Q); \
+        gg = y + video_gi*(I) + video_gq*(Q); \
+        bb = y + video_bi*(I) + video_bq*(Q); \
+        ++i; \
+        ++ap; \
+        ++bp; \
+        *srgb = (byte_clamp(rr)<<16) | (byte_clamp(gg)<<8) | byte_clamp(bb); \
+        ++srgb; \
+} while (0)
+
+#define OUT(v) do { *o = (v); ++o; } while (0)
+
+        // Simulate CGA composite output
+        int* o = temp;
+        Bit8u* rgbi = TempLine;
+        int* b = &CGA_Composite_Table[border*68];
+        for (x = 0; x < 4; ++x)
+                OUT(b[(x+3)&3]);
+        OUT(CGA_Composite_Table[(border<<6) | ((*rgbi)<<2) | 3]);
+        for (x = 0; x < w-1; ++x) {
+                OUT(CGA_Composite_Table[(rgbi[0]<<6) | (rgbi[1]<<2) | (x&3)]);
+                ++rgbi;
+        }
+        OUT(CGA_Composite_Table[((*rgbi)<<6) | (border<<2) | 3]);
+        for (x = 0; x < 5; ++x)
+                OUT(b[x&3]);
+
+        if ((CGA_MODECONTROL & 4) != 0 || !cga_color_burst) {
+                // Decode
+                int* i = temp + 5;
+                Bit32u* srgb = (Bit32u *)TempLine;
+                for (x2 = 0; x2 < blocks*4; ++x2) {
+                        int c = (i[0]+i[0])<<3;
+                        int d = (i[-1]+i[1])<<3;
+                        int y = ((c+d)<<8) + video_sharpness*(c-d);
+                        ++i;
+                        *srgb = byte_clamp(y)*0x10101;
+                        ++srgb;
+                }
+        }
+        else {
+                // Store chroma
+                int* i = temp + 4;
+                int* ap = atemp + 1;
+                int* bp = btemp + 1;
+                for (x = -1; x < w + 1; ++x) {
+                        ap[x] = i[-4]-((i[-2]-i[0]+i[2])<<1)+i[4];
+                        bp[x] = (i[-3]-i[-1]+i[1]-i[3])<<1;
+                        ++i;
+                }
+
+                // Decode
+                i = temp + 5;
+                i[-1] = (i[-1]<<3) - ap[-1];
+                i[0] = (i[0]<<3) - ap[0];
+                Bit32u* srgb = (Bit32u *)TempLine;
+                for (x2 = 0; x2 < blocks; ++x2) {
+                        int y,a,b,c,d,rr,gg,bb;
+                        COMPOSITE_CONVERT(a, b);
+                        COMPOSITE_CONVERT(-b, a);
+                        COMPOSITE_CONVERT(-a, -b);
+                        COMPOSITE_CONVERT(b, -a);
+                }
+        }
+#undef COMPOSITE_CONVERT
+#undef OUT
+
+} //Don't return the result: it's already known!
+
+//Remaining support by superfury for updating CGA color registers!
 
 void RENDER_updateCGAColors() //Update CGA rendering NTSC vs RGBI conversion!
 {
-	if (!CGA_RGB) update_cga16_color(getActiveVGA()->registers->Compatibility_CGAPaletteRegister, getActiveVGA()->registers->Compatibility_CGAModeControl); //Update us if we're used!
+	if (!CGA_RGB) update_cga16_color(); //Update us if we're used!
+}
+
+void setCGA_NTSC(byte enabled) //Use NTSC CGA signal output?
+{
+	byte needupdate = 0;
+	needupdate = (CGA_RGB^(enabled?0:1)); //Do we need to update the palette?
+	CGA_RGB = enabled?0:1; //RGB or NTSC monitor!
+	if (needupdate) RENDER_updateCGAColors(); //Update colors if we're changed!
+}
+
+void setCGA_NewCGA(byte enabled)
+{
+	byte needupdate = 0;
+	needupdate = (New_CGA^(enabled?1:0)); //Do we need to update the palette?
+	New_CGA = enabled?1:0; //Use New Style CGA as set with protection?
+	if (needupdate) RENDER_updateCGAColors(); //Update colors if we're changed!
 }
