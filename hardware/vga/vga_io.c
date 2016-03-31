@@ -278,7 +278,7 @@ byte CGA_RGB = 0; //Are we a RGB monitor(1) or Composite monitor(0)?
 void applyCGAPaletteRegisters()
 {
 	byte i,color;
-	if (getActiveVGA()->registers->Compatibility_MDAModeControl&8) //MDA enabled?
+	if (getActiveVGA()->registers->specialMDAflags&1) //MDA enabled?
 	{
 		//Apply the MDA palette registers!
 		for (i=0;i<0x10;i++) //Process all colours!
@@ -291,6 +291,19 @@ void applyCGAPaletteRegisters()
 			if (i&0x7) //On (1-7 and 9-15)?
 			{
 				color |= 1; //Set on attribute!
+			}
+			switch (color) //What color to map?
+			{
+				default:
+				case 0: //Black=Black!
+				case 3: //Bright foreground=Bright foreground!
+					break;
+				case 1: //Normal on?
+					color = 2; //Bright!
+					break;
+				case 2: //Bright background!
+					color = 1; //Lighter!
+					break;
 			}
 			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[i].DATA = color; //Make us equal!
 		}

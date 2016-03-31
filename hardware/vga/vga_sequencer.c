@@ -447,9 +447,9 @@ void initStateHandlers()
 		displayrenderhandler[0][i] = ((i&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)?&VGA_ActiveDisplay:&VGA_Overscan; //Not retracing or any total handler = display/overscan!
 	}
 
-	//Initialise the four MDA colors used!
+	//Initialise the four MDA pixel strengths used!
 	MDAcolors[0] = RGB(0x00,0x00,0x00);
-	MDAcolors[1] = RGB(0x00,0xC0,0x00);
-	MDAcolors[2] = RGB(0x00,0x00,0x00);
-	MDAcolors[3] = RGB(0x00,0xFF,0x00);
+	MDAcolors[1] = RGB(0x81,0x81,0x81);
+	MDAcolors[2] = RGB(0xC0,0xC0,0xC0);
+	MDAcolors[3] = RGB(0xFF,0xFF,0xFF);
 }
