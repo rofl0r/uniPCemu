@@ -278,6 +278,12 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL)) //CGA horizontal timing updated?
 	{
 		updateCRTC = 1; //Update the CRTC!
+		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x1)) //Horizontal displayed register?
+		{
+			VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = (VGA->registers->CGARegisters[1]>>1); //We're half the value of the displayed characters!
+			adjustVGASpeed(); //Auto-adjust our VGA speed!
+			goto updateoffsetregister; //Update the offset register, then the rest!
+		}
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 
@@ -591,6 +597,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x13))) //Updated?
 		{
 			word rowsize;
+			updateoffsetregister:
 			rowsize = VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER;
 			rowsize <<= 1;
 			//lockVGA(); //We don't want to corrupt the renderer's data!
