@@ -340,26 +340,19 @@ void applyCGAPaletteRegisters()
 		for (i=0;i<0x10;i++) //Process all colours!
 		{
 			color = i; //Default to the normal color!
-			if ((getActiveVGA()->registers->Compatibility_CGAModeControl&0x14)==0x14) //Monochrome mode on NTSC only? Superfury: aparently not, as some CGA demos use it?
+			if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x10) //640x200?
 			{
 				if (i) //We're on?
 				{
 					color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Use the specified ON color!
 				}
 			}
-			else //Color mode?
+			else //Color mode? 320x200!
 			{
 				if (!i) //Background color?
 				{
 					setCGAbackgroundattr: //Also background?
-					if (!(getActiveVGA()->registers->Compatibility_CGAModeControl&0x10)) //320x200 graphics mode?
-					{
-						color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Use the specified background color!
-					}
-					else
-					{
-						color = 0; //Use black background!
-					}
+					color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Use the specified background color!
 				}
 				else //Three foreground colors?
 				{
@@ -373,12 +366,9 @@ void applyCGAPaletteRegisters()
 						{
 							color = CGA_lowcolors[(getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x20)>>5][color&3]; //Don't use the RGB palette!
 						}
-						if (!(getActiveVGA()->registers->Compatibility_CGAModeControl&0x10)) //320x200 mode has intensity switches?
+						if (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x10) //Display in high intensity?
 						{
-							if (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x10) //Display in high intensity?
-							{
-								color |= 8; //Display in high intensity!
-							}
+							color |= 8; //Display in high intensity!
 						}
 					}
 					else //Background?
