@@ -437,6 +437,9 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode)
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //CGA mapping!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //CGA mapping!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //CGA mapping!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.LINECOMPAREREGISTER = 0xFF; //Maximum line compare: no split screen!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.LineCompare8 = 1; //Maximum line compare: no split screen!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.LineCompare9 = 1; //Maximum line compare: no split screen!
 	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = 1; //CGA!
 	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage = 0; //CGA!
 	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.HSyncP = 0; //CGA has positive polarity!
