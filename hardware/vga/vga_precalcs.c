@@ -57,43 +57,8 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 		//Determine some extra information!
 		extrastatus = 0; //Initialise extra horizontal status!
 		
-		if (VGA->registers->specialCGAflags&1) //Affect by 620x200/320x200 mode?
+		if (((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1)) //Affect by 620x200/320x200 mode?
 		{
-			++pixelrate;
-			if (VGA->registers->Compatibility_MDAModeControl & 8) //MDA mode?
-			{
-				extrastatus |= 1; //Reset for the new block/next pixel!
-			}
-			else if (VGA->registers->Compatibility_CGAModeControl&0x2) //Graphics mode?
-			{
-				if (VGA->registers->Compatibility_CGAModeControl&0x10) //640x200?
-				{
-					extrastatus |= 1; //Reset for the new block/next pixel!
-				}
-				else //320x200?
-				{
-					if (pixelrate>1) //Increase by 2!
-					{
-						extrastatus |= 1; //Reset for the new block/next pixel!					
-						pixelrate = 0; //Reset every 2!
-					}
-				}
-			}
-			else //Text mode?
-			{
-				if (VGA->registers->Compatibility_CGAModeControl&0x1) //640x200?
-				{
-					extrastatus |= 1; //Reset for the new block/next pixel!
-				}
-				else //320x200?
-				{
-					if (pixelrate>1) //Increase by 2!
-					{
-						extrastatus |= 1; //Reset for the new block/next pixel!					
-						pixelrate = 0; //Reset every 2!
-					}
-				}
-			}
 			extrastatus |= 1; //Always render like we are asked, at full resolution single pixels!
 		}
 		else //Normal VGA?
@@ -274,8 +239,8 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//lockVGA(); //We don't want to corrupt the renderer's data!
 		//dolog("VGA","VTotal before charwidth: %i",VGA->precalcs.verticaltotal);
 		//CGA forces character width to 8 wide!
-		if (VGA->precalcs.characterwidth != (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8&((~VGA->registers->specialCGAflags)&1))?8:9) adjustVGASpeed(); //Auto-adjust our VGA speed!
-		VGA->precalcs.characterwidth = (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8&((~VGA->registers->specialCGAflags)&1))?8:9; //Character width!
+		if (VGA->precalcs.characterwidth != (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9)) adjustVGASpeed(); //Auto-adjust our VGA speed!
+		VGA->precalcs.characterwidth = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9; //Character width!
 		if (VGA->precalcs.ClockingModeRegister_DCR != VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.ClockingModeRegister_DCR = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Dot Clock Rate!
 		updateCRTC = 1; //We need to update the CRTC!
@@ -626,14 +591,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x13))) //Updated?
 		{
 			word rowsize;
-			if ((VGA->registers->specialCGAflags&0xD)==0xD) //Ignore the row size?
-			{
-				rowsize = 0; //Ignore us!
-			}
-			else //Apply normally?
-			{
-				rowsize = VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER;
-			}
+			rowsize = VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER;
 			rowsize <<= 1;
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.rowsize = rowsize; //=Offset*2
@@ -707,7 +665,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //Updated?
 		{
 			//lockVGA(); //We don't want to corrupt the renderer's data!
-			VGA->precalcs.scandoubling = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.ScanDoubling & (~(((VGA->registers->specialCGAflags&2)>>1)&(VGA->registers->specialCGAflags&1))); //Scan doubling enabled? CGA disables scanline doubling for compatibility.
+			VGA->precalcs.scandoubling = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.ScanDoubling; //Scan doubling enabled? CGA disables scanline doubling for compatibility.
 			//dolog("VGA","VTotal after SD: %i",VGA->precalcs.verticaltotal); //Log it!
 			//unlockVGA(); //We're finished with the VGA!
 		}

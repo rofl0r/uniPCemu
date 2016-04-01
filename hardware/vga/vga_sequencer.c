@@ -203,7 +203,8 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	Sequencer->chary = row = *currowstatus++; //First is chary (effective character/graphics row)!
 	Sequencer->charinner_y = *currowstatus; //Second is charinner_y!
 
-	byte oddCGAmemory = 0; //High CGA memory to apply?
+	byte oddCGAmemory; //High CGA memory to apply?
+	oddCGAmemory = 0; //Default: normal sequential lines!
 	if (VGA->registers->specialCGAflags&1) //CGA mode?
 	{
 		switch (VGA->registers->CGARegisters[8]&3) //What CGA row mode?
@@ -225,7 +226,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	charystart = getVRAMScanlineStart(VGA, row); //Calculate row start!
 	if (oddCGAmemory) //Odd CGA memory?
 	{
-		charystart += 0x8000; //Apply the odd scanline source!
+		charystart += 0x4000; //Apply the odd scanline source!
 	}
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
 	charystart += Sequencer->bytepanning; //Apply byte panning!

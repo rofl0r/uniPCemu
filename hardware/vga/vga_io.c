@@ -340,7 +340,7 @@ void applyCGAPaletteRegisters()
 		for (i=0;i<0x10;i++) //Process all colours!
 		{
 			color = i; //Default to the normal color!
-			if (((getActiveVGA()->registers->Compatibility_CGAModeControl&0x14)==0x14) && (!CGA_RGB)) //Monochrome mode on NTSC only?
+			if ((getActiveVGA()->registers->Compatibility_CGAModeControl&0x14)==0x14) //Monochrome mode on NTSC only? Superfury: aparently not, as some CGA demos use it?
 			{
 				if (i) //We're on?
 				{
@@ -364,7 +364,7 @@ void applyCGAPaletteRegisters()
 				{
 					if (i&3) //Foreground color?
 					{
-						if ((getActiveVGA()->registers->Compatibility_CGAModeControl&0x4) && CGA_RGB) //B/W set applies 3rd palette on RGB monitor?
+						if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x4) //B/W set applies 3rd palette on RGB monitor? Superfury: apparently this isn't only a RGB option: The NTSC demos use it too!
 						{
 							color = CGA_lowcolors[2][color&3]; //Use the RGB-specific 3rd palette!
 						}
@@ -408,7 +408,7 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode)
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode = 0;
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode = 0;
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode = 1;
-	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegisterInterleaveMode = (GraphicsMode==2)?1:0;
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegisterInterleaveMode = (GraphicsMode==1)?1:0;
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.Color256ShiftMode = 0;
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable = useGraphics;
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode = 1;
@@ -430,13 +430,13 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode)
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4 = 0; //CGA normal mode!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DW = 0; //CGA normal mode!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV = 0; //CGA no scanline division!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2 = 0; //CGA no scanline division!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2 = 0; //CGA normal mode?
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode = 0; //CGA word mode!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE = 1; //CGA enable CRT rendering HSYNC/VSYNC!
 	//Memory mapping special: always map like a CGA!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //CGA mapping!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //CGA mapping!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //CGA mapping!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 0; //CGA mapping!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 0; //CGA mapping!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.LINECOMPAREREGISTER = 0xFF; //Maximum line compare: no split screen!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.LineCompare8 = 1; //Maximum line compare: no split screen!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.LineCompare9 = 1; //Maximum line compare: no split screen!
@@ -458,19 +458,7 @@ void applyCGAModeControl()
 			getActiveVGA()->registers->Compatibility_MDAModeControl &= ~8; //Disable the MDA!
 		}
 	}
-	if (!(getActiveVGA()->registers->Compatibility_CGAModeControl&0x2)) //Text mode?
-	{
-		if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x1) //80 column text mode?
-		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 80; //We're 80 column text!
-		}
-		else //40 column text mode?
-		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 40; //We're 40 column text!
-		}
-		setCGAMDAMode(0,0); //Text mode!
-	}
-	else //Graphics mode?
+	if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x2) //Graphics mode?
 	{
 		if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x4) //2 colour?
 		{
@@ -480,7 +468,12 @@ void applyCGAModeControl()
 		{
 			setCGAMDAMode(1,1); //Set up basic 4-color graphics!
 		}
-		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 80; //We're 80 bytes per row(divide by 2)!
+		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 40; //We're 80 bytes per row(divide by 2)!
+	}
+	else //Text mode?
+	{
+		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = 40; //We're 80 column text!
+		setCGAMDAMode(0,0); //Text mode!
 	}
 	applyCGAPaletteRegisters(); //Apply the palette registers according to our settings!
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //We have been updated!	

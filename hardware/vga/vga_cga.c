@@ -805,7 +805,7 @@ word get_display_CGA_x(VGA_Type *VGA, word x)
 {
 	word result=0;
 	word column=x; //Unpatched x value!
-	if (!x)	result |= VGA_SIGNAL_HRETRACEEND|VGA_SIGNAL_HBLANKEND; //Horizontal retrace&blank is finished now!
+	if (!x)	result |= VGA_SIGNAL_HRETRACEEND; //Horizontal retrace&blank is finished now!
 	column >>= 3; //Divide by 8 to get the character clock!
 	if (column>(VGA->registers->CGARegistersMasked[0])) //Past total specified?
 	{
@@ -851,7 +851,7 @@ word get_display_CGA_y(VGA_Type *VGA, word y)
 	row /= charheight; //The row we're at!
 	if (row>VGA->registers->CGARegistersMasked[4]) //Past total specified?
 	{
-		if (((VGA->registers->CGARegistersMasked[4]*charheight)+VGA->registers->CGARegistersMasked[5])<y) //Vertical total adjustment reaced?
+		if ((((VGA->registers->CGARegistersMasked[4]+1)*charheight)+VGA->registers->CGARegistersMasked[5])<y) //Vertical total adjustment reaced?
 		{
 			result |= VGA_SIGNAL_VTOTAL; //End of display: start the next frame!
 			result |= VGA_SIGNAL_VSYNCRESET; //Reset VSync!

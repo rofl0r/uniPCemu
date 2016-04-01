@@ -149,7 +149,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	{
 		if (signal&VGA_SIGNAL_HBLANKEND) //HBlank end?
 		{
-			if (VGA->registers->specialCGAflags&1) goto CGAendhblank;
+			if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendhblank;
 			blankretraceendpending |= VGA_SIGNAL_HBLANKEND;
 		}
 		else if (blankretraceendpending&VGA_SIGNAL_HBLANKEND) //End pending HBlank!
@@ -168,7 +168,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	{
 		if (signal&VGA_SIGNAL_VBLANKEND) //VBlank end?
 		{
-			if (VGA->registers->specialCGAflags&1) goto CGAendvblank;
+			if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendvblank;
 			blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
 		}
 		else if (blankretraceendpending&VGA_SIGNAL_VBLANKEND) //End pending HBlank!
@@ -179,7 +179,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		}
 	}
 
-	if (VGA->registers->specialCGAflags&1) //CGA compatibility mode?
+	/*if (VGA->registers->specialCGAflags&1) //CGA compatibility mode?
 	{
 		isoutputdisabled = (((~VGA->registers->Compatibility_CGAModeControl)>>3)&1); //This bit disables rendering input on CGA&MDA! If neither is 1, no display enable occurs!
 	}
@@ -188,9 +188,9 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		isoutputdisabled = (((~VGA->registers->Compatibility_MDAModeControl)>>3)&1); //This bit disables rendering input on CGA&MDA! If neither is 1, no display enable occurs!
 	}
 	else
-	{
+	{*/ //Don't thrust that bit for now!
 		isoutputdisabled = 0; //Output is always enabled!
-	}
+	//}
 	
 	//Both H&VBlank count!
 	blanking = hblank;
@@ -318,8 +318,8 @@ OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 	signal_x = Sequencer->x;
 	signal_scanline = Sequencer->Scanline;
 	displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-	displaystate_sync = get_display(getActiveVGA(), Sequencer->Scanline_sync, Sequencer->x_sync++); //Current display state of the sync lines!
-	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), displaystate, displaystate_sync); //Handle any change in display state first!
+	//displaystate_sync = get_display(getActiveVGA(), Sequencer->Scanline_sync, Sequencer->x_sync++); //Current display state of the sync lines!
+	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), displaystate, displaystate); //Handle any change in display state first!
 	displayrenderhandler[totalretracing][displaystate](Sequencer, getActiveVGA()); //Execute our signal!
 
 	//unlockVGA(); //Unlock the VGA for Software access!
