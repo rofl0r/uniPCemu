@@ -351,6 +351,7 @@ void applyCGAPaletteRegisters()
 			{
 				if (!i) //Background color?
 				{
+					setCGAbackgroundattr: //Also background?
 					if (!(getActiveVGA()->registers->Compatibility_CGAModeControl&0x10)) //320x200 graphics mode?
 					{
 						color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Use the specified background color!
@@ -370,12 +371,12 @@ void applyCGAPaletteRegisters()
 						}
 						else //Normal palettes?
 						{
-							color = CGA_lowcolors[(getActiveVGA()->registers->Compatibility_CGAModeControl&0x20)>>5][color&3]; //Don't use the RGB palette!
+							color = CGA_lowcolors[(getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x20)>>5][color&3]; //Don't use the RGB palette!
 						}
 					}
 					else //Background?
 					{
-						color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Background color!
+						goto setCGAbackgroundattr;
 					}
 				}
 			}
