@@ -272,7 +272,7 @@ void setVGA_MDA(byte enabled)
 }
 
 //Foreground colors: Red green yellow(not set), Magenta cyan white(set), Black red cyan white on a color monitor(RGB)!
-byte CGA_lowcolors[3][4] = {{0,0x4,0x2,0xE},{0,0x5,0x3,0xF},{0,0x4,0x3,0xF}};
+byte CGA_lowcolors[3][4] = {{0,0x2,0x4,0x6},{0,0x3,0x5,0x7},{0,0x3,0x4,0x7}};
 extern byte CGA_RGB; //Are we a RGB monitor(1) or Composite monitor(0)?
 
 //Compatibility handling on both writes and reads to compatibility registers!
@@ -373,19 +373,18 @@ void applyCGAPaletteRegisters()
 						{
 							color = CGA_lowcolors[(getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x20)>>5][color&3]; //Don't use the RGB palette!
 						}
+						if (!(getActiveVGA()->registers->Compatibility_CGAModeControl&0x10)) //320x200 mode has intensity switches?
+						{
+							if (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x10) //Display in high intensity?
+							{
+								color |= 8; //Display in high intensity!
+							}
+						}
 					}
 					else //Background?
 					{
 						goto setCGAbackgroundattr;
 					}
-				}
-			}
-			if (!(getActiveVGA()->registers->Compatibility_CGAModeControl&0x10)) //320x200 mode has intensity switches?
-			{
-				color |= 8; //Default: display in high intensity!
-				if (!(getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x10)) //Display in low intensity?
-				{
-					color &= 7; //Apply low intensity!
 				}
 			}
 			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[i].DATA = color; //Make us the specified value!
