@@ -258,8 +258,7 @@ DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for all pi
 void VGA_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA) //NOP for pixels!
 {}
 
-//Total handlers!
-void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
+void VGA_RenderOutput(SEQ_DATA *Sequencer, VGA_Type *VGA) //Render the current rendered frame to the display!
 {
 	//First, render ourselves to the screen!
 	GPU.xres = Sequencer->xres; //Apply x resolution!
@@ -267,11 +266,15 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//unlockGPU(); //Unlock the GPU!
 	VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
 	//lockGPU(); //Lock the GPU again! We're using it again!
-	
-	Sequencer->Scanline = 0; //Reset for the next frame!
 	Sequencer->yres = 0; //Reset Y resolution next frame if not specified (like a real screen)!
 	Sequencer->xres = 0; //Reset X resolution next frame if not specified (like a real screen)!
-	
+}
+
+//Total handlers!
+void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
+{
+	Sequencer->Scanline = 0; //Reset for the next frame!
+	//VGA_RenderOutput(Sequencer,VGA); //Render the output to the screen!
 	VGA_Sequencer_calcScanlineData(VGA);
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 }
@@ -303,6 +306,7 @@ void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	if (VGA->CRTC.y>Sequencer->yres) Sequencer->yres = VGA->CRTC.y; //Current y resolution!
 	VGA->CRTC.y = 0; //Reset destination row!
+	VGA_RenderOutput(Sequencer,VGA); //Render the output to the screen!
 }
 
 void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
