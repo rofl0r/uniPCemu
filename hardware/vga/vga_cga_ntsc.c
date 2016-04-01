@@ -18,40 +18,7 @@ byte cga_color_burst = 1; //Color burst!
 //Simple patch for New-style CGA rendering of PCEm-X!
 #define new_cga New_CGA
 
-//Our main conversion functions!
-//RGBI conversion
-OPTINLINE static void RENDER_convertRGBI(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
-{
-	uint_32 current;
-	for (current=0;current<size;current++) //Process all pixels!
-		renderdestination[current] = getemucol16(pixels[current]); //Just use RGBI colors!
-}
-
-void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u *TempLine); //PROTOTYPE: Superfury: Used to return a pointer(not used?). Replaced with void.
-
 uint_32 templine[2048]; //Our temporary line!
-
-//NTSC conversion
-OPTINLINE static void RENDER_convertNTSC(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
-{
-	//RENDER_convertRGBI(pixels,renderdestination,size); return; //Test by converting to RGBI instead!
-	memcpy(&templine,pixels,size); //Copy the pixels to the display to convert!
-	Composite_Process(0,size>>2,(uint8_t *)&templine); //Convert to NTSC composite!
-	memcpy(renderdestination,&templine,size*sizeof(uint_32)); //Copy the pixels to the result!
-}
-
-//Functions to call to update our data and render it according to our settings!
-void RENDER_convertCGAOutput(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
-{
-	if (CGA_RGB) //RGB monitor?
-	{
-		RENDER_convertRGBI(pixels, renderdestination, size); //Convert the pixels as RGBI!
-	}
-	else //NTSC monitor?
-	{
-		RENDER_convertNTSC(pixels, renderdestination, size); //Convert the pixels as NTSC!
-	}
-}
 
 //Dosbox conversion function itself, Converted from PCEm-X(Parameters added with information from the emulated CGA): https://github.com/OBattler/PCem-X/blob/master/PCem/vid_cga_comp.c
 //Some defines to make us easier to work with for patching the code:
@@ -214,8 +181,8 @@ static Bit8u byte_clamp(int v) {
         return v < 0 ? 0 : (v > 255 ? 255 : v);
 }
 
-/* 2048x1536 is the maximum we can possibly support. */ //Superfury: We only support 800 pixels wide(VGA renderer)!
-#define SCALER_MAXWIDTH 800
+//Just leave the scaler size to it's original size (maximum CGA display width)!
+#define SCALER_MAXWIDTH 2048
 
 static int temp[SCALER_MAXWIDTH + 10]={0};
 static int atemp[SCALER_MAXWIDTH + 2]={0};
@@ -324,6 +291,7 @@ void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u 
 
 void RENDER_updateCGAColors() //Update CGA rendering NTSC vs RGBI conversion!
 {
+	cga_color_burst = (CGA_MODECONTROL&0x4)?0:1; //Set the CGA color burst accordingly!
 	if (!CGA_RGB) update_cga16_color(); //Update us if we're used!
 }
 
@@ -341,4 +309,34 @@ void setCGA_NewCGA(byte enabled)
 	needupdate = (New_CGA^(enabled?1:0)); //Do we need to update the palette?
 	New_CGA = enabled?1:0; //Use New Style CGA as set with protection?
 	if (needupdate) RENDER_updateCGAColors(); //Update colors if we're changed!
+}
+
+//Our main rendering functions for the RGB/NTSC modes!
+//RGBI conversion
+OPTINLINE static void RENDER_convertRGBI(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
+{
+	uint_32 current;
+	for (current=0;current<size;current++) //Process all pixels!
+		renderdestination[current] = getemucol16(pixels[current]); //Just use RGBI colors!
+}
+
+//NTSC conversion
+OPTINLINE static void RENDER_convertNTSC(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
+{
+	//RENDER_convertRGBI(pixels,renderdestination,size); return; //Test by converting to RGBI instead!
+	memcpy(renderdestination,pixels,size); //Copy the pixels to the display to convert!
+	Composite_Process(0,size>>2,(uint8_t *)renderdestination); //Convert to NTSC composite!
+}
+
+//Functions to call to update our data and render it according to our settings!
+void RENDER_convertCGAOutput(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
+{
+	if (CGA_RGB) //RGB monitor?
+	{
+		RENDER_convertRGBI(pixels, renderdestination, size); //Convert the pixels as RGBI!
+	}
+	else //NTSC monitor?
+	{
+		RENDER_convertNTSC(pixels, renderdestination, size); //Convert the pixels as NTSC!
+	}
 }

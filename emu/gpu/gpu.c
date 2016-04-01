@@ -58,9 +58,12 @@ double renderTimeout = 1000000000.0f/GPU_FRAMERATE; //60Hz refresh!
 
 void updateWindow(word xres, word yres, uint_32 flags)
 {
-	window_xres = xres;
-	window_yres = yres;
-	originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	if ((xres!=window_xres) || (yres!=window_yres) || !originalrenderer) //Do we need to update the Window?
+	{
+		window_xres = xres;
+		window_yres = yres;
+		originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	}
 }
 
 SDL_Surface *getGPUSurface()
@@ -274,10 +277,15 @@ void CPU_updateVideo()
 	{
 		unlock(LOCK_VIDEO);
 		lockGPU(); //Lock the GPU: we're working on it!
-		freez((void **)&rendersurface, sizeof(*rendersurface), "SDL Main Rendering Surface"); //Release the rendering surface!
+		SDL_Surface *oldwindow; //Old window!
+		oldwindow = originalrenderer; //Old rendering surface!
 		if (getGPUSurface()) //Update the current surface if needed!
 		{
-			rendersurface = getSurfaceWrapper(originalrenderer); //New wrapper!
+			if (oldwindow!=originalrenderer) //We're changed?
+			{
+				freez((void **)&rendersurface, sizeof(*rendersurface), "SDL Main Rendering Surface"); //Release the rendering surface!
+				rendersurface = getSurfaceWrapper(originalrenderer); //New wrapper!
+			}
 			registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 0); //Register, but don't allow release: this is done by SDL_Quit only!
 		}
 		needvideoupdate = 0; //Not needed anymore!
