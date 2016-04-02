@@ -474,7 +474,10 @@
     <ClCompile Include="..\hardware\parallel.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
-    <ClCompile Include="..\hardware\vga\vga_cga.c">
+    <ClCompile Include="..\hardware\vga\vga_cga_mda.c">
+      <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\vga_cga_ntsc.c">
       <Filter>Source Files\hardware\vga</Filter>
     </ClCompile>
   </ItemGroup>
@@ -861,6 +864,12 @@
     </ClInclude>
     <ClInclude Include="..\headers\hardware\parallel.h">
       <Filter>Header Files\hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\hardware\vga\vga_cga_mda.h">
+      <Filter>Header Files\hardware\vga</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\hardware\vga\vga_cga_ntsc.h">
+      <Filter>Header Files\hardware\vga</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

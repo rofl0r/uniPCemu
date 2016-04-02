@@ -69,10 +69,10 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 	}
 }
 
+uint_32 textdisplay[32 * 8 * 256 * 2]; //All possible output!
 void dumpVGATextFonts()
 {
 	uint_32 displayindex;
-	uint_32 textdisplay[32*8*256*2]; //All possible output!
 	byte *getcharxy_values;
 
 	byte currentattribute;
@@ -103,7 +103,7 @@ void dumpVGATextFonts()
 			textdisplay[displayindex] = ((getcharxy_values[(currentcharacter<<6)|(currentrow<<1)|currentattribute]>>currentpixel)&1)?RGB(0xFF,0xFF,0xFF):RGB(0x00,0x00,0x00);
 		}
 	}
-	mkdir("captures"); //Make sure we can log!
+	domkdir("captures"); //Make sure we can log!
 	writeBMP("captures/VRAMText",&textdisplay[0],256*8,32*2,0,0,256*8); //Dump our font to the BMP file! We're two characters high (one for every font table) and 256 characters wide(total characters in the font).
 }
 

@@ -5,6 +5,8 @@
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation support!
 #include "headers/emu/gpu/gpu.h" //For max X!
 #include "headers/support/locks.h" //Locking support!
+#include "headers/hardware/ports.h" //For registering extensions with us!
+
 //Emulate VGA?
 #define EMU_VGA 1
 
@@ -685,6 +687,20 @@ typedef struct PACKED
 extern VGA_Type *ActiveVGA; //Currently active VGA chipset!
 #endif
 
+#define lockVGA() lock(LOCK_VGA)
+#define unlockVGA() unlock(LOCK_VGA)
+//Give the active VGA!
+#define getActiveVGA() ActiveVGA
+
+//Palette support!
+//Port 3C0 info holder:
+#define VGA_3C0_HOLDER getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER
+
+//The flipflop of the port 3C0 toggler and port itself!
+#define VGA_3C0_FLIPFLOP VGA_3C0_HOLDER.DataState
+#define VGA_3C0_PAL VGA_3C0_HOLDER.PAL
+#define VGA_3C0_INDEX VGA_3C0_HOLDER.CurrentIndex
+
 /*
 
 Read and write ports:
@@ -784,18 +800,12 @@ void VGA_dumpFonts(); //Dump all VGA fonts!
 void VGA_plane2updated(VGA_Type *VGA, uint_32 address); //Plane 2 has been updated?
 
 void setVGA_NMIonPrecursors(byte enabled); //Trigger an NMI when our precursors are called?
-void setVGA_CGA(byte enabled); //0=Disabled, 1=Enable with disabled VGA, 2=Enabled with enabled VGA!
-void setCGA_NewCGA(byte enabled); //Use New-style CGA emulation?
-void setCGA_NTSC(byte enabled); //Use NTSC CGA signal output?
-void setVGA_MDA(byte enabled); //0=Disabled, 1=Enable with disabled VGA, 2=Enabled with enabled VGA!
-
-#define lockVGA() lock(LOCK_VGA)
-#define unlockVGA() unlock(LOCK_VGA)
-//Give the active VGA!
-#define getActiveVGA() ActiveVGA
 
 void adjustVGASpeed(); //Auto-adjust our VGA speed!
 
-//CGA/MDA pure mode support for initialisation!
+//Initialisation call for CPU extension support!
 void VGA_initIO(); //Initialise all I/O support for the VGA/EGA/CGA/MDA!
+
+//Extension support!
+void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler); //Register an extension for use with the VGA!
 #endif

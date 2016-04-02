@@ -11,6 +11,7 @@
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC renderer support!
 #include "headers/hardware/vga/vga_crtcontroller.h" //CRT Controller for finishing up!
+#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
 #include "headers/hardware/pic.h" //IRQ support!
 #include "headers/support/highrestimer.h" //Automatic timer support!
 
@@ -300,7 +301,7 @@ OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust th
 OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 {
 	//if (!lockVGA()) return; //Lock ourselves!
-	static word displaystate = 0, displaystate_sync=0; //Last display state!
+	static word displaystate = 0; //Last display state!
 	
 	//All possible states!
 	if (!displayrenderhandler[0][0]) initStateHandlers(); //Init our display states for usage when needed!

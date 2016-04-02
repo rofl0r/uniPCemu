@@ -794,7 +794,7 @@ byte keyboard_display[KEYBOARD_NUMY][KEYBOARD_NUMX];
 
 //Keyboard layout: shift,set,sety,setx,itemnr,values
 //Shift,set,row,item=0=enable?;1+=left,right,up,down
-#define getkeyboard(shift,set,sety,setx,itemnr) &active_keyboard[set][1+sety][1+setx][shift][itemnr][0]
+#define getkeyboard(shift,set,sety,setx,itemnr) &active_keyboard[set][1+sety][1+setx][(shift)?1:0][itemnr][0]
 
 extern PS2_KEYBOARD Keyboard; //Active keyboard!
 extern byte SCREEN_CAPTURE; //Screen capture requested?
@@ -1296,9 +1296,9 @@ void handleKeyboard() //Handles keyboard input!
 		{
 			if (lastkey && ((lastkey != currentkey) || (lastx != setx) || (lasty != sety) || (lastset != currentset))) //We had a last key that's different?
 			{
-				onKeyRelease(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
+				onKeyRelease(getkeyboard(shiftstatus&SHIFTSTATUS_SHIFT, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
 			}
-			if (strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lctrl") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lalt") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lshift") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"capslock")) //Ignore already processed keys!
+			if (strcmp(getkeyboard(shiftstatus&SHIFTSTATUS_SHIFT, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lctrl") && strcmp(getkeyboard(shiftstatus&SHIFTSTATUS_SHIFT, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lalt") && strcmp(getkeyboard(shiftstatus&SHIFTSTATUS_SHIFT, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lshift") && strcmp(getkeyboard(shiftstatus&SHIFTSTATUS_SHIFT, lastset, lasty, lastx, displaytokeyboard[lastkey]),"capslock")) //Ignore already processed keys!
 			{
 				onKeyPress(getkeyboard(0, currentset, sety, setx, displaytokeyboard[currentkey]));
 			}
@@ -1310,7 +1310,7 @@ void handleKeyboard() //Handles keyboard input!
 		}
 		else if (lastkey) //We have a last key with nothing pressed?
 		{
-			if (strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lctrl") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lalt") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lshift") && strcmp(getkeyboard(shiftstatus, lastset, lasty, lastx, displaytokeyboard[lastkey]),"capslock")) //Ignore already processed keys!
+			if (strcmp(getkeyboard(shiftstatus&SHIFTSTATUS_SHIFT, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lctrl") && strcmp(getkeyboard(shiftstatus&SHIFTSTATUS_SHIFT, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lalt") && strcmp(getkeyboard(shiftstatus&SHIFTSTATUS_SHIFT, lastset, lasty, lastx, displaytokeyboard[lastkey]),"lshift") && strcmp(getkeyboard(shiftstatus&SHIFTSTATUS_SHIFT, lastset, lasty, lastx, displaytokeyboard[lastkey]),"capslock")) //Ignore already processed keys!
 			{
 				onKeyRelease(getkeyboard(0, lastset, lasty, lastx, displaytokeyboard[lastkey])); //Release the last key!
 			}

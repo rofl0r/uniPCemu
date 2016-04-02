@@ -232,6 +232,7 @@ void initVideo(int show_framerate) //Initialises the video
 	{
 		unlockGPU(); //Unlock the GPU for Software access!
 		raiseError("GPU InitVideo", "Failed to allocate the emulator screen buffer!");
+		return; //Just here to shut Visual C++ code checks up. We cannot be here because the application should have already terminated because of the raiseError call.
 	}
 
 	GPU.emu_screenbufferend = &GPU.emu_screenbuffer[EMU_SCREENBUFFERSIZE]; //A quick reference to end of the display buffer!

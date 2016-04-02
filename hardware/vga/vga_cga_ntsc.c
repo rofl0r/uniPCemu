@@ -23,7 +23,6 @@ uint_32 templine[2048]; //Our temporary line!
 //Dosbox conversion function itself, Converted from PCEm-X(Parameters added with information from the emulated CGA): https://github.com/OBattler/PCem-X/blob/master/PCem/vid_cga_comp.c
 //Some defines to make us easier to work with for patching the code:
 #define CGA_MODECONTROL getActiveVGA()->registers->Compatibility_CGAModeControl
-#define CGA_PALLETTE getActiveVGA()->registers->Compatibility_CGAPaletteRegister
 
 //Finally, the code and rest support!
 
@@ -291,7 +290,6 @@ void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u 
 
 void RENDER_updateCGAColors() //Update CGA rendering NTSC vs RGBI conversion!
 {
-	cga_color_burst = (CGA_MODECONTROL&0x4)?0:1; //Set the CGA color burst accordingly!
 	if (!CGA_RGB) update_cga16_color(); //Update us if we're used!
 }
 
@@ -325,7 +323,7 @@ OPTINLINE static void RENDER_convertNTSC(byte *pixels, uint_32 *renderdestinatio
 {
 	//RENDER_convertRGBI(pixels,renderdestination,size); return; //Test by converting to RGBI instead!
 	memcpy(renderdestination,pixels,size); //Copy the pixels to the display to convert!
-	Composite_Process(0,size>>2,(uint8_t *)renderdestination); //Convert to NTSC composite!
+	Composite_Process(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER,size>>2,(uint8_t *)renderdestination); //Convert to NTSC composite!
 }
 
 //Functions to call to update our data and render it according to our settings!

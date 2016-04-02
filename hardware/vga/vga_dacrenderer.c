@@ -7,14 +7,14 @@
 #include "headers/hardware/vga/vga_dacrenderer.h" //Our defs!
 #include "headers/support/bmp.h" //BMP support for dumping color information!
 
+uint_32 DACBitmap[0x8000]; //Full DAC 1-row bitmap!
 void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 {
 	char filename[256];
 	bzero(filename,sizeof(filename)); //Init
-	mkdir("captures"); //Make sure our directory exists!
+	domkdir("captures"); //Make sure our directory exists!
 	strcpy(&filename[0],"captures/VGA_DAC"); //Generate log of this mode!
 	int c,r;
-	uint_32 DACBitmap[0x8000]; //Full DAC 1-row bitmap!
 	register uint_32 DACVal;
 	for (c=0;c<0x100;c++)
 	{

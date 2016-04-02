@@ -26,7 +26,7 @@
 
 #include "headers/hardware/sermouse.h" //Serial mouse support!
 
-#include "headers/mmu/mmuhandler.h" //MMu handler support!
+#include "headers/mmu/mmuhandler.h" //MMU handler support!
 
 //All graphics now!
 
@@ -72,6 +72,8 @@
 #include "headers/hardware/ssource.h" //Disney Sound Source support!
 
 #include "headers/hardware/parallel.h" //Parallel port support!
+
+#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA compatibility layer support!
 
 //CPU default clock speeds (in Hz)!
 
@@ -284,6 +286,7 @@ void initEMU(int full) //Init!
 	MainVGA = VGAalloc(0,1); //Allocate a main VGA, automatically by BIOS!
 	debugrow("Activating main VGA engine...");
 	setActiveVGA(MainVGA); //Initialise primary VGA using the BIOS settings, for the system itself!
+	initCGA_MDA(); //Add CGA/MDA support to the VGA as an extension!
 
 	debugrow("Initializing 8259...");
 	init8259(); //Initialise the 8259 (PIC)!

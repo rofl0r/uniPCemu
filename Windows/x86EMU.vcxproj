@@ -93,7 +93,8 @@
     <ClCompile Include="..\hardware\uart.c" />
     <ClCompile Include="..\hardware\vga\vga.c" />
     <ClCompile Include="..\hardware\vga\vga_attributecontroller.c" />
-    <ClCompile Include="..\hardware\vga\vga_cga.c" />
+    <ClCompile Include="..\hardware\vga\vga_cga_mda.c" />
+    <ClCompile Include="..\hardware\vga\vga_cga_ntsc.c" />
     <ClCompile Include="..\hardware\vga\vga_colorconversion.c" />
     <ClCompile Include="..\hardware\vga\vga_crtcontroller.c" />
     <ClCompile Include="..\hardware\vga\vga_dac.c" />
@@ -221,6 +222,8 @@
     <ClInclude Include="..\headers\hardware\vga\colorconversion.h" />
     <ClInclude Include="..\headers\hardware\vga\vga.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_attributecontroller.h" />
+    <ClInclude Include="..\headers\hardware\vga\vga_cga_mda.h" />
+    <ClInclude Include="..\headers\hardware\vga\vga_cga_ntsc.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_crtcontroller.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_dac.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_dacrenderer.h" />

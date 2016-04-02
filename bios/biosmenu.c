@@ -4711,7 +4711,7 @@ void BIOS_DumpVGA()
 	VGA_Type *VGA = getActiveVGA(); //Get the current VGA!
 	if (VGA) //Valid VGA?
 	{
-		mkdir("captures"); //Make sure to create the directory we need!
+		domkdir("captures"); //Make sure to create the directory we need!
 		f = fopen("captures/vga_vram.dat","wb");
 		if (f)
 		{
