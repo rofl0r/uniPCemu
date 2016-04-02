@@ -1076,8 +1076,8 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode)
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode = 0; //CGA word mode!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE = 1; //CGA enable CRT rendering HSYNC/VSYNC!
 	//Memory mapping special: always map like a CGA!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //CGA mapping!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //CGA mapping!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //Direct mapping!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //Direct mapping!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 0; //CGA mapping!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.LINECOMPAREREGISTER = 0xFF; //Maximum line compare: no split screen!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.LineCompare8 = 1; //Maximum line compare: no split screen!

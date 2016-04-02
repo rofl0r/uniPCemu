@@ -37,8 +37,8 @@ float VGA_clocks[4] = {
 			}; //Our clocks!
 
 uint_32 CGALineSize = 0; //How long is our line!
-byte CGALineBuffer[1024]; //Full CGA scanline buffer!
-uint_32 CGAOutputBuffer[1024]; //Full CGA NTSC buffer!
+byte CGALineBuffer[2048]; //Full CGA scanline buffer!
+uint_32 CGAOutputBuffer[2048]; //Full CGA NTSC buffer!
 
 float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
 {
@@ -77,7 +77,7 @@ extern byte CGA_RGB; //Are we a RGB monitor(1) or Composite monitor(0)?
 OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display!
 {
 	uint_32 i;
-	if (CGALineSize>1024) CGALineSize = 1024; //Limit to what we have available!
+	if (CGALineSize>2048) CGALineSize = 2048; //Limit to what we have available!
 	if ((VGA->registers->specialMDAflags&0x81)==1) //Pure MDA mode?
 	{
 		for (i=0;i<CGALineSize;i++) //Process all pixels!
@@ -214,19 +214,19 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 				//No special effect! We just increase in low memory linearly!
 				break;
 			case 1: //Even scanlines divide by 2, Odd sanlines equal to the even ones, but higher memory(0,0,1,1,2,2,3,3 as E,O,E,O,E,O)!
-				oddCGAmemory = row&1; //High when odd rows!
+				oddCGAmemory = Sequencer->rowscancounter&1; //High when odd rows!
 				row >>= 1; //Divide by 2(half the rate)!
 				break;
 			case 3: //Even scanlines are even numbers, Odd scanlines are odd numbers (0,1,2,3,4,5,6,7 as E,O,E,O,E,O)
-				oddCGAmemory = row&1; //High when odd rows!
+				oddCGAmemory = Sequencer->rowscancounter&1; //High when odd rows!
 				//Memory addresses increase linearly!
 				break;
 		}
 	}
 	charystart = getVRAMScanlineStart(VGA, row); //Calculate row start!
-	if (oddCGAmemory) //Odd CGA memory?
+	if (oddCGAmemory) //Odd CGA memory field?
 	{
-		charystart += 0x4000; //Apply the odd scanline source!
+		charystart += 0x1000; //Apply the odd scanline source!
 	}
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
 	charystart += Sequencer->bytepanning; //Apply byte panning!
@@ -291,7 +291,6 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//Sequencer itself
 	Sequencer->x = 0; //Reset for the next scanline!
 	++Sequencer->Scanline; //Next scanline to process!
-	++Sequencer->Scanline_sync; //Next VSync scanline to process!
 	
 	//CRT
 	if (!vretrace) ++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
