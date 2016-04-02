@@ -104,13 +104,14 @@ OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanl
 	bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
 
 	//Determine shifts and reset the start map if needed!
-	byte reset_startmap;
-	reset_startmap = 0; //Default: don't reset!
-	
 	allow_pixelshiftcount = 1; //Allow by default!
-	if (Sequencer->Scanline>VGA->precalcs.topwindowstart) //Top window reached?
+	if (Sequencer->Scanline>=VGA->precalcs.topwindowstart) //Top window reached?
 	{
-		reset_startmap = 1; //Enforce start of map to 0 for the top window!
+		if (Sequencer->Scanline==VGA->precalcs.topwindowstart) //Start of the top window?
+		{
+			Sequencer->startmap = 0; //What start address to use? Start at the top of VRAM!
+		}
+		//Enforce start of map to beginning in VRAM for the top window!
 		if (VGA->precalcs.AttributeModeControlRegister_PixelPanningMode)
 		{
 			bytepanning = 0; //Act like no byte panning is enabled!
@@ -118,8 +119,6 @@ OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanl
 		}
 	}
 
-	Sequencer->startmap = VGA->precalcs.startaddress[reset_startmap]; //What start address to use?
-	
 	//Determine byte panning and pixel shift count!
 	Sequencer->bytepanning = bytepanning; //Pass!
 
@@ -278,6 +277,7 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//VGA_RenderOutput(Sequencer,VGA); //Render the output to the screen!
 	VGA_Sequencer_calcScanlineData(VGA);
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
+	Sequencer->startmap = VGA->precalcs.startaddress[0]; //What start address to use for the next frame?
 }
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)

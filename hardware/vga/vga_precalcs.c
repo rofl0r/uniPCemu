@@ -314,29 +314,37 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			goto updateCursorEnd; //Update us!
 		}
 
-		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xC)) //Start address High register updated?
+		if ((whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xC)) || whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xD)) //Start address High/Low register updated?
 		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (VGA->registers->CGARegistersMasked[0xC]); //Apply the start address high register!
-			goto updateStartAddress;
-		}
+			word startaddress;
+			startaddress = VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (VGA->registers->CGARegistersMasked[0xC]); //Apply the start address high register!
+			startaddress <<= 8; //Move high!
+			startaddress |= VGA->registers->CGARegistersMasked[0xD]; //Apply the start address low register!
 
-		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xD)) //Start address Low register updated?
-		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER = VGA->registers->CGARegistersMasked[0xD]; //Apply the start address low register!
+			//Translate to a VGA value!
+			startaddress <<= 1; //Simply multiply by 2!
+
+			//Apply to the VGA!
+			VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (startaddress>>8)&0xFF;
+			VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER = (startaddress&0xFF);
 			goto updateStartAddress;
 		}
 
 		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xE)) //Start address High register updated?
 		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER = (VGA->registers->CGARegistersMasked[0xE]); //Apply the start address high register!
+			word cursorlocation;
+			cursorlocation = (VGA->registers->CGARegistersMasked[0xE]); //Apply the start address high register!
+			cursorlocation <<= 8; //Move high!
+			cursorlocation |= VGA->registers->CGARegistersMasked[0xF]; //Apply the start address low register!
+
+			//Translate to a VGA value!
+			cursorlocation <<= 1; //Simply multiply by 2!
+
+			//Apply to the VGA!
+			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER = (cursorlocation>>8)&0xFF;
+			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER = (cursorlocation&0xFF);
 			goto updateCursorLocation;
 		}
-
-		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xF)) //Start address Low register updated?
-		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER = VGA->registers->CGARegistersMasked[0xF]; //Apply the start address low register!
-			goto updateCursorLocation;
-		}		
 
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
@@ -617,6 +625,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			topwindowstart |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.LineCompare8;
 			topwindowstart <<= 8;
 			topwindowstart |= VGA->registers->CRTControllerRegisters.REGISTERS.LINECOMPAREREGISTER;
+			++topwindowstart; //We're one further starting than specified!
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.topwindowstart = topwindowstart;
 			//dolog("VGA","VTotal after topwindowstart: %i",VGA->precalcs.verticaltotal); //Log it!
