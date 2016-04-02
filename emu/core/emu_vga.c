@@ -180,7 +180,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		}
 	}
 
-	/*if (VGA->registers->specialCGAflags&1) //CGA compatibility mode?
+	if (VGA->registers->specialCGAflags&1) //CGA compatibility mode?
 	{
 		isoutputdisabled = (((~VGA->registers->Compatibility_CGAModeControl)>>3)&1); //This bit disables rendering input on CGA&MDA! If neither is 1, no display enable occurs!
 	}
@@ -189,9 +189,9 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		isoutputdisabled = (((~VGA->registers->Compatibility_MDAModeControl)>>3)&1); //This bit disables rendering input on CGA&MDA! If neither is 1, no display enable occurs!
 	}
 	else
-	{*/ //Don't thrust that bit for now!
+	{
 		isoutputdisabled = 0; //Output is always enabled!
-	//}
+	}
 	
 	//Both H&VBlank count!
 	blanking = hblank;

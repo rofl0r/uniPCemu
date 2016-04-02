@@ -857,7 +857,7 @@ word get_display_CGA_y(VGA_Type *VGA, word y)
 			result |= VGA_SIGNAL_VTOTAL; //End of display: start the next frame!
 			result |= VGA_SIGNAL_VSYNCRESET; //Reset VSync!
 		}
-		result |= VGA_SIGNAL_VBLANKSTART; //We're blanking always after end of display!
+		//result |= VGA_SIGNAL_VBLANKSTART; //We're blanking always after end of display!
 	}
 
 	if (row<VGA->registers->CGARegistersMasked[6]) //Active display?
