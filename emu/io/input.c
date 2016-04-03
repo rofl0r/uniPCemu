@@ -1816,14 +1816,14 @@ void updateMOD()
 byte DirectInput_Middle = 0; //Is direct input toggled by middle mouse button?
 
 //Toggle direct input on/off!
-void toggleDirectInput(byte middlebutton)
+void toggleDirectInput(byte cause)
 {
-	if (Direct_Input && (middlebutton!=DirectInput_Middle)) return; //Disable toggling off with other methods than we originally started with!
+	if (Direct_Input && (cause!=DirectInput_Middle)) return; //Disable toggling off with other methods than we originally started with!
 	//OK to toggle on/off? Toggle direct input!
 	Direct_Input = !Direct_Input;
 	if (Direct_Input) //Enabled Direct Input?
 	{
-		DirectInput_Middle = middlebutton; //Are we toggled on by the middle mouse button?
+		DirectInput_Middle = cause; //Are we toggled on by the middle mouse button?
 		SDL_WM_GrabInput(SDL_GRAB_ON); //Grab the mouse!
 		SDL_ShowCursor(SDL_DISABLE); //Don't show the cursor!
 	}
@@ -1940,6 +1940,13 @@ void updateInput(SDL_Event *event) //Update all input!
 						SDL_PushEvent(&quitevent); //Add an quit event!
 					}
 					break;
+					break;
+				case SDLK_F11: //F11?
+					if (RALT) //ALT-F11?
+					{
+						toggleDirectInput(2); //Toggle direct input alternwtive without mouse!
+					}
+					break;
 				default: //Unknown?
 					break;
 				}
@@ -2009,6 +2016,10 @@ void updateInput(SDL_Event *event) //Update all input!
 					input.Buttons |= BUTTON_SELECT; //Pressed!
 					break;
 				case SDLK_RETURN: //START?
+					if (RALT) //ALT-ENTER?
+					{
+						return; //Ignore the input: we're reserved!
+					}
 					input.Buttons |= BUTTON_START; //Pressed!
 					break;
 				case SDLK_UP: //UP?
@@ -2052,6 +2063,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_KP2: //CROSS?
 					input.Buttons |= BUTTON_CROSS; //Pressed!
+					break;
+				case SDLK_F11: //F11?
+				case SDLK_F4: //F4?
+					if (RALT) //ALT combination? We're reserved input for special actions!
+					{
+						return; //Ignore the input: we're reserved!
+					}
 					break;
 				default: //Unknown key?
 					break;
