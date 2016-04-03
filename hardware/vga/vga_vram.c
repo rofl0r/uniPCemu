@@ -7,6 +7,7 @@
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer support for special actions!
 #include "headers/support/zalloc.h" //Zero allocation (memprotect) support!
 #include "headers/hardware/vga/vga_vram.h" //VRAM support!
+#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support for it's display memory!
 
 //VGA.VRAM is a pointer to the start of the VGA VRAM (256K large)
 
@@ -83,6 +84,8 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte mode) //Read fro
 	if (mode&0x80) fulloffset2 = patch_map1314(VGA, fulloffset2); //Patch MAP13&14!
 
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
+
+	if (CGAMDAEMULATION_ENABLED(VGA) && (plane&2)) return 0; //High planes on the CGA don't exist!
 
 	fulloffset2 <<= 2; //We cylce through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!

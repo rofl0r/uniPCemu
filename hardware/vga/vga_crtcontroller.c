@@ -4,6 +4,7 @@
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/hardware/vga/vga_sequencer_textmode.h" //VGA Attribute controller!
 #include "headers/hardware/vga/vga_crtcontroller.h"
+#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA timing support!
 
 //Horizontal information!
 
@@ -78,7 +79,7 @@ OPTINLINE word getVerticalTotal(VGA_Type *VGA)
 
 word get_display_y(VGA_Type *VGA, word scanline) //Vertical check!
 {
-	if (((VGA->registers->specialCGAflags&0x81)==1) || ((VGA->registers->specialMDAflags&0x81)==1)) return get_display_CGA_y(VGA,scanline); //Give CGA timing!
+	if (CGAMDAEMULATION_ENABLED_CRTC(VGA)) return get_display_CGA_y(VGA,scanline); //Give CGA timing when enabled!
 	word signal;
 	signal = VGA_OVERSCAN; //Init to overscan!
 	if (scanline>=getVerticalTotal(VGA)) //VTotal?
@@ -117,7 +118,7 @@ word get_display_y(VGA_Type *VGA, word scanline) //Vertical check!
 
 word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 {
-	if (((VGA->registers->specialCGAflags&0x81)==1) || ((VGA->registers->specialMDAflags&0x81)==1)) return get_display_CGA_x(VGA,x); //Give CGA timing!
+	if (CGAMDAEMULATION_ENABLED_CRTC(VGA)) return get_display_CGA_x(VGA,x); //Give CGA timing when enabled!
 	word signal;
 	signal = VGA_OVERSCAN; //Init to overscan!
 	word hchar = VGA->CRTC.charcolstatus[x<<1]; //What character?
