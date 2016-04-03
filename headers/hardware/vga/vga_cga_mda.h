@@ -17,7 +17,7 @@ void initCGA_MDA();
 //CGA/MDA emulation enabled?
 #define CGAMDAEMULATION_ENABLED(VGA) (((VGA->registers->specialCGAflags&0x81)==1) || ((VGA->registers->specialMDAflags&0x81)==1) || ((VGA->registers->specialCGAflags&0xC1)==0xC1) || ((VGA->registers->specialMDAflags&0xC1)==0xC1))
 
-//To perform CGA/MDA to display conversion?
-#define CGAMDAEMULATION_RENDER(VGA) (((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) && (((VGA->registers->specialCGAflags&0xC0)!=0x80) || ((VGA->registers->specialMDAflags&0xC0)!=0x80)))
+//To perform CGA/MDA to display conversion when either one is emulated and active?
+#define CGAMDAEMULATION_RENDER(VGA) (((VGA->registers->specialCGAflags&1) && ((VGA->registers->specialCGAflags&0xC0)!=0x80)) || ((VGA->registers->specialMDAflags&1) && ((VGA->registers->specialMDAflags&0xC0)!=0x80)))
 
 #endif
