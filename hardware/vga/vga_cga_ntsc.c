@@ -323,7 +323,7 @@ OPTINLINE static void RENDER_convertNTSC(byte *pixels, uint_32 *renderdestinatio
 {
 	//RENDER_convertRGBI(pixels,renderdestination,size); return; //Test by converting to RGBI instead!
 	memcpy(renderdestination,pixels,size); //Copy the pixels to the display to convert!
-	Composite_Process(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER,size>>2,(uint8_t *)renderdestination); //Convert to NTSC composite!
+	Composite_Process(0,size>>2,(uint8_t *)renderdestination); //Convert to NTSC composite!
 }
 
 //Functions to call to update our data and render it according to our settings!
