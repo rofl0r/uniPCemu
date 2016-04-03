@@ -1,7 +1,6 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/vga/vga.h" //VGA/CGA support!
 #include "headers/header_dosbox.h" //Dosbox support!
-#include "headers/emu/gpu/gpu_emu.h" //RGBI support!
 #include "headers/hardware/vga/vga_cga_ntsc.h" //Our own definitions!
 
 //Main functions for rendering NTSC and RGBI by superfury:
@@ -311,11 +310,40 @@ void setCGA_NewCGA(byte enabled)
 
 //Our main rendering functions for the RGB/NTSC modes!
 //RGBI conversion
+
+byte cga_use_brown = 0; //Halve yellow's green signal to get brown on color monitors?
+
+uint_32 getCGAcol16(byte color) //Special for the emulator, like the keyboard presets etc.!
+{
+	switch (color&0xF)
+	{
+		case 1: return RGB(0x00,0x00,0xAA);
+		case 2: return RGB(0x00,0xAA,0x00);
+		case 3: return RGB(0x00,0xAA,0xAA);
+		case 4: return RGB(0xAA,0x00,0x00);
+		case 5: return RGB(0xAA,0x00,0xAA);
+		case 6: return cga_use_brown?RGB(0xAA,0x55,0x00):RGB(0xAA,0xAA,0x00); //Halved green to get brown instead of yellow on new monitors, old monitors still display dark yellow(not halved)!
+		case 7: return RGB(0xAA,0xAA,0xAA);
+		case 8: return RGB(0x55,0x55,0x55);
+		case 9: return RGB(0x55,0x55,0xFF);
+		case 0xA: return RGB(0x55,0xFF,0x55);
+		case 0xB: return RGB(0x55,0xFF,0xFF);
+		case 0xC: return RGB(0xFF,0x55,0x55);
+		case 0xD: return RGB(0xFF,0x55,0xFF);
+		case 0xE: return RGB(0xFF,0xFF,0x55);
+		case 0xF: return RGB(0xFF,0xFF,0xFF);
+		case 0:
+		default:
+			 return RGB(0x00,0x00,0x00);
+	}
+	return RGB(0x00,0x00,0x00); //Shouldn't be here, but just in case!
+}
+
 OPTINLINE static void RENDER_convertRGBI(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
 {
 	uint_32 current;
 	for (current=0;current<size;current++) //Process all pixels!
-		renderdestination[current] = getemucol16(pixels[current]); //Just use RGBI colors!
+		renderdestination[current] = getCGAcol16(pixels[current]); //Just use the CGA RGBI colors!
 }
 
 //NTSC conversion

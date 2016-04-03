@@ -732,8 +732,11 @@ byte getcharxy_CGA(byte character, byte x, byte y) //Retrieve a characters x,y p
 	static byte lastrow = 0; //The last loaded row!
 	register word location;
 
+	x &= 7;
+	y &= 7; //Duplicate the scanlines after our character!
+
 	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
-	location = 0x8000 | (character << 3) | y; //The location to look up!
+	location = 0x8000 | (character << 3) | (y&7); //The location to look up!
 
 	if (lastcharinfo != location) //Last row not yet loaded?
 	{
@@ -767,6 +770,7 @@ byte getcharxy_MDA(byte character, byte x, byte y) //Retrieve a characters x,y p
 	register word location;
 
 	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
+	if (y>=14) y %= 14; //Only 14 rows, duplicate what's below!
 	location = 0x8000 | (character << 4) | y; //The location to look up!
 
 	if (lastcharinfo != location) //Last row not yet loaded?
@@ -783,6 +787,7 @@ void fillMDAfont()
 	if (MDA_reversedinit) //Need to initialise?
 	{
 		word row,character,char2;
+		memset(&int10_font_14_reversed,0,sizeof(int10_font_14_reversed)); //Clear the entire font used to make sure the unused data is empty(background color)!
 		for (row=0;row<sizeof(int10_font_08_reversed);row++)
 		{
 			character = row/14; //Character!
@@ -963,30 +968,15 @@ void setCGAMDAColors(byte isGraphics, byte GraphicsMode)
 		getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = 0; //This forces black overscan! We don't have overscan!		
 	}
 	//Apply the new CGA palette register?
-	else if (!isGraphics) //Text mode?
+	else if (isGraphics) //Graphics mode?
 	{
-		for (i=0;i<0x10;i++) //Process all colours!
-		{
-			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[i].DATA = i; //Make us equal!
-		}
-		if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x10) //High resolution graphics mode(640 pixels)?
-		{
-			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = 0; //This forces black overscan!
-		}
-		else //Use overscan!
-		{
-			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F);
-		}
-	}
-	else //Graphics mode?
-	{
-		if (GraphicsMode==2) //High resolution graphics mode(640 pixels)?
+		if (GraphicsMode) //High resolution graphics mode(640 pixels)?
 		{
 			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = 0; //Black overscan!
 		}
 		else //Low resolution graphics mode (320 pixels)?
 		{
-			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Use the specified color for border!
+			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0xF); //Use the specified color for border!
 		}
 
 		for (i=0;i<0x10;i++) //Process all colours!
@@ -996,28 +986,21 @@ void setCGAMDAColors(byte isGraphics, byte GraphicsMode)
 			{
 				if (!i) //Background color?
 				{
-					color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Use the specified background color!
+					color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0xF); //Use the specified background color!
 				}
 				else //Three foreground colors?
 				{
-					if (i&3) //Foreground color?
+					if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x4) //Disabling the color burst bit applies 3rd palette on RGB monitor?
 					{
-						if ((~getActiveVGA()->registers->Compatibility_CGAModeControl)&0x4) //Disabling the color burst bit applies 3rd palette on RGB monitor?
-						{
-							color = CGA_lowcolors[2][i&3]; //Use the RGB-specific 3rd palette!
-						}
-						else //Normal palettes?
-						{
-							color = CGA_lowcolors[((getActiveVGA()->registers->Compatibility_CGAPaletteRegister>>5)&1)][i&3]; //Don't use the RGB palette!
-						}
-						if (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x10) //Display in high intensity?
-						{
-							color |= 0x8; //Display in high intensity!
-						}
+						color = CGA_lowcolors[2][i&3]; //Use the RGB-specific 3rd palette!
 					}
-					else //Background?
+					else //Normal palettes?
 					{
-						color = 0; //Unused!
+						color = CGA_lowcolors[(getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x20)?1:0][i&3]; //Don't use the RGB palette, use the normal palettes!
+					}
+					if (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x10) //Display in high intensity?
+					{
+						color |= 0x8; //Display in high intensity!
 					}
 				}
 			}
@@ -1025,11 +1008,26 @@ void setCGAMDAColors(byte isGraphics, byte GraphicsMode)
 			{
 				if (i) //We're on?
 				{
-					color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0x1F); //Use the specified ON color!
+					color = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0xF); //Use the specified ON color!
 				}
 			}
 			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[i].DATA = color; //Make us the specified value!
 		}
+	}
+	else //Text mode?
+	{
+		for (i=0;i<0x10;i++) //Process all colours!
+		{
+			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[i].DATA = i; //Make us equal!
+		}
+		/*if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x10) //High resolution graphics mode(640 pixels)?
+		{
+			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = 0; //This forces black overscan!
+		}
+		else //Use overscan!
+		{*/
+			getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.OVERSCANCOLORREGISTER = (getActiveVGA()->registers->Compatibility_CGAPaletteRegister&0xF);
+		//}
 	}
 
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL_SECTION|WHEREUPDATED_ATTRIBUTECONTROLLER); //We have been updated(whole attribute controller mode)!
@@ -1079,6 +1077,7 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode) //Rendering mode set!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation = ((!useGraphics) && (GraphicsMode==1)); //CGA attributes!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable = 1; //CGA line graphics!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PixelPanningMode = 0; //CGA pixel panning mode!
+	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable = ((!useGraphics) && (getActiveVGA()->registers->Compatibility_MDAModeControl&0x20))?1:0; //Use blink when not using graphics and blink is enabled!
 	VGA_3C0_PAL = 1; //Enable the palette!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA = 0xF; //CGA: enable all color planes!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4 = 0; //CGA normal mode!

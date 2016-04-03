@@ -4,6 +4,7 @@
 #include "headers/hardware/vga/vga_attributecontroller.h" //Our own typedefs!
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //For masking planes!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
+#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA attribute support!
 
 #include "headers/support/log.h" //Debugger!
 extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c
@@ -51,8 +52,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	byte colorselect76=0; //Color select bits 7-6!
 	byte backgroundfilter=0;
 	byte VGAMode = 1;
-	if (VGA->registers->specialCGAflags&1) VGAMode = 0; //Disable the VGA color processing with CGA!
-	if (VGA->registers->specialMDAflags&1) VGAMode = 0; //Disable the VGA color processing with MDA!
+	if (CGAMDAEMULATION_RENDER(VGA)) VGAMode = 0; //Disable the VGA color processing with CGA/MDA!
 
 	paletteenable = VGA->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.PAL; //Internal palette enabled?
 	if (paletteenable) //Precalcs for palette?

@@ -19,11 +19,6 @@ OPTINLINE uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!
 	return RGB(convertrel(colorEntry.r,0x3F,0xFF),convertrel(colorEntry.g,0x3F,0xFF),convertrel(colorEntry.b,0x3F,0xFF)); //Convert using DAC (Scale of DAC is RGB64, we use RGB256)!
 }
 
-//Register has been updated?
-#define REGISTERUPDATED(whereupdated,controller,reg,fullupdated) ((whereupdated==(controller|reg))||fullupdated)
-#define SECTIONUPDATEDFULL(whereupdated,section,fullupdated) (((whereupdated&WHEREUPDATED_AREA)==section)||fullupdated)
-#define SECTIONUPDATED(whereupdated,section) ((whereupdated&WHEREUPDATED_AREA)==section)
-
 extern byte VGA_LOGPRECALCS; //Are we manually updated to log?
 
 OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs!
@@ -211,7 +206,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	byte FullUpdate = (whereupdated==0); //Fully updated?
 //Calculate the precalcs!
 	//Sequencer_Textmode: we update this always!
-	byte CRTUpdated=0;
+	byte CRTUpdated=0, updateCGACRTCONTROLLER=0;
 	byte CRTUpdatedCharwidth=0;
 	byte overflowupdated=0;
 
@@ -277,8 +272,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL)) //CGA horizontal timing updated?
 	{
+		updateCGACRTCONTROLLER = UPDATE_SECTION(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL); //Update the entire section?
 		updateCRTC = 1; //Update the CRTC!
-		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x1)) //Horizontal displayed register?
+		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x1))) //Horizontal displayed register?
 		{
 			VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = (VGA->registers->CGARegistersMasked[1]>>1); //We're half the value of the displayed characters!
 			adjustVGASpeed(); //Auto-adjust our VGA speed!
@@ -289,32 +285,35 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_VERTICAL)) //CGA vertical timing updated?
 	{
+		updateCGACRTCONTROLLER = UPDATE_SECTION(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_VERTICAL); //Update the entire section?
 		updateCRTC = 1; //Update the CRTC!
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 	
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER)) //CGA CRT misc. stuff updated?
 	{
+		updateCGACRTCONTROLLER = UPDATE_SECTION(whereupdated,WHEREUPDATED_CGACRTCONTROLLER); //Update the entire section?
+
 		//Don't handle these registers just yet!
-		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0x9)) //Character height updated?
+		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0x9))) //Character height updated?
 		{
 			VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine = (VGA->registers->CGARegistersMasked[9]); //Character height is set!
 			adjustVGASpeed(); //Auto-adjust our VGA speed!
 			goto updatecharheight;
 		}
-		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xA)) //Cursor Start Register updated?
+		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xA))) //Cursor Start Register updated?
 		{
 			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart = (VGA->registers->CGARegistersMasked[0xA]&0x1F); //Cursor scanline start!
-			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable = ((~VGA->registers->CGARegistersMasked[0xA])&0x40)>>6; //Disable the cursor?
+			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable = ((VGA->registers->CGARegistersMasked[0xA])&0x60)?0:1; //Disable the cursor? Setting these bits will enable the cursor!
 			goto updateCursorStart; //Update us!
 		}
-		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xA)) //Cursor Start Register updated?
+		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xB))) //Cursor End Register updated?
 		{
 			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd = (VGA->registers->CGARegistersMasked[0xB]&0x1F); //Cursor scanline end!
 			goto updateCursorEnd; //Update us!
 		}
 
-		if ((whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xC)) || whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xD)) //Start address High/Low register updated?
+		if (updateCGACRTCONTROLLER || ((whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xC)) || whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xD))) //Start address High/Low register updated?
 		{
 			word startaddress;
 			startaddress = VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (VGA->registers->CGARegistersMasked[0xC]); //Apply the start address high register!
@@ -330,7 +329,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			goto updateStartAddress;
 		}
 
-		if (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xE)) //Start address High register updated?
+		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xE))) //Start address High register updated?
 		{
 			word cursorlocation;
 			cursorlocation = (VGA->registers->CGARegistersMasked[0xE]); //Apply the start address high register!
@@ -351,7 +350,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CRTCONTROLLER) || FullUpdate || charwidthupdated) //(some) CRT Controller values need to be updated?
 	{
-		CRTUpdated = UPDATE_SECTION(whereupdated)||FullUpdate; //Fully updated?
+		CRTUpdated = UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_CRTCONTROLLER,FullUpdate); //Fully updated?
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //We have been updated?
 		{
 			updatecharheight:
@@ -757,7 +756,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	byte AttrUpdated = 0; //Fully updated?
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER) || FullUpdate || underlinelocationupdated || (whereupdated==(WHEREUPDATED_INDEX|INDEX_ATTRIBUTECONTROLLER))) //Attribute Controller updated?
 	{
-		AttrUpdated = UPDATE_SECTION(whereupdated)||FullUpdate; //Fully updated?
+		AttrUpdated = UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER,FullUpdate); //Fully updated?
 
 		if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x14)))
 		{
@@ -857,9 +856,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_DAC) || SECTIONUPDATED(whereupdated,WHEREUPDATED_DACMASKREGISTER) || FullUpdate) //DAC Updated?
 	{
-		if (UPDATE_SECTION(whereupdated) || (whereupdated==WHEREUPDATED_DACMASKREGISTER) || FullUpdate) //DAC Fully needs to be updated?
+		if (UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_DAC,FullUpdate) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Fully needs to be updated?
 		{
-			if (UPDATE_SECTION(whereupdated) || ((whereupdated==WHEREUPDATED_DACMASKREGISTER) && VGA->precalcs.lastDACMask!=VGA->registers->DACMaskRegister) || FullUpdate) //DAC Mask changed only?
+			if (UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_DAC,FullUpdate) || ((whereupdated==WHEREUPDATED_DACMASKREGISTER) && VGA->precalcs.lastDACMask!=VGA->registers->DACMaskRegister)) //DAC Mask changed only?
 			{
 				int colorval;
 				colorval = 0; //Init!

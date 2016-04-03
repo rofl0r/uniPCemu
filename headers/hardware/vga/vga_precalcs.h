@@ -6,7 +6,7 @@
 //Where were we updated (what values to update?)
 //ALL update? (for init)
 #define WHEREUPDATED_ALL 0x0000
-//Section update (from section below), flag
+//Section update (from section below), flag. This updates all register within the section!
 #define WHEREUPDATED_ALL_SECTION 0x10000
 
 //Section (used when not all). This is OR-ed with the data index!
@@ -40,12 +40,19 @@
 
 //Filter to get all above!
 //The area where it was updated:
-//Section update?
-#define UPDATE_SECTION(val) ((val&WHEREUPDATED_ALL_SECTION)==WHEREUPDATED_ALL_SECTION)
 //The area/section to update?
 #define WHEREUPDATED_AREA 0xF000
 //The updated register:
 #define WHEREUPDATED_REGISTER 0x0FFF
+
+//Register/section/all has been updated?
+#define SECTIONUPDATED(whereupdated,section) ((whereupdated&WHEREUPDATED_AREA)==section)
+#define SECTIONUPDATEDFULL(whereupdated,section,fullupdated) (SECTIONUPDATED(whereupdated,section)||fullupdated)
+#define REGISTERUPDATED(whereupdated,section,reg,fullupdated) ((whereupdated==(section|reg))||SECTIONUPDATEDFULL(section,fullupdated))
+
+//Section update entirely, this section only?
+#define UPDATE_SECTION(val,section) (((val&WHEREUPDATED_ALL_SECTION)==WHEREUPDATED_ALL_SECTION) && SECTIONUPDATED(val,section))
+#define UPDATE_SECTIONFULL(val,section,fullupdate) (((val&WHEREUPDATED_ALL_SECTION)==WHEREUPDATED_ALL_SECTION) && SECTIONUPDATEDFULL(val,section,fullupdate))
 
 typedef struct //Contains the precalculated values!
 {
@@ -98,6 +105,7 @@ typedef struct //Contains the precalculated values!
 	byte colorselect76; //Precalculate!
 	uint_32 DAC[0x100]; //Full DAC saved lookup table!
 	uint_32 effectiveDAC[0x100]; //The same DAC as above, but with color conversions applied for rendering!
+	uint_32 effectiveMDADAC[0x100]; //The same DAC as above, but with b/w conversions applied for rendering, also it's index is changed to the R/G/B 256-color greyscale index!
 	byte lastDACMask; //To determine if the DAC Mask is updated or not!
 	
 	byte renderedlines; //Actual ammount of lines rendered, graphics mode included!

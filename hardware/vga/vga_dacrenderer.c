@@ -148,5 +148,6 @@ void DAC_updateEntries(VGA_Type *VGA)
 	for (i=0;i<0x100;i++) //Process all entries!
 	{
 		DAC_updateEntry(VGA,i); //Update this entry with current values!
+		VGA->precalcs.effectiveMDADAC[i] = color2bw(RGB(i,i,i)); //Update the MDA DAC!
 	}
 }
