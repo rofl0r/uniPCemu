@@ -8,6 +8,40 @@ byte SystemControlPortB=0x00; //System control port B!
 byte SystemControlPortA=0x00; //System control port A!
 byte PPI62, PPI63; //Default PPI switches!
 
+byte readPPI62()
+{
+	byte result=0;
+	//Setup PPI62 as defined by System Control Port B!
+	if (EMULATED_CPU<=CPU_80186) //XT machine?
+	{
+		if (SystemControlPortB&8) //Read high switches?
+		{
+			if (((getActiveVGA()->registers->specialCGAflags&0x81)==1)) //Pure CGA mode?
+			{
+				result |= 2; //First bit set: 80x25 CGA!
+			}
+			else if (((getActiveVGA()->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
+			{
+				result |= 3; //Both bits set: 80x25 MDA!
+			}
+			else //VGA?
+			{
+				//Leave PPI62 at zero for VGA: we're in need of auto detection!
+			}
+			result |= 4; //Two floppy drives installed!
+		}
+		else //Read low switches?
+		{
+			result |= 1; //Two floppy drives installed!
+		}
+	}
+	else
+	{
+		return PPI62; //Give the normal value!
+	}
+	return result; //Give the switches requested, if any!
+}
+
 byte PPI_readIO(word port, byte *result)
 {
 	switch (port) //Special register: System control port B!
@@ -17,7 +51,7 @@ byte PPI_readIO(word port, byte *result)
 		return 1;
 		break;
 	case 0x62: //PPI62?
-		*result = ((PPI62|4)&~8); //Read the value! 2 Floppy drives forced!
+		*result = readPPI62(); //Read the value!
 		return 1;
 		break;
 	case 0x63: //PPI63?
@@ -32,23 +66,6 @@ byte PPI_readIO(word port, byte *result)
 		break;
 	}
 	return 0; //No PPI!
-}
-
-void setupPPI()
-{
-	//PPI63!
-	if (((getActiveVGA()->registers->specialCGAflags&0x81)==1)) //Pure CGA mode?
-	{
-		PPI62 |= 2; //First bit set: 80x25 CGA!
-	}
-	else if (((getActiveVGA()->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
-	{
-		PPI62 |= 3; //Both bits set: 80x25 MDA!
-	}
-	else //VGA with floppy?
-	{
-		//Leave PPI62 at zero!
-	}
 }
 
 byte PPI_writeIO(word port, byte value)
@@ -88,12 +105,6 @@ void initPPI()
 	SystemControlPortB = 0x7F; //Reset system control port B!
 	PPI62 = 0x00; //Set the default switches!
 	PPI63 = 0x00; //Set the default switches!
-
-	if (EMULATED_CPU<=CPU_80186) //XT machine?
-	{
-		//Check for reserved hardware settings!
-		setupPPI(); //Setup our initial values!
-	}
 
 	register_PORTIN(&PPI_readIO);
 	register_PORTOUT(&PPI_writeIO);
