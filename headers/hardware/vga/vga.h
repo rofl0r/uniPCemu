@@ -636,7 +636,6 @@ typedef struct PACKED
 	//Current processing coordinates on-screen!
 	word x; //X coordinate on the screen!
 	word y; //Y coordinate on the screen!
-	byte DisplayDriven; //Are we drawing data on the screen?
 } VGA_CRTC; //CRTC information!
 #include "headers/endpacked.h" //We're packed!
 

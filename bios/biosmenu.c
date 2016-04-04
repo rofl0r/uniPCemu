@@ -4770,20 +4770,28 @@ void BIOS_DumpVGA()
 
 		if (VGA->registers->specialCGAflags&1) //CGA compatiblity enabled?
 		{
-			f = fopen("captures/vga_cgacrtcregs.dat","wb");
+			f = fopen("captures/vga_cgamdacrtcregs.dat","wb");
 			fwrite(&VGA->registers->CGARegisters,1,sizeof(VGA->registers->CGARegisters),f); //CGA CRTC registers!
 			fclose(f);
 
-			f = fopen("captures/vga_compregs.dat","wb");
+			f = fopen("captures/vga_cgamodecontrol.dat","wb");
 			fwrite(&VGA->registers->Compatibility_CGAModeControl,1,1,f); //CGA mode control register!
+			fclose(f);
+			
+			f = fopen("captures/vga_cgapaletteregister.dat","wb");
 			fwrite(&VGA->registers->Compatibility_CGAPaletteRegister,1,1,f); //CGA mode control register!
+			fclose(f);
+
+			f = fopen("captures/vga_mdamodecontrol.dat","wb");
 			fwrite(&VGA->registers->Compatibility_MDAModeControl,1,1,f); //MDA mode control register!
 			fclose(f);
 		}
 		else //Clean up CGA compatiblity register dumps: we're not supposed to be used!
 		{
-			delete_file("captures","vga_cgacrtcregs.dat");
-			delete_file("captures","vga_compregs.dat");
+			delete_file("captures","vga_cgamdacrtcregs.dat");
+			delete_file("captures","vga_cgamodecontrol.dat");
+			delete_file("captures","vga_cgapaletteregister.dat");
+			delete_file("captures","vga_mdamodecontrol.dat");
 		}
 
 		VGA_DUMPColors(); //Dump all colors!

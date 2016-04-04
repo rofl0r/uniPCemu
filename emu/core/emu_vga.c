@@ -180,13 +180,11 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		}
 	}
 
-	isoutputdisabled = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable; //Output is disabled?
-	
 	//Both H&VBlank count!
 	blanking = hblank;
 	blanking |= vblank; //Process blank!
-
-	blanking |= isoutputdisabled; //Use disabled output when asked to!
+	//Screen disable applies blanking permanently!
+	blanking |= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable; //Use disabled output when asked to!
 
 	//Now process the Retraces/Sync!
 
@@ -251,12 +249,8 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	isretrace = hretrace;
 	isretrace |= vretrace; //We're retracing?
 
-	isoutputdisabled |= ((signal&VGA_DISPLAYMASK)!=VGA_DISPLAYACTIVE); //Are we not displaying anyway? Then report that!
-
-	VGA->CRTC.DisplayDriven = isretrace?1:0; //Are we retracing horizontally? According to http://www.seasip.info/VintagePC/mda.html
-
 	//Retracing disables output!
-	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = (retracing = isretrace)|isoutputdisabled; //Vertical or horizontal retrace?
+	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing = isretrace; //Vertical or horizontal retrace?
 
 	//Process HTotal/VTotal
 	totalling = 0; //Default: Not totalling!

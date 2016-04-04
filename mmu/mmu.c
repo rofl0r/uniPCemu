@@ -127,7 +127,17 @@ uint_32 MEMsize() //Total size of memory in use?
 //Direct memory access (for the entire emulator)
 byte MMU_directrb(uint_32 realaddress) //Direct read from real memory (with real data direct)!
 {
-	if (realaddress>MMU.size) //Overflow?
+	byte invalidlocation=0;
+	//Apply the 640K memory hole!
+	if (realaddress&0x100000) //1MB+?
+	{
+		realaddress -= (0x100000-0xA0000); //Patch to less memory to make memory linear!
+	}
+	else if (realaddress>=0xA0000) //640K+ memory hole addressed?
+	{
+		invalidlocation = 1; //We're an invalid location!
+	}
+	if ((realaddress>=MMU.size) || invalidlocation) //Overflow/invalid location?
 	{
 		MMU.invaddr = 1; //Signal invalid address!
 		execNMI(1); //Execute an NMI from memory!
@@ -140,11 +150,21 @@ byte LOG_MMU_WRITES = 0; //Log MMU writes?
 
 void MMU_directwb(uint_32 realaddress, byte value) //Direct write to real memory (with real data direct)!
 {
+	byte invalidlocation=0;
 	if (LOG_MMU_WRITES) //Data debugging?
 	{
 		dolog("debugger","MMU: Writing to real %08X=%02X (%c)",realaddress,value,value?value:0x20);
 	}
-	if (realaddress>MMU.size) //Overflow?
+	//Apply the 640K memory hole!
+	if (realaddress&0x100000) //1MB+?
+	{
+		realaddress -= (0x100000-0xA0000); //Patch to less memory to make memory linear!
+	}
+	else if (realaddress>=0xA0000) //640K+ memory hole?
+	{
+		invalidlocation = 1; //We're an invalid location!
+	}
+	if ((realaddress>=MMU.size) || invalidlocation) //Overflow/invalid location?
 	{
 		MMU.invaddr = 1; //Signal invalid address!
 		execNMI(1); //Execute an NMI from memory!
