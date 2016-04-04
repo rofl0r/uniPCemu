@@ -2018,6 +2018,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				case SDLK_RETURN: //START?
 					if (RALT) //ALT-ENTER?
 					{
+						unlock(LOCK_INPUT);
 						return; //Ignore the input: we're reserved!
 					}
 					input.Buttons |= BUTTON_START; //Pressed!
@@ -2068,6 +2069,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				case SDLK_F4: //F4?
 					if (RALT) //ALT combination? We're reserved input for special actions!
 					{
+						unlock(LOCK_INPUT);
 						return; //Ignore the input: we're reserved!
 					}
 					break;
