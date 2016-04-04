@@ -1067,55 +1067,15 @@ void applyCGAPaletteRegister() //Update the CGA colors!
 void setCGAMDAMode(byte useGraphics, byte GraphicsMode) //Rendering mode set!
 { 
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegisterInterleaveMode = (GraphicsMode==1)?1:0;
-	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.Color256ShiftMode = 0;
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable = useGraphics;
-	getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.S4 = 0; //CGA display!
-	getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR = 0; //CGA display! Single pixels only!
-	getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.SLR = 0; //CGA display! Single load rate!
-	getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8 = 1; //CGA display! 8 dots/character!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable = useGraphics; //Text mode!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation = ((!useGraphics) && (GraphicsMode==1)); //CGA attributes!
-	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable = 1; //CGA line graphics!
-	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PixelPanningMode = 0; //CGA pixel panning mode!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable = ((!useGraphics) && (getActiveVGA()->registers->Compatibility_MDAModeControl&0x20))?1:0; //Use blink when not using graphics and blink is enabled!
-	VGA_3C0_PAL = 1; //Enable the palette!
-	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA = 0xF; //CGA: enable all color planes!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4 = 0; //CGA normal mode!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV = 0; //CGA no scanline division!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2 = 0; //CGA normal mode?
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE = 1; //CGA enable CRT rendering HSYNC/VSYNC!
-	//Memory mapping special: always map like a CGA!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.LINECOMPAREREGISTER = 0xFF; //Maximum line compare: no split screen!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.LineCompare8 = 1; //Maximum line compare: no split screen!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.LineCompare9 = 1; //Maximum line compare: no split screen!
-	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.HSyncP = 0; //CGA has positive polarity!
-	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.VSyncP = 0; //CGA has positive polarity!
-	getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.FC0 = 0; //CGA!
-	getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.FC1 = 1; //CGA!
 }
 
 void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current CGA memory map!
 {
-	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.RotateCount = 0; //No special operation!
-	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.LogicalOperation = 0; //No special operation!
-	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.ENABLESETRESETREGISTER.EnableSetReset = 0; //No set/reset used!
-	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode = 0;
-	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode = 0;
-	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode = 1;
-	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode = 1;
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect = (!useGraphics && (GraphicsMode==1))?2:3; //Use map B000(MDA) or B800(CGA), depending on the adapter used!
-	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER = 0xFF; //Use all bits supplied by the CPU!
-	getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable = 3; //Write to planes 0/1 only, since we're emulating CGA!
-	getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.OEDisabled = 0; //Write to planes 0/1 only, since we're emulating CGA!
-	getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.Chain4Enable = 0; //Write to planes 0/1 only, since we're emulating CGA!
-	getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory = 1; //Write to planes 0/1 only, since we're emulating CGA!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DW = 0; //CGA normal mode!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode = 0; //CGA word mode!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //CGA mapping is done by the renderer mapping CGA!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //CGA mapping!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //CGA mapping!
-	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = 1; //CGA!
-	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage = 0; //CGA!
 }
 
 void applyCGAModeControl()
@@ -1146,6 +1106,7 @@ void applyCGAModeControl()
 		setCGAMDAMode(0,0); //Text mode!
 		applyCGAMemoryMap(0,0);
 	}
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable = (getActiveVGA()->registers->Compatibility_CGAModeControl&8)?0:1; //Disable the screen when requested!
 	applyCGAMDAPaletteRegisters(); //Apply the palette registers according to our settings!
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //We have been updated!	
 }
@@ -1162,6 +1123,7 @@ void applyMDAModeControl()
 		setCGAMDAMode(0,1); //Set special CGA/VGA MDA compatible text mode!
 	}
 	applyCGAMDAPaletteRegisters(); //Apply the palette registers according to our settings!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable = (getActiveVGA()->registers->Compatibility_CGAModeControl&8)?0:1; //Disable the screen when requested!
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //We have been updated!
 }
 
@@ -1173,6 +1135,111 @@ void updateCGAMDAflags()
 		getActiveVGA()->precalcs.LastCGAFlags = getActiveVGA()->registers->specialCGAflags; //Update the last value used!
 		getActiveVGA()->precalcs.LastMDAFlags = getActiveVGA()->registers->specialMDAflags; //Update the last value used!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL_SECTION|WHEREUPDATED_CRTCONTROLLER); //We have been updated! Update the whole section, as we don't know anything about the exact registers affected by the special action!
+	}
+}
+
+void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup defaults for all registers not used by the CGA/MDA emulation)!
+{
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR = 1;
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR = 1; //We're starting scanning!
+
+	//Now, setup defaults for the CGA/MDA to be used(normal data)! Clear any unused registers!
+	//Graphics Controller: Fully set!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER.SetReset = 0; //Disable!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.ENABLESETRESETREGISTER.EnableSetReset = 0; //No set/reset used!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.RotateCount = 0; //No special operation!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.LogicalOperation = 0; //No special operation!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER.ColorCompare = 0; //Disable!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect = 0; //Disable/Plane 0!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode = 0; //Disable!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode = 0; //Disable!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode = 1; //Enable!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.Color256ShiftMode = 0; //Disable!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode = 1; //Enable!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER.ColorCare |= 0xF; //Care about this only!
+	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER = 0xFF; //Use all bits supplied by the CPU!
+	//Sequencer: Fully set!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR = 1; //Start the sequencer!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR = 1; //Start the sequencer!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.S4 = 0; //CGA display!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR = 0; //CGA display! Single pixels only!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.SLR = 0; //CGA display! Single load rate!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8 = 1; //CGA display! 8 dots/character!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable = 3; //Write to planes 0/1 only, since we're emulating CGA!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory = 1; //Write to planes 0/1 only, since we're emulating CGA!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.OEDisabled = 0; //Write to planes 0/1 only, since we're emulating CGA!
+	getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.Chain4Enable = 0; //Write to planes 0/1 only, since we're emulating CGA!
+	//CRT Controller: Fully set!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DW = 0; //CGA normal mode!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4 = 0; //CGA normal mode!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation = (getActiveVGA()->registers->CGARegistersMasked[9]==0xD)?0xC:0x1F; //Monochrome emulation applies MDA-compatible underline, simple detection by character height!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.LINECOMPAREREGISTER = 0xFF; //Maximum line compare: no split screen!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.LineCompare8 = 1; //Maximum line compare: no split screen!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.LineCompare9 = 1; //Maximum line compare: no split screen!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorSkew = 0; //Don't use any cursor skewing: we're direct line numbers for the scanline within the character!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Disabled = 1; //Disable the VRetrace interrupts!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV = 0; //CGA no scanline division!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2 = 0; //CGA normal mode?
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SE = 1; //CGA enable CRT rendering HSYNC/VSYNC!
+	//Memory mapping special: always map like a CGA!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode = 0; //CGA word mode!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //CGA mapping is done by the renderer mapping CGA!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //CGA mapping!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //CGA mapping!
+	//Attribute Controller: Fully set!
+	VGA_3C0_PAL = 1; //Enable the palette!
+	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable = 1; //CGA line graphics!
+	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PixelPanningMode = 0; //CGA pixel panning mode!
+	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit = 0; //Not using 8-bit colors!
+	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PaletteBits54Select = 0; //Not using the high Palette bits!
+	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA |= 0xF; //CGA: enable all color planes!
+	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.HORIZONTALPIXELPANNINGREGISTER.PixelShiftCount = 0; //Don't shift!
+	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER.ColorSelect54 = 0; //Don't use!
+	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER.ColorSelect76 = 0; //Don't use!
+	//External registers: Fully set!
+	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS = (getActiveVGA()->registers->Compatibility_CGAModeControl&8)?1:0; //CGA/MDA address!
+	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = 1; //CGA!
+	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage = 0; //CGA!
+	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.HSyncP = 0; //CGA has positive polarity!
+	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.VSyncP = 0; //CGA has positive polarity!
+	getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.FC0 = 0; //CGA!
+	getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.FC1 = 1; //CGA!
+}
+
+void CGA_clearlightpenlatch()
+{
+	getActiveVGA()->registers->specialCGAflags &= ~0x6; //Clear the lightpen latch and untrigger it!
+}
+
+extern word Sequencer_location; //Current location we're processing!
+
+void CGA_presetlightpenlatch()
+{
+	if (CGAMDAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
+	{
+		if (!(getActiveVGA()->registers->specialCGAflags&1)) return; //CGA emulation only?
+		getActiveVGA()->registers->specialCGAflags |= 0x4; //Triggered the lightpen latch! Now wait for it to set!
+	}
+}
+
+void CGA_checklightpen(word currentlocation) //Check the lightpen on the current location!
+{
+	word lightpenlocation;
+	if (CGAMDAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
+	{
+		if (!(getActiveVGA()->registers->specialCGAflags&1)) return; //CGA emulation only?
+		if (getActiveVGA()->registers->specialCGAflags&0x4) //Light pen preset?
+		{
+			getActiveVGA()->registers->specialCGAflags &= ~4; //Clear the preset: we're not set anymore!
+			getActiveVGA()->registers->specialCGAflags |= 2; //The light pen register is now set!
+			lightpenlocation = currentlocation; //Load the current location for converting to CGA location!
+			//Translate VGA location to CGA location!
+			lightpenlocation >>= 1; //We're in word mode, so divide by 2 to translate to CGA coordinates(format is the same as the CGA cursor address, so it's doubled in the VGA(VGA=2x CGA value due to word addressing mode)!
+			//Now set our lightpen!
+			getActiveVGA()->registers->CGARegisters[0x10] &= ~0x3F; //Clear our light pen location bits that need to be set!
+			getActiveVGA()->registers->CGARegisters[0x10] = ((lightpenlocation>>8)&0x3F); //Our high bits!
+			getActiveVGA()->registers->CGARegisters[0x11] = (lightpenlocation&0xFF); //Our low bits!
+		}
 	}
 }
 
@@ -1258,12 +1325,29 @@ byte CGAMDA_readIO(word port, byte *result)
 			{
 				*result &= ~1; //Clear bit 0!
 				if (getActiveVGA()->CRTC.DisplayDriven) *result |= 1; //Are we driving display(Display Enable bit) on the output?
-				*result ^= 1; //We're 0 when display isn't driven!
+				*result ^= 1; //We're 0 when display is driven!
+				*result &= ~6; //Clear the light pen data by default!
+				//Bit 1=1: Light pen triggered, Bit 2=1: Light Pen switch is open
+				*result |= (getActiveVGA()->registers->specialCGAflags&0x2); //Bit 1 used normally!
+				*result |= ((~getActiveVGA()->registers->specialCGAflags)&0x4); //Bit 2 used reversed to give the status (0=on)!				
 			} //Else: normal VGA documented result!
 		}
 		ok = 1;
 		break;
-
+	case 0x3DB: //Clear lightpen latch?
+		if (CGAMDAEMULATION_ENABLED(getActiveVGA()))  //Special CGA flag set for CRTC?
+		{
+			CGA_clearlightpenlatch(); //Clear lightpen latch!
+			ok = 2; //Accept, but ignore!
+		}
+		break;
+	case 0x3DC: //Preset lightpen latch?
+		if (CGAMDAEMULATION_ENABLED(getActiveVGA()))  //Special CGA flag set for CRTC?
+		{
+			CGA_presetlightpenlatch(); //Preset lightpen latch!
+			ok = 2; //Accept, but ignore!
+		}
+		break;
 	//CGA/MDA compatibility registers!
 	case 0x3D8: //CGA mode control register
 		if (getActiveVGA()->registers->specialCGAflags&0x1) //Not NMI used on CGA-specific registers being called?
@@ -1332,7 +1416,8 @@ byte CGAMDA_writeIO(word port, byte value)
 		accesscrtvalue:
 		if (CGAMDAEMULATION_ENABLED_CRTC(getActiveVGA()))  //Special CGA flag set for CRTC?
 		{
-			if (getActiveVGA()->registers->CRTControllerRegisters_Index>=18) goto skipCRTwrite; //Invalid register, just handle normally(skip it)!
+			if (getActiveVGA()->registers->CRTControllerRegisters_Index>=0x12) goto skipCRTwrite; //Invalid register, just handle normally(skip it)!
+			if ((getActiveVGA()->registers->CRTControllerRegisters_Index&0x1E)==0x10) goto skipCRTwrite; //Light pen is read-only on the CGA!
 			getActiveVGA()->registers->CGARegisters[getActiveVGA()->registers->CRTControllerRegisters_Index] = value; //Set the CGA register!
 			getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value; //Set the CGA register(unmasked)!
 			switch (getActiveVGA()->registers->CRTControllerRegisters_Index) //Check address registers to translate from the CGA!
@@ -1398,10 +1483,8 @@ byte CGAMDA_writeIO(word port, byte value)
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|getActiveVGA()->registers->CRTControllerRegisters_Index); //This CRT Register has been updated!
 				break;
 			case 0x10: //Light Pen(H)?
-				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x3F; //Set the CGA register(masked)!
-				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|getActiveVGA()->registers->CRTControllerRegisters_Index); //This CRT Register has been updated!
 			case 0x11: //Light Pen(L)?
-				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|getActiveVGA()->registers->CRTControllerRegisters_Index); //This CRT Register has been updated!
+				//These register are read-only!
 				break; //Not handled yet!
 			default:
 				break;
@@ -1425,6 +1508,10 @@ byte CGAMDA_writeIO(word port, byte value)
 			if (value&0x8) //We're enabled?
 			{
 				getActiveVGA()->registers->specialCGAflags |= 0x40; //Enable CGA on VGA if needed!
+				if ((getActiveVGA()->registers->specialMDAflags&0xC1)==0xC1) //MDA extension enabled?
+				{
+					applyCGAMDAMode();
+				}
 			}
 			else //We're disabled?
 			{
@@ -1455,12 +1542,30 @@ byte CGAMDA_writeIO(word port, byte value)
 			if (value&0x8) //We're enabled?
 			{
 				getActiveVGA()->registers->specialMDAflags |= 0x40; //Enable MDA on VGA if needed!
+				if ((getActiveVGA()->registers->specialMDAflags&0xC1)==0xC1) //MDA extension enabled?
+				{
+					applyCGAMDAMode();
+				}
 			}
 			else //We're disabled?
 			{
 				getActiveVGA()->registers->specialMDAflags &= ~0x40; //Disable MDA on VGA if needed!
 			}
 			ok = 1; //OK!
+		}
+		break;
+	case 0x3DB: //Clear lightpen latch?
+		if (CGAMDAEMULATION_ENABLED(getActiveVGA()))  //Special CGA flag set for CRTC?
+		{
+			CGA_clearlightpenlatch(); //Clear lightpen latch!
+			ok = 2; //Accept, but ignore!
+		}
+		break;
+	case 0x3DC: //Preset lightpen latch?
+		if (CGAMDAEMULATION_ENABLED(getActiveVGA()))  //Special CGA flag set for CRTC?
+		{
+			CGA_presetlightpenlatch(); //Preset lightpen latch!
+			ok = 2; //Accept, but ignore!
 		}
 		break;
 	default:

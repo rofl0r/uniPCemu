@@ -546,7 +546,7 @@ typedef struct PACKED
 		struct
 		{
 			byte DisplayDisabled : 1; //Horizontal/vertical interval taking place? 1 during HBlank/VBlank, 0 else.
-			byte LightpenTriggered : 1; //Light pen triggered?
+			byte LightPenTriggered : 1; //Light pen triggered?
 			byte LightPenSwitchIsOpen : 1; //Light Pen switch is open?
 			byte VRetrace : 1; //VSync Active: Is a VRetrace interval taking place?
 			byte VideoFeedback10 : 2; //Color plane enable bits which are selected. EGA Compatibility only.

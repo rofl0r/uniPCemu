@@ -180,22 +180,13 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		}
 	}
 
-	/*if (VGA->registers->specialCGAflags&1) //CGA compatibility mode?
-	{
-		isoutputdisabled = (((~VGA->registers->Compatibility_CGAModeControl)>>3)&1); //This bit disables rendering input on CGA&MDA! If neither is 1, no display enable occurs!
-	}
-	else if (VGA->registers->specialMDAflags&1) //MDA compatibility mode?
-	{
-		isoutputdisabled = (((~VGA->registers->Compatibility_MDAModeControl)>>3)&1); //This bit disables rendering input on CGA&MDA! If neither is 1, no display enable occurs!
-	}
-	else
-	{*/
-		isoutputdisabled = 0; //Output is always enabled!
-	//}
+	isoutputdisabled = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable; //Output is disabled?
 	
 	//Both H&VBlank count!
 	blanking = hblank;
 	blanking |= vblank; //Process blank!
+
+	blanking |= isoutputdisabled; //Use disabled output when asked to!
 
 	//Now process the Retraces/Sync!
 
@@ -260,7 +251,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	isretrace = hretrace;
 	isretrace |= vretrace; //We're retracing?
 
-	isoutputdisabled |= ((signal&VGA_DISPLAYMASK)!=VGA_DISPLAYACTIVE); //Are we not displaying anyway? The report that!
+	isoutputdisabled |= ((signal&VGA_DISPLAYMASK)!=VGA_DISPLAYACTIVE); //Are we not displaying anyway? Then report that!
 
 	VGA->CRTC.DisplayDriven = isretrace?1:0; //Are we retracing horizontally? According to http://www.seasip.info/VintagePC/mda.html
 

@@ -24,6 +24,7 @@
 #include "headers/support/signedness.h" //Signedness support!
 
 #include "headers/emu/gpu/gpu_text.h" //GPU text support! 
+#include "headers/bios/biosmenu.h" //BIOS menu support for recording audio!
 
 #ifdef VISUALC
 #include "sdl_joystick.h" //Joystick support!
@@ -1843,6 +1844,8 @@ byte haswindowactive = 1; //Are we displayed on-screen?
 byte hasmousefocus = 1; //Do we have mouse focus?
 byte hasinputfocus = 1; //Do we have input focus?
 
+extern byte SCREEN_CAPTURE; //Screen capture support!
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	static byte RALT = 0;
@@ -1884,7 +1887,7 @@ void updateInput(SDL_Event *event) //Update all input!
 					break;
 				case SDLK_RETURN: //START?
 					input.Buttons &= ~BUTTON_START; //Pressed!
-					if (RALT) //RALT pressed too?
+					if (RALT) //RALT pressed too? Doubles as emulator fullscreen toggle!
 					{
 						GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
 						updateVideo(); //Force an update of video!
@@ -1932,6 +1935,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				case SDLK_KP2: //CROSS?
 					input.Buttons &= ~BUTTON_CROSS; //Pressed!
 					break;
+				//Special emulator shortcuts?
 				case SDLK_F4: //F4?
 					if (RALT) //ALT-F4?
 					{
@@ -1941,8 +1945,20 @@ void updateInput(SDL_Event *event) //Update all input!
 					}
 					break;
 					break;
-				case SDLK_F11: //F11?
-					if (RALT) //ALT-F11?
+				case SDLK_F5: //F5? Use F5 for simple compatiblity with Dosbox users. Screen shot!
+					if (RALT) //ALT-F5?
+					{
+						SCREEN_CAPTURE = 1; //Do a screen capture next frame!
+					}
+					break;
+				case SDLK_F6: //F6? Use F6 for simple compatiblity with Dosbox users. Start/stop sound recording!
+					if (RALT) //ALT-F6?
+					{
+						BIOS_SoundStartStopRecording(); //Start/stop recording!
+					}
+					break;
+				case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.
+					if (RALT) //ALT-F10?
 					{
 						toggleDirectInput(2); //Toggle direct input alternwtive without mouse!
 					}
@@ -2065,8 +2081,11 @@ void updateInput(SDL_Event *event) //Update all input!
 				case SDLK_KP2: //CROSS?
 					input.Buttons |= BUTTON_CROSS; //Pressed!
 					break;
-				case SDLK_F11: //F11?
+				//Special emulator shortcuts!
 				case SDLK_F4: //F4?
+				case SDLK_F5: //F5? Use F5 for simple compatiblity with Dosbox users. Screen shot!
+				case SDLK_F6: //F6? Use F6 for simple compatiblity with Dosbox users. Start/stop sound recording!
+				case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.				case SDLK_F11: //F11?
 					if (RALT) //ALT combination? We're reserved input for special actions!
 					{
 						unlock(LOCK_INPUT);

@@ -164,6 +164,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 
 	//Row logic
 	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!
+	CGA_checklightpen(loadedlocation); //Check for anything requiring the lightpen on the CGA!
 
 	//Now calculate and give the planes to be used!
 	planesbuffer[0] = readVRAMplane(VGA, 0, loadedlocation, 0x81); //Read plane 0!
