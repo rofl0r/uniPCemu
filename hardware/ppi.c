@@ -4,8 +4,8 @@
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/hardware/vga/vga.h" //VGA/EGA/CGA/MDA support!
 
-byte SystemControlPortB; //System control port B!
-byte SystemControlPortA; //System control port A!
+byte SystemControlPortB=0x00; //System control port B!
+byte SystemControlPortA=0x00; //System control port A!
 byte PPI62, PPI63; //Default PPI switches!
 
 byte PPI_readIO(word port, byte *result)
@@ -34,15 +34,20 @@ byte PPI_readIO(word port, byte *result)
 	return 0; //No PPI!
 }
 
-void setPPI62()
+void setupPPI()
 {
-	PPI62 &= 0xF0; //Clear our mode bits: We're filling in now!
-	if (((getActiveVGA()->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
+	//PPI63!
+	if (((getActiveVGA()->registers->specialCGAflags&0x81)==1)) //Pure CGA mode?
 	{
-		PPI62 |= 0x3; //MDA 80x25!
+		PPI62 |= 2; //First bit set: 80x25 CGA!
 	}
-	//80x25 color=00, so already set!
-	PPI62 |= (1<<2); //Read the value, only 2 floppy drives(this number is the amount of floppy drives minus one)!
+	else if (((getActiveVGA()->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
+	{
+		PPI62 |= 3; //Both bits set: 80x25 MDA!
+	}
+
+	//Now, process the floppy drives!
+	PPI62 |= 0x4; //Two floppy drives present!
 }
 
 byte PPI_writeIO(word port, byte value)
@@ -79,14 +84,14 @@ byte PPI_writeIO(word port, byte value)
 
 void initPPI()
 {
-	SystemControlPortB = 0xFF; //Reset system control port B!
-	PPI62 = 0xFF; //Set the default switches!
-	PPI63 = 0xFF; //Set the default switches!
+	SystemControlPortB = 0x7F; //Reset system control port B!
+	PPI62 = 0x00; //Set the default switches!
+	PPI63 = 0x00; //Set the default switches!
 
 	if (EMULATED_CPU<=CPU_80186) //XT machine?
 	{
 		//Check for reserved hardware settings!
-		setPPI62(); //Set PPI62!
+		setupPPI(); //Setup our initial values!
 	}
 
 	register_PORTIN(&PPI_readIO);
