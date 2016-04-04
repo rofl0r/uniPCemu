@@ -17,7 +17,7 @@ byte PPI_readIO(word port, byte *result)
 		return 1;
 		break;
 	case 0x62: //PPI62?
-		*result = PPI62; //Read the value!
+		*result = ((PPI62|4)&~8); //Read the value! 2 Floppy drives forced!
 		return 1;
 		break;
 	case 0x63: //PPI63?
@@ -45,9 +45,10 @@ void setupPPI()
 	{
 		PPI62 |= 3; //Both bits set: 80x25 MDA!
 	}
-
-	//Now, process the floppy drives!
-	PPI62 |= 0x4; //Two floppy drives present!
+	else //VGA with floppy?
+	{
+		//Leave PPI62 at zero!
+	}
 }
 
 byte PPI_writeIO(word port, byte value)
