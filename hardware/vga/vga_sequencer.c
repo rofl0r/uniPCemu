@@ -196,9 +196,6 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	row >>= VGA->precalcs.scandoubling; //Apply Scan Doubling on the row scan counter: we take effect on content (double scanning)!
 	Sequencer->rowscancounter = row; //Set the current row scan counter!
 
-	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply scanline division to the current row timing!
-	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
-
 	byte oddCGAmemory; //High CGA memory to apply?
 	oddCGAmemory = 0; //Default: normal sequential lines!
 	if (CGAMDAEMULATION_RENDER(VGA)) //CGA mode?
@@ -211,12 +208,17 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 				break;
 			//Odd/even memory modes?
 			case 1: //Even scanlines divide by 2, Odd scanlines equal to the even ones, but higher memory(0,0,1,1,2,2,3,3 as E,O,E,O,E,O)!
+				oddCGAmemory = Sequencer->Scanline&1; //High when odd rows!
 				row >>= 1; //Divide by 2(half the rate)!
+				break;
 			case 3: //Even scanlines are even numbers, Odd scanlines are odd numbers (0,1,2,3,4,5,6,7 as E,O,E,O,E,O)
-				oddCGAmemory = Sequencer->rowscancounter&1; //High when odd rows!
+				oddCGAmemory = Sequencer->Scanline&1; //High when odd rows!
 				break;
 		}
 	}
+
+	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply scanline division to the current row timing!
+	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
 
 	//Row now is an index into charrowstatus
 	word *currowstatus = &VGA->CRTC.charrowstatus[row]; //Current row status!
