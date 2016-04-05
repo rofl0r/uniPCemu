@@ -197,6 +197,14 @@ void VGA_LOGCRTCSTATUS()
 	unlockVGA(); //We're finished with the VGA!
 }
 
+void checkCGAcursor(VGA_Type *VGA)
+{
+	if (VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart>VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd) //We're past: display split cursor!
+		VGA->registers->specialCGAflags |= 0x8; //Set special CGA flag: split cursor!
+	else
+		VGA->registers->specialCGAflags &= ~0x8; //Clear special CGA flag: normal cursor!
+}
+
 void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, whereupdated: where were we updated?
 {
 	//All our flags for updating sections related!
@@ -286,6 +294,13 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_VERTICAL)) //CGA vertical timing updated?
 	{
 		updateCGACRTCONTROLLER = UPDATE_SECTION(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_VERTICAL); //Update the entire section?
+		//Don't handle these registers just yet!
+		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x9))) //Character height updated?
+		{
+			VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine = (VGA->registers->CGARegistersMasked[9]); //Character height is set!
+			adjustVGASpeed(); //Auto-adjust our VGA speed!
+			goto updatecharheight;
+		}
 		updateCRTC = 1; //Update the CRTC!
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
@@ -294,34 +309,29 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		updateCGACRTCONTROLLER = UPDATE_SECTION(whereupdated,WHEREUPDATED_CGACRTCONTROLLER); //Update the entire section?
 
-		//Don't handle these registers just yet!
-		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0x9))) //Character height updated?
-		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine = (VGA->registers->CGARegistersMasked[9]); //Character height is set!
-			adjustVGASpeed(); //Auto-adjust our VGA speed!
-			goto updatecharheight;
-		}
 		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xA))) //Cursor Start Register updated?
 		{
 			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart = (VGA->registers->CGARegistersMasked[0xA]&0x1F); //Cursor scanline start!
-			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable = ((VGA->registers->CGARegistersMasked[0xA])&0x60)?0:1; //Disable the cursor? Setting these bits will enable the cursor!
+			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable = (((VGA->registers->CGARegistersMasked[0xA])&0x60)!=0x20)?0:1; //Disable the cursor? Setting these bits to any display will enable the cursor!
+			checkCGAcursor(VGA); //Check the cursor!
 			goto updateCursorStart; //Update us!
 		}
 		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xB))) //Cursor End Register updated?
 		{
 			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd = (VGA->registers->CGARegistersMasked[0xB]&0x1F); //Cursor scanline end!
+			checkCGAcursor(VGA); //Check the cursor!
 			goto updateCursorEnd; //Update us!
 		}
 
 		if (updateCGACRTCONTROLLER || ((whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xC)) || whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xD))) //Start address High/Low register updated?
 		{
 			word startaddress;
-			startaddress = VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (VGA->registers->CGARegistersMasked[0xC]); //Apply the start address high register!
+			startaddress = (VGA->registers->CGARegistersMasked[0xC]); //Apply the start address high register!
 			startaddress <<= 8; //Move high!
 			startaddress |= VGA->registers->CGARegistersMasked[0xD]; //Apply the start address low register!
 
 			//Translate to a VGA value!
-			startaddress <<= 1; //Simply multiply by 2!
+			startaddress <<= 1; //Simply multiply by 2 to get the correct VGA value!
 
 			//Apply to the VGA!
 			VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (startaddress>>8)&0xFF;
@@ -329,16 +339,14 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			goto updateStartAddress;
 		}
 
-		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xE))) //Start address High register updated?
+		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xE)) || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xF))) //Cursor address High/Low register updated?
 		{
 			word cursorlocation;
 			cursorlocation = (VGA->registers->CGARegistersMasked[0xE]); //Apply the start address high register!
 			cursorlocation <<= 8; //Move high!
 			cursorlocation |= VGA->registers->CGARegistersMasked[0xF]; //Apply the start address low register!
 
-			//Translate to a VGA value!
-			cursorlocation <<= 1; //Simply multiply by 2!
-
+			//This seems to be the same on a VGA!
 			//Apply to the VGA!
 			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER = (cursorlocation>>8)&0xFF;
 			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER = (cursorlocation&0xFF);

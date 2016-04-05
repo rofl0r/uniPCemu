@@ -8,6 +8,7 @@
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer!
+#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA cursor support!
 
 //Character is cursor position?
 #define CHARISCURSOR (Sequencer_textmode_charindex==VGA->precalcs.cursorlocation)
@@ -16,17 +17,40 @@
 #define SCANLINEISCURSOR2 (Rendery<=VGA->precalcs.CursorEndRegister_CursorScanLineEnd)
 //Cursor is enabled atm?
 #define CURSORENABLED1 (!VGA->precalcs.CursorStartRegister_CursorDisable)
-#define CURSORENABLED2 (VGA->CursorOn)
+#define CURSORENABLED2 (VGA->blink8)
 
 OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,word Sequencer_textmode_charindex) //Cursor scanline within character is cursor? Used to be: VGA_Type *VGA, byte ScanLine,uint_32 characterlocation
 {
 	byte cursorOK;
 	if (CHARISCURSOR) //Character is cursor character?
 	{
-		cursorOK = CURSORENABLED1; //Cursor enabled?
-		cursorOK &= CURSORENABLED2; //Cursor on?
-		cursorOK &= SCANLINEISCURSOR1; //Scanline is within cursor top range?
-		cursorOK &= SCANLINEISCURSOR2; //Scanline is within cursor bottom range?
+		if (CGAMDAEMULATION_ENABLED(VGA)) //CGA emulation has different cursors?
+		{
+			if (VGA->registers->specialCGAflags&8) //Split cursor?
+			{
+				cursorOK = (Rendery>=VGA->precalcs.CursorStartRegister_CursorScanLineStart); //Before?
+				cursorOK |= (Rendery<=VGA->precalcs.CursorEndRegister_CursorScanLineEnd); //After?
+			}
+			else //Normal cursor?
+			{
+				cursorOK = (Rendery>=VGA->precalcs.CursorStartRegister_CursorScanLineStart); //Before?
+				cursorOK &= (Rendery<=VGA->precalcs.CursorEndRegister_CursorScanLineEnd); //After?
+			}
+			switch (VGA->registers->CGARegisters[0xA]&0x60) //What cursor mode?
+			{
+				case 0x20: return 0; //Cursor Non-Display!
+				case 0x00: return (VGA->blink8&&cursorOK); //Blink at normal rate(every 8 frames)?
+				case 0x40: return (VGA->blink16&&cursorOK); //Blink, 1/16 Field Rate(every 16 frames)?
+				case 0x60: return (VGA->blink32&&cursorOK); //Blink, 1/32 Field Rate(every 32 frames)?
+			}
+		}
+		else //Normal VGA cursor?
+		{
+			cursorOK = CURSORENABLED1; //Cursor enabled?
+			cursorOK &= CURSORENABLED2; //Cursor on?
+			cursorOK &= SCANLINEISCURSOR1; //Scanline is within cursor top range?
+			cursorOK &= SCANLINEISCURSOR2; //Scanline is within cursor bottom range?
+		}
 		return cursorOK; //Give if the cursor is OK!
 	}
 	return 0; //No cursor!

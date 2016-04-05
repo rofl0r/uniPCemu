@@ -230,8 +230,13 @@ The r/w operations from the CPU!
 //decodeCPUaddress(Write from CPU=1; Read from CPU=0, offset (from VRAM start address), planes to read/write (4-bit mask), offset to read/write within the plane(s)).
 OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
 {
+	byte oddevenmemorymode;
 	register uint_32 realoffsettmp;
 	register byte calcplanes;
+
+	oddevenmemorymode = getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode; //This enforces Odd/Even memory addressing during access from memory when Host_OE is enabled to provide CGA compatibility!
+	if (oddevenmemorymode) goto forceoddevenmode; //Force odd/even mode when enabled!
+
 	if (getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.Chain4Enable) //Chain 4 mode?
 	{
 		calcplanes = realoffsettmp = offset; //Original offset to start with!
@@ -260,8 +265,9 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 
 	//Odd/even mode used (compatiblity case)?
 	//Do the same as VPC!
+	forceoddevenmode:
 	calcplanes = realoffsettmp = offset; //Take the default offset!
-	if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode)
+	if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode || oddevenmemorymode) //Read using odd/even addressing?
 	{
 		calcplanes &= 1; //Take 1 bit to determine the plane (0/1)!
 		realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
@@ -271,7 +277,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		calcplanes = 0; //Use plane 0 always!
 	}
 	*realoffset = realoffsettmp; //Give the calculated offset!
-	if (VGA_MemoryMapSelect == 1) //Memory map mode 1?
+	if ((VGA_MemoryMapSelect == 1) && (!oddevenmemorymode)) //Memory map mode 1?
 	{
 		//Determine by Page Select!
 		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage) //Lower page?

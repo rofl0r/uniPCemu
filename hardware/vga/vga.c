@@ -158,10 +158,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 
 	debugrow("VGA: Initialising settings...");
 
-	VGA->CursorOn = 1; //Default: cursor on!
-	VGA->TextBlinkOn = 1; //Default: text blink on!
-
-//Stuff from dosbox for comp.
+	//Stuff from dosbox for comp.
 	int i; //Counter!
 	for (i=0; i<256; i++) //Init ExpandTable!
 	{
@@ -323,10 +320,14 @@ OPTINLINE void cursorBlinkHandler() //Handled every 16 frames!
 	if (__HW_DISABLED) return; //Abort!
 	if (getActiveVGA()) //Active?
 	{
-		getActiveVGA()->CursorOn = !getActiveVGA()->CursorOn; //Blink!
-		if (getActiveVGA()->CursorOn) //32 frames processed (we start at ON=1, becomes off first 16, becomes on second 16==32)
+		getActiveVGA()->blink8 = !getActiveVGA()->blink8; //8 frames processed: Blink!
+		if (!getActiveVGA()->blink8) //Reverted? 16 frames processed!
 		{
-			getActiveVGA()->TextBlinkOn = !getActiveVGA()->TextBlinkOn; //Blink!
+			getActiveVGA()->blink16 = !getActiveVGA()->blink16; //Blink at 16 frames!
+			if (!getActiveVGA()->blink16) //32 frames processed (we start at ON=1, becomes off first 16, becomes on second 16==32)
+			{
+				getActiveVGA()->blink32 = !getActiveVGA()->blink32; //Blink at 32 frames!
+			}
 		}
 	}
 }
@@ -351,10 +352,10 @@ void VGA_VBlankHandler(VGA_Type *VGA)
 //First: cursor blink handler every 16 frames!
 	static byte cursorCounter = 0; //Cursor counter!
 	++cursorCounter; //Next cursor!
-	if (cursorCounter==16) //To blink cursor?
+	cursorCounter &= 0x7; //Reset every 8 frames!
+	if (!cursorCounter) //Every 8 frames?
 	{
-		cursorCounter = 0; //Reset counter!
-		cursorBlinkHandler(); //This is handled every 16 frames!
+		cursorBlinkHandler(); //This is handled every 8 frames!
 	}
 	
 	if (VGA->wait_for_vblank) //Waiting for vblank?

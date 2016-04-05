@@ -656,8 +656,9 @@ typedef struct PACKED
 	uint_32 ExpandTable[256]; //Expand Table (originally 32-bit) for VRAM read and write by CPU!
 	uint_32 FillTable[16]; //Fill table for memory writes!
 	byte getcharxy_values[0x4000]; //All getcharxy values!
-	byte CursorOn; //Cursor on?
-	byte TextBlinkOn; //Text blink on? (Every 2 CursorOn changed)
+	byte blink8; //Blink rate 8 frames?
+	byte blink16; //Blink rate 16 frames?
+	byte blink32; //Blink rate 32 frames?
 
 	int initialised; //Are we initialised (row timer active? After VGAalloc is called, this is 1, row timer sets this to 0!)
 
