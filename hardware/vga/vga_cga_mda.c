@@ -808,7 +808,7 @@ byte CGA_is_hsync(VGA_Type *VGA, word x) //Are we vsync?
 }
 
 
-word get_display_CGA_x(VGA_Type *VGA, word x)
+word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 {
 	word result=0;
 	word column=x; //Unpatched x value!
@@ -838,6 +838,24 @@ word get_display_CGA_x(VGA_Type *VGA, word x)
 	return result; //Give the signal!
 }
 
+float getCGAMDAClock(VGA_Type *VGA)
+{
+	float result=0.0f; //The calculated clock speed! Default: not used!
+	if (CGAMDAEMULATION_ENABLED_CRTC(VGA)) //Are we enabled?
+	{
+		if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA emulation enabled?
+		{
+			result = (float)(15750000>>((~VGA->registers->Compatibility_CGAModeControl)&1)); //Special CGA compatibility mode: change our refresh speed to match it!
+			result *= (1/16689.0f)*15244.0f; //Patch us to the correct speed!
+		}
+		else if (MDAEMULATION_ENABLED_CRTC(VGA)) //MDA emulation enabled?
+		{
+			result = 16257000.0f; //16.257MHz pixel clock!
+		}
+	}
+	return result; //Default: No CGA/MDA clock used!
+}
+
 byte CGA_is_vsync(VGA_Type *VGA, word y, byte charheight) //Are we vsync?
 {
 	if ((y>=(VGA->registers->CGARegistersMasked[7]*charheight)) && (y<((VGA->registers->CGARegistersMasked[7]*charheight)+0x10))) //Vertical sync? It's always 16 lines!
@@ -847,7 +865,7 @@ byte CGA_is_vsync(VGA_Type *VGA, word y, byte charheight) //Are we vsync?
 	return 0;
 }
 
-word get_display_CGA_y(VGA_Type *VGA, word y)
+word get_display_CGAMDA_y(VGA_Type *VGA, word y)
 {
 	word result=0;
 	if (!y) result |= VGA_SIGNAL_VRETRACEEND|VGA_SIGNAL_VBLANKEND; //End vertical retrace&blank if still there!

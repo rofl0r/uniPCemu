@@ -93,6 +93,10 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte mode) //Read fro
 	fulloffset2 &= 0x3FFFF; //Wrap arround memory! Maximum of 256K memory!
 
 	if (!VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
+	if (MDAEMULATION_ENABLED(VGA)) //MDA emulation enabled? Quarter the memory installed!
+	{
+		fulloffset2 &= 0x3FFF; //Apply MDA memory!
+	}
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
@@ -119,6 +123,10 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value, byte mod
 	fulloffset2 &= 0x3FFFF; //Wrap arround memory!
 
 	if (!VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
+	if (MDAEMULATION_ENABLED(VGA)) //MDA emulation enabled? Quarter the memory installed!
+	{
+		fulloffset2 &= 0x3FFF; //Apply MDA memory!
+	}
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
