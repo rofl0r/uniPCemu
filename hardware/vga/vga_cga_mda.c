@@ -1087,6 +1087,7 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode, byte blink) //Rendering 
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable = useGraphics; //Text mode!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation = ((!useGraphics) && GraphicsMode); //MDA attributes!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable = ((!useGraphics) && blink)?1:0; //Use blink when not using graphics and blink is enabled!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = !useGraphics; //Graphics enables CGA graphics MAP13, else text!
 }
 
 void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current CGA memory map!
@@ -1108,12 +1109,12 @@ void applyCGAModeControl()
 	{
 		if (getActiveVGA()->registers->Compatibility_CGAModeControl&0x10) //2 colour?
 		{
-			setCGAMDAMode(1,0,0); //Set up basic 2-color graphics!
+			setCGAMDAMode(1,0,(getActiveVGA()->registers->Compatibility_CGAModeControl&0x20)); //Set up basic 2-color graphics!
 			applyCGAMemoryMap(1,0);
 		}
 		else //4 colour?
 		{
-			setCGAMDAMode(1,1,0); //Set up basic 4-color graphics!
+			setCGAMDAMode(1,1,(getActiveVGA()->registers->Compatibility_CGAModeControl&0x20)); //Set up basic 4-color graphics!
 			applyCGAMemoryMap(1,1);
 		}
 	}
@@ -1197,7 +1198,6 @@ void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup defaults for
 	//Memory mapping special: always map like a CGA!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode = 0; //CGA word mode!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 0; //CGA mapping is done by the renderer mapping CGA!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //CGA mapping!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14 = 1; //CGA mapping!
 	//Attribute Controller: Fully set!
 	VGA_3C0_PAL = 1; //Enable the palette!
