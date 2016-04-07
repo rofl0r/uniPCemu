@@ -42,6 +42,6 @@ GPU_SDL_Surface *freeSurface(GPU_SDL_Surface *surface);
 void safeFlip(GPU_SDL_Surface *surface); //Safe flipping (non-null)
 GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, const uint_32 newheight, byte doublexres, byte doubleyres, int aspectratio);
 
-void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, uint_32 newwidth, uint_32 newheight, uint_32 *n_width, uint_32 *n_height); //Calculates resize dimensions!
+void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, uint_32 newwidth, uint_32 newheight, uint_32 *n_width, uint_32 *n_height, byte is_renderer); //Calculates resize dimensions!
 
 #endif

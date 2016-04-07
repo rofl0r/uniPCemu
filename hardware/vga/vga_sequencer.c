@@ -31,8 +31,8 @@ word signal_x, signal_scanline; //Signal location!
 extern GPU_type GPU; //GPU!
 
 float VGA_clocks[4] = {
-			(3600.0f/143.0f)*1000000.0f, //25MHz: VGA standard clock
-			28322000.0f, //28MHz: VGA standard clock
+			(25.2/1.001)*1000000.0f, //25MHz: VGA standard clock
+			(28.35/1.001)*1000000.0f, //28MHz: VGA standard clock
 			0.0f, //external clock: not connected!
 			0.0f //Unused
 			}; //Our clocks!

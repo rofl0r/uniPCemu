@@ -184,12 +184,27 @@ OPTINLINE void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest 
 	}
 }
 
-void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, uint_32 newwidth, uint_32 newheight, uint_32 *n_width, uint_32 *n_height)
+void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, uint_32 newwidth, uint_32 newheight, uint_32 *n_width, uint_32 *n_height, byte is_renderer)
 {
 	*n_width = newwidth;
 	*n_height = newheight; //New width/height!
 	if (aspectratio) //Keeping the aspect ratio?
 	{
+		#ifndef __psp__
+		//Only with windows used!
+		if (((aspectratio==2) || (aspectratio==3)) && is_renderer) //Render to the window of forced size?
+		{
+			switch (aspectratio)
+			{
+				case 2: //4:3
+				case 3: //CGA
+					originalwidth = newwidth; //We're resizing the destination ratio itself instead!
+					originalheight = newheight; //We're resizing the destination ratio itself instead!
+					break;
+				default: break; //Unknown mode!
+			}
+		}
+		#endif
 		double ar = (double)originalwidth / (double)originalheight; //Source surface aspect ratio!
 		double newAr = (double)*n_width / (double)*n_height; //Destination surface aspect ratio!
 		switch (aspectratio) //Force aspect ratio?
@@ -198,7 +213,7 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 				ar = (double)(4.0 / 3.0); //We're taking 4:3 aspect ratio instead of the aspect ratio of the image!
 				break;
 			case 3: //CGA
-				ar = (double)(376.25 / 242.5); //We're taking 6:7 aspect ratio instead of the aspect ratio of the image!
+				ar = (double)(379.83 / 242.5); //We're taking CGA aspect ratio instead of the aspect ratio of the image!
 				break;
 			default: //Keep the aspect ratio!
 				break;
@@ -231,7 +246,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 	//dolog("SDL","ResizeImage: valid surface to resize. Calculating new size...");
 	//Calculate destination resolution!
 	uint_32 n_width, n_height;
-	calcResize(aspectratio,img->sdllayer->w,img->sdllayer->h,newwidth,newheight,&n_width,&n_height); //Calculate the resize size!
+	calcResize(aspectratio,img->sdllayer->w,img->sdllayer->h,newwidth,newheight,&n_width,&n_height,0); //Calculate the resize size!
 
 	//dolog("SDL","ResizeImage: Verifying new height/width...");
 	if (!n_width || !n_height) //No size in src or dest?

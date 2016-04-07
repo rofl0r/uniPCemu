@@ -181,6 +181,6 @@ void updateInputMain(); //Update input before an instruction (main thread only!)
 //One Megabyte of Memory!
 #define MBMEMORY 0x100000
 //Exact 14Mhz clock used on a PC!
-#define MHZ14 ((315.0/22.0)*1000000.0)
+#define MHZ14 ((15.75/1.1)*1000000.0)
 
 #endif

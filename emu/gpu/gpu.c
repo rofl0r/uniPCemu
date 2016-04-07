@@ -79,7 +79,7 @@ SDL_Surface *getGPUSurface()
 	{
 		if (video_aspectratio) //Keep aspect ratio set and gotten something to take information from?
 		{
-			calcResize(video_aspectratio,GPU.xres,GPU.yres,EMU_MAX_X,EMU_MAX_Y,&xres,&yres); //Calculate resize using aspect ratio set for our screen on maximum size!
+			calcResize(video_aspectratio,GPU.xres,GPU.yres,EMU_MAX_X,EMU_MAX_Y,&xres,&yres,1); //Calculate resize using aspect ratio set for our screen on maximum size!
 		}
 		else //Default: Take the information from the monitor input resolution!
 		{
