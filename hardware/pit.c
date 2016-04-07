@@ -53,7 +53,7 @@ PC SPEAKER
 
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
-#define TIME_RATE (14318180.0f/12.0f)
+#define TIME_RATE (MHZ14/12.0f)
 
 //Run the low pass at the 72 raw samples rate instead (16571Hz)!
 #undef SPEAKER_LOWPASS

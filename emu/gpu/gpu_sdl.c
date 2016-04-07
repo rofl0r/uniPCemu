@@ -192,9 +192,16 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 	{
 		double ar = (double)originalwidth / (double)originalheight; //Source surface aspect ratio!
 		double newAr = (double)*n_width / (double)*n_height; //Destination surface aspect ratio!
-		if (aspectratio == 2) //Force 4:3 aspect ratio?
+		switch (aspectratio) //Force aspect ratio?
 		{
-			ar = (double)(4.0 / 3.0); //We're taking 4:3 aspect ratio instead of the aspect ratio of the image!
+			case 2: //4:3
+				ar = (double)(4.0 / 3.0); //We're taking 4:3 aspect ratio instead of the aspect ratio of the image!
+				break;
+			case 3: //CGA
+				ar = (double)(376.25 / 242.5); //We're taking 6:7 aspect ratio instead of the aspect ratio of the image!
+				break;
+			default: //Keep the aspect ratio!
+				break;
 		}
 		double f = MAX(ar, newAr);
 		if (f == ar) //Fit to width?

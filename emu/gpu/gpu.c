@@ -372,7 +372,7 @@ void GPU_AspectRatio(byte aspectratio) //Keep aspect ratio with letterboxing?
 {
 	if (__HW_DISABLED) return; //Abort!
 	lockGPU(); //Lock us!
-	GPU.aspectratio = video_aspectratio = (aspectratio<3)?aspectratio:0; //To use aspect ratio?
+	GPU.aspectratio = video_aspectratio = (aspectratio<5)?aspectratio:0; //To use aspect ratio?
 	GPU.forceRedraw = 1; //We're forcing a redraw of the screen using the new aspect ratio!
 	unlockGPU(); //Unlock us!
 }

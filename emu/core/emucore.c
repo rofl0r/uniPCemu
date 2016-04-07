@@ -77,8 +77,8 @@
 
 //CPU default clock speeds (in Hz)!
 
-//The clock speed of the 8086 (14.31818MHz divided by 3)!
-#define CPU808X_CLOCK (14318180.0f/3.0f)
+//The clock speed of the 8086 (~14.31818MHz divided by 3)!
+#define CPU808X_CLOCK (MHZ14/3.0f)
 
 //Timeout CPU time! 44100Hz or 1ms!
 #define TIMEOUT_TIME 1000000

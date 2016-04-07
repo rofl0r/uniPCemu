@@ -31,7 +31,7 @@ word signal_x, signal_scanline; //Signal location!
 extern GPU_type GPU; //GPU!
 
 float VGA_clocks[4] = {
-			25175000.0f, //25MHz: VGA standard clock
+			(3600.0f/143.0f)*1000000.0f, //25MHz: VGA standard clock
 			28322000.0f, //28MHz: VGA standard clock
 			0.0f, //external clock: not connected!
 			0.0f //Unused
@@ -194,7 +194,6 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
 	}
 	row >>= VGA->precalcs.scandoubling; //Apply Scan Doubling on the row scan counter: we take effect on content (double scanning)!
-	Sequencer->rowscancounter = row; //Set the current row scan counter!
 
 	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply scanline division to the current row timing!
 	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
@@ -202,7 +201,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	//Row now is an index into charrowstatus
 	word *currowstatus = &VGA->CRTC.charrowstatus[row]; //Current row status!
 	Sequencer->chary = row = *currowstatus++; //First is chary (effective character/graphics row)!
-	Sequencer->charinner_y = *currowstatus; //Second is charinner_y!
+	Sequencer->rowscancounter = Sequencer->charinner_y = *currowstatus; //Second is charinner_y, which is also the row scan counter!
 
 	charystart = getVRAMScanlineStart(VGA, row); //Calculate row start!
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
@@ -268,10 +267,6 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//Process HBlank: reload display data for the next scanline!
 	//Sequencer itself
 	Sequencer->x = 0; //Reset for the next scanline!
-	++Sequencer->Scanline; //Next scanline to process!
-	
-	//CRT
-	if (!vretrace) ++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
 	
 	//Sequencer rendering data
 	Sequencer->tempx = 0; //Reset the rendering position from the framebuffer!
@@ -292,6 +287,8 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	CGALineSize = VGA->CRTC.x; //Update X resolution!
 	if (VGA->CRTC.x>Sequencer->xres) Sequencer->xres = VGA->CRTC.x; //Current x resolution!
 	VGA->CRTC.x = 0; //Reset destination column!
+	if (!vretrace) ++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
+	++Sequencer->Scanline; //Next scanline to process!
 }
 
 //All renderers for active display parts:

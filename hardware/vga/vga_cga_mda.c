@@ -845,8 +845,8 @@ float getCGAMDAClock(VGA_Type *VGA)
 	{
 		if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA emulation enabled?
 		{
-			result = (float)(15750000>>((~VGA->registers->Compatibility_CGAModeControl)&1)); //Special CGA compatibility mode: change our refresh speed to match it!
-			result *= (1/16689.0f)*15244.0f; //Patch us to the correct speed!
+			//15.75MHz originally used, but seems to be 14.31818MHz according to reenigne.org and https://pineight.com/mw/index.php?title=Dot_clock_rates
+			result = (float)((double)MHZ14/((double)((~VGA->registers->Compatibility_CGAModeControl)&1)+1.0)); //Special CGA compatibility mode: change our refresh speed to match it according to CGA specifications!
 		}
 		else if (MDAEMULATION_ENABLED_CRTC(VGA)) //MDA emulation enabled?
 		{
