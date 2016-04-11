@@ -1379,10 +1379,11 @@ byte CGAMDA_readIO(word port, byte *result)
 			}
 			else if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA status port?
 			{
-				*result &= ~6; //Clear the light pen data by default!
+				*result &= ~7; //Clear the light pen data and display disabled by default!
 				//Bit 1=1: Light pen triggered, Bit 2=1: Light Pen switch is open
 				*result |= (getActiveVGA()->registers->specialCGAflags&0x2); //Bit 1 used normally!
 				*result |= ((~getActiveVGA()->registers->specialCGAflags)&0x4); //Bit 2 used reversed to give the status (0=on)!				
+				*result |= getActiveVGA()->CRTC.DisplayEnabled; //Bit0=1 when active display area. Else 0.
 			} //Else: normal VGA documented result!
 		}
 		ok = 1;

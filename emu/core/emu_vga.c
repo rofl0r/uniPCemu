@@ -268,6 +268,8 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	totalretracing = totalling;
 	totalretracing <<= 1; //1 bit needed more!
 	totalretracing |= retracing; //Are we retracing?
+
+	VGA->CRTC.DisplayEnabled = (!totalretracing && ((signal&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)); //We're active display when not retracing/totalling and active display area (not overscan)!
 }
 
 extern DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for all pixels!
