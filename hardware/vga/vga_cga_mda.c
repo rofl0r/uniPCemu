@@ -3,6 +3,7 @@
 #include "headers/hardware/vga/vga_cga_mda.h" //Our typedefs!
 #include "headers/hardware/vga/vga_crtcontroller.h" //Our CRT timing we use!
 #include "headers/hardware/vga/vga_cga_ntsc.h" //NTSC palette update support!
+#include "headers/hardware/vga/vga_vram.h" //For cleaning up after byte->word mode switch!
 
 byte int10_font_08[256 * 8] =
 {
@@ -814,6 +815,13 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 	word column=x; //Unpatched x value!
 	if (!x)	result |= VGA_SIGNAL_HRETRACEEND; //Horizontal retrace&blank is finished now!
 	column >>= 3; //Divide by 8 to get the character clock!
+
+	if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode) //Byte mode seems to affect timings?
+	{
+		column >>= 1; //Half the horizontal timing!
+		x >>= 1; //Half the horizontal timing!
+	}
+
 	if (column>(VGA->registers->CGARegistersMasked[0])) //Past total specified?
 	{
 		result |= VGA_SIGNAL_HTOTAL; //End of display: start the next frame!
@@ -1083,16 +1091,48 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode, byte blink) //Rendering 
 { 
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegisterInterleaveMode = ((useGraphics && GraphicsMode)?1:0);
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable = useGraphics;
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation = ((!useGraphics) && GraphicsMode)?0xC:0x1F; //Monochrome emulation applies MDA-compatible underline, simple detection by character height!
+	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA = (useGraphics&&!GraphicsMode)?0x1:0xF; //CGA: enable all color planes!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable = useGraphics; //Text mode!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation = ((!useGraphics) && GraphicsMode); //MDA attributes!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable = ((!useGraphics) && blink)?1:0; //Use blink when not using graphics and blink is enabled!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation = ((!useGraphics) && GraphicsMode)?0xC:0x1F; //Monochrome emulation applies MDA-compatible underline, simple detection by character height!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = !useGraphics; //Graphics enables CGA graphics MAP13, else text!
 }
 
 void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current CGA memory map!
 {
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect = ((!useGraphics) && GraphicsMode)?2:3; //Use map B000(MDA) or B800(CGA), depending on the adapter used!
+	if (useGraphics && (!GraphicsMode)) //Special case? CGA monochrome mode?
+	{
+		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode = 0; //Don't force odd/even mode!
+		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect = 0; //Only read map #0!
+		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER.ColorCare = 0; //Care about this only!
+		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode = 0; //Disable chaining!
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.OEDisabled = 1; //Disable odd/even mode!
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable = 1; //Write to plane 0 only, since we're emulating CGA!
+		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode = 1; //CGA byte mode!
+	}
+	else //Revert to normal memory mode!
+	{
+		if (getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode) //We were using data that now becomes junk data?
+		{
+			uint_32 x;
+			for (x=1;x<0x10000;) //Clear all odd data we've used in monochrome mode!
+			{
+				writeVRAMplane(getActiveVGA(),0,x,0,0); //Clear the byte of data at byte offsets only!
+				++x; //Next byte is skipped(even plane)!
+				++x; //We skip 2 bytes for the next offset to use!
+			}
+		}
+		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode = 1; //Force odd/even mode!
+		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect = 0; //Only read map #0!
+		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER.ColorCare |= 0xF; //Care about this only!
+		getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode = 1; //Enable chaining!
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.OEDisabled = 0; //Disable odd/even mode!
+		getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable = 3; //Write to planes 0/1 only, since we're emulating CGA!
+		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode = 0; //CGA word mode!
+	}
+	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x1); //The horizontal size might have been updated!
 }
 
 void applyCGAModeControl()

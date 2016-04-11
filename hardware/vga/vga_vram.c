@@ -87,7 +87,7 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte mode) //Read fro
 
 	if (CGAMDAEMULATION_ENABLED(VGA) && (plane&2)) return 0; //High planes on the CGA don't exist!
 
-	fulloffset2 <<= 2; //We cylce through the offsets!
+	fulloffset2 <<= 2; //We cycle through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
 
 	fulloffset2 &= 0x3FFFF; //Wrap arround memory! Maximum of 256K memory!

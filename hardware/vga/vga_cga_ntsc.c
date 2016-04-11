@@ -311,7 +311,7 @@ void setCGA_NewCGA(byte enabled)
 //Our main rendering functions for the RGB/NTSC modes!
 //RGBI conversion
 
-byte cga_use_brown = 0; //Halve yellow's green signal to get brown on color monitors?
+byte cga_use_brown = 1; //Halve yellow's green signal to get brown on color monitors?
 
 uint_32 getCGAcol16(byte color) //Special for the emulator, like the keyboard presets etc.!
 {

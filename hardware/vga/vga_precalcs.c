@@ -284,7 +284,14 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		updateCRTC = 1; //Update the CRTC!
 		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x1))) //Horizontal displayed register?
 		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = (VGA->registers->CGARegistersMasked[1]>>1); //We're half the value of the displayed characters!
+			if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode) //Byte mode? Just take!
+			{
+				VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = VGA->registers->CGARegistersMasked[1]; //We're the value of the displayed characters!
+			}
+			else //Word mode? Divide it by 2!
+			{
+				VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = (VGA->registers->CGARegistersMasked[1]>>1); //We're half the value of the displayed characters!
+			}
 			adjustVGASpeed(); //Auto-adjust our VGA speed!
 			goto updateoffsetregister; //Update the offset register, then the rest!
 		}
