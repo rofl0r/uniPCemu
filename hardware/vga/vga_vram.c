@@ -20,7 +20,7 @@
 //Bit from left to right starts with 0(value 128) ends with 7(value 1)
 
 //Below patches input addresses for rendering only.
-OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VRAM address!
+OPTINLINE word patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VRAM address!
 { //Check this!
 	word memoryaddress = addresscounter; //New row scan to use!
 	SEQ_DATA *Sequencer;
@@ -52,10 +52,10 @@ OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full
 	return memoryaddress; //Give the linear address!
 }
 
-OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memory arround 64k!
+OPTINLINE word addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arround 64k!
 {
-	register uint_32 address2; //Load the initial value for calculating!
-	register uint_32 result;
+	register word address2; //Load the initial value for calculating!
+	register word result;
 	register byte temp;
 	if (VGA->precalcs.BWDModeShift == 1) //Word mode?
 	{
@@ -72,31 +72,42 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 	return memoryaddress; //Original address!
 }
 
+OPTINLINE word applyCGAMDAWrap(VGA_Type *VGA, word offset)
+{
+	if (CGAEMULATION_ENABLED(VGA)) //CGA emulation enabled? Quarter the memory installed!
+	{
+		offset &= 0x3FFF; //Apply CGA memory!
+	}
+	else if (MDAEMULATION_ENABLED(VGA)) //MDA emulation enabled? Quarter the memory installed more!
+	{
+		offset &= 0xFFF; //Apply MDA memory!
+	}
+	return offset; //Give the calculated offset!
+}
+
 //Planar access to VRAM
 byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte mode) //Read from a VRAM plane!
 {
 	if (!VGA) return 0; //Invalid VGA!
 	if (!VGA->VRAM_size) return 0; //No size!
-	register uint_32 fulloffset2;
-	fulloffset2 = offset; //Default offset to use!
+	uint_32 fulloffset2;
 
-	if (mode&1) fulloffset2 = addresswrap(VGA,fulloffset2); //Apply address wrap?
-	if (mode&0x80) fulloffset2 = patch_map1314(VGA, fulloffset2); //Patch MAP13&14!
+	if (mode&1) offset = addresswrap(VGA,offset); //Apply address wrap?
+	if (mode&0x80) offset = patch_map1314(VGA, offset); //Patch MAP13&14!
+
+	fulloffset2 = applyCGAMDAWrap(VGA,offset); //Apply wrapping according to the device!
 
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
 
 	if (CGAMDAEMULATION_ENABLED(VGA) && (plane&2)) return 0; //High planes on the CGA don't exist!
 
+	fulloffset2 = offset; //Default offset to use!
 	fulloffset2 <<= 2; //We cycle through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
 
 	fulloffset2 &= 0x3FFFF; //Wrap arround memory! Maximum of 256K memory!
 
 	if (!VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
-	if (MDAEMULATION_ENABLED(VGA)) //MDA emulation enabled? Quarter the memory installed!
-	{
-		fulloffset2 &= 0x3FFF; //Apply MDA memory!
-	}
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
@@ -113,6 +124,8 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value, byte mod
 	if (mode & 1) offset = addresswrap(VGA, offset); //Apply address wrap?
 	if (mode & 0x80) offset = patch_map1314(VGA, offset); //Patch MAP13&14!
 
+	offset = applyCGAMDAWrap(VGA,offset); //Apply wrapping according to the device!
+
 	plane &= 3; //Only 4 planes are available!
 
 	register uint_32 fulloffset2;
@@ -123,10 +136,6 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value, byte mod
 	fulloffset2 &= 0x3FFFF; //Wrap arround memory!
 
 	if (!VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
-	if (MDAEMULATION_ENABLED(VGA)) //MDA emulation enabled? Quarter the memory installed!
-	{
-		fulloffset2 &= 0x3FFF; //Apply MDA memory!
-	}
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
