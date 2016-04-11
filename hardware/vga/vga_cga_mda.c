@@ -874,9 +874,9 @@ word get_display_CGAMDA_y(VGA_Type *VGA, word y)
 	charheight = VGA->registers->CGARegistersMasked[9]+1; //Character height!
 	row = y;
 	row /= charheight; //The row we're at!
-	if (row>VGA->registers->CGARegistersMasked[4]) //Past total specified?
+	if (row>=VGA->registers->CGARegistersMasked[4]) //Past total specified?
 	{
-		if ((((VGA->registers->CGARegistersMasked[4]+1)*charheight)+VGA->registers->CGARegistersMasked[5])<y) //Vertical total adjustment reaced?
+		if ((((VGA->registers->CGARegistersMasked[4]+1)*charheight)+VGA->registers->CGARegistersMasked[5])<=y) //Vertical total adjustment reaced?
 		{
 			result |= VGA_SIGNAL_VTOTAL; //End of display: start the next frame!
 			result |= VGA_SIGNAL_VSYNCRESET; //Reset VSync!
