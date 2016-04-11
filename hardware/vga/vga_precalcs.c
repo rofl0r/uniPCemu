@@ -284,14 +284,14 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		updateCRTC = 1; //Update the CRTC!
 		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x1))) //Horizontal displayed register?
 		{
-			if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode) //Byte mode? Just take!
+			word cgarowsize;
+			cgarowsize = (word)VGA->registers->CGARegistersMasked[1]; //We're the value of the displayed characters!
+			if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode) //Word mode? Multiply it by 2!
 			{
-				VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = VGA->registers->CGARegistersMasked[1]; //We're the value of the displayed characters!
+				cgarowsize <<= 1; //Convert from byte to word mode!
 			}
-			else //Word mode? Divide it by 2!
-			{
-				VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER = (VGA->registers->CGARegistersMasked[1]>>1); //We're half the value of the displayed characters!
-			}
+			VGA->precalcs.rowsize = cgarowsize; //Apply the new row size!
+			//lockVGA(); //We don't want to corrupt the renderer's data!
 			adjustVGASpeed(); //Auto-adjust our VGA speed!
 			goto updateoffsetregister; //Update the offset register, then the rest!
 		}
@@ -619,11 +619,11 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x13))) //Updated?
 		{
 			word rowsize;
-			updateoffsetregister:
 			rowsize = VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER;
 			rowsize <<= 1;
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.rowsize = rowsize; //=Offset*2
+			updateoffsetregister:
 			//dolog("VGA","VTotal after rowsize: %i",VGA->precalcs.verticaltotal); //Log it!
 			//unlockVGA(); //We're finished with the VGA!
 			scanlinesizeupdated = 1; //Updated!

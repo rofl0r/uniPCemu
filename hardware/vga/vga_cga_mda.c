@@ -1097,6 +1097,7 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode, byte blink) //Rendering 
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable = ((!useGraphics) && blink)?1:0; //Use blink when not using graphics and blink is enabled!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation = ((!useGraphics) && GraphicsMode)?0xC:0x1F; //Monochrome emulation applies MDA-compatible underline, simple detection by character height!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = !useGraphics; //Graphics enables CGA graphics MAP13, else text!
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = useGraphics?((GraphicsMode)?1:0):0; //CGA mapping is done by the renderer mapping CGA!
 }
 
 void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current CGA memory map!
