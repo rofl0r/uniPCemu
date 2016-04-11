@@ -1368,7 +1368,7 @@ byte CGAMDA_readIO(word port, byte *result)
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
 		if (CGAMDAEMULATION_ENABLED(getActiveVGA())) //CGA/MDA emulation enabled normally?
 		{
-			if (getActiveVGA()->registers->specialMDAflags&1) //3BA doesn't have bit 4? Bit4=Mono operation!
+			if (MDAEMULATION_ENABLED(getActiveVGA())) //3BA doesn't have bit 4? Bit4=Mono operation!
 			{
 				*result &= ~8; //Clear the VRetrace bit: we're mono operation, as we're the monochrome port used!
 				if ((getActiveVGA()->registers->specialMDAflags&0x81)==1) //Pure MDA mode?
@@ -1377,7 +1377,7 @@ byte CGAMDA_readIO(word port, byte *result)
 					*result |= 0xF0; //Set bit 7-4 on real IBM MDA!
 				}
 			}
-			else if (getActiveVGA()->registers->specialCGAflags&1) //CGA status port?
+			else if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA status port?
 			{
 				*result &= ~6; //Clear the light pen data by default!
 				//Bit 1=1: Light pen triggered, Bit 2=1: Light Pen switch is open
