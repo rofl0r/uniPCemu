@@ -8,6 +8,7 @@
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer render counter support!
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM text support!
 #include "headers/hardware/vga/vga_dacrenderer.h" //B/W detection support!
+#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
 
 void VGA_updateVRAMmaps(VGA_Type *VGA); //VRAM map updater prototype!
 
@@ -286,7 +287,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word cgarowsize;
 			cgarowsize = (word)VGA->registers->CGARegistersMasked[1]; //We're the value of the displayed characters!
-			if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode) //Word mode? Multiply it by 2!
+			if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode) //Word mode? Multiply it by 2!
 			{
 				cgarowsize <<= 1; //Convert from byte to word mode!
 			}
@@ -619,10 +620,13 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x13))) //Updated?
 		{
 			word rowsize;
-			rowsize = VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER;
-			rowsize <<= 1;
-			//lockVGA(); //We don't want to corrupt the renderer's data!
-			VGA->precalcs.rowsize = rowsize; //=Offset*2
+			if (!CGAMDAEMULATION_ENABLED_CRTC(VGA)) //We're not using the CGA/MDA CRTC? Prevent us from updating the VGA data into the CGA emulation!
+			{
+				rowsize = VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER;
+				rowsize <<= 1;
+				//lockVGA(); //We don't want to corrupt the renderer's data!
+				VGA->precalcs.rowsize = rowsize; //=Offset*2
+			}
 			updateoffsetregister:
 			//dolog("VGA","VTotal after rowsize: %i",VGA->precalcs.verticaltotal); //Log it!
 			//unlockVGA(); //We're finished with the VGA!
