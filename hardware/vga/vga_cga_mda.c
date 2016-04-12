@@ -1134,6 +1134,7 @@ void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current 
 		getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode = 0; //CGA word mode!
 	}
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x1); //The horizontal size might have been updated!
+	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER|0xC); //The start address might have been updated!
 }
 
 void applyCGAModeControl()

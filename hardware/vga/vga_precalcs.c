@@ -339,7 +339,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			startaddress |= VGA->registers->CGARegistersMasked[0xD]; //Apply the start address low register!
 
 			//Translate to a VGA value!
-			startaddress <<= 1; //Simply multiply by 2 to get the correct VGA value!
+			if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode) startaddress <<= 1; //Simply multiply by 2 in word mode to get the correct VGA value!
 
 			//Apply to the VGA!
 			VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (startaddress>>8)&0xFF;
