@@ -3,6 +3,7 @@
 #include "headers/hardware/vga/vga_vram.h" //VRAM support!
 #include "headers/mmu/mmuhandler.h" //Handling support!
 #include "headers/hardware/pci.h" //PCI support!
+#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
 
 //Our active VRAM read/write mode (processed in VGA_VRAM.c).
 #define VRAMMODE 0
@@ -298,11 +299,24 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 byte planes; //What planes to affect!
 uint_32 realoffset; //What offset to affect!
 
+void applyCGAMDAOffset(uint_32 *offset)
+{
+	if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA?
+	{
+		*offset &= 0x3FFF; //Wrap around 16KB!
+	}
+	else if (MDAEMULATION_ENABLED(getActiveVGA())) //MDA?
+	{
+		*offset &= 0xFFF; //Wrap around 4KB!
+	}
+}
+
 byte VGAmemIO_rb(uint_32 offset, byte *value)
 {
 	if (is_A000VRAM(offset)) //VRAM and within range?
 	{
 		offset -= VGA_VRAM_START; //Calculate start offset into VRAM!
+		applyCGAMDAOffset(&offset); //Apply CGA/MDA offset if needed!
 		decodeCPUaddress(0, offset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 		*value = VGA_ReadModeOperation(planes, realoffset); //Apply the operation on read mode!
 		return 1; //Read!
@@ -315,6 +329,7 @@ byte VGAmemIO_wb(uint_32 offset, byte value)
 	if (is_A000VRAM(offset)) //VRAM and within range?
 	{
 		offset -= VGA_VRAM_START; //Calculate start offset into VRAM!
+		applyCGAMDAOffset(&offset); //Apply CGA/MDA offset if needed!
 		decodeCPUaddress(1, offset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 		VGA_WriteModeOperation(planes, realoffset, value); //Apply the operation on write mode!
 		return 1; //Written!

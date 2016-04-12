@@ -72,19 +72,6 @@ OPTINLINE word addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arr
 	return memoryaddress; //Original address!
 }
 
-OPTINLINE word applyCGAMDAWrap(VGA_Type *VGA, word offset)
-{
-	if (CGAEMULATION_ENABLED(VGA)) //CGA emulation enabled? Quarter the memory installed!
-	{
-		offset &= 0xFFFF; //Apply CGA memory!
-	}
-	else if (MDAEMULATION_ENABLED(VGA)) //MDA emulation enabled? Quarter the memory installed more!
-	{
-		offset &= 0x3FFF; //Apply MDA memory!
-	}
-	return offset; //Give the calculated offset!
-}
-
 //Planar access to VRAM
 byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte mode) //Read from a VRAM plane!
 {
@@ -95,11 +82,9 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset, byte mode) //Read fro
 	if (mode&1) offset = addresswrap(VGA,offset); //Apply address wrap?
 	if (mode&0x80) offset = patch_map1314(VGA, offset); //Patch MAP13&14!
 
-	fulloffset2 = applyCGAMDAWrap(VGA,offset); //Apply wrapping according to the device!
-
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
 
-	if (CGAMDAEMULATION_ENABLED(VGA) && (plane&2)) return 0; //High planes on the CGA don't exist!
+	//if (CGAMDAEMULATION_ENABLED(VGA) && (plane&2)) return 0; //High planes on the CGA don't exist!
 
 	fulloffset2 = offset; //Default offset to use!
 	fulloffset2 <<= 2; //We cycle through the offsets!
@@ -123,8 +108,6 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value, byte mod
 	
 	if (mode & 1) offset = addresswrap(VGA, offset); //Apply address wrap?
 	if (mode & 0x80) offset = patch_map1314(VGA, offset); //Patch MAP13&14!
-
-	offset = applyCGAMDAWrap(VGA,offset); //Apply wrapping according to the device!
 
 	plane &= 3; //Only 4 planes are available!
 

@@ -1086,6 +1086,33 @@ void applyCGAPaletteRegister() //Update the CGA colors!
 	applyCGAMDAPaletteRegisters(); //Apply the palette registers!
 }
 
+void updateCGAmapping()
+{
+	switch (getActiveVGA()->registers->CGARegisters[8]&3) //What mode?
+	{
+		case 0:
+		case 2: //Straight?
+			if (getActiveVGA()->registers->Compatibility_CGAModeControl&2) //Graphics mode?
+			{
+				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 0; //Graphics enables CGA graphics MAP13, else text!
+			}
+			else //Text mode?
+			{
+				getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 1; //Graphics enables CGA graphics MAP13, else text!
+			}
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //CGA mapping is done by the renderer mapping CGA!
+			break;
+		case 1: //Interleaved?
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 0; //Graphics enables CGA graphics MAP13, else text!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 0; //CGA mapping is done by the renderer mapping CGA!
+			break;
+		case 3: //Interleaved video?
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = 0; //Graphics enables CGA graphics MAP13, else text!
+			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = 1; //CGA mapping is done by the renderer mapping CGA!
+			break;
+	}
+}
+
 //useGraphics: 0 for text mode, 1 for graphics mode! GraphicsMode: 0=B/W graphics or CGA text mode, 1=4 color graphics or MDA text mode
 void setCGAMDAMode(byte useGraphics, byte GraphicsMode, byte blink) //Rendering mode set!
 { 
@@ -1096,8 +1123,7 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode, byte blink) //Rendering 
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation = ((!useGraphics) && GraphicsMode); //MDA attributes!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable = ((!useGraphics) && blink)?1:0; //Use blink when not using graphics and blink is enabled!
 	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation = ((!useGraphics) && GraphicsMode)?0xC:0x1F; //Monochrome emulation applies MDA-compatible underline, simple detection by character height!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13 = !useGraphics; //Graphics enables CGA graphics MAP13, else text!
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW = useGraphics?((GraphicsMode)?1:0):0; //CGA mapping is done by the renderer mapping CGA!
+	updateCGAmapping(); //Update the rendering mapping by the CGA!
 }
 
 void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current CGA memory map!
@@ -1508,6 +1534,8 @@ byte CGAMDA_writeIO(word port, byte value)
 			case 0x8: //Interlace mode register?
 				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x3; //Set the CGA register(masked)!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x8); //CRT Mode Control Register has been updated!
+				updateCGAmapping(); //Update the new CGA mapping if required!
+				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //CRT Mode Control Register has been updated!
 				break;
 			case 0x9: //Max scan line address?
 				getActiveVGA()->registers->CGARegistersMasked[getActiveVGA()->registers->CRTControllerRegisters_Index] = value&0x1F; //Set the CGA register(masked)!
