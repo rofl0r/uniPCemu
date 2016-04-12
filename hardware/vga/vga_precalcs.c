@@ -64,6 +64,7 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 				extrastatus |= 1; //Reset for the new block/next pixel!
 				pixelrate = 0; //Reset!
 			}
+		}
 		VGA->CRTC.extrahorizontalstatus[current] = extrastatus; //Extra status to apply!
 
 		//Finished horizontal timing!
