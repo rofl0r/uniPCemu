@@ -76,11 +76,11 @@ OPTINLINE word applyCGAMDAWrap(VGA_Type *VGA, word offset)
 {
 	if (CGAEMULATION_ENABLED(VGA)) //CGA emulation enabled? Quarter the memory installed!
 	{
-		offset &= 0x3FFF; //Apply CGA memory!
+		offset &= 0xFFFF; //Apply CGA memory!
 	}
 	else if (MDAEMULATION_ENABLED(VGA)) //MDA emulation enabled? Quarter the memory installed more!
 	{
-		offset &= 0xFFF; //Apply MDA memory!
+		offset &= 0x3FFF; //Apply MDA memory!
 	}
 	return offset; //Give the calculated offset!
 }
