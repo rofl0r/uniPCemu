@@ -816,7 +816,7 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 	if (!x)	result |= VGA_SIGNAL_HRETRACEEND; //Horizontal retrace&blank is finished now!
 	column >>= 3; //Divide by 8 to get the character clock!
 
-	if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode) //Byte mode seems to affect timings?
+	if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode || CGA_DOUBLEWIDTH(VGA)) //Byte mode and double width seems to affect timings?
 	{
 		column >>= 1; //Half the horizontal timing!
 		x >>= 1; //Half the horizontal timing!
@@ -854,7 +854,7 @@ float getCGAMDAClock(VGA_Type *VGA)
 		if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA emulation enabled?
 		{
 			//15.75MHz originally used, but seems to be 14.31818MHz according to reenigne.org and https://pineight.com/mw/index.php?title=Dot_clock_rates
-			result = (float)((double)MHZ14/((double)((~VGA->registers->Compatibility_CGAModeControl)&1)+1.0)); //Special CGA compatibility mode: change our refresh speed to match it according to CGA specifications!
+			result = (float)(MHZ14); //Special CGA compatibility mode: change our refresh speed to match it according to CGA specifications! Pixel speed is always 14MHz!
 		}
 		else if (MDAEMULATION_ENABLED_CRTC(VGA)) //MDA emulation enabled?
 		{

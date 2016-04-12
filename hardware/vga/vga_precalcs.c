@@ -53,18 +53,17 @@ OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs
 		//Determine some extra information!
 		extrastatus = 0; //Initialise extra horizontal status!
 		
-		if (((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1)) //Affect by 620x200/320x200 mode?
+		if (((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) && !CGA_DOUBLEWIDTH(VGA)) //Affect by 620x200/320x200 mode?
 		{
 			extrastatus |= 1; //Always render like we are asked, at full resolution single pixels!
 		}
 		else //Normal VGA?
 		{
-			if (++pixelrate>VGA->precalcs.ClockingModeRegister_DCR) //To write back the pixel clock every or every other pixel(forced every clock in CGA mode)?
+			if (++pixelrate>(VGA->precalcs.ClockingModeRegister_DCR|(CGA_DOUBLEWIDTH(VGA)?1:0))) //To write back the pixel clock every or every other pixel(forced every clock in CGA normal mode)?
 			{
 				extrastatus |= 1; //Reset for the new block/next pixel!
 				pixelrate = 0; //Reset!
 			}
-		}
 		VGA->CRTC.extrahorizontalstatus[current] = extrastatus; //Extra status to apply!
 
 		//Finished horizontal timing!

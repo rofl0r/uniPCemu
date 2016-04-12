@@ -30,4 +30,6 @@ void CGA_checklightpen(word currentlocation); //Check the lightpen on the curren
 #define MDAEMULATION_RENDER(VGA) (((VGA->registers->specialMDAflags&1) && ((VGA->registers->specialMDAflags&0xC0)!=0x80)))
 #define CGAMDAEMULATION_RENDER(VGA) (((VGA->registers->specialCGAflags&1) && ((VGA->registers->specialCGAflags&0xC0)!=0x80)) || ((VGA->registers->specialMDAflags&1) && ((VGA->registers->specialMDAflags&0xC0)!=0x80)))
 
+#define CGA_DOUBLEWIDTH(VGA) (CGAEMULATION_RENDER(VGA) && (((VGA->registers->Compatibility_CGAModeControl&0x12)==0x2) || (!(VGA->registers->Compatibility_CGAModeControl&0x3))))
+
 #endif
