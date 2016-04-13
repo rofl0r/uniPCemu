@@ -139,6 +139,8 @@ extern byte hblank, hretrace; //Horizontal blanking/retrace?
 extern byte vblank, vretrace; //Vertical blanking/retrace?
 extern word blankretraceendpending; //Ending blank/retrace pending? bits set for any of them!
 
+byte vtotal = 0; //VTotal busy?
+
 OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal, word sync)
 {
 	//Blankings
@@ -262,7 +264,12 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	if (signal&VGA_SIGNAL_VTOTAL) //VTotal?
 	{
 		VGA_VTotal(Sequencer,VGA); //Process VTotal!
-		totalling = 1; //Total reached!
+		totalling = vtotal = 1; //Total reached!
+	}
+	else if (vtotal) //VTotal ended?
+	{
+		VGA_VTotalEnd(Sequencer,VGA); //Signal end of vertical total!
+		vtotal = 0; //Not vertical total anymore!
 	}
 	
 	totalretracing = totalling;

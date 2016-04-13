@@ -118,6 +118,7 @@ typedef void (*DisplayRenderHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA); //Our 
 
 //Total&Retrace handlers!
 void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA);
+void VGA_VTotalEnd(SEQ_DATA *Sequencer, VGA_Type *VGA);
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA);
 void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA);
 void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA);

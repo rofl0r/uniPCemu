@@ -254,6 +254,11 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//VGA_RenderOutput(Sequencer,VGA); //Render the output to the screen!
 	VGA_Sequencer_calcScanlineData(VGA);
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
+}
+
+void VGA_VTotalEnd(SEQ_DATA *Sequencer, VGA_Type *VGA)
+{
+	//The end of vertical total has been reached, reload start address!
 	Sequencer->startmap = VGA->precalcs.startaddress[0]; //What start address to use for the next frame?
 }
 
