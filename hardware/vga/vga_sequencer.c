@@ -258,8 +258,7 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 void VGA_VTotalEnd(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	//The end of vertical total has been reached, reload start address!
-	Sequencer->startmap = VGA->precalcs.startaddress[0]; //What start address to use for the next frame?
+	VGA->CRTC.startpending = 1; //We're pending start of active display!
 }
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)

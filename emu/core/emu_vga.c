@@ -276,7 +276,14 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	totalretracing <<= 1; //1 bit needed more!
 	totalretracing |= retracing; //Are we retracing?
 
-	VGA->CRTC.DisplayEnabled = (!totalretracing && ((signal&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)); //We're active display when not retracing/totalling and active display area (not overscan)!
+	VGA->CRTC.DisplayEnabled = ((!totalretracing) && ((signal&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)); //Is display enabled?
+
+	if (VGA->CRTC.DisplayEnabled && VGA->CRTC.startpending) //We're active display and start address is pending?
+	{
+		VGA->CRTC.startpending = 0; //Not pending anymore: we're reloading the address!
+		//The end of vertical total has been reached, reload start address!
+		Sequencer->startmap = VGA->precalcs.startaddress[0]; //What start address to use for the next frame?
+	}
 }
 
 extern DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for all pixels!
