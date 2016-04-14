@@ -437,12 +437,13 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
 			FLOPPY.ST0.data = 0xC0; //Reset ST0 to the correct value: drive became not ready!
 			FLOPPY.ST1.data = FLOPPY.ST2.data = 0; //Reset the ST data!
-			pending_size = 4; //Default: full size!
+			/*pending_size = 4; //Default: full size!
 			if (isTurboXTBIOS()) //Are we reset by the Turbo XT BIOS?
 			{
 				FLOPPY_LOGD("Pending 1 Sense Interrupt because of a bug in the Turbo XT BIOS!")
+			*/
 				pending_size = 1; //Bug: 1 instead!
-			}
+			//}
 			FLOPPY.reset_pending = pending_size; //We have a reset pending for all 4 drives(286+), or just 1 drive with older systems!
 			FLOPPY.reset_pending_size = pending_size?0:(pending_size-1); //We have a reset pending for all 4 drives(286+), or just 1 drive with older systems!
 			memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
