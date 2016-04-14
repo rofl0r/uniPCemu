@@ -36,6 +36,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS for CPU info!
 byte singlestep; //Enforce single step by CPU/hardware special debugging effects?
 
 CPU_registers debuggerregisters; //Backup of the CPU's register states before the CPU starts changing them!
+byte debuggerHLT = 0;
 
 extern uint_32 MMU_lastwaddr; //What address is last addresses in actual memory?
 extern byte MMU_lastwdata;
@@ -137,6 +138,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 		strcpy(debugger_prefix,""); //Initialise the prefix(es)!
 		strcpy(debugger_command_text,"<DEBUGGER UNKOP NOT IMPLEMENTED>"); //Standard: unknown opcode!
 		debugger_set = 0; //Default: the debugger isn't implemented!
+		debuggerHLT = CPU[activeCPU].halt; //Are we halted?
 
 		if (file_exists("debuggerverify16.dat")) //Verification file exists?
 		{
@@ -197,7 +199,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 				if (memcmp(&verify, &originalverify, sizeof(verify)) != 0) //Not equal?
 				{
 					dolog("debugger", "Invalid data according to debuggerverify.dat before executing the following instruction(Entry number %08X):",debugger_index); //Show where we got our error!
-					debugger_logregisters("debugger",&debuggerregisters); //Log the original registers!
+					debugger_logregisters("debugger",&debuggerregisters,debuggerHLT); //Log the original registers!
 					//Apply the debugger registers to the actual register set!
 					CPU[activeCPU].registers->CS = verify.CS;
 					CPU[activeCPU].registers->SS = verify.SS;
@@ -215,7 +217,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 					CPU[activeCPU].registers->FLAGS = verify.FLAGS;
 					updateCPUmode(); //Update the CPU mode: flags have been changed!
 					dolog("debugger", "Expected:");
-					debugger_logregisters("debugger",CPU[activeCPU].registers); //Log the correct registers!
+					debugger_logregisters("debugger",CPU[activeCPU].registers,debuggerHLT); //Log the correct registers!
 					//Refresh our debugger registers!
 					memcpy(&debuggerregisters,CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
 					forcerepeat = 1; //Force repeat log!
@@ -302,7 +304,7 @@ static char *debugger_generateFlags(CPU_registers *registers)
 	return &flags[0]; //Give the flags for quick reference!
 }
 
-void debugger_logregisters(char *filename, CPU_registers *registers)
+void debugger_logregisters(char *filename, CPU_registers *registers, byte halted)
 {
 	if (!registers || !filename) //Invalid?
 	{
@@ -318,7 +320,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers)
 		dolog(filename,"SP: %04X, BP: %04X, SI: %04X, DI: %04X",registers->SP,registers->BP,registers->SI,registers->DI); //Segment registers!
 		dolog(filename,"IP: %04X, FLAGS: %04X",registers->IP,registers->FLAGS); //Rest!
 		#endif
-		dolog(filename,"FLAGSINFO:%s",debugger_generateFlags(registers)); //Log the flags!
+		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),halted?'H':' '); //Log the flags!
 //More aren't implemented in the 8086!
 	}
 	else //80286+?
@@ -339,7 +341,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers)
 		dolog(filename,"EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
 		#endif
 		//Finally, flags seperated!
-		dolog(filename,"FLAGSINFO:%s",debugger_generateFlags(registers)); //Log the flags!
+		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),halted?'H':' '); //Log the flags!
 	}
 }
 
@@ -425,7 +427,7 @@ OPTINLINE static void debugger_autolog()
 		{
 			dolog("debugger","%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 		}
-		debugger_logregisters("debugger",&debuggerregisters); //Log the previous (initial) register status!
+		debugger_logregisters("debugger",&debuggerregisters,debuggerHLT); //Log the previous (initial) register status!
 		dolog("debugger",""); //Empty line between comands!
 	} //Allow logging?
 }
@@ -549,8 +551,8 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 		//Finally, flags seperated!
 		char *flags = debugger_generateFlags(&debuggerregisters); //Generate the flags as text!
-		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - strlen(flags), debuggerrow++); //Second flags row!
-		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s", flags); //All flags, seperated!
+		GPU_textgotoxy(frameratesurface, (GPU_TEXTSURFACE_WIDTH - strlen(flags)) - 1, debuggerrow++); //Second flags row!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s%c", flags, debuggerHLT?'H':' '); //All flags, seperated!
 
 		//Full interrupt status!
 		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-16,debuggerrow++); //Interrupt status!

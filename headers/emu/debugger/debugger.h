@@ -40,5 +40,5 @@ void modrm_debugger16(MODRM_PARAMS *params, byte whichregister1, byte whichregis
 
 void debugger_screen(); //On-screen dump of registers etc.
 
-void debugger_logregisters(char *filename, CPU_registers *registers);
+void debugger_logregisters(char *filename, CPU_registers *registers, byte halted);
 #endif
