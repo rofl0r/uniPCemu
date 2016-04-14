@@ -223,12 +223,13 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O ports
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (!((port < 0x20) || ((port >= 0xC0) && (port <= 0xE0)) || ((port >= 0x80) && (port <= 0x9F)))) return 0; //Not our DMA!
+	if (!((port < 0x10) || ((port >= 0xC0) && (port <= 0xDE)) || ((port >= 0x80) && (port <= 0x8F)))) return 0; //Not our DMA!
 	byte controller = (port>=0xC0)?1:0; //What controller?
 	byte reg = (byte)port; //What register is selected, default to 1:1 mapping?
 	if (controller) //16-bit register (second DMA controller)?
 	{
 		reg -= 0xC0; //Take the base!
+		if (reg & 1) return 0; //Invalid register: not mapped!
 		reg >>= 1; //Every port is on a offset of 2!
 		//Now reg is on 1:1 mapping too!
 	}
@@ -273,18 +274,17 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 		default: //Non-page register!
 			switch (reg) //What register is selected?
 			{
-				//Controller 0!
 				case 0x08: //Status Register!
-					*result = DMAController[0].StatusRegister; //Get!
-					DMAController[0].StatusRegister &= ~0xF; //Clear TC bits!
+					*result = DMAController[controller].StatusRegister; //Get!
+					DMAController[controller].StatusRegister &= ~0xF; //Clear TC bits!
 					ok = 1;
 					break;
 				case 0x0D: //Intermediate Register!
-					*result = DMAController[0].IntermediateRegister; //Get!
+					*result = DMAController[controller].IntermediateRegister; //Get!
 					ok = 1;
 					break;
 				case 0x0F: //MultiChannel Mask Register!
-					*result = DMAController[0].MultiChannelMaskRegister; //Get!
+					*result = DMAController[controller].MultiChannelMaskRegister; //Get!
 					ok = 1;
 					break;
 				default: //Unknown port?
