@@ -608,8 +608,12 @@ OPTINLINE byte coreHandler()
 				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
 			}
 			//Increase the instruction counter every instruction/HLT time!
-			debugger_beforeCPU(); //Make sure the debugger is prepared when needed!
-			debugger_setcommand("<HLT>"); //We're a HLT state, so give the HLT command!
+			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+			if (cpudebugger) //Debugging?
+			{
+				debugger_beforeCPU(); //Make sure the debugger is prepared when needed!
+				debugger_setcommand("<HLT>"); //We're a HLT state, so give the HLT command!
+			}
 			debugger_step(); //Step debugger if needed, even during HLT state!
 		}
 		else //We're not halted? Execute the CPU routines!

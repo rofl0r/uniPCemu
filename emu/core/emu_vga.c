@@ -29,6 +29,8 @@ Renderer mini-optimizations.
 float oldrate = 0.0f; //The old rate we're using!
 
 double VGA_timing = 0.0f; //No timing yet!
+double VGA_debugtiming = 0.0f; //Debug countdown if applyable!
+byte VGA_debugtiming_enabled = 0; //Are we applying right now?
 double VGA_rendertiming = 0.0f; //Time for the renderer to tick!
 
 TicksHolder VGA_test;
@@ -329,6 +331,12 @@ void updateVGA(double timepassed)
 	double timeprocessed=0.0;
 	#endif
 	VGA_timing += timepassed; //Time has passed!
+	
+	if (VGA_debugtiming_enabled) //Valid debug timing to apply?
+	{
+		VGA_debugtiming += timepassed; //Time has passed!
+	}
+
 	if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Might have passed?
 	{
 		uint_64 renderings;

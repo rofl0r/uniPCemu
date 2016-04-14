@@ -345,6 +345,24 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 	}
 }
 
+void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, CPU_type *CPU)
+{
+	int i;
+	//Full interrupt status!
+	char buffer[0x11] = ""; //Empty buffer to fill!
+	strcpy(buffer,""); //Clear the buffer!
+	for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
+	{
+		sprintf(buffer,"%s%i",buffer,(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
+	}
+	dolog(filename,"Interrupt status: %s",buffer); //Log the interrupt status!
+	if (getActiveVGA()) //Gotten an active VGA?
+	{
+		dolog(filename,"VGA@%i,%i(CRT:%i,%i)",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline,getActiveVGA()->CRTC.x,getActiveVGA()->CRTC.y);
+		dolog(filename,"Display=%i,%i",GPU.xres,GPU.yres);
+	}
+}
+
 extern word modrm_lastsegment;
 extern uint_32 modrm_lastoffset;
 extern byte last_modrm; //Is the last opcode a modr/m read?
@@ -354,9 +372,9 @@ extern word OPlength; //The length of the OPbuffer!
 
 OPTINLINE static void debugger_autolog()
 {
-	if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised) && (!forcerepeat))
+	if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised) && (!forcerepeat) && (!debuggerHLT))
 	{
-		return; //Are we the same address as the executing command and no fault has been raised? We're a repeat operation!
+		return; //Are we the same address as the executing command and no fault or HLT state has been raised? We're a repeat operation!
 	}
 	forcerepeat = 0; //Don't force repeats anymore if forcing!
 
@@ -428,6 +446,9 @@ OPTINLINE static void debugger_autolog()
 			dolog("debugger","%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 		}
 		debugger_logregisters("debugger",&debuggerregisters,debuggerHLT); //Log the previous (initial) register status!
+		
+		debugger_logmisc("debugger",&debuggerregisters,debuggerHLT,&CPU[activeCPU]); //Log misc stuff!
+
 		dolog("debugger",""); //Empty line between comands!
 	} //Allow logging?
 }
@@ -563,9 +584,9 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 		if (getActiveVGA()) //Gotten an active VGA?
 		{
-			GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-48,debuggerrow++); //CRT status!
-			GPU_textprintf(frameratesurface,fontcolor,backcolor,"VGA@%i,%i(CRT:%i,%i; Sync:%i,%i)",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline,getActiveVGA()->CRTC.x,getActiveVGA()->CRTC.y,((SEQ_DATA *)getActiveVGA()->Sequencer)->x_sync,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline_sync);
-			GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-48,debuggerrow++); //CRT status!
+			GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-33,debuggerrow++); //CRT status!
+			GPU_textprintf(frameratesurface,fontcolor,backcolor,"VGA@%i,%i(CRT:%i,%i)",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline,getActiveVGA()->CRTC.x,getActiveVGA()->CRTC.y);
+			GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-33,debuggerrow++); //CRT status!
 			GPU_textprintf(frameratesurface,fontcolor,backcolor,"Display=%i,%i",GPU.xres,GPU.yres);
 		}
 		GPU_text_releasesurface(frameratesurface); //Unlock!
