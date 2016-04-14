@@ -214,6 +214,16 @@ void updateSpeedLimit(); //Prototype!
 
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 
+void DRAM_DMADREQ() //For checking any new DREQ signals of DRAM!
+{
+	DMA_SetDREQ(0,1); //Set DREQ always on(DRAM Refresh!
+}
+
+void DRAM_DMATC()
+{
+	//Refresh DRAM! Unimplemented atm!
+}
+
 void initEMU(int full) //Init!
 {
 	doneEMU(); //Make sure we're finished too!
@@ -331,6 +341,10 @@ void initEMU(int full) //Init!
 	
 	debugrow("Initialising DMA Controllers...");
 	initDMA(); //Initialise the DMA Controller!
+	
+	debugrow("Initializing DRAM refresh...");
+	registerDMATick(0, &DRAM_DMADREQ, NULL, &DRAM_DMATC); //Our handlers for DREQ, DACK and TC of the DRAM refresh!
+	//Don't need to register timers, because the timer will run anyway, even if not connected to anything!
 
 	debugrow("Initialising UART...");
 	initUART(1); //Initialise the UART (COM ports)!
