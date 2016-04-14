@@ -1440,7 +1440,7 @@ byte CGAMDA_readIO(word port, byte *result)
 				//Bit 1=1: Light pen triggered, Bit 2=1: Light Pen switch is open
 				*result |= (getActiveVGA()->registers->specialCGAflags&0x2); //Bit 1 used normally!
 				*result |= ((~getActiveVGA()->registers->specialCGAflags)&0x4); //Bit 2 used reversed to give the status (0=on)!				
-				*result |= getActiveVGA()->CRTC.DisplayEnabled; //Bit0=1 when active display area. Else 0.
+				*result |= ((~getActiveVGA()->CRTC.DisplayEnabled)&1); //Bit0=0 when active display area. Else 1.
 				#ifdef CGAIODUMP
 					if (dumpCGAIO()) //To dump?
 					{

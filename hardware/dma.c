@@ -97,6 +97,7 @@ void DMA_SetDREQ(byte channel, byte DREQ) //Set DREQ from hardware!
 
 byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 {
+	byte channel; //Which channel to use?
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!((port < 0x20) || ((port >= 0xC0) && (port <= 0xE0)) || ((port >= 0x80) && (port <= 0x9F)))) return 0; //Not our DMA!
 	byte controller = ((port & 0xC0)==0xC0) ? 1 : 0; //What controller?
@@ -108,7 +109,6 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 		reg >>= 1; //Every port is on a offset of 2!
 		//Now reg is on 1:1 mapping too!
 	}
-	byte channel; //Which channel to use?
 	WaitSem(DMA_Lock)
 	switch (port) //What port?
 	{
@@ -222,6 +222,7 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 
 byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O ports
 {
+	byte channel; //Which channel to use?
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!((port < 0x10) || ((port >= 0xC0) && (port <= 0xDE)) || ((port >= 0x80) && (port <= 0x8F)))) return 0; //Not our DMA!
 	byte controller = (port>=0xC0)?1:0; //What controller?
@@ -274,6 +275,41 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 		default: //Non-page register!
 			switch (reg) //What register is selected?
 			{
+				//Address/Count registers? Not listed as readable on osdev, but apparently the XT BIOS tries to read it back!
+				case 0x00:
+				case 0x02:
+				case 0x04:
+				case 0x06: //Address register?
+					channel = port>>1; //What channel?
+					if (DMAController[controller].FlipFlop) //High?
+					{
+						*result = ((DMAController[controller].DMAChannel[channel].CurrentAddressRegister>>8)&0xFF); //Set high nibble!
+					}
+					else //Low?
+					{
+						*result = (DMAController[controller].DMAChannel[channel].CurrentAddressRegister&0xFF); //Set low nibble!
+					}
+					DMAController[controller].FlipFlop = !DMAController[controller].FlipFlop; //Flipflop!
+					ok = 1;
+					break;
+					
+				case 0x01:
+				case 0x03:
+				case 0x05:
+				case 0x07: //Count register?
+					channel = (port-1)>>1; //What channel?
+					if (DMAController[controller].FlipFlop) //High?
+					{
+						*result = ((DMAController[controller].DMAChannel[channel].CurrentCountRegister>>8)&0xFF); //Set high nibble!
+					}
+					else //Low?
+					{
+						*result = (DMAController[controller].DMAChannel[channel].CurrentCountRegister&0xFF); //Set low nibble!
+					}
+					DMAController[controller].FlipFlop = !DMAController[controller].FlipFlop; //Flipflop!
+					ok = 1;
+					break;
+				//Status registers! This is documented on osdev!
 				case 0x08: //Status Register!
 					*result = DMAController[controller].StatusRegister; //Get!
 					DMAController[controller].StatusRegister &= ~0xF; //Clear TC bits!
