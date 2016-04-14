@@ -2,6 +2,7 @@
 #include "headers/hardware/ps2_keyboard.h" //Basic keyboard support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/ports.h" //Port support!
+#include "headers/cpu/cpu.h" //CPU support for PS/2 vs XT detection!
 
 extern char keys_names[104][11]; //All names of the above keys (for textual representation/labeling)
 extern KEYBOARDENTRY scancodesets[3][104]; //All scan codes for all sets!
@@ -29,7 +30,7 @@ OPTINLINE void input_lastwrite_keyboard()
 	fifobuffer_gotolast(Keyboard.buffer); //Goto last!
 }
 
-OPTINLINE void resetKeyboard() //Reset the keyboard controller!
+OPTINLINE void resetKeyboard(byte initAA) //Reset the keyboard controller!
 {
 	if (__HW_DISABLED) return; //Abort!
 	FIFOBUFFER *oldbuffer = Keyboard.buffer; //Old buffer!
@@ -37,14 +38,14 @@ OPTINLINE void resetKeyboard() //Reset the keyboard controller!
 	Keyboard.keyboard_enabled = 1; //Enable scanning by default!
 	Keyboard.buffer = oldbuffer; //Restore the buffer!
 	give_keyboard_input(0xAA); //Give OK status code!
-	input_lastwrite_keyboard(); //Force to user!
+	if (initAA) input_lastwrite_keyboard(); //Force to user!
 	IRQ8042(); //We've got data in our input buffer!
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
 }
 
 void resetKeyboard_8042()
 {
-	resetKeyboard(); //Reset us!
+	resetKeyboard(1); //Reset us!
 }
 
 float HWkeyboard_getrepeatrate() //Which repeat rate to use after the repeat delay! (chars/second)
@@ -129,9 +130,7 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 	return 1; //OK: we're processed!
 }
 
-
-
-
+extern byte force8042; //Force 8042 style handling?
 
 //Unknown: respond with 0xFE: Resend!
 OPTINLINE void commandwritten_keyboard() //Command has been written?
@@ -142,7 +141,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 	switch (Keyboard.command) //What command?
 	{
 	case 0xFF: //Reset?
-		resetKeyboard(); //Reset the Keyboard Controller!
+		resetKeyboard(1); //Reset the Keyboard Controller!
 		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xFE: //Resend?
@@ -223,6 +222,11 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		//We handle after the parameters have been set!
 		break;
 	case 0xF2: //Read ID: return 0xAB, 0x83!
+		if (EMULATED_CPU<=CPU_80186 && (!force8042)) //Allowed to ignore?
+		{
+			Keyboard.has_command = 0; //No command anymore!
+			return; //Ignored on XT controller: there's no keyboard ID!
+		}
 		give_keyboard_input(0xFA); //ACK!
 		input_lastwrite_keyboard(); //Force 0xFA to user!
 		give_keyboard_input(0xAB); //First byte!
@@ -378,8 +382,6 @@ int handle_keyboardpeek(byte *result) //Peek at the keyboard!
 
 //Initialisation stuff!
 
-extern byte force8042; //Force 8042 style handling?
-
 OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootup (self test)!
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -461,7 +463,7 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	Keyboard.buffer = allocfifobuffer(32,1); //Allocate a small keyboard buffer (originally 16, dosbox uses double buffer (release size=2 by default)!
 	memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Typematic?
 	memset(scancodeset_break,1,sizeof(scancodeset_break)); //Allow break codes?
-	resetKeyboard(); //Reset the keyboard controller!
+	resetKeyboard(1); //Reset the keyboard controller!
 	keyboardControllerInit(); //Initialise the basic keyboard controller!
 }
 
