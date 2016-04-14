@@ -464,7 +464,7 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Typematic?
 	memset(scancodeset_break,1,sizeof(scancodeset_break)); //Allow break codes?
 	resetKeyboard(1); //Reset the keyboard controller!
-	keyboardControllerInit(); //Initialise the basic keyboard controller!
+	if (EMULATED_CPU>CPU_80186) keyboardControllerInit(); //Initialise the basic keyboard controller when allowed!
 }
 
 void BIOS_doneKeyboard()
