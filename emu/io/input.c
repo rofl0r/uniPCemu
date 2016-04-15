@@ -25,6 +25,7 @@
 
 #include "headers/emu/gpu/gpu_text.h" //GPU text support! 
 #include "headers/bios/biosmenu.h" //BIOS menu support for recording audio!
+#include "headers/hardware/vga/vga.h" //Video adapter dumping support!
 
 #ifdef VISUALC
 #include "sdl_joystick.h" //Joystick support!
@@ -1846,6 +1847,13 @@ byte hasinputfocus = 1; //Do we have input focus?
 
 extern byte SCREEN_CAPTURE; //Screen capture support!
 
+#ifdef VGAIODUMP
+//CGA/VGA dumping support!
+extern double VGA_debugtiming; //Debug countdown if applyable!
+extern byte VGA_debugtiming_enabled; //Are we applying right now?
+#endif
+
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	static byte RALT = 0;
@@ -1955,6 +1963,16 @@ void updateInput(SDL_Event *event) //Update all input!
 					if (RALT) //ALT-F6?
 					{
 						BIOS_SoundStartStopRecording(); //Start/stop recording!
+					}
+					break;
+				case SDLK_F9: //F9? Used to kill Dosbox. Since we use F4 for that, do special actions for debugging errors!
+					if (RALT) //ALT-F9?
+					{
+						#ifdef VGAIODUMP
+						//Start the VGA I/O dump now!
+						VGA_debugtiming = 0.0f; //Reset the counter as well!#endif
+						VGA_debugtiming_enabled = 1; //Start dumping!
+						#endif
 					}
 					break;
 				case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.
@@ -2085,7 +2103,8 @@ void updateInput(SDL_Event *event) //Update all input!
 				case SDLK_F4: //F4?
 				case SDLK_F5: //F5? Use F5 for simple compatiblity with Dosbox users. Screen shot!
 				case SDLK_F6: //F6? Use F6 for simple compatiblity with Dosbox users. Start/stop sound recording!
-				case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.				case SDLK_F11: //F11?
+				case SDLK_F9: //F9? Used to kill Dosbox. Since we use F4 for that, do special actions for debugging errors!
+				case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.
 					if (RALT) //ALT combination? We're reserved input for special actions!
 					{
 						unlock(LOCK_INPUT);

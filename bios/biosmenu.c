@@ -43,6 +43,7 @@
 
 #include "headers/hardware/vga/vga_dacrenderer.h" //Renderer logging support of DAC colors!
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM font table logging support!
+#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA dumping support!
 
 //Define below to enable the sound test with recording!
 //#define SOUND_TEST
@@ -61,9 +62,6 @@
 
 //Boot time in 2 seconds!
 #define BOOTTIME 2000000
-
-//Enable CGA I/O dump when recording?
-#define CGAIODUMP
 
 typedef struct
 {
@@ -4457,12 +4455,6 @@ void BIOS_ShowCPUSpeed()
 	BIOS_Menu = 35; //Goto CPU menu!
 }
 
-#ifdef CGAIODUMP
-//CGA dumping support!
-extern double VGA_debugtiming; //Debug countdown if applyable!
-extern byte VGA_debugtiming_enabled; //Are we applying right now?
-#endif
-
 void BIOS_SoundStartStopRecording()
 {
 	if (sound_isRecording()) //Are we recording?
@@ -4496,11 +4488,6 @@ void BIOS_SoundStartStopRecording()
 		PORT_OUT_B(0x330,0x90); //Start note!
 		PORT_OUT_B(0x330,0x60); //Central C+32 tones!
 		PORT_OUT_B(0x330,0x40); //At default volume!
-		#endif
-		#ifdef CGAIODUMP
-		//Start the CGA I/O dump now!
-		VGA_debugtiming = 0.0f; //Reset the counter as well!#endif
-		VGA_debugtiming_enabled = 1; //Start dumping!
 		#endif
 	}
 	BIOS_Menu = 31; //Goto Sound menu!

@@ -20,6 +20,9 @@
 //What size to use for a minimum: Should always be set to standard VGA.
 #define VRAM_SIZE VGA_VRAM_VGA
 
+//Enable VGA I/O dump when recording? Also specifies the length to dump(in ns)!
+//#define VGAIODUMP 40000000.0f
+
 //SRC for registers: http://www.osdever.net/FreeVGA/vga/vga.htm
 //- Input/Output Register Information, before Indices.
 
@@ -704,58 +707,9 @@ extern VGA_Type *ActiveVGA; //Currently active VGA chipset!
 
 /*
 
-Read and write ports:
-
-Info:						Type:
-3B4h: CRTC Controller Address Register		ADDRESS
-3B5h: CRTC Controller Data Register		DATA
-
-3BAh Read: Input Status #1 Register (mono)	DATA
-3BAh Write: Feature Control Register		DATA
-
-3C0h: Attribute Address/Data register		ADDRESS/DATA
-3C1h: Attribute Data Read Register		DATA
-
-3C2h Read: Input Status #0 Register		DATA
-3C2h Write: Miscellaneous Output Register	DATA
-
-3C4h: Sequencer Address Register		ADDRESS
-3C5h: Sequencer Data Register			DATA
-
-3C7h Read: DAC State Register			DATA
-3C7h Write: DAC Address Read Mode Register	ADDRESS
-
-3C8h: DAC Address Write Mode Register		ADDRESS
-3C9h: DAC Data Register				DATA
-
-3CAh Read: Feature Control Register (mono Read)	DATA
-
-3CCh Read: Miscellaneous Output Register	DATA
-
-3CEh: Graphics Controller Address Register	ADDRESS
-3CFh: Graphics Controller Data Register		DATA
-
-3D4h: CRTC Controller Address Register		ADDRESS
-3D5h: CRTC Controller Data Register		DATA
-
-3DAh Read: Input Status #1 Register (color)	DATA
-3DAh Write: Feature Control Register (color)	DATA
-
-*/
-
-/*
-
 All functions!
 
 */
-
-
-
-
-
-
-
-
 
 VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios); //Allocates VGA and gives the current set!
 void setupVGA(); //Sets the VGA up for PC usage (CPU access etc.)!

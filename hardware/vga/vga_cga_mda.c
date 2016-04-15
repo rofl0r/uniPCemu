@@ -6,9 +6,6 @@
 #include "headers/hardware/vga/vga_vram.h" //For cleaning up after byte->word mode switch!
 #include "headers/support/log.h" //Logging support for dumping, if enabled!
 
-//Enable CGA I/O dump when recording? Also specifies the length to dump(in ns)!
-#define CGAIODUMP 40000000.0f
-
 byte int10_font_08[256 * 8] =
 {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1330,7 +1327,7 @@ void CGA_checklightpen(word currentlocation) //Check the lightpen on the current
 
 //I/O compatibility layer!
 
-#ifdef CGAIODUMP
+#ifdef VGAIODUMP
 extern double VGA_debugtiming; //Debug countdown if applyable!
 extern byte VGA_debugtiming_enabled; //Are we applying right now?
 //CGA dumping support!
@@ -1338,7 +1335,7 @@ OPTINLINE byte dumpCGAIO()
 {
 	if (VGA_debugtiming_enabled) //Are we enabled?
 	{
-		if (VGA_debugtiming>CGAIODUMP) //Expired?
+		if (VGA_debugtiming>VGAIODUMP) //Expired?
 		{
 			VGA_debugtiming_enabled = 0; //Finished dumping!
 			VGA_debugtiming = 0.0f; //Reset the counter as well!
@@ -1402,7 +1399,7 @@ byte CGAMDA_readIO(word port, byte *result)
 				goto finishinput;
 			}
 			*result = getActiveVGA()->registers->CGARegisters[getActiveVGA()->registers->CRTControllerRegisters_Index]; //Give the CGA register!
-			#ifdef CGAIODUMP
+			#ifdef VGAIODUMP
 				if (dumpCGAIO()) //To dump?
 				{
 					dolog("CGA_IO","(R)CRTC[%02X]=%02X",getActiveVGA()->registers->CRTControllerRegisters_Index,*result); //Log the read!
@@ -1441,7 +1438,7 @@ byte CGAMDA_readIO(word port, byte *result)
 				*result |= (getActiveVGA()->registers->specialCGAflags&0x2); //Bit 1 used normally!
 				*result |= ((~getActiveVGA()->registers->specialCGAflags)&0x4); //Bit 2 used reversed to give the status (0=on)!				
 				*result |= ((~getActiveVGA()->CRTC.DisplayEnabled)&1); //Bit0=0 when active display area. Else 1.
-				#ifdef CGAIODUMP
+				#ifdef VGAIODUMP
 					if (dumpCGAIO()) //To dump?
 					{
 						dolog("CGA_IO","(R)Status=%02X",*result); //Log the read!
@@ -1456,7 +1453,7 @@ byte CGAMDA_readIO(word port, byte *result)
 		{
 			CGA_clearlightpenlatch(); //Clear lightpen latch!
 			ok = 2; //Accept, but ignore!
-			#ifdef CGAIODUMP
+			#ifdef VGAIODUMP
 				if (dumpCGAIO()) //To dump?
 				{
 					dolog("CGA_IO","(R)Clear lightpen latch"); //Log the read!
@@ -1469,7 +1466,7 @@ byte CGAMDA_readIO(word port, byte *result)
 		{
 			CGA_presetlightpenlatch(); //Preset lightpen latch!
 			ok = 2; //Accept, but ignore!
-			#ifdef CGAIODUMP
+			#ifdef VGAIODUMP
 				if (dumpCGAIO()) //To dump?
 				{
 					dolog("CGA_IO","(R)Preset lightpen latch"); //Log the read!
@@ -1482,7 +1479,7 @@ byte CGAMDA_readIO(word port, byte *result)
 		if (getActiveVGA()->registers->specialCGAflags&0x1) //Not NMI used on CGA-specific registers being called?
 		{
 			*result = getActiveVGA()->registers->Compatibility_CGAModeControl; //Set the MDA Mode Control Register!
-			#ifdef CGAIODUMP
+			#ifdef VGAIODUMP
 				if (dumpCGAIO()) //To dump?
 				{
 					dolog("CGA_IO","(R)Mode Control=%02X",*result); //Log the read!
@@ -1495,7 +1492,7 @@ byte CGAMDA_readIO(word port, byte *result)
 		if (getActiveVGA()->registers->specialCGAflags&0x1) //Not NMI used on CGA-specific registers being called?
 		{
 			*result = getActiveVGA()->registers->Compatibility_CGAPaletteRegister; //Set the MDA Mode Control Register!
-			#ifdef CGAIODUMP
+			#ifdef VGAIODUMP
 				if (dumpCGAIO()) //To dump?
 				{
 					dolog("CGA_IO","(R)Palette=%02X",*result); //Log the read!
@@ -1557,7 +1554,7 @@ byte CGAMDA_writeIO(word port, byte value)
 		accesscrtvalue:
 		if (CGAMDAEMULATION_ENABLED_CRTC(getActiveVGA()))  //Special CGA flag set for CRTC?
 		{
-			#ifdef CGAIODUMP
+			#ifdef VGAIODUMP
 				if (dumpCGAIO()) //To dump?
 				{
 					dolog("CGA_IO","(W)CRTC[%02X]=%02X",getActiveVGA()->registers->CRTControllerRegisters_Index,value); //Log the write!
@@ -1649,7 +1646,7 @@ byte CGAMDA_writeIO(word port, byte value)
 	case 0x3D8: //CGA mode control register
 		if (getActiveVGA()->registers->specialCGAflags&0x1) //Not NMI used on CGA-specific registers being called?
 		{
-			#ifdef CGAIODUMP
+			#ifdef VGAIODUMP
 				if (dumpCGAIO()) //To dump?
 				{
 					dolog("CGA_IO","(W)Mode Control=%02X",value); //Log the write!
@@ -1678,7 +1675,7 @@ byte CGAMDA_writeIO(word port, byte value)
 	case 0x3D9: //CGA palette register
 		if (getActiveVGA()->registers->specialCGAflags&0x1) //Not NMI used on CGA-specific registers being called?
 		{
-			#ifdef CGAIODUMP
+			#ifdef VGAIODUMP
 				if (dumpCGAIO()) //To dump?
 				{
 					dolog("CGA_IO","(W)Write Palette=%02X",value); //Log the write!
@@ -1720,7 +1717,7 @@ byte CGAMDA_writeIO(word port, byte value)
 		{
 			CGA_clearlightpenlatch(); //Clear lightpen latch!
 			ok = 2; //Accept, but ignore!
-			#ifdef CGAIODUMP
+			#ifdef VGAIODUMP
 				if (dumpCGAIO()) //To dump?
 				{
 					dolog("CGA_IO","(W)Clear lightpen latch"); //Log the write!
@@ -1733,7 +1730,7 @@ byte CGAMDA_writeIO(word port, byte value)
 		{
 			CGA_presetlightpenlatch(); //Preset lightpen latch!
 			ok = 2; //Accept, but ignore!
-			#ifdef CGAIODUMP
+			#ifdef VGAIODUMP
 				if (dumpCGAIO()) //To dump?
 				{
 					dolog("CGA_IO","(W)Preset lightpen latch"); //Log the write!
