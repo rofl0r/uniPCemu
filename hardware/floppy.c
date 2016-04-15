@@ -45,7 +45,7 @@
 #define FLOPPY_LOGD(...)
 #endif
 
-//Redirect to direct log always!
+//Redirect to direct log always if below is uncommented?
 /*
 #undef FLOPPY_LOGD
 #define FLOPPY_LOGD FLOPPY_LOG
@@ -175,6 +175,24 @@ struct
 			byte HeadLoadTime : 7;
 		};
 	} DriveData[4]; //Specify for each of the 4 floppy drives!
+	union
+	{
+		byte data[3]; //All data bytes!
+		struct
+		{
+			byte FirstParameter0; //Set to 0
+			struct
+			{
+				byte Threshold : 4; //Threadhold!
+				byte DrivePollingModeDisable : 1; //Disable drive polling mode if set!
+				byte FIFODisable : 1; //Disable FIFO if set!
+				byte ImpliedSeekEnable : 1; //Enable Implied Seek if set!
+				byte unused7 : 1; //Unused 7th bit!
+			};
+			byte PreComp; //Precompensation value!
+		};
+	} Configuration; //The data from the Configure command!
+	byte Locked; //Are we locked?
 	byte commandstep; //Current command step!
 	byte commandbuffer[0x10000]; //Outgoing command buffer!
 	word commandposition; //What position in the command (starts with commandstep=commandposition=0).
@@ -189,7 +207,7 @@ struct
 	byte diskchanged[4]; //Disk changed?
 	FLOPPY_GEOMETRY *geometries[4]; //Disk geometries!
 	FLOPPY_GEOMETRY customgeometry[4]; //Custom disk geometries!
-	byte reset_pending; //Reset pending?
+	byte reset_pending,reset_pended; //Reset pending?
 	byte reset_pending_size; //Size of the pending reset max value! A maximum set of 3 with 4 drives reset!
 	byte currentcylinder[4], currenthead[4], currentsector[4]; //Current head for all 4 drives!
 	byte TC; //Terminal count triggered?
@@ -437,19 +455,19 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
 			FLOPPY.ST0.data = 0xC0; //Reset ST0 to the correct value: drive became not ready!
 			FLOPPY.ST1.data = FLOPPY.ST2.data = 0; //Reset the ST data!
-			/*pending_size = 4; //Default: full size!
-			if (isTurboXTBIOS()) //Are we reset by the Turbo XT BIOS?
-			{
-				FLOPPY_LOGD("Pending 1 Sense Interrupt because of a bug in the Turbo XT BIOS!")
-			*/
-				pending_size = 1; //Bug: 1 instead!
-			//}
-			FLOPPY.reset_pending = pending_size; //We have a reset pending for all 4 drives(286+), or just 1 drive with older systems!
-			FLOPPY.reset_pending_size = pending_size?0:(pending_size-1); //We have a reset pending for all 4 drives(286+), or just 1 drive with older systems!
+			pending_size = 4; //Pending full size with polling mode enabled!
+			if (FLOPPY.Configuration.DrivePollingModeDisable) pending_size = 0; //Don't pend when polling mode is off!
+			FLOPPY.reset_pending_size = FLOPPY.reset_pending = pending_size; //We have a reset pending for all 4 drives, unless interrupted by an other command!
+			FLOPPY.reset_pended = 1; //We're pending a reset! Clear status once we're becoming active!
 			memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
 			memset(FLOPPY.currentcylinder, 0, sizeof(FLOPPY.currentcylinder)); //Clear the current heads!
-			memset(FLOPPY.currentsector, 0, sizeof(FLOPPY.currentsector)); //Clear the current heads!
+			memset(FLOPPY.currentsector, 1, sizeof(FLOPPY.currentsector)); //Clear the current sectors!
 			FLOPPY.TC = 0; //Disable TC identifier!
+			if (!FLOPPY.Locked) //Are we not locked? Perform stuff that's not locked during reset!
+			{
+				FLOPPY.Configuration.Threshold = 0; //Reset threshold!
+				FLOPPY.Configuration.FIFODisable = 1; //Disable the FIFO!
+			}
 			FLOPPY.floppy_resetted = 1; //We're resetted!
 			FLOPPY.ignorecommands = 0; //We're enabling commands again!
 		}
@@ -1057,7 +1075,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 					floppy_readsector(); //Read another sector!
 					return; //Finished!
 				case 2: //Error during transfer?
-						//Let the floppy_increasesector determine the error!
+					//Let the floppy_increasesector determine the error!
 					break;
 				case 0: //OK?
 				default: //Unknown?
@@ -1073,7 +1091,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber];
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY.DOR.DriveNumber];
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber];
-				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
+				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size from the command buffer!
 				FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 				FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sectors).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 				FLOPPY_raiseIRQ(); //Entering result phase!
@@ -1084,9 +1102,9 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //Drive write-protected! ST1!
 				FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
-				FLOPPY.resultbuffer[3] = FLOPPY.commandbuffer[2]; //Cylinder!
-				FLOPPY.resultbuffer[4] = FLOPPY.commandbuffer[3]; //Head!
-				FLOPPY.resultbuffer[5] = FLOPPY.commandbuffer[4]; //Sector!
+				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber];
+				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY.DOR.DriveNumber];
+				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber];
 				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
 				FLOPPY.commandstep = 3; //Move to result phase!
 				FLOPPY_raiseIRQ(); //Entering result phase!
@@ -1178,16 +1196,12 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			if (FLOPPY.reset_pending) //Reset is pending?
 			{
 				byte reset_drive;
-				reset_drive = FLOPPY.reset_pending_size - (--FLOPPY.reset_pending); //We're pending this drive!
+				reset_drive = FLOPPY.reset_pending_size - (FLOPPY.reset_pending--); //We're pending this drive!
+				FLOPPY_LOGD("FLOPPY: Reset Sense Interrupt, pending drive %i/%i...",reset_drive,FLOPPY.reset_pending_size)
 				FLOPPY.ST0.data &= 0xF8; //Clear low 3 bits!
 				FLOPPY.ST0.UnitSelect = reset_drive; //What drive are we giving!
 				FLOPPY.ST0.CurrentHead = (FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
 				datatemp = FLOPPY.ST0.data; //Use the current data, not the cleared data!
-				if (!FLOPPY.reset_pending) //Finished reset?
-				{
-					FLOPPY_LOGD("FLOPPY: Reset for all drives has been finished!");
-	 				FLOPPY.ST0.data = 0x00; //Reset the ST0 register after we've all been read!
-				}
 			}
 			else if (!FLOPPY.IRQPending) //Not an pending IRQ?
 			{
@@ -1332,6 +1346,24 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				}
 			}
 			break;
+		case VERSION: //Version command?
+			FLOPPY.resultposition = 0; //Start our result phase!
+			FLOPPY.resultbuffer[0] = 0x90; //We're a 82077AA!
+			FLOPPY.commandstep = 3; //We're starting the result phase!
+			break;
+		case CONFIGURE: //Configuration command?
+			//Load our 3 parameters for usage!
+			FLOPPY.Configuration.data[0] = FLOPPY.commandbuffer[1];
+			FLOPPY.Configuration.data[1] = FLOPPY.commandbuffer[2];
+			FLOPPY.Configuration.data[2] = FLOPPY.commandbuffer[3];
+			FLOPPY.commandstep = 0; //Finish silently! No result bytes or interrupt!
+			break;
+		case LOCK: //Lock command?
+			FLOPPY.Locked = FLOPPY.MT; //Set/unset the lock depending on the MT bit!
+			FLOPPY.resultposition = 0; //Start our result phase!
+			FLOPPY.resultbuffer[0] = (FLOPPY.Locked<<4); //Give the lock bit as a result!
+			FLOPPY.commandstep = 3; //We're starting the result phase!
+			break;
 		case READ_TRACK: //Read complete track!
 		case WRITE_DELETED_DATA: //Write deleted sector
 		case READ_DELETED_DATA: //Read deleted sector
@@ -1398,6 +1430,16 @@ OPTINLINE void floppy_writeData(byte value)
 				case SEEK: //Seek/park head
 				case READ_ID: //Read sector ID
 				case FORMAT_TRACK: //Format sector
+				case VERSION: //Version
+				case CONFIGURE: //Configure
+				case LOCK: //Lock
+					FLOPPY.reset_pending = 0; //Stop pending reset if we're pending it: we become active!
+					if (FLOPPY.reset_pended) //Finished reset?
+					{
+						FLOPPY_LOGD("FLOPPY: Reset for all drives has been finished!");
+	 					FLOPPY.ST0.data = 0x00; //Reset the ST0 register after we've all been read!
+						FLOPPY.reset_pended = 0; //Not pending anymore, so don't check for it!
+					}
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					break;
 				case WRITE_DELETED_DATA: //Write deleted sector
@@ -1458,7 +1500,7 @@ OPTINLINE void floppy_writeData(byte value)
 
 OPTINLINE byte floppy_readData()
 {
-	byte resultlength[0x10] = {
+	byte resultlength[0x20] = {
 		0, //0
 		0, //1
 		7, //2
@@ -1474,8 +1516,24 @@ OPTINLINE byte floppy_readData()
 		7, //c
 		7, //d
 		0, //e
-		0 //f
-		};
+		7, //f
+		1, //10
+		0, //11
+		0, //12
+		0, //13
+		0, //14
+		0, //15
+		7, //16
+		0, //17
+		0, //18
+		0, //19
+		0, //1a
+		0, //1b
+		0, //1c
+		0, //1d
+		0, //1e
+		0 //1f
+	};
 	byte temp;
 	switch (FLOPPY.commandstep) //What step are we at?
 	{
@@ -1529,7 +1587,9 @@ OPTINLINE byte floppy_readData()
 				case SENSE_INTERRUPT: //Check interrupt status
 				case READ_ID: //Read sector ID
 				case SEEK: //Seek/park head
-					FLOPPY_LOGD("FLOPPY: Reading result byte %i/%i=%02X",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]],temp)
+				case VERSION: //Version information!
+				case LOCK: //Lock command?
+					FLOPPY_LOGD("FLOPPY: Reading result byte %i/%i=%02X",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0x1F],temp)
 					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]]) //Result finished?
 					{
 						FLOPPY.commandstep = 0; //Reset step!
