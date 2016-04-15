@@ -46,6 +46,6 @@ word HWkeyboard_getrepeatdelay(); //Delay after which to start using the repeat 
 void BIOS_initKeyboard(); //Initialise the PS/2 keyboard (AFTER the 8042!)
 void BIOS_doneKeyboard(); //Finish the PS/2 keyboard.
 
-void resetKeyboard_8042(); //8042 reset for XT compatibility!
+void resetKeyboard_8042(byte flags); //8042 reset for XT compatibility!
 
 #endif

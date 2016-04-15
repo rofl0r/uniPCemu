@@ -104,7 +104,7 @@ OPTINLINE void resend_lastpacket() //Resends the last packet!
 	}
 	//If we don't have a last packet, take the start of the current packet, else the start of the last packet!
 	Mouse.packetindex = 0; //Reset packet index always!
-	IRQ8042(); //We've got data in our input buffer!
+	IRQ8042(1); //We've got data in our input buffer!
 }
 
 OPTINLINE byte add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse packet!
@@ -132,7 +132,7 @@ OPTINLINE byte add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse p
 	{
 		Mouse.packets = packet; //Set as current packet!
 	}
-	IRQ8042(); //We've got data in our input buffer!
+	IRQ8042(1); //We've got data in our input buffer!
 	return 1; //Packet ready!
 }
 
@@ -182,7 +182,7 @@ OPTINLINE void resetMouse()
 	give_mouse_input(0xAA); //Bat completion code!
 	input_lastwrite_mouse(); //Force to user!
 	give_mouse_input(0x00); //We're a mouse!
-	IRQ8042(); //We've got data in our input buffer!
+	IRQ8042(1); //We've got data in our input buffer!
 }
 
 OPTINLINE void mouse_handleinvalidcall()
@@ -192,13 +192,13 @@ OPTINLINE void mouse_handleinvalidcall()
 	{
 		give_mouse_input(0xFE); //NACK!
 		input_lastwrite_mouse(); //Give byte to the user!		
-		IRQ8042(); //We've got data in our input buffer!
+		IRQ8042(1); //We've got data in our input buffer!
 	}
 	else //Error!
 	{
 		give_mouse_input(0xFC); //Error!
 		input_lastwrite_mouse(); //Give byte to the user!
-		IRQ8042(); //We've got data in our input buffer!
+		IRQ8042(1); //We've got data in our input buffer!
 	}
 	Mouse.last_was_error = 1; //Last was an error!
 }
@@ -238,14 +238,14 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			give_mouse_input(0xAA); //Reset!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xFE: //Resend?
 			Mouse.has_command = 0; //We're not a command anymore!
 			resend_lastpacket(); //Resend the last (if possible) or current packet.
 			input_lastwrite_mouse(); //Give byte to the user!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break; //Not used?
 		case 0xF6: //Set defaults!
@@ -258,7 +258,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			Mouse.has_command = 0; //We're not a command anymore!
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xF5: //Disable data reporting?
@@ -266,7 +266,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			Mouse.data_reporting = 0; //Disable data reporting!
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xF4: //Enable data reporting?
@@ -274,13 +274,13 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			Mouse.data_reporting = 1; //Enable data reporting!
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xF3: //Set sample rate?
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			//We're expecting parameters!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
@@ -289,7 +289,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			give_mouse_input(0x00); //Standard mouse!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xF0: //Set Remote Mode?
@@ -299,7 +299,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			flushPackets(); //Flush our packets!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xEE: //Set Wrap Mode?
@@ -310,7 +310,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			flushPackets(); //Flush our packets!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xEC: //Reset Wrap Mode?
@@ -319,13 +319,13 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			flushPackets(); //Flush our packets!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!			
 			break;
 		case 0xEB: //Read data?
 			Mouse.has_command = 0; //We're not a command anymore!
 			give_8042_input(0xFA); //OK!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			//Already ready for receiving a packet!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
@@ -336,7 +336,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			flushPackets(); //Flush our packets!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xE9: //Status request?
@@ -344,12 +344,12 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			give_mouse_status(); //Give the status!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xE8: //Set resolution?
 			give_mouse_input(0xFA); //Acnowledge!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xE7: //Set Scaling 2:1?
@@ -357,7 +357,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			Mouse.scaling21 = 1; //Set it!
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xE6: //Set Scaling 1:1?
@@ -365,7 +365,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			Mouse.scaling21 = 0; //Set it!
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		default:
@@ -391,13 +391,13 @@ OPTINLINE void datawritten_mouse(byte data) //Data has been written to the mouse
 			update_mouseTimer(); //Update the timer!
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			break;
 		case 0xE8: //Set resolution?
 			Mouse.resolution = data; //Set the resolution!
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!			
-			IRQ8042(); //We've got data in our input buffer!
+			IRQ8042(1); //We've got data in our input buffer!
 			break;
 		default: //Invalid command?
 			mouse_handleinvalidcall(); //Give an error!

@@ -95,5 +95,5 @@ byte read_8042(word port, byte *result); //Prototype for init port!
 void register_PS2PortWrite(byte port, PS2OUT handler);
 void register_PS2PortRead(byte port, PS2IN handler, PS2PEEK peekhandler);
 
-void IRQ8042(); //Generates any IRQs needed on the 8042!
+void IRQ8042(byte flags); //Generates any IRQs needed on the 8042!
 #endif

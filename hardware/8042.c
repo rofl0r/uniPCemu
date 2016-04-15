@@ -33,7 +33,7 @@ void input_lastwrite_8042()
 	fifobuffer_gotolast(Controller8042.buffer); //Goto last!	
 }
 
-void fill8042_input_buffer() //Fill input buffer from full buffer!
+void fill8042_input_buffer(byte flags) //Fill input buffer from full buffer!
 {
 	if (!(Controller8042.status_buffer&1)) //Buffer empty?
 	{
@@ -63,13 +63,13 @@ void fill8042_input_buffer() //Fill input buffer from full buffer!
 								Controller8042.status_buffer |= 0x20; //Set AUX bit!
 								if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
 								{
-									doirq(12); //Raise secondary IRQ!
+									if (flags&1) doirq(12); //Raise secondary IRQ!
 								}
 								else
 								{
-									removeirq(12); //Lower secondary IRQ!
+									if (flags&1) removeirq(12); //Lower secondary IRQ!
 								}
-								removeirq(1); //Lower primary IRQ!
+								if (flags&1) removeirq(1); //Lower primary IRQ!
 							}
 							else //Non-AUX?
 							{
@@ -77,13 +77,13 @@ void fill8042_input_buffer() //Fill input buffer from full buffer!
 
 								if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
 								{
-									doirq(1); //Raise primary IRQ!
+									if (flags&1) doirq(1); //Raise primary IRQ!
 								}
 								else
 								{
-									removeirq(1); //Lower primary IRQ!
+									if (flags&1) removeirq(1); //Lower primary IRQ!
 								}
-								removeirq(12); //Lower secondary IRQ!
+								if (flags&1) removeirq(12); //Lower secondary IRQ!
 							}
 							break; //Finished!
 						}
@@ -124,7 +124,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 	case 0xA8: //Enable second PS/2 port! ACK from keyboard!
 		Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled = 0; //Enabled!
 		give_keyboard_input(0xFA); //ACK!
-		IRQ8042(); //Process the input!
+		IRQ8042(1); //Process the input!
 		break;
 	case 0xA9: //Test second PS/2 port! Give 0x00 if passed (detected). 0x02-0x04=Not detected?
 		if (Controller8042.portwrite[1] && Controller8042.portread[1] && Controller8042.portpeek[1]) //Registered?
@@ -287,7 +287,7 @@ void datawritten_8042() //Data has been written?
 			}
 		}
 	}
-	fill8042_input_buffer(); //Update the input buffer!
+	fill8042_input_buffer(1); //Update the input buffer!
 }
 
 byte write_8042(word port, byte value)
@@ -318,17 +318,20 @@ byte write_8042(word port, byte value)
 		return 1;
 		break;
 	case 0x61: //PPI keyboard functionality for XT!
-		if ((value & 0x80) && (EMULATED_CPU<CPU_80286)) //Clear interrupt flag and we're a XT system?
+		if (EMULATED_CPU<CPU_80286) //XT machine only?
 		{
-			Controller8042.status_buffer &= ~0x21; //Clear input buffer full&AUX bits!
-			fill8042_input_buffer(); //Fill the next byte to use!
+			if (value & 0x80) //Clear interrupt flag and we're a XT system?
+			{
+				Controller8042.status_buffer &= ~0x21; //Clear input buffer full&AUX bits!
+				fill8042_input_buffer(1); //Fill the next byte to use!
+			}
+			if (((value^0x40)==(Controller8042.PortB&0x40)) && ((value)&0x40)) //Set when unset?
+			{
+				resetKeyboard_8042(1); //Reset the keyboard manually! Execute an interrupt when reset!
+			}
+			Controller8042.PortB = (value&0xC0); //Save values for reference!
+			return 1;
 		}
-		if ((value & 0x40) && (!(Controller8042.PortB & 0x40))) //Set when unset?
-		{
-			resetKeyboard_8042(); //Reset the keyboard manually!
-		}
-		Controller8042.PortB = (value&0xC0); //Save values for reference!
-		return 1;
 		break;
 	case 0x64: //Command port: send command?
 		Controller8042.command = value; //Set command!
@@ -349,25 +352,25 @@ byte read_8042(word port, byte *result)
 		if (Controller8042.readoutputport) //Read the output port?
 		{
 			*result = Controller8042.outputport; //Read the output port directly!
-			fill8042_input_buffer(); //Fill the input buffer if needed!
+			fill8042_input_buffer(1); //Fill the input buffer if needed!
 			return 1; //Don't process normally!
 		}
 		if (Controller8042.Read_RAM) //Write to VRAM byte?
 		{
 			*result = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
 			Controller8042.Read_RAM = 0; //Not anymore!
-			fill8042_input_buffer(); //Fill the input buffer if needed!
+			fill8042_input_buffer(1); //Fill the input buffer if needed!
 			return 1; //Don't process normally!
 		}
 	
-		fill8042_input_buffer(); //Fill the input buffer if needed!
+		fill8042_input_buffer(1); //Fill the input buffer if needed!
 		if (Controller8042.status_buffer&1) //Gotten data?
 		{
 			*result = Controller8042.input_buffer; //Read input buffer!
 			if ((EMULATED_CPU>=CPU_80286) || force8042) //We're an AT system?
 			{
 				Controller8042.status_buffer &= ~0x21; //Clear input buffer full&AUX bits!
-				fill8042_input_buffer(); //Get the next byte if needed!
+				fill8042_input_buffer(1); //Get the next byte if needed!
 			}
 		}
 		else
@@ -377,11 +380,12 @@ byte read_8042(word port, byte *result)
 		return 1; //We're processed!
 		break;
 	case 0x61: //PPI keyboard functionality for XT!
-		*result = 0; //We're not having bit 0x80 set!
-		return 1; //We're processed!
+		//We don't handle this, ignore us!
+		*result = 0;
+		return 1; //Force us to 0 by default!
 		break;
 	case 0x64: //Command port: read status register?
-		if ((EMULATED_CPU >= CPU_80286) || force8042) fill8042_input_buffer(); //Fill the input buffer if needed!
+		if ((EMULATED_CPU >= CPU_80286) || force8042) fill8042_input_buffer(1); //Fill the input buffer if needed!
 		*result = Controller8042.status_buffer; //Read status buffer!
 		return 1; //We're processed!
 		break;
@@ -410,9 +414,9 @@ void BIOS_done8042()
 	free_fifobuffer(&Controller8042.buffer); //Free the buffer!
 }
 
-void IRQ8042() //Generates any IRQs needed on the 8042!
+void IRQ8042(byte flags) //Generates any IRQs needed on the 8042!
 {
-	fill8042_input_buffer(); //Fill our input buffer!
+	fill8042_input_buffer(flags); //Fill our input buffer!
 }
 
 //Registration handlers!
