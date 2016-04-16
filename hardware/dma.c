@@ -355,186 +355,188 @@ void DMA_tick()
 	byte startcurrent = current; //Current backup for checking for finished!
 	nextcycle: //Next cycle to process!
 		controller = ((current&4)>>2); //Init controller
-		if (DMAController[controller].CommandRegister&4) goto nextchannel; //Controller disabled?
-		byte channel = (current & 3); //Channel to use! Channels 0 are unused (DRAM memory refresh (controller 0) and cascade DMA controller (controller 1))
-
-		//Handle the current channel, since the controller is enabled!
-		DMAModeRegister moderegister;
-		moderegister.data = DMAController[controller].DMAChannel[channel].ModeRegister.data; //Read the mode register to use!
-		if (moderegister.Mode==3) goto nextchannel; //Skip channel: invalid! We don't process a cascade mode channel!
-
-		if (DMAController[controller].DMAChannel[channel].DREQHandler) //Gotten a tick handler?
+		if ((~DMAController[controller].CommandRegister)&4) //Controller enabled?
 		{
-			DMAController[controller].DMAChannel[channel].DREQHandler(); //Execute the tick handler!
-		}
+			byte channel = (current & 3); //Channel to use! Channels 0 are unused (DRAM memory refresh (controller 0) and cascade DMA controller (controller 1))
 
-		channelindex = 1; //Load index!
-		channelindex <<= channel; //Assign the channel index to use!
-
-		MCMReversed = DMAController[controller].MultiChannelMaskRegister; //Load MCM!
-		MCMReversed = ~MCMReversed; //NOT!
-		MCMReversed &= channelindex; //For our current channel only!
-
-		if (DMAController[controller].DREQ&MCMReversed) //Requested and not masking?
-		{
-			if (DMAController[controller].DMAChannel[channel].DACKHandler) //Gotten a DACK handler?
+			//Handle the current channel, since the controller is enabled!
+			DMAModeRegister moderegister;
+			moderegister.data = DMAController[controller].DMAChannel[channel].ModeRegister.data; //Read the mode register to use!
+			if (moderegister.Mode!=3) //Skip channel: invalid! We don't process a cascade mode channel!
 			{
-				DMAController[controller].DMAChannel[channel].DACKHandler(); //Send a DACK to the hardware!
-			}
-			switch (moderegister.Mode)
-			{
-				case 0: //Single transfer!
-				case 1: //Block transfer!
-					DMAController[controller].DACK |= channelindex; //Acnowledged!
-					break;
-				case 2: //Demand transfer?
-					//Nothing happens: DREQ affects transfers directly!
-					break;
-			}
-		}
+				if (DMAController[controller].DMAChannel[channel].DREQHandler) //Gotten a tick handler?
+				{
+					DMAController[controller].DMAChannel[channel].DREQHandler(); //Execute the tick handler!
+				}
+
+				channelindex = 1; //Load index!
+				channelindex <<= channel; //Assign the channel index to use!
+
+				MCMReversed = DMAController[controller].MultiChannelMaskRegister; //Load MCM!
+				MCMReversed = ~MCMReversed; //NOT!
+				MCMReversed &= channelindex; //For our current channel only!
+
+				if (DMAController[controller].DREQ&MCMReversed) //Requested and not masking?
+				{
+					if (DMAController[controller].DMAChannel[channel].DACKHandler) //Gotten a DACK handler?
+					{
+						DMAController[controller].DMAChannel[channel].DACKHandler(); //Send a DACK to the hardware!
+					}
+					switch (moderegister.Mode)
+					{
+						case 0: //Single transfer!
+						case 1: //Block transfer!
+							DMAController[controller].DACK |= channelindex; //Acnowledged!
+							break;
+						case 2: //Demand transfer?
+							//Nothing happens: DREQ affects transfers directly!
+							break;
+					}
+				}
 			
-		byte processchannel = 0; //To process the channel?
-		switch (moderegister.Mode) //What mode?
-		{
-			case 0: //Demand mode?
-				//DREQ determines the transfer!
-				processchannel = DMAController[controller].DREQ;
-				processchannel &= channelindex; //Demand sets if we're to run!
-				break;
-			case 1: //Single: DACK determines running time!
-			case 2: //Block: TC and DREQ masked determines running time!
-				//DACK isn't used in this case!
-				processchannel = DMAController[controller].DACK;
-				processchannel &= MCMReversed; //We're affected directly by the DACK!
-				break;
-		}
+				byte processchannel = 0; //To process the channel?
+				switch (moderegister.Mode) //What mode?
+				{
+					case 0: //Demand mode?
+						//DREQ determines the transfer!
+						processchannel = DMAController[controller].DREQ;
+						processchannel &= channelindex; //Demand sets if we're to run!
+						break;
+					case 1: //Single: DACK determines running time!
+					case 2: //Block: TC and DREQ masked determines running time!
+						//DACK isn't used in this case!
+						processchannel = DMAController[controller].DACK;
+						processchannel &= MCMReversed; //We're affected directly by the DACK!
+						break;
+				}
 			
-		if (DMAController[controller].RequestRegister&channelindex) //Requested?
-		{
-			processchannel = 1; //Process: software request!
-		}
+				if (DMAController[controller].RequestRegister&channelindex) //Requested?
+				{
+					processchannel = 1; //Process: software request!
+				}
 			
-		if (processchannel) //Channel not masked off and requested?
-		{
-			transferred = 1; //We've transferred a byte of data!
-			byte processed = 0; //Default: nothing going on!
-			/*
-			processed bits:
-			bit 0: TC (Terminal Count) occurred.
-			*/
+				if (processchannel) //Channel not masked off and requested?
+				{
+					transferred = 1; //We've transferred a byte of data!
+					byte processed = 0; //Default: nothing going on!
+					/*
+					processed bits:
+					bit 0: TC (Terminal Count) occurred.
+					*/
 				
-			//Calculate the address...
-			uint_32 address; //The address to use!
-			if (controller) //16-bits transfer has a special addressing scheme?
-			{
-				address = DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Load the start address!
-				address <<= 1; //Shift left by 1 to obtain a multiple of 2!
-				address &= 0xFFFF; //Clear the overflowing bit, if any!
-			}
-			else //8-bit has normal addressing!
-			{
-				address = DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Normal addressing!
-			}
-			address |= (DMAController[controller].DMAChannel[channel].PageAddressRegister<<16); //Apply page address to get the full address!
+					//Calculate the address...
+					uint_32 address; //The address to use!
+					if (controller) //16-bits transfer has a special addressing scheme?
+					{
+						address = DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Load the start address!
+						address <<= 1; //Shift left by 1 to obtain a multiple of 2!
+						address &= 0xFFFF; //Clear the overflowing bit, if any!
+					}
+					else //8-bit has normal addressing!
+					{
+						address = DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Normal addressing!
+					}
+					address |= (DMAController[controller].DMAChannel[channel].PageAddressRegister<<16); //Apply page address to get the full address!
 				
-			//Process the address counter step: we've been processed and ready to move on!
-			if (moderegister.Down) //Decrease address?
-			{
-				--DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Decrease counter!
-			}
-			else //Increase counter?
-			{
-				++DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Decrease counter!
-			}
+					//Process the address counter step: we've been processed and ready to move on!
+					if (moderegister.Down) //Decrease address?
+					{
+						--DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Decrease counter!
+					}
+					else //Increase counter?
+					{
+						++DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Decrease counter!
+					}
 				
-			//Terminal count!
-			--DMAController[controller].DMAChannel[channel].CurrentCountRegister; //Next step calculated!
-			if (DMAController[controller].DMAChannel[channel].CurrentCountRegister==0xFFFF) //Finished when overflows below 0!
-			{
-				processed |= FLAG_TC; //Set flag: terminal count occurred!
-			}
-			//Process all flags that has occurred!
+					//Terminal count!
+					--DMAController[controller].DMAChannel[channel].CurrentCountRegister; //Next step calculated!
+					if (DMAController[controller].DMAChannel[channel].CurrentCountRegister==0xFFFF) //Finished when overflows below 0!
+					{
+						processed |= FLAG_TC; //Set flag: terminal count occurred!
+					}
+					//Process all flags that has occurred!
 				
-			if (processed&FLAG_TC) //TC resets request register bit?
-			{
-				DMAController[controller].RequestRegister &= ~channelindex; //Clear the request register!
-			}
+					if (processed&FLAG_TC) //TC resets request register bit?
+					{
+						DMAController[controller].RequestRegister &= ~channelindex; //Clear the request register!
+					}
 
-			if (processed&FLAG_TC) //Complete on Terminal count?
-			{
-				if (DMAController[controller].DMAChannel[channel].TCHandler) //Gotten a TC handler?
-				{
-					DMAController[controller].DMAChannel[channel].TCHandler(); //Send hardware TC!
-				}
-				DMAController[controller].StatusRegister |= channelindex; //Transfer complete!
-			}
+					if (processed&FLAG_TC) //Complete on Terminal count?
+					{
+						if (DMAController[controller].DMAChannel[channel].TCHandler) //Gotten a TC handler?
+						{
+							DMAController[controller].DMAChannel[channel].TCHandler(); //Send hardware TC!
+						}
+						DMAController[controller].StatusRegister |= channelindex; //Transfer complete!
+					}
 
-			//Transfer data!
-			switch (moderegister.TransferType)
-			{
-			case 1: //Writing to memory? (Reading from device)
-				if (controller) //16-bits?
-				{
-					if (DMAController[controller].DMAChannel[channel].ReadWHandler) //Valid handler?
+					//Transfer data!
+					switch (moderegister.TransferType)
 					{
-						MMU_directww(address, DMAController[controller].DMAChannel[channel].ReadWHandler()); //Read using handler!
+					case 1: //Writing to memory? (Reading from device)
+						if (controller) //16-bits?
+						{
+							if (DMAController[controller].DMAChannel[channel].ReadWHandler) //Valid handler?
+							{
+								MMU_directww(address, DMAController[controller].DMAChannel[channel].ReadWHandler()); //Read using handler!
+							}
+						}
+						else //8-bits?
+						{
+							if (DMAController[controller].DMAChannel[channel].ReadBHandler) //Valid handler?
+							{
+								MMU_directwb(address, DMAController[controller].DMAChannel[channel].ReadBHandler()); //Read using handler!
+							}
+						}
+						break;
+					case 2: //Reading from memory? (Writing to device)
+						if (controller) //16-bits?
+						{
+							if (DMAController[controller].DMAChannel[channel].WriteWHandler) //Valid handler?
+							{
+								DMAController[controller].DMAChannel[channel].WriteWHandler(MMU_directrw(address)); //Read using handler!
+							}
+						}
+						else //8-bits?
+						{
+							if (DMAController[controller].DMAChannel[channel].WriteBHandler) //Valid handler?
+							{
+								DMAController[controller].DMAChannel[channel].WriteBHandler(MMU_directrb(address)); //Read using handler!
+							}
+						}
+						break;
+					case 0: //Verify? Never used on a PC?
+					case 3: //Invalid?
+					default: //Invalid?
+						break;
 					}
-				}
-				else //8-bits?
-				{
-					if (DMAController[controller].DMAChannel[channel].ReadBHandler) //Valid handler?
-					{
-						MMU_directwb(address, DMAController[controller].DMAChannel[channel].ReadBHandler()); //Read using handler!
-					}
-				}
-				break;
-			case 2: //Reading from memory? (Writing to device)
-				if (controller) //16-bits?
-				{
-					if (DMAController[controller].DMAChannel[channel].WriteWHandler) //Valid handler?
-					{
-						DMAController[controller].DMAChannel[channel].WriteWHandler(MMU_directrw(address)); //Read using handler!
-					}
-				}
-				else //8-bits?
-				{
-					if (DMAController[controller].DMAChannel[channel].WriteBHandler) //Valid handler?
-					{
-						DMAController[controller].DMAChannel[channel].WriteBHandler(MMU_directrb(address)); //Read using handler!
-					}
-				}
-				break;
-			case 0: //Verify? Never used on a PC?
-			case 3: //Invalid?
-			default: //Invalid?
-				break;
-			}
 
-			switch (moderegister.Mode) //What mode are we processing in?
-			{
-			case 0: //Demand Transfer Mode
-				if (processed&FLAG_TC) //TC?
-				{
-					DMAController[controller].DACK &= ~channelindex; //Finished!
-				}
-				break;
-			case 1: //Single Transfer Mode
-			case 2: //Block Transfer Mode
-				if (processed&FLAG_TC) //Complete on Terminal count?
-				{
-					DMAController[controller].DACK &= ~channelindex; //Finished!
-					if (moderegister.Auto)
+					switch (moderegister.Mode) //What mode are we processing in?
 					{
-						DMA_autoinit(controller,channel); //Perform autoinit!
+					case 0: //Demand Transfer Mode
+						if (processed&FLAG_TC) //TC?
+						{
+							DMAController[controller].DACK &= ~channelindex; //Finished!
+						}
+						break;
+					case 1: //Single Transfer Mode
+					case 2: //Block Transfer Mode
+						if (processed&FLAG_TC) //Complete on Terminal count?
+						{
+							DMAController[controller].DACK &= ~channelindex; //Finished!
+							if (moderegister.Auto)
+							{
+								DMA_autoinit(controller,channel); //Perform autoinit!
+							}
+						}
+						break;
 					}
 				}
-				break;
 			}
 		}
-	nextchannel: //Skipping this channel (used by cascade mode channels)
 		++current; //Next channel!
 		current &= 0x7; //Wrap arround our 2 DMA controllers?
-		if (startcurrent == current) return; //Back to our original cycle? We don't have anything to transfer!
+		if (startcurrent==current) return; //Back to our original cycle? We don't have anything to transfer!
 		if (transferred) return; //Transferred data? We're done!
 		goto nextcycle; //Next cycle!!
 }
