@@ -259,12 +259,12 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 
 	//dolog("SDL","ResizeImage: Checking memory requirements...");
 	//Calcualted required memory!
-	uint_32 memreq = (((n_width*n_height)*sizeof(uint_32))+sizeof(*img)); //Memory required for the new surface!
+	/*uint_32 memreq = (((n_width*n_height)*sizeof(uint_32))+sizeof(*img)); //Memory required for the new surface!
 	if (freemem()<memreq) //Not enough memory left to render?
 	{
 		raiseError("SDL","Not enough memory left to resize: free:%i bytes, required: %i bytes; Shortage: %i bytes",freemem(),memreq,freemem()-memreq); //Log our shortage!
 		return NULL; //Disabled: not enough memory left!
-	}
+	}*/ //Don't check memory requirements, since we're too heavy to process normally!
 
 	SDL_Surface* sized = NULL; //Sized?
 	if (zoomx && zoomy) //Valid?
