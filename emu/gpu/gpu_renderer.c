@@ -116,7 +116,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 					goto drawpixels; //No letterbox top!
 				}
 			#endif
-			if (!rendersurface) goto abortrendering; //Error occurred?
+			if (!check_surface(rendersurface)) goto abortrendering; //Error occurred?
 			if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
 			if (resized) //Valid?
 			{
@@ -137,7 +137,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 		}
 
 		drawpixels:
-		if (rendersurface) //Valid surface to render?
+		if (check_surface(rendersurface)) //Valid surface to render?
 		{
 			if (resized) //Valid surface to render?
 			{
@@ -151,7 +151,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 							&& ((int_32)y<rendersurface->sdllayer->h) //Protect against destination overflow!
 							;) //Process row-by-row!
 						{
-							put_pixel_row(rendersurface, y++, width, get_pixel_ptr(resized,virtualrow++,0), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+							put_pixel_row(rendersurface, y++, width, get_pixel_row(resized,virtualrow++,0), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
 							if (!resized) goto cantrender; //Error occurred?
 							if (!resized->sdllayer) goto cantrender; //Error occurred?
 						}
@@ -161,7 +161,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 		}
 		cantrender:
 
-		if (!rendersurface) goto abortrendering; //Error occurred?
+		if (!check_surface(rendersurface)) goto abortrendering; //Error occurred?
 		if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
 
 		//Always clear the bottom: nothing, letterbox and direct plot both have to clear the bottom!
@@ -207,11 +207,10 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 
 OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 {
-	if (!memprotect(rendersurface,sizeof(*rendersurface),NULL)) return; //Nothing to render to!
-	if (!memprotect(rendersurface->sdllayer,sizeof(*rendersurface->sdllayer),NULL)) return; //Nothing to render to!
+	if (!check_surface(rendersurface)) return; //Nothing to render to!
 	//Now, render our screen, or clear it!
 	//byte rendered = 0;
-	if (memprotect(resized,sizeof(*resized),NULL)==resized) //Resized anti-invalid protection?
+	if (check_surface(resized)) //Resized anti-invalid protection?
 	{
 		//rendered = 1; //We're rendered from here on!
 		word y = 0; //Current row counter!
@@ -232,7 +231,7 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 		}
 		
 		startemurendering:
-		if (resized) //Valid layer?
+		if (check_surface(resized) && resized) //Valid layer?
 		{
 			if (resized->sdllayer) //Valid layer?
 			{
@@ -243,7 +242,7 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 					{
 						if (!count--) goto startbottomrendering; //Stop when done!
 						if (!resized) goto startbottomrendering; //Skip when no resized anymore!
-						put_pixel_row(rendersurface, y++, resized->sdllayer->w, get_pixel_ptr(resized,virtualrow++,0), letterbox?1:0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+						put_pixel_row(rendersurface, y++, resized->sdllayer->w, get_pixel_row(resized,virtualrow++,0), letterbox?1:0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
 						goto nextrowemu;
 					}
 				}

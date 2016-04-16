@@ -128,9 +128,8 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	surface->notdirty[fy][fx] = TRANSPARENTPIXEL;
 }
 
-OPTINLINE static void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy) //Get the pixel font, back or show through. Automatically plotted if set.
+OPTINLINE static void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy, uint_32 color) //Get the pixel font, back or show through. Automatically plotted if set.
 {
-	register uint_32 color = surface->notdirty[fy][fx];
 	if (color!=TRANSPARENTPIXEL)
 	{
 		if (surface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
@@ -177,6 +176,7 @@ void free_GPUtext(GPU_TEXTSURFACE **surface)
 
 uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurface!
 {
+	uint_32 *renderpixel;
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (!rendersurface) return 0; //No rendering surface used yet?
@@ -204,15 +204,19 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 
 	x = y = 0; //Init coordinates!
 	pixeln = GPU_TEXTPIXELSX*GPU_TEXTPIXELSY; //The number of pixels to process!
-	do //Process all rows!
+	if (check_surface(rendersurface)) //Valid to render to?
 	{
-		GPU_textput_pixel(rendersurface,tsurface,x++,y); //Plot a pixel?
-		if (x==GPU_TEXTPIXELSX) //End of row reached?
+		renderpixel = &tsurface->notdirty[0][0]; //Start with the first pixel in our buffer!
+		do //Process all rows!
 		{
-			x = 0; //Reset horizontal coordinate!
-			++y; //Goto Next row!
-		}
-	} while (--pixeln); //Stop searching now!
+			GPU_textput_pixel(rendersurface,tsurface,x,y, *renderpixel++); //Plot a pixel if used!
+			if (++x==GPU_TEXTPIXELSX) //End of row reached?
+			{
+				x = 0; //Reset horizontal coordinate!
+				renderpixel = &tsurface->notdirty[++y][0]; //Start with the first pixel in our new row!
+			}
+		} while (--pixeln); //Stop searching now!
+	}
 
 	return 0; //Ignore processing time!
 }

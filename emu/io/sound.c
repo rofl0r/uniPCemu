@@ -756,6 +756,7 @@ OPTINLINE static void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 					{
 						firstactivesample = activesample++; //First channel sample!
 						mixchannel(activechannel,firstactivesample,activesample++); //L&R channel!
+						if (activechannel->fillbuffer==&fillbuffer_new) break; //Stop procesing the channel if there's nothing left to process!
 						if (!--currentsample) break; //Next sample when still not done!
 					}
 				}

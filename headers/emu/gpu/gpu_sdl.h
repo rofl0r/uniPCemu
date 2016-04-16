@@ -20,6 +20,8 @@ GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface); //Retrieves a surface 
 
 void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest );
 
+byte check_surface(GPU_SDL_Surface *surface); //Is this surface valid to use?
+
 //Basic pixel manipulation:
 uint_32 get_pixel(GPU_SDL_Surface* surface, const int x, const int y );
 void put_pixel(GPU_SDL_Surface *surface, const int x, const int y, const Uint32 pixel );
