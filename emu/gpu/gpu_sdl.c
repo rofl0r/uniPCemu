@@ -282,7 +282,13 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 	if (zoomx && zoomy) //Valid?
 	{
 		//dolog("SDL","Resizing screen...");
+		#ifdef __psp__
+		//Apply smoothing on the PSP, since it's a small screen anyway!
 		sized = zoomSurface( img->sdllayer, zoomx, zoomy, SMOOTHING_ON );
+		#else
+		//Don't apply smoothing on other systems, as their screens might have large sizes!
+		sized = zoomSurface( img->sdllayer, zoomx, zoomy, SMOOTHING_OFF );
+		#endif
 		//dolog("SDL","Resizing done.");
 		if (sized) //Memory left?
 		{

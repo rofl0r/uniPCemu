@@ -98,3 +98,9 @@ $(BUILD_RELEASE): ${OBJS}
 #Normal compilation of seperate modules!
 $(BUILD_DIR)/%.o:%.c
 	${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@
+
+clean:
+	-$(RM) $(OBJS)
+	-$(RM) $(BUILD_RELEASE)
+	-$(RM) $(BUILD_PROFILE)
+	-$(RM) $(BUILD_DEBUG)

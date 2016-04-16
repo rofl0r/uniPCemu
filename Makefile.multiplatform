@@ -18,10 +18,4 @@ endif
 #Disable parsing of the platforms themselves!
 .PHONY: psp win
 
-clean:
-ifneq (,$(PLATFORM))
-	-$(RM) $(OBJS)
-	-$(RM) $(TARGET)
-endif
-
 rebuild: clean build
