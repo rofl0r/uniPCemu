@@ -960,25 +960,25 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 		GPU_EMU_printscreen(0, 6, "This is a Superfury Dynamic Disk Image file."); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 	}
-	else if (is_staticimage(filename)) //Static image?
-	{
-		size = staticimage_getsize(filename); //Get the filesize!
-		GPU_EMU_printscreen(0, 6, "This is a Static Disk Image file.           "); //Show selection init!
-		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
-	}
 	else if (is_DSKimage(filename)) //DSK disk image?
 	{
 		DISKINFORMATIONBLOCK dskinfo;
 		if (!readDSKInfo(filename, &dskinfo)) goto unknownimage;
 		size = dskinfo.NumberOfSides*dskinfo.NumberOfTracks*dskinfo.TrackSize; //Get the total disk image size!
 		size = dynamicimage_getsize(filename); //Get the filesize!
-		GPU_EMU_printscreen(0, 6, "This is a DSK Disk Image file.              "); //Show selection init!
+		GPU_EMU_printscreen(0, 6, "This is a DSK disk image file.              "); //Show selection init!
+		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
+	}
+	else if (is_staticimage(filename)) //Static image?
+	{
+		size = staticimage_getsize(filename); //Get the filesize!
+		GPU_EMU_printscreen(0, 6, "This is a Static disk image file.           "); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 	}
 	else //Unknown file type: no information?
 	{
 	unknownimage: //Unknown disk image?
-		GPU_EMU_printscreen(0, 6, "This is an unknown Disk Image file.         "); //Show selection init!
+		GPU_EMU_printscreen(0, 6, "This is an unknown disk image file.         "); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "                              "); //Clear file size info!
 	}
 }
@@ -2992,7 +2992,7 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 			BIOS_Menu = 27; //Assign keyboard colors Menu!
 			break;
 		case 2:
-			BIOS_Menu = 34; //Mouse option!
+			if (!EMU_RUNNING) BIOS_Menu = 34; //Mouse option!
 			break;
 		}
 		break;
@@ -3626,7 +3626,7 @@ void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
 			BIOS_Menu = 22; //Monitor setting!
 			break;
 		case 2: //VGA Mode?
-			BIOS_Menu = 30; //VGA Mode setting!
+			if (!EMU_RUNNING) BIOS_Menu = 30; //VGA Mode setting!
 			break;
 		case 3: //CGA Model
 			BIOS_Menu = 49; //CGA Model!
@@ -3638,7 +3638,7 @@ void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
 			BIOS_Menu = 39; //Show framerate setting!
 			break;
 		case 6: //VGA Synchronization setting!
-			BIOS_Menu = 47; //VGA Synchronization setting!
+			if (!EMU_RUNNING) BIOS_Menu = 47; //VGA Synchronization setting!
 			break;
 		case 7: //Dump VGA?
 			BIOS_Menu = 48; //Dump VGA!
@@ -3663,52 +3663,48 @@ void BIOS_InitSoundText()
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
 
-	if (!EMU_RUNNING)
+	optioninfo[advancedoptions] = 0; //MPU Soundfont!
+	strcpy(menuoptions[advancedoptions], "MPU Soundfont: ");
+	if (strcmp(BIOS_Settings.SoundFont, "") != 0)
 	{
-		optioninfo[advancedoptions] = 0; //MPU Soundfont!
-		strcpy(menuoptions[advancedoptions], "MPU Soundfont: ");
-		if (strcmp(BIOS_Settings.SoundFont, "") != 0)
-		{
-			strcat(menuoptions[advancedoptions++], BIOS_Settings.SoundFont); //The selected soundfont!
-		}
-		else
-		{
-			strcat(menuoptions[advancedoptions++], "<None>");
-		}
+		strcat(menuoptions[advancedoptions++], BIOS_Settings.SoundFont); //The selected soundfont!
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "<None>");
+	}
 
+	optioninfo[advancedoptions] = 1; //PC Speaker!
+	strcpy(menuoptions[advancedoptions], "PC Speaker: ");
+	if (BIOS_Settings.usePCSpeaker)
+	{
+		strcat(menuoptions[advancedoptions++], "Sound");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "No sound");
+	}
 
-		optioninfo[advancedoptions] = 1; //PC Speaker!
-		strcpy(menuoptions[advancedoptions], "PC Speaker: ");
-		if (BIOS_Settings.usePCSpeaker)
-		{
-			strcat(menuoptions[advancedoptions++], "Sound");
-		}
-		else
-		{
-			strcat(menuoptions[advancedoptions++], "No sound");
-		}
-	
-		optioninfo[advancedoptions] = 2; //Adlib!
-		strcpy(menuoptions[advancedoptions], "Adlib: ");
-		if (BIOS_Settings.useAdlib)
-		{
-			strcat(menuoptions[advancedoptions++], "Enabled");
-		}
-		else
-		{
-			strcat(menuoptions[advancedoptions++], "Disabled");
-		}
-	
-		optioninfo[advancedoptions] = 3; //LPT DAC!
-		strcpy(menuoptions[advancedoptions], "LPT DAC: ");
-		if (BIOS_Settings.useLPTDAC)
-		{
-			strcat(menuoptions[advancedoptions++], "Enabled");
-		}
-		else
-		{
-			strcat(menuoptions[advancedoptions++], "Disabled");
-		}
+	optioninfo[advancedoptions] = 2; //Adlib!
+	strcpy(menuoptions[advancedoptions], "Adlib: ");
+	if (BIOS_Settings.useAdlib)
+	{
+		strcat(menuoptions[advancedoptions++], "Enabled");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "Disabled");
+	}
+
+	optioninfo[advancedoptions] = 3; //LPT DAC!
+	strcpy(menuoptions[advancedoptions], "LPT DAC: ");
+	if (BIOS_Settings.useLPTDAC)
+	{
+		strcat(menuoptions[advancedoptions++], "Enabled");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "Disabled");
 	}
 	optioninfo[advancedoptions] = 4; //Sound Source Volume!
 	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %i",(int)(BIOS_Settings.SoundSource_Volume*100.0f)); //Sound source volume as a whole number!
@@ -3751,16 +3747,16 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Soundfont selection?
-			BIOS_Menu = 32; //Soundfont setting!
+			if (!EMU_RUNNING) BIOS_Menu = 32; //Soundfont setting!
 			break;
 		case 1: //PC Speaker?
-			BIOS_Menu = 44; //PC Speaker setting!
+			if (!EMU_RUNNING) BIOS_Menu = 44; //PC Speaker setting!
 			break;
 		case 2: //Adlib?
-			BIOS_Menu = 45; //Adlib setting!
+			if (!EMU_RUNNING) BIOS_Menu = 45; //Adlib setting!
 			break;
 		case 3: //LPT DAC?
-			BIOS_Menu = 46; //LPT DAC setting!
+			if (!EMU_RUNNING) BIOS_Menu = 46; //LPT DAC setting!
 			break;
 		case 4: //Sound Source Volume?
 			BIOS_Menu = 38; //Sound Source Volume setting!
@@ -3948,43 +3944,39 @@ void BIOS_InitCPUText()
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
 
-	if (!EMU_RUNNING) //Just plain menu (not an running emu?)?
+	optioninfo[advancedoptions] = 0; //Installed CPU!
+	strcpy(menuoptions[advancedoptions], "Installed CPU: "); //Change installed CPU!
+	switch (BIOS_Settings.emulated_CPU) //8086?
 	{
-		optioninfo[advancedoptions] = 0; //Installed CPU!
-		strcpy(menuoptions[advancedoptions], "Installed CPU: "); //Change installed CPU!
-		switch (BIOS_Settings.emulated_CPU) //8086?
-		{
-		case CPU_8086: //8086?
-			strcat(menuoptions[advancedoptions++], "Intel 8086/8088"); //Add installed CPU!
-			break;
-		case CPU_80186: //80186?
-			strcat(menuoptions[advancedoptions++], "Intel 80186/80188"); //Add installed CPU!
-			break;
-		case CPU_80286: //80286?
-			strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!
-			break;
-		default:
-			strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
-			break;
-		}
-
-	setDataBusSize: //For fixing it!
-		optioninfo[advancedoptions] = 1; //Data bus size!
-		strcpy(menuoptions[advancedoptions], "Data bus size: ");
-		switch (BIOS_Settings.DataBusSize) //Data bus size?
-		{
-		case 0:
-			strcat(menuoptions[advancedoptions++], "16/32-bit data bus");
-			break;
-		case 1:
-			strcat(menuoptions[advancedoptions++], "8-bit data bus when possible");
-			break;
-		default: //Error: fix it!
-			BIOS_Settings.DataBusSize = 0; //Reset/Fix!
-			BIOS_Changed = 1; //We've changed!
-			goto setDataBusSize; //Goto!
-			break;
-		}
+	case CPU_8086: //8086?
+		strcat(menuoptions[advancedoptions++], "Intel 8086/8088"); //Add installed CPU!
+		break;
+	case CPU_80186: //80186?
+		strcat(menuoptions[advancedoptions++], "Intel 80186/80188"); //Add installed CPU!
+		break;
+	case CPU_80286: //80286?
+		strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
+		break;
+	}
+setDataBusSize: //For fixing it!
+	optioninfo[advancedoptions] = 1; //Data bus size!
+	strcpy(menuoptions[advancedoptions], "Data bus size: ");
+	switch (BIOS_Settings.DataBusSize) //Data bus size?
+	{
+	case 0:
+		strcat(menuoptions[advancedoptions++], "16/32-bit data bus");
+		break;
+	case 1:
+		strcat(menuoptions[advancedoptions++], "8-bit data bus when possible");
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.DataBusSize = 0; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setDataBusSize; //Goto!
+		break;
 	}
 
 	optioninfo[advancedoptions] = 2; //Change CPU speed!
@@ -4018,12 +4010,9 @@ setShowCPUSpeed:
 		break;
 	}
 
-	if (!EMU_RUNNING) //Just plain menu (not an running emu?)?
-	{
-		optioninfo[advancedoptions] = 4; //Boot Order!
-		strcpy(menuoptions[advancedoptions], "Boot Order: "); //Change boot order!
-		strcat(menuoptions[advancedoptions++], BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
-	}
+	optioninfo[advancedoptions] = 4; //Boot Order!
+	strcpy(menuoptions[advancedoptions], "Boot Order: "); //Change boot order!
+	strcat(menuoptions[advancedoptions++], BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
 
 	optioninfo[advancedoptions] = 5; //Execution mode!
 	strcpy(menuoptions[advancedoptions], "Execution mode: ");
@@ -4116,10 +4105,10 @@ void BIOS_CPU() //CPU menu!
 		{
 		//CPU settings
 		case 0: //Installed CPU?
-			BIOS_Menu = 10; //Installed CPU selection!
+			if (!EMU_RUNNING) BIOS_Menu = 10; //Installed CPU selection!
 			break;
 		case 1: //Data bus size?
-			BIOS_Menu = 40; //Data bus size!
+			if (!EMU_RUNNING) BIOS_Menu = 40; //Data bus size!
 			break;
 		case 2: //CPU speed?
 			BIOS_Menu = 36; //CPU speed selection!
@@ -4816,7 +4805,7 @@ void BIOS_CGAModel()
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
-	GPU_EMU_printscreen(0, 4, "VGA Model: "); //Show selection init!
+	GPU_EMU_printscreen(0, 4, "CGA Model: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = 4; //Ammount of CGA Models!
