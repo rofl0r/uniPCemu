@@ -264,11 +264,6 @@ void VGA_VTotalEnd(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	if (CGAMDAEMULATION_RENDER(VGA)) //CGA/MDA emulation mode?
-	{
-		drawCGALine(VGA); //Draw the current CGA line using NTSC colours!	
-	}
-
 	//Process HBlank: reload display data for the next scanline!
 	//Sequencer itself
 	Sequencer->x = 0; //Reset for the next scanline!
@@ -292,7 +287,14 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	CGALineSize = VGA->CRTC.x; //Update X resolution!
 	if (VGA->CRTC.x>Sequencer->xres) Sequencer->xres = VGA->CRTC.x; //Current x resolution!
 	VGA->CRTC.x = 0; //Reset destination column!
-	if (!vretrace) ++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
+	if (!vretrace) //Not retracing vertically?
+	{
+		if (CGAMDAEMULATION_RENDER(VGA)) //CGA/MDA emulation mode?
+		{
+			drawCGALine(VGA); //Draw the current CGA line using NTSC colours!	
+		}
+		++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
+	}
 	++Sequencer->Scanline; //Next scanline to process!
 }
 
