@@ -325,16 +325,6 @@ uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference betwee
 		dolog("GPP","Pitch: invalid NULL-surface!");
 		return 0; //No surface = no pitch!
 	}
-	if (memprotect(surface,sizeof(*surface),NULL)!=surface)
-	{
-		dolog("GPP","Pitch: invalid protected surface container!");
-		return 0; //Invalid surface container!
-	}
-	if (memprotect(surface->sdllayer,sizeof(surface->sdllayer),NULL)!=surface->sdllayer)
-	{
-		dolog("GPP","Pitch: invalid SDL_Surface!");
-		return 0; //Invalid surface!
-	}
 	if (surface->sdllayer->pitch && surface->sdllayer->pitch>=sizeof(uint_32)) //Got pitch?
 	{
 		return (surface->sdllayer->pitch/sizeof(uint_32)); //Pitch in pixels!
@@ -346,7 +336,7 @@ uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference betwee
 uint_32 get_pixel(GPU_SDL_Surface* surface, const int x, const int y ){
 	if (!surface) return 0; //Disable if no surface!
 	Uint32 *pixels = (Uint32*)surface->sdllayer->pixels;
-	if (memprotect(&pixels[ ( y * get_pixelrow_pitch(surface) ) + x ],sizeof(uint_32),NULL)) //Valid?
+	if (((y * get_pixelrow_pitch(surface) ) + x)<((surface->sdllayer->w*surface->sdllayer->h)<<2)) //Valid?
 	{
 		return pixels[ ( y * get_pixelrow_pitch(surface) ) + x ];
 	}
@@ -449,97 +439,58 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 						//Just plain plot at the right, filling with black on the left when not centering!
 						if ((restpixels>0) && (!(center&4))) //Still a part of the row not rendered and valid rest location?
 						{
-							if (memprotect(&row[0],restpixels*4,NULL)) //Valid?
-							{
-								if (diffmem(row, 0, restpixels * 4)) //Different?
-								{
-									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-								}
-								memset(row,0,restpixels*4); //Clear to the start of the row, so that only the part we specified gets something!
-							}
-						}
-						if (memprotect(&row[restpixels],use_rowsize*4,NULL) && memprotect(pixels,use_rowsize*4,NULL)) //Both valid?
-						{
-							if (memdiff(&row[restpixels],pixels,use_rowsize*4)) //Different?
+							if (diffmem(row, 0, restpixels * 4)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 							}
-							memcpy(&row[restpixels],pixels,use_rowsize*4); //Copy the row to the buffer as far as we can go!
+							memset(row,0,restpixels*4); //Clear to the start of the row, so that only the part we specified gets something!
 						}
-						#ifdef PPRLOG
-							else
-							{
-								dolog("GPU_Renderer", "Invalid src/dest specified!");
-							}
-						#endif
+						if (memdiff(&row[restpixels],pixels,use_rowsize*4)) //Different?
+						{
+							surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+						}
+						memcpy(&row[restpixels],pixels,use_rowsize*4); //Copy the row to the buffer as far as we can go!
 						break;
 					case 1: //Use horizontal centering?
 						if ((sword)surface->sdllayer->w>(sword)(use_rowsize+2)) //We have space left&right to plot? Also must have at least 2 pixels left&right to center!
 						{
 							if (!(center&4)) //Clear enabled?
 							{
-								if (memprotect(row,start*4,NULL)) //Valid?
-								{
-									if (diffmem(row, 0, start * 4)) //Different left or right?
-									{
-										surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-									}
-									memset(row,0,start*4); //Clear the left!
-								}
-								if (memprotect(&row[start+use_rowsize],(surface->sdllayer->w-(start+use_rowsize))*4,NULL)) //Valid?
-								{
-									if (diffmem(&row[start+use_rowsize],0,(surface->sdllayer->w-(start+use_rowsize))*4)) //Different left or right?
-									{
-										surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-									}
-									memset(&row[start+use_rowsize],0,(surface->sdllayer->w-(start+use_rowsize))*4); //Clear the right!
-								}
-							}
-							if (memprotect(&row[start],use_rowsize*4,NULL) && memprotect(pixels,use_rowsize*4,NULL)) //Valid?
-							{
-								if (memdiff(&row[start], pixels, use_rowsize * 4)) //Different?
+								if (diffmem(row, 0, start * 4)) //Different left or right?
 								{
 									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 								}
-								memcpy(&row[start],pixels,use_rowsize*4); //Copy the pixels to the center!
-							}
-							#ifdef PPRLOG
-								else
+								memset(row,0,start*4); //Clear the left!
+								if (diffmem(&row[start+use_rowsize],0,(surface->sdllayer->w-(start+use_rowsize))*4)) //Different left or right?
 								{
-									dolog("PPR","Invalid src/dest specified!");
+									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 								}
-							#endif
+								memset(&row[start+use_rowsize],0,(surface->sdllayer->w-(start+use_rowsize))*4); //Clear the right!
+							}
+							if (memdiff(&row[start], pixels, use_rowsize * 4)) //Different?
+							{
+								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+							}
+							memcpy(&row[start],pixels,use_rowsize*4); //Copy the pixels to the center!
 							return; //Done: we've written the pixels at the center!
 						}
 					//We don't need centering: just do left side plot!
 					default: //We default to left side plot!
 					case 0: //Left side plot?
 						restpixels -= row_start; //The pixels that are left are lessened by row_start in this mode too!
-						if (memprotect(&row[row_start],use_rowsize*4,NULL) && memprotect(pixels,use_rowsize*4,NULL)) //Valid?
+						if (memcmp(&row[row_start],pixels,use_rowsize*4)) //Different?
 						{
-							if (memcmp(&row[row_start],pixels,use_rowsize*4)) //Different?
-							{
-								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-							}
-							memcpy(&row[row_start],pixels,use_rowsize*4); //Copy the row to the buffer as far as we can go!
+							surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 						}
-#ifdef PPRLOG
-						else
-						{
-							dolog("PPR", "Invalid src/dest specified!");
-						}
-#endif
+						memcpy(&row[row_start],pixels,use_rowsize*4); //Copy the row to the buffer as far as we can go!
 						//Now just render the rest part of the line to black!
 						if ((restpixels>0) && (!(center&4))) //Still a part of the row not rendered and valid rest location and not disable clearing?
 						{
-							if (memprotect(&row[row_start+use_rowsize],restpixels*4,NULL)) //Valid?
+							if (diffmem(&row[row_start + use_rowsize], 0, restpixels * 4)) //Different?
 							{
-								if (diffmem(&row[row_start + use_rowsize], 0, restpixels * 4)) //Different?
-								{
-									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-								}
-								memset(&row[row_start+use_rowsize],0,restpixels*4); //Clear to the end of the row, so that only the part we specified gets something!
+								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 							}
+							memset(&row[row_start+use_rowsize],0,restpixels*4); //Clear to the end of the row, so that only the part we specified gets something!
 						}
 						break;
 					}
@@ -567,14 +518,11 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 		uint_32 *row = get_pixel_row(surface,y,0); //Row at the left!
 		if (row && surface->sdllayer->w) //Got row?
 		{
-			if (memprotect(row,surface->sdllayer->w*4,NULL)) //Valid?
+			if (diffmem(row, 0, surface->sdllayer->w * 4)) //Different?
 			{
-				if (diffmem(row, 0, surface->sdllayer->w * 4)) //Different?
-				{
-					surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-				}
-				memset(row,0,surface->sdllayer->w*4); //Clear the row, because we have no pixels!
+				surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 			}
+			memset(row,0,surface->sdllayer->w*4); //Clear the row, because we have no pixels!
 		}
 	}
 	else
