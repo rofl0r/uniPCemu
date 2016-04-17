@@ -257,28 +257,14 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 	double zoomx = SAFEDIV(n_width,(double)img->sdllayer->w); //Resize to new width!
 	double zoomy = SAFEDIV(n_height,(double)img->sdllayer->h); //Resize to new height!
 
-	//dolog("SDL","ResizeImage: Checking memory requirements...");
-	//Calcualted required memory!
-	/*uint_32 memreq = (((n_width*n_height)*sizeof(uint_32))+sizeof(*img)); //Memory required for the new surface!
-	if (freemem()<memreq) //Not enough memory left to render?
-	{
-		raiseError("SDL","Not enough memory left to resize: free:%i bytes, required: %i bytes; Shortage: %i bytes",freemem(),memreq,freemem()-memreq); //Log our shortage!
-		return NULL; //Disabled: not enough memory left!
-	}*/ //Don't check memory requirements, since we're too heavy to process normally!
-
 	SDL_Surface* sized = NULL; //Sized?
 	if (zoomx && zoomy) //Valid?
 	{
 		//dolog("SDL","Resizing screen...");
-		#ifdef __psp__
-		//Apply smoothing on the PSP, since it's a small screen anyway!
+		//Apply smoothing always, since disabling it will result in black scanline insertions!
 		sized = zoomSurface( img->sdllayer, zoomx, zoomy, SMOOTHING_ON );
-		#else
-		//Don't apply smoothing on other systems, as their screens might have large sizes!
-		sized = zoomSurface( img->sdllayer, zoomx, zoomy, SMOOTHING_OFF );
-		#endif
 		//dolog("SDL","Resizing done.");
-		if (sized) //Memory left?
+		if (sized) //Enough memory left?
 		{
 			//dolog("SDL","Generating surface wrapper...");
 			GPU_SDL_Surface *wrapper = getSurfaceWrapper(sized); //Get our wrapper!
