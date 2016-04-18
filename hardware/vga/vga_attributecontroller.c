@@ -73,6 +73,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 
 	register byte CurrentDAC; //Current DAC to use!
 	register word pos;
+	register word pos2;
 
 	for (pixelon=0;pixelon<2;pixelon++) //All values of pixelon!
 	{
@@ -80,6 +81,13 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 		{
 			for (charinnery=0;charinnery<0x20;charinnery++)
 			{
+				//Take the 
+				pos2 = charinnery; //Set!
+				pos2 <<= 1; //Create room!
+				pos2 |= currentblink; //Add!
+				pos2 <<= 1; //Create room!
+				pos2 |= pixelon; //Add!
+
 				for (Attribute=0;Attribute<0x100;Attribute++)
 				{
 					fontstatus = pixelon; //What font status? By default this is the font/back status!
@@ -151,12 +159,8 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					}
 
 					pos = Attribute;
-					pos <<= 5; //Create room!
-					pos |= charinnery; //Add!
-					pos <<= 1; //Create room!
-					pos |= currentblink;
-					pos <<= 1; //Create room!
-					pos |= pixelon;
+					pos <<= 7; //Create room for the global data!
+					pos |= pos2; //Apply charinner_y, currentblink and pixelon!
 					//attribute,charinnery,currentblink,pixelon: 8,5,1,1: Less shifting at a time=More speed!
 					attributeprecalcs[pos] = CurrentDAC; //Our result for this combination!
 				}
