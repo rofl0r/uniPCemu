@@ -296,6 +296,7 @@ OPTINLINE float OPL2SinWave(const float frequencytime)
 {
 	float index;
 	byte PIpart=0;
+	frequencytime = fmod(frequencytime,2.0f*PI); //Loop the sinus infinitely!
 	if (frequencytime>=PI) //Second half?
 	{
 		PIpart = 2; //Second half!
