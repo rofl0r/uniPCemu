@@ -50,6 +50,8 @@ byte timer80=0, timer320=0; //Timer variables for current timer ticks!
 //Registers itself
 byte adlibregmem[0xFF], adlibaddr = 0;
 
+word OPL2_ExpTable[0x100], OPL2_LogSinTable[0x100]; //The OPL2 Exponentional and Log-Sin tables!
+
 byte adliboperators[2][0x10] = { //Groupings of 22 registers! (20,40,60,80,E0)
 	{ 0x00, 0x01, 0x02, 0x08, 0x09, 0x0A, 0x10, 0x11, 0x12,0,0,0,0,0,0 },
 	{ 0x03, 0x04, 0x05, 0x0B, 0x0C, 0x0D, 0x13, 0x14, 0x15,0,0,0,0,0,0 }
@@ -691,6 +693,13 @@ void initAdlib()
 		adlibop[i].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(0); //Which harmonic to use?
 		adlibop[i].ReleaseImmediately = 1; //We're defaulting to value being 0=>Release immediately.
 		memset(&adlibop[i].lastsignal,0,sizeof(adlibop[i].lastsignal)); //Reset the last signals!
+	}
+
+	//Source of the Exp and LogSin tables: https://docs.google.com/document/d/18IGx18NQY_Q1PJVZ-bHywao9bhsDoAqoIn1rIm42nwo/edit
+	for (i = 0;i < 0x100;++i) //Initialise the exponentional and log-sin tables!
+	{
+		OPL2_ExpTable[i] = round((pow(2, i / 256) - 1) * 1024);
+		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5)*PI / 256 / 2)) / log(2) * 256);
 	}
 
 	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
