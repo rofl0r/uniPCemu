@@ -292,14 +292,39 @@ OPTINLINE uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 //Optimized sinf!
 //#define sinf(x) ((float)sin(x))
 
+OPTINLINE float OPL2SinWave(const float frequencytime)
+{
+	float index;
+	byte PIpart=0;
+	if (frequencytime>=PI) //Second half?
+	{
+		PIpart = 2; //Second half!
+		frequencytime -= PI; //Take the half!
+	}
+	if (frequencytime>=(0.5*PI)) //Past quarter?
+	{
+		PIpart |= 1; //Second half!
+		frequencytime -= (0.5*PI); //Take the quarter!
+	}
+	frequencytime *= (1/(0.5*PI))*255.0f; //Convert to full range!
+	if (PIpart&1) //Reversed quarter?
+	{
+		frequencytime = 255.0f-frequencytime; //Reverse us!
+	}
+	if (PIpart&2) //Second half?
+	{	
+		return 0.0f-(OPL2_LogSinTable[(int)frequencytime]*(1/256.0f)); //First quarter lookup reversed!
+	}
+	return (float)OPL2_LogSinTable[(int)frequencytime]*(1/256.0f); //First quarter lookup normal!
+}
+
 OPTINLINE float adlibWave(byte signal, const float frequencytime) {
 	double x;
 	float result,t;
-	result = PI2; //Load PI2!
-	result *= frequencytime; //Apply freqtime!
+	result = frequencytime; //Apply freqtime!
 	switch (signal) {
 	case 0: //SINE?
-		return (float)sin(result); //The sinus function!
+		return (float)OPL2SinWave(result); //The sinus function!
 	case 0xFF: //Random signal?
 		return RandomFloat(-1.0f, 1.0f); //Random noise!	
 	default:
@@ -307,12 +332,12 @@ OPTINLINE float adlibWave(byte signal, const float frequencytime) {
 		switch (signal) { //What special signal?
 		case 1: // Negative=0?
 			if (t > 0.5f) return 0.0f; //Negative!
-			result = sinf(result); //The sinus function!
+			result = OPL2SinWave(result); //The sinus function!
 			return result; //Positive!
 		case 3: // Absolute with second half=0?
 			if (fmod(t, 0.5f) > 0.25) return 0.0f; //Are we the second half of the half period? Clear the signal if so!
 		case 2: // Absolute?
-			result = sinf(result); //The sinus function!
+			result = OPL2SinWave(result); //The sinus function!
 			if (result < 0) result = 0 - result; //Make positive!
 			return result; //Simply absolute!
 		default: //Unknown signal?
