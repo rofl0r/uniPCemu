@@ -81,7 +81,7 @@ static bool new_cga = 0;
 
 FILE *df;
 
-void update_cga16_color() { //Superfury: Removed the parameter: we access the emulation directly!
+OPTINLINE void update_cga16_color() { //Superfury: Removed the parameter: we access the emulation directly!
 	int x;
 	//Bit32u x2;
 
@@ -174,7 +174,7 @@ void configure_comp(double h, uint8_t n, uint8_t bw, uint8_t b1)
 }
 #endif
 
-static Bit8u byte_clamp(int v) {
+OPTINLINE static Bit8u byte_clamp(int v) {
         v >>= 13;
         return v < 0 ? 0 : (v > 255 ? 255 : v);
 }
@@ -186,7 +186,7 @@ static int temp[SCALER_MAXWIDTH + 10]={0};
 static int atemp[SCALER_MAXWIDTH + 2]={0};
 static int btemp[SCALER_MAXWIDTH + 2]={0};
 
-void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u *TempLine) //Superfury: Used to return a pointer(not used?). Replaced with void.
+OPTINLINE void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u *TempLine) //Superfury: Used to return a pointer(not used?). Replaced with void.
 {
 	int x;
 	Bit32u x2;
@@ -209,7 +209,7 @@ void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u 
         }
 #endif
 
-#define COMPOSITE_CONVERT(I, Q) do { \
+#define COMPOSITE_CONVERT(I, Q) { \
         i[1] = (i[1]<<3) - ap[1]; \
         a = ap[0]; \
         b = bp[0]; \
@@ -222,11 +222,11 @@ void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u 
         ++i; \
         ++ap; \
         ++bp; \
-        *srgb = (byte_clamp(rr)<<16) | (byte_clamp(gg)<<8) | byte_clamp(bb); \
+        *srgb = RGB(byte_clamp(rr),byte_clamp(gg),byte_clamp(bb)); \
         ++srgb; \
-} while (0)
+}
 
-#define OUT(v) do { *o = (v); ++o; } while (0)
+#define OUT(v) { *o = (v); ++o; }
 
         // Simulate CGA composite output
         int* o = temp;
@@ -313,7 +313,7 @@ void setCGA_NewCGA(byte enabled)
 
 byte cga_use_brown = 1; //Halve yellow's green signal to get brown on color monitors?
 
-uint_32 getCGAcol16(byte color) //Special for the emulator, like the keyboard presets etc.!
+OPTINLINE uint_32 getCGAcol16(byte color) //Special for the emulator, like the keyboard presets etc.!
 {
 	switch (color&0xF)
 	{

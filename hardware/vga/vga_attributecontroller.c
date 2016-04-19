@@ -11,14 +11,10 @@ extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c
 
 OPTINLINE byte getattributeback(byte textmode, byte attr,byte filter)
 {
-	register byte temp = attr;
 	//Only during text mode: shift!
-	if (textmode) //Take the BG nibble!
-	{
-		temp >>= 4; //Shift high nibble to low nibble!
-	}
-	temp &= filter; //Apply filter!
-	return temp; //Need attribute registers below used!
+	attr >>= textmode; //Shift high nibble to low nibble with text mode!
+	attr &= filter; //Apply filter!
+	return attr; //Need attribute registers below used!
 }
 
 //Dependant on mode control register and underline location register
@@ -37,7 +33,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	underlinelocation = VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation; //Underline location is the value desired minus 1!
 	
 	byte textmode;
-	textmode = !VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable; //Text mode?
+	textmode = (!VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable)?4:0; //Text mode? Also the number of bits to shift to get the high nibble, if used!
 
 	byte monomode;
 	monomode = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation; //Monochrome emulation mode(attribute) with b/w emulation(misc output)?
@@ -52,11 +48,17 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	byte colorselect76=0; //Color select bits 7-6!
 	byte backgroundfilter=0;
 	byte VGAMode = 1;
+	byte palettecopy[0x10];
 	if (CGAMDAEMULATION_RENDER(VGA)) VGAMode = 0; //Disable the VGA color processing with CGA/MDA!
 
 	paletteenable = VGA->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.PAL; //Internal palette enabled?
+	register byte CurrentDAC; //Current DAC to use!
 	if (paletteenable) //Precalcs for palette?
 	{
+		for (CurrentDAC = 0;CurrentDAC < 0x10;++CurrentDAC) //Copy the palette internally for fast reference!
+		{
+			palettecopy[CurrentDAC] = VGA->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[CurrentDAC].InternalPaletteIndex; //Translate base index into DAC Base index!
+		}
 		palette54 = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PaletteBits54Select; //Use palette bits 5-4?
 		if (palette54) //Use palette bits 5-4?
 		{
@@ -67,19 +69,18 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 
 	backgroundfilter = ((~(enableblink<<3))&0xF); //Background filter depends on blink & full background when not in monochrome mode!
 
-	byte colorplanes;
+	register byte colorplanes;
 	colorplanes = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA; //Read colorplane 256-color!
 	colorplanes &= 0xF; //Only 4 bits can be used!
 
-	register byte CurrentDAC; //Current DAC to use!
 	register word pos;
 	register word pos2;
 
-	for (pixelon=0;pixelon<2;pixelon++) //All values of pixelon!
+	for (pixelon=0;pixelon<2;++pixelon) //All values of pixelon!
 	{
-		for (currentblink=0;currentblink<2;currentblink++) //All values of currentblink!
+		for (currentblink=0;currentblink<2;++currentblink) //All values of currentblink!
 		{
-			for (charinnery=0;charinnery<0x20;charinnery++)
+			for (charinnery=0;charinnery<0x20;++charinnery)
 			{
 				//Take the 
 				pos2 = charinnery; //Set!
@@ -88,7 +89,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 				pos2 <<= 1; //Create room!
 				pos2 |= pixelon; //Add!
 
-				for (Attribute=0;Attribute<0x100;Attribute++)
+				for (Attribute=0;Attribute<0x100;++Attribute)
 				{
 					fontstatus = pixelon; //What font status? By default this is the font/back status!
 
@@ -135,7 +136,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 					if (paletteenable) //Internal palette enable?
 					{
 						//Use original 16 color palette!
-						CurrentDAC = VGA->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[CurrentDAC].InternalPaletteIndex; //Translate base index into DAC Base index!
+						CurrentDAC = palettecopy[CurrentDAC]; //Translate base index into DAC Base index!
 
 						if (VGAMode) //Are we not on a CGA?
 						{
