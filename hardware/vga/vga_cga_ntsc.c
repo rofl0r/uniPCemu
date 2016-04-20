@@ -27,18 +27,18 @@ uint_32 templine[2048]; //Our temporary line!
 
 int CGA_Composite_Table[1024];
 
-static double brightness = 0;
-static double contrast = 100;
-static double saturation = 100;
-static double sharpness = 0;
-static double hue_offset = 0;
+double brightness = 0;
+double contrast = 100;
+double saturation = 100;
+double sharpness = 0;
+double hue_offset = 0;
 
 // New algorithm by reenigne
 // Works in all CGA modes/color settings and can simulate older and newer CGA revisions
 
-static const double tau = 6.28318531; // == 2*pi
+const double tau = 6.28318531; // == 2*pi
 
-static unsigned char chroma_multiplexer[256] = {
+unsigned char chroma_multiplexer[256] = {
 	  2,  2,  2,  2, 114,174,  4,  3,   2,  1,133,135,   2,113,150,  4,
 	133,  2,  1, 99, 151,152,  2,  1,   3,  2, 96,136, 151,152,151,152,
 	  2, 56, 62,  4, 111,250,118,  4,   0, 51,207,137,   1,171,209,  5,
@@ -56,7 +56,7 @@ static unsigned char chroma_multiplexer[256] = {
 	 61, 59, 60, 60, 228,252,117, 77,  60, 58,248,251,  81,212,254,107,
 	198, 59, 58,169, 250,251, 81, 80, 100, 58,154,250, 251,252,252,252};
 
-static double intensity[4] = {
+double intensity[4] = {
 	77.175381, 88.654656, 166.564623, 174.228438};
 
 #define NEW_CGA(c,i,r,g,b) (((c)/0.72)*0.29 + ((i)/0.28)*0.32 + ((r)/0.28)*0.1 + ((g)/0.28)*0.22 + ((b)/0.28)*0.07)
@@ -71,7 +71,7 @@ double video_ri, video_rq, video_gi, video_gq, video_bi, video_bq;
 int video_sharpness;
 //int tandy_mode_control = 0; //Uses VGA directly by superfury
 
-static bool new_cga = 0;
+bool new_cga = 0;
 //static bool is_bw = 0; //Superfury: not used!
 //static bool is_bpp1 = 0; //Superfury: not used!
 
@@ -174,7 +174,7 @@ void configure_comp(double h, uint8_t n, uint8_t bw, uint8_t b1)
 }
 #endif
 
-OPTINLINE static Bit8u byte_clamp(int v) {
+OPTINLINE Bit8u byte_clamp(int v) {
         v >>= 13;
         return v < 0 ? 0 : (v > 255 ? 255 : v);
 }
@@ -182,9 +182,9 @@ OPTINLINE static Bit8u byte_clamp(int v) {
 //Just leave the scaler size to it's original size (maximum CGA display width)!
 #define SCALER_MAXWIDTH 2048
 
-static int temp[SCALER_MAXWIDTH + 10]={0};
-static int atemp[SCALER_MAXWIDTH + 2]={0};
-static int btemp[SCALER_MAXWIDTH + 2]={0};
+int temp[SCALER_MAXWIDTH + 10]={0};
+int atemp[SCALER_MAXWIDTH + 2]={0};
+int btemp[SCALER_MAXWIDTH + 2]={0};
 
 OPTINLINE void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u *TempLine) //Superfury: Used to return a pointer(not used?). Replaced with void.
 {

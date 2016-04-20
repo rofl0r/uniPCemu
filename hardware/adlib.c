@@ -28,7 +28,7 @@
 //The double buffering threshold!
 #define __ADLIBDOUBLE_THRESHOLD __ADLIB_SAMPLEBUFFERSIZE
 
-#define PI2 (float)(2.0f * PI)
+#define PI2 ((float)(2.0f * PI))
 
 //extern void set_port_write_redirector (uint16_t startport, uint16_t endport, void *callback);
 //extern void set_port_read_redirector (uint16_t startport, uint16_t endport, void *callback);
@@ -50,7 +50,7 @@ byte timer80=0, timer320=0; //Timer variables for current timer ticks!
 //Registers itself
 byte adlibregmem[0xFF], adlibaddr = 0;
 
-word OPL2_ExpTable[0x100], OPL2_LogSinTable[0x100]; //The OPL2 Exponentional and Log-Sin tables!
+float OPL2_ExpTable[0x100], OPL2_LogSinTable[0x100]; //The OPL2 Exponentional and Log-Sin tables!
 
 byte adliboperators[2][0x10] = { //Groupings of 22 registers! (20,40,60,80,E0)
 	{ 0x00, 0x01, 0x02, 0x08, 0x09, 0x0A, 0x10, 0x11, 0x12,0,0,0,0,0,0 },
@@ -289,54 +289,59 @@ OPTINLINE uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 	return (tmpfreq);
 }
 
-//Optimized sinf!
-//#define sinf(x) ((float)sin(x))
+byte lastdecodedlocation = 0xFF;
+byte PIpart=0;
 
-OPTINLINE float OPL2SinWave(const float frequencytime)
+OPTINLINE float OPL2SinWave(const float r)
 {
+	return sinf(r);
 	float index;
-	byte PIpart=0;
-	frequencytime = fmod(frequencytime,2.0f*PI); //Loop the sinus infinitely!
-	if (frequencytime>=PI) //Second half?
+	byte location; //The location in the table to use!
+	index = fmod(r,PI2); //Loop the sinus infinitely!
+	PIpart = 0; //Reset PI part to use!
+	if (index>=(float)PI) //Second half?
 	{
 		PIpart = 2; //Second half!
-		frequencytime -= PI; //Take the half!
 	}
-	if (frequencytime>=(0.5*PI)) //Past quarter?
+	if (fmod(index,(float)PI)>=(0.5f*(float)PI)) //Past quarter?
 	{
 		PIpart |= 1; //Second half!
-		frequencytime -= (0.5*PI); //Take the quarter!
 	}
-	frequencytime *= (1/(0.5*PI))*255.0f; //Convert to full range!
+	index = (fmod(index,(0.5f*(float)PI))/(0.5f*(float)PI))*255.0f; //Convert to full range!
+	location = (byte)index; //Set the location to use!
 	if (PIpart&1) //Reversed quarter?
 	{
-		frequencytime = 255.0f-frequencytime; //Reverse us!
+		location = ~location; //Reverse us!
+		++location; //Reversed!
 	}
-	if (PIpart&2) //Second half?
-	{	
-		return 0.0f-(OPL2_LogSinTable[(int)frequencytime]*(1/256.0f)); //First quarter lookup reversed!
+	
+	lastdecodedlocation = location; //Save the location for reference during sanity checks!
+	if (PIpart&2) //Second half is negative?
+	{
+		return -OPL2_LogSinTable[location]; //First quarter lookup reversed!
 	}
-	return (float)OPL2_LogSinTable[(int)frequencytime]*(1/256.0f); //First quarter lookup normal!
+	return OPL2_LogSinTable[location]; //First quarter lookup normal!
 }
 
 OPTINLINE float adlibWave(byte signal, const float frequencytime) {
 	double x;
 	float result,t;
-	result = frequencytime; //Apply freqtime!
+	result = PI2; //Load PI2!
+	result *= frequencytime; //Apply freqtime!
 	switch (signal) {
 	case 0: //SINE?
-		return (float)OPL2SinWave(result); //The sinus function!
+		return OPL2SinWave(result); //The sinus function!
 	case 0xFF: //Random signal?
 		return RandomFloat(-1.0f, 1.0f); //Random noise!	
 	default:
 		t = (float)modf(frequencytime, &x); //Calculate rest for special signal information!
 		switch (signal) { //What special signal?
 		case 1: // Negative=0?
-			if (t > 0.5f) return 0.0f; //Negative!
+			if (t >= 0.5f) return 0.0f; //Negative!
 			result = OPL2SinWave(result); //The sinus function!
 			return result; //Positive!
 		case 3: // Absolute with second half=0?
-			if (fmod(t, 0.5f) > 0.25) return 0.0f; //Are we the second half of the half period? Clear the signal if so!
+			if (fmod(t, 0.5f) >= 0.25) return 0.0f; //Are we the second half of the half period? Clear the signal if so!
 		case 2: // Absolute?
 			result = OPL2SinWave(result); //The sinus function!
 			if (result < 0) result = 0 - result; //Make positive!
