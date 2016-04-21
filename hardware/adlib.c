@@ -294,7 +294,7 @@ byte PIpart=0;
 
 OPTINLINE float OPL2SinWave(const float r)
 {
-	return sinf(r);
+	return sinf(r); //Placeholder for non-OPL2 table rendering.
 	float index;
 	byte location; //The location in the table to use!
 	index = fmod(r,PI2); //Loop the sinus infinitely!
@@ -321,6 +321,17 @@ OPTINLINE float OPL2SinWave(const float r)
 		return -OPL2_LogSinTable[location]; //First quarter lookup reversed!
 	}
 	return OPL2_LogSinTable[location]; //First quarter lookup normal!
+}
+
+float expfactor = 1.0f;
+
+OPTINLINE float OPL2Exponent(float v)
+{
+	return v; //Placeholder for non-OPL2 table rendering.
+	if (v>0.0f) //Positive?
+		return OPL2_ExpTable[(int)(v*255.0f)]*expfactor; //Convert to exponent!
+	else //Negative?
+		return (-OPL2_ExpTable[(int)((-v)*255.0f)])*expfactor; //Convert to negative exponent!
 }
 
 OPTINLINE float adlibWave(byte signal, const float frequencytime) {
@@ -391,7 +402,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	}
 
 	//Generate the correct signal!
-	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, modulator, frequency?frequency:adlibop[operator].lastfreq, &adlibop[operator].freq0, &adlibop[operator].time); //Take the last frequency or current frequency!
+	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, OPL2_Exponential(modulator), frequency?frequency:adlibop[operator].lastfreq, &adlibop[operator].freq0, &adlibop[operator].time); //Take the last frequency or current frequency!
 	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
 	result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
 	feedbackresult = result; //Load the current feedback value!
@@ -437,6 +448,8 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 		result *= modulatorfactor; //Convert modulator factor to 4085/1024 (each 1024 values adds 1 full wave, converting 1.0 range to ~4.0 range for the adlib)!
 		result = calcOperator(curchan, op2, adlibfreq(op2, curchan), result, 0); //Calculate the carrier with applied modulator!
 	}
+
+	result = OPL2_Exponential(result); //Apply the exponential!
 
 	result *= adlib_scaleFactor; //Convert to output scale (We're only going from -1.0 to +1.0 up to this point), convert to signed 16-bit scale!
 	return (short)result; //Give the result, converted to short!
@@ -732,6 +745,7 @@ void initAdlib()
 		OPL2_ExpTable[i] = round((pow(2, i / 256) - 1) * 1024);
 		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5)*PI / 256 / 2)) / log(2) * 256);
 	}
+	expfactor = (1.0f/OPL2_ExpTable[255]); //The highest volume conversion to apply with our exponential table!
 
 	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
 	{
