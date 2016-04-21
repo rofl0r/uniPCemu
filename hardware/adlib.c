@@ -10,6 +10,8 @@
 #include "headers/support/highrestimer.h" //High resolution timer!
 #include "headers/support/fifobuffer.h" //FIFO buffer support!
 
+#include "headers/support/wave.h" //WAV file support!
+
 #define uint8_t byte
 #define uint16_t word
 
@@ -102,7 +104,16 @@ float sustaintable[0x10], outputtable[0x40]; //Build using software formulas!
 
 uint8_t adlibpercussion = 0, adlibstatus = 0;
 
+uint_32 OPL2_RNGREG = 0;
+uint_32 OPL2_RNG = 0; //The current random generated sample!
+
 uint16_t adlibport = 0x388;
+
+OPTINLINE void OPL2_stepRNG() //Runs at the sampling rate!
+{
+	OPL2_RNG = ( (OPL2_RNGREG) ^ (OPL2_RNGREG>>14) ^ (OPL2_RNGREG>>15) ^ (OPL2_RNGREG>>22) ) & 1; //Get the current RNG!
+	OPL2_RNGREG = (OPL2_RNG<<22) | (OPL2_RNGREG>>1);
+}
 
 OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 {
@@ -289,16 +300,13 @@ OPTINLINE uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
 	return (tmpfreq);
 }
 
-byte lastdecodedlocation = 0xFF;
-byte PIpart=0;
-
 OPTINLINE float OPL2SinWave(const float r)
 {
-	return sinf(r); //Placeholder for non-OPL2 table rendering.
 	float index;
+	float entry; //The entry to convert!
 	byte location; //The location in the table to use!
+	byte PIpart = 0; //Default: part 0!
 	index = fmod(r,PI2); //Loop the sinus infinitely!
-	PIpart = 0; //Reset PI part to use!
 	if (index>=(float)PI) //Second half?
 	{
 		PIpart = 2; //Second half!
@@ -309,29 +317,28 @@ OPTINLINE float OPL2SinWave(const float r)
 	}
 	index = (fmod(index,(0.5f*(float)PI))/(0.5f*(float)PI))*255.0f; //Convert to full range!
 	location = (byte)index; //Set the location to use!
-	if (PIpart&1) //Reversed quarter?
+	if (PIpart&1) //Reversed quarter(first and third quarter)?
 	{
-		location = ~location; //Reverse us!
-		++location; //Reversed!
+		location = 255-location; //Reverse us!
 	}
 	
-	lastdecodedlocation = location; //Save the location for reference during sanity checks!
-	if (PIpart&2) //Second half is negative?
+	entry = OPL2_LogSinTable[0] - OPL2_LogSinTable[location]; //First quarter lookup! Reverse the signal (it goes from Umax to Umin instead of a normal sin(0PI to 0.5PI))
+	if (PIpart & 2) //Second half is negative?
 	{
-		return -OPL2_LogSinTable[location]; //First quarter lookup reversed!
+		entry = -entry; //First quarter lookup reversed!
 	}
-	return OPL2_LogSinTable[location]; //First quarter lookup normal!
+	return entry; //Give the processed entry!
 }
 
 float expfactor = 1.0f;
 
-OPTINLINE float OPL2Exponent(float v)
+OPTINLINE float OPL2_Exponential(float v)
 {
-	return v; //Placeholder for non-OPL2 table rendering.
-	if (v>0.0f) //Positive?
-		return OPL2_ExpTable[(int)(v*255.0f)]*expfactor; //Convert to exponent!
+	const float explookup = (1.0f/3137.0f)*255.0f; //Exp lookup!
+	if (v>=0.0f) //Positive?
+		return OPL2_ExpTable[(int)(v*explookup)]*expfactor; //Convert to exponent!
 	else //Negative?
-		return (-OPL2_ExpTable[(int)((-v)*255.0f)])*expfactor; //Convert to negative exponent!
+		return (-OPL2_ExpTable[(int)((-v)*explookup)])*expfactor; //Convert to negative exponent!
 }
 
 OPTINLINE float adlibWave(byte signal, const float frequencytime) {
@@ -399,10 +406,11 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 		modulator = adlibop[operator].lastsignal[0]; //Take the previous last signal!
 		modulator += adlibop[operator].lastsignal[1]; //Take the last signal!
 		modulator *= adlibch[curchan].feedback; //Calculate current feedback!
+		modulator = OPL2_Exponential(modulator); //Apply the exponential conversion!
 	}
 
 	//Generate the correct signal!
-	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, OPL2_Exponential(modulator), frequency?frequency:adlibop[operator].lastfreq, &adlibop[operator].freq0, &adlibop[operator].time); //Take the last frequency or current frequency!
+	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, modulator, frequency?frequency:adlibop[operator].lastfreq, &adlibop[operator].freq0, &adlibop[operator].time); //Take the last frequency or current frequency!
 	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
 	result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
 	feedbackresult = result; //Load the current feedback value!
@@ -418,8 +426,9 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	return result; //Give the result!
 }
 
+float adlib_scaleFactor = 65535.0f / 1018.0f; //We're running 8 channels in a 16-bit space, so 1/8 of SHRT_MAX
+
 OPTINLINE short adlibsample(uint8_t curchan) {
-	static const float adlib_scaleFactor = 4085.0f; //We're running 8 channels in a 16-bit space, so 1/8 of SHRT_MAX
 	float result; //The operator result and the final result!
 	byte op1,op2; //The two operators to use!
 	float op1frequency;
@@ -445,8 +454,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 	}
 	else //FM synthesis?
 	{
-		result *= modulatorfactor; //Convert modulator factor to 4085/1024 (each 1024 values adds 1 full wave, converting 1.0 range to ~4.0 range for the adlib)!
-		result = calcOperator(curchan, op2, adlibfreq(op2, curchan), result, 0); //Calculate the carrier with applied modulator!
+		result = calcOperator(curchan, op2, adlibfreq(op2, curchan), OPL2_Exponential(result), 0); //Calculate the carrier with applied modulator!
 	}
 
 	result = OPL2_Exponential(result); //Apply the exponential!
@@ -646,6 +654,7 @@ void updateAdlib(double timepassed)
 	{
 		for (;adlib_soundtiming>=adlib_soundtick;)
 		{
+			OPL2_stepRNG(); //Tick the RNG!
 			byte filled;
 			filled = 0; //Default: not filled!
 			filled |= adlibop[adliboperators[1][0]].volenvstatus; //Channel 0?
@@ -742,15 +751,19 @@ void initAdlib()
 	//Source of the Exp and LogSin tables: https://docs.google.com/document/d/18IGx18NQY_Q1PJVZ-bHywao9bhsDoAqoIn1rIm42nwo/edit
 	for (i = 0;i < 0x100;++i) //Initialise the exponentional and log-sin tables!
 	{
-		OPL2_ExpTable[i] = round((pow(2, i / 256) - 1) * 1024);
-		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5)*PI / 256 / 2)) / log(2) * 256);
+		OPL2_ExpTable[i] = round((pow(2, (float)i / 256.0f) - 1.0f) * 1024.0f);
+		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
 	}
 	expfactor = (1.0f/OPL2_ExpTable[255]); //The highest volume conversion to apply with our exponential table!
+	adlib_scaleFactor = (float)((1.0f/expfactor)*((1.0f/OPL2_ExpTable[255])*4095.0f)); //Highest volume conversion to SHRT_MAX!
 
 	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
 	{
 		feedbacklookup2[i] = feedbacklookup[i] * (1.0f / (4.0f * PI)) * (1.0f/PI2); //Convert to a range of 0-1!
 	}
+
+	//RNG support!
+	OPL2_RNGREG = OPL2_RNG = 0; //Initialise the RNG!
 
 	adlib_ticktiming = adlib_soundtiming = 0.0f; //Reset our output timing!
 

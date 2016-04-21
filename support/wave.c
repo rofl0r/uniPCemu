@@ -19,15 +19,23 @@ byte writeDWord(FILE *f, uint_32 d) //INTERNAL
 
 byte writeWAVMonoSample(WAVEFILE *f, word sample)
 {
-	return writeWord(f->f, sample); //Write the sample!
+	if (memprotect(f,sizeof(*f),NULL))
+	{
+		return writeWord(f->f, sample); //Write the sample!
+	}
+	return 0; //Error!
 }
 
 byte writeWAVStereoSample(WAVEFILE *f, word lsample, word rsample)
 {
 	byte result;
-	result = writeWord(f->f, lsample); //Write the left sample!
-	if (!result) return 0; //Error!
-	return writeWord(f->f, rsample); //Write the right sample!
+	if (memprotect(f, sizeof(*f), NULL))
+	{
+		result = writeWord(f->f, lsample); //Write the left sample!
+		if (!result) return 0; //Error!
+		return writeWord(f->f, rsample); //Write the right sample!
+	}
+	return 0; //Error!
 }
 
 void WAVdealloc(void **ptr, uint_32 size, SDL_sem *lock)

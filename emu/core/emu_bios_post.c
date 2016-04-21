@@ -309,8 +309,12 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		//Now for the user visible part:
 
 		//Start the required timers first!
-		useTimer("VGA_ScanLine",1); //Enable VGA rendering!
 		useTimer("Framerate",1); //Enable framerate display too, if used!
+
+		//Start the CPU to execute some of our output only!
+		lock(LOCK_CPU);
+		CPU[activeCPU].halt = 2; //Make sure the CPU is just halted!
+		unlock(LOCK_CPU); //We're done with the CPU!
 
 		if (DEBUG_VGA_ONLY)
 		{
@@ -419,6 +423,8 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					CPU_INT(0x18); //Error: no ROM!
 					EMU_startInput(); //Start input again!
 					EMU_RUNNING = 1; //We're running again!
+					resumeEMU();
+					unlock(LOCK_CPU); //We're done with the CPU!
 					return 0; //No reset!
 				}
 				else //Boot rom ready?
@@ -426,11 +432,13 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					EMU_startInput(); //Start input again!
 					EMU_RUNNING = 1; //We're running again!
 					allow_debuggerstep = 1; //Allow stepping from now on!
+					resumeEMU();
+					unlock(LOCK_CPU); //We're done with the CPU!
 					return 0; //Run the boot rom!
 				}
 			}
 			break;
-		default: //Unknwn?
+		default: //Unknown state? Ignore the setting!
 			break;
 		}
 
@@ -485,6 +493,9 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		REG_CS = 0xF000; //Go back to our bootstrap, by using a simulated jump to ROM!
 		REG_IP = 0xFFFF;
 		CPU_flushPIQ(); //We're jumping to another address!
+		lock(LOCK_CPU);
+		CPU[activeCPU].halt = 0; //Make sure the CPU is just halted!
+		unlock(LOCK_CPU); //We're done with the CPU!
 	}
 	else //We can boot safely?
 	{
@@ -499,9 +510,15 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			allow_debuggerstep = 1; //Allow stepping from now on!
 		}
 		resumeEMU(); //Resume the emulator!
+		lock(LOCK_CPU);
+		CPU[activeCPU].halt = 0; //Make sure the CPU is just halted!
+		unlock(LOCK_CPU); //We're done with the CPU!
 		return 0; //Continue normally: we've booted, or give an error message!
 	}
 
 	resumeEMU(); //Resume the emulator!
+	lock(LOCK_CPU);
+	CPU[activeCPU].halt = 0; //Make sure the CPU is just halted!
+	unlock(LOCK_CPU); //We're done with the CPU!
 	return 0; //Plain run!
 }
