@@ -179,14 +179,13 @@ byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 {
 	static byte curnibble = 0;
 	static byte latchednibbles = 0; //What nibble are we currently?
-
+	register byte temp;
 	//First, execute the shift and add required in this mode!
-	latchednibbles <<= 4; //Shift high!
-	latchednibbles |= (VGA_getAttributeDACIndex(Sequencer_attributeinfo,VGA)&0xF); //Latch to DAC Nibble!
-	Sequencer_attributeinfo->attribute = latchednibbles; //Look the DAC Index up!
-
-	curnibble ^= 1; //Reverse current nibble!
-	return curnibble; //Give us the next nibble, when needed, please!
+	temp = latchednibbles;
+	temp <<= 4; //Shift high!
+	temp |= (VGA_getAttributeDACIndex(Sequencer_attributeinfo,VGA)&0xF); //Latch to DAC Nibble!
+	Sequencer_attributeinfo->attribute = latchednibbles = temp; //Look the DAC Index up!
+	return (curnibble ^= 1); //Give us the next nibble, when needed, please!
 }
 
 byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)

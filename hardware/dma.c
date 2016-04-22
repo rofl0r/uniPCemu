@@ -343,13 +343,13 @@ void DMA_autoinit(byte controller, byte channel) //Autoinit functionality.
 //Flags for different responses that might need to be met.
 #define FLAG_TC 1
 
-byte current = 0; //Current channel in total (0-7)
+byte lastcycle = 0; //Current channel in total (0-7)
 
 /* Main DMA Controller processing ticks */
 void DMA_tick()
 {
 	if (__HW_DISABLED) return; //Abort!
-	register byte controller; //Current controller!
+	register byte controller,current=lastcycle; //Current controller!
 	register byte channelindex, MCMReversed;
 	byte transferred = 0; //Transferred data this time?
 	byte startcurrent = current; //Current backup for checking for finished!
@@ -552,8 +552,16 @@ void DMA_tick()
 		}
 		++current; //Next channel!
 		current &= 0x7; //Wrap arround our 2 DMA controllers?
-		if (startcurrent==current) return; //Back to our original cycle? We don't have anything to transfer!
-		if (transferred) return; //Transferred data? We're done(This transfers data at the clock rate specified)!
+		if (startcurrent==current)
+		{
+			lastcycle = current; //Save the current item we've left off!
+			return; //Back to our original cycle? We don't have anything to transfer!
+		}
+		if (transferred) //Transferred data? We're done(This transfers data at the clock rate specified)!
+		{
+			lastcycle = current; //Save the current item we've left off!
+			return; //Back to our original cycle? We don't have anything to transfer!
+		}
 		goto nextcycle; //Next cycle!!
 }
 

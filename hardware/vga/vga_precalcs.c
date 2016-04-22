@@ -206,6 +206,8 @@ void checkCGAcursor(VGA_Type *VGA)
 		VGA->registers->specialCGAflags &= ~0x8; //Clear special CGA flag: normal cursor!
 }
 
+extern byte CGAMDARenderer;
+
 void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, whereupdated: where were we updated?
 {
 	//All our flags for updating sections related!
@@ -218,6 +220,8 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	byte CRTUpdated=0, updateCGACRTCONTROLLER=0;
 	byte CRTUpdatedCharwidth=0;
 	byte overflowupdated=0;
+
+	CGAMDARenderer = CGAMDAEMULATION_RENDER(VGA)?2:0; //Render CGA/MDA style?
 
 	if ((whereupdated == (WHEREUPDATED_MISCOUTPUTREGISTER)) || FullUpdate) //Misc output register updated?
 	{
