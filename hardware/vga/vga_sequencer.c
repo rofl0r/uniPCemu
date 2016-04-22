@@ -142,9 +142,54 @@ typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA, word loadedlocation);
 
 VGA_AttributeInfo attributeinfo; //Our current collected attribute info!
 
+OPTINLINE word patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VRAM address!
+{ //Check this!
+	register word bit; //Load row scan counter!
+	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13) //a13=Bit 0 of the row scan counter!
+	{
+		//Row scan counter bit 1 is placed on the memory bus bit 14 during active display time.
+		//Bit 1, placed on memory address bit 14 has the effect of quartering the memory.
+		bit = ((SEQ_DATA *)VGA->Sequencer)->rowscancounter; //Current row scan counter!
+		bit &= 1; //Bit0 only!
+		bit <<= 13; //Shift to our position (bit 13)!
+		addresscounter &= 0xDFFF; //Clear bit13!
+		addresscounter |= bit; //Set bit13 if needed!
+	}
+
+	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14) //a14<=Bit 1 of the row scan counter!
+	{
+		bit = ((SEQ_DATA *)VGA->Sequencer)->rowscancounter; //Current row scan counter!
+		bit &= 2; //Bit1 only!
+		bit <<= 13; //Shift to our position (bit 14)!
+		addresscounter &= 0xBFFF; //Clear bit14;
+		addresscounter |= bit; //Set bit14 if needed!
+	}
+
+	return addresscounter; //Give the linear address!
+}
+
+OPTINLINE word addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arround 64k!
+{
+	if (VGA->precalcs.BWDModeShift == 1) //Word mode?
+	{
+		register word address2; //Load the initial value for calculating!
+		register word result;
+		result = 0xD; //Load default location (13)
+		result |= (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW << 1); //MA15 instead of MA13 when set!
+		address2 = memoryaddress; //Load the address for calculating!
+		address2 >>= result; //Apply MA15/MA13 to bit 0!
+		address2 &= 1; //Only load bit 0!
+		result = memoryaddress; //Default: don't change!
+		result &= 0xFFFE; //Clear bit 0!
+		result |= address2; //Add bit MA15/MA13 at bit 0!
+		return result; //Give the result!
+	}
+	return memoryaddress; //Original address!
+}
+
 OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
 {
-	register word loadedlocation; //The location we load at!
+	register word loadedlocation, vramlocation; //The location we load at!
 	//Horizontal logic
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
 	loadedlocation = x; //X!
@@ -166,11 +211,13 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!
 	CGA_checklightpen(loadedlocation); //Check for anything requiring the lightpen on the CGA!
 
+	vramlocation = patch_map1314(VGA, addresswrap(VGA, loadedlocation)); //Apply address wrap and MAP13/14?
+
 	//Now calculate and give the planes to be used!
-	planesbuffer[0] = readVRAMplane(VGA, 0, loadedlocation, 0x81); //Read plane 0!
-	planesbuffer[1] = readVRAMplane(VGA, 1, loadedlocation, 0x81); //Read plane 1!
-	planesbuffer[2] = readVRAMplane(VGA, 2, loadedlocation, 0x81); //Read plane 2!
-	planesbuffer[3] = readVRAMplane(VGA, 3, loadedlocation, 0x81); //Read plane 3!
+	planesbuffer[0] = readVRAMplane(VGA, 0, vramlocation); //Read plane 0!
+	planesbuffer[1] = readVRAMplane(VGA, 1, vramlocation); //Read plane 1!
+	planesbuffer[2] = readVRAMplane(VGA, 2, vramlocation); //Read plane 2!
+	planesbuffer[3] = readVRAMplane(VGA, 3, vramlocation); //Read plane 3!
 	//Now the buffer is ready to be processed into pixels!
 
 	planesdecoder[VGA->precalcs.graphicsmode](VGA,loadedlocation); //Use the decoder to get the pixels or characters!

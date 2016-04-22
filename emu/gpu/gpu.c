@@ -41,6 +41,8 @@ extern GPU_SDL_Surface *resized; //Standard resized data, keep between unchanged
 byte rshift=0, gshift=0, bshift=0, ashift=0; //All shift values!
 uint_32 rmask=0, gmask=0, bmask=0, amask=0; //All mask values!
 
+uint_32 transparentpixel = 0xFFFFFFFF; //Transparent pixel!
+
 /*
 
 VIDEO BASICS!
@@ -254,6 +256,8 @@ void initVideo(int show_framerate) //Initialises the video
 	resetVideo(); //Initialise the video!
 
 	GPU.aspectratio = video_aspectratio = 0; //Default aspect ratio by default!
+
+	transparentpixel = RGBA(SDL_ALPHA_TRANSPARENT, SDL_ALPHA_TRANSPARENT, SDL_ALPHA_TRANSPARENT, SDL_ALPHA_TRANSPARENT); //Set up the transparent pixel!
 
 //We're running with SDL?
 	unlockGPU(); //Unlock the GPU for Software access!

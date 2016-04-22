@@ -5,9 +5,6 @@
 #include "headers/hardware/pci.h" //PCI support!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
 
-//Our active VRAM read/write mode (processed in VGA_VRAM.c).
-#define VRAMMODE 0
-
 uint_32 VGA_VRAM_START = 0xA0000; //VRAM start address default!
 uint_32 VGA_VRAM_END = 0xC0000; //VRAM end address default!
 
@@ -162,7 +159,7 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 	{
 		if (planeenable&curplanemask) //Modification of the plane?
 		{
-			writeVRAMplane(getActiveVGA(),curplane,offset,data&0xFF,VRAMMODE); //Write the plane from the data!
+			writeVRAMplane(getActiveVGA(),curplane,offset,data&0xFF); //Write the plane from the data!
 		}
 		data >>= 8; //Shift to the next plane!
 		curplanemask <<= 1; //Next plane!
@@ -172,10 +169,10 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 
 OPTINLINE void loadlatch(uint_32 offset)
 {
-	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[0] = readVRAMplane(getActiveVGA(),0,offset,VRAMMODE); //Plane 0
-	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[1] = readVRAMplane(getActiveVGA(),1,offset,VRAMMODE); //Plane 1
-	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[2] = readVRAMplane(getActiveVGA(),2,offset,VRAMMODE); //Plane 2
-	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[3] = readVRAMplane(getActiveVGA(),3,offset,VRAMMODE); //Plane 3
+	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[0] = readVRAMplane(getActiveVGA(),0,offset); //Plane 0
+	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[1] = readVRAMplane(getActiveVGA(),1,offset); //Plane 1
+	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[2] = readVRAMplane(getActiveVGA(),2,offset); //Plane 2
+	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[3] = readVRAMplane(getActiveVGA(),3,offset); //Plane 3
 	VGA_updateLatches(); //Update the latch data mirroring!
 }
 
@@ -188,7 +185,7 @@ byte VGA_ReadMode0(byte planes, uint_32 offset) //Read mode 0: Just read the nor
 	{
 		if (planes&1) //Read from this plane?
 		{
-			return readVRAMplane(getActiveVGA(), curplane, offset, VRAMMODE); //Read directly from vram using the selected plane!
+			return readVRAMplane(getActiveVGA(), curplane, offset); //Read directly from vram using the selected plane!
 		}
 		++curplane; //Next plane!
 		planes >>= 1; //Next plane!
@@ -205,7 +202,7 @@ byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display m
 	{
 		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER.ColorCare&(1 << curplane)) //We care about this plane?
 		{
-			if (readVRAMplane(getActiveVGA(), curplane, offset, VRAMMODE) == getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER.ColorCompare) //Equal?
+			if (readVRAMplane(getActiveVGA(), curplane, offset) == getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER.ColorCompare) //Equal?
 			{
 				result |= (1 << curplane); //Set the bit: the comparision is true!
 			}

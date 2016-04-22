@@ -172,12 +172,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 
 OPTINLINE byte VGA_getAttributeDACIndex(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
 {
-	register word lookup;
-	lookup = Sequencer_attributeinfo->attribute; //Take the latched nibbles as attribute!
-	lookup <<= 7; //Make room!
-	lookup |= Sequencer_attributeinfo->lookupprecalcs; //Apply the looked up precalcs!
-	lookup |= Sequencer_attributeinfo->fontpixel; //Generate the lookup value!
-	return VGA->precalcs.attributeprecalcs[lookup]; //Give the data from the lookup table!
+	return VGA->precalcs.attributeprecalcs[(Sequencer_attributeinfo->attribute<<7)|Sequencer_attributeinfo->lookupprecalcs|Sequencer_attributeinfo->fontpixel]; //Give the data from the lookup table!
 }
 
 byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
@@ -188,9 +183,9 @@ byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 	//First, execute the shift and add required in this mode!
 	latchednibbles <<= 4; //Shift high!
 	latchednibbles |= (VGA_getAttributeDACIndex(Sequencer_attributeinfo,VGA)&0xF); //Latch to DAC Nibble!
+	Sequencer_attributeinfo->attribute = latchednibbles; //Look the DAC Index up!
 
 	curnibble ^= 1; //Reverse current nibble!
-	Sequencer_attributeinfo->attribute = latchednibbles; //Look the DAC Index up!
 	return curnibble; //Give us the next nibble, when needed, please!
 }
 

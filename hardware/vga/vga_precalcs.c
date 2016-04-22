@@ -219,8 +219,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	byte CRTUpdatedCharwidth=0;
 	byte overflowupdated=0;
 
-	if (!memprotect(useVGA,sizeof(*VGA),NULL)) return; //Invalid VGA?
-
 	if ((whereupdated == (WHEREUPDATED_MISCOUTPUTREGISTER)) || FullUpdate) //Misc output register updated?
 	{
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!

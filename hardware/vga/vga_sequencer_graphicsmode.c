@@ -163,9 +163,6 @@ void VGA_GraphicsDecoder(VGA_Type *VGA, word loadedlocation) //Graphics decoder!
 
 void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	register word currentbuffer;
-	currentbuffer = Sequencer->activex; //Current x coordinate!
-	currentbuffer &= 7; //We're buffering every 8 pixels!
-	attributeinfo->attribute = pixelbuffer[currentbuffer]; //Give the current pixel, loaded with our block!
+	attributeinfo->attribute = pixelbuffer[Sequencer->activex&7]; //Give the current pixel, loaded with our block!
 	attributeinfo->fontpixel = 1; //Graphics attribute is always foreground by default!
 }

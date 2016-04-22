@@ -226,14 +226,23 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 				VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 1; //We're pending an CRT interrupt!
 			}
 		}
-		vretrace = 1; //We're retracing!
+		VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace = 1; //We're retracing!
 	}
 	else if (vretrace)
 	{
 		if (sync&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
 		{
 			vretrace = 0; //We're not retracing anymore!
+			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //Vertical retrace?
 		}
+		else
+		{
+			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 1; //Vertical retrace?
+		}
+	}
+	else
+	{
+		VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //Vertical retrace?
 	}
 
 	//Process resetting the HSync/VSync counters!
@@ -247,14 +256,9 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		Sequencer->Scanline_sync = 0; //Reset VSync!
 	}
 
-	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace; //Vertical retrace?
-
-	register byte isretrace;
+	register byte isretrace; //Vertical or horizontal retrace?
 	isretrace = hretrace;
-	isretrace |= vretrace; //We're retracing?
-
-	//Retracing disables output!
-	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing = isretrace; //Vertical or horizontal retrace?
+	retracing = (isretrace |= vretrace); //We're retracing?
 
 	//Process HTotal/VTotal
 	totalling = 0; //Default: Not totalling!
@@ -384,6 +388,9 @@ void updateVGA(double timepassed)
 			}
 			VGA_Sequencer(Sequencer); //Tick the VGA once!
 		} while (--renderings); //Ticks left to tick?
+
+		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing; //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
+
 		#ifdef LIMITVGA
 		if (passedcounter && currentVGASpeed) //Still counting?
 		{

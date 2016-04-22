@@ -29,8 +29,6 @@ BACKLISTITEM backlist[8] = { { 1,1 },{ 1,0 },{ 0,1 },{ 1,-1 },{ -1,1 },{ 0,-1 },
 
 OPTINLINE byte GPU_textcalcpixel(byte *x, byte *y, word *charx, word *chary, int rx, int ry)
 {
-	register word cx, cy;
-	register byte ix, iy;
 	//Check for overflowing character coordinates!
 	if (rx<0) return 1; //Invalid x!
 	if (rx>=GPU_TEXTPIXELSX) return 1; //Invalid x!
@@ -38,22 +36,13 @@ OPTINLINE byte GPU_textcalcpixel(byte *x, byte *y, word *charx, word *chary, int
 	if (ry<0) return 1; //Invalid y!
 	if (ry>=GPU_TEXTPIXELSY) return 1; //Invalid y!
 
-	cx = (word)rx;
-	cx >>= 3; //Shift to the character we're from!
-	*charx = cx; //Set!
+	*charx = ((word)rx>>3); //Set!
 
-	cy = (word)ry;
-	cy >>= 3; //Shift to the character we're from!
-	*chary = cy; //Set!
+	*chary = ((word)ry>>3); //Set!
 
 	//Now the pixel within!
-	ix = (byte)rx;
-	ix &= 7;
-	*x = ix;
-
-	iy = (byte)ry;
-	iy &= 7;
-	*y = iy;
+	*x = ((byte)rx&7);
+	*y = ((byte)ry&7);
 	return 0; //Valid!
 }
 
@@ -71,12 +60,16 @@ OPTINLINE static byte getcharxy_8(byte character, byte x, byte y) //Retrieve a c
 {
 	static word lastcharinfo = 0; //attribute|character, bit31=Set?
 	static byte lastrow = 0; //The last loaded row!
-	register word location;
+	register word location, loc2;
 
 	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
-	location = 0x8000 | (character << 3) | y; //The location to look up!
+	location = 0x8000;
+	location |= (character << 3);
+	location |= y; //The location to look up!
+	loc2 = location;
+	loc2 ^= lastcharinfo; //Detect change!
 
-	if (lastcharinfo != location) //Last row not yet loaded?
+	if (loc2) //Last row not yet loaded?
 	{
 		lastrow = int10_font_08_reversed[(lastcharinfo = location)^0x8000]; //Read the row from the character generator to use! Also reverse the bits for faster usage, which is already done!
 	}
@@ -113,15 +106,51 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	}
 
 	//We're background/transparent!
-	register BACKLISTITEM *back = &backlist[0]; //Start of our backlist!
-	for (;;)
+	if (GPU_textget_pixel(surface, fx + backlist[0].x, fy + backlist[0].y)) //Border?
 	{
-		if (GPU_textget_pixel(surface, fx + back->x, fy + back->y)) //Border?
-		{
-			surface->notdirty[fy][fx] = GPU_textgetcolor(surface,fx,fy,1); //Back of the current character!
-			return; //Done: we've gotten a pixel!
-		}
-		if (++back==&backlist[8]) break; //Abort when finished!
+		surface->notdirty[fy][fx] = GPU_textgetcolor(surface,fx,fy,1); //Back of the current character!
+		return; //Done: we've gotten a pixel!
+	}
+
+	if (GPU_textget_pixel(surface, fx + backlist[1].x, fy + backlist[1].y)) //Border?
+	{
+		surface->notdirty[fy][fx] = GPU_textgetcolor(surface, fx, fy, 1); //Back of the current character!
+		return; //Done: we've gotten a pixel!
+	}
+
+	if (GPU_textget_pixel(surface, fx + backlist[2].x, fy + backlist[2].y)) //Border?
+	{
+		surface->notdirty[fy][fx] = GPU_textgetcolor(surface, fx, fy, 1); //Back of the current character!
+		return; //Done: we've gotten a pixel!
+	}
+
+	if (GPU_textget_pixel(surface, fx + backlist[3].x, fy + backlist[3].y)) //Border?
+	{
+		surface->notdirty[fy][fx] = GPU_textgetcolor(surface, fx, fy, 1); //Back of the current character!
+		return; //Done: we've gotten a pixel!
+	}
+
+	if (GPU_textget_pixel(surface, fx + backlist[4].x, fy + backlist[4].y)) //Border?
+	{
+		surface->notdirty[fy][fx] = GPU_textgetcolor(surface, fx, fy, 1); //Back of the current character!
+		return; //Done: we've gotten a pixel!
+	}
+
+	if (GPU_textget_pixel(surface, fx + backlist[5].x, fy + backlist[5].y)) //Border?
+	{
+		surface->notdirty[fy][fx] = GPU_textgetcolor(surface, fx, fy, 1); //Back of the current character!
+		return; //Done: we've gotten a pixel!
+	}
+
+	if (GPU_textget_pixel(surface, fx + backlist[6].x, fy + backlist[6].y)) //Border?
+	{
+		surface->notdirty[fy][fx] = GPU_textgetcolor(surface, fx, fy, 1); //Back of the current character!
+		return; //Done: we've gotten a pixel!
+	}
+	if (GPU_textget_pixel(surface, fx + backlist[7].x, fy + backlist[7].y)) //Border?
+	{
+		surface->notdirty[fy][fx] = GPU_textgetcolor(surface, fx, fy, 1); //Back of the current character!
+		return; //Done: we've gotten a pixel!
 	}
 
 	//We're transparent!

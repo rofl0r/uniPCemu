@@ -558,7 +558,7 @@ void DMA_tick()
 }
 
 TicksHolder DMATicks;
-double DMA_Frequency = (1000000000.0 / (MHZ14/3.0)); //DMA tick time, based on ISA clock, originally divided by 8.732575!
+double DMA_Frequency = (1000000000.0 / (MHZ14/8.732575)); //DMA tick time, based on ISA clock(is supposed to be divided by 3.0), originally divided by 8.732575, which gives close to 1.6MB/s!
 double DMA_timing = 0.0f; //How much time has passed!
 
 void initDMA()

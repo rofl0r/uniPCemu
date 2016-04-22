@@ -97,8 +97,12 @@ extern uint_32 rmask, gmask, bmask, amask; //All mask values!
 //RGB is by default fully opaque
 #define RGB(r, g, b) RGBA((r),(g),(b),SDL_ALPHA_OPAQUE)
 
+#ifndef IS_GPU
+extern uint_32 transparentpixel; //Our define!
+#endif
+
 //Special transparent pixel!
-#define TRANSPARENTPIXEL RGBA(SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT,SDL_ALPHA_TRANSPARENT)
+#define TRANSPARENTPIXEL transparentpixel
 
 typedef void (*Handler)();    /* A pointer to a handler function */
 
