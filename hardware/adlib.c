@@ -55,15 +55,11 @@ byte adlibregmem[0xFF], adlibaddr = 0;
 float OPL2_ExpTable[0x100], OPL2_LogSinTable[0x100]; //The OPL2 Exponentional and Log-Sin tables!
 
 byte adliboperators[2][0x10] = { //Groupings of 22 registers! (20,40,60,80,E0)
-	{ 0x00, 0x01, 0x02, 0x08, 0x09, 0x0A, 0x10, 0x11, 0x12,0,0,0,0,0,0 },
-	{ 0x03, 0x04, 0x05, 0x0B, 0x0C, 0x0D, 0x13, 0x14, 0x15,0,0,0,0,0,0 }
+	{ 0x00, 0x01, 0x02, 0x08, 0x09, 0x0A, 0x10, 0x11, 0x12,255,255,255,255,255,255 },
+	{ 0x03, 0x04, 0x05, 0x0B, 0x0C, 0x0D, 0x13, 0x14, 0x15,255,255,255,255,255,255 }
 };
 
-byte adliboperatorsreverse[0x16] = { 0, 1, 2, 0, 1, 2,
-									255, 255,
-									3, 4, 5, 3, 4, 5,
-									255, 255,
-									6, 7, 8, 6, 7, 8}; //Channel lookup of adlib operators!
+byte adliboperatorsreverse[0x16] = { 0, 1, 2, 0, 1, 2, 255, 255, 3, 4, 5, 3, 4, 5, 255, 255, 6, 7, 8, 6, 7, 8}; //Channel lookup of adlib operators!
 
 static const double feedbacklookup[8] = { 0, PI / 16.0, PI / 8.0, PI / 4.0, PI / 2.0, PI, PI*2.0, PI*4.0 }; //The feedback to use from opl3emu! Seems to be half a sinus wave per number!
 double feedbacklookup2[8]; //Actual feedback lookup value!
@@ -129,30 +125,60 @@ OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 
 void writeadlibKeyON(byte channel, byte forcekeyon)
 {
-	if ((!adlibch[channel].keyon && ((adlibregmem[0xB0 + channel] >> 5) & 1)) || forcekeyon) //Key turned on
+	byte keyon;
+	byte oldkeyon;
+	oldkeyon = adlibch[channel].keyon; //Current&old key on!
+	keyon = ((adlibregmem[0xB0 + (channel&0xF)] >> 5) & 1)?3:0; //New key on for melodic channels? Affect both operators! This disturbs percussion mode!
+	if (adlibpercussion && (channel&0x80)) //Percussion enabled and percussion channel changed?
+	{
+		switch (channel&0xF) //What channel?
+		{
+			case 6: //Bass drum?
+				keyon = (adlibregmem[0xBD]&0x10)?3:0; //Bass drum on? Key on on both operators!
+				channel = 6; //Use channel 6!
+				break;
+			case 7: //Snare drum/Tom-tom?
+				keyon = ((adlibregmem[0xBD]&0x0C)>>2); //Snare drum/Tom-tom on?
+				channel = 7; //Use channel 7!
+				break;
+			case 8: //Cymbal/hi-hat?
+				keyon = (adlibregmem[0xBD]&0x03); //Cymbal/hi-hat on?
+				channel = 8; //Use channel 8!
+				break;
+			default: //Unknown channel?
+				//New key on for melodic channels? Don't change anything!
+				break;
+		}
+	}
+	if ((adliboperators[0][channel]!=0xFF) && (((keyon&1) && ((oldkeyon^keyon)&1)) || (forcekeyon&1))) //Key ON on operator #1?
 	{
 		adlibop[adliboperators[0][channel]].volenvstatus = 1; //Start attacking!
-		adlibop[adliboperators[1][channel]].volenvstatus = 1; //Start attacking!
 		adlibop[adliboperators[0][channel]].volenvcalculated = adlibop[adliboperators[0][channel]].volenv = 0.0025f;
-		adlibop[adliboperators[1][channel]].volenvcalculated = adlibop[adliboperators[0][channel]].volenv = 0.0025f;
 		adlibop[adliboperators[0][channel]].freq0 = adlibop[adliboperators[0][channel]].time = 0.0f; //Initialise operator signal!
-		adlibop[adliboperators[1][channel]].freq0 = adlibop[adliboperators[1][channel]].time = 0.0f; //Initialise operator signal!
 		memset(&adlibop[adliboperators[0][channel]].lastsignal, 0, sizeof(adlibop[0].lastsignal)); //Reset the last signals!
+	}
+	if ((adliboperators[1][channel]!=0xFF) && (((keyon&2) && ((oldkeyon^keyon)&2)) || (forcekeyon&2))) //Key ON on operator #2?
+	{
+		adlibop[adliboperators[1][channel]].volenvstatus = 1; //Start attacking!
+		adlibop[adliboperators[1][channel]].volenvcalculated = adlibop[adliboperators[0][channel]].volenv = 0.0025f;
+		adlibop[adliboperators[1][channel]].freq0 = adlibop[adliboperators[1][channel]].time = 0.0f; //Initialise operator signal!
 		memset(&adlibop[adliboperators[1][channel]].lastsignal, 0, sizeof(adlibop[1].lastsignal)); //Reset the last signals!
 	}
 	adlibch[channel].freq = adlibregmem[0xA0 + channel] | ((adlibregmem[0xB0 + channel] & 3) << 8);
 	adlibch[channel].convfreq = ((double)adlibch[channel].freq * 0.7626459);
-	adlibch[channel].keyon = ((adlibregmem[0xB0 + channel] >> 5) & 1) || forcekeyon; //Key is turned on?
+	adlibch[channel].keyon = keyon | forcekeyon; //Key is turned on?
 	adlibch[channel].octave = (adlibregmem[0xB0 + channel] >> 2) & 7;
 }
 
 byte outadlib (uint16_t portnum, uint8_t value) {
+	byte oldval;
 	if (portnum==adlibport) {
 			adlibaddr = value;
 			return 1;
 		}
 	if (portnum != (adlibport+1)) return 0; //Don't handle what's not ours!
 	portnum = adlibaddr;
+	oldval = adlibregmem[portnum]; //Save the old value for reference!
 	if (portnum!=4) adlibregmem[portnum] = value; //Timer control applies it itself, depending on the value!
 	switch (portnum & 0xF0) //What block to handle?
 	{
@@ -228,7 +254,13 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		}
 		else if (portnum == 0xBD) //Percussion settings etc.
 		{
-			adlibpercussion = (value & 0x10)?1:0; //Percussion enabled?
+			adlibpercussion = (value & 0x20)?1:0; //Percussion enabled?
+			if (((oldval^value)&0x1F) && adlibpercussion) //Percussion enabled and changed state?
+			{
+				writeadlibKeyON(0x86,0); //Write to this port(Bass drum)! Don't force the key on!
+				writeadlibKeyON(0x87,0); //Write to this port(Snare drum/Tom-tom)! Don't force the key on!
+				writeadlibKeyON(0x88,0); //Write to this port(Cymbal/Hi-hat)! Don't force the key on!
+			}
 		}
 		break;
 	case 0xC0:
@@ -399,6 +431,7 @@ OPTINLINE void incop(byte operator, float frequency)
 //Calculate an operator signal!
 OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float modulator, byte feedback)
 {
+	if (operator==0xFF) return 0.0f; //Invalid operator!
 	float result,feedbackresult; //Our variables?
 	//Generate the signal!
 	if (feedback) //Apply channel feedback?
@@ -434,15 +467,38 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 	float op1frequency;
 	curchan &= 0xF;
 	if (curchan >= NUMITEMS(adlibch)) return 0; //No sample with invalid channel!
-	if (adlibpercussion && (curchan >= 6) && (curchan <= 8)) //We're percussion?
-	{
-		return 0; //Percussion isn't supported yet!
-	}
 
 	//Determine the modulator and carrier to use!
 	op1 = adliboperators[0][curchan]; //First operator number!
 	op2 = adliboperators[1][curchan]; //Second operator number!
 	op1frequency = adlibfreq(op1, curchan); //Load the first frequency!
+
+	if (adlibpercussion && (curchan >= 6) && (curchan <= 8)) //We're percussion?
+	{
+		switch (curchan) //What channel?
+		{
+			case 6: //Bass drum?
+				//Generate Bass drum samples!
+				break;
+			case 7: //Snare drum/Tom-tom?
+				if (adlibch[curchan].keyon&1) //Snare drum?
+				{
+				}
+				if (adlibch[curchan].keyon&2) //Tom-tom?
+				{
+				}
+				break;
+			case 8: //Cymbal/Hi-hat?
+				if (adlibch[curchan].keyon&1) //Cymbal?
+				{
+				}
+				if (adlibch[curchan].keyon&2) //Hi-hat?
+				{
+				}
+				break;
+		}
+		return 0; //Percussion isn't supported yet for this channel!
+	}
 
 	//Operator 1!
 	//Calculate the frequency to use!
@@ -475,7 +531,7 @@ OPTINLINE void tick_adlibtimer()
 		byte channel=0;
 		for (;;)
 		{
-			writeadlibKeyON(channel,1); //Force the key to turn on!
+			writeadlibKeyON(channel,3); //Force the key to turn on!
 			if (++channel==9) break; //Finished!
 		}
 	}
@@ -555,15 +611,28 @@ OPTINLINE short adlibgensample() {
 	{
 		adlibaccum += adlibsample(6);
 	}
-	if (adlibop[adliboperators[1][7]].volenvstatus) //Are we a running envelope?
+	if (adlibpercussion) //Percussion mode? Split channels!
 	{
-		adlibaccum += adlibsample(7);
+		if (adlibop[adliboperators[1][7]].volenvstatus || adlibop[adliboperators[0][7]].volenvstatus) //Are we a running envelope?
+		{
+			adlibaccum += adlibsample(7);
+		}
+		if (adlibop[adliboperators[1][8]].volenvstatus || adlibop[adliboperators[0][8]].volenvstatus) //Are we a running envelope?
+		{
+			adlibaccum += adlibsample(8);
+		}
 	}
-	if (adlibop[adliboperators[1][8]].volenvstatus) //Are we a running envelope?
+	else //Melodic mode? Normal channels!
 	{
-		adlibaccum += adlibsample(8);
+		if (adlibop[adliboperators[1][7]].volenvstatus) //Are we a running envelope?
+		{
+			adlibaccum += adlibsample(7);
+		}
+		if (adlibop[adliboperators[1][8]].volenvstatus) //Are we a running envelope?
+		{
+			adlibaccum += adlibsample(8);
+		}
 	}
-
 	return (short)(adlibaccum);
 }
 
