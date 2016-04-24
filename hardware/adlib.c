@@ -133,16 +133,18 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 	{
 		switch (channel&0xF) //What channel?
 		{
-			case 6: //Bass drum?
+			case 6: //Bass drum? Uses the channel normally!
 				keyon = (adlibregmem[0xBD]&0x10)?3:0; //Bass drum on? Key on on both operators!
 				channel = 6; //Use channel 6!
 				break;
-			case 7: //Snare drum/Tom-tom?
-				keyon = ((adlibregmem[0xBD]&0x0C)>>2); //Snare drum/Tom-tom on?
+			case 7: //Hi-hat/Snare drum? High-hat uses modulator, Snare drum uses Carrier signals.
+				keyon = adlibregmem[0xBD]; //Snare drum/Hi-hat on?
+				keyon = ((keyon>>2)&2)|(keyon&1); //Shift the information to modulator and carrier positions!
 				channel = 7; //Use channel 7!
 				break;
-			case 8: //Cymbal/hi-hat?
-				keyon = (adlibregmem[0xBD]&0x03); //Cymbal/hi-hat on?
+			case 8: //Tom-tom/Cymbal? Tom-tom uses Modulator, Cymbal uses Carrier signals.
+				keyon = adlibregmem[0xBD]; //Cymbal/hi-hat on? Use the full register for processing!
+				keyon = ((keyon>>2)&1)|(keyon&2); //Shift the information to modulator and carrier positions!
 				channel = 8; //Use channel 8!
 				break;
 			default: //Unknown channel?
@@ -462,6 +464,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 float adlib_scaleFactor = 65535.0f / 1018.0f; //We're running 8 channels in a 16-bit space, so 1/8 of SHRT_MAX
 
 OPTINLINE short adlibsample(uint8_t curchan) {
+	byte tempphase;
 	float result; //The operator result and the final result!
 	byte op1,op2; //The two operators to use!
 	float op1frequency;
@@ -475,26 +478,82 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 
 	if (adlibpercussion && (curchan >= 6) && (curchan <= 8)) //We're percussion?
 	{
+		result = 0.0f; //Initialise the result!
+		//Calculations based on http://bisqwit.iki.fi/source/opl3emu.html fmopl.c
 		switch (curchan) //What channel?
 		{
 			case 6: //Bass drum?
 				//Generate Bass drum samples!
+				//Calculate the frequency to use!
+				result = calcOperator(curchan, op1, op1frequency, 0.0f,1); //Calculate the modulator for feedback!
+				if (adlibch[curchan].synthmode) //Additive synthesis?
+				{
+					//Special on Bass Drum: Additive synthesis(Operator 1) is ignored.
+					result = calcOperator(curchan, op2, adlibfreq(op2, curchan), 0.0f, 0); //Calculate the carrier without applied modulator additive!
+				}
+				else //FM synthesis?
+				{
+					result = calcOperator(curchan, op2, adlibfreq(op2, curchan), OPL2_Exponential(result), 0); //Calculate the carrier with applied modulator!
+				}
+			
+				result = OPL2_Exponential(result); //Apply the exponential!
+			
+				result *= adlib_scaleFactor; //Convert to output scale (We're only going from -1.0 to +1.0 up to this point), convert to signed 16-bit scale!
+				return (short)result; //Give the result, converted to short!
 				break;
-			case 7: //Snare drum/Tom-tom?
-				if (adlibch[curchan].keyon&1) //Snare drum?
+
+				//Comments with information from fmopl.c:
+				/* Phase generation is based on: */
+
+				/* HH  (13) channel 7->slot 1 combined with channel 8->slot 2 (same combination as TOP CYMBAL but different output phases) */
+
+				/* SD  (16) channel 7->slot 1 */
+
+				/* TOM (14) channel 8->slot 1 */
+
+				/* TOP (17) channel 7->slot 1 combined with channel 8->slot 2 (same combination as HIGH HAT but different output phases) */
+
+			
+	/* Envelope generation based on: */
+
+				/* HH  channel 7->slot1 */
+
+				/* SD  channel 7->slot2 */
+
+				/* TOM channel 8->slot1 */
+
+				/* TOP channel 8->slot2 */
+			case 7: //Hi-hat/Snare drum? High-hat uses modulator, Snare drum uses Carrier signals.
+				if (adlibop[op1].volenvstatus) //Hi-hat?
 				{
+					//Still unimplemented until the calculations have been figured out.
 				}
-				if (adlibch[curchan].keyon&2) //Tom-tom?
+				if (adlibop[op2].volenvstatus) //Snare drum?
 				{
+					//Derive frequency from channel 0.
+					result = calcOperator(curchan, op1, op1frequency, 0.0f,1); //Calculate the modulator for feedback!
+					tempphase = (result>=0.0f)?0x200:0x100; //Bit8=0(Positive) then 0x100, else 0x200!
+					tempphase ^= (OPL2_RNG<<8); //Noise bits XOR'es phase by 0x100!
+					result = calcOperator(curchan, op2, adlibfreq(op2, curchan), OPL2_Exponential((float)tempphase), 0); //Calculate the carrier with applied modulator!
+					result = OPL2_Exponential(result); //Apply the exponential!
 				}
+				result *= 0.5; //We only have half(two channels combined)!
+				result *= adlib_scaleFactor; //Convert to output scale (We're only going from -1.0 to +1.0 up to this point), convert to signed 16-bit scale!
+				return (short)result; //Give the result, converted to short!
 				break;
-			case 8: //Cymbal/Hi-hat?
-				if (adlibch[curchan].keyon&1) //Cymbal?
+			case 8: //Tom-tom/Cymbal? Tom-tom uses Modulator, Cymbal uses Carrier signals.
+				if (adlibop[op1].volenvstatus) //Tom-tom?
 				{
+					result = calcOperator(curchan, op1, adlibfreq(op1, curchan), 0.0f, 0); //Calculate the carrier with applied modulator!
+					result = OPL2_Exponential(result); //Apply the exponential!
 				}
-				if (adlibch[curchan].keyon&2) //Hi-hat?
+				if (adlibop[op2].volenvstatus) //Cymbal?
 				{
+					//Still unimplemented until the calculations have been figured out.
 				}
+				result *= 0.5; //We only have half(two channels combined)!
+				result *= adlib_scaleFactor; //Convert to output scale (We're only going from -1.0 to +1.0 up to this point), convert to signed 16-bit scale!
+				return (short)result; //Give the result, converted to short!
 				break;
 		}
 		return 0; //Percussion isn't supported yet for this channel!
