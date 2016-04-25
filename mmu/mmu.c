@@ -129,14 +129,14 @@ byte MMU_directrb(uint_32 realaddress) //Direct read from real memory (with real
 {
 	byte invalidlocation=0;
 	//Apply the 640K memory hole!
-	if (realaddress&0x100000) //1MB+?
+	/*if (realaddress&0x100000) //1MB+?
 	{
 		realaddress -= (0x100000-0xA0000); //Patch to less memory to make memory linear!
 	}
 	else if (realaddress>=0xA0000) //640K+ memory hole addressed?
 	{
 		invalidlocation = 1; //We're an invalid location!
-	}
+	}*/
 	if ((realaddress>=MMU.size) || invalidlocation) //Overflow/invalid location?
 	{
 		MMU.invaddr = 1; //Signal invalid address!
@@ -156,14 +156,14 @@ void MMU_directwb(uint_32 realaddress, byte value) //Direct write to real memory
 		dolog("debugger","MMU: Writing to real %08X=%02X (%c)",realaddress,value,value?value:0x20);
 	}
 	//Apply the 640K memory hole!
-	if (realaddress&0x100000) //1MB+?
+	/*if (realaddress&0x100000) //1MB+?
 	{
 		realaddress -= (0x100000-0xA0000); //Patch to less memory to make memory linear!
 	}
 	else if (realaddress>=0xA0000) //640K+ memory hole?
 	{
 		invalidlocation = 1; //We're an invalid location!
-	}
+	}*/
 	if ((realaddress>=MMU.size) || invalidlocation) //Overflow/invalid location?
 	{
 		MMU.invaddr = 1; //Signal invalid address!
@@ -185,7 +185,7 @@ word MMU_directrw(uint_32 realaddress) //Direct read from real memory (with real
 
 void MMU_directww(uint_32 realaddress, word value) //Direct write to real memory (with real data direct)!
 {
-	MMU_directwb(realaddress,value&0xFF);; //Low!
+	MMU_directwb(realaddress,value&0xFF); //Low!
 	MMU_directwb(realaddress+1,(value>>8)&0xFF); //High!
 }
 

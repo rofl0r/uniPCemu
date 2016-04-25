@@ -60,6 +60,7 @@ byte adliboperators[2][0x10] = { //Groupings of 22 registers! (20,40,60,80,E0)
 };
 
 byte adliboperatorsreverse[0x16] = { 0, 1, 2, 0, 1, 2, 255, 255, 3, 4, 5, 3, 4, 5, 255, 255, 6, 7, 8, 6, 7, 8}; //Channel lookup of adlib operators!
+byte adliboperatorsreversekeyon[0x16] = { 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2, 2, 2}; //Modulator/carrier lookup of adlib operators in the keyon bits!
 
 static const double feedbacklookup[8] = { 0, PI / 16.0, PI / 8.0, PI / 4.0, PI / 2.0, PI, PI*2.0, PI*4.0 }; //The feedback to use from opl3emu! Seems to be half a sinus wave per number!
 double feedbacklookup2[8]; //Actual feedback lookup value!
@@ -131,20 +132,21 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 	keyon = ((adlibregmem[0xB0 + (channel&0xF)] >> 5) & 1)?3:0; //New key on for melodic channels? Affect both operators! This disturbs percussion mode!
 	if (adlibpercussion && (channel&0x80)) //Percussion enabled and percussion channel changed?
 	{
+		keyon = adlibregmem[0xBD]; //Total key status for percussion channels?
 		switch (channel&0xF) //What channel?
 		{
+			//Adjusted according to http://www.4front-tech.com/dmguide/dmfm.html
 			case 6: //Bass drum? Uses the channel normally!
-				keyon = (adlibregmem[0xBD]&0x10)?3:0; //Bass drum on? Key on on both operators!
+				keyon = (keyon&0x10)?3:0; //Bass drum on? Key on/off on both operators!
 				channel = 6; //Use channel 6!
 				break;
-			case 7: //Hi-hat/Snare drum? High-hat uses modulator, Snare drum uses Carrier signals.
-				keyon = adlibregmem[0xBD]; //Snare drum/Hi-hat on?
-				keyon = ((keyon>>2)&2)|(keyon&1); //Shift the information to modulator and carrier positions!
+			case 7: //Snare drum(Modulator)/Hi-hat(Carrier)? fmopl.c: High-hat uses modulator, Snare drum uses Carrier signals.
+				keyon = ((keyon>>3)&1)|((keyon<<1)&2); //Shift the information to modulator and carrier positions!
 				channel = 7; //Use channel 7!
 				break;
-			case 8: //Tom-tom/Cymbal? Tom-tom uses Modulator, Cymbal uses Carrier signals.
+			case 8: //Tom-tom(Carrier)/Cymbal(Modulator)? fmopl.c:Tom-tom uses Modulator, Cymbal uses Carrier signals.
 				keyon = adlibregmem[0xBD]; //Cymbal/hi-hat on? Use the full register for processing!
-				keyon = ((keyon>>2)&1)|(keyon&2); //Shift the information to modulator and carrier positions!
+				keyon = ((keyon>>1)&3); //Shift the information to modulator and carrier positions!
 				channel = 8; //Use channel 8!
 				break;
 			default: //Unknown channel?
@@ -431,7 +433,7 @@ OPTINLINE void incop(byte operator, float frequency)
 }
 
 //Calculate an operator signal!
-OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float modulator, byte feedback)
+OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float modulator, byte feedback, byte volenvoperator, byte updateoperator)
 {
 	if (operator==0xFF) return 0.0f; //Invalid operator!
 	float result,feedbackresult; //Our variables?
@@ -446,15 +448,16 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 
 	//Generate the correct signal!
 	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, modulator, frequency?frequency:adlibop[operator].lastfreq, &adlibop[operator].freq0, &adlibop[operator].time); //Take the last frequency or current frequency!
-	result *= adlibop[operator].outputlevel; //Apply the output level to the operator!
-	result *= adlibop[operator].volenv; //Apply current volume of the ADSR envelope!
-	feedbackresult = result; //Load the current feedback value!
-	feedbackresult *= 0.5f; //Prevent overflow (we're adding two values together, so take half the value calculated)!
-	adlibop[operator].lastsignal[0] = adlibop[operator].lastsignal[1]; //Set last signal #0 to #1(shift into the older one)!
-	adlibop[operator].lastsignal[1] = feedbackresult; //Set the feedback result!
-
-	if (frequency) //Running operator?
+	if (volenvoperator==0xFF) goto skipvolenv;
+	result *= adlibop[volenvoperator].outputlevel; //Apply the output level to the operator!
+	result *= adlibop[volenvoperator].volenv; //Apply current volume of the ADSR envelope!
+	skipvolenv: //Skip vol env operator!
+	if (frequency && updateoperator) //Running operator and allowed to update our signal?
 	{
+		feedbackresult = result; //Load the current feedback value!
+		feedbackresult *= 0.5f; //Prevent overflow (we're adding two values together, so take half the value calculated)!
+		adlibop[operator].lastsignal[0] = adlibop[operator].lastsignal[1]; //Set last signal #0 to #1(shift into the older one)!
+		adlibop[operator].lastsignal[1] = feedbackresult; //Set the feedback result!
 		adlibop[operator].lastfreq = frequency; //We were last running at this frequency!
 		incop(operator,frequency); //Increase time for the operator when allowed to increase (frequency=0 during PCM output)!
 	}
@@ -463,9 +466,15 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 
 float adlib_scaleFactor = 65535.0f / 1018.0f; //We're running 8 channels in a 16-bit space, so 1/8 of SHRT_MAX
 
+OPTINLINE uint_32 getphase(byte operator) //Get the current phrase of the operator!
+{
+	return (word)((fmod(adlibop[operator].time,PI2)/PI2)*511.0f); //512 points (9-bits value?)
+}
+
 OPTINLINE short adlibsample(uint8_t curchan) {
-	byte tempphase;
-	float result; //The operator result and the final result!
+	byte op7_0, op7_1, op8_0, op8_1; //The four slots used during Drum samples!
+	byte tempop_phase; //Current phase of an operator!
+	float result,immresult; //The operator result and the final result!
 	byte op1,op2; //The two operators to use!
 	float op1frequency;
 	curchan &= 0xF;
@@ -478,25 +487,31 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 
 	if (adlibpercussion && (curchan >= 6) && (curchan <= 8)) //We're percussion?
 	{
+		register uint_32 tempphase;
 		result = 0.0f; //Initialise the result!
 		//Calculations based on http://bisqwit.iki.fi/source/opl3emu.html fmopl.c
+		//Load our four operators for processing!
+		op7_0 = adliboperators[0][7];
+		op7_1 = adliboperators[1][7];
+		op8_0 = adliboperators[0][8];
+		op8_1 = adliboperators[1][8];
 		switch (curchan) //What channel?
 		{
 			case 6: //Bass drum?
 				//Generate Bass drum samples!
 				//Calculate the frequency to use!
-				result = calcOperator(curchan, op1, op1frequency, 0.0f,1); //Calculate the modulator for feedback!
+				result = calcOperator(curchan, op1, op1frequency, 0.0f,1,op1,1); //Calculate the modulator for feedback!
 				if (adlibch[curchan].synthmode) //Additive synthesis?
 				{
 					//Special on Bass Drum: Additive synthesis(Operator 1) is ignored.
-					result = calcOperator(curchan, op2, adlibfreq(op2, curchan), 0.0f, 0); //Calculate the carrier without applied modulator additive!
+					result = calcOperator(curchan, op2, adlibfreq(op2, curchan), 0.0f, 0,op2,1); //Calculate the carrier without applied modulator additive!
 				}
 				else //FM synthesis?
 				{
-					result = calcOperator(curchan, op2, adlibfreq(op2, curchan), OPL2_Exponential(result), 0); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op2, adlibfreq(op2, curchan), OPL2_Exponential(result), 0,op2,1); //Calculate the carrier with applied modulator!
 				}
 			
-				result = OPL2_Exponential(result); //Apply the exponential!
+				result = OPL2_Exponential(result*2.0f); //Apply the exponential! The volume is always doubled!
 			
 				result *= adlib_scaleFactor; //Convert to output scale (We're only going from -1.0 to +1.0 up to this point), convert to signed 16-bit scale!
 				return (short)result; //Give the result, converted to short!
@@ -504,54 +519,82 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 
 				//Comments with information from fmopl.c:
 				/* Phase generation is based on: */
-
 				/* HH  (13) channel 7->slot 1 combined with channel 8->slot 2 (same combination as TOP CYMBAL but different output phases) */
-
 				/* SD  (16) channel 7->slot 1 */
-
 				/* TOM (14) channel 8->slot 1 */
-
 				/* TOP (17) channel 7->slot 1 combined with channel 8->slot 2 (same combination as HIGH HAT but different output phases) */
 
 			
-	/* Envelope generation based on: */
-
+				/* Envelope generation based on: */
 				/* HH  channel 7->slot1 */
-
 				/* SD  channel 7->slot2 */
-
 				/* TOM channel 8->slot1 */
 
 				/* TOP channel 8->slot2 */
-			case 7: //Hi-hat/Snare drum? High-hat uses modulator, Snare drum uses Carrier signals.
-				if (adlibop[op1].volenvstatus) //Hi-hat?
-				{
-					//Still unimplemented until the calculations have been figured out.
-				}
-				if (adlibop[op2].volenvstatus) //Snare drum?
+				//So phase modulation is based on the Modulator signal. The volume envelope is in the Modulator signal (Hi-hat/Tom-tom) or Carrier signal ()
+			case 7: //Hi-hat(Carrier)/Snare drum(Modulator)? High-hat uses modulator, Snare drum uses Carrier signals.
+				immresult = 0.0f; //Initialize immediate result!
+				if (adlibop[op7_1].volenvstatus) //Snare drum on modulator?
 				{
 					//Derive frequency from channel 0.
-					result = calcOperator(curchan, op1, op1frequency, 0.0f,1); //Calculate the modulator for feedback!
-					tempphase = (result>=0.0f)?0x200:0x100; //Bit8=0(Positive) then 0x100, else 0x200!
-					tempphase ^= (OPL2_RNG<<8); //Noise bits XOR'es phase by 0x100!
-					result = calcOperator(curchan, op2, adlibfreq(op2, curchan), OPL2_Exponential((float)tempphase), 0); //Calculate the carrier with applied modulator!
-					result = OPL2_Exponential(result); //Apply the exponential!
+					tempphase = 0x100<<((getphase(op7_0)>>8)&1); //Bit8=0(Positive) then 0x100, else 0x200! Based on the phase to generate!
+					tempphase ^= (OPL2_RNG<<8); //Noise bits XOR'es phase by 0x100 when set!
+					result = calcOperator(curchan, op7_0, op1frequency, 0.0f,1,op7_0,(!adlibop[op8_1].volenvstatus && !adlibop[op7_0].volenvstatus)); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), ((((float)tempphase)/(float)0x300)*(float)(PI2)), 0,op7_1,1); //Calculate the carrier with applied modulator!
+					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
-				result *= 0.5; //We only have half(two channels combined)!
+				if (adlibop[op7_0].volenvstatus) //Hi-hat on carrier?
+				{
+					//Derive frequency from channel 7(modulator) and 8(carrier).~
+					tempop_phase = getphase(op7_0); //Save the phase!
+					tempphase = (tempop_phase>>2);
+					tempphase ^= (tempop_phase>>7);
+					tempphase |= (tempop_phase>>3);
+					tempphase &= 1; //Only 1 bit is used!
+					tempphase = tempphase?(0x200|(0xD0>>2)):0xD0;
+					tempop_phase = getphase(op8_1); //Calculate the phase of channel 8 carrier signal!
+					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x200|(0xD0>>2);
+					if (tempphase&0x200)
+					{
+						if (OPL2_RNG) tempphase = 0x2D0;
+					}
+					else if (OPL2_RNG) tempphase = (0xD0>>2);
+					
+					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, curchan), 0.0f,1,op7_0,!adlibop[op8_1].volenvstatus); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), ((((float)tempphase)/(float)0x300)*(float)(PI2)), 0,op7_0,1); //Calculate the carrier with applied modulator!
+					immresult += OPL2_Exponential(result); //Apply the exponential!
+				}
+				result = immresult; //Load the resulting channel!
+				result *= 0.5f; //We only have half(two channels combined)!
 				result *= adlib_scaleFactor; //Convert to output scale (We're only going from -1.0 to +1.0 up to this point), convert to signed 16-bit scale!
 				return (short)result; //Give the result, converted to short!
 				break;
-			case 8: //Tom-tom/Cymbal? Tom-tom uses Modulator, Cymbal uses Carrier signals.
-				if (adlibop[op1].volenvstatus) //Tom-tom?
+			case 8: //Tom-tom(Carrier)/Cymbal(Modulator)? Tom-tom uses Modulator, Cymbal uses Carrier signals.
+				immresult = 0.0f; //Initialize immediate result!
+				if (adlibop[op8_1].volenvstatus) //Cymbal(Modulator)?
 				{
-					result = calcOperator(curchan, op1, adlibfreq(op1, curchan), 0.0f, 0); //Calculate the carrier with applied modulator!
-					result = OPL2_Exponential(result); //Apply the exponential!
+					//Derive frequency from channel 7(modulator) and 8(carrier).
+					tempop_phase = getphase(op7_0); //Save the phase!
+					tempphase = (tempop_phase>>2);
+					tempphase ^= (tempop_phase>>7);
+					tempphase |= (tempop_phase>>3);
+					tempphase &= 1; //Only 1 bit is used!
+					tempphase <<= 9; //0x200 when 1 makes it become 0x300
+					tempphase |= 0x100; //0x100 is always!
+					tempop_phase = getphase(op8_1); //Calculate the phase of channel 8 carrier signal!
+					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x300;
+					
+					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, curchan), 0.0f,1,op7_0,1); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), ((((float)tempphase)/(float)0x300)*(float)(PI2)), 0,op8_1,1); //Calculate the carrier with applied modulator!
+					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
-				if (adlibop[op2].volenvstatus) //Cymbal?
+				if (adlibop[op8_0].volenvstatus) //Tom-tom(Carrier)?
 				{
-					//Still unimplemented until the calculations have been figured out.
+					result = calcOperator(curchan, op8_0, adlibfreq(op8_0, curchan), 0.0f, 0,op8_0,1); //Calculate the carrier with applied modulator!
+					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
-				result *= 0.5; //We only have half(two channels combined)!
+				result = immresult; //Load the resulting channel!
+				result *= 0.5f; //We only have half(two channels combined)!
 				result *= adlib_scaleFactor; //Convert to output scale (We're only going from -1.0 to +1.0 up to this point), convert to signed 16-bit scale!
 				return (short)result; //Give the result, converted to short!
 				break;
@@ -561,15 +604,15 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 
 	//Operator 1!
 	//Calculate the frequency to use!
-	result = calcOperator(curchan, op1, op1frequency, 0.0f,1); //Calculate the modulator for feedback!
+	result = calcOperator(curchan, op1, op1frequency, 0.0f,1,op1,1); //Calculate the modulator for feedback!
 
 	if (adlibch[curchan].synthmode) //Additive synthesis?
 	{
-		result += calcOperator(curchan, op2, adlibfreq(op2, curchan), 0.0f, 0); //Calculate the carrier without applied modulator additive!
+		result += calcOperator(curchan, op2, adlibfreq(op2, curchan), 0.0f, 0,op2,1); //Calculate the carrier without applied modulator additive!
 	}
 	else //FM synthesis?
 	{
-		result = calcOperator(curchan, op2, adlibfreq(op2, curchan), OPL2_Exponential(result), 0); //Calculate the carrier with applied modulator!
+		result = calcOperator(curchan, op2, adlibfreq(op2, curchan), OPL2_Exponential(result), 0,op2,1); //Calculate the carrier with applied modulator!
 	}
 
 	result = OPL2_Exponential(result); //Apply the exponential!
@@ -729,7 +772,7 @@ OPTINLINE void tickadlib()
 				break;
 			case 3: //Sustaining?
 				startsustain:
-				if ((!adlibch[adliboperatorsreverse[curop]].keyon) || adlibop[curop].ReleaseImmediately) //Release entered?
+				if ((!(adlibch[adliboperatorsreverse[curop]].keyon&adliboperatorsreversekeyon[curop])) || adlibop[curop].ReleaseImmediately) //Release entered?
 				{
 					++adlibop[curop].volenvstatus; //Enter next phase!
 					goto startrelease; //Check again!
