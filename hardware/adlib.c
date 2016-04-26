@@ -540,7 +540,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 					tempphase = 0x100<<((getphase(op7_0)>>8)&1); //Bit8=0(Positive) then 0x100, else 0x200! Based on the phase to generate!
 					tempphase ^= (OPL2_RNG<<8); //Noise bits XOR'es phase by 0x100 when set!
 					result = calcOperator(curchan, op7_0, op1frequency, 0.0f,1,op7_0,(!adlibop[op8_1].volenvstatus && !adlibop[op7_0].volenvstatus)); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), OPL2_Exponential((((float)tempphase)/(float)0x300)*255.0f), 0,op7_1,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), OPL2_Exponential((((float)tempphase)/(float)0x300)*3137.0f), 0,op7_1,1); //Calculate the carrier with applied modulator!
 					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
 				if (adlibop[op7_0].volenvstatus) //Hi-hat on carrier?
@@ -561,7 +561,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 					else if (OPL2_RNG) tempphase = (0xD0>>2);
 					
 					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, curchan), 0.0f,1,op7_0,!adlibop[op8_1].volenvstatus); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), OPL2_Exponential((((float)tempphase)/(float)0x300)*255.0f), 0,op7_0,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), OPL2_Exponential((((float)tempphase)/(float)0x300)*3137.0f), 0,op7_0,1); //Calculate the carrier with applied modulator!
 					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
 				result = immresult; //Load the resulting channel!
@@ -585,7 +585,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x300;
 					
 					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, curchan), 0.0f,1,op7_0,1); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), OPL2_Exponential((((float)tempphase)/(float)0x300)*255.0f), 0,op8_1,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), OPL2_Exponential((((float)tempphase)/(float)0x300)*3137.0f), 0,op8_1,1); //Calculate the carrier with applied modulator!
 					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
 				if (adlibop[op8_0].volenvstatus) //Tom-tom(Carrier)?
