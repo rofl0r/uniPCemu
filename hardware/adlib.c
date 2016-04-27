@@ -199,7 +199,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		switch (portnum) //What primary port?
 		{
 		case 1: //Waveform select enable
-			//wavemask = (adlibregmem[0] & 0x20) ? 3 : 0; //Apply waveform mask! Ignore for debugging waves!
+			wavemask = (adlibregmem[0] & 0x20) ? 3 : 0; //Apply waveform mask!
 			break;
 		case 4: //timer control
 			if (value & 0x80) { //Special case: don't apply the value!
