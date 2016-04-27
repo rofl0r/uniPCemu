@@ -23,6 +23,8 @@
 #define ADLIB_VOLUME 100.0f
 //What volume is the minimum volume to be heard!
 #define __MIN_VOL (1.0f / SHRT_MAX)
+//Use linear adlib volume, with accurate attenuation(64 levels, instead of inaccurate multiplication by factor in the 0-1 range) when below is defined.
+//#define VOLENVLINEAR
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
 #define __ADLIB_SAMPLEBUFFERSIZE 4096
@@ -447,6 +449,9 @@ OPTINLINE void incop(byte operator, float frequency)
 	}
 }
 
+//Silence value?
+#define Silence 64
+
 //Calculate an operator signal!
 OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float modulator, byte feedback, byte volenvoperator, byte updateoperator)
 {
@@ -464,10 +469,13 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	//Generate the correct signal!
 	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, modulator, frequency?frequency:adlibop[operator].lastfreq, &adlibop[operator].freq0, &adlibop[operator].time); //Take the last frequency or current frequency!
 	if (volenvoperator==0xFF) goto skipvolenv;
-	//result += adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator!
-	//result += adlibop[volenvoperator].m_env; //Apply current volume of the ADSR envelope!
+	#ifndef VOLENVLINEAR
 	result *= adlibop[volenvoperator].outputlevel; //Apply old output level directly!
 	result *= adlibop[volenvoperator].volenv; //Apply volume envelope directly!
+	#else
+	result += adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator!
+	result += adlibop[volenvoperator].m_env; //Apply current volume of the ADSR envelope!
+	#endif
 	skipvolenv: //Skip vol env operator!
 	if (frequency && updateoperator) //Running operator and allowed to update our signal?
 	{
@@ -481,7 +489,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	return result; //Give the result!
 }
 
-float adlib_scaleFactor = 65535.0f / 1018.0f; //We're running 8 channels in a 16-bit space, so 1/8 of SHRT_MAX
+float adlib_scaleFactor = 65535.0f / 1018.0f; //We're running 9 channels in a 16-bit space, so 1/9 of SHRT_MAX
 
 OPTINLINE uint_32 getphase(byte operator) //Get the current phrase of the operator!
 {
@@ -529,7 +537,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 				}
 				else //FM synthesis?
 				{
-					result = calcOperator(curchan, op2, op2frequency, result, 0,op2,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op2, op2frequency, OPL2_Exponential(result), 0,op2,1); //Calculate the carrier with applied modulator!
 				}
 
 				result = OPL2_Exponential(result); //Apply the exponential! The volume is always doubled!
@@ -560,7 +568,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 					tempphase = 0x100<<((getphase(op7_0)>>8)&1); //Bit8=0(Positive) then 0x100, else 0x200! Based on the phase to generate!
 					tempphase ^= (OPL2_RNG<<8); //Noise bits XOR'es phase by 0x100 when set!
 					result = calcOperator(curchan, op7_0, op1frequency, 0.0f,1,op7_0,(!adlibop[op8_1].volenvstatus && !adlibop[op7_0].volenvstatus)); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan),(((float)tempphase)/(float)0x300)*OPL2_LogSinTable[0], 0,op7_1,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan),OPL2_Exponential((((float)tempphase)/(float)0x300)*OPL2_LogSinTable[0]), 0,op7_1,1); //Calculate the carrier with applied modulator!
 					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
 				if (adlibop[op7_0].volenvstatus) //Hi-hat on carrier?
@@ -581,7 +589,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 					else if (OPL2_RNG) tempphase = (0xD0>>2);
 					
 					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, curchan), 0.0f,0,op7_0,!adlibop[op8_1].volenvstatus); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), (((float)tempphase)/(float)0x300)*OPL2_LogSinTable[0], 0,op7_0,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), OPL2_Exponential((((float)tempphase)/(float)0x300)*OPL2_LogSinTable[0]), 0,op7_0,1); //Calculate the carrier with applied modulator!
 					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
 				result = immresult; //Load the resulting channel!
@@ -605,7 +613,7 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x300;
 					
 					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, curchan), 0.0f,0,op7_0,1); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), (((float)tempphase)/(float)0x300)*OPL2_LogSinTable[0], 0,op8_1,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), OPL2_Exponential((((float)tempphase)/(float)0x300)*OPL2_LogSinTable[0]), 0,op8_1,1); //Calculate the carrier with applied modulator!
 					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
 				if (adlibop[op8_0].volenvstatus) //Tom-tom(Carrier)?
@@ -839,9 +847,6 @@ inline uint8_t EnvelopeGenerator_advanceCounter(ADLIBOP *operator, uint8_t rate 
 	return overflow;
 }
 
-//Silence value?
-#define Silence 64
-
 void EnvelopeGenerator_attenuate( ADLIBOP *operator,uint8_t rate )
 {
 	if( rate >= 64 ) return;
@@ -873,7 +878,7 @@ void EnvelopeGenerator_decay(ADLIBOP *operator)
 
 void EnvelopeGenerator_attack(ADLIBOP *operator)
 {
-	if (!operator->m_env)
+	if (operator->m_env<=0)
 	{
 		operator->volenvstatus = 2; //Start decaying!
 	}
@@ -886,11 +891,11 @@ void EnvelopeGenerator_attack(ADLIBOP *operator)
 		if (operator->m_env<=0) return; //Abort if too high!
 		byte overflow = EnvelopeGenerator_advanceCounter(operator,operator->m_ar); //Advance with attack rate!
 		if (!overflow) return;
-		operator->volenvraw -= ((operator->m_env*overflow)>>3)+1; //Affect envelope!
+		operator->volenvraw -= ((operator->m_env*overflow)>>3)+1; //Affect envelope in a curve!
 	}
 }
 
-float min_vol = __MIN_VOL; //Original volume limiter!
+float min_vol = __MIN_VOL; //DB volume limiter!
 
 OPTINLINE void tickadlib()
 {
@@ -904,17 +909,22 @@ OPTINLINE void tickadlib()
 			switch (adlibop[curop].volenvstatus)
 			{
 			case 1: //Attacking?
+			#ifndef VOLENVLINEAR
 				adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].attack); //Attack!
 				if (adlibop[curop].volenvcalculated >= 1.0)
 				{
 					adlibop[curop].volenvcalculated = 1.0; //We're at 1.0 to start decaying!
 					++adlibop[curop].volenvstatus; //Enter next phase!
 					goto startdecay;
-				} //Old method!
-				//EnvelopeGenerator_attack(&adlibop[curop]); //New method: Attack!
+				}
+				#else
+				EnvelopeGenerator_attack(&adlibop[curop]); //New method: Attack!
+				#endif
 				break;
 			case 2: //Decaying?
-				startdecay:
+				#ifndef VOLENVLINEAR
+				
+			startdecay:
 				adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].decay); //Decay!
 				if (adlibop[curop].volenvcalculated <= adlibop[curop].sustain) //Sustain level reached?
 				{
@@ -922,9 +932,12 @@ OPTINLINE void tickadlib()
 					++adlibop[curop].volenvstatus; //Enter next phase!
 					goto startsustain;
 				}
-				//EnvelopeGenerator_decay(&adlibop[curop]); //New method: Decay!
+				#else
+				EnvelopeGenerator_decay(&adlibop[curop]); //New method: Decay!
 
 				if (adlibop[curop].volenvstatus==3) goto startsustain; //Start sustaining if needed!
+				adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
+				#endif
 				break;
 			case 3: //Sustaining?
 				startsustain:
@@ -933,27 +946,34 @@ OPTINLINE void tickadlib()
 					++adlibop[curop].volenvstatus; //Enter next phase!
 					goto startrelease; //Check again!
 				}
+				#ifdef VOLENVLINEAR
+				adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
+				#endif
 				break;
 			case 4: //Releasing?
 				startrelease:
+				#ifndef VOLENVLINEAR
 				adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].release); //Release!
 				if (adlibop[curop].volenvcalculated < min_vol) //Less than the format can provide?
 				{
 					adlibop[curop].volenv = adlibop[curop].volenvcalculated = 0.0f; //Clear the sound!
 					adlibop[curop].volenvstatus = 0; //Terminate the signal: we're unused!
 				}
-				
-				//EnvelopeGenerator_release(&adlibop[curop]); //Release: new method!
+				#else
+				EnvelopeGenerator_release(&adlibop[curop]); //Release: new method!
+				adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
+				#endif
 				break;
 			default: //Unknown volume envelope status?
 				adlibop[curop].volenvstatus = 0; //Disable this volume envelope!
 				break;
 			}
+			#ifndef VOLENVLINEAR
 			if (adlibop[curop].volenvcalculated < min_vol) //Below minimum?
 			{
 				adlibop[curop].volenv = 0.0f; //No volume below minimum!
 			}
-			adlibop[curop].volenvraw = adlibop[curop].volenv*256.0f; //256 levels of raw volume!
+			#endif
 		}
 	}
 }
@@ -1056,7 +1076,7 @@ void initAdlib()
 			((i&0x20)?24:0)
 			); //Raw output level number!
 		outputtable[i] = (float)dB2factor(outputtableraw[i],48.0f); //Generate curve!
-		outputtableraw[i] <<= 5; //Multiply the raw value by 5 to get the actual gain!
+		outputtableraw[i] = (i<<5); //Multiply the raw value by 5 to get the actual gain: the curve is applied by the register shifted left!
 	}
 
 	for (i = 0; i < (int)NUMITEMS(adlibop); i++) //Process all channels!
