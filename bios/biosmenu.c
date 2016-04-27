@@ -45,6 +45,8 @@
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM font table logging support!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA dumping support!
 
+#include "headers/support/dro.h" //DRO file support!
+
 //Define below to enable the sound test with recording!
 //#define SOUND_TEST
 
@@ -164,7 +166,7 @@ void BIOS_VideoSettingsMenu(); //Manage stuff concerning video output.
 void BIOS_VGAModeSetting(); //VGA Mode setting!
 void BIOS_SoundMenu(); //Manage stuff concerning MIDI.
 void BIOS_SoundFont_selection(); //FLOPPY0 selection menu!
-void BIOS_MIDIPlayer(); //MIDI player!
+void BIOS_MusicPlayer(); //MIDI player!
 void BIOS_Mouse(); //Mouse selection menu!
 void BIOS_CPU(); //CPU menu!
 void BIOS_CPUSpeed(); //CPU speed selection!
@@ -218,7 +220,7 @@ Handler BIOS_Menus[] =
 	,BIOS_VGAModeSetting //VGA Mode setting is #30!
 	,BIOS_SoundMenu //MIDI settings menu is #31!
 	,BIOS_SoundFont_selection //Soundfont selection menu is #32!
-	,BIOS_MIDIPlayer //MIDI Player is #33!
+	,BIOS_MusicPlayer //MIDI Player is #33!
 	,BIOS_Mouse //Mouse menu is #34!
 	,BIOS_CPU //BIOS CPU menu is #35!
 	,BIOS_CPUSpeed //BIOS CPU speed is #36!
@@ -3812,19 +3814,19 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 	BIOS_Menu = 31; //Return to the Sound menu!
 }
 
-int MIDI_file = 0; //The file selected!
+int Sound_file = 0; //The file selected!
 
-int BIOS_MIDI_selection() //MIDI selection menu, custom for this purpose!
+int BIOS_Sound_selection() //MIDI selection menu, custom for this purpose!
 {
 	BIOS_Title("Select MIDI file to play");
-	generateFileList("mid|midi", 0, 0); //Generate file list for all MIDI files!
+	generateFileList("mid|midi|dro", 0, 0); //Generate file list for all Sound files!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "MIDI file: "); //Show selection init!
 	EMU_unlocktext();
 	BIOS_EnablePlay = 1; //Enable Play=OK!
-	int file = ExecuteList(12, 4, itemlist[MIDI_file], 256,NULL); //Show menu for the disk image!
+	int file = ExecuteList(12, 4, itemlist[Sound_file], 256,NULL); //Show menu for the disk image!
 	BIOS_EnablePlay = 0; //Disable play again!
 	switch (file) //Which file?
 	{
@@ -3844,16 +3846,16 @@ int BIOS_MIDI_selection() //MIDI selection menu, custom for this purpose!
 	return -1; //Just in case!
 }
 
-byte sound_playMIDIfile(byte showinfo)
+byte sound_playSoundfile(byte showinfo)
 {
-	MIDI_file = 0; //Init selected file!
+	Sound_file = 0; //Init selected file!
 	for (;;) //MIDI selection loop!
 	{
-		MIDI_file = BIOS_MIDI_selection(); //Allow the user to select a MIDI file!
-		if (MIDI_file < 0) //Not selected?
+		Sound_file = BIOS_Sound_selection(); //Allow the user to select a MIDI file!
+		if (Sound_file < 0) //Not selected?
 		{
-			MIDI_file = 0;
-			if (MIDI_file == -2) //Default selected?
+			Sound_file = 0;
+			if (Sound_file == -2) //Default selected?
 			{
 				break; //Stop selection of the MIDI file!
 			}
@@ -3867,7 +3869,14 @@ byte sound_playMIDIfile(byte showinfo)
 		GPU_EMU_printscreen(0, GPU_TEXTSURFACE_HEIGHT - 1, "Playing..."); //Show playing init!
 		EMU_unlocktext();
 		//Play the MIDI file!
-		playMIDIFile(&itemlist[MIDI_file][0], showinfo); //Play the MIDI file!
+		if (isext(&itemlist[Sound_file][0],"mid|midi")) //MIDI file?
+		{
+			playMIDIFile(&itemlist[Sound_file][0], showinfo); //Play the MIDI file!
+		}
+		else //DRO file?
+		{
+			playDROFile(&itemlist[Sound_file][0], showinfo); //Play the DRO file!
+		}
 		EMU_locktext();
 		GPU_EMU_printscreen(0, GPU_TEXTSURFACE_HEIGHT - 1, "          "); //Show playing finished!
 		EMU_unlocktext();
@@ -3875,9 +3884,9 @@ byte sound_playMIDIfile(byte showinfo)
 	return 1; //Plain finish: just execute whatever you want!
 }
 
-void BIOS_MIDIPlayer() //MIDI Player!
+void BIOS_MusicPlayer() //Music Player!
 {
-	sound_playMIDIfile(0); //Play one or more MIDI files! Don't show any information!
+	sound_playSoundfile(0); //Play one or more MIDI files! Don't show any information!
 	BIOS_Menu = 31; //Return to the Sound menu!
 }
 

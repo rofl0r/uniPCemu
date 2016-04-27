@@ -126,6 +126,8 @@ OBJS += support/signedness.o
 OBJS += support/sf2.o hardware/midi/mpu.o hardware/midi/midi.o hardware/midi/mididevice.o hardware/midi/adsr.o
 #MID file support!
 OBJS += support/mid.o
+#DRO file support
+OBJS += support/dro.o
 
 #UART
 OBJS += hardware/uart.o

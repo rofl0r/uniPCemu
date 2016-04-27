@@ -1216,6 +1216,8 @@ void applyMDAModeControl()
 //Support for the I/O updating!
 void updateCGAMDAflags()
 {
+	if (!getActiveVGA()) return;
+	if (!getActiveVGA()->registers) return;
 	if ((getActiveVGA()->registers->specialCGAflags!=getActiveVGA()->precalcs.LastCGAFlags) || (getActiveVGA()->registers->specialMDAflags!=getActiveVGA()->precalcs.LastMDAFlags)) //CGA/MDA flags updated?
 	{
 		getActiveVGA()->precalcs.LastCGAFlags = getActiveVGA()->registers->specialCGAflags; //Update the last value used!

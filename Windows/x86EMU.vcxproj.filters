@@ -480,6 +480,9 @@
     <ClCompile Include="..\hardware\vga\vga_cga_ntsc.c">
       <Filter>Source Files\hardware\vga</Filter>
     </ClCompile>
+    <ClCompile Include="..\support\dro.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">
@@ -870,6 +873,9 @@
     </ClInclude>
     <ClInclude Include="..\headers\hardware\vga\vga_cga_ntsc.h">
       <Filter>Header Files\hardware\vga</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\support\dro.h">
+      <Filter>Header Files\support</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

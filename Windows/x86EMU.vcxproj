@@ -127,6 +127,7 @@
     <ClCompile Include="..\mmu\paging.c" />
     <ClCompile Include="..\support\bmp.c" />
     <ClCompile Include="..\support\crc32.c" />
+    <ClCompile Include="..\support\dro.c" />
     <ClCompile Include="..\support\fifobuffer.c" />
     <ClCompile Include="..\support\highrestimer.c" />
     <ClCompile Include="..\support\isoreader.c" />
@@ -256,6 +257,7 @@
     <ClInclude Include="..\headers\sdl_rest.h" />
     <ClInclude Include="..\headers\support\bmp.h" />
     <ClInclude Include="..\headers\support\crc32.h" />
+    <ClInclude Include="..\headers\support\dro.h" />
     <ClInclude Include="..\headers\support\fifobuffer.h" />
     <ClInclude Include="..\headers\support\highrestimer.h" />
     <ClInclude Include="..\headers\support\isoreader.h" />

@@ -1,5 +1,10 @@
 #include "headers/types.h" //Basic types!
 #include "headers/support/zalloc.h" //Memory support!
+#include "headers/hardware/ports.h" //I/O support!
+#include "headers/support/locks.h" //Lock support!
+#include "headers/emu/timers.h" //Timer support!
+#include "headers/emu/input.h" //Input support!
+#include "headers/cpu/cpu.h" //CPU support!
 
 #include "headers/packed.h" //Packed!
 typedef struct PACKED
@@ -10,29 +15,29 @@ typedef struct PACKED
 } DR0HEADER;
 #include "headers/endpacked.h" //End packed!
 
-enum {
-	OPL2 = 0,
-	OPL3 = 1,
-	DUALOPL2 = 2
-} IHARDWARETYPE01;
+enum IHARDWARETYPE01 {
+	IHARDWARETYPE01_OPL2 = 0,
+	IHARDWARETYPE01_OPL3 = 1,
+	IHARDWARETYPE01_DUALOPL2 = 2
+};
+
+enum IHARDWARETYPE20 {
+	IHARDWARETYPE20_OPL2 = 0,
+	IHARDWARETYPE20_OPL3 = 1,
+	IHARDWARETYPE20_DUALOPL2 = 2
+};
+
+enum COMMANDFORMAT {
+	COMMANDFORMAT_INTERLEAVED = 0, //Interleaved commands/data
+	COMMANDFORMAT_COMMANDS_DATA = 1 //First all commands, then all data
+};
 
 enum {
-	OPL2 = 0,
-	OPL3 = 1,
-	DUALOPL2 = 2
-} IHARDWARETYPE20;
-
-enum {
-	INTERLEAVED = 0, //Interleaved commands/data
-	COMMANDS_DATA = 1 //First all commands, then all data
-} COMMANDFORMAT;
-
-enum {
-	DELAY8 = 0, //Data byte following + 1 is the amount in milliseconds
-	DELAY16 = 1, //Same as above, but 16-bits
-	LOWOPLCHIP = 2, //Switch to Low OPL chip (#0)
-	HIGHOPLCHIP = 3, //Switch to High OPL chip (#1)
-	ESC = 4 //Escape: The next two bytes are normal register/value data.
+	DR0REGISTER_DELAY8 = 0, //Data byte following + 1 is the amount in milliseconds
+	DR0REGISTER_DELAY16 = 1, //Same as above, but 16-bits
+	DR0REGISTER_LOWOPLCHIP = 2, //Switch to Low OPL chip (#0)
+	DR0REGISTER_HIGHOPLCHIP = 3, //Switch to High OPL chip (#1)
+	DR0REGISTER_ESC = 4 //Escape: The next two bytes are normal register/value data.
 } DR0REGISTER;
 
 #include "headers/packed.h" //Packed!
@@ -60,7 +65,7 @@ typedef struct PACKED
 typedef struct PACKED
 {
 	uint_32 iLengthPairs; //Length of the song in register/value pairs
-	uint_32 iLengthBytes; //Length of the song data in milliseconds
+	uint_32 iLengthMS; //Length of the song data in milliseconds
 	byte iHardwareType; //Flag listing of the hardware used in the song
 	byte iFormat; //Data arrangement
 	byte iCompression; //Compression type. 0=No compression. Currently only is used.
@@ -82,6 +87,7 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 	FILE *f; //The file!
 	uint_32 oldpos;
 	f = fopen(filename,"rb"); //Open the filename!
+	byte empty[3] = {0,0,0}; //Empty data!
 	if (fread(header,1,sizeof(*header),f)!=sizeof(*header))
 	{
 		fclose(f);
@@ -92,7 +98,7 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 		fclose(f);
 		return 0; //Error: Invalid signature!
 	}
-	if ((header->iVersionMajor==0) && (header->iVersionMinor==1)) //Version 1.0(old) or 0.1(new)?
+	if (((header->iVersionMajor==0) && (header->iVersionMinor==1)) || ((header->iVersionMajor == 1) && (header->iVersionMinor == 0))) //Version 1.0(old) or 0.1(new)?
 	{
 		oldpos = ftell(f); //Save the old position to jump back to!
 		if (fread(oldheader,1,sizeof(*oldheader),f)!=sizeof(*oldheader)) //New header invalid size/read error?
@@ -100,7 +106,7 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 			fclose(f);
 			return 0; //Error reading the file!
 		}
-		if (memcmp(&oldheader->iHardwareExtra,0,sizeof(oldheader->iHardwareExtra)!=0) //Maybe earlier version?
+		if (memcmp(&oldheader->iHardwareExtra,&empty,sizeof(oldheader->iHardwareExtra))!=0) //Maybe earlier version?
 		{
 			fseek(f,oldpos,SEEK_SET); //Return!
 			if (fread(earlyheader,1,sizeof(*earlyheader),f)!=sizeof(*earlyheader)) //New header invalid size/read error?
@@ -119,16 +125,28 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 		//Since we're old-style anyway, patch the codemap and 2.0 table values based on the old header now!
 		for (temp=0;temp<0x100;++temp)
 		{
-			CodemapTable[temp] = (temp&7F); //All ascending, repeat, as per Dual-OPL2!
+			CodemapTable[temp] = (temp&0x7F); //All ascending, repeat, as per Dual-OPL2!
 		}
-		newheader->iCodemapLength = 0xFF; //Maximum codemap length!
+		newheader->iCodemapLength = 0x00; //Maximum codemap length(No translation)!
 		newheader->iLengthPairs = (oldheader->iLengthBytes>>1); //Length in pairs(2 bytes)!
-		newheader->iLengthMS = oldheader->iLengthMS;
+		newheader->iLengthMS = oldheader->iLengthMS; //Length in pairs(2 bytes)!
+		switch (oldheader->iHardwareType)
+		{
+		case IHARDWARETYPE01_OPL2:
+			newheader->iHardwareType = IHARDWARETYPE20_OPL2; //Translate!
+			break;
+		case IHARDWARETYPE01_OPL3:
+			newheader->iHardwareType = IHARDWARETYPE20_OPL3; //Translate!
+			break;
+		case IHARDWARETYPE01_DUALOPL2:
+			newheader->iHardwareType = IHARDWARETYPE20_DUALOPL2; //Translate!
+			break;
+		}
 		newheader->iHardwareType = oldheader->iHardwareType; //Virtually the same between the two versions!
-		newheader->iFormat = COMMANDFORMAT.INTERLEAVED; //Default to interleaved format!
+		newheader->iFormat = COMMANDFORMAT_INTERLEAVED; //Default to interleaved format!
 		newheader->iCompression = 0; //No compression!
-		newheader->iShortDelayCode = DR0REGISTER.DELAY8; //Short delay code!
-		newheader->iLongDelayCode = DR0REGISTER.DELAY16; //Long delay code!
+		newheader->iShortDelayCode = DR0REGISTER_DELAY8; //Short delay code!
+		newheader->iLongDelayCode = DR0REGISTER_DELAY16; //Long delay code!
 	}
 	else if ((header->iVersionMajor==2) && (header->iVersionMinor==0)) //Version 2.0?
 	{
@@ -175,7 +193,7 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 
 	if (fread(*data,1,filesize,f)!=filesize) //Error reading contents?
 	{
-		freez(data,filesize,"DROFILE"); //Release the file!
+		freez((void **)data,filesize,"DROFILE"); //Release the file!
 		fclose(f);
 		return 0; //Error: file couldn't be read!
 	}
@@ -185,30 +203,81 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 }
 
 //Adlib support!
-void adlibsetreg(byte reg,byte val)
+void OPLXsetreg(byte version, byte newHardwareType, byte whatchip,byte reg,byte *CodemapTable,byte codemapLength,byte value)
 {
+	byte chip;
+	if (version < 3) //Version 1.0?
+	{
+		switch (newHardwareType) //What hardware type?
+		{
+		case IHARDWARETYPE20_OPL2: //OPL2?
+			chip = 0; //Only one chip(Dual OPL-2)/register bank(OPL-3)!
+			break;
+		case IHARDWARETYPE20_OPL3: //OPL3?
+			chip = whatchip; //Not supported yet: High register bank!
+			break;
+		case IHARDWARETYPE20_DUALOPL2: //Dual OPL2?
+			chip = whatchip; //Not supported yet: High chip!
+			break;
+		default: //Unknown hardware type?
+			return; //Unknown hardware: abort!
+			break;
+		}
+	}
+	else //Version 2.0?
+	{
+		switch (newHardwareType) //What hardware type?
+		{
+		case IHARDWARETYPE20_OPL2: //OPL2?
+			chip = 0; //Only one chip&bank is present!
+			break;
+		case IHARDWARETYPE20_OPL3: //OPL3?
+			chip = (reg & 0x80)?1:0; //Not supported yet: High register bank!
+			break;
+		case IHARDWARETYPE20_DUALOPL2: //Dual OPL2?
+			chip = (reg & 0x80) ? 1 : 0; //Not supported yet: High chip!
+			break;
+		default: //Unknown hardware type?
+			return; //Unknown hardware: abort!
+			break;
+		}
+		reg &= 0x7F; //Only the low bits are looked up!
+	}
+	if (reg<codemapLength) reg = CodemapTable[reg]; //Translate reg through the Codemap Table when within range!
+	//Ignore the chip!
 	PORT_OUT_B(0x388,reg);
-	PORT_OUT_B(0x389,val);
+	PORT_OUT_B(0x389,value);
 }
+
+byte OPLlock = 0; //Default: not locked!
 
 void lockOPL()
 {
+	if (OPLlock) return; //Prevent re-lock!
 	lock(LOCK_CPU);
+	OPLlock = 1; //Locked!
 }
 
 void unlockOPL()
 {
+	if (!OPLlock) return; //Prevent unlock!
 	unlock(LOCK_CPU);
+	OPLlock = 0; //Unlocked!
+}
+
+int readStream(byte **stream, byte *eos)
+{
+	if (*stream!=eos) //Valid item to read?
+		return (int)*((*stream)++);
+	return -1; //Invalid item!
 }
 
 //The player itself!
 byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to stop playback!
 {
-	byte escaped = 0; //Is the current instruction escaped?
-	byte b; //Temporary 8-bit number.
 	word w; //Temporary 16-bit number.
 	int streambuffer; //Stream data buffer for read data!
-	byte channelregister,value,channel=0; //OPL Register/value container!
+	byte value,channel=0; //OPL Register/value container!
 	byte whatchip = 0; //Low/high chip selection!
 	//All file data itself:
 	DR0HEADER header;
@@ -216,20 +285,27 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 	DR01HEADER oldheader;
 	DR20HEADER newheader;
 	byte CodemapTable[0x100]; //256-byte Codemap table!
-	byte *data,
+	byte *data;
 	byte *stream; //The stream to use.
+	byte *eos; //The end of the stream is reached!
 	uint_32 datasize;
 	byte stoprunning = 0;
 	byte droversion;
 	//Start reading the file!
-	if (droversion = readDRO(char *filename, &header, &earlyheader, &oldheader, &newheader, &CodemapTable, &data, &datasize)) //Loaded DRO file?
+
+	lock(LOCK_CPU); //Lock the CPU: we're changing state!
+	CPU[activeCPU].halt = 2; //Force us into HLT state!
+	unlock(LOCK_CPU); //Release the CPU to be used!
+
+	if ((droversion = readDRO(filename, &header, &earlyheader, &oldheader, &newheader, &CodemapTable[0], &data, &datasize))>0) //Loaded DRO file?
 	{
 		stopTimers(0); //Stop most timers for max compatiblity and speed!
 		//Initialise our device!
 		lockOPL();
 		for (w=0;w<=0xFF;++w) //Clear all registers!
 		{
-			adlibsetreg(w,0); //Clear all registers, as per the DR0 specification!
+			OPLXsetreg(droversion,newheader.iHardwareType,0,w,&CodemapTable[0],newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!
+			OPLXsetreg(droversion,newheader.iHardwareType,1,w,&CodemapTable[0],newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!
 		}
 		unlockOPL();
 
@@ -238,50 +314,58 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 
 		stream = data; //Start processing the start of the stream!
 
+		eos = &data[datasize]; //The end of the stream!
+
 		for (;;) //Wait to end!
 		{
 			//Process input!
-			streambuffer = readStream(&stream); //Read the instruction from the stream!
+			streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
 			if (streambuffer==-1) break; //Stop if reached EOS!
-			if ((streambuffer==newheader->iShortDelayCode) && (droversion==3)) //Short delay?
+			if ((streambuffer==newheader.iShortDelayCode) && (droversion==3)) //Short delay?
 			{
-				streambuffer = readStream(&stream); //Read the instruction from the stream!
+				streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
 				if (streambuffer==-1) break; //Stop if reached EOS!
+				unlockOPL(); //We're finished with the OPL now!
 				delay(1000*(streambuffer+1)); //Delay!
 			}
-			else if ((streambuffer==newheader->iLongDelayCode) && (droversion==3)) //Long delay?
+			else if ((streambuffer==newheader.iLongDelayCode) && (droversion==3)) //Long delay?
 			{
-				streambuffer = readStream(&stream); //Read the instruction from the stream!
+				streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
 				if (streambuffer==-1) break; //Stop if reached EOS!
+				unlockOPL(); //We're finished with the OPL now!
 				delay(1000*((streambuffer+1)*256)); //Delay the long period!
 			}
 			else //Normal instruction?
 			{
-				if ((streambuffer==DR0REGISTER.DELAY8) && (droversion!=3)) //8-bit delay?
+				if ((streambuffer==DR0REGISTER_DELAY8) && (droversion!=3)) //8-bit delay?
 				{
-					streambuffer = readStream(&stream); //Read the instruction from the stream!
+					streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
 					if (streambuffer==-1) break; //Stop if reached EOS!
+					unlockOPL(); //We're finished with the OPL now!
+					delay(1000 * (streambuffer + 1)); //Delay!
 				}
-				else if ((streambuffer==DR0REGISTER.DELAY16) && (droversion!=3)) //16-bit delay?
+				else if ((streambuffer==DR0REGISTER_DELAY16) && (droversion!=3)) //16-bit delay?
 				{
-					streambuffer = readStream(&stream); //Read the instruction from the stream!
+					streambuffer = readStream(&stream,eos); //Read the instruction low byte from the stream!
 					if (streambuffer==-1) break; //Stop if reached EOS!
+					w = (streambuffer&0xFF); //Load low byte!
+					streambuffer = readStream(&stream,eos); //Read the instruction high byte from the stream!
+					if (streambuffer == -1) break; //Stop if reached EOS!
+					w |= ((streambuffer & 0xFF)<<8); //Load high byte!
+					unlockOPL(); //We're finished with the OPL now!
+					delay(1000 * (w + 1)); //Delay the long period!
 				}
-				else if ((streambuffer=DR0REGISTER.LOWOPLCHIP) && (droversion!=3)) //Low OPL chip?
+				else if ((streambuffer==DR0REGISTER_LOWOPLCHIP) && (droversion!=3) && (newheader.iHardwareType!=IHARDWARETYPE20_OPL2)) //Low OPL chip and supported?
 				{
-					streambuffer = readStream(&stream); //Read the instruction from the stream!
-					if (streambuffer==-1) break; //Stop if reached EOS!
 					whatchip = 0; //Low channel in dual-OPL!
 				}
-				else if ((streambuffer==DR0REGISTER.HIGHOPLCHIP) && (droversion!=3)) //High OPL chip?
+				else if ((streambuffer==DR0REGISTER_HIGHOPLCHIP) && (droversion!=3) && (newheader.iHardwareType != IHARDWARETYPE20_OPL2)) //High OPL chip and supported?
 				{
-					streambuffer = readStream(&stream); //Read the instruction from the stream!
-					if (streambuffer==-1) break; //Stop if reached EOS!
 					whatchip = 1; //High channel in dual-OPL!
 				}
-				else if (streambuffer==DR0REGISTER.ESC) //Escape?
+				else if ((streambuffer==DR0REGISTER_ESC) && (droversion != 3)) //Escape?
 				{
-					streambuffer = readStream(&stream); //Read the instruction from the stream!
+					streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
 					if (streambuffer==-1) break; //Stop if reached EOS!
 					goto normalinstruction; //Execute us as a normal instruction!
 				}
@@ -289,17 +373,17 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 				{
 					normalinstruction: //Process a normal instruction!
 					channel = streambuffer; //The first is the channel!
-					streambuffer = readStream(&stream); //Read the instruction from the stream!
+					streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
 					if (streambuffer==-1) break; //Stop if reached EOS!
 					value = streambuffer; //The second is the value!					
-					lockOPL();
-					adlibsetreg(whatchip,CodemapTable[(channel)&0x7F],value); //Set the register!
-					unlockOPL();
+					lockOPL(); //We need to lock the OPL now!
+					OPLXsetreg(droversion,newheader.iHardwareType,whatchip,channel,&CodemapTable[0],newheader.iCodemapLength,value); //Set the register!
 				}
-
+			}
 			//Check for stopping the song!			
 			if (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
 			{
+				unlockOPL(); //We're finished with the OPL!
 				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));) delay(0); //Wait for release while pressed!
 				stoprunning = 1; //Set termination flag to request a termination!
 			}
@@ -310,7 +394,8 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 		lockOPL();
 		for (w=0;w<=0xFF;++w) //Clear all registers!
 		{
-			adlibsetreg(w,0); //Clear all registers, as per the DR0 specification!
+			OPLXsetreg(droversion,newheader.iHardwareType,0,(w&0x7F),&CodemapTable[0],newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!
+			OPLXsetreg(droversion,newheader.iHardwareType,1,(w&0x7F),&CodemapTable[0],newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!
 		}
 		unlockOPL();
 
