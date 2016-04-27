@@ -166,27 +166,30 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 	if ((adliboperators[0][channel]!=0xFF) && (((keyon&1) && ((oldkeyon^keyon)&1)) || (forcekeyon&1))) //Key ON on operator #1?
 	{
 		adlibop[adliboperators[0][channel]&0x1F].volenvstatus = 1; //Start attacking!
-	#ifndef VOLENVLINEAR	adlibop[adliboperators[0][channel]&0x1F].volenvcalculated = adlibop[adliboperators[0][channel]&0x1F].volenv = 0.0025f;
-		adlibop[adliboperators[0][channel]&0x1F].volenvraw = 0; //No raw level!
-		adlibop[adliboperators[0][channel]&0x1F].freq0 = adlibop[adliboperators[0][channel]&0x1F].time = 0.0f; //Initialise operator signal!
-	#else
-	adlibop[adliboperators[0][channel]&0x1F].volenvraw = Silence; //No raw level: Start silence!
-	adlibop[adliboperators[0][channel]&0x1F].m_env = Silence; //No raw level: Start level!
-	adlibop[adliboperators[0][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
-	#endif
-		memset(&adlibop[adliboperators[0][channel]&0x1F].lastsignal, 0, sizeof(adlibop[0].lastsignal)); //Reset the last signals!
+		#ifndef VOLENVLINEAR
+			adlibop[adliboperators[0][channel]&0x1F].volenvcalculated = adlibop[adliboperators[0][channel]&0x1F].volenv = 0.0025f;
+			adlibop[adliboperators[0][channel]&0x1F].volenvraw = 0; //No raw level!
+		#else
+			adlibop[adliboperators[0][channel]&0x1F].volenvraw = Silence; //No raw level: Start silence!
+			adlibop[adliboperators[0][channel]&0x1F].m_env = Silence; //No raw level: Start level!
+			adlibop[adliboperators[0][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
+		#endif
+			adlibop[adliboperators[0][channel]&0x1F].freq0 = adlibop[adliboperators[0][channel]&0x1F].time = 0.0f; //Initialise operator signal!
+			memset(&adlibop[adliboperators[0][channel]&0x1F].lastsignal, 0, sizeof(adlibop[0].lastsignal)); //Reset the last signals!
 	}
 	if ((adliboperators[1][channel]!=0xFF) && (((keyon&2) && ((oldkeyon^keyon)&2)) || (forcekeyon&2))) //Key ON on operator #2?
 	{
-		adlibop[adliboperators[1][channel]&0x1F].volenvstatus = 1; //Start attacking!
-	#ifndef VOLENVLINEAR	adlibop[adliboperators[1][channel]&0x1F].volenvcalculated = adlibop[adliboperators[0][channel]&0x1F].volenv = 0.0025f;
-		adlibop[adliboperators[1][channel]&0x1F].volenvraw = 0; //No raw level!
-		adlibop[adliboperators[1][channel]&0x1F].freq0 = adlibop[adliboperators[1][channel]&0x1F].time = 0.0f; //Initialise operator signal!
-	#else
-		adlibop[adliboperators[1][channel]&0x1F].volenvraw = Silence; //No raw level: silence!
-	adlibop[adliboperators[1][channel]&0x1F].m_env = Silence; //No raw level: Start level!
-	adlibop[adliboperators[1][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
-	#endif	memset(&adlibop[adliboperators[1][channel]&0x1F].lastsignal, 0, sizeof(adlibop[1].lastsignal)); //Reset the last signals!
+			adlibop[adliboperators[1][channel]&0x1F].volenvstatus = 1; //Start attacking!
+		#ifndef VOLENVLINEAR
+			adlibop[adliboperators[1][channel]&0x1F].volenvcalculated = adlibop[adliboperators[0][channel]&0x1F].volenv = 0.0025f;
+			adlibop[adliboperators[1][channel]&0x1F].volenvraw = 0; //No raw level!
+		#else
+			adlibop[adliboperators[1][channel]&0x1F].volenvraw = Silence; //No raw level: silence!
+			adlibop[adliboperators[1][channel]&0x1F].m_env = Silence; //No raw level: Start level!
+			adlibop[adliboperators[1][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
+	#endif
+			adlibop[adliboperators[1][channel]&0x1F].freq0 = adlibop[adliboperators[1][channel]&0x1F].time = 0.0f; //Initialise operator signal!
+			memset(&adlibop[adliboperators[1][channel]&0x1F].lastsignal, 0, sizeof(adlibop[1].lastsignal)); //Reset the last signals!
 	}
 	adlibch[channel].freq = adlibregmem[0xA0 + channel] | ((adlibregmem[0xB0 + channel] & 3) << 8);
 	adlibch[channel].convfreq = ((double)adlibch[channel].freq * 0.7626459);
