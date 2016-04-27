@@ -243,6 +243,7 @@ void OPLXsetreg(byte version, byte newHardwareType, byte whatchip,byte reg,byte 
 		}
 		reg &= 0x7F; //Only the low bits are looked up!
 	}
+	if (chip) return; //High chip/bank isn't supported yet!
 	if (reg<codemapLength) reg = CodemapTable[reg]; //Translate reg through the Codemap Table when within range!
 	//Ignore the chip!
 	PORT_OUT_B(0x388,reg);

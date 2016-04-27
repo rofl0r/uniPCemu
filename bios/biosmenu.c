@@ -164,9 +164,9 @@ void BIOSClearScreen(); //Resets the BIOS's screen!
 void BIOSDoneScreen(); //Cleans up the BIOS's screen!
 void BIOS_VideoSettingsMenu(); //Manage stuff concerning video output.
 void BIOS_VGAModeSetting(); //VGA Mode setting!
-void BIOS_SoundMenu(); //Manage stuff concerning MIDI.
+void BIOS_SoundMenu(); //Manage stuff concerning Sound.
 void BIOS_SoundFont_selection(); //FLOPPY0 selection menu!
-void BIOS_MusicPlayer(); //MIDI player!
+void BIOS_MusicPlayer(); //Music player!
 void BIOS_Mouse(); //Mouse selection menu!
 void BIOS_CPU(); //CPU menu!
 void BIOS_CPUSpeed(); //CPU speed selection!
@@ -218,7 +218,7 @@ Handler BIOS_Menus[] =
 	,BIOS_gamingKeyboardColor //Keyboard color menu is #28!
 	,BIOS_VideoSettingsMenu //Manage stuff concerning Video Settings is #29!
 	,BIOS_VGAModeSetting //VGA Mode setting is #30!
-	,BIOS_SoundMenu //MIDI settings menu is #31!
+	,BIOS_SoundMenu //Sound settings menu is #31!
 	,BIOS_SoundFont_selection //Soundfont selection menu is #32!
 	,BIOS_MusicPlayer //MIDI Player is #33!
 	,BIOS_Mouse //Mouse menu is #34!
@@ -3714,8 +3714,8 @@ void BIOS_InitSoundText()
 
 	if (!EMU_RUNNING)
 	{
-		optioninfo[advancedoptions] = 5; //MIDI player!
-		strcpy(menuoptions[advancedoptions++], "MIDI Player");
+		optioninfo[advancedoptions] = 5; //Music player!
+		strcpy(menuoptions[advancedoptions++], "Music Player");
 	}
 
 	optioninfo[advancedoptions] = 6; //Start/stop recording sound!
@@ -3763,8 +3763,8 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 		case 4: //Sound Source Volume?
 			BIOS_Menu = 38; //Sound Source Volume setting!
 			break;
-		case 5: //Play MIDI file(s)?
-			BIOS_Menu = 33; //Play MIDI file(s)!
+		case 5: //Play Music file(s)?
+			BIOS_Menu = 33; //Play Music file(s)!
 			break;
 		case 6: //Sound recording?
 			BIOS_Menu = 42; //Start/stop sound recording!
@@ -3816,14 +3816,14 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 
 int Sound_file = 0; //The file selected!
 
-int BIOS_Sound_selection() //MIDI selection menu, custom for this purpose!
+int BIOS_Sound_selection() //Music selection menu, custom for this purpose!
 {
 	BIOS_Title("Select MIDI file to play");
 	generateFileList("mid|midi|dro", 0, 0); //Generate file list for all Sound files!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
-	GPU_EMU_printscreen(0, 4, "MIDI file: "); //Show selection init!
+	GPU_EMU_printscreen(0, 4, "Music file: "); //Show selection init!
 	EMU_unlocktext();
 	BIOS_EnablePlay = 1; //Enable Play=OK!
 	int file = ExecuteList(12, 4, itemlist[Sound_file], 256,NULL); //Show menu for the disk image!
@@ -3849,15 +3849,15 @@ int BIOS_Sound_selection() //MIDI selection menu, custom for this purpose!
 byte sound_playSoundfile(byte showinfo)
 {
 	Sound_file = 0; //Init selected file!
-	for (;;) //MIDI selection loop!
+	for (;;) //Music selection loop!
 	{
-		Sound_file = BIOS_Sound_selection(); //Allow the user to select a MIDI file!
+		Sound_file = BIOS_Sound_selection(); //Allow the user to select a Music file!
 		if (Sound_file < 0) //Not selected?
 		{
 			Sound_file = 0;
 			if (Sound_file == -2) //Default selected?
 			{
-				break; //Stop selection of the MIDI file!
+				break; //Stop selection of the Music file!
 			}
 			else //Full cancel to execute?
 			{
@@ -3873,7 +3873,7 @@ byte sound_playSoundfile(byte showinfo)
 		{
 			playMIDIFile(&itemlist[Sound_file][0], showinfo); //Play the MIDI file!
 		}
-		else //DRO file?
+		else if (isext(&itemlist[Sound_file][0],"dro")) //DRO file?
 		{
 			playDROFile(&itemlist[Sound_file][0], showinfo); //Play the DRO file!
 		}
@@ -3886,7 +3886,7 @@ byte sound_playSoundfile(byte showinfo)
 
 void BIOS_MusicPlayer() //Music Player!
 {
-	sound_playSoundfile(0); //Play one or more MIDI files! Don't show any information!
+	sound_playSoundfile(0); //Play one or more Music files! Don't show any information!
 	BIOS_Menu = 31; //Return to the Sound menu!
 }
 
