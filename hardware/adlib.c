@@ -34,6 +34,9 @@
 
 #define PI2 ((float)(2.0f * PI))
 
+//Silence value?
+#define Silence 64
+
 //extern void set_port_write_redirector (uint16_t startport, uint16_t endport, void *callback);
 //extern void set_port_read_redirector (uint16_t startport, uint16_t endport, void *callback);
 
@@ -461,9 +464,6 @@ OPTINLINE void incop(byte operator, float frequency)
 	}
 }
 
-//Silence value?
-#define Silence 64
-
 //Calculate an operator signal!
 OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float modulator, byte feedback, byte volenvoperator, byte updateoperator)
 {
@@ -486,7 +486,7 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	result *= adlibop[volenvoperator].volenv; //Apply volume envelope directly!
 	#else
 	result += adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator(already shifted left by 5 bits)!
-	result += (adlibop[volenvoperator].volenvraw<<3); //Apply current volume of the ADSR envelope(64 levels shifted left by 3)!
+	result += ((word)adlibop[volenvoperator].volenvraw<<3); //Apply current volume of the ADSR envelope(64 levels shifted left by 3)!
 	#endif
 	skipvolenv: //Skip vol env operator!
 	if (frequency && updateoperator) //Running operator and allowed to update our signal?
