@@ -485,8 +485,8 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	result *= adlibop[volenvoperator].outputlevel; //Apply old output level directly!
 	result *= adlibop[volenvoperator].volenv; //Apply volume envelope directly!
 	#else
-	result += adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator!
-	result += adlibop[volenvoperator].volenvraw; //Apply current volume of the ADSR envelope!
+	result += adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator(already shifted left by 5 bits)!
+	result += (adlibop[volenvoperator].volenvraw<<3); //Apply current volume of the ADSR envelope(64 levels shifted left by 3)!
 	#endif
 	skipvolenv: //Skip vol env operator!
 	if (frequency && updateoperator) //Running operator and allowed to update our signal?
@@ -935,20 +935,18 @@ OPTINLINE void tickadlib()
 				break;
 			case 2: //Decaying?
 				#ifndef VOLENVLINEAR
-				
-			startdecay:
-				adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].decay); //Decay!
-				if (adlibop[curop].volenvcalculated <= adlibop[curop].sustain) //Sustain level reached?
-				{
-					adlibop[curop].volenvcalculated = adlibop[curop].sustain; //Sustain level!
-					++adlibop[curop].volenvstatus; //Enter next phase!
-					goto startsustain;
-				}
+					startdecay:
+					adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].decay); //Decay!
+					if (adlibop[curop].volenvcalculated <= adlibop[curop].sustain) //Sustain level reached?
+					{
+						adlibop[curop].volenvcalculated = adlibop[curop].sustain; //Sustain level!
+						++adlibop[curop].volenvstatus; //Enter next phase!
+						goto startsustain;
+					}
 				#else
-				EnvelopeGenerator_decay(&adlibop[curop]); //New method: Decay!
-
-				if (adlibop[curop].volenvstatus==3) goto startsustain; //Start sustaining if needed!
-				adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
+					EnvelopeGenerator_decay(&adlibop[curop]); //New method: Decay!
+					if (adlibop[curop].volenvstatus==3) goto startsustain; //Start sustaining if needed!
+					adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
 				#endif
 				break;
 			case 3: //Sustaining?
@@ -959,21 +957,21 @@ OPTINLINE void tickadlib()
 					goto startrelease; //Check again!
 				}
 				#ifdef VOLENVLINEAR
-				adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
+					adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
 				#endif
 				break;
 			case 4: //Releasing?
 				startrelease:
 				#ifndef VOLENVLINEAR
-				adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].release); //Release!
-				if (adlibop[curop].volenvcalculated < min_vol) //Less than the format can provide?
-				{
-					adlibop[curop].volenv = adlibop[curop].volenvcalculated = 0.0f; //Clear the sound!
-					adlibop[curop].volenvstatus = 0; //Terminate the signal: we're unused!
-				}
+					adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].release); //Release!
+					if (adlibop[curop].volenvcalculated < min_vol) //Less than the format can provide?
+					{
+						adlibop[curop].volenv = adlibop[curop].volenvcalculated = 0.0f; //Clear the sound!
+						adlibop[curop].volenvstatus = 0; //Terminate the signal: we're unused!
+					}
 				#else
-				EnvelopeGenerator_release(&adlibop[curop]); //Release: new method!
-				adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
+					EnvelopeGenerator_release(&adlibop[curop]); //Release: new method!
+					adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
 				#endif
 				break;
 			default: //Unknown volume envelope status?
