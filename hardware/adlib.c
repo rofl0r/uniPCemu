@@ -471,6 +471,7 @@ OPTINLINE void incop(byte operator, float frequency)
 }
 
 float volenvfactor = 1.0f; //Volume envelope factor!
+float adlib_expreverse = 1.0f; //Reverses exponential lookup(produces -1 to 1 when multiplied).
 
 //Calculate an operator signal!
 OPTINLINE sword calcOperator(byte curchan, byte operator, float frequency, sword modulator, byte feedback, byte volenvoperator, byte updateoperator)
@@ -481,12 +482,13 @@ OPTINLINE sword calcOperator(byte curchan, byte operator, float frequency, sword
 	//Generate the signal!
 	if (feedback) //Apply channel feedback?
 	{
-		activemodulation = OPL2_Exponential(adlibop[operator].lastsignal[0]+adlibop[operator].lastsignal[1])*adlibop[operator].feedback;
+		activemodulation = OPL2_Exponential(adlibop[operator].lastsignal[0]+adlibop[operator].lastsignal[1]);
+		activemodulation *= adlib_expreverse; //Convert to a scale of -1 to +1.
 		activemodulation *= adlibch[curchan].feedback; //Calculate current feedback
 	}
 	else
 	{
-		activemodulation = (modulation/OPL2_ExpTable[255])*(PI);
+		activemodulation = (modulation/OPL2_ExpTable[255])*modulatorfactor; //Convert to -1 to 1 range, then to modulation factor for the actual rate.
 	}
 
 	//Generate the correct signal!
@@ -1129,7 +1131,8 @@ void initAdlib()
 		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5f)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
 	}
 	explookup = (1.0f/(OPL2_LogSinTable[0])*256.0f; //Exp lookup factor for LogSin values!
-	adlib_scaleFactor = (float)((1.0f/OPL2_ExpTable[255])*(((SHRT_MAX+1)/9)-1)); //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
+	adlib_expreverse = (1.0f/OPL2_ExpTable[255]); //Reversing final(largest) exp lookup factor by multiplying with this.
+	adlib_scaleFactor = (float)(adlib_expreverse*(((SHRT_MAX+1)/9)-1)); //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
 	volenvfactor = (1.0f/(outputtableraw[0x3F]+(Silence*8.0f))); //Conversion from volume of the ExpTable to a factor to apply to the samples for the volume!
 
 	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
