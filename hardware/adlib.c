@@ -59,7 +59,7 @@ byte timer80=0, timer320=0; //Timer variables for current timer ticks!
 //Registers itself
 byte adlibregmem[0xFF], adlibaddr = 0;
 
-word OPL2_ExpTable[0x100], OPL2_LogSinTable[0x100]; //The OPL2 Exponentional and Log-Sin tables!
+sword OPL2_ExpTable[0x100], OPL2_LogSinTable[0x100]; //The OPL2 Exponentional and Log-Sin tables!
 
 byte adliboperators[2][0x10] = { //Groupings of 22 registers! (20,40,60,80,E0)
 	{ 0x00, 0x01, 0x02, 0x08, 0x09, 0x0A, 0x10, 0x11, 0x12,255,255,255,255,255,255 },
@@ -460,7 +460,7 @@ OPTINLINE sword calcAdlibSignal(byte wave, float phase, float frequency, float *
 
 OPTINLINE void incop(byte operator, float frequency)
 {
-p	float temp;
+	float temp;
 	double d;
 	adlibop[operator].time += adlib_sampleLength; //Add 1 sample to the time!
 
@@ -473,7 +473,7 @@ p	float temp;
 float volenvfactor = 1.0f; //Volume envelope factor!
 
 //Calculate an operator signal!
-OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, sword modulator, byte feedback, byte volenvoperator, byte updateoperator)
+OPTINLINE sword calcOperator(byte curchan, byte operator, float frequency, sword modulator, byte feedback, byte volenvoperator, byte updateoperator)
 {
 	if (operator==0xFF) return 0.0f; //Invalid operator!
 	sword result,feedbackresult; //Our variables?
