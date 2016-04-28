@@ -24,7 +24,9 @@
 //What volume is the minimum volume to be heard!
 #define __MIN_VOL (1.0f / SHRT_MAX)
 //Use linear adlib volume, with accurate attenuation(64 levels, instead of inaccurate multiplication by factor in the 0-1 range) when below is defined.
-//#define VOLENVLINEAR
+#define VOLENVLINEAR
+//Generate WAV file output?
+#define WAV_ADLIB
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
 #define __ADLIB_SAMPLEBUFFERSIZE 4096
@@ -73,6 +75,10 @@ double feedbacklookup2[8]; //Actual feedback lookup value!
 byte wavemask = 0; //Wave select mask!
 
 FIFOBUFFER *adlibsound = NULL, *adlibdouble = NULL; //Our sound buffer for rendering!
+
+#ifdef WAV_ADLIB
+WAVEFILE *adlibout = NULL;
+#endif
 
 typedef struct {
 	//Effects
@@ -254,8 +260,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		if (portnum <= 0x55) //KSL/Output level
 		{
 			portnum &= 0x1F;
-			adlibop[portnum].outputlevel = (float)outputtable[value & 0x2F]; //Apply output level!
-			adlibop[portnum].outputlevelraw = (float)outputtableraw[value&0x2F]; //Apply raw output level!
+			adlibop[portnum].outputlevel = (float)outputtable[value & 0x3F]; //Apply output level!
+			adlibop[portnum].outputlevelraw = (float)outputtableraw[value&0x3F]; //Apply raw output level!
 		}
 		break;
 	case 0x60:
@@ -485,8 +491,18 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	result *= adlibop[volenvoperator].outputlevel; //Apply old output level directly!
 	result *= adlibop[volenvoperator].volenv; //Apply volume envelope directly!
 	#else
-	result += adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator(already shifted left by 5 bits)!
-	result += ((word)adlibop[volenvoperator].volenvraw<<3); //Apply current volume of the ADSR envelope(64 levels shifted left by 3)!
+	if (result>=0.0f) //Positive? Add volume!
+	{
+		result -= adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator(already shifted left by 5 bits)!
+		if (adlibop[volenvoperator].outputlevelraw<outputtableraw[0x3F]) result += (word)adlibop[volenvoperator].volenvraw; //Apply current volume of the ADSR envelope(64 levels shifted left by 3)! Only when gotten output level!
+		if (result<0.0f) result = 0.0f; //Prevent underflow!
+	}
+	else //Negative? Substract volume (the envelope is for positive signals only) to become a negative signal instead of becoming more positive(wrong signal)!
+	{
+		result += adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator(already shifted left by 5 bits)!
+		if (adlibop[volenvoperator].outputlevelraw<outputtableraw[0x3F]) result -= (word)adlibop[volenvoperator].volenvraw; //Apply current volume of the ADSR envelope(64 levels shifted left by 3)! Only when gotten output level!
+		if (result>0.0f) result = 0.0f; //Prevent overflow!
+	}
 	#endif
 	skipvolenv: //Skip vol env operator!
 	if (frequency && updateoperator) //Running operator and allowed to update our signal?
@@ -533,7 +549,6 @@ OPTINLINE short adlibsample(uint8_t curchan) {
 		op7_1 = adliboperators[1][7];
 		op8_0 = adliboperators[0][8];
 		op8_1 = adliboperators[1][8];
-		return 0; //Disabled!
 		switch (curchan) //What channel?
 		{
 			case 6: //Bass drum?
@@ -722,58 +737,51 @@ OPTINLINE void adlib_timer80() //First timer!
 
 float counter80step = 0.0f; //80us timer tick interval in samples!
 
+OPTINLINE byte adlib_channelplaying(byte channel)
+{
+	switch (channel) //What channel?
+	{
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6: //Also drum channel, but it's melodic, do no difference here.
+			return adlibop[adliboperators[1][channel]].volenvstatus; //Melodic, so carrier!
+		case 7:
+			if (adlibpercussion) //Percussion mode? Split channels!
+			{
+				return (adlibop[adliboperators[1][7]].volenvstatus || adlibop[adliboperators[0][7]].volenvstatus); //Percussion channel?
+			}
+			else //Melodic?
+			{
+				return adlibop[adliboperators[1][7]].volenvstatus; //Melodic, so carrier!
+			}
+		case 8:
+			if (adlibpercussion) //Percussion mode? Split channels!
+			{
+				return (adlibop[adliboperators[1][8]].volenvstatus || adlibop[adliboperators[0][8]].volenvstatus); //Percussion channel?
+			}
+			else //Melodic?
+			{
+				return adlibop[adliboperators[1][8]].volenvstatus; //Melodic, so carrier!
+			}
+			break;
+		default:
+			return 0; //Unknown channel!
+	}
+	return 0; //Unknown channel!
+}
+
+
 OPTINLINE short adlibgensample() {
 	int_32 adlibaccum;
 	adlibaccum = 0;
-	if (adlibop[adliboperators[1][0]].volenvstatus) //Are we a running envelope?
+	byte channel;
+	for (channel=0;channel<9;++channel) //Process all channels!
 	{
-		adlibaccum += adlibsample(0);
-	}
-	if (adlibop[adliboperators[1][1]].volenvstatus) //Are we a running envelope?
-	{
-		adlibaccum += adlibsample(1);
-	}
-	if (adlibop[adliboperators[1][2]].volenvstatus) //Are we a running envelope?
-	{
-		adlibaccum += adlibsample(2);
-	}
-	if (adlibop[adliboperators[1][3]].volenvstatus) //Are we a running envelope?
-	{
-		adlibaccum += adlibsample(3);
-	}
-	if (adlibop[adliboperators[1][4]].volenvstatus) //Are we a running envelope?
-	{
-		adlibaccum += adlibsample(4);
-	}
-	if (adlibop[adliboperators[1][5]].volenvstatus) //Are we a running envelope?
-	{
-		adlibaccum += adlibsample(5);
-	}
-	if (adlibop[adliboperators[1][6]].volenvstatus) //Are we a running envelope?
-	{
-		adlibaccum += adlibsample(6);
-	}
-	if (adlibpercussion) //Percussion mode? Split channels!
-	{
-		if (adlibop[adliboperators[1][7]].volenvstatus || adlibop[adliboperators[0][7]].volenvstatus) //Are we a running envelope?
-		{
-			adlibaccum += adlibsample(7);
-		}
-		if (adlibop[adliboperators[1][8]].volenvstatus || adlibop[adliboperators[0][8]].volenvstatus) //Are we a running envelope?
-		{
-			adlibaccum += adlibsample(8);
-		}
-	}
-	else //Melodic mode? Normal channels!
-	{
-		if (adlibop[adliboperators[1][7]].volenvstatus) //Are we a running envelope?
-		{
-			adlibaccum += adlibsample(7);
-		}
-		if (adlibop[adliboperators[1][8]].volenvstatus) //Are we a running envelope?
-		{
-			adlibaccum += adlibsample(8);
-		}
+		if (adlib_channelplaying(channel)) adlibaccum += adlibsample(channel); //Sample when playing!
 	}
 	return (short)(adlibaccum);
 }
@@ -863,7 +871,7 @@ void EnvelopeGenerator_attenuate( ADLIBOP *operator,uint8_t rate )
 {
 	if( rate >= 64 ) return;
 	operator->m_env += EnvelopeGenerator_advanceCounter(operator, rate );
-	if( operator->m_env > Silence ) {
+	if( operator->m_env >= Silence ) {
 		operator->m_env = Silence;
 	}
 }
@@ -871,7 +879,7 @@ void EnvelopeGenerator_attenuate( ADLIBOP *operator,uint8_t rate )
 void EnvelopeGenerator_release(ADLIBOP *operator)
 {
 	EnvelopeGenerator_attenuate(operator,operator->m_rr);
-	if (operator->m_env>Silence)
+	if (operator->m_env>=Silence)
 	{
 		operator->m_env = Silence;
 		operator->volenvstatus = 0; //Finished the volume envelope!
@@ -890,7 +898,7 @@ void EnvelopeGenerator_decay(ADLIBOP *operator)
 
 void EnvelopeGenerator_attack(ADLIBOP *operator)
 {
-	if (operator->m_env<=0)
+	if (operator->m_env<=0) //Nothin to attack anymore?
 	{
 		operator->volenvstatus = 2; //Start decaying!
 	}
@@ -903,7 +911,7 @@ void EnvelopeGenerator_attack(ADLIBOP *operator)
 		if (operator->m_env<=0) return; //Abort if too high!
 		byte overflow = EnvelopeGenerator_advanceCounter(operator,operator->m_ar); //Advance with attack rate!
 		if (!overflow) return;
-		operator->volenvraw -= ((operator->m_env*overflow)>>3)+1; //Affect envelope in a curve!
+		operator->m_env -= ((operator->m_env*overflow)>>3)+1; //Affect envelope in a curve!
 	}
 }
 
@@ -922,15 +930,16 @@ OPTINLINE void tickadlib()
 			{
 			case 1: //Attacking?
 				#ifndef VOLENVLINEAR
-				adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].attack); //Attack!
-				if (adlibop[curop].volenvcalculated >= 1.0)
-				{
-					adlibop[curop].volenvcalculated = 1.0; //We're at 1.0 to start decaying!
-					++adlibop[curop].volenvstatus; //Enter next phase!
-					goto startdecay;
-				}
+					adlibop[curop].volenv = (adlibop[curop].volenvcalculated *= adlibop[curop].attack); //Attack!
+					if (adlibop[curop].volenvcalculated >= 1.0)
+					{
+						adlibop[curop].volenvcalculated = 1.0; //We're at 1.0 to start decaying!
+						++adlibop[curop].volenvstatus; //Enter next phase!
+						goto startdecay;
+					}
 				#else
-				EnvelopeGenerator_attack(&adlibop[curop]); //New method: Attack!
+					EnvelopeGenerator_attack(&adlibop[curop]); //New method: Attack!
+					adlibop[curop].volenvraw = LIMITRANGE(Silence-adlibop[curop].m_env,0,Silence); //Apply the linear curve
 				#endif
 				break;
 			case 2: //Decaying?
@@ -945,8 +954,11 @@ OPTINLINE void tickadlib()
 					}
 				#else
 					EnvelopeGenerator_decay(&adlibop[curop]); //New method: Decay!
-					if (adlibop[curop].volenvstatus==3) goto startsustain; //Start sustaining if needed!
-					adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
+					if (adlibop[curop].volenvstatus==3)
+					{
+						goto startsustain; //Start sustaining if needed!
+					}
+					adlibop[curop].volenvraw = LIMITRANGE(Silence-adlibop[curop].m_env,0,Silence); //Apply the linear curve
 				#endif
 				break;
 			case 3: //Sustaining?
@@ -957,7 +969,7 @@ OPTINLINE void tickadlib()
 					goto startrelease; //Check again!
 				}
 				#ifdef VOLENVLINEAR
-					adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
+					adlibop[curop].volenvraw = LIMITRANGE(Silence-adlibop[curop].m_env,0,Silence); //Apply the linear curve
 				#endif
 				break;
 			case 4: //Releasing?
@@ -971,7 +983,7 @@ OPTINLINE void tickadlib()
 					}
 				#else
 					EnvelopeGenerator_release(&adlibop[curop]); //Release: new method!
-					adlibop[curop].volenvraw = Silence-adlibop[curop].m_env; //Apply the linear curve
+					adlibop[curop].volenvraw = LIMITRANGE(Silence-adlibop[curop].m_env,0,Silence); //Apply the linear curve
 				#endif
 				break;
 			default: //Unknown volume envelope status?
@@ -1016,18 +1028,23 @@ void updateAdlib(double timepassed)
 		{
 			OPL2_stepRNG(); //Tick the RNG!
 			byte filled;
+			word sample;
 			filled = 0; //Default: not filled!
-			filled |= adlibop[adliboperators[1][0]].volenvstatus; //Channel 0?
-			filled |= adlibop[adliboperators[1][1]].volenvstatus; //Channel 1?
-			filled |= adlibop[adliboperators[1][2]].volenvstatus; //Channel 2?
-			filled |= adlibop[adliboperators[1][3]].volenvstatus; //Channel 3?
-			filled |= adlibop[adliboperators[1][4]].volenvstatus; //Channel 4?
-			filled |= adlibop[adliboperators[1][5]].volenvstatus; //Channel 5?
-			filled |= adlibop[adliboperators[1][6]].volenvstatus; //Channel 6?
-			filled |= adlibop[adliboperators[1][7]].volenvstatus; //Channel 7?
-			filled |= adlibop[adliboperators[1][8]].volenvstatus; //Channel 8?
-			if (!filled) writefifobuffer16(adlibdouble,0); //Not filled: nothing to sound!
-			else writefifobuffer16(adlibdouble,(word)adlibgensample()); //Add the sample to our sound buffer!
+			filled |= adlib_channelplaying(0); //Channel 0?
+			filled |= adlib_channelplaying(1); //Channel 1?
+			filled |= adlib_channelplaying(2); //Channel 2?
+			filled |= adlib_channelplaying(3); //Channel 3?
+			filled |= adlib_channelplaying(4); //Channel 4?
+			filled |= adlib_channelplaying(5); //Channel 5?
+			filled |= adlib_channelplaying(6); //Channel 6?
+			filled |= adlib_channelplaying(7); //Channel 7?
+			filled |= adlib_channelplaying(8); //Channel 8?
+			if (filled) sample = (word)adlibgensample();
+			else sample = 0;
+			#ifdef WAV_ADLIB
+			writeWAVMonoSample(adlibout,sample); //Log the samples!
+			#endif			
+			writefifobuffer16(adlibdouble,sample); //Add the sample to our sound buffer!
 			movefifobuffer16(adlibdouble,adlibsound,__ADLIBDOUBLE_THRESHOLD); //Move any data to the destination once filled!
 			tickadlib(); //Tick us to the next timing if needed!
 			adlib_soundtiming -= adlib_soundtick; //Decrease timer to get time left!
@@ -1085,8 +1102,8 @@ void initAdlib()
 			((i&0x10)?12:0)+
 			((i&0x20)?24:0)
 			); //Raw output level number! Officially 48dB, but we use a bit smaller (0.75) to allow a volume of 0dB(silence).
-		outputtable[i] = (float)dB2factor(outputtableraw[i],48.0f); //Generate curve!
-		outputtableraw[i] = (i<<5); //Multiply the raw value by 5 to get the actual gain: the curve is applied by the register shifted left!
+		outputtable[i] = (float)dB2factor(outputtableraw[i],47.25f); //Generate curve!
+		outputtableraw[i] = ((word)i<<5); //Multiply the raw value by 5 to get the actual gain: the curve is applied by the register shifted left!
 	}
 
 	for (i = 0; i < (int)NUMITEMS(adlibop); i++) //Process all channels!
@@ -1117,7 +1134,7 @@ void initAdlib()
 		OPL2_ExpTable[i] = round((pow(2, (float)i / 256.0f) - 1.0f) * 1024.0f);
 		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5f)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
 	}
-	explookup = (1.0f/OPL2_LogSinTable[0])*256.0f; //Exp lookup factor for LogSin values!
+	explookup = (1.0f/(OPL2_LogSinTable[0]+outputtableraw[0]+Silence))*256.0f; //Exp lookup factor for LogSin values!
 	expfactor = (1.0f/OPL2_ExpTable[255]); //The highest volume conversion to apply with our exponential table!
 	adlib_scaleFactor = (float)((1.0f/expfactor)*((1.0f/OPL2_ExpTable[255])*3639.0f)); //Highest volume conversion to SHRT_MAX (9 channels)!
 
@@ -1153,11 +1170,18 @@ void initAdlib()
 	//All output!
 	register_PORTOUT(&outadlib); //Address port (W)
 	//dolog("adlib","Registering timer...");
+
+	#ifdef WAV_ADLIB
+	adlibout = createWAV("captures/adlib.wav",1,usesamplerate); //Start logging!
+	#endif
 }
 
 void doneAdlib()
 {
 	if (__HW_DISABLED) return; //Abort!
+	#ifdef WAV_ADLIB
+	closeWAV(&adlibout); //Stop logging!
+	#endif
 	if (__SOUND_ADLIB)
 	{
 		removechannel(&adlib_soundGenerator,NULL,0); //Stop the sound emulation?

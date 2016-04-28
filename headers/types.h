@@ -112,10 +112,11 @@ typedef void (*Handler)();    /* A pointer to a handler function */
 //When set to 0, shutdown immediately shuts down, ignoring the emulated machine!
 #define SHUTDOWN_TIMEOUT 0
 
-//MIN/MAX: East calculation of min/max data!
-#define MIN(a,b) ((a<b)?a:b)
-#define MAX(a,b) ((a>b)?a:b)
-
+//MIN/MAX: Easy calculation of min/max data!
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+//Range limiter!
+#define LIMITRANGE(v,min,max)(((v)<(min))?min:(((v)>(max))?(max):(v)))
 
 //Optimized DIV/MUL when possible.
 //SAFEDIV/MOD: Safe divide/modulo function. Divide by 0 is caught into becoming 0!
