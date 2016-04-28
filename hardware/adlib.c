@@ -1077,14 +1077,14 @@ void initAdlib()
 
 	for (i = 0; i < (int)NUMITEMS(outputtable); i++)
 	{
-		outputtableraw[i] = (float)48 - (float)(
-			((i & 1) ? 0.75:0)+
+		outputtableraw[i] = 47.25f - (float)(
+			((i&1) ? 0.75:0)+
 			((i&2)?1.5:0)+
 			((i&4)?3:0)+
 			((i&8)?6:0)+
 			((i&0x10)?12:0)+
 			((i&0x20)?24:0)
-			); //Raw output level number!
+			); //Raw output level number! Officially 48dB, but we use a bit smaller (0.75) to allow a volume of 0dB(silence).
 		outputtable[i] = (float)dB2factor(outputtableraw[i],48.0f); //Generate curve!
 		outputtableraw[i] = (i<<5); //Multiply the raw value by 5 to get the actual gain: the curve is applied by the register shifted left!
 	}
@@ -1115,10 +1115,9 @@ void initAdlib()
 	for (i = 0;i < 0x100;++i) //Initialise the exponentional and log-sin tables!
 	{
 		OPL2_ExpTable[i] = round((pow(2, (float)i / 256.0f) - 1.0f) * 1024.0f);
-		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
-		dolog("OPL2_LogSin","%i=%f",i,OPL2_LogSinTable[i]); //Log our table!
+		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5f)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
 	}
-	explookup = (1.0f/OPL2_LogSinTable[0])*255.0f; //Exp lookup factor for LogSin values!
+	explookup = (1.0f/OPL2_LogSinTable[0])*256.0f; //Exp lookup factor for LogSin values!
 	expfactor = (1.0f/OPL2_ExpTable[255]); //The highest volume conversion to apply with our exponential table!
 	adlib_scaleFactor = (float)((1.0f/expfactor)*((1.0f/OPL2_ExpTable[255])*3639.0f)); //Highest volume conversion to SHRT_MAX (9 channels)!
 
