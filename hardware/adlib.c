@@ -470,6 +470,8 @@ OPTINLINE void incop(byte operator, float frequency)
 	}
 }
 
+float volenvfactor = 1.0f; //Volume envelope factor!
+
 //Calculate an operator signal!
 OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float modulator, byte feedback, byte volenvoperator, byte updateoperator)
 {
@@ -491,18 +493,10 @@ OPTINLINE float calcOperator(byte curchan, byte operator, float frequency, float
 	result *= adlibop[volenvoperator].outputlevel; //Apply old output level directly!
 	result *= adlibop[volenvoperator].volenv; //Apply volume envelope directly!
 	#else
-	if (result>=0.0f) //Positive? Add volume!
-	{
-		result -= adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator(already shifted left by 5 bits)!
-		if (adlibop[volenvoperator].outputlevelraw<outputtableraw[0x3F]) result += (word)adlibop[volenvoperator].volenvraw; //Apply current volume of the ADSR envelope(64 levels shifted left by 3)! Only when gotten output level!
-		if (result<0.0f) result = 0.0f; //Prevent underflow!
-	}
-	else //Negative? Substract volume (the envelope is for positive signals only) to become a negative signal instead of becoming more positive(wrong signal)!
-	{
-		result += adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator(already shifted left by 5 bits)!
-		if (adlibop[volenvoperator].outputlevelraw<outputtableraw[0x3F]) result -= (word)adlibop[volenvoperator].volenvraw; //Apply current volume of the ADSR envelope(64 levels shifted left by 3)! Only when gotten output level!
-		if (result>0.0f) result = 0.0f; //Prevent overflow!
-	}
+	word volume;
+	volume = adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator(already shifted left by 5 bits)!
+	volume += (((word)adlibop[volenvoperator].volenvraw)<<3); //Apply current volume of the ADSR envelope(64 levels shifted left by 3)! Only when gotten output level!
+	result *= volume*volenvfactor; //Convert to a linear factor and multiply into the result!
 	#endif
 	skipvolenv: //Skip vol env operator!
 	if (frequency && updateoperator) //Running operator and allowed to update our signal?
@@ -1137,6 +1131,7 @@ void initAdlib()
 	explookup = (1.0f/(OPL2_LogSinTable[0]+outputtableraw[0]+Silence))*256.0f; //Exp lookup factor for LogSin values!
 	expfactor = (1.0f/OPL2_ExpTable[255]); //The highest volume conversion to apply with our exponential table!
 	adlib_scaleFactor = (float)((1.0f/expfactor)*((1.0f/OPL2_ExpTable[255])*3639.0f)); //Highest volume conversion to SHRT_MAX (9 channels)!
+	volenvfactor = (1.0f/(outputtableraw[0x3F]+(Silence*8.0f))); //Conversion from volume of the ExpTable to a factor to apply to the samples for the volume!
 
 	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
 	{
