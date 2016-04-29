@@ -5,6 +5,13 @@
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/emu/input.h" //Input support!
 #include "headers/cpu/cpu.h" //CPU support!
+#include "headers/emu/gpu/gpu_text.h" //GPU text surface support!
+
+#include "headers/support/log.h" //Logging support!
+#include "headers/support/highrestimer.h" //Time support!
+
+//Player time update interval in us!
+#define PLAYER_TIMEINTERVAL 100000
 
 #include "headers/packed.h" //Packed!
 typedef struct PACKED
@@ -142,11 +149,9 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 			newheader->iHardwareType = IHARDWARETYPE20_DUALOPL2; //Translate!
 			break;
 		}
-		newheader->iHardwareType = oldheader->iHardwareType; //Virtually the same between the two versions!
 		newheader->iFormat = COMMANDFORMAT_INTERLEAVED; //Default to interleaved format!
 		newheader->iCompression = 0; //No compression!
-		newheader->iShortDelayCode = DR0REGISTER_DELAY8; //Short delay code!
-		newheader->iLongDelayCode = DR0REGISTER_DELAY16; //Long delay code!
+		//Delay codes aren't used!
 	}
 	else if ((header->iVersionMajor==2) && (header->iVersionMinor==0)) //Version 2.0?
 	{
@@ -173,6 +178,7 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 		fclose(f);
 		return 0; //Error: Invalid signature!
 	}
+
 	oldpos = ftell(f); //Save the old position to jump back to!
 	fseek(f,0,SEEK_END);
 	filesize = ftell(f); //File size!
@@ -203,6 +209,25 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 }
 
 //Adlib support!
+
+byte OPLlock = 0; //Default: not locked!
+
+void lockOPL()
+{
+	if (OPLlock) return; //Prevent re-lock!
+	lockEMUOPL();
+	OPLlock = 1; //Locked!
+}
+
+void unlockOPL()
+{
+	if (OPLlock) //Prevent re-unlock!
+	{
+		unlockEMUOPL();
+		OPLlock = 0; //Unlocked!
+	}
+}
+
 void OPLXsetreg(byte version, byte newHardwareType, byte whatchip,byte reg,byte *CodemapTable,byte codemapLength,byte value)
 {
 	byte chip;
@@ -220,6 +245,7 @@ void OPLXsetreg(byte version, byte newHardwareType, byte whatchip,byte reg,byte 
 			chip = whatchip; //Not supported yet: High chip!
 			break;
 		default: //Unknown hardware type?
+			unlockOPL(); //We're finished with the OPL!
 			return; //Unknown hardware: abort!
 			break;
 		}
@@ -229,41 +255,29 @@ void OPLXsetreg(byte version, byte newHardwareType, byte whatchip,byte reg,byte 
 		switch (newHardwareType) //What hardware type?
 		{
 		case IHARDWARETYPE20_OPL2: //OPL2?
-			chip = 0; //Only one chip&bank is present!
 			break;
 		case IHARDWARETYPE20_OPL3: //OPL3?
-			chip = (reg & 0x80)?1:0; //Not supported yet: High register bank!
 			break;
 		case IHARDWARETYPE20_DUALOPL2: //Dual OPL2?
-			chip = (reg & 0x80) ? 1 : 0; //Not supported yet: High chip!
 			break;
 		default: //Unknown hardware type?
+			unlockOPL(); //We're finished with the OPL!
 			return; //Unknown hardware: abort!
 			break;
 		}
+		chip = (reg & 0x80)?1:0; //Not supported yet: High register bank/chip!
 		reg &= 0x7F; //Only the low bits are looked up!
+		if (reg<codemapLength) reg = CodemapTable[reg]; //Translate reg through the Codemap Table when within range!
 	}
-	if (chip) return; //High chip/bank isn't supported yet!
-	if (reg<codemapLength) reg = CodemapTable[reg]; //Translate reg through the Codemap Table when within range!
+	if (chip)
+	{
+		unlockOPL(); //We're finished with the OPL!
+		return; //High chip/bank isn't supported yet!
+	}
 	//Ignore the chip!
+	lockOPL(); //We need to lock the OPL now!
 	PORT_OUT_B(0x388,reg);
 	PORT_OUT_B(0x389,value);
-}
-
-byte OPLlock = 0; //Default: not locked!
-
-void lockOPL()
-{
-	if (OPLlock) return; //Prevent re-lock!
-	lock(LOCK_CPU);
-	OPLlock = 1; //Locked!
-}
-
-void unlockOPL()
-{
-	if (!OPLlock) return; //Prevent unlock!
-	unlock(LOCK_CPU);
-	OPLlock = 0; //Unlocked!
 }
 
 int readStream(byte **stream, byte *eos)
@@ -273,6 +287,31 @@ int readStream(byte **stream, byte *eos)
 	return -1; //Invalid item!
 }
 
+extern GPU_TEXTSURFACE *BIOS_Surface; //Our display(BIOS) text surface!
+
+void waitTime(TicksHolder *time, uint_64 desttime)
+{
+	if (getuspassed_k(time)<desttime) //Do we need to wait?
+	{
+		unlockOPL(); //Unlock the OPL only if we're waiting at all!
+		for (;getuspassed_k(time)<desttime;) delay(0); //Wait for the timing to catch up!
+	}
+}
+
+void showTime(uint_64 playtime, uint_64 *oldplaytime)
+{
+	static char playtimetext[256] = ""; //Time in text format!
+	if (playtime != *oldplaytime && (playtime>=(*oldplaytime+PLAYER_TIMEINTERVAL))) //Playtime updated?
+	{
+		convertTime(playtime, &playtimetext[0]); //Convert the time(in us)!
+		GPU_text_locksurface(BIOS_Surface); //Lock!
+		GPU_textgotoxy(BIOS_Surface, 0, 0); //For output!
+		GPU_textprintf(BIOS_Surface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "Play time: %s", playtimetext); //Current CPU speed percentage!
+		GPU_text_releasesurface(BIOS_Surface); //Lock!			
+		*oldplaytime = playtime; //We're updated with this value!
+	}
+}
+
 //The player itself!
 byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to stop playback!
 {
@@ -280,6 +319,9 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 	int streambuffer; //Stream data buffer for read data!
 	byte value,channel=0; //OPL Register/value container!
 	byte whatchip = 0; //Low/high chip selection!
+	uint_64 playtime = 0; //Play time, in ms!
+	uint_64 oldplaytime = 0xFFFFFFFFFFFFFFFF; //Old play time!
+	TicksHolder timing; //Current time holder!
 	//All file data itself:
 	DR0HEADER header;
 	DR01HEADEREARLY earlyheader;
@@ -297,6 +339,11 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 	lock(LOCK_CPU); //Lock the CPU: we're changing state!
 	CPU[activeCPU].halt = 2; //Force us into HLT state!
 	unlock(LOCK_CPU); //Release the CPU to be used!
+
+	initTicksHolder(&timing); //Initialise our time container!
+	getuspassed(&timing); //Initialise our time to 0!
+
+	showTime(playtime,&oldplaytime);
 
 	if ((droversion = readDRO(filename, &header, &earlyheader, &oldheader, &newheader, &CodemapTable[0], &data, &datasize))>0) //Loaded DRO file?
 	{
@@ -322,69 +369,77 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 			//Process input!
 			streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
 			if (streambuffer==-1) break; //Stop if reached EOS!
-			if ((streambuffer==newheader.iShortDelayCode) && (droversion==3)) //Short delay?
+			if (droversion==3) //v2.0 commands?
 			{
-				streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
-				if (streambuffer==-1) break; //Stop if reached EOS!
-				unlockOPL(); //We're finished with the OPL now!
-				delay(1000*(streambuffer+1)); //Delay!
+				channel = (byte)streambuffer; //We're the channel!
+				streambuffer = readStream(&stream, eos); //Read the value from the stream!
+				if (streambuffer == -1) break; //Stop if reached EOS!
+				value = (byte)streambuffer; //We're the value!
+				if (channel==newheader.iShortDelayCode) //Short delay?
+				{
+					playtime += (1000 * (value + 1)); //Update player time!
+					waitTime(&timing,playtime); //Delay until we're ready to play more!
+					showTime(playtime, &oldplaytime); //Update time!
+				}
+				else if (channel==newheader.iLongDelayCode) //Long delay?
+				{
+					playtime += (1000*((value+1)<<8)); //Update player time!
+					waitTime(&timing, playtime); //Delay until we're ready to play more!
+					showTime(playtime,&oldplaytime); //Update time!
+				}
+				else goto runinstruction; //Check for v2.0 commands?
+				goto nextinstruction;
 			}
-			else if ((streambuffer==newheader.iLongDelayCode) && (droversion==3)) //Long delay?
+			//v1.0 commands!
+			if (streambuffer==DR0REGISTER_DELAY8) //8-bit delay?
 			{
 				streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
 				if (streambuffer==-1) break; //Stop if reached EOS!
-				unlockOPL(); //We're finished with the OPL now!
-				delay(1000*((streambuffer+1)*256)); //Delay the long period!
+				playtime += (1000*(streambuffer+1)); //Update player time!
+				waitTime(&timing, playtime); //Delay until we're ready to play more!
+				showTime(playtime, &oldplaytime); //Update time!
+			}
+			else if (streambuffer==DR0REGISTER_DELAY16) //16-bit delay?
+			{
+				streambuffer = readStream(&stream,eos); //Read the instruction low byte from the stream!
+				if (streambuffer==-1) break; //Stop if reached EOS!
+				w = (streambuffer&0xFF); //Load low byte!
+				streambuffer = readStream(&stream,eos); //Read the instruction high byte from the stream!
+				if (streambuffer == -1) break; //Stop if reached EOS!
+				w |= ((streambuffer & 0xFF)<<8); //Load high byte!
+				playtime += (1000*(w+1)); //Update player time!
+				waitTime(&timing, playtime); //Delay until we're ready to play more!
+				showTime(playtime, &oldplaytime); //Update time!
+			}
+			else if ((streambuffer==DR0REGISTER_LOWOPLCHIP) && (newheader.iHardwareType!=IHARDWARETYPE20_OPL2)) //Low OPL chip and supported?
+			{
+				whatchip = 0; //Low channel in dual-OPL!
+			}
+			else if ((streambuffer==DR0REGISTER_HIGHOPLCHIP) && (newheader.iHardwareType != IHARDWARETYPE20_OPL2)) //High OPL chip and supported?
+			{
+				whatchip = 1; //High channel in dual-OPL!
+			}
+			else if (streambuffer==DR0REGISTER_ESC) //Escape?
+			{
+				streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
+				if (streambuffer==-1) break; //Stop if reached EOS!
+				goto escapedinstruction; //Execute us as a normal instruction!
 			}
 			else //Normal instruction?
 			{
-				if ((streambuffer==DR0REGISTER_DELAY8) && (droversion!=3)) //8-bit delay?
-				{
-					streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
-					if (streambuffer==-1) break; //Stop if reached EOS!
-					unlockOPL(); //We're finished with the OPL now!
-					delay(1000 * (streambuffer + 1)); //Delay!
-				}
-				else if ((streambuffer==DR0REGISTER_DELAY16) && (droversion!=3)) //16-bit delay?
-				{
-					streambuffer = readStream(&stream,eos); //Read the instruction low byte from the stream!
-					if (streambuffer==-1) break; //Stop if reached EOS!
-					w = (streambuffer&0xFF); //Load low byte!
-					streambuffer = readStream(&stream,eos); //Read the instruction high byte from the stream!
-					if (streambuffer == -1) break; //Stop if reached EOS!
-					w |= ((streambuffer & 0xFF)<<8); //Load high byte!
-					unlockOPL(); //We're finished with the OPL now!
-					delay(1000 * (w + 1)); //Delay the long period!
-				}
-				else if ((streambuffer==DR0REGISTER_LOWOPLCHIP) && (droversion!=3) && (newheader.iHardwareType!=IHARDWARETYPE20_OPL2)) //Low OPL chip and supported?
-				{
-					whatchip = 0; //Low channel in dual-OPL!
-				}
-				else if ((streambuffer==DR0REGISTER_HIGHOPLCHIP) && (droversion!=3) && (newheader.iHardwareType != IHARDWARETYPE20_OPL2)) //High OPL chip and supported?
-				{
-					whatchip = 1; //High channel in dual-OPL!
-				}
-				else if ((streambuffer==DR0REGISTER_ESC) && (droversion != 3)) //Escape?
-				{
-					streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
-					if (streambuffer==-1) break; //Stop if reached EOS!
-					goto normalinstruction; //Execute us as a normal instruction!
-				}
-				else //Normal instruction?
-				{
-					normalinstruction: //Process a normal instruction!
-					channel = streambuffer; //The first is the channel!
-					streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
-					if (streambuffer==-1) break; //Stop if reached EOS!
-					value = streambuffer; //The second is the value!					
-					lockOPL(); //We need to lock the OPL now!
-					OPLXsetreg(droversion,newheader.iHardwareType,whatchip,channel,&CodemapTable[0],newheader.iCodemapLength,value); //Set the register!
-				}
+				escapedinstruction: //Process a normal instruction!
+				channel = (byte)streambuffer; //The first is the channel!
+				streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
+				if (streambuffer==-1) break; //Stop if reached EOS!
+				value = (byte)streambuffer; //The second is the value!
+				runinstruction: //Run a normal instruction!
+				OPLXsetreg(droversion,newheader.iHardwareType,whatchip,channel,&CodemapTable[0],newheader.iCodemapLength,value); //Set the register!
 			}
+
+			nextinstruction: //Execute next instruction!
 			//Check for stopping the song!			
 			if (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
 			{
-				unlockOPL(); //We're finished with the OPL!
 				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));) delay(0); //Wait for release while pressed!
 				stoprunning = 1; //Set termination flag to request a termination!
 			}
@@ -392,7 +447,9 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 			if (stoprunning) break; //Not running anymore? Start quitting!
 		}
 
-		lockOPL();
+		showTime(playtime, &oldplaytime); //Update time!
+
+		lockOPL(); //Make sure we're locked!
 		for (w=0;w<=0xFF;++w) //Clear all registers!
 		{
 			OPLXsetreg(droversion,newheader.iHardwareType,0,(w&0x7F),&CodemapTable[0],newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!

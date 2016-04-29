@@ -217,9 +217,15 @@ int main(int argc, char * argv[])
 	getLock(LOCK_VGA);
 	getLock(LOCK_GPU);
 	getLock(LOCK_CPU);
+	getLock(LOCK_VIDEO);
 	getLock(LOCK_CMOS);
 	getLock(LOCK_TIMERS);
 	getLock(LOCK_INPUT);
+	getLock(LOCK_SHUTDOWN);
+	getLock(LOCK_FRAMERATE);
+	//Finally MIDI locks!
+	getLock(MIDI_LOCKSTART);
+	getLock(LOCK_ADLIB);
 
 	initHighresTimer(); //Global init of the high resoltion timer!
 	initTicksHolder(&CPUUpdate); //Initialise the Video Update timer!
