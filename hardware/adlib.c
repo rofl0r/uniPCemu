@@ -488,7 +488,7 @@ OPTINLINE sword calcOperator(byte curchan, byte operator, float frequency, sword
 	}
 	else
 	{
-		activemodulation = (modulation/OPL2_ExpTable[255])*modulatorfactor; //Convert to -1 to 1 range, then to modulation factor for the actual rate.
+		activemodulation = modulator*adlib_expreverse*modulatorfactor; //Convert to -1 to 1 range, then to modulation factor for the actual rate.
 	}
 
 	//Generate the correct signal!
@@ -501,7 +501,7 @@ OPTINLINE sword calcOperator(byte curchan, byte operator, float frequency, sword
 	word volume;
 	volume = adlibop[volenvoperator].outputlevelraw; //Apply the output level to the operator(already shifted left by 5 bits)!
 	volume += (((word)adlibop[volenvoperator].volenvraw)<<3); //Apply current volume of the ADSR envelope(64 levels shifted left by 3)! Only when gotten output level!
-	result *= volume*volenvfactor; //Convert to a linear factor and multiply into the result!
+	result = (sword)((float)result*(float)volume*volenvfactor); //Convert to a linear factor and multiply into the result!
 	#endif
 	skipvolenv: //Skip vol env operator!
 	if (frequency && updateoperator) //Running operator and allowed to update our signal?
@@ -778,7 +778,7 @@ OPTINLINE short adlibgensample() {
 	{
 		if (adlib_channelplaying(channel)) adlibaccum += adlibsample(channel); //Sample when playing!
 	}
-	adlibaccum = (sword)((float)adlibaccum)*adlib_scaleFactor); //Scale the channels to output!
+	adlibaccum = (sword)(((float)adlibaccum)*adlib_scaleFactor); //Scale the channels to output!
 	return (sword)(adlibaccum);
 }
 
@@ -1130,7 +1130,7 @@ void initAdlib()
 		OPL2_ExpTable[i] = round((pow(2, (float)i / 256.0f) - 1.0f) * 1024.0f);
 		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5f)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
 	}
-	explookup = (1.0f/(OPL2_LogSinTable[0])*256.0f; //Exp lookup factor for LogSin values!
+	explookup = (1.0f/(OPL2_LogSinTable[0]))*256.0f; //Exp lookup factor for LogSin values!
 	adlib_expreverse = (1.0f/OPL2_ExpTable[255]); //Reversing final(largest) exp lookup factor by multiplying with this.
 	adlib_scaleFactor = (float)(adlib_expreverse*(((SHRT_MAX+1)/9)-1)); //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
 	volenvfactor = (1.0f/(outputtableraw[0x3F]+(Silence*8.0f))); //Conversion from volume of the ExpTable to a factor to apply to the samples for the volume!
