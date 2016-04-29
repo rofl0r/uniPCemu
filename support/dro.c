@@ -6,6 +6,7 @@
 #include "headers/emu/input.h" //Input support!
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/emu/gpu/gpu_text.h" //GPU text surface support!
+#include "headers/hardware/adlib.h" //Adlib support!
 
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //Time support!
@@ -306,10 +307,22 @@ void showTime(uint_64 playtime, uint_64 *oldplaytime)
 		convertTime(playtime, &playtimetext[0]); //Convert the time(in us)!
 		GPU_text_locksurface(BIOS_Surface); //Lock!
 		GPU_textgotoxy(BIOS_Surface, 0, 0); //For output!
-		GPU_textprintf(BIOS_Surface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "Play time: %s", playtimetext); //Current CPU speed percentage!
+		GPU_textprintf(BIOS_Surface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "Play time: %s", playtimetext); //Current play time!
 		GPU_text_releasesurface(BIOS_Surface); //Lock!			
 		*oldplaytime = playtime; //We're updated with this value!
 	}
+}
+
+void clearTime()
+{
+	static char playtimetext[256] = "";
+	GPU_text_locksurface(BIOS_Surface); //Lock!
+	convertTime(0, &playtimetext[0]); //Convert the time(in us)!
+	byte b;
+	for (b=0;b<strlen(playtimetext);) playtimetext[b++] = ' '; //Clear the text!
+	GPU_textgotoxy(BIOS_Surface, 0, 0); //For output!
+	GPU_textprintf(BIOS_Surface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), "           %s", playtimetext); //Clear the play time!
+	GPU_text_releasesurface(BIOS_Surface); //Lock!			
 }
 
 //The player itself!
@@ -459,6 +472,7 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 
 		freez((void **)&stream,datasize,"DROFILE");
 
+		clearTime(); //Clear our time displayed!
 		return 1; //Played without termination?
 	}
 	return 0; //Invalid file?
