@@ -26,7 +26,7 @@
 //Use linear adlib volume, with accurate attenuation(64 levels, instead of inaccurate multiplication by factor in the 0-1 range) when below is defined.
 #define VOLENVLINEAR
 //Generate WAV file output?
-#define WAV_ADLIB
+//#define WAV_ADLIB
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
 #define __ADLIB_SAMPLEBUFFERSIZE 4096
@@ -50,7 +50,7 @@ const float adlib_soundtick = 1000000000.0f/(14318180.0f/288.0f); //The length o
 //The length of a sample step:
 #define adlib_sampleLength (1.0f / (14318180.0f / 288.0f))
 
-const float modulatorfactor = 4084.0f / 1024.0f; //Modulation factor!
+float modulatorfactor = 4084.0f / 1024.0f; //Modulation factor!
 
 //Counter info
 float counter80 = 0.0f, counter320 = 0.0f; //Counter ticks!
@@ -484,6 +484,7 @@ OPTINLINE sword calcOperator(byte channel, byte operator, float frequency, sword
 	{
 		activemodulation = OPL2_Exponential(adlibop[operator].lastsignal[0]+adlibop[operator].lastsignal[1]);
 		activemodulation *= adlib_expreverse; //Convert to a scale of -1 to +1.
+		activemodulation *= modulatorfactor; //Apply modulation factor!
 		activemodulation *= adlibch[channel].feedback; //Calculate current feedback
 	}
 	else
@@ -546,6 +547,7 @@ OPTINLINE sword adlibsample(uint8_t curchan) {
 
 	if (adlibpercussion && (curchan >= 6) && (curchan <= 8)) //We're percussion?
 	{
+		return 0; //Disable percussion for now!
 		register word tempphase;
 		result = 0; //Initialise the result!
 		//Calculations based on http://bisqwit.iki.fi/source/opl3emu.html fmopl.c
@@ -1150,12 +1152,13 @@ void initAdlib()
 	}
 	explookup = (1.0f/(OPL2_LogSinTable[0]))*256.0f; //Exp lookup factor for LogSin values!
 	adlib_expreverse = (1.0f/OPL2_ExpTable[255]); //Reversing final(largest) exp lookup factor by multiplying with this.
-	adlib_scaleFactor = (float)(adlib_expreverse*(((SHRT_MAX+1)/9)-1)); //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
+	adlib_scaleFactor = (float)(adlib_expreverse*(((float)SHRT_MAX)/8.0f)); //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
 	volenvfactor = (1.0f/(outputtableraw[0x3F]+(Silence*8.0f))); //Conversion from volume of the ExpTable to a factor to apply to the samples for the volume!
+	modulatorfactor = (float)PI2; //Modulator factor from -1 to 1 to modulation factor!
 
 	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
 	{
-		feedbacklookup2[i] = feedbacklookup[i] * (1.0f / (4.0f * PI)) * (1.0f/PI2); //Convert to a range of 0-1!
+		feedbacklookup2[i] = feedbacklookup[i] * (0.0f/(1.0f)); //Convert to a range of 0-1!
 	}
 
 	//RNG support!
