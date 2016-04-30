@@ -432,7 +432,7 @@ OPTINLINE float getHiddenBit(word v)
 OPTINLINE float OPL2_Exponential(word v)
 {
 	//Exponential lookup also reverses the input, since it's a -logSin table!
-	return getHiddenBit(v)*(OPL2_ExpTable[v&0xFF])*pow(1,((v>>8)&3)); //Convert to exponent!
+	return getHiddenBit(v)*(OPL2_ExpTable[v&0xFF])*pow(2,((v>>8)&3)); //Convert to exponent!
 }
 
 OPTINLINE word adlibWave(byte signal, const float frequencytime) {
