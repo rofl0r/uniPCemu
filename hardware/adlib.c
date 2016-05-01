@@ -1109,9 +1109,9 @@ void initAdlib()
 	}
 	max_input = Word2Wave(Wave2Word(OPL2_Sin(0,PI))+Volume2Word(outputtable[0x00]+(0x00<<3))); //Maximum input value!
 	adlib_scaleFactor = (float)(1.0f/(OPL2_Exponential(max_input)*9.0f))*SHRT_MAX; //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
-	generalmodulatorfactor = (1.0f/ /*OPL2_Exponential(max_input)*/ 1.0f)*1.0f; //General modulation factor, as applied to both modulation methods!
-	modulatorfactor = PI2; //Modulator factor from -1 to 1 to modulation factor(this is multiplied by the PI2 factor for the effective modulation)!
-	feedbackfactor = 0.5f; //Feedback factor to apply to the modulation factor before applying the feedback itself(PI division)
+	generalmodulatorfactor = (1.0f/OPL2_Exponential(max_input))*1.0f; //General modulation factor, as applied to both modulation methods!
+	modulatorfactor = PI2*0.0f; //Modulator factor from -1 to 1 to modulation factor(this is multiplied by the PI2 factor for the effective modulation)!
+	feedbackfactor = 0.0f; //Feedback factor to apply to the modulation factor before applying the feedback itself(PI division)
 
 	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
 	{

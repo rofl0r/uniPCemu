@@ -78,8 +78,8 @@ void dosoundtest()
 		VGA_waitforVBlank(); //Wait 1 frame!
 		printmsg(0xF, "\r\nStarting adlib sound...");
 		adlibsetreg(0x20, 0x21); //Modulator multiple to 1!
-		//adlibsetreg(0x40, 0x3F); //Modulator level about zero to produce a pure tone!
-		adlibsetreg(0x40, 0x10); //Modulator level about 40dB!
+		adlibsetreg(0x40, 0x3F); //Modulator level about zero to produce a pure tone!
+		//adlibsetreg(0x40, 0x10); //Modulator level about 40dB!
 		adlibsetreg(0x60, 0xF7); //Modulator attack: quick; decay long!
 		adlibsetreg(0x80, 0xFF); //Modulator sustain: medium; release: medium
 		adlibsetreg(0xA0, 0x98); //Set voice frequency's LSB (it'll be a D#)!
