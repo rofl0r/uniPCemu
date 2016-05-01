@@ -24,7 +24,7 @@
 //What volume is the minimum volume to be heard!
 #define __MIN_VOL (1.0f / SHRT_MAX)
 //Generate WAV file output?
-//#define WAV_ADLIB
+#define WAV_ADLIB
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
 #define __ADLIB_SAMPLEBUFFERSIZE 4096
@@ -41,6 +41,8 @@
 //extern void set_port_read_redirector (uint16_t startport, uint16_t endport, void *callback);
 
 uint16_t baseport = 0x388; //Adlib address(w)/status(r) port, +1=Data port (write only)
+
+word max_input; //Maximum input as a raw signal!
 
 //Sample based information!
 const float usesamplerate = 14318180.0f/288.0f; //The sample rate to use for output!
@@ -410,6 +412,19 @@ OPTINLINE sword Wave2Word(word w)
 	return converter.t; //Give the converted value!
 }
 
+OPTINLINE sword Volume2Word(word vol)
+{
+	union
+	{
+		sword t;
+		word u;
+	} converter;
+	converter.u = vol; //Load the original value!
+	converter.u &= 0x7FF; //Only the low part is used!
+	if (vol&0x800) converter.u |= 0xF000; //Sign extend!
+	return converter.t; //Give the converted value!
+}
+
 OPTINLINE word Word2Wave(sword s)
 {
 	union
@@ -435,7 +450,7 @@ OPTINLINE float OPL2_Exponential(word v)
 	return getHiddenBit(v)*(OPL2_ExpTable[v&0xFF])*pow(2,((v>>8)&3)); //Convert to exponent!
 }
 
-OPTINLINE word adlibWave(byte signal, const float frequencytime) {
+OPTINLINE word OPL2_Sin(byte signal, const float frequencytime) {
 	double x;
 	float t;
 	word result;
@@ -463,7 +478,7 @@ OPTINLINE word adlibWave(byte signal, const float frequencytime) {
 	}
 }
 
-OPTINLINE word calcAdlibSignal(byte wave, float phase, float frequency, float *freq0, float *time) //Calculates a signal for input to the adlib synth!
+OPTINLINE word calcOPL2Signal(byte wave, float phase, float frequency, float *freq0, float *time) //Calculates a signal for input to the adlib synth!
 {
 	float ftp;
 	if (frequency != *freq0) { //Frequency changed?
@@ -474,7 +489,7 @@ OPTINLINE word calcAdlibSignal(byte wave, float phase, float frequency, float *f
 	ftp *= *time; //Time!
 	ftp += phase; //Add phase!
 	*freq0 = frequency; //Update new frequency!
-	return adlibWave(wave, ftp); //Give the generated sample!
+	return OPL2_Sin(wave, ftp); //Give the generated sample!
 }
 
 OPTINLINE void incop(byte operator, float frequency)
@@ -505,16 +520,18 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, word m
 	}
 	else
 	{
-		activemodulation = OPL2_Exponential(modulator)*generalmodulatorfactor*modulatorfactor; //Convert to -1 to 1 range, then to modulation factor for the actual rate(modulator is already exponential).
+		activemodulation = OPL2_Exponential(modulator);
+		activemodulation *= generalmodulatorfactor; //Apply modulation factor!
+		activemodulation *= modulatorfactor; //Calculate current modulation!
 	}
 
 	//Generate the correct signal! Ignore time by setting frequency to 0.0f(effectively disables time, keeping it stuck at 0(frequencytime))!
-	result = calcAdlibSignal(adlibop[operator].wavesel&wavemask, activemodulation, ignoretime?0.0f:(frequency?frequency:adlibch[operator].lastfreq[adliboperatorsreversekeyon[operator]]), &adlibch[channel].freq0[adliboperatorsreversekeyon[operator]], &adlibch[channel].time[adliboperatorsreversekeyon[operator]]); //Take the last frequency or current frequency!
+	result = calcOPL2Signal(adlibop[operator].wavesel&wavemask, activemodulation, ignoretime?0.0f:(frequency?frequency:adlibch[operator].lastfreq[adliboperatorsreversekeyon[operator]]), &adlibch[channel].freq0[adliboperatorsreversekeyon[operator]], &adlibch[channel].time[adliboperatorsreversekeyon[operator]]); //Take the last frequency or current frequency!
 	if (volenvoperator==0xFF) goto skipvolenv;
 	word volume; //Positive volume to add into the mix!
 	volume = adlibop[volenvoperator].outputlevel; //Apply the output level to the operator(already shifted left by 5 bits)!
 	volume += (((word)adlibop[volenvoperator].volenv)<<3); //Apply current volume of the ADSR envelope(64 levels shifted left by 3)! This adds to the raw output level, lowering volume!
-	result += volume; //Simply add to the result for the desired effect!
+	result = Word2Wave(Wave2Word(result)+Volume2Word(volume)); //Simply add to the result for the desired effect!
 	skipvolenv: //Skip vol env operator!
 	if (frequency && updateoperator) //Running operator and allowed to update our signal?
 	{
@@ -568,7 +585,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 				//Special on Bass Drum: Additive synthesis(Operator 1) is ignored.
 
 				//Calculate the frequency to use!
-				result = calcOperator(curchan, op1, op1frequency, 0,0,op1,1,0); //Calculate the modulator for feedback!
+				result = calcOperator(curchan, op1, op1frequency, 0,1,op1,1,0); //Calculate the modulator for feedback!
 
 				if (adlibch[curchan].synthmode) //Additive synthesis?
 				{
@@ -605,7 +622,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					tempphase = 0x100<<((getphase(7,1,adlibfreq(op7_0,7))>>8)&1); //Bit8=0(Positive) then 0x100, else 0x200! Based on the phase to generate!
 					tempphase ^= (OPL2_RNG<<8); //Noise bits XOR'es phase by 0x100 when set!
 					result = calcOperator(curchan, op7_0, op1frequency, 0,1,op7_0,(!adlibop[op8_1].volenvstatus && !adlibop[op7_0].volenvstatus),1); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan),tempphase, 0,op7_1,1,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan),tempphase, 1,op7_1,1,1); //Calculate the carrier with applied modulator!
 					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
 				if (adlibop[op7_0].volenvstatus) //Hi-hat on carrier?
@@ -625,8 +642,8 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					}
 					else if (OPL2_RNG) tempphase = (0xD0>>2);
 					
-					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, curchan), 0,0,op7_0,!adlibop[op8_1].volenvstatus,0); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), tempphase, 0,op7_0,1,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, curchan), 0,1,op7_0,!adlibop[op8_1].volenvstatus,0); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), tempphase, 1,op7_0,1,1); //Calculate the carrier with applied modulator!
 					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
 				result = immresult; //Load the resulting channel!
@@ -648,13 +665,13 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					tempop_phase = getphase(8,1,adlibfreq(op8_1,8)); //Calculate the phase of channel 8 carrier signal!
 					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x300;
 					
-					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, curchan), 0,0,op7_0,1,1); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), tempphase, 0,op8_1,1,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, curchan), 0,1,op7_0,1,1); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(curchan, op7_1, adlibfreq(op7_1, curchan), tempphase, 1,op8_1,1,1); //Calculate the carrier with applied modulator!
 					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
 				if (adlibop[op8_0].volenvstatus) //Tom-tom(Carrier)?
 				{
-					result = calcOperator(curchan, op8_0, adlibfreq(op8_0, curchan), 0, 0,op8_0,1,0); //Calculate the carrier with applied modulator!
+					result = calcOperator(curchan, op8_0, adlibfreq(op8_0, curchan), 0, 1,op8_0,1,0); //Calculate the carrier with applied modulator!
 					immresult += OPL2_Exponential(result); //Apply the exponential!
 				}
 				result = (immresult*0.5f); //Load the resulting channel!
@@ -1067,7 +1084,7 @@ void initAdlib()
 	//Build the needed tables!
 	for (i = 0; i < (int)NUMITEMS(outputtable); i++)
 	{
-		outputtable[i] = ((word)i<<5); //Multiply the raw value by 5 to get the actual gain: the curve is applied by the register shifted left!
+		outputtable[i] = (((word)i)<<5); //Multiply the raw value by 5 to get the actual gain: the curve is applied by the register shifted left!
 	}
 
 	for (i = 0; i < (int)NUMITEMS(adlibop); i++) //Process all channels!
@@ -1090,10 +1107,11 @@ void initAdlib()
 		OPL2_ExpTable[i] = round((pow(2, (float)i / 256.0f) - 1.0f) * 1024.0f);
 		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5f)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
 	}
-	adlib_scaleFactor = (float)(1.0f/(OPL2_Exponential(OPL2_LogSinTable[0])))*SHRT_MAX; //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
-	generalmodulatorfactor = (1.0f/OPL2_Exponential(OPL2_LogSinTable[0])); //General modulation factor, as applied to both modulation methods!
+	max_input = Word2Wave(Wave2Word(OPL2_Sin(0,PI))+Volume2Word(outputtable[0x00]+(0x00<<3))); //Maximum input value!
+	adlib_scaleFactor = (float)(1.0f/(OPL2_Exponential(max_input)*9.0f))*SHRT_MAX; //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
+	generalmodulatorfactor = (1.0f/ /*OPL2_Exponential(max_input)*/ 1.0f)*1.0f; //General modulation factor, as applied to both modulation methods!
 	modulatorfactor = PI2; //Modulator factor from -1 to 1 to modulation factor(this is multiplied by the PI2 factor for the effective modulation)!
-	feedbackfactor = 1.0f; //Feedback factor to apply to the modulation factor before applying the feedback itself(PI division)
+	feedbackfactor = 0.5f; //Feedback factor to apply to the modulation factor before applying the feedback itself(PI division)
 
 	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
 	{

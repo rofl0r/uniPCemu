@@ -295,11 +295,11 @@ void waitTime(TicksHolder *time, uint_64 desttime)
 	if (getuspassed_k(time)<desttime) //Do we need to wait?
 	{
 		unlockOPL(); //Unlock the OPL only if we're waiting at all!
-		for (;getuspassed_k(time)<desttime;) delay(0); //Wait for the timing to catch up!
+		for (;getuspassed_k(time)<(uint_64)desttime;) delay(0); //Wait for the timing to catch up!
 	}
 }
 
-void showTime(uint_64 playtime, uint_64 *oldplaytime)
+void showTime(float playtime, float *oldplaytime)
 {
 	static char playtimetext[256] = ""; //Time in text format!
 	if (playtime != *oldplaytime && (playtime>=(*oldplaytime+PLAYER_TIMEINTERVAL))) //Playtime updated?
@@ -325,6 +325,8 @@ void clearTime()
 	GPU_text_releasesurface(BIOS_Surface); //Lock!			
 }
 
+float speedup = 0.5f; //How much speed to apply? 1.0=100% speed!
+
 //The player itself!
 byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to stop playback!
 {
@@ -332,8 +334,8 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 	int streambuffer; //Stream data buffer for read data!
 	byte value,channel=0; //OPL Register/value container!
 	byte whatchip = 0; //Low/high chip selection!
-	uint_64 playtime = 0; //Play time, in ms!
-	uint_64 oldplaytime = 0xFFFFFFFFFFFFFFFF; //Old play time!
+	float playtime = 0; //Play time, in ms!
+	float oldplaytime = -1; //Old play time!
 	TicksHolder timing; //Current time holder!
 	//All file data itself:
 	DR0HEADER header;
@@ -390,13 +392,13 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 				value = (byte)streambuffer; //We're the value!
 				if (channel==newheader.iShortDelayCode) //Short delay?
 				{
-					playtime += (1000 * (value + 1)); //Update player time!
+					playtime += (((float)(1000 * (value + 1)))/speedup); //Update player time!
 					waitTime(&timing,playtime); //Delay until we're ready to play more!
 					showTime(playtime, &oldplaytime); //Update time!
 				}
 				else if (channel==newheader.iLongDelayCode) //Long delay?
 				{
-					playtime += (1000*((value+1)<<8)); //Update player time!
+					playtime += (((float)(1000*((value+1)<<8)))/speedup); //Update player time!
 					waitTime(&timing, playtime); //Delay until we're ready to play more!
 					showTime(playtime,&oldplaytime); //Update time!
 				}
@@ -408,7 +410,7 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 			{
 				streambuffer = readStream(&stream,eos); //Read the instruction from the stream!
 				if (streambuffer==-1) break; //Stop if reached EOS!
-				playtime += (1000*(streambuffer+1)); //Update player time!
+				playtime += (((float)(1000*(streambuffer+1)))/speedup); //Update player time!
 				waitTime(&timing, playtime); //Delay until we're ready to play more!
 				showTime(playtime, &oldplaytime); //Update time!
 			}
@@ -420,7 +422,7 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 				streambuffer = readStream(&stream,eos); //Read the instruction high byte from the stream!
 				if (streambuffer == -1) break; //Stop if reached EOS!
 				w |= ((streambuffer & 0xFF)<<8); //Load high byte!
-				playtime += (1000*(w+1)); //Update player time!
+				playtime += (((float)(1000*(w+1)))/speedup); //Update player time!
 				waitTime(&timing, playtime); //Delay until we're ready to play more!
 				showTime(playtime, &oldplaytime); //Update time!
 			}
