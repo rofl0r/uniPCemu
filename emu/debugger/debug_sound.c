@@ -10,6 +10,7 @@
 #include "headers/bios/biosmenu.h" //BIOS menu option support!
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
 #include "headers/emu/emu_vga_bios.h" //Cursor enable support!
+#include "headers/support/dro.h" //DRO file support!
 
 //Test the speaker?
 //#define __DEBUG_SPEAKER
@@ -77,6 +78,7 @@ void dosoundtest()
 		VGA_waitforVBlank(); //Wait 1 frame!
 		VGA_waitforVBlank(); //Wait 1 frame!
 		printmsg(0xF, "\r\nStarting adlib sound...");
+		if (playDROFile("ADLIB.DRO",1)) goto skipadlib;
 		adlibsetreg(0x20, 0x21); //Modulator multiple to 1!
 		adlibsetreg(0x40, 0x3F); //Modulator level about zero to produce a pure tone!
 		//adlibsetreg(0x40, 0x10); //Modulator level about 40dB!
@@ -117,6 +119,7 @@ void dosoundtest()
 		delay(4000000); //Wait 1 second for the next test!
 		printmsg(0xF, "\r\n"); //Finisher!
 	}
+	skipadlib: //Skip test playback?
 #endif
 
 	#ifdef __DEBUG_MIDI

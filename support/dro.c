@@ -306,7 +306,7 @@ void showTime(float playtime, float *oldplaytime)
 	{
 		convertTime(playtime, &playtimetext[0]); //Convert the time(in us)!
 		GPU_text_locksurface(BIOS_Surface); //Lock!
-		GPU_textgotoxy(BIOS_Surface, 0, 0); //For output!
+		GPU_textgotoxy(BIOS_Surface,0, GPU_TEXTSURFACE_HEIGHT - 2); //Show playing init!
 		GPU_textprintf(BIOS_Surface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "Play time: %s", playtimetext); //Current play time!
 		GPU_text_releasesurface(BIOS_Surface); //Lock!			
 		*oldplaytime = playtime; //We're updated with this value!
@@ -320,7 +320,7 @@ void clearTime()
 	convertTime(0, &playtimetext[0]); //Convert the time(in us)!
 	byte b;
 	for (b=0;b<strlen(playtimetext);) playtimetext[b++] = ' '; //Clear the text!
-	GPU_textgotoxy(BIOS_Surface, 0, 0); //For output!
+	GPU_textgotoxy(BIOS_Surface,0, GPU_TEXTSURFACE_HEIGHT - 2); //Show playing init!
 	GPU_textprintf(BIOS_Surface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), "           %s", playtimetext); //Clear the play time!
 	GPU_text_releasesurface(BIOS_Surface); //Lock!			
 }
