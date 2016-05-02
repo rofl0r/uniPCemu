@@ -41,6 +41,11 @@
 //Silence value?
 #define Silence 0x3F
 
+//Convert cents to samples to increase (instead of 1 sample/sample). Floating point number (between 0.0+ usually?) Use this as a counter for the current samples (1.1+1.1..., so keep the rest value (1,1,1,...,0,1,1,1,...))
+//The same applies to absolute and relative timecents (with absolute referring to 1 second intervals (framerate samples) and relative to the absolute value)
+#define cents2samplesfactor(cents) pow(2, ((cents) / 1200))
+//Convert to samples (not entire numbers, so keep them counted)!
+
 //extern void set_port_write_redirector (uint16_t startport, uint16_t endport, void *callback);
 //extern void set_port_read_redirector (uint16_t startport, uint16_t endport, void *callback);
 
@@ -107,6 +112,8 @@ typedef struct {
 	uint8_t volenvstatus; //Envelope status and raw volume envelope value(0-64)
 	word gain; //The gain gotten from the volume envelopes!
 
+	byte vibrato, tremolo; //Vibrato/tremolo setting for this channel. 1=Enabled, 0=Disabled.
+
 	//Signal generation
 	byte wavesel;
 	float ModulatorFrequencyMultiple; //What harmonic to sound?
@@ -129,10 +136,48 @@ uint_32 OPL2_RNG = 0; //The current random generated sample!
 
 uint16_t adlibport = 0x388;
 
+typedef struct
+{
+	float time; //Current time(loops every second)!
+	float current; //Current value in absolute data!
+	float depth; //The depth to apply!
+	float active; //Active value, depending on tremolo/vibrato what this is: tremolo: volume to apply. vibrato: speedup to apply.
+} TREMOLOVIBRATOSIGNAL; //Tremolo&vibrato signals!
+
+OPTINLINE void stepTremoloVibrato(TREMOLOVIBRATOSIGNAL *signal, float frequency)
+{
+	float current;
+	current = sinf(2*PI*frequency*signal->time); //Apply the signal!
+	current += 1.0f; //Make positive (0.0-2.0)
+	current *= 0.5; //Divide by 2 to get the applied range (0-1)
+	signal->current = current; //Save the current signal!
+	float temp;
+	double d;
+	signal->time += adlib_sampleLength; //Add 1 sample to the time!
+
+	temp = signal->time*frequency; //Calculate for overflow!
+	if (temp >= 1.0f) { //Overflow?
+		signal->time = (float)modf(temp, &d) / frequency;
+	}
+}
+
+TREMOLOVIBRATOSIGNAL tremolovibrato[2]; //Tremolo&vibrato!
+
 OPTINLINE void OPL2_stepRNG() //Runs at the sampling rate!
 {
 	OPL2_RNG = ( (OPL2_RNGREG) ^ (OPL2_RNGREG>>14) ^ (OPL2_RNGREG>>15) ^ (OPL2_RNGREG>>22) ) & 1; //Get the current RNG!
 	OPL2_RNGREG = (OPL2_RNG<<22) | (OPL2_RNGREG>>1);
+}
+
+OPTINLINE void OPL2_stepTremoloVibrato()
+{
+	//Step to the next value!
+	stepTremoloVibrato(&tremolovibrato[0],3.7f); //Tremolo at 3.7Hz!
+	stepTremoloVibrato(&tremolovibrato[1],6.4f); //Vibrato at 6.4Hz!
+
+	//Now the current value of the signal is stored! Apply the active tremolo/vibrato!
+	tremolovibrato[0].active = dB2factor(47.25f-(tremolovibrato[0].depth*tremolovibrato[0].current),47.25f); //Calculate the current tremolo!
+	tremolovibrato[1].active = cents2samplesfactor(1200.0f-(tremolovibrato[0].depth*tremolovibrato[0].current)); //Calculate the current vibrato!
 }
 
 OPTINLINE float calcModulatorFrequencyMultiple(byte data)
@@ -309,6 +354,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		else if (portnum == 0xBD) //Percussion settings etc.
 		{
 			adlibpercussion = (value & 0x20)?1:0; //Percussion enabled?
+			tremolovibrato[0].depth = (value&0x80)?4.8f:1.0f; //Default: 1dB AM depth, else 4.8dB!
+			tremolovibrato[1].depth = (value&0x40)?14.0f:7.0f; //Default: 7 cent vibrato depth, else 14 cents!
 			if (((oldval^value)&0x1F) && adlibpercussion) //Percussion enabled and changed state?
 			{
 				writeadlibKeyON(0x86,0); //Write to this port(Bass drum)! Don't force the key on!
@@ -351,13 +398,23 @@ uint8_t inadlib (uint16_t portnum, byte *result) {
 	return 0; //Not our port!
 }
 
+OPTINLINE float OPL2_Vibrato(float frequency, sbyte operatornumber)
+{
+	if (adlibop[operatornumber].vibrato) //Vibrato enabled?
+	{
+		return frequency*tremolovibrato[1].active; //Apply vibrato!
+	}
+	return frequency; //Unchanged frequency!
+}
+
 OPTINLINE float adlibfreq (sbyte operatornumber, uint8_t chan) {
 	if (chan > 8) return (0); //Invalid channel: we only have 9 channels!
 	float tmpfreq;
 	tmpfreq = adlibch[chan].effectivefreq; //Effective frequency!
-	if (operatornumber != -1) //Apply frequency multiplication factor?
-	{
+	if (operatornumber != -1) //Apply frequency multiplication factor and other things concerning this?
+	{	
 		tmpfreq *= adlibop[operatornumber].ModulatorFrequencyMultiple; //Apply the frequency multiplication factor!
+		tmpfreq = OPL2_Vibrato(tmpfreq,operatornumber); //Apply vibrato!
 	}
 	return (tmpfreq);
 }
@@ -452,6 +509,15 @@ OPTINLINE float OPL2_Exponential(word v)
 	return getHiddenBit(v)*((float)OPL2_ExpTable[v&0xFF]+1024.0f)*powf(2,(removeHiddenBit(v)>>8)); //Lookup normally!
 }
 
+OPTINLINE float OPL2_Tremolo(byte operator, float f)
+{
+	if (adlibop[operator].tremolo) //Tremolo enabled?
+	{
+		return f*tremolovibrato[0].active; //Apply the current tremolo/vibrato!
+	}
+	return f; //Unchanged!
+}
+
 OPTINLINE word OPL2_Sin(byte signal, const float frequencytime) {
 	double x;
 	float t;
@@ -505,10 +571,10 @@ OPTINLINE void incop(byte operator, float frequency)
 	}
 }
 
-OPTINLINE float calcModulator(word modulator)
+OPTINLINE float calcModulator(byte operator, word modulator)
 {
 	float result;
-	result = OPL2_Exponential(modulator);
+	result = OPL2_Tremolo(operator,OPL2_Exponential(modulator)); //Apply exponential and tremolo!
 	result *= generalmodulatorfactor; //Apply modulation factor!
 	result *= PI; //Calculate current modulation!
 	return result;
@@ -523,7 +589,7 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 	//Generate the signal!
 	if (feedback) //Apply channel feedback?
 	{
-		activemodulation = OPL2_Exponential(adlibop[operator].lastsignal);
+		activemodulation = OPL2_Tremolo(operator,OPL2_Exponential(adlibop[operator].lastsignal));
 		activemodulation *= generalmodulatorfactor; //Apply modulation factor!
 		activemodulation *= adlibch[channel].feedback; //Calculate current feedback
 	}
@@ -546,8 +612,15 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 	}
 	else negative = 0; //Not negative!
 
-	if (temp>=adlibop[operator].gain)
-		temp -= (sword)adlibop[operator].gain; //Apply the gain to the raw signal!
+	word gain;
+	gain = adlibop[operator].gain; //Current gain!
+	if (updateoperator&2) //Special: ignore main volume control!
+	{
+		gain = (adlibop[operator].volenv<<3); //Always maximum volume!
+	}
+
+	if (temp>=gain)
+		temp -= (sword)gain; //Apply the gain to the raw signal!
 	else
 		temp = 0; //Not enough gain, so ignore it!
 
@@ -555,9 +628,10 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 	{
 		temp = -temp; //Reverse sign to make it negative again!
 	}
+
 	result = Word2Wave(temp); //Apply the gain to the input signal!
 	skipvolenv: //Skip vol env operator!
-	if (frequency && updateoperator) //Running operator and allowed to update our signal?
+	if (frequency && (updateoperator&1)) //Running operator and allowed to update our signal?
 	{
 		adlibop[operator].lastsignal = result; //Set last signal #0 to #1(shift into the older one)!
 		adlibop[operator].lastfreq = frequency; //We were last running at this frequency!
@@ -630,10 +704,10 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 				}
 				else //FM synthesis?
 				{
-					result = calcOperator(6, op6_1, adlibfreq(op6_1,6), calcModulator(result), 0,op6_1,1); //Calculate the carrier with applied modulator!
+					result = calcOperator(6, op6_1, adlibfreq(op6_1,6), calcModulator(op6_0,result), 0,op6_1,1); //Calculate the carrier with applied modulator!
 				}
 
-				return OPL2_Exponential(result)*16.0f; //Apply the exponential! The volume is always doubled!
+				return OPL2_Tremolo(op6_1,OPL2_Exponential(result)*2.0f); //Apply the exponential! The volume is always doubled!
 				break;
 
 				//Comments with information from fmopl.c:
@@ -657,9 +731,9 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					//Derive frequency from channel 0.
 					tempphase = 0x100<<((getphase(7,0,adlibfreq(op7_0,7))>>8)&1); //Bit8=0(Positive) then 0x100, else 0x200! Based on the phase to generate!
 					tempphase ^= (OPL2_RNG<<8); //Noise bits XOR'es phase by 0x100 when set!
-					result = calcOperator(7, op7_0, op1frequency, 0,0,op7_0,(!adlibop[op8_1].volenvstatus && !adlibop[op7_0].volenvstatus)); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(7, op7_0, op1frequency, 0,0,op7_0,(!adlibop[op8_1].volenvstatus && !adlibop[op7_0].volenvstatus)?1:0); //Calculate the modulator, but only use the current time(position in the sine wave)!
 					result = calcOperator(7, op7_1, adlibfreq(op7_1, 7),convertphase(tempphase), 0,op7_1,1); //Calculate the carrier with applied modulator!
-					immresult += OPL2_Exponential(result)*2.0f; //Apply the exponential!
+					immresult += OPL2_Tremolo(op7_1,OPL2_Exponential(result)*2.0f); //Apply the exponential!
 				}
 				if (adlibop[op7_0].volenvstatus) //Hi-hat on carrier?
 				{
@@ -679,8 +753,8 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					else if (OPL2_RNG) tempphase = (0xD0>>2);
 					
 					result = calcOperator(8, op8_1, adlibfreq(op8_1, 8), 0,0,op8_1,!adlibop[op8_1].volenvstatus); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(7, op7_0, adlibfreq(op7_0, 7), convertphase(tempphase), 0,op7_0,!adlibop[op8_1].volenvstatus); //Calculate the carrier with applied modulator!
-					immresult += OPL2_Exponential(result)*2.0f; //Apply the exponential!
+					result = calcOperator(7, op7_0, adlibfreq(op7_0, 7), convertphase(tempphase), 0,op7_0,((!adlibop[op8_1].volenvstatus)?1:0)|2); //Calculate the carrier with applied modulator!
+					immresult += OPL2_Tremolo(op7_0,OPL2_Exponential(result)*2.0f); //Apply the exponential!
 				}
 				result = immresult; //Load the resulting channel!
 				result *= 0.5f; //We only have half(two channels combined)!
@@ -703,12 +777,12 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					
 					result = calcOperator(8, op8_1, adlibfreq(op8_1, 8), 0,0,op8_1,1); //Calculate the modulator, but only use the current time(position in the sine wave)!
 					result = calcOperator(7, op7_0, adlibfreq(op7_0, 7), convertphase(tempphase), 0,op7_0,1); //Calculate the carrier with applied modulator!
-					immresult += OPL2_Exponential(result)*2.0f; //Apply the exponential!
+					immresult += OPL2_Tremolo(op8_1,OPL2_Exponential(result)*2.0f); //Apply the exponential!
 				}
 				if (adlibop[op8_0].volenvstatus) //Tom-tom(Carrier)?
 				{
-					result = calcOperator(8, op8_0, adlibfreq(op8_0, 8), 0, 0,op8_0,1); //Calculate the carrier without applied modulator additive!
-					immresult += OPL2_Exponential(result)*2.0f; //Apply the exponential!
+					result = calcOperator(8, op8_0, adlibfreq(op8_0, 8), 0, 0,op8_0,2); //Calculate the carrier without applied modulator additive!
+					immresult += OPL2_Tremolo(op8_0,OPL2_Exponential(result)*2.0f); //Apply the exponential!
 				}
 				result = immresult; //Load the resulting channel!
 				result *= 0.5f; //We only have half(two channels combined)!
@@ -728,10 +802,10 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 	}
 	else //FM synthesis?
 	{
-		result = calcOperator(curchan, op2, op2frequency, calcModulator(result), 0,op2,1); //Calculate the carrier with applied modulator!
+		result = calcOperator(curchan, op2, op2frequency, calcModulator(op1,result), 0,op2,1); //Calculate the carrier with applied modulator!
 	}
 
-	return OPL2_Exponential(result); //Apply the exponential!
+	return OPL2_Tremolo(op2,OPL2_Exponential(result)); //Apply the exponential!
 }
 
 //Timer ticks!
@@ -1064,6 +1138,7 @@ void updateAdlib(double timepassed)
 		for (;adlib_soundtiming>=adlib_soundtick;)
 		{
 			OPL2_stepRNG(); //Tick the RNG!
+			OPL2_stepTremoloVibrato(); //Step tremolo/vibrato!
 			byte filled;
 			word sample;
 			filled = 0; //Default: not filled!
@@ -1171,6 +1246,10 @@ void initAdlib()
 	{
 		feedbacklookup2[i] = feedbacklookup[i]; //Don't convert for now!
 	}
+
+	memset(&tremolovibrato,0,sizeof(tremolovibrato)); //Initialise tremolo/vibrato!
+	tremolovibrato[0].depth = 1.0f; //Default: 1dB AM depth!
+	tremolovibrato[1].depth = 7.0f; //Default: 7 cent vibrato depth!
 
 	//RNG support!
 	OPL2_RNGREG = OPL2_RNG = 0; //Initialise the RNG!
