@@ -55,8 +55,6 @@ const float adlib_soundtick = 1000000000.0f/(14318180.0f/288.0f); //The length o
 #define adlib_sampleLength (1.0f / (14318180.0f / 288.0f))
 
 float generalmodulatorfactor = 4084.0f / 1024.0f; //Modulation factor!
-float modulatorfactor = 1.0f; //Modulator factor!
-float feedbackfactor = 1.0f; //Feedback factor!
 
 //Counter info
 float counter80 = 0.0f, counter320 = 0.0f; //Counter ticks!
@@ -72,8 +70,8 @@ byte adliboperators[2][0x10] = { //Groupings of 22 registers! (20,40,60,80,E0)
 	{ 0x03, 0x04, 0x05, 0x0B, 0x0C, 0x0D, 0x13, 0x14, 0x15,255,255,255,255,255,255 }
 };
 
-byte adliboperatorsreverse[0x16] = { 0, 1, 2, 0, 1, 2, 255, 255, 3, 4, 5, 3, 4, 5, 255, 255, 6, 7, 8, 6, 7, 8}; //Channel lookup of adlib operators!
-byte adliboperatorsreversekeyon[0x16] = { 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2, 2, 2}; //Modulator/carrier lookup of adlib operators in the keyon bits!
+byte adliboperatorsreverse[0x20] = { 0, 1, 2, 0, 1, 2, 255, 255, 3, 4, 5, 3, 4, 5, 255, 255, 6, 7, 8, 6, 7, 8,255,255,255,255,255,255,255,255,255,255}; //Channel lookup of adlib operators!
+byte adliboperatorsreversekeyon[0x20] = { 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2, 2, 2,0,0,0,0,0,0,0,0,0,0}; //Modulator/carrier lookup of adlib operators in the keyon bits!
 
 static const double feedbacklookup[8] = { 0, PI / 16.0, PI / 8.0, PI / 4.0, PI / 2.0, PI, PI*2.0, PI*4.0 }; //The feedback to use from opl3emu! Seems to be half a sinus wave per number!
 double feedbacklookup2[8]; //Actual feedback lookup value!
@@ -86,6 +84,15 @@ FIFOBUFFER *adlibsound = NULL, *adlibdouble = NULL; //Our sound buffer for rende
 WAVEFILE *adlibout = NULL;
 #endif
 
+typedef struct
+{
+	word m_fnum, m_block; //Our settings!
+	float convfreq,effectivefreq;
+	uint8_t keyon;
+	uint8_t synthmode; //What synthesizer mode (1=Additive synthesis, 0=Frequency modulation)
+	float feedback; //The feedback strength of the modulator signal.
+} ADLIBCHANNEL; //A channel!
+
 typedef struct {
 	//Effects
 	word outputlevel; //(RAW) output level!
@@ -93,7 +100,7 @@ typedef struct {
 	byte m_ar, m_dr, m_sl, m_rr; //Four rates and levels!
 	word m_counter; //Counter for the volume envelope!
 	word m_env;
-	word m_fnum, m_block, m_ksl, m_kslAdd, m_ksr; //Our settings!
+	word m_ksl, m_kslAdd, m_ksr; //Various key setttings regarding pitch&envelope!
 	byte ReleaseImmediately; //Release even when the note is still turned on?
 
 	//Volume envelope
@@ -101,23 +108,17 @@ typedef struct {
 	word gain; //The gain gotten from the volume envelopes!
 
 	//Signal generation
-	uint8_t wavesel;
+	byte wavesel;
 	float ModulatorFrequencyMultiple; //What harmonic to sound?
-	word lastsignal[2]; //The last signal produced!
+	word lastsignal; //The last signal produced!
 	float freq0, time; //The frequency and current time of an operator!
 	float lastfreq; //Last valid set frequency!
+	ADLIBCHANNEL *channel;
 } ADLIBOP; //An adlib operator to process!
 
 ADLIBOP adlibop[0x20];
 
-struct structadlibchan {
-	uint16_t freq;
-	double convfreq;
-	uint8_t keyon;
-	uint16_t octave;
-	uint8_t synthmode; //What synthesizer mode (1=Additive synthesis, 0=Frequency modulation)
-	float feedback; //The feedback strength of the modulator signal.
-} adlibch[0x10];
+ADLIBCHANNEL adlibch[0x10];
 
 word outputtable[0x40]; //Build using software formulas!
 
@@ -147,9 +148,12 @@ OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 }
 
 //Attenuation setting!
-void EnvelopeGenerator_setAttennuation(ADLIBOP *operator, uint16_t f_number, uint8_t block, uint8_t ksl ); //Prototype!
+void EnvelopeGenerator_setAttennuation(ADLIBOP *operator); //Prototype!
 
-#define KEYONKSL(channel,carrier) ((adlibregmem[0x40 + (adliboperators[carrier][channel]&0x1F)] >> 6) & 3)
+OPTINLINE float adlibeffectivefrequency(word fnum, word octave)
+{
+	return (fnum * usesamplerate) / (float)(1<<(20-octave)); //This is the frequency requested!
+}
 
 void writeadlibKeyON(byte channel, byte forcekeyon)
 {
@@ -182,35 +186,36 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		}
 	}
 
-	adlibch[channel].octave = (adlibregmem[0xB0 + channel] >> 2) & 7;
-	adlibch[channel].freq = (adlibregmem[0xA0 + channel] | ((adlibregmem[0xB0 + channel] & 3) << 8)); //Frequency number!
+	adlibch[channel].m_block = (adlibregmem[0xB0 + channel] >> 2) & 7;
+	adlibch[channel].m_fnum = (adlibregmem[0xA0 + channel] | ((adlibregmem[0xB0 + channel] & 3) << 8)); //Frequency number!
+	adlibch[channel].convfreq = ((double)adlibch[channel].m_fnum * 0.7626459);
+	adlibch[channel].effectivefreq = adlibeffectivefrequency(adlibch[channel].m_fnum,adlibch[channel].m_block); //Calculate the effective frequency!
 
 	if ((adliboperators[0][channel]!=0xFF) && (((keyon&1) && ((oldkeyon^keyon)&1)) || (forcekeyon&1))) //Key ON on operator #1?
 	{
-			adlibop[adliboperators[0][channel]&0x1F].volenvstatus = 1; //Start attacking!
-			adlibop[adliboperators[0][channel]&0x1F].volenv = Silence; //No raw level: Start silence!
-			adlibop[adliboperators[0][channel]&0x1F].m_env = Silence; //No raw level: Start level!
-			adlibop[adliboperators[0][channel]&0x1F].gain = (adlibop[adliboperators[0][channel]].m_env<<3)+(adlibop[adliboperators[0][channel]].outputlevel); //Apply the start gain!
-			adlibop[adliboperators[0][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
-			adlibop[adliboperators[0][channel]&0x1F].freq0 = adlibop[adliboperators[0][channel]&0x1F].time = 0.0f; //Initialise operator signal!
-			memset(&adlibop[adliboperators[0][channel]&0x1F].lastsignal, 0, sizeof(adlibop[0].lastsignal)); //Reset the last signals!
-			EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[0][channel]&0x1F],adlibch[channel].freq,adlibch[channel].octave,KEYONKSL(channel,0));
+		adlibop[adliboperators[0][channel]&0x1F].volenvstatus = 1; //Start attacking!
+		adlibop[adliboperators[0][channel]&0x1F].volenv = Silence; //No raw level: Start silence!
+		adlibop[adliboperators[0][channel]&0x1F].m_env = Silence; //No raw level: Start level!
+		adlibop[adliboperators[0][channel]&0x1F].gain = (adlibop[adliboperators[0][channel]].m_env<<3)+(adlibop[adliboperators[0][channel]].outputlevel); //Apply the start gain!
+		adlibop[adliboperators[0][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
+		adlibop[adliboperators[0][channel]&0x1F].freq0 = adlibop[adliboperators[0][channel]&0x1F].time = 0.0f; //Initialise operator signal!
+		adlibop[adliboperators[0][channel]&0x1F].lastsignal = 0; //Reset the last signals!
+		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[0][channel]&0x1F]);
 	}
 
 	if ((adliboperators[1][channel]!=0xFF) && (((keyon&2) && ((oldkeyon^keyon)&2)) || (forcekeyon&2))) //Key ON on operator #2?
 	{
-			adlibop[adliboperators[1][channel]&0x1F].volenvstatus = 1; //Start attacking!
-			adlibop[adliboperators[1][channel]&0x1F].volenv = Silence; //No raw level: silence!
-			adlibop[adliboperators[1][channel]&0x1F].m_env = Silence; //No raw level: Start level!
-			adlibop[adliboperators[1][channel]&0x1F].gain = (adlibop[adliboperators[1][channel]].m_env<<3)+(adlibop[adliboperators[1][channel]].outputlevel); //Apply the start gain!
-			adlibop[adliboperators[1][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
-			adlibop[adliboperators[1][channel]&0x1F].freq0 = adlibop[adliboperators[1][channel]&0x1F].time = 0.0f; //Initialise operator signal!
-			memset(&adlibop[adliboperators[1][channel]&0x1F].lastsignal, 0, sizeof(adlibop[1].lastsignal)); //Reset the last signals!
-			EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[1][channel]&0x1F],adlibch[channel].freq,adlibch[channel].octave,KEYONKSL(channel,1));
+		adlibop[adliboperators[1][channel]&0x1F].volenvstatus = 1; //Start attacking!
+		adlibop[adliboperators[1][channel]&0x1F].volenv = Silence; //No raw level: silence!
+		adlibop[adliboperators[1][channel]&0x1F].m_env = Silence; //No raw level: Start level!
+		adlibop[adliboperators[1][channel]&0x1F].gain = (adlibop[adliboperators[1][channel]].m_env<<3)+(adlibop[adliboperators[1][channel]].outputlevel); //Apply the start gain!
+		adlibop[adliboperators[1][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
+		adlibop[adliboperators[1][channel]&0x1F].freq0 = adlibop[adliboperators[1][channel]&0x1F].time = 0.0f; //Initialise operator signal!
+		adlibop[adliboperators[1][channel]&0x1F].lastsignal = 0; //Reset the last signals!
+		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[1][channel]&0x1F]);
 	}
 
-	//Update preconverted Hz frequency/keyon information!
-	adlibch[channel].convfreq = ((double)adlibch[channel].freq * 0.7626459);
+	//Update keyon information!
 	adlibch[channel].keyon = keyon | forcekeyon; //Key is turned on?
 }
 
@@ -261,6 +266,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			portnum &= 0x1F;
 			adlibop[portnum].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(value & 0xF); //Which harmonic to use?
 			adlibop[portnum].ReleaseImmediately = (value & 0x20) ? 0 : 1; //Release when not sustain until release!
+			adlibop[portnum].m_ksr = (value>>4)&1; //Keyboard scaling rate!
+			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!			
 		}
 		break;
 	case 0x40:
@@ -268,8 +275,10 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		if (portnum <= 0x55) //KSL/Output level
 		{
 			portnum &= 0x1F;
+			adlibop[portnum].m_ksl = ((value >> 6) & 3); //Apply KSL!
 			adlibop[portnum].outputlevel = outputtable[value]; //Apply raw output level!
 			adlibop[portnum].gain = (adlibop[portnum].volenv<<3)+(adlibop[portnum].outputlevel); //Apply the start gain!
+			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!
 		}
 		break;
 	case 0x60:
@@ -342,38 +351,13 @@ uint8_t inadlib (uint16_t portnum, byte *result) {
 	return 0; //Not our port!
 }
 
-OPTINLINE uint16_t adlibfreq (sbyte operatornumber, uint8_t chan) {
+OPTINLINE float adlibfreq (sbyte operatornumber, uint8_t chan) {
 	if (chan > 8) return (0); //Invalid channel: we only have 9 channels!
-	uint16_t tmpfreq;
-	tmpfreq = (uint16_t) adlibch[chan].convfreq;
-	switch (adlibch[chan].octave)
-	{
-	case 0:
-		tmpfreq = tmpfreq >> 4;
-		break;
-	case 1:
-		tmpfreq = tmpfreq >> 3;
-		break;
-	case 2:
-		tmpfreq = tmpfreq >> 2;
-		break;
-	case 3:
-		tmpfreq = tmpfreq >> 1;
-		break;
-	case 5:
-		tmpfreq = tmpfreq << 1;
-		break;
-	case 6:
-		tmpfreq = tmpfreq << 2;
-		break;
-	case 7:
-		tmpfreq = tmpfreq << 3;
-	default:
-		break;
-	}
+	float tmpfreq;
+	tmpfreq = adlibch[chan].effectivefreq; //Effective frequency!
 	if (operatornumber != -1) //Apply frequency multiplication factor?
 	{
-		tmpfreq = (word)(tmpfreq*adlibop[operatornumber].ModulatorFrequencyMultiple); //Apply the frequency multiplication factor!
+		tmpfreq *= adlibop[operatornumber].ModulatorFrequencyMultiple; //Apply the frequency multiplication factor!
 	}
 	return (tmpfreq);
 }
@@ -526,7 +510,7 @@ OPTINLINE float calcModulator(word modulator)
 	float result;
 	result = OPL2_Exponential(modulator);
 	result *= generalmodulatorfactor; //Apply modulation factor!
-	result *= modulatorfactor; //Calculate current modulation!
+	result *= PI; //Calculate current modulation!
 	return result;
 }
 
@@ -534,14 +518,13 @@ OPTINLINE float calcModulator(word modulator)
 OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float modulator, byte feedback, byte volenvoperator, byte updateoperator)
 {
 	if (operator==0xFF) return 0; //Invalid operator!
-	word result,feedbackresult; //Our variables?
+	word result; //Our variables?
 	float activemodulation;
 	//Generate the signal!
 	if (feedback) //Apply channel feedback?
 	{
-		activemodulation = OPL2_Exponential(Word2Wave(Wave2Word(adlibop[operator].lastsignal[0])+Wave2Word(adlibop[operator].lastsignal[1])));
+		activemodulation = OPL2_Exponential(adlibop[operator].lastsignal);
 		activemodulation *= generalmodulatorfactor; //Apply modulation factor!
-		activemodulation *= feedbackfactor; //Apply feedback factor to this as well!
 		activemodulation *= adlibch[channel].feedback; //Calculate current feedback
 	}
 	else
@@ -576,10 +559,7 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 	skipvolenv: //Skip vol env operator!
 	if (frequency && updateoperator) //Running operator and allowed to update our signal?
 	{
-		feedbackresult = result; //Load the current feedback value!
-		feedbackresult = Word2Wave(Wave2Word(feedbackresult)>>1); //Prevent overflow (we're adding two values together, so take half the value calculated)!
-		adlibop[operator].lastsignal[0] = adlibop[operator].lastsignal[1]; //Set last signal #0 to #1(shift into the older one)!
-		adlibop[operator].lastsignal[1] = feedbackresult; //Set the feedback result!
+		adlibop[operator].lastsignal = result; //Set last signal #0 to #1(shift into the older one)!
 		adlibop[operator].lastfreq = frequency; //We were last running at this frequency!
 		incop(operator,frequency); //Increase time for the operator when allowed to increase (frequency=0 during PCM output)!
 	}
@@ -590,20 +570,21 @@ float adlib_scaleFactor = SHRT_MAX / (3000.0f*9.0f); //We're running 9 channels 
 
 OPTINLINE word getphase(byte channel, byte operator, float frequency) //Get the current phrase of the operator!
 {
-	return (word)(((fmod(adlibop[operator].time*frequency*PI2,PI2)/PI2)*((float)0x3D0))) ; //Give the 10-bits value
+	return (word)(((fmod(adlibop[operator].time*frequency*PI2,PI2)/PI2)*((float)0x3D0)))>>6; //Give the 10-bits value
 }
 
-word convertphase(word phase)
+float convertphase(word phase)
 {
-	sword p; //Default: multiply into positive!
+	float p; //Default: multiply into positive!
 	if (phase&0x200) //Negative?
 	{
-		p = -1; //Multiply into negative!
-		phase &= 0x1FF; //Ignore sign data! Just take the data to convert(positive data)!
+		p = -1.0f; //Negative!
+		phase &= 0x1FF; //Take the negative part!
 	}
-	else p = 1; //Multiply into positive!
-	p *= ((phase/0x200)*0x1000); //Convert to destination range!
-	return (word)(p*PI2); //Give the phase to execute!
+	else p = 1.0f; //Positive!
+	p *= phase; //Multiply the phase (positive or negative) into it!
+	p *= ((float)PI/4.0f); //Convert to destination range(4 sinus waves)!
+	return p; //Give the phase to execute!
 }
 
 OPTINLINE float adlibsample(uint8_t curchan) {
@@ -652,7 +633,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					result = calcOperator(6, op6_1, adlibfreq(op6_1,6), calcModulator(result), 0,op6_1,1); //Calculate the carrier with applied modulator!
 				}
 
-				return OPL2_Exponential(Word2Wave(Wave2Word(result)*2)); //Apply the exponential! The volume is always doubled!
+				return OPL2_Exponential(result)*16.0f; //Apply the exponential! The volume is always doubled!
 				break;
 
 				//Comments with information from fmopl.c:
@@ -678,7 +659,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					tempphase ^= (OPL2_RNG<<8); //Noise bits XOR'es phase by 0x100 when set!
 					result = calcOperator(7, op7_0, op1frequency, 0,0,op7_0,(!adlibop[op8_1].volenvstatus && !adlibop[op7_0].volenvstatus)); //Calculate the modulator, but only use the current time(position in the sine wave)!
 					result = calcOperator(7, op7_1, adlibfreq(op7_1, 7),convertphase(tempphase), 0,op7_1,1); //Calculate the carrier with applied modulator!
-					immresult += OPL2_Exponential(Word2Wave(Wave2Word(result)*2)); //Apply the exponential!
+					immresult += OPL2_Exponential(result)*2.0f; //Apply the exponential!
 				}
 				if (adlibop[op7_0].volenvstatus) //Hi-hat on carrier?
 				{
@@ -697,12 +678,12 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					}
 					else if (OPL2_RNG) tempphase = (0xD0>>2);
 					
-					result = calcOperator(curchan, op8_1, adlibfreq(op8_1, 8), 0,0,op8_1,!adlibop[op8_1].volenvstatus); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, 7), convertphase(tempphase), 0,op7_0,!adlibop[op8_1].volenvstatus); //Calculate the carrier with applied modulator!
-					immresult += OPL2_Exponential(Word2Wave(Wave2Word(result)*2)); //Apply the exponential!
+					result = calcOperator(8, op8_1, adlibfreq(op8_1, 8), 0,0,op8_1,!adlibop[op8_1].volenvstatus); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(7, op7_0, adlibfreq(op7_0, 7), convertphase(tempphase), 0,op7_0,!adlibop[op8_1].volenvstatus); //Calculate the carrier with applied modulator!
+					immresult += OPL2_Exponential(result)*2.0f; //Apply the exponential!
 				}
 				result = immresult; //Load the resulting channel!
-				result *= 0.5; //We only have half(two channels combined)!
+				result *= 0.5f; //We only have half(two channels combined)!
 				return result; //Give the result, converted to short!
 				break;
 			case 8: //Tom-tom(Carrier)/Cymbal(Modulator)? Tom-tom uses Modulator, Cymbal uses Carrier signals.
@@ -720,16 +701,17 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					tempop_phase = getphase(8,1,adlibfreq(op8_1,8)); //Calculate the phase of channel 8 carrier signal!
 					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x300;
 					
-					result = calcOperator(curchan, op8_1, adlibfreq(op8_1, 8), 0,0,op8_1,1); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(curchan, op7_0, adlibfreq(op7_0, 7), convertphase(tempphase), 0,op7_0,1); //Calculate the carrier with applied modulator!
-					immresult += OPL2_Exponential(Word2Wave(Wave2Word(result)*2)); //Apply the exponential!
+					result = calcOperator(8, op8_1, adlibfreq(op8_1, 8), 0,0,op8_1,1); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(7, op7_0, adlibfreq(op7_0, 7), convertphase(tempphase), 0,op7_0,1); //Calculate the carrier with applied modulator!
+					immresult += OPL2_Exponential(result)*2.0f; //Apply the exponential!
 				}
 				if (adlibop[op8_0].volenvstatus) //Tom-tom(Carrier)?
 				{
-					result = calcOperator(curchan, op8_0, adlibfreq(op8_0, 8), 0, 0,op8_0,1); //Calculate the carrier without applied modulator additive!
-					immresult += OPL2_Exponential(Word2Wave(Wave2Word(result)*2)); //Apply the exponential!
+					result = calcOperator(8, op8_0, adlibfreq(op8_0, 8), 0, 0,op8_0,1); //Calculate the carrier without applied modulator additive!
+					immresult += OPL2_Exponential(result)*2.0f; //Apply the exponential!
 				}
-				result = (immresult*0.5f); //Load the resulting channel!
+				result = immresult; //Load the resulting channel!
+				result *= 0.5f; //We only have half(two channels combined)!
 				return result; //Give the result, converted to short!
 				break;
 		}
@@ -863,17 +845,14 @@ OPTINLINE short adlibgensample() {
 	return (sword)(adlibaccum);
 }
 
-void EnvelopeGenerator_setAttennuation(ADLIBOP *operator, uint16_t f_number, uint8_t block, uint8_t ksl )
+void EnvelopeGenerator_setAttennuation(ADLIBOP *operator)
 {
-	operator->m_fnum = f_number & 0x3ff;
-	operator->m_block = block & 0x07;
-	operator->m_ksl = ksl & 0x03;
-
 	if( operator->m_ksl == 0 ) {
 		operator->m_kslAdd = 0;
 		return;
 	}
 
+	if (!operator->channel) return; //Invalid channel?
 	// 1.5 dB att. for base 2 of oct. 7
 	// created by: round(8*log2( 10^(dbMax[msb]/10) ))+8;
 	// verified from real chip ROM
@@ -882,7 +861,7 @@ void EnvelopeGenerator_setAttennuation(ADLIBOP *operator, uint16_t f_number, uin
 	};
 	// 7 negated is, by one's complement, effectively -8. To compensate this,
 	// the ROM's values have an offset of 8.
-	int tmp = kslRom[operator->m_fnum >> 6] + 8 * ( operator->m_block - 8 );
+	int tmp = kslRom[operator->channel->m_fnum >> 6] + 8 * ( operator->channel->m_block - 8 );
 	if( tmp <= 0 ) {
 	operator->m_kslAdd = 0;
 	return;
@@ -910,13 +889,14 @@ OPTINLINE byte EnvelopeGenerator_nts(ADLIBOP *operator)
 
 OPTINLINE uint8_t EnvelopeGenerator_calculateRate(ADLIBOP *operator, uint8_t rateValue )
 {
+	if (!operator->channel) return 0; //Invalid channel?
 	if( rateValue == 0 ) {
 		return 0;
 	}
 	// calculate key scale number (see NTS in the YMF262 manual)
-	uint8_t rof = ( operator->m_fnum >> ( EnvelopeGenerator_nts(operator) ? 8 : 9 ) ) & 0x1;
+	uint8_t rof = ( operator->channel->m_fnum >> ( EnvelopeGenerator_nts(operator) ? 8 : 9 ) ) & 0x1;
 	// ...and KSR (see manual, again)
-	rof |= operator->m_block << 1;
+	rof |= operator->channel->m_block << 1;
 	if( !operator->m_ksr ) {
 		rof >>= 2;
 	}
@@ -994,11 +974,11 @@ OPTINLINE void EnvelopeGenerator_attack(ADLIBOP *operator)
 
 OPTINLINE void tickadlib()
 {
-	const byte maxop = MIN(NUMITEMS(adlibop), NUMITEMS(adliboperatorsreverse)); //Maximum OP count!
+	const byte maxop = NUMITEMS(adlibop); //Maximum OP count!
 	uint8_t curop;
 	for (curop = 0; curop < maxop; curop++)
 	{
-		if (adliboperatorsreverse[curop] == 0xFF) continue; //Skip invalid operators!
+		if (!adlibop[curop].channel) continue; //Skip invalid operators!
 		if (adlibop[curop].volenvstatus) //Are we a running envelope?
 		{
 			switch (adlibop[curop].volenvstatus)
@@ -1019,7 +999,7 @@ OPTINLINE void tickadlib()
 				break;
 			case 3: //Sustaining?
 				startsustain:
-				if ((!(adlibch[adliboperatorsreverse[curop]].keyon&adliboperatorsreversekeyon[curop])) || adlibop[curop].ReleaseImmediately) //Release entered?
+				if ((!(adlibop[curop].channel->keyon&adliboperatorsreversekeyon[curop])) || adlibop[curop].ReleaseImmediately) //Release entered?
 				{
 					++adlibop[curop].volenvstatus; //Enter next phase!
 					goto startrelease; //Check again!
@@ -1169,7 +1149,11 @@ void initAdlib()
 		adlibop[i].outputlevel = outputtable[0]; //Apply default output!
 		adlibop[i].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(0); //Which harmonic to use?
 		adlibop[i].ReleaseImmediately = 1; //We're defaulting to value being 0=>Release immediately.
-		memset(&adlibop[i].lastsignal,0,sizeof(adlibop[i].lastsignal)); //Reset the last signals!
+		adlibop[i].lastsignal = 0; //Reset the last signals!
+		if (adliboperatorsreverse[i]!=0xFF) //Valid operator?
+		{
+			adlibop[i].channel = &adlibch[adliboperatorsreverse[i]&0x1F]; //The channel this operator belongs to!
+		}
 	}
 
 	//Source of the Exp and LogSin tables: https://docs.google.com/document/d/18IGx18NQY_Q1PJVZ-bHywao9bhsDoAqoIn1rIm42nwo/edit
@@ -1180,8 +1164,6 @@ void initAdlib()
 	}
 	max_input = OPL2_LogSinTable[0]; //Maximum input value!
 	generalmodulatorfactor = (1.0f/OPL2_Exponential(max_input)); //General modulation factor, as applied to both modulation methods!
-	modulatorfactor = PI; //Modulator factor from -1 to 1 to modulation factor(this is multiplied by the PI2 factor for the effective modulation)!
-	feedbackfactor = 1.0f; //Feedback factor to apply to the modulation factor before applying the feedback itself(PI division)
 
 	adlib_scaleFactor = (float)(1.0f/(OPL2_Exponential(max_input)*10.0f))*SHRT_MAX; //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
 

@@ -3818,7 +3818,7 @@ int Sound_file = 0; //The file selected!
 
 int BIOS_Sound_selection() //Music selection menu, custom for this purpose!
 {
-	BIOS_Title("Select MIDI file to play");
+	BIOS_Title("Select a music file to play");
 	generateFileList("mid|midi|dro", 0, 0); //Generate file list for all Sound files!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
