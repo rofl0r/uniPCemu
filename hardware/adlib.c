@@ -136,6 +136,9 @@ uint_32 OPL2_RNG = 0; //The current random generated sample!
 
 uint16_t adlibport = 0x388;
 
+
+//Tremolo/vibrato support
+
 typedef struct
 {
 	float time; //Current time(loops every second)!
@@ -143,6 +146,8 @@ typedef struct
 	float depth; //The depth to apply!
 	float active; //Active value, depending on tremolo/vibrato what this is: tremolo: volume to apply. vibrato: speedup to apply.
 } TREMOLOVIBRATOSIGNAL; //Tremolo&vibrato signals!
+
+TREMOLOVIBRATOSIGNAL tremolovibrato[2]; //Tremolo&vibrato!
 
 OPTINLINE void stepTremoloVibrato(TREMOLOVIBRATOSIGNAL *signal, float frequency)
 {
@@ -161,14 +166,6 @@ OPTINLINE void stepTremoloVibrato(TREMOLOVIBRATOSIGNAL *signal, float frequency)
 	}
 }
 
-TREMOLOVIBRATOSIGNAL tremolovibrato[2]; //Tremolo&vibrato!
-
-OPTINLINE void OPL2_stepRNG() //Runs at the sampling rate!
-{
-	OPL2_RNG = ( (OPL2_RNGREG) ^ (OPL2_RNGREG>>14) ^ (OPL2_RNGREG>>15) ^ (OPL2_RNGREG>>22) ) & 1; //Get the current RNG!
-	OPL2_RNGREG = (OPL2_RNG<<22) | (OPL2_RNGREG>>1);
-}
-
 OPTINLINE void OPL2_stepTremoloVibrato()
 {
 	//Step to the next value!
@@ -177,7 +174,33 @@ OPTINLINE void OPL2_stepTremoloVibrato()
 
 	//Now the current value of the signal is stored! Apply the active tremolo/vibrato!
 	tremolovibrato[0].active = dB2factor(47.25f-(tremolovibrato[0].depth*tremolovibrato[0].current),47.25f); //Calculate the current tremolo!
-	tremolovibrato[1].active = cents2samplesfactor(1200.0f-(tremolovibrato[0].depth*tremolovibrato[0].current)); //Calculate the current vibrato!
+	tremolovibrato[1].active = (100.0f-(tremolovibrato[1].depth*tremolovibrato[1].current))*0.01f; //Calculate the current vibrato!
+}
+
+OPTINLINE float OPL2_Vibrato(float frequency, sbyte operatornumber)
+{
+	if (adlibop[operatornumber].vibrato) //Vibrato enabled?
+	{
+		return frequency*tremolovibrato[1].active; //Apply vibrato!
+	}
+	return frequency; //Unchanged frequency!
+}
+
+OPTINLINE float OPL2_Tremolo(byte operator, float f)
+{
+	if (adlibop[operator].tremolo) //Tremolo enabled?
+	{
+		return f*tremolovibrato[0].active; //Apply the current tremolo/vibrato!
+	}
+	return f; //Unchanged!
+}
+
+//RNG
+
+OPTINLINE void OPL2_stepRNG() //Runs at the sampling rate!
+{
+	OPL2_RNG = ( (OPL2_RNGREG) ^ (OPL2_RNGREG>>14) ^ (OPL2_RNGREG>>15) ^ (OPL2_RNGREG>>22) ) & 1; //Get the current RNG!
+	OPL2_RNGREG = (OPL2_RNG<<22) | (OPL2_RNGREG>>1);
 }
 
 OPTINLINE float calcModulatorFrequencyMultiple(byte data)
@@ -398,15 +421,6 @@ uint8_t inadlib (uint16_t portnum, byte *result) {
 	return 0; //Not our port!
 }
 
-OPTINLINE float OPL2_Vibrato(float frequency, sbyte operatornumber)
-{
-	if (adlibop[operatornumber].vibrato) //Vibrato enabled?
-	{
-		return frequency*tremolovibrato[1].active; //Apply vibrato!
-	}
-	return frequency; //Unchanged frequency!
-}
-
 OPTINLINE float adlibfreq (sbyte operatornumber, uint8_t chan) {
 	if (chan > 8) return (0); //Invalid channel: we only have 9 channels!
 	float tmpfreq;
@@ -509,15 +523,6 @@ OPTINLINE float OPL2_Exponential(word v)
 	return getHiddenBit(v)*((float)OPL2_ExpTable[v&0xFF]+1024.0f)*powf(2,(removeHiddenBit(v)>>8)); //Lookup normally!
 }
 
-OPTINLINE float OPL2_Tremolo(byte operator, float f)
-{
-	if (adlibop[operator].tremolo) //Tremolo enabled?
-	{
-		return f*tremolovibrato[0].active; //Apply the current tremolo/vibrato!
-	}
-	return f; //Unchanged!
-}
-
 OPTINLINE word OPL2_Sin(byte signal, const float frequencytime) {
 	double x;
 	float t;
@@ -576,7 +581,7 @@ OPTINLINE float calcModulator(byte operator, word modulator)
 	float result;
 	result = OPL2_Tremolo(operator,OPL2_Exponential(modulator)); //Apply exponential and tremolo!
 	result *= generalmodulatorfactor; //Apply modulation factor!
-	result *= PI; //Calculate current modulation!
+	result *= PI2; //Calculate current modulation!
 	return result;
 }
 
