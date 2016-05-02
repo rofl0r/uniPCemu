@@ -88,6 +88,7 @@ void dosoundtest()
 		adlibsetreg(0x63, 0xFF); //Carrier attack: quick; decay: long!
 		adlibsetreg(0x83, 0x0F); //Carrier sustain: medium; release: medium!
 		adlibsetreg(0xB0, 0x31); //Turn the voice on; set the octave and freq MSB!
+		adlibsetreg(0xC0, 0x00); //No feedback and use FM synthesis!
 		printmsg(0xF, "\r\nYou should only be hearing the Adlib tone now.");
 		delay(5000000); //Basic tone!
 		int i,j;

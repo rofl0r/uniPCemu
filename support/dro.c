@@ -325,7 +325,7 @@ void clearTime()
 	GPU_text_releasesurface(BIOS_Surface); //Lock!			
 }
 
-float speedup = 0.5f; //How much speed to apply? 1.0=100% speed!
+float speedup = 1.0f; //How much speed to apply? 1.0=100% speed!
 
 //The player itself!
 byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to stop playback!
