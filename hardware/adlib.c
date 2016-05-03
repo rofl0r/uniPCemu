@@ -590,8 +590,8 @@ OPTINLINE float calcModulator(byte operator, word modulator)
 {
 	float result;
 	result = OPL2_Tremolo(operator,OPL2_Exponential(modulator)); //Apply exponential and tremolo!
-	//result *= generalmodulatorfactor; //Apply modulation factor!
-	result *= PI2; //Calculate current modulation!
+	result *= generalmodulatorfactor; //Apply modulation factor!
+	result *= PI; //Calculate current modulation!
 	return result;
 }
 
@@ -605,7 +605,7 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 	if (feedback) //Apply channel feedback?
 	{
 		activemodulation = adlibop[operator].lastsignal;
-		//activemodulation *= generalmodulatorfactor; //Apply modulation factor!
+		activemodulation *= generalmodulatorfactor; //Apply modulation factor!
 		activemodulation *= adlibch[channel].feedback; //Calculate current feedback
 	}
 	else
@@ -1255,7 +1255,7 @@ void initAdlib()
 	max_input = OPL2_LogSinTable[0]; //Maximum input value!
 	generalmodulatorfactor = (1.0f/OPL2_Exponential(max_input)); //General modulation factor, as applied to both modulation methods!
 
-	adlib_scaleFactor = (float)(1.0f/(OPL2_Exponential(max_input)*10.0f))*SHRT_MAX; //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
+	adlib_scaleFactor = (float)(1.0f/(OPL2_Exponential(max_input)*9.0f))*SHRT_MAX; //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
 
 	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
 	{
