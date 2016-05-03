@@ -122,7 +122,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	i = 0; //Init counter!
 	if (stereo) //Stereo samples?
 	{
-		register sample_stereo_p ubuf_stereo = (sample_stereo_p)buf; //Active buffer!
+		INLINEREGISTER sample_stereo_p ubuf_stereo = (sample_stereo_p)buf; //Active buffer!
 		for (;;) //Process all samples!
 		{ //Process full length!
 			readfifobuffer16(speaker->buffer, (word *)&s); //Not readable from the buffer? Duplicate last sample!
@@ -134,7 +134,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	}
 	else //Mono samples?
 	{
-		register sample_p ubuf_mono = (sample_p)buf; //Active buffer!
+		INLINEREGISTER sample_p ubuf_mono = (sample_p)buf; //Active buffer!
 		for (;;)
 		{ //Process full length!
 			readfifobuffer16(speaker->buffer, (word *)&s); //Not readable from the buffer? Duplicate last sample!
@@ -161,7 +161,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
 	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to process every output sample!
-	register uint_32 length; //Amount of samples to generate!
+	INLINEREGISTER uint_32 length; //Amount of samples to generate!
 	uint_32 i;
 	uint_32 dutycyclei; //Input samples to process!
 	uint_64 tickcounter;

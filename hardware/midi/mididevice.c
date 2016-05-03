@@ -103,7 +103,7 @@ Cents and DB conversion!
 
 OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation)
 {
-	register float frequency;
+	INLINEREGISTER float frequency;
 	frequency = voice->lowpassfilter_freq; //Load the frequency!
 	frequency *= cents2samplesfactor(Modulation*voice->lowpassfilter_modenvfactor); //Apply the modulation using the Modulation Envelope factor given by the Soundfont!
 	return frequency; //Give the frequency to use for the low pass filter!
@@ -124,8 +124,8 @@ Voice support
 OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_counter, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
-	register uint_32 temp;
-	register int_64 samplepos;
+	INLINEREGISTER uint_32 temp;
+	INLINEREGISTER int_64 samplepos;
 	float lchannel, rchannel; //Both channels to use!
 	byte loopflags; //Flags used during looping!
 	static sword readsample = 0; //The sample retrieved!
@@ -224,8 +224,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (!stereo) return 0; //Can't handle non-stereo output!
 	//Initialisation info
 	float pitchcents, currentsamplespeedup, lvolume, rvolume, panningtemp;
-	register float VolumeEnvelope=0; //Current volume envelope data!
-	register float ModulationEnvelope=0; //Current modulation envelope data!
+	INLINEREGISTER float VolumeEnvelope=0; //Current volume envelope data!
+	INLINEREGISTER float ModulationEnvelope=0; //Current modulation envelope data!
 	//Initialised values!
 	MIDIDEVICE_VOICE *voice = (MIDIDEVICE_VOICE *)userdata;
 	sample_stereo_t* ubuf = (sample_stereo_t *)buf; //Our sample buffer!

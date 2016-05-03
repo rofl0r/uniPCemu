@@ -1997,8 +1997,8 @@ void updateInput(SDL_Event *event) //Update all input!
 					input.Buttons = 0; //Ignore pressed buttons!
 					input.cas = 0; //Ignore pressed buttons!
 					//Handle button press/releases!
-					register int index;
-					register int key;
+					INLINEREGISTER int index;
+					INLINEREGISTER int key;
 					index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
 					if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
 					{
@@ -2128,8 +2128,8 @@ void updateInput(SDL_Event *event) //Update all input!
 					input.cas = 0; //Ignore pressed buttons!
 
 					//Handle button press/releases!
-					register int index;
-					register int key;
+					INLINEREGISTER int index;
+					INLINEREGISTER int key;
 					index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
 					if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
 					{

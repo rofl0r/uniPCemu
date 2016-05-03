@@ -349,8 +349,8 @@ byte lastcycle = 0; //Current channel in total (0-7)
 void DMA_tick()
 {
 	if (__HW_DISABLED) return; //Abort!
-	register byte controller,current=lastcycle; //Current controller!
-	register byte channelindex, MCMReversed;
+	INLINEREGISTER byte controller,current=lastcycle; //Current controller!
+	INLINEREGISTER byte channelindex, MCMReversed;
 	byte transferred = 0; //Transferred data this time?
 	byte startcurrent = current; //Current backup for checking for finished!
 	byte controllerdisabled = 0; //Controller disabled when set, so skip all checks!

@@ -55,7 +55,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 
 OPTINLINE void drawPixel_real(uint_32 pixel, uint_32 x, uint_32 y) //Manual version for CGA conversion!
 {
-	register uint_32 old;
+	INLINEREGISTER uint_32 old;
 	uint_32 *screenpixel = &EMU_BUFFER(x,y); //Pointer to our pixel!
 	if (screenpixel>=EMU_SCREENBUFFEREND) return; //Out of bounds?
 	old = *screenpixel; //Read old!
@@ -142,7 +142,7 @@ VGA_AttributeInfo attributeinfo; //Our current collected attribute info!
 
 OPTINLINE word patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VRAM address!
 { //Check this!
-	register word bit; //Load row scan counter!
+	INLINEREGISTER word bit; //Load row scan counter!
 	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13) //a13=Bit 0 of the row scan counter!
 	{
 		//Row scan counter bit 1 is placed on the memory bus bit 14 during active display time.
@@ -170,8 +170,8 @@ OPTINLINE word addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arr
 {
 	if (VGA->precalcs.BWDModeShift == 1) //Word mode?
 	{
-		register word address2; //Load the initial value for calculating!
-		register word result;
+		INLINEREGISTER word address2; //Load the initial value for calculating!
+		INLINEREGISTER word result;
 		result = 0xD; //Load default location (13)
 		result |= (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW << 1); //MA15 instead of MA13 when set!
 		address2 = memoryaddress; //Load the address for calculating!
@@ -187,7 +187,7 @@ OPTINLINE word addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arr
 
 OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
 {
-	register word loadedlocation, vramlocation; //The location we load at!
+	INLINEREGISTER word loadedlocation, vramlocation; //The location we load at!
 	//Horizontal logic
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
 	loadedlocation = x; //X!
@@ -220,7 +220,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 
 	planesdecoder[VGA->precalcs.graphicsmode](VGA,loadedlocation); //Use the decoder to get the pixels or characters!
 
-	register byte lookupprecalcs;
+	INLINEREGISTER byte lookupprecalcs;
 	lookupprecalcs = (byte)((SEQ_DATA *)Sequencer)->charinner_y;
 	lookupprecalcs <<= 1; //Make room!
 	lookupprecalcs |= CURRENTBLINK(VGA); //Blink!
@@ -230,8 +230,8 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 
 OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 {
-	register word row;
-	register uint_32 charystart;
+	INLINEREGISTER word row;
+	INLINEREGISTER uint_32 charystart;
 	row = Sequencer->Scanline; //Default: our normal scanline!
 	if (row>VGA->precalcs.topwindowstart) //Splitscreen operations?
 	{
@@ -415,8 +415,8 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	//Render our active display here! Start with text mode!		
 	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
 	static VGA_Sequencer_Mode activedisplayhandlers[4] = {VGA_ActiveDisplay_noblanking_VGA,VGA_Blank_VGA,VGA_ActiveDisplay_noblanking_CGA,VGA_Blank_CGA}; //For giving the correct output sub-level!
-	register byte nibbled=0; //Did we process two nibbles instead of one nibble?
-	register word tempx = Sequencer->tempx; //Load tempx!
+	INLINEREGISTER byte nibbled=0; //Did we process two nibbles instead of one nibble?
+	INLINEREGISTER word tempx = Sequencer->tempx; //Load tempx!
 
 	othernibble: //Retrieve the current DAC index!
 	Sequencer->activex = tempx++; //Active X!

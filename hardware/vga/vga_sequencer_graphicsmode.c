@@ -25,7 +25,7 @@ byte pixelbuffer[8]; //All 8 pixels decoded from the planesbuffer!
 
 void load256colorshiftmode() //256-color shift mode!
 {
-	register byte data;
+	INLINEREGISTER byte data;
 	//Now all planes are loaded for our calculation!
 	data = planesbuffer[0]; //First plane!
 	pixelbuffer[1] = (data & 0xF); //Take second pixel!
@@ -56,7 +56,7 @@ SHIFT REGISTER INTERLEAVE MODE
 
 void loadpackedshiftmode() //Packed shift mode!
 {
-	register byte temp, tempbuffer; //A buffer for our current pixel!
+	INLINEREGISTER byte temp, tempbuffer; //A buffer for our current pixel!
 	pixelbuffer[0] = pixelbuffer[1] = pixelbuffer[2] = pixelbuffer[3] = planesbuffer[2]; //Load high plane!
 	pixelbuffer[4] = pixelbuffer[5] = pixelbuffer[6] = pixelbuffer[7] = planesbuffer[3]; //Load high plane!
 	pixelbuffer[0] >>= 4;
@@ -113,7 +113,7 @@ SINGLE SHIFT MODE
 void loadplanarshiftmode() //Planar shift mode!
 {
 	//16-color mode!
-	register byte pixel=8, result=0;
+	INLINEREGISTER byte pixel=8, result=0;
 	for (;pixel;)
 	{
 		result = (planesbuffer[3] & 1); //Load plane 3!

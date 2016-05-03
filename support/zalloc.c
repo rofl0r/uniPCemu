@@ -82,8 +82,8 @@ Result:
 
 OPTINLINE sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //Are we already in our list? Give the position!
 {
-	register ptrnum address_start, address_end, currentstart, currentend;
-	register int left=0;
+	INLINEREGISTER ptrnum address_start, address_end, currentstart, currentend;
+	INLINEREGISTER int left=0;
 	initZalloc(); //Make sure we're started!
 	if (!ptr) return -2; //Not matched when NULL!
 	if (!size) return -2; //Not matched when no size (should be impossible)!

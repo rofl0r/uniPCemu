@@ -15,7 +15,7 @@ void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 	domkdir("captures"); //Make sure our directory exists!
 	strcpy(&filename[0],"captures/VGA_DAC"); //Generate log of this mode!
 	int c,r;
-	register uint_32 DACVal;
+	INLINEREGISTER uint_32 DACVal;
 	for (c=0;c<0x100;c++)
 	{
 		DACVal = getActiveVGA()->precalcs.DAC[c]; //The DAC value!
@@ -45,7 +45,7 @@ void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 			if (c&0x100) ordering &= 2; //Odd row? This is our background pixel!
 			lookup |= ordering; //Apply the font/back and blink status!
 			//The lookup points to the index!
-			register uint_32 DACVal;
+			INLINEREGISTER uint_32 DACVal;
 			DACVal = getActiveVGA()->precalcs.DAC[getActiveVGA()->precalcs.attributeprecalcs[lookup]]; //The DAC value looked up!
 			if ((DACVal==(uint_32)RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
 			{
@@ -81,8 +81,8 @@ void VGA_initBWConversion()
 	BWconversion_ready = 1; //We're ready after this!
 	const float amber_red = ((float)0xB9 / (float)255); //Red part!
 	const float amber_green = ((float)0x80 / (float)255); //Green part!
-	register word a,b; //16-bit!
-	register uint_32 n; //32-bit!
+	INLINEREGISTER word a,b; //16-bit!
+	INLINEREGISTER uint_32 n; //32-bit!
 	for (n=0;n<0x10000;n++) //Process all possible values!
 	{
 		//Optimized way of dividing?
@@ -104,7 +104,7 @@ void VGA_initBWConversion()
 
 OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
 {
-	register word a; //Our registers we use!
+	INLINEREGISTER word a; //Our registers we use!
 	a = GETR(color); //Load Red channel!
 	a += GETG(color); //Load Green channel!
 	a += GETB(color); //Load Blue channel!

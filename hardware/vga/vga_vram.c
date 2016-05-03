@@ -26,7 +26,7 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset) //Read from a VRAM pl
 	if (!VGA->VRAM_size) return 0; //No size!
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
 
-	register uint_32 fulloffset2;
+	INLINEREGISTER uint_32 fulloffset2;
 	fulloffset2 = offset; //Default offset to use!
 	fulloffset2 <<= 2; //We cycle through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
@@ -48,7 +48,7 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write 
 	if (!VGA->VRAM_size) return; //No size!
 	plane &= 3; //Only 4 planes are available!
 
-	register uint_32 fulloffset2;
+	INLINEREGISTER uint_32 fulloffset2;
 	fulloffset2 = offset; //Load the offset!
 	fulloffset2 <<= 2; //We cycle through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!

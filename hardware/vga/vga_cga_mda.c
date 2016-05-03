@@ -718,7 +718,7 @@ byte int10_font_14[256 * 14] =
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-OPTINLINE static byte reverse8_CGA(register byte b) { //Reverses byte value bits!
+OPTINLINE static byte reverse8_CGA(INLINEREGISTER byte b) { //Reverses byte value bits!
 	b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4); //Swap 4 high and low bits!
 	b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2); //Swap 2 high and low bits of both nibbles!
 	b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1); //Swap odd and even bits!
@@ -732,7 +732,7 @@ byte getcharxy_CGA(byte character, byte x, byte y) //Retrieve a characters x,y p
 {
 	static word lastcharinfo = 0; //attribute|character, bit31=Set?
 	static byte lastrow = 0; //The last loaded row!
-	register word location;
+	INLINEREGISTER word location;
 
 	x &= 7;
 	y &= 7; //Duplicate the scanlines after our character!
@@ -769,7 +769,7 @@ byte getcharxy_MDA(byte character, byte x, byte y) //Retrieve a characters x,y p
 {
 	static word lastcharinfo = 0; //attribute|character, bit31=Set?
 	static byte lastrow = 0; //The last loaded row!
-	register word location;
+	INLINEREGISTER word location;
 
 	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
 	if (y>=14) y %= 14; //Only 14 rows, duplicate what's below!

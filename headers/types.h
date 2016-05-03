@@ -188,4 +188,7 @@ void updateInputMain(); //Update input before an instruction (main thread only!)
 //Exact 14Mhz clock used on a PC!
 #define MHZ14 ((15.75/1.1)*1000000.0)
 
+//Inline register usage when defined.
+#define INLINEREGISTER
+
 #endif

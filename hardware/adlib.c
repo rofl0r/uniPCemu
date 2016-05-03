@@ -688,7 +688,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 
 	if (adlibpercussion && (curchan >= 6) && (curchan <= 8)) //We're percussion?
 	{
-		register word tempphase;
+		INLINEREGISTER word tempphase;
 		result = 0; //Initialise the result!
 		//Calculations based on http://bisqwit.iki.fi/source/opl3emu.html fmopl.c
 		//Load our four operators for processing!

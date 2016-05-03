@@ -52,7 +52,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	if (CGAMDAEMULATION_RENDER(VGA)) VGAMode = 0; //Disable the VGA color processing with CGA/MDA!
 
 	paletteenable = VGA->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.PAL; //Internal palette enabled?
-	register byte CurrentDAC; //Current DAC to use!
+	INLINEREGISTER byte CurrentDAC; //Current DAC to use!
 	if (paletteenable) //Precalcs for palette?
 	{
 		for (CurrentDAC = 0;CurrentDAC < 0x10;++CurrentDAC) //Copy the palette internally for fast reference!
@@ -69,12 +69,12 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 
 	backgroundfilter = ((~(enableblink<<3))&0xF); //Background filter depends on blink & full background when not in monochrome mode!
 
-	register byte colorplanes;
+	INLINEREGISTER byte colorplanes;
 	colorplanes = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA; //Read colorplane 256-color!
 	colorplanes &= 0xF; //Only 4 bits can be used!
 
-	register word pos;
-	register word pos2;
+	INLINEREGISTER word pos;
+	INLINEREGISTER word pos2;
 
 	for (pixelon=0;pixelon<2;++pixelon) //All values of pixelon!
 	{
@@ -179,7 +179,7 @@ byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 {
 	static byte curnibble = 0;
 	static byte latchednibbles = 0; //What nibble are we currently?
-	register byte temp;
+	INLINEREGISTER byte temp;
 	//First, execute the shift and add required in this mode!
 	temp = latchednibbles;
 	temp <<= 4; //Shift high!

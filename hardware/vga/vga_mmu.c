@@ -83,8 +83,8 @@ OPTINLINE uint_32 LogicalOperation(uint_32 input)
 
 OPTINLINE uint_32 BitmaskOperation(uint_32 input, byte bitmaskregister)
 {
-	register uint_32 result = 0; //The result built!
-	register uint_32 mask,inputdata; //Latch and extended mask!
+	INLINEREGISTER uint_32 result = 0; //The result built!
+	INLINEREGISTER uint_32 mask,inputdata; //Latch and extended mask!
 	//Load the mask to use, extend to all four planes!
 	mask = getActiveVGA()->ExpandTable[bitmaskregister]; //Load the current mask(one plane) expanded!
 	//Convert the value&latch to result using the mask!
@@ -108,7 +108,7 @@ typedef uint_32 (*VGA_WriteMode)(uint_32 data);
 
 uint_32 VGA_WriteMode0(uint_32 data) //Read-Modify-Write operation!
 {
-	register byte curplane;
+	INLINEREGISTER byte curplane;
 	data = (byte)ror((byte)data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.RotateCount); //Rotate it! Keep 8-bit data!
 	data = getActiveVGA()->ExpandTable[data]; //Make sure the data is on the all planes!
 
@@ -148,8 +148,8 @@ uint_32 VGA_WriteMode3(uint_32 data) //Ignore enable set reset register!
 OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 {
 	static const VGA_WriteMode VGA_WRITE[4] = {VGA_WriteMode0,VGA_WriteMode1,VGA_WriteMode2,VGA_WriteMode3}; //All write modes!
-	register byte curplane; //For plane loops!
-	register uint_32 data; //Default to the value given!
+	INLINEREGISTER byte curplane; //For plane loops!
+	INLINEREGISTER uint_32 data; //Default to the value given!
 	data = VGA_WRITE[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode]((uint_32)val); //What write mode?
 
 	byte planeenable = getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable; //What planes to try to write to!
@@ -180,7 +180,7 @@ typedef byte (*VGA_ReadMode)(byte planes, uint_32 offset);
 
 byte VGA_ReadMode0(byte planes, uint_32 offset) //Read mode 0: Just read the normal way!
 {
-	register byte curplane;
+	INLINEREGISTER byte curplane;
 	for (curplane = 0; curplane < 4;)
 	{
 		if (planes&1) //Read from this plane?
@@ -195,8 +195,8 @@ byte VGA_ReadMode0(byte planes, uint_32 offset) //Read mode 0: Just read the nor
 
 byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display memory with color defined by the Color Compare field. Colors Don't care field are not considered.
 {
-	register byte curplane;
-	register byte result=0; //The value we return, default to 0 if undefined!
+	INLINEREGISTER byte curplane;
+	INLINEREGISTER byte result=0; //The value we return, default to 0 if undefined!
 	//Each bit in the result represents one comparision between the reference color, with the bit being set if the comparision is true.
 	for (curplane = 0;curplane<4;curplane++) //Check all planes!
 	{
@@ -229,8 +229,8 @@ The r/w operations from the CPU!
 OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
 {
 	byte oddevenmemorymode;
-	register uint_32 realoffsettmp;
-	register byte calcplanes;
+	INLINEREGISTER uint_32 realoffsettmp;
+	INLINEREGISTER byte calcplanes;
 
 	oddevenmemorymode = getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode; //This enforces Odd/Even memory addressing during access from memory when Host_OE is enabled to provide CGA compatibility!
 	if (oddevenmemorymode) goto forceoddevenmode; //Force odd/even mode when enabled!

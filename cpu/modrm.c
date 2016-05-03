@@ -1476,7 +1476,7 @@ void modrm_text16(MODRM_PARAMS *params, int whichregister, char *result)
 
 word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions!
 {
-	register word result;
+	INLINEREGISTER word result;
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
@@ -1524,7 +1524,7 @@ void modrm_lea16_text(MODRM_PARAMS *params, int whichregister, char *result) //F
 //modrm_offset16: same as lea16, but allow registers too!
 word modrm_offset16(MODRM_PARAMS *params, int whichregister) //Gives address for JMP, CALL etc.!
 {
-	register word result;
+	INLINEREGISTER word result;
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?

@@ -233,7 +233,7 @@ byte writeword = 0; //Hi-end word written?
 //Address translation routine.
 OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) //Real adress?
 {
-	register uint_32 realaddress;
+	INLINEREGISTER uint_32 realaddress;
 	//word originalsegment = segment;
 	//uint_32 originaloffset = offset; //Save!
 	if ((EMULATED_CPU==CPU_8086) || (EMULATED_CPU==CPU_80186 && !((offset==0x10000) && wordop))) //-80186 wraps offset arround 64kB? 80186 allows 1 byte more in word operations!

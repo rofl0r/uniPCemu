@@ -683,7 +683,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
 
-	register byte OP; //The opcode!
+	INLINEREGISTER byte OP; //The opcode!
 	if (CPU[activeCPU].repeating) //REPeating instruction?
 	{
 		OP = CPU[activeCPU].lastopcode; //Execute the last opcode again!

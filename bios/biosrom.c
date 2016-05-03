@@ -330,7 +330,7 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 
 byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handler function */
 {
-	register uint_32 basepos;
+	INLINEREGISTER uint_32 basepos;
 	if ((offset >= 0xC0000) && (offset<0xF0000)) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
@@ -338,7 +338,7 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 		else return 0; //Our of range (32-bit)?
 	}
 	offset -= basepos; //Calculate from the base position!
-	register byte i=0,j=numOPT_ROMS;
+	INLINEREGISTER byte i=0,j=numOPT_ROMS;
 	if (!numOPT_ROMS) goto noOPTROMSR;
 	do //Check OPT ROMS!
 	{
@@ -363,7 +363,7 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 
 byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
-	register uint_32 basepos;
+	INLINEREGISTER uint_32 basepos;
 	if ((offset>=0xC0000) && (offset<0xF0000)) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
@@ -371,8 +371,8 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 		else return 0; //Our of range (32-bit)?
 	}
 	offset -= basepos; //Calculate from the base position!
-	register uint_32 OPTROM_address; //The address calculated in the EEPROM!
-	register byte i=0,j=numOPT_ROMS;
+	INLINEREGISTER uint_32 OPTROM_address; //The address calculated in the EEPROM!
+	INLINEREGISTER byte i=0,j=numOPT_ROMS;
 	if (!numOPT_ROMS) goto noOPTROMSW;
 	do //Check OPT ROMS!
 	{
@@ -493,7 +493,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 
 byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
-	register uint_32 basepos, tempoffset;
+	INLINEREGISTER uint_32 basepos, tempoffset;
 	if ((offset >= 0xF0000) && (offset < 0x100000)) basepos = 0xF0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
@@ -516,8 +516,8 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 		}
 	}
 
-	register uint_32 originaloffset;
-	register uint_32 segment; //Current segment!
+	INLINEREGISTER uint_32 originaloffset;
+	INLINEREGISTER uint_32 segment; //Current segment!
 	switch (EMULATED_CPU) //What CPU is being emulated?
 	{
 		case CPU_8086:
@@ -582,7 +582,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 
 byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler function */
 {
-	register uint_32 basepos, tempoffset;
+	INLINEREGISTER uint_32 basepos, tempoffset;
 	if ((offset >= 0xF0000) && (offset < 0x100000)) basepos = 0xF0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
@@ -607,7 +607,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 		}
 	}
 
-	register uint_32 segment; //Current segment!
+	INLINEREGISTER uint_32 segment; //Current segment!
 	//dolog("CPU","BIOS Read handler: %08X+%08X",baseoffset,reloffset);
 	switch (EMULATED_CPU) //What CPU is being emulated?
 	{

@@ -64,7 +64,7 @@ extern byte planesbuffer[4]; //All read planes for the current processing!
 
 void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 {
-	register byte x;
+	INLINEREGISTER byte x;
 	//We do nothing: text mode uses multiple planes at the same time!
 	character = planesbuffer[0]; //Character!
 	attribute = planesbuffer[1]; //Attribute!
@@ -114,8 +114,8 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo) //Render a text mode pixel!
 {
 	//First, full value to lookup!
-	register word charinner;
-	register byte pixel;
+	INLINEREGISTER word charinner;
+	INLINEREGISTER byte pixel;
 	charinner = Sequencer->activex;
 	charinner <<= 1;
 	charinner |= 1; //Calculate our column value!

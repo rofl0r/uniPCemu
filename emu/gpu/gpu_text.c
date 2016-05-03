@@ -46,7 +46,7 @@ OPTINLINE byte GPU_textcalcpixel(byte *x, byte *y, word *charx, word *chary, int
 	return 0; //Valid!
 }
 
-OPTINLINE static byte reverse8(register byte b) { //Reverses byte value bits!
+OPTINLINE static byte reverse8(INLINEREGISTER byte b) { //Reverses byte value bits!
 	b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4); //Swap 4 high and low bits!
 	b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2); //Swap 2 high and low bits of both nibbles!
 	b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1); //Swap odd and even bits!
@@ -60,7 +60,7 @@ OPTINLINE static byte getcharxy_8(byte character, byte x, byte y) //Retrieve a c
 {
 	static word lastcharinfo = 0; //attribute|character, bit31=Set?
 	static byte lastrow = 0; //The last loaded row!
-	register word location, loc2;
+	INLINEREGISTER word location, loc2;
 
 	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
 	location = 0x8000;

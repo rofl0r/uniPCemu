@@ -257,7 +257,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		Sequencer->Scanline_sync = 0; //Reset VSync!
 	}
 
-	register byte isretrace; //Vertical or horizontal retrace?
+	INLINEREGISTER byte isretrace; //Vertical or horizontal retrace?
 	isretrace = hretrace;
 	retracing = (isretrace |= vretrace); //We're retracing?
 
@@ -290,7 +290,7 @@ extern DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for
 
 OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
 {
-	register word stat; //The status of the pixel!
+	INLINEREGISTER word stat; //The status of the pixel!
 	//We are a maximum of 4096x1024 size!
 	Scanline &= 0x3FF; //Range safety: 1024 scanlines!
 	x &= 0xFFF; //Range safety: 4095 columns!
@@ -302,7 +302,7 @@ OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust th
 OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 {
 	//if (!lockVGA()) return; //Lock ourselves!
-	register word displaystate = 0; //Last display state!
+	INLINEREGISTER word displaystate = 0; //Last display state!
 	
 	/*if (!lockGPU()) //Lock the GPU for our access!
 	{

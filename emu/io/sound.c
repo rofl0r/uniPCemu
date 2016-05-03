@@ -627,7 +627,7 @@ OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int_32 *re
 	//Process multichannel!
 	uint_32 relsample; //Current channel and relative sample!
 	//Channel specific data
-	register uint_32 currentpos; //Current sample pos!
+	INLINEREGISTER uint_32 currentpos; //Current sample pos!
 	
 	//First, initialise our variables!
 	
@@ -719,7 +719,7 @@ OPTINLINE static void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 	//Variables first
 	//Current data numbers
 	uint_32 currentsample, channelsleft; //The ammount of channels to mix!
-	register int_32 result_l, result_r; //Sample buffer!
+	INLINEREGISTER int_32 result_l, result_r; //Sample buffer!
 	sword temp_l, temp_r; //Filtered values!
 	//Active data
 	playing_p activechannel; //Current channel!

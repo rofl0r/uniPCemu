@@ -73,8 +73,8 @@ void ticksholder_AVG(TicksHolder *ticksholder)
 
 OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 {
-    register u64 temp;
-	register u64 currentticks = getcurrentticks(); //Fist: get current ticks to be sure we're right!
+    INLINEREGISTER u64 temp;
+	INLINEREGISTER u64 currentticks = getcurrentticks(); //Fist: get current ticks to be sure we're right!
 	//We're not initialising/first call?
 	temp = ticksholder->newticks; //Move new ticks to old ticks! Store it for quicker reference later on!
 	ticksholder->oldticks = temp; //Store the old ticks!
@@ -91,8 +91,8 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 
 OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, float secondfactorreversed)
 {
-	register float result;
-	register float tickspassed;
+	INLINEREGISTER float result;
+	INLINEREGISTER float tickspassed;
 	tickspassed = (float)getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	tickspassed += ticksholder->ticksrest; //Add the time we've left unused last time!
 	result = floor(tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can use!
