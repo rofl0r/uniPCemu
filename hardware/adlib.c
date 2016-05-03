@@ -24,11 +24,13 @@
 //What volume is the minimum volume to be heard!
 #define __MIN_VOL (1.0f / SHRT_MAX)
 //Generate WAV file output?
-#define WAV_ADLIB
+//#define WAV_ADLIB
 //Generate WAV file output of a single sine wave?
 //#define WAVE_ADLIB
 //Adlib low-pass filter if enabled!
 //#define ADLIB_LOWPASS 15392.0f
+//Enable Tremolo&Vibrato if enabled!
+#define ADLIB_TREMOLOVIBRATO
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
 #define __ADLIB_SAMPLEBUFFERSIZE 4096
@@ -173,8 +175,12 @@ OPTINLINE void OPL2_stepTremoloVibrato()
 	stepTremoloVibrato(&tremolovibrato[1],6.4f); //Vibrato at 6.4Hz!
 
 	//Now the current value of the signal is stored! Apply the active tremolo/vibrato!
+	#ifdef ADLIB_TREMOLOVIBRATO
 	tremolovibrato[0].active = dB2factor(47.25f-(tremolovibrato[0].depth*tremolovibrato[0].current),47.25f); //Calculate the current tremolo!
-	tremolovibrato[1].active = (100.0f-(tremolovibrato[1].depth*tremolovibrato[1].current))*0.01f; //Calculate the current vibrato!
+	tremolovibrato[1].active = cents2samplesfactor(1200.0f+(tremolovibrato[1].depth*tremolovibrato[1].current)); //Calculate the current vibrato!
+	#else
+	tremolovibrato[0].active = tremolovibrato[1].active = 1.0f; //No tremolo/vibrato!
+	#endif
 }
 
 OPTINLINE float OPL2_Vibrato(float frequency, sbyte operatornumber)
@@ -584,7 +590,7 @@ OPTINLINE float calcModulator(byte operator, word modulator)
 {
 	float result;
 	result = OPL2_Tremolo(operator,OPL2_Exponential(modulator)); //Apply exponential and tremolo!
-	result *= generalmodulatorfactor; //Apply modulation factor!
+	//result *= generalmodulatorfactor; //Apply modulation factor!
 	result *= PI2; //Calculate current modulation!
 	return result;
 }
@@ -599,7 +605,7 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 	if (feedback) //Apply channel feedback?
 	{
 		activemodulation = adlibop[operator].lastsignal;
-		activemodulation *= generalmodulatorfactor; //Apply modulation factor!
+		//activemodulation *= generalmodulatorfactor; //Apply modulation factor!
 		activemodulation *= adlibch[channel].feedback; //Calculate current feedback
 	}
 	else
