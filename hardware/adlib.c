@@ -117,7 +117,7 @@ typedef struct {
 	//Signal generation
 	byte wavesel;
 	float ModulatorFrequencyMultiple; //What harmonic to sound?
-	word lastsignal; //The last signal produced!
+	float lastsignal; //The last signal produced!
 	float freq0, time; //The frequency and current time of an operator!
 	float lastfreq; //Last valid set frequency!
 	ADLIBCHANNEL *channel;
@@ -267,7 +267,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[0][channel]&0x1F].gain = (adlibop[adliboperators[0][channel]].m_env<<3)+(adlibop[adliboperators[0][channel]].outputlevel); //Apply the start gain!
 		adlibop[adliboperators[0][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
 		adlibop[adliboperators[0][channel]&0x1F].freq0 = adlibop[adliboperators[0][channel]&0x1F].time = 0.0f; //Initialise operator signal!
-		adlibop[adliboperators[0][channel]&0x1F].lastsignal = 0; //Reset the last signals!
+		adlibop[adliboperators[0][channel]&0x1F].lastsignal = 0.0f; //Reset the last signals!
 		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[0][channel]&0x1F]);
 	}
 
@@ -279,7 +279,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[1][channel]&0x1F].gain = (adlibop[adliboperators[1][channel]].m_env<<3)+(adlibop[adliboperators[1][channel]].outputlevel); //Apply the start gain!
 		adlibop[adliboperators[1][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
 		adlibop[adliboperators[1][channel]&0x1F].freq0 = adlibop[adliboperators[1][channel]&0x1F].time = 0.0f; //Initialise operator signal!
-		adlibop[adliboperators[1][channel]&0x1F].lastsignal = 0; //Reset the last signals!
+		adlibop[adliboperators[1][channel]&0x1F].lastsignal = 0.0f; //Reset the last signals!
 		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[1][channel]&0x1F]);
 	}
 
@@ -472,6 +472,8 @@ OPTINLINE word Word2Wave(sword s)
 
 OPTINLINE word OPL2SinWave(const float r)
 {
+	const float halfpi = (0.5f*(float)PI); //Half PI!
+	const float halfpi1 = (1.0f/halfpi); //Half pi division factor!
 	float index;
 	word entry; //The entry to convert!
 	byte location; //The location in the table to use!
@@ -481,12 +483,14 @@ OPTINLINE word OPL2SinWave(const float r)
 	if (index>=(float)PI) //Second half?
 	{
 		PIpart = 2; //Second half!
+		index -= PI; //Convert to first half!
 	}
-	if (fmod(index,(float)PI)>=(0.5f*(float)PI)) //Past quarter?
+	if (index>=halfpi) //Past quarter?
 	{
 		PIpart |= 1; //Second half!
+		index -= halfpi; //Convert to first quarter!
 	}
-	index = (fmod(index,(0.5f*(float)PI))/(0.5f*(float)PI))*255.0f; //Convert to full range!
+	index = (index*halfpi1)*255.0f; //Convert to full range!
 	location = (byte)index; //Set the location to use!
 	if (PIpart&1) //Reversed quarter(second and fourth quarter)?
 	{
@@ -594,7 +598,7 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 	//Generate the signal!
 	if (feedback) //Apply channel feedback?
 	{
-		activemodulation = OPL2_Tremolo(operator,OPL2_Exponential(adlibop[operator].lastsignal));
+		activemodulation = adlibop[operator].lastsignal;
 		activemodulation *= generalmodulatorfactor; //Apply modulation factor!
 		activemodulation *= adlibch[channel].feedback; //Calculate current feedback
 	}
@@ -638,7 +642,7 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 	skipvolenv: //Skip vol env operator!
 	if (frequency && (updateoperator&1)) //Running operator and allowed to update our signal?
 	{
-		adlibop[operator].lastsignal = result; //Set last signal #0 to #1(shift into the older one)!
+		adlibop[operator].lastsignal = OPL2_Tremolo(operator,OPL2_Exponential(result)); //Set last signal #0 to #1(shift into the older one)!
 		adlibop[operator].lastfreq = frequency; //We were last running at this frequency!
 		incop(operator,frequency); //Increase time for the operator when allowed to increase (frequency=0 during PCM output)!
 	}
@@ -1229,7 +1233,7 @@ void initAdlib()
 		adlibop[i].outputlevel = outputtable[0]; //Apply default output!
 		adlibop[i].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(0); //Which harmonic to use?
 		adlibop[i].ReleaseImmediately = 1; //We're defaulting to value being 0=>Release immediately.
-		adlibop[i].lastsignal = 0; //Reset the last signals!
+		adlibop[i].lastsignal = 0.0f; //Reset the last signals!
 		if (adliboperatorsreverse[i]!=0xFF) //Valid operator?
 		{
 			adlibop[i].channel = &adlibch[adliboperatorsreverse[i]&0x1F]; //The channel this operator belongs to!

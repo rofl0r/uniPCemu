@@ -356,7 +356,6 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 	unlock(LOCK_CPU); //Release the CPU to be used!
 
 	initTicksHolder(&timing); //Initialise our time container!
-	getuspassed(&timing); //Initialise our time to 0!
 
 	showTime(playtime,&oldplaytime);
 

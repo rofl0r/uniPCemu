@@ -22,6 +22,7 @@ void donelog(void)
 
 void initlog()
 {
+	initTicksHolder(&logticksholder); //Initialize our time!
 	startHiresCounting(&logticksholder); //Init our timer to the starting point!
 	log_Lock = SDL_CreateSemaphore(1); //Create our sephamore!
 	atexit(&donelog); //Our cleanup function!

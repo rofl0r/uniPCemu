@@ -169,7 +169,7 @@ OPTINLINE double getCurrentClockSpeed()
 
 extern byte EMU_RUNNING; //Are we running?
 
-TicksHolder CPUUpdate, InputUpdate;
+TicksHolder CPUUpdate;
 
 uint_64 CPU_time = 0; //Total CPU time before delay!
 
@@ -372,7 +372,6 @@ int main(int argc, char * argv[])
 	//New SDL way!
 	/* Check for events */
 	getnspassed(&CPUUpdate);
-	getnspassed(&InputUpdate);
 	getnspassed(&CPU_timing); //Make sure we start at zero time!
 	lock(LOCK_CPU); //Lock the CPU: we're running!
 	last_timing = last_timing_start = (double)getnspassed_k(&CPU_timing); //We start off at this point with no time running! We start counting the last timing from now!

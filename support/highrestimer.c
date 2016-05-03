@@ -7,6 +7,7 @@ double tickresolution = 0.0f; //Our tick resolution, initialised!
 byte tickresolution_win_SDL = 0; //Force SDL rendering?
 
 float msfactor, usfactor, nsfactor; //The factors!
+float msfactorrev, usfactorrev, nsfactorrev; //The factors reversed!
 
 void initHighresTimer()
 {
@@ -33,16 +34,9 @@ void initHighresTimer()
 		usfactor = (float)(1.0f/tickresolution)*US_SECOND; //US factor!
 		nsfactor = (float)(1.0f/tickresolution)*NS_SECOND; //NS factor!
 		msfactor = (float)(1.0f/tickresolution)*MS_SECOND; //MS factor!
-}
-
-void initTicksHolder(TicksHolder *ticksholder)
-{
-	memset(ticksholder, 0, sizeof(*ticksholder)); //Clear the holder!}
-}
-
-void ticksholder_AVG(TicksHolder *ticksholder)
-{
-	ticksholder->avg = 1; //Enable average meter!
+		usfactorrev = 1.0f/usfactor; //Reverse!
+		nsfactorrev = 1.0f/nsfactor; //Reverse!
+		msfactorrev = 1.0f/msfactor; //Reverse!
 }
 
 OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
@@ -56,56 +50,53 @@ OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 	return 0; //Give the result: ticks passed!
 #else
 #ifdef _WIN32
-	if (!tickresolution_win_SDL) //Not forcing SDL?
-	{
-		LARGE_INTEGER temp;
-		if (QueryPerformanceCounter(&temp))
-		{
-			return (u64)temp.QuadPart; //Give the result by the performance counter of windows!
-		}
-	}
-	return 0; //Unknown time passed!
+	if (tickresolution_win_SDL) goto forcewinsdl; //Forcing SDL?
+	LARGE_INTEGER temp;
+	if (!QueryPerformanceCounter(&temp)) return 0; //Invalid result?
+	return temp.QuadPart; //Give the result by the performance counter of windows!
+	forcewinsdl: //Force SDL usage of ticks!
 #endif
 #endif
 	return (u64)SDL_GetTicks(); //Give the ticks passed using SDL default handling!
 }
 
-OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
+void initTicksHolder(TicksHolder *ticksholder)
 {
-    u64 temp;
-	u64 currentticks = getcurrentticks(); //Fist: get current ticks to be sure we're right!
-	if (!ticksholder->haveoldticks) //Not initialized yet?
-	{
-		ticksholder->oldticks = ticksholder->newticks = currentticks; //Update old&new to current!
-		ticksholder->haveoldticks = 1; //We have old ticks loaded!
-		ticksholder->tickspassed = 0; //No time passed yet!
-		return 0; //None passed yet!
-	}
-	//We're not initialising/first call?
-	ticksholder->oldticks = ticksholder->newticks; //Move new ticks to old ticks!
-	ticksholder->newticks = currentticks; //Get current ticks as new ticks!
-	if (ticksholder->newticks<ticksholder->oldticks)//Overflow?
-	{
-	    temp = ticksholder->oldticks;
-	    temp -= ticksholder->newticks; //Difference between the numbers!
-	    ticksholder->tickspassed = ~0; //Max!
-	    ticksholder->tickspassed -= temp; //Substract difference from max to get ticks passed!
-	}
-	else //Not overflown?
-	{
-		ticksholder->tickspassed = ticksholder->newticks;
-		ticksholder->tickspassed -= ticksholder->oldticks; //Ticks passed!
-	}
-	return ticksholder->tickspassed; //Give the result: ammount of ticks passed!
+	memset(ticksholder, 0, sizeof(*ticksholder)); //Clear the holder!}
+	ticksholder->newticks = getcurrentticks(); //Initialize the ticks to the current time!
 }
 
-OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor)
+void ticksholder_AVG(TicksHolder *ticksholder)
 {
-	register uint_64 result, tickspassed;
-	tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
+	ticksholder->avg = 1; //Enable average meter!
+}
+
+OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
+{
+    register u64 temp;
+	register u64 currentticks = getcurrentticks(); //Fist: get current ticks to be sure we're right!
+	//We're not initialising/first call?
+	temp = ticksholder->newticks; //Move new ticks to old ticks! Store it for quicker reference later on!
+	ticksholder->oldticks = temp; //Store the old ticks!
+	ticksholder->newticks = currentticks; //Set current ticks as new ticks!
+	if (currentticks<temp)//Overflown time?
+	{
+	    //Temp is already equal to oldticks!
+	    temp -= currentticks; //Difference between the numbers(old-new=difference)!
+		currentticks = ~0; //Max to substract from instead of the current ticks!
+	}
+	currentticks -= temp; //Substract the old ticks for the difference!
+	return currentticks; //Give the result: amount of ticks passed!
+}
+
+OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, float secondfactorreversed)
+{
+	register float result;
+	register float tickspassed;
+	tickspassed = (float)getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	tickspassed += ticksholder->ticksrest; //Add the time we've left unused last time!
-	result = (uint_64)((float)tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can use!
-	tickspassed -= (uint_64)(result/secondfactor); //The ticks left unprocessed this call!
+	result = floor(tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can use!
+	tickspassed -= (result*secondfactorreversed); //The ticks left unprocessed this call!
 	ticksholder->ticksrest = tickspassed; //Add the rest ticks unprocessed to the next time we're counting!
 	if (ticksholder->avg) //Average enabled?
 	{
@@ -113,43 +104,43 @@ OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor)
 		++ticksholder->avg_oldtimes; //One time more!
 		return SAFEDIV(ticksholder->avg_sumpassed,ticksholder->avg_oldtimes); //Give the ammount passed averaged!
 	}
-	return result; //Ordinary result!
+	return (uint_64)result; //Ordinary result!
 }
 
 uint_64 getmspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
 {
-	return gettimepassed(ticksholder, msfactor); //Factor us!
+	return gettimepassed(ticksholder, msfactor,msfactorrev); //Factor us!
 }
 
 uint_64 getuspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
 {
-	return gettimepassed(ticksholder,usfactor); //Factor us!
+	return gettimepassed(ticksholder,usfactor,usfactorrev); //Factor us!
 }
 
 uint_64 getnspassed(TicksHolder *ticksholder)
 {
-	return gettimepassed(ticksholder,nsfactor); //Factor ns!
+	return gettimepassed(ticksholder,nsfactor,nsfactorrev); //Factor ns!
 }
 
 uint_64 getmspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
 {
 	TicksHolder temp;
 	memcpy(&temp, ticksholder, sizeof(temp)); //Copy the old one!
-	return getmspassed(&temp); //Give the ammount of time passed!
+	return gettimepassed(&temp, msfactor, msfactorrev); //Factor us!
 }
 
 uint_64 getuspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
 {
 	TicksHolder temp;
 	memcpy(&temp,ticksholder,sizeof(temp)); //Copy the old one!
-	return getuspassed(&temp); //Give the ammount of time passed!
+	return gettimepassed(&temp, usfactor, usfactorrev); //Factor us!
 }
 
 uint_64 getnspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
 {
 	TicksHolder temp;
 	memcpy(&temp,ticksholder,sizeof(temp)); //Copy the old one!
-	return getnspassed(&temp); //Give the ammount of time passed!
+	return gettimepassed(&temp, nsfactor, nsfactorrev); //Factor us!
 }
 
 void startHiresCounting(TicksHolder *ticksholder)

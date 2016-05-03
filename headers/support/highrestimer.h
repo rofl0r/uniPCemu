@@ -7,14 +7,11 @@ typedef struct
 {
 u64 oldticks; //Old ticks!
 u64 newticks; //New ticks!
-byte haveoldticks; //Have old ticks?
-u64 tickspassed; //Ticks passed between the two measures (0 at the first call)!
-u64 ticksrest; //Ticks left after ticks have been processed (ticks left after division to destination time rate (ms/us/ns))
-//Average support!
-byte avg; //Are we averaging?
-u64 avg_sumpassed; //Total sum passed of getmspassed!
+u64 avg_sumpassed; //Total sum passed of get*spassed!
+float ticksrest; //Ticks left after ticks have been processed (ticks left after division to destination time rate (ms/us/ns))
 uint_32 avg_oldtimes; //Total times of avg_sumpassed!
 char lockname[256]; //Full lock name!
+byte avg; //Are we averaging?
 SDL_sem *lock; //Our lock when calculating time passed!
 } TicksHolder; //Info for checking differences between ticks!
 

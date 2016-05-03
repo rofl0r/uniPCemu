@@ -231,7 +231,6 @@ void initEMU(int full) //Init!
 	MMU_resetHandlers(NULL); //Reset all memory handlers before starting!
 
 	initTicksHolder(&CPU_timing); //Initialise the ticks holder!
-	getuspassed(&CPU_timing); //Initialise our timing!
 
 	psp_input_init(); //Make sure input is set up!
 
@@ -613,7 +612,7 @@ OPTINLINE byte coreHandler()
 				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 				goto resumeFromHLT; //We're resuming from HLT state!
 			}
-			if (DosboxClock) //Execute using Dosbox clocks?
+			else if (DosboxClock) //Execute using Dosbox clocks?
 			{
 				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now!
 			}
@@ -621,14 +620,18 @@ OPTINLINE byte coreHandler()
 			{
 				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
 			}
-			//Increase the instruction counter every instruction/HLT time!
-			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
-			if (cpudebugger) //Debugging?
+
+			if (CPU[activeCPU].halt==1) //Normal halt?
 			{
-				debugger_beforeCPU(); //Make sure the debugger is prepared when needed!
-				debugger_setcommand("<HLT>"); //We're a HLT state, so give the HLT command!
+				//Increase the instruction counter every instruction/HLT time!
+				cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+				if (cpudebugger) //Debugging?
+				{
+					debugger_beforeCPU(); //Make sure the debugger is prepared when needed!
+					debugger_setcommand("<HLT>"); //We're a HLT state, so give the HLT command!
+				}
+				debugger_step(); //Step debugger if needed, even during HLT state!
 			}
-			debugger_step(); //Step debugger if needed, even during HLT state!
 		}
 		else //We're not halted? Execute the CPU routines!
 		{

@@ -77,6 +77,7 @@ byte enablespeaker = 0; //Are we sounding the PC speaker?
 double speaker_ticktiming; //Both current clocks!
 double speaker_tick = (1000000000.0f / SPEAKER_RATE); //Time of a tick in the PC speaker sample!
 double time_tick = (1000000000.0f / TIME_RATE); //Time of a tick in the PIT!
+double time_tickreverse = 1.0f/(1000000000.0f / TIME_RATE); //Reversed of time_tick(1/ticktime)!
 
 byte IRQ0_status = 0; //Current IRQ0 status!
 
@@ -174,7 +175,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	time_ticktiming += timepassed; //Add the amount of time passed to the PIT timing!
 
 	//Render 1.19MHz samples for the time that has passed!
-	length = (uint_32)SAFEDIV(time_ticktiming, time_tick); //How many ticks to tick?
+	length = (uint_32)(time_ticktiming*time_tickreverse); //How many ticks to tick?
 	time_ticktiming -= (length*time_tick); //Rest the amount of ticks!
 
 	if (length) //Anything to tick at all?
