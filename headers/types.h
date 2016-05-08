@@ -189,6 +189,6 @@ void updateInputMain(); //Update input before an instruction (main thread only!)
 #define MHZ14 ((15.75/1.1)*1000000.0)
 
 //Inline register usage when defined.
-#define INLINEREGISTER
+#define INLINEREGISTER register
 
 #endif
