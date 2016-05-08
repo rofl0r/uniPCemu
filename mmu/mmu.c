@@ -127,6 +127,15 @@ uint_32 MEMsize() //Total size of memory in use?
 uint_32 mem_BUSValue = 0; //Last memory read/written, BUS value stored during reads/writes!
 const uint_32 BUSmask[4] = {0xFFFFFF00,0xFFFF00FF,0xFF00FFFF,0x00FFFFFF}; //Bus mask for easy toggling!
 
+void MMU_INTERNAL_INVMEM(uint_32 realddress, byte iswrite)
+{
+	return; //Disable this NMI!
+	if (execNMI(1)) //Execute an NMI from memory!
+	{
+		MMU.invaddr = 1; //Signal invalid address!
+	}
+}
+
 //Direct memory access (for the entire emulator)
 byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
@@ -142,8 +151,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	}
 	if ((realaddress>=MMU.size) || nonexistant) //Overflow/invalid location?
 	{
-		MMU.invaddr = 1; //Signal invalid address!
-		execNMI(1); //Execute an NMI from memory!
+		MMU_INTERNAL_INVMEM(realaddress,0); //Invalid memory accessed!
 		return (mem_BUSValue>>((index&3)<<3)); //Give the last data read/written by the BUS!
 	}
 	result = MMU.memory[realaddress]; //Get data from memory!
@@ -180,6 +188,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	}
 	if ((realaddress>=MMU.size) || nonexistant) //Overflow/invalid location?
 	{
+		MMU_INTERNAL_INVMEM(realaddress,1); //Invalid memory accessed!
 		return; //Abort!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
