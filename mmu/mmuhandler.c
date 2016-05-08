@@ -129,7 +129,7 @@ byte MMU_IO_writehandler(uint_32 offset, byte value)
 	current = &MMUHANDLER.writehandlers[0]; //Start of our list!
 	do //Search all available handlers!
 	{
-		if (handler = *current++) //Set?
+		if ((handler = *current++)>0) //Set?
 		{
 			if (handler(offset,value)) //Success?
 			{
@@ -150,7 +150,7 @@ byte MMU_IO_readhandler(uint_32 offset, byte *value)
 	current = &MMUHANDLER.readhandlers[0]; //Start of our list!
 	do //Search all available handlers!
 	{
-		if (handler = *current++) //Set?
+		if ((handler = *current++)>0) //Set?
 		{
 			if (handler(offset,value)) //Success reading?
 			{
