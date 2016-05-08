@@ -124,48 +124,63 @@ uint_32 MEMsize() //Total size of memory in use?
 	}
 }
 
+uint_32 mem_BUSValue = 0; //Last memory read/written, BUS value stored during reads/writes!
+const uint_32 BUSmask[4] = {0xFFFFFF00,0xFFFF00FF,0xFF00FFFF,0x00FFFFFF}; //Bus mask for easy toggling!
+
 //Direct memory access (for the entire emulator)
-byte MMU_directrb(uint_32 realaddress) //Direct read from real memory (with real data direct)!
+byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
+	byte result;
+	byte nonexistant = 0;
 	if (realaddress&0x100000) //1MB+?
 	{
 		realaddress -= (0x100000-0xA0000); //Patch to less memory to make memory linear!
 	}
 	else if (realaddress>=0xA0000) //640K ISA memory hole addressed?
 	{
-		realaddress -= 0xA0000;
+		nonexistant = 1; //Non-existant memory!
 	}
-	if (realaddress>=MMU.size) //Overflow/invalid location?
+	if ((realaddress>=MMU.size) || nonexistant) //Overflow/invalid location?
 	{
 		MMU.invaddr = 1; //Signal invalid address!
 		execNMI(1); //Execute an NMI from memory!
-		return 0x00; //Nothing there!
+		return (mem_BUSValue>>((index&3)<<3)); //Give the last data read/written by the BUS!
 	}
-	return MMU.memory[realaddress]; //Get data, wrap arround!
+	result = MMU.memory[realaddress]; //Get data from memory!
+	if (index!=0xFF) //Don't ignore BUS?
+	{
+		mem_BUSValue &= BUSmask[index&3]; //Apply the bus mask!
+		mem_BUSValue |= (result<<((index&3)<<3)); //Or into the last read/written value!
+	}
+	return result; //Give existant memory!
 }
 
 byte LOG_MMU_WRITES = 0; //Log MMU writes?
 
-void MMU_directwb(uint_32 realaddress, byte value) //Direct write to real memory (with real data direct)!
+void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct write to real memory (with real data direct)!
 {
 	if (LOG_MMU_WRITES) //Data debugging?
 	{
 		dolog("debugger","MMU: Writing to real %08X=%02X (%c)",realaddress,value,value?value:0x20);
 	}
 	//Apply the 640K memory hole!
+	byte nonexistant = 0;
 	if (realaddress&0x100000) //1MB+?
 	{
 		realaddress -= (0x100000-0xA0000); //Patch to less memory to make memory linear!
 	}
-	else if (realaddress>=0xA0000) //640K+ memory hole?
+	else if (realaddress>=0xA0000) //640K ISA memory hole addressed?
 	{
-		realaddress -= 0xA0000;
+		nonexistant = 1; //Non-existant memory!
 	}
-	if (realaddress>=MMU.size) //Overflow/invalid location?
+	if (index!=0xFF) //Don't ignore BUS?
 	{
-		MMU.invaddr = 1; //Signal invalid address!
-		execNMI(1); //Execute an NMI from memory!
-		return; //Abort: can't write here!
+		mem_BUSValue &= BUSmask[index&3]; //Apply the bus mask!
+		mem_BUSValue |= (value<<((index&3)<<3)); //Or into the last read/written value!
+	}
+	if ((realaddress>=MMU.size) || nonexistant) //Overflow/invalid location?
+	{
+		return; //Abort!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	if (realaddress>user_memory_used) //More written than present in memory (first write to addr)?
@@ -175,35 +190,35 @@ void MMU_directwb(uint_32 realaddress, byte value) //Direct write to real memory
 }
 
 //Used by the DMA controller only (or the paging system for faster reads):
-word MMU_directrw(uint_32 realaddress) //Direct read from real memory (with real data direct)!
+word MMU_INTERNAL_directrw(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
-	return (MMU_directrb(realaddress+1)<<8)|MMU_directrb(realaddress); //Get data, wrap arround!
+	return (MMU_INTERNAL_directrb(realaddress+1,index|1)<<8)|MMU_INTERNAL_directrb(realaddress,index); //Get data, wrap arround!
 }
 
-void MMU_directww(uint_32 realaddress, word value) //Direct write to real memory (with real data direct)!
+void MMU_INTERNAL_directww(uint_32 realaddress, word value, byte index) //Direct write to real memory (with real data direct)!
 {
-	MMU_directwb(realaddress,value&0xFF); //Low!
-	MMU_directwb(realaddress+1,(value>>8)&0xFF); //High!
+	MMU_INTERNAL_directwb(realaddress,value&0xFF,index); //Low!
+	MMU_INTERNAL_directwb(realaddress+1,(value>>8)&0xFF,index|1); //High!
 }
 
 //Used by paging only!
-uint_32 MMU_directrdw(uint_32 realaddress)
+uint_32 MMU_INTERNAL_directrdw(uint_32 realaddress, byte index)
 {
-	return (MMU_directrw(realaddress+2)<<16)|MMU_directrw(realaddress); //Get data, wrap arround!	
+	return (MMU_INTERNAL_directrw(realaddress+2,index|2)<<16)|MMU_INTERNAL_directrw(realaddress,index); //Get data, wrap arround!	
 }
-void MMU_directwdw(uint_32 realaddress, uint_32 value)
+void MMU_INTERNAL_directwdw(uint_32 realaddress, uint_32 value, byte index)
 {
-	MMU_directww(realaddress,value&0xFF); //Low!
-	MMU_directww(realaddress+2,(value>>8)&0xFF); //High!
+	MMU_INTERNAL_directww(realaddress,value&0xFF,index); //Low!
+	MMU_INTERNAL_directww(realaddress+2,(value>>8)&0xFF,index|2); //High!
 }
 
 //Direct memory access with Memory mapped I/O (for the CPU).
-OPTINLINE byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read without segment/offset translation&protection (from system/interrupt)!
+OPTINLINE byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte opcode, byte index) //Read without segment/offset translation&protection (from system/interrupt)!
 {
 	byte data;
 	if (MMU_IO_readhandler(realaddress,&data)) //Normal memory address?
 	{
-		data = MMU_directrb(realaddress); //Read the data from memory (and port I/O)!		
+		data = MMU_INTERNAL_directrb(realaddress,index); //Read the data from memory (and port I/O)!		
 	}
 	if (MMU_logging && (!opcode)) //To log?
 	{
@@ -212,7 +227,7 @@ OPTINLINE byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read wi
 	return data;
 }
 
-OPTINLINE void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write without segment/offset translation&protection (from system/interrupt)!
+OPTINLINE void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) //Write without segment/offset translation&protection (from system/interrupt)!
 {
 	if (MMU_logging) //To log?
 	{
@@ -221,7 +236,7 @@ OPTINLINE void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Write with
 	if (MMU_ignorewrites) return; //Ignore all written data: protect memory integrity!
 	if (MMU_IO_writehandler(realaddress, val)) //Normal memory access?
 	{
-		MMU_directwb(realaddress,val); //Set data in real memory!
+		MMU_INTERNAL_directwb(realaddress,val,index); //Set data in real memory!
 	}
 }
 
@@ -266,7 +281,7 @@ void MMU_clearOP()
 }
 
 //CPU/EMU simple memory access routine.
-byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
+byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte index) //Get adress, opcode=1 when opcode reading, else 0!
 {
 	byte result; //The result!
 	uint_32 realaddress;
@@ -291,7 +306,7 @@ byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adre
 		realaddress = mappage(realaddress); //Map it using the paging mechanism!
 	}
 
-	result = MMU_directrb_realaddr(realaddress,opcode); //Read from MMU/hardware!
+	result = MMU_INTERNAL_directrb_realaddr(realaddress,opcode,index); //Read from MMU/hardware!
 
 	if (opcode == 1) //We're an OPcode retrieval?
 	{
@@ -301,23 +316,23 @@ byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adre
 	return result; //Give the result!
 }
 
-word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress!
+word MMU_INTERNAL_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index) //Get adress!
 {
 	word result;
-	result = MMU_rb(segdesc, segment, offset, opcode);
-	result |= (MMU_rb(segdesc, segment, offset + 1, opcode) << 8); //Get adress word!
+	result = MMU_INTERNAL_rb(segdesc, segment, offset, opcode,index);
+	result |= (MMU_INTERNAL_rb(segdesc, segment, offset + 1, opcode,index|1) << 8); //Get adress word!
 	return result; //Give the result!
 }
 
-uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress!
+uint_32 MMU_INTERNAL_rdw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index) //Get adress!
 {
 	uint_32 result;
-	result = MMU_rw(segdesc, segment, offset, opcode);
-	result |= (MMU_rw(segdesc, segment, offset + 2, opcode) << 16); //Get adress dword!
+	result = MMU_INTERNAL_rw(segdesc, segment, offset, opcode,index);
+	result |= (MMU_INTERNAL_rw(segdesc, segment, offset + 2, opcode,index|2) << 16); //Get adress dword!
 	return result; //Give the result!
 }
 
-void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
+void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte val, byte index) //Set adress!
 {
 	uint_32 realaddress;
 	if (MMU.invaddr) return; //Abort!
@@ -350,20 +365,81 @@ void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
 		realaddress = mappage(realaddress); //Map it using the paging mechanism!
 	}
 
-	MMU_directwb_realaddr(realaddress,val); //Set data!
+	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
 }
 
-void MMU_ww(sword segdesc, word segment, uint_32 offset, word val) //Set adress (word)!
+void MMU_INTERNAL_ww(sword segdesc, word segment, uint_32 offset, word val, byte index) //Set adress (word)!
 {
-	MMU_wb(segdesc,segment,offset,val&0xFF); //Low first!
+	MMU_INTERNAL_wb(segdesc,segment,offset,val&0xFF,index); //Low first!
 	writeword = 1; //We're writing a 2nd byte word, for emulating the 80186 0x10000 overflow bug.
-	MMU_wb(segdesc,segment,offset+1,(val>>8)&0xFF); //High last!
+	MMU_INTERNAL_wb(segdesc,segment,offset+1,(val>>8)&0xFF,index|1); //High last!
 }
 
-void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val) //Set adress (dword)!
+void MMU_INTERNAL_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val, byte index) //Set adress (dword)!
 {
-	MMU_ww(segdesc,segment,offset,val&0xFFFF); //Low first!
-	MMU_ww(segdesc,segment,offset+2,(val>>16)&0xFFFF); //High last!
+	MMU_INTERNAL_ww(segdesc,segment,offset,val&0xFFFF,index); //Low first!
+	MMU_INTERNAL_ww(segdesc,segment,offset+2,(val>>16)&0xFFFF,index|2); //High last!
+}
+
+//Routines used by CPU!
+byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read without segment/offset translation&protection (from system/interrupt)!
+{
+	return MMU_INTERNAL_directrb_realaddr(realaddress,opcode,0);
+}
+void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Read without segment/offset translation&protection (from system/interrupt)!
+{
+	MMU_INTERNAL_directwb_realaddr(realaddress,val,0);
+}
+
+void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
+{
+	MMU_INTERNAL_wb(segdesc,segment,offset,val,0);
+}
+void MMU_ww(sword segdesc, word segment, uint_32 offset, word val) //Set adress!
+{
+	MMU_INTERNAL_ww(segdesc,segment,offset,val,0);
+}
+void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val) //Set adress!
+{
+	MMU_INTERNAL_wdw(segdesc,segment,offset,val,0);
+}
+byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	return MMU_INTERNAL_rb(segdesc,segment,offset,opcode,0);
+}
+word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	return MMU_INTERNAL_rw(segdesc,segment,offset,opcode,0);
+}
+uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	return MMU_INTERNAL_rdw(segdesc,segment,offset,opcode,0);
+}
+
+//Direct memory access routines (used by DMA)!
+byte MMU_directrb(uint_32 realaddress) //Direct read from real memory (with real data direct)!
+{
+	return MMU_INTERNAL_directrb(realaddress,0);
+}
+word MMU_directrw(uint_32 realaddress) //Direct read from real memory (with real data direct)!
+{
+	return MMU_INTERNAL_directrw(realaddress,0);
+}
+uint_32 MMU_directrdw(uint_32 realaddress) //Direct read from real memory (with real data direct)!
+{
+	return MMU_INTERNAL_directrdw(realaddress,0);
+}
+void MMU_directwb(uint_32 realaddress, byte value) //Direct write to real memory (with real data direct)!
+{
+	MMU_INTERNAL_directwb(realaddress,value,0);
+}
+void MMU_directww(uint_32 realaddress, word value) //Direct write to real memory (with real data direct)!
+{
+	MMU_INTERNAL_directww(realaddress,value,0);
+}
+void MMU_directwdw(uint_32 realaddress, uint_32 value) //Direct write to real memory (with real data direct)!
+{
+	MMU_INTERNAL_directwdw(realaddress,value,0);
 }
 
 //Extra routines for the emulator.
