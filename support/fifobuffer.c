@@ -79,20 +79,38 @@ uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 	if (!buffer) return 0; //Error: invalid buffer!
 	if (!buffer->buffer) return 0; //Error invalid: buffer!
 	uint_32 result;
-	if (buffer->lock) WaitSem(buffer->lock)
-	if (buffer->position[0].readpos == buffer->position[0].writepos) //Either full or empty?
+	if (buffer->lock) //Locked buffer?
 	{
-		result = buffer->position[0].lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
+		WaitSem(buffer->lock)
+		if (buffer->position[0].readpos == buffer->position[0].writepos) //Either full or empty?
+		{
+			result = buffer->position[0].lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
+		}
+		else if (buffer->position[0].readpos>buffer->position[0].writepos) //Read after write index? We're a simple difference!
+		{
+			result = buffer->position[0].readpos - buffer->position[0].writepos;
+		}
+		else //The read position is before or at the write position? We wrap arround!
+		{
+			result = (buffer->size - buffer->position[0].writepos) + buffer->position[0].readpos;
+		}
+		PostSem(buffer->lock)
 	}
-	else if (buffer->position[0].readpos>buffer->position[0].writepos) //Read after write index? We're a simple difference!
+	else //Lockless buffer?
 	{
-		result = buffer->position[0].readpos - buffer->position[0].writepos;
+		if (buffer->position[0].readpos == buffer->position[0].writepos) //Either full or empty?
+		{
+			result = buffer->position[0].lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
+		}
+		else if (buffer->position[0].readpos>buffer->position[0].writepos) //Read after write index? We're a simple difference!
+		{
+			result = buffer->position[0].readpos - buffer->position[0].writepos;
+		}
+		else //The read position is before or at the write position? We wrap arround!
+		{
+			result = (buffer->size - buffer->position[0].writepos) + buffer->position[0].readpos;
+		}
 	}
-	else //The read position is before or at the write position? We wrap arround!
-	{
-		result = (buffer->size - buffer->position[0].writepos) + buffer->position[0].readpos;
-	}
-	if (buffer->lock) PostSem(buffer->lock)
 	return result; //Give the result!
 }
 

@@ -50,9 +50,17 @@ VRAM base offset!
 
 OPTINLINE byte is_A000VRAM(uint_32 linearoffset) //In VRAM (for CPU), offset=real memory address (linear memory)?
 {
+	INLINEREGISTER uint_32 temp;
 	if (VGA_RAMEnable) //VRAM Access by CPU Enabled?
 	{
-		return ((linearoffset>=VGA_VRAM_START) && (linearoffset<VGA_VRAM_END)); //In range?
+		temp = linearoffset; //Load the offset!
+		if (temp>=VGA_VRAM_START)
+		{
+			if (temp<VGA_VRAM_END); //In range?
+			{
+				return 1; //We're VRAM!
+			}
+		}
 	}
 	return 0; //Don't read/write from VRAM!
 }

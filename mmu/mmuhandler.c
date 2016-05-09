@@ -124,7 +124,7 @@ byte MMU_IO_writehandler(uint_32 offset, byte value)
 {
 	MMU_WHANDLER *current; //Current item!
 	INLINEREGISTER MMU_WHANDLER handler;
-	byte j = MIN(NUMITEMS(MMUHANDLER.writehandlers), MMUHANDLER.numw); //The amount of handlers to process!
+	INLINEREGISTER byte j = MIN(NUMITEMS(MMUHANDLER.writehandlers), MMUHANDLER.numw); //The amount of handlers to process!
 	if (!j) return 1; //Normal memory access by default!
 	current = &MMUHANDLER.writehandlers[0]; //Start of our list!
 	do //Search all available handlers!
@@ -145,7 +145,7 @@ byte MMU_IO_readhandler(uint_32 offset, byte *value)
 {
 	MMU_RHANDLER *current; //Current item!
 	INLINEREGISTER MMU_RHANDLER handler;
-	byte j = MIN(NUMITEMS(MMUHANDLER.readhandlers), MMUHANDLER.numr); //The amount of handlers to process!
+	INLINEREGISTER byte j = MIN(NUMITEMS(MMUHANDLER.readhandlers), MMUHANDLER.numr); //The amount of handlers to process!
 	if (!j) return 1; //Normal memory access by default!
 	current = &MMUHANDLER.readhandlers[0]; //Start of our list!
 	do //Search all available handlers!
