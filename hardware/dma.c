@@ -352,13 +352,16 @@ void DMA_tick()
 	INLINEREGISTER byte controller,current=lastcycle; //Current controller!
 	INLINEREGISTER byte channelindex, MCMReversed;
 	byte transferred = 0; //Transferred data this time?
-	byte startcurrent = current; //Current backup for checking for finished!
+	INLINEREGISTER byte startcurrent = current; //Current backup for checking for finished!
 	byte controllerdisabled = 0; //Controller disabled when set, so skip all checks!
+	byte controllerdisabled2[2];
+	controllerdisabled2[0] = (DMAController[0].CommandRegister & 4);
+	controllerdisabled2[1] = (DMAController[1].CommandRegister & 4);
 	nextcycle: //Next cycle to process!
 		controller = ((current&4)>>2); //Init controller
 		if (!controllerdisabled) //Controller not disabled?
 		{
-			if (DMAController[controller].CommandRegister&4)//Controller disabled?
+			if (controllerdisabled2[controller]) //Controller disabled?
 			{
 				if ((current & 3) != 3) //Controller is disabled, but not processed yet? Disable next channels if required!
 				{

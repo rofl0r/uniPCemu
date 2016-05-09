@@ -102,12 +102,13 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 	}
 	else //VGA mode?
 	{
-		VGAtext: //VGA text catch-all!
-		for (x = 0; x < VGA->precalcs.characterwidth;) //Process all coordinates of our row!
+	VGAtext: //VGA text catch-all!
+		x = VGA->precalcs.characterwidth;
+		--x; //Max X
+		do //Process all coordinates of our row!
 		{
 			characterpixels[x] = getcharxy(VGA, attribute, character, x, (byte)((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			++x; //Next coordinate!
-		}
+		} while (--x!=0xFF);
 	}
 }
 

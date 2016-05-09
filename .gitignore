@@ -13,3 +13,4 @@
 Windows/x86EMU/~AutoRecover.x86EMU.vcxproj
 *.opendb
 making.txt
+*.db
