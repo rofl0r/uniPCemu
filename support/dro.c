@@ -461,6 +461,7 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 			if (stoprunning) break; //Not running anymore? Start quitting!
 		}
 
+		unlockOPL(); //We're done with the adlib!
 		showTime(playtime, &oldplaytime); //Update time!
 
 		lockOPL(); //Make sure we're locked!

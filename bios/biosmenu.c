@@ -645,11 +645,14 @@ byte BIOS_printscreen(word x, word y, byte attr, char *text, ...)
 	return GPU_textprintfclickable(BIOS_Surface,getemucol16(attr&0xF),getemucol16((attr>>4)&0xF),buffer); //Give the contents!
 }
 
+extern byte GPU_surfaceclicked; //Surface clicked to handle?
+
 int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 {
 	*stat = BIOSMENU_STAT_OK; //Plain status for default!
 	int key = 0; //Currently pressed key(s)
 	int option = 0; //What option to choose?
+	byte dirty = 1; //We're dirty! We need to be updated on the screen!
 	while (key!=BUTTON_CROSS) //Wait for the key to choose something!
 	{
 		if (shuttingdown()) //Cancel?
@@ -663,12 +666,14 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 			if (option>0) //Past first?
 			{
 				option--; //Previous option!
+				dirty = 1; //We're dirty!
 			}
 			else //Top option?
 			{
 				if (numitems>1) //More than one item?
 				{
 					option = numitems-1; //Goto bottom item!
+					dirty = 1; //We're dirty!
 				}
 			}
 		}
@@ -677,10 +682,12 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 			if (option<(numitems-1)) //Not last item?
 			{
 				option++; //Next option!
+				dirty = 1; //We're dirty!
 			}
-			else //Last item?
+			else if (numitems>1) //Last item?
 			{
 				option = 0; //Goto first item from bottom!
+				dirty = 1; //We're dirty!
 			}
 		}
 		else if (((key & BUTTON_CIRCLE)>0) && ((allowspecs&BIOSMENU_SPEC_RETURN)>0)) //Cancel pressed and allowed?
@@ -712,31 +719,38 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 			break; //Exit loop!
 		}
 
+		lock(LOCK_INPUT);
+		if ((GPU_surfaceclicked&0x81)==1) //We're signalled?
+		{
+			dirty = 1; //We're dirty!
+			GPU_surfaceclicked |= 0x80; //We acnowledge this action!
+		}
+		unlock(LOCK_INPUT);
+
 //Now that the options have been chosen, show them:
 
-		int cur = 0; //Current option
-		for (cur=0; cur<numitems; cur++) //Process all options!
+		if (dirty) //Do we need to update the screen and check for input?
 		{
+			dirty = 0; //Acnowledge being acted upon!
+			int cur = 0; //Current option
+			char selected[2][256] = { "  %s","> %s" }; //Selector!
+			char *selector;
+			byte selectorattribute;
 			EMU_locktext();
-			if (cur==option) //Option?
+			cur = 0; //Initilialize current item!
+			do //Process all options!
 			{
-				if (BIOS_printscreen(0,startrow+cur,BIOS_ATTR_ACTIVE,"> %s",menuoptions[cur])&SETXYCLICKED_CLICKED) //Clicked?
+				selector = selected[(cur == option) ? 1 : 0]; //The current selector to use!
+				selectorattribute = (cur == option) ?BIOS_ATTR_ACTIVE:BIOS_ATTR_INACTIVE; //Active/inactive selector!
+				if (BIOS_printscreen(0,startrow+cur,selectorattribute,selector,menuoptions[cur])&SETXYCLICKED_CLICKED) //Clicked?
 				{
 					EMU_unlocktext();
-					return cur;
+					return cur; //This item has been chosen!
 				}
-			}
-			else //Not option?
-			{
-				if (BIOS_printscreen(0,startrow+cur,BIOS_ATTR_INACTIVE,"  %s",menuoptions[cur])&SETXYCLICKED_CLICKED) //Clicked?
-				{
-					EMU_unlocktext();
-					return cur;
-				}
-			}
+			} while (++cur<numitems);
 			EMU_unlocktext();
 		}
-		delay(0); //Wait for other threads!
+		delay(1000); //Wait for other threads!
 	}
 	return option; //Give the chosen option!
 }

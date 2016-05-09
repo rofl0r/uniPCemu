@@ -30,8 +30,6 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 
 //To log MIDI commands?
 //#define MIDI_LOG
-//To log MIDI rendering timing?
-//#define LOG_MIDI_TIMING
 
 //On/off controller bit values!
 #define MIDI_CONTROLLER_ON 0x40
@@ -236,11 +234,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	++numsamples; //Take one sample more!
 	lock(voice->locknumber); //Lock us!
 
-#ifdef LOG_MIDI_TIMING
-	static TicksHolder ticks; //Our ticks holder!
-	startHiresCounting(&ticks);
-	ticksholder_AVG(&ticks); //Enable averaging!
-#endif
 	if (!voice->VolumeEnvelope.active)
 	{
 		unlock(voice->locknumber); //Lock us!
@@ -303,10 +296,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 
 	voice->CurrentVolumeEnvelope = VolumeEnvelope; //Current volume envelope updated!
 	voice->CurrentModulationEnvelope = ModulationEnvelope; //Current volume envelope updated!
-
-#ifdef LOG_MIDI_TIMING
-	stopHiresCounting("MIDIDEV", "MIDIRenderer", &ticks); //Log our active counting!
-#endif
 
 	unlock(voice->locknumber); //Lock us!
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!

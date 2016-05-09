@@ -435,6 +435,8 @@ void GPU_mousebuttondown(word x, word y)
 	}
 }
 
+byte GPU_surfaceclicked = 0; //Surface clicked to handle?
+
 void GPU_mousebuttonup(word x, word y)
 {
 	int i = 0;
@@ -445,6 +447,7 @@ void GPU_mousebuttonup(word x, word y)
 			GPU_textbuttonup(GPU.textsurfaces[i], x, y); //We're released here!
 		}
 	}
+	GPU_surfaceclicked = 1; //Signal a click of a GPU surface!
 }
 
 void GPU_tickVideo()

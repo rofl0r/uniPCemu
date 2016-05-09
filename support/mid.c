@@ -296,7 +296,7 @@ OPTINLINE void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *head
 	byte meta_type;
 	uint_32 length=0, length_counter; //Our metadata variable length!
 
-	uint_64 play_pos = 0; //Current play position!
+	INLINEREGISTER uint_64 play_pos = 0; //Current play position!
 
 	uint_32 delta_time; //Delta time!
 
@@ -318,7 +318,7 @@ OPTINLINE void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *head
 				PostSem(MID_timing_pos_Lock)
 				return; //Stop playback: we're requested to stop playing!
 			}
-			if (timing_pos >= play_pos)
+			else if (timing_pos >= play_pos)
 			{
 				//Unlock
 				PostSem(MID_timing_pos_Lock)

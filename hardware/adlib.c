@@ -8,7 +8,7 @@
 #include "headers/support/locks.h" //Locking support!
 
 #include "headers/support/highrestimer.h" //High resolution timer!
-#include "headers/support/fifobuffer.h" //FIFO buffer support!
+#include "headers/support/sounddoublebuffer.h" //FIFO buffer support!
 
 #include "headers/support/wave.h" //WAV file support!
 
@@ -34,9 +34,6 @@
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
 #define __ADLIB_SAMPLEBUFFERSIZE 4971
-
-//The double buffering threshold!
-#define __ADLIBDOUBLE_THRESHOLD __ADLIB_SAMPLEBUFFERSIZE
 
 #define PI2 ((float)(2.0f * PI))
 
@@ -85,7 +82,7 @@ double feedbacklookup2[8]; //Actual feedback lookup value!
 
 byte wavemask = 0; //Wave select mask!
 
-FIFOBUFFER *adlibsound = NULL, *adlibdouble = NULL; //Our sound buffer for rendering!
+SOUNDDOUBLEBUFFER adlib_soundbuffer; //Our sound buffer for rendering!
 
 #ifdef WAV_ADLIB
 WAVEFILE *adlibout = NULL;
@@ -1180,8 +1177,7 @@ void updateAdlib(double timepassed)
 			#ifdef WAV_ADLIB
 			writeWAVMonoSample(adlibout,sample); //Log the samples!
 			#endif
-			writefifobuffer16(adlibdouble,sample); //Add the sample to our sound buffer!
-			movefifobuffer16(adlibdouble,adlibsound,__ADLIBDOUBLE_THRESHOLD); //Move any data to the destination once filled!
+			writeDoubleBufferedSound16(&adlib_soundbuffer,sample); //Output the sample to the renderer!
 			tickadlib(); //Tick us to the next timing if needed!
 			adlib_soundtiming -= adlib_soundtick; //Decrease timer to get time left!
 		}
@@ -1203,7 +1199,7 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 	for (;;) //Fill it!
 	{
 		//Left and right samples are the same: we're a mono signal!
-		readfifobuffer16(adlibsound,(word *)&last); //Generate a mono sample if it's available!
+		readDoubleBufferedSound16(&adlib_soundbuffer,(word *)&last); //Generate a mono sample if it's available!
 		*data_mono++ = last; //Load the last generated sample!
 		if (!--c) return SOUNDHANDLER_RESULT_FILLED; //Next item!
 	}
@@ -1273,9 +1269,7 @@ void initAdlib()
 
 	if (__SOUND_ADLIB)
 	{
-		adlibsound = allocfifobuffer(__ADLIB_SAMPLEBUFFERSIZE<<1,1); //Generate our buffer!
-		adlibdouble = allocfifobuffer((__ADLIBDOUBLE_THRESHOLD+1)<<1, 0); //Generate our buffer!
-		if (adlibsound) //Valid buffer?
+		if (allocDoubleBufferedSound16(__ADLIB_SAMPLEBUFFERSIZE,&adlib_soundbuffer)) //Valid buffer?
 		{
 			if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
 			{
@@ -1285,6 +1279,10 @@ void initAdlib()
 			{
 				setVolume(&adlib_soundGenerator,NULL,ADLIB_VOLUME);
 			}
+		}
+		else
+		{
+			dolog("adlib","Error registering double buffer for output!");
 		}
 	}
 	//dolog("adlib","sound channel added. registering ports...");
@@ -1325,13 +1323,6 @@ void doneAdlib()
 	if (__SOUND_ADLIB)
 	{
 		removechannel(&adlib_soundGenerator,NULL,0); //Stop the sound emulation?
-		if (adlibsound) //Valid buffer?
-		{
-			free_fifobuffer(&adlibsound); //Free our sound buffer!
-		}
-		if (adlibdouble) //Valid buffer?
-		{
-			free_fifobuffer(&adlibdouble); //Free our sound buffer!
-		}
+		freeDoubleBufferedSound(&adlib_soundbuffer); //Free out double buffered sound!
 	}
 }

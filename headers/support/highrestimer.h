@@ -7,11 +7,8 @@ typedef struct
 {
 u64 oldticks; //Old ticks!
 u64 newticks; //New ticks!
-u64 avg_sumpassed; //Total sum passed of get*spassed!
 float ticksrest; //Ticks left after ticks have been processed (ticks left after division to destination time rate (ms/us/ns))
-uint_32 avg_oldtimes; //Total times of avg_sumpassed!
 char lockname[256]; //Full lock name!
-byte avg; //Are we averaging?
 SDL_sem *lock; //Our lock when calculating time passed!
 } TicksHolder; //Info for checking differences between ticks!
 
@@ -35,6 +32,4 @@ void startHiresCounting(TicksHolder *ticksholder); //Start counting!
 void stopHiresCounting(char *src, char *what, TicksHolder *ticksholder); //Stop counting&log!
 
 u64 getcurrentticks(); //Retrieve the current ticks (can be used as seed for random functions)!
-
-void ticksholder_AVG(TicksHolder *ticksholder); //Enable averaging mspassed results!
 #endif

@@ -146,42 +146,48 @@ extern byte CGAMDARenderer; //CGA/MDA renderer?
 OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 {
 	//Blankings
-	if (signal&VGA_SIGNAL_HBLANKSTART) //HBlank start?
+	if (signal&VGA_HBLANKMASK) //HBlank?
 	{
-		hblank = 1; //We're blanking!
+		if (signal&VGA_SIGNAL_HBLANKSTART) //HBlank start?
+		{
+			hblank = 1; //We're blanking!
+		}
+		else if (hblank)
+		{
+			if (signal&VGA_SIGNAL_HBLANKEND) //HBlank end?
+			{
+				if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendhblank;
+				blankretraceendpending |= VGA_SIGNAL_HBLANKEND;
+			}
+		}
 	}
-	else if (hblank)
+	else if (blankretraceendpending&VGA_SIGNAL_HBLANKEND) //End pending HBlank!
 	{
-		if (signal&VGA_SIGNAL_HBLANKEND) //HBlank end?
-		{
-			if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendhblank;
-			blankretraceendpending |= VGA_SIGNAL_HBLANKEND;
-		}
-		else if (blankretraceendpending&VGA_SIGNAL_HBLANKEND) //End pending HBlank!
-		{
-			CGAendhblank:
-			hblank = 0; //We're not blanking anymore!
-			blankretraceendpending &= ~VGA_SIGNAL_HBLANKEND; //Remove from flags pending!
-		}
+	CGAendhblank:
+		hblank = 0; //We're not blanking anymore!
+		blankretraceendpending &= ~VGA_SIGNAL_HBLANKEND; //Remove from flags pending!
 	}
 
-	if (signal&VGA_SIGNAL_VBLANKSTART) //VBlank start?
+	if (signal&VGA_VBLANKMASK)
 	{
-		vblank = 1; //We're blanking!
+		if (signal&VGA_SIGNAL_VBLANKSTART) //VBlank start?
+		{
+			vblank = 1; //We're blanking!
+		}
+		else if (vblank)
+		{
+			if (signal&VGA_SIGNAL_VBLANKEND) //VBlank end?
+			{
+				if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendvblank;
+				blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
+			}
+		}
 	}
-	else if (vblank)
+	else if (blankretraceendpending&VGA_SIGNAL_VBLANKEND) //End pending HBlank!
 	{
-		if (signal&VGA_SIGNAL_VBLANKEND) //VBlank end?
-		{
-			if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendvblank;
-			blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
-		}
-		else if (blankretraceendpending&VGA_SIGNAL_VBLANKEND) //End pending HBlank!
-		{
-			CGAendvblank:
-			vblank = 0; //We're not blanking anymore!
-			blankretraceendpending &= ~VGA_SIGNAL_VBLANKEND; //Remove from flags pending!
-		}
+	CGAendvblank:
+		vblank = 0; //We're not blanking anymore!
+		blankretraceendpending &= ~VGA_SIGNAL_VBLANKEND; //Remove from flags pending!
 	}
 
 	//Both H&VBlank count!
@@ -194,51 +200,61 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	//Now process the Retraces/Sync!
 
 	//HSync
-	if (signal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
+	if (signal&VGA_HRETRACEMASK)
 	{
-		if (!hretrace) //Not running yet?
+		if (signal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
 		{
-			VGA_HRetrace(Sequencer, VGA); //Execute the handler!
+			if (!hretrace) //Not running yet?
+			{
+				VGA_HRetrace(Sequencer, VGA); //Execute the handler!
+			}
+			hretrace = 1; //We're retracing!
 		}
-		hretrace = 1; //We're retracing!
-	}
-	else if (hretrace)
-	{
-		if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
+		else if (hretrace)
 		{
-			hretrace = 0; //We're not retraing anymore!
+			if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
+			{
+				hretrace = 0; //We're not retraing anymore!
+			}
 		}
 	}
 
 	//VSync
-	if (signal&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
+	if (signal&VGA_VRETRACEMASK)
 	{
-		if (!vretrace) //Not running yet?
+		if (signal&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
 		{
-			VGA_VRetrace(Sequencer, VGA); //Execute the handler!
-
-			//VGA/EGA vertical retrace interrupt support!
-			if (VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_NotCleared) //Enabled vertical retrace interrupt?
+			if (!vretrace) //Not running yet?
 			{
-				if (!VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Disabled) //Generate vertical retrace interrupts?
+				VGA_VRetrace(Sequencer, VGA); //Execute the handler!
+
+				//VGA/EGA vertical retrace interrupt support!
+				if (VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_NotCleared) //Enabled vertical retrace interrupt?
 				{
-					doirq(VGA_IRQ); //Execute the CRT interrupt when possible!
+					if (!VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Disabled) //Generate vertical retrace interrupts?
+					{
+						doirq(VGA_IRQ); //Execute the CRT interrupt when possible!
+					}
+					VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 1; //We're pending an CRT interrupt!
 				}
-				VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 1; //We're pending an CRT interrupt!
 			}
+			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace = 1; //We're retracing!
 		}
-		VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace = 1; //We're retracing!
-	}
-	else if (vretrace)
-	{
-		if (signal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
+		else if (vretrace)
 		{
-			vretrace = 0; //We're not retracing anymore!
-			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //Vertical retrace?
+			if (signal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
+			{
+				vretrace = 0; //We're not retracing anymore!
+				VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //Vertical retrace?
+			}
+			else
+			{
+				VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 1; //Vertical retrace?
+			}
 		}
 		else
 		{
-			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 1; //Vertical retrace?
+			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //Vertical retrace?
 		}
 	}
 	else

@@ -3,6 +3,7 @@
 #include "headers/emu/sound.h" //Sound output support!
 #include "headers/hardware/parallel.h" //Parallel port support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/support/sounddoublebuffer.h" //Double buffered sound support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -16,13 +17,12 @@
 //Rendering buffer needs to be large enough for a good sound!
 #define __SSOURCE_HWBUFFER 651
 #define __COVOX_HWBUFFER 4096
-//Threshold for primary(Convox)/secondary(Sound Source) to render buffer! Lower this number for better response on the renderer, but worse response on the CPU(the reverse also applies)!
-#define __SSOURCE_THRESHOLD __SSOURCE_HWBUFFER
-#define __COVOX_THRESHOLD __COVOX_HWBUFFER
 
 double ssourcetiming = 0.0f, covoxtiming = 0.0f, ssourcetick=(1000000000.0f/__SSOURCE_RATE), covoxtick=(1000000000.0f/__COVOX_RATE);
 byte ssource_ready = 0; //Are we running?
-FIFOBUFFER *ssourcestream = NULL, *ssourcestream2 = NULL, *ssourcerenderstream = NULL, *covoxstream = NULL, *covoxrenderstream = NULL; //Sound and covox source data stream and secondary buffer!
+FIFOBUFFER *ssourcestream = NULL; //Sound and covox source data stream and secondary buffer!
+SOUNDDOUBLEBUFFER ssource_soundbuffer, covox_soundbuffer; //Sound source and covox output buffers!
+
 byte covox_left=0x80, covox_right=0x80; //Current status for the covox speech thing output (any rate updated)!
 
 //Current buffers for the Parallel port!
@@ -41,7 +41,7 @@ byte ssource_output(void* buf, uint_32 length, byte stereo, void *userdata)
 	byte lastssourcesample=0x80;
 	for (;lengthleft--;) //While length left!
 	{
-		if (!readfifobuffer(ssourcerenderstream, &lastssourcesample)) lastssourcesample = 0x80; //No result, so 0 converted from signed to unsigned (0-255=>-128-127)!
+		if (!readDoubleBufferedSound8(&ssource_soundbuffer, &lastssourcesample)) lastssourcesample = 0x80; //No result, so 0 converted from signed to unsigned (0-255=>-128-127)!
 		*sample++ = lastssourcesample; //Fill the output buffer!
 	}
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
@@ -56,7 +56,7 @@ byte covox_output(void* buf, uint_32 length, byte stereo, void *userdata)
 	word covoxsample=0x8080; //Dual channel sample!
 	for (;lengthleft--;)
 	{
-		if (!readfifobuffer16(covoxrenderstream,&covoxsample)) covoxsample = 0x8080; //Try to read the samples if it's there, else zero out!
+		if (!readDoubleBufferedSound16(&covox_soundbuffer,&covoxsample)) covoxsample = 0x8080; //Try to read the samples if it's there, else zero out!
 		*sample++ = (covoxsample&0xFF); //Left channel!
 		*sample++ = (covoxsample>>8); //Right channel!
 	}
@@ -133,14 +133,16 @@ void tickssourcecovox(double timepassed)
 	{
 		do
 		{
+			byte ssourcesample;
 			if (lastcontrol&4) //Is the Sound Source powered up?
 			{
-				movefifobuffer8(ssourcestream,ssourcestream2,1); //Move data to the destination buffer one sample at a time!
-				movefifobuffer8(ssourcestream2,ssourcerenderstream,__SSOURCE_THRESHOLD); //Move data to the render buffer once we're full enough!
+				if (readfifobuffer(ssourcestream,&ssourcesample))
+					writeDoubleBufferedSound8(&ssource_soundbuffer,ssourcesample); //Move data to the destination buffer one sample at a time!
 			}
-			else //Sound source is powered down?
+			else //Sound source is powered down? Flush the buffers!
 			{
-				movefifobuffer8(ssourcestream2,ssourcerenderstream,__SSOURCE_HWBUFFER-fifobuffer_freesize(ssourcestream2)); //Move rest data to the render buffer once we're full enough!
+				for (;readfifobuffer(ssourcestream, &ssourcesample);)
+					writeDoubleBufferedSound8(&ssource_soundbuffer, ssourcesample); //Move rest data to the render buffer once we're full enough!
 			}
 			ssourcetiming -= ssourcetick; //Ticked one sample!
 		} while (ssourcetiming>=ssourcetick); //Do ... while, because we execute at least once!
@@ -152,8 +154,7 @@ void tickssourcecovox(double timepassed)
 		//Write both left and right channels at the destination to get the sample rate converted, since we don't have a input buffer(just a state at any moment in time)!
 		do
 		{
-			writefifobuffer16(covoxstream, covox_left|(covox_right<<8)); //Add to the primary buffer when possible!
-			movefifobuffer16(covoxstream,covoxrenderstream,__COVOX_THRESHOLD); //Move data to the destination buffer once we're full enough, both channels at the same time (left and right)!
+			writeDoubleBufferedSound16(&covox_soundbuffer, covox_left | (covox_right << 8)); //Move data to the destination buffer one sample at a time!
 			covoxtiming -= covoxtick; //Ticked one sample!
 		} while (covoxtiming>=covoxtick); //Do ... while, because we execute at least once!
 	}
@@ -174,10 +175,8 @@ void doneSoundsource()
 		removechannel(&ssource_output, NULL, 0); //Remove the channel!
 		removechannel(&covox_output, NULL, 0); //Remove the channel!
 		free_fifobuffer(&ssourcestream); //Finish the stream if it's there!
-		free_fifobuffer(&ssourcestream2); //Finish the stream if it's there!
-		free_fifobuffer(&ssourcerenderstream); //Finish the stream if it's there!
-		free_fifobuffer(&covoxstream); //Finish the stream if it's there!
-		free_fifobuffer(&covoxrenderstream); //Finish the stream if it's there!
+		freeDoubleBufferedSound(&ssource_soundbuffer); //Finish the stream if it's there!
+		freeDoubleBufferedSound(&covox_soundbuffer); //Finish the stream if it's there!
 		ssource_ready = 0; //We're finished!
 	}
 }
@@ -190,16 +189,12 @@ void initSoundsource() {
 
 	//Sound source streams!
 	ssourcestream = allocfifobuffer(__SSOURCE_BUFFER,0); //Our FIFO buffer! This is the buffer the CPU writes to!
-	ssourcestream2 = allocfifobuffer((__SSOURCE_THRESHOLD+1),0); //Our FIFO hardware buffer! Don't lock! This is the buffer we render immediate samples to!
-	ssourcerenderstream = allocfifobuffer(__SSOURCE_HWBUFFER,1); //Our FIFO rendering buffer! Do lock! This is the buffer the renderer uses(double buffering with ssourcestream2).
 	
 	//Covox streams!
-	covoxstream = allocfifobuffer((__COVOX_THRESHOLD+1)<<1,0); //Our stereo FIFO hardware buffer! Don't lock! This is the buffer we render immediate samples to!
-	covoxrenderstream = allocfifobuffer(__COVOX_HWBUFFER<<1,1); //Our stereo FIFO rendering buffer! Do lock! This is the buffer the renderer uses(double buffering with covoxstream).
 
 	ssourcetiming = covoxtiming = 0.0f; //Initialise our timing!
 
-	if (ssourcestream && ssourcestream2 && ssourcerenderstream && covoxstream && covoxrenderstream) //Allocated buffer?
+	if (ssourcestream && allocDoubleBufferedSound8(__SSOURCE_HWBUFFER,&ssource_soundbuffer) && allocDoubleBufferedSound16(__COVOX_HWBUFFER,&covox_soundbuffer)) //Allocated buffers?
 	{
 		if (addchannel(&covox_output, NULL, "Covox Speech Thing", __COVOX_RATE, __COVOX_HWBUFFER, 1, SMPL8U)) //Covox channel added?
 		{
@@ -214,10 +209,6 @@ void initSoundsource() {
 	}
 	if (!ssource_ready) //Failed to allocate anything?
 	{
-		free_fifobuffer(&covoxrenderstream); //Finish the stream if it's there!
-		free_fifobuffer(&covoxstream); //Finish the stream if it's there!
-		free_fifobuffer(&ssourcerenderstream); //Finish the stream if it's there!
-		free_fifobuffer(&ssourcestream2); //Finish the stream if it's there!
 		free_fifobuffer(&ssourcestream); //Finish the stream if it's there!
 	}
 }

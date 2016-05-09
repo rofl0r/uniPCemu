@@ -66,11 +66,6 @@ void initTicksHolder(TicksHolder *ticksholder)
 	ticksholder->newticks = getcurrentticks(); //Initialize the ticks to the current time!
 }
 
-void ticksholder_AVG(TicksHolder *ticksholder)
-{
-	ticksholder->avg = 1; //Enable average meter!
-}
-
 OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 {
     INLINEREGISTER u64 temp;
@@ -98,12 +93,6 @@ OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, fl
 	result = floor(tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can use!
 	tickspassed -= (result*secondfactorreversed); //The ticks left unprocessed this call!
 	ticksholder->ticksrest = tickspassed; //Add the rest ticks unprocessed to the next time we're counting!
-	if (ticksholder->avg) //Average enabled?
-	{
-		ticksholder->avg_sumpassed += result; //Add to the sum!
-		++ticksholder->avg_oldtimes; //One time more!
-		return SAFEDIV(ticksholder->avg_sumpassed,ticksholder->avg_oldtimes); //Give the ammount passed averaged!
-	}
 	return (uint_64)result; //Ordinary result!
 }
 

@@ -362,20 +362,19 @@ void fifobuffer_clear(FIFOBUFFER *buffer)
 void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 {
 	if ((src == dest) || (!threshold)) return; //Can't move to itself!
-	uint_32 current; //Current thresholded data index!
+	INLINEREGISTER uint_32 current; //Current thresholded data index!
 	byte buffer; //our buffer for the transfer!
 	if (!src) return; //Invalid source!
 	if (!dest) return; //Invalid destination!
-	if (fifobuffer_freesize(src) < (src->size - threshold)) //Buffered enough words of data?
+	if (fifobuffer_freesize(src) <= (src->size - threshold)) //Buffered enough words of data?
 	{
 		if (fifobuffer_freesize(dest) >= threshold) //Enough free space left?
 		{
-			//Transfer the data!
-			if (src->lock) WaitSem(src->lock) //Lock the source!
-			if (dest->lock) WaitSem(dest->lock) //Lock the destination!
 			//Now quickly move the thesholded data from the source to the destination!
 			current = threshold; //Move threshold items!
-			do //Process all items fast!
+			if (src->lock) WaitSem(src->lock) //Lock the source!
+			if (dest->lock) WaitSem(dest->lock) //Lock the destination!
+			do //Process all items as fast as possible!
 			{
 				readfifobufferunlocked(src, &buffer); //Read 8-bit data!
 				writefifobufferunlocked(dest, buffer); //Write 8-bit data!
@@ -389,22 +388,21 @@ void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 {
 	if ((src==dest) || (!threshold)) return; //Can't move to itself!
-	uint_32 current; //Current thresholded data index!
+	INLINEREGISTER uint_32 current; //Current thresholded data index!
 	word buffer; //our buffer for the transfer!
 	if (!src) return; //Invalid source!
 	if (!dest) return; //Invalid destination!
 	threshold <<= 1; //Make the threshold word-sized, since we're moving word items!
-	if (fifobuffer_freesize(src) < (src->size - threshold)) //Buffered enough words of data?
+	if (fifobuffer_freesize(src) <= (src->size - threshold)) //Buffered enough words of data?
 	{
 		if (fifobuffer_freesize(dest) >= threshold) //Enough free space left?
 		{
 			threshold >>= 1; //Make it into actual data items!
-			//Transfer the data!
-			if (src->lock) WaitSem(src->lock) //Lock the source!
-			if (dest->lock) WaitSem(dest->lock) //Lock the destination!
 			//Now quickly move the thesholded data from the source to the destination!
 			current = threshold; //Move threshold items!
-			do //Process all items fast!
+			if (src->lock) WaitSem(src->lock) //Lock the source!
+			if (dest->lock) WaitSem(dest->lock) //Lock the destination!
+			do //Process all items as fast as possible!
 			{
 				readfifobuffer16unlocked(src,&buffer); //Read 16-bit data!
 				writefifobuffer16unlocked(dest,buffer); //Write 16-bit data!

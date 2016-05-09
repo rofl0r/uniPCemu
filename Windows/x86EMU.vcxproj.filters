@@ -483,6 +483,9 @@
     <ClCompile Include="..\support\dro.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
+    <ClCompile Include="..\support\sounddoublebuffer.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">
@@ -875,6 +878,9 @@
       <Filter>Header Files\hardware\vga</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\support\dro.h">
+      <Filter>Header Files\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\support\sounddoublebuffer.h">
       <Filter>Header Files\support</Filter>
     </ClInclude>
   </ItemGroup>

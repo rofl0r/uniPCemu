@@ -80,7 +80,8 @@
 //The clock speed of the 8086 (~14.31818MHz divided by 3)!
 #define CPU808X_CLOCK (MHZ14/3.0f)
 
-//Timeout CPU time! 44100Hz or 1ms!
+//Timeout CPU time and instruction interval! 44100Hz or 1ms!
+#define TIMEOUT_INTERVAL 10
 #define TIMEOUT_TIME 1000000
 
 //Allow GPU rendering (to show graphics)?
@@ -576,6 +577,7 @@ OPTINLINE byte coreHandler()
 	uint_64 timeoutCPUtime = currentCPUtime+TIMEOUT_TIME; //We're timed out this far in the future (1ms)!
 
 	double instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
+	byte timeout = TIMEOUT_INTERVAL; //Check every 10 instructions for timeout!
 	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
 	{
 		if (debugger_thread)
@@ -699,7 +701,11 @@ OPTINLINE byte coreHandler()
 		tickParallel(instructiontime); //Update the Parallel timer!
 		if (BIOS_Settings.useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		updateVGA(instructiontime); //Update the VGA timer!
-		if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
+		if (--timeout==0) //Timed out?
+		{
+			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!
+			if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
+		}
 	} //CPU cycle loop!
 
 	//Slowdown to requested speed if needed!

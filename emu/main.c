@@ -182,10 +182,6 @@ void updateInputMain() //Frequency 1000Hz!
 		{
 			//Handle an event!
 			updateInput(&event); //Update input status when needed!
-			if (event.type == SDL_QUIT) //Quitting requested?
-			{
-				EMU_Shutdown(1); //Request a shutdown!
-			}
 		}
 		while (SDL_PollEvent(&event)); //Keep polling while available!
 	}

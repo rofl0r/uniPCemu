@@ -18,6 +18,7 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 //PC speaker support functionality:
 #include "headers/emu/emu_misc.h" //Random generators!
 #include "headers/support/fifobuffer.h" //FIFO sample buffer support!
+#include "headers/support/sounddoublebuffer.h" //Sound double buffer support!
 #include "headers/support/wave.h" //Wave support!
 
 //Are we disabled?
@@ -28,9 +29,6 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 PC SPEAKER
 
 */
-
-//To lock the FIFO buffer during rendering? If commented, the entire audio thread is locked instead (might have consequences on other audio output). When defined either lock or don't use locks at all!
-#define FIFOBUFFER_LOCK 1
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -44,8 +42,6 @@ PC SPEAKER
 //#define SPEAKER_RATE (1000000.0f/60.0f)
 //Speaker buffer size!
 #define SPEAKER_BUFFER 4096
-//The double buffering threshold!
-#define PITDOUBLE_THRESHOLD SPEAKER_BUFFER
 //Speaker low pass filter values (if defined, it's used)!
 #define SPEAKER_LOWPASS 20000.0f
 //Speaker volume during filtering!
@@ -88,12 +84,13 @@ extern byte EMU_RUNNING; //Current emulator status!
 
 double time_ticktiming; //Current timing!
 
+SOUNDDOUBLEBUFFER pcspeaker_soundbuffer; //Output buffers for rendering!
+
 typedef struct
 {
 	byte mode; //PC speaker mode!
 	word frequency; //Frequency divider that has been set!
 	byte status; //Status of the counter!
-	FIFOBUFFER *buffer, *doublebuffer; //Output buffers for rendering!
 	word ticker; //16-bit ticks!
 	byte reload; //Reload requested?
 	byte channel_status; //Current output status!
@@ -112,20 +109,16 @@ PITCHANNEL PITchannels[3]; //All possible PC speakers, whether used or not!
 byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	static sword s = 0; //Last sample!
 	uint_32 i;
-	PITCHANNEL *speaker; //Convert to the current speaker!
-
 	if (__HW_DISABLED) return 0; //Abort!	
 
-								 //First, our information sources!
-	speaker = (PITCHANNEL *)userdata; //Active speaker!
-
+	//First, our information sources!
 	i = 0; //Init counter!
 	if (stereo) //Stereo samples?
 	{
 		INLINEREGISTER sample_stereo_p ubuf_stereo = (sample_stereo_p)buf; //Active buffer!
 		for (;;) //Process all samples!
 		{ //Process full length!
-			readfifobuffer16(speaker->buffer, (word *)&s); //Not readable from the buffer? Duplicate last sample!
+			readDoubleBufferedSound16(&pcspeaker_soundbuffer, (word *)&s); //Not readable from the buffer? Duplicate last sample!
 
 			ubuf_stereo->l = ubuf_stereo->r = s; //Single channel!
 			++ubuf_stereo; //Next item!
@@ -137,7 +130,7 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 		INLINEREGISTER sample_p ubuf_mono = (sample_p)buf; //Active buffer!
 		for (;;)
 		{ //Process full length!
-			readfifobuffer16(speaker->buffer, (word *)&s); //Not readable from the buffer? Duplicate last sample!
+			readDoubleBufferedSound16(&pcspeaker_soundbuffer, (word *)&s); //Not readable from the buffer? Duplicate last sample!
 			*ubuf_mono = s; //Mono channel!
 			++ubuf_mono; //Next item!
 			if (++i == length) break; //Next item!
@@ -425,10 +418,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 		length = (uint_32)SAFEDIV(speaker_ticktiming, speaker_tick); //How many ticks to tick?
 		speaker_ticktiming -= (length*speaker_tick); //Rest the amount of ticks!
 
-		#ifndef FIFOBUFFER_LOCK
-			lockaudio(); //Lock the audio!
-		#endif
-
 		//Ticks the speaker when needed!
 		i = 0; //Init counter!
 		//Generate the samples from the output signal!
@@ -458,19 +447,12 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			}
 
 			//Add the result to our buffer!
-			writefifobuffer16(PITchannels[2].doublebuffer, (short)speaker_currentsample); //Write the sample to the buffer (mono buffer)!
-			movefifobuffer16(PITchannels[2].doublebuffer,PITchannels[2].buffer,PITDOUBLE_THRESHOLD); //Move any data to the destination once filled!
+			writeDoubleBufferedSound16(&pcspeaker_soundbuffer, (short)speaker_currentsample); //Write the sample to the buffer (mono buffer)!
 			if (++i == length) //Fully rendered?
 			{
-				#ifndef FIFOBUFFER_LOCK
-					unlockaudio(); //Unlock the audio!
-				#endif
 				return; //Next item!
 			}
 		}
-		#ifndef FIFOBUFFER_LOCK
-			unlockaudio(); //Unlock the audio!
-		#endif
 	}
 }
 
@@ -486,12 +468,7 @@ void initSpeakers(byte soundspeaker)
 		PITchannels[i].rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 2048 word-sized samples with lock (TICK_RATE)!
 		if (i==2 && enablespeaker) //Speaker?
 		{
-			#ifdef FIFOBUFFER_LOCK
-			PITchannels[i].buffer = allocfifobuffer(SPEAKER_BUFFER<<1, FIFOBUFFER_LOCK); //(non-)Lockable FIFO with X word-sized samples with lock!
-			#else
-			PITchannels[i].buffer = allocfifobuffer(SPEAKER_BUFFER<<1, 0); //(non-)Lockable FIFO with X word-sized samples without lock!
-			#endif
-			PITchannels[i].doublebuffer = allocfifobuffer((PITDOUBLE_THRESHOLD+1)<<1, 0); //FIFO with X word-sized samples without lock!
+			allocDoubleBufferedSound16(SPEAKER_BUFFER,&pcspeaker_soundbuffer); //(non-)Lockable FIFO with X word-sized samples without lock!
 		}
 	}
 	speaker_ticktiming = time_ticktiming = 0.0f; //Initialise our timing!
@@ -521,8 +498,7 @@ void doneSpeakers()
 		free_fifobuffer(&PITchannels[i].rawsignal); //Release the FIFO buffer we use!
 		if (i==2 && enablespeaker) //Speaker?
 		{
-			free_fifobuffer(&PITchannels[i].buffer); //Release the FIFO buffer we use!
-			free_fifobuffer(&PITchannels[i].doublebuffer); //Release the FIFO buffer we use!
+			freeDoubleBufferedSound(&pcspeaker_soundbuffer); //Release the FIFO buffer we use!
 		}
 	}
 	#ifdef SPEAKER_LOGRAW

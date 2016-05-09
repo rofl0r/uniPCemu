@@ -2382,6 +2382,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			break;
 		case SDL_QUIT: //Quit?
 			SDL_JoystickClose(joystick); //Finish our joystick!
+			EMU_Shutdown(1); //Request a shutdown!
 			break;
 		case SDL_ACTIVEEVENT: //Window event?
 			lock(LOCK_INPUT);
