@@ -257,14 +257,14 @@ OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte
 	INLINEREGISTER uint_32 realaddress;
 	//word originalsegment = segment;
 	//uint_32 originaloffset = offset; //Save!
-	if ((EMULATED_CPU==CPU_8086) || (EMULATED_CPU==CPU_80186 && !((offset==0x10000) && wordop))) //-80186 wraps offset arround 64kB? 80186 allows 1 byte more in word operations!
+	realaddress = offset; //Load the address!
+	if ((EMULATED_CPU==CPU_8086) || (EMULATED_CPU==CPU_80186 && !((realaddress==0x10000) && wordop))) //-80186 wraps offset arround 64kB? 80186 allows 1 byte more in word operations!
 	{
-		offset &= 0xFFFF; //Wrap arround!
+		realaddress &= 0xFFFF; //Wrap arround!
 	}
 	writeword = 0; //Reset word-write flag for checking next bytes!
 
-	realaddress = CPU_MMU_start(segdesc, segment);
-	realaddress += offset; //Real adress!
+	realaddress += CPU_MMU_start(segdesc, segment);
 
 	realaddress &= MMU.wraparround; //Apply A20!
 	//We work!

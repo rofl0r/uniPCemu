@@ -329,26 +329,27 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 
 byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handler function */
 {
-	INLINEREGISTER uint_32 basepos;
-	INLINEREGISTER uint_32 currentpos; //Current position!
-	if ((offset >= 0xC0000) && (offset<0xF0000)) basepos = 0xC0000; //Our base reference position!
+	INLINEREGISTER uint_32 basepos, currentpos; //Current position!
+	basepos = currentpos = offset; //Load the offset!
+	if ((basepos >= 0xC0000) && (basepos<0xF0000)) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
-		if ((offset >= 0xC0000000) || (offset <= 0xEFFFFFFF)) basepos = 0xC0000000; //Our base reference position!
+		if ((basepos >= 0xC0000000) || (basepos < 0xF0000000)) basepos = 0xC0000000; //Our base reference position!
 		else return 0; //Our of range (32-bit)?
 	}
-	offset -= basepos; //Calculate from the base position!
+	currentpos -= basepos; //Calculate from the base position!
+	basepos = currentpos; //Save a backup!
 	INLINEREGISTER byte i=0,j=numOPT_ROMS;
 	if (!numOPT_ROMS) goto noOPTROMSR;
 	do //Check OPT ROMS!
 	{
 		currentpos = OPTROM_location[i]; //Load the current location for analysis and usage!
-		if (OPT_ROMS[i] && ((currentpos>>16)>offset)) //Before the end location and valid rom?
+		if (OPT_ROMS[i] && ((currentpos>>16)>basepos)) //Before the end location and valid rom?
 		{
 			currentpos &= 0xFFFF; //The location of the ROM itself!
-			if (currentpos <= offset) //At/after the start location? We've found the ROM!
+			if (currentpos <= basepos) //At/after the start location? We've found the ROM!
 			{
-				*value = OPT_ROMS[i][offset-currentpos]; //Read the data from the ROM!
+				*value = OPT_ROMS[i][basepos-currentpos]; //Read the data from the ROM!
 				return 1; //Done: we've been read!
 			}
 		}
@@ -357,9 +358,9 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 	noOPTROMSR:
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
-		if (offset < BIOS_custom_VGAROM_size) //OK?
+		if (basepos < BIOS_custom_VGAROM_size) //OK?
 		{
-			*value = BIOS_custom_VGAROM[offset]; //Give the value!
+			*value = BIOS_custom_VGAROM[basepos]; //Give the value!
 			return 1;
 		}
 	}
@@ -368,11 +369,12 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 
 byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
-	INLINEREGISTER uint_32 basepos;
-	if ((offset>=0xC0000) && (offset<0xF0000)) basepos = 0xC0000; //Our base reference position!
+	INLINEREGISTER uint_32 basepos, currentpos;
+	basepos = currentpos = offset; //Load the offset!
+	if ((basepos>=0xC0000) && (basepos<0xF0000)) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
-		if ((offset>=0xC0000000) || (offset<=0xEFFFFFFF)) basepos = 0xC0000000; //Our base reference position!
+		if ((basepos>=0xC0000000) || (basepos<0xF0000000)) basepos = 0xC0000000; //Our base reference position!
 		else return 0; //Our of range (32-bit)?
 	}
 	offset -= basepos; //Calculate from the base position!
@@ -384,12 +386,12 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 		if (OPT_ROMS[i]) //Enabled?
 		{
 			OPTROM_loc = OPTROM_location[i]; //Load the current location!
-			if ((OPTROM_loc>>16)>offset) //Before the end of the ROM?
+			if ((OPTROM_loc>>16)>basepos) //Before the end of the ROM?
 			{
 				OPTROM_loc &= 0xFFFF;
-				if (OPTROM_loc <= offset) //After the start of the ROM?
+				if (OPTROM_loc <= basepos) //After the start of the ROM?
 				{
-					OPTROM_address = offset;
+					OPTROM_address = basepos;
 					OPTROM_address -= OPTROM_loc; //The location within the OPTROM!
 					switch (OPTROM_address)
 					{
@@ -493,7 +495,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 	noOPTROMSW:
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
-		if (offset < BIOS_custom_VGAROM_size) //OK?
+		if (basepos < BIOS_custom_VGAROM_size) //OK?
 		{
 			return 1; //Ignore writes!
 		}
@@ -504,26 +506,28 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
 	INLINEREGISTER uint_32 basepos, tempoffset;
-	if ((offset >= 0xF0000) && (offset < 0x100000)) basepos = 0xF0000; //Our base reference position!
+	basepos = tempoffset = offset; //Load the current location!
+	if ((basepos&0xFFFF0000)==0xF0000) basepos = 0xF0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
-		if ((offset >= 0xF0000000) || (offset <= 0xFFFFFFFF)) basepos = 0xF0000000; //Our base reference position!
+		if (basepos >= 0xF0000000) basepos = 0xF0000000; //Our base reference position!
 		return 0; //Our of range (32-bit)?
 	}
-	offset -= basepos; //Calculate from the base position!
+	tempoffset -= basepos; //Calculate from the base position!
+	basepos = tempoffset; //Save for easy reference!
 
 	if (BIOS_custom_ROM) //Custom/system ROM loaded?
 	{
-		tempoffset = offset;
 		tempoffset &= 0xFFFF; //16-bit ROM!
 		if (BIOS_custom_ROM_size == 0x10000)
 		{
 			return 1; //Unwritable BIOS!
 		}
-		if (tempoffset>0xFFFF-BIOS_custom_ROM_size) //Within range?
+		if (tempoffset>(0xFFFF-BIOS_custom_ROM_size)) //Within range?
 		{
 			return 1; //Ignore writes!
 		}
+		tempoffset = basepos; //Restore the temporary offset!
 	}
 
 	INLINEREGISTER uint_32 originaloffset;
@@ -532,13 +536,13 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	{
 		case CPU_8086:
 		case CPU_80186: //5160 PC!
-			originaloffset = offset; //Save the original offset for reference!
-			offset &= 0x7FFF; //Our offset within the ROM!
+			originaloffset = basepos; //Save the original offset for reference!
+			basepos &= 0x7FFF; //Our offset within the ROM!
 			if (originaloffset&0x8000) //u18?
 			{
 				if (BIOS_ROMS[18]) //Set?
 				{
-					if (BIOS_ROM_size[18]>offset) //Within range?
+					if (BIOS_ROM_size[18]>basepos) //Within range?
 					{
 						return 1; //Ignore writes!
 					}
@@ -548,7 +552,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			{
 				if (BIOS_ROMS[19]) //Set?
 				{
-					if (BIOS_ROM_size[19]>offset) //Within range?
+					if (BIOS_ROM_size[19]>basepos) //Within range?
 					{
 						return 1; //Ignore writes!
 					}
@@ -559,14 +563,14 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 		case CPU_80386:
 		case CPU_80486:
 		case CPU_PENTIUM: //5170 AT PC!
-			segment = offset; //Load the offset!
-			offset >>= 1; //The offset is at every 2 bytes of memory!
+			segment = basepos; //Load the offset!
+			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //u47?
 			{
 				if (BIOS_ROMS[47]) //Loaded?
 				{
-					if (BIOS_ROM_size[47]>offset) //Within range?
+					if (BIOS_ROM_size[47]>tempoffset) //Within range?
 					{
 						return 1; //Ignore writes!
 					}
@@ -576,7 +580,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			{
 				if (BIOS_ROMS[27]) //Loaded?
 				{
-					if (BIOS_ROM_size[27]>offset) //Within range?
+					if (BIOS_ROM_size[27]>tempoffset) //Within range?
 					{
 						return 1; //Ignore writes!
 					}
@@ -593,16 +597,17 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler function */
 {
 	INLINEREGISTER uint_32 basepos, tempoffset;
-	if ((offset >= 0xF0000) && (offset < 0x100000)) basepos = 0xF0000; //Our base reference position!
+	basepos = tempoffset = offset;
+	if ((basepos&0xFFFF0000)==0xF0000) basepos = 0xF0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
-		if ((offset>=0xF0000000) || (offset<=0xFFFFFFFF)) basepos = 0xF0000000; //Our base reference position!
+		if (basepos>=0xF0000000) basepos = 0xF0000000; //Our base reference position!
 		return 0; //Our of range (32-bit)?
 	}
-	offset -= basepos; //Calculate from the base position!
+	tempoffset -= basepos; //Calculate from the base position!
+	basepos = tempoffset; //Save for easy reference!
 	if (BIOS_custom_ROM) //Custom/system ROM loaded?
 	{
-		tempoffset = offset;
 		tempoffset &= 0xFFFF; //16-bit ROM!
 		if (BIOS_custom_ROM_size == 0x10000)
 		{
@@ -615,6 +620,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
 			return 1; //ROM offset from the end of RAM used!
 		}
+		tempoffset = basepos; //Restore the temporary offset!
 	}
 
 	INLINEREGISTER uint_32 segment; //Current segment!
@@ -623,9 +629,9 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	{
 		case CPU_8086:
 		case CPU_80186: //5160 PC!
-			tempoffset = offset;
+			tempoffset = basepos;
 			tempoffset &= 0x7FFF; //Our offset within the ROM!
-			if (offset&0x8000) //u18?
+			if (basepos&0x8000) //u18?
 			{
 				if (BIOS_ROMS[18]) //Set?
 				{
