@@ -33,7 +33,7 @@
 #define ADLIB_TREMOLOVIBRATO
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
-#define __ADLIB_SAMPLEBUFFERSIZE 4096
+#define __ADLIB_SAMPLEBUFFERSIZE 4971
 
 //The double buffering threshold!
 #define __ADLIBDOUBLE_THRESHOLD __ADLIB_SAMPLEBUFFERSIZE
@@ -177,7 +177,7 @@ OPTINLINE void OPL2_stepTremoloVibrato()
 	//Now the current value of the signal is stored! Apply the active tremolo/vibrato!
 	#ifdef ADLIB_TREMOLOVIBRATO
 	tremolovibrato[0].active = dB2factor(47.25f-(tremolovibrato[0].depth*tremolovibrato[0].current),47.25f); //Calculate the current tremolo!
-	tremolovibrato[1].active = cents2samplesfactor(1200.0f+(tremolovibrato[1].depth*tremolovibrato[1].current)); //Calculate the current vibrato!
+	tremolovibrato[1].active = (100.0f+(tremolovibrato[1].depth*tremolovibrato[1].current))*0.01f; //Calculate the current vibrato!
 	#else
 	tremolovibrato[0].active = tremolovibrato[1].active = 1.0f; //No tremolo/vibrato!
 	#endif
