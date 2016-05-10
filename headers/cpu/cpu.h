@@ -887,7 +887,6 @@ word CPU_POP16();
 void CPU_PUSH32(uint_32 *val); //Push DWord!
 uint_32 CPU_POP32(); //Full stack used!
 
-void call_soft_inthandler(byte intnr); //Hardware interrupt handler (INT instruction from CPU)
 void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware or EMULATOR INTERRUPTS only (int>=0x20 for software call from Handler))!
 void CPU_hard_RETI(); //RETI from hardware!
 
@@ -913,9 +912,10 @@ void copyint(byte src, byte dest); //Copy interrupt handler pointer to different
 
 #include "headers/cpu/modrm.h" //MODR/M comp!
 
-sbyte imm8();
-sword imm16();
-int_32 imm32();
+//Read signed numbers from CS:(E)IP!
+#define imm8() unsigned2signed8(CPU_readOP())
+#define imm16() unsigned2signed16(CPU_readOPw())
+#define imm32() unsigned2signed32(CPU_readOPdw())
 
 //Exceptions!
 

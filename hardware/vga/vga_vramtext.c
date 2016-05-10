@@ -7,27 +7,40 @@
 #include "headers/support/bmp.h" //BMP dumping support!
 
 OPTINLINE byte reverse8_VGA(byte b) { //Reverses byte value bits!
-	b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4); //Swap 4 high and low bits!
-	b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2); //Swap 2 high and low bits of both nibbles!
-	b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1); //Swap odd and even bits!
-	return b;
+	INLINEREGISTER byte temp=b, temp2=b; //Load our initial values!
+	temp = ((temp & 0xF0) >> 4);
+	temp2 = ((temp2 & 0x0F) << 4); //Swap 4 high and low bits!
+	temp |= temp2; //Combine into 1!
+	temp2 = temp; //Make both equal!
+	temp = ((temp & 0xCC) >> 2);
+	temp2 = ((temp2 & 0x33) << 2); //Swap 2 high and low bits of both nibbles!
+	temp |= temp2; //Combine into 1!
+	temp2 = temp; //Make both equal!
+	temp = ((temp & 0xAA) >> 1);
+	temp2 = ((temp2 & 0x55) << 1); //Swap odd and even bits!
+	temp |= temp2; //Combine into 1!
+	return temp; //Give the result!
 }
 
-OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
+OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int_32 address)
 {
 	byte *getcharxy_values;
 	getcharxy_values = &VGA->getcharxy_values[0]; //The values!
 	word character = 0; //From 0-255!
-	if (singlecharacter!=-1) //Single character only?
+	sbyte singlerow = -1; //Single row only?
+	byte y; //From 0-32 (5 bits)!
+	if (address!=-1) //Single character row only?
 	{
-		character = (word)singlecharacter; //Only single character to edit!
+		character = (word)((address >> 5) & 0xFF); //Only single character to edit!
+		singlerow = (sbyte)(address&0x1F); //The single row to edit!
+		y = singlerow; //Only process this row!
 	}
 	for (;character<0x100;) //256 characters (8 bits)!
 	{
 		byte attribute = 0; //0 or 1 (bit value 0x4 of the attribute, 1 bit)!
 		for (;attribute<2;) //2 attributes!
 		{
-			byte y = 0; //From 0-32 (5 bits)!
+			if (singlerow==-1) y = 0; //Ignore the selected row if single isn't set!
 			for (;y<0x20;) //33 rows!
 			{
 				uint_32 characterset_offset, add2000; //First, the character set, later translated to the real charset offset!
@@ -60,12 +73,14 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int singlecharacter)
 				characterset_offset += y; //Add the row!
 				
 				getcharxy_values[(character<<6)|(y<<1)|attribute] = reverse8_VGA(readVRAMplane(VGA,2,characterset_offset)); //Read the row from the character generator! Don't do anything special, just because we're from the renderer! Also reverse the data in the byte for a little speedup! Store the row for the character generator!
+				if (singlerow!=-1) goto nextattr; //Don't change the row if a single line is updated!
 				++y; //Next row!
 			}
+			nextattr:
 			++attribute; //Next attribute!
 		}
 		++character; //Next character!
-		if (singlecharacter!=-1) return; //Stop on single character update!
+		if (singlerow!=-1) return; //Stop on single character update!
 	}
 }
 
@@ -109,7 +124,7 @@ void dumpVGATextFonts()
 
 void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been updated?
 {
-	fillgetcharxy_values(VGA,(address>>5)&0xFF); //Update the character: character number is increased every 32 locations (5 bits row index), but we include the character set too(bits 13-15), so ignore that for correct character and character set handling!
+	fillgetcharxy_values(VGA,address); //Update the character: character number is increased every 32 locations (5 bits row index), but we include the character set too(bits 13-15), so ignore that for correct character and character set handling!
 }
 
 void VGA_charsetupdated(VGA_Type *VGA)

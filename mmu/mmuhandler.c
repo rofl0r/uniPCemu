@@ -124,17 +124,16 @@ byte MMU_IO_writehandler(uint_32 offset, byte value)
 {
 	MMU_WHANDLER *current; //Current item!
 	INLINEREGISTER MMU_WHANDLER handler;
-	INLINEREGISTER byte j = MIN(NUMITEMS(MMUHANDLER.writehandlers), MMUHANDLER.numw); //The amount of handlers to process!
+	INLINEREGISTER byte j = MMUHANDLER.numw; //The amount of handlers to process!
 	if (!j) return 1; //Normal memory access by default!
 	current = &MMUHANDLER.writehandlers[0]; //Start of our list!
 	do //Search all available handlers!
 	{
-		if ((handler = *current++)>0) //Set?
+		handler = *current++; //Load the current address!
+		if (handler == 0) continue; //Set?
+		if (handler(offset,value)) //Success?
 		{
-			if (handler(offset,value)) //Success?
-			{
-				return 0; //Abort searching: we're processed!
-			}
+			return 0; //Abort searching: we're processed!
 		}
 	} while (--j);
 	return 1; //Normal memory access!
@@ -145,17 +144,16 @@ byte MMU_IO_readhandler(uint_32 offset, byte *value)
 {
 	MMU_RHANDLER *current; //Current item!
 	INLINEREGISTER MMU_RHANDLER handler;
-	INLINEREGISTER byte j = MIN(NUMITEMS(MMUHANDLER.readhandlers), MMUHANDLER.numr); //The amount of handlers to process!
+	INLINEREGISTER byte j = MMUHANDLER.numr; //The amount of handlers to process!
 	if (!j) return 1; //Normal memory access by default!
 	current = &MMUHANDLER.readhandlers[0]; //Start of our list!
 	do //Search all available handlers!
 	{
-		if ((handler = *current++)>0) //Set?
+		handler = *current++; //Load the current address!
+		if (handler == 0) continue; //Set?
+		if (handler(offset,value)) //Success reading?
 		{
-			if (handler(offset,value)) //Success reading?
-			{
-				return 0; //Abort searching: we're processed!
-			}
+			return 0; //Abort searching: we're processed!
 		}
 	} while (--j); //Loop while not done!
 	return 1; //Normal memory access!

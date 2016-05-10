@@ -962,8 +962,9 @@ OPTINLINE void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 
 OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //16-bit address/reg decoder!
 {
+	INLINEREGISTER int isregister;
+	INLINEREGISTER byte reg = 0;
 	bzero(result,sizeof(*result)); //Init!
-	byte reg = 0;
 
 	if (whichregister) //reg2?
 	{
@@ -974,16 +975,12 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 		reg = MODRM_REG(params->modrm); //Default/reg!
 	}
 
-	bzero(result->text,sizeof(result->text)); //Init text!
-
 	if (params->reg_is_segmentregister && (!whichregister)) //Segment register?
 	{
 		modrm_get_segmentregister(reg,result); //Return segment register!
 		return; //Give the segment register!
 	}
 
-	int isregister;
-	isregister = 0; //Init!
 	if (!whichregister) //REG1?
 	{
 		isregister = 1; //Register!
@@ -1335,8 +1332,9 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 
 OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 {
+	INLINEREGISTER int isregister;
+	INLINEREGISTER byte reg = 0;
 	bzero(result,sizeof(*result)); //Init!
-	byte reg = 0;
 
 	if (whichregister) //reg2?
 	{
@@ -1347,9 +1345,6 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 		reg = MODRM_REG(params->modrm); //Default/reg1!
 	}
 
-	bzero(result->text,sizeof(result->text)); //Init text!
-
-	int isregister;
 	if (!whichregister) //REG1?
 	{
 		isregister = 1; //Register!

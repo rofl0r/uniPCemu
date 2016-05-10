@@ -145,16 +145,17 @@ extern byte CGAMDARenderer; //CGA/MDA renderer?
 
 OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 {
+	INLINEREGISTER word tempsignal = signal; //Current signal!
 	//Blankings
-	if (signal&VGA_HBLANKMASK) //HBlank?
+	if (tempsignal&VGA_HBLANKMASK) //HBlank?
 	{
-		if (signal&VGA_SIGNAL_HBLANKSTART) //HBlank start?
+		if (tempsignal&VGA_SIGNAL_HBLANKSTART) //HBlank start?
 		{
 			hblank = 1; //We're blanking!
 		}
 		else if (hblank)
 		{
-			if (signal&VGA_SIGNAL_HBLANKEND) //HBlank end?
+			if (tempsignal&VGA_SIGNAL_HBLANKEND) //HBlank end?
 			{
 				if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendhblank;
 				blankretraceendpending |= VGA_SIGNAL_HBLANKEND;
@@ -168,15 +169,15 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		blankretraceendpending &= ~VGA_SIGNAL_HBLANKEND; //Remove from flags pending!
 	}
 
-	if (signal&VGA_VBLANKMASK)
+	if (tempsignal&VGA_VBLANKMASK)
 	{
-		if (signal&VGA_SIGNAL_VBLANKSTART) //VBlank start?
+		if (tempsignal&VGA_SIGNAL_VBLANKSTART) //VBlank start?
 		{
 			vblank = 1; //We're blanking!
 		}
 		else if (vblank)
 		{
-			if (signal&VGA_SIGNAL_VBLANKEND) //VBlank end?
+			if (tempsignal&VGA_SIGNAL_VBLANKEND) //VBlank end?
 			{
 				if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendvblank;
 				blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
@@ -200,9 +201,9 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	//Now process the Retraces/Sync!
 
 	//HSync
-	if (signal&VGA_HRETRACEMASK)
+	if (tempsignal&VGA_HRETRACEMASK)
 	{
-		if (signal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
+		if (tempsignal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
 		{
 			if (!hretrace) //Not running yet?
 			{
@@ -212,7 +213,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		}
 		else if (hretrace)
 		{
-			if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
+			if (tempsignal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
 			{
 				hretrace = 0; //We're not retraing anymore!
 			}
@@ -220,9 +221,9 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	}
 
 	//VSync
-	if (signal&VGA_VRETRACEMASK)
+	if (tempsignal&VGA_VRETRACEMASK)
 	{
-		if (signal&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
+		if (tempsignal&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
 		{
 			if (!vretrace) //Not running yet?
 			{
@@ -242,7 +243,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		}
 		else if (vretrace)
 		{
-			if (signal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
+			if (tempsignal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
 			{
 				vretrace = 0; //We're not retracing anymore!
 				VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //Vertical retrace?
@@ -263,12 +264,12 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	}
 
 	//Process resetting the HSync/VSync counters!
-	if (signal&VGA_SIGNAL_HSYNCRESET) //Reset HSync?
+	if (tempsignal&VGA_SIGNAL_HSYNCRESET) //Reset HSync?
 	{
 		Sequencer->x_sync = 0; //Reset HSync!
 	}
 
-	if (signal&VGA_SIGNAL_VSYNCRESET) //Reset VSync?
+	if (tempsignal&VGA_SIGNAL_VSYNCRESET) //Reset VSync?
 	{
 		Sequencer->Scanline_sync = 0; //Reset VSync!
 	}
@@ -279,12 +280,12 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 
 	//Process HTotal/VTotal
 	totalling = 0; //Default: Not totalling!
-	if (signal&VGA_SIGNAL_HTOTAL) //HTotal?
+	if (tempsignal&VGA_SIGNAL_HTOTAL) //HTotal?
 	{
 		VGA_HTotal(Sequencer,VGA); //Process HTotal!
 		totalling = 1; //Total reached!
 	}
-	if (signal&VGA_SIGNAL_VTOTAL) //VTotal?
+	if (tempsignal&VGA_SIGNAL_VTOTAL) //VTotal?
 	{
 		VGA_VTotal(Sequencer,VGA); //Process VTotal!
 		totalling = vtotal = 1; //Total reached!
@@ -299,7 +300,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	totalretracing <<= 1; //1 bit needed more!
 	totalretracing |= isretrace; //Are we retracing?
 
-	VGA->CRTC.DisplayEnabled = ((!totalretracing) && ((signal&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)); //We're active display when not retracing/totalling and active display area (not overscan)!
+	VGA->CRTC.DisplayEnabled = ((!totalretracing) && ((tempsignal&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)); //We're active display when not retracing/totalling and active display area (not overscan)!
 }
 
 extern DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for all pixels!

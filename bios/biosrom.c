@@ -334,7 +334,7 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 	if ((basepos >= 0xC0000) && (basepos<0xF0000)) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
-		if ((basepos >= 0xC0000000) || (basepos < 0xF0000000)) basepos = 0xC0000000; //Our base reference position!
+		if ((basepos >= 0xC0000000) && (basepos < 0xF0000000)) basepos = 0xC0000000; //Our base reference position!
 		else return 0; //Our of range (32-bit)?
 	}
 	currentpos -= basepos; //Calculate from the base position!
@@ -374,10 +374,11 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 	if ((basepos>=0xC0000) && (basepos<0xF0000)) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
-		if ((basepos>=0xC0000000) || (basepos<0xF0000000)) basepos = 0xC0000000; //Our base reference position!
+		if ((basepos>=0xC0000000) && (basepos<0xF0000000)) basepos = 0xC0000000; //Our base reference position!
 		else return 0; //Our of range (32-bit)?
 	}
-	offset -= basepos; //Calculate from the base position!
+	currentpos -= basepos; //Calculate from the base position!
+	basepos = currentpos; //Write back!
 	INLINEREGISTER uint_32 OPTROM_address, OPTROM_loc; //The address calculated in the EEPROM!
 	INLINEREGISTER byte i=0,j=numOPT_ROMS;
 	if (!numOPT_ROMS) goto noOPTROMSW;
@@ -511,7 +512,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	else //Out of range (16-bit)?
 	{
 		if (basepos >= 0xF0000000) basepos = 0xF0000000; //Our base reference position!
-		return 0; //Our of range (32-bit)?
+		else return 0; //Our of range (32-bit)?
 	}
 	tempoffset -= basepos; //Calculate from the base position!
 	basepos = tempoffset; //Save for easy reference!
@@ -602,7 +603,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	else //Out of range (16-bit)?
 	{
 		if (basepos>=0xF0000000) basepos = 0xF0000000; //Our base reference position!
-		return 0; //Our of range (32-bit)?
+		else return 0; //Our of range (32-bit)?
 	}
 	tempoffset -= basepos; //Calculate from the base position!
 	basepos = tempoffset; //Save for easy reference!

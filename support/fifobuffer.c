@@ -65,51 +65,43 @@ void free_fifobuffer(FIFOBUFFER **buffer)
 	}
 }
 
-uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
+OPTINLINE uint_32 fifobuffer_INTERNAL_freesize(FIFOBUFFER *buffer)
 {
 	if (__HW_DISABLED) return 0; //Abort!
+	if (buffer->position[0].readpos == buffer->position[0].writepos) //Either full or empty?
+	{
+		return buffer->position[0].lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
+	}
+	else if (buffer->position[0].readpos>buffer->position[0].writepos) //Read after write index? We're a simple difference!
+	{
+		return buffer->position[0].readpos - buffer->position[0].writepos;
+	}
+	//The read position is before or at the write position? We wrap arround!
+	return (buffer->size - buffer->position[0].writepos) + buffer->position[0].readpos;
+}
+
+uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
+{
+	INLINEREGISTER uint_32 result;
 	/*if (!memprotect(buffer,sizeof(FIFOBUFFER),NULL)) //Error?
 	{
-		return 0; //Error: invalid buffer!
+	return 0; //Error: invalid buffer!
 	}
 	if (!memprotect(buffer->buffer,buffer->size,NULL)) //Error?
 	{
-		return 0; //Error: invalid buffer!
+	return 0; //Error: invalid buffer!
 	}*/
-	if (!buffer) return 0; //Error: invalid buffer!
-	if (!buffer->buffer) return 0; //Error invalid: buffer!
-	uint_32 result;
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 	if (buffer->lock) //Locked buffer?
 	{
 		WaitSem(buffer->lock)
-		if (buffer->position[0].readpos == buffer->position[0].writepos) //Either full or empty?
-		{
-			result = buffer->position[0].lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
-		}
-		else if (buffer->position[0].readpos>buffer->position[0].writepos) //Read after write index? We're a simple difference!
-		{
-			result = buffer->position[0].readpos - buffer->position[0].writepos;
-		}
-		else //The read position is before or at the write position? We wrap arround!
-		{
-			result = (buffer->size - buffer->position[0].writepos) + buffer->position[0].readpos;
-		}
+		result = fifobuffer_INTERNAL_freesize(buffer); //Original wrapper!
 		PostSem(buffer->lock)
 	}
-	else //Lockless buffer?
+	else //Lockless?
 	{
-		if (buffer->position[0].readpos == buffer->position[0].writepos) //Either full or empty?
-		{
-			result = buffer->position[0].lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
-		}
-		else if (buffer->position[0].readpos>buffer->position[0].writepos) //Read after write index? We're a simple difference!
-		{
-			result = buffer->position[0].readpos - buffer->position[0].writepos;
-		}
-		else //The read position is before or at the write position? We wrap arround!
-		{
-			result = (buffer->size - buffer->position[0].writepos) + buffer->position[0].readpos;
-		}
+		return fifobuffer_INTERNAL_freesize(buffer); //Original wrapper!
 	}
 	return result; //Give the result!
 }
@@ -131,16 +123,28 @@ int peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read?
 	{
 		return 0; //Error: invalid buffer!
 	}*/
-	if (!buffer) return 0; //Error: invalid buffer!
-	if (!buffer->buffer) return 0; //Error invalid: buffer!
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
 
-	if (fifobuffer_freesize(buffer)<buffer->size) //Filled?
+	if (buffer->lock)
 	{
-		if (buffer->lock) WaitSem(buffer->lock)
-		*result = buffer->buffer[buffer->position[0].readpos]; //Give the data!
-		if (buffer->lock) PostSem(buffer->lock)
-		return 1; //Something to peek at!
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer)<buffer->size) //Filled?
+		{
+			*result = buffer->buffer[buffer->position[0].readpos]; //Give the data!
+			PostSem(buffer->lock)
+			return 1; //Something to peek at!
+		}
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		if (fifobuffer_INTERNAL_freesize(buffer)<buffer->size) //Filled?
+		{
+			*result = buffer->buffer[buffer->position[0].readpos]; //Give the data!
+			return 1; //Something to peek at!
+		}
 	}
 	return 0; //Nothing to peek at!
 }
@@ -163,17 +167,28 @@ int readfifobuffer(FIFOBUFFER *buffer, byte *result)
 	{
 		return 0; //Error: invalid buffer!
 	}*/
-	if (!buffer) return 0; //Error: invalid buffer!
-	if (!buffer->buffer) return 0; //Error invalid: buffer!
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
-	if (fifobuffer_freesize(buffer)<buffer->size) //Filled?
+	if (buffer->lock)
 	{
-		if (buffer->lock) WaitSem(buffer->lock)
-		readfifobufferunlocked(buffer,result); //Read the FIFO buffer without lock!
-		if (buffer->lock) PostSem(buffer->lock)
-		return 1; //Read!
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer)<buffer->size) //Filled?
+		{
+			readfifobufferunlocked(buffer,result); //Read the FIFO buffer without lock!
+			PostSem(buffer->lock)
+			return 1; //Read!
+		}
+		PostSem(buffer->lock)
 	}
-
+	else
+	{
+		if (fifobuffer_INTERNAL_freesize(buffer)<buffer->size) //Filled?
+		{
+			readfifobufferunlocked(buffer, result); //Read the FIFO buffer without lock!
+			return 1; //Read!
+		}
+	}
 	return 0; //Nothing to read!
 }
 
@@ -197,17 +212,28 @@ int writefifobuffer(FIFOBUFFER *buffer, byte data)
 		return 0; //Error: invalid buffer!
 	}*/
 
-	if (!buffer) return 0; //Error: invalid buffer!
-	if (!buffer->buffer) return 0; //Error invalid: buffer!
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
-	if (fifobuffer_freesize(buffer)<1) //Buffer full?
+	if (buffer->lock)
 	{
-		return 0; //Error: buffer full!
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer)<1) //Buffer full?
+		{
+			PostSem(buffer->lock)
+			return 0; //Error: buffer full!
+		}
+		writefifobufferunlocked(buffer,data); //Write the FIFO buffer without lock!
+		PostSem(buffer->lock)
 	}
-	
-	if (buffer->lock) WaitSem(buffer->lock)
-	writefifobufferunlocked(buffer,data); //Write the FIFO buffer without lock!
-	if (buffer->lock) PostSem(buffer->lock)
+	else
+	{
+		if (fifobuffer_INTERNAL_freesize(buffer)<1) //Buffer full?
+		{
+			return 0; //Error: buffer full!
+		}
+		writefifobufferunlocked(buffer, data); //Write the FIFO buffer without lock!
+	}
 	return 1; //Written!
 }
 
@@ -222,20 +248,37 @@ int peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be rea
 	{
 		return 0; //Error: invalid buffer!
 	}*/
-	if (!buffer) return 0; //Error: invalid buffer!
-	if (!buffer->buffer) return 0; //Error invalid: buffer!
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
-	if (fifobuffer_freesize(buffer)<(buffer->size-1)) //Filled?
+	if (buffer->lock)
 	{
-		uint_32 readpos;
-		readpos = buffer->position[0].readpos; //Current reading position!
-		if (buffer->lock) WaitSem(buffer->lock)
-		*result = buffer->buffer[readpos++]; //Read and update!
-		if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
-		*result <<= 8; //Shift high!
-		*result |= buffer->buffer[readpos]; //Read and update!
-		if (buffer->lock) PostSem(buffer->lock)
-		return 1; //Something to peek at!
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-1)) //Filled?
+		{
+			INLINEREGISTER uint_32 readpos;
+			readpos = buffer->position[0].readpos; //Current reading position!
+			*result = buffer->buffer[readpos++]; //Read and update!
+			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			*result <<= 8; //Shift high!
+			*result |= buffer->buffer[readpos]; //Read and update!
+			PostSem(buffer->lock)
+			return 1; //Something to peek at!
+		}
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size - 1)) //Filled?
+		{
+			INLINEREGISTER uint_32 readpos;
+			readpos = buffer->position[0].readpos; //Current reading position!
+			*result = buffer->buffer[readpos++]; //Read and update!
+			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			*result <<= 8; //Shift high!
+			*result |= buffer->buffer[readpos]; //Read and update!
+			return 1; //Something to peek at!
+		}
 	}
 	return 0; //Nothing to peek at!
 }
@@ -261,17 +304,28 @@ int readfifobuffer16(FIFOBUFFER *buffer, word *result)
 	{
 		return 0; //Error: invalid buffer!
 	}*/
-	if (!buffer) return 0; //Error: invalid buffer!
-	if (!buffer->buffer) return 0; //Error invalid: buffer!
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
-	if (fifobuffer_freesize(buffer)<(buffer->size-1)) //Filled?
+	if (buffer->lock)
 	{
-		if (buffer->lock) WaitSem(buffer->lock)
-		readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock!
-		if (buffer->lock) PostSem(buffer->lock)
-		return 1; //Read!
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-1)) //Filled?
+		{
+			readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock!
+			PostSem(buffer->lock)
+			return 1; //Read!
+		}
+		PostSem(buffer->lock)
 	}
-
+	else
+	{
+		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size - 1)) //Filled?
+		{
+			readfifobuffer16unlocked(buffer, result); //Read the FIFO buffer without lock!
+			return 1; //Read!
+		}
+	}
 	return 0; //Nothing to read!
 }
 
@@ -295,17 +349,30 @@ int writefifobuffer16(FIFOBUFFER *buffer, word data)
 	{
 		return 0; //Error: invalid buffer!
 	}*/
-	if (!buffer) return 0; //Error: invalid buffer!
-	if (!buffer->buffer) return 0; //Error invalid: buffer!
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
-	if (fifobuffer_freesize(buffer)<2) //Buffer full?
+	if (buffer->lock)
 	{
-		return 0; //Error: buffer full!
-	}
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer)<2) //Buffer full?
+		{
+			PostSem(buffer->lock)
+			return 0; //Error: buffer full!
+		}
 
-	if (buffer->lock) WaitSem(buffer->lock)
-	writefifobuffer16unlocked(buffer,data); //Write the FIFO buffer without lock!
-	if (buffer->lock) PostSem(buffer->lock)
+		writefifobuffer16unlocked(buffer,data); //Write the FIFO buffer without lock!
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		if (fifobuffer_INTERNAL_freesize(buffer)<2) //Buffer full?
+		{
+			return 0; //Error: buffer full!
+		}
+
+		writefifobuffer16unlocked(buffer, data); //Write the FIFO buffer without lock!
+	}
 	return 1; //Written!
 }
 
@@ -321,21 +388,44 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 	{
 		return; //Error: invalid buffer!
 	}*/
-	if (!buffer) return; //Error: invalid buffer!
-	if (!buffer->buffer) return; //Error invalid: buffer!
+	if (buffer==0) return; //Error: invalid buffer!
+	if (buffer->buffer==0) return; //Error invalid: buffer!
 	
-	if (fifobuffer_freesize(buffer) == buffer->size) return; //Empty? We can't: there is nothing to go back to!
-
-	if (buffer->lock) WaitSem(buffer->lock)
-	if ((((int_64)buffer->position[0].writepos)-1)<0) //Last pos?
+	if (buffer->lock)
 	{
-		buffer->position[0].readpos = buffer->size-1; //Goto end!
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer) == buffer->size)
+		{
+			PostSem(buffer->lock)
+			return; //Empty? We can't: there is nothing to go back to!
+		}
+
+		if ((((int_64)buffer->position[0].writepos)-1)<0) //Last pos?
+		{
+			buffer->position[0].readpos = buffer->size-1; //Goto end!
+		}
+		else
+		{
+			buffer->position[0].readpos = buffer->position[0].writepos-1; //Last write!
+		}
+		PostSem(buffer->lock)
 	}
 	else
 	{
-		buffer->position[0].readpos = buffer->position[0].writepos-1; //Last write!
+		if (fifobuffer_INTERNAL_freesize(buffer) == buffer->size)
+		{
+			return; //Empty? We can't: there is nothing to go back to!
+		}
+
+		if ((((int_64)buffer->position[0].writepos) - 1)<0) //Last pos?
+		{
+			buffer->position[0].readpos = buffer->size - 1; //Goto end!
+		}
+		else
+		{
+			buffer->position[0].readpos = buffer->position[0].writepos - 1; //Last write!
+		}
 	}
-	if (buffer->lock) PostSem(buffer->lock)
 }
 
 void fifobuffer_save(FIFOBUFFER *buffer)
@@ -344,11 +434,18 @@ void fifobuffer_save(FIFOBUFFER *buffer)
 	{
 		return; //Error: invalid buffer!
 	}*/
-	if (!buffer) return; //Error: invalid buffer!
+	if (buffer==0) return; //Error: invalid buffer!
 
-	if (buffer->lock) WaitSem(buffer->lock)
-	memcpy(&buffer->position[1],&buffer->position[0],sizeof(buffer->position[1])); //Backup!
-	if (buffer->lock) PostSem(buffer->lock)
+	if (buffer->lock)
+	{
+		WaitSem(buffer->lock)
+		memcpy(&buffer->position[1],&buffer->position[0],sizeof(buffer->position[1])); //Backup!
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		memcpy(&buffer->position[1], &buffer->position[0], sizeof(buffer->position[1])); //Backup!
+	}
 }
 
 void fifobuffer_restore(FIFOBUFFER *buffer)
@@ -357,11 +454,18 @@ void fifobuffer_restore(FIFOBUFFER *buffer)
 	{
 		return; //Error: invalid buffer!
 	}*/
-	if (!buffer) return; //Error: invalid buffer!
+	if (buffer==0) return; //Error: invalid buffer!
 
-	if (buffer->lock) WaitSem(buffer->lock)
-	memcpy(&buffer->position[0], &buffer->position[1], sizeof(buffer->position[0])); //Restore!
-	if (buffer->lock) PostSem(buffer->lock)
+	if (buffer->lock)
+	{
+		WaitSem(buffer->lock)
+		memcpy(&buffer->position[0], &buffer->position[1], sizeof(buffer->position[0])); //Restore!
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		memcpy(&buffer->position[0], &buffer->position[1], sizeof(buffer->position[0])); //Restore!
+	}
 }
 
 void fifobuffer_clear(FIFOBUFFER *buffer)
@@ -371,7 +475,7 @@ void fifobuffer_clear(FIFOBUFFER *buffer)
 	{
 		return; //Error: invalid buffer!
 	}*/
-	if (!buffer) return; //Error: invalid buffer!
+	if (buffer==0) return; //Error: invalid buffer!
 
 	fifobuffer_gotolast(buffer); //Goto last!
 	readfifobuffer(buffer,&temp); //Clean out the last byte if it's there!
@@ -384,23 +488,23 @@ void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 	byte buffer; //our buffer for the transfer!
 	if (!src) return; //Invalid source!
 	if (!dest) return; //Invalid destination!
-	if (fifobuffer_freesize(src) <= (src->size - threshold)) //Buffered enough words of data?
+	if (src->lock) WaitSem(src->lock) //Lock the source!
+	if (fifobuffer_INTERNAL_freesize(src) <= (src->size - threshold)) //Buffered enough words of data?
 	{
-		if (fifobuffer_freesize(dest) >= threshold) //Enough free space left?
+		if (dest->lock) WaitSem(dest->lock) //Lock the destination!
+		if (fifobuffer_INTERNAL_freesize(dest) >= threshold) //Enough free space left?
 		{
 			//Now quickly move the thesholded data from the source to the destination!
 			current = threshold; //Move threshold items!
-			if (src->lock) WaitSem(src->lock) //Lock the source!
-			if (dest->lock) WaitSem(dest->lock) //Lock the destination!
 			do //Process all items as fast as possible!
 			{
 				readfifobufferunlocked(src, &buffer); //Read 8-bit data!
 				writefifobufferunlocked(dest, buffer); //Write 8-bit data!
 			} while (--current);
-			if (dest->lock) PostSem(dest->lock) //Unlock the destination!
-			if (src->lock) PostSem(src->lock) //Unlock the source!
 		}
+		if (dest->lock) PostSem(dest->lock) //Unlock the destination!
 	}
+	if (src->lock) PostSem(src->lock) //Unlock the source!
 }
 
 void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
@@ -411,22 +515,22 @@ void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 	if (!src) return; //Invalid source!
 	if (!dest) return; //Invalid destination!
 	threshold <<= 1; //Make the threshold word-sized, since we're moving word items!
-	if (fifobuffer_freesize(src) <= (src->size - threshold)) //Buffered enough words of data?
+	if (src->lock) WaitSem(src->lock) //Lock the source!
+	if (fifobuffer_INTERNAL_freesize(src) <= (src->size - threshold)) //Buffered enough words of data?
 	{
-		if (fifobuffer_freesize(dest) >= threshold) //Enough free space left?
+		if (dest->lock) WaitSem(dest->lock) //Lock the destination!
+		if (fifobuffer_INTERNAL_freesize(dest) >= threshold) //Enough free space left?
 		{
 			threshold >>= 1; //Make it into actual data items!
 			//Now quickly move the thesholded data from the source to the destination!
 			current = threshold; //Move threshold items!
-			if (src->lock) WaitSem(src->lock) //Lock the source!
-			if (dest->lock) WaitSem(dest->lock) //Lock the destination!
 			do //Process all items as fast as possible!
 			{
 				readfifobuffer16unlocked(src,&buffer); //Read 16-bit data!
 				writefifobuffer16unlocked(dest,buffer); //Write 16-bit data!
 			} while (--current);
-			if (dest->lock) PostSem(dest->lock) //Unlock the destination!
-			if (src->lock) PostSem(src->lock) //Unlock the source!
 		}
+		if (dest->lock) PostSem(dest->lock) //Unlock the destination!
 	}
+	if (src->lock) PostSem(src->lock) //Unlock the source!
 }

@@ -154,10 +154,10 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
 	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to process every output sample!
-	INLINEREGISTER uint_32 length; //Amount of samples to generate!
-	uint_32 i;
+	INLINEREGISTER float length; //Amount of samples to generate!
+	INLINEREGISTER float i;
 	uint_32 dutycyclei; //Input samples to process!
-	uint_64 tickcounter;
+	INLINEREGISTER float tickcounter;
 	word oldvalue; //Old value before decrement!
 	float tempf;
 	uint_32 render_ticks; //A one shot tick!
@@ -165,11 +165,13 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	byte channel; //Current channel?
 	byte getIRQ; //IRQ triggered?
 
-	time_ticktiming += timepassed; //Add the amount of time passed to the PIT timing!
+	i = time_ticktiming; //Load the current timing!
+	i += timepassed; //Add the amount of time passed to the PIT timing!
 
 	//Render 1.19MHz samples for the time that has passed!
-	length = (uint_32)(time_ticktiming*time_tickreverse); //How many ticks to tick?
-	time_ticktiming -= (length*time_tick); //Rest the amount of ticks!
+	length = floor(i*time_tickreverse); //How many ticks to tick?
+	i -= (length*time_tick); //Rest the amount of ticks!
+	time_ticktiming = i; //Save the new count!
 
 	if (length) //Anything to tick at all?
 	{
@@ -178,7 +180,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			byte mode,outputmask;
 			mode = PITchannels[channel].mode; //Current mode!
 			outputmask = (channel==2)?((PCSpeakerPort&2)>>1):1; //Mask output on/off for this timer!
-			for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
+			for (tickcounter = length;tickcounter;tickcounter-=1.0f) //Tick all needed!
 			{
 				switch (mode) //What mode are we rendering?
 				{
@@ -415,11 +417,11 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	speaker_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
 	if ((speaker_ticktiming >= speaker_tick) && enablespeaker) //Enough time passed to render the physical PC speaker and enabled?
 	{
-		length = (uint_32)SAFEDIV(speaker_ticktiming, speaker_tick); //How many ticks to tick?
+		length = floor(SAFEDIV(speaker_ticktiming, speaker_tick)); //How many ticks to tick?
 		speaker_ticktiming -= (length*speaker_tick); //Rest the amount of ticks!
 
 		//Ticks the speaker when needed!
-		i = 0; //Init counter!
+		i = 0.0f; //Init counter!
 		//Generate the samples from the output signal!
 		for (;;) //Generate samples!
 		{
@@ -448,7 +450,8 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 
 			//Add the result to our buffer!
 			writeDoubleBufferedSound16(&pcspeaker_soundbuffer, (short)speaker_currentsample); //Write the sample to the buffer (mono buffer)!
-			if (++i == length) //Fully rendered?
+			i += 1.0f; //Add time!
+			if (i == length) //Fully rendered?
 			{
 				return; //Next item!
 			}

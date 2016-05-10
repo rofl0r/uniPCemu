@@ -588,7 +588,7 @@ OPTINLINE float calcModulator(byte operator, word modulator)
 	float result;
 	result = OPL2_Tremolo(operator,OPL2_Exponential(modulator)); //Apply exponential and tremolo!
 	result *= generalmodulatorfactor; //Apply modulation factor!
-	result *= PI; //Calculate current modulation!
+	result *= PI2; //Calculate current modulation!
 	return result;
 }
 

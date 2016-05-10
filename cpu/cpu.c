@@ -257,7 +257,7 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 
 word CPU_readOPw() //Reads the operation (word) at CS:EIP
 {
-	word result;
+	INLINEREGISTER word result;
 	result = CPU_readOP(); //Read OPcode!
 	result |= CPU_readOP()<<8; //Read OPcode!
 	return result; //Give result!
@@ -265,7 +265,7 @@ word CPU_readOPw() //Reads the operation (word) at CS:EIP
 
 uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
 {
-	uint_32 result;
+	INLINEREGISTER uint_32 result;
 	result = CPU_readOPw(); //Read OPcode!
 	result |= CPU_readOPw()<<16; //Read OPcode!
 	return result; //Give result!
@@ -607,7 +607,6 @@ void CPU_OP(byte OP) //Normal CPU opcode execution!
 
 void CPU_beforeexec()
 {
-	CPU[activeCPU].trapped = CPU[activeCPU].registers->SFLAGS.TF; //Are we to be trapped this instruction?
 	switch (EMULATED_CPU)
 	{
 	case CPU_8086:
@@ -640,9 +639,12 @@ void CPU_beforeexec()
 	}
 
 	//This applies to all processors:
-	CPU[activeCPU].registers->SFLAGS.unmapped2 = 1; //Forced to 1!
-	CPU[activeCPU].registers->SFLAGS.unmapped8 = 0; //Forced to 0!
-	CPU[activeCPU].registers->SFLAGS.unmapped32 = 0; //Forced to 0!
+	CPU[activeCPU].trapped = CPU[activeCPU].registers->SFLAGS.TF; //Are we to be trapped this instruction?
+	INLINEREGISTER tempflags;
+	tempflags = CPU[activeCPU].registers->EFLAGS; //Load the flags to set/clear!
+	tempflags &= ~(8|32); //Clear bits 3&5!
+	tempflags |= 2; //Clear bit values 8&32(unmapped bits 3&5) and set bit value 2!
+	CPU[activeCPU].registers->EFLAGS = tempflags; //Update the flags!
 }
 
 byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
@@ -885,25 +887,15 @@ byte have_interrupt(byte nr) //We have this interrupt in the IVT?
 
 void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks etc.)
 {
-	if (EMULATED_CPU <= CPU_80186) //16-bits mode (protect too high data)?
-	{
-		CPU[activeCPU].registers->EAX &= 0xFFFF; //Convert to 16-bits!
-		CPU[activeCPU].registers->EBX &= 0xFFFF; //Convert to 16-bits!
-		CPU[activeCPU].registers->ECX &= 0xFFFF; //Convert to 16-bits!
-		CPU[activeCPU].registers->EDX &= 0xFFFF; //Convert to 16-bits!
-		CPU[activeCPU].registers->ESP &= 0xFFFF; //Convert to 16-bits!
-		CPU[activeCPU].registers->EBP &= 0xFFFF; //Convert to 16-bits!
-		CPU[activeCPU].registers->ESI &= 0xFFFF; //Convert to 16-bits!
-		CPU[activeCPU].registers->EDI &= 0xFFFF; //Convert to 16-bits!
-		CPU[activeCPU].registers->EIP &= 0xFFFF; //Convert to 16-bits!
-		CPU[activeCPU].registers->EFLAGS &= 0xFFFF; //Convert to 16-bits: we only have 16-bits flags!
-	}
 	CPU[activeCPU].faultraised = 0; //We don't have a fault anymore! Continue on!
 
-	if (CPU[activeCPU].registers->SFLAGS.TF && CPU[activeCPU].trapped) //Trapped and to be trapped this instruction?
+	if (CPU[activeCPU].registers->SFLAGS.TF) //Trapped and to be trapped this instruction?
 	{
-		CPU_exSingleStep(); //Type-1 interrupt: Single step interrupt!
-		CPU_afterexec(); //All after execution fixing!
+		if (CPU[activeCPU].trapped) //Are we trapped?
+		{
+			CPU_exSingleStep(); //Type-1 interrupt: Single step interrupt!
+			CPU_afterexec(); //All after execution fixing!
+		}
 	}
 }
 
@@ -914,21 +906,6 @@ void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls th
 	CPU[activeCPU].registers->EIP = CPU_exec_EIP; //Destination address is reset!
 	CPU_flushPIQ(); //Flush the PIQ!
 	CPU[activeCPU].PIQ_EIP = CPU_exec_EIP; //Destination address of the PIQ is reset too!
-}
-
-//Read signed numbers from CS:(E)IP!
-
-sbyte imm8()
-{
-	return unsigned2signed8(CPU_readOP());
-}
-sword imm16()
-{
-	return unsigned2signed16(CPU_readOPw());
-}
-int_32 imm32()
-{
-	return unsigned2signed32(CPU_readOPdw());
 }
 
 //Exceptions!

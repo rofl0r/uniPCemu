@@ -84,7 +84,7 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 	return currentticks; //Give the result: amount of ticks passed!
 }
 
-OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, float secondfactorreversed)
+OPTINLINE float gettimepassed(TicksHolder *ticksholder, float secondfactor, float secondfactorreversed)
 {
 	INLINEREGISTER float result;
 	INLINEREGISTER float tickspassed;
@@ -93,39 +93,39 @@ OPTINLINE uint_64 gettimepassed(TicksHolder *ticksholder, float secondfactor, fl
 	result = floor(tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can use!
 	tickspassed -= (result*secondfactorreversed); //The ticks left unprocessed this call!
 	ticksholder->ticksrest = tickspassed; //Add the rest ticks unprocessed to the next time we're counting!
-	return (uint_64)result; //Ordinary result!
+	return result; //Ordinary result!
 }
 
-uint_64 getmspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
+float getmspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
 {
 	return gettimepassed(ticksholder, msfactor,msfactorrev); //Factor us!
 }
 
-uint_64 getuspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
+float getuspassed(TicksHolder *ticksholder) //Get ammount of ms passed since last use!
 {
 	return gettimepassed(ticksholder,usfactor,usfactorrev); //Factor us!
 }
 
-uint_64 getnspassed(TicksHolder *ticksholder)
+float getnspassed(TicksHolder *ticksholder)
 {
 	return gettimepassed(ticksholder,nsfactor,nsfactorrev); //Factor ns!
 }
 
-uint_64 getmspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
+float getmspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
 {
 	TicksHolder temp;
 	memcpy(&temp, ticksholder, sizeof(temp)); //Copy the old one!
 	return gettimepassed(&temp, msfactor, msfactorrev); //Factor us!
 }
 
-uint_64 getuspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
+float getuspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
 {
 	TicksHolder temp;
 	memcpy(&temp,ticksholder,sizeof(temp)); //Copy the old one!
 	return gettimepassed(&temp, usfactor, usfactorrev); //Factor us!
 }
 
-uint_64 getnspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
+float getnspassed_k(TicksHolder *ticksholder) //Same as getuspassed, but doesn't update the start of timing, allowing for timekeeping normally.
 {
 	TicksHolder temp;
 	memcpy(&temp,ticksholder,sizeof(temp)); //Copy the old one!
@@ -146,7 +146,7 @@ void stopHiresCounting(char *src, char *what, TicksHolder *ticksholder)
 	dolog(src,"Counter %s took %s",what,time); //Log it!
 }
 
-void convertTime(uint_64 time, char *holder) //Convert time to hh:mm:ss:s100.s1000.s1k!
+void convertTime(float time, char *holder) //Convert time to hh:mm:ss:s100.s1000.s1k!
 {
 	uint_32 h, m, s, s100, s1000, s1k;
 	h = (uint_32)(time/3600000000ll); //Hours!

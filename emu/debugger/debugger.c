@@ -698,13 +698,18 @@ void debugger_step() //Processes the debugging step!
 	} //Step mode?
 }
 
+extern byte cpudebugger;
+
 void debugger_setcommand(char *text, ...)
 {
-	va_list args; //Going to contain the list!
-	va_start (args, text); //Start list!
-	vsprintf (debugger_command_text, text, args); //Compile list!
-	va_end (args); //Destroy list!
-	debugger_set = 1; //We've set the debugger!
+	if (cpudebugger) //Are we debugging?
+	{
+		va_list args; //Going to contain the list!
+		va_start (args, text); //Start list!
+		vsprintf (debugger_command_text, text, args); //Compile list!
+		va_end (args); //Destroy list!
+		debugger_set = 1; //We've set the debugger!
+	}
 }
 
 void debugger_setprefix(char *text)
