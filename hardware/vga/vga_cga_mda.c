@@ -1523,6 +1523,8 @@ byte CGAMDA_readIO(word port, byte *result)
 byte CGAMDA_writeIO(word port, byte value)
 {
 	byte ok = 0;
+	if (!getActiveVGA()) return 2; //Invalid VGA!
+	if (!getActiveVGA()->registers) return 2; //Invalid registers!
 	if ((getActiveVGA()->registers->specialCGAflags | getActiveVGA()->registers->specialMDAflags)&1) //Extension enabled!
 	{
 		switch (port)

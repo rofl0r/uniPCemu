@@ -57,6 +57,7 @@
 typedef struct //Contains the precalculated values!
 {
 	byte graphicsmode; //Are we a graphics mode?
+	byte textmode; //Are we a text mode?
 	
 	word scanline; //Current scanline rendering after all extra effects!
 	

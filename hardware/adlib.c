@@ -77,8 +77,8 @@ byte adliboperators[2][0x10] = { //Groupings of 22 registers! (20,40,60,80,E0)
 byte adliboperatorsreverse[0x20] = { 0, 1, 2, 0, 1, 2, 255, 255, 3, 4, 5, 3, 4, 5, 255, 255, 6, 7, 8, 6, 7, 8,255,255,255,255,255,255,255,255,255,255}; //Channel lookup of adlib operators!
 byte adliboperatorsreversekeyon[0x20] = { 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2, 2, 2,0,0,0,0,0,0,0,0,0,0}; //Modulator/carrier lookup of adlib operators in the keyon bits!
 
-static const double feedbacklookup[8] = { 0, PI / 16.0, PI / 8.0, PI / 4.0, PI / 2.0, PI, PI*2.0, PI*4.0 }; //The feedback to use from opl3emu! Seems to be half a sinus wave per number!
-double feedbacklookup2[8]; //Actual feedback lookup value!
+static const float feedbacklookup[8] = { 0, PI / 16.0, PI / 8.0, PI / 4.0, PI / 2.0, PI, PI*2.0, PI*4.0 }; //The feedback to use from opl3emu! Seems to be half a sinus wave per number!
+float feedbacklookup2[8]; //Actual feedback lookup value!
 
 byte wavemask = 0; //Wave select mask!
 
@@ -110,6 +110,7 @@ typedef struct {
 	//Volume envelope
 	uint8_t volenvstatus; //Envelope status and raw volume envelope value(0-64)
 	word gain; //The gain gotten from the volume envelopes!
+	word rawgain; //The gain without main volume control!
 
 	byte vibrato, tremolo; //Vibrato/tremolo setting for this channel. 1=Enabled, 0=Disabled.
 
@@ -267,7 +268,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[0][channel]&0x1F].volenvstatus = 1; //Start attacking!
 		adlibop[adliboperators[0][channel]&0x1F].volenv = Silence; //No raw level: Start silence!
 		adlibop[adliboperators[0][channel]&0x1F].m_env = Silence; //No raw level: Start level!
-		adlibop[adliboperators[0][channel]&0x1F].gain = (adlibop[adliboperators[0][channel]].m_env<<3)+(adlibop[adliboperators[0][channel]].outputlevel); //Apply the start gain!
+		adlibop[adliboperators[0][channel]&0x1F].gain = ((Silence-adlibop[adliboperators[0][channel]].volenv)<<3); //Apply the start gain!
 		adlibop[adliboperators[0][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
 		adlibop[adliboperators[0][channel]&0x1F].freq0 = adlibop[adliboperators[0][channel]&0x1F].time = 0.0f; //Initialise operator signal!
 		adlibop[adliboperators[0][channel]&0x1F].lastsignal = 0.0f; //Reset the last signals!
@@ -279,7 +280,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[1][channel]&0x1F].volenvstatus = 1; //Start attacking!
 		adlibop[adliboperators[1][channel]&0x1F].volenv = Silence; //No raw level: silence!
 		adlibop[adliboperators[1][channel]&0x1F].m_env = Silence; //No raw level: Start level!
-		adlibop[adliboperators[1][channel]&0x1F].gain = (adlibop[adliboperators[1][channel]].m_env<<3)+(adlibop[adliboperators[1][channel]].outputlevel); //Apply the start gain!
+		adlibop[adliboperators[1][channel]&0x1F].gain = ((Silence-adlibop[adliboperators[1][channel]].volenv)<<3); //Apply the start gain!
 		adlibop[adliboperators[1][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
 		adlibop[adliboperators[1][channel]&0x1F].freq0 = adlibop[adliboperators[1][channel]&0x1F].time = 0.0f; //Initialise operator signal!
 		adlibop[adliboperators[1][channel]&0x1F].lastsignal = 0.0f; //Reset the last signals!
@@ -348,7 +349,6 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			portnum &= 0x1F;
 			adlibop[portnum].m_ksl = ((value >> 6) & 3); //Apply KSL!
 			adlibop[portnum].outputlevel = outputtable[value]; //Apply raw output level!
-			adlibop[portnum].gain = (adlibop[portnum].volenv<<3)+(adlibop[portnum].outputlevel); //Apply the start gain!
 			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!
 		}
 		break;
@@ -437,8 +437,8 @@ OPTINLINE float adlibfreq (sbyte operatornumber, uint8_t chan) {
 }
 
 //Sign bit, disable mask and extension to 16-bit value!
-#define SIGNBIT 0x2000
-#define SIGNMASK 0x1FFF
+#define SIGNBIT 0x8000
+#define SIGNMASK 0x7FFF
 
 OPTINLINE sword Wave2Word(word w)
 {
@@ -592,6 +592,8 @@ OPTINLINE float calcModulator(byte operator, word modulator)
 	return result;
 }
 
+byte logop = 0;
+
 //Calculate an operator signal!
 OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float modulator, byte feedback, byte volenvoperator, byte updateoperator)
 {
@@ -610,8 +612,16 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 		activemodulation = modulator; //Use the normal modulator!
 	}
 
+	if (logop) //Testing?
+	{
+		dolog("opl2","Rendering operator %02X wave %i, modulation=%f, Frequency=%f(%f)",operator,adlibop[operator].wavesel&wavemask,activemodulation,frequency,adlibop[operator].lastfreq);
+	}
 	//Generate the correct signal! Ignore time by setting frequency to 0.0f(effectively disables time, keeping it stuck at 0(frequencytime))!
 	result = calcOPL2Signal(adlibop[operator].wavesel&wavemask, activemodulation, (frequency?frequency:adlibop[operator].lastfreq), &adlibop[operator].freq0, &adlibop[operator].time); //Take the last frequency or current frequency!
+	if (logop) //Testing?
+	{
+		dolog("opl2", "Rendering operator %02X gave sample %i", operator,result);
+	}
 	if (volenvoperator==0xFF) goto skipvolenv;
 	sword temp;
 	byte negative;
@@ -625,23 +635,28 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 	else negative = 0; //Not negative!
 
 	word gain;
-	gain = adlibop[operator].gain; //Current gain!
-	if (updateoperator&2) //Special: ignore main volume control!
+	if (updateoperator & 2) //Special: ignore main volume control!
 	{
-		gain = (adlibop[operator].volenv<<3); //Always maximum volume!
+		gain = outputtable[0]; //Always maximum volume, ignore the volume control!
 	}
-
-	if (temp>=gain)
-		temp -= (sword)gain; //Apply the gain to the raw signal!
-	else
-		temp = 0; //Not enough gain, so ignore it!
+	else //Normal output level!
+	{
+		gain = adlibop[operator].outputlevel; //Current gain!
+	}
+	gain += adlibop[operator].gain;
+	temp += (sword)gain; //Apply the gain to the raw signal!
 
 	if (negative) //Negative input?
 	{
 		temp = -temp; //Reverse sign to make it negative again!
 	}
 
+	if (logop) //Testing?
+	{
+		dolog("opl2", "Rendering operator %02X volume gave sample %i(gain %i)", operator,temp,gain);
+	}
 	result = Word2Wave(temp); //Apply the gain to the input signal!
+
 	skipvolenv: //Skip vol env operator!
 	if (frequency && (updateoperator&1)) //Running operator and allowed to update our signal?
 	{
@@ -808,6 +823,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 	//Calculate the frequency to use!
 	result = calcOperator(curchan, op1, op1frequency, 0,1,op1,1); //Calculate the modulator for feedback!
 
+	logop = 1;
 	if (adlibch[curchan].synthmode) //Additive synthesis?
 	{
 		result += calcOperator(curchan, op2, op2frequency, 0.0f, 0,op2,1); //Calculate the carrier without applied modulator additive!
@@ -816,6 +832,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 	{
 		result = calcOperator(curchan, op2, op2frequency, calcModulator(op1,result), 0,op2,1); //Calculate the carrier with applied modulator!
 	}
+	logop = 0;
 
 	return OPL2_Tremolo(op2,OPL2_Exponential(result)); //Apply the exponential!
 }
@@ -1072,7 +1089,7 @@ OPTINLINE void tickadlib()
 			case 1: //Attacking?
 				EnvelopeGenerator_attack(&adlibop[curop]); //New method: Attack!
 				adlibop[curop].volenv = LIMITRANGE(adlibop[curop].m_env,0,Silence); //Apply the linear curve
-				adlibop[curop].gain = (adlibop[curop].volenv<<3)+(adlibop[curop].outputlevel); //Apply the start gain!
+				adlibop[curop].gain = ((Silence-adlibop[curop].volenv)<<3); //Apply the start gain!
 				break;
 			case 2: //Decaying?
 				EnvelopeGenerator_decay(&adlibop[curop]); //New method: Decay!
@@ -1081,7 +1098,7 @@ OPTINLINE void tickadlib()
 					goto startsustain; //Start sustaining if needed!
 				}
 				adlibop[curop].volenv = LIMITRANGE(adlibop[curop].m_env,0,Silence); //Apply the linear curve
-				adlibop[curop].gain = (adlibop[curop].volenv<<3)+(adlibop[curop].outputlevel); //Apply the start gain!
+				adlibop[curop].gain = ((Silence-adlibop[curop].volenv)<<3); //Apply the start gain!
 				break;
 			case 3: //Sustaining?
 				startsustain:
@@ -1091,13 +1108,13 @@ OPTINLINE void tickadlib()
 					goto startrelease; //Check again!
 				}
 				adlibop[curop].volenv = LIMITRANGE(adlibop[curop].m_env,0,Silence); //Apply the linear curve
-				adlibop[curop].gain = (adlibop[curop].volenv<<3)+(adlibop[curop].outputlevel); //Apply the start gain!
+				adlibop[curop].gain = ((Silence-adlibop[curop].volenv)<<3); //Apply the start gain!
 				break;
 			case 4: //Releasing?
 				startrelease:
 				EnvelopeGenerator_release(&adlibop[curop]); //Release: new method!
 				adlibop[curop].volenv = LIMITRANGE(adlibop[curop].m_env,0,Silence); //Apply the linear curve
-				adlibop[curop].gain = (adlibop[curop].volenv<<3)+(adlibop[curop].outputlevel); //Apply the start gain!
+				adlibop[curop].gain = ((Silence-adlibop[curop].volenv)<<3); //Apply the start gain!
 				break;
 			default: //Unknown volume envelope status?
 				adlibop[curop].volenvstatus = 0; //Disable this volume envelope!
@@ -1221,7 +1238,7 @@ void initAdlib()
 	//Build the needed tables!
 	for (i = 0; i < (int)NUMITEMS(outputtable); i++)
 	{
-		outputtable[i] = (((word)i)<<5); //Multiply the raw value by 5 to get the actual gain: the curve is applied by the register shifted left!
+		outputtable[i] = (((word)(0x3F-i))<<5); //Multiply the raw value by 5 to get the actual gain: the curve is applied by the register shifted left!
 	}
 
 	for (i = 0; i < (int)NUMITEMS(adlibop); i++) //Process all channels!
@@ -1248,7 +1265,7 @@ void initAdlib()
 		OPL2_ExpTable[i] = round((pow(2, (float)i / 256.0f) - 1.0f) * 1024.0f);
 		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5f)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
 	}
-	max_input = OPL2_LogSinTable[0]; //Maximum input value!
+	max_input = OPL2_LogSinTable[0]+outputtable[0]+(Silence<<3); //Maximum input value!
 	generalmodulatorfactor = (1.0f/OPL2_Exponential(max_input)); //General modulation factor, as applied to both modulation methods!
 
 	adlib_scaleFactor = (float)(1.0f/(OPL2_Exponential(max_input)*9.0f))*SHRT_MAX; //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!

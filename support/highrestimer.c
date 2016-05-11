@@ -148,17 +148,15 @@ void stopHiresCounting(char *src, char *what, TicksHolder *ticksholder)
 
 void convertTime(float time, char *holder) //Convert time to hh:mm:ss:s100.s1000.s1k!
 {
-	uint_32 h, m, s, s100, s1000, s1k;
+	uint_32 h, m, s, s100,sus;
 	h = (uint_32)(time/3600000000ll); //Hours!
 	time -= h*3600000000ll; //Left!
 	m = (uint_32)(time/60000000ll); //Minutes!
 	time -= m*60000000ll; //Left!
 	s = (uint_32)(time/1000000ll); //Seconds!
 	time -= s*1000000ll; //Left!
-	s100 = (uint_32)(time/10000ll); //s100!
-	time -= s100*10000ll;
-	s1000 = (uint_32)(time/1000ll); //s1000!
-	time -= s1000*1000ll; //Left!
-	s1k = (uint_32)time; //All that's left!
-	sprintf(holder,"%i:%02i:%02i:%02i.%i.%04i",h,m,s,s100,s1000,s1k); //Generate the final text!
+	s100 = (uint_32)(time/10000ll); //1/100th second!
+	time -= (s100*10000ll); //Left!
+	sus = (uint_32)time; //Microseconds left (1/1000 and ns)!
+	sprintf(holder,"%02i:%02i:%02i:%02i.%05i",h,m,s,s100,sus); //Generate the final text!
 }
