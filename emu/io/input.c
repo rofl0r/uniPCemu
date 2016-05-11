@@ -1771,7 +1771,7 @@ void updateMOD()
 		input.Buttons &= ~BUTTON_HOME; //Released!
 	}
 
-	if ((input.cas&CAS_LSHIFT) && ((!Direct_Input) && (!curstat.mode) && (!curstat.gamingmode))) //Shift pressed, mapped to mouse slowdown?
+	if ((input.cas&CAS_RSHIFT) && ((!Direct_Input) && (!curstat.mode) && (!curstat.gamingmode))) //Shift pressed, mapped to mouse slowdown?
 	{
 		precisemousemovement = 1; //Enabled!
 	}

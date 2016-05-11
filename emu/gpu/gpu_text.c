@@ -208,7 +208,8 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (!rendersurface) return 0; //No rendering surface used yet?
-	word x,y;
+	INLINEREGISTER word x;
+	word y;
 	uint_32 pixeln;
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 
@@ -237,8 +238,8 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		renderpixel = &tsurface->notdirty[0][0]; //Start with the first pixel in our buffer!
 		do //Process all rows!
 		{
-			GPU_textput_pixel(rendersurface,tsurface,x,y, *renderpixel++); //Plot a pixel if used!
-			if (++x==GPU_TEXTPIXELSX) //End of row reached?
+			GPU_textput_pixel(rendersurface,tsurface,x++,y, *renderpixel++); //Plot a pixel if used!
+			if (x==GPU_TEXTPIXELSX) //End of row reached?
 			{
 				x = 0; //Reset horizontal coordinate!
 				renderpixel = &tsurface->notdirty[++y][0]; //Start with the first pixel in our new row!

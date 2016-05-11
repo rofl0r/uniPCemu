@@ -257,10 +257,10 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 
 word CPU_readOPw() //Reads the operation (word) at CS:EIP
 {
-	INLINEREGISTER word result;
-	result = CPU_readOP(); //Read OPcode!
-	result |= CPU_readOP()<<8; //Read OPcode!
-	return result; //Give result!
+	INLINEREGISTER byte temp, temp2;
+	temp = CPU_readOP(); //Read OPcode!
+	temp2 = CPU_readOP(); //Read OPcode!
+	return temp|(temp2<<8); //Give result!
 }
 
 uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
@@ -607,29 +607,33 @@ void CPU_OP(byte OP) //Normal CPU opcode execution!
 
 void CPU_beforeexec()
 {
-	switch (EMULATED_CPU)
+	//This applies to all processors:
+	CPU[activeCPU].trapped = CPU[activeCPU].registers->SFLAGS.TF; //Are we to be trapped this instruction?
+	INLINEREGISTER tempflags;
+	tempflags = CPU[activeCPU].registers->EFLAGS; //Load the flags to set/clear!
+	tempflags &= ~(8|32); //Clear bits 3&5!
+
+	switch (EMULATED_CPU) //What CPU flags to emulate?
 	{
 	case CPU_8086:
 	case CPU_80186:
-		CPU[activeCPU].registers->FLAGS |= 0xF000; //High bits are stuck to 1!
+		tempflags |= 0xF000; //High bits are stuck to 1!
 		break;
 	case CPU_80286:
 		if (getcpumode() == CPU_MODE_REAL) //Real mode?
 		{
-			CPU[activeCPU].registers->FLAGS &= 0xFFF; //Always set the high flags in real mode only!
+			tempflags &= 0xFFFF0FFF; //Always set the high flags in real mode only!
 		}
 		else //Protected mode?
 		{
-			CPU[activeCPU].registers->FLAGS &= 0x7FFF; //Bit 15 is always cleared!
+			tempflags &= 0xFFFF7FFF; //Bit 15 is always cleared!
 		}
 		break;
 	case CPU_80386:
-		CPU[activeCPU].registers->FLAGS &= 0x7FFF; //Bit 15 is always cleared!
-		CPU[activeCPU].registers->SFLAGS.AC = 0; //Stuck to 0!
+		tempflags &= 0xFFFB7FFF; //Bit 15 is always cleared! AC is stuck to 0!
 		break;
 	case CPU_80486:
-		CPU[activeCPU].registers->FLAGS &= 0x7FFF; //Bit 15 is always cleared!
-		CPU[activeCPU].registers->SFLAGS.ID = 0; //Don't allow setting of the CPUID flag!
+		CPU[activeCPU].registers->FLAGS &= 0xFFDF7FFF; //Bit 15 is always cleared! Don't allow setting of the CPUID flag!
 		break;
 	case CPU_PENTIUM:
 		//Allow all bits to be set!
@@ -637,12 +641,6 @@ void CPU_beforeexec()
 	default: //Unknown CPU?
 		break;
 	}
-
-	//This applies to all processors:
-	CPU[activeCPU].trapped = CPU[activeCPU].registers->SFLAGS.TF; //Are we to be trapped this instruction?
-	INLINEREGISTER tempflags;
-	tempflags = CPU[activeCPU].registers->EFLAGS; //Load the flags to set/clear!
-	tempflags &= ~(8|32); //Clear bits 3&5!
 	tempflags |= 2; //Clear bit values 8&32(unmapped bits 3&5) and set bit value 2!
 	CPU[activeCPU].registers->EFLAGS = tempflags; //Update the flags!
 }
