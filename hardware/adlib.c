@@ -58,7 +58,7 @@ const float adlib_soundtick = 1000000000.0f/(14318180.0f/288.0f); //The length o
 //The length of a sample step:
 #define adlib_sampleLength (1.0f / (14318180.0f / 288.0f))
 
-float generalmodulatorfactor = 4084.0f / 1024.0f; //Modulation factor!
+double generalmodulatorfactor = 4084.0f / 1024.0f; //Modulation factor!
 
 //Counter info
 float counter80 = 0.0f, counter320 = 0.0f; //Counter ticks!
@@ -117,7 +117,7 @@ typedef struct {
 	//Signal generation
 	byte wavesel;
 	float ModulatorFrequencyMultiple; //What harmonic to sound?
-	float lastsignal; //The last signal produced!
+	double lastsignal; //The last signal produced!
 	float freq0, time; //The frequency and current time of an operator!
 	float lastfreq; //Last valid set frequency!
 	ADLIBCHANNEL *channel;
@@ -190,7 +190,7 @@ OPTINLINE float OPL2_Vibrato(float frequency, sbyte operatornumber)
 	return frequency; //Unchanged frequency!
 }
 
-OPTINLINE float OPL2_Tremolo(byte operator, float f)
+OPTINLINE double OPL2_Tremolo(byte operator, double f)
 {
 	if (adlibop[operator].tremolo) //Tremolo enabled?
 	{
@@ -454,36 +454,17 @@ OPTINLINE sword Wave2Word(word w)
 	}
 }
 
-OPTINLINE word Word2Wave(sword s)
+OPTINLINE word OPL2SinWave(const double r)
 {
-	word w;
-	if (s<0) //Negative?
-	{
-		s = -s; //Reverse the sign for conversion!
-		w = (word)s; //Convert it to unsigned!
-		w &= SIGNMASK; //Apply the sign mask!
-		w |= SIGNBIT; //Apply the sign bit!
-		return w; //Give the converted value!
-	}
-	else //Positive?
-	{
-		w = (word)s; //Convert it to unsigned!
-		w &= SIGNMASK; //Apply the sign mask!
-		return w; //Give the converted value!
-	}
-}
-
-OPTINLINE word OPL2SinWave(const float r)
-{
-	const float halfpi = (0.5f*(float)PI); //Half PI!
-	const float halfpi1 = (1.0f/halfpi); //Half pi division factor!
-	float index;
+	const double halfpi = (0.5f*(double)PI); //Half PI!
+	const double halfpi1 = (1.0f/halfpi); //Half pi division factor!
+	double index;
 	word entry; //The entry to convert!
 	byte location; //The location in the table to use!
 	byte PIpart;
 	PIpart = 0; //Default: part 0!
 	index = fmod(r,PI2); //Loop the sinus infinitely!
-	if (index>=(float)PI) //Second half?
+	if (index>=(double)PI) //Second half?
 	{
 		PIpart = 2; //Second half!
 		index -= PI; //Convert to first half!
@@ -493,7 +474,7 @@ OPTINLINE word OPL2SinWave(const float r)
 		PIpart |= 1; //Second half!
 		index -= halfpi; //Convert to first quarter!
 	}
-	index = (index*halfpi1)*255.0f; //Convert to full range!
+	index = (index*halfpi1)*256.0f; //Convert to full range!
 	location = (byte)index; //Set the location to use!
 	if (PIpart&1) //Reversed quarter(second and fourth quarter)?
 	{
@@ -501,17 +482,16 @@ OPTINLINE word OPL2SinWave(const float r)
 	}
 
 	entry = OPL2_LogSinTable[location]; //Take the full load!
-	entry = OPL2_LogSinTable[0]-entry; //Reverse the sinus to make it go from 0 to max!
+	entry = ~entry; //Reverse us!
+	entry &= SIGNMASK; //Only the signed part is used!
 	if (PIpart&2) //Second half is negative?
 	{
-		entry |= SIGNBIT; //Reverse the negative part!
+		entry |= SIGNBIT; //We're negative instead!
 	}
 	return entry; //Give the processed entry!
 }
 
-float expfactor = 1.0f;
-
-OPTINLINE float getHiddenBit(word v)
+OPTINLINE double getHiddenBit(word v)
 {
 	return (v&SIGNBIT)?-1.0f:1.0f; //Significant!
 }
@@ -521,24 +501,28 @@ OPTINLINE word removeHiddenBit(word v)
 	return (v&SIGNMASK); //No significant!
 }
 
-OPTINLINE float OPL2_Exponential(word v)
+OPTINLINE double OPL2_Exponential(word v)
 {
 	//Exponential lookup also reverses the input, since it's a -logSin table!
 	//Exponent = x/256
 	//Significant = ExpTable[v%256]+1024
 	//Output = Significant * (2^Exponent)
-	return getHiddenBit(v)*((float)OPL2_ExpTable[v&0xFF]+1024.0f)*powf(2,(removeHiddenBit(v)>>8)); //Lookup normally!
+	double mantissa,exponent,sign;
+	sign = getHiddenBit(v); //Sign!
+	exponent = powf(2, (removeHiddenBit(v) >> 8)); //Exponent!
+	mantissa = ((double)OPL2_ExpTable[v & 0xFF] + 0x400); //Mantissa!
+	return sign*mantissa*exponent; //Lookup normally!
 }
 
-OPTINLINE word OPL2_Sin(byte signal, const float frequencytime) {
+OPTINLINE word OPL2_Sin(byte signal, const double frequencytime) {
 	double x;
-	float t;
+	double t;
 	word result;
 	switch (signal) {
 	case 0: //SINE?
 		return OPL2SinWave(frequencytime); //The sinus function!
 	default:
-		t = (float)modf(frequencytime/PI2, &x); //Calculate rest for special signal information!
+		t = (double)modf(frequencytime/PI2, &x); //Calculate rest for special signal information!
 		switch (signal) { //What special signal?
 		case 1: // Negative=0?
 			if (t >= 0.5f) return 0; //Negative!
@@ -548,7 +532,7 @@ OPTINLINE word OPL2_Sin(byte signal, const float frequencytime) {
 			if (fmod(t, 0.5f) >= 0.25) return 0; //Are we the second half of the half period? Clear the signal if so!
 		case 2: // Absolute?
 			result = OPL2SinWave(frequencytime); //The sinus function!
-			if (result&SIGNBIT) result &= ~SIGNBIT; //Make positive!
+			result &= SIGNMASK; //Make positive!
 			return result; //Simply absolute!
 		default: //Unknown signal?
 			return 0;
@@ -556,9 +540,9 @@ OPTINLINE word OPL2_Sin(byte signal, const float frequencytime) {
 	}
 }
 
-OPTINLINE word calcOPL2Signal(byte wave, float phase, float frequency, float *freq0, float *time) //Calculates a signal for input to the adlib synth!
+OPTINLINE word calcOPL2Signal(byte wave, double phase, float frequency, float *freq0, float *time) //Calculates a signal for input to the adlib synth!
 {
-	float ftp;
+	double ftp;
 	if (frequency != *freq0) { //Frequency changed?
 		*time *= (*freq0 / frequency);
 	}
@@ -583,23 +567,21 @@ OPTINLINE void incop(byte operator, float frequency)
 	}
 }
 
-OPTINLINE float calcModulator(byte operator, word modulator)
+OPTINLINE double calcModulator(byte operator, word modulator)
 {
-	float result;
+	double result;
 	result = OPL2_Tremolo(operator,OPL2_Exponential(modulator)); //Apply exponential and tremolo!
 	result *= generalmodulatorfactor; //Apply modulation factor!
 	result *= PI2; //Calculate current modulation!
 	return result;
 }
 
-byte logop = 0;
-
 //Calculate an operator signal!
-OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float modulator, byte feedback, byte volenvoperator, byte updateoperator)
+OPTINLINE word calcOperator(byte channel, byte operator, float frequency, double modulator, byte feedback, byte volenvoperator, byte updateoperator)
 {
 	if (operator==0xFF) return 0; //Invalid operator!
-	word result; //Our variables?
-	float activemodulation;
+	INLINEREGISTER word result,temp; //Our variables?
+	double activemodulation;
 	//Generate the signal!
 	if (feedback) //Apply channel feedback?
 	{
@@ -612,50 +594,17 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 		activemodulation = modulator; //Use the normal modulator!
 	}
 
-	if (logop) //Testing?
-	{
-		dolog("opl2","Rendering operator %02X wave %i, modulation=%f, Frequency=%f(%f)",operator,adlibop[operator].wavesel&wavemask,activemodulation,frequency,adlibop[operator].lastfreq);
-	}
 	//Generate the correct signal! Ignore time by setting frequency to 0.0f(effectively disables time, keeping it stuck at 0(frequencytime))!
 	result = calcOPL2Signal(adlibop[operator].wavesel&wavemask, activemodulation, (frequency?frequency:adlibop[operator].lastfreq), &adlibop[operator].freq0, &adlibop[operator].time); //Take the last frequency or current frequency!
-	if (logop) //Testing?
-	{
-		dolog("opl2", "Rendering operator %02X gave sample %i", operator,result);
-	}
-	if (volenvoperator==0xFF) goto skipvolenv;
-	sword temp;
-	byte negative;
-
-	temp = Wave2Word(result); //Load the result!
-	if (temp<0) //Negative?
-	{
-		negative = 1; //Positive!
-		temp = -temp; //Reverse sign to make it positive to look up!
-	}
-	else negative = 0; //Not negative!
-
-	word gain;
 	if (updateoperator & 2) //Special: ignore main volume control!
 	{
-		gain = outputtable[0]; //Always maximum volume, ignore the volume control!
+		result += outputtable[0]; //Always maximum volume, ignore the volume control!
 	}
 	else //Normal output level!
 	{
-		gain = adlibop[operator].outputlevel; //Current gain!
+		result += adlibop[operator].outputlevel; //Current gain!
 	}
-	gain += adlibop[operator].gain;
-	temp += (sword)gain; //Apply the gain to the raw signal!
-
-	if (negative) //Negative input?
-	{
-		temp = -temp; //Reverse sign to make it negative again!
-	}
-
-	if (logop) //Testing?
-	{
-		dolog("opl2", "Rendering operator %02X volume gave sample %i(gain %i)", operator,temp,gain);
-	}
-	result = Word2Wave(temp); //Apply the gain to the input signal!
+	result += adlibop[operator].gain; //Apply volume envelope!
 
 	skipvolenv: //Skip vol env operator!
 	if (frequency && (updateoperator&1)) //Running operator and allowed to update our signal?
@@ -667,16 +616,16 @@ OPTINLINE word calcOperator(byte channel, byte operator, float frequency, float 
 	return result; //Give the result!
 }
 
-float adlib_scaleFactor = SHRT_MAX / (3000.0f*9.0f); //We're running 9 channels in a 16-bit space, so 1/9 of SHRT_MAX
+double adlib_scaleFactor = SHRT_MAX / (3000.0f*9.0f); //We're running 9 channels in a 16-bit space, so 1/9 of SHRT_MAX
 
 OPTINLINE word getphase(byte channel, byte operator, float frequency) //Get the current phrase of the operator!
 {
 	return (word)(((fmod(adlibop[operator].time*frequency*PI2,PI2)/PI2)*((float)0x3D0)))>>6; //Give the 10-bits value
 }
 
-float convertphase(word phase)
+double convertphase(word phase)
 {
-	float p; //Default: multiply into positive!
+	double p; //Default: multiply into positive!
 	if (phase&0x200) //Negative?
 	{
 		p = -1.0f; //Negative!
@@ -684,15 +633,15 @@ float convertphase(word phase)
 	}
 	else p = 1.0f; //Positive!
 	p *= phase; //Multiply the phase (positive or negative) into it!
-	p *= ((float)PI/4.0f); //Convert to destination range(4 sinus waves)!
+	p *= ((1.0f/(double)0x200)*PI2); //Convert to destination range(4 sinus wave parts=1 sine wave(1024 samples from the table))!
 	return p; //Give the phase to execute!
 }
 
-OPTINLINE float adlibsample(uint8_t curchan) {
+OPTINLINE double adlibsample(uint8_t curchan) {
 	byte op6_0, op6_1, op7_0, op7_1, op8_0, op8_1; //The four slots used during Drum samples!
 	word tempop_phase; //Current phase of an operator!
 	word result;
-	float immresult; //The operator result and the final result!
+	double immresult; //The operator result and the final result!
 	byte op1,op2; //The two operators to use!
 	float op1frequency, op2frequency;
 	curchan &= 0xF;
@@ -808,7 +757,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 				}
 				if (adlibop[op8_0].volenvstatus) //Tom-tom(Carrier)?
 				{
-					result = calcOperator(8, op8_0, adlibfreq(op8_0, 8), 0, 0,op8_0,2); //Calculate the carrier without applied modulator additive!
+					result = calcOperator(8, op8_0, adlibfreq(op8_0, 8), 0, 0,op8_0,3); //Calculate the carrier without applied modulator additive!
 					immresult += OPL2_Tremolo(op8_0,OPL2_Exponential(result)*2.0f); //Apply the exponential!
 				}
 				result = immresult; //Load the resulting channel!
@@ -823,7 +772,6 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 	//Calculate the frequency to use!
 	result = calcOperator(curchan, op1, op1frequency, 0,1,op1,1); //Calculate the modulator for feedback!
 
-	logop = 1;
 	if (adlibch[curchan].synthmode) //Additive synthesis?
 	{
 		result += calcOperator(curchan, op2, op2frequency, 0.0f, 0,op2,1); //Calculate the carrier without applied modulator additive!
@@ -832,7 +780,6 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 	{
 		result = calcOperator(curchan, op2, op2frequency, calcModulator(op1,result), 0,op2,1); //Calculate the carrier with applied modulator!
 	}
-	logop = 0;
 
 	return OPL2_Tremolo(op2,OPL2_Exponential(result)); //Apply the exponential!
 }
@@ -937,14 +884,14 @@ OPTINLINE byte adlib_channelplaying(byte channel)
 
 
 OPTINLINE short adlibgensample() {
-	float adlibaccum = 0.0f;
+	double adlibaccum = 0.0f;
 	byte channel;
 	for (channel=0;channel<9;++channel) //Process all channels!
 	{
 		if (adlib_channelplaying(channel)) adlibaccum += adlibsample(channel); //Sample when playing!
 	}
 	adlibaccum *= adlib_scaleFactor; //Scale according to volume!
-	adlibaccum = LIMITRANGE(adlibaccum,(float)SHRT_MIN,(float)SHRT_MAX); //Clip our data to prevent overflow!
+	adlibaccum = LIMITRANGE(adlibaccum,(double)SHRT_MIN,(double)SHRT_MAX); //Clip our data to prevent overflow!
 	return (sword)(adlibaccum);
 }
 
@@ -1265,7 +1212,6 @@ void initAdlib()
 		OPL2_ExpTable[i] = round((pow(2, (float)i / 256.0f) - 1.0f) * 1024.0f);
 		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5f)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
 	}
-	max_input = OPL2_LogSinTable[0]+outputtable[0]+(Silence<<3); //Maximum input value!
 	generalmodulatorfactor = (1.0f/OPL2_Exponential(max_input)); //General modulation factor, as applied to both modulation methods!
 
 	adlib_scaleFactor = (float)(1.0f/(OPL2_Exponential(max_input)*9.0f))*SHRT_MAX; //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
@@ -1323,7 +1269,7 @@ void initAdlib()
 	w = createWAV("captures/adlibwave.wav",1,usesamplerate); //Start logging one wave!
 	for (t=0.0f;t<usesamplerate;t+=1.0f) //Process all samples!
 	{
-		s = OPL2SinWave(2*PI*1.0f*u); //Get the sample(1Hz sine wave)!
+		s = OPL2SinWave(2*PI*u)+outputtable[0]+(Silence << 3); //Get the sample(1Hz sine wave)!
 		writeWAVMonoSample(w,(word)(OPL2_Exponential(s)*c)); //Log 1 wave, looked up through exponential input!
 		u += f; //Add one sample to the time!
 	}
