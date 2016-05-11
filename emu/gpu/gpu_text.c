@@ -290,7 +290,7 @@ byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte charact
 
 int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32 font, uint_32 border) //Write a character+attribute!
 {
-	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)) return 0; //Abort without surface!
 	if (y>=GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
 	if (x>=GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
 	byte oldtext = surface->text[y][x];
@@ -431,7 +431,7 @@ byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 bor
 
 void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 {
-	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)) return; //Abort without surface!
 	int curx = x;
 	int cury = y;
 	while (curx>=GPU_TEXTSURFACE_WIDTH) //Overflow?
@@ -475,7 +475,7 @@ void GPU_text_locksurface(GPU_TEXTSURFACE *surface) //Lock a surface for usage!
 
 void GPU_text_releasesurface(GPU_TEXTSURFACE *surface) //Unlock a surface when done with it!
 {
-	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
+	if (!memprotect(surface, sizeof(*surface), NULL)) return; //Invalid surface!
 	if (!surface->lock) return; //no lock?
 	PostSem(surface->lock) //Release our lock: we're done!
 }
@@ -567,6 +567,6 @@ byte GPU_isclicked(GPU_TEXTSURFACE *surface, word x, word y) //Are we clicked?
 
 void GPU_stopClickableXY(GPU_TEXTSURFACE *surface, word x, word y)
 {
-	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
+	if (!memprotect(surface, sizeof(*surface), NULL)) return; //Invalid surface!
 	surface->clickable[y][x] = 0; //Destroy any click information! We're a normal character again!
 }

@@ -248,9 +248,9 @@ OPTINLINE void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth
                 int* i = temp + 5;
                 Bit32u* srgb = (Bit32u *)TempLine;
                 for (x2 = 0; x2 < blocks*4; ++x2) {
-                        int c = (i[0]+i[0])<<3;
-                        int d = (i[-1]+i[1])<<3;
-                        int y = ((c+d)<<8) + video_sharpness*(c-d);
+                        INLINEREGISTER int c = (i[0]+i[0])<<3;
+						INLINEREGISTER int d = (i[-1]+i[1])<<3;
+						INLINEREGISTER int y = ((c+d)<<8) + video_sharpness*(c-d);
                         ++i;
                         *srgb = byte_clamp(y)*0x10101;
                         ++srgb;
@@ -273,7 +273,7 @@ OPTINLINE void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth
                 i[0] = (i[0]<<3) - ap[0];
                 Bit32u* srgb = (Bit32u *)TempLine;
                 for (x2 = 0; x2 < blocks; ++x2) {
-                        int y,a,b,c,d,rr,gg,bb;
+					INLINEREGISTER int y,a,b,c,d,rr,gg,bb;
                         COMPOSITE_CONVERT(a, b);
                         COMPOSITE_CONVERT(-b, a);
                         COMPOSITE_CONVERT(-a, -b);
