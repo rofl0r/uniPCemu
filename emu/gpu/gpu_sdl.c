@@ -417,7 +417,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 			if (use_rowsize>0) //Gotten row size to copy?
 			{
 				uint_32 *row = get_pixel_row(surface,y,0); //Row at the left!
-				if (row) //Gotten the row (valid row?)
+				if (row && (surface->sdllayer!=(SDL_Surface *)0xFFFFFFFF)) //Gotten the row (valid row?)
 				{
 					uint_32 restpixels = (surface->sdllayer->w)-use_rowsize; //Rest ammount of pixels!
 					uint_32 start = (surface->sdllayer->w/2) - (use_rowsize/2); //Start of the drawn part!
