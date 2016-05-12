@@ -288,6 +288,8 @@ byte BIOS_printopentext(uint_32 timeout)
 	return result; //Give the result!
 }
 
+byte bootBIOS = 0; //Boot into BIOS?
+
 int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -323,8 +325,9 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 		{
 			return 0; //No reset!
 		}
-		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun || FORCE_BIOS || BIOSClicked) //R trigger pressed or first run? Also when clicked!
+		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun || bootBIOS || FORCE_BIOS || BIOSClicked) //R trigger pressed or first run? Also when clicked!
 		{
+			bootBIOS = 0; //Not booting into BIOS anymore!
 			if (timeout) //Before boot?
 			{
 				EMU_locktext();
@@ -1607,6 +1610,12 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	{
 		strcpy(menuoptions[advancedoptions++], "Discard Changes & Reboot"); //Option #1!
 	}
+
+	if (EMU_RUNNING) //Emulator is running?
+	{
+		optioninfo[advancedoptions] = 3; //Load defaults option!
+		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter BIOS menu"); //Load defaults option!
+	}
 	
 	
 	if (!EMU_RUNNING) //Emulator isn't running?
@@ -1622,6 +1631,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	case 0:
 	case 1:
 	case 2:
+	case 3:
 		switch (optioninfo[menuresult]) //What option is chosen?
 		{
 		case 0: //Save&Quit?
@@ -1635,6 +1645,11 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		case 2: //Load defaults?
 			BIOSMenu_LoadDefaults(); //Load BIOS defaults option!
 			BIOS_Changed = 1; //The BIOS has been changed!
+			reboot_needed = 2; //We need a reboot!
+			break;
+		case 3: //Restart emulator and enter BIOS menu?
+			bootBIOS = 1; //Forced first run!
+			BIOS_Menu = -1; //Quit!
 			reboot_needed = 2; //We need a reboot!
 			break;
 		}

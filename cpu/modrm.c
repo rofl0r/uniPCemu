@@ -1049,7 +1049,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 
 	result->isreg = 2; //Memory!
 
-	INLINEREGISTER uint_32 offset; //The offset calculated!
+	INLINEREGISTER uint_32 offset=0; //The offset calculated!
 	switch (MODRM_MOD(params->modrm)) //Which mod?
 	{
 	case MOD_MEM: //[register]
