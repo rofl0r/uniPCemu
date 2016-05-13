@@ -83,14 +83,6 @@ OPTINLINE uint_32 fifobuffer_INTERNAL_freesize(FIFOBUFFER *buffer)
 uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 {
 	INLINEREGISTER uint_32 result;
-	/*if (!memprotect(buffer,sizeof(FIFOBUFFER),NULL)) //Error?
-	{
-	return 0; //Error: invalid buffer!
-	}
-	if (!memprotect(buffer->buffer,buffer->size,NULL)) //Error?
-	{
-	return 0; //Error: invalid buffer!
-	}*/
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 	if (buffer->lock) //Locked buffer?
@@ -112,17 +104,9 @@ void waitforfreefifobuffer(FIFOBUFFER *buffer, uint_32 size)
 	for (;fifobuffer_freesize(buffer)<size;) delay(0); //Wait for the buffer to have enough free size!
 }
 
-int peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read?
+byte peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	/*if (!memprotect(buffer,sizeof(FIFOBUFFER),NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}
-	if (!memprotect(buffer->buffer,buffer->size,NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}*/
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
@@ -156,17 +140,9 @@ OPTINLINE static void readfifobufferunlocked(FIFOBUFFER *buffer, byte *result)
 	buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
 }
 
-int readfifobuffer(FIFOBUFFER *buffer, byte *result)
+byte readfifobuffer(FIFOBUFFER *buffer, byte *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	/*if (!memprotect(buffer,sizeof(FIFOBUFFER),NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}
-	if (!memprotect(buffer->buffer,buffer->size,NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}*/
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
@@ -199,19 +175,9 @@ OPTINLINE static void writefifobufferunlocked(FIFOBUFFER *buffer, byte data)
 	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
 }
 
-int writefifobuffer(FIFOBUFFER *buffer, byte data)
+byte writefifobuffer(FIFOBUFFER *buffer, byte data)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	/*if (!memprotect(buffer,sizeof(FIFOBUFFER),NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}
-	
-	if (!memprotect(buffer->buffer,buffer->size,NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}*/
-
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
@@ -237,17 +203,9 @@ int writefifobuffer(FIFOBUFFER *buffer, byte data)
 	return 1; //Written!
 }
 
-int peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be read?
+byte peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be read?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	/*if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}
-	if (!memprotect(buffer->buffer, buffer->size, NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}*/
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
@@ -293,17 +251,9 @@ OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
 	buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
 }
 
-int readfifobuffer16(FIFOBUFFER *buffer, word *result)
+byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	/*if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}
-	if (!memprotect(buffer->buffer, buffer->size, NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}*/
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
@@ -338,17 +288,9 @@ OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
 }
 
-int writefifobuffer16(FIFOBUFFER *buffer, word data)
+byte writefifobuffer16(FIFOBUFFER *buffer, word data)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	/*if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}
-	if (!memprotect(buffer->buffer, buffer->size, NULL)) //Error?
-	{
-		return 0; //Error: invalid buffer!
-	}*/
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
 
@@ -380,14 +322,6 @@ int writefifobuffer16(FIFOBUFFER *buffer, word data)
 void fifobuffer_gotolast(FIFOBUFFER *buffer)
 {
 	if (__HW_DISABLED) return; //Abort!
-	/*if (!memprotect(buffer,sizeof(FIFOBUFFER),NULL)) //Error?
-	{
-		return; //Error: invalid buffer!
-	}
-	if (!memprotect(buffer->buffer,buffer->size,NULL)) //Error?
-	{
-		return; //Error: invalid buffer!
-	}*/
 	if (buffer==0) return; //Error: invalid buffer!
 	if (buffer->buffer==0) return; //Error invalid: buffer!
 	
@@ -430,10 +364,6 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 
 void fifobuffer_save(FIFOBUFFER *buffer)
 {
-	/*if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
-	{
-		return; //Error: invalid buffer!
-	}*/
 	if (buffer==0) return; //Error: invalid buffer!
 
 	if (buffer->lock)
@@ -450,10 +380,6 @@ void fifobuffer_save(FIFOBUFFER *buffer)
 
 void fifobuffer_restore(FIFOBUFFER *buffer)
 {
-	/*if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
-	{
-		return; //Error: invalid buffer!
-	}*/
 	if (buffer==0) return; //Error: invalid buffer!
 
 	if (buffer->lock)
@@ -471,10 +397,6 @@ void fifobuffer_restore(FIFOBUFFER *buffer)
 void fifobuffer_clear(FIFOBUFFER *buffer)
 {
 	byte temp; //Saved data to discard!
-	/*if (!memprotect(buffer, sizeof(FIFOBUFFER), NULL)) //Error?
-	{
-		return; //Error: invalid buffer!
-	}*/
 	if (buffer==0) return; //Error: invalid buffer!
 
 	fifobuffer_gotolast(buffer); //Goto last!

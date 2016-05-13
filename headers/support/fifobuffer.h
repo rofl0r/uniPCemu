@@ -72,7 +72,7 @@ returns:
 
 */
 
-int peekfifobuffer(FIFOBUFFER *buffer, byte *result); //Is there data to be read?
+byte peekfifobuffer(FIFOBUFFER *buffer, byte *result); //Is there data to be read?
 
 /*
 
@@ -85,7 +85,7 @@ result:
 
 */
 
-int readfifobuffer(FIFOBUFFER *buffer, byte *result);
+byte readfifobuffer(FIFOBUFFER *buffer, byte *result);
 
 /*
 
@@ -98,7 +98,7 @@ result:
 */
 
 
-int writefifobuffer(FIFOBUFFER *buffer, byte data);
+byte writefifobuffer(FIFOBUFFER *buffer, byte data);
 
 /*
 
@@ -155,9 +155,9 @@ void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
 
 /* 16-bit adjustments */
 
-int peekfifobuffer16(FIFOBUFFER *buffer, word *result); //Is there data to be read?
-int readfifobuffer16(FIFOBUFFER *buffer, word *result);
-int writefifobuffer16(FIFOBUFFER *buffer, word data);
+byte peekfifobuffer16(FIFOBUFFER *buffer, word *result); //Is there data to be read?
+byte readfifobuffer16(FIFOBUFFER *buffer, word *result);
+byte writefifobuffer16(FIFOBUFFER *buffer, word data);
 void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
 
 #endif
