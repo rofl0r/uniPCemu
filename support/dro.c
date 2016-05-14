@@ -95,6 +95,7 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 	FILE *f; //The file!
 	uint_32 oldpos;
 	f = fopen(filename,"rb"); //Open the filename!
+	if (!f) return 0; //File not found!
 	byte empty[3] = {0,0,0}; //Empty data!
 	if (fread(header,1,sizeof(*header),f)!=sizeof(*header))
 	{

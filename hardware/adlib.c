@@ -563,7 +563,7 @@ OPTINLINE float calcFeedback(byte channel, float modulator)
 //Calculate an operator signal!
 OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, byte volenvoperator, float frequency, float modulator, byte flags)
 {
-	if (operator==0xFF) return 0; //Invalid operator!
+	if (operator==0xFF) return 0.0f; //Invalid operator!
 	INLINEREGISTER word sample; //Our variables?
 	word result; //The result to give!
 	float result2; //The translated result!
