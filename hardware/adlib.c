@@ -89,6 +89,9 @@ word phaseconversion[0x10000]; //Phase converstion precalcs!
 
 byte wavemask = 0; //Wave select mask!
 
+byte NTS; //NTS bit!
+byte CSMMode; //CSM mode enabled?
+
 SOUNDDOUBLEBUFFER adlib_soundbuffer; //Our sound buffer for rendering!
 
 #ifdef WAV_ADLIB
@@ -283,6 +286,10 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 					timer320 = adlibregmem[3]; //Reload timer!					
 				}
 			}
+			break;
+		case 8: //CSW/Note-Sel?
+			CSMMode = (adlibregmem[8]&0x80)?1:0; //Set CSM mode!
+			NTS = (adlibregmem[8]&0x40)?1:0; //Set NTS mode!
 			break;
 		default: //Unknown?
 			break;
@@ -565,7 +572,7 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 {
 	if (operator==0xFF) return 0.0f; //Invalid operator!
 	INLINEREGISTER word sample; //Our variables?
-	word result; //The result to give!
+	word result, gain; //The result to give!
 	float result2; //The translated result!
 	float activemodulation;
 	//Generate the signal!
@@ -581,17 +588,28 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	//Generate the correct signal! Ignore time by setting frequency to 0.0f(effectively disables time, keeping it stuck at 0(frequencytime))!
 	result = calcOPL2Signal(adlibop[operator].wavesel&wavemask, (frequency?frequency:adlibop[timingoperator].lastfreq),activemodulation, &adlibop[timingoperator].freq0, &adlibop[timingoperator].time); //Take the last frequency or current frequency!
 	
-	//Apply the gain!
+	//Calculate the gain!
+	gain = 0; //Init gain!
 	if (flags&2) //Special: ignore main volume control!
 	{
-		result += outputtable[0]; //Always maximum volume, ignore the volume control!
+		gain += outputtable[0]; //Always maximum volume, ignore the volume control!
 	}
 	else //Normal output level!
 	{
-		result += adlibop[volenvoperator].outputlevel; //Current gain!
+		gain += adlibop[volenvoperator].outputlevel; //Current gain!
 	}
-	result += adlibop[volenvoperator].gain; //Apply volume envelope and related calculations!
-	result += adlibop[volenvoperator].m_kslAdd; //Add KSL!
+	gain += adlibop[volenvoperator].gain; //Apply volume envelope and related calculations!
+	gain += adlibop[volenvoperator].m_kslAdd; //Add KSL!
+
+	//Now apply the gain!
+	if ((result&SIGNMASK)>=gain) //Enough to lower it to apply volume?
+	{
+		result = ((result&SIGNMASK)-gain)|(result&SIGNBIT); //Lower volume according to the envelope!
+	}
+	else //No volume?
+	{
+		result = 0; //Make us zero, since there isn't enough volume!
+	}
 	result2 = OPL2_Exponential(result); //Translate to Exponential range!
 
 	skipvolenv: //Skip vol env operator!
@@ -779,7 +797,7 @@ byte ticked80_320 = 0; //80/320 ticked?
 
 OPTINLINE void tick_adlibtimer()
 {
-	if (adlibregmem[8] & 0x80) //CSM enabled?
+	if (CSMMode) //CSM enabled?
 	{
 		//Process CSM tick!
 		byte channel=0;
@@ -922,7 +940,7 @@ void EnvelopeGenerator_setAttennuation(ADLIBOP *operator)
 
 OPTINLINE byte EnvelopeGenerator_nts(ADLIBOP *operator)
 {
-	return 0; //TODO!
+	return NTS; //Give the NTS bit!
 }
 
 OPTINLINE uint8_t EnvelopeGenerator_calculateRate(ADLIBOP *operator, uint8_t rateValue )
@@ -1237,6 +1255,7 @@ void initAdlib()
 	memset(&tremolovibrato,0,sizeof(tremolovibrato)); //Initialise tremolo/vibrato!
 	tremolovibrato[0].depth = 1.0f; //Default: 1dB AM depth!
 	tremolovibrato[1].depth = 7.0f; //Default: 7 cent vibrato depth!
+	NTS = CSMMode = 0; //Reset the global flags!
 
 	//RNG support!
 	OPL2_RNGREG = OPL2_RNG = 0; //Initialise the RNG!
