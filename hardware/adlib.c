@@ -156,56 +156,6 @@ typedef struct
 
 TREMOLOVIBRATOSIGNAL tremolovibrato[2]; //Tremolo&vibrato!
 
-OPTINLINE void stepTremoloVibrato(TREMOLOVIBRATOSIGNAL *signal, float frequency)
-{
-	float current;
-	current = sinf(PI2*frequency*signal->time); //Apply the signal!
-	current += 1.0f; //Make positive (0.0-2.0)
-	current *= 0.5; //Divide by 2 to get the applied range (0-1)
-	signal->current = current; //Save the current signal!
-	float temp;
-	double d;
-	signal->time += adlib_sampleLength; //Add 1 sample to the time!
-
-	temp = signal->time*frequency; //Calculate for overflow!
-	if (temp >= 1.0f) { //Overflow?
-		signal->time = (float)modf(temp, &d) / frequency;
-	}
-}
-
-OPTINLINE void OPL2_stepTremoloVibrato()
-{
-	//Step to the next value!
-	stepTremoloVibrato(&tremolovibrato[0],3.7f); //Tremolo at 3.7Hz!
-	stepTremoloVibrato(&tremolovibrato[1],6.4f); //Vibrato at 6.4Hz!
-
-	//Now the current value of the signal is stored! Apply the active tremolo/vibrato!
-	#ifdef ADLIB_TREMOLOVIBRATO
-	tremolovibrato[0].active = dB2factor(93.0f-(tremolovibrato[0].depth*tremolovibrato[0].current),93.0f); //Calculate the current tremolo!
-	tremolovibrato[1].active = (100.0f+(tremolovibrato[1].depth*tremolovibrato[1].current))*0.01f; //Calculate the current vibrato!
-	#else
-	tremolovibrato[0].active = tremolovibrato[1].active = 1.0f; //No tremolo/vibrato!
-	#endif
-}
-
-OPTINLINE float OPL2_Vibrato(float frequency, byte operatornumber)
-{
-	if (adlibop[operatornumber].vibrato) //Vibrato enabled?
-	{
-		return frequency*tremolovibrato[1].active; //Apply vibrato!
-	}
-	return frequency; //Unchanged frequency!
-}
-
-OPTINLINE float OPL2_Tremolo(byte operator, float f)
-{
-	if (adlibop[operator].tremolo) //Tremolo enabled?
-	{
-		return f*tremolovibrato[0].active; //Apply the current tremolo/vibrato!
-	}
-	return f; //Unchanged!
-}
-
 //RNG
 
 OPTINLINE void OPL2_stepRNG() //Runs at the sampling rate!
@@ -434,14 +384,6 @@ uint8_t inadlib (uint16_t portnum, byte *result) {
 	return 0; //Not our port!
 }
 
-OPTINLINE float adlibfreq (byte operatornumber) {
-	float tmpfreq;
-	tmpfreq = adlibop[operatornumber].channel->effectivefreq; //Effective frequency!
-	tmpfreq *= adlibop[operatornumber].ModulatorFrequencyMultiple; //Apply the frequency multiplication factor!
-	tmpfreq = OPL2_Vibrato(tmpfreq,operatornumber); //Apply vibrato!
-	return (tmpfreq);
-}
-
 OPTINLINE word OPL2SinWave(const float r)
 {
 	const float halfpi = (0.5*(float)PI); //Half PI!
@@ -493,6 +435,65 @@ OPTINLINE double OPL2_Exponential_real(word v)
 OPTINLINE float OPL2_Exponential(word v)
 {
 	return OPL2_ExponentialLookup2[v]; //Give the precalculated lookup result!
+}
+
+OPTINLINE void stepTremoloVibrato(TREMOLOVIBRATOSIGNAL *signal, float frequency)
+{
+	float current;
+	double dummy;
+	current = modf(asinf(OPL2_Exponential(OPL2SinWave(PI2*frequency*signal->time)))/PI2,&dummy); //Apply the signal using the OPL2 Sine Wave, reverse the operation and convert to triangle time!
+	current = (current < 0.5f)? ((current * 2.0f) - 0.5f):(0.5f - ((current - 0.5f) * 2.0f));
+	signal->current = current; //Save the current signal as the triangle wave!
+
+	float temp;
+	double d;
+	signal->time += adlib_sampleLength; //Add 1 sample to the time!
+
+	temp = signal->time*frequency; //Calculate for overflow!
+	if (temp >= 1.0f) { //Overflow?
+		signal->time = (float)modf(temp, &d) / frequency;
+	}
+}
+
+OPTINLINE void OPL2_stepTremoloVibrato()
+{
+	//Step to the next value!
+	stepTremoloVibrato(&tremolovibrato[0], 3.7f); //Tremolo at 3.7Hz!
+	stepTremoloVibrato(&tremolovibrato[1], 6.4f); //Vibrato at 6.4Hz!
+
+	//Now the current value of the signal is stored! Apply the active tremolo/vibrato!
+	#ifdef ADLIB_TREMOLOVIBRATO
+	tremolovibrato[0].active = dB2factor(93.0f - (tremolovibrato[0].depth*tremolovibrato[0].current), 93.0f); //Calculate the current tremolo!
+	tremolovibrato[1].active = (100.0f + (tremolovibrato[1].depth*tremolovibrato[1].current))*0.01f; //Calculate the current vibrato!
+	#else
+	tremolovibrato[0].active = tremolovibrato[1].active = 1.0f; //No tremolo/vibrato!
+	#endif
+}
+
+OPTINLINE float OPL2_Vibrato(float frequency, byte operatornumber)
+{
+	if (adlibop[operatornumber].vibrato) //Vibrato enabled?
+	{
+		return frequency*tremolovibrato[1].active; //Apply vibrato!
+	}
+	return frequency; //Unchanged frequency!
+}
+
+OPTINLINE float OPL2_Tremolo(byte operator, float f)
+{
+	if (adlibop[operator].tremolo) //Tremolo enabled?
+	{
+		return f*tremolovibrato[0].active; //Apply the current tremolo/vibrato!
+	}
+	return f; //Unchanged!
+}
+
+OPTINLINE float adlibfreq(byte operatornumber) {
+	float tmpfreq;
+	tmpfreq = adlibop[operatornumber].channel->effectivefreq; //Effective frequency!
+	tmpfreq *= adlibop[operatornumber].ModulatorFrequencyMultiple; //Apply the frequency multiplication factor!
+	tmpfreq = OPL2_Vibrato(tmpfreq, operatornumber); //Apply vibrato!
+	return (tmpfreq);
 }
 
 OPTINLINE word OPL2_Sin(byte signal, const float frequencytime) {
