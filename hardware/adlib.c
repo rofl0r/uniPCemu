@@ -40,7 +40,7 @@
 #define PI2 ((float)(2.0f * PI))
 
 //Silence value?
-#define Silence 0x3F
+#define Silence 0x1FF
 
 //Sign bit, disable mask and extension to 16-bit value! 3-bits exponent and 8-bits mantissa(which becomes 10-bits during lookup of Exponential data)
 //Sign bit itself!
@@ -419,13 +419,14 @@ OPTINLINE word OPL2SinWave(const float r)
 	}
 
 	entry = OPL2_LogSinTable[location]; //Take the full load!
-	entry = ~entry; //We're negated!
 	if (PIpart&2) //Second half is negative?
 	{
-		entry ^= SIGNBIT; //We're negative instead, so toggle the sign bit!
+		entry |= SIGNBIT; //We're negative instead, so toggle the sign bit!
 	}
 	return entry; //Give the processed entry!
 }
+
+word MaximumExponential = 0; //Maximum exponential input!
 
 OPTINLINE double OPL2_Exponential_real(word v)
 {
@@ -434,8 +435,11 @@ OPTINLINE double OPL2_Exponential_real(word v)
 	//Significant = ExpTable[v%256]+1024
 	//Output = Significant * (2^Exponent)
 	double sign;
-	sign = (v&SIGNBIT) ? 1.0 : -1.0; //Get the sign first before removing it! Reverse the sign to create proper output!
+	sign = (v&SIGNBIT) ? -1.0 : 1.0; //Get the sign first before removing it! Reverse the sign to create proper output!
 	v &= SIGNMASK; //Sign off!
+	//Reverse the range given! Input 0=Maximum volume, Input max=No output.
+	if (v>MaximumExponential) v = MaximumExponential; //Limit to the maximum value available!
+	v = MaximumExponential-v; //Reverse our range to get the correct value!
 	return sign*(double)(OPL2_ExpTable[v & 0xFF] + 1024)*pow(2.0, (double)(v>>8)); //Lookup normally with the specified sign, mantissa(8 bits translated to 10 bits) and exponent(3 bits taken from the high part of the input)!
 }
 
@@ -453,12 +457,11 @@ OPTINLINE void stepTremoloVibrato(TREMOLOVIBRATOSIGNAL *signal, float frequency)
 	signal->current = current; //Save the current signal as the triangle wave!
 
 	float temp;
-	double d;
 	signal->time += adlib_sampleLength; //Add 1 sample to the time!
 
 	temp = signal->time*frequency; //Calculate for overflow!
 	if (temp >= 1.0f) { //Overflow?
-		signal->time = (float)modf(temp, &d) / frequency;
+		signal->time = (float)modf(temp, &dummy) / frequency;
 	}
 }
 
@@ -503,25 +506,25 @@ OPTINLINE float adlibfreq(byte operatornumber) {
 	return (tmpfreq);
 }
 
-OPTINLINE word OPL2_Sin(byte signal, const float frequencytime) {
-	double x;
+OPTINLINE word OPL2_Sin(byte signal, float frequencytime) {
+	double dummy;
 	float t;
 	word result;
 	switch (signal) {
 	case 0: //SINE?
 		return OPL2SinWave(frequencytime); //The sinus function!
 	default:
-		t = (float)modf(frequencytime/PI2, &x); //Calculate rest for special signal information!
+		t = (float)modf(frequencytime/PI2, &dummy); //Calculate rest for special signal information!
 		switch (signal) { //What special signal?
 		case 1: // Negative=0?
-			if (t >= 0.5f) return 0; //Negative!
+			if (t >= 0.5f) return OPL2_LogSinTable[0]; //Negative=0!
 			result = OPL2SinWave(frequencytime); //The sinus function!
 			return result; //Positive!
 		case 3: // Absolute with second half=0?
-			if (fmod(t, 0.5f) >= 0.25f) return 0; //Are we the second half of the half period? Clear the signal if so!
+			if (fmod(t, 0.5f) >= 0.25f) return OPL2_LogSinTable[0]; //Are we the second half of the half period? Clear the signal if so!
 		case 2: // Absolute?
+			frequencytime = fmod(frequencytime,PI); //Only positive part, repeated!
 			result = OPL2SinWave(frequencytime); //The sinus function!
-			result |= SIGNBIT; //Make positive always!
 			return result; //Simply absolute!
 		default: //Unknown signal?
 			return 0;
@@ -602,14 +605,7 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	gain += adlibop[volenvoperator].m_kslAdd; //Add KSL!
 
 	//Now apply the gain!
-	if ((result&SIGNMASK)>=gain) //Enough to lower it to apply volume?
-	{
-		result = ((result&SIGNMASK)-gain)|(result&SIGNBIT); //Lower volume according to the envelope!
-	}
-	else //No volume?
-	{
-		result = 0; //Make us zero, since there isn't enough volume!
-	}
+	result += gain; //Simply add the gain!
 	result2 = OPL2_Exponential(result); //Translate to Exponential range!
 
 	skipvolenv: //Skip vol env operator!
@@ -1220,18 +1216,16 @@ void initAdlib()
 	}
 
 	//Find the maximum volume archievable with exponential lookups!
+	MaximumExponential = ((0x3F << 5) + (Silence << 3)) + OPL2_LogSinTable[0]; //Highest input to the LogSin input!
 	double maxresult=0.0,buffer=0.0;
 	uint_32 n=0;
 	do
 	{
 		buffer = OPL2_Exponential_real((word)n); //Load the current value translated!
-		if (buffer>maxresult) //Higher value encoutered?
-		{
-			maxresult = buffer; //Apply the higher value!
-		}
 		OPL2_ExponentialLookup[n] = buffer; //Store the value for fast lookup!
 	} while (++n<0x10000); //Loop while not finished processing all possibilities!
 
+	maxresult = OPL2_Exponential_real(0); //Zero is maximum output to give!
 	double generalmodulatorfactor = 0.0f; //Modulation factor!
 	//Now, we know the biggest result given!
 	generalmodulatorfactor = (1.0/maxresult); //General modulation factor, as applied to both modulation methods!
