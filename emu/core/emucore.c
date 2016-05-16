@@ -75,6 +75,8 @@
 
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA compatibility layer support!
 
+#include "headers/support/dro.h" //DRO player playback support!
+
 //CPU default clock speeds (in Hz)!
 
 //The clock speed of the 8086 (~14.31818MHz divided by 3)!
@@ -695,6 +697,7 @@ OPTINLINE byte coreHandler()
 		timeexecuted += instructiontime; //Increase CPU executed time executed this block!
 		tickPIT(instructiontime); //Tick the PIT as much as we need to keep us in sync!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
+		stepDROPlayer(instructiontime); //DRO player playback, if any!
 		if (BIOS_Settings.useAdlib) updateAdlib(instructiontime); //Tick the adlib timer if needed!
 		updateATA(instructiontime); //Update the ATA timer!
 		updateDMA(instructiontime); //Update the DMA timer!

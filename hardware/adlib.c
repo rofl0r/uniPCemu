@@ -1079,15 +1079,6 @@ void cleanAdlib()
 	//Discard the amount of time passed!
 }
 
-void lockEMUOPL()
-{
-	lock(LOCK_ADLIB); //Lock us!
-}
-void unlockEMUOPL()
-{
-	unlock(LOCK_ADLIB); //Unlock us!
-}
-
 //Stuff for the low-pass filter!
 float opl2_currentsample = 0, opl2_last_result = 0, opl2_last_sample = 0;
 byte opl2_first_sample = 1;
@@ -1099,20 +1090,17 @@ void updateAdlib(double timepassed)
 	adlib_ticktiming += timepassed; //Get the amount of time passed!
 	if (adlib_ticktiming >= 80000.0) //Enough time passed?
 	{
-		lockEMUOPL();
 		for (;adlib_ticktiming >= 80000.0;) //All that's left!
 		{
 			adlib_timer80(); //Tick 80us timer!
 			adlib_ticktiming -= 80000.0; //Decrease timer to get time left!
 		}
-		unlockEMUOPL();
 	}
 	
 	//Adlib sound output
 	adlib_soundtiming += timepassed; //Get the amount of time passed!
 	if (adlib_soundtiming>=adlib_soundtick)
 	{
-		lockEMUOPL();
 		for (;adlib_soundtiming>=adlib_soundtick;)
 		{
 			OPL2_stepRNG(); //Tick the RNG!
@@ -1147,7 +1135,6 @@ void updateAdlib(double timepassed)
 			tickadlib(); //Tick us to the next timing if needed!
 			adlib_soundtiming -= adlib_soundtick; //Decrease timer to get time left!
 		}
-		unlockEMUOPL();
 	}
 }
 

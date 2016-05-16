@@ -7,8 +7,4 @@ void doneAdlib(); //Finish adlib!
 void cleanAdlib();
 void updateAdlib(double timepassed); //Sound tick. Executes every instruction.
 
-//Lock functions for playback!
-void lockEMUOPL();
-void unlockEMUOPL();
-
 #endif
