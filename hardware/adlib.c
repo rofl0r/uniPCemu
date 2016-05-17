@@ -541,7 +541,7 @@ OPTINLINE word calcOPL2Signal(byte wave, float frequency, float phase, float *fr
 
 	ftp = frequency; //Frequency!
 	ftp *= *time; //Time!
-	ftp *= PI2; //Apply frequencytime ratio!
+	ftp *= PI2; //Apply frequencytime ratio to the full phase(2*PI=1 Sine wave)!
 	ftp += phase; //Add phase!
 	*freq0 = frequency; //Update new frequency!
 	return OPL2_Sin(wave, ftp); //Give the generated sample!
@@ -562,12 +562,12 @@ OPTINLINE void incop(byte operator, float frequency)
 
 OPTINLINE float calcModulator(float modulator)
 {
-	return modulator*PI2; //Calculate current modulation!
+	return modulator*(PI*2.0f); //Calculate current modulation!
 }
 
 OPTINLINE float calcFeedback(byte channel, ADLIBOP *operator)
 {
-	return ((operator->lastsignal[0]+operator->lastsignal[1])*adlibch[channel].feedback); //Calculate current feedback
+	return ((operator->lastsignal[0]+operator->lastsignal[1])*0.5f*adlibch[channel].feedback); //Calculate current feedback
 }
 
 //Calculate an operator signal!
