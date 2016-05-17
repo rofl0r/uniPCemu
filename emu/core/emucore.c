@@ -536,6 +536,12 @@ byte DosboxClock = 1; //We're executing using the Dosbox clock cycles?
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
 
+void BIOSMenuResumeEMU()
+{
+	last_timing = last_timing_start = (double)getnspassed_k(&CPU_timing); //We start off at this point with no time running! We start counting the last timing from now!
+	updateSpeedLimit(); //Update the speed limit!
+}
+
 void BIOSMenuExecution()
 {
 	pauseEMU(); //Stop timers!
@@ -546,8 +552,7 @@ void BIOSMenuExecution()
 	resumeEMU(); //Resume!
 	//Update CPU speed!
 	lock(LOCK_CPU); //We're updating the CPU!
-	last_timing = last_timing_start = (double)getnspassed_k(&CPU_timing); //We start off at this point with no time running! We start counting the last timing from now!
-	updateSpeedLimit(); //Update the speed limit!
+	BIOSMenuResumeEMU(); //Resume the emulator from the BIOS menu thread!
 	unlock(LOCK_CPU);
 }
 

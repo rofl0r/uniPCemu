@@ -300,6 +300,7 @@ void showTime(float playtime, float *oldplaytime)
 	if (playtime != *oldplaytime && (playtime>=(*oldplaytime+PLAYER_TIMEINTERVAL))) //Playtime updated?
 	{
 		convertTime(playtime/PLAYER_USINTERVAL, &playtimetext[0]); //Convert the time(in us)!
+		playtimetext[strlen(playtimetext)-9] = '\0'; //Cut off the timing past the second!
 		GPU_text_locksurface(BIOS_Surface); //Lock!
 		GPU_textgotoxy(BIOS_Surface,0, GPU_TEXTSURFACE_HEIGHT - 2); //Show playing init!
 		GPU_textprintf(BIOS_Surface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "Play time: %s", playtimetext); //Current play time!
@@ -313,6 +314,7 @@ void clearTime()
 	static char playtimetext[256] = "";
 	GPU_text_locksurface(BIOS_Surface); //Lock!
 	convertTime(0, &playtimetext[0]); //Convert the time(in us)!
+	playtimetext[strlen(playtimetext) - 9] = '\0'; //Cut off the timing past the second!
 	byte b;
 	for (b=0;b<strlen(playtimetext);) playtimetext[b++] = ' '; //Clear the text!
 	GPU_textgotoxy(BIOS_Surface,0, GPU_TEXTSURFACE_HEIGHT - 2); //Show playing init!
@@ -466,9 +468,12 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 		playedfile.stream = playedfile.data; //Start processing the start of the stream!
 		playedfile.eos = &playedfile.data[playedfile.datasize]; //The end of the stream!
 
+		resumeEMU(); //Resume the emulator!
 		lock(LOCK_CPU); //Lock the CPU: we're checking for finishing!
 		droplayer = &playedfile; //Start playing this file!
 		CPU[activeCPU].halt |= 2; //Force us into HLT state, starting playback!
+		BIOSMenuResumeEMU(); //Resume the emulator from the BIOS menu thread!
+		EMU_stopInput(); //We don't want anything to be input into the emulator!
 		for (;droplayer;) //Wait while playing!
 		{
 			unlock(LOCK_CPU);
@@ -477,6 +482,7 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 		}
 		CPU[activeCPU].halt &= ~2; //Remove the forced execution!
 		unlock(LOCK_CPU); //We're finished with the CPU!
+		pauseEMU(); //Stop timers and back to the BIOS menu!
 		return playedfile.stoprunning?0:1; //Played without termination?
 	}
 	return 0; //Invalid file?
