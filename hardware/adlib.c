@@ -110,7 +110,7 @@ typedef struct
 typedef struct {
 	//Effects
 	word outputlevel; //(RAW) output level!
-	byte volenv; //(RAW) volume level!
+	word volenv; //(RAW) volume level!
 	byte m_ar, m_dr, m_sl, m_rr; //Four rates and levels!
 	word m_counter; //Counter for the volume envelope!
 	word m_env;
@@ -574,8 +574,7 @@ OPTINLINE float calcFeedback(byte channel, ADLIBOP *operator)
 OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, byte volenvoperator, float frequency, float modulator, byte flags)
 {
 	if (operator==0xFF) return 0.0f; //Invalid operator!
-	INLINEREGISTER word sample; //Our variables?
-	word result, gain; //The result to give!
+	INLINEREGISTER word result, gain; //The result to give!
 	float result2; //The translated result!
 	float activemodulation;
 	//Generate the signal!
@@ -608,7 +607,6 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	result += gain; //Simply add the gain!
 	result2 = OPL2_Exponential(result); //Translate to Exponential range!
 
-	skipvolenv: //Skip vol env operator!
 	if (frequency && ((flags&1)==0)) //Running operator and allowed to update our signal?
 	{
 		adlibop[timingoperator].lastsignal[0] = adlibop[timingoperator].lastsignal[1]; //Previous last signal!
