@@ -562,7 +562,7 @@ OPTINLINE void incop(byte operator, float frequency)
 
 OPTINLINE float calcModulator(float modulator)
 {
-	return modulator*(PI*2.0f); //Calculate current modulation!
+	return modulator*(PI*8.0f); //Calculate current modulation! 8 periods range!
 }
 
 OPTINLINE float calcFeedback(byte channel, ADLIBOP *operator)
