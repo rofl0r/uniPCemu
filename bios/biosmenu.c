@@ -220,7 +220,7 @@ Handler BIOS_Menus[] =
 	,BIOS_VGAModeSetting //VGA Mode setting is #30!
 	,BIOS_SoundMenu //Sound settings menu is #31!
 	,BIOS_SoundFont_selection //Soundfont selection menu is #32!
-	,BIOS_MusicPlayer //MIDI Player is #33!
+	,BIOS_MusicPlayer //Music Player is #33!
 	,BIOS_Mouse //Mouse menu is #34!
 	,BIOS_CPU //BIOS CPU menu is #35!
 	,BIOS_CPUSpeed //BIOS CPU speed is #36!

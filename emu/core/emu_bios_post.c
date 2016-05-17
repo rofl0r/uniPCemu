@@ -494,7 +494,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		REG_IP = 0xFFFF;
 		CPU_flushPIQ(); //We're jumping to another address!
 		lock(LOCK_CPU);
-		CPU[activeCPU].halt = 0; //Make sure the CPU is just halted!
+		CPU[activeCPU].halt &= ~2; //Make sure the CPU is just halted!
 		unlock(LOCK_CPU); //We're done with the CPU!
 	}
 	else //We can boot safely?
@@ -511,14 +511,14 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		}
 		resumeEMU(); //Resume the emulator!
 		lock(LOCK_CPU);
-		CPU[activeCPU].halt = 0; //Make sure the CPU is just halted!
+		CPU[activeCPU].halt &= ~2; //Make sure the CPU is just halted!
 		unlock(LOCK_CPU); //We're done with the CPU!
 		return 0; //Continue normally: we've booted, or give an error message!
 	}
 
 	resumeEMU(); //Resume the emulator!
 	lock(LOCK_CPU);
-	CPU[activeCPU].halt = 0; //Make sure the CPU is just halted!
+	CPU[activeCPU].halt &= ~2; //Make sure the CPU is just halted!
 	unlock(LOCK_CPU); //We're done with the CPU!
 	return 0; //Plain run!
 }

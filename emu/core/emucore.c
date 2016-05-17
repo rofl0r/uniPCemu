@@ -591,12 +591,15 @@ OPTINLINE byte coreHandler()
 		}
 		if (BIOSMenuThread)
 		{
-			if (threadRunning(BIOSMenuThread, "BIOSMenu") && (CPU[activeCPU].halt!=2)) //Are we running the BIOS menu and not permanently halted? Block our execution!
+			if (threadRunning(BIOSMenuThread, "BIOSMenu") && ((CPU[activeCPU].halt&2)==0)) //Are we running the BIOS menu and not permanently halted? Block our execution!
 			{
 				return 1; //OK, but skipped!
 			}
 		}
-		BIOSMenuThread = NULL; //We don't run the BIOS menu!
+		if ((CPU[activeCPU].halt&2)==0) //Are we running normally(not partly ran without CPU from the BIOS menu)?
+		{
+			BIOSMenuThread = NULL; //We don't run the BIOS menu anymore!
+		}
 
 		interruptsaved = 0; //Reset PIC interrupt to not used!
 		if (!CPU[activeCPU].registers) //We need registers at this point, but have none to use?
@@ -611,7 +614,7 @@ OPTINLINE byte coreHandler()
 				return 0; //Stop execution!
 			}
 
-			if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt() && (CPU[activeCPU].halt==1)) //We have an interrupt? Clear Halt State when allowed to!
+			if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0)) //We have an interrupt? Clear Halt State when allowed to!
 			{
 				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 				goto resumeFromHLT; //We're resuming from HLT state!
