@@ -21,7 +21,7 @@ void *params; //Our given param(s)!
 
 void initThreads(); //Initialise&reset thread subsystem!
 ThreadParams_p startThread(Handler thefunc, char *name, void *params); //Start a thread, gives the thread info if successfull!
-byte threadRunning(ThreadParams_p thread, char *name); //Is this thread running?
+byte threadRunning(ThreadParams_p thread); //Is this thread running?
 void waitThreadEnd(ThreadParams_p thread); //Wait for this thread to end!
 void quitThread(); //Quit the current thread!
 void termThread(); //Alias of quitThread!

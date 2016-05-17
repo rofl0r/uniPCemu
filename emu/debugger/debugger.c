@@ -676,7 +676,7 @@ void debuggerThread()
 	GPU_text_locksurface(frameratesurface); //Lock!
 	for (i = GPU_TEXT_DEBUGGERROW;i < debuggerrow;i++) GPU_textclearrow(frameratesurface, i); //Clear our debugger rows!
 	GPU_text_releasesurface(frameratesurface); //Unlock!
-	resumeEMU(); //Resume it!
+	resumeEMU(1); //Resume it!
 }
 
 ThreadParams_p debugger_thread = NULL; //The debugger thread, if any!
@@ -685,7 +685,7 @@ void debugger_step() //Processes the debugging step!
 {
 	if (debugger_thread) //Debugger not running yet?
 	{
-		if (threadRunning(debugger_thread,"debugger")) //Still running?
+		if (threadRunning(debugger_thread)) //Still running?
 		{
 			return; //We're still running, so start nothing!
 		}

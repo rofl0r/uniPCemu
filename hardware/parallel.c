@@ -31,27 +31,33 @@ void setParallelIRQ(byte port, byte raised)
 
 void tickParallel(double timepassed)
 {
-	byte port;
-	for (port=0;port<MIN(numparallelports,NUMITEMS(PARALLELPORT));port++) //Only process the ports we have!
+	INLINEREGISTER byte port=0;
+	if (numparallelports) //Something to do?
 	{
-		if (((PARALLELPORT[port].IRQraised&3)==1) && PARALLELPORT[port].IRQEnabled) //Enabled and raised high?
+		do //Only process the ports we have!
 		{
-			switch (port)
+			if (PARALLELPORT[port].IRQEnabled) //Enabled IRQ?
 			{
-				case 0: //IRQ 7!
-					doirq(7); //Throw the IRQ!
-					break;
-				case 1: //IRQ 6!
-					doirq(6); //Throw the IRQ!
-					break;
-				case 2: //IRQ 5!
-					doirq(5); //Throw the IRQ!
-				default: //unknown IRQ?
-					//Don't handle: we're an unknown IRQ!
-					break;
+				if ((PARALLELPORT[port].IRQraised & 3) == 1) //Are we raised high?
+				{
+					switch (port)
+					{
+						case 0: //IRQ 7!
+							doirq(7); //Throw the IRQ!
+							break;
+						case 1: //IRQ 6!
+							doirq(6); //Throw the IRQ!
+							break;
+						case 2: //IRQ 5!
+							doirq(5); //Throw the IRQ!
+						default: //unknown IRQ?
+							//Don't handle: we're an unknown IRQ!
+							break;
+					}
+					PARALLELPORT[port].IRQraised |= 2; //Not raised anymore! Set to a special bit value to detect by software!
+				}
 			}
-			PARALLELPORT[port].IRQraised |= 2; //Not raised anymore! Set to a special bit value to detect by software!
-		}
+		} while (++port<numparallelports); //Loop while not done!
 	}
 }
 
@@ -154,7 +160,7 @@ byte inparallel(word port, byte *result)
 void initParallelPorts(byte numports)
 {
 	memset(&PARALLELPORT,0,sizeof(PARALLELPORT)); //Initialise our ports!
-	numparallelports = numports;
+	numparallelports = MIN(numports, NUMITEMS(PARALLELPORT)); //Set with safeguard!
 	register_PORTIN(&inparallel); //Register the read handler!
 	register_PORTOUT(&outparallel); //Register the write handler!	
 }

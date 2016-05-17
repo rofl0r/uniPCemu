@@ -2429,15 +2429,19 @@ void cleanMouse()
 
 void updateMouse(double timepassed)
 {
-	mouse_ticktiming += timepassed; //Get the amount of time passed!
-	if (mouse_ticktiming >= mouse_interval && mouse_interval) //Enough time passed?
+	INLINEREGISTER double temp,interval;
+	temp = mouse_ticktiming; //Load old timing!
+	temp += timepassed; //Get the amount of time passed!
+	interval = mouse_interval; //Load the interval!
+	if (interval && (temp >= interval)) //Enough time passed?
 	{
-		for (;mouse_ticktiming >= mouse_interval;) //All that's left!
+		for (;temp >= interval;) //All that's left!
 		{
 			mouse_handler(); //Tick mouse timer!
-			mouse_ticktiming -= mouse_interval; //Decrease timer to get time left!
+			temp -= interval; //Decrease timer to get time left!
 		}
 	}
+	mouse_ticktiming = temp; //Save the new timing, if any!
 }
 
 void psp_input_init()

@@ -52,7 +52,7 @@ void BIOS_int19()
 {
 	if (BIOSMenuThread) //Gotten a POST thread?
 	{
-		if (threadRunning(BIOSMenuThread, "BIOSMenu"))
+		if (threadRunning(BIOSMenuThread))
 		{
 			return; //Don't re-start the POST thread when already running: keep idle looping(waiting for it to finish) while it's running!
 		}

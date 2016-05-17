@@ -375,9 +375,9 @@ int main(int argc, char * argv[])
 	{
 		updateInputMain(); //Update input!
 		CPU_time += getuspassed(&CPUUpdate); //Update the CPU time passed!
-		if (CPU_time>=1000000) //Allow other threads to lock the CPU requirements once in a while!
+		if (CPU_time>=10000) //Allow other threads to lock the CPU requirements once in a while!
 		{
-			CPU_time %= 1000000; //Rest!
+			CPU_time %= 10000; //Rest!
 			unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
 			delay(0); //Wait minimum amount of time!
 			lock(LOCK_CPU); //Lock the CPU: we're running!

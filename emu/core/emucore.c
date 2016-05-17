@@ -471,13 +471,13 @@ void pauseEMU()
 	}
 }
 
-void resumeEMU()
+void resumeEMU(byte startinput)
 {
 	if (emu_started) //Started?
 	{
 		EMU_LoadStatus(""); //Load status (temp)
 		startEMUTimers(); //Start the timers!
-		EMU_startInput(); //Start the input!
+		if (startinput) EMU_startInput(); //Start the input when allowed to!
 		EMU_RUNNING = 1; //We've restarted!
 		cleanKeyboard(); //Clean the keyboard timer!
 		cleanMouse(); //Clean the mouse timer!
@@ -549,7 +549,7 @@ void BIOSMenuExecution()
 	{
 		reset = 1; //We're to reset!
 	}
-	resumeEMU(); //Resume!
+	resumeEMU(1); //Resume!
 	//Update CPU speed!
 	lock(LOCK_CPU); //We're updating the CPU!
 	BIOSMenuResumeEMU(); //Resume the emulator from the BIOS menu thread!
@@ -589,14 +589,14 @@ OPTINLINE byte coreHandler()
 	{
 		if (debugger_thread)
 		{
-			if (threadRunning(debugger_thread, "debugger")) //Are we running the debugger?
+			if (threadRunning(debugger_thread)) //Are we running the debugger?
 			{
 				return 1; //OK, but skipped!
 			}
 		}
 		if (BIOSMenuThread)
 		{
-			if (threadRunning(BIOSMenuThread, "BIOSMenu") && ((CPU[activeCPU].halt&2)==0)) //Are we running the BIOS menu and not permanently halted? Block our execution!
+			if (threadRunning(BIOSMenuThread) && ((CPU[activeCPU].halt&2)==0)) //Are we running the BIOS menu and not permanently halted? Block our execution!
 			{
 				return 1; //OK, but skipped!
 			}

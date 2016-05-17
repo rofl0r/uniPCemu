@@ -68,16 +68,25 @@ void free_fifobuffer(FIFOBUFFER **buffer)
 OPTINLINE uint_32 fifobuffer_INTERNAL_freesize(FIFOBUFFER *buffer)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer->position[0].readpos == buffer->position[0].writepos) //Either full or empty?
+	INLINEREGISTER uint_32 readpos, writepos;
+	readpos = buffer->position[0].readpos;
+	writepos = buffer->position[0].writepos;
+	if (readpos!=writepos) //Not at the same position to read&write?
+	{
+		if (readpos>writepos) //Read after write index? We're a simple difference!
+		{
+			return readpos - writepos;
+		}
+		else //Read before write index? We're a complicated difference!
+		{
+			//The read position is before or at the write position? We wrap arround!
+			return (buffer->size -writepos) + readpos;
+		}
+	}
+	else //Readpos = Writepos? Either full or empty?
 	{
 		return buffer->position[0].lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
 	}
-	else if (buffer->position[0].readpos>buffer->position[0].writepos) //Read after write index? We're a simple difference!
-	{
-		return buffer->position[0].readpos - buffer->position[0].writepos;
-	}
-	//The read position is before or at the write position? We wrap arround!
-	return (buffer->size - buffer->position[0].writepos) + buffer->position[0].readpos;
 }
 
 uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
@@ -144,28 +153,29 @@ byte readfifobuffer(FIFOBUFFER *buffer, byte *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-
-	if (buffer->lock)
+	if (buffer->buffer) //Valid buffer?
 	{
-		WaitSem(buffer->lock)
-		if (fifobuffer_INTERNAL_freesize(buffer)<buffer->size) //Filled?
+		if (buffer->lock)
 		{
-			readfifobufferunlocked(buffer,result); //Read the FIFO buffer without lock!
+			WaitSem(buffer->lock)
+			if (fifobuffer_INTERNAL_freesize(buffer)<buffer->size) //Filled?
+			{
+				readfifobufferunlocked(buffer,result); //Read the FIFO buffer without lock!
+				PostSem(buffer->lock)
+				return 1; //Read!
+			}
 			PostSem(buffer->lock)
-			return 1; //Read!
 		}
-		PostSem(buffer->lock)
-	}
-	else
-	{
-		if (fifobuffer_INTERNAL_freesize(buffer)<buffer->size) //Filled?
+		else
 		{
-			readfifobufferunlocked(buffer, result); //Read the FIFO buffer without lock!
-			return 1; //Read!
+			if (fifobuffer_INTERNAL_freesize(buffer)!=buffer->size) //Filled?
+			{
+				readfifobufferunlocked(buffer, result); //Read the FIFO buffer without lock!
+				return 1; //Read!
+			}
 		}
 	}
-	return 0; //Nothing to read!
+	return 0; //Nothing to read or invalid buffer!
 }
 
 OPTINLINE static void writefifobufferunlocked(FIFOBUFFER *buffer, byte data)

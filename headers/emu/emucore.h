@@ -5,7 +5,7 @@ void initEMU(int full); //Init EMU!
 void doneEMU(); //Finish EMU!
 
 //Pause/resume full emulation
-void resumeEMU();
+void resumeEMU(byte startinput);
 void pauseEMU();
 
 void initEMUreset(); //Simple reset emulator!

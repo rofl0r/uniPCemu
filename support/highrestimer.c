@@ -66,7 +66,7 @@ void initTicksHolder(TicksHolder *ticksholder)
 	ticksholder->newticks = getcurrentticks(); //Initialize the ticks to the current time!
 }
 
-OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
+OPTINLINE float getrealtickspassed(TicksHolder *ticksholder)
 {
     INLINEREGISTER u64 temp;
 	INLINEREGISTER u64 currentticks = getcurrentticks(); //Fist: get current ticks to be sure we're right!
@@ -81,16 +81,16 @@ OPTINLINE u64 getrealtickspassed(TicksHolder *ticksholder)
 		currentticks = ~0; //Max to substract from instead of the current ticks!
 	}
 	currentticks -= temp; //Substract the old ticks for the difference!
-	return currentticks; //Give the result: amount of ticks passed!
+	return (float)currentticks; //Give the result: amount of ticks passed!
 }
 
 OPTINLINE float gettimepassed(TicksHolder *ticksholder, float secondfactor, float secondfactorreversed)
 {
 	INLINEREGISTER float result;
 	INLINEREGISTER float tickspassed;
-	tickspassed = (float)getrealtickspassed(ticksholder); //Start with checking the current ticks!
+	tickspassed = getrealtickspassed(ticksholder); //Start with checking the current ticks!
 	tickspassed += ticksholder->ticksrest; //Add the time we've left unused last time!
-	result = floor(tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can use!
+	result = floorf(tickspassed*secondfactor); //The ammount of ms that has passed as precise as we can use!
 	tickspassed -= (result*secondfactorreversed); //The ticks left unprocessed this call!
 	ticksholder->ticksrest = tickspassed; //Add the rest ticks unprocessed to the next time we're counting!
 	return result; //Ordinary result!

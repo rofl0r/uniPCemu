@@ -290,19 +290,13 @@ void threadCreaten(ThreadParams_p params, uint_32 threadID, char *name)
 	//dolog("threads","threadCreaten: RET...");
 }
 
-byte threadRunning(ThreadParams_p thread, char *name)
+byte threadRunning(ThreadParams_p thread)
 {
 	if (thread) //OK?
 	{
 		if (thread->used) //Are we used?
 		{
-			if (!strcmp(thread->name,name)) //Same name verification?
-			{
-				if (thread->status&(THREADSTATUS_CREATEN | THREADSTATUS_RUNNING)) //Createn or running?
-				{
-					return 1; //Active/ready to run!
-				}
-			}
+			return (thread->status&(THREADSTATUS_CREATEN | THREADSTATUS_RUNNING)); //Createn or running?
 		}
 	}
 	return 0; //Not running!

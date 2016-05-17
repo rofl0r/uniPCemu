@@ -468,7 +468,7 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 		playedfile.stream = playedfile.data; //Start processing the start of the stream!
 		playedfile.eos = &playedfile.data[playedfile.datasize]; //The end of the stream!
 
-		resumeEMU(); //Resume the emulator!
+		resumeEMU(0); //Resume the emulator!
 		lock(LOCK_CPU); //Lock the CPU: we're checking for finishing!
 		droplayer = &playedfile; //Start playing this file!
 		CPU[activeCPU].halt |= 2; //Force us into HLT state, starting playback!
