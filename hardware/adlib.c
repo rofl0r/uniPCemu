@@ -127,7 +127,7 @@ typedef struct {
 	//Signal generation
 	byte wavesel;
 	float ModulatorFrequencyMultiple; //What harmonic to sound?
-	float lastsignal; //The last signal produced!
+	float lastsignal[2]; //The last signal produced!
 	float freq0, time; //The frequency and current time of an operator!
 	float lastfreq; //Last valid set frequency!
 	ADLIBCHANNEL *channel;
@@ -231,7 +231,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[0][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
 		adlibop[adliboperators[0][channel]&0x1F].freq0 = adlibop[adliboperators[0][channel]&0x1F].time = 0.0f; //Initialise operator signal!
 		adlibop[adliboperators[0][channel]&0x1F].lastfreq = adlibch[channel].effectivefreq; //Set the current frequency as the last frequency to enable proper detection!
-		adlibop[adliboperators[0][channel]&0x1F].lastsignal = 0.0f; //Reset the last signals!
+		adlibop[adliboperators[0][channel]&0x1F].lastsignal[0] = adlibop[adliboperators[1][channel]&0x1F].lastsignal[1] = 0.0f; //Reset the last signals!
 		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[0][channel]&0x1F]);
 	}
 
@@ -244,7 +244,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[1][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
 		adlibop[adliboperators[1][channel]&0x1F].freq0 = adlibop[adliboperators[1][channel]&0x1F].time = 0.0f; //Initialise operator signal!
 		adlibop[adliboperators[1][channel]&0x1F].lastfreq = adlibch[channel].effectivefreq; //Set the current frequency as the last frequency to enable proper detection!
-		adlibop[adliboperators[1][channel]&0x1F].lastsignal = 0.0f; //Reset the last signals!
+		adlibop[adliboperators[1][channel]&0x1F].lastsignal[0] = adlibop[adliboperators[1][channel]&0x1F].lastsignal[1] = 0.0f; //Reset the last signals!
 		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[1][channel]&0x1F]);
 	}
 
@@ -400,7 +400,7 @@ OPTINLINE word OPL2SinWave(const float r)
 	byte location; //The location in the table to use!
 	byte PIpart;
 	PIpart = 0; //Default: part 0!
-	index = fmod(r,PI2); //Loop the sinus infinitely!
+	index = fmodf(r,PI2); //Loop the sinus infinitely!
 	if (index>=(float)PI) //Second half?
 	{
 		PIpart = 2; //Second half!
@@ -521,9 +521,9 @@ OPTINLINE word OPL2_Sin(byte signal, float frequencytime) {
 			result = OPL2SinWave(frequencytime); //The sinus function!
 			return result; //Positive!
 		case 3: // Absolute with second half=0?
-			if (fmod(t, 0.5f) >= 0.25f) return OPL2_LogSinTable[0]; //Are we the second half of the half period? Clear the signal if so!
+			if (fmodf(t, 0.5f) >= 0.25f) return OPL2_LogSinTable[0]; //Are we the second half of the half period? Clear the signal if so!
 		case 2: // Absolute?
-			frequencytime = fmod(frequencytime,PI); //Only positive part, repeated!
+			frequencytime = fmodf(frequencytime,PI); //Only positive part, repeated!
 			result = OPL2SinWave(frequencytime); //The sinus function!
 			return result; //Simply absolute!
 		default: //Unknown signal?
@@ -565,9 +565,9 @@ OPTINLINE float calcModulator(float modulator)
 	return modulator*PI2; //Calculate current modulation!
 }
 
-OPTINLINE float calcFeedback(byte channel, float modulator)
+OPTINLINE float calcFeedback(byte channel, ADLIBOP *operator)
 {
-	return (modulator*adlibch[channel].feedback); //Calculate current feedback
+	return ((operator->lastsignal[0]+operator->lastsignal[1])*adlibch[channel].feedback); //Calculate current feedback
 }
 
 //Calculate an operator signal!
@@ -581,7 +581,7 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	//Generate the signal!
 	if (flags&0x80) //Apply channel feedback?
 	{
-		activemodulation = calcFeedback(channel,adlibop[timingoperator].lastsignal); //Apply this feedback signal!
+		activemodulation = calcFeedback(channel,&adlibop[timingoperator]); //Apply this feedback signal!
 	}
 	else //Apply normal modulation?
 	{
@@ -611,7 +611,8 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	skipvolenv: //Skip vol env operator!
 	if (frequency && ((flags&1)==0)) //Running operator and allowed to update our signal?
 	{
-		adlibop[timingoperator].lastsignal = result2; //Set last signal #0 to #1(shift into the older one)!
+		adlibop[timingoperator].lastsignal[0] = adlibop[timingoperator].lastsignal[1]; //Previous last signal!
+		adlibop[timingoperator].lastsignal[1] = result2; //Set last signal #0 to #1(shift into the older one)!
 		adlibop[timingoperator].lastfreq = frequency; //We were last running at this frequency!
 		incop(timingoperator,frequency); //Increase time for the operator when allowed to increase (frequency=0 during PCM output)!
 	}
@@ -623,7 +624,7 @@ float adlib_scaleFactor = SHRT_MAX / (3000.0f*9.0f); //We're running 9 channels 
 
 OPTINLINE word getphase(byte operator, float frequency) //Get the current phrase of the operator!
 {
-	return (word)(fmod((double)(adlibop[operator].time*frequency),1.0)*((float)0x3D0)); //Give the 10-bits value
+	return (word)(fmodf((double)(adlibop[operator].time*frequency),1.0)*((float)0x3D0)); //Give the 10-bits value
 }
 
 word convertphase_real(word phase)
@@ -850,37 +851,27 @@ float counter80step = 0.0f; //80us timer tick interval in samples!
 
 OPTINLINE byte adlib_channelplaying(byte channel)
 {
-	switch (channel) //What channel?
+	if (channel==7) //Drum channels?
 	{
-	case 0:
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-	case 5:
-	case 6: //Also drum channel, but it's melodic, do no difference here.
-		return adlibop[adliboperators[1][channel]].volenvstatus; //Melodic, so carrier!
-	case 7:
 		if (adlibpercussion) //Percussion mode? Split channels!
 		{
 			return (adlibop[adliboperators[1][7]].volenvstatus || adlibop[adliboperators[0][7]].volenvstatus); //Percussion channel?
 		}
-		else //Melodic?
-		{
-			return adlibop[adliboperators[1][7]].volenvstatus; //Melodic, so carrier!
-		}
-	case 8:
+		//Melodic?
+		return adlibop[adliboperators[1][7]].volenvstatus; //Melodic, so carrier!
+	}
+	else if (channel==8) //Drum channel?
+	{
 		if (adlibpercussion) //Percussion mode? Split channels!
 		{
 			return (adlibop[adliboperators[1][8]].volenvstatus || adlibop[adliboperators[0][8]].volenvstatus); //Percussion channel?
 		}
-		else //Melodic?
-		{
-			return adlibop[adliboperators[1][8]].volenvstatus; //Melodic, so carrier!
-		}
-		break;
-	default:
-		return 0; //Unknown channel!
+		//Melodic?
+		return adlibop[adliboperators[1][8]].volenvstatus; //Melodic, so carrier!
+	}
+	else //0 - 5=Melodic, 6=Melodic, Also drum channel, but no difference here.
+	{
+		return adlibop[adliboperators[1][channel]].volenvstatus; //Melodic, so carrier!
 	}
 	return 0; //Unknown channel!
 }
@@ -1188,7 +1179,7 @@ void initAdlib()
 		adlibop[i].outputlevel = outputtable[0]; //Apply default output!
 		adlibop[i].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(0); //Which harmonic to use?
 		adlibop[i].ReleaseImmediately = 1; //We're defaulting to value being 0=>Release immediately.
-		adlibop[i].lastsignal = 0.0; //Reset the last signals!
+		adlibop[i].lastsignal[0] = adlibop[i].lastsignal[1] = 0.0f; //Reset the last signals!
 		if (adliboperatorsreverse[i]!=0xFF) //Valid operator?
 		{
 			adlibop[i].channel = &adlibch[adliboperatorsreverse[i]&0x1F]; //The channel this operator belongs to!
