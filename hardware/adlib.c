@@ -230,9 +230,12 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 
 	if ((adliboperators[0][channel]!=0xFF) && (((keyon&1) && ((oldkeyon^keyon)&1)) || (forcekeyon&1))) //Key ON on operator #1?
 	{
+		if (adlibop[adliboperators[0][channel]&0x1F].volenvstatus==0) //Not retriggering the volume envelope?
+		{
+			adlibop[adliboperators[0][channel]&0x1F].volenv = Silence; //No raw level: Start silence!
+			adlibop[adliboperators[0][channel]&0x1F].m_env = Silence; //No raw level: Start level!
+		}
 		adlibop[adliboperators[0][channel]&0x1F].volenvstatus = 1; //Start attacking!
-		adlibop[adliboperators[0][channel]&0x1F].volenv = Silence; //No raw level: Start silence!
-		adlibop[adliboperators[0][channel]&0x1F].m_env = Silence; //No raw level: Start level!
 		adlibop[adliboperators[0][channel]&0x1F].gain = ((adlibop[adliboperators[0][channel]].volenv)<<3); //Apply the start gain!
 		adlibop[adliboperators[0][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
 		adlibop[adliboperators[0][channel]&0x1F].freq0 = adlibop[adliboperators[0][channel]&0x1F].time = 0.0f; //Initialise operator signal!
@@ -244,9 +247,12 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 
 	if ((adliboperators[1][channel]!=0xFF) && (((keyon&2) && ((oldkeyon^keyon)&2)) || (forcekeyon&2))) //Key ON on operator #2?
 	{
+		if (adlibop[adliboperators[1][channel]&0x1F].volenvstatus==0) //Not retriggering the volume envelope?
+		{
+			adlibop[adliboperators[1][channel]&0x1F].volenv = Silence; //No raw level: silence!
+			adlibop[adliboperators[1][channel]&0x1F].m_env = Silence; //No raw level: Start level!
+		}
 		adlibop[adliboperators[1][channel]&0x1F].volenvstatus = 1; //Start attacking!
-		adlibop[adliboperators[1][channel]&0x1F].volenv = Silence; //No raw level: silence!
-		adlibop[adliboperators[1][channel]&0x1F].m_env = Silence; //No raw level: Start level!
 		adlibop[adliboperators[1][channel]&0x1F].gain = ((adlibop[adliboperators[1][channel]].volenv)<<3); //Apply the start gain!
 		adlibop[adliboperators[1][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
 		adlibop[adliboperators[1][channel]&0x1F].freq0 = adlibop[adliboperators[1][channel]&0x1F].time = 0.0f; //Initialise operator signal!
