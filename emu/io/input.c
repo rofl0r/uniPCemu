@@ -1762,6 +1762,7 @@ word mouse_x=0, mouse_y=0; //Current mouse coordinates of the actual mouse!
 void updateMOD()
 {
 	const float precisemovement = 0.5f; //Precise mouse movement constant!
+	word minrange; //Minimum range, if used!
 	if ((input.cas&CAS_RCTRL) && (!Direct_Input)) //Ctrl pressed, mapped to home?
 	{
 		input.Buttons |= BUTTON_HOME; //Pressed!
@@ -1780,39 +1781,68 @@ void updateMOD()
 		precisemousemovement = 0; //Disabled!
 	}
 
-	sword axis;
-	axis = 0; //Init!
+	float axisx, axisy;
+	axisx = axisy = 0.0f; //Init axis to none!
+
+	if (input.keyboardjoy_direction & 4) //Left?
+	{
+		axisx -= 32768.0f; //Decrease
+	}
+	if (input.keyboardjoy_direction & 8) //Right?
+	{
+		axisx += 32767.0f; //Increase!
+	}
+
 	if (input.keyboardjoy_direction&1) //Up?
 	{
-		axis -= 32768; //Decrease
+		axisy -= 32768.0f; //Decrease
 	}
 	if (input.keyboardjoy_direction&2) //Down?
 	{
-		axis += 32767; //Increase!
+		axisy += 32767.0f; //Increase!
 	}
-	input.Ly = axis; //Vertical axis!
 
-	axis = 0; //Init!
-	if (input.keyboardjoy_direction&4) //Left?
+	//Now the basic axis is loaded!
+	if (precisemousemovement && (axisx || axisy)) //Enable precise movement?
 	{
-		axis -= 32768; //Decrease
-	}
-	if (input.keyboardjoy_direction&8) //Right?
-	{
-		axis += 32767; //Increase!
-	}
-	input.Lx = axis; //Horizontal axis!
-	if (precisemousemovement) //Enable precise movement?
-	{
-		if (input.Lx)
+		minrange = ((sword)BIOS_Settings.input_settings.analog_minrange << 8); //Minimum horizontal&vertical range!
+		if (axisx!=0.0f) //Used?
 		{
-			input.Lx = (sword)((float)input.Lx*precisemovement); //Enable precise movement!
+			if (axisx>0) //Positive?
+			{
+				axisx -= minrange; //Decrease into valid range!
+				axisx *= precisemovement; //Enable precise movement to the applyable range!
+				axisx += minrange; //Increase into valid range!
+				axisx = (axisx<0.0f) ? 0.0f : ((axisx>SHRT_MAX) ? SHRT_MIN : axisx); //Clip the range!
+			}
+			else //Negative?
+			{
+				axisx += minrange; //Decrease into valid range!
+				axisx *= precisemovement; //Enable precise movement to the applyable range!
+				axisx -= minrange; //Increase into valid range!
+				axisx = (axisx>0.0f)?0.0f:((axisx<SHRT_MIN)?SHRT_MIN:axisx); //Clip the range!
+			}
 		}
-		if (input.Ly)
+		if (axisy != 0.0f) //Used?
 		{
-			input.Ly = (sword)((float)input.Ly*precisemovement); //Enable precise movement!
+			if (axisy>0) //Positive?
+			{
+				axisy -= minrange; //Decrease into valid range!
+				axisy *= precisemovement; //Enable precise movement to the applyable range!
+				axisy += minrange; //Increase into valid range!
+				axisy = (axisy<0.0f) ? 0.0f : ((axisy>SHRT_MAX) ? SHRT_MIN : axisy); //Clip the range!
+			}
+			else //Negative?
+			{
+				axisx += minrange; //Decrease into valid range!
+				axisx *= precisemovement; //Enable precise movement to the applyable range!
+				axisx -= minrange; //Increase into valid range!
+				axisy = (axisy>0.0f) ? 0.0f : ((axisy<SHRT_MIN) ? SHRT_MIN : axisy); //Clip the range!
+			}
 		}
 	}
+	input.Lx = (sword)axisx; //Horizontal axis!
+	input.Ly = (sword)axisy; //Vertical axis!
 }
 
 byte DirectInput_Middle = 0; //Is direct input toggled by middle mouse button?
