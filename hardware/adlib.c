@@ -116,6 +116,7 @@ typedef struct {
 	word m_env;
 	word m_ksl, m_kslAdd, m_ksr; //Various key setttings regarding pitch&envelope!
 	byte ReleaseImmediately; //Release even when the note is still turned on?
+	word m_kslAdd2; //Translated value of m_ksl!
 
 	//Volume envelope
 	uint8_t volenvstatus; //Envelope status and raw volume envelope value(0-64)
@@ -181,6 +182,11 @@ OPTINLINE float calcModulatorFrequencyMultiple(byte data)
 
 //Attenuation setting!
 void EnvelopeGenerator_setAttennuation(ADLIBOP *operator); //Prototype!
+void EnvelopeGenerator_setAttennuationCustom(ADLIBOP *op)
+{
+	op->m_kslAdd2 = (op->m_kslAdd<<3); //Multiply with 8!
+}
+
 
 OPTINLINE float adlibeffectivefrequency(word fnum, word octave)
 {
@@ -233,6 +239,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[0][channel]&0x1F].lastfreq = adlibch[channel].effectivefreq; //Set the current frequency as the last frequency to enable proper detection!
 		adlibop[adliboperators[0][channel]&0x1F].lastsignal[0] = adlibop[adliboperators[1][channel]&0x1F].lastsignal[1] = 0.0f; //Reset the last signals!
 		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[0][channel]&0x1F]);
+		EnvelopeGenerator_setAttennuationCustom(&adlibop[adliboperators[0][channel]&0x1F]);
 	}
 
 	if ((adliboperators[1][channel]!=0xFF) && (((keyon&2) && ((oldkeyon^keyon)&2)) || (forcekeyon&2))) //Key ON on operator #2?
@@ -246,6 +253,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[1][channel]&0x1F].lastfreq = adlibch[channel].effectivefreq; //Set the current frequency as the last frequency to enable proper detection!
 		adlibop[adliboperators[1][channel]&0x1F].lastsignal[0] = adlibop[adliboperators[1][channel]&0x1F].lastsignal[1] = 0.0f; //Reset the last signals!
 		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[1][channel]&0x1F]);
+		EnvelopeGenerator_setAttennuationCustom(&adlibop[adliboperators[1][channel]&0x1F]);
 	}
 
 	//Update keyon information!
@@ -305,6 +313,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			adlibop[portnum].ReleaseImmediately = (value & 0x20) ? 0 : 1; //Release when not sustain until release!
 			adlibop[portnum].m_ksr = (value>>4)&1; //Keyboard scaling rate!
 			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!			
+			EnvelopeGenerator_setAttennuationCustom(&adlibop[portnum]); //Apply attenuation settings!			
 		}
 		break;
 	case 0x40:
@@ -313,8 +322,9 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		{
 			portnum &= 0x1F;
 			adlibop[portnum].m_ksl = ((value >> 6) & 3); //Apply KSL!
-			adlibop[portnum].outputlevel = outputtable[value]; //Apply raw output level!
+			adlibop[portnum].outputlevel = outputtable[value&0x3F]; //Apply raw output level!
 			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!
+			EnvelopeGenerator_setAttennuationCustom(&adlibop[portnum]); //Apply attenuation settings!
 		}
 		break;
 	case 0x60:
@@ -324,6 +334,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			adlibop[portnum].m_ar = (value>>4); //Attack rate
 			adlibop[portnum].m_dr = (value&0xF); //Decay rate
 			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!			
+			EnvelopeGenerator_setAttennuationCustom(&adlibop[portnum]); //Apply attenuation settings!			
 		}
 		break;
 	case 0x80:
@@ -334,6 +345,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			adlibop[portnum].m_sl = (value>>4); //Sustain level
 			adlibop[portnum].m_rr = (value&0xF); //Release rate
 			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!			
+			EnvelopeGenerator_setAttennuationCustom(&adlibop[portnum]); //Apply attenuation settings!			
 		}
 		break;
 	case 0xA0:
@@ -601,7 +613,7 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 		gain += adlibop[volenvoperator].outputlevel; //Current gain!
 	}
 	gain += adlibop[volenvoperator].gain; //Apply volume envelope and related calculations!
-	gain += adlibop[volenvoperator].m_kslAdd; //Add KSL!
+	gain += adlibop[volenvoperator].m_kslAdd2; //Add KSL preprocessed!
 
 	//Now apply the gain!
 	result += gain; //Simply add the gain!
