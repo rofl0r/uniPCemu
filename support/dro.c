@@ -10,6 +10,7 @@
 
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //Time support!
+#include "headers/emu/emucore.h" //Emulator start/stop support!
 
 //Player time update interval in ns!
 #define PLAYER_USINTERVAL 1000.0f

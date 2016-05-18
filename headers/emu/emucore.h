@@ -8,6 +8,8 @@ void doneEMU(); //Finish EMU!
 void resumeEMU(byte startinput);
 void pauseEMU();
 
+void BIOSMenuResumeEMU(); //BIOS menu specific variant of resuming!
+
 void initEMUreset(); //Simple reset emulator!
 
 //Timers start/stop!

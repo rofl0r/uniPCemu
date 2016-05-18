@@ -609,7 +609,7 @@ void CPU_beforeexec()
 {
 	//This applies to all processors:
 	CPU[activeCPU].trapped = CPU[activeCPU].registers->SFLAGS.TF; //Are we to be trapped this instruction?
-	INLINEREGISTER tempflags;
+	INLINEREGISTER uint_32 tempflags;
 	tempflags = CPU[activeCPU].registers->EFLAGS; //Load the flags to set/clear!
 	tempflags &= ~(8|32); //Clear bits 3&5!
 

@@ -28,7 +28,7 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int_32 address)
 	getcharxy_values = &VGA->getcharxy_values[0]; //The values!
 	word character = 0; //From 0-255!
 	sbyte singlerow = -1; //Single row only?
-	byte y; //From 0-32 (5 bits)!
+	byte y=0; //From 0-32 (5 bits)!
 	if (address!=-1) //Single character row only?
 	{
 		character = (word)((address >> 5) & 0xFF); //Only single character to edit!
