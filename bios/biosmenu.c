@@ -469,7 +469,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	{
 		VGA_initIO(); //Initialise/update the VGA if needed!
 	}
-	ssource_setVolume(BIOS_Settings.SoundSource_Volume); //Set the current volume!
+	ssource_setVolume(BIOS_Settings.SoundSource_Volume*100.0f); //Set the current volume!
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
 	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
 
