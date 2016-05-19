@@ -1233,7 +1233,7 @@ void initAdlib()
 		phaseconversion[n] = convertphase_real(n); //Set the phase conversion as well!
 	} while (++n<0x10000); //Loop while not finished processing all possibilities!
 
-	adlib_scaleFactor = (((float)(SHRT_MAX))/9.0f); //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (9 channels)!
+	adlib_scaleFactor = (((float)(SHRT_MAX))/8.0f); //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (8 channels before clipping)!
 
 	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
 	{
