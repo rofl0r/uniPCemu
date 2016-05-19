@@ -301,7 +301,7 @@ byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
 
 OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 {
-	INLINEREGISTER writepos, size;
+	INLINEREGISTER uint_32 writepos, size;
 	size = buffer->size; //Load the size!
 	writepos = buffer->position[0].writepos; //Load the write position!
 	buffer->buffer[writepos++] = (data >> 8); //Write high and update!
