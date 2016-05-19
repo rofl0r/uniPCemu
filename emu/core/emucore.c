@@ -77,6 +77,8 @@
 
 #include "headers/support/dro.h" //DRO player playback support!
 
+#include "headers/hardware/midi/midi.h" //MPU support!
+
 //CPU default clock speeds (in Hz)!
 
 //The clock speed of the 8086 (~14.31818MHz divided by 3)!
@@ -269,7 +271,7 @@ void initEMU(int full) //Init!
 	{
 		debugrow("Initialising Disney Sound Source...");
 		initSoundsource(); //Initialise Disney Sound Source!
-		ssource_setVolume(BIOS_Settings.SoundSource_Volume*100.0f); //Set the sound source volume!
+		ssource_setVolume((float)BIOS_Settings.SoundSource_Volume); //Set the sound source volume!
 	}
 
 	debugrow("Initialising MPU...");

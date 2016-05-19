@@ -111,7 +111,6 @@ void INT10_LoadFont(word fontseg, word fontoffs,bool reload,Bitu count,Bitu offs
 	IO_Write(0x3ce,0x6);Bitu old_6=IO_Read(0x3cf);
 	IO_Write(0x3cf,0x0);	//Disable odd/even and a0000 adressing
 	
-	word i;
 	for (i=0;i<count;i++) {
 		MEM_BlockCopy(ftwhere,ftoffs,fontseg,fontoffs,height);
 		ftoffs+=32; //Increment VRAM!
@@ -307,7 +306,6 @@ void INT10_SetupRomMemoryChecksum() {
 		Bit8u sum = 0;
 		//uint_32 rom_base = 0;
 		Bitu last_rombyte = 32*1024 - 1;		//32 KB romsize
-		Bitu i;
 		for (i = 0;i < last_rombyte;i++)
 			sum += (Bit8u)EMU_VGAROM[i];	//OVERFLOW IS OKAY
 		sum = (Bit8u)((256 - (Bitu)sum)&0xff);

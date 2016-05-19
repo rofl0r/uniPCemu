@@ -658,9 +658,9 @@ void CPU_8086REPPending() //Execute this before CPU_exec!
 	}
 }
 
-byte CPU_segmentOverridden(byte activeCPU)
+byte CPU_segmentOverridden(byte TheActiveCPU)
 {
-	return (CPU[activeCPU].segment_register != CPU_SEGMENT_DEFAULT); //Is the segment register overridden?
+	return (CPU[TheActiveCPU].segment_register != CPU_SEGMENT_DEFAULT); //Is the segment register overridden?
 }
 
 extern byte DosboxClock; //Dosbox clocking?

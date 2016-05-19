@@ -153,7 +153,7 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 	}
 
 //Check the validation-entry:
-	if (buffer[0]!=0x01 || (buffer[0x1E]!=0x55) || (buffer[0x1F!=0xAA]))
+	if ((buffer[0]!=0x01) || (buffer[0x1E]!=0x55) || (buffer[0x1F]!=0xAA))
 	{
 		return FALSE; //Invalid validation-entry in boot-catalog!
 	}
@@ -379,7 +379,7 @@ int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on boota
 	}
 
 //Check the validation-entry:
-	if (buffer[0]!=0x01 || (buffer[0x1E]!=0x55) || (buffer[0x1F!=0xAA]))
+	if (buffer[0]!=0x01 || (buffer[0x1E]!=0x55) || (buffer[0x1F]!=0xAA))
 	{
 		return FALSE; //Invalid validation-entry in boot-catalog!
 	}

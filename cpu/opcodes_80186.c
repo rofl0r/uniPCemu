@@ -39,7 +39,7 @@ extern byte oper1b, oper2b; //Byte variants!
 extern word oper1, oper2; //Word variants!
 extern byte res8; //Result 8-bit!
 extern word res16; //Result 16-bit!
-extern byte reg; //For function number!
+extern byte thereg; //For function number!
 extern uint_32 ea; //From RM offset (GRP5 Opcodes only!)
 
 extern VAL32Splitter temp1, temp2, temp3, temp4, temp5;
@@ -117,7 +117,7 @@ OPTINLINE void modrm186_generateInstructionTEXT(char *instruction, byte debugger
 	}
 }
 
-extern uint_32 offset; //Offset to use!
+extern uint_32 customoffset; //Offset to use!
 
 OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 version!
 {
@@ -134,7 +134,7 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 		{
 			if (custommem)
 			{
-				MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), offset, val); //Write to memory directly!
+				MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset, val); //Write to memory directly!
 			}
 			else //ModR/M?
 			{
@@ -291,10 +291,10 @@ void CPU186_OPC0()
 
 	oper1b = modrm_read8(&params,1);
 	oper2b = CPU_readOP();
-	reg = MODRM_REG(params.modrm);
+	thereg = MODRM_REG(params.modrm);
 
 	modrm_decode16(&params,&info,1); //Store the address for debugging!
-	switch (reg) //What function?
+	switch (thereg) //What function?
 	{
 		case 0: //ROL
 			debugger_setcommand("ROL %s,%02X",info.text,oper2b);
@@ -334,10 +334,10 @@ void CPU186_OPC1()
 
 	oper1 = modrm_read16(&params,1);
 	oper2 = (word)CPU_readOP();
-	reg = MODRM_REG(params.modrm);
+	thereg = MODRM_REG(params.modrm);
 
 	modrm_decode16(&params,&info,1); //Store the address for debugging!
-	switch (reg) //What function?
+	switch (thereg) //What function?
 	{
 		case 0: //ROL
 			debugger_setcommand("ROL %s,%02X",info.text,oper2b);

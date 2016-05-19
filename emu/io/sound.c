@@ -258,7 +258,7 @@ byte setVolume(SOUNDHANDLER handler, void *extradata, float p_volume) //Channel&
 		if (soundchannels[n].soundhandler && (soundchannels[n].soundhandler==handler) && (soundchannels[n].extradata==extradata)) //Found?
 		{
 			soundchannels[n].volume = p_volume; //Set the volume of the channel!
-			soundchannels[n].volume_percent = p_volume?dB2factor(p_volume,100.0f)*dB2factor(SOUND_VOLUME,100.0f):0; //The volume in linear percent, with 0dB=silence!
+			soundchannels[n].volume_percent = p_volume?convertVolume(p_volume)*convertVolume(SOUND_VOLUME):0.0f; //The volume in linear percent, with 0dB=silence!
 			unlockaudio(); //Unlock the audio!
 			return 1; //Done: check no more!
 		}
@@ -855,9 +855,9 @@ OPTINLINE static char *get_soundrecording_filename() //Filename for a screen cap
 	memset(&recordingfilename, 0, sizeof(recordingfilename)); //Init filename!
 	do
 	{
-		sprintf(filename2, "captures/recording_%i.wav", ++i); //Next bitmap file!
+		sprintf(filename2, "captures/recording_%u.wav", ++i); //Next bitmap file!
 	} while (file_exists(filename2)); //Still exists?
-	sprintf(recordingfilename, "captures/recording_%i.wav", i); //The capture filename!
+	sprintf(recordingfilename, "captures/recording_%u.wav", i); //The capture filename!
 	return &recordingfilename[0]; //Give the filename for quick reference!
 }
 

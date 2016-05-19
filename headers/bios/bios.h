@@ -9,7 +9,7 @@
 #define BIOS_INPUTDELAY 250000
 
 //BIOS Version!
-#define BIOS_VERSION 5
+#define BIOS_VERSION 6
 
 #include "headers/packed.h" //We're packed!
 typedef struct PACKED
@@ -54,7 +54,7 @@ typedef struct PACKED
 	byte VGA_Mode; //Enable VGA NMI on precursors?
 	byte PS2Mouse; //What mouse to use when using? 1=PS/2 mouse, 0=Serial mouse
 	uint_32 CPUSpeed;
-	float SoundSource_Volume; //The sound source volume knob!
+	uint_32 SoundSource_Volume; //The sound source volume knob!
 	byte ShowFramerate; //Show the frame rate?
 	byte DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	byte ShowCPUSpeed; //Show the relative CPU speed together with the framerate?

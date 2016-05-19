@@ -48,7 +48,7 @@ uint_32 activetempo = 500000; //Current tempo!
 word MID_RUNNING = 0; //How many channels are still running/current channel running!
 
 //A loaded MIDI file!
-HEADER_CHNK header;
+HEADER_CHNK MID_header;
 byte *MID_data[100]; //Tempo and music track!
 TRACK_CHNK MID_tracks[100];
 word MID_tracknr[100];
@@ -150,7 +150,7 @@ void resetMID() //Reset our settings for playback of a new file!
 
 	MID_TERM = 0; //Reset termination flag!
 
-	updateMIDTimer(&header); //Update the timer!
+	updateMIDTimer(&MID_header); //Update the timer!
 }
 
 word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **channels, word maxchannels)
@@ -481,13 +481,13 @@ void handleMIDIChannel()
 	word *channel;
 	channel = (word *)getthreadparams(); //Gotten a channel?
 nextchannel: //Play next channel when type 2!
-	playMIDIStream(*channel, MID_data[*channel], &header, &MID_tracks[*channel]); //Play the MIDI stream!
+	playMIDIStream(*channel, MID_data[*channel], &MID_header, &MID_tracks[*channel]); //Play the MIDI stream!
 	WaitSem(MID_channel_Lock)
-	if (byteswap16(header.format) == 2) //Multiple tracks to be played after one another?
+	if (byteswap16(MID_header.format) == 2) //Multiple tracks to be played after one another?
 	{
 		timing_pos = 0; //Reset the timing position!
 		++channel; //Process the next channel!
-		if (*channel >= byteswap16(header.n)) goto finish; //Last channel processed?
+		if (*channel >= byteswap16(MID_header.n)) goto finish; //Last channel processed?
 		PostSem(MID_channel_Lock)
 		goto nextchannel; //Process the next channel now!
 	}
@@ -502,7 +502,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 	memset(&MID_tracks, 0, sizeof(MID_tracks)); //Init tracks!
 
 	word numchannels;
-	if ((numchannels = readMID(filename, &header, &MID_tracks[0], &MID_data[0], 100)))
+	if ((numchannels = readMID(filename, &MID_header, &MID_tracks[0], &MID_data[0], 100)))
 	{
 		stopTimers(0); //Stop most timers for max compatiblity and speed!
 		//Initialise our device!
@@ -522,13 +522,13 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 		MID_RUNNING = numchannels; //Init to all running!
 		for (i = 0; i < numchannels; i++)
 		{
-			if (!i || (byteswap16(header.format) == 1)) //One channel, or multiple channels with format 2!
+			if (!i || (byteswap16(MID_header.format) == 1)) //One channel, or multiple channels with format 2!
 			{
 			MID_tracknr[i] = i; //Track number
 	startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)&MID_tracknr[i]); //Start a thread handling the output of the channel!
 			}
 		}
-		if (byteswap16(header.format) != 1) //One channel only?
+		if (byteswap16(MID_header.format) != 1) //One channel only?
 		{
 			MID_RUNNING = 1; //Only one channel running!
 		}

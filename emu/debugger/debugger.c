@@ -232,57 +232,57 @@ char flags[256]; //Flags as a text!
 static char *debugger_generateFlags(CPU_registers *registers)
 {
 	memset(&flags,0,sizeof(flags)); //Clear/init flags!
-	sprintf(flags,"%s%c",flags,registers->SFLAGS.CF?'C':'c');
-	sprintf(flags,"%s%i",flags,registers->SFLAGS.unmapped2);
-	sprintf(flags,"%s%c",flags,registers->SFLAGS.PF?'P':'p');
-	sprintf(flags,"%s%i",flags,registers->SFLAGS.unmapped8);
-	sprintf(flags,"%s%c",flags,registers->SFLAGS.AF?'A':'a');
-	sprintf(flags,"%s%i",flags,registers->SFLAGS.unmapped32);
-	sprintf(flags,"%s%c",flags,registers->SFLAGS.ZF?'Z':'z');
-	sprintf(flags,"%s%c",flags,registers->SFLAGS.SF?'S':'s');
-	sprintf(flags,"%s%c",flags,registers->SFLAGS.TF?'T':'t');
-	sprintf(flags,"%s%c",flags,registers->SFLAGS.IF?'I':'i');
-	sprintf(flags,"%s%c",flags,registers->SFLAGS.DF?'D':'d');
-	sprintf(flags,"%s%c",flags,registers->SFLAGS.OF?'O':'o');
+	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.CF?'C':'c'));
+	sprintf(flags,"%s%u",flags,registers->SFLAGS.unmapped2);
+	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.PF?'P':'p'));
+	sprintf(flags,"%s%u",flags,registers->SFLAGS.unmapped8);
+	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.AF?'A':'a'));
+	sprintf(flags,"%s%u",flags,registers->SFLAGS.unmapped32);
+	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.ZF?'Z':'z'));
+	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.SF?'S':'s'));
+	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.TF?'T':'t'));
+	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.IF?'I':'i'));
+	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.DF?'D':'d'));
+	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.OF?'O':'o'));
 	if (EMULATED_CPU>=CPU_80286) //286+?
 	{
-		sprintf(flags,"%s%i",flags,registers->SFLAGS.IOPL&1);
-		sprintf(flags,"%s%i",flags,((registers->SFLAGS.IOPL&2)>>1));
-		sprintf(flags,"%s%c",flags,registers->SFLAGS.NT?'N':'n');
+		sprintf(flags,"%s%u",flags,(word)(registers->SFLAGS.IOPL&1));
+		sprintf(flags,"%s%u",flags,(word)((registers->SFLAGS.IOPL&2)>>1));
+		sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.NT?'N':'n'));
 	}
 	else //186-? Display as numbers!
 	{
-		sprintf(flags,"%s%i",flags,registers->SFLAGS.IOPL&1);
-		sprintf(flags,"%s%i",flags,((registers->SFLAGS.IOPL&2)>>1));
-		sprintf(flags,"%s%i",flags,registers->SFLAGS.NT);
+		sprintf(flags,"%s%u",flags,(word)(registers->SFLAGS.IOPL&1));
+		sprintf(flags,"%s%u",flags,(word)((registers->SFLAGS.IOPL&2)>>1));
+		sprintf(flags,"%s%u",flags,registers->SFLAGS.NT);
 	}
 	//Higest 16-bit value!
-	sprintf(flags,"%s%i",flags,registers->SFLAGS.unmapped32768);
+	sprintf(flags,"%s%u",flags,registers->SFLAGS.unmapped32768);
 	
 	//Now the high word (80386+)!
 	if (EMULATED_CPU>=CPU_80386) //386+?
 	{
-		sprintf(flags,"%s%c",flags,registers->SFLAGS.RF?'R':'r');
-		sprintf(flags,"%s%c",flags,registers->SFLAGS.V8?'V':'v');
+		sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.RF?'R':'r'));
+		sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.V8?'V':'v'));
 		if (EMULATED_CPU>=CPU_80486) //486+?
 		{
-			sprintf(flags,"%s%c",flags,registers->SFLAGS.AC?'A':'a');
+			sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.AC?'A':'a'));
 		}
 		else //386?
 		{
-			sprintf(flags,"%s%i",flags,registers->SFLAGS.AC); //Literal bit!
+			sprintf(flags,"%s%u",flags,registers->SFLAGS.AC); //Literal bit!
 		}
 		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium+?
 		{
-			sprintf(flags,"%s%c",flags,registers->SFLAGS.VIF?'F':'f');
-			sprintf(flags,"%s%c",flags,registers->SFLAGS.VIP?'P':'p');
-			sprintf(flags,"%s%c",flags,registers->SFLAGS.ID?'I':'i');
+			sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.VIF?'F':'f'));
+			sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.VIP?'P':'p'));
+			sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.ID?'I':'i'));
 		}
 		else //386/486?
 		{
-			sprintf(flags,"%s%i",flags,registers->SFLAGS.VIF);
-			sprintf(flags,"%s%i",flags,registers->SFLAGS.VIP);
-			sprintf(flags,"%s%i",flags,registers->SFLAGS.ID);
+			sprintf(flags,"%s%u",flags,registers->SFLAGS.VIF);
+			sprintf(flags,"%s%u",flags,registers->SFLAGS.VIP);
+			sprintf(flags,"%s%u",flags,registers->SFLAGS.ID);
 		}
 		//Unmapped high bits!
 		int i; //For counting the current bit!
@@ -320,7 +320,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"SP: %04X, BP: %04X, SI: %04X, DI: %04X",registers->SP,registers->BP,registers->SI,registers->DI); //Segment registers!
 		dolog(filename,"IP: %04X, FLAGS: %04X",registers->IP,registers->FLAGS); //Rest!
 		#endif
-		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),halted?'H':' '); //Log the flags!
+		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
 //More aren't implemented in the 8086!
 	}
 	else //80286+?
@@ -341,11 +341,11 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
 		#endif
 		//Finally, flags seperated!
-		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),halted?'H':' '); //Log the flags!
+		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
 	}
 }
 
-void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, CPU_type *CPU)
+void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, CPU_type *theCPU)
 {
 	int i;
 	//Full interrupt status!
@@ -571,9 +571,9 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		}
 
 		//Finally, flags seperated!
-		char *flags = debugger_generateFlags(&debuggerregisters); //Generate the flags as text!
+		char *theflags = debugger_generateFlags(&debuggerregisters); //Generate the flags as text!
 		GPU_textgotoxy(frameratesurface, (GPU_TEXTSURFACE_WIDTH - strlen(flags)) - 1, debuggerrow++); //Second flags row!
-		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s%c", flags, debuggerHLT?'H':' '); //All flags, seperated!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s%c", theflags, (char)(debuggerHLT?'H':' ')); //All flags, seperated!
 
 		//Full interrupt status!
 		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-16,debuggerrow++); //Interrupt status!

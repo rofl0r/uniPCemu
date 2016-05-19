@@ -3,7 +3,7 @@
 
 typedef void (*UART_setmodemcontrol)(byte control);
 typedef byte(*UART_hasdata)();
-typedef void (*UART_senddata)();
+typedef void (*UART_senddata)(byte value);
 typedef byte(*UART_receivedata)();
 
 void initUART(byte numports); //Init UART!

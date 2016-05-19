@@ -231,9 +231,9 @@ OPTINLINE void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth
         // Simulate CGA composite output
         int* o = temp;
         Bit8u* rgbi = TempLine;
-        int* b = &CGA_Composite_Table[border*68];
+        int* b2 = &CGA_Composite_Table[border*68];
         for (x = 0; x < 4; ++x)
-                OUT(b[(x+3)&3]);
+                OUT(b2[(x+3)&3]);
         OUT(CGA_Composite_Table[(border<<6) | ((*rgbi)<<2) | 3]);
         for (x = 0; x < w-1; ++x) {
                 OUT(CGA_Composite_Table[(rgbi[0]<<6) | (rgbi[1]<<2) | (x&3)]);
@@ -241,7 +241,7 @@ OPTINLINE void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth
         }
         OUT(CGA_Composite_Table[((*rgbi)<<6) | (border<<2) | 3]);
         for (x = 0; x < 5; ++x)
-                OUT(b[x&3]);
+                OUT(b2[x&3]);
 
         if ((CGA_MODECONTROL & 4) != 0 || !cga_color_burst) {
                 // Decode

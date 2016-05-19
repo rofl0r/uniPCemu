@@ -522,21 +522,21 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 }
 
 //Generate a byte order for SDL.
-OPTINLINE void loadByteOrder(uint_32 *rmask, uint_32 *gmask, uint_32 *bmask, uint_32 *amask)
+OPTINLINE void loadByteOrder(uint_32 *thermask, uint_32 *thegmask, uint_32 *thebmask, uint_32 *theamask)
 {
 	//Entirely dependant upon the system itself!
-	*rmask = RGBA(0xFF,0x00,0x00,0x00);
-	*gmask = RGBA(0x00,0xFF,0x00,0x00);
-	*bmask = RGBA(0x00,0x00,0xFF,0x00);
-	*amask = RGBA(0x00,0x00,0x00,0xFF);
+	*thermask = RGBA(0xFF,0x00,0x00,0x00);
+	*thegmask = RGBA(0x00,0xFF,0x00,0x00);
+	*thebmask = RGBA(0x00,0x00,0xFF,0x00);
+	*theamask = RGBA(0x00,0x00,0x00,0xFF);
 }
 
 //Create a new surface.
 GPU_SDL_Surface *createSurface(int columns, int rows) //Create a new 32BPP surface!
 {
-	uint_32 rmask,gmask,bmask,amask; //Masks!
+	uint_32 thermask=0,thegmask=0,thebmask=0,theamask=0; //Masks!
 	loadByteOrder(&rmask,&gmask,&bmask,&amask); //Load our masks!
-	SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE,columns,rows, 32, rmask,gmask,bmask,amask); //Try to create it!
+	SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE,columns,rows, 32, thermask,thegmask,thebmask,theamask); //Try to create it!
 	if (!surface) //Failed to allocate?
 	{
 		return NULL; //Not allocated: we've failed to allocate the pointer!
@@ -550,11 +550,11 @@ GPU_SDL_Surface *createSurface(int columns, int rows) //Create a new 32BPP surfa
 //Create a new surface from an existing buffer.
 GPU_SDL_Surface *createSurfaceFromPixels(int columns, int rows, void *pixels, uint_32 pixelpitch) //Create a 32BPP surface, but from an allocated/solid buffer (not deallocated when freed)! Can be used for persistent buffers (always there, like the GPU screen buffer itself)
 {
-	uint_32 rmask,gmask,bmask,amask; //Masks!
-	loadByteOrder(&rmask,&gmask,&bmask,&amask); //Load our masks!
+	uint_32 thermask=0,thegmask=0,thebmask=0,theamask=0; //Masks!
+	loadByteOrder(&thermask,&thegmask,&thebmask,&theamask); //Load our masks!
 
 	pixelpitch <<= 2; //4 bytes a pixel!
-	SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(pixels,columns,rows, 32, pixelpitch, rmask,gmask,bmask,amask); //Try to create it!
+	SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(pixels,columns,rows, 32, pixelpitch, thermask,thegmask,thebmask,theamask); //Try to create it!
 	if (!surface) //Failed to allocate?
 	{
 		return NULL; //Not allocated: we've failed to allocate the pointer!
@@ -592,22 +592,10 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 			if (memprotect(surface->sdllayer,sizeof(surface->sdllayer),NULL)) //Valid?
 			{
 				//If the surface must be locked
-				/*
-				if( SDL_MUSTLOCK( surface->sdllayer ) )
-				{
-					//Lock the surface
-					SDL_LockSurface( surface->sdllayer );
-				}
-
-				SDL_Flip(surface->sdllayer); //Flip!
-
-				//Unlock surface
-				if( SDL_MUSTLOCK( surface->sdllayer ) )
-				{
-					SDL_UnlockSurface( surface->sdllayer );
-				}
-				*/ //Just call updaterect!
-				SDL_UpdateRect(surface->sdllayer, 0, 0, 0, 0); //Make sure we update!
+				if (SDL_MUSTLOCK(surface->sdllayer)) SDL_LockSurface(surface->sdllayer); //Lock the surface when required!
+				if (SDL_Flip(surface->sdllayer)==-1) //Failed to update by flipping?
+					SDL_UpdateRect(surface->sdllayer, 0, 0, 0, 0); //Make sure we update!
+				if (SDL_MUSTLOCK(surface->sdllayer)) SDL_UnlockSurface(surface->sdllayer); //Unlock the surface when required!
 			}
 			surface->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
 		}

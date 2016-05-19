@@ -254,7 +254,7 @@ void tickPendingKeys(double timepassed) //Handle all pending keys from our emula
 			if (keys_pressed) //Gotten any keys pressed to process?
 			{
 				tickPressedKeys(); //Tick any pressed keys!
-				calculateKeyboardStep(keys_active); //Calculate the step for pressed keys!
+				calculateKeyboardStep(); //Calculate the step for pressed keys!
 			}
 		}
 	}

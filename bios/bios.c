@@ -18,7 +18,7 @@
 #define __HW_DISABLED 0
 
 BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
-byte showchecksumerrors = 0; //Show checksum errors?
+byte exec_showchecksumerrors = 0; //Show checksum errors?
 
 //Block size of memory (blocks of 16KB for IBM PC Compatibility)!
 #define MEMORY_BLOCKSIZE 0x4000
@@ -74,7 +74,7 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 
 void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 {
-	if (showchecksumerrors)
+	if (exec_showchecksumerrors)
 	{
 		printmsg(0xF,"\r\nBIOS Checksum Error. "); //Checksum error.
 	}
@@ -130,7 +130,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	{
 		forceBIOSSave(); //Save the BIOS!
 	}
-	if (showchecksumerrors)
+	if (exec_showchecksumerrors)
 	{
 		printmsg(0xF,"Defaults loaded.\r\n"); //Show that the defaults are loaded.
 	}
@@ -371,17 +371,17 @@ void BIOS_LoadIO(int showchecksumerrors) //Loads basic I/O drives from BIOS!
 {
 	if (__HW_DISABLED) return; //Abort!
 	ioInit(); //Reset I/O system!
-	showchecksumerrors = showchecksumerrors; //Allow checksum errors to be shown!
+	exec_showchecksumerrors = showchecksumerrors; //Allow checksum errors to be shown!
 	BIOS_LoadData();//Load BIOS options!
 	BIOS_ValidateData(); //Validate all data!
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
-	showchecksumerrors = 0; //Don't Allow checksum errors to be shown!
+	exec_showchecksumerrors = 0; //Don't Allow checksum errors to be shown!
 }
 
 void BIOS_ShowBIOS() //Shows mounted drives etc!
 {
 	if (__HW_DISABLED) return; //Abort!
-	showchecksumerrors = 0; //No checksum errors to show!
+	exec_showchecksumerrors = 0; //No checksum errors to show!
 	BIOS_LoadData();
 	BIOS_ValidateData(); //Validate all data before continuing!
 

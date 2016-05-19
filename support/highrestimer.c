@@ -158,5 +158,5 @@ void convertTime(float time, char *holder) //Convert time to hh:mm:ss:s100.s1000
 	s100 = (uint_32)(time/10000ll); //1/100th second!
 	time -= (s100*10000ll); //Left!
 	sus = (uint_32)time; //Microseconds left (1/1000 and ns)!
-	sprintf(holder,"%02i:%02i:%02i:%02i.%05i",h,m,s,s100,sus); //Generate the final text!
+	sprintf(holder,"%02u:%02u:%02u:%02u.%05u",h,m,s,s100,sus); //Generate the final text!
 }

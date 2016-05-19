@@ -139,8 +139,6 @@ byte planesbuffer[4]; //All read planes for the current processing!
 
 typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA, word loadedlocation);
 
-VGA_AttributeInfo attributeinfo; //Our current collected attribute info!
-
 OPTINLINE word patch_map1314(VGA_Type *VGA, word addresscounter) //Patch full VRAM address!
 { //Check this!
 	INLINEREGISTER word bit; //Load row scan counter!
@@ -186,6 +184,8 @@ OPTINLINE word addresswrap(VGA_Type *VGA, word memoryaddress) //Wraps memory arr
 	return memoryaddress; //Original address!
 }
 
+VGA_AttributeInfo currentattributeinfo; //Our current collected attribute info!
+
 OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
 {
 	INLINEREGISTER word loadedlocation, vramlocation; //The location we load at!
@@ -226,7 +226,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 	lookupprecalcs <<= 1; //Make room!
 	lookupprecalcs |= CURRENTBLINK(VGA); //Blink!
 	lookupprecalcs <<= 1; //Make room for the pixelon!
-	attributeinfo.lookupprecalcs = lookupprecalcs; //Save the looked up precalcs, this never changes during a processed block of pixels (both text and graphics modes)!
+	currentattributeinfo.lookupprecalcs = lookupprecalcs; //Save the looked up precalcs, this never changes during a processed block of pixels (both text and graphics modes)!
 }
 
 OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
@@ -421,14 +421,14 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 	othernibble: //Retrieve the current DAC index!
 	Sequencer->activex = tempx++; //Active X!
-	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&attributeinfo); //Get the color to render!
-	if (VGA_AttributeController(&attributeinfo,VGA))
+	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&currentattributeinfo); //Get the color to render!
+	if (VGA_AttributeController(&currentattributeinfo,VGA))
 	{
 		nibbled = 1; //We're processing 2 nibbles instead of 1 nibble!
 		goto othernibble; //Apply the attribute through the attribute controller!
 	}
 
-	activedisplayhandlers[blanking](VGA,Sequencer,&attributeinfo); //Blank or active display!
+	activedisplayhandlers[blanking](VGA,Sequencer,&currentattributeinfo); //Blank or active display!
 
 	if (*Sequencer->extrastatus++) //To write back the pixel clock every or every other pixel?
 	{

@@ -45,7 +45,6 @@ void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 			if (c&0x100) ordering &= 2; //Odd row? This is our background pixel!
 			lookup |= ordering; //Apply the font/back and blink status!
 			//The lookup points to the index!
-			INLINEREGISTER uint_32 DACVal;
 			DACVal = getActiveVGA()->precalcs.DAC[getActiveVGA()->precalcs.attributeprecalcs[lookup]]; //The DAC value looked up!
 			if ((DACVal==(uint_32)RGB(0x00,0x00,0x00)) || (!(DACVal&0xFF000000))) //Black or unfilled?
 			{

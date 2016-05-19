@@ -86,7 +86,7 @@ void dump_CRTCTiming()
 	lockVGA(); //We don't want to corrupt the renderer's data!
 	for (i=0;i<NUMITEMS(getActiveVGA()->CRTC.rowstatus);i++)
 	{
-		sprintf(information,"Row #%i=",i); //Current row!
+		sprintf(information,"Row #%u=",i); //Current row!
 		word status;
 		status = getActiveVGA()->CRTC.rowstatus[i]; //Read the status for the row!
 		if (status&VGA_SIGNAL_VTOTAL)
@@ -127,7 +127,7 @@ void dump_CRTCTiming()
 
 	for (i=0;i<NUMITEMS(getActiveVGA()->CRTC.colstatus);i++)
 	{
-		sprintf(information,"Col #%i=",i); //Current row!
+		sprintf(information,"Col #%u=",i); //Current row!
 		word status;
 		status = getActiveVGA()->CRTC.colstatus[i]; //Read the status for the row!
 		if (status&VGA_SIGNAL_HTOTAL)

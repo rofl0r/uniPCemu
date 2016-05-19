@@ -43,8 +43,11 @@ void sound_stopRecording(); //Stop sound recording!
 void lockaudio();
 void unlockaudio();
 
-#define dB2factor(dB, fMaxLevelDB) pow(10, (((dB) - (fMaxLevelDB)) / 20))
+//Basic dB and factor convertions!
+#define dB2factor(dB, fMaxLevelDB) (powf(20, (((dB) - (fMaxLevelDB)) / 20)))
 #define factor2dB(factor, fMaxLevelDB) ((fMaxLevelDB) + (20 * log(factor)))
+//Convert a volume in the range of 0=0, 100=1 to decibel factor to use with volume multiplication of signals!
+#define convertVolume(vol) (factor2dB(((vol)*0.01f+1.0f),0.0f)/factor2dB(1.0f+1.0f,0.0f))
 
 //Global high and low pass filters support!
 void applySoundHighpassFilter(float cutoff_freq, float samplerate, float *currentsample, float *sound_last_result, float *sound_last_sample, byte *isFirstSample);

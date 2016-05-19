@@ -40,9 +40,9 @@ byte oper1b, oper2b; //Byte variants!
 word oper1, oper2; //Word variants!
 byte res8; //Result 8-bit!
 word res16; //Result 16-bit!
-byte reg; //For function number!
+byte thereg; //For function number!
 uint_32 ea; //From RM OFfset (GRP5 Opcodes only!)
-byte tempCF;
+byte tempCF2;
 
 VAL32Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
 uint_32 temp32, tempaddr32; //Defined in opcodes_8086.c
@@ -57,25 +57,25 @@ Start of help for debugging
 char modrm_param1[256]; //Contains param/reg1
 char modrm_param2[256]; //Contains param/reg2
 
-void modrm_debugger8(MODRM_PARAMS *params, byte whichregister1, byte whichregister2) //8-bit handler!
+void modrm_debugger8(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //8-bit handler!
 {
 	if (cpudebugger)
 	{
 		bzero(modrm_param1,sizeof(modrm_param1));
 		bzero(modrm_param2,sizeof(modrm_param2));
-		modrm_text8(params,whichregister1,&modrm_param1[0]);
-		modrm_text8(params,whichregister2,&modrm_param2[0]);
+		modrm_text8(theparams,whichregister1,&modrm_param1[0]);
+		modrm_text8(theparams,whichregister2,&modrm_param2[0]);
 	}
 }
 
-void modrm_debugger16(MODRM_PARAMS *params, byte whichregister1, byte whichregister2) //16-bit handler!
+void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //16-bit handler!
 {
 	if (cpudebugger)
 	{
 		bzero(modrm_param1,sizeof(modrm_param1));
 		bzero(modrm_param2,sizeof(modrm_param2));
-		modrm_text16(params,whichregister1,&modrm_param1[0]);
-		modrm_text16(params,whichregister2,&modrm_param2[0]);
+		modrm_text16(theparams,whichregister1,&modrm_param1[0]);
+		modrm_text16(theparams,whichregister2,&modrm_param2[0]);
 	}
 }
 
@@ -158,9 +158,9 @@ OPTINLINE void modrm_generateInstructionTEXT(char *instruction, byte debuggersiz
 }
 
 char LEAtext[256];
-OPTINLINE char *getLEAtext(MODRM_PARAMS *params)
+OPTINLINE char *getLEAtext(MODRM_PARAMS *theparams)
 {
-	modrm_lea16_text(params,1,&LEAtext[0]);    //Help function for LEA instruction!
+	modrm_lea16_text(theparams,1,&LEAtext[0]);    //Help function for LEA instruction!
 	return &LEAtext[0];
 }
 
@@ -329,7 +329,7 @@ byte MODRM_src1 = 0; //What source is our modr/m? (1/2)
 
 //Custom memory support!
 byte custommem = 0; //Used in some instructions!
-uint_32 offset; //Offset to use!
+uint_32 customoffset; //Offset to use!
 
 //Help functions:
 OPTINLINE void CPU8086_internal_INC16(word *reg)
@@ -735,7 +735,7 @@ OPTINLINE void CPU8086_internal_MOV8(byte *dest, byte val)
 	{
 		if (custommem)
 		{
-			MMU_wb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),offset,val); //Write to memory directly!
+			MMU_wb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val); //Write to memory directly!
 		}
 		else //ModR/M?
 		{
@@ -759,7 +759,7 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val)
 	{
 		if (custommem)
 		{
-			MMU_ww(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),offset,val); //Write to memory directly!
+			MMU_ww(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val); //Write to memory directly!
 		}
 		else //ModR/M?
 		{
@@ -770,9 +770,9 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val)
 }
 
 //LEA for LDS, LES
-OPTINLINE word getLEA(MODRM_PARAMS *params)
+OPTINLINE word getLEA(MODRM_PARAMS *theparams)
 {
-	return modrm_lea16(params,1);
+	return modrm_lea16(theparams,1);
 }
 
 
@@ -1393,8 +1393,8 @@ void CPU8086_OP9E() { modrm_generateInstructionTEXT("SAHF", 0, 0, PARAM_NONE);/*
 void CPU8086_OP9F() {modrm_generateInstructionTEXT("LAHF",0,0,PARAM_NONE);/*LAHF : Load lower half of FLAGS into AH.*/ REG_AH = (REG_FLAGS&0xFF);/*LAHF : Load lower half of FLAGS into AH.*/ }
 void CPU8086_OPA0() {INLINEREGISTER word theimm = CPU_readOPw(); debugger_setcommand("MOVB AL,[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV AL,[imm16]*/ CPU8086_internal_MOV8(&REG_AL,MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),theimm,0));/*MOV AL,[imm16]*/ }
 void CPU8086_OPA1() {INLINEREGISTER word theimm = CPU_readOPw(); debugger_setcommand("MOVW AX,[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV AX,[imm16]*/  CPU8086_internal_MOV16(&REG_AX,MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),theimm,0));/*MOV AX,[imm16]*/ }
-void CPU8086_OPA2() {INLINEREGISTER word theimm = CPU_readOPw(); debugger_setcommand("MOVB [%s:%04X],AL",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV [imm16],AL*/ custommem = 1; offset = theimm; CPU8086_internal_MOV8(NULL,REG_AL);/*MOV [imm16],AL*/ custommem = 0; }
-void CPU8086_OPA3() {INLINEREGISTER word theimm = CPU_readOPw(); debugger_setcommand("MOVW [%s:%04X],AX",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV [imm16], AX*/ custommem = 1; offset = theimm; CPU8086_internal_MOV16(NULL,REG_AX);/*MOV [imm16], AX*/ custommem = 0; }
+void CPU8086_OPA2() {INLINEREGISTER word theimm = CPU_readOPw(); debugger_setcommand("MOVB [%s:%04X],AL",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV [imm16],AL*/ custommem = 1; customoffset = theimm; CPU8086_internal_MOV8(NULL,REG_AL);/*MOV [imm16],AL*/ custommem = 0; }
+void CPU8086_OPA3() {INLINEREGISTER word theimm = CPU_readOPw(); debugger_setcommand("MOVW [%s:%04X],AX",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV [imm16], AX*/ custommem = 1; customoffset = theimm; CPU8086_internal_MOV16(NULL,REG_AX);/*MOV [imm16], AX*/ custommem = 0; }
 //GEBLEVEN met aanpassen.
 void CPU8086_OPA4() {modrm_generateInstructionTEXT("MOVSB",0,0,PARAM_NONE);/*MOVSB*/ CPU8086_internal_MOVSB();/*MOVSB*/ }
 void CPU8086_OPA5() {modrm_generateInstructionTEXT("MOVSW",0,0,PARAM_NONE);/*MOVSW*/ CPU8086_internal_MOVSW();/*MOVSW*/ }
@@ -1736,7 +1736,7 @@ void CPU8086_OPD0() //GRP2 Eb,1
 {
 	MODRM_src0 = 1;
 	modrm_readparams(&params, 0, 0);
-	reg = MODRM_REG(params.modrm);
+	thereg = MODRM_REG(params.modrm);
 	oper1b = modrm_read8(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
@@ -1775,7 +1775,7 @@ void CPU8086_OPD1() //GRP2 Ev,1
 {
 	MODRM_src0 = 1;
 	modrm_readparams(&params, 1, 0);
-	reg = MODRM_REG(params.modrm);
+	thereg = MODRM_REG(params.modrm);
 	oper1 = modrm_read16(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
@@ -1814,7 +1814,7 @@ void CPU8086_OPD2() //GRP2 Eb,CL
 {
 	MODRM_src0 = 1;
 	modrm_readparams(&params, 0, 0);
-	reg = MODRM_REG(params.modrm);
+	thereg = MODRM_REG(params.modrm);
 	oper1b = modrm_read8(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
@@ -1853,7 +1853,7 @@ void CPU8086_OPD3() //GRP2 Ev,CL
 {
 	MODRM_src0 = 1;
 	modrm_readparams(&params, 1, 0);
-	reg = MODRM_REG(params.modrm);
+	thereg = MODRM_REG(params.modrm);
 	oper1 = modrm_read16(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
@@ -1898,7 +1898,7 @@ void CPU8086_OPF6() //GRP3a Eb
 {
 	MODRM_src0 = 1;
 	modrm_readparams(&params, 0, 0);
-	reg = MODRM_REG(params.modrm);
+	thereg = MODRM_REG(params.modrm);
 	oper1b = modrm_read8(&params,1);
 	if (MODRM_REG(params.modrm)<2) //TEST?
 	{
@@ -1945,7 +1945,7 @@ void CPU8086_OPF7() //GRP3b Ev
 {
 	MODRM_src0 = 1;
 	modrm_readparams(&params, 1, 0);
-	reg = MODRM_REG(params.modrm);
+	thereg = MODRM_REG(params.modrm);
 	oper1 = modrm_read16(&params,1);
 	if (MODRM_REG(params.modrm)<2) //TEST has an operand?
 	{
@@ -1954,7 +1954,7 @@ void CPU8086_OPF7() //GRP3b Ev
 	if (cpudebugger) //Debugger on?
 	{
 		modrm_debugger16(&params,0,1); //Get src!
-		switch (reg) //What function?
+		switch (thereg) //What function?
 		{
 		case 0: //TEST modrm16, imm16
 		case 1: //--- Undocumented opcode, same as above!
@@ -1983,7 +1983,7 @@ void CPU8086_OPF7() //GRP3b Ev
 		}
 	}
 	op_grp3_16();
-	if ((reg>1) && (reg<4)) //NOT/NEG?
+	if ((thereg>1) && (thereg<4)) //NOT/NEG?
 	{
 		modrm_write16(&params,1,res16,0);
 	}
@@ -2044,7 +2044,7 @@ void CPU8086_OPFF() //GRP5 Ev
 {
 	MODRM_src0 = 1;
 	modrm_readparams(&params, 1, 0);
-	reg = MODRM_REG(params.modrm);
+	thereg = MODRM_REG(params.modrm);
 	oper1 = modrm_read16(&params,1);
 	ea = modrm_offset16(&params,1);
 	if (cpudebugger) //Debugger on?
@@ -2125,7 +2125,7 @@ byte op_grp2_8(byte cnt) {
 	s = oper1b;
 	oldCF = FLAG_CF;
 	if (EMULATED_CPU >= CPU_80186) cnt &= 0x1F; //Clear the upper 3 bits to become a 80186+!
-	switch (reg) {
+	switch (thereg) {
 	case 0: //ROL r/m8
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x80) FLAG_CF = 1; else FLAG_CF = 0;
@@ -2203,7 +2203,7 @@ word op_grp2_16(byte cnt) {
 	if (EMULATED_CPU >= CPU_80186) cnt &= 0x1F; //Clear the upper 3 bits to become a 80186+!
 	s = oper1;
 	oldCF = FLAG_CF;
-	switch (reg) {
+	switch (thereg) {
 	case 0: //ROL r/m16
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
@@ -2359,7 +2359,7 @@ void op_grp3_8() {
 	//uint32_t d1, d2, s1, s2, sign;
 	//word d, s;
 	oper1 = signext(oper1b); oper2 = signext(oper2b);
-	switch (reg) {
+	switch (thereg) {
 	case 0: case 1: //TEST
 		flag_log8(oper1b & immb);
 		break;
@@ -2479,7 +2479,7 @@ void op_grp3_16() {
 	//word d, s;
 	//oper1 = signext(oper1b); oper2 = signext(oper2b);
 	//sprintf(msg, "  Oper1: %04X    Oper2: %04X\n", oper1, oper2); print(msg);
-	switch (reg) {
+	switch (thereg) {
 	case 0: case 1: //TEST
 		flag_log16(oper1 & immw); break;
 	case 2: //NOT
@@ -2518,7 +2518,8 @@ void op_grp3_16() {
 
 void op_grp5() {
 	MODRM_PTR info; //To contain the info!
-	switch (reg) {
+	INLINEREGISTER byte tempCF;
+	switch (thereg) {
 	case 0: //INC Ev
 		oper2 = 1;
 		tempCF = FLAG_CF;

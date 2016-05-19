@@ -413,9 +413,9 @@ OPTINLINE word OPL2SinWave(const float r)
 {
 	const float halfpi = (0.5*(float)PI); //Half PI!
 	const float halfpi1 = (1.0f/halfpi); //Half pi division factor!
-	float index;
+	INLINEREGISTER float index;
 	word entry; //The entry to convert!
-	byte location; //The location in the table to use!
+	INLINEREGISTER byte location; //The location in the table to use!
 	byte PIpart;
 	PIpart = 0; //Default: part 0!
 	index = fmodf(r,PI2); //Loop the sinus infinitely!
@@ -541,8 +541,8 @@ OPTINLINE word OPL2_Sin(byte signal, float frequencytime) {
 		case 3: // Absolute with second half=0?
 			if (fmodf(t, 0.5f) >= 0.25f) return OPL2_LogSinTable[0]; //Are we the second half of the half period? Clear the signal if so!
 		case 2: // Absolute?
-			frequencytime = fmodf(frequencytime,PI); //Only positive part, repeated!
 			result = OPL2SinWave(frequencytime); //The sinus function!
+			result &= ~SIGNBIT; //Ignore negative values!
 			return result; //Simply absolute!
 		default: //Unknown signal?
 			return 0;
@@ -623,6 +623,10 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 
 	//Now apply the gain!
 	result += gain; //Simply add the gain!
+	if (flags&8) //Double the volume?
+	{
+		result <<= 1; //Double the volume!
+	}
 	result2 = OPL2_Exponential(result); //Translate to Exponential range!
 
 	if (frequency && ((flags&1)==0)) //Running operator and allowed to update our signal?
@@ -695,14 +699,14 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 
 				if (adlibch[6].synthmode) //Additive synthesis?
 				{
-					result = calcOperator(6, op6_2,op6_2,op6_2, adlibfreq(op6_2), 0.0f, 0x00); //Calculate the carrier without applied modulator additive!
+					result = calcOperator(6, op6_2,op6_2,op6_2, adlibfreq(op6_2), 0.0f, 0x08); //Calculate the carrier without applied modulator additive!
 				}
 				else //FM synthesis?
 				{
-					result = calcOperator(6, op6_2,op6_2,op6_2,adlibfreq(op6_2), result, 0x00); //Calculate the carrier with applied modulator!
+					result = calcOperator(6, op6_2,op6_2,op6_2,adlibfreq(op6_2), result, 0x08); //Calculate the carrier with applied modulator!
 				}
 
-				return result*2.0f; //Apply the exponential! The volume is always doubled!
+				return result; //Apply the exponential! The volume is always doubled!
 				break;
 
 				//Comments with information from fmopl.c:
@@ -739,8 +743,8 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					else if (OPL2_RNG) tempphase = (0xD0>>2);
 					
 					result = calcOperator(8, op8_2,op8_2,op8_2,adlibfreq(op8_2), 0.0f,((adlibop[op8_2].volenvstatus)?1:0)); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(7, op7_1,op7_1,op7_1,adlibfreq(op7_1), convertphase(tempphase), 2|((adlibop[op8_2].volenvstatus||adlibop[op7_2].volenvstatus)?0x01:0x00)); //Calculate the carrier with applied modulator!
-					immresult += result*2.0f; //Apply the tremolo!
+					result = calcOperator(7, op7_1,op7_1,op7_1,adlibfreq(op7_1), convertphase(tempphase), 2|((adlibop[op8_2].volenvstatus||adlibop[op7_2].volenvstatus)?0x09:0x08)); //Calculate the carrier with applied modulator!
+					immresult += result; //Apply the tremolo!
 				}
 				if (adlibop[op7_2].volenvstatus) //Snare drum on Carrier volume?
 				{
@@ -748,8 +752,8 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					tempphase = 0x100 << ((getphase(op7_1, adlibfreq(op7_1)) >> 8) & 1); //Bit8=0(Positive) then 0x100, else 0x200! Based on the phase to generate!
 					tempphase ^= (OPL2_RNG << 8); //Noise bits XOR'es phase by 0x100 when set!
 					result = calcOperator(7, op7_2,op7_2,op7_2,adlibfreq(op7_2), convertphase(tempphase), 0); //Calculate the carrier with applied modulator!
-					result = calcOperator(7, op7_1,op7_1,op7_2,adlibfreq(op7_1), convertphase(tempphase), ((adlibop[op8_2].volenvstatus) ? 0x01 : 0x00)); //Calculate the carrier with applied modulator!
-					immresult += result*2.0f; //Apply the tremolo!
+					result = calcOperator(7, op7_1,op7_1,op7_2,adlibfreq(op7_1), convertphase(tempphase), ((adlibop[op8_2].volenvstatus) ? 0x09 : 0x08)); //Calculate the carrier with applied modulator!
+					immresult += result; //Apply the tremolo!
 				}
 				result = immresult; //Load the resulting channel!
 				result *= 0.5; //We only have half(two channels combined)!
@@ -759,7 +763,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 				immresult = 0.0f; //Initialize immediate result!
 				if (adlibop[op8_1].volenvstatus) //Tom-tom(Modulator)?
 				{
-					result = calcOperator(8, op8_1, op8_1, op8_1, adlibfreq(op8_1), 0.0f, 0); //Calculate the carrier without applied modulator additive! Ignore volume!
+					result = calcOperator(8, op8_1, op8_1, op8_1, adlibfreq(op8_1), 0.0f, 0x8); //Calculate the carrier without applied modulator additive! Ignore volume!
 					immresult += result*2.0f; //Apply the exponential!
 				}
 				if (adlibop[op8_2].volenvstatus) //Cymbal(Carrier)?
@@ -776,8 +780,8 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x300;
 					
 					result = calcOperator(7, op7_1,op7_1,op7_1, adlibfreq(op7_1), 0.0f,0); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(8, op8_2,op8_2,op8_2, adlibfreq(op8_2), convertphase(tempphase), 0); //Calculate the carrier with applied modulator! Use volume!
-					immresult += result*2.0f; //Apply the exponential!
+					result = calcOperator(8, op8_2,op8_2,op8_2, adlibfreq(op8_2), convertphase(tempphase), 0x8); //Calculate the carrier with applied modulator! Use volume!
+					immresult += result; //Apply the exponential!
 				}
 				result = immresult; //Load the resulting channel!
 				result *= 0.5; //We only have half(two channels combined)!

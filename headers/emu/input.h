@@ -75,10 +75,10 @@ typedef struct PACKED
 
 //Timing for the CPU!
 void cleanKeyboard();
-void updateKeyboard();
+void updateKeyboard(double timepassed);
 void cleanEMUKeyboard(); //Internal use only!
 void cleanMouse();
-void updateMouse();
+void updateMouse(double timepassed);
 
 int psp_inputkey(); //Current pressed key(s)?
 int psp_inputkeydelay(uint_32 delay); //Keypress and release, can return no keys!
@@ -130,4 +130,6 @@ void updateInput(SDL_Event *event); //Update all input for SDL!
 #endif
 
 void keyboard_type_handler(); //Handles keyboard typing: we're an interrupt at 1000 ticks/second!
+void tickPendingKeys(double timepassed); //Handle all pending keys from our emulation! Updating every 1/1000th second!
+
 #endif

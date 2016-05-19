@@ -69,7 +69,9 @@ OPTINLINE static byte getcharxy_8(byte character, byte x, byte y) //Retrieve a c
 
 	if (loc2) //Last row not yet loaded?
 	{
-		lastrow = int10_font_08_reversed[(lastcharinfo = location)^0x8000]; //Read the row from the character generator to use! Also reverse the bits for faster usage, which is already done!
+		lastcharinfo = location; //Load the new location!
+		location ^= 0x8000; //Disable our used bit!
+		lastrow = int10_font_08_reversed[location]; //Read the row from the character generator to use! Also reverse the bits for faster usage, which is already done!
 	}
 
 	//Take the pixel we need!

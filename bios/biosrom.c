@@ -51,7 +51,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		if (i) //Not VGA ROM?
 		{
 			ISVGA = 0; //No VGA!
-			sprintf(filename,"ROM/OPTROM.%i.BIN",i); //Create the filename for the ROM!
+			sprintf(filename,"ROM/OPTROM.%u.BIN",i); //Create the filename for the ROM!
 		}
 		else
 		{
@@ -150,7 +150,7 @@ void BIOS_freeOPTROMS()
 			memset(&filename,0,sizeof(filename)); //Clear/init!
 			if (i) //Not VGA ROM?
 			{
-				sprintf(filename,"ROM/OPTROM.%i.BIN",i); //Create the filename for the ROM!
+				sprintf(filename,"ROM/OPTROM.%u.BIN",i); //Create the filename for the ROM!
 			}
 			else
 			{
@@ -177,7 +177,7 @@ int BIOS_load_ROM(byte nr)
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	sprintf(filename,"ROM/BIOSROM.U%i.BIN",nr); //Create the filename for the ROM!
+	sprintf(filename,"ROM/BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
 	f = fopen(filename,"rb");
 	if (!f)
 	{
@@ -255,7 +255,7 @@ void BIOS_free_ROM(byte nr)
 {
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	sprintf(filename,"BIOSROM.U%i.BIN",nr); //Create the filename for the ROM!
+	sprintf(filename,"BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
 	if (BIOS_ROM_size[nr]) //Has size?
 	{
 		freez((void **)&BIOS_ROMS[nr],BIOS_ROM_size[nr],filename); //Release the BIOS ROM!
@@ -462,7 +462,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 					memset(&filename, 0, sizeof(filename)); //Clear/init!
 					if (i) //Not VGA ROM?
 					{
-						sprintf(filename, "ROM/OPTROM.%i.BIN", i); //Create the filename for the ROM!
+						sprintf(filename, "ROM/OPTROM.%u.BIN", i); //Create the filename for the ROM!
 					}
 					else //VGA ROM?
 					{

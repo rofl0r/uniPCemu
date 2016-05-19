@@ -12,7 +12,7 @@ OPTINLINE byte CMOS_readAutoBCD(byte number)
 	byte data, originaldata;
 	data = originaldata = PORT_IN_B(0x71); //Read the original value!
 	byte PM = 0;
-	if ((SREGB & 0) && (number == 4)) //12 hour format and getting hours?
+	if ((SREGB & 1) && (number == 4)) //12 hour format and getting hours?
 	{
 		PM = data; //Load the original data!
 		PM &= 0x80; //Are we PM?
@@ -22,7 +22,7 @@ OPTINLINE byte CMOS_readAutoBCD(byte number)
 	{
 		data = ((data & 0xF0) >> 1) + ((data & 0xF0) >> 3) + (data & 0xf); //Convert to binary!
 	}
-	if ((SREGB & 0) && (number == 4)) //12 hour format and getting hours?
+	if ((SREGB & 1) && (number == 4)) //12 hour format and getting hours?
 	{
 		if (PM) //Are we PM?
 		{

@@ -47,6 +47,8 @@
 
 #include "headers/support/dro.h" //DRO file support!
 
+#include "headers/emu/input.h" //Keyboard&Mouse I/O support!
+
 //Define below to enable the sound test with recording!
 //#define SOUND_TEST
 
@@ -87,7 +89,7 @@ byte HighestBitBlink; //Highest color bit is blinking? 0=Off: Use 16 colors, 1=O
 } BIOSMENU_FONT; //All BIOS fonts!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
-extern byte showchecksumerrors; //Show checksum errors?
+extern byte exec_showchecksumerrors; //Show checksum errors?
 extern GPU_TEXTSURFACE *frameratesurface;
 
 BIOSMENU_FONT BIOSMenu_Fonts[3] = {
@@ -273,8 +275,6 @@ void freeBIOSMenu() //Free up all BIOS related memory!
 	free_GPUtext(&BIOS_Surface); //Try to deallocate the BIOS Menu surface!
 }
 
-extern byte showchecksumerrors; //Show checksum errors?
-
 byte BIOS_printopentext(uint_32 timeout)
 {
 	byte result=SETXYCLICKED_OK;
@@ -304,9 +304,9 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 		counter = BIOS_TIME; //Default!
 	}
 	
-	showchecksumerrors = 0; //Don't show!
+	exec_showchecksumerrors = 0; //Don't show!
 	BIOS_LoadData(); //Now load/reset the BIOS
-	showchecksumerrors = 1; //Reset!
+	exec_showchecksumerrors = 1; //Reset!
 
 	if (!timeout) //Normal opening the BIOS?
 	{
@@ -370,7 +370,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	EMU_stopInput(); //Stop all emu input!
 	terminateVGA(); //Terminate currently running VGA for a speed up!
 	//dolog("BIOS","Running BIOS...");
-	showchecksumerrors = 0; //Not showing any checksum errors!
+	exec_showchecksumerrors = 0; //Not showing any checksum errors!
 
 //Now reset/save all we need to run the BIOS!
 	GPU.show_framerate = 0; //Hide the framerate surface!	
@@ -392,7 +392,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	BIOS_LoadData(); //Now load/reset the BIOS
 	BIOS_Changed = 0; //Default: the BIOS hasn't been changed!
 	BIOS_SaveStat = 0; //Default: not saving!
-	showchecksumerrors = 0; //Default: not showing checksum errors!
+	exec_showchecksumerrors = 0; //Default: not showing checksum errors!
 	BIOS_clearscreen(); //Clear the screen!
 	BIOS_Menu = 0; //We're opening the main menu!
 
@@ -469,7 +469,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	{
 		VGA_initIO(); //Initialise/update the VGA if needed!
 	}
-	ssource_setVolume(BIOS_Settings.SoundSource_Volume*100.0f); //Set the current volume!
+	ssource_setVolume((float)BIOS_Settings.SoundSource_Volume); //Set the current volume!
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
 	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
 
@@ -2961,10 +2961,10 @@ void BIOS_BWMonitor()
 void BIOSMenu_LoadDefaults() //Load the defaults option!
 {
 	if (__HW_DISABLED) return; //Abort!
-	int showchecksumerrors_backup = showchecksumerrors; //Keep this!
-	showchecksumerrors = 0; //Don't show checksum errors!
+	int showchecksumerrors_backup = exec_showchecksumerrors; //Keep this!
+	exec_showchecksumerrors = 0; //Don't show checksum errors!
 	BIOS_LoadDefaults(0); //Load BIOS Defaults, don't save!
-	showchecksumerrors = showchecksumerrors_backup; //Restore!
+	exec_showchecksumerrors = showchecksumerrors_backup; //Restore!
 	BIOS_Changed = 1; //Changed!
 	BIOS_Menu = 0; //Goto Main menu!
 }
@@ -3738,7 +3738,7 @@ void BIOS_InitSoundText()
 		strcat(menuoptions[advancedoptions++], "Disabled");
 	}
 	optioninfo[advancedoptions] = 4; //Sound Source Volume!
-	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %i",(int)(BIOS_Settings.SoundSource_Volume*100.0f)); //Sound source volume as a whole number!
+	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %i",(int)(BIOS_Settings.SoundSource_Volume)); //Sound source volume as a whole number!
 	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
 
 	if (!EMU_RUNNING)
@@ -4304,7 +4304,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	BIOS_Menu = 8; //Goto Advanced Menu!
 }
 
-float GetPercentage(byte x, byte y, float Percentage) //Retrieve the size, or 0 for none!
+uint_32 GetPercentage(byte x, byte y, uint_32 Percentage) //Retrieve the size, or 0 for none!
 {
 	int key = 0;
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
@@ -4312,8 +4312,7 @@ float GetPercentage(byte x, byte y, float Percentage) //Retrieve the size, or 0 
 	{
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
 	}
-	Percentage *= 100.0f; //Start by converting the percentage to percents instead of a factor!
-	uint_32 result = (uint_32)Percentage; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
+	uint_32 result = Percentage; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
 	uint_32 oldvalue; //To check for high overflow!
 	for (;;) //Get input; break on error!
 	{
@@ -4362,7 +4361,7 @@ float GetPercentage(byte x, byte y, float Percentage) //Retrieve the size, or 0 
 			{
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 			}
-			return (result*0.01f); //Convert back to an ordinary factor!
+			return result; //Convert back to an ordinary factor!
 		}
 		else if ((key & BUTTON_CIRCLE)>0)
 		{
@@ -4394,7 +4393,7 @@ void BIOS_SoundSourceVolume()
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Sound Source Volume: "); //Show selection init!
 	EMU_unlocktext();
-	float file = GetPercentage(21, 4, BIOS_Settings.SoundSource_Volume); //Show options for the installed CPU!
+	uint_32 file = GetPercentage(21, 4, BIOS_Settings.SoundSource_Volume); //Show options for the installed CPU!
 	switch ((int)file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -4553,7 +4552,7 @@ void BIOS_GenerateFloppyDisk()
 				}
 				else //Whole MB?
 				{
-					sprintf(itemlist[i],"%iMB disk 3.5\"",floppygeometries[i].KB/1000); //Disk!
+					sprintf(itemlist[i],"%uMB disk 3.5\"",(uint_32)(floppygeometries[i].KB/1000)); //Disk!
 				}
 			}
 			else //5.25"?
@@ -4575,7 +4574,7 @@ void BIOS_GenerateFloppyDisk()
 				}
 				else //Whole MB?
 				{
-					sprintf(itemlist[i],"%iMB disk 5.25\"",floppygeometries[i].KB/1000); //Disk!
+					sprintf(itemlist[i],"%uMB disk 5.25\"",(uint_32)(floppygeometries[i].KB/1000)); //Disk!
 				}
 			}
 		}
@@ -4583,11 +4582,11 @@ void BIOS_GenerateFloppyDisk()
 		{
 			if (floppygeometries[i].measurement) //3.5"?
 			{
-				sprintf(itemlist[i],"%iKB disk 3.5\"",floppygeometries[i].KB); //Disk!
+				sprintf(itemlist[i],"%uKB disk 3.5\"",floppygeometries[i].KB); //Disk!
 			}
 			else //5.25"?
 			{
-				sprintf(itemlist[i],"%iKB disk 5.25\"",floppygeometries[i].KB); //Disk!
+				sprintf(itemlist[i],"%uKB disk 5.25\"",floppygeometries[i].KB); //Disk!
 			}
 		}
 	}

@@ -3,6 +3,6 @@
 
 void initATA();
 void cleanATA(); //ATA timing reset!
-void updateATA(); //ATA timing!
+void updateATA(double timepassed); //ATA timing!
 
 #endif

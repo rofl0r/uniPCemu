@@ -48,9 +48,9 @@ OPTINLINE static char *get_screencapture_filename() //Filename for a screen capt
 	memset(&filename2,0,sizeof(filename2)); //Init filename!
 	do
 	{
-		sprintf(filename2,"captures/%i.bmp",++i); //Next bitmap file!
+		sprintf(filename2,"captures/%u.bmp",++i); //Next bitmap file!
 	} while (file_exists(filename2)); //Still exists?
-	sprintf(filename,"captures/%i",i); //The capture filename!
+	sprintf(filename,"captures/%u",i); //The capture filename!
 	return &filename[0]; //Give the filename for quick reference!
 }
 

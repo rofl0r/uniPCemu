@@ -15,8 +15,10 @@
 //The Convox buffer is undefined(theoretically has no buffer since it's a simple resistor ladder, but it does in this emulation), the threshold size is used instead in this case(CPU speed handles the playback rate).
 #define __SSOURCE_BUFFER 16
 //Rendering buffer needs to be large enough for a good sound!
-#define __SSOURCE_HWBUFFER 651
-#define __COVOX_HWBUFFER 4096
+#define __SSOURCE_DBLBUFFER (651*4)
+#define __SSOURCE_HWBUFFER (651)
+#define __COVOX_DBLBUFFER (4096*4)
+#define __COVOX_HWBUFFER (4096)
 
 double ssourcetiming = 0.0f, covoxtiming = 0.0f, ssourcetick=(1000000000.0f/__SSOURCE_RATE), covoxtick=(1000000000.0f/__COVOX_RATE);
 byte ssource_ready = 0; //Are we running?
@@ -138,6 +140,8 @@ void tickssourcecovox(double timepassed)
 			{
 				if (readfifobuffer(ssourcestream,&ssourcesample))
 					writeDoubleBufferedSound8(&ssource_soundbuffer,ssourcesample); //Move data to the destination buffer one sample at a time!
+				else
+					writeDoubleBufferedSound8(&ssource_soundbuffer, 0x80); //Move Silence to the destination buffer one sample at a time!
 			}
 			else //Sound source is powered down? Flush the buffers!
 			{
@@ -194,14 +198,14 @@ void initSoundsource() {
 
 	ssourcetiming = covoxtiming = 0.0f; //Initialise our timing!
 
-	if (ssourcestream && allocDoubleBufferedSound8(__SSOURCE_HWBUFFER,&ssource_soundbuffer) && allocDoubleBufferedSound16(__COVOX_HWBUFFER,&covox_soundbuffer)) //Allocated buffers?
+	if (ssourcestream && allocDoubleBufferedSound8(__SSOURCE_DBLBUFFER,&ssource_soundbuffer) && allocDoubleBufferedSound16(__COVOX_DBLBUFFER,&covox_soundbuffer)) //Allocated buffers?
 	{
 		if (addchannel(&covox_output, NULL, "Covox Speech Thing", __COVOX_RATE, __COVOX_HWBUFFER, 1, SMPL8U)) //Covox channel added?
 		{
 			if (addchannel(&ssource_output, NULL, "Sound Source", __SSOURCE_RATE, __SSOURCE_HWBUFFER, 0, SMPL8U)) //Sound source channel added?
 			{
 				outbuffer = lastcontrol = 0; //Reset output buffer and last control!
-				ssource_setVolume(1.0f); //Default volume: 100%!
+				ssource_setVolume(100.0f); //Default volume: 100%!
 				registerParallel(0,&soundsource_covox_output,&soundsource_covox_controlout,&soundsource_covox_controlin,&soundsource_covox_status); //Register out parallel port for handling!
 				ssource_ready = 1; //We're running!
 			}

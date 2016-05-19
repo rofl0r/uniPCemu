@@ -20,7 +20,7 @@ void dumpscreen()
 
 	char message[256];
 	bzero(message,sizeof(message)); //Init!
-	sprintf(message,"Screen width: %i",getscreenwidth());
+	sprintf(message,"Screen width: %u",getscreenwidth());
 
 	fwrite(&message,1,safe_strlen(message,sizeof(message)),f); //Write message!
 	fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!
