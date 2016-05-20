@@ -20,10 +20,6 @@
 #include <SDL2/SDL2_rotozoom.h> //Rotate&Zoom package for SDL_gfx!
 #include <SDL2/SDL2.h>
 #endif
-#ifdef __psp__
-//PSP only, doesn't compile under linux! PSP is always SDL1.2.8!
-#include "SDL/SDL_gfxPrimitives.h" //Graphics primitives (plot pixel)
-#endif
 #endif
 //Resolution of PSP Screen!
 #define PSP_SCREEN_ROWS 272
