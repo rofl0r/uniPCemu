@@ -7,10 +7,8 @@
 #ifdef VISUALC
 #ifndef SDL2
 #include "SDL_rotozoom.h"
-#include "SDL_gfxPrimitives.h"
 #else
 #include "SDL2_rotozoom.h"
-#include "SDL2_gfxPrimitives.h"
 #endif
 #else
 #ifndef SDL2
