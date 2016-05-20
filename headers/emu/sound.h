@@ -3,8 +3,8 @@
 
 typedef byte (*SOUNDHANDLER)(void* buf, uint_32 length, byte stereo, void *userdata);    /* A pointer to a handler function */
 
-//PI
-#define PI 3.1415926535897932f
+//PI: More accuracy from SDL2_rotozoom.h
+#define PI 3.1415926535897932384626433832795
 
 typedef short sample_t, *sample_p; //One sample!
 

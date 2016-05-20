@@ -58,13 +58,37 @@ TicksHolder renderTiming;
 double currentRenderTiming = 0.0;
 double renderTimeout = 1000000000.0f/GPU_FRAMERATE; //60Hz refresh!
 
+#ifdef SDL2
+SDL_Window *sdlWindow = NULL;
+SDL_Renderer *sdlRenderer = NULL;
+SDL_Texture *sdlTexture = NULL;
+#endif
+
 void updateWindow(word xres, word yres, uint_32 flags)
 {
 	if ((xres!=window_xres) || (yres!=window_yres) || !originalrenderer) //Do we need to update the Window?
 	{
 		window_xres = xres;
 		window_yres = yres;
+		#ifndef SDL2
+		//SDL1?
 		originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+		#else
+		if ((!sdlWindow) || (!sdlRenderer)) //We don't have a window&renderer yet?
+		{
+			SDL_CreateWindowAndRenderer(xres, yres, SDL_WINDOW_SHOWN, &sdlWindow, &sdlRenderer); //Create the window and renderer we use at our resolution!
+		}
+		originalrenderer = SDL_CreateRGBSurface(0, xres, yres, 32,
+			0x00FF0000,
+			0x0000FF00,
+			0x000000FF,
+			0xFF000000); //The SDL Surface we render to!
+		sdlTexture = SDL_CreateTexture(sdlRenderer,
+			SDL_PIXELFORMAT_ARGB8888,
+			SDL_TEXTUREACCESS_STREAMING,
+			xres, yres); //The texture we use!
+		}
+		#endif
 	}
 }
 

@@ -48,21 +48,6 @@ int getthreadpoolindex(uint_32 thid) //Get index of thread in thread pool!
 	return -1; //Not found!
 }
 
-/*#ifdef _WIN32
-void SDL_KillThread(uint_32 thid) //Our custom version!
-{
-	int index = getthreadpoolindex(thid); //What index!
-	threadpool[i].allow_running = 0; //Request quitting the thread!
-	waitThreadEnd(&threadpool[i]); //Wait for the thread to end!
-}
-#endif*/
-
-/*int allow_threadrunning() //Allow the current thread to continue running?
-{
-	int index = getthreadpoolindex(SDL_ThreadID()); //What index!
-	return threadpool[i].allow_running; //Allow the thread to run?
-}*/
-
 ThreadParams_p allocateThread() //Allocate a new thread to run (waits if none to allocate)!
 {
 	uint_32 curindex;
@@ -110,7 +95,11 @@ void terminateThread(uint_32 thid) //Terminate the thread!
 	releasePool(thid); //Release from pool if available!
 	if (thnr!=-1 && thread) //Valid thread to kill?
 	{
-		SDL_KillThread(thread); //Kill this thread!
+		#ifndef SDL2
+		SDL_KillThread(thread); //Kill this thread when supported!
+		#else
+		SDL_WaitThread(thread); //Wait for the thread to finish normally!
+		#endif
 	}
 	//sceKernelTerminateDeleteThread(thid); //Exit and delete myself!
 }

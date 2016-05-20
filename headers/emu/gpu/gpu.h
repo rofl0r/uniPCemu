@@ -5,13 +5,23 @@
 #include "headers/bios/bios.h" //BIOS Settings support (for VIDEO_DIRECT)
 
 #ifdef VISUALC
+#ifndef SDL2
 #include "SDL_rotozoom.h"
 #include "SDL_gfxPrimitives.h"
 #else
+#include "SDL2_rotozoom.h"
+#include "SDL2_gfxPrimitives.h"
+#endif
+#else
+#ifndef SDL2
 #include <SDL/SDL_rotozoom.h> //Rotate&Zoom package for SDL_gfx!
 #include <SDL/SDL.h>
+#else
+#include <SDL2/SDL2_rotozoom.h> //Rotate&Zoom package for SDL_gfx!
+#include <SDL2/SDL2.h>
+#endif
 #ifdef __psp__
-//PSP only, doesn't compile under linux!
+//PSP only, doesn't compile under linux! PSP is always SDL1.2.8!
 #include "SDL/SDL_gfxPrimitives.h" //Graphics primitives (plot pixel)
 #endif
 #endif

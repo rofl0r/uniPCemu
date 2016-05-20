@@ -63,7 +63,13 @@ INPUT_BUTTON_DOWN, INPUT_BUTTON_LEFT, INPUT_BUTTON_UP, INPUT_BUTTON_RIGHT,
 INPUT_BUTTON_SELECT, INPUT_BUTTON_START, INPUT_BUTTON_HOME, INPUT_BUTTON_HOLD };
 
 byte emu_keys_state[104]; //All states for all emulated keys!
+//SDL 1.0 states!
+#ifndef SDL2
 int emu_keys_SDL[104] = {
+#else
+//SDL2 variant
+uint_32 emu_keys_SDL[104] = {
+#endif
 	//column 1
 	SDLK_a, //A
 	SDLK_b, //B
@@ -186,7 +192,141 @@ int emu_keys_SDL[104] = {
 	SDLK_SLASH  ///
 };
 
+#ifndef SDL2
 int emu_keys_sdl_rev[UINT16_MAX+1]; //Reverse of emu_keys_sdl!
+#else
+//SDL 2.0 variant, without lookup table, but as fast as possible!
+int emu_keys_sdl_rev(uint_32 key)
+{
+	switch (key) //What key?
+	{
+	case SDLK_a: return 0x00; //A
+	case SDLK_b: return 0x01; //B
+	case SDLK_c: return 0x02; //C
+	case SDLK_d: return 0x03//D
+	case SDLK_e: return 0x04; //E
+	case SDLK_f: return 0x05; //F
+	case SDLK_g: return 0x06; //G
+	case SDLK_h: return 0x07; //H
+	case SDLK_i: return 0x08; //I
+	case SDLK_j: return 0x09; //J
+	case SDLK_k: return 0x0A; //K
+	case SDLK_l: return 0x0B; //L
+	case SDLK_m: return 0x0C; //M
+	case SDLK_n: return 0x0D; //N
+	case SDLK_o: return 0x0E; //O
+	case SDLK_p: return 0x0F; //P
+	case SDLK_q: return 0x10; //Q
+	case SDLK_r: return 0x11; //R
+	case SDLK_s: return 0x12; //S
+	case SDLK_t: return 0x13; //T
+	case SDLK_u: return 0x14; //U
+	case SDLK_v: return 0x15; //V
+	case SDLK_w: return 0x16; //W
+	case SDLK_x: return 0x17; //X
+	case SDLK_y: return 0x18; //Y
+	case SDLK_z: return 0x19; //Z
+
+	case SDLK_0: return 0x1A; //0
+	case SDLK_1: return 0x1B; //1
+	case SDLK_2: return 0x1C; //2
+	case SDLK_3: return 0x1D; //3
+	case SDLK_4: return 0x1E; //4
+	case SDLK_5: return 0x1F; //5
+	case SDLK_6: return 0x20; //6
+	case SDLK_7: return 0x21; //7
+	case SDLK_8: return 0x22; //8
+	case SDLK_9: return 0x23; //9
+
+	//Column 2! (above '9' included)
+	case SDLK_BACKQUOTE: return 0x24; //`
+	case SDLK_MINUS: return 0x25; //-
+	case SDLK_EQUALS: return 0x26; //=
+	case SDLK_BACKSLASH: return 0x27; //'\'
+
+	case SDLK_BACKSPACE: return 0x28; //BKSP
+	case SDLK_SPACE: return 0x29; //SPACE
+	case SDLK_TAB: return 0x2A; //TAB
+	case SDLK_CAPSLOCK: return 0x2B; //CAPS
+
+	case SDLK_LSHIFT: return 0x2C; //L SHFT
+	case SDLK_LCTRL: return 0x2D; //L CTRL
+	case SDLK_LSUPER: return 0x2E; //L WIN
+	case SDLK_LALT: return 0x2F; //L ALT
+	case SDLK_RSHIFT: return 0x30; //R SHFT
+	case SDLK_RCTRL: return 0x31; //R CTRL
+	case SDLK_RSUPER: return 0x32; //R WIN
+	case SDLK_RALT: return 0x33; //R ALT
+
+	case SDLK_MENU: return 0x34; //APPS
+	case SDLK_RETURN: return 0x35; //ENTER
+	case SDLK_ESCAPE: return 0x36; //ESC
+
+	case SDLK_F1: return 0x37; //F1
+	case SDLK_F2: return 0x38; //F2
+	case SDLK_F3: return 0x39; //F3
+	case SDLK_F4: return 0x3A; //F4
+	case SDLK_F5: return 0x3B; //F5
+	case SDLK_F6: return 0x3C; //F6
+	case SDLK_F7: return 0x3D; //F7
+	case SDLK_F8: return 0x3E; //F8
+	case SDLK_F9: return 0x3F; //F9
+	case SDLK_F10: return 0x40; //F10
+	case SDLK_F11: return 0x41; //F11
+	case SDLK_F12: return 0x42; //F12
+
+	case SDLK_SYSREQ: return 0x43; //PRNT SCRN
+
+	case SDLK_SCROLLOCK: return 0x44; //SCROLL
+	case SDLK_PAUSE: return 0x45; //PAUSE
+
+	//Column 3!
+	case SDLK_LEFTBRACKET: return 0x46; //[
+
+	case SDLK_INSERT: return 0x47; //INSERT
+	case SDLK_HOME: return 0x48; //HOME
+	case SDLK_PAGEUP: return 0x49; //PG UP
+	case SDLK_DELETE: return 0x4A; //DELETE
+	case SDLK_END: return 0x4B; //END
+	case SDLK_PAGEDOWN: return 0x4C; //PG DN
+	case SDLK_UP: return 0x4D; //U ARROW
+	case SDLK_LEFT: return 0x4E; //L ARROW
+	case SDLK_DOWN: return 0x4F; //D ARROW
+	case SDLK_RIGHT: return 0x50; //R ARROW
+
+	case SDLK_NUMLOCK: return 0x51; //NUM
+	case SDLK_KP_DIVIDE: return 0x52; //KP /
+	case SDLK_KP_MULTIPLY: return 0x53; //KP *
+	case SDLK_KP_MINUS: return 0x54; //KP -
+	case SDLK_KP_PLUS: return 0x55; //KP +
+	case SDLK_KP_ENTER: return 0x56; //KP EN
+	case SDLK_KP_PERIOD: return 0x57; //KP .
+
+	case SDLK_KP0: return 0x58; //KP 0
+	case SDLK_KP1: return 0x59; //KP 1
+	case SDLK_KP2: return 0x5A; //KP 2
+	case SDLK_KP3: return 0x5B; //KP 3
+	case SDLK_KP4: return 0x5C; //KP 4
+	case SDLK_KP5: return 0x5D; //KP 5
+	case SDLK_KP6: return 0x5E; //KP 6
+	case SDLK_KP7: return 0x5F; //KP 7
+	case SDLK_KP8: return 0x60; //KP 8
+	case SDLK_KP9: return 0x61; //KP 9
+
+	case SDLK_RIGHTBRACKET: return 0x62; //]
+	case SDLK_SEMICOLON: return 0x63; //;
+	case SDLK_QUOTE: return 0x64; //'
+	case SDLK_COMMA: return 0x65; //: return 0x00;
+	case SDLK_PERIOD: return 0x66; //.
+	case SDLK_SLASH: : return 0x67;  ///
+	default: //Unknown key?
+		return -1; //Unknown key!
+		break;
+	}
+	return -1; //Unknown key!
+}
+
+#endif
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -1856,14 +1996,22 @@ void toggleDirectInput(byte cause)
 	if (Direct_Input) //Enabled Direct Input?
 	{
 		DirectInput_Middle = cause; //Are we toggled on by the middle mouse button?
-		SDL_WM_GrabInput(SDL_GRAB_ON); //Grab the mouse!
-		SDL_ShowCursor(SDL_DISABLE); //Don't show the cursor!
+		#ifndef SDL2
+			SDL_WM_GrabInput(SDL_GRAB_ON); //Grab the mouse!
+			SDL_ShowCursor(SDL_DISABLE); //Don't show the cursor!
+		#else
+			SDL_SetRelativeMouseMode(SDL_TRUE); //SDL2: Enter relative mouse mode!
+		#endif
 	}
 	else //Disabled?
 	{
 		DirectInput_Middle = 0; //Reset middle mouse button flag!
-		SDL_WM_GrabInput(SDL_GRAB_OFF); //Don't grab the mouse!
-		SDL_ShowCursor(SDL_ENABLE); //Show the cursor!
+		#ifndef SDL2
+			SDL_WM_GrabInput(SDL_GRAB_OFF); //Don't grab the mouse!
+			SDL_ShowCursor(SDL_ENABLE); //Show the cursor!
+		#else
+			SDL_SetRelativeMouseMode(SDL_FALSE); //SDL2: Leave relative mouse mode!
+		#endif
 	}
 
 	//Also disable mouse buttons pressed!
@@ -1889,162 +2037,177 @@ void updateInput(SDL_Event *event) //Update all input!
 	static byte RALT = 0;
 	switch (event->type)
 	{
+	//Keyboard events
 	case SDL_KEYUP: //Keyboard up?
-			if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
+		if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
+		{
+			lock(LOCK_INPUT); //Wait!
+			switch (event->key.keysym.sym) //What key?
 			{
-				lock(LOCK_INPUT); //Wait!
-				switch (event->key.keysym.sym) //What key?
-				{
-					//Special first
-				case SDLK_LCTRL: //LCTRL!
-					input.cas &= ~CAS_LCTRL; // Released!
-					break;
-				case SDLK_RCTRL: //RCTRL!
-					input.cas &= ~CAS_RCTRL; //Released!
-					break;
-				case SDLK_LALT: //LALT!
-					input.cas &= ~CAS_LALT; //Released!
-					break;
-				case SDLK_RALT: //RALT!
-					input.cas &= ~CAS_RALT; //Pressed!
-					RALT = 0; //RALT is released!
-					break;
-				case SDLK_LSHIFT: //LSHIFT!
-					input.cas &= ~CAS_LSHIFT; //Pressed!
-					break;
-				case SDLK_RSHIFT: //RSHIFT!
-					input.cas &= ~CAS_RSHIFT; //Pressed!
-					break;
+				//Special first
+			case SDLK_LCTRL: //LCTRL!
+				input.cas &= ~CAS_LCTRL; // Released!
+				break;
+			case SDLK_RCTRL: //RCTRL!
+				input.cas &= ~CAS_RCTRL; //Released!
+				break;
+			case SDLK_LALT: //LALT!
+				input.cas &= ~CAS_LALT; //Released!
+				break;
+			case SDLK_RALT: //RALT!
+				input.cas &= ~CAS_RALT; //Pressed!
+				RALT = 0; //RALT is released!
+				break;
+			case SDLK_LSHIFT: //LSHIFT!
+				input.cas &= ~CAS_LSHIFT; //Pressed!
+				break;
+			case SDLK_RSHIFT: //RSHIFT!
+				input.cas &= ~CAS_RSHIFT; //Pressed!
+				break;
 
-					//Normal keys
-				case SDLK_BACKSLASH: //HOLD?
-					input.Buttons &= ~BUTTON_HOLD; //Pressed!
-					break;
-				case SDLK_BACKSPACE: //SELECT?
-					input.Buttons &= ~BUTTON_SELECT; //Pressed!
-					break;
-				case SDLK_RETURN: //START?
-					input.Buttons &= ~BUTTON_START; //Pressed!
-					if (RALT) //RALT pressed too? Doubles as emulator fullscreen toggle!
-					{
-						GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
-						updateVideo(); //Force an update of video!
-					}
-					break;
-				case SDLK_UP: //UP?
-					input.Buttons &= ~BUTTON_UP; //Pressed!
-					break;
-				case SDLK_DOWN: //DOWN?
-					input.Buttons &= ~BUTTON_DOWN; //Pressed!
-					break;
-				case SDLK_LEFT: //LEFT?
-					input.Buttons &= ~BUTTON_LEFT; //Pressed!
-					break;
-				case SDLK_RIGHT: //RIGHT?
-					input.Buttons &= ~BUTTON_RIGHT; //Pressed!
-					break;
-				case SDLK_q: //LTRIGGER?
-					input.Buttons &= ~BUTTON_LTRIGGER; //Pressed!
-					break;
-				case SDLK_w: //RTRIGGER?
-					input.Buttons &= ~BUTTON_RTRIGGER; //Pressed!
-					break;
-				case SDLK_i: //Joy up?
-					input.keyboardjoy_direction &= ~1; //Up!
-					break;
-				case SDLK_j: //Joy left?
-					input.keyboardjoy_direction &= ~4; //Left!
-					break;
-				case SDLK_k: //Joy down?
-					input.keyboardjoy_direction &= ~2; //Down!
-					break;
-				case SDLK_l: //Joy right?
-					input.keyboardjoy_direction &= ~8; //Down!
-					break;
-				case SDLK_KP8: //TRIANGLE?
-					input.Buttons &= ~BUTTON_TRIANGLE; //Pressed!
-					break;
-				case SDLK_KP4: //SQUARE?
-					input.Buttons &= ~BUTTON_SQUARE; //Pressed!
-					break;
-				case SDLK_KP6: //CIRCLE?
-					input.Buttons &= ~BUTTON_CIRCLE; //Pressed!
-					break;
-				case SDLK_KP2: //CROSS?
-					input.Buttons &= ~BUTTON_CROSS; //Pressed!
-					break;
-				//Special emulator shortcuts?
-				case SDLK_F4: //F4?
-					if (RALT) //ALT-F4?
-					{
-						SDL_Event quitevent;
-						quitevent.quit.type = SDL_QUIT; //Add a quit to the queue!
-						SDL_PushEvent(&quitevent); //Add an quit event!
-					}
-					break;
-					break;
-				case SDLK_F5: //F5? Use F5 for simple compatiblity with Dosbox users. Screen shot!
-					if (RALT) //ALT-F5?
-					{
-						SCREEN_CAPTURE = 1; //Do a screen capture next frame!
-					}
-					break;
-				case SDLK_F6: //F6? Use F6 for simple compatiblity with Dosbox users. Start/stop sound recording!
-					if (RALT) //ALT-F6?
-					{
-						BIOS_SoundStartStopRecording(); //Start/stop recording!
-					}
-					break;
-				case SDLK_F9: //F9? Used to kill Dosbox. Since we use F4 for that, do special actions for debugging errors!
-					if (RALT) //ALT-F9?
-					{
-						#ifdef VGAIODUMP
-						//Start the VGA I/O dump now!
-						VGA_debugtiming = 0.0f; //Reset the counter as well!#endif
-						VGA_debugtiming_enabled = 1; //Start dumping!
-						#endif
-					}
-					break;
-				case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.
-					if (RALT) //ALT-F10?
-					{
-						toggleDirectInput(2); //Toggle direct input alternwtive without mouse!
-					}
-					break;
-				default: //Unknown?
-					break;
-				}
-				if (event->key.keysym.scancode == 34) //Play/pause?
+				//Normal keys
+			case SDLK_BACKSLASH: //HOLD?
+				input.Buttons &= ~BUTTON_HOLD; //Pressed!
+				break;
+			case SDLK_BACKSPACE: //SELECT?
+				input.Buttons &= ~BUTTON_SELECT; //Pressed!
+				break;
+			case SDLK_RETURN: //START?
+				input.Buttons &= ~BUTTON_START; //Pressed!
+				if (RALT) //RALT pressed too? Doubles as emulator fullscreen toggle!
 				{
-					input.Buttons &= ~BUTTON_PLAY; //Play button!
+					GPU.fullscreen = !GPU.fullscreen; //Toggle fullscreen!
+					updateVideo(); //Force an update of video!
 				}
-				if (event->key.keysym.scancode == 36) //Stop?
+				break;
+			case SDLK_UP: //UP?
+				input.Buttons &= ~BUTTON_UP; //Pressed!
+				break;
+			case SDLK_DOWN: //DOWN?
+				input.Buttons &= ~BUTTON_DOWN; //Pressed!
+				break;
+			case SDLK_LEFT: //LEFT?
+				input.Buttons &= ~BUTTON_LEFT; //Pressed!
+				break;
+			case SDLK_RIGHT: //RIGHT?
+				input.Buttons &= ~BUTTON_RIGHT; //Pressed!
+				break;
+			case SDLK_q: //LTRIGGER?
+				input.Buttons &= ~BUTTON_LTRIGGER; //Pressed!
+				break;
+			case SDLK_w: //RTRIGGER?
+				input.Buttons &= ~BUTTON_RTRIGGER; //Pressed!
+				break;
+			case SDLK_i: //Joy up?
+				input.keyboardjoy_direction &= ~1; //Up!
+				break;
+			case SDLK_j: //Joy left?
+				input.keyboardjoy_direction &= ~4; //Left!
+				break;
+			case SDLK_k: //Joy down?
+				input.keyboardjoy_direction &= ~2; //Down!
+				break;
+			case SDLK_l: //Joy right?
+				input.keyboardjoy_direction &= ~8; //Down!
+				break;
+			case SDLK_KP8: //TRIANGLE?
+				input.Buttons &= ~BUTTON_TRIANGLE; //Pressed!
+				break;
+			case SDLK_KP4: //SQUARE?
+				input.Buttons &= ~BUTTON_SQUARE; //Pressed!
+				break;
+			case SDLK_KP6: //CIRCLE?
+				input.Buttons &= ~BUTTON_CIRCLE; //Pressed!
+				break;
+			case SDLK_KP2: //CROSS?
+				input.Buttons &= ~BUTTON_CROSS; //Pressed!
+				break;
+			//Special emulator shortcuts?
+			case SDLK_F4: //F4?
+				if (RALT) //ALT-F4?
 				{
-					input.Buttons &= ~BUTTON_STOP; //Stop button!
+					SDL_Event quitevent;
+					quitevent.quit.type = SDL_QUIT; //Add a quit to the queue!
+					SDL_PushEvent(&quitevent); //Add an quit event!
 				}
-				if (Direct_Input)
+				break;
+				break;
+			case SDLK_F5: //F5? Use F5 for simple compatiblity with Dosbox users. Screen shot!
+				if (RALT) //ALT-F5?
 				{
-					input.Buttons = 0; //Ignore pressed buttons!
-					input.cas = 0; //Ignore pressed buttons!
-					//Handle button press/releases!
-					INLINEREGISTER int index;
-					INLINEREGISTER int key;
-					index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
-					if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
+					SCREEN_CAPTURE = 1; //Do a screen capture next frame!
+				}
+				break;
+			case SDLK_F6: //F6? Use F6 for simple compatiblity with Dosbox users. Start/stop sound recording!
+				if (RALT) //ALT-F6?
+				{
+					BIOS_SoundStartStopRecording(); //Start/stop recording!
+				}
+				break;
+			case SDLK_F9: //F9? Used to kill Dosbox. Since we use F4 for that, do special actions for debugging errors!
+				if (RALT) //ALT-F9?
+				{
+					#ifdef VGAIODUMP
+					//Start the VGA I/O dump now!
+					VGA_debugtiming = 0.0f; //Reset the counter as well!#endif
+					VGA_debugtiming_enabled = 1; //Start dumping!
+					#endif
+				}
+				break;
+			case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.
+				if (RALT) //ALT-F10?
+				{
+					toggleDirectInput(2); //Toggle direct input alternwtive without mouse!
+				}
+				break;
+			default: //Unknown?
+				break;
+			}
+			if (event->key.keysym.scancode == 34) //Play/pause?
+			{
+				input.Buttons &= ~BUTTON_PLAY; //Play button!
+			}
+			if (event->key.keysym.scancode == 36) //Stop?
+			{
+				input.Buttons &= ~BUTTON_STOP; //Stop button!
+			}
+			if (Direct_Input)
+			{
+				input.Buttons = 0; //Ignore pressed buttons!
+				input.cas = 0; //Ignore pressed buttons!
+				//Handle button press/releases!
+				#ifndef SDL2
+				INLINEREGISTER int index;
+				INLINEREGISTER int key;
+				index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
+				if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
+				{
+					if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
 					{
-						if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
+						if (emu_keys_state[key]&1) //We're pressed at all?
 						{
-							if (emu_keys_state[key]&1) //We're pressed at all?
-							{
-								emu_keys_state[key] |= 2; //We're released!
-								handleKeyPressRelease(key); //Handle release immediately!
-							}
+							emu_keys_state[key] |= 2; //We're released!
+							handleKeyPressRelease(key); //Handle release immediately!
 						}
 					}
 				}
-				updateMOD(); //Update rest keys!
-				unlock(LOCK_INPUT);
+				#else
+				//SDL2?
+				INLINEREGISTER int key;
+				key = emu_keys_sdl_rev(event->key.keysym.sym); //Load the index to use!
+				if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
+				{
+					if (emu_keys_state[key] & 1) //We're pressed at all?
+					{
+						emu_keys_state[key] |= 2; //We're released!
+						handleKeyPressRelease(key); //Handle release immediately!
+					}
+				}
+				#endif
 			}
+			updateMOD(); //Update rest keys!
+			unlock(LOCK_INPUT);
+		}
 		break;
 	case SDL_KEYDOWN: //Keyboard down?
 		if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
@@ -2052,386 +2215,430 @@ void updateInput(SDL_Event *event) //Update all input!
 			lock(LOCK_INPUT);
 			switch (event->key.keysym.sym) //What key?
 			{
-					//Special first
-				case SDLK_LCTRL: //LCTRL!
-					input.cas |= CAS_LCTRL; //Pressed!
-					break;
-				case SDLK_RCTRL: //RCTRL!
-					input.cas |= CAS_RCTRL; //Pressed!
-					break;
-				case SDLK_LALT: //LALT!
-					input.cas |= CAS_LALT; //Pressed!
-					break;
-				case SDLK_RALT: //RALT!
-					RALT = 1; //RALT is pressed!
-					input.cas |= CAS_RALT; //Pressed!
-					break;
-				case SDLK_LSHIFT: //LSHIFT!
-					input.cas |= CAS_LSHIFT; //Pressed!
-					break;
-				case SDLK_RSHIFT: //RSHIFT!
-					input.cas |= CAS_RSHIFT; //Pressed!
-					break;
+			//Special first
+			case SDLK_LCTRL: //LCTRL!
+				input.cas |= CAS_LCTRL; //Pressed!
+				break;
+			case SDLK_RCTRL: //RCTRL!
+				input.cas |= CAS_RCTRL; //Pressed!
+				break;
+			case SDLK_LALT: //LALT!
+				input.cas |= CAS_LALT; //Pressed!
+				break;
+			case SDLK_RALT: //RALT!
+				RALT = 1; //RALT is pressed!
+				input.cas |= CAS_RALT; //Pressed!
+				break;
+			case SDLK_LSHIFT: //LSHIFT!
+				input.cas |= CAS_LSHIFT; //Pressed!
+				break;
+			case SDLK_RSHIFT: //RSHIFT!
+				input.cas |= CAS_RSHIFT; //Pressed!
+				break;
 
-				case SDLK_BACKSLASH: //HOLD?
-					input.Buttons |= BUTTON_HOLD; //Pressed!
-					break;
-				case SDLK_BACKSPACE: //SELECT?
-					input.Buttons |= BUTTON_SELECT; //Pressed!
-					break;
-				case SDLK_RETURN: //START?
-					if (RALT) //ALT-ENTER?
-					{
-						unlock(LOCK_INPUT);
-						return; //Ignore the input: we're reserved!
-					}
-					input.Buttons |= BUTTON_START; //Pressed!
-					break;
-				case SDLK_UP: //UP?
-					input.Buttons |= BUTTON_UP; //Pressed!
-					break;
-				case SDLK_DOWN: //DOWN?
-					input.Buttons |= BUTTON_DOWN; //Pressed!
-					break;
-				case SDLK_LEFT: //LEFT?
-					input.Buttons |= BUTTON_LEFT; //Pressed!
-					break;
-				case SDLK_RIGHT: //RIGHT?
-					input.Buttons |= BUTTON_RIGHT; //Pressed!
-					break;
-				case SDLK_q: //LTRIGGER?
-					input.Buttons |= BUTTON_LTRIGGER; //Pressed!
-					break;
-				case SDLK_w: //RTRIGGER?
-					input.Buttons |= BUTTON_RTRIGGER; //Pressed!
-					break;
-				case SDLK_i: //Joy up?
-					input.keyboardjoy_direction |= 1; //Up!
-					break;
-				case SDLK_j: //Joy left?
-					input.keyboardjoy_direction |= 4; //Left!
-					break;
-				case SDLK_k: //Joy down?
-					input.keyboardjoy_direction |= 2; //Down!
-					break;
-				case SDLK_l: //Joy right?
-					input.keyboardjoy_direction |= 8; //Down!
-					break;
-				case SDLK_KP8: //TRIANGLE?
-					input.Buttons |= BUTTON_TRIANGLE; //Pressed!
-					break;
-				case SDLK_KP4: //SQUARE?
-					input.Buttons |= BUTTON_SQUARE; //Pressed!
-					break;
-				case SDLK_KP6: //CIRCLE?
-					input.Buttons |= BUTTON_CIRCLE; //Pressed!
-					break;
-				case SDLK_KP2: //CROSS?
-					input.Buttons |= BUTTON_CROSS; //Pressed!
-					break;
-				//Special emulator shortcuts!
-				case SDLK_F4: //F4?
-				case SDLK_F5: //F5? Use F5 for simple compatiblity with Dosbox users. Screen shot!
-				case SDLK_F6: //F6? Use F6 for simple compatiblity with Dosbox users. Start/stop sound recording!
-				case SDLK_F9: //F9? Used to kill Dosbox. Since we use F4 for that, do special actions for debugging errors!
-				case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.
-					if (RALT) //ALT combination? We're reserved input for special actions!
-					{
-						unlock(LOCK_INPUT);
-						return; //Ignore the input: we're reserved!
-					}
-					break;
-				default: //Unknown key?
-					break;
-				}
-				if (event->key.keysym.scancode == 34) //Play/pause?
+			case SDLK_BACKSLASH: //HOLD?
+				input.Buttons |= BUTTON_HOLD; //Pressed!
+				break;
+			case SDLK_BACKSPACE: //SELECT?
+				input.Buttons |= BUTTON_SELECT; //Pressed!
+				break;
+			case SDLK_RETURN: //START?
+				if (RALT) //ALT-ENTER?
 				{
-					input.Buttons |= BUTTON_PLAY; //Play button!
+					unlock(LOCK_INPUT);
+					return; //Ignore the input: we're reserved!
 				}
-				if (event->key.keysym.scancode == 36) //Stop?
+				input.Buttons |= BUTTON_START; //Pressed!
+				break;
+			case SDLK_UP: //UP?
+				input.Buttons |= BUTTON_UP; //Pressed!
+				break;
+			case SDLK_DOWN: //DOWN?
+				input.Buttons |= BUTTON_DOWN; //Pressed!
+				break;
+			case SDLK_LEFT: //LEFT?
+				input.Buttons |= BUTTON_LEFT; //Pressed!
+				break;
+			case SDLK_RIGHT: //RIGHT?
+				input.Buttons |= BUTTON_RIGHT; //Pressed!
+				break;
+			case SDLK_q: //LTRIGGER?
+				input.Buttons |= BUTTON_LTRIGGER; //Pressed!
+				break;
+			case SDLK_w: //RTRIGGER?
+				input.Buttons |= BUTTON_RTRIGGER; //Pressed!
+				break;
+			case SDLK_i: //Joy up?
+				input.keyboardjoy_direction |= 1; //Up!
+				break;
+			case SDLK_j: //Joy left?
+				input.keyboardjoy_direction |= 4; //Left!
+				break;
+			case SDLK_k: //Joy down?
+				input.keyboardjoy_direction |= 2; //Down!
+				break;
+			case SDLK_l: //Joy right?
+				input.keyboardjoy_direction |= 8; //Down!
+				break;
+			case SDLK_KP8: //TRIANGLE?
+				input.Buttons |= BUTTON_TRIANGLE; //Pressed!
+				break;
+			case SDLK_KP4: //SQUARE?
+				input.Buttons |= BUTTON_SQUARE; //Pressed!
+				break;
+			case SDLK_KP6: //CIRCLE?
+				input.Buttons |= BUTTON_CIRCLE; //Pressed!
+				break;
+			case SDLK_KP2: //CROSS?
+				input.Buttons |= BUTTON_CROSS; //Pressed!
+				break;
+			//Special emulator shortcuts!
+			case SDLK_F4: //F4?
+			case SDLK_F5: //F5? Use F5 for simple compatiblity with Dosbox users. Screen shot!
+			case SDLK_F6: //F6? Use F6 for simple compatiblity with Dosbox users. Start/stop sound recording!
+			case SDLK_F9: //F9? Used to kill Dosbox. Since we use F4 for that, do special actions for debugging errors!
+			case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.
+				if (RALT) //ALT combination? We're reserved input for special actions!
 				{
-					input.Buttons |= BUTTON_STOP; //Stop button!
+					unlock(LOCK_INPUT);
+					return; //Ignore the input: we're reserved!
+				}
+				break;
+			default: //Unknown key?
+				break;
+			}
+			if (event->key.keysym.scancode == 34) //Play/pause?
+			{
+				input.Buttons |= BUTTON_PLAY; //Play button!
+			}
+			if (event->key.keysym.scancode == 36) //Stop?
+			{
+				input.Buttons |= BUTTON_STOP; //Stop button!
+			}
+			if (Direct_Input)
+			{
+				input.Buttons = 0; //Ignore pressed buttons!
+				input.cas = 0; //Ignore pressed buttons!
+
+				//Handle button press/releases!
+				#ifndef SDL2
+				INLINEREGISTER int index;
+				INLINEREGISTER int key;
+				index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
+				if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
+				{
+					if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
+					{
+						emu_keys_state[key] = 1; //We're pressed from now on, not released!
+						if (input_enabled && ALLOW_INPUT) //Input enabled? Then we allow key presses!
+						{
+							handleKeyPressRelease(key); //Handle key press or release immediately!
+						}
+					}
+				}
+				#else
+				//SDL2?
+				INLINEREGISTER int key;
+				key = emu_keys_sdl_rev(event->key.keysym.sym); //Load the index to use!
+				if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
+				{
+					emu_keys_state[key] = 1; //We're pressed from now on, not released!
+					if (input_enabled && ALLOW_INPUT) //Input enabled? Then we allow key presses!
+					{
+						handleKeyPressRelease(key); //Handle key press or release immediately!
+					}
+				}
+				#endif
+			}
+			updateMOD(); //Update rest keys!
+			unlock(LOCK_INPUT);
+		}
+		break;
+	//Joystick events
+	case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+		#ifdef SDL2
+		if (event->jaxis.which==SDL_JoystickInstanceID(joystick)) { //Current stick?
+		#endif
+		if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
+		{
+			lock(LOCK_INPUT);
+			switch ( event->jaxis.axis)
+			{
+				case 0: /* Left-right movement code goes here */
+					input.Lx = event->jaxis.value; //New value!
+					break;
+				case 1: /* Up-Down movement code goes here */
+					input.Ly = event->jaxis.value; //New value!
+					break;
+			}
+
+			if (Direct_Input) //Direct input enabled? Ignore the joystick!
+			{
+				input.Lx = input.Ly = 0; //Ignore pressed buttons!
+			}
+			unlock(LOCK_INPUT);
+		}
+		#ifdef SDL2
+		} //Current stick?
+		#endif
+		break;
+	case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
+		#ifdef SDL2
+		if (event->jaxis.which == SDL_JoystickInstanceID(joystick)) { //Current stick?
+		#endif
+		if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
+		{
+			lock(LOCK_INPUT);
+			switch (event->jbutton.button) //What button?
+			{
+				case INPUT_BUTTON_TRIANGLE:
+					input.Buttons |= BUTTON_TRIANGLE; //Press!
+					break;
+				case INPUT_BUTTON_SQUARE:
+					input.Buttons |= BUTTON_SQUARE; //Press!
+					break;
+				case INPUT_BUTTON_CROSS:
+					input.Buttons |= BUTTON_CROSS; //Press!
+					break;
+				case INPUT_BUTTON_CIRCLE:
+					input.Buttons |= BUTTON_CIRCLE; //Press!
+					break;
+				case INPUT_BUTTON_LTRIGGER:
+					input.Buttons |= BUTTON_LTRIGGER; //Press!
+					break;
+				case INPUT_BUTTON_RTRIGGER:
+					input.Buttons |= BUTTON_RTRIGGER; //Press!
+					break;
+				case INPUT_BUTTON_SELECT:
+					input.Buttons |= BUTTON_SELECT; //Press!
+					break;
+				case INPUT_BUTTON_START:
+					input.Buttons |= BUTTON_START; //Press!
+					break;
+				case INPUT_BUTTON_HOME:
+					input.Buttons |= BUTTON_HOME; //Press!
+					break;
+				case INPUT_BUTTON_HOLD:
+					input.Buttons |= BUTTON_HOLD; //Press!
+					break;
+				case INPUT_BUTTON_UP:
+					input.Buttons |= BUTTON_UP; //Press!
+					break;
+				case INPUT_BUTTON_DOWN:
+					input.Buttons |= BUTTON_DOWN; //Press!
+					break;
+				case INPUT_BUTTON_LEFT:
+					input.Buttons |= BUTTON_LEFT; //Press!
+					break;
+				case INPUT_BUTTON_RIGHT:
+					input.Buttons |= BUTTON_RIGHT; //Press!
+					break;
+				default: //Unknown button?
+					break;
+			}
+			unlock(LOCK_INPUT);
+		}
+		#ifdef SDL2
+		}
+		#endif
+		break;
+	case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
+		#ifdef SDL2
+		if (event->jaxis.which == SDL_JoystickInstanceID(joystick)) { //Current stick?
+		#endif
+		if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
+		{
+			lock(LOCK_INPUT);
+			switch (event->jbutton.button) //What button?
+			{
+				case INPUT_BUTTON_TRIANGLE:
+					input.Buttons &= ~BUTTON_TRIANGLE; //Release!
+					break;
+				case INPUT_BUTTON_SQUARE:
+					input.Buttons &= ~BUTTON_SQUARE; //Release!
+					break;
+				case INPUT_BUTTON_CROSS:
+					input.Buttons &= ~BUTTON_CROSS; //Release!
+					break;
+				case INPUT_BUTTON_CIRCLE:
+					input.Buttons &= ~BUTTON_CIRCLE; //Release!
+					break;
+				case INPUT_BUTTON_LTRIGGER:
+					input.Buttons &= ~BUTTON_LTRIGGER; //Release!
+					break;
+				case INPUT_BUTTON_RTRIGGER:
+					input.Buttons &= ~BUTTON_RTRIGGER; //Release!
+					break;
+				case INPUT_BUTTON_SELECT:
+					input.Buttons &= ~BUTTON_SELECT; //Release!
+					break;
+				case INPUT_BUTTON_START:
+					input.Buttons &= ~BUTTON_START; //Release!
+					break;
+				case INPUT_BUTTON_HOME:
+					input.Buttons &= ~BUTTON_HOME; //Release!
+					break;
+				case INPUT_BUTTON_HOLD:
+					input.Buttons &= ~BUTTON_HOLD; //Release!
+					break;
+				case INPUT_BUTTON_UP:
+					input.Buttons &= ~BUTTON_UP; //Release!
+					break;
+				case INPUT_BUTTON_DOWN:
+					input.Buttons &= ~BUTTON_DOWN; //Release!
+					break;
+				case INPUT_BUTTON_LEFT:
+					input.Buttons &= ~BUTTON_LEFT; //Release!
+					break;
+				case INPUT_BUTTON_RIGHT:
+					input.Buttons &= ~BUTTON_RIGHT; //Release!
+					break;
+				default: //Unknown button?
+					break;
+			}
+			unlock(LOCK_INPUT);
+		}
+		#ifdef SDL2
+		}
+		#endif
+		break;
+
+	//Mouse events
+	case SDL_MOUSEBUTTONDOWN: //Button pressed?
+		if (hasmousefocus) //Do we have mouse focus?
+		{
+			lock(LOCK_INPUT);
+			switch (event->button.button) //What button?
+			{
+			case SDL_BUTTON_LEFT:
+				mousebuttons |= 1; //Left pressed!
+				if (Direct_Input) //Direct input enabled?
+				{
+					Mouse_buttons |= 1; //Left mouse button pressed!
+				}
+				else //Not executing direct input?
+				{
+					GPU_mousebuttondown(mouse_x, mouse_y); //We're pressed at these coordinates!
+				}
+				break;
+			case SDL_BUTTON_RIGHT:
+				mousebuttons |= 2; //Right pressed!
+				if (Direct_Input) //Direct input enabled?
+				{
+					Mouse_buttons |= 2; //Right mouse button pressed!
+				}
+				break;
+			}
+			unlock(LOCK_INPUT);
+		}
+		break;
+	case SDL_MOUSEBUTTONUP: //Special mouse button action?
+		if (hasmousefocus)
+		{
+			lock(LOCK_INPUT);
+			switch (event->button.button) //What button?
+			{
+			case SDL_BUTTON_MIDDLE: //Middle released!
+				toggleDirectInput(1); //Toggle direct input by middle button!
+				break;
+			case SDL_BUTTON_LEFT:
+				if ((mousebuttons==3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
+				{
+					toggleDirectInput(0); //Toggle direct input by both buttons!
 				}
 				if (Direct_Input)
 				{
-					input.Buttons = 0; //Ignore pressed buttons!
-					input.cas = 0; //Ignore pressed buttons!
-
-					//Handle button press/releases!
-					INLINEREGISTER int index;
-					INLINEREGISTER int key;
-					index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
-					if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
+					if (input_buffer_enabled) //Buffering?
 					{
-						if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
+						if ((input_buffer==-1) && (!input_buffer_shift) && (!input_buffer_mouse)) //Nothing pressed yet?
 						{
-							emu_keys_state[key] = 1; //We're pressed from now on, not released!
-							if (input_enabled && ALLOW_INPUT) //Input enabled? Then we allow key presses!
-							{
-								handleKeyPressRelease(key); //Handle key press or release immediately!
-							}
+							input_buffer = last_input_key; //The last key pressed is used!
+							input_buffer_shift = currentshiftstatus_inputbuffer; //The last shift is used, if any!
+							input_buffer_mouse = mousebuttons; //Left/Right button is pressed!
 						}
 					}
+					Mouse_buttons &= ~1; //button released!
 				}
-				updateMOD(); //Update rest keys!
-				unlock(LOCK_INPUT);
-			}
-			break;
-		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
-			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
-			{
-				lock(LOCK_INPUT);
-				switch ( event->jaxis.axis)
+				mousebuttons &= ~1; //Left released!
+				break;
+			case SDL_BUTTON_RIGHT:
+				if ((mousebuttons == 3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
 				{
-					case 0: /* Left-right movement code goes here */
-						input.Lx = event->jaxis.value; //New value!
-						break;
-					case 1: /* Up-Down movement code goes here */
-						input.Ly = event->jaxis.value; //New value!
-						break;
+					toggleDirectInput(0); //Toggle direct input by both buttons!
 				}
-
-				if (Direct_Input) //Direct input enabled? Ignore the joystick!
+				if (Direct_Input)
 				{
-					input.Lx = input.Ly = 0; //Ignore pressed buttons!
-				}
-				unlock(LOCK_INPUT);
-			}
-			break;
-		case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
-			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
-			{
-				lock(LOCK_INPUT);
-				switch (event->jbutton.button) //What button?
-				{
-					case INPUT_BUTTON_TRIANGLE:
-						input.Buttons |= BUTTON_TRIANGLE; //Press!
-						break;
-					case INPUT_BUTTON_SQUARE:
-						input.Buttons |= BUTTON_SQUARE; //Press!
-						break;
-					case INPUT_BUTTON_CROSS:
-						input.Buttons |= BUTTON_CROSS; //Press!
-						break;
-					case INPUT_BUTTON_CIRCLE:
-						input.Buttons |= BUTTON_CIRCLE; //Press!
-						break;
-					case INPUT_BUTTON_LTRIGGER:
-						input.Buttons |= BUTTON_LTRIGGER; //Press!
-						break;
-					case INPUT_BUTTON_RTRIGGER:
-						input.Buttons |= BUTTON_RTRIGGER; //Press!
-						break;
-					case INPUT_BUTTON_SELECT:
-						input.Buttons |= BUTTON_SELECT; //Press!
-						break;
-					case INPUT_BUTTON_START:
-						input.Buttons |= BUTTON_START; //Press!
-						break;
-					case INPUT_BUTTON_HOME:
-						input.Buttons |= BUTTON_HOME; //Press!
-						break;
-					case INPUT_BUTTON_HOLD:
-						input.Buttons |= BUTTON_HOLD; //Press!
-						break;
-					case INPUT_BUTTON_UP:
-						input.Buttons |= BUTTON_UP; //Press!
-						break;
-					case INPUT_BUTTON_DOWN:
-						input.Buttons |= BUTTON_DOWN; //Press!
-						break;
-					case INPUT_BUTTON_LEFT:
-						input.Buttons |= BUTTON_LEFT; //Press!
-						break;
-					case INPUT_BUTTON_RIGHT:
-						input.Buttons |= BUTTON_RIGHT; //Press!
-						break;
-					default: //Unknown button?
-						break;
-				}
-				unlock(LOCK_INPUT);
-			}
-			break;
-		case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
-			if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
-			{
-				lock(LOCK_INPUT);
-				switch (event->jbutton.button) //What button?
-				{
-					case INPUT_BUTTON_TRIANGLE:
-						input.Buttons &= ~BUTTON_TRIANGLE; //Release!
-						break;
-					case INPUT_BUTTON_SQUARE:
-						input.Buttons &= ~BUTTON_SQUARE; //Release!
-						break;
-					case INPUT_BUTTON_CROSS:
-						input.Buttons &= ~BUTTON_CROSS; //Release!
-						break;
-					case INPUT_BUTTON_CIRCLE:
-						input.Buttons &= ~BUTTON_CIRCLE; //Release!
-						break;
-					case INPUT_BUTTON_LTRIGGER:
-						input.Buttons &= ~BUTTON_LTRIGGER; //Release!
-						break;
-					case INPUT_BUTTON_RTRIGGER:
-						input.Buttons &= ~BUTTON_RTRIGGER; //Release!
-						break;
-					case INPUT_BUTTON_SELECT:
-						input.Buttons &= ~BUTTON_SELECT; //Release!
-						break;
-					case INPUT_BUTTON_START:
-						input.Buttons &= ~BUTTON_START; //Release!
-						break;
-					case INPUT_BUTTON_HOME:
-						input.Buttons &= ~BUTTON_HOME; //Release!
-						break;
-					case INPUT_BUTTON_HOLD:
-						input.Buttons &= ~BUTTON_HOLD; //Release!
-						break;
-					case INPUT_BUTTON_UP:
-						input.Buttons &= ~BUTTON_UP; //Release!
-						break;
-					case INPUT_BUTTON_DOWN:
-						input.Buttons &= ~BUTTON_DOWN; //Release!
-						break;
-					case INPUT_BUTTON_LEFT:
-						input.Buttons &= ~BUTTON_LEFT; //Release!
-						break;
-					case INPUT_BUTTON_RIGHT:
-						input.Buttons &= ~BUTTON_RIGHT; //Release!
-						break;
-					default: //Unknown button?
-						break;
-				}
-				unlock(LOCK_INPUT);
-			}
-			break;
-		case SDL_MOUSEBUTTONDOWN: //Button pressed?
-			if (hasmousefocus) //Do we have mouse focus?
-			{
-				lock(LOCK_INPUT);
-				switch (event->button.button) //What button?
-				{
-				case SDL_BUTTON_LEFT:
-					mousebuttons |= 1; //Left pressed!
-					if (Direct_Input) //Direct input enabled?
+					if (input_buffer_enabled) //Buffering?
 					{
-						Mouse_buttons |= 1; //Left mouse button pressed!
-					}
-					else //Not executing direct input?
-					{
-						GPU_mousebuttondown(mouse_x, mouse_y); //We're pressed at these coordinates!
-					}
-					break;
-				case SDL_BUTTON_RIGHT:
-					mousebuttons |= 2; //Right pressed!
-					if (Direct_Input) //Direct input enabled?
-					{
-						Mouse_buttons |= 2; //Right mouse button pressed!
-					}
-					break;
-				}
-				unlock(LOCK_INPUT);
-			}
-			break;
-		case SDL_MOUSEBUTTONUP: //Special mouse button action?
-			if (hasmousefocus)
-			{
-				lock(LOCK_INPUT);
-				switch (event->button.button) //What button?
-				{
-				case SDL_BUTTON_MIDDLE: //Middle released!
-					toggleDirectInput(1); //Toggle direct input by middle button!
-					break;
-				case SDL_BUTTON_LEFT:
-					if ((mousebuttons==3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
-					{
-						toggleDirectInput(0); //Toggle direct input by both buttons!
-					}
-					if (Direct_Input)
-					{
-						if (input_buffer_enabled) //Buffering?
+						if ((input_buffer==-1) && (!input_buffer_shift) && (!input_buffer_mouse)) //Nothing pressed yet?
 						{
-							if ((input_buffer==-1) && (!input_buffer_shift) && (!input_buffer_mouse)) //Nothing pressed yet?
-							{
-								input_buffer = last_input_key; //The last key pressed is used!
-								input_buffer_shift = currentshiftstatus_inputbuffer; //The last shift is used, if any!
-								input_buffer_mouse = mousebuttons; //Left/Right button is pressed!
-							}
+							input_buffer = last_input_key; //The last key pressed is used!
+							input_buffer_shift = currentshiftstatus_inputbuffer; //The last shift is used, if any!
+							input_buffer_mouse = mousebuttons; //Left/Right button is pressed!
 						}
-						Mouse_buttons &= ~1; //button released!
 					}
-					mousebuttons &= ~1; //Left released!
-					break;
-				case SDL_BUTTON_RIGHT:
-					if ((mousebuttons == 3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
-					{
-						toggleDirectInput(0); //Toggle direct input by both buttons!
-					}
-					if (Direct_Input)
-					{
-						if (input_buffer_enabled) //Buffering?
-						{
-							if ((input_buffer==-1) && (!input_buffer_shift) && (!input_buffer_mouse)) //Nothing pressed yet?
-							{
-								input_buffer = last_input_key; //The last key pressed is used!
-								input_buffer_shift = currentshiftstatus_inputbuffer; //The last shift is used, if any!
-								input_buffer_mouse = mousebuttons; //Left/Right button is pressed!
-							}
-						}
-						Mouse_buttons &= ~2; //button released!
-					}
-					mousebuttons &= ~2; //Right released!
-					break;
+					Mouse_buttons &= ~2; //button released!
 				}
-				unlock(LOCK_INPUT);
-			}
-			
-			if (event->button.button==SDL_BUTTON_LEFT) //Release left button inside or outside our window?
-			{
-				lock(LOCK_INPUT);
-				GPU_mousebuttonup(mouse_x, mouse_y); //We're released at the current coordinates!
-				unlock(LOCK_INPUT);
-			}
-			break;
-		case SDL_MOUSEMOTION: //Mouse moved?
-			if (hasmousefocus) //Do we have mouse focus?
-			{
-				lock(LOCK_INPUT);
-				if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
-				{
-					mouse_xmove += event->motion.xrel; //Move the mouse horizontally!
-					mouse_ymove += event->motion.yrel; //Move the mouse vertically!
-				}
-
-				//Always update mouse coordinates for our own GUI handling!
-				mouse_x = event->motion.x; //X coordinate on the window!
-				mouse_y = event->motion.y; //Y coordinate on the window!
-				unlock(LOCK_INPUT);
-			}
-			break;
-		case SDL_QUIT: //Quit?
-			SDL_JoystickClose(joystick); //Finish our joystick!
-			EMU_Shutdown(1); //Request a shutdown!
-			break;
-		case SDL_ACTIVEEVENT: //Window event?
-			lock(LOCK_INPUT);
-			if (event->active.state&SDL_APPMOUSEFOCUS)
-			{
-				hasmousefocus = event->active.gain; //Do we have mouse focus?
-			}
-			if (event->active.state&SDL_APPINPUTFOCUS) //Gain/lose keyboard focus?
-			{
-				hasinputfocus = event->active.gain; //Do we have input focus?
-			}
-			if (event->active.state&SDL_APPACTIVE) //Iconified/Restored?
-			{
-				haswindowactive = event->active.gain; //0=Iconified, 1=Restored.
+				mousebuttons &= ~2; //Right released!
+				break;
 			}
 			unlock(LOCK_INPUT);
-			break;
-		default: //Unhandled event?
-			break;
+		}
+			
+		if (event->button.button==SDL_BUTTON_LEFT) //Release left button inside or outside our window?
+		{
+			lock(LOCK_INPUT);
+			GPU_mousebuttonup(mouse_x, mouse_y); //We're released at the current coordinates!
+			unlock(LOCK_INPUT);
+		}
+		break;
+	case SDL_MOUSEMOTION: //Mouse moved?
+		if (hasmousefocus) //Do we have mouse focus?
+		{
+			lock(LOCK_INPUT);
+			if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
+			{
+				mouse_xmove += event->motion.xrel; //Move the mouse horizontally!
+				mouse_ymove += event->motion.yrel; //Move the mouse vertically!
+			}
+
+			//Always update mouse coordinates for our own GUI handling!
+			mouse_x = event->motion.x; //X coordinate on the window!
+			mouse_y = event->motion.y; //Y coordinate on the window!
+			unlock(LOCK_INPUT);
+		}
+		break;
+
+	//Misc system events
+	case SDL_QUIT: //Quit?
+		lock(LOCK_INPUT);
+		SDL_JoystickClose(joystick); //Finish our joystick: we're not using it anymore!
+		EMU_Shutdown(1); //Request a shutdown!
+		unlock(LOCK_INPUT);
+		break;
+	case SDL_ACTIVEEVENT: //Window event?
+		lock(LOCK_INPUT);
+		if (event->active.state&SDL_APPMOUSEFOCUS)
+		{
+			hasmousefocus = event->active.gain; //Do we have mouse focus?
+		}
+		if (event->active.state&SDL_APPINPUTFOCUS) //Gain/lose keyboard focus?
+		{
+			hasinputfocus = event->active.gain; //Do we have input focus?
+		}
+		if (event->active.state&SDL_APPACTIVE) //Iconified/Restored?
+		{
+			haswindowactive = event->active.gain; //0=Iconified, 1=Restored.
+		}
+		unlock(LOCK_INPUT);
+		break;
+	#ifdef SDL2
+	case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
+		haswindowactive = 0; //We're iconified! This also prevents drawing! This is critical!
+		break;
+	#endif
+	default: //Unhandled/unknown event?
+		break; //Ignore the event!
 	}
 }
 
@@ -2474,6 +2681,14 @@ void updateMouse(double timepassed)
 	mouse_ticktiming = temp; //Save the new timing, if any!
 }
 
+#ifdef SDL2
+int SDLCALL myEventFilter(void *userdata, SDL_Event * event)
+{
+	//Emergency calls! Immediately update!
+	updateInput(event); //Handle this immediately!
+}
+#endif
+
 void psp_input_init()
 {
 	uint_32 i;
@@ -2484,6 +2699,8 @@ void psp_input_init()
 	initTicksHolder(&Keyboardticker); //Initialise our timing!
 	SDL_JoystickEventState(SDL_ENABLE);
 	joystick = SDL_JoystickOpen(0); //Open our joystick!
+	#ifndef SDL2
+	//SDL2 can't use the reverse table anymore! It uses a simple function for lookups instead!
 	for (i = 0;i < NUMITEMS(emu_keys_sdl_rev);i++) //Initialise all keys!
 	{
 		emu_keys_sdl_rev[i] = -1; //Default to unused!
@@ -2494,15 +2711,22 @@ void psp_input_init()
 		emu_keys_sdl_rev[signed2unsigned16(emu_keys_SDL[i])] = i; //Reverse lookup of the table!
 		++i; //Next!
 	}
+	#endif
 	#ifdef __DEBUG_INPUT
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,SDL_DEFAULT_REPEAT_INTERVAL); //Repeat pressed keys for logging!
 	#else
 	SDL_EnableKeyRepeat(0,0); //Don't repeat pressed keys: this isn't required while using normal input without logging!
 	#endif
 	keyboard_mousetiming = mouse_ticktiming = 0.0f; //Initialise mouse timing!
+	#ifdef SDL2
+	SDL_AddEventWatch(myEventFilter, NULL); //For applying critical updates!
+	#endif
 }
 
 void psp_input_done()
 {
 	//Do nothing for now!
+	#ifdef SDL2
+	SDL_DelEventWatch(myEventFilter, NULL); //For applying critical updates!
+	#endif
 }

@@ -7,7 +7,35 @@
 //Log put_pixel_row errors?
 //#define PPRLOG
 
-//Container/wrapper support
+//SDL1 vs SDL2 compatibility support!
+
+OPTINLINE word getlayerwidth(GPU_SDL_Surface *img)
+{
+	return img->sdllayer->w; //The width!
+}
+
+OPTINLINE word getlayerheight(GPU_SDL_Surface *img)
+{
+	return img->sdllayer->h; //The height!
+}
+
+OPTINLINE word getlayervirtualwidth(GPU_SDL_Surface *surface)
+{
+	INLINEREGISTER uint_32 pitch;
+	pitch = surface->sdllayer->pitch; //Load the pitch!
+	if (pitch >= 4) //Got pitch?
+	{
+		return (pitch >> 2); //Pitch in pixels!
+	}
+	return getlayerwidth(surface); //Just use the width as a pitch to fall back to!
+}
+
+OPTINLINE uint_32 **getlayerpixels(GPU_SDL_Surface *img)
+{
+	return (uint_32 **)&img->sdllayer->pixels; //A pointer to the pixels pointer itself!
+}
+
+//Basic Container/wrapper support
 void freeSurfacePtr(void **ptr, uint_32 size, SDL_sem *lock) //Free a pointer (used internally only) allocated with nzalloc/zalloc and our internal functions!
 {
 	GPU_SDL_Surface *surface = (GPU_SDL_Surface *)*ptr; //Take the surface out of the pointer!
@@ -15,10 +43,10 @@ void freeSurfacePtr(void **ptr, uint_32 size, SDL_sem *lock) //Free a pointer (u
 	if (!(surface->flags&SDL_FLAG_NODELETE)) //The surface is allowed to be deleted?
 	{
 		//Start by freeing the surfaces in the handlers!
-		uint_32 pixels_size = (surface->sdllayer->h*get_pixelrow_pitch(surface))<<2; //Calculate surface pixels size!
+		uint_32 pixels_size = (getlayerheight(surface)*get_pixelrow_pitch(surface))<<2; //Calculate surface pixels size!
 		if (!(surface->flags&SDL_FLAG_NODELETE_PIXELS)) //Valid to delete?
 		{
-			unregisterptr(surface->sdllayer->pixels,pixels_size); //Release the pixels within the surface!
+			unregisterptr(*getlayerpixels(surface),pixels_size); //Release the pixels within the surface!
 		}
 		if (unregisterptr(surface->sdllayer,sizeof(*surface->sdllayer))) //The surface itself!
 		{
@@ -45,6 +73,7 @@ GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface) //Retrieves a surface w
 	{
 		return NULL; //Error!
 	}
+	//SDL1?
 	wrapper->sdllayer = surface; //The surface to use within the wrapper!
 	wrapper->lock = SDL_CreateSemaphore(1); //The lock!
 	return wrapper; //Give the allocated wrapper!
@@ -68,12 +97,12 @@ void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerele
 	}
 
 	uint_32 pixels_size;
-	pixels_size = (surface->sdllayer->h*get_pixelrow_pitch(surface))<<2; //The size of the pixels structure!
-	if (!memprotect(surface->sdllayer->pixels, pixels_size, NULL)) //Not already registered (fix for call from createSurfaceFromPixels)?
+	pixels_size = (getlayerheight(surface)*get_pixelrow_pitch(surface))<<2; //The size of the pixels structure!
+	if (!memprotect(*getlayerpixels(surface), pixels_size, NULL)) //Not already registered (fix for call from createSurfaceFromPixels)?
 	{
-		if (!registerptr(surface->sdllayer->pixels, pixels_size, "Surface_Pixels", NULL,NULL)) //The pixels within the surface! We can't be released natively!
+		if (!registerptr(*getlayerpixels(surface), pixels_size, "Surface_Pixels", NULL,NULL)) //The pixels within the surface! We can't be released natively!
 		{
-			if (!memprotect(surface->sdllayer->pixels, pixels_size, "Surface_Pixels")) //Not registered?
+			if (!memprotect(*getlayerpixels(surface), pixels_size, "Surface_Pixels")) //Not registered?
 			{
 				dolog("registerSurface", "Registering the surface pixels failed.");
 				logpointers("registerSurface");
@@ -168,7 +197,12 @@ OPTINLINE void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest 
 	if( src->sdllayer->flags & SDL_SRCCOLORKEY )
 	{
 		Uint32 colorkey = src->sdllayer->format->colorkey;
+		#ifndef SDL2
 		SDL_SetColorKey( dest->sdllayer, SDL_SRCCOLORKEY, colorkey );
+		#else
+		//SDL2?
+		SDL_SetColorKey( dest->sdllatyer, SDL_TRUE, colorKey);
+		#endif
 	}
 }
 
@@ -226,7 +260,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 	{
 		return NULL; //Nothin to resize is nothing back!
 	}
-	if ((!img->sdllayer->w) || (!img->sdllayer->h) || (!newwidth) || (!newheight)) //No size to resize?
+	if ((!getlayerwidth(img)) || (!getlayerheight(img)) || (!newwidth) || (!newheight)) //No size to resize?
 	{
 		return NULL; //Nothing to resize!
 	}
@@ -234,7 +268,7 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 	//dolog("SDL","ResizeImage: valid surface to resize. Calculating new size...");
 	//Calculate destination resolution!
 	uint_32 n_width, n_height;
-	calcResize(aspectratio,img->sdllayer->w,img->sdllayer->h,newwidth,newheight,&n_width,&n_height,0); //Calculate the resize size!
+	calcResize(aspectratio,getlayerwidth(img),getlayerheight(img),newwidth,newheight,&n_width,&n_height,0); //Calculate the resize size!
 
 	//dolog("SDL","ResizeImage: Verifying new height/width...");
 	if (!n_width || !n_height) //No size in src or dest?
@@ -254,8 +288,8 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 
 	//dolog("SDL","ResizeImage: calculating zoomx&y factor...");
 	//Calculate factor to destination resolution!
-	double zoomx = SAFEDIV(n_width,(double)img->sdllayer->w); //Resize to new width!
-	double zoomy = SAFEDIV(n_height,(double)img->sdllayer->h); //Resize to new height!
+	double zoomx = SAFEDIV(n_width,(double)getlayerwidth(img)); //Resize to new width!
+	double zoomy = SAFEDIV(n_height,(double)getlayerheight(img)); //Resize to new height!
 
 	SDL_Surface* sized = NULL; //Sized?
 	if (zoomx && zoomy) //Valid?
@@ -311,20 +345,14 @@ uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference betwee
 		dolog("GPP","Pitch: invalid NULL-surface!");
 		return 0; //No surface = no pitch!
 	}
-	INLINEREGISTER uint_32 pitch;
-	pitch = surface->sdllayer->pitch; //Load the pitch!
-	if (pitch>=4) //Got pitch?
-	{
-		return (pitch>>2); //Pitch in pixels!
-	}
-	return surface->sdllayer->w; //Just use the width as a pitch to fall back to!
+	return getlayervirtualwidth(surface); //Give the virtual width!
 }
 
 //Retrieve a pixel
 uint_32 get_pixel(GPU_SDL_Surface* surface, const int x, const int y ){
 	if (!surface) return 0; //Disable if no surface!
-	Uint32 *pixels = (Uint32*)surface->sdllayer->pixels;
-	if (((y * get_pixelrow_pitch(surface) ) + x)<((surface->sdllayer->w*surface->sdllayer->h)<<2)) //Valid?
+	Uint32 *pixels = (Uint32*)getlayerpixels(surface);
+	if (((y * get_pixelrow_pitch(surface) ) + x)<((getlayerwidth(surface)*getlayerheight(surface))<<2)) //Valid?
 	{
 		return pixels[ ( y * get_pixelrow_pitch(surface) ) + x ];
 	}
@@ -337,15 +365,15 @@ byte check_surface(GPU_SDL_Surface *surface)
 	if (!surface) return 0; //Disable if no surface!
 	if (!memprotect(surface, sizeof(*surface), NULL)) return 0; //Invalid surface!
 	if (!memprotect(surface->sdllayer, sizeof(*surface->sdllayer), NULL)) return 0; //Invalid layer!
-	if (!memprotect(surface->sdllayer->pixels,(surface->sdllayer->h*surface->sdllayer->w)<<2,NULL)) return 0; //Invalid pixels!
+	if (!memprotect(surface->sdllayer->pixels,(getlayerheight(surface)*getlayerwidth(surface))<<2,NULL)) return 0; //Invalid pixels!
 	return 1; //Valid surface!
 }
 
 //Draw a pixel
 void put_pixel(GPU_SDL_Surface *surface, const int x, const int y, const Uint32 pixel ){
-	if (y >= surface->sdllayer->h) return; //Invalid row!
-	if (x >= surface->sdllayer->w) return; //Invalid column!
-	Uint32 *pixels = (Uint32 *)surface->sdllayer->pixels;
+	if (y >= getlayerheight(surface)) return; //Invalid row!
+	if (x >= getlayerwidth(surface)) return; //Invalid column!
+	Uint32 *pixels = (Uint32 *)*getlayerpixels(surface);
 	Uint32 *pixelpos = &pixels[ ( y * get_pixelrow_pitch(surface) ) + x ]; //The pixel!
 	if (*pixelpos!=pixel) //Different?
 	{
@@ -358,9 +386,9 @@ void put_pixel(GPU_SDL_Surface *surface, const int x, const int y, const Uint32 
 OPTINLINE void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x)
 {
 	if (!surface) return NULL; //Invalid surface altogether!
-	if ((y<surface->sdllayer->h) && (x<surface->sdllayer->w)) //Within range?
+	if ((y<getlayerheight(surface)) && (x<getlayerwidth(surface))) //Within range?
 	{
-		uint_32 *pixels = (uint_32 *)surface->sdllayer->pixels;
+		uint_32 *pixels = (uint_32 *)*getlayerpixels(surface);
 		uint_32 *result = &pixels[ ( y * get_pixelrow_pitch(surface) ) + x ]; //Our result!
 		//No pitch? Use width to fall back!
 			return result; //The pixel ptr!
@@ -405,7 +433,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 {
 	if (surface && pixels) //Got surface and pixels!
 	{
-		if (y >= surface->sdllayer->h) return; //Invalid row detection!
+		if (y >= getlayerheight(surface)) return; //Invalid row detection!
 		uint_32 use_rowsize = MIN(get_pixelrow_pitch(surface),rowsize); //Minimum is decisive!
 		if (use_rowsize) //Got something to copy and valid row?
 		{
@@ -419,66 +447,66 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 				uint_32 *row = get_pixel_row(surface,y,0); //Row at the left!
 				if (row && (surface->sdllayer!=(SDL_Surface *)0xFFFFFFFF)) //Gotten the row (valid row?)
 				{
-					uint_32 restpixels = (surface->sdllayer->w)-use_rowsize; //Rest ammount of pixels!
-					uint_32 start = (surface->sdllayer->w/2) - (use_rowsize/2); //Start of the drawn part!
+					uint_32 restpixels = (getlayerwidth(surface))-use_rowsize; //Rest ammount of pixels!
+					uint_32 start = (getlayerwidth(surface)>>1) - (use_rowsize>>1); //Start of the drawn part!
 					switch (center&3) //What centering method?
 					{
 					case 2: //Right side plot?
 						//Just plain plot at the right, filling with black on the left when not centering!
 						if ((restpixels>0) && (!(center&4))) //Still a part of the row not rendered and valid rest location?
 						{
-							if (diffmem(row, 0, restpixels * 4)) //Different?
+							if (diffmem(row, 0, restpixels<<2)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 							}
 							memset(row,0,restpixels*4); //Clear to the start of the row, so that only the part we specified gets something!
 						}
-						if (memdiff(&row[restpixels],pixels,use_rowsize*4)) //Different?
+						if (memdiff(&row[restpixels],pixels,use_rowsize<<2)) //Different?
 						{
 							surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 						}
-						memcpy(&row[restpixels],pixels,use_rowsize*4); //Copy the row to the buffer as far as we can go!
+						memcpy(&row[restpixels],pixels,use_rowsize<<2); //Copy the row to the buffer as far as we can go!
 						break;
 					case 1: //Use horizontal centering?
-						if ((sword)surface->sdllayer->w>(sword)(use_rowsize+2)) //We have space left&right to plot? Also must have at least 2 pixels left&right to center!
+						if ((sword)getlayerwidth(surface)>(sword)(use_rowsize+2)) //We have space left&right to plot? Also must have at least 2 pixels left&right to center!
 						{
 							if (!(center&4)) //Clear enabled?
 							{
-								if (diffmem(row, 0, start * 4)) //Different left or right?
+								if (diffmem(row, 0, start<<2)) //Different left or right?
 								{
 									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 								}
-								memset(row,0,start*4); //Clear the left!
-								if (diffmem(&row[start+use_rowsize],0,(surface->sdllayer->w-(start+use_rowsize))*4)) //Different left or right?
+								memset(row,0,start<<2); //Clear the left!
+								if (diffmem(&row[start+use_rowsize],0,(getlayerwidth(surface)-(start+use_rowsize))<<2)) //Different left or right?
 								{
 									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 								}
-								memset(&row[start+use_rowsize],0,(surface->sdllayer->w-(start+use_rowsize))*4); //Clear the right!
+								memset(&row[start+use_rowsize],0,(getlayerwidth(surface)-(start+use_rowsize))<<2); //Clear the right!
 							}
-							if (memdiff(&row[start], pixels, use_rowsize * 4)) //Different?
+							if (memdiff(&row[start], pixels, use_rowsize<<2)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 							}
-							memcpy(&row[start],pixels,use_rowsize*4); //Copy the pixels to the center!
+							memcpy(&row[start],pixels,use_rowsize<<2); //Copy the pixels to the center!
 							return; //Done: we've written the pixels at the center!
 						}
 					//We don't need centering: just do left side plot!
 					default: //We default to left side plot!
 					case 0: //Left side plot?
 						restpixels -= row_start; //The pixels that are left are lessened by row_start in this mode too!
-						if (memcmp(&row[row_start],pixels,use_rowsize*4)) //Different?
+						if (memcmp(&row[row_start],pixels,use_rowsize<<2)) //Different?
 						{
 							surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 						}
-						memcpy(&row[row_start],pixels,use_rowsize*4); //Copy the row to the buffer as far as we can go!
+						memcpy(&row[row_start],pixels,use_rowsize<<2); //Copy the row to the buffer as far as we can go!
 						//Now just render the rest part of the line to black!
 						if ((restpixels>0) && (!(center&4))) //Still a part of the row not rendered and valid rest location and not disable clearing?
 						{
-							if (diffmem(&row[row_start + use_rowsize], 0, restpixels * 4)) //Different?
+							if (diffmem(&row[row_start + use_rowsize], 0, restpixels<<2)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 							}
-							memset(&row[row_start+use_rowsize],0,restpixels*4); //Clear to the end of the row, so that only the part we specified gets something!
+							memset(&row[row_start+use_rowsize],0,restpixels<<2); //Clear to the end of the row, so that only the part we specified gets something!
 						}
 						break;
 					}
@@ -504,13 +532,13 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 		dolog("PPR", "Rendering empty pixels because of invalid data to copy.");
 #endif
 		uint_32 *row = get_pixel_row(surface,y,0); //Row at the left!
-		if (row && surface->sdllayer->w) //Got row?
+		if (row && getlayerwidth(surface)) //Got row?
 		{
-			if (diffmem(row, 0, surface->sdllayer->w * 4)) //Different?
+			if (diffmem(row, 0, getlayerwidth(surface)<<2)) //Different?
 			{
 				surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 			}
-			memset(row,0,surface->sdllayer->w*4); //Clear the row, because we have no pixels!
+			memset(row,0,getlayerwidth(surface)<<2); //Clear the row, because we have no pixels!
 		}
 	}
 	else
@@ -572,7 +600,7 @@ GPU_SDL_Surface *freeSurface(GPU_SDL_Surface *surface)
 	if (!surface) return NULL; //Invalid surface?
 	if (memprotect(surface,sizeof(GPU_SDL_Surface),NULL)) //Allocated?
 	{
-		if (memprotect(surface->sdllayer->pixels,(surface->sdllayer->h*get_pixelrow_pitch(surface))<<2,NULL)) //Pixels also allocated?
+		if (memprotect(*getlayerpixels(surface),(getlayerheight(surface)*get_pixelrow_pitch(surface))<<2,NULL)) //Pixels also allocated?
 		{
 			GPU_SDL_Surface *newsurface = surface; //Take the surface to use!
 			freeSurfacePtr((void **)&newsurface,sizeof(*newsurface),NULL); //Release the surface via our kernel function!
@@ -581,6 +609,12 @@ GPU_SDL_Surface *freeSurface(GPU_SDL_Surface *surface)
 	}
 	return surface; //Still allocated!
 }
+
+#ifdef SDL2
+extern SDL_Window *sdlWindow;
+extern SDL_Renderer *sdlRenderer;
+extern SDL_Texture *sdlTexture;
+#endif
 
 //Draw the screen with a surface.
 void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
@@ -593,8 +627,16 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 			{
 				//If the surface must be locked
 				if (SDL_MUSTLOCK(surface->sdllayer)) SDL_LockSurface(surface->sdllayer); //Lock the surface when required!
+				#ifndef SDL2
 				if (SDL_Flip(surface->sdllayer)==-1) //Failed to update by flipping?
 					SDL_UpdateRect(surface->sdllayer, 0, 0, 0, 0); //Make sure we update!
+				#else
+				//SDL2!
+				SDL_UpdateTexture(sdlTexture, NULL, *getlayerpixels(surface), get_pixelrow_pitch(surface));
+				SDL_RenderClear(sdlRenderer);
+				SDL_RenderCopy(sdlRenderer, sdlTexture, NULL, NULL);
+				SDL_RenderPresent(sdlRenderer);
+				#endif
 				if (SDL_MUSTLOCK(surface->sdllayer)) SDL_UnlockSurface(surface->sdllayer); //Unlock the surface when required!
 			}
 			surface->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!

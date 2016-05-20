@@ -27,13 +27,18 @@ extern uint_32 frames; //Frames processed!
 
 uint_32 frames_rendered = 0;
 
+extern byte haswindowactive; //Are we displayed on-screen?
+
 void renderScreenFrame() //Render the screen frame!
 {
 	if (__HW_DISABLED) return; //Abort?
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
 	{
 		++frames_rendered; //Increase ammount of frames rendered!
-		safeFlip(rendersurface); //Set the new resized screen to use, if possible!
+		if (haswindowactive) //Are we even visible and allowed to update?
+		{
+			safeFlip(rendersurface); //Set the new resized screen to use, if possible!
+		}
 		return; //Done!
 	}
 	//Already on-screen rendered: We're using direct mode!
