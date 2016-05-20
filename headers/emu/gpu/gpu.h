@@ -4,21 +4,6 @@
 #include "headers/types.h" //Global types
 #include "headers/bios/bios.h" //BIOS Settings support (for VIDEO_DIRECT)
 
-#ifdef VISUALC
-#ifndef SDL2
-#include "SDL_rotozoom.h"
-#else
-#include "SDL2_rotozoom.h"
-#endif
-#else
-#ifndef SDL2
-#include <SDL/SDL_rotozoom.h> //Rotate&Zoom package for SDL_gfx!
-#include <SDL/SDL.h>
-#else
-#include <SDL2/SDL2_rotozoom.h> //Rotate&Zoom package for SDL_gfx!
-#include <SDL2/SDL2.h>
-#endif
-#endif
 //Resolution of PSP Screen!
 #define PSP_SCREEN_ROWS 272
 #define PSP_SCREEN_COLUMNS 480

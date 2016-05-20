@@ -9,6 +9,20 @@
 
 //SDL1 vs SDL2 compatibility support!
 
+#ifdef VISUALC
+#ifndef SDL2
+#include "SDL_rotozoom.h" //Rotate&Zoom package for SDL_gfx!
+#else
+#include "SDL2_rotozoom.h" //Rotate&Zoom package for SDL_gfx!
+#endif
+#else
+#ifndef SDL2
+#include <SDL/SDL_rotozoom.h> //Rotate&Zoom package for SDL_gfx!
+#else
+#include <SDL2/SDL2_rotozoom.h> //Rotate&Zoom package for SDL_gfx!
+#endif
+#endif
+
 OPTINLINE word getlayerwidth(GPU_SDL_Surface *img)
 {
 	return img->sdllayer->w; //The width!
