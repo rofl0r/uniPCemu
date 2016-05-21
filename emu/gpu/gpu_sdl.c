@@ -9,20 +9,207 @@
 
 //SDL1 vs SDL2 compatibility support!
 
-#ifdef VISUALC
-#ifndef SDL2
-#include "SDL_rotozoom.h" //Rotate&Zoom package for SDL_gfx!
-#else
-#include "SDL2_rotozoom.h" //Rotate&Zoom package for SDL_gfx!
-#endif
-#else
-#ifndef SDL2
-#include <SDL/SDL_rotozoom.h> //Rotate&Zoom package for SDL_gfx!
-#else
-#include <SDL2/SDL2_rotozoom.h> //Rotate&Zoom package for SDL_gfx!
-#endif
-#endif
+/*
 
+SDL_rotozoom.c: rotozoomer, zoomer and shrinker for 32bit or 8bit surfaces
+
+Copyright (C) 2001-2012  Andreas Schiffler
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+claim that you wrote the original software. If you use this software
+in a product, an acknowledgment in the product documentation would be
+appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and must not be
+misrepresented as being the original software.
+
+3. This notice may not be removed or altered from any source
+distribution.
+
+Andreas Schiffler -- aschiffler at ferzkopp dot net
+
+*/
+
+//Fast patches!
+#include "headers/packed.h"
+typedef struct PACKED
+{
+	byte r; //Red channel!
+	byte g; //Green channel!
+	byte b; //Blue channel!
+	byte a; //Alpha channel!
+} tColorRGBA;
+#include "headers/endpacked.h"
+
+//zoomSurfaceRGBA from SDL_gfx(the only functionality used from the project): Zooms a surface from src to dst (flipx&y=flip), SMOOTH=SMOOTHING_ON.
+//It's been adjusted to store it's precalculation tables in the destination surface for easier recalculation.
+//1 on error, 0 on rendered.
+byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst)
+{
+	int x, y, sx, sy, ssx, ssy, *sax, *say, *csax, *csay, *salast, csx, csy, ex, ey, cx, cy, sstep, sstepx, sstepy;
+	tColorRGBA *c00, *c01, *c10, *c11;
+	tColorRGBA *sp, *csp, *dp;
+	int spixelgap, spixelw, spixelh, dgap, t1, t2;
+
+	/*
+	* Precalculate row increments
+	*/
+	spixelw = (src->sdllayer->w - 1);
+	spixelh = (src->sdllayer->h - 1);
+	sx = (int)(65536.0 * (float)spixelw / (float)(dst->sdllayer->w - 1));
+	sy = (int)(65536.0 * (float)spixelh / (float)(dst->sdllayer->h - 1));
+
+	/* Maximum scaled source size */
+	ssx = (src->sdllayer->w << 16) - 1;
+	ssy = (src->sdllayer->h << 16) - 1;
+
+	/* Precalculate horizontal row increments */
+	if ((!dst->hrowincrements) || (dst->hrowincrements_precalcs!=((src->sdllayer->w<<16)|dst->sdllayer->w))) //Different conversion?
+	{
+		if ((sax = (int *)zalloc((dst->sdllayer->w + 1) * sizeof(Uint32),"RESIZE_XPRECALCS",NULL)) == NULL) return 1; //Error allocating!
+		csx = 0;
+		csax = sax;
+		for (x = 0; x <= dst->sdllayer->w; x++) {
+			*csax = csx;
+			csax++;
+			csx += sx;
+
+			/* Guard from overflows */
+			if (csx > ssx) {
+				csx = ssx;
+			}
+		}
+		if (dst->hrowincrements) //Already allocated?
+		{
+			freez((void **)&dst->hrowincrements, dst->hrowincrements_size, "RESIZE_XPRECALCS"); //Release the old precalcs! We're updating it!
+		}
+		dst->hrowincrements = sax; //Save the table for easier lookup!
+		dst->hrowincrements_precalcs = ((src->sdllayer->w << 16) | dst->sdllayer->w); //We're adjusted to this size!
+		dst->hrowincrements_size = (dst->sdllayer->w + 1) * sizeof(Uint32); //Save the size of the LUT!
+	}
+	else
+	{
+		sax = dst->hrowincrements; //Load the stored table for reuse!
+	}
+
+	/* Precalculate vertical row increments */
+	if ((!dst->vrowincrements) || (dst->vrowincrements_precalcs!= ((src->sdllayer->h << 16) | dst->sdllayer->h))) //Different conversion?
+	{
+		if ((say = (int *)zalloc((dst->sdllayer->h + 1) * sizeof(Uint32),"RESIZE_YPRECALCS",NULL)) == NULL)	return 1; //Error allocating!
+		csy = 0;
+		csay = say;
+		for (y = 0; y <= dst->sdllayer->h; y++) {
+			*csay = csy;
+			csay++;
+			csy += sy;
+
+			/* Guard from overflows */
+			if (csy > ssy) {
+				csy = ssy;
+			}
+		}
+		if (dst->vrowincrements) //Already allocated?
+		{
+			freez((void **)&dst->vrowincrements,dst->vrowincrements_size,"RESIZE_YPRECALCS"); //Release the old precalcs! We're updating it!
+		}
+		dst->vrowincrements = say; //Save the table for easier lookup!
+		dst->vrowincrements_precalcs = ((src->sdllayer->h << 16) | dst->sdllayer->h); //We're adjusted to this size!
+		dst->vrowincrements_size = (dst->sdllayer->h + 1) * sizeof(Uint32); //Save the size of the LUT!
+	}
+	else
+	{
+		say = dst->vrowincrements; //Load the stored table for reuse!
+	}
+
+	sp = (tColorRGBA *)src->sdllayer->pixels;
+	dp = (tColorRGBA *)dst->sdllayer->pixels;
+	dgap = dst->sdllayer->pitch - dst->sdllayer->w * 4;
+	spixelgap = src->sdllayer->pitch / 4;
+
+	/*
+	* Interpolating Zoom
+	*/
+	csay = say;
+	for (y = 0; y < dst->sdllayer->h; y++) {
+		csp = sp;
+		csax = sax;
+		for (x = 0; x < dst->sdllayer->w; x++) {
+			/*
+			* Setup color source pointers
+			*/
+			ex = (*csax & 0xffff);
+			ey = (*csay & 0xffff);
+			cx = (*csax >> 16);
+			cy = (*csay >> 16);
+			sstepx = cx < spixelw;
+			sstepy = cy < spixelh;
+			c00 = sp;
+			c01 = sp;
+			c10 = sp;
+			if (sstepy) {
+				c10 += spixelgap;
+			}
+			c11 = c10;
+			if (sstepx) {
+				c01++;
+				c11++;
+			}
+
+			/*
+			* Draw and interpolate colors
+			*/
+			t1 = ((((c01->r - c00->r) * ex) >> 16) + c00->r) & 0xff;
+			t2 = ((((c11->r - c10->r) * ex) >> 16) + c10->r) & 0xff;
+			dp->r = (((t2 - t1) * ey) >> 16) + t1;
+			t1 = ((((c01->g - c00->g) * ex) >> 16) + c00->g) & 0xff;
+			t2 = ((((c11->g - c10->g) * ex) >> 16) + c10->g) & 0xff;
+			dp->g = (((t2 - t1) * ey) >> 16) + t1;
+			t1 = ((((c01->b - c00->b) * ex) >> 16) + c00->b) & 0xff;
+			t2 = ((((c11->b - c10->b) * ex) >> 16) + c10->b) & 0xff;
+			dp->b = (((t2 - t1) * ey) >> 16) + t1;
+			t1 = ((((c01->a - c00->a) * ex) >> 16) + c00->a) & 0xff;
+			t2 = ((((c11->a - c10->a) * ex) >> 16) + c10->a) & 0xff;
+			dp->a = (((t2 - t1) * ey) >> 16) + t1;
+			/*
+			* Advance source pointer x
+			*/
+			salast = csax;
+			csax++;
+			sstep = (*csax >> 16) - (*salast >> 16);
+			sp += sstep;
+
+			/*
+			* Advance destination pointer x
+			*/
+			dp++;
+		}
+		/*
+		* Advance source pointer y
+		*/
+		salast = csay;
+		csay++;
+		sstep = (*csay >> 16) - (*salast >> 16);
+		sstep *= spixelgap;
+		sp = csp + sstep;
+
+		/*
+		* Advance destination pointer y
+		*/
+		dp = (tColorRGBA *)((Uint8 *)dp + dgap);
+	}
+
+	return 0; //OK!
+}
+
+//Original functionality
 OPTINLINE word getlayerwidth(GPU_SDL_Surface *img)
 {
 	return img->sdllayer->w; //The width!
@@ -68,6 +255,8 @@ void freeSurfacePtr(void **ptr, uint_32 size, SDL_sem *lock) //Free a pointer (u
 			SDL_FreeSurface(surface->sdllayer); //Release the surface fully using native support!
 		}
 	}
+	if (surface->hrowincrements) freez((void **)&surface->hrowincrements,surface->hrowincrements_size,"RESIZE_XPRECALCS"); //Release the horizontal row increments!
+	if (surface->vrowincrements) freez((void **)&surface->vrowincrements, surface->vrowincrements_size, "RESIZE_YPRECALCS"); //Release the vertical row increments!
 	if (surface->lock) PostSem(surface->lock) //We're done with the contents!
 	changedealloc(surface, sizeof(*surface), getdefaultdealloc()); //Change the deallocation function back to it's default!
 	//We're always allowed to release the container.
@@ -267,16 +456,16 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 }
 
 //Resizing.
-GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, const uint_32 newheight, byte doublexres, byte doubleyres, int aspectratio)
+byte resizeImage( GPU_SDL_Surface *img, GPU_SDL_Surface **dstimg, const uint_32 newwidth, const uint_32 newheight, int aspectratio)
 {
 	//dolog("SDL","ResizeImage called!");
-	if (!img) //No image to resize?
+	if ((!img) || (!dstimg)) //No image to resize or resize to?
 	{
-		return NULL; //Nothin to resize is nothing back!
+		return 0; //Nothin to resize is nothing back!
 	}
 	if ((!getlayerwidth(img)) || (!getlayerheight(img)) || (!newwidth) || (!newheight)) //No size to resize?
 	{
-		return NULL; //Nothing to resize!
+		return 0; //Nothing to resize!
 	}
 
 	//dolog("SDL","ResizeImage: valid surface to resize. Calculating new size...");
@@ -287,68 +476,41 @@ GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, cons
 	//dolog("SDL","ResizeImage: Verifying new height/width...");
 	if (!n_width || !n_height) //No size in src or dest?
 	{
-		return NULL; //Nothing to render, so give nothing!
+		return 0; //Nothing to render, so give nothing!
 	}
-
-	byte doubleres;
-	doubleres = 0; //Default: normal resolution!
-	if (doublexres ^ doubleyres) //Either double x or y resolution, but not both?
-	{
-		n_width <<= doublexres; //Apply double width!
-		n_height <<= doubleyres; //Apply double height!
-		doubleres = 1; //Apply after double resolution!
-	}
-
 
 	//dolog("SDL","ResizeImage: calculating zoomx&y factor...");
 	//Calculate factor to destination resolution!
-	double zoomx = SAFEDIV(n_width,(double)getlayerwidth(img)); //Resize to new width!
-	double zoomy = SAFEDIV(n_height,(double)getlayerheight(img)); //Resize to new height!
 
-	SDL_Surface* sized = NULL; //Sized?
-	if (zoomx && zoomy) //Valid?
+	if (*dstimg) //Gotten a destination image already?
 	{
-		//dolog("SDL","Resizing screen...");
-		//Apply smoothing always, since disabling it will result in black scanline insertions!
-		sized = zoomSurface( img->sdllayer, zoomx, zoomy, SMOOTHING_ON );
-		//dolog("SDL","Resizing done.");
-		if (sized) //Enough memory left?
+		if ((((GPU_SDL_Surface *)*dstimg)->sdllayer->w!=n_width) || (((GPU_SDL_Surface *)*dstimg)->sdllayer->h!=n_height)) //Destination size doesn't match?
 		{
-			//dolog("SDL","Generating surface wrapper...");
-			GPU_SDL_Surface *wrapper = getSurfaceWrapper(sized); //Get our wrapper!
-			//dolog("SDL","Wrapper createn?");
-			if (!wrapper) //Failed to generate a wrapper?
-			{
-				//dolog("SDL","Wrapper failed. Cleaning up surface...");
-				SDL_FreeSurface(sized); //Release the generated surface!
-				//dolog("SDL","Surface cleaned up. Returning non-used surface...");
-				return NULL; //Error!
-			}
-			registerSurface(wrapper,"SDL_Surface",1); //Register the surface itself!
-			//dolog("SDL","Filling wrapper...");
-			wrapper->flags |= SDL_FLAG_DIRTY; //Mark as dirty by default!
-			//dolog("SDL","Matching color keys...");
-			//Valid wrapper?
-			matchColorKeys( img, wrapper ); //Match the color keys!
-			//dolog("SDL","Done!");
-
-			if (doubleres) //Apply double resolution?
-			{
-				GPU_SDL_Surface *aftereffect;
-				aftereffect = resizeImage(wrapper,newwidth,newheight,0,0,aspectratio); //Try and resize to destination resolution normally!
-				freeSurface(wrapper); //Free our generated surface of our double sized step!
-				if (!aftereffect) //Failed to generate?
-				{
-					dolog("GPU","Error applying aftereffect after scaling the double resolution image!");
-					return NULL; //Error!
-				}
-				return aftereffect; //Give the double resolution resized version!
-			}
-
-			return wrapper; //Give the wrapper!
+			freez((void **)dstimg,sizeof(**dstimg),"GPU_SDL_Surface"); //Release the surface: we're recreating it!
 		}
 	}
-	return NULL; //Error!
+	if (!*dstimg) //Do we need to recreate the destination surface?
+	{
+		*dstimg = createSurface(n_width,n_height); //Create the destination surface to plot to!
+		if (!*dstimg) //Failed to allocate the destination?
+		{
+			return 0; //Failed to resize: not enough memory?
+		}
+	}
+	//Now the destination surface is ready for the resizing process!
+	//dolog("SDL","Resizing screen...");
+	//Apply smoothing always, since disabling it will result in black scanline insertions!
+	if (zoomSurfaceRGBA( img, *dstimg )) //Resize the image to the destination size!
+	{
+		//We've failed zooming!
+		return 0; //Failed zooming!
+	}
+	((GPU_SDL_Surface *)(*dstimg))->flags |= SDL_FLAG_DIRTY; //Mark as dirty by default!
+	//dolog("SDL","Resizing done.");
+	matchColorKeys( img, *dstimg ); //Match the color keys!
+	//dolog("SDL","Done!");
+
+	return 1; //We've been resized!
 }
 
 //Pixels between rows.

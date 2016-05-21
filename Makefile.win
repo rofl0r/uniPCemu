@@ -53,7 +53,7 @@ endif
 #Different kinds of flags!
 #Add -mno-ms-bitfields to fix broken bitfields and type sizes in MinGW.
 CFLAGS = -std=c99 ${WARNS} -mno-ms-bitfields
-LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_gfx
+LDFLAGS = -lmingw32 -lSDLmain -lSDL
 
 #Apply build directory etc.
 BUILD_RELEASE = $(BUILD_DIR)/$(TARGET_RELEASE)

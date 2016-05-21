@@ -44,10 +44,10 @@ PSPBIN = $(PSPSDK)/../bin
 #CFLAGS = $(shell $(PSPBIN)/sdl-config --cflags)
 #LIBS += -lSDL  -lglut -lGLU -lGL -lc
 #PSPLIBS2 = -lpsputility -lpspdebug -lpspge -lpspdisplay -lpspctrl -lpspsdk -lpspvfpu -lpsplibc -lpspuser -lpspkernel -lpsphprm -lpspirkeyb -lpsppower
-#PSPLIBS2 = -lSDL -lSDL_image -lSDL_gfx -lpspirkeyb -lpspwlan -lpsppower -lGL -l freetype -ljpeg -lpng -lz -lm -lpspgu -lpsphprm -lpspaudio -lstdc++ -lpspvfpu -lpsprtc
+#PSPLIBS2 = -lSDL -lSDL_image -lpspirkeyb -lpspwlan -lpsppower -lGL -l freetype -ljpeg -lpng -lz -lm -lpspgu -lpsphprm -lpspaudio -lstdc++ -lpspvfpu -lpsprtc
 
 #Basic SDL libraries!
-PSPLIBS2 = -lSDL -lSDL_gfx
+PSPLIBS2 = -lSDL
 
 #Link the final PSP libaries!
 LIBS += $(PSPLIBS2) $(PSPLIBS1)

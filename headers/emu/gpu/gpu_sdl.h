@@ -14,6 +14,11 @@ typedef struct {
 	SDL_Surface *sdllayer; //The surface itself!
 	byte flags; //Our flags!
 	SDL_sem *lock;
+
+	//Extra stuff for optimizing resizing!
+	int *hrowincrements, *vrowincrements;
+	uint_32 hrowincrements_precalcs, vrowincrements_precalcs; //Information about source and destination surfaces!
+	uint_32 hrowincrements_size, vrowincrements_size; //The size of the horizontal and vertical row increment sizes!
 } GPU_SDL_Surface; //Our userdata!
 
 GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface); //Retrieves a surface wrapper (for the GPU HW Surface only!)
@@ -42,7 +47,7 @@ GPU_SDL_Surface *createSurface(int columns, int rows); //Create a 32BPP surface!
 GPU_SDL_Surface *createSurfaceFromPixels(int columns, int rows, void *pixels, uint_32 pixelpitch); //Create a 32BPP surface, but from an allocated/solid buffer (not deallocated when freed)! Can be used for persistent buffers (always there, like the GPU screen buffer itself)
 GPU_SDL_Surface *freeSurface(GPU_SDL_Surface *surface);
 void safeFlip(GPU_SDL_Surface *surface); //Safe flipping (non-null)
-GPU_SDL_Surface *resizeImage( GPU_SDL_Surface *img, const uint_32 newwidth, const uint_32 newheight, byte doublexres, byte doubleyres, int aspectratio);
+byte resizeImage(GPU_SDL_Surface *img, GPU_SDL_Surface **dstimg, const uint_32 newwidth, const uint_32 newheight, int aspectratio);
 
 void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, uint_32 newwidth, uint_32 newheight, uint_32 *n_width, uint_32 *n_height, byte is_renderer); //Calculates resize dimensions!
 

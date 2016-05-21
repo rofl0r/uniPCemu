@@ -364,8 +364,6 @@ void VGA_VBlankHandler(VGA_Type *VGA)
 		VGA->VGA_vblank = 1; //VBlank occurred!
 	}
 	
-	GPU.doublewidth = 0; //Apply with double width (can't find anything about this in the VGA manual)!
-	GPU.doubleheight = 0; //Apply with double height!
 	renderHWFrame(); //Render the GPU a frame!
 }
 

@@ -334,6 +334,7 @@ OPTINLINE void renderFrames() //Render all frames to the screen!
 //Rendering functionality!
 OPTINLINE static void render_EMU_buffer() //Render the EMU to the buffer!
 {
+	byte isresized; //Are we resized successfully?
 	//Next, allocate all buffers!
 	//First, check the emulated screen for updates and update it if needed!
 	if (rendersurface && ((GPU.xres*GPU.yres)>0)) //Got emu screen to render to the PSP and not testing and dirty?
@@ -365,9 +366,8 @@ OPTINLINE static void render_EMU_buffer() //Render the EMU to the buffer!
 				if (!(VIDEO_DIRECT) || GPU.aspectratio) //No direct plot or aspect ratio set?
 				{
 					//Resize to resized!
-					GPU_finishRenderer(); //Done with the resizing!
-					resized = resizeImage(emu_screen,rendersurface->sdllayer->w,rendersurface->sdllayer->h,GPU.doublewidth,GPU.doubleheight,GPU.aspectratio); //Render it to the PSP screen, keeping aspect ratio with letterboxing!
-					if (!memprotect(resized,sizeof(*resized),NULL)) //Error resizing?
+					isresized = resizeImage(emu_screen,&resized,rendersurface->sdllayer->w,rendersurface->sdllayer->h,GPU.aspectratio); //Render it to the PSP screen, keeping aspect ratio with letterboxing!
+					if ((!isresized) || (!memprotect(resized,sizeof(*resized),NULL))) //Error resizing?
 					{
 						dolog("GPU","Error resizing the EMU screenbuffer to the displayed screen!");
 					}
@@ -441,7 +441,7 @@ void renderHWFrame() //Render a frame from hardware!
 					tempy = GPU.yres;
 					tempx = (tempx>EMU_MAX_X)?EMU_MAX_X:tempx;
 					tempy = (tempy>EMU_MAX_Y)?EMU_MAX_Y:tempy; //Apply limits!
-					writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),tempx,tempy,GPU.doublewidth,GPU.doubleheight,EMU_MAX_X); //Dump our raw screen!
+					writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),tempx,tempy,0,0,EMU_MAX_X); //Dump our raw screen!
 				}
 			}
 		}
