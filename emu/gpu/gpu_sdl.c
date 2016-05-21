@@ -56,7 +56,8 @@ byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst)
 {
 	int x, y, sx, sy, ssx, ssy, *sax, *say, *csax, *csay, *salast, csx, csy, ex, ey, cx, cy, sstep, sstepx, sstepy;
 	tColorRGBA *c00, *c01, *c10, *c11;
-	tColorRGBA *sp, *csp, *dp;
+	tColorRGBA *sp, *csp;
+	INLINEREGISTER tColorRGBA *dp;
 	int spixelgap, spixelw, spixelh, dgap, t1, t2;
 
 	/*
@@ -189,7 +190,7 @@ byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst)
 			/*
 			* Advance destination pointer x
 			*/
-			dp++;
+			++dp;
 		}
 		/*
 		* Advance source pointer y

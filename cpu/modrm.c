@@ -504,9 +504,9 @@ OPTINLINE static uint_32 modrm_SIB_reg(int reg, int mod, uint_32 disp32, int is_
 
 OPTINLINE void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //32-bit address/reg decoder!
 {
-	bzero(result,sizeof(*result)); //Init!
-	byte curreg = 0;
-	byte reg; //What register?
+	INLINEREGISTER byte curreg = 0;
+	INLINEREGISTER byte reg; //What register?
+	INLINEREGISTER byte isregister;
 
 	if (whichregister) //reg2?
 	{
@@ -519,7 +519,6 @@ OPTINLINE void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 		curreg = 1; //reg1!
 	}
 
-	int isregister;
 	isregister = 0; //Init!
 	if (!whichregister) //REG1?
 	{
@@ -537,6 +536,8 @@ OPTINLINE void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 	{
 		isregister = 0; //No register (R/M=Memory Address)!
 	}
+
+	bzero(result, sizeof(*result)); //Init!
 
 	if (isregister) //Is register data?
 	{
@@ -962,9 +963,8 @@ OPTINLINE void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 
 OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //16-bit address/reg decoder!
 {
-	INLINEREGISTER int isregister;
+	INLINEREGISTER byte isregister;
 	INLINEREGISTER byte reg = 0;
-	bzero(result,sizeof(*result)); //Init!
 
 	reg = params->modrm; //Load the modr/m byte!
 	if (whichregister) //reg2?
@@ -975,6 +975,8 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 	{
 		reg = MODRM_REG(reg); //Default/reg!
 	}
+
+	bzero(result, sizeof(*result)); //Init!
 
 	if (params->reg_is_segmentregister && (!whichregister)) //Segment register?
 	{
@@ -1335,9 +1337,8 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 
 OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 {
-	INLINEREGISTER int isregister;
+	INLINEREGISTER byte isregister;
 	INLINEREGISTER byte reg = 0;
-	bzero(result,sizeof(*result)); //Init!
 
 	if (whichregister) //reg2?
 	{
@@ -1364,6 +1365,8 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 	{
 		isregister = 0; //No register, so use memory R/M!
 	}
+
+	bzero(result, sizeof(*result)); //Init!
 
 	if (isregister) //Is register data?
 	{

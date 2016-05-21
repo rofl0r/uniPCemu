@@ -24,22 +24,31 @@ CMOS&RTC (Combined!)
 
 word decodeBCD(word bcd)
 {
-	return (
-			((((bcd&0xF000)>>12)%10)*1000)+ //Factor 1000
-			((((bcd&0x0F00)>>8)%10)*100)+ //Factor 100
-			((((bcd&0x00F0)>>4)%10)*10)+ //Factor 10
-			((bcd&0x000F)%10) //Factor 1
-			); //Give decoded value!
+	INLINEREGISTER word temp, result=0;
+	temp = bcd; //Load the BCD value!
+	result += (temp&0xF); //Factor 1!
+	temp >>= 4;
+	result += (temp&0xF)*10; //Factor 10!
+	temp >>= 4;
+	result += (temp&0xF)*100; //Factor 100!
+	temp >>= 4;
+	result += (temp&0xF)*1000; //Factor 1000!
+	return result; //Give the decoded integer value!
 }
 
 word encodeBCD(word value)
 {
-	return ((
-			(0x1000*(word)((value%10000)/1000))+ //Factor 1000
-			(0x0100*(word)((value%1000)/100))+ //Factor 100
-			(0x0010*(word)((value%100)/10))+ //Factor 10
-			(value%10) //Factor 1
-		)&0xFFFF); //Give encoded BCD, wrap arround!
+	INLINEREGISTER word temp,result=0;
+	temp = value; //Load the original value!
+	temp %= 10000; //Wrap around!
+	result |= (0x1000*(temp/1000)); //Factor 1000!
+	temp %= 1000;
+	result |= (0x0100*(temp/100)); //Factor 100
+	temp %= 100;
+	result |= (0x0010*(temp/10)); //Factor 10!
+	temp %= 10;
+	result |= temp; //Factor 1!
+	return result;
 }
 
 byte encodeBCD8(byte value)
@@ -218,7 +227,8 @@ void RTC_updateDateTime()
 {
 	//Apply time!
 	time_t t = time(0);
-	struct tm *curtime = localtime(&t); //Get the current time!
+	struct tm *curtime = gmtime(&t); //Get the current time as a general unchanging timepoint by timezone(GMT)!
+	lock(LOCK_CMOS);
 	CMOS.info.RTC_Year = encodeBCD8(curtime->tm_year);
 	CMOS.info.RTC_Month = encodeBCD8(curtime->tm_mon);
 	CMOS.info.RTC_DateOfMonth = encodeBCD8(curtime->tm_mday);
@@ -226,6 +236,7 @@ void RTC_updateDateTime()
 	CMOS.info.RTC_Minutes = encodeBCD8(curtime->tm_min);
 	CMOS.info.RTC_Seconds = encodeBCD8(curtime->tm_sec);
 	RTC_Handler(); //Handle anything that the RTC has to handle!
+	unlock(LOCK_CMOS); //Finished updating!
 }
 
 uint_32 getIRQ8Rate()

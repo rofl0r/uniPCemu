@@ -87,8 +87,13 @@ void initDMAControllers() //Init function for BIOS!
 void DMA_SetDREQ(byte channel, byte DREQ) //Set DREQ from hardware!
 {
 	if (__HW_DISABLED) return; //Abort!
-	DMAController[channel>>2].DREQ &= ~(1<<(channel&3)); //Disable old DREQ!
-	DMAController[channel>>2].DREQ |= (DREQ<<channel); //Enable new DREQ!
+	INLINEREGISTER byte channel2=channel,channel3=channel,channel4;
+	channel2 >>= 2; //Shift to controller!
+	channel3 &= 3; //Only what we need!
+	channel4 = DMAController[channel2].DREQ; //Load the channel DREQ!
+	channel4 &= ~(1<<(channel3)); //Disable old DREQ!
+	channel4 |= (DREQ<<channel3); //Enable new DREQ!
+	DMAController[channel2].DREQ = channel4; //Write back the channel DREQ enabled!
 }
 
 //Easy sets of high and low nibbles (word data)!

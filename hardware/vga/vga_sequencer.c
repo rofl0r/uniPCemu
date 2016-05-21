@@ -55,14 +55,14 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 
 OPTINLINE void drawPixel_real(uint_32 pixel, uint_32 x, uint_32 y) //Manual version for CGA conversion!
 {
-	INLINEREGISTER uint_32 old,p;
-	p = pixel; //Load the pixel to draw!
-	uint_32 *screenpixel = &EMU_BUFFER(x,y); //Pointer to our pixel!
+	INLINEREGISTER uint_32 p=pixel; //Load the pixel to draw and compare!
+	INLINEREGISTER uint_32 *screenpixel = &EMU_BUFFER(x,y); //Pointer to our pixel!
 	if (screenpixel>=EMU_SCREENBUFFEREND) return; //Out of bounds?
-	old = *screenpixel; //Read old!
-	old ^= p; //Check for differences!
-	*screenpixel = p; //Update whether it's needed or not!
-	GPU.emu_buffer_dirty |= old; //Update, set changed bits when changed!
+	if ((*screenpixel)^p) //Are we to update the changed pixel?
+	{
+		*screenpixel = p; //Update whether it's needed or not!
+		GPU.emu_buffer_dirty = 1; //Update, set changed bits when changed!
+	}
 }
 
 OPTINLINE void drawPixel(VGA_Type *VGA, uint_32 pixel) //Normal VGA version!
@@ -455,6 +455,7 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			{
 				VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 			}
+			else ++Sequencer->graphicsx; //Increase the location to render!
 		}
 		Sequencer->tempx = tempx; //Write back tempx!
 	}

@@ -159,10 +159,11 @@ void VGA_GraphicsDecoder(VGA_Type *VGA, word loadedlocation) //Graphics decoder!
 		load256colorshiftmode
 	}; //All the getpixel functionality!
 	loadpixel_jmptbl[VGA->precalcs.GraphicsModeRegister_ShiftRegister](); //Split the pixels from the buffer!
+	((SEQ_DATA *)VGA->Sequencer)->graphicsx = &pixelbuffer[0]; //Start rendering from the graphics buffer pixels at the current location!
 }
 
 void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	attributeinfo->attribute = pixelbuffer[Sequencer->activex&7]; //Give the current pixel, loaded with our block!
+	attributeinfo->attribute = *Sequencer->graphicsx; //Give the current pixel, loaded with our block!
 	attributeinfo->fontpixel = 1; //Graphics attribute is always foreground by default!
 }

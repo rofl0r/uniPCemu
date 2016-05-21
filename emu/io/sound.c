@@ -643,7 +643,7 @@ OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int_32 *re
 
 OPTINLINE static float calcSoundHighpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
 {
-	float RC = 1.0 / (cutoff_freq * 2 * 3.14);
+	float RC = 1.0 / (cutoff_freq * (2.0f * PI));
 	float dt = 1.0 / samplerate;
 	float alpha = RC / (RC + dt);
 	return alpha * (previousresult + currentsample - previoussample);
@@ -651,7 +651,7 @@ OPTINLINE static float calcSoundHighpassFilter(float cutoff_freq, float samplera
 
 OPTINLINE static float calcSoundLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
 {
-	float RC = (float)1.0f / (cutoff_freq * (float)2 * (float)3.14);
+	float RC = (float)1.0f / (cutoff_freq * (2.0f * PI));
 	float dt = (float)1.0f / samplerate;
 	float alpha = dt / (RC + dt);
 	return previousresult + (alpha*(currentsample - previousresult));

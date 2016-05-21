@@ -22,8 +22,8 @@
 //Planar access to VRAM
 byte readVRAMplane(VGA_Type *VGA, byte plane, word offset) //Read from a VRAM plane!
 {
-	if (!VGA) return 0; //Invalid VGA!
-	if (!VGA->VRAM_size) return 0; //No size!
+	if (VGA==0) return 0; //Invalid VGA!
+	if (VGA->VRAM_size==0) return 0; //No size!
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
 
 	INLINEREGISTER uint_32 fulloffset2;
@@ -33,7 +33,7 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset) //Read from a VRAM pl
 
 	fulloffset2 &= 0x3FFFF; //Wrap arround memory! Maximum of 256K memory!
 
-	if (!VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
+	if (VGA->precalcs.LimitedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
@@ -44,8 +44,8 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset) //Read from a VRAM pl
 
 void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write to a VRAM plane!
 {
-	if (!VGA) return; //Invalid VGA!
-	if (!VGA->VRAM_size) return; //No size!
+	if (VGA==0) return; //Invalid VGA!
+	if (VGA->VRAM_size==0) return; //No size!
 	plane &= 3; //Only 4 planes are available!
 
 	INLINEREGISTER uint_32 fulloffset2;
@@ -55,7 +55,7 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write 
 
 	fulloffset2 &= 0x3FFFF; //Wrap arround memory!
 
-	if (!VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
+	if (VGA->precalcs.LimitedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
 
 	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
 	{
