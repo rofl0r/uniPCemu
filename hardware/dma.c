@@ -87,12 +87,13 @@ void initDMAControllers() //Init function for BIOS!
 void DMA_SetDREQ(byte channel, byte DREQ) //Set DREQ from hardware!
 {
 	if (__HW_DISABLED) return; //Abort!
-	INLINEREGISTER byte channel2=channel,channel3=channel,channel4;
+	INLINEREGISTER byte channel2=channel,channel3=channel,channel4,channel5=DREQ;
 	channel2 >>= 2; //Shift to controller!
 	channel3 &= 3; //Only what we need!
 	channel4 = DMAController[channel2].DREQ; //Load the channel DREQ!
 	channel4 &= ~(1<<(channel3)); //Disable old DREQ!
-	channel4 |= (DREQ<<channel3); //Enable new DREQ!
+	channel5 <<= channel3; //Apply DREQ location!
+	channel4 |= channel5; //Enable new DREQ!
 	DMAController[channel2].DREQ = channel4; //Write back the channel DREQ enabled!
 }
 
@@ -605,16 +606,20 @@ void cleanDMA()
 
 void updateDMA(double timepassed)
 {
-	DMA_timing += timepassed; //Get time passed!
-	if (DMA_timing >= DMA_Frequency) //To tick?
+	INLINEREGISTER double timing, freq;
+	timing = DMA_timing; //Load current timing!
+	freq = DMA_Frequency; //Load the frequency as well!
+	timing += timepassed; //Get time passed!
+	if (timing >= freq) //To tick?
 	{
 		//DMA_timing = (float)fmod(DMA_timing,10000.0f*DMA_Frequency); //No more than 10000 at a time!
-		for (;DMA_timing >= DMA_Frequency;) //While ticking?
+		do //While ticking?
 		{
 			DMA_tick(); //Tick the DMA!
-			DMA_timing -= DMA_Frequency; //Tick the DMA!
-		}
+			timing -= freq; //Tick the DMA!
+		} while (timing >= freq); //Continue ticking?
 	}
+	DMA_timing = timing; //Save the new timing to use!
 }
 
 void registerDMA8(byte channel, DMAReadBHandler readhandler, DMAWriteBHandler writehandler)
