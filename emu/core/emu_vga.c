@@ -28,13 +28,13 @@ Renderer mini-optimizations.
 
 float oldrate = 0.0f; //The old rate we're using!
 
-double VGA_timing = 0.0f; //No timing yet!
-double VGA_debugtiming = 0.0f; //Debug countdown if applyable!
+float VGA_timing = 0.0f; //No timing yet!
+float VGA_debugtiming = 0.0f; //Debug countdown if applyable!
 byte VGA_debugtiming_enabled = 0; //Are we applying right now?
-double VGA_rendertiming = 0.0f; //Time for the renderer to tick!
+float VGA_rendertiming = 0.0f; //Time for the renderer to tick!
 
 TicksHolder VGA_test;
-uint_64 VGA_limit = 0.0f; //Our speed factor!
+float VGA_limit = 0.0f; //Our speed factor!
 
 #ifdef LIMITVGA
 uint_32 passedcounter = LIMITVGA; //Times to check for speed with LIMITVGA
@@ -351,8 +351,8 @@ OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 void updateVGA(double timepassed)
 {
 	#ifdef LIMITVGA
-	uint_64 limitcalc=0,renderingsbackup=0;
-	double timeprocessed=0.0;
+	float limitcalc=0,renderingsbackup=0;
+	float timeprocessed=0.0;
 	#endif
 	VGA_timing += timepassed; //Time has passed!
 	
@@ -363,8 +363,8 @@ void updateVGA(double timepassed)
 
 	if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Might have passed?
 	{
-		uint_64 renderings;
-		renderings = (uint_64)(VGA_timing/VGA_rendertiming); //Ammount of times to render!
+		float renderings;
+		renderings = floorf(VGA_timing/VGA_rendertiming); //Ammount of times to render!
 		VGA_timing -= (renderings*VGA_rendertiming); //Rest the amount we can process!
 
 		#ifdef LIMITVGA
@@ -408,10 +408,10 @@ void updateVGA(double timepassed)
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				renderings -= 9; //We've processed 9 more!
+				renderings -= 9.0f; //We've processed 9 more!
 			}
 			VGA_Sequencer(Sequencer); //Tick the VGA once!
-		} while (--renderings); //Ticks left to tick?
+		} while (renderings-=1.0f); //Ticks left to tick?
 
 		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing; //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
 
@@ -421,7 +421,7 @@ void updateVGA(double timepassed)
 			limitcalc = getnspassed(&VGA_test); //How long have we taken?
 
 			//timeprocessed=how much time to use, limitcalc=how much time we have taken, renderingsbackup=How many pixels have we processed.
-			VGA_limit = (uint_64)(((float)renderingsbackup/(float)limitcalc)*timeprocessed); //Don't process any more than we're allowed to (timepassed).
+			VGA_limit = floorf(((float)renderingsbackup/(float)limitcalc)*timeprocessed); //Don't process any more than we're allowed to (timepassed).
 			if (limitcalc<=timeprocessed) VGA_limit = 0; //Don't limit if we're running at full speed (we're below time we are allowed to process)!
 			if (SynchronizationMode) --passedcounter; //A part has been rendered! Only with
 		}

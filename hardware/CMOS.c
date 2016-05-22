@@ -111,6 +111,7 @@ struct
 		} info;
 		byte data[0x80]; //CMOS Data!
 	}; //The data!
+	double timedivergeance;
 	byte IRQ8_Disabled; //IRQ8 not allowed to run for this type? (bits 0x10-0x40 are set for enabled)?
 	byte Loaded; //CMOS loaded?
 	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
@@ -154,6 +155,7 @@ void saveCMOS()
 {
 	if (!CMOS.Loaded) return; //Don't save when not loaded/initialised!
 	memcpy(&BIOS_Settings.CMOS,&CMOS.data,0x80); //Copy the CMOS to BIOS!
+	BIOS_Settings.timedivergeance = CMOS.timedivergeance; //Apply the new time divergeance to the existing time!
 	BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
 	forceBIOSSave(); //Save the BIOS data!
 }
@@ -222,6 +224,48 @@ void RTC_Handler() //Handle RTC Timer Tick!
 	}
 }
 
+void decodetime(struct tm *curtime) //Decode time into the current time!
+{
+	curtime->tm_year = decodeBCD8(CMOS.info.RTC_Year); //The year to compare to!
+	curtime->tm_mon = decodeBCD8(CMOS.info.RTC_Month); //The month to compare to!
+	curtime->tm_mday = decodeBCD8(CMOS.info.RTC_DateOfMonth); //The day to compare to!
+	curtime->tm_hour = decodeBCD8(CMOS.info.RTC_Hours); //H
+	curtime->tm_min = decodeBCD8(CMOS.info.RTC_Minutes); //M
+	curtime->tm_sec = decodeBCD8(CMOS.info.RTC_Seconds); //S
+}
+
+void encodetime(struct tm *curtime) //Encode time into the current time!
+{
+	CMOS.info.RTC_Year = encodeBCD8(curtime->tm_year);
+	CMOS.info.RTC_Month = encodeBCD8(curtime->tm_mon);
+	CMOS.info.RTC_DateOfMonth = encodeBCD8(curtime->tm_mday);
+	CMOS.info.RTC_Hours = encodeBCD8(curtime->tm_hour);
+	CMOS.info.RTC_Minutes = encodeBCD8(curtime->tm_min);
+	CMOS.info.RTC_Seconds = encodeBCD8(curtime->tm_sec);
+}
+
+void updateTimeDivergeance() //Update relative time to the clocks(time difference changes)! This is called when software changes the time/date!
+{
+	time_t t = time(0);
+	struct tm *curtime = gmtime(&t); //Get the current time as a general unchanging timepoint by timezone(GMT)!
+	struct tm savedtime;
+	decodetime(&savedtime); //Get the currently stored time in the CMOS!
+	CMOS.timedivergeance = difftime(mktime(&savedtime),mktime(curtime)); //Apply the new time divergeance!
+}
+
+void incTime(struct tm *curtime, double inctime)
+{
+	double temp = inctime; //Load the time to increase!
+	//Increase time in seconds with curtime!
+	//Give the resulting time as curtime!
+}
+
+void applyTimeDivergeance(struct tm *curtime) //Apply current time to the clocks(Time applying when detected updates)!
+{
+	incTime(curtime,CMOS.timedivergeance); //Add the divergeance to the curtime!
+	encodetime(curtime); //Apply the calculated time to the chip!
+}
+
 //Update the current Date/Time (1 times a second)!
 void RTC_updateDateTime()
 {
@@ -229,12 +273,7 @@ void RTC_updateDateTime()
 	time_t t = time(0);
 	struct tm *curtime = gmtime(&t); //Get the current time as a general unchanging timepoint by timezone(GMT)!
 	lock(LOCK_CMOS);
-	CMOS.info.RTC_Year = encodeBCD8(curtime->tm_year);
-	CMOS.info.RTC_Month = encodeBCD8(curtime->tm_mon);
-	CMOS.info.RTC_DateOfMonth = encodeBCD8(curtime->tm_mday);
-	CMOS.info.RTC_Hours = encodeBCD8(curtime->tm_hour);
-	CMOS.info.RTC_Minutes = encodeBCD8(curtime->tm_min);
-	CMOS.info.RTC_Seconds = encodeBCD8(curtime->tm_sec);
+	applyTimeDivergeance(curtime); //Apply the new time divergeance!
 	RTC_Handler(); //Handle anything that the RTC has to handle!
 	unlock(LOCK_CMOS); //Finished updating!
 }
@@ -252,6 +291,13 @@ void CMOS_onWrite() //When written to CMOS!
 		addtimer((float)getIRQ8Rate(),&RTC_updateDateTime,"RTC",10,0,NULL); //RTC handler!
 		CMOS.IRQ8_Disabled = 0; //Allow IRQ8 to be called by timer: we're enabled!
 		unlock(LOCK_CMOS);
+	}
+	else if (CMOS.ADDR < 0xA) //Date/time might have been updated?
+	{
+		if ((CMOS.ADDR != 1) && (CMOS.ADDR != 3) && (CMOS.ADDR != 5)) //Date/Time has been updated?
+		{
+			updateTimeDivergeance(); //Update the relative time compared to current time!
+		}
 	}
 }
 
