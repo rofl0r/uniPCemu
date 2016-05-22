@@ -164,6 +164,6 @@ void VGA_GraphicsDecoder(VGA_Type *VGA, word loadedlocation) //Graphics decoder!
 
 void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	attributeinfo->attribute = *Sequencer->graphicsx; //Give the current pixel, loaded with our block!
+	attributeinfo->attribute = *Sequencer->graphicsx++; //Give the current pixel, loaded with our block!
 	attributeinfo->fontpixel = 1; //Graphics attribute is always foreground by default!
 }

@@ -436,7 +436,11 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		{
 			nibbled &= !(Sequencer->active_nibblerate ^= 1); //Nibble expired?
 		}
-		if (nibbled) return; //Are we not finished with the nibble? Abort!
+		if (nibbled)
+		{
+			Sequencer->graphicsx -= (VGA->precalcs.graphicsmode<<1); //Decrease twice, undoing the increase in position!
+			return; //Are we not finished with the nibble? Abort!
+		}
 		//Finished with the nibble&pixel? We're ready to check for the next one!
 		if (VGA->precalcs.textmode) //Text mode?
 		{
@@ -455,9 +459,12 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			{
 				VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 			}
-			else ++Sequencer->graphicsx; //Increase the location to render!
 		}
 		Sequencer->tempx = tempx; //Write back tempx!
+	}
+	else //Are we a graphics mode (nibbled or not) to undo increasing?
+	{
+		Sequencer->graphicsx -= (1<<(nibbled))&VGA->precalcs.graphicsmode_nibbled; //Decrease twice when nibbled, else once, undoing the increase in position!
 	}
 }
 
