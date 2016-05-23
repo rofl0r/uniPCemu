@@ -31,15 +31,10 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset) //Read from a VRAM pl
 	fulloffset2 <<= 2; //We cycle through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
 
-	fulloffset2 &= 0x3FFFF; //Wrap arround memory! Maximum of 256K memory!
+	fulloffset2 &= VGA->precalcs.VRAMmask; //Only 64K memory available, so wrap arround it when needed!
 
-	if (VGA->precalcs.LimitedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
-
-	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
-	{
-		return VGA->VRAM[fulloffset2]; //Read the data from VRAM!
-	}
-	return 0; //Nothing there: invalid VRAM!
+	if (fulloffset2>=VGA->VRAM_size) return 0; //VRAM valid, simple check?
+	return VGA->VRAM[fulloffset2]; //Read the data from VRAM!
 }
 
 void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write to a VRAM plane!
@@ -53,16 +48,12 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write 
 	fulloffset2 <<= 2; //We cycle through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
 
-	fulloffset2 &= 0x3FFFF; //Wrap arround memory!
+	fulloffset2 &= VGA->precalcs.VRAMmask; //Only 64K memory available, so wrap arround it when needed!
 
-	if (VGA->precalcs.LimitedMemory) fulloffset2 &= 0xFFFF; //Only 64K memory available, so wrap arround it!
-
-	if (fulloffset2<VGA->VRAM_size) //VRAM valid, simple check?
+	if (fulloffset2>=VGA->VRAM_size) return; //VRAM valid, simple check?
+	VGA->VRAM[fulloffset2] = value; //Set the data in VRAM!
+	if (plane==2) //Character RAM updated?
 	{
-		VGA->VRAM[fulloffset2] = value; //Set the data in VRAM!
-		if (plane==2) //Character RAM updated?
-		{
-			VGA_plane2updated(VGA,offset); //Plane 2 has been updated!	
-		}
+		VGA_plane2updated(VGA,offset); //Plane 2 has been updated!	
 	}
 }

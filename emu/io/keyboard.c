@@ -103,8 +103,9 @@ void releaseKeyReleased(uint_64 keytime)
 {
 	byte releaseall=0;
 	int_64 i;
-	releaseallkeys:
-	for (i = 0;i < (int)NUMITEMS(key_status);i++) //Process all keys needed!
+releaseallkeys:
+	i = 0;
+	do //Process all keys needed!
 	{
 		if (keys_ispressed[i] && ((key_pressed_time[i]==keytime) || ((key_status[i]&1) && releaseall))) //Are we pressed and allowed to release?
 		{
@@ -141,7 +142,7 @@ void releaseKeyReleased(uint_64 keytime)
 				}
 			}
 		}
-	}
+	} while (++i < (int)NUMITEMS(key_status)); //Process all keys available!
 }
 
 void releaseKeysReleased()

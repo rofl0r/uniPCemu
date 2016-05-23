@@ -55,7 +55,8 @@ typedef struct PACKED
 byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst)
 {
 	int x, y, sx, sy, ssx, ssy, *sax, *say, *csax, *csay, *salast, csx, csy, ex, ey, cx, cy, sstep, sstepx, sstepy;
-	tColorRGBA *c00, *c01, *c10, *c11;
+	tColorRGBA *c00, *c01;
+	INLINEREGISTER tColorRGBA *c10, *c11;
 	tColorRGBA *sp, *csp;
 	INLINEREGISTER tColorRGBA *dp;
 	int spixelgap, spixelw, spixelh, dgap, t1, t2;
@@ -327,34 +328,22 @@ void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerele
 //Memory value comparision.
 
 //Returns 1 on not equal, 0 on equal!
-OPTINLINE byte diffmem(void *start, byte value, uint_32 size)
+OPTINLINE byte diffmem(void *start, uint_32 value, uint_32 size)
 {
-	byte *current = (byte *)start; //Convert to byte list!
-	byte result = 0; //Default: equal!
+	INLINEREGISTER uint_32 *current = (uint_32 *)start; //Convert to byte list!
+	INLINEREGISTER uint_32 *ending = &current[size]; //The end of the list to check!
+	INLINEREGISTER byte result = 0; //Default: equal!
+	INLINEREGISTER uint_32 val=value; //The value to check for!
 	if (size) //Gotten size?
 	{
-		byte restsize = 0;
-		for (;;) //Check the data!
+		do //Check the data!
 		{
-			//Recheck valid!
-			if (!restsize) //Not set or not checked yet?
+			if (*current!=val) //Gotten a different value?
 			{
-				restsize = (size>200)?200:size; //Limit to 200 bytes checked at once!
-			}
-
-			if (restsize--) //Valid?
-			{
-				if (*current!=value) //Gotten a different value?
-				{
-					result = 1; //Set changed!
-				}
-			}
-			if (!--size) //Done?
-			{
+				result = 1; //Set changed!
 				break;
 			}
-			++current; //Next item!
-		}
+		} while (++current!=ending); //Loop while not finished checking!
 	}
 	return result; //Give the result!
 }
@@ -362,34 +351,22 @@ OPTINLINE byte diffmem(void *start, byte value, uint_32 size)
 //Returns 1 on not equal, 0 on equal!
 OPTINLINE byte memdiff(void *start, void *value, uint_32 size)
 {
-	byte *current = (byte *)start; //Convert to byte list!
-	byte *ref = (byte *)value; //To compare to!
-	byte result = 0; //Default: equal!
+	INLINEREGISTER uint_32 *current = (uint_32 *)start; //Convert to byte list!
+	INLINEREGISTER uint_32 *ref = (uint_32 *)value; //To compare to!
+	INLINEREGISTER uint_32 *ending = &current[size]; //The end of the list to check!
+	INLINEREGISTER byte result = 0; //Default: equal!
 	if (size) //Gotten size?
 	{
-		byte restsize = 0;
-		for (;;) //Check the data!
+		do //Check the data!
 		{
 			//Recheck valid!
-			if (!restsize) //Not set or not checked yet?
+			if (*current!=*ref) //Gotten a different pixel value?
 			{
-				restsize = (size>200)?200:size; //Limit to 50 bytes checked at once!
-			}
-
-			if (restsize--) //Still valid?
-			{
-				if (*current!=*ref) //Gotten a different value?
-				{
-					result = 1; //Set changed!
-				}
-			}
-			if (!--size) //Done?
-			{
+				result = 1; //Set changed!
 				break;
 			}
-			++current; //Next item!
-			++ref; //Next item!
-		}
+			++ref; //Increase the reference too!
+		} while (++current!=ending); //Loop while not finished checking!
 	}
 	return result; //Give the result!
 }
@@ -632,58 +609,58 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 						//Just plain plot at the right, filling with black on the left when not centering!
 						if ((restpixels>0) && (!(center&4))) //Still a part of the row not rendered and valid rest location?
 						{
-							if (diffmem(row, 0, restpixels<<2)) //Different?
+							if (diffmem(row, 0, restpixels)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+								memset(row, 0, restpixels<<2); //Clear to the start of the row, so that only the part we specified gets something!
 							}
-							memset(row,0,restpixels*4); //Clear to the start of the row, so that only the part we specified gets something!
 						}
-						if (memdiff(&row[restpixels],pixels,use_rowsize<<2)) //Different?
+						if (memdiff(&row[restpixels],pixels,use_rowsize)) //Different?
 						{
 							surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+							memcpy(&row[restpixels], pixels, use_rowsize<<2); //Copy the row to the buffer as far as we can go!
 						}
-						memcpy(&row[restpixels],pixels,use_rowsize<<2); //Copy the row to the buffer as far as we can go!
 						break;
 					case 1: //Use horizontal centering?
 						if ((sword)getlayerwidth(surface)>(sword)(use_rowsize+2)) //We have space left&right to plot? Also must have at least 2 pixels left&right to center!
 						{
 							if (!(center&4)) //Clear enabled?
 							{
-								if (diffmem(row, 0, start<<2)) //Different left or right?
+								if (diffmem(row, 0, start)) //Different left or right?
 								{
 									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+									memset(row, 0, start << 2); //Clear the left!
 								}
-								memset(row,0,start<<2); //Clear the left!
-								if (diffmem(&row[start+use_rowsize],0,(getlayerwidth(surface)-(start+use_rowsize))<<2)) //Different left or right?
+								if (diffmem(&row[start+use_rowsize],0,(getlayerwidth(surface)-(start+use_rowsize)))) //Different left or right?
 								{
 									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+									memset(&row[start + use_rowsize], 0, (getlayerwidth(surface) - (start + use_rowsize)) << 2); //Clear the right!
 								}
-								memset(&row[start+use_rowsize],0,(getlayerwidth(surface)-(start+use_rowsize))<<2); //Clear the right!
 							}
-							if (memdiff(&row[start], pixels, use_rowsize<<2)) //Different?
+							if (memdiff(&row[start], pixels, use_rowsize)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+								memcpy(&row[start], pixels, use_rowsize << 2); //Copy the pixels to the center!
 							}
-							memcpy(&row[start],pixels,use_rowsize<<2); //Copy the pixels to the center!
 							return; //Done: we've written the pixels at the center!
 						}
 					//We don't need centering: just do left side plot!
 					default: //We default to left side plot!
 					case 0: //Left side plot?
 						restpixels -= row_start; //The pixels that are left are lessened by row_start in this mode too!
-						if (memcmp(&row[row_start],pixels,use_rowsize<<2)) //Different?
+						if (memdiff(&row[row_start],pixels,use_rowsize)) //Different, so draw?
 						{
 							surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+							memcpy(&row[row_start], pixels, use_rowsize << 2); //Copy the row to the buffer as far as we can go!
 						}
-						memcpy(&row[row_start],pixels,use_rowsize<<2); //Copy the row to the buffer as far as we can go!
 						//Now just render the rest part of the line to black!
 						if ((restpixels>0) && (!(center&4))) //Still a part of the row not rendered and valid rest location and not disable clearing?
 						{
-							if (diffmem(&row[row_start + use_rowsize], 0, restpixels<<2)) //Different?
+							if (diffmem(&row[row_start + use_rowsize], 0, restpixels)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+								memset(&row[row_start + use_rowsize], 0, restpixels << 2); //Clear to the end of the row, so that only the part we specified gets something!
 							}
-							memset(&row[row_start+use_rowsize],0,restpixels<<2); //Clear to the end of the row, so that only the part we specified gets something!
 						}
 						break;
 					}
@@ -711,11 +688,11 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 		uint_32 *row = get_pixel_row(surface,y,0); //Row at the left!
 		if (row && getlayerwidth(surface)) //Got row?
 		{
-			if (diffmem(row, 0, getlayerwidth(surface)<<2)) //Different?
+			if (diffmem(row, 0, getlayerwidth(surface))) //Different?
 			{
 				surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+				memset(row, 0, getlayerwidth(surface) << 2); //Clear the row, because we have no pixels!
 			}
-			memset(row,0,getlayerwidth(surface)<<2); //Clear the row, because we have no pixels!
 		}
 	}
 	else

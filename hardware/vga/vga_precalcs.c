@@ -265,7 +265,14 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 	if (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04) || FullUpdate) //Sequencer memory mode register?
 	{
-		VGA->precalcs.LimitedMemory = !VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory; //Enable limited memory when Extended memory is unused!
+		if (!VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) //Enable limited memory when Extended memory is unused!
+		{
+			VGA->precalcs.VRAMmask = 0xFFFF; //Wrap memory according to specs!
+		}
+		else
+		{
+			VGA->precalcs.VRAMmask = 0x3FFFF; //Don't limit VGA memory, wrap normally!
+		}
 	}
 	
 	if (FullUpdate || (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x5))) //Graphics mode register?

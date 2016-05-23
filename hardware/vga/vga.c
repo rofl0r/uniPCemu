@@ -49,6 +49,8 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS Settings!
 
 byte is_loadchartable = 0; //Loading character table?
 
+extern byte pixelbuffer[8]; //All 8 pixels decoded from the planesbuffer!
+
 /*
 
 Info about basic modes:
@@ -194,6 +196,8 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	debugrow("VGA: Executing initial precalculations...");
 	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!
 	
+	((SEQ_DATA *)VGA->Sequencer)->graphicsx = &pixelbuffer[0]; //Reset the graphics pointer!
+
 	debugrow("VGA: Allocation ready.");
 	return VGA; //Give the new allocated VGA!
 }

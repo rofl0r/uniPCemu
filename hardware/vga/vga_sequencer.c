@@ -84,9 +84,14 @@ OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display
 	}
 	else //CGA mode?
 	{
+		INLINEREGISTER uint_32 *bufferpos, *finalpos;
+		finalpos = &CGAOutputBuffer[CGALineSize]; //End of the output buffer to process!
+		bufferpos = &CGAOutputBuffer[0]; //First pixel to render!
 		RENDER_convertCGAOutput(&CGALineBuffer[0],&CGAOutputBuffer[0],CGALineSize); //Convert the CGA line to RGB output!
-		for (i=0;i<CGALineSize;i++) //Render all pixels!
-			drawPixel_real(CGAOutputBuffer[i],i,VGA->CRTC.y); //Render the converted CGA output signal!
+		if (!CGALineSize) return; //Abort if nothing to render!
+		i = 0; //Start index to draw at!
+		for (;bufferpos!=finalpos;) //Render all pixels!
+			drawPixel_real(*bufferpos++,i++,VGA->CRTC.y); //Render the converted CGA output signal!
 	}
 }
 
@@ -192,14 +197,14 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
 	loadedlocation = x; //X!
 	loadedlocation &= 0xFFF; //Limit!
-	if (VGA->precalcs.graphicsmode) //Graphics mode?
-	{
-		loadedlocation >>= 3; //We take portions of 8 pixels, so increase our location every 8 pixels!
-	}
-	else //Gotten character width? Just here for safety!
+	if (VGA->precalcs.textmode) //Text mode? Gotten character width? Just here for safety!
 	{
 		loadedlocation <<= 1; //Multiply by 2 for our index!
 		loadedlocation = VGA->CRTC.charcolstatus[loadedlocation]; //Divide by character width in text mode to get the correct character by using the horizontal clock!
+	}
+	else //Graphics mode?
+	{
+		loadedlocation >>= 3; //We take portions of 8 pixels, so increase our location every 8 pixels!
 	}
 
 	loadedlocation >>= VGA->precalcs.characterclockshift; //Apply VGA shift: the shift is the ammount to move at a time!

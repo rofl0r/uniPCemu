@@ -135,8 +135,8 @@ typedef struct //Contains the precalculated values!
 	byte LastMiscOutputRegister; //Last value written to the Misc Output Register!
 	byte LastCGAFlags; //Last used CGA flags!
 	byte LastMDAFlags; //Last used MDA flags!
-	byte LimitedMemory; //Limited memory available?
 	byte graphicsmode_nibbled; //Allow nibbled reversal mask this must allow values 1&2 to be decreased, else 0 with text modes!
+	uint_32 VRAMmask; //The mask used for accessing VRAM!
 } VGA_PRECALCS; //VGA pre-calculations!
 
 void VGA_calcprecalcs(void *VGA, uint_32 whereupdated); //Calculate them!

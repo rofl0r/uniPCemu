@@ -116,13 +116,14 @@ uint_32 VGA_WriteMode0(uint_32 data) //Read-Modify-Write operation!
 	data = (byte)ror((byte)data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.RotateCount); //Rotate it! Keep 8-bit data!
 	data = getActiveVGA()->ExpandTable[data]; //Make sure the data is on the all planes!
 
-	for (curplane = 0;curplane<4;curplane++)
+	curplane = 0;
+	do
 	{
 		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.ENABLESETRESETREGISTER.EnableSetReset&(1 << curplane)) //Enable set/reset? (Mode 3 ignores this flag)
 		{
 			data = (data&(~getActiveVGA()->FillTable[(1 << curplane)])) | getActiveVGA()->FillTable[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER.SetReset&(1 << curplane)]; //Turn all those bits off, and the set/reset plane ON=0xFF for the plane and OFF=0x00!
 		}
-	}
+	} while (++curplane!=4);
 	data = LogicalOperation(data); //Execute the logical operation!
 	data = BitmaskOperation(data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER); //Execute the bitmask operation!
 	return data; //Give the resulting data!
@@ -159,7 +160,8 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 	byte planeenable = getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable; //What planes to try to write to!
 	planeenable &= planes; //The actual planes to write to!
 	byte curplanemask=1;
-	for (curplane=0;curplane<4;) //Process all planes!
+	curplane = 0;
+	do //Process all planes!
 	{
 		if (planeenable&curplanemask) //Modification of the plane?
 		{
@@ -167,8 +169,7 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 		}
 		data >>= 8; //Shift to the next plane!
 		curplanemask <<= 1; //Next plane!
-		++curplane; //Next plane!
-	}
+	} while (++curplane!=4);
 }
 
 OPTINLINE void loadlatch(uint_32 offset)
@@ -185,15 +186,15 @@ typedef byte (*VGA_ReadMode)(byte planes, uint_32 offset);
 byte VGA_ReadMode0(byte planes, uint_32 offset) //Read mode 0: Just read the normal way!
 {
 	INLINEREGISTER byte curplane;
-	for (curplane = 0; curplane < 4;)
+	curplane = 0;
+	do
 	{
 		if (planes&1) //Read from this plane?
 		{
 			return readVRAMplane(getActiveVGA(), curplane, offset); //Read directly from vram using the selected plane!
 		}
-		++curplane; //Next plane!
 		planes >>= 1; //Next plane!
-	}
+	} while (++curplane!=4);
 	return 0; //Unknown plane! Give 0!
 }
 
@@ -202,7 +203,8 @@ byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display m
 	INLINEREGISTER byte curplane;
 	INLINEREGISTER byte result=0; //The value we return, default to 0 if undefined!
 	//Each bit in the result represents one comparision between the reference color, with the bit being set if the comparision is true.
-	for (curplane = 0;curplane<4;curplane++) //Check all planes!
+	curplane = 0;
+	do//Check all planes!
 	{
 		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER.ColorCare&(1 << curplane)) //We care about this plane?
 		{
@@ -211,7 +213,7 @@ byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display m
 				result |= (1 << curplane); //Set the bit: the comparision is true!
 			}
 		}
-	}
+	} while (++curplane!=4); //Process all planes!
 	return result; //Give the value!
 }
 

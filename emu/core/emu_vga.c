@@ -148,7 +148,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	INLINEREGISTER word tempsignalbackup = signal; //The back-up of the signal!
 	INLINEREGISTER word tempsignal = signal; //Current signal!
 	//Blankings
-	tempsignal &= VGA_HBLANKMASK; //Check for blanking!
+	tempsignal &= (VGA_HBLANKMASK|VGA_HRETRACEMASK); //Check for blanking/retracing!
 	if (tempsignal) //HBlank?
 	{
 		if (tempsignal&VGA_SIGNAL_HBLANKSTART) //HBlank start?
@@ -163,52 +163,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 				blankretraceendpending |= VGA_SIGNAL_HBLANKEND;
 			}
 		}
-	}
-	else if (blankretraceendpending&VGA_SIGNAL_HBLANKEND) //End pending HBlank!
-	{
-	CGAendhblank:
-		hblank = 0; //We're not blanking anymore!
-		blankretraceendpending &= ~VGA_SIGNAL_HBLANKEND; //Remove from flags pending!
-	}
 
-	tempsignal = tempsignalbackup; //Restore the original backup signal!
-	tempsignal &= VGA_VBLANKMASK; //Check for blanking!
-	if (tempsignal) //VBlank?
-	{
-		if (tempsignal&VGA_SIGNAL_VBLANKSTART) //VBlank start?
-		{
-			vblank = 1; //We're blanking!
-		}
-		else if (vblank)
-		{
-			if (tempsignal&VGA_SIGNAL_VBLANKEND) //VBlank end?
-			{
-				if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendvblank;
-				blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
-			}
-		}
-	}
-	else if (blankretraceendpending&VGA_SIGNAL_VBLANKEND) //End pending HBlank!
-	{
-	CGAendvblank:
-		vblank = 0; //We're not blanking anymore!
-		blankretraceendpending &= ~VGA_SIGNAL_VBLANKEND; //Remove from flags pending!
-	}
-
-	//Both H&VBlank count!
-	blanking = hblank;
-	blanking |= vblank; //Process blank!
-	//Screen disable applies blanking permanently!
-	blanking |= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable; //Use disabled output when asked to!
-	blanking |= CGAMDARenderer; //Apply the CGA renderer if needed!
-
-	//Now process the Retraces/Sync!
-
-	//HSync
-	tempsignal = tempsignalbackup; //Restore the original backup signal!
-	tempsignal &= VGA_HRETRACEMASK; //Check for retracing!
-	if (tempsignal)
-	{
 		if (tempsignal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
 		{
 			if (!hretrace) //Not running yet?
@@ -225,19 +180,37 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 			}
 		}
 	}
-
-	//VSync
-	tempsignal = tempsignalbackup; //Restore the original backup signal!
-	tempsignal &= VGA_VRETRACEMASK; //Check for retracing!
-	if (tempsignal)
+	else if (blankretraceendpending&VGA_SIGNAL_HBLANKEND) //End pending HBlank!
 	{
+	CGAendhblank:
+		hblank = 0; //We're not blanking anymore!
+		blankretraceendpending &= ~VGA_SIGNAL_HBLANKEND; //Remove from flags pending!
+	}
+
+	tempsignal = tempsignalbackup; //Restore the original backup signal!
+	tempsignal &= (VGA_VBLANKMASK|VGA_VRETRACEMASK); //Check for blanking!
+	if (tempsignal) //VBlank?
+	{
+		if (tempsignal&VGA_SIGNAL_VBLANKSTART) //VBlank start?
+		{
+			vblank = 1; //We're blanking!
+		}
+		else if (vblank)
+		{
+			if (tempsignal&VGA_SIGNAL_VBLANKEND) //VBlank end?
+			{
+				if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendvblank;
+				blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
+			}
+		}
+
 		if (tempsignal&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
 		{
 			if (!vretrace) //Not running yet?
 			{
 				VGA_VRetrace(Sequencer, VGA); //Execute the handler!
 
-				//VGA/EGA vertical retrace interrupt support!
+											  //VGA/EGA vertical retrace interrupt support!
 				if (VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_NotCleared) //Enabled vertical retrace interrupt?
 				{
 					if (!VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Disabled) //Generate vertical retrace interrupts?
@@ -261,15 +234,28 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 				VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 1; //Vertical retrace?
 			}
 		}
-		else
+		else //No vretrace?
 		{
 			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //Vertical retrace?
 		}
 	}
 	else
 	{
-		VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //Vertical retrace?
+		if (blankretraceendpending&VGA_SIGNAL_VBLANKEND) //End pending HBlank!
+		{
+		CGAendvblank:
+			vblank = 0; //We're not blanking anymore!
+			blankretraceendpending &= ~VGA_SIGNAL_VBLANKEND; //Remove from flags pending!
+		}
+		VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //No vertical retrace?
 	}
+
+	//Both H&VBlank count!
+	blanking = hblank;
+	blanking |= vblank; //Process blank!
+	//Screen disable applies blanking permanently!
+	blanking |= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable; //Use disabled output when asked to!
+	blanking |= CGAMDARenderer; //Apply the CGA renderer if needed!
 
 	//Process resetting the HSync/VSync counters!
 	tempsignal = tempsignalbackup; //Restore the original backup signal!
@@ -311,7 +297,14 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 
 	isretrace |= totalling; //Apply totalling to retrace checks!
 	tempsignal &= VGA_DISPLAYMASK; //Check the display now!
-	VGA->CRTC.DisplayEnabled = ((!isretrace) && (tempsignal==VGA_DISPLAYACTIVE)); //We're active display when not retracing/totalling and active display area (not overscan)!
+	if (isretrace) //Retracing?
+	{
+		VGA->CRTC.DisplayEnabled = 0; //Retracing, so display is disabled!
+	}
+	else
+	{
+		VGA->CRTC.DisplayEnabled = (tempsignal==VGA_DISPLAYACTIVE); //We're active display when not retracing/totalling and active display area!
+	}
 }
 
 extern DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for all pixels!
@@ -413,7 +406,7 @@ void updateVGA(double timepassed)
 			VGA_Sequencer(Sequencer); //Tick the VGA once!
 		} while (renderings-=1.0f); //Ticks left to tick?
 
-		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = retracing; //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
+		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = !getActiveVGA()->CRTC.DisplayEnabled; //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
 
 		#ifdef LIMITVGA
 		if (passedcounter && currentVGASpeed) //Still counting?

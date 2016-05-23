@@ -222,8 +222,8 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		pixeln = GPU_TEXTPIXELSX*GPU_TEXTPIXELSY; //The number of pixels to process!
 		do //Process all rows!
 		{
-			updateDirty(tsurface,x++,y); //Update dirty if needed!
-			if (x==GPU_TEXTPIXELSX) //End of row reached?
+			updateDirty(tsurface,x,y); //Update dirty if needed!
+			if (++x==GPU_TEXTPIXELSX) //End of row reached?
 			{
 				x = 0; //Reset horizontal coordinate!
 				++y; //Goto Next row!
@@ -240,12 +240,13 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		renderpixel = &tsurface->notdirty[0][0]; //Start with the first pixel in our buffer!
 		do //Process all rows!
 		{
-			GPU_textput_pixel(rendersurface,tsurface,x++,y, *renderpixel++); //Plot a pixel if used!
-			if (x==GPU_TEXTPIXELSX) //End of row reached?
+			GPU_textput_pixel(rendersurface,tsurface,x,y, *renderpixel); //Plot a pixel if used!
+			if (++x==GPU_TEXTPIXELSX) //End of row reached?
 			{
 				x = 0; //Reset horizontal coordinate!
 				renderpixel = &tsurface->notdirty[++y][0]; //Start with the first pixel in our new row!
 			}
+			else ++renderpixel; //Next pixel to render!
 		} while (--pixeln); //Stop searching now!
 	}
 
