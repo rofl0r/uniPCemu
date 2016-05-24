@@ -113,26 +113,143 @@ SINGLE SHIFT MODE
 void loadplanarshiftmode() //Planar shift mode!
 {
 	//16-color mode!
-	INLINEREGISTER byte pixel=8, result=0;
-	for (;pixel;)
-	{
-		result = (planesbuffer[3] & 1); //Load plane 3!
-		planesbuffer[3] >>= 1; //Next bit!
-		result <<= 1; //Next bit!
+	INLINEREGISTER byte result=0;
+	//Start of looping all 8 pixels!
+	result = (planesbuffer[3] & 1); //Load plane 3!
+	planesbuffer[3] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
 
-		result |= (planesbuffer[2] & 1); //Load plane 2!
-		planesbuffer[2] >>= 1; //Next bit!
-		result <<= 1; //Next bit!
+	result |= (planesbuffer[2] & 1); //Load plane 2!
+	planesbuffer[2] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
 
-		result |= (planesbuffer[1] & 1); //Load plane 1!
-		planesbuffer[1] >>= 1; //Next bit!
-		result <<= 1; //Next bit!
+	result |= (planesbuffer[1] & 1); //Load plane 1!
+	planesbuffer[1] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
 
-		result |= (planesbuffer[0] & 1); //Load plane 0!
-		planesbuffer[0] >>= 1; //Next bit!
+	result |= (planesbuffer[0] & 1); //Load plane 0!
+	planesbuffer[0] >>= 1; //Next bit!
 
-		pixelbuffer[--pixel] = result; //Load the result for usage!
-	}
+	pixelbuffer[7] = result; //Load the result for usage!
+
+	result = (planesbuffer[3] & 1); //Load plane 3!
+	planesbuffer[3] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[2] & 1); //Load plane 2!
+	planesbuffer[2] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[1] & 1); //Load plane 1!
+	planesbuffer[1] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[0] & 1); //Load plane 0!
+	planesbuffer[0] >>= 1; //Next bit!
+
+	pixelbuffer[6] = result; //Load the result for usage!
+
+	result = (planesbuffer[3] & 1); //Load plane 3!
+	planesbuffer[3] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[2] & 1); //Load plane 2!
+	planesbuffer[2] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[1] & 1); //Load plane 1!
+	planesbuffer[1] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[0] & 1); //Load plane 0!
+	planesbuffer[0] >>= 1; //Next bit!
+
+	pixelbuffer[5] = result; //Load the result for usage!
+
+	result = (planesbuffer[3] & 1); //Load plane 3!
+	planesbuffer[3] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[2] & 1); //Load plane 2!
+	planesbuffer[2] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[1] & 1); //Load plane 1!
+	planesbuffer[1] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[0] & 1); //Load plane 0!
+	planesbuffer[0] >>= 1; //Next bit!
+
+	pixelbuffer[4] = result; //Load the result for usage!
+
+	result = (planesbuffer[3] & 1); //Load plane 3!
+	planesbuffer[3] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[2] & 1); //Load plane 2!
+	planesbuffer[2] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[1] & 1); //Load plane 1!
+	planesbuffer[1] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[0] & 1); //Load plane 0!
+	planesbuffer[0] >>= 1; //Next bit!
+
+	pixelbuffer[3] = result; //Load the result for usage!
+
+	result = (planesbuffer[3] & 1); //Load plane 3!
+	planesbuffer[3] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[2] & 1); //Load plane 2!
+	planesbuffer[2] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[1] & 1); //Load plane 1!
+	planesbuffer[1] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[0] & 1); //Load plane 0!
+	planesbuffer[0] >>= 1; //Next bit!
+
+	pixelbuffer[2] = result; //Load the result for usage!
+
+	result = (planesbuffer[3] & 1); //Load plane 3!
+	planesbuffer[3] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[2] & 1); //Load plane 2!
+	planesbuffer[2] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[1] & 1); //Load plane 1!
+	planesbuffer[1] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[0] & 1); //Load plane 0!
+	planesbuffer[0] >>= 1; //Next bit!
+
+	pixelbuffer[1] = result; //Load the result for usage!
+
+	result = (planesbuffer[3] & 1); //Load plane 3!
+	planesbuffer[3] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[2] & 1); //Load plane 2!
+	planesbuffer[2] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[1] & 1); //Load plane 1!
+	planesbuffer[1] >>= 1; //Next bit!
+	result <<= 1; //Next bit!
+
+	result |= (planesbuffer[0] & 1); //Load plane 0!
+	planesbuffer[0] >>= 1; //Next bit!
+
+	pixelbuffer[0] = result; //Load the result for usage!
 }
 
 //Shiftregister: 2=ShiftRegisterInterleave, 1=Color256ShiftMode. Priority list: 1, 2, 0; So 1&3=256colorshiftmode, 2=ShiftRegisterInterleave, 0=SingleShift.

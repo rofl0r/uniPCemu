@@ -3,17 +3,13 @@
 
 #include "headers/types.h" //Basic type support!
 
-typedef struct {
-uint_32 readpos; //The position to read!
-uint_32 writepos; //The position to write!
-byte lastwaswrite; //Last operation was a write?
-} FIFOBUFFER_POS;
-
 typedef struct
 {
 byte *buffer; //The buffer itself!
 uint_32 size; //The size of the buffer!
-FIFOBUFFER_POS position[2]; //Use position and backup for returning!
+uint_32 readpos; //The position to read!
+uint_32 writepos; //The position to write!
+byte lastwaswrite; //Last operation was a write?
 SDL_sem *lock; //Our lock for single access!
 } FIFOBUFFER;
 
@@ -109,26 +105,6 @@ parameters:
 */
 
 void fifobuffer_gotolast(FIFOBUFFER *buffer);
-
-/*
-
-fifobuffer_save: Save current buffer status!
-parameters:
-	buffer: pointer to the buffer itself.
-
-*/
-
-void fifobuffer_save(FIFOBUFFER *buffer);
-
-/*
-
-fifobuffer_reset: Save current buffer status!
-parameters:
-	buffer: pointer to the buffer itself.
-
-*/
-
-void fifobuffer_restore(FIFOBUFFER *buffer);
 
 /*
 

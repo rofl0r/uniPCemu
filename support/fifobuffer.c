@@ -69,9 +69,7 @@ OPTINLINE uint_32 fifobuffer_INTERNAL_freesize(FIFOBUFFER *buffer)
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	INLINEREGISTER uint_32 readpos, writepos;
-	readpos = buffer->position[0].readpos;
-	writepos = buffer->position[0].writepos;
-	if (readpos!=writepos) //Not at the same position to read&write?
+	if ((readpos = buffer->readpos)!=(writepos = buffer->writepos)) //Not at the same position to read&write?
 	{
 		if (readpos>writepos) //Read after write index? We're a simple difference!
 		{
@@ -85,7 +83,10 @@ OPTINLINE uint_32 fifobuffer_INTERNAL_freesize(FIFOBUFFER *buffer)
 	}
 	else //Readpos = Writepos? Either full or empty?
 	{
-		return buffer->position[0].lastwaswrite ? 0 : buffer->size; //Full when last was write, else empty!
+		if (buffer->lastwaswrite) //Last was write?
+			return 0;
+		else //Last was read?
+			return buffer->size; //Full when last was write, else empty!
 	}
 }
 
@@ -125,7 +126,7 @@ byte peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read
 		WaitSem(buffer->lock)
 		if (fifobuffer_INTERNAL_freesize(buffer)<buffer->size) //Filled?
 		{
-			*result = buffer->buffer[buffer->position[0].readpos]; //Give the data!
+			*result = buffer->buffer[buffer->readpos]; //Give the data!
 			PostSem(buffer->lock)
 			return 1; //Something to peek at!
 		}
@@ -135,7 +136,7 @@ byte peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read
 	{
 		if (fifobuffer_INTERNAL_freesize(buffer)<buffer->size) //Filled?
 		{
-			*result = buffer->buffer[buffer->position[0].readpos]; //Give the data!
+			*result = buffer->buffer[buffer->readpos]; //Give the data!
 			return 1; //Something to peek at!
 		}
 	}
@@ -145,11 +146,11 @@ byte peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read
 OPTINLINE static void readfifobufferunlocked(FIFOBUFFER *buffer, byte *result)
 {
 	INLINEREGISTER uint_32 readpos;
-	readpos = buffer->position[0].readpos; //Load the old read position!
+	readpos = buffer->readpos; //Load the old read position!
 	*result = buffer->buffer[readpos++]; //Read and update!
 	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
-	buffer->position[0].readpos = readpos; //Update the read position!
-	buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
+	buffer->readpos = readpos; //Update the read position!
+	buffer->lastwaswrite = 0; //Last operation was a read operation!
 }
 
 byte readfifobuffer(FIFOBUFFER *buffer, byte *result)
@@ -184,11 +185,11 @@ byte readfifobuffer(FIFOBUFFER *buffer, byte *result)
 OPTINLINE static void writefifobufferunlocked(FIFOBUFFER *buffer, byte data)
 {
 	INLINEREGISTER uint_32 writepos;
-	writepos = buffer->position[0].writepos; //Load the old write position!
+	writepos = buffer->writepos; //Load the old write position!
 	buffer->buffer[writepos++] = data; //Write and update!
 	if (writepos >= buffer->size) writepos = 0; //Wrap arround when needed!
-	buffer->position[0].writepos = writepos; //Update the write position!
-	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
+	buffer->writepos = writepos; //Update the write position!
+	buffer->lastwaswrite = 1; //Last operation was a write operation!
 }
 
 byte writefifobuffer(FIFOBUFFER *buffer, byte data)
@@ -231,7 +232,7 @@ byte peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be re
 		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-1)) //Filled?
 		{
 			INLINEREGISTER uint_32 readpos;
-			readpos = buffer->position[0].readpos; //Current reading position!
+			readpos = buffer->readpos; //Current reading position!
 			*result = buffer->buffer[readpos++]; //Read and update!
 			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
@@ -246,7 +247,7 @@ byte peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be re
 		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size - 1)) //Filled?
 		{
 			INLINEREGISTER uint_32 readpos;
-			readpos = buffer->position[0].readpos; //Current reading position!
+			readpos = buffer->readpos; //Current reading position!
 			*result = buffer->buffer[readpos++]; //Read and update!
 			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
@@ -261,14 +262,14 @@ OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
 {
 	INLINEREGISTER uint_32 readpos,size;
 	size = buffer->size; //Size of the buffer to wrap around!
-	readpos = buffer->position[0].readpos; //Load the old read position!
+	readpos = buffer->readpos; //Load the old read position!
 	*result = buffer->buffer[readpos++]; //Read and update high!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
 	*result <<= 8; //Shift high!
 	*result |= buffer->buffer[readpos++]; //Read and update low!
 	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
-	buffer->position[0].readpos = readpos; //Update our the position!
-	buffer->position[0].lastwaswrite = 0; //Last operation was a read operation!
+	buffer->readpos = readpos; //Update our the position!
+	buffer->lastwaswrite = 0; //Last operation was a read operation!
 }
 
 byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
@@ -303,13 +304,13 @@ OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 {
 	INLINEREGISTER uint_32 writepos, size;
 	size = buffer->size; //Load the size!
-	writepos = buffer->position[0].writepos; //Load the write position!
+	writepos = buffer->writepos; //Load the write position!
 	buffer->buffer[writepos++] = (data >> 8); //Write high and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
 	buffer->buffer[writepos++] = (data & 0xFF); //Write low and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
-	buffer->position[0].writepos = writepos; //Update the write position!
-	buffer->position[0].lastwaswrite = 1; //Last operation was a write operation!
+	buffer->writepos = writepos; //Update the write position!
+	buffer->lastwaswrite = 1; //Last operation was a write operation!
 }
 
 byte writefifobuffer16(FIFOBUFFER *buffer, word data)
@@ -358,13 +359,13 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 			return; //Empty? We can't: there is nothing to go back to!
 		}
 
-		if ((((int_64)buffer->position[0].writepos)-1)<0) //Last pos?
+		if ((((int_64)buffer->writepos)-1)<0) //Last pos?
 		{
-			buffer->position[0].readpos = buffer->size-1; //Goto end!
+			buffer->readpos = buffer->size-1; //Goto end!
 		}
 		else
 		{
-			buffer->position[0].readpos = buffer->position[0].writepos-1; //Last write!
+			buffer->readpos = buffer->writepos-1; //Last write!
 		}
 		PostSem(buffer->lock)
 	}
@@ -375,46 +376,14 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 			return; //Empty? We can't: there is nothing to go back to!
 		}
 
-		if ((((int_64)buffer->position[0].writepos) - 1)<0) //Last pos?
+		if ((((int_64)buffer->writepos) - 1)<0) //Last pos?
 		{
-			buffer->position[0].readpos = buffer->size - 1; //Goto end!
+			buffer->readpos = buffer->size - 1; //Goto end!
 		}
 		else
 		{
-			buffer->position[0].readpos = buffer->position[0].writepos - 1; //Last write!
+			buffer->readpos = buffer->writepos - 1; //Last write!
 		}
-	}
-}
-
-void fifobuffer_save(FIFOBUFFER *buffer)
-{
-	if (buffer==0) return; //Error: invalid buffer!
-
-	if (buffer->lock)
-	{
-		WaitSem(buffer->lock)
-		memcpy(&buffer->position[1],&buffer->position[0],sizeof(buffer->position[1])); //Backup!
-		PostSem(buffer->lock)
-	}
-	else
-	{
-		memcpy(&buffer->position[1], &buffer->position[0], sizeof(buffer->position[1])); //Backup!
-	}
-}
-
-void fifobuffer_restore(FIFOBUFFER *buffer)
-{
-	if (buffer==0) return; //Error: invalid buffer!
-
-	if (buffer->lock)
-	{
-		WaitSem(buffer->lock)
-		memcpy(&buffer->position[0], &buffer->position[1], sizeof(buffer->position[0])); //Restore!
-		PostSem(buffer->lock)
-	}
-	else
-	{
-		memcpy(&buffer->position[0], &buffer->position[1], sizeof(buffer->position[0])); //Restore!
 	}
 }
 

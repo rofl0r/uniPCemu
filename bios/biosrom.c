@@ -508,12 +508,14 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 {
 	INLINEREGISTER uint_32 basepos, tempoffset;
 	basepos = tempoffset = offset; //Load the current location!
-	if ((basepos>=0xF0000) && (basepos<0x100000)) basepos = 0xF0000; //Our base reference position!
-	else //Out of range (16-bit)?
+	if (basepos >= 0xF0000) //Inside 16-bit/32-bit range?
 	{
-		if (basepos >= 0xF0000000) basepos = 0xF0000000; //Our base reference position!
+		if (basepos<0x100000) basepos = 0xF0000; //Our base reference position(low memory)!
+		else if (basepos >= 0xF0000000) basepos = 0xF0000000; //Our base reference position(high memory)!
 		else return 0; //Our of range (32-bit)?
 	}
+	else return 0; //Our of range (32-bit)?
+
 	tempoffset -= basepos; //Calculate from the base position!
 	basepos = tempoffset; //Save for easy reference!
 
@@ -599,12 +601,14 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 {
 	INLINEREGISTER uint_32 basepos, tempoffset;
 	basepos = tempoffset = offset;
-	if ((basepos>=0xF0000) && (basepos<0x100000)) basepos = 0xF0000; //Our base reference position!
-	else //Out of range (16-bit)?
+	if (basepos>=0xF0000) //Inside 16-bit/32-bit range?
 	{
-		if (basepos>=0xF0000000) basepos = 0xF0000000; //Our base reference position!
+		if (basepos<0x100000) basepos = 0xF0000; //Our base reference position(low memory)!
+		else if (basepos>=0xF0000000) basepos = 0xF0000000; //Our base reference position(high memory)!
 		else return 0; //Our of range (32-bit)?
 	}
+	else return 0; //Our of range (32-bit)?
+	
 	tempoffset -= basepos; //Calculate from the base position!
 	basepos = tempoffset; //Save for easy reference!
 	if (BIOS_custom_ROM) //Custom/system ROM loaded?

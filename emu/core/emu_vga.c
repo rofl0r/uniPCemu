@@ -388,25 +388,22 @@ void updateVGA(double timepassed)
 		#ifdef LIMITVGA
 		if (passedcounter && currentVGASpeed) getnspassed(&VGA_test); //Still counting? Then count our interval!
 		#endif
+		INLINEREGISTER uint_32 ticker = (uint_32)renderings; //Load the amount of renderings to render!
 		do
 		{
-			if (renderings>=10) //10+ optimization?
+			if (renderings<5) VGA_Sequencer(Sequencer); //5+ optimization? Not usable? Execute only once!
+			else //x+ optimization?
 			{
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
 				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				renderings -= 9.0f; //We've processed 9 more!
+				renderings -= 4; //We've processed 4 more!
 			}
-			VGA_Sequencer(Sequencer); //Tick the VGA once!
-		} while (renderings-=1.0f); //Ticks left to tick?
+		} while (--renderings); //Ticks left to tick?
 
-		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = !getActiveVGA()->CRTC.DisplayEnabled; //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
+		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = getActiveVGA()->CRTC.DisplayEnabled^1; //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
 
 		#ifdef LIMITVGA
 		if (passedcounter && currentVGASpeed) //Still counting?

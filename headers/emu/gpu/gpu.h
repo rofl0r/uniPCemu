@@ -34,15 +34,17 @@
 #define VRAM_START 0x44000000
 
 //Give the pixel from our real screen (after filled a scanline at least)!
-#define PSP_SCREEN(x,y) GPU.vram[(y*512)+x]
+#define PSP_SCREEN(x,y) GPU.vram[(y<<9)|x]
 //Give the pixel from our psp screen we're rendering!
 #define PSP_BUFFER(x,y) PSP_SCREEN(x,y)
 //Give the pixel from our emulator we're buffering!
-#define EMU_BUFFER(x,y) GPU.emu_screenbuffer[(y*EMU_MAX_X)+x]
+#define EMU_BUFFER(x,y) GPU.emu_screenbuffer[(y<<10)|x]
+//The pitch of the pixel buffer rows!
+#define EMU_BUFFERPITCH 1024
 
-#define EMU_SCREENBUFFERSIZE (EMU_MAX_Y*EMU_MAX_X) //Video buffer (of max 640x480 pixels!)
+#define EMU_SCREENBUFFERSIZE (EMU_MAX_Y<<10) //Video buffer (of max 640x480 pixels!)
 #define EMU_SCREENBUFFEREND (GPU.emu_screenbufferend)
-#define PSP_SCREENBUFFERSIZE (PSP_SCREEN_ROWS*512) //The PSP's screen buffer we're rendering!
+#define PSP_SCREENBUFFERSIZE (PSP_SCREEN_ROWS<<9) //The PSP's screen buffer we're rendering!
 
 //Show the framerate?
 #define SHOW_FRAMERATE (GPU.show_framerate>0)

@@ -139,7 +139,6 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 	INLINEREGISTER word lastlookup;
 	INLINEREGISTER word charloc;
 	INLINEREGISTER byte newx;
-	INLINEREGISTER byte temp;
 	newx = x; //Default: use the 9th bit if needed! Otherwise use the horizontal coordinate within the character!
 
 	attribute >>= 3; //...
@@ -153,7 +152,7 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 		}
 	}
 	
-	lastlookup = ((((character<<1)|attribute)<<5)|y)|0x8000; //We're to lookup this value to check!
+	lastlookup = (((((character << 1) | attribute) << 5) | y) | 0x8000); //The last lookup!
 	if (lastcharinfo!=lastlookup) //Row not yet loaded?
 	{
 		charloc = character; //Character position!
@@ -165,11 +164,7 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 		lastcharinfo = lastlookup; //Save the loaded row as the current row!
 	}
 	
-	temp = lastrow; //Load the last row!
-	temp >>= newx; //Shift into position!
-	temp &= 1; //1-bit only!
-
-	return temp; //Give bit!
+	return (lastrow>>newx)&1; //Give bit!
 }
 
 OPTINLINE void VGA_dumpchar(VGA_Type *VGA, byte c)
