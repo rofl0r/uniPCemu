@@ -286,7 +286,7 @@ int main(int argc, char * argv[])
 	if (DELETE_BMP_ONBOOT) delete_file("captures","*.bmp"); //Delete any bitmaps still there!
 	
 	#ifdef __psp__
-		if (FILE_EXISTS("profiler.txt")) //Enable profiler: doesn't work in x86EMU?
+		if (FILE_EXISTS("logs/profiler.txt")) //Enable profiler: doesn't work in x86EMU?
 		{
 			// Clear the existing profile regs
 			pspDebugProfilerClear();
