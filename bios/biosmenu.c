@@ -753,7 +753,6 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 			} while (++cur<numitems);
 			EMU_unlocktext();
 		}
-		delay(1000); //Wait for other threads!
 	}
 	return option; //Give the chosen option!
 }
@@ -965,7 +964,6 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 		{
 			return FILELIST_DEFAULT; //Unmount!
 		}
-		delay(0); //Wait some at least!
 	}
 }
 
@@ -4200,7 +4198,8 @@ int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 f
 		}
 		EMU_unlocktext();
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
-												  //1GB steps!
+		
+		//1GB steps!
 		if ((key & BUTTON_LTRIGGER)>0) //1000 step down?
 		{
 			if (result == 0) {}

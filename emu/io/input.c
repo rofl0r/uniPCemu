@@ -406,6 +406,7 @@ int psp_inputkeydelay(uint_32 waittime) //Don't use within any timers! This will
 			}
 		}
 	}
+	delay(0); //Allow for updating of the keys!
 	return key; //Give the key!
 }
 
