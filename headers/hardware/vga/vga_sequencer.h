@@ -106,6 +106,8 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA); //Scanline speed for one line in H
 
 void VGA_Sequencer_calcScanlineData(VGA_Type *VGA);
 
+void updateVGASequencer_Mode(VGA_Type *VGA);
+
 //Retrieve the Sequencer from a VGA!
 #define GETSEQUENCER(VGA) ((SEQ_DATA *)(VGA->Sequencer))
 

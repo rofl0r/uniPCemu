@@ -137,6 +137,7 @@ typedef struct //Contains the precalculated values!
 	byte LastMDAFlags; //Last used MDA flags!
 	byte graphicsmode_nibbled; //Allow nibbled reversal mask this must allow values 1&2 to be decreased, else 0 with text modes!
 	uint_32 VRAMmask; //The mask used for accessing VRAM!
+	uint_32 extrasignal; //Graphics mode display bit!
 } VGA_PRECALCS; //VGA pre-calculations!
 
 void VGA_calcprecalcs(void *VGA, uint_32 whereupdated); //Calculate them!

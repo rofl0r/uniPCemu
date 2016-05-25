@@ -255,7 +255,6 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	blanking |= vblank; //Process blank!
 	//Screen disable applies blanking permanently!
 	blanking |= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable; //Use disabled output when asked to!
-	blanking |= CGAMDARenderer; //Apply the CGA renderer if needed!
 
 	//Process resetting the HSync/VSync counters!
 	tempsignal = tempsignalbackup; //Restore the original backup signal!
@@ -307,16 +306,18 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	}
 }
 
-extern DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for all pixels!
+extern DisplayRenderHandler displayrenderhandler[4][VGA_DISPLAYRENDERSIZE]; //Our handlers for all pixels!
 
-OPTINLINE word get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
+OPTINLINE uint_32 get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
 {
-	INLINEREGISTER word stat; //The status of the pixel!
+	INLINEREGISTER uint_32 stat; //The status of the pixel!
 	//We are a maximum of 4096x1024 size!
 	Scanline &= 0x3FF; //Range safety: 1024 scanlines!
 	x &= 0xFFF; //Range safety: 4095 columns!
 	stat = VGA->CRTC.rowstatus[Scanline]; //Get row status!
 	stat |= VGA->CRTC.colstatus[x]; //Get column status!
+	stat |= VGA->precalcs.extrasignal; //Graphics mode etc. display status affects the signal too!
+	stat |= (blanking<<VGA_SIGNAL_BLANKINGSHIFT); //Apply the current blanking signal as well!
 	return stat; //Give the combined (OR'ed) status!
 }
 

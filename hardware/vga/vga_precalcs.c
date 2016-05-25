@@ -221,7 +221,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	byte CRTUpdatedCharwidth=0;
 	byte overflowupdated=0;
 
-	CGAMDARenderer = CGAMDAEMULATION_RENDER(VGA)?2:0; //Render CGA/MDA style?
+	CGAMDARenderer = CGAMDAEMULATION_RENDER(VGA)?1:0; //Render CGA/MDA style?
 
 	if ((whereupdated == (WHEREUPDATED_MISCOUTPUTREGISTER)) || FullUpdate) //Misc output register updated?
 	{
@@ -280,6 +280,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//lockVGA(); //We don't want to corrupt the renderer's data!
 		if (VGA->precalcs.GraphicsModeRegister_ShiftRegister!=VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.GraphicsModeRegister_ShiftRegister = VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister; //Update shift mode!
+		updateVGAGraphics_Mode(VGA); //Update the graphics mode!
 		//unlockVGA(); //We're finished with the VGA!
 	}
 
@@ -290,6 +291,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		VGA->precalcs.graphicsmode = VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable?1:0; //Update Graphics mode!
 		VGA->precalcs.graphicsmode_nibbled = VGA->precalcs.graphicsmode?3:0; //Allow nibbled to be used (1 or 2) during graphics modes only!
 		VGA->precalcs.textmode = !VGA->precalcs.graphicsmode; //Text mode instead, since we must have faster graphics mode (intensive changes)!
+		updateVGASequencer_Mode(VGA); //Update the sequencer mode!
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
 		//dolog("VGA","VTotal after gm: %i",VGA->precalcs.verticaltotal); //Log it!
 		//unlockVGA(); //We're finished with the VGA!
@@ -832,6 +834,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			//lockVGA(); //We don't want to corrupt the renderer's data!
 			VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit;
 			VGA->precalcs.AttributeModeControlRegister_PixelPanningMode = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PixelPanningMode;
+			updateVGAAttributeController_Mode(VGA); //Update the attribute mode!
 			//unlockVGA(); //We're finished with the VGA!
 		}
 

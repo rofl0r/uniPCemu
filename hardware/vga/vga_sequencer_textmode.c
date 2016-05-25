@@ -56,7 +56,8 @@ OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,word Sequencer_textm
 	return 0; //No cursor!
 }
 
-byte character=0, attribute=0; //Currently loaded data!
+byte character=0;
+word attribute=0; //Currently loaded data!
 byte iscursor=0; //Are we a cursor scanline?
 byte characterpixels[9]; //All possible character pixels!
 
@@ -67,7 +68,7 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 	INLINEREGISTER byte x;
 	//We do nothing: text mode uses multiple planes at the same time!
 	character = planesbuffer[0]; //Character!
-	attribute = planesbuffer[1]; //Attribute!
+	attribute = planesbuffer[1]<<VGA_SEQUENCER_ATTRIBUTESHIFT; //Attribute!
 	iscursor = is_cursorscanline(VGA, (byte)((SEQ_DATA *)VGA->Sequencer)->charinner_y, loadedlocation); //Are we a cursor?
 	if (CGAMDAEMULATION_ENABLED(VGA)) //Enabled CGA/MDA emulation?
 	{

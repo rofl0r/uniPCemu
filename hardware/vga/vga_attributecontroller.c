@@ -169,7 +169,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 
 OPTINLINE byte VGA_getAttributeDACIndex(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
 {
-	return VGA->precalcs.attributeprecalcs[(Sequencer_attributeinfo->attribute<<7)|Sequencer_attributeinfo->lookupprecalcs|Sequencer_attributeinfo->fontpixel]; //Give the data from the lookup table!
+	return VGA->precalcs.attributeprecalcs[Sequencer_attributeinfo->attribute|Sequencer_attributeinfo->lookupprecalcs|Sequencer_attributeinfo->fontpixel]; //Give the data from the lookup table!
 }
 
 byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)

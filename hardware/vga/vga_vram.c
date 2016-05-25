@@ -23,7 +23,6 @@
 byte readVRAMplane(VGA_Type *VGA, byte plane, word offset) //Read from a VRAM plane!
 {
 	if (VGA==0) return 0; //Invalid VGA!
-	if (VGA->VRAM_size==0) return 0; //No size!
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
 
 	INLINEREGISTER uint_32 fulloffset2;
@@ -40,7 +39,6 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset) //Read from a VRAM pl
 void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write to a VRAM plane!
 {
 	if (VGA==0) return; //Invalid VGA!
-	if (VGA->VRAM_size==0) return; //No size!
 	plane &= 3; //Only 4 planes are available!
 
 	INLINEREGISTER uint_32 fulloffset2;

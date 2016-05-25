@@ -48,7 +48,7 @@ void CPU_INT(byte intnr) //Call an software interrupt; WARNING: DON'T HANDLE ANY
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
 		//Now, jump to it!
-		CPU_customint(intnr,REG_CS,REG_IP); //Execute real interrupt, returning to current address!
+		CPU_customint(intnr,REG_CS,REG_EIP); //Execute real interrupt, returning to current address!
 	}
 	else //Use Protected mode IVT?
 	{

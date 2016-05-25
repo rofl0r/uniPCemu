@@ -355,17 +355,26 @@ byte DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCR
 	return CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].D_B; //Give the B-BIT of the SS-register!
 }
 
-
+uint_32 CPU_InterruptReturn = 0;
 
 OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 {
-	byte OP; //The current opcode!
+	INLINEREGISTER byte OP; //The current opcode!
+	INLINEREGISTER uint_32 last_eip;
+	INLINEREGISTER byte ismultiprefix = 0; //Are we multi-prefix?
 	CPU_resetPrefixes(); //Reset all prefixes for this opcode!
 
+	CPU_InterruptReturn = CPU->registers->EIP; //Interrupt return point by default!
 	OP = CPU_readOP(); //Read opcode or prefix?
 	for (;CPU_isPrefix(OP);) //We're a prefix?
 	{
+		if (ismultiprefix && (EMULATED_CPU <= CPU_80286)) //This CPU has the bug and multiple prefixes are added?
+		{
+			CPU_InterruptReturn = last_eip; //Return to the last prefix only!
+		}
 		CPU_setprefix(OP); //Set the prefix ON!
+		last_eip = CPU->registers->EIP; //Save the current EIP of the last prefix possibility!
+		ismultiprefix = 1; //We''re multi-prefix now when triggered again!
 		OP = CPU_readOP(); //Next opcode/prefix!
 	}
 	//Now we have the opcode and prefixes set or reset!

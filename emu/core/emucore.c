@@ -579,6 +579,8 @@ void updateSpeedLimit()
 	}
 }
 
+extern uint_32 CPU_InterruptReturn, CPU_exec_EIP; //Interrupt return address!
+
 OPTINLINE byte coreHandler()
 {
 	//CPU execution, needs to be before the debugger!
@@ -679,13 +681,14 @@ OPTINLINE byte coreHandler()
 					{
 						HWINT_nr = nextintr(); //Get the HW interrupt nr!
 						HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-						if (!((EMULATED_CPU == CPU_8086) && (CPU_segmentOverridden(activeCPU)) && REPPending)) //Not 8086, REP pending and segment override?
+						if (!((EMULATED_CPU <= CPU_80286) && REPPending)) //Not 80386+, REP pending and segment override?
 						{
-							CPU_8086REPPending(); //Process pending REPs!
+							CPU_8086REPPending(); //Process pending REPs normally as documented!
 						}
-						else
+						else //Execute the CPU bug!
 						{
-							REPPending = 0; //Clear the REP pending flag: this makes the bug in the 8086 not repeat anymore during interrupts in this case!
+							CPU_8086REPPending(); //Process pending REPs normally as documented!
+							CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
 						}
 						call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 					}

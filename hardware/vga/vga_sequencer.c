@@ -279,8 +279,8 @@ word blankretraceendpending = 0; //Ending blank/retrace pending? bits set for an
 
 byte VGA_LOGPRECALCS = 0; //Log precalcs?
 
-//displayrenderhandler[total][retrace][signal]
-DisplayRenderHandler displayrenderhandler[4][0x10000]; //Our handlers for all pixels!
+//displayrenderhandler[total_retrace][signal]
+DisplayRenderHandler displayrenderhandler[4][VGA_DISPLAYRENDERSIZE]; //Our handlers for all pixels!
 
 void VGA_NOP(SEQ_DATA *Sequencer, VGA_Type *VGA) //NOP for pixels!
 {}
@@ -341,7 +341,7 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	VGA->CRTC.x = 0; //Reset destination column!
 	if (!vretrace) //Not retracing vertically?
 	{
-		if (CGAMDARenderer&2) //CGA/MDA rendering mode?
+		if (CGAMDARenderer) //CGA/MDA rendering mode?
 		{
 			drawCGALine(VGA); //Draw the current CGA line using NTSC colours!	
 		}
@@ -355,23 +355,26 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo); //Render an active display pixel!
 
 //Blank handler!
-void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+OPTINLINE void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
 	++VGA->CRTC.x; //Next x!
 }
 
-void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+OPTINLINE void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
-	CGALineBuffer[VGA->CRTC.x] = 0; //Take the literal pixel color of the CGA for later NTSC conversion!
+	if (VGA->CRTC.x<NUMITEMS(CGALineBuffer)) //Valid pixel horizontally?
+	{
+		CGALineBuffer[VGA->CRTC.x] = 0; //Take the literal pixel color of the CGA for later NTSC conversion!
+	}
 	++VGA->CRTC.x; //Next x!
 }
 
 
-void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
@@ -379,16 +382,19 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 	++VGA->CRTC.x; //Next x!
 }
 
-void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
 	//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
-	CGALineBuffer[VGA->CRTC.x] = attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
+	if (VGA->CRTC.x<NUMITEMS(CGALineBuffer)) //Valid pixel horizontally?
+	{
+		CGALineBuffer[VGA->CRTC.x] = attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
+	}
 	++VGA->CRTC.x; //Next x!
 }
 
-void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
@@ -396,43 +402,64 @@ void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attribu
 	++VGA->CRTC.x; //Next x!
 }
 
-void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+OPTINLINE void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
 	//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
-	CGALineBuffer[VGA->CRTC.x] = VGA->precalcs.overscancolor; //Take the literal pixel color of the CGA for later NTSC conversion!
+	if (VGA->CRTC.x<NUMITEMS(CGALineBuffer)) //Valid pixel horizontally?
+	{
+		CGALineBuffer[VGA->CRTC.x] = VGA->precalcs.overscancolor; //Take the literal pixel color of the CGA for later NTSC conversion!
+	}
 	++VGA->CRTC.x; //Next x!
+}
+
+static VGA_AttributeController_Mode attributecontroller_modes[2] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit }; //Both modes we use!
+
+VGA_AttributeController_Mode attrmode = VGA_AttributeController_4bit; //Default mode!
+
+void updateVGAAttributeController_Mode(VGA_Type *VGA)
+{
+	attrmode = attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode!
 }
 
 OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA) //Process attribute to DAC index!
 {
 	//Originally: VGA_Type *VGA, word Scanline, word x, VGA_AttributeInfo *info
-	static VGA_AttributeController_Mode attributecontroller_modes[2] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit }; //Both modes we use!
 
 	//Our changing variables that are required!
-	return attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit](Sequencer_attributeinfo, VGA); //Passthrough!
+	return attrmode(Sequencer_attributeinfo, VGA); //Passthrough!
+}
+
+void updateVGASequencer_Mode(VGA_Type *VGA)
+{
+	VGA->precalcs.extrasignal = VGA->precalcs.graphicsmode?VGA_DISPLAYGRAPHICSMODE:0x0000; //Apply the current mode (graphics vs text mode)!
 }
 
 //Active display handler!
-void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
+void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here! Start with text mode!		
-	static VGA_Sequencer_Mode activemode[2] = {VGA_Sequencer_TextMode,VGA_Sequencer_GraphicsMode}; //Our display modes!
-	static VGA_Sequencer_Mode activedisplayhandlers[4] = {VGA_ActiveDisplay_noblanking_VGA,VGA_Blank_VGA,VGA_ActiveDisplay_noblanking_CGA,VGA_Blank_CGA}; //For giving the correct output sub-level!
 	INLINEREGISTER byte nibbled=0; //Did we process two nibbles instead of one nibble?
 	INLINEREGISTER word tempx = Sequencer->tempx, tempx2, tempx3; //Load tempx!
 
 	othernibble: //Retrieve the current DAC index!
 	Sequencer->activex = tempx++; //Active X!
-	activemode[VGA->precalcs.graphicsmode](VGA,Sequencer,&currentattributeinfo); //Get the color to render!
+	VGA_Sequencer_TextMode(VGA,Sequencer,&currentattributeinfo); //Get the color to render!
 	if (VGA_AttributeController(&currentattributeinfo,VGA))
 	{
 		nibbled = 1; //We're processing 2 nibbles instead of 1 nibble!
 		goto othernibble; //Apply the attribute through the attribute controller!
 	}
 
-	activedisplayhandlers[blanking](VGA,Sequencer,&currentattributeinfo); //Blank or active display!
+	if (CGAMDARenderer) //CGA rendering mode?
+	{
+		VGA_ActiveDisplay_noblanking_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
+	}
+	else
+	{
+		VGA_ActiveDisplay_noblanking_VGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
+	}
 
 	if (*Sequencer->extrastatus++) //To write back the pixel clock every or every other pixel?
 	{
@@ -442,41 +469,187 @@ void VGA_ActiveDisplay(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		}
 		if (nibbled)
 		{
-			Sequencer->graphicsx -= (VGA->precalcs.graphicsmode<<1); //Decrease twice, undoing the increase in position!
 			return; //Are we not finished with the nibble? Abort!
 		}
 		//Finished with the nibble&pixel? We're ready to check for the next one!
-		if (VGA->precalcs.textmode) //Text mode?
+		tempx2 = tempx; //Load the current coordinate!
+		tempx2 <<= 1; //Index!
+		tempx3 = Sequencer->tempx; //Load the old coordinate!
+		tempx3 <<= 1; //Index!
+		if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2])) //First of a new block? Reload our pixel buffer!
 		{
-			tempx2 = tempx; //Load the current coordinate!
-			tempx2 <<= 1; //Index!
-			tempx3 = Sequencer->tempx; //Load the old coordinate!
-			tempx3 <<= 1; //Index!
-			if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2])) //First of a new block? Reload our pixel buffer!
-			{
-				VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
-			}
+			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
-		else //Graphics mode?
+		Sequencer->tempx = tempx; //Write back tempx!
+	}
+}
+
+void VGA_ActiveDisplay_Text_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
+{
+	//Render our active display here! Start with text mode!		
+	INLINEREGISTER byte nibbled = 0; //Did we process two nibbles instead of one nibble?
+	INLINEREGISTER word tempx = Sequencer->tempx, tempx2, tempx3; //Load tempx!
+
+othernibble: //Retrieve the current DAC index!
+	Sequencer->activex = tempx++; //Active X!
+	VGA_Sequencer_TextMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
+	if (VGA_AttributeController(&currentattributeinfo, VGA))
+	{
+		nibbled = 1; //We're processing 2 nibbles instead of 1 nibble!
+		goto othernibble; //Apply the attribute through the attribute controller!
+	}
+
+	if (CGAMDARenderer) //CGA rendering mode?
+	{
+		VGA_Blank_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
+	}
+	else //VGA renderer?
+	{
+		VGA_Blank_VGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
+	}
+
+	if (*Sequencer->extrastatus++) //To write back the pixel clock every or every other pixel?
+	{
+		if (nibbled) //We've nibbled?
 		{
-			if ((tempx & 7) == 0) //First of a new block? Reload our pixel buffer!
-			{
-				VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
-			}
+			nibbled &= !(Sequencer->active_nibblerate ^= 1); //Nibble expired?
+		}
+		if (nibbled)
+		{
+			return; //Are we not finished with the nibble? Abort!
+		}
+		//Finished with the nibble&pixel? We're ready to check for the next one!
+		tempx2 = tempx; //Load the current coordinate!
+		tempx2 <<= 1; //Index!
+		tempx3 = Sequencer->tempx; //Load the old coordinate!
+		tempx3 <<= 1; //Index!
+		if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2])) //First of a new block? Reload our pixel buffer!
+		{
+			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
+		}
+		Sequencer->tempx = tempx; //Write back tempx!
+	}
+}
+
+void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
+{
+	//Render our active display here! Start with text mode!		
+	INLINEREGISTER byte nibbled = 0; //Did we process two nibbles instead of one nibble?
+	INLINEREGISTER word tempx = Sequencer->tempx, tempx2, tempx3; //Load tempx!
+
+othernibble: //Retrieve the current DAC index!
+	Sequencer->activex = tempx++; //Active X!
+	VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
+	if (VGA_AttributeController(&currentattributeinfo, VGA))
+	{
+		nibbled = 1; //We're processing 2 nibbles instead of 1 nibble!
+		goto othernibble; //Apply the attribute through the attribute controller!
+	}
+
+	if (CGAMDARenderer) //CGA rendering mode?
+	{
+		VGA_ActiveDisplay_noblanking_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
+	}
+	else
+	{
+		VGA_ActiveDisplay_noblanking_VGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
+	}
+
+	if (*Sequencer->extrastatus++) //To write back the pixel clock every or every other pixel?
+	{
+		if (nibbled) //We've nibbled?
+		{
+			nibbled &= !(Sequencer->active_nibblerate ^= 1); //Nibble expired?
+		}
+		if (nibbled)
+		{
+			Sequencer->graphicsx -= 2; //Decrease twice, undoing the increase in position!
+			return; //Are we not finished with the nibble? Abort!
+		}
+		//Finished with the nibble&pixel? We're ready to check for the next one!
+		if ((tempx & 7) == 0) //First of a new block? Reload our pixel buffer!
+		{
+			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
 		Sequencer->tempx = tempx; //Write back tempx!
 	}
 	else //Are we a graphics mode (nibbled or not) to undo increasing?
 	{
-		Sequencer->graphicsx -= (1<<(nibbled))&VGA->precalcs.graphicsmode_nibbled; //Decrease twice when nibbled, else once, undoing the increase in position!
+		Sequencer->graphicsx -= (1 << nibbled); //Decrease twice when nibbled, else once, undoing the increase in position!
+	}
+}
+
+void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
+{
+	//Render our active display here! Start with text mode!		
+	INLINEREGISTER byte nibbled = 0; //Did we process two nibbles instead of one nibble?
+	INLINEREGISTER word tempx = Sequencer->tempx, tempx2, tempx3; //Load tempx!
+
+othernibble: //Retrieve the current DAC index!
+	Sequencer->activex = tempx++; //Active X!
+	VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
+	if (VGA_AttributeController(&currentattributeinfo, VGA))
+	{
+		nibbled = 1; //We're processing 2 nibbles instead of 1 nibble!
+		goto othernibble; //Apply the attribute through the attribute controller!
+	}
+
+	if (CGAMDARenderer) //CGA rendering mode?
+	{
+		VGA_Blank_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
+	}
+	else //VGA renderer?
+	{
+		VGA_Blank_VGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
+	}
+
+	if (*Sequencer->extrastatus++) //To write back the pixel clock every or every other pixel?
+	{
+		if (nibbled) //We've nibbled?
+		{
+			nibbled &= !(Sequencer->active_nibblerate ^= 1); //Nibble expired?
+		}
+		if (nibbled)
+		{
+			Sequencer->graphicsx -= 2; //Decrease twice, undoing the increase in position!
+			return; //Are we not finished with the nibble? Abort!
+		}
+		//Finished with the nibble&pixel? We're ready to check for the next one!
+		if ((tempx & 7) == 0) //First of a new block? Reload our pixel buffer!
+		{
+			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
+		}
+		Sequencer->tempx = tempx; //Write back tempx!
+	}
+	else //Are we a graphics mode (nibbled or not) to undo increasing?
+	{
+		Sequencer->graphicsx -= (1 << nibbled); //Decrease twice when nibbled, else once, undoing the increase in position!
 	}
 }
 
 //Overscan handler!
 void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	static VGA_Sequencer_Mode activemode[4] = {VGA_Overscan_noblanking_VGA,VGA_Blank_VGA,VGA_Overscan_noblanking_CGA,VGA_Blank_CGA };
-	activemode[blanking](VGA,Sequencer,NULL); //Attribute info isn't used!
+	if (CGAMDARenderer) //CGA rendering mode?
+	{
+		VGA_Overscan_noblanking_CGA(VGA,Sequencer,NULL); //Attribute info isn't used!
+	}
+	else //VGA renderer?
+	{
+		VGA_Overscan_noblanking_VGA(VGA, Sequencer, NULL); //Attribute info isn't used!
+	}
+}
+
+void VGA_Overscan_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
+{
+	if (CGAMDARenderer) //CGA rendering mode?
+	{
+		VGA_Blank_CGA(VGA, Sequencer, NULL); //Attribute info isn't used!
+	}
+	else //VGA renderer?
+	{
+		VGA_Blank_VGA(VGA, Sequencer, NULL); //Attribute info isn't used!
+	}
 }
 
 //Combination functions of the above:
@@ -493,7 +666,7 @@ void initStateHandlers()
 	displayrenderhandler[2][0] = &VGA_NOP; //Default: no action!
 	displayrenderhandler[3][0] = &VGA_NOP; //Default: no action!
 
-	for (i=1;i<0x10000;i++) //Fill the normal entries!
+	for (i=1;i<VGA_DISPLAYRENDERSIZE;i++) //Fill the normal entries!
 	{
 		//Total handler for total handlers!
 		displayrenderhandler[1][i] = &VGA_NOP; //Do nothing when disabled: retrace does no output!
@@ -501,6 +674,6 @@ void initStateHandlers()
 		displayrenderhandler[3][i] = &VGA_NOP; //Do nothing when disabled: total&retrace handler!
 		
 		//Rendering handler without retrace AND total!
-		displayrenderhandler[0][i] = ((i&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)?&VGA_ActiveDisplay:&VGA_Overscan; //Not retracing or any total handler = display/overscan!
+		displayrenderhandler[0][i] = ((i&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)?((i&VGA_DISPLAYGRAPHICSMODE)?((i&VGA_SIGNAL_BLANKING)?&VGA_ActiveDisplay_Graphics_blanking: &VGA_ActiveDisplay_Graphics): ((i&VGA_SIGNAL_BLANKING) ? &VGA_ActiveDisplay_Text_blanking : &VGA_ActiveDisplay_Text)):((i&VGA_SIGNAL_BLANKING) ? &VGA_Overscan : &VGA_Overscan_blanking); //Not retracing or any total handler = display/overscan!
 	}
 }

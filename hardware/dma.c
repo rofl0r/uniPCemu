@@ -382,7 +382,7 @@ void DMA_tick()
 				//Handle the current channel, since the controller is enabled!
 				DMAModeRegister moderegister;
 				moderegister.data = DMAController[controller].DMAChannel[channel].ModeRegister.data; //Read the mode register to use!
-				if (moderegister.Mode!=3) //Skip channel: invalid! We don't process a cascade mode channel!
+				if (moderegister.Mode==3) goto skipdmachannel; //Skip channel: invalid! We don't process a cascade mode channel!
 				{
 					if (DMAController[controller].DMAChannel[channel].DREQHandler) //Gotten a tick handler?
 					{
@@ -559,6 +559,7 @@ void DMA_tick()
 		{
 			--controllerdisabled; //Skipped one channel, continue when done skipping!
 		}
+		skipdmachannel: //Skipping the channel?
 		++current; //Next channel!
 		current &= 0x7; //Wrap arround our 2 DMA controllers?
 		if (startcurrent==current)

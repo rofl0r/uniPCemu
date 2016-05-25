@@ -405,8 +405,15 @@ int psp_inputkeydelay(uint_32 waittime) //Don't use within any timers! This will
 				counter = 0; //Done!
 			}
 		}
+		if (waittime==0) //No waiting time?
+		{
+			delay(0); //Allow for updating of the keys!
+		}
 	}
-	delay(0); //Allow for updating of the keys!
+	else
+	{
+		delay(0); //Allow for updating of the keys!
+	}
 	return key; //Give the key!
 }
 

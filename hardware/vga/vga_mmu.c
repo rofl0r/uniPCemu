@@ -51,7 +51,7 @@ VRAM base offset!
 OPTINLINE byte is_A000VRAM(uint_32 linearoffset) //In VRAM (for CPU), offset=real memory address (linear memory)?
 {
 	INLINEREGISTER uint_32 addr=linearoffset; //The offset to check!
-	return VGA_RAMEnable && ((addr>=VGA_VRAM_START) && (addr<VGA_VRAM_END)); //Used when VRAM is enabled and VRAM is addressed!
+	return VGA_RAMEnable && (addr>=VGA_VRAM_START) && (addr<VGA_VRAM_END); //Used when VRAM is enabled and VRAM is addressed!
 }
 
 //And now the input/output functions for segment 0xA000 (starting at offset 0)
