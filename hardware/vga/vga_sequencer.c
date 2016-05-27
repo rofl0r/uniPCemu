@@ -75,23 +75,44 @@ extern byte CGA_RGB; //Are we a RGB monitor(1) or Composite monitor(0)?
 
 OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display!
 {
-	uint_32 i;
+	INLINEREGISTER uint_32 drawx;
 	if (CGALineSize>2048) CGALineSize = 2048; //Limit to what we have available!
 	if (VGA->registers->specialMDAflags&1) //MDA rendering mode?
 	{
-		for (i=0;i<CGALineSize;i++) //Process all pixels!
-			drawPixel_real(VGA->precalcs.effectiveMDADAC[MDAcolors[CGALineBuffer[i]&3]],i,VGA->CRTC.y); //Render the pixel as MDA colors through the b/w DAC!
+		INLINEREGISTER byte data; //The current entry to draw!
+		INLINEREGISTER uint_32 color; //The full color to draw!
+		INLINEREGISTER byte *bufferpos, *finalpos; //The current and end position to draw!
+		if (!CGALineSize) return; //Abort if nothing to render!
+		finalpos = &CGALineBuffer[CGALineSize]; //End of the output buffer to process!
+		bufferpos = &CGALineBuffer[0]; //First pixel to render!
+		drawx = 0; //Start index to draw at!
+		for (;;) //Process all pixels!
+		{
+			data = *bufferpos; //Load the current pixel!
+			data &= 3; //Only 2 bits are used for the MDA!
+			data = MDAcolors[data]; //Translate the pixel to proper DAC indexes!
+			color = VGA->precalcs.effectiveMDADAC[data]; //Look up the MDA DAC color to use(translate to RGB)!
+			drawPixel_real(color,drawx,VGA->CRTC.y); //Render the pixel as MDA colors through the B/W DAC!
+			++bufferpos; //Next pixel!
+			if (bufferpos == finalpos) break; //Stop processing when finished!
+			++drawx; //Next line index!
+		}
 	}
 	else //CGA mode?
 	{
 		INLINEREGISTER uint_32 *bufferpos, *finalpos;
+		if (!CGALineSize) return; //Abort if nothing to render!
 		finalpos = &CGAOutputBuffer[CGALineSize]; //End of the output buffer to process!
 		bufferpos = &CGAOutputBuffer[0]; //First pixel to render!
-		RENDER_convertCGAOutput(&CGALineBuffer[0],&CGAOutputBuffer[0],CGALineSize); //Convert the CGA line to RGB output!
-		if (!CGALineSize) return; //Abort if nothing to render!
-		i = 0; //Start index to draw at!
-		for (;bufferpos!=finalpos;) //Render all pixels!
-			drawPixel_real(*bufferpos++,i++,VGA->CRTC.y); //Render the converted CGA output signal!
+		RENDER_convertCGAOutput(&CGALineBuffer[0], &CGAOutputBuffer[0], CGALineSize); //Convert the CGA line to RGB output!
+		drawx = 0; //Start index to draw at!
+		for (;;) //Render all pixels!
+		{
+			drawPixel_real(*bufferpos,drawx,VGA->CRTC.y); //Render the converted CGA output signal!
+			++bufferpos;
+			if (bufferpos==finalpos) break; //Stop processing when finished!
+			++drawx; //Next line index!
+		}
 	}
 }
 

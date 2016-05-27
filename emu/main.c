@@ -219,8 +219,6 @@ int main(int argc, char * argv[])
 	getLock(LOCK_INPUT);
 	getLock(LOCK_SHUTDOWN);
 	getLock(LOCK_FRAMERATE);
-	//Finally MIDI locks!
-	getLock(MIDI_LOCKSTART);
 	
 	initHighresTimer(); //Global init of the high resoltion timer!
 	initTicksHolder(&CPUUpdate); //Initialise the Video Update timer!

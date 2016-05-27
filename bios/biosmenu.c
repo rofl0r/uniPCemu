@@ -1611,8 +1611,10 @@ void BIOS_MainMenu() //Shows the main menu to process!
 
 	if (EMU_RUNNING) //Emulator is running?
 	{
-		optioninfo[advancedoptions] = 3; //Load defaults option!
-		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter BIOS menu"); //Load defaults option!
+		optioninfo[advancedoptions] = 3; //Restart emulator option!
+		strcpy(menuoptions[advancedoptions++], "Restart emulator"); //Restart emulator option!
+		optioninfo[advancedoptions] = 4; //Restart emulator and enter BIOS menu option!
+		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter BIOS menu"); // Restart emulator and enter BIOS menu option!
 	}
 	
 	
@@ -1630,6 +1632,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	case 1:
 	case 2:
 	case 3:
+	case 4:
 		switch (optioninfo[menuresult]) //What option is chosen?
 		{
 		case 0: //Save&Quit?
@@ -1645,7 +1648,12 @@ void BIOS_MainMenu() //Shows the main menu to process!
 			BIOS_Changed = 1; //The BIOS has been changed!
 			reboot_needed = 2; //We need a reboot!
 			break;
-		case 3: //Restart emulator and enter BIOS menu?
+		case 3: //Restart emulator?
+			bootBIOS = 0; //Not a forced first run!
+			BIOS_Menu = -1; //Quit!
+			reboot_needed = 2; //We need a reboot!
+			break;
+		case 4: //Restart emulator and enter BIOS menu?
 			bootBIOS = 1; //Forced first run!
 			BIOS_Menu = -1; //Quit!
 			reboot_needed = 2; //We need a reboot!
