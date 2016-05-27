@@ -42,10 +42,17 @@ Andreas Schiffler -- aschiffler at ferzkopp dot net
 #include "headers/packed.h"
 typedef struct PACKED
 {
-	byte r; //Red channel!
-	byte g; //Green channel!
-	byte b; //Blue channel!
-	byte a; //Alpha channel!
+	union
+	{
+		struct PACKED
+		{
+		byte r; //Red channel!
+		byte g; //Green channel!
+		byte b; //Blue channel!
+		byte a; //Alpha channel!
+		};
+		uint_32 RGBA; //Full color!
+	};
 } tColorRGBA;
 #include "headers/endpacked.h"
 
@@ -54,9 +61,12 @@ typedef struct PACKED
 //1 on error, 0 on rendered.
 byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst)
 {
-	int x, y, sx, sy, ssx, ssy, *sax, *say, *csax, *csay, *salast, csx, csy, ex, ey, cx, cy, sstep, sstepx, sstepy;
-	tColorRGBA *c00, *c01;
-	INLINEREGISTER tColorRGBA *c10, *c11;
+	int x, y, sx, sy, ssx, ssy, *sax, *say, *csax, *csay, *salast, csx, csy;
+	INLINEREGISTER int ex,ey;
+	int cx, cy, sstep, sstepx, sstepy;
+	uint_32 *c00, *c01, *c10, *c11;
+	INLINEREGISTER uint_32 c00c, c01c, c10c, c11c; //Full colors loaded!
+
 	tColorRGBA *sp, *csp;
 	INLINEREGISTER tColorRGBA *dp;
 	int spixelgap, spixelw, spixelh, dgap, t1, t2;
@@ -153,9 +163,9 @@ byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst)
 			cy = (*csay >> 16);
 			sstepx = cx < spixelw;
 			sstepy = cy < spixelh;
-			c00 = sp;
-			c01 = sp;
-			c10 = sp;
+			c00 = (uint_32 *)sp;
+			c01 = (uint_32 *)sp;
+			c10 = (uint_32 *)sp;
 			if (sstepy) {
 				c10 += spixelgap;
 			}
@@ -168,17 +178,33 @@ byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst)
 			/*
 			* Draw and interpolate colors
 			*/
-			t1 = ((((c01->r - c00->r) * ex) >> 16) + c00->r) & 0xff;
-			t2 = ((((c11->r - c10->r) * ex) >> 16) + c10->r) & 0xff;
+			c00c = *c00; //Load c00!
+			c01c = *c01; //Load c01!
+			c10c = *c10; //Load c10!
+			c11c = *c11; //Load c11!
+			t1 = (((((c01c&0xFF) - (c00c&0xFF)) * ex) >> 16) + (c00c&0xFF)) & 0xff;
+			t2 = (((((c11c&0xFF) - (c10c&0xFF)) * ex) >> 16) + (c10c&0xFF)) & 0xff;
 			dp->r = (((t2 - t1) * ey) >> 16) + t1;
-			t1 = ((((c01->g - c00->g) * ex) >> 16) + c00->g) & 0xff;
-			t2 = ((((c11->g - c10->g) * ex) >> 16) + c10->g) & 0xff;
+			c00c >>= 8; //Next channel!
+			c01c >>= 8; //Next channel!
+			c10c >>= 8; //Next channel!
+			c11c >>= 8; //Next channel!
+			t1 = (((((c01c & 0xFF) - (c00c & 0xFF)) * ex) >> 16) + (c00c & 0xFF)) & 0xff;
+			t2 = (((((c11c & 0xFF) - (c10c & 0xFF)) * ex) >> 16) + (c10c & 0xFF)) & 0xff;
 			dp->g = (((t2 - t1) * ey) >> 16) + t1;
-			t1 = ((((c01->b - c00->b) * ex) >> 16) + c00->b) & 0xff;
-			t2 = ((((c11->b - c10->b) * ex) >> 16) + c10->b) & 0xff;
+			c00c >>= 8; //Next channel!
+			c01c >>= 8; //Next channel!
+			c10c >>= 8; //Next channel!
+			c11c >>= 8; //Next channel!
+			t1 = (((((c01c & 0xFF) - (c00c & 0xFF)) * ex) >> 16) + (c00c & 0xFF)) & 0xff;
+			t2 = (((((c11c & 0xFF) - (c10c & 0xFF)) * ex) >> 16) + (c10c & 0xFF)) & 0xff;
 			dp->b = (((t2 - t1) * ey) >> 16) + t1;
-			t1 = ((((c01->a - c00->a) * ex) >> 16) + c00->a) & 0xff;
-			t2 = ((((c11->a - c10->a) * ex) >> 16) + c10->a) & 0xff;
+			c00c >>= 8; //Next channel!
+			c01c >>= 8; //Next channel!
+			c10c >>= 8; //Next channel!
+			c11c >>= 8; //Next channel!
+			t1 = (((((c01c & 0xFF) - (c00c & 0xFF)) * ex) >> 16) + (c00c & 0xFF)) & 0xff;
+			t2 = (((((c11c & 0xFF) - (c10c & 0xFF)) * ex) >> 16) + (c10c & 0xFF)) & 0xff;
 			dp->a = (((t2 - t1) * ey) >> 16) + t1;
 			/*
 			* Advance source pointer x
