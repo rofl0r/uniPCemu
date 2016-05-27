@@ -157,6 +157,7 @@ typedef struct
 	byte slashr; //Is this a /r MODR/M (=RM is reg2)?
 	byte reg_is_segmentregister; //REG is segment register?
 	MODRM_PTR info[3]; //All versions of info!
+	byte EA_cycles; //The effective address cycles we're using!
 } MODRM_PARAMS;
 
 #define MODRM_MOD(modrm) ((modrm & 0xC0) >> 6)
@@ -164,6 +165,7 @@ typedef struct
 #define MODRM_RM(modrm) (modrm & 0x07)
 #define modrm_isregister(params) (MODRM_MOD(params.modrm) == MOD_REG)
 #define modrm_ismemory(params) (MODRM_MOD(params.modrm)!=MOD_REG)
+#define MODRM_EA(params) params.EA_cycles
 
 /*
 Warning: SIB=Scaled index byte modes
