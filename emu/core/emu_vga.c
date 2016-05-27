@@ -376,7 +376,6 @@ void updateVGA(double timepassed)
 		#ifdef LIMITVGA
 		if (passedcounter && currentVGASpeed) getnspassed(&VGA_test); //Still counting? Then count our interval!
 		#endif
-		INLINEREGISTER uint_32 ticker = (uint_32)renderings; //Load the amount of renderings to render!
 		do
 		{
 			if (renderings<5) VGA_Sequencer(Sequencer); //5+ optimization? Not usable? Execute only once!
