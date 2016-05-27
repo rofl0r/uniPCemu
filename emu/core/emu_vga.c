@@ -110,18 +110,14 @@ OPTINLINE byte doVGA_Sequencer() //Do we even execute?
 {
 	if (!getActiveVGA()) //Invalid VGA? Don't do anything!
 	{
-		//unlockVGA();
 		return 0; //Abort: we're disabled without a invalid VGA!
 	}
 	if (!(getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR && getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR)) //Reset sequencer?
 	{
 		return 0; //Abort: we're disabled!
 	}
-	//if (!memprotect(GPU.emu_screenbuffer, 4, "EMU_ScreenBuffer")) //Invalid framebuffer? Don't do anything!
 	if (!GPU.emu_screenbuffer) //Invalid screen buffer?
 	{
-		//unlockVGA();
-		//unlockGPU(); //Unlock the VGA&GPU for Software access!
 		return 0; //Abort: we're disabled!
 	}
 	return 1; //We can render something!
@@ -323,22 +319,13 @@ OPTINLINE uint_32 get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust
 
 OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 {
-	//if (!lockVGA()) return; //Lock ourselves!
 	INLINEREGISTER word displaystate = 0; //Last display state!
-	
-	/*if (!lockGPU()) //Lock the GPU for our access!
-	{
-		//unlockVGA();
-		return;
-	}*/
 
 	//Process one pixel only!
 	displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
 	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), displaystate); //Handle any change in display state first!
 	displayrenderhandler[totalretracing][displaystate](Sequencer, getActiveVGA()); //Execute our signal!
 
-	//unlockVGA(); //Unlock the VGA for Software access!
-	//unlockGPU(); //Unlock the GPU for Software access!
 }
 
 //CPU cycle locked version of VGA rendering!

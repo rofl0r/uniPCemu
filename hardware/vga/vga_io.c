@@ -443,7 +443,6 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		}
 		if (getActiveVGA()->registers->SequencerRegisters_Index>=sizeof(getActiveVGA()->registers->SequencerRegisters.DATA))
 		{
-			//unlockVGA(); //Finished with the VGA!
 			break; //Out of range!
 		}
 		getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index] = value; //Set!
