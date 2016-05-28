@@ -22,6 +22,9 @@
 #include "headers/interrupts/interrupt18.h"
 #include "headers/interrupts/interrupt19.h"
 
+//Enable this define to use cycle-accurate emulation for supported CPUs!
+#define CPU_USECYCLES
+
 byte activeCPU = 0; //What CPU is currently active?
 
 byte cpudebugger; //To debug the CPU?
@@ -43,7 +46,9 @@ uint_32 makeupticks; //From PIC?
 
 extern byte PIQSizes[2][NUMCPUS]; //The PIQ buffer sizes!
 
-//byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncommented?
+#ifdef CPU_USECYCLES
+byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncommented?
+#endif
 
 //Now the code!
 
@@ -235,7 +240,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	{
 		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
 	}
-	#ifdef CPU_useCycles
+	#ifdef CPU_USECYCLES
 	CPU_useCycles = (EMULATED_CPU<=CPU_NECV30); //Are we using cycle-accurate emulation?
 	#endif
 }
@@ -862,7 +867,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case CPU_8086: //8086/8088?
 		case CPU_NECV30: //NEC V20/V30/80188?
 			//Placeholder until 8086/8088 cycles are fully implemented. Originally 8. 9 works better with 8088 MPH(better sound). 10 works worse than 9(sound disappears into the background)?
-			#ifdef CPU_useCycles
+			#ifdef CPU_USECYCLES
 			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
 			{
 				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception; //Use the cycles as specified by the instruction!
@@ -874,7 +879,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			{
 			#endif
 				CPU[activeCPU].cycles = (CPU_databussize>=1)?9:8; //Use 9 with 8088MPH CPU(8088 CPU), normal 8 with 8086.
-			#ifdef CPU_useCycles
+			#ifdef CPU_USECYCLES
 			}
 			#endif
 			break;
