@@ -4,6 +4,7 @@
 #include "headers/mmu/mmuhandler.h" //Handling support!
 #include "headers/hardware/pci.h" //PCI support!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
+#include "headers/cpu/cpu.h" //Emulator cpu support!
 
 uint_32 VGA_VRAM_START = 0xA0000; //VRAM start address default!
 uint_32 VGA_VRAM_END = 0xC0000; //VRAM end address default!
@@ -300,6 +301,14 @@ void applyCGAMDAOffset(uint_32 *offset)
 	if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA?
 	{
 		*offset &= 0x3FFF; //Wrap around 16KB!
+
+		//Apply wait states!
+		if (CPU[activeCPU].running==1) //Are we running? Introduce wait states!
+		{
+			getActiveVGA()->WaitState = 1; //Start our waitstate for CGA memory access!
+			getActiveVGA()->WaitStateCounter = 8; //Reset our counter for the 8 hdots to wait!
+			CPU[activeCPU].halt |= 4; //We're starting to wait for the CGA!
+		}
 	}
 	else if (MDAEMULATION_ENABLED(getActiveVGA())) //MDA?
 	{

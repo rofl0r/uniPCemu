@@ -685,6 +685,10 @@ typedef struct PACKED
 	
 	void *Sequencer; //The active sequencer to use!
 	VGA_CRTC CRTC; //The CRTC information!
+
+	byte PixelCounter; //A simple counter to count up to 16 hdots with!
+	byte WaitState; //Active waitstate on CGA/MDA? Wait the CPU when enabled!
+	byte WaitStateCounter; //What are we counting to?
 } VGA_Type; //VGA dataset!
 #include "headers/endpacked.h" //We're packed!
 
@@ -724,10 +728,6 @@ void doneVGA(VGA_Type **VGA); //Cleans up after the VGA operations are done.
 byte VRAM_readdirect(uint_32 offset);
 void VRAM_writedirect(uint_32 offset, byte value); //Direct read/write!
 
-//CPU read/write functionality (contained in BDA)
-byte VRAM_readcpu(uint_32 offset);
-void VRAM_writecpu(uint_32 offset, byte value);
-
 byte PORT_readVGA(word port, byte *result); //Read from a port/register!
 byte PORT_writeVGA(word port, byte value); //Write to a port/register!
 //End of CPU specific! ***
@@ -737,15 +737,11 @@ void readDAC(VGA_Type *VGA,byte entrynumber,DACEntry *entry); //Read a DAC entry
 void writeDAC(VGA_Type *VGA,byte entrynumber,DACEntry *entry); //Write a DAC entry
 
 //CRTC Controller renderer&int10:
-void VGA_LoadVideoMode(byte mode); //Loads a preset video mode to be active!
 void VGA_VBlankHandler(VGA_Type *VGA); //VBlank handler for VGA!
 
 void VGA_waitforVBlank(); //Wait for a VBlank to happen?
 
 void changeRowTimer(VGA_Type *VGA, word lines); //Change the VGA row processing timer the ammount of lines on display: should be in the emulator itself!
-
-//Concerning rendering the VGA for the GPU!
-void setVGAFrameskip(VGA_Type *VGA, byte Frameskip); //Set frameskip or 0 for none!
 
 void dumpVRAM(); //Diagnostic dump of VRAM!
 

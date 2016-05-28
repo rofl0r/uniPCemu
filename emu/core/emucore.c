@@ -623,20 +623,31 @@ OPTINLINE byte coreHandler()
 				return 0; //Stop execution!
 			}
 
-			if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0)) //We have an interrupt? Clear Halt State when allowed to!
+			if (CPU[activeCPU].halt & 0xC) //CGA wait state is active?
+			{
+				if ((CPU[activeCPU].halt&0xC) == 8) //Are we to resume execution now?
+				{
+					CPU[activeCPU].halt &= ~0xC; //We're resuming execution!
+				}
+				goto skipHaltRestart; //Count cycles normally!
+			}
+			else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0)) //We have an interrupt? Clear Halt State when allowed to!
 			{
 				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 				goto resumeFromHLT; //We're resuming from HLT state!
 			}
-			else if (DosboxClock) //Execute using Dosbox clocks?
+			else
 			{
-				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now!
+				skipHaltRestart:
+				if (DosboxClock) //Execute using Dosbox clocks?
+				{
+					CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now!
+				}
+				else //Execute using actual CPU clocks!
+				{
+					CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
+				}
 			}
-			else //Execute using actual CPU clocks!
-			{
-				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
-			}
-
 			if (CPU[activeCPU].halt==1) //Normal halt?
 			{
 				//Increase the instruction counter every instruction/HLT time!

@@ -14,6 +14,7 @@
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
 #include "headers/hardware/pic.h" //IRQ support!
 #include "headers/support/highrestimer.h" //Automatic timer support!
+#include "headers/cpu/cpu.h" //Currently emulated CPU for wait states!
 
 //Disable this hardware?
 //#define __HW_DISABLED
@@ -139,6 +140,8 @@ byte vtotal = 0; //VTotal busy?
 
 extern byte CGAMDARenderer; //CGA/MDA renderer?
 
+extern double last_timing; //CPU timing to perform the final wait state!
+
 OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 {
 	INLINEREGISTER word tempsignalbackup = signal; //The back-up of the signal!
@@ -155,7 +158,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		{
 			if (tempsignal&VGA_SIGNAL_HBLANKEND) //HBlank end?
 			{
-				if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendhblank;
+				if ((VGA->registers->specialCGAMDAflags)&1) goto CGAendhblank;
 				blankretraceendpending |= VGA_SIGNAL_HBLANKEND;
 			}
 		}
@@ -195,7 +198,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 		{
 			if (tempsignal&VGA_SIGNAL_VBLANKEND) //VBlank end?
 			{
-				if ((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) goto CGAendvblank;
+				if (VGA->registers->specialCGAMDAflags&1) goto CGAendvblank;
 				blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
 			}
 		}
@@ -206,7 +209,7 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 			{
 				VGA_VRetrace(Sequencer, VGA); //Execute the handler!
 
-											  //VGA/EGA vertical retrace interrupt support!
+				//VGA/EGA vertical retrace interrupt support!
 				if (VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_NotCleared) //Enabled vertical retrace interrupt?
 				{
 					if (!VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Disabled) //Generate vertical retrace interrupts?
@@ -299,6 +302,30 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	else
 	{
 		VGA->CRTC.DisplayEnabled = (tempsignal==VGA_DISPLAYACTIVE); //We're active display when not retracing/totalling and active display area!
+	}
+	++VGA->PixelCounter; //Simply blindly increase the pixel counter!
+	if (VGA->WaitState) //To excert CGA Wait State memory?
+	{
+		switch (VGA->WaitState) //What state are we waiting for?
+		{
+		case 1: //Wait 8 hdots!
+			if (--VGA->WaitStateCounter == 0) //First wait state done?
+			{
+				VGA->WaitState = 2; //Enter the next phase: Wait for the next lchar(16 dots period)!
+			}
+			break;
+		case 2: //Wait for the next lchar?
+			if ((VGA->PixelCounter & 0xF) == 0) //Second wait state done?
+			{
+				VGA->WaitState = 0; //Enter the next phase: Wait for the next ccycle(3 hdots)
+				CPU[activeCPU].halt |= 8; //Start again when the next CPU clock arrives!
+				CPU[activeCPU].halt &= ~4; //We're done waiting!
+			}
+			break;
+		case 3: //Wait for the next ccycle(3 hdots)?
+		default: //No waitstate?
+			break;
+		}
 	}
 }
 
