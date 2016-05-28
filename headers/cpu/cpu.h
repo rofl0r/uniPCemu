@@ -603,6 +603,7 @@ typedef struct
 	byte cycles_OP; //Total number of cycles for an operation!
 	byte cycles_HWOP; //Total number of cycles for an hardware interrupt!
 	byte cycles_Prefix; //Total number of cycles for the prefix!
+	byte cycles_Exception; //Total number of cycles for an exception!
 
 	//PE in .registers.CR0.PE: In real mode or V86 mode (V86 flag&PE=V86; !PE=protected; else real)?
 

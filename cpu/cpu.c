@@ -863,11 +863,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case CPU_NECV30: //NEC V20/V30/80188?
 			//Placeholder until 8086/8088 cycles are fully implemented. Originally 8. 9 works better with 8088 MPH(better sound). 10 works worse than 9(sound disappears into the background)?
 			#ifdef CPU_useCycles
-			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP) && CPU_useCycles) //cycles entered by the instruction?
+			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
 			{
-				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix; //Use the cycles as specified by the instruction!
+				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception; //Use the cycles as specified by the instruction!
 				CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
 				CPU[activeCPU].cycles_Prefix = 0; //No cycles prefix to use anymore!
+				CPU[activeCPU].cycles_Exception = 0; //No cycles prefix to use anymore!
 			}
 			else //Automatic cycles placeholder?
 			{
@@ -959,7 +960,7 @@ void CPU_exDIV0() //Division by 0!
 		//Points to next opcode!
 		CPU_customint(EXCEPTION_DIVIDEERROR,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
 	}
-	CPU[activeCPU].cycles_HWOP += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
+	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
 
@@ -972,7 +973,7 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
 	CPU_INT(EXCEPTION_DEBUG); //Execute INT1 normally using current CS:(E)IP!
-	CPU[activeCPU].cycles_HWOP += 50; //Our cycles!
+	CPU[activeCPU].cycles_Exception += 50; //Our cycles!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
 
@@ -981,7 +982,7 @@ void CPU_BoundException() //Bound exception!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
 	CPU_customint(EXCEPTION_BOUNDSCHECK,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
-	CPU[activeCPU].cycles_HWOP += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
+	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
 
@@ -990,7 +991,7 @@ void CPU_COOP_notavailable() //COProcessor not available!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
 	CPU_customint(EXCEPTION_NOCOPROCESSOR,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
-	CPU[activeCPU].cycles_HWOP += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
+	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
 
