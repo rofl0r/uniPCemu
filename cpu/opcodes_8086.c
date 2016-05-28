@@ -1342,7 +1342,7 @@ OPTINLINE void CPU8086_internal_SCASW()
 	CPUPROT2
 }
 
-OPTINLINE void CPU8086_internal_RET(word popbytes)
+OPTINLINE void CPU8086_internal_RET(word popbytes, byte isimm)
 {
 	INLINEREGISTER word val = CPU_POP16();    //Near return
 	CPUPROT1
@@ -1350,8 +1350,12 @@ OPTINLINE void CPU8086_internal_RET(word popbytes)
 	CPU_flushPIQ(); //We're jumping to another address!
 	REG_SP += popbytes;
 	CPUPROT2
+	if (isimm)
+		CPU[activeCPU].cycles_OP = 12; /* Intrasegment with constant */
+	else
+		CPU[activeCPU].cycles_OP = 8; /* Intrasegment */
 }
-OPTINLINE void CPU8086_internal_RETF(word popbytes)
+OPTINLINE void CPU8086_internal_RETF(word popbytes, byte isimm)
 {
 	INLINEREGISTER word val = CPU_POP16();    //Far return
 	CPUPROT1
@@ -1361,6 +1365,10 @@ OPTINLINE void CPU8086_internal_RETF(word popbytes)
 		REG_SP += popbytes; //Process SP!
 	CPUPROT2
 	CPUPROT2
+	if (isimm)
+		CPU[activeCPU].cycles_OP = 17; /* Intersegment with constant */
+	else
+		CPU[activeCPU].cycles_OP = 18; /* Intersegment */
 }
 
 OPTINLINE void CPU8086_internal_INTO()
@@ -1604,22 +1612,22 @@ void CPU8086_OP5C() {modrm_generateInstructionTEXT("POP SP",0,0,PARAM_NONE);/*PO
 void CPU8086_OP5D() {modrm_generateInstructionTEXT("POP BP",0,0,PARAM_NONE);/*POP BP*/ REG_BP = CPU_POP16();/*POP BP*/ }
 void CPU8086_OP5E() {modrm_generateInstructionTEXT("POP SI",0,0,PARAM_NONE);/*POP SI*/ REG_SI = CPU_POP16();/*POP SI*/ }
 void CPU8086_OP5F() {modrm_generateInstructionTEXT("POP DI",0,0,PARAM_NONE);/*POP DI*/ REG_DI = CPU_POP16();/*POP DI*/ }
-void CPU8086_OP70() {INLINEREGISTER signed char rel8;/*JO rel8: (FLAG_OF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JO",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ } }
-void CPU8086_OP71() {INLINEREGISTER signed char rel8;/*JNO rel8 : (FLAG_OF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNO",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP72() {INLINEREGISTER signed char rel8;/*JC rel8: (FLAG_CF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JC",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_CF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP73() {INLINEREGISTER signed char rel8;/*JNC rel8 : (FLAG_CF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNC",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_CF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP74() {INLINEREGISTER signed char rel8;/*JZ rel8: (FLAG_ZF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JZ",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP75() {INLINEREGISTER signed char rel8;/*JNZ rel8 : (FLAG_ZF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNZ",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP76() {INLINEREGISTER signed char rel8;/*JBE rel8 : (FLAG_CF=1|FLAG_ZF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JBE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_CF||FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP77() {INLINEREGISTER signed char rel8;/*JA rel8: (FLAG_CF=0&FLAG_ZF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JA",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_CF && !FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP78() {INLINEREGISTER signed char rel8;/*JS rel8: (FLAG_SF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JS",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP79() {INLINEREGISTER signed char rel8;/*JNS rel8 : (FLAG_SF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNS",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_SF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP7A() {INLINEREGISTER signed char rel8;/*JP rel8 : (FLAG_PF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JP",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_PF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP7B() {INLINEREGISTER signed char rel8;/*JNP rel8 : (FLAG_PF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNP",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_PF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP7C() {INLINEREGISTER signed char rel8;/*JL rel8: (FLAG_SF!=FLAG_OF)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JL",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF!=FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP7D() {INLINEREGISTER signed char rel8;/*JGE rel8 : (FLAG_SF=FLAG_OF)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JGE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF==FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP7E() {INLINEREGISTER signed char rel8;/*JLE rel8 : (FLAG_ZF|(FLAG_SF!=FLAG_OF))*/ rel8 = imm8(); modrm_generateInstructionTEXT("JLE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if ((FLAG_SF!=FLAG_OF) || FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
-void CPU8086_OP7F() {INLINEREGISTER signed char rel8;/*JG rel8: ((FLAG_ZF=0)&&(FLAG_SF=FLAG_OF))*/ rel8 = imm8(); modrm_generateInstructionTEXT("JG",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_ZF && (FLAG_SF==FLAG_OF)) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/} }
+void CPU8086_OP70() {INLINEREGISTER signed char rel8;/*JO rel8: (FLAG_OF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JO",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP71() {INLINEREGISTER signed char rel8;/*JNO rel8 : (FLAG_OF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNO",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP72() {INLINEREGISTER signed char rel8;/*JC rel8: (FLAG_CF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JC",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_CF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP73() {INLINEREGISTER signed char rel8;/*JNC rel8 : (FLAG_CF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNC",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_CF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP74() {INLINEREGISTER signed char rel8;/*JZ rel8: (FLAG_ZF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JZ",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP75() {INLINEREGISTER signed char rel8;/*JNZ rel8 : (FLAG_ZF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNZ",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP76() {INLINEREGISTER signed char rel8;/*JBE rel8 : (FLAG_CF=1|FLAG_ZF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JBE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_CF||FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP77() {INLINEREGISTER signed char rel8;/*JA rel8: (FLAG_CF=0&FLAG_ZF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JA",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_CF && !FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP78() {INLINEREGISTER signed char rel8;/*JS rel8: (FLAG_SF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JS",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP79() {INLINEREGISTER signed char rel8;/*JNS rel8 : (FLAG_SF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNS",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_SF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP7A() {INLINEREGISTER signed char rel8;/*JP rel8 : (FLAG_PF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JP",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_PF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP7B() {INLINEREGISTER signed char rel8;/*JNP rel8 : (FLAG_PF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNP",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_PF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP7C() {INLINEREGISTER signed char rel8;/*JL rel8: (FLAG_SF!=FLAG_OF)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JL",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF!=FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP7D() {INLINEREGISTER signed char rel8;/*JGE rel8 : (FLAG_SF=FLAG_OF)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JGE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_SF==FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP7E() {INLINEREGISTER signed char rel8;/*JLE rel8 : (FLAG_ZF|(FLAG_SF!=FLAG_OF))*/ rel8 = imm8(); modrm_generateInstructionTEXT("JLE",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if ((FLAG_SF!=FLAG_OF) || FLAG_ZF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+void CPU8086_OP7F() {INLINEREGISTER signed char rel8;/*JG rel8: ((FLAG_ZF=0)&&(FLAG_SF=FLAG_OF))*/ rel8 = imm8(); modrm_generateInstructionTEXT("JG",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_ZF && (FLAG_SF==FLAG_OF)) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
 void CPU8086_OP84() {modrm_readparams(&params,0,0); modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("TESTB",8,0,PARAM_MODRM12); CPU8086_internal_TEST8(modrm_read8(&params,0),modrm_read8(&params,1),2); }
 void CPU8086_OP85() {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("TESTW",16,0,PARAM_MODRM12); CPU8086_internal_TEST16(modrm_read16(&params,0),modrm_read16(&params,1),2); }
 void CPU8086_OP86() {modrm_readparams(&params,0,0); modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("XCHGB",8,0,PARAM_MODRM12); MODRM_src0 = 0; MODRM_src1 = 1; CPU8086_internal_XCHG8(modrm_addr8(&params,0,0),modrm_addr8(&params,1,1)); /*XCHG reg8,r/m8*/ }
@@ -1681,14 +1689,14 @@ void CPU8086_OPBD() {INLINEREGISTER word theimm = CPU_readOPw(); modrm_generateI
 void CPU8086_OPBE() {INLINEREGISTER word theimm = CPU_readOPw(); modrm_generateInstructionTEXT("MOVW SI,",0,theimm,PARAM_IMM16);/*MOV SI,imm16*/ CPU8086_internal_MOV16(&REG_SI,theimm);/*MOV SI,imm16*/ }
 void CPU8086_OPBF() {INLINEREGISTER word theimm = CPU_readOPw(); modrm_generateInstructionTEXT("MOVW DI,",0,theimm,PARAM_IMM16);/*MOV DI,imm16*/ CPU8086_internal_MOV16(&REG_DI,theimm);/*MOV DI,imm16*/ }
 /*So far, OK! Second test OK (2013-10-21 11:19)*/ /* Done up to here! 20140505_1258 */
-void CPU8086_OPC2() {INLINEREGISTER sword popbytes = imm16();/*RET imm16 (Near return to calling proc and POP imm16 bytes)*/ modrm_generateInstructionTEXT("RET",0,popbytes,PARAM_IMM8); /*RET imm16 (Near return to calling proc and POP imm16 bytes)*/ CPU8086_internal_RET(popbytes); }
-void CPU8086_OPC3() {modrm_generateInstructionTEXT("RET",0,0,PARAM_NONE);/*RET (Near return to calling proc)*/ /*RET (Near return to calling proc)*/ CPU8086_internal_RET(0); }
+void CPU8086_OPC2() {INLINEREGISTER sword popbytes = imm16();/*RET imm16 (Near return to calling proc and POP imm16 bytes)*/ modrm_generateInstructionTEXT("RET",0,popbytes,PARAM_IMM8); /*RET imm16 (Near return to calling proc and POP imm16 bytes)*/ CPU8086_internal_RET(popbytes,1); }
+void CPU8086_OPC3() {modrm_generateInstructionTEXT("RET",0,0,PARAM_NONE);/*RET (Near return to calling proc)*/ /*RET (Near return to calling proc)*/ CPU8086_internal_RET(0,0); }
 void CPU8086_OPC4() /*LES modr/m*/ {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("LES",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_ES); /*Load new ES!*/ }
 void CPU8086_OPC5() /*LDS modr/m*/ {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("LDS",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_DS); /*Load new DS!*/ }
 void CPU8086_OPC6() {modrm_readparams(&params,0,0); byte val = CPU_readOP(); modrm_debugger8(&params,0,1); debugger_setcommand("MOVB %s,%02x",modrm_param2,val); modrm_write8(&params,1,val); }
 void CPU8086_OPC7() {modrm_readparams(&params,1,0); word val = CPU_readOPw(); modrm_debugger16(&params,0,1); debugger_setcommand("MOVW %s,%04x",modrm_param2,val); modrm_write16(&params,1,val,0); }
-void CPU8086_OPCA() {INLINEREGISTER sword popbytes = imm16();/*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ modrm_generateInstructionTEXT("RETF",0,popbytes,PARAM_IMM16); /*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ CPU8086_internal_RETF(popbytes); }
-void CPU8086_OPCB() {modrm_generateInstructionTEXT("RETF",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU8086_internal_RETF(0); }
+void CPU8086_OPCA() {INLINEREGISTER sword popbytes = imm16();/*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ modrm_generateInstructionTEXT("RETF",0,popbytes,PARAM_IMM16); /*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ CPU8086_internal_RETF(popbytes,1); }
+void CPU8086_OPCB() {modrm_generateInstructionTEXT("RETF",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU8086_internal_RETF(0,0); }
 void CPU8086_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ CPU8086_int(EXCEPTION_CPUBREAKPOINT);/*INT 3*/ }
 void CPU8086_OPCD() {INLINEREGISTER byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ CPU8086_int(theimm);/*INT imm8*/ }
 void CPU8086_OPCE() {modrm_generateInstructionTEXT("INTO",0,0,PARAM_NONE);/*INTO*/ CPU8086_internal_INTO();/*INTO*/ }
