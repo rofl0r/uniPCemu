@@ -1715,9 +1715,9 @@ void CPU8086_OPE5(){INLINEREGISTER byte theimm = CPU_readOP();modrm_generateInst
 void CPU8086_OPE6(){INLINEREGISTER byte theimm = CPU_readOP();debugger_setcommand("OUT %02X,AL",theimm);PORT_OUT_B(theimm,REG_AL);}
 void CPU8086_OPE7(){INLINEREGISTER byte theimm = CPU_readOP(); debugger_setcommand("OUT %02X,AX",theimm); PORT_OUT_W(theimm,REG_AX);}
 void CPU8086_OPE8(){INLINEREGISTER sword reloffset = imm16(); modrm_generateInstructionTEXT("CALL",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); CPU_PUSH16(&REG_IP); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Intrasegment direct */}
-void CPU8086_OPE9(){INLINEREGISTER sword reloffset = imm16(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/}
-void CPU8086_OPEA(){INLINEREGISTER word offset = CPU_readOPw(); INLINEREGISTER word segment = CPU_readOPw(); debugger_setcommand("JMP %04X:%04X", segment, offset); destEIP = offset; segmentWritten(CPU_SEGMENT_CS, segment, 1); }
-void CPU8086_OPEB(){INLINEREGISTER signed char reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/}
+void CPU8086_OPE9(){INLINEREGISTER sword reloffset = imm16(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct */}
+void CPU8086_OPEA(){INLINEREGISTER word offset = CPU_readOPw(); INLINEREGISTER word segment = CPU_readOPw(); debugger_setcommand("JMP %04X:%04X", segment, offset); destEIP = offset; segmentWritten(CPU_SEGMENT_CS, segment, 1); CPU[activeCPU].cycles_OP = 15; /* Intersegment direct */}
+void CPU8086_OPEB(){INLINEREGISTER signed char reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct short */}
 void CPU8086_OPEC(){modrm_generateInstructionTEXT("IN AL,DX",0,0,PARAM_NONE); REG_AL = PORT_IN_B(REG_DX);}
 void CPU8086_OPED(){modrm_generateInstructionTEXT("IN AX,DX",0,0,PARAM_NONE); REG_AX = PORT_IN_W(REG_DX);}
 void CPU8086_OPEE(){modrm_generateInstructionTEXT("OUT DX,AL",0,0,PARAM_NONE); PORT_OUT_B(REG_DX,REG_AL);}
@@ -2950,11 +2950,27 @@ void op_grp5() {
 	case 4: //JMP Ev
 		REG_IP = oper1;
 		CPU_flushPIQ(); //We're jumping to another address!
+		if (MODRM_EA(params)) //Memory?
+		{
+			CPU[activeCPU].cycles_OP = 18 + MODRM_EA(params); /* Intrasegment indirect through memory */
+		}
+		else //Register?
+		{
+			CPU[activeCPU].cycles_OP = 11; /* Intrasegment indirect through register */
+		}
 		break;
 	case 5: //JMP Mp
 		modrm_decode16(&params, &info, 1); //Get data!
 		destEIP = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);
 		segmentWritten(CPU_SEGMENT_CS, MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0), 1);
+		if (MODRM_EA(params)) //Memory?
+		{
+			CPU[activeCPU].cycles_OP = 24 + MODRM_EA(params); /* Intersegment indirect through memory */
+		}
+		else //Register?
+		{
+			CPU[activeCPU].cycles_OP = 11; /* Intersegment indirect through register */
+		}
 		break;
 	case 6: //PUSH Ev
 		CPU_PUSH16(&oper1); break;
