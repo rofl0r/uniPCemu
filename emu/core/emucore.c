@@ -628,6 +628,7 @@ OPTINLINE byte coreHandler()
 				if ((CPU[activeCPU].halt&0xC) == 8) //Are we to resume execution now?
 				{
 					CPU[activeCPU].halt &= ~0xC; //We're resuming execution!
+					goto resumeFromHLT; //We're resuming from HLT state!
 				}
 				goto skipHaltRestart; //Count cycles normally!
 			}
