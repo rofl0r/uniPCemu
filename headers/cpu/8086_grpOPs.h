@@ -3,8 +3,8 @@
 
 #include "headers/types.h" //Basic typedefs!
 
-byte op_grp2_8(byte cnt);
-word op_grp2_16(byte cnt);
+byte op_grp2_8(byte cnt, byte varshift);
+word op_grp2_16(byte cnt, byte varshift);
 void op_grp3_8();
 void op_grp3_16();
 void op_grp5();

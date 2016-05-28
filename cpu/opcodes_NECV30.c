@@ -325,7 +325,7 @@ void CPU186_OPC0()
 	}
 		
 	
-	modrm_write8(&params,1,op_grp2_8(oper2b));
+	modrm_write8(&params,1,op_grp2_8(oper2b,2));
 } //GRP2 Eb,Ib
 
 void CPU186_OPC1()
@@ -367,7 +367,7 @@ void CPU186_OPC1()
 			break;
 	}
 	
-	modrm_write16(&params,1,op_grp2_16((byte)oper2),0);
+	modrm_write16(&params,1,op_grp2_16((byte)oper2,2),0);
 } //GRP2 Ev,Ib
 void CPU186_OPC8()
 {
