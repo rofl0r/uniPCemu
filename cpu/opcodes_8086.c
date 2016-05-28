@@ -1590,12 +1590,6 @@ OPTINLINE void CPU8086_internal_XLAT()
 	CPU[activeCPU].cycles_OP = 11; //XLAT timing!
 }
 
-/*
-
-TODO: data1&2 protection, CPU opcodes themselves modrm1/2 specs.
-
-*/
-
 OPTINLINE void CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 {
 	CPUPROT1
@@ -1866,8 +1860,8 @@ void CPU8086_OP98() {modrm_generateInstructionTEXT("CBW",0,0,PARAM_NONE);/*CBW :
 void CPU8086_OP99() {modrm_generateInstructionTEXT("CWD",0,0,PARAM_NONE);/*CWD : sign extend AX to DX::AX*/ CPU8086_internal_CWD();/*CWD : sign extend AX to DX::AX (8088+)*/ }
 void CPU8086_OP9A() {/*CALL Ap*/ INLINEREGISTER word offset = CPU_readOPw(); INLINEREGISTER word segment = CPU_readOPw(); debugger_setcommand("CALL %04x:%04x", segment, offset); CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP); destEIP = offset;  segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed!*/ CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ }
 void CPU8086_OP9B() {modrm_generateInstructionTEXT("WAIT",0,0,PARAM_NONE);/*WAIT : wait for TEST pin activity. (UNIMPLEMENTED)*/ CPU[activeCPU].wait = 1;/*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
-void CPU8086_OP9C() {modrm_generateInstructionTEXT("PUSHF",0,0,PARAM_NONE);/*PUSHF*/ CPU_PUSH16(&REG_FLAGS); }
-void CPU8086_OP9D() { modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/ REG_FLAGS = CPU_POP16(); updateCPUmode(); /*POPF*/ }
+void CPU8086_OP9C() {modrm_generateInstructionTEXT("PUSHF",0,0,PARAM_NONE);/*PUSHF*/ CPU_PUSH16(&REG_FLAGS); CPU[activeCPU].cycles_OP = 10; /*PUSHF timing!*/ }
+void CPU8086_OP9D() { modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/ REG_FLAGS = CPU_POP16(); updateCPUmode(); /*POPF*/ CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/ }
 void CPU8086_OP9E() { modrm_generateInstructionTEXT("SAHF", 0, 0, PARAM_NONE);/*SAHF : Save AH to lower half of FLAGS.*/ REG_FLAGS = ((REG_FLAGS & 0xFF00) | REG_AH); updateCPUmode(); /*SAHF : Save AH to lower half of FLAGS.*/ }
 void CPU8086_OP9F() {modrm_generateInstructionTEXT("LAHF",0,0,PARAM_NONE);/*LAHF : Load lower half of FLAGS into AH.*/ REG_AH = (REG_FLAGS&0xFF);/*LAHF : Load lower half of FLAGS into AH.*/ }
 void CPU8086_OPA0() {INLINEREGISTER word theimm = CPU_readOPw(); debugger_setcommand("MOVB AL,[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV AL,[imm16]*/ CPU8086_internal_MOV8(&REG_AL,MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),theimm,0),1);/*MOV AL,[imm16]*/ }
