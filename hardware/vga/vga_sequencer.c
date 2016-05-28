@@ -556,7 +556,7 @@ void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here! Start with text mode!		
 	INLINEREGISTER byte nibbled = 0; //Did we process two nibbles instead of one nibble?
-	INLINEREGISTER word tempx = Sequencer->tempx, tempx2, tempx3; //Load tempx!
+	INLINEREGISTER word tempx = Sequencer->tempx; //Load tempx!
 
 othernibble: //Retrieve the current DAC index!
 	Sequencer->activex = tempx++; //Active X!
@@ -604,7 +604,7 @@ void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here! Start with text mode!		
 	INLINEREGISTER byte nibbled = 0; //Did we process two nibbles instead of one nibble?
-	INLINEREGISTER word tempx = Sequencer->tempx, tempx2, tempx3; //Load tempx!
+	INLINEREGISTER word tempx = Sequencer->tempx; //Load tempx!
 
 othernibble: //Retrieve the current DAC index!
 	Sequencer->activex = tempx++; //Active X!

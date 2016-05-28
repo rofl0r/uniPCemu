@@ -255,7 +255,7 @@ void updateTimeDivergeance() //Update relative time to the clocks(time differenc
 
 void incTime(struct tm *curtime, double inctime)
 {
-	double temp = inctime; //Load the time to increase!
+	//double temp = inctime; //Load the time to increase!
 	//Increase time in seconds with curtime!
 	//Give the resulting time as curtime!
 }

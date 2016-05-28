@@ -281,7 +281,6 @@ void updateVGAGraphics_Mode(VGA_Type *VGA)
 	decodegraphicspixels = loadpixel_jmptbl[VGA->precalcs.GraphicsModeRegister_ShiftRegister]; //Apply the current mode!
 }
 
-
 void VGA_GraphicsDecoder(VGA_Type *VGA, word loadedlocation) //Graphics decoder!
 {
 	decodegraphicspixels(); //Split the pixels from the buffer!
