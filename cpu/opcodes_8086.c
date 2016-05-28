@@ -1721,8 +1721,6 @@ OPTINLINE void CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 	}
 }
 
-//ALL ABOVE SHOULD BE OK ACCORDING TO FAKE86 CPU.C
-
 /*
 
 NOW THE REAL OPCODES!
