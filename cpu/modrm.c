@@ -132,9 +132,12 @@ word modrm_lastsegment;
 uint_32 modrm_lastoffset;
 byte last_modrm; //Is the last opcode a modr/m read?
 
+extern MODRM_PARAMS params; //For getting all params for the CPU!
+
 void reset_modrm()
 {
 	last_modrm = 0; //Last wasn't a modr/m anymore by default!
+	params.EA_cycles = 0; //Default: no cycles used!
 }
 
 void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
