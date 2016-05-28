@@ -93,6 +93,7 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 			{
 				SystemControlPortB |= 0x80; //Signal a Memory error!
 				CPU_customint(EXCEPTION_NMI, CPU_exec_CS, CPU_exec_EIP); //Return to opcode!
+				CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
 				return 0; //We're handled!
 			}
 		}
@@ -102,6 +103,7 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 			{
 				SystemControlPortB |= 0x40; //Signal a Bus error!
 				CPU_customint(EXCEPTION_NMI, CPU_exec_CS, CPU_exec_EIP); //Return to opcode!
+				CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
 				return 0; //We're handled!
 			}
 		}

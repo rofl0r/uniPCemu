@@ -52,7 +52,7 @@ byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
 void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
 {
 //Now call handler!
-	CPU[activeCPU].cycles_HWOP = 51; /* Normal interrupt as hardware interrupt */
+	CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
 	CPU_INT(intnr); //Call interrupt!
 }
@@ -372,8 +372,10 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 
 	CPU_InterruptReturn = last_eip = CPU->registers->EIP; //Interrupt return point by default!
 	OP = CPU_readOP(); //Read opcode or prefix?
+	CPU[activeCPU].cycles_Prefix = 0; //No cycles for the prefix by default!
 	for (;CPU_isPrefix(OP);) //We're a prefix?
 	{
+		CPU[activeCPU].cycles_Prefix += 2; //Add timing for the prefix!
 		if (ismultiprefix && (EMULATED_CPU <= CPU_80286)) //This CPU has the bug and multiple prefixes are added?
 		{
 			CPU_InterruptReturn = last_eip; //Return to the last prefix only!
@@ -680,6 +682,8 @@ byte CPU_segmentOverridden(byte TheActiveCPU)
 
 extern byte DosboxClock; //Dosbox clocking?
 
+byte newREP = 1; //Are we a new repeating instruction (REP issued?)
+
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
@@ -702,10 +706,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	if (CPU[activeCPU].repeating) //REPeating instruction?
 	{
 		OP = CPU[activeCPU].lastopcode; //Execute the last opcode again!
+		newREP = 0; //Not a new repeating instruction!
 	}
 	else //Not a repeating instruction?
 	{
 		OP = CPU_readOP_prefix(); //Process prefix(es) and read OPCode!
+		newREP = 1; //We're a new repeating instruction!
 	}
 	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
 	if (cpudebugger) debugger_setprefix(""); //Reset prefix for the debugger!
@@ -859,8 +865,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			#ifdef CPU_useCycles
 			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP) && CPU_useCycles) //cycles entered by the instruction?
 			{
-				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP; //Use the cycles as specified by the instruction!
+				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix; //Use the cycles as specified by the instruction!
 				CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
+				CPU[activeCPU].cycles_Prefix = 0; //No cycles prefix to use anymore!
 			}
 			else //Automatic cycles placeholder?
 			{
@@ -937,8 +944,11 @@ void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls th
 
 //8086+ exceptions (real mode)
 
+byte tempcycles;
+
 void CPU_exDIV0() //Division by 0!
 {
+	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	if (EMULATED_CPU == CPU_8086) //We point to the instruction following the division?
 	{
 		//Points to next opcode!
@@ -949,28 +959,39 @@ void CPU_exDIV0() //Division by 0!
 		//Points to next opcode!
 		CPU_customint(EXCEPTION_DIVIDEERROR,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
 	}
+	CPU[activeCPU].cycles_HWOP += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
+	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
 
 extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 void CPU_exSingleStep() //Single step (after the opcode only)
 {
+	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	HWINT_nr = 1; //Trapped INT NR!
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
 	CPU_INT(EXCEPTION_DEBUG); //Execute INT1 normally using current CS:(E)IP!
+	CPU[activeCPU].cycles_HWOP += 50; //Our cycles!
+	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
 
 void CPU_BoundException() //Bound exception!
 {
+	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
 	CPU_customint(EXCEPTION_BOUNDSCHECK,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+	CPU[activeCPU].cycles_HWOP += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
+	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
 
 void CPU_COOP_notavailable() //COProcessor not available!
 {
+	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
 	CPU_customint(EXCEPTION_NOCOPROCESSOR,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+	CPU[activeCPU].cycles_HWOP += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
+	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
 
 void CPU_flushPIQ()
