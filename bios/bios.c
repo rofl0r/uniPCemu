@@ -29,7 +29,7 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 #define BIOS_FILE "BIOS.DAT"
 //Default values for new BIOS settings:
 #define DEFAULT_BOOT_ORDER 0
-#define DEFAULT_CPU CPU_80186
+#define DEFAULT_CPU CPU_NECV30
 #define DEFAULT_DEBUGMODE DEBUGMODE_NONE
 #define DEFAULT_EXECUTIONMODE EXECUTIONMODE_BIOS
 #define DEFAULT_DEBUGGERLOG DEBUGGERLOG_NONE
@@ -448,7 +448,7 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 		++numdrives;
 	}
 
-	if ((BIOS_Settings.emulated_CPU!=CPU_8086) && (BIOS_Settings.emulated_CPU!=CPU_80186) && (BIOS_Settings.emulated_CPU!=CPU_80286)) //Invalid CPU detected?
+	if ((BIOS_Settings.emulated_CPU!=CPU_8086) && (BIOS_Settings.emulated_CPU!=CPU_NECV30) && (BIOS_Settings.emulated_CPU!=CPU_80286)) //Invalid CPU detected?
 	{
 		BIOS_Settings.emulated_CPU = DEFAULT_CPU; //Load default CPU!
 		forceBIOSSave(); //Force the BIOS to be saved!
@@ -465,15 +465,15 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 			printmsg(0xF,"Installed CPU: Intel 8086\r\n"); //Emulated CPU!
 		}
 	}
-	else if (BIOS_Settings.emulated_CPU==CPU_80186) //80186?
+	else if (BIOS_Settings.emulated_CPU==CPU_NECV30) //NECV30?
 	{
 		if (BIOS_Settings.DataBusSize) //8-bit bus?
 		{
-			printmsg(0xF, "Installed CPU: Intel 80188\r\n"); //Emulated CPU!
+			printmsg(0xF, "Installed CPU: NEC V20\r\n"); //Emulated CPU!
 		}
 		else //16-bit bus?
 		{
-			printmsg(0xF, "Installed CPU: Intel 80186\r\n"); //Emulated CPU!
+			printmsg(0xF, "Installed CPU: NEC V30\r\n"); //Emulated CPU!
 		}
 	}
 	else if (BIOS_Settings.emulated_CPU == CPU_80286) //80286?

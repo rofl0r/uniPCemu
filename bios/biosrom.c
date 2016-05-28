@@ -538,7 +538,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	switch (EMULATED_CPU) //What CPU is being emulated?
 	{
 		case CPU_8086:
-		case CPU_80186: //5160 PC!
+		case CPU_NECV30: //5160 PC!
 			originaloffset = basepos; //Save the original offset for reference!
 			basepos &= 0x7FFF; //Our offset within the ROM!
 			if (originaloffset&0x8000) //u18?
@@ -633,7 +633,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	switch (EMULATED_CPU) //What CPU is being emulated?
 	{
 		case CPU_8086:
-		case CPU_80186: //5160 PC!
+		case CPU_NECV30: //5160 PC!
 			tempoffset = basepos;
 			tempoffset &= 0x7FFF; //Our offset within the ROM!
 			if (basepos&0x8000) //u18?

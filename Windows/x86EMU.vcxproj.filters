@@ -417,9 +417,6 @@
     <ClCompile Include="..\cpu\opcodes_8086.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
-    <ClCompile Include="..\cpu\opcodes_80186.c">
-      <Filter>Source Files\cpu</Filter>
-    </ClCompile>
     <ClCompile Include="..\cpu\opcodes_80286.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
@@ -486,6 +483,9 @@
     <ClCompile Include="..\support\sounddoublebuffer.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
+    <ClCompile Include="..\cpu\opcodes_NECV30.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">
@@ -518,9 +518,6 @@
       <Filter>Header Files\cpu</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\cpu\cpu_OP8086.h">
-      <Filter>Header Files\cpu</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\cpu\cpu_OP80186.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\cpu\cpu_OP80286.h">
@@ -882,6 +879,9 @@
     </ClInclude>
     <ClInclude Include="..\headers\support\sounddoublebuffer.h">
       <Filter>Header Files\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\cpu\cpu_OPNECV30.h">
+      <Filter>Header Files\cpu</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

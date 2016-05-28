@@ -282,7 +282,7 @@ word getLEA(MODRM_PARAMS *params);
 void CPU086_int(byte interrupt); //Executes an hardware interrupt (from tbl)
 
 /*
-//For 80186+
+//For NECV30+
 
 void CPU8086_internal_RCL8(byte *dest, byte rotation);
 void CPU8086_internal_RCL16(word *dest, word rotation);

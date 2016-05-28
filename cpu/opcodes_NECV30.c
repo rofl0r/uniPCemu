@@ -7,7 +7,7 @@
 #include "headers/emu/debugger/debugger.h" //Debug compatibility!
 #include "headers/cpu/cpu_OP8086.h" //8086 function specific compatibility!
 #include "headers/cpu/8086_grpOPs.h" //GRP Opcode support (C0&C1 Opcodes!)
-#include "headers/cpu/cpu_OP80186.h" //80186 function specific compatibility!
+#include "headers/cpu/cpu_OPNECV30.h" //NECV30 function specific compatibility!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/protection.h" //Protection support!
 
@@ -436,8 +436,8 @@ char command[50]; //A command buffer for storing our command (up to 10 bytes)!
 void unkOP_186() //Unknown opcode on 186+?
 {
 	bzero(command,sizeof(command)); //Clear the command!
-	debugger_setcommand("<80186+ #UD>"); //Command is unknown opcode!
-	//dolog("unkop","Unknown opcode on 80186+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
+	debugger_setcommand("<NECV20/V30+ #UD>"); //Command is unknown opcode!
+	//dolog("unkop","Unknown opcode on NECV30+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU086_int(0x06); //Call interrupt with return addres of the OPcode!
 }

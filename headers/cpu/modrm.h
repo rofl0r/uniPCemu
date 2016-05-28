@@ -205,7 +205,7 @@ char *unsigned2signedtext8(byte c);
 char *unsigned2signedtext16(word c);
 char *unsigned2signedtext32(uint_32 c);
 
-//For 80186+
+//For NECV30+
 void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //16-bit address/reg decoder!
 
 //For CPU itself:

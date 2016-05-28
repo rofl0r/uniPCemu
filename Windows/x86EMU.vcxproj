@@ -35,7 +35,7 @@
     <ClCompile Include="..\cpu\opcodes_386.c" />
     <ClCompile Include="..\cpu\opcodes_486.c" />
     <ClCompile Include="..\cpu\opcodes_586.c" />
-    <ClCompile Include="..\cpu\opcodes_80186.c" />
+    <ClCompile Include="..\cpu\opcodes_NECV30.c" />
     <ClCompile Include="..\cpu\opcodes_80286.c" />
     <ClCompile Include="..\cpu\opcodes_8086.c" />
     <ClCompile Include="..\cpu\protection.c" />
@@ -159,7 +159,7 @@
     <ClInclude Include="..\headers\cpu\8086_grpOPs.h" />
     <ClInclude Include="..\headers\cpu\cb_manager.h" />
     <ClInclude Include="..\headers\cpu\cpu.h" />
-    <ClInclude Include="..\headers\cpu\cpu_OP80186.h" />
+    <ClInclude Include="..\headers\cpu\cpu_OPNECV30.h" />
     <ClInclude Include="..\headers\cpu\cpu_OP80286.h" />
     <ClInclude Include="..\headers\cpu\cpu_OP80386.h" />
     <ClInclude Include="..\headers\cpu\cpu_OP80486.h" />

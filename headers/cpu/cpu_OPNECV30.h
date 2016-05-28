@@ -1,5 +1,5 @@
-#ifndef CPU_OP80186
-#define CPU_OP80186
+#ifndef CPU_OPNECV30
+#define CPU_OPNECV30
 
 void CPU186_OP60();//PUSHA
 void CPU186_OP61(); //POPA

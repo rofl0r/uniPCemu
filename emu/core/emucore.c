@@ -321,7 +321,7 @@ void initEMU(int full) //Init!
 	debugrow("Initializing 8253...");
 	init8253(); //Init Timer&PC Speaker!
 	
-	if (EMULATED_CPU <= CPU_80186) //-186 CPU?
+	if (EMULATED_CPU <= CPU_NECV30) //-186 CPU?
 	{
 		initEMS(2 * MBMEMORY); //2MB EMS memory!
 	}

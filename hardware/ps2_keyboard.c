@@ -222,7 +222,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		//We handle after the parameters have been set!
 		break;
 	case 0xF2: //Read ID: return 0xAB, 0x83!
-		if (EMULATED_CPU<=CPU_80186 && (!force8042)) //Allowed to ignore?
+		if (EMULATED_CPU<=CPU_NECV30 && (!force8042)) //Allowed to ignore?
 		{
 			Keyboard.has_command = 0; //No command anymore!
 			return; //Ignored on XT controller: there's no keyboard ID!
@@ -464,7 +464,7 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Typematic?
 	memset(scancodeset_break,1,sizeof(scancodeset_break)); //Allow break codes?
 	resetKeyboard(1); //Reset the keyboard controller!
-	if (EMULATED_CPU>CPU_80186) keyboardControllerInit(); //Initialise the basic keyboard controller when allowed!
+	if (EMULATED_CPU>CPU_NECV30) keyboardControllerInit(); //Initialise the basic keyboard controller when allowed!
 }
 
 void BIOS_doneKeyboard()

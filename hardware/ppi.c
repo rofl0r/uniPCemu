@@ -12,7 +12,7 @@ byte readPPI62()
 {
 	byte result=0;
 	//Setup PPI62 as defined by System Control Port B!
-	if (EMULATED_CPU<=CPU_80186) //XT machine?
+	if (EMULATED_CPU<=CPU_NECV30) //XT machine?
 	{
 		if (SystemControlPortB&8) //Read high switches?
 		{

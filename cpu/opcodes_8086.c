@@ -2303,10 +2303,10 @@ void unkOP_8086() //Unknown opcode on 8086?
 byte op_grp2_8(byte cnt) {
 	//word d,
 	INLINEREGISTER word s, shift, oldCF, msb;
-	//if (cnt>0x8) return(oper1b); //80186+ limits shift count
+	//if (cnt>0x8) return(oper1b); //NEC V20/V30+ limits shift count
 	s = oper1b;
 	oldCF = FLAG_CF;
-	if (EMULATED_CPU >= CPU_80186) cnt &= 0x1F; //Clear the upper 3 bits to become a 80186+!
+	if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 	switch (thereg) {
 	case 0: //ROL r/m8
 		for (shift = 1; shift <= cnt; shift++) {
@@ -2381,8 +2381,8 @@ byte op_grp2_8(byte cnt) {
 word op_grp2_16(byte cnt) {
 	//uint32_t d,
 	INLINEREGISTER uint_32 s, shift, oldCF, msb;
-	//if (cnt>0x10) return(oper1); //80186+ limits shift count
-	if (EMULATED_CPU >= CPU_80186) cnt &= 0x1F; //Clear the upper 3 bits to become a 80186+!
+	//if (cnt>0x10) return(oper1); //NEC V20/V30+ limits shift count
+	if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 	s = oper1;
 	oldCF = FLAG_CF;
 	switch (thereg) {

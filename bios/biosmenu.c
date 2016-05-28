@@ -1438,7 +1438,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[CPU_8086],"Intel 8086/8088"); //Set filename from options!
-	strcpy(itemlist[CPU_80186],"Intel 80186/80188"); //Set filename from options!
+	strcpy(itemlist[CPU_NECV30],"NEC V20/V30"); //Set filename from options!
 	strcpy(itemlist[CPU_80286], "Intel 80286(unfinished)"); //Set filename from options!
 	int current = 0;
 	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
@@ -1449,9 +1449,9 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	{
 		current = CPU_80286; //80286!
 	}
-	else //80186 (default)?
+	else //NEC V20/V30 (default)?
 	{
-		current = CPU_80186; //80186!
+		current = CPU_NECV30; //NEC V20/V30!
 	}
 	int file = ExecuteList(15,4,itemlist[current],256,NULL); //Show options for the installed CPU!
 	switch (file) //Which file?
@@ -1471,8 +1471,8 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 			case CPU_8086: //8086?
 				BIOS_Settings.emulated_CPU = CPU_8086; //Use the 8086!
 				break;
-			case CPU_80186: //80186?
-				BIOS_Settings.emulated_CPU = CPU_80186; //Use the 80186!
+			case CPU_NECV30: //NEC V20/V30?
+				BIOS_Settings.emulated_CPU = CPU_NECV30; //Use the NEC V20/V30!
 				break;
 			case CPU_80286: //80286?
 				BIOS_Settings.emulated_CPU = CPU_80286; //Use the 80286!
@@ -3995,8 +3995,8 @@ void BIOS_InitCPUText()
 	case CPU_8086: //8086?
 		strcat(menuoptions[advancedoptions++], "Intel 8086/8088"); //Add installed CPU!
 		break;
-	case CPU_80186: //80186?
-		strcat(menuoptions[advancedoptions++], "Intel 80186/80188"); //Add installed CPU!
+	case CPU_NECV30: //NEC V20/V30?
+		strcat(menuoptions[advancedoptions++], "NEC V20/V30"); //Add installed CPU!
 		break;
 	case CPU_80286: //80286?
 		strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!

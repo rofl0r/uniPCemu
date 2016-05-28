@@ -17,7 +17,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define NUM0FEXTS 4
 //What CPU is emulated?
 #define CPU_8086 0
-#define CPU_80186 1
+#define CPU_NECV30 1
 #define CPU_80286 2
 #define CPU_80386 3
 #define CPU_80486 4

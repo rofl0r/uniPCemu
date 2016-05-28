@@ -16,7 +16,7 @@ void BIOS_int15()
 		case 0: //8086?
 			MMU_wb(CPU_SEGMENT_ES, REG_ES, REG_BX + 0x02, 0xFB); //PC/XT!
 			break;
-		case 1: //80186?
+		case 1: //NECV30?
 			MMU_wb(CPU_SEGMENT_ES, REG_ES, REG_BX + 0x02, 0xFB); //PC/XT!
 			break;
 		case 2: //80286?

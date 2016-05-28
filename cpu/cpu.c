@@ -137,7 +137,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 
 
 									  //Code location
-	if (EMULATED_CPU >= CPU_80186) //186+?
+	if (EMULATED_CPU >= CPU_NECV30) //186+?
 	{
 		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
 		CPU[activeCPU].registers->EIP = 0xFFF0; //We're starting at this offset!
@@ -199,7 +199,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 
 	//CS specific!
 	CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = CSAccessRights; //Load CS default access rights!
-	if (EMULATED_CPU>CPU_80186) //286+?
+	if (EMULATED_CPU>CPU_NECV30) //286+?
 	{
 		//Pulled low on first load, pulled high on reset:
 		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF;
@@ -213,7 +213,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	CPU_initRegisters(); //Initialise the registers!
 	CPU_initPrefixes(); //Initialise all prefixes!
 	CPU_resetMode(); //Reset the mode to the default mode!
-	if (EMULATED_CPU==CPU_8086 || EMULATED_CPU==CPU_80186) //Emulating 80(1)86?
+	if (EMULATED_CPU==CPU_8086 || EMULATED_CPU==CPU_NECV30) //Emulating 80(1)86?
 	{
 		STACK_SIZE = 2; //2-byte stack!
 	}
@@ -235,7 +235,7 @@ void resetCPU() //Initialises the currently selected CPU!
 		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
 	}
 	#ifdef CPU_useCycles
-	CPU_useCycles = (EMULATED_CPU<=CPU_80186); //Are we using cycle-accurate emulation?
+	CPU_useCycles = (EMULATED_CPU<=CPU_NECV30); //Are we using cycle-accurate emulation?
 	#endif
 }
 
@@ -352,7 +352,7 @@ OPTINLINE byte CPU_isPrefix(byte prefix)
 
 byte DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
 {
-	if (EMULATED_CPU<=CPU_80186) //8086-80186?
+	if (EMULATED_CPU<=CPU_NECV30) //8086-NEC V20/V30?
 	{
 		return 0; //Always 16-bit descriptor!
 	}
@@ -369,7 +369,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	INLINEREGISTER byte ismultiprefix = 0; //Are we multi-prefix?
 	CPU_resetPrefixes(); //Reset all prefixes for this opcode!
 
-	CPU_InterruptReturn = CPU->registers->EIP; //Interrupt return point by default!
+	CPU_InterruptReturn = last_eip = CPU->registers->EIP; //Interrupt return point by default!
 	OP = CPU_readOP(); //Read opcode or prefix?
 	for (;CPU_isPrefix(OP);) //We're a prefix?
 	{
@@ -379,7 +379,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 		}
 		CPU_setprefix(OP); //Set the prefix ON!
 		last_eip = CPU->registers->EIP; //Save the current EIP of the last prefix possibility!
-		ismultiprefix = 1; //We''re multi-prefix now when triggered again!
+		ismultiprefix = 1; //We're multi-prefix now when triggered again!
 		OP = CPU_readOP(); //Next opcode/prefix!
 	}
 	//Now we have the opcode and prefixes set or reset!
@@ -630,7 +630,7 @@ void CPU_beforeexec()
 	switch (EMULATED_CPU) //What CPU flags to emulate?
 	{
 	case CPU_8086:
-	case CPU_80186:
+	case CPU_NECV30:
 		tempflags |= 0xF000; //High bits are stuck to 1!
 		break;
 	case CPU_80286:
@@ -853,7 +853,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		switch (EMULATED_CPU) //What CPU to use?
 		{
 		case CPU_8086: //8086/8088?
-		case CPU_80186: //80186/80188?
+		case CPU_NECV30: //NEC V20/V30/80188?
 			//Placeholder until 8086/8088 cycles are fully implemented. Originally 8. 9 works better with 8088 MPH(better sound). 10 works worse than 9(sound disappears into the background)?
 			#ifdef CPU_useCycles
 			if (CPU[activeCPU].cycles_OP && CPU_useCycles) //cycles entered by the instruction?
@@ -889,7 +889,7 @@ void CPU_hard_RETI() //Hardware RETI!
 
 byte have_interrupt(byte nr) //We have this interrupt in the IVT?
 {
-	if (EMULATED_CPU<=CPU_80186) //80(1)86?
+	if (EMULATED_CPU<=CPU_NECV30) //80(1)86?
 	{
 		word offset = MMU_rw(-1,0x0000,nr<<2,1);
 		word segment = MMU_rw(-1,0x0000,(nr<<2)|2,1);

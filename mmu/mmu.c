@@ -47,7 +47,7 @@ void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint
 		return NULL; //NULL: no memory alligned!
 	}
 
-	if (EMULATED_CPU<=CPU_80186) //-80186 wraps offset arround?
+	if (EMULATED_CPU<=CPU_NECV30) //-NEC V20/V30 wraps offset arround?
 	{
 		offset &= 0xFFFF; //Wrap arround!
 	}
@@ -72,7 +72,7 @@ void resetMMU()
 	//dolog("MMU","Initialising MMU...");
 	MMU.size = BIOS_GetMMUSize(); //Take over predefined: don't try to detect!
 	
-	if ((EMULATED_CPU<=CPU_80186) && (MMU.size>0x100000)) MMU.size = 0x100000; //Limit unsupported sizes by the CPU!
+	if ((EMULATED_CPU<=CPU_NECV30) && (MMU.size>0x100000)) MMU.size = 0x100000; //Limit unsupported sizes by the CPU!
 	//dolog("zalloc","Allocating MMU memory...");
 	MMU.memory = (byte *)zalloc(MMU.size,"MMU_Memory",NULL); //Allocate the memory available for the segments
 	MMU.invaddr = 0; //Default: MMU address OK!
@@ -258,7 +258,7 @@ OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte
 	//word originalsegment = segment;
 	//uint_32 originaloffset = offset; //Save!
 	realaddress = offset; //Load the address!
-	if ((EMULATED_CPU==CPU_8086) || (EMULATED_CPU==CPU_80186 && !((realaddress==0x10000) && wordop))) //-80186 wraps offset arround 64kB? 80186 allows 1 byte more in word operations!
+	if ((EMULATED_CPU==CPU_8086) || (EMULATED_CPU==CPU_NECV30 && !((realaddress==0x10000) && wordop))) //-NEC V20/V30 wraps offset arround 64kB? NEC V20/V30 allows 1 byte more in word operations!
 	{
 		realaddress &= 0xFFFF; //Wrap arround!
 	}
@@ -394,7 +394,7 @@ OPTINLINE void MMU_INTERNAL_ww(sword segdesc, word segment, uint_32 offset, word
 	INLINEREGISTER word w;
 	w = val;
 	MMU_INTERNAL_wb(segdesc,segment,offset,w&0xFF,index); //Low first!
-	writeword = 1; //We're writing a 2nd byte word, for emulating the 80186 0x10000 overflow bug.
+	writeword = 1; //We're writing a 2nd byte word, for emulating the NEC V20/V30 0x10000 overflow bug.
 	w >>= 8; //Shift low!
 	MMU_INTERNAL_wb(segdesc,segment,offset+1,w,index|1); //High last!
 }

@@ -1,6 +1,6 @@
 #include "headers/cpu/cpu.h" //Need basic CPU support!
 #include "headers/cpu/cpu_OP8086.h" //Unknown opcodes under 8086!
-#include "headers/cpu/cpu_OP80186.h" //Unknown opcodes under 80186+ and more!
+#include "headers/cpu/cpu_OPNECV30.h" //Unknown opcodes under NECV30+ and more!
 #include "headers/cpu/cpu_OP80286.h" //Unknown opcodes under 80286+ and more!
 #include "headers/cpu/cpu_OP80386.h" //Unknown opcodes under 80386+ and more!
 #include "headers/cpu/cpu_OP80486.h" //Unknown opcodes under 80486+ and more!

@@ -1,14 +1,14 @@
 #include "headers/cpu/cpu.h" //Need basic CPU support!
 #include "headers/cpu/cpu_OP8086.h" //8086 REAL opcode functions!
 #include "headers/cpu/fpu_OP8087.h" //8086 REAL opcode functions!
-#include "headers/cpu/cpu_OP80186.h" //80186 REAL opcode functions!
+#include "headers/cpu/cpu_OPNECV30.h" //NECV30 REAL opcode functions!
 #include "headers/cpu/cpu_OP80286.h" //Unknown opcodes under 80286+!
 
 /*
 
 Indexes:
 0: 8086
-1: 80186
+1: NECV30
 2: 80286
 3: 80386
 4: 80486
@@ -307,7 +307,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{CPU8086_OPFF,NULL},  //FFh:
 	},
 
-	//80186
+	//NECV30
 	{
 //0x00:
 		{NULL,NULL}, //00h:
@@ -325,7 +325,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{NULL,NULL}, //0Ch:
 		{NULL,NULL}, //0Dh:
 		{NULL,NULL}, //0Eh:
-		{unkOP_186,NULL}, //0Fh: 80186 specific OPcode!
+		{unkOP_186,NULL}, //0Fh: NECV30 specific OPcode!
 //0x10:
 		{NULL,NULL}, //10h:
 		{NULL,NULL}, //11h:
@@ -601,7 +601,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //0Ch:
 		{ NULL, NULL }, //0Dh:
 		{ NULL, NULL }, //0Eh:
-		{ NULL, NULL }, //0Fh: 80186 specific OPcode!
+		{ NULL, NULL }, //0Fh: NECV30 specific OPcode!
 		//0x10:
 		{ NULL, NULL }, //10h:
 		{ NULL, NULL }, //11h:
@@ -878,7 +878,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //0Ch:
 		{ NULL, NULL }, //0Dh:
 		{ NULL, NULL }, //0Eh:
-		{ NULL, NULL }, //0Fh: 80186 specific OPcode!
+		{ NULL, NULL }, //0Fh: NECV30 specific OPcode!
 		//0x10:
 		{ NULL, NULL }, //10h:
 		{ NULL, NULL }, //11h:
@@ -1154,7 +1154,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //0Ch:
 		{ NULL, NULL }, //0Dh:
 		{ NULL, NULL }, //0Eh:
-		{ NULL, NULL }, //0Fh: 80186 specific OPcode!
+		{ NULL, NULL }, //0Fh: NECV30 specific OPcode!
 		//0x10:
 		{ NULL, NULL }, //10h:
 		{ NULL, NULL }, //11h:
@@ -1430,7 +1430,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //0Ch:
 		{ NULL, NULL }, //0Dh:
 		{ NULL, NULL }, //0Eh:
-		{ NULL, NULL }, //0Fh: 80186 specific OPcode!
+		{ NULL, NULL }, //0Fh: NECV30 specific OPcode!
 		//0x10:
 		{ NULL, NULL }, //10h:
 		{ NULL, NULL }, //11h:

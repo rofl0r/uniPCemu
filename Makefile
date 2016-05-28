@@ -97,8 +97,8 @@ OBJS += emu/debugger/runromverify.o
 OBJS += cpu/modrm.o
 #Opcodes for CPU 8086,Debugger,Flags
 OBJS += cpu/opcodes_8086.o
-#Opcodes for CPU 80186,Debugger
-OBJS += cpu/opcodes_80186.o
+#Opcodes for CPU NECV30,Debugger
+OBJS += cpu/opcodes_NECV30.o
 #Opcodes for CPU 80286,Debugger&JMPTbl for 0F opcodes!
 OBJS += cpu/cpu_jmptbls0f.o cpu/opcodes_80286.o
 #Opcodes for CPU 80386&JMPTbl

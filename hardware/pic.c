@@ -97,7 +97,7 @@ byte out8259(word portnum, byte value)
 		if ((i8259.icwstep[pic] == 2) && (i8259.icw[pic][0] & 2))
 		{
 			++i8259.icwstep[pic]; //single mode, so don't read ICW3
-			if (EMULATED_CPU <= CPU_80186) //PC/XT hack?
+			if (EMULATED_CPU <= CPU_NECV30) //PC/XT hack?
 			{
 				if (!pic) //PIC0?
 				{
@@ -109,7 +109,7 @@ byte out8259(word portnum, byte value)
 		if ((i8259.icwstep[pic] == 3) && (i8259.icw[pic][0] & 1))
 		{
 			++i8259.icwstep[pic]; //no ICW4 expected, so don't read ICW4
-			if (EMULATED_CPU <= CPU_80186) //PC/XT hack?
+			if (EMULATED_CPU <= CPU_NECV30) //PC/XT hack?
 			{
 				if (!pic) //PIC0?
 				{
@@ -122,7 +122,7 @@ byte out8259(word portnum, byte value)
 		{
 			if (i8259.icwstep[pic] == 1) //Interrupt number?
 			{
-				if (EMULATED_CPU <= CPU_80186) //PC/XT hack?
+				if (EMULATED_CPU <= CPU_NECV30) //PC/XT hack?
 				{
 					if (!pic) //PIC0?
 					{
