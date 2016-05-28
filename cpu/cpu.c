@@ -52,6 +52,7 @@ byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
 void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
 {
 //Now call handler!
+	CPU[activeCPU].cycles_HWOP = 51; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
 	CPU_INT(intnr); //Call interrupt!
 }
@@ -856,9 +857,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case CPU_NECV30: //NEC V20/V30/80188?
 			//Placeholder until 8086/8088 cycles are fully implemented. Originally 8. 9 works better with 8088 MPH(better sound). 10 works worse than 9(sound disappears into the background)?
 			#ifdef CPU_useCycles
-			if (CPU[activeCPU].cycles_OP && CPU_useCycles) //cycles entered by the instruction?
+			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP) && CPU_useCycles) //cycles entered by the instruction?
 			{
-				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP; //Use the cycles as specified by the instruction!
+				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP; //Use the cycles as specified by the instruction!
+				CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
 			}
 			else //Automatic cycles placeholder?
 			{

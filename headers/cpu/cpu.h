@@ -601,6 +601,7 @@ typedef struct
 
 	uint_32 cycles; //Total cycles number (adjusted after operation)
 	byte cycles_OP; //Total number of cycles for an operation!
+	byte cycles_HWOP; //Total number of cycles for an hardware interrupt!
 
 	//PE in .registers.CR0.PE: In real mode or V86 mode (V86 flag&PE=V86; !PE=protected; else real)?
 
