@@ -623,6 +623,7 @@ typedef struct PACKED
 	byte Compatibility_CGAPaletteRegister;
 	byte specialCGAflags; //Special flags concerning CGA emulation!
 	byte specialMDAflags; //Special flags concerning MDA emulation!
+	byte specialCGAMDAflags; //Combined(OR-ed) CGA&MDA flags.
 	byte CGARegisters[18]; //18 CGA registers!
 	byte CGARegistersMasked[18]; //18 Masked CGA registers!
 } VGA_REGISTERS;

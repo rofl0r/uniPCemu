@@ -604,6 +604,9 @@ typedef struct
 	byte cycles_HWOP; //Total number of cycles for an hardware interrupt!
 	byte cycles_Prefix; //Total number of cycles for the prefix!
 	byte cycles_Exception; //Total number of cycles for an exception!
+	byte cycles_MMU; //Total number of cycles for memory access!
+	byte cycles_IO; //Total number of cycles for I/O access!
+	byte cycles_Prefetch; //Total number of cycles for prefetching from memory!
 
 	//PE in .registers.CR0.PE: In real mode or V86 mode (V86 flag&PE=V86; !PE=protected; else real)?
 

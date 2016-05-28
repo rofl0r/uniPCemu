@@ -870,10 +870,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			#ifdef CPU_USECYCLES
 			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
 			{
-				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception; //Use the cycles as specified by the instruction!
+				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception + CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMU; //Use the cycles as specified by the instruction!
 				CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
 				CPU[activeCPU].cycles_Prefix = 0; //No cycles prefix to use anymore!
-				CPU[activeCPU].cycles_Exception = 0; //No cycles prefix to use anymore!
+				CPU[activeCPU].cycles_Exception = 0; //No cycles Exception to use anymore!
+				CPU[activeCPU].cycles_MMU = 0; //No cycles MMU to use anymore!
+				CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
 			}
 			else //Automatic cycles placeholder?
 			{
@@ -1013,8 +1015,13 @@ void CPU_fillPIQ() //Fill the PIQ until it's full!
 	if (!CPU[activeCPU].PIQ) return; //Not gotten a PIQ? Abort!
 	size = fifobuffer_freesize(CPU[activeCPU].PIQ); //The size to fill!
 	if (!size) return; //Nothing to fill? Abort!
+	byte oldMMUCycles;
+	oldMMUCycles = CPU[activeCPU].cycles_MMU; //Save the MMU cycles!
 	do
 	{
+		CPU[activeCPU].cycles_MMU = 0; //Counting raw time spent retrieving memory!
 		writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 1)); //Add the next byte from memory into the buffer!
+		CPU[activeCPU].cycles_Prefetch += CPU[activeCPU].cycles_MMU; //Apply the memory cycles to prefetching!
 	} while (--size); //Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
+	CPU[activeCPU].cycles_MMU = oldMMUCycles; //Restore the MMU cycles!
 }

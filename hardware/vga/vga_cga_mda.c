@@ -913,6 +913,20 @@ word get_display_CGAMDA_y(VGA_Type *VGA, word y)
 	return result; //Give the signal!
 }
 
+//Support for the I/O updating!
+OPTINLINE void updateCGAMDAflags()
+{
+	if (!getActiveVGA()) return;
+	if (!getActiveVGA()->registers) return;
+	if ((getActiveVGA()->registers->specialCGAflags != getActiveVGA()->precalcs.LastCGAFlags) || (getActiveVGA()->registers->specialMDAflags != getActiveVGA()->precalcs.LastMDAFlags)) //CGA/MDA flags updated?
+	{
+		getActiveVGA()->precalcs.LastCGAFlags = getActiveVGA()->registers->specialCGAflags; //Update the last value used!
+		getActiveVGA()->precalcs.LastMDAFlags = getActiveVGA()->registers->specialMDAflags; //Update the last value used!
+		VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL_SECTION | WHEREUPDATED_CRTCONTROLLER); //We have been updated! Update the whole section, as we don't know anything about the exact registers affected by the special action!
+	}
+	getActiveVGA()->registers->specialCGAMDAflags = getActiveVGA()->registers->specialCGAflags | getActiveVGA()->registers->specialMDAflags; //Combined flags for fast detection!
+}
+
 //Finally, main support layer!
 void setVGA_CGA(byte enabled)
 {
@@ -932,6 +946,7 @@ void setVGA_CGA(byte enabled)
 	{
 		getActiveVGA()->registers->specialCGAflags = 0; //Disable CGA!
 	}
+	updateCGAMDAflags(); //Update our mapped flags!
 }
 
 void setVGA_MDA(byte enabled)
@@ -952,6 +967,7 @@ void setVGA_MDA(byte enabled)
 	{
 		getActiveVGA()->registers->specialMDAflags = 0; //Disable MDA!
 	}
+	updateCGAMDAflags(); //Update our mapped flags!
 }
 
 //Data conversion from CGA to VGA compatibility layer.
@@ -960,7 +976,7 @@ void setVGA_MDA(byte enabled)
 byte CGA_lowcolors[3][4] = {{0,0x2,0x4,0x6},{0,0x3,0x5,0x7},{0,0x3,0x4,0x7}};
 extern byte CGA_RGB; //Are we a RGB monitor(1) or Composite monitor(0)?
 
-void setCGAMDAColors(byte isGraphics, byte GraphicsMode)
+OPTINLINE void setCGAMDAColors(byte isGraphics, byte GraphicsMode)
 {
 	byte i,color;
 	if ((!isGraphics) && GraphicsMode) //MDA enabled?
@@ -1059,7 +1075,7 @@ void setCGAMDAColors(byte isGraphics, byte GraphicsMode)
 }
 
 //Compatibility handling on both writes and reads to compatibility registers!
-void applyCGAMDAPaletteRegisters()
+OPTINLINE void applyCGAMDAPaletteRegisters()
 {
 	if (getActiveVGA()->registers->specialMDAflags&1) //MDA mode?
 	{
@@ -1082,12 +1098,12 @@ void applyCGAMDAPaletteRegisters()
 	}
 }
 
-void applyCGAPaletteRegister() //Update the CGA colors!
+OPTINLINE void applyCGAPaletteRegister() //Update the CGA colors!
 {
 	applyCGAMDAPaletteRegisters(); //Apply the palette registers!
 }
 
-void updateCGAmapping()
+OPTINLINE void updateCGAmapping()
 {
 	switch (getActiveVGA()->registers->CGARegisters[8]&3) //What mode?
 	{
@@ -1115,7 +1131,7 @@ void updateCGAmapping()
 }
 
 //useGraphics: 0 for text mode, 1 for graphics mode! GraphicsMode: 0=B/W graphics or CGA text mode, 1=4 color graphics or MDA text mode
-void setCGAMDAMode(byte useGraphics, byte GraphicsMode, byte blink) //Rendering mode set!
+OPTINLINE void setCGAMDAMode(byte useGraphics, byte GraphicsMode, byte blink) //Rendering mode set!
 { 
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegisterInterleaveMode = ((useGraphics && GraphicsMode)?1:0);
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable = useGraphics;
@@ -1127,7 +1143,7 @@ void setCGAMDAMode(byte useGraphics, byte GraphicsMode, byte blink) //Rendering 
 	updateCGAmapping(); //Update the rendering mapping by the CGA!
 }
 
-void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current CGA memory map!
+OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current CGA memory map!
 {
 	getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect = ((!useGraphics) && GraphicsMode)?2:3; //Use map B000(MDA) or B800(CGA), depending on the adapter used!
 	if (useGraphics && (!GraphicsMode)) //Special case? CGA monochrome mode?
@@ -1163,7 +1179,7 @@ void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current 
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x1); //The horizontal size might have been updated!
 }
 
-void applyCGAModeControl()
+OPTINLINE void applyCGAModeControl()
 {
 	//Apply the new CGA mode control register?
 	if (getActiveVGA()->registers->Compatibility_CGAModeControl&8) //Video enabled on the CGA?
@@ -1196,7 +1212,7 @@ void applyCGAModeControl()
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //We have been updated!	
 }
 
-void applyMDAModeControl()
+OPTINLINE void applyMDAModeControl()
 {
 	//Apply the new MDA mode control register?
 	if (getActiveVGA()->registers->Compatibility_MDAModeControl&8) //Video enabled on the MDA?
@@ -1213,20 +1229,7 @@ void applyMDAModeControl()
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //We have been updated!
 }
 
-//Support for the I/O updating!
-void updateCGAMDAflags()
-{
-	if (!getActiveVGA()) return;
-	if (!getActiveVGA()->registers) return;
-	if ((getActiveVGA()->registers->specialCGAflags!=getActiveVGA()->precalcs.LastCGAFlags) || (getActiveVGA()->registers->specialMDAflags!=getActiveVGA()->precalcs.LastMDAFlags)) //CGA/MDA flags updated?
-	{
-		getActiveVGA()->precalcs.LastCGAFlags = getActiveVGA()->registers->specialCGAflags; //Update the last value used!
-		getActiveVGA()->precalcs.LastMDAFlags = getActiveVGA()->registers->specialMDAflags; //Update the last value used!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL_SECTION|WHEREUPDATED_CRTCONTROLLER); //We have been updated! Update the whole section, as we don't know anything about the exact registers affected by the special action!
-	}
-}
-
-void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup defaults for all registers not used by the CGA/MDA emulation)!
+OPTINLINE void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup defaults for all registers not used by the CGA/MDA emulation)!
 {
 	//Now, setup defaults for the CGA/MDA to be used(normal data)! Clear any unused registers!
 	//Graphics Controller: Fully set!
@@ -1290,14 +1293,14 @@ void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup defaults for
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //We have been updated(full VGA)!
 }
 
-void CGA_clearlightpenlatch()
+OPTINLINE void CGA_clearlightpenlatch()
 {
 	getActiveVGA()->registers->specialCGAflags &= ~0x6; //Clear the lightpen latch and untrigger it!
 }
 
 extern word Sequencer_location; //Current location we're processing!
 
-void CGA_presetlightpenlatch()
+OPTINLINE void CGA_presetlightpenlatch()
 {
 	if (CGAMDAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
 	{
@@ -1352,8 +1355,9 @@ OPTINLINE byte dumpCGAIO()
 
 byte CGAMDA_readIO(word port, byte *result)
 {
+	INLINEREGISTER byte temp; //Temporary result!
 	byte ok = 0;
-	if ((getActiveVGA()->registers->specialCGAflags | getActiveVGA()->registers->specialMDAflags)&1) //Extension enabled?
+	if ((getActiveVGA()->registers->specialCGAMDAflags)&1) //Extension enabled?
 	{
 		switch (port) //What port?
 		{
@@ -1394,7 +1398,7 @@ byte CGAMDA_readIO(word port, byte *result)
 			if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
 			goto readcrtvalue;
 		case 0x3D5: //CRTC Controller Data Register		DATA
-			if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
+			if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS==0) goto finishinput; //Block: we're a mono mode addressing as color!
 			readcrtvalue:
 			if (CGAMDAEMULATION_ENABLED_CRTC(getActiveVGA())) //Special CGA flag set for CRTC?
 			{
@@ -1420,36 +1424,37 @@ byte CGAMDA_readIO(word port, byte *result)
 			if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
 			goto readInputStatus1;
 		case 0x3DA: //Input Status #1 Register (color)	DATA
-			if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
+			if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS==0) goto finishinput; //Block: we're a mono mode addressing as color!
 			readInputStatus1:
 			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.DataState = 0; //Reset flipflop for 3C0!
-			*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
+			temp = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
 			if (CGAMDAEMULATION_ENABLED(getActiveVGA())) //CGA/MDA emulation enabled normally?
 			{
 				if (MDAEMULATION_ENABLED(getActiveVGA())) //3BA doesn't have bit 4? Bit4=Mono operation!
 				{
-					*result &= ~8; //Clear the VRetrace bit: we're mono operation, as we're the monochrome port used!
+					temp &= ~8; //Clear the VRetrace bit: we're mono operation, as we're the monochrome port used!
 					if ((getActiveVGA()->registers->specialMDAflags&0x81)==1) //Pure MDA mode?
 					{
-						*result &= ~0x06; //Clear bits 2-1 on real IBM MDA!
-						*result |= 0xF0; //Set bit 7-4 on real IBM MDA!
+						temp &= ~0x06; //Clear bits 2-1 on real IBM MDA!
+						temp |= 0xF0; //Set bit 7-4 on real IBM MDA!
 					}
 				}
 				else if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA status port?
 				{
-					*result &= ~7; //Clear the light pen data and display disabled by default!
+					temp &= ~7; //Clear the light pen data and display disabled by default!
 					//Bit 1=1: Light pen triggered, Bit 2=1: Light Pen switch is open
-					*result |= (getActiveVGA()->registers->specialCGAflags&0x2); //Bit 1 used normally!
-					*result |= ((~getActiveVGA()->registers->specialCGAflags)&0x4); //Bit 2 used reversed to give the status (0=on)!				
-					*result |= ((~getActiveVGA()->CRTC.DisplayEnabled)&1); //Bit0=0 when active display area. Else 1.
+					temp |= (getActiveVGA()->registers->specialCGAflags&0x2); //Bit 1 used normally!
+					temp |= ((~getActiveVGA()->registers->specialCGAflags)&0x4); //Bit 2 used reversed to give the status (0=on)!				
+					temp |= ((~getActiveVGA()->CRTC.DisplayEnabled)&1); //Bit0=0 when active display area. Else 1.
 					#ifdef VGAIODUMP
 						if (dumpCGAIO()) //To dump?
 						{
-							dolog("CGA_IO","(R)Status=%02X",*result); //Log the read!
+							dolog("CGA_IO","(R)Status=%02X",temp); //Log the read!
 						}
 					#endif
 				} //Else: normal VGA documented result!
 			}
+			*result = temp; //Store the result!
 			ok = 1;
 			break;
 		case 0x3DB: //Clear lightpen latch?
@@ -1525,7 +1530,7 @@ byte CGAMDA_writeIO(word port, byte value)
 	byte ok = 0;
 	if (!getActiveVGA()) return 2; //Invalid VGA!
 	if (!getActiveVGA()->registers) return 2; //Invalid registers!
-	if ((getActiveVGA()->registers->specialCGAflags | getActiveVGA()->registers->specialMDAflags)&1) //Extension enabled!
+	if ((getActiveVGA()->registers->specialCGAMDAflags)&1) //Extension enabled!
 	{
 		switch (port)
 		{
