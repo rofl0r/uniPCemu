@@ -1710,10 +1710,9 @@ void CPU8086_OPD4() {INLINEREGISTER byte theimm = CPU_readOP(); modrm_generateIn
 void CPU8086_OPD5() {INLINEREGISTER byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("AAD",0,theimm,PARAM_IMM8);/*AAD*/ CPU8086_internal_AAD(theimm);/*AAD*/ }
 void CPU8086_OPD6(){REG_AL=FLAG_CF?0xFF:0x00;} //Special case on the 8086: SALC!
 void CPU8086_OPD7(){CPU8086_internal_XLAT();}
-void CPU8086_OPE0(){INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_IP+rel8)&0xFFFF),PARAM_IMM16); if ((--REG_CX) && (!FLAG_ZF)){REG_IP += rel8; CPU_flushPIQ(); /*We're jumping to another address*/}}
-//Hier gebleven met modrm_generateInstructionTEXT!
-void CPU8086_OPE1(){INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPZ",0, ((REG_IP+rel8)&0xFFFF),PARAM_IMM16);if ((--REG_CX) && (FLAG_ZF)){REG_IP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/}}
-void CPU8086_OPE2(){INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOP", 0,((REG_IP+rel8)&0xFFFF),PARAM_IMM16);if (--REG_CX){REG_IP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/}}
+void CPU8086_OPE0(){INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_IP+rel8)&0xFFFF),PARAM_IMM16); if ((--REG_CX) && (!FLAG_ZF)){REG_IP += rel8; CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
+void CPU8086_OPE1(){INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPZ",0, ((REG_IP+rel8)&0xFFFF),PARAM_IMM16);if ((--REG_CX) && (FLAG_ZF)){REG_IP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 18; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */}}
+void CPU8086_OPE2(){INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOP", 0,((REG_IP+rel8)&0xFFFF),PARAM_IMM16);if (--REG_CX){REG_IP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 17; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
 void CPU8086_OPE3(){INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("JCXZ",0,((REG_IP+rel8)&0xFFFF),PARAM_IMM16); if (!REG_CX){REG_IP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/}}
 void CPU8086_OPE4(){INLINEREGISTER byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("IN AL,",0,theimm,PARAM_IMM8);REG_AL = PORT_IN_B(theimm);}
 void CPU8086_OPE5(){INLINEREGISTER byte theimm = CPU_readOP();modrm_generateInstructionTEXT("IN AX,",0,theimm,PARAM_IMM8);REG_AX = PORT_IN_W(theimm);}
