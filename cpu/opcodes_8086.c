@@ -1514,7 +1514,14 @@ OPTINLINE void CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
-	CPU[activeCPU].cycles_OP = 8+MODRM_EA(params); /* LXS based on MOV Mem->SS, DS, ES */
+	if (MODRM_EA(params)) //Memory?
+	{
+		CPU[activeCPU].cycles_OP = 8+MODRM_EA(params); /* LXS based on MOV Mem->SS, DS, ES */
+	}
+	else //Register?
+	{
+		CPU[activeCPU].cycles_OP = 2; /* LXS based on MOV Mem->SS, DS, ES */
+	}
 }
 
 //ALL ABOVE SHOULD BE OK ACCORDING TO FAKE86 CPU.C
