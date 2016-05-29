@@ -219,6 +219,7 @@ void updateSpeedLimit(); //Prototype!
 
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 
+byte DMA_TC = 0;
 void DRAM_DMADREQ() //For checking any new DREQ signals of DRAM!
 {
 	DMA_SetDREQ(0,1); //Set DREQ always on(DRAM Refresh!
@@ -227,6 +228,7 @@ void DRAM_DMADREQ() //For checking any new DREQ signals of DRAM!
 void DRAM_DMATC()
 {
 	//Refresh DRAM! Unimplemented atm!
+	DMA_TC = 1; //Implement terminal count this cycle!
 }
 
 void initEMU(int full) //Init!
@@ -718,14 +720,16 @@ OPTINLINE byte coreHandler()
 
 		//Update current timing with calculated cycles we've executed!
 		instructiontime = CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
+		DMA_TC = 0; //Reset the DMA status!
 		last_timing += instructiontime; //Increase CPU time executed!
 		timeexecuted += instructiontime; //Increase CPU executed time executed this block!
+		updateDMA(instructiontime); //Update the DMA timer!
+		if (DMA_TC) instructiontime += 4*CPU_speed_cycle; //Steal cycles from the CPU when the DMA times out!
 		tickPIT(instructiontime); //Tick the PIT as much as we need to keep us in sync!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
 		if (BIOS_Settings.useAdlib) updateAdlib(instructiontime); //Tick the adlib timer if needed!
 		updateATA(instructiontime); //Update the ATA timer!
-		updateDMA(instructiontime); //Update the DMA timer!
 		tickParallel(instructiontime); //Update the Parallel timer!
 		if (BIOS_Settings.useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		updateVGA(instructiontime); //Update the VGA timer!
