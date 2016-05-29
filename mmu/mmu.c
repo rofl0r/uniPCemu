@@ -292,10 +292,13 @@ void MMU_clearOP()
 }
 
 //CPU/EMU simple memory access routine.
+extern uint_32 wordaddress; //Word address used during memory access!
+
 OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte index) //Get adress, opcode=1 when opcode reading, else 0!
 {
 	INLINEREGISTER byte result; //The result!
 	INLINEREGISTER uint_32 realaddress;
+	byte writewordbackup = writeword; //Save the old value first!
 	if ((MMU.memory==NULL) || (MMU.size==0)) //No mem?
 	{
 		//dolog("MMU","R:No memory present!");
@@ -318,6 +321,11 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 	else
 	{
 		realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
+	}
+
+	if (writewordbackup==0) //First data of the word access?
+	{
+		wordaddress = realaddress; //Word address used during memory access!
 	}
 
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,opcode,index); //Read from MMU/hardware!
@@ -352,6 +360,7 @@ OPTINLINE uint_32 MMU_INTERNAL_rdw(sword segdesc, word segment, uint_32 offset, 
 OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte val, byte index) //Set adress!
 {
 	INLINEREGISTER uint_32 realaddress;
+	byte writewordbackup = writeword; //Save the old value first!
 	if (MMU.invaddr) return; //Abort!
 	if (CPU[activeCPU].faultraised && EMU_RUNNING) //Fault has been raised while emulator is running?
 	{
@@ -384,6 +393,11 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 	else
 	{
 		realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
+	}
+
+	if (writewordbackup==0) //First data of the word access?
+	{
+		wordaddress = realaddress; //Word address used during memory access!
 	}
 
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
@@ -420,12 +434,10 @@ void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Read without segment
 
 void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
 {
-	if (segdesc!=-1) CPU[activeCPU].cycles_MMU += 4; //Time spend accessing memory!
 	MMU_INTERNAL_wb(segdesc,segment,offset,val,0);
 }
 void MMU_ww(sword segdesc, word segment, uint_32 offset, word val) //Set adress!
 {
-	if (segdesc != -1) CPU[activeCPU].cycles_MMU += 8; //Time spend accessing memory!
 	MMU_INTERNAL_ww(segdesc,segment,offset,val,0);
 }
 void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val) //Set adress!
@@ -434,12 +446,10 @@ void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val) //Set adr
 }
 byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
 {
-	if (segdesc != -1) CPU[activeCPU].cycles_MMU += 4; //Time spend accessing memory!
 	return MMU_INTERNAL_rb(segdesc,segment,offset,opcode,0);
 }
 word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
 {
-	if (segdesc != -1) CPU[activeCPU].cycles_MMU += 8; //Time spend accessing memory!
 	return MMU_INTERNAL_rw(segdesc,segment,offset,opcode,0);
 }
 uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!

@@ -170,6 +170,23 @@ Start of help for opcode processing
 
 */
 
+extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
+uint_32 wordaddress; //Word address used during memory access!
+OPTINLINE void CPU_addWordMemoryTiming()
+{
+	if (CPU_databussize) //8088?
+	{
+		CPU[activeCPU].cycles_OP += 4; //Add 4 clocks with all 16-bit cycles on 8086!
+	}
+	else //8086?
+	{
+		if (wordaddress&1) //Odd address?
+		{
+			CPU[activeCPU].cycles_OP += 4; //Add 4 clocks with odd cycles on 8086!
+		}
+	}
+}
+
 OPTINLINE void CPU8086_hardware_int(byte interrupt, byte has_errorcode, uint_32 errorcode) //See int, but for hardware interrupts (IRQs)!
 {
 	CPU_INT(interrupt); //Save adress to stack (We're going soft int!)!
@@ -188,6 +205,11 @@ OPTINLINE void CPU8086_int(byte interrupt, byte type3) //Software interrupt from
 		CPU[activeCPU].cycles_OP = 52; /* Type-3 interrupt */
 	else //Normal interrupt?
 		CPU[activeCPU].cycles_OP = 51; /* Normal interrupt */
+	CPU_addWordMemoryTiming(); /*To memory?*/
+	CPU_addWordMemoryTiming(); /*To memory?*/
+	CPU_addWordMemoryTiming(); /*To memory?*/
+	CPU_addWordMemoryTiming(); /*To memory?*/
+	CPU_addWordMemoryTiming(); /*To memory?*/
 }
 
 void CPU086_int(byte interrupt) //Software interrupt (external call)!
@@ -329,6 +351,7 @@ OPTINLINE void CMP_w(word a, word b, byte flags) //Compare instruction!
 		if (params.EA_cycles) //Memory is used?
 		{
 			CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
+			CPU_addWordMemoryTiming();
 		}
 		else //Reg->Reg?
 		{
@@ -339,6 +362,7 @@ OPTINLINE void CMP_w(word a, word b, byte flags) //Compare instruction!
 		if (params.EA_cycles) //Memory is used?
 		{
 			CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
+			CPU_addWordMemoryTiming();
 		}
 		else //Imm->Reg?
 		{
@@ -420,6 +444,8 @@ OPTINLINE void CPU8086_internal_INC16(word *reg)
 	{
 		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
 		CPU[activeCPU].cycles_OP = 15+MODRM_EA(params); //Mem
+		CPU_addWordMemoryTiming();
+		CPU_addWordMemoryTiming();
 	}
 	CPUPROT2
 }
@@ -444,6 +470,8 @@ OPTINLINE void CPU8086_internal_DEC16(word *reg)
 	{
 		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
 		CPU[activeCPU].cycles_OP = 15+MODRM_EA(params); //Mem
+		CPU_addWordMemoryTiming();
+		CPU_addWordMemoryTiming();
 	}
 	CPUPROT2
 }
@@ -561,6 +589,8 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB16(word *dest, byte flags)
 			{
 				CPU[activeCPU].cycles_OP = 16 + MODRM_EA(params); //Mem->Reg!
 			}
+			CPU_addWordMemoryTiming();
+			if (dest==NULL) CPU_addWordMemoryTiming(); //Second access for writeback!
 		}
 		else //Reg->Reg?
 		{
@@ -578,6 +608,8 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB16(word *dest, byte flags)
 			{
 				CPU[activeCPU].cycles_OP = 17 + MODRM_EA(params); //Mem->Reg!
 			}
+			CPU_addWordMemoryTiming();
+			if (dest==NULL) CPU_addWordMemoryTiming(); //Second access for writeback!
 		}
 		else //Reg->Reg?
 		{
@@ -909,6 +941,7 @@ OPTINLINE void CPU8086_internal_TEST8(byte dest, byte src, byte flags)
 		{
 			//Mem->Reg/Reg->Mem?
 			CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
+			CPU_addWordMemoryTiming();
 		}
 		else //Reg->Reg?
 		{
@@ -925,6 +958,7 @@ OPTINLINE void CPU8086_internal_TEST8(byte dest, byte src, byte flags)
 			else //Imm->Mem?
 			{
 				CPU[activeCPU].cycles_OP = 11 + MODRM_EA(params); //Mem->Reg!
+				CPU_addWordMemoryTiming();
 			}
 		}
 		else //Reg->Reg?
@@ -952,6 +986,7 @@ OPTINLINE void CPU8086_internal_TEST16(word dest, word src, byte flags)
 		{
 			//Mem->Reg/Reg->Mem?
 			CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
+			CPU_addWordMemoryTiming();
 		}
 		else //Reg->Reg?
 		{
@@ -968,6 +1003,7 @@ OPTINLINE void CPU8086_internal_TEST16(word dest, word src, byte flags)
 			else //Imm->Mem?
 			{
 				CPU[activeCPU].cycles_OP = 11 + MODRM_EA(params); //Mem->Reg!
+				CPU_addWordMemoryTiming();
 			}
 		}
 		else //Reg->Reg?
@@ -1037,6 +1073,7 @@ OPTINLINE void CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 		{
 			MMU_wb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val); //Write to memory directly!
 			CPU[activeCPU].cycles_OP = 10; //Accumulator->[imm16]!
+			CPU_addWordMemoryTiming(); //Second access for writeback!
 		}
 		else //ModR/M?
 		{
@@ -1102,11 +1139,13 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 			break; //Unused!
 		case 1: //Accumulator from immediate memory address?
 			CPU[activeCPU].cycles_OP = 10; //[imm16]->Accumulator!
+			CPU_addWordMemoryTiming(); //To memory?
 			break;
 		case 2: //ModR/M Memory->Reg?
 			if (MODRM_EA(params)) //Memory?
 			{
 				CPU[activeCPU].cycles_OP = 8 + MODRM_EA(params); //Mem->Reg!
+				if (!dest) CPU_addWordMemoryTiming(); //To memory?
 			}
 			else //Reg->Reg?
 			{
@@ -1117,6 +1156,8 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 			if (MODRM_EA(params)) //Memory?
 			{
 				CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
+				CPU_addWordMemoryTiming();
+				if (!dest) CPU_addWordMemoryTiming(); //To memory?
 			}
 			else //Reg->Reg?
 			{
@@ -1134,6 +1175,7 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 			else //From memory?
 			{
 				CPU[activeCPU].cycles_OP = 8 + MODRM_EA(params); //Mem->SegReg!
+				if (!dest) CPU_addWordMemoryTiming(); //To memory?
 			}
 			break;
 		}
@@ -1144,6 +1186,7 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 		{
 			MMU_ww(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val); //Write to memory directly!
 			CPU[activeCPU].cycles_OP = 10; //Accumulator->[imm16]!
+			CPU_addWordMemoryTiming();
 		}
 		else //ModR/M?
 		{
@@ -1159,6 +1202,7 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 				if (MODRM_EA(params)) //Memory?
 				{
 					CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
+					if (!dest) CPU_addWordMemoryTiming(); //To memory?
 				}
 				else //Reg->Reg?
 				{
@@ -1169,6 +1213,7 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 				if (MODRM_EA(params)) //Memory?
 				{
 					CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
+					if (!dest) CPU_addWordMemoryTiming(); //To memory?
 				}
 				else //Reg->Reg?
 				{
@@ -1186,6 +1231,7 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 				else //From memory?
 				{
 					CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //SegReg->Mem!
+					if (!dest) CPU_addWordMemoryTiming(); //To memory?
 				}
 				break;
 			}
@@ -1405,6 +1451,8 @@ OPTINLINE void CPU8086_internal_MOVSW()
 	{
 		CPU[activeCPU].cycles_OP = 18; //Clock cycles!
 	}
+	CPU_addWordMemoryTiming(); //To memory?
+	CPU_addWordMemoryTiming(); //To memory?
 }
 OPTINLINE void CPU8086_internal_CMPSB()
 {
@@ -1479,6 +1527,8 @@ OPTINLINE void CPU8086_internal_CMPSW()
 	{
 		CPU[activeCPU].cycles_OP = 22; //Clock cycles!
 	}
+	CPU_addWordMemoryTiming(); //To memory?
+	CPU_addWordMemoryTiming(); //To memory?
 }
 OPTINLINE void CPU8086_internal_STOSB()
 {
@@ -1539,6 +1589,7 @@ OPTINLINE void CPU8086_internal_STOSW()
 	{
 		CPU[activeCPU].cycles_OP = 11; //Clock cycles!
 	}
+	CPU_addWordMemoryTiming(); //To memory?
 }
 //OK so far!
 OPTINLINE void CPU8086_internal_LODSB()
@@ -1604,6 +1655,7 @@ OPTINLINE void CPU8086_internal_LODSW()
 	{
 		CPU[activeCPU].cycles_OP = 12; //Clock cycles!
 	}
+	CPU_addWordMemoryTiming(); //To memory?
 }
 OPTINLINE void CPU8086_internal_SCASB()
 {
@@ -1668,6 +1720,7 @@ OPTINLINE void CPU8086_internal_SCASW()
 	{
 		CPU[activeCPU].cycles_OP = 15; //Clock cycles!
 	}
+	CPU_addWordMemoryTiming(); //To memory?
 }
 
 OPTINLINE void CPU8086_internal_RET(word popbytes, byte isimm)
@@ -1682,6 +1735,7 @@ OPTINLINE void CPU8086_internal_RET(word popbytes, byte isimm)
 		CPU[activeCPU].cycles_OP = 12; /* Intrasegment with constant */
 	else
 		CPU[activeCPU].cycles_OP = 8; /* Intrasegment */
+	CPU_addWordMemoryTiming(); //To memory?
 }
 OPTINLINE void CPU8086_internal_RETF(word popbytes, byte isimm)
 {
@@ -1697,6 +1751,8 @@ OPTINLINE void CPU8086_internal_RETF(word popbytes, byte isimm)
 		CPU[activeCPU].cycles_OP = 17; /* Intersegment with constant */
 	else
 		CPU[activeCPU].cycles_OP = 18; /* Intersegment */
+	CPU_addWordMemoryTiming(); //To memory?
+	CPU_addWordMemoryTiming(); //To memory?
 }
 
 OPTINLINE void CPU8086_internal_INTO()
@@ -1712,6 +1768,11 @@ OPTINLINE void CPU8086_internal_INTO()
 		CPU[activeCPU].cycles_OP = 4; //Timings!
 	}
 	CPUPROT2
+	CPU_addWordMemoryTiming(); //To memory?
+	CPU_addWordMemoryTiming(); //To memory?
+	CPU_addWordMemoryTiming(); //To memory?
+	CPU_addWordMemoryTiming(); //To memory?
+	CPU_addWordMemoryTiming(); //To memory?
 }
 
 OPTINLINE void CPU8086_internal_AAM(byte data)
@@ -1849,6 +1910,16 @@ OPTINLINE void CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 		if (MODRM_EA(params)) //Reg<->Mem?
 		{
 			CPU[activeCPU].cycles_OP = 17 + MODRM_EA(params); //SegReg->Mem!
+			if (data1) //One memory operand?
+			{
+				CPU_addWordMemoryTiming(); //To memory?
+				CPU_addWordMemoryTiming(); //To memory?
+			}
+			if (data2) //One/two memory operands?
+			{
+				CPU_addWordMemoryTiming(); //To memory?
+				CPU_addWordMemoryTiming(); //To memory?
+			}
 		}
 		else //Reg<->Reg?
 		{
@@ -1879,6 +1950,8 @@ OPTINLINE void CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 	if (MODRM_EA(params)) //Memory?
 	{
 		CPU[activeCPU].cycles_OP = 16+MODRM_EA(params); /* LXS based on MOV Mem->SS, DS, ES */
+		CPU_addWordMemoryTiming(); //To memory?
+		CPU_addWordMemoryTiming(); //To memory?
 	}
 	else //Register? Should be illegal?
 	{
@@ -1906,16 +1979,16 @@ void CPU8086_OP0A() {modrm_readparams(&params,0,0); modrm_generateInstructionTEX
 void CPU8086_OP0B() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ORW",16,0,PARAM_MODRM12); MODRM_src0 = 0; CPU8086_internal_OR16(modrm_addr16(&params,0,0),modrm_read16(&params,1),2); }
 void CPU8086_OP0C() {INLINEREGISTER byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("ORB AL,",0,theimm,PARAM_IMM8); CPU8086_internal_OR8(&REG_AL,theimm,1); }
 void CPU8086_OP0D() {INLINEREGISTER word theimm = CPU_readOPw(); modrm_generateInstructionTEXT("ORW AX,",0,theimm,PARAM_IMM16); CPU8086_internal_OR16(&REG_AX,theimm,1); }
-void CPU8086_OP0E() {modrm_generateInstructionTEXT("PUSH CS",0,0,PARAM_NONE); CPU_PUSH16(&REG_CS);/*PUSH CS*/ CPU[activeCPU].cycles_OP = 10; /*Push Segreg!*/}
-void CPU8086_OP0F() /*FLAG_OF: POP CS; shouldn't be used?*/ { modrm_generateInstructionTEXT("POP CS", 0, 0, PARAM_NONE); /*Don't handle: 8086 ignores this opcode, and you won't find it there!*/ destEIP = REG_EIP; segmentWritten(CPU_SEGMENT_CS, CPU_POP16(), 0); /*POP CS!*/ CPU[activeCPU].cycles_OP = 8; /*Pop Segreg!*/}
+void CPU8086_OP0E() {modrm_generateInstructionTEXT("PUSH CS",0,0,PARAM_NONE); CPU_PUSH16(&REG_CS);/*PUSH CS*/ CPU[activeCPU].cycles_OP = 10; /*Push Segreg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP0F() /*FLAG_OF: POP CS; shouldn't be used?*/ { modrm_generateInstructionTEXT("POP CS", 0, 0, PARAM_NONE); /*Don't handle: 8086 ignores this opcode, and you won't find it there!*/ destEIP = REG_EIP; segmentWritten(CPU_SEGMENT_CS, CPU_POP16(), 0); /*POP CS!*/ CPU[activeCPU].cycles_OP = 8; /*Pop Segreg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
 void CPU8086_OP10() {modrm_readparams(&params,0,0); modrm_generateInstructionTEXT("ADCB",8,0,PARAM_MODRM21); MODRM_src0 = 1; CPU8086_internal_ADC8(modrm_addr8(&params,1,0),modrm_read8(&params,0),2); }
 void CPU8086_OP11() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ADCW",16,0,PARAM_MODRM21); MODRM_src0 = 1; CPU8086_internal_ADC16(modrm_addr16(&params,1,0),modrm_read16(&params,0),2); }
 void CPU8086_OP12() {modrm_readparams(&params,0,0); modrm_generateInstructionTEXT("ADCB",8,0,PARAM_MODRM12);  MODRM_src0 = 0; CPU8086_internal_ADC8(modrm_addr8(&params,0,0),modrm_read8(&params,1),2); }
 void CPU8086_OP13() {modrm_readparams(&params,1,0); modrm_generateInstructionTEXT("ADCW",16,0,PARAM_MODRM12); MODRM_src0 = 0; CPU8086_internal_ADC16(modrm_addr16(&params,0,0),modrm_read16(&params,1),2); }
 void CPU8086_OP14() {INLINEREGISTER byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("ADC AL,",0,theimm,PARAM_IMM8); CPU8086_internal_ADC8(&REG_AL,theimm,1); }
 void CPU8086_OP15() {INLINEREGISTER word theimm = CPU_readOPw(); modrm_generateInstructionTEXT("ADC AX,",0,theimm,PARAM_IMM16); CPU8086_internal_ADC16(&REG_AX,theimm,1); }
-void CPU8086_OP16() {modrm_generateInstructionTEXT("PUSH SS",0,0,PARAM_NONE);/*PUSH SS*/ CPU_PUSH16(&REG_SS);/*PUSH SS*/ CPU[activeCPU].cycles_OP = 10; /*Push Segreg!*/}
-void CPU8086_OP17() {modrm_generateInstructionTEXT("POP SS",0,0,PARAM_NONE);/*POP SS*/ segmentWritten(CPU_SEGMENT_SS,CPU_POP16(),0); /*CS changed!*/ CPU[activeCPU].cycles_OP = 8; /*Pop Segreg!*/}
+void CPU8086_OP16() {modrm_generateInstructionTEXT("PUSH SS",0,0,PARAM_NONE);/*PUSH SS*/ CPU_PUSH16(&REG_SS);/*PUSH SS*/ CPU[activeCPU].cycles_OP = 10; /*Push Segreg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP17() {modrm_generateInstructionTEXT("POP SS",0,0,PARAM_NONE);/*POP SS*/ segmentWritten(CPU_SEGMENT_SS,CPU_POP16(),0); /*CS changed!*/ CPU[activeCPU].cycles_OP = 8; /*Pop Segreg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
 void CPU8086_OP18() {modrm_readparams(&params,0,0); modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("SBBB",8,0,PARAM_MODRM21); MODRM_src0 = 1; CPU8086_internal_SBB8(modrm_addr8(&params,1,0),(modrm_read8(&params,0)),2); }
 void CPU8086_OP19() {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("SBBW",16,0,PARAM_MODRM21); MODRM_src0 = 1; CPU8086_internal_SBB16(modrm_addr16(&params,1,0),(modrm_read16(&params,0)),2); }
 void CPU8086_OP1A() {modrm_readparams(&params,0,0); modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("SBBB",8,0,PARAM_MODRM12); MODRM_src0 = 0; CPU8086_internal_SBB8(modrm_addr8(&params,0,0),(modrm_read8(&params,1)),2); }
@@ -1923,7 +1996,7 @@ void CPU8086_OP1B() {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1
 void CPU8086_OP1C() {INLINEREGISTER byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("SBB AL,",0,theimm,PARAM_IMM8); CPU8086_internal_SBB8(&REG_AL,theimm,1); }
 void CPU8086_OP1D() {INLINEREGISTER word theimm = CPU_readOPw(); modrm_generateInstructionTEXT("SBB AX,",0,theimm,PARAM_IMM16); CPU8086_internal_SBB16(&REG_AX,theimm,1); }
 void CPU8086_OP1E() {modrm_generateInstructionTEXT("PUSH DS",0,0,PARAM_NONE);/*PUSH DS*/ CPU_PUSH16(&REG_DS);/*PUSH DS*/ CPU[activeCPU].cycles_OP = 10; /*Push Segreg!*/}
-void CPU8086_OP1F() {modrm_generateInstructionTEXT("POP DS",0,0,PARAM_NONE);/*POP DS*/ segmentWritten(CPU_SEGMENT_DS,CPU_POP16(),0); /*CS changed!*/ CPU[activeCPU].cycles_OP = 8; /*Pop Segreg!*/}
+void CPU8086_OP1F() {modrm_generateInstructionTEXT("POP DS",0,0,PARAM_NONE);/*POP DS*/ segmentWritten(CPU_SEGMENT_DS,CPU_POP16(),0); /*CS changed!*/ CPU[activeCPU].cycles_OP = 8; /*Pop Segreg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
 void CPU8086_OP20() {modrm_readparams(&params,0,0); modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("ANDB",8,0,PARAM_MODRM21); MODRM_src0 = 1; CPU8086_internal_AND8(modrm_addr8(&params,1,0),modrm_read8(&params,0),2); }
 void CPU8086_OP21() {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("ANDW",16,0,PARAM_MODRM21); MODRM_src0 = 1; CPU8086_internal_AND16(modrm_addr16(&params,1,0),modrm_read16(&params,0),2); }
 void CPU8086_OP22() {modrm_readparams(&params,0,0); modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("ANDB",8,0,PARAM_MODRM12); MODRM_src0 = 0; CPU8086_internal_AND8(modrm_addr8(&params,0,0),modrm_read8(&params,1),2); }
@@ -1968,22 +2041,22 @@ void CPU8086_OP4C() {modrm_generateInstructionTEXT("DEC SP",0,0,PARAM_NONE);/*DE
 void CPU8086_OP4D() {modrm_generateInstructionTEXT("DEC BP",0,0,PARAM_NONE);/*DEC BP*/ CPU8086_internal_DEC16(&REG_BP);/*DEC BP*/ }
 void CPU8086_OP4E() {modrm_generateInstructionTEXT("DEC SI",0,0,PARAM_NONE);/*DEC SI*/ CPU8086_internal_DEC16(&REG_SI);/*DEC SI*/ }
 void CPU8086_OP4F() {modrm_generateInstructionTEXT("DEC DI",0,0,PARAM_NONE);/*DEC DI*/ CPU8086_internal_DEC16(&REG_DI);/*DEC DI*/ }
-void CPU8086_OP50() {modrm_generateInstructionTEXT("PUSH AX",0,0,PARAM_NONE);/*PUSH AX*/ CPU_PUSH16(&REG_AX);/*PUSH AX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/}
-void CPU8086_OP51() {modrm_generateInstructionTEXT("PUSH CX",0,0,PARAM_NONE);/*PUSH CX*/ CPU_PUSH16(&REG_CX);/*PUSH CX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/}
-void CPU8086_OP52() {modrm_generateInstructionTEXT("PUSH DX",0,0,PARAM_NONE);/*PUSH DX*/ CPU_PUSH16(&REG_DX);/*PUSH DX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/}
-void CPU8086_OP53() {modrm_generateInstructionTEXT("PUSH BX",0,0,PARAM_NONE);/*PUSH BX*/ CPU_PUSH16(&REG_BX);/*PUSH BX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/}
-void CPU8086_OP54() {modrm_generateInstructionTEXT("PUSH SP",0,0,PARAM_NONE);/*PUSH SP*/ CPU_PUSH16(&REG_SP);/*PUSH SP*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/}
-void CPU8086_OP55() {modrm_generateInstructionTEXT("PUSH BP",0,0,PARAM_NONE);/*PUSH BP*/ CPU_PUSH16(&REG_BP);/*PUSH BP*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/}
-void CPU8086_OP56() {modrm_generateInstructionTEXT("PUSH SI",0,0,PARAM_NONE);/*PUSH SI*/ CPU_PUSH16(&REG_SI);/*PUSH SI*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/}
-void CPU8086_OP57() {modrm_generateInstructionTEXT("PUSH DI",0,0,PARAM_NONE);/*PUSH DI*/ CPU_PUSH16(&REG_DI);/*PUSH DI*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/}
-void CPU8086_OP58() {modrm_generateInstructionTEXT("POP AX",0,0,PARAM_NONE);/*POP AX*/ REG_AX = CPU_POP16();/*POP AX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/}
-void CPU8086_OP59() {modrm_generateInstructionTEXT("POP CX",0,0,PARAM_NONE);/*POP CX*/ REG_CX = CPU_POP16();/*POP CX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/}
-void CPU8086_OP5A() {modrm_generateInstructionTEXT("POP DX",0,0,PARAM_NONE);/*POP DX*/ REG_DX = CPU_POP16();/*POP DX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/}
-void CPU8086_OP5B() {modrm_generateInstructionTEXT("POP BX",0,0,PARAM_NONE);/*POP BX*/ REG_BX = CPU_POP16();/*POP BX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/}
-void CPU8086_OP5C() {modrm_generateInstructionTEXT("POP SP",0,0,PARAM_NONE);/*POP SP*/ REG_SP = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_SP,0);/*POP SP*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/}
-void CPU8086_OP5D() {modrm_generateInstructionTEXT("POP BP",0,0,PARAM_NONE);/*POP BP*/ REG_BP = CPU_POP16();/*POP BP*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/}
-void CPU8086_OP5E() {modrm_generateInstructionTEXT("POP SI",0,0,PARAM_NONE);/*POP SI*/ REG_SI = CPU_POP16();/*POP SI*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/}
-void CPU8086_OP5F() {modrm_generateInstructionTEXT("POP DI",0,0,PARAM_NONE);/*POP DI*/ REG_DI = CPU_POP16();/*POP DI*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/}
+void CPU8086_OP50() {modrm_generateInstructionTEXT("PUSH AX",0,0,PARAM_NONE);/*PUSH AX*/ CPU_PUSH16(&REG_AX);/*PUSH AX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP51() {modrm_generateInstructionTEXT("PUSH CX",0,0,PARAM_NONE);/*PUSH CX*/ CPU_PUSH16(&REG_CX);/*PUSH CX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP52() {modrm_generateInstructionTEXT("PUSH DX",0,0,PARAM_NONE);/*PUSH DX*/ CPU_PUSH16(&REG_DX);/*PUSH DX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP53() {modrm_generateInstructionTEXT("PUSH BX",0,0,PARAM_NONE);/*PUSH BX*/ CPU_PUSH16(&REG_BX);/*PUSH BX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP54() {modrm_generateInstructionTEXT("PUSH SP",0,0,PARAM_NONE);/*PUSH SP*/ CPU_PUSH16(&REG_SP);/*PUSH SP*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP55() {modrm_generateInstructionTEXT("PUSH BP",0,0,PARAM_NONE);/*PUSH BP*/ CPU_PUSH16(&REG_BP);/*PUSH BP*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP56() {modrm_generateInstructionTEXT("PUSH SI",0,0,PARAM_NONE);/*PUSH SI*/ CPU_PUSH16(&REG_SI);/*PUSH SI*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP57() {modrm_generateInstructionTEXT("PUSH DI",0,0,PARAM_NONE);/*PUSH DI*/ CPU_PUSH16(&REG_DI);/*PUSH DI*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP58() {modrm_generateInstructionTEXT("POP AX",0,0,PARAM_NONE);/*POP AX*/ REG_AX = CPU_POP16();/*POP AX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP59() {modrm_generateInstructionTEXT("POP CX",0,0,PARAM_NONE);/*POP CX*/ REG_CX = CPU_POP16();/*POP CX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP5A() {modrm_generateInstructionTEXT("POP DX",0,0,PARAM_NONE);/*POP DX*/ REG_DX = CPU_POP16();/*POP DX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP5B() {modrm_generateInstructionTEXT("POP BX",0,0,PARAM_NONE);/*POP BX*/ REG_BX = CPU_POP16();/*POP BX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP5C() {modrm_generateInstructionTEXT("POP SP",0,0,PARAM_NONE);/*POP SP*/ REG_SP = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_SP,0);/*POP SP*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP5D() {modrm_generateInstructionTEXT("POP BP",0,0,PARAM_NONE);/*POP BP*/ REG_BP = CPU_POP16();/*POP BP*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP5E() {modrm_generateInstructionTEXT("POP SI",0,0,PARAM_NONE);/*POP SI*/ REG_SI = CPU_POP16();/*POP SI*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
+void CPU8086_OP5F() {modrm_generateInstructionTEXT("POP DI",0,0,PARAM_NONE);/*POP DI*/ REG_DI = CPU_POP16();/*POP DI*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
 void CPU8086_OP70() {INLINEREGISTER signed char rel8;/*JO rel8: (FLAG_OF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JO",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
 void CPU8086_OP71() {INLINEREGISTER signed char rel8;/*JNO rel8 : (FLAG_OF=0)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JNO",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (!FLAG_OF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
 void CPU8086_OP72() {INLINEREGISTER signed char rel8;/*JC rel8: (FLAG_CF=1)*/ rel8 = imm8(); modrm_generateInstructionTEXT("JC",0,REG_IP + rel8,PARAM_IMM16); /* JUMP to destination? */ if (FLAG_CF) {REG_IP += rel8; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
@@ -2011,7 +2084,7 @@ void CPU8086_OP8B() {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1
 void CPU8086_OP8C() {modrm_readparams(&params,1,2); modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("MOVW",16,0,PARAM_MODRM21); MODRM_src0 = 1; CPU8086_internal_MOV16(modrm_addr16(&params,1,0),modrm_read16(&params,0),8); }
 void CPU8086_OP8D() {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1); debugger_setcommand("LEA %s,%s",modrm_param1,getLEAtext(&params)); MODRM_src0 = 0; CPU8086_internal_MOV16(modrm_addr16(&params,0,0),getLEA(&params),0); CPU[activeCPU].cycles_OP = 2+MODRM_EA(params); /* Load effective address */}
 void CPU8086_OP8E() {modrm_readparams(&params,1,2); modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("MOVW",16,0,PARAM_MODRM12); MODRM_src0 = 0; CPU8086_internal_MOV16(modrm_addr16(&params,0,0),modrm_read16(&params,1),8); }
-void CPU8086_OP90() /*NOP*/ {modrm_generateInstructionTEXT("NOP",0,0,PARAM_NONE);/*NOP (XCHG AX,AX)*/ CPU8086_internal_XCHG16(&REG_AX,&REG_AX,1); 				CPU[activeCPU].cycles_OP = 3; /* NOP */}
+void CPU8086_OP90() /*NOP*/ {modrm_generateInstructionTEXT("NOP",0,0,PARAM_NONE);/*NOP (XCHG AX,AX)*/ CPU8086_internal_XCHG16(&REG_AX,&REG_AX,1); CPU[activeCPU].cycles_OP = 3; /* NOP */}
 void CPU8086_OP91() {modrm_generateInstructionTEXT("XCHG CX,AX",0,0,PARAM_NONE);/*XCHG AX,CX*/ CPU8086_internal_XCHG16(&REG_CX,&REG_AX,1); /*XCHG CX,AX*/ }
 void CPU8086_OP92() {modrm_generateInstructionTEXT("XCHG DX,AX",0,0,PARAM_NONE);/*XCHG AX,DX*/ CPU8086_internal_XCHG16(&REG_DX,&REG_AX,1); /*XCHG DX,AX*/ }
 void CPU8086_OP93() {modrm_generateInstructionTEXT("XCHG BX,AX",0,0,PARAM_NONE);/*XCHG AX,BX*/ CPU8086_internal_XCHG16(&REG_BX,&REG_AX,1); /*XCHG BX,AX*/ }
@@ -2021,10 +2094,10 @@ void CPU8086_OP96() {modrm_generateInstructionTEXT("XCHG SI,AX",0,0,PARAM_NONE);
 void CPU8086_OP97() {modrm_generateInstructionTEXT("XCHG DI,AX",0,0,PARAM_NONE);/*XCHG AX,DI*/ CPU8086_internal_XCHG16(&REG_DI,&REG_AX,1); /*XCHG DI,AX*/ }
 void CPU8086_OP98() {modrm_generateInstructionTEXT("CBW",0,0,PARAM_NONE);/*CBW : sign extend AL to AX*/ CPU8086_internal_CBW();/*CBW : sign extend AL to AX (8088+)*/ }
 void CPU8086_OP99() {modrm_generateInstructionTEXT("CWD",0,0,PARAM_NONE);/*CWD : sign extend AX to DX::AX*/ CPU8086_internal_CWD();/*CWD : sign extend AX to DX::AX (8088+)*/ }
-void CPU8086_OP9A() {/*CALL Ap*/ INLINEREGISTER word offset = CPU_readOPw(); INLINEREGISTER word segment = CPU_readOPw(); debugger_setcommand("CALL %04x:%04x", segment, offset); CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP); destEIP = offset;  segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed!*/ CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ }
+void CPU8086_OP9A() {/*CALL Ap*/ INLINEREGISTER word offset = CPU_readOPw(); INLINEREGISTER word segment = CPU_readOPw(); debugger_setcommand("CALL %04x:%04x", segment, offset); CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP); destEIP = offset;  segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed!*/ CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ CPU_addWordMemoryTiming(); /*To memory?*/ CPU_addWordMemoryTiming(); /*To memory?*/ }
 void CPU8086_OP9B() {modrm_generateInstructionTEXT("WAIT",0,0,PARAM_NONE);/*WAIT : wait for TEST pin activity. (UNIMPLEMENTED)*/ CPU[activeCPU].wait = 1;/*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
-void CPU8086_OP9C() {modrm_generateInstructionTEXT("PUSHF",0,0,PARAM_NONE);/*PUSHF*/ CPU_PUSH16(&REG_FLAGS); CPU[activeCPU].cycles_OP = 10; /*PUSHF timing!*/ }
-void CPU8086_OP9D() {modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/ REG_FLAGS = CPU_POP16(); updateCPUmode(); /*POPF*/ CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/ }
+void CPU8086_OP9C() {modrm_generateInstructionTEXT("PUSHF",0,0,PARAM_NONE);/*PUSHF*/ CPU_PUSH16(&REG_FLAGS); CPU[activeCPU].cycles_OP = 10; /*PUSHF timing!*/ CPU_addWordMemoryTiming(); /*To memory?*/ }
+void CPU8086_OP9D() {modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/ REG_FLAGS = CPU_POP16(); updateCPUmode(); /*POPF*/ CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/ CPU_addWordMemoryTiming(); /*To memory?*/ }
 void CPU8086_OP9E() {modrm_generateInstructionTEXT("SAHF", 0, 0, PARAM_NONE);/*SAHF : Save AH to lower half of FLAGS.*/ REG_FLAGS = ((REG_FLAGS & 0xFF00) | REG_AH); updateCPUmode(); /*SAHF : Save AH to lower half of FLAGS.*/ CPU[activeCPU].cycles_OP = 4; /*SAHF timing!*/}
 void CPU8086_OP9F() {modrm_generateInstructionTEXT("LAHF",0,0,PARAM_NONE);/*LAHF : Load lower half of FLAGS into AH.*/ REG_AH = (REG_FLAGS&0xFF);/*LAHF : Load lower half of FLAGS into AH.*/  CPU[activeCPU].cycles_OP = 4; /*LAHF timing!*/}
 void CPU8086_OPA0() {INLINEREGISTER word theimm = CPU_readOPw(); debugger_setcommand("MOVB AL,[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV AL,[imm16]*/ CPU8086_internal_MOV8(&REG_AL,MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),theimm,0),1);/*MOV AL,[imm16]*/ }
@@ -2064,7 +2137,7 @@ void CPU8086_OPC3() {modrm_generateInstructionTEXT("RET",0,0,PARAM_NONE);/*RET (
 void CPU8086_OPC4() /*LES modr/m*/ {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("LES",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_ES); /*Load new ES!*/ }
 void CPU8086_OPC5() /*LDS modr/m*/ {modrm_readparams(&params,1,0); modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("LDS",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_DS); /*Load new DS!*/ }
 void CPU8086_OPC6() {modrm_readparams(&params,0,0); byte val = CPU_readOP(); modrm_debugger8(&params,0,1); debugger_setcommand("MOVB %s,%02x",modrm_param2,val); modrm_write8(&params,1,val); if (MODRM_EA(params)) CPU[activeCPU].cycles_OP = 10+MODRM_EA(params); /* Imm->Mem */ else CPU[activeCPU].cycles_OP = 4; /* Imm->Reg */ }
-void CPU8086_OPC7() {modrm_readparams(&params,1,0); word val = CPU_readOPw(); modrm_debugger16(&params,0,1); debugger_setcommand("MOVW %s,%04x",modrm_param2,val); modrm_write16(&params,1,val,0); if (MODRM_EA(params)) CPU[activeCPU].cycles_OP = 10+MODRM_EA(params); /* Imm->Mem */ else CPU[activeCPU].cycles_OP = 4; /* Imm->Reg */ }
+void CPU8086_OPC7() {modrm_readparams(&params,1,0); word val = CPU_readOPw(); modrm_debugger16(&params,0,1); debugger_setcommand("MOVW %s,%04x",modrm_param2,val); modrm_write16(&params,1,val,0); if (MODRM_EA(params)) { CPU[activeCPU].cycles_OP = 10+MODRM_EA(params); /* Imm->Mem */  CPU_addWordMemoryTiming(); /*To memory?*/ } else CPU[activeCPU].cycles_OP = 4; /* Imm->Reg */ }
 void CPU8086_OPCA() {INLINEREGISTER sword popbytes = imm16();/*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ modrm_generateInstructionTEXT("RETF",0,popbytes,PARAM_IMM16); /*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ CPU8086_internal_RETF(popbytes,1); }
 void CPU8086_OPCB() {modrm_generateInstructionTEXT("RETF",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU8086_internal_RETF(0,0); }
 void CPU8086_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ CPU8086_int(EXCEPTION_CPUBREAKPOINT,1);/*INT 3*/ }
@@ -2080,17 +2153,17 @@ void CPU8086_OPE1(){INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_genera
 void CPU8086_OPE2(){INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOP", 0,((REG_IP+rel8)&0xFFFF),PARAM_IMM16);if (--REG_CX){REG_IP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 17; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
 void CPU8086_OPE3(){INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT("JCXZ",0,((REG_IP+rel8)&0xFFFF),PARAM_IMM16); if (!REG_CX){REG_IP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/CPU[activeCPU].cycles_OP = 18; /* Branch taken */}else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */}}
 void CPU8086_OPE4(){INLINEREGISTER byte theimm = CPU_readOP(); modrm_generateInstructionTEXT("IN AL,",0,theimm,PARAM_IMM8);REG_AL = PORT_IN_B(theimm); CPU[activeCPU].cycles_OP = 10; /*Timings!*/}
-void CPU8086_OPE5(){INLINEREGISTER byte theimm = CPU_readOP();modrm_generateInstructionTEXT("IN AX,",0,theimm,PARAM_IMM8);REG_AX = PORT_IN_W(theimm); CPU[activeCPU].cycles_OP = 10; /*Timings!*/}
+void CPU8086_OPE5(){INLINEREGISTER byte theimm = CPU_readOP();modrm_generateInstructionTEXT("IN AX,",0,theimm,PARAM_IMM8);REG_AX = PORT_IN_W(theimm); CPU[activeCPU].cycles_OP = 10; /*Timings!*/  CPU_addWordMemoryTiming(); /*To memory?*/}
 void CPU8086_OPE6(){INLINEREGISTER byte theimm = CPU_readOP();debugger_setcommand("OUT %02X,AL",theimm);PORT_OUT_B(theimm,REG_AL); CPU[activeCPU].cycles_OP = 10; /*Timings!*/}
-void CPU8086_OPE7(){INLINEREGISTER byte theimm = CPU_readOP(); debugger_setcommand("OUT %02X,AX",theimm); PORT_OUT_W(theimm,REG_AX); CPU[activeCPU].cycles_OP = 10; /*Timings!*/}
+void CPU8086_OPE7(){INLINEREGISTER byte theimm = CPU_readOP(); debugger_setcommand("OUT %02X,AX",theimm); PORT_OUT_W(theimm,REG_AX); CPU[activeCPU].cycles_OP = 10; /*Timings!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
 void CPU8086_OPE8(){INLINEREGISTER sword reloffset = imm16(); modrm_generateInstructionTEXT("CALL",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); CPU_PUSH16(&REG_IP); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Intrasegment direct */}
 void CPU8086_OPE9(){INLINEREGISTER sword reloffset = imm16(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct */}
 void CPU8086_OPEA(){INLINEREGISTER word offset = CPU_readOPw(); INLINEREGISTER word segment = CPU_readOPw(); debugger_setcommand("JMP %04X:%04X", segment, offset); destEIP = offset; segmentWritten(CPU_SEGMENT_CS, segment, 1); CPU[activeCPU].cycles_OP = 15; /* Intersegment direct */}
 void CPU8086_OPEB(){INLINEREGISTER signed char reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_IP + reloffset)&0xFFFF),PARAM_IMM16); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct short */}
 void CPU8086_OPEC(){modrm_generateInstructionTEXT("IN AL,DX",0,0,PARAM_NONE); REG_AL = PORT_IN_B(REG_DX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/}
-void CPU8086_OPED(){modrm_generateInstructionTEXT("IN AX,DX",0,0,PARAM_NONE); REG_AX = PORT_IN_W(REG_DX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/}
+void CPU8086_OPED(){modrm_generateInstructionTEXT("IN AX,DX",0,0,PARAM_NONE); REG_AX = PORT_IN_W(REG_DX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
 void CPU8086_OPEE(){modrm_generateInstructionTEXT("OUT DX,AL",0,0,PARAM_NONE); PORT_OUT_B(REG_DX,REG_AL); CPU[activeCPU].cycles_OP = 8; /*Timings!*/}
-void CPU8086_OPEF(){modrm_generateInstructionTEXT("OUT DX,AX",0,0,PARAM_NONE); PORT_OUT_W(REG_DX,REG_AX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/}
+void CPU8086_OPEF(){modrm_generateInstructionTEXT("OUT DX,AX",0,0,PARAM_NONE); PORT_OUT_W(REG_DX,REG_AX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
 void CPU8086_OPF1(){modrm_generateInstructionTEXT("<Undefined and reserved opcode, no error>",0,0,PARAM_NONE);}
 void CPU8086_OPF4(){modrm_generateInstructionTEXT("HLT",0,0,PARAM_NONE); CPU[activeCPU].halt = 1; CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
 void CPU8086_OPF5(){modrm_generateInstructionTEXT("CMC",0,0,PARAM_NONE); FLAG_CF = !FLAG_CF; CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
@@ -2357,6 +2430,8 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		if (MODRM_EA(params)) //Mem?
 		{
 			CPU[activeCPU].cycles_OP = 17+MODRM_EA(params); /*Pop Mem!*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Reg?
 		{
@@ -2767,6 +2842,7 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 		if (MODRM_EA(params)) //Mem?
 		{
 			CPU[activeCPU].cycles_OP = 15 + MODRM_EA(params); //Mem
+			if (varshift&4) CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Reg?
 		{
@@ -2777,6 +2853,7 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 		if (MODRM_EA(params)) //Mem?
 		{
 			CPU[activeCPU].cycles_OP = 20 + MODRM_EA(params) + (cnt << 2); //Mem
+			if (varshift&4) CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Reg?
 		{
@@ -2787,6 +2864,7 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 		if (MODRM_EA(params)) //Mem?
 		{
 			CPU[activeCPU].cycles_OP = 20 + MODRM_EA(params) + (cnt << 2); //Mem
+			if (varshift&4) CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Reg?
 		{
@@ -2958,7 +3036,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		}
 		break;
 	}
-	op_grp2_cycles(cnt, varshift);
+	op_grp2_cycles(cnt, varshift|4);
 	return(s & 0xFFFF);
 }
 
@@ -3257,7 +3335,9 @@ void op_grp3_16() {
 		}
 		break;
 	case 6: //DIV
-		op_div16(((uint32_t)REG_DX << 16) | REG_AX, oper1); break;
+		op_div16(((uint32_t)REG_DX << 16) | REG_AX, oper1);
+		if (MODRM_EA(params)) CPU_addWordMemoryTiming(); /*To memory?*/
+		break;
 	case 7: //IDIV
 		op_idiv16(((uint32_t)REG_DX << 16) | REG_AX, oper1); break;
 	}
@@ -3276,6 +3356,8 @@ void op_grp5() {
 		if (MODRM_EA(params)) //Mem?
 		{
 			CPU[activeCPU].cycles_OP = 15 + MODRM_EA(params); //Mem
+			CPU_addWordMemoryTiming(); /*To memory?*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Reg?
 		{
@@ -3291,6 +3373,8 @@ void op_grp5() {
 		if (MODRM_EA(params)) //Mem?
 		{
 			CPU[activeCPU].cycles_OP = 15 + MODRM_EA(params); //Mem
+			CPU_addWordMemoryTiming(); /*To memory?*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Reg?
 		{
@@ -3303,6 +3387,8 @@ void op_grp5() {
 		if (MODRM_EA(params)) //Mem?
 		{
 			CPU[activeCPU].cycles_OP = 21 + MODRM_EA(params); /* Intrasegment indirect through memory */
+			CPU_addWordMemoryTiming(); /*To memory?*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Register?
 		{
@@ -3318,6 +3404,10 @@ void op_grp5() {
 		if (MODRM_EA(params)) //Mem?
 		{
 			CPU[activeCPU].cycles_OP = 37 + MODRM_EA(params); /* Intersegment indirect */
+			CPU_addWordMemoryTiming(); /*To memory?*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Register?
 		{
@@ -3330,6 +3420,7 @@ void op_grp5() {
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 18 + MODRM_EA(params); /* Intrasegment indirect through memory */
+			CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Register?
 		{
@@ -3343,6 +3434,8 @@ void op_grp5() {
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 24 + MODRM_EA(params); /* Intersegment indirect through memory */
+			CPU_addWordMemoryTiming(); /*To memory?*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Register?
 		{
@@ -3354,6 +3447,8 @@ void op_grp5() {
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 16+MODRM_EA(params); /*Push Mem!*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
+			CPU_addWordMemoryTiming(); /*To memory?*/
 		}
 		else //Register?
 		{

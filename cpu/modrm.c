@@ -964,6 +964,8 @@ OPTINLINE void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 	}
 }
 
+extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
+
 OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //16-bit address/reg decoder!
 {
 	INLINEREGISTER byte isregister;
@@ -1055,6 +1057,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 	result->isreg = 2; //Memory!
 
 	INLINEREGISTER uint_32 offset=0; //The offset calculated!
+	INLINEREGISTER byte segmentoverridden=0; //Segment is overridden?
 	switch (MODRM_MOD(params->modrm)) //Which mod?
 	{
 	case MOD_MEM: //[register]
@@ -1066,6 +1069,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BX+REG_SI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 7; //Based indexed!
 			break;
 		case MODRM_MEM_BXDI: //BX+DI?
@@ -1074,6 +1078,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BX+REG_DI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 8; //Based indexed!
 			break;
 		case MODRM_MEM_BPSI: //BP+SI?
@@ -1082,6 +1087,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BP+REG_SI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 			params->EA_cycles = 8; //Based indexed!
 			break;
 		case MODRM_MEM_BPDI: //BP+DI?
@@ -1090,6 +1096,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BP+REG_DI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 			params->EA_cycles = 7; //Based indexed!
 			break;
 		case MODRM_MEM_SI: //SI?
@@ -1098,6 +1105,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_SI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 5; //Register Indirect!
 			break;
 		case MODRM_MEM_DI: //DI?
@@ -1106,6 +1114,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_DI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 5; //Register Indirect!
 			break;
 		case MODRM_MEM_DISP16: //BP = disp16?
@@ -1114,6 +1123,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 6; //Direct!
 			break;
 		case MODRM_MEM_BX: //BX?
@@ -1122,6 +1132,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 5; //Register Indirect!
 			break;
 		default:
@@ -1140,6 +1151,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BX+REG_SI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 11; //Based indexed relative!
 			break;
 		case MODRM_MEM_BXDI: //BX+DI?
@@ -1148,6 +1160,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BX+REG_DI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 12; //Based indexed relative!
 			break;
 		case MODRM_MEM_BPSI: //BP+SI?
@@ -1156,6 +1169,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BP+REG_SI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 			params->EA_cycles = 12; //Based indexed relative!
 			break;
 		case MODRM_MEM_BPDI: //BP+DI?
@@ -1164,6 +1178,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BP+REG_DI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 			params->EA_cycles = 11; //Based indexed relative!
 			break;
 		case MODRM_MEM_SI: //SI?
@@ -1172,6 +1187,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_SI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 9; //Register relative!
 			break;
 		case MODRM_MEM_DI: //DI?
@@ -1180,6 +1196,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_DI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 9; //Register relative!
 			break;
 		case MODRM_MEM_BP: //BP?
@@ -1188,6 +1205,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BP+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 			params->EA_cycles = 9; //Register relative!
 			break;
 		case MODRM_MEM_BX: //BX?
@@ -1196,6 +1214,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			offset = REG_BX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 9; //Register relative!
 			break;
 		default:
@@ -1284,6 +1303,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_BX+REG_SI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 				params->EA_cycles = 11; //Based indexed relative!
 				break;
 			case MODRM_MEM_BXDI: //BX+DI?
@@ -1292,6 +1312,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_BX+REG_DI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 				params->EA_cycles = 12; //Based indexed relative!
 				break;
 			case MODRM_MEM_BPSI: //BP+SI?
@@ -1300,6 +1321,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_BP+REG_SI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 				params->EA_cycles = 12; //Based indexed relative!
 				break;
 			case MODRM_MEM_BPDI: //BP+DI?
@@ -1308,6 +1330,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_BP+REG_DI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 				params->EA_cycles = 11; //Based indexed relative!
 				break;
 			case MODRM_MEM_SI: //SI?
@@ -1316,6 +1339,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_SI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 				params->EA_cycles = 9; //Register relative!
 				break;
 			case MODRM_MEM_DI: //DI?
@@ -1324,6 +1348,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_DI+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 				params->EA_cycles = 9; //Register relative!
 				break;
 			case MODRM_MEM_BP: //BP?
@@ -1332,6 +1357,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_BP+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 				params->EA_cycles = 9; //Register relative!
 				break;
 			case MODRM_MEM_BX: //REG_BX?
@@ -1340,6 +1366,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_BX+unsigned2signed16(params->displacement.low16); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 				params->EA_cycles = 9; //Register relative!
 				break;
 			default:
@@ -1352,6 +1379,10 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 		}
 		break;
 	} //Which MOD?
+	if (segmentoverridden) //Segment overridden with cycle accuracy?
+	{
+		params->EA_cycles += 2; //Add two clocks for the segment override!
+	}
 	last_modrm = 1; //ModR/M!
 	if (!modrm_addoffset) //We're the offset itself?
 	{
