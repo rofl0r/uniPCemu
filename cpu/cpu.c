@@ -858,10 +858,19 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 	}
 	blockREP = 0; //Don't block REP anymore!
-	if (DosboxClock) CPU[activeCPU].cycles = 1; //Instead of actually using cycles per second(CPS) , we use instructions per second for this setting(IPS)!
-	else
-	{ //Use normal cycles dependent on the CPU (CPS)?
-		//CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP; //Add cycles executed to total amount of cycles!
+	if (DosboxClock)
+	{
+		CPU[activeCPU].cycles = 1; //Instead of actually using cycles per second(CPS) , we use instructions per second for this setting(IPS)!
+		if (CPU[activeCPU].PIQ) //Prefetching?
+		{
+			for (;fifobuffer_freesize(CPU[activeCPU].PIQ);)
+			{
+				CPU_fillPIQ(); //Keep the FIFO fully filled!
+			}
+		}
+	}
+	else //Use normal cycles dependent on the CPU (Cycle accuracy w/ documented speed)?
+	{
 		switch (EMULATED_CPU) //What CPU to use?
 		{
 		case CPU_8086: //8086/8088?
@@ -870,11 +879,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			#ifdef CPU_USECYCLES
 			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
 			{
-				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception + CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMU; //Use the cycles as specified by the instruction!
+				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception + CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Use the cycles as specified by the instruction!
 				CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
 				CPU[activeCPU].cycles_Prefix = 0; //No cycles prefix to use anymore!
 				CPU[activeCPU].cycles_Exception = 0; //No cycles Exception to use anymore!
-				CPU[activeCPU].cycles_MMU = 0; //No cycles MMU to use anymore!
+				CPU[activeCPU].cycles_MMUR = CPU[activeCPU].cycles_MMUW = 0; //No cycles MMU to use anymore!
 				CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
 			}
 			else //Automatic cycles placeholder?
@@ -891,6 +900,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 	}
 	CPU_afterexec(); //After executing OPCode stuff!
+	CPU_tickPrefetch(); //Tick the prefetch as required!
 }
 
 void CPU_hard_RETI() //Hardware RETI!
@@ -1011,17 +1021,28 @@ void CPU_flushPIQ()
 
 void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
-	byte size;
 	if (!CPU[activeCPU].PIQ) return; //Not gotten a PIQ? Abort!
-	size = fifobuffer_freesize(CPU[activeCPU].PIQ); //The size to fill!
-	if (!size) return; //Nothing to fill? Abort!
 	byte oldMMUCycles;
-	oldMMUCycles = CPU[activeCPU].cycles_MMU; //Save the MMU cycles!
-	do
+	oldMMUCycles = CPU[activeCPU].cycles_MMUR; //Save the MMU cycles!
+	CPU[activeCPU].cycles_MMUR = 0; //Counting raw time spent retrieving memory!
+	writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 1)); //Add the next byte from memory into the buffer!
+	CPU[activeCPU].cycles_Prefetch += CPU[activeCPU].cycles_MMUR; //Apply the memory cycles to prefetching!
+	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
+	CPU[activeCPU].cycles_MMUR = oldMMUCycles; //Restore the MMU cycles!
+}
+
+void CPU_tickPrefetch()
+{
+	if (!CPU[activeCPU].PIQ) return; //Disable invalid PIQ!
+	byte cycles;
+	cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
+	cycles -= CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
+	cycles -= CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
+	cycles -= CPU[activeCPU].cycles_Prefetch; //Don't count memory access cycles by prefetching required data!
+	//Now we have the amount of cycles we're idling.
+	for (;(cycles >= 4) && fifobuffer_freesize(CPU[activeCPU].PIQ);) //Prefetch left to fill?
 	{
-		CPU[activeCPU].cycles_MMU = 0; //Counting raw time spent retrieving memory!
-		writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 1)); //Add the next byte from memory into the buffer!
-		CPU[activeCPU].cycles_Prefetch += CPU[activeCPU].cycles_MMU; //Apply the memory cycles to prefetching!
-	} while (--size); //Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
-	CPU[activeCPU].cycles_MMU = oldMMUCycles; //Restore the MMU cycles!
+		CPU_fillPIQ(); //Add a byte to the prefetch!
+		cycles -= 4; //This takes four cycles to transfer!
+	}
 }
