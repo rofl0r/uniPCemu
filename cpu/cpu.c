@@ -691,6 +691,7 @@ byte newREP = 1; //Are we a new repeating instruction (REP issued?)
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
+	byte cycles_counted = 0; //Cycles have been counted?
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
 	debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 	MMU_resetaddr(); //Reset invalid address for our usage!
@@ -880,11 +881,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
 			{
 				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception + CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Use the cycles as specified by the instruction!
-				CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
-				CPU[activeCPU].cycles_Prefix = 0; //No cycles prefix to use anymore!
-				CPU[activeCPU].cycles_Exception = 0; //No cycles Exception to use anymore!
-				CPU[activeCPU].cycles_MMUR = CPU[activeCPU].cycles_MMUW = 0; //No cycles MMU to use anymore!
-				CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
 			}
 			else //Automatic cycles placeholder?
 			{
@@ -892,15 +888,25 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				CPU[activeCPU].cycles = (CPU_databussize>=1)?9:8; //Use 9 with 8088MPH CPU(8088 CPU), normal 8 with 8086.
 			#ifdef CPU_USECYCLES
 			}
+			cycles_counted = 1; //Cycles have been counted!
 			#endif
 			break;
 		default: //Not implemented yet?
 			CPU[activeCPU].cycles = 4; //Take 4 cycles per instruction for now(1 PIT tick at 8086 speed)!
+			cycles_counted = 1; //Cycles have been counted!
 			break;
 		}
 	}
 	CPU_afterexec(); //After executing OPCode stuff!
 	CPU_tickPrefetch(); //Tick the prefetch as required!
+	if (cycles_counted) //Finished with our cycle countings? Clear that information for the next instruction!
+	{
+		CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
+		CPU[activeCPU].cycles_Prefix = 0; //No cycles prefix to use anymore!
+		CPU[activeCPU].cycles_Exception = 0; //No cycles Exception to use anymore!
+		CPU[activeCPU].cycles_MMUR = CPU[activeCPU].cycles_MMUW = 0; //No cycles MMU to use anymore!
+		CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
+	}
 }
 
 void CPU_hard_RETI() //Hardware RETI!
