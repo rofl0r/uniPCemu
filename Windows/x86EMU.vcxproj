@@ -72,6 +72,7 @@
     <ClCompile Include="..\hardware\adlib.c" />
     <ClCompile Include="..\hardware\CMOS.c" />
     <ClCompile Include="..\hardware\dma.c" />
+    <ClCompile Include="..\hardware\dram.c" />
     <ClCompile Include="..\hardware\ems.c" />
     <ClCompile Include="..\hardware\floppy.c" />
     <ClCompile Include="..\hardware\ide.c" />
@@ -204,6 +205,7 @@
     <ClInclude Include="..\headers\hardware\8253.h" />
     <ClInclude Include="..\headers\hardware\adlib.h" />
     <ClInclude Include="..\headers\hardware\cmos.h" />
+    <ClInclude Include="..\headers\hardware\dram.h" />
     <ClInclude Include="..\headers\hardware\ems.h" />
     <ClInclude Include="..\headers\hardware\floppy.h" />
     <ClInclude Include="..\headers\hardware\ide.h" />

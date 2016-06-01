@@ -79,6 +79,15 @@ void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichre
 	}
 }
 
+OPTINLINE byte NumberOfSetBits(uint_32 i)
+{
+	// Java: use >>> instead of >>
+	// C or C++: use uint32_t
+	i = i - ((i >> 1) & 0x55555555);
+	i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+	return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+}
+
 /*
 
 modrm_generateInstructionTEXT: Generates text for an instruction into the debugger.
@@ -3113,6 +3122,10 @@ byte tmps,tmpp; //Sign/parity backup!
 
 extern byte CPU_databussize; //Current data bus size!
 
+byte tempAL;
+word tempAX;
+uint_32 tempDXAX;
+
 void op_grp3_8() {
 	//uint32_t d1, d2, s1, s2, sign;
 	//word d, s;
@@ -3149,17 +3162,22 @@ void op_grp3_8() {
 		break;
 
 	case 4: //MULB
+		tempAL = REG_AL; //Save a backup for calculating cycles!
 		temp1.val32 = (uint32_t)oper1b * (uint32_t)REG_AL;
 		REG_AX = temp1.val16 & 0xFFFF;
 		if ((EMULATED_CPU==CPU_8086) && REG_AX) FLAG_ZF = 0; //8086/8088 clear Zero flag when not zero only.
 		FLAG_CF = FLAG_OF = ((word)REG_AL != REG_AX)?1:0;
 		if (MODRM_EA(params)) //Memory?
 		{
-			CPU[activeCPU].cycles_OP = 83+MODRM_EA(params); //Mem max!
+			CPU[activeCPU].cycles_OP = 76+MODRM_EA(params); //Mem max!
 		}
 		else //Register?
 		{
-			CPU[activeCPU].cycles_OP = 77; //Reg!
+			CPU[activeCPU].cycles_OP = 70; //Reg!
+		}
+		if (NumberOfSetBits(tempAL)>1) //More than 1 bit set?
+		{
+			CPU[activeCPU].cycles_OP += NumberOfSetBits(tempAL) - 1; //1 cycle for all bits more than 1 bit set!
 		}
 		break;
 
@@ -3177,11 +3195,11 @@ void op_grp3_8() {
 		FLAG_CF = FLAG_OF = ((sword)(unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0);
 		if (MODRM_EA(params)) //Memory?
 		{
-			CPU[activeCPU].cycles_OP = 104 + MODRM_EA(params); //Mem max!
+			CPU[activeCPU].cycles_OP = 86 + MODRM_EA(params); //Mem max!
 		}
 		else //Register?
 		{
-			CPU[activeCPU].cycles_OP = 98; //Reg!
+			CPU[activeCPU].cycles_OP = 80; //Reg!
 		}
 		break;
 
@@ -3299,6 +3317,7 @@ void op_grp3_16() {
 		}
 		break;
 	case 4: //MULW
+		tempAX = REG_AX; //Save a backup for calculating cycles!
 		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
 		REG_AX = temp1.val16;
 		REG_DX = temp1.val16high;
@@ -3307,11 +3326,15 @@ void op_grp3_16() {
 		else { FLAG_CF = FLAG_OF = 0; }
 		if (MODRM_EA(params)) //Memory?
 		{
-			CPU[activeCPU].cycles_OP = 139 + MODRM_EA(params); //Mem max!
+			CPU[activeCPU].cycles_OP = 124 + MODRM_EA(params); //Mem max!
 		}
 		else //Register?
 		{
-			CPU[activeCPU].cycles_OP = 133; //Reg!
+			CPU[activeCPU].cycles_OP = 118; //Reg!
+		}
+		if (NumberOfSetBits(tempAX)>1) //More than 1 bit set?
+		{
+			CPU[activeCPU].cycles_OP += NumberOfSetBits(tempAX) - 1; //1 cycle for all bits more than 1 bit set!
 		}
 		break;
 	case 5: //IMULW
@@ -3327,11 +3350,11 @@ void op_grp3_16() {
 		FLAG_CF = FLAG_OF = ((int_32)temp3.val16s != temp3.val32s)?1:0; //Overflow occurred?
 		if (MODRM_EA(params)) //Memory?
 		{
-			CPU[activeCPU].cycles_OP = 160 + MODRM_EA(params); //Mem max!
+			CPU[activeCPU].cycles_OP = 128 + MODRM_EA(params); //Mem max!
 		}
 		else //Register?
 		{
-			CPU[activeCPU].cycles_OP = 154; //Reg max!
+			CPU[activeCPU].cycles_OP = 134; //Reg max!
 		}
 		break;
 	case 6: //DIV

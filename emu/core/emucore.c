@@ -79,6 +79,8 @@
 
 #include "headers/hardware/midi/midi.h" //MPU support!
 
+#include "headers/hardware/dram.h" //DRAM support!
+
 //CPU default clock speeds (in Hz)!
 
 //The clock speed of the 8086 (~14.31818MHz divided by 3)!
@@ -219,18 +221,6 @@ void updateSpeedLimit(); //Prototype!
 
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 
-byte DMA_TC = 0;
-void DRAM_DMADREQ() //For checking any new DREQ signals of DRAM!
-{
-	DMA_SetDREQ(0,1); //Set DREQ always on(DRAM Refresh!
-}
-
-void DRAM_DMATC()
-{
-	//Refresh DRAM! Unimplemented atm!
-	DMA_TC = 1; //Implement terminal count this cycle!
-}
-
 void initEMU(int full) //Init!
 {
 	doneEMU(); //Make sure we're finished too!
@@ -349,8 +339,7 @@ void initEMU(int full) //Init!
 	initDMA(); //Initialise the DMA Controller!
 	
 	debugrow("Initializing DRAM refresh...");
-	registerDMATick(0, &DRAM_DMADREQ, NULL, &DRAM_DMATC); //Our handlers for DREQ, DACK and TC of the DRAM refresh!
-	//Don't need to register timers, because the timer will run anyway, even if not connected to anything!
+	initDRAM(); //Initialise the DRAM Refresh!
 
 	debugrow("Initialising UART...");
 	initUART(1); //Initialise the UART (COM ports)!
@@ -720,12 +709,10 @@ OPTINLINE byte coreHandler()
 
 		//Update current timing with calculated cycles we've executed!
 		instructiontime = CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
-		DMA_TC = 0; //Reset the DMA status!
 		last_timing += instructiontime; //Increase CPU time executed!
 		timeexecuted += instructiontime; //Increase CPU executed time executed this block!
-		updateDMA(instructiontime); //Update the DMA timer!
-		if (DMA_TC) instructiontime += 4*CPU_speed_cycle; //Steal cycles from the CPU when the DMA times out!
 		tickPIT(instructiontime); //Tick the PIT as much as we need to keep us in sync!
+		updateDMA(instructiontime); //Update the DMA timer!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
 		if (BIOS_Settings.useAdlib) updateAdlib(instructiontime); //Tick the adlib timer if needed!

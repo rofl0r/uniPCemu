@@ -1,6 +1,8 @@
 #ifndef HW82C54_H
 #define HW82C54_H
 
+typedef void (*PITTick)(byte output); //A handler for PIT ticks!
+
 typedef struct {
 	uint16_t chandata[3];
 	uint8_t accessmode[3];
@@ -21,5 +23,6 @@ void doneSpeakers(); //Finishes the speaker and removes it!
 void tickPIT(double timepassed); //Ticks all PIT timers/speakers available!
 void setPITMode(byte channel, byte mode); //Set the current rendering mode!
 void speakerGateUpdated(); //Gate has been updated?
+void registerPIT1Ticker(PITTick ticker); //Register a PIT1 ticker for usage?
 
 #endif

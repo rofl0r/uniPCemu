@@ -11,6 +11,7 @@
 #include "headers/mmu/paging.h" //Protection support!
 #include "headers/mmu/mmuhandler.h" //MMU Handler support!
 #include "headers/emu/debugger/debugger.h" //Debugger support for logging MMU accesses!
+#include "headers/hardware/dram.h" //DRAM support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -155,6 +156,7 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct r
 		return (mem_BUSValue>>((index&3)<<3)); //Give the last data read/written by the BUS!
 	}
 	result = MMU.memory[realaddress]; //Get data from memory!
+	DRAM_access(realaddress); //Tick the DRAM!
 	if (index!=0xFF) //Don't ignore BUS?
 	{
 		mem_BUSValue &= BUSmask[index&3]; //Apply the bus mask!
@@ -192,6 +194,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 		return; //Abort!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
+	DRAM_access(realaddress); //Tick the DRAM!
 	if (realaddress>user_memory_used) //More written than present in memory (first write to addr)?
 	{
 		user_memory_used = realaddress; //Update max memory used!

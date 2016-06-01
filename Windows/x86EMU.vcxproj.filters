@@ -486,6 +486,9 @@
     <ClCompile Include="..\cpu\opcodes_NECV30.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
+    <ClCompile Include="..\hardware\dram.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">
@@ -882,6 +885,9 @@
     </ClInclude>
     <ClInclude Include="..\headers\cpu\cpu_OPNECV30.h">
       <Filter>Header Files\cpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\hardware\dram.h">
+      <Filter>Header Files\hardware</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

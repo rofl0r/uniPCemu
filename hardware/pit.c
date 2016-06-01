@@ -75,7 +75,7 @@ double speaker_tick = (1000000000.0f / SPEAKER_RATE); //Time of a tick in the PC
 double time_tick = (1000000000.0f / TIME_RATE); //Time of a tick in the PIT!
 double time_tickreverse = 1.0f/(1000000000.0f / TIME_RATE); //Reversed of time_tick(1/ticktime)!
 
-byte IRQ0_status = 0; //Current IRQ0 status!
+byte IRQ0_status = 0, PIT1_status = 0; //Current IRQ0 status!
 
 byte oldPCSpeakerPort = 0x00;
 extern byte PCSpeakerPort; //Port 0x61 for the PC Speaker! Bit0=Gate, Bit1=Data enable
@@ -84,6 +84,7 @@ extern byte EMU_RUNNING; //Current emulator status!
 
 double time_ticktiming; //Current timing!
 
+PITTick PIT1Ticker = NULL; //The PIT1 ticker, if connected!
 SOUNDDOUBLEBUFFER pcspeaker_soundbuffer; //Output buffers for rendering!
 
 typedef struct
@@ -138,6 +139,11 @@ byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	}
 
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
+}
+
+void registerPIT1Ticker(PITTick ticker) //Register a PIT1 ticker for usage?
+{
+	PIT1Ticker = ticker; //Register this PIT1 ticker!
 }
 
 OPTINLINE void reloadticker(byte channel)
@@ -407,6 +413,18 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			}
 			IRQ0_status = currentsample; //Update status!
 			if (getIRQ) break; //IRQ gotten? Abort to receive the IRQ at the full speed possible! Take any other IRQs the next time we check for IRQs!
+		}
+
+		for (;readfifobuffer(PITchannels[1].rawsignal,&currentsample);) //Anything left to process?
+		{
+			if ((currentsample^PIT1_status)&1) //Changed?
+			{
+				if (PIT1Ticker) //Gotten a handler for it?
+				{
+					PIT1Ticker(currentsample); //Handle this PIT1 tick!
+				}
+			}
+			PIT1_status = currentsample; //Update status!
 		}
 	}
 

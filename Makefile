@@ -85,6 +85,9 @@ OBJS += hardware/ppi.o
 #EMS
 OBJS += hardware/ems.o
 
+#DRAM
+OBJS += hardware/dram.o
+
 #BIOS:
 OBJS += bios/bios.o bios/biosmenu.o bios/initmem.o bios/biosrom.o
 #MMU:
