@@ -1469,7 +1469,7 @@ OPTINLINE void CPU8086_internal_CMPSB()
 	if (blockREP) return; //Disabled REP!
 	data1 = MMU_rb(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0); //Try to read the first data!
 	CPUPROT1
-		data2 = MMU_rb(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, REG_DI, 0); //Try to read the second data!
+		data2 = MMU_rb(CPU_SEGMENT_ES, REG_ES, REG_DI, 0); //Try to read the second data!
 	CPUPROT1
 	CMP_b(data1,data2,4);
 	if (FLAG_DF)
@@ -1506,7 +1506,7 @@ OPTINLINE void CPU8086_internal_CMPSW()
 	if (blockREP) return; //Disabled REP!
 	data1 = MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0); //Try to read the first data!
 	CPUPROT1
-	data2 = MMU_rw(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, REG_DI, 0); //Try to read the second data!
+	data2 = MMU_rw(CPU_SEGMENT_ES, REG_ES, REG_DI, 0); //Try to read the second data!
 	CPUPROT1
 	CMP_w(data1,data2,4);
 	if (FLAG_DF)
