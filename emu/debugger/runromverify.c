@@ -30,8 +30,18 @@ extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 extern byte MMU_logging; //Are we logging MMU accesses?
 
+extern byte REPPending; //REP pending reset?
+
+extern uint_32 CPU_InterruptReturn, CPU_exec_EIP; //Interrupt return address!
+
 int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 {
+	byte useHWInterrupts = 0; //Default: disable hardware interrupts!
+	char filename2[256];
+	bzero(filename2,sizeof(filename)); //Clear the filename!@
+	strcpy(filename2,filename); //Set the filename to use!
+	strcat(filename2,".hwint.txt"); //Use HW interrupts? Simple text file will do!
+	useHWInterrupts = file_exists(filename2); //Use hardware interrupts when specified!
 	dolog("debugger","RunROMVerify...");
 	FILE *f;
 	int memloc = 0;
@@ -114,11 +124,29 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		cpudebugger = needdebugger(); //Debugging?
 		HWINT_saved = 0; //No HW interrupt by default!
 		CPU_beforeexec(); //Everything before the execution!
-		if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt())
+		if (useHWInterrupts) //HW interrupts enabled for this ROM?
 		{
-			HWINT_nr = nextintr(); //Get the HW interrupt nr!
-			HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-			call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
+			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
+			{
+				if (CPU[activeCPU].registers->SFLAGS.IF) //Interrupts available?
+				{
+					if (PICInterrupt()) //We have a hardware interrupt ready?
+					{
+						HWINT_nr = nextintr(); //Get the HW interrupt nr!
+						HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
+						if (!((EMULATED_CPU <= CPU_80286) && REPPending)) //Not 80386+, REP pending and segment override?
+						{
+							CPU_8086REPPending(); //Process pending REPs normally as documented!
+						}
+						else //Execute the CPU bug!
+						{
+							CPU_8086REPPending(); //Process pending REPs normally as documented!
+							CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
+						}
+						call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
+					}
+				}
+			}
 		}
 		cpudebugger = needdebugger(); //Debugging?
 		MMU_logging = debugger_logging(); //Are we logging?
