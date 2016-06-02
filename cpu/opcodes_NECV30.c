@@ -16,6 +16,9 @@ extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
 extern byte MODRM_src0; //What source is our modr/m? (1/2)
 MODRM_PTR info; //For storing ModR/M Info!
 
+extern byte immb; //Immediate byte!
+extern byte immw; //Immediate word!
+
 /*
 
 New instructions:
@@ -173,7 +176,6 @@ void CPU186_OP61()
 void CPU186_OP62()
 {
 	word bound_min, bound_max;
-	modrm_readparams(&params,1,0);
 	word theval = modrm_read16(&params,0);
 	modrm_decode16(&params,&info,1);
 	bound_min=MMU_rw(get_segment_index(info.segmentregister),info.mem_segment,info.mem_offset,0);
@@ -188,15 +190,14 @@ void CPU186_OP62()
 }
 void CPU186_OP68()
 {
-	word val = CPU_readOPw();    //PUSH Iz
+	word val = immw;    //PUSH Iz
 	debugger_setcommand("PUSH %04X",val);
 	CPU_PUSH16(&val);
 }
 void CPU186_OP69()
 {
-	modrm_readparams(&params,1,0);
 	temp1.val32 = modrm_read16(&params,1);
-	temp2.val32 = CPU_readOPw();
+	temp2.val32 = immw;
 	modrm_decode16(&params,&info,0);
 	debugger_setcommand("IMUL %s,%04X",info.text,temp2);
 	if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
@@ -208,15 +209,14 @@ void CPU186_OP69()
 }
 void CPU186_OP6A()
 {
-	byte val = CPU_readOP(); //Read the value!
+	byte val = immb; //Read the value!
 	debugger_setcommand("PUSH %02X",val); //PUSH this!
 	CPU_PUSH8(val);    //PUSH Ib
 }
 void CPU186_OP6B()
 {
-	modrm_readparams(&params,1,0);
 	temp1.val32 = (uint_32)modrm_read16(&params,1); //Read R/M!
-	temp2.val32 = (uint_32)CPU_readOP(); //Read unsigned parameter!
+	temp2.val32 = (uint_32)immb; //Read unsigned parameter!
 	modrm_decode16(&params,&info,1); //Store the address!
 	if (temp1.val32&0x8000) temp1.val32 |= 0xFFFF0000;//Sign extend to 32 bits!
 	if (temp2.val32&0x80) temp2.val32 |= 0xFFFFFF00; //Sign extend to 32 bits!
@@ -283,14 +283,12 @@ void CPU186_OP6F()
 	}
 }
 
-void CPU186_OP8E() { modrm_readparams(&params, 1, 2); if (params.info[0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, 0, 1); modrm186_generateInstructionTEXT("MOVW", 16, 0, PARAM_MODRM12); MODRM_src0 = 0; CPU186_internal_MOV16(modrm_addr16(&params, 0, 0), modrm_read16(&params, 1)); }
+void CPU186_OP8E() { if (params.info[0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, 0, 1); modrm186_generateInstructionTEXT("MOVW", 16, 0, PARAM_MODRM12); MODRM_src0 = 0; CPU186_internal_MOV16(modrm_addr16(&params, 0, 0), modrm_read16(&params, 1)); }
 
 void CPU186_OPC0()
 {
-	modrm_readparams(&params,0,0);
-
 	oper1b = modrm_read8(&params,1);
-	oper2b = CPU_readOP();
+	oper2b = immb;
 	thereg = MODRM_REG(params.modrm);
 
 	modrm_decode16(&params,&info,1); //Store the address for debugging!
@@ -330,10 +328,8 @@ void CPU186_OPC0()
 
 void CPU186_OPC1()
 {
-	modrm_readparams(&params,1,0);
-
 	oper1 = modrm_read16(&params,1);
-	oper2 = (word)CPU_readOP();
+	oper2 = (word)immb;
 	thereg = MODRM_REG(params.modrm);
 
 	modrm_decode16(&params,&info,1); //Store the address for debugging!
@@ -372,8 +368,8 @@ void CPU186_OPC1()
 void CPU186_OPC8()
 {
 	word temp16;    //ENTER Iw,Ib
-	word stacksize = CPU_readOPw();
-	byte nestlev = CPU_readOP();
+	word stacksize = immw;
+	byte nestlev = immb;
 	debugger_setcommand("ENTER %04X,%02X",stacksize,nestlev);
 	if (CPU_Operand_size[activeCPU])
 	{

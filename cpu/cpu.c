@@ -33,7 +33,7 @@ byte cpudebugger; //To debug the CPU?
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
 
 //CPU timings information
-extern CPU_Timings CPUInformation[0x100]; //CPU timing information for executing the Execution phase of the CPU(8086 timings only)!
+extern CPU_Timings CPUInformation[2][0x100]; //CPU timing information for executing the Execution phase of the CPU(8086 timings only)!
 
 //ModR/M information!
 MODRM_PARAMS params; //For getting all params for the CPU exection ModR/M data!
@@ -434,19 +434,23 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
 	result = OP; //Save the OPcode for later result!
-	if (CPUInformation[OP].has_modrm) //Do we have ModR/M data?
+
+	CPU_Timings *timing = NULL;
+	timing = &CPUInformation[EMULATED_CPU?1:0][OP]; //Only 2 entries implemented so far!
+
+	if (timing->has_modrm) //Do we have ModR/M data?
 	{
-		modrm_readparams(&params,CPUInformation[OP].modrm_readparams_0,CPUInformation[OP].modrm_readparams_1); //Read the params!
-		MODRM_src0 = CPUInformation[OP].modrm_src0; //First source!
-		MODRM_src1 = CPUInformation[OP].modrm_src1; //Second source!
+		modrm_readparams(&params,timing->modrm_readparams_0,timing->modrm_readparams_1); //Read the params!
+		MODRM_src0 = timing->modrm_src0; //First source!
+		MODRM_src1 = timing->modrm_src1; //Second source!
 	}
 
-	if (CPUInformation[OP].parameters) //Gotten parameters?
+	if (timing->parameters) //Gotten parameters?
 	{
-		switch (CPUInformation[OP].parameters&0x3) //What parameters?
+		switch (timing->parameters&0xB) //What parameters?
 		{
 			case 1: //imm8?
-				if (CPUInformation[OP].parameters&4) //Only when ModR/M REG<2?
+				if (timing->parameters&4) //Only when ModR/M REG<2?
 				{
 					if (MODRM_REG(params.modrm)<2) //8-bit immediate?
 					{
@@ -459,7 +463,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 				}
 				break;
 			case 2: //imm16?
-				if (CPUInformation[OP].parameters&4) //Only when ModR/M REG<2?
+				if (timing->parameters&4) //Only when ModR/M REG<2?
 				{
 					if (MODRM_REG(params.modrm)<2) //16-bit immediate?
 					{
@@ -472,7 +476,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 				}
 				break;
 			case 3: //imm32?
-				if (CPUInformation[OP].parameters&4) //Only when ModR/M REG<2?
+				if (timing->parameters&4) //Only when ModR/M REG<2?
 				{
 					if (MODRM_REG(params.modrm)<2) //16-bit immediate?
 					{
@@ -483,6 +487,10 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 				{
 					imm32 = CPU_readOPdw(); //Read 8-bit immediate!
 				}
+				break;
+			case 8: //imm16 + imm8
+				immw = CPU_readOPw(); //Read 16-bit immediate!
+				immb = CPU_readOP(); //Read 8-bit immediate!
 				break;
 			default: //Unknown?
 				break;

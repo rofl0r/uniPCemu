@@ -489,6 +489,9 @@
     <ClCompile Include="..\hardware\dram.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
+    <ClCompile Include="..\cpu\timings.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">

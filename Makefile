@@ -114,6 +114,8 @@ OBJS += cpu/opcodes_586.o
 OBJS += cpu/unkop.o
 #Now the jumptables for all CPUs!
 OBJS += cpu/cpu_jmptbls.o
+#Now the timings for all CPUs!
+OBJS += cpu/timings.o
 #Protection module of the CPU (286+).
 OBJS += cpu/protection.o
 #Multitasking module of the CPU (286+).

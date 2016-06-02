@@ -39,6 +39,7 @@
     <ClCompile Include="..\cpu\opcodes_80286.c" />
     <ClCompile Include="..\cpu\opcodes_8086.c" />
     <ClCompile Include="..\cpu\protection.c" />
+    <ClCompile Include="..\cpu\timings.c" />
     <ClCompile Include="..\cpu\unkop.c" />
     <ClCompile Include="..\emu\core\emucore.c" />
     <ClCompile Include="..\emu\core\emu_bios_post.c" />
