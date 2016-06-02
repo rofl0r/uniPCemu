@@ -281,7 +281,7 @@ word OPlength = 0; //The length of the opcode buffer!
 
 extern byte cpudebugger; //To debug the CPU?
 
-OPTINLINE void MMU_addOP(byte data)
+void MMU_addOP(byte data)
 {
 	if (OPlength < sizeof(OPbuffer)) //Not finished yet?
 	{
