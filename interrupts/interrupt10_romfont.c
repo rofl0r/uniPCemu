@@ -12,12 +12,13 @@
 uint_32 i;
 OPTINLINE void MEM_BlockCopy(word segment, word offset, word fontseg, word fontoffs, Bitu height)
 {
-	for (i=0;i<height;i++)
+	uint_32 counter;
+	for (counter=0;counter<height;counter++)
 	{
 		//*dest++ = *src++; //Copy!
 		byte data;
-		data = MMU_rb(CPU_SEGMENT_DS,fontseg,fontoffs+i,0); //Load the data!
-		MMU_wb(CPU_SEGMENT_DS,segment,offset+i,data); //Write to VRAM!
+		data = MMU_rb(CPU_SEGMENT_DS,fontseg,fontoffs+counter,0); //Load the data!
+		MMU_wb(CPU_SEGMENT_DS,segment,offset+counter,data); //Write to VRAM!
 	}
 }
 

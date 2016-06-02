@@ -219,6 +219,7 @@ int main(int argc, char * argv[])
 	getLock(LOCK_INPUT);
 	getLock(LOCK_SHUTDOWN);
 	getLock(LOCK_FRAMERATE);
+	getLock(LOCK_MAINTHREAD);
 	
 	initHighresTimer(); //Global init of the high resoltion timer!
 	initTicksHolder(&CPUUpdate); //Initialise the Video Update timer!
@@ -367,6 +368,7 @@ int main(int argc, char * argv[])
 	getnspassed(&CPUUpdate);
 	getnspassed(&CPU_timing); //Make sure we start at zero time!
 	lock(LOCK_CPU); //Lock the CPU: we're running!
+	lock(LOCK_MAINTHREAD); //Lock the main thread(us)!
 	last_timing = last_timing_start = (double)getnspassed_k(&CPU_timing); //We start off at this point with no time running! We start counting the last timing from now!
 	for (;;) //Still running?
 	{
@@ -376,7 +378,9 @@ int main(int argc, char * argv[])
 		{
 			CPU_time %= 10000; //Rest!
 			unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
+			unlock(LOCK_MAINTHREAD); //Lock the main thread(us)!
 			delay(0); //Wait minimum amount of time!
+			lock(LOCK_MAINTHREAD); //Lock the main thread(us)!
 			lock(LOCK_CPU); //Lock the CPU: we're running!
 		}
 		CPU_updateVideo(); //Update the video if needed from the CPU!
@@ -385,6 +389,7 @@ int main(int argc, char * argv[])
 	}
 
 	unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
+	unlock(LOCK_MAINTHREAD); //Lock the main thread(us)!
 	skipcpu: //No CPU to execute?
 	stopTimers(1); //Stop all timers still running!
 

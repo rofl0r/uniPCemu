@@ -313,7 +313,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		//Start the CPU to execute some of our output only!
 		lock(LOCK_CPU);
-		CPU[activeCPU].halt = 2; //Make sure the CPU is just halted!
+		CPU[activeCPU].halt |= 2; //Make sure the CPU is just halted!
 		unlock(LOCK_CPU); //We're done with the CPU!
 
 		if (DEBUG_VGA_ONLY)
@@ -324,9 +324,12 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 #ifdef ALLOW_BIOS
 		debugrow("BIOS POST Screen...");
 		//Now we're ready to go run the POST!
+
+		lock(LOCK_CPU);
 		CPU[activeCPU].registers->AH = 0x00; //Init video mode!
 		CPU[activeCPU].registers->AL = VIDEOMODE_EMU; //80x25 16-color TEXT for EMU mode!
 		BIOS_int10(); //Switch!
+		unlock(LOCK_CPU); //We're done with the CPU!
 
 		BIOS_enableCursor(0); //Disable the cursor!
 
@@ -378,7 +381,9 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		{
 		case EXECUTIONMODE_TEST:
 			debugrow("Debugging files!");
+			lock(LOCK_CPU); //Lock the main thread!
 			DoDebugFiles(); //Do the debug files!
+			unlock(LOCK_CPU); //Finished with the main thread!
 			resumeEMU(0); //Resume the emulator!
 			return 1; //Reboot!
 

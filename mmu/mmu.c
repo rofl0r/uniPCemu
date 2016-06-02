@@ -333,14 +333,6 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,opcode,index); //Read from MMU/hardware!
 
-	if (cpudebugger) //We're an OPcode retrieval and debugging?
-	{
-		if (opcode == 1) //Opcode retrieval?
-		{
-			MMU_addOP(result); //Add to the opcode cache!
-		}
-	}
-
 	return result; //Give the result!
 }
 

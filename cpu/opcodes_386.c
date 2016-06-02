@@ -11,6 +11,9 @@
 //Simple opcodes:
 
 extern MODRM_PARAMS params;    //For getting all params!
+extern byte immb;
+extern word immw;
+extern uint_32 imm32;
 
 //AAA
 void CPU_OP37()

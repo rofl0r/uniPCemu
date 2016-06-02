@@ -11,6 +11,7 @@
 #include "headers/cpu/cpu_OP80286.h" //0F opcode support!
 #include "headers/support/zalloc.h" //For allocating registers etc.
 #include "headers/support/locks.h" //Locking support!
+#include "headers/cpu/modrm.h" //MODR/M support!
 
 //ALL INTERRUPTS
 
@@ -30,6 +31,19 @@ byte activeCPU = 0; //What CPU is currently active?
 byte cpudebugger; //To debug the CPU?
 
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
+
+//CPU timings information
+extern CPU_Timings CPUInformation[0x100]; //CPU timing information for executing the Execution phase of the CPU(8086 timings only)!
+
+//ModR/M information!
+MODRM_PARAMS params; //For getting all params for the CPU exection ModR/M data!
+byte MODRM_src0 = 0; //What source is our modr/m? (1/2)
+byte MODRM_src1 = 0; //What source is our modr/m? (1/2)
+
+//Immediate data read for execution!
+byte immb; //For CPU_readOP result!
+word immw; //For CPU_readOPw result!
+uint_32 imm32; //For CPU_readOPdw result!
 
 //Opcode&Stack sizes: 0=16-bits, 1=32-bits!
 byte CPU_Operand_size[2] = { 0 , 0 }; //Operand size for this opcode!
@@ -256,14 +270,22 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 		PIQ_retry: //Retry after refilling PIQ!
 		if (readfifobuffer(CPU[activeCPU].PIQ,&result)) //Read from PIQ?
 		{
-			CPU_fillPIQ(); //Fill instruction cache with next data always!
+			if (cpudebugger) //We're an OPcode retrieval and debugging?
+			{
+				MMU_addOP(result); //Add to the opcode cache!
+			}
 			return result; //Give the prefetched data!
 		}
 		//Not enough data in the PIQ? Refill for the next data!
 		CPU_fillPIQ(); //Fill instruction cache with next data!
 		goto PIQ_retry; //Read again!
 	}
-	return MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 1); //Read OPcode directly from memory!
+	result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 1); //Read OPcode directly from memory!
+	if (cpudebugger) //We're an OPcode retrieval and debugging?
+	{
+		MMU_addOP(result); //Add to the opcode cache!
+	}
+	return result; //Give the result!
 }
 
 word CPU_readOPw() //Reads the operation (word) at CS:EIP
@@ -373,7 +395,9 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	INLINEREGISTER byte OP; //The current opcode!
 	INLINEREGISTER uint_32 last_eip;
 	INLINEREGISTER byte ismultiprefix = 0; //Are we multi-prefix?
+	byte result = 0;
 	CPU_resetPrefixes(); //Reset all prefixes for this opcode!
+	reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
 
 	CPU_InterruptReturn = last_eip = CPU->registers->EIP; //Interrupt return point by default!
 	OP = CPU_readOP(); //Read opcode or prefix?
@@ -392,8 +416,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	}
 	//Now we have the opcode and prefixes set or reset!
 
-//Determine the stack&attribute sizes!
-
+//Determine the stack&attribute sizes(286+)!
 	CPU_StackAddress_size[activeCPU] = DATA_SEGMENT_DESCRIPTOR_B_BIT(); //16 or 32-bits stack!
 	if (CPU_StackAddress_size[activeCPU]) //32-bits stack? We're a 32-bit Operand&Address size!
 	{
@@ -408,7 +431,65 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	{
 		CPU_Address_size[activeCPU] = !CPU_Address_size[activeCPU]; //Invert!
 	}
-	return OP; //Give the OPCode!
+
+	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
+	result = OP; //Save the OPcode for later result!
+	if (CPUInformation[OP].has_modrm) //Do we have ModR/M data?
+	{
+		modrm_readparams(&params,CPUInformation[OP].modrm_readparams_0,CPUInformation[OP].modrm_readparams_1); //Read the params!
+		MODRM_src0 = CPUInformation[OP].modrm_src0; //First source!
+		MODRM_src1 = CPUInformation[OP].modrm_src1; //Second source!
+	}
+
+	if (CPUInformation[OP].parameters) //Gotten parameters?
+	{
+		switch (CPUInformation[OP].parameters&0x3) //What parameters?
+		{
+			case 1: //imm8?
+				if (CPUInformation[OP].parameters&4) //Only when ModR/M REG<2?
+				{
+					if (MODRM_REG(params.modrm)<2) //8-bit immediate?
+					{
+						immb = CPU_readOP(); //Read 8-bit immediate!
+					}
+				}
+				else //Normal imm8?
+				{
+					immb = CPU_readOP(); //Read 8-bit immediate!
+				}
+				break;
+			case 2: //imm16?
+				if (CPUInformation[OP].parameters&4) //Only when ModR/M REG<2?
+				{
+					if (MODRM_REG(params.modrm)<2) //16-bit immediate?
+					{
+						immw = CPU_readOPw(); //Read 16-bit immediate!
+					}
+				}
+				else //Normal imm16?
+				{
+					immw = CPU_readOPw(); //Read 8-bit immediate!
+				}
+				break;
+			case 3: //imm32?
+				if (CPUInformation[OP].parameters&4) //Only when ModR/M REG<2?
+				{
+					if (MODRM_REG(params.modrm)<2) //16-bit immediate?
+					{
+						imm32 = CPU_readOPdw(); //Read 16-bit immediate!
+					}
+				}
+				else //Normal imm32?
+				{
+					imm32 = CPU_readOPdw(); //Read 8-bit immediate!
+				}
+				break;
+			default: //Unknown?
+				break;
+		}
+	}
+
+	return result; //Give the OPCode to execute!
 }
 
 void doneCPU() //Finish the CPU!
@@ -621,7 +702,6 @@ extern Handler CurrentCPU_opcode_jmptbl[512]; //Our standard internal standard o
 void CPU_OP(byte OP) //Normal CPU opcode execution!
 {
 	protection_nextOP(); //Tell the protection exception handlers that we can give faults again!
-	reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
 	CPU[activeCPU].lastopcode = OP; //Last OPcode!
 	CurrentCPU_opcode_jmptbl[(OP<<1)|CPU_Operand_size[activeCPU]](); //Now go execute the OPcode once in the runtime!
 	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the jmptbl.

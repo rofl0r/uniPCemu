@@ -74,7 +74,8 @@ void DoDebugFiles() //Do the debug files!
 				GPU_EMU_printscreen(-1,-1," Failed.");
 				refreshscreen(); //Update the screen now!
 				dolog("ROM_log", "%s has gone wrong!", file_name);
-				sleep();
+				unlock(LOCK_CPU); //Done with the CPU!
+				sleep(); //Wait forever for us to be closed!
 			}
 			refreshscreen(); //Update the screen now!
 		} //Not a result file?

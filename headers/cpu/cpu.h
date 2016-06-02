@@ -62,7 +62,7 @@ typedef struct
 	byte modrm_readparams_1; //Second parameter of ModR/M setting
 	byte modrm_src0; //ModR/M first parameter!
 	byte modrm_src1; //ModR/M second parameter!
-	byte parameters; //The type of parameters to follow the ModR/M! 0=No parameters, 1=imm8, 2=imm16, 3=imm32
+	byte parameters; //The type of parameters to follow the ModR/M! 0=No parameters, 1=imm8, 2=imm16, 3=imm32, bit 2=Immediate is enabled on the REG of the RM byte(only when <2).
 	byte readwritebackinformation; //The type of writing back/reading data to memory if needed! Bits 0-1: 0=None, 1=Read, Write back operation, 2=Write operation only, 3=Read operation only, Bit 4: Operates on AL/AX/EAX when set. Bit 5: Push operation. Bit 6: Pop operation.
 } CPU_Timings; //The CPU timing information!
 
@@ -927,9 +927,9 @@ void copyint(byte src, byte dest); //Copy interrupt handler pointer to different
 #include "headers/cpu/modrm.h" //MODR/M comp!
 
 //Read signed numbers from CS:(E)IP!
-#define imm8() unsigned2signed8(CPU_readOP())
-#define imm16() unsigned2signed16(CPU_readOPw())
-#define imm32() unsigned2signed32(CPU_readOPdw())
+#define imm8() unsigned2signed8(immb)
+#define imm16() unsigned2signed16(immw)
+#define imm32() unsigned2signed32(imm32)
 
 //Exceptions!
 

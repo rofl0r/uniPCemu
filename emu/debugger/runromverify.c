@@ -38,7 +38,13 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	f = fopen(filename,"rb"); //First, load file!
 
 	dolog("debugger","RUNROMVERIFY: initEMU...");
+
+	CPU[activeCPU].halt &= ~2; //Make sure to stop the CPU again!
+	unlock(LOCK_CPU);
+	lock(LOCK_MAINTHREAD); //Lock the main thread(our other user)!
 	initEMU(1); //Init EMU first, enable video!
+	unlock(LOCK_MAINTHREAD); //Unlock us!
+	lock(LOCK_CPU);
 	dolog("debugger","RUNROMVERIFY: ready to go.");
 
 	if (!hasmemory()) //No memory present?
@@ -50,8 +56,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	memloc = 0; //Init location!
 
 	word datastart = 0; //Start of data segment!
-	doneCPU();
-	resetCPU(); //Make sure we're loading the ROM correctly (start at 0xF000:FFFF)
+	//resetCPU(); //Make sure we're loading the ROM correctly (start at 0xF000:FFFF) Don't reset the CPU, as this is already done by initEMU!
 
 	if (!f)
 	{
@@ -92,6 +97,10 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	dolog("debugger","Starting debugging file %s",filename); //Log the file we're going to test!
 	LOG_MMU_WRITES = debugger_logging(); //Enable logging!
 	allow_debuggerstep = 1; //Allow stepping of the debugger!
+	resetCPU(); //Make sure we start correctly!
+	CPU[activeCPU].registers->CS = 0xF000;
+	CPU[activeCPU].registers->EIP = 0xFFF0; //Our reset vector instead for the test ROMs!
+	CPU_flushPIQ(); //Clear the PIQ from any unused instructions!
 	for (;!CPU[activeCPU].halt;) //Still running?
 	{
 		uint_32 curaddr = (CPU[activeCPU].registers->CS<<4)+CPU[activeCPU].registers->IP; //Calculate current memory address!
@@ -164,8 +173,11 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	}
 	fclose(f); //Close the file!
 	//dolog("ROM_log","Finishing emulator...");	
+	unlock(LOCK_CPU);
+	lock(LOCK_MAINTHREAD); //Lock the main thread(our other user)!
 	BIOS_free_custom(filename); //Free the custom BIOS ROM!
-	doneEMU(); //Cleanup!
+	unlock(LOCK_MAINTHREAD); //Unlock us!
+	lock(LOCK_CPU);
 	dolog("ROM_log","ROM Success: %i...",verified);
 	if (!verified && erroraddr!=0xFFFFFFFF) //Error address specified?
 	{
