@@ -82,4 +82,5 @@ void MMU_dumpmemory(char *filename); //Dump the memory to a file!
 //uint_32 MMU_realaddr(int segdesc, word segment, uint_32 offset); //Real adress in real (direct) memory?
 void MMU_setA20(byte where, byte enabled); //Set A20 line enabled?
 void MMU_clearOP(); //Clear the OPcode cache!
+void MMU_addOP(byte data); //Add an opcode to the OPcode cache!
 #endif
