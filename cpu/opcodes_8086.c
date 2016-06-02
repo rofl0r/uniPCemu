@@ -3644,8 +3644,8 @@ CPU_Timings CPUInformation[0x100] = {
 {0,0,0,0,0,0,0x00}, //C3 RET
 {1,1,0,0,0,0,0x00}, //C4 LES
 {1,1,0,0,0,0,0x00}, //C5 LDS
-{0,0,0,0,0,1,0x00}, //C6 MOV Mem/reg,imm8
-{0,1,0,0,0,2,0x00}, //C7 MOV Mem/reg,imm16
+{1,0,0,0,0,1,0x00}, //C6 MOV Mem/reg,imm8
+{1,1,0,0,0,2,0x00}, //C7 MOV Mem/reg,imm16
 {0,0,0,0,0,2,0x00}, //C8 RETF imm16
 {0,0,0,0,0,0,0x00}, //C9 RETF
 {0,0,0,0,0,0,0x00}, //CA ???
