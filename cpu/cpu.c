@@ -33,7 +33,7 @@ byte cpudebugger; //To debug the CPU?
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
 
 //CPU timings information
-extern CPU_Timings CPUInformation[2][0x100]; //CPU timing information for executing the Execution phase of the CPU(8086 timings only)!
+CPU_Timings CPUTimings[CPU_MODES][0x100]; //All normal CPU timings, which are used, for all modes available!
 
 //ModR/M information!
 MODRM_PARAMS params; //For getting all params for the CPU exection ModR/M data!
@@ -250,6 +250,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	CPU[activeCPU].lastopcode = 0; //Last opcode, default to 0 and unknown?
 	generate_opcode_jmptbl(); //Generate the opcode jmptbl for the current CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
+	generate_timings_tbl(); //Generate the timings table!
 	if (PIQSizes[CPU_databussize][EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
 	{
 		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
@@ -395,6 +396,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	INLINEREGISTER byte OP; //The current opcode!
 	INLINEREGISTER uint_32 last_eip;
 	INLINEREGISTER byte ismultiprefix = 0; //Are we multi-prefix?
+	CPU_Timings *timing; //The timing used!
 	byte result = 0;
 	CPU_resetPrefixes(); //Reset all prefixes for this opcode!
 	reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
@@ -435,9 +437,9 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
 	result = OP; //Save the OPcode for later result!
 
-	CPU_Timings *timing = NULL;
-	timing = &CPUInformation[EMULATED_CPU?1:0][OP]; //Only 2 entries implemented so far!
+	timing = &CPUTimings[CPU_Address_size[activeCPU]][OP]; //Only 2 modes implemented so far, 32-bit or 16-bit mode!
 
+	if (timing->used==0) goto skiptimings; //Are we not used?
 	if (timing->has_modrm) //Do we have ModR/M data?
 	{
 		modrm_readparams(&params,timing->modrm_readparams_0,timing->modrm_readparams_1); //Read the params!
@@ -497,6 +499,8 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 		}
 	}
 
+
+skiptimings: //Skip all timings and parameters(invalid instruction)!
 	return result; //Give the OPCode to execute!
 }
 

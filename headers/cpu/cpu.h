@@ -23,6 +23,9 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define CPU_80486 4
 #define CPU_PENTIUM 5
 
+//How many modes are there in the CPU? Currently 2: 16-bit and 32-bit modes!
+#define CPU_MODES 2
+
 //Currently emulating CPU (values see above, formula later)?
 #define EMULATED_CPU BIOS_Settings.emulated_CPU
 //Since we're comparing to Bochs, emulate a Pentium PC!
@@ -57,6 +60,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 
 typedef struct
 {
+	byte used; //Valid instruction? If zero, passthrough to earlier CPU timings.
 	byte has_modrm; //Do we have ModR/M parameters?
 	byte modrm_readparams_0; //First parameter of ModR/M setting
 	byte modrm_readparams_1; //Second parameter of ModR/M setting
@@ -905,11 +909,7 @@ void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardwa
 void CPU_hard_RETI(); //RETI from hardware!
 
 
-void CPU_debugger_STOP(); //After each RET function.
-
 word *CPU_segment_ptr(byte defaultsegment); //Plain segment to use, direct access!
-
-void CPU_setBootstrap(); //Sets the valid bootstrap at address 0xFFFF0 after the CPU is initialised to run the BIOS POST!
 
 void copyint(byte src, byte dest); //Copy interrupt handler pointer to different interrupt!
 
@@ -943,6 +943,7 @@ void CPU_COOP_notavailable(); //COProcessor not available!
 void CPU_getint(byte intnr, word *segment, word *offset); //Set real mode IVT entry!
 
 void generate_opcode_jmptbl(); //Generate the current CPU opcode jmptbl!
+void generate_timings_tbl(); //Generate the timings table!
 void updateCPUmode(); //Update the CPU mode!
 
 byte CPU_segmentOverridden(byte activeCPU);

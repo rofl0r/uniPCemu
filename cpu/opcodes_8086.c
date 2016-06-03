@@ -2202,63 +2202,63 @@ void CPU8086_OP80() //GRP1 Eb,Ib
 	INLINEREGISTER byte imm = immb;
 	if (cpudebugger) //Debugger on?
 	{
-		modrm_debugger8(&params,0,1);
+		modrm_debugger8(&params,1,0);
 	}
 	switch (MODRM_REG(params.modrm)) //What function?
 	{
 	case 0: //ADD
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ADDB %s,%02X",&modrm_param2,imm); //CMP Eb, Ib
+			debugger_setcommand("ADDB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_ADD8(modrm_addr8(&params,1,0),imm,3); //ADD Eb, Ib
 		break;
 	case 1: //OR
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ORB %s,%02X",&modrm_param2,imm); //CMP Eb, Ib
+			debugger_setcommand("ORB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_OR8(modrm_addr8(&params,1,0),imm,3); //OR Eb, Ib
 		break;
 	case 2: //ADC
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ADCB %s,%02X",&modrm_param2,imm); //CMP Eb, Ib
+			debugger_setcommand("ADCB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_ADC8(modrm_addr8(&params,1,0),imm,3); //ADC Eb, Ib
 		break;
 	case 3: //SBB
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("SBBB %s,%02X",&modrm_param2,imm); //CMP Eb, Ib
+			debugger_setcommand("SBBB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_SBB8(modrm_addr8(&params,1,0),imm,3); //SBB Eb, Ib
 		break;
 	case 4: //AND
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ANDB %s,%02X",&modrm_param2,imm); //CMP Eb, Ib
+			debugger_setcommand("ANDB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_AND8(modrm_addr8(&params,1,0),imm,3); //AND Eb, Ib
 		break;
 	case 5: //SUB
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("SUBB %s,%02X",&modrm_param2,imm); //CMP Eb, Ib
+			debugger_setcommand("SUBB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_SUB8(modrm_addr8(&params,1,0),imm,3); //SUB Eb, Ib
 		break;
 	case 6: //XOR
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("XORB %s,%02X",&modrm_param2,imm); //CMP Eb, Ib
+			debugger_setcommand("XORB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_XOR8(modrm_addr8(&params,1,0),imm,3); //XOR Eb, Ib
 		break;
 	case 7: //CMP
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("CMPB %s,%02X",&modrm_param2,imm); //CMP Eb, Ib
+			debugger_setcommand("CMPB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CMP_b(modrm_read8(&params,1),imm,3); //CMP Eb, Ib
 		break;
@@ -2272,63 +2272,63 @@ void CPU8086_OP81() //GRP1 Ev,Iv
 	INLINEREGISTER word imm = immw;
 	if (cpudebugger) //Debugger on?
 	{
-		modrm_debugger16(&params,0,1);
+		modrm_debugger16(&params,1,0);
 	}
 	switch (MODRM_REG(params.modrm)) //What function?
 	{
 	case 0: //ADD
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ADDW %s,%04X",&modrm_param2,imm); //ADD Eb, Ib
+			debugger_setcommand("ADDW %s,%04X",&modrm_param1,imm); //ADD Eb, Ib
 		}
 		CPU8086_internal_ADD16(modrm_addr16(&params,1,0),imm,3); //ADD Eb, Ib
 		break;
 	case 1: //OR
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ORW %s,%04X",&modrm_param2,imm); //OR Eb, Ib
+			debugger_setcommand("ORW %s,%04X",&modrm_param1,imm); //OR Eb, Ib
 		}
 		CPU8086_internal_OR16(modrm_addr16(&params,1,0),imm,3); //OR Eb, Ib
 		break;
 	case 2: //ADC
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ADCW %s,%04X",&modrm_param2,imm); //ADC Eb, Ib
+			debugger_setcommand("ADCW %s,%04X",&modrm_param1,imm); //ADC Eb, Ib
 		}
 		CPU8086_internal_ADC16(modrm_addr16(&params,1,0),imm,3); //ADC Eb, Ib
 		break;
 	case 3: //SBB
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("SBBW %s,%04X",&modrm_param2,imm); //SBB Eb, Ib
+			debugger_setcommand("SBBW %s,%04X",&modrm_param1,imm); //SBB Eb, Ib
 		}
 		CPU8086_internal_SBB16(modrm_addr16(&params,1,0),imm,3); //SBB Eb, Ib
 		break;
 	case 4: //AND
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ANDW %s,%04X",&modrm_param2,imm); //AND Eb, Ib
+			debugger_setcommand("ANDW %s,%04X",&modrm_param1,imm); //AND Eb, Ib
 		}
 		CPU8086_internal_AND16(modrm_addr16(&params,1,0),imm,3); //AND Eb, Ib
 		break;
 	case 5: //SUB
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("SUBW %s,%04X",&modrm_param2,imm); //SUB Eb, Ib
+			debugger_setcommand("SUBW %s,%04X",&modrm_param1,imm); //SUB Eb, Ib
 		}
 		CPU8086_internal_SUB16(modrm_addr16(&params,1,0),imm,3); //SUB Eb, Ib
 		break;
 	case 6: //XOR
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("XORW %s,%04X",&modrm_param2,imm); //XOR Eb, Ib
+			debugger_setcommand("XORW %s,%04X",&modrm_param1,imm); //XOR Eb, Ib
 		}
 		CPU8086_internal_XOR16(modrm_addr16(&params,1,0),imm,3); //XOR Eb, Ib
 		break;
 	case 7: //CMP
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("CMPW %s,%04X",&modrm_param2,imm); //CMP Eb, Ib
+			debugger_setcommand("CMPW %s,%04X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CMP_w(modrm_read16(&params,1),imm,3); //CMP Eb, Ib
 		break;
@@ -2349,63 +2349,63 @@ void CPU8086_OP83() //GRP1 Ev,Iv
 	if (imm&0x80) imm |= 0xFF00; //Sign extend!
 	if (cpudebugger) //Debugger on?
 	{
-		modrm_debugger16(&params,0,1);
+		modrm_debugger16(&params,1,0);
 	}
 	switch (MODRM_REG(params.modrm)) //What function?
 	{
 	case 0: //ADD
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ADDW %s,%04X",&modrm_param2,imm); //ADD Eb, Ib
+			debugger_setcommand("ADDW %s,%04X",&modrm_param1,imm); //ADD Eb, Ib
 		}
 		CPU8086_internal_ADD16(modrm_addr16(&params,1,0),imm,3); //ADD Eb, Ib
 		break;
 	case 1: //OR
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ORW %s,%04X",&modrm_param2,imm); //OR Eb, Ib
+			debugger_setcommand("ORW %s,%04X",&modrm_param1,imm); //OR Eb, Ib
 		}
 		CPU8086_internal_OR16(modrm_addr16(&params,1,0),imm,3); //OR Eb, Ib
 		break;
 	case 2: //ADC
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ADCW %s,%04X",&modrm_param2,imm); //ADC Eb, Ib
+			debugger_setcommand("ADCW %s,%04X",&modrm_param1,imm); //ADC Eb, Ib
 		}
 		CPU8086_internal_ADC16(modrm_addr16(&params,1,0),imm,3); //ADC Eb, Ib
 		break;
 	case 3: //SBB
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("SBBW %s,%04X",&modrm_param2,imm); //SBB Eb, Ib
+			debugger_setcommand("SBBW %s,%04X",&modrm_param1,imm); //SBB Eb, Ib
 		}
 		CPU8086_internal_SBB16(modrm_addr16(&params,1,0),imm,3); //SBB Eb, Ib
 		break;
 	case 4: //AND
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ANDW %s,%04X",&modrm_param2,imm); //AND Eb, Ib
+			debugger_setcommand("ANDW %s,%04X",&modrm_param1,imm); //AND Eb, Ib
 		}
 		CPU8086_internal_AND16(modrm_addr16(&params,1,0),imm,3); //AND Eb, Ib
 		break;
 	case 5: //SUB
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("SUBW %s,%04X",&modrm_param2,imm); //SUB Eb, Ib
+			debugger_setcommand("SUBW %s,%04X",&modrm_param1,imm); //SUB Eb, Ib
 		}
 		CPU8086_internal_SUB16(modrm_addr16(&params,1,0),imm,3); //SUB Eb, Ib
 		break;
 	case 6: //XOR
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("XORW %s,%04X",&modrm_param2,imm); //XOR Eb, Ib
+			debugger_setcommand("XORW %s,%04X",&modrm_param1,imm); //XOR Eb, Ib
 		}
 		CPU8086_internal_XOR16(modrm_addr16(&params,1,0),imm,3); //XOR Eb, Ib
 		break;
 	case 7: //CMP
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("CMPW %s,%04X",&modrm_param2,imm); //CMP Eb, Ib
+			debugger_setcommand("CMPW %s,%04X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CMP_w(modrm_read16(&params,1),imm,3); //CMP Eb, Ib
 		break;
