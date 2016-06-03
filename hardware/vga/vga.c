@@ -51,6 +51,8 @@ byte is_loadchartable = 0; //Loading character table?
 
 extern byte pixelbuffer[8]; //All 8 pixels decoded from the planesbuffer!
 
+extern byte allcleared;
+
 /*
 
 Info about basic modes:
@@ -296,7 +298,7 @@ void doneVGA(VGA_Type **VGA) //Cleans up after the VGA operations are done.
 {
 	if (__HW_DISABLED) return; //Abort!
 	VGA_Type *realVGA = *VGA; //The real VGA!
-	if (!realVGA) return; //Invalid VGA to deallocate!
+	if (!realVGA || allcleared) return; //Invalid VGA to deallocate!
 	if (realVGA->VRAM) //Got allocated?
 	{
 		freez((void **)&realVGA->VRAM,realVGA->VRAM_size,"VGA_VRAM@DoneVGA"); //Free the VRAM!

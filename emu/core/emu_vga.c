@@ -107,9 +107,11 @@ void VGA_initTimer()
 
 extern GPU_type GPU;
 
+extern byte allcleared; //Are all pointers cleared?
+
 OPTINLINE byte doVGA_Sequencer() //Do we even execute?
 {
-	if (!getActiveVGA()) //Invalid VGA? Don't do anything!
+	if (!getActiveVGA() || allcleared) //Invalid VGA? Don't do anything!
 	{
 		return 0; //Abort: we're disabled without a invalid VGA!
 	}

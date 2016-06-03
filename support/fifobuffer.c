@@ -5,6 +5,8 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
+extern byte allcleared; //Are all pointers cleared?
+
 /*
 
 newbuffer: generates a new buffer to work with.
@@ -95,6 +97,7 @@ uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 	INLINEREGISTER uint_32 result;
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
+	if (allcleared) return 0; //Abort: invalid buffer!
 	if (buffer->lock) //Locked buffer?
 	{
 		WaitSem(buffer->lock)
@@ -119,7 +122,7 @@ byte peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-
+	if (allcleared) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -157,6 +160,7 @@ byte readfifobuffer(FIFOBUFFER *buffer, byte *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
+	if (allcleared) return 0; //Abort: invalid buffer!
 	if (buffer->buffer) //Valid buffer?
 	{
 		if (buffer->lock)
@@ -197,6 +201,7 @@ byte writefifobuffer(FIFOBUFFER *buffer, byte data)
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
+	if (allcleared) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -225,6 +230,7 @@ byte peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be re
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
+	if (allcleared) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -277,6 +283,7 @@ byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
+	if (allcleared) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -318,6 +325,7 @@ byte writefifobuffer16(FIFOBUFFER *buffer, word data)
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
+	if (allcleared) return 0; //Error: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -349,7 +357,8 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 	if (__HW_DISABLED) return; //Abort!
 	if (buffer==0) return; //Error: invalid buffer!
 	if (buffer->buffer==0) return; //Error invalid: buffer!
-	
+	if (allcleared) return; //Abort: invalid buffer!
+
 	if (buffer->lock)
 	{
 		WaitSem(buffer->lock)
@@ -398,6 +407,7 @@ void fifobuffer_clear(FIFOBUFFER *buffer)
 
 void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 {
+	if (allcleared) return; //Abort: invalid buffer!
 	if ((src == dest) || (!threshold)) return; //Can't move to itself!
 	INLINEREGISTER uint_32 current; //Current thresholded data index!
 	byte buffer; //our buffer for the transfer!
@@ -424,6 +434,7 @@ void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 
 void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 {
+	if (allcleared) return; //Abort: invalid buffer!
 	if ((src==dest) || (!threshold)) return; //Can't move to itself!
 	INLINEREGISTER uint_32 current; //Current thresholded data index!
 	word buffer; //our buffer for the transfer!

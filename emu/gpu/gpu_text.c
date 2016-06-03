@@ -21,6 +21,7 @@
 #define CLICKABLE_CLICKED 4
 
 extern GPU_SDL_Surface *rendersurface; //The PSP's surface to use when flipping!
+extern byte allcleared;
 
 word TEXT_xdelta = 0;
 word TEXT_ydelta = 0; //Delta x,y!
@@ -77,6 +78,7 @@ OPTINLINE static byte getcharxy_8(byte character, byte x, byte y) //Retrieve a c
 
 OPTINLINE static byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
 {
+	if (allcleared) return 0; //Abort when all is cleared!
 	word tx,ty;
 	word charx,chary;
 	if ((x<0) || (y<0) || (x >= GPU_TEXTPIXELSX) || (y >= GPU_TEXTPIXELSY)) return 0; //Count invalid pixels as background!
@@ -86,6 +88,7 @@ OPTINLINE static byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) 
 
 OPTINLINE static uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
 {
+	if (allcleared) return 0; //Abort when all is cleared!
 	if ((x<0) || (y<0) || (x >= GPU_TEXTPIXELSX) || (y >= GPU_TEXTPIXELSY)) return TRANSPARENTPIXEL; //Invalid=Transparant!
 	word tx, ty;
 	word charx=0, chary=0;
@@ -95,6 +98,7 @@ OPTINLINE static uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y
 
 OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 {
+	if (allcleared) return; //Abort when all is cleared!
 	//Undirty!
 	if (GPU_textget_pixel(surface,fx,fy)) //Font?
 	{
@@ -180,6 +184,7 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 
 OPTINLINE static void GPU_textput_pixel(GPU_SDL_Surface *dest, GPU_TEXTSURFACE *surface,int fx, int fy, uint_32 color) //Get the pixel font, back or show through. Automatically plotted if set.
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (color!=TRANSPARENTPIXEL)
 	{
 		if (surface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
@@ -215,6 +220,7 @@ GPU_TEXTSURFACE *alloc_GPUtext()
 
 void free_GPUtext(GPU_TEXTSURFACE **surface)
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (!surface) return; //Still allocated or not!
 	if (!*surface) return; //Still allocated or not!
 	freez((void **)surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE"); //Release the memory, if possible!
@@ -226,6 +232,7 @@ void free_GPUtext(GPU_TEXTSURFACE **surface)
 
 uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurface!
 {
+	if (allcleared) return 0; //Abort when all is cleared!
 	uint_32 *renderpixel;
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
@@ -274,6 +281,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 
 int GPU_textgetxy(GPU_TEXTSURFACE *surface,int x, int y, byte *character, uint_32 *font, uint_32 *border) //Read a character+attribute!
 {
+	if (allcleared) return 0; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (y >= GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
 	if (x>=GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
@@ -288,6 +296,7 @@ void GPU_stopClickableXY(GPU_TEXTSURFACE *surface, word x, word y); //Internal: 
 
 byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte character, uint_32 font, uint_32 border) //Set x/y coordinates for clickable character! Result is bit value of SETXYCLICKED_*
 {
+	if (allcleared) return 0; //Abort when all is cleared!
 	byte result;
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (y >= GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
@@ -312,6 +321,7 @@ byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte charact
 
 int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32 font, uint_32 border) //Write a character+attribute!
 {
+	if (allcleared) return 0; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)) return 0; //Abort without surface!
 	if (y>=GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
 	if (x>=GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
@@ -335,6 +345,7 @@ int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32
 
 void GPU_textclearrow(GPU_TEXTSURFACE *surface, int y)
 {
+	if (allcleared) return; //Abort when all is cleared!
 	int x=0;
 	for (;;)
 	{
@@ -345,6 +356,7 @@ void GPU_textclearrow(GPU_TEXTSURFACE *surface, int y)
 
 void GPU_textclearcurrentrownext(GPU_TEXTSURFACE *surface) //For clearing the rest of the current row!
 {
+	if (allcleared) return; //Abort when all is cleared!
 	int x = surface->x; //Start at the current coordinates!
 	for (;;)
 	{
@@ -355,6 +367,7 @@ void GPU_textclearcurrentrownext(GPU_TEXTSURFACE *surface) //For clearing the re
 
 void GPU_textclearscreen(GPU_TEXTSURFACE *surface)
 {
+	if (allcleared) return; //Abort when all is cleared!
 	int y=0;
 	for (;;)
 	{
@@ -365,6 +378,7 @@ void GPU_textclearscreen(GPU_TEXTSURFACE *surface)
 
 void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...)
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
 	char msg[256];
 	bzero(msg,sizeof(msg)); //Init!
@@ -403,6 +417,7 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 
 byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...)
 {
+	if (allcleared) return 0; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	char msg[256];
 	bzero(msg, sizeof(msg)); //Init!
@@ -453,6 +468,7 @@ byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 bor
 
 void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)) return; //Abort without surface!
 	int curx = x;
 	int cury = y;
@@ -467,6 +483,7 @@ void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 
 void GPU_enableDelta(GPU_TEXTSURFACE *surface, byte xdelta, byte ydelta) //Enable delta coordinates on the x/y axis!
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
 	surface->xdelta = xdelta; //Enable x delta?
 	surface->ydelta = ydelta; //Enable y delta?
@@ -474,6 +491,7 @@ void GPU_enableDelta(GPU_TEXTSURFACE *surface, byte xdelta, byte ydelta) //Enabl
 
 void GPU_text_updatedelta(SDL_Surface *surface)
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (!surface) //Invalid surface!
 	{
 		TEXT_xdelta = TEXT_ydelta = 0; //No delta!
@@ -490,6 +508,7 @@ void GPU_text_updatedelta(SDL_Surface *surface)
 
 void GPU_text_locksurface(GPU_TEXTSURFACE *surface) //Lock a surface for usage!
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
 	if (!surface->lock) return; //no lock?
 	WaitSem(surface->lock) //Wait for us to be available and locked!
@@ -497,6 +516,7 @@ void GPU_text_locksurface(GPU_TEXTSURFACE *surface) //Lock a surface for usage!
 
 void GPU_text_releasesurface(GPU_TEXTSURFACE *surface) //Unlock a surface when done with it!
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(*surface), NULL)) return; //Invalid surface!
 	if (!surface->lock) return; //no lock?
 	PostSem(surface->lock) //Release our lock: we're done!
@@ -504,6 +524,7 @@ void GPU_text_releasesurface(GPU_TEXTSURFACE *surface) //Unlock a surface when d
 
 void GPU_textbuttondown(GPU_TEXTSURFACE *surface, word x, word y) //We've been clicked at these coordinates!
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
 	word x1, y1;
 	x1 = 0;
@@ -536,6 +557,7 @@ void GPU_textbuttondown(GPU_TEXTSURFACE *surface, word x, word y) //We've been c
 
 void GPU_textbuttonup(GPU_TEXTSURFACE *surface, word x, word y) //We've been released at these coordinates!
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
 
 	word sx, sy;
@@ -562,6 +584,7 @@ void GPU_textbuttonup(GPU_TEXTSURFACE *surface, word x, word y) //We've been rel
 
 byte GPU_startClickable(GPU_TEXTSURFACE *surface, word x, word y) //Internal: start clickable character!
 {
+	if (allcleared) return 0; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return 0; //Invalid surface!
 	byte result = 0;
 	if (!(surface->clickable[y][x] & CLICKABLE_CLICKABLE)) //We're not clickable yet?
@@ -581,6 +604,7 @@ byte GPU_startClickable(GPU_TEXTSURFACE *surface, word x, word y) //Internal: st
 
 byte GPU_isclicked(GPU_TEXTSURFACE *surface, word x, word y) //Are we clicked?
 {
+	if (allcleared) return 0; //Abort when all is cleared!
 	byte result;
 	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return 0; //Invalid surface!
 	result = (surface->clickable[y][x]&(CLICKABLE_CLICKABLE|CLICKABLE_CLICKED))== (CLICKABLE_CLICKABLE | CLICKABLE_CLICKED); //Give if we're clickable and clicked!
@@ -589,6 +613,7 @@ byte GPU_isclicked(GPU_TEXTSURFACE *surface, word x, word y) //Are we clicked?
 
 void GPU_stopClickableXY(GPU_TEXTSURFACE *surface, word x, word y)
 {
+	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(*surface), NULL)) return; //Invalid surface!
 	surface->clickable[y][x] = 0; //Destroy any click information! We're a normal character again!
 }

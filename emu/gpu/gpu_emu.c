@@ -5,6 +5,8 @@
 extern GPU_type GPU; //GPU!
 extern GPU_TEXTSURFACE *BIOS_Surface; //Our very own BIOS Surface!
 
+extern byte allcleared; //All allocations cleared?
+
 /*
 
 16 color palette for keyboard etc.
@@ -48,11 +50,13 @@ word emu_x, emu_y; //EMU coordinates!
 //Locking support for block actions!
 void EMU_locktext()
 {
+	if (allcleared) return; //Abort when all is cleared!
 	GPU_text_locksurface(BIOS_Surface);
 }
 
 void EMU_unlocktext()
 {
+	if (allcleared) return; //Abort when all is cleared!
 	GPU_text_releasesurface(BIOS_Surface);
 }
 
@@ -60,6 +64,7 @@ void EMU_clearscreen()
 {
 	if (BIOS_Surface)
 	{
+		if (allcleared) return; //Abort when all is cleared!
 		GPU_text_locksurface(BIOS_Surface);
 		GPU_textclearscreen(BIOS_Surface); //Clear the screen!
 		GPU_text_releasesurface(BIOS_Surface);
@@ -81,6 +86,7 @@ void EMU_gotoxy(word x, word y)
 	*/
 	if (BIOS_Surface)
 	{
+		if (allcleared) return; //Abort when all is cleared!
 		GPU_textgotoxy(BIOS_Surface, x, y); //Goto xy!
 		emu_x = x;
 		emu_y = y; //Update our coordinates!
@@ -95,6 +101,10 @@ void EMU_getxy(word *x, word *y)
 
 void GPU_EMU_printscreen(sword x, sword y, char *text, ...) //Direct text output (from emu)!
 {
+	if (allcleared)
+	{
+		return; //Abort when all is cleared!
+	}
 	char buffer[256]; //Going to contain our output data!
 	va_list args; //Going to contain the list!
 	va_start (args, text); //Start list!

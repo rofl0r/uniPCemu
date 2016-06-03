@@ -187,6 +187,8 @@ void updateInputMain() //Frequency 1000Hz!
 	}
 }
 
+extern byte allcleared;
+
 int main(int argc, char * argv[])
 {
 //Basic PSP stuff!

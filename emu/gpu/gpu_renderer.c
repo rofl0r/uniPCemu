@@ -471,11 +471,13 @@ void refreshscreen() //Handler for a screen frame (60 fps) MAXIMUM.
 	
 	if (do_render && GPU.video_on) //Disable when Video is turned off or skipped!
 	{
+		if (!memprotect(rendersurface, sizeof(*rendersurface), NULL)) goto skiprendering; //Abort without surface to render!
 		renderFrames(); //Render all frames needed!
 	}
 
 	finish_screen(); //Finish stuff on-screen(framerate counting etc.)!	
 	
+	skiprendering: //Skipping rendering?
 	GPU_is_rendering = 0; //We're done rendering!
 	unlockGPU(); //Finished with the GPU!
 }

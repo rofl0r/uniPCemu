@@ -221,9 +221,13 @@ void updateSpeedLimit(); //Prototype!
 
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 
+extern byte allcleared;
+
 void initEMU(int full) //Init!
 {
 	doneEMU(); //Make sure we're finished too!
+
+	allcleared = 0; //Not cleared anymore!
 
 	MMU_resetHandlers(NULL); //Reset all memory handlers before starting!
 
@@ -572,6 +576,8 @@ void updateSpeedLimit()
 
 extern uint_32 CPU_InterruptReturn, CPU_exec_EIP; //Interrupt return address!
 
+extern byte allcleared;
+
 OPTINLINE byte coreHandler()
 {
 	//CPU execution, needs to be before the debugger!
@@ -600,6 +606,8 @@ OPTINLINE byte coreHandler()
 		{
 			BIOSMenuThread = NULL; //We don't run the BIOS menu anymore!
 		}
+
+		if (allcleared) return 0; //Abort: invalid buffer!
 
 		interruptsaved = 0; //Reset PIC interrupt to not used!
 		if (!CPU[activeCPU].registers) //We need registers at this point, but have none to use?

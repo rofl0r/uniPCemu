@@ -7,6 +7,8 @@
 
 #include <malloc.h> //Specific to us only!
 
+byte allcleared = 0; //Are all pointers cleared?
+
 typedef struct
 {
 void *pointer; //Pointer to the start of the allocated data!
@@ -300,11 +302,14 @@ void freezall(void) //Free all allocated memory still allocated (on shutdown onl
 	int i;
 	initZalloc(); //Make sure we're started!
 	lockaudio(); //Make sure audio isn't running!
+	lock(LOCK_MAINTHREAD); //Make sure we're not running!
+	allcleared = 1; //All is cleared!
 	for (i=0;i<(int)NUMITEMS(registeredpointers);i++)
 	{
 		freez(&registeredpointers[i].pointer,registeredpointers[i].size,"Unregisterptrall"); //Unregister a pointer when allowed!
 	}
 	unlockaudio(); //Unlock the audio! Don't start playing automatically, since there's nothing to play!
+	unlock(LOCK_MAINTHREAD); //Finished!
 }
 
 //Memory protection/verification function. Returns the pointer when valid, NULL on invalid.
