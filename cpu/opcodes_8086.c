@@ -2443,6 +2443,7 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		{
 			debugger_setcommand("Unknown opcode: 8F /%i",MODRM_REG(params.modrm)); //Error!
 		}
+		CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
 		break;
 	}
 }
@@ -2718,6 +2719,7 @@ void CPU8086_OPFE() //GRP4 Eb
 		modrm_write8(&params,1,res8);
 		break;
 	default: //Unknown opcode or special?
+		CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
 		break;
 	}
 }
@@ -2792,6 +2794,7 @@ void FPU8087_noCOOP(){
 void unkOP_8086() //Unknown opcode on 8086?
 {
 	//dolog("8086","Unknown opcode on 8086: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
+	CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
 }
 
 //Gecontroleerd: 100% OK!
@@ -3432,5 +3435,9 @@ void op_grp5() {
 		{
 			CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/
 		}
+		break;
+	default: //Unknown OPcode?
+		CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
+		break;
 	}
 }

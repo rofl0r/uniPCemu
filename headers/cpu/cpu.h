@@ -954,4 +954,5 @@ byte execNMI(byte causeisMemory); //Execute an NMI!
 void CPU_flushPIQ(); //Flush the PIQ!
 void CPU_fillPIQ(); //Fill the PIQ until it's full!
 void CPU_tickPrefetch(); //Ticks the prefetch cycles!
+void CPU_unkOP(); //General unknown OPcode handler!
 #endif

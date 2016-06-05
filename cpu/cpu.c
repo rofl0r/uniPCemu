@@ -4,6 +4,7 @@
 #include "headers/mmu/mmu.h"
 #include "headers/support/signedness.h" //CPU support!
 #include "headers/cpu/cpu_OP8086.h" //8086 comp.
+#include "headers/cpu/cpu_OPNECV30.h" //unkOP comp.
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/emu/gpu/gpu.h" //Start&StopVideo!
 #include "headers/cpu/cb_manager.h" //CB support!
@@ -1142,5 +1143,13 @@ void CPU_tickPrefetch()
 	{
 		CPU_fillPIQ(); //Add a byte to the prefetch!
 		cycles -= 4; //This takes four cycles to transfer!
+	}
+}
+
+void CPU_unkOP() //General unknown OPcode handler!
+{
+	if (EMULATED_CPU>=CPU_NECV30) //Invalid opcode exception? 8086 just ignores the instruction and continues running!
+	{
+		unkOP_186(); //Execute the unknown opcode exception handler for the 186+!
 	}
 }
