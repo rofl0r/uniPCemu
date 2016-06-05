@@ -14,6 +14,14 @@ SDL_sem *log_Lock = NULL;
 char lastfile[256] = ""; //Last file we've been logging to!
 FILE *logfile = NULL; //The log file to use!
 
+//Windows line-ending = \r\n. Wordpad line-ending is \n.
+
+#ifdef WINDOWS_LINEENDING
+char lineending[2] = {'\r','\n'}; //CRLF!
+#else
+char lineending[1] = {'\n'}; //Line-ending used in other systems!
+#endif
+
 void donelog(void)
 {
 	if (logfile) fclose(logfile); //Close the last log file!
@@ -28,12 +36,24 @@ void initlog()
 	atexit(&donelog); //Our cleanup function!
 }
 
+OPTINLINE void addnewline(char *s)
+{
+	char s2[2] = {'\0','\0'}; //String to add!
+	byte i;
+	for (i = 0;i < sizeof(lineending);i++) //Process the entire line-ending!
+	{
+		s2[0] = lineending[i]; //The character to add!
+		strcat(s,s2); //Add the line-ending character(s) to the text!
+	}
+}
+
 void dolog(char *filename, const char *format, ...) //Logging functionality!
 {
 	static char filenametmp[256];
-	static char logtext[256];
+	static char logtext[256], logtext2[512]; //Original and prepared text!
 	static char timestamp[256];
-	static char CRLF[2] = {'\r','\n'}; //CRLF!
+	word i,logtext2len = 0, logtextlen = 0;
+	char c, newline=0;
 	va_list args; //Going to contain the list!
 	uint_64 time;
 
@@ -56,8 +76,42 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	va_start (args, format); //Start list!
 	vsprintf (logtext, format, args); //Compile list!
 	va_end (args); //Destroy list!
-	
-	if (safe_strlen(logtext,sizeof(logtext))) //Got length?
+
+	memset(&logtext2,0,sizeof(logtext2)); //Clear the data to dump!
+
+	logtextlen = safe_strlen(logtext, 256); //Get our length to log!
+	for (i=0;i<logtextlen;) //Process the log text!
+	{
+		c = logtext[i++]; //Read the character to process!
+		if ((c == '\n') || (c == '\r')) //Newline character?
+		{
+			//we count \n, \r, \n\r and \r\n as the same: newline!
+			if (!newline) //First newline character?
+			{
+				addnewline(&logtext2[0]); //Flush!
+				newline = c; //Detect for further newlines!
+			}
+			else //Second newline+?
+			{
+				if (newline == c) //Same newline as before?
+				{
+					addnewline(&logtext2[0]); //Flush!
+					//Continue counting newlines!
+				}
+				else //No newline, clear the newline flag!
+				{
+					newline = 0; //Not a newline anymore!
+				}
+			}
+		}
+		else //Normal character?
+		{
+			newline = 0; //Not a newline character anymore!
+			sprintf(logtext2, "%s%c", logtext2, c); //Add to the debugged data!
+		}
+	}
+
+	if (safe_strlen(logtext2,sizeof(logtext2))) //Got length?
 	{
 		//Lock
 		time = getuspassed_k(&logticksholder); //Get the current time!
@@ -69,15 +123,15 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	{
 		if (logfile) fclose(logfile); //Close the old log if needed!
 		domkdir("logs"); //Create a logs directory if needed!
-		logfile = fopen(filenametmp, "r"); //Open for testing!
+		logfile = fopen(filenametmp, "rb"); //Open for testing!
 		if (logfile) //Existing?
 		{
 			fclose(logfile); //Close it!
-			logfile = fopen(filenametmp, "a"); //Reopen for appending!
+			logfile = fopen(filenametmp, "ab"); //Reopen for appending!
 		}
 		else
 		{
-			logfile = fopen(filenametmp, "w"); //Reopen for writing new!
+			logfile = fopen(filenametmp, "wb"); //Reopen for writing new!
 		}
 		strcpy(lastfile, filenametmp); //Set the last file we've opened!
 #ifdef __LOGBUFFER
@@ -91,14 +145,14 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	//Now log!
 	if (logfile) //Opened?
 	{
-		if (safe_strlen(logtext,sizeof(logtext))) //Got length?
+		if (safe_strlen(logtext2,sizeof(logtext2))) //Got length?
 		{
 			fwrite(&timestamp,1,safe_strlen(timestamp,sizeof(timestamp)),logfile); //Write the timestamp!
-			fwrite(&logtext,1,safe_strlen(logtext,sizeof(logtext)),logfile); //Write string to file!
+			fwrite(&logtext2,1,safe_strlen(logtext2,sizeof(logtext2)),logfile); //Write string to file!
 		}
-		fwrite(&CRLF,1,sizeof(CRLF),logfile); //Write line feed!
+		fwrite(&lineending,1,sizeof(lineending),logfile); //Write the line feed appropriate for the system after any write operation!
 #ifdef __psp__
-		//PSP doesn't buffer!
+		//PSP doesn't buffer, because it's too slow!
 		fclose(logfile);
 		logfile = NULL; //We're finished!
 #endif

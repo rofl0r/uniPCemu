@@ -81,4 +81,7 @@ typedef uint_64 ptrnum;
 typedef uint_32 ptrnum;
 #endif
 
+//Enable below define to enable Windows-style line-endings in logs etc!
+#define WINDOWS_LINEENDING
+
 #endif
