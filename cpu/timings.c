@@ -135,8 +135,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,1,1,0,1,0,2,0x00 }, //81 GRP1
 			{ 1,1,0,0,1,0,1,0x00 }, //82 GRP1=80
 			{ 1,1,1,0,1,0,1,0x00 }, //83 GRP1
-			{ 1,1,0,0,0,0,0,0x00 }, //84 TEST
-			{ 1,1,1,0,0,0,0,0x00 }, //85 TEST
+			{ 1,1,0,0,0,1,0,0x00 }, //84 TEST
+			{ 1,1,1,0,0,1,0,0x00 }, //85 TEST
 			{ 1,1,0,0,0,1,0,0x01 }, //86 XCHG
 			{ 1,1,1,0,0,1,0,0x01 }, //87 XCHG
 			{ 1,1,0,0,1,0,0,0x01 }, //88 MOV
@@ -249,8 +249,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,0,0,0,0,0,0,0x00 }, //F3 REPZ prefix
 			{ 1,0,0,0,0,0,0,0x00 }, //F4 HLT
 			{ 1,0,0,0,0,0,0,0x00 }, //F5 CMC
-			{ 1,1,0,0,1,0,0,0x00 }, //F6 Grp3a Eb Uses writeback with REG 2&3 only! REG 0&1 also have an immediate byte parameter!
-			{ 1,1,1,0,1,0,0,0x00 }, //F7 Grp3b Ev See opcode F6(Grp3a Eb), but with word values for all cases!
+			{ 1,1,0,0,1,0,5,0x00 }, //F6 Grp3a Eb Uses writeback with REG 2&3 only! REG 0&1 also have an immediate byte parameter!
+			{ 1,1,1,0,1,0,6,0x00 }, //F7 Grp3b Ev See opcode F6(Grp3a Eb), but with word values for all cases!
 			{ 1,0,0,0,0,0,0,0x00 }, //F8 CLC
 			{ 1,0,0,0,0,0,0,0x00 }, //F9 STC
 			{ 1,0,0,0,0,0,0,0x00 }, //FA CLI
