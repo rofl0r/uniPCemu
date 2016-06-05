@@ -558,7 +558,8 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 			CB_createcallback(0,1,&dataoffset); //Create special conditional zero callback: the same as zero callback, but only if set with previous call(actual zero callback was executed last time)!
 			
 			EMU_BIOS[incoffset] = 0xeb;
-			EMU_BIOS[incoffset] = signed2unsigned8(-(sbyte)((dataoffset+1)-callbackoffset));	//jmp callback handler
+			EMU_BIOS[dataoffset] = signed2unsigned8(-(sbyte)((dataoffset+1)-callbackoffset));	//jmp callback handler
+			++dataoffset; //We're increasing it now!
 			EMU_BIOS[incoffset] = (Bit8u)0xCF;		//An IRET Instruction
 		//return (use_cb?0x10:0x0c);
 		break;

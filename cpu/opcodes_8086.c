@@ -7,7 +7,6 @@
 #include "headers/hardware/ports.h" //Ports compatibility!
 #include "headers/cpu/cpu_OP8086.h" //Our own opcode presets!
 #include "headers/cpu/fpu_OP8087.h" //Our own opcode presets!
-#include "headers/cpu/cb_manager.h" //For OPFE!
 #include "headers/cpu/flags.h" //Flag support!
 #include "headers/cpu/8086_grpOPs.h" //GRP Opcode extensions!
 #include "headers/cpu/interrupts.h" //Basic interrupt support!
@@ -2693,7 +2692,6 @@ DEBUG: REALLY SUPPOSED TO HANDLE HERE?
 void CPU8086_OPFE() //GRP4 Eb
 {
 	INLINEREGISTER byte tempcf;
-	INLINEREGISTER word cb16;
 	modrm_debugger8(&params,0,1);
 	switch (MODRM_REG(params.modrm)) //What function?
 	{

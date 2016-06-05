@@ -2,6 +2,7 @@
 #include "headers/hardware/ports.h" //Basic type comp.
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/cpu.h" //NMI support!
+#include "headers/cpu/cb_manager.h" //Callback support!
 
 /*
 
@@ -158,7 +159,7 @@ byte EXEC_PORTOUTW(word port, word value)
 #ifdef __LOG_PORT
 	dolog("emu", "PORT OUT: %04X@%04X", value, port);
 #endif
-	if (port=IO_CALLBACKPORT) //Special handler port?
+	if (port==IO_CALLBACKPORT) //Special handler port?
 	{
 		CB_handler(value); //Call special handler!
 		return 0; //We've succeeded!
