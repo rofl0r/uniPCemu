@@ -5,9 +5,9 @@
 #include "headers/cpu/cpu.h" //CPU support!
 
 //Info for internal callbacks! (32KB data used)
-#define CB_MAX		1024
-#define CB_SIZE		0x20
-//First callback is reserved for the ROM Basic!
+#define CB_MAX		512
+#define CB_SIZE		0x40
+//First callback inserted is reserved for the ROM Basic!
 #define CB_SEG		0xF000
 #define CB_SOFFSET	0x0000
 

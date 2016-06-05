@@ -2719,14 +2719,6 @@ void CPU8086_OPFE() //GRP4 Eb
 		FLAG_CF = tempcf;
 		modrm_write8(&params,1,res8);
 		break;
-	case 7: //---: Special: callback handler!
-		cb16 = CPU_readOPw(); //Read callback! Don't care about CPU timing, since we're not an official 8086 instruction!
-		if (cpudebugger) //Debugger on?
-		{
-			modrm_generateInstructionTEXT("<INTERNAL CALLBACK>",0,cb16,PARAM_IMM16);
-		}
-		CB_handler(cb16); //Call special handler!
-		break;
 	default: //Unknown opcode or special?
 		break;
 	}

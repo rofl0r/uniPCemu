@@ -158,6 +158,11 @@ byte EXEC_PORTOUTW(word port, word value)
 #ifdef __LOG_PORT
 	dolog("emu", "PORT OUT: %04X@%04X", value, port);
 #endif
+	if (port=IO_CALLBACKPORT) //Special handler port?
+	{
+		CB_handler(value); //Call special handler!
+		return 0; //We've succeeded!
+	}
 	for (i = 0; i < PORT_OUTW_COUNT; i++) //Process all ports!
 	{
 		if (PORT_OUTW[i]) //Valid port?

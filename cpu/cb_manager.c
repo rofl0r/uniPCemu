@@ -5,6 +5,7 @@
 
 #include "headers/interrupts/interrupt16.h" //For Dosbox compatibility.
 #include "headers/interrupts/interrupt10.h" //For Video BIOS compatibility.
+#include "headers/support/signedness.h" //Sign support!
 
 extern byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
 extern byte EMU_VGAROM[0x8000]; //Full VGA BIOS from 0xC0000-0xC8000 for the emulator and normal BIOS to use!
@@ -41,15 +42,24 @@ void CB_handler(word handlernr) //Call an handler (from CB_Handler)?
 }
 
 byte callbackzero = 0; //Zero callback?
+byte lastcallbackzero = 0; //Last zero callback?
 
 void CB_handleCallbacks() //Handle callbacks after CPU usage!
 {
 	if (currentcallback.hascallback) //Valid set?
 	{
 		currentcallback.hascallback = 0; //Reset to not used: we're being handled!
-		if (!currentcallback.handlernr) //Special handler?
+		REG_AX = CPU_POP16(); //POP AX off the stack, restoring it's value for the call!
+		if (currentcallback.handlernr<=1) //Special handler? (Conditional) Zero callback?
 		{
-			callbackzero = 1; //We're a zero callback!
+			if (!currentcallback.handlernr) //Zero callback?
+			{
+				callbackzero = 1; //We're a zero callback!
+			}
+			else //Conditional zero callback? Enable when the last callback executed was a zero callback!
+			{
+				callbackzero = lastcallbackzero; //Only zero callback if the last was one!
+			}
 		}
 		else
 		{
@@ -62,6 +72,7 @@ void CB_handleCallbacks() //Handle callbacks after CPU usage!
 					CB_SetCallback(0); //Not anymore!
 				}
 			}
+			lastcallbackzero = callbackzero; //Last zero callback status!
 			callbackzero = 0; //Not a zero callback anymore!
 		}
 	}
@@ -125,6 +136,19 @@ void CB_updatevectoroffsets(uint_32 intnr, word offset)
 	}
 }
 
+void CB_createcallback(byte isVGA, word callback, word *offset) //Create VGA/BIOS callback!
+{
+	word addrmask = isVGA?0x7FFF:0xFFFF; //The mask to use!
+	byte *datapoint;
+	datapoint = isVGA?&EMU_VGAROM[0]:&EMU_BIOS[0]; //What ROM to use?
+	datapoint[(*offset)++&addrmask] = 0x50; //PUSH AX on the stack for the handler!
+	datapoint[(*offset)++&addrmask] = 0xB8; //MOV AX,callback
+	datapoint[(*offset)++&addrmask] = (callback&0xFF); //Callback low!
+	datapoint[(*offset)++&addrmask] = ((callback>>8)&0xFF); //Callback high!
+	datapoint[(*offset)++&addrmask] = 0xE7; //OUT callbackport,AX
+	datapoint[(*offset)++&addrmask] = IO_CALLBACKPORT; //Our callback port!
+}
+
 void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 {
 	if ((CBhandler==NULL || !CBhandler) && (type==CB_INTERRUPT)) return; //Don't accept NULL INTERRUPT!
@@ -133,7 +157,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	word curhandler;
 	int found;
 	found = 0;
-	for (curhandler=1; curhandler<CB_MAX; curhandler++) //Check for new handler! #0 is reserved for a special operation!
+	for (curhandler=2; curhandler<CB_MAX; curhandler++) //Check for new handler! #0&#1 is reserved for a special operation!
 	{
 		if (!CBTypes[curhandler]) //Unset?
 		{
@@ -197,6 +221,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	}
 
 	word dataoffset = CB_realoffset; //Load the real offset for usage by default!
+	word callbackoffset; //Used in INT16 for getting a return point!
 
 	if ((type == CB_DOSBOX_INT16) || (type == CB_DOSBOX_MOUSE)) //We need to set the interrupt vector too?
 	{
@@ -273,11 +298,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	{
 	case CB_VIDEOINTERRUPT:
 	case CB_VIDEOENTRY:
-		EMU_VGAROM[incoffsetv] = 0xFE; //OpCode FE: Special case!
-		EMU_VGAROM[incoffsetv] = 0x38; //Special case: call internal interrupt number!
-		EMU_VGAROM[incoffsetv] = 0; //Call our (interrupt) handler?
-		EMU_VGAROM[incoffsetv] = 0; //We're a zero callback!
-
+		CB_createcallback(1,0,&dataoffset); //Create special callback!
 		EMU_VGAROM[incoffsetv] = 0x9A; //CALL ...
 		write_VGAw(incoffsetv, CB_dataoffset + CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
 		++dataoffset; //Word address!
@@ -293,12 +314,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		}
 
 		//Next, our handler as a simple FAR CALL function.
-		EMU_VGAROM[incoffsetv] = 0xFE; //OpCode FE: Special case!
-
-		EMU_VGAROM[incoffsetv] = 0x38; //Special case: call internal interrupt number!
-		EMU_VGAROM[incoffsetv] = curhandler & 0xFF; //Call our (interrupt) handler?
-		EMU_VGAROM[incoffsetv] = (curhandler >> 8) & 0xFF;
-
+		CB_createcallback(1,curhandler,&dataoffset); //Create our handler!
 		EMU_VGAROM[incoffsetv] = 0xCB; //RETF!
 		break;
 	case CB_UNASSIGNEDINTERRUPT: //Same as below, but unassigned to an interrupt!
@@ -308,10 +324,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		{
 			CPU_setint(intnr,CB_datasegment,CB_dataoffset); //Set the interrupt!
 		}
-		EMU_BIOS[incoffset] = 0xFE; //OpCode FE: Special case!
-		EMU_BIOS[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_BIOS[incoffset] = 0; //Call our (interrupt) handler?
-		EMU_BIOS[incoffset] = 0; //We're a zero callback!
+		CB_createcallback(0,0,&dataoffset); //Create special zero callback!
 
 		EMU_BIOS[incoffset] = 0x9A; //CALL ...
 		write_BIOSw(incoffset, CB_dataoffset+CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
@@ -321,11 +334,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		EMU_BIOS[incoffset] = 0xCF; //RETI: We're an interrupt handler!
 
 		//Next, our handler as a simple FAR CALL function.
-		EMU_BIOS[incoffset] = 0xFE; //OpCode FE: Special case!
-
-		EMU_BIOS[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_BIOS[incoffset] = curhandler&0xFF; //Call our (interrupt) handler?
-		EMU_BIOS[incoffset] = (curhandler>>8)&0xFF;
+		CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
 
 		if (intnr == 0x18) //Special data insertion: interrupt 18h!
 		{
@@ -348,10 +357,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 
 	//Handlers from DOSBox!
 	case CB_DOSBOX_IRQ0:	// timer int8
-		EMU_BIOS[incoffset] = 0xFE; //OpCode FE: Special case!
-		EMU_BIOS[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_BIOS[incoffset] = 0; //Call our (interrupt) handler?
-		EMU_BIOS[incoffset] = 0; //We're a zero callback!
+		CB_createcallback(0,0,&dataoffset); //Create special zero callback!
 
 		EMU_BIOS[incoffset] = 0x9A; //CALL ...
 		write_BIOSw(incoffset, CB_dataoffset + CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
@@ -361,10 +367,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		EMU_BIOS[incoffset] = 0xCF; //RETI: We're an interrupt handler!
 
 		//if (use_cb) {
-			EMU_BIOS[incoffset] = (Bit8u)0xFE;	//GRP 4
-			EMU_BIOS[incoffset] = (Bit8u)0x38;	//Extra Callback instruction
-			write_BIOSw(incoffset,(Bit16u)curhandler);		//The immediate word
-			dataoffset+=4;
+		CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
 		//}
 		EMU_BIOS[incoffset] =(Bit8u)0x50;		// push ax
 		EMU_BIOS[incoffset] =(Bit8u)0x52;		// push dx
@@ -383,10 +386,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		//return (use_cb?0x12:0x0e);
 		break;
 	case CB_DOSBOX_IRQ1:	// keyboard int9
-		EMU_BIOS[incoffset] = 0xFE; //OpCode FE: Special case!
-		EMU_BIOS[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_BIOS[incoffset] = 0; //Call our (interrupt) handler?
-		EMU_BIOS[incoffset] = 0; //We're a zero callback!
+		CB_createcallback(0,0,&dataoffset); //Create special zero callback!
 
 		EMU_BIOS[incoffset] = 0x9A; //CALL ...
 		write_BIOSw(incoffset, CB_dataoffset + CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
@@ -406,10 +406,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		//if (use_cb) {
 			write_BIOSw(incoffset,(Bit16u)0x0473);	// jc skip
 			++dataoffset;
-			EMU_BIOS[incoffset] =(Bit8u)0xFE;		//GRP 4
-			EMU_BIOS[incoffset] =(Bit8u)0x38;		//Extra Callback instruction
-			write_BIOSw(incoffset,(Bit16u)curhandler);			//The immediate word
-			++dataoffset;
+			CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
 			// jump here to (skip):
 		//}
 		EMU_BIOS[incoffset] =(Bit8u)0xfa;			// cli
@@ -422,10 +419,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		//return (use_cb?0x15:0x0f);
 		break;
 	case CB_DOSBOX_IRQ9:	// pic cascade interrupt
-		EMU_BIOS[incoffset] = 0xFE; //OpCode FE: Special case!
-		EMU_BIOS[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_BIOS[incoffset] = 0; //Call our (interrupt) handler?
-		EMU_BIOS[incoffset] = 0; //We're a zero callback!
+		CB_createcallback(0,0,&dataoffset); //Create special zero callback!
 
 		EMU_BIOS[incoffset] = 0x9A; //CALL ...
 		write_BIOSw(incoffset, CB_dataoffset + CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
@@ -435,10 +429,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		EMU_BIOS[incoffset] = 0xCF; //RETI: We're an interrupt handler!
 
 		//if (use_cb) {
-			EMU_BIOS[incoffset] =(Bit8u)0xFE;	//GRP 4
-			EMU_BIOS[incoffset] =(Bit8u)0x38;	//Extra Callback instruction
-			write_BIOSw(incoffset,(Bit16u)curhandler);		//The immediate word
-			++dataoffset;
+			CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
 			//dataoffset+=4;
 		//}
 		EMU_BIOS[incoffset] =(Bit8u)0x50;		// push ax
@@ -454,10 +445,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		//return (use_cb?0x0e:0x0a);
 		break;
 	case CB_DOSBOX_IRQ12:	// ps2 mouse int74
-		EMU_BIOS[incoffset] = 0xFE; //OpCode FE: Special case!
-		EMU_BIOS[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_BIOS[incoffset] = 0; //Call our (interrupt) handler?
-		EMU_BIOS[incoffset] = 0; //We're a zero callback!
+		CB_createcallback(0,0,&dataoffset); //Create special zero callback!
 
 		EMU_BIOS[incoffset] = 0x9A; //CALL ...
 		write_BIOSw(incoffset, CB_dataoffset + CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
@@ -473,18 +461,12 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		++dataoffset;
 		EMU_BIOS[incoffset] =(Bit8u)0xfc;		// cld
 		EMU_BIOS[incoffset] =(Bit8u)0xfb;		// sti
-		EMU_BIOS[incoffset] =(Bit8u)0xFE;		//GRP 4
-		EMU_BIOS[incoffset] =(Bit8u)0x38;		//Extra Callback instruction
-		write_BIOSw(incoffset,(Bit16u)curhandler);			//The immediate word
-		++dataoffset;
+		CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
 		EMU_BIOS[incoffset] = (Bit8u)0xcb;		//An RETF Instruction
 		//return 0x0a;
 		break;
 	case CB_DOSBOX_IRQ12_RET:	// ps2 mouse int74 return
-		EMU_BIOS[incoffset] = 0xFE; //OpCode FE: Special case!
-		EMU_BIOS[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_BIOS[incoffset] = 0; //Call our (interrupt) handler?
-		EMU_BIOS[incoffset] = 0; //We're a zero callback!
+		CB_createcallback(0,0,&dataoffset); //Create special zero callback!
 
 		EMU_BIOS[incoffset] = 0x9A; //CALL ...
 		write_BIOSw(incoffset, CB_dataoffset + CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
@@ -494,10 +476,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		EMU_BIOS[incoffset] = 0xCF; //RETI: We're an interrupt handler!
 
 		//if (use_cb) {
-			EMU_BIOS[incoffset] =(Bit8u)0xFE;	//GRP 4
-			EMU_BIOS[incoffset] =(Bit8u)0x38;	//Extra Callback instruction
-			write_BIOSw(incoffset,(Bit16u)curhandler);		//The immediate word
-			++dataoffset;
+			CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
 			//dataoffset+=4;
 		//}
 		EMU_BIOS[incoffset] =(Bit8u)0xfa;		// cli
@@ -538,10 +517,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		break;
 	*/
 	case CB_DOSBOX_MOUSE:
-		EMU_BIOS[incoffset] = 0xFE; //OpCode FE: Special case!
-		EMU_BIOS[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_BIOS[incoffset] = 0; //Call our (interrupt) handler?
-		EMU_BIOS[incoffset] = 0; //We're a zero callback!
+		CB_createcallback(0,0,&dataoffset); //Create special zero callback!
 
 		EMU_BIOS[incoffset] = 0x9A; //CALL ...
 		write_BIOSw(incoffset, CB_dataoffset + CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
@@ -554,20 +530,14 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		dataoffset+=7; //9-word=9-2=7.
 		// jump here to (i33hd):
 		//if (use_cb) {
-			EMU_BIOS[incoffset] =(Bit8u)0xFE;	//GRP 4
-			EMU_BIOS[incoffset] =(Bit8u)0x38;	//Extra Callback instruction
-			write_BIOSw(incoffset,(Bit16u)curhandler);		//The immediate word
-			++dataoffset;
+			CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
 			//dataoffset+=4;
 		//}
 		EMU_BIOS[incoffset] =(Bit8u)0xCB;		//An IRET Instruction
 		//return (use_cb?0x0e:0x0a);
 		break;
 	case CB_DOSBOX_INT16:
-		EMU_BIOS[incoffset] = 0xFE; //OpCode FE: Special case!
-		EMU_BIOS[incoffset] = 0x38; //Special case: call internal interrupt number!
-		EMU_BIOS[incoffset] = 0; //Call our (interrupt) handler?
-		EMU_BIOS[incoffset] = 0; //We're a zero callback!
+		CB_createcallback(0,0,&dataoffset); //Create special zero callback!
 
 		EMU_BIOS[incoffset] = 0x9A; //CALL ...
 		write_BIOSw(incoffset, CB_dataoffset + CB_INTERRUPT_CALLSIZE); //... Our interrupt handler, as a function call!
@@ -577,18 +547,18 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		EMU_BIOS[incoffset] = 0xCF; //RETI: We're an interrupt handler!
 
 		EMU_BIOS[incoffset] = (Bit8u)0xFB;		//STI
+		callbackoffset = dataoffset; //Save the callback offset!
 		//if (use_cb) {
 		byte i;
-			EMU_BIOS[incoffset] = (Bit8u)0xFE;	//GRP 4
-			EMU_BIOS[incoffset] =(Bit8u)0x38;	//Extra Callback instruction
-			write_BIOSw(incoffset,(Bit16u)curhandler);	//The immediate word
-			++dataoffset;
+			CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
 			//dataoffset+=4;
 		//}
 			EMU_BIOS[incoffset] = (Bit8u)0xCB;		//An RETF Instruction
-			for (i = 0; i <= 0x0b; i++) EMU_BIOS[incoffset] = 0x90;
-			write_BIOSw(incoffset, (Bit16u)0xedeb);	//jmp callback
-			++dataoffset;
+			for (i = 0; i <= 0x0b; i++) EMU_BIOS[incoffset] = 0x90; //12 NOP instructions!
+			CB_createcallback(0,1,&dataoffset); //Create special conditional zero callback: the same as zero callback, but only if set with previous call(actual zero callback was executed last time)!
+			
+			EMU_BIOS[incoffset] = 0xeb;
+			EMU_BIOS[incoffset] = signed2unsigned8(-(sbyte)((dataoffset+1)-callbackoffset));	//jmp callback handler
 			EMU_BIOS[incoffset] = (Bit8u)0xCF;		//An IRET Instruction
 		//return (use_cb?0x10:0x0c);
 		break;

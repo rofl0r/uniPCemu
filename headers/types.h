@@ -56,6 +56,9 @@
 //Halt is redirected to the exit function!
 #define quitemu exit
 
+//The port used for emulator callbacks!
+#define IO_CALLBACKPORT 0xEB
+
 //Short versions of 64-bit integers!
 #define u64 uint_64
 #define s64 int_64
