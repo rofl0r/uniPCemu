@@ -112,7 +112,7 @@ void write_BIOSw(uint_32 offset, word value)
 #define incoffsetv (incoffset&0x7FFF)
 
 //In the case of CB_INTERRUPT, how much to add to the address to get the CALL version
-#define CB_INTERRUPT_CALLSIZE 10
+#define CB_INTERRUPT_CALLSIZE 12
 
 void CB_createlongjmp(word entrypoint, word segment, word offset) //Create an alias for BIOS compatibility!
 {
