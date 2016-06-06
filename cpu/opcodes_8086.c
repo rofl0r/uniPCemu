@@ -3123,8 +3123,8 @@ void op_grp3_8() {
 		tempAL = REG_AL; //Save a backup for calculating cycles!
 		temp1.val32 = (uint32_t)oper1b * (uint32_t)REG_AL;
 		REG_AX = temp1.val16 & 0xFFFF;
-		if ((EMULATED_CPU==CPU_8086) && REG_AX) FLAG_ZF = 0; //8086/8088 clear Zero flag when not zero only.
 		FLAG_CF = FLAG_OF = ((word)REG_AL != REG_AX)?1:0;
+		if ((EMULATED_CPU==CPU_8086) && REG_AX) FLAG_ZF = 0; //8086/8088 clears the Zero flag when not zero only.
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 76+MODRM_EA(params); //Mem max!
@@ -3279,9 +3279,9 @@ void op_grp3_16() {
 		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
 		REG_AX = temp1.val16;
 		REG_DX = temp1.val16high;
-		if ((EMULATED_CPU==CPU_8086) && temp1.val32) FLAG_ZF = 0; //8086/8088 clear Zero flag when not zero only.
 		if (REG_DX) { FLAG_CF = FLAG_OF = 1; }
 		else { FLAG_CF = FLAG_OF = 0; }
+		if ((EMULATED_CPU==CPU_8086) && temp1.val32) FLAG_ZF = 0; //8086/8088 clears the Zero flag when not zero only.
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 124 + MODRM_EA(params); //Mem max!
