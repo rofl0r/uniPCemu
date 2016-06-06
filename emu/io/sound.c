@@ -699,7 +699,7 @@ OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
 	sample_l = (float)*leftsample; //Load the left sample to process!
 	sample_r = (float)*rightsample; //Load the right sample to process!
 
-	//First, as high pass to filter anything too low!
+	//Use the high pass to filter anything too low frequency!
 	#ifdef SOUND_HIGHPASS
 	applySoundHighpassFilter(SOUND_HIGHPASS,SW_SAMPLERATE,&sample_l,&soundhigh_last_result_l,&soundhigh_last_sample_l,&soundhigh_first_l);
 	applySoundHighpassFilter(SOUND_HIGHPASS,SW_SAMPLERATE,&sample_r,&soundhigh_last_result_r,&soundhigh_last_sample_r,&soundhigh_first_r);
