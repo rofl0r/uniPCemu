@@ -3151,6 +3151,7 @@ void op_grp3_8() {
 		temp3.val32s *= temp2.val32s; //Multiply!
 		REG_AX = temp3.val16; //Load into AX!
 		FLAG_CF = FLAG_OF = ((sword)(unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0);
+		FLAG_SF = (REG_AX>>15)&1; //Sign flag is affected!
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 86 + MODRM_EA(params); //Mem max!
@@ -3306,6 +3307,7 @@ void op_grp3_16() {
 		REG_AX = temp3.val16; //into register ax
 		REG_DX = temp3.val16high; //into register dx
 		FLAG_CF = FLAG_OF = ((int_32)temp3.val16s != temp3.val32s)?1:0; //Overflow occurred?
+		FLAG_SF = (REG_DX>>15)&1; //Sign flag is affected!
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 128 + MODRM_EA(params); //Mem max!
