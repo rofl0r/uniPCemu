@@ -2039,6 +2039,7 @@ extern double VGA_debugtiming; //Debug countdown if applyable!
 extern byte VGA_debugtiming_enabled; //Are we applying right now?
 #endif
 
+byte specialdebugger = 0; //Enable special debugger input?
 
 void updateInput(SDL_Event *event) //Update all input!
 {
@@ -2160,6 +2161,7 @@ void updateInput(SDL_Event *event) //Update all input!
 					VGA_debugtiming = 0.0f; //Reset the counter as well!#endif
 					VGA_debugtiming_enabled = 1; //Start dumping!
 					#endif
+					specialdebugger = !specialdebugger; //Toggle special debugger input?
 				}
 				break;
 			case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.

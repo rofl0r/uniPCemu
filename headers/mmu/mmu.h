@@ -83,4 +83,7 @@ void MMU_dumpmemory(char *filename); //Dump the memory to a file!
 void MMU_setA20(byte where, byte enabled); //Set A20 line enabled?
 void MMU_clearOP(); //Clear the OPcode cache!
 void MMU_addOP(byte data); //Add an opcode to the OPcode cache!
+uint_32 MMU_translateaddr(sword segdesc, word segment, uint_32 offset, byte wordop); //Translate to actual linear adress?
+void flushMMU(); //Flush MMU writes!
+void bufferMMU(); //Start buffering MMU writes!
 #endif

@@ -784,6 +784,7 @@ byte newREP = 1; //Are we a new repeating instruction (REP issued?)
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
+	bufferMMU(); //Buffer the MMU writes for us!
 	byte cycles_counted = 0; //Cycles have been counted?
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
 	debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
@@ -1000,6 +1001,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].cycles_MMUR = CPU[activeCPU].cycles_MMUW = 0; //No cycles MMU to use anymore!
 		CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
 	}
+	flushMMU(); //Flush MMU writes!
 }
 
 void CPU_hard_RETI() //Hardware RETI!

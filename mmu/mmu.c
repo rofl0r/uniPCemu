@@ -12,6 +12,7 @@
 #include "headers/mmu/mmuhandler.h" //MMU Handler support!
 #include "headers/emu/debugger/debugger.h" //Debugger support for logging MMU accesses!
 #include "headers/hardware/dram.h" //DRAM support!
+#include "headers/support/fifobuffer.h" //Write buffer support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -64,6 +65,9 @@ void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint
 uint_32 user_memory_used = 0; //Memory used by the software!
 byte force_memoryredetect = 0; //Force memory redetect?
 
+byte bufferMMUwrites = 0; //To buffer MMU writes?
+FIFOBUFFER *MMUBuffer = NULL; //MMU write buffer!
+
 void resetMMU()
 {
 	byte memory_allowresize = 1; //Do we allow resizing?
@@ -100,6 +104,8 @@ void resetMMU()
 	{
 		raiseError("MMU","No memory available to use!");
 	}
+	MMUBuffer = allocfifobuffer(100*6,0); //Alloc the write buffer with 100 entries (100 bytes)
+	
 }
 
 void doneMMU()
@@ -109,6 +115,10 @@ void doneMMU()
 	{
 		freez((void **)&MMU.memory,MMU.size,"doneMMU_Memory"); //Release memory!
 		MMU.size = 0; //Reset: none allocated!
+	}
+	if (MMUBuffer)
+	{
+		free_fifobuffer(&MMUBuffer); //Release us!
 	}
 }
 
@@ -239,8 +249,32 @@ OPTINLINE byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte opcode, 
 	return data;
 }
 
+byte enableMMUbuffer = 0; //To buffer the MMU writes?
+
 OPTINLINE void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) //Write without segment/offset translation&protection (from system/interrupt)!
 {
+	union
+	{
+		uint_32 realaddress; //The address!
+		byte addr[4];
+	} addressconverter;
+	byte status;
+	if (enableMMUbuffer && MMUBuffer) //To buffer all writes?
+	{
+		if (fifobuffer_freesize(MMUBuffer)>=7) //Enough size left to buffer?
+		{
+			addressconverter.realaddress = realaddress; //The address to break up!
+			status = 1; //1 byte written!
+			if (!writefifobuffer(MMUBuffer,status)) return; //Invalid data!
+			if (!writefifobuffer(MMUBuffer,addressconverter.addr[0])) return; //Invalid data!
+			if (!writefifobuffer(MMUBuffer,addressconverter.addr[1])) return; //Invalid data!
+			if (!writefifobuffer(MMUBuffer,addressconverter.addr[2])) return; //Invalid data!
+			if (!writefifobuffer(MMUBuffer,addressconverter.addr[3])) return; //Invalid data!
+			if (!writefifobuffer(MMUBuffer,val)) return; //Invalid data!
+			if (!writefifobuffer(MMUBuffer,index)) return; //Invalid data!
+			return;
+		}
+	}
 	if (MMU_logging) //To log?
 	{
 		dolog("debugger", "Writing to memory: %08X=%02X (%c)", realaddress, val,val?val:0x20); //Log it!
@@ -250,6 +284,35 @@ OPTINLINE void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byt
 	{
 		MMU_INTERNAL_directwb(realaddress,val,index); //Set data in real memory!
 	}
+}
+
+void flushMMU() //Flush MMU writes!
+{
+	union
+	{
+		uint_32 realaddress; //The address!
+		byte addr[4];
+	} addressconverter;
+	byte status;
+	byte val,index;
+	//Read the buffer
+	enableMMUbuffer = 0; //Finished buffering!
+	for (;readfifobuffer(MMUBuffer,&status);) //Gotten data to write(byte/word/dword data)?
+	{
+		//Status doesn't have any meaning yet, so ignore it(always byte data)!
+		if (!readfifobuffer(MMUBuffer,&addressconverter.addr[0])) break; //Invalid data!
+		if (!readfifobuffer(MMUBuffer,&addressconverter.addr[1])) break; //Invalid data!
+		if (!readfifobuffer(MMUBuffer,&addressconverter.addr[2])) break; //Invalid data!
+		if (!readfifobuffer(MMUBuffer,&addressconverter.addr[3])) break; //Invalid data!
+		if (!readfifobuffer(MMUBuffer,&val)) break; //Invalid data!
+		if (!readfifobuffer(MMUBuffer,&index)) break; //Invalid data!
+		MMU_INTERNAL_directwb_realaddr(addressconverter.realaddress,val,index); //Write the value to memory!
+	}
+}
+
+void bufferMMU() //Buffer MMU writes!
+{
+	enableMMUbuffer = 1; //Buffer MMU writes!
 }
 
 byte writeword = 0; //Hi-end word written?
@@ -273,6 +336,11 @@ OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte
 	//We work!
 	//dolog("MMU","\nAddress translation: %04X:%08X=%08X",originalsegment,originaloffset,realaddress); //Log the converted address!
 	return realaddress; //Give real adress!
+}
+
+uint_32 MMU_translateaddr(sword segdesc, word segment, uint_32 offset, byte wordop) //Translate to actual linear adress?
+{
+	return MMU_realaddr(segdesc, segment, offset, wordop); //Translate it!
 }
 
 //OPcodes for the debugger!
