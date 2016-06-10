@@ -2085,11 +2085,11 @@ void CPU8086_OP84() {modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT
 void CPU8086_OP85() {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("TESTW",16,0,PARAM_MODRM12); CPU8086_internal_TEST16(modrm_read16(&params,0),modrm_read16(&params,1),2); }
 void CPU8086_OP86() {modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("XCHGB",8,0,PARAM_MODRM12); CPU8086_internal_XCHG8(modrm_addr8(&params,0,0),modrm_addr8(&params,1,1),2); /*XCHG reg8,r/m8*/ }
 void CPU8086_OP87() {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("XCHGW",16,0,PARAM_MODRM12); CPU8086_internal_XCHG16(modrm_addr16(&params,0,0),modrm_addr16(&params,1,1),2); /*XCHG reg16,r/m16*/ }
-void CPU8086_OP88() {modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("MOVB",8,0,PARAM_MODRM21); CPU8086_internal_MOV8(modrm_addr8(&params,1,0),modrm_read8(&params,0),2); }
-void CPU8086_OP89() {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("MOVW",16,0,PARAM_MODRM21); CPU8086_internal_MOV16(modrm_addr16(&params,1,0),modrm_read16(&params,0),2); }
+void CPU8086_OP88() {modrm_debugger8(&params,1,0); modrm_generateInstructionTEXT("MOVB",8,0,PARAM_MODRM21); CPU8086_internal_MOV8(modrm_addr8(&params,1,0),modrm_read8(&params,0),2); }
+void CPU8086_OP89() {modrm_debugger16(&params,1,0); modrm_generateInstructionTEXT("MOVW",16,0,PARAM_MODRM21); CPU8086_internal_MOV16(modrm_addr16(&params,1,0),modrm_read16(&params,0),2); }
 void CPU8086_OP8A() {modrm_debugger8(&params,0,1); modrm_generateInstructionTEXT("MOVB",8,0,PARAM_MODRM12); CPU8086_internal_MOV8(modrm_addr8(&params,0,0),modrm_read8(&params,1),2); }
 void CPU8086_OP8B() {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("MOVW",16,0,PARAM_MODRM12); CPU8086_internal_MOV16(modrm_addr16(&params,0,0),modrm_read16(&params,1),2); }
-void CPU8086_OP8C() {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("MOVW",16,0,PARAM_MODRM21); CPU8086_internal_MOV16(modrm_addr16(&params,1,0),modrm_read16(&params,0),8); }
+void CPU8086_OP8C() {modrm_debugger16(&params,1,0); modrm_generateInstructionTEXT("MOVW",16,0,PARAM_MODRM21); CPU8086_internal_MOV16(modrm_addr16(&params,1,0),modrm_read16(&params,0),8); }
 void CPU8086_OP8D() {modrm_debugger16(&params,0,1); debugger_setcommand("LEA %s,%s",modrm_param1,getLEAtext(&params)); CPU8086_internal_MOV16(modrm_addr16(&params,0,0),getLEA(&params),0); CPU[activeCPU].cycles_OP = 2+MODRM_EA(params); /* Load effective address */}
 void CPU8086_OP8E() {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("MOVW",16,0,PARAM_MODRM12); CPU8086_internal_MOV16(modrm_addr16(&params,0,0),modrm_read16(&params,1),8); }
 void CPU8086_OP90() /*NOP*/ {modrm_generateInstructionTEXT("NOP",0,0,PARAM_NONE);/*NOP (XCHG AX,AX)*/ CPU8086_internal_XCHG16(&REG_AX,&REG_AX,1); CPU[activeCPU].cycles_OP = 3; /* NOP */}
