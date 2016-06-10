@@ -1283,7 +1283,7 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 {
 	BIOS_Title("Manage mounted drives");
 	BIOS_InitDisksText(); //First, initialise texts!
-	int menuresult = BIOS_ShowMenu(11,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION,&Menu_Stat); //Show the menu options, allow SQUARE!
+	int menuresult = BIOS_ShowMenu(12,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION,&Menu_Stat); //Show the menu options, allow SQUARE!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_LTRIGGER: //L: Main menu?
