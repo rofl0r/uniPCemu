@@ -205,10 +205,13 @@ OPTINLINE byte dynamicimage_updatelookuptable(FILE *f, int_64 location, int_64 n
 	return 0; //Error: not found!
 }
 
+byte lookuptabledepth = 0; //Lookup table depth found?
+
 OPTINLINE int_64 dynamicimage_getindex(FILE *f, uint_32 sector) //Get index!
 {
 	DYNAMICIMAGE_HEADER header;
 	int_64 index;
+	lookuptabledepth = 0; //Default: nothing found!
 	if (!readdynamicheader(f, &header)) //Not dynamic?
 	{
 		return -1; //Error: not dynamic!
@@ -216,12 +219,15 @@ OPTINLINE int_64 dynamicimage_getindex(FILE *f, uint_32 sector) //Get index!
 	if (!header.firstlevellocation) return 0; //Not present: no first level lookup table!
 	if (!(index = dynamicimage_readlookuptable(f, header.firstlevellocation, 1024, ((sector >> 22) & 0x3FF)))) //First level lookup!
 	{
+		lookuptabledepth = 1; //First level present, but unused!
 		return 0; //Not present!
 	}
 	if (!(index = dynamicimage_readlookuptable(f, index, 1024, ((sector >> 12) & 0x3FF)))) //Second level lookup!
 	{
+		lookuptabledepth = 2; //Second level present, but unused!
 		return 0; //Not present!
 	}
+	lookuptabledepth = 3; //Third level present and checked!
 	if (!(index = dynamicimage_readlookuptable(f, index, 4096, (sector & 0xFFF)))) //Sector level lookup!
 	{
 		return 0; //Not present!
@@ -229,13 +235,13 @@ OPTINLINE int_64 dynamicimage_getindex(FILE *f, uint_32 sector) //Get index!
 	return index; //We're present at this index, if at all!
 }
 
-OPTINLINE byte dynamicimage_datapresent(FILE *f, uint_32 sector) //Get present?
+OPTINLINE sbyte dynamicimage_datapresent(FILE *f, uint_32 sector) //Get present?
 {
 	int_64 index;
 	index = dynamicimage_getindex(f, sector); //Try to get the index!
 	if (index == -1) //Not a dynamic image?
 	{
-		return 0; //Invalid file!
+		return -1; //Invalid file!
 	}
 	return (index!=0); //We're present?
 }
@@ -522,6 +528,50 @@ byte dynamicimage_readexistingsector(char *filename,uint_32 sector, void *buffer
 	}
 	emufclose64(f); //Close it!
 	return FALSE; //Not present by default!
+}
+
+sbyte dynamicimage_nextallocatedsector(char *filename, uint_32 *sector)
+{
+	DYNAMICIMAGE_HEADER header;
+	FILE *f;
+	f = emufopen64(filename, "rb"); //Open!
+	if (!readdynamicheader(f, &header)) //Failed to read the header?
+	{
+		emufclose64(f); //Close the device!
+		return -1; //Error: invalid file!
+	}
+	if (*sector >= header.filesize) //Primary limit check!
+	{
+		emufclose64(f); //Close the device!
+		return -1; //We're over the limit of the image!
+	}
+	
+	++*sector; //The next sector to check!
+	int present = dynamicimage_datapresent(f,*sector); //Data present?
+	for (;(present!=-1) && (!present);) //Check while not present and valid sector!
+	{
+		if (*sector >= header.filesize) //EOF reached
+		{
+			present = 0; //Nothing present, because of EOF!
+			break; //Stop searching!
+		}
+		switch (lookuptabledepth) //What depth has been detected?
+		{
+			case 1: //First level present, but unused!
+				*sector = ((*sector+0x400000)&~0x3FFFFF); //Skip to the start of the next sector block(up to 4096*1024 sectors)!
+				break;
+			case 2: //Second level present, but unused!
+				*sector = ((*sector+0x1000)&~0xFFF); //Skip to the start of the next sector block(up to 4096 sectors)!
+				break;
+			default: //Normal handling, sector by sector!
+			case 3: //Third level present, but unused!
+				++*sector; //Skip one sector only!
+				break;
+		}
+		present = dynamicimage_datapresent(f,*sector); //Data present/valid for this sector?
+	}
+	emufclose64(f); //Close it!
+	return (sbyte)present; //Next sector that is (un)allocated! -1=Invalid file, 0=Nothing present anymore(EOF reached during search), 1=
 }
 
 FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int percentagey)
