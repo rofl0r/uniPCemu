@@ -10,4 +10,5 @@ FILEPOS dynamicimage_getsize(char *filename);
 
 FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int percentagey); //Generate dynamic image; returns size.
 byte dynamicimage_readexistingsector(char *filename,uint_32 sector, void *buffer); //Has a 512-byte sector! Result=1 on present&filled(buffer filled), 0 on not present or error! Used for simply copying the sector to a different image!
+sbyte dynamicimage_nextallocatedsector(char *filename, uint_32 *sector); //Finds the next allocated sector. 0=EOF reached, 1=Found sector, -1=Invalid or corrupt file.
 #endif
