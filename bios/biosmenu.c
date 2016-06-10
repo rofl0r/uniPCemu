@@ -604,6 +604,7 @@ void BIOS_MenuChooser() //The menu chooser!
 
 void BIOS_Title(char *text)
 {
+	BIOSClearScreen(); //Clear our screen first!
 	EMU_textcolor(BIOSHEADER_ATTR); //Header fontcolor!
 	printcenter(text,2); //Show title text!
 }
@@ -1901,11 +1902,10 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 
 void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 {
-	BIOS_Title("Generate Static HDD Image");
 	char filename[256]; //Filename container!
-	bzero(filename,sizeof(filename)); //Init!
 	FILEPOS size = 0;
 	BIOSClearScreen(); //Clear the screen!
+	bzero(filename,sizeof(filename)); //Init!
 	BIOS_Title("Generate Static HDD Image"); //Full clear!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto position for info!
@@ -2024,13 +2024,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 		break; //Just calmly return!
 	default: //File?
 		strcpy(filename, itemlist[file]); //Use this file!
-		EMU_locktext();
-		EMU_textcolor(BIOS_ATTR_TEXT);
-		EMU_unlocktext();
-
 		if (strcmp(filename, "") != 0) //Got input?
 		{
+			BIOS_Title("Convert static to dynamic HDD Image"); //Full clear!
 			EMU_locktext();
+			EMU_textcolor(BIOS_ATTR_TEXT);
 			EMU_gotoxy(0, 4); //Goto position for info!
 			GPU_EMU_printscreen(0, 4, "Filename: %s  ", filename); //Show the filename!
 			EMU_gotoxy(0, 5); //Next row!
@@ -2205,13 +2203,11 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 		break; //Just calmly return!
 	default: //File?
 		strcpy(filename, itemlist[file]); //Use this file!
-		EMU_locktext();
-		EMU_textcolor(BIOS_ATTR_TEXT);
-		EMU_unlocktext();
-
 		if (strcmp(filename, "") != 0) //Got input?
 		{
+			BIOS_Title("Convert dynamic to static HDD Image"); //Full clear!
 			EMU_locktext();
+			EMU_textcolor(BIOS_ATTR_TEXT);
 			EMU_gotoxy(0, 4); //Goto position for info!
 			GPU_EMU_printscreen(0, 4, "Filename: %s  ", filename); //Show the filename!
 			EMU_gotoxy(0, 5); //Next row!
@@ -2381,13 +2377,12 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 		break;
 	default: //File?
 		strcpy(filename, itemlist[file]); //Use this file!
-		EMU_locktext();
-		EMU_textcolor(BIOS_ATTR_TEXT);
-		EMU_unlocktext();
 
 		if (strcmp(filename, "") != 0) //Got input?
 		{
+			BIOS_Title("Defragment a dynamic HDD Image"); //Full clear!
 			EMU_locktext();
+			EMU_textcolor(BIOS_ATTR_TEXT);
 			EMU_gotoxy(0, 4); //Goto position for info!
 			GPU_EMU_printscreen(0, 4, "Filename: %s ", filename); //Show the filename!
 			EMU_gotoxy(0, 5); //Next row!
@@ -2505,7 +2500,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 
 							previoussectornr = sectornr; //Last sector number to compare to!
 							previousdestsectornr = destsectornr; //Save the previous for comparing!
-							deststatus = dynamicimage_nextallocatedsector(originalfilename,&destsectornr); //Next sector or block etc. which is available!
+							deststatus = dynamicimage_nextallocatedsector(filename,&destsectornr); //Next sector or block etc. which is available!
 							srcstatus = dynamicimage_nextallocatedsector(originalfilename,&sectornr); //Next sector or block etc. which is available!
 							switch (srcstatus) //What status?
 							{
@@ -2528,13 +2523,13 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							{
 								updatenr = 0; //Reset!
 								EMU_locktext();
-								GPU_EMU_printscreen(21, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 								EMU_unlocktext();
 							}
 						}
 						finishedphase2:
 						EMU_locktext();
-						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+						GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
@@ -2569,6 +2564,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							}
 							sprintf(errorlog,"%s\nPrevious source sector: %u\nPrevious destination sector: %u",errorlog,previoussectornr,previousdestsectornr); //Previous sector numbers!
 							dolog(originalfilename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr, size, sectorposition); //Error at this sector!
+							dolog(originalfilename, "\n%s",errorlog); //Error at this sector information!
 						}
 						else //We've been defragmented?
 						{
@@ -4462,7 +4458,6 @@ uint_32 GetPercentage(byte x, byte y, uint_32 Percentage) //Retrieve the size, o
 
 void BIOS_SoundSourceVolume()
 {
-	BIOS_clearscreen(); //Clear our screen first!
 	BIOS_Title("Sound Source Volume");
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
