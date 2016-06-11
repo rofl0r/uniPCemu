@@ -94,7 +94,7 @@ http://webpages.charter.net/danrollins/techhelp/0114.HTM
 
 */
 
-VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA and gives the current set!
+VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //Initialises VGA and gives the current set!
 {
 	if (__HW_DISABLED) return NULL; //Abort!
 
@@ -199,6 +199,8 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios) //Initialises VGA 
 	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!
 	
 	((SEQ_DATA *)VGA->Sequencer)->graphicsx = &pixelbuffer[0]; //Reset the graphics pointer!
+
+	VGA->enable_SVGA = extension; //Enable the extension when set!
 
 	debugrow("VGA: Allocation ready.");
 	return VGA; //Give the new allocated VGA!

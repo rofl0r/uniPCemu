@@ -81,6 +81,8 @@
 
 #include "headers/hardware/dram.h" //DRAM support!
 
+#include "headers/hardware/vga/svga/et4000.h" //Tseng ET4000 SVGA card!
+
 //CPU default clock speeds (in Hz)!
 
 //The clock speed of the 8086 (~14.31818MHz divided by 3)!
@@ -293,10 +295,14 @@ void initEMU(int full) //Init!
 
 	VGA_initTimer(); //Initialise the VGA timer for usage!
 
-	MainVGA = VGAalloc(0,1); //Allocate a main VGA, automatically by BIOS!
+	uint_32 VRAMSizeBackup;
+	VRAMSizeBackup = BIOS_Settings.VRAM_size; //Save the original VRAM size for extensions!
+
+	MainVGA = VGAalloc(0,1,(BIOS_Settings.VGA_Mode==6)?1:0); //Allocate a main VGA, automatically by BIOS!
 	debugrow("Activating main VGA engine...");
 	setActiveVGA(MainVGA); //Initialise primary VGA using the BIOS settings, for the system itself!
 	initCGA_MDA(); //Add CGA/MDA support to the VGA as an extension!
+	if (BIOS_Settings.VGA_Mode==6) SVGA_Setup_TsengET4K(VRAMSizeBackup); //Start the Super VGA card instead if enabled!
 
 	debugrow("Initializing 8259...");
 	init8259(); //Initialise the 8259 (PIC)!

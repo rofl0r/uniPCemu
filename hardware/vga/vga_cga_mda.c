@@ -1785,5 +1785,5 @@ void initCGA_MDAState() //Initialise our compatibility layer!
 
 void initCGA_MDA()
 {
-	VGA_registerExtension(&CGAMDA_readIO,&CGAMDA_writeIO,&initCGA_MDAState); //Register our extension handlers for I/O!
+	VGA_registerExtension(&CGAMDA_readIO,&CGAMDA_writeIO,&initCGA_MDAState,NULL); //Register our extension handlers for I/O!
 }

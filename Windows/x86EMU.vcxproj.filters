@@ -91,6 +91,12 @@
     <Filter Include="Header Files\basicio">
       <UniqueIdentifier>{9ed6129a-1a6c-43a8-90ea-7ce4201c53f2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\hardware\vga\svga">
+      <UniqueIdentifier>{e38983a6-63c2-411c-8a4c-765f2633790a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\hardware\vga\svga">
+      <UniqueIdentifier>{b2bf20fe-77ca-4b49-9f35-c30442459e81}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\basicio\boot.c">
@@ -492,6 +498,9 @@
     <ClCompile Include="..\cpu\timings.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
+    <ClCompile Include="..\hardware\vga\svga\et4000.c">
+      <Filter>Source Files\hardware\vga\svga</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">
@@ -891,6 +900,9 @@
     </ClInclude>
     <ClInclude Include="..\headers\hardware\dram.h">
       <Filter>Header Files\hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\hardware\vga\svga\et4000.h">
+      <Filter>Header Files\hardware\vga\svga</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

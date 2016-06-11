@@ -689,6 +689,8 @@ typedef struct PACKED
 	byte PixelCounter; //A simple counter to count up to 16 hdots with!
 	byte WaitState; //Active waitstate on CGA/MDA? Wait the CPU when enabled!
 	byte WaitStateCounter; //What are we counting to?
+	void *SVGAExtension; //The SVGA extension data, if any!
+	byte enable_SVGA; //Enable SVGA? If >0, a SVGA extension is enabled. Then initialize it as needed!
 } VGA_Type; //VGA dataset!
 #include "headers/endpacked.h" //We're packed!
 
@@ -716,7 +718,7 @@ All functions!
 
 */
 
-VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios); //Allocates VGA and gives the current set!
+VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension); //Allocates VGA and gives the current set!
 void setupVGA(); //Sets the VGA up for PC usage (CPU access etc.)!
 void setActiveVGA(VGA_Type *VGA); //Sets the active VGA chipset!
 void terminateVGA(); //Terminate running VGA and disable it! Only to be used by root processes (non-VGA processes!)
@@ -759,5 +761,5 @@ void adjustVGASpeed(); //Auto-adjust our VGA speed!
 void VGA_initIO(); //Initialise all I/O support for the VGA/EGA/CGA/MDA!
 
 //Extension support!
-void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler); //Register an extension for use with the VGA!
+void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler, VGA_calcprecalcsextensionhandler precalcsextensionhandler); //Register an extension for use with the VGA!
 #endif

@@ -140,7 +140,10 @@ typedef struct //Contains the precalculated values!
 	uint_32 extrasignal; //Graphics mode display bit!
 } VGA_PRECALCS; //VGA pre-calculations!
 
+typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated); //Calculate them!
+
 void VGA_calcprecalcs(void *VGA, uint_32 whereupdated); //Calculate them!
 void VGA_LOGCRTCSTATUS(); //Log the current CRTC precalcs status!
 void dump_CRTCTiming(); //Dump the full CRTC timing calculated from the precalcs!
+
 #endif

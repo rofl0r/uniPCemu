@@ -12,6 +12,8 @@ uint_32 VGA_VRAM_END = 0xC0000; //VRAM end address default!
 byte VGA_RAMEnable = 1; //Is our RAM enabled?
 byte VGA_MemoryMapSelect = 0; //What memory map is active?
 
+uint_32 VGA_MemoryMapBankRead = 0, VGA_MemoryMapBankWrite = 0; //The memory map bank to use!
+
 OPTINLINE void VGA_updateLatches()
 {
 	//Update the latch the software can read.
@@ -241,6 +243,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		calcplanes &= 0x3; //Lower 2 bits determine the plane!
 		*planes = (1 << calcplanes); //Give the planes to write to!
 		realoffsettmp &= 0xFFFC; //Rest of bits, multiples of 4 won't get written! Used to be 0xFFFB, but should be multiples of 4 ignored, so clear bit 2, changed to 0xFFFC (multiple addresses of 4 with plane bits ignored) to make it correctly linear with 256 color modes (dword mode)!
+		realoffsettmp |= towrite?VGA_MemoryMapBankWrite:VGA_MemoryMapBankRead; //Apply read/write bank!
 		*realoffset = realoffsettmp; //Give the offset!
 		return; //Done!
 	}
@@ -257,6 +260,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 			calcplanes <<= getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
 		}
 		*planes = calcplanes; //The planes to apply!
+		offset |= towrite ? VGA_MemoryMapBankWrite : VGA_MemoryMapBankRead; //Apply read/write bank!
 		*realoffset = offset; //Load the offset directly!
 		return; //Done!
 	}
@@ -274,6 +278,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	{
 		calcplanes = 0; //Use plane 0 always!
 	}
+	realoffsettmp |= towrite ? VGA_MemoryMapBankWrite : VGA_MemoryMapBankRead; //Apply read/write bank!
 	*realoffset = realoffsettmp; //Give the calculated offset!
 	if ((VGA_MemoryMapSelect == 1) && (!oddevenmemorymode)) //Memory map mode 1?
 	{

@@ -501,11 +501,14 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	return ok; //Give if we're handled!
 }
 
-void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler) //Register an extension for use with the VGA!
+extern VGA_calcprecalcsextensionhandler VGA_precalcsextensionhandler; //The precalcs extension handler!
+
+void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler, VGA_calcprecalcsextensionhandler precalcsextensionhandler) //Register an extension for use with the VGA!
 {
 	VGA_readIOExtension = readhandler; //Register the read handler, if used!
 	VGA_writeIOExtension = writehandler; //Register the read handler, if used!
 	VGA_initializationExtension = initializationhandler; //Register the initialization handler, if used!
+	VGA_precalcsextensionhandler = precalcsextensionhandler; //Register the precalcs extension handler, if used!
 }
 
 void VGA_initIO()

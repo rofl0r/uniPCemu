@@ -40,7 +40,7 @@ typedef struct PACKED
 	INPUT_SETTINGS input_settings; //Settings for input!
 
 	byte VGA_AllowDirectPlot; //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
-	uint_32 VRAM_size; //VGA VRAM size!
+	uint_32 VRAM_size; //(S)VGA VRAM size!
 	byte bwmonitor; //Are we a b/w monitor?
 	byte aspectratio; //The aspect ratio to use?
 

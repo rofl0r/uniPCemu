@@ -209,6 +209,8 @@ void checkCGAcursor(VGA_Type *VGA)
 
 extern byte CGAMDARenderer;
 
+VGA_calcprecalcsextensionhandler VGA_precalcsextensionhandler = NULL; //Our precalcs extension handler!
+
 void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, whereupdated: where were we updated?
 {
 	//All our flags for updating sections related!
@@ -867,6 +869,11 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			changeRowTimer(VGA,VGA->precalcs.clockselectrows); //Make sure the display scanline refresh rate is OK!		
 		}
 		recalcScanline = 1; //Recalc scanline data!
+	}
+
+	if (VGA_precalcsextensionhandler) //Extension registered?
+	{
+		VGA_precalcsextensionhandler(useVGA,whereupdated); //Execute the precalcs extension!
 	}
 	
 	//Recalculate all our lookup tables when needed!
