@@ -21,6 +21,7 @@ byte getHorizontalPixelPanning(VGA_Type *VGA); //Active horizontal pixel panning
 void VGA_AttributeController_calcAttributes(VGA_Type *VGA); //Update attributes!
 //Seperate attribute modes!
 typedef byte(*VGA_AttributeController_Mode)(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA); //An attribute controller mode!
+byte VGA_AttributeController_16bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA);
 byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA);
 byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA);
 //Translate 4-bit or 8-bit color to 256 color DAC Index through palette!

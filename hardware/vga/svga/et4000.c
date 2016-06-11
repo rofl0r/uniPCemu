@@ -350,9 +350,19 @@ extern uint_32 VGA_MemoryMapBankRead, VGA_MemoryMapBankWrite; //The memory map b
 void Tseng4k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 {
 	VGA_Type *VGA = (VGA_Type *)useVGA; //The VGA to work on!
-	if (!et4k_data->extensionsEnabled) return; //Abort when we're disabled!
+	if (!et4k(VGA)->extensionsEnabled) return; //Abort when we're disabled!
 	VGA_MemoryMapBankRead = et4k_data->bank_read<<16; //Read bank!
 	VGA_MemoryMapBankWrite = et4k_data->bank_write<<16; //Write bank!
+	//Bits 4-5 of the Attribute Controller register 0x16(Miscellaneous) determine the mode to be used when decoding pixels:
+	/*
+	00=Normal power-up/default(VGA mode)
+	01=Reserved
+	10=High-resolution mode (up to 256 colors)
+	11=High-color 16-bits/pixel
+	*/
+	VGA->precalcs.AttributeController_16bitDAC = (et4k(VGA)->store_3c0_16>>4)&3; //The mode to use when decoding!
+	if (VGA->precalcs.AttributeController_16bitDAC==1) VGA->precalcs.AttributeController_16bitDAC = 0; //Ignore the reserved value, forcing VGA mode in that case!
+	//Modes 2&3 set forced 8-bit and 16-bit Attribute modes!
 }
 
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize) {

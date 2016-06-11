@@ -31,6 +31,7 @@ typedef struct {
 } SVGA_ET4K_DATA; //Dosbox ET4000 saved data!
 
 #define et4k_data ((SVGA_ET4K_DATA *)getActiveVGA()->SVGAExtension)
+#define et4k(VGA) ((SVGA_ET4K_DATA *)VGA->SVGAExtension)
 
 #define STORE_ET4K(port, index) \
 	case 0x##index: \

@@ -415,11 +415,20 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	++VGA->CRTC.x; //Next x!
 }
 
+uint_32 CLUT16bit[0x10000]; //16-bit color lookup table!
+
 OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
-	drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
+	if (VGA->precalcs.AttributeController_16bitDAC==3) //16-bit color mode?
+	{
+		drawPixel(VGA,CLUT16bit[attributeinfo->attribute]); //Draw the 16-bit color pixel!
+	}
+	else //VGA compatibility mode?
+	{
+		drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
+	}
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -435,13 +444,20 @@ OPTINLINE void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 	++VGA->CRTC.x; //Next x!
 }
 
-static VGA_AttributeController_Mode attributecontroller_modes[2] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit }; //Both modes we use!
+static VGA_AttributeController_Mode attributecontroller_modes[4] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit, VGA_AttributeController_8bit, VGA_AttributeController_16bit }; //Both modes we use!
 
 VGA_AttributeController_Mode attrmode = VGA_AttributeController_4bit; //Default mode!
 
 void updateVGAAttributeController_Mode(VGA_Type *VGA)
 {
-	attrmode = attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode!
+	if (VGA->precalcs.AttributeController_16bitDAC) //16-bit DAC override active?
+	{
+		attrmode = attributecontroller_modes[VGA->precalcs.AttributeController_16bitDAC]; //Apply the current mode!
+	}
+	else //VGA compatibility mode?
+	{
+		attrmode = attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
+	}
 }
 
 OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA) //Process attribute to DAC index!
@@ -696,5 +712,10 @@ void initStateHandlers()
 		
 		//Rendering handler without retrace AND total!
 		displayrenderhandler[0][i] = ((i&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)?((i&VGA_DISPLAYGRAPHICSMODE)?((i&VGA_SIGNAL_BLANKING)?&VGA_ActiveDisplay_Graphics_blanking: &VGA_ActiveDisplay_Graphics): ((i&VGA_SIGNAL_BLANKING) ? &VGA_ActiveDisplay_Text_blanking : &VGA_ActiveDisplay_Text)):((i&VGA_SIGNAL_BLANKING) ? &VGA_Overscan : &VGA_Overscan_blanking); //Not retracing or any total handler = display/overscan!
+	}
+
+	for (i = 0;i < 0x10000;++i) //Create the 16-bit CLUT!
+	{
+		CLUT16bit[i] = RGB((i&0x1F),((i>>5)&0x3F),((i>>11)&0x1F)); //16-bit color lookup table (5:6:5 format)!
 	}
 }

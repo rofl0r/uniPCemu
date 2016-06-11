@@ -138,6 +138,7 @@ typedef struct //Contains the precalculated values!
 	byte graphicsmode_nibbled; //Allow nibbled reversal mask this must allow values 1&2 to be decreased, else 0 with text modes!
 	uint_32 VRAMmask; //The mask used for accessing VRAM!
 	uint_32 extrasignal; //Graphics mode display bit!
+	byte AttributeController_16bitDAC; //Enable the 16-bit/8-bit DAC color formation in the Attribute Controller?
 } VGA_PRECALCS; //VGA pre-calculations!
 
 typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated); //Calculate them!

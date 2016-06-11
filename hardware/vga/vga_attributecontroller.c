@@ -249,6 +249,21 @@ OPTINLINE byte VGA_getAttributeDACIndex(VGA_AttributeInfo *Sequencer_attributein
 	return VGA->precalcs.attributeprecalcs[Sequencer_attributeinfo->attribute|Sequencer_attributeinfo->lookupprecalcs|Sequencer_attributeinfo->fontpixel]; //Give the data from the lookup table!
 }
 
+byte VGA_AttributeController_16bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
+{
+	static byte curnibble = 0;
+	static word latchednibbles = 0; //What nibble are we currently?
+	INLINEREGISTER word temp;
+	//First, execute the shift and add required in this mode!
+	temp = latchednibbles;
+	temp <<= 4; //Shift high!
+	temp |= (VGA_getAttributeDACIndex(Sequencer_attributeinfo, VGA) & 0xF); //Latch to DAC Nibble!
+	Sequencer_attributeinfo->attribute = latchednibbles = temp; //Look the DAC Index up!
+	++curnibble;
+	curnibble &= 3; //4 nibbles form one color value!
+	return (curnibble!=0); //Give us the next nibble, when needed, please!
+}
+
 byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
 {
 	static byte curnibble = 0;
