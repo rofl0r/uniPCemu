@@ -632,8 +632,8 @@ typedef struct PACKED
 #include "headers/packed.h" //We're packed!
 typedef struct PACKED
 {
-	uint_32 rowstatus[0x800]; //Row status!
-	word charrowstatus[0x1000]; //Character row status (double the row status, for character and inner)
+	uint_32 rowstatus[0x1000]; //Row status!
+	word charrowstatus[0x2000]; //Character row status (double the row status, for character and inner)
 	uint_32 colstatus[0x1000]; //Column status!
 	word charcolstatus[0x2000]; //Character column status (double the row status, for character and inner)
 	word extrahorizontalstatus[0x2000]; //Extra status information for rendering active display!
