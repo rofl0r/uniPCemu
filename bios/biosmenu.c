@@ -3533,6 +3533,10 @@ void BIOS_VGAModeSetting()
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
+			if ((file==6) || (current==6)) //Switching to/from SVGA mode?
+			{
+				BIOS_Settings.VRAM_size = 0; //Autodetect current memory size!
+			}
 			BIOS_Changed = 1; //Changed!
 			BIOS_Settings.VGA_Mode = file; //Select VGA Mode setting!
 		}

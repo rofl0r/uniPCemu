@@ -4,6 +4,7 @@
 #include "headers/support/zalloc.h" //Memory allocation support!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/hardware/ports.h" //I/O support!
+#include "headers/bios/bios.h" //Basic BIOS support!
 
 float ET4K_clockFreq[16] = {
 	0.0f, //VGA defined!
@@ -23,6 +24,8 @@ float ET4K_clockFreq[16] = {
 	62800000.0f, //ET4000 clock!
 	74800000.0f //ET4000 clock!
 	};
+
+extern uint_32 VGA_MemoryMapBankRead, VGA_MemoryMapBankWrite; //The memory map bank to use!
 
 byte Tseng4K_writeIO(word port, byte val)
 {
@@ -179,6 +182,10 @@ byte Tseng4K_writeIO(word port, byte val)
 	case 0x3CD: //Segment select?
 		et4k_data->bank_write = val & 0x0f;
 		et4k_data->bank_read = (val >> 4) & 0x0f;
+		//Apply correct memory banks!
+		VGA_MemoryMapBankRead = et4k_data->bank_read << 16; //Read bank!
+		VGA_MemoryMapBankWrite = et4k_data->bank_write << 16; //Write bank!
+															  
 		//VGA_SetupHandlers();
 		//}
 		return 1;
@@ -306,6 +313,8 @@ extern byte EMU_VGAROM[0x10000];
 
 uint_32 Tseng4k_VRAMSize = 0; //Setup VRAM size?
 
+extern BIOS_Settings_TYPE BIOS_Settings; //Current BIOS settings to be updated!
+
 void Tseng4k_init()
 {
 	byte *Tseng_VRAM = NULL; //The new VRAM to use with our card!
@@ -332,6 +341,8 @@ void Tseng4k_init()
 				getActiveVGA()->VRAM = Tseng_VRAM; //Assign the new Tseng VRAM instead!
 				getActiveVGA()->VRAM_size = Tseng4k_VRAMSize; //Assign the Tseng VRAM size!
 			}
+			BIOS_Settings.VRAM_size = getActiveVGA()->VRAM_size; //Update VRAM size in BIOS!
+			forceBIOSSave(); //Force save of BIOS!
 
 			// Tseng ROM signature
 			EMU_VGAROM[0x0075] = ' ';
@@ -341,22 +352,22 @@ void Tseng4k_init()
 			EMU_VGAROM[0x0079] = 'n';
 			EMU_VGAROM[0x007a] = 'g';
 			EMU_VGAROM[0x007b] = ' ';
+
+			et4k(getActiveVGA())->extensionsEnabled = 1; //Enable the extensions!
+
+			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //Update all precalcs!
 		}
 	}
 }
-
-extern uint_32 VGA_MemoryMapBankRead, VGA_MemoryMapBankWrite; //The memory map bank to use!
 
 //ET4K precalcs updating functionality.
 void Tseng4k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 {
 	VGA_Type *VGA = (VGA_Type *)useVGA; //The VGA to work on!
 	byte updateCRTC = 0; //CRTC updated?
+	if (!et4k(VGA)) return; //No extension registered?
 	if (!et4k(VGA)->extensionsEnabled) return; //Abort when we're disabled!
 	uint_32 tempdata; //Saved data!
-	//Apply correct memory banks!
-	VGA_MemoryMapBankRead = et4k_data->bank_read<<16; //Read bank!
-	VGA_MemoryMapBankWrite = et4k_data->bank_write<<16; //Write bank!
 	//Bits 4-5 of the Attribute Controller register 0x16(Miscellaneous) determine the mode to be used when decoding pixels:
 	/*
 	00=Normal power-up/default(VGA mode)
@@ -473,6 +484,7 @@ void Tseng4k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 float Tseng4k_getClockRate(VGA_Type *VGA)
 {
 	byte clock_index;
+	if (!et4k(VGA)) return 0.0f; //Unregisterd ET4K!
 	clock_index = get_clock_index_et4k(VGA); //Retrieve the ET4K clock index!
 	if (clock_index>=2) //New clocks for ET4K that aren't the same as a normal VGA?
 	{
@@ -485,4 +497,9 @@ void SVGA_Setup_TsengET4K(uint_32 VRAMSize) {
 	// From the depths of X86Config, probably inexact
 	VGA_registerExtension(&Tseng4K_readIO, &Tseng4K_writeIO, &Tseng4k_init,&Tseng4k_calcPrecalcs,&Tseng4k_getClockRate);
 	Tseng4k_VRAMSize = VRAMSize; //Set this VRAM size to use!
+	getActiveVGA()->SVGAExtension = zalloc(sizeof(SVGA_ET4K_DATA),"SVGA_ET4K_DATA",getLock(LOCK_VGA)); //Our SVGA extension data!
+	if (!getActiveVGA()->SVGAExtension)
+	{
+		raiseError("ET4000","Couldn't allocate SVGA card ET4000 data! Ran out of memory!");
+	}
 }

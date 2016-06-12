@@ -33,6 +33,8 @@ extern BIOS_Settings_TYPE BIOS_Settings;
 
 int BIOS_load_VGAROM(); //Prototype: Load custom ROM from emulator itself!
 
+byte ISVGA = 0; //VGA that's loaded!
+
 byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 {
 	numOPT_ROMS = 0; //Initialise the number of OPTROMS!
@@ -42,7 +44,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 	byte i; //Current OPT ROM!
 	uint_32 location; //The location within the OPT ROM area!
 	location = 0; //Init location!
-	byte ISVGA = 0; //Are we a VGA ROM?
+	ISVGA = 0; //Are we a VGA ROM?
 	for (i=0;(i<NUMITEMS(OPT_ROMS)) && (location!=0x20000);i++) //Process all ROMS we can process!
 	{
 		FILE *f;
@@ -67,7 +69,27 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			else
 			{	
 				ISVGA = 1; //We're a VGA!
-				strcpy(filename,"ROM/VGAROM.BIN"); //VGA ROM!
+				if (BIOS_Settings.VGA_Mode==6) //ET4000?
+				{
+					if (file_exists("ROM/ET4000.BIN")) //Full ET4000?
+					{
+						ISVGA = 2; //ET4000!
+						strcpy(filename, "ROM/ET4000.BIN"); //VGA ROM!
+					}
+					else if (file_exists("ROM/ET3000.BIN")) //ET3000 replacement?
+					{
+						ISVGA = 3; //ET3000!
+						strcpy(filename, "ROM/ET3000.BIN"); //VGA ROM!
+					}
+					else //VGA ROM?
+					{
+						strcpy(filename, "ROM/VGAROM.BIN"); //VGA ROM!
+					}
+				}
+				else //Plain VGA?
+				{
+					strcpy(filename,"ROM/VGAROM.BIN"); //VGA ROM!
+				}
 			}
 		}
 		f = fopen(filename,"rb");
@@ -164,7 +186,18 @@ void BIOS_freeOPTROMS()
 				}
 				else
 				{	
-					strcpy(filename,"ROM/VGAROM.BIN"); //VGA ROM!
+					if (ISVGA==2) //Full ET4000?
+					{
+						strcpy(filename, "ROM/ET4000.BIN"); //VGA ROM!
+					}
+					else if (ISVGA==3) //ET3000 replacement?
+					{
+						strcpy(filename, "ROM/ET3000.BIN"); //VGA ROM!
+					}
+					else //VGA ROM?
+					{
+						strcpy(filename, "ROM/VGAROM.BIN"); //VGA ROM!
+					}
 				}
 			}
 			freez((void **)&OPT_ROMS[i],OPTROM_size[i],filename); //Release the OPT ROM!

@@ -215,7 +215,7 @@ VGA_AttributeInfo currentattributeinfo; //Our current collected attribute info!
 
 OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
 {
-	INLINEREGISTER word loadedlocation, vramlocation; //The location we load at!
+	INLINEREGISTER uint_32 loadedlocation, vramlocation; //The location we load at!
 	//Horizontal logic
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
 	loadedlocation = x; //X!
@@ -377,6 +377,8 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo); //Render an active display pixel!
 
+uint_32 CLUT16bit[0x10000]; //16-bit color lookup table!
+
 //Blank handler!
 OPTINLINE void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
@@ -401,7 +403,14 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
-	drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
+	if (VGA->precalcs.AttributeController_16bitDAC == 3) //16-bit color mode?
+	{
+		drawPixel(VGA, CLUT16bit[attributeinfo->attribute]); //Draw the 16-bit color pixel!
+	}
+	else //VGA compatibility mode?
+	{
+		drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
+	}
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -416,8 +425,6 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	}
 	++VGA->CRTC.x; //Next x!
 }
-
-uint_32 CLUT16bit[0x10000]; //16-bit color lookup table!
 
 OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {

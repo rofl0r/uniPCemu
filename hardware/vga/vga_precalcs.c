@@ -289,7 +289,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		}
 		else
 		{
-			VGA->precalcs.VRAMmask = 0x3FFFF; //Don't limit VGA memory, wrap normally!
+			VGA->precalcs.VRAMmask = (VGA->VRAM_size-1); //Don't limit VGA memory, wrap normally!
 		}
 	}
 	
