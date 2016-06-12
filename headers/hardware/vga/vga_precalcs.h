@@ -139,6 +139,7 @@ typedef struct //Contains the precalculated values!
 	uint_32 VRAMmask; //The mask used for accessing VRAM!
 	uint_32 extrasignal; //Graphics mode display bit!
 	byte AttributeController_16bitDAC; //Enable the 16-bit/8-bit DAC color formation in the Attribute Controller?
+	byte VideoLoadRateMask; //When to load the new pixels (bitmask to result in zero to apply)!
 } VGA_PRECALCS; //VGA pre-calculations!
 
 typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated); //Calculate them!
@@ -146,5 +147,7 @@ typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated
 void VGA_calcprecalcs(void *VGA, uint_32 whereupdated); //Calculate them!
 void VGA_LOGCRTCSTATUS(); //Log the current CRTC precalcs status!
 void dump_CRTCTiming(); //Dump the full CRTC timing calculated from the precalcs!
+
+void VGA_calcprecalcs_CRTC(void *VGA); //Precalculate CRTC precalcs!
 
 #endif

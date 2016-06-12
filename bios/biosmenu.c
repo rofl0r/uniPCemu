@@ -3480,7 +3480,7 @@ void BIOS_VGAModeSetting()
 	GPU_EMU_printscreen(0,4,"VGA Mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 6; //Ammount of VGA modes! Only use two modes, as the precursor compatibility mode(CGA) isn't finished yet!
+	numlist = 7; //Ammount of VGA modes! Only use two modes, as the precursor compatibility mode(CGA) isn't finished yet!
 	for (i=0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
@@ -3491,6 +3491,7 @@ void BIOS_VGAModeSetting()
 	strcpy(itemlist[3],"VGA with MDA"); //Special MDA compatibility mode!
 	strcpy(itemlist[4],"Pure CGA"); //Special CGA pure mode!
 	strcpy(itemlist[5],"Pure MDA"); //Special MDA pure mode!
+	strcpy(itemlist[6],"Tseng ET4000"); //Tseng ET4000 card!
 
 	int current = 0;
 	switch (BIOS_Settings.VGA_Mode) //What setting?
@@ -3501,6 +3502,7 @@ void BIOS_VGAModeSetting()
 	case 3: //Valid
 	case 4: //Valid
 	case 5: //Valid
+	case 6:
 		current = BIOS_Settings.VGA_Mode; //Valid: use!
 		break;
 	default: //Invalid
@@ -3527,6 +3529,7 @@ void BIOS_VGAModeSetting()
 	case 3:
 	case 4:
 	case 5:
+	case 6:
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
@@ -3638,6 +3641,9 @@ setVGAModetext: //For fixing it!
 		break;
 	case 5:
 		strcat(menuoptions[advancedoptions++], "Pure MDA");
+		break;
+	case 6:
+		strcat(menuoptions[advancedoptions++], "Tseng ET4000"); //Tseng ET4000 SVGA card!
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.VGA_Mode = 0; //Reset/Fix!

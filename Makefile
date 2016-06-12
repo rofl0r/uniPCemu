@@ -66,6 +66,8 @@ OBJS += hardware/vga/vga_precalcs.o
 OBJS += hardware/vga/vga_vramtext.o
 #CGA/MDA support!
 OBJS += hardware/vga/vga_cga_mda.o hardware/vga/vga_cga_ntsc.o
+#Tseng ET4000 support (SVGA)!
+OBJS += hardware/vga/svga/et4000.o
 
 #Adlib!
 OBJS += hardware/adlib.o

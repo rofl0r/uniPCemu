@@ -23,8 +23,9 @@ OPTINLINE uint_32 getcol256(VGA_Type *VGA, byte color) //Convert color to RGB!
 
 extern byte VGA_LOGPRECALCS; //Are we manually updated to log?
 
-OPTINLINE void VGA_calcprecalcs_CRTC(VGA_Type *VGA) //Precalculate CRTC precalcs!
+void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 {
+	VGA_Type *VGA = (VGA_Type *)useVGA; //The VGA to use!
 	uint_32 current;
 	byte charsize;
 	uint_32 realtiming;
@@ -253,6 +254,22 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		VGA->precalcs.characterwidth = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9; //Character width!
 		if (VGA->precalcs.ClockingModeRegister_DCR != VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.ClockingModeRegister_DCR = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Dot Clock Rate!
+
+		byte newSLR = 0; //New shift/load rate!
+		if (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.S4) //Quarter the video load rate?
+		{
+			newSLR = 3; //Reload when not bits 0-1 set!
+		}
+		else if (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.SLR) //Half the video load rate?
+		{
+			newSLR = 1; //Reload when not bit 0 set!
+		}
+		else //Single load rate?
+		{
+			newSLR = 0; //Always load(Single load rate)!
+		}
+		VGA->precalcs.VideoLoadRateMask = newSLR; //Apply the determined Shift/Load rate mask!
+
 		updateCRTC = 1; //We need to update the CRTC!
 		 if (!FullUpdate) whereupdated = WHEREUPDATED_CRTCONTROLLER; //We affect the CRTController fully too with above!
 		//dolog("VGA","VTotal after charwidth: %i",VGA->precalcs.verticaltotal); //Log it!
@@ -866,7 +883,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		VGA->precalcs.scanlinepercentage = SAFEDIV(1.0f,VGA->precalcs.verticalcharacterclocks); //Re-calculate scanline percentage!
 		if (VGA==getActiveVGA()) //Active VGA?
 		{
-			changeRowTimer(VGA,VGA->precalcs.clockselectrows); //Make sure the display scanline refresh rate is OK!		
+			changeRowTimer(VGA,VGA->precalcs.clockselectrows); //Make sure the display scanline refresh rate is OK!
 		}
 		recalcScanline = 1; //Recalc scanline data!
 	}

@@ -184,7 +184,7 @@ OPTINLINE void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
 
 //MISC
 
-OPTINLINE void PORT_write_MISC_3C2(byte value) //Misc Output register!
+void PORT_write_MISC_3C2(byte value) //Misc Output register!
 {
 	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA = value; //Set!
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_MISCOUTPUTREGISTER); //We have been updated!
@@ -502,13 +502,15 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 }
 
 extern VGA_calcprecalcsextensionhandler VGA_precalcsextensionhandler; //The precalcs extension handler!
+extern VGA_clockrateextensionhandler VGA_calcclockrateextensionhandler; //The clock rate extension handler!
 
-void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler, VGA_calcprecalcsextensionhandler precalcsextensionhandler) //Register an extension for use with the VGA!
+void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler, VGA_calcprecalcsextensionhandler precalcsextensionhandler, VGA_clockrateextensionhandler clockrateextension) //Register an extension for use with the VGA!
 {
 	VGA_readIOExtension = readhandler; //Register the read handler, if used!
 	VGA_writeIOExtension = writehandler; //Register the read handler, if used!
 	VGA_initializationExtension = initializationhandler; //Register the initialization handler, if used!
 	VGA_precalcsextensionhandler = precalcsextensionhandler; //Register the precalcs extension handler, if used!
+	VGA_calcclockrateextensionhandler = clockrateextension; //Register the clock rate extension handler, if used!
 }
 
 void VGA_initIO()

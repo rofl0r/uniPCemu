@@ -3,8 +3,9 @@
 #include "headers/hardware/vga/svga/et4000.h" //Our own typedefs!
 #include "headers/support/zalloc.h" //Memory allocation support!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
+#include "headers/hardware/ports.h" //I/O support!
 
-float clockFreq[16] = {
+float ET4K_clockFreq[16] = {
 	0.0f, //VGA defined!
 	0.0f, //VGA defined!
 	32400000.0f, //ET4000 clock!
@@ -40,7 +41,7 @@ byte Tseng4K_writeIO(word port, byte val)
 		bit  0-3  Scratch pad
 			 6-7  Clock Select bits 3-4. Bits 0-1 are in 3C2h/3CCh bits 2-3.
 		*/
-			STORE_ET4K(3d4, 31);
+		STORE_ET4K(3d4, 31);
 
 		// 3d4h index 32h - RAS/CAS Configuration (R/W)
 		// No effect on emulation. Should not be written by software.
@@ -117,7 +118,7 @@ byte Tseng4K_writeIO(word port, byte val)
 		case 0x37:
 			if (val != et4k_data->store_3d4_37) {
 				et4k_data->store_3d4_37 = val;
-				et4k_data->memwrap = ((64*1024)<<((val&8)>>2))<<((val&3)-1)-1; //The mask to use for memory!
+				et4k_data->memwrap = (((64*1024)<<((val&8)>>2))<<((val&3)-1))-1; //The mask to use for memory!
 				//VGA_SetupHandlers();
 			}
 			return 1;
@@ -289,17 +290,17 @@ These ports are used but have little if any effect on emulation:
 	3DEh (W);  AT&T Mode Control Register
 */
 
-static byte get_clock_index_et4k() {
+OPTINLINE static byte get_clock_index_et4k(VGA_Type *VGA) {
 	// Ignoring bit 4, using "only" 16 frequencies. Looks like most implementations had only that
-	return ((getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA>>2)&3) | ((et4k_data->store_3d4_34<<1)&4) | ((et4k_data->store_3d4_31>>3)&8);
+	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA>>2)&3) | ((et4k(VGA)->store_3d4_34<<1)&4) | ((et4k(VGA)->store_3d4_31>>3)&8);
 }
 
-static void set_clock_index_et4k(byte index) {
+/*static void set_clock_index_et4k(VGA_Type *VGA, byte index) {
 	// Shortwiring register reads/writes for simplicity
-	IO_Write(0x3c2, (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA&~0x0c)|((index&3)<<2));
-	et4k_data->store_3d4_34 = (et4k_data->store_3d4_34&~0x02)|((index&4)>>1);
-	et4k_data->store_3d4_31 = (et4k_data->store_3d4_31&~0xc0)|((index&8)<<3); // (index&0x18) if 32 clock frequencies are to be supported
-}
+	et4k_data->store_3d4_34 = (et4k(VGA)->store_3d4_34&~0x02)|((index&4)>>1);
+	et4k_data->store_3d4_31 = (et4k(VGA)->store_3d4_31&~0xc0)|((index&8)<<3); // (index&0x18) if 32 clock frequencies are to be supported
+	PORT_write_MISC_3C2((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA&~0x0c)|((index&3)<<2));
+}*/ //Currently it isn't manually set!
 
 extern byte EMU_VGAROM[0x10000];
 
@@ -367,18 +368,18 @@ void Tseng4k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	if (VGA->precalcs.AttributeController_16bitDAC==1) VGA->precalcs.AttributeController_16bitDAC = 0; //Ignore the reserved value, forcing VGA mode in that case!
 	//Modes 2&3 set forced 8-bit and 16-bit Attribute modes!
 
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER|0x33) || (whereupdated==WHEREUPDATED_CRTCONTROLLER|0xC) || (whereupdated==WHEREUPDATED_CRTCONTROLLER|0xD)) //Extended start address?
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER|0x33)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xC)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xD))) //Extended start address?
 	{
 		VGA->precalcs.startaddress[0] = (VGA->precalcs.startaddress[0]&0xFFFF)|et4k(VGA)->cursor_start_high;
 	}
 
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x33) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0xE) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0xF)) //Extended cursor location?
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xE)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xF))) //Extended cursor location?
 	{
 		VGA->precalcs.cursorlocation = (VGA->precalcs.cursorlocation & 0xFFFF) | et4k(VGA)->cursor_start_high;
 	}
 
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x35) //Extended bits of the overflow register!
-		|| (whereupdated==WHEREUPDATED_CRTCONTROLLER|0x7) || //Overflow register itself
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) //Extended bits of the overflow register!
+		|| (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x7)) || //Overflow register itself
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x12)) //Vertical display end
 		) //Extended bits of the overflow register!
@@ -386,40 +387,40 @@ void Tseng4k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		//bit2=Vertical display end bit 10
 		tempdata = VGA->precalcs.verticaldisplayend; //Load old data!
 		--tempdata; //One later!
-		updateCRTC |= ((et4k(VGA)->store_3d4_35&4)<<8)|(tempdata&0x3FF)!=tempdata; //To be updated?
+		updateCRTC |= ((((et4k(VGA)->store_3d4_35&4)<<8))|(tempdata&0x3FF))!=tempdata; //To be updated?
 		tempdata = ((et4k(VGA)->store_3d4_35 & 4) << 9) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
 		++tempdata; //One later!
 		VGA->precalcs.verticaldisplayend = tempdata; //Save the new data!
 	}
 
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x35) //Extended bits of the overflow register!
-		|| (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x7) || //Overflow register itself
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) //Extended bits of the overflow register!
+		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x15)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x9)) //Vertical blanking start
 		)
 	{
 		//bit0=Vertical blank bit 10
 		tempdata = VGA->precalcs.verticalblankingstart; //Load old data!
-		updateCRTC |= ((et4k(VGA)->store_3d4_35 & 1) << 10) | (tempdata & 0x3FF) != tempdata; //To be updated?
+		updateCRTC |= (((et4k(VGA)->store_3d4_35 & 1) << 10) | (tempdata & 0x3FF)) != tempdata; //To be updated?
 		tempdata = ((et4k(VGA)->store_3d4_35 & 1) << 10) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
 		VGA->precalcs.verticalblankingstart = tempdata; //Save the new data!
 	}
 
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x35) //Extended bits of the overflow register!
-		|| (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x7) || //Overflow register itself
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) //Extended bits of the overflow register!
+		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x10)) //Vertical retrace start
 		)
 	{
 		//bit3=Vertical sync start bit 10
 		tempdata = VGA->precalcs.verticalretracestart;
-		updateCRTC |= ((et4k(VGA)->store_3d4_35 & 8) << 7) | (tempdata & 0x3FF) != tempdata; //To be updated?
+		updateCRTC |= (((et4k(VGA)->store_3d4_35 & 8) << 7) | (tempdata & 0x3FF)) != tempdata; //To be updated?
 		tempdata = ((et4k(VGA)->store_3d4_35 & 8) << 7) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
 		VGA->precalcs.verticalretracestart = tempdata; //Save the new data!
 	}
 
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x35) //Extended bits of the overflow register!
-		|| (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x7) || //Overflow register itself
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) //Extended bits of the overflow register!
+		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x6)) //Vertical total
 		)
@@ -427,14 +428,14 @@ void Tseng4k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		//bit1=Vertical total bit 10
 		tempdata = VGA->precalcs.verticaltotal;
 		--tempdata; //One later!
-		updateCRTC |= ((et4k(VGA)->store_3d4_35 & 2) << 9) | (tempdata & 0x3FF) != tempdata; //To be updated?
+		updateCRTC |= (((et4k(VGA)->store_3d4_35 & 2) << 9) | (tempdata & 0x3FF)) != tempdata; //To be updated?
 		tempdata = ((et4k(VGA)->store_3d4_35 & 2) << 9) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
 		++tempdata; //One later!
 		VGA->precalcs.verticaltotal = tempdata; //Save the new data!
 	}
 
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x35) //Extended bits of the overflow register!
-		|| (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x7) || //Overflow register itself
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) //Extended bits of the overflow register!
+		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x18)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x9)) //Line compare
 		)
@@ -442,14 +443,22 @@ void Tseng4k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		//bit4=Line compare bit 10
 		tempdata = VGA->precalcs.topwindowstart; //Load!
 		--tempdata; //One later!
-		updateCRTC |= ((et4k(VGA)->store_3d4_35 & 0x10) << 6) | (tempdata & 0x3FF) != tempdata; //To be updated?
+		updateCRTC |= (((et4k(VGA)->store_3d4_35 & 0x10) << 6) | (tempdata & 0x3FF)) != tempdata; //To be updated?
 		tempdata = ((et4k(VGA)->store_3d4_35 & 0x10) << 6) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
 		++tempdata; //One later!
 		VGA->precalcs.topwindowstart = tempdata; //Save the new data!
 	}
 
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x34)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x31))) //Clock frequency might have been updated?
+	{
+		if (VGA==getActiveVGA()) //Active VGA?
+		{
+			changeRowTimer(VGA,VGA->precalcs.clockselectrows); //Make sure the display scanline refresh rate is OK!
+		}		
+	}
+
 	//Misc settings
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x37)) //Video system configuration #2!
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x37))) //Video system configuration #2!
 	{
 		//TODO!
 	}
@@ -461,8 +470,19 @@ void Tseng4k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	}
 }
 
+float Tseng4k_getClockRate(VGA_Type *VGA)
+{
+	byte clock_index;
+	clock_index = get_clock_index_et4k(VGA); //Retrieve the ET4K clock index!
+	if (clock_index>=2) //New clocks for ET4K that aren't the same as a normal VGA?
+	{
+		return ET4K_clockFreq[clock_index&0xF]; //Give the ET4K clock index rate!
+	}
+	return 0.0f; //Not an ET4K clock rate, default to VGA rate!
+}
+
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize) {
 	// From the depths of X86Config, probably inexact
-	VGA_registerExtension(&Tseng4K_readIO, &Tseng4K_writeIO, &Tseng4k_init,&Tseng4k_calcPrecalcs);
+	VGA_registerExtension(&Tseng4K_readIO, &Tseng4K_writeIO, &Tseng4k_init,&Tseng4k_calcPrecalcs,&Tseng4k_getClockRate);
 	Tseng4k_VRAMSize = VRAMSize; //Set this VRAM size to use!
 }

@@ -39,6 +39,8 @@ uint_32 CGALineSize = 0; //How long is our line!
 byte CGALineBuffer[2048]; //Full CGA scanline buffer!
 uint_32 CGAOutputBuffer[2048]; //Full CGA NTSC buffer!
 
+VGA_clockrateextensionhandler VGA_calcclockrateextensionhandler; //The clock rate extension handler!
+
 float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
 {
 	//Horizontal Refresh Rate=Clock Frequency (in Hz)/horizontal pixels
@@ -47,7 +49,7 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 	{
 		return 0.0f; //Remove VGA Scanline counter: nothing to render!
 	}
-	if (getCGAMDAClock(VGA)!=0.0f) return getCGAMDAClock(VGA); //Apply CGA clock if needed!
+	if (VGA_calcclockrateextensionhandler) if (VGA_calcclockrateextensionhandler(VGA)!=0.0f) return VGA_calcclockrateextensionhandler(VGA); //Give the extended clock if needed!
 	return VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3)];
 }
 
@@ -513,7 +515,7 @@ void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		tempx2 <<= 1; //Index!
 		tempx3 = Sequencer->tempx; //Load the old coordinate!
 		tempx3 <<= 1; //Index!
-		if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2])) //First of a new block? Reload our pixel buffer!
+		if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2]) && ((VGA->CRTC.charcolstatus[tempx2]&VGA->precalcs.VideoLoadRateMask)==0)) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
@@ -560,7 +562,7 @@ othernibble: //Retrieve the current DAC index!
 		tempx2 <<= 1; //Index!
 		tempx3 = Sequencer->tempx; //Load the old coordinate!
 		tempx3 <<= 1; //Index!
-		if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2])) //First of a new block? Reload our pixel buffer!
+		if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2]) && ((VGA->CRTC.charcolstatus[tempx2]&VGA->precalcs.VideoLoadRateMask) == 0)) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
@@ -604,7 +606,7 @@ othernibble: //Retrieve the current DAC index!
 			return; //Are we not finished with the nibble? Abort!
 		}
 		//Finished with the nibble&pixel? We're ready to check for the next one!
-		if ((tempx & 7) == 0) //First of a new block? Reload our pixel buffer!
+		if (((tempx & 7) == 0) && (((tempx>>3)&VGA->precalcs.VideoLoadRateMask) == 0)) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
@@ -652,7 +654,7 @@ othernibble: //Retrieve the current DAC index!
 			return; //Are we not finished with the nibble? Abort!
 		}
 		//Finished with the nibble&pixel? We're ready to check for the next one!
-		if ((tempx & 7) == 0) //First of a new block? Reload our pixel buffer!
+		if (((tempx & 7) == 0) && (((tempx>>3)&VGA->precalcs.VideoLoadRateMask) == 0)) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
