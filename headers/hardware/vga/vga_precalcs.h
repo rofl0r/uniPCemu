@@ -66,17 +66,17 @@ typedef struct //Contains the precalculated values!
 	byte characterwidth; //Character width!
 	byte characterheight; //Character height!
 
-	word startaddress[2]; //Combination of start address high&low register for normal and top screen (reset) operations!
+	uint_32 startaddress[2]; //Combination of start address high&low register for normal and top screen (reset) operations!
 	
 	//CRT Controller registers:
 	//Horizontal timing information
-	word horizontaldisplaystart;
-	word horizontaldisplayend;
-	word horizontalblankingstart;
-	word horizontalblankingend;
-	word horizontalretracestart;
-	word horizontalretraceend;
-	word horizontaltotal;
+	uint_32 horizontaldisplaystart;
+	uint_32 horizontaldisplayend;
+	uint_32 horizontalblankingstart;
+	uint_32 horizontalblankingend;
+	uint_32 horizontalretracestart;
+	uint_32 horizontalretraceend;
+	uint_32 horizontaltotal;
 	
 	//Vertical timing information
 	word verticaldisplayend;
@@ -99,7 +99,7 @@ typedef struct //Contains the precalculated values!
 	byte scandoubling;
 	uint_32 scanlinesize; //Scanline size!
 	//Sequencer_textmode_cursor (CRTC):
-	word cursorlocation; //Cursor location!
+	uint_32 cursorlocation; //Cursor location!
 	byte pixelshiftcount; //Save our precalculated value!
 	byte presetrowscan; //Row scanning boost!
 	byte colorselect54; //Precalculate!

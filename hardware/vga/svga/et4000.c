@@ -350,7 +350,10 @@ extern uint_32 VGA_MemoryMapBankRead, VGA_MemoryMapBankWrite; //The memory map b
 void Tseng4k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 {
 	VGA_Type *VGA = (VGA_Type *)useVGA; //The VGA to work on!
+	byte updateCRTC = 0; //CRTC updated?
 	if (!et4k(VGA)->extensionsEnabled) return; //Abort when we're disabled!
+	uint_32 tempdata; //Saved data!
+	//Apply correct memory banks!
 	VGA_MemoryMapBankRead = et4k_data->bank_read<<16; //Read bank!
 	VGA_MemoryMapBankWrite = et4k_data->bank_write<<16; //Write bank!
 	//Bits 4-5 of the Attribute Controller register 0x16(Miscellaneous) determine the mode to be used when decoding pixels:
@@ -363,6 +366,99 @@ void Tseng4k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	VGA->precalcs.AttributeController_16bitDAC = (et4k(VGA)->store_3c0_16>>4)&3; //The mode to use when decoding!
 	if (VGA->precalcs.AttributeController_16bitDAC==1) VGA->precalcs.AttributeController_16bitDAC = 0; //Ignore the reserved value, forcing VGA mode in that case!
 	//Modes 2&3 set forced 8-bit and 16-bit Attribute modes!
+
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER|0x33) || (whereupdated==WHEREUPDATED_CRTCONTROLLER|0xC) || (whereupdated==WHEREUPDATED_CRTCONTROLLER|0xD)) //Extended start address?
+	{
+		VGA->precalcs.startaddress[0] = (VGA->precalcs.startaddress[0]&0xFFFF)|et4k(VGA)->cursor_start_high;
+	}
+
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x33) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0xE) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0xF)) //Extended cursor location?
+	{
+		VGA->precalcs.cursorlocation = (VGA->precalcs.cursorlocation & 0xFFFF) | et4k(VGA)->cursor_start_high;
+	}
+
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x35) //Extended bits of the overflow register!
+		|| (whereupdated==WHEREUPDATED_CRTCONTROLLER|0x7) || //Overflow register itself
+		//Finally, bits needed by the overflow register itself(of which we are an extension)!
+		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x12)) //Vertical display end
+		) //Extended bits of the overflow register!
+	{
+		//bit2=Vertical display end bit 10
+		tempdata = VGA->precalcs.verticaldisplayend; //Load old data!
+		--tempdata; //One later!
+		updateCRTC |= ((et4k(VGA)->store_3d4_35&4)<<8)|(tempdata&0x3FF)!=tempdata; //To be updated?
+		tempdata = ((et4k(VGA)->store_3d4_35 & 4) << 9) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
+		++tempdata; //One later!
+		VGA->precalcs.verticaldisplayend = tempdata; //Save the new data!
+	}
+
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x35) //Extended bits of the overflow register!
+		|| (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x7) || //Overflow register itself
+		//Finally, bits needed by the overflow register itself(of which we are an extension)!
+		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x15)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x9)) //Vertical blanking start
+		)
+	{
+		//bit0=Vertical blank bit 10
+		tempdata = VGA->precalcs.verticalblankingstart; //Load old data!
+		updateCRTC |= ((et4k(VGA)->store_3d4_35 & 1) << 10) | (tempdata & 0x3FF) != tempdata; //To be updated?
+		tempdata = ((et4k(VGA)->store_3d4_35 & 1) << 10) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
+		VGA->precalcs.verticalblankingstart = tempdata; //Save the new data!
+	}
+
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x35) //Extended bits of the overflow register!
+		|| (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x7) || //Overflow register itself
+		//Finally, bits needed by the overflow register itself(of which we are an extension)!
+		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x10)) //Vertical retrace start
+		)
+	{
+		//bit3=Vertical sync start bit 10
+		tempdata = VGA->precalcs.verticalretracestart;
+		updateCRTC |= ((et4k(VGA)->store_3d4_35 & 8) << 7) | (tempdata & 0x3FF) != tempdata; //To be updated?
+		tempdata = ((et4k(VGA)->store_3d4_35 & 8) << 7) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
+		VGA->precalcs.verticalretracestart = tempdata; //Save the new data!
+	}
+
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x35) //Extended bits of the overflow register!
+		|| (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x7) || //Overflow register itself
+		//Finally, bits needed by the overflow register itself(of which we are an extension)!
+		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x6)) //Vertical total
+		)
+	{
+		//bit1=Vertical total bit 10
+		tempdata = VGA->precalcs.verticaltotal;
+		--tempdata; //One later!
+		updateCRTC |= ((et4k(VGA)->store_3d4_35 & 2) << 9) | (tempdata & 0x3FF) != tempdata; //To be updated?
+		tempdata = ((et4k(VGA)->store_3d4_35 & 2) << 9) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
+		++tempdata; //One later!
+		VGA->precalcs.verticaltotal = tempdata; //Save the new data!
+	}
+
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x35) //Extended bits of the overflow register!
+		|| (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x7) || //Overflow register itself
+		//Finally, bits needed by the overflow register itself(of which we are an extension)!
+		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x18)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x9)) //Line compare
+		)
+	{
+		//bit4=Line compare bit 10
+		tempdata = VGA->precalcs.topwindowstart; //Load!
+		--tempdata; //One later!
+		updateCRTC |= ((et4k(VGA)->store_3d4_35 & 0x10) << 6) | (tempdata & 0x3FF) != tempdata; //To be updated?
+		tempdata = ((et4k(VGA)->store_3d4_35 & 0x10) << 6) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
+		++tempdata; //One later!
+		VGA->precalcs.topwindowstart = tempdata; //Save the new data!
+	}
+
+	//Misc settings
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == WHEREUPDATED_CRTCONTROLLER | 0x37)) //Video system configuration #2!
+	{
+		//TODO!
+	}
+
+	if (updateCRTC) //Update CRTC?
+	{
+		VGA_calcprecalcs_CRTC(VGA); //Update the CRTC timing data!
+		adjustVGASpeed(); //Auto-adjust our VGA speed!
+	}
 }
 
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize) {
