@@ -403,7 +403,7 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 	{
 		#ifndef __psp__
 		//Only with windows used!
-		if ((aspectratio>=2) || (aspectratio<=5) && is_renderer) //Render to the window of forced size?
+		if (((aspectratio>=2) || (aspectratio<=5)) && is_renderer) //Render to the window of forced size?
 		{
 			switch (aspectratio)
 			{
