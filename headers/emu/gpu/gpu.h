@@ -38,11 +38,11 @@
 //Give the pixel from our psp screen we're rendering!
 #define PSP_BUFFER(x,y) PSP_SCREEN(x,y)
 //Give the pixel from our emulator we're buffering!
-#define EMU_BUFFER(x,y) GPU.emu_screenbuffer[(y<<10)|x]
+#define EMU_BUFFER(x,y) GPU.emu_screenbuffer[(y<<11)|x]
 //The pitch of the pixel buffer rows!
 #define EMU_BUFFERPITCH 2048
 
-#define EMU_SCREENBUFFERSIZE (EMU_MAX_Y<<10) //Video buffer (of max 640x480 pixels!)
+#define EMU_SCREENBUFFERSIZE (EMU_MAX_Y<<11) //Video buffer (of max 2048x2048 pixels!)
 #define EMU_SCREENBUFFEREND (GPU.emu_screenbufferend)
 #define PSP_SCREENBUFFERSIZE (PSP_SCREEN_ROWS<<9) //The PSP's screen buffer we're rendering!
 
