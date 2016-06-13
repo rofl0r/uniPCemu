@@ -11,9 +11,9 @@
 //Maximum ammount of display pages used by the GPU
 #define PC_MAX_DISPLAYPAGES 8
 //Maximum resolution X (row size)
-#define EMU_MAX_X 800
+#define EMU_MAX_X 2048
 //Maximum resolution Y (number of rows max)
-#define EMU_MAX_Y 600
+#define EMU_MAX_Y 2048
 //We're emulating a VGA screen adapter?
 #define EMU_VGA 1
 
@@ -40,7 +40,7 @@
 //Give the pixel from our emulator we're buffering!
 #define EMU_BUFFER(x,y) GPU.emu_screenbuffer[(y<<10)|x]
 //The pitch of the pixel buffer rows!
-#define EMU_BUFFERPITCH 1024
+#define EMU_BUFFERPITCH 2048
 
 #define EMU_SCREENBUFFERSIZE (EMU_MAX_Y<<10) //Video buffer (of max 640x480 pixels!)
 #define EMU_SCREENBUFFEREND (GPU.emu_screenbufferend)

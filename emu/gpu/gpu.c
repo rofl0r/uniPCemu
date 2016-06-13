@@ -92,6 +92,8 @@ void updateWindow(word xres, word yres, uint_32 flags)
 	}
 }
 
+byte GPU_plotsetting = 0;
+
 SDL_Surface *getGPUSurface()
 {
 	#ifdef __psp__
@@ -101,11 +103,27 @@ SDL_Surface *getGPUSurface()
 	//Windows etc?
 	//Other architecture?
 	uint_32 xres, yres; //Our determinated resolution!
+	word destxres, destyres;
 	if (VIDEO_DFORCED) //Forced?
 	{
 		if (video_aspectratio) //Keep aspect ratio set and gotten something to take information from?
 		{
-			calcResize(video_aspectratio,GPU.xres,GPU.yres,EMU_MAX_X,EMU_MAX_Y,&xres,&yres,1); //Calculate resize using aspect ratio set for our screen on maximum size!
+			switch (video_aspectratio) //Forced resolution?
+			{
+			case 4: //4:3(VGA) medium-res
+				destxres = 1024;
+				destyres = 768;
+				break;
+			case 5: //4:3(VGA) high-res(fullHD)
+				destxres = 1440; //We're resizing the destination ratio itself instead!
+				destyres = 1080; //We're resizing the destination ratio itself instead!
+				break;
+			default: //Unhandled?
+				destxres = 800;
+				destyres = 600;
+				break;
+			}
+			calcResize(video_aspectratio,GPU.xres,GPU.yres,destxres,destyres,&xres,&yres,1); //Calculate resize using aspect ratio set for our screen on maximum size(use the smalles window size)!
 		}
 		else //Default: Take the information from the monitor input resolution!
 		{
@@ -356,7 +374,7 @@ void updateVideo() //Update the screen resolution on change!
 		GPU.forceRedraw = 1; //We're forcing a full redraw next frame to make sure the screen is always updated nicely!
 		xres = restype?resized->sdllayer->w:GPU.xres;
 		yres = restype?resized->sdllayer->h:GPU.yres;
-		plotsetting = BIOS_Settings.VGA_AllowDirectPlot; //Update the plot setting!
+		plotsetting = GPU_plotsetting = BIOS_Settings.VGA_AllowDirectPlot; //Update the plot setting!
 		resolutiontype = restype; //Last resolution type!
 		fullscreen = GPU.fullscreen;
 		aspectratio = video_aspectratio; //Save the new values for comparing the next time we're changed!
@@ -400,7 +418,7 @@ void GPU_AspectRatio(byte aspectratio) //Keep aspect ratio with letterboxing?
 {
 	if (__HW_DISABLED) return; //Abort!
 	lockGPU(); //Lock us!
-	GPU.aspectratio = video_aspectratio = (aspectratio<5)?aspectratio:0; //To use aspect ratio?
+	GPU.aspectratio = video_aspectratio = (aspectratio<6)?aspectratio:0; //To use aspect ratio?
 	GPU.forceRedraw = 1; //We're forcing a redraw of the screen using the new aspect ratio!
 	unlockGPU(); //Unlock us!
 }

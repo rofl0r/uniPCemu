@@ -224,7 +224,7 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 		clearwidth = MIN(rendersurface->sdllayer->w,EMU_MAX_X); //Our width to be able to render empty data!
 		
 		byte letterbox = GPU.aspectratio; //Use letterbox?
-		if (letterbox && resized) //Using letterbox for aspect ratio?
+		if (letterbox && resized && (rendersurface->sdllayer->h>resized->sdllayer->h)) //Using letterbox for aspect ratio?
 		{
 			count = ((rendersurface->sdllayer->h/2) - (resized->sdllayer->h/2))-1; //The total ammount to process: up to end+1!
 			nextrowtop: //Process top!
@@ -255,7 +255,8 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 		}
 		
 		//Always clear the bottom: nothing, letterbox and direct plot both have to clear the bottom!
-		startbottomrendering:
+	startbottomrendering:
+		if (y>=rendersurface->sdllayer->h) goto finishbottomrendering; //Don't finish what isn't needed!
 		count = rendersurface->sdllayer->h-y; //How many left to process!
 		nextrowbottom: //Process bottom!
 		{

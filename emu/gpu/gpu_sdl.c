@@ -38,7 +38,7 @@ Andreas Schiffler -- aschiffler at ferzkopp dot net
 
 */
 
-//Fast patches!
+//Speed patches to SDL_gfx's zoomSurfaceRGBA only(the only used function) to work faster in this implementation(keeping lookup tables between resizes, preventing recalculation and reallocations when not needed(same source and destination resolutions))!
 #include "headers/packed.h"
 typedef struct PACKED
 {
@@ -390,7 +390,7 @@ OPTINLINE void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest 
 		SDL_SetColorKey( dest->sdllayer, SDL_SRCCOLORKEY, colorkey );
 		#else
 		//SDL2?
-		SDL_SetColorKey( dest->sdllatyer, SDL_TRUE, colorKey);
+		SDL_SetColorKey( dest->sdllayer, SDL_TRUE, colorKey);
 		#endif
 	}
 }
@@ -403,12 +403,14 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 	{
 		#ifndef __psp__
 		//Only with windows used!
-		if (((aspectratio==2) || (aspectratio==3)) && is_renderer) //Render to the window of forced size?
+		if ((aspectratio>=2) || (aspectratio<=5) && is_renderer) //Render to the window of forced size?
 		{
 			switch (aspectratio)
 			{
-				case 2: //4:3
+				case 2: //4:3(VGA)
 				case 3: //CGA
+				case 4: //4:3
+				case 5: //4:3
 					originalwidth = newwidth; //We're resizing the destination ratio itself instead!
 					originalheight = newheight; //We're resizing the destination ratio itself instead!
 					break;
@@ -421,6 +423,8 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 		switch (aspectratio) //Force aspect ratio?
 		{
 			case 2: //4:3
+			case 4: //4:3
+			case 5: //4:3
 				ar = (double)(4.0 / 3.0); //We're taking 4:3 aspect ratio instead of the aspect ratio of the image!
 				break;
 			case 3: //CGA
