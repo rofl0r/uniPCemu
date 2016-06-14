@@ -267,18 +267,18 @@ Core functions!
 
 */
 
-static Handler loadpixel_jmptbl[4] = {
+static Handler loadpixel_jmptbl[16] = {
 	loadplanarshiftmode,
 	loadpackedshiftmode,
-	load256colorshiftmode,
-	load256colorshiftmode
+	load256colorshiftmode, //Normal VGA 256-color shift mode. Also with 8-bit DAC used(SVGA mode 2h)!
+	load256colorshiftmode //Normal 256-color shift mode. Also with 16-bit DAC used(SVGA mode 3h)!
 }; //All the getpixel functionality!
 
 Handler decodegraphicspixels = loadplanarshiftmode; //Active graphics mode!
 
 void updateVGAGraphics_Mode(VGA_Type *VGA)
 {
-	decodegraphicspixels = loadpixel_jmptbl[VGA->precalcs.GraphicsModeRegister_ShiftRegister]; //Apply the current mode!
+	decodegraphicspixels = loadpixel_jmptbl[VGA->precalcs.GraphicsModeRegister_ShiftRegister|VGA->precalcs.AttributeController_16bitDAC]; //Apply the current mode(with 8/16-bit support)!
 }
 
 void VGA_GraphicsDecoder(VGA_Type *VGA, word loadedlocation) //Graphics decoder!

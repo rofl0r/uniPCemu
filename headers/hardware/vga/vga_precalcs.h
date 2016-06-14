@@ -140,6 +140,8 @@ typedef struct //Contains the precalculated values!
 	uint_32 extrasignal; //Graphics mode display bit!
 	byte AttributeController_16bitDAC; //Enable the 16-bit/8-bit DAC color formation in the Attribute Controller?
 	byte VideoLoadRateMask; //When to load the new pixels (bitmask to result in zero to apply)!
+	byte BypassPalette; //Bypass the palette?
+	byte linearmode; //Linear mode enabled (linear memory window)? Bit 1=1: Use high 4 bits for bank, else bank select. Bit0=1: Use contiguous memory, else VGA mapping.
 } VGA_PRECALCS; //VGA pre-calculations!
 
 typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated); //Calculate them!

@@ -30,12 +30,17 @@ typedef struct {
 	uint_32 memwrap; //The memory wrap to be AND-ed into the address given!
 } SVGA_ET4K_DATA; //Dosbox ET4000 saved data!
 
-#define et4k_data ((SVGA_ET4K_DATA *)getActiveVGA()->SVGAExtension)
+//Retrieve a point to the et4k?
 #define et4k(VGA) ((SVGA_ET4K_DATA *)VGA->SVGAExtension)
+//Retrieve the active et4k!
+#define et4k_data et4k(getActiveVGA())
 
-#define STORE_ET4K(port, index) \
+#define et4k_reg(data,port,index) data->store_##port##_##index
+
+#define STORE_ET4K(port, index, category) \
 	case 0x##index: \
 	et4k_data->store_##port##_##index = val; \
+	VGA_calcprecalcs(getActiveVGA(),category|0x##port); \
 	return 1;
 
 #define RESTORE_ET4K(port, index) \

@@ -66,6 +66,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 		}
 		colorselect76 = VGA->precalcs.colorselect76; //Retrieve pallete bits 7-6!
 	}
+	paletteenable &= (VGA->precalcs.BypassPalette?0:1); //Bypass the palette if needed!
 
 	backgroundfilter = ((~(enableblink<<3))&0xF); //Background filter depends on blink & full background when not in monochrome mode!
 
@@ -143,7 +144,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						pos = Attribute;
 						pos <<= 7; //Create room for the global data!
 						pos |= pos2; //Apply charinner_y, currentblink and pixelon!
-									 //attribute,charinnery,currentblink,pixelon: 8,5,1,1: Less shifting at a time=More speed!
+						//attribute,charinnery,currentblink,pixelon: 8,5,1,1: Less shifting at a time=More speed!
 						attributeprecalcs[pos] = CurrentDAC; //Our result for this combination!
 					}
 				}
