@@ -33,7 +33,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	underlinelocation = VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation; //Underline location is the value desired minus 1!
 	
 	byte textmode;
-	textmode = (!VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable)?4:0; //Text mode? Also the number of bits to shift to get the high nibble, if used!
+	textmode = (!VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable)?4:4; //Text mode? Also the number of bits to shift to get the high nibble, if used!
 
 	byte monomode;
 	monomode = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation; //Monochrome emulation mode(attribute) with b/w emulation(misc output)?
@@ -137,7 +137,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						CurrentDAC &= colorplanes; //Apply color planes(4-bits)!
 
 						if (paletteenable == 0) goto skippalette; //Internal palette enable?
-																  //Use original 16 color palette!
+						//Use original 16 color palette!
 						CurrentDAC = palettecopy[CurrentDAC]; //Translate base index into DAC Base index!
 
 						//CGA doesn't have full pallette access, so skip it!

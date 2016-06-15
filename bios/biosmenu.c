@@ -3486,7 +3486,7 @@ void BIOS_VGAModeSetting()
 	GPU_EMU_printscreen(0,4,"VGA Mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 7; //Ammount of VGA modes! Only use two modes, as the precursor compatibility mode(CGA) isn't finished yet!
+	numlist = 8; //Ammount of VGA modes! Only use two modes, as the precursor compatibility mode(CGA) isn't finished yet!
 	for (i=0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
@@ -3498,6 +3498,7 @@ void BIOS_VGAModeSetting()
 	strcpy(itemlist[4],"Pure CGA"); //Special CGA pure mode!
 	strcpy(itemlist[5],"Pure MDA"); //Special MDA pure mode!
 	strcpy(itemlist[6],"Tseng ET4000"); //Tseng ET4000 card!
+	strcpy(itemlist[7],"Tseng ET3000"); //Tseng ET4000 card!
 
 	int current = 0;
 	switch (BIOS_Settings.VGA_Mode) //What setting?
@@ -3508,7 +3509,8 @@ void BIOS_VGAModeSetting()
 	case 3: //Valid
 	case 4: //Valid
 	case 5: //Valid
-	case 6:
+	case 6: //Valid
+	case 7: //Valid
 		current = BIOS_Settings.VGA_Mode; //Valid: use!
 		break;
 	default: //Invalid
@@ -3536,10 +3538,13 @@ void BIOS_VGAModeSetting()
 	case 4:
 	case 5:
 	case 6:
+	case 7:
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
-			if ((file==6) || (current==6)) //Switching to/from SVGA mode?
+			byte isSVGA = ((file==6) || (file==7)); //Chosen SVGA card?
+			byte wasSVGA = ((current==6) && (current==7)); //Was SVGA card?
+			if (isSVGA!=wasSVGA) //Switching to/from SVGA mode?
 			{
 				BIOS_Settings.VRAM_size = 0; //Autodetect current memory size!
 			}
@@ -3660,6 +3665,9 @@ setVGAModetext: //For fixing it!
 		break;
 	case 6:
 		strcat(menuoptions[advancedoptions++], "Tseng ET4000"); //Tseng ET4000 SVGA card!
+		break;
+	case 7:
+		strcat(menuoptions[advancedoptions++], "Tseng ET3000"); //Tseng ET3000 SVGA card!
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.VGA_Mode = 0; //Reset/Fix!

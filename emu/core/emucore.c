@@ -298,11 +298,11 @@ void initEMU(int full) //Init!
 	uint_32 VRAMSizeBackup;
 	VRAMSizeBackup = BIOS_Settings.VRAM_size; //Save the original VRAM size for extensions!
 
-	MainVGA = VGAalloc(0,1,(BIOS_Settings.VGA_Mode==6)?1:0); //Allocate a main VGA, automatically by BIOS!
+	MainVGA = VGAalloc(0,1,(BIOS_Settings.VGA_Mode==6)?1:(BIOS_Settings.VGA_Mode==7?2:0)); //Allocate a main VGA, automatically by BIOS!
 	debugrow("Activating main VGA engine...");
 	setActiveVGA(MainVGA); //Initialise primary VGA using the BIOS settings, for the system itself!
 	initCGA_MDA(); //Add CGA/MDA support to the VGA as an extension!
-	if (BIOS_Settings.VGA_Mode==6) SVGA_Setup_TsengET4K(VRAMSizeBackup); //Start the Super VGA card instead if enabled!
+	if ((BIOS_Settings.VGA_Mode==6) || (BIOS_Settings.VGA_Mode==7)) SVGA_Setup_TsengET4K(VRAMSizeBackup); //Start the Super VGA card instead if enabled!
 
 	debugrow("Initializing 8259...");
 	init8259(); //Initialise the 8259 (PIC)!

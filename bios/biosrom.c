@@ -74,12 +74,19 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 					if (file_exists("ROM/ET4000.BIN")) //Full ET4000?
 					{
 						ISVGA = 2; //ET4000!
-						strcpy(filename, "ROM/ET4000.BIN"); //VGA ROM!
+						strcpy(filename, "ROM/ET4000.BIN"); //ET4000 ROM!
 					}
-					else if (file_exists("ROM/ET3000.BIN")) //ET3000 replacement?
+					else //VGA ROM?
 					{
-						ISVGA = 3; //ET3000!
-						strcpy(filename, "ROM/ET3000.BIN"); //VGA ROM!
+						strcpy(filename, ""); //VGA ROM!
+					}
+				}
+				else if (BIOS_Settings.VGA_Mode == 7) //ET3000?
+				{
+					if (file_exists("ROM/ET3000.BIN")) //Full ET3000?
+					{
+						ISVGA = 2; //ET3000!
+						strcpy(filename, "ROM/ET4000.BIN"); //ET3000 ROM!
 					}
 					else //VGA ROM?
 					{

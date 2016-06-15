@@ -227,6 +227,8 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 	CGAMDARenderer = CGAMDAEMULATION_RENDER(VGA)?1:0; //Render CGA/MDA style?
 
+	VGA->precalcs.graphicsReloadMask = 7; //Normal 8-pixel graphics reloading!
+
 	if ((whereupdated == (WHEREUPDATED_MISCOUTPUTREGISTER)) || FullUpdate) //Misc output register updated?
 	{
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!

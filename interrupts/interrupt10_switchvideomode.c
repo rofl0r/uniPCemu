@@ -27,7 +27,7 @@
 
 //Helper functions:
 extern VideoModeBlock ModeList_VGA_Tseng[35]; //ET3000/ET4000 mode list!
-extern VideoModeBlock ModeList_VGA[0x14]; //VGA Modelist!
+extern VideoModeBlock ModeList_VGA[0x15]; //VGA Modelist!
 VideoModeBlock *CurMode = &ModeList_VGA[0]; //Current video mode information block!
 
 //Patches for dosbox!
@@ -78,7 +78,63 @@ OPTINLINE void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count) { //
 	}
 }
 
+//ET4K support
 extern float ET4K_clockFreq[0x10]; //Clock frequencies used!
+extern float ET3K_clockFreq[0x10]; //Clock frequencies used!
+
+extern float VGA_clocks[4]; //VGA clock frequencies!
+
+Bitu VideoModeMemSize(Bitu mode) {
+	if (!IS_VGA_ARCH)
+		return 0;
+
+	VideoModeBlock* modelist = NULL;
+
+	switch (svgaCard) {
+	case SVGA_TsengET4K:
+	case SVGA_TsengET3K:
+		modelist = ModeList_VGA_Tseng;
+		break;
+	/*case SVGA_ParadisePVGA1A:
+		modelist = ModeList_VGA_Paradise;
+		break;*/
+	default:
+		modelist = ModeList_VGA;
+		break;
+	}
+
+	VideoModeBlock* vmodeBlock = NULL;
+	Bitu i = 0;
+	while (modelist[i].mode != 0xffff) {
+		if (modelist[i].mode == mode) {
+			vmodeBlock = &modelist[i];
+			break;
+		}
+		i++;
+	}
+	if (!vmodeBlock)
+		return 0;
+
+	switch (vmodeBlock->type) {
+	case M_LIN4:
+		return vmodeBlock->swidth*vmodeBlock->sheight / 2;
+	case M_LIN8:
+		return vmodeBlock->swidth*vmodeBlock->sheight;
+	case M_LIN15: case M_LIN16:
+		return vmodeBlock->swidth*vmodeBlock->sheight * 2;
+	case M_LIN32:
+		return vmodeBlock->swidth*vmodeBlock->sheight * 4;
+	case M_TEXT:
+		return vmodeBlock->twidth*vmodeBlock->theight * 2;
+	}
+	// Return 0 for all other types, those always fit in memory
+	return 0;
+}
+
+bool AcceptsMode_ET4K(Bitu mode) {
+	return VideoModeMemSize(mode) < getActiveVGA()->VRAM_size;
+	//	return mode != 0x3d;
+}
 
 void FinishSetMode_ET4K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 	IO_Write(0x3cd, 0x00); // both banks to 0
@@ -120,8 +176,11 @@ void FinishSetMode_ET4K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 		Bitu target = modeData->vtotal*8*modeData->htotal*60;
 		Bitu best = 1;
 		Bits dist = 100000000;
+		float freq;
 		for (Bitu i=0; i<16; i++) {
-			Bits cdiff=abs((Bits)(target-ET4K_clockFreq[i]));
+			freq = ET4K_clockFreq[i]; //ET4K clock frequency!
+			if (freq < 0.0f) freq = VGA_clocks[i]; //Use VGA clock!
+			Bits cdiff = abs((Bits)(target - freq));
 			if (cdiff < dist) {
 				best = i;
 				dist = cdiff;
@@ -141,6 +200,66 @@ void FinishSetMode_ET4K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 	//VGA_SetupHandlers();
 }
 
+//ET3K support!
+bool AcceptsMode_ET3K(Bitu mode) {
+	return mode <= 0x37 && mode != 0x2f && VideoModeMemSize(mode) < getActiveVGA()->VRAM_size;
+}
+
+void FinishSetMode_ET3K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
+	IO_Write(0x3cd, 0x40); // both banks to 0, 64K bank size
+
+						   // Tseng ET3K does not have horizontal overflow bits
+						   // Reinterpret ver_overflow
+	Bit8u et4k_ver_overflow =
+		((modeData->ver_overflow & 0x01) << 1) | // vtotal10
+		((modeData->ver_overflow & 0x02) << 1) | // vdispend10
+		((modeData->ver_overflow & 0x04) >> 2) | // vbstart10
+		((modeData->ver_overflow & 0x10) >> 1) | // vretrace10 (tseng has vsync start?)
+		((modeData->ver_overflow & 0x40) >> 2);  // line_compare
+	IO_Write(crtc_base, 0x25);IO_Write(crtc_base + 1, et4k_ver_overflow);
+
+	// Clear remaining ext CRTC registers
+	for (Bitu i = 0x16; i <= 0x21; i++)
+		IO_Write(crtc_base, i);IO_Write(crtc_base + 1, 0);
+	IO_Write(crtc_base, 0x23);IO_Write(crtc_base + 1, 0);
+	IO_Write(crtc_base, 0x24);IO_Write(crtc_base + 1, 0);
+	// Clear ext SEQ
+	IO_Write(0x3c4, 0x06);IO_Write(0x3c5, 0);
+	IO_Write(0x3c4, 0x07);IO_Write(0x3c5, 0x40); // 0 in this register breaks WHATVGA
+												 // Clear ext ATTR
+	IO_Write(0x3c0, 0x16);IO_Write(0x3c0, 0);
+	IO_Write(0x3c0, 0x17);IO_Write(0x3c0, 0);
+
+	// Select SVGA clock to get close to 60Hz (not particularly clean implementation)
+	if (modeData->modeNo > 0x13) {
+		Bitu target = modeData->vtotal * 8 * modeData->htotal * 60;
+		Bitu best = 1;
+		Bits dist = 100000000;
+		float freq;
+		for (Bitu i = 0; i<8; i++) {
+			freq = ET3K_clockFreq[i];
+			if (freq < 0.0f) freq = VGA_clocks[i]; //Use VGA clock!
+			Bits cdiff = abs((Bits)(target - freq));
+			if (cdiff < dist) {
+				best = i;
+				dist = cdiff;
+			}
+		}
+		set_clock_index_et3k(getActiveVGA(),best);
+	}
+
+	//if (svga.determine_mode)
+	//	svga.determine_mode();
+
+	// Verified on functioning (at last!) hardware: Tseng ET3000 is the same as ET4000 when
+	// it comes to chain4 architecture
+	//vga.config.compatible_chain4 = false;
+	//vga.vmemwrap = vga.vmemsize;
+
+	//VGA_SetupHandlers();
+}
+
+
 //All palettes:
 extern byte text_palette[64][3];
 extern byte mtext_palette[64][3];
@@ -150,22 +269,21 @@ extern byte cga_palette[16][3];
 extern byte cga_palette_2[64][3];
 extern byte vga_palette[256][3];
 
-extern VideoModeBlock ModeList_VGA_Text_200lines[4];
-extern VideoModeBlock ModeList_VGA_Text_350lines[4];
+extern VideoModeBlock ModeList_VGA_Text_200lines[5];
+extern VideoModeBlock ModeList_VGA_Text_350lines[5];
 
 //Now the function itself (a big one)!
 /* Setup the BIOS */
 
 OPTINLINE static bool SetCurMode(VideoModeBlock modeblock[],word mode)
 {
-	if (mode > 0x13) return false; //Invalid mode!
 	byte i=0;
 	while (modeblock[i].mode!=0xffff)
 	{
 		if (modeblock[i].mode!=mode) i++;
 		else
 		{
-			if ((ModeList_VGA[i].mode<0x120))
+			if ((modeblock[i].mode<0x120))
 			{
 				CurMode=&modeblock[i];
 				return true;
@@ -310,7 +428,11 @@ int INT10_Internal_SetVideoMode(word mode)
 
 		switch(svgaCard) {
 		case SVGA_TsengET4K: //ET4000?
+			if (!AcceptsMode_ET4K(mode)) return false; //Not accepted!
+			goto setTsengMode;
 		case SVGA_TsengET3K: //ET3000?
+			if (!AcceptsMode_ET3K(mode)) return false; //Not accepted!
+			setTsengMode: //Added by superfury for easy support!
 			if (!SetCurMode(ModeList_VGA_Tseng,mode)){
 				//LOG(LOG_INT10,LOG_ERROR)("VGA:Trying to set illegal mode %X",mode);
 				return false;
@@ -969,6 +1091,30 @@ dac_text16:
 	}
 	// disabled, has to be set in bios.cpp exclusively
 //	real_writeb(BIOSMEM_SEG,BIOSMEM_INITIAL_MODE,feature);
+
+	VGA_ModeExtraData modeData;
+	switch (svgaCard) { //What SVGA card?
+	case SVGA_TsengET4K: //ET4K?
+	case SVGA_TsengET3K: //ET3K?
+		modeData.ver_overflow = ver_overflow;
+		modeData.hor_overflow = hor_overflow;
+		modeData.offset = offset;
+		modeData.modeNo = CurMode->mode;
+		modeData.htotal = CurMode->htotal;
+		modeData.vtotal = CurMode->vtotal;
+		if (svgaCard==SVGA_TsengET4K) //ET4K?
+		{
+			FinishSetMode_ET4K(crtc_base, &modeData); //Finish the ET4K mode!
+		}
+		else //ET3K?
+		{
+			FinishSetMode_ET3K(crtc_base, &modeData); //Finish the ET3K mode!
+		}
+		break;
+	case SVGA_None: //No SVGA?
+	default: //Not SVGA or valid SVGA?
+		break; //Not SVGA: Ignore this setting!
+	}
 
 
 	FinishSetMode(clearmem);

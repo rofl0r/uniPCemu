@@ -142,6 +142,7 @@ typedef struct //Contains the precalculated values!
 	byte VideoLoadRateMask; //When to load the new pixels (bitmask to result in zero to apply)!
 	byte BypassPalette; //Bypass the palette?
 	byte linearmode; //Linear mode enabled (linear memory window)? Bit 1=1: Use high 4 bits for bank, else bank select. Bit0=1: Use contiguous memory, else VGA mapping.
+	byte graphicsReloadMask; //Graphics reload mask (results in zero to apply)
 } VGA_PRECALCS; //VGA pre-calculations!
 
 typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated); //Calculate them!

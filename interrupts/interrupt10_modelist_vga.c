@@ -1,6 +1,6 @@
 #include "headers/header_dosbox.h" //Our typedefs!
 
-VideoModeBlock ModeList_VGA[0x14] = {  //VGA Modelist!
+VideoModeBlock ModeList_VGA[0x15] = {  //VGA Modelist!
 	/* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
 	{ 0x000, M_TEXT, 360, 400, 40, 25, 9, 16, 8, 0xB8000, 0x0800, 50, 449, 40, 400, _EGA_HALF_CLOCK },
 	{ 0x001, M_TEXT, 360, 400, 40, 25, 9, 16, 8, 0xB8000, 0x0800, 50, 449, 40, 400, _EGA_HALF_CLOCK },
@@ -18,7 +18,7 @@ VideoModeBlock ModeList_VGA[0x14] = {  //VGA Modelist!
 	{ 0x011, M_EGA, 640, 480, 80, 30, 8, 16, 1, 0xA0000, 0xA000, 100, 525, 80, 480, 0 },/*was EGA_2 */
 	{ 0x012, M_EGA, 640, 480, 80, 30, 8, 16, 1, 0xA0000, 0xA000, 100, 525, 80, 480, 0 },
 	{ 0x013, M_VGA, 320, 200, 40, 25, 8, 8, 1, 0xA0000, 0x2000, 100, 449, 80, 400, _REPEAT1 },
-
+	{ 0xFFFF  ,M_ERROR  ,0   ,0   ,0  ,0  ,0 ,0  ,0 ,0x00000 ,0x0000 ,0   ,0   ,0  ,0   ,0 }
 }; //VGA Modelist!
 
 VideoModeBlock ModeList_VGA_Tseng[35]={
@@ -59,7 +59,7 @@ VideoModeBlock ModeList_VGA_Tseng[35]={
 { 0x03E  ,M_LIN4   ,1280, 960,160,60 ,8 ,16 ,1 ,0xA0000 ,0xA000, 160 ,1024,160,960 , 0 },/* Definicon only */ 
 { 0x06A  ,M_LIN4   ,800 ,600 ,100,37 ,8 ,16 ,1 ,0xA0000 ,0xA000, 128 ,663 ,100,600 , 0 },/* newer ET4000 */
 
-{0xFFFF  ,M_ERROR  ,0   ,0   ,0  ,0  ,0 ,0  ,0 ,0x00000 ,0x0000 ,0   ,0   ,0  ,0   ,0 	},
+{0xFFFF  ,M_ERROR  ,0   ,0   ,0  ,0  ,0 ,0  ,0 ,0x00000 ,0x0000 ,0   ,0   ,0  ,0   ,0 	}
 };
 
 byte text_palette[64][3]=
@@ -169,22 +169,24 @@ byte vga_palette[256][3]=
 
 //Extra stuff:
 
-VideoModeBlock ModeList_VGA_Text_200lines[4]=
+VideoModeBlock ModeList_VGA_Text_200lines[5]=
 {
 	/* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
 	{ 0x000, M_TEXT, 320, 200, 40, 25, 8, 8, 8, 0xB8000, 0x0800, 50, 449, 40, 400, _EGA_HALF_CLOCK | _DOUBLESCAN },
 	{ 0x001, M_TEXT, 320, 200, 40, 25, 8, 8, 8, 0xB8000, 0x0800, 50, 449, 40, 400, _EGA_HALF_CLOCK | _DOUBLESCAN },
 	{ 0x002, M_TEXT, 640, 200, 80, 25, 8, 8, 8, 0xB8000, 0x1000, 100, 449, 80, 400, _DOUBLESCAN },
-	{ 0x003, M_TEXT, 640, 200, 80, 25, 8, 8, 8, 0xB8000, 0x1000, 100, 449, 80, 400, _DOUBLESCAN }
+	{ 0x003, M_TEXT, 640, 200, 80, 25, 8, 8, 8, 0xB8000, 0x1000, 100, 449, 80, 400, _DOUBLESCAN },
+	{0xFFFF  ,M_ERROR  ,0   ,0   ,0  ,0  ,0 ,0  ,0 ,0x00000 ,0x0000 ,0   ,0   ,0  ,0   ,0 	}
 };
 
-VideoModeBlock ModeList_VGA_Text_350lines[4]=
+VideoModeBlock ModeList_VGA_Text_350lines[5]=
 {
 	/* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
 	{ 0x000, M_TEXT, 320, 350, 40, 25, 8, 14, 8, 0xB8000, 0x0800, 50, 449, 40, 350, _EGA_HALF_CLOCK },
 	{ 0x001, M_TEXT, 320, 350, 40, 25, 8, 14, 8, 0xB8000, 0x0800, 50, 449, 40, 350, _EGA_HALF_CLOCK },
 	{ 0x002, M_TEXT, 640, 350, 80, 25, 8, 14, 8, 0xB8000, 0x1000, 100, 449, 80, 350, 0 },
-	{ 0x003, M_TEXT, 640, 350, 80, 25, 8, 14, 8, 0xB8000, 0x1000, 100, 449, 80, 350, 0 }
+	{ 0x003, M_TEXT, 640, 350, 80, 25, 8, 14, 8, 0xB8000, 0x1000, 100, 449, 80, 350, 0 },
+	{0xFFFF  ,M_ERROR  ,0   ,0   ,0  ,0  ,0 ,0  ,0 ,0x00000 ,0x0000 ,0   ,0   ,0  ,0   ,0 	}
 };
 
 Bit8u cga_masks[4]={0x3f,0xcf,0xf3,0xfc};

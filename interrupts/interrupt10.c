@@ -38,7 +38,7 @@ int int10loaded = 0; //Default: not loaded yet!
 //Screencolorsfont: 0xB800:((row*0x0040:004A)+column*2)+1)
 //Screencolorsback: Same as font, high nibble!
 
-extern VideoModeBlock ModeList_VGA[63]; //VGA Modelist!
+extern VideoModeBlock ModeList_VGA[0x15]; //VGA Modelist!
 extern VideoModeBlock *CurMode; //VGA Active Video Mode!
 
 //All palettes:
@@ -2327,6 +2327,7 @@ void init_int10() //Initialises int10&VGA for usage!
 	switch (getActiveVGA()->enable_SVGA) //SVGA detection?
 	{
 		case 1: //ET4000?
+		case 2: //ET3000?
 			svgaCard = SVGA_TsengET4K; //ET4000 card!
 			break;
 		default: //VGA?

@@ -166,7 +166,7 @@ void INT10_SetupRomMemory(byte setinterrupts)
 		EMU_VGAROM[0] = 0x55;
 		EMU_VGAROM[1] = 0xaa;
 		EMU_VGAROM[2] = 0x40;		// Size of ROM: 64 512-blocks = 32KB
-		if (IS_VGA_ARCH) {
+		if (IS_VGA_ARCH && (!getActiveVGA()->enable_SVGA)) { //Plain VGA?
 			EMU_VGAROM[0x1e] = 0x49;	// IBM string
 			EMU_VGAROM[0x1f] = 0x42;
 			EMU_VGAROM[0x20] = 0x4d;
