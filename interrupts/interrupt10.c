@@ -54,6 +54,8 @@ extern byte vga_palette[256][3];
 extern Bit8u cga_masks[4];
 extern Bit8u cga_masks2[8];
 
+SVGAmode svgaCard = SVGA_None; //Default to no SVGA card!
+
 byte getscreenwidth() //Get the screen width (in characters), based on the video mode!
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -92,9 +94,11 @@ void GPUswitchvideomode(word mode)
 }
 
 
-OPTINLINE int GPU_getpixel(int x, int y, byte page, byte *pixel) //Get a pixel from the real emulated screen buffer!
+OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel from the real emulated screen buffer!
 {
 	if (__HW_DISABLED) return 0; //Abort!
+	uint_32 rowoffs;
+	byte curbank;
         switch (CurMode->type) {
         case M_CGA4:
                 {
@@ -137,23 +141,28 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, byte *pixel) //Get a pixel f
         case M_VGA:
                 *color=mem_readb(RealMake(0xa000,320*y+x));
                 break;
-        /*case M_LIN8: {
-                        //if (CurMode->swidth!=(Bitu)real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)
-                        //        LOG(LOG_INT10,LOG_ERROR)("GetPixel_VGA_w: %x!=%x",CurMode->swidth,real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8);
-                        RealPt off=RealMake(S3_LFB_BASE,y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8+x);
-                        *color = mem_readb(off);
-                        break;
-                }*/
+        case M_LIN8:
+		rowoffs = (y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)+x; //The offset to retrieve!
+		curbank = IO_Read(0x3CD); //Read the current bank!
+		curbank &= 0xF; //Clear read bank!
+		curbank |= ((rowoffs>>16)&0xF)<<4; //The bank to use!
+		rowoffs &= 0xFFFF; //Pixel in the bank!
+		IO_Write(0x3CD,curbank); //Set the new bank!
+                RealPt off=RealMake(0xA000,rowoffs); //Pointer to memory!
+                *color = mem_readb(off);
+                break;
         default:
                 //LOG(LOG_INT10,LOG_ERROR)("GetPixel unhandled mode type %d",CurMode->type);
-            return 0; //Error: unknown mode!
+        	return 0; //Error: unknown mode!
                 break;
         }
         return 1; //OK!
 }
 
-OPTINLINE int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video buffer pixel to the real emulated screen buffer
+OPTINLINE int GPU_putpixel(int x, int y, byte page, word color) //Writes a video buffer pixel to the real emulated screen buffer
 {
+	byte curbank;
+	uint_32 rowoffs;
 	if (__HW_DISABLED) return 0; //Abort!
         //static bool putpixelwarned = false;
         switch (CurMode->type) {
@@ -225,7 +234,7 @@ OPTINLINE int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video
                 //if ((machine!=MCH_VGA) || (svgaCard!=SVGA_TsengET4K) ||
                 //                (CurMode->swidth>800)) {
                         // the ET4000 BIOS supports text output in 800x600 SVGA (Gateway 2)
-                        // putpixel warining?
+                        // putpixel warning?
                         break;
                 //}
         case M_EGA:
@@ -260,13 +269,18 @@ OPTINLINE int GPU_putpixel(int x, int y, byte page, byte color) //Writes a video
         case M_VGA:
                 mem_writeb(RealMake(0xa000,y*320+x),color);
                 break;
-        /*case M_LIN8: {
-                        //if (CurMode->swidth!=(Bitu)real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)
-                        //        LOG(LOG_INT10,LOG_ERROR)("PutPixel_VGA_w: %x!=%x",CurMode->swidth,real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8);
-                        RealPt off=RealMake(S3_LFB_BASE,y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8+x);
-                        mem_writeb(off,color);
-                        break;
-                }*/
+        case M_LIN8:
+                //if (CurMode->swidth!=(Bitu)real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)
+                //        LOG(LOG_INT10,LOG_ERROR)("PutPixel_VGA_w: %x!=%x",CurMode->swidth,real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8);
+		rowoffs = (y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)+x; //The offset to retrieve!
+		curbank = IO_Read(0x3CD); //Read the current bank!
+		curbank &= 0xF0; //Clear write bank!
+		curbank |= (rowoffs>>16)&0xF; //The bank to use!
+		rowoffs &= 0xFFFF; //Pixel in the bank!
+		IO_Write(0x3CD,curbank); //Set the new bank!
+                RealPt off=RealMake(0xA000,rowoffs); //Pointer to memory!
+                mem_writeb(off,color);
+                break;
         default:
                 //if(GCC_UNLIKELY(!putpixelwarned)) {
                         //putpixelwarned = true;          
@@ -1185,7 +1199,9 @@ void int10_GetPixel()
 	AL=Color
 	*/
 
-	GPU_getpixel(REG_CX,REG_DX,REG_BH,&REG_AL); //Try to get the pixel, ignore result!
+	word temp=0;
+	GPU_getpixel(REG_CX,REG_DX,REG_BH,&temp); //Try to get the pixel, ignore result!
+	REG_AL = (temp&0xFF); //Give the low 8-bits of the result!
 }
 
 OPTINLINE void int10_internal_outputchar(byte videopage, byte character, byte attribute)
@@ -2308,6 +2324,15 @@ Handler int10functions[] =
 void init_int10() //Initialises int10&VGA for usage!
 {
 //Initialise variables!
+	switch (getActiveVGA()->enable_SVGA) //SVGA detection?
+	{
+		case 1: //ET4000?
+			svgaCard = SVGA_TsengET4K; //ET4000 card!
+			break;
+		default: //VGA?
+			svgaCard = SVGA_None; //No SVGA!
+			break;
+	}
 	if (DAC_Use_BWMonitor(0xFF)) //Are we using a B/W monitor?
 	{
 		GPUswitchvideomode(7); //Init video mode #7(mono)!

@@ -288,12 +288,12 @@ OPTINLINE static byte get_clock_index_et4k(VGA_Type *VGA) {
 	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA>>2)&3) | ((et4k(VGA)->store_3d4_34<<1)&4) | ((et4k(VGA)->store_3d4_31>>3)&8);
 }
 
-/*static void set_clock_index_et4k(VGA_Type *VGA, byte index) {
+void set_clock_index_et4k(VGA_Type *VGA, byte index) { //Used by the interrupt 10h handler to set the clock index directly!
 	// Shortwiring register reads/writes for simplicity
 	et4k_data->store_3d4_34 = (et4k(VGA)->store_3d4_34&~0x02)|((index&4)>>1);
 	et4k_data->store_3d4_31 = (et4k(VGA)->store_3d4_31&~0xc0)|((index&8)<<3); // (index&0x18) if 32 clock frequencies are to be supported
 	PORT_write_MISC_3C2((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA&~0x0c)|((index&3)<<2));
-}*/ //Currently it isn't manually set!
+}
 
 extern byte EMU_VGAROM[0x10000];
 

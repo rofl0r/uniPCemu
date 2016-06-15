@@ -83,7 +83,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 					}
 					else //VGA ROM?
 					{
-						strcpy(filename, "ROM/VGAROM.BIN"); //VGA ROM!
+						strcpy(filename, ""); //VGA ROM!
 					}
 				}
 				else //Plain VGA?
@@ -92,7 +92,14 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				}
 			}
 		}
-		f = fopen(filename,"rb");
+		if (strcmp(filename,"")==0) //No ROM?
+		{
+			f = NULL; //No ROM!
+		}
+		else //Try to open!
+		{
+			f = fopen(filename,"rb");
+		}
 		if (!f)
 		{
 			if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!

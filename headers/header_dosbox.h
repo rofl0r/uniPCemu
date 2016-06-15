@@ -119,6 +119,17 @@ typedef enum
     M_ERROR
 } VGAModes;
 
+
+
+enum SVGACards {
+	SVGA_None,
+	SVGA_S3Trio,
+	SVGA_TsengET4K,
+	SVGA_TsengET3K,
+	SVGA_ParadisePVGA1A
+};
+typedef byte SVGAmode; //SVGA mode!
+
 typedef struct
 {
 	word	mode;
@@ -133,6 +144,7 @@ typedef struct
 	uint_32	special;
 
 } VideoModeBlock;
+
 extern VideoModeBlock ModeList_VGA[];
 extern VideoModeBlock * CurMode;
 
@@ -218,6 +230,7 @@ enum MachineType
 #define Bit8u byte
 #define Bit32u uint_32
 #define Bitu uint_32
+#define Bits int_32
 
 typedef byte *PhysPt; //Physical pointer!
 
@@ -363,5 +376,42 @@ enum KBD_KEYS {
 #define BIOS_DEFAULT_IRQ0_LOCATION		(RealMake(0xf000,0xfea5))
 #define BIOS_DEFAULT_IRQ1_LOCATION		(RealMake(0xf000,0xe987))
 #define BIOS_DEFAULT_IRQ2_LOCATION		(RealMake(0xf000,0xff55))
+
+/* Video mode extra data to be passed to FinishSetMode_SVGA().
+
+   This structure will be in flux until all drivers (including S3)
+
+   are properly separated. Right now it contains only three overflow
+
+   fields in S3 format and relies on drivers re-interpreting those.
+
+   For reference:
+
+   ver_overflow:X|line_comp10|X|vretrace10|X|vbstart10|vdispend10|vtotal10
+
+   hor_overflow:X|X|X|hretrace8|X|hblank8|hdispend8|htotal8
+
+   offset is not currently used by drivers (useful only for S3 itself)
+
+   It also contains basic int10 mode data - number, vtotal, htotal
+
+   */
+
+typedef struct {
+
+	Bit8u ver_overflow;
+
+	Bit8u hor_overflow;
+
+	Bitu offset;
+
+	Bitu modeNo;
+
+	Bitu htotal;
+
+	Bitu vtotal;
+
+} VGA_ModeExtraData;
+
 
 #endif

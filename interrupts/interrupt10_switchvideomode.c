@@ -16,6 +16,8 @@
 #include "headers/cpu/cb_manager.h" //Callback support!
 #include "headers/cpu/protection.h" //Protection support!
 
+#include "headers/hardware/vga/svga/et4000.h" //ET4000 support!
+
 //Log options!
 #define LOG_SWITCHMODE 0
 #define LOG_FILE "int10"
@@ -24,8 +26,8 @@
 #define __HW_DISABLED 0
 
 //Helper functions:
-
-extern VideoModeBlock ModeList_VGA[63]; //VGA Modelist!
+extern VideoModeBlock ModeList_VGA_Tseng[35]; //ET3000/ET4000 mode list!
+extern VideoModeBlock ModeList_VGA[0x14]; //VGA Modelist!
 VideoModeBlock *CurMode = &ModeList_VGA[0]; //Current video mode information block!
 
 //Patches for dosbox!
@@ -34,6 +36,8 @@ VideoModeBlock *CurMode = &ModeList_VGA[0]; //Current video mode information blo
 
 uint_32 machine = M_VGA; //Active machine!
 //EGA/VGA?
+
+extern SVGAmode svgaCard; //SVGA card that's emulated?
 
 OPTINLINE void INT10_SetSingleDACRegister(Bit8u index,Bit8u red,Bit8u green,Bit8u blue) {
 	IO_Write(VGAREG_DAC_WRITE_ADDRESS,(Bit8u)index);
@@ -72,6 +76,69 @@ OPTINLINE void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count) { //
 		ic=(i>0x3f) ? 0x3f : ((Bit8u)(i & 0xff));
 		INT10_SetSingleDACRegister(start_reg+ct,ic,ic,ic);
 	}
+}
+
+extern float ET4K_clockFreq[0x10]; //Clock frequencies used!
+
+void FinishSetMode_ET4K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
+	IO_Write(0x3cd, 0x00); // both banks to 0
+
+	// Reinterpret hor_overflow. Curiously, three bits out of four are
+	// in the same places. Input has hdispend (not supported), output
+	// has CRTC offset (also not supported)
+	Bit8u et4k_hor_overflow = 
+		(modeData->hor_overflow & 0x01) |
+		(modeData->hor_overflow & 0x04) |
+		(modeData->hor_overflow & 0x10);
+	IO_Write(crtc_base,0x3f);IO_Write(crtc_base+1,et4k_hor_overflow);
+
+	// Reinterpret ver_overflow
+	Bit8u et4k_ver_overflow =
+		((modeData->ver_overflow & 0x01) << 1) | // vtotal10
+		((modeData->ver_overflow & 0x02) << 1) | // vdispend10
+		((modeData->ver_overflow & 0x04) >> 2) | // vbstart10
+		((modeData->ver_overflow & 0x10) >> 1) | // vretrace10 (tseng has vsync start?)
+		((modeData->ver_overflow & 0x40) >> 2);  // line_compare
+	IO_Write(crtc_base,0x35);IO_Write(crtc_base+1,et4k_ver_overflow);
+
+	// Clear remaining ext CRTC registers
+	IO_Write(crtc_base,0x31);IO_Write(crtc_base+1,0);
+	IO_Write(crtc_base,0x32);IO_Write(crtc_base+1,0);
+	IO_Write(crtc_base,0x33);IO_Write(crtc_base+1,0);
+	IO_Write(crtc_base,0x34);IO_Write(crtc_base+1,0);
+	IO_Write(crtc_base,0x36);IO_Write(crtc_base+1,0);
+	IO_Write(crtc_base,0x37);IO_Write(crtc_base+1,0x0c|(getActiveVGA()->VRAM_size==1024*1024?3:getActiveVGA()->VRAM_size==512*1024?2:1));
+	// Clear ext SEQ
+	IO_Write(0x3c4,0x06);IO_Write(0x3c5,0);
+	IO_Write(0x3c4,0x07);IO_Write(0x3c5,0);
+	// Clear ext ATTR
+	IO_Write(0x3c0,0x16);IO_Write(0x3c0,0);
+	IO_Write(0x3c0,0x17);IO_Write(0x3c0,0);
+
+	// Select SVGA clock to get close to 60Hz (not particularly clean implementation)
+	if (modeData->modeNo > 0x13) {
+		Bitu target = modeData->vtotal*8*modeData->htotal*60;
+		Bitu best = 1;
+		Bits dist = 100000000;
+		for (Bitu i=0; i<16; i++) {
+			Bits cdiff=abs((Bits)(target-ET4K_clockFreq[i]));
+			if (cdiff < dist) {
+				best = i;
+				dist = cdiff;
+			}
+		}
+		set_clock_index_et4k(getActiveVGA(),best);
+	}
+
+	//if(svga.determine_mode)
+	//	svga.determine_mode();
+
+	// Verified (on real hardware and in a few games): Tseng ET4000 used chain4 implementation
+	// different from standard VGA. It was also not limited to 64K in regular mode 13h.
+	//vga.config.compatible_chain4 = false;
+	//vga.vmemwrap = vga.vmemsize;
+
+	//VGA_SetupHandlers();
 }
 
 //All palettes:
@@ -140,6 +207,10 @@ OPTINLINE void FinishSetMode(int clearmem)
 			break;
 		case M_EGA:
 		case M_VGA:
+		case M_LIN4:
+		case M_LIN8:
+		case M_LIN15:
+		case M_LIN16:
 			cgacorruption:
 			/* Hack we just acess the memory directly */
 			if ((currentVGA = getActiveVGA())) //Gotten active VGA?
@@ -232,11 +303,30 @@ int INT10_Internal_SetVideoMode(word mode)
 	}
 
 	modeset_ctl=real_readb(BIOSMEM_SEG,BIOSMEM_MODESET_CTL);
+	if (IS_VGA_ARCH) {
+		/*if (svga.accepts_mode) {
+			if (!svga.accepts_mode(mode)) return false;
+		}*/
 
-		if (!SetCurMode(ModeList_VGA,mode))
-		{
-			//LOG(LOG_INT10,LOG_ERROR)("VGA:Trying to set illegal mode %X",mode);
-			return false;
+		switch(svgaCard) {
+		case SVGA_TsengET4K: //ET4000?
+		case SVGA_TsengET3K: //ET3000?
+			if (!SetCurMode(ModeList_VGA_Tseng,mode)){
+				//LOG(LOG_INT10,LOG_ERROR)("VGA:Trying to set illegal mode %X",mode);
+				return false;
+			}
+			break;
+		/*case SVGA_ParadisePVGA1A:
+			if (!SetCurMode(ModeList_VGA_Paradise,mode)){
+				//LOG(LOG_INT10,LOG_ERROR)("VGA:Trying to set illegal mode %X",mode);
+				return false;
+			}
+			break;*/
+		default:
+			if (!SetCurMode(ModeList_VGA,mode)){
+				//LOG(LOG_INT10,LOG_ERROR)("VGA:Trying to set illegal mode %X",mode);
+				return false;
+			}
 		}
 		/*}*/
 		// check for scanline backwards compatibility (VESA text modes??)
@@ -257,6 +347,9 @@ int INT10_Internal_SetVideoMode(word mode)
 				}
 			}
 		}
+	} else {
+		return false; //Superfury: EGA isn't supported here!
+	}
 
 	/* Setup the VGA to the correct mode */
 	// turn off video
@@ -499,6 +592,16 @@ int INT10_Internal_SetVideoMode(word mode)
 	case M_VGA:
 		underline=0x40;
 		break;
+	case M_CGA2:
+	case M_CGA4:
+		max_scanline |= 1;
+		break;
+	case M_LIN8:
+	case M_LIN15:
+	case M_LIN16:
+	case M_LIN32:
+		underline = 0x60;
+		break;
 	default:
 		break;
 	}
@@ -514,7 +617,21 @@ int INT10_Internal_SetVideoMode(word mode)
 	IO_Write(crtc_base+1,overflow);
 
 	/* Offset Register */
-	offset = CurMode->hdispend/2;
+	switch (CurMode->type) {
+		case M_LIN8:
+			offset = CurMode->swidth/8;
+			break;
+		case M_LIN15:
+		case M_LIN16:
+			offset = 2 * CurMode->swidth/8;
+			break;
+		case M_LIN32:
+			offset = 4 * CurMode->swidth/8;
+			break;
+		default: //VGA compatibility?
+			offset = CurMode->hdispend/2;
+			break;
+	}
 	IO_Write(crtc_base,0x13);
 	IO_Write(crtc_base + 1,offset & 0xff);
 
@@ -545,6 +662,10 @@ int INT10_Internal_SetVideoMode(word mode)
 		break;
 	case M_TEXT:
 	case M_VGA:
+	case M_LIN8:
+	case M_LIN15:
+	case M_LIN16:
+	case M_LIN32:
 		mode_control=0xa3;
 		if (CurMode->special & _VGA_PIXEL_DOUBLE)
 			mode_control |= 0x08;
@@ -572,6 +693,10 @@ int INT10_Internal_SetVideoMode(word mode)
 		gfx_data[0x5]|=0x10;		//Odd-Even Mode
 		gfx_data[0x6]|=mono_mode ? 0x0a : 0x0e;		//Either b800 or b000
 		break;
+	case M_LIN8:
+	case M_LIN15:
+	case M_LIN16:
+	case M_LIN32:
 	case M_VGA:
 		gfx_data[0x5]|=0x40;		//256 color mode
 		gfx_data[0x6]|=0x05;		//graphics mode at 0xa000-affff
@@ -604,6 +729,7 @@ int INT10_Internal_SetVideoMode(word mode)
 	switch (CurMode->type)
 	{
 	case M_EGA:
+	case M_LIN4:
 		att_data[0x10]=0x01;		//Color Graphics
 		switch (CurMode->mode)
 		{
@@ -688,6 +814,10 @@ att_text16:
 		real_writeb(BIOSMEM_SEG,BIOSMEM_CURRENT_PAL,0x30);
 		break;
 	case M_VGA:
+	case M_LIN8:
+	case M_LIN15:
+	case M_LIN16:
+	case M_LIN32:
 		for (ct=0; ct<16; ct++) att_data[ct]=ct;
 		att_data[0x10]=0x41; //Color Graphics 8-bit
 		break;
@@ -763,6 +893,10 @@ dac_text16:
 			}
 			break;
 		case M_VGA:
+		case M_LIN8:
+		case M_LIN15:
+		case M_LIN16:
+		case M_LIN32:
 			// IBM and clones use 248 default colors in the palette for 256-color mode.
 			// The last 8 colors of the palette are only initialized to 0 at BIOS init.
 			// Palette index is left at 0xf8 as on most clones, IBM leaves it at 0x10.
@@ -825,6 +959,7 @@ dac_text16:
 			break;
 		}
 		break;
+	case M_LIN4:
 	case M_EGA:
 	case M_VGA:
 		feature=(feature&~0x30);
