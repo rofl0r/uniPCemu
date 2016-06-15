@@ -15,8 +15,6 @@
 //Remove overflow used in math.h
 #undef OVERFLOW
 
-typedef uint_32 Bits;
-
 //PIC support!
 #define PIC_RemoveEvents(function) removetimer("MPU")
 #define PIC_AddEvent(function,timeout) addtimer(1/(timeout/1000000),function,"MPU",1,0,NULL)
