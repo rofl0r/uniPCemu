@@ -169,7 +169,7 @@ typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA, word loadedlocation);
 OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 addresscounter) //Patch full VRAM address!
 { //Check this!
 	INLINEREGISTER uint_32 bit; //Load row scan counter!
-	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13) //a13=Bit 0 of the row scan counter!
+	if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13==0) //a13=Bit 0 of the row scan counter!
 	{
 		//Row scan counter bit 1 is placed on the memory bus bit 14 during active display time.
 		//Bit 1, placed on memory address bit 14 has the effect of quartering the memory.
@@ -180,7 +180,7 @@ OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 addresscounter) //Patch f
 		addresscounter |= bit; //Set bit13 if needed!
 	}
 
-	if (!VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14) //a14<=Bit 1 of the row scan counter!
+	if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14==0) //a14<=Bit 1 of the row scan counter!
 	{
 		bit = ((SEQ_DATA *)VGA->Sequencer)->rowscancounter; //Current row scan counter!
 		bit &= 2; //Bit1 only!
@@ -194,19 +194,26 @@ OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 addresscounter) //Patch f
 
 OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memory arround 64k!
 {
-	if (VGA->precalcs.BWDModeShift == 1) //Word mode?
+	INLINEREGISTER uint_32 result, address2;
+	switch (VGA->precalcs.BWDModeShift) //What mode?
 	{
-		INLINEREGISTER uint_32 address2; //Load the initial value for calculating!
-		INLINEREGISTER uint_32 result;
-		result = 0xD; //Load default location (13)
-		result |= (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW << 1); //MA15 instead of MA13 when set!
-		address2 = memoryaddress; //Load the address for calculating!
-		address2 >>= result; //Apply MA15/MA13 to bit 0!
-		address2 &= 1; //Only load bit 0!
-		result = memoryaddress; //Default: don't change!
-		result &= ~1; //Clear bit 0!
-		result |= address2; //Add bit MA15/MA13 at bit 0!
-		return result; //Give the result!
+		case 1: //Word mode?
+			result = 0xD; //Load default location (13)
+			result |= (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW << 1); //MA15 instead of MA13 when set!
+			address2 = memoryaddress; //Load the address for calculating!
+			address2 >>= result; //Apply MA15/MA13 to bit 0!
+			address2 &= 1; //Only load bit 0!
+			result = memoryaddress; //Default: don't change!
+			result <<= 1;
+			result |= address2; //Add bit MA15/MA13 at bit 0!
+			return result; //Give the result!
+		case 2: //DWord mode?
+			return ((memoryaddress<<2)&0xFFFF)|((memoryaddress>>14)&3); //Doubleword mode!
+			break;
+		default:
+		case 0: //Byte mode?
+			break; //Unchanged!
+
 	}
 	return memoryaddress; //Original address!
 }
@@ -231,7 +238,6 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 	}
 
 	loadedlocation >>= VGA->precalcs.characterclockshift; //Apply VGA character clock shift: the shift is the ammount to move at a time! Address counter = Character clock DIV 2 or 4 when used.
-	loadedlocation <<= VGA->precalcs.BWDModeShift; //Apply byte/word/doubleword mode at the character level(Memory Address Counter is shifted left to generate larger addresses of memory)!
 
 	//Row logic
 	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!
@@ -246,7 +252,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 	planesbuffer[3] = readVRAMplane(VGA, 3, vramlocation); //Read plane 3!
 	//Now the buffer is ready to be processed into pixels!
 
-	planesdecoder[VGA->precalcs.graphicsmode](VGA,loadedlocation); //Use the decoder to get the pixels or characters!
+	planesdecoder[VGA->precalcs.graphicsmode](VGA,vramlocation); //Use the decoder to get the pixels or characters!
 
 	INLINEREGISTER byte lookupprecalcs;
 	lookupprecalcs = (byte)((SEQ_DATA *)Sequencer)->charinner_y;

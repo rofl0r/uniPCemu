@@ -46,13 +46,15 @@
 #define WHEREUPDATED_REGISTER 0x0FFF
 
 //Register/section/all has been updated?
-#define SECTIONUPDATED(whereupdated,section) ((whereupdated&WHEREUPDATED_AREA)==section)
-#define SECTIONUPDATEDFULL(whereupdated,section,fullupdated) (SECTIONUPDATED(whereupdated,section)||fullupdated)
-#define REGISTERUPDATED(whereupdated,section,reg,fullupdated) ((whereupdated==(section|reg))||SECTIONUPDATEDFULL(section,fullupdated))
+#define SECTIONISUPDATED(whereupdated,section) ((whereupdated&WHEREUPDATED_AREA)==section)
+#define SECTIONISUPDATEDFULL(whereupdated,section,fullupdated) (SECTIONISUPDATED(whereupdated,section)||fullupdated)
+
+//Simple register updated?
+#define REGISTERUPDATED(whereupdated,section,reg,fullupdated) ((whereupdated==(section|reg))||fullupdated)
 
 //Section update entirely, this section only?
-#define UPDATE_SECTION(val,section) (((val&WHEREUPDATED_ALL_SECTION)==WHEREUPDATED_ALL_SECTION) && SECTIONUPDATED(val,section))
-#define UPDATE_SECTIONFULL(val,section,fullupdate) (((val&WHEREUPDATED_ALL_SECTION)==WHEREUPDATED_ALL_SECTION) && SECTIONUPDATEDFULL(val,section,fullupdate))
+#define UPDATE_SECTION(val,section) (((val&WHEREUPDATED_ALL_SECTION)==WHEREUPDATED_ALL_SECTION) && (val==section))
+#define UPDATE_SECTIONFULL(val,section,fullupdate) (UPDATE_SECTION(val,section)||fullupdate)
 
 typedef struct //Contains the precalculated values!
 {

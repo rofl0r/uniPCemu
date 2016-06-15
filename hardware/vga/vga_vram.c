@@ -20,7 +20,7 @@
 //Bit from left to right starts with 0(value 128) ends with 7(value 1)
 
 //Planar access to VRAM
-byte readVRAMplane(VGA_Type *VGA, byte plane, word offset) //Read from a VRAM plane!
+byte readVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset) //Read from a VRAM plane!
 {
 	if (VGA==0) return 0; //Invalid VGA!
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
@@ -36,7 +36,7 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, word offset) //Read from a VRAM pl
 	return VGA->VRAM[fulloffset2]; //Read the data from VRAM!
 }
 
-void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value) //Write to a VRAM plane!
+void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, byte value) //Write to a VRAM plane!
 {
 	if (VGA==0) return; //Invalid VGA!
 	plane &= 3; //Only 4 planes are available!

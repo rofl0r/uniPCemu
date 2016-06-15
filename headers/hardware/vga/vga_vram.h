@@ -4,7 +4,7 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/vga/vga.h" //VGA basics!
 
-byte readVRAMplane(VGA_Type *VGA, byte plane, word offset); //Read from a VRAM plane!
-void writeVRAMplane(VGA_Type *VGA, byte plane, word offset, byte value); //Write to a VRAM plane!
+byte readVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset); //Read from a VRAM plane!
+void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, byte value); //Write to a VRAM plane!
 
 #endif

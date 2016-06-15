@@ -315,7 +315,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 
-	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL)) //CGA horizontal timing updated?
+	if (SECTIONISUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL)) //CGA horizontal timing updated?
 	{
 		updateCGACRTCONTROLLER = UPDATE_SECTION(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL); //Update the entire section?
 		updateCRTC = 1; //Update the CRTC!
@@ -334,7 +334,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 
-	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_VERTICAL)) //CGA vertical timing updated?
+	if (SECTIONISUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_VERTICAL)) //CGA vertical timing updated?
 	{
 		updateCGACRTCONTROLLER = UPDATE_SECTION(whereupdated,WHEREUPDATED_CGACRTCONTROLLER_VERTICAL); //Update the entire section?
 		//Don't handle these registers just yet!
@@ -349,7 +349,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 	
-	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER)) //CGA CRT misc. stuff updated?
+	if (SECTIONISUPDATED(whereupdated,WHEREUPDATED_CGACRTCONTROLLER)) //CGA CRT misc. stuff updated?
 	{
 		updateCGACRTCONTROLLER = UPDATE_SECTION(whereupdated,WHEREUPDATED_CGACRTCONTROLLER); //Update the entire section?
 
@@ -400,9 +400,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		adjustVGASpeed(); //Auto-adjust our VGA speed!
 	}
 
-	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_CRTCONTROLLER) || FullUpdate || charwidthupdated) //(some) CRT Controller values need to be updated?
+	if (SECTIONISUPDATED(whereupdated,WHEREUPDATED_CRTCONTROLLER) || FullUpdate || charwidthupdated) //(some) CRT Controller values need to be updated?
 	{
-		CRTUpdated = SECTIONUPDATEDFULL(whereupdated,WHEREUPDATED_CRTCONTROLLER,FullUpdate); //Fully updated?
+		CRTUpdated = UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_CRTCONTROLLER,FullUpdate); //Fully updated?
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //We have been updated?
 		{
 			updatecharheight:
@@ -702,7 +702,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word scanlinesize;
 			scanlinesize = VGA->precalcs.rowsize;
-			scanlinesize <<= VGA->precalcs.BWDModeShift; //B/W/DWord mode shift!
 			VGA->precalcs.scanlinesize = scanlinesize; //Scanline size!
 			recalcScanline = 1; //Recalc scanline data!
 			//dolog("VGA","VTotal after scanlinesize: %i",VGA->precalcs.verticaltotal); //Log it!
@@ -759,9 +758,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	}
 
 	byte AttrUpdated = 0; //Fully updated?
-	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER) || FullUpdate || underlinelocationupdated || (whereupdated==(WHEREUPDATED_INDEX|INDEX_ATTRIBUTECONTROLLER))) //Attribute Controller updated?
+	if (SECTIONISUPDATED(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER) || FullUpdate || underlinelocationupdated || (whereupdated==(WHEREUPDATED_INDEX|INDEX_ATTRIBUTECONTROLLER))) //Attribute Controller updated?
 	{
-		AttrUpdated = SECTIONUPDATEDFULL(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER,FullUpdate); //Fully updated?
+		AttrUpdated = UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER,FullUpdate); //Fully updated?
 
 		if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x14)))
 		{
@@ -846,17 +845,17 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			recalcAttr = 1; //We've been updated: update the color logic!
 		}
-		else if (SECTIONUPDATED(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER) && ((whereupdated&WHEREUPDATED_REGISTER)<0x10)) //Pallette updated?
+		else if (SECTIONISUPDATED(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER) && ((whereupdated&WHEREUPDATED_REGISTER)<0x10)) //Pallette updated?
 		{
 			recalcAttr = 1; //We've been updated: update the color logic!
 		}
 	}
 
-	if (SECTIONUPDATED(whereupdated,WHEREUPDATED_DAC) || SECTIONUPDATED(whereupdated,WHEREUPDATED_DACMASKREGISTER) || FullUpdate) //DAC Updated?
+	if (SECTIONISUPDATED(whereupdated,WHEREUPDATED_DAC) || SECTIONISUPDATED(whereupdated,WHEREUPDATED_DACMASKREGISTER) || FullUpdate) //DAC Updated?
 	{
-		if (SECTIONUPDATEDFULL(whereupdated,WHEREUPDATED_DAC,FullUpdate) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Fully needs to be updated?
+		if (SECTIONISUPDATEDFULL(whereupdated,WHEREUPDATED_DAC,FullUpdate) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Fully needs to be updated?
 		{
-			if (SECTIONUPDATEDFULL(whereupdated,WHEREUPDATED_DAC,FullUpdate) || ((whereupdated==WHEREUPDATED_DACMASKREGISTER) && VGA->precalcs.lastDACMask!=VGA->registers->DACMaskRegister)) //DAC Mask changed only?
+			if (SECTIONISUPDATEDFULL(whereupdated,WHEREUPDATED_DAC,FullUpdate) || ((whereupdated==WHEREUPDATED_DACMASKREGISTER) && VGA->precalcs.lastDACMask!=VGA->registers->DACMaskRegister)) //DAC Mask changed only?
 			{
 				int colorval;
 				colorval = 0; //Init!
