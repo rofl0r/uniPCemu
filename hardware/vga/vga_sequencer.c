@@ -238,6 +238,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 	}
 
 	loadedlocation >>= VGA->precalcs.characterclockshift; //Apply VGA character clock shift: the shift is the ammount to move at a time! Address counter = Character clock DIV 2 or 4 when used.
+	loadedlocation >>= VGA->precalcs.MemoryClockDivide; //Apply memory clock division!
 
 	//Row logic
 	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!

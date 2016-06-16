@@ -600,6 +600,29 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	uint_32 tempdata; //Saved data!
 	if (!et4k(VGA)) return; //No extension registered?
 	if (!et4k(VGA)->extensionsEnabled) return; //Abort when we're disabled!
+
+	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x7))) //TS Auxiliary Mode updated?
+	{
+		et4k_tempreg = et34k_reg(et4kdata,3c4,06); //The TS Auxiliary mode to apply!
+		if (et4k_tempreg&0x80) //VGA-compatible settings?
+		{
+			goto VGAcompatibleMCLK;
+		}
+		else if (et4k_tempreg&0x1) //MCLK/4?
+		{
+			VGA->precalcs.MemoryClockDivide = 2; //Divide by 4!
+		}
+		else if (et4k_tempreg&0x40) //MCLK/2?
+		{
+			VGA->precalcs.MemoryClockDivide = 1; //Divide by 2!
+		}
+		else //Normal 1:1 MCLK!
+		{
+			VGAcompatibleMCLK: //VGA compatible MCLK!
+			VGA->precalcs.MemoryClockDivide = 0; //Do not divide!
+		}
+	}
+	
 	//Bits 4-5 of the Attribute Controller register 0x16(Miscellaneous) determine the mode to be used when decoding pixels:
 	/*
 	00=Normal power-up/default(VGA mode)
