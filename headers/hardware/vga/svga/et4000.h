@@ -35,6 +35,9 @@ typedef struct {
 	byte store_3c4_06;
 	byte store_3c4_07;
 
+	byte herculescompatibilitymode_secondpage; //Second page of hercules compatibility mode enabled?
+
+	byte extensionstep; //The steps to activate the extensions!
 	//Extra data added by superfury(Device specific precalculation storage)
 	byte bank_read; //Read bank number!
 	byte bank_write; //Write bank number!
@@ -42,6 +45,10 @@ typedef struct {
 	uint_32 cursor_start_high;
 	uint_32 line_compare_high;
 	uint_32 memwrap; //The memory wrap to be AND-ed into the address given!
+
+	//High color DAC information
+	byte hicolorDACcmdmode;
+	byte hicolorDACcommand;
 } SVGA_ET4K_DATA; //Dosbox ET4000 saved data!
 
 //Retrieve a point to the et4k?

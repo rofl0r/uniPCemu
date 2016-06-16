@@ -83,6 +83,10 @@
 
 #include "headers/hardware/vga/svga/et4000.h" //Tseng ET4000 SVGA card!
 
+#include "headers/hardware/joystick.h" //Joystick support!
+
+#include "headers/hardware/xtexpansionunit.h" //XT expansion unit!
+
 //CPU default clock speeds (in Hz)!
 
 //The clock speed of the 8086 (~14.31818MHz divided by 3)!
@@ -365,6 +369,14 @@ void initEMU(int full) //Init!
 
 	debugrow("Initialising port E9 hack and emulator support functionality...");
 	BIOS_initDebugger(); //Initialise the port E9 hack and emulator support functionality!
+
+	debugrow("Initialising joystick...");
+	joystickInit();
+
+	if (EMULATED_CPU<=CPU_NECV30) //XT?
+	{
+		initXTexpansionunit(); //Initialize the expansion unit!
+	}
 	
 	if (full) //Full start?
 	{

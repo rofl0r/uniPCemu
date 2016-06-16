@@ -13,6 +13,7 @@
 #include "headers/emu/debugger/debugger.h" //Debugger support for logging MMU accesses!
 #include "headers/hardware/dram.h" //DRAM support!
 #include "headers/support/fifobuffer.h" //Write buffer support!
+#include "headers/hardware/xtexpansionunit.h" //XT expansion unit support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -335,6 +336,7 @@ OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte
 	realaddress &= MMU.wraparround; //Apply A20!
 	//We work!
 	//dolog("MMU","\nAddress translation: %04X:%08X=%08X",originalsegment,originaloffset,realaddress); //Log the converted address!
+	latchBUS(realaddress); //This address is to be latched!
 	return realaddress; //Give real adress!
 }
 

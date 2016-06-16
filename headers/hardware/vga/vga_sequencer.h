@@ -100,6 +100,8 @@ typedef struct
 
 	word *extrastatus; //Our current extra status!
 	byte *graphicsx; //Current graphics pixel in the buffer!
+	byte DACcounter; //DAC latch counter!
+	uint_32 lastDACcolor; //Last latched DAC color!
 } SEQ_DATA; //Sequencer used data!
 
 float VGA_VerticalRefreshRate(VGA_Type *VGA); //Scanline speed for one line in Hz!

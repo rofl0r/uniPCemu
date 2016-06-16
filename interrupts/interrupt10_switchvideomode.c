@@ -126,6 +126,8 @@ Bitu VideoModeMemSize(Bitu mode) {
 		return vmodeBlock->swidth*vmodeBlock->sheight * 4;
 	case M_TEXT:
 		return vmodeBlock->twidth*vmodeBlock->theight * 2;
+	default:
+		break;
 	}
 	// Return 0 for all other types, those always fit in memory
 	return 0;
@@ -179,7 +181,7 @@ void FinishSetMode_ET4K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 		float freq;
 		for (Bitu i=0; i<16; i++) {
 			freq = ET4K_clockFreq[i]; //ET4K clock frequency!
-			if (freq < 0.0f) freq = VGA_clocks[i]; //Use VGA clock!
+			if (freq < 0.0f) freq = VGA_clocks[i&3]; //Use VGA clock!
 			Bits cdiff = abs((Bits)(target - freq));
 			if (cdiff < dist) {
 				best = i;
@@ -238,7 +240,7 @@ void FinishSetMode_ET3K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 		float freq;
 		for (Bitu i = 0; i<8; i++) {
 			freq = ET3K_clockFreq[i];
-			if (freq < 0.0f) freq = VGA_clocks[i]; //Use VGA clock!
+			if (freq < 0.0f) freq = VGA_clocks[i&3]; //Use VGA clock!
 			Bits cdiff = abs((Bits)(target - freq));
 			if (cdiff < dist) {
 				best = i;

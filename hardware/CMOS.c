@@ -22,6 +22,8 @@ CMOS&RTC (Combined!)
 //Are we disabled?
 #define __HW_DISABLED 0
 
+byte XTMode = 0;
+
 word decodeBCD(word bcd)
 {
 	INLINEREGISTER word temp, result=0;
@@ -171,14 +173,17 @@ void RTC_PeriodicInterrupt() //Periodic Interrupt!
 	}
 }
 
-void RTC_UpdateEndedInterrupt() //Update Ended Interrupt!
+void RTC_UpdateEndedInterrupt(byte manualtrigger) //Update Ended Interrupt!
 {
 	CMOS.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
 
 	if (CMOS.data[0x0B]&0x10) //Enabled interrupt?
 	{
-	CMOS.IRQ8_Disabled |= 0x10; //Disable future calls!
-	doirq(8); //Run the IRQ!
+		if (!manualtrigger)
+		{
+			CMOS.IRQ8_Disabled |= 0x10; //Disable future calls!
+		}
+		doirq(8); //Run the IRQ!
 	}
 }
 
@@ -212,7 +217,7 @@ void RTC_Handler() //Handle RTC Timer Tick!
 
 	if (CMOS.info.STATUSREGISTERB.EnabledUpdateEndedInterrupt) //Enabled?
 	{
-		RTC_UpdateEndedInterrupt(); //Handle!
+		RTC_UpdateEndedInterrupt(0); //Handle!
 	}
 
 	if ((CMOS.info.RTC_Hours==CMOS.info.RTC_HourAlarm) &&
@@ -301,27 +306,89 @@ void CMOS_onWrite() //When written to CMOS!
 	}
 }
 
+byte XTRTC_translatetable[0x10] = {0,
+0, //0.01 seconds
+0, //0.1 seconds
+0, //seconds
+2, //minutes
+4, //hours
+6, //day of week
+7, //day of month
+8, //month
+0xFF, //-
+9, //Year
+0xFF, //-
+0xFF, //-
+0xFF, //-
+0xFF //-
+}; //XT to CMOS translation table!
+
 byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 {
+	byte numberpart = 0; //Number part? 1=Low BCD digit, 2=High BCD digit
+	byte isXT = 0;
 	switch (port)
 	{
 	case 0x70: //CMOS_ADDR
 		*result = CMOS.ADDR|(NMI<<7); //Give the address and NMI!
 		return 1;
 	case 0x71:
+		readXTRTC: //XT RTC read compatibility
 		CMOS_onRead(); //Execute handler!
 		lock(LOCK_CMOS); //Lock the CMOS!
 		byte data =  CMOS.data[CMOS.ADDR]; //Give the data from the CMOS!
 		unlock(LOCK_CMOS);
 		CMOS.ADDR = 0xD; //Reset address!
+		if (numberpart) //Number part (BCD)?
+		{
+			if (numberpart==2) //High part?
+			{
+				data >>= 4; //High nibble!
+			}
+			data &= 0xF; //Low nibble or high nibble!
+		}
+		if (isXT || CMOS.info.STATUSREGISTERB.DataModeBinary) //To convert to binary?
+		{
+			data = decodeBCD8(data); //Decode the binary data!
+		}
 		*result = data; //Give the data!
 		return 1;
+	//XT RTC support?
+	case 0x241: //Read Data?
+	case 0x348: //Unknown
+		*result = 0; //Nothing!
+		return 1;
+		break;
+	case 0x341: //0.1 seconds
+		numberpart = 2; //High digit!
+		goto readXTRTCADDR;
+	case 0x340: //0.01 seconds
+		numberpart = 1; //Low digit!
+	case 0x342: //seconds
+	case 0x343: //minutes
+	case 0x344: //hours
+	case 0x345: //day of week
+	case 0x346: //day of month
+	case 0x347: //month
+	case 0x349: //year
+		readXTRTCADDR:
+		isXT = 1; //From XT!
+		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
+		goto readXTRTC; //Read the XT RTC!
+		break;
+	case 0x350: //Status?
+	case 0x354: //Status?
+		*result = 0; //Nothing!
+		break;
 	}
 	return 0; //None for now!
 }
 
 byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 {
+	byte numberpart = 0; //Number part? 1=Low BCD digit, 2=High BCD digit
+	byte isXT = 0;
+	byte temp; //Temp data!
 	switch (port)
 	{
 	case 0x70: //CMOS ADDR
@@ -331,12 +398,61 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		return 1;
 		break;
 	case 0x71:
+		writeXTRTC: //XT RTC write compatibility
 		lock(LOCK_CMOS); //Lock the CMOS!
+		if (numberpart) //Only a nibble updated?
+		{
+			temp = CMOS.data[CMOS.ADDR]; //Read the original data!
+			if (numberpart==1) //Low BCD digit?
+			{
+				temp &= 0xF0; //Clear low BCD digit!
+				temp |= value&0xF; //Set the low BCD digit!
+			}
+			else //High BCD digit?
+			{
+				temp &= 0xF; //Clear high BCD digit!
+				temp |= ((value&0xF)<<8); //Set the high BCD digit!
+			}
+			value = temp; //Use this value, as specified!
+		}
+		if ((isXT==0) && CMOS.info.STATUSREGISTERB.DataModeBinary) //To convert from binary?
+		{
+			value = encodeBCD8(value); //Encode the binary data!
+		}
 		CMOS.data[CMOS.ADDR] = value; //Set value in CMOS!
 		unlock(LOCK_CMOS);
 		CMOS_onWrite(); //On write!
 		CMOS.ADDR = 0xD; //Reset address!		
 		return 1;
+		break;
+	//XT RTC support?
+	case 0x241: //Trigger timer?
+		lock(LOCK_CMOS);
+		XTMode = 1; //Enable the XT mode!
+		RTC_UpdateEndedInterrupt(1); //Manually trigger the update ended interrupt!
+		unlock(LOCK_CMOS); //Ready!
+		return 1; //Triggered!
+		break;
+	case 0x348: //Unknown
+		return 1;
+		break;
+	case 0x341: //0.1 seconds
+		numberpart = 2; //High digit!
+		goto writeXTRTCADDR;
+	case 0x340: //0.01 seconds
+		numberpart = 1; //Low digit!
+	case 0x342: //seconds
+	case 0x343: //minutes
+	case 0x344: //hours
+	case 0x345: //day of week
+	case 0x346: //day of month
+	case 0x347: //month
+	case 0x349: //year
+		writeXTRTCADDR:
+		isXT = 1; //From XT!
+		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
+		value = encodeBCD8(value); //Encode the data to BCD format!
+		goto writeXTRTC; //Read the XT RTC!
 		break;
 	default: //Unknown?
 		break; //Do nothing!
@@ -354,4 +470,5 @@ void initCMOS() //Initialises CMOS (apply solid init settings&read init if possi
 	register_PORTIN(&PORT_readCMOS);
 	register_PORTOUT(&PORT_writeCMOS);
 	addtimer((float)getIRQ8Rate(), &RTC_updateDateTime, "RTC", 10, 0, NULL); //RTC handler!
+	XTMode = 0; //Default: not XT mode!
 }

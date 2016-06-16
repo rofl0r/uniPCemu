@@ -84,6 +84,12 @@ OBJS += hardware/softdebugger.o
 #PPI
 OBJS += hardware/ppi.o
 
+#Joystick
+OBJS += hardware/joystick.o
+
+#XT Expansion unit
+OBJS += hardware/xtexpansionunit.o
+
 #EMS
 OBJS += hardware/ems.o
 

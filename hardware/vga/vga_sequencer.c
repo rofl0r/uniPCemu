@@ -351,6 +351,8 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->tempx = 0; //Reset the rendering position from the framebuffer!
 	VGA_Sequencer_calcScanlineData(VGA);
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
+	Sequencer->DACcounter = 0; //Reset the DAC counter!
+	Sequencer->lastDACcolor = 0; //Reset the last DAC color!
 }
 
 //Retrace handlers!
@@ -384,6 +386,7 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo); //Render an active display pixel!
 
 uint_32 CLUT16bit[0x10000]; //16-bit color lookup table!
+uint_32 CLUT15bit[0x10000]; //15-bit color lookup table!
 
 //Blank handler!
 OPTINLINE void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -407,17 +410,48 @@ OPTINLINE void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 
 OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
+	uint_32 DACcolor; //The latched color!
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
-	if (VGA->precalcs.AttributeController_16bitDAC == 3) //16-bit color mode?
+	if (VGA->precalcs.DACmode&4) //Latch every 2 pixels?
 	{
-		drawPixel(VGA, CLUT16bit[attributeinfo->attribute]); //Draw the 16-bit color pixel!
+		if (((++Sequencer->DACcounter)&0xFFFE)==0) //To latch and not process yet?
+		{
+			Sequencer->lastDACcolor <<= 16; //Latching 16-bits...
+			Sequencer->lastDACcolor |= attributeinfo->attribute; //Latching this attribute!
+			return; //Skip this data: we only latch every two pixels!
+		}
+		//Final latch?
 	}
-	else //VGA compatibility mode?
+	else //Latch every pixel!
 	{
-		drawPixel(VGA, VGA_DAC(VGA, attributeinfo->attribute)); //Render through the DAC!
+		Sequencer->lastDACcolor <<= 16; //Latching 16-bits...
+		Sequencer->lastDACcolor |= attributeinfo->attribute; //Latching this attribute!
 	}
-	++VGA->CRTC.x; //Next x!
+
+	if (!Sequencer->DACcounter) Sequencer->DACcounter = 1; //Nothing latched? We need to at least have something latched!
+
+	do
+	{
+		if (VGA->precalcs.DACmode&2) //16-bit color?
+		{
+			DACcolor = (Sequencer->lastDACcolor&0xFFFF); //Only use 16-bits!
+			if (VGA->precalcs.DACmode&1) //15-bit color?
+			{
+				drawPixel(VGA, CLUT15bit[DACcolor]); //Draw the 15-bit color pixel!
+			}
+			else //16-bit color?
+			{
+				drawPixel(VGA, CLUT16bit[DACcolor]); //Draw the 16-bit color pixel!
+			}
+		}
+		else //VGA compatibility mode?
+		{
+			DACcolor = (Sequencer->lastDACcolor&0xFF); //Only use 8-bits!
+			drawPixel(VGA, VGA_DAC(VGA, DACcolor)); //Render through the 8-bit DAC!
+		}
+		++VGA->CRTC.x; //Next x!
+	} while (--Sequencer->DACcounter); //Draw as many pixels as are buffered!
 }
 
 OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -729,8 +763,9 @@ void initStateHandlers()
 		displayrenderhandler[0][i] = ((i&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)?((i&VGA_DISPLAYGRAPHICSMODE)?((i&VGA_SIGNAL_BLANKING)?&VGA_ActiveDisplay_Graphics_blanking: &VGA_ActiveDisplay_Graphics): ((i&VGA_SIGNAL_BLANKING) ? &VGA_ActiveDisplay_Text_blanking : &VGA_ActiveDisplay_Text)):((i&VGA_SIGNAL_BLANKING) ? &VGA_Overscan : &VGA_Overscan_blanking); //Not retracing or any total handler = display/overscan!
 	}
 
-	for (i = 0;i < 0x10000;++i) //Create the 16-bit CLUT!
+	for (i = 0;i < 0x10000;++i) //Create the 16&15-bit CLUT!
 	{
 		CLUT16bit[i] = RGB((byte)(((float)(i&0x1F)/(float)0x1F)*256.0f),(byte)((((i>>5)&0x3F)/(float)0x3F)*256.0f),(byte)(((float)((i>>11)&0x1F)/(float)0x1F)*256.0f)); //16-bit color lookup table (5:6:5 format)!
+		CLUT15bit[i] = RGB((byte)(((float)(i&0x1F)/(float)0x1F)*256.0f),(byte)((((i>>5)&0x1F)/(float)0x3F)*256.0f),(byte)(((float)((i>>10)&0x1F)/(float)0x1F)*256.0f)); //15-bit color lookup table (5:5:5 format)!		
 	}
 }

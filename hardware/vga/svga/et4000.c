@@ -56,6 +56,74 @@ byte Tseng34K_writeIO(word port, byte val)
 // Tseng ET4K implementation
 	switch (port) //What port?
 	{
+	case 0x46E8: //Video subsystem enable register?
+		if ((et4k_reg(et4kdata,3d4,34)&8)==0 && (getActiveVGA()->enable_SVGA==1)) return 0; //Undefined on ET4000!
+		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (val&8)?1:0; //RAM enabled?
+		return 1; //OK
+		break;
+	case 0x3C3: //Video subsystem enable register in VGA mode?
+		if ((et4k_reg(et4kdata,3d4,34)&8) && (getActiveVGA()->enable_SVGA==1)) return 2; //Undefined on ET4000!
+		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (val&1); //RAM enabled?
+		return 1; //OK
+		break;
+	case 0x3BF: //Hercules Compatibility Mode?
+		if (!et4kdata->extensionsEnabled) //Extensions still disabled?
+		{
+			if (val==3) //First part of the sequence to activate the extensions?
+			{
+				et4kdata->extensionstep = 1; //Enable the first step to activation!
+				return 1; //Used!
+			}
+			else
+			{
+				et4kdata->extensionstep = 0; //Restart the check!
+			}
+			return 0; //Not used!
+		}
+		et4kdata->herculescompatibilitymode_secondpage = ((val&2)>>1); //Save the bit!
+		return 1; //OK!
+		break;
+	case 0x3D8: //CGA mode control?
+		if (!et4kdata->extensionsEnabled) //Extensions still disabled?
+		{
+			if (et4kdata->extensionstep==1) //Step two?
+			{
+				et4kdata->extensionstep = 0; //Disable steps!
+				if (val==0xA0) //Enable extensions?
+				{
+					et4kdata->extensionsEnabled = 1; //Enable the extensions!
+				}
+			}
+		}
+	case 0x3B8: //MDA mode control?
+	case 0x3D9: //CGA color control?
+		if (!et4kdata->extensionsEnabled) //Extensions disabled?
+		{
+			return 0;
+		}
+		//Handle NMI?
+		return 1; //Handled!
+		break;
+
+	//16-bit DAC support!
+	case 0x3C6: //DAC Mask Register?
+		if (et4kdata->hicolorDACcmdmode<=3) return 0; //Execute normally!
+		//16-bit DAC operations!
+		if ((val&0xE0)!=et4kdata->hicolorDACcommand) //Command issued?
+		{
+			et4kdata->hicolorDACcommand = (val&0xE0); //Apply the command!
+			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We've been updated!
+		}
+		return 1; //We're overridden!
+		break;
+	case 0x3C7: //Write: DAC Address Read Mode Register	ADDRESS
+	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
+	case 0x3C9: //DAC Data Register				DATA
+		et4kdata->hicolorDACcmdmode = 0; //Disable command mode!
+		return 0; //Normal execution!
+		break;
+
+	//Normal video card support!
 	case 0x3D5: //CRTC data register?
 //void 3d5_et4k(Bitu reg,Bitu val,Bitu iolen) {
 	if(!et4kdata->extensionsEnabled && getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33 && (getActiveVGA()->enable_SVGA==1)) //Block only on ET4000?
@@ -312,6 +380,55 @@ byte Tseng34K_readIO(word port, byte *result)
 	SVGA_ET4K_DATA *et4kdata = et4k_data; //The et4k data!
 	switch (port)
 	{
+	case 0x46E8: //Video subsystem enable register?
+		if ((et4k_reg(et4kdata,3d4,34)&8)==0) return 0; //Undefined!
+		*result = (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable<<3); //RAM enabled?
+		return 1; //OK!
+		break;
+	case 0x3C3: //Video subsystem enable register in VGA mode?
+		if (et4k_reg(et4kdata,3d4,34)&8) return 2; //Undefined!
+		*result = getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable; //RAM enabled?
+		return 1; //OK!
+		break;
+	case 0x3BF: //Hercules Compatibility Mode?
+		*result = (et4kdata->herculescompatibilitymode_secondpage<<1);
+		if (!et4kdata->extensionsEnabled) //Extensions disabled?
+		{
+			return 0;
+		}
+		return 1; //OK!
+		break;
+	case 0x3B8: //MDA mode control?
+	case 0x3D8: //CGA mode control?
+	case 0x3D9: //CGA color control?
+		if (!et4kdata->extensionsEnabled) //Extensions disabled?
+		{
+			return 0;
+		}
+		//Handle NMI?
+		*result = 0x00; //Undefined!
+		return 1; //Handled!
+		break;
+
+	//16-bit DAC support
+	case 0x3C6: //DAC Mask Register?
+		if (et4kdata->hicolorDACcmdmode<=3)
+		{
+			++et4kdata->hicolorDACcmdmode;
+			return 0; //Execute normally!
+		}
+		else
+		{
+			return (et4kdata->hicolorDACcommand&0xFE)|((((et4kdata->hicolorDACcommand&0xE0)==0x20)||((et4kdata->hicolorDACcommand&0xE0)==0x60))?1:0);
+		}
+		break;
+	case 0x3C7: //Read: DAC State Register			DATA
+	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
+	case 0x3C9: //DAC Data Register				DATA
+		et4kdata->hicolorDACcmdmode = 0; //Disable command mode!
+		return 0; //Execute normally!
+		break;
+	//Normal video card support!
 	case 0x3D5: //CRTC data register?
 	//Bitu read_p3d5_et4k(Bitu reg,Bitu iolen) {
 		if (!et4kdata->extensionsEnabled && getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33)
@@ -479,6 +596,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	SVGA_ET4K_DATA *et4kdata = et4k(VGA); //The et4k data!
 	byte updateCRTC = 0; //CRTC updated?
 	byte et4k_tempreg;
+	byte DACmode; //Current/new DAC mode!
 	uint_32 tempdata; //Saved data!
 	if (!et4k(VGA)) return; //No extension registered?
 	if (!et4k(VGA)->extensionsEnabled) return; //Abort when we're disabled!
@@ -629,6 +747,34 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			VGA->precalcs.linearmode &= ~1; //Use VGA-mapping of memory!
 		}
 		VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
+	}
+
+	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Mask register has been updated?
+	{
+		et4k_tempreg = et4k(VGA)->hicolorDACcommand; //Load the command to process! (Process like a SC11487)
+		DACmode = VGA->precalcs.DACmode; //Load the current DAC mode!
+		if ((et4k_tempreg&0xC0)==0x80) //15-bit hicolor mode?
+		{
+			DACmode &= ~1; //Clear bit 0: we're one bit less!
+			DACmode |= 2; //Set bit 1: we're a 16-bit mode!
+		}
+		else if ((et4k_tempreg&0xC0)==0xC0) //16-bit hicolor mode?
+		{
+			DACmode |= 3; //Set bit 0: we're full range, Set bit 1: we're a 16-bit mode!
+		}
+		else //Normal 8-bit DAC?
+		{
+			DACmode &= ~3; //Set bit 0: we're full range, Set bit 1: we're a 16-bit mode!
+		}
+		if (et4k_tempreg&0x20) //Two pixel clocks are used to latch the two bytes?
+		{
+			DACmode |= 4; //Use two pixel clocks to latch the two bytes?
+		}
+		else
+		{
+			DACmode &= ~4; //Use one pixel clock to latch the two bytes?
+		}
+		VGA->precalcs.DACmode = DACmode; //Apply the new DAC mode!
 	}
 
 	if (updateCRTC) //Update CRTC?
