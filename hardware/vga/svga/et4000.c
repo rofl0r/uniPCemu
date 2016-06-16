@@ -52,52 +52,52 @@ extern uint_32 VGA_MemoryMapBankRead, VGA_MemoryMapBankWrite; //The memory map b
 
 byte Tseng34K_writeIO(word port, byte val)
 {
-	SVGA_ET4K_DATA *et4kdata = et4k_data; //The et4k data!
+	SVGA_ET34K_DATA *et34kdata = et34k_data; //The et4k data!
 // Tseng ET4K implementation
 	switch (port) //What port?
 	{
 	case 0x46E8: //Video subsystem enable register?
-		if ((et4k_reg(et4kdata,3d4,34)&8)==0 && (getActiveVGA()->enable_SVGA==1)) return 0; //Undefined on ET4000!
+		if ((et4k_reg(et34kdata,3d4,34)&8)==0 && (getActiveVGA()->enable_SVGA==1)) return 0; //Undefined on ET4000!
 		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (val&8)?1:0; //RAM enabled?
 		return 1; //OK
 		break;
 	case 0x3C3: //Video subsystem enable register in VGA mode?
-		if ((et4k_reg(et4kdata,3d4,34)&8) && (getActiveVGA()->enable_SVGA==1)) return 2; //Undefined on ET4000!
+		if ((et4k_reg(et34kdata,3d4,34)&8) && (getActiveVGA()->enable_SVGA==1)) return 2; //Undefined on ET4000!
 		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (val&1); //RAM enabled?
 		return 1; //OK
 		break;
 	case 0x3BF: //Hercules Compatibility Mode?
-		if (!et4kdata->extensionsEnabled) //Extensions still disabled?
+		if (!et34kdata->extensionsEnabled) //Extensions still disabled?
 		{
 			if (val==3) //First part of the sequence to activate the extensions?
 			{
-				et4kdata->extensionstep = 1; //Enable the first step to activation!
+				et34kdata->extensionstep = 1; //Enable the first step to activation!
 				return 1; //Used!
 			}
 			else
 			{
-				et4kdata->extensionstep = 0; //Restart the check!
+				et34kdata->extensionstep = 0; //Restart the check!
 			}
 			return 0; //Not used!
 		}
-		et4kdata->herculescompatibilitymode_secondpage = ((val&2)>>1); //Save the bit!
+		et34kdata->herculescompatibilitymode_secondpage = ((val&2)>>1); //Save the bit!
 		return 1; //OK!
 		break;
 	case 0x3D8: //CGA mode control?
-		if (!et4kdata->extensionsEnabled) //Extensions still disabled?
+		if (!et34kdata->extensionsEnabled) //Extensions still disabled?
 		{
-			if (et4kdata->extensionstep==1) //Step two?
+			if (et34kdata->extensionstep==1) //Step two?
 			{
-				et4kdata->extensionstep = 0; //Disable steps!
+				et34kdata->extensionstep = 0; //Disable steps!
 				if (val==0xA0) //Enable extensions?
 				{
-					et4kdata->extensionsEnabled = 1; //Enable the extensions!
+					et34kdata->extensionsEnabled = 1; //Enable the extensions!
 				}
 			}
 		}
 	case 0x3B8: //MDA mode control?
 	case 0x3D9: //CGA color control?
-		if (!et4kdata->extensionsEnabled) //Extensions disabled?
+		if (!et34kdata->extensionsEnabled) //Extensions disabled?
 		{
 			return 0;
 		}
@@ -105,28 +105,29 @@ byte Tseng34K_writeIO(word port, byte val)
 		return 1; //Handled!
 		break;
 
-	//16-bit DAC support!
-	case 0x3C6: //DAC Mask Register?
-		if (et4kdata->hicolorDACcmdmode<=3) return 0; //Execute normally!
+	//16-bit DAC support(Sierra SC11487)!
+	case 0x3C6: //DAC Mask Register? Pixel Mask/Command Register in the manual.
+		if (et34kdata->hicolorDACcmdmode<=3) return 0; //Execute normally!
 		//16-bit DAC operations!
-		if ((val&0xE0)!=et4kdata->hicolorDACcommand) //Command issued?
+		if ((val&0xE0)!=et34kdata->hicolorDACcommand) //Command issued?
 		{
-			et4kdata->hicolorDACcommand = (val&0xE0); //Apply the command!
+			et34kdata->hicolorDACcommand = (val&0xE0); //Apply the command!
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We've been updated!
 		}
 		return 1; //We're overridden!
 		break;
-	case 0x3C7: //Write: DAC Address Read Mode Register	ADDRESS
-	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
-	case 0x3C9: //DAC Data Register				DATA
-		et4kdata->hicolorDACcmdmode = 0; //Disable command mode!
+	case 0x3C7: //Write: DAC Address Read Mode Register	ADDRESS? Pallette RAM read address register in the manual.
+	case 0x3C8: //DAC Address Write Mode Register		ADDRESS? Pallette RAM write address register in the manual.
+	case 0x3C9: //DAC Data Register				DATA? Pallette RAM in the manual.
+		et34kdata->hicolorDACcmdmode = 0; //Disable command mode!
 		return 0; //Normal execution!
 		break;
+	//RS2 is always zero on x86.
 
 	//Normal video card support!
 	case 0x3D5: //CRTC data register?
 //void 3d5_et4k(Bitu reg,Bitu val,Bitu iolen) {
-	if(!et4kdata->extensionsEnabled && getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33 && (getActiveVGA()->enable_SVGA==1)) //Block only on ET4000?
+	if(!et34kdata->extensionsEnabled && getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33 && (getActiveVGA()->enable_SVGA==1)) //Block only on ET4000?
 		return 0;
 
 	switch(getActiveVGA()->registers->CRTControllerRegisters_Index)
@@ -148,9 +149,9 @@ byte Tseng34K_writeIO(word port, byte val)
 			// 0-1 Display Start Address bits 16-17
 			// 2-3 Cursor start address bits 16-17
 			// Used by standard Tseng ID scheme
-			et4kdata->store_et4k_3d4_33 = val;
-			et4kdata->display_start_high = ((val & 0x03)<<16);
-			et4kdata->cursor_start_high = ((val & 0x0c)<<14);
+			et34kdata->store_et4k_3d4_33 = val;
+			et34kdata->display_start_high = ((val & 0x03)<<16);
+			et34kdata->cursor_start_high = ((val & 0x0c)<<14);
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x33); //Update all precalcs!
 			break;
 
@@ -183,8 +184,8 @@ byte Tseng34K_writeIO(word port, byte val)
 				programmed as if the mode was non-interlaced!!
 		*/
 			if (getActiveVGA()->enable_SVGA != 1) return 0; //Not implemented on others than ET4000!
-			et4kdata->store_et4k_3d4_35 = val;
-			et4kdata->line_compare_high = ((val&0x10)<<6);
+			et34kdata->store_et4k_3d4_35 = val;
+			et34kdata->line_compare_high = ((val&0x10)<<6);
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x35); //Update all precalcs!
 			break;
 
@@ -202,9 +203,9 @@ byte Tseng34K_writeIO(word port, byte val)
 		// Other bits have no effect on emulation.
 		case 0x37:
 			if (getActiveVGA()->enable_SVGA != 1) return 0; //Not implemented on others than ET4000!
-			if (val != et4kdata->store_et4k_3d4_37) {
-				et4kdata->store_et4k_3d4_37 = val;
-				et4kdata->memwrap = (((64*1024)<<((val&8)>>2))<<((val&3)-1))-1; //The mask to use for memory!
+			if (val != et34kdata->store_et4k_3d4_37) {
+				et34kdata->store_et4k_3d4_37 = val;
+				et34kdata->memwrap = (((64*1024)<<((val&8)>>2))<<((val&3)-1))-1; //The mask to use for memory!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x37); //Update all precalcs!
 			}
 			return 1;
@@ -220,7 +221,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		*/
 		// The only unimplemented one is bit 7
 			if (getActiveVGA()->enable_SVGA != 1) return 0; //Not implemented on others than ET4000!
-			et4kdata->store_et4k_3d4_3f = val;
+			et34kdata->store_et4k_3d4_3f = val;
 		// Abusing s3 ex_hor_overflow field which very similar. This is
 		// to be cleaned up later
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x3F); //Update all precalcs!
@@ -246,9 +247,9 @@ byte Tseng34K_writeIO(word port, byte val)
 			*/
 			// Only bits 1 and 2 are supported. Bit 2 is related to hardware zoom, bit 7 is too obscure to be useful
 			if (getActiveVGA()->enable_SVGA != 2) return 0; //Not implemented on others than ET3000!
-			et4k_data->store_et3k_3d4_23 = val;
-			et4k_data->display_start_high = ((val & 0x02) << 15);
-			et4k_data->cursor_start_high = ((val & 0x01) << 16);
+			et34k_data->store_et3k_3d4_23 = val;
+			et34k_data->display_start_high = ((val & 0x02) << 15);
+			et34k_data->cursor_start_high = ((val & 0x01) << 16);
 			VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_CRTCONTROLLER | 0x23); //Update all precalcs!
 			break;
 
@@ -277,7 +278,7 @@ byte Tseng34K_writeIO(word port, byte val)
 			7  Vertical Interlace if set
 			*/
 			if (getActiveVGA()->enable_SVGA != 2) return 0; //Not implemented on others than ET3000!
-			et4k_data->store_et3k_3d4_25 = val;
+			et34k_data->store_et3k_3d4_25 = val;
 			VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_CRTCONTROLLER | 0x25); //Update all precalcs!
 			break;
 		default:
@@ -317,13 +318,13 @@ byte Tseng34K_writeIO(word port, byte val)
 	case 0x3CD: //Segment select?
 		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
 		{
-			et4kdata->bank_write = val & 0x07;
-			et4kdata->bank_read = (val >> 3) & 0x07;
+			et34kdata->bank_write = val & 0x07;
+			et34kdata->bank_read = (val >> 3) & 0x07;
 		}
 		else //ET4000?
 		{
-			et4kdata->bank_write = val & 0x0f;
-			et4kdata->bank_read = (val >> 4) & 0x0f;
+			et34kdata->bank_write = val & 0x0f;
+			et34kdata->bank_read = (val >> 4) & 0x0f;
 		}
 		//Apply correct memory banks!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x36); //Update from the CRTC controller registers!
@@ -377,22 +378,22 @@ byte Tseng34K_writeIO(word port, byte val)
 
 byte Tseng34K_readIO(word port, byte *result)
 {
-	SVGA_ET4K_DATA *et4kdata = et4k_data; //The et4k data!
+	SVGA_ET34K_DATA *et34kdata = et34k_data; //The et4k data!
 	switch (port)
 	{
 	case 0x46E8: //Video subsystem enable register?
-		if ((et4k_reg(et4kdata,3d4,34)&8)==0) return 0; //Undefined!
+		if ((et4k_reg(et34kdata,3d4,34)&8)==0) return 0; //Undefined!
 		*result = (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable<<3); //RAM enabled?
 		return 1; //OK!
 		break;
 	case 0x3C3: //Video subsystem enable register in VGA mode?
-		if (et4k_reg(et4kdata,3d4,34)&8) return 2; //Undefined!
+		if (et4k_reg(et34kdata,3d4,34)&8) return 2; //Undefined!
 		*result = getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable; //RAM enabled?
 		return 1; //OK!
 		break;
 	case 0x3BF: //Hercules Compatibility Mode?
-		*result = (et4kdata->herculescompatibilitymode_secondpage<<1);
-		if (!et4kdata->extensionsEnabled) //Extensions disabled?
+		*result = (et34kdata->herculescompatibilitymode_secondpage<<1);
+		if (!et34kdata->extensionsEnabled) //Extensions disabled?
 		{
 			return 0;
 		}
@@ -401,7 +402,7 @@ byte Tseng34K_readIO(word port, byte *result)
 	case 0x3B8: //MDA mode control?
 	case 0x3D8: //CGA mode control?
 	case 0x3D9: //CGA color control?
-		if (!et4kdata->extensionsEnabled) //Extensions disabled?
+		if (!et34kdata->extensionsEnabled) //Extensions disabled?
 		{
 			return 0;
 		}
@@ -410,28 +411,29 @@ byte Tseng34K_readIO(word port, byte *result)
 		return 1; //Handled!
 		break;
 
-	//16-bit DAC support
+		//16-bit DAC support(Sierra SC11487)!
 	case 0x3C6: //DAC Mask Register?
-		if (et4kdata->hicolorDACcmdmode<=3)
+		if (et34kdata->hicolorDACcmdmode<=3)
 		{
-			++et4kdata->hicolorDACcmdmode;
+			++et34kdata->hicolorDACcmdmode;
 			return 0; //Execute normally!
 		}
 		else
 		{
-			return (et4kdata->hicolorDACcommand&0xFE)|((((et4kdata->hicolorDACcommand&0xE0)==0x20)||((et4kdata->hicolorDACcommand&0xE0)==0x60))?1:0);
+			*result = et34kdata->hicolorDACcommand;
+			return 1; //Handled!
 		}
 		break;
-	case 0x3C7: //Read: DAC State Register			DATA
-	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
-	case 0x3C9: //DAC Data Register				DATA
-		et4kdata->hicolorDACcmdmode = 0; //Disable command mode!
+	case 0x3C7: //Write: DAC Address Read Mode Register	ADDRESS? Pallette RAM read address register in the manual.
+	case 0x3C8: //DAC Address Write Mode Register		ADDRESS? Pallette RAM write address register in the manual.
+	case 0x3C9: //DAC Data Register				DATA? Pallette RAM in the manual.
+		et34kdata->hicolorDACcmdmode = 0; //Disable command mode!
 		return 0; //Execute normally!
 		break;
 	//Normal video card support!
 	case 0x3D5: //CRTC data register?
 	//Bitu read_p3d5_et4k(Bitu reg,Bitu iolen) {
-		if (!et4kdata->extensionsEnabled && getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33)
+		if (!et34kdata->extensionsEnabled && getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33)
 			return 0x0;
 		switch(getActiveVGA()->registers->CRTControllerRegisters_Index) {
 		//ET4K
@@ -473,11 +475,11 @@ byte Tseng34K_readIO(word port, byte *result)
 	//Bitu read_p3cd_et4k(Bitu port, Bitu iolen) {
 		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
 		{
-			*result = (et4kdata->bank_read << 3) | et4kdata->bank_write;
+			*result = (et34kdata->bank_read << 3) | et34kdata->bank_write;
 		}
 		else //ET4000?
 		{
-			*result = (et4kdata->bank_read << 4) | et4kdata->bank_write;
+			*result = (et34kdata->bank_read << 4) | et34kdata->bank_write;
 		}
 		return 1; //Supported!
 		break;
@@ -509,24 +511,24 @@ These ports are used but have little if any effect on emulation:
 
 OPTINLINE static byte get_clock_index_et4k(VGA_Type *VGA) {
 	// Ignoring bit 4, using "only" 16 frequencies. Looks like most implementations had only that
-	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA>>2)&3) | ((et4k(VGA)->store_et4k_3d4_34<<1)&4) | ((et4k(VGA)->store_et4k_3d4_31>>3)&8);
+	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA>>2)&3) | ((et34k(VGA)->store_et4k_3d4_34<<1)&4) | ((et34k(VGA)->store_et4k_3d4_31>>3)&8);
 }
 
 OPTINLINE static byte get_clock_index_et3k(VGA_Type *VGA) {
 	// Ignoring bit 4, using "only" 16 frequencies. Looks like most implementations had only that
-	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA >> 2) & 3) | ((et4k(VGA)->store_et4k_3d4_34 << 1) & 4);
+	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA >> 2) & 3) | ((et34k(VGA)->store_et4k_3d4_34 << 1) & 4);
 }
 
 void set_clock_index_et4k(VGA_Type *VGA, byte index) { //Used by the interrupt 10h handler to set the clock index directly!
 	// Shortwiring register reads/writes for simplicity
-	et4k_data->store_et4k_3d4_34 = (et4k(VGA)->store_et4k_3d4_34&~0x02)|((index&4)>>1);
-	et4k_data->store_et4k_3d4_31 = (et4k(VGA)->store_et4k_3d4_31&~0xc0)|((index&8)<<3); // (index&0x18) if 32 clock frequencies are to be supported
+	et34k_data->store_et4k_3d4_34 = (et34k(VGA)->store_et4k_3d4_34&~0x02)|((index&4)>>1);
+	et34k_data->store_et4k_3d4_31 = (et34k(VGA)->store_et4k_3d4_31&~0xc0)|((index&8)<<3); // (index&0x18) if 32 clock frequencies are to be supported
 	PORT_write_MISC_3C2((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA&~0x0c)|((index&3)<<2));
 }
 
 void set_clock_index_et3k(VGA_Type *VGA, byte index) {
 	// Shortwiring register reads/writes for simplicity
-	et4k_data->store_et3k_3d4_24 = (et4k_data->store_et3k_3d4_24&~0x02) | ((index & 4) >> 1);
+	et34k_data->store_et3k_3d4_24 = (et34k_data->store_et3k_3d4_24&~0x02) | ((index & 4) >> 1);
 	PORT_write_MISC_3C2((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA&~0x0c)|((index&3)<<2));
 }
 
@@ -573,6 +575,21 @@ void Tseng34k_init()
 			BIOS_Settings.VRAM_size = getActiveVGA()->VRAM_size; //Update VRAM size in BIOS!
 			forceBIOSSave(); //Force save of BIOS!
 
+			byte VRAMsize = 0;
+			byte regval=0; //Highest memory size that fits!
+			uint_32 memsize; //Current memory size!
+			uint_32 lastmemsize = 0; //Last memory size!
+			for (VRAMsize = 0;VRAMsize < 0x10;++VRAMsize) //Try all VRAM sizes!
+			{
+				memsize = ((64 * 1024) << ((regval & 8) >> 2)) << ((regval & 3)); //The memory size for this item!
+				if ((memsize > lastmemsize) && (memsize <= Tseng4k_VRAMSize)) //New best match found?
+				{
+					regval = VRAMsize; //Use this as the new best!
+					lastmemsize = memsize; //Use this as the last value found!
+				}
+			}
+			et4k_reg(et34k(getActiveVGA()),3d4,37) = regval; //Apply the best register value describing our memory!
+
 			// Tseng ROM signature
 			EMU_VGAROM[0x0075] = ' ';
 			EMU_VGAROM[0x0076] = 'T';
@@ -582,7 +599,7 @@ void Tseng34k_init()
 			EMU_VGAROM[0x007a] = 'g';
 			EMU_VGAROM[0x007b] = ' ';
 
-			et4k(getActiveVGA())->extensionsEnabled = 1; //Enable the extensions!
+			et34k(getActiveVGA())->extensionsEnabled = 0; //Disable the extensions by default!
 
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //Update all precalcs!
 		}
@@ -593,17 +610,17 @@ void Tseng34k_init()
 void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 {
 	VGA_Type *VGA = (VGA_Type *)useVGA; //The VGA to work on!
-	SVGA_ET4K_DATA *et4kdata = et4k(VGA); //The et4k data!
+	SVGA_ET34K_DATA *et34kdata = et34k(VGA); //The et4k data!
 	byte updateCRTC = 0; //CRTC updated?
 	byte et4k_tempreg;
 	byte DACmode; //Current/new DAC mode!
 	uint_32 tempdata; //Saved data!
-	if (!et4k(VGA)) return; //No extension registered?
-	if (!et4k(VGA)->extensionsEnabled) return; //Abort when we're disabled!
+	if (!et34k(VGA)) return; //No extension registered?
+	if (!et34k(VGA)->extensionsEnabled) return; //Abort when we're disabled!
 
 	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x7))) //TS Auxiliary Mode updated?
 	{
-		et4k_tempreg = et34k_reg(et4kdata,3c4,06); //The TS Auxiliary mode to apply!
+		et4k_tempreg = et34k_reg(et34kdata,3c4,06); //The TS Auxiliary mode to apply!
 		if (et4k_tempreg&0x80) //VGA-compatible settings?
 		{
 			goto VGAcompatibleMCLK;
@@ -630,18 +647,21 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	10=High-resolution mode (up to 256 colors)
 	11=High-color 16-bits/pixel
 	*/
+
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER|0x16))) //Attribute misc. register?
 	{
-		et4k_tempreg = (et34k_reg(et4kdata,3c0,16)>>4)&3; //The mode to use when decoding!
-		if ((et4k_tempreg&1)==0)
+		et4k_tempreg = et34k_reg(et34kdata,3c0,16); //The mode to use when decoding!
+		et4k_tempreg >>= 4; //Shift to our position!
+		et4k_tempreg &= 3; //Only 2 bits are used for detection!
+		if ((et4k_tempreg&1)==0) //Mode 1/3 is illegal!
 		{
 			et4k_tempreg = 0; //Ignore the reserved value, forcing VGA mode in that case!
 		}
 		else //Valid to process an extended mode?
 		{
-			et4k_tempreg = (et4k_tempreg>>1) | ((et4k_tempreg&1)<<1); //Mode 1=2 and mode 3=3(convert by switching the bits).
+			et4k_tempreg = (et4k_tempreg>>1) | ((et4k_tempreg&1)<<1); //Mode 1=2 and mode 3=3(convert by switching the bits). Edit: This doesn't seem to be the case?
 		}
-		VGA->precalcs.graphicsReloadMask = (et4k_tempreg!=3)?0x7:0x3; //Normal 8/16-pixel graphics reloading(pixel counts to wrap around and reload)!
+		VGA->precalcs.graphicsReloadMask = (et4k_tempreg<2)?0x7:0x1F; //Normal 8/16-pixel graphics reloading(pixel counts to wrap around and reload)!
 		VGA->precalcs.AttributeController_16bitDAC = et4k_tempreg; //Set the new mode to use (mode 2/3 or 0)!
 		//Modes 2&3 set forced 8-bit and 16-bit Attribute modes!
 		updateVGAAttributeController_Mode(VGA); //Update the attribute controller mode, which might have changed!
@@ -650,21 +670,21 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER|0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xC)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xD))) //Extended start address?
 	{
-		VGA->precalcs.startaddress[0] = (VGA->precalcs.startaddress[0]&0xFFFF)|et4k(VGA)->cursor_start_high;
+		VGA->precalcs.startaddress[0] = (VGA->precalcs.startaddress[0]&0xFFFF)|et34k(VGA)->cursor_start_high;
 	}
 
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xE)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xF))) //Extended cursor location?
 	{
-		VGA->precalcs.cursorlocation = (VGA->precalcs.cursorlocation & 0xFFFF) | et4k(VGA)->cursor_start_high;
+		VGA->precalcs.cursorlocation = (VGA->precalcs.cursorlocation & 0xFFFF) | et34k(VGA)->cursor_start_high;
 	}
 
 	if (VGA->enable_SVGA == 1) //ET4000?
 	{
-		et4k_tempreg = et4k_reg(et4kdata,3d4,35); //The overflow register!
+		et4k_tempreg = et4k_reg(et34kdata,3d4,35); //The overflow register!
 	}
 	else //ET3000?
 	{
-		et4k_tempreg = et3k_reg(et4kdata,3d4,25); //The overflow register!
+		et4k_tempreg = et3k_reg(et34kdata,3d4,25); //The overflow register!
 	}
 
 
@@ -739,6 +759,73 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.topwindowstart = tempdata; //Save the new data!
 	}
 
+	if (VGA->enable_SVGA == 1) //ET4000?
+	{
+		et4k_tempreg = et4k_reg(et34kdata, 3d4, 3f); //The overflow register!
+		byte CRTUpdatedCharwidth = (whereupdated == (WHEREUPDATED_SEQUENCER | 0x01)); //Character width has been updated?
+		if (CRTUpdatedCharwidth || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
+			//|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
+			//Finally, bits needed by the overflow register itself(of which we are an extension)!
+			|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x0)) //Horizontal total
+			)
+		{
+			//bit0=Horizontal total bit 8
+			tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.HORIZONTALTOTALREGISTER;
+			tempdata |= (((et4k_tempreg & 1) << 8) | (tempdata & 0xFF)) != tempdata; //To be updated?
+			tempdata += 5;
+			tempdata *= VGA->precalcs.characterwidth; //We're character units!
+			updateCRTC |= VGA->precalcs.horizontaltotal != tempdata; //To be updated?
+			++tempdata; //One later!
+			VGA->precalcs.horizontaltotal = tempdata; //Save the new data!
+		}
+
+		if (CRTUpdatedCharwidth || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
+			//|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
+			//Finally, bits needed by the overflow register itself(of which we are an extension)!
+			|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3)) //Horizontal blank start
+			)
+		{
+			//bit2=Vertical total bit 8
+			tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALBLANKINGREGISTER;
+			tempdata |= ((et4k_tempreg & 4) << 6); //Add/replace the new/changed bits!
+			tempdata *= VGA->precalcs.characterwidth;
+			updateCRTC |= VGA->precalcs.horizontalblankingstart != tempdata; //To be updated?
+			++tempdata; //One later!
+			VGA->precalcs.horizontalblankingstart = tempdata; //Save the new data!
+		}
+
+		if (CRTUpdatedCharwidth || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
+			//|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
+			//Finally, bits needed by the overflow register itself(of which we are an extension)!
+			|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x4)) //Horizontal retrace start
+			)
+		{
+			//bit4=Horizontal retrace bit 8
+			tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALRETRACEREGISTER;
+			tempdata |= ((et4k_tempreg & 0x10) << 4); //Add the new/changed bits!
+			tempdata *= VGA->precalcs.characterwidth; //We're character units!
+			++tempdata; //One later!
+			updateCRTC |= VGA->precalcs.horizontalretracestart != tempdata; //To be updated?
+			VGA->precalcs.horizontalretracestart = tempdata; //Save the new data!
+		}
+
+		if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
+			//|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
+			//Finally, bits needed by the overflow register itself(of which we are an extension)!
+			|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x13)) //Offset register
+			)
+		{
+			//bit7=Offset bit 8
+			tempdata = VGA->precalcs.rowsize;
+			--tempdata; //One later!
+			updateCRTC |= (((et4k_tempreg & 0x80) << 1) | (tempdata & 0xFF)) != tempdata; //To be updated?
+			tempdata = ((et4k_tempreg & 0x80) << 1) | (tempdata & 0xFF); //Add/replace the new/changed bits!
+			++tempdata; //One later!
+			VGA->precalcs.rowsize = tempdata; //Save the new data!
+			VGA->precalcs.scanlinesize = VGA->precalcs.rowsize; //The same!
+		}
+	}
+
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x34)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x31)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x24))) //Clock frequency might have been updated?
 	{
 		if (VGA==getActiveVGA()) //Active VGA?
@@ -750,11 +837,11 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	//Misc settings
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x36))) //Video system configuration #1!
 	{
-		et4k_tempreg = et4k_reg(et4kdata, 3d4, 36); //The overflow register!
+		et4k_tempreg = et4k_reg(et34kdata, 3d4, 36); //The overflow register!
 		if ((et4k_tempreg & 0x10)==0x00) //Segment configuration?
 		{
-			VGA_MemoryMapBankRead = et4kdata->bank_read << 16; //Read bank!
-			VGA_MemoryMapBankWrite = et4kdata->bank_write << 16; //Write bank!
+			VGA_MemoryMapBankRead = et34kdata->bank_read << 16; //Read bank!
+			VGA_MemoryMapBankWrite = et34kdata->bank_write << 16; //Write bank!
 			VGA->precalcs.linearmode &= ~2; //Use normal data addresses!
 		}
 		else //Linear system configuration? Disable the segment and enable linear mode (high 4 bits of the address select the bank)!
@@ -774,7 +861,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Mask register has been updated?
 	{
-		et4k_tempreg = et4k(VGA)->hicolorDACcommand; //Load the command to process! (Process like a SC11487)
+		et4k_tempreg = et34k(VGA)->hicolorDACcommand; //Load the command to process! (Process like a SC11487)
 		DACmode = VGA->precalcs.DACmode; //Load the current DAC mode!
 		if ((et4k_tempreg&0xC0)==0x80) //15-bit hicolor mode?
 		{
@@ -810,7 +897,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 float Tseng34k_getClockRate(VGA_Type *VGA)
 {
 	byte clock_index;
-	if (!et4k(VGA)) return 0.0f; //Unregisterd ET4K!
+	if (!et34k(VGA)) return 0.0f; //Unregisterd ET4K!
 	if (VGA->enable_SVGA == 2) //ET3000?
 	{
 		clock_index = get_clock_index_et3k(VGA); //Retrieve the ET4K clock index!
@@ -833,7 +920,7 @@ float Tseng34k_getClockRate(VGA_Type *VGA)
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize) {
 	VGA_registerExtension(&Tseng34K_readIO, &Tseng34K_writeIO, &Tseng34k_init,&Tseng34k_calcPrecalcs,&Tseng34k_getClockRate);
 	Tseng4k_VRAMSize = VRAMSize; //Set this VRAM size to use!
-	getActiveVGA()->SVGAExtension = zalloc(sizeof(SVGA_ET4K_DATA),"SVGA_ET4K_DATA",getLock(LOCK_VGA)); //Our SVGA extension data!
+	getActiveVGA()->SVGAExtension = zalloc(sizeof(SVGA_ET34K_DATA),"SVGA_ET34K_DATA",getLock(LOCK_VGA)); //Our SVGA extension data!
 	if (!getActiveVGA()->SVGAExtension)
 	{
 		raiseError("ET4000","Couldn't allocate SVGA card ET4000 data! Ran out of memory!");

@@ -49,12 +49,12 @@ typedef struct {
 	//High color DAC information
 	byte hicolorDACcmdmode;
 	byte hicolorDACcommand;
-} SVGA_ET4K_DATA; //Dosbox ET4000 saved data!
+} SVGA_ET34K_DATA; //Dosbox ET4000 saved data!
 
 //Retrieve a point to the et4k?
-#define et4k(VGA) ((SVGA_ET4K_DATA *)VGA->SVGAExtension)
+#define et34k(VGA) ((SVGA_ET34K_DATA *)VGA->SVGAExtension)
 //Retrieve the active et4k!
-#define et4k_data et4k(getActiveVGA())
+#define et34k_data et34k(getActiveVGA())
 
 #define et4k_reg(data,port,index) data->store_et4k_##port##_##index
 #define et3k_reg(data,port,index) data->store_et3k_##port##_##index
@@ -64,42 +64,42 @@ typedef struct {
 #define STORE_ET4K(port, index, category) \
 	case 0x##index: \
 	if (getActiveVGA()->enable_SVGA!=1) return 0; \
-	et4k_data->store_et4k_##port##_##index = val; \
-	VGA_calcprecalcs(getActiveVGA(),category|0x##port); \
+	et34k_data->store_et4k_##port##_##index = val; \
+	VGA_calcprecalcs(getActiveVGA(),category|0x##index##); \
 	return 1;
 
 #define RESTORE_ET4K(port, index) \
 	case 0x##index: \
 		if (getActiveVGA()->enable_SVGA!=1) return 0; \
-		*result = et4k_data->store_et4k_##port##_##index; \
+		*result = et34k_data->store_et4k_##port##_##index; \
 		return 1;
 
 //ET3K register access
 #define STORE_ET3K(port, index, category) \
 	case 0x##index: \
 		if (getActiveVGA()->enable_SVGA!=2) return 0; \
-		et4k_data->store_et3k_##port##_##index = val; \
-		VGA_calcprecalcs(getActiveVGA(),category|0x##port); \
+		et34k_data->store_et3k_##port##_##index = val; \
+		VGA_calcprecalcs(getActiveVGA(),category|0x##index##); \
 		return 1;
 
 #define RESTORE_ET3K(port, index) \
 	case 0x##index: \
 		if (getActiveVGA()->enable_SVGA!=2) return 0; \
-		*result = et4k_data->store_et3k_##port##_##index; \
+		*result = et34k_data->store_et3k_##port##_##index; \
 		return 1;
 
 //ET3K/ET4K register access
 #define STORE_ET34K(port, index, category) \
 	case 0x##index: \
-		if (getActiveVGA()->enable_SVGA<1 || getActiveVGA()->enable_SVGA>2) return 0; \
-		et4k_data->store_##port##_##index = val; \
-		VGA_calcprecalcs(getActiveVGA(),category|0x##port); \
+		if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2)) return 0; \
+		et34k_data->store_##port##_##index = val; \
+		VGA_calcprecalcs(getActiveVGA(),##category|0x##index##); \
 		return 1;
 
 #define RESTORE_ET34K(port, index) \
 	case 0x##index: \
-		if (getActiveVGA()->enable_SVGA<1 || getActiveVGA()->enable_SVGA>2) return 0; \
-		*result = et4k_data->store_##port##_##index; \
+		if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2)) return 0; \
+		*result = et34k_data->store_##port##_##index; \
 		return 1;
 
 
