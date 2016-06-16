@@ -501,6 +501,12 @@
     <ClCompile Include="..\hardware\vga\svga\et4000.c">
       <Filter>Source Files\hardware\vga\svga</Filter>
     </ClCompile>
+    <ClCompile Include="..\hardware\joystick.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\xtexpansionunit.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">
@@ -903,6 +909,12 @@
     </ClInclude>
     <ClInclude Include="..\headers\hardware\vga\svga\et4000.h">
       <Filter>Header Files\hardware\vga\svga</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\hardware\joystick.h">
+      <Filter>Header Files\hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\hardware\xtexpansionunit.h">
+      <Filter>Header Files\hardware</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

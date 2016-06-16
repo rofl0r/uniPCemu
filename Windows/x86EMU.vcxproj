@@ -77,6 +77,7 @@
     <ClCompile Include="..\hardware\ems.c" />
     <ClCompile Include="..\hardware\floppy.c" />
     <ClCompile Include="..\hardware\ide.c" />
+    <ClCompile Include="..\hardware\joystick.c" />
     <ClCompile Include="..\hardware\midi\adsr.c" />
     <ClCompile Include="..\hardware\midi\midi.c" />
     <ClCompile Include="..\hardware\midi\mididevice.c" />
@@ -110,6 +111,7 @@
     <ClCompile Include="..\hardware\vga\vga_sequencer_textmode.c" />
     <ClCompile Include="..\hardware\vga\vga_vram.c" />
     <ClCompile Include="..\hardware\vga\vga_vramtext.c" />
+    <ClCompile Include="..\hardware\xtexpansionunit.c" />
     <ClCompile Include="..\interrupts\interrupt10.c" />
     <ClCompile Include="..\interrupts\interrupt10_modelist_vga.c" />
     <ClCompile Include="..\interrupts\interrupt10_romfont.c" />
@@ -211,6 +213,7 @@
     <ClInclude Include="..\headers\hardware\ems.h" />
     <ClInclude Include="..\headers\hardware\floppy.h" />
     <ClInclude Include="..\headers\hardware\ide.h" />
+    <ClInclude Include="..\headers\hardware\joystick.h" />
     <ClInclude Include="..\headers\hardware\midi\adsr.h" />
     <ClInclude Include="..\headers\hardware\midi\midi.h" />
     <ClInclude Include="..\headers\hardware\midi\mididevice.h" />
@@ -241,6 +244,7 @@
     <ClInclude Include="..\headers\hardware\vga\vga_trident8900.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_vram.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_vramtext.h" />
+    <ClInclude Include="..\headers\hardware\xtexpansionunit.h" />
     <ClInclude Include="..\headers\header_dosbox.h" />
     <ClInclude Include="..\headers\header_dosboxmpu.h" />
     <ClInclude Include="..\headers\interrupts\interrupt05.h" />
