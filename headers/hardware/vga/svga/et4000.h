@@ -39,11 +39,18 @@ typedef struct {
 
 	byte extensionstep; //The steps to activate the extensions!
 	//Extra data added by superfury(Device specific precalculation storage)
+
+	//Banking support
 	byte bank_read; //Read bank number!
 	byte bank_write; //Write bank number!
+	byte bank_size; //The bank size to use(2 bits)!
+
+	//Extended bits
 	uint_32 display_start_high;
 	uint_32 cursor_start_high;
 	uint_32 line_compare_high;
+
+	//Memory wrapping
 	uint_32 memwrap; //The memory wrap to be AND-ed into the address given!
 
 	//High color DAC information

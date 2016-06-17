@@ -320,11 +320,13 @@ byte Tseng34K_writeIO(word port, byte val)
 		{
 			et34kdata->bank_write = val & 0x07;
 			et34kdata->bank_read = (val >> 3) & 0x07;
+			et34kdata->bank_size = (val>>6)&3; //Bank size to use!
 		}
 		else //ET4000?
 		{
 			et34kdata->bank_write = val & 0x0f;
 			et34kdata->bank_read = (val >> 4) & 0x0f;
+			et34kdata->bank_size = 1; //Bank size to use is always the same(64K)!
 		}
 		//Apply correct memory banks!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x36); //Update from the CRTC controller registers!
@@ -817,12 +819,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		{
 			//bit7=Offset bit 8
 			tempdata = VGA->precalcs.rowsize;
-			--tempdata; //One later!
 			updateCRTC |= (((et4k_tempreg & 0x80) << 1) | (tempdata & 0xFF)) != tempdata; //To be updated?
 			tempdata = ((et4k_tempreg & 0x80) << 1) | (tempdata & 0xFF); //Add/replace the new/changed bits!
-			++tempdata; //One later!
 			VGA->precalcs.rowsize = tempdata; //Save the new data!
-			VGA->precalcs.scanlinesize = VGA->precalcs.rowsize; //The same!
 		}
 	}
 
@@ -840,8 +839,21 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		et4k_tempreg = et4k_reg(et34kdata, 3d4, 36); //The overflow register!
 		if ((et4k_tempreg & 0x10)==0x00) //Segment configuration?
 		{
-			VGA_MemoryMapBankRead = et34kdata->bank_read << 16; //Read bank!
-			VGA_MemoryMapBankWrite = et34kdata->bank_write << 16; //Write bank!
+			switch (et34kdata->bank_size&3) //What bank size?
+			{
+			case 0: //128K?
+				tempdata = 17; //128K bank!
+				break;
+			case 2: //1M?
+				tempdata = 20; //1M bank!
+				break;
+			default:
+			case 1: //64K?
+				tempdata = 16; //64K bank!
+				break;
+			}
+			VGA_MemoryMapBankRead = et34kdata->bank_read<<tempdata; //Read bank!
+			VGA_MemoryMapBankWrite = et34kdata->bank_write<<tempdata; //Write bank!
 			VGA->precalcs.linearmode &= ~2; //Use normal data addresses!
 		}
 		else //Linear system configuration? Disable the segment and enable linear mode (high 4 bits of the address select the bank)!
@@ -857,6 +869,11 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			VGA->precalcs.linearmode &= ~1; //Use VGA-mapping of memory!
 		}
 		VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
+	}
+
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x37))) //Video system configuration #2?
+	{
+		VGA->precalcs.VRAMmask = VGA->precalcs.VRAMmask&et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
 	}
 
 	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Mask register has been updated?

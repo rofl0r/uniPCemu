@@ -102,6 +102,11 @@ typedef struct
 	byte *graphicsx; //Current graphics pixel in the buffer!
 	byte DACcounter; //DAC latch counter!
 	uint_32 lastDACcolor; //Last latched DAC color!
+
+	//Actual VGA counters according to the documentation!
+	word memoryaddressclock; //The memory address clock itself!
+	byte memoryaddressclockdivider; //The memory address clock divider!
+	word memoryaddress; //The current memory address to apply!
 } SEQ_DATA; //Sequencer used data!
 
 float VGA_VerticalRefreshRate(VGA_Type *VGA); //Scanline speed for one line in Hz!

@@ -171,10 +171,7 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 
 OPTINLINE void loadlatch(uint_32 offset)
 {
-	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[0] = readVRAMplane(getActiveVGA(),0,offset); //Plane 0
-	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[1] = readVRAMplane(getActiveVGA(),1,offset); //Plane 1
-	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[2] = readVRAMplane(getActiveVGA(),2,offset); //Plane 2
-	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[3] = readVRAMplane(getActiveVGA(),3,offset); //Plane 3
+	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch = VGA_VRAMDIRECTPLANAR(getActiveVGA(),offset);
 	VGA_updateLatches(); //Update the latch data mirroring!
 }
 
@@ -296,7 +293,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		}
 		else if ((getActiveVGA()->precalcs.linearmode & 5) == 5) //Linear memory?
 		{
-			calcplanes = 1; //Read map select is ignored!
+			calcplanes = 0xF; //Read map select is ignored!
 		}
 		else //Normal VGA read!
 		{

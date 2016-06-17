@@ -34,6 +34,8 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	current = 0; //Init!
 	for (;current<NUMITEMS(VGA->CRTC.rowstatus);) //All available resolutions!
 	{
+		realtiming = current; //Load current row!
+		realtiming >>= VGA->precalcs.scandoubling; //Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!
 		VGA->CRTC.charrowstatus[current<<1] = current/charsize;
 		VGA->CRTC.charrowstatus[(current<<1)|1] = current%charsize;
 		VGA->CRTC.rowstatus[current] = get_display_y(VGA,current); //Translate!
@@ -44,7 +46,10 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	charsize = getcharacterwidth(VGA); //Now, based on width!
 	current = 0; //Init!
 	byte pixelrate=0;
+	byte effectivecharsize;
 	word extrastatus;
+	word lastcharacterclock; //Last character clock processed!
+	effectivecharsize = VGA->precalcs.graphicsmode?8:charsize; //Graphics forced data character size to 8!
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
 		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
@@ -61,12 +66,13 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 		}
 		else //Normal VGA?
 		{
-			if (++pixelrate>(VGA->precalcs.ClockingModeRegister_DCR|(CGA_DOUBLEWIDTH(VGA)?1:0))) //To write back the pixel clock every or every other pixel(forced every clock in CGA normal mode)?
+			if (++pixelrate>((VGA->precalcs.ClockingModeRegister_DCR|(CGA_DOUBLEWIDTH(VGA)?1:0)))) //To write back the pixel clock every or every other pixel(forced every clock in CGA normal mode)?
 			{
 				extrastatus |= 1; //Reset for the new block/next pixel!
 				pixelrate = 0; //Reset!
 			}
 		}
+		
 		VGA->CRTC.extrahorizontalstatus[current] = extrastatus; //Extra status to apply!
 
 		//Finished horizontal timing!
@@ -293,6 +299,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			VGA->precalcs.VRAMmask = (VGA->VRAM_size-1); //Don't limit VGA memory, wrap normally!
 		}
+		VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask; //The current VGA memory mask!
 	}
 	
 	if (FullUpdate || (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x5))) //Graphics mode register?
@@ -696,15 +703,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			VGA->precalcs.scandoubling = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.ScanDoubling; //Scan doubling enabled? CGA disables scanline doubling for compatibility.
 			//dolog("VGA","VTotal after SD: %i",VGA->precalcs.verticaltotal); //Log it!
-		}
-		
-		if (CRTUpdated || scanlinesizeupdated) //Updated?
-		{
-			word scanlinesize;
-			scanlinesize = VGA->precalcs.rowsize;
-			VGA->precalcs.scanlinesize = scanlinesize; //Scanline size!
-			recalcScanline = 1; //Recalc scanline data!
-			//dolog("VGA","VTotal after scanlinesize: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
 		
 		//Sequencer_textmode_cursor (CRTC):

@@ -204,19 +204,18 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 			address2 >>= result; //Apply MA15/MA13 to bit 0!
 			address2 &= 1; //Only load bit 0!
 			result = memoryaddress; //Default: don't change!
-			result <<= 1;
+			result <<= 1; //Shift up to create the word mode!
 			result |= address2; //Add bit MA15/MA13 at bit 0!
 			return result; //Give the result!
 		case 2: //DWord mode?
-			//return ((memoryaddress<<2)&0xFFFF)|((memoryaddress>>14)&3); //Doubleword mode!
-			return (memoryaddress<<2); //Doubleword mode!
+			return ((memoryaddress<<2)&0xFFFF)|((memoryaddress>>14)&3); //Doubleword mode with SVGA support!
 			break;
 		default:
 		case 0: //Byte mode?
 			break; //Unchanged!
 
 	}
-	return memoryaddress; //Original address!
+	return memoryaddress; //Original address in byte mode!
 }
 
 VGA_AttributeInfo currentattributeinfo; //Our current collected attribute info!
@@ -224,34 +223,46 @@ VGA_AttributeInfo currentattributeinfo; //Our current collected attribute info!
 OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
 {
 	INLINEREGISTER uint_32 loadedlocation, vramlocation; //The location we load at!
+	static uint_32 lastlocation; //Last latched location!
 	//Horizontal logic
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
-	loadedlocation = x; //X!
-	loadedlocation &= 0xFFF; //Limit!
-	loadedlocation >>= VGA->precalcs.MemoryClockDivide; //Apply memory clock division!
-	if (VGA->precalcs.textmode) //Text mode? Gotten character width? Just here for safety!
+
+	//Column logic
+	if (x) //Past the first position of the line(not the initial loading)?
 	{
-		loadedlocation <<= 1; //Multiply by 2 for our index!
-		loadedlocation = VGA->CRTC.charcolstatus[loadedlocation]; //Divide by character width in text mode to get the correct character by using the horizontal clock!
+		++Sequencer->memoryaddressclockdivider; //Increase the address counter point by one character clock!
+		++Sequencer->memoryaddress; //Increase the memory address to be loaded!
 	}
-	else //Graphics mode?
+	else //First position on the line?
 	{
-		loadedlocation >>= 3; //We take portions of 8 pixels, so increase our location every 8 pixels!
+		Sequencer->memoryaddressclockdivider = Sequencer->memoryaddressclock = Sequencer->memoryaddress = lastlocation = 0; //Address counters are reset!
 	}
 
-	loadedlocation >>= VGA->precalcs.characterclockshift; //Apply VGA character clock shift: the shift is the ammount to move at a time! Address counter = Character clock DIV 2 or 4 when used.
+	/*if (Sequencer->memoryaddressclockdivider >= (1<<VGA->precalcs.characterclockshift)) //Divide memory address clock by 1/2/4!
+	{
+		Sequencer->memoryaddressclockdivider = 0; //Reset!
+		*/
+		lastlocation = Sequencer->memoryaddress; //Latch the new location!
+	//}
 
-	//Row logic
+	loadedlocation = lastlocation; //Load the address to be loaded!
 	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!
-	CGA_checklightpen(loadedlocation); //Check for anything requiring the lightpen on the CGA!
-
 	vramlocation = patch_map1314(VGA, addresswrap(VGA, loadedlocation)); //Apply address wrap and MAP13/14?
 
+	//Row logic
+	CGA_checklightpen(loadedlocation); //Check for anything requiring the lightpen on the CGA!
+
 	//Now calculate and give the planes to be used!
-	planesbuffer[0] = readVRAMplane(VGA, 0, vramlocation); //Read plane 0!
-	planesbuffer[1] = readVRAMplane(VGA, 1, vramlocation); //Read plane 1!
-	planesbuffer[2] = readVRAMplane(VGA, 2, vramlocation); //Read plane 2!
-	planesbuffer[3] = readVRAMplane(VGA, 3, vramlocation); //Read plane 3!
+	if (VGA->VRAM==0) goto skipVRAM; //VRAM must exist!
+	loadedlocation = VGA_VRAMDIRECTPLANAR(VGA,vramlocation); //Load the 4 planes from VRAM, one dword at a time!
+	skipVRAM: //No VRAM present to display?
+	planesbuffer[0] = (loadedlocation&0xFF); //Read plane 0!
+	loadedlocation >>= 8;
+	planesbuffer[1] = (loadedlocation & 0xFF); //Read plane 1!
+	loadedlocation >>= 8;
+	planesbuffer[2] = (loadedlocation & 0xFF); //Read plane 2!
+	loadedlocation >>= 8;
+	planesbuffer[3] = (loadedlocation & 0xFF); //Read plane 3!
 	//Now the buffer is ready to be processed into pixels!
 
 	planesdecoder[VGA->precalcs.graphicsmode](VGA,vramlocation); //Use the decoder to get the pixels or characters!
@@ -274,9 +285,11 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
 	}
-	row >>= VGA->precalcs.scandoubling; //Apply Scan Doubling on the row scan counter: we take effect on content (double scanning)!
 
-	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply scanline division to the current row timing!
+	//row is the vertical timing counter
+	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply Scan Doubling on the row scan counter: we take effect on content (double scanning)!
+	//Apply scanline division to the current row timing!
+
 	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
 
 	//Row now is an index into charrowstatus
@@ -622,7 +635,7 @@ othernibble: //Retrieve the current DAC index!
 		tempx2 <<= 1; //Index!
 		tempx3 = Sequencer->tempx; //Load the old coordinate!
 		tempx3 <<= 1; //Index!
-		if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2]) && ((VGA->CRTC.charcolstatus[tempx2]&VGA->precalcs.VideoLoadRateMask) == 0)) //First of a new block? Reload our pixel buffer!
+		if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2]) && ((VGA->CRTC.charcolstatus[tempx2]&VGA->precalcs.VideoLoadRateMask)==0)) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
@@ -666,7 +679,7 @@ othernibble: //Retrieve the current DAC index!
 			return; //Are we not finished with the nibble? Abort!
 		}
 		//Finished with the nibble&pixel? We're ready to check for the next one!
-		if (((tempx & VGA->precalcs.graphicsReloadMask) == 0) && (((tempx>>3)&VGA->precalcs.VideoLoadRateMask) == 0)) //First of a new block? Reload our pixel buffer!
+		if (((tempx & VGA->precalcs.graphicsReloadMask) == 0) && (((tempx>>3)&VGA->precalcs.VideoLoadRateMask)==0)) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
@@ -714,7 +727,7 @@ othernibble: //Retrieve the current DAC index!
 			return; //Are we not finished with the nibble? Abort!
 		}
 		//Finished with the nibble&pixel? We're ready to check for the next one!
-		if (((tempx &  VGA->precalcs.graphicsReloadMask) == 0) && (((tempx>>3)&VGA->precalcs.VideoLoadRateMask) == 0)) //First of a new block? Reload our pixel buffer!
+		if (((tempx &  VGA->precalcs.graphicsReloadMask) == 0) && (((tempx>>3)&VGA->precalcs.VideoLoadRateMask)==0)) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
