@@ -65,7 +65,7 @@ typedef struct {
 	case 0x##index: \
 	if (getActiveVGA()->enable_SVGA!=1) return 0; \
 	et34k_data->store_et4k_##port##_##index = val; \
-	VGA_calcprecalcs(getActiveVGA(),category|0x##index##); \
+	VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
 	return 1;
 
 #define RESTORE_ET4K(port, index) \
@@ -79,7 +79,7 @@ typedef struct {
 	case 0x##index: \
 		if (getActiveVGA()->enable_SVGA!=2) return 0; \
 		et34k_data->store_et3k_##port##_##index = val; \
-		VGA_calcprecalcs(getActiveVGA(),category|0x##index##); \
+		VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
 		return 1;
 
 #define RESTORE_ET3K(port, index) \
@@ -93,7 +93,7 @@ typedef struct {
 	case 0x##index: \
 		if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2)) return 0; \
 		et34k_data->store_##port##_##index = val; \
-		VGA_calcprecalcs(getActiveVGA(),##category|0x##index##); \
+		VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
 		return 1;
 
 #define RESTORE_ET34K(port, index) \
