@@ -85,8 +85,8 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				{
 					if (file_exists("ROM/ET3000.BIN")) //Full ET3000?
 					{
-						ISVGA = 2; //ET3000!
-						strcpy(filename, "ROM/ET4000.BIN"); //ET3000 ROM!
+						ISVGA = 3; //ET3000!
+						strcpy(filename, "ROM/ET3000.BIN"); //ET3000 ROM!
 					}
 					else //VGA ROM?
 					{

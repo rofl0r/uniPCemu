@@ -620,6 +620,16 @@ void Tseng34k_init()
 	}
 }
 
+uint_32 Tseng3k_DWordShift(uint_32 memoryaddress)
+{
+	return (memoryaddress<<2); //Simply modified until properly implemented!
+}
+
+uint_32 Tseng4k_DWordShift(uint_32 memoryaddress)
+{
+	return (memoryaddress<<2); //Simply modified until properly implemented!
+}
+
 //ET4K precalcs updating functionality.
 void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 {
@@ -947,7 +957,11 @@ float Tseng34k_getClockRate(VGA_Type *VGA)
 }
 
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize) {
-	VGA_registerExtension(&Tseng34K_readIO, &Tseng34K_writeIO, &Tseng34k_init,&Tseng34k_calcPrecalcs,&Tseng34k_getClockRate);
+	if (getActiveVGA()->enable_SVGA == 2) //ET3000?
+		VGA_registerExtension(&Tseng34K_readIO, &Tseng34K_writeIO, &Tseng34k_init,&Tseng34k_calcPrecalcs,&Tseng34k_getClockRate,&Tseng3k_DWordShift);
+	else if (getActiveVGA()->enable_SVGA == 1) //ET4K?
+		VGA_registerExtension(&Tseng34K_readIO, &Tseng34K_writeIO, &Tseng34k_init,&Tseng34k_calcPrecalcs,&Tseng34k_getClockRate,&Tseng4k_DWordShift);
+	else return; //Invalid SVGA!		
 	Tseng4k_VRAMSize = VRAMSize; //Set this VRAM size to use!
 	getActiveVGA()->SVGAExtension = zalloc(sizeof(SVGA_ET34K_DATA),"SVGA_ET34K_DATA",getLock(LOCK_VGA)); //Our SVGA extension data!
 	if (!getActiveVGA()->SVGAExtension)

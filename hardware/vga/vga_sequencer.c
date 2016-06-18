@@ -17,6 +17,7 @@
 #include "headers/support/highrestimer.h" //High resolution clock!
 #include "headers/support/zalloc.h" //Memory protection support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/hardware/vga/svga/et4000.h" //ET3/4K DWord mode support!
 
 //Are we disabled?
 #define HW_DISABLED 0
@@ -192,6 +193,8 @@ OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 addresscounter) //Patch f
 	return addresscounter; //Give the linear address!
 }
 
+VGA_dwordshiftextensionhandler VGA_calcdwordshiftextensionhandler = NULL; //The DWord shift extension handler!
+
 OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memory arround 64k!
 {
 	INLINEREGISTER uint_32 result, address2;
@@ -208,7 +211,8 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 			result |= address2; //Add bit MA15/MA13 at bit 0!
 			return result; //Give the result!
 		case 2: //DWord mode?
-			return ((memoryaddress<<2)&0xFFFF)|((memoryaddress>>14)&3); //Doubleword mode with SVGA support!
+			if (VGA_calcdwordshiftextensionhandler) return VGA_calcdwordshiftextensionhandler(memoryaddress); //Apply extension shift method when specified!
+			return ((memoryaddress<<2)&0xFFFF)|((memoryaddress>>14)&3); //Doubleword mode executed normally according to documentation!
 			break;
 		default:
 		case 0: //Byte mode?

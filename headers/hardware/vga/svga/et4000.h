@@ -1,3 +1,6 @@
+#ifndef ET34K_H
+#define ET34K_H
+
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/vga/vga.h" //Basic VGA!
 
@@ -113,3 +116,6 @@ typedef struct {
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize);
 void set_clock_index_et4k(VGA_Type *VGA, byte index); //Used by the interrupt 10h handler to set the clock index directly!
 void set_clock_index_et3k(VGA_Type *VGA, byte index); //Used by the interrupt 10h handler to set the clock index directly!
+uint_32 ET34K_DWordShift(uint_32 memoryaddress); //Used by the sequencer to properly apply the DWord shift!
+
+#endif
