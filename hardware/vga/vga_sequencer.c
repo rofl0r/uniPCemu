@@ -211,7 +211,7 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 			result |= address2; //Add bit MA15/MA13 at bit 0!
 			return result; //Give the result!
 		case 2: //DWord mode?
-			if (VGA_calcdwordshiftextensionhandler) return VGA_calcdwordshiftextensionhandler(memoryaddress); //Apply extension shift method when specified!
+			if (VGA_calcdwordshiftextensionhandler) return VGA_calcdwordshiftextensionhandler(VGA,memoryaddress); //Apply extension shift method when specified!
 			return ((memoryaddress<<2)&0xFFFF)|((memoryaddress>>14)&3); //Doubleword mode executed normally according to documentation!
 			break;
 		default:

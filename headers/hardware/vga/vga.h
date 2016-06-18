@@ -695,7 +695,7 @@ typedef struct PACKED
 #include "headers/endpacked.h" //We're packed!
 
 typedef float (*VGA_clockrateextensionhandler)(VGA_Type *VGA); //The clock rate extension handler!
-typedef uint_32 (*VGA_dwordshiftextensionhandler)(uint_32 memoryaddress); //The DWord shift memory address extension handler!
+typedef uint_32 (*VGA_dwordshiftextensionhandler)(VGA_Type *VGA, uint_32 memoryaddress); //The DWord shift memory address extension handler!
 
 #ifndef IS_VGA
 extern VGA_Type *ActiveVGA; //Currently active VGA chipset!
