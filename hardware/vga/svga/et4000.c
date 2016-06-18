@@ -125,7 +125,12 @@ byte Tseng34K_writeIO(word port, byte val)
 	//RS2 is always zero on x86.
 
 	//Normal video card support!
-	case 0x3D5: //CRTC data register?
+	case 0x3B5: //CRTC Controller Data Register		DATA
+		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		goto accesscrtvalue;
+	case 0x3D5: //CRTC Controller Data Register		DATA
+		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
+		accesscrtvalue:
 //void 3d5_et4k(Bitu reg,Bitu val,Bitu iolen) {
 	if(!et34kdata->extensionsEnabled && getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33 && (getActiveVGA()->enable_SVGA==1)) //Block only on ET4000?
 		return 0;
@@ -375,6 +380,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		return 0;
 		break;
 	}
+	finishoutput:
 	return 0; //Unsupported port!
 }
 
@@ -433,7 +439,12 @@ byte Tseng34K_readIO(word port, byte *result)
 		return 0; //Execute normally!
 		break;
 	//Normal video card support!
-	case 0x3D5: //CRTC data register?
+	case 0x3B5: //CRTC Controller Data Register		5DATA
+		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
+		goto readcrtvalue;
+	case 0x3D5: //CRTC Controller Data Register		DATA
+		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
+		readcrtvalue:
 	//Bitu read_p3d5_et4k(Bitu reg,Bitu iolen) {
 		if (!et34kdata->extensionsEnabled && getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33)
 			return 0x0;
@@ -498,6 +509,7 @@ byte Tseng34K_readIO(word port, byte *result)
 	default: //Unknown port?
 		break;
 	}
+	finishinput:
 	return 0; //Unsupported port!
 }
 

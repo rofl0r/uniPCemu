@@ -220,7 +220,7 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 
 VGA_AttributeInfo currentattributeinfo; //Our current collected attribute info!
 
-OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
+OPTINLINE static void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word x) //Load the planes!
 {
 	INLINEREGISTER uint_32 loadedlocation, vramlocation; //The location we load at!
 	static uint_32 lastlocation; //Last latched location!
@@ -275,7 +275,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer, word 
 	currentattributeinfo.lookupprecalcs = lookupprecalcs; //Save the looked up precalcs, this never changes during a processed block of pixels (both text and graphics modes)!
 }
 
-OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
+OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 {
 	INLINEREGISTER word row;
 	INLINEREGISTER uint_32 charystart;

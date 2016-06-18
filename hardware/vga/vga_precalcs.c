@@ -46,10 +46,7 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	charsize = getcharacterwidth(VGA); //Now, based on width!
 	current = 0; //Init!
 	byte pixelrate=0;
-	byte effectivecharsize;
 	word extrastatus;
-	word lastcharacterclock; //Last character clock processed!
-	effectivecharsize = VGA->precalcs.graphicsmode?8:charsize; //Graphics forced data character size to 8!
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
 		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
@@ -627,7 +624,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			//dolog("VGA","VTotal after xres: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
 		
-		byte scanlinesizeupdated = 0; //We need to update the scan line size?
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x13))) //Updated?
 		{
 			word rowsize;
@@ -637,11 +633,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				rowsize <<= 1;
 				VGA->precalcs.rowsize = rowsize; //=Offset*2
 			}
-			updateoffsetregister:
-			//dolog("VGA","VTotal after rowsize: %i",VGA->precalcs.verticaltotal); //Log it!
-			scanlinesizeupdated = 1; //Updated!
 		}
 		
+		updateoffsetregister:
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x18))
 			       || overflowupdated
 			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //Updated?
@@ -695,7 +689,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			VGA->precalcs.characterclockshift = characterclockshift; //Apply character clock shift!
 
 			underlinelocationupdated = 1; //We need to update the attribute controller!
-			scanlinesizeupdated = 1; //We need to update this too!
 			//dolog("VGA","VTotal after VRAMMemAddrSize: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
 		
