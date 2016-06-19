@@ -106,6 +106,7 @@ typedef struct
 	//Actual VGA counters according to the documentation!
 	word memoryaddressclock; //The memory address clock itself!
 	byte memoryaddressclockdivider; //The memory address clock divider!
+	byte memoryaddressclockdivider2; //SVGA memory address clock divider extension!
 	word memoryaddress; //The current memory address to apply!
 } SEQ_DATA; //Sequencer used data!
 

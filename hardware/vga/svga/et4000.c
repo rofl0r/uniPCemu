@@ -797,6 +797,11 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.topwindowstart = tempdata; //Save the new data!
 	}
 
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25))) //Interlacing?
+	{
+		VGA->precalcs.useInterlacing = (et4k_tempreg&0x80)?1:0; //Enable/disable interlacing!
+	}
+
 	if (VGA->enable_SVGA == 1) //ET4000?
 	{
 		et4k_tempreg = et4k_reg(et34kdata, 3d4, 3f); //The overflow register!

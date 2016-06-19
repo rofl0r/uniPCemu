@@ -283,11 +283,20 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 {
 	INLINEREGISTER word row;
 	INLINEREGISTER uint_32 charystart;
+	word interlacedfieldsize; //Half the display size!
 	row = Sequencer->Scanline; //Default: our normal scanline!
 	if (row>VGA->precalcs.topwindowstart) //Splitscreen operations?
 	{
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
+	}
+
+	if (VGA->precalcs.useInterlacing) //Interlace mode?
+	{
+		interlacedfieldsize = VGA->precalcs.verticaldisplayend; //Take the whole field!
+		interlacedfieldsize >>= 1; //Take half of the field!
+		interlacedfieldsize += (VGA->precalcs.verticaldisplayend&1); //Odd sized vertical display adds one row to the odd field!
+		row = (row>=interlacedfieldsize)?((row-interlacedfieldsize)<<1):((row<<1)|1); //First all odd rows, then all even rows!
 	}
 
 	//row is the vertical timing counter
@@ -301,7 +310,7 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	Sequencer->chary = row = *currowstatus++; //First is chary (effective character/graphics row)!
 	Sequencer->rowscancounter = Sequencer->charinner_y = *currowstatus; //Second is charinner_y, which is also the row scan counter!
 
-	charystart = getVRAMScanlineStart(VGA, row); //Calculate row start!
+	charystart = OPTMUL(VGA->precalcs.rowsize, row); //Calculate row start!
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
 	charystart += Sequencer->bytepanning; //Apply byte panning!
 	Sequencer->charystart = charystart; //What row to start with our pixels!

@@ -58,9 +58,6 @@
 //OPTINLINE word getrowsize(VGA_Type *VGA); //Give the size of a row in VRAM!
 //OPTINLINE word getTopWindowStart(VGA_Type *VGA); //Get Top Window Start scanline!
 
-//Give the start of the row!
-#define getVRAMScanlineStart(VGA, Scanline) OPTMUL(VGA->precalcs.rowsize, Scanline)
-
 word getHorizontalTotal(VGA_Type *VGA); //Get horizontal total (for calculating refresh speed timer)
 
 //For precalcs only!
