@@ -52,6 +52,7 @@ typedef struct {
 	uint_32 display_start_high;
 	uint_32 cursor_start_high;
 	uint_32 line_compare_high;
+	byte doublehorizontaltimings; //Doubling the horizontal timings!
 
 	//Memory wrapping
 	uint_32 memwrap; //The memory wrap to be AND-ed into the address given!

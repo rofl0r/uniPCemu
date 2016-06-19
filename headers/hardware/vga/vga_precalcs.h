@@ -69,6 +69,7 @@ typedef struct //Contains the precalculated values!
 	byte characterheight; //Character height!
 
 	uint_32 startaddress[2]; //Combination of start address high&low register for normal and top screen (reset) operations!
+	uint_32 VGAstartaddress; //The start address as specified for the VGA!
 	
 	//CRT Controller registers:
 	//Horizontal timing information
@@ -97,6 +98,7 @@ typedef struct //Contains the precalculated values!
 
 	//Extra information
 	uint_32 rowsize;
+	uint_32 VGArowsize;
 	word topwindowstart;
 	byte scandoubling;
 	//Sequencer_textmode_cursor (CRTC):

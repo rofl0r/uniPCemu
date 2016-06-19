@@ -331,7 +331,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			{
 				cgarowsize <<= 1; //Convert from byte to word mode!
 			}
-			VGA->precalcs.rowsize = cgarowsize; //Apply the new row size!
+			VGA->precalcs.rowsize = VGA->precalcs.VGArowsize = cgarowsize; //Apply the new row size!
 			adjustVGASpeed(); //Auto-adjust our VGA speed!
 			goto updateoffsetregister; //Update the offset register, then the rest!
 		}
@@ -631,7 +631,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			{
 				rowsize = VGA->registers->CRTControllerRegisters.REGISTERS.OFFSETREGISTER;
 				rowsize <<= 1;
-				VGA->precalcs.rowsize = rowsize; //=Offset*2
+				VGA->precalcs.rowsize = VGA->precalcs.VGArowsize = rowsize; //=Offset*2
 			}
 		}
 		
@@ -733,7 +733,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			startaddress = VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER;
 			startaddress <<= 8;
 			startaddress |= VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER;
-			VGA->precalcs.startaddress[0] = startaddress; //Updated start address!
+			VGA->precalcs.VGAstartaddress = VGA->precalcs.startaddress[0] = startaddress; //Updated start address for the VGA!
 			recalcScanline = 1; //Recalc scanline data!
 			//dolog("VGA","VTotal after startaddress: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
