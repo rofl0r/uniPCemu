@@ -689,6 +689,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER|0x16))) //Attribute misc. register?
 	{
 		et4k_tempreg = et34k_reg(et34kdata,3c0,16); //The mode to use when decoding!
+
+		VGA->precalcs.BypassPalette = (et4k_tempreg&0x80)?1:0; //Bypass the palette if specified!
+
 		et4k_tempreg >>= 4; //Shift to our position!
 		et4k_tempreg &= 3; //Only 2 bits are used for detection!
 		if ((et4k_tempreg&1)==0) //Mode 1/3 is illegal!

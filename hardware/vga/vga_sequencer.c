@@ -472,6 +472,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 		Sequencer->lastDACcolor = attributeinfo->attribute; //Latching this attribute!
 	}
 
+	drawdoublepixel:
 	//Draw the pixel that is latched!
 	if (VGA->precalcs.DACmode&2) //16-bit color?
 	{
@@ -491,6 +492,12 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 		drawPixel(VGA, VGA_DAC(VGA, DACcolor)); //Render through the 8-bit DAC!
 	}
 	++VGA->CRTC.x; //Next x!
+	if (Sequencer->DACcounter>1) //2 pixels have been done?
+	{
+		Sequencer->DACcounter = 0; //Now processing the 2nd pixel!
+		goto drawdoublepixel;
+	}
+	Sequencer->DACcounter = 0; //Now processing the 2nd pixel!
 }
 
 OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
