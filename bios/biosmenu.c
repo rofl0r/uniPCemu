@@ -2356,7 +2356,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 {
 	char errorlog[256]; //Error log string!
-	FILEPOS updateinterval=1,updatenr,lastsectornr;
+	FILEPOS updateinterval=1,updatenr;
 	char filename[256], originalfilename[256]; //Filename container!
 	sbyte srcstatus=-1,deststatus=-1; //Status on the two dynamic disk images!
 	bzero(filename, sizeof(filename)); //Init!
@@ -2413,7 +2413,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					updateinterval = (size/100); //Update interval in sectors: every 1% updated!
 					if (!updateinterval) updateinterval = 1; //Minimum of 1 sector interval!
 					updatenr = 0; //Reset update number!
-					lastsectornr = 0; //Last sector number!
+					srcstatus = 0; //Initialize to EOF!
 					for (sectornr = 0; sectornr < size;) //Process all sectors from the source image!
 					{
 						sectorposition = 0; //Default: no position!
@@ -2438,12 +2438,13 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							case 0: //EOF reached?
 								goto finishedphase1; //Finished transferring!
 							case -1: //Error in file?
+								error = 1;
 								goto finishedphase1; //Finished transferring!
 							default: //Unknown?
 							case 1: //Next sector to process?
 								break; //Continue running on the next sector to process!
 						}
-						updatenr += sectornr-lastsectornr; //Last processed sector number difference!
+						updatenr += sectornr-previoussectornr; //Last processed sector number difference!
 						if (updatenr>=updateinterval) //Update every 1% sectors!
 						{
 							updatenr = 0; //Reset!
@@ -2458,13 +2459,14 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					EMU_unlocktext();
 
 					//Verification!
-					if (!error) //OK?
+					if ((error==0) && (srcstatus==0)) //OK and fully processed?
 					{
 						EMU_locktext();
 						GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
 						EMU_unlocktext();
 						updatenr = 0; //Reset update number!
 						destsectornr = previoussectornr = previousdestsectornr = 0; //Destination starts at sector #0 too!
+						error = 0; //Default: no error!
 						for (sectornr = 0; sectornr < size;) //Process all sectors!
 						{
 							sectorposition = 0; //Default: no position!
@@ -2485,7 +2487,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 									}
 									//We're a valid written sector!
 								}
-								else //Missing defragemented sector!
+								else //Missing defragmented sector!
 								{
 									error = 3; //Verification error!
 									break; //Stop reading!
@@ -2502,6 +2504,11 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							previousdestsectornr = destsectornr; //Save the previous for comparing!
 							deststatus = dynamicimage_nextallocatedsector(filename,&destsectornr); //Next sector or block etc. which is available!
 							srcstatus = dynamicimage_nextallocatedsector(originalfilename,&sectornr); //Next sector or block etc. which is available!
+							if ((deststatus!=srcstatus) || (sectornr!=destsectornr)) //Next status or sector number differs?
+							{
+								error = 2; //Position/status error!
+								goto finishedphase2;
+							}
 							switch (srcstatus) //What status?
 							{
 								case 0: //EOF reached?
@@ -2513,12 +2520,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 								case 1: //Next sector to process?
 									break; //Continue running on the next sector to process!
 							}
-							if ((deststatus!=srcstatus) || (sectornr!=destsectornr)) //Next status or sector number differs?
-							{
-								error = 1; //Error!
-								goto finishedphase2;
-							}
-							updatenr += sectornr-lastsectornr; //Last processed sector number difference!
+							updatenr += sectornr-previoussectornr; //Last processed sector number difference!
 							if (updatenr>=updateinterval) //Update every 1% sectors!
 							{
 								updatenr = 0; //Reset!
@@ -2534,18 +2536,21 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						if (error) //Error occurred?
 						{
 							bzero(&errorlog,sizeof(errorlog)); //Clear the error log data!
+							if (error==2) //Position/status error?
+							{
+								sprintf(errorlog,"Position/status error: Source status: %i, Destination status: %i, Error source sector: %u, error destination sector: %u",srcstatus,deststatus,sectornr,destsectornr);
+							}
 							switch (srcstatus) //What status?
 							{
 								case 0: //EOF reached?
-									strcat(errorlog,"Source: EOF"); //Finished transferring!
+									strcat(errorlog,"\nSource: EOF"); //Finished transferring!
 									break;
 								case -1: //Error in file?
-									error = 1; //Error!
-									strcat(errorlog,"Source: ERROR"); //Finished transferring!
+									strcat(errorlog,"\nSource: ERROR"); //Finished transferring!
 									goto finishedphase2; //Finished transferring!
 								default: //Unknown?
 								case 1: //Next sector to process?
-									sprintf(errorlog,"Source: sector %u",sectornr); //This sector!
+									sprintf(errorlog,"%s\nSource: sector %u",errorlog,sectornr); //This sector!
 									break; //Continue running on the next sector to process!
 							}
 							switch (deststatus) //What status?
@@ -2554,7 +2559,6 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 									strcat(errorlog,"\nDestination: EOF"); //Finished transferring!
 									break;
 								case -1: //Error in file?
-									error = 1; //Error!
 									strcat(errorlog,"\nDestination: ERROR"); //Finished transferring!
 									goto finishedphase2; //Finished transferring!
 								default: //Unknown?
@@ -2584,6 +2588,19 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					else //Error occurred?
 					{
 						dolog(originalfilename, "Error #%u copying dynamic image sector to defragmented image sector %u/%u", error, sectornr, size); //Error at this sector!
+						switch (srcstatus) //What status?
+						{
+							case 0: //EOF reached?
+								strcat(errorlog,"Source: EOF"); //Finished transferring!
+								break;
+							case -1: //Error in file?
+								strcat(errorlog,"Source: ERROR"); //Finished transferring!
+								break;
+							default: //Unknown?
+							case 1: //Next sector to process?
+								sprintf(errorlog,"Source: sector %u",sectornr); //This sector!
+								break; //Continue running on the next sector to process!
+						}
 						if (!remove(filename)) //Defragmented file can be removed?
 						{
 							dolog(originalfilename, "Error cleaning up the new defragmented image!");

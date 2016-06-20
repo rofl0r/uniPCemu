@@ -217,14 +217,14 @@ OPTINLINE int_64 dynamicimage_getindex(FILE *f, uint_32 sector) //Get index!
 		return -1; //Error: not dynamic!
 	}
 	if (!header.firstlevellocation) return 0; //Not present: no first level lookup table!
+	lookuptabledepth = 1; //First level present, but unused!
 	if (!(index = dynamicimage_readlookuptable(f, header.firstlevellocation, 1024, ((sector >> 22) & 0x3FF)))) //First level lookup!
 	{
-		lookuptabledepth = 1; //First level present, but unused!
 		return 0; //Not present!
 	}
+	lookuptabledepth = 2; //Second level present, but unused!
 	if (!(index = dynamicimage_readlookuptable(f, index, 1024, ((sector >> 12) & 0x3FF)))) //Second level lookup!
 	{
-		lookuptabledepth = 2; //Second level present, but unused!
 		return 0; //Not present!
 	}
 	lookuptabledepth = 3; //Third level present and checked!
@@ -530,7 +530,9 @@ byte dynamicimage_readexistingsector(char *filename,uint_32 sector, void *buffer
 	return FALSE; //Not present by default!
 }
 
-sbyte dynamicimage_nextallocatedsector(char *filename, uint_32 *sector)
+byte dummydata[512]; //Loaded sector!
+
+sbyte dynamicimage_nextallocatedsector(char *filename, uint_32 *sector) //Finds the next allocated sector which isn't empty!
 {
 	DYNAMICIMAGE_HEADER header;
 	FILE *f;
@@ -548,6 +550,13 @@ sbyte dynamicimage_nextallocatedsector(char *filename, uint_32 *sector)
 	
 	++*sector; //The next sector to check!
 	int present = dynamicimage_datapresent(f,*sector); //Data present?
+	if (present==1) //Existing sector?
+	{
+		if (!dynamicimage_readexistingsector(filename,*sector,&dummydata)) //Empty buffer?
+		{
+			present = 0; //Not counted as present!
+		}
+	}
 	for (;(present!=-1) && (!present);) //Check while not present and valid sector!
 	{
 		if (*sector >= header.filesize) //EOF reached
@@ -569,6 +578,13 @@ sbyte dynamicimage_nextallocatedsector(char *filename, uint_32 *sector)
 				break;
 		}
 		present = dynamicimage_datapresent(f,*sector); //Data present/valid for this sector?
+		if (present==1) //Existing sector? Might be empty!
+		{
+			if (!dynamicimage_readexistingsector(filename,*sector,&dummydata)) //Empty buffer?
+			{
+				present = 0; //Not counted as present!
+			}
+		}
 	}
 	emufclose64(f); //Close it!
 	return (sbyte)present; //Next sector that is (un)allocated! -1=Invalid file, 0=Nothing present anymore(EOF reached during search), 1=
