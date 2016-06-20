@@ -242,12 +242,16 @@ OPTINLINE static void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer
 		Sequencer->memoryaddressclockdivider = Sequencer->memoryaddressclock = Sequencer->memoryaddress = lastlocation = 0; //Address counters are reset!
 	}
 
-	/*if (Sequencer->memoryaddressclockdivider >= (1<<VGA->precalcs.characterclockshift)) //Divide memory address clock by 1/2/4!
+	if (Sequencer->memoryaddressclockdivider >= (1<<VGA->precalcs.characterclockshift)) //Divide memory address clock by 1/2/4!
 	{
 		Sequencer->memoryaddressclockdivider = 0; //Reset!
-		*/
-		lastlocation = Sequencer->memoryaddress; //Latch the new location!
-	//}
+		++Sequencer->memoryaddressclockdivider2; //Increase second divider!
+		if (Sequencer->memoryaddressclockdivider2>=(1<<VGA->precalcs.MemoryClockDivide)) //ET3000/ET4000 memory clock division?
+		{
+			Sequencer->memoryaddressclockdivider2 = 0; //Reset!
+			lastlocation = Sequencer->memoryaddress; //Latch the new location!
+		}
+	}
 
 	loadedlocation = lastlocation; //Load the address to be loaded!
 	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!
