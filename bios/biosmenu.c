@@ -4955,19 +4955,19 @@ void BIOS_DumpVGA()
 		dump_CRTCTiming(); //Dump all CRTC timing currently in use!
 
 	#ifdef DUMP_VGATEST256COL
-		uint_32 *pixels = (uint_32 *)zalloc(((480*8192)<<2),"BMPDATA",NULL); //To draw our bitmap on!
+		uint_32 *pixels = (uint_32 *)zalloc(((480<<10)<<2),"BMPDATA",NULL); //To draw our bitmap on!
 		int x,y;
 		for (y = 0;y<480;)
 		{
-			for (x = 0;x < 8192;)
+			for (x = 0;x < 640;)
 			{
-				pixels[(y<<12)+x] = getActiveVGA()->precalcs.effectiveDAC[getActiveVGA()->VRAM[((y<<12)+x)&(getActiveVGA()->VRAM_size-1)]]; //Linear VRAM assumed, converted through DAC to a color!
+				pixels[(y<<10)+x] = getActiveVGA()->precalcs.effectiveDAC[getActiveVGA()->VRAM[((y<<10)+x)&(getActiveVGA()->VRAM_size-1)]]; //Linear VRAM assumed, converted through DAC to a color!
 				++x; //Next pixel!
 			}
 			++y; //Next row!
 		}
-		writeBMP("captures/VGA256col",pixels,1<<12,480,0,0,1<<12); //Dump the VRAM direct to test!
-		freez(&pixels, 480 * (getActiveVGA()->precalcs.rowsize << 2) << 2,"BMPDATA"); //Release the temporary data!
+		writeBMP("captures/VGA256col",pixels,640,480,0,0,1<<10); //Dump the VRAM direct to test!
+		freez(&pixels, ((480<<10) << 2) << 2,"BMPDATA"); //Release the temporary data!
 	#endif
 	}
 
