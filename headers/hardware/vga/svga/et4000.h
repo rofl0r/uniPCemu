@@ -57,6 +57,10 @@ typedef struct {
 	//Memory wrapping
 	uint_32 memwrap; //The memory wrap to be AND-ed into the address given!
 
+	//Attribute protection?
+	byte protect3C0_Overscan; //Disable writes to bits 0-3 of the Overscan?
+	byte protect3C0_PaletteRAM; //Disable writes to Internal/External Palette RAM?
+
 	//High color DAC information
 	byte hicolorDACcmdmode;
 	byte hicolorDACcommand;

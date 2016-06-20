@@ -341,6 +341,12 @@ byte Tseng34K_writeIO(word port, byte val)
 		break;
 	case 0x3C0: //Attribute controller?
 		//void write_p3c0_et4k(Bitu reg, Bitu val, Bitu iolen) {
+		if (!VGA_3C0_FLIPFLOP) return 0; //Index gets ignored!
+		if (et34kdata->protect3C0_PaletteRAM && (VGA_3C0_INDEX<0x10)) //Palette RAM? Handle protection!
+		{
+			VGA_3C0_FLIPFLOP = !VGA_3C0_FLIPFLOP; //Flipflop!
+			return 1; //Ignore the write: we're protected!
+		}
 		switch (VGA_3C0_INDEX) {
 			// 3c0 index 16h: ATC Miscellaneous
 			// VGADOC provides a lot of information, Ferarro documents only two bits
@@ -371,6 +377,19 @@ byte Tseng34K_writeIO(word port, byte val)
 			*/
 			// TODO: Figure out if this has any practical use
 			STORE_ET34K(3c0, 17,WHEREUPDATED_ATTRIBUTECONTROLLER);
+		case 0x11: //Overscan? Handle protection!
+			if (et34kdata->protect3C0_Overscan) //Palette RAM? Handle protection!
+			{
+				//Overscan low 4 bits are protected, handle this way!
+				val = (val&0xF0)|(getActiveVGA()->registers->AttributeControllerRegisters.DATA[0x11]&0xF); //Leave the low 4 bits unmodified!
+				getActiveVGA()->registers->AttributeControllerRegisters.DATA[0x11] = val; //Set the bits allowed to be set!
+				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ATTRIBUTECONTROLLER|0x11); //We have been updated!
+				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER); //Our actual location!
+				VGA_3C0_FLIPFLOP = !VGA_3C0_FLIPFLOP; //Flipflop!
+				return 1; //We're overridden!
+			}
+			return 0; //Handle normally!
+			break;
 		default:
 			//LOG(LOG_VGAMISC, LOG_NORMAL)("VGA:ATTR:ET4K:Write to illegal index %2X", reg);
 			break;
@@ -692,6 +711,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		et4k_tempreg = et34k_reg(et34kdata,3c0,16); //The mode to use when decoding!
 
 		VGA->precalcs.BypassPalette = (et4k_tempreg&0x80)?1:0; //Bypass the palette if specified!
+		et34kdata->protect3C0_Overscan = (et4k_tempreg&0x01)?1:0; //Protect overscan if specified!
+		et34kdata->protect3C0_PaletteRAM = (et4k_tempreg&0x02)?1:0; //Protect Internal/External Palette RAM if specified!
 		horizontaltimingsupdated = (et34kdata->doublehorizontaltimings != ((et4k_tempreg&0x10)?1:0)); //Horizontal timings double has been changed?
 		et34kdata->doublehorizontaltimings = ((et4k_tempreg&0x10)?1:0); //Double the horizontal timings?
 
