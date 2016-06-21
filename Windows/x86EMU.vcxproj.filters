@@ -498,14 +498,14 @@
     <ClCompile Include="..\cpu\timings.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
-    <ClCompile Include="..\hardware\vga\svga\et4000.c">
-      <Filter>Source Files\hardware\vga\svga</Filter>
-    </ClCompile>
     <ClCompile Include="..\hardware\joystick.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
     <ClCompile Include="..\hardware\xtexpansionunit.c">
       <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hardware\vga\svga\tseng.c">
+      <Filter>Source Files\hardware\vga\svga</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -907,14 +907,14 @@
     <ClInclude Include="..\headers\hardware\dram.h">
       <Filter>Header Files\hardware</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\hardware\vga\svga\et4000.h">
-      <Filter>Header Files\hardware\vga\svga</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\hardware\joystick.h">
       <Filter>Header Files\hardware</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\hardware\xtexpansionunit.h">
       <Filter>Header Files\hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\hardware\vga\svga\tseng.h">
+      <Filter>Header Files\hardware\vga\svga</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

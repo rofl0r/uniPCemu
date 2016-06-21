@@ -17,7 +17,7 @@
 #include "headers/support/highrestimer.h" //High resolution clock!
 #include "headers/support/zalloc.h" //Memory protection support!
 #include "headers/support/log.h" //Logging support!
-#include "headers/hardware/vga/svga/et4000.h" //ET3/4K DWord mode support!
+#include "headers/hardware/vga/svga/tseng.h" //ET3/4K DWord mode support!
 
 //Are we disabled?
 #define HW_DISABLED 0

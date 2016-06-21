@@ -1,6 +1,6 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/vga/vga.h" //Basic VGA!
-#include "headers/hardware/vga/svga/et4000.h" //Our own typedefs!
+#include "headers/hardware/vga/svga/tseng.h" //Our own typedefs!
 #include "headers/support/zalloc.h" //Memory allocation support!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/hardware/ports.h" //I/O support!

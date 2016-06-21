@@ -16,7 +16,7 @@
 #include "headers/cpu/cb_manager.h" //Callback support!
 #include "headers/cpu/protection.h" //Protection support!
 
-#include "headers/hardware/vga/svga/et4000.h" //ET4000 support!
+#include "headers/hardware/vga/svga/tseng.h" //ET3000/ET4000 support!
 
 //Log options!
 #define LOG_SWITCHMODE 0

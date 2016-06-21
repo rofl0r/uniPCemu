@@ -1,5 +1,5 @@
-#ifndef ET34K_H
-#define ET34K_H
+#ifndef TSENG_H
+#define TSENG_H
 
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/vga/vga.h" //Basic VGA!

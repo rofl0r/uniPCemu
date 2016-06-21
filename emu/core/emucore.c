@@ -81,7 +81,7 @@
 
 #include "headers/hardware/dram.h" //DRAM support!
 
-#include "headers/hardware/vga/svga/et4000.h" //Tseng ET4000 SVGA card!
+#include "headers/hardware/vga/svga/tseng.h" //Tseng ET3000/ET4000 SVGA card!
 
 #include "headers/hardware/joystick.h" //Joystick support!
 
