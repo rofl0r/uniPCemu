@@ -325,10 +325,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word cgarowsize;
 			cgarowsize = (word)VGA->registers->CGARegistersMasked[1]; //We're the value of the displayed characters!
-			if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode) //Word mode? Multiply it by 2!
-			{
-				cgarowsize <<= 1; //Convert from byte to word mode!
-			}
+			cgarowsize <<= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode; //Convert from byte to word mode when used!
 			VGA->precalcs.rowsize = VGA->precalcs.VGArowsize = cgarowsize; //Apply the new row size!
 			adjustVGASpeed(); //Auto-adjust our VGA speed!
 			goto updateoffsetregister; //Update the offset register, then the rest!
@@ -377,7 +374,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			startaddress |= VGA->registers->CGARegistersMasked[0xD]; //Apply the start address low register!
 
 			//Translate to a VGA value!
-			startaddress <<= 1; //Simply multiply by 2 to get the correct VGA value!
+			startaddress <<= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode; //Convert from byte to word mode when used!
 
 			//Apply to the VGA!
 			VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (startaddress>>8)&0xFF;
@@ -393,6 +390,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			cursorlocation |= VGA->registers->CGARegistersMasked[0xF]; //Apply the start address low register!
 
 			//This seems to be the same on a VGA!
+			cursorlocation <<= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode; //Convert from byte to word mode when used!
 			//Apply to the VGA!
 			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER = (cursorlocation>>8)&0xFF;
 			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER = (cursorlocation&0xFF);
@@ -631,9 +629,10 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				rowsize <<= 1;
 				VGA->precalcs.rowsize = VGA->precalcs.VGArowsize = rowsize; //=Offset*2
 			}
+			updateoffsetregister:
+			recalcScanline = 1; //Recalculate the scanline data!
 		}
 		
-		updateoffsetregister:
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x18))
 			       || overflowupdated
 			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //Updated?
@@ -725,7 +724,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			cursorlocation <<= 8;
 			cursorlocation |= VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER;
 			cursorlocation += VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorSkew;
-			cursorlocation >>= VGA->precalcs.characterclockshift; //Apply VGA shift: the shift is the ammount to move at a time!
 			cursorlocation <<= VGA->precalcs.BWDModeShift; //Apply byte/word/doubleword mode at the character level!
 
 			VGA->precalcs.cursorlocation = cursorlocation; //Cursor location!
