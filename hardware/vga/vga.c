@@ -220,7 +220,7 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 			{
 				for (c=0;c<(getActiveVGA()->VRAM_size>>2);c++) //Process all data in VRAM!
 				{
-					byte data = readVRAMplane(getActiveVGA(),plane,c); //Read a direct byte from memory!
+					byte data = readVRAMplane(getActiveVGA(),plane,0,c); //Read a direct byte from memory!
 					fwrite(&data,1,1,f); //Write the VRAM byte!
 				}
 			}

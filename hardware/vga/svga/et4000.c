@@ -10,8 +10,8 @@
 
 // From the depths of X86Config, probably inexact
 float ET4K_clockFreq[16] = {
-	-1.0f, //VGA defined!
-	-1.0f, //VGA defined!
+	(25.2/1.001)*1000000.0f, //25MHz: VGA standard clock
+	(28.35/1.001)*1000000.0f, //28MHz: VGA standard clock
 	32400000.0f, //ET3/4000 clock!
 	35900000.0f, //ET3/4000 clock!
 	39900000.0f, //ET3/4000 clock!
@@ -29,8 +29,8 @@ float ET4K_clockFreq[16] = {
 	};
 
 float ET3K_clockFreq[16] = {
-	-1.0f, //VGA defined!
-	-1.0f, //VGA defined!
+	(25.2/1.001)*1000000.0f, //25MHz: VGA standard clock
+	(28.35/1.001)*1000000.0f, //28MHz: VGA standard clock
 	32400000.0f, //ET3/4000 clock!
 	35900000.0f, //ET3/4000 clock!
 	39900000.0f, //ET3/4000 clock!
@@ -901,7 +901,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
 		VGA->precalcs.rowsize = tempdata; //Save the new data!
 	}
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x34)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x31)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x24))) //Clock frequency might have been updated?
+	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x34)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x31)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x24)) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x07))) //Clock frequency might have been updated?
 	{
 		if (VGA==getActiveVGA()) //Active VGA?
 		{
@@ -987,6 +987,21 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	}
 }
 
+float Tseng34k_clockMultiplier(VGA_Type *VGA)
+{
+	byte timingdivider = et34k_reg(et34k(VGA),3c4,07); //Get the divider info!
+	if (timingdivider&0x01) //Divide Master Clock Input by 4!
+	{
+		return 0.25f; //Divide by 4!
+	}
+	else if (timingdivider&0x40) //Divide Master Clock Input by 2!
+	{
+		return 0.5f; //Divide by 2!
+	}
+	//Normal Master clock?
+	return 1.0f; //Normal clock!
+}
+
 float Tseng34k_getClockRate(VGA_Type *VGA)
 {
 	byte clock_index;
@@ -994,18 +1009,12 @@ float Tseng34k_getClockRate(VGA_Type *VGA)
 	if (VGA->enable_SVGA == 2) //ET3000?
 	{
 		clock_index = get_clock_index_et3k(VGA); //Retrieve the ET4K clock index!
-		if (clock_index >= 2) //New clocks for ET4K that aren't the same as a normal VGA?
-		{
-			return ET3K_clockFreq[clock_index & 0xF]; //Give the ET4K clock index rate!
-		}
+		return ET3K_clockFreq[clock_index & 0xF]*Tseng34k_clockMultiplier(VGA); //Give the ET4K clock index rate!
 	}
 	else //ET4000?
 	{
 		clock_index = get_clock_index_et4k(VGA); //Retrieve the ET4K clock index!
-		if (clock_index >= 2) //New clocks for ET4K that aren't the same as a normal VGA?
-		{
-			return ET4K_clockFreq[clock_index & 0xF]; //Give the ET4K clock index rate!
-		}
+		return ET4K_clockFreq[clock_index & 0xF]*Tseng34k_clockMultiplier(VGA); //Give the ET4K clock index rate!
 	}
 	return 0.0f; //Not an ET4K clock rate, default to VGA rate!
 }

@@ -20,7 +20,7 @@
 //Bit from left to right starts with 0(value 128) ends with 7(value 1)
 
 //Planar access to VRAM
-byte readVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset) //Read from a VRAM plane!
+byte readVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, uint_32 bank) //Read from a VRAM plane!
 {
 	if (VGA==0) return 0; //Invalid VGA!
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
@@ -29,6 +29,7 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset) //Read from a VRAM
 	fulloffset2 = offset; //Default offset to use!
 	fulloffset2 <<= 2; //We cycle through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
+	fulloffset2 += bank; //Add the bank directly!
 
 	fulloffset2 &= VGA->precalcs.VMemMask; //Only 64K memory available, so wrap arround it when needed!
 
@@ -36,7 +37,7 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset) //Read from a VRAM
 	return VGA->VRAM[fulloffset2]; //Read the data from VRAM!
 }
 
-void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, byte value) //Write to a VRAM plane!
+void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, uint_32 bank, byte value) //Write to a VRAM plane!
 {
 	if (VGA==0) return; //Invalid VGA!
 	plane &= 3; //Only 4 planes are available!
@@ -45,6 +46,7 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, byte value) //Wri
 	fulloffset2 = offset; //Load the offset!
 	fulloffset2 <<= 2; //We cycle through the offsets!
 	fulloffset2 |= plane; //The plane goes from low to high, through all indexes!
+	fulloffset2 += bank; //Add the bank directly!
 
 	fulloffset2 &= VGA->precalcs.VMemMask; //Only 64K memory available, so wrap arround it when needed!
 

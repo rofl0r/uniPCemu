@@ -230,8 +230,6 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 	CGAMDARenderer = CGAMDAEMULATION_RENDER(VGA)?1:0; //Render CGA/MDA style?
 
-	VGA->precalcs.graphicsReloadMask = 7; //Normal 8-pixel graphics reloading!
-
 	if ((whereupdated == (WHEREUPDATED_MISCOUTPUTREGISTER)) || FullUpdate) //Misc output register updated?
 	{
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
@@ -657,7 +655,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			VGA->precalcs.CRTCModeControlRegister_SLDIV = VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Update!
 		}
 
-		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x14))
+		if (CRTUpdated || charwidthupdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x14))
 			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x17))) //Updated?
 		{
 			//This applies to the Frame buffer:
@@ -672,14 +670,28 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			}
 
 			byte characterclockshift = 0;
-			//This applies to the address counter (renderer):
-			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4)
+			//This applies to the address counter (renderer), causing it to increase and load more/less(factors of 2). This is used as a mask to apply to the 
+			if (VGA->precalcs.characterwidth!=9) //Dividable characters? Disable us!
 			{
-				characterclockshift = 2; //Shift right 2 bits: divide by 4!
-			}
-			else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2)
-			{
-				characterclockshift = 1; //Shift right 1 bit more on top of DIV4: divide by 2!
+				if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4)
+				{
+					if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2) //Both set? We reload twice per clock!
+					{
+						characterclockshift = 3; //Reload every half clock(2 pixels)!
+					}
+					else //Reload every 4 clocks!
+					{
+						characterclockshift = 0x1F; //Reload every 4 clocks(32 pixels)!
+					}
+				}
+				else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2)
+				{
+					characterclockshift = 0xF; //Reload every other clock(16 pixels)!
+				}
+				else //Reload every clock!
+				{
+					characterclockshift = 7; //Reload every whole clock(8 pixels)!
+				}
 			}
 
 			updateCRTC |= (VGA->precalcs.BWDModeShift != BWDModeShift); //Update the CRTC!

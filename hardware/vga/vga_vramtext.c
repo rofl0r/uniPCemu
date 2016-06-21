@@ -72,7 +72,7 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int_32 address)
 				characterset_offset += character2; //Start of the character!
 				characterset_offset += y; //Add the row!
 				
-				getcharxy_values[(character<<6)|(y<<1)|attribute] = reverse8_VGA(readVRAMplane(VGA,2,characterset_offset)); //Read the row from the character generator! Don't do anything special, just because we're from the renderer! Also reverse the data in the byte for a little speedup! Store the row for the character generator!
+				getcharxy_values[(character<<6)|(y<<1)|attribute] = reverse8_VGA(readVRAMplane(VGA,2,characterset_offset,0)); //Read the row from the character generator! Don't do anything special, just because we're from the renderer! Also reverse the data in the byte for a little speedup! Store the row for the character generator!
 				if (singlerow!=-1) goto nextattr; //Don't change the row if a single line is updated!
 				++y; //Next row!
 			}

@@ -1163,7 +1163,7 @@ OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply th
 			uint_32 x;
 			for (x=1;x<0x10000;) //Clear all odd data we've used in monochrome mode!
 			{
-				writeVRAMplane(getActiveVGA(),0,x,0); //Clear the byte of data at byte offsets only!
+				writeVRAMplane(getActiveVGA(),0,x,0,0); //Clear the byte of data at byte offsets only!
 				++x; //Next byte is skipped(even plane)!
 				++x; //We skip 2 bytes for the next offset to use!
 			}

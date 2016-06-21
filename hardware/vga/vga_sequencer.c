@@ -242,15 +242,12 @@ OPTINLINE static void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer
 		Sequencer->memoryaddressclockdivider = Sequencer->memoryaddressclock = Sequencer->memoryaddress = lastlocation = 0; //Address counters are reset!
 	}
 
-	if (Sequencer->memoryaddressclockdivider >= (1<<VGA->precalcs.characterclockshift)) //Divide memory address clock by 1/2/4!
+	Sequencer->memoryaddressclockdivider = 0; //Reset!
+	++Sequencer->memoryaddressclockdivider2; //Increase second divider!
+	if (Sequencer->memoryaddressclockdivider2>=(1<<VGA->precalcs.MemoryClockDivide)) //ET3000/ET4000 memory clock division?
 	{
-		Sequencer->memoryaddressclockdivider = 0; //Reset!
-		++Sequencer->memoryaddressclockdivider2; //Increase second divider!
-		if (Sequencer->memoryaddressclockdivider2>=(1<<VGA->precalcs.MemoryClockDivide)) //ET3000/ET4000 memory clock division?
-		{
-			Sequencer->memoryaddressclockdivider2 = 0; //Reset!
-			lastlocation = Sequencer->memoryaddress; //Latch the new location!
-		}
+		Sequencer->memoryaddressclockdivider2 = 0; //Reset!
+		lastlocation = Sequencer->memoryaddress; //Latch the new location!
 	}
 
 	loadedlocation = lastlocation; //Load the address to be loaded!
@@ -262,7 +259,7 @@ OPTINLINE static void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer
 
 	//Now calculate and give the planes to be used!
 	if (VGA->VRAM==0) goto skipVRAM; //VRAM must exist!
-	loadedlocation = VGA_VRAMDIRECTPLANAR(VGA,vramlocation); //Load the 4 planes from VRAM, one dword at a time!
+	loadedlocation = VGA_VRAMDIRECTPLANAR(VGA,vramlocation,0); //Load the 4 planes from VRAM, one dword at a time!
 	skipVRAM: //No VRAM present to display?
 	planesbuffer[0] = (loadedlocation&0xFF); //Read plane 0!
 	loadedlocation >>= 8;
@@ -544,7 +541,6 @@ OPTINLINE void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 }
 
 static VGA_AttributeController_Mode attributecontroller_modes[4] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit, VGA_AttributeController_8bit, VGA_AttributeController_16bit }; //Both modes we use!
-byte VGA_specialReloadMask[4] = {7,3,3,1}; //How much to reload(every x+1 pixels(the pixels being a power of 2))?
 
 VGA_AttributeController_Mode attrmode = VGA_AttributeController_4bit; //Default mode!
 
@@ -553,12 +549,10 @@ void updateVGAAttributeController_Mode(VGA_Type *VGA)
 	if (VGA->precalcs.AttributeController_16bitDAC) //16-bit DAC override active?
 	{
 		attrmode = attributecontroller_modes[VGA->precalcs.AttributeController_16bitDAC]; //Apply the current mode!
-		VGA->precalcs.graphicsReloadMask = VGA_specialReloadMask[VGA->precalcs.AttributeController_16bitDAC]; //7(8 pixels taken apart), 3(4 pixels taken apart) or 1(2 pixels taken apart)!
 	}
 	else //VGA compatibility mode?
 	{
 		attrmode = attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
-		VGA->precalcs.graphicsReloadMask = VGA_specialReloadMask[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //7(8 pixels) or 3(4 pixels)!
 	}
 }
 
@@ -615,7 +609,7 @@ void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		tempx2 <<= 1; //Index!
 		tempx3 = Sequencer->tempx; //Load the old coordinate!
 		tempx3 <<= 1; //Index!
-		if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2]) && ((VGA->CRTC.charcolstatus[tempx2]&VGA->precalcs.VideoLoadRateMask)==0)) //First of a new block? Reload our pixel buffer!
+		if ((((tempx&VGA->precalcs.characterclockshift)==0) && VGA->precalcs.characterclockshift) || (!VGA->precalcs.characterclockshift && (VGA->CRTC.charcolstatus[tempx2]!=VGA->CRTC.charcolstatus[tempx3]))) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
@@ -662,7 +656,7 @@ othernibble: //Retrieve the current DAC index!
 		tempx2 <<= 1; //Index!
 		tempx3 = Sequencer->tempx; //Load the old coordinate!
 		tempx3 <<= 1; //Index!
-		if ((VGA->CRTC.charcolstatus[tempx3] != VGA->CRTC.charcolstatus[tempx2]) && ((VGA->CRTC.charcolstatus[tempx2]&VGA->precalcs.VideoLoadRateMask)==0)) //First of a new block? Reload our pixel buffer!
+		if ((((tempx&VGA->precalcs.characterclockshift)==0) && VGA->precalcs.characterclockshift) || (!VGA->precalcs.characterclockshift && (VGA->CRTC.charcolstatus[tempx2]!=VGA->CRTC.charcolstatus[tempx3]))) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
@@ -674,7 +668,7 @@ void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here! Start with text mode!		
 	INLINEREGISTER byte nibbled = 0; //Did we process two nibbles instead of one nibble?
-	INLINEREGISTER word tempx = Sequencer->tempx; //Load tempx!
+	INLINEREGISTER word tempx = Sequencer->tempx, tempx2, tempx3; //Load tempx!
 
 othernibble: //Retrieve the current DAC index!
 	Sequencer->activex = tempx++; //Active X!
@@ -706,7 +700,11 @@ othernibble: //Retrieve the current DAC index!
 			return; //Are we not finished with the nibble? Abort!
 		}
 		//Finished with the nibble&pixel? We're ready to check for the next one!
-		if (((tempx & VGA->precalcs.graphicsReloadMask) == 0) && (((tempx>>3)&VGA->precalcs.VideoLoadRateMask)==0)) //First of a new block? Reload our pixel buffer!
+		tempx2 = tempx; //Load the current coordinate!
+		tempx2 <<= 1; //Index!
+		tempx3 = Sequencer->tempx; //Load the old coordinate!
+		tempx3 <<= 1; //Index!
+		if ((((tempx&VGA->precalcs.characterclockshift)==0) && VGA->precalcs.characterclockshift) || (!VGA->precalcs.characterclockshift && (VGA->CRTC.charcolstatus[tempx2]!=VGA->CRTC.charcolstatus[tempx3]))) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}
@@ -722,7 +720,7 @@ void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here! Start with text mode!		
 	INLINEREGISTER byte nibbled = 0; //Did we process two nibbles instead of one nibble?
-	INLINEREGISTER word tempx = Sequencer->tempx; //Load tempx!
+	INLINEREGISTER word tempx = Sequencer->tempx, tempx2, tempx3; //Load tempx!
 
 othernibble: //Retrieve the current DAC index!
 	Sequencer->activex = tempx++; //Active X!
@@ -754,7 +752,11 @@ othernibble: //Retrieve the current DAC index!
 			return; //Are we not finished with the nibble? Abort!
 		}
 		//Finished with the nibble&pixel? We're ready to check for the next one!
-		if (((tempx &  VGA->precalcs.graphicsReloadMask) == 0) && (((tempx>>3)&VGA->precalcs.VideoLoadRateMask)==0)) //First of a new block? Reload our pixel buffer!
+		tempx2 = tempx; //Load the current coordinate!
+		tempx2 <<= 1; //Index!
+		tempx3 = Sequencer->tempx; //Load the old coordinate!
+		tempx3 <<= 1; //Index!
+		if ((((tempx&VGA->precalcs.characterclockshift)==0) && VGA->precalcs.characterclockshift) || (!VGA->precalcs.characterclockshift && (VGA->CRTC.charcolstatus[tempx2]!=VGA->CRTC.charcolstatus[tempx3]))) //First of a new block? Reload our pixel buffer!
 		{
 			VGA_loadcharacterplanes(VGA, Sequencer, tempx); //Load data from the graphics planes!
 		}

@@ -164,7 +164,7 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 	{
 		if (planeenable&curplanemask) //Modification of the plane?
 		{
-			writeVRAMplane(getActiveVGA(),curplane,offset+(rwbank>>2),data&0xFF); //Write the plane from the data!
+			writeVRAMplane(getActiveVGA(),curplane,offset,rwbank,data&0xFF); //Write the plane from the data!
 		}
 		data >>= 8; //Shift to the next plane!
 		curplanemask <<= 1; //Next plane!
@@ -173,7 +173,7 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 
 OPTINLINE void loadlatch(uint_32 offset)
 {
-	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch = VGA_VRAMDIRECTPLANAR(getActiveVGA(),offset);
+	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch = VGA_VRAMDIRECTPLANAR(getActiveVGA(),offset,rwbank);
 	VGA_updateLatches(); //Update the latch data mirroring!
 }
 
@@ -187,7 +187,7 @@ byte VGA_ReadMode0(byte planes, uint_32 offset) //Read mode 0: Just read the nor
 	{
 		if (planes&1) //Read from this plane?
 		{
-			return readVRAMplane(getActiveVGA(), curplane, offset); //Read directly from vram using the selected plane!
+			return readVRAMplane(getActiveVGA(), curplane, offset,rwbank); //Read directly from vram using the selected plane!
 		}
 		planes >>= 1; //Next plane!
 	} while (++curplane!=4);
@@ -204,7 +204,7 @@ byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display m
 	{
 		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER.ColorCare&(1 << curplane)) //We care about this plane?
 		{
-			if (readVRAMplane(getActiveVGA(), curplane, offset) == getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER.ColorCompare) //Equal?
+			if (readVRAMplane(getActiveVGA(), curplane, offset, rwbank) == getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER.ColorCompare) //Equal?
 			{
 				result |= (1 << curplane); //Set the bit: the comparision is true!
 			}
@@ -277,7 +277,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		calcplanes &= 0x3; //Lower 2 bits determine the plane!
 		*planes = (1 << calcplanes); //Give the planes to write to!
 		realoffsettmp &= 0xFFFC; //Rest of bits, multiples of 4 won't get written! Used to be 0xFFFB, but should be multiples of 4 ignored, so clear bit 2, changed to 0xFFFC (multiple addresses of 4 with plane bits ignored) to make it correctly linear with 256 color modes (dword mode)!
-		realoffsettmp >>= ((getActiveVGA()->precalcs.linearmode&1)<<1); //Make sure we're linear in memory when requested!
+		if (getActiveVGA()->precalcs.linearmode&4) realoffsettmp >>= 2; //Make sure we're linear in memory when requested!
 		*realoffset = realoffsettmp; //Give the offset!
 		return; //Done!
 	}
