@@ -4955,19 +4955,23 @@ void BIOS_DumpVGA()
 		dump_CRTCTiming(); //Dump all CRTC timing currently in use!
 
 	#ifdef DUMP_VGATEST256COL
-		uint_32 *pixels = (uint_32 *)zalloc(((480<<10)<<2),"BMPDATA",NULL); //To draw our bitmap on!
+		uint_32 rowwidth = (getActiveVGA()->precalcs.rowsize<<2)<<2; //The row width, in bytes and pixels!
+		uint_32 activewidth = (getActiveVGA()->precalcs.horizontaldisplayend-getActiveVGA()->precalcs.horizontaldisplaystart); //Width of the active display!
+		uint_32 activeheight = getActiveVGA()->precalcs.verticaldisplayend; //The height of the active display!
+		activewidth = MAX(rowwidth,activewidth); //Take the bigger one, if any!
+		uint_32 *pixels = (uint_32 *)zalloc(((activeheight*activewidth)<<2),"BMPDATA",NULL); //To draw our bitmap on!
 		int x,y;
-		for (y = 0;y<getActiveVGA()->precalcs.verticaldisplayend;) //Vertical active display!
+		for (y = 0;y<activeheight;) //Vertical active display!
 		{
-			for (x = 0;x < (getActiveVGA()->precalcs.horizontaldisplayend-getActiveVGA()->precalcs.horizontaldisplaystart);) //Horizontal active display!
+			for (x = 0;x < activewidth;) //Horizontal active display!
 			{
-				pixels[(y<<10)+x] = getActiveVGA()->precalcs.effectiveDAC[getActiveVGA()->VRAM[((y<<10)+x)&(getActiveVGA()->VRAM_size-1)]]; //Linear VRAM assumed, converted through DAC to a color!
+				pixels[(y*activewidth)+x] = getActiveVGA()->precalcs.effectiveDAC[getActiveVGA()->VRAM[((y*rowwidth)+x)&(getActiveVGA()->VRAM_size-1)]]; //Linear VRAM assumed, converted through the DAC to a color!
 				++x; //Next pixel!
 			}
 			++y; //Next row!
 		}
-		writeBMP("captures/VGA256col",pixels,640,480,0,0,1<<10); //Dump the VRAM direct to test!
-		freez(&pixels, ((480<<10) << 2) << 2,"BMPDATA"); //Release the temporary data!
+		writeBMP("captures/VGA256col",pixels,activewidth,activeheight,0,0,activewidth); //Dump the VRAM direct to test!
+		freez((void **)&pixels, ((activeheight*activewidth) << 2),"BMPDATA"); //Release the temporary data!
 	#endif
 	}
 
