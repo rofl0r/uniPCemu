@@ -544,6 +544,7 @@ OPTINLINE void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 }
 
 static VGA_AttributeController_Mode attributecontroller_modes[4] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit, VGA_AttributeController_8bit, VGA_AttributeController_16bit }; //Both modes we use!
+byte VGA_specialReloadMask[4] = {7,3,3,1}; //How much to reload(every x+1 pixels(the pixels being a power of 2))?
 
 VGA_AttributeController_Mode attrmode = VGA_AttributeController_4bit; //Default mode!
 
@@ -552,10 +553,12 @@ void updateVGAAttributeController_Mode(VGA_Type *VGA)
 	if (VGA->precalcs.AttributeController_16bitDAC) //16-bit DAC override active?
 	{
 		attrmode = attributecontroller_modes[VGA->precalcs.AttributeController_16bitDAC]; //Apply the current mode!
+		VGA->precalcs.graphicsReloadMask = VGA_specialReloadMask[VGA->precalcs.AttributeController_16bitDAC]; //7(8 pixels taken apart), 3(4 pixels taken apart) or 1(2 pixels taken apart)!
 	}
 	else //VGA compatibility mode?
 	{
 		attrmode = attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
+		VGA->precalcs.graphicsReloadMask = VGA_specialReloadMask[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //7(8 pixels) or 3(4 pixels)!
 	}
 }
 
