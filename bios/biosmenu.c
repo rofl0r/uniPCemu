@@ -4957,9 +4957,9 @@ void BIOS_DumpVGA()
 	#ifdef DUMP_VGATEST256COL
 		uint_32 *pixels = (uint_32 *)zalloc(((480<<10)<<2),"BMPDATA",NULL); //To draw our bitmap on!
 		int x,y;
-		for (y = 0;y<480;)
+		for (y = 0;y<getActiveVGA()->precalcs.verticaldisplayend;) //Vertical active display!
 		{
-			for (x = 0;x < 640;)
+			for (x = 0;x < (getActiveVGA()->precalcs.horizontaldisplayend-getActiveVGA()->precalcs.horizontaldisplaystart);) //Horizontal active display!
 			{
 				pixels[(y<<10)+x] = getActiveVGA()->precalcs.effectiveDAC[getActiveVGA()->VRAM[((y<<10)+x)&(getActiveVGA()->VRAM_size-1)]]; //Linear VRAM assumed, converted through DAC to a color!
 				++x; //Next pixel!
