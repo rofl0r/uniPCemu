@@ -72,7 +72,6 @@ byte Tseng34K_writeIO(word port, byte val)
 			if (val==3) //First part of the sequence to activate the extensions?
 			{
 				et34kdata->extensionstep = 1; //Enable the first step to activation!
-				return 1; //Used!
 			}
 			else
 			{
@@ -80,7 +79,18 @@ byte Tseng34K_writeIO(word port, byte val)
 			}
 			return 0; //Not used!
 		}
-		et34kdata->herculescompatibilitymode_secondpage = ((val&2)>>1); //Save the bit!
+		else if (et34kdata->extensionsEnabled) //Extensions enabled?
+		{
+			if (et34kdata->extensionstep==1) //Step two?
+			{
+				et34kdata->extensionstep = 0; //Disable steps!
+				if (val==0x01) //Disable extensions?
+				{
+					et34kdata->extensionsEnabled = 0; //Extensions are now disabled!
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //Update all precalcs!
+				}
+			}
+		}		et34kdata->herculescompatibilitymode_secondpage = ((val&2)>>1); //Save the bit!
 		return 1; //OK!
 		break;
 	case 0x3D8: //CGA mode control?
@@ -92,6 +102,17 @@ byte Tseng34K_writeIO(word port, byte val)
 				if (val==0xA0) //Enable extensions?
 				{
 					et34kdata->extensionsEnabled = 1; //Enable the extensions!
+					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //Update all precalcs!
+				}
+			}
+		}
+		else if (et34kdata->extensionsEnabled) //Extensions enabled?
+		{
+			if (et34kdata->extensionstep==0) //Step one?
+			{
+				if (val==0x29) //Disable extensions step?
+				{
+					et34kdata->extensionstep = 1; //First step!
 				}
 			}
 		}
@@ -132,7 +153,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accesscrtvalue:
 //void 3d5_et4k(Bitu reg,Bitu val,Bitu iolen) {
-	if(!et34kdata->extensionsEnabled && getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33 && (getActiveVGA()->enable_SVGA==1)) //Block only on ET4000?
+	if((!et34kdata->extensionsEnabled) && ((getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33) || (getActiveVGA()->registers->CRTControllerRegisters_Index !=0x35))) //Block without the KEY!
 		return 0;
 
 	switch(getActiveVGA()->registers->CRTControllerRegisters_Index)
@@ -335,8 +356,6 @@ byte Tseng34K_writeIO(word port, byte val)
 		}
 		//Apply correct memory banks!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x36); //Update from the CRTC controller registers!
-		//VGA_SetupHandlers();
-		//}
 		return 1;
 		break;
 	case 0x3C0: //Attribute controller?
@@ -651,11 +670,11 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	byte DACmode; //Current/new DAC mode!
 	uint_32 tempdata; //Saved data!
 	if (!et34k(VGA)) return; //No extension registered?
-	if (!et34k(VGA)->extensionsEnabled) return; //Abort when we're disabled!
 
 	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x7))) //TS Auxiliary Mode updated?
 	{
 		et4k_tempreg = et34k_reg(et34kdata,3c4,06); //The TS Auxiliary mode to apply!
+		if (!et34k(VGA)->extensionsEnabled) et4k_tempreg = 0x80; //Clear when we're disabled!
 		if (et4k_tempreg&0x80) //VGA-compatible settings?
 		{
 			goto VGAcompatibleMCLK;
@@ -686,6 +705,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER|0x16))) //Attribute misc. register?
 	{
 		et4k_tempreg = et34k_reg(et34kdata,3c0,16); //The mode to use when decoding!
+		if (!et34k(VGA)->extensionsEnabled) et4k_tempreg = 0x00; //Clear when we're disabled!
 
 		VGA->precalcs.BypassPalette = (et4k_tempreg&0x80)?1:0; //Bypass the palette if specified!
 		et34kdata->protect3C0_Overscan = (et4k_tempreg&0x01)?1:0; //Protect overscan if specified!
@@ -713,11 +733,19 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	if (horizontaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER|0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xC)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xD))) //Extended start address?
 	{
 		VGA->precalcs.startaddress[0] = ((VGA->precalcs.VGAstartaddress&0xFFFF)|et34k(VGA)->cursor_start_high)<<et34kdata->doublehorizontaltimings;
+		if (!et34k(VGA)->extensionsEnabled)
+		{
+			VGA->precalcs.startaddress[0] = VGA->precalcs.VGAstartaddress;
+		}
 	}
 
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xE)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xF))) //Extended cursor location?
 	{
 		VGA->precalcs.cursorlocation = (VGA->precalcs.cursorlocation & 0xFFFF) | et34k(VGA)->cursor_start_high;
+		if (!et34k(VGA)->extensionsEnabled)
+		{
+			VGA->precalcs.cursorlocation = VGA->precalcs.cursorlocation;
+		}
 	}
 
 	if (VGA->enable_SVGA == 1) //ET4000?
@@ -729,6 +757,10 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		et4k_tempreg = et3k_reg(et34kdata,3d4,25); //The overflow register!
 	}
 
+	if (!et34k(VGA)->extensionsEnabled)
+	{
+		et4k_tempreg = 0; //Disable any overflow!
+	}
 
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
 		|| (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x7)) || //Overflow register itself
@@ -890,6 +922,10 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x36))) //Video system configuration #1!
 	{
 		et4k_tempreg = et4k_reg(et34kdata, 3d4, 36); //The overflow register!
+		if (!et34k(VGA)->extensionsEnabled)
+		{
+			et4k_tempreg = 0; //Disable extensions!
+		}
 		if ((et4k_tempreg & 0x10)==0x00) //Segment configuration?
 		{
 			switch (et34kdata->bank_size&3) //What bank size?
@@ -905,8 +941,16 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 				tempdata = 16; //64K bank!
 				break;
 			}
-			VGA_MemoryMapBankRead = et34kdata->bank_read<<tempdata; //Read bank!
-			VGA_MemoryMapBankWrite = et34kdata->bank_write<<tempdata; //Write bank!
+			if (!et34k(VGA)->extensionsEnabled)
+			{
+				VGA_MemoryMapBankRead = 0; //No read bank!
+				VGA_MemoryMapBankWrite = 0; //No write bank!
+			}
+			else
+			{
+				VGA_MemoryMapBankRead = et34kdata->bank_read<<tempdata; //Read bank!
+				VGA_MemoryMapBankWrite = et34kdata->bank_write<<tempdata; //Write bank!
+			}
 			VGA->precalcs.linearmode &= ~2; //Use normal data addresses!
 		}
 		else //Linear system configuration? Disable the segment and enable linear mode (high 4 bits of the address select the bank)!
@@ -921,12 +965,27 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		{
 			VGA->precalcs.linearmode &= ~1; //Use VGA-mapping of memory!
 		}
-		VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
+
+		if (!et34k(VGA)->extensionsEnabled)
+		{
+			VGA->precalcs.linearmode &= ~4; //Disable the new linear and contiguous modes to affect memory!
+		}
+		else //Extensions enabled?
+		{
+			VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
+		}
 	}
 
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x37))) //Video system configuration #2?
 	{
-		VGA->precalcs.VRAMmask = VGA->precalcs.VRAMmask&et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
+		if (!et34k(VGA)->extensionsEnabled)
+		{
+			VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask; //Apply normal masking according to the VGA method!
+		}
+		else //Extensions enabled?
+		{
+			VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask&et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
+		}
 	}
 
 	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Mask register has been updated?

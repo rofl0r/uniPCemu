@@ -293,7 +293,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			VGA->precalcs.VRAMmask = (VGA->VRAM_size-1); //Don't limit VGA memory, wrap normally!
 		}
-		VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask; //The current VGA memory mask!
+		VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask; //The current VGA memory mask applied the VGA way!
 	}
 	
 	if (FullUpdate || (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x5))) //Graphics mode register?
