@@ -333,6 +333,12 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//VGA_DUMPDAC(); //Dump the DAC!
 	//256 color mode!
 	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/8th screen width?
+
+	if (getActiveVGA()->enable_SVGA) //SVGA debugging too?
+	{
+		DoDebugVGAGraphics(0x2E,640,480,0x100,0,0xF,1,0); //Debug 640x480x256! ET3000/ET4000!
+	}
+
 	//debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!
