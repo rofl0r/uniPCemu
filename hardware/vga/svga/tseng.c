@@ -7,6 +7,7 @@
 #include "headers/bios/bios.h" //Basic BIOS support!
 #include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller support!
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Graphicas mode support!
+#include "headers/cpu/cpu.h" //NMI support!
 
 // From the depths of X86Config, probably inexact
 float ET4K_clockFreq[16] = {
