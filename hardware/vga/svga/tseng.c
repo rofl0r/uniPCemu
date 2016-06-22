@@ -90,7 +90,8 @@ byte Tseng34K_writeIO(word port, byte val)
 					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //Update all precalcs!
 				}
 			}
-		}		et34kdata->herculescompatibilitymode_secondpage = ((val&2)>>1); //Save the bit!
+		}
+		et34kdata->herculescompatibilitymode_secondpage = ((val&2)>>1); //Save the bit!
 		return 1; //OK!
 		break;
 	case 0x3D8: //CGA mode control?
@@ -342,16 +343,17 @@ byte Tseng34K_writeIO(word port, byte val)
 	*/
 	//void write_p3cd_et4k(Bitu port, Bitu val, Bitu iolen) {
 	case 0x3CD: //Segment select?
+		if(!et34kdata->extensionsEnabled) return 0; //Not used without extensions!
 		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
 		{
-			et34kdata->bank_write = val & 0x07;
-			et34kdata->bank_read = (val >> 3) & 0x07;
+			et34kdata->bank_write = val&7;
+			et34kdata->bank_read = (val>>3)&7;
 			et34kdata->bank_size = (val>>6)&3; //Bank size to use!
 		}
 		else //ET4000?
 		{
-			et34kdata->bank_write = val & 0x0f;
-			et34kdata->bank_read = (val >> 4) & 0x0f;
+			et34kdata->bank_write = val&0xF;
+			et34kdata->bank_read = (val>>4) & 0xF;
 			et34kdata->bank_size = 1; //Bank size to use is always the same(64K)!
 		}
 		//Apply correct memory banks!
@@ -524,13 +526,14 @@ byte Tseng34K_readIO(word port, byte *result)
 		break;
 	case 0x3CD: //Segment select?
 	//Bitu read_p3cd_et4k(Bitu port, Bitu iolen) {
+		if(!et34kdata->extensionsEnabled) return 0; //Not used without extensions!
 		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
 		{
-			*result = (et34kdata->bank_read << 3) | et34kdata->bank_write;
+			*result = ((et34kdata->bank_size<<6)|(et34kdata->bank_read<<3)|et34kdata->bank_write);
 		}
 		else //ET4000?
 		{
-			*result = (et34kdata->bank_read << 4) | et34kdata->bank_write;
+			*result = (et34kdata->bank_read<<4)|et34kdata->bank_write;
 		}
 		return 1; //Supported!
 		break;
@@ -928,7 +931,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		}
 		if ((et4k_tempreg & 0x10)==0x00) //Segment configuration?
 		{
-			switch (et34kdata->bank_size&3) //What bank size?
+			switch (et34kdata->bank_size) //What bank size?
 			{
 			case 0: //128K?
 				tempdata = 17; //128K bank!
