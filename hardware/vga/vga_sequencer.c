@@ -193,11 +193,12 @@ OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 addresscounter) //Patch f
 	return addresscounter; //Give the linear address!
 }
 
-VGA_dwordshiftextensionhandler VGA_calcdwordshiftextensionhandler = NULL; //The DWord shift extension handler!
+VGA_addresswrapextensionhandler VGA_calcaddresswrapextensionhandler = NULL; //The DWord shift extension handler!
 
 OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memory arround 64k!
 {
 	INLINEREGISTER uint_32 result, address2;
+	if (VGA_calcaddresswrapextensionhandler) return VGA_calcaddresswrapextensionhandler(VGA,memoryaddress); //Apply extension shift method when specified!
 	switch (VGA->precalcs.BWDModeShift) //What mode?
 	{
 		case 1: //Word mode?
@@ -211,11 +212,11 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 			result |= address2; //Add bit MA15/MA13 at bit 0!
 			return result; //Give the result!
 		case 2: //DWord mode?
-			if (VGA_calcdwordshiftextensionhandler) return VGA_calcdwordshiftextensionhandler(VGA,memoryaddress); //Apply extension shift method when specified!
-			return ((memoryaddress<<2)&0xFFFF)|((memoryaddress>>14)&3); //Doubleword mode executed normally according to documentation!
+			//Doubleword mode executed normally according to documentation!
 			break;
 		default:
 		case 0: //Byte mode?
+			//Don't do anything?
 			break; //Unchanged!
 
 	}
@@ -301,6 +302,7 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	}
 
 	//row is the vertical timing counter
+	row >>= VGA->precalcs.scandoubling; //Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!
 	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply Scan Doubling on the row scan counter: we take effect on content (double scanning)!
 	//Apply scanline division to the current row timing!
 

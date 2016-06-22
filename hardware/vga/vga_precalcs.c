@@ -35,7 +35,6 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	for (;current<NUMITEMS(VGA->CRTC.rowstatus);) //All available resolutions!
 	{
 		realtiming = current; //Load current row!
-		realtiming >>= VGA->precalcs.scandoubling; //Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!
 		VGA->CRTC.charrowstatus[current<<1] = current/charsize;
 		VGA->CRTC.charrowstatus[(current<<1)|1] = current%charsize;
 		VGA->CRTC.rowstatus[current] = get_display_y(VGA,current); //Translate!

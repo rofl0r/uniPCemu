@@ -695,7 +695,7 @@ typedef struct PACKED
 #include "headers/endpacked.h" //We're packed!
 
 typedef float (*VGA_clockrateextensionhandler)(VGA_Type *VGA); //The clock rate extension handler!
-typedef uint_32 (*VGA_dwordshiftextensionhandler)(VGA_Type *VGA, uint_32 memoryaddress); //The DWord shift memory address extension handler!
+typedef uint_32 (*VGA_addresswrapextensionhandler)(VGA_Type *VGA, uint_32 memoryaddress); //The DWord shift memory address extension handler!
 
 #ifndef IS_VGA
 extern VGA_Type *ActiveVGA; //Currently active VGA chipset!
@@ -764,7 +764,7 @@ void adjustVGASpeed(); //Auto-adjust our VGA speed!
 void VGA_initIO(); //Initialise all I/O support for the VGA/EGA/CGA/MDA!
 
 //Extension support!
-void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler, VGA_calcprecalcsextensionhandler precalcsextensionhandler, VGA_clockrateextensionhandler clockrateextension, VGA_dwordshiftextensionhandler dwordshiftextension); //Register an extension for use with the VGA!
+void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler, VGA_calcprecalcsextensionhandler precalcsextensionhandler, VGA_clockrateextensionhandler clockrateextension, VGA_addresswrapextensionhandler addresswrapextension); //Register an extension for use with the VGA!
 
 void PORT_write_MISC_3C2(byte value); //Misc Output register updating for SVGA!
 #endif

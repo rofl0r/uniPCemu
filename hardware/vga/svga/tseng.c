@@ -640,29 +640,6 @@ void Tseng34k_init()
 	}
 }
 
-uint_32 Tseng3k_DWordShift(VGA_Type *VGA, uint_32 memoryaddress)
-{
-	uint_32 temp = et34k(VGA)->memwrap; //The memory size, specified as a mask for the et3k&et4k!
-	switch (temp>>18) //What size are we to use, according to the bits set(16-bits value is specified excluding the plane. The memory wrap adds two bits(plane index), so ignore that too)?
-	{
-		case 1: //512K RAM?
-			return ((memoryaddress<<2)&0x1FFFF)|((memoryaddress>>15)&3); //SVGA shift using 17-bit index for double memory!
-			break;
-		case 3: //1M RAM?
-			return ((memoryaddress<<2)&0x3FFFF)|((memoryaddress>>16)&3); //SVGA shift using 18-bit index!
-			break;
-		default: //VGA-compatible?
-		case 0: //VGA-compatible?
-			break;
-	}
-	return (memoryaddress<<2)|((memoryaddress>>14)&3); //VGA-compatible shift using 16-bit index!
-}
-
-uint_32 Tseng4k_DWordShift(VGA_Type *VGA, uint_32 memoryaddress)
-{
-	return Tseng3k_DWordShift(VGA,memoryaddress); //Same for both cards for now!
-}
-
 //ET4K precalcs updating functionality.
 void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 {
@@ -1020,10 +997,8 @@ float Tseng34k_getClockRate(VGA_Type *VGA)
 }
 
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize) {
-	if (getActiveVGA()->enable_SVGA == 2) //ET3000?
-		VGA_registerExtension(&Tseng34K_readIO, &Tseng34K_writeIO, &Tseng34k_init,&Tseng34k_calcPrecalcs,&Tseng34k_getClockRate,&Tseng3k_DWordShift);
-	else if (getActiveVGA()->enable_SVGA == 1) //ET4K?
-		VGA_registerExtension(&Tseng34K_readIO, &Tseng34K_writeIO, &Tseng34k_init,&Tseng34k_calcPrecalcs,&Tseng34k_getClockRate,&Tseng4k_DWordShift);
+	if ((getActiveVGA()->enable_SVGA == 2) || (getActiveVGA()->enable_SVGA == 1)) //ET3000/ET4000?
+		VGA_registerExtension(&Tseng34K_readIO, &Tseng34K_writeIO, &Tseng34k_init,&Tseng34k_calcPrecalcs,&Tseng34k_getClockRate,NULL);
 	else return; //Invalid SVGA!		
 	Tseng4k_VRAMSize = VRAMSize; //Set this VRAM size to use!
 	getActiveVGA()->SVGAExtension = zalloc(sizeof(SVGA_ET34K_DATA),"SVGA_ET34K_DATA",getLock(LOCK_VGA)); //Our SVGA extension data!

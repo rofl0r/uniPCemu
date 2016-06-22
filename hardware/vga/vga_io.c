@@ -503,16 +503,16 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 
 extern VGA_calcprecalcsextensionhandler VGA_precalcsextensionhandler; //The precalcs extension handler!
 extern VGA_clockrateextensionhandler VGA_calcclockrateextensionhandler; //The clock rate extension handler!
-extern VGA_dwordshiftextensionhandler VGA_calcdwordshiftextensionhandler; //The DWord shift extension handler!
+extern VGA_addresswrapextensionhandler VGA_calcaddresswrapextensionhandler; //The DWord shift extension handler!
 
-void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler, VGA_calcprecalcsextensionhandler precalcsextensionhandler, VGA_clockrateextensionhandler clockrateextension, VGA_dwordshiftextensionhandler dwordshiftextension) //Register an extension for use with the VGA!
+void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler, VGA_calcprecalcsextensionhandler precalcsextensionhandler, VGA_clockrateextensionhandler clockrateextension, VGA_addresswrapextensionhandler addresswrapextension) //Register an extension for use with the VGA!
 {
 	VGA_readIOExtension = readhandler; //Register the read handler, if used!
 	VGA_writeIOExtension = writehandler; //Register the read handler, if used!
 	VGA_initializationExtension = initializationhandler; //Register the initialization handler, if used!
 	VGA_precalcsextensionhandler = precalcsextensionhandler; //Register the precalcs extension handler, if used!
 	VGA_calcclockrateextensionhandler = clockrateextension; //Register the clock rate extension handler, if used!
-	VGA_calcdwordshiftextensionhandler = dwordshiftextension; //Register the DWord shift extension handler, if used!
+	VGA_calcaddresswrapextensionhandler = addresswrapextension; //Register the DWord shift extension handler, if used!
 }
 
 void VGA_initIO()
