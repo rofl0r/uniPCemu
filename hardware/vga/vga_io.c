@@ -404,7 +404,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3DA: //Same!
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accessfc: //Allow!
-		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA = value; //Set!
+		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA = (value&3); //Set our used bits only!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_FEATURECONTROLREGISTER); //We have been updated!
 		ok = 1;
 		break;

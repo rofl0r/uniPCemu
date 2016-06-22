@@ -64,6 +64,11 @@ typedef struct {
 	//High color DAC information
 	byte hicolorDACcmdmode;
 	byte hicolorDACcommand;
+
+	byte CGAModeRegister;
+	byte MDAModeRegister;
+	byte CGAColorSelectRegister;
+	byte ExtendedFeatureControlRegister; //Feature control extension(extra bits)!
 } SVGA_ET34K_DATA; //Dosbox ET4000 saved data!
 
 //Retrieve a point to the et4k?
@@ -121,6 +126,5 @@ typedef struct {
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize);
 void set_clock_index_et4k(VGA_Type *VGA, byte index); //Used by the interrupt 10h handler to set the clock index directly!
 void set_clock_index_et3k(VGA_Type *VGA, byte index); //Used by the interrupt 10h handler to set the clock index directly!
-uint_32 ET34K_DWordShift(uint_32 memoryaddress); //Used by the sequencer to properly apply the DWord shift!
 
 #endif

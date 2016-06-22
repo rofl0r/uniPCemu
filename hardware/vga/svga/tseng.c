@@ -10,8 +10,8 @@
 
 // From the depths of X86Config, probably inexact
 float ET4K_clockFreq[16] = {
-	(25.2/1.001)*1000000.0f, //25MHz: VGA standard clock
-	(28.35/1.001)*1000000.0f, //28MHz: VGA standard clock
+	(25.2 / 1.001)*1000000.0f, //25MHz: VGA standard clock
+	(28.35 / 1.001)*1000000.0f, //28MHz: VGA standard clock
 	32400000.0f, //ET3/4000 clock!
 	35900000.0f, //ET3/4000 clock!
 	39900000.0f, //ET3/4000 clock!
@@ -26,11 +26,11 @@ float ET4K_clockFreq[16] = {
 	89600000.0f, //ET4000 clock!
 	62800000.0f, //ET4000 clock!
 	74800000.0f //ET4000 clock!
-	};
+};
 
 float ET3K_clockFreq[16] = {
-	(25.2/1.001)*1000000.0f, //25MHz: VGA standard clock
-	(28.35/1.001)*1000000.0f, //28MHz: VGA standard clock
+	(25.2 / 1.001)*1000000.0f, //25MHz: VGA standard clock
+	(28.35 / 1.001)*1000000.0f, //28MHz: VGA standard clock
 	32400000.0f, //ET3/4000 clock!
 	35900000.0f, //ET3/4000 clock!
 	39900000.0f, //ET3/4000 clock!
@@ -47,7 +47,7 @@ float ET3K_clockFreq[16] = {
 	0.0f //ET3000 clock!
 };
 
-uint_32 ET34K_bank_sizes[4] = {0x20000,0x10000,0,0}; //128K, 64K, disabled, disabled!
+uint_32 ET34K_bank_sizes[4] = { 0x20000,0x10000,0,0 }; //128K, 64K, disabled, disabled!
 
 extern uint_32 VGA_MemoryMapBankRead, VGA_MemoryMapBankWrite; //The memory map bank to use!
 
@@ -58,19 +58,19 @@ byte Tseng34K_writeIO(word port, byte val)
 	switch (port) //What port?
 	{
 	case 0x46E8: //Video subsystem enable register?
-		if ((et4k_reg(et34kdata,3d4,34)&8)==0 && (getActiveVGA()->enable_SVGA==1)) return 0; //Undefined on ET4000!
-		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (val&8)?1:0; //RAM enabled?
+		if ((et4k_reg(et34kdata, 3d4, 34) & 8) == 0 && (getActiveVGA()->enable_SVGA == 1)) return 0; //Undefined on ET4000!
+		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (val & 8) ? 1 : 0; //RAM enabled?
 		return 1; //OK
 		break;
 	case 0x3C3: //Video subsystem enable register in VGA mode?
-		if ((et4k_reg(et34kdata,3d4,34)&8) && (getActiveVGA()->enable_SVGA==1)) return 2; //Undefined on ET4000!
-		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (val&1); //RAM enabled?
+		if ((et4k_reg(et34kdata, 3d4, 34) & 8) && (getActiveVGA()->enable_SVGA == 1)) return 2; //Undefined on ET4000!
+		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (val & 1); //RAM enabled?
 		return 1; //OK
 		break;
 	case 0x3BF: //Hercules Compatibility Mode?
 		if (!et34kdata->extensionsEnabled) //Extensions still disabled?
 		{
-			if (val==3) //First part of the sequence to activate the extensions?
+			if (val == 3) //First part of the sequence to activate the extensions?
 			{
 				et34kdata->extensionstep = 1; //Enable the first step to activation!
 			}
@@ -82,50 +82,75 @@ byte Tseng34K_writeIO(word port, byte val)
 		}
 		else if (et34kdata->extensionsEnabled) //Extensions enabled?
 		{
-			if (et34kdata->extensionstep==1) //Step two?
+			if (et34kdata->extensionstep == 1) //Step two?
 			{
 				et34kdata->extensionstep = 0; //Disable steps!
-				if (val==0x01) //Disable extensions?
+				if (val == 0x01) //Disable extensions?
 				{
 					et34kdata->extensionsEnabled = 0; //Extensions are now disabled!
-					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //Update all precalcs!
+					VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
 				}
 			}
 		}
-		et34kdata->herculescompatibilitymode_secondpage = ((val&2)>>1); //Save the bit!
+		et34kdata->herculescompatibilitymode_secondpage = ((val & 2) >> 1); //Save the bit!
 		return 1; //OK!
 		break;
 	case 0x3D8: //CGA mode control?
+		if ((et4k_reg(et34kdata,3d4,34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
+		{
+			et34kdata->CGAModeRegister = val; //Save the register to be read!
+			if (et34kdata->ExtendedFeatureControlRegister & 0x80) //Enable NMI?
+			{
+				return !execNMI(0); //Execute an NMI from Bus!
+			}
+			return 1; //Handled!
+		}
+		goto checkEnableDisable;
+	case 0x3B8: //MDA mode control?
+		if ((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
+		{
+			et34kdata->MDAModeRegister = val; //Save the register to be read!
+			if (et34kdata->ExtendedFeatureControlRegister & 0x80) //Enable NMI?
+			{
+				return !execNMI(0); //Execute an NMI from Bus!
+			}
+			return 1; //Handled!
+		}
+		checkEnableDisable: //Check enable/disable(port 3D8 too)
 		if (!et34kdata->extensionsEnabled) //Extensions still disabled?
 		{
-			if (et34kdata->extensionstep==1) //Step two?
+			if (et34kdata->extensionstep == 1) //Step two?
 			{
 				et34kdata->extensionstep = 0; //Disable steps!
-				if (val==0xA0) //Enable extensions?
+				if (val == 0xA0) //Enable extensions?
 				{
 					et34kdata->extensionsEnabled = 1; //Enable the extensions!
-					VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //Update all precalcs!
+					VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
 				}
 			}
 		}
 		else if (et34kdata->extensionsEnabled) //Extensions enabled?
 		{
-			if (et34kdata->extensionstep==0) //Step one?
+			if (et34kdata->extensionstep == 0) //Step one?
 			{
-				if (val==0x29) //Disable extensions step?
+				if (val == 0x29) //Disable extensions step?
 				{
 					et34kdata->extensionstep = 1; //First step!
 				}
 			}
 		}
-	case 0x3B8: //MDA mode control?
+		return 0; //Not handled!
 	case 0x3D9: //CGA color control?
-		if (!et34kdata->extensionsEnabled) //Extensions disabled?
+		if ((et4k_reg(et34kdata,3d4,34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
 		{
-			return 0;
+			et34kdata->CGAColorSelectRegister = val; //Save the register to be read!
+			/*if (et34kdata->ExtendedFeatureControl & 0x80) //Enable NMI?
+			{
+				//Execute an NMI!
+			}*/ //Doesn't have an NMI?
+			return 1; //Handled!
 		}
-		//Handle NMI?
-		return 1; //Handled!
+		return 0; //Not handled!
 		break;
 
 	//16-bit DAC support(Sierra SC11487)!
@@ -344,7 +369,7 @@ byte Tseng34K_writeIO(word port, byte val)
 	*/
 	//void write_p3cd_et4k(Bitu port, Bitu val, Bitu iolen) {
 	case 0x3CD: //Segment select?
-		if(!et34kdata->extensionsEnabled) return 0; //Not used without extensions!
+		//if(!et34kdata->extensionsEnabled) return 0; //Not used without extensions!
 		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
 		{
 			et34kdata->bank_write = val&7;
@@ -417,6 +442,21 @@ byte Tseng34K_writeIO(word port, byte val)
 			break;
 		}
 		break;
+	case 0x3BA: //Write: Feature Control Register (mono)		DATA
+		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		goto accessfc;
+	case 0x3CA: //Same as above!
+	case 0x3DA: //Same!
+		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
+	accessfc: //Allow!
+		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA = val; //Set!
+		if (et34kdata->extensionsEnabled) //Enabled extensions?
+		{
+			et34kdata->ExtendedFeatureControlRegister = (val&0x80); //Our extended bit is saved!
+		}
+		VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_FEATURECONTROLREGISTER); //We have been updated!
+		return 1;
+		break;
 	default: //Unknown port?
 		return 0;
 		break;
@@ -449,15 +489,38 @@ byte Tseng34K_readIO(word port, byte *result)
 		return 1; //OK!
 		break;
 	case 0x3B8: //MDA mode control?
-	case 0x3D8: //CGA mode control?
-	case 0x3D9: //CGA color control?
-		if (!et34kdata->extensionsEnabled) //Extensions disabled?
+		if ((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
 		{
-			return 0;
+			*result = et34kdata->MDAModeRegister; //Save the register to be read!
+			/*if (et34kdata->ExtendedFeatureControl & 0x80) //Enable NMI?
+			{
+				//Execute an NMI!
+			}*/ //Doesn't do NMIs?
+			return 1; //Handled!
 		}
-		//Handle NMI?
-		*result = 0x00; //Undefined!
-		return 1; //Handled!
+		return 0; //Not handled!
+	case 0x3D8: //CGA mode control?
+		if ((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
+		{
+			*result = et34kdata->CGAModeRegister; //Save the register to be read!
+			/*if (et34kdata->ExtendedFeatureControl & 0x80) //Enable NMI?
+			{
+			//Execute an NMI!
+			}*/ //Doesn't do NMIs?
+			return 1; //Handled!
+		}
+		return 0; //Not handled!
+	case 0x3D9: //CGA color control?
+		if ((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
+		{
+			*result = et34kdata->CGAColorSelectRegister; //Save the register to be read!
+			/*if (et34kdata->ExtendedFeatureControl & 0x80) //Enable NMI?
+			{
+			//Execute an NMI!
+			}*/ //Doesn't do NMIs?
+			return 1; //Handled!
+		}
+		return 0; //Not handled!
 		break;
 
 		//16-bit DAC support(Sierra SC11487)!
@@ -527,7 +590,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		break;
 	case 0x3CD: //Segment select?
 	//Bitu read_p3cd_et4k(Bitu port, Bitu iolen) {
-		if(!et34kdata->extensionsEnabled) return 0; //Not used without extensions!
+		//if(!et34kdata->extensionsEnabled) return 0; //Not used without extensions!
 		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
 		{
 			*result = ((et34kdata->bank_size<<6)|(et34kdata->bank_read<<3)|et34kdata->bank_write);
@@ -547,6 +610,15 @@ byte Tseng34K_readIO(word port, byte *result)
 			//LOG(LOG_VGAMISC, LOG_NORMAL)("VGA:ATTR:ET4K:Read from illegal index %2X", reg);
 			break;
 		}
+		break;
+	case 0x3CA: //Read: Feature Control Register		DATA
+		*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA; //Give!
+		if (et34kdata->extensionsEnabled) //Enabled extensions?
+		{
+			*result &= 0x7F; //Clear our extension bit!
+			*result |= et34kdata->ExtendedFeatureControlRegister; //Add the extended feature control!
+		}
+		return 1;
 		break;
 	default: //Unknown port?
 		break;

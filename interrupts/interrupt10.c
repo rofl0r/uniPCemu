@@ -142,12 +142,25 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
                 *color=mem_readb(RealMake(0xa000,320*y+x));
                 break;
         case M_LIN8:
-		rowoffs = (y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)+x; //The offset to retrieve!
-		curbank = IO_Read(0x3CD); //Read the current bank!
-		curbank &= 0xF; //Clear read bank!
-		curbank |= ((rowoffs>>16)&0xF)<<4; //The bank to use!
-		rowoffs &= 0xFFFF; //Pixel in the bank!
-		IO_Write(0x3CD,curbank); //Set the new bank!
+				rowoffs = (y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)+x; //The offset to retrieve!
+				//Translate the offset to a bank number&offset if needed
+				if (svgaCard==SVGA_TsengET4K) //ET4K?
+				{
+					curbank = IO_Read(0x3CD); //Read the current bank!
+					curbank &= 0xF; //Clear read bank!
+					curbank |= (rowoffs >> 12) & 0xF0; //The bank to use!
+					rowoffs &= 0xFFFF; //Pixel in the bank!
+					IO_Write(0x3CD, curbank); //Set the new bank!
+				}
+				else if (svgaCard==SVGA_TsengET3K) //ET3K?
+				{
+					curbank = IO_Read(0x3CD); //Read the current bank!
+					curbank &= 0x7; //Clear read bank!
+					curbank |= (rowoffs >> 13) & 0x38; //The bank to use!
+					curbank |= 0x40; //64k bank!
+					rowoffs &= 0xFFFF; //Pixel in the bank!
+					IO_Write(0x3CD, curbank); //Set the new bank!
+				}
                 RealPt off=RealMake(0xA000,rowoffs); //Pointer to memory!
                 *color = mem_readb(off);
                 break;
@@ -272,12 +285,24 @@ OPTINLINE int GPU_putpixel(int x, int y, byte page, word color) //Writes a video
         case M_LIN8:
                 //if (CurMode->swidth!=(Bitu)real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)
                 //        LOG(LOG_INT10,LOG_ERROR)("PutPixel_VGA_w: %x!=%x",CurMode->swidth,real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8);
-		rowoffs = (y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)+x; //The offset to retrieve!
-		curbank = IO_Read(0x3CD); //Read the current bank!
-		curbank &= 0xF0; //Clear write bank!
-		curbank |= (rowoffs>>16)&0xF; //The bank to use!
-		rowoffs &= 0xFFFF; //Pixel in the bank!
-		IO_Write(0x3CD,curbank); //Set the new bank!
+				rowoffs = (y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)+x; //The offset to retrieve!
+				if (svgaCard==SVGA_TsengET4K) //ET4K?
+				{
+					curbank = IO_Read(0x3CD); //Read the current bank!
+					curbank &= 0xF0; //Clear write bank!
+					curbank |= (rowoffs>>16)&0x7; //The bank to use!
+					rowoffs &= 0xFFFF; //Pixel in the bank!
+					IO_Write(0x3CD, curbank); //Set the new bank!
+				}
+				else //ET3K?
+				{
+					curbank = IO_Read(0x3CD); //Read the current bank!
+					curbank &= 0x38; //Clear write bank!
+					curbank |= (rowoffs >> 16) & 0x7; //The bank to use!
+					curbank |= 0x40; //64k bank!
+					rowoffs &= 0xFFFF; //Pixel in the bank!
+					IO_Write(0x3CD, curbank); //Set the new bank!
+				}
                 RealPt off=RealMake(0xA000,rowoffs); //Pointer to memory!
                 mem_writeb(off,color);
                 break;
@@ -2321,14 +2346,30 @@ Handler int10functions[] =
 	int10_SaveRestoreVideoStateFns, //1C
 }; //Function list!
 
+void int10_tseng_enableExtensions() //Write the key for ET4000 access!
+{
+	PORT_OUT_B(0x3BF,0x03);
+	PORT_OUT_B(0x3B8,0xA0); //Write the KEY, enabling the ET4000 extensions!
+}
+
+void int10_tseng_disableExtensions() //Write the key for disabling ET4000 access!
+{
+	PORT_OUT_B(0x3B8,0x29);
+	PORT_OUT_B(0x3BF,0x01); //Write the KEY, disabling the ET4000 extensions!
+}
+
 void init_int10() //Initialises int10&VGA for usage!
 {
 //Initialise variables!
 	switch (getActiveVGA()->enable_SVGA) //SVGA detection?
 	{
 		case 1: //ET4000?
-		case 2: //ET3000?
 			svgaCard = SVGA_TsengET4K; //ET4000 card!
+			int10_tseng_enableExtensions(); //Always enable the extensions!
+			break;
+		case 2: //ET3000?
+			svgaCard = SVGA_TsengET3K; //ET4000 card!
+			int10_tseng_enableExtensions(); //Always enable the extensions!
 			break;
 		default: //VGA?
 			svgaCard = SVGA_None; //No SVGA!
