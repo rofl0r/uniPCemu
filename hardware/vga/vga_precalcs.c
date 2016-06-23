@@ -53,7 +53,7 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
 		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
-		VGA->CRTC.charcolstatus[(current<<1)|1] = current%charsize;
+		VGA->CRTC.charcolstatus[(current<<1)|1] = innerpixel = current%charsize;
 		realtiming = current; //Same rate as the basic rate!
 		realtiming >>= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Apply dot clock rate!
 		VGA->CRTC.colstatus[current] = get_display_x(VGA,realtiming); //Translate to display rate!
@@ -62,7 +62,7 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 		
 		if (((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) && !CGA_DOUBLEWIDTH(VGA)) //Affect by 620x200/320x200 mode?
 		{
-			extrastatus |= 3; //Always render like we are asked, at full resolution single pixels!
+			extrastatus |= 1; //Always render like we are asked, at full resolution single pixels!
 		}
 		else //Normal VGA?
 		{
@@ -70,13 +70,24 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 			{
 				extrastatus |= 1; //Reset for the new block/next pixel!
 				pixelrate = 0; //Reset!
-				++fetchrate; //Fetch ticking!
-				if ((fetchrate & 4) == fetchrate) //Half clock rate?
-				{
-					extrastatus |= 2; //Half pixel clock for division in graphics rates!
-					fetchrate = 0; //Reset fetch rate!
-				}
 			}
+		}
+
+		if (innerpixel == 0) //First pixel of a character?
+		{
+			fetchrate = 0; //Reset fetching for the new character!
+		}
+
+		//Tick fetch rate!
+		++fetchrate; //Fetch ticking!
+		if ((fetchrate == 1) || (fetchrate == 5)) //Half clock rate?
+		{
+			extrastatus |= 2; //Half pixel clock for division in graphics rates!
+		}
+
+		if (innerpixel==0) //Character clock starting?
+		{
+			extrastatus |= 4; //We're a character clock starting, load data from VRAM if enabled!
 		}
 		
 		VGA->CRTC.extrahorizontalstatus[current] = extrastatus; //Extra status to apply!
@@ -142,8 +153,9 @@ void dump_CRTCTiming()
 	for (i=0;i<NUMITEMS(getActiveVGA()->CRTC.colstatus);i++)
 	{
 		sprintf(information,"Col #%u=",i); //Current row!
-		word status;
-		status = getActiveVGA()->CRTC.colstatus[i]; //Read the status for the row!
+		word status, extrahorizontalstatus;
+		status = getActiveVGA()->CRTC.colstatus[i]; //Read the status for the column!
+		extrahorizontalstatus = getActiveVGA()->CRTC.extrahorizontalstatus[i]; //Read the extra status for the column!
 		if (status&VGA_SIGNAL_HTOTAL)
 		{
 			sprintf(information,"%s+HTOTAL",information); //Add!
@@ -175,6 +187,18 @@ void dump_CRTCTiming()
 		if (status&VGA_SIGNAL_HSYNCRESET)
 		{
 			sprintf(information,"%s+HSYNCRESET",information); //Add!
+		}
+		if (extrahorizontalstatus & 1)
+		{
+			sprintf(information,"%s+WRITEBACK",information); //Add!
+		}
+		if (extrahorizontalstatus & 2)
+		{
+			sprintf(information, "%s+HALFCLOCK", information); //Add!
+		}
+		if (extrahorizontalstatus & 4)
+		{
+			sprintf(information, "%s+WHOLECLOCK", information); //Add!
 		}
 		dolog("VGA","%s",information);
 		if (status&VGA_SIGNAL_HTOTAL)
@@ -677,29 +701,26 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				BWDModeShift = 0; //Shift by 0! We're byte mode!
 			}
 
-			byte characterclockshift = 0;
+			byte characterclockshift = 1; //Default: reload every whole clock!
 			//This applies to the address counter (renderer), causing it to increase and load more/less(factors of 2). This is used as a mask to apply to the 
-			if (VGA->precalcs.characterwidth!=9) //Dividable characters? Disable us!
+			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4)
 			{
-				if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4)
+				if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2) //Both set? We reload twice per clock!
 				{
-					if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2) //Both set? We reload twice per clock!
-					{
-						characterclockshift = 0; //Reload every half clock(4 pixels)!
-					}
-					else //Reload every 4 clocks!
-					{
-						characterclockshift = 7; //Reload every 4 clocks(32 pixels)!
-					}
+					characterclockshift = 0; //Reload every half clock(4 pixels)!
 				}
-				else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2)
+				else //Reload every 4 clocks!
 				{
-					characterclockshift = 3; //Reload every other clock(16 pixels)!
+					characterclockshift = 7; //Reload every 4 clocks(32 pixels)!
 				}
-				else //Reload every clock!
-				{
-					characterclockshift = 1; //Reload every whole clock(8 pixels)!
-				}
+			}
+			else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2)
+			{
+				characterclockshift = 3; //Reload every other clock(16 pixels)!
+			}
+			else //Reload every clock!
+			{
+				characterclockshift = 1; //Reload every whole clock(8 pixels)!
 			}
 
 			updateCRTC |= (VGA->precalcs.BWDModeShift != BWDModeShift); //Update the CRTC!

@@ -104,10 +104,8 @@ typedef struct
 	uint_32 lastDACcolor; //Last latched DAC color!
 
 	//Actual VGA counters according to the documentation!
-	word memoryaddressclock; //The memory address clock itself!
-	byte memoryaddressclockdivider; //The memory address clock divider!
-	byte memoryaddressclockdivider2; //SVGA memory address clock divider extension!
-	word memoryaddress; //The current memory address to apply!
+	uint_32 memoryaddress; //The current memory address to apply!
+	byte memoryaddressclock; //The memory address clock itself!
 	byte linearcounterdivider; //The linear counter clock divider itself!
 } SEQ_DATA; //Sequencer used data!
 

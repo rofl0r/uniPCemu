@@ -4955,7 +4955,7 @@ void BIOS_DumpVGA()
 		dump_CRTCTiming(); //Dump all CRTC timing currently in use!
 
 	#ifdef DUMP_VGATEST256COL
-		uint_32 rowwidth = (getActiveVGA()->precalcs.rowsize<<2)<<2; //The row width, in bytes and pixels!
+		uint_32 rowwidth = (getActiveVGA()->precalcs.rowsize<<2); //The row width, in bytes and pixels!
 		uint_32 activewidth = (getActiveVGA()->precalcs.horizontaldisplayend-getActiveVGA()->precalcs.horizontaldisplaystart); //Width of the active display!
 		uint_32 activeheight = getActiveVGA()->precalcs.verticaldisplayend; //The height of the active display!
 		activewidth = MAX(rowwidth,activewidth); //Take the bigger one, if any!
