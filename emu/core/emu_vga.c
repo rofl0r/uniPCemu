@@ -354,7 +354,6 @@ OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 	displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
 	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), displaystate); //Handle any change in display state first!
 	displayrenderhandler[totalretracing][displaystate](Sequencer, getActiveVGA()); //Execute our signal!
-
 }
 
 //CPU cycle locked version of VGA rendering!

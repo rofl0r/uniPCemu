@@ -108,6 +108,7 @@ typedef struct
 	byte memoryaddressclockdivider; //The memory address clock divider!
 	byte memoryaddressclockdivider2; //SVGA memory address clock divider extension!
 	word memoryaddress; //The current memory address to apply!
+	byte linearcounterdivider; //The linear counter clock divider itself!
 } SEQ_DATA; //Sequencer used data!
 
 float VGA_VerticalRefreshRate(VGA_Type *VGA); //Scanline speed for one line in Hz!

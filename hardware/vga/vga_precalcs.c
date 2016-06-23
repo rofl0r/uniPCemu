@@ -46,6 +46,10 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	current = 0; //Init!
 	byte pixelrate=0;
 	word extrastatus;
+	byte innerpixel;
+	byte clockrate;
+	byte fetchrate=0;
+	clockrate = ((VGA->precalcs.ClockingModeRegister_DCR | (CGA_DOUBLEWIDTH(VGA) ? 1 : 0))); //The clock rate to run the VGA clock at!
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
 		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
@@ -58,14 +62,20 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 		
 		if (((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) && !CGA_DOUBLEWIDTH(VGA)) //Affect by 620x200/320x200 mode?
 		{
-			extrastatus |= 1; //Always render like we are asked, at full resolution single pixels!
+			extrastatus |= 3; //Always render like we are asked, at full resolution single pixels!
 		}
 		else //Normal VGA?
 		{
-			if (++pixelrate>((VGA->precalcs.ClockingModeRegister_DCR|(CGA_DOUBLEWIDTH(VGA)?1:0)))) //To write back the pixel clock every or every other pixel(forced every clock in CGA normal mode)?
+			if (++pixelrate>clockrate) //To write back the pixel clock every or every other pixel(forced every clock in CGA normal mode)?
 			{
 				extrastatus |= 1; //Reset for the new block/next pixel!
 				pixelrate = 0; //Reset!
+				++fetchrate; //Fetch ticking!
+				if ((fetchrate & 4) == fetchrate) //Half clock rate?
+				{
+					extrastatus |= 2; //Half pixel clock for division in graphics rates!
+					fetchrate = 0; //Reset fetch rate!
+				}
 			}
 		}
 		
@@ -675,20 +685,20 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				{
 					if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2) //Both set? We reload twice per clock!
 					{
-						characterclockshift = 3; //Reload every half clock(2 pixels)!
+						characterclockshift = 0; //Reload every half clock(4 pixels)!
 					}
 					else //Reload every 4 clocks!
 					{
-						characterclockshift = 0x1F; //Reload every 4 clocks(32 pixels)!
+						characterclockshift = 7; //Reload every 4 clocks(32 pixels)!
 					}
 				}
 				else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2)
 				{
-					characterclockshift = 0xF; //Reload every other clock(16 pixels)!
+					characterclockshift = 3; //Reload every other clock(16 pixels)!
 				}
 				else //Reload every clock!
 				{
-					characterclockshift = 7; //Reload every whole clock(8 pixels)!
+					characterclockshift = 1; //Reload every whole clock(8 pixels)!
 				}
 			}
 
