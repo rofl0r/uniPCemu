@@ -290,17 +290,16 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 	for (year=(curtime->year-1);year>1970;) //Process the years!
 	{
 		seconds += YEARSIZE(year)*DAYSIZE; //Add the year that has passed!
-		--year; //Next year!
+		--year;
 	}
-	leapyear = LEAPYEAR(year); //Are we a leap year?
+	leapyear = LEAPYEAR(curtime->year); //Are we a leap year?
 	//Now, only months etc. are left!
-	for (counter = 1;counter < curtime->month;)
+	for (counter = curtime->month;counter > 1;)
 	{
-		++counter; //Next month to process!
-		seconds += _ytab[leapyear][counter]; //Add a month!
+		seconds += _ytab[leapyear][--counter]; //Add a month that has passed!
 	}
 	//Now only days, hours, minutes and seconds are left!
-	seconds += DAYSIZE*curtime->day;
+	seconds += DAYSIZE*(curtime->day?(curtime->day-1):0); //Days start at 1!
 	seconds += HOURSIZE*curtime->hour;
 	seconds += MINUTESIZE*curtime->minute;
 	seconds += curtime->second;
