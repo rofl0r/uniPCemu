@@ -19,6 +19,5 @@ byte runBIOS(byte showloadingtext); //Run the BIOS!
 typedef void(*list_information)(char *filename); //Displays information about a harddisk to mount!
 int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information information_handler); //Runs the file list!
 
-byte sound_playMIDIfile(byte showinfo); //Play a MIDI file!
 void BIOS_SoundStartStopRecording(); //Start/stop sound recording!
 #endif

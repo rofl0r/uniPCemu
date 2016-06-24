@@ -13,6 +13,9 @@
 
 #include <time.h>
 
+//Biggest Signed Integer value available!
+#define BIGGESTSINT int_64
+
 /*
 
 CMOS&RTC (Combined!)
@@ -66,7 +69,8 @@ byte decodeBCD8(byte value)
 struct
 {
 	CMOSDATA DATA;
-	double timedivergeance;
+	int_64 timedivergeance; //Time divergeance in seconds!
+	int_64 timedivergeance2; //Time diveargeance in us!
 	byte IRQ8_Disabled; //IRQ8 not allowed to run for this type? (bits 0x10-0x40 are set for enabled)?
 	byte Loaded; //CMOS loaded?
 	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
@@ -89,7 +93,8 @@ void loadCMOSDefaults()
 	CMOS.DATA.DATA80.data[0x10] = ((FLOPPY_144)<<4)|(FLOPPY_144); //High=Master, Low=Slave!
 	CMOS.DATA.DATA80.data[0x15] = 0x15; //We have...
 	CMOS.DATA.DATA80.data[0x16] = 0x16; //640K base memory!
-	CMOS.timedivergeance = 0.0; //No divergeance!
+	CMOS.timedivergeance = 0; //No second divergeance!
+	CMOS.timedivergeance2 = 0; //No us divergeance!
 	CMOS.Loaded = 1; //Loaded: ready to save!
 }
 
@@ -217,6 +222,8 @@ typedef struct
 	uint_64 us; //Microseconds?
 } accuratetime;
 
+//Our accuratetime epoch support!
+
 //Epoch time values!
 #define EPOCH_YEAR 31556926
 #define EPOCH_MONTH 2629743
@@ -258,6 +265,7 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 	return 1; //Successfully converted!
 }
 
+//CMOS time encoding support!
 void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
 {
 	curtime->year = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Year); //The year to compare to!
@@ -281,33 +289,42 @@ void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
 	CMOS.DATA.s100 = encodeBCD8(curtime->s100); //The 100th seconds!
 }
 
-double calcDivergeance(accuratetime *time1, accuratetime *time2) //Calculates the difference of time1 compared to time2(reference time)!
+//Divergeance support!
+byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 *divergeance_sec, int_64 *divergeance_usec) //Calculates the difference of time1 compared to time2(reference time)!
 {
 	struct timeval time1val, time2val; //Our time values!
 	if (accuratetimetoepoch(time1, &time1val)) //Converted to universal value?
 	{
 		if (accuratetimetoepoch(time2, &time2val)) //Converted to universal value?
 		{
-			return (double)((((time1val.tv_sec*1000000)+time1val.tv_usec)-((time2val.tv_sec * 1000000) + time2val.tv_usec))/1000000); //Give the difference time!
+			BIGGESTSINT applyingtime; //Biggest integer value we have!
+			applyingtime = ((((time1val.tv_sec * 1000000) + time1val.tv_usec) - ((time2val.tv_sec * 1000000) + time2val.tv_usec))); //Difference in usec!
+			*divergeance_sec = applyingtime/1000000; //Seconds!
+			*divergeance_usec = applyingtime%1000000; //Microseconds!
+			return 1; //Give the difference time!
 		}
 	}
-	return 0.0f; //Unknown: Don't apply divergeance!
+	return 0; //Unknown: Don't apply divergeance!
 }
 
-void applyDivergeance(accuratetime *curtime, double divergeance) //Apply divergeance to accurate time!
+void applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, int_64 divergeance_usec) //Apply divergeance to accurate time!
 {
 	struct timeval timeval; //The accurate time value!
-	uint_64 applyingtime; //Biggest integer value we have!
+	BIGGESTSINT applyingtime; //Biggest integer value we have!
 	if (accuratetimetoepoch(curtime, &timeval)) //Converted to epoch?
 	{
 		applyingtime = ((timeval.tv_sec * 1000000) + timeval.tv_usec); //Direct time conversion!
-		applyingtime += (divergeance*1000000); //Add the divergeance: we're applying the destination time!
+		applyingtime += (divergeance_sec*1000000); //Add the divergeance: we're applying the destination time!
+		applyingtime += divergeance_usec; //Apply usec!
+
+		//Apply the resulting time!
 		timeval.tv_sec = (applyingtime/1000000); //Time in seconds!
 		applyingtime -= (timeval.tv_sec*1000000); //Substract to get microseconds!
 		timeval.tv_usec = applyingtime; //We have the amount of microseconds left!
 	}
 }
 
+//Calculating relative time from the CMOS!
 void updateTimeDivergeance() //Update relative time to the clocks(time difference changes)! This is called when software changes the time/date!
 {
 	struct timeval tp;
@@ -319,13 +336,13 @@ void updateTimeDivergeance() //Update relative time to the clocks(time differenc
 		if (epochtoaccuratetime(&tp,&currenttime)) //Convert to accurate time!
 		{
 			lock(LOCK_CMOS); //We're updating critical information!
-			CMOS.timedivergeance = calcDivergeance(&savedtime,&currenttime); //Apply the new time divergeance!
+			calcDivergeance(&savedtime,&currenttime,&CMOS.timedivergeance,&CMOS.timedivergeance2); //Apply the new time divergeance!
 			unlock(LOCK_CMOS); //Finished updating!
 		}
 	}
 }
 
-//Update the current Date/Time (1 times a second)!
+//Update the current Date/Time (based upon the refresh rate set) to the CMOS!
 void RTC_updateDateTime()
 {
 	//Get time!
@@ -338,7 +355,7 @@ void RTC_updateDateTime()
 		{
 			//Apply time!
 			lock(LOCK_CMOS);
-			applyDivergeance(&currenttime, CMOS.timedivergeance); //Apply the new time divergeance!
+			applyDivergeance(&currenttime, CMOS.timedivergeance,CMOS.timedivergeance2); //Apply the new time divergeance!
 			CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
 			RTC_Handler(); //Handle anything that the RTC has to handle!
 			unlock(LOCK_CMOS); //Finished updating!
@@ -382,6 +399,7 @@ void loadCMOS()
 		memcpy(&CMOS.DATA.DATA80, &BIOS_Settings.CMOS, sizeof(CMOS.DATA.DATA80)); //Copy to our memory!
 	}
 	CMOS.timedivergeance = BIOS_Settings.timedivergeance; //Load the divergeance too!
+	CMOS.timedivergeance2 = BIOS_Settings.timedivergeance2; //Load the divergeance too!
 	CMOS.Loaded = 1; //The CMOS is loaded!
 }
 
@@ -390,13 +408,14 @@ void saveCMOS()
 	if (!CMOS.Loaded) return; //Don't save when not loaded/initialised!
 	memcpy(&BIOS_Settings.CMOS, &CMOS.DATA.DATA80.data, 0x80); //Copy the CMOS to BIOS!
 	BIOS_Settings.timedivergeance = CMOS.timedivergeance; //Apply the new time divergeance to the existing time!
+	BIOS_Settings.timedivergeance2 = CMOS.timedivergeance2; //Apply the new time divergeance to the existing time!
 	BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
 	forceBIOSSave(); //Save the BIOS data!
 }
 
 byte XTRTC_translatetable[0x10] = {0,
-0x81, //0.01 seconds
-0x81, //0.1 seconds
+0x80, //0.01 seconds
+0x80, //0.1 seconds
 0, //seconds
 2, //minutes
 4, //hours
