@@ -274,6 +274,7 @@ byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
 	return 1; //Always successfully converted!
 }
 
+//Sizes of minutes, hours and days in Epoch time units.
 #define MINUTESIZE 60
 #define HOURSIZE 3600
 #define DAYSIZE (3600*24)
@@ -296,7 +297,7 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 	//Now, only months etc. are left!
 	for (counter = curtime->month;counter > 1;)
 	{
-		seconds += _ytab[leapyear][--counter]; //Add a month that has passed!
+		seconds += _ytab[leapyear][--counter]*DAYSIZE; //Add a month that has passed!
 	}
 	//Now only days, hours, minutes and seconds are left!
 	seconds += DAYSIZE*(curtime->day?(curtime->day-1):0); //Days start at 1!
