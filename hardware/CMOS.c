@@ -138,9 +138,7 @@ void CMOS_onRead() //When CMOS is being read (special actions).
 {
 	if (CMOS.ADDR==0x0C) //Enable all interrupts for RTC again?
 	{
-		lock(LOCK_CMOS);
 		CMOS.IRQ8_Disabled = 0; //Enable all!
-		unlock(LOCK_CMOS);
 	}
 }
 
@@ -289,7 +287,7 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 	uint_64 year;
 	sbyte counter;
 	byte leapyear;
-	for (year=(curtime->year-1);curtime->year>1970;) //Process the years!
+	for (year=(curtime->year-1);year>1970;) //Process the years!
 	{
 		seconds += YEARSIZE(year)*DAYSIZE; //Add the year that has passed!
 		--year; //Next year!
@@ -298,7 +296,7 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 	//Now, only months etc. are left!
 	for (counter = 1;counter < curtime->month;)
 	{
-		--counter; //Next month to process!
+		++counter; //Next month to process!
 		seconds += _ytab[leapyear][counter]; //Add a month!
 	}
 	//Now only days, hours, minutes and seconds are left!
@@ -315,23 +313,28 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
 {
 	curtime->year = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Year); //The year to compare to!
+	curtime->year += decodeBCD8(CMOS.DATA.DATA80.data[0x32])*100; //Add the century!
 	curtime->month = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Month); //The month to compare to!
 	curtime->day = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DateOfMonth); //The day to compare to!
 	curtime->hour = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Hours); //H
 	curtime->minute = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Minutes); //M
 	curtime->second = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Seconds); //S
+	curtime->weekday = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DayOfWeek); //Day of week!
 	curtime->s100 = decodeBCD8(CMOS.DATA.s100); //The 100th seconds!
 	curtime->us = curtime->s100*10000; //The same as above, make sure we match!
 }
 
 void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
 {
+	CMOS.DATA.DATA80.data[0x32] = encodeBCD8((curtime->year/100)%100); //The century!
 	CMOS.DATA.DATA80.info.RTC_Year = encodeBCD8(curtime->year%100);
 	CMOS.DATA.DATA80.info.RTC_Month = encodeBCD8(curtime->month);
 	CMOS.DATA.DATA80.info.RTC_DateOfMonth = encodeBCD8(curtime->day);
+
 	CMOS.DATA.DATA80.info.RTC_Hours = encodeBCD8(curtime->hour);
 	CMOS.DATA.DATA80.info.RTC_Minutes = encodeBCD8(curtime->minute);
 	CMOS.DATA.DATA80.info.RTC_Seconds = encodeBCD8(curtime->second);
+	CMOS.DATA.DATA80.info.RTC_DayOfWeek = encodeBCD8(curtime->weekday); //The day of the week!
 	CMOS.DATA.s100 = encodeBCD8(curtime->s100); //The 100th seconds!
 }
 
@@ -343,10 +346,13 @@ byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 *divergean
 	{
 		if (accuratetimetoepoch(time2, &time2val)) //Converted to universal value?
 		{
+			dolog("CMOS","Setting time: %i-%i-%i %i:%i:%i.%06i",time1->year,time1->month,time1->day,time1->hour,time1->minute,time1->second);
 			BIGGESTSINT applyingtime; //Biggest integer value we have!
 			applyingtime = ((((time1val.tv_sec * 1000000) + time1val.tv_usec) - ((time2val.tv_sec * 1000000) + time2val.tv_usec))); //Difference in usec!
+			dolog("CMOS","Old divergeance: %08i.%08i",*divergeance_sec,*divergeance_usec); //Log the divergeanse applied!
 			*divergeance_sec = applyingtime/1000000; //Seconds!
 			*divergeance_usec = applyingtime%1000000; //Microseconds!
+			dolog("CMOS", "New divergeance: %08i.%08i", *divergeance_sec, *divergeance_usec); //Log the divergeanse applied!
 			return 1; //Give the difference time!
 		}
 	}
@@ -381,9 +387,7 @@ void updateTimeDivergeance() //Update relative time to the clocks(time differenc
 	{
 		if (epochtoaccuratetime(&tp,&currenttime)) //Convert to accurate time!
 		{
-			lock(LOCK_CMOS); //We're updating critical information!
 			calcDivergeance(&savedtime,&currenttime,&CMOS.timedivergeance,&CMOS.timedivergeance2); //Apply the new time divergeance!
-			unlock(LOCK_CMOS); //Finished updating!
 		}
 	}
 }
@@ -418,10 +422,8 @@ void CMOS_onWrite() //When written to CMOS!
 {
 	if (CMOS.ADDR==0xB) //Might have enabled IRQ8 functions!
 	{
-		lock(LOCK_CMOS);
 		addtimer((float)getIRQ8Rate(),&RTC_updateDateTime,"RTC",10,0,NULL); //RTC handler!
 		CMOS.IRQ8_Disabled = 0; //Allow IRQ8 to be called by timer: we're enabled!
-		unlock(LOCK_CMOS);
 	}
 	else if (CMOS.ADDR < 0xA) //Date/time might have been updated?
 	{
@@ -480,7 +482,6 @@ byte XTRTC_translatetable[0x10] = {
 
 byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 {
-	byte numberpart = 0; //Number part? 1=Low BCD digit, 2=High BCD digit
 	byte isXT = 0;
 	switch (port)
 	{
@@ -546,7 +547,6 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 
 byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 {
-	byte numberpart = 0; //Number part? 1=Low BCD digit, 2=High BCD digit
 	byte isXT = 0;
 	byte temp; //Temp data!
 	switch (port)
@@ -554,7 +554,6 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x70: //CMOS ADDR
 		CMOS.ADDR = (value&0x7F); //Take the value!
 		NMI = ((value&0x80)>>7); //NMI?
-		CMOS_onWrite(); //On write!
 		return 1;
 		break;
 	case 0x71:
@@ -577,28 +576,12 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 				break;
 			}
 		}
-		if (numberpart) //Only a nibble updated?
-		{
-			temp = data; //Original data!
-			if (numberpart==1) //Low BCD digit?
-			{
-				temp &= 0xF0; //Clear low BCD digit!
-				temp |= value&0xF; //Set the low BCD digit!
-			}
-			else //High BCD digit?
-			{
-				temp &= 0xF; //Clear high BCD digit!
-				temp |= ((value&0xF)<<8); //Set the high BCD digit!
-			}
-			value = temp; //Use this value, as specified!
-		}
 		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert from binary?
 		{
 			value = encodeBCD8(value); //Encode the binary data!
 		}
-
 		//Write back the destination data!
-		if ((CMOS.ADDR & 0x80) == 0x00) //Normal data?
+		if ((CMOS.ADDR & 0x80)==0x00) //Normal data?
 		{
 			CMOS.DATA.DATA80.data[CMOS.ADDR] = value; //Give the data from the CMOS!
 		}
@@ -614,8 +597,9 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 				break;
 			}
 		}
-		unlock(LOCK_CMOS);
+		dolog("CMOS", "Updating register %02X=%02X", CMOS.ADDR,value);
 		CMOS_onWrite(); //On write!
+		unlock(LOCK_CMOS);
 		CMOS.ADDR = 0xD; //Reset address!		
 		return 1;
 		break;
@@ -631,7 +615,6 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		writeXTRTCADDR:
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
-		value = encodeBCD8(value); //Encode the data to BCD format!
 		goto writeXTRTC; //Read the XT RTC!
 		break;
 	case 0x248: //RAM?
