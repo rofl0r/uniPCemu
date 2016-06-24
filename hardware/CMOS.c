@@ -89,7 +89,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS settings loaded!
 
 void loadCMOSDefaults()
 {
-	memset(&CMOS.DATA.DATA80,0,sizeof(CMOS.DATA)); //Clear/init CMOS!
+	memset(&CMOS.DATA,0,sizeof(CMOS.DATA)); //Clear/init CMOS!
 	CMOS.DATA.DATA80.data[0x10] = ((FLOPPY_144)<<4)|(FLOPPY_144); //High=Master, Low=Slave!
 	CMOS.DATA.DATA80.data[0x15] = 0x15; //We have...
 	CMOS.DATA.DATA80.data[0x16] = 0x16; //640K base memory!
@@ -444,7 +444,7 @@ void loadCMOS()
 	}
 	else //Load BIOS CMOS!
 	{
-		memcpy(&CMOS.DATA.DATA80, &BIOS_Settings.CMOS, sizeof(CMOS.DATA.DATA80)); //Copy to our memory!
+		memcpy(&CMOS.DATA, &BIOS_Settings.CMOS, sizeof(CMOS.DATA)); //Copy to our memory!
 	}
 	CMOS.timedivergeance = BIOS_Settings.timedivergeance; //Load the divergeance too!
 	CMOS.timedivergeance2 = BIOS_Settings.timedivergeance2; //Load the divergeance too!
