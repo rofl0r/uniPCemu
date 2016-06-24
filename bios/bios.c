@@ -40,7 +40,7 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 #define DEFAULT_DIRECTPLOT 2
 #endif
 #define DEFAULT_BWMONITOR BWMONITOR_NONE
-#define DEFAULT_SSOURCEVOL 1.0f
+#define DEFAULT_SSOURCEVOL 100.0f
 #define DEFAULT_FRAMERATE 0
 
 void forceBIOSSave()

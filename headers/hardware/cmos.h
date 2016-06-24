@@ -52,6 +52,7 @@ typedef struct
 		byte data[0x80]; //CMOS Data!
 	} DATA80; //The normal CMOS data!
 	byte s100; //Extra support for 100th seconds!
+	byte extraRAMdata[1]; //Extra RAM data from XT RTC!
 } CMOSDATA;
 
 void initCMOS(); //Initialises CMOS (apply solid init settings&read init if possible)!

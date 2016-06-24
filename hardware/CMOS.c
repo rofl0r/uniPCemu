@@ -218,35 +218,67 @@ typedef struct
 	byte hour;
 	byte minute;
 	byte second;
-	word s100; //100th seconds(use either this or microseconds, since they both give the same time, only this one is rounded down!)
+	byte s100; //100th seconds(use either this or microseconds, since they both give the same time, only this one is rounded down!)
 	uint_64 us; //Microseconds?
+	byte dst;
+	byte weekday;
 } accuratetime;
 
 //Our accuratetime epoch support!
 
-//Epoch time values!
-#define EPOCH_YEAR 31556926
-#define EPOCH_MONTH 2629743
-#define EPOCH_DAY 86400
-#define EPOCH_HOUR 3600
-#define EPOCH_MINUTE 60
-#define EPOCH_SECOND 1
+//Epoch time values for supported OS!
+#define EPOCH_YR 1970
+#define SECS_DAY (3600*24)
+#define YEAR0 0
+//Is this a leap year?
+#define LEAPYEAR(year) ( (year % 4 == 0 && year % 100 != 0) || ( year % 400 == 0))
+//What is the size of this year in days?
+#define YEARSIZE(year) (LEAPYEAR(year)?366:365)
+
+byte _ytab[2][12] = { //Days within months!
+	{ 31,28,31,30,31,30,31,31,30,31,30,31 }, //Normal year
+	{ 31,29,31,30,31,30,31,31,30,31,30,31 } //Leap year
+};
 
 byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
 {
-	uint_64 seconds = curtime->tv_sec; //Get the amount of seconds, ignore ms for now(not used?)
+	//More accurate timing than default!
 	datetime->us = curtime->tv_usec;
 	datetime->s100 = (curtime->tv_usec/10000); //10000us=1/100 second!
-	datetime->year = (seconds/EPOCH_YEAR); //Year(counting since 1-1-1970)!
-	seconds -= datetime->year*EPOCH_YEAR; //Rest!
-	datetime->year += 1970; //We start at 1970!
-	datetime->month = (seconds/EPOCH_MONTH); //Month!
-	seconds -= datetime->month*EPOCH_MONTH; //Rest!
-	datetime->day = (seconds/EPOCH_DAY);
-	seconds -= datetime->day*EPOCH_DAY;
-	datetime->second = seconds; //The amount of seconds is left!
+
+	//Further is directly taken from the http://stackoverflow.com/questions/1692184/converting-epoch-time-to-real-date-time gmtime source code.
+	register unsigned long dayclock, dayno;
+	int year = EPOCH_YR;
+
+	dayclock = (unsigned long)curtime->tv_sec % SECS_DAY;
+	dayno = (unsigned long)curtime->tv_sec / SECS_DAY;
+
+	datetime->second = dayclock % 60;
+	datetime->minute = (dayclock % 3600) / 60;
+	datetime->hour = dayclock / 3600;
+	datetime->weekday = (dayno + 4) % 7;       /* day 0 was a thursday */
+	while (dayno >= YEARSIZE(year))
+	{
+		dayno -= YEARSIZE(year);
+		year++;
+	}
+	datetime->year = year - YEAR0;
+	datetime->day = dayno;
+	datetime->month = 0;
+	while (dayno >= _ytab[LEAPYEAR(year)][datetime->month]) {
+		dayno -= _ytab[LEAPYEAR(year)][datetime->month];
+		++datetime->month;
+	}
+	++datetime->month; //We're one month further(months start at one, not zero)!
+	datetime->day = dayno + 1;
+	datetime->dst = 0;
+
 	return 1; //Always successfully converted!
 }
+
+#define MINUTESIZE 60
+#define HOURSIZE 3600
+#define DAYSIZE (3600*24)
 
 byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 {
@@ -254,12 +286,27 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 	if ((curtime->us/10000)!=(curtime->s100)) return 0; //Invalid time to convert: 100th seconds doesn't match us(this is supposed to be the same!)
 	if (curtime->year<1970) return 0; //Before 1970 isn't supported!
 	datetime->tv_usec = curtime->us; //Save the microseconds directly!
-	seconds += (curtime->year-1970)*EPOCH_YEAR; //Years!
-	seconds += curtime->month*EPOCH_MONTH; //Months!
-	seconds += curtime->day*EPOCH_DAY; //Day of month!
-	seconds += curtime->hour*EPOCH_HOUR; //Hours
-	seconds += curtime->minute*EPOCH_MINUTE; //Minutes
-	seconds += curtime->second*EPOCH_SECOND; //Seconds!
+	uint_64 year;
+	sbyte counter;
+	byte leapyear;
+	for (year=(curtime->year-1);curtime->year>1970;) //Process the years!
+	{
+		seconds += YEARSIZE(year)*DAYSIZE; //Add the year that has passed!
+		--year; //Next year!
+	}
+	leapyear = LEAPYEAR(year); //Are we a leap year?
+	//Now, only months etc. are left!
+	for (counter = 1;counter < curtime->month;)
+	{
+		--counter; //Next month to process!
+		seconds += _ytab[leapyear][counter]; //Add a month!
+	}
+	//Now only days, hours, minutes and seconds are left!
+	seconds += DAYSIZE*curtime->day;
+	seconds += HOURSIZE*curtime->hour;
+	seconds += MINUTESIZE*curtime->minute;
+	seconds += curtime->second;
+
 	datetime->tv_sec = seconds; //The amount of seconds!
 	return 1; //Successfully converted!
 }
@@ -412,9 +459,9 @@ void saveCMOS()
 	forceBIOSSave(); //Save the BIOS data!
 }
 
-byte XTRTC_translatetable[0x10] = {0,
-0x80, //0.01 seconds
-0x80, //0.1 seconds
+byte XTRTC_translatetable[0x10] = {
+0xFF, //-
+0x80, //100s seconds
 0, //seconds
 2, //minutes
 4, //hours
@@ -423,6 +470,8 @@ byte XTRTC_translatetable[0x10] = {0,
 8, //month
 0xFF, //-
 9, //Year
+0xFF, //-
+0xFF, //-
 0xFF, //-
 0xFF, //-
 0xFF, //-
@@ -461,46 +510,35 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 		}
 		unlock(LOCK_CMOS);
 		CMOS.ADDR = 0xD; //Reset address!
-		if (numberpart) //Number part (BCD)?
+		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert to binary?
 		{
-			if (numberpart==2) //High part?
-			{
-				data >>= 4; //High nibble!
-			}
-			data &= 0xF; //Low nibble or high nibble!
-		}
-		if (isXT || CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert to binary?
-		{
-			data = decodeBCD8(data); //Decode the binary data!
+			data = decodeBCD8(data); //Decode the BCD data!
 		}
 		*result = data; //Give the data!
 		return 1;
 	//XT RTC support?
-	case 0x241: //Read Data?
-	case 0x348: //Unknown
-		*result = 0; //Nothing!
-		return 1;
-		break;
-	case 0x341: //0.1 seconds
-		numberpart = 2; //High digit!
-		goto readXTRTCADDR;
-	case 0x340: //0.01 seconds
-		numberpart = 1; //Low digit!
-	case 0x342: //seconds
-	case 0x343: //minutes
-	case 0x344: //hours
-	case 0x345: //day of week
-	case 0x346: //day of month
-	case 0x347: //month
-	case 0x349: //year
+	case 0x241: //1/100 seconds
+	case 0x242: //seconds
+	case 0x243: //minutes
+	case 0x244: //hours
+	case 0x245: //day of week
+	case 0x246: //day of month
+	case 0x247: //month
+	case 0x249: //year
 		readXTRTCADDR:
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
 		goto readXTRTC; //Read the XT RTC!
+	case 0x248: //RAM?
+		*result = CMOS.DATA.extraRAMdata[0]; //Read the RAM!
+		return 1;
 		break;
-	case 0x350: //Status?
-	case 0x354: //Status?
-		*result = 0; //Nothing!
+	case 0x250: //Counters reset?
+		*result = 0; //Give nothing?
+		return 1;
+	case 0x254: //Status bit?
+		*result = 0; //Give status!
+		return 1;
 		break;
 	}
 	return 0; //None for now!
@@ -582,33 +620,27 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		return 1;
 		break;
 	//XT RTC support?
-	case 0x241: //Trigger timer?
-		lock(LOCK_CMOS);
-		XTMode = 1; //Enable the XT mode!
-		RTC_UpdateEndedInterrupt(1); //Manually trigger the update ended interrupt!
-		unlock(LOCK_CMOS); //Ready!
-		return 1; //Triggered!
-		break;
-	case 0x348: //Unknown
-		return 1;
-		break;
-	case 0x341: //0.1 seconds
-		numberpart = 2; //High digit!
-		goto writeXTRTCADDR;
-	case 0x340: //0.01 seconds
-		numberpart = 1; //Low digit!
-	case 0x342: //seconds
-	case 0x343: //minutes
-	case 0x344: //hours
-	case 0x345: //day of week
-	case 0x346: //day of month
-	case 0x347: //month
-	case 0x349: //year
+	case 0x241: //1/100 seconds
+	case 0x242: //seconds
+	case 0x243: //minutes
+	case 0x244: //hours
+	case 0x245: //day of week
+	case 0x246: //day of month
+	case 0x247: //month
+	case 0x249: //year
 		writeXTRTCADDR:
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
 		value = encodeBCD8(value); //Encode the data to BCD format!
 		goto writeXTRTC; //Read the XT RTC!
+		break;
+	case 0x248: //RAM?
+		CMOS.DATA.extraRAMdata[0] = value; //Write the RAM!
+		return 1;
+		break;
+	case 0x250: //Counters reset?
+	case 0x254: //Status bit?
+		return 1; //Write the RAM!
 		break;
 	default: //Unknown?
 		break; //Do nothing!
