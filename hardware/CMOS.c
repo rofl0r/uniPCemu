@@ -286,16 +286,16 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 	if (curtime->year<1970) return 0; //Before 1970 isn't supported!
 	datetime->tv_usec = curtime->us; //Save the microseconds directly!
 	uint_64 year;
-	sbyte counter;
+	byte counter;
 	byte leapyear;
-	for (year=(curtime->year-1);year>1970;) //Process the years!
+	for (year=curtime->year;year>1970;) //Process the years!
 	{
+		--year; //The previous year has passed!
 		seconds += YEARSIZE(year)*DAYSIZE; //Add the year that has passed!
-		--year;
 	}
 	leapyear = LEAPYEAR(curtime->year); //Are we a leap year?
 	//Now, only months etc. are left!
-	for (counter = curtime->month;counter > 1;)
+	for (counter = curtime->month;counter>1;) //Process the months!
 	{
 		seconds += _ytab[leapyear][--counter]*DAYSIZE; //Add a month that has passed!
 	}
@@ -454,7 +454,7 @@ void loadCMOS()
 void saveCMOS()
 {
 	if (!CMOS.Loaded) return; //Don't save when not loaded/initialised!
-	memcpy(&BIOS_Settings.CMOS, &CMOS.DATA.DATA80.data, 0x80); //Copy the CMOS to BIOS!
+	memcpy(&BIOS_Settings.CMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 	BIOS_Settings.timedivergeance = CMOS.timedivergeance; //Apply the new time divergeance to the existing time!
 	BIOS_Settings.timedivergeance2 = CMOS.timedivergeance2; //Apply the new time divergeance to the existing time!
 	BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
@@ -526,7 +526,6 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 	case 0x246: //day of month
 	case 0x247: //month
 	case 0x249: //year
-		readXTRTCADDR:
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
 		goto readXTRTC; //Read the XT RTC!
@@ -612,7 +611,6 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x246: //day of month
 	case 0x247: //month
 	case 0x249: //year
-		writeXTRTCADDR:
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
 		goto writeXTRTC; //Read the XT RTC!
