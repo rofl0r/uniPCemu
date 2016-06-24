@@ -237,14 +237,11 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 
 VGA_AttributeInfo currentattributeinfo; //Our current collected attribute info!
 
-OPTINLINE static void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Load the planes!
+OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Load the planes!
 {
 	INLINEREGISTER uint_32 loadedlocation, vramlocation; //The location we load at!
 	//Horizontal logic
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
-
-	{
-	}
 
 	//Column logic
 	loadedlocation = Sequencer->memoryaddress; //Load the address to be loaded!

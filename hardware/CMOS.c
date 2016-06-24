@@ -235,7 +235,6 @@ typedef struct
 byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
 {
 	uint_64 seconds = curtime->tv_sec; //Get the amount of seconds, ignore ms for now(not used?)
-	uint_64 usec = curtime->tv_usec;
 	datetime->us = curtime->tv_usec;
 	datetime->s100 = (curtime->tv_usec/10000); //10000us=1/100 second!
 	datetime->year = (seconds/EPOCH_YEAR); //Year(counting since 1-1-1970)!
