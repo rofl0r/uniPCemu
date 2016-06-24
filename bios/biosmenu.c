@@ -4419,7 +4419,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	memset(&emptycmos, 0, sizeof(emptycmos)); //Empty CMOS for comparision!
 	if ((BIOS_Settings.got_CMOS) || (memcmp(&BIOS_Settings.CMOS, emptycmos,sizeof(emptycmos)) != 0)) //Gotten a CMOS?
 	{
-		memset(BIOS_Settings.CMOS, 0, sizeof(BIOS_Settings.CMOS));
+		memset(&BIOS_Settings.CMOS, 0, sizeof(BIOS_Settings.CMOS));
 		BIOS_Settings.got_CMOS = 0; //We haven't gotten a CMOS!
 		BIOS_Changed = 1; //We've changed!
 		reboot_needed = 2; //We're needing a reboot!

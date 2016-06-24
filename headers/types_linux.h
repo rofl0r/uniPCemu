@@ -38,4 +38,7 @@ typedef uint_64 ptrnum;
 typedef uint_32 ptrnum;
 #endif
 
+//We're Linux!
+#define IS_LINUX
+
 #endif

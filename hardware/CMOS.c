@@ -65,54 +65,7 @@ byte decodeBCD8(byte value)
 
 struct
 {
-	union
-	{
-		struct
-		{
-			byte RTC_Seconds; //BCD 00-59
-			byte RTC_SecondAlarm; //BCD 00-59, hex 00-3B, "don't care" if C0-FF
-			byte RTC_Minutes; //BCD 00-59
-			byte RTC_MinuteAlarm; //See secondalarm
-			byte RTC_Hours; //BCD 00-23, Hex 00-17 if 24hr; BCD 01-12, Hex 01-0C if 12hr AM; BCD 82-92, Hex 81-8C if 12hr PM
-			byte RTC_HourAlarm; //Same as Hours, "Don't care" if C0-FF
-			byte RTC_DayOfWeek; //01-07; Sunday=1
-			byte RTC_DateOfMonth; //BCD 01-31, Hex 01-1F
-			byte RTC_Month; //BCD 01-12, Hex 01-0C
-			byte RTC_Year; //BCD 00-99, Hex 00-63
-
-	//On-chip status information:
-
-			union
-			{
-				byte value;
-				struct
-				{
-					byte IntRateSelection : 4; //Rate selection bits for interrupt: 0:None;3:122ms(minimum);16:500ms;6:1024Hz(default).
-					byte Data_22StageDivider : 3; //2=32768 Time base (default)
-					byte UpdateInProgress : 1; //Time update in progress, data outputs undefined (read-only)
-				};
-			} STATUSREGISTERA; //CMOS 0Ah
-
-			union
-			{
-				byte value;
-				struct
-				{
-					byte DSTEnable : 1; //DST Enabled?
-					byte Enable24HourMode : 1; //24 hour mode enabled?
-					byte DataModeBinary : 1; //1=Binary, 0=BCD
-					byte EnableSquareWaveOutput : 1; //1=Enabled
-					byte EnabledUpdateEndedInterrupt : 1;
-					byte EnableAlarmInterrupt : 1;
-					byte EnablePeriodicInterrupt : 1;
-					byte EnableCycleUpdate : 1;
-				};
-			} STATUSREGISTERB;
-
-			byte ToDo[116]; //Still todo!
-		} info;
-		byte data[0x80]; //CMOS Data!
-	}; //The data!
+	CMOSDATA DATA;
 	double timedivergeance;
 	byte IRQ8_Disabled; //IRQ8 not allowed to run for this type? (bits 0x10-0x40 are set for enabled)?
 	byte Loaded; //CMOS loaded?
@@ -132,41 +85,19 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS settings loaded!
 
 void loadCMOSDefaults()
 {
-	memset(&CMOS.data,0,sizeof(CMOS.data)); //Clear/init CMOS!
-	CMOS.data[0x10] = ((FLOPPY_144)<<4)|(FLOPPY_144); //High=Master, Low=Slave!
-	CMOS.data[0x15] = 0x15; //We have...
-	CMOS.data[0x16] = 0x16; //640K base memory!
+	memset(&CMOS.DATA.DATA80,0,sizeof(CMOS.DATA)); //Clear/init CMOS!
+	CMOS.DATA.DATA80.data[0x10] = ((FLOPPY_144)<<4)|(FLOPPY_144); //High=Master, Low=Slave!
+	CMOS.DATA.DATA80.data[0x15] = 0x15; //We have...
+	CMOS.DATA.DATA80.data[0x16] = 0x16; //640K base memory!
+	CMOS.timedivergeance = 0.0; //No divergeance!
 	CMOS.Loaded = 1; //Loaded: ready to save!
-}
-
-void loadCMOS()
-{
-	if (BIOS_Settings.got_CMOS)
-	{
-		loadCMOSDefaults(); //No CMOS!
-		return;
-	}
-	else //Load BIOS CMOS!
-	{
-		memcpy(&CMOS.data,&BIOS_Settings.CMOS,0x80); //Copy to our memory!
-	}
-	CMOS.Loaded = 1; //The CMOS is loaded!
-}
-
-void saveCMOS()
-{
-	if (!CMOS.Loaded) return; //Don't save when not loaded/initialised!
-	memcpy(&BIOS_Settings.CMOS,&CMOS.data,0x80); //Copy the CMOS to BIOS!
-	BIOS_Settings.timedivergeance = CMOS.timedivergeance; //Apply the new time divergeance to the existing time!
-	BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
-	forceBIOSSave(); //Save the BIOS data!
 }
 
 void RTC_PeriodicInterrupt() //Periodic Interrupt!
 {
-	CMOS.data[0x0C] |= 0x40; //Periodic Interrupt flag!
+	CMOS.DATA.DATA80.data[0x0C] |= 0x40; //Periodic Interrupt flag!
 
-	if (CMOS.data[0x0B]&0x40) //Enabled interrupt?
+	if (CMOS.DATA.DATA80.data[0x0B]&0x40) //Enabled interrupt?
 	{
 		CMOS.IRQ8_Disabled |= 0x40; //Disable future calls!
 		doirq(8); //Run the IRQ!
@@ -175,9 +106,9 @@ void RTC_PeriodicInterrupt() //Periodic Interrupt!
 
 void RTC_UpdateEndedInterrupt(byte manualtrigger) //Update Ended Interrupt!
 {
-	CMOS.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
+	CMOS.DATA.DATA80.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
 
-	if (CMOS.data[0x0B]&0x10) //Enabled interrupt?
+	if (CMOS.DATA.DATA80.data[0x0B]&0x10) //Enabled interrupt?
 	{
 		if (!manualtrigger)
 		{
@@ -189,9 +120,9 @@ void RTC_UpdateEndedInterrupt(byte manualtrigger) //Update Ended Interrupt!
 
 void RTC_AlarmInterrupt() //Alarm handler!
 {
-	CMOS.data[0x0C] |= 0x20; //Alarm Interrupt flag!
+	CMOS.DATA.DATA80.data[0x0C] |= 0x20; //Alarm Interrupt flag!
 
-	if (CMOS.data[0x0B]&0x20) //Enabled interrupt?
+	if (CMOS.DATA.DATA80.data[0x0B]&0x20) //Enabled interrupt?
 	{
 		CMOS.IRQ8_Disabled |= 0x20; //Disable future calls!
 		doirq(8); //Run the IRQ!
@@ -210,82 +141,214 @@ void CMOS_onRead() //When CMOS is being read (special actions).
 
 void RTC_Handler() //Handle RTC Timer Tick!
 {
-	if (CMOS.info.STATUSREGISTERB.EnablePeriodicInterrupt) //Enabled?
+	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnablePeriodicInterrupt) //Enabled?
 	{
 		RTC_PeriodicInterrupt(); //Handle!
 	}
 
-	if (CMOS.info.STATUSREGISTERB.EnabledUpdateEndedInterrupt) //Enabled?
+	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnabledUpdateEndedInterrupt) //Enabled?
 	{
 		RTC_UpdateEndedInterrupt(0); //Handle!
 	}
 
-	if ((CMOS.info.RTC_Hours==CMOS.info.RTC_HourAlarm) &&
-			(CMOS.info.RTC_Minutes==CMOS.info.RTC_MinuteAlarm) &&
-			(CMOS.info.RTC_Seconds==CMOS.info.RTC_SecondAlarm) &&
-			(CMOS.info.STATUSREGISTERB.EnableAlarmInterrupt)) //Alarm on?
+	if ((CMOS.DATA.DATA80.info.RTC_Hours==CMOS.DATA.DATA80.info.RTC_HourAlarm) &&
+			(CMOS.DATA.DATA80.info.RTC_Minutes==CMOS.DATA.DATA80.info.RTC_MinuteAlarm) &&
+			(CMOS.DATA.DATA80.info.RTC_Seconds==CMOS.DATA.DATA80.info.RTC_SecondAlarm) &&
+			(CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableAlarmInterrupt)) //Alarm on?
 	{
 		RTC_AlarmInterrupt(); //Handle!
 	}
 }
 
-void decodetime(struct tm *curtime) //Decode time into the current time!
+#ifdef IS_WINDOWS
+struct timezone {
+	int tz_minuteswest;     /* minutes west of Greenwich */
+	int tz_dsttime;         /* type of DST correction */
+};
+
+//For cross-platform compatibility!
+int gettimeofday(struct timeval * tp, struct timezone * tzp)
 {
-	curtime->tm_year = decodeBCD8(CMOS.info.RTC_Year); //The year to compare to!
-	curtime->tm_mon = decodeBCD8(CMOS.info.RTC_Month); //The month to compare to!
-	curtime->tm_mday = decodeBCD8(CMOS.info.RTC_DateOfMonth); //The day to compare to!
-	curtime->tm_hour = decodeBCD8(CMOS.info.RTC_Hours); //H
-	curtime->tm_min = decodeBCD8(CMOS.info.RTC_Minutes); //M
-	curtime->tm_sec = decodeBCD8(CMOS.info.RTC_Seconds); //S
+	// Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+	static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
+
+	SYSTEMTIME  system_time;
+	FILETIME    file_time;
+	uint64_t    time;
+
+	GetSystemTime(&system_time);
+	SystemTimeToFileTime(&system_time, &file_time);
+	time = ((uint64_t)file_time.dwLowDateTime);
+	time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+	tp->tv_sec = (long)((time - EPOCH) / 10000000L);
+	tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
+	return 0;
+}
+#else
+#ifdef IS_PSP
+#ifndef timeval
+// MSVC defines this in winsock2.h!?
+typedef struct timeval {
+	long tv_sec;
+	long tv_usec;
+} timeval;
+#endif
+
+int gettimeofday(struct timeval * tp, struct timezone * tzp)
+{
+	//Unknown?
+	return 1; //Error: couldn't retrieve!
+}
+#endif
+#endif
+
+//Our accurate time support:
+
+typedef struct
+{
+	uint_64 year;
+	byte month;
+	byte day;
+	byte hour;
+	byte minute;
+	byte second;
+	word s100; //100th seconds(use either this or microseconds, since they both give the same time, only this one is rounded down!)
+	uint_64 us; //Microseconds?
+} accuratetime;
+
+//Epoch time values!
+#define EPOCH_YEAR 31556926
+#define EPOCH_MONTH 2629743
+#define EPOCH_DAY 86400
+#define EPOCH_HOUR 3600
+#define EPOCH_MINUTE 60
+#define EPOCH_SECOND 1
+
+byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
+{
+	uint_64 seconds = curtime->tv_sec; //Get the amount of seconds, ignore ms for now(not used?)
+	uint_64 usec = curtime->tv_usec;
+	datetime->us = curtime->tv_usec;
+	datetime->s100 = (curtime->tv_usec/10000); //10000us=1/100 second!
+	datetime->year = (seconds/EPOCH_YEAR); //Year(counting since 1-1-1970)!
+	seconds -= datetime->year*EPOCH_YEAR; //Rest!
+	datetime->year += 1970; //We start at 1970!
+	datetime->month = (seconds/EPOCH_MONTH); //Month!
+	seconds -= datetime->month*EPOCH_MONTH; //Rest!
+	datetime->day = (seconds/EPOCH_DAY);
+	seconds -= datetime->day*EPOCH_DAY;
+	datetime->second = seconds; //The amount of seconds is left!
+	return 1; //Always successfully converted!
 }
 
-void encodetime(struct tm *curtime) //Encode time into the current time!
+byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 {
-	CMOS.info.RTC_Year = encodeBCD8(curtime->tm_year);
-	CMOS.info.RTC_Month = encodeBCD8(curtime->tm_mon);
-	CMOS.info.RTC_DateOfMonth = encodeBCD8(curtime->tm_mday);
-	CMOS.info.RTC_Hours = encodeBCD8(curtime->tm_hour);
-	CMOS.info.RTC_Minutes = encodeBCD8(curtime->tm_min);
-	CMOS.info.RTC_Seconds = encodeBCD8(curtime->tm_sec);
+	uint_64 seconds=0;
+	if ((curtime->us/10000)!=(curtime->s100)) return 0; //Invalid time to convert: 100th seconds doesn't match us(this is supposed to be the same!)
+	if (curtime->year<1970) return 0; //Before 1970 isn't supported!
+	datetime->tv_usec = curtime->us; //Save the microseconds directly!
+	seconds += (curtime->year-1970)*EPOCH_YEAR; //Years!
+	seconds += curtime->month*EPOCH_MONTH; //Months!
+	seconds += curtime->day*EPOCH_DAY; //Day of month!
+	seconds += curtime->hour*EPOCH_HOUR; //Hours
+	seconds += curtime->minute*EPOCH_MINUTE; //Minutes
+	seconds += curtime->second*EPOCH_SECOND; //Seconds!
+	datetime->tv_sec = seconds; //The amount of seconds!
+	return 1; //Successfully converted!
+}
+
+void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
+{
+	curtime->year = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Year); //The year to compare to!
+	curtime->month = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Month); //The month to compare to!
+	curtime->day = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DateOfMonth); //The day to compare to!
+	curtime->hour = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Hours); //H
+	curtime->minute = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Minutes); //M
+	curtime->second = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Seconds); //S
+	curtime->s100 = decodeBCD8(CMOS.DATA.s100); //The 100th seconds!
+	curtime->us = curtime->s100*10000; //The same as above, make sure we match!
+}
+
+void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
+{
+	CMOS.DATA.DATA80.info.RTC_Year = encodeBCD8(curtime->year%100);
+	CMOS.DATA.DATA80.info.RTC_Month = encodeBCD8(curtime->month);
+	CMOS.DATA.DATA80.info.RTC_DateOfMonth = encodeBCD8(curtime->day);
+	CMOS.DATA.DATA80.info.RTC_Hours = encodeBCD8(curtime->hour);
+	CMOS.DATA.DATA80.info.RTC_Minutes = encodeBCD8(curtime->minute);
+	CMOS.DATA.DATA80.info.RTC_Seconds = encodeBCD8(curtime->second);
+	CMOS.DATA.s100 = encodeBCD8(curtime->s100); //The 100th seconds!
+}
+
+double calcDivergeance(accuratetime *time1, accuratetime *time2) //Calculates the difference of time1 compared to time2(reference time)!
+{
+	struct timeval time1val, time2val; //Our time values!
+	if (accuratetimetoepoch(time1, &time1val)) //Converted to universal value?
+	{
+		if (accuratetimetoepoch(time2, &time2val)) //Converted to universal value?
+		{
+			return (double)((((time1val.tv_sec*1000000)+time1val.tv_usec)-((time2val.tv_sec * 1000000) + time2val.tv_usec))/1000000); //Give the difference time!
+		}
+	}
+	return 0.0f; //Unknown: Don't apply divergeance!
+}
+
+void applyDivergeance(accuratetime *curtime, double divergeance) //Apply divergeance to accurate time!
+{
+	struct timeval timeval; //The accurate time value!
+	uint_64 applyingtime; //Biggest integer value we have!
+	if (accuratetimetoepoch(curtime, &timeval)) //Converted to epoch?
+	{
+		applyingtime = ((timeval.tv_sec * 1000000) + timeval.tv_usec); //Direct time conversion!
+		applyingtime += (divergeance*1000000); //Add the divergeance: we're applying the destination time!
+		timeval.tv_sec = (applyingtime/1000000); //Time in seconds!
+		applyingtime -= (timeval.tv_sec*1000000); //Substract to get microseconds!
+		timeval.tv_usec = applyingtime; //We have the amount of microseconds left!
+	}
 }
 
 void updateTimeDivergeance() //Update relative time to the clocks(time difference changes)! This is called when software changes the time/date!
 {
-	time_t t = time(0);
-	struct tm *curtime = gmtime(&t); //Get the current time as a general unchanging timepoint by timezone(GMT)!
-	struct tm savedtime;
-	decodetime(&savedtime); //Get the currently stored time in the CMOS!
-	CMOS.timedivergeance = difftime(mktime(&savedtime),mktime(curtime)); //Apply the new time divergeance!
-}
-
-void incTime(struct tm *curtime, double inctime)
-{
-	//double temp = inctime; //Load the time to increase!
-	//Increase time in seconds with curtime!
-	//Give the resulting time as curtime!
-}
-
-void applyTimeDivergeance(struct tm *curtime) //Apply current time to the clocks(Time applying when detected updates)!
-{
-	incTime(curtime,CMOS.timedivergeance); //Add the divergeance to the curtime!
-	encodetime(curtime); //Apply the calculated time to the chip!
+	struct timeval tp;
+	struct timezone currentzone;
+	accuratetime savedtime,currenttime;
+	CMOS_decodetime(&savedtime); //Get the currently stored time in the CMOS!
+	if (gettimeofday(&tp,&currentzone)==0) //Time gotten?
+	{
+		if (epochtoaccuratetime(&tp,&currenttime)) //Convert to accurate time!
+		{
+			lock(LOCK_CMOS); //We're updating critical information!
+			CMOS.timedivergeance = calcDivergeance(&savedtime,&currenttime); //Apply the new time divergeance!
+			unlock(LOCK_CMOS); //Finished updating!
+		}
+	}
 }
 
 //Update the current Date/Time (1 times a second)!
 void RTC_updateDateTime()
 {
-	//Apply time!
-	time_t t = time(0);
-	struct tm *curtime = gmtime(&t); //Get the current time as a general unchanging timepoint by timezone(GMT)!
-	lock(LOCK_CMOS);
-	applyTimeDivergeance(curtime); //Apply the new time divergeance!
-	RTC_Handler(); //Handle anything that the RTC has to handle!
-	unlock(LOCK_CMOS); //Finished updating!
+	//Get time!
+	struct timeval tp;
+	struct timezone currentzone;
+	accuratetime currenttime;
+	if (gettimeofday(&tp, &currentzone) == 0) //Time gotten?
+	{
+		if (epochtoaccuratetime(&tp,&currenttime)) //Converted?
+		{
+			//Apply time!
+			lock(LOCK_CMOS);
+			applyDivergeance(&currenttime, CMOS.timedivergeance); //Apply the new time divergeance!
+			CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
+			RTC_Handler(); //Handle anything that the RTC has to handle!
+			unlock(LOCK_CMOS); //Finished updating!
+		}
+	}
 }
 
 uint_32 getIRQ8Rate()
 {
-	return 32768>>(CMOS.data[0xA]); //The frequency!
+	return 32768>>(CMOS.DATA.DATA80.data[0xA]); //The frequency!
 }
 
 void CMOS_onWrite() //When written to CMOS!
@@ -306,9 +369,34 @@ void CMOS_onWrite() //When written to CMOS!
 	}
 }
 
+void loadCMOS()
+{
+	if (!BIOS_Settings.got_CMOS)
+	{
+		loadCMOSDefaults(); //No CMOS!
+		updateTimeDivergeance(); //Load the default time divergeance too!
+		return;
+	}
+	else //Load BIOS CMOS!
+	{
+		memcpy(&CMOS.DATA.DATA80, &BIOS_Settings.CMOS, sizeof(CMOS.DATA.DATA80)); //Copy to our memory!
+	}
+	CMOS.timedivergeance = BIOS_Settings.timedivergeance; //Load the divergeance too!
+	CMOS.Loaded = 1; //The CMOS is loaded!
+}
+
+void saveCMOS()
+{
+	if (!CMOS.Loaded) return; //Don't save when not loaded/initialised!
+	memcpy(&BIOS_Settings.CMOS, &CMOS.DATA.DATA80.data, 0x80); //Copy the CMOS to BIOS!
+	BIOS_Settings.timedivergeance = CMOS.timedivergeance; //Apply the new time divergeance to the existing time!
+	BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
+	forceBIOSSave(); //Save the BIOS data!
+}
+
 byte XTRTC_translatetable[0x10] = {0,
-0, //0.01 seconds
-0, //0.1 seconds
+0x81, //0.01 seconds
+0x81, //0.1 seconds
 0, //seconds
 2, //minutes
 4, //hours
@@ -336,7 +424,23 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 		readXTRTC: //XT RTC read compatibility
 		CMOS_onRead(); //Execute handler!
 		lock(LOCK_CMOS); //Lock the CMOS!
-		byte data =  CMOS.data[CMOS.ADDR]; //Give the data from the CMOS!
+		byte data;
+		if ((CMOS.ADDR&0x80)==0x00) //Normal data?
+		{
+			data = CMOS.DATA.DATA80.data[CMOS.ADDR]; //Give the data from the CMOS!
+		}
+		else
+		{
+			switch (CMOS.ADDR & 0x7F) //What extended register?
+			{
+			case 0: //s100?
+				data = CMOS.DATA.s100; //100th seconds!
+				break;
+			default: //Unknown?
+				data = 0; //Unknown register!
+				break;
+			}
+		}
 		unlock(LOCK_CMOS);
 		CMOS.ADDR = 0xD; //Reset address!
 		if (numberpart) //Number part (BCD)?
@@ -347,7 +451,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			}
 			data &= 0xF; //Low nibble or high nibble!
 		}
-		if (isXT || CMOS.info.STATUSREGISTERB.DataModeBinary) //To convert to binary?
+		if (isXT || CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert to binary?
 		{
 			data = decodeBCD8(data); //Decode the binary data!
 		}
@@ -400,9 +504,26 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x71:
 		writeXTRTC: //XT RTC write compatibility
 		lock(LOCK_CMOS); //Lock the CMOS!
+		byte data;
+		if ((CMOS.ADDR & 0x80) == 0x00) //Normal data?
+		{
+			data = CMOS.DATA.DATA80.data[CMOS.ADDR]; //Give the data from the CMOS!
+		}
+		else
+		{
+			switch (CMOS.ADDR & 0x7F) //What extended register?
+			{
+			case 0: //s100?
+				data = CMOS.DATA.s100; //100th seconds!
+				break;
+			default: //Unknown?
+				data = 0; //Unknown register!
+				break;
+			}
+		}
 		if (numberpart) //Only a nibble updated?
 		{
-			temp = CMOS.data[CMOS.ADDR]; //Read the original data!
+			temp = data; //Original data!
 			if (numberpart==1) //Low BCD digit?
 			{
 				temp &= 0xF0; //Clear low BCD digit!
@@ -415,11 +536,28 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 			}
 			value = temp; //Use this value, as specified!
 		}
-		if ((isXT==0) && CMOS.info.STATUSREGISTERB.DataModeBinary) //To convert from binary?
+		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert from binary?
 		{
 			value = encodeBCD8(value); //Encode the binary data!
 		}
-		CMOS.data[CMOS.ADDR] = value; //Set value in CMOS!
+
+		//Write back the destination data!
+		if ((CMOS.ADDR & 0x80) == 0x00) //Normal data?
+		{
+			CMOS.DATA.DATA80.data[CMOS.ADDR] = value; //Give the data from the CMOS!
+		}
+		else
+		{
+			switch (CMOS.ADDR & 0x7F) //What extended register?
+			{
+			case 0: //s100?
+				CMOS.DATA.s100 = value; //100th seconds!
+				break;
+			default: //Unknown?
+				//Unknown register! Can't write!
+				break;
+			}
+		}
 		unlock(LOCK_CMOS);
 		CMOS_onWrite(); //On write!
 		CMOS.ADDR = 0xD; //Reset address!		

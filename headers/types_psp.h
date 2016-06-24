@@ -35,4 +35,7 @@
 //PSP pointers are always 32-bit!
 typedef uint_32 ptrnum;
 
+//We're PSP!
+#define IS_PSP
+
 #endif

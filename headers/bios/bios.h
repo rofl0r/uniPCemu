@@ -3,13 +3,14 @@
 
 #include "headers/bios/biosmenu.h" //BIOS menu comp.
 #include "headers/emu/input.h" //For INPUT_SETTINGS!
+#include "headers/hardware/cmos.h" //CMOS support!
 //First, the typedefs:
 
 //Delay between steps!
 #define BIOS_INPUTDELAY 250000
 
 //BIOS Version!
-#define BIOS_VERSION 6
+#define BIOS_VERSION 7
 
 #include "headers/packed.h" //We're packed!
 typedef struct PACKED
@@ -47,7 +48,7 @@ typedef struct PACKED
 	byte BIOSmenu_font; //The selected font for the BIOS menu!
 	byte firstrun; //Is this the first run of this BIOS?
 
-	byte CMOS[0x80]; //The full saved CMOS!
+	CMOSDATA CMOS; //The full saved CMOS!
 	byte got_CMOS; //Gotten an CMOS?
 
 	byte executionmode; //What mode to execute in during runtime?
