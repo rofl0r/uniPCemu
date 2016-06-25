@@ -217,6 +217,7 @@ typedef struct
 	byte minute;
 	byte second;
 	byte s100; //100th seconds(use either this or microseconds, since they both give the same time, only this one is rounded down!)
+	byte s10000; //10000th seconds!
 	uint_64 us; //Microseconds?
 	byte dst;
 	byte weekday;
@@ -243,6 +244,7 @@ byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
 	//More accurate timing than default!
 	datetime->us = curtime->tv_usec;
 	datetime->s100 = (curtime->tv_usec/10000); //10000us=1/100 second!
+	datetime->s10000 = ((curtime->tv_usec%10000)/100); //100us=1/10000th second!
 
 	//Further is directly taken from the http://stackoverflow.com/questions/1692184/converting-epoch-time-to-real-date-time gmtime source code.
 	register unsigned long dayclock, dayno;
@@ -282,7 +284,7 @@ byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
 byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 {
 	uint_64 seconds=0;
-	if ((curtime->us/10000)!=(curtime->s100)) return 0; //Invalid time to convert: 100th seconds doesn't match us(this is supposed to be the same!)
+	if ((curtime->us-(curtime->us%100))!=(((curtime->s100)*10000)+(curtime->s10000*100))) return 0; //Invalid time to convert: 100th&10000th seconds doesn't match us(this is supposed to be the same!)
 	if (curtime->year<1970) return 0; //Before 1970 isn't supported!
 	datetime->tv_usec = curtime->us; //Save the microseconds directly!
 	uint_64 year;
@@ -321,7 +323,8 @@ void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
 	curtime->second = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Seconds); //S
 	curtime->weekday = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DayOfWeek); //Day of week!
 	curtime->s100 = decodeBCD8(CMOS.DATA.s100); //The 100th seconds!
-	curtime->us = curtime->s100*10000; //The same as above, make sure we match!
+	curtime->s10000 = decodeBCD8(CMOS.DATA.s10000); //The 10000th seconds!
+	curtime->us = (curtime->s100*10000)+(curtime->s10000*100); //The same as above, make sure we match!
 }
 
 void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
@@ -336,6 +339,7 @@ void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
 	CMOS.DATA.DATA80.info.RTC_Seconds = encodeBCD8(curtime->second);
 	CMOS.DATA.DATA80.info.RTC_DayOfWeek = encodeBCD8(curtime->weekday); //The day of the week!
 	CMOS.DATA.s100 = encodeBCD8(curtime->s100); //The 100th seconds!
+	CMOS.DATA.s10000 = encodeBCD8(curtime->s10000); //The 10000th seconds!
 }
 
 //Divergeance support!
@@ -359,7 +363,7 @@ byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 *divergean
 	return 0; //Unknown: Don't apply divergeance!
 }
 
-void applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, int_64 divergeance_usec) //Apply divergeance to accurate time!
+byte applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, int_64 divergeance_usec) //Apply divergeance to accurate time!
 {
 	struct timeval timeval; //The accurate time value!
 	BIGGESTSINT applyingtime; //Biggest integer value we have!
@@ -373,7 +377,12 @@ void applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, int_64 dive
 		timeval.tv_sec = (applyingtime/1000000); //Time in seconds!
 		applyingtime -= (timeval.tv_sec*1000000); //Substract to get microseconds!
 		timeval.tv_usec = applyingtime; //We have the amount of microseconds left!
+		if (epochtoaccuratetime(&timeval,curtime)) //Convert back to apply it to the current time!
+		{
+			return 1; //Success!
+		}
 	}
+	return 0; //Failed!
 }
 
 //Calculating relative time from the CMOS!
@@ -383,6 +392,7 @@ void updateTimeDivergeance() //Update relative time to the clocks(time differenc
 	struct timezone currentzone;
 	accuratetime savedtime,currenttime;
 	CMOS_decodetime(&savedtime); //Get the currently stored time in the CMOS!
+	dolog("CMOS","Updating time divergeance: %u-%u-%u %u:%u:%u.%u",savedtime.year,savedtime.month,savedtime.day,savedtime.hour,savedtime.minute,savedtime.second,savedtime.s100); //Log the updated information!
 	if (gettimeofday(&tp,&currentzone)==0) //Time gotten?
 	{
 		if (epochtoaccuratetime(&tp,&currenttime)) //Convert to accurate time!
@@ -427,7 +437,7 @@ void CMOS_onWrite() //When written to CMOS!
 	}
 	else if (CMOS.ADDR < 0xA) //Date/time might have been updated?
 	{
-		if ((CMOS.ADDR != 1) && (CMOS.ADDR != 3) && (CMOS.ADDR != 5)) //Date/Time has been updated?
+		if ((CMOS.ADDR != 1) && (CMOS.ADDR != 3) && (CMOS.ADDR != 5)) //Date/Time has been updated(not Alarm being set)?
 		{
 			updateTimeDivergeance(); //Update the relative time compared to current time!
 		}
@@ -462,22 +472,22 @@ void saveCMOS()
 }
 
 byte XTRTC_translatetable[0x10] = {
-0xFF, //-
-0x80, //100s seconds
-0, //seconds
-2, //minutes
-4, //hours
-6, //day of week
-7, //day of month
-8, //month
-0xFF, //-
-9, //Year
-0xFF, //-
-0xFF, //-
-0xFF, //-
-0xFF, //-
-0xFF, //-
-0xFF //-
+0x80, //00: 1/10000 seconds
+0x81, //01: 1/100 seconds
+0x00, //02: seconds
+0x02, //03: minutes
+0x04, //04: hours
+0x06, //05: day of week
+0x07, //06: day of month
+0x08, //07: month
+0xFF, //08: RAM
+0xFF, //09: year(RAM), unexistant on our chip
+0xFF, //0A: RAM
+0xFF, //0B: RAM
+0xFF, //0C: RAM
+0xFF, //0D: RAM
+0xFF, //0E: RAM
+0xFF  //0F: RAM
 }; //XT to CMOS translation table!
 
 byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
@@ -501,7 +511,10 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 		{
 			switch (CMOS.ADDR & 0x7F) //What extended register?
 			{
-			case 0: //s100?
+			case 0: //s10000?
+				data = (CMOS.DATA.s10000&0xF0); //10000th seconds, high digit only!
+				break;
+			case 1: //s100?
 				data = CMOS.DATA.s100; //100th seconds!
 				break;
 			default: //Unknown?
@@ -518,6 +531,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 		*result = data; //Give the data!
 		return 1;
 	//XT RTC support?
+	case 0x240: //1/10000 seconds
 	case 0x241: //1/100 seconds
 	case 0x242: //seconds
 	case 0x243: //minutes
@@ -525,19 +539,31 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 	case 0x245: //day of week
 	case 0x246: //day of month
 	case 0x247: //month
-	case 0x249: //year
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
 		goto readXTRTC; //Read the XT RTC!
-	case 0x248: //RAM?
-		*result = CMOS.DATA.extraRAMdata[0]; //Read the RAM!
-		return 1;
+	//Latches:
+	case 0x248: //1/10000 seconds
+	case 0x249: //1/100 seconds
+	case 0x24A: //seconds
+	case 0x24B: //minutes
+	case 0x24C: //hours
+	case 0x24D: //day of week
+	case 0x24E: //day of month
+	case 0x24F: //month
+	//Rest registers of the chip:
+	case 0x250: //Interrupt status Register
+	case 0x251: //Interrupt control Register
+	case 0x252: //Counter Reset
+	case 0x253: //Latch Reset
+	case 0x255: //"GO" Command
+	case 0x256: //Standby Interrupt
+	case 0x257: //Test Mode
+		*result = CMOS.DATA.extraRAMdata[port-0x248]; //Read the value directly into RAM!
+		return 1; //Simply supported for now(plain RAM read)!
 		break;
-	case 0x250: //Counters reset?
-		*result = 0; //Give nothing?
-		return 1;
-	case 0x254: //Status bit?
-		*result = 0; //Give status!
+	case 0x254: //Status Bit
+		*result = 0; //Not updating the status!
 		return 1;
 		break;
 	}
@@ -547,7 +573,6 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 {
 	byte isXT = 0;
-	byte temp; //Temp data!
 	switch (port)
 	{
 	case 0x70: //CMOS ADDR
@@ -558,23 +583,6 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x71:
 		writeXTRTC: //XT RTC write compatibility
 		lock(LOCK_CMOS); //Lock the CMOS!
-		byte data;
-		if ((CMOS.ADDR & 0x80) == 0x00) //Normal data?
-		{
-			data = CMOS.DATA.DATA80.data[CMOS.ADDR]; //Give the data from the CMOS!
-		}
-		else
-		{
-			switch (CMOS.ADDR & 0x7F) //What extended register?
-			{
-			case 0: //s100?
-				data = CMOS.DATA.s100; //100th seconds!
-				break;
-			default: //Unknown?
-				data = 0; //Unknown register!
-				break;
-			}
-		}
 		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert from binary?
 		{
 			value = encodeBCD8(value); //Encode the binary data!
@@ -588,7 +596,10 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		{
 			switch (CMOS.ADDR & 0x7F) //What extended register?
 			{
-			case 0: //s100?
+			case 0: //s10000?
+				CMOS.DATA.s10000 = (value&0xF0); //10000th seconds!
+				break;
+			case 1: //s100?
 				CMOS.DATA.s100 = value; //100th seconds!
 				break;
 			default: //Unknown?
@@ -603,6 +614,7 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		return 1;
 		break;
 	//XT RTC support?
+	case 0x240: //1/10000 seconds
 	case 0x241: //1/100 seconds
 	case 0x242: //seconds
 	case 0x243: //minutes
@@ -610,18 +622,29 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x245: //day of week
 	case 0x246: //day of month
 	case 0x247: //month
-	case 0x249: //year
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
 		goto writeXTRTC; //Read the XT RTC!
 		break;
-	case 0x248: //RAM?
-		CMOS.DATA.extraRAMdata[0] = value; //Write the RAM!
-		return 1;
-		break;
-	case 0x250: //Counters reset?
-	case 0x254: //Status bit?
-		return 1; //Write the RAM!
+	//Latches:
+	case 0x248: //1/10000 seconds
+	case 0x249: //1/100 seconds
+	case 0x24A: //seconds
+	case 0x24B: //minutes
+	case 0x24C: //hours
+	case 0x24D: //day of week
+	case 0x24E: //day of month
+	case 0x24F: //month
+	//Rest registers of the chip:
+	case 0x250: //Interrupt status Register
+	case 0x251: //Interrupt control Register
+	case 0x252: //Counter Reset
+	case 0x253: //Latch Reset
+	case 0x254: //Status Bit
+	case 0x255: //"GO" Command
+	case 0x256: //Standby Interrupt
+	case 0x257: //Test Mode
+		CMOS.DATA.extraRAMdata[port-0x248] = value; //Save the value directly into RAM!
 		break;
 	default: //Unknown?
 		break; //Do nothing!

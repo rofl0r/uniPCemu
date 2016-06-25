@@ -18,7 +18,7 @@ typedef struct
 			byte RTC_Month; //BCD 01-12, Hex 01-0C
 			byte RTC_Year; //BCD 00-99, Hex 00-63
 
-						   //On-chip status information:
+			//On-chip status information:
 
 			union
 			{
@@ -52,7 +52,8 @@ typedef struct
 		byte data[0x80]; //CMOS Data!
 	} DATA80; //The normal CMOS data!
 	byte s100; //Extra support for 100th seconds!
-	byte extraRAMdata[1]; //Extra RAM data from XT RTC!
+	byte s10000; //Extra support for 10000th seconds!
+	byte extraRAMdata[0x10]; //Extra RAM data from XT RTC(UM82C8167)!
 } CMOSDATA;
 
 void initCMOS(); //Initialises CMOS (apply solid init settings&read init if possible)!
