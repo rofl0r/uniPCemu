@@ -51,9 +51,11 @@ typedef struct
 		} info;
 		byte data[0x80]; //CMOS Data!
 	} DATA80; //The normal CMOS data!
+	int_64 timedivergeance; //Time divergeance in seconds!
+	int_64 timedivergeance2; //Time diveargeance in us!
 	byte s100; //Extra support for 100th seconds!
 	byte s10000; //Extra support for 10000th seconds!
-	byte extraRAMdata[0x10]; //Extra RAM data from XT RTC(UM82C8167)!
+	byte extraRAMdata[8]; //Extra RAM data from XT RTC(UM82C8167), for 56 bits of extra RAM!
 } CMOSDATA;
 
 void initCMOS(); //Initialises CMOS (apply solid init settings&read init if possible)!

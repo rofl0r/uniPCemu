@@ -69,8 +69,6 @@ byte decodeBCD8(byte value)
 struct
 {
 	CMOSDATA DATA;
-	int_64 timedivergeance; //Time divergeance in seconds!
-	int_64 timedivergeance2; //Time diveargeance in us!
 	byte IRQ8_Disabled; //IRQ8 not allowed to run for this type? (bits 0x10-0x40 are set for enabled)?
 	byte Loaded; //CMOS loaded?
 	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
@@ -93,8 +91,8 @@ void loadCMOSDefaults()
 	CMOS.DATA.DATA80.data[0x10] = ((FLOPPY_144)<<4)|(FLOPPY_144); //High=Master, Low=Slave!
 	CMOS.DATA.DATA80.data[0x15] = 0x15; //We have...
 	CMOS.DATA.DATA80.data[0x16] = 0x16; //640K base memory!
-	CMOS.timedivergeance = 0; //No second divergeance!
-	CMOS.timedivergeance2 = 0; //No us divergeance!
+	CMOS.DATA.timedivergeance = 0; //No second divergeance!
+	CMOS.DATA.timedivergeance2 = 0; //No us divergeance!
 	CMOS.Loaded = 1; //Loaded: ready to save!
 }
 
@@ -353,10 +351,8 @@ byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 *divergean
 			dolog("CMOS","Setting time: %i-%i-%i %i:%i:%i.%06i",time1->year,time1->month,time1->day,time1->hour,time1->minute,time1->second);
 			BIGGESTSINT applyingtime; //Biggest integer value we have!
 			applyingtime = ((((time1val.tv_sec * 1000000) + time1val.tv_usec) - ((time2val.tv_sec * 1000000) + time2val.tv_usec))); //Difference in usec!
-			dolog("CMOS","Old divergeance: %08i.%08i",*divergeance_sec,*divergeance_usec); //Log the divergeanse applied!
 			*divergeance_sec = applyingtime/1000000; //Seconds!
 			*divergeance_usec = applyingtime%1000000; //Microseconds!
-			dolog("CMOS", "New divergeance: %08i.%08i", *divergeance_sec, *divergeance_usec); //Log the divergeanse applied!
 			return 1; //Give the difference time!
 		}
 	}
@@ -392,12 +388,11 @@ void updateTimeDivergeance() //Update relative time to the clocks(time differenc
 	struct timezone currentzone;
 	accuratetime savedtime,currenttime;
 	CMOS_decodetime(&savedtime); //Get the currently stored time in the CMOS!
-	dolog("CMOS","Updating time divergeance: %u-%u-%u %u:%u:%u.%u",savedtime.year,savedtime.month,savedtime.day,savedtime.hour,savedtime.minute,savedtime.second,savedtime.s100); //Log the updated information!
 	if (gettimeofday(&tp,&currentzone)==0) //Time gotten?
 	{
 		if (epochtoaccuratetime(&tp,&currenttime)) //Convert to accurate time!
 		{
-			calcDivergeance(&savedtime,&currenttime,&CMOS.timedivergeance,&CMOS.timedivergeance2); //Apply the new time divergeance!
+			calcDivergeance(&savedtime,&currenttime,&CMOS.DATA.timedivergeance,&CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
 		}
 	}
 }
@@ -415,7 +410,7 @@ void RTC_updateDateTime()
 		{
 			//Apply time!
 			lock(LOCK_CMOS);
-			applyDivergeance(&currenttime, CMOS.timedivergeance,CMOS.timedivergeance2); //Apply the new time divergeance!
+			applyDivergeance(&currenttime, CMOS.DATA.timedivergeance,CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
 			CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
 			RTC_Handler(); //Handle anything that the RTC has to handle!
 			unlock(LOCK_CMOS); //Finished updating!
@@ -456,8 +451,6 @@ void loadCMOS()
 	{
 		memcpy(&CMOS.DATA, &BIOS_Settings.CMOS, sizeof(CMOS.DATA)); //Copy to our memory!
 	}
-	CMOS.timedivergeance = BIOS_Settings.timedivergeance; //Load the divergeance too!
-	CMOS.timedivergeance2 = BIOS_Settings.timedivergeance2; //Load the divergeance too!
 	CMOS.Loaded = 1; //The CMOS is loaded!
 }
 
@@ -465,8 +458,6 @@ void saveCMOS()
 {
 	if (!CMOS.Loaded) return; //Don't save when not loaded/initialised!
 	memcpy(&BIOS_Settings.CMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
-	BIOS_Settings.timedivergeance = CMOS.timedivergeance; //Apply the new time divergeance to the existing time!
-	BIOS_Settings.timedivergeance2 = CMOS.timedivergeance2; //Apply the new time divergeance to the existing time!
 	BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
 	forceBIOSSave(); //Save the BIOS data!
 }
@@ -481,7 +472,7 @@ byte XTRTC_translatetable[0x10] = {
 0x07, //06: day of month
 0x08, //07: month
 0xFF, //08: RAM
-0xFF, //09: year(RAM), unexistant on our chip
+0x09, //09: year(RAM), unexistant on our chip, but map to year anyway!
 0xFF, //0A: RAM
 0xFF, //0B: RAM
 0xFF, //0C: RAM
@@ -539,11 +530,16 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 	case 0x245: //day of week
 	case 0x246: //day of month
 	case 0x247: //month
+	case 0x249: //1/100 seconds, year in the case of TIMER.COM v1.2!
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
 		goto readXTRTC; //Read the XT RTC!
+	case 0x248: //1/10000 seconds latch according to documentation, map to RAM for TIMER.COM v1.2!
+		*result = CMOS.DATA.extraRAMdata[6]; //Map to month instead!
+		return 1;
+		break;
 	//Latches:
-	case 0x248: //1/10000 seconds
+	/*
 	case 0x249: //1/100 seconds
 	case 0x24A: //seconds
 	case 0x24B: //minutes
@@ -551,6 +547,9 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 	case 0x24D: //day of week
 	case 0x24E: //day of month
 	case 0x24F: //month
+		*result = CMOS.DATA.extraRAMdata[port-0x248]; //Read the value directly into RAM!
+		break;
+	*/
 	//Rest registers of the chip:
 	case 0x250: //Interrupt status Register
 	case 0x251: //Interrupt control Register
@@ -559,7 +558,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 	case 0x255: //"GO" Command
 	case 0x256: //Standby Interrupt
 	case 0x257: //Test Mode
-		*result = CMOS.DATA.extraRAMdata[port-0x248]; //Read the value directly into RAM!
+		*result = 0; //Unimplemented atm!
 		return 1; //Simply supported for now(plain RAM read)!
 		break;
 	case 0x254: //Status Bit
@@ -613,8 +612,8 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		CMOS.ADDR = 0xD; //Reset address!		
 		return 1;
 		break;
-	//XT RTC support?
-	case 0x240: //1/10000 seconds
+	//XT RTC support!
+	//case 0x240: //1/10000 seconds
 	case 0x241: //1/100 seconds
 	case 0x242: //seconds
 	case 0x243: //minutes
@@ -622,19 +621,26 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x245: //day of week
 	case 0x246: //day of month
 	case 0x247: //month
+	case 0x249: //1/100 seconds, year in the case of TIMER.COM v1.2!
 		isXT = 1; //From XT!
-		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
+		CMOS.ADDR = XTRTC_translatetable[port & 0xF]; //Translate the port to a compatible index!
 		goto writeXTRTC; //Read the XT RTC!
+	case 0x248: //1/10000 seconds latch according to documentation, map to RAM for TIMER.COM v1.2!
+		CMOS.DATA.extraRAMdata[6] = value; //Map to month instead!
+		return 1;
 		break;
-	//Latches:
-	case 0x248: //1/10000 seconds
-	case 0x249: //1/100 seconds
+	//Latches to XT CMOS RAM!
+	/*
 	case 0x24A: //seconds
 	case 0x24B: //minutes
 	case 0x24C: //hours
 	case 0x24D: //day of week
 	case 0x24E: //day of month
 	case 0x24F: //month
+		CMOS.DATA.extraRAMdata[port-0x248] = value; //Save the value directly into RAM!
+		return 1;
+		break;
+	*/
 	//Rest registers of the chip:
 	case 0x250: //Interrupt status Register
 	case 0x251: //Interrupt control Register
@@ -644,7 +650,8 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x255: //"GO" Command
 	case 0x256: //Standby Interrupt
 	case 0x257: //Test Mode
-		CMOS.DATA.extraRAMdata[port-0x248] = value; //Save the value directly into RAM!
+		//Unimplemented atm!
+		return 1;
 		break;
 	default: //Unknown?
 		break; //Do nothing!
