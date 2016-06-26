@@ -98,12 +98,6 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 		//Finished horizontal timing!
 		++current; //Next!
 	}
-	
-	SEQ_DATA *Sequencer = GETSEQUENCER(VGA); //Our sequencer!
-	
-	//Clear our timing debugger information: we're invalid now!
-	Sequencer->totalrenders = 0; //Clear total render counting!
-	Sequencer->totalrendertime = 0; //Clear time passed
 }
 
 void dump_CRTCTiming()

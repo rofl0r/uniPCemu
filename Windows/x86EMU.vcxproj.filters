@@ -709,9 +709,6 @@
     <ClInclude Include="..\headers\hardware\vga\vga.h">
       <Filter>Header Files\hardware\vga</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\hardware\vga\vga_trident8900.h">
-      <Filter>Header Files\hardware\vga</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\interrupts\interrupt1a.h">
       <Filter>Header Files\interrupts</Filter>
     </ClInclude>

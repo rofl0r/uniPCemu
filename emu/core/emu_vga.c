@@ -259,15 +259,6 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 
 	//Process resetting the HSync/VSync counters!
 	tempsignal = tempsignalbackup; //Restore the original backup signal!
-	if (tempsignal&VGA_SIGNAL_HSYNCRESET) //Reset HSync?
-	{
-		Sequencer->x_sync = 0; //Reset HSync!
-	}
-
-	if (tempsignal&VGA_SIGNAL_VSYNCRESET) //Reset VSync?
-	{
-		Sequencer->Scanline_sync = 0; //Reset VSync!
-	}
 
 	INLINEREGISTER byte isretrace; //Vertical or horizontal retrace?
 	isretrace = hretrace;

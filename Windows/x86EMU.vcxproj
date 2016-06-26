@@ -241,7 +241,6 @@
     <ClInclude Include="..\headers\hardware\vga\vga_sequencer.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_sequencer_graphicsmode.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_sequencer_textmode.h" />
-    <ClInclude Include="..\headers\hardware\vga\vga_trident8900.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_vram.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_vramtext.h" />
     <ClInclude Include="..\headers\hardware\xtexpansionunit.h" />

@@ -312,10 +312,10 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	Sequencer->charystart = charystart; //What row to start with our pixels!
 
 	//Some attribute controller special 8-bit mode support!
-	Sequencer->active_nibblerate = 0; //Reset pixel load rate status & nibble load rate status for odd sized screens.
 	Sequencer->extrastatus = &VGA->CRTC.extrahorizontalstatus[0]; //Start our extra status at the beginning of the row!
 
 	Sequencer->memoryaddressclock = Sequencer->linearcounterdivider = Sequencer->memoryaddress = 0; //Address counters are reset!
+	VGA_loadcharacterplanes(VGA, Sequencer); //Load data from the first planes!
 }
 
 byte Sequencer_run; //Sequencer breaked (loop exit)?
@@ -372,7 +372,6 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->x = 0; //Reset for the next scanline!
 	
 	//Sequencer rendering data
-	Sequencer->tempx = 0; //Reset the rendering position from the framebuffer!
 	VGA_Sequencer_calcScanlineData(VGA);
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 	Sequencer->DACcounter = 0; //Reset the DAC counter!
@@ -492,6 +491,11 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 		Sequencer->DACcounter = 0; //Now processing the 2nd pixel!
 		goto drawdoublepixel;
 	}
+	if (attributeinfo->attributesize) //More than 1 clock generated?
+	{
+		--attributeinfo->attributesize; //Duplicate the pixel!
+		goto drawdoublepixel;
+	}
 	Sequencer->DACcounter = 0; //Now processing the 2nd pixel!
 }
 
@@ -566,7 +570,6 @@ void updateVGASequencer_Mode(VGA_Type *VGA)
 OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	INLINEREGISTER word extrastatus;
-	Sequencer->activex = Sequencer->tempx++; //Active X!
 	extrastatus = *Sequencer->extrastatus++; //Next status!
 
 	if (extrastatus&2) //Half character clock is to be executed?
