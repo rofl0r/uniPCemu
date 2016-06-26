@@ -63,6 +63,8 @@ byte characterpixels[9]; //All possible character pixels!
 
 extern byte planesbuffer[4]; //All read planes for the current processing!
 
+byte charxbuffer[256]; //Full character inner x location!
+
 void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 {
 	INLINEREGISTER byte x;
@@ -111,6 +113,7 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 			characterpixels[x] = getcharxy(VGA, attribute, character, x, (byte)((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
 		} while (--x!=0xFF);
 	}
+	((SEQ_DATA *)VGA->Sequencer)->textx = &charxbuffer[0]; //Start taking our character pixels!
 }
 
 void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo) //Render a text mode pixel!
@@ -118,7 +121,8 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	//First, full value to lookup!
 	INLINEREGISTER word charinner;
 	INLINEREGISTER byte pixel;
-	charinner = Sequencer->activex;
+	if (Sequencer->textx==0) return; //Invalid pointer!
+	charinner = *Sequencer->textx++; //Read the inner location of the row to read!
 	charinner <<= 1;
 	charinner |= 1; //Calculate our column value!
 	attributeinfo->charinner_x = charinner = VGA->CRTC.charcolstatus[charinner]; //Load inner x!

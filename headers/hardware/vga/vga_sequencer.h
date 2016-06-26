@@ -100,6 +100,7 @@ typedef struct
 
 	word *extrastatus; //Our current extra status!
 	byte *graphicsx; //Current graphics pixel in the buffer!
+	byte *textx; //Current text pixel location!
 	byte DACcounter; //DAC latch counter!
 	uint_32 lastDACcolor; //Last latched DAC color!
 

@@ -20,6 +20,8 @@
 #define TEXTMODE_DEBUGGING 1
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
+//Debug 256-color and SVGA modes only?
+#define DEBUG256
 
 extern byte LOG_MMU_WRITES; //Log MMU writes?
 
@@ -33,12 +35,18 @@ extern GPU_type GPU; //For x&y initialisation!
 void debugTextModeScreenCapture()
 {
 	//VGA_DUMPDAC(); //Make sure the DAC is dumped!
+	lock(LOCK_CPU);
 	SCREEN_CAPTURE = LOG_VGA_SCREEN_CAPTURE; //Screen capture next frame?
+	unlock(LOCK_CPU);
 	VGA_waitforVBlank(); //Log one screen!
+	lock(LOCK_CPU);
 	for (; SCREEN_CAPTURE;) //Busy?
 	{
+		unlock(LOCK_CPU);
 		VGA_waitforVBlank(); //Wait for VBlank!
+		lock(LOCK_CPU);
 	}
+	unlock(LOCK_CPU);
 }
 
 extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
@@ -46,12 +54,14 @@ extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
 {
 	stopTimers(0); //Stop all timers!
+	lock(LOCK_CPU);
 	CPU[activeCPU].registers->AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
 	CPU[activeCPU].registers->AH = 0xB;
 	CPU[activeCPU].registers->BH = 0x0; //Set overscan color!
 	CPU[activeCPU].registers->BL = 0x1; //Blue overscan!
 	BIOS_int10();
+	unlock(LOCK_CPU);
 	//VGA_DUMPDAC(); //Dump the current DAC and rest info!
 
 	int x,y; //X&Y coordinate!
@@ -63,6 +73,7 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	GPU_text_releasesurface(frameratesurface);
 	//VGA_waitforVBlank(); //Make sure we're ending drawing!
 
+	lock(LOCK_CPU);
 	y = 0; //Init Y!
 	nexty:
 	{
@@ -99,6 +110,7 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 		++y; //Next Y!
 		goto nexty;
 	}
+	unlock(LOCK_CPU);
 	
 	finishy: //Finish our operations!
 	
@@ -139,6 +151,9 @@ extern byte VGA_LOGPRECALCS; //Log precalcs after this ammount of scanlines!
 void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 {
 	enableKeyboard(0); //Allow to test the keyboard!
+	#ifdef DEBUG256
+	goto specialdebugging;
+	#endif
 	if (TEXTMODE_DEBUGGING) //Debug text mode too?
 	{
 		stopTimers(0); //Make sure we've stopped!
@@ -331,6 +346,9 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//16 color maxres mode!
 	DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
 	//VGA_DUMPDAC(); //Dump the DAC!
+	#ifdef DEBUG256
+	specialdebugging:
+	#endif
 	//256 color mode!
 	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/8th screen width?
 

@@ -44,52 +44,57 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	//Horizontal coordinates!
 	charsize = getcharacterwidth(VGA); //Now, based on width!
 	current = 0; //Init!
-	byte pixelrate=0;
 	word extrastatus;
+	byte pixelrate=1;
 	byte innerpixel;
+	byte fetchrate=0; //Half clock fetch!
+	byte pixelticked=0; //Pixel has been ticked?
 	byte clockrate;
-	byte fetchrate=0;
 	clockrate = ((VGA->precalcs.ClockingModeRegister_DCR | (CGA_DOUBLEWIDTH(VGA) ? 1 : 0))); //The clock rate to run the VGA clock at!
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
 		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
 		VGA->CRTC.charcolstatus[(current<<1)|1] = innerpixel = current%charsize;
-		realtiming = current; //Same rate as the basic rate!
-		realtiming >>= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Apply dot clock rate!
-		VGA->CRTC.colstatus[current] = get_display_x(VGA,realtiming); //Translate to display rate!
+		VGA->CRTC.colstatus[current] = get_display_x(VGA,current); //Translate to display rate!
+
 		//Determine some extra information!
 		extrastatus = 0; //Initialise extra horizontal status!
 		
 		if (((VGA->registers->specialCGAflags|VGA->registers->specialMDAflags)&1) && !CGA_DOUBLEWIDTH(VGA)) //Affect by 620x200/320x200 mode?
 		{
 			extrastatus |= 1; //Always render like we are asked, at full resolution single pixels!
+			pixelticked = 1; //A pixel has been ticked!
+			if (innerpixel == 0) //First pixel of a character(loading)?
+			{
+				fetchrate = 0; //Reset fetching for the new character!
+			}
 		}
 		else //Normal VGA?
 		{
-			if (++pixelrate>clockrate) //To write back the pixel clock every or every other pixel(forced every clock in CGA normal mode)?
+			if (++pixelrate>clockrate) //To read the pixel every or every other pixel(forced every clock in CGA normal mode)?
 			{
 				extrastatus |= 1; //Reset for the new block/next pixel!
 				pixelrate = 0; //Reset!
+				pixelticked = 1; //A pixel has been ticked!
 			}
 		}
 
-		if (innerpixel == 0) //First pixel of a character?
+		if (pixelticked)
 		{
-			fetchrate = 0; //Reset fetching for the new character!
+			if (innerpixel == 0) //First pixel of a character(loading)?
+			{
+				fetchrate = 0; //Reset fetching for the new character!
+			}
+
+			//Tick fetch rate!
+			++fetchrate; //Fetch ticking!
+			if ((fetchrate == 1) || (fetchrate == 5)) //Half clock rate?
+			{
+				extrastatus |= 2; //Half pixel clock for division in graphics rates!
+			}
+			pixelticked = 0; //Not ticked anymore!
 		}
 
-		//Tick fetch rate!
-		++fetchrate; //Fetch ticking!
-		if ((fetchrate == 1) || (fetchrate == 5)) //Half clock rate?
-		{
-			extrastatus |= 2; //Half pixel clock for division in graphics rates!
-		}
-
-		if (innerpixel==0) //Character clock starting?
-		{
-			extrastatus |= 4; //We're a character clock starting, load data from VRAM if enabled!
-		}
-		
 		VGA->CRTC.extrahorizontalstatus[current] = extrastatus; //Extra status to apply!
 
 		//Finished horizontal timing!
@@ -291,18 +296,18 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (VGA->precalcs.ClockingModeRegister_DCR != VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.ClockingModeRegister_DCR = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Dot Clock Rate!
 
-		byte newSLR = 0; //New shift/load rate!
+		byte newSLR = 0x7; //New shift/load rate!
 		if (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.S4) //Quarter the video load rate?
 		{
-			newSLR = 3; //Reload when not bits 0-1 set!
+			newSLR = 0x7; //Reload every 4 clocks!
 		}
 		else if (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.SLR) //Half the video load rate?
 		{
-			newSLR = 1; //Reload when not bit 0 set!
+			newSLR = 0x3; //Reload every 2 clocks!
 		}
 		else //Single load rate?
 		{
-			newSLR = 0; //Always load(Single load rate)!
+			newSLR = 0x1; //Always load(Single load rate) every character clock(2 half clocks)!
 		}
 		VGA->precalcs.VideoLoadRateMask = newSLR; //Apply the determined Shift/Load rate mask!
 

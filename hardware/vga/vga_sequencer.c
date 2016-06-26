@@ -431,7 +431,6 @@ OPTINLINE void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 	++VGA->CRTC.x; //Next x!
 }
 
-
 OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	uint_32 DACcolor; //The latched color!
@@ -564,41 +563,41 @@ void updateVGASequencer_Mode(VGA_Type *VGA)
 	VGA->precalcs.extrasignal = VGA->precalcs.graphicsmode?VGA_DISPLAYGRAPHICSMODE:0x0000; //Apply the current mode (graphics vs text mode)!
 }
 
-OPTINLINE void VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
+OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	word extrastatus;
+	INLINEREGISTER word extrastatus;
 	Sequencer->activex = Sequencer->tempx++; //Active X!
 	extrastatus = *Sequencer->extrastatus++; //Next status!
 
-	if (extrastatus&2) //Reload for the next linear counter clock?
-	{
-		if ((++Sequencer->linearcounterdivider&VGA->precalcs.characterclockshift)==0) //Increase memory address counter?
-		{
-			Sequencer->linearcounterdivider = 0; //Reset!
-			++Sequencer->memoryaddress; //Increase the memory address counter!
-		}
-	}
-
-	if (extrastatus&4) //Reload data from VRAM?
+	if (extrastatus&2) //Half character clock is to be executed?
 	{
 		if ((++Sequencer->memoryaddressclock&VGA->precalcs.VideoLoadRateMask)==0) //Reload data this clock?
 		{
 			Sequencer->memoryaddressclock = 0; //Reset!
 			VGA_loadcharacterplanes(VGA, Sequencer); //Load data from the graphics planes!
 		}
+
+		if ((++Sequencer->linearcounterdivider&VGA->precalcs.characterclockshift) == 0) //Increase memory address counter?
+		{
+			Sequencer->linearcounterdivider = 0; //Reset!
+			++Sequencer->memoryaddress; //Increase the memory address counter!
+		}
 	}
+
+	return extrastatus&1; //Read next pixel?
 }
 
 //Active display handler!
 void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here!
-	VGA_ActiveDisplay_timing(Sequencer, VGA); //Execute our timings!
-
-	VGA_Sequencer_TextMode(VGA,Sequencer,&currentattributeinfo); //Get the color to render!
-	if (VGA_AttributeController(&currentattributeinfo,VGA))
+	if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Execute our timings!
 	{
-		return; //Nibbled!
+		VGA_Sequencer_TextMode(VGA,Sequencer,&currentattributeinfo); //Get the color to render!
+		if (VGA_AttributeController(&currentattributeinfo,VGA))
+		{
+			return; //Nibbled!
+		}
 	}
 
 	if (CGAMDARenderer) //CGA rendering mode?
@@ -614,12 +613,13 @@ void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 void VGA_ActiveDisplay_Text_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here!
-	VGA_ActiveDisplay_timing(Sequencer, VGA); //Execute our timings!
-
-	VGA_Sequencer_TextMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
-	if (VGA_AttributeController(&currentattributeinfo, VGA))
+	if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Execute our timings!
 	{
-		return; //Nibbled!
+		VGA_Sequencer_TextMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
+		if (VGA_AttributeController(&currentattributeinfo, VGA))
+		{
+			return; //Nibbled!
+		}
 	}
 
 	if (CGAMDARenderer) //CGA rendering mode?
@@ -635,12 +635,13 @@ void VGA_ActiveDisplay_Text_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here!
-	VGA_ActiveDisplay_timing(Sequencer, VGA); //Execute our timings!
-
-	VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
-	if (VGA_AttributeController(&currentattributeinfo, VGA))
+	if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Execute our timings!
 	{
-		return; //Nibbled!
+		VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
+		if (VGA_AttributeController(&currentattributeinfo, VGA))
+		{
+			return; //Nibbled!
+		}
 	}
 
 	if (CGAMDARenderer) //CGA rendering mode?
@@ -656,12 +657,13 @@ void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
 void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here! Start with text mode!		
-	VGA_ActiveDisplay_timing(Sequencer,VGA); //Execute our timings!
-
-	VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
-	if (VGA_AttributeController(&currentattributeinfo, VGA))
+	if (VGA_ActiveDisplay_timing(Sequencer,VGA)) //Execute our timings!
 	{
-		return; //Nibbled!
+		VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
+		if (VGA_AttributeController(&currentattributeinfo, VGA))
+		{
+			return; //Nibbled!
+		}
 	}
 
 	if (CGAMDARenderer) //CGA rendering mode?
@@ -703,6 +705,8 @@ void VGA_Overscan_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 //Horizontal before vertical, retrace before total.
 
+extern byte charxbuffer[256]; //Full character inner x location!
+
 //Initialise all handlers!
 void initStateHandlers()
 {
@@ -729,4 +733,11 @@ void initStateHandlers()
 		CLUT16bit[i] = RGB((byte)((((float)((i >> 11) & 0x1F) / (float)0x1F)*256.0f)), (byte)((((i >> 5) & 0x3F) / (float)0x3F)*256.0f), (byte)(((float)(i & 0x1F) / (float)0x1F)*256.0f)); //15-bit color lookup table (5:6:5 format)!
 		CLUT15bit[i] = RGB((byte)((((float)((i>>10)&0x1F) / (float)0x1F)*256.0f)),(byte)((((i>>5)&0x1F)/(float)0x1F)*256.0f),(byte)(((float)(i & 0x1F) / (float)0x1F)*256.0f)); //15-bit color lookup table (5:5:5 format)!
 	}
+	memset(&charxbuffer,0,sizeof(charxbuffer)); //Character x buffer!
+	for (i=1;i<8;++i)
+	{
+		charxbuffer[i] = i; //We're this inner pixel!
+	}
+	VGA_GraphicsDecoder(getActiveVGA(),0); //Load initial data!
+	VGA_TextDecoder(getActiveVGA(),0); //Load initial data!
 }
