@@ -28,13 +28,11 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	VGA_Type *VGA = (VGA_Type *)useVGA; //The VGA to use!
 	uint_32 current;
 	byte charsize;
-	uint_32 realtiming;
 	//Column and row status for each pixel on-screen!
 	charsize = getcharacterheight(VGA); //First, based on height!
 	current = 0; //Init!
 	for (;current<NUMITEMS(VGA->CRTC.rowstatus);) //All available resolutions!
 	{
-		realtiming = current; //Load current row!
 		VGA->CRTC.charrowstatus[current<<1] = current/charsize;
 		VGA->CRTC.charrowstatus[(current<<1)|1] = current%charsize;
 		VGA->CRTC.rowstatus[current] = get_display_y(VGA,current); //Translate!
