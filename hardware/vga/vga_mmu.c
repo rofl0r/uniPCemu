@@ -296,6 +296,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 			calcplanes = 1; //Load plane 0!
 			calcplanes <<= getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
 		}
+		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
 		*planes = calcplanes; //The planes to apply!
 		*realoffset = offset; //Load the offset directly!
 		return; //Done!
@@ -309,10 +310,12 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	{
 		calcplanes &= 1; //Take 1 bit to determine the plane (0/1)!
 		realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
+		rwbank <<= 1; //ET4000: Read/write bank supplies bits 17-18 instead.
 	}
 	else
 	{
-		calcplanes = 0; //Use plane 0 always!
+		calcplanes = (offset>>16)&1; //Use plane 0(or 1 for high bank) always!
+		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
 	}
 	*realoffset = realoffsettmp; //Give the calculated offset!
 	if ((VGA_MemoryMapSelect == 1) && (!oddevenmemorymode)) //Memory map mode 1?
