@@ -751,7 +751,6 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x7))) //TS Auxiliary Mode updated?
 	{
 		et4k_tempreg = et34k_reg(et34kdata,3c4,06); //The TS Auxiliary mode to apply!
-		if (!et34k(VGA)->extensionsEnabled) et4k_tempreg = 0x80; //Clear when we're disabled!
 		if (et4k_tempreg&0x80) //VGA-compatible settings?
 		{
 			goto VGAcompatibleMCLK;
@@ -782,7 +781,6 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER|0x16))) //Attribute misc. register?
 	{
 		et4k_tempreg = et34k_reg(et34kdata,3c0,16); //The mode to use when decoding!
-		if (!et34k(VGA)->extensionsEnabled) et4k_tempreg = 0x00; //Clear when we're disabled!
 
 		VGA->precalcs.BypassPalette = (et4k_tempreg&0x80)?1:0; //Bypass the palette if specified!
 		et34kdata->protect3C0_Overscan = (et4k_tempreg&0x01)?1:0; //Protect overscan if specified!
@@ -1005,16 +1003,16 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		}
 		if ((et4k_tempreg & 0x10)==0x00) //Segment configuration?
 		{
-			if (!et34k(VGA)->extensionsEnabled) //No banks?
+			/*if (!et34k(VGA)->extensionsEnabled) //No banks?
 			{
 				VGA_MemoryMapBankRead = 0; //No read bank!
 				VGA_MemoryMapBankWrite = 0; //No write bank!
 			}
 			else
-			{
+			{*/
 				VGA_MemoryMapBankRead = et34kdata->bank_read*ET34K_bank_sizes[et34kdata->bank_size&3]; //Read bank!
 				VGA_MemoryMapBankWrite = et34kdata->bank_write*ET34K_bank_sizes[et34kdata->bank_size&3]; //Write bank!
-			}
+			//}
 			VGA->precalcs.linearmode &= ~2; //Use normal data addresses!
 		}
 		else //Linear system configuration? Disable the segment and enable linear mode (high 4 bits of the address select the bank)!
@@ -1032,14 +1030,14 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			VGA->precalcs.linearmode &= ~1; //Use VGA-mapping of memory!
 		}
 
-		if (!et34k(VGA)->extensionsEnabled)
+		/*if (!et34k(VGA)->extensionsEnabled)
 		{
 			VGA->precalcs.linearmode &= ~4; //Disable the new linear and contiguous modes to affect memory!
 		}
 		else //Extensions enabled?
-		{
+		{*/
 			VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
-		}
+		//}
 	}
 
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x37))) //Video system configuration #2?

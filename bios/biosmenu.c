@@ -54,7 +54,7 @@
 //#define SOUND_TEST
 
 //Dump a 256-color 640x480 VRAM layout to a bitmap file!
-//#define DUMP_VGATEST256COL
+#define DUMP_VGATEST256COL
 
 #ifdef SOUND_TEST
 #include "headers/hardware/ports.h" //I/O support!
