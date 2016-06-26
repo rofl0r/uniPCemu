@@ -57,12 +57,6 @@ float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz
 		else result = VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect & 3)]; //VGA clock!
 	}
 	else result = VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3)]; //VGA clock!
-
-	//Apply Dot Clock Rate!
-	if (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR|(CGA_DOUBLEWIDTH(VGA) ? 1 : 0)) //Halve Dot Clock Rate?
-	{
-		result *= 0.5f; //Halve the rate!
-	}
 	return result; //Give the result!
 }
 
@@ -574,16 +568,16 @@ OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 	if (extrastatus&2) //Half character clock is to be executed?
 	{
-		if ((++Sequencer->memoryaddressclock&VGA->precalcs.VideoLoadRateMask)==0) //Reload data this clock?
-		{
-			Sequencer->memoryaddressclock = 0; //Reset!
-			VGA_loadcharacterplanes(VGA, Sequencer); //Load data from the graphics planes!
-		}
-
 		if ((++Sequencer->linearcounterdivider&VGA->precalcs.characterclockshift) == 0) //Increase memory address counter?
 		{
 			Sequencer->linearcounterdivider = 0; //Reset!
 			++Sequencer->memoryaddress; //Increase the memory address counter!
+		}
+
+		if ((++Sequencer->memoryaddressclock&VGA->precalcs.VideoLoadRateMask)==0) //Reload data this clock?
+		{
+			Sequencer->memoryaddressclock = 0; //Reset!
+			VGA_loadcharacterplanes(VGA, Sequencer); //Load data from the graphics planes!
 		}
 	}
 
@@ -736,8 +730,8 @@ void initStateHandlers()
 		CLUT16bit[i] = RGB((byte)((((float)((i >> 11) & 0x1F) / (float)0x1F)*256.0f)), (byte)((((i >> 5) & 0x3F) / (float)0x3F)*256.0f), (byte)(((float)(i & 0x1F) / (float)0x1F)*256.0f)); //15-bit color lookup table (5:6:5 format)!
 		CLUT15bit[i] = RGB((byte)((((float)((i>>10)&0x1F) / (float)0x1F)*256.0f)),(byte)((((i>>5)&0x1F)/(float)0x1F)*256.0f),(byte)(((float)(i & 0x1F) / (float)0x1F)*256.0f)); //15-bit color lookup table (5:5:5 format)!
 	}
-	memset(&charxbuffer,0,sizeof(charxbuffer)); //Character x buffer!
-	for (i=1;i<8;++i)
+	memset(&charxbuffer,0xFF,sizeof(charxbuffer)); //Character x buffer!
+	for (i=0;i<9;++i)
 	{
 		charxbuffer[i] = i; //We're this inner pixel!
 	}

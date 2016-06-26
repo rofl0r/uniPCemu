@@ -654,10 +654,6 @@ typedef struct PACKED
 
 	VGA_REGISTERS *registers; //The registers itself!
 
-	uint_32 CurrentScanLine[32]; //A scan line's data for the currently rendering scanline pixel!
-	byte LinesToRender; //Value between 1-32, to determine how many scanlines to render!
-	word CurrentScanLineStart; //Start line of CurrentScanLine!
-	byte currentScanline; //Start line within the buffer we're at!
 	uint_32 ExpandTable[256]; //Expand Table (originally 32-bit) for VRAM read and write by CPU!
 	uint_32 FillTable[16]; //Fill table for memory writes!
 	byte getcharxy_values[0x4000]; //All getcharxy values!

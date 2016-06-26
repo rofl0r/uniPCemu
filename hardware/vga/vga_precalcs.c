@@ -48,6 +48,7 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	byte fetchrate=0; //Half clock fetch!
 	byte pixelticked=0; //Pixel has been ticked?
 	byte clockrate;
+	byte firstfetch=1; //First fetch is ignored!
 	clockrate = ((VGA->precalcs.ClockingModeRegister_DCR | (CGA_DOUBLEWIDTH(VGA) ? 1 : 0))); //The clock rate to run the VGA clock at!
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
@@ -86,9 +87,13 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 
 			//Tick fetch rate!
 			++fetchrate; //Fetch ticking!
-			if ((fetchrate == 1) || (fetchrate == 5)) //Half clock rate?
+			if (((fetchrate == 1) || (fetchrate == 5))) //Half clock rate?
 			{
-				extrastatus |= 2; //Half pixel clock for division in graphics rates!
+				if (!firstfetch) //Not the first fetch?
+				{
+					extrastatus |= 2; //Half pixel clock for division in graphics rates!
+				}
+				else --firstfetch; //Not the first fetch anymore!
 			}
 			pixelticked = 0; //Not ticked anymore!
 		}
