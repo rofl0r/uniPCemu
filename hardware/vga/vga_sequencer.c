@@ -272,7 +272,6 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 {
 	INLINEREGISTER word row;
 	INLINEREGISTER uint_32 charystart;
-	word interlacedfieldsize; //Half the display size!
 	row = Sequencer->Scanline; //Default: our normal scanline!
 	if (row>VGA->precalcs.topwindowstart) //Splitscreen operations?
 	{
@@ -280,13 +279,16 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
 	}
 
+	/*
 	if (VGA->precalcs.useInterlacing) //Interlace mode?
 	{
+		word interlacedfieldsize; //Half the display size!
 		interlacedfieldsize = VGA->precalcs.verticaldisplayend; //Take the whole field!
 		interlacedfieldsize >>= 1; //Take half of the field!
 		interlacedfieldsize += (VGA->precalcs.verticaldisplayend&1); //Odd sized vertical display adds one row to the odd field!
 		row = (row>=interlacedfieldsize)?((row-interlacedfieldsize)<<1):((row<<1)|1); //First all odd rows, then all even rows!
 	}
+	*/ //Disable interlacing: this is only on a real monitor?
 
 	//row is the vertical timing counter
 	row >>= VGA->precalcs.scandoubling; //Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!
