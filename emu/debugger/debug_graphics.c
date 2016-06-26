@@ -35,18 +35,18 @@ extern GPU_type GPU; //For x&y initialisation!
 void debugTextModeScreenCapture()
 {
 	//VGA_DUMPDAC(); //Make sure the DAC is dumped!
-	lock(LOCK_CPU);
+	lock(LOCK_MAINTHREAD);
 	SCREEN_CAPTURE = LOG_VGA_SCREEN_CAPTURE; //Screen capture next frame?
-	unlock(LOCK_CPU);
+	unlock(LOCK_MAINTHREAD);
 	VGA_waitforVBlank(); //Log one screen!
-	lock(LOCK_CPU);
+	lock(LOCK_MAINTHREAD);
 	for (; SCREEN_CAPTURE;) //Busy?
 	{
-		unlock(LOCK_CPU);
+		unlock(LOCK_MAINTHREAD);
 		VGA_waitforVBlank(); //Wait for VBlank!
-		lock(LOCK_CPU);
+		lock(LOCK_MAINTHREAD);
 	}
-	unlock(LOCK_CPU);
+	unlock(LOCK_MAINTHREAD);
 }
 
 extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
@@ -54,14 +54,14 @@ extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
 {
 	stopTimers(0); //Stop all timers!
-	lock(LOCK_CPU);
+	lock(LOCK_MAINTHREAD);
 	CPU[activeCPU].registers->AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
 	CPU[activeCPU].registers->AH = 0xB;
 	CPU[activeCPU].registers->BH = 0x0; //Set overscan color!
 	CPU[activeCPU].registers->BL = 0x1; //Blue overscan!
 	BIOS_int10();
-	unlock(LOCK_CPU);
+	unlock(LOCK_MAINTHREAD);
 	//VGA_DUMPDAC(); //Dump the current DAC and rest info!
 
 	int x,y; //X&Y coordinate!
@@ -73,7 +73,7 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	GPU_text_releasesurface(frameratesurface);
 	//VGA_waitforVBlank(); //Make sure we're ending drawing!
 
-	lock(LOCK_CPU);
+	lock(LOCK_MAINTHREAD);
 	y = 0; //Init Y!
 	nexty:
 	{
@@ -110,10 +110,10 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 		++y; //Next Y!
 		goto nexty;
 	}
-	unlock(LOCK_CPU);
 	
 	finishy: //Finish our operations!
-	
+	unlock(LOCK_MAINTHREAD);
+
 	GPU_text_locksurface(frameratesurface);
 	GPU_textgotoxy(frameratesurface,33,2); //Goto Rendering... text!
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Rendered.   ",mode);
@@ -352,10 +352,13 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//256 color mode!
 	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/8th screen width?
 
+	lock(LOCK_MAINTHREAD); //We're accessing the VGA information!
 	if (getActiveVGA()->enable_SVGA) //SVGA debugging too?
 	{
+		unlock(LOCK_MAINTHREAD); //Finished with it!
 		DoDebugVGAGraphics(0x2E,640,480,0x100,0,0xF,1,0); //Debug 640x480x256! ET3000/ET4000!
 	}
+	else unlock(LOCK_MAINTHREAD); //We're accessing the VGA information!
 
 	//debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
