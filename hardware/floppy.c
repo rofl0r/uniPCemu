@@ -4,13 +4,11 @@
 #include "headers/basicio/io.h" //Basic I/O functionality!
 #include "headers/hardware/pic.h" //PIC support!
 #include "headers/basicio/dskimage.h" //DSK image support!
-
-#include "headers/emu/debugger/debugger.h" //Debugger support!
+#include "headers/cpu/cpu.h" //Emulated CPU support!
 #include "headers/support/log.h" //Logging support!
-
 #include "headers/hardware/floppy.h" //Our type definitions!
-
 #include "headers/bios/biosrom.h" //ROM support for Turbo XT BIOS detection!
+#include "headers/emu/debugger/debugger.h" //For logging extra information when debugging!
 
 //Configuration of the FDC...
 

@@ -8,7 +8,7 @@
 //Debugger functions!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/vga/vga_precalcs.h" //For the CRT precalcs dump!
-#include "headers/hardware/vga/vga_dac.h" //DAC support!
+#include "headers/hardware/vga/vga_dac.h" //DAC dump support!
 //To make a screen capture of all of the debug screens active?
 #define LOG_VGA_SCREEN_CAPTURE 0
 //For text-mode debugging! 40 and 80 character modes!

@@ -16,7 +16,7 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 //How many samples to process at once? Originally 2048; 64=Optimum
-#ifdef __psp__
+#ifdef IS_PSP
 //PSP?
 #define SAMPLESIZE 64
 #else
@@ -727,7 +727,7 @@ OPTINLINE static void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 	int_32 *activesample;
 	
 	//Stuff for Master gain
-#ifndef __psp__
+#ifndef IS_PSP
 #ifdef __USE_EQUALIZER
 	double RMS_l = 0, RMS_r = 0, gainMaster_l, gainMaster_r; //Everything needed to apply the Master gain (equalizing using Mean value)
 #endif
@@ -767,7 +767,7 @@ OPTINLINE static void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 	} //Got channels?
 
 
-#ifndef __psp__
+#ifndef IS_PSP
 #ifdef __USE_EQUALIZER
 	//Equalize all sound volume!
 
@@ -802,7 +802,7 @@ OPTINLINE static void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 	{
 		result_l = *activesample++; //L channel!
 		result_r = *activesample++; //R channel!
-#ifndef __psp__
+#ifndef IS_PSP
 #ifdef __USE_EQUALIZER
 		result_l *= gainMaster_l; //Apply master gain!
 		result_r *= gainMaster_r; //Apply master gain!

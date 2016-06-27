@@ -1,5 +1,4 @@
 #include "headers/hardware/ps2_keyboard.h" //Keyboard support!
-#include "headers/support/highrestimer.h" //High resolution timer support!
 #include "headers/support/log.h"
 
 //Basic keyboard support for emulator, mapping key presses and releases to the PS/2 keyboard!

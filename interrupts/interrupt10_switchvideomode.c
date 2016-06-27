@@ -1,21 +1,13 @@
 #include "headers/types.h" //Basic types!
-#include "headers/emu/gpu/gpu.h" //Real ouput module!
-//#include "headers/cpu/cpu.h" //CPU module!
-//#include "headers/cpu/easyregs.h" //Easy register access!
-//#include "headers/cpu/cpu_OP8086.h" //8086 comp.
-//#include "headers/hardware/vga/colorconversion.h" //Color conversion compatibility for text output!
 #include "headers/cpu/interrupts.h" //Interrupt support for GRAPHIC modes!
 #include "headers/hardware/vga/vga.h" //Basic typedefs!
-//#include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller for debug screen output!
 #include "headers/header_dosbox.h" //Screen modes from DOSBox!
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/mmu/mmu.h" //MMU access!
 #include "headers/support/log.h" //Logging support for debugging!
-
 #include "headers/interrupts/interrupt10.h" //Our typedefs!
 #include "headers/cpu/cb_manager.h" //Callback support!
 #include "headers/cpu/protection.h" //Protection support!
-
 #include "headers/hardware/vga/svga/tseng.h" //ET3000/ET4000 support!
 
 //Log options!
@@ -179,7 +171,8 @@ void FinishSetMode_ET4K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 		Bitu best = 1;
 		Bits dist = 100000000;
 		float freq;
-		for (Bitu i=0; i<16; i++) {
+		Bitu i;
+		for (i=0; i<16; i++) {
 			freq = ET4K_clockFreq[i]; //ET4K clock frequency!
 			if (freq < 0.0f) freq = VGA_clocks[i&3]; //Use VGA clock!
 			Bits cdiff = abs((Bits)(target - freq));
@@ -208,6 +201,7 @@ bool AcceptsMode_ET3K(Bitu mode) {
 }
 
 void FinishSetMode_ET3K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
+	Bitu i;
 	IO_Write(0x3cd, 0x40); // both banks to 0, 64K bank size
 
 						   // Tseng ET3K does not have horizontal overflow bits
@@ -221,7 +215,7 @@ void FinishSetMode_ET3K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 	IO_Write(crtc_base, 0x25);IO_Write(crtc_base + 1, et4k_ver_overflow);
 
 	// Clear remaining ext CRTC registers
-	for (Bitu i = 0x16; i <= 0x21; i++)
+	for (i = 0x16; i <= 0x21; i++)
 		IO_Write(crtc_base, i);IO_Write(crtc_base + 1, 0);
 	IO_Write(crtc_base, 0x23);IO_Write(crtc_base + 1, 0);
 	IO_Write(crtc_base, 0x24);IO_Write(crtc_base + 1, 0);
@@ -238,7 +232,7 @@ void FinishSetMode_ET3K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 		Bitu best = 1;
 		Bits dist = 100000000;
 		float freq;
-		for (Bitu i = 0; i<8; i++) {
+		for (i = 0; i<8; i++) {
 			freq = ET3K_clockFreq[i];
 			if (freq < 0.0f) freq = VGA_clocks[i&3]; //Use VGA clock!
 			Bits cdiff = abs((Bits)(target - freq));

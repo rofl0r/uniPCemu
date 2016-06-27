@@ -1,5 +1,5 @@
 #include "headers/types.h" //Basic info!
-#ifdef __psp__
+#ifdef IS_PSP
 //PSP Only: exception handler!
 //Use original sleep!
 #undef sleep

@@ -7,7 +7,6 @@
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/emu/gpu/gpu.h" //GPU support!
 #include "headers/support/log.h" //Log support!
-#include "headers/interrupts/interrupt10.h" //Interrupt10h support!
 #include "headers/emu/gpu/gpu.h" //GPU resolution support!
 #include "headers/emu/gpu/gpu_renderer.h" //GPU renderer support!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
@@ -17,6 +16,7 @@
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/hardware/pic.h" //Interrupt support!
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer support!
+#include "headers/bios/biosmenu.h" //Support for running the BIOS from the debugger!
 
 //Log flags only?
 //#define LOGFLAGSONLY

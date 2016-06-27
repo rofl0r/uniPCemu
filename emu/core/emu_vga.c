@@ -4,7 +4,6 @@
 
 #include "headers/emu/gpu/gpu.h" //Basic GPU!
 #include "headers/emu/gpu/gpu_renderer.h" //Renderer support!
-#include "headers/emu/gpu/gpu_emu.h" //Emulator support!
 #include "headers/emu/gpu/gpu_text.h" //Emulator support!
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer itself!

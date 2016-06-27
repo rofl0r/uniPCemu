@@ -99,7 +99,6 @@
     <ClCompile Include="..\hardware\vga\vga_attributecontroller.c" />
     <ClCompile Include="..\hardware\vga\vga_cga_mda.c" />
     <ClCompile Include="..\hardware\vga\vga_cga_ntsc.c" />
-    <ClCompile Include="..\hardware\vga\vga_colorconversion.c" />
     <ClCompile Include="..\hardware\vga\vga_crtcontroller.c" />
     <ClCompile Include="..\hardware\vga\vga_dac.c" />
     <ClCompile Include="..\hardware\vga\vga_dacrenderer.c" />
@@ -143,7 +142,6 @@
     <ClCompile Include="..\support\sf2.c" />
     <ClCompile Include="..\support\signedness.c" />
     <ClCompile Include="..\support\sounddoublebuffer.c" />
-    <ClCompile Include="..\support\state.c" />
     <ClCompile Include="..\support\timers.c" />
     <ClCompile Include="..\support\wave.c" />
     <ClCompile Include="..\support\zalloc.c" />
@@ -178,7 +176,6 @@
     <ClInclude Include="..\headers\cpu\modrm.h" />
     <ClInclude Include="..\headers\cpu\multitasking.h" />
     <ClInclude Include="..\headers\cpu\protection.h" />
-    <ClInclude Include="..\headers\directorylisting.h" />
     <ClInclude Include="..\headers\emu\directorylist.h" />
     <ClInclude Include="..\headers\emu\emucore.h" />
     <ClInclude Include="..\headers\emu\emu_bios_sound.h" />
@@ -199,7 +196,6 @@
     <ClInclude Include="..\headers\emu\number_optimizations.h" />
     <ClInclude Include="..\headers\emu\sound.h" />
     <ClInclude Include="..\headers\emu\soundtest.h" />
-    <ClInclude Include="..\headers\emu\state.h" />
     <ClInclude Include="..\headers\emu\threads.h" />
     <ClInclude Include="..\headers\emu\timers.h" />
     <ClInclude Include="..\headers\endpacked.h" />
@@ -228,7 +224,6 @@
     <ClInclude Include="..\headers\hardware\softdebugger.h" />
     <ClInclude Include="..\headers\hardware\ssource.h" />
     <ClInclude Include="..\headers\hardware\uart.h" />
-    <ClInclude Include="..\headers\hardware\vga\colorconversion.h" />
     <ClInclude Include="..\headers\hardware\vga\svga\tseng.h" />
     <ClInclude Include="..\headers\hardware\vga\vga.h" />
     <ClInclude Include="..\headers\hardware\vga\vga_attributecontroller.h" />

@@ -3,11 +3,10 @@
 #include "headers/bios/bios.h" //Need BIOS support!
 #include "headers/mmu/mmu.h" //MMU support!
 #include "headers/support/isoreader.h" //Own type support!
-#include "headers/emu/gpu/gpu.h" //GPU support!
 #include "headers/cpu/cpu.h" //For boot segments!
 #include "headers/support/zalloc.h" //Zero allocation support!
 #include "headers/support/log.h" //Logging support!
-#include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
+#include "headers/emu/gpu/gpu_emu.h" //Text output support!
 
 //Stuff we need!
 //Bootable indicator
@@ -28,17 +27,6 @@
 #define FALSE 0
 
 word ISOREADER_SEGMENT = 0x0000; //Segment read to load image!
-
-
-
-
-
-
-
-
-
-
-
 
 OPTINLINE int WriteData(char *filename, void *buffer, uint_32 len) //Write buffer to file!
 {

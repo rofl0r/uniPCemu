@@ -4,7 +4,7 @@
 #include "headers/support/fifobuffer.h" //FIFOBUFFER support!
 #include "headers/hardware/midi/midi.h" //Our own stuff!
 #include "headers/hardware/pic.h" //Interrupt support!
-#include "headers/emu/timers.h" //Timing support!
+#include "headers/header_dosboxmpu.h" //Dosbox MPU cleanup support!
 
 //http://www.oktopus.hu/imgs/MANAGED/Hangtechnikai_tudastar/The_MIDI_Specification.pdf
 
@@ -279,6 +279,6 @@ void doneMPU() //Finish function!
 
 void MPU401_Done() //Finish our MPU system! Custom by superfury1!
 {
-	removetimer("MPU"); //Remove the timer if it's still there!
+	PIC_RemoveEvents(NULL); //Remove all events!
 	removeirq(2); //Remove the irq if it's still there!
 }

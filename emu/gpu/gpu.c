@@ -3,26 +3,19 @@
 
 #include "headers/types.h" //Global stuff!
 #include "headers/emu/gpu/gpu.h" //Our stuff!
-#include "headers/mmu/mmu.h" //TEXT mode data!
-#include "headers/interrupts/textmodedata.h" //TEXT mode data!
-#include "headers/cpu/interrupts.h" //For int10 refresh function!
-#include "headers/mmu/bda.h" //BDA support!
 #include "headers/hardware/vga/vga.h" //VGA support!
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/support/highrestimer.h" //High resolution timer!
 #include "headers/emu/input.h" //For the on-screen keyboard!
 #include "headers/support/zalloc.h" //Memory allocation support!
 #include "headers/support/log.h" //Log support!
-
 #include "headers/emu/gpu/gpu_framerate.h" //GPU framerate support!"
 #include "headers/emu/gpu/gpu_sdl.h" //SDL support!
 #include "headers/emu/gpu/gpu_emu.h" //Emulator support (for resetting)!
 #include "headers/emu/gpu/gpu_renderer.h" //Renderer support!
 #include "headers/emu/gpu/gpu_text.h" //Text delta position support!
-
-#include "headers/emu/timers.h" //Timer support!
-
 #include "headers/support/locks.h" //Lock support!
+#include "headers/bios/biosmenu.h" //For allocating BIOS menu surface!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -96,7 +89,7 @@ byte GPU_plotsetting = 0;
 
 SDL_Surface *getGPUSurface()
 {
-	#ifdef __psp__
+	#ifdef IS_PSP
 	//PSP?
 	updateWindow(PSP_SCREEN_COLUMNS,PSP_SCREEN_ROWS,SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 	#else
@@ -197,7 +190,7 @@ void initVideoLayer() //We're for allocating the main video layer, only dealloca
 		{
 			//PSP has solid resolution!
 			getGPUSurface(); //Allocate our display!
-			#ifdef __psp__
+			#ifdef IS_PSP
 			//We don't want the cursor to show on the PSP!
 			SDL_ShowCursor(SDL_DISABLE); //We don't want cursors on empty screens!
 			#endif
@@ -248,7 +241,6 @@ void initVideoMain() //Everything SDL PRE-EMU!
 		initFramerate(); //Start the framerate handler!
 		initKeyboardOSK(); //Start the OSK handler!
 		allocBIOSMenu(); //BIOS menu has the highest priority!
-		//addtimer(60.0, &refreshscreen, "RefreshScreen", 1, 1,NULL); //Refresh the screen at this frequency MAX!
 	}
 }
 
@@ -344,7 +336,7 @@ void CPU_updateVideo()
 void updateVideo() //Update the screen resolution on change!
 {
 	//We're disabled with the PSP: it doesn't update resolution!
-	#ifndef __psp__
+	#ifndef IS_PSP
 	byte reschange = 0, restype = 0; //Resolution change and type!
 	static word xres=0;
 	static word yres=0;

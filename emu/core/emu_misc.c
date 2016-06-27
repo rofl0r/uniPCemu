@@ -1,10 +1,8 @@
 #include "headers/types.h" //Basic types!
 #include "headers/emu/gpu/gpu_text.h" //Emulator support!
-#include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
-#include "headers/emu/threads.h" //Multithreading support!
 #include "headers/emu/directorylist.h" //Directory listing support!
-#include "headers/bios/bios.h" //Basic BIOS compatibility!
-#include "headers/hardware/vga/vga.h" //VGA compatibility.
+#include "headers/emu/threads.h" //For terminating all threads on a breakpoint!
+#include "headers/emu/gpu/gpu_framerate.h" //For refreshing the framerate surface only!
 
 int convertrel(int src, int fromres, int tores) //Relative int conversion!
 {

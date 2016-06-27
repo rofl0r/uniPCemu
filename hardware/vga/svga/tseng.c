@@ -1,12 +1,10 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/vga/vga.h" //Basic VGA!
 #include "headers/hardware/vga/svga/tseng.h" //Our own typedefs!
-#include "headers/support/zalloc.h" //Memory allocation support!
+#include "headers/support/zalloc.h" //Memory allocation for our override support!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
-#include "headers/hardware/ports.h" //I/O support!
-#include "headers/bios/bios.h" //Basic BIOS support!
 #include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller support!
-#include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Graphicas mode support!
+#include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Graphics mode support!
 #include "headers/cpu/cpu.h" //NMI support!
 
 // From the depths of X86Config, probably inexact
@@ -839,8 +837,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	verticaltimingsupdated = 0; //Default: not updated!
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25))) //Interlacing?
 	{
-		verticaltimingsupdated |= VGA->precalcs.useInterlacing != ((et4k_tempreg & 0x80) ? 1 : 0); //Interlace has changed?
-		VGA->precalcs.useInterlacing = (et4k_tempreg & 0x80) ? 1 : 0; //Enable/disable interlacing!
+		verticaltimingsupdated |= et34kdata->useInterlacing != ((et4k_tempreg & 0x80) ? 1 : 0); //Interlace has changed?
+		et34kdata->useInterlacing = (et4k_tempreg & 0x80) ? 1 : 0; //Enable/disable interlacing!
 	}
 
 	if (verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
@@ -856,7 +854,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		tempdata <<= 8;
 		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALDISPLAYENDREGISTER;
 		tempdata = ((et4k_tempreg & 4) << 9) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
-		tempdata <<= VGA->precalcs.useInterlacing; //Interlacing doubles vertical resolution!
+		tempdata <<= et34kdata->useInterlacing; //Interlacing doubles vertical resolution!
 		++tempdata; //One later!
 		updateCRTC |= (VGA->precalcs.verticaldisplayend!=tempdata); //To be updated?
 		VGA->precalcs.verticaldisplayend = tempdata; //Save the new data!
@@ -875,7 +873,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		tempdata <<= 8;
 		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.STARTVERTICALBLANKINGREGISTER;
 		tempdata = ((et4k_tempreg & 1) << 10) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
-		tempdata <<= VGA->precalcs.useInterlacing; //Interlacing doubles vertical resolution!
+		tempdata <<= et34kdata->useInterlacing; //Interlacing doubles vertical resolution!
 		updateCRTC |= (VGA->precalcs.verticalblankingstart!=tempdata); //To be updated?
 		VGA->precalcs.verticalblankingstart = tempdata; //Save the new data!
 	}
@@ -893,7 +891,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		tempdata <<= 8;
 		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACESTARTREGISTER;
 		tempdata = ((et4k_tempreg & 8) << 7) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
-		tempdata <<= VGA->precalcs.useInterlacing; //Interlacing doubles vertical resolution!
+		tempdata <<= et34kdata->useInterlacing; //Interlacing doubles vertical resolution!
 		updateCRTC |= (VGA->precalcs.verticalretracestart!=tempdata); //To be updated?
 		VGA->precalcs.verticalretracestart = tempdata; //Save the new data!
 	}
@@ -911,7 +909,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		tempdata <<= 8;
 		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALTOTALREGISTER;
 		tempdata = ((et4k_tempreg & 2) << 9) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
-		tempdata <<= VGA->precalcs.useInterlacing; //Interlacing doubles vertical resolution!
+		tempdata <<= et34kdata->useInterlacing; //Interlacing doubles vertical resolution!
 		++tempdata; //One later!
 		updateCRTC |= (VGA->precalcs.verticaltotal!=tempdata); //To be updated?
 		VGA->precalcs.verticaltotal = tempdata; //Save the new data!
@@ -930,7 +928,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		tempdata <<= 8;
 		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.LINECOMPAREREGISTER;
 		tempdata = ((et4k_tempreg & 0x10) << 6) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
-		tempdata <<= VGA->precalcs.useInterlacing; //Interlacing doubles vertical resolution!
+		tempdata <<= et34kdata->useInterlacing; //Interlacing doubles vertical resolution!
 		++tempdata; //One later!
 		updateCRTC |= (VGA->precalcs.topwindowstart!=tempdata); //To be updated?
 		VGA->precalcs.topwindowstart = tempdata; //Save the new data!

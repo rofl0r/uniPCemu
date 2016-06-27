@@ -4,6 +4,7 @@
 #include "headers/basicio/io.h" //For mounting!
 #include "headers/bios/bios.h" //For BIOS!
 #include "headers/bios/biosrom.h" //BIOS ROM support!
+#include "headers/bios/biosmenu.h" //For checking the BIOS menu!
 #include "headers/bios/initmem.h" //BIOS Memory support!
 #include "headers/hardware/pic.h" //Interrupt controller support!
 #include "headers/emu/timers.h" //Timers!

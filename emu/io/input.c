@@ -1,31 +1,20 @@
 #include "headers/types.h"
 #include "headers/emu/input.h" //Own typedefs.
 #include "headers/bios/bios.h" //BIOS Settings for keyboard input!
-#include "headers/hardware/vga/vga.h" //VGA for simple 8x8 font!
-#include "headers/emu/gpu/gpu.h" //GPU support!
 #include "headers/hardware/ps2_keyboard.h" //PS/2 keyboard support!
 #include "headers/hardware/ps2_mouse.h" //PS/2 mouse controller support!
-#include "headers/emu/threads.h" //Thread management!
 #include "headers/support/keyboard.h" //Keyboard support!
-#include "headers/support/zalloc.h" //Zero allocation support!
-
+#include "headers/support/zalloc.h" //Zero allocation support for mouse packets!
 #include "headers/emu/gpu/gpu_emu.h" //GPU emulator color support!
 #include "headers/emu/gpu/gpu_sdl.h" //GPU SDL support!
-#include "headers/emu/gpu/gpu_text.h"
-
+#include "headers/emu/gpu/gpu_text.h" //GPU text layer support!
 #include "headers/support/log.h" //Logging support!
-
-#include "headers/emu/timers.h" //Timer support!
-
 #include "headers/support/highrestimer.h" //High resolution timer support!
-
 #include "headers/hardware/sermouse.h" //Serial mouse support!
-
 #include "headers/support/signedness.h" //Signedness support!
-
-#include "headers/emu/gpu/gpu_text.h" //GPU text support! 
 #include "headers/bios/biosmenu.h" //BIOS menu support for recording audio!
 #include "headers/hardware/vga/vga.h" //Video adapter dumping support!
+#include "headers/emu/timers.h" //Keyboard swap timer!
 
 #ifdef VISUALC
 #include "sdl_joystick.h" //Joystick support!
@@ -1788,9 +1777,7 @@ void psp_keyboard_init()
 void psp_keyboard_done()
 {
 	if (__HW_DISABLED) return; //Abort!
-	removetimer("Keyboard PSP Type"); //No typing!
 	removetimer("Keyboard PSP Swap"); //No swapping!
-	removetimer("PSP Mouse"); //No mouse!
 }
 
 void keyboard_loadDefaultColor(byte color)

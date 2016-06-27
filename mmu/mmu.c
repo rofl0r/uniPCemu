@@ -1,10 +1,8 @@
 #define IS_MMU
 #include "headers/mmu/mmu.h"
 #include "headers/cpu/cpu.h"
-#include "headers/bios/bios.h"
 #include "headers/mmu/memory_adressing.h" //Memory assist functions!
 #include "headers/mmu/paging.h" //Paging functions!
-#include "headers/emu/gpu/gpu.h" //GPU support!
 #include "headers/support/zalloc.h" //Memory allocation!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/protection.h" //Protection support!

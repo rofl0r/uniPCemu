@@ -3,7 +3,7 @@
 
 /*
 
-This is a custom PSP&PC library for adding 64-bit fopen support to the project using platform-specific calls.
+This is a custom PSP&PC library for adding universal 64-bit fopen support to the project using platform-specific calls.
 
 */
 
@@ -13,7 +13,7 @@ typedef struct
 	char filename[256]; //The full filename!
 	uint_64 position; //The position!
 	uint_64 size; //The size!
-#ifdef __psp__
+#ifdef IS_PSP
 	//PSP only data:
 	SceUID f; //The file opened using sceIoOpen!
 	SceMode mode; //The mode!
@@ -41,7 +41,7 @@ int emufseek64(FILE *stream, int64_t pos, int direction)
 {
 	if (!stream) return -1; //Error!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
-#ifdef __psp__
+#ifdef IS_PSP
 									//Convert new direction!
 	int newdir = PSP_SEEK_CUR;
 	if (direction == SEEK_CUR) newdir = PSP_SEEK_CUR;
@@ -57,7 +57,7 @@ int emufseek64(FILE *stream, int64_t pos, int direction)
 	{
 		b->position = _ftelli64(b->f); //Use our own position indicator!
 	}
-#elif defined(_WIN32) && defined(fseeko64)
+#elif defined(IS_WINDOWS) && defined(fseeko64)
 	if (!(result = fseeko64(b->f, pos, direction))) //Direction is constant itself!
 	{
 		b->position = ftello64(b->f); //Use our own position indicator!
@@ -76,7 +76,7 @@ int emufflush64(FILE *stream)
 {
 	if (!stream) return 1; //EOF!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
-#ifdef __psp__
+#ifdef IS_PSP
 	//return sceIoSync("ms0:", 0); //Synchronize data on the device!
 	return 1; //Seems to be fine without it?
 #else
@@ -112,7 +112,7 @@ FILE *emufopen64(char *filename, char *mode)
 	{
 			switch (*modeidentifier) //What identifier have we found?
 			{
-			#ifdef __psp__
+			#ifdef IS_PSP
 				//PSP-only flags!
 					case 'w': //Write?
 						stream->mode |= PSP_O_WRONLY|PSP_O_CREAT|PSP_O_TRUNC; //Write, create and truncate!
@@ -145,7 +145,7 @@ FILE *emufopen64(char *filename, char *mode)
 		}
 		++modeidentifier; //Next identifier!
 	}
-#ifdef __psp__
+#ifdef IS_PSP
 	stream->f = sceIoOpen(filename,stream->mode,0777); //Open the file!
 	if (!stream->f || ((stream->f&0x8F000000)==0x80000000)) //Failed?
 	{
@@ -178,7 +178,7 @@ int64_t emufwrite64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 {
 	if (!stream) return -1; //Error!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
-#ifdef __psp__
+#ifdef IS_PSP
 	SceSize numwritten = sceIoWrite(b->f,data,multiplication*size); //Try to write!
 #else
 	//Windows?
@@ -199,7 +199,7 @@ int64_t emufread64(void *data,int64_t multiplication,int64_t size,FILE *stream)
 {
 	if (!stream) return -1; //Error!
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
-#ifdef __psp__
+#ifdef IS_PSP
 	SceSize numread = sceIoRead(b->f,data,multiplication*size); //Try to write!
 #else
 	uint_32 numread = fread(data,(size_t)multiplication,(size_t)size,b->f); //Nothing read!
@@ -221,7 +221,7 @@ int emufclose64(FILE *stream)
 	char filename[256];
 	bzero(filename,sizeof(filename));
 	strcpy(filename,b->filename); //Set filename!
-#ifdef __psp__
+#ifdef IS_PSP
 	if (sceIoClose(b->f)<0) //Error?
 	{
 		return EOF; //Error!

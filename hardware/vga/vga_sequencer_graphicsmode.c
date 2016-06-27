@@ -1,16 +1,8 @@
 #define VGA_SEQUENCER_GRAPHICSMODE
 
 #include "headers/types.h" //Basic types!
-#include "headers/emu/gpu/gpu.h" //GPU!
 #include "headers/hardware/vga/vga.h" //VGA!
-#include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller!
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Graphics mode!
-#include "headers/hardware/vga/vga_vram.h" //Our VRAM support!
-#include "headers/hardware/vga/vga_crtcontroller.h" //CRT Controller for finishing up!
-#include "headers/cpu/interrupts.h" //For get/putpixel variant!
-#include "headers/support/log.h" //Logging support!
-#include "headers/mmu/mmu.h" //For BIOS data!
-#include "headers/header_dosbox.h" //For comp.
 
 extern byte planesbuffer[4]; //All read planes for the current processing!
 byte pixelbuffer[8]; //All 8 pixels decoded from the planesbuffer!

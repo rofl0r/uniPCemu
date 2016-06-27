@@ -1,7 +1,6 @@
 #ifndef BIOS_H
 #define BIOS_H
 
-#include "headers/bios/biosmenu.h" //BIOS menu comp.
 #include "headers/emu/input.h" //For INPUT_SETTINGS!
 #include "headers/hardware/cmos.h" //CMOS support!
 //First, the typedefs:

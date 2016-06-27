@@ -1,5 +1,4 @@
 #include "headers/emu/gpu/gpu.h" //GPU typedefs etc.
-#include "headers/cpu/cpu.h" //CPU support!
 #include "headers/support/zalloc.h" //For registering our data we've allocated!
 #include "headers/emu/gpu/gpu_sdl.h" //SDL support!
 #include "headers/support/log.h" //Logging support!
@@ -401,7 +400,7 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 	*n_height = newheight; //New width/height!
 	if (aspectratio) //Keeping the aspect ratio?
 	{
-		#ifndef __psp__
+		#ifndef IS_PSP
 		//Only with windows used!
 		if (((aspectratio>=2) || (aspectratio<=5)) && is_renderer) //Render to the window of forced size?
 		{

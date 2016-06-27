@@ -8,22 +8,15 @@ Interrupt 10h: Video interrupt
 #include "headers/emu/gpu/gpu.h" //Real ouput module!
 #include "headers/cpu/cpu.h" //CPU module!
 #include "headers/cpu/easyregs.h" //Easy register access!
-#include "headers/hardware/vga/colorconversion.h" //Color conversion compatibility for text output!
 #include "headers/cpu/interrupts.h" //Interrupt support for GRAPHIC modes!
 #include "headers/hardware/vga/vga.h" //Basic typedefs!
-#include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller for debug screen output!
 #include "headers/header_dosbox.h" //Screen modes from DOSBox!
 #include "headers/hardware/ports.h" //Port support!
-#include "headers/hardware/vga/vga_precalcs.h" //Precalculation support!
-#include "headers/hardware/vga/vga_sequencer_textmode.h" //For character size detection!
 #include "headers/hardware/vga/vga_dacrenderer.h" //For color/mono detection!
 #include "headers/support/log.h" //Logging support!
-
 #include "headers/interrupts/interrupt10.h" //Our typedefs etc.
-#include "headers/emu/gpu/gpu_emu.h" //GPU emulation functionality!
 #include "headers/cpu/cb_manager.h" //Callback detection!
-
-#include "headers/cpu/protection.h" //For CPU_segment_index!
+#include "headers/cpu/protection.h" //For reading RAM!
 
 //Are we disabled for checking?
 #define __HW_DISABLED 0

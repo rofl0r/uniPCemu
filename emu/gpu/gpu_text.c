@@ -1,10 +1,9 @@
 #include "headers/emu/gpu/gpu.h" //Basic GPU!
 #include "headers/emu/gpu/gpu_text.h" //Our prototypes!
-#include "headers/emu/gpu/gpu_sdl.h" //Our prototypes!
-#include "headers/interrupts/textmodedata.h" //VGA for font!
+#include "headers/emu/gpu/gpu_sdl.h" //For rendering!
+#include "headers/interrupts/textmodedata.h" //Fonts for rendering!
 #include "headers/support/zalloc.h" //Zero allocation support!
 #include "headers/support/log.h" //Logging support!
-#include "headers/support/bmp.h" //Bitmap support!
 #include "headers/support/highrestimer.h" //High resolution timer!
 
 #define __HW_DISABLED 0

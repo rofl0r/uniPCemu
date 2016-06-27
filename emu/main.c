@@ -26,7 +26,7 @@
 
 #include "headers/hardware/8253.h" //PIT support!
 
-#ifdef __psp__
+#ifdef IS_PSP
 PSP_MODULE_INFO("x86EMU", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER); //Make sure we're user mode!
 PSP_HEAP_SIZE_MAX(); //Free maximum for us: need this for the memory allocation (m/zalloc)!
@@ -81,7 +81,7 @@ BASIC Exit Callbacks
 
 */
 
-#ifdef __psp__
+#ifdef IS_PSP
 /* Exit callback */
 int exit_callback(int arg1, int arg2, void *common)
 {
@@ -134,7 +134,7 @@ int CallbackThread(SceSize args, void *argp)
 int SetupCallbacks()
 {
 	atexit(SDL_Quit); //Basic SDL safety!
-#ifdef __psp__
+#ifdef IS_PSP
 	int thid = 0;
 
 	thid = sceKernelCreateThread("X86EMU_ExitThread", CallbackThread, EXIT_PRIORITY, 0xFA0, 0, 0); //Create thread at highest priority!
@@ -193,7 +193,7 @@ int main(int argc, char * argv[])
 {
 //Basic PSP stuff!
 	SetupCallbacks();
-	#ifdef __psp__
+	#ifdef IS_PSP
 		scePowerSetClockFrequency(333, 333, 166); //Start high-speed CPU!
 	#endif
 	clockspeed = getCurrentClockSpeed(); //Save the current clock frequency for reference!
@@ -285,7 +285,7 @@ int main(int argc, char * argv[])
 	if (DELETE_LOGS_ONBOOT) delete_file("logs","*.log"); //Delete any logs still there!
 	if (DELETE_BMP_ONBOOT) delete_file("captures","*.bmp"); //Delete any bitmaps still there!
 	
-	#ifdef __psp__
+	#ifdef IS_PSP
 		if (FILE_EXISTS("logs/profiler.txt")) //Enable profiler: doesn't work in x86EMU?
 		{
 			// Clear the existing profile regs

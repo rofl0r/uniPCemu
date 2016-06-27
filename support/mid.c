@@ -2,11 +2,11 @@
 #include "headers/support/zalloc.h" //Zalloc support!
 #include "headers/hardware/ports.h" //MPU support!
 #include "headers/emu/threads.h" //Thread support!
-#include "headers/emu/timers.h" //Timer support!
 #include "headers/support/mid.h" //Our own typedefs!
 #include "headers/emu/gpu/gpu_text.h" //Text surface support!
 #include "headers/hardware/midi/mididevice.h" //For the MIDI voices!
 #include "headers/support/log.h" //Logging support!
+#include "headers/emu/timers.h" //Tempo timer support!
 
 //Enable this define to log all midi commands executed here!
 //#define MID_LOG

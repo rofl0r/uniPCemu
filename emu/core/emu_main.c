@@ -14,7 +14,6 @@
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/emu/input.h" //Input support!
 #include "headers/hardware/vga/vga.h" //For savestate support!
-#include "headers/emu/state.h" //SaveState holder!
 #include "headers/support/crc32.h" //CRC32 function support!
 #include "headers/mmu/bda.h" //BDA support!
 */

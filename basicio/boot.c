@@ -5,9 +5,7 @@
 #include "headers/basicio/io.h" //Need low level I/O comp!
 #include "headers/support/isoreader.h" //Need ISO reading comp!
 #include "headers/bios/bios.h" //Need BIOS comp!
-#include "headers/emu/gpu/gpu_emu.h" //GPU EMU functionality!
 #include "headers/interrupts/interrupt13.h" //We need disk support!
-
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
 extern IODISK disks[6]; //All mounted disks!

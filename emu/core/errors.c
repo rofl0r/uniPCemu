@@ -4,7 +4,7 @@
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate surface rendering only!
 #include "headers/support/log.h" //Logging!
 #include "headers/emu/threads.h" //Thread support!
-#include "headers/emu/sound.h" //Sound support!
+#include "headers/emu/sound.h" //For stopping sound on errors!
 
 /*
 

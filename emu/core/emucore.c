@@ -1,91 +1,59 @@
 #include "headers/types.h" //For global stuff etc!
-
 #include "headers/mmu/mmu.h" //For MMU
 #include "headers/cpu/cpu.h" //For CPU
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/hardware/vga/vga.h" //For savestate support!
-
-#include "headers/emu/state.h" //SaveState holder!
 #include "headers/hardware/pic.h" //Interrupt controller support!
 #include "headers/emu/timers.h" //Timers!
 #include "headers/hardware/8042.h" //For void BIOS_init8042()
 #include "headers/emu/sound.h" //PC speaker support!
-
 #include "headers/hardware/8253.h" //82C54 support!
-
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/support/log.h" //Log support!
 #include "headers/support/zalloc.h" //For final freezall functionality!
-
 #include "headers/hardware/adlib.h" //Adlib!
 #include "headers/hardware/ps2_keyboard.h" //PS/2 keyboard support!
 #include "headers/hardware/ps2_mouse.h" //PS/2 mouse support!
 #include "headers/hardware/cmos.h" //CMOS support!
-
 #include "headers/emu/emu_bios_sound.h" //BIOS sound support!
-
 #include "headers/hardware/sermouse.h" //Serial mouse support!
-
 #include "headers/mmu/mmuhandler.h" //MMU handler support!
+#include "headers/bios/biosmenu.h" //For running the BIOS!
 
 //All graphics now!
-
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
 #include "headers/emu/gpu/gpu_renderer.h" //Renderer support!
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
 #include "headers/emu/emucore.h" //Emulation core!
-#include "headers/emu/soundtest.h" //Sound test utility!
-
 #include "headers/interrupts/interrupt19.h" //INT19 support!
-
 #include "headers/hardware/softdebugger.h" //Software debugger and Port E9 Hack.
-
 #include "headers/hardware/8237A.h" //DMA Controller!
 #include "headers/hardware/midi/midi.h" //MIDI/MPU support!
-
 #include "headers/bios/biosrom.h" //BIOS ROM support!
 #include "headers/emu/threads.h" //Multithreading support!
-
 #include "headers/hardware/vga/vga_sequencer.h" //VGA sequencer for direct MAX speed dump!
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC support!
-
 #include "headers/hardware/uart.h" //UART support!
-
 #include "headers/emu/emu_vga.h" //VGA update support!
-
 #include "headers/support/highrestimer.h" //High resolution timer!
-
 #include "headers/hardware/ide.h" //IDE/ATA support!
 #include "headers/hardware/pci.h" //PCI support!
-
 #include "headers/hardware/sermouse.h" //Serial mouse support!
-
 #include "headers/emu/gpu/gpu_text.h" //GPU text surface support!
 #include "headers/basicio/io.h" //I/O support!
-
 #include "headers/hardware/floppy.h" //Floppy disk controller!
-
 #include "headers/hardware/ppi.h" //PPI support!
-
 #include "headers/hardware/ems.h" //EMS support!
-
 #include "headers/hardware/ssource.h" //Disney Sound Source support!
-
 #include "headers/hardware/parallel.h" //Parallel port support!
-
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA compatibility layer support!
-
 #include "headers/support/dro.h" //DRO player playback support!
-
 #include "headers/hardware/midi/midi.h" //MPU support!
-
 #include "headers/hardware/dram.h" //DRAM support!
-
 #include "headers/hardware/vga/svga/tseng.h" //Tseng ET3000/ET4000 SVGA card!
-
 #include "headers/hardware/joystick.h" //Joystick support!
-
 #include "headers/hardware/xtexpansionunit.h" //XT expansion unit!
+#include "headers/cpu/cb_manager.h" //For handling callbacks!
 
 //CPU default clock speeds (in Hz)!
 
@@ -480,7 +448,6 @@ void pauseEMU()
 	if (emu_started) //Started?
 	{
 		EMU_stopInput(); //Stop all input!
-		EMU_SaveStatus(""); //Save status (temp)
 		stopEMUTimers(); //Stop the timers!
 		EMU_RUNNING = 3; //We've stopped, but still active (paused)!
 	}
@@ -490,7 +457,6 @@ void resumeEMU(byte startinput)
 {
 	if (emu_started) //Started?
 	{
-		EMU_LoadStatus(""); //Load status (temp)
 		startEMUTimers(); //Start the timers!
 		if (startinput) EMU_startInput(); //Start the input when allowed to!
 		EMU_RUNNING = 1; //We've restarted!
@@ -507,7 +473,7 @@ void initEMUreset() //Simple reset emulator!
 {
 	debugrow("initEMUreset!");
 	debugrow("immediatelyafter");
-	#ifdef __psp__
+	#ifdef IS_PSP
 		pspDebugScreenClear(); //Clear the debug screen!
 	#endif
 	EMU_RUNNING = 0; //Emulator isn't running anymore!

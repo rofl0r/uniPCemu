@@ -5,7 +5,6 @@
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //For masking planes!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA attribute support!
-
 #include "headers/support/log.h" //Debugger!
 extern byte LOG_RENDER_BYTES; //vga_screen/vga_sequencer_graphicsmode.c
 

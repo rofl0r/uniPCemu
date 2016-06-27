@@ -3,14 +3,14 @@
 
 #include "headers/types.h" //Basic typedefs!
 
-#ifdef __psp__
+#ifdef IS_PSP
 #include <dirent.h> //PSP only required?
 #endif//Are we disabled?
 
 typedef struct
 {
 	char path[256]; //Full path!
-#ifndef __psp__
+#ifndef IS_PSP
 	//Visual C++ and MinGW?
 	TCHAR szDir[MAX_PATH];
 	WIN32_FIND_DATA ffd;

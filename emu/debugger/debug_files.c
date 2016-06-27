@@ -6,7 +6,6 @@
 #include "headers/emu/emu_misc.h" //file support!
 #include "headers/emu/gpu/gpu_emu.h" //EMU debugging text support!
 #include "headers/emu/gpu/gpu_text.h" //Text surface support!
-
 #include "headers/emu/directorylist.h" //Directory listing support!
 #include "headers/emu/gpu/gpu_renderer.h" //For forcing a refresh of the screen!
 

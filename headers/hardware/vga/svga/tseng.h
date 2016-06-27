@@ -69,6 +69,7 @@ typedef struct {
 	byte MDAModeRegister;
 	byte CGAColorSelectRegister;
 	byte ExtendedFeatureControlRegister; //Feature control extension(extra bits)!
+	byte useInterlacing; //Interlacing enabled?
 } SVGA_ET34K_DATA; //Dosbox ET4000 saved data!
 
 //Retrieve a point to the et4k?

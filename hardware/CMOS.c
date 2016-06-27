@@ -186,23 +186,8 @@ int gettimeofday(struct timeval * tp, struct timezone * tzp)
 	tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
 	return 0;
 }
-#else
-#ifdef IS_PSP
-#ifndef timeval
-// MSVC defines this in winsock2.h!?
-typedef struct timeval {
-	long tv_sec;
-	long tv_usec;
-} timeval;
 #endif
-
-int gettimeofday(struct timeval * tp, struct timezone * tzp)
-{
-	//Unknown?
-	return 1; //Error: couldn't retrieve!
-}
-#endif
-#endif
+//PSP and Linux already have proper gettimeofday support built into the compiler!
 
 //Our accurate time support:
 

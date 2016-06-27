@@ -1,6 +1,5 @@
 #include "headers/types.h" //Basic stuff!
 #include "headers/emu/gpu/gpu.h" //GPU typedefs etc.
-#include "headers/cpu/cpu.h" //CPU support!
 #include "headers/support/highrestimer.h" //High resolution timer!
 #include "headers/emu/gpu/gpu_sdl.h" //SDL support!
 #include "headers/support/log.h" //Logging support!
@@ -9,6 +8,7 @@
 #include "headers/support/bmp.h" //Bitmap support!
 #include "headers/support/zalloc.h" //Zalloc support!
 #include "headers/emu/gpu/gpu_text.h" //Text rendering support!
+#include "headers/support/locks.h" //Locking support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -101,7 +101,7 @@ uint_32 *get_rowempty()
 
 OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 {
-#ifdef __psp__
+#ifdef IS_PSP
 	int pspy = 0;
 #endif
 	if (__HW_DISABLED) return; //Abort?
@@ -115,7 +115,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 		widthclear = MIN(rendersurface->sdllayer->w,EMU_MAX_X);
 		if (GPU.aspectratio) //Using letterbox for aspect ratio?
 		{
-			#ifndef __psp__
+			#ifndef IS_PSP
 				if (VIDEO_DFORCED) //Forced video?
 				{
 					goto drawpixels; //No letterbox top!
@@ -180,7 +180,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 		return; //Don't render anymore!
 	}
 
-#ifdef __psp__
+#ifdef IS_PSP
 	//PSP only?
 	if (GPU.emu_buffer_dirty) //Dirty?
 	{

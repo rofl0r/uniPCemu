@@ -2,7 +2,8 @@
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/support/zalloc.h" //Allocation support!
 #include "headers/cpu/cpu.h" //CPU support!
-#include "headers/mmu/paging.h" //Pagina support for address decoding (Turbo XT BIOS detection)!
+#include "headers/mmu/paging.h" //Pagina support for address decoding (for Turbo XT BIOS detection)!
+#include "headers/support/locks.h" //Locking support!
 
 //Comment this define to disable logging
 //#define __ENABLE_LOGGING

@@ -5,6 +5,7 @@
 #pragma once
 #ifndef VISUALC
 #define VISUALC
+#define IS_WINDOWS
 #endif
 //Basic SDL for rest platforms!
 #include "SDL/SDL.h" //SDL library!

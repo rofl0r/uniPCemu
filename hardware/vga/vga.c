@@ -11,28 +11,18 @@ VGA ROM and handling functions.
 
 #include "headers/types.h" //Basic type support!
 #include "headers/hardware/ports.h" //Basic PORT compatibility!
-
 #include "headers/bios/bios.h" //For VRAM memory size!
 #include "headers/hardware/vga/vga.h" //VGA data!
-#include "headers/mmu/mmu.h" //For CPU passtrough!
+#include "headers/mmu/mmu.h" //For memory passtrough!
 #include "headers/hardware/vga/vga_sequencer.h" //For precalcs!
 #include "headers/hardware/vga/vga_crtcontroller.h" //For getyres for display rate!
 #include "headers/hardware/vga/vga_vram.h" //VRAM read!
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM text read!
-#include "headers/emu/threads.h" //Multithread support!
-
-#include "headers/emu/gpu/gpu.h" //GPU!
-#include "headers/cpu/interrupts.h" //int10 support!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculations!
-
 #include "headers/support/zalloc.h" //Memory allocation!
-
 #include "headers/support/log.h" //Logging support!
-
-#include "headers/emu/gpu/gpu_renderer.h" //GPU emulator support!
-
+#include "headers/emu/gpu/gpu_renderer.h" //GPU rendering support!
 #include "headers/support/locks.h" //Lock support!
-
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC support for initialisation!
 
 //Are we disabled?

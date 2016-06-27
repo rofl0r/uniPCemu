@@ -1,11 +1,10 @@
 #include "headers/types.h" //Basic types!
 #include "headers/support/zalloc.h" //Our own definitions!
 #include "headers/support/log.h" //Logging support!
-#include "headers/emu/gpu/gpu.h" //Locking support!
-#include "headers/hardware/vga/vga.h" //Locking support!
-#include "headers/emu/sound.h" //Sound support!
+#include "headers/support/locks.h" //Locking support!
+#include "headers/emu/sound.h" //For locking the audio thread!
 
-#include <malloc.h> //Specific to us only!
+#include <malloc.h> //Specific to us only: the actual memory allocation!
 
 byte allcleared = 0; //Are all pointers cleared?
 

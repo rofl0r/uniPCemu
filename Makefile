@@ -32,7 +32,7 @@ OBJS += cpu/cpu_interrupts.o
 #Interrupt 10h VGA help:
 OBJS += interrupts/interrupt10_modelist_vga.o interrupts/interrupt10_switchvideomode.o interrupts/interrupt10_romfont.o interrupts/interrupt10_textmodedata.o
 #next, support
-OBJS += basicio/dynamicimage.o basicio/staticimage.o basicio/dskimage.o support/isoreader.o support/fifobuffer.o support/sounddoublebuffer.o support/lba.o support/crc32.o support/state.o
+OBJS += basicio/dynamicimage.o basicio/staticimage.o basicio/dskimage.o support/isoreader.o support/fifobuffer.o support/sounddoublebuffer.o support/lba.o support/crc32.o
 #all main I/O stuff we need (disk I/O and port mapping)
 OBJS += basicio/io.o basicio/port_mapper.o
 #external chip caller port port i/o (for the CPU and hardware):
@@ -48,7 +48,7 @@ OBJS += hardware/8042.o
 #Various devices.
 OBJS += hardware/dma.o hardware/pic.o hardware/CMOS.o
 #VGA Adapter for CPU and EMU (non-view):
-OBJS += hardware/vga/vga_colorconversion.o hardware/vga/vga_vram.o hardware/vga/vga_dac.o hardware/vga/vga.o
+OBJS += hardware/vga/vga_vram.o hardware/vga/vga_dac.o hardware/vga/vga.o
 #VGA MMU&I/O device.
 OBJS += hardware/vga/vga_mmu.o hardware/vga/vga_io.o
 #VGA view:

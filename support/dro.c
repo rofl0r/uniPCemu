@@ -6,8 +6,6 @@
 #include "headers/emu/input.h" //Input support!
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/emu/gpu/gpu_text.h" //GPU text surface support!
-#include "headers/hardware/adlib.h" //Adlib support!
-
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //Time support!
 #include "headers/emu/emucore.h" //Emulator start/stop support!

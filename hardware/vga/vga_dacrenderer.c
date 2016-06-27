@@ -1,7 +1,6 @@
 #define VGA_DACRENDERER
 
 #include "headers/types.h" //Basic types!
-//Our signaling!
 #include "headers/hardware/vga/vga.h" //VGA support!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/hardware/vga/vga_dacrenderer.h" //Our defs!

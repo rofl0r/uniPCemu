@@ -1,5 +1,4 @@
 #include "headers/types.h" //Basic types!
-#include "headers/support/fifobuffer.h" //FIFO buffer support!
 #include "headers/emu/sound.h" //Sound output support!
 #include "headers/hardware/parallel.h" //Parallel port support!
 #include "headers/support/log.h" //Logging support!

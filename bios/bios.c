@@ -1,6 +1,5 @@
 #include "headers/types.h" //Basic types etc.
 #include "headers/basicio/io.h" //Basic I/O support for BIOS!
-#include "headers/support/crc32.h" //CRC32 support!
 #include "headers/mmu/mmu.h" //CRC32 support!
 #include "headers/bios/bios.h" //BIOS basic type support etc!
 #include "headers/bios/boot.h" //For booting disks!
@@ -34,7 +33,7 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 #define DEFAULT_EXECUTIONMODE EXECUTIONMODE_BIOS
 #define DEFAULT_DEBUGGERLOG DEBUGGERLOG_NONE
 #define DEFAULT_ASPECTRATIO 2
-#ifdef __psp__
+#ifdef IS_PSP
 #define DEFAULT_DIRECTPLOT 0
 #else
 #define DEFAULT_DIRECTPLOT 2

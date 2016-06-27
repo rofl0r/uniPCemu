@@ -2,9 +2,8 @@
 #include "headers/support/log.h" //Loggin support!
 #include "headers/hardware/vga/vga_vram.h" //VRAM support!
 #include "headers/mmu/mmuhandler.h" //Handling support!
-#include "headers/hardware/pci.h" //PCI support!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
-#include "headers/cpu/cpu.h" //Emulator cpu support!
+#include "headers/cpu/cpu.h" //Emulator cpu support for waitstates!
 
 uint_32 VGA_VRAM_START = 0xA0000; //VRAM start address default!
 uint_32 VGA_VRAM_END = 0xC0000; //VRAM end address default!

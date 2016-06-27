@@ -9,14 +9,6 @@ byte MODRM_MOD(byte modrm); //MOD
 byte MODRM_REG(byte modrm); //REG
 byte MODRM_RM(byte modrm); //RM
 
-
-
-
-
-
-
-
-
 //REG (depends on size specified by stack B-bit&opcode 66h&done with 'register' MOD (see below)):
 
 //8-bit registers:
@@ -110,22 +102,6 @@ byte MODRM_RM(byte modrm); //RM
 
 //register (Xl/Xx/eXx; e.g. al/ax/eax) source/dest. (see above for further specification!)
 #define MOD_REG 3
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 //Struct containing the MODRM info:
 

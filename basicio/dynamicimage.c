@@ -1,8 +1,9 @@
 #include "headers/types.h" //Only global stuff!
 #include "headers/emu/gpu/gpu.h" //GPU stuff!
-#include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
 #include "headers/fopen64.h" //64-bit fopen support!
 #include "headers/emu/directorylist.h" //Directory list support.
+#include "headers/emu/gpu/gpu_text.h" //For locking the text surface!
+#include "headers/emu/gpu/gpu_emu.h" //Text output support!
 
 //A dynamic image .DAT data:
 byte SIG[7] = {'S','F','D','I','M','G','\0'}; //Signature!

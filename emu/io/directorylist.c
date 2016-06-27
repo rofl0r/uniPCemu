@@ -1,5 +1,4 @@
 #include "headers/emu/directorylist.h" //Our typedefs!
-#include "headers/support/zalloc.h" //Zero allocation support!
 #include "headers/support/log.h" //Debugging!
 
 byte isext(char *filename, char *extension)
@@ -59,7 +58,7 @@ void get_filename(const wchar_t *src, char *dest)
 byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfile) //Open a directory for reading, give the first entry if any!
 {
 	memset(dirlist->path,0,sizeof(dirlist->path)); //Clear the path!
-#ifdef _WIN32
+#ifdef IS_WINDOWS
 	char pathtmp[256]; //Temp data!
 	//Windows?
 	strcpy(pathtmp,path); //Initialise the path!
@@ -95,7 +94,7 @@ byte opendirlist(DirListContainer_p dirlist, char *path, char *entry, byte *isfi
 }
 byte readdirlist(DirListContainer_p dirlist, char *entry, byte *isfile) //Read an entry from the directory list! Gives the next entry, if any!
 {
-#ifdef _WIN32
+#ifdef IS_WINDOWS
 	//Windows?
 	if (FindNextFile(dirlist->hFind, &dirlist->ffd) != 0) //Found a next file?
 	{
@@ -127,7 +126,7 @@ byte readdirlist(DirListContainer_p dirlist, char *entry, byte *isfile) //Read a
 }
 void closedirlist(DirListContainer_p dirlist) //Close an opened directory list!
 {
-#ifdef _WIN32
+#ifdef IS_WINDOWS
 	FindClose(dirlist->hFind); //Close the directory!
 #else
 	//PSP?

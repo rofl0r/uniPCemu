@@ -273,9 +273,6 @@
     <ClCompile Include="..\hardware\vga\vga.c">
       <Filter>Source Files\hardware\vga</Filter>
     </ClCompile>
-    <ClCompile Include="..\hardware\vga\vga_colorconversion.c">
-      <Filter>Source Files\hardware\vga</Filter>
-    </ClCompile>
     <ClCompile Include="..\hardware\vga\vga_dac.c">
       <Filter>Source Files\hardware\vga</Filter>
     </ClCompile>
@@ -376,9 +373,6 @@
       <Filter>Source Files\support</Filter>
     </ClCompile>
     <ClCompile Include="..\support\signedness.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
-    <ClCompile Include="..\support\state.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
     <ClCompile Include="..\support\timers.c">
@@ -616,9 +610,6 @@
     <ClInclude Include="..\headers\emu\soundtest.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\emu\state.h">
-      <Filter>Header Files\emu</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\emu\threads.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
@@ -796,9 +787,6 @@
     <ClInclude Include="..\headers\support\zalloc.h">
       <Filter>Header Files\support</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\hardware\vga\colorconversion.h">
-      <Filter>Header Files\hardware\vga</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\hardware\vga\vga_attributecontroller.h">
       <Filter>Header Files\hardware\vga</Filter>
     </ClInclude>
@@ -840,9 +828,6 @@
     </ClInclude>
     <ClInclude Include="..\headers\basicio\staticimage.h">
       <Filter>Header Files\basicio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\directorylisting.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\endpacked.h">
       <Filter>Header Files</Filter>

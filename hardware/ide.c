@@ -3,9 +3,7 @@
 #include "headers/types.h" //Basic types!
 #include "headers/basicio/io.h" //I/O support!
 #include "headers/hardware/ports.h" //I/O port support!
-#include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/pci.h" //PCI support!
-#include "headers/support/highrestimer.h" //High resolution timer support!
 #include "headers/hardware/pic.h" //PIC support!
 #include "headers/support/log.h" //Logging support for debugging!
 

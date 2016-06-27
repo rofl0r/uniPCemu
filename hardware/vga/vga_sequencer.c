@@ -1,8 +1,6 @@
 #define VGA_SEQUENCER
 
 #include "headers/types.h" //Basic types!
-#include "headers/emu/gpu/gpu.h" //GPU!
-#include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/hardware/vga/vga.h" //VGA!
 #include "headers/hardware/vga/vga_sequencer.h" //Ourselves!
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Text mode!
@@ -13,11 +11,9 @@
 #include "headers/hardware/vga/vga_vram.h" //VGA VRAM support!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
 #include "headers/hardware/vga/vga_cga_ntsc.h" //CGA NTSC support!
-#include "headers/cpu/interrupts.h" //For get/putpixel variant!
-#include "headers/support/highrestimer.h" //High resolution clock!
-#include "headers/support/zalloc.h" //Memory protection support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/vga/svga/tseng.h" //ET3/4K DWord mode support!
+#include "headers/support/zalloc.h" //Memory protection support for vertical refresh rate!
 
 //Are we disabled?
 #define HW_DISABLED 0
@@ -278,17 +274,6 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
 	}
-
-	/*
-	if (VGA->precalcs.useInterlacing) //Interlace mode?
-	{
-		word interlacedfieldsize; //Half the display size!
-		interlacedfieldsize = VGA->precalcs.verticaldisplayend; //Take the whole field!
-		interlacedfieldsize >>= 1; //Take half of the field!
-		interlacedfieldsize += (VGA->precalcs.verticaldisplayend&1); //Odd sized vertical display adds one row to the odd field!
-		row = (row>=interlacedfieldsize)?((row-interlacedfieldsize)<<1):((row<<1)|1); //First all odd rows, then all even rows!
-	}
-	*/ //Disable interlacing: this is only on a real monitor?
 
 	//row is the vertical timing counter
 	row >>= VGA->precalcs.scandoubling; //Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!

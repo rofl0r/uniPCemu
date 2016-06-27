@@ -3,14 +3,10 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/ports.h" //Basic ports!
 #include "headers/support/highrestimer.h" //High resoltion timer support!
-#include "headers/emu/emu_misc.h" //Random short support for noise generation!
 #include "headers/emu/timers.h" //Timer support for attack/decay!
 #include "headers/support/locks.h" //Locking support!
-
-#include "headers/support/highrestimer.h" //High resolution timer!
-#include "headers/support/sounddoublebuffer.h" //FIFO buffer support!
-
-#include "headers/support/wave.h" //WAV file support!
+#include "headers/support/sounddoublebuffer.h" //Sound buffer support!
+#include "headers/support/wave.h" //WAV file logging support!
 
 #define uint8_t byte
 #define uint16_t word

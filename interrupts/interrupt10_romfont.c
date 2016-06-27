@@ -5,9 +5,9 @@
 #include "headers/hardware/ports.h" //Ports support!
 #include "headers/cpu/cb_manager.h" //Callback support!
 #include "headers/cpu/protection.h" //Protection support!
-
 #include "headers/support/log.h" //Debugging only!
 #include "headers/bios/biosrom.h" //BIOS ROM support!
+#include "headers/hardware/vga/vga.h" //VGA information!
 
 uint_32 i;
 OPTINLINE void MEM_BlockCopy(word segment, word offset, word fontseg, word fontoffs, Bitu height)

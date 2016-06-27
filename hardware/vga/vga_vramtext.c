@@ -1,9 +1,8 @@
 #include "headers/hardware/vga/vga.h" //Basic VGA stuff!
-#include "headers/hardware/vga/vga_vram.h" //VRAM!
+#include "headers/hardware/vga/vga_vram.h" //VRAM for building text fonts!
 #include "headers/hardware/vga/vga_crtcontroller.h" //For character sizes!
 #include "headers/hardware/vga/vga_vramtext.h" //Our VRAM text support!
 #include "headers/support/log.h" //Logging support!
-#include "headers/support/highrestimer.h" //High resolution timing!
 #include "headers/support/bmp.h" //BMP dumping support!
 
 OPTINLINE byte reverse8_VGA(byte b) { //Reverses byte value bits!

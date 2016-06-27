@@ -1,7 +1,7 @@
 #include "headers/types.h"
 #include "headers/support/highrestimer.h" //Our own typedefs etc.
 
-#ifdef __psp__
+#ifdef IS_PSP
 //The PSP uses a 1KB buffer, because it doesn't have much memory left!
 #define __LOGBUFFER 1024
 #else
@@ -151,7 +151,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 			fwrite(&logtext2,1,safe_strlen(logtext2,sizeof(logtext2)),logfile); //Write string to file!
 		}
 		fwrite(&lineending,1,sizeof(lineending),logfile); //Write the line feed appropriate for the system after any write operation!
-#ifdef __psp__
+#ifdef IS_PSP
 		//PSP doesn't buffer, because it's too slow!
 		fclose(logfile);
 		logfile = NULL; //We're finished!

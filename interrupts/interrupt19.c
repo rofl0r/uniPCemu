@@ -4,8 +4,8 @@
 #include "headers/interrupts/interrupt18.h" //Interrupt 18h support!
 #include "headers/mmu/mmu.h" //MMU support!
 #include "headers/cpu/protection.h" //For CPU_segment_index!
-#include "headers/emu/emu_main.h" //For BIOS POST!
 #include "headers/emu/threads.h" //Thread support!
+#include "headers/emu/emu_main.h" //EMU_BIOSPOST support!
 
 extern byte reset; //To reset the emulator?
 extern BIOS_Settings_TYPE BIOS_Settings; //Our BIOS Settings!

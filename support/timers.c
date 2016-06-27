@@ -2,7 +2,6 @@
 #include "headers/emu/timers.h" //Timer support function data!
 #include "headers/emu/threads.h" //Thread for timer item!
 #include "headers/support/highrestimer.h" //High-resolution timer for additional precision!
-
 #include "headers/support/log.h" //Logging for debugging!
 #include "headers/support/locks.h" //Locking support!
 

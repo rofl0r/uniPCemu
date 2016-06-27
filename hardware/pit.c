@@ -7,17 +7,12 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 
 #include "headers/types.h"
 #include "headers/hardware/ports.h" //IO Port support!
-#include "headers/hardware/pic.h" //irq support!
+#include "headers/hardware/pic.h" //IRQ support!
 #include "headers/emu/sound.h" //PC speaker support for the current emu!
-#include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/8253.h" //Our own typedefs etc.
-
-#include "headers/support/highrestimer.h" //High resolution timer support for current value!
 #include "headers/support/locks.h" //Locking support!
 
 //PC speaker support functionality:
-#include "headers/emu/emu_misc.h" //Random generators!
-#include "headers/support/fifobuffer.h" //FIFO sample buffer support!
 #include "headers/support/sounddoublebuffer.h" //Sound double buffer support!
 #include "headers/support/wave.h" //Wave support!
 

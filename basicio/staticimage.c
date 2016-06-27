@@ -1,9 +1,9 @@
 #include "headers/types.h" //Basic types!
-#include "headers/emu/gpu/gpu.h" //Basic output!
-#include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
 #include "headers/fopen64.h" //64-bit fopen support!
-#include "headers/hardware/floppy.h" //Disk image size suppor
+#include "headers/hardware/floppy.h" //Disk image size support!
 #include "headers/cpu/modrm.h" //MODR/M support for boot loader creation.
+#include "headers/emu/gpu/gpu_text.h" //For locking the text surface!
+#include "headers/emu/gpu/gpu_emu.h" //Text output support!
 
 byte is_staticimage(char *filename)
 {

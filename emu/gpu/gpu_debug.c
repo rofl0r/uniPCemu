@@ -1,7 +1,5 @@
 #include "headers/emu/gpu/gpu.h" //GPU typedefs etc.
-#include "headers/cpu/cpu.h" //CPU support!
-#include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
-#include "headers/header_dosbox.h" //BDA support!
+#include "headers/interrupts/interrupt10.h" //getscreenwidth() support!
 
 extern GPU_type GPU; //GPU!
 

@@ -1,21 +1,8 @@
 #include "headers/types.h" //Basic type support!
-#include "headers/hardware/ports.h" //Basic PORT compatibility!
 #include "headers/hardware/vga/vga.h" //VGA data!
-#include "headers/mmu/mmu.h" //For CPU passtrough!
-#include "headers/hardware/vga/vga_crtcontroller.h" //CRT controller!
-#include "headers/support/log.h" //Logging support for debugging this!
-#include "headers/hardware/vga/vga_sequencer.h" //Sequencer support for special actions!
-#include "headers/support/zalloc.h" //Zero allocation (memprotect) support!
 #include "headers/hardware/vga/vga_vram.h" //VRAM support!
-#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support for it's display memory!
 
-//VGA.VRAM is a pointer to the start of the VGA VRAM (256K large)
-
-//COLOR MODES:
-//VGA: 2, 3 (B/W/Bold), 4, 4 shades, 16, 256
-//SVGA: 32k, 64k, True Colors
-
-//We handle all input for writing to VRAM (CPU interrupts) and reading from VRAM (hardware) here!
+//We handle all input for writing to VRAM and reading from VRAM directly here!
 
 //Bit from left to right starts with 0(value 128) ends with 7(value 1)
 

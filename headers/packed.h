@@ -2,7 +2,7 @@
 #undef PACKED
 #endif
 
-#ifdef _WIN32
+#ifdef IS_WINDOWS
 #ifndef __GNUC__
 #ifndef __MINGW32__
 //Visual C++ Assumed

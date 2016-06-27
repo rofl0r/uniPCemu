@@ -30,7 +30,6 @@ DISKCHANGEDHANDLER diskchangedhandler; //Disk changed handler!
 #define CDROM1 0x05
 
 void ioInit(); //Resets/unmounts all disks!
-FILEPOS filesize(FILE *f); //Get filesize!
 void iofloppy0(char *filename, uint_64 startpos, byte readonly, uint_32 customsize);
 void iofloppy1(char *filename, uint_64 startpos, byte readonly, uint_32 customsize);
 void iohdd0(char *filename, uint_64 startpos, byte readonly, uint_32 customsize);

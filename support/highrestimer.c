@@ -11,10 +11,10 @@ float msfactorrev, usfactorrev, nsfactorrev; //The factors reversed!
 
 void initHighresTimer()
 {
-#ifdef __psp__
+#ifdef IS_PSP
 		tickresolution = sceRtcGetTickResolution(); //Get the tick resolution, as defined on the PSP!
 #else
-#ifdef _WIN32
+#ifdef IS_WINDOWS
 		LARGE_INTEGER tickresolution_win;
 		if (QueryPerformanceFrequency(&tickresolution_win))
 		{
@@ -41,7 +41,7 @@ void initHighresTimer()
 
 OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 {
-#ifdef __psp__
+#ifdef IS_PSP
 	u64 result = 0; //The result!
 	if (!sceRtcGetCurrentTick(&result)) //Try to retrieve current ticks as old ticks until we get it!
 	{
@@ -49,7 +49,7 @@ OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 	}
 	return 0; //Give the result: ticks passed!
 #else
-#ifdef _WIN32
+#ifdef IS_WINDOWS
 	if (tickresolution_win_SDL) goto forcewinsdl; //Forcing SDL?
 	LARGE_INTEGER temp;
 	if (!QueryPerformanceCounter(&temp)) return 0; //Invalid result?

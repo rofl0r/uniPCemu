@@ -4,7 +4,6 @@
 #include "headers/cpu/easyregs.h" //Easy register functionality last!
 #include "headers/emu/debugger/debugger.h" //For logging registers debugging!
 #include "headers/cpu/cb_manager.h" //Callback support!
-
 #include "headers/support/log.h" //Logging support for debugging!
 #include "headers/hardware/floppy.h" //Floppy geometry support!
 //Are we disabled?

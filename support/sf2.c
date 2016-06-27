@@ -2,7 +2,7 @@
 #include "headers/support/sf2.h" //Our typedefs!
 #include "headers/support/zalloc.h" //ZAlloc support!
 #include "headers/support/log.h" //Logging support!
-#include "headers/support/signedness.h" //Signedness support!
+#include "headers/support/signedness.h" //For converting between signed/unsigned samples!
 
 /*
 

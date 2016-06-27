@@ -13,41 +13,25 @@
 #include "headers/bios/biosmenu.h" //Our defines!
 #include "headers/emu/emucore.h" //For init/doneEMU for memory reallocation.
 #include "headers/fopen64.h" //64-bit fopen support!
-
 #include "headers/emu/gpu/gpu_emu.h" //GPU emulator support!
 #include "headers/emu/gpu/gpu_text.h" //For the framerate surface clearing!
 #include "headers/interrupts/interrupt10.h" //GPU emulator support!
-
 #include "headers/emu/directorylist.h" //Directory listing support!
-
 #include "headers/support/log.h" //Logging for disk images!
-
 #include "headers/hardware/ps2_keyboard.h" //PS/2 keyboard key name support!
-
 #include "headers/emu/input.h" //We need input using psp_inputkey.
-
 #include "headers/emu/emu_vga.h" //VGA update support!
-
 #include "headers/basicio/dskimage.h" //DSK image support!
-
 #include "headers/support/mid.h" //MIDI player support!
-
 #include "headers/hardware/ssource.h" //Sound Source volume knob support!
-
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
 #include "headers/support/highrestimer.h" //High resolution clock support!
-
 #include "headers/emu/sound.h" //Recording support!
-
 #include "headers/hardware/floppy.h" //Floppy disk support!
-
 #include "headers/hardware/vga/vga_dacrenderer.h" //Renderer logging support of DAC colors!
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM font table logging support!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA dumping support!
-
 #include "headers/support/dro.h" //DRO file support!
-
-#include "headers/emu/input.h" //Keyboard&Mouse I/O support!
 #include "headers/support/bmp.h" //For dumping our full VGA RAM!
 
 //Define below to enable the sound test with recording!
@@ -789,7 +773,7 @@ void generateFileList(char *extensions, int allowms0, int allowdynamic)
 	clearList(); //Clear the list!
 	if (allowms0) //Allow Memory Stick option?
 	{
-        #ifdef __psp__
+        #ifdef IS_PSP
                addList("ms0:"); //Add filename (Memory Stick)!
         #endif
 	}

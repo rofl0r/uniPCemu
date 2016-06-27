@@ -2,6 +2,7 @@
 #define INTERRUPT10_H
 
 #include "headers/header_dosbox.h" //Dosbox support!
+#include "headers/hardware/vga/vga.h" //VGA support!
 
 void int10_BIOSInit(); //Initisation of the BIOS routine!
 void BIOS_int10(); //Interrupt #10h: (Video Services)! Overridable!

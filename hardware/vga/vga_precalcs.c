@@ -1,15 +1,13 @@
 #include "headers/hardware/vga/vga.h" //VGA support (plus precalculation!)
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
-#include "headers/hardware/vga/colorconversion.h" //Color conversion for DAC precalculation!
-#include "headers/emu/gpu/gpu.h" //Relative conversion!
 #include "headers/hardware/vga/vga_crtcontroller.h"
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Graphics mode updating support!
 #include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller support!
-#include "headers/support/log.h" //Logging support!
 #include "headers/hardware/vga/vga_sequencer.h" //Sequencer render counter support!
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM text support!
 #include "headers/hardware/vga/vga_dacrenderer.h" //B/W detection support!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
+#include "headers/support/log.h" //Logging support!
 
 void VGA_updateVRAMmaps(VGA_Type *VGA); //VRAM map updater prototype!
 

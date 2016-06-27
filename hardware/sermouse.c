@@ -1,12 +1,8 @@
 #include "headers/hardware/sermouse.h" //Our typedefs!
 #include "headers/support/zalloc.h" //Allocation support!
-#include "headers/cpu/cpu.h" //CPU support!
 #include "headers/hardware/uart.h" //UART support for the COM port!
 #include "headers/support/fifobuffer.h" //FIFO buffer support!
 #include "headers/support/locks.h" //Locking support!
-#include "headers/support/signedness.h" //Sign conversion!
-#include "headers/emu/timers.h" //Timing support!
-#include "headers/emu/input.h" //Input timing support!
 #include "headers/bios/bios.h" //BIOS support!
 
 struct
