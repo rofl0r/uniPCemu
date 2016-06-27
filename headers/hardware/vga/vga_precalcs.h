@@ -148,6 +148,7 @@ typedef struct //Contains the precalculated values!
 	byte DACmode; //The current DAC mode: Bits 0-1: 3=16-bit, 2=15-bit, 1/0: 8-bit(normal VGA DAC). Bit 4: 1=Latch every two pixel clocks, else every pixel clock.
 	byte MemoryClockDivide; //Memory address clock divide by 0, 1 or 2(Stacked on top of the normal memory address clock).
 	uint_32 VMemMask; //Extended VRAMMask.
+	byte charwidthupdated; //Is the charwidth updated(for SVGA)?
 } VGA_PRECALCS; //VGA pre-calculations!
 
 typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated); //Calculate them!

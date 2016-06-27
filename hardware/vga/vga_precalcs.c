@@ -309,7 +309,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		updateCRTC = 1; //We need to update the CRTC!
 		 if (!FullUpdate) whereupdated = WHEREUPDATED_CRTCONTROLLER; //We affect the CRTController fully too with above!
 		//dolog("VGA","VTotal after charwidth: %i",VGA->precalcs.verticaltotal); //Log it!
-		charwidthupdated = 1; //The character width has been updated, so update the corresponding registers too!
+		charwidthupdated = VGA->precalcs.charwidthupdated = 1; //The character width has been updated, so update the corresponding registers too!
 	}
 
 	if ((whereupdated==(WHEREUPDATED_SEQUENCER|0x03)) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x04)) || FullUpdate) //Sequencer character map register updated?
@@ -543,8 +543,8 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word hretracestart;
 			hretracestart = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALRETRACEREGISTER;
-			hretracestart *= VGA->precalcs.characterwidth; //We're character units!
 			++hretracestart; //We start after this!
+			hretracestart *= VGA->precalcs.characterwidth; //We're character units!
 			//dolog("VGA","HRetStart updated: %i",hretracestart);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
 			if (VGA->precalcs.horizontalretracestart != hretracestart) adjustVGASpeed(); //Update our speed!
