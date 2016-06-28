@@ -251,7 +251,7 @@ OPTINLINE byte VGA_getAttributeDACIndex(VGA_AttributeInfo *Sequencer_attributein
 
 byte VGA_AttributeController_16bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
 {
-	static byte curnibble = 0;
+	INLINEREGISTER byte curnibble;
 	static word latchednibbles = 0; //What nibble are we currently?
 	INLINEREGISTER word temp;
 	//First, execute the shift and add required in this mode!
@@ -259,15 +259,15 @@ byte VGA_AttributeController_16bit(VGA_AttributeInfo *Sequencer_attributeinfo, V
 	temp <<= 4; //Shift high!
 	temp |= (VGA_getAttributeDACIndex(Sequencer_attributeinfo, VGA) & 0xF); //Latch to DAC Nibble!
 	Sequencer_attributeinfo->attribute = latchednibbles = temp; //Look the DAC Index up!
-	Sequencer_attributeinfo->attributesize = 3; //16-bit attribute size, so 3 extra clocks!
+	Sequencer_attributeinfo->attributesize = 4; //16-bit attribute size, so 3 extra clocks!
+	curnibble = Sequencer_attributeinfo->latchstatus; //Load the current latch status!
 	++curnibble;
 	curnibble &= 3; //4 nibbles form one color value!
-	return (curnibble!=0); //Give us the next nibble, when needed, please!
+	return (Sequencer_attributeinfo->latchstatus = curnibble); //Give us the next nibble, when needed, please!
 }
 
 byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
 {
-	static byte curnibble = 0;
 	static byte latchednibbles = 0; //What nibble are we currently?
 	INLINEREGISTER byte temp;
 	//First, execute the shift and add required in this mode!
@@ -275,13 +275,14 @@ byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VG
 	temp <<= 4; //Shift high!
 	temp |= (VGA_getAttributeDACIndex(Sequencer_attributeinfo,VGA)&0xF); //Latch to DAC Nibble!
 	Sequencer_attributeinfo->attribute = latchednibbles = temp; //Look the DAC Index up!
-	Sequencer_attributeinfo->attributesize = 1; //8-bit attribute size, so 1 extra clock!
-	return (curnibble ^= 1); //Give us the next nibble, when needed, please!
+	Sequencer_attributeinfo->attributesize = 2; //8-bit attribute size, so 1 extra clock!
+	return (Sequencer_attributeinfo->latchstatus ^= 1); //Give us the next nibble, when needed, please!
 }
 
 byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA)
 {
 	Sequencer_attributeinfo->attribute = VGA_getAttributeDACIndex(Sequencer_attributeinfo, VGA); //Look the DAC Index up!
 	Sequencer_attributeinfo->attributesize = 0; //4-bit attribute size!
+	Sequencer_attributeinfo->attributesize = 1; //8-bit attribute size, so 1 extra clock!
 	return 0; //We're ready to execute: we contain a pixel to plot!
 }

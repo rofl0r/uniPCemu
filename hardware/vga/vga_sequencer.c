@@ -296,6 +296,7 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	Sequencer->extrastatus = &VGA->CRTC.extrahorizontalstatus[0]; //Start our extra status at the beginning of the row!
 
 	Sequencer->memoryaddressclock = Sequencer->linearcounterdivider = Sequencer->memoryaddress = 0; //Address counters are reset!
+	currentattributeinfo.latchstatus = 0; //Reset the latches used for rendering!
 	VGA_loadcharacterplanes(VGA, Sequencer); //Load data from the first planes!
 }
 
@@ -414,6 +415,7 @@ OPTINLINE void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	uint_32 DACcolor; //The latched color!
+	byte doublepixels;
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
 	if (VGA->precalcs.DACmode&4) //Latch every 2 pixels(Hicolor mode 2 according to the chip documentation)?
@@ -447,6 +449,8 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 		Sequencer->lastDACcolor = attributeinfo->attribute; //Latching this attribute!
 	}
 
+	drawdoublepixelDAC: //Double pixels from the DAC!
+	doublepixels = (attributeinfo->attributesize>>VGA->precalcs.ClockingModeRegister_DCR)-1; //Double the pixels(half horizontal clock) and multiply for each extra pixel clock taken?
 	drawdoublepixel:
 	//Draw the pixel that is latched!
 	if (VGA->precalcs.DACmode&2) //16-bit color?
@@ -467,15 +471,15 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 		drawPixel(VGA, VGA_DAC(VGA, DACcolor)); //Render through the 8-bit DAC!
 	}
 	++VGA->CRTC.x; //Next x!
+	if (doublepixels) //More than 1 clock generated?
+	{
+		--doublepixels; //Duplicate the pixel!
+		goto drawdoublepixel;
+	}
 	if (Sequencer->DACcounter>1) //2 pixels have been done?
 	{
 		Sequencer->DACcounter = 0; //Now processing the 2nd pixel!
-		goto drawdoublepixel;
-	}
-	if (attributeinfo->attributesize) //More than 1 clock generated?
-	{
-		--attributeinfo->attributesize; //Duplicate the pixel!
-		goto drawdoublepixel;
+		goto drawdoublepixelDAC; //Outer DAC loop!
 	}
 	Sequencer->DACcounter = 0; //Now processing the 2nd pixel!
 }

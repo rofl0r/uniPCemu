@@ -13,6 +13,7 @@ typedef struct
 	word charinner_x; //Inner x base of character!
 	byte lookupprecalcs; //Precalculated lookup values!
 	byte attributesize; //The size of the attribute read, in Sequencer clocks!
+	byte latchstatus; //The current status of the Attribute Controller latch used for 8-bit pixels!
 } VGA_AttributeInfo; //Attribute info!
 
 #define VGA_SEQUENCER_ATTRIBUTESHIFT 7
