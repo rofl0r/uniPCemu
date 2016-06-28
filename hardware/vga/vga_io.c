@@ -204,7 +204,7 @@ OPTINLINE byte PORT_read_DAC_3C9() //DAC Data register!
 	{
 		++getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER; //Next entry!
 		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER &= 0xFF; //Reset when needed!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACREAD); //Updated index!
+		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACREAD); //Updated index!
 		getActiveVGA()->registers->current_3C9 = 0; //Reset!
 	}
 	return result; //Give the result!
@@ -223,7 +223,7 @@ OPTINLINE void PORT_write_DAC_3C9(byte value) //DAC Data register!
 	{
 		++entrynumber; //Overflow when needed!
 		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = (byte)entrynumber; //Update the entry number!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACWRITE); //Updated index!
+		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACWRITE); //Updated index!
 		getActiveVGA()->registers->current_3C9 = 0; //Reset!
 	}
 }
@@ -382,7 +382,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accesscrtaddress:
 		getActiveVGA()->registers->CRTControllerRegisters_Index = value; //Set!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_CRTCONTROLLER); //Updated index!
+		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_CRTCONTROLLER); //Updated index!
 		ok = 1;
 		break;
 	case 0x3B1:
@@ -428,7 +428,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
 		getActiveVGA()->registers->SequencerRegisters_Index = value; //Set!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_SEQUENCER); //Updated index!
+		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_SEQUENCER); //Updated index!
 		ok = 1;
 		break;
 	case 0x3C5: //Sequencer Data Register			DATA
@@ -458,14 +458,14 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER = value; //Set!
 		getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER.DACState = 0; //Prepared for reads!
 		getActiveVGA()->registers->current_3C9 = 0; //Reset!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACREAD); //Updated index!
+		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACREAD); //Updated index!
 		ok = 1;
 		break;
 	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
 		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = value; //Set index!
 		getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER.DACState = 3; //Prepared for writes!
 		getActiveVGA()->registers->current_3C9 = 0; //Reset!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACWRITE); //Updated index!
+		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACWRITE); //Updated index!
 		ok = 1;
 		break;
 	case 0x3C9: //DAC Data Register				DATA
@@ -474,7 +474,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break;
 	case 0x3CE: //Graphics Controller Address Register	ADDRESS
 		getActiveVGA()->registers->GraphicsRegisters_Index = value; //Set index!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_GRAPHICSCONTROLLER); //Updated index!
+		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_GRAPHICSCONTROLLER); //Updated index!
 		ok = 1;
 		break;
 	case 0x3CF: //Graphics Controller Data Register		DATA

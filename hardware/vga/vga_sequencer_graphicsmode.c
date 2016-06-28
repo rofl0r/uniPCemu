@@ -259,11 +259,11 @@ Core functions!
 
 */
 
-static Handler loadpixel_jmptbl[16] = {
+static Handler loadpixel_jmptbl[4] = {
 	loadplanarshiftmode,
 	loadpackedshiftmode,
 	load256colorshiftmode, //Normal VGA 256-color shift mode. Also with 8-bit DAC used(SVGA mode 2h)!
-	load256colorshiftmode //Normal 256-color shift mode. Also with 16-bit DAC used(SVGA mode 3h)!
+	loadplanarshiftmode //Normal 256-color shift mode. Also with 16-bit DAC used(SVGA mode 3h)!
 }; //All the getpixel functionality!
 
 Handler decodegraphicspixels = loadplanarshiftmode; //Active graphics mode!
