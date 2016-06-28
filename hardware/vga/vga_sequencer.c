@@ -415,7 +415,7 @@ OPTINLINE void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	uint_32 DACcolor; //The latched color!
-	byte doublepixels;
+	byte doublepixels=0;
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
 	if (VGA->precalcs.DACmode&4) //Latch every 2 pixels(Hicolor mode 2 according to the chip documentation)?
@@ -450,7 +450,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	}
 
 	drawdoublepixelDAC: //Double pixels from the DAC!
-	doublepixels = (attributeinfo->attributesize>>VGA->precalcs.ClockingModeRegister_DCR)-1; //Double the pixels(half horizontal clock) and multiply for each extra pixel clock taken?
+	doublepixels = ((1<<VGA->precalcs.ClockingModeRegister_DCR)<<attributeinfo->attributesize)-1; //Double the pixels(half horizontal clock) and multiply for each extra pixel clock taken?
 	drawdoublepixel:
 	//Draw the pixel that is latched!
 	if (VGA->precalcs.DACmode&2) //16-bit color?
