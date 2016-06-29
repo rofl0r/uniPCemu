@@ -564,6 +564,7 @@ extern byte allcleared;
 
 OPTINLINE byte coreHandler()
 {
+	byte BIOSMenuAllowed = 0; //Are we allowed to open the BIOS menu?
 	//CPU execution, needs to be before the debugger!
 	uint_64 currentCPUtime = getnspassed_k(&CPU_timing); //Current CPU time to update to!
 	uint_64 timeoutCPUtime = currentCPUtime+TIMEOUT_TIME; //We're timed out this far in the future (1ms)!
@@ -581,9 +582,13 @@ OPTINLINE byte coreHandler()
 		}
 		if (BIOSMenuThread)
 		{
-			if (threadRunning(BIOSMenuThread) && ((CPU[activeCPU].halt&2)==0)) //Are we running the BIOS menu and not permanently halted? Block our execution!
+			if (threadRunning(BIOSMenuThread)) //Are we running the BIOS menu and not permanently halted? Block our execution!
 			{
-				return 1; //OK, but skipped!
+				if ((CPU[activeCPU].halt&2)==0) //Are we allowed to be halted entirely?
+				{
+					return 1; //OK, but skipped!
+				}
+				BIOSMenuAllowed = 0; //We're running the BIOS menu! Don't open it again!
 			}
 		}
 		if ((CPU[activeCPU].halt&2)==0) //Are we running normally(not partly ran without CPU from the BIOS menu)?
@@ -725,9 +730,9 @@ OPTINLINE byte coreHandler()
 	updateKeyboard(timeexecuted); //Tick the keyboard timer if needed!
 
 	//Check for BIOS menu!
-	if (psp_keypressed(BUTTON_SELECT)) //Run in-emulator BIOS menu and not gaming mode?
+	if (psp_keypressed(BUTTON_SELECT)) //Run in-emulator BIOS menu requested?
 	{
-		if (!is_gamingmode() && !Direct_Input) //Not gaming/direct input mode?
+		if (!is_gamingmode() && !Direct_Input && BIOSMenuAllowed) //Not gaming/direct input mode and allowed to open it(not already started)?
 		{
 			BIOSMenuThread = startThread(&BIOSMenuExecution,"BIOSMenu",NULL); //Start the BIOS menu thread!
 			delay(0); //Wait a bit for the thread to start up!
