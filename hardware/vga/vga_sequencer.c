@@ -264,8 +264,37 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Loa
 	currentattributeinfo.lookupprecalcs = lookupprecalcs; //Save the looked up precalcs, this never changes during a processed block of pixels (both text and graphics modes)!
 }
 
+OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
+{
+	INLINEREGISTER word extrastatus;
+	extrastatus = *Sequencer->extrastatus; //Next status!
+
+	if (extrastatus & 2) //Half character clock is to be executed?
+	{
+		if ((++Sequencer->linearcounterdivider&VGA->precalcs.characterclockshift) == 0) //Increase memory address counter?
+		{
+			Sequencer->linearcounterdivider = 0; //Reset!
+			++Sequencer->memoryaddress; //Increase the memory address counter!
+		}
+
+		if ((++Sequencer->memoryaddressclock&VGA->precalcs.VideoLoadRateMask) == 0) //Reload data this clock?
+		{
+			Sequencer->memoryaddressclock = 0; //Reset!
+			VGA_loadcharacterplanes(VGA, Sequencer); //Load data from the graphics planes!
+		}
+	}
+
+	if (extrastatus & 8) //To allow increasing us?
+	{
+		++Sequencer->extrastatus; //Increase the extra status!
+	}
+
+	return extrastatus & 1; //Read next pixel?
+}
+
 OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 {
+	byte x; //For horizontal shifting!
 	INLINEREGISTER word row;
 	INLINEREGISTER uint_32 charystart;
 	row = Sequencer->Scanline; //Default: our normal scanline!
@@ -281,6 +310,8 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	//Apply scanline division to the current row timing!
 
 	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
+
+	row += VGA->precalcs.presetrowscan; //Apply the preset row scan to the scanline!
 
 	//Row now is an index into charrowstatus
 	word *currowstatus = &VGA->CRTC.charrowstatus[row]; //Current row status!
@@ -298,6 +329,30 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	Sequencer->memoryaddressclock = Sequencer->linearcounterdivider = Sequencer->memoryaddress = 0; //Address counters are reset!
 	currentattributeinfo.latchstatus = 0; //Reset the latches used for rendering!
 	VGA_loadcharacterplanes(VGA, Sequencer); //Load data from the first planes!
+
+	//Process any horizontal pixel shift count!
+	if (VGA->precalcs.textmode) //Text mode?
+	{
+		for (x = 0;x < VGA->precalcs.pixelshiftcount;++x) //Process pixel shift count!
+		{
+			if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Render the next pixel?
+			{
+				VGA_Sequencer_TextMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
+				VGA_AttributeController(&currentattributeinfo, VGA); //Ignore the nibbled/not nibbled result!
+			}
+		}
+	}
+	else //Graphics mode?
+	{
+		for (x = 0;x < VGA->precalcs.pixelshiftcount;++x) //Process pixel shift count!
+		{
+			if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Render the next pixel?
+			{
+				VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
+				VGA_AttributeController(&currentattributeinfo, VGA); //Ignore the nibbled/not nibbled result!
+			}
+		}
+	}
 }
 
 byte Sequencer_run; //Sequencer breaked (loop exit)?
@@ -550,29 +605,6 @@ OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinf
 void updateVGASequencer_Mode(VGA_Type *VGA)
 {
 	VGA->precalcs.extrasignal = VGA->precalcs.graphicsmode?VGA_DISPLAYGRAPHICSMODE:0x0000; //Apply the current mode (graphics vs text mode)!
-}
-
-OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
-{
-	INLINEREGISTER word extrastatus;
-	extrastatus = *Sequencer->extrastatus++; //Next status!
-
-	if (extrastatus&2) //Half character clock is to be executed?
-	{
-		if ((++Sequencer->linearcounterdivider&VGA->precalcs.characterclockshift) == 0) //Increase memory address counter?
-		{
-			Sequencer->linearcounterdivider = 0; //Reset!
-			++Sequencer->memoryaddress; //Increase the memory address counter!
-		}
-
-		if ((++Sequencer->memoryaddressclock&VGA->precalcs.VideoLoadRateMask)==0) //Reload data this clock?
-		{
-			Sequencer->memoryaddressclock = 0; //Reset!
-			VGA_loadcharacterplanes(VGA, Sequencer); //Load data from the graphics planes!
-		}
-	}
-
-	return extrastatus&1; //Read next pixel?
 }
 
 //Active display handler!

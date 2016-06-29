@@ -89,10 +89,6 @@ typedef struct //Contains the precalculated values!
 	word verticalretraceend;
 	word verticaltotal;
 	
-	//Total resolution
-	word xres;
-	word yres;
-	
 	byte characterclockshift; //Division 0,1 or 2 for the horizontal character clock!
 	byte BWDModeShift; //Memory mode shift for the horizontal character clock in B/W/DW modes!
 
@@ -116,11 +112,6 @@ typedef struct //Contains the precalculated values!
 	
 	//Attribute controller precalcs!
 	byte attributeprecalcs[0x8000]; //All attribute precalcs!
-
-	//Rest!
-	word clockselectrows; //Rows determined by clock select!
-	word verticalcharacterclocks; //Ammount of vertical character clocks! (VerticalBlankingStart/(Max scanline-1)) OR 1)
-	float scanlinepercentage; //The ammount of percentage each scanline represents related to the total ammount of scanlines.
 	
 	//Extra info for debugging!
 	uint_32 mainupdate; //Main update counter for debugging updates to VRAMMode!

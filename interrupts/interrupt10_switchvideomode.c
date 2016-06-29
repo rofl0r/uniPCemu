@@ -718,7 +718,7 @@ int INT10_Internal_SetVideoMode(word mode)
 	case M_LIN15:
 	case M_LIN16:
 	case M_LIN32:
-		underline = 0x60;
+		underline = 0x40; //Seems to enable every 4th clock on S3? Superfury: This shouldn't be the case on the ET4000!
 		break;
 	default:
 		break;

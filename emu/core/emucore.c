@@ -564,7 +564,7 @@ extern byte allcleared;
 
 OPTINLINE byte coreHandler()
 {
-	byte BIOSMenuAllowed = 0; //Are we allowed to open the BIOS menu?
+	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
 	//CPU execution, needs to be before the debugger!
 	uint_64 currentCPUtime = getnspassed_k(&CPU_timing); //Current CPU time to update to!
 	uint_64 timeoutCPUtime = currentCPUtime+TIMEOUT_TIME; //We're timed out this far in the future (1ms)!

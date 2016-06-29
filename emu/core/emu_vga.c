@@ -80,7 +80,7 @@ void adjustVGASpeed()
 	#endif
 }
 
-void changeRowTimer(VGA_Type *VGA, word lines) //Change the VGA row processing timer the ammount of lines on display!
+void changeRowTimer(VGA_Type *VGA) //Change the VGA row processing timer the ammount of lines on display!
 {
 	#ifdef __HW_DISABLED
 	return; //Disabled?

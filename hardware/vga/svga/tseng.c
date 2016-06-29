@@ -1015,7 +1015,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	{
 		if (VGA==getActiveVGA()) //Active VGA?
 		{
-			changeRowTimer(VGA,VGA->precalcs.clockselectrows); //Make sure the display scanline refresh rate is OK!
+			changeRowTimer(VGA); //Make sure the display scanline refresh rate is OK!
 		}		
 	}
 

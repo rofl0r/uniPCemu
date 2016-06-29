@@ -742,7 +742,7 @@ void VGA_VBlankHandler(VGA_Type *VGA); //VBlank handler for VGA!
 
 void VGA_waitforVBlank(); //Wait for a VBlank to happen?
 
-void changeRowTimer(VGA_Type *VGA, word lines); //Change the VGA row processing timer the ammount of lines on display: should be in the emulator itself!
+void changeRowTimer(VGA_Type *VGA); //Change the VGA row processing timer the ammount of lines on display: should be in the emulator itself!
 
 void dumpVRAM(); //Diagnostic dump of VRAM!
 
