@@ -58,6 +58,21 @@ typedef struct
 	byte linearcounterdivider; //The linear counter clock divider itself!
 } SEQ_DATA; //Sequencer used data!
 
+#include "headers/packed.h"
+typedef union PACKED
+{
+	uint_32 loadedplanes;
+	byte splitplanes[4]; //All read planes for the current processing!
+	struct
+	{
+		byte plane0;
+		byte plane1;
+		byte plane2;
+		byte plane3;
+	};
+} LOADEDPLANESCONTAINER; //All four loaded planes!
+#include "headers/endpacked.h"
+
 float VGA_VerticalRefreshRate(VGA_Type *VGA); //Scanline speed for one line in Hz!
 
 void VGA_Sequencer_calcScanlineData(VGA_Type *VGA);

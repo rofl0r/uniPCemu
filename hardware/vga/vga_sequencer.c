@@ -165,7 +165,7 @@ OPTINLINE void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanl
 
 typedef void (*Sequencer_pixelhandler)(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning); //Pixel(s) handler!
 
-byte planesbuffer[4]; //All read planes for the current processing!
+LOADEDPLANESCONTAINER loadedplanes; //All four loaded planes!
 
 typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA, word loadedlocation);
 
@@ -243,15 +243,8 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Loa
 
 	//Now calculate and give the planes to be used!
 	if (VGA->VRAM==0) goto skipVRAM; //VRAM must exist!
-	loadedlocation = VGA_VRAMDIRECTPLANAR(VGA,vramlocation,0); //Load the 4 planes from VRAM, one dword at a time!
+	loadedplanes.loadedplanes = VGA_VRAMDIRECTPLANAR(VGA,vramlocation,0); //Load the 4 planes from VRAM, as an entire DWORD!
 	skipVRAM: //No VRAM present to display?
-	planesbuffer[0] = (loadedlocation&0xFF); //Read plane 0!
-	loadedlocation >>= 8;
-	planesbuffer[1] = (loadedlocation & 0xFF); //Read plane 1!
-	loadedlocation >>= 8;
-	planesbuffer[2] = (loadedlocation & 0xFF); //Read plane 2!
-	loadedlocation >>= 8;
-	planesbuffer[3] = (loadedlocation & 0xFF); //Read plane 3!
 	//Now the buffer is ready to be processed into pixels!
 
 	planesdecoder[VGA->precalcs.graphicsmode](VGA,vramlocation); //Use the decoder to get the pixels or characters!

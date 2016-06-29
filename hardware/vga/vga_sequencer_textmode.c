@@ -56,7 +56,7 @@ word attribute=0; //Currently loaded data!
 byte iscursor=0; //Are we a cursor scanline?
 byte characterpixels[9]; //All possible character pixels!
 
-extern byte planesbuffer[4]; //All read planes for the current processing!
+extern LOADEDPLANESCONTAINER loadedplanes; //All read planes for the current processing!
 
 byte charxbuffer[256]; //Full character inner x location!
 
@@ -64,8 +64,8 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 {
 	INLINEREGISTER byte x;
 	//We do nothing: text mode uses multiple planes at the same time!
-	character = planesbuffer[0]; //Character!
-	attribute = planesbuffer[1]<<VGA_SEQUENCER_ATTRIBUTESHIFT; //Attribute!
+	character = loadedplanes.splitplanes[0]; //Character!
+	attribute = loadedplanes.splitplanes[1]<<VGA_SEQUENCER_ATTRIBUTESHIFT; //Attribute!
 	iscursor = is_cursorscanline(VGA, (byte)((SEQ_DATA *)VGA->Sequencer)->charinner_y, loadedlocation); //Are we a cursor?
 	if (CGAMDAEMULATION_ENABLED(VGA)) //Enabled CGA/MDA emulation?
 	{
