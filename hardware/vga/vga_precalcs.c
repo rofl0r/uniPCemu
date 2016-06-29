@@ -276,7 +276,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
 
 		recalcAttr |= (VGA->precalcs.LastMiscOutputRegister^VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA)&1; //We've updated bit 1 of the misc output register? Then update monochrome vs color emulation mode!
-		ClocksUpdated |= (((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA&0xC)!=(VGA->precalcs.LastMiscOutputRegister&0xC)) || FullUpdate); //Update clocks?
+		ClocksUpdated |= ((((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA)^(VGA->precalcs.LastMiscOutputRegister))&0xC) || FullUpdate); //Are we to update the clock?
 		VGA->precalcs.LastMiscOutputRegister = VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA; //Save the last version of us!
 
 		//Update our dipswitches according to the emulated monitor!
