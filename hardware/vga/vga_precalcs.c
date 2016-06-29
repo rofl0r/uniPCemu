@@ -307,7 +307,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		VGA->precalcs.VideoLoadRateMask = newSLR; //Apply the determined Shift/Load rate mask!
 
 		updateCRTC = 1; //We need to update the CRTC!
-		 if (!FullUpdate) whereupdated = WHEREUPDATED_CRTCONTROLLER; //We affect the CRTController fully too with above!
+		if (!FullUpdate) whereupdated = WHEREUPDATED_ALL_SECTION|WHEREUPDATED_CRTCONTROLLER; //We affect the CRTController fully too with above!
 		//dolog("VGA","VTotal after charwidth: %i",VGA->precalcs.verticaltotal); //Log it!
 		charwidthupdated = VGA->precalcs.charwidthupdated = 1; //The character width has been updated, so update the corresponding registers too!
 	}
