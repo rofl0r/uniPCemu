@@ -21,7 +21,7 @@
 //Always sleep after debugging?
 #define ALWAYS_SLEEP 1
 //Debug 256-color and SVGA modes only?
-#define DEBUG256
+//#define DEBUG256
 
 extern byte LOG_MMU_WRITES; //Log MMU writes?
 

@@ -295,10 +295,15 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 			realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
 			realoffsettmp |= (offset>>16)&1; //Replace bit 0 with high order bit!
 		}
-		calcplanes |= (((getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage^1) << 1)); //Apply the high page!
-
-		rwbank <<= 1; //ET4000: Read/write bank supplies bits 17-18 instead.
-		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
+		calcplanes |= ((getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage << 1)); //Apply the high page!
+		if (offset & 0x10000)
+		{
+			rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
+		}
+		else
+		{
+			rwbank <<= 1; //ET4000: Read/write bank supplies bits 17-18 instead.
+		}
 
 		*realoffset = realoffsettmp; //Give the calculated offset!
 		*planes = (0x5 << calcplanes); //Convert to used plane (0&2 or 1&3)!
@@ -319,13 +324,17 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		calcplanes = 1; //Load plane 0!
 		calcplanes <<= getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
 	}
-	if (offset<0x10000) //64k address?
+	if ((getActiveVGA()->enable_SVGA>=1) && (getActiveVGA()->enable_SVGA<=2)) //SVGA ET3K/ET4K?
 	{
-		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
-	}
-	else //Use A0-A15!
-	{
-		rwbank <<= 2; //Disable R/W bank!
+		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect == 1) //64K window?
+		{
+			rwbank >>= 2; //ET4000: Read/write bank supplies bits 18-19 instead(memory map bits 16-17).
+			offset &= 0xFFFF; //16-bit offset!
+		}
+		else //Use high planes!
+		{
+			rwbank = 0; //Disable read/write bank, using 18-bit offset!
+		}
 	}
 	*planes = calcplanes; //The planes to apply!
 	*realoffset = offset; //Load the offset directly!
