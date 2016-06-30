@@ -215,6 +215,10 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 			return result; //Give the result!
 		case 2: //DWord mode?
 			//Doubleword mode executed normally according to documentation!
+			if (getActiveVGA()->enable_SVGA == 0) //VGA?
+			{
+				return (memoryaddress<<2)|((memoryaddress>>14)&3); //VGA-compatible DWORD addressing!
+			}
 			break;
 		default:
 		case 0: //Byte mode?

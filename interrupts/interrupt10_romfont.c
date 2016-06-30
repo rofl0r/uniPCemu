@@ -13,10 +13,9 @@ uint_32 i;
 OPTINLINE void MEM_BlockCopy(word segment, word offset, word fontseg, word fontoffs, Bitu height)
 {
 	uint_32 counter;
+	byte data;
 	for (counter=0;counter<height;counter++)
 	{
-		//*dest++ = *src++; //Copy!
-		byte data;
 		data = MMU_rb(CPU_SEGMENT_DS,fontseg,fontoffs+counter,0); //Load the data!
 		MMU_wb(CPU_SEGMENT_DS,segment,offset+counter,data); //Write to VRAM!
 	}
@@ -104,24 +103,62 @@ static Bit16u map_offset[8]={
 void INT10_LoadFont(word fontseg, word fontoffs,bool reload,Bitu count,Bitu offset,Bitu map,Bitu height) {
 	word ftwhere=0xa000;
 	word ftoffs = map_offset[map & 0x7]+(Bit16u)(offset*32); //offset!
+	
+	//map mask register for writes
 	IO_Write(0x3c4,0x2); //map mask register
-	byte backup3c4_2;
-	backup3c4_2 = IO_Read(0x3c5); //Save!
+	byte backup_3c4_2=IO_Read(0x3c5); //Save!
+	IO_Write(0x3c4, 0x2); //map mask register
 	IO_Write(0x3c5,0x4);	//Enable plane 2
 
-	IO_Write(0x3ce,0x6);Bitu old_6=IO_Read(0x3cf);
-	IO_Write(0x3cf,0x0);	//Disable odd/even and a0000 adressing
+	//sequencer memory mode register
+	IO_Write(0x3c4,0x4); //Memory mode register!
+	byte backup_3c4_4=IO_Read(0x3c5);
+	IO_Write(0x3c4, 0x4); //Memory mode register!
+	IO_Write(0x3c5,0x6); //Disable odd/even addressing
 	
+	//read map select register for reads
+	IO_Write(0x3ce, 0x4);
+	byte backup_3ce_4 = IO_Read(0x3cf);
+	IO_Write(0x3ce, 0x4);
+	IO_Write(0x3cf, 0x2); //Read map 2
+						 
+	//graphics mode register
+	IO_Write(0x3ce,0x5);
+	byte backup_3ce_5 = IO_Read(0x3cf);
+	IO_Write(0x3ce,0x5);
+	IO_Write(0x3cf,backup_3ce_5&~0x1B); //Clear bits 0-1, 3 and 5 to set the linear mode and read/write mode!
+
+	//misc graphics register
+	IO_Write(0x3ce, 0x6);
+	byte backup_3ce_6 = IO_Read(0x3cf);
+	IO_Write(0x3ce, 0x6);
+	IO_Write(0x3cf, backup_3ce_6&~0xE); //Clear bits 1-3 to set the linear mode and read/write mode!
+
 	for (i=0;i<count;i++) {
 		MEM_BlockCopy(ftwhere,ftoffs,fontseg,fontoffs,height);
 		ftoffs+=32; //Increment VRAM!
 		fontoffs+=height; //Increment buffer!
 	}
-	IO_Write(0x3c4,0x2);//IO_Write(0x3c5,0x3);	//Enable textmode planes (0,1)
-	IO_Write(0x3c5,backup3c4_2); //Restore!
-	
-	IO_Write(0x3ce,0x6);
-	IO_Write(0x3cf,(Bit8u)old_6);	//odd/even and b8000 adressing
+
+	//misc graphics register
+	IO_Write(0x3ce, 0x6);
+	IO_Write(0x3cf, backup_3ce_6); //Restore!
+
+	//graphics mode register
+	IO_Write(0x3ce, 0x5);
+	IO_Write(0x3cf, backup_3ce_5); //Restore!
+
+	//read map select register
+	IO_Write(0x3ce, 0x4);
+	IO_Write(0x3cf, (Bit8u)backup_3ce_4);	//odd/even and b8000 adressing
+
+	//sequencer memory mode register
+	IO_Write(0x3c4, 0x4); //Memory mode register!
+	IO_Write(0x3c5,backup_3c4_4); //Restore!
+
+	//map mask register
+	IO_Write(0x3c4,0x2); //IO_Write(0x3c5,0x3);	//Enable textmode planes (0,1)
+	IO_Write(0x3c5,backup_3c4_2); //Restore map mask register!
 
 	/* Reload tables and registers with new values based on this height */
 	if (reload) {

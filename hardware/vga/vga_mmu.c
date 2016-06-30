@@ -229,7 +229,6 @@ The r/w operations from the CPU!
 //decodeCPUaddress(Write from CPU=1; Read from CPU=0, offset (from VRAM start address), planes to read/write (4-bit mask), offset to read/write within the plane(s)).
 OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
 {
-	byte oddevenmemorymode;
 	INLINEREGISTER uint_32 realoffsettmp;
 	INLINEREGISTER byte calcplanes;
 
@@ -267,72 +266,70 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	}
 	else rwbank = 0; //No memory banks are used!
 
-	oddevenmemorymode = getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode; //This enforces Odd/Even memory addressing during access from memory when Host_OE is enabled to provide CGA compatibility!
-	if (oddevenmemorymode) goto forceoddevenmode; //Force odd/even mode when enabled!
-
 	if (getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.Chain4Enable) //Chain 4 mode?
 	{
 		calcplanes = realoffsettmp = offset; //Original offset to start with!
 		calcplanes &= 0x3; //Lower 2 bits determine the plane!
 		*planes = (1 << calcplanes); //Give the planes to write to!
-		realoffsettmp >>= 2; //Make sure we're linear in memory when requested! This always writes to a quarter of VRAM(since it's linear in VRAM, combined with the plane), according to the FreeVGA documentation!
+		if ((getActiveVGA()->enable_SVGA>=1) && (getActiveVGA()->enable_SVGA<=2)) //ET3000/ET4000?
+		{
+			realoffsettmp >>= 2; //Make sure we're linear in memory when requested! ET3000/ET4000 is different in this point! This always writes to a quarter of VRAM(since it's linear in VRAM, combined with the plane), according to the FreeVGA documentation!
+		}
+		else
+		{
+			realoffsettmp &= ~3; //Multiples of 4 won't get written on true VGA!
+		}
 		*realoffset = realoffsettmp; //Give the offset!
-		return; //Done!
-	}
-
-	if (getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.OEDisabled) //Odd/Even mode disabled?
-	{
-		if (towrite) //Writing access?
-		{
-			calcplanes = 0xF; //Write to all planes possible, map mask register does the rest!
-		}
-		else if ((getActiveVGA()->precalcs.linearmode & 5) == 5) //Linear memory?
-		{
-			calcplanes = 0xF; //Read map select is ignored!
-		}
-		else //Normal VGA read!
-		{
-			calcplanes = 1; //Load plane 0!
-			calcplanes <<= getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
-		}
-		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
-		*planes = calcplanes; //The planes to apply!
-		*realoffset = offset; //Load the offset directly!
 		return; //Done!
 	}
 
 	//Odd/even mode used (compatiblity case)?
 	//Do the same as VPC!
-	forceoddevenmode:
-	calcplanes = realoffsettmp = offset; //Take the default offset!
-	if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode || oddevenmemorymode) //Read using odd/even addressing?
+	if ((towrite && (getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.OEDisabled==0)) || //Write using odd/even addressing?
+		((!towrite) && getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode)) //Read using odd/even addressing?
 	{
-		calcplanes &= 1; //Take 1 bit to determine the plane (0/1)!
-		realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
+		calcplanes = realoffsettmp = offset; //Take the default offset!
+		calcplanes &= 1; //Take 1 bit to determine the odd/even plane (odd/even)!
+		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode) //Replace A0 with high order bit?
+		{
+			realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
+			realoffsettmp |= (offset>>16)&1; //Replace bit 0 with high order bit!
+		}
+		calcplanes |= (((getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage^1) << 1)); //Apply the high page!
+
 		rwbank <<= 1; //ET4000: Read/write bank supplies bits 17-18 instead.
+		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
+
+		*realoffset = realoffsettmp; //Give the calculated offset!
+		*planes = (0x5 << calcplanes); //Convert to used plane (0&2 or 1&3)!
+		return; //Use Odd/Even mode!
 	}
-	else
+
+	//Planar mode is the default mode?
+	if (towrite) //Writing access?
 	{
-		calcplanes = (offset>>16)&1; //Use plane 0(or 1 for high bank) always!
+		calcplanes = 0xF; //Write to all planes possible, map mask register does the rest!
+	}
+	else if ((getActiveVGA()->precalcs.linearmode & 5) == 5) //Linear memory?
+	{
+		calcplanes = 0xF; //Read map select is ignored!
+	}
+	else //Normal VGA read!
+	{
+		calcplanes = 1; //Load plane 0!
+		calcplanes <<= getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
+	}
+	if (offset<0x10000) //64k address?
+	{
 		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
 	}
-	*realoffset = realoffsettmp; //Give the calculated offset!
-	if ((VGA_MemoryMapSelect == 1) && (!oddevenmemorymode)) //Memory map mode 1?
+	else //Use A0-A15!
 	{
-		//Determine by Page Select!
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage) //Lower page?
-		{
-			*planes = (0x1 << calcplanes); //Convert to used plane 0/1!
-		}
-		else //Upper page?
-		{
-			*planes = (0x4 << calcplanes); //Convert to used plane 2/3!
-		}
+		rwbank <<= 2; //Disable R/W bank!
 	}
-	else //Default behaviour?
-	{
-		*planes = (0x5 << calcplanes); //Convert to used plane (0&2 or 1&3)!
-	}
+	*planes = calcplanes; //The planes to apply!
+	*realoffset = offset; //Load the offset directly!
+	//Use planar mode!
 }
 
 byte planes; //What planes to affect!
