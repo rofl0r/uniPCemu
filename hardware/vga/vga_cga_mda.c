@@ -6,6 +6,12 @@
 #include "headers/hardware/vga/vga_vram.h" //For cleaning up after byte->word mode switch!
 #include "headers/support/log.h" //Logging support for dumping, if enabled!
 
+//VGA refresh rate!
+//15.75MHz originally used, but seems to be 14.31818MHz according to reenigne.org and https://pineight.com/mw/index.php?title=Dot_clock_rates
+#define CGA_RATE MHZ14
+//MDA refresh rate!
+#define MDA_RATE 16257000.0
+
 byte int10_font_08[256 * 8] =
 {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -847,19 +853,18 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 	return result; //Give the signal!
 }
 
-float getCGAMDAClock(VGA_Type *VGA)
+double getCGAMDAClock(VGA_Type *VGA)
 {
 	float result=0.0f; //The calculated clock speed! Default: not used!
 	if (CGAMDAEMULATION_ENABLED_CRTC(VGA)) //Are we enabled?
 	{
 		if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA emulation enabled?
 		{
-			//15.75MHz originally used, but seems to be 14.31818MHz according to reenigne.org and https://pineight.com/mw/index.php?title=Dot_clock_rates
-			result = (float)(MHZ14); //Special CGA compatibility mode: change our refresh speed to match it according to CGA specifications! Pixel speed is always 14MHz!
+			result = CGA_RATE; //Special CGA compatibility mode: change our refresh speed to match it according to CGA specifications! Pixel speed is always 14MHz!
 		}
 		else if (MDAEMULATION_ENABLED_CRTC(VGA)) //MDA emulation enabled?
 		{
-			result = 16257000.0f; //16.257MHz pixel clock!
+			result = MDA_RATE; //16.257MHz pixel clock!
 		}
 	}
 	return result; //Default: No CGA/MDA clock used!

@@ -187,8 +187,8 @@ OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 
 struct
 {
-	uint_64 ATA_tickstiming;
-	uint_64 ATA_tickstimeout; //How big a timeout are we talking about?
+	double ATA_tickstiming;
+	double ATA_tickstimeout; //How big a timeout are we talking about?
 	byte type; //Type of timer!
 } IRQtimer[4]; //IRQ timer!
 

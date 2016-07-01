@@ -12,6 +12,9 @@ DMA Controller (8237A)
 //Are we disabled?
 #define __HW_DISABLED 0
 
+//DMA Ticks(bytes)/second!
+#define DMA_RATE (MHZ14/8.732575)
+
 SDL_sem *DMA_Lock = NULL;
 
 typedef union
@@ -572,7 +575,7 @@ void DMA_tick()
 		goto nextcycle; //Next cycle!!
 }
 
-double DMA_Frequency = (1000000000.0 / (MHZ14/8.732575)); //DMA tick time, based on ISA clock(is supposed to be divided by 3.0), originally divided by 8.732575, which gives close to 1.6MB/s!
+double DMA_Frequency = (1000000000.0 / DMA_RATE); //DMA tick time, based on ISA clock(is supposed to be divided by 3.0), originally divided by 8.732575, which gives close to 1.6MB/s!
 double DMA_timing = 0.0f; //How much time has passed!
 
 void initDMA()

@@ -55,8 +55,8 @@
 uint16_t baseport = 0x388; //Adlib address(w)/status(r) port, +1=Data port (write only)
 
 //Sample based information!
-const float usesamplerate = 14318180.0f/288.0f; //The sample rate to use for output!
-const float adlib_soundtick = 1000000000.0f/(14318180.0f/288.0f); //The length of a sample in ns!
+const double usesamplerate = 14318180.0/288.0; //The sample rate to use for output!
+const double adlib_soundtick = 1000000000.0/(14318180.0f/288.0); //The length of a sample in ns!
 //The length of a sample step:
 #define adlib_sampleLength (1.0f / (14318180.0f / 288.0f))
 

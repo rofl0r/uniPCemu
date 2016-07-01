@@ -44,11 +44,11 @@ PC SPEAKER
 
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
-#define TIME_RATE (MHZ14/12.0f)
+#define TIME_RATE (MHZ14/12.0)
 
 //Run the low pass at the 72 raw samples rate instead (16571Hz)!
 #undef SPEAKER_LOWPASS
-#define SPEAKER_LOWPASS (TIME_RATE/72.0f)
+#define SPEAKER_LOWPASS (TIME_RATE/72.0)
 
 //Log the speaker to this .wav file when defined (raw and duty cycles log)!
 //#define SPEAKER_LOGRAW "captures/speakerraw.wav"
@@ -66,9 +66,9 @@ byte enablespeaker = 0; //Are we sounding the PC speaker?
 #endif
 
 double speaker_ticktiming; //Both current clocks!
-double speaker_tick = (1000000000.0f / SPEAKER_RATE); //Time of a tick in the PC speaker sample!
-double time_tick = (1000000000.0f / TIME_RATE); //Time of a tick in the PIT!
-double time_tickreverse = 1.0f/(1000000000.0f / TIME_RATE); //Reversed of time_tick(1/ticktime)!
+double speaker_tick = (1000000000.0 / SPEAKER_RATE); //Time of a tick in the PC speaker sample!
+double time_tick = (1000000000.0 / TIME_RATE); //Time of a tick in the PIT!
+double time_tickreverse = 1.0/(1000000000.0 / TIME_RATE); //Reversed of time_tick(1/ticktime)!
 
 byte IRQ0_status = 0, PIT1_status = 0; //Current IRQ0 status!
 

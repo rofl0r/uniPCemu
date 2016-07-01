@@ -20,6 +20,11 @@
 //What size to use for a minimum: Should always be set to standard VGA.
 #define VRAM_SIZE VGA_VRAM_VGA
 
+//25MHz: VGA standard clock
+#define VGA25MHZ (25.2 / 1.001)*1000000.0
+//28MHz: VGA standard clock
+#define VGA28MHZ (28.35 / 1.001)*1000000.0
+
 //Enable VGA I/O dump when recording? Also specifies the length to dump(in ns)!
 //#define VGAIODUMP 40000000.0f
 
@@ -690,7 +695,7 @@ typedef struct PACKED
 } VGA_Type; //VGA dataset!
 #include "headers/endpacked.h" //We're packed!
 
-typedef float (*VGA_clockrateextensionhandler)(VGA_Type *VGA); //The clock rate extension handler!
+typedef double (*VGA_clockrateextensionhandler)(VGA_Type *VGA); //The clock rate extension handler!
 typedef uint_32 (*VGA_addresswrapextensionhandler)(VGA_Type *VGA, uint_32 memoryaddress); //The DWord shift memory address extension handler!
 
 #ifndef IS_VGA

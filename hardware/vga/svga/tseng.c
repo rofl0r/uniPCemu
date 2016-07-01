@@ -8,9 +8,9 @@
 #include "headers/cpu/cpu.h" //NMI support!
 
 // From the depths of X86Config, probably inexact
-float ET4K_clockFreq[16] = {
-	(25.2 / 1.001)*1000000.0f, //25MHz: VGA standard clock
-	(28.35 / 1.001)*1000000.0f, //28MHz: VGA standard clock
+double ET4K_clockFreq[16] = {
+	VGA25MHZ, //25MHz: VGA standard clock
+	VGA28MHZ, //28MHz: VGA standard clock
 	32400000.0f, //ET3/4000 clock!
 	35900000.0f, //ET3/4000 clock!
 	39900000.0f, //ET3/4000 clock!
@@ -27,9 +27,9 @@ float ET4K_clockFreq[16] = {
 	74800000.0f //ET4000 clock!
 };
 
-float ET3K_clockFreq[16] = {
-	(25.2 / 1.001)*1000000.0f, //25MHz: VGA standard clock
-	(28.35 / 1.001)*1000000.0f, //28MHz: VGA standard clock
+double ET3K_clockFreq[16] = {
+	VGA25MHZ, //25MHz: VGA standard clock
+	VGA28MHZ, //28MHz: VGA standard clock
 	32400000.0f, //ET3/4000 clock!
 	35900000.0f, //ET3/4000 clock!
 	39900000.0f, //ET3/4000 clock!
@@ -1100,22 +1100,22 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	VGA->precalcs.charwidthupdated = 0; //Not updated anymore!
 }
 
-float Tseng34k_clockMultiplier(VGA_Type *VGA)
+double Tseng34k_clockMultiplier(VGA_Type *VGA)
 {
 	byte timingdivider = et34k_reg(et34k(VGA),3c4,07); //Get the divider info!
 	if (timingdivider&0x01) //Divide Master Clock Input by 4!
 	{
-		return 0.25f; //Divide by 4!
+		return 0.25; //Divide by 4!
 	}
 	else if (timingdivider&0x40) //Divide Master Clock Input by 2!
 	{
-		return 0.5f; //Divide by 2!
+		return 0.5; //Divide by 2!
 	}
 	//Normal Master clock?
-	return 1.0f; //Normal clock!
+	return 1.0; //Normal clock!
 }
 
-float Tseng34k_getClockRate(VGA_Type *VGA)
+double Tseng34k_getClockRate(VGA_Type *VGA)
 {
 	byte clock_index;
 	if (!et34k(VGA)) return 0.0f; //Unregisterd ET4K!
@@ -1129,7 +1129,7 @@ float Tseng34k_getClockRate(VGA_Type *VGA)
 		clock_index = get_clock_index_et4k(VGA); //Retrieve the ET4K clock index!
 		return ET4K_clockFreq[clock_index & 0xF]*Tseng34k_clockMultiplier(VGA); //Give the ET4K clock index rate!
 	}
-	return 0.0f; //Not an ET4K clock rate, default to VGA rate!
+	return 0.0; //Not an ET3K/ET4K clock rate, default to VGA rate!
 }
 
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize) {

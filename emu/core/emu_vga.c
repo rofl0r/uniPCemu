@@ -143,8 +143,11 @@ extern byte CGAMDARenderer; //CGA/MDA renderer?
 
 extern double last_timing; //CPU timing to perform the final wait state!
 
-OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word *execsignal)
 {
+	word signal;
+	signal = *execsignal; //The signal to execute!
+	recalcsignal: //Recalculate the signal to process!
 	INLINEREGISTER word tempsignalbackup = signal; //The back-up of the signal!
 	INLINEREGISTER word tempsignal = signal; //Current signal!
 	//Blankings
@@ -268,12 +271,24 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word signa
 	if (tempsignal&VGA_SIGNAL_HTOTAL) //HTotal?
 	{
 		VGA_HTotal(Sequencer,VGA); //Process HTotal!
-		totalling = 1; //Total reached!
+		//totalling = 1; //Total reached!
+		*execsignal = signal = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
+		if (!(signal&VGA_SIGNAL_HTOTAL)) //Not infinitely looping?
+		{
+			goto recalcsignal; //Execute immediately!
+		}
 	}
 	if (tempsignal&VGA_SIGNAL_VTOTAL) //VTotal?
 	{
 		VGA_VTotal(Sequencer,VGA); //Process VTotal!
-		totalling = vtotal = 1; //Total reached!
+		/*totalling =*/ vtotal = 1; //Total reached!
+		*execsignal = signal = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
+		if (!(signal&VGA_SIGNAL_VTOTAL)) //Not infinitely looping(VTotal ended)?
+		{
+			VGA_VTotalEnd(Sequencer, VGA); //Signal end of vertical total!
+			vtotal = 0; //Not vertical total anymore!
+			goto recalcsignal; //Execute immediately!
+		}
 	}
 	else if (vtotal) //VTotal ended?
 	{
@@ -338,11 +353,11 @@ OPTINLINE uint_32 get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust
 
 OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 {
-	INLINEREGISTER word displaystate = 0; //Last display state!
+	word displaystate = 0; //Last display state!
 
 	//Process one pixel only!
 	displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), displaystate); //Handle any change in display state first!
+	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), &displaystate); //Handle any change in display state first!
 	displayrenderhandler[totalretracing][displaystate](Sequencer, getActiveVGA()); //Execute our signal!
 }
 

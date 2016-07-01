@@ -25,9 +25,9 @@
 
 extern GPU_type GPU; //GPU!
 
-float VGA_clocks[4] = {
-			(25.2/1.001)*1000000.0f, //25MHz: VGA standard clock
-			(28.35/1.001)*1000000.0f, //28MHz: VGA standard clock
+double VGA_clocks[4] = {
+			VGA25MHZ, //25MHz: VGA standard clock
+			VGA28MHZ, //28MHz: VGA standard clock
 			0.0f, //external clock: not connected!
 			0.0f //Unused
 			}; //Our clocks!
@@ -38,18 +38,18 @@ uint_32 CGAOutputBuffer[2048]; //Full CGA NTSC buffer!
 
 VGA_clockrateextensionhandler VGA_calcclockrateextensionhandler; //The clock rate extension handler!
 
-float VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
+double VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
 {
-	float result=0.0f;
+	double result=0.0;
 	//Horizontal Refresh Rate=Clock Frequency (in Hz)/horizontal pixels
 	//Vertical Refresh rate=Horizontal Refresh Rate/total scan lines!
 	if (!memprotect(VGA,sizeof(*VGA),NULL)) //No VGA?
 	{
-		return 0.0f; //Remove VGA Scanline counter: nothing to render!
+		return 0.0; //Remove VGA Scanline counter: nothing to render!
 	}
 	if (VGA_calcclockrateextensionhandler)
 	{
-		if (VGA_calcclockrateextensionhandler(VGA)!=0.0f) return VGA_calcclockrateextensionhandler(VGA); //Give the extended clock if needed!
+		if (VGA_calcclockrateextensionhandler(VGA)!=0.0) return VGA_calcclockrateextensionhandler(VGA); //Give the extended clock if needed!
 		else result = VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect & 3)]; //VGA clock!
 	}
 	else result = VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3)]; //VGA clock!
