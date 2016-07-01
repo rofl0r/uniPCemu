@@ -98,27 +98,22 @@ void finish_screen() //Extra stuff after rendering!
 	++SCREENS_RENDERED; //Count ammount of screens rendered!
 }
 
-extern double last_timing; //Last timing!
-extern double last_timing_start; //Start of valid last timing to start counting from!
-extern TicksHolder CPU_timing; //CPU timing counter!
+extern double timeemulated; //Start of valid last timing to start counting from!
+TicksHolder currentticks; //The ticks we've counted!
 
 OPTINLINE byte getCPUSpeedPercentage()
 {
-	double result, last_timing_current, last_timing_start_current, timenow;
+	INLINEREGISTER double emutimepassed, timenow, result;
 	//First, get current state!
-	//lock(LOCK_CPU); //Lock the CPU!
-	timenow = (double)getnspassed_k(&CPU_timing); //Current time!
-	last_timing_current = last_timing; //Last timing!
-	last_timing_start_current = last_timing_start; //Last timing start!
-	//unlock(LOCK_CPU); //Finished with the CPU!
+	emutimepassed = timeemulated; //The time emulated!
+	timeemulated = 0.0f; //Restart counting the time passed!
+	timenow = getnspassed(&currentticks); //How long has actually passed?
 	
 	//Apply start time to get the relative time since last check!
-	last_timing_current -= last_timing_start_current; //Decrease by the timing when we started!
-	timenow -= last_timing_start_current; //Decrease by the timing when we started!
 
 	//Give the current result!
 	if (!timenow) return 0; //Nothing yet, since no time has passed yet!
-	result = (last_timing_current/timenow)*100.0f; //Give the current speed percentage (still in ns percision)!
+	result = (emutimepassed/timenow)*100.0f; //Give the current speed percentage (still in ns percision)!
 	if (result<1.0) //<1.0%?
 	{
 		result = (result>0.0)?1.0:0.0; //Patch 0%-1% to 1% and 0% to 0%!
@@ -220,6 +215,7 @@ void initFramerate()
 		doneFramerate(); //Finish first!
 	}
 	initTicksHolder(&lastcheck); //Init for counting!
+	initTicksHolder(&currentticks); //Init for counting!
 	frameratesurface = alloc_GPUtext(); //Allocate GPU text surface for us to use!
 	if (!frameratesurface) return; //Couldn't allocate the surface!
 	GPU_addTextSurface(frameratesurface,&renderFramerate); //Register our renderer!

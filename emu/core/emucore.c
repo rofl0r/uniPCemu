@@ -509,7 +509,7 @@ extern byte MMU_logging; //Are we logging from the MMU?
 
 extern byte Direct_Input; //Are we in direct input mode?
 
-double last_timing = 0.0, last_timing_start = 0.0; //Last timing!
+double last_timing = 0.0, timeemulated = 0.0; //Last timing!
 
 double CPU_speed_cycle = 1000000000.0f/CPU808X_CLOCK; //808X signal cycles by default!
 byte DosboxClock = 1; //We're executing using the Dosbox clock cycles?
@@ -519,7 +519,7 @@ extern ThreadParams_p debugger_thread; //Debugger menu thread!
 
 void BIOSMenuResumeEMU()
 {
-	last_timing = last_timing_start = (double)getnspassed_k(&CPU_timing); //We start off at this point with no time running! We start counting the last timing from now!
+	getnspassed(&CPU_timing); //We start off at this point with no time running! We start counting the last timing from now!
 	updateSpeedLimit(); //Update the speed limit!
 }
 
@@ -562,11 +562,14 @@ extern uint_32 CPU_InterruptReturn, CPU_exec_EIP; //Interrupt return address!
 
 extern byte allcleared;
 
+double currenttiming = 0.0; //Current timing spent to emulate!
+
 OPTINLINE byte coreHandler()
 {
 	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
 	//CPU execution, needs to be before the debugger!
-	uint_64 currentCPUtime = getnspassed_k(&CPU_timing); //Current CPU time to update to!
+	currenttiming += getnspassed(&CPU_timing); //Check for any time that has passed to emulate!
+	uint_64 currentCPUtime = currenttiming; //Current CPU time to update to!
 	uint_64 timeoutCPUtime = currentCPUtime+TIMEOUT_TIME; //We're timed out this far in the future (1ms)!
 
 	double instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
@@ -720,12 +723,25 @@ OPTINLINE byte coreHandler()
 		if (--timeout==0) //Timed out?
 		{
 			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!
-			if (getnspassed_k(&CPU_timing) >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
+			currenttiming += getnspassed(&CPU_timing); //Check for passed time!
+			if (currenttiming >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
 		}
 	} //CPU cycle loop!
 
 	//Slowdown to requested speed if needed!
-	for (;getnspassed_k(&CPU_timing) < last_timing;) delay(0); //Update to current time every instruction according to cycles passed!
+	currenttiming += getnspassed(&CPU_timing); //Add real time!
+	for (;currenttiming < last_timing;) //Not enough time spent on instructions?
+	{
+		currenttiming += getnspassed(&CPU_timing); //Add to the time to wait!
+		delay(0); //Update to current time every instruction according to cycles passed!
+	}
+
+	float temp;
+	temp = MAX(last_timing,currenttiming); //Save for substraction(time executed in real time)!
+	last_timing -= temp; //Keep the CPU timing within limits!
+	currenttiming -= temp; //Keep the current timing within limits!
+
+	timeemulated += timeexecuted; //Add timing for the CPU percentage to update!
 
 	updateKeyboard(timeexecuted); //Tick the keyboard timer if needed!
 

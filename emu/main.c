@@ -51,7 +51,7 @@ extern byte active_screen; //Active screen: 0=bottom, 1=Top, 2=Left/Right, 3=Rig
 //Automatically sleep on main thread close?
 #define SLEEP_ON_MAIN_CLOSE 0
 
-extern double last_timing, last_timing_start; //Our timing variables!
+extern double last_timing, timeemulated; //Our timing variables!
 extern TicksHolder CPU_timing; //Our timing holder!
 
 byte EMU_IsShuttingDown = 0; //Shut down (default: NO)?
@@ -368,10 +368,11 @@ int main(int argc, char * argv[])
 	//New SDL way!
 	/* Check for events */
 	getnspassed(&CPUUpdate);
-	getnspassed(&CPU_timing); //Make sure we start at zero time!
 	lock(LOCK_CPU); //Lock the CPU: we're running!
 	lock(LOCK_MAINTHREAD); //Lock the main thread(us)!
-	last_timing = last_timing_start = (double)getnspassed_k(&CPU_timing); //We start off at this point with no time running! We start counting the last timing from now!
+	getnspassed(&CPU_timing); //Make sure we start at zero time!
+	last_timing = 0.0; //Nothing spent yet!
+	timeemulated = 0.0; //Nothing has been emulated yet!
 	for (;;) //Still running?
 	{
 		updateInputMain(); //Update input!

@@ -141,14 +141,13 @@ byte vtotal = 0; //VTotal busy?
 
 extern byte CGAMDARenderer; //CGA/MDA renderer?
 
-extern double last_timing; //CPU timing to perform the final wait state!
-
 OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word *execsignal)
 {
 	word signal;
+	INLINEREGISTER word tempsignalbackup;
 	signal = *execsignal; //The signal to execute!
 	recalcsignal: //Recalculate the signal to process!
-	INLINEREGISTER word tempsignalbackup = signal; //The back-up of the signal!
+	tempsignalbackup = signal; //The back-up of the signal!
 	INLINEREGISTER word tempsignal = signal; //Current signal!
 	//Blankings
 	tempsignal &= (VGA_HBLANKMASK|VGA_HRETRACEMASK); //Check for blanking/retracing!
