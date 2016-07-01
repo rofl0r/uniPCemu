@@ -295,9 +295,9 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 			realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
 			realoffsettmp |= (offset>>16)&1; //Replace bit 0 with high order bit!
 		}
-		calcplanes |= ((getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage << 1)); //Apply the high page!
-		if (offset & 0x10000)
+		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage && (offset & 0x10000)) //High page on High RAM?
 		{
+			realoffsettmp |= 2; //Apply high page!
 			rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
 		}
 		else
