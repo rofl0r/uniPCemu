@@ -67,6 +67,7 @@ typedef struct PACKED
 		};
 		byte colors[6]; //All our colors!
 	};
+	byte gamingmode_joystick; //Use the joystick input instead of mapped input during gaming mode?
 } INPUT_SETTINGS; //Settings for the above!
 #include "headers/endpacked.h" //Finished packed data!
 

@@ -720,6 +720,7 @@ OPTINLINE byte coreHandler()
 		tickParallel(instructiontime); //Update the Parallel timer!
 		if (BIOS_Settings.useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		updateVGA(instructiontime); //Update the VGA timer!
+		updateJoystick(instructiontime); //Update the Joystick!
 		if (--timeout==0) //Timed out?
 		{
 			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!

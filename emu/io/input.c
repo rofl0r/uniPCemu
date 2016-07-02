@@ -15,6 +15,7 @@
 #include "headers/bios/biosmenu.h" //BIOS menu support for recording audio!
 #include "headers/hardware/vga/vga.h" //Video adapter dumping support!
 #include "headers/emu/timers.h" //Keyboard swap timer!
+#include "headers/hardware/joystick.h" //Joystick support!
 
 #ifdef VISUALC
 #include "sdl_joystick.h" //Joystick support!
@@ -1629,6 +1630,14 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 	}
 }
 
+void handleJoystick(double timepassed) //Handles gaming mode input!
+{
+	//Test for all keys and process!
+	if (input_buffer_enabled) return; //Don't handle buffered input, we don't allow mapping joystick mode to gaming mode!
+
+	setJoystick(0,curstat.buttonpress&8,curstat.buttonpress&4,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Cross=Button 1, Circle=Button 2?
+}
+
 OPTINLINE void handleKeyPressRelease(int key)
 {
 	byte lastshiftstatus;
@@ -1714,10 +1723,21 @@ void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're a
 
 			if (curstat.gamingmode) //Gaming mode?
 			{
-				handleGaming(timepassed); //Handle gaming input?
+				if (BIOS_Settings.input_settings.gamingmode_joystick) //Gaming mode is mapped to the joystick instead?
+				{
+					handleJoystick(timepassed); //Handle joystick input?
+				}
+				else //Normal gaming mode input!
+				{
+					setJoystick(0,0,0,0,0); //Disable joystick 1!
+					setJoystick(1,0,0,0,0); //Disable joystick 2!
+					handleGaming(timepassed); //Handle gaming input?
+				}
 			}
 			else //Normal input mode?
 			{
+				setJoystick(0, 0, 0, 0, 0); //Disable joystick 1!
+				setJoystick(1, 0, 0, 0, 0); //Disable joystick 2!
 				switch (curstat.mode) //What input mode?
 				{
 				case 0: //Mouse mode?
@@ -1820,6 +1840,7 @@ void keyboard_loadDefaults() //Load the defaults for the keyboard font etc.!
 		BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[i] = 0; //Disable by default!
 		BIOS_Settings.input_settings.mouse_gamemodemappings[i] = 0; //Disable by default!
 	}
+	BIOS_Settings.input_settings.gamingmode_joystick = 0; //Not using the joystick as input instead of normal gaming mode!
 }
 
 struct

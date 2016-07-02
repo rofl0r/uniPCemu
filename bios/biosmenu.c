@@ -173,6 +173,7 @@ void BIOS_useLPTDAC();
 void BIOS_VGASynchronization();
 void BIOS_DumpVGA();
 void BIOS_CGAModel();
+void BIOS_useJoystick(); //Use joystick instead of normal gaming mode?
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -227,6 +228,7 @@ Handler BIOS_Menus[] =
 	,BIOS_VGASynchronization //Change VGA Synchronization setting is #47!
 	,BIOS_DumpVGA //Dump the VGA fully is #48!
 	,BIOS_CGAModel //Select the CGA Model is #49!
+	,BIOS_useJoystick //Use Joystick is #50!
 };
 
 //Not implemented?
@@ -3081,6 +3083,23 @@ setMousetext: //For fixing it!
 		goto setMousetext; //Goto!
 		break;
 	}
+setJoysticktext: //For fixing it!
+	optioninfo[advancedoptions] = 3; //Joystick!
+	strcpy(menuoptions[advancedoptions], "Gaming mode: ");
+	switch (BIOS_Settings.input_settings.gamingmode_joystick) //Joystick?
+	{
+	case 0:
+		strcat(menuoptions[advancedoptions++], "Normal gaming mode mapped input");
+		break;
+	case 1:
+		strcat(menuoptions[advancedoptions++], "Joystick input");
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.input_settings.gamingmode_joystick = 0; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setJoysticktext; //Goto!
+		break;
+	}
 }
 
 void BIOS_inputMenu() //Manage stuff concerning input.
@@ -3095,7 +3114,8 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 		break;
 	case 0:
 	case 1:
-	case 2: //Valid option?
+	case 2:
+	case 3: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Gaming mode buttons?
@@ -3106,6 +3126,9 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 			break;
 		case 2:
 			if (!EMU_RUNNING) BIOS_Menu = 34; //Mouse option!
+			break;
+		case 3:
+			BIOS_Menu = 50; //Joystick option!
 			break;
 		}
 		break;
@@ -5020,4 +5043,11 @@ void BIOS_CGAModel()
 		break;
 	}
 	BIOS_Menu = 29; //Goto Video menu!
+}
+
+void BIOS_useJoystick()
+{
+	BIOS_Settings.input_settings.gamingmode_joystick = !BIOS_Settings.input_settings.gamingmode_joystick;
+	BIOS_Changed = 1; //Changed!
+	BIOS_Menu = 25; //Goto Input menu!
 }
