@@ -77,14 +77,6 @@ byte joystick_writeIO(word port, byte value)
 			JOYSTICK.timeoutx[0] = (uint_32)(SHRT_MIN+JOYSTICK.Joystick_X[0]);
 			JOYSTICK.timeouty[1] = (uint_32)(SHRT_MIN+JOYSTICK.Joystick_Y[1]);
 			JOYSTICK.timeouty[0] = (uint_32)(SHRT_MIN+JOYSTICK.Joystick_Y[0]);
-			if (JOYSTICK.Joystick_X[0] != 0)
-			{
-				dolog("Joystick","timeoutx:%i->%u",JOYSTICK.Joystick_X[0],JOYSTICK.timeoutx[0]);
-			}
-			if (JOYSTICK.Joystick_Y[0] != 0)
-			{
-				dolog("Joystick", "timeouty:%i->%u",JOYSTICK.Joystick_Y[0],JOYSTICK.timeouty[0]);
-			}
 			return 1; //OK!
 		default:
 			break;
