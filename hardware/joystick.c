@@ -1,18 +1,16 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/ports.h" //Port I/O support!
 
-//A bit of length for the timeout to decrease 1 step out of 65536 steps, in nanoseconds! Use 0.5ms for full decay(1.5ms for full fetch in 3 steps)?
-//according to http://www.epanorama.net/documents/joystick/pc_joystick.html
-//Rewritten to a different interval based on Duke Nukem(about 0.28 seconds per input).
-#define JOYSTICK_TICKLENGTH (5000000.0/USHRT_MAX)
+//Time until we time out!
+#define CALCTIMEOUT(position) ((24.2+(((double)position/65535.0)*1100.0))*1000.0)
 
 struct
 {
 	byte buttons[2][2]; //Two button status for two joysticks!
 	sword Joystick_X[2]; //X location for two joysticks!
 	sword Joystick_Y[2]; //Y location for two joysticks!
-	uint_32 timeoutx[2]; //Keep line high while set(based on Joystick_X when triggered)
-	uint_32 timeouty[2]; //Keep line high while set(based on Joystick_Y when triggered)
+	double timeoutx[2]; //Keep line high while set(based on Joystick_X when triggered)
+	double timeouty[2]; //Keep line high while set(based on Joystick_Y when triggered)
 } JOYSTICK;
 
 void setJoystick(byte joystick, byte button1, byte button2, sword analog_x, sword analog_y) //Input from theuser!
@@ -25,22 +23,13 @@ void setJoystick(byte joystick, byte button1, byte button2, sword analog_x, swor
 	JOYSTICK.Joystick_Y[joystick] = analog_y; //Joystick y axis!
 }
 
-double joystick_ticktiming = 0.0;
 void updateJoystick(double timepassed)
 {
-	//Adlib timer!
-	joystick_ticktiming += timepassed; //Get the amount of time passed!
-	if (joystick_ticktiming >= JOYSTICK_TICKLENGTH) //Enough time passed?
-	{
-		for (;joystick_ticktiming >= JOYSTICK_TICKLENGTH;) //All that's left!
-		{
-			if (JOYSTICK.timeoutx[0]) --JOYSTICK.timeoutx[0];
-			if (JOYSTICK.timeouty[0]) --JOYSTICK.timeouty[0];
-			if (JOYSTICK.timeoutx[1]) --JOYSTICK.timeoutx[1];
-			if (JOYSTICK.timeouty[1]) --JOYSTICK.timeouty[1];
-			joystick_ticktiming -= JOYSTICK_TICKLENGTH; //Decrease timer to get time left!
-		}
-	}
+	//Joystick timer!
+	if (JOYSTICK.timeoutx[0]>0.0) JOYSTICK.timeoutx[0] -= timepassed; //Add the time to what's left!
+	if (JOYSTICK.timeouty[0]>0.0) JOYSTICK.timeouty[0] -= timepassed; //Add the time to what's left!
+	if (JOYSTICK.timeoutx[1]>0.0) JOYSTICK.timeoutx[1] -= timepassed; //Add the time to what's left!
+	if (JOYSTICK.timeouty[1]>0.0) JOYSTICK.timeouty[1] -= timepassed; //Add the time to what's left!
 }
 
 byte joystick_readIO(word port, byte *result)
@@ -55,10 +44,10 @@ byte joystick_readIO(word port, byte *result)
 			temp |= JOYSTICK.buttons[1][0]?0:0x40; //Not pressed?
 			temp |= JOYSTICK.buttons[0][1]?0:0x20; //Not pressed?
 			temp |= JOYSTICK.buttons[0][0]?0:0x10; //Not pressed?
-			temp |= JOYSTICK.timeouty[1]?0x08:0; //Timing?
-			temp |= JOYSTICK.timeoutx[1]?0x04:0; //Timing?
-			temp |= JOYSTICK.timeouty[0]?0x02:0; //Timing?
-			temp |= JOYSTICK.timeoutx[0]?0x02:0; //Timing?
+			temp |= (JOYSTICK.timeouty[1]>0.0)?0x08:0; //Timing?
+			temp |= (JOYSTICK.timeoutx[1]>0.0)?0x04:0; //Timing?
+			temp |= (JOYSTICK.timeouty[0]>0.0)?0x02:0; //Timing?
+			temp |= (JOYSTICK.timeoutx[0]>0.0)?0x01:0; //Timing?
 			*result = temp; //Give the result!
 			return 1; //OK!
 		default:
@@ -73,10 +62,24 @@ byte joystick_writeIO(word port, byte value)
 	{
 		case 0x201: //Fire joystick four one-shots?
 			//Set timeoutx and timeouty based on the relative status of Joystick_X and Joystick_Y to fully left/top!
-			JOYSTICK.timeoutx[1] = (uint_32)(SHRT_MIN+JOYSTICK.Joystick_X[1]);
-			JOYSTICK.timeoutx[0] = (uint_32)(SHRT_MIN+JOYSTICK.Joystick_X[0]);
-			JOYSTICK.timeouty[1] = (uint_32)(SHRT_MIN+JOYSTICK.Joystick_Y[1]);
-			JOYSTICK.timeouty[0] = (uint_32)(SHRT_MIN+JOYSTICK.Joystick_Y[0]);
+			//First joystick timeout!
+			if (JOYSTICK.timeoutx[1]<=0.0)
+			{
+				JOYSTICK.timeoutx[1] = CALCTIMEOUT(JOYSTICK.Joystick_X[1]+(-SHRT_MIN));
+			}
+			if (JOYSTICK.timeouty[1]<=0.0)
+			{
+				JOYSTICK.timeouty[1] = CALCTIMEOUT(JOYSTICK.Joystick_Y[1]+(-SHRT_MIN));
+			}
+			//Second joystick timeout!
+			if (JOYSTICK.timeoutx[0] <= 0.0)
+			{
+				JOYSTICK.timeoutx[0] = CALCTIMEOUT(JOYSTICK.Joystick_X[0]+(-SHRT_MIN));
+			}
+			if (JOYSTICK.timeouty[0] <= 0.0)
+			{
+				JOYSTICK.timeouty[0] = CALCTIMEOUT(JOYSTICK.Joystick_Y[0]+(-SHRT_MIN));
+			}
 			return 1; //OK!
 		default:
 			break;
@@ -88,4 +91,5 @@ void joystickInit()
 {
 	register_PORTIN(&joystick_readIO); //Register our handler!
 	register_PORTOUT(&joystick_writeIO); //Register our handler!
+	JOYSTICK.timeoutx[0] = JOYSTICK.timeouty[0] = JOYSTICK.timeoutx[1] = JOYSTICK.timeouty[1] = 0.0; //Init timeout!
 }
