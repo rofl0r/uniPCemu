@@ -2059,16 +2059,48 @@ extern byte VGA_debugtiming_enabled; //Are we applying right now?
 
 byte specialdebugger = 0; //Enable special debugger input?
 
+OPTINLINE byte getjoystick(SDL_Joystick *joystick, int_32 whatJoystick) //Are we a supported joystick? If supported, what joystick?
+{
+	char name[256]; //The name of the joystick!
+	if (!joystick) return 0; //No joystick connected?
+	if (!SDL_NumJoysticks()) return 0; //No joysticks connected after all!
+	#ifdef IS_PSP
+		return 1; //Is PSP always!
+	#endif
+	memset(name,0,sizeof(name)); //Init!
+	memcpy(name,SDL_JoystickName(whatJoystick),MIN(strlen(SDL_JoystickName(whatJoystick)),sizeof(name)-1)); //Get the joystick name, with max length limit!
+	name[255] = '\0'; //End of string safety!
+	#ifdef IS_WINDOWS
+		if ((!strcmp(name,"XBOX 360 For Windows (Controller)")) || (!strcmp(name, "Controller (XBOX 360 For Windows)"))) //XBox 360 controller?
+	#else
+	#ifdef IS_LINUX
+		if (!strcmp(name, "Microsoft X-Box 360 pad")) //XBox 360 controller?
+	#else
+		if (0) //Unsupported system!
+	#endif
+	#endif
+	{
+		return 2; //Is XBox 360 controller!
+	}
+	else //Unknown/unsupported controller?
+	{
+		return 0; //Not supported!
+	}
+}
+
+int_32 whatJoystick = 0; //What joystick are we connected to? Default to the first joystick(for PSP compatibility)!
+
 void updateInput(SDL_Event *event) //Update all input!
 {
+	byte joysticktype=0; //What joystick type?
 	static byte RALT = 0;
 	switch (event->type)
 	{
 	//Keyboard events
 	case SDL_KEYUP: //Keyboard up?
-		if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
+		lock(LOCK_INPUT); //Wait!
+		if (((!(getjoystick(joystick,whatJoystick))) || Direct_Input) && hasinputfocus) //Gotten no joystick or is direct input?
 		{
-			lock(LOCK_INPUT); //Wait!
 			switch (event->key.keysym.sym) //What key?
 			{
 				//Special first
@@ -2234,13 +2266,13 @@ void updateInput(SDL_Event *event) //Update all input!
 				#endif
 			}
 			updateMOD(); //Update rest keys!
-			unlock(LOCK_INPUT);
 		}
+		unlock(LOCK_INPUT);
 		break;
 	case SDL_KEYDOWN: //Keyboard down?
-		if (!(SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick) >= 14)) && hasinputfocus) //Gotten no joystick?
+		lock(LOCK_INPUT);
+		if (((!getjoystick(joystick,whatJoystick)) || Direct_Input) && hasinputfocus) //Gotten no joystick or is direct input?
 		{
-			lock(LOCK_INPUT);
 			switch (event->key.keysym.sym) //What key?
 			{
 			//Special first
@@ -2379,90 +2411,208 @@ void updateInput(SDL_Event *event) //Update all input!
 				#endif
 			}
 			updateMOD(); //Update rest keys!
-			unlock(LOCK_INPUT);
 		}
+		unlock(LOCK_INPUT);
 		break;
 	//Joystick events
 	case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
 		#ifdef SDL2
-		if (event->jaxis.which==SDL_JoystickInstanceID(joystick)) { //Current stick?
+			if (getjoystick(joystick) && (event->jaxis.which == whatJoystick)) { //Current stick?
 		#endif
-		if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
+		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
+		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
 			lock(LOCK_INPUT);
-			switch ( event->jaxis.axis)
+			switch (joysticktype)
 			{
-				case 0: /* Left-right movement code goes here */
+			case 1: //PSP?
+				switch ( event->jaxis.axis)
+				{
+					case 0: /* Left-right movement code goes here */
+						input.Lx = event->jaxis.value; //New value!
+						break;
+					case 1: /* Up-Down movement code goes here */
+						input.Ly = event->jaxis.value; //New value!
+						break;
+				}
+				break;
+			case 2: //XBox 360?
+				switch (event->jaxis.axis)
+				{
+				//Top-left stick?
+				case 0: /* Left-right movement of the left stick */
 					input.Lx = event->jaxis.value; //New value!
 					break;
-				case 1: /* Up-Down movement code goes here */
+				case 1: /* Up-Down movement code of the left stick */
 					input.Ly = event->jaxis.value; //New value!
 					break;
-			}
-
-			if (Direct_Input) //Direct input enabled? Ignore the joystick!
-			{
-				input.Lx = input.Ly = 0; //Ignore pressed buttons!
+				case 4: /* Left-right movement of the right stick */
+					break;
+				case 3: /* Up-Down movement code of the right stick */
+					break;
+				case 2: /* LT/RT pressed/depressed? */
+					break;
+				}
+				break;
 			}
 			unlock(LOCK_INPUT);
+		}
+		if (Direct_Input) //Direct input enabled? Ignore the joystick!
+		{
+			input.Lx = input.Ly = 0; //Ignore pressed buttons!
 		}
 		#ifdef SDL2
 		} //Current stick?
 		#endif
 		break;
-	case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
+	case SDL_JOYHATMOTION: /* Handle joy hat motion */
 		#ifdef SDL2
-		if (event->jaxis.which == SDL_JoystickInstanceID(joystick)) { //Current stick?
+				if (getjoystick(joystick) && (event->jaxis.which == whatJoystick)) { //Current stick?
 		#endif
-		if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
+		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
+		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
 			lock(LOCK_INPUT);
-			switch (event->jbutton.button) //What button?
+			switch (joysticktype)
 			{
-				case INPUT_BUTTON_TRIANGLE:
-					input.Buttons |= BUTTON_TRIANGLE; //Press!
+			case 1: //PSP?
+				//PSP doesn't have a joystick hat?
+				break;
+			case 2: //XBox 360?
+				switch (event->jhat.hat) //What hat?
+				{
+				case 0: /* First hat */
+					switch (event->jhat.value) //What hat position?
+					{
+					case SDL_HAT_LEFT: //Left?
+						input.Buttons &= ~(BUTTON_RIGHT | BUTTON_UP | BUTTON_DOWN); //No buttons used!
+						input.Buttons |= BUTTON_LEFT; //Left pressed!
+						break;
+					case SDL_HAT_RIGHT: //Right?
+						input.Buttons &= ~(BUTTON_LEFT | BUTTON_UP | BUTTON_DOWN); //No buttons used!
+						input.Buttons |= BUTTON_RIGHT; //Right pressed!
+						break;
+					case SDL_HAT_UP: //Up?
+						input.Buttons &= ~(BUTTON_LEFT | BUTTON_RIGHT | BUTTON_DOWN); //No buttons used!
+						input.Buttons |= BUTTON_UP; //Up pressed!
+						break;
+					case SDL_HAT_DOWN: //Down?
+						input.Buttons &= ~(BUTTON_LEFT | BUTTON_RIGHT | BUTTON_UP); //No buttons used!
+						input.Buttons |= BUTTON_DOWN; //Down pressed!
+						break;
+					default: //Unknown hat or unused hat position?
+						input.Buttons &= ~(BUTTON_LEFT|BUTTON_RIGHT|BUTTON_UP|BUTTON_DOWN); //No buttons used!
+						break;
+					}
 					break;
-				case INPUT_BUTTON_SQUARE:
-					input.Buttons |= BUTTON_SQUARE; //Press!
-					break;
-				case INPUT_BUTTON_CROSS:
+				}
+				break;
+			}
+			unlock(LOCK_INPUT);
+		}
+		if (Direct_Input) //Direct input enabled? Ignore the joystick!
+		{
+			input.Lx = input.Ly = 0; //Ignore pressed buttons!
+		}
+		#ifdef SDL2
+				} //Current stick?
+		#endif
+		break;
+	case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
+		#ifdef SDL2
+			if (joystick && event->jaxis.which == SDL_JoystickInstanceID(joystick)) { //Current stick?
+		#endif
+		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
+		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
+		{
+			lock(LOCK_INPUT);
+			switch (joysticktype)
+			{
+			case 1: //PSP?
+				switch (event->jbutton.button) //What button?
+				{
+					case INPUT_BUTTON_TRIANGLE:
+						input.Buttons |= BUTTON_TRIANGLE; //Press!
+						break;
+					case INPUT_BUTTON_SQUARE:
+						input.Buttons |= BUTTON_SQUARE; //Press!
+						break;
+					case INPUT_BUTTON_CROSS:
+						input.Buttons |= BUTTON_CROSS; //Press!
+						break;
+					case INPUT_BUTTON_CIRCLE:
+						input.Buttons |= BUTTON_CIRCLE; //Press!
+						break;
+					case INPUT_BUTTON_LTRIGGER:
+						input.Buttons |= BUTTON_LTRIGGER; //Press!
+						break;
+					case INPUT_BUTTON_RTRIGGER:
+						input.Buttons |= BUTTON_RTRIGGER; //Press!
+						break;
+					case INPUT_BUTTON_SELECT:
+						input.Buttons |= BUTTON_SELECT; //Press!
+						break;
+					case INPUT_BUTTON_START:
+						input.Buttons |= BUTTON_START; //Press!
+						break;
+					case INPUT_BUTTON_HOME:
+						input.Buttons |= BUTTON_HOME; //Press!
+						break;
+					case INPUT_BUTTON_HOLD:
+						input.Buttons |= BUTTON_HOLD; //Press!
+						break;
+					case INPUT_BUTTON_UP:
+						input.Buttons |= BUTTON_UP; //Press!
+						break;
+					case INPUT_BUTTON_DOWN:
+						input.Buttons |= BUTTON_DOWN; //Press!
+						break;
+					case INPUT_BUTTON_LEFT:
+						input.Buttons |= BUTTON_LEFT; //Press!
+						break;
+					case INPUT_BUTTON_RIGHT:
+						input.Buttons |= BUTTON_RIGHT; //Press!
+						break;
+					default: //Unknown button?
+						break;
+				}
+				break;
+			case 2: //XBox 360?
+				switch (event->jbutton.button) //What button?
+				{
+				case 0: //A
 					input.Buttons |= BUTTON_CROSS; //Press!
 					break;
-				case INPUT_BUTTON_CIRCLE:
+				case 1: //B
 					input.Buttons |= BUTTON_CIRCLE; //Press!
 					break;
-				case INPUT_BUTTON_LTRIGGER:
+				case 2: //X
+					input.Buttons |= BUTTON_SQUARE; //Press!
+					break;
+				case 3: //Y
+					input.Buttons |= BUTTON_TRIANGLE; //Press!
+					break;
+				case 4: //LB
 					input.Buttons |= BUTTON_LTRIGGER; //Press!
 					break;
-				case INPUT_BUTTON_RTRIGGER:
+				case 5: //RB
 					input.Buttons |= BUTTON_RTRIGGER; //Press!
 					break;
-				case INPUT_BUTTON_SELECT:
+				case 6: //BACK
 					input.Buttons |= BUTTON_SELECT; //Press!
 					break;
-				case INPUT_BUTTON_START:
+				case 7: //START
 					input.Buttons |= BUTTON_START; //Press!
 					break;
-				case INPUT_BUTTON_HOME:
+				case 8: //LEFT ANALOG
 					input.Buttons |= BUTTON_HOME; //Press!
 					break;
-				case INPUT_BUTTON_HOLD:
+				case 9: //RIGHT ANALOG
 					input.Buttons |= BUTTON_HOLD; //Press!
-					break;
-				case INPUT_BUTTON_UP:
-					input.Buttons |= BUTTON_UP; //Press!
-					break;
-				case INPUT_BUTTON_DOWN:
-					input.Buttons |= BUTTON_DOWN; //Press!
-					break;
-				case INPUT_BUTTON_LEFT:
-					input.Buttons |= BUTTON_LEFT; //Press!
-					break;
-				case INPUT_BUTTON_RIGHT:
-					input.Buttons |= BUTTON_RIGHT; //Press!
 					break;
 				default: //Unknown button?
 					break;
+				}
 			}
 			unlock(LOCK_INPUT);
 		}
@@ -2472,57 +2622,99 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
 		#ifdef SDL2
-		if (event->jaxis.which == SDL_JoystickInstanceID(joystick)) { //Current stick?
+			if (joystick && event->jaxis.which == SDL_JoystickInstanceID(joystick)) { //Current stick?
 		#endif
-		if (SDL_NumJoysticks() && (SDL_JoystickNumButtons(joystick)>=14) && hasinputfocus) //Gotten a joystick?
+		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
+		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
 			lock(LOCK_INPUT);
-			switch (event->jbutton.button) //What button?
+			switch (joysticktype)
 			{
-				case INPUT_BUTTON_TRIANGLE:
-					input.Buttons &= ~BUTTON_TRIANGLE; //Release!
-					break;
-				case INPUT_BUTTON_SQUARE:
-					input.Buttons &= ~BUTTON_SQUARE; //Release!
-					break;
-				case INPUT_BUTTON_CROSS:
+			case 1: //PSP?
+				switch (event->jbutton.button) //What button?
+				{
+					case INPUT_BUTTON_TRIANGLE:
+						input.Buttons &= ~BUTTON_TRIANGLE; //Release!
+						break;
+					case INPUT_BUTTON_SQUARE:
+						input.Buttons &= ~BUTTON_SQUARE; //Release!
+						break;
+					case INPUT_BUTTON_CROSS:
+						input.Buttons &= ~BUTTON_CROSS; //Release!
+						break;
+					case INPUT_BUTTON_CIRCLE:
+						input.Buttons &= ~BUTTON_CIRCLE; //Release!
+						break;
+					case INPUT_BUTTON_LTRIGGER:
+						input.Buttons &= ~BUTTON_LTRIGGER; //Release!
+						break;
+					case INPUT_BUTTON_RTRIGGER:
+						input.Buttons &= ~BUTTON_RTRIGGER; //Release!
+						break;
+					case INPUT_BUTTON_SELECT:
+						input.Buttons &= ~BUTTON_SELECT; //Release!
+						break;
+					case INPUT_BUTTON_START:
+						input.Buttons &= ~BUTTON_START; //Release!
+						break;
+					case INPUT_BUTTON_HOME:
+						input.Buttons &= ~BUTTON_HOME; //Release!
+						break;
+					case INPUT_BUTTON_HOLD:
+						input.Buttons &= ~BUTTON_HOLD; //Release!
+						break;
+					case INPUT_BUTTON_UP:
+						input.Buttons &= ~BUTTON_UP; //Release!
+						break;
+					case INPUT_BUTTON_DOWN:
+						input.Buttons &= ~BUTTON_DOWN; //Release!
+						break;
+					case INPUT_BUTTON_LEFT:
+						input.Buttons &= ~BUTTON_LEFT; //Release!
+						break;
+					case INPUT_BUTTON_RIGHT:
+						input.Buttons &= ~BUTTON_RIGHT; //Release!
+						break;
+					default: //Unknown button?
+						break;
+				}
+				break;
+			case 2: //XBox 360?
+				switch (event->jbutton.button) //What button?
+				{
+				case 0: //A
 					input.Buttons &= ~BUTTON_CROSS; //Release!
 					break;
-				case INPUT_BUTTON_CIRCLE:
+				case 1: //B
 					input.Buttons &= ~BUTTON_CIRCLE; //Release!
 					break;
-				case INPUT_BUTTON_LTRIGGER:
+				case 2: //X
+					input.Buttons &= ~BUTTON_SQUARE; //Release!
+					break;
+				case 3: //Y
+					input.Buttons &= ~BUTTON_TRIANGLE; //Release!
+					break;
+				case 4: //LB
 					input.Buttons &= ~BUTTON_LTRIGGER; //Release!
 					break;
-				case INPUT_BUTTON_RTRIGGER:
+				case 5: //RB
 					input.Buttons &= ~BUTTON_RTRIGGER; //Release!
 					break;
-				case INPUT_BUTTON_SELECT:
+				case 6: //BACK
 					input.Buttons &= ~BUTTON_SELECT; //Release!
 					break;
-				case INPUT_BUTTON_START:
+				case 7: //START
 					input.Buttons &= ~BUTTON_START; //Release!
 					break;
-				case INPUT_BUTTON_HOME:
+				case 8: //LEFT ANALOG
 					input.Buttons &= ~BUTTON_HOME; //Release!
 					break;
-				case INPUT_BUTTON_HOLD:
+				case 9: //RIGHT ANALOG
 					input.Buttons &= ~BUTTON_HOLD; //Release!
-					break;
-				case INPUT_BUTTON_UP:
-					input.Buttons &= ~BUTTON_UP; //Release!
-					break;
-				case INPUT_BUTTON_DOWN:
-					input.Buttons &= ~BUTTON_DOWN; //Release!
-					break;
-				case INPUT_BUTTON_LEFT:
-					input.Buttons &= ~BUTTON_LEFT; //Release!
-					break;
-				case INPUT_BUTTON_RIGHT:
-					input.Buttons &= ~BUTTON_RIGHT; //Release!
 					break;
 				default: //Unknown button?
 					break;
+				}
 			}
 			unlock(LOCK_INPUT);
 		}
@@ -2664,6 +2856,33 @@ void updateInput(SDL_Event *event) //Update all input!
 	case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
 		haswindowactive = 0; //We're iconified! This also prevents drawing! This is critical!
 		break;
+	case SDL_JOYDEVICEADDED: //Joystick has been connected?
+		if (joystick) //Joystick connected?
+		{
+			SDL_JoystickClose(joystick); //Disconnect our old joystick!
+			lock(LOCK_INPUT); //We're clearing all our relevant data!
+			input.Buttons = 0;
+			input.Lx = input.Ly = 0;
+			unlock(LOCK_INPUT);
+			joystick = NULL; //Removed!
+		}
+		joystick = SDL_joystickOpen(event->jdevice.which); //Open the new joystick as new input device!
+		whatJoystick = event->jdevice.which; //Set our joystick to this joystick!
+		break;
+	case SDL_JOYDEVICEREMOVED: //Joystick has been removed?
+		if (joystick) //A joystick is connected?
+		{
+			if (whatJoystick==event->jdevice.which) //Our joystick is disconnected?
+			{
+				SDL_joystickClose(joystick); //Disconnect our joystick!
+				lock(LOCK_INPUT); //We're clearing all our relevant data!
+				input.Buttons = 0;
+				input.Lx = input.Ly = 0;
+				unlock(LOCK_INPUT);
+				joystick = NULL; //Removed!
+			}
+		}
+		break;
 	#endif
 	default: //Unhandled/unknown event?
 		break; //Ignore the event!
@@ -2726,7 +2945,7 @@ void psp_input_init()
 	#endif
 	initTicksHolder(&Keyboardticker); //Initialise our timing!
 	SDL_JoystickEventState(SDL_ENABLE);
-	joystick = SDL_JoystickOpen(0); //Open our joystick!
+	joystick = SDL_JoystickOpen(0); //Open our first joystick by default!
 	#ifndef SDL2
 	//SDL2 can't use the reverse table anymore! It uses a simple function for lookups instead!
 	for (i = 0;i < NUMITEMS(emu_keys_sdl_rev);i++) //Initialise all keys!
@@ -2753,6 +2972,11 @@ void psp_input_init()
 
 void psp_input_done()
 {
+	if (joystick)
+	{
+		SDL_JoystickClose(joystick); //Close our joystick!
+		joystick = NULL; //No joystick anymore!
+	}
 	//Do nothing for now!
 	#ifdef SDL2
 	SDL_DelEventWatch(myEventFilter, NULL); //For applying critical updates!
