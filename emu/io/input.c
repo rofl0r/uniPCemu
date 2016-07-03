@@ -1634,8 +1634,18 @@ void handleJoystick(double timepassed) //Handles gaming mode input!
 {
 	//Test for all keys and process!
 	if (input_buffer_enabled) return; //Don't handle buffered input, we don't allow mapping joystick mode to gaming mode!
-
-	setJoystick(0,curstat.buttonpress&8,curstat.buttonpress&4,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Cross=Button 1, Circle=Button 2?
+	switch (BIOS_Settings.input_settings.gamingmode_joystick) //What joystick mapping mode?
+	{
+	case 1:
+		setJoystick(0,curstat.buttonpress&0x08,curstat.buttonpress&0x04,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Cross=Button 1, Circle=Button 2?
+		break;
+	case 2:
+		setJoystick(0,curstat.buttonpress&0x04,curstat.buttonpress&0x08,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Cross=Button 2, Circle=Button 1?
+		break;
+	default: //Unknown mapping?
+		setJoystick(0,0,0,0,0); //Unknown mapping, ignore input?
+		break;
+	}
 }
 
 OPTINLINE void handleKeyPressRelease(int key)

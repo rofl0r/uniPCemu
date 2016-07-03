@@ -173,7 +173,7 @@ void BIOS_useLPTDAC();
 void BIOS_VGASynchronization();
 void BIOS_DumpVGA();
 void BIOS_CGAModel();
-void BIOS_useJoystick(); //Use joystick instead of normal gaming mode?
+void BIOS_gamingmodeJoystick(); //Use joystick instead of normal gaming mode?
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -228,7 +228,7 @@ Handler BIOS_Menus[] =
 	,BIOS_VGASynchronization //Change VGA Synchronization setting is #47!
 	,BIOS_DumpVGA //Dump the VGA fully is #48!
 	,BIOS_CGAModel //Select the CGA Model is #49!
-	,BIOS_useJoystick //Use Joystick is #50!
+	,BIOS_gamingmodeJoystick //Use Joystick is #50!
 };
 
 //Not implemented?
@@ -3092,7 +3092,10 @@ setJoysticktext: //For fixing it!
 		strcat(menuoptions[advancedoptions++], "Normal gaming mode mapped input");
 		break;
 	case 1:
-		strcat(menuoptions[advancedoptions++], "Joystick input");
+		strcat(menuoptions[advancedoptions++], "Joystick, Cross=Button 1, Circle=Button 2");
+		break;
+	case 2:
+		strcat(menuoptions[advancedoptions++], "Joystick, Cross=Button 2, Circle=Button 1");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.input_settings.gamingmode_joystick = 0; //Reset/Fix!
@@ -5045,9 +5048,59 @@ void BIOS_CGAModel()
 	BIOS_Menu = 29; //Goto Video menu!
 }
 
-void BIOS_useJoystick()
+void BIOS_gamingmodeJoystick()
 {
-	BIOS_Settings.input_settings.gamingmode_joystick = !BIOS_Settings.input_settings.gamingmode_joystick;
-	BIOS_Changed = 1; //Changed!
+	BIOS_Title("Gaming mode");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Gaming mode: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 3; //Ammount of CGA Models!
+	for (i = 0; i<numlist; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[0], "Normal gaming mode mapped input"); //Default to mapped input!
+	strcpy(itemlist[1], "Joystick, Cross=Button 1, Circle=Button 2"); //Joystick: Cross=Button 1, Circle=Button 2!
+	strcpy(itemlist[2], "Joystick, Cross=Button 2, Circle=Button 1"); //Joystick: Cross=Button 2, Circle=Button 1!
+	int current = 0;
+	switch (BIOS_Settings.input_settings.gamingmode_joystick) //What setting?
+	{
+	case 0: //Valid
+	case 1: //Valid
+	case 2: //Valid
+		current = BIOS_Settings.input_settings.gamingmode_joystick; //Valid: use!
+		break;
+	default: //Invalid
+		current = 0; //Default to the first option!
+		break;
+	}
+	if (BIOS_Settings.input_settings.gamingmode_joystick != current) //Invalid?
+	{
+		BIOS_Settings.input_settings.gamingmode_joystick = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(13, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	default: //Unknown result?
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0; //Default setting!
+
+	case 0:
+	case 1:
+	case 2:
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.input_settings.gamingmode_joystick = file; //Select Gaming mode Joystick setting!
+		}
+		break;
+	}
 	BIOS_Menu = 25; //Goto Input menu!
 }

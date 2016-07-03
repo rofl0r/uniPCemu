@@ -6,7 +6,7 @@
 
 struct
 {
-	byte buttons[2][2]; //Two button status for two joysticks!
+	byte buttons[2]; //Two button status for two joysticks!
 	sword Joystick_X[2]; //X location for two joysticks!
 	sword Joystick_Y[2]; //Y location for two joysticks!
 	double timeoutx[2]; //Keep line high while set(based on Joystick_X when triggered)
@@ -17,8 +17,7 @@ void setJoystick(byte joystick, byte button1, byte button2, sword analog_x, swor
 {
 	if (joystick&0xFE) return; //Only two joysticks are supported!
 	//Set the buttons of the joystick!
-	JOYSTICK.buttons[joystick][0] = button1?1:0; //Button 1
-	JOYSTICK.buttons[joystick][1] = button2?1:0; //Button 2
+	JOYSTICK.buttons[joystick] = (button2?0x0:0x2)|(button1?0x0:0x1); //Button 2, not pressed!
 	JOYSTICK.Joystick_X[joystick] = analog_x; //Joystick x axis!
 	JOYSTICK.Joystick_Y[joystick] = analog_y; //Joystick y axis!
 }
@@ -40,10 +39,8 @@ byte joystick_readIO(word port, byte *result)
 		case 0x201: //Read joystick position and status?
 			temp = 0; //No input yet!
 			//bits 8-7 are joystick B buttons 2/1, Bits 6-5 are joystick A buttons 2/1, bit 4-3 are joystick B Y-X timeout timing, bits 1-0 are joystick A Y-X timeout timing.
-			temp |= JOYSTICK.buttons[1][1]?0:0x80; //Not pressed?
-			temp |= JOYSTICK.buttons[1][0]?0:0x40; //Not pressed?
-			temp |= JOYSTICK.buttons[0][1]?0:0x20; //Not pressed?
-			temp |= JOYSTICK.buttons[0][0]?0:0x10; //Not pressed?
+			temp |= (JOYSTICK.buttons[1]<<6); //Not pressed joystick B?
+			temp |= (JOYSTICK.buttons[0]<<4); //Not pressed joystick A?
 			temp |= (JOYSTICK.timeouty[1]>0.0)?0x08:0; //Timing?
 			temp |= (JOYSTICK.timeoutx[1]>0.0)?0x04:0; //Timing?
 			temp |= (JOYSTICK.timeouty[0]>0.0)?0x02:0; //Timing?
@@ -91,5 +88,6 @@ void joystickInit()
 {
 	register_PORTIN(&joystick_readIO); //Register our handler!
 	register_PORTOUT(&joystick_writeIO); //Register our handler!
+	JOYSTICK.buttons[0] = JOYSTICK.buttons[1] = 3; //Not pressed!
 	JOYSTICK.timeoutx[0] = JOYSTICK.timeouty[0] = JOYSTICK.timeoutx[1] = JOYSTICK.timeouty[1] = 0.0; //Init timeout!
 }

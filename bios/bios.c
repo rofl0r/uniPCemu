@@ -41,6 +41,7 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 #define DEFAULT_BWMONITOR BWMONITOR_NONE
 #define DEFAULT_SSOURCEVOL 100.0f
 #define DEFAULT_FRAMERATE 0
+#define DEFAULT_VGASYNCHRONIZATION 2
 
 void forceBIOSSave()
 {
@@ -117,6 +118,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.bwmonitor = DEFAULT_BWMONITOR; //Default B/W monitor setting!
 	BIOS_Settings.SoundSource_Volume = DEFAULT_SSOURCEVOL; //Default soundsource volume knob!
 	BIOS_Settings.ShowFramerate = DEFAULT_FRAMERATE; //Default framerate setting!
+	BIOS_Settings.VGASynchronization = DEFAULT_VGASYNCHRONIZATION; //Default VGA synchronization setting!
 	
 	
 	BIOS_Settings.version = BIOS_VERSION; //Current version loaded!
