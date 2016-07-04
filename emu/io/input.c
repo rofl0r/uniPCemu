@@ -2975,6 +2975,8 @@ void psp_input_init()
 	#ifdef SDL2
 	SDL_AddEventWatch(myEventFilter, NULL); //For applying critical updates!
 	#endif
+	enableJoystick(0,1); //Enable joystick 1!
+	enableJoystick(1,0); //Disable joystick 2!
 }
 
 void psp_input_done()
