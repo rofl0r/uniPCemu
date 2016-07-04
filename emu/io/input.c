@@ -442,7 +442,10 @@ void get_analog_state(PSP_INPUTSTATE *state) //Get the current state for mouse/a
 	y = input.Ly; //Convert to signed!
 
 	sword minrange;
-	minrange = ((sword)BIOS_Settings.input_settings.analog_minrange<<8); //Minimum horizontal&vertical range!
+	minrange = (((sword)(BIOS_Settings.input_settings.analog_minrange&0x7F)<<8)); //Minimum horizontal&vertical range, limited within range!
+	float rangemult;
+	if (minrange>=SHRT_MAX) minrange = 0; //Direct usage when the multiplier has 0 range()!
+	rangemult = (1.0f/(SHRT_MAX-minrange))*SHRT_MAX; //For converting the range after applying range!
 	
 	//Now, apply analog_minrange!
 	
@@ -491,6 +494,10 @@ void get_analog_state(PSP_INPUTSTATE *state) //Get the current state for mouse/a
 			y += minrange; //Patch!
 		}
 	}
+
+	x = (int)(((float)x)*rangemult); //Apply the range conversion!
+	y = (int)(((float)y)*rangemult); //Apply the range conversion!
+
 	if (state->gamingmode) //Gaming mode?
 	{
 		state->analogdirection_mouse_x = x; //Mouse X movement!
@@ -1636,10 +1643,10 @@ void handleJoystick(double timepassed) //Handles gaming mode input!
 	if (input_buffer_enabled) return; //Don't handle buffered input, we don't allow mapping joystick mode to gaming mode!
 	switch (BIOS_Settings.input_settings.gamingmode_joystick) //What joystick mapping mode?
 	{
-	case 1:
+	case 1: //Cross=Button 1, Circle=Button 2?
 		setJoystick(0,curstat.buttonpress&0x08,curstat.buttonpress&0x04,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Cross=Button 1, Circle=Button 2?
 		break;
-	case 2:
+	case 2: //Cross=Button 2, Circle=Button 1?
 		setJoystick(0,curstat.buttonpress&0x04,curstat.buttonpress&0x08,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Cross=Button 2, Circle=Button 1?
 		break;
 	default: //Unknown mapping?
