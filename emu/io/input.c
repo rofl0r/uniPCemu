@@ -2097,6 +2097,52 @@ OPTINLINE byte getjoystick(SDL_Joystick *joystick, int_32 whatJoystick) //Are we
 
 int_32 whatJoystick = 0; //What joystick are we connected to? Default to the first joystick(for PSP compatibility)!
 
+//A joystick has been disconnected!
+void disconnectJoystick(int_32 index)
+{
+	if (joystick) //A joystick is connected?
+	{
+		if (whatJoystick == index) //Our joystick is disconnected?
+		{
+			SDL_JoystickClose(joystick); //Disconnect our joystick!
+			lock(LOCK_INPUT); //We're clearing all our relevant data!
+			input.Buttons = 0;
+			input.Lx = input.Ly = 0;
+			unlock(LOCK_INPUT);
+			joystick = NULL; //Removed!
+		}
+	}
+}
+
+//A joystick has been connected!
+void connectJoystick(int index)
+{
+	if (joystick) //Joystick connected?
+	{
+		SDL_JoystickClose(joystick); //Disconnect our old joystick!
+		lock(LOCK_INPUT); //We're clearing all our relevant data!
+		input.Buttons = 0;
+		input.Lx = input.Ly = 0;
+		unlock(LOCK_INPUT);
+		joystick = NULL; //Removed!
+	}
+	joystick = SDL_JoystickOpen(index); //Open the new joystick as new input device!
+	whatJoystick = index; //Set our joystick to this joystick!
+}
+
+void reconnectJoystick0() //For non-SDL2 compilations!
+{
+		disconnectJoystick(whatJoystick); //Disconnect the joystick!
+		if (SDL_NumJoysticks()) //Any joystick attached?
+		{
+			connectJoystick(!whatJoystick); //Connect the new joystick(either joystick #0 or no joystick)!
+		}
+		else
+		{
+			connectJoystick(0); //Connect the new joystick(always joystick #0)!
+		}
+}
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	byte joysticktype=0; //What joystick type?
@@ -2864,31 +2910,10 @@ void updateInput(SDL_Event *event) //Update all input!
 		haswindowactive = 0; //We're iconified! This also prevents drawing! This is critical!
 		break;
 	case SDL_JOYDEVICEADDED: //Joystick has been connected?
-		if (joystick) //Joystick connected?
-		{
-			SDL_JoystickClose(joystick); //Disconnect our old joystick!
-			lock(LOCK_INPUT); //We're clearing all our relevant data!
-			input.Buttons = 0;
-			input.Lx = input.Ly = 0;
-			unlock(LOCK_INPUT);
-			joystick = NULL; //Removed!
-		}
-		joystick = SDL_joystickOpen(event->jdevice.which); //Open the new joystick as new input device!
-		whatJoystick = event->jdevice.which; //Set our joystick to this joystick!
+		connectJoystick(event->jdevice.which); //Connect to this joystick, is valid!
 		break;
 	case SDL_JOYDEVICEREMOVED: //Joystick has been removed?
-		if (joystick) //A joystick is connected?
-		{
-			if (whatJoystick==event->jdevice.which) //Our joystick is disconnected?
-			{
-				SDL_joystickClose(joystick); //Disconnect our joystick!
-				lock(LOCK_INPUT); //We're clearing all our relevant data!
-				input.Buttons = 0;
-				input.Lx = input.Ly = 0;
-				unlock(LOCK_INPUT);
-				joystick = NULL; //Removed!
-			}
-		}
+		disconnectJoystick(event->jdevice.which); //Disconnect our joystick if it's ours!
 		break;
 	#endif
 	default: //Unhandled/unknown event?

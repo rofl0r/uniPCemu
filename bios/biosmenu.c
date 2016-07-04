@@ -174,6 +174,7 @@ void BIOS_VGASynchronization();
 void BIOS_DumpVGA();
 void BIOS_CGAModel();
 void BIOS_gamingmodeJoystick(); //Use joystick instead of normal gaming mode?
+void BIOS_JoystickReconnect(); //Reconnect the joystick (not SDL2)
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -229,6 +230,7 @@ Handler BIOS_Menus[] =
 	,BIOS_DumpVGA //Dump the VGA fully is #48!
 	,BIOS_CGAModel //Select the CGA Model is #49!
 	,BIOS_gamingmodeJoystick //Use Joystick is #50!
+	,BIOS_JoystickReconnect //Reconnect Joystick is #51!
 };
 
 //Not implemented?
@@ -3103,6 +3105,11 @@ setJoysticktext: //For fixing it!
 		goto setJoysticktext; //Goto!
 		break;
 	}
+
+#ifndef SDL2
+	optioninfo[advancedoptions] = 4; //Reconnect joystick
+	strcpy(menuoptions[advancedoptions++], "Detect joystick"); //Detect the new joystick!
+#endif
 }
 
 void BIOS_inputMenu() //Manage stuff concerning input.
@@ -3118,7 +3125,8 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 	case 0:
 	case 1:
 	case 2:
-	case 3: //Valid option?
+	case 3:
+	case 4: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Gaming mode buttons?
@@ -3132,6 +3140,9 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 			break;
 		case 3:
 			BIOS_Menu = 50; //Joystick option!
+			break;
+		case 4:
+			BIOS_Menu = 51; //Joystick connect option!
 			break;
 		}
 		break;
@@ -5102,5 +5113,11 @@ void BIOS_gamingmodeJoystick()
 		}
 		break;
 	}
+	BIOS_Menu = 25; //Goto Input menu!
+}
+
+void BIOS_JoystickReconnect()
+{
+	reconnectJoystick0(); //Reconnect joystick #0!
 	BIOS_Menu = 25; //Goto Input menu!
 }
