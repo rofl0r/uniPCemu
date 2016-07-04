@@ -82,7 +82,7 @@ void updateJoystick(double timepassed)
 
 byte joystick_readIO(word port, byte *result)
 {
-	INLINEREGISTER byte temp,temp2;
+	INLINEREGISTER byte temp;
 	switch (port)
 	{
 		case 0x201: //Read joystick position and status?
@@ -90,15 +90,11 @@ byte joystick_readIO(word port, byte *result)
 			temp = 0xFF; //Init the result!
 			if (JOYSTICK.enabled[1]) //Joystick B enabled?
 			{
-				temp2 = (((JOYSTICK.buttons[1]<<6)|JOYSTICK.timeout)&0xCC); //Our bits to set!
-				temp &= 0x33; //Not pressed joystick B or timing status?
-				temp |= temp2; //Apply the joystick!
+				temp &= 0x33|(((JOYSTICK.buttons[1]<<6)|JOYSTICK.timeout)&0xCC); //Clear joystick B bits when applied!
 			}
 			if (JOYSTICK.enabled[0]) //Joystick A enabled?
 			{
-				temp2 = (((JOYSTICK.buttons[0]<<4)|JOYSTICK.timeout)&0x33); //Our bits to set!
-				temp &= 0xCC; //Not pressed joystick A or timing status?
-				temp |= temp2; //Apply the joystick!
+				temp &= 0xCC|(((JOYSTICK.buttons[0]<<4)|JOYSTICK.timeout)&0x33); //Set joystick A bits when applied!
 			}
 			*result = temp; //Give the result!
 			return 1; //OK!
