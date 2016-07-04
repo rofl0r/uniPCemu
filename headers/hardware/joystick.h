@@ -3,5 +3,6 @@
 
 void joystickInit();
 void setJoystick(byte joystick, byte button1, byte button2, sword analog_x, sword analog_y);
+void updateJoystick(double timepassed);
 
 #endif
