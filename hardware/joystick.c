@@ -5,7 +5,7 @@
 //R=(t-24.2)/0.011, where t is in microseconds(us). Our timing is in nanoseconds(1000us). r=0-100. R(max)=2200 ohm.
 //Thus, t(microseconds)=(R(ohms)*0.011)+24.2 microseconds.
 #define OHMS (120000.0/2.0)
-#define POS2OHM(position) (((((double)position)+1.0)/65535.0)*OHMS)
+#define POS2OHM(position) ((((double)(position+1))/65535.0)*OHMS)
 #define CALCTIMEOUT(position) (((24.2+(POS2OHM(position)*0.011)))*1000.0)
 
 struct
