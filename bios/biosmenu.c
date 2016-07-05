@@ -3107,8 +3107,10 @@ setJoysticktext: //For fixing it!
 	}
 
 #ifndef SDL2
+#ifndef IS_PSP
 	optioninfo[advancedoptions] = 4; //Reconnect joystick
 	strcpy(menuoptions[advancedoptions++], "Detect joystick"); //Detect the new joystick!
+#endif
 #endif
 }
 
