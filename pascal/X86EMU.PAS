@@ -95,7 +95,7 @@ begin
     debuggerSendCommand := false; (* error *)
     exit;
   end;
-  if (parameters=Nil) then goto skipparameters; (* no parameters? skip them! *)
+  if ((parameters=Nil) or (parameterlength=0)) then goto skipparameters; (* no parameters? skip them! *)
   for counter := 1 to parameterlength do (* Process parameters! *)
   begin
     port[$EA] := parameters^; (* write a parameter byte *)
@@ -126,12 +126,7 @@ begin
     end;
   end;
   skipparameters: (* Check for result phase *)
-  if ((group=0) and (functionnr=0)) then (* Quit debugger has no result? *)
-  begin
-    debuggerSendCommand := true; (* success *)
-    exit;
-  end;
-  if (result=nil) then (* no result buffer/phase? *)
+  if ((result=nil) or (resultlength^=0)) then (* no result buffer/phase? *)
   begin
     debuggerSendCommand := true; (* success *)
     exit;

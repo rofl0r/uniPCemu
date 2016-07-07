@@ -12,6 +12,7 @@ var
   paramlength: word;
   resultlength: word;
   r: real;
+  colors: array[0..639] of byte; (* all colours precalculated! *)
 
 begin
   id := getDebuggerID; (* get the debugger id! *)
@@ -30,17 +31,22 @@ begin
 
   for x := 0 to 639 do
   begin
-      r := (x/640.0)*256.0; (* Draw all 256 colors horizontally! *)
-      color := trunc(r); (* The color to draw *)
-      for y := 0 to 479 do
-      begin
-        regs.AH := $C;
-        regs.AL := color;
-        regs.BH := 0;
-        regs.CX := x;
-        regs.DX := y;
-        intr($10,regs); (* Put a pixel! *)
-      end;
+    r := (x/640.0)*256.0; (* Draw all 256 colors horizontally! *)
+    color := trunc(r); (* The color to draw *)
+    colors[x] := color; (* Save the precalculated horizontal color *)
+  end;
+
+  for y := 0 to 479 do (* process rows in ascending order! *)
+  begin
+    for x := 0 to 639 do (* process pixels from left to right *)
+    begin
+      regs.AH := $C;
+      regs.AL := colors[x]; (* apply the precalculated color to the display *)
+      regs.BH := 0;
+      regs.CX := x;
+      regs.DX := y;
+      intr($10,regs); (* Put a pixel! *)
+    end;
   end;
 
   if (status) then

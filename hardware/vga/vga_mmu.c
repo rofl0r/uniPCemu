@@ -294,7 +294,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 			if (verboseVGA) //Debugging special?
 		#endif
 			{
-				dolog("VGA", "%s using Chain 4: Memory aperture offset %08X=Planes: %04X, Offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, rwbank);
+				dolog("VGA", "%s using Chain 4: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
 			}
 		return; //Done!
 	}
@@ -329,7 +329,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 			if (verboseVGA) //Debugging special?
 		#endif
 			{
-				dolog("VGA", "%s using Odd/Even: Memory aperture offset %08X=Planes: %04X, Offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, rwbank);
+				dolog("VGA", "%s using Odd/Even: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
 			}
 		return; //Use Odd/Even mode!
 	}
@@ -352,7 +352,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	{
 		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect == 1) //64K window?
 		{
-			rwbank >>= 2; //ET4000: Read/write bank supplies bits 18-19 instead(memory map bits 16-17).
+			rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead(memory map bits 16-17).
 			offset &= 0xFFFF; //16-bit offset!
 		}
 		else //Use high planes!
@@ -369,7 +369,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		if (verboseVGA) //Debugging special?
 	#endif
 		{
-			dolog("VGA", "%s using Planar access: Memory aperture offset %08X=Planes: %04X, Offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, rwbank);
+			dolog("VGA", "%s using Planar access: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
 		}
 }
 
