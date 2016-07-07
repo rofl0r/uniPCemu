@@ -144,12 +144,36 @@ void outputfilename_setfilename_processparameters()
 	}
 }
 
+extern byte verboseVGA; //Verbose VGA dumping?
+
+void debugger_verboseVGA()
+{
+	if (__HW_DISABLED) return; //Abort!
+	debugger_doParameterPhase(1); //The parameter is the new state to use(1=Use, 0=Not use) itself!
+}
+
+void debugger_verboseVGA_processparameters()
+{
+	if (softdebugger.parameterbuffer[0]<2) //Valid state?
+	{
+		verboseVGA = softdebugger.parameterbuffer[0]; //Set the new verbose VGA state!
+		debugger_ackParameters(); //Acnowledge parameter!
+		softdebugger.resultbuffer[0] = softdebugger.parameterbuffer[0]; //We're set to the specified value!
+		debugger_doResultPhase(1); //Enter result phase!
+	}
+	else
+	{
+		debugger_ackParameters(); //Acnowledge parameter!
+		softdebugger.resultbuffer[0] = ~softdebugger.parameterbuffer[0]; //We're invalid: give the inverse value!
+		debugger_doResultPhase(1); //Enter result phase!
+	}
+}
 
 //The main handler function list!
 
 typedef void (*DebuggerCommandHandler)();    /* A pointer to a command handler function */
 
-DebuggerCommandHandler commandhandlers[1][3][3] = { //[group][command][0=basic,1=after parameters,2=Fill result]
+DebuggerCommandHandler commandhandlers[1][4][3] = { //[group][command][0=basic,1=after parameters,2=Fill result]
 	{ //Group 0
 		{ //Function 0: Quit to debugger (always)
 			quitdebugger, //Group 0, Command 0: Reset to debugger!
@@ -165,6 +189,11 @@ DebuggerCommandHandler commandhandlers[1][3][3] = { //[group][command][0=basic,1
 			outputfilename_setfilename,
 			outputfilename_setfilename_processparameters,
 			NULL //There is no result!
+		},
+		{ //Function 3: Group 0, Command 3: Enable verbose VGA
+			debugger_verboseVGA,
+			debugger_verboseVGA_processparameters,
+			NULL, //There is no result!
 		}
 	}
 	};

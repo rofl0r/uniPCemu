@@ -232,6 +232,8 @@ extern byte specialdebugger; //Debugging special toggle?
 
 char towritetext[2][256] = {"Reading","Writing"};
 
+byte verboseVGA; //Verbose VGA dumping?
+
 //decodeCPUaddress(Write from CPU=1; Read from CPU=0, offset (from VRAM start address), planes to read/write (4-bit mask), offset to read/write within the plane(s)).
 OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
 {
@@ -287,11 +289,13 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		}
 		*realoffset = realoffsettmp; //Give the offset!
 		#ifdef ENABLE_SPECIALDEBUGGER
-			if (specialdebugger) //Debugging special?
+			if (specialdebugger||verboseVGA) //Debugging special?
+		#else
+			if (verboseVGA) //Debugging special?
+		#endif
 			{
 				dolog("VGA", "%s using Chain 4: Memory aperture offset %08X=Planes: %04X, Offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, rwbank);
 			}
-		#endif
 		return; //Done!
 	}
 
@@ -320,11 +324,13 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		*realoffset = realoffsettmp; //Give the calculated offset!
 		*planes = (0x5 << calcplanes); //Convert to used plane (0&2 or 1&3)!
 		#ifdef ENABLE_SPECIALDEBUGGER
-			if (specialdebugger) //Debugging special?
+			if (specialdebugger||verboseVGA) //Debugging special?
+		#else
+			if (verboseVGA) //Debugging special?
+		#endif
 			{
 				dolog("VGA", "%s using Odd/Even: Memory aperture offset %08X=Planes: %04X, Offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, rwbank);
 			}
-		#endif
 		return; //Use Odd/Even mode!
 	}
 
@@ -358,11 +364,13 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	*realoffset = offset; //Load the offset directly!
 	//Use planar mode!
 	#ifdef ENABLE_SPECIALDEBUGGER
-		if (specialdebugger) //Debugging special?
+		if (specialdebugger||verboseVGA) //Debugging special?
+	#else
+		if (verboseVGA) //Debugging special?
+	#endif
 		{
 			dolog("VGA", "%s using Planar access: Memory aperture offset %08X=Planes: %04X, Offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, rwbank);
 		}
-	#endif
 }
 
 byte planes; //What planes to affect!
