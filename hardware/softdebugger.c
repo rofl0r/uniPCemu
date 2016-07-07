@@ -342,7 +342,7 @@ OPTINLINE byte read_command() //Read functionality
 			if (resultpos<softdebugger.resultsize) //Valid position?
 			{
 				result = softdebugger.resultbuffer[resultpos]; //Read the result!
-				++softdebugger.resultpos; //Increase!
+				resultpos = ((++softdebugger.resultpos)-2); //Increase and calculate new result position!
 				softdebugger.resultoverflow = (resultpos!=softdebugger.resultsize); //Underflow when not fully read yet!
 			}
 			else
