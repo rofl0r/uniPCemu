@@ -11,6 +11,7 @@ var
   result: array[1..2] of byte;
   paramlength: word;
   resultlength: word;
+  r: real;
 
 begin
   id := getDebuggerID; (* get the debugger id! *)
@@ -28,15 +29,19 @@ begin
   end;
 
   for x := 0 to 639 do
-    for y := 0 to 479 do
-    begin
-      regs.AH := $C;
-      regs.AL := color;
-      regs.BH := 0;
-      regs.CX := x;
-      regs.DX := y;
-      intr($10,regs); (* Put a pixel! *)
-    end;
+  begin
+      r := (x/640.0)*256.0; (* Draw all 256 colors horizontally! *)
+      color := trunc(r); (* The color to draw *)
+      for y := 0 to 479 do
+      begin
+        regs.AH := $C;
+        regs.AL := color;
+        regs.BH := 0;
+        regs.CX := x;
+        regs.DX := y;
+        intr($10,regs); (* Put a pixel! *)
+      end;
+  end;
 
   if (status) then
   begin
@@ -44,9 +49,17 @@ begin
     paramlength := 1; (* 1 byte param *)
     resultlength := 1; (* One byte result *)
     status := debuggerSendCommand(id,$00,$03,@params,paramlength,@result,@resultlength); (* Start logging VGA accesses *)
+    paramlength := 0;
+    resultlength := 0;
+    status := debuggerSendCommand(id,$00,$00,@params,0,@result,@resultlength); (* Disable the x86EMU extensions *)
   end;
 
   regs.AH := 0;
   regs.AL := 2;
   intr($10,regs); (* switch back to text mode *)
+
+  if (not status) then
+  begin
+    writeln('Error: couldnt clean up fully. Debugger might be left in the wrong state!');
+  end
 end.
