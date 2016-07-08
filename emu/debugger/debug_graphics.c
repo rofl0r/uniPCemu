@@ -145,7 +145,14 @@ byte loadVGADump(byte mode)
 	for (port = 0;port<buffersizes[3];++port) //Sequencer registers!
 	{
 		PORT_OUT_B(0x3C4, port); //The number!
-		PORT_OUT_B(0x3C5, buffers[3][port]); //The data!
+		if (!port) //First port needs to be running?
+		{
+			PORT_OUT_B(0x3C5, buffers[3][port]|3); //The data, which sequencer always enabled!
+		}
+		else //Normal output?
+		{
+			PORT_OUT_B(0x3C5, buffers[3][port]); //The data!
+		}
 	}
 
 	//Assume color mode!
@@ -177,7 +184,7 @@ void debugTextModeScreenCapture()
 {
 	//VGA_DUMPDAC(); //Make sure the DAC is dumped!
 	lock(LOCK_MAINTHREAD);
-	SCREEN_CAPTURE = LOG_VGA_SCREEN_CAPTURE; //Screen capture next frame?
+	SCREEN_CAPTURE = 1; //Screen capture next frame?
 	unlock(LOCK_MAINTHREAD);
 	VGA_waitforVBlank(); //Log one screen!
 	lock(LOCK_MAINTHREAD);
@@ -314,7 +321,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		VGA_LOGCRTCSTATUS(); //Log our full status!
 		VGA_LOGPRECALCS = 5; //Log after 5 scanlines!
 		//VGA_DUMPDAC(); //Dump the active DAC!
-		//debugTextModeScreenCapture(); //Make a screen capture!
+		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Make a screen capture!
 		//sleep(); //Wait forever to debug!
 
 		MMU_wb(-1,0xB800,0,'a');
@@ -363,9 +370,8 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Ready.");
 		GPU_text_releasesurface(frameratesurface);
-		/*debugTextModeScreenCapture(); //Debug a screen capture!
-		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"SCREENCAPTURE CREATEN.");
-		*/
+		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
+
 		startTimers(0); //Start timers up!
 		delay(5000000); //Wait a bit!
 	
@@ -374,7 +380,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		CPU[activeCPU].registers->BL = 0x0E; //yellow!
 		BIOS_int10(); //Show the border like this!
 	
-		debugTextModeScreenCapture(); //Debug a screen capture!
+		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(5000000); //Wait 5 seconds!
 	
 		CPU[activeCPU].registers->AX = 0x01; //40x25 TEXT mode!
@@ -394,7 +400,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"40x25-0 Alltextcolors...");
 		GPU_text_releasesurface(frameratesurface);
-		debugTextModeScreenCapture(); //Debug a screen capture!
+		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 10 seconds!
 
 		CPU[activeCPU].registers->AX = 0x81; //40x25, same, but with grayscale!
@@ -403,7 +409,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"80x25-1 Alltextcolors...");
 		GPU_text_releasesurface(frameratesurface);
-		debugTextModeScreenCapture(); //Debug a screen capture!
+		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 10 seconds!
 	
 		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_80; //80x25 TEXT mode!
@@ -421,7 +427,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"80x25-2 WidthRows...");
 		GPU_text_releasesurface(frameratesurface);
-		debugTextModeScreenCapture(); //Debug a screen capture!
+		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 1 seconds!
 	
 		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_80; //Reset to 80x25 text mode!
@@ -438,7 +444,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"80x25-2 Alltextcolors...");
 		GPU_text_releasesurface(frameratesurface);
-		debugTextModeScreenCapture(); //Debug a screen capture!
+		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 1 seconds!
 	
 		CPU[activeCPU].registers->AX = 0x02; //80x25 b/w!
@@ -463,7 +469,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		CPU[activeCPU].registers->DL = 0; //X
 		CPU[activeCPU].registers->DH = 0; //Y
 		BIOS_int10(); //Show!
-		debugTextModeScreenCapture(); //Debug a screen capture!
+		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(5000000); //Wait 5 seconds!
 	}
 
@@ -495,13 +501,13 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	specialdebugging:
 	#endif
 	//256 color mode!
-	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,0); //Debug 320x200x256! MCGA,VGA! works, but 1/8th screen width?
+	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,1); //Debug 320x200x256! MCGA,VGA! works, but 1/8th screen width?
 
 	lock(LOCK_MAINTHREAD); //We're accessing the VGA information!
 	if (getActiveVGA()->enable_SVGA) //SVGA debugging too?
 	{
 		unlock(LOCK_MAINTHREAD); //Finished with it!
-		DoDebugVGAGraphics(0x2E,640,480,0x100,0,0xF,1,0); //Debug 640x480x256! ET3000/ET4000!
+		DoDebugVGAGraphics(0x2E,640,480,0x100,0,0xF,1,1); //Debug 640x480x256! ET3000/ET4000!
 	}
 	else unlock(LOCK_MAINTHREAD); //We're accessing the VGA information!
 
