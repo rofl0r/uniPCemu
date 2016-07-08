@@ -9,6 +9,7 @@
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/vga/vga_precalcs.h" //For the CRT precalcs dump!
 #include "headers/hardware/vga/vga_dac.h" //DAC dump support!
+#include "headers/hardware/vga/vga_vram.h" //DAC VRAM support!
 //To make a screen capture of all of the debug screens active?
 #define LOG_VGA_SCREEN_CAPTURE 0
 //For text-mode debugging! 40 and 80 character modes!
@@ -31,6 +32,146 @@ extern byte SCREEN_CAPTURE; //Log a screen capture?
 extern VGA_Type *MainVGA; //Main VGA!
 
 extern GPU_type GPU; //For x&y initialisation!
+
+byte *loadfile(char *filename, int_32 *size)
+{
+	byte *buffer;
+	FILE *f;
+	int_32 thesize;
+	f = fopen(filename,"rb");
+	if (!f) //failed to open?
+	{
+		return NULL; //Not existant!
+	}
+	fseek(f,0,SEEK_END); //EOF!
+	thesize = ftell(f); //Size!
+	fseek(f,0,SEEK_SET); //BOF!
+	if (!thesize) //No size?
+	{
+		fclose(f); //Close!
+		return NULL; //No file!
+	}
+	buffer = (byte *)zalloc(thesize,"LOADEDFILE",NULL);
+	if (!buffer) //No buffer?
+	{
+		fclose(f); //Close
+		return NULL; //No file!
+	}
+	if (fread(buffer,1,thesize,f)!=thesize) //Error reading?
+	{
+		freez((void **)&buffer,thesize,"LOADEDFILE"); //Release!
+		fclose(f); //Close!
+		return NULL; //No file!
+	}
+	fclose(f); //Close!
+	*size = thesize; //Set the size!
+	return buffer; //Give the buffer read!
+}
+
+void releasefile(byte **stream, int_32 *size)
+{
+	if (*stream) //Actually loaded something?
+	{
+		freez((void **)stream,*size,"LOADEDFILE"); //Release the file to release!
+	}
+}
+
+byte loadVGADump(byte mode)
+{
+	word port; //For 3B0-3DF!
+	byte controller;
+	byte loaded; //Are we loaded?
+	char filename[256], controllerfilename[10][256];
+	char controllerparts[10][10] = {"AC","DAC","GC","SEQ","RED","CRT","PL0","PL1","PL2","PL3"};
+	byte *buffers[10]; //All buffers allocated for loading!
+	int_32 buffersizes[10]; //All buffer sizes!
+	uint_32 planaroffset;
+	byte plane;
+	bzero(filename,sizeof(filename)); //Init base filename!
+	memset(controllerfilename,0,sizeof(controllerfilename)); //Init current filename!
+	sprintf(filename,"VGAdump/VGADMP%02X.",mode); //Base VGA dump filename!
+	//Now load all files!
+	memset(buffers,0,sizeof(buffers)); //Clear all buffers!
+	loaded = 1; //Default: we're fully loaded and existant!
+	for (controller=0;controller<NUMITEMS(controllerparts);++controller) //Load all files!
+	{
+		strcpy(controllerfilename[controller],filename); //Load base filename!
+		strcat(controllerfilename[controller],controllerparts[controller]); //Add the part for the full filename!
+		buffers[controller] = loadfile(controllerfilename[controller],&buffersizes[controller]); //Try and load the file!
+		if (!buffers[controller]) //Failed loading?
+		{
+			loaded = 0;
+			goto errorloading; //Error loading!
+		}
+	}
+	//All loaded? Move to VRAM&registers directly, then apply precalcs!
+	
+	//Now, add all ET3000/ET4000 registers too!
+	//Don't activate the extensions, as this is already done when starting the debugging phase!
+	//Ignore the memory mapping, as this is done directly from planar data!
+
+	//RED:
+	for (port = 0x3B0;port < 0x3DF;port++)
+	{
+		if ((port-0x3B0)>=buffersizes[4]) break; //Stop when over the limit!
+		PORT_OUT_B(port,buffers[4][port-0x3B0]); //Write the port directly, doesn't matter what it's used for (VGA ports either overridden below or unused).
+	}
+
+	//Load all extended SVGA registers!
+
+	//Then, all VGA registers!
+	//Attribute
+	for (port=0;port<buffersizes[0];++port) //Attribute registers!
+	{
+		PORT_OUT_B(0x3C0,port); //The number!
+		PORT_OUT_B(0x3C0,buffers[0][port]); //The data!
+	}
+
+	//DAC
+	PORT_OUT_B(0x3C8,0); //Reset DAC to known state!
+	for (port = 0;port<buffersizes[1];++port) //DAC registers!
+	{
+		PORT_OUT_B(0x3C9, buffers[1][port]); //The data, 3 bytes per entry!
+	}
+
+	//Graphics
+	for (port = 0;port<buffersizes[2];++port) //Graphics registers!
+	{
+		PORT_OUT_B(0x3CE, port); //The number!
+		PORT_OUT_B(0x3CF, buffers[2][port]); //The data!
+	}
+
+	//Sequencer
+	for (port = 0;port<buffersizes[3];++port) //Sequencer registers!
+	{
+		PORT_OUT_B(0x3C4, port); //The number!
+		PORT_OUT_B(0x3C5, buffers[3][port]); //The data!
+	}
+
+	//Assume color mode!
+	for (port = 0;port<buffersizes[5];++port) //CRT registers!
+	{
+		PORT_OUT_B(0x3D4, port); //The number!
+		PORT_OUT_B(0x3D5, buffers[5][port]); //The data!
+	}
+
+	//Load all VRAM data for testing!
+	for (plane=0;plane<4;++plane) //All four planes!
+	{
+		for (planaroffset=0;planaroffset<buffersizes[plane+6];++planaroffset) //All planar data!
+		{
+			writeVRAMplane(getActiveVGA(),plane,planaroffset,0,buffers[plane+6][planaroffset]); //Write the data to VRAM directly!
+		}
+	}
+
+	//Finish up and return our result!
+	errorloading: //Error occurred when loading? Or we're cleaning up!
+	for (controller=0;controller<NUMITEMS(controllerparts);++controller) //Load all files!
+	{
+		releasefile(&buffers[controller],&buffersizes[controller]); //Release the loaded file, if it's loaded!
+	}
+	return loaded; //Are we fully loaded?
+}
 
 void debugTextModeScreenCapture()
 {
@@ -112,6 +253,10 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	}
 	
 	finishy: //Finish our operations!
+	if (loadVGADump(mode)) //VGA dump loaded instead?
+	{
+		dolog("debugger","VGA dump loaded: %02X",mode); //Loaded this VGA dump instead logged!
+	}
 	unlock(LOCK_MAINTHREAD);
 
 	GPU_text_locksurface(frameratesurface);
