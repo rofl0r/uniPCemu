@@ -172,7 +172,6 @@ uint_32 getcharrow(VGA_Type *VGA, byte attribute3, byte character, byte y) //Ret
 	static word lastcharinfo = 0; //attribute|character|row|1, bit0=Set?
 	INLINEREGISTER word lastlookup;
 	INLINEREGISTER word charloc;
-	INLINEREGISTER byte newx;
 	lastlookup = (((((character << 1) | attribute3) << 5) | y) | 0x8000); //The last lookup!
 	if (lastcharinfo != lastlookup) //Row not yet loaded?
 	{
