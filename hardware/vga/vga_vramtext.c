@@ -166,6 +166,28 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 	return (lastrow>>newx)&1; //Give bit!
 }
 
+uint_32 getcharrow(VGA_Type *VGA, byte attribute3, byte character, byte y) //Retrieve a characters y row on/off from table!
+{
+	static byte lastrow; //Last retrieved character row data!
+	static word lastcharinfo = 0; //attribute|character|row|1, bit0=Set?
+	INLINEREGISTER word lastlookup;
+	INLINEREGISTER word charloc;
+	INLINEREGISTER byte newx;
+	lastlookup = (((((character << 1) | attribute3) << 5) | y) | 0x8000); //The last lookup!
+	if (lastcharinfo != lastlookup) //Row not yet loaded?
+	{
+		charloc = character; //Character position!
+		charloc <<= 5;
+		charloc |= y;
+		charloc <<= 1;
+		charloc |= attribute3;
+		lastrow = VGA->getcharxy_values[charloc]; //Lookup the new row!
+		lastcharinfo = lastlookup; //Save the loaded row as the current row!
+	}
+
+	return lastrow; //Give row!
+}
+
 OPTINLINE void VGA_dumpchar(VGA_Type *VGA, byte c)
 {
 	byte y=0;

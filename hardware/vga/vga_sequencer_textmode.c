@@ -62,7 +62,8 @@ byte charxbuffer[256]; //Full character inner x location!
 
 void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 {
-	INLINEREGISTER byte x;
+	INLINEREGISTER byte x, attr3;
+	INLINEREGISTER uint_32 charrow; //The row read!
 	//We do nothing: text mode uses multiple planes at the same time!
 	character = loadedplanes.splitplanes[0]; //Character!
 	attribute = loadedplanes.splitplanes[1]<<VGA_SEQUENCER_ATTRIBUTESHIFT; //Attribute!
@@ -101,12 +102,30 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 	else //VGA mode?
 	{
 	VGAtext: //VGA text catch-all!
-		x = VGA->precalcs.characterwidth;
-		--x; //Max X
+		attr3 = attribute; //Load the attribute!
+		attr3 >>= 3; //...
+		attr3 &= 1; //... Take bit 3 to get the actual attribute we need!
+		x = 0; //Start with the first pixel!
+		charrow = getcharrow(VGA,attr3,character, (byte)((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read the current row to use!
+		attr3 = 8; //How far to go?
 		do //Process all coordinates of our row!
 		{
-			characterpixels[x] = getcharxy(VGA, attribute, character, x, (byte)((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-		} while (--x!=0xFF);
+			characterpixels[x] = (charrow&1); //Read current coordinate!
+			charrow >>= 1; //Shift to the next pixel!
+			++x; //Next pixel!
+		} while (--attr3); //Loop while anything left!
+
+		if (VGA->precalcs.characterwidth == 9) //What width? 9 wide?
+		{
+			if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable || ((character & 0xE0) != 0xC0))
+			{
+				characterpixels[8] = 0; //9th bit is always background?
+			}
+			else //Duplicate of pixel 7?
+			{
+				characterpixels[8] = characterpixels[7]; //9th bit is a duplicate of 8th bit?
+			}
+		}
 	}
 	((SEQ_DATA *)VGA->Sequencer)->textx = &charxbuffer[0]; //Start taking our character pixels!
 }

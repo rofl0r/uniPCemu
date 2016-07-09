@@ -265,6 +265,10 @@ OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	INLINEREGISTER word extrastatus;
 	extrastatus = *Sequencer->extrastatus; //Next status!
+	if ((getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR && getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR)==0) //Reset sequencer?
+	{
+		return 0; //Abort: we're disabled!
+	}
 
 	if (extrastatus & 2) //Half character clock is to be executed?
 	{

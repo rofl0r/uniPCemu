@@ -114,10 +114,6 @@ OPTINLINE byte doVGA_Sequencer() //Do we even execute?
 	{
 		return 0; //Abort: we're disabled without a invalid VGA!
 	}
-	if (!(getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR && getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR)) //Reset sequencer?
-	{
-		return 0; //Abort: we're disabled!
-	}
 	if (!GPU.emu_screenbuffer) //Invalid screen buffer?
 	{
 		return 0; //Abort: we're disabled!
