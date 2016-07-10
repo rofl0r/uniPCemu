@@ -64,9 +64,19 @@ void setJoystick(byte joystick, byte button1, byte button2, sword analog_x, swor
 }
 
 //Below is used with extended digital joysticks!
-void setJoystick_other(byte joystick, byte button1, byte button2, byte button3, byte button4, byte hatleft, byte hatright, byte hatup, byte hatdown, sword analog_x, sword analog_y, sword analog2_x, sword analog2_y) //Input from theuser!
+void setJoystick_other(byte button1, byte button2, byte button3, byte button4, byte button5, byte button6, byte hatleft, byte hatright, byte hatup, byte hatdown, sword analog_x, sword analog_y, sword analog2_x, sword analog2_y) //Input from theuser!
 {
 	//Set the buttons of the joystick in their own buffers(seperated)!
+	JOYSTICK.buttons2[0] = button1?1:0;
+	JOYSTICK.buttons2[1] = button2?1:0;
+	JOYSTICK.buttons2[2] = button3?1:0;
+	JOYSTICK.buttons2[3] = button4?1:0;
+	JOYSTICK.buttons2[4] = button5?1:0; //Unsupported!
+	JOYSTICK.buttons2[5] = button6?1:0; //Unsupported!
+	JOYSTICK.hats[0] = hatleft?1:0;
+	JOYSTICK.hats[1] = hatright?1:0;
+	JOYSTICK.hats[2] = hatup?1:0;
+	JOYSTICK.hats[3] = hatdown?1:0;
 	//Buttons are data streamed instead, so store them seperately!
 	JOYSTICK.Joystick_X[0] = analog_x; //Joystick x axis for compatibility!
 	JOYSTICK.Joystick_Y[0] = analog_y; //Joystick y axis for compatibility!

@@ -1653,28 +1653,41 @@ void handleJoystick(double timepassed) //Handles gaming mode input!
 	switch (BIOS_Settings.input_settings.gamingmode_joystick) //What joystick mapping mode?
 	{
 	case 1: //Cross=Button 1, Circle=Button 2(analog)?
+		setJoystickModel(MODEL_NONE); //No extended model!
 		enableJoystick(0,JOYSTICK_ENABLED); //Enable joystick A!
 		enableJoystick(1,JOYSTICK_DISABLED); //Disable joystick B!		
 		setJoystick(0,curstat.buttonpress&0x08,curstat.buttonpress&0x04,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Cross=Button 1, Circle=Button 2?
 		setJoystick(1,0,0,0,0); //Unused!
 		break;
 	case 2: //Cross=Button 2, Circle=Button 1(analog)?
+		setJoystickModel(MODEL_NONE); //No extended model!
 		enableJoystick(0,JOYSTICK_ENABLED); //Enable joystick A!
 		enableJoystick(1,JOYSTICK_DISABLED); //Disable joystick B!		
 		setJoystick(0,curstat.buttonpress&0x04,curstat.buttonpress&0x08,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Cross=Button 2, Circle=Button 1?
 		setJoystick(1,0,0,0,0); //Unused!
 		break;
 	case 3: //Gravis Gamepad(analog)?
+		setJoystickModel(MODEL_NONE); //No extended model!
 		enableJoystick(0,JOYSTICK_ENABLED); //Enable joystick A!
 		enableJoystick(1,JOYSTICK_ENABLED_BUTTONSONLY); //Enable joystick B partially(no analog, only digital buttons)!
 		setJoystick(0,curstat.buttonpress&0x01,curstat.buttonpress&0x02,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Joystick A! Square=A1, Triangle=A2!
 		setJoystick(1,curstat.buttonpress&0x08,curstat.buttonpress&0x04,0,0); //Joystick B! Cross=B1, Circle=B2!
 		break;
 	case 4: //Gravis Analog Pro(analog)?
+		setJoystickModel(MODEL_NONE); //No extended model!
 		enableJoystick(0,JOYSTICK_ENABLED); //Enable joystick A!
 		enableJoystick(1,JOYSTICK_ENABLED_BUTTONS_AND_XONLY); //Enable joystick B partially(analog x and digital buttons)!
 		setJoystick(0,curstat.buttonpress&0x01,curstat.buttonpress&0x02,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Joystick A! Square=A1, Triangle=A2!
 		setJoystick(1,curstat.buttonpress&0x04,curstat.buttonpress&0x08,curstat.analogdirection2_y,0); //Joystick B! Circle=B1, Cross=B2(reverse of Gravis Gamepad)! The X axis is the throttle!
+		break;
+	case 5: //Logitech WingMan Extreme Digital?
+		setJoystickModel(MODEL_LOGITECH_WINGMAN_EXTREME_DIGITAL); //Extended model!
+		enableJoystick(0,JOYSTICK_ENABLED); //Enable joystick A!
+		enableJoystick(1,JOYSTICK_ENABLED); //Enable joystick B!
+		setJoystick_other(curstat.buttonpress&0x01,curstat.buttonpress&0x02,curstat.buttonpress&0x04,curstat.buttonpress&0x08,0,0, //6 buttons
+					curstat.buttonpress&16, curstat.buttonpress&64,curstat.buttonpress&32,curstat.buttonpress&128, //Left:16,Up:32,Right:64,Down:128
+					curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y,curstat.analogdirection2_x,curstat.analogdirection2_y //Analog sticks!
+					); //Joystick A&B with extensions!
 		break;
 	default: //Unknown mapping?
 		setJoystick(0,0,0,0,0); //Unknown mapping, ignore input?

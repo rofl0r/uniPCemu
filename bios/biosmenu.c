@@ -3105,6 +3105,9 @@ setJoysticktext: //For fixing it!
 	case 4:
 		strcat(menuoptions[advancedoptions++], "Joystick, Gravis Analog Pro");
 		break;
+	case 5:
+		strcat(menuoptions[advancedoptions++], "Joystick, Logitech WingMan Extreme Digital");
+		break;
 	default: //Error: fix it!
 		BIOS_Settings.input_settings.gamingmode_joystick = 0; //Reset/Fix!
 		BIOS_Changed = 1; //We've changed!
@@ -5086,6 +5089,7 @@ void BIOS_gamingmodeJoystick()
 	strcpy(itemlist[2], "Joystick, Cross=Button 2, Circle=Button 1"); //Joystick: Cross=Button 2, Circle=Button 1!
 	strcpy(itemlist[3], "Joystick, Gravis Gamepad"); //Gravis Gamepad!
 	strcpy(itemlist[4], "Joystick, Gravis Analog Pro"); //Gravis Analog Pro!
+	strcpy(itemlist[5], "Joystick, Logitech WingMan Extreme Digital"); //Logitech WingMan Extreme Digital!
 	int current = 0;
 	switch (BIOS_Settings.input_settings.gamingmode_joystick) //What setting?
 	{
@@ -5094,6 +5098,7 @@ void BIOS_gamingmodeJoystick()
 	case 2: //Valid
 	case 3: //Valid
 	case 4: //Valid
+	case 5: //Valid
 		current = BIOS_Settings.input_settings.gamingmode_joystick; //Valid: use!
 		break;
 	default: //Invalid
@@ -5120,6 +5125,7 @@ void BIOS_gamingmodeJoystick()
 	case 2:
 	case 3:
 	case 4:
+	case 5:
 		if (file != current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
