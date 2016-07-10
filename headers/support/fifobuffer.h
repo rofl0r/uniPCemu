@@ -10,6 +10,12 @@ uint_32 size; //The size of the buffer!
 uint_32 readpos; //The position to read!
 uint_32 writepos; //The position to write!
 byte lastwaswrite; //Last operation was a write?
+struct
+{
+	uint_32 readpos; //The position to read!
+	uint_32 writepos; //The position to write!
+	byte lastwaswrite; //Last operation was a write?	
+} savedpos;
 SDL_sem *lock; //Our lock for single access!
 } FIFOBUFFER;
 
@@ -105,6 +111,27 @@ parameters:
 */
 
 void fifobuffer_gotolast(FIFOBUFFER *buffer);
+
+/*
+
+fifobuffer_save: Saves the current position for looking ahead.
+parameters:
+	buffer: pointer to the buffer itself.
+
+*/
+
+void fifobuffer_save(FIFOBUFFER *buffer);
+
+/*
+
+fifobuffer_restore: Restores the current position after having been saved.
+parameters:
+	buffer: pointer to the buffer itself.
+
+*/
+
+void fifobuffer_restore(FIFOBUFFER *buffer);
+
 
 /*
 

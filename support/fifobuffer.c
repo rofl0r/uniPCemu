@@ -351,6 +351,49 @@ byte writefifobuffer16(FIFOBUFFER *buffer, word data)
 	return 1; //Written!
 }
 
+void fifobuffer_save(FIFOBUFFER *buffer)
+{
+	if (buffer==0) return; //Error: invalid buffer!
+	if (buffer->buffer==0) return; //Error invalid: buffer!
+	if (allcleared) return; //Error: invalid buffer!
+
+	if (buffer->lock)
+	{
+		WaitSem(buffer->lock)
+		buffer->savedpos.readpos = buffer->readpos;
+		buffer->savedpos.writepos = buffer->writepos;
+		buffer->savedpos.lastwaswrite = buffer->lastwaswrite;
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		buffer->savedpos.readpos = buffer->readpos;
+		buffer->savedpos.writepos = buffer->writepos;
+		buffer->savedpos.lastwaswrite = buffer->lastwaswrite;
+	}
+}
+
+void fifobuffer_restore(FIFOBUFFER *buffer)
+{
+	if (buffer==0) return; //Error: invalid buffer!
+	if (buffer->buffer==0) return; //Error invalid: buffer!
+	if (allcleared) return; //Error: invalid buffer!
+
+	if (buffer->lock)
+	{
+		WaitSem(buffer->lock)
+		buffer->readpos = buffer->savedpos.readpos;
+		buffer->writepos = buffer->savedpos.writepos;
+		buffer->lastwaswrite = buffer->savedpos.lastwaswrite;
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		buffer->readpos = buffer->savedpos.readpos;
+		buffer->writepos = buffer->savedpos.writepos;
+		buffer->lastwaswrite = buffer->savedpos.lastwaswrite;
+	}
+}
 
 void fifobuffer_gotolast(FIFOBUFFER *buffer)
 {

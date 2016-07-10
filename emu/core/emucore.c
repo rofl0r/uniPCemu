@@ -378,6 +378,8 @@ void doneEMU()
 	{
 		debugrow("doneEMU: resetTimers");
 		resetTimers(); //Stop the timers!
+		debugrow("doneEMU: Finishing joystick...");
+		joystickDone();
 		debugrow("doneEMU: Finishing port E9 hack and emulator support functionality...");
 		BIOS_doneDebugger(); //Finish the port E9 hack and emulator support functionality!
 		debugrow("doneEMU: Finishing serial mouse...");

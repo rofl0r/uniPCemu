@@ -1,5 +1,7 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/ports.h" //Port I/O support!
+#include "headers/support/fifobuffer.h" //FIFO buffer support for detecting Digital Mode sequence!
+#include "headers/hardware/joystick.h" //Our own type definitions!
 
 //Time until we time out!
 //R=(t-24.2)/0.011, where t is in microseconds(us). Our timing is in nanoseconds(1000us). r=0-100. R(max)=2200 ohm.
@@ -7,6 +9,9 @@
 #define OHMS (120000.0/2.0)
 #define POS2OHM(position) ((((double)(position+1))/65535.0)*OHMS)
 #define CALCTIMEOUT(position) (((24.2+(POS2OHM(position)*0.011)))*1000.0)
+
+//The size of the sequence to be supported!
+#define MAXSEQUENCESIZE 10
 
 struct
 {
@@ -20,13 +25,27 @@ struct
 	byte timeout; //Timeout status of the four data lines(logic 0/1)! 1 for timed out(default state), 0 when timing!
 
 	//Digital mode timing support!
+	FIFOBUFFER *digitalmodesequence; //Digital sequence to check when pulsing when model=0.
+	double lasttiming; //Last write digital timing counter!
 	double digitaltiming; //Digital timing accumulated!
 	double digitaltiming_step; //The frequency of the digital timing(in ns, based on e.g. 100Hz signal).
-	byte buttons2[4]; //Extended 4 buttons(digital joysticks)!
+	byte buttons2[6]; //Extended 6 buttons(digital joysticks)!
 	byte hats[4]; //Extended 4 hats(digital joysticks)!
 	sword axis[6]; //Extended 3 x/y axis(digital joysticks)!
-	uint_64 packet; //A packet to be read for digital joysticks, based on previous data!
+	uint_64 packet; //A packet to be read for digital joysticks, based on previous data! The Wingman Extreme Digital's Buttons field is reversed!
+	uint_64 bitmaskhigh; //High data bit mask!
+	uint_64 bitmasklow; //Low data bit mask!
+	byte extensionModel; //What model are we?
 } JOYSTICK;
+
+//WingMan Digital sequence from Linux: https://github.com/torvalds/linux/blob/master/drivers/input/joystick/adi.c
+//More information about it's data packets: http://atrey.karlin.mff.cuni.cz/~vojtech/joystick/specs.txt
+int WingManDigitalSequence[9] = { 4, 2, 3, 10, 6, 11, 7, 9, 11 }; //WingMan digital mode sequence in milliseconds(milliseconds since last pulse)! Make negative values positive for correct handling!
+
+void setJoystickModel(byte model)
+{
+	JOYSTICK.extensionModel = (model==1)?1:0; //Set the model to use!
+}
 
 void enableJoystick(byte joystick, byte enabled)
 {
@@ -100,10 +119,48 @@ void updateJoystick(double timepassed)
 					}
 				}
 			}
+
+			//Add to the digital timing sequence for detecting the activation sequence!
+			JOYSTICK.digitaltiming += timepassed; //Apply timing directly to the digital timing for activation sequence detection!
 		}
 		else //Digital mode? Use packets according to the emulated device!
 		{
-			//Set the current packet, based on the data!
+			//Set the current packet, based on the data and timing!
+			switch (JOYSTICK.model) //What model?
+			{
+			default: //Unknown?
+			case MODEL_LOGITECH_WINGMAN_EXTREME_DIGITAL: //Logitech WingMan Extreme Digital?
+				JOYSTICK.digitaltiming += timepassed; //Add the time!
+				if (JOYSTICK.digitaltiming>=JOYSTICK.digitaltiming_step && JOYSTICK.bitmasklow) //To step the counter?
+				{
+					for (;JOYSTICK.digitaltiming>=JOYSTICK.digitaltiming_step;) //Stepping?
+					{
+						JOYSTICK.digitaltiming -= JOYSTICK.digitaltiming_step; //We're stepping!
+						//Give the 1 and 0 bits on the two channels! Buttons 2&3 carry the lower half, Buttons 1&2 carry the upper half!
+						//Lower half!
+						if (JOYSTICK.packet&JOYSTICK.bitmasklow) //Bit is 1?
+						{
+							JOYSTICK.buttons[1] ^= 2; //The upper bit changes state!
+						}
+						else //Bit is 0?
+						{
+							JOYSTICK.buttons[1] ^= 1; //The lower bit changes state!
+						}
+						//Upper half!
+						if (JOYSTICK.packet&JOYSTICK.bitmaskhigh) //Bit is 1?
+						{
+							JOYSTICK.buttons[0] ^= 2; //The upper bit changes state!
+						}
+						else //Bit is 0?
+						{
+							JOYSTICK.buttons[0] ^= 1; //The lower bit changes state!
+						}
+						JOYSTICK.bitmaskhigh >>= 1; //Check the next bit, if any!
+						JOYSTICK.bitmasklow >>= 1; //Check the next bit and update status, if any!
+					}
+				}
+				break;
+			}
 		}
 	}
 }
@@ -134,6 +191,8 @@ byte joystick_readIO(word port, byte *result)
 
 byte joystick_writeIO(word port, byte value)
 {
+	byte entry;
+	byte sequencepos;
 	switch (port)
 	{
 		case 0x201: //Fire joystick four one-shots?
@@ -162,6 +221,72 @@ byte joystick_writeIO(word port, byte value)
 					JOYSTICK.timeouty[0] = CALCTIMEOUT((int_32)JOYSTICK.Joystick_Y[0]-SHRT_MIN);
 				}
 			}
+
+			//Check for activation of the WingMan digital mode!
+			if (JOYSTICK.model==0) //Analog mode?
+			{
+				switch (JOYSTICK.extensionModel) //What extension model?
+				{
+				default: //Unknown?
+					break; //Don't handle model extension!
+				case MODEL_LOGITECH_WINGMAN_EXTREME_DIGITAL: //Logitech WingMan Extreme Digital?
+					if (fifobuffer_freesize(JOYSTICK.digitalmodesequence)==0) //No space left?
+					{
+						readfifobuffer(JOYSTICK.digitalmodesequence,&entry); //Discard an entry!
+					}
+					if ((JOYSTICK.digitaltiming/1000000.0f)>=256.0) //Timeout?
+					{
+						writefifobuffer(JOYSTICK.digitalmodesequence,0xFF); //Simply time out!
+					}
+					else //Within range?
+					{
+						writefifobuffer(JOYSTICK.digitalmodesequence,(byte)(JOYSTICK.digitaltiming/1000000.0f)); //The time since last pulse!
+					}
+					JOYSTICK.digitaltiming = 0.0f; //Reset the timing?
+					fifobuffer_save(JOYSTICK.digitalmodesequence); //Save the position for checking!
+					for (;fifobuffer_freesize(JOYSTICK.digitalmodesequence)<(MAXSEQUENCESIZE-NUMITEMS(WingManDigitalSequence));) //We need the buffer items from the point of the sequence most recently given!
+					{
+						readfifobuffer(JOYSTICK.digitalmodesequence,&entry); //Discard an entry!					
+					}
+					for (sequencepos=0;sequencepos<NUMITEMS(WingManDigitalSequence);) //Check for the sequence!
+					{
+						if (!readfifobuffer(JOYSTICK.digitalmodesequence,&entry)) break; //Not enough entries yet?
+						if (entry!=WingManDigitalSequence[sequencepos]) break; //Only count when the sequence is matched!
+						++sequencepos; //Counted!
+					}
+					fifobuffer_restore(JOYSTICK.digitalmodesequence); //We're finished, undo any reads!
+					if (sequencepos==NUMITEMS(WingManDigitalSequence)) //Sequence pattern matched?
+					{
+						JOYSTICK.model = MODEL_LOGITECH_WINGMAN_EXTREME_DIGITAL; //Enter digital WingMan Digital's digital mode!
+						JOYSTICK.digitaltiming_step = 1000000000.0f/(100000.0f*2.0f); //We're a signal going 1-0 or 0-1 at 100kHz!
+					}
+					break;
+				}
+			}
+			else //Give a packet in the current device format!
+			{
+				switch (JOYSTICK.model) //What model are we?
+				{		
+				default: //Unknown?
+				case 1: //Logitech WingMan Extreme Digital?
+					JOYSTICK.bitmaskhigh = (1ULL<<41); //Reset to the high 21st bit!
+					JOYSTICK.bitmasklow = (1<<20); //Reset to the low 21st bit! We're starting to send a packet, because we're not 0! Once we shift below bit 0, becoming 0, we're finished!
+					JOYSTICK.digitaltiming = 0.0f; //We're starting to send a packet, reset our timing!
+					//Formulate a packet from the current data!
+					/*
+					  Bits     Meaning
+					 0 ..  3 - Hat			(4 bits)
+					 4 ..  9 - Buttons		(6 bits)
+					10 .. 17 - Axis 2 (Twist)	(8 bits)
+					18 .. 25 - Axis 1 (Y)		(8 bits)
+					26 .. 33 - Axis 0 (X)		(8 bits)
+					34 .. 41 - 0x00			(8 bits)
+					*/
+					JOYSTICK.packet = 0; //Initialize the packet!
+					//Now, fill the packet with our current information!
+					break;
+				}
+			}
 			JOYSTICK.timeout = 0xF; //Start the timeout on all channels, regardless if they're enabled. Multivibrator output goes to logic 0.
 			return 1; //OK!
 		default:
@@ -178,4 +303,13 @@ void joystickInit()
 	JOYSTICK.timeoutx[0] = JOYSTICK.timeouty[0] = JOYSTICK.timeoutx[1] = JOYSTICK.timeouty[1] = 0.0; //Init timeout to nothing!
 	JOYSTICK.timeout = 0x0; //Default: all lines timed out!
 	JOYSTICK.model = 0; //Default: analog model(compatibility)!
+	JOYSTICK.digitaltiming = 0.0f; //Reset our digital detection(during analog mode)/step(during digital mode) timing!
+	JOYSTICK.digitalmodesequence = allocfifobuffer(MAXSEQUENCESIZE,0); //We use a simple buffer with 10 8-bit entries, unlocked!
+	JOYSTICK.lasttiming = 0.0f; //Last write digital timing delay!
+	JOYSTICK.extensionModel = 0; //Default: no extension specified!
+}
+
+void joystickDone()
+{
+	free_fifobuffer(&JOYSTICK.digitalmodesequence); //Release our buffer, we're finished with it!
 }
