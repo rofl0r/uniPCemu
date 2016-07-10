@@ -3099,6 +3099,12 @@ setJoysticktext: //For fixing it!
 	case 2:
 		strcat(menuoptions[advancedoptions++], "Joystick, Cross=Button 2, Circle=Button 1");
 		break;
+	case 3:
+		strcat(menuoptions[advancedoptions++], "Joystick, Gravis Gamepad");
+		break;
+	case 4:
+		strcat(menuoptions[advancedoptions++], "Joystick, Gravis Analog Pro");
+		break;
 	default: //Error: fix it!
 		BIOS_Settings.input_settings.gamingmode_joystick = 0; //Reset/Fix!
 		BIOS_Changed = 1; //We've changed!
@@ -5070,7 +5076,7 @@ void BIOS_gamingmodeJoystick()
 	GPU_EMU_printscreen(0, 4, "Gaming mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 3; //Ammount of CGA Models!
+	numlist = 5; //Ammount of Joysticks supported plus Gaming mode mapping!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -5078,12 +5084,16 @@ void BIOS_gamingmodeJoystick()
 	strcpy(itemlist[0], "Normal gaming mode mapped input"); //Default to mapped input!
 	strcpy(itemlist[1], "Joystick, Cross=Button 1, Circle=Button 2"); //Joystick: Cross=Button 1, Circle=Button 2!
 	strcpy(itemlist[2], "Joystick, Cross=Button 2, Circle=Button 1"); //Joystick: Cross=Button 2, Circle=Button 1!
+	strcpy(itemlist[3], "Joystick, Gravis Gamepad"); //Gravis Gamepad!
+	strcpy(itemlist[4], "Joystick, Gravis Analog Pro"); //Gravis Analog Pro!
 	int current = 0;
 	switch (BIOS_Settings.input_settings.gamingmode_joystick) //What setting?
 	{
 	case 0: //Valid
 	case 1: //Valid
 	case 2: //Valid
+	case 3: //Valid
+	case 4: //Valid
 		current = BIOS_Settings.input_settings.gamingmode_joystick; //Valid: use!
 		break;
 	default: //Invalid
@@ -5108,6 +5118,8 @@ void BIOS_gamingmodeJoystick()
 	case 0:
 	case 1:
 	case 2:
+	case 3:
+	case 4:
 		if (file != current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!

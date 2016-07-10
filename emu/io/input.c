@@ -364,8 +364,9 @@ PSP_INPUTSTATE curstat; //Current status!
 struct
 {
 	uint_32 Buttons; //Currently pressed buttons!
-	sword Lx; //X axis!
-	sword Ly; //Y axis!
+	sword Lx, Ly; //X/Y axis used for compatibility!
+	sword Lx2, Ly2; //X/Y axis used for second joystick, when supported!
+	sword LxRudder; //X axis used for rudder axis, when supported!
 	byte keyboardjoy_direction; //Keyboard joystick direction (internal use only)
 	byte cas; //L&R Ctrl/alt/shift status!
 } input;
@@ -574,10 +575,17 @@ void get_analog_state(PSP_INPUTSTATE *state) //Get the current state for mouse/a
 		if ((input.Buttons&BUTTON_START)>0) //START?
 		{
 			state->buttonpress |= 1024; //START!
-		}		
+		}
+
+		state->analogdirection2_x = input.Lx2; //X of second input!
+		state->analogdirection2_y = input.Ly2; //Y of second input!
+		state->analogdirection_rudder = input.LxRudder; //X of the rudder!
 	}
 	else //Normal mode?
 	{
+		state->analogdirection2_x = 0; //No X of second input!
+		state->analogdirection2_y = 0; //No Y of second input!
+		state->analogdirection_rudder = 0; //No X of the rudder!
 		switch (state->mode) //Which input mode?
 		{
 		case 0: //Mouse?
@@ -1637,17 +1645,36 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 	}
 }
 
+//Information based on http://www.epanorama.net/documents/joystick/pc_special.html
 void handleJoystick(double timepassed) //Handles gaming mode input!
 {
 	//Test for all keys and process!
 	if (input_buffer_enabled) return; //Don't handle buffered input, we don't allow mapping joystick mode to gaming mode!
 	switch (BIOS_Settings.input_settings.gamingmode_joystick) //What joystick mapping mode?
 	{
-	case 1: //Cross=Button 1, Circle=Button 2?
+	case 1: //Cross=Button 1, Circle=Button 2(analog)?
+		enableJoystick(0,JOYSTICK_ENABLED); //Enable joystick A!
+		enableJoystick(1,JOYSTICK_DISABLED); //Disable joystick B!		
 		setJoystick(0,curstat.buttonpress&0x08,curstat.buttonpress&0x04,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Cross=Button 1, Circle=Button 2?
+		setJoystick(1,0,0,0,0); //Unused!
 		break;
-	case 2: //Cross=Button 2, Circle=Button 1?
+	case 2: //Cross=Button 2, Circle=Button 1(analog)?
+		enableJoystick(0,JOYSTICK_ENABLED); //Enable joystick A!
+		enableJoystick(1,JOYSTICK_DISABLED); //Disable joystick B!		
 		setJoystick(0,curstat.buttonpress&0x04,curstat.buttonpress&0x08,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Cross=Button 2, Circle=Button 1?
+		setJoystick(1,0,0,0,0); //Unused!
+		break;
+	case 3: //Gravis Gamepad(analog)?
+		enableJoystick(0,JOYSTICK_ENABLED); //Enable joystick A!
+		enableJoystick(1,JOYSTICK_ENABLED_BUTTONSONLY); //Enable joystick B partially(no analog, only digital buttons)!
+		setJoystick(0,curstat.buttonpress&0x01,curstat.buttonpress&0x02,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Joystick A! Square=A1, Triangle=A2!
+		setJoystick(1,curstat.buttonpress&0x08,curstat.buttonpress&0x04,0,0); //Joystick B! Cross=B1, Circle=B2!
+		break;
+	case 4: //Gravis Analog Pro(analog)?
+		enableJoystick(0,JOYSTICK_ENABLED); //Enable joystick A!
+		enableJoystick(1,JOYSTICK_ENABLED_BUTTONS_AND_XONLY); //Enable joystick B partially(analog x and digital buttons)!
+		setJoystick(0,curstat.buttonpress&0x01,curstat.buttonpress&0x02,curstat.analogdirection_mouse_x,curstat.analogdirection_mouse_y); //Joystick A! Square=A1, Triangle=A2!
+		setJoystick(1,curstat.buttonpress&0x04,curstat.buttonpress&0x08,curstat.analogdirection2_y,0); //Joystick B! Circle=B1, Cross=B2(reverse of Gravis Gamepad)! The X axis is the throttle!
 		break;
 	default: //Unknown mapping?
 		setJoystick(0,0,0,0,0); //Unknown mapping, ignore input?
@@ -2500,10 +2527,13 @@ void updateInput(SDL_Event *event) //Update all input!
 					input.Ly = event->jaxis.value; //New value!
 					break;
 				case 4: /* Left-right movement of the right stick */
+					input.Lx2 = event->jaxis.value; //New value!
 					break;
 				case 3: /* Up-Down movement code of the right stick */
+					input.Ly2 = event->jaxis.value; //New value!
 					break;
 				case 2: /* LT/RT pressed/depressed? */
+					input.LxRudder = event->jaxis.value; //New value!
 					break;
 				}
 				break;
@@ -2512,7 +2542,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		if (Direct_Input) //Direct input enabled? Ignore the joystick!
 		{
-			input.Lx = input.Ly = 0; //Ignore pressed buttons!
+			input.Lx = input.Ly = input.Lx2 = input.Ly2 = input.LxRudder = 0; //Ignore pressed buttons!
 		}
 		#ifdef SDL2
 		} //Current stick?
@@ -3000,8 +3030,9 @@ void psp_input_init()
 	#ifdef SDL2
 	SDL_AddEventWatch(myEventFilter, NULL); //For applying critical updates!
 	#endif
-	enableJoystick(0,1); //Enable joystick 1!
-	enableJoystick(1,0); //Disable joystick 2!
+	//Apply joystick defaults!
+	enableJoystick(0,0); //Disable joystick 1!
+	enableJoystick(0,0); //Disable joystick 2!
 }
 
 void psp_input_done()

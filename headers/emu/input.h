@@ -43,6 +43,9 @@ typedef struct
 	int analogdirection_keyboard_y; //Y direction of analog (see X)
 	int analogdirection_mouse_x; //Mouse X direction (0=None)
 	int analogdirection_mouse_y; //Mouse Y direction (0=None)
+	int analogdirection2_x; //X direction of second analog(if supported)
+	int analogdirection2_y; //Y direction of second analog(if supported)
+	int analogdirection_rudder; //X direction of the rudder(if supported)
 	uint_32 buttonpress; //Which button are pressed (0=None,1=Square,2=Triangle,4=Circle,8=Cross,16=Left,32=Up,64=Right,64=Down,128=L,256=R)
 	byte mode; //Which mode: 0=Mouse, 1=Keyboard!
 } PSP_INPUTSTATE; //Contains the state of PSP input buttons!
