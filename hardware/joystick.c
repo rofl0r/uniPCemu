@@ -201,6 +201,13 @@ byte joystick_readIO(word port, byte *result)
 
 byte joystick_writeIO(word port, byte value)
 {
+	#include "headers/packed.h"
+	union
+	{
+		sword axis;
+		word data;
+	} axisconversion;
+	#include "headers/endpacked.h"
 	byte entry;
 	byte sequencepos;
 	switch (port)
@@ -294,6 +301,20 @@ byte joystick_writeIO(word port, byte value)
 					*/
 					JOYSTICK.packet = 0; //Initialize the packet!
 					//Now, fill the packet with our current information!
+					//First, hats!
+					JOYSTICK.packet |= JOYSTICK.hats[0]|(JOYSTICK.hats[1]<<1)|(JOYSTICK.hats[2]<<2)|(JOYSTICK.hats[3]<<3);
+					//Then buttons(reversed)!
+					JOYSTICK.packet |= JOYSTICK.buttons2[5]|(JOYSTICK.buttons2[4]<<1)|(JOYSTICK.buttons2[3]<<2)|(JOYSTICK.buttons2[2]<<3)|(JOYSTICK.buttons2[1]<<4)|(JOYSTICK.buttons2[0]<<5);
+					//Axis2(Twist) 8-bits converted!
+					axisconversion.axis = JOYSTICK.Joystick_X[1]; //Twist!
+					JOYSTICK.packet |= (((axisconversion.data>>8)&0xFF)<<10); //Twist converted!
+					//Axis 1(Y) 8-bits converted!
+					axisconversion.axis = JOYSTICK.Joystick_Y[0]; //Y!
+					JOYSTICK.packet |= (((axisconversion.data>>8)&0xFF)<<18); //Twist converted!
+					//Axis 0(X) 8-bits converted!
+					axisconversion.axis = JOYSTICK.Joystick_X[0]; //Y!
+					JOYSTICK.packet |= (((axisconversion.data>>8)&0xFF)<<26); //Twist converted!
+					//The upper bits are 0x00!
 					break;
 				}
 			}
