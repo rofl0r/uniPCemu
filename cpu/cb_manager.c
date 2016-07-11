@@ -319,6 +319,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		break;
 	case CB_UNASSIGNEDINTERRUPT: //Same as below, but unassigned to an interrupt!
 	case CB_INTERRUPT: //Interrupt call?
+	case CB_INTERRUPT_BOOT: //Boot call?
 		//First: add to jmptbl!
 		if (type!=CB_UNASSIGNEDINTERRUPT) //Not unassigned?
 		{
@@ -336,10 +337,14 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		//Next, our handler as a simple FAR CALL function.
 		CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
 
-		if (intnr == 0x18) //Special data insertion: interrupt 18h!
+		if (type==CB_INTERRUPT_BOOT) //Special data insertion: interrupt 18h!
 		{
+			EMU_BIOS[incoffset] = 0xB4;
+			EMU_BIOS[incoffset] = 0x00; //MOV AH,00h: Function number
 			EMU_BIOS[incoffset] = 0xCD;
-			EMU_BIOS[incoffset] = 0x19; //INT 19h
+			EMU_BIOS[incoffset] = 0x16; //INT 16h: Wait for key!
+			EMU_BIOS[incoffset] = 0xCD;
+			EMU_BIOS[incoffset] = 0x19; //INT 19h: boot!
 		}
 
 		EMU_BIOS[incoffset] = 0xCB; //RETF!

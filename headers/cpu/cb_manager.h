@@ -34,6 +34,9 @@
 #define CB_DOSBOX_MOUSE 0x0B
 #define CB_DOSBOX_INT16 0x0C
 
+//Special interrupt for the boot basic handler!
+#define CB_INTERRUPT_BOOT 0x0F
+
 //Special interrupts for the Video BIOS!
 #define CB_VIDEOINTERRUPT 0x0D
 #define CB_VIDEOENTRY 0x0E

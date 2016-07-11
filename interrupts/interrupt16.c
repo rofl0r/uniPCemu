@@ -592,6 +592,7 @@ void InitBiosSegment() {
 }
 
 void BIOS_SetupKeyboard() {
+	byte irq1handler = 0;
 	/* Init the variables */
 	InitBiosSegment();
 
@@ -608,6 +609,10 @@ void BIOS_SetupKeyboard() {
 	*/
 	addCBHandler(CB_DOSBOX_IRQ1,&IRQ1_Handler,BIOS_DEFAULT_IRQ1_LOCATION);
 	Dosbox_RealSetVec(0x09,BIOS_DEFAULT_IRQ1_LOCATION); //Our pointer!
+
+	irq1handler = PORT_IN_B(0x21); //Read the current IRQ status!
+	irq1handler |= 0x02; //Enable IRQ1: Keyboard handler!
+	PORT_OUT_B(0x21,irq1handler); //Enable our IRQ!
 
 	// pseudocode for CB_IRQ1:
 	//	push ax
