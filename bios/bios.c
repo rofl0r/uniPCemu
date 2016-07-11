@@ -628,7 +628,7 @@ void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 	force8042 = 1; //We're forcing 8042 style init!
 
 	BIOS_writeKBDCMD(0xED); //Set/reset status indicators!
-	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard BIOS initialisation","No set/reset status indicator command result:2!");
 	}
@@ -640,7 +640,7 @@ void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 	}
 
 	write_8042(0x60,0x02); //Turn on NUM LOCK led!
-	if (!(PORT_IN_B(0x64)&0x2)) //No input data?
+	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard BIOS initialisation","No turn on NUM lock led result!");
 	}

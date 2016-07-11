@@ -190,17 +190,21 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 	allow_debuggerstep = 0; //Default: don't allow to step!
 
 	pauseEMU(); //Stop the emu&input from running!
+
+	lock(LOCK_MAINTHREAD); //Make sure we're in control!
 	if (MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0) != 0x1234) //Normal BIOS POST?
 	{
 		debugrow("Running BIOS POST!");
 	#ifdef ALLOW_BIOS
 		EMU_RUNNING = 0; //We're not running atm!
+		unlock(LOCK_MAINTHREAD);
 		if (CheckBIOSMenu(3000000)) //Run BIOS Menu if needed for a short time!
 		{
 			resumeEMU(1); //Start the emulator back up again!
 			return 1; //Reset after the BIOS!
 		}
 	#endif
+		lock(LOCK_MAINTHREAD);
 
 		debugrow("Running core BIOS POST...");
 
@@ -230,6 +234,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					resumeEMU(1); //Resume the emulator!
 					unlock(LOCK_CPU);
+					unlock(LOCK_MAINTHREAD);
 					return 0; //No reset!
 				}
 				if (!BIOS_load_ROM(19)) //Failed to load u19?
@@ -240,6 +245,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					resumeEMU(1); //Resume the emulator!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					unlock(LOCK_CPU);
+					unlock(LOCK_MAINTHREAD);
 					return 0; //No reset!
 				}
 				verified = 1; //Verified!
@@ -253,6 +259,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					resumeEMU(1); //Resume the emulator!
 					unlock(LOCK_CPU);
+					unlock(LOCK_MAINTHREAD);
 					return 0; //No reset!
 				}
 				if (!BIOS_load_ROM(47)) //Failed to load u47?
@@ -263,6 +270,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					resumeEMU(1); //Resume the emulator!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					unlock(LOCK_CPU);
+					unlock(LOCK_MAINTHREAD);
 					return 0; //No reset!
 				}
 				verified = 1; //Verified!
@@ -282,6 +290,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				unlock(LOCK_CPU);
 				CPU_INT(0x18); //Error: no ROM!
 				resumeEMU(1); //Resume the emulator!
+				unlock(LOCK_MAINTHREAD);
 				return 0; //No reset!
 			}
 			else //Boot rom ready?
@@ -297,6 +306,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				startTimers(1); //Make sure we're running fully!
 				resumeEMU(1); //Resume the emulator!
 				unlock(LOCK_CPU);
+				unlock(LOCK_MAINTHREAD);
 				return 0; //No reset, start the BIOS!
 			}
 		}
@@ -319,6 +329,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		if (DEBUG_VGA_ONLY)
 		{
+			unlock(LOCK_MAINTHREAD);
 			DoDebugTextMode(1); //Text mode debugging only, finally sleep!
 		}
 
@@ -334,8 +345,10 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		BIOS_enableCursor(0); //Disable the cursor!
 
+		unlock(LOCK_MAINTHREAD);
 		delay(200000); //Wait a bit before showing on-screen!
 
+		lock(LOCK_MAINTHREAD);
 		printmsg(0xF, "x86 EMU\r\n");
 		printmsg(0xF, "\r\n"); //A bit of whitespace before output!
 #endif
@@ -349,6 +362,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 #ifdef ALLOW_BIOS
 		startTimers(0); //Start EMU timers!
 		BIOS_ShowBIOS(); //Show BIOS information!
+		unlock(LOCK_MAINTHREAD);
 		if (CheckBIOSMenu(0)) //Run BIOS Menu if needed!
 		{
 			BIOS_enableCursor(1); //Re-enable the cursor!
@@ -356,11 +370,13 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			return 1; //Reset after the BIOS!
 		}
 #endif
+		lock(LOCK_MAINTHREAD);
 
 		BIOS_enableCursor(1); //Re-enable the cursor!
 
 		if (DEBUG_VIDEOCARD) //Debugging text mode?
 		{
+			unlock(LOCK_MAINTHREAD);
 			DoDebugTextMode(0); //Do the debugging!
 			resumeEMU(0); //Resume the emulator!
 			return 1; //Full reset emulator!
@@ -368,6 +384,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		if (shuttingdown()) //Shut down?
 		{
+			unlock(LOCK_MAINTHREAD);
 			EMU_Shutdown(0); //Done shutting down!
 			quitemu(0); //Shut down!
 		}
@@ -381,6 +398,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		switch (BIOS_Settings.executionmode) //What execution mode?
 		{
 		case EXECUTIONMODE_TEST:
+			unlock(LOCK_MAINTHREAD);
 			debugrow("Debugging files!");
 			lock(LOCK_CPU); //Lock the main thread!
 			DoDebugFiles(); //Do the debug files!
@@ -389,6 +407,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			return 1; //Reboot!
 
 		case EXECUTIONMODE_SOUND:
+			unlock(LOCK_MAINTHREAD);
 			debugrow("Starting sound test...");
 			dosoundtest(); //Run the sound test!
 			goto softreboot; //Execute soft reboot!
@@ -431,6 +450,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					EMU_RUNNING = 1; //We're running again!
 					resumeEMU(1);
 					unlock(LOCK_CPU); //We're done with the CPU!
+					unlock(LOCK_MAINTHREAD);
 					return 0; //No reset!
 				}
 				else //Boot rom ready?
@@ -440,6 +460,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					resumeEMU(1);
 					unlock(LOCK_CPU); //We're done with the CPU!
+					unlock(LOCK_MAINTHREAD);
 					return 0; //Run the boot rom!
 				}
 			}
@@ -451,6 +472,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		if (NOEMU)
 		{
 			resumeEMU(1); //Resume the emulator!
+			unlock(LOCK_MAINTHREAD);
 			return 1; //Don't emulate: just reset!
 		}
 
@@ -462,6 +484,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		POST_memorydefaults(); //Install default handlers for interrupts etc.!
 
+		keyboardControllerInit(); //Initialize the keyboard controller always!
 		BIOSKeyboardInit(); //Initialise the BIOS stuff for the keyboard!
 
 		CPU[activeCPU].registers->AX = VIDEOMODE_BOOT; //TEXT mode for booting!
@@ -519,6 +542,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		lock(LOCK_CPU);
 		CPU[activeCPU].halt &= ~2; //Make sure the CPU is just halted!
 		unlock(LOCK_CPU); //We're done with the CPU!
+		unlock(LOCK_MAINTHREAD);
 		return 0; //Continue normally: we've booted, or give an error message!
 	}
 
@@ -526,5 +550,6 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 	lock(LOCK_CPU);
 	CPU[activeCPU].halt &= ~2; //Make sure the CPU is just halted!
 	unlock(LOCK_CPU); //We're done with the CPU!
+	unlock(LOCK_MAINTHREAD);
 	return 0; //Plain run!
 }
