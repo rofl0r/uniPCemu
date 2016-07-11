@@ -292,7 +292,7 @@ void datawritten_8042() //Data has been written?
 
 byte write_8042(word port, byte value)
 {
-	if ((port & 0xFFFC) != 0x60) return 0; //Not our port!
+	if ((port & 0xFFF8) != 0x60) return 0; //Not our port!
 	switch (port) //What port?
 	{
 	case 0x60: //Data port: write output buffer?
@@ -345,7 +345,7 @@ byte write_8042(word port, byte value)
 
 byte read_8042(word port, byte *result)
 {
-	if ((port & 0xFFFC) != 0x60) return 0; //Not our port!
+	if ((port & 0xFFF8) != 0x60) return 0; //Not our port!
 	switch (port)
 	{
 	case 0x60: //Data port: Read input buffer?
