@@ -32,7 +32,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 	case FLOPPY1: //Floppy?
 		if (readdata(device,MMU_ptr(-1,loadedsegment,BOOT_OFFSET,0,512),0,512)) //Read boot sector!
 		{
-			if (MMU_rb(-1, loadedsegment, (BOOT_OFFSET + 0xfe), 0) == 0x55 && MMU_rb(-1, loadedsegment, (BOOT_OFFSET + 0xff), 0) == 0xAA) //Valid boot sector? Not officially, but nice as an extra check!
+			if (MMU_rb(-1, loadedsegment, (BOOT_OFFSET + 0x1fe), 0) == 0x55 && MMU_rb(-1, loadedsegment, (BOOT_OFFSET + 0x1ff), 0) == 0xAA) //Valid boot sector? Not officially, but nice as an extra check!
 			{
 				return BOOT_ERROR; //Not booted!
 			}
@@ -50,7 +50,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 	case HDD1: //HDD?
 		if (readdata(device,MMU_ptr(-1,loadedsegment,BOOT_OFFSET,0,512),0,512)) //Read MBR to memory!
 		{
-			if (MMU_rb(-1,loadedsegment,(BOOT_OFFSET+0xfe),0)==0x55 && MMU_rb(-1,loadedsegment,(BOOT_OFFSET+0xff),0)==0xAA) //Valid boot sector?
+			if (MMU_rb(-1,loadedsegment,(BOOT_OFFSET+0x1fe),0)==0x55 && MMU_rb(-1,loadedsegment,(BOOT_OFFSET+0x1ff),0)==0xAA) //Valid boot sector?
 			{
 				CPU[activeCPU].registers->CS = loadedsegment; //Loaded segment
 				CPU[activeCPU].registers->EIP = BOOT_OFFSET; //Loaded MBR executable!
