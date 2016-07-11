@@ -101,6 +101,9 @@ byte mounteddrives[0x100]; //All mounted drives!
 //# of Sectors based on filesize
 #define SECTORS(x) (x/HDD_BPS)
 
+//Emulate non-translating BIOS!
+#define HDD_SECTORS(x) HDD_SPT
+
 #define KB(x) (x/1024)
 
 byte int13_buffer[512]; //Our int13_buffer!
@@ -493,7 +496,7 @@ void int13_02()
 			CALLBACK_SCF(1); //Error!
 			return; //Break out!
 		}
-		startpos = (uint_32)CHS2LBA(cylinder,REG_DH,(byte)sector,HDD_HEADS,(uint_32)SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
+		startpos = (uint_32)CHS2LBA(cylinder,REG_DH,(byte)sector,HDD_HEADS,(uint_32)HDD_SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
 
 		REG_AL = readdiskdata((uint_32)startpos); //Read the data to memory!
 		break; //Done with HDD!
@@ -546,7 +549,7 @@ void int13_03()
 	case 0x81: //HDD2
 		cylinder = ((REG_CX&0xFF00)>>8)|((REG_CX&0xC0)<<2);
 		sector = REG_CX&63;
-		startpos = (uint_32)CHS2LBA(cylinder,REG_DH,(byte)sector-1,HDD_HEADS,(uint_32)SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
+		startpos = (uint_32)CHS2LBA(cylinder,REG_DH,(byte)sector-1,HDD_HEADS,(uint_32)HDD_SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
 
 		REG_AL = writediskdata((uint_32)startpos); //Write the data to memory!
 		break; //Done with HDD!
@@ -656,7 +659,7 @@ void int13_04()
 		case 0x81: //HDD2
 			cylinder = ((REG_CX&0xFF00)>>8)|((REG_CX&0xC0)<<2);
 			sector = REG_CX&63;
-			startpos = CHS2LBA(cylinder,REG_DH,(byte)sector,HDD_HEADS,(uint_32)SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
+			startpos = CHS2LBA(cylinder,REG_DH,(byte)sector,HDD_HEADS,(uint_32)HDD_SECTORS(disksize(mounteddrives[REG_DL]))); //HDD LBA!
 
 			readdata_result = (uint_32)readdata(mounteddrives[REG_DL],&int13_buffer,startpos,512); //Write the data from memory!
 			if (!readdata_result) //Read OK?
