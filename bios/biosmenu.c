@@ -5079,7 +5079,7 @@ void BIOS_gamingmodeJoystick()
 	GPU_EMU_printscreen(0, 4, "Gaming mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 5; //Ammount of Joysticks supported plus Gaming mode mapping!
+	numlist = 6; //Ammount of Joysticks supported plus Gaming mode mapping!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
