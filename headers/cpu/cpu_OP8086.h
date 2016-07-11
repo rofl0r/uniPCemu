@@ -316,8 +316,6 @@ void CPU8086_internal_DEC16(word *reg);
 
 void unkOP_8086(); //Unknown opcode on 8086?
 
-//Rest for GRP opcodes:
-void op_add16();
-void op_sub16();
+void external8086RETF(word popbytes); //Support for special interrupt handlers!
 
 #endif

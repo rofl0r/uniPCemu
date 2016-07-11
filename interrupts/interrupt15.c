@@ -34,9 +34,13 @@ void BIOS_int15()
 		MMU_wb(CPU_SEGMENT_ES, REG_ES, REG_BX + 0x08, 0x00); //No extra support!
 		MMU_wb(CPU_SEGMENT_ES, REG_ES, REG_BX + 0x09, 0x00); //No enhanced mouse mode or Flash BIOS!
 		break;
+	case 0x4F: //Translate scan code?
+		CALLBACK_SCF(0);
+		break;
 	default: //Unknown function? 
 		REG_AH = 0x86; //Not supported!
-		CALLBACK_SCF(0); //Set carry flag to indicate an error!
+		CALLBACK_SCF(1); //Set carry flag to indicate an error!
 		break;
 	}
+	external8086RETF(2); //RETF 2 simulated!
 }

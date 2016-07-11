@@ -1763,6 +1763,11 @@ OPTINLINE void CPU8086_internal_RETF(word popbytes, byte isimm)
 	CPU_addWordMemoryTiming(); //To memory?
 }
 
+void external8086RETF(word popbytes)
+{
+	CPU8086_internal_RETF(popbytes,1); //Return immediate variant!
+}
+
 OPTINLINE void CPU8086_internal_INTO()
 {
 	CPUPROT1
