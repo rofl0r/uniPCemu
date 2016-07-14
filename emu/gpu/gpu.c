@@ -67,19 +67,49 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		//SDL1?
 		originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 		#else
-		if ((!sdlWindow) || (!sdlRenderer)) //We don't have a window&renderer yet?
+		if (sdlTexture)
 		{
-			SDL_CreateWindowAndRenderer(xres, yres, SDL_WINDOW_SHOWN, &sdlWindow, &sdlRenderer); //Create the window and renderer we use at our resolution!
+			SDL_DestroyTexture(sdlTexture);
+			sdlTexture = NULL; //Nothing!
 		}
+		if (sdlRenderer)
+		{
+			SDL_DestroyRenderer(sdlRenderer);
+			sdlRenderer = NULL; //Nothing!
+		}
+		if (rendersurface) //Gotten a surface we're rendering?
+		{
+			rendersurface = freeSurface(rendersurface); //Release our rendering surface!
+		}
+		if ((!sdlWindow)) //We don't have a window&renderer yet?
+		{
+			sdlWindow = SDL_CreateWindow("x86EMU", SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,xres,yres,SDL_WINDOW_SHOWN); //Create the window and renderer we use at our resolution!
+		}
+		else
+		{
+			SDL_SetWindowSize(sdlWindow,xres,yres); //Set the new window size!
+		}
+		if (sdlWindow) //Gotten a window?
+		{
+			if (!sdlRenderer) //No renderer yet?
+			{
+				sdlRenderer = SDL_CreateRenderer(sdlWindow,0,0);
+			}
+		}
+
+		if (sdlRenderer) //Gotten a renderer?
+		{
+			sdlTexture = SDL_CreateTexture(sdlRenderer,
+				SDL_PIXELFORMAT_ARGB8888,
+				SDL_TEXTUREACCESS_STREAMING,
+				xres, yres); //The texture we use!
+		}
+
 		originalrenderer = SDL_CreateRGBSurface(0, xres, yres, 32,
 			0x00FF0000,
 			0x0000FF00,
 			0x000000FF,
 			0xFF000000); //The SDL Surface we render to!
-		sdlTexture = SDL_CreateTexture(sdlRenderer,
-			SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_STREAMING,
-			xres, yres); //The texture we use!
 		#endif
 	}
 }
@@ -214,7 +244,11 @@ void initVideoLayer() //We're for allocating the main video layer, only dealloca
 			rendersurface = getSurfaceWrapper(originalrenderer); //Allocate a surface wrapper!
 			if (rendersurface) //Allocated?
 			{
+				#ifndef SDL2
 				registerSurface(rendersurface,"PSP SDL Main Rendering Surface",0); //Register, but don't allow release: this is done by SDL_Quit only!
+				#else
+				registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 1); //Register, allow release: this is allowed in SDL2!
+				#endif
 				if (memprotect(rendersurface,sizeof(*rendersurface),NULL)) //Valid?
 				{
 					if (memprotect(rendersurface->sdllayer,sizeof(*rendersurface->sdllayer),NULL)) //Valid?

@@ -350,8 +350,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|Win32'">
     <IntDir>$(OutDir)\temp_debug\</IntDir>
     <IncludePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL2-2.0.4\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
-    <ReferencePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL2-2.0.4\VisualC\Release;C:\SDL\SDL2-2.0.4\VisualC\SDLmain\Release;$(ReferencePath)</ReferencePath>
-    <LibraryPath>C:\SDL\SDL2-2.0.4\VisualC\Release;C:\SDL\SDL2-2.0.4\VisualC\SDLmain\Release;$(LibraryPath)</LibraryPath>
+    <ReferencePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL2-2.0.4\lib\x86;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\SDL\SDL2-2.0.4\lib\x86;$(LibraryPath)</LibraryPath>
     <OutDir>..\..\projects_build\$(ProjectName)\</OutDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
@@ -368,8 +368,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - SDL2|Win32'">
     <IncludePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL2-2.0.4\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
-    <ReferencePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL2-2.0.4\VisualC\Release;C:\SDL\SDL2-2.0.4\VisualC\SDLmain\Release;$(ReferencePath)</ReferencePath>
-    <LibraryPath>C:\SDL\SDL2-2.0.4\VisualC\Release;C:\SDL\SDL2-2.0.4\VisualC\SDLmain\Release;$(LibraryPath)</LibraryPath>
+    <ReferencePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL2-2.0.4\lib\x86;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\SDL\SDL2-2.0.4\lib\x86;$(LibraryPath)</LibraryPath>
     <OutDir>..\..\projects_build\$(ProjectName)\</OutDir>
     <IntDir>$(OutDir)\temp_release\</IntDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>

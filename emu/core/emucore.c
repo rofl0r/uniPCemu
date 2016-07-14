@@ -786,7 +786,7 @@ int DoEmulator() //Run the emulator (starting with the BIOS always)!
 		goto skipcpu; //Shutdown or reset?
 	}
 
-	if (++shutdowncounter >= 1000) //Check for shutdown every X opcodes?
+	if (++shutdowncounter >= 50) //Check for shutdown every X opcodes?
 	{
 		shutdowncounter = 0; //Reset counter!
 		if (shuttingdown())

@@ -799,7 +799,7 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 					SDL_UpdateRect(surface->sdllayer, 0, 0, 0, 0); //Make sure we update!
 				#else
 				//SDL2!
-				SDL_UpdateTexture(sdlTexture, NULL, *getlayerpixels(surface), get_pixelrow_pitch(surface));
+				SDL_UpdateTexture(sdlTexture, NULL, *getlayerpixels(surface), (get_pixelrow_pitch(surface)<<2));
 				SDL_RenderClear(sdlRenderer);
 				SDL_RenderCopy(sdlRenderer, sdlTexture, NULL, NULL);
 				SDL_RenderPresent(sdlRenderer);

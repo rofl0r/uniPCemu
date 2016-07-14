@@ -204,6 +204,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			resumeEMU(1); //Start the emulator back up again!
 			return 1; //Reset after the BIOS!
 		}
+		if (shuttingdown()) return 0; //Abort!
 	#endif
 		lock(LOCK_MAINTHREAD);
 

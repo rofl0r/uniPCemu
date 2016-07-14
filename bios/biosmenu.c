@@ -453,6 +453,8 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 //Restore all states saved for the BIOS!
 	startEMUTimers(); //Start our timers up again!
+	if (shuttingdown()) return 0; //We're shutting down, discard!
+	lock(LOCK_MAINTHREAD); //Lock the main thread!
 	startVGA(); //Start the VGA up again!
 	EMU_startInput(); //Start all emu input again!
 
@@ -464,6 +466,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	ssource_setVolume((float)BIOS_Settings.SoundSource_Volume); //Set the current volume!
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
 	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
+	unlock(LOCK_MAINTHREAD); //Continue!
 
 	return (reboot_needed==2) || ((reboot_needed==1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
 }

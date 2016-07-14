@@ -2994,6 +2994,7 @@ void updateInput(SDL_Event *event) //Update all input!
 
 	//Misc system events
 	case SDL_QUIT: //Quit?
+		quitting:
 		lock(LOCK_INPUT);
 		SDL_JoystickClose(joystick); //Finish our joystick: we're not using it anymore!
 		EMU_Shutdown(1); //Request a shutdown!
@@ -3039,6 +3040,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				hasmousefocus = 0; //Lost mouse focus!
 				break;
 			case SDL_WINDOWEVENT_CLOSE:
+				goto quitting; //We're quitting!
 				break;
 			default: //Unknown event?
 				break;
