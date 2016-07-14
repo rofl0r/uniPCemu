@@ -178,6 +178,9 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 
 	PIC_remap(0x08,0x70); //Remap the PIC for our usage!
 
+	PORT_OUT_B(PIC1_DATA, PORT_IN_B(PIC1_DATA)|~0x00); //Disable all interrupts that aren't supported by us!
+	PORT_OUT_B(PIC2_DATA, PORT_IN_B(PIC2_DATA)|~0x00); //Disable all interrupts that aren't supported by us!
+
 	//Now, setup overriding interrupts which are installed now!
 	BIOS_SetupKeyboard(); //Setup the Dosbox keyboard handler!
 
