@@ -36,6 +36,8 @@
 
 //Special interrupt for the boot basic handler!
 #define CB_INTERRUPT_BOOT 0x0F
+//Special interrupt for the Misc BIOS handler(int15h).
+#define CB_INTERRUPT_MISCBIOS 0x10
 
 //Special interrupts for the Video BIOS!
 #define CB_VIDEOINTERRUPT 0x0D

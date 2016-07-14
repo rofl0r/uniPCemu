@@ -332,7 +332,18 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		++dataoffset; //Word address!
 		write_BIOSw(incoffset, CB_datasegment); //... Our interrupt handler, as a function call!
 		++dataoffset; //Word address!
-		EMU_BIOS[incoffset] = 0xCF; //RETI: We're an interrupt handler!
+
+		if (type == CB_INTERRUPT_MISCBIOS) //Misc BIOS interrupt?
+		{
+			EMU_BIOS[incoffset] = 0xCA; //RETF imm16
+			write_BIOSw(incoffset, 2); //2 entries popped!
+			++dataoffset; //Word address!
+		}
+		else //Normal interrupt?
+		{
+			EMU_BIOS[incoffset] = 0xCF; //RETI: We're an interrupt handler!
+		}
+
 
 		//Next, our handler as a simple FAR CALL function.
 		CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
