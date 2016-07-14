@@ -99,6 +99,8 @@ OPTINLINE byte debugging() //Debugging?
 	return psp_keypressed(BUTTON_LTRIGGER); //Debugging according to LTRIGGER!!!
 }
 
+byte debuggerINT = 0; //Interrupt special trigger?
+
 byte debugger_logging()
 {
 	byte enablelog=0; //Default: disabled!
@@ -109,6 +111,9 @@ byte debugger_logging()
 		break;
 	case DEBUGGERLOG_DEBUGGING:
 		enablelog = debugging(); //Enable log when debugging!
+		break;
+	case DEBUGGERLOG_INT: //Interrupts only?
+		enablelog = debuggerINT; //Debug this(interrupt)!
 		break;
 	default:
 		break;
@@ -122,6 +127,7 @@ byte needdebugger() //Do we need to generate debugging information?
 {
 	byte result;
 	result = debugger_logging(); //Are we logging?
+	result |= (DEBUGGER_LOG == DEBUGGERLOG_INT); //Interrupts are needed, but logging is another story!
 	result |= debugging(); //Are we debugging?
 	return result; //Do we need debugger information?
 }
@@ -450,6 +456,7 @@ OPTINLINE static void debugger_autolog()
 		debugger_logmisc("debugger",&debuggerregisters,debuggerHLT,&CPU[activeCPU]); //Log misc stuff!
 
 		dolog("debugger",""); //Empty line between comands!
+		debuggerINT = 0; //Don't continue after an INT has been used!
 	} //Allow logging?
 }
 

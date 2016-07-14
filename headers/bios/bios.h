@@ -83,6 +83,8 @@ typedef struct PACKED
 #define DEBUGGERLOG_DEBUGGING 1
 //Always
 #define DEBUGGERLOG_ALWAYS 2
+//Interrupt calls only
+#define DEBUGGERLOG_INT 3
 
 //Execution modes:
 //None:
