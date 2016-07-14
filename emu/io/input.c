@@ -2135,7 +2135,9 @@ extern byte VGA_debugtiming_enabled; //Are we applying right now?
 
 byte specialdebugger = 0; //Enable special debugger input?
 
-OPTINLINE byte getjoystick(SDL_Joystick *joystick, int_32 whatJoystick) //Are we a supported joystick? If supported, what joystick?
+int_32 whatJoystick = 0; //What joystick are we connected to? Default to the first joystick(for PSP compatibility)!
+
+OPTINLINE byte getjoystick(SDL_Joystick *joystick, int_32 which) //Are we a supported joystick? If supported, what joystick?
 {
 	char name[256]; //The name of the joystick!
 	if (!joystick) return 0; //No joystick connected?
@@ -2143,6 +2145,7 @@ OPTINLINE byte getjoystick(SDL_Joystick *joystick, int_32 whatJoystick) //Are we
 	#ifdef IS_PSP
 		return 1; //Is PSP always!
 	#endif
+	if ((which!=-1) && (SDL_JoystickInstanceID(joystick)!=which)) return 0; //Not our joystick!
 	memset(name,0,sizeof(name)); //Init!
 	#ifndef SDL2
 	memcpy(name,SDL_JoystickName(whatJoystick),MIN(strlen(SDL_JoystickName(whatJoystick)),sizeof(name)-1)); //Get the joystick name, with max length limit!
@@ -2151,10 +2154,12 @@ OPTINLINE byte getjoystick(SDL_Joystick *joystick, int_32 whatJoystick) //Are we
 	#endif
 	name[255] = '\0'; //End of string safety!
 	#ifdef IS_WINDOWS
-		if ((!strcmp(name,"XBOX 360 For Windows (Controller)")) || (!strcmp(name, "Controller (XBOX 360 For Windows)"))) //XBox 360 controller?
+		if ((!strcmp(name,"XBOX 360 For Windows (Controller)")) || (!strcmp(name, "Controller (XBOX 360 For Windows)")) || //SDL1 controller names!
+			(!strcmp(name,"XInput Controller #1")) //From SDL2!
+			) //XBox 360 controller?
 	#else
 	#ifdef IS_LINUX
-		if (!strcmp(name, "Microsoft X-Box 360 pad")) //XBox 360 controller?
+		if ((!strcmp(name, "Microsoft X-Box 360 pad")) || (!strcmp(name, "XInput Controller #1"))) //XBox 360 controller?
 	#else
 		if (0) //Unsupported system!
 	#endif
@@ -2168,21 +2173,19 @@ OPTINLINE byte getjoystick(SDL_Joystick *joystick, int_32 whatJoystick) //Are we
 	}
 }
 
-int_32 whatJoystick = 0; //What joystick are we connected to? Default to the first joystick(for PSP compatibility)!
-
 //A joystick has been disconnected!
 void disconnectJoystick(int_32 index)
 {
 	if (joystick) //A joystick is connected?
 	{
-		if (whatJoystick == index) //Our joystick is disconnected?
+		if (SDL_JoystickInstanceID(joystick) == index) //Our joystick is disconnected?
 		{
-			SDL_JoystickClose(joystick); //Disconnect our joystick!
 			lock(LOCK_INPUT); //We're clearing all our relevant data!
+			SDL_JoystickClose(joystick); //Disconnect our joystick!
 			input.Buttons = 0;
 			input.Lx = input.Ly = 0;
-			unlock(LOCK_INPUT);
 			joystick = NULL; //Removed!
+			unlock(LOCK_INPUT);
 		}
 	}
 }
@@ -2199,8 +2202,13 @@ void connectJoystick(int index)
 		unlock(LOCK_INPUT);
 		joystick = NULL; //Removed!
 	}
+	lock(LOCK_INPUT);
 	joystick = SDL_JoystickOpen(index); //Open the new joystick as new input device!
-	whatJoystick = index; //Set our joystick to this joystick!
+	if (joystick) //Loaded?
+	{
+		whatJoystick = SDL_JoystickInstanceID(joystick); //Set our joystick to this joystick!
+	}
+	unlock(LOCK_INPUT);
 }
 
 void reconnectJoystick0() //For non-SDL2 compilations!
@@ -2225,7 +2233,7 @@ void updateInput(SDL_Event *event) //Update all input!
 	//Keyboard events
 	case SDL_KEYUP: //Keyboard up?
 		lock(LOCK_INPUT); //Wait!
-		if (((!(getjoystick(joystick,whatJoystick))) || Direct_Input) && hasinputfocus) //Gotten no joystick or is direct input?
+		if (((!(getjoystick(joystick,-1))) || Direct_Input) && hasinputfocus) //Gotten no joystick or is direct input?
 		{
 			switch (event->key.keysym.sym) //What key?
 			{
@@ -2415,7 +2423,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_KEYDOWN: //Keyboard down?
 		lock(LOCK_INPUT);
-		if (((!getjoystick(joystick,whatJoystick)) || Direct_Input) && hasinputfocus) //Gotten no joystick or is direct input?
+		if (((!getjoystick(joystick,-1)) || Direct_Input) && hasinputfocus) //Gotten no joystick or is direct input?
 		{
 			switch (event->key.keysym.sym) //What key?
 			{
@@ -2576,10 +2584,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	//Joystick events
 	case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
-		#ifdef SDL2
-			if (event->jaxis.which == whatJoystick) { //Current stick?
-		#endif
-		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
+		joysticktype = getjoystick(joystick,event->jaxis.which); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
 			lock(LOCK_INPUT);
@@ -2624,15 +2629,9 @@ void updateInput(SDL_Event *event) //Update all input!
 		{
 			input.Lx = input.Ly = input.Lx2 = input.Ly2 = input.LxRudder = 0; //Ignore pressed buttons!
 		}
-		#ifdef SDL2
-		} //Current stick?
-		#endif
 		break;
 	case SDL_JOYHATMOTION: /* Handle joy hat motion */
-		#ifdef SDL2
-			if (event->jaxis.which == whatJoystick) { //Current stick?
-		#endif
-		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
+		joysticktype = getjoystick(joystick,event->jhat.which); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
 			lock(LOCK_INPUT);
@@ -2677,15 +2676,9 @@ void updateInput(SDL_Event *event) //Update all input!
 		{
 			input.Lx = input.Ly = 0; //Ignore pressed buttons!
 		}
-		#ifdef SDL2
-				} //Current stick?
-		#endif
 		break;
 	case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
-		#ifdef SDL2
-			if (event->jaxis.which == whatJoystick) { //Current stick?
-		#endif
-		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
+		joysticktype = getjoystick(joystick,event->jbutton.which); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
 			lock(LOCK_INPUT);
@@ -2779,15 +2772,9 @@ void updateInput(SDL_Event *event) //Update all input!
 			}
 			unlock(LOCK_INPUT);
 		}
-		#ifdef SDL2
-		}
-		#endif
 		break;
 	case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
-		#ifdef SDL2
-			if (event->jaxis.which == whatJoystick) { //Current stick?
-		#endif
-		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
+		joysticktype = getjoystick(joystick,event->jbutton.which); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
 			lock(LOCK_INPUT);
@@ -2881,9 +2868,6 @@ void updateInput(SDL_Event *event) //Update all input!
 			}
 			unlock(LOCK_INPUT);
 		}
-		#ifdef SDL2
-		}
-		#endif
 		break;
 
 	//Mouse events
