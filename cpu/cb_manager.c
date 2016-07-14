@@ -320,6 +320,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 	case CB_UNASSIGNEDINTERRUPT: //Same as below, but unassigned to an interrupt!
 	case CB_INTERRUPT: //Interrupt call?
 	case CB_INTERRUPT_BOOT: //Boot call?
+	case CB_INTERRUPT_MISCBIOS: //Misc BIOS call?
 		//First: add to jmptbl!
 		if (type!=CB_UNASSIGNEDINTERRUPT) //Not unassigned?
 		{
