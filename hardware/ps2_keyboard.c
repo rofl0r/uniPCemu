@@ -454,6 +454,11 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	force8042 = 0; //Disable 8042 style init!
 }
 
+void keyboardControllerInit_extern()
+{
+	keyboardControllerInit(); //Part before the BIOS at computer bootup (self test), external!
+}
+
 void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 {
 	if (__HW_DISABLED) return; //Abort!

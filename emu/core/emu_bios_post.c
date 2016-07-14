@@ -13,6 +13,7 @@
 #include "headers/interrupts/interrupt13.h" //Interrupt 13h initialising support!
 #include "headers/support/zalloc.h" //For final freezall functionality!
 #include "headers/hardware/ps2_mouse.h" //PS/2 mouse support!
+#include "headers/hardware/ps2_keyboard.h" //PS/2 keyboard support!
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
 #include "headers/emu/emucore.h" //Emulation core!
 #include "headers/emu/emu_bios_sound.h" //BIOS sound option!
@@ -484,7 +485,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		POST_memorydefaults(); //Install default handlers for interrupts etc.!
 
-		keyboardControllerInit(); //Initialize the keyboard controller always!
+		keyboardControllerInit_extern(); //Initialize the keyboard controller always!
 		BIOSKeyboardInit(); //Initialise the BIOS stuff for the keyboard!
 
 		CPU[activeCPU].registers->AX = VIDEOMODE_BOOT; //TEXT mode for booting!

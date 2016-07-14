@@ -48,4 +48,6 @@ void BIOS_doneKeyboard(); //Finish the PS/2 keyboard.
 
 void resetKeyboard_8042(byte flags); //8042 reset for XT compatibility!
 
+void keyboardControllerInit_extern(); //Keyboard initialization for the BIOS!
+
 #endif

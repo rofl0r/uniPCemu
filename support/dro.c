@@ -436,9 +436,15 @@ void stepDROPlayer(double timepassed)
 	continueplayer: return; //Continue playing!
 }
 
+extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
+
 //The player itself!
 byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to stop playback!
 {
+	byte EMU_RUNNING_BACKUP=0;
+	lock(LOCK_CPU);
+	EMU_RUNNING_BACKUP = EMU_RUNNING; //Make a backup to restore after we've finished!
+	unlock(LOCK_CPU);
 	//Start reading the file!
 	DROPLAYER playedfile; //A file to play!
 	playedfile.playtime = 0.0; //No time passed!
@@ -482,6 +488,9 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 		CPU[activeCPU].halt &= ~2; //Remove the forced execution!
 		unlock(LOCK_CPU); //We're finished with the CPU!
 		pauseEMU(); //Stop timers and back to the BIOS menu!
+		lock(LOCK_CPU);
+		EMU_RUNNING = EMU_RUNNING_BACKUP; //We're not running atm, restore the backup!
+		unlock(LOCK_CPU); //We're finished with the CPU!
 		return playedfile.stoprunning?0:1; //Played without termination?
 	}
 	return 0; //Invalid file?

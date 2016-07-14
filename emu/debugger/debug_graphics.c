@@ -10,6 +10,8 @@
 #include "headers/hardware/vga/vga_precalcs.h" //For the CRT precalcs dump!
 #include "headers/hardware/vga/vga_dac.h" //DAC dump support!
 #include "headers/hardware/vga/vga_vram.h" //DAC VRAM support!
+#include "headers/support/log.h" //We're logging data!
+
 //To make a screen capture of all of the debug screens active?
 #define LOG_VGA_SCREEN_CAPTURE 0
 //For text-mode debugging! 40 and 80 character modes!
