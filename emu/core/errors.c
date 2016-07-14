@@ -21,7 +21,7 @@ byte ERROR_RAISED = 0; //No error raised by default!
 
 extern GPU_TEXTSURFACE *frameratesurface; //The framerate!
 
-void raiseError(char *source, char *text, ...)
+void raiseError(char *source, const char *text, ...)
 {
 	char msg[256];
 	char result[256]; //Result!

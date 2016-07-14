@@ -166,7 +166,7 @@ char *constsprintf(char *str1, ...); //Concatinate strings (or constants)!
 void EMU_setDiskBusy(byte disk, byte busy); //Are we busy?
 void EMU_Shutdown(byte execshutdown); //Shut down the emulator?
 byte shuttingdown(); //Shutting down?
-void raiseError(char *source, char *text, ...); //Raises an error!
+void raiseError(char *source, const char *text, ...); //Raises an error!
 void printmsg(byte attribute, char *text, ...); //Prints a message to the screen!
 void delete_file(char *directory, char *filename); //Delete one or more files!
 int file_exists(char *filename); //File exists?

@@ -382,14 +382,16 @@ OPTINLINE byte memdiff(void *start, void *value, uint_32 size)
 OPTINLINE void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest ){
 	if (!(src && dest)) return; //Abort: invalid src/dest!
 	if (!memprotect((void *)src,sizeof(*src),NULL) || !memprotect((void *)dest,sizeof(dest),NULL)) return; //Invalid?
+	#ifndef SDL2
 	if( src->sdllayer->flags & SDL_SRCCOLORKEY )
+	#endif
 	{
-		Uint32 colorkey = src->sdllayer->format->colorkey;
 		#ifndef SDL2
+		Uint32 colorkey = src->sdllayer->format->colorkey;
 		SDL_SetColorKey( dest->sdllayer, SDL_SRCCOLORKEY, colorkey );
 		#else
 		//SDL2?
-		SDL_SetColorKey( dest->sdllayer, SDL_TRUE, colorKey);
+		SDL_SetColorKey( dest->sdllayer, SDL_TRUE, SDL_MapRGB(src->sdllayer->format,0x00,0x00,0x00));
 		#endif
 	}
 }

@@ -112,11 +112,19 @@ uint_32 emu_keys_SDL[104] = {
 
 	SDLK_LSHIFT, //L SHFT
 	SDLK_LCTRL, //L CTRL
+#ifndef SDL2
 	SDLK_LSUPER, //L WIN
+#else
+	SDLK_LGUI, //L WIN
+#endif
 	SDLK_LALT, //L ALT
 	SDLK_RSHIFT, //R SHFT
 	SDLK_RCTRL, //R CTRL
+#ifndef SDL2
 	SDLK_RSUPER, //R WIN
+#else
+	SDLK_RGUI, //R WIN
+#endif
 	SDLK_RALT, //R ALT
 
 	SDLK_MENU, //APPS
@@ -138,7 +146,11 @@ uint_32 emu_keys_SDL[104] = {
 
 	SDLK_SYSREQ, //PRNT SCRN
 
+#ifdef SDL2
+	SDLK_SCROLLLOCK, //SCROLL
+#else
 	SDLK_SCROLLOCK, //SCROLL
+#endif
 	SDLK_PAUSE, //PAUSE
 
 			 //Column 3!
@@ -155,7 +167,11 @@ uint_32 emu_keys_SDL[104] = {
 	SDLK_DOWN, //D ARROW
 	SDLK_RIGHT, //R ARROW
 
+#ifdef SDL2
+	SDLK_NUMLOCKCLEAR, //NUM
+#else
 	SDLK_NUMLOCK, //NUM
+#endif
 	SDLK_KP_DIVIDE, //KP /
 	SDLK_KP_MULTIPLY, //KP *
 	SDLK_KP_MINUS, //KP -
@@ -163,6 +179,18 @@ uint_32 emu_keys_SDL[104] = {
 	SDLK_KP_ENTER, //KP EN
 	SDLK_KP_PERIOD, //KP .
 
+#ifdef SDL2
+	SDLK_KP_0, //KP 0
+	SDLK_KP_1, //KP 1
+	SDLK_KP_2, //KP 2
+	SDLK_KP_3, //KP 3
+	SDLK_KP_4, //KP 4
+	SDLK_KP_5, //KP 5
+	SDLK_KP_6, //KP 6
+	SDLK_KP_7, //KP 7
+	SDLK_KP_8, //KP 8
+	SDLK_KP_9, //KP 9
+#else
 	SDLK_KP0, //KP 0
 	SDLK_KP1, //KP 1
 	SDLK_KP2, //KP 2
@@ -173,6 +201,7 @@ uint_32 emu_keys_SDL[104] = {
 	SDLK_KP7, //KP 7
 	SDLK_KP8, //KP 8
 	SDLK_KP9, //KP 9
+#endif
 
 	SDLK_RIGHTBRACKET, //]
 	SDLK_SEMICOLON, //;
@@ -193,7 +222,7 @@ int emu_keys_sdl_rev(uint_32 key)
 	case SDLK_a: return 0x00; //A
 	case SDLK_b: return 0x01; //B
 	case SDLK_c: return 0x02; //C
-	case SDLK_d: return 0x03//D
+	case SDLK_d: return 0x03; //D
 	case SDLK_e: return 0x04; //E
 	case SDLK_f: return 0x05; //F
 	case SDLK_g: return 0x06; //G
@@ -241,11 +270,11 @@ int emu_keys_sdl_rev(uint_32 key)
 
 	case SDLK_LSHIFT: return 0x2C; //L SHFT
 	case SDLK_LCTRL: return 0x2D; //L CTRL
-	case SDLK_LSUPER: return 0x2E; //L WIN
+	case SDLK_LGUI: return 0x2E; //L WIN
 	case SDLK_LALT: return 0x2F; //L ALT
 	case SDLK_RSHIFT: return 0x30; //R SHFT
 	case SDLK_RCTRL: return 0x31; //R CTRL
-	case SDLK_RSUPER: return 0x32; //R WIN
+	case SDLK_RGUI: return 0x32; //R WIN
 	case SDLK_RALT: return 0x33; //R ALT
 
 	case SDLK_MENU: return 0x34; //APPS
@@ -267,7 +296,7 @@ int emu_keys_sdl_rev(uint_32 key)
 
 	case SDLK_SYSREQ: return 0x43; //PRNT SCRN
 
-	case SDLK_SCROLLOCK: return 0x44; //SCROLL
+	case SDLK_SCROLLLOCK: return 0x44; //SCROLL
 	case SDLK_PAUSE: return 0x45; //PAUSE
 
 	//Column 3!
@@ -284,7 +313,7 @@ int emu_keys_sdl_rev(uint_32 key)
 	case SDLK_DOWN: return 0x4F; //D ARROW
 	case SDLK_RIGHT: return 0x50; //R ARROW
 
-	case SDLK_NUMLOCK: return 0x51; //NUM
+	case SDLK_NUMLOCKCLEAR: return 0x51; //NUM
 	case SDLK_KP_DIVIDE: return 0x52; //KP /
 	case SDLK_KP_MULTIPLY: return 0x53; //KP *
 	case SDLK_KP_MINUS: return 0x54; //KP -
@@ -292,23 +321,23 @@ int emu_keys_sdl_rev(uint_32 key)
 	case SDLK_KP_ENTER: return 0x56; //KP EN
 	case SDLK_KP_PERIOD: return 0x57; //KP .
 
-	case SDLK_KP0: return 0x58; //KP 0
-	case SDLK_KP1: return 0x59; //KP 1
-	case SDLK_KP2: return 0x5A; //KP 2
-	case SDLK_KP3: return 0x5B; //KP 3
-	case SDLK_KP4: return 0x5C; //KP 4
-	case SDLK_KP5: return 0x5D; //KP 5
-	case SDLK_KP6: return 0x5E; //KP 6
-	case SDLK_KP7: return 0x5F; //KP 7
-	case SDLK_KP8: return 0x60; //KP 8
-	case SDLK_KP9: return 0x61; //KP 9
+	case SDLK_KP_0: return 0x58; //KP 0
+	case SDLK_KP_1: return 0x59; //KP 1
+	case SDLK_KP_2: return 0x5A; //KP 2
+	case SDLK_KP_3: return 0x5B; //KP 3
+	case SDLK_KP_4: return 0x5C; //KP 4
+	case SDLK_KP_5: return 0x5D; //KP 5
+	case SDLK_KP_6: return 0x5E; //KP 6
+	case SDLK_KP_7: return 0x5F; //KP 7
+	case SDLK_KP_8: return 0x60; //KP 8
+	case SDLK_KP_9: return 0x61; //KP 9
 
 	case SDLK_RIGHTBRACKET: return 0x62; //]
 	case SDLK_SEMICOLON: return 0x63; //;
 	case SDLK_QUOTE: return 0x64; //'
 	case SDLK_COMMA: return 0x65; //: return 0x00;
 	case SDLK_PERIOD: return 0x66; //.
-	case SDLK_SLASH: : return 0x67;  ///
+	case SDLK_SLASH: return 0x67;  ///
 	default: //Unknown key?
 		return -1; //Unknown key!
 		break;
@@ -2115,7 +2144,11 @@ OPTINLINE byte getjoystick(SDL_Joystick *joystick, int_32 whatJoystick) //Are we
 		return 1; //Is PSP always!
 	#endif
 	memset(name,0,sizeof(name)); //Init!
+	#ifndef SDL2
 	memcpy(name,SDL_JoystickName(whatJoystick),MIN(strlen(SDL_JoystickName(whatJoystick)),sizeof(name)-1)); //Get the joystick name, with max length limit!
+	#else
+	memcpy(name,SDL_JoystickName(joystick),MIN(strlen(SDL_JoystickName(joystick)),sizeof(name)-1)); //Get the joystick name, with max length limit!
+	#endif
 	name[255] = '\0'; //End of string safety!
 	#ifdef IS_WINDOWS
 		if ((!strcmp(name,"XBOX 360 For Windows (Controller)")) || (!strcmp(name, "Controller (XBOX 360 For Windows)"))) //XBox 360 controller?
@@ -2262,16 +2295,32 @@ void updateInput(SDL_Event *event) //Update all input!
 			case SDLK_l: //Joy right?
 				input.keyboardjoy_direction &= ~8; //Down!
 				break;
+			#ifndef SDL2
 			case SDLK_KP8: //TRIANGLE?
+			#else
+			case SDLK_KP_8: //TRIANGLE?
+			#endif
 				input.Buttons &= ~BUTTON_TRIANGLE; //Pressed!
 				break;
+			#ifndef SDL2
 			case SDLK_KP4: //SQUARE?
+			#else
+			case SDLK_KP_4: //SQUARE?
+			#endif
 				input.Buttons &= ~BUTTON_SQUARE; //Pressed!
 				break;
+			#ifndef SDL2
 			case SDLK_KP6: //CIRCLE?
+			#else
+			case SDLK_KP_6: //CIRCLE?
+			#endif
 				input.Buttons &= ~BUTTON_CIRCLE; //Pressed!
 				break;
+			#ifndef SDL2
 			case SDLK_KP2: //CROSS?
+			#else
+			case SDLK_KP_2: //CROSS?
+			#endif
 				input.Buttons &= ~BUTTON_CROSS; //Pressed!
 				break;
 			//Special emulator shortcuts?
@@ -2346,9 +2395,11 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				#else
 				//SDL2?
+				INLINEREGISTER int index;
 				INLINEREGISTER int key;
-				key = emu_keys_sdl_rev(event->key.keysym.sym); //Load the index to use!
-				if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
+				index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
+				key = emu_keys_sdl_rev(index); //Load the index to use!
+				if (key != -1) //Valid key?
 				{
 					if (emu_keys_state[key] & 1) //We're pressed at all?
 					{
@@ -2433,16 +2484,32 @@ void updateInput(SDL_Event *event) //Update all input!
 			case SDLK_l: //Joy right?
 				input.keyboardjoy_direction |= 8; //Down!
 				break;
+			#ifndef SDL2
 			case SDLK_KP8: //TRIANGLE?
+			#else
+			case SDLK_KP_8: //TRIANGLE?
+			#endif
 				input.Buttons |= BUTTON_TRIANGLE; //Pressed!
 				break;
+			#ifndef SDL2
 			case SDLK_KP4: //SQUARE?
+			#else
+			case SDLK_KP_4: //SQUARE?
+			#endif
 				input.Buttons |= BUTTON_SQUARE; //Pressed!
 				break;
+			#ifndef SDL2
 			case SDLK_KP6: //CIRCLE?
+			#else
+			case SDLK_KP_6: //CIRCLE?
+			#endif
 				input.Buttons |= BUTTON_CIRCLE; //Pressed!
 				break;
+			#ifndef SDL2
 			case SDLK_KP2: //CROSS?
+			#else
+			case SDLK_KP_2: //CROSS?
+			#endif
 				input.Buttons |= BUTTON_CROSS; //Pressed!
 				break;
 			//Special emulator shortcuts!
@@ -2493,7 +2560,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				//SDL2?
 				INLINEREGISTER int key;
 				key = emu_keys_sdl_rev(event->key.keysym.sym); //Load the index to use!
-				if ((key = emu_keys_sdl_rev[index]) != -1) //Valid key?
+				if (key != -1) //Valid key?
 				{
 					emu_keys_state[key] = 1; //We're pressed from now on, not released!
 					if (input_enabled && ALLOW_INPUT) //Input enabled? Then we allow key presses!
@@ -2510,7 +2577,7 @@ void updateInput(SDL_Event *event) //Update all input!
 	//Joystick events
 	case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
 		#ifdef SDL2
-			if (getjoystick(joystick) && (event->jaxis.which == whatJoystick)) { //Current stick?
+			if (event->jaxis.which == whatJoystick) { //Current stick?
 		#endif
 		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
@@ -2563,7 +2630,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_JOYHATMOTION: /* Handle joy hat motion */
 		#ifdef SDL2
-				if (getjoystick(joystick) && (event->jaxis.which == whatJoystick)) { //Current stick?
+			if (event->jaxis.which == whatJoystick) { //Current stick?
 		#endif
 		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
@@ -2616,7 +2683,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
 		#ifdef SDL2
-			if (joystick && event->jaxis.which == SDL_JoystickInstanceID(joystick)) { //Current stick?
+			if (event->jaxis.which == whatJoystick) { //Current stick?
 		#endif
 		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
@@ -2718,7 +2785,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
 		#ifdef SDL2
-			if (joystick && event->jaxis.which == SDL_JoystickInstanceID(joystick)) { //Current stick?
+			if (event->jaxis.which == whatJoystick) { //Current stick?
 		#endif
 		joysticktype = getjoystick(joystick,whatJoystick); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
@@ -2932,6 +2999,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		EMU_Shutdown(1); //Request a shutdown!
 		unlock(LOCK_INPUT);
 		break;
+	#ifndef SDL2
 	case SDL_ACTIVEEVENT: //Window event?
 		lock(LOCK_INPUT);
 		if (event->active.state&SDL_APPMOUSEFOCUS)
@@ -2948,7 +3016,34 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		unlock(LOCK_INPUT);
 		break;
-	#ifdef SDL2
+	#else
+	case SDL_WINDOWEVENT: //SDL2 window event!
+		switch (event->window.event) //What event?
+		{
+			case SDL_WINDOWEVENT_MINIMIZED:
+				haswindowactive = 0; //Iconified!
+				break;
+			case SDL_WINDOWEVENT_RESTORED:
+				haswindowactive = 1; //Restored!
+				break;
+			case SDL_WINDOWEVENT_FOCUS_GAINED:
+				hasinputfocus = 1; //Input focus!
+				break;
+			case SDL_WINDOWEVENT_FOCUS_LOST:
+				hasinputfocus = 0; //Lost input focus!
+				break;
+			case SDL_WINDOWEVENT_ENTER:
+				hasmousefocus = 1; //Mouse focus!
+				break;
+			case SDL_WINDOWEVENT_LEAVE:
+				hasmousefocus = 0; //Lost mouse focus!
+				break;
+			case SDL_WINDOWEVENT_CLOSE:
+				break;
+			default: //Unknown event?
+				break;
+		}
+		break;
 	case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
 		haswindowactive = 0; //We're iconified! This also prevents drawing! This is critical!
 		break;
@@ -3008,12 +3103,16 @@ int SDLCALL myEventFilter(void *userdata, SDL_Event * event)
 {
 	//Emergency calls! Immediately update!
 	updateInput(event); //Handle this immediately!
+	// etc
+	return 1;
 }
 #endif
 
 void psp_input_init()
 {
+	#ifndef SDL2
 	uint_32 i;
+	#endif
 	#ifdef SDL_SYS_JoystickInit
 		//Gotten initialiser for joystick?
 		if (SDL_SYS_JoystickInit()==-1) quitemu(0); //No joystick present!
@@ -3034,10 +3133,13 @@ void psp_input_init()
 		++i; //Next!
 	}
 	#endif
+	#ifndef SDL2
+	//SDL2 doesn't support key repeating!
 	#ifdef __DEBUG_INPUT
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,SDL_DEFAULT_REPEAT_INTERVAL); //Repeat pressed keys for logging!
 	#else
 	SDL_EnableKeyRepeat(0,0); //Don't repeat pressed keys: this isn't required while using normal input without logging!
+	#endif
 	#endif
 	keyboard_mousetiming = mouse_ticktiming = 0.0f; //Initialise mouse timing!
 	#ifdef SDL2

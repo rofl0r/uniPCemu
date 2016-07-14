@@ -85,6 +85,9 @@ void activeThread(uint_32 threadid, ThreadParams_p thread)
 
 void terminateThread(uint_32 thid) //Terminate the thread!
 {
+	#ifdef SDL2
+	int result;
+	#endif
 	//dolog("threads","terminateThread: Terminating thread: %x",thid);
 	SDL_Thread *thread=NULL;
 	int thnr;
@@ -98,7 +101,7 @@ void terminateThread(uint_32 thid) //Terminate the thread!
 		#ifndef SDL2
 		SDL_KillThread(thread); //Kill this thread when supported!
 		#else
-		SDL_WaitThread(thread); //Wait for the thread to finish normally!
+		SDL_WaitThread(thread,&result); //Wait for the thread to finish normally!
 		#endif
 	}
 	//sceKernelTerminateDeleteThread(thid); //Exit and delete myself!
@@ -316,7 +319,11 @@ ThreadParams_p startThread(Handler thefunc, char *name, void *params) //Start a 
 	uint_32 thid; //The thread ID!
 	//dolog("threads","startThread: createThread...");
 	docreatethread: //Try to start a thread!
+	#ifndef SDL2
 	threadparams->thread = SDL_CreateThread(threadhandler,threadparams); //Create the thread!
+	#else
+	threadparams->thread = SDL_CreateThread(threadhandler,name,threadparams); //Create the thread!
+	#endif
 	//params->allowthreadrunning  = 1; //Allow the thread to run!
 	
 	if (!threadparams->thread) //Failed to create?

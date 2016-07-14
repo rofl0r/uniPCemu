@@ -9,8 +9,8 @@
 #include "SDL_events.h" //SDL events!
 #else
 //SDL2?
-#include "SDL2.h" //SDL library for windows!
-#include "SDL2_events.h" //SDL events!
+#include "SDL.h" //SDL library for windows!
+#include "SDL_events.h" //SDL events!
 #endif
 
 //Convert the current info to support Visual C++ vs MinGW/GNU detection!

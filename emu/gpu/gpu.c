@@ -80,7 +80,6 @@ void updateWindow(word xres, word yres, uint_32 flags)
 			SDL_PIXELFORMAT_ARGB8888,
 			SDL_TEXTUREACCESS_STREAMING,
 			xres, yres); //The texture we use!
-		}
 		#endif
 	}
 }
@@ -143,14 +142,25 @@ SDL_Surface *getGPUSurface()
 	if (yres < miny) yres = miny; //Minimum height!
 
 	uint_32 flags = SDL_SWSURFACE; //Default flags!
+	#ifndef SDL2
 	if (GPU.fullscreen) flags |= SDL_FULLSCREEN; //Goto fullscreen mode!
+	#else
+	if (GPU.fullscreen) flags |= SDL_WINDOW_FULLSCREEN; //Goto fullscreen mode!
+	#endif
 
 	updateWindow(xres,yres,flags); //Update the window resolution if needed!
 
 	if (firstwindow)
 	{
 		firstwindow = 0; //Not anymore!
+		#ifndef SDL2
 		SDL_WM_SetCaption( "x86EMU", 0 ); //Initialise our window title!
+		#else
+		if (sdlWindow) //Gotten a window?
+		{
+			SDL_SetWindowTitle(sdlWindow,"x86EMU"); //Initialise our window title!
+		}
+		#endif
 	}
 	GPU_text_updatedelta(originalrenderer); //Update delta if needed, so the text is at the correct position!
 	#endif
