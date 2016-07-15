@@ -136,6 +136,9 @@ void CB_updatevectoroffsets(uint_32 intnr, word offset)
 	}
 }
 
+//The size of a callback instruction!
+#define CALLBACKSIZE 6
+
 void CB_createcallback(byte isVGA, word callback, word *offset) //Create VGA/BIOS callback!
 {
 	word addrmask = isVGA?0x7FFF:0xFFFF; //The mask to use!
@@ -410,7 +413,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		++dataoffset; //Word address!
 		write_BIOSw(incoffset, CB_datasegment); //... Our interrupt handler, as a function call!
 		++dataoffset; //Word address!
-		EMU_BIOS[incoffset] = 0xCF; //RETI: We're an interrupt handler!
+		EMU_BIOS[incoffset] = 0xCF; //IRET: We're an interrupt handler!
 
 		EMU_BIOS[incoffset] = (Bit8u)0x50;			// push ax
 		write_BIOSw(incoffset,(Bit16u)0x60e4);		// in al, 0x60
@@ -421,7 +424,7 @@ void addCBHandler(byte type, Handler CBhandler, uint_32 intnr) //Add a callback!
 		write_BIOSw(incoffset,(Bit16u)0x15cd);		// int 15
 		++dataoffset;
 		//if (use_cb) {
-			write_BIOSw(incoffset,(Bit16u)0x0473);	// jc skip
+			write_BIOSw(incoffset,((Bit16u)0x73)|(CALLBACKSIZE<<8));	// jnc skip: Clearing the carry flag leaves the translation to int15h!
 			++dataoffset;
 			CB_createcallback(0,curhandler,&dataoffset); //Create our callback!
 			// jump here to (skip):

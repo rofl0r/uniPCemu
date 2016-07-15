@@ -146,7 +146,7 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	addCBHandler(CB_INTERRUPT, &BIOS_int11, 0x11); //Interrupt 11h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int12, 0x12); //Interrupt 12h overrideable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int13, 0x13); //Interrupt 13h overrideable handler!
-	addCBHandler(CB_INTERRUPT_MISCBIOS, &BIOS_int15, 0x15); //Interrupt 15h overrideable handler!
+	addCBHandler(CB_INTERRUPT, &BIOS_int15, 0x15); //Interrupt 15h overrideable handler!
 	addCBHandler(CB_INTERRUPT_BOOT, &BIOS_int18, 0x18); //Interrupt 18h overridable handler!
 	addCBHandler(CB_INTERRUPT, &BIOS_int1A, 0x1A); //Interrupt 1Ah overridable handler!
 	addCBHandler(CB_IRET,NULL,0x14); //Async communication services to IRET!

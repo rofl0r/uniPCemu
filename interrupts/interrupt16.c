@@ -502,7 +502,7 @@ void INT16_Handler() {
 		break;
 	case 0x01: /* CHECK FOR KEYSTROKE */
 		// enable interrupt-flag after IRET of this int16
-		MMU_ww(CPU_SEGMENT_SS,REG_SS,REG_SP+4,(MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_SP+4,0) | FLAG_IF));
+		CALLBACK_SIF(1); //Set the resultant Interrupt Flag to 1!
 		for (;;) {
 			if (check_key(&temp)) {
 				if (!IsEnhancedKey(&temp)) {

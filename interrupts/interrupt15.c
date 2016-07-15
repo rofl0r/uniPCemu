@@ -42,6 +42,7 @@ void BIOS_int15()
 		}
 		break;
 	case 0x4F: //Translate scan code?
+		CALLBACK_SCF(1); //Set carry flag to indicate translating the scan code normally(let the BIOS process the scan code)!
 		goto invalidfunction; //Count as invalid function!
 		break;
 	default: //Unknown function?
