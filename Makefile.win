@@ -64,8 +64,15 @@ endif
 CFLAGS = -std=c99 ${WARNS} -mno-ms-bitfields
 
 ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
-#SDL2 functions&libs instead! Link statically!
+#SDL2 functions&libs instead! Link statically?
+ifneq (,$(findstring SDL2static,$(MAKECMDGOALS)))
 LDFLAGS = -static -lmingw32 -lSDL2main -lSDL2 -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc
+endif
+ifeq (,$(findstring SDL2static,$(MAKECMDGOALS)))
+#Link dynamically?
+LDFLAGS = -lmingw32 -lSDL2main -lSDL2
+endif
+#Flags always set for compiling with SDL2(for the code compilation itself)!
 CFLAGS := $(CFLAGS) -DSDL2
 endif
 
