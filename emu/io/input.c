@@ -2145,9 +2145,7 @@ OPTINLINE byte getjoystick(SDL_Joystick *joystick, int_32 which) //Are we a supp
 	#ifdef IS_PSP
 		return 1; //Is PSP always!
 	#endif
-	#ifndef SDL2
-	if ((which!=-1) && (whatJoystick!=which)) return 0; //Not our joystick!
-	#else
+	#ifdef SDL2
 	if ((which!=-1) && (SDL_JoystickInstanceID(joystick)!=which)) return 0; //Not our joystick!
 	#endif
 	memset(name,0,sizeof(name)); //Init!
@@ -2992,7 +2990,10 @@ void updateInput(SDL_Event *event) //Update all input!
 		quitting:
 		#endif
 		lock(LOCK_INPUT);
-		SDL_JoystickClose(joystick); //Finish our joystick: we're not using it anymore!
+		if (joystick) //Gotten a joystick connected?
+		{
+			SDL_JoystickClose(joystick); //Finish our joystick: we're not using it anymore!
+		}
 		EMU_Shutdown(1); //Request a shutdown!
 		unlock(LOCK_INPUT);
 		break;
