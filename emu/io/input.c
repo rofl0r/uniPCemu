@@ -2145,7 +2145,11 @@ OPTINLINE byte getjoystick(SDL_Joystick *joystick, int_32 which) //Are we a supp
 	#ifdef IS_PSP
 		return 1; //Is PSP always!
 	#endif
+	#ifndef SDL2
+	if ((which!=-1) && (whatJoystick!=which)) return 0; //Not our joystick!
+	#else
 	if ((which!=-1) && (SDL_JoystickInstanceID(joystick)!=which)) return 0; //Not our joystick!
+	#endif
 	memset(name,0,sizeof(name)); //Init!
 	#ifndef SDL2
 	memcpy(name,SDL_JoystickName(whatJoystick),MIN(strlen(SDL_JoystickName(whatJoystick)),sizeof(name)-1)); //Get the joystick name, with max length limit!
@@ -2178,7 +2182,11 @@ void disconnectJoystick(int_32 index)
 {
 	if (joystick) //A joystick is connected?
 	{
+		#ifndef SDL2
+		if (whatJoystick == index) //Our joystick is disconnected?
+		#else
 		if (SDL_JoystickInstanceID(joystick) == index) //Our joystick is disconnected?
+		#endif
 		{
 			lock(LOCK_INPUT); //We're clearing all our relevant data!
 			SDL_JoystickClose(joystick); //Disconnect our joystick!
@@ -2204,10 +2212,12 @@ void connectJoystick(int index)
 	}
 	lock(LOCK_INPUT);
 	joystick = SDL_JoystickOpen(index); //Open the new joystick as new input device!
+	#ifdef SDL2
 	if (joystick) //Loaded?
 	{
 		whatJoystick = SDL_JoystickInstanceID(joystick); //Set our joystick to this joystick!
 	}
+	#endif
 	unlock(LOCK_INPUT);
 }
 
@@ -2978,7 +2988,9 @@ void updateInput(SDL_Event *event) //Update all input!
 
 	//Misc system events
 	case SDL_QUIT: //Quit?
+		#ifdef SDL2
 		quitting:
+		#endif
 		lock(LOCK_INPUT);
 		SDL_JoystickClose(joystick); //Finish our joystick: we're not using it anymore!
 		EMU_Shutdown(1); //Request a shutdown!
