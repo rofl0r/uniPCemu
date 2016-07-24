@@ -25,7 +25,7 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 #define FREEMEMALLOC (MBMEMORY+(5*(PSP_SCREEN_COLUMNS*PSP_SCREEN_ROWS*sizeof(uint_32))))
 
 //What file to use for saving the BIOS!
-#define BIOS_FILE "BIOS.DAT"
+#define BIOS_FILE "SETTINGS.DAT"
 //Default values for new BIOS settings:
 #define DEFAULT_BOOT_ORDER 0
 #define DEFAULT_CPU CPU_NECV30
@@ -59,7 +59,7 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	BIOS_Settings.memory = memoryblocks * MEMORY_BLOCKSIZE; //Whole blocks of memory only!
 	if (!memoryblocks) //Not enough memory (at least 16KB required)?
 	{
-		raiseError("BIOS","Ran out of enough memory to use! Free memory: ",BIOS_Settings.memory); //Show error&quit: not enough memory to work with!
+		raiseError("Settings","Ran out of enough memory to use! Free memory: ",BIOS_Settings.memory); //Show error&quit: not enough memory to work with!
 		sleep(); //Wait forever!
 	}
 	//dolog("BIOS","Detected memory: %i bytes",BIOS_Settings.memory);
@@ -76,7 +76,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 {
 	if (exec_showchecksumerrors)
 	{
-		printmsg(0xF,"\r\nBIOS Checksum Error. "); //Checksum error.
+		printmsg(0xF,"\r\nSettings Checksum Error. "); //Checksum error.
 	}
 	
 	uint_32 oldmem = BIOS_Settings.memory; //Memory installed!
@@ -182,7 +182,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	if (bytesread!=sizeof(CheckSum) || feof(f)) //Not read?
 	{
 		fclose(f); //Close!
-		dolog("BIOS","Error reading BIOS settings checksum.");
+		dolog("Settings","Error reading settings checksum.");
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults!
 	}
@@ -193,7 +193,7 @@ void BIOS_LoadData() //Load BIOS settings!
 
 	if (bytestoread > sizeof(BIOS_Settings)) //Incompatible BIOS: we're newer than what we have?
 	{
-		dolog("BIOS","Error: BIOS settings data is too large (Maximum: %i bytes, Actually: %i bytes).",sizeof(BIOS_Settings),bytestoread);
+		dolog("Settings","Error: Settings data is too large (Maximum: %i bytes, Actually: %i bytes).",sizeof(BIOS_Settings),bytestoread);
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults because 
 	}
@@ -206,14 +206,14 @@ void BIOS_LoadData() //Load BIOS settings!
 //Verify the checksum!
 	if (bytesread != bytestoread) //Error reading data?
 	{
-		dolog("BIOS","Error: BIOS settings data to read doesn't match bytes read.");
+		dolog("Settings","Error: Settings data to read doesn't match bytes read.");
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults!
 	}
 
 	if (CheckSum!=BIOS_getChecksum()) //Checksum fault?
 	{
-		dolog("BIOS","Error: Invalid BIOS settings checksum.");
+		dolog("Settings","Error: Invalid settings checksum.");
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults!
 	}
@@ -221,7 +221,7 @@ void BIOS_LoadData() //Load BIOS settings!
 
 	if (BIOS_Settings.version!=BIOS_VERSION) //Not compatible with our version?
 	{
-		dolog("BIOS","Error: Invalid BIOS settings version.");
+		dolog("Settings","Error: Invalid settings version.");
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults because 
 	}
@@ -488,7 +488,7 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 
 	if (numdrives==0) //No drives?
 	{
-		printmsg(0x4,"Warning: no drives have been detected!\r\nPlease enter BIOS and specify some disks.\r\n");
+		printmsg(0x4,"Warning: no drives have been detected!\r\nPlease enter settings and specify some disks.\r\n");
 	}
 }
 

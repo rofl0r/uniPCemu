@@ -354,7 +354,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		delay(200000); //Wait a bit before showing on-screen!
 
 		lock(LOCK_MAINTHREAD);
-		printmsg(0xF, "x86 EMU\r\n");
+		printmsg(0xF, "UniPCemu\r\n");
 		printmsg(0xF, "\r\n"); //A bit of whitespace before output!
 #endif
 

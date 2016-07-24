@@ -274,7 +274,7 @@ byte BIOS_printopentext(uint_32 timeout)
 	{
 		GPU_text_locksurface(BIOS_Surface);
 		GPU_textgotoxy(BIOS_Surface,0,0); //Goto our location!
-		result = GPU_textprintfclickable(BIOS_Surface,getemucol16(0xE),getemucol16(0x0), "Press SELECT to bring out the BIOS");
+		result = GPU_textprintfclickable(BIOS_Surface,getemucol16(0xE),getemucol16(0x0), "Press SELECT to bring out the Settings menu");
 		GPU_text_releasesurface(BIOS_Surface);
 	}
 	return result; //Give the result!
@@ -371,7 +371,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	if (showloadingtext) //Not in emulator?
 	{
 		EMU_textcolor(0xF);
-		printmsg(0xF,"\r\nLoading BIOS...");
+		printmsg(0xF,"\r\nLoading Settings...");
 		delay(500000); //0.5 sec!
 	}
 
@@ -407,7 +407,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 			BIOS_clearscreen(); //Clear the screen!
 			EMU_gotoxy(0,0); //First column,row!
 			EMU_textcolor(0xF);
-			GPU_EMU_printscreen(0,0,"Error: couldn't save the BIOS!");
+			GPU_EMU_printscreen(0,0,"Error: couldn't save the settings!");
 			EMU_unlocktext();
 			delay(5000000); //Wait 5 sec before rebooting!
 		}
@@ -420,7 +420,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 				EMU_locktext();
 				EMU_gotoxy(0,0); //First column,row!
 				EMU_textcolor(0xF);
-				GPU_EMU_printscreen(0,0,"BIOS Saved!");
+				GPU_EMU_printscreen(0,0,"Settings Saved!");
 				EMU_unlocktext();
 				delay(2000000); //Wait 2 sec before rebooting!
 			}
@@ -429,7 +429,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 				EMU_locktext();
 				EMU_gotoxy(0,0); //First column,row!
 				EMU_textcolor(0xF);
-				GPU_EMU_printscreen(0,0,"BIOS Saved (Returning to the emulator)!"); //Info!
+				GPU_EMU_printscreen(0,0,"Settings Saved (Returning to the emulator)!"); //Info!
 				EMU_unlocktext();
 				delay(2000000); //Wait 2 sec!
 			}
@@ -441,7 +441,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 		EMU_locktext();
 		EMU_gotoxy(0,0);
 		EMU_textcolor(0xF);
-		GPU_EMU_printscreen(0,0,"BIOS Discarded!"); //Info!
+		GPU_EMU_printscreen(0,0,"Settings Discarded!"); //Info!
 		EMU_unlocktext();
 		BIOS_LoadData(); //Reload!
 		delay(2000000); //Wait 2 sec!
@@ -521,7 +521,7 @@ void BIOSClearScreen() //Resets the BIOS's screen!
 	GPU_text_locksurface(frameratesurface);
 	GPU_textclearscreen(frameratesurface); //Make sure the surface is empty for a neat BIOS!
 	GPU_text_releasesurface(frameratesurface);
-	char BIOSText[] = "x86 BIOS"; //The BIOS's text!
+	char BIOSText[] = "UniPCemu Settings"; //The BIOS's text!
 	//cursorXY(0,0,0); //Goto top of the screen!
 
 	EMU_textcolor(BIOS_ATTR_TEXT); //Plain text!
@@ -1515,7 +1515,7 @@ void BIOS_InitAdvancedText()
 	}
 
 	optioninfo[advancedoptions] = 6; //Select BIOS Font!
-	strcpy(menuoptions[advancedoptions], "BIOS Font: ");
+	strcpy(menuoptions[advancedoptions], "Settings menu Font: ");
 	strcat(menuoptions[advancedoptions++], ActiveBIOSPreset.name); //BIOS font selected!
 }
 
@@ -1610,14 +1610,14 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		optioninfo[advancedoptions] = 3; //Restart emulator option!
 		strcpy(menuoptions[advancedoptions++], "Restart emulator"); //Restart emulator option!
 		optioninfo[advancedoptions] = 4; //Restart emulator and enter BIOS menu option!
-		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter BIOS menu"); // Restart emulator and enter BIOS menu option!
+		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter Settings menu"); // Restart emulator and enter BIOS menu option!
 	}
 	
 	
 	if (!EMU_RUNNING) //Emulator isn't running?
 	{
 		optioninfo[advancedoptions] = 2; //Load defaults option!
-		strcpy(menuoptions[advancedoptions++],"Load BIOS defaults"); //Load defaults option!
+		strcpy(menuoptions[advancedoptions++],"Load Setting defaults"); //Load defaults option!
 	}
 
 	int menuresult = BIOS_ShowMenu(advancedoptions,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Plain menu, allow L&R triggers!
@@ -2880,7 +2880,7 @@ void BIOS_FontSetting()
 	BIOS_Title("Font");
 	EMU_locktext();
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
-	GPU_EMU_printscreen(0,4,"BIOS Font: "); //Show selection init!
+	GPU_EMU_printscreen(0,4,"Settings menu Font: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
 	numlist = NUMITEMS(BIOSMenu_Fonts); //Ammount of Direct modes!
@@ -2903,7 +2903,7 @@ void BIOS_FontSetting()
 		BIOS_Settings.BIOSmenu_font = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int font = ExecuteList(11,4,itemlist[current],256,NULL); //Show options for the installed CPU!
+	int font = ExecuteList(21,4,itemlist[current],256,NULL); //Show options for the installed CPU!
 	switch (font) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -3405,7 +3405,7 @@ void BIOS_addColorText(char *s, byte color)
 	}
 	else
 	{
-		strcat(s, "<UNKNOWN. CHECK BIOS VERSION>"); //Set color from options!
+		strcat(s, "<UNKNOWN. CHECK SETTINGS VERSION>"); //Set color from options!
 	}
 }
 
@@ -4156,7 +4156,7 @@ void BIOS_InitCPUText()
 		strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!
 		break;
 	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>"); //Add uninstalled CPU!
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>"); //Add uninstalled CPU!
 		break;
 	}
 setDataBusSize: //For fixing it!
@@ -4235,7 +4235,7 @@ setShowCPUSpeed:
 		strcat(menuoptions[advancedoptions++], "Run sound test"); //Set filename from options!
 		break;
 	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>");
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>");
 		break;
 	}
 
@@ -4256,7 +4256,7 @@ setShowCPUSpeed:
 		strcat(menuoptions[advancedoptions++], "Enabled, just run, ignore shoulder buttons"); //Set filename from options!
 		break;
 	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK BIOS VERSION>");
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>");
 		break;
 	}
 

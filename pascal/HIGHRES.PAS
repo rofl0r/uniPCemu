@@ -1,5 +1,5 @@
 Program Highres256;
-uses dos,crt,x86EMU;
+uses dos,crt,UniPCemu;
 
 var
   id: string;

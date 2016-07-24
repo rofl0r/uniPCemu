@@ -6,7 +6,7 @@
 #define __HW_DISABLED 0
 
 //Identifier readback!
-char debugger_identifier[20] = "COMMAND:SFHB_x86EMU"; //Our identifier during standard debugger operations!
+char debugger_identifier[20] = "COMMAND:SFHB_UniPCemu"; //Our identifier during standard debugger operations!
 //Written back debugger data!
 
 typedef struct

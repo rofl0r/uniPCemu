@@ -1,5 +1,5 @@
 #Define our default building directory and executable name/title for all output files!
-BUILD_NAME = x86EMU
+BUILD_NAME = UniPCemu
 
 #Now, our modules!
 
