@@ -336,7 +336,7 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 	if (timeout)
 	{
 		EMU_locktext();
-		GPU_EMU_printscreen(0,0,"                                  "); //Clear our text!
+		GPU_EMU_printscreen(0,0,"                                           "); //Clear our text!
 		EMU_unlocktext();
 	}
 	return 0; //No reset!
