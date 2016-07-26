@@ -54,7 +54,6 @@ double renderTimeout = 1000000000.0f/GPU_FRAMERATE; //60Hz refresh!
 #ifdef SDL2
 SDL_Window *sdlWindow = NULL;
 SDL_Renderer *sdlRenderer = NULL;
-SDL_Texture *sdlTexture = NULL;
 #endif
 
 void updateWindow(word xres, word yres, uint_32 flags)
@@ -67,11 +66,6 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		//SDL1?
 		originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 		#else
-		if (sdlTexture)
-		{
-			SDL_DestroyTexture(sdlTexture);
-			sdlTexture = NULL; //Nothing!
-		}
 		if (sdlRenderer)
 		{
 			SDL_DestroyRenderer(sdlRenderer);
@@ -81,9 +75,9 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		{
 			rendersurface = freeSurface(rendersurface); //Release our rendering surface!
 		}
-		if ((!sdlWindow)) //We don't have a window&renderer yet?
+		if (!sdlWindow) //We don't have a window&renderer yet?
 		{
-			sdlWindow = SDL_CreateWindow("x86EMU", SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,xres,yres,SDL_WINDOW_SHOWN); //Create the window and renderer we use at our resolution!
+			sdlWindow = SDL_CreateWindow("x86EMU", SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,xres,yres,SDL_WINDOW_SHOWN); //Create the window and renderer we use at our resolution!
 		}
 		else
 		{
@@ -91,26 +85,19 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		}
 		if (sdlWindow) //Gotten a window?
 		{
-			if (!sdlRenderer) //No renderer yet?
+			originalrenderer = SDL_GetWindowSurface(sdlWindow); //Get the surface to work with!
+			if (originalrenderer) //Gotten a surface?
 			{
-				sdlRenderer = SDL_CreateRenderer(sdlWindow,0,0);
+				sdlRenderer = SDL_CreateSoftwareRenderer(originalrenderer); //Get the renderer we've just created!
 			}
 		}
 
 		if (sdlRenderer) //Gotten a renderer?
 		{
-			SDL_RenderSetLogicalSize(sdlRenderer,window_xres,window_yres); //Set the new resolution!
-			sdlTexture = SDL_CreateTexture(sdlRenderer,
-				SDL_PIXELFORMAT_ARGB8888,
-				SDL_TEXTUREACCESS_STREAMING,
-				xres, yres); //The texture we use!
+			/* Clear the rendering surface with the specified color */
+			SDL_SetRenderDrawColor(sdlRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+			SDL_RenderClear(sdlRenderer);
 		}
-
-		originalrenderer = SDL_CreateRGBSurface(0, window_xres, window_yres, 32,
-			0x00FF0000,
-			0x0000FF00,
-			0x000000FF,
-			0xFF000000); //The SDL Surface we render to!
 		#endif
 	}
 }

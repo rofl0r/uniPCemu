@@ -731,7 +731,11 @@ GPU_SDL_Surface *createSurface(int columns, int rows) //Create a new 32BPP surfa
 {
 	uint_32 thermask=0,thegmask=0,thebmask=0,theamask=0; //Masks!
 	loadByteOrder(&rmask,&gmask,&bmask,&amask); //Load our masks!
+	#ifndef SDL2
 	SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE,columns,rows, 32, thermask,thegmask,thebmask,theamask); //Try to create it!
+	#else
+	SDL_Surface *surface = SDL_CreateRGBSurface(0,columns,rows, 32, thermask,thegmask,thebmask,theamask); //Try to create it!
+	#endif
 	if (!surface) //Failed to allocate?
 	{
 		return NULL; //Not allocated: we've failed to allocate the pointer!
@@ -780,7 +784,6 @@ GPU_SDL_Surface *freeSurface(GPU_SDL_Surface *surface)
 #ifdef SDL2
 extern SDL_Window *sdlWindow;
 extern SDL_Renderer *sdlRenderer;
-extern SDL_Texture *sdlTexture;
 #endif
 
 //Draw the screen with a surface.
@@ -800,17 +803,9 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 				#else
 				//SDL2!
 				// Update the texture based on the pixels to be displayed!
-				SDL_UpdateTexture(sdlTexture, NULL, *getlayerpixels(surface), (get_pixelrow_pitch(surface)<<2));
-				// Select the color for drawing. It is set to black here.
-				SDL_SetRenderDrawColor(sdlRenderer, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
-				// Clear the entire screen to our selected color.
-				SDL_RenderClear(sdlRenderer);
-				// Copy over our display!
-				SDL_RenderCopy(sdlRenderer, sdlTexture, NULL, NULL);
-
-				// Up until now everything was drawn behind the scenes.
-				// This will show the new contents of the window.
-				SDL_RenderPresent(sdlRenderer);
+				/* Got everything on rendering surface,
+				now Update the drawing image on window screen */
+				SDL_UpdateWindowSurface(sdlWindow);
 				#endif
 				if (SDL_MUSTLOCK(surface->sdllayer)) SDL_UnlockSurface(surface->sdllayer); //Unlock the surface when required!
 			}
