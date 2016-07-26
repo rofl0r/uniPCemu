@@ -99,13 +99,14 @@ void updateWindow(word xres, word yres, uint_32 flags)
 
 		if (sdlRenderer) //Gotten a renderer?
 		{
+			SDL_RenderSetLogicalSize(sdlRenderer,window_xres,window_yres); //Set the new resolution!
 			sdlTexture = SDL_CreateTexture(sdlRenderer,
 				SDL_PIXELFORMAT_ARGB8888,
 				SDL_TEXTUREACCESS_STREAMING,
 				xres, yres); //The texture we use!
 		}
 
-		originalrenderer = SDL_CreateRGBSurface(0, xres, yres, 32,
+		originalrenderer = SDL_CreateRGBSurface(0, window_xres, window_yres, 32,
 			0x00FF0000,
 			0x0000FF00,
 			0x000000FF,
@@ -210,7 +211,8 @@ SDL_Surface *getGPUSurface()
 		if (!amask) //No alpha supported?
 		{
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-			amask = ashift = 0; //Default position!
+			amask = 0xFF;
+			ashift = 0; //Default position!
 #else
 			amask = 0xFF000000; //High part!
 			ashift = 24; //Shift by 24 bits to get alpha!

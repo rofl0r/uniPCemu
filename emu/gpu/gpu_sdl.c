@@ -391,7 +391,7 @@ OPTINLINE void matchColorKeys(const GPU_SDL_Surface* src, GPU_SDL_Surface* dest 
 		SDL_SetColorKey( dest->sdllayer, SDL_SRCCOLORKEY, colorkey );
 		#else
 		//SDL2?
-		SDL_SetColorKey( dest->sdllayer, SDL_TRUE, SDL_MapRGB(src->sdllayer->format,0x00,0x00,0x00));
+		SDL_SetColorKey( dest->sdllayer, SDL_TRUE, SDL_MapRGBA(src->sdllayer->format,0xFF,0xFF,0xFF,0xFF));
 		#endif
 	}
 }
@@ -454,7 +454,7 @@ byte resizeImage( GPU_SDL_Surface *img, GPU_SDL_Surface **dstimg, const uint_32 
 	{
 		return 0; //Nothin to resize is nothing back!
 	}
-	if ((!getlayerwidth(img)) || (!getlayerheight(img)) || (!newwidth) || (!newheight)) //No size to resize?
+	if ((!getlayerwidth(img)) || (!getlayervirtualwidth(img)) || (!getlayerheight(img)) || (!newwidth) || (!newheight)) //No size to resize?
 	{
 		return 0; //Nothing to resize!
 	}
@@ -519,7 +519,7 @@ uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference betwee
 uint_32 get_pixel(GPU_SDL_Surface* surface, const int x, const int y ){
 	if (!surface) return 0; //Disable if no surface!
 	Uint32 *pixels = (Uint32*)getlayerpixels(surface);
-	if (((y * get_pixelrow_pitch(surface) ) + x)<((getlayerwidth(surface)*getlayerheight(surface))<<2)) //Valid?
+	if (((y * get_pixelrow_pitch(surface) ) + x)<((get_pixelrow_pitch(surface)*getlayerheight(surface))<<2)) //Valid?
 	{
 		return pixels[ ( y * get_pixelrow_pitch(surface) ) + x ];
 	}
@@ -532,7 +532,7 @@ byte check_surface(GPU_SDL_Surface *surface)
 	if (!surface) return 0; //Disable if no surface!
 	if (!memprotect(surface, sizeof(*surface), NULL)) return 0; //Invalid surface!
 	if (!memprotect(surface->sdllayer, sizeof(*surface->sdllayer), NULL)) return 0; //Invalid layer!
-	if (!memprotect(surface->sdllayer->pixels,(getlayerheight(surface)*getlayerwidth(surface))<<2,NULL)) return 0; //Invalid pixels!
+	if (!memprotect(surface->sdllayer->pixels,(getlayerheight(surface)*getlayervirtualwidth(surface))<<2,NULL)) return 0; //Invalid pixels!
 	return 1; //Valid surface!
 }
 
@@ -614,8 +614,8 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 				uint_32 *row = get_pixel_row(surface,y,0); //Row at the left!
 				if (row && (surface->sdllayer!=(SDL_Surface *)0xFFFFFFFF)) //Gotten the row (valid row?)
 				{
-					uint_32 restpixels = (getlayerwidth(surface))-use_rowsize; //Rest ammount of pixels!
-					uint_32 start = (getlayerwidth(surface)>>1) - (use_rowsize>>1); //Start of the drawn part!
+					uint_32 restpixels = (getlayervirtualwidth(surface))-use_rowsize; //Rest ammount of pixels!
+					uint_32 start = (getlayervirtualwidth(surface)>>1) - (use_rowsize>>1); //Start of the drawn part!
 					switch (center&3) //What centering method?
 					{
 					case 2: //Right side plot?
@@ -635,7 +635,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 						}
 						break;
 					case 1: //Use horizontal centering?
-						if ((sword)getlayerwidth(surface)>(sword)(use_rowsize+2)) //We have space left&right to plot? Also must have at least 2 pixels left&right to center!
+						if ((sword)getlayervirtualwidth(surface)>(sword)(use_rowsize+2)) //We have space left&right to plot? Also must have at least 2 pixels left&right to center!
 						{
 							if (!(center&4)) //Clear enabled?
 							{
@@ -644,10 +644,10 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 									memset(row, 0, start << 2); //Clear the left!
 								}
-								if (filledmem(&row[start+use_rowsize],(getlayerwidth(surface)-(start+use_rowsize)))) //Different left or right?
+								if (filledmem(&row[start+use_rowsize],(getlayervirtualwidth(surface)-(start+use_rowsize)))) //Different left or right?
 								{
 									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-									memset(&row[start + use_rowsize], 0, (getlayerwidth(surface) - (start + use_rowsize)) << 2); //Clear the right!
+									memset(&row[start + use_rowsize], 0, (getlayervirtualwidth(surface) - (start + use_rowsize)) << 2); //Clear the right!
 								}
 							}
 							if (memdiff(&row[start], pixels, use_rowsize)) //Different?
@@ -699,12 +699,12 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 		dolog("PPR", "Rendering empty pixels because of invalid data to copy.");
 #endif
 		uint_32 *row = get_pixel_row(surface,y,0); //Row at the left!
-		if (row && getlayerwidth(surface)) //Got row?
+		if (row && getlayervirtualwidth(surface)) //Got row?
 		{
-			if (filledmem(row, getlayerwidth(surface))) //Different?
+			if (filledmem(row, getlayervirtualwidth(surface))) //Different?
 			{
 				surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-				memset(row, 0, getlayerwidth(surface) << 2); //Clear the row, because we have no pixels!
+				memset(row, 0, getlayervirtualwidth(surface) << 2); //Clear the row, because we have no pixels!
 			}
 		}
 	}
@@ -790,7 +790,7 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 	{
 		if (surface->flags&SDL_FLAG_DIRTY) //Dirty surface needs rendering only?
 		{
-			if (memprotect(surface->sdllayer,sizeof(surface->sdllayer),NULL)) //Valid?
+			if (memprotect(surface->sdllayer,sizeof(*surface->sdllayer),NULL)) //Valid?
 			{
 				//If the surface must be locked
 				if (SDL_MUSTLOCK(surface->sdllayer)) SDL_LockSurface(surface->sdllayer); //Lock the surface when required!
@@ -799,9 +799,17 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 					SDL_UpdateRect(surface->sdllayer, 0, 0, 0, 0); //Make sure we update!
 				#else
 				//SDL2!
+				// Update the texture based on the pixels to be displayed!
 				SDL_UpdateTexture(sdlTexture, NULL, *getlayerpixels(surface), (get_pixelrow_pitch(surface)<<2));
+				// Select the color for drawing. It is set to black here.
+				SDL_SetRenderDrawColor(sdlRenderer, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
+				// Clear the entire screen to our selected color.
 				SDL_RenderClear(sdlRenderer);
+				// Copy over our display!
 				SDL_RenderCopy(sdlRenderer, sdlTexture, NULL, NULL);
+
+				// Up until now everything was drawn behind the scenes.
+				// This will show the new contents of the window.
 				SDL_RenderPresent(sdlRenderer);
 				#endif
 				if (SDL_MUSTLOCK(surface->sdllayer)) SDL_UnlockSurface(surface->sdllayer); //Unlock the surface when required!
