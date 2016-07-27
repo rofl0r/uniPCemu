@@ -27,7 +27,7 @@
 #include "headers/hardware/8253.h" //PIT support!
 
 #ifdef IS_PSP
-PSP_MODULE_INFO("x86EMU", 0, 1, 0);
+PSP_MODULE_INFO("UniPCemu", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER); //Make sure we're user mode!
 PSP_HEAP_SIZE_MAX(); //Free maximum for us: need this for the memory allocation (m/zalloc)!
 #endif
@@ -137,7 +137,7 @@ int SetupCallbacks()
 #ifdef IS_PSP
 	int thid = 0;
 
-	thid = sceKernelCreateThread("X86EMU_ExitThread", CallbackThread, EXIT_PRIORITY, 0xFA0, 0, 0); //Create thread at highest priority!
+	thid = sceKernelCreateThread("UniPCemu_ExitThread", CallbackThread, EXIT_PRIORITY, 0xFA0, 0, 0); //Create thread at highest priority!
 	if(thid >= 0)
 	{
 		sceKernelStartThread(thid, 0, 0);
@@ -286,7 +286,7 @@ int main(int argc, char * argv[])
 	if (DELETE_BMP_ONBOOT) delete_file("captures","*.bmp"); //Delete any bitmaps still there!
 	
 	#ifdef IS_PSP
-		if (FILE_EXISTS("logs/profiler.txt")) //Enable profiler: doesn't work in x86EMU?
+		if (FILE_EXISTS("logs/profiler.txt")) //Enable profiler: doesn't work in UniPCemu?
 		{
 			// Clear the existing profile regs
 			pspDebugProfilerClear();

@@ -7,6 +7,10 @@ ifneq (,$(findstring win,$(MAKECMDGOALS)))
 PLATFORM = win
 endif
 
+ifneq (,$(findstring linux,$(MAKECMDGOALS)))
+PLATFORM = linux
+endif
+
 ifeq (,$(PLATFORM))
 $(error Please specify a platform (psp or win) and action (build or clean), e.g. make win build or make win clean)
 endif
@@ -16,6 +20,6 @@ include Makefile.$(PLATFORM)
 endif
 
 #Disable parsing of the platforms themselves!
-.PHONY: psp win
+.PHONY: psp win linux
 
 rebuild: clean build

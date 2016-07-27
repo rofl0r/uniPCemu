@@ -340,20 +340,20 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IntDir>$(OutDir)\temp_debug\</IntDir>
+    <IntDir>$(ProjectDir)..\..\projects_build\$(ProjectName)\temp_debug\</IntDir>
     <IncludePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL-1.2.15\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
     <ReferencePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(ReferencePath)</ReferencePath>
     <LibraryPath>C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(LibraryPath)</LibraryPath>
-    <OutDir>..\..\projects_build\$(ProjectName)\</OutDir>
+    <OutDir>$(ProjectDir)..\..\projects_build\$(ProjectName)\</OutDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|Win32'">
-    <IntDir>$(OutDir)\temp_debug\</IntDir>
+    <IntDir>$(ProjectDir)..\..\projects_build\$(ProjectName)\temp_debug\</IntDir>
     <IncludePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL2-2.0.4\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
     <ReferencePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL2-2.0.4\VisualC\Win32\Release;$(ReferencePath)</ReferencePath>
     <LibraryPath>C:\SDL\SDL2-2.0.4\VisualC\Win32\Release;$(LibraryPath)</LibraryPath>
-    <OutDir>..\..\projects_build\$(ProjectName)\</OutDir>
+    <OutDir>$(ProjectDir)..\..\projects_build\$(ProjectName)\</OutDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
   </PropertyGroup>
@@ -361,8 +361,8 @@
     <IncludePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL-1.2.15\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
     <ReferencePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(ReferencePath)</ReferencePath>
     <LibraryPath>C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(LibraryPath)</LibraryPath>
-    <OutDir>..\..\projects_build\$(ProjectName)\</OutDir>
-    <IntDir>$(OutDir)\temp_release\</IntDir>
+    <OutDir>$(ProjectDir)..\..\projects_build\$(ProjectName)\</OutDir>
+    <IntDir>$(ProjectDir)..\..\projects_build\$(ProjectName)\temp_release\</IntDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <CodeAnalysisRuleSet>C:\Program Files (x86)\Microsoft Visual Studio 14.0\Team Tools\Static Analysis Tools\Rule Sets\NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <LinkIncremental>true</LinkIncremental>
@@ -371,8 +371,8 @@
     <IncludePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL2-2.0.4\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(IncludePath)</IncludePath>
     <ReferencePath>$(MSBuildProjectDirectory)\..;C:\SDL\SDL2-2.0.4\VisualC\Win32\Release;$(ReferencePath)</ReferencePath>
     <LibraryPath>C:\SDL\SDL2-2.0.4\VisualC\Win32\Release;$(LibraryPath)</LibraryPath>
-    <OutDir>..\..\projects_build\$(ProjectName)\</OutDir>
-    <IntDir>$(OutDir)\temp_release\</IntDir>
+    <OutDir>$(ProjectDir)..\..\projects_build\$(ProjectName)\</OutDir>
+    <IntDir>$(ProjectDir)..\..\projects_build\$(ProjectName)\temp_release\</IntDir>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <CodeAnalysisRuleSet>C:\Program Files (x86)\Microsoft Visual Studio 14.0\Team Tools\Static Analysis Tools\Rule Sets\NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <LinkIncremental>true</LinkIncremental>

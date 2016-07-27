@@ -291,7 +291,7 @@ void startTimers(byte core)
 	{
 		if (!timerthread) //Not already running?
 		{
-			timerthread = startThread(&timer_thread, "X86EMU_Timing", NULL); //Timer thread start!
+			timerthread = startThread(&timer_thread, "UniPCemu_Timing", NULL); //Timer thread start!
 		}
 
 	}

@@ -77,7 +77,7 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		}
 		if (!sdlWindow) //We don't have a window&renderer yet?
 		{
-			sdlWindow = SDL_CreateWindow("x86EMU", SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,xres,yres,SDL_WINDOW_SHOWN); //Create the window and renderer we use at our resolution!
+			sdlWindow = SDL_CreateWindow("UniPCemu", SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,xres,yres,SDL_WINDOW_SHOWN); //Create the window and renderer we use at our resolution!
 		}
 		else
 		{
@@ -172,11 +172,11 @@ SDL_Surface *getGPUSurface()
 	{
 		firstwindow = 0; //Not anymore!
 		#ifndef SDL2
-		SDL_WM_SetCaption( "x86EMU", 0 ); //Initialise our window title!
+		SDL_WM_SetCaption( "UniPCemu", 0 ); //Initialise our window title!
 		#else
 		if (sdlWindow) //Gotten a window?
 		{
-			SDL_SetWindowTitle(sdlWindow,"x86EMU"); //Initialise our window title!
+			SDL_SetWindowTitle(sdlWindow,"UniPCemu"); //Initialise our window title!
 		}
 		#endif
 	}
