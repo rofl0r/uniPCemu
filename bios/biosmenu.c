@@ -55,6 +55,11 @@
 //Boot time in 2 seconds!
 #define BOOTTIME 2000000
 
+extern char diskpath[6]; //The full disk path used!
+
+char soundfontpath[11] = "soundfonts";
+char musicpath[6] = "music"; //Music directory containing all music!
+
 typedef struct
 {
 char name[256]; //The name for display!
@@ -774,7 +779,7 @@ void addList(char *text)
 }
 
 //Generate file list based on extension!
-void generateFileList(char *extensions, int allowms0, int allowdynamic)
+void generateFileList(char *path, char *extensions, int allowms0, int allowdynamic)
 {
 	numlist = 0; //Reset ammount of files!
 	clearList(); //Clear the list!
@@ -787,7 +792,7 @@ void generateFileList(char *extensions, int allowms0, int allowdynamic)
 	char direntry[256];
 	byte isfile;
 	DirListContainer_t dir;
-	if (opendirlist(&dir,".",&direntry[0],&isfile))
+	if (opendirlist(&dir,path,&direntry[0],&isfile))
 	{
 		/* print all the files and directories within directory */
 		do //Files left to check?
@@ -965,26 +970,31 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 
 void hdd_information(char *filename) //Displays information about a harddisk to mount!
 {
+	char path[256];
+	memset(&path,0,sizeof(path));
+	strcpy(path,diskpath);
+	strcat(path,"/");
+	strcat(path,filename);
 	FILEPOS size;
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
-	if (is_dynamicimage(filename)) //Dynamic image?
+	if (is_dynamicimage(path)) //Dynamic image?
 	{
-		size = dynamicimage_getsize(filename); //Get the filesize!
+		size = dynamicimage_getsize(path); //Get the filesize!
 		GPU_EMU_printscreen(0, 6, "This is a Superfury Dynamic Disk Image file."); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 	}
-	else if (is_DSKimage(filename)) //DSK disk image?
+	else if (is_DSKimage(path)) //DSK disk image?
 	{
 		DISKINFORMATIONBLOCK dskinfo;
-		if (!readDSKInfo(filename, &dskinfo)) goto unknownimage;
+		if (!readDSKInfo(path, &dskinfo)) goto unknownimage;
 		size = dskinfo.NumberOfSides*dskinfo.NumberOfTracks*dskinfo.TrackSize; //Get the total disk image size!
-		size = dynamicimage_getsize(filename); //Get the filesize!
+		size = dynamicimage_getsize(path); //Get the filesize!
 		GPU_EMU_printscreen(0, 6, "This is a DSK disk image file.              "); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 	}
-	else if (is_staticimage(filename)) //Static image?
+	else if (is_staticimage(path)) //Static image?
 	{
-		size = staticimage_getsize(filename); //Get the filesize!
+		size = staticimage_getsize(path); //Get the filesize!
 		GPU_EMU_printscreen(0, 6, "This is a Static disk image file.           "); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 	}
@@ -1003,7 +1013,7 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 {
 	BIOS_Title("Mount FLOPPY A");
-	generateFileList("img|ima|dsk",0,0); //Generate file list for all .img files!
+	generateFileList(diskpath,"img|ima|dsk",0,0); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -1033,7 +1043,7 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 {
 	BIOS_Title("Mount FLOPPY B");
-	generateFileList("img|ima|dsk",0,0); //Generate file list for all .img files!
+	generateFileList(diskpath,"img|ima|dsk",0,0); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -1062,7 +1072,7 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 void BIOS_hdd0_selection() //HDD0 selection menu!
 {
 	BIOS_Title("Mount First HDD");
-	generateFileList("img|sfdimg",1,1); //Generate file list for all .img files!
+	generateFileList(diskpath,"img|sfdimg",1,1); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -1093,7 +1103,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 void BIOS_hdd1_selection() //HDD1 selection menu!
 {
 	BIOS_Title("Mount Second HDD");
-	generateFileList("img|sfdimg",1,1); //Generate file list for all .img files!
+	generateFileList(diskpath,"img|sfdimg",1,1); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -1124,7 +1134,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 void BIOS_cdrom0_selection() //CDROM0 selection menu!
 {
 	BIOS_Title("Mount First CD-ROM");
-	generateFileList("iso",0,0); //Generate file list for all .img files!
+	generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -1151,7 +1161,7 @@ void BIOS_cdrom0_selection() //CDROM0 selection menu!
 void BIOS_cdrom1_selection() //CDROM1 selection menu!
 {
 	BIOS_Title("Mount Second CD-ROM");
-	generateFileList("iso",0,0); //Generate file list for all .img files!
+	generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -1898,6 +1908,7 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 {
 	char filename[256]; //Filename container!
+	char fullfilename[256]; //Full filename container!
 	FILEPOS size = 0;
 	BIOSClearScreen(); //Clear the screen!
 	bzero(filename,sizeof(filename)); //Init!
@@ -1927,7 +1938,12 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 					EMU_gotoxy(0, 6); //Next row!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
-					generateStaticImage(filename, size, 18, 6); //Generate a static image!
+					domkdir(diskpath);
+					memset(fullfilename,0,sizeof(fullfilename));
+					strcpy(fullfilename,diskpath);
+					strcat(fullfilename,"/");
+					strcat(fullfilename,filename);
+					generateStaticImage(fullfilename, size, 18, 6); //Generate a static image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
@@ -1946,6 +1962,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 
 void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 {
+	char fullfilename[256]; //Full filename container!
 	BIOS_Title("Generate Dynamic HDD Image");
 	char filename[256]; //Filename container!
 	bzero(filename,sizeof(filename)); //Init!
@@ -1976,7 +1993,12 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 					EMU_gotoxy(0, 6); //Next row!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
-					generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
+					domkdir(diskpath);
+					memset(fullfilename, 0, sizeof(fullfilename));
+					strcpy(fullfilename, diskpath);
+					strcat(fullfilename, "/");
+					strcat(fullfilename, filename);
+					generateDynamicImage(fullfilename, size, 18, 6); //Generate a dynamic image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
@@ -2000,10 +2022,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 	uint_64 datatotransfer; //How many sectors to transfer this block?
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256]; //Filename container!
+	char fullfilename[256]; //Full filename container!
 	bzero(filename, sizeof(filename)); //Init!
 	FILEPOS size = 0;
 	BIOS_Title("Convert static to dynamic HDD Image"); //Full clear!
-	generateFileList("img", 0, 0); //Generate file list for all .img files!
+	generateFileList(diskpath,"img", 0, 0); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -2039,7 +2062,12 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 				EMU_unlocktext();
 				FILEPOS sizecreated;
-				sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
+				domkdir(diskpath);
+				memset(fullfilename, 0, sizeof(fullfilename));
+				strcpy(fullfilename, diskpath);
+				strcat(fullfilename, "/");
+				strcat(fullfilename, filename);
+				sizecreated = generateDynamicImage(fullfilename, size, 18, 6); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
@@ -2154,14 +2182,14 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
-							remove(filename); //Try to remove the generated file!
+							remove(fullfilename); //Try to remove the generated file!
 							dolog(filename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr / 512, size / 512, sectorposition); //Error at this sector!
 						}
 					}
 					else //Error occurred?
 					{
 						dolog(filename, "Error #%u copying static image sector %u/%u", error, sectornr / 512, sizecreated / 512); //Error at this sector!
-						if (!remove(filename)) //Defragmented file can be removed?
+						if (!remove(fullfilename)) //Defragmented file can be removed?
 						{
 							dolog(filename, "Error cleaning up the new defragmented image!");
 						}
@@ -2179,10 +2207,11 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 	uint_64 datatotransfer;
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256]; //Filename container!
+	char fullfilename[256];
 	bzero(filename, sizeof(filename)); //Init!
 	FILEPOS size = 0;
 	BIOS_Title("Convert dynamic to static HDD Image"); //Full clear!
-	generateFileList("sfdimg", 0, 1); //Generate file list for all .img files!
+	generateFileList(diskpath,"sfdimg", 0, 1); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -2231,7 +2260,12 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				EMU_unlocktext();
 				byte error = 0;
 				FILE *dest;
-				dest = emufopen64(filename, "wb"); //Open the destination!
+				domkdir(diskpath);
+				memset(fullfilename, 0, sizeof(fullfilename));
+				strcpy(fullfilename, diskpath);
+				strcat(fullfilename, "/");
+				strcat(fullfilename, filename);
+				dest = emufopen64(fullfilename, "wb"); //Open the destination!
 				for (sectornr = 0; sectornr < size;) //Process all sectors!
 				{
 					if (shuttingdown())
@@ -2329,14 +2363,14 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					EMU_unlocktext();
 					if (error) //Error occurred?
 					{
-						remove(filename); //Try to remove the generated file!
+						remove(fullfilename); //Try to remove the generated file!
 						dolog(filename, "Error #%u validating static image sector %u/%u@byte %u", error, sectornr / 512, size / 512,sectorposition); //Error at this sector!
 					}
 				}
 				else //Error occurred?
 				{
 					dolog(filename, "Error #%u copying dynamic image sector %u/%u", error, sectornr / 512, size / 512); //Error at this sector!
-					if (!remove(filename)) //Defragmented file can be removed?
+					if (!remove(fullfilename)) //Defragmented file can be removed?
 					{
 						dolog(filename, "Error cleaning up the new defragmented image!");
 					}
@@ -2353,11 +2387,12 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	char errorlog[256]; //Error log string!
 	FILEPOS updateinterval=1,updatenr;
 	char filename[256], originalfilename[256]; //Filename container!
+	char fullfilename[256], fulloriginalfilename[256]; //Full filename container!
 	sbyte srcstatus=-1,deststatus=-1; //Status on the two dynamic disk images!
 	bzero(filename, sizeof(filename)); //Init!
 	FILEPOS size = 0, sectorposition;
 	BIOS_Title("Defragment a dynamic HDD Image"); //Full clear!
-	generateFileList("sfdimg", 0, 1); //Generate file list for all .img files!
+	generateFileList(diskpath,"sfdimg", 0, 1); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -2386,7 +2421,19 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 			bzero(&originalfilename, sizeof(originalfilename)); //Init!
 			strcpy(originalfilename, filename); //The original filename!
 			strcat(filename, ".tmp.sfdimg"); //Generate destination filename!
-			size = dynamicimage_getsize(originalfilename); //Get the original size!
+
+			domkdir(diskpath);
+			memset(fullfilename, 0, sizeof(fullfilename));
+			strcpy(fullfilename, diskpath);
+			strcat(fullfilename, "/");
+			strcat(fullfilename, filename);
+
+			memset(fulloriginalfilename, 0, sizeof(fulloriginalfilename));
+			strcpy(fulloriginalfilename, diskpath);
+			strcat(fulloriginalfilename, "/");
+			strcat(fulloriginalfilename, filename);
+
+			size = dynamicimage_getsize(fulloriginalfilename); //Get the original size!
 			if (size != 0) //Got size?
 			{
 				EMU_locktext();
@@ -2394,7 +2441,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 				GPU_EMU_printscreen(0, 6, "Defragmenting image: "); //Start of percentage!
 				EMU_unlocktext();
 				FILEPOS sizecreated;
-				sizecreated = generateDynamicImage(filename, size, 21, 6); //Generate a dynamic image!
+				sizecreated = generateDynamicImage(fullfilename, size, 21, 6); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
 					EMU_locktext();
@@ -2418,16 +2465,16 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							break;
 						}
 						
-						if (dynamicimage_readexistingsector(originalfilename,sectornr,&sector)) //Sector exists and non-empty? Then try to copy it to the new disk image!
+						if (dynamicimage_readexistingsector(fulloriginalfilename,sectornr,&sector)) //Sector exists and non-empty? Then try to copy it to the new disk image!
 						{
-							if (!dynamicimage_writesector(filename, sectornr, &sector)) //Error writing a sector?
+							if (!dynamicimage_writesector(fullfilename, sectornr, &sector)) //Error writing a sector?
 							{
 								error = 2;
 								break; //Stop reading!
 							}
 						}
 						previoussectornr = sectornr; //Last sector number to compare to!
-						srcstatus = dynamicimage_nextallocatedsector(originalfilename,&sectornr); //Next sector or block etc. which is available!
+						srcstatus = dynamicimage_nextallocatedsector(fulloriginalfilename,&sectornr); //Next sector or block etc. which is available!
 						switch (srcstatus) //What status?
 						{
 							case 0: //EOF reached?
@@ -2471,9 +2518,9 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 								break;
 							}
 
-							if (dynamicimage_readexistingsector(originalfilename,sectornr,&sector)) //Sector exists in the old disk image? Then try to check it to the new disk image!
+							if (dynamicimage_readexistingsector(fulloriginalfilename,sectornr,&sector)) //Sector exists in the old disk image? Then try to check it to the new disk image!
 							{
-								if (dynamicimage_readexistingsector(filename,sectornr,&verificationsector)) //Sector exists in the new disk image? Then try to check it from the new disk image!
+								if (dynamicimage_readexistingsector(fullfilename,sectornr,&verificationsector)) //Sector exists in the new disk image? Then try to check it from the new disk image!
 								{
 									if ((sectorposition = memcmp(&sector, &verificationsector, 512)) != 0) //Data error?
 									{
@@ -2488,7 +2535,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 									break; //Stop reading!
 								}
 							}
-							else if (dynamicimage_readexistingsector(filename,sectornr,&verificationsector)) //Sector exists in the new disk image but not in the old disk image?
+							else if (dynamicimage_readexistingsector(fullfilename,sectornr,&verificationsector)) //Sector exists in the new disk image but not in the old disk image?
 							{
 								error = 3; //Verification error: exists within defragemented image but not in source image!
 								break; //Stop reading!
@@ -2497,8 +2544,8 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 
 							previoussectornr = sectornr; //Last sector number to compare to!
 							previousdestsectornr = destsectornr; //Save the previous for comparing!
-							deststatus = dynamicimage_nextallocatedsector(filename,&destsectornr); //Next sector or block etc. which is available!
-							srcstatus = dynamicimage_nextallocatedsector(originalfilename,&sectornr); //Next sector or block etc. which is available!
+							deststatus = dynamicimage_nextallocatedsector(fullfilename,&destsectornr); //Next sector or block etc. which is available!
+							srcstatus = dynamicimage_nextallocatedsector(fulloriginalfilename,&sectornr); //Next sector or block etc. which is available!
 							if ((deststatus!=srcstatus) || (sectornr!=destsectornr)) //Next status or sector number differs?
 							{
 								error = 2; //Position/status error!
@@ -2567,9 +2614,9 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						}
 						else //We've been defragmented?
 						{
-							if (!remove(originalfilename)) //Original can be removed?
+							if (!remove(fulloriginalfilename)) //Original can be removed?
 							{
-								if (!rename(filename, originalfilename)) //The destination is the new original!
+								if (!rename(fullfilename, fulloriginalfilename)) //The destination is the new original!
 								{
 									dolog(originalfilename, "Error renaming the new defragmented image to the original filename!");
 								}
@@ -2596,7 +2643,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 								sprintf(errorlog,"Source: sector %u",sectornr); //This sector!
 								break; //Continue running on the next sector to process!
 						}
-						if (!remove(filename)) //Defragmented file can be removed?
+						if (!remove(fullfilename)) //Defragmented file can be removed?
 						{
 							dolog(originalfilename, "Error cleaning up the new defragmented image!");
 						}
@@ -3969,7 +4016,7 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 void BIOS_SoundFont_selection() //SoundFont selection menu!
 {
 	BIOS_Title("Mount Soundfont");
-	generateFileList("sf2", 0, 0); //Generate file list for all .sf2 files!
+	generateFileList(soundfontpath,"sf2", 0, 0); //Generate file list for all .sf2 files!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -3992,7 +4039,7 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	default: //File?
-		if (strcmp(BIOS_Settings.SoundFont, itemlist[file])) //Changed?
+		if (strcmp(BIOS_Settings.SoundFont, itemlist[file])!=0) //Changed?
 		{
 			BIOS_Changed = 1; //Changed!
 			reboot_needed = 1; //We need to reboot!
@@ -4008,7 +4055,7 @@ int Sound_file = 0; //The file selected!
 int BIOS_Sound_selection() //Music selection menu, custom for this purpose!
 {
 	BIOS_Title("Select a music file to play");
-	generateFileList("mid|midi|dro", 0, 0); //Generate file list for all Sound files!
+	generateFileList(musicpath,"mid|midi|dro", 0, 0); //Generate file list for all Sound files!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -4037,6 +4084,8 @@ int BIOS_Sound_selection() //Music selection menu, custom for this purpose!
 
 byte sound_playSoundfile(byte showinfo)
 {
+	char songpath[256];
+	memset(songpath,0,sizeof(songpath)); //Init our path!
 	Sound_file = 0; //Init selected file!
 	for (;;) //Music selection loop!
 	{
@@ -4060,11 +4109,17 @@ byte sound_playSoundfile(byte showinfo)
 		//Play the MIDI file!
 		if (isext(&itemlist[Sound_file][0],"mid|midi")) //MIDI file?
 		{
-			playMIDIFile(&itemlist[Sound_file][0], showinfo); //Play the MIDI file!
+			strcpy(songpath,musicpath); //Load the path!
+			strcat(songpath,"/");
+			strcat(songpath,itemlist[Sound_file]); //The full filename!
+			playMIDIFile(&songpath[0], showinfo); //Play the MIDI file!
 		}
 		else if (isext(&itemlist[Sound_file][0],"dro")) //DRO file?
 		{
-			playDROFile(&itemlist[Sound_file][0], showinfo); //Play the DRO file!
+			strcpy(songpath, musicpath); //Load the path!
+			strcat(songpath, "/");
+			strcat(songpath, itemlist[Sound_file]); //The full filename!
+			playDROFile(&songpath[0], showinfo); //Play the DRO file!
 		}
 		EMU_locktext();
 		GPU_EMU_printscreen(0, GPU_TEXTSURFACE_HEIGHT - 1, "          "); //Show playing finished!
@@ -4686,6 +4741,7 @@ extern FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES]; //All possible flo
 
 void BIOS_GenerateFloppyDisk()
 {
+	char fullfilename[256];
 	word size; //The size to generate, in KB!
 	byte i;
 	char filename[256]; //Filename container!
@@ -4789,7 +4845,13 @@ void BIOS_GenerateFloppyDisk()
 						EMU_gotoxy(0, 6); //Next row!
 						GPU_EMU_printscreen(0, 7, "Generating image: "); //Start of percentage!
 						EMU_unlocktext();
-						generateFloppyImage(filename, &floppygeometries[result], 18, 7); //Generate a floppy image according to geometry data!
+
+						memset(fullfilename, 0, sizeof(fullfilename));
+						strcpy(fullfilename, diskpath);
+						strcat(fullfilename, "/");
+						strcat(fullfilename, filename);
+
+						generateFloppyImage(fullfilename, &floppygeometries[result], 18, 7); //Generate a floppy image according to geometry data!
 						//Check for disk changes on mounted floppy disks (we might be getting a new size, when we're recreaten)!
 						if (!memcmp(BIOS_Settings.floppy0,filename,sizeof(BIOS_Settings.floppy0))) //Floppy #0 changed?
 						{

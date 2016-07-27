@@ -268,8 +268,11 @@ uint_32 BIOS_GetMMUSize() //For MMU!
 	return BIOS_Settings.memory; //Use all available memory always!
 }
 
+extern char soundfontpath[11]; //The soundfont path!
+
 void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 {
+	char soundfont[256];
 	if (__HW_DISABLED) return; //Abort!
 	//Mount all devices!
 	iofloppy0(BIOS_Settings.floppy0,0,BIOS_Settings.floppy0_readonly,0);
@@ -349,7 +352,11 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 
 	if (BIOS_Settings.SoundFont[0]) //Gotten a soundfont set?
 	{
-		if (!FILE_EXISTS(BIOS_Settings.SoundFont)) //Not found?
+		memset(&soundfont, 0, sizeof(soundfont)); //Init!
+		strcpy(soundfont, soundfontpath); //The path to the soundfont!
+		strcat(soundfont, "/");
+		strcat(soundfont, BIOS_Settings.SoundFont); //The full path to the soundfont!
+		if (!FILE_EXISTS(soundfont)) //Not found?
 		{
 			memset(BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont)); //Invalid soundfont!
 			bioschanged = 1; //BIOS changed!

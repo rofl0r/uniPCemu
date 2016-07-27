@@ -12,12 +12,12 @@
 #include "headers/support/dro.h" //DRO file support!
 
 //Test the speaker?
-//#define __DEBUG_SPEAKER
+#define __DEBUG_SPEAKER
 //Test the Adlib?
 #define __DEBUG_ADLIB
 
 //Test MIDI?
-//#define __DEBUG_MIDI
+#define __DEBUG_MIDI
 
 void adlibsetreg(byte reg,byte val)
 {
@@ -77,7 +77,7 @@ void dosoundtest()
 		VGA_waitforVBlank(); //Wait 1 frame!
 		VGA_waitforVBlank(); //Wait 1 frame!
 		printmsg(0xF, "\r\nStarting adlib sound...");
-		if (playDROFile("ADLIB.DRO",1)) goto skipadlib;
+		if (playDROFile("music/ADLIB.DRO",1)) goto skipadlib;
 		adlibsetreg(0x20, 0x21); //Modulator multiple to 1!
 		adlibsetreg(0x40, 0x3F); //Modulator level about zero to produce a pure tone!
 		//adlibsetreg(0x40, 0x10); //Modulator level about 40dB!
@@ -124,7 +124,7 @@ void dosoundtest()
 	#ifdef __DEBUG_MIDI
 	printmsg(0xF,"Debugging MIDI...\r\n");
 	VGA_waitforVBlank(); //Wait for a VBlank, to allow the screen to be up to date!
-	if (!playMIDIFile("MPU.MID",1)) //Play the default(we're showing info when playing MIDI files)?
+	if (!playMIDIFile("music/MPU.MID",1)) //Play the default(we're showing info when playing MIDI files)?
 	{
 		stopTimers(1); //Stop ALL timers for testing speed!
 		//dolog("SF2","Sounding test central C...");

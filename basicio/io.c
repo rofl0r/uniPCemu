@@ -6,6 +6,8 @@
 #include "headers/support/log.h" //Logging support!
 //Basic low level i/o functions!
 
+char diskpath[6] = "disks"; //The full disk path of the directory containing the disk images!
+
 IODISK disks[0x100]; //All disks available, up go 256 (drive 0-255) disks!
 
 void ioInit() //Resets/unmounts all disks!
@@ -59,12 +61,17 @@ void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler) //Re
 
 void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_32 customsize) //Disk mount routine!
 {
-	byte dynamicimage = is_dynamicimage(filename); //Dynamic image detection!
+	char fullfilename[256]; //Full filename of the mount!
+	memset(&fullfilename,0,sizeof(fullfilename));
+	strcpy(fullfilename,diskpath); //Load the disk path!
+	strcat(fullfilename,"/");
+	strcat(fullfilename,filename); //The full filename to use!
+	byte dynamicimage = is_dynamicimage(fullfilename); //Dynamic image detection!
 	if (!dynamicimage) //Might be a static image when not a dynamic image?
 	{
-		if (!is_DSKimage(filename)) //Not a DSK image?
+		if (!is_DSKimage(fullfilename)) //Not a DSK image?
 		{
-			if (!is_staticimage(filename)) //Not a static image? We're invalid!
+			if (!is_staticimage(fullfilename)) //Not a static image? We're invalid!
 			{
 				memset(&disks[device], 0, sizeof(disks[device])); //Delete the entry!
 				return; //Abort!
@@ -74,13 +81,13 @@ void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_
 
 	if (disks[device].diskchangedhandler)
 	{
-		if (strcmp(disks[device].filename, filename) != 0) //Different disk?
+		if (strcmp(disks[device].filename, fullfilename) != 0) //Different disk?
 		{
 			disks[device].diskchangedhandler(device); //This disk has been changed!
 		}
 	}
 
-	strcpy(disks[device].filename, filename); //Set file!
+	strcpy(disks[device].filename, fullfilename); //Set file!
 	disks[device].start = startpos; //Start pos!
 	disks[device].readonly = readonly; //Read only!
 	disks[device].dynamicimage = dynamicimage; //Dynamic image!

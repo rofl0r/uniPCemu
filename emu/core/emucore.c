@@ -197,8 +197,11 @@ extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/
 
 extern byte allcleared;
 
+extern char soundfontpath[11]; //The soundfont path!
+
 void initEMU(int full) //Init!
 {
+	char soundfont[256];
 	doneEMU(); //Make sure we're finished too!
 
 	allcleared = 0; //Not cleared anymore!
@@ -245,11 +248,18 @@ void initEMU(int full) //Init!
 	}
 
 	debugrow("Initialising MPU...");
-	if (!initMPU(&BIOS_Settings.SoundFont[0])) //Initialise our MPU! Use the selected soundfont!
+	if (strcmp(BIOS_Settings.SoundFont,"")!=0) //Gotten a soundfont?
 	{
-		//We've failed loading!
-		memset(&BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont));
-		forceBIOSSave(); //Save the new BIOS!
+		memset(&soundfont,0,sizeof(soundfont)); //Init!
+		strcpy(soundfont,soundfontpath); //The path to the soundfont!
+		strcat(soundfont,"/");
+		strcat(soundfont,BIOS_Settings.SoundFont); //The full path to the soundfont!
+		if (!initMPU(&soundfont[0])) //Initialise our MPU! Use the selected soundfont!
+		{
+			//We've failed loading!
+			memset(&BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont));
+			forceBIOSSave(); //Save the new BIOS!
+		}
 	}
 
 	debugrow("Initializing PSP OSK...");
