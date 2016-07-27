@@ -14,8 +14,7 @@ making.txt
 
 # User-specific files
 *.suo
-# Don't ignore the .user file: This contains our proper debugger settings.
-# *.user
+*.user
 *.userosscache
 *.sln.docstates
 
