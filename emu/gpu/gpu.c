@@ -356,6 +356,9 @@ void CPU_updateVideo()
 			if (oldwindow!=originalrenderer) //We're changed?
 			{
 				freez((void **)&rendersurface, sizeof(*rendersurface), "SDL Main Rendering Surface"); //Release the rendering surface!
+			}
+			if (!rendersurface) //We don't have a valid rendering surface?
+			{
 				rendersurface = getSurfaceWrapper(originalrenderer); //New wrapper!
 			}
 			registerSurface(rendersurface, "PSP SDL Main Rendering Surface", 0); //Register, but don't allow release: this is done by SDL_Quit only!
