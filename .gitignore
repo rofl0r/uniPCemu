@@ -263,3 +263,4 @@ paket-files/
 *.sln.iml
 *.unsuccessfulbuild
 *.lastbuildstate
+*.exe
