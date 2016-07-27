@@ -13,6 +13,7 @@ This README would normally document whatever steps are necessary to get your app
 - This repository goes into a folder named x86EMU. Place the tools support repository(https://bitbucket.org/superfury/tools.git) parralel to this repository folder(Required for PSP builds).
 - Install Minimalist PSPSDK devkit(PSP) or Visual C++, MinGW(Windows) or GNU C++ toolchsin(Linux).
 - Install SDL packages for the devkit, in C:\SDL for Windows, installers for MinPSPW and /mingw(SDL or SDL2).
+- Set the Visual C++ Local Windows Debugger to use "$(TargetDir)" for it's working directory, to comply with the other paths set in the project.
 
 * Configuration
 - Make sure there is a compile directory parallel to the project directory(projects_build\x86emu) with a duplicate directory tree of the project repository(automatically createn by remake.bat on Windows).
