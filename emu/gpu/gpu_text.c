@@ -229,18 +229,15 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (!rendersurface) return 0; //No rendering surface used yet?
-	INLINEREGISTER word x;
+	INLINEREGISTER word x,y;
 	INLINEREGISTER uint_32 color;
-	word y;
 	int fx, fy; //Used when rendering on the screen!
-	uint_32 pixeln;
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 
 	if (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) //Redraw when dirty only?
 	{
 		WaitSem(tsurface->lock);
 		x = y = 0; //Init coordinates!
-		pixeln = GPU_TEXTPIXELSX*GPU_TEXTPIXELSY; //The number of pixels to process!
 		do //Process all rows!
 		{
 			updateDirty(tsurface,x,y); //Update dirty if needed!
@@ -249,20 +246,18 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 				x = 0; //Reset horizontal coordinate!
 				++y; //Goto Next row!
 			}
-		} while (--pixeln); //Stop searching now!	
+		} while (y!=GPU_TEXTPIXELSY); //Stop searching now!	
 		tsurface->flags &= ~TEXTSURFACE_FLAG_DIRTY; //Clear dirty flag!
 		PostSem(tsurface->lock); //We're finished with the surface!
 	}
 
 	x = y = 0; //Init coordinates!
-	pixeln = GPU_TEXTPIXELSX*GPU_TEXTPIXELSY; //The number of pixels to process!
 	if (check_surface(rendersurface)) //Valid to render to?
 	{
 		renderpixel = &tsurface->notdirty[0][0]; //Start with the first pixel in our buffer!
 		do //Process all rows!
 		{
-			color = *renderpixel++; //The pixel to plot, if any!
-			if (color != TRANSPARENTPIXEL)
+			if ((color = *renderpixel++) != TRANSPARENTPIXEL) //The pixel to plot, if any! Ignore transparent pixels!
 			{
 				fx = x;
 				if (tsurface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
@@ -278,7 +273,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 				x = 0; //Reset horizontal coordinate!
 				renderpixel = &tsurface->notdirty[++y][0]; //Start with the first pixel in our new row!
 			}
-		} while (--pixeln); //Stop searching now!
+		} while (y!=GPU_TEXTPIXELSY); //Stop searching now!
 	}
 
 	return 0; //Ignore processing time!

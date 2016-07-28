@@ -101,7 +101,7 @@ void calculateKeyboardStep()
 void releaseKeyReleased(uint_64 keytime)
 {
 	byte releaseall=0;
-	int_64 i;
+	INLINEREGISTER word i;
 releaseallkeys:
 	i = 0;
 	do //Process all keys needed!
