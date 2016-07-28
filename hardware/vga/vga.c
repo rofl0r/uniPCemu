@@ -175,7 +175,8 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 	{
 		freez((void **)&VGA->VRAM, VGA->VRAM_size,"VGA_VRAM@VGAAlloc_Registers"); //Release VRAM!
 		freez((void **)&VGA,sizeof(*VGA),"VGA@VGAAlloc_Registers"); //Release VGA itself!
-		raiseError("VGAalloc","Ran out of memory allocating VGA precalcs!");		
+		raiseError("VGAalloc","Ran out of memory allocating VGA precalcs!");
+		return NULL; //Failed to allocate!
 	}
 
 	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = 1; //Display disabled by default!

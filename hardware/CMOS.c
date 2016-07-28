@@ -240,7 +240,7 @@ byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
 	datetime->minute = (dayclock % 3600) / 60;
 	datetime->hour = dayclock / 3600;
 	datetime->weekday = (dayno + 4) % 7;       /* day 0 was a thursday */
-	while (dayno >= YEARSIZE(year))
+	for (;dayno >= YEARSIZE(year);)
 	{
 		dayno -= YEARSIZE(year);
 		year++;

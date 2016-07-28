@@ -307,13 +307,13 @@ byte joystick_writeIO(word port, byte value)
 					JOYSTICK.packet |= JOYSTICK.buttons2[5]|(JOYSTICK.buttons2[4]<<1)|(JOYSTICK.buttons2[3]<<2)|(JOYSTICK.buttons2[2]<<3)|(JOYSTICK.buttons2[1]<<4)|(JOYSTICK.buttons2[0]<<5);
 					//Axis2(Twist) 8-bits converted!
 					axisconversion.axis = JOYSTICK.Joystick_X[1]; //Twist!
-					JOYSTICK.packet |= (((axisconversion.data>>8)&0xFF)<<10); //Twist converted!
+					JOYSTICK.packet |= ((((uint_64)axisconversion.data>>8)&0xFF)<<10); //Twist converted!
 					//Axis 1(Y) 8-bits converted!
 					axisconversion.axis = JOYSTICK.Joystick_Y[0]; //Y!
-					JOYSTICK.packet |= (((axisconversion.data>>8)&0xFF)<<18); //Twist converted!
+					JOYSTICK.packet |= ((((uint_64)axisconversion.data>>8)&0xFF)<<18); //Twist converted!
 					//Axis 0(X) 8-bits converted!
 					axisconversion.axis = JOYSTICK.Joystick_X[0]; //Y!
-					JOYSTICK.packet |= (((axisconversion.data>>8)&0xFF)<<26); //Twist converted!
+					JOYSTICK.packet |= ((((uint_64)axisconversion.data>>8)&0xFF)<<26); //Twist converted!
 					//The upper bits are 0x00!
 					break;
 				}

@@ -179,7 +179,9 @@ byte Tseng34K_writeIO(word port, byte val)
 		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accesscrtvalue:
 //void 3d5_et4k(Bitu reg,Bitu val,Bitu iolen) {
-	if((!et34kdata->extensionsEnabled) && ((getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33) || (getActiveVGA()->registers->CRTControllerRegisters_Index !=0x35)) && (getActiveVGA()->enable_SVGA==1)) //ET4000 blocks this without the KEY?
+	if (((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA == 1)) &&
+		(!((getActiveVGA()->registers->CRTControllerRegisters_Index==0x33) || (getActiveVGA()->registers->CRTControllerRegisters_Index==0x35))) //Unprotected registers?
+		) //ET4000 blocks this without the KEY?
 		return 0;
 
 	switch(getActiveVGA()->registers->CRTControllerRegisters_Index)

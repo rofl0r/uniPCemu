@@ -3649,7 +3649,7 @@ void BIOS_VGAModeSetting()
 		if (file!=current) //Not current?
 		{
 			byte isSVGA = ((file==6) || (file==7)); //Chosen SVGA card?
-			byte wasSVGA = ((current==6) && (current==7)); //Was SVGA card?
+			byte wasSVGA = ((current==6) || (current==7)); //Was SVGA card?
 			if (isSVGA!=wasSVGA) //Switching to/from SVGA mode?
 			{
 				BIOS_Settings.VRAM_size = 0; //Autodetect current memory size!

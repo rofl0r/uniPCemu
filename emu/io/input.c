@@ -2343,11 +2343,9 @@ void updateInput(SDL_Event *event) //Update all input!
 			case SDLK_F4: //F4?
 				if (RALT) //ALT-F4?
 				{
-					SDL_Event quitevent;
-					quitevent.quit.type = SDL_QUIT; //Add a quit to the queue!
-					SDL_PushEvent(&quitevent); //Add an quit event!
+					unlock(LOCK_INPUT);
+					goto quitting; //Redirect to quitting(SDL_QUIT) event!
 				}
-				break;
 				break;
 			case SDLK_F5: //F5? Use F5 for simple compatiblity with Dosbox users. Screen shot!
 				if (RALT) //ALT-F5?
@@ -2986,13 +2984,12 @@ void updateInput(SDL_Event *event) //Update all input!
 
 	//Misc system events
 	case SDL_QUIT: //Quit?
-		#ifdef SDL2
 		quitting:
-		#endif
 		lock(LOCK_INPUT);
 		if (joystick) //Gotten a joystick connected?
 		{
 			SDL_JoystickClose(joystick); //Finish our joystick: we're not using it anymore!
+			joystick = NULL; //No joystick connected anymore!
 		}
 		EMU_Shutdown(1); //Request a shutdown!
 		unlock(LOCK_INPUT);
@@ -3019,32 +3016,46 @@ void updateInput(SDL_Event *event) //Update all input!
 		switch (event->window.event) //What event?
 		{
 			case SDL_WINDOWEVENT_MINIMIZED:
+				lock(LOCK_INPUT);
 				haswindowactive = 0; //Iconified!
+				unlock(LOCK_INPUT);
 				break;
 			case SDL_WINDOWEVENT_RESTORED:
+				lock(LOCK_INPUT);
 				haswindowactive = 1; //Restored!
+				unlock(LOCK_INPUT);
 				break;
 			case SDL_WINDOWEVENT_FOCUS_GAINED:
+				lock(LOCK_INPUT);
 				hasinputfocus = 1; //Input focus!
+				unlock(LOCK_INPUT);
 				break;
 			case SDL_WINDOWEVENT_FOCUS_LOST:
+				lock(LOCK_INPUT);
 				hasinputfocus = 0; //Lost input focus!
+				unlock(LOCK_INPUT);
 				break;
 			case SDL_WINDOWEVENT_ENTER:
+				lock(LOCK_INPUT);
 				hasmousefocus = 1; //Mouse focus!
+				unlock(LOCK_INPUT);
 				break;
 			case SDL_WINDOWEVENT_LEAVE:
+				lock(LOCK_INPUT);
 				hasmousefocus = 0; //Lost mouse focus!
+				unlock(LOCK_INPUT);
 				break;
 			case SDL_WINDOWEVENT_CLOSE:
-				goto quitting; //We're quitting!
+				goto quitting; //We're redirecting to the SDL_QUIT event!
 				break;
 			default: //Unknown event?
 				break;
 		}
 		break;
 	case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
+		lock(LOCK_INPUT);
 		haswindowactive = 0; //We're iconified! This also prevents drawing! This is critical!
+		unlock(LOCK_INPUT);
 		break;
 	case SDL_JOYDEVICEADDED: //Joystick has been connected?
 		connectJoystick(event->jdevice.which); //Connect to this joystick, is valid!
@@ -3143,6 +3154,9 @@ void psp_input_init()
 	keyboard_mousetiming = mouse_ticktiming = 0.0f; //Initialise mouse timing!
 	#ifdef SDL2
 	SDL_AddEventWatch(myEventFilter, NULL); //For applying critical updates!
+	#ifdef SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4
+		SDL_SetHintWithPriority(SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4,"1",SDL_HINT_OVERRIDE); //We're forcing the window not to quit on ALT-F4!
+	#endif
 	#endif
 	//Apply joystick defaults!
 	enableJoystick(0,0); //Disable joystick 1!

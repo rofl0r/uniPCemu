@@ -186,7 +186,7 @@ void EnvelopeGenerator_setAttennuationCustom(ADLIBOP *op)
 
 OPTINLINE float adlibeffectivefrequency(word fnum, word octave)
 {
-	return (fnum * usesamplerate) / (float)(1<<(20-octave)); //This is the frequency requested!
+	return (fnum * usesamplerate) / (float)(1LL<<(20-(uint_64)octave)); //This is the frequency requested!
 }
 
 void writeadlibKeyON(byte channel, byte forcekeyon)
