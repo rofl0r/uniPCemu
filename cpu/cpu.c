@@ -1122,7 +1122,7 @@ void CPU_flushPIQ()
 
 void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
-	if (!CPU[activeCPU].PIQ) return; //Not gotten a PIQ? Abort!
+	if (CPU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
 	byte oldMMUCycles;
 	oldMMUCycles = CPU[activeCPU].cycles_MMUR; //Save the MMU cycles!
 	CPU[activeCPU].cycles_MMUR = 0; //Counting raw time spent retrieving memory!

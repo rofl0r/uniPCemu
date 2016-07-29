@@ -3158,6 +3158,9 @@ void psp_input_init()
 		SDL_SetHintWithPriority(SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4,"1",SDL_HINT_OVERRIDE); //We're forcing the window not to quit on ALT-F4!
 	#endif
 	#endif
+	#ifdef ANDROID
+		toggleDirectInput(1); //Toggle direct input by middle mouse button, capturing input!
+	#endif
 	//Apply joystick defaults!
 	enableJoystick(0,0); //Disable joystick 1!
 	enableJoystick(0,0); //Disable joystick 2!
@@ -3165,6 +3168,9 @@ void psp_input_init()
 
 void psp_input_done()
 {
+	#ifdef ANDROID
+		toggleDirectInput(1); //Toggle direct input by middle mouse button, releasing input!
+	#endif
 	if (joystick)
 	{
 		SDL_JoystickClose(joystick); //Close our joystick!

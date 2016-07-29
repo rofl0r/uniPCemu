@@ -370,7 +370,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 	INLINEREGISTER byte result; //The result!
 	INLINEREGISTER uint_32 realaddress;
 	byte writewordbackup = writeword; //Save the old value first!
-	if ((MMU.memory==NULL) || (MMU.size==0)) //No mem?
+	if (MMU.memory==NULL) //No mem?
 	{
 		//dolog("MMU","R:No memory present!");
 		MMU.invaddr = 1; //Invalid adress!
@@ -383,15 +383,12 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 		MMU.invaddr = 2; //Invalid address!
 		return 0xFF; //Not found.
 	}
-	
+
+	realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
+
 	if (is_paging()) //Are we paging?
 	{
-		realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
 		realaddress = mappage(realaddress); //Map it using the paging mechanism!
-	}
-	else
-	{
-		realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
 	}
 
 	if (writewordbackup==0) //First data of the word access?
@@ -447,15 +444,11 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 		dolog("debugger","MMU: Write to %04X:%08X=%02X",segment,offset,val); //Log our written value!
 	}*/
 
+	realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
 
 	if (is_paging()) //Are we paging?
 	{
-		realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
 		realaddress = mappage(realaddress); //Map it using the paging mechanism!
-	}
-	else
-	{
-		realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
 	}
 
 	if (writewordbackup==0) //First data of the word access?

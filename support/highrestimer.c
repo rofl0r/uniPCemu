@@ -52,7 +52,7 @@ OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 #ifdef IS_WINDOWS
 	if (tickresolution_win_SDL) goto forcewinsdl; //Forcing SDL?
 	LARGE_INTEGER temp;
-	if (!QueryPerformanceCounter(&temp)) return 0; //Invalid result?
+	if (QueryPerformanceCounter(&temp)==0) return 0; //Invalid result?
 	return temp.QuadPart; //Give the result by the performance counter of windows!
 	forcewinsdl: //Force SDL usage of ticks!
 #endif
