@@ -2273,7 +2273,14 @@ void updateInput(SDL_Event *event) //Update all input!
 			case SDLK_BACKSPACE: //SELECT?
 				input.Buttons &= ~BUTTON_SELECT; //Pressed!
 				break;
+
+			#ifndef ANDROID
 			case SDLK_RETURN: //START?
+			#else
+			#ifndef SDL2
+			case SDLK_RETURN: //START?
+			#endif
+			#endif
 				input.Buttons &= ~BUTTON_START; //Pressed!
 				if (RALT) //RALT pressed too? Doubles as emulator fullscreen toggle!
 				{
@@ -2314,7 +2321,11 @@ void updateInput(SDL_Event *event) //Update all input!
 			#ifndef SDL2
 			case SDLK_KP8: //TRIANGLE?
 			#else
+			#ifdef ANDROID
+			case SDLK_SPACE:
+			#else
 			case SDLK_KP_8: //TRIANGLE?
+			#endif
 			#endif
 				input.Buttons &= ~BUTTON_TRIANGLE; //Pressed!
 				break;
@@ -2328,14 +2339,22 @@ void updateInput(SDL_Event *event) //Update all input!
 			#ifndef SDL2
 			case SDLK_KP6: //CIRCLE?
 			#else
+			#ifdef ANDROID
+			case SDLK_ESC:
+			#else
 			case SDLK_KP_6: //CIRCLE?
+			#endif
 			#endif
 				input.Buttons &= ~BUTTON_CIRCLE; //Pressed!
 				break;
 			#ifndef SDL2
 			case SDLK_KP2: //CROSS?
 			#else
+			#ifdef ANDROID
+			case SDLK_RETURN:
+			#else
 			case SDLK_KP_2: //CROSS?
+			#endif
 			#endif
 				input.Buttons &= ~BUTTON_CROSS; //Pressed!
 				break;
@@ -2501,7 +2520,11 @@ void updateInput(SDL_Event *event) //Update all input!
 			#ifndef SDL2
 			case SDLK_KP8: //TRIANGLE?
 			#else
+			#ifdef ANDROID
+			case SDLK_SPACE:
+			#else
 			case SDLK_KP_8: //TRIANGLE?
+			#endif
 			#endif
 				input.Buttons |= BUTTON_TRIANGLE; //Pressed!
 				break;
@@ -2515,14 +2538,22 @@ void updateInput(SDL_Event *event) //Update all input!
 			#ifndef SDL2
 			case SDLK_KP6: //CIRCLE?
 			#else
+			#ifdef ANDROID
+			case SDLK_ESC:
+			#else
 			case SDLK_KP_6: //CIRCLE?
+			#endif
 			#endif
 				input.Buttons |= BUTTON_CIRCLE; //Pressed!
 				break;
 			#ifndef SDL2
 			case SDLK_KP2: //CROSS?
 			#else
+			#ifdef ANDROID
+			case SDLK_RETURN:
+			#else
 			case SDLK_KP_2: //CROSS?
+			#endif
 			#endif
 				input.Buttons |= BUTTON_CROSS; //Pressed!
 				break;
