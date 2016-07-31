@@ -501,6 +501,9 @@
     <ClCompile Include="..\hardware\vga\svga\tseng.c">
       <Filter>Source Files\hardware\vga\svga</Filter>
     </ClCompile>
+    <ClCompile Include="..\hardware\gameblaster.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\emu\io\sound.txt">
@@ -897,6 +900,9 @@
     </ClInclude>
     <ClInclude Include="..\headers\hardware\vga\svga\tseng.h">
       <Filter>Header Files\hardware\vga\svga</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\hardware\gameblaster.h">
+      <Filter>Header Files\hardware</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

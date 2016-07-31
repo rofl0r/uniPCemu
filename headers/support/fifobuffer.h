@@ -5,18 +5,18 @@
 
 typedef struct
 {
-byte *buffer; //The buffer itself!
-uint_32 size; //The size of the buffer!
-uint_32 readpos; //The position to read!
-uint_32 writepos; //The position to write!
-byte lastwaswrite; //Last operation was a write?
-struct
-{
+	byte *buffer; //The buffer itself!
+	uint_32 size; //The size of the buffer!
 	uint_32 readpos; //The position to read!
 	uint_32 writepos; //The position to write!
-	byte lastwaswrite; //Last operation was a write?	
-} savedpos;
-SDL_sem *lock; //Our lock for single access!
+	byte lastwaswrite; //Last operation was a write?
+	struct
+	{
+		uint_32 readpos; //The position to read!
+		uint_32 writepos; //The position to write!
+		byte lastwaswrite; //Last operation was a write?	
+	} savedpos;
+	SDL_sem *lock; //Our lock for single access!
 } FIFOBUFFER;
 
 /*
@@ -162,5 +162,12 @@ byte peekfifobuffer16(FIFOBUFFER *buffer, word *result); //Is there data to be r
 byte readfifobuffer16(FIFOBUFFER *buffer, word *result);
 byte writefifobuffer16(FIFOBUFFER *buffer, word data);
 void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
+
+/* 32-bit adjustments */
+
+byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result); //Is there data to be read?
+byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result);
+byte writefifobuffer32(FIFOBUFFER *buffer, uint_32 data);
+void movefifobuffer32(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
 
 #endif

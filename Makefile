@@ -75,6 +75,9 @@ OBJS += hardware/adlib.o
 #Disney Sound Source
 OBJS += hardware/ssource.o
 
+#Game Blaster
+OBJS += hardware/gameblaster.o
+
 #Floppy
 OBJS += hardware/floppy.o
 

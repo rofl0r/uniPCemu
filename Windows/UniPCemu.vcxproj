@@ -84,6 +84,7 @@
     <ClCompile Include="..\hardware\dram.c" />
     <ClCompile Include="..\hardware\ems.c" />
     <ClCompile Include="..\hardware\floppy.c" />
+    <ClCompile Include="..\hardware\gameblaster.c" />
     <ClCompile Include="..\hardware\ide.c" />
     <ClCompile Include="..\hardware\joystick.c" />
     <ClCompile Include="..\hardware\midi\adsr.c" />
@@ -216,6 +217,7 @@
     <ClInclude Include="..\headers\hardware\dram.h" />
     <ClInclude Include="..\headers\hardware\ems.h" />
     <ClInclude Include="..\headers\hardware\floppy.h" />
+    <ClInclude Include="..\headers\hardware\gameblaster.h" />
     <ClInclude Include="..\headers\hardware\ide.h" />
     <ClInclude Include="..\headers\hardware\joystick.h" />
     <ClInclude Include="..\headers\hardware\midi\adsr.h" />

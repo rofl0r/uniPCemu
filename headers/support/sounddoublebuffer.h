@@ -13,13 +13,16 @@ typedef struct
 } SOUNDDOUBLEBUFFER;
 
 //Basic (de)allocation
+byte allocDoubleBufferedSound32(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer);
 byte allocDoubleBufferedSound16(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer);
 byte allocDoubleBufferedSound8(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer);
 void freeDoubleBufferedSound(SOUNDDOUBLEBUFFER *buffer);
 
 //Input&Output
+void writeDoubleBufferedSound32(SOUNDDOUBLEBUFFER *buffer, uint_32 sample);
 void writeDoubleBufferedSound16(SOUNDDOUBLEBUFFER *buffer, word sample);
 void writeDoubleBufferedSound8(SOUNDDOUBLEBUFFER *buffer, byte sample);
+byte readDoubleBufferedSound32(SOUNDDOUBLEBUFFER *buffer, uint_32 *sample);
 byte readDoubleBufferedSound16(SOUNDDOUBLEBUFFER *buffer, word *sample);
 byte readDoubleBufferedSound8(SOUNDDOUBLEBUFFER *buffer, byte *sample);
 #endif

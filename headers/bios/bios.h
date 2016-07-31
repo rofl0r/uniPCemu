@@ -63,6 +63,8 @@ typedef struct PACKED
 	byte useLPTDAC; //Emulate Covox/Disney Sound Source?
 	byte VGASynchronization; //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
 	byte CGAModel; //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
+	byte useGameBlaster; //Emulate Game Blaster?
+	uint_32 GameBlaster_Volume; //The Game Blaster volume knob!
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 

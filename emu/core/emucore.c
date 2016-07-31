@@ -54,6 +54,7 @@
 #include "headers/hardware/joystick.h" //Joystick support!
 #include "headers/hardware/xtexpansionunit.h" //XT expansion unit!
 #include "headers/cpu/cb_manager.h" //For handling callbacks!
+#include "headers/hardware/gameblaster.h" //Game blaster support!
 
 //CPU default clock speeds (in Hz)!
 
@@ -231,10 +232,18 @@ void initEMU(int full) //Init!
 	
 	debugrow("Initialising PC Speaker...");
 	initSpeakers(BIOS_Settings.usePCSpeaker); //Initialise the speaker. Enable/disable sound according to the setting!
+
 	if (BIOS_Settings.useAdlib)
 	{
 		debugrow("Initialising Adlib...");
 		initAdlib(); //Initialise adlib!
+	}
+
+	if (BIOS_Settings.useGameBlaster)
+	{
+		debugrow("Initialising Game Blaster...");
+		initGameBlaster(0x220); //Initialise game blaster!
+		GameBlaster_setVolume((float)BIOS_Settings.GameBlaster_Volume); //Set the sound source volume!
 	}
 
 	debugrow("Initialising Parallel ports...");
@@ -414,6 +423,8 @@ void doneEMU()
 		doneMPU(); //Finish our MPU!
 		debugrow("doneEMU: Finishing Disney Sound Source...");
 		doneSoundsource(); //Finish Disney Sound Source!
+		debugrow("doneEMU: Finishing Game Blaster...");
+		doneGameBlaster(); //Finish Game Blaster!
 		debugrow("doneEMU: Finishing Adlib...");
 		doneAdlib(); //Finish adlib!
 		debugrow("doneEMU: Finishing PC Speaker...");
@@ -745,6 +756,7 @@ OPTINLINE byte coreHandler()
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
 		if (BIOS_Settings.useAdlib) updateAdlib(instructiontime); //Tick the adlib timer if needed!
+		if (BIOS_Settings.useGameBlaster) updateGameBlaster(instructiontime); //Tick the Game Blaster timer if needed!
 		updateATA(instructiontime); //Update the ATA timer!
 		tickParallel(instructiontime); //Update the Parallel timer!
 		if (BIOS_Settings.useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!

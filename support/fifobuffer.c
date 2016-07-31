@@ -264,12 +264,83 @@ byte peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be re
 	return 0; //Nothing to peek at!
 }
 
+byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result) //Is there data to be read?
+{
+	if (__HW_DISABLED) return 0; //Abort!
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
+	if (allcleared) return 0; //Abort: invalid buffer!
+
+	if (buffer->lock)
+	{
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-3)) //Filled?
+		{
+			INLINEREGISTER uint_32 readpos;
+			readpos = buffer->readpos; //Current reading position!
+			*result = buffer->buffer[readpos++]; //Read and update!
+			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			*result <<= 8; //Shift high!
+			*result |= buffer->buffer[readpos++]; //Read and update!
+			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			*result <<= 8; //Shift high!
+			*result |= buffer->buffer[readpos++]; //Read and update!
+			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			*result <<= 8; //Shift high!
+			*result |= buffer->buffer[readpos]; //Read and update!
+			PostSem(buffer->lock)
+			return 1; //Something to peek at!
+		}
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-3)) //Filled?
+		{
+			INLINEREGISTER uint_32 readpos;
+			readpos = buffer->readpos; //Current reading position!
+			*result = buffer->buffer[readpos++]; //Read and update!
+			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			*result <<= 8; //Shift high!
+			*result |= buffer->buffer[readpos++]; //Read and update!
+			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			*result <<= 8; //Shift high!
+			*result |= buffer->buffer[readpos++]; //Read and update!
+			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			*result <<= 8; //Shift high!
+			*result |= buffer->buffer[readpos]; //Read and update!
+			return 1; //Something to peek at!
+		}
+	}
+	return 0; //Nothing to peek at!
+}
+
 OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
 {
 	INLINEREGISTER uint_32 readpos,size;
 	size = buffer->size; //Size of the buffer to wrap around!
 	readpos = buffer->readpos; //Load the old read position!
 	*result = buffer->buffer[readpos++]; //Read and update high!
+	if (readpos >= size) readpos = 0; //Wrap arround when needed!
+	*result <<= 8; //Shift high!
+	*result |= buffer->buffer[readpos++]; //Read and update low!
+	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+	buffer->readpos = readpos; //Update our the position!
+	buffer->lastwaswrite = 0; //Last operation was a read operation!
+}
+
+OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *result)
+{
+	INLINEREGISTER uint_32 readpos,size;
+	size = buffer->size; //Size of the buffer to wrap around!
+	readpos = buffer->readpos; //Load the old read position!
+	*result = buffer->buffer[readpos++]; //Read and update high!
+	if (readpos >= size) readpos = 0; //Wrap arround when needed!
+	*result <<= 8; //Shift high!
+	*result |= buffer->buffer[readpos++]; //Read and update low!
+	if (readpos >= size) readpos = 0; //Wrap arround when needed!
+	*result <<= 8; //Shift high!
+	*result |= buffer->buffer[readpos++]; //Read and update low!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
 	*result <<= 8; //Shift high!
 	*result |= buffer->buffer[readpos++]; //Read and update low!
@@ -307,12 +378,59 @@ byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
 	return 0; //Nothing to read!
 }
 
+byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result)
+{
+	if (__HW_DISABLED) return 0; //Abort!
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
+	if (allcleared) return 0; //Abort: invalid buffer!
+
+	if (buffer->lock)
+	{
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-3)) //Filled?
+		{
+			readfifobuffer32unlocked(buffer,result); //Read the FIFO buffer without lock!
+			PostSem(buffer->lock)
+			return 1; //Read!
+		}
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-3)) //Filled?
+		{
+			readfifobuffer32unlocked(buffer, result); //Read the FIFO buffer without lock!
+			return 1; //Read!
+		}
+	}
+	return 0; //Nothing to read!
+}
+
+
 OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 {
 	INLINEREGISTER uint_32 writepos, size;
 	size = buffer->size; //Load the size!
 	writepos = buffer->writepos; //Load the write position!
 	buffer->buffer[writepos++] = (data >> 8); //Write high and update!
+	if (writepos >= size) writepos = 0; //Wrap arround when needed!
+	buffer->buffer[writepos++] = (data & 0xFF); //Write low and update!
+	if (writepos >= size) writepos = 0; //Wrap arround when needed!
+	buffer->writepos = writepos; //Update the write position!
+	buffer->lastwaswrite = 1; //Last operation was a write operation!
+}
+
+OPTINLINE static void writefifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 data)
+{
+	INLINEREGISTER uint_32 writepos, size;
+	size = buffer->size; //Load the size!
+	writepos = buffer->writepos; //Load the write position!
+	buffer->buffer[writepos++] = (data >> 24); //Write high and update!
+	if (writepos >= size) writepos = 0; //Wrap arround when needed!
+	buffer->buffer[writepos++] = ((data >> 16)&0xFF); //Write high and update!
+	if (writepos >= size) writepos = 0; //Wrap arround when needed!
+	buffer->buffer[writepos++] = ((data >> 8)&0xFF); //Write high and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
 	buffer->buffer[writepos++] = (data & 0xFF); //Write low and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
@@ -347,6 +465,37 @@ byte writefifobuffer16(FIFOBUFFER *buffer, word data)
 		}
 
 		writefifobuffer16unlocked(buffer, data); //Write the FIFO buffer without lock!
+	}
+	return 1; //Written!
+}
+
+byte writefifobuffer32(FIFOBUFFER *buffer, uint_32 data)
+{
+	if (__HW_DISABLED) return 0; //Abort!
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
+	if (allcleared) return 0; //Error: invalid buffer!
+
+	if (buffer->lock)
+	{
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer)<4) //Buffer full?
+		{
+			PostSem(buffer->lock)
+			return 0; //Error: buffer full!
+		}
+
+		writefifobuffer32unlocked(buffer,data); //Write the FIFO buffer without lock!
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		if (fifobuffer_INTERNAL_freesize(buffer)<4) //Buffer full?
+		{
+			return 0; //Error: buffer full!
+		}
+
+		writefifobuffer32unlocked(buffer, data); //Write the FIFO buffer without lock!
 	}
 	return 1; //Written!
 }
@@ -497,6 +646,35 @@ void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 			{
 				readfifobuffer16unlocked(src,&buffer); //Read 16-bit data!
 				writefifobuffer16unlocked(dest,buffer); //Write 16-bit data!
+			} while (--current);
+		}
+		if (dest->lock) PostSem(dest->lock) //Unlock the destination!
+	}
+	if (src->lock) PostSem(src->lock) //Unlock the source!
+}
+
+void movefifobuffer32(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
+{
+	if (allcleared) return; //Abort: invalid buffer!
+	if ((src==dest) || (!threshold)) return; //Can't move to itself!
+	INLINEREGISTER uint_32 current; //Current thresholded data index!
+	uint_32 buffer; //our buffer for the transfer!
+	if (!src) return; //Invalid source!
+	if (!dest) return; //Invalid destination!
+	threshold <<= 2; //Make the threshold dword-sized, since we're moving dword items!
+	if (src->lock) WaitSem(src->lock) //Lock the source!
+	if (fifobuffer_INTERNAL_freesize(src) <= (src->size - threshold)) //Buffered enough words of data?
+	{
+		if (dest->lock) WaitSem(dest->lock) //Lock the destination!
+		if (fifobuffer_INTERNAL_freesize(dest) >= threshold) //Enough free space left?
+		{
+			threshold >>= 2; //Make it into actual data items!
+			//Now quickly move the thesholded data from the source to the destination!
+			current = threshold; //Move threshold items!
+			do //Process all items as fast as possible!
+			{
+				readfifobuffer32unlocked(src,&buffer); //Read 32-bit data!
+				writefifobuffer32unlocked(dest,buffer); //Write 32-bit data!
 			} while (--current);
 		}
 		if (dest->lock) PostSem(dest->lock) //Unlock the destination!

@@ -1,5 +1,14 @@
 #include "headers/support/sounddoublebuffer.h" //Our own typedefs etc.
 
+byte allocDoubleBufferedSound32(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer)
+{
+	buffer->outputbuffer = allocfifobuffer(samplebuffersize<<2,0); //Normal output buffer, lock free!
+	buffer->sharedbuffer = allocfifobuffer((samplebuffersize+1)<<3,1); //Shared output buffer, uses locks!
+	buffer->inputbuffer = allocfifobuffer(samplebuffersize<<2,0); //Normal input buffer, lock free!
+	buffer->samplebuffersize = samplebuffersize; //The buffer size used!
+	return ((buffer->outputbuffer!=NULL) && (buffer->sharedbuffer!=NULL) && (buffer->inputbuffer!=NULL)); //Gotten the buffers!
+}
+
 byte allocDoubleBufferedSound16(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer)
 {
 	buffer->outputbuffer = allocfifobuffer(samplebuffersize<<1,0); //Normal output buffer, lock free!
@@ -26,6 +35,12 @@ void freeDoubleBufferedSound(SOUNDDOUBLEBUFFER *buffer)
 	buffer->samplebuffersize = 0; //Nothin used anymore!
 }
 
+void writeDoubleBufferedSound32(SOUNDDOUBLEBUFFER *buffer, uint_32 sample)
+{
+	writefifobuffer32(buffer->outputbuffer,sample); //Add to the normal buffer!
+	movefifobuffer32(buffer->outputbuffer,buffer->sharedbuffer,buffer->samplebuffersize); //Move to the destination if required!
+}
+
 void writeDoubleBufferedSound16(SOUNDDOUBLEBUFFER *buffer, word sample)
 {
 	writefifobuffer16(buffer->outputbuffer,sample); //Add to the normal buffer!
@@ -36,6 +51,17 @@ void writeDoubleBufferedSound8(SOUNDDOUBLEBUFFER *buffer, byte sample)
 {
 	writefifobuffer(buffer->outputbuffer,sample); //Add to the normal buffer!
 	movefifobuffer8(buffer->outputbuffer,buffer->sharedbuffer,buffer->samplebuffersize); //Move to the destination if required!
+}
+
+byte readDoubleBufferedSound32(SOUNDDOUBLEBUFFER *buffer, uint_32 *sample)
+{
+	if (readfifobuffer32(buffer->inputbuffer,sample)) //Read from the normal buffer!
+	{
+		return 1; //We've read from the normal (fast) buffer!
+	}
+	//No sample yet? Request samples!
+	movefifobuffer32(buffer->sharedbuffer,buffer->inputbuffer,buffer->samplebuffersize); //Move to the destination if required!
+	return readfifobuffer32(buffer->inputbuffer,sample); //Try to read from the buffer if possible!
 }
 
 byte readDoubleBufferedSound16(SOUNDDOUBLEBUFFER *buffer, word *sample)
