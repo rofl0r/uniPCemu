@@ -2447,6 +2447,9 @@ void updateInput(SDL_Event *event) //Update all input!
 		unlock(LOCK_INPUT);
 		break;
 	case SDL_KEYDOWN: //Keyboard down?
+		#ifdef SDL2
+		if (event->key.repeat) return; //Ignore repeating keys! 
+		#endif
 		lock(LOCK_INPUT);
 		if (((!getjoystick(joystick,-1)) || Direct_Input) && hasinputfocus) //Gotten no joystick or is direct input?
 		{
