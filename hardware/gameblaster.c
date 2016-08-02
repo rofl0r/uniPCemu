@@ -58,7 +58,7 @@ typedef struct
 	
 
 	//Information taken from the registers!
-	SAA1099_CHANNEL channels[6]; //Our channels!
+	SAA1099_CHANNEL channels[8]; //Our channels!
 	SAA1099_NOISE noise[2]; //Noise generators!
 } SAA1099; //All data for one SAA-1099 chip!
 
@@ -116,12 +116,14 @@ OPTINLINE word calcAmplitude(byte amplitude)
 
 OPTINLINE void tickSAAEnvelope(SAA1099 *chip, byte channel)
 {
+	channel &= 1; //Only two channels available!
 	if (chip->env_enable[channel]) //Envelope enabled and running?
 	{
 		byte step,mode,mask; //Temp data!
 		mode = chip->env_mode[channel]; //The mode to use!
 		//Step form 0..63 and then loop 32..63
-		step = ((chip->env_step[channel]+1)&0x3F);
+		step = ++chip->env_step[channel];
+		step &= 0x3F; //Wrap around!
 		step |= (chip->env_step[channel]&0x20); //OR in the current high block to loop the high part!
 		chip->env_step[channel] = step; //Save the new step now used!
 		mask = 0xF; //Full resolution!
@@ -225,7 +227,7 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 			break;
 		case 0x1C: //Channels enable and reset generators!
 			chip->all_ch_enable = (value&1);
-			if (chip->sync_state = ((value&2)>>1)) //Sync & Reset generators?
+			if ((chip->sync_state = ((value&2)>>1))) //Sync & Reset generators?
 			{
 				for (reg=0;reg<6;++reg)
 				{
@@ -241,9 +243,7 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 
 OPTINLINE byte getSAA1099SquareWave(float frequencytime)
 {
-	float signal;
-	signal = sin(2*PI*frequencytime); //The signal!
-	return (signal>=0.0f)?1:0; //Give a square wave at the requested speed!
+	return (sinf(2*PI*frequencytime)>=0.0f)?1:0; //Give a square wave at the requested speed!
 }
 
 OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, byte *output_l, byte *output_r)
@@ -251,19 +251,17 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, byte *o
 	float temp;
 	double dummy;
 
-	if (chip->channels[channel].frequency != 511) //Valid frequency?
-	{
-		chip->channels[channel].freq = (double)((2*15625)<<chip->channels[channel].octave)/(511.0-(double)chip->channels[channel].frequency); //Calculate the current frequency to use!
-	}
+	channel &= 7;
+	chip->channels[channel].freq = (double)((2*15625)<<chip->channels[channel].octave)/(511.0-(double)chip->channels[channel].frequency); //Calculate the current frequency to use!
 
 	chip->channels[channel].level = getSAA1099SquareWave(chip->channels[channel].freq*chip->channels[channel].time); //Current flipflop output of the square wave generator!
 
 	//Now, tick the square wave generator!
 	chip->channels[channel].time += gameblaster_samplelength; //New position for the noise generator!
 
-	temp = chip->noise[channel].time*chip->noise[channel].freq; //Calculate for overflow!
+	temp = chip->channels[channel].time*chip->channels[channel].freq; //Calculate for overflow!
 	if (temp >= 1.0f) { //Overflow?
-		chip->noise[channel].time = modf(temp, &dummy) / chip->noise[channel].freq;
+		chip->channels[channel].time = modf(temp, &dummy) / chip->channels[channel].freq;
 	}
 
 	//Tick the envelopes when needed!
@@ -275,7 +273,7 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, byte *o
 	//Check and apply for noise!
 	if (chip->channels[channel].noise_enable) //Use noise?
 	{
-		if (chip->noise[channel / 3].level & 1) //If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5)
+		if (chip->noise[(channel / 3)&1].level & 1) //If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5)
 		{
 			//Substract to avoid overflows, half amplitude only
 			*output_l -= (chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) / 16 / 2; //Noise left!
@@ -299,6 +297,8 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 	float temp;
 	double dummy;
 	byte noise_flipflop;
+
+	channel &= 1; //Only two channels!
 
 	//Check the current noise generators and update them!
 	//Noise channel output!
