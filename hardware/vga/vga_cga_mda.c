@@ -855,7 +855,7 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 
 double getCGAMDAClock(VGA_Type *VGA)
 {
-	float result=0.0f; //The calculated clock speed! Default: not used!
+	double result=0.0f; //The calculated clock speed! Default: not used!
 	if (CGAMDAEMULATION_ENABLED_CRTC(VGA)) //Are we enabled?
 	{
 		if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA emulation enabled?

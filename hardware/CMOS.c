@@ -225,8 +225,8 @@ byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
 {
 	//More accurate timing than default!
 	datetime->us = curtime->tv_usec;
-	datetime->s100 = (curtime->tv_usec/10000); //10000us=1/100 second!
-	datetime->s10000 = ((curtime->tv_usec%10000)/100); //100us=1/10000th second!
+	datetime->s100 = (byte)(curtime->tv_usec/10000); //10000us=1/100 second!
+	datetime->s10000 = (byte)((curtime->tv_usec%10000)/100); //100us=1/10000th second!
 
 	//Further is directly taken from the http://stackoverflow.com/questions/1692184/converting-epoch-time-to-real-date-time gmtime source code.
 	register unsigned long dayclock, dayno;
@@ -236,23 +236,23 @@ byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
 	dayno = (unsigned long)curtime->tv_sec / SECS_DAY;
 
 	datetime->second = dayclock % 60;
-	datetime->minute = (dayclock % 3600) / 60;
-	datetime->hour = dayclock / 3600;
+	datetime->minute = (byte)((dayclock % 3600) / 60);
+	datetime->hour = (byte)(dayclock / 3600);
 	datetime->weekday = (dayno + 4) % 7;       /* day 0 was a thursday */
-	for (;dayno >= YEARSIZE(year);)
+	for (;dayno >= (unsigned long)YEARSIZE(year);)
 	{
 		dayno -= YEARSIZE(year);
 		year++;
 	}
 	datetime->year = year - YEAR0;
-	datetime->day = dayno;
+	datetime->day = (byte)dayno;
 	datetime->month = 0;
 	while (dayno >= _ytab[LEAPYEAR(year)][datetime->month]) {
 		dayno -= _ytab[LEAPYEAR(year)][datetime->month];
 		++datetime->month;
 	}
 	++datetime->month; //We're one month further(months start at one, not zero)!
-	datetime->day = dayno + 1;
+	datetime->day = (byte)(dayno + 1);
 	datetime->dst = 0;
 
 	return 1; //Always successfully converted!
@@ -268,7 +268,7 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 	uint_64 seconds=0;
 	if ((curtime->us-(curtime->us%100))!=(((curtime->s100)*10000)+(curtime->s10000*100))) return 0; //Invalid time to convert: 100th&10000th seconds doesn't match us(this is supposed to be the same!)
 	if (curtime->year<1970) return 0; //Before 1970 isn't supported!
-	datetime->tv_usec = curtime->us; //Save the microseconds directly!
+	datetime->tv_usec = (uint_32)curtime->us; //Save the microseconds directly!
 	uint_64 year;
 	byte counter;
 	byte leapyear;
@@ -289,7 +289,7 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 	seconds += MINUTESIZE*curtime->minute;
 	seconds += curtime->second;
 
-	datetime->tv_sec = seconds; //The amount of seconds!
+	datetime->tv_sec = (uint_32)seconds; //The amount of seconds!
 	return 1; //Successfully converted!
 }
 
@@ -354,9 +354,9 @@ byte applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, int_64 dive
 		applyingtime += divergeance_usec; //Apply usec!
 
 		//Apply the resulting time!
-		timeval.tv_sec = (applyingtime/1000000); //Time in seconds!
+		timeval.tv_sec = (uint_32)(applyingtime/1000000); //Time in seconds!
 		applyingtime -= (timeval.tv_sec*1000000); //Substract to get microseconds!
-		timeval.tv_usec = applyingtime; //We have the amount of microseconds left!
+		timeval.tv_usec = (uint_32)applyingtime; //We have the amount of microseconds left!
 		if (epochtoaccuratetime(&timeval,curtime)) //Convert back to apply it to the current time!
 		{
 			return 1; //Success!

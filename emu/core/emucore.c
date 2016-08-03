@@ -607,7 +607,7 @@ OPTINLINE byte coreHandler()
 	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
 	//CPU execution, needs to be before the debugger!
 	currenttiming += getnspassed(&CPU_timing); //Check for any time that has passed to emulate!
-	uint_64 currentCPUtime = currenttiming; //Current CPU time to update to!
+	uint_64 currentCPUtime = (uint_64)currenttiming; //Current CPU time to update to!
 	uint_64 timeoutCPUtime = currentCPUtime+TIMEOUT_TIME; //We're timed out this far in the future (1ms)!
 
 	double instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
@@ -779,7 +779,7 @@ OPTINLINE byte coreHandler()
 	}
 
 	float temp;
-	temp = MAX(last_timing,currenttiming); //Save for substraction(time executed in real time)!
+	temp = (float)MAX(last_timing,currenttiming); //Save for substraction(time executed in real time)!
 	last_timing -= temp; //Keep the CPU timing within limits!
 	currenttiming -= temp; //Keep the current timing within limits!
 

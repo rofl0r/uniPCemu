@@ -1566,7 +1566,7 @@ void handleGaming(double timepassed) //Handles gaming mode input!
 	sword keys[15]; //Key index for this key, -1 for none/nothing happened!
 	byte keymappings[15] = {GAMEMODE_START, GAMEMODE_LEFT, GAMEMODE_UP, GAMEMODE_RIGHT, GAMEMODE_DOWN, GAMEMODE_LTRIGGER, GAMEMODE_RTRIGGER, GAMEMODE_TRIANGLE, GAMEMODE_CIRCLE, GAMEMODE_CROSS, GAMEMODE_SQUARE, GAMEMODE_ANALOGLEFT, GAMEMODE_ANALOGUP, GAMEMODE_ANALOGRIGHT, GAMEMODE_ANALOGDOWN};
 	//Order: START, LEFT, UP, RIGHT, DOWN, L, R, TRIANGLE, CIRCLE, CROSS, SQUARE, ANALOGLEFT, ANALOGUP, ANALOGRIGHT, ANALOGDOWN
-	uint_32 keybits[15] = {1024,16,32,64,128,256,512,2.4,8,1,0,0,0,0}; //Button mapped to input, analog=0.
+	uint_32 keybits[15] = {1024,16,32,64,128,256,512,2,4,8,1,0,0,0,0}; //Button mapped to input, analog=0.
 	byte analogmapped; //Is analog mapped?
 
 	oldshiftstatus = shiftstatus; //Save backup for press/release!

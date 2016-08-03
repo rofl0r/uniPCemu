@@ -646,7 +646,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,0,0x00 }, //6A/7A JXX
 			{ 0,0,0,0,0,0,0,0x00 }, //6B/7B JXX
 			{ 0,0,0,0,0,0,0,0x00 }, //6C/7C JXX
-			{ 0,0,0,0,0,0.0,0x00 }, //6D/7D JXX
+			{ 0,0,0,0,0,0,0,0x00 }, //6D/7D JXX
 			{ 0,0,0,0,0,0,0,0x00 }, //6E/7E JXX
 			{ 0,0,0,0,0,0,0,0x00 }, //6F/7F JXX
 			{ 0,1,0,0,1,0,1,0x00 }, //80 GRP1
@@ -3125,7 +3125,7 @@ void generate_timings_tbl() //Generate the timings table!
 		{
 			curmode = mode; //The current mode we're processing!
 			tryopcodes: //Retry with the other mode!
-			theCPU = EMULATED_CPU; //Start with the emulated CPU!
+			theCPU = (byte)EMULATED_CPU; //Start with the emulated CPU!
 			for (;(CPUInformation[theCPU][curmode][opcode].used==0) && theCPU;) --theCPU; //Goto parent while not used!
 			if ((CPUInformation[theCPU][curmode][opcode].used == 0) && curmode) //Unused instruction and higher bit mode?
 			{

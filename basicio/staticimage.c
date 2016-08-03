@@ -212,7 +212,7 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 			buffer[23] = (geometry->FATSize>>8)&0xFF; //High byte of above.
 			buffer[24] = (geometry->SPT&0xFF);
 			buffer[25] = (geometry->SPT>>8)&0xFF; //Sectors per track!
-			buffer[26] = geometry->sides;
+			buffer[26] = (byte)geometry->sides;
 			buffer[27] = (geometry->sides>>8)&0xFF; //How many sides!
 			buffer[28] = 0; //No hidden...
 			buffer[29] = 0; //... Sectors!

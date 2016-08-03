@@ -292,7 +292,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	decay = (uint_32)(decay*cents2samplesfactor((double)(decayenvfactor*relKeynum))); //Apply key number!
 
-	sustainfactor = dB2factor((double)((1000.0f-sustain)/10.0f),100.0f); //We're on a rate of 1000 cb!
+	sustainfactor = (float)dB2factor(((1000.0-sustain)/10.0),100.0); //We're on a rate of 1000 cb!
 	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
 	if (cents2samplesfactor((double)release) < 0.0002f) //0.0001 sec?
 	{

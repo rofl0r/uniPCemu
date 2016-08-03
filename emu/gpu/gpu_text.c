@@ -94,7 +94,7 @@ OPTINLINE static byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) 
 	if (x >= GPU_TEXTPIXELSX) return 0; //Higher bound!
 	if (y >= GPU_TEXTPIXELSY) return 0; //Higher bound!
 	GPU_textcalcpixel(&tx, &ty, &charx, &chary, x, y); //Calculate our info!
-	return getcharxy_8(surface->text[chary][charx], tx, ty); //Give the pixel of the character!
+	return getcharxy_8(surface->text[chary][charx], (byte)tx, (byte)ty); //Give the pixel of the character!
 }
 
 OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)

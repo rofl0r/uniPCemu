@@ -258,7 +258,7 @@ byte setVolume(SOUNDHANDLER handler, void *extradata, float p_volume) //Channel&
 		if (soundchannels[n].soundhandler && (soundchannels[n].soundhandler==handler) && (soundchannels[n].extradata==extradata)) //Found?
 		{
 			soundchannels[n].volume = p_volume; //Set the volume of the channel!
-			soundchannels[n].volume_percent = p_volume?convertVolume(p_volume)*convertVolume(SOUND_VOLUME):0.0f; //The volume in linear percent, with 0dB=silence!
+			soundchannels[n].volume_percent = (float)(p_volume?convertVolume(p_volume)*convertVolume(SOUND_VOLUME):0.0f); //The volume in linear percent, with 0dB=silence!
 			unlockaudio(); //Unlock the audio!
 			return 1; //Done: check no more!
 		}
@@ -643,16 +643,16 @@ OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int_32 *re
 
 OPTINLINE static float calcSoundHighpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
 {
-	float RC = 1.0 / (cutoff_freq * (2.0f * PI));
-	float dt = 1.0 / samplerate;
+	float RC = 1.0f / (cutoff_freq * (2.0f * (float)PI));
+	float dt = 1.0f / samplerate;
 	float alpha = RC / (RC + dt);
 	return alpha * (previousresult + currentsample - previoussample);
 }
 
 OPTINLINE static float calcSoundLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
 {
-	float RC = (float)1.0f / (cutoff_freq * (2.0f * PI));
-	float dt = (float)1.0f / samplerate;
+	float RC = 1.0f / (cutoff_freq * (2.0f * (float)PI));
+	float dt = 1.0f / samplerate;
 	float alpha = dt / (RC + dt);
 	return previousresult + (alpha*(currentsample - previousresult));
 }

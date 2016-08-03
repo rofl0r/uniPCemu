@@ -26,10 +26,10 @@ Renderer mini-optimizations.
 
 */
 
-float oldrate = 0.0f; //The old rate we're using!
+double oldrate = 0.0f; //The old rate we're using!
 
-float VGA_timing = 0.0f; //No timing yet!
-float VGA_debugtiming = 0.0f; //Debug countdown if applyable!
+double VGA_timing = 0.0; //No timing yet!
+double VGA_debugtiming = 0.0; //Debug countdown if applyable!
 byte VGA_debugtiming_enabled = 0; //Are we applying right now?
 float VGA_rendertiming = 0.0f; //Time for the renderer to tick!
 
@@ -85,12 +85,12 @@ void changeRowTimer(VGA_Type *VGA) //Change the VGA row processing timer the amm
 	#ifdef __HW_DISABLED
 	return; //Disabled?
 	#endif
-	float rate;
+	double rate;
 	rate = VGA_VerticalRefreshRate(VGA); //Get our rate first!
 	if (rate!=oldrate) //New rate has been specified?
 	{
 		oldrate = rate; //We've updated to this rate!
-		VGA_rendertiming = 1000000000.0f/rate; //Handle this rate from now on! Keep us locked though to prevent screen updates messing with this!
+		VGA_rendertiming = (float)(1000000000.0/rate); //Handle this rate from now on! Keep us locked though to prevent screen updates messing with this!
 		adjustVGASpeed(); //Auto-adjust our speed!
 	}
 }
@@ -99,7 +99,7 @@ void VGA_initTimer()
 {
 	VGA_timing = 0.0f; //We're starting to run now!
 	oldrate = VGA_VerticalRefreshRate(getActiveVGA()); //Initialise the default rate!
-	VGA_rendertiming = 1000000000.0f/oldrate; //Handle this rate from now on!
+	VGA_rendertiming = (float)(1000000000.0/oldrate); //Handle this rate from now on!
 	initTicksHolder(&VGA_test);
 	adjustVGASpeed(); //Auto-adjust our speed!
 }
@@ -373,7 +373,7 @@ void updateVGA(double timepassed)
 	if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Might have passed?
 	{
 		float renderings;
-		renderings = floorf(VGA_timing/VGA_rendertiming); //Ammount of times to render!
+		renderings = floorf((float)(VGA_timing/VGA_rendertiming)); //Ammount of times to render!
 		VGA_timing -= (renderings*VGA_rendertiming); //Rest the amount we can process!
 
 		#ifdef LIMITVGA

@@ -376,7 +376,7 @@ int main(int argc, char * argv[])
 	for (;;) //Still running?
 	{
 		updateInputMain(); //Update input!
-		CPU_time += getuspassed(&CPUUpdate); //Update the CPU time passed!
+		CPU_time += (uint_64)getuspassed(&CPUUpdate); //Update the CPU time passed!
 		if (CPU_time>=10000) //Allow other threads to lock the CPU requirements once in a while!
 		{
 			CPU_time %= 10000; //Rest!

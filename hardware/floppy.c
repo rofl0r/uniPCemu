@@ -313,7 +313,7 @@ byte floppy_spt(uint_64 floppy_size)
 	int i;
 	for (i = 0; i<(int)NUMITEMS(floppygeometries); i++)
 	{
-		if (floppygeometries[i].KB == KB(floppy_size)) return floppygeometries[i].SPT; //Found?
+		if (floppygeometries[i].KB == KB(floppy_size)) return (byte)floppygeometries[i].SPT; //Found?
 	}
 	return 0; //Unknown!
 }
@@ -333,7 +333,7 @@ byte floppy_sides(uint_64 floppy_size)
 	int i;
 	for (i = 0; i<(int)NUMITEMS(floppygeometries); i++)
 	{
-		if (floppygeometries[i].KB == KB(floppy_size)) return floppygeometries[i].sides; //Found?
+		if (floppygeometries[i].KB == KB(floppy_size)) return (byte)floppygeometries[i].sides; //Found?
 	}
 	return 0; //Unknown!
 }
@@ -1278,7 +1278,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.ST2.data = 0x00; //Clear ST2!
 				updateFloppyTrack0(); //Update track 0!
 				updateFloppyWriteProtected(0); //Update write protected related flags!
-				if (floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber], FLOPPY.currentsector[FLOPPY.DOR.DriveNumber]) >= (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->KB * 1024)) //Invalid address within our image!
+				if ((int_32)floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber], FLOPPY.currentsector[FLOPPY.DOR.DriveNumber]) >= (int_32)(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->KB * 1024)) //Invalid address within our image!
 				{
 					FLOPPY.ST1.NoAddressMark = FLOPPY.ST1.NoData = 1; //Invalid sector!
 				}

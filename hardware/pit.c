@@ -96,7 +96,7 @@ typedef struct
 
 	//Output generating timer!
 	float samples; //Output samples to process for the current audio tick!
-	float samplesleft; //Samples left to process!
+	double samplesleft; //Samples left to process!
 	FIFOBUFFER *rawsignal; //The raw signal buffer for the oneshot mode!
 } PITCHANNEL; // speaker!
 
@@ -154,13 +154,13 @@ byte speaker_first_sample = 1;
 void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
-	const float ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to process every output sample!
-	INLINEREGISTER float length; //Amount of samples to generate!
-	INLINEREGISTER float i;
+	const double ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to process every output sample!
+	INLINEREGISTER double length; //Amount of samples to generate!
+	INLINEREGISTER double i;
 	uint_32 dutycyclei; //Input samples to process!
-	INLINEREGISTER float tickcounter;
+	INLINEREGISTER double tickcounter;
 	word oldvalue; //Old value before decrement!
-	float tempf;
+	double tempf;
 	uint_32 render_ticks; //A one shot tick!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
 	byte channel; //Current channel?
@@ -440,7 +440,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 		{
 			//Average our input ticks!
 			PITchannels[2].samplesleft += ticklength; //Add our time to the sample time processed!
-			tempf = floorf(PITchannels[2].samplesleft); //Take the rounded number of samples to process!
+			tempf = floor(PITchannels[2].samplesleft); //Take the rounded number of samples to process!
 			PITchannels[2].samplesleft -= tempf; //Take off the samples we've processed!
 			render_ticks = (uint_32)tempf; //The ticks to render!
 
@@ -454,7 +454,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 				#endif
 				#ifdef SPEAKER_LOWPASS
 					//We're applying the low pass filter for the speaker!
-					applySoundLowpassFilter(SPEAKER_LOWPASS, TIME_RATE, &speaker_currentsample, &speaker_last_result, &speaker_last_sample, &speaker_first_sample);
+					applySoundLowpassFilter((float)SPEAKER_LOWPASS, (float)TIME_RATE, &speaker_currentsample, &speaker_last_result, &speaker_last_sample, &speaker_first_sample);
 				#endif
 				#ifdef SPEAKER_LOGDUTY
 					writeWAVMonoSample(speakerlogduty,(short)speaker_currentsample); //Log the mono sample to the WAV file, converted as needed!

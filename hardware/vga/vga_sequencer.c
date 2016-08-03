@@ -547,7 +547,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
 	if (VGA->CRTC.x<NUMITEMS(CGALineBuffer)) //Valid pixel horizontally?
 	{
-		CGALineBuffer[VGA->CRTC.x] = attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
+		CGALineBuffer[VGA->CRTC.x] = (byte)attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
 	++VGA->CRTC.x; //Next x!
 }

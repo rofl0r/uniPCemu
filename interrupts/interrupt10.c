@@ -230,7 +230,7 @@ OPTINLINE int GPU_putpixel(int x, int y, byte page, word color) //Writes a video
                         if (color & 0x80) {
                                 p[ind]^=(color & 0x7f);
                         } else {
-                                p[ind]=color;
+                                p[ind]=(byte)color;
                         }
                         old = (p[1] << 4) | p[0];
                         real_writeb(0xb800,off,old);
@@ -248,7 +248,7 @@ OPTINLINE int GPU_putpixel(int x, int y, byte page, word color) //Writes a video
                         /* Set the correct bitmask for the pixel position */
                         IO_Write(0x3ce,0x8);Bit8u mask=128>>(x&7);IO_Write(0x3cf,mask);
                         /* Set the color to set/reset register */
-                        IO_Write(0x3ce,0x0);IO_Write(0x3cf,color);
+                        IO_Write(0x3ce,0x0);IO_Write(0x3cf,(byte)color);
                         /* Enable all the set/resets */
                         IO_Write(0x3ce,0x1);IO_Write(0x3cf,0xf);
                         /* test for xorring */
@@ -273,7 +273,7 @@ OPTINLINE int GPU_putpixel(int x, int y, byte page, word color) //Writes a video
                 }
 
         case M_VGA:
-                mem_writeb(RealMake(0xa000,y*320+x),color);
+                mem_writeb(RealMake(0xa000,y*320+x),(byte)color);
                 break;
         case M_LIN8:
                 //if (CurMode->swidth!=(Bitu)real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)
@@ -297,7 +297,7 @@ OPTINLINE int GPU_putpixel(int x, int y, byte page, word color) //Writes a video
 					IO_Write(0x3CD, curbank); //Set the new bank!
 				}
                 RealPt off=RealMake(0xA000,rowoffs); //Pointer to memory!
-                mem_writeb(off,color);
+                mem_writeb(off,(byte)color);
                 break;
         default:
                 //if(GCC_UNLIKELY(!putpixelwarned)) {

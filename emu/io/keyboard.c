@@ -125,7 +125,7 @@ releaseallkeys:
 					dolog("keyboard","Key release: %s",releasename); //Log our release input!
 				}
 				#endif
-				if (EMU_keyboard_handler(i, 0)) //Fired the handler for releasing!
+				if (EMU_keyboard_handler((byte)i, 0)) //Fired the handler for releasing!
 				{
 					--keys_pressed; //A key has been released!
 					--keys_arepressed; //A key has been released, so decrease the counter!
@@ -169,7 +169,7 @@ void tickPressedKey(uint_64 keytime)
 		{
 			if ((key_status[i]&5)==1) //Pressed and not withheld from input?
 			{
-				if ((key_pressed_time[i] > last_key_pressed_time) || (last_key_pressed == -1)) //Pressed later or first one to check?
+				if (((int_64)key_pressed_time[i] > (int_64)last_key_pressed_time) || (last_key_pressed == -1)) //Pressed later or first one to check?
 				{
 					if ((i==lctrlindex) || (i==laltindex) || (i==lshiftindex) || (i==rctrlindex) || (i==raltindex) || (i==rshiftindex)) continue; //Ignore ctrl/alt/shift!
 					last_key_pressed = i; //This is the last key pressed!
@@ -230,7 +230,7 @@ void tickPressedKeys() //Tick any keys needed to be pressed!
 {
 	uint_64 i;
 	keys_active = 0; //Initialise keys active!
-	for (i=0;i<key_pressed_counter;i++) //Tick all pressed keys in order of time!
+	for (i=0;i<(uint_64)key_pressed_counter;++i) //Tick all pressed keys in order of time!
 		tickPressedKey(i); //Tick the timed key!
 }
 

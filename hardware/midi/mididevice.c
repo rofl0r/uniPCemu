@@ -103,7 +103,7 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation)
 {
 	INLINEREGISTER float frequency;
 	frequency = voice->lowpassfilter_freq; //Load the frequency!
-	frequency *= cents2samplesfactor(Modulation*voice->lowpassfilter_modenvfactor); //Apply the modulation using the Modulation Envelope factor given by the Soundfont!
+	frequency *= (float)cents2samplesfactor(Modulation*voice->lowpassfilter_modenvfactor); //Apply the modulation using the Modulation Envelope factor given by the Soundfont!
 	return frequency; //Give the frequency to use for the low pass filter!
 }
 
@@ -303,12 +303,12 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 
 OPTINLINE float MIDIconcave(float value, float maxvalue)
 {
-	return log(sqrt(value*value)/(maxvalue*maxvalue)); //Give the concave fashion!
+	return logf(sqrtf(value*value)/(maxvalue*maxvalue)); //Give the concave fashion!
 }
 
 OPTINLINE float MIDIconvex(float value, float maxvalue)
 {
-	return log(sqrt(maxvalue-(value*value))/(maxvalue*maxvalue)); //Give the convex fashion: same as concave, but start and end points are reversed!
+	return logf(sqrtf(maxvalue-(value*value))/(maxvalue*maxvalue)); //Give the convex fashion: same as concave, but start and end points are reversed!
 }
 
 
@@ -517,7 +517,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	if (attenuation>1440.0f) attenuation = 1440.0f; //Limit to max!
 	if (attenuation<0.0f) attenuation = 0.0f; //Limit to min!
 
-	voice->initialAttenuation = dB2factor(((1440.0f-(double)attenuation)/10.0f),144.0f); //We're on a rate of 1440 cb!
+	voice->initialAttenuation = (float)dB2factor(((1440.0-(double)attenuation)/10.0),144.0); //We're on a rate of 1440 cb!
 
 	//Determine panning!
 	panningtemp = 0.0f; //Default: no panning at all: centered!

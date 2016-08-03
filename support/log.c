@@ -55,7 +55,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	word i, logtextlen = 0;
 	char c, newline=0;
 	va_list args; //Going to contain the list!
-	uint_64 time;
+	float time;
 
 	//Lock
 	WaitSem(log_Lock) //Only one instance allowed!

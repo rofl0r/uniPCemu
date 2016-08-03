@@ -8,7 +8,7 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
-double gameblaster_samplelength = 0.0f;
+float gameblaster_samplelength = 0.0f;
 
 //Game Blaster sample rate and other audio defines!
 #define __GAMEBLASTER_SAMPLERATE 22050.0f
@@ -23,20 +23,20 @@ typedef struct
 	byte frequency_enable;
 	byte noise_enable;
 	byte octave; //0-7
-	byte amplitude[2]; //0-F
+	word amplitude[2]; //0-F?
 	byte envelope[2]; //0-F, 10=off.
 
 	//Data required for timing the square wave
-	double time; //Time
-	double freq; //Frequency!
+	float time; //Time
+	float freq; //Frequency!
 	byte level; //The level!
 } SAA1099_CHANNEL;
 
 typedef struct
 {
 	//Data required for simulating noise generators!
-	double time; //Time
-	double freq; //Frequency!
+	float time; //Time
+	float freq; //Frequency!
 	byte laststatus; //The last outputted status for detecting cycles!
 	byte level; //The level!
 } SAA1099_NOISE;
@@ -51,10 +51,10 @@ typedef struct
 	word noise_params[2];
 	word env_enable[2];
 	word env_reverse_right[2];
-	word env_mode[2];
+	byte env_mode[2];
 	word env_bits[2];
 	word env_clock[2];
-	word env_step[2];
+	byte env_step[2];
 	byte all_ch_enable;
 	byte sync_state;
 	
@@ -73,7 +73,7 @@ struct
 	SAA1099 chips[2]; //The two chips for generating output!
 } GAMEBLASTER; //Our game blaster information!
 
-float AMPLIFIER = __GAMEBLASTER_AMPLIFIER; //The amplifier, amplifying samples to the full range!
+float AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //The amplifier, amplifying samples to the full range!
 
 OPTINLINE byte SAAEnvelope(byte waveform, byte position)
 {
@@ -260,16 +260,16 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 
 OPTINLINE byte getSAA1099SquareWave(float frequencytime)
 {
-	return (sinf(2*PI*frequencytime)>=0.0f)?1:0; //Give a square wave at the requested speed!
+	return (sinf(2*(float)PI*frequencytime)>=0.0f)?1:0; //Give a square wave at the requested speed!
 }
 
-OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, byte *output_l, byte *output_r)
+OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, sword *output_l, sword *output_r)
 {
 	float temp;
 	double dummy;
 
 	channel &= 7;
-	chip->channels[channel].freq = (double)((2*15625)<<chip->channels[channel].octave)/(511.0-(double)chip->channels[channel].frequency); //Calculate the current frequency to use!
+	chip->channels[channel].freq = ((2*15625)<<chip->channels[channel].octave)/(511.0f-chip->channels[channel].frequency); //Calculate the current frequency to use!
 
 	chip->channels[channel].level = getSAA1099SquareWave(chip->channels[channel].freq*chip->channels[channel].time); //Current flipflop output of the square wave generator!
 
@@ -278,7 +278,7 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, byte *o
 
 	temp = chip->channels[channel].time*chip->channels[channel].freq; //Calculate for overflow!
 	if (temp >= 1.0f) { //Overflow?
-		chip->channels[channel].time = modf(temp, &dummy) / chip->channels[channel].freq;
+		chip->channels[channel].time = (float)modf(temp, &dummy) / chip->channels[channel].freq;
 	}
 
 	//Tick the envelopes when needed!
@@ -339,16 +339,16 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 	{
 		temp = chip->noise[channel].time*chip->noise[channel].freq; //Calculate for overflow!
 		if (temp >= 1.0f) { //Overflow?
-			chip->noise[channel].time = modf(temp, &dummy) / chip->noise[channel].freq;
+			chip->noise[channel].time = (float)modf(temp, &dummy) / chip->noise[channel].freq;
 		}
 	}
 }
 
 OPTINLINE void generateSAA1099sample(SAA1099 *chip, float *leftsample, float *rightsample) //Generate a sample on the requested chip!
 {
-	byte output_l, output_r;
+	sword output_l, output_r;
 
-	const static double noise_frequencies[3] = {31250.0*2.0,15625.0*2.0,7812.0*2.0}; //Normal frequencies!
+	const static float noise_frequencies[3] = {31250.0f*2.0f,15625.0f*2.0f,7812.0f*2.0f}; //Normal frequencies!
 	switch (chip->noise_params[0]) //What frequency to use?
 	{
 	default:
@@ -420,8 +420,8 @@ void updateGameBlaster(double timepassed)
 			samples[0][1] = LIMITRANGE(samples[0][1], (float)SHRT_MIN, (float)SHRT_MAX); //Clip our data to prevent overflow!
 			samples[1][0] = LIMITRANGE(samples[1][0], (float)SHRT_MIN, (float)SHRT_MAX); //Clip our data to prevent overflow!
 			samples[1][1] = LIMITRANGE(samples[1][1], (float)SHRT_MIN, (float)SHRT_MAX); //Clip our data to prevent overflow!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16(samples[0][1])<<16)|signed2unsigned16(samples[0][0])); //Output the sample to the renderer!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16(samples[1][1])<<16)|signed2unsigned16(samples[1][0])); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16((sword)samples[0][1])<<16)|signed2unsigned16((sword)samples[0][0])); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16((sword)samples[1][1])<<16)|signed2unsigned16((sword)samples[1][0])); //Output the sample to the renderer!
 			gameblaster_soundtiming -= gameblaster_soundtick; //Decrease timer to get time left!
 		}
 	}
@@ -465,7 +465,7 @@ byte GameBlaster_soundGenerator(void* buf, uint_32 length, byte stereo, void *us
 			mono_converter = unsigned2signed16((word)buffer); //Load the last generated sample(left)!
 			buffer >>= 16; //Shift low!
 			mono_converter += unsigned2signed16((word)buffer); //Load the last generated sample(right)!
-			mono_converter = LIMITRANGE(mono_converter, (float)SHRT_MIN, (float)SHRT_MAX); //Clip our data to prevent overflow!
+			mono_converter = LIMITRANGE(mono_converter, SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
 			*data_mono++ = mono_converter; //Save the sample and point to the next mono sample!
 			if (!--c) return SOUNDHANDLER_RESULT_FILLED; //Next item!
 		}
@@ -574,7 +574,7 @@ void initGameBlaster(word baseaddr)
 				{
 					setVolume(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[1],__GAMEBLASTER_VOLUME);
 					GAMEBLASTER.storelatch[0] = GAMEBLASTER.storelatch[1] = 0xFF; //Initialise our latches!
-					gameblaster_samplelength = 1.0/__GAMEBLASTER_SAMPLERATE; //The partial duration of a sample!
+					gameblaster_samplelength = 1.0f/__GAMEBLASTER_SAMPLERATE; //The partial duration of a sample!
 				}
 			}
 		}

@@ -466,7 +466,7 @@ OPTINLINE void MMU_INTERNAL_ww(sword segdesc, word segment, uint_32 offset, word
 	MMU_INTERNAL_wb(segdesc,segment,offset,w&0xFF,index); //Low first!
 	writeword = 1; //We're writing a 2nd byte word, for emulating the NEC V20/V30 0x10000 overflow bug.
 	w >>= 8; //Shift low!
-	MMU_INTERNAL_wb(segdesc,segment,offset+1,w,index|1); //High last!
+	MMU_INTERNAL_wb(segdesc,segment,offset+1,(byte)w,index|1); //High last!
 }
 
 OPTINLINE void MMU_INTERNAL_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val, byte index) //Set adress (dword)!

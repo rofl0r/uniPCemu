@@ -462,8 +462,8 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 		lock(LOCK_CPU);
 		for (playedfile.w=0;playedfile.w<=0xFF;++playedfile.w) //Clear all registers!
 		{
-			OPLXsetreg(playedfile.droversion,playedfile.newheader.iHardwareType,0,playedfile.w,&playedfile.CodemapTable[0],playedfile.newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!
-			OPLXsetreg(playedfile.droversion,playedfile.newheader.iHardwareType,1,playedfile.w,&playedfile.CodemapTable[0],playedfile.newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!
+			OPLXsetreg(playedfile.droversion,playedfile.newheader.iHardwareType,0,(byte)playedfile.w,&playedfile.CodemapTable[0],playedfile.newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!
+			OPLXsetreg(playedfile.droversion,playedfile.newheader.iHardwareType,1,(byte)playedfile.w,&playedfile.CodemapTable[0],playedfile.newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!
 		}
 		unlock(LOCK_CPU);
 

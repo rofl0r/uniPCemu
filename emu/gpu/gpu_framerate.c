@@ -71,7 +71,7 @@ void GPU_Framerate_tick() //One second has passed thread (called every second!)?
 	if (__HW_DISABLED) return; //Disabled?
 	uint_64 timepassed;
 	lock(LOCK_FRAMERATE); //Lock us!
-	timepassed = getuspassed(&lastcheck); //Real time passed!
+	timepassed = (uint_64)getuspassed(&lastcheck); //Real time passed!
 	if (timepassed) //Time passed?
 	{
 		//Update total framerate data!

@@ -79,7 +79,7 @@ byte adliboperators[2][0x10] = { //Groupings of 22 registers! (20,40,60,80,E0)
 byte adliboperatorsreverse[0x20] = { 0, 1, 2, 0, 1, 2, 255, 255, 3, 4, 5, 3, 4, 5, 255, 255, 6, 7, 8, 6, 7, 8,255,255,255,255,255,255,255,255,255,255}; //Channel lookup of adlib operators!
 byte adliboperatorsreversekeyon[0x20] = { 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2, 2, 2,0,0,0,0,0,0,0,0,0,0}; //Modulator/carrier lookup of adlib operators in the keyon bits!
 
-static const float feedbacklookup[8] = { 0, PI / 16.0, PI / 8.0, PI / 4.0, PI / 2.0, PI, PI*2.0, PI*4.0 }; //The feedback to use from opl3emu! Seems to be half a sinus wave per number!
+static const float feedbacklookup[8] = { 0, (float)(PI / 16.0), (float)(PI / 8.0), (float)(PI / 4.0), (float)(PI / 2.0), (float)PI, (float)(PI*2.0), (float)(PI*4.0) }; //The feedback to use from opl3emu! Seems to be half a sinus wave per number!
 float feedbacklookup2[8]; //Actual feedback lookup value!
 word phaseconversion[0x10000]; //Phase converstion precalcs!
 
@@ -186,7 +186,7 @@ void EnvelopeGenerator_setAttennuationCustom(ADLIBOP *op)
 
 OPTINLINE float adlibeffectivefrequency(word fnum, word octave)
 {
-	return (fnum * usesamplerate) / (float)(1LL<<(20-(uint_64)octave)); //This is the frequency requested!
+	return (float)((fnum * usesamplerate) / (float)(1LL<<(20-(uint_64)octave))); //This is the frequency requested!
 }
 
 void writeadlibKeyON(byte channel, byte forcekeyon)
@@ -466,7 +466,7 @@ OPTINLINE void stepTremoloVibrato(TREMOLOVIBRATOSIGNAL *signal, float frequency)
 {
 	float current;
 	double dummy;
-	current = modf(asinf(OPL2_Exponential(OPL2SinWave(PI2*frequency*signal->time)))/PI2,&dummy); //Apply the signal using the OPL2 Sine Wave, reverse the operation and convert to triangle time!
+	current = (float)modf((double)asinf(OPL2_Exponential(OPL2SinWave((float)PI2*frequency*(float)signal->time)))/(float)PI2,&dummy); //Apply the signal using the OPL2 Sine Wave, reverse the operation and convert to triangle time!
 	current = (current < 0.5f)? ((current * 2.0f) - 0.5f):(0.5f - ((current - 0.5f) * 2.0f));
 	signal->current = current; //Save the current signal as the triangle wave!
 
@@ -487,7 +487,7 @@ OPTINLINE void OPL2_stepTremoloVibrato()
 
 	//Now the current value of the signal is stored! Apply the active tremolo/vibrato!
 	#ifdef ADLIB_TREMOLOVIBRATO
-	tremolovibrato[0].active = dB2factor(93.0f - (tremolovibrato[0].depth*tremolovibrato[0].current), 93.0f); //Calculate the current tremolo!
+	tremolovibrato[0].active = (float)dB2factor(93.0f - (tremolovibrato[0].depth*tremolovibrato[0].current), 93.0f); //Calculate the current tremolo!
 	tremolovibrato[1].active = (100.0f + (tremolovibrato[1].depth*tremolovibrato[1].current))*0.01f; //Calculate the current vibrato!
 	#else
 	tremolovibrato[0].active = tremolovibrato[1].active = 1.0f; //No tremolo/vibrato!
@@ -576,7 +576,7 @@ OPTINLINE void incop(byte operator, float frequency)
 
 OPTINLINE float calcModulator(float modulator)
 {
-	return modulator*(PI*8.0f); //Calculate current modulation! 8 periods range!
+	return (float)(modulator*(PI*8.0f)); //Calculate current modulation! 8 periods range!
 }
 
 OPTINLINE float calcFeedback(byte channel, ADLIBOP *operator)
@@ -640,7 +640,7 @@ float adlib_scaleFactor = SHRT_MAX / (3000.0f*9.0f); //We're running 9 channels 
 
 OPTINLINE word getphase(byte operator, float frequency) //Get the current phrase of the operator!
 {
-	return (word)(fmodf((double)(adlibop[operator].time*frequency),1.0)*((float)0x3D0)); //Give the 10-bits value
+	return (word)(fmodf((adlibop[operator].time*frequency),1.0)*((float)0x3D0)); //Give the 10-bits value
 }
 
 word convertphase_real(word phase)
@@ -1130,7 +1130,7 @@ void updateAdlib(double timepassed)
 			#ifdef ADLIB_LOWPASS
 				opl2_currentsample = sample;
 				//We're applying the low pass filter for the speaker!
-				applySoundLowpassFilter(ADLIB_LOWPASS, usesamplerate, &opl2_currentsample, &opl2_last_result, &opl2_last_sample, &opl2_first_sample);
+				applySoundLowpassFilter(ADLIB_LOWPASS, (float)usesamplerate, &opl2_currentsample, &opl2_last_result, &opl2_last_sample, &opl2_first_sample);
 				sample = opl2_currentsample; //Convert us back to our range!
 			#endif
 
@@ -1138,7 +1138,7 @@ void updateAdlib(double timepassed)
 			#ifdef WAV_ADLIB
 			writeWAVMonoSample(adlibout,sample); //Log the samples!
 			#endif
-			writeDoubleBufferedSound16(&adlib_soundbuffer,sample); //Output the sample to the renderer!
+			writeDoubleBufferedSound16(&adlib_soundbuffer,(word)sample); //Output the sample to the renderer!
 			tickadlib(); //Tick us to the next timing if needed!
 			adlib_soundtiming -= adlib_soundtick; //Decrease timer to get time left!
 		}
@@ -1205,8 +1205,8 @@ void initAdlib()
 	//Source of the Exp and LogSin tables: https://docs.google.com/document/d/18IGx18NQY_Q1PJVZ-bHywao9bhsDoAqoIn1rIm42nwo/edit
 	for (i = 0;i < 0x100;++i) //Initialise the exponentional and log-sin tables!
 	{
-		OPL2_ExpTable[i] = round((pow(2, (float)i / 256.0f) - 1.0f) * 1024.0f);
-		OPL2_LogSinTable[i] = round(-log(sin((i + 0.5f)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
+		OPL2_ExpTable[i] = (word)round((pow(2, (float)i / 256.0f) - 1.0f) * 1024.0f);
+		OPL2_LogSinTable[i] = (word)round(-log(sin((i + 0.5f)*PI / 256.0f / 2.0f)) / log(2.0f) * 256.0f);
 	}
 
 	//Find the maximum volume archievable with exponential lookups!
@@ -1254,7 +1254,7 @@ void initAdlib()
 	{
 		if (allocDoubleBufferedSound16(__ADLIB_SAMPLEBUFFERSIZE,&adlib_soundbuffer)) //Valid buffer?
 		{
-			if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
+			if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",(float)usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
 			{
 				dolog("adlib","Error registering sound channel for output!");
 			}

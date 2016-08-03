@@ -125,7 +125,7 @@ byte loadVGADump(byte mode)
 	//Attribute
 	for (port=0;port<buffersizes[0];++port) //Attribute registers!
 	{
-		PORT_OUT_B(0x3C0,port); //The number!
+		PORT_OUT_B(0x3C0,(byte)port); //The number!
 		PORT_OUT_B(0x3C0,buffers[0][port]); //The data!
 	}
 
@@ -139,14 +139,14 @@ byte loadVGADump(byte mode)
 	//Graphics
 	for (port = 0;port<buffersizes[2];++port) //Graphics registers!
 	{
-		PORT_OUT_B(0x3CE, port); //The number!
+		PORT_OUT_B(0x3CE, (byte)port); //The number!
 		PORT_OUT_B(0x3CF, buffers[2][port]); //The data!
 	}
 
 	//Sequencer
 	for (port = 0;port<buffersizes[3];++port) //Sequencer registers!
 	{
-		PORT_OUT_B(0x3C4, port); //The number!
+		PORT_OUT_B(0x3C4, (byte)port); //The number!
 		if (!port) //First port needs to be running?
 		{
 			PORT_OUT_B(0x3C5, buffers[3][port]|3); //The data, which sequencer always enabled!
@@ -160,14 +160,14 @@ byte loadVGADump(byte mode)
 	//Assume color mode!
 	for (port = 0;port<buffersizes[5];++port) //CRT registers!
 	{
-		PORT_OUT_B(0x3D4, port); //The number!
+		PORT_OUT_B(0x3D4, (byte)port); //The number!
 		PORT_OUT_B(0x3D5, buffers[5][port]); //The data!
 	}
 
 	//Load all VRAM data for testing!
 	for (plane=0;plane<4;++plane) //All four planes!
 	{
-		for (planaroffset=0;planaroffset<buffersizes[plane+6];++planaroffset) //All planar data!
+		for (planaroffset=0;(int_64)planaroffset<(int_64)buffersizes[plane+6];++planaroffset) //All planar data!
 		{
 			writeVRAMplane(getActiveVGA(),plane,planaroffset,0,buffers[plane+6][planaroffset]); //Write the data to VRAM directly!
 		}
