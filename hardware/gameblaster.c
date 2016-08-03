@@ -15,6 +15,8 @@ double gameblaster_samplelength = 0.0f;
 #define __GAMEBLASTER_SAMPLEBUFFERSIZE 2048
 #define __GAMEBLASTER_VOLUME 100.0f
 
+#define __GAMEBLASTER_AMPLIFIER ((1.0/6.0)*(1/256.0)*SHRT_MAX)
+
 typedef struct
 {
 	byte frequency;
@@ -70,6 +72,8 @@ struct
 	byte storelatch[2]; //Two store/latch buffers!
 	SAA1099 chips[2]; //The two chips for generating output!
 } GAMEBLASTER; //Our game blaster information!
+
+float AMPLIFIER = __GAMEBLASTER_AMPLIFIER; //The amplifier, amplifying samples to the full range!
 
 OPTINLINE byte SAAEnvelope(byte waveform, byte position)
 {
@@ -383,8 +387,8 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, float *leftsample, float *ri
 	tickSAA1099noise(chip,0); //Tick first noise channel!
 	tickSAA1099noise(chip,1); //Tick second noise channel!
 
-	*leftsample = ((float)output_l)*(1.0/6.0); //Left channel output!
-	*rightsample = ((float)output_r)*(1.0 / 6.0); //Right channel output!
+	*leftsample = ((float)output_l)*AMPLIFIER; //Left channel output!
+	*rightsample = ((float)output_r)*AMPLIFIER; //Right channel output!
 }
 
 double gameblaster_soundtiming=0.0, gameblaster_soundtick=1000000000.0/__GAMEBLASTER_SAMPLERATE;
