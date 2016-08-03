@@ -2411,9 +2411,9 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.Buttons = 0; //Ignore pressed buttons!
 				input.cas = 0; //Ignore pressed buttons!
 				//Handle button press/releases!
+				INLINEREGISTER int key;
 				#ifndef SDL2
 				INLINEREGISTER int index;
-				INLINEREGISTER int key;
 				index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
 				if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
 				{
@@ -2428,10 +2428,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				#else
 				//SDL2?
-				INLINEREGISTER int index;
-				INLINEREGISTER int key;
-				index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
-				key = emu_keys_sdl_rev(index); //Load the index to use!
+				key = emu_keys_sdl_rev(event->key.keysym.sym); //Load the index to use!
 				if (key != -1) //Valid key?
 				{
 					if (emu_keys_state[key] & 1) //We're pressed at all?
@@ -2589,9 +2586,9 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.cas = 0; //Ignore pressed buttons!
 
 				//Handle button press/releases!
+				INLINEREGISTER int key;
 				#ifndef SDL2
 				INLINEREGISTER int index;
-				INLINEREGISTER int key;
 				index = signed2unsigned16(event->key.keysym.sym); //Load the index to use!
 				if (index<(int)NUMITEMS(emu_keys_sdl_rev)) //Valid key to lookup?
 				{
@@ -2606,7 +2603,6 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				#else
 				//SDL2?
-				INLINEREGISTER int key;
 				key = emu_keys_sdl_rev(event->key.keysym.sym); //Load the index to use!
 				if (key != -1) //Valid key?
 				{
