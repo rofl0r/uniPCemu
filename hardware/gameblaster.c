@@ -196,6 +196,19 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 			chip->channels[reg<<1].octave = (value&7);
 			chip->channels[(reg<<1)|1].octave = ((value>>4)&7);
 			break;
+		case 0x14: //Channel n frequency enable?
+			chip->channels[0].frequency_enable = (value&1);
+			value >>= 1;
+			chip->channels[1].frequency_enable = (value&1);
+			value >>= 1;
+			chip->channels[2].frequency_enable = (value&1);
+			value >>= 1;
+			chip->channels[3].frequency_enable = (value&1);
+			value >>= 1;
+			chip->channels[4].frequency_enable = (value&1);
+			value >>= 1;
+			chip->channels[5].frequency_enable = (value&1);
+			break;
 		case 0x15: //Channel n noise enable?
 			reg = value; //Load for processing!
 			chip->channels[0].noise_enable = (reg&1);
