@@ -36,6 +36,7 @@ void latchBUS(uint_32 address, uint_32 data)
 
 byte XTexpansionunit_readIO(word port, byte *result)
 {
+	if ((port&~7)!=0x210) return 0; //Not our ports?
 	switch (port)
 	{
 		case 0x210: //Verify expansion bus data
@@ -67,6 +68,7 @@ byte XTexpansionunit_readIO(word port, byte *result)
 
 byte XTexpansionunit_writeIO(word port, byte value)
 {
+	if ((port&~7) != 0x210) return 0; //Not our ports?
 	switch (port)
 	{
 		case 0x210: //Latch expansion bus data

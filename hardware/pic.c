@@ -36,7 +36,7 @@ void init8259()
 byte in8259(word portnum, byte *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	byte pic = ((portnum&0xFE)==0xA0)?1:(((portnum&0xFE)==0x20)?0:2); //PIC0/1/unknown!
+	byte pic = ((portnum&~1)==0xA0)?1:(((portnum&~1)==0x20)?0:2); //PIC0/1/unknown!
 	if (pic == 2) return 0; //Not our PIC!
 	switch (portnum & 1)
 	{
@@ -72,7 +72,7 @@ OPTINLINE void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
 byte out8259(word portnum, byte value)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	byte pic = ((portnum & 0xFE) == 0xA0) ? 1 : (((portnum & 0xFE) == 0x20) ? 0 : 2); //PIC0/1/unknown!
+	byte pic = ((portnum & ~1) == 0xA0) ? 1 : (((portnum & ~1) == 0x20) ? 0 : 2); //PIC0/1/unknown!
 	if (pic == 2) return 0; //Not our PIC!
 	switch (portnum & 1)
 	{

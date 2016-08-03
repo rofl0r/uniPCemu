@@ -178,6 +178,7 @@ void updateJoystick(double timepassed)
 byte joystick_readIO(word port, byte *result)
 {
 	INLINEREGISTER byte temp;
+	if (port != 0x201) return 0; //Not our port?
 	switch (port)
 	{
 		case 0x201: //Read joystick position and status?
@@ -210,6 +211,7 @@ byte joystick_writeIO(word port, byte value)
 	#include "headers/endpacked.h"
 	byte entry;
 	byte sequencepos;
+	if (port!=0x201) return 0; //Not our port?
 	switch (port)
 	{
 		case 0x201: //Fire joystick four one-shots?

@@ -52,6 +52,7 @@ extern byte singlestep; //Enforce single step by CPU/hardware special debugging 
 
 byte inPCI(word port, byte *result)
 {
+	if ((port&~7)!=0xCF8) return 0; //Not our ports?
 	switch (port)
 	{
 	case 0xCF8: //Status low word low part?
@@ -74,6 +75,7 @@ byte inPCI(word port, byte *result)
 
 byte outPCI(word port, byte value)
 {
+	if ((port&~7) != 0xCF8) return 0; //Not our ports?
 	byte bitpos; //0,8,16,24!
 	switch (port)
 	{
