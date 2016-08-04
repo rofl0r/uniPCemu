@@ -164,7 +164,7 @@ OBJS += hardware/ide.o
 OBJS += support/highrestimer.o
 
 #Rest and main script
-OBJS += basicio/boot.o
+OBJS += bios/boot.o
 
 #Emulator specific stuff!
 #Emulator sound:
