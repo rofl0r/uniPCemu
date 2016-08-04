@@ -263,7 +263,7 @@ OPTINLINE byte getSAA1099SquareWave(float frequencytime)
 	return (sinf(2*(float)PI*frequencytime)>=0.0f)?1:0; //Give a square wave at the requested speed!
 }
 
-OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, sword *output_l, sword *output_r)
+OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 *output_l, int_32 *output_r)
 {
 	float temp;
 	double dummy;
@@ -344,9 +344,9 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 	}
 }
 
-OPTINLINE void generateSAA1099sample(SAA1099 *chip, float *leftsample, float *rightsample) //Generate a sample on the requested chip!
+OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *rightsample) //Generate a sample on the requested chip!
 {
-	sword output_l, output_r;
+	int_32 output_l, output_r;
 
 	const static float noise_frequencies[3] = {31250.0f*2.0f,15625.0f*2.0f,7812.0f*2.0f}; //Normal frequencies!
 	switch (chip->noise_params[0]) //What frequency to use?
@@ -387,8 +387,14 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, float *leftsample, float *ri
 	tickSAA1099noise(chip,0); //Tick first noise channel!
 	tickSAA1099noise(chip,1); //Tick second noise channel!
 
-	*leftsample = ((float)output_l)*AMPLIFIER; //Left channel output!
-	*rightsample = ((float)output_r)*AMPLIFIER; //Right channel output!
+	output_l = (int_32)(((float)output_l)*AMPLIFIER); //Left channel output!
+	output_r = (int_32)(((float)output_r)*AMPLIFIER); //Right channel output!
+
+	output_l = LIMITRANGE(output_l, SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
+	output_r = LIMITRANGE(output_r, SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
+
+	*leftsample = (sword)output_l; //Left sample result!
+	*rightsample = (sword)output_r; //Right sample result!
 }
 
 double gameblaster_soundtiming=0.0, gameblaster_soundtick=1000000000.0/__GAMEBLASTER_SAMPLERATE;
@@ -401,27 +407,30 @@ void updateGameBlaster(double timepassed)
 	{
 		for (;gameblaster_soundtiming>=gameblaster_soundtick;)
 		{
-			float samples[2][2]; //Two stereo samples!
+			sword leftsample[2], rightsample[2]; //Two stereo samples!
 			//Generate the sample!
-			samples[0][0] = samples[0][1] = samples[1][0] = samples[1][1] = 0.0f; //No sample yet!
 
 			if (GAMEBLASTER.chips[0].all_ch_enable) //Sound generation of first chip?
 			{
-				generateSAA1099sample(&GAMEBLASTER.chips[0],&samples[0][0],&samples[0][1]); //Generate a stereo sample on this chip!
+				generateSAA1099sample(&GAMEBLASTER.chips[0],&leftsample[0],&rightsample[0]); //Generate a stereo sample on this chip!
+			}
+			else
+			{
+				leftsample[0] = rightsample[0] = 0; //No sample!
 			}
 
 			if (GAMEBLASTER.chips[1].all_ch_enable) //Sound generation of first chip?
 			{
-				generateSAA1099sample(&GAMEBLASTER.chips[1], &samples[1][0], &samples[1][1]); //Generate a stereo sample on this chip!
+				generateSAA1099sample(&GAMEBLASTER.chips[1], &leftsample[1], &rightsample[1]); //Generate a stereo sample on this chip!
+			}
+			else
+			{
+				leftsample[1] = rightsample[1] = 0; //No sample!
 			}
 
 			//Now push the samples to the output!
-			samples[0][0] = LIMITRANGE(samples[0][0], (float)SHRT_MIN, (float)SHRT_MAX); //Clip our data to prevent overflow!
-			samples[0][1] = LIMITRANGE(samples[0][1], (float)SHRT_MIN, (float)SHRT_MAX); //Clip our data to prevent overflow!
-			samples[1][0] = LIMITRANGE(samples[1][0], (float)SHRT_MIN, (float)SHRT_MAX); //Clip our data to prevent overflow!
-			samples[1][1] = LIMITRANGE(samples[1][1], (float)SHRT_MIN, (float)SHRT_MAX); //Clip our data to prevent overflow!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16((sword)samples[0][1])<<16)|signed2unsigned16((sword)samples[0][0])); //Output the sample to the renderer!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16((sword)samples[1][1])<<16)|signed2unsigned16((sword)samples[1][0])); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16(rightsample[0])<<16)|signed2unsigned16(leftsample[0])); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16(rightsample[1])<<16)|signed2unsigned16(leftsample[1])); //Output the sample to the renderer!
 			gameblaster_soundtiming -= gameblaster_soundtick; //Decrease timer to get time left!
 		}
 	}

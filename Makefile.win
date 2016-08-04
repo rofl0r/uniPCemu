@@ -130,3 +130,6 @@ clean:
 	-$(RM) $(BUILD_RELEASE)
 	-$(RM) $(BUILD_PROFILE)
 	-$(RM) $(BUILD_DEBUG)
+
+# Special flags that aren't targets!
+.PHONY: SDL2 SDL2static
