@@ -15,7 +15,7 @@ float gameblaster_samplelength = 0.0f;
 #define __GAMEBLASTER_SAMPLEBUFFERSIZE 2048
 #define __GAMEBLASTER_VOLUME 100.0f
 
-#define __GAMEBLASTER_AMPLIFIER ((1.0/6.0)*(1/(SHRT_MAX/2))*SHRT_MAX)
+#define __GAMEBLASTER_AMPLIFIER (1.0/6.0)
 
 typedef struct
 {
@@ -382,6 +382,8 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *ri
 	generateSAA1099channelsample(chip,5,&output_l,&output_r); //Channel 5 sample!
 	generateSAA1099channelsample(chip,6,&output_l,&output_r); //Channel 6 sample!
 
+	output_l <<= 1; //Multiply left output by 2 to get 16-bit samples!
+	output_r <<= 1; //Multiply right output by 2 to get 16-bit samples!
 
 	//Finally, write the resultant samples to the result!
 	tickSAA1099noise(chip,0); //Tick first noise channel!
