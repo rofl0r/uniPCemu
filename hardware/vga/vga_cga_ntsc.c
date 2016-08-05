@@ -215,10 +215,10 @@ OPTINLINE void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth
         b = bp[0]; \
         c = i[0]+i[0]; \
         d = i[-1]+i[1]; \
-        y = ((c+d)<<8) + video_sharpness*(c-d); \
-        rr = y + video_ri*(I) + video_rq*(Q); \
-        gg = y + video_gi*(I) + video_gq*(Q); \
-        bb = y + video_bi*(I) + video_bq*(Q); \
+        y = ((c+d)<<8) + (int)(video_sharpness*(double)(c-d)); \
+        rr = y + (int)(video_ri*(I)) + (int)(video_rq*(Q)); \
+        gg = y + (int)(video_gi*(I)) + (int)(video_gq*(Q)); \
+        bb = y + (int)(video_bi*(I)) + (int)(video_bq*(Q)); \
         ++i; \
         ++ap; \
         ++bp; \

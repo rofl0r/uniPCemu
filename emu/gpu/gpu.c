@@ -393,7 +393,7 @@ void updateVideo() //Update the screen resolution on change!
 	static byte resolutiontype = 0; //Last resolution type!
 	static byte plotsetting = 0; //Direct plot setting!
 	static byte aspectratio = 0; //Last aspect ratio!
-	if ((VIDEO_DIRECT || VIDEO_DFORCED) && (!video_aspectratio)) //Direct aspect ratio?
+	if ((VIDEO_DIRECT) && (!video_aspectratio)) //Direct aspect ratio?
 	{
 		lock(LOCK_VIDEO);
 		reschange = ((window_xres!=GPU.xres) || (window_yres!=GPU.yres)); //Resolution update based on Window Resolution?
