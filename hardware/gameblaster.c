@@ -15,7 +15,7 @@ float gameblaster_samplelength = 0.0f;
 #define __GAMEBLASTER_SAMPLEBUFFERSIZE 2048
 #define __GAMEBLASTER_VOLUME 100.0f
 
-#define __GAMEBLASTER_AMPLIFIER ((1.0/6.0)*(1/256.0)*SHRT_MAX)
+#define __GAMEBLASTER_AMPLIFIER ((1.0/6.0)*(1/(SHRT_MAX/2))*SHRT_MAX)
 
 typedef struct
 {
