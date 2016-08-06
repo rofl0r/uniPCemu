@@ -618,7 +618,7 @@ OPTINLINE byte coreHandler()
 		{
 			if (threadRunning(debugger_thread)) //Are we running the debugger?
 			{
-				getnspassed(&CPU_timing); //Discard the time passed!
+				updateAudio(getnspassed(&CPU_timing)); //Discard the time passed!
 				return 1; //OK, but skipped!
 			}
 		}
@@ -628,7 +628,7 @@ OPTINLINE byte coreHandler()
 			{
 				if ((CPU[activeCPU].halt&2)==0) //Are we allowed to be halted entirely?
 				{
-						getnspassed(&CPU_timing); //Discard the time passed!
+						updateAudio(getnspassed(&CPU_timing)); //Discard the time passed!
 						return 1; //OK, but skipped!
 				}
 				BIOSMenuAllowed = 0; //We're running the BIOS menu! Don't open it again!
@@ -762,6 +762,7 @@ OPTINLINE byte coreHandler()
 		if (BIOS_Settings.useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		updateVGA(instructiontime); //Update the VGA timer!
 		updateJoystick(instructiontime); //Update the Joystick!
+		updateAudio(instructiontime); //Update the general audio processing!
 		if (--timeout==0) //Timed out?
 		{
 			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!

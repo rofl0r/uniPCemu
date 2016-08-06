@@ -312,7 +312,7 @@ OPTINLINE void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *head
 		{
 			//Lock
 			WaitSem(MID_timing_pos_Lock)
-			if (MID_TERM) //Termination requested?
+			if (MID_TERM || shuttingdown()) //Termination requested?
 			{
 				//Unlock
 				PostSem(MID_timing_pos_Lock)

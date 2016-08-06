@@ -6,6 +6,8 @@
 #include "headers/support/highrestimer.h" //High resolution clock for timing checks.
 #include "headers/support/signedness.h" //Signedness support!
 #include "headers/support/wave.h" //WAV file log support!
+#include "headers/support/sounddoublebuffer.h" //Double buffered sound support!
+#include "headers/support/locks.h" //Locking support!
 
 //Hardware set sample rate
 #define HW_SAMPLERATE 44100
@@ -95,6 +97,8 @@ SDL_AudioSpec audiospecs; //Our requested and obtained audio specifications.
 uint_32 *samplepos[2]; //Sample positions for mono and stereo channels!
 uint_32 samplepos_size; //Size of the sample position precalcs (both of them)
 
+SOUNDDOUBLEBUFFER mixeroutput; //The output of the mixer, to be read by the renderer!
+
 //Default samplerate is HW_SAMPLERATE, Real samplerate is SW_SAMPLERATE
 
 word audiolocklvl = 0; //Audio lock level!
@@ -104,10 +108,7 @@ void lockaudio()
 	if (__HW_DISABLED) return; //Nothing to lock!
 	if (!audiolocklvl) //Root level?
 	{
-		if (SDL_WasInit(SDL_INIT_AUDIO)) //Using SDL and audio enabled?
-		{
-			SDL_LockAudio(); //Lock the audio!
-		}
+		lock(LOCK_SOUND); //Lock the audio!
 	}
 	++audiolocklvl; //Increase the lock level!
 }
@@ -119,10 +120,7 @@ void unlockaudio()
 	if (!audiolocklvl) //Root level?
 	{
 		//We're unlocking!
-		if (SDL_WasInit(SDL_INIT_AUDIO)) //SDL loaded and audio enabled?
-		{
-			SDL_UnlockAudio(); //Unlock the audio!
-		}
+		unlock(LOCK_SOUND); //Unlock the audio!
 	}
 }
 
@@ -714,7 +712,9 @@ int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!
 
 WAVEFILE *recording = NULL; //We are recording when set.
 
-OPTINLINE static void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio channels to buffer!
+byte mixerready = 0; //Are we ready to give output to the buffer?
+
+OPTINLINE static void mixaudio(uint_32 length) //Mix audio channels to buffer!
 {
 	//Variables first
 	//Current data numbers
@@ -743,8 +743,8 @@ OPTINLINE static void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 		{
 			if (activechannel->soundhandler) //Active?
 			{
-				if (activechannel->samplerate &&
-					memprotect(activechannel->sound.samples,activechannel->sound.length,"SW_Samples")) //Allocated all neccesary channel data?
+				if (activechannel->samplerate && activechannel->sound.samples /*&&
+					memprotect(activechannel->sound.samples,activechannel->sound.length,"SW_Samples")*/) //Allocated all neccesary channel data?
 				{
 					currentsample = length; //The ammount of sample to still buffer!
 					activesample = &mixedsamples[0]; //Init active sample to the first sample!
@@ -824,6 +824,35 @@ OPTINLINE static void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 		if (recording) writeWAVStereoSample(recording,result_l,result_r); //Write the recording to the file if needed!
 
 		//Give the output!
+		if (mixerready) writeDoubleBufferedSound32(&mixeroutput,(signed2unsigned16((sword)result_r)<<16)|signed2unsigned16((sword)result_l)); //Give the stereo output to the mixer!
+		if (!--currentsample) return; //Finished!
+	}
+}
+
+OPTINLINE static void HW_mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio channels to buffer!
+{
+	//Variables first
+	INLINEREGISTER sword result_l, result_r; //Sample buffer!
+	INLINEREGISTER uint_32 currentsample; //The current sample number!
+
+	static uint_32 mixersample;
+
+	//Stuff for Master gain
+
+	if (length == 0) return; //Abort without length!
+
+	//Final step: apply Master gain and clip to output!
+	currentsample = length; //Init samples to give!
+	for (;;)
+	{
+		if (readDoubleBufferedSound32(&mixeroutput, &mixersample) == 0) //Read a sample, if present! Else duplicate the previous sample!
+		{
+			mixersample = 0; //Clear output when no sample is available!
+		}
+		result_l = unsigned2signed16(mixersample); //Left output!
+		mixersample >>= 16; //Shift low!
+		result_r = unsigned2signed16(mixersample); //Right output!
+		//Give the output!
 		buffer->l = (sample_t)result_l; //Left channel!
 		buffer->r = (sample_t)result_r; //Right channel!
 		if (!--currentsample) return; //Finished!
@@ -833,6 +862,23 @@ OPTINLINE static void mixaudio(sample_stereo_p buffer, uint_32 length) //Mix aud
 
 //Audio callbacks!
 
+double sound_soundtiming = 0.0, sound_soundtick = 1000000000.0 / HW_SAMPLERATE;
+uint_32 samples; //How many samples to render?
+void updateAudio(double timepassed)
+{
+	//Adlib sound output
+	sound_soundtiming += timepassed; //Get the amount of time passed!
+	if (sound_soundtiming >= sound_soundtick) //Anything to render?
+	{
+		samples = (uint_32)(sound_soundtiming/sound_soundtick); //How many samples to render?
+		sound_soundtiming -= (double)samples*sound_soundtick; //Tick as many samples as we're rendering!
+		lockaudio(); //Make sure we're the only ones rendering!
+		mixaudio(samples); //Mix the samples required!
+		unlockaudio(); //We're finished rendering!
+	}
+}
+
+//Recording support!
 byte sound_isRecording() //Are we recording?
 {
 	return recording?1:0; //Are we recording?
@@ -891,7 +937,7 @@ void Sound_AudioCallback(void *user_data, Uint8 *audio, int length)
 	getuspassed(&audioticks); //Init!
 	#endif
 	uint_32 reallength = length/sizeof(*ubuf); //Total length!
-	mixaudio(ubuf,reallength); //Mix the audio!
+	HW_mixaudio(ubuf,reallength); //Mix the audio!
 	#ifdef EXTERNAL_TIMING
 	uint_64 mspassed = getuspassed(&audioticks); //Load the time passed!
 	totaltime_audio += mspassed; //Total time!
@@ -947,6 +993,7 @@ void initAudio() //Initialises audio subsystem!
 				raiseError("sound service","Unable to open audio device: %s", SDL_GetError());
 				return; //Just to be safe!
 			}
+			sound_soundtick = 1000000000.0 / SW_SAMPLERATE; //Set the sample rate we render at!
 			//dolog("soundservice","Initialising channels...");
 			memset(&soundchannels,0,sizeof(soundchannels)); //Initialise/reset all sound channels!
 			SDLAudio_Loaded = 1; //We're loaded!
@@ -959,6 +1006,13 @@ void initAudio() //Initialises audio subsystem!
 			resetchannels(); //Reset the channels!
 			//dolog("soundservice","Channels reset.");
 		}
+
+		//Allocate the buffers!
+		if (allocDoubleBufferedSound32(SAMPLESIZE, &mixeroutput,1)) //Valid buffer?
+		{
+			mixerready = 1; //We have a mixer!
+		}
+
 		//dolog("soundservice","Starting audio...");
 		//Finish up to start playing!
 		//dolog("soundservice","Calculating samplepos precalcs...");
@@ -982,5 +1036,12 @@ void doneAudio()
 		//dolog("soundservice","Audio closed.");
 		SDLAudio_Loaded = 0; //Not loaded anymore!
 	}
+
+	if (mixerready)
+	{
+		freeDoubleBufferedSound(&mixeroutput); //Release our double buffered output!
+		mixerready = 0; //Not ready anymore!
+	}
+
 	free_samplePos(); //Free the sample position precalcs!
 }

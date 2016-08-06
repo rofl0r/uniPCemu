@@ -1,27 +1,27 @@
 #include "headers/support/sounddoublebuffer.h" //Our own typedefs etc.
 
-byte allocDoubleBufferedSound32(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer)
+byte allocDoubleBufferedSound32(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer, byte locked)
 {
 	buffer->outputbuffer = allocfifobuffer(samplebuffersize<<2,0); //Normal output buffer, lock free!
-	buffer->sharedbuffer = allocfifobuffer((samplebuffersize+1)<<3,1); //Shared output buffer, uses locks!
+	buffer->sharedbuffer = allocfifobuffer((samplebuffersize+1)<<3,locked); //Shared output buffer, uses locks!
 	buffer->inputbuffer = allocfifobuffer(samplebuffersize<<2,0); //Normal input buffer, lock free!
 	buffer->samplebuffersize = samplebuffersize; //The buffer size used!
 	return ((buffer->outputbuffer!=NULL) && (buffer->sharedbuffer!=NULL) && (buffer->inputbuffer!=NULL)); //Gotten the buffers!
 }
 
-byte allocDoubleBufferedSound16(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer)
+byte allocDoubleBufferedSound16(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer, byte locked)
 {
 	buffer->outputbuffer = allocfifobuffer(samplebuffersize<<1,0); //Normal output buffer, lock free!
-	buffer->sharedbuffer = allocfifobuffer((samplebuffersize+1)<<2,1); //Shared output buffer, uses locks!
+	buffer->sharedbuffer = allocfifobuffer((samplebuffersize+1)<<2,locked); //Shared output buffer, uses locks!
 	buffer->inputbuffer = allocfifobuffer(samplebuffersize<<1,0); //Normal input buffer, lock free!
 	buffer->samplebuffersize = samplebuffersize; //The buffer size used!
 	return ((buffer->outputbuffer!=NULL) && (buffer->sharedbuffer!=NULL) && (buffer->inputbuffer!=NULL)); //Gotten the buffers!
 }
 
-byte allocDoubleBufferedSound8(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer)
+byte allocDoubleBufferedSound8(uint_32 samplebuffersize, SOUNDDOUBLEBUFFER *buffer, byte locked)
 {
 	buffer->outputbuffer = allocfifobuffer(samplebuffersize,0); //Normal output buffer, lock free!
-	buffer->sharedbuffer = allocfifobuffer((samplebuffersize+1)<<1,1); //Shared output buffer, uses locks!
+	buffer->sharedbuffer = allocfifobuffer((samplebuffersize+1)<<1,locked); //Shared output buffer, uses locks!
 	buffer->inputbuffer = allocfifobuffer(samplebuffersize,0); //Normal input buffer, lock free!
 	buffer->samplebuffersize = samplebuffersize; //The buffer size used!
 	return ((buffer->outputbuffer!=NULL) && (buffer->sharedbuffer!=NULL) && (buffer->inputbuffer!=NULL)); //Gotten the buffers!

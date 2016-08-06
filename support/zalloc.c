@@ -300,14 +300,16 @@ void freezall(void) //Free all allocated memory still allocated (on shutdown onl
 {
 	int i;
 	initZalloc(); //Make sure we're started!
-	lockaudio(); //Make sure audio isn't running!
+	//lockaudio(); //Make sure audio isn't running! New: audio is rendered in the main thread, so ignore it!
+	if (SDL_WasInit(SDL_INIT_AUDIO)) SDL_LockAudio(); //Do make sure the SDL audio callback isn't running!
 	lock(LOCK_MAINTHREAD); //Make sure we're not running!
 	allcleared = 1; //All is cleared!
 	for (i=0;i<(int)NUMITEMS(registeredpointers);i++)
 	{
 		freez(&registeredpointers[i].pointer,registeredpointers[i].size,"Unregisterptrall"); //Unregister a pointer when allowed!
 	}
-	unlockaudio(); //Unlock the audio! Don't start playing automatically, since there's nothing to play!
+	//unlockaudio(); //Unlock the audio! Don't start playing automatically, since there's nothing to play!
+	if (SDL_WasInit(SDL_INIT_AUDIO)) SDL_UnlockAudio(); //We're done with audio processing!
 	unlock(LOCK_MAINTHREAD); //Finished!
 }
 

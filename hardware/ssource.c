@@ -197,7 +197,7 @@ void initSoundsource() {
 
 	ssourcetiming = covoxtiming = 0.0f; //Initialise our timing!
 
-	if (ssourcestream && allocDoubleBufferedSound8(__SSOURCE_DBLBUFFER,&ssource_soundbuffer) && allocDoubleBufferedSound16(__COVOX_DBLBUFFER,&covox_soundbuffer)) //Allocated buffers?
+	if (ssourcestream && allocDoubleBufferedSound8(__SSOURCE_DBLBUFFER,&ssource_soundbuffer,0) && allocDoubleBufferedSound16(__COVOX_DBLBUFFER,&covox_soundbuffer,0)) //Allocated buffers?
 	{
 		if (addchannel(&covox_output, NULL, "Covox Speech Thing", __COVOX_RATE, __COVOX_HWBUFFER, 1, SMPL8U)) //Covox channel added?
 		{
