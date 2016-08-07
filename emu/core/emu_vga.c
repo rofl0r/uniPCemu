@@ -137,6 +137,19 @@ byte vtotal = 0; //VTotal busy?
 
 extern byte CGAMDARenderer; //CGA/MDA renderer?
 
+OPTINLINE uint_32 get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
+{
+	INLINEREGISTER uint_32 stat; //The status of the pixel!
+	//We are a maximum of 4096x1024 size!
+	Scanline &= 0x3FF; //Range safety: 1024 scanlines!
+	x &= 0xFFF; //Range safety: 4095 columns!
+	stat = VGA->CRTC.rowstatus[Scanline]; //Get row status!
+	stat |= VGA->CRTC.colstatus[x]; //Get column status!
+	stat |= VGA->precalcs.extrasignal; //Graphics mode etc. display status affects the signal too!
+	stat |= (blanking<<VGA_SIGNAL_BLANKINGSHIFT); //Apply the current blanking signal as well!
+	return stat; //Give the combined (OR'ed) status!
+}
+
 OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word *execsignal)
 {
 	word signal;
@@ -332,19 +345,6 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word *exec
 }
 
 extern DisplayRenderHandler displayrenderhandler[4][VGA_DISPLAYRENDERSIZE]; //Our handlers for all pixels!
-
-OPTINLINE uint_32 get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
-{
-	INLINEREGISTER uint_32 stat; //The status of the pixel!
-	//We are a maximum of 4096x1024 size!
-	Scanline &= 0x3FF; //Range safety: 1024 scanlines!
-	x &= 0xFFF; //Range safety: 4095 columns!
-	stat = VGA->CRTC.rowstatus[Scanline]; //Get row status!
-	stat |= VGA->CRTC.colstatus[x]; //Get column status!
-	stat |= VGA->precalcs.extrasignal; //Graphics mode etc. display status affects the signal too!
-	stat |= (blanking<<VGA_SIGNAL_BLANKINGSHIFT); //Apply the current blanking signal as well!
-	return stat; //Give the combined (OR'ed) status!
-}
 
 OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 {

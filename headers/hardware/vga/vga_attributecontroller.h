@@ -27,7 +27,6 @@ byte VGA_AttributeController_16bit(VGA_AttributeInfo *Sequencer_attributeinfo, V
 byte VGA_AttributeController_8bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA);
 byte VGA_AttributeController_4bit(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA);
 //Translate 4-bit or 8-bit color to 256 color DAC Index through palette!
-byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA); //Process attribute to DAC index!
 
 void updateVGAAttributeController_Mode(VGA_Type *VGA); //Update the current mode!
 #endif

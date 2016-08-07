@@ -64,8 +64,6 @@ word getHorizontalTotal(VGA_Type *VGA); //Get horizontal total (for calculating 
 word get_display_y(VGA_Type *VGA, word scanline); //Vertical check!
 word get_display_x(VGA_Type *VGA, word x); //Horizontal check!
 
-uint_32 get_display(VGA_Type *VGA, word Scanline, word x); //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
-
 //Character sizes in pixels!
 //Character sizes in pixels!
 #define getcharacterwidth(VGA) VGA->precalcs.characterwidth

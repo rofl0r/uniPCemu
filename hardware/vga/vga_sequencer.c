@@ -293,6 +293,30 @@ OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	return extrastatus & 1; //Read next pixel?
 }
 
+static VGA_AttributeController_Mode attributecontroller_modes[4] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit, VGA_AttributeController_8bit, VGA_AttributeController_16bit }; //Both modes we use!
+
+VGA_AttributeController_Mode attrmode = VGA_AttributeController_4bit; //Default mode!
+
+void updateVGAAttributeController_Mode(VGA_Type *VGA)
+{
+	if (VGA->precalcs.AttributeController_16bitDAC) //16-bit DAC override active?
+	{
+		attrmode = attributecontroller_modes[VGA->precalcs.AttributeController_16bitDAC]; //Apply the current mode!
+	}
+	else //VGA compatibility mode?
+	{
+		attrmode = attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
+	}
+}
+
+OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA) //Process attribute to DAC index!
+{
+	//Originally: VGA_Type *VGA, word Scanline, word x, VGA_AttributeInfo *info
+
+	//Our changing variables that are required!
+	return attrmode(Sequencer_attributeinfo, VGA); //Passthrough!
+}
+
 OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 {
 	byte x; //For horizontal shifting!
@@ -577,30 +601,6 @@ OPTINLINE void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 		CGALineBuffer[VGA->CRTC.x] = VGA->precalcs.overscancolor; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
 	++VGA->CRTC.x; //Next x!
-}
-
-static VGA_AttributeController_Mode attributecontroller_modes[4] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit, VGA_AttributeController_8bit, VGA_AttributeController_16bit }; //Both modes we use!
-
-VGA_AttributeController_Mode attrmode = VGA_AttributeController_4bit; //Default mode!
-
-void updateVGAAttributeController_Mode(VGA_Type *VGA)
-{
-	if (VGA->precalcs.AttributeController_16bitDAC) //16-bit DAC override active?
-	{
-		attrmode = attributecontroller_modes[VGA->precalcs.AttributeController_16bitDAC]; //Apply the current mode!
-	}
-	else //VGA compatibility mode?
-	{
-		attrmode = attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
-	}
-}
-
-OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA) //Process attribute to DAC index!
-{
-	//Originally: VGA_Type *VGA, word Scanline, word x, VGA_AttributeInfo *info
-
-	//Our changing variables that are required!
-	return attrmode(Sequencer_attributeinfo, VGA); //Passthrough!
 }
 
 void updateVGASequencer_Mode(VGA_Type *VGA)
