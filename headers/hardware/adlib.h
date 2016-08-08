@@ -7,4 +7,9 @@ void doneAdlib(); //Finish adlib!
 void cleanAdlib();
 void updateAdlib(double timepassed); //Sound tick. Executes every instruction.
 
+//Special Sound Blaster support!
+byte readadlibstatus();
+void writeadlibaddr(byte value);
+void writeadlibdata(byte value);
+
 #endif

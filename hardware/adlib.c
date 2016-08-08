@@ -262,16 +262,18 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 	adlibch[channel].keyon = keyon | forcekeyon; //Key is turned on?
 }
 
-byte outadlib (uint16_t portnum, uint8_t value) {
+void writeadlibaddr(byte value)
+{
+	adlibaddr = value; //Set the address!
+}
+
+void writeadlibdata(byte value)
+{
+	word portnum;
 	byte oldval;
-	if (portnum==adlibport) {
-		adlibaddr = value;
-		return 1;
-		}
-	if (portnum != (adlibport+1)) return 0; //Don't handle what's not ours!
 	portnum = adlibaddr;
 	oldval = adlibregmem[portnum]; //Save the old value for reference!
-	if (portnum!=4) adlibregmem[portnum] = value; //Timer control applies it itself, depending on the value!
+	if (portnum != 4) adlibregmem[portnum] = value; //Timer control applies it itself, depending on the value!
 	switch (portnum & 0xF0) //What block to handle?
 	{
 	case 0x00:
@@ -298,8 +300,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			}
 			break;
 		case 8: //CSW/Note-Sel?
-			CSMMode = (adlibregmem[8]&0x80)?1:0; //Set CSM mode!
-			NTS = (adlibregmem[8]&0x40)?1:0; //Set NTS mode!
+			CSMMode = (adlibregmem[8] & 0x80) ? 1 : 0; //Set CSM mode!
+			NTS = (adlibregmem[8] & 0x40) ? 1 : 0; //Set NTS mode!
 			break;
 		default: //Unknown?
 			break;
@@ -313,7 +315,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 			portnum &= 0x1F;
 			adlibop[portnum].ModulatorFrequencyMultiple = calcModulatorFrequencyMultiple(value & 0xF); //Which harmonic to use?
 			adlibop[portnum].ReleaseImmediately = (value & 0x20) ? 0 : 1; //Release when not sustain until release!
-			adlibop[portnum].m_ksr = (value>>4)&1; //Keyboard scaling rate!
+			adlibop[portnum].m_ksr = (value >> 4) & 1; //Keyboard scaling rate!
 			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!			
 			EnvelopeGenerator_setAttennuationCustom(&adlibop[portnum]); //Apply attenuation settings!			
 		}
@@ -324,7 +326,7 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		{
 			portnum &= 0x1F;
 			adlibop[portnum].m_ksl = ((value >> 6) & 3); //Apply KSL!
-			adlibop[portnum].outputlevel = outputtable[value&0x3F]; //Apply raw output level!
+			adlibop[portnum].outputlevel = outputtable[value & 0x3F]; //Apply raw output level!
 			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!
 			EnvelopeGenerator_setAttennuationCustom(&adlibop[portnum]); //Apply attenuation settings!
 		}
@@ -333,8 +335,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 	case 0x70:
 		if (portnum <= 0x75) { //attack/decay
 			portnum &= 0x1F;
-			adlibop[portnum].m_ar = (value>>4); //Attack rate
-			adlibop[portnum].m_dr = (value&0xF); //Decay rate
+			adlibop[portnum].m_ar = (value >> 4); //Attack rate
+			adlibop[portnum].m_dr = (value & 0xF); //Decay rate
 			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!			
 			EnvelopeGenerator_setAttennuationCustom(&adlibop[portnum]); //Apply attenuation settings!			
 		}
@@ -344,8 +346,8 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 		if (portnum <= 0x95) //sustain/release
 		{
 			portnum &= 0x1F;
-			adlibop[portnum].m_sl = (value>>4); //Sustain level
-			adlibop[portnum].m_rr = (value&0xF); //Release rate
+			adlibop[portnum].m_sl = (value >> 4); //Sustain level
+			adlibop[portnum].m_rr = (value & 0xF); //Release rate
 			EnvelopeGenerator_setAttennuation(&adlibop[portnum]); //Apply attenuation settings!			
 			EnvelopeGenerator_setAttennuationCustom(&adlibop[portnum]); //Apply attenuation settings!			
 		}
@@ -354,20 +356,20 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 	case 0xB0:
 		if (portnum <= 0xB8)
 		{ //octave, freq, key on
-			if ((portnum & 0xF) > 8) goto unsupporteditem; //Ignore A9-AF!
+			if ((portnum & 0xF) > 8) return; //Ignore A9-AF!
 			portnum &= 0xF; //Only take the lower nibble (the channel)!
-			writeadlibKeyON((byte)portnum,0); //Write to this port! Don't force the key on!
+			writeadlibKeyON((byte)portnum, 0); //Write to this port! Don't force the key on!
 		}
 		else if (portnum == 0xBD) //Percussion settings etc.
 		{
-			adlibpercussion = (value & 0x20)?1:0; //Percussion enabled?
-			tremolovibrato[0].depth = (value&0x80)?4.8f:1.0f; //Default: 1dB AM depth, else 4.8dB!
-			tremolovibrato[1].depth = (value&0x40)?14.0f:7.0f; //Default: 7 cent vibrato depth, else 14 cents!
-			if (((oldval^value)&0x1F) && adlibpercussion) //Percussion enabled and changed state?
+			adlibpercussion = (value & 0x20) ? 1 : 0; //Percussion enabled?
+			tremolovibrato[0].depth = (value & 0x80) ? 4.8f : 1.0f; //Default: 1dB AM depth, else 4.8dB!
+			tremolovibrato[1].depth = (value & 0x40) ? 14.0f : 7.0f; //Default: 7 cent vibrato depth, else 14 cents!
+			if (((oldval^value) & 0x1F) && adlibpercussion) //Percussion enabled and changed state?
 			{
-				writeadlibKeyON(0x86,0); //Write to this port(Bass drum)! Don't force the key on!
-				writeadlibKeyON(0x87,0); //Write to this port(Snare drum/Tom-tom)! Don't force the key on!
-				writeadlibKeyON(0x88,0); //Write to this port(Cymbal/Hi-hat)! Don't force the key on!
+				writeadlibKeyON(0x86, 0); //Write to this port(Bass drum)! Don't force the key on!
+				writeadlibKeyON(0x87, 0); //Write to this port(Snare drum/Tom-tom)! Don't force the key on!
+				writeadlibKeyON(0x88, 0); //Write to this port(Cymbal/Hi-hat)! Don't force the key on!
 			}
 		}
 		break;
@@ -392,14 +394,27 @@ byte outadlib (uint16_t portnum, uint8_t value) {
 	default: //Unsupported port?
 		break;
 	}
-	unsupporteditem:
+}
+
+byte readadlibstatus()
+{
+	return adlibstatus; //Give the current status!
+}
+
+byte outadlib (uint16_t portnum, uint8_t value) {
+	if (portnum==adlibport) {
+		writeadlibaddr(value); //Write to the address port!
+		return 1;
+		}
+	if (portnum != (adlibport+1)) return 0; //Don't handle what's not ours!
+	writeadlibdata(value); //Write to the data port!
 	return 1; //We're finished and handled, even non-used registers!
 }
 
 uint8_t inadlib (uint16_t portnum, byte *result) {
 	if (portnum == adlibport) //Status port?
 	{
-		*result = adlibstatus; //Give the current status!
+		*result = readadlibstatus(); //Give the current status!
 		return 1; //We're handled!
 	}
 	return 0; //Not our port!

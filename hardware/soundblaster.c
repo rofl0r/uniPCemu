@@ -4,6 +4,7 @@
 #include "headers/support/signedness.h" //Sign support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/ports.h" //I/O support!
+#include "headers/hardware/adlib.h" //Adlib card has more ports with Sound Blasters!
 
 #define __SOUNDBLASTER_SAMPLERATE 22050.0f
 #define __SOUNDBLASTER_SAMPLEBUFFERSIZE 2048
@@ -88,6 +89,20 @@ byte inSoundBlaster(word port, byte *result)
 	if ((port&~0xF)!=SOUNDBLASTER.baseaddr) return 0; //Not our base address?
 	switch (port & 0xF) //What port?
 	{
+	case 8: //FM Music - Compatible Status port
+		*result = readadlibstatus(); //Read the adlib status!
+		return 1; //Handled!
+		break;
+	case 0xA: //DSP - Read data
+		*result = 0x00;
+		return 1; //Handled!
+		break;
+	case 0xC: //DSP - Write Buffer Status
+		*result = 0x00;
+		return 1; //Handled!
+	case 0xE: //DSP - Data Available Status, DSP - IRQ Acknowledge, 8-bit
+		*result = 0x00;
+		return 1;
 	default:
 		break;
 	}
@@ -99,6 +114,18 @@ byte outSoundBlaster(word port, byte value)
 	if ((port&~0xF) != SOUNDBLASTER.baseaddr) return 0; //Not our base address?
 	switch (port & 0xF) //What port?
 	{
+	case 0x6: //DSP - Reset?
+		return 1; //Handled!
+		break;
+	case 0x8: //FM Music - Compatible Register port
+		writeadlibaddr(value); //Write to the address port!
+		return 1; //Handled!
+		break;
+	case 0x9: //FM Music - Compatible Data register
+		writeadlibdata(value); //Write to the data port!
+		return 1; //Handled!
+	case 0xC: //DSP - Write Data or Command
+		return 1; //Handled!
 	default:
 		break;
 	}
