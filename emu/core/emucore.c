@@ -55,6 +55,7 @@
 #include "headers/hardware/xtexpansionunit.h" //XT expansion unit!
 #include "headers/cpu/cb_manager.h" //For handling callbacks!
 #include "headers/hardware/gameblaster.h" //Game blaster support!
+#include "headers/hardware/soundblaster.h" //Sound blaster support!
 
 //CPU default clock speeds (in Hz)!
 
@@ -200,6 +201,8 @@ extern byte allcleared;
 
 extern char soundfontpath[11]; //The soundfont path!
 
+byte useGameBlaster; //Using the Game blaster?
+
 void initEMU(int full) //Init!
 {
 	char soundfont[256];
@@ -239,11 +242,18 @@ void initEMU(int full) //Init!
 		initAdlib(); //Initialise adlib!
 	}
 
+	useGameBlaster = BIOS_Settings.useGameBlaster|BIOS_Settings.useSoundBlaster; //Game blaster used?
 	if (BIOS_Settings.useGameBlaster)
 	{
 		debugrow("Initialising Game Blaster...");
 		initGameBlaster(0x220); //Initialise game blaster!
 		GameBlaster_setVolume((float)BIOS_Settings.GameBlaster_Volume); //Set the sound source volume!
+		setGameBlaster_SoundBlaster(BIOS_Settings.useSoundBlaster); //Sound Blaster compatible?
+	}
+
+	if (BIOS_Settings.useSoundBlaster) //Sound Blaster used?
+	{
+		initSoundBlaster(0x220); //Initialise sound blaster!
 	}
 
 	debugrow("Initialising Parallel ports...");
@@ -423,6 +433,8 @@ void doneEMU()
 		doneMPU(); //Finish our MPU!
 		debugrow("doneEMU: Finishing Disney Sound Source...");
 		doneSoundsource(); //Finish Disney Sound Source!
+		debugrow("doneEMU: Finishing Sound Blaster...");
+		doneSoundBlaster(); //Finish Sound Blaster!
 		debugrow("doneEMU: Finishing Game Blaster...");
 		doneGameBlaster(); //Finish Game Blaster!
 		debugrow("doneEMU: Finishing Adlib...");
@@ -756,7 +768,8 @@ OPTINLINE byte coreHandler()
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
 		if (BIOS_Settings.useAdlib) updateAdlib(instructiontime); //Tick the adlib timer if needed!
-		if (BIOS_Settings.useGameBlaster) updateGameBlaster(instructiontime); //Tick the Game Blaster timer if needed!
+		if (useGameBlaster) updateGameBlaster(instructiontime); //Tick the Game Blaster timer if needed!
+		if (BIOS_Settings.useSoundBlaster) updateSoundBlaster(instructiontime); //Tick the Sound Blaster timer if needed!
 		updateATA(instructiontime); //Update the ATA timer!
 		tickParallel(instructiontime); //Update the Parallel timer!
 		if (BIOS_Settings.useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!

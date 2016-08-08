@@ -65,6 +65,7 @@ typedef struct PACKED
 	byte CGAModel; //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
 	byte useGameBlaster; //Emulate Game Blaster?
 	uint_32 GameBlaster_Volume; //The Game Blaster volume knob!
+	byte useSoundBlaster; //Emulate Sound Blaster?
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 

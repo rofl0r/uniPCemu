@@ -183,6 +183,7 @@ void BIOS_gamingmodeJoystick(); //Use joystick instead of normal gaming mode?
 void BIOS_JoystickReconnect(); //Reconnect the joystick (not SDL2)
 void BIOS_useGameBlaster();
 void BIOS_GameBlasterVolume();
+void BIOS_useSoundBlaster();
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -241,6 +242,7 @@ Handler BIOS_Menus[] =
 	,BIOS_JoystickReconnect //Reconnect Joystick is #51!
 	,BIOS_useGameBlaster //Use Game Blaster is #52!
 	,BIOS_GameBlasterVolume //Game Blaster Volume is #53!
+	,BIOS_useSoundBlaster //Use Sound Blaster is #54!
 };
 
 //Not implemented?
@@ -3962,21 +3964,32 @@ void BIOS_InitSoundText()
 		strcat(menuoptions[advancedoptions++], "Disabled");
 	}
 
-	optioninfo[advancedoptions] = 5; //Sound Source Volume!
+	optioninfo[advancedoptions] = 5; //Sound Blaster!
+	strcpy(menuoptions[advancedoptions], "Sound Blaster: ");
+	if (BIOS_Settings.useSoundBlaster)
+	{
+		strcat(menuoptions[advancedoptions++], "Enabled");
+	}
+	else
+	{
+		strcat(menuoptions[advancedoptions++], "Disabled");
+	}
+
+	optioninfo[advancedoptions] = 6; //Sound Source Volume!
 	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %i",(int)(BIOS_Settings.SoundSource_Volume)); //Sound source volume as a whole number!
 	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
 
-	optioninfo[advancedoptions] = 6; //Game Blaster Volume!
+	optioninfo[advancedoptions] = 7; //Game Blaster Volume!
 	sprintf(menuoptions[advancedoptions],"Game Blaster Volume: %i",(int)(BIOS_Settings.GameBlaster_Volume)); //Sound source volume as a whole number!
 	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
 
 	if (!EMU_RUNNING)
 	{
-		optioninfo[advancedoptions] = 7; //Music player!
+		optioninfo[advancedoptions] = 8; //Music player!
 		strcpy(menuoptions[advancedoptions++], "Music Player");
 	}
 
-	optioninfo[advancedoptions] = 8; //Start/stop recording sound!
+	optioninfo[advancedoptions] = 9; //Start/stop recording sound!
 	if (!sound_isRecording()) //Not recording yet?
 	{
 		strcpy(menuoptions[advancedoptions++], "Start recording sound"); //Sound source volume as a whole number!
@@ -4005,7 +4018,8 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 	case 5:
 	case 6:
 	case 7:
-	case 8: //Valid option?
+	case 8:
+	case 9: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Soundfont selection?
@@ -4022,17 +4036,20 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 			break;
 		case 4: //Game Blaster?
 			if (!EMU_RUNNING) BIOS_Menu = 52; //Game Blaster setting!
-			break;				
-		case 5: //Sound Source Volume?
+			break;
+		case 5: //Sound Blaster?
+			if (!EMU_RUNNING) BIOS_Menu = 54; //Game Blaster setting!
+			break;
+		case 6: //Sound Source Volume?
 			BIOS_Menu = 38; //Sound Source Volume setting!
 			break;
-		case 6: //Game Blaster Volume?
+		case 7: //Game Blaster Volume?
 			BIOS_Menu = 53; //Game Blaster Volume setting!
 			break;
-		case 7: //Play Music file(s)?
+		case 8: //Play Music file(s)?
 			BIOS_Menu = 33; //Play Music file(s)!
 			break;
-		case 8: //Sound recording?
+		case 9: //Sound recording?
 			BIOS_Menu = 42; //Start/stop sound recording!
 			break;
 		}
@@ -5274,5 +5291,13 @@ void BIOS_GameBlasterVolume()
 		}
 		break;
 	}
+	BIOS_Menu = 31; //Goto Sound menu!
+}
+
+void BIOS_useSoundBlaster()
+{
+	BIOS_Settings.useSoundBlaster = !BIOS_Settings.useSoundBlaster; //Reverse!
+	BIOS_Changed = 1; //We've changed!
+	reboot_needed = 1; //A reboot is needed!
 	BIOS_Menu = 31; //Goto Sound menu!
 }
