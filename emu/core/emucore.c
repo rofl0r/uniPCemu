@@ -202,6 +202,9 @@ extern byte allcleared;
 extern char soundfontpath[11]; //The soundfont path!
 
 byte useGameBlaster; //Using the Game blaster?
+byte useAdlib; //Using the Adlib?
+byte useLPTDAC; //Using the LPT DAC?
+byte useSoundBlaster; //Using the Sound Blaster?
 
 void initEMU(int full) //Init!
 {
@@ -236,14 +239,15 @@ void initEMU(int full) //Init!
 	debugrow("Initialising PC Speaker...");
 	initSpeakers(BIOS_Settings.usePCSpeaker); //Initialise the speaker. Enable/disable sound according to the setting!
 
-	if (BIOS_Settings.useAdlib)
+	useAdlib = BIOS_Settings.useAdlib|BIOS_Settings.useSoundBlaster; //Adlib used?
+	if (useAdlib)
 	{
 		debugrow("Initialising Adlib...");
 		initAdlib(); //Initialise adlib!
 	}
 
-	useGameBlaster = BIOS_Settings.useGameBlaster|BIOS_Settings.useSoundBlaster; //Game blaster used?
-	if (BIOS_Settings.useGameBlaster)
+	useGameBlaster = BIOS_Settings.useGameBlaster; //Game blaster used (optional in the Sound Blaster)?
+	if (useGameBlaster)
 	{
 		debugrow("Initialising Game Blaster...");
 		initGameBlaster(0x220); //Initialise game blaster!
@@ -251,15 +255,11 @@ void initEMU(int full) //Init!
 		setGameBlaster_SoundBlaster(BIOS_Settings.useSoundBlaster); //Sound Blaster compatible?
 	}
 
-	if (BIOS_Settings.useSoundBlaster) //Sound Blaster used?
-	{
-		initSoundBlaster(0x220); //Initialise sound blaster!
-	}
-
 	debugrow("Initialising Parallel ports...");
 	initParallelPorts(1); //Initialise the Parallel ports (LPT ports)!
 
-	if (BIOS_Settings.useLPTDAC)
+	useLPTDAC = BIOS_Settings.useLPTDAC; //LPT DAC used?
+	if (useLPTDAC)
 	{
 		debugrow("Initialising Disney Sound Source...");
 		initSoundsource(); //Initialise Disney Sound Source!
@@ -277,6 +277,26 @@ void initEMU(int full) //Init!
 		{
 			//We've failed loading!
 			memset(&BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont));
+			forceBIOSSave(); //Save the new BIOS!
+		}
+	}
+
+	//Check if we're allowed to use full Sound Blaster emulation!
+	useSoundBlaster = BIOS_Settings.useSoundBlaster; //Sound blaster used?
+	if ((strcmp(BIOS_Settings.SoundFont,"")==0) && useSoundBlaster) //Sound Blaster without soundfont?
+	{
+		useSoundBlaster = 0; //No sound blaster to emulate! We can't run without a soundfont!
+	}
+
+	if (useSoundBlaster) //Sound Blaster used?
+	{
+		initSoundBlaster(0x220); //Initialise sound blaster!
+	}
+	else //Sound Blaster not used and allowed?
+	{
+		if (BIOS_Settings.useSoundBlaster) //Sound Blaster specified?
+		{
+			BIOS_Settings.useSoundBlaster = 0; //Don't allow Sound Blaster emulation!
 			forceBIOSSave(); //Save the new BIOS!
 		}
 	}
@@ -767,12 +787,12 @@ OPTINLINE byte coreHandler()
 		updateDMA(instructiontime); //Update the DMA timer!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
-		if (BIOS_Settings.useAdlib) updateAdlib(instructiontime); //Tick the adlib timer if needed!
+		if (useAdlib) updateAdlib(instructiontime); //Tick the adlib timer if needed!
 		if (useGameBlaster) updateGameBlaster(instructiontime); //Tick the Game Blaster timer if needed!
-		if (BIOS_Settings.useSoundBlaster) updateSoundBlaster(instructiontime); //Tick the Sound Blaster timer if needed!
+		if (useSoundBlaster) updateSoundBlaster(instructiontime); //Tick the Sound Blaster timer if needed!
 		updateATA(instructiontime); //Update the ATA timer!
 		tickParallel(instructiontime); //Update the Parallel timer!
-		if (BIOS_Settings.useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
+		if (useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		updateVGA(instructiontime); //Update the VGA timer!
 		updateJoystick(instructiontime); //Update the Joystick!
 		updateAudio(instructiontime); //Update the general audio processing!
