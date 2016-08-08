@@ -51,7 +51,7 @@ byte in8259(word portnum, byte *result)
 	return 1; //The result is given!
 }
 
-OPTINLINE void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
+OPTINLINE void EOI(byte PIC, byte source) //Process and (Automatic) EOI send to an PIC!
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte i;
@@ -61,9 +61,17 @@ OPTINLINE void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
 			i8259.isr[PIC] ^= (1 << i);
 			byte IRQ;
 			IRQ = (PIC << 3) | i; //The IRQ we've finished!
-			if (i8259.finishirq[IRQ]) //Gotten a handler?
+			byte currentsrc;
+			for (currentsrc=0;currentsrc<0x10;++currentsrc) //Check all sources!
 			{
-				i8259.finishirq[IRQ](IRQ); //We're done with this IRQ!
+				if (i8259.finishirq[IRQ][currentsrc]) //Gotten a handler?
+				{
+					if (i8259.isr2[IRQ][currentsrc]) //We've finished?
+					{
+						i8259.finishirq[IRQ][currentsrc](IRQ); //We're done with this IRQ!
+						i8259.isr2[IRQ][currentsrc] ^= (1<<i); //Not in service anymore!
+					}
+				}
 			}
 			return;
 		}
@@ -71,6 +79,7 @@ OPTINLINE void EOI(byte PIC) //Process and (Automatic) EOI send to an PIC!
 
 byte out8259(word portnum, byte value)
 {
+	byte source;
 	if (__HW_DISABLED) return 0; //Abort!
 	byte pic = ((portnum & ~1) == 0xA0) ? 1 : (((portnum & ~1) == 0x20) ? 0 : 2); //PIC0/1/unknown!
 	if (pic == 2) return 0; //Not our PIC!
@@ -90,7 +99,10 @@ byte out8259(word portnum, byte value)
 		}
 		if (value & 0x20)   //EOI command
 		{
-			EOI(pic); //Send an EOI!
+			for (source=0;source<0x10;++source) //Check all sources!
+			{
+				EOI(pic,source); //Send an EOI from this source!
+			}
 		}
 		break;
 	case 1:
@@ -181,26 +193,27 @@ byte PICInterrupt() //We have an interrupt ready to process?
 	return 0; //No interrupt to process!
 }
 
-OPTINLINE byte IRRequested(byte PIC, byte IR) //We have this requested?
+OPTINLINE byte IRRequested(byte PIC, byte IR, byte source) //We have this requested?
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	return ((getunprocessedinterrupt(PIC) >> IR) & 1); //Interrupt requested?
 }
 
-OPTINLINE void ACNIR(byte PIC, byte IR) //Acnowledge request!
+OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 {
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr[PIC] ^= (1 << IR); //Turn IRR off!
 	i8259.isr[PIC] |= (1 << IR); //Turn in-service on!
+	i8259.isr2[PIC][source] |= (1 << IR); //Turn the source on!
 	byte IRQ;
 	IRQ = (PIC << 3) | IR; //The IRQ we're accepting!
-	if (i8259.acceptirq[IRQ]) //Gotten a handler?
+	if (i8259.acceptirq[IRQ][source]) //Gotten a handler?
 	{
-		i8259.acceptirq[IRQ](IRQ); //We're accepting th
+		i8259.acceptirq[IRQ][source](IRQ); //We're accepting the IRQ from this source!
 	}
 	if ((i8259.icw[PIC][3]&2)==2) //Automatic EOI?
 	{
-		EOI(PIC); //Send an EOI!
+		EOI(PIC,source); //Send an EOI!
 	}
 }
 
@@ -231,12 +244,16 @@ byte nextintr()
 		byte IR = i8259.IROrder[i]; //Get the prioritized IR!
 		byte PICnr = ((IR>>3)&1); //What pic?
 		byte realIR = (IR&7); //What IR within the PIC?
-		if (IRRequested(PICnr,realIR)) //Requested?
+		byte srcIndex;
+		for (srcIndex=0;srcIndex<0x10;++srcIndex) //Check all indexes!
 		{
-			ACNIR(PICnr, realIR); //Acnowledge it!
-			lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
-			interruptsaved = 1; //Gotten an interrupt saved!
-			return lastinterrupt;
+			if (IRRequested(PICnr,realIR,srcIndex)) //Requested?
+			{
+				ACNIR(PICnr, realIR,srcIndex); //Acnowledge it!
+				lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
+				interruptsaved = 1; //Gotten an interrupt saved!
+				return lastinterrupt;
+			}
 		}
 	}
 	lastinterrupt = 0; //Unknown!
@@ -261,6 +278,6 @@ void removeirq(byte irqnum)
 void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ)
 {
 	//Register the handlers!
-	i8259.acceptirq[IRQ] = acceptIRQ;
-	i8259.finishirq[IRQ] = finishIRQ;
+	i8259.acceptirq[IRQ&0xF][IRQ>>4] = acceptIRQ;
+	i8259.finishirq[IRQ&0xF][IRQ>>4] = finishIRQ;
 }
