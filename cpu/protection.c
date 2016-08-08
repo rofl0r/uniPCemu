@@ -12,6 +12,41 @@ Basic CPU active segment value retrieval.
 
 //Exceptions, 286+ only!
 
+void CPU_triplefault()
+{
+	resetCPU(); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
+}
+
+void CPU_doublefault()
+{
+	uint_32 zerovalue=0; //Zero value pushed!
+	call_hard_inthandler(EXCEPTION_DOUBLEFAULT); //Execute the double fault handler!
+	CPU_PUSH32(&zerovalue); //Error code of 0!
+}
+
+byte CPU_faultraised()
+{
+	if (CPU[activeCPU].faultraised) //Double/triple fault raised?
+	{
+		if (CPU[activeCPU].faultraised == 2) //Triple fault?
+		{
+			CPU_triplefault(); //Triple faulting!
+			return 0; //Shutdown!
+		}
+		else
+		{
+			++CPU[activeCPU].faultraised; //Raise the fault level!
+			CPU_doublefault(); //Double faulting!
+			return 0; //Don't do anything anymore(partial shutdown)!
+		}
+	}
+	else
+	{
+		CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
+	}
+	return 1; //Handle the fault normally!
+}
+
 //More info: http://wiki.osdev.org/Paging
 //General Protection fault.
 void CPU_GP(int toinstruction,uint_32 errorcode)
@@ -21,30 +56,36 @@ void CPU_GP(int toinstruction,uint_32 errorcode)
 		CPU_resetOP(); //Point to the faulting instruction!
 	}
 	
-	call_hard_inthandler(EXCEPTION_GENERALPROTECTIONFAULT); //Call IVT entry #13 decimal!
-	CPU_PUSH32(&errorcode); //Error code!
-	//Execute the interrupt!
-	CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
+	if (CPU_faultraised()) //Fault raising exception!
+	{
+		call_hard_inthandler(EXCEPTION_GENERALPROTECTIONFAULT); //Call IVT entry #13 decimal!
+		CPU_PUSH32(&errorcode); //Error code!
+		//Execute the interrupt!
+	}
 }
 
 void CPU_SegNotPresent(uint_32 errorcode)
 {
 	CPU_resetOP(); //Point to the faulting instruction!
-	
-	call_hard_inthandler(EXCEPTION_SEGMENTNOTPRESENT); //Call IVT entry #11 decimal!
-	CPU_PUSH32(&errorcode); //Error code!
-	//Execute the interrupt!
-	CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
+
+	if (CPU_faultraised()) //Fault raising exception!
+	{
+		call_hard_inthandler(EXCEPTION_SEGMENTNOTPRESENT); //Call IVT entry #11 decimal!
+		CPU_PUSH32(&errorcode); //Error code!
+		//Execute the interrupt!
+	}
 }
 
 void CPU_StackFault(uint_32 errorcode)
 {
 	CPU_resetOP(); //Point to the faulting instruction!
-	
-	call_hard_inthandler(EXCEPTION_STACKFAULT); //Call IVT entry #12 decimal!
-	CPU_PUSH32(&errorcode); //Error code!
-	//Execute the interrupt!
-	CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
+
+	if (CPU_faultraised()) //Fault raising exception!
+	{
+		call_hard_inthandler(EXCEPTION_STACKFAULT); //Call IVT entry #12 decimal!
+		CPU_PUSH32(&errorcode); //Error code!
+		//Execute the interrupt!
+	}
 }
 
 void protection_nextOP() //We're executing the next OPcode?
@@ -305,15 +346,26 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 			//Handle the task switch!
 			if (LOADEDDESCRIPTOR.desc.DPL != getCPL()) //Different CPL? Stack switch?
 			{
-				if (!TSS_PrivilegeChanges(whatsegment, &LOADEDDESCRIPTOR, segment)) //The privilege level has changed and failed?
+				if (TSS_PrivilegeChanges(whatsegment, &LOADEDDESCRIPTOR, segment)) //The privilege level has changed and failed?
 				{
 					//6.3.4.1 Stack Switching!!!
 					//Throw #GP?
 					THROWDESCGP(segment); //Throw error!
 					return NULL; //Error changing priviledges!
 				}
+				//We've switched to the destination task! Load the code segment!
+
 			}
 
+			//Execute a normal task switch!
+			if (CPU_switchtask(whatsegment,&LOADEDDESCRIPTOR,&segment,segment)) //Switching to a certain task?
+			{
+				//Throw TSS fault?
+				CPU_TSSFault(segment); //Throw error!
+				return NULL; //Error changing priviledges!
+			}
+
+			//We've properly switched to the destination task! Continue execution normally!
 		}
 
 		if (LOADEDDESCRIPTOR.desc.EXECSEGMENT.C) //Conforming segment?
