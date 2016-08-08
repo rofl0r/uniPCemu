@@ -281,6 +281,9 @@ void initEMU(int full) //Init!
 		}
 	}
 
+	debugrow("Initialising DMA Controllers...");
+	initDMA(); //Initialise the DMA Controller!
+
 	//Check if we're allowed to use full Sound Blaster emulation!
 	useSoundBlaster = BIOS_Settings.useSoundBlaster; //Sound blaster used?
 	if ((strcmp(BIOS_Settings.SoundFont,"")==0) && useSoundBlaster) //Sound Blaster without soundfont?
@@ -366,9 +369,6 @@ void initEMU(int full) //Init!
 	debugrow("Initialising CMOS...");
 	initCMOS(); //Initialise the CMOS!
 	
-	debugrow("Initialising DMA Controllers...");
-	initDMA(); //Initialise the DMA Controller!
-	
 	debugrow("Initializing DRAM refresh...");
 	initDRAM(); //Initialise the DRAM Refresh!
 
@@ -433,8 +433,6 @@ void doneEMU()
 		BIOS_doneDebugger(); //Finish the port E9 hack and emulator support functionality!
 		debugrow("doneEMU: Finishing serial mouse...");
 		doneSERMouse(); //Finish the serial mouse, if present!
-		debugrow("doneEMU: Finish DMA Controller...");
-		doneDMA(); //Initialise the DMA Controller!
 		debugrow("doneEMU: Saving CMOS...");
 		saveCMOS(); //Save the CMOS!
 		debugrow("doneEMU: stopVideo...");
@@ -455,6 +453,8 @@ void doneEMU()
 		doneSoundsource(); //Finish Disney Sound Source!
 		debugrow("doneEMU: Finishing Sound Blaster...");
 		doneSoundBlaster(); //Finish Sound Blaster!
+		debugrow("doneEMU: Finish DMA Controller...");
+		doneDMA(); //Initialise the DMA Controller!
 		debugrow("doneEMU: Finishing Game Blaster...");
 		doneGameBlaster(); //Finish Game Blaster!
 		debugrow("doneEMU: Finishing Adlib...");

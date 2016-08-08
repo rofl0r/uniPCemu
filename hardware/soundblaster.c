@@ -8,7 +8,7 @@
 #include "headers/hardware/pic.h" //Interrupt support!
 #include "headers/hardware/8237A.h" //DMA support!
 
-#define __SOUNDBLASTER_SAMPLERATE 22050.0f
+#define __SOUNDBLASTER_SAMPLERATE 22222.0f
 #define __SOUNDBLASTER_SAMPLEBUFFERSIZE 2048
 #define SOUNDBLASTER_VOLUME 100.0f
 //Size of the input buffer of the DSP chip!
@@ -34,11 +34,12 @@ struct
 	byte IRQ8Pending; //Is a 8-bit IRQ pending?
 	byte DREQ; //Our current DREQ signal for transferring data!
 	int DirectDACOutput; //Direct DAC output enabled when not -1?
-	word silenceoutput;
+	word wordparamoutput;
 	uint_32 silencesamples; //Silence samples left!
 	byte muted; //Is speaker output disabled?
 	byte singen; //Sine wave generator enabled?
 	double singentime; //Sine wave generator position in time!
+	byte DMAEnabled; //DMA not paused?
 } SOUNDBLASTER; //The Sound Blaster data!
 
 double soundblaster_soundtiming = 0.0, soundblaster_soundtick = 1000000000.0 / __SOUNDBLASTER_SAMPLERATE;
@@ -56,9 +57,14 @@ void updateSoundBlaster(double timepassed)
 	if ((SOUNDBLASTER.DirectDACOutput != -1) && (SOUNDBLASTER.silencesamples==0)) //Direct DAC output and not silenced?
 	{
 		leftsample = rightsample = (byte)SOUNDBLASTER.DirectDACOutput; //Mono Direct DAC output!
+		if (SOUNDBLASTER.DREQ) //Transaction busy?
+		{
+			goto playaudio;
+		}
 	}
 	else //Timed output?
 	{
+		playaudio: //Play audio normally using timed output!
 		soundblaster_sampletiming += timepassed; //Tick time!
 		if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
 		{
@@ -70,11 +76,16 @@ void updateSoundBlaster(double timepassed)
 					if (--SOUNDBLASTER.silencesamples == 0) //Decrease the sample counter! If expired, fire IRQ!
 					{
 						doirq(__SOUNDBLASTER_IRQ8); //Fire the IRQ!
+						SOUNDBLASTER.DMAEnabled |= 2; //We're a paused DMA transaction automatically!
 					}
 				}
 				else //Audio playing?
 				{
-					//Play audio that's ready!
+					//Time played audio that's ready!
+					if (SOUNDBLASTER.DREQ && (SOUNDBLASTER.DREQ & 2)) //Paused until the next sample?
+					{
+						SOUNDBLASTER.DREQ &= ~2; //Start us up again, if allowed!
+					}
 				}
 				soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
 			}
@@ -155,37 +166,6 @@ byte SoundBlaster_soundGenerator(void* buf, uint_32 length, byte stereo, void *u
 	}
 }
 
-void DSP_writeData(byte data)
-{
-	switch (SOUNDBLASTER.command) //What command?
-	{
-	case 0x10: //Direct DAC output?
-		SOUNDBLASTER.DirectDACOutput = (int)data; //Set the direct DAC output!
-		SOUNDBLASTER.command = -1; //No command anymore!
-		break;
-	case 0x40: //Set Time Constant?
-		//timer rate: 1000000000.0 / __SOUNDBLASTER_SAMPLERATE
-		//TimeConstant = 256 - (1000000 / (SampleChannels * SampleRate)), where SampleChannels is 1 for non-SBPro.
-		soundblaster_sampletick = 1000000000.0/((256-data)*1000000); //Tick at the sample rate!
-		SOUNDBLASTER.command = -1; //No command anymore!
-		break;
-	case 0x80: //Silence DAC?
-		switch (SOUNDBLASTER.commandstep++)
-		{
-		case 0: //Length lo byte?
-			SOUNDBLASTER.silenceoutput = data; //Set the data (low byte)
-			break;
-		case 1: //Length hi byte?
-			SOUNDBLASTER.silenceoutput |= ((word)data<<8); //Set the samples to be silent!
-			SOUNDBLASTER.silencesamples = SOUNDBLASTER.silenceoutput; //How many samples to be silent!
-			break;
-		}
-		break;
-	default: //Unknown command?
-		break; //Simply ignore anything sent!
-	}
-}
-
 void DSP_writeCommand(byte command)
 {
 	switch (command) //What command?
@@ -194,13 +174,16 @@ void DSP_writeCommand(byte command)
 		SOUNDBLASTER.command = 0x10; //Enable direct DAC mode!
 		break;
 	case 0x14: //DMA DAC, 8-bit
+		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
+		SOUNDBLASTER.command = 0x14; //Starting this command!
+		SOUNDBLASTER.dataleft = 0; //counter of parameters!
 		break;
 	case 0x16: //DMA DAC, 2-bit ADPCM
 	case 0x17: //DMA DAC, 2-bit ADPCM reference
 		break;
 	case 0x20: //Direct ADC, 8-bit
 		SOUNDBLASTER.command = 0x20; //Enable direct ADC mode!
-		writefifobuffer(SOUNDBLASTER.DSPindata,0x80); //Give an empty sample(silence)!
+		writefifobuffer(SOUNDBLASTER.DSPindata, 0x80); //Give an empty sample(silence)!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		break;
 	case 0x24: //DMA ADC, 8-bit
@@ -225,6 +208,10 @@ void DSP_writeCommand(byte command)
 		SOUNDBLASTER.commandstep = 0; //Reset the output step!
 		break;
 	case 0xD0: //Halt DMA operation, 8-bit
+		if (SOUNDBLASTER.DREQ && SOUNDBLASTER.DMAEnabled) //DMA enabled? Busy transaction!
+		{
+			SOUNDBLASTER.DMAEnabled |= 2; //We're a paused DMA transaction now!
+		}
 		break;
 	case 0xD1: //Enable Speaker
 		SOUNDBLASTER.muted = 0; //Not muted anymore!
@@ -234,9 +221,13 @@ void DSP_writeCommand(byte command)
 		SOUNDBLASTER.singen = 0; //Disable the sine wave generator!
 		break;
 	case 0xD4: //Continue DMA operation, 8-bit
+		if (SOUNDBLASTER.DREQ && SOUNDBLASTER.DMAEnabled) //DMA enabled? Busy transaction!
+		{
+			SOUNDBLASTER.DMAEnabled &= ~2; //We're a continuing DMA transaction now!
+		}
 		break;
 	case 0xD8: //Speaker Status
-		writefifobuffer(SOUNDBLASTER.DSPindata,SOUNDBLASTER.muted?0x00:0xFF); //Give the correct status!
+		writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.muted ? 0x00 : 0xFF); //Give the correct status!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the output!
 		break;
 	case 0xE1: //DSP version
@@ -258,6 +249,76 @@ void DSP_writeCommand(byte command)
 	}
 }
 
+void DSP_writeData(byte data, byte isDMA)
+{
+	switch (SOUNDBLASTER.command) //What command?
+	{
+	case 0x10: //Direct DAC output?
+		SOUNDBLASTER.DirectDACOutput = (int)data; //Set the direct DAC output!
+		SOUNDBLASTER.DMAEnabled = 0; //Disable DMA transaction!
+		SOUNDBLASTER.command = -1; //No command anymore!
+		break;
+	case 0x40: //Set Time Constant?
+		//timer rate: 1000000000.0 / __SOUNDBLASTER_SAMPLERATE
+		//TimeConstant = 256 - (1000000(us) / (SampleChannels * SampleRate)), where SampleChannels is 1 for non-SBPro.
+		soundblaster_sampletick = 1000000000.0/(1000000.0/(double)(256-data)); //Tick at the sample rate!
+		SOUNDBLASTER.command = -1; //No command anymore!
+		break;
+	case 0x14: //DMA DAC, 8-bit
+		if (SOUNDBLASTER.commandstep) //DMA transfer active?
+		{
+			if (isDMA) //Must be DMA transfer!
+			{
+				SOUNDBLASTER.DirectDACOutput = (int)data; //Abuse the direct output for sending the current sample!
+				if (--SOUNDBLASTER.dataleft==0) //One data used! Finished? Give IRQ!
+				{
+					doirq(__SOUNDBLASTER_IRQ8); //Raise the 8-bit IRQ!
+					SOUNDBLASTER.command = -1; //Reset to command mode!
+				}
+				SOUNDBLASTER.DREQ |= 2; //Wait for the sample to be played, according to the sample rate!
+			}
+			else //Manual override?
+			{
+				DSP_writeCommand(data); //Override to command instead!
+			}
+		}
+		else //Parameter phase?
+		{
+			switch (SOUNDBLASTER.dataleft++) //What step?
+			{
+			case 0: //Length lo byte!
+				SOUNDBLASTER.wordparamoutput = (word)data; //The first parameter!
+				break;
+			case 1: //Length hi byte!
+				SOUNDBLASTER.wordparamoutput |= (((word)data)<<8); //The second parameter!
+				SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput+1; //The length of the DMA transfer to play back, in bytes!
+				SOUNDBLASTER.DREQ = 1; //Raise: we're outputting data for playback!
+				if (SOUNDBLASTER.DMAEnabled==0) //DMA Disabled?
+				{
+					SOUNDBLASTER.DMAEnabled = 1; //Start the DMA transfer fully itself!
+				}
+				SOUNDBLASTER.commandstep = 1; //Goto step 1!
+				break;
+			}
+		}
+		break;
+	case 0x80: //Silence DAC?
+		switch (SOUNDBLASTER.commandstep++)
+		{
+		case 0: //Length lo byte?
+			SOUNDBLASTER.wordparamoutput = data; //Set the data (low byte)
+			break;
+		case 1: //Length hi byte?
+			SOUNDBLASTER.wordparamoutput |= ((word)data<<8); //Set the samples to be silent!
+			SOUNDBLASTER.silencesamples = SOUNDBLASTER.wordparamoutput; //How many samples to be silent!
+			break;
+		}
+		break;
+	default: //Unknown command?
+		break; //Simply ignore anything sent!
+	}
+}
+
 byte DSP_readData()
 {
 	byte result;
@@ -267,16 +328,13 @@ byte DSP_readData()
 
 void DSP_writeDataCommand(byte value)
 {
-	if (SOUNDBLASTER.busy == 0) //Ready to process?
+	if (SOUNDBLASTER.command != -1) //Handling data?
 	{
-		if (SOUNDBLASTER.command != -1) //Handling data?
-		{
-			DSP_writeData(value); //Writing data!
-		}
-		else //Writing a command?
-		{
-			DSP_writeCommand(value); //Writing command!
-		}
+		DSP_writeData(value,0); //Writing data!
+	}
+	else //Writing a command?
+	{
+		DSP_writeCommand(value); //Writing command!
 	}
 }
 
@@ -354,12 +412,12 @@ byte SoundBlaster_readDMA8()
 
 void SoundBlaster_writeDMA8(byte data)
 {
-	DSP_writeDataCommand(data); //Write the Data/Command!
+	DSP_writeData(data,1); //Write the Data/Command, DAC style!
 }
 
 void SoundBlaster_DREQ()
 {
-	DMA_SetDREQ(__SOUNDBLASTER_DMA8,SOUNDBLASTER.DREQ && (SOUNDBLASTER.IRQ8Pending==0)); //Set the DREQ signal accordingly!
+	DMA_SetDREQ(__SOUNDBLASTER_DMA8,(SOUNDBLASTER.DREQ==1) && (SOUNDBLASTER.IRQ8Pending==0) && (SOUNDBLASTER.DMAEnabled==1)); //Set the DREQ signal accordingly!
 }
 
 void SoundBlaster_DACK()
@@ -406,6 +464,7 @@ void initSoundBlaster(word baseaddr)
 	SOUNDBLASTER.IRQ8Pending = 0; //Not pending anything!
 	SOUNDBLASTER.DirectDACOutput = -1; //Disable Direct DAC output!
 	SOUNDBLASTER.muted = 1; //Default: muted!
+	SOUNDBLASTER.DMAEnabled = 0; //Start with disabled DMA(paused)!
 	leftsample = rightsample = 0x80; //Default to silence!
 
 	register_PORTIN(&inSoundBlaster); //Status port (R)
