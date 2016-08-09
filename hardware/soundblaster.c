@@ -443,7 +443,7 @@ byte inSoundBlaster(word port, byte *result)
 	if ((port&~0xF)!=SOUNDBLASTER.baseaddr) return 0; //Not our base address?
 	switch (port & 0xF) //What port?
 	{
-	case 8: //FM Music - Compatible Status port
+	case 0x8: //FM Music - Compatible Status port
 		*result = readadlibstatus(); //Read the adlib status!
 		return 1; //Handled!
 		break;

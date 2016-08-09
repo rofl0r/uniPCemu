@@ -67,7 +67,7 @@ typedef struct
 struct
 {
 	word baseaddr; //Base address of the Game Blaster!
-	word soundblastercompatible; //Do we use sound blaster compatible I/O
+	byte soundblastercompatible; //Do we use sound blaster compatible I/O
 	SOUNDDOUBLEBUFFER soundbuffer[2]; //Our two sound buffers for our two chips!
 	byte storelatch[2]; //Two store/latch buffers!
 	SAA1099 chips[2]; //The two chips for generating output!
@@ -486,7 +486,7 @@ byte GameBlaster_soundGenerator(void* buf, uint_32 length, byte stereo, void *us
 byte outGameBlaster(word port, byte value)
 {
 	if (__HW_DISABLED) return 0; //We're disabled!
-	if ((port&GAMEBLASTER.soundblastercompatible)!=GAMEBLASTER.baseaddr) return 0; //Not Game Blaster port!
+	if ((port&~0xF)!=GAMEBLASTER.baseaddr) return 0; //Not Game Blaster port!
 	switch (port&0xF)
 	{
 		case 0: //Left SAA-1099?
@@ -520,7 +520,7 @@ byte outGameBlaster(word port, byte value)
 byte inGameBlaster(word port, byte *result)
 {
 	if (__HW_DISABLED) return 0; //We're disabled!
-	if ((port&GAMEBLASTER.soundblastercompatible)!=GAMEBLASTER.baseaddr) return 0; //Not Game Blaster port!
+	if ((port&~0xF)!=GAMEBLASTER.baseaddr) return 0; //Not Game Blaster port!
 	switch (port&0xF)
 	{
 		case 0: //Left SAA-1099?
@@ -535,6 +535,7 @@ byte inGameBlaster(word port, byte *result)
 					*result = 0x7F; //Give the detection value!
 					return 1; //Handled!					
 				case 0xA: //Store 1!
+					if (GAMEBLASTER.soundblastercompatible) return 0; //Sound blaster compatibility?
 				case 0xB: //Store 2!
 					*result = GAMEBLASTER.storelatch[port&1]; //Give the store/latch!
 					return 1; //Handled!
@@ -549,7 +550,7 @@ byte inGameBlaster(word port, byte *result)
 void setGameBlaster_SoundBlaster(byte useSoundBlasterIO)
 {
 	if (__HW_DISABLED) return; //We're disabled!
-	GAMEBLASTER.soundblastercompatible = useSoundBlasterIO?0xFFFC:0xFFF0; //Sound Blaster compatible I/O? Use 2 chips only with sound blaster, else full 16 ports for detection!
+	GAMEBLASTER.soundblastercompatible = useSoundBlasterIO?1:0; //Sound Blaster compatible I/O? Use 2 chips only with sound blaster, else full 16 ports for detection!
 }
 
 void GameBlaster_setVolume(float volume)
