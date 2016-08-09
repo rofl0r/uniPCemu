@@ -538,9 +538,9 @@ void initSoundBlaster(word baseaddr)
 	word translatevalue;
 	float tmp;
 	SOUNDBLASTER.baseaddr = 0; //Default: no sound blaster emulation!
-	if (SOUNDBLASTER.DSPindata = allocfifobuffer(__SOUNDBLASTER_DSPINDATASIZE,0)) //DSP read data buffer!
+	if ((SOUNDBLASTER.DSPindata = allocfifobuffer(__SOUNDBLASTER_DSPINDATASIZE,0))!=NULL) //DSP read data buffer!
 	{
-		if (SOUNDBLASTER.DSPoutdata = allocfifobuffer(__SOUNDBLASTER_DSPOUTDATASIZE,0)) //DSP write data buffer!
+		if ((SOUNDBLASTER.DSPoutdata = allocfifobuffer(__SOUNDBLASTER_DSPOUTDATASIZE,0))!=NULL) //DSP write data buffer!
 		{
 			if (allocDoubleBufferedSound32(__SOUNDBLASTER_SAMPLEBUFFERSIZE, &SOUNDBLASTER.soundbuffer, 0)) //Valid buffer?
 			{

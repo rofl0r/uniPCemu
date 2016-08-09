@@ -78,6 +78,9 @@ OBJS += hardware/ssource.o
 #Game Blaster
 OBJS += hardware/gameblaster.o
 
+#Sound Blaster
+OBJS += hardware/soundblaster.o
+
 #Floppy
 OBJS += hardware/floppy.o
 
