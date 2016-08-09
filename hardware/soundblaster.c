@@ -52,6 +52,7 @@ void updateSoundBlaster(double timepassed)
 {
 	double dummy;
 	double temp;
+	byte monosample; //Mono sample!
 	if (SOUNDBLASTER.baseaddr == 0) return; //No game blaster?
 
 	//First, check for any static sample(Direct Output)
@@ -59,10 +60,7 @@ void updateSoundBlaster(double timepassed)
 	{
 		leftsample = rightsample = (byte)SOUNDBLASTER.DirectDACOutput; //Mono Direct DAC output!
 	}
-	else
-	{
-		leftsample = rightsample = 0x80; //No samples to play!
-	}
+
 	if (SOUNDBLASTER.DREQ || SOUNDBLASTER.silencesamples) //Transaction busy?
 	{
 		//Play audio normally using timed output!
@@ -82,10 +80,18 @@ void updateSoundBlaster(double timepassed)
 				}
 				else //Audio playing?
 				{
-					//Time played audio that's ready!
-					if (SOUNDBLASTER.DREQ && (SOUNDBLASTER.DREQ & 2)) //Paused until the next sample?
+					if (readfifobuffer(SOUNDBLASTER.DSPoutdata, &monosample)) //Mono sample read?
 					{
-						SOUNDBLASTER.DREQ &= ~2; //Start us up again, if allowed!
+						leftsample = rightsample = monosample; //Render the new mono sample!
+					}
+
+					if (fifobuffer_freesize(SOUNDBLASTER.DSPoutdata)==__SOUNDBLASTER_DSPOUTDATASIZE) //Empty buffer? We've finished rendering the samples specified!
+					{
+						//Time played audio that's ready!
+						if (SOUNDBLASTER.DREQ && (SOUNDBLASTER.DREQ & 2)) //Paused until the next sample?
+						{
+							SOUNDBLASTER.DREQ &= ~2; //Start us up again, if allowed!
+						}
 					}
 				}
 				soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
@@ -93,7 +99,7 @@ void updateSoundBlaster(double timepassed)
 		}
 	}
 
-	if (SOUNDBLASTER.singen) //Sine wave generator enabled?
+	if (SOUNDBLASTER.singen) //Diagnostic Sine wave generator enabled?
 	{
 		leftsample = rightsample = 0x80+(byte)(sin(2 *PI*2000.0f*SOUNDBLASTER.singentime) * (float)0x7F); //Give a full wave at the requested speed!
 		SOUNDBLASTER.singentime += timepassed; //Tick the samples processed!
@@ -269,6 +275,7 @@ void DSP_writeData(byte data, byte isDMA)
 		SOUNDBLASTER.DMAEnabled = 0; //Disable DMA transaction!
 		SOUNDBLASTER.DREQ = 0; //Lower DREQ!
 		SOUNDBLASTER.command = -1; //No command anymore!
+		fifobuffer_clear(SOUNDBLASTER.DSPoutdata); //Clear the output buffer to use this sample!
 		break;
 	case 0x40: //Set Time Constant?
 		//timer rate: 1000000000.0 / __SOUNDBLASTER_SAMPLERATE
@@ -281,12 +288,12 @@ void DSP_writeData(byte data, byte isDMA)
 		{
 			if (isDMA) //Must be DMA transfer!
 			{
-				SOUNDBLASTER.DirectDACOutput = (int)data; //Abuse the direct output for sending the current sample!
+				SOUNDBLASTER.DirectDACOutput = -1; //No direct DAC output left until next sample: terminate output for now!
+				writefifobuffer(SOUNDBLASTER.DSPoutdata,data); //Send the current sample for rendering!
 				if (--SOUNDBLASTER.dataleft==0) //One data used! Finished? Give IRQ!
 				{
 					doirq(__SOUNDBLASTER_IRQ8); //Raise the 8-bit IRQ!
 					SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput + 1; //Reload the length of the DMA transfer to play back, in bytes!
-					SOUNDBLASTER.DirectDACOutput = -1; //No direct DAC output left until next sample: terminate output for now!
 				}
 				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
 			}
@@ -392,6 +399,7 @@ byte outSoundBlaster(word port, byte value)
 			SOUNDBLASTER.silencesamples = 0; //No silenced samples!
 			SOUNDBLASTER.DirectDACOutput = -1; //No direct DAC output!
 			SOUNDBLASTER.IRQ8Pending = 0; //No IRQ pending!
+			SOUNDBLASTER.singen = 0; //Disable the sine wave generator if it's running!
 
 			writefifobuffer(SOUNDBLASTER.DSPindata,0xAA); //We've reset!
 			fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Force the data to the user!
