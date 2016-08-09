@@ -247,6 +247,9 @@ void DSP_writeCommand(byte command)
 		writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.muted ? 0x00 : 0xFF); //Give the correct status!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the output!
 		break;
+	case 0xE0: //DSP Identification. Should be 2.0+, but apparently 1.5 has it too?
+		SOUNDBLASTER.command = 0xE0; //Start the data phase!
+		break;
 	case 0xE1: //DSP version
 		writefifobuffer(SOUNDBLASTER.DSPindata, 1); //Give the correct version!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the output!
@@ -372,6 +375,11 @@ void DSP_writeData(byte data, byte isDMA)
 			SOUNDBLASTER.silencesamples = SOUNDBLASTER.wordparamoutput; //How many samples to be silent!
 			break;
 		}
+		break;
+	case 0xE0: //DSP Identification. Should be 2.0+, but apparently 1.5 has it too?
+		SOUNDBLASTER.command = -1; //Finished!
+		writefifobuffer(SOUNDBLASTER.DSPindata,~data); //Give the identification as the result!
+		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		break;
 	default: //Unknown command?
 		break; //Simply ignore anything sent!
@@ -571,6 +579,7 @@ void initSoundBlaster(word baseaddr)
 	SOUNDBLASTER.DirectDACOutput = -1; //Disable Direct DAC output!
 	SOUNDBLASTER.muted = 1; //Default: muted!
 	SOUNDBLASTER.DMAEnabled = 0; //Start with disabled DMA(paused)!
+	SOUNDBLASTER.command = -1; //Default: no command!
 	leftsample = rightsample = 0x80; //Default to silence!
 
 	for (translatevalue = 0;translatevalue < 0x100;++translatevalue) //All translatable values!
