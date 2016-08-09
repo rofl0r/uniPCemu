@@ -264,6 +264,7 @@ byte nextintr()
 void doirq(byte irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
+	irqnum &= 0xF; //Only 16 IRQs!
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
 	i8259.irr[PIC] |= (1 << (irqnum&7)); //Add the IRQ to request!
 }
@@ -271,6 +272,7 @@ void doirq(byte irqnum)
 void removeirq(byte irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
+	irqnum &= 0xF; //Only 16 IRQs!
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
 	i8259.irr[PIC] &= ~(1 << (irqnum&7)); //Remove the IRQ from request!
 }
