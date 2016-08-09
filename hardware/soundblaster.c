@@ -16,7 +16,8 @@
 //Big enough output buffer for all ranges available!
 #define __SOUNDBLASTER_DSPOUTDATASIZE 0x10000
 
-//IRQ/DMA assignments! Use secondary IRQ8(to prevent collisions with existing hardware!)
+//IRQ/DMA assignments! Use secondary IRQ8(to prevent collisions with existing hardware!) Bochs says IRQ5? Dosbox says IRQ7?
+//8-bit IRQ&DMA!
 #define __SOUNDBLASTER_IRQ8 0x17
 #define __SOUNDBLASTER_DMA8 1
 
@@ -258,6 +259,8 @@ void DSP_writeCommand(byte command)
 		SOUNDBLASTER.singentime = 0.0f; //Reset time on the sine wave generator!
 		break;
 	case 0xF2: //IRQ Request, 8-bit
+		writefifobuffer(SOUNDBLASTER.DSPindata,0xAA); //Acnowledged!
+		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		SoundBlaster_IRQ8();
 		break;
 	case 0xF8: //Undocumented command according to Dosbox
