@@ -540,6 +540,7 @@ void DMA_tick()
 							}
 							break;
 						case 1: //Single Transfer Mode
+							DMAController[controller].DACK &= ~channelindex; //Finished, wait for the next time we're requested!
 						case 2: //Block Transfer Mode
 							if (processed&FLAG_TC) //Complete on Terminal count?
 							{

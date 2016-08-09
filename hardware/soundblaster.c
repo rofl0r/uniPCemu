@@ -40,6 +40,7 @@ struct
 	byte singen; //Sine wave generator enabled?
 	double singentime; //Sine wave generator position in time!
 	byte DMAEnabled; //DMA not paused?
+	word translatetable[0x100]; //8-bit to 16-bit unsigned translation table!
 } SOUNDBLASTER; //The Sound Blaster data!
 
 double soundblaster_soundtiming = 0.0, soundblaster_soundtick = 1000000000.0 / __SOUNDBLASTER_SAMPLERATE;
@@ -57,14 +58,14 @@ void updateSoundBlaster(double timepassed)
 	if ((SOUNDBLASTER.DirectDACOutput != -1) && (SOUNDBLASTER.silencesamples==0)) //Direct DAC output and not silenced?
 	{
 		leftsample = rightsample = (byte)SOUNDBLASTER.DirectDACOutput; //Mono Direct DAC output!
-		if (SOUNDBLASTER.DREQ) //Transaction busy?
-		{
-			goto playaudio;
-		}
 	}
-	else //Timed output?
+	else
 	{
-		playaudio: //Play audio normally using timed output!
+		leftsample = rightsample = 0x80; //No samples to play!
+	}
+	if (SOUNDBLASTER.DREQ || SOUNDBLASTER.silencesamples) //Transaction busy?
+	{
+		//Play audio normally using timed output!
 		soundblaster_sampletiming += timepassed; //Tick time!
 		if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
 		{
@@ -72,7 +73,7 @@ void updateSoundBlaster(double timepassed)
 			{
 				if (SOUNDBLASTER.silencesamples) //Silence requested?
 				{
-					leftsample = rightsample = 0x80; //Silent sample!
+					SOUNDBLASTER.DirectDACOutput = (int)0x80; //Silent sample!
 					if (--SOUNDBLASTER.silencesamples == 0) //Decrease the sample counter! If expired, fire IRQ!
 					{
 						doirq(__SOUNDBLASTER_IRQ8); //Fire the IRQ!
@@ -115,7 +116,7 @@ void updateSoundBlaster(double timepassed)
 		for (;soundblaster_soundtiming >= soundblaster_soundtick;)
 		{
 			//Now push the samples to the output!
-			writeDoubleBufferedSound32(&SOUNDBLASTER.soundbuffer, (rightsample<<24) | (leftsample<<8)); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&SOUNDBLASTER.soundbuffer, (SOUNDBLASTER.translatetable[rightsample]<<16) | (SOUNDBLASTER.translatetable[leftsample])); //Output the sample to the renderer!
 			soundblaster_soundtiming -= soundblaster_soundtick; //Decrease timer to get time left!
 		}
 	}
@@ -164,6 +165,12 @@ byte SoundBlaster_soundGenerator(void* buf, uint_32 length, byte stereo, void *u
 			if (!--c) return SOUNDHANDLER_RESULT_FILLED; //Next item!
 		}
 	}
+}
+
+void SoundBlaster_IRQ8()
+{
+	SOUNDBLASTER.IRQ8Pending |= 2; //We're actually pending!
+	doirq(__SOUNDBLASTER_IRQ8); //Trigger the IRQ for 8-bit transfers!
 }
 
 void DSP_writeCommand(byte command)
@@ -242,7 +249,11 @@ void DSP_writeCommand(byte command)
 		SOUNDBLASTER.singentime = 0.0f; //Reset time on the sine wave generator!
 		break;
 	case 0xF2: //IRQ Request, 8-bit
-		doirq(__SOUNDBLASTER_IRQ8); //Trigger the IRQ for 8-bit transfers!
+		SoundBlaster_IRQ8();
+		break;
+	case 0xF8: //Undocumented command according to Dosbox
+		writefifobuffer(SOUNDBLASTER.DSPindata,0x00); //Give zero bytes!
+		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Use the given result!
 		break;
 	default: //Unknown command?
 		break;
@@ -256,6 +267,7 @@ void DSP_writeData(byte data, byte isDMA)
 	case 0x10: //Direct DAC output?
 		SOUNDBLASTER.DirectDACOutput = (int)data; //Set the direct DAC output!
 		SOUNDBLASTER.DMAEnabled = 0; //Disable DMA transaction!
+		SOUNDBLASTER.DREQ = 0; //Lower DREQ!
 		SOUNDBLASTER.command = -1; //No command anymore!
 		break;
 	case 0x40: //Set Time Constant?
@@ -273,9 +285,10 @@ void DSP_writeData(byte data, byte isDMA)
 				if (--SOUNDBLASTER.dataleft==0) //One data used! Finished? Give IRQ!
 				{
 					doirq(__SOUNDBLASTER_IRQ8); //Raise the 8-bit IRQ!
-					SOUNDBLASTER.command = -1; //Reset to command mode!
+					SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput + 1; //Reload the length of the DMA transfer to play back, in bytes!
+					SOUNDBLASTER.DirectDACOutput = -1; //No direct DAC output left until next sample: terminate output for now!
 				}
-				SOUNDBLASTER.DREQ |= 2; //Wait for the sample to be played, according to the sample rate!
+				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
 			}
 			else //Manual override?
 			{
@@ -303,6 +316,7 @@ void DSP_writeData(byte data, byte isDMA)
 		}
 		break;
 	case 0x80: //Silence DAC?
+		SOUNDBLASTER.DREQ = 0; //Lower DREQ!
 		switch (SOUNDBLASTER.commandstep++)
 		{
 		case 0: //Length lo byte?
@@ -375,6 +389,9 @@ byte outSoundBlaster(word port, byte value)
 		{
 			SOUNDBLASTER.command = -1; //No command!
 			SOUNDBLASTER.busy = 0; //Not busy!
+			SOUNDBLASTER.silencesamples = 0; //No silenced samples!
+			SOUNDBLASTER.DirectDACOutput = -1; //No direct DAC output!
+			SOUNDBLASTER.IRQ8Pending = 0; //No IRQ pending!
 
 			writefifobuffer(SOUNDBLASTER.DSPindata,0xAA); //We've reset!
 			fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Force the data to the user!
@@ -400,7 +417,10 @@ byte outSoundBlaster(word port, byte value)
 
 void StartPendingSoundBlasterIRQ(byte IRQ)
 {
-	SOUNDBLASTER.IRQ8Pending = 1; //We're starting to pend our IRQ!
+	if (SOUNDBLASTER.IRQ8Pending) //Actually pending?
+	{
+		SOUNDBLASTER.IRQ8Pending |= 1; //We're starting to execute our IRQ, which has been acnowledged!
+	}
 }
 
 byte SoundBlaster_readDMA8()
@@ -434,12 +454,14 @@ void SoundBlaster_TC()
 
 void initSoundBlaster(word baseaddr)
 {
+	word translatevalue;
+	float tmp;
 	SOUNDBLASTER.baseaddr = 0; //Default: no sound blaster emulation!
 	if (SOUNDBLASTER.DSPindata = allocfifobuffer(__SOUNDBLASTER_DSPINDATASIZE,0)) //DSP read data buffer!
 	{
 		if (SOUNDBLASTER.DSPoutdata = allocfifobuffer(__SOUNDBLASTER_DSPOUTDATASIZE,0)) //DSP write data buffer!
 		{
-			if (allocDoubleBufferedSound16(__SOUNDBLASTER_SAMPLEBUFFERSIZE, &SOUNDBLASTER.soundbuffer, 0)) //Valid buffer?
+			if (allocDoubleBufferedSound32(__SOUNDBLASTER_SAMPLEBUFFERSIZE, &SOUNDBLASTER.soundbuffer, 0)) //Valid buffer?
 			{
 				if (!addchannel(&SoundBlaster_soundGenerator, &SOUNDBLASTER.soundbuffer, "SoundBlaster", __SOUNDBLASTER_SAMPLERATE, __SOUNDBLASTER_SAMPLEBUFFERSIZE, 0, SMPL16U)) //Start the sound emulation (mono) with automatic samples buffer?
 				{
@@ -466,6 +488,15 @@ void initSoundBlaster(word baseaddr)
 	SOUNDBLASTER.muted = 1; //Default: muted!
 	SOUNDBLASTER.DMAEnabled = 0; //Start with disabled DMA(paused)!
 	leftsample = rightsample = 0x80; //Default to silence!
+
+	for (translatevalue = 0;translatevalue < 0x100;++translatevalue) //All translatable values!
+	{
+		tmp = (float)((sword)translatevalue-0x80); //Convert to signed value!
+		tmp *= (1.0f/128.0f)*32768.0f; //Convert to destination range!
+		tmp += 0x8000; //Destination value!
+		tmp = LIMITRANGE(tmp,0.0f,(float)USHRT_MAX); //Limit to our range!
+		SOUNDBLASTER.translatetable[translatevalue] = (word)tmp; //Translate values!
+	}
 
 	register_PORTIN(&inSoundBlaster); //Status port (R)
 	//All output!
