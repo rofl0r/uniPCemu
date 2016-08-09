@@ -48,6 +48,12 @@ double soundblaster_sampletiming = 0.0, soundblaster_sampletick = 0.0;
 
 byte leftsample=0x80, rightsample=0x80; //Two stereo samples, silence by default!
 
+void SoundBlaster_IRQ8()
+{
+	SOUNDBLASTER.IRQ8Pending |= 2; //We're actually pending!
+	doirq(__SOUNDBLASTER_IRQ8); //Trigger the IRQ for 8-bit transfers!
+}
+
 void updateSoundBlaster(double timepassed)
 {
 	double dummy;
@@ -74,7 +80,7 @@ void updateSoundBlaster(double timepassed)
 					SOUNDBLASTER.DirectDACOutput = (int)0x80; //Silent sample!
 					if (--SOUNDBLASTER.silencesamples == 0) //Decrease the sample counter! If expired, fire IRQ!
 					{
-						doirq(__SOUNDBLASTER_IRQ8); //Fire the IRQ!
+						SoundBlaster_IRQ8(); //Fire the IRQ!
 						SOUNDBLASTER.DMAEnabled |= 2; //We're a paused DMA transaction automatically!
 					}
 				}
@@ -171,12 +177,6 @@ byte SoundBlaster_soundGenerator(void* buf, uint_32 length, byte stereo, void *u
 			if (!--c) return SOUNDHANDLER_RESULT_FILLED; //Next item!
 		}
 	}
-}
-
-void SoundBlaster_IRQ8()
-{
-	SOUNDBLASTER.IRQ8Pending |= 2; //We're actually pending!
-	doirq(__SOUNDBLASTER_IRQ8); //Trigger the IRQ for 8-bit transfers!
 }
 
 void DSP_writeCommand(byte command)
@@ -295,7 +295,7 @@ void DSP_writeData(byte data, byte isDMA)
 				writefifobuffer(SOUNDBLASTER.DSPoutdata,data); //Send the current sample for rendering!
 				if (--SOUNDBLASTER.dataleft==0) //One data used! Finished? Give IRQ!
 				{
-					doirq(__SOUNDBLASTER_IRQ8); //Raise the 8-bit IRQ!
+					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
 					SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput + 1; //Reload the length of the DMA transfer to play back, in bytes!
 				}
 				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
@@ -411,7 +411,7 @@ byte readDSPData(byte isDMA)
 				writefifobuffer(SOUNDBLASTER.DSPindata, 0x80); //Send the current sample for rendering!
 				if (--SOUNDBLASTER.dataleft == 0) //One data used! Finished? Give IRQ!
 				{
-					doirq(__SOUNDBLASTER_IRQ8); //Raise the 8-bit IRQ!
+					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
 					SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput + 1; //Reload the length of the DMA transfer to play back, in bytes!
 				}
 				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!			}
