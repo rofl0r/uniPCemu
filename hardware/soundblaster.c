@@ -200,6 +200,9 @@ void DSP_writeCommand(byte command)
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		break;
 	case 0x24: //DMA ADC, 8-bit
+		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
+		SOUNDBLASTER.command = 0x24; //Starting this command!
+		SOUNDBLASTER.dataleft = 0; //counter of parameters!
 		break;
 	case 0x30: //MIDI read poll
 		break;
@@ -322,6 +325,38 @@ void DSP_writeData(byte data, byte isDMA)
 			}
 		}
 		break;
+	case 0x24: //DMA ADC, 8-bit
+		if (SOUNDBLASTER.commandstep) //DMA transfer active?
+		{
+			if (isDMA) //Must be DMA transfer!
+			{
+				//Writing from DMA during recording??? Must be misconfigured! Ignore the writes!
+			}
+			else //Manual override?
+			{
+				DSP_writeCommand(data); //Override to command instead!
+			}
+		}
+		else //Parameter phase?
+		{
+			switch (SOUNDBLASTER.dataleft++) //What step?
+			{
+			case 0: //Length lo byte!
+				SOUNDBLASTER.wordparamoutput = (word)data; //The first parameter!
+				break;
+			case 1: //Length hi byte!
+				SOUNDBLASTER.wordparamoutput |= (((word)data) << 8); //The second parameter!
+				SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput + 1; //The length of the DMA transfer to play back, in bytes!
+				SOUNDBLASTER.DREQ = 1; //Raise: we're outputting data for playback!
+				if (SOUNDBLASTER.DMAEnabled == 0) //DMA Disabled?
+				{
+					SOUNDBLASTER.DMAEnabled = 1; //Start the DMA transfer fully itself!
+				}
+				SOUNDBLASTER.commandstep = 1; //Goto step 1!
+				break;
+			}
+		}
+		break;
 	case 0x80: //Silence DAC?
 		SOUNDBLASTER.DREQ = 0; //Lower DREQ!
 		switch (SOUNDBLASTER.commandstep++)
@@ -340,9 +375,13 @@ void DSP_writeData(byte data, byte isDMA)
 	}
 }
 
-byte DSP_readData()
+byte DSP_readData(byte isDMA)
 {
-	byte result;
+	byte result=0x00;
+	if ((isDMA == 0) && (SOUNDBLASTER.command == 0x24)) //DMA ADC with normal read?
+	{
+		return 0x00; //Ignore the input buffer: this is used by the DMA!
+	}
 	readfifobuffer(SOUNDBLASTER.DSPindata, &result); //Read the result, if any!
 	return result; //Give the data!
 }
@@ -359,6 +398,34 @@ void DSP_writeDataCommand(byte value)
 	}
 }
 
+byte readDSPData(byte isDMA)
+{
+	switch (SOUNDBLASTER.command) //What command?
+	{
+	case 0x24: //DMA ADC, 8-bit
+		if (SOUNDBLASTER.commandstep) //DMA transfer active?
+		{
+			if (isDMA) //Must be DMA transfer!
+			{
+				SOUNDBLASTER.DirectDACOutput = -1; //No direct DAC output left until next sample: terminate output for now!
+				writefifobuffer(SOUNDBLASTER.DSPindata, 0x80); //Send the current sample for rendering!
+				if (--SOUNDBLASTER.dataleft == 0) //One data used! Finished? Give IRQ!
+				{
+					doirq(__SOUNDBLASTER_IRQ8); //Raise the 8-bit IRQ!
+					SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput + 1; //Reload the length of the DMA transfer to play back, in bytes!
+				}
+				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!			}
+				return 1; //Handled!
+			}
+		}
+		break;
+	default: //Unknown command?
+		break; //Simply ignore anything sent!
+	}
+
+	return 0x00; //Unknown!
+}
+
 byte inSoundBlaster(word port, byte *result)
 {
 	byte dummy;
@@ -370,7 +437,8 @@ byte inSoundBlaster(word port, byte *result)
 		return 1; //Handled!
 		break;
 	case 0xA: //DSP - Read data
-		*result = DSP_readData(); //Read the result, if any!
+		readDSPData(0); //Check if there's anything to read, ignore the result!
+		*result = DSP_readData(0); //Read the result, if any!
 		return 1; //Handled!
 		break;
 	case 0xC: //DSP - Write Buffer Status
@@ -378,6 +446,10 @@ byte inSoundBlaster(word port, byte *result)
 		return 1; //Handled!
 	case 0xE: //DSP - Data Available Status, DSP - IRQ Acknowledge, 8-bit
 		*result = (peekfifobuffer(SOUNDBLASTER.DSPindata,&dummy)<<7); //Do we have data available?
+		if (SOUNDBLASTER.command == 0x24) //Special: no result, as this is buffered by DMA!
+		{
+			*result = 0x00; //Give no input set!
+		}
 		SOUNDBLASTER.IRQ8Pending = 0; //Not pending anymore!
 		return 1; //We have a result!
 	default:
@@ -434,7 +506,8 @@ void StartPendingSoundBlasterIRQ(byte IRQ)
 byte SoundBlaster_readDMA8()
 {
 	byte result;
-	readfifobuffer(SOUNDBLASTER.DSPindata,&result); //Read anyway!
+	readDSPData(1); //Gotten anything from DMA in the input buffer?
+	readfifobuffer(SOUNDBLASTER.DSPindata,&result); //Read anyway, no matter the result!
 	return result; //Give the data read!
 }
 
