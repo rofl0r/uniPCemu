@@ -21,6 +21,13 @@
 #define __SOUNDBLASTER_IRQ8 0x17
 #define __SOUNDBLASTER_DMA8 1
 
+#define ADPCM_FORMAT_NONE 0x00
+#define ADPCM_FORMAT_2BIT 0x01
+#define ADPCM_FORMAT_26BIT 0x02
+#define ADPCM_FORMAT_4BIT 0x03
+
+#define MIN_ADAPTIVE_STEP_SIZE 0
+
 struct
 {
 	word baseaddr;
@@ -42,6 +49,10 @@ struct
 	double singentime; //Sine wave generator position in time!
 	byte DMAEnabled; //DMA not paused?
 	word translatetable[0x100]; //8-bit to 16-bit unsigned translation table!
+	byte ADPCM_format; //Format of the ADPCM data, if used!
+	byte ADPCM_reference; //The current by of ADPCM is the reference?
+	byte ADPCM_currentreference; //Current reference byte!
+	int_32 ADPCM_stepsize; //Current ADPCM step size!
 } SOUNDBLASTER; //The Sound Blaster data!
 
 double soundblaster_soundtiming = 0.0, soundblaster_soundtick = 1000000000.0 / __SOUNDBLASTER_SAMPLERATE;
@@ -49,7 +60,7 @@ double soundblaster_sampletiming = 0.0, soundblaster_sampletick = 0.0;
 
 byte leftsample=0x80, rightsample=0x80; //Two stereo samples, silence by default!
 
-void SoundBlaster_IRQ8()
+OPTINLINE void SoundBlaster_IRQ8()
 {
 	SOUNDBLASTER.IRQ8Pending |= 2; //We're actually pending!
 	doirq(__SOUNDBLASTER_IRQ8); //Trigger the IRQ for 8-bit transfers!
@@ -180,8 +191,18 @@ byte SoundBlaster_soundGenerator(void* buf, uint_32 length, byte stereo, void *u
 	}
 }
 
-void DSP_writeCommand(byte command)
+OPTINLINE void DSP_startParameterADPCM(byte command, byte format, byte usereference)
 {
+	SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
+	SOUNDBLASTER.command = (int)command; //Starting this command!
+	SOUNDBLASTER.dataleft = 0; //counter of parameters!
+	SOUNDBLASTER.ADPCM_reference = usereference; //Are we starting with a reference?
+	SOUNDBLASTER.ADPCM_format = format; //The ADPCM format to use!
+}
+
+OPTINLINE void DSP_writeCommand(byte command)
+{
+	byte ADPCM_reference = 0; //ADPCM reference byte is used?
 	switch (command) //What command?
 	{
 	case 0x10: //Direct DAC, 8-bit
@@ -191,9 +212,12 @@ void DSP_writeCommand(byte command)
 		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
 		SOUNDBLASTER.command = 0x14; //Starting this command!
 		SOUNDBLASTER.dataleft = 0; //counter of parameters!
+		SOUNDBLASTER.ADPCM_format = ADPCM_FORMAT_NONE; //Plain samples!
 		break;
-	case 0x16: //DMA DAC, 2-bit ADPCM
 	case 0x17: //DMA DAC, 2-bit ADPCM reference
+		ADPCM_reference = 1; //We're using the reference byte in the transfer!
+	case 0x16: //DMA DAC, 2-bit ADPCM
+		DSP_startParameterADPCM(command,ADPCM_FORMAT_2BIT,ADPCM_reference); //Starting the ADPCM command!
 		break;
 	case 0x20: //Direct ADC, 8-bit
 		SOUNDBLASTER.command = 0x20; //Enable direct ADC mode!
@@ -214,11 +238,15 @@ void DSP_writeCommand(byte command)
 	case 0x40: //Set Time Constant
 		SOUNDBLASTER.command = 0x40; //Set the time constant!
 		break;
-	case 0x74: //DMA DAC, 4-bit ADPCM
 	case 0x75: //DMA DAC, 4-bit ADPCM Reference
+		ADPCM_reference = 1; //We're using the reference byte in the transfer!
+	case 0x74: //DMA DAC, 4-bit ADPCM
+		DSP_startParameterADPCM(command,ADPCM_FORMAT_4BIT,ADPCM_reference); //Starting the ADPCM command!
 		break;
-	case 0x76: //DMA DAC, 2.6-bit ADPCM
 	case 0x77: //DMA DAC, 2.6-bit ADPCM Reference
+		ADPCM_reference = 1; //We're using the reference byte in the transfer!
+	case 0x76: //DMA DAC, 2.6-bit ADPCM
+		DSP_startParameterADPCM(command,ADPCM_FORMAT_26BIT,ADPCM_reference); //Starting the ADPCM command!
 		break;
 	case 0x80: //Silence DAC
 		SOUNDBLASTER.command = 0x80; //Start the command!
@@ -275,7 +303,126 @@ void DSP_writeCommand(byte command)
 	}
 }
 
-void DSP_writeData(byte data, byte isDMA)
+OPTINLINE void SoundBlaster_DetectDMALength(byte command, word length)
+{
+	switch (command) //What command?
+	{
+	case 0x14: //DMA DAC, 8-bit
+	case 0x16: //DMA DAC, 2-bit ADPCM
+	case 0x17: //DMA DAC, 2-bit ADPCM reference
+	case 0x74: //DMA DAC, 4-bit ADPCM
+	case 0x75: //DMA DAC, 4-bit ADPCM Reference
+	case 0x76: //DMA DAC, 2.6-bit ADPCM
+	case 0x77: //DMA DAC, 2.6-bit ADPCM Reference
+		SOUNDBLASTER.dataleft = length + 1; //The length of the DMA transfer to play back, in bytes!
+		break;
+	default: //Unknown length?
+		SOUNDBLASTER.dataleft = length + 1; //Transfer literal length! Simply fallback!
+		break;
+	}
+}
+
+//ADPCM decoder from Dosbox
+OPTINLINE byte decode_ADPCM_4_sample(byte sample, byte *reference, int_32 *scale)
+{
+	static const byte scaleMap[64] = {
+		0,  1,  2,  3,  4,  5,  6,  7,  0,  -1,  -2,  -3,  -4,  -5,  -6,  -7,
+		1,  3,  5,  7,  9, 11, 13, 15, -1,  -3,  -5,  -7,  -9, -11, -13, -15,
+		2,  6, 10, 14, 18, 22, 26, 30, -2,  -6, -10, -14, -18, -22, -26, -30,
+		4, 12, 20, 28, 36, 44, 52, 60, -4, -12, -20, -28, -36, -44, -52, -60
+	};
+	static const byte adjustMap[64] = {
+		0, 0, 0, 0, 0, 16, 16, 16,
+		0, 0, 0, 0, 0, 16, 16, 16,
+		240, 0, 0, 0, 0, 16, 16, 16,
+		240, 0, 0, 0, 0, 16, 16, 16,
+		240, 0, 0, 0, 0, 16, 16, 16,
+		240, 0, 0, 0, 0, 16, 16, 16,
+		240, 0, 0, 0, 0,  0,  0,  0,
+		240, 0, 0, 0, 0,  0,  0,  0
+	};
+
+	byte samp = sample + *scale;
+
+	if ((samp < 0) || (samp > 63)) {
+		//LOG(LOG_SB, LOG_ERROR)("Bad ADPCM-4 sample");
+		if (samp < 0) samp = 0;
+		if (samp > 63) samp = 63;
+	}
+
+	sword ref = *reference + scaleMap[samp];
+	if (ref > 0xff) *reference = 0xff;
+	else if (ref < 0x00) *reference = 0x00;
+	else *reference = (byte)(ref & 0xff);
+	*scale = (*scale + adjustMap[samp]) & 0xff;
+
+	return (byte)*reference;
+}
+
+OPTINLINE byte decode_ADPCM_2_sample(byte sample, byte *reference, int_32 *scale)
+{
+	static const sbyte scaleMap[24] = {
+		0,  1,  0,  -1, 1,  3,  -1,  -3,
+		2,  6, -2,  -6, 4, 12,  -4, -12,
+		8, 24, -8, -24, 6, 48, -16, -48
+	};
+	static const byte adjustMap[24] = {
+		0, 4,   0, 4,
+		252, 4, 252, 4, 252, 4, 252, 4,
+		252, 4, 252, 4, 252, 4, 252, 4,
+		252, 0, 252, 0
+	};
+
+	int_32 samp = sample + *scale;
+	if ((samp < 0) || (samp > 23)) {
+		//LOG(LOG_SB, LOG_ERROR)("Bad ADPCM-2 sample");
+		if (samp < 0) samp = 0;
+		if (samp > 23) samp = 23;
+	}
+
+	int_32 ref = *reference + scaleMap[samp];
+	if (ref > 0xff) *reference = 0xff;
+	else if (ref < 0x00) *reference = 0x00;
+	else *reference = (byte)(ref & 0xff);
+	*scale = (*scale + adjustMap[samp]) & 0xff;
+
+	return (byte)*reference;
+}
+
+OPTINLINE byte decode_ADPCM_3_sample(byte sample, byte *reference,int_32 *scale)
+{
+	static const sbyte scaleMap[40] = {
+		0,  1,  2,  3,  0,  -1,  -2,  -3,
+		1,  3,  5,  7, -1,  -3,  -5,  -7,
+		2,  6, 10, 14, -2,  -6, -10, -14,
+		4, 12, 20, 28, -4, -12, -20, -28,
+		5, 15, 25, 35, -5, -15, -25, -35
+	};
+	static const byte adjustMap[40] = {
+		0, 0, 0, 8,   0, 0, 0, 8,
+		248, 0, 0, 8, 248, 0, 0, 8,
+		248, 0, 0, 8, 248, 0, 0, 8,
+		248, 0, 0, 8, 248, 0, 0, 8,
+		248, 0, 0, 0, 248, 0, 0, 0
+	};
+
+	byte samp = sample + *scale;
+	if ((samp < 0) || (samp > 39)) {
+		//LOG(LOG_SB, LOG_ERROR)("Bad ADPCM-3 sample");
+		if (samp < 0) samp = 0;
+		if (samp > 39) samp = 39;
+	}
+
+	byte ref = *reference + scaleMap[samp];
+	if (ref > 0xff) *reference = 0xff;
+	else if (ref < 0x00) *reference = 0x00;
+	else *reference = (byte)(ref & 0xff);
+	*scale = (*scale + adjustMap[samp]) & 0xff;
+
+	return (byte)*reference;
+}
+
+OPTINLINE void DSP_writeData(byte data, byte isDMA)
 {
 	switch (SOUNDBLASTER.command) //What command?
 	{
@@ -293,16 +440,60 @@ void DSP_writeData(byte data, byte isDMA)
 		SOUNDBLASTER.command = -1; //No command anymore!
 		break;
 	case 0x14: //DMA DAC, 8-bit
+	case 0x16: //DMA DAC, 2-bit ADPCM
+	case 0x17: //DMA DAC, 2-bit ADPCM reference
+	case 0x74: //DMA DAC, 4-bit ADPCM
+	case 0x75: //DMA DAC, 4-bit ADPCM Reference
+	case 0x76: //DMA DAC, 2.6-bit ADPCM
+	case 0x77: //DMA DAC, 2.6-bit ADPCM Reference
 		if (SOUNDBLASTER.commandstep) //DMA transfer active?
 		{
 			if (isDMA) //Must be DMA transfer!
 			{
 				SOUNDBLASTER.DirectDACOutput = -1; //No direct DAC output left until next sample: terminate output for now!
-				writefifobuffer(SOUNDBLASTER.DSPoutdata,data); //Send the current sample for rendering!
+				if (SOUNDBLASTER.ADPCM_format) //Format specified? Use ADPCM!
+				{
+					if (SOUNDBLASTER.ADPCM_reference) //We're the reference byte?
+					{
+						SOUNDBLASTER.ADPCM_reference = 0; //No reference anymore!
+						SOUNDBLASTER.ADPCM_currentreference = data;
+						SOUNDBLASTER.ADPCM_stepsize = MIN_ADAPTIVE_STEP_SIZE; //Initialise the step size!
+						writefifobuffer(SOUNDBLASTER.DSPoutdata, data); //Send the current sample for rendering!
+					}
+					else //Data based on the reference?
+					{
+						switch (SOUNDBLASTER.ADPCM_format) //What format?
+						{
+						case ADPCM_FORMAT_2BIT: //Dosbox DSP_DMA_2
+							writefifobuffer(SOUNDBLASTER.DSPoutdata, decode_ADPCM_2_sample((data >> 6) & 0x3, &SOUNDBLASTER.ADPCM_currentreference, &SOUNDBLASTER.ADPCM_stepsize)); //Send the partial sample for rendering!
+							writefifobuffer(SOUNDBLASTER.DSPoutdata, decode_ADPCM_2_sample((data >> 4) & 0x3, &SOUNDBLASTER.ADPCM_currentreference, &SOUNDBLASTER.ADPCM_stepsize)); //Send the partial sample for rendering!
+							writefifobuffer(SOUNDBLASTER.DSPoutdata, decode_ADPCM_2_sample((data >> 2) & 0x3, &SOUNDBLASTER.ADPCM_currentreference, &SOUNDBLASTER.ADPCM_stepsize)); //Send the partial sample for rendering!
+							writefifobuffer(SOUNDBLASTER.DSPoutdata, decode_ADPCM_2_sample((data >> 0) & 0x3, &SOUNDBLASTER.ADPCM_currentreference, &SOUNDBLASTER.ADPCM_stepsize)); //Send the partial sample for rendering!
+							break;
+						case ADPCM_FORMAT_26BIT: //Dosbox DSP_DMA_3
+							writefifobuffer(SOUNDBLASTER.DSPoutdata, decode_ADPCM_3_sample((data >> 5)  &  0x7, &SOUNDBLASTER.ADPCM_currentreference, &SOUNDBLASTER.ADPCM_stepsize)); //Send the partial sample for rendering!
+							writefifobuffer(SOUNDBLASTER.DSPoutdata, decode_ADPCM_3_sample((data >> 2)  &  0x7, &SOUNDBLASTER.ADPCM_currentreference, &SOUNDBLASTER.ADPCM_stepsize)); //Send the partial sample for rendering!
+							writefifobuffer(SOUNDBLASTER.DSPoutdata, decode_ADPCM_3_sample((data &  3)  << 0x1, &SOUNDBLASTER.ADPCM_currentreference, &SOUNDBLASTER.ADPCM_stepsize)); //Send the partial sample for rendering!
+							break;
+						case ADPCM_FORMAT_4BIT: //Dosbox DSP_DMA_4
+							writefifobuffer(SOUNDBLASTER.DSPoutdata, decode_ADPCM_4_sample((data >> 4) & 0xF, &SOUNDBLASTER.ADPCM_currentreference, &SOUNDBLASTER.ADPCM_stepsize)); //Send the partial sample for rendering!
+							writefifobuffer(SOUNDBLASTER.DSPoutdata, decode_ADPCM_4_sample(data        & 0xF, &SOUNDBLASTER.ADPCM_currentreference, &SOUNDBLASTER.ADPCM_stepsize)); //Send the partial sample for rendering!
+							break;
+						default: //Unknown format?
+							//Ignore output!
+							writefifobuffer(SOUNDBLASTER.DSPoutdata, 0x80); //Send the empty sample for rendering!
+							break;
+						}
+					}
+				}
+				else //Normal 8-bit sample?
+				{
+					writefifobuffer(SOUNDBLASTER.DSPoutdata, data); //Send the current sample for rendering!
+				}
 				if (--SOUNDBLASTER.dataleft==0) //One data used! Finished? Give IRQ!
 				{
 					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
-					SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput + 1; //Reload the length of the DMA transfer to play back, in bytes!
+					SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.wordparamoutput); //Reload the length of the DMA transfer to play back, in bytes!
 				}
 				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
 			}
@@ -320,13 +511,13 @@ void DSP_writeData(byte data, byte isDMA)
 				break;
 			case 1: //Length hi byte!
 				SOUNDBLASTER.wordparamoutput |= (((word)data)<<8); //The second parameter!
-				SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput+1; //The length of the DMA transfer to play back, in bytes!
 				SOUNDBLASTER.DREQ = 1; //Raise: we're outputting data for playback!
 				if (SOUNDBLASTER.DMAEnabled==0) //DMA Disabled?
 				{
 					SOUNDBLASTER.DMAEnabled = 1; //Start the DMA transfer fully itself!
 				}
 				SOUNDBLASTER.commandstep = 1; //Goto step 1!
+				SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.wordparamoutput); //The length of the DMA transfer to play back, in bytes!
 				break;
 			}
 		}
@@ -386,7 +577,7 @@ void DSP_writeData(byte data, byte isDMA)
 	}
 }
 
-byte DSP_readData(byte isDMA)
+OPTINLINE byte DSP_readData(byte isDMA)
 {
 	byte result=0x00;
 	if ((isDMA == 0) && (SOUNDBLASTER.command == 0x24)) //DMA ADC with normal read?
@@ -397,7 +588,7 @@ byte DSP_readData(byte isDMA)
 	return result; //Give the data!
 }
 
-void DSP_writeDataCommand(byte value)
+OPTINLINE void DSP_writeDataCommand(byte value)
 {
 	if (SOUNDBLASTER.command != -1) //Handling data?
 	{
@@ -409,7 +600,7 @@ void DSP_writeDataCommand(byte value)
 	}
 }
 
-byte readDSPData(byte isDMA)
+OPTINLINE byte readDSPData(byte isDMA)
 {
 	switch (SOUNDBLASTER.command) //What command?
 	{

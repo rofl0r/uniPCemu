@@ -193,7 +193,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 {
 	byte keyon;
 	byte oldkeyon;
-	oldkeyon = adlibch[channel].keyon; //Current&old key on!
+	oldkeyon = adlibch[channel&0xF].keyon; //Current&old key on!
 	keyon = ((adlibregmem[0xB0 + (channel&0xF)] >> 5) & 1)?3:0; //New key on for melodic channels? Affect both operators! This disturbs percussion mode!
 	if (adlibpercussion && (channel&0x80)) //Percussion enabled and percussion channel changed?
 	{
