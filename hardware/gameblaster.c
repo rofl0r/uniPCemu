@@ -502,6 +502,7 @@ byte outGameBlaster(word port, byte value)
 			writeSAA1099Address(&GAMEBLASTER.chips[1],value); //Write address!
 			return 1; //Handled!
 		default: //Other addresses(16 addresses)? CT-1302!
+			if (GAMEBLASTER.soundblastercompatible>1) return 0; //Ignore all other addresses!
 			switch (port&0xF) //What port?
 			{
 				case 6: //Store 1!
@@ -529,6 +530,7 @@ byte inGameBlaster(word port, byte *result)
 		case 3: //Right SAA-1099?
 			return 0; //Not Handled! The chips cannot be read, only written!
 		default: //Other addresses(16 addresses)? CT-1302!
+			if (GAMEBLASTER.soundblastercompatible>1) return 0; //Ignore all other addresses!
 			switch (port&0xF) //What port?
 			{
 				case 0x4: //Detection!

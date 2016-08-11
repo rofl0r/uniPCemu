@@ -252,7 +252,7 @@ void initEMU(int full) //Init!
 		debugrow("Initialising Game Blaster...");
 		initGameBlaster(0x220); //Initialise game blaster!
 		GameBlaster_setVolume((float)BIOS_Settings.GameBlaster_Volume); //Set the sound source volume!
-		setGameBlaster_SoundBlaster(BIOS_Settings.useSoundBlaster); //Sound Blaster compatible?
+		setGameBlaster_SoundBlaster(BIOS_Settings.useSoundBlaster?2:0); //Fully Sound Blaster compatible?
 	}
 
 	debugrow("Initialising Parallel ports...");
