@@ -255,6 +255,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
 		SOUNDBLASTER.command = 0x14; //Starting this command!
 		SOUNDBLASTER.dataleft = 0; //counter of parameters!
+		SOUNDBLASTER.DREQ = 0; //Disable DMA!
 		SOUNDBLASTER.ADPCM_format = ADPCM_FORMAT_NONE; //Plain samples!
 		break;
 	case 0x17: //DMA DAC, 2-bit ADPCM reference
@@ -270,6 +271,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 	case 0x24: //DMA ADC, 8-bit
 		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
 		SOUNDBLASTER.command = 0x24; //Starting this command!
+		SOUNDBLASTER.DREQ = 0; //Disable DMA!
 		SOUNDBLASTER.dataleft = 0; //counter of parameters!
 		break;
 	case 0x30: //MIDI read poll
