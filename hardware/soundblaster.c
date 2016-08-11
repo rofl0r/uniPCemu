@@ -7,6 +7,7 @@
 #include "headers/hardware/adlib.h" //Adlib card has more ports with Sound Blasters!
 #include "headers/hardware/pic.h" //Interrupt support!
 #include "headers/hardware/8237A.h" //DMA support!
+#include "headers/hardware/midi/midi.h" //MIDI support!
 
 #define __SOUNDBLASTER_SAMPLERATE 22222.0f
 #define __SOUNDBLASTER_SAMPLEBUFFERSIZE 2048
@@ -26,7 +27,14 @@
 #define ADPCM_FORMAT_26BIT 0x02
 #define ADPCM_FORMAT_4BIT 0x03
 
+//Sound Blaster version used!
+#define SB_VERSION 0x0105
+
 #define MIN_ADAPTIVE_STEP_SIZE 0
+
+enum {
+	DSP_S_RESET, DSP_S_RESET_WAIT, DSP_S_NORMAL
+}; //DSP state for reset detection!
 
 struct
 {
@@ -53,10 +61,13 @@ struct
 	byte ADPCM_reference; //The current by of ADPCM is the reference?
 	byte ADPCM_currentreference; //Current reference byte!
 	int_32 ADPCM_stepsize; //Current ADPCM step size!
+	byte reset; //Current reset state!
 } SOUNDBLASTER; //The Sound Blaster data!
 
 double soundblaster_soundtiming = 0.0, soundblaster_soundtick = 1000000000.0 / __SOUNDBLASTER_SAMPLERATE;
 double soundblaster_sampletiming = 0.0, soundblaster_sampletick = 0.0;
+
+double soundblaster_IRR = 0.0, soundblaster_resettiming = 0.0; //No IRR nor reset requested!
 
 byte leftsample=0x80, rightsample=0x80; //Two stereo samples, silence by default!
 
@@ -66,6 +77,13 @@ OPTINLINE void SoundBlaster_IRQ8()
 	doirq(__SOUNDBLASTER_IRQ8); //Trigger the IRQ for 8-bit transfers!
 }
 
+OPTINLINE void SoundBlaster_FinishedReset()
+{
+	writefifobuffer(SOUNDBLASTER.DSPindata, 0xAA); //We've reset!
+	fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Force the data to the user!
+	SOUNDBLASTER.reset = DSP_S_NORMAL; //Normal execution of the DSP!
+}
+
 void updateSoundBlaster(double timepassed)
 {
 	double dummy;
@@ -73,7 +91,30 @@ void updateSoundBlaster(double timepassed)
 	byte monosample; //Mono sample!
 	if (SOUNDBLASTER.baseaddr == 0) return; //No game blaster?
 
-	//First, check for any static sample(Direct Output)
+	//Check for pending IRQ request!
+	if (soundblaster_IRR > 0.0) //Requesting?
+	{
+		soundblaster_IRR -= timepassed; //Substract time!
+		if (soundblaster_IRR <= 0.0) //Expired?
+		{
+			//Execute Soft IRR after the requested timeout has passed!
+			writefifobuffer(SOUNDBLASTER.DSPindata, 0xAA); //Acnowledged!
+			fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
+			SoundBlaster_IRQ8();
+
+		}
+	}
+
+	if (soundblaster_resettiming > 0.0) //Requesting?
+	{
+		soundblaster_resettiming -= timepassed; //Substract time!
+		if (!(soundblaster_resettiming > 0.0)) //Expired?
+		{
+			SoundBlaster_FinishedReset(); //Finished the reset!
+		}
+	}
+
+	//Now, check for any static sample(Direct Output)
 	if ((SOUNDBLASTER.DirectDACOutput != -1) && (SOUNDBLASTER.silencesamples==0)) //Direct DAC output and not silenced?
 	{
 		leftsample = rightsample = (byte)SOUNDBLASTER.DirectDACOutput; //Mono Direct DAC output!
@@ -200,6 +241,8 @@ OPTINLINE void DSP_startParameterADPCM(byte command, byte format, byte userefere
 	SOUNDBLASTER.ADPCM_format = format; //The ADPCM format to use!
 }
 
+extern byte MPU_ready; //MPU installed?
+
 OPTINLINE void DSP_writeCommand(byte command)
 {
 	byte ADPCM_reference = 0; //ADPCM reference byte is used?
@@ -230,10 +273,11 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.dataleft = 0; //counter of parameters!
 		break;
 	case 0x30: //MIDI read poll
-		break;
 	case 0x31: //MIDI read interrupt
+		//Not supported on this chip?
 		break;
 	case 0x38: //MIDI write poll
+		SOUNDBLASTER.command = 0x38; //Start the parameter phase!
 		break;
 	case 0x40: //Set Time Constant
 		SOUNDBLASTER.command = 0x40; //Set the time constant!
@@ -279,9 +323,9 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.command = 0xE0; //Start the data phase!
 		break;
 	case 0xE1: //DSP version
-		writefifobuffer(SOUNDBLASTER.DSPindata, 1); //Give the correct version!
+		writefifobuffer(SOUNDBLASTER.DSPindata, (SB_VERSION>>8)); //Give the correct version!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the output!
-		writefifobuffer(SOUNDBLASTER.DSPindata, 5); //Give the correct version!
+		writefifobuffer(SOUNDBLASTER.DSPindata, (SB_VERSION&0xFF)); //Give the correct version!
 		break;
 	case 0xF0: //Sine Generator
 		//Generate 2kHz signal!
@@ -290,9 +334,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.singentime = 0.0f; //Reset time on the sine wave generator!
 		break;
 	case 0xF2: //IRQ Request, 8-bit
-		writefifobuffer(SOUNDBLASTER.DSPindata,0xAA); //Acnowledged!
-		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
-		SoundBlaster_IRQ8();
+		soundblaster_IRR = 10.0; //IRQ request in 10ns, according to Dosbox!
 		break;
 	case 0xF8: //Undocumented command according to Dosbox
 		writefifobuffer(SOUNDBLASTER.DSPindata,0x00); //Give zero bytes!
@@ -426,6 +468,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 {
 	switch (SOUNDBLASTER.command) //What command?
 	{
+	case -1: return; //Unknown command!
 	case 0x10: //Direct DAC output?
 		SOUNDBLASTER.DirectDACOutput = (int)data; //Set the direct DAC output!
 		SOUNDBLASTER.DMAEnabled = 0; //Disable DMA transaction!
@@ -572,20 +615,29 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 		writefifobuffer(SOUNDBLASTER.DSPindata,~data); //Give the identification as the result!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		break;
+	case 0x38: //MIDI write poll
+		SOUNDBLASTER.command = -1; //Finished!
+		if (MPU_ready) //Is the MPU installed?
+		{
+			MIDI_OUT(data); //Write the data to the MIDI device directly (UART mode forced)!
+		}
+		break;
 	default: //Unknown command?
+		//Ignore command!
 		break; //Simply ignore anything sent!
 	}
 }
 
+byte lastresult = 0x00; //Keep the last result in the buffer when nothing is to be read(Required for some Jangle DEMO according to Dosbox)!
+
 OPTINLINE byte DSP_readData(byte isDMA)
 {
-	static byte result=0x00; //Keep the last result in the buffer when nothing is to be read(Required for some Jangle DEMO according to Dosbox)!
 	if ((isDMA == 0) && (SOUNDBLASTER.command == 0x24)) //DMA ADC with normal read?
 	{
-		return result; //Ignore the input buffer: this is used by the DMA!
+		return lastresult; //Ignore the input buffer: this is used by the DMA!
 	}
-	readfifobuffer(SOUNDBLASTER.DSPindata, &result); //Read the result, if any!
-	return result; //Give the data!
+	readfifobuffer(SOUNDBLASTER.DSPindata, &lastresult); //Read the result, if any!
+	return lastresult; //Give the data!
 }
 
 OPTINLINE void DSP_writeDataCommand(byte value)
@@ -628,6 +680,35 @@ OPTINLINE byte readDSPData(byte isDMA)
 	return 0x00; //Unknown!
 }
 
+void DSP_HWreset()
+{
+	SOUNDBLASTER.command = -1; //No command!
+	SOUNDBLASTER.busy = 0; //Busy for a little time!
+	SOUNDBLASTER.silencesamples = 0; //No silenced samples!
+	SOUNDBLASTER.DirectDACOutput = -1; //No direct DAC output!
+	SOUNDBLASTER.IRQ8Pending = 0; //No IRQ pending!
+	SOUNDBLASTER.singen = 0; //Disable the sine wave generator if it's running!
+	SOUNDBLASTER.DREQ = 0; //Disable any DMA requests!
+	SOUNDBLASTER.ADPCM_reference = 0; //No reference byte anymore!
+	SOUNDBLASTER.ADPCM_currentreference = 0; //Reset the reference!
+	fifobuffer_clear(SOUNDBLASTER.DSPindata); //Clear the input buffer!
+	fifobuffer_clear(SOUNDBLASTER.DSPoutdata); //Clear the output buffer!
+}
+
+void DSP_reset(byte data)
+{
+	if ((data&1) && (SOUNDBLASTER.reset!=DSP_S_RESET)) //Reset turned on?
+	{
+		DSP_HWreset();
+		SOUNDBLASTER.reset = DSP_S_RESET; //We're reset!
+	}
+	else if (((data & 1) == 0) && (SOUNDBLASTER.reset == DSP_S_RESET)) //reset off?
+	{
+		SOUNDBLASTER.reset = DSP_S_RESET_WAIT; //Waiting for the reset to complete!
+		soundblaster_resettiming = 20000.0; //20us until we're timed out!
+	}
+}
+
 byte inSoundBlaster(word port, byte *result)
 {
 	byte dummy;
@@ -644,15 +725,26 @@ byte inSoundBlaster(word port, byte *result)
 		return 1; //Handled!
 		break;
 	case 0xC: //DSP - Write Buffer Status
-		*result = SOUNDBLASTER.busy?0x80:0x00; //Are we ready to write data? 0x80=Not ready to write.
+		if (SOUNDBLASTER.reset==DSP_S_NORMAL) //Not reset pending?
+		{
+			++SOUNDBLASTER.busy; //Increase busy time!
+			*result = (SOUNDBLASTER.busy&8)?0xFF:0x7F; //Are we ready to write data? 0x80=Not ready to write. Reversed according to Dosbox(~)!
+		}
+		else
+		{
+			*result = 0xFF; //According to Dosbox!
+		}
 		return 1; //Handled!
 	case 0xE: //DSP - Data Available Status, DSP - IRQ Acknowledge, 8-bit
-		*result = (peekfifobuffer(SOUNDBLASTER.DSPindata,&dummy)<<7); //Do we have data available?
+		*result = (peekfifobuffer(SOUNDBLASTER.DSPindata,&dummy)<<7)|0x7F; //Do we have data available?
 		if (SOUNDBLASTER.command == 0x24) //Special: no result, as this is buffered by DMA!
 		{
-			*result = 0x00; //Give no input set!
+			*result = 0x7F; //Give no input set!
 		}
-		SOUNDBLASTER.IRQ8Pending = 0; //Not pending anymore!
+		if (SOUNDBLASTER.IRQ8Pending==3) //Pending and acnowledged?
+		{
+			SOUNDBLASTER.IRQ8Pending = 0; //Not pending anymore!
+		}
 		return 1; //We have a result!
 	default:
 		break;
@@ -666,19 +758,7 @@ byte outSoundBlaster(word port, byte value)
 	switch (port & 0xF) //What port?
 	{
 	case 0x6: //DSP - Reset?
-		if ((value == 0) && (SOUNDBLASTER.resetport == 1)) //1 going 0? Perform reset!
-		{
-			SOUNDBLASTER.command = -1; //No command!
-			SOUNDBLASTER.busy = 0; //Not busy!
-			SOUNDBLASTER.silencesamples = 0; //No silenced samples!
-			SOUNDBLASTER.DirectDACOutput = -1; //No direct DAC output!
-			SOUNDBLASTER.IRQ8Pending = 0; //No IRQ pending!
-			SOUNDBLASTER.singen = 0; //Disable the sine wave generator if it's running!
-
-			writefifobuffer(SOUNDBLASTER.DSPindata,0xAA); //We've reset!
-			fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Force the data to the user!
-		}
-		SOUNDBLASTER.resetport = value; //Save the value for comparision!
+		DSP_reset(value); //Reset with this value!
 		return 1; //Handled!
 		break;
 	case 0x8: //FM Music - Compatible Register port
@@ -699,7 +779,7 @@ byte outSoundBlaster(word port, byte value)
 
 void StartPendingSoundBlasterIRQ(byte IRQ)
 {
-	if (SOUNDBLASTER.IRQ8Pending) //Actually pending?
+	if (SOUNDBLASTER.IRQ8Pending&2) //Actually pending?
 	{
 		SOUNDBLASTER.IRQ8Pending |= 1; //We're starting to execute our IRQ, which has been acnowledged!
 	}
@@ -726,13 +806,11 @@ void SoundBlaster_DREQ()
 void SoundBlaster_DACK()
 {
 	//We're transferring something?
-	SOUNDBLASTER.busy = 1; //We're busy!
 }
 
 void SoundBlaster_TC()
 {
 	//We're finished?
-	SOUNDBLASTER.busy = 0; //We're not busy anymore!
 }
 
 void initSoundBlaster(word baseaddr)
@@ -771,6 +849,9 @@ void initSoundBlaster(word baseaddr)
 	SOUNDBLASTER.muted = 1; //Default: muted!
 	SOUNDBLASTER.DMAEnabled = 0; //Start with disabled DMA(paused)!
 	SOUNDBLASTER.command = -1; //Default: no command!
+	writefifobuffer(SOUNDBLASTER.DSPindata,0xAA); //Last input!
+	SOUNDBLASTER.reset = DSP_S_NORMAL; //Default state!
+	lastresult = 0xAA; //Last result was 0xAA!
 	leftsample = rightsample = 0x80; //Default to silence!
 
 	for (translatevalue = 0;translatevalue < 0x100;++translatevalue) //All translatable values!
@@ -788,6 +869,8 @@ void initSoundBlaster(word baseaddr)
 	registerIRQ(__SOUNDBLASTER_IRQ8,&StartPendingSoundBlasterIRQ,NULL); //Pending SB IRQ only!
 	registerDMA8(__SOUNDBLASTER_DMA8,&SoundBlaster_readDMA8,&SoundBlaster_writeDMA8); //DMA access of the Sound Blaster!
 	registerDMATick(__SOUNDBLASTER_DMA8,&SoundBlaster_DREQ,&SoundBlaster_DACK,&SoundBlaster_TC);
+
+	DSP_HWreset(); //Hardware reset!
 }
 
 void doneSoundBlaster()
