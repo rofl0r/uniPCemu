@@ -579,10 +579,10 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 
 OPTINLINE byte DSP_readData(byte isDMA)
 {
-	byte result=0x00;
+	static byte result=0x00; //Keep the last result in the buffer when nothing is to be read(Required for some Jangle DEMO according to Dosbox)!
 	if ((isDMA == 0) && (SOUNDBLASTER.command == 0x24)) //DMA ADC with normal read?
 	{
-		return 0x00; //Ignore the input buffer: this is used by the DMA!
+		return result; //Ignore the input buffer: this is used by the DMA!
 	}
 	readfifobuffer(SOUNDBLASTER.DSPindata, &result); //Read the result, if any!
 	return result; //Give the data!
