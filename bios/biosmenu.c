@@ -3966,12 +3966,16 @@ void BIOS_InitSoundText()
 
 	optioninfo[advancedoptions] = 5; //Sound Blaster!
 	strcpy(menuoptions[advancedoptions], "Sound Blaster: ");
-	if (BIOS_Settings.useSoundBlaster)
+	switch (BIOS_Settings.useSoundBlaster)
 	{
-		strcat(menuoptions[advancedoptions++], "Enabled");
-	}
-	else
-	{
+	default:
+	case 1:
+		strcat(menuoptions[advancedoptions++], "Version 1.5");
+		break;
+	case 2:
+		strcat(menuoptions[advancedoptions++], "Version 2.0");
+		break;
+	case 0:
 		strcat(menuoptions[advancedoptions++], "Disabled");
 	}
 
@@ -5296,8 +5300,58 @@ void BIOS_GameBlasterVolume()
 
 void BIOS_useSoundBlaster()
 {
-	BIOS_Settings.useSoundBlaster = !BIOS_Settings.useSoundBlaster; //Reverse!
-	BIOS_Changed = 1; //We've changed!
-	reboot_needed = 1; //A reboot is needed!
+	BIOS_Title("Sound Blaster");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Sound Blaster: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 3; //Ammount of Synchronization modes!
+	for (i = 0; i<numlist; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[0], "Disabled"); //Set filename from options!
+	strcpy(itemlist[1], "Version 1.5"); //Set filename from options!
+	strcpy(itemlist[2], "Version 2.0"); //Set filename from options!
+	int current = 0;
+	switch (BIOS_Settings.useSoundBlaster) //What setting?
+	{
+	case 0: //Valid
+	case 1: //Valid
+	case 2: //Valid
+		current = BIOS_Settings.useSoundBlaster; //Valid: use!
+		break;
+	default: //Invalid
+		current = 0; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.useSoundBlaster != current) //Invalid?
+	{
+		BIOS_Settings.useSoundBlaster = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(15, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0; //Default setting: Disabled!
+
+	case 0:
+	case 1:
+	case 2:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			reboot_needed = 1; //A reboot is needed!
+			BIOS_Settings.useSoundBlaster = file; //Select Sound Blaster setting!
+		}
+		break;
+	}
 	BIOS_Menu = 31; //Goto Sound menu!
 }

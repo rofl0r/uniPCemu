@@ -293,7 +293,7 @@ void initEMU(int full) //Init!
 
 	if (useSoundBlaster) //Sound Blaster used?
 	{
-		initSoundBlaster(0x220); //Initialise sound blaster!
+		initSoundBlaster(0x220,useSoundBlaster-1); //Initialise sound blaster with the specified version!
 	}
 	else //Sound Blaster not used and allowed?
 	{

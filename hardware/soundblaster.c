@@ -28,7 +28,10 @@
 #define ADPCM_FORMAT_4BIT 0x03
 
 //Sound Blaster version used!
-#define SB_VERSION 0x0105
+#define SB_VERSION15 0x0105
+#define SB_VERSION20 0x0201
+
+#define SB_VERSION SOUNDBLASTER.version
 
 #define MIN_ADAPTIVE_STEP_SIZE 0
 
@@ -62,6 +65,11 @@ struct
 	byte ADPCM_currentreference; //Current reference byte!
 	int_32 ADPCM_stepsize; //Current ADPCM step size!
 	byte reset; //Current reset state!
+	word version; //The version number we are emulating!
+	byte AutoInit; //The current AutoInit setting to use!
+	byte AutoInitBuf; //The buffered autoinit setting to be applied when starting!
+	word AutoInitBlockSize; //Auto-init block size, as set by the Set DMA Block Size command for Auto-Init commands!
+	byte TestRegister; //Sound Blaster 2.01+ Test register!
 } SOUNDBLASTER; //The Sound Blaster data!
 
 double soundblaster_soundtiming = 0.0, soundblaster_soundtick = 1000000000.0 / __SOUNDBLASTER_SAMPLERATE;
@@ -232,13 +240,14 @@ byte SoundBlaster_soundGenerator(void* buf, uint_32 length, byte stereo, void *u
 	}
 }
 
-OPTINLINE void DSP_startParameterADPCM(byte command, byte format, byte usereference)
+OPTINLINE void DSP_startParameterADPCM(byte command, byte format, byte usereference, byte AutoInit)
 {
 	SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
 	SOUNDBLASTER.command = (int)command; //Starting this command!
 	SOUNDBLASTER.dataleft = 0; //counter of parameters!
 	SOUNDBLASTER.ADPCM_reference = usereference; //Are we starting with a reference?
 	SOUNDBLASTER.ADPCM_format = format; //The ADPCM format to use!
+	SOUNDBLASTER.AutoInitBuf = AutoInit; //Buffer it until we use it!
 }
 
 extern byte MPU_ready; //MPU installed?
@@ -246,37 +255,71 @@ extern byte MPU_ready; //MPU installed?
 OPTINLINE void DSP_writeCommand(byte command)
 {
 	byte ADPCM_reference = 0; //ADPCM reference byte is used?
+	byte AutoInit = 0; //Auto initialize command?
 	switch (command) //What command?
 	{
 	case 0x10: //Direct DAC, 8-bit
 		SOUNDBLASTER.command = 0x10; //Enable direct DAC mode!
 		break;
+	case 0x1C: //Auto-Initialize DMA DAC, 8-bit(DSP 2.01+)
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		AutoInit = 1; //Auto initialize command instead!
 	case 0x14: //DMA DAC, 8-bit
 		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
 		SOUNDBLASTER.command = 0x14; //Starting this command!
 		SOUNDBLASTER.dataleft = 0; //counter of parameters!
 		SOUNDBLASTER.DREQ = 0; //Disable DMA!
 		SOUNDBLASTER.ADPCM_format = ADPCM_FORMAT_NONE; //Plain samples!
+		SOUNDBLASTER.AutoInitBuf = AutoInit; //The autoinit setting to use!
 		break;
+	case 0x1F: //Auto-Initialize DMA DAC, 2-bit ADPCM reference(DSP 2.01+)
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		AutoInit = 1; //Auto initialize command instead!
 	case 0x17: //DMA DAC, 2-bit ADPCM reference
 		ADPCM_reference = 1; //We're using the reference byte in the transfer!
 	case 0x16: //DMA DAC, 2-bit ADPCM
-		DSP_startParameterADPCM(command,ADPCM_FORMAT_2BIT,ADPCM_reference); //Starting the ADPCM command!
+		DSP_startParameterADPCM(command,ADPCM_FORMAT_2BIT,ADPCM_reference,AutoInit); //Starting the ADPCM command!
 		break;
 	case 0x20: //Direct ADC, 8-bit
 		SOUNDBLASTER.command = 0x20; //Enable direct ADC mode!
 		writefifobuffer(SOUNDBLASTER.DSPindata, 0x80); //Give an empty sample(silence)!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		break;
+	case 0x2C: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		AutoInit = 1; //Auto initialize command instead!
 	case 0x24: //DMA ADC, 8-bit
 		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
-		SOUNDBLASTER.command = 0x24; //Starting this command!
+		SOUNDBLASTER.command = (int)command; //Starting this command!
 		SOUNDBLASTER.DREQ = 0; //Disable DMA!
 		SOUNDBLASTER.dataleft = 0; //counter of parameters!
+		SOUNDBLASTER.AutoInitBuf = AutoInit; //The autoinit setting to use!
 		break;
 	case 0x30: //MIDI read poll
 	case 0x31: //MIDI read interrupt
 		//Not supported on this chip?
+		break;
+	case 0x34: //MIDI read poll + write poll (UART, DSP 2.01+)
+	case 0x35: //MIDI read interrupt + write poll (UART, DSP 2.01+)
+	case 0x37: //MIDI read timestamp interrupt + write poll (UART, DSP 2.01+)
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		//TODO
 		break;
 	case 0x38: //MIDI write poll
 		SOUNDBLASTER.command = 0x38; //Start the parameter phase!
@@ -284,15 +327,40 @@ OPTINLINE void DSP_writeCommand(byte command)
 	case 0x40: //Set Time Constant
 		SOUNDBLASTER.command = 0x40; //Set the time constant!
 		break;
+	case 0x48: //Set DMA Block size(DSP 2.01+)
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
+		SOUNDBLASTER.command = (int)command; //Starting this command!
+		SOUNDBLASTER.DREQ = 0; //Disable DMA!
+		SOUNDBLASTER.dataleft = 0; //counter of parameters!
+		break;
+	case 0x7D: //Auto-initialize DMA DAC, 4-bit ADPCM Reference(DSP 2.01+)
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		AutoInit = 1; //Auto-initialize command instead!
 	case 0x75: //DMA DAC, 4-bit ADPCM Reference
 		ADPCM_reference = 1; //We're using the reference byte in the transfer!
 	case 0x74: //DMA DAC, 4-bit ADPCM
-		DSP_startParameterADPCM(command,ADPCM_FORMAT_4BIT,ADPCM_reference); //Starting the ADPCM command!
+		DSP_startParameterADPCM(command,ADPCM_FORMAT_4BIT,ADPCM_reference,AutoInit); //Starting the ADPCM command!
 		break;
+	case 0x7F: //Auto-initialize DMA DAC, 2.6-bit ADPCM Reference
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		AutoInit = 1; //Auto-initialize command instead!
 	case 0x77: //DMA DAC, 2.6-bit ADPCM Reference
 		ADPCM_reference = 1; //We're using the reference byte in the transfer!
 	case 0x76: //DMA DAC, 2.6-bit ADPCM
-		DSP_startParameterADPCM(command,ADPCM_FORMAT_26BIT,ADPCM_reference); //Starting the ADPCM command!
+		DSP_startParameterADPCM(command,ADPCM_FORMAT_26BIT,ADPCM_reference,AutoInit); //Starting the ADPCM command!
 		break;
 	case 0x80: //Silence DAC
 		SOUNDBLASTER.command = 0x80; //Start the command!
@@ -321,13 +389,45 @@ OPTINLINE void DSP_writeCommand(byte command)
 		writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.muted ? 0x00 : 0xFF); //Give the correct status!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the output!
 		break;
-	case 0xE0: //DSP Identification. Should be 2.0+, but apparently 1.5 has it too?
+	case 0xDA: //Exit Auto-initialize DMA operation, 8-bit(DSP 2.01+)
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		SOUNDBLASTER.AutoInit = 0; //Disable the auto-initialize option when we're finished rendering!
+		break;
+	case 0xE0: //DSP Identification. Should be 2.0+, but apparently 1.5 has it too according to it's SBFMDRV driver?
+		/*
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		*/
 		SOUNDBLASTER.command = 0xE0; //Start the data phase!
 		break;
 	case 0xE1: //DSP version
 		writefifobuffer(SOUNDBLASTER.DSPindata, (SB_VERSION>>8)); //Give the correct version!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the output!
 		writefifobuffer(SOUNDBLASTER.DSPindata, (SB_VERSION&0xFF)); //Give the correct version!
+		break;
+	case 0xE4: //Write Test register(DSP 2.01+)
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		SOUNDBLASTER.command = 0xE4; //Start the parameter phase!
+		SOUNDBLASTER.commandstep = 0; //Starting the parameter phase!
+		break;
+	case 0xE8: //Read Test register(DSP 2.01+)
+		if (SOUNDBLASTER.version<SB_VERSION20)
+		{
+			SOUNDBLASTER.command = -1; //Invalid command!
+			return; //Unsupported version!
+		}
+		writefifobuffer(SOUNDBLASTER.DSPindata,SOUNDBLASTER.TestRegister); //Give the test register
 		break;
 	case 0xF0: //Sine Generator
 		//Generate 2kHz signal!
@@ -354,14 +454,18 @@ OPTINLINE void SoundBlaster_DetectDMALength(byte command, word length)
 	case 0x14: //DMA DAC, 8-bit
 	case 0x16: //DMA DAC, 2-bit ADPCM
 	case 0x17: //DMA DAC, 2-bit ADPCM reference
+	case 0x24: //DMA ADC, 8-bit
+	case 0x2C: //Auto-Initialize DMA ADC, 8-bit
 	case 0x74: //DMA DAC, 4-bit ADPCM
 	case 0x75: //DMA DAC, 4-bit ADPCM Reference
 	case 0x76: //DMA DAC, 2.6-bit ADPCM
 	case 0x77: //DMA DAC, 2.6-bit ADPCM Reference
+	case 0x7D: //Auto-Initialize DMA DAC, 4-bit ADPCM Reference
+	case 0x7F: //Auto-Initialize DMA DAC, 2.6-bit ADPCM Reference
 		SOUNDBLASTER.dataleft = length + 1; //The length of the DMA transfer to play back, in bytes!
 		break;
 	default: //Unknown length?
-		SOUNDBLASTER.dataleft = length + 1; //Transfer literal length! Simply fallback!
+		//Ignore the transfer setting!
 		break;
 	}
 }
@@ -538,7 +642,10 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				if (--SOUNDBLASTER.dataleft==0) //One data used! Finished? Give IRQ!
 				{
 					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
-					SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.wordparamoutput); //Reload the length of the DMA transfer to play back, in bytes!
+					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
+					{
+						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
+					}
 				}
 				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
 			}
@@ -562,11 +669,13 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 					SOUNDBLASTER.DMAEnabled = 1; //Start the DMA transfer fully itself!
 				}
 				SOUNDBLASTER.commandstep = 1; //Goto step 1!
+				SOUNDBLASTER.AutoInit = SOUNDBLASTER.AutoInitBuf; //Apply auto-init setting, when supported!
 				SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.wordparamoutput); //The length of the DMA transfer to play back, in bytes!
 				break;
 			}
 		}
 		break;
+	case 0x2C: //Auto-Initialize DMA ADC, 8-bit
 	case 0x24: //DMA ADC, 8-bit
 		if (SOUNDBLASTER.commandstep) //DMA transfer active?
 		{
@@ -588,7 +697,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				break;
 			case 1: //Length hi byte!
 				SOUNDBLASTER.wordparamoutput |= (((word)data) << 8); //The second parameter!
-				SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput + 1; //The length of the DMA transfer to play back, in bytes!
+				SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command,SOUNDBLASTER.wordparamoutput); //The length of the DMA transfer to play back, in bytes!
 				SOUNDBLASTER.DREQ = 1; //Raise: we're outputting data for playback!
 				if (SOUNDBLASTER.DMAEnabled == 0) //DMA Disabled?
 				{
@@ -624,6 +733,23 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 			MIDI_OUT(data); //Write the data to the MIDI device directly (UART mode forced)!
 		}
 		break;
+	case 0x48: //Set DMA Block size(DSP 2.01+)
+		if (isDMA) return; //Not for DMA transfers!
+		switch (SOUNDBLASTER.dataleft++) //What step?
+		{
+		case 0: //Length lo byte!
+			SOUNDBLASTER.wordparamoutput = (word)data; //The first parameter!
+			break;
+		case 1: //Length hi byte!
+			SOUNDBLASTER.wordparamoutput |= (((word)data) << 8); //The second parameter!
+			SOUNDBLASTER.AutoInitBlockSize = SOUNDBLASTER.wordparamoutput; //The length of the Auto-Init DMA transfer to play back, in bytes!
+			SOUNDBLASTER.command = -1; //Finished!
+			break;
+		}
+		break;
+	case 0xE4: //Write Test register(DSP 2.01+)
+		SOUNDBLASTER.TestRegister = data; //Write to the test register!
+		break;
 	default: //Unknown command?
 		//Ignore command!
 		break; //Simply ignore anything sent!
@@ -634,10 +760,28 @@ byte lastresult = 0x00; //Keep the last result in the buffer when nothing is to 
 
 OPTINLINE byte DSP_readData(byte isDMA)
 {
-	if ((isDMA == 0) && (SOUNDBLASTER.command == 0x24)) //DMA ADC with normal read?
+	switch (SOUNDBLASTER.command)
 	{
-		return lastresult; //Ignore the input buffer: this is used by the DMA!
+	case 0x24://DMA ADC, 8-bit
+		if (isDMA == 0) 
+		{
+			return lastresult; //Ignore the input buffer: this is used by the DMA!
+		}
+		break;
+	case 0x2C: //Auto-Initialize DMA ADC, 8-bit
+		if (isDMA==1)
+		{
+			return 0x7F; //Give silence!
+		}
+		else //Normal input?
+		{
+			return lastresult; //Ignore the input buffer: this is used by the DMA!
+		}
+		break;
+	default: //Unknown command?
+		break; //Simply give normal input from out buffer!
 	}
+
 	readfifobuffer(SOUNDBLASTER.DSPindata, &lastresult); //Read the result, if any!
 	return lastresult; //Give the data!
 }
@@ -658,6 +802,7 @@ OPTINLINE byte readDSPData(byte isDMA)
 {
 	switch (SOUNDBLASTER.command) //What command?
 	{
+	case 0x2C: //Auto-Initialize DMA ADC, 8-bit
 	case 0x24: //DMA ADC, 8-bit
 		if (SOUNDBLASTER.commandstep) //DMA transfer active?
 		{
@@ -668,7 +813,10 @@ OPTINLINE byte readDSPData(byte isDMA)
 				if (--SOUNDBLASTER.dataleft == 0) //One data used! Finished? Give IRQ!
 				{
 					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
-					SOUNDBLASTER.dataleft = SOUNDBLASTER.wordparamoutput + 1; //Reload the length of the DMA transfer to play back, in bytes!
+					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
+					{
+						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
+					}
 				}
 				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!			}
 				return 1; //Handled!
@@ -815,7 +963,7 @@ void SoundBlaster_TC()
 	//We're finished?
 }
 
-void initSoundBlaster(word baseaddr)
+void initSoundBlaster(word baseaddr, byte version)
 {
 	word translatevalue;
 	float tmp;
@@ -855,6 +1003,17 @@ void initSoundBlaster(word baseaddr)
 	SOUNDBLASTER.reset = DSP_S_NORMAL; //Default state!
 	lastresult = 0xAA; //Last result was 0xAA!
 	leftsample = rightsample = 0x80; //Default to silence!
+
+	switch (version) //What version to emulate?
+	{
+	default:
+	case 0: //DSP 1.05?
+		SOUNDBLASTER.version = SB_VERSION15; //1.5 version!
+		break;
+	case 1: //DSP 2.01?
+		SOUNDBLASTER.version = SB_VERSION20; //2.0 version!
+		break;
+	}
 
 	for (translatevalue = 0;translatevalue < 0x100;++translatevalue) //All translatable values!
 	{
