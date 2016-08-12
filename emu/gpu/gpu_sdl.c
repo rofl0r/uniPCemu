@@ -796,8 +796,6 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 		{
 			if (memprotect(surface->sdllayer,sizeof(*surface->sdllayer),NULL)) //Valid?
 			{
-				//If the surface must be locked
-				if (SDL_MUSTLOCK(surface->sdllayer)) SDL_LockSurface(surface->sdllayer); //Lock the surface when required!
 				#ifndef SDL2
 				if (SDL_Flip(surface->sdllayer)==-1) //Failed to update by flipping?
 					SDL_UpdateRect(surface->sdllayer, 0, 0, 0, 0); //Make sure we update!
@@ -816,7 +814,6 @@ void safeFlip(GPU_SDL_Surface *surface) //Safe flipping (non-null)
 				// This will show the new contents of the window.
 				SDL_RenderPresent(sdlRenderer);
 				#endif
-				if (SDL_MUSTLOCK(surface->sdllayer)) SDL_UnlockSurface(surface->sdllayer); //Unlock the surface when required!
 			}
 			surface->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
 		}
