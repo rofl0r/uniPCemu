@@ -2232,6 +2232,19 @@ void reconnectJoystick0() //For non-SDL2 compilations!
 		}
 }
 
+extern word window_xres;
+extern word window_yres;
+
+OPTINLINE word getxres()
+{
+	return window_xres;
+}
+
+OPTINLINE word getyres()
+{
+	return window_yres;
+}
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	byte joysticktype=0; //What joystick type?
@@ -2921,7 +2934,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				else //Not executing direct input?
 				{
-					GPU_mousebuttondown(mouse_x, mouse_y); //We're pressed at these coordinates!
+					GPU_mousebuttondown(mouse_x, mouse_y,0xFE); //We're pressed at these coordinates!
 				}
 				break;
 			case SDL_BUTTON_RIGHT:
@@ -2991,7 +3004,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		if (event->button.button==SDL_BUTTON_LEFT) //Release left button inside or outside our window?
 		{
 			lock(LOCK_INPUT);
-			GPU_mousebuttonup(mouse_x, mouse_y); //We're released at the current coordinates!
+			GPU_mousebuttonup(mouse_x, mouse_y,0xFE); //We're released at the current coordinates!
 			unlock(LOCK_INPUT);
 		}
 		break;
@@ -3092,6 +3105,33 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_JOYDEVICEREMOVED: //Joystick has been removed?
 		disconnectJoystick(event->jdevice.which); //Disconnect our joystick if it's ours!
+		break;
+	case SDL_FINGERDOWN:
+		//Convert the touchId and fingerId to finger! For now, allow only one finger!
+		lock(LOCK_INPUT);
+		GPU_mousebuttondown(getxres()*event->tfinger.x, getyres()*event->tfinger.y,0xFE); //We're released at the current coordinates!
+		unlock(LOCK_INPUT);		
+		break;
+	case SDL_FINGERUP:
+		//Convert the touchId and fingerId to finger! For now, allow only one finger!
+		lock(LOCK_INPUT);
+		GPU_mousebuttonup(getxres()*event->tfinger.x, getyres()*event->tfinger.y,0xFE); //We're released at the current coordinates!
+		unlock(LOCK_INPUT);		
+		break;
+	case SDL_FINGERMOTION:
+		//Convert the touchId and fingerId to finger! For now, allow only one finger!
+		//Fingermotion uses dx,dy to indicate movement, fingerdown/fingerup declares hold/release!
+		//For now, move the mouse!
+		lock(LOCK_INPUT);
+		if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
+		{
+			mouse_xmove += getxres()*event->tfinger.dx; //Move the mouse horizontally!
+			mouse_ymove += getyres()*event->tfinger.dy; //Move the mouse vertically!
+		}
+		//Always update mouse coordinates for our own GUI handling!
+		mouse_x = event->motion.x; //X coordinate on the window!
+		mouse_y = event->motion.y; //Y coordinate on the window!
+		unlock(LOCK_INPUT);
 		break;
 	#endif
 	default: //Unhandled/unknown event?

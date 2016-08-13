@@ -506,28 +506,28 @@ void GPU_removeTextSurface(void *surface)
 	}	
 }
 
-void GPU_mousebuttondown(word x, word y)
+void GPU_mousebuttondown(word x, word y, byte finger)
 {
 	int i = 0;
 	for (;i<(int)NUMITEMS(GPU.textsurfaces);i++) //Process all registered surfaces!
 	{
 		if (GPU.textsurfaces[i]) //Registered?
 		{
-			GPU_textbuttondown(GPU.textsurfaces[i],x,y); //We're pressed here!
+			GPU_textbuttondown(GPU.textsurfaces[i],finger,x,y); //We're pressed here!
 		}
 	}
 }
 
 byte GPU_surfaceclicked = 0; //Surface clicked to handle?
 
-void GPU_mousebuttonup(word x, word y)
+void GPU_mousebuttonup(word x, word y, byte finger)
 {
 	int i = 0;
 	for (;i<(int)NUMITEMS(GPU.textsurfaces);i++) //Process all registered surfaces!
 	{
 		if (GPU.textsurfaces[i]) //Registered?
 		{
-			GPU_textbuttonup(GPU.textsurfaces[i], x, y); //We're released here!
+			GPU_textbuttonup(GPU.textsurfaces[i],finger,x,y); //We're released here!
 		}
 	}
 	GPU_surfaceclicked = 1; //Signal a click of a GPU surface!

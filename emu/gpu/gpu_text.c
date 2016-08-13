@@ -522,7 +522,7 @@ void GPU_text_releasesurface(GPU_TEXTSURFACE *surface) //Unlock a surface when d
 	PostSem(surface->lock) //Release our lock: we're done!
 }
 
-void GPU_textbuttondown(GPU_TEXTSURFACE *surface, word x, word y) //We've been clicked at these coordinates!
+void GPU_textbuttondown(GPU_TEXTSURFACE *surface, byte finger, word x, word y) //We've been clicked at these coordinates!
 {
 	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
@@ -548,6 +548,7 @@ void GPU_textbuttondown(GPU_TEXTSURFACE *surface, word x, word y) //We've been c
 					if (surface->clickable[y][x] & CLICKABLE_CLICKABLE) //Is this a clickable character?
 					{
 						surface->clickable[y][x] |= CLICKABLE_BUTTONDOWN; //Set button down flag!
+						surface->clickablefinger[y][x] = finger; //What finger?
 					}
 				}
 			}
@@ -555,7 +556,7 @@ void GPU_textbuttondown(GPU_TEXTSURFACE *surface, word x, word y) //We've been c
 	}
 }
 
-void GPU_textbuttonup(GPU_TEXTSURFACE *surface, word x, word y) //We've been released at these coordinates!
+void GPU_textbuttonup(GPU_TEXTSURFACE *surface, byte finger, word x, word y) //We've been released at these coordinates!
 {
 	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
@@ -571,9 +572,12 @@ void GPU_textbuttonup(GPU_TEXTSURFACE *surface, word x, word y) //We've been rel
 			{
 				if (clickable&CLICKABLE_BUTTONDOWN) //We're pressed?
 				{
-					clickable &= ~CLICKABLE_BUTTONDOWN; //Release hold!
-					clickable |= CLICKABLE_CLICKED; //We've been clicked!
-					surface->clickable[sy][sx] = clickable; //Update clicked information!
+					if (surface->clickablefinger[sy][sx]==finger) //Same finger?
+					{
+						clickable &= ~CLICKABLE_BUTTONDOWN; //Release hold!
+						clickable |= CLICKABLE_CLICKED; //We've been clicked!
+						surface->clickable[sy][sx] = clickable; //Update clicked information!
+					}
 				}
 			}
 			++sy;
@@ -608,6 +612,15 @@ byte GPU_isclicked(GPU_TEXTSURFACE *surface, word x, word y) //Are we clicked?
 	byte result;
 	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return 0; //Invalid surface!
 	result = (surface->clickable[y][x]&(CLICKABLE_CLICKABLE|CLICKABLE_CLICKED))== (CLICKABLE_CLICKABLE | CLICKABLE_CLICKED); //Give if we're clickable and clicked!
+	return result; //Give the result if we're clicked!
+}
+
+byte GPU_ispressed(GPU_TEXTSURFACE *surface, word x, word y) //Are we pressed?
+{
+	if (allcleared) return 0; //Abort when all is cleared!
+	byte result;
+	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return 0; //Invalid surface!
+	result = (surface->clickable[y][x]&(CLICKABLE_CLICKABLE|CLICKABLE_BUTTONDOWN))== (CLICKABLE_CLICKABLE | CLICKABLE_BUTTONDOWN); //Give if we're clickable and clicked!
 	return result; //Give the result if we're clicked!
 }
 

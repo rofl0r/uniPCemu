@@ -35,6 +35,7 @@ uint_32 clickable[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //Text surface
 
 //Dirty flags and rendered data (internal).
 uint_32 notdirty[GPU_TEXTPIXELSY][GPU_TEXTPIXELSX]; //This is non-dirty, so use this then!
+byte clickablefinger[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //Text surface click status for the used finger for this!
 
 //List for checking for borders, set by allocator!
 BACKLISTITEM backlist[8]; //List of border background positions candidates!
@@ -65,8 +66,8 @@ void GPU_text_locksurface(GPU_TEXTSURFACE *surface); //Lock a surface for usage!
 void GPU_text_releasesurface(GPU_TEXTSURFACE *surface); //Unlock a surface when we're done with it!
 
 //GPU Clicking support!
-void GPU_textbuttondown(GPU_TEXTSURFACE *surface, word x, word y); //We've been clicked at these coordinates!
-void GPU_textbuttonup(GPU_TEXTSURFACE *surface, word x, word y); //We've been released at these coordinates!
+void GPU_textbuttondown(GPU_TEXTSURFACE *surface, byte finger, word x, word y); //We've been clicked at these coordinates!
+void GPU_textbuttonup(GPU_TEXTSURFACE *surface, byte finger, word x, word y); //We've been released at these coordinates!
 
 //TEXT Clicking support!
 byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte character, uint_32 font, uint_32 border); //Set x/y coordinates for clickable character! Result is bit value of SETXYCLICKED_*
