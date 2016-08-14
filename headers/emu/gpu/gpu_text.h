@@ -72,4 +72,5 @@ void GPU_textbuttonup(GPU_TEXTSURFACE *surface, byte finger, word x, word y); //
 //TEXT Clicking support!
 byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte character, uint_32 font, uint_32 border); //Set x/y coordinates for clickable character! Result is bit value of SETXYCLICKED_*
 byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...); //Same as normal GPU_textprintf, but with clickable support! Result is bit value of SETXYCLICKED_*
+byte GPU_ispressed(GPU_TEXTSURFACE *surface, word x, word y); //Are we pressed?
 #endif
