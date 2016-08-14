@@ -2404,11 +2404,29 @@ OPTINLINE word getyres()
 OPTINLINE void fingerOSK_presskey(byte index)
 {
 	//A key has been pressed!
+	SDL_Event inputevent;
+	inputevent.key.repeat = 0; //Not repeated key!
+	inputevent.key.keysym.sym = emu_keys_SDL[index]; //The key that is to be handled!
+	inputevent.key.timestamp = ~0; //Invalid timestamp!
+	inputevent.key.windowID = ~0; //Unused!
+	inputevent.key.state = SDL_PRESSED;
+	inputevent.key.keysym.scancode = ~0; //Unknown scancode, ignore this!
+	inputevent.key.keysym.mod = 0; //No modifiers for now, as they're still unsupported!
+	SDL_PushEvent(&inputevent); //Convert to a normal event and send it!
 }
 
 OPTINLINE void fingerOSK_releasekey(byte index)
 {
-	//A key has been released!
+	//A key has been pressed!
+	SDL_Event inputevent;
+	inputevent.key.repeat = 0; //Not repeated key!
+	inputevent.key.keysym.sym = emu_keys_SDL[index]; //The key that is to be handled!
+	inputevent.key.timestamp = ~0; //Invalid timestamp!
+	inputevent.key.windowID = ~0; //Unused!
+	inputevent.key.state = SDL_RELEASED;
+	inputevent.key.keysym.scancode = ~0; //Unknown scancode, ignore this!
+	inputevent.key.keysym.mod = 0; //No modifiers for now, as they're still unsupported!
+	SDL_PushEvent(&inputevent); //Convert to a normal event and send it!
 }
 
 OPTINLINE static void updateFingerOSK()
