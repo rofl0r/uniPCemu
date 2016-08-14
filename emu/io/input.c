@@ -983,6 +983,8 @@ byte keyboard_display[KEYBOARD_NUMY][KEYBOARD_NUMX];
 extern PS2_KEYBOARD Keyboard; //Active keyboard!
 extern byte SCREEN_CAPTURE; //Screen capture requested?
 
+byte FINGEROSK = 0; //Finger OSK enabled?
+
 void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 {
 	memset(keyboard_display,0,sizeof(keyboard_display)); //Init keyboard display!
@@ -1104,39 +1106,44 @@ keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 1;
 
 		if (!curstat.mode && !curstat.gamingmode) //Mouse mode?
 		{
-			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 4] = 'M'; //Mouse mode!
-			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 4] = 2; //Special shift color inactive!
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'M'; //Mouse mode!
+			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
 		}
 
 		if (!curstat.gamingmode) //Not gaming mode?
 		{
-			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 3] = 'C'; //Ctrl!
+			keyboard_display[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 3] = 'C'; //Ctrl!
 			if (currentctrl)
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 3] = 3; //Special shift color active!
+				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 3] = 3; //Special shift color active!
 			}
 			else
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
+				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
 			}
 
-			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 'A'; //Alt!
+			keyboard_display[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 'A'; //Alt!
 			if (currentalt)
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 3; //Special shift color active!
+				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 3; //Special shift color active!
 			}
 			else
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
+				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
 			}
 
-			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'S'; //Shift!
+			keyboard_display[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 'S'; //Shift!
 			if (currentshift)
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 3; //Special shift color active!
+				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 3; //Special shift color active!
 			}
 			else
 			{
+				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
+			}
+			if (curstat.mode) //Keyboard mode?
+			{
+				keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'K'; //Gaming mode!
 				keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
 			}
 		}
@@ -1148,9 +1155,16 @@ keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 1;
 	}
 	else
 	{
-		keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 4] = 'D'; //Direct Input mode!
-		keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 4] = 2; //Special shift color inactive!
+		keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'D'; //Direct Input mode!
+		keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
 	}
+
+	if (FINGEROSK) //Finger OSK enabled?
+	{
+		keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
+		keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!		
+	}
+	keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle 
 }
 
 uint_32 keyboard_rendertime; //Time for framerate rendering!
@@ -1160,13 +1174,26 @@ void keyboard_renderer() //Render the keyboard on-screen!
 	static byte last_rendered = 0; //Last rendered keyboard status: 1=ON, 0=OFF!
 	lock(LOCK_INPUT);
 	if (!KEYBOARD_ENABLED) return; //Disabled?
+
+	int x;
+	int y; //The coordinates in the buffer!
+	int ybase,xbase;
+	ybase = GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMY; //Base Y on GPU's text screen!
+	xbase = GPU_TEXTSURFACE_WIDTH-KEYBOARD_NUMX; //Base X on GPU's text screen!
+
 	if (!input_enabled) //Keyboard disabled atm OR Gaming mode?
 	{
 		if (last_rendered) //We're rendered?
 		{
 			last_rendered = 0; //We're not rendered now!
 			GPU_text_locksurface(keyboardsurface);
-			GPU_textclearscreen(keyboardsurface); //Clear the rendered surface: there's nothing to show!
+			for (x=xbase;x<GPU_TEXTSURFACE_WIDTH;++x) //Clear the rendered surface: there's nothing to show!
+			{
+				for (y=ybase;y<GPU_TEXTSURFACE_HEIGHT;++y)
+				{
+					GPU_textsetxy(keyboardsurface,x,y,0,0,0); //Clear our character!
+				}
+			}
 			GPU_text_releasesurface(keyboardsurface);
 		}
 		unlock(LOCK_INPUT);
@@ -1176,12 +1203,8 @@ void keyboard_renderer() //Render the keyboard on-screen!
 	last_rendered = 1; //We're rendered!
 	fill_keyboarddisplay(); //Fill the keyboard display!
 
-	int ybase,xbase;
 	ybase = GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMY; //Base Y on GPU's text screen!
 	xbase = GPU_TEXTSURFACE_WIDTH-KEYBOARD_NUMX; //Base X on GPU's text screen!
-
-	int x;
-	int y; //The coordinates in the buffer!
 
 	for (y=ybase;y<GPU_TEXTSURFACE_HEIGHT;y++)
 	{
@@ -1206,7 +1229,11 @@ void keyboard_renderer() //Render the keyboard on-screen!
 				break;
 			}
 			GPU_text_locksurface(keyboardsurface); //Lock us!
-			if (keyboard_special[y - ybase][x - xbase]&1) //Screen capture?
+			if (keyboard_special[y - ybase][x - xbase]&2) //Finger OSK toggle?
+			{
+				FINGEROSK ^= (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED)?1:0; //Screen capture on click?
+			}
+			else if (keyboard_special[y - ybase][x - xbase]&1) //Screen capture?
 			{
 				SCREEN_CAPTURE |= (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED)?1:0; //Screen capture on click?
 			}
@@ -2245,6 +2272,11 @@ OPTINLINE word getyres()
 	return window_yres;
 }
 
+OPTINLINE void updateFingerOSK()
+{
+}
+
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	byte joysticktype=0; //What joystick type?
@@ -2935,6 +2967,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				else //Not executing direct input?
 				{
 					GPU_mousebuttondown(mouse_x, mouse_y,0xFE); //We're pressed at these coordinates!
+					updateFingerOSK();
 				}
 				break;
 			case SDL_BUTTON_RIGHT:
@@ -3005,6 +3038,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		{
 			lock(LOCK_INPUT);
 			GPU_mousebuttonup(mouse_x, mouse_y,0xFE); //We're released at the current coordinates!
+			updateFingerOSK();
 			unlock(LOCK_INPUT);
 		}
 		break;
@@ -3109,13 +3143,15 @@ void updateInput(SDL_Event *event) //Update all input!
 	case SDL_FINGERDOWN:
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
 		lock(LOCK_INPUT);
-		GPU_mousebuttondown(getxres()*event->tfinger.x, getyres()*event->tfinger.y,0xFE); //We're released at the current coordinates!
+		GPU_mousebuttondown(getxres()*event->tfinger.x, getyres()*event->tfinger.y,(event->tfinger.fingerId&0xFF)); //We're released at the current coordinates!
+		updateFingerOSK();
 		unlock(LOCK_INPUT);		
 		break;
 	case SDL_FINGERUP:
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
 		lock(LOCK_INPUT);
-		GPU_mousebuttonup(getxres()*event->tfinger.x, getyres()*event->tfinger.y,0xFE); //We're released at the current coordinates!
+		GPU_mousebuttonup(getxres()*event->tfinger.x, getyres()*event->tfinger.y,(event->tfinger.fingerId&0xFF)); //We're released at the current coordinates!
+		updateFingerOSK();
 		unlock(LOCK_INPUT);		
 		break;
 	case SDL_FINGERMOTION:
@@ -3131,6 +3167,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		//Always update mouse coordinates for our own GUI handling!
 		mouse_x = event->motion.x; //X coordinate on the window!
 		mouse_y = event->motion.y; //Y coordinate on the window!
+		updateFingerOSK();
 		unlock(LOCK_INPUT);
 		break;
 	#endif
@@ -3226,6 +3263,9 @@ void psp_input_init()
 	SDL_AddEventWatch(myEventFilter, NULL); //For applying critical updates!
 	#ifdef SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4
 		SDL_SetHintWithPriority(SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4,"1",SDL_HINT_OVERRIDE); //We're forcing the window not to quit on ALT-F4!
+	#endif
+	#ifdef SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH
+		SDL_SetHintWithPriority(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH,"1",SDL_HINT_OVERRIDE); //We're forcing the window not to quit on ALT-F4!
 	#endif
 	#endif
 	#ifdef ANDROID
