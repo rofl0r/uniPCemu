@@ -1146,6 +1146,19 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 
 	if (!input_enabled) //Input disabled atm?
 	{
+		if (FINGEROSK) //Finger OSK enabled?
+		{
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
+			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color inactive!		
+		}
+		#ifndef __psp__
+		else //No input enabled? Not used on the PSP(has no keyboard nor mouse capability to use it)!
+		{
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
+			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!		
+		}
+		#endif
+		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle 
 		return; //Keyboard disabled: don't show!
 	}
 
@@ -1314,7 +1327,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	if (FINGEROSK) //Finger OSK enabled?
 	{
 		keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
-		keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!		
+		keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color active!		
 	}
 	keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle 
 }
@@ -1472,7 +1485,7 @@ void keyboard_renderer() //Render the keyboard on-screen!
 	ybase = GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMY; //Base Y on GPU's text screen!
 	xbase = GPU_TEXTSURFACE_WIDTH-KEYBOARD_NUMX; //Base X on GPU's text screen!
 
-	if (!input_enabled) //Keyboard disabled atm OR Gaming mode?
+	if (input_enabled==0) //Keyboard disabled atm OR Gaming mode?
 	{
 		if (last_rendered) //We're rendered?
 		{
@@ -1482,20 +1495,22 @@ void keyboard_renderer() //Render the keyboard on-screen!
 			{
 				for (y=ybase;y<GPU_TEXTSURFACE_HEIGHT;++y)
 				{
-					GPU_textsetxy(keyboardsurface,x,y,0,0,0); //Clear our character!
+					if (keyboard_special[y - ybase][x - xbase]==0) //No special action set?
+					{
+						GPU_textsetxy(keyboardsurface,x,y,0,0,0); //Clear our character!
+					}
 				}
 			}
 			GPU_text_releasesurface(keyboardsurface);
 		}
+		/*
 		unlock(LOCK_INPUT);
-		return; //Keyboard disabled: don't show!
+		return;
+		*///Keyboard disabled: don't show! Edit: We're showing it, even just for the toggle for the OSK!
 	}
 
 	last_rendered = 1; //We're rendered!
 	fill_keyboarddisplay(); //Fill the keyboard display!
-
-	ybase = GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMY; //Base Y on GPU's text screen!
-	xbase = GPU_TEXTSURFACE_WIDTH-KEYBOARD_NUMX; //Base X on GPU's text screen!
 
 	for (y=ybase;y<GPU_TEXTSURFACE_HEIGHT;y++)
 	{
