@@ -1233,11 +1233,11 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 		} //Keyboard mode?
 
 		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 'C'; //Screen capture!
-keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 1; 
+		keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 1; 
 		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 'a'; //Screen capture!
-keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 1;
+		keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 1;
 		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 'p'; //Screen capture!
-keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 1;
+		keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 1;
 
 		if (SCREEN_CAPTURE) //Screen capture status?
 		{
@@ -1317,6 +1317,136 @@ keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 1;
 
 uint_32 keyboard_rendertime; //Time for framerate rendering!
 
+OPTINLINE void fingerOSK_presskey(byte index)
+{
+	//A key has been pressed!
+	SDL_Event inputevent;
+	inputevent.key.repeat = 0; //Not repeated key!
+	inputevent.key.keysym.sym = emu_keys_SDL[index]; //The key that is to be handled!
+	inputevent.key.timestamp = ~0; //Invalid timestamp!
+	inputevent.key.windowID = ~0; //Unused!
+	inputevent.key.state = SDL_PRESSED;
+	inputevent.key.keysym.scancode = ~0; //Unknown scancode, ignore this!
+	inputevent.key.keysym.mod = 0; //No modifiers for now, as they're still unsupported!
+	SDL_PushEvent(&inputevent); //Convert to a normal event and send it!
+}
+
+OPTINLINE void fingerOSK_releasekey(byte index)
+{
+	//A key has been pressed!
+	SDL_Event inputevent;
+	inputevent.key.repeat = 0; //Not repeated key!
+	inputevent.key.keysym.sym = emu_keys_SDL[index]; //The key that is to be handled!
+	inputevent.key.timestamp = ~0; //Invalid timestamp!
+	inputevent.key.windowID = ~0; //Unused!
+	inputevent.key.state = SDL_RELEASED;
+	inputevent.key.keysym.scancode = ~0; //Unknown scancode, ignore this!
+	inputevent.key.keysym.mod = 0; //No modifiers for now, as they're still unsupported!
+	SDL_PushEvent(&inputevent); //Convert to a normal event and send it!
+}
+
+OPTINLINE static void updateFingerOSK()
+{
+	static byte OSKdrawn = 0; //Are we drawn?
+	byte key; //The key we're checking!
+	EMU_KEYINFO *currentkey = &OSKinfo[0]; //The current key to check!
+	EMU_KEYINFO emptykey;
+	word x, y; //The position inside the key text!
+	byte textx; //X inside the text!
+	word startx; //Backup of the screen x of the key!
+	uint_32 fontcolor = getemucol16(BIOS_Settings.input_settings.fontcolor); //Font color!
+	uint_32 bordercolor = getemucol16(BIOS_Settings.input_settings.bordercolor); //Border color!
+	word screenx;
+	if (FINGEROSK) //OSK enabled?
+	{
+		GPU_text_locksurface(keyboardsurface); //Lock us!
+		if (OSKdrawn == 0) //Not drawn yet?
+		{
+			OSKdrawn = 1; //We're drawn after this!
+			currentkey = &OSKinfo[0]; //The first key to process
+			for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
+			{
+				GPU_textgotoxy(keyboardsurface, currentkey->x + FINGEROSK_BASEX, currentkey->y + FINGEROSK_BASEY); //Goto the location of the key!
+				if (GPU_textprintfclickable(keyboardsurface, fontcolor, bordercolor, currentkey->facetext)&SETXYCLICKED_CLICKED) //Print the text on the screen!
+				{
+					fingerOSK_releasekey(key); //Releasing this key!
+				}
+			}
+		}
+		currentkey = &OSKinfo[0]; //The first key to process
+		for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
+		{
+			byte pressed = 0; //Are we pressed? Default to not pressed!
+			screenx = currentkey->x; //Screen x!
+			y = currentkey->y; //Screen y!
+			startx = screenx; //Save a copy of the beginning of the character!
+			for (textx = 0;textx<strlen(currentkey->facetext);++textx) //Check all our key positions!
+			{
+				//Based on GPU_textprintf function.
+				if (currentkey->facetext[textx] == '\t') //Return to start x?
+				{
+					screenx = startx; //Return to the specified position!
+				}
+				else if ((currentkey->facetext[textx] == '\r' && !USESLASHN) || (currentkey->facetext[textx] == '\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
+				{
+					screenx = 0; //Move to the left!
+				}
+				if (currentkey->facetext[textx] == '\n') //CR?
+				{
+					++y; //Next Y!
+				}
+				else if (currentkey->facetext[textx] != '\r') //Never display \r!
+				{
+					//Normal visible character?
+					pressed |= GPU_ispressed(keyboardsurface, FINGEROSK_BASEX + screenx++, FINGEROSK_BASEY + y); //Are we pressed?
+				}
+			}
+			if (pressed && (currentkey->pressed == 0)) //Are we pressed?
+			{
+				currentkey->pressed = 1; //We're pressed!
+				fingerOSK_presskey(key); //We're pressed!
+			}
+			else if ((pressed == 0) && (currentkey->pressed)) //Are we released?
+			{
+				currentkey->pressed = 0; //We're released!
+				fingerOSK_releasekey(key); //We're release!
+			}
+		}
+		GPU_text_releasesurface(keyboardsurface); //Release us!
+	}
+	else //OSK disabled? Clear it!
+	{
+		if (OSKdrawn) //Are we drawn?
+		{
+			GPU_text_locksurface(keyboardsurface); //Lock us!
+			OSKdrawn = 0; //We're not drawn anymore after this!
+			for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
+			{
+				GPU_textgotoxy(keyboardsurface, currentkey->x + FINGEROSK_BASEX, currentkey->y + FINGEROSK_BASEY); //Goto the location of the key!
+				for (x = 0;x<strlen(currentkey->facetext);x++)
+				{
+					if ((currentkey->facetext[x] == '\t') || (currentkey->facetext[x] == '\r') || (currentkey->facetext[x] == '\n')) //Special?
+					{
+						emptykey.facetext[x] = currentkey->facetext[x]; //Control character!
+					}
+					else //Normal character?
+					{
+						emptykey.facetext[x] = ' '; //Empty text!
+					}
+				}
+				emptykey.facetext[strlen(currentkey->facetext)] = '\0'; //End of string at the end of face text!
+				GPU_textprintf(keyboardsurface, fontcolor, bordercolor, emptykey.facetext); //Print the text on the screen!
+				if (currentkey->pressed)
+				{
+					fingerOSK_releasekey(key); //Releasing this key when pressed!
+					currentkey->pressed = 0; //Not pressed anymore!
+				}
+			}
+			GPU_text_releasesurface(keyboardsurface); //Release us!
+		}
+	}
+}
+
 void keyboard_renderer() //Render the keyboard on-screen!
 {
 	static byte last_rendered = 0; //Last rendered keyboard status: 1=ON, 0=OFF!
@@ -1377,11 +1507,17 @@ void keyboard_renderer() //Render the keyboard on-screen!
 				break;
 			}
 			GPU_text_locksurface(keyboardsurface); //Lock us!
-			if (keyboard_special[y - ybase][x - xbase]&2) //Finger OSK toggle?
+			if (keyboard_special[y - ybase][x - xbase]==2) //Finger OSK toggle?
 			{
-				FINGEROSK ^= (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED)?1:0; //Screen capture on click?
+				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED) //Finger OSK toggle on click?
+				{
+					FINGEROSK ^= 1; //Toggle the Finger OSK!
+					GPU_text_releasesurface(keyboardsurface); //Lock us!
+					updateFingerOSK(); //Show/hide the finger OSK!
+					GPU_text_locksurface(keyboardsurface); //Lock us!
+				}
 			}
-			else if (keyboard_special[y - ybase][x - xbase]&1) //Screen capture?
+			else if (keyboard_special[y - ybase][x - xbase]==1) //Screen capture?
 			{
 				SCREEN_CAPTURE |= (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED)?1:0; //Screen capture on click?
 			}
@@ -2419,137 +2555,6 @@ OPTINLINE word getyres()
 {
 	return window_yres;
 }
-
-OPTINLINE void fingerOSK_presskey(byte index)
-{
-	//A key has been pressed!
-	SDL_Event inputevent;
-	inputevent.key.repeat = 0; //Not repeated key!
-	inputevent.key.keysym.sym = emu_keys_SDL[index]; //The key that is to be handled!
-	inputevent.key.timestamp = ~0; //Invalid timestamp!
-	inputevent.key.windowID = ~0; //Unused!
-	inputevent.key.state = SDL_PRESSED;
-	inputevent.key.keysym.scancode = ~0; //Unknown scancode, ignore this!
-	inputevent.key.keysym.mod = 0; //No modifiers for now, as they're still unsupported!
-	SDL_PushEvent(&inputevent); //Convert to a normal event and send it!
-}
-
-OPTINLINE void fingerOSK_releasekey(byte index)
-{
-	//A key has been pressed!
-	SDL_Event inputevent;
-	inputevent.key.repeat = 0; //Not repeated key!
-	inputevent.key.keysym.sym = emu_keys_SDL[index]; //The key that is to be handled!
-	inputevent.key.timestamp = ~0; //Invalid timestamp!
-	inputevent.key.windowID = ~0; //Unused!
-	inputevent.key.state = SDL_RELEASED;
-	inputevent.key.keysym.scancode = ~0; //Unknown scancode, ignore this!
-	inputevent.key.keysym.mod = 0; //No modifiers for now, as they're still unsupported!
-	SDL_PushEvent(&inputevent); //Convert to a normal event and send it!
-}
-
-OPTINLINE static void updateFingerOSK()
-{
-	static byte OSKdrawn = 0; //Are we drawn?
-	byte key; //The key we're checking!
-	EMU_KEYINFO *currentkey=&OSKinfo[0]; //The current key to check!
-	EMU_KEYINFO emptykey;
-	word x,y; //The position inside the key text!
-	byte textx; //X inside the text!
-	word startx; //Backup of the screen x of the key!
-	uint_32 fontcolor = getemucol16(BIOS_Settings.input_settings.fontcolor); //Font color!
-	uint_32 bordercolor = getemucol16(BIOS_Settings.input_settings.bordercolor); //Border color!
-	word screenx;
-	if (FINGEROSK) //OSK enabled?
-	{
-		GPU_text_locksurface(keyboardsurface); //Lock us!
-		if (!OSKdrawn) //Not drawn yet?
-		{
-			OSKdrawn = 1; //We're drawn after this!
-			currentkey = &OSKinfo[0]; //The first key to process
-			for (key=0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
-			{
-				GPU_textgotoxy(keyboardsurface,currentkey->x+FINGEROSK_BASEX,currentkey->y+FINGEROSK_BASEY); //Goto the location of the key!
-				if (GPU_textprintfclickable(keyboardsurface,fontcolor,bordercolor,currentkey->facetext)&SETXYCLICKED_CLICKED) //Print the text on the screen!
-				{
-					fingerOSK_releasekey(key); //Releasing this key!
-				}
-			}
-		}
-		currentkey = &OSKinfo[0]; //The first key to process
-		for (key=0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
-		{
-			byte pressed=0; //Are we pressed? Default to not pressed!
-			screenx = currentkey->x; //Screen x!
-			y = currentkey->y; //Screen y!
-			startx = screenx; //Save a copy of the beginning of the character!
-			for (textx=0;textx<strlen(currentkey->facetext);++textx) //Check all our key positions!
-			{
-				//Based on GPU_textprintf function.
-				if (currentkey->facetext[textx]=='\t') //Return to start x?
-				{
-					x = startx; //Return to the specified position!
-				}
-				else if ((currentkey->facetext[textx]=='\r' && !USESLASHN) || (currentkey->facetext[textx]=='\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
-				{
-					x = 0; //Move to the left!
-				}
-				if (currentkey->facetext[textx]=='\n') //CR?
-				{
-					++y; //Next Y!
-				}
-				else if (currentkey->facetext[textx]!='\r') //Never display \r!
-				{
-					//Normal visible character?
-					pressed |= GPU_ispressed(keyboardsurface,FINGEROSK_BASEX+x++,FINGEROSK_BASEY+y); //Are we pressed?
-				}
-			}
-			if (pressed && (currentkey->pressed==0)) //Are we pressed?
-			{
-				currentkey->pressed = 1; //We're pressed!
-				fingerOSK_presskey(key); //We're pressed!
-			}
-			else if ((pressed==0) && (currentkey->pressed)) //Are we released?
-			{
-				currentkey->pressed = 0; //We're released!
-				fingerOSK_releasekey(key); //We're release!
-			}
-		}
-		GPU_text_releasesurface(keyboardsurface); //Release us!
-	}
-	else //OSK disabled? Clear it!
-	{
-		if (OSKdrawn) //Are we drawn?
-		{
-			GPU_text_locksurface(keyboardsurface); //Lock us!
-			OSKdrawn = 0; //We're not drawn anymore after this!
-			for (key=0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
-			{
-				GPU_textgotoxy(keyboardsurface,currentkey->x+FINGEROSK_BASEX,currentkey->y+FINGEROSK_BASEY); //Goto the location of the key!
-				for (x=0;x<strlen(currentkey->facetext);x++)
-				{
-					if ((currentkey->facetext[x] == '\t') || (currentkey->facetext[x]=='\r') || (currentkey->facetext[x]=='\n')) //Special?
-					{
-						emptykey.facetext[x] = currentkey->facetext[x]; //Control character!
-					}
-					else //Normal character?
-					{
-						emptykey.facetext[x] = ' '; //Empty text!
-					}
-				}
-				emptykey.facetext[strlen(currentkey->facetext)] = '\0'; //End of string at the end of face text!
-				GPU_textprintf(keyboardsurface,fontcolor,bordercolor,emptykey.facetext); //Print the text on the screen!
-				if (currentkey->pressed)
-				{
-					fingerOSK_releasekey(key); //Releasing this key when pressed!
-					currentkey->pressed = 0; //Not pressed anymore!
-				}
-			}
-			GPU_text_releasesurface(keyboardsurface); //Release us!
-		}
-	}
-}
-
 
 void updateInput(SDL_Event *event) //Update all input!
 {
