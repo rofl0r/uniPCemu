@@ -32,6 +32,7 @@ const float keyboard_mouseinterval = (1000000000.0f/30.0f); //Check mouse 30 tim
 
 float mouse_xmove = 0, mouse_ymove = 0; //Movement of the mouse not processed yet (in mm)!
 byte Mouse_buttons = 0; //Currently pressed mouse buttons. 1=Left, 2=Right, 4=Middle.
+byte Mouse_buttons2 = 0; //Second mouse button input!
 
 byte mousebuttons = 0; //Active mouse buttons!
 
@@ -939,7 +940,7 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 					mousepacket->xmove = xmove; //X movement in mm!
 					mousepacket->ymove = ymove; //Y movement, scaled!
 				}
-				mousepacket->buttons = Mouse_buttons; //Take the mouse buttons pressed directly!
+				mousepacket->buttons = Mouse_buttons|Mouse_buttons2; //Take the emulated mouse buttons pressed directly!
 				unlock(LOCK_INPUT);
 
 				if (!PS2mouse_packet_handler(mousepacket)) //Add the mouse packet! Not supported PS/2 mouse?
@@ -1371,6 +1372,88 @@ OPTINLINE void fingerOSK_releasekey(byte index)
 	lock(LOCK_INPUT); //We're reserved again!
 }
 
+byte fingerOSK_buttons[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //All possible locations for buttons!
+
+void updateFingerOSK_mouse()
+{
+	static byte OSKdrawn = 0; //Are we drawn?
+	word x, y; //The position inside the key text!
+	byte screencharacter;
+	uint_32 screenfont, screenborder;
+	word firstsplitx=(GPU_TEXTSURFACE_WIDTH/3)+1; //End of the first horizontal area(left button becomes middle button)!
+	word secondsplitx=((GPU_TEXTSURFACE_WIDTH/3)*2)+1; //End of the second horizontal area(middle button becomes right button)!
+	word thirdsplity=(GPU_TEXTSURFACE_HEIGHT/3)+1; //End of the first vertical area(middle button becomes no button)!
+	byte buttonarea;
+	byte newbutton;
+	byte buttonstatus=0; //Button status for all two buttons!
+	byte buttonpending=0; //Button pending release?
+	static byte fingerOSK_status=0; //Current finger OSK button status!
+	for (x = FINGEROSK_BASEX;x<GPU_TEXTSURFACE_WIDTH;++x) //Process all possible areas!
+	{
+		for (y = FINGEROSK_BASEY;y<GPU_TEXTSURFACE_HEIGHT;++y) //Process all possible areas!
+		{
+			buttonarea = newbutton = 0; //Default: not our area!
+			if (GPU_textgetxy(keyboardsurface, x, y, &screencharacter, &screenfont, &screenborder)) //Read location?
+			{
+				if ((screencharacter == 0) || (screencharacter == ' ')) //Not filled or to be used?
+				{
+					buttonarea = (x<firstsplitx)?1:((x<secondsplitx)?((y<thirdsplity)?3:0):2); //Are we a button? 0=None, 1=Left, 2=Right, 3=Middle
+					newbutton = 1; //We're a new button!
+				}
+			}
+
+			if (buttonarea) //A valid area to use?
+			{
+				if (fingerOSK_buttons[y - FINGEROSK_BASEY][x - FINGEROSK_BASEX]==0 || newbutton) //Are we a new button?
+				{
+					if (GPU_textsetxyclickable(keyboardsurface,x,y,' ',0,0)&SETXYCLICKED_CLICKED) //Are we clicked?
+					{
+						buttonpending |= (1<<(buttonarea-1)); //Pend the button as released!
+					}
+					if (GPU_ispressed(keyboardsurface,x,y)) //Are we pressed?
+					{
+						buttonstatus |= (1<<(buttonarea-1)); //We're pressed!
+					}
+				}
+				fingerOSK_buttons[y - FINGEROSK_BASEY][x - FINGEROSK_BASEX] = buttonarea;
+			}
+			else
+			{
+				fingerOSK_buttons[y - FINGEROSK_BASEY][x - FINGEROSK_BASEX] = 0; //No area!
+			}
+		}
+	}
+	//Now we have the current status(buttonstatus) and pending releases(buttonpending).
+	fingerOSK_status |= buttonstatus; //Press the buttons that need pressing!
+	fingerOSK_status &= ~buttonpending; //Release the buttons the need releasing!
+
+	//Now fingerOSK_status contains the current finger status to use!
+	if (buttonpending&1) //Left button pending?
+	{
+		Mouse_buttons2 &= ~1; //Not pressed anymore!
+	}
+	if (buttonpending&2) //Right button pending?
+	{
+		Mouse_buttons2 &= ~2; //Not pressed anymore!
+	}
+	if (buttonpending&4) //Middle button pending?
+	{
+		Mouse_buttons2 &= ~4; //Not pressed anymore!
+	}
+	if (buttonstatus&1) //Left pressed?
+	{
+		Mouse_buttons2 |= 1; //Pressed now!
+	}
+	if (buttonstatus&2) //Right pressed?
+	{
+		Mouse_buttons2 |= 2; //Pressed now!
+	}
+	if (buttonstatus&4) //Middle pressed?
+	{
+		Mouse_buttons2 |= 4; //Pressed now!
+	}
+}
+
 OPTINLINE static void updateFingerOSK()
 {
 	static byte OSKdrawn = 0; //Are we drawn?
@@ -1398,6 +1481,7 @@ OPTINLINE static void updateFingerOSK()
 					fingerOSK_releasekey(key); //Releasing this key!
 				}
 			}
+			updateFingerOSK_mouse(); //Update our mouse handling!
 		}
 		currentkey = &OSKinfo[0]; //The first key to process
 		for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
@@ -1470,6 +1554,7 @@ OPTINLINE static void updateFingerOSK()
 			}
 			GPU_text_releasesurface(keyboardsurface); //Release us!
 		}
+		updateFingerOSK_mouse(); //Update our mouse handling!
 	}
 }
 
@@ -3526,9 +3611,13 @@ void updateMouse(double timepassed)
 int SDLCALL myEventFilter(void *userdata, SDL_Event * event)
 {
 	//Emergency calls! Immediately update!
-	updateInput(event); //Handle this immediately!
+	if (event->type==SDL_APP_WILLENTERBACKGROUND) //Emergency event?
+	{
+		updateInput(event); //Handle this immediately!
+		return 1; //Drop the event, as this is handled already!
+	}
 	// etc
-	return 1;
+	return 0;
 }
 #endif
 
@@ -3572,7 +3661,7 @@ void psp_input_init()
 		SDL_SetHintWithPriority(SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4,"1",SDL_HINT_OVERRIDE); //We're forcing the window not to quit on ALT-F4!
 	#endif
 	#ifdef SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH
-		SDL_SetHintWithPriority(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH,"1",SDL_HINT_OVERRIDE); //We're forcing the window not to quit on ALT-F4!
+		SDL_SetHintWithPriority(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH,"1",SDL_HINT_OVERRIDE); //We're forcing us to use seperate mouse and touch events!
 	#endif
 	#endif
 	#ifdef ANDROID
