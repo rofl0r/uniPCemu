@@ -239,6 +239,9 @@ void initEMU(int full) //Init!
 	debugrow("Initialising PC Speaker...");
 	initSpeakers(BIOS_Settings.usePCSpeaker); //Initialise the speaker. Enable/disable sound according to the setting!
 
+	debugrow("Initializing 8259...");
+	init8259(); //Initialise the 8259 (PIC)!
+
 	useAdlib = BIOS_Settings.useAdlib|BIOS_Settings.useSoundBlaster; //Adlib used?
 	if (useAdlib)
 	{
@@ -327,9 +330,6 @@ void initEMU(int full) //Init!
 	setActiveVGA(MainVGA); //Initialise primary VGA using the BIOS settings, for the system itself!
 	initCGA_MDA(); //Add CGA/MDA support to the VGA as an extension!
 	if ((BIOS_Settings.VGA_Mode==6) || (BIOS_Settings.VGA_Mode==7)) SVGA_Setup_TsengET4K(VRAMSizeBackup); //Start the Super VGA card instead if enabled!
-
-	debugrow("Initializing 8259...");
-	init8259(); //Initialise the 8259 (PIC)!
 
 	debugrow("Starting video subsystem...");
 	if (full) startVideo(); //Start the video functioning!

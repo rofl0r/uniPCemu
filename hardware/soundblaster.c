@@ -19,7 +19,7 @@
 
 //IRQ/DMA assignments! Use secondary IRQ8(to prevent collisions with existing hardware!) Bochs says IRQ5? Dosbox says IRQ7?
 //8-bit IRQ&DMA!
-#define __SOUNDBLASTER_IRQ8 0x17
+#define __SOUNDBLASTER_IRQ8 0x15
 #define __SOUNDBLASTER_DMA8 1
 
 #define ADPCM_FORMAT_NONE 0x00
@@ -985,7 +985,7 @@ void SoundBlaster_writeDMA8(byte data)
 
 void SoundBlaster_DREQ()
 {
-	DMA_SetDREQ(__SOUNDBLASTER_DMA8,(SOUNDBLASTER.DREQ==1) && (SOUNDBLASTER.IRQ8Pending==0) && (SOUNDBLASTER.DMAEnabled==1)); //Set the DREQ signal accordingly!
+	DMA_SetDREQ(__SOUNDBLASTER_DMA8,(SOUNDBLASTER.DREQ==1) /*&& (SOUNDBLASTER.IRQ8Pending==0)*/ && (SOUNDBLASTER.DMAEnabled==1)); //Set the DREQ signal accordingly!
 }
 
 void SoundBlaster_DACK()

@@ -196,13 +196,14 @@ byte PICInterrupt() //We have an interrupt ready to process?
 OPTINLINE byte IRRequested(byte PIC, byte IR, byte source) //We have this requested?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	return ((getunprocessedinterrupt(PIC) >> IR) & 1); //Interrupt requested?
+	return (((getunprocessedinterrupt(PIC) >> IR) & 1) && (i8259.irr2[PIC&1][source])); //Interrupt requested on the specified source?
 }
 
 OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 {
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr[PIC] ^= (1 << IR); //Turn IRR off!
+	i8259.irr2[PIC][source] ^= (1 << IR); //Turn source IRR off!
 	i8259.isr[PIC] |= (1 << IR); //Turn in-service on!
 	i8259.isr2[PIC][source] |= (1 << IR); //Turn the source on!
 	byte IRQ;
@@ -264,17 +265,23 @@ byte nextintr()
 void doirq(byte irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
+	byte requestingindex=irqnum; //Save our index that's requesting!
 	irqnum &= 0xF; //Only 16 IRQs!
+	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
 	i8259.irr[PIC] |= (1 << (irqnum&7)); //Add the IRQ to request!
+	i8259.irr2[PIC][requestingindex] |= (1 << (irqnum & 7)); //Add the IRQ to request!
 }
 
 void removeirq(byte irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
+	byte requestingindex = irqnum; //Save our index that's requesting!
 	irqnum &= 0xF; //Only 16 IRQs!
+	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
 	i8259.irr[PIC] &= ~(1 << (irqnum&7)); //Remove the IRQ from request!
+	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the IRQ to request!
 }
 
 void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ)

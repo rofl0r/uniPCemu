@@ -35,6 +35,7 @@ typedef struct
 {
 	uint8_t imr[2]; //mask register
 	uint8_t irr[2]; //request register
+	uint8_t irr2[2][0x10]; //Extended IRR for determining requesting hardware!
 	uint8_t isr[2]; //service register
 	uint8_t isr2[2][0x10]; //Alternative in-service register, for handling sources!
 	uint8_t icwstep[2]; //used during initialization to keep track of which ICW we're at
