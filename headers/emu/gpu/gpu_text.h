@@ -5,6 +5,9 @@
 #include "headers/emu/gpu/gpu.h" //GPU support!
 #include "headers/support/zalloc.h" //Memory protections for our inline function!
 
+//\n is newline? Else \r\n is newline!
+#define USESLASHN 1
+
 //We're using a 8x8 font!
 #define GPU_TEXTSURFACE_HEIGHT (int)(PSP_SCREEN_ROWS>>3)
 #define GPU_TEXTSURFACE_WIDTH (int)(PSP_SCREEN_COLUMNS>>3)

@@ -8,9 +8,6 @@
 
 #define __HW_DISABLED 0
 
-//\n is newline? Else \r\n is newline!
-#define USESLASHN 1
-
 //Clickable bit values (used internally)!
 //Clickable character!
 #define CLICKABLE_CLICKABLE 1
@@ -389,6 +386,7 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 
 	int curx=surface->x; //Init x!
 	int cury=surface->y; //init y!
+	int startx=curx; //Save a backup of the start location to jump back to!
 	int i;
 	for (i=0; i<(int)strlen(msg); i++) //Process text!
 	{
@@ -397,7 +395,11 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 			++cury; //Next row!
 			curx -= GPU_TEXTSURFACE_WIDTH; //Decrease columns for every row size!
 		}
-		if ((msg[i]=='\r' && !USESLASHN) || (msg[i]=='\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
+		if (msg[i]=='\t') //Jump back to horizontal start position?
+		{
+			curx = startx; //Jump back to the horizontal start position!
+		}
+		else if ((msg[i]=='\r' && !USESLASHN) || (msg[i]=='\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
 		{
 			curx = 0; //Move to the left!
 		}
@@ -405,7 +407,7 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 		{
 			++cury; //Next Y!
 		}
-		else if (msg[i]!='\r') //Never display \r!
+		else if ((msg[i] != '\r') && (msg[i] != '\t')) //Never display \r or \t!
 		{
 			GPU_textsetxy(surface,curx,cury,(byte)msg[i],font,border); //Write the character to our screen!
 			++curx; //Next character!
@@ -428,6 +430,7 @@ byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 bor
 
 	int curx = surface->x; //Init x!
 	int cury = surface->y; //init y!
+	int startx = curx; //Save a backup of the start location to jump back to!
 	int i;
 	byte result = SETXYCLICKED_OK; //Default: we're OK!
 	byte setstatus; //Status when setting!
@@ -438,7 +441,11 @@ byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 bor
 			++cury; //Next row!
 			curx -= GPU_TEXTSURFACE_WIDTH; //Decrease columns for every row size!
 		}
-		if ((msg[i] == '\r' && !USESLASHN) || (msg[i] == '\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
+		if (msg[i]=='\t') //Jump back to horizontal start position?
+		{
+			curx = startx; //Jump back to the horizontal start position!
+		}
+		else if ((msg[i] == '\r' && !USESLASHN) || (msg[i] == '\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
 		{
 			curx = 0; //Move to the left!
 		}
@@ -446,7 +453,7 @@ byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 bor
 		{
 			++cury; //Next Y!
 		}
-		else if (msg[i] != '\r') //Never display \r!
+		else if ((msg[i] != '\r') && (msg[i]!='\t')) //Never display \r or \t!
 		{
 			setstatus = GPU_textsetxyclickable(surface, curx, cury, (byte)msg[i], font, border); //Write the character to our screen!
 			if (!(setstatus&SETXYCLICKED_OK)) //Invalid character location or unknown status value?

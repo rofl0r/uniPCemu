@@ -103,7 +103,7 @@ uint_32 emu_keys_SDL[104] = {
 	SDLK_BACKQUOTE, //`
 	SDLK_MINUS, //-
 	SDLK_EQUALS, //=
-	SDLK_BACKSLASH, //'\'
+	SDLK_BACKSLASH, //\\
 
 	SDLK_BACKSPACE, //BKSP
 	SDLK_SPACE, //SPACE
@@ -216,7 +216,7 @@ int emu_keys_sdl_rev[UINT16_MAX+1]; //Reverse of emu_keys_sdl!
 #else
 typedef struct
 {
-	char facetext[10]; //Text of the key!
+	char facetext[20]; //Text of the key!
 	word x; //Key OSK x position
 	word y; //Key OSK y position
 	byte pressed; //Are we pressed on the OSK?
@@ -268,7 +268,7 @@ int emu_keys_sdl_rev(uint_32 key)
 	case SDLK_BACKQUOTE: return 0x24; //`
 	case SDLK_MINUS: return 0x25; //-
 	case SDLK_EQUALS: return 0x26; //=
-	case SDLK_BACKSLASH: return 0x27; //'\'
+	case SDLK_BACKSLASH: return 0x27; //\\
 
 	case SDLK_BACKSPACE: return 0x28; //BKSP
 	case SDLK_SPACE: return 0x29; //SPACE
@@ -352,126 +352,145 @@ int emu_keys_sdl_rev(uint_32 key)
 	return -1; //Unknown key!
 }
 
-EMU_KEYINFO OSKinfo[104] = {
-	{"",0xFFFF,0xFFFF,0}, //A
-	{"",0xFFFF,0xFFFF,0}, //B
-	{"",0xFFFF,0xFFFF,0}, //C
-	{"",0xFFFF,0xFFFF,0}, //D
-	{"",0xFFFF,0xFFFF,0}, //E
-	{"",0xFFFF,0xFFFF,0}, //F
-	{"",0xFFFF,0xFFFF,0}, //G
-	{"",0xFFFF,0xFFFF,0}, //H
-	{"",0xFFFF,0xFFFF,0}, //I
-	{"",0xFFFF,0xFFFF,0}, //J
-	{"",0xFFFF,0xFFFF,0}, //K
-	{"",0xFFFF,0xFFFF,0}, //L
-	{"",0xFFFF,0xFFFF,0}, //M
-	{"",0xFFFF,0xFFFF,0}, //N
-	{"",0xFFFF,0xFFFF,0}, //O
-	{"",0xFFFF,0xFFFF,0}, //P
-	{"",0xFFFF,0xFFFF,0}, //Q
-	{"",0xFFFF,0xFFFF,0}, //R
-	{"",0xFFFF,0xFFFF,0}, //S
-	{"",0xFFFF,0xFFFF,0}, //T
-	{"",0xFFFF,0xFFFF,0}, //U
-	{"",0xFFFF,0xFFFF,0}, //V
-	{"",0xFFFF,0xFFFF,0}, //W
-	{"",0xFFFF,0xFFFF,0}, //X
-	{"",0xFFFF,0xFFFF,0}, //Y
-	{"",0xFFFF,0xFFFF,0}, //Z
+//Location of the finger OSK and it's rows on the screen!
+#define FINGEROSK_ROW0 0
+#define FINGEROSK_ROW1 3
+#define FINGEROSK_ROW2 6
+#define FINGEROSK_ROW3 9
+#define FINGEROSK_ROW4 12
+#define FINGEROSK_ROW5 15
 
-	{"",0xFFFF,0xFFFF,0}, //0
-	{"",0xFFFF,0xFFFF,0}, //1
-	{"",0xFFFF,0xFFFF,0}, //2
-	{"",0xFFFF,0xFFFF,0}, //3
-	{"",0xFFFF,0xFFFF,0}, //4
-	{"",0xFFFF,0xFFFF,0}, //5
-	{"",0xFFFF,0xFFFF,0}, //6
-	{"",0xFFFF,0xFFFF,0}, //7
-	{"",0xFFFF,0xFFFF,0}, //8
-	{"",0xFFFF,0xFFFF,0}, //9
+#define FINGEROSK_NUMROW0 18
+#define FINGEROSK_NUMROW1 21
+#define FINGEROSK_NUMROW2 24
+#define FINGEROSK_NUMROW3 27
+#define FINGEROSK_NUMROW4 30
+
+#define FINGEROSK_BASEX 0
+#define FINGEROSK_BASEY (GPU_TEXTSURFACE_HEIGHT-(FINGEROSK_NUMROW4+1)-1)
+
+//For the list of scancodes used, see the table http://www.computer-engineering.org/ps2keyboard/scancodes1.html for the original columns this is based on.
+
+EMU_KEYINFO OSKinfo[104] = {
+	{"A",5,FINGEROSK_ROW3,0}, //A
+	{"B",14,FINGEROSK_ROW4,0}, //B
+	{"C",10,FINGEROSK_ROW4,0}, //C
+	{"D",9,FINGEROSK_ROW3,0}, //D
+	{"E",8,FINGEROSK_ROW2,0}, //E
+	{"F",11,FINGEROSK_ROW3,0}, //F
+	{"G",13,FINGEROSK_ROW3,0}, //G
+	{"H",15,FINGEROSK_ROW3,0}, //H
+	{"I",18,FINGEROSK_ROW2,0}, //I
+	{"J",17,FINGEROSK_ROW3,0}, //J
+	{"K",19,FINGEROSK_ROW3,0}, //K
+	{"L",21,FINGEROSK_ROW3,0}, //L
+	{"M",18,FINGEROSK_ROW4,0}, //M
+	{"N",16,FINGEROSK_ROW4,0}, //N
+	{"O",20,FINGEROSK_ROW2,0}, //O
+	{"P",22,FINGEROSK_ROW2,0}, //P
+	{"Q",4,FINGEROSK_ROW2,0}, //Q
+	{"R",10,FINGEROSK_ROW2,0}, //R
+	{"S",7,FINGEROSK_ROW3,0}, //S
+	{"T",12,FINGEROSK_ROW2,0}, //T
+	{"U",16,FINGEROSK_ROW2,0}, //U
+	{"V",12,FINGEROSK_ROW4,0}, //V
+	{"W",6,FINGEROSK_ROW2,0}, //W
+	{"X",8,FINGEROSK_ROW4,0}, //X
+	{"Y",14,FINGEROSK_ROW2,0}, //Y
+	{"Z",6,FINGEROSK_ROW4,0}, //Z
+
+	{")\n\t0",20,FINGEROSK_ROW1,0}, //0
+	{"!\n\t1",2,FINGEROSK_ROW1,0}, //1
+	{"@\n\t2",4,FINGEROSK_ROW1,0}, //2
+	{"#\n\t3",6,FINGEROSK_ROW1,0}, //3
+	{"$\n\t4",8,FINGEROSK_ROW1,0}, //4
+	{"%\n\t5",10,FINGEROSK_ROW1,0}, //5
+	{"^\n\t6",12,FINGEROSK_ROW1,0}, //6
+	{"&\n\t7",14,FINGEROSK_ROW1,0}, //7
+	{"*\n\t8",16,FINGEROSK_ROW1,0}, //8
+	{"(\n\t9",18,FINGEROSK_ROW1,0}, //9
 
 	//Column 2! (above '9' included)
-	{"",0xFFFF,0xFFFF,0}, //`
-	{"",0xFFFF,0xFFFF,0}, //-
-	{"",0xFFFF,0xFFFF,0}, //=
-	{"",0xFFFF,0xFFFF,0}, //'\'
+	{"~\n\t`",0,FINGEROSK_ROW1,0}, //`
+	{"_\n\t-",22,FINGEROSK_ROW1,0}, //-
+	{"+\n\t=",24,FINGEROSK_ROW1,0}, //=
+	{"|\n\t\\",28,FINGEROSK_ROW2,0}, //\\
 
-	{"",0xFFFF,0xFFFF,0}, //BKSP
-	{"",0xFFFF,0xFFFF,0}, //SPACE
-	{"",0xFFFF,0xFFFF,0}, //TAB
-	{"",0xFFFF,0xFFFF,0}, //CAPS
+	{"Bksp\n\t\x1B",28,FINGEROSK_ROW1,0}, //BKSP
+	{"Space",11,FINGEROSK_ROW5,0}, //SPACE
+	{"Tab",0,FINGEROSK_ROW2,0}, //TAB
+	{"Caps\n\tLock",0,FINGEROSK_ROW3,0}, //CAPS
 
-	{"",0xFFFF,0xFFFF,0}, //L SHFT
-	{"",0xFFFF,0xFFFF,0}, //L CTRL
-	{"",0xFFFF,0xFFFF,0}, //L WIN
-	{"",0xFFFF,0xFFFF,0}, //L ALT
-	{"",0xFFFF,0xFFFF,0}, //R SHFT
-	{"",0xFFFF,0xFFFF,0}, //R CTRL
-	{"",0xFFFF,0xFFFF,0}, //R WIN
-	{"",0xFFFF,0xFFFF,0}, //R ALT
+	{"Shift",0,FINGEROSK_ROW4,0}, //L SHFT
+	{"Ctrl",0,FINGEROSK_ROW5,0}, //L CTRL
+	{"\xF7",5,FINGEROSK_ROW5,0}, //L WIN
+	{"Alt",7,FINGEROSK_ROW5,0}, //L ALT
+	{"Shift",28,FINGEROSK_ROW4,0}, //R SHFT
+	{"Ctrl",28,FINGEROSK_ROW5,0}, //R CTRL
+	{"\xF7",24,FINGEROSK_ROW5,0}, //R WIN
+	{"Alt Gr",17,FINGEROSK_ROW5,0}, //R ALT
 
-	{"",0xFFFF,0xFFFF,0}, //APPS
-	{"",0xFFFF,0xFFFF,0}, //ENTER
-	{"",0xFFFF,0xFFFF,0}, //ESC
+	{"\xF0",26,FINGEROSK_ROW5,0}, //APPS
+	{"Enter",28,FINGEROSK_ROW3,0}, //ENTER
+	{"Esc",0,0,0}, //ESC
 
-	{"",0xFFFF,0xFFFF,0}, //F1
-	{"",0xFFFF,0xFFFF,0}, //F2
-	{"",0xFFFF,0xFFFF,0}, //F3
-	{"",0xFFFF,0xFFFF,0}, //F4
-	{"",0xFFFF,0xFFFF,0}, //F5
-	{"",0xFFFF,0xFFFF,0}, //F6
-	{"",0xFFFF,0xFFFF,0}, //F7
-	{"",0xFFFF,0xFFFF,0}, //F8
-	{"",0xFFFF,0xFFFF,0}, //F9
-	{"",0xFFFF,0xFFFF,0}, //F10
-	{"",0xFFFF,0xFFFF,0}, //F11
-	{"",0xFFFF,0xFFFF,0}, //F12
+	{"F1",4,FINGEROSK_ROW0,0}, //F1
+	{"F2",7,FINGEROSK_ROW0,0}, //F2
+	{"F3",10,FINGEROSK_ROW0,0}, //F3
+	{"F4",13,FINGEROSK_ROW0,0}, //F4
+	{"F5",16,FINGEROSK_ROW0,0}, //F5
+	{"F6",19,FINGEROSK_ROW0,0}, //F6
+	{"F7",22,FINGEROSK_ROW0,0}, //F7
+	{"F8",25,FINGEROSK_ROW0,0}, //F8
+	{"F9",28,FINGEROSK_ROW0,0}, //F9
+	{"F10",31,FINGEROSK_ROW0,0}, //F10
+	{"F11",35,FINGEROSK_ROW0,0}, //F11
+	{"F12",39,FINGEROSK_ROW0,0}, //F12
 
-	{"",0xFFFF,0xFFFF,0}, //PRNT SCRN
+	{"PrtScn\n\tSysRq",43,FINGEROSK_ROW0,0}, //PRNT SCRN
 
-	{"",0xFFFF,0xFFFF,0}, //SCROLL
-	{"",0xFFFF,0xFFFF,0}, //PAUSE
+	{"Scroll\n\tLock",49,FINGEROSK_ROW0,0}, //SCROLL
+	{"Pause\n\tBreak",55,FINGEROSK_ROW0,0}, //PAUSE
 
 	//Column 3!
-	{"",0xFFFF,0xFFFF,0}, //[
+	{"{\n\t[",24,FINGEROSK_ROW2,0}, //[
 
-	{"",0xFFFF,0xFFFF,0}, //INSERT
-	{"",0xFFFF,0xFFFF,0}, //HOME
-	{"",0xFFFF,0xFFFF,0}, //PG UP
-	{"",0xFFFF,0xFFFF,0}, //DELETE
-	{"",0xFFFF,0xFFFF,0}, //END
-	{"",0xFFFF,0xFFFF,0}, //PG DN
-	{"",0xFFFF,0xFFFF,0}, //U ARROW
-	{"",0xFFFF,0xFFFF,0}, //L ARROW
-	{"",0xFFFF,0xFFFF,0}, //D ARROW
-	{"",0xFFFF,0xFFFF,0}, //R ARROW
+	{"Insert",35,FINGEROSK_ROW2,0}, //INSERT
+	{"Home",35,FINGEROSK_ROW1,0}, //HOME
+	{"Page\n\tUp",42,FINGEROSK_ROW2,0}, //PG UP
+	{"Delete",35,FINGEROSK_ROW3,0}, //DELETE
+	{"End",42,FINGEROSK_ROW1,0}, //END
+	{"Page\n\tDown",42,FINGEROSK_ROW3,0}, //PG DN
+	{"\x18",35,FINGEROSK_ROW4,0}, //U ARROW
+	{"\x1B",33,FINGEROSK_ROW5,0}, //L ARROW
+	{"\x19",35,FINGEROSK_ROW5,0}, //D ARROW
+	{"\x1A",37,FINGEROSK_ROW5,0}, //R ARROW
 
-	{"",0xFFFF,0xFFFF,0}, //NUM
-	{"",0xFFFF,0xFFFF,0}, //KP /
-	{"",0xFFFF,0xFFFF,0}, //KP *
-	{"",0xFFFF,0xFFFF,0}, //KP -
-	{"",0xFFFF,0xFFFF,0}, //KP +
-	{"",0xFFFF,0xFFFF,0}, //KP EN
-	{"",0xFFFF,0xFFFF,0}, //KP .
+	{"Num\n\tLock",0,FINGEROSK_NUMROW0,0}, //NUM
+	{"/",5,FINGEROSK_NUMROW0,0}, //KP /
+	{"*",11,FINGEROSK_NUMROW0,0}, //KP *
+	{"-",16,FINGEROSK_NUMROW0,0}, //KP -
+	{"+",16,FINGEROSK_NUMROW1,0}, //KP +
+	{"Enter",16,FINGEROSK_NUMROW4,0}, //KP EN
+	{".\n\tDel",11,FINGEROSK_NUMROW4,0}, //KP .
 
-	{"",0xFFFF,0xFFFF,0}, //KP 0
-	{"",0xFFFF,0xFFFF,0}, //KP 1
-	{"",0xFFFF,0xFFFF,0}, //KP 2
-	{"",0xFFFF,0xFFFF,0}, //KP 3
-	{"",0xFFFF,0xFFFF,0}, //KP 4
-	{"",0xFFFF,0xFFFF,0}, //KP 5
-	{"",0xFFFF,0xFFFF,0}, //KP 6
-	{"",0xFFFF,0xFFFF,0}, //KP 7
-	{"",0xFFFF,0xFFFF,0}, //KP 8
-	{"",0xFFFF,0xFFFF,0}, //KP 9
+	{"0\n\tIns",0,FINGEROSK_NUMROW4,0}, //KP 0
+	{"1\n\tEnd",0,FINGEROSK_NUMROW3,0}, //KP 1
+	{"2\n\t\x19",5,FINGEROSK_NUMROW3,0}, //KP 2
+	{"3\n\tPgDn",11,FINGEROSK_NUMROW3,0}, //KP 3
+	{"4\n\t\x1B",0,FINGEROSK_NUMROW2,0}, //KP 4
+	{"5",5,FINGEROSK_NUMROW2,0}, //KP 5
+	{"6\n\t\x1A",7,FINGEROSK_NUMROW2,0}, //KP 6
+	{"7\n\tHome",0,FINGEROSK_NUMROW1,0}, //KP 7
+	{"8\n\t\x18",5,FINGEROSK_NUMROW1,0}, //KP 8
+	{"9\n\tPgUp",11,FINGEROSK_NUMROW1,0}, //KP 9
 
-	{"",0xFFFF,0xFFFF,0}, //]
-	{"",0xFFFF,0xFFFF,0}, //;
-	{"",0xFFFF,0xFFFF,0}, //'
-	{"",0xFFFF,0xFFFF,0}, //,
-	{"",0xFFFF,0xFFFF,0}, //.
-	{"",0xFFFF,0xFFFF,0}  ///
+	{"}\n\t]",26,FINGEROSK_ROW2,0}, //]
+	{":\n\t;",23,FINGEROSK_ROW3,0}, //;
+	{"\"\n\t'",25,FINGEROSK_ROW3,0}, //'
+	{"<\n\t,",20,FINGEROSK_ROW4,0}, //,
+	{">\n\t.",22,FINGEROSK_ROW4,0}, //.
+	{"?\n\t/",24,FINGEROSK_ROW4,0}  ///
 }; //All keys to be used with the OSK!
 
 #endif
@@ -2435,9 +2454,12 @@ OPTINLINE static void updateFingerOSK()
 	byte key; //The key we're checking!
 	EMU_KEYINFO *currentkey=&OSKinfo[0]; //The current key to check!
 	EMU_KEYINFO emptykey;
-	word x; //The position inside the key text!
+	word x,y; //The position inside the key text!
+	byte textx; //X inside the text!
+	word startx; //Backup of the screen x of the key!
 	uint_32 fontcolor = getemucol16(BIOS_Settings.input_settings.fontcolor); //Font color!
 	uint_32 bordercolor = getemucol16(BIOS_Settings.input_settings.bordercolor); //Border color!
+	word screenx;
 	if (FINGEROSK) //OSK enabled?
 	{
 		GPU_text_locksurface(keyboardsurface); //Lock us!
@@ -2447,8 +2469,8 @@ OPTINLINE static void updateFingerOSK()
 			currentkey = &OSKinfo[0]; //The first key to process
 			for (key=0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
 			{
-				GPU_textgotoxy(keyboardsurface,currentkey->x,currentkey->y); //Goto the location of the key!
-				if (GPU_textprintfclickable(keyboardsurface,fontcolor,bordercolor,currentkey->facetext)&&SETXYCLICKED_CLICKED) //Print the text on the screen!
+				GPU_textgotoxy(keyboardsurface,currentkey->x+FINGEROSK_BASEX,currentkey->y+FINGEROSK_BASEY); //Goto the location of the key!
+				if (GPU_textprintfclickable(keyboardsurface,fontcolor,bordercolor,currentkey->facetext)&SETXYCLICKED_CLICKED) //Print the text on the screen!
 				{
 					fingerOSK_releasekey(key); //Releasing this key!
 				}
@@ -2458,9 +2480,29 @@ OPTINLINE static void updateFingerOSK()
 		for (key=0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
 		{
 			byte pressed=0; //Are we pressed? Default to not pressed!
-			for (x=currentkey->x;x<(currentkey->x+strlen(currentkey->facetext));++x) //Check all our key positions!
+			screenx = currentkey->x; //Screen x!
+			y = currentkey->y; //Screen y!
+			startx = screenx; //Save a copy of the beginning of the character!
+			for (textx=0;textx<strlen(currentkey->facetext);++textx) //Check all our key positions!
 			{
-				pressed |= GPU_ispressed(keyboardsurface,x,currentkey->y); //Are we pressed?
+				//Based on GPU_textprintf function.
+				if (currentkey->facetext[textx]=='\t') //Return to start x?
+				{
+					x = startx; //Return to the specified position!
+				}
+				else if ((currentkey->facetext[textx]=='\r' && !USESLASHN) || (currentkey->facetext[textx]=='\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
+				{
+					x = 0; //Move to the left!
+				}
+				if (currentkey->facetext[textx]=='\n') //CR?
+				{
+					++y; //Next Y!
+				}
+				else if (currentkey->facetext[textx]!='\r') //Never display \r!
+				{
+					//Normal visible character?
+					pressed |= GPU_ispressed(keyboardsurface,FINGEROSK_BASEX+x++,FINGEROSK_BASEY+y); //Are we pressed?
+				}
 			}
 			if (pressed && (currentkey->pressed==0)) //Are we pressed?
 			{
@@ -2483,9 +2525,19 @@ OPTINLINE static void updateFingerOSK()
 			OSKdrawn = 0; //We're not drawn anymore after this!
 			for (key=0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
 			{
-				GPU_textgotoxy(keyboardsurface,currentkey->x,currentkey->y); //Goto the location of the key!
-				memset(emptykey.facetext,' ',sizeof(emptykey.facetext));
-				emptykey.facetext[strlen(currentkey->facetext)-1] = '\0'; //End of string at the end of face text!
+				GPU_textgotoxy(keyboardsurface,currentkey->x+FINGEROSK_BASEX,currentkey->y+FINGEROSK_BASEY); //Goto the location of the key!
+				for (x=0;x<strlen(currentkey->facetext);x++)
+				{
+					if ((currentkey->facetext[x] == '\t') || (currentkey->facetext[x]=='\r') || (currentkey->facetext[x]=='\n')) //Special?
+					{
+						emptykey.facetext[x] = currentkey->facetext[x]; //Control character!
+					}
+					else //Normal character?
+					{
+						emptykey.facetext[x] = ' '; //Empty text!
+					}
+				}
+				emptykey.facetext[strlen(currentkey->facetext)] = '\0'; //End of string at the end of face text!
 				GPU_textprintf(keyboardsurface,fontcolor,bordercolor,emptykey.facetext); //Print the text on the screen!
 				if (currentkey->pressed)
 				{
@@ -3365,14 +3417,14 @@ void updateInput(SDL_Event *event) //Update all input!
 	case SDL_FINGERDOWN:
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
 		lock(LOCK_INPUT);
-		GPU_mousebuttondown(getxres()*event->tfinger.x, getyres()*event->tfinger.y,(event->tfinger.fingerId&0xFF)); //We're released at the current coordinates!
+		GPU_mousebuttondown((word)(getxres()*event->tfinger.x), (word)(getyres()*event->tfinger.y),(event->tfinger.fingerId&0xFF)); //We're released at the current coordinates!
 		updateFingerOSK();
 		unlock(LOCK_INPUT);		
 		break;
 	case SDL_FINGERUP:
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
 		lock(LOCK_INPUT);
-		GPU_mousebuttonup(getxres()*event->tfinger.x, getyres()*event->tfinger.y,(event->tfinger.fingerId&0xFF)); //We're released at the current coordinates!
+		GPU_mousebuttonup((word)(getxres()*event->tfinger.x), (word)(getyres()*event->tfinger.y),(event->tfinger.fingerId&0xFF)); //We're released at the current coordinates!
 		updateFingerOSK();
 		unlock(LOCK_INPUT);		
 		break;
