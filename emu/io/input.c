@@ -107,7 +107,7 @@ uint_32 emu_keys_SDL[104] = {
 	SDLK_BACKQUOTE, //`
 	SDLK_MINUS, //-
 	SDLK_EQUALS, //=
-	SDLK_BACKSLASH, //\\
+	SDLK_BACKSLASH, //BACKSLASH
 
 	SDLK_BACKSPACE, //BKSP
 	SDLK_SPACE, //SPACE
@@ -272,7 +272,7 @@ int emu_keys_sdl_rev(uint_32 key)
 	case SDLK_BACKQUOTE: return 0x24; //`
 	case SDLK_MINUS: return 0x25; //-
 	case SDLK_EQUALS: return 0x26; //=
-	case SDLK_BACKSLASH: return 0x27; //\\
+	case SDLK_BACKSLASH: return 0x27; //BACKSLASH
 
 	case SDLK_BACKSPACE: return 0x28; //BKSP
 	case SDLK_SPACE: return 0x29; //SPACE
@@ -418,7 +418,7 @@ EMU_KEYINFO OSKinfo[104] = {
 	{"~\n\t`",0,FINGEROSK_ROW1,0}, //`
 	{"_\n\t-",22,FINGEROSK_ROW1,0}, //-
 	{"+\n\t=",24,FINGEROSK_ROW1,0}, //=
-	{"|\n\t\\",28,FINGEROSK_ROW2,0}, //\\
+	{"|\n\t\\",28,FINGEROSK_ROW2,0}, //BACKSLASH
 
 	{"Bksp\n\t\x1B",28,FINGEROSK_ROW1,0}, //BKSP
 	{"Space",11,FINGEROSK_ROW5,0}, //SPACE
