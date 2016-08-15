@@ -1376,7 +1376,6 @@ byte fingerOSK_buttons[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //All pos
 
 void updateFingerOSK_mouse()
 {
-	static byte OSKdrawn = 0; //Are we drawn?
 	word x, y; //The position inside the key text!
 	byte screencharacter;
 	uint_32 screenfont, screenborder;
