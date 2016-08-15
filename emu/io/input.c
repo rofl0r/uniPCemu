@@ -46,6 +46,10 @@ double mouse_interval = 0.0f; //Check never by default (unused timer)!
 
 byte precisemousemovement = 0; //Precise mouse movement enabled?
 
+#ifdef SDL2
+extern SDL_Window *sdlWindow; //Our Window!
+#endif
+
 enum input_button_map { //All buttons we support!
 INPUT_BUTTON_TRIANGLE, INPUT_BUTTON_CIRCLE, INPUT_BUTTON_CROSS, INPUT_BUTTON_SQUARE,
 INPUT_BUTTON_LTRIGGER, INPUT_BUTTON_RTRIGGER,
@@ -1321,28 +1325,37 @@ OPTINLINE void fingerOSK_presskey(byte index)
 {
 	//A key has been pressed!
 	SDL_Event inputevent;
+	inputevent.key.type = SDL_KEYDOWN; //Our event type!
 	inputevent.key.repeat = 0; //Not repeated key!
 	inputevent.key.keysym.sym = emu_keys_SDL[index]; //The key that is to be handled!
-	inputevent.key.timestamp = ~0; //Invalid timestamp!
-	inputevent.key.windowID = ~0; //Unused!
+	#ifdef SDL2
+	inputevent.key.windowID = SDL_GetWindowID(sdlWindow); //Our Window ID!
+	#endif
 	inputevent.key.state = SDL_PRESSED;
 	inputevent.key.keysym.scancode = ~0; //Unknown scancode, ignore this!
 	inputevent.key.keysym.mod = 0; //No modifiers for now, as they're still unsupported!
+	unlock(LOCK_INPUT); //Make sure we're available to handle this!
 	SDL_PushEvent(&inputevent); //Convert to a normal event and send it!
+	lock(LOCK_INPUT); //We're reserved again!
 }
 
 OPTINLINE void fingerOSK_releasekey(byte index)
 {
 	//A key has been pressed!
 	SDL_Event inputevent;
+	inputevent.key.type = SDL_KEYUP; //Our event type!
 	inputevent.key.repeat = 0; //Not repeated key!
 	inputevent.key.keysym.sym = emu_keys_SDL[index]; //The key that is to be handled!
 	inputevent.key.timestamp = ~0; //Invalid timestamp!
 	inputevent.key.windowID = ~0; //Unused!
-	inputevent.key.state = SDL_RELEASED;
+	#ifdef SDL2
+	inputevent.key.windowID = SDL_GetWindowID(sdlWindow); //Our Window ID!
+	#endif
 	inputevent.key.keysym.scancode = ~0; //Unknown scancode, ignore this!
 	inputevent.key.keysym.mod = 0; //No modifiers for now, as they're still unsupported!
+	unlock(LOCK_INPUT); //Make sure we're available to handle this!
 	SDL_PushEvent(&inputevent); //Convert to a normal event and send it!
+	lock(LOCK_INPUT); //We're reserved again!
 }
 
 OPTINLINE static void updateFingerOSK()
