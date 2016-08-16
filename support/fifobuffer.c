@@ -6,7 +6,7 @@
 #define __HW_DISABLED 0
 
 //Mask for the last read/write to give the size, depending on the last status!
-#define LASTSTATUS_READ 0xFFFFFFFF
+#define LASTSTATUS_READ buffer->size
 #define LASTSTATUS_WRITE 0
 
 extern byte allcleared; //Are all pointers cleared?
@@ -25,33 +25,33 @@ result:
 
 FIFOBUFFER* allocfifobuffer(uint_32 buffersize, byte lockable)
 {
-	FIFOBUFFER *container;
+	FIFOBUFFER *buffer;
 	if (__HW_DISABLED) return NULL; //Abort!
-	container = (FIFOBUFFER *)zalloc(sizeof(FIFOBUFFER),"FIFOBuffer",NULL); //Allocate an container!
-	if (container) //Allocated container?
+	buffer = (FIFOBUFFER *)zalloc(sizeof(FIFOBUFFER),"FIFOBuffer",NULL); //Allocate an container!
+	if (buffer) //Allocated container?
 	{
-		container->buffer = (byte *)zalloc(buffersize,"FIFOBuffer_Buffer",NULL); //Try to allocate the buffer!
-		if (!container->buffer) //No buffer?
+		buffer->buffer = (byte *)zalloc(buffersize,"FIFOBuffer_Buffer",NULL); //Try to allocate the buffer!
+		if (!buffer->buffer) //No buffer?
 		{
-			freez((void **)&container,sizeof(FIFOBUFFER),"Failed FIFOBuffer"); //Release the container!
+			freez((void **)&buffer,sizeof(FIFOBUFFER),"Failed FIFOBuffer"); //Release the container!
 			return NULL; //Not allocated!
 		}
-		container->size = buffersize; //Set the buffer size!
+		buffer->size = buffersize; //Set the buffer size!
 		if (lockable) //Lockable FIFO buffer?
 		{
-			container->lock = SDL_CreateSemaphore(1); //Create our lock!
-			if (!container->lock) //Failed to lock?
+			buffer->lock = SDL_CreateSemaphore(1); //Create our lock!
+			if (!buffer->lock) //Failed to lock?
 			{
-				freez((void **)&container, sizeof(FIFOBUFFER), "Failed FIFOBuffer"); //Release the container!
-				freez((void **)&container->buffer, buffersize, "FIFOBuffer_Buffer"); //Release the buffer!
+				freez((void **)&buffer, sizeof(FIFOBUFFER), "Failed FIFOBuffer"); //Release the container!
+				freez((void **)&buffer->buffer, buffersize, "FIFOBuffer_Buffer"); //Release the buffer!
 				return NULL; //Not allocated: can't lock!
 			}
 		}
-		//The reset is ready to work with: all 0!
+		//The rest is ready to work with: all 0!
 	}
-	container->laststatus = LASTSTATUS_READ; //Initialize read position!
-	container->savedpos.laststatus = LASTSTATUS_READ; //Initialize read position!
-	return container; //Give the allocated FIFO container!
+	buffer->laststatus = LASTSTATUS_READ; //Initialize read position!
+	buffer->savedpos.laststatus = LASTSTATUS_READ; //Initialize read position!
+	return buffer; //Give the allocated FIFO container!
 }
 
 void free_fifobuffer(FIFOBUFFER **buffer)
@@ -91,7 +91,7 @@ OPTINLINE uint_32 fifobuffer_INTERNAL_freesize(FIFOBUFFER *buffer)
 	}
 	else //Readpos = Writepos? Either full or empty?
 	{
-		return buffer->size&buffer->laststatus; //Empty when last was read, else full!
+		return buffer->laststatus; //Empty when last was read, else full!
 	}
 }
 
