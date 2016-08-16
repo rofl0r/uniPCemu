@@ -219,13 +219,6 @@ uint_32 emu_keys_SDL[104] = {
 #ifndef SDL2
 int emu_keys_sdl_rev[UINT16_MAX+1]; //Reverse of emu_keys_sdl!
 #else
-typedef struct
-{
-	char facetext[20]; //Text of the key!
-	word x; //Key OSK x position
-	word y; //Key OSK y position
-	byte pressed; //Are we pressed on the OSK?
-} EMU_KEYINFO;
 //SDL 2.0 variant, without lookup table, but as fast as possible!
 int emu_keys_sdl_rev(uint_32 key)
 {
@@ -356,6 +349,7 @@ int emu_keys_sdl_rev(uint_32 key)
 	}
 	return -1; //Unknown key!
 }
+#endif
 
 //Location of the finger OSK and it's rows on the screen!
 #define FINGEROSK_ROW0 0
@@ -375,6 +369,14 @@ int emu_keys_sdl_rev(uint_32 key)
 #define FINGEROSK_BASEY (GPU_TEXTSURFACE_HEIGHT-(FINGEROSK_NUMROW4+1)-1)
 
 //For the list of scancodes used, see the table http://www.computer-engineering.org/ps2keyboard/scancodes1.html for the original columns this is based on.
+
+typedef struct
+{
+	char facetext[20]; //Text of the key!
+	word x; //Key OSK x position
+	word y; //Key OSK y position
+	byte pressed; //Are we pressed on the OSK?
+} EMU_KEYINFO;
 
 EMU_KEYINFO OSKinfo[104] = {
 	{"A",5,FINGEROSK_ROW3,0}, //A
@@ -497,8 +499,6 @@ EMU_KEYINFO OSKinfo[104] = {
 	{">\n\t.",22,FINGEROSK_ROW4,0}, //.
 	{"?\n\t/",24,FINGEROSK_ROW4,0}  ///
 }; //All keys to be used with the OSK!
-
-#endif
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -1340,7 +1340,9 @@ OPTINLINE void fingerOSK_presskey(byte index)
 	//A key has been pressed!
 	SDL_Event inputevent;
 	inputevent.key.type = SDL_KEYDOWN; //Our event type!
+	#ifdef SDL2
 	inputevent.key.repeat = 0; //Not repeated key!
+	#endif
 	inputevent.key.keysym.sym = emu_keys_SDL[index]; //The key that is to be handled!
 	#ifdef SDL2
 	inputevent.key.windowID = SDL_GetWindowID(sdlWindow); //Our Window ID!
@@ -1358,10 +1360,10 @@ OPTINLINE void fingerOSK_releasekey(byte index)
 	//A key has been pressed!
 	SDL_Event inputevent;
 	inputevent.key.type = SDL_KEYUP; //Our event type!
+	#ifdef SDL2
 	inputevent.key.repeat = 0; //Not repeated key!
+	#endif
 	inputevent.key.keysym.sym = emu_keys_SDL[index]; //The key that is to be handled!
-	inputevent.key.timestamp = ~0; //Invalid timestamp!
-	inputevent.key.windowID = ~0; //Unused!
 	#ifdef SDL2
 	inputevent.key.windowID = SDL_GetWindowID(sdlWindow); //Our Window ID!
 	#endif
