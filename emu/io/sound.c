@@ -500,7 +500,7 @@ int_32 getsample_8(playing_p channel, uint_32 position)
 
 int_32 getsample_8s(playing_p channel, uint_32 position)
 {
-	byte *xs = (sbyte *)channel->sound.samples;
+	byte *xs = (byte *)channel->sound.samples;
 	word result = (word)xs[position]; //Load the result!
 	result <<= 8; //Multiply into range!
 	result |= (result & 0x100) ? 0xFF : 0x00; //Bit fill!
