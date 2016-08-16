@@ -287,6 +287,8 @@ OPTINLINE void DSP_startDMADAC(byte autoinitDMA)
 
 extern byte MPU_ready; //MPU installed?
 
+#define SB2COMMAND if (SOUNDBLASTER.version<SB_VERSION20) { SOUNDBLASTER.command = 0; /*Invalid command!*/ return; /*Unsupported version*/ }
+
 OPTINLINE void DSP_writeCommand(byte command)
 {
 	byte ADPCM_reference = 0; //ADPCM reference byte is used?
@@ -297,11 +299,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.command = 0x10; //Enable direct DAC mode!
 		break;
 	case 0x1C: //Auto-Initialize DMA DAC, 8-bit(DSP 2.01+)
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
+		SB2COMMAND
 		AutoInit = 1; //Auto initialize command instead!
 	case 0x14: //DMA DAC, 8-bit
 		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
@@ -317,11 +315,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		}
 		break;
 	case 0x1F: //Auto-Initialize DMA DAC, 2-bit ADPCM reference(DSP 2.01+)
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
+		SB2COMMAND
 		AutoInit = 1; //Auto initialize command instead!
 	case 0x17: //DMA DAC, 2-bit ADPCM reference
 		ADPCM_reference = 1; //We're using the reference byte in the transfer!
@@ -334,11 +328,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		break;
 	case 0x2C: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
+		SB2COMMAND
 		AutoInit = 1; //Auto initialize command instead!
 	case 0x24: //DMA ADC, 8-bit
 		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
@@ -359,11 +349,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 	case 0x34: //MIDI read poll + write poll (UART, DSP 2.01+)
 	case 0x35: //MIDI read interrupt + write poll (UART, DSP 2.01+)
 	case 0x37: //MIDI read timestamp interrupt + write poll (UART, DSP 2.01+)
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
+		SB2COMMAND
 		//TODO
 		break;
 	case 0x38: //MIDI write poll
@@ -373,22 +359,14 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.command = 0x40; //Set the time constant!
 		break;
 	case 0x48: //Set DMA Block size(DSP 2.01+)
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
+		SB2COMMAND
 		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
 		SOUNDBLASTER.command = (int)command; //Starting this command!
 		SOUNDBLASTER.DREQ = 0; //Disable DMA!
 		SOUNDBLASTER.dataleft = 0; //counter of parameters!
 		break;
 	case 0x7D: //Auto-initialize DMA DAC, 4-bit ADPCM Reference(DSP 2.01+)
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
+		SB2COMMAND
 		AutoInit = 1; //Auto-initialize command instead!
 	case 0x75: //DMA DAC, 4-bit ADPCM Reference
 		ADPCM_reference = 1; //We're using the reference byte in the transfer!
@@ -401,11 +379,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		}
 		break;
 	case 0x7F: //Auto-initialize DMA DAC, 2.6-bit ADPCM Reference
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
+		SB2COMMAND
 		AutoInit = 1; //Auto-initialize command instead!
 	case 0x77: //DMA DAC, 2.6-bit ADPCM Reference
 		ADPCM_reference = 1; //We're using the reference byte in the transfer!
@@ -445,21 +419,10 @@ OPTINLINE void DSP_writeCommand(byte command)
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the output!
 		break;
 	case 0xDA: //Exit Auto-initialize DMA operation, 8-bit(DSP 2.01+)
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
+		SB2COMMAND
 		SOUNDBLASTER.AutoInit = 0; //Disable the auto-initialize option when we're finished rendering!
 		break;
 	case 0xE0: //DSP Identification. Should be 2.0+, but apparently 1.5 has it too according to it's SBFMDRV driver?
-		/*
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
-		*/
 		SOUNDBLASTER.command = 0xE0; //Start the data phase!
 		break;
 	case 0xE1: //DSP version
@@ -468,20 +431,12 @@ OPTINLINE void DSP_writeCommand(byte command)
 		writefifobuffer(SOUNDBLASTER.DSPindata, (SB_VERSION&0xFF)); //Give the correct version!
 		break;
 	case 0xE4: //Write Test register(DSP 2.01+)
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
+		SB2COMMAND
 		SOUNDBLASTER.command = 0xE4; //Start the parameter phase!
 		SOUNDBLASTER.commandstep = 0; //Starting the parameter phase!
 		break;
 	case 0xE8: //Read Test register(DSP 2.01+)
-		if (SOUNDBLASTER.version<SB_VERSION20)
-		{
-			SOUNDBLASTER.command = 0; //Invalid command!
-			return; //Unsupported version!
-		}
+		SB2COMMAND
 		writefifobuffer(SOUNDBLASTER.DSPindata,SOUNDBLASTER.TestRegister); //Give the test register
 		break;
 	case 0xF0: //Sine Generator
