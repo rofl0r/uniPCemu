@@ -474,43 +474,55 @@ void resetchannels()
 int_32 getsample_16(playing_p channel, uint_32 position)
 {
 	word *y = (word *)channel->sound.samples;
-	return unsigned2signed16(y[position]);
+	return (int_32)unsigned2signed16(y[position]);
 }
 
 int_32 getsample_16s(playing_p channel, uint_32 position)
 {
 	sword *ys = (sword *)channel->sound.samples;
-	return ys[position];
+	return (int_32)ys[position];
 }
 
 int_32 getsample_16u(playing_p channel, uint_32 position)
 {
 	word *y = (word *)channel->sound.samples;
-	return (int_32)(((int_32)y[position])-0x8000);
+	return (int_32)unsigned2signed16(y[position]^0x8000);
 }
 
 int_32 getsample_8(playing_p channel, uint_32 position)
 {
 	byte *x = (byte *)channel->sound.samples;	
-	return (int_32)unsigned2signed8(x[position])<<8;
+	word result=(word)x[position]; //Load the result!
+	result <<= 8; //Multiply into range!
+	result |= (result&0x100)?0xFF:0x00; //Bit fill
+	return (int_32)unsigned2signed16(result);
 }
 
 int_32 getsample_8s(playing_p channel, uint_32 position)
 {
-	sbyte *xs = (sbyte *)channel->sound.samples;
-	return (int_32)(xs[position]<<8);
+	byte *xs = (sbyte *)channel->sound.samples;
+	word result = (word)xs[position]; //Load the result!
+	result <<= 8; //Multiply into range!
+	result |= (result & 0x100) ? 0xFF : 0x00; //Bit fill!
+	return (int_32)unsigned2signed16(result); //Give the data!
 }
 
 int_32 getsample_8u(playing_p channel, uint_32 position)
 {
 	byte *x = (byte *)channel->sound.samples;
-	return (int_32)((((int_32)x[position])-0x80)<<8);
+	word result = (word)x[position]; //Load the result!
+	result ^= 0x80; //Flip the sign bit!
+	result <<= 8; //Multiply into range!
+	result |= (result & 0x100) ? 0xFF : 0x00; //Bit fill!
+	return (int_32)unsigned2signed16(result); //Give the data!
 }
+
+double FLTMULT = (1.0f/FLT_MAX)*SHRT_MAX;
 
 int_32 getsample_flt(playing_p channel, uint_32 position)
 {
 	float *z = (float *)channel->sound.samples;
-	return (int_32)((z[position]/FLT_MAX)*SHRT_MAX); //Convert to integer value!	
+	return (int_32)(((double)z[position]*FLTMULT)); //Convert to integer value!	
 }
 
 typedef int_32 (*SAMPLEHANDLER)(playing_p channel, uint_32 position); //Sample handler!
