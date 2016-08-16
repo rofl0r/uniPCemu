@@ -5,6 +5,10 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
+//Mask for the last read/write to give the size, depending on the last status!
+#define LASTSTATUS_READ 0xFFFFFFFF
+#define LASTSTATUS_WRITE 0
+
 extern byte allcleared; //Are all pointers cleared?
 
 /*
@@ -45,6 +49,8 @@ FIFOBUFFER* allocfifobuffer(uint_32 buffersize, byte lockable)
 		}
 		//The reset is ready to work with: all 0!
 	}
+	container->laststatus = LASTSTATUS_READ; //Initialize read position!
+	container->savedpos.laststatus = LASTSTATUS_READ; //Initialize read position!
 	return container; //Give the allocated FIFO container!
 }
 
@@ -85,10 +91,7 @@ OPTINLINE uint_32 fifobuffer_INTERNAL_freesize(FIFOBUFFER *buffer)
 	}
 	else //Readpos = Writepos? Either full or empty?
 	{
-		if (buffer->lastwaswrite) //Last was write?
-			return 0;
-		else //Last was read?
-			return buffer->size; //Full when last was write, else empty!
+		return buffer->size&buffer->laststatus; //Empty when last was read, else full!
 	}
 }
 
@@ -153,7 +156,7 @@ OPTINLINE static void readfifobufferunlocked(FIFOBUFFER *buffer, byte *result)
 	*result = buffer->buffer[readpos++]; //Read and update!
 	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
 	buffer->readpos = readpos; //Update the read position!
-	buffer->lastwaswrite = 0; //Last operation was a read operation!
+	buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
 }
 
 byte readfifobuffer(FIFOBUFFER *buffer, byte *result)
@@ -193,7 +196,7 @@ OPTINLINE static void writefifobufferunlocked(FIFOBUFFER *buffer, byte data)
 	buffer->buffer[writepos++] = data; //Write and update!
 	if (writepos >= buffer->size) writepos = 0; //Wrap arround when needed!
 	buffer->writepos = writepos; //Update the write position!
-	buffer->lastwaswrite = 1; //Last operation was a write operation!
+	buffer->laststatus = LASTSTATUS_WRITE; //Last operation was a write operation!
 }
 
 byte writefifobuffer(FIFOBUFFER *buffer, byte data)
@@ -326,7 +329,7 @@ OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
 	*result |= buffer->buffer[readpos++]; //Read and update low!
 	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
 	buffer->readpos = readpos; //Update our the position!
-	buffer->lastwaswrite = 0; //Last operation was a read operation!
+	buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
 }
 
 OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *result)
@@ -346,7 +349,7 @@ OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *resu
 	*result |= buffer->buffer[readpos++]; //Read and update low!
 	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
 	buffer->readpos = readpos; //Update our the position!
-	buffer->lastwaswrite = 0; //Last operation was a read operation!
+	buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
 }
 
 byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
@@ -418,7 +421,7 @@ OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 	buffer->buffer[writepos++] = (data & 0xFF); //Write low and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
 	buffer->writepos = writepos; //Update the write position!
-	buffer->lastwaswrite = 1; //Last operation was a write operation!
+	buffer->laststatus = LASTSTATUS_WRITE; //Last operation was a write operation!
 }
 
 OPTINLINE static void writefifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 data)
@@ -435,7 +438,7 @@ OPTINLINE static void writefifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 data
 	buffer->buffer[writepos++] = (data & 0xFF); //Write low and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
 	buffer->writepos = writepos; //Update the write position!
-	buffer->lastwaswrite = 1; //Last operation was a write operation!
+	buffer->laststatus = LASTSTATUS_WRITE; //Last operation was a write operation!
 }
 
 byte writefifobuffer16(FIFOBUFFER *buffer, word data)
@@ -511,14 +514,14 @@ void fifobuffer_save(FIFOBUFFER *buffer)
 		WaitSem(buffer->lock)
 		buffer->savedpos.readpos = buffer->readpos;
 		buffer->savedpos.writepos = buffer->writepos;
-		buffer->savedpos.lastwaswrite = buffer->lastwaswrite;
+		buffer->savedpos.laststatus = buffer->laststatus;
 		PostSem(buffer->lock)
 	}
 	else
 	{
 		buffer->savedpos.readpos = buffer->readpos;
 		buffer->savedpos.writepos = buffer->writepos;
-		buffer->savedpos.lastwaswrite = buffer->lastwaswrite;
+		buffer->savedpos.laststatus = buffer->laststatus;
 	}
 }
 
@@ -533,14 +536,14 @@ void fifobuffer_restore(FIFOBUFFER *buffer)
 		WaitSem(buffer->lock)
 		buffer->readpos = buffer->savedpos.readpos;
 		buffer->writepos = buffer->savedpos.writepos;
-		buffer->lastwaswrite = buffer->savedpos.lastwaswrite;
+		buffer->laststatus = buffer->savedpos.laststatus;
 		PostSem(buffer->lock)
 	}
 	else
 	{
 		buffer->readpos = buffer->savedpos.readpos;
 		buffer->writepos = buffer->savedpos.writepos;
-		buffer->lastwaswrite = buffer->savedpos.lastwaswrite;
+		buffer->laststatus = buffer->savedpos.laststatus;
 	}
 }
 

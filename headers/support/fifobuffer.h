@@ -9,12 +9,12 @@ typedef struct
 	uint_32 size; //The size of the buffer!
 	uint_32 readpos; //The position to read!
 	uint_32 writepos; //The position to write!
-	byte lastwaswrite; //Last operation was a write?
+	uint_32 laststatus; //Last operation was a read?
 	struct
 	{
 		uint_32 readpos; //The position to read!
 		uint_32 writepos; //The position to write!
-		byte lastwaswrite; //Last operation was a write?	
+		uint_32 laststatus; //Last operation was a read?	
 	} savedpos;
 	SDL_sem *lock; //Our lock for single access!
 } FIFOBUFFER;
