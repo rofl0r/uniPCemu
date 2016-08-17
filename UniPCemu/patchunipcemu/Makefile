@@ -2,7 +2,7 @@
 
 OBJS = patchUniPCemu.o
 INCLUDE_DIRS = 
-BUILD_DIR = ../../projects_build/UniPCemu
+BUILD_DIR = ../../../projects_build/UniPCemu
 TARGET = UniPCemuWindowFix.exe
 
 WARNS = -Wall
