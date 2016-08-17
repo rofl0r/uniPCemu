@@ -109,6 +109,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 void BIOS_SwitchAndroidStorage()
 {
 #ifdef ANDROID
+	delete_file(UniPCemu_root_dir,BIOS_SETTINGS_FILE);
 	if (strcmp(&BIOS_Settings_file[0],SETTINGS_FILE_ANDROID_INTERNAL)==0) //Internal settings exist?
 	{
 		strcpy(BIOS_Settings_file, SETTINGS_FILE_ANDROID_EXTERNAL); //External settings!
