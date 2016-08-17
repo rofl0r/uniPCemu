@@ -26,6 +26,8 @@
 
 #include "headers/hardware/8253.h" //PIT support!
 
+#include "headers/bios/bios.h" //Basic BIOS support!
+
 #ifdef IS_PSP
 PSP_MODULE_INFO("UniPCemu", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER); //Make sure we're user mode!
@@ -198,10 +200,12 @@ int main(int argc, char * argv[])
 	#endif
 	clockspeed = getCurrentClockSpeed(); //Save the current clock frequency for reference!
 
+	#ifdef __psp__
 	if (FILE_EXISTS("exception.prx")) //Enable exceptions?
 	{
 		initExceptionHandler(); //Start the exception handler!
 	}
+	#endif
 
 	if (SDL_Init(0) < 0) //Error initialising SDL defaults?
 	{
@@ -223,6 +227,8 @@ int main(int argc, char * argv[])
 	getLock(LOCK_FRAMERATE);
 	getLock(LOCK_MAINTHREAD);
 	
+	BIOS_DetectStorage(); //Detect all storage devices and BIOS Settings file needed to run!
+
 	initHighresTimer(); //Global init of the high resoltion timer!
 	initTicksHolder(&CPUUpdate); //Initialise the Video Update timer!
 

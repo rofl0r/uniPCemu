@@ -25,7 +25,13 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 #define FREEMEMALLOC (MBMEMORY+(5*(PSP_SCREEN_COLUMNS*PSP_SCREEN_ROWS*sizeof(uint_32))))
 
 //What file to use for saving the BIOS!
-#define BIOS_FILE "SETTINGS.DAT"
+#define DEFAULT_SETTINGS_FILE "SETTINGS.DAT"
+#define DEFAULT_ROOT_PATH "."
+#define SETTINGS_FILE_ANDROID_EXTERNAL "/storage/external_SD/UniPCEmu/SETTINGS.DAT"
+#define UNIPCEMU_ANDROID_EXTERNAL "/storage/external_SD/UniPCEmu"
+#define SETTINGS_FILE_ANDROID_INTERNAL "/storage/sdcard0/UniPCEmu/SETTINGS.DAT"
+#define UNIPCEMU_ANDROID_INTERNAL "/storage/sdcard0/UniPCEmu"
+
 //Default values for new BIOS settings:
 #define DEFAULT_BOOT_ORDER 0
 #define DEFAULT_CPU CPU_NECV30
@@ -42,6 +48,85 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 #define DEFAULT_SSOURCEVOL 100
 #define DEFAULT_FRAMERATE 0
 #define DEFAULT_VGASYNCHRONIZATION 2
+
+char BIOS_Settings_file[256] = DEFAULT_SETTINGS_FILE; //Our settings file!
+char UniPCEmu_root_dir[256] = DEFAULT_ROOT_PATH; //Our root path!
+byte UniPCEmu_root_dir_setting = 0; //The current root setting to be viewed!
+
+//All seperate paths used by the emulator!
+extern char diskpath[256];
+extern char soundfontpath[256];
+extern char musicpath[256];
+extern char capturepath[256];
+extern char logpath[256];
+extern char ROMpath[256];
+
+void BIOS_updateDirectories()
+{
+#ifdef ANDROID
+	strcpy(diskpath,UniPCEmu_root_dir); //Root dir!
+	strcat(diskpath,"/");
+	strcpy(soundfontpath,diskpath); //Clone!
+	strcpy(musicpath,diskpath); //Clone!
+	strcpy(capturepath,diskpath); //Clone!
+	strcpy(logpath,diskpath); //Clone!
+	strcpy(ROMpath,diskpath); //Clone!
+	//Now, create the actual subdirs!
+	strcat(diskpath,"disks");
+	strcat(soundfontpath,"soundfonts");
+	strcat(musicpath,"music");
+	strcat(capturepath,"captures");
+	strcat(logpath,"logs");
+	strcaty(ROMpath,"ROM"); //ROM directory to use!
+	//Now, all paths are loaded! Ready to run!
+#endif
+}
+
+void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start only!
+{
+	#ifdef ANDROID
+		//Android changes the root path!
+		rmdir(UNIPCEMU_ANDROID_EXTERNAL);
+		rmdir(UNIPCEMU_ANDROID_INTERNAL); //Auto-cleanup!
+		if (file_exists(SETTINGS_FILE_ANDROID_EXTERNAL)) //External settings exist?
+		{
+			strcpy(BIOS_Settings_file,SETTINGS_FILE_ANDROID_EXTERNAL); //External settings!
+			strcpy(UniPCEmu_root_dir,UNIPCEMU_ANDROID_EXTERNAL); //External storage!
+			UniPCEmu_root_dir_setting = 1; //External!
+		}
+		else //Default to internal storage!
+		{
+			strcpy(BIOS_Settings_file, SETTINGS_FILE_ANDROID_INTERNAL); //Internal settings!
+			strcpy(UniPCEmu_root_dir, UNIPCEMU_ANDROID_INTERNAL); //Internal storage!
+			UniPCEmu_root_dir_setting = 0; //Internal!
+		}
+		mkdir(UniPCEmu_root_dir); //Auto-create our root directory!
+		BIOS_updateDirectories(); //Update all directories!
+		//Normal devices? Don't detect!
+	#endif
+}
+
+void BIOS_SwitchAndroidStorage()
+{
+#ifdef ANDROID
+	if (strcmp(&BIOS_Settings_file[0],SETTINGS_FILE_ANDROID_INTERNAL)==0) //Internal settings exist?
+	{
+		strcpy(BIOS_Settings_file, SETTINGS_FILE_ANDROID_EXTERNAL); //External settings!
+		strcpy(UniPCEmu_root_dir, UNIPCEMU_ANDROID_EXTERNAL); //External storage!
+		rmdir(UNIPCEMU_ANDROID_INTERNAL); //Auto-cleanup the other option!
+		UniPCEmu_root_dir_setting = 1; //External!
+	}
+	else //Default to internal storage!
+	{
+		strcpy(BIOS_Settings_file, SETTINGS_FILE_ANDROID_INTERNAL); //Internal settings!
+		strcpy(UniPCEmu_root_dir, UNIPCEMU_ANDROID_INTERNAL); //Internal storage!
+		rmdir(UNIPCEMU_ANDROID_EXTERNAL); //Auto-cleanup the other option!
+		UniPCEmu_root_dir_setting = 0; //Internal!
+	}
+	mkdir(UniPCEmu_root_dir); //Auto-create our root directory!
+	BIOS_updateDirectories(); //Update all directories!
+#endif
+}
 
 void forceBIOSSave()
 {
@@ -82,7 +167,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	uint_32 oldmem = BIOS_Settings.memory; //Memory installed!
 	memset(&BIOS_Settings,0,sizeof(BIOS_Settings)); //Reset to empty!
 	
-	if (!file_exists(BIOS_FILE)) //New file?
+	if (!file_exists(BIOS_Settings_file)) //New file?
 	{
 		BIOS_Settings.firstrun = 1; //We're the first run!
 	}
@@ -170,7 +255,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	size_t bytesread, bytestoread;
 	uint_32 CheckSum = 0; //Read checksum!
 
-	f = fopen(BIOS_FILE,"rb"); //Open BIOS file!
+	f = fopen(BIOS_Settings_file,"rb"); //Open BIOS file!
 
 	if (!f) //Not loaded?
 	{
@@ -238,7 +323,7 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	size_t byteswritten;
 	FILE *f;
-	f = fopen(BIOS_FILE,"wb"); //Open for saving!
+	f = fopen(BIOS_Settings_file,"wb"); //Open for saving!
 	if (!f) //Not able to open?
 	{
 		return 0; //Failed to write!
@@ -267,8 +352,6 @@ uint_32 BIOS_GetMMUSize() //For MMU!
 	if (__HW_DISABLED) return MBMEMORY; //Abort with default value (1MB memory)!
 	return BIOS_Settings.memory; //Use all available memory always!
 }
-
-extern char soundfontpath[11]; //The soundfont path!
 
 void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 {

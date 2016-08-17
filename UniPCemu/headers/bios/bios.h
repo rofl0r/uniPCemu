@@ -131,4 +131,8 @@ void forceBIOSSave(); //Forces BIOS to save!
 
 void BIOSKeyboardInit(); //BIOS part of keyboard initialisation!
 
+//Storage auto-detection, when supported!
+void BIOS_DetectStorage(); //Auto-Detect the current storage to use, on start only!
+void BIOS_SwitchAndroidStorage(); //Switch between storages when supported!
+
 #endif

@@ -29,6 +29,8 @@ uint_32 frames_rendered = 0;
 
 extern byte haswindowactive; //Are we displayed on-screen?
 
+char capturepath[256] = "captures"; //Capture path!
+
 void renderScreenFrame() //Render the screen frame!
 {
 	if (__HW_DISABLED) return; //Abort?
@@ -47,15 +49,15 @@ void renderScreenFrame() //Render the screen frame!
 char filename[256];
 OPTINLINE static char *get_screencapture_filename() //Filename for a screen capture!
 {
-	domkdir("captures"); //Captures directory!
+	domkdir(capturepath); //Captures directory!
 	uint_32 i=0; //For the number!
 	char filename2[256];
 	memset(&filename2,0,sizeof(filename2)); //Init filename!
 	do
 	{
-		sprintf(filename2,"captures/%u.bmp",++i); //Next bitmap file!
+		sprintf(filename2,"%s/%u.bmp",capturepath,++i); //Next bitmap file!
 	} while (file_exists(filename2)); //Still exists?
-	sprintf(filename,"captures/%u",i); //The capture filename!
+	sprintf(filename,"%s/%u",capturepath,i); //The capture filename!
 	return &filename[0]; //Give the filename for quick reference!
 }
 

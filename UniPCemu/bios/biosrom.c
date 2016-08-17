@@ -36,8 +36,12 @@ int BIOS_load_VGAROM(); //Prototype: Load custom ROM from emulator itself!
 
 byte ISVGA = 0; //VGA that's loaded!
 
+char ROMpath[256] = "ROM";
+char originalROMpath[256] = "ROM"; //Original ROM path!
+
 byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 {
+	strcpy(originalROMpath,ROMpath); //Save the original ROM path for deallocation!
 	numOPT_ROMS = 0; //Initialise the number of OPTROMS!
 	memset(OPTROM_writeenabled, 0, sizeof(OPTROM_writeenabled)); //Disable all write enable flags by default!
 	memset(OPTROM_writeSequence, 0, sizeof(OPTROM_writeSequence)); //Disable all write enable flags by default!
@@ -54,28 +58,35 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		if (i) //Not VGA ROM?
 		{
 			ISVGA = 0; //No VGA!
-			sprintf(filename,"ROM/OPTROM.%u.BIN",i); //Create the filename for the ROM!
+			sprintf(filename,"%s/OPTROM.%u.BIN",ROMpath,i); //Create the filename for the ROM!
 		}
 		else
 		{
 			ISVGA = 0; //No VGA!
 			if (BIOS_Settings.VGA_Mode==4) //Pure CGA?
 			{
-				strcpy(filename,"ROM/CGAROM.BIN"); //CGA ROM!
+				strcpy(filename,ROMpath);
+				strcat(filename,"/");
+				strcat(filename,"CGAROM.BIN"); //CGA ROM!
 			}
 			else if (BIOS_Settings.VGA_Mode==5) //Pure MDA?
 			{
-				strcpy(filename,"ROM/MDAROM.BIN"); //MDA ROM!
+				strcpy(filename, ROMpath);
+				strcat(filename, "/");
+				strcat(filename, "MDAROM.BIN"); //MDA ROM!
 			}
 			else
 			{	
 				ISVGA = 1; //We're a VGA!
 				if (BIOS_Settings.VGA_Mode==6) //ET4000?
 				{
-					if (file_exists("ROM/ET4000.BIN")) //Full ET4000?
+					strcpy(filename, ROMpath);
+					strcat(filename, "/");
+					strcat(filename, "ET4000.BIN"); //CGA ROM!
+					if (file_exists(filename)) //Full ET4000?
 					{
 						ISVGA = 2; //ET4000!
-						strcpy(filename, "ROM/ET4000.BIN"); //ET4000 ROM!
+						//ET4000 ROM!
 					}
 					else //VGA ROM?
 					{
@@ -84,10 +95,13 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				}
 				else if (BIOS_Settings.VGA_Mode == 7) //ET3000?
 				{
-					if (file_exists("ROM/ET3000.BIN")) //Full ET3000?
+					strcpy(filename, ROMpath);
+					strcat(filename, "/");
+					strcat(filename, "ET3000.BIN"); //CGA ROM!
+					if (file_exists(filename)) //Full ET3000?
 					{
 						ISVGA = 3; //ET3000!
-						strcpy(filename, "ROM/ET3000.BIN"); //ET3000 ROM!
+						//ET3000 ROM!
 					}
 					else //VGA ROM?
 					{
@@ -96,7 +110,10 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				}
 				else //Plain VGA?
 				{
-					strcpy(filename,"ROM/VGAROM.BIN"); //VGA ROM!
+					strcpy(filename, ROMpath);
+					strcat(filename, "/");
+					strcat(filename, "VGAROM.BIN"); //CGA ROM!
+					//VGA ROM!
 				}
 			}
 		}
@@ -187,31 +204,41 @@ void BIOS_freeOPTROMS()
 			memset(&filename,0,sizeof(filename)); //Clear/init!
 			if (i) //Not VGA ROM?
 			{
-				sprintf(filename,"ROM/OPTROM.%u.BIN",i); //Create the filename for the ROM!
+				sprintf(filename,"%s/OPTROM.%u.BIN",originalROMpath,i); //Create the filename for the ROM!
 			}
 			else
 			{
 				if (BIOS_Settings.VGA_Mode==4) //Pure CGA?
 				{
-					strcpy(filename,"ROM/CGAROM.BIN"); //CGA ROM!
+					strcpy(filename, originalROMpath);
+					strcat(filename, "/");
+					strcat(filename, "CGAROM.BIN"); //CGA ROM!
 				}
 				else if (BIOS_Settings.VGA_Mode==5) //Pure MDA?
 				{
-					strcpy(filename,"ROM/MDAROM.BIN"); //MDA ROM!
+					strcpy(filename, originalROMpath);
+					strcat(filename, "/");
+					strcat(filename, "MDAROM.BIN"); //MDA ROM!
 				}
 				else
 				{	
 					if (ISVGA==2) //Full ET4000?
 					{
-						strcpy(filename, "ROM/ET4000.BIN"); //VGA ROM!
+						strcpy(filename, originalROMpath);
+						strcat(filename, "/");
+						strcat(filename, "ET4000.BIN"); //ET4000 ROM!
 					}
 					else if (ISVGA==3) //ET3000 replacement?
 					{
-						strcpy(filename, "ROM/ET3000.BIN"); //VGA ROM!
+						strcpy(filename, originalROMpath);
+						strcat(filename, "/");
+						strcat(filename, "ET3000.BIN"); //ET3000 ROM!
 					}
 					else //VGA ROM?
 					{
-						strcpy(filename, "ROM/VGAROM.BIN"); //VGA ROM!
+						strcpy(filename, originalROMpath);
+						strcat(filename, "/");
+						strcat(filename, "VGAROM.BIN"); //VGA ROM!
 					}
 				}
 			}
@@ -225,7 +252,7 @@ int BIOS_load_ROM(byte nr)
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	sprintf(filename,"ROM/BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
+	sprintf(filename,"%s/BIOSROM.U%u.BIN",originalROMpath,nr); //Create the filename for the ROM!
 	f = fopen(filename,"rb");
 	if (!f)
 	{
@@ -341,11 +368,15 @@ void BIOS_free_systemROM()
 
 void BIOS_DUMPSYSTEMROM() //Dump the SYSTEM ROM currently set (debugging purposes)!
 {
+	char path[256];
 	if (BIOS_custom_ROM == &EMU_BIOS[0]) //We're our own BIOS?
 	{
+		memset(&path,0,sizeof(path));
+		strcpy(path,ROMpath); //Current ROM path!
+		strcat(path,"/SYSROM.DMP.BIN"); //Dump path!
 		//Dump our own BIOS ROM!
 		FILE *f;
-		f = fopen("SYSROM.DMP.BIN", "wb");
+		f = fopen(path, "wb");
 		fwrite(&EMU_BIOS, 1, sizeof(EMU_BIOS), f); //Save our BIOS!
 		fclose(f);
 	}
@@ -510,11 +541,43 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 					memset(&filename, 0, sizeof(filename)); //Clear/init!
 					if (i) //Not VGA ROM?
 					{
-						sprintf(filename, "ROM/OPTROM.%u.BIN", i); //Create the filename for the ROM!
+						sprintf(filename, "%s/OPTROM.%u.BIN", originalROMpath,i); //Create the filename for the ROM!
 					}
-					else //VGA ROM?
+					else //Video ROM?
 					{
-						strcpy(filename, "ROM/VGAROM.BIN"); //VGA ROM!
+						if (BIOS_Settings.VGA_Mode == 4) //Pure CGA?
+						{
+							strcpy(filename, originalROMpath);
+							strcat(filename, "/");
+							strcat(filename, "CGAROM.BIN"); //CGA ROM!
+						}
+						else if (BIOS_Settings.VGA_Mode == 5) //Pure MDA?
+						{
+							strcpy(filename, originalROMpath);
+							strcat(filename, "/");
+							strcat(filename, "MDAROM.BIN"); //MDA ROM!
+						}
+						else
+						{
+							if (ISVGA == 2) //Full ET4000?
+							{
+								strcpy(filename, originalROMpath);
+								strcat(filename, "/");
+								strcat(filename, "ET4000.BIN"); //ET4000 ROM!
+							}
+							else if (ISVGA == 3) //ET3000 replacement?
+							{
+								strcpy(filename, originalROMpath);
+								strcat(filename, "/");
+								strcat(filename, "ET3000.BIN"); //ET3000 ROM!
+							}
+							else //VGA ROM?
+							{
+								strcpy(filename, originalROMpath);
+								strcat(filename, "/");
+								strcat(filename, "VGAROM.BIN"); //VGA ROM!
+							}
+						}
 					}
 					f = fopen(filename, "rb+"); //Open the ROM for writing!
 					if (!f) return 1; //Couldn't open the ROM for writing!

@@ -14,6 +14,8 @@ SDL_sem *log_Lock = NULL;
 char lastfile[256] = ""; //Last file we've been logging to!
 FILE *logfile = NULL; //The log file to use!
 
+char logpath[256] = "logs"; //Log path!
+
 //Windows line-ending = \r\n. Wordpad line-ending is \n.
 
 #ifdef WINDOWS_LINEENDING
@@ -65,7 +67,8 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	bzero(logtext,sizeof(logtext)); //Init logging text!
 	bzero(timestamp,sizeof(timestamp)); //Init timestamp text!
 	
-	strcpy(filenametmp,"logs/"); //Base directory!
+	strcpy(filenametmp,logpath); //Base directory!
+	strcat(filenametmp,"/");
 	strcat(filenametmp,filename); //Add the filename to the directory!
 	if (!*filename) //Empty filename?
 	{
@@ -122,7 +125,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	if ((!logfile) || (strcmp(lastfile,filenametmp)!=0)) //Other file or new file?
 	{
 		if (logfile) fclose(logfile); //Close the old log if needed!
-		domkdir("logs"); //Create a logs directory if needed!
+		domkdir(logpath); //Create a logs directory if needed!
 		logfile = fopen(filenametmp, "rb"); //Open for testing!
 		if (logfile) //Existing?
 		{
