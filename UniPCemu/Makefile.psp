@@ -1,5 +1,5 @@
 #Define our building directory for all output files!
-BUILD_DIR = ../projects_build/$(BUILD_NAME)
+BUILD_DIR = ../../projects_build/$(BUILD_NAME)
 
 TARGET = eboot
 
@@ -54,4 +54,4 @@ LIBS += $(PSPLIBS2) $(PSPLIBS1)
 
 #PSP build path and compile script!
 PSPSDK=$(shell psp-config --pspsdk-path)
-include ../tools/build.mak
+include ../../tools/build.mak

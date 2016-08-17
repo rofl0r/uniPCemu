@@ -1,6 +1,6 @@
 #Windows makefile test project settings
 
-BUILD_DIR = ../projects_build/$(BUILD_NAME)
+BUILD_DIR = ../../projects_build/$(BUILD_NAME)
 
 #Name of the destination application!
 TARGET = $(BUILD_NAME).exe
