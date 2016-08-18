@@ -446,7 +446,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.singentime = 0.0f; //Reset time on the sine wave generator!
 		break;
 	case 0xF2: //IRQ Request, 8-bit
-		soundblaster_IRR = 10.0; //IRQ request in 10ns, according to Dosbox!
+		soundblaster_IRR = 10000.0; //IRQ request in 10us, according to Dosbox!
 		break;
 	case 0xF8: //Undocumented command according to Dosbox
 		writefifobuffer(SOUNDBLASTER.DSPindata,0x00); //Give zero bytes!
