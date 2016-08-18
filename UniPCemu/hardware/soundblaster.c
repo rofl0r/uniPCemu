@@ -35,6 +35,9 @@
 
 #define MIN_ADAPTIVE_STEP_SIZE 0
 
+//Enable below define to log all command bytes sent.
+#define SOUNDBLASTER_LOG
+
 enum {
 	DSP_S_RESET, DSP_S_RESET_WAIT, DSP_S_NORMAL
 }; //DSP state for reset detection!
@@ -70,6 +73,8 @@ struct
 	byte TestRegister; //Sound Blaster 2.01+ Test register!
 	double frequency; //The frequency we're currently rendering at!
 } SOUNDBLASTER; //The Sound Blaster data!
+
+extern byte specialdebugger; //Enable special debugger input?
 
 double soundblaster_soundtiming = 0.0, soundblaster_soundtick = 1000000000.0 / __SOUNDBLASTER_SAMPLERATE;
 double soundblaster_sampletiming = 0.0, soundblaster_sampletick = 0.0;
@@ -287,7 +292,11 @@ OPTINLINE void DSP_startDMADAC(byte autoinitDMA)
 
 extern byte MPU_ready; //MPU installed?
 
+#ifdef SOUNDBLASTER_LOG
+#define SB2COMMAND if (SOUNDBLASTER.version<SB_VERSION20) { SOUNDBLASTER.command = 0; /*Invalid command!*/ if (specialdebugger) {dolog("SoundBlaster", "Unknown command: %02X@ver. %04X", command, SOUNDBLASTER.version);} return; /*Unsupported version*/ }
+#else
 #define SB2COMMAND if (SOUNDBLASTER.version<SB_VERSION20) { SOUNDBLASTER.command = 0; /*Invalid command!*/ return; /*Unsupported version*/ }
+#endif
 
 OPTINLINE void DSP_writeCommand(byte command)
 {
@@ -453,6 +462,12 @@ OPTINLINE void DSP_writeCommand(byte command)
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Use the given result!
 		break;
 	default: //Unknown command?
+		#ifdef SOUNDBLASTER_LOG
+		if (specialdebugger) //Debugger enabled?
+		{
+			dolog("SoundBlaster","Unknown command: %02X@ver. %04X",command,SOUNDBLASTER.version); //Log info about the invalid command with our version!
+		}
+		#endif
 		break;
 	}
 }
