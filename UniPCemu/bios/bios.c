@@ -243,7 +243,7 @@ uint_32 BIOS_getChecksum() //Get the BIOS checksum!
 	byte *data = (byte *)&BIOS_Settings; //First byte of data!
 	for (;total;) //Anything left?
 	{
-		result += (uint_32)*data; //Add the data to the result!
+		result += (uint_32)*data++; //Add the data to the result!
 		--total; //One byte of data processed!
 	}
 	return result; //Give the simple checksum of the loaded settings!
