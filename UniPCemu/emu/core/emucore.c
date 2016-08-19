@@ -626,10 +626,10 @@ void updateSpeedLimit()
 	DosboxClock = 1; //We're executing using Dosbox clocks!
 	if (BIOS_Settings.CPUSpeed) //Gotten speed cycles set?
 	{
-		setDosboxCycles(DosboxClock,BIOS_Settings.CPUSpeed); //Dosbox-style cycles!
+		setDosboxCycles(1,BIOS_Settings.CPUSpeed); //Dosbox-style cycles!
 		if (TurboMode && BIOS_Settings.TurboCPUSpeed) //Turbo enabled and specified?
 		{
-			setDosboxCycles(DosboxClock, BIOS_Settings.TurboCPUSpeed); //Dosbox-style Turbo cycles!
+			setDosboxCycles(1, BIOS_Settings.TurboCPUSpeed); //Dosbox-style Turbo cycles!
 		}
 	}
 	else //CPU speed cycles not set? No Dosbox cycles here normally (until implemented)!
@@ -640,7 +640,7 @@ void updateSpeedLimit()
 		{
 			if (BIOS_Settings.TurboCPUSpeed) //Turbo speed specified?
 			{
-				setDosboxCycles(DosboxClock, BIOS_Settings.TurboCPUSpeed); //Dosbox-style Turbo cycles!
+				setDosboxCycles(1, BIOS_Settings.TurboCPUSpeed); //Dosbox-style Turbo cycles!
 			}
 			else
 			{
