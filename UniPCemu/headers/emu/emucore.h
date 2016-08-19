@@ -30,4 +30,6 @@ int DoEmulator(); //Run the emulator execution itself!
 
 void EMU_drawBusy(byte disk); //Draw busy on-screen!
 
+void updateSpeedLimit(); //Prototype!
+
 #endif

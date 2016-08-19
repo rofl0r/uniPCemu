@@ -61,6 +61,7 @@
 
 //The clock speed of the 8086 (~14.31818MHz divided by 3)!
 #define CPU808X_CLOCK (MHZ14/3.0f)
+#define CPU808X_TURBO_CLOCK (MHZ14/3.0f)*2.1f
 
 //Timeout CPU time and instruction interval! 44100Hz or 1ms!
 #define TIMEOUT_INTERVAL 10
@@ -192,8 +193,6 @@ VGA_Type *MainVGA; //The main VGA chipset!
 uint_32 initEMUmemory = 0;
 
 TicksHolder CPU_timing; //CPU timing counter!
-
-void updateSpeedLimit(); //Prototype!
 
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 
@@ -607,24 +606,47 @@ void BIOSMenuExecution()
 	unlock(LOCK_CPU);
 }
 
+extern byte TurboMode; //Are we in Turbo mode?
+
+void setDosboxCycles(byte useDosboxClock, uint_32 cycles)
+{
+	DosboxClock = useDosboxClock; //Use Dosbox-clock style?
+	if (DosboxClock) //Dosbox clock cycles?
+	{
+		CPU_speed_cycle = 1000000.0f / (float)cycles; //Cycles per ms is used!
+	}
+	else //Actual clock cycles?
+	{
+		CPU_speed_cycle = 1000000000.0f / (float)cycles; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+	}
+}
+
 void updateSpeedLimit()
 {
 	DosboxClock = 1; //We're executing using Dosbox clocks!
 	if (BIOS_Settings.CPUSpeed) //Gotten speed cycles set?
 	{
-		if (DosboxClock) //Dosbox clock cycles?
+		setDosboxCycles(DosboxClock,BIOS_Settings.CPUSpeed); //Dosbox-style cycles!
+		if (TurboMode && BIOS_Settings.TurboCPUSpeed) //Turbo enabled and specified?
 		{
-			CPU_speed_cycle = 1000000.0f/(float)BIOS_Settings.CPUSpeed; //Cycles per ms is used!
-		}
-		else //Actual clock cycles?
-		{
-			CPU_speed_cycle = 1000000000.0f / (float)BIOS_Settings.CPUSpeed; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+			setDosboxCycles(DosboxClock, BIOS_Settings.TurboCPUSpeed); //Dosbox-style Turbo cycles!
 		}
 	}
 	else //CPU speed cycles not set? No Dosbox cycles here normally (until implemented)!
 	{
 		DosboxClock = 0; //We're executing using actual clocks!
 		CPU_speed_cycle = 1000000000.0f/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+		if (TurboMode) //Turbo mode enabled?
+		{
+			if (BIOS_Settings.TurboCPUSpeed) //Turbo speed specified?
+			{
+				setDosboxCycles(DosboxClock, BIOS_Settings.TurboCPUSpeed); //Dosbox-style Turbo cycles!
+			}
+			else
+			{
+				CPU_speed_cycle = 1000000000.0f / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!	
+			}
+		}
 	}
 }
 

@@ -184,6 +184,7 @@ void BIOS_JoystickReconnect(); //Reconnect the joystick (not SDL2)
 void BIOS_useGameBlaster();
 void BIOS_GameBlasterVolume();
 void BIOS_useSoundBlaster();
+void BIOS_TurboCPUSpeed(); //CPU speed selection!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -243,6 +244,7 @@ Handler BIOS_Menus[] =
 	,BIOS_useGameBlaster //Use Game Blaster is #52!
 	,BIOS_GameBlasterVolume //Game Blaster Volume is #53!
 	,BIOS_useSoundBlaster //Use Sound Blaster is #54!
+	,BIOS_TurboCPUSpeed //BIOS Turbo CPU speed is #55!
 };
 
 //Not implemented?
@@ -4319,8 +4321,21 @@ setDataBusSize: //For fixing it!
 		break;
 	}
 
+	optioninfo[advancedoptions] = 3; //Change Turbo CPU speed!
+	strcpy(menuoptions[advancedoptions], "Turbo CPU Speed: ");
+	switch (BIOS_Settings.TurboCPUSpeed) //What Turbo CPU speed limit?
+	{
+	case 0: //Default cycles?
+		strcat(menuoptions[advancedoptions++], "Default"); //Default!
+		break;
+	default: //Limited cycles?
+		sprintf(menuoptions[advancedoptions], "%sLimited to %u cycles", menuoptions[advancedoptions], BIOS_Settings.TurboCPUSpeed); //Cycle limit!
+		++advancedoptions;
+		break;
+	}
+
 setShowCPUSpeed:
-	optioninfo[advancedoptions] = 3; //Change CPU speed!
+	optioninfo[advancedoptions] = 4; //Change CPU speed!
 	strcpy(menuoptions[advancedoptions], "Show CPU Speed: ");
 	switch (BIOS_Settings.ShowCPUSpeed) //What CPU speed limit?
 	{
@@ -4337,11 +4352,11 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 4; //Boot Order!
+	optioninfo[advancedoptions] = 5; //Boot Order!
 	strcpy(menuoptions[advancedoptions], "Boot Order: "); //Change boot order!
 	strcat(menuoptions[advancedoptions++], BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
 
-	optioninfo[advancedoptions] = 5; //Execution mode!
+	optioninfo[advancedoptions] = 6; //Execution mode!
 	strcpy(menuoptions[advancedoptions], "Execution mode: ");
 	switch (BIOS_Settings.executionmode) //What execution mode is active?
 	{
@@ -4368,7 +4383,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 6; //Debug mode!
+	optioninfo[advancedoptions] = 7; //Debug mode!
 	strcpy(menuoptions[advancedoptions], "Debug mode: ");
 	switch (BIOS_Settings.debugmode) //What debug mode is active?
 	{
@@ -4389,7 +4404,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 7; //We're debug log setting!
+	optioninfo[advancedoptions] = 8; //We're debug log setting!
 	strcpy(menuoptions[advancedoptions], "Debugger log: ");
 	switch (BIOS_Settings.debugger_log)
 	{
@@ -4429,7 +4444,8 @@ void BIOS_CPU() //CPU menu!
 	case 4:
 	case 5:
 	case 6:
-	case 7: //Valid option?
+	case 7:
+	case 8: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -4442,21 +4458,24 @@ void BIOS_CPU() //CPU menu!
 		case 2: //CPU speed?
 			BIOS_Menu = 36; //CPU speed selection!
 			break;
-		case 3: //CPU speed display setting?
+		case 3: //Turbo CPU speed?
+			BIOS_Menu = 55; //Turbo CPU speed selection!
+			break;
+		case 4: //CPU speed display setting?
 			BIOS_Menu = 41; //CPU speed display setting!
 			break;
 		//Basic execution information
-		case 4: //Boot order?
+		case 5: //Boot order?
 			BIOS_Menu = 9; //Boot Order Menu!
 			break;
-		case 5:
+		case 6:
 			BIOS_Menu = 24; //Execution mode option!
 			break;
 		//Debugger information
-		case 6: //Debug mode?
+		case 7: //Debug mode?
 			BIOS_Menu = 13; //Debug mode option!
 			break;
-		case 7:
+		case 8:
 			BIOS_Menu = 23; //Debugger log setting!
 			break;
 		}
@@ -5377,4 +5396,31 @@ void BIOS_useSoundBlaster()
 		break;
 	}
 	BIOS_Menu = 31; //Goto Sound menu!
+}
+
+void BIOS_TurboCPUSpeed() //CPU speed selection!
+{
+	BIOS_Title("Turbo CPU speed");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Turbo CPU speed: "); //Show selection init!
+	EMU_unlocktext();
+	int_64 file = GetCPUSpeed(17, 4, BIOS_Settings.TurboCPUSpeed); //Show options for the CPU speed!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected speed!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = 0; //Default setting: Disabled!
+	default: //Changed?
+		if (file != BIOS_Settings.TurboCPUSpeed) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.TurboCPUSpeed = (uint_32)file; //Select CPU speed setting!
+		}
+		break;
+	}
+	BIOS_Menu = 35; //Goto CPU menu!
 }

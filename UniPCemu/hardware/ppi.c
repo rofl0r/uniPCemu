@@ -3,10 +3,12 @@
 #include "headers/mmu/mmu.h" //MMU support!
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/hardware/vga/vga.h" //VGA/EGA/CGA/MDA support!
+#include "headers/emu/emucore.h" //Speed change support!
 
 byte SystemControlPortB=0x00; //System control port B!
 byte SystemControlPortA=0x00; //System control port A!
 byte PPI62, PPI63; //Default PPI switches!
+byte TurboMode=0;
 
 byte readPPI62()
 {
@@ -74,6 +76,8 @@ byte PPI_writeIO(word port, byte value)
 	{
 	case 0x61: //System control port B?
 		SystemControlPortB = (value&0x7F); //Set the port, highest bit isn't ours!
+		TurboMode = (value&4); //Turbo mode enabled?
+		updateSpeedLimit(); //Update the speed used!
 		return 1;
 		break;
 	case 0x62: //PPI62?
@@ -105,7 +109,8 @@ void initPPI()
 	SystemControlPortB = 0x7F; //Reset system control port B!
 	PPI62 = 0x00; //Set the default switches!
 	PPI63 = 0x00; //Set the default switches!
-
+	TurboMode = 0; //Default to no turbo mode according to the switches!
+	updateSpeedLimit(); //Update the speed used!
 	register_PORTIN(&PPI_readIO);
 	register_PORTOUT(&PPI_writeIO);
 }
