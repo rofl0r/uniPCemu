@@ -12,7 +12,7 @@
 
 #define domkdir(path) mkdir(path, 0755)
 
-#define removedirectory(dir) unlink(dir)
+#define removedirectory(dir) remove(dir)
 
 //INLINE options!
 #ifdef OPTINLINE
