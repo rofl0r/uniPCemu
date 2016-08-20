@@ -12,6 +12,7 @@
 #define sleep sceKernelSleepThread
 
 #define domkdir(dir) sceIoMkdir(dir,0777)
+#define removedirectory(dir) sceIoRmdir(dir)
 
 //INLINE options!
 #ifdef OPTINLINE

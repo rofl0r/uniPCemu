@@ -55,6 +55,14 @@
 #define domkdir(dir) _mkdir(dir)
 #endif
 
+#ifdef VISUALC
+//Visual C++ needs the result!
+#define removedirectory(dir) int ok = _rmdir(dir)
+#else
+//Don't use the result with MinGW!
+#define removedirectory(dir) _rmdir(dir)
+#endif
+
 //INLINE options!
 #ifdef OPTINLINE
 #undef OPTINLINE

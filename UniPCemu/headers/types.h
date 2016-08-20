@@ -160,22 +160,6 @@ typedef void (*Handler)();    /* A pointer to a handler function */
 //Row with the current CPU ASM command.
 #define GPU_TEXT_DEBUGGERROW 4
 
-//Cross-platform directory removing!
-#ifdef rmdir
-#define removedirectory(path) rmdir(path)
-#else
-#ifdef _rmdir
-#define removedirectory(path) _rmdir(path)
-#else
-#ifdef remove
-#define removedirectory(path) remove(path)
-#else
-//Unsupported!
-#define removedirectory(path)
-#endif
-#endif
-#endif
-
 void BREAKPOINT(); //Safe breakpoint function!
 
 int convertrel(int src, int fromres, int tores); //Relative convert!
