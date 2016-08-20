@@ -7,7 +7,11 @@
 #include <sdl_thread.h> //Multithreading support!
 #else
 //PSP/MinGW?
+#ifdef ANDROID
+#include "SDL_thread.h" //Multithreading support!
+#else
 #include <SDL/SDL_thread.h> //Multithreading support!
+#endif
 #endif
 
 #define MAX_THREAD 50
@@ -320,7 +324,11 @@ ThreadParams_p startThread(Handler thefunc, char *name, void *params) //Start a 
 	//dolog("threads","startThread: createThread...");
 	docreatethread: //Try to start a thread!
 	#ifndef SDL2
+	#ifdef ANDROID
+	threadparams->thread = SDL_CreateThread(threadhandler,name,threadparams); //Create the thread!
+	#else
 	threadparams->thread = SDL_CreateThread(threadhandler,threadparams); //Create the thread!
+	#endif
 	#else
 	threadparams->thread = SDL_CreateThread(threadhandler,name,threadparams); //Create the thread!
 	#endif

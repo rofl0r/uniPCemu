@@ -5,7 +5,11 @@
 #ifdef VISUALC
 #include <SDL_thread.h> //Multithreading support!
 #else
+#ifdef ANDROID
+#include "SDL_thread.h" //Multithreading support!
+#else
 #include <SDL/SDL_thread.h> //Multithreading support!
+#endif
 #endif
 
 typedef struct

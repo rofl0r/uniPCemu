@@ -21,8 +21,13 @@
 #include "sdl_joystick.h" //Joystick support!
 #include "sdl_events.h" //Event support!
 #else
+#ifdef ANDROID
+#include "SDL_joystick.h" //Joystick support!
+#include "SDL_events.h" //Event support!
+#else
 #include <SDL/SDL_joystick.h> //Joystick support!
 #include <SDL/SDL_events.h> //Event support!
+#endif
 #endif
 
 //Log input and output to compare?
@@ -2777,7 +2782,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			#ifndef SDL2
 			case SDLK_KP6: //CIRCLE?
 			#else
-			#ifdef ANDROID
+			#if defined(ANDROID) && !defined(SDL2)
 			case SDLK_ESC:
 			#else
 			case SDLK_KP_6: //CIRCLE?
@@ -2788,7 +2793,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			#ifndef SDL2
 			case SDLK_KP2: //CROSS?
 			#else
-			#ifdef ANDROID
+			#if defined(ANDROID) && !defined(SDL2)
 			case SDLK_RETURN:
 			#else
 			case SDLK_KP_2: //CROSS?
@@ -2958,7 +2963,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			#ifndef SDL2
 			case SDLK_KP8: //TRIANGLE?
 			#else
-			#ifdef ANDROID
+			#if defined(ANDROID) && !defined(SDL2)
 			case SDLK_SPACE:
 			#else
 			case SDLK_KP_8: //TRIANGLE?
@@ -2976,7 +2981,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			#ifndef SDL2
 			case SDLK_KP6: //CIRCLE?
 			#else
-			#ifdef ANDROID
+			#if defined(ANDROID) && !defined(SDL2)
 			case SDLK_ESC:
 			#else
 			case SDLK_KP_6: //CIRCLE?
@@ -2987,7 +2992,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			#ifndef SDL2
 			case SDLK_KP2: //CROSS?
 			#else
-			#ifdef ANDROID
+			#if defined(ANDROID) && !defined(SDL2)
 			case SDLK_RETURN:
 			#else
 			case SDLK_KP_2: //CROSS?
