@@ -34,7 +34,7 @@ typedef struct
 
 typedef struct
 {
-	MIDIDEVICE_NOTE notes[0xFF]; //All possible MIDI note statuses!
+	MIDIDEVICE_NOTE notes[0x100]; //All possible MIDI note statuses!
 	//Channel information!
 	byte control; //Control/current instrument!
 	byte program; //Program/instrument!
