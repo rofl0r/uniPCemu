@@ -1,0 +1,113 @@
+#Windows makefile test project settings
+
+ANDROID_CFLAGS := $(CFLAGS)
+ANDROID_LDFLAGS := $(LDFLAGS)
+
+BUILD_DIR = ./
+
+#Name of the destination application!
+TARGET = $(BUILD_NAME)
+
+TARGET_PROFILE_TXT = profiler.txt
+TARGET_PROFILE_CMP_TXT = profiler2.txt
+
+#GProf switches!
+GPROF_SWITCHES =
+
+# ###################################################
+
+
+#Our actual building script doing all the hard work:
+
+#Our filenames of the targets (release and debug)!
+TARGET_RELEASE = $(TARGET)
+TARGET_DEBUG = dbg$(TARGET)
+TARGET_PROFILE = prof$(TARGET)
+
+#Programs
+#CC = gcc
+RM = rm -f
+
+WARNS = -Wall
+
+ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
+#SDL2 functions instead!
+INCLUDE_DIRS := -I. $(ANDROID_CFLAGS) $(shell sdl2-config --cflags)
+endif
+
+ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
+#SDL1 functions instead!
+INCLUDE_DIRS := -I. $(ANDROID_CFLAGS) $(shell sdl-config --cflags)
+endif
+
+
+#Default optimization flags!
+OPTIMIZATIONFLAGS = -O3
+
+#Execute stripping if set below!
+STRIP = -s
+
+#Building for debugging optimization flags
+ifneq (,$(findstring debug,$(MAKECMDGOALS)))
+OPTIMIZATIONFLAGS = -Og
+endif
+
+#Building for debugger and normal CFLAGS
+BUILD_CFLAGS = -enable-core-inline -static-libgcc -static-libstdc++
+ifneq (,$(findstring debug,$(MAKECMDGOALS)))
+BUILD_CFLAGS = -ggdb -ffunction-sections
+endif
+
+ifneq (,$(findstring profile,$(MAKECMDGOALS)))
+BUILD_CFLAGS = -g -pg -ffunction-sections -enable-core-inline -static-libgcc -static-libstdc++
+endif
+
+#Different kinds of flags!
+#Add -mno-ms-bitfields to fix broken bitfields and type sizes in MinGW.
+CFLAGS = -std=c99 ${WARNS}
+
+#Apply build directory etc.
+BUILD_RELEASE = $(BUILD_DIR)/$(TARGET_RELEASE)
+BUILD_DEBUG = $(BUILD_DIR)/$(TARGET_DEBUG)
+BUILD_PROFILE = $(BUILD_DIR)/$(TARGET_PROFILE)
+BUILD_PROFILE_GMON = $(BUILD_DIR)/gmon.out
+BUILD_PROFILE_GMON_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_TXT)
+BUILD_PROFILE_GMON_CMP_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_CMP_TXT)
+
+OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
+
+#Rules themselves!
+#Build,debug and analyze(profile subcommand) command support!
+
+build: $(BUILD_RELEASE)
+profile: $(BUILD_PROFILE)
+reprofile: clean profile
+
+#Run debugger now on the executable!
+debug: $(BUILD_DEBUG)
+	gdb -w --cd="$(BUILD_DIR)" --se="$(TARGET_DEBUG)"
+
+redebug: clean debug
+
+#Compile into debug mode without stripping (-s)!
+$(BUILD_DEBUG): ${OBJS}
+	${CC} -ggdb -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
+
+$(BUILD_PROFILE): ${OBJS}
+	${CC} -g -pg -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
+
+#Compile into release mode with stripping (-s)!
+$(BUILD_RELEASE): ${OBJS}
+	${CC} -o "$@" ${OBJS} $(STRIP) ${LDFLAGS}
+
+#Normal compilation of seperate modules!
+$(BUILD_DIR)/%.o:%.c
+	${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@
+
+clean:
+	-$(RM) $(OBJS)
+	-$(RM) $(BUILD_RELEASE)
+	-$(RM) $(BUILD_PROFILE)
+	-$(RM) $(BUILD_DEBUG)
+
+.PHONY: SDL2

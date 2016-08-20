@@ -11,6 +11,10 @@ ifneq (,$(findstring linux,$(MAKECMDGOALS)))
 PLATFORM = linux
 endif
 
+ifneq (,$(findstring android,$(MAKECMDGOALS)))
+PLATFORM = android
+endif
+
 ifeq (,$(PLATFORM))
 $(error Please specify a platform (psp or win) and action (build or clean), e.g. make win build or make win clean)
 endif
