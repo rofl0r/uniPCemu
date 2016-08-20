@@ -63,7 +63,10 @@
 #define u64 uint_64
 #define s64 int_64
 
+#ifndef bzero
+//PSP and Android already have this?
 #define bzero(v,size) memset(v,0,size)
+#endif
 
 #define EXIT_PRIORITY 0x11
 //Exit priority, higest of all!
@@ -156,6 +159,22 @@ typedef void (*Handler)();    /* A pointer to a handler function */
 #define GPU_TEXT_INFOROW 3
 //Row with the current CPU ASM command.
 #define GPU_TEXT_DEBUGGERROW 4
+
+//Cross-platform directory removing!
+#ifdef rmdir
+#define removedirectory(path) rmdir(path)
+#else
+#ifdef _rmdir
+#define removedirectory(path) _rmdir(path)
+#else
+#ifdef remove
+#define removedirectory(path) remove(path)
+#else
+//Unsupported!
+#define removedirectory(path)
+#endif
+#endif
+#endif
 
 void BREAKPOINT(); //Safe breakpoint function!
 

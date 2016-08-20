@@ -77,7 +77,7 @@ void BIOS_updateDirectories()
 	strcat(musicpath,"music");
 	strcat(capturepath,"captures");
 	strcat(logpath,"logs");
-	strcaty(ROMpath,"ROM"); //ROM directory to use!
+	strcat(ROMpath,"ROM"); //ROM directory to use!
 	//Now, all paths are loaded! Ready to run!
 #endif
 }
@@ -86,8 +86,8 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 {
 	#ifdef ANDROID
 		//Android changes the root path!
-		rmdir(UNIPCEMU_ANDROID_EXTERNAL);
-		rmdir(UNIPCEMU_ANDROID_INTERNAL); //Auto-cleanup!
+		removedirectory(UNIPCEMU_ANDROID_EXTERNAL);
+		removedirectory(UNIPCEMU_ANDROID_INTERNAL); //Auto-cleanup!
 		if (file_exists(SETTINGS_FILE_ANDROID_EXTERNAL)) //External settings exist?
 		{
 			strcpy(BIOS_Settings_file,SETTINGS_FILE_ANDROID_EXTERNAL); //External settings!
@@ -100,7 +100,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 			strcpy(UniPCEmu_root_dir, UNIPCEMU_ANDROID_INTERNAL); //Internal storage!
 			UniPCEmu_root_dir_setting = 0; //Internal!
 		}
-		mkdir(UniPCEmu_root_dir); //Auto-create our root directory!
+		domkdir(UniPCEmu_root_dir); //Auto-create our root directory!
 		BIOS_updateDirectories(); //Update all directories!
 		//Normal devices? Don't detect!
 	#endif
@@ -109,22 +109,22 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 void BIOS_SwitchAndroidStorage()
 {
 #ifdef ANDROID
-	delete_file(UniPCemu_root_dir,BIOS_SETTINGS_FILE);
+	delete_file(UniPCEmu_root_dir,DEFAULT_SETTINGS_FILE); //Remove the old settings file!
 	if (strcmp(&BIOS_Settings_file[0],SETTINGS_FILE_ANDROID_INTERNAL)==0) //Internal settings exist?
 	{
 		strcpy(BIOS_Settings_file, SETTINGS_FILE_ANDROID_EXTERNAL); //External settings!
 		strcpy(UniPCEmu_root_dir, UNIPCEMU_ANDROID_EXTERNAL); //External storage!
-		rmdir(UNIPCEMU_ANDROID_INTERNAL); //Auto-cleanup the other option!
+		removedirectory(UNIPCEMU_ANDROID_INTERNAL); //Auto-cleanup the other option!
 		UniPCEmu_root_dir_setting = 1; //External!
 	}
 	else //Default to internal storage!
 	{
 		strcpy(BIOS_Settings_file, SETTINGS_FILE_ANDROID_INTERNAL); //Internal settings!
 		strcpy(UniPCEmu_root_dir, UNIPCEMU_ANDROID_INTERNAL); //Internal storage!
-		rmdir(UNIPCEMU_ANDROID_EXTERNAL); //Auto-cleanup the other option!
+		removedirectory(UNIPCEMU_ANDROID_EXTERNAL); //Auto-cleanup the other option!
 		UniPCEmu_root_dir_setting = 0; //Internal!
 	}
-	mkdir(UniPCEmu_root_dir); //Auto-create our root directory!
+	domkdir(UniPCEmu_root_dir); //Auto-create our root directory!
 	BIOS_updateDirectories(); //Update all directories!
 #endif
 }
