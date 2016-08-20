@@ -1641,8 +1641,8 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		strcpy(menuoptions[advancedoptions++],"Load Setting defaults"); //Load defaults option!
 
 		#ifdef ANDROID
-		optioninfo[advancedoption] = 5; //Change storage medium!
-		strcpy(menuoptions[advancedoptions++], "UniPCEmu storage: "); //Load defaults option!
+		optioninfo[advancedoptions] = 5; //Change storage medium!
+		strcpy(menuoptions[advancedoptions], "UniPCEmu storage: "); //Load defaults option!
 		if (UniPCEmu_root_dir_setting) //External directory?
 		{
 			strcpy(menuoptions[advancedoptions++], "External memory"); //Load defaults option!
