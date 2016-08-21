@@ -582,6 +582,9 @@ void BIOSMenuResumeEMU()
 
 void BIOSMenuExecution()
 {
+	#ifdef ANDROID
+	debugrow("Executing BIOS menu...");
+	#endif
 	pauseEMU(); //Stop timers!
 	//Special Android support!
 	#ifdef SDL2
@@ -590,6 +593,9 @@ void BIOSMenuExecution()
 	toggleDirectInput(1);
 	unlock(LOCK_INPUT);
 	#endif
+	#endif
+	#ifdef ANDROID
+	debugrow("Starting BIOS menu...");
 	#endif
 	if (runBIOS(0)) //Run the emulator BIOS!
 	{
@@ -607,6 +613,9 @@ void BIOSMenuExecution()
 	lock(LOCK_CPU); //We're updating the CPU!
 	BIOSMenuResumeEMU(); //Resume the emulator from the BIOS menu thread!
 	unlock(LOCK_CPU);
+	#ifdef ANDROID
+	debugrow("Continuing execution of the main thread: BIOS Done...");
+	#endif
 }
 
 extern byte TurboMode; //Are we in Turbo mode?
@@ -669,6 +678,9 @@ OPTINLINE byte coreHandler()
 
 	double instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
 	byte timeout = TIMEOUT_INTERVAL; //Check every 10 instructions for timeout!
+	#ifdef ANDROID
+	debugrow("Starting core loop");
+	#endif
 	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
 	{
 		if (debugger_thread)
@@ -676,6 +688,9 @@ OPTINLINE byte coreHandler()
 			if (threadRunning(debugger_thread)) //Are we running the debugger?
 			{
 				updateAudio(getnspassed(&CPU_timing)); //Discard the time passed!
+				#ifdef ANDROID
+				debugrow("Aborting core loop, cause: debugger");
+				#endif
 				return 1; //OK, but skipped!
 			}
 		}
@@ -686,6 +701,9 @@ OPTINLINE byte coreHandler()
 				if ((CPU[activeCPU].halt&2)==0) //Are we allowed to be halted entirely?
 				{
 						updateAudio(getnspassed(&CPU_timing)); //Discard the time passed!
+						#ifdef ANDROID
+						debugrow("Aborting core loop, cause: Settings menu");
+						#endif
 						return 1; //OK, but skipped!
 				}
 				BIOSMenuAllowed = 0; //We're running the BIOS menu! Don't open it again!
@@ -696,11 +714,20 @@ OPTINLINE byte coreHandler()
 			BIOSMenuThread = NULL; //We don't run the BIOS menu anymore!
 		}
 
+		#ifdef ANDROID
+		debugrow("Checking allcleared...");
+		#endif
 		if (allcleared) return 0; //Abort: invalid buffer!
 
+		#ifdef ANDROID
+		debugrow("Validating registers...");
+		#endif
 		interruptsaved = 0; //Reset PIC interrupt to not used!
 		if (!CPU[activeCPU].registers) //We need registers at this point, but have none to use?
 		{
+			#ifdef ANDROID
+			debugrow("No registers available to run!");
+			#endif
 			return 0; //Invalid registers: abort, since we're invalid!
 		}
 		if (CPU[activeCPU].halt) //Halted?
@@ -708,6 +735,9 @@ OPTINLINE byte coreHandler()
 			if (romsize) //Debug HLT?
 			{
 				MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
+				#ifdef ANDROID
+				debugrow("ROMAbort!");
+				#endif
 				return 0; //Stop execution!
 			}
 
@@ -728,6 +758,9 @@ OPTINLINE byte coreHandler()
 			else
 			{
 				skipHaltRestart:
+				#ifdef ANDROID
+				debugrow("HLT state execution!");
+				#endif
 				if (DosboxClock) //Execute using Dosbox clocks?
 				{
 					CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now!
@@ -739,6 +772,9 @@ OPTINLINE byte coreHandler()
 			}
 			if (CPU[activeCPU].halt==1) //Normal halt?
 			{
+				#ifdef ANDROID
+				debugrow("HLTDebugger!");
+				#endif
 				//Increase the instruction counter every instruction/HLT time!
 				cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
 				if (cpudebugger) //Debugging?
@@ -752,6 +788,9 @@ OPTINLINE byte coreHandler()
 		else //We're not halted? Execute the CPU routines!
 		{
 			resumeFromHLT:
+			#ifdef ANDROID
+			debugrow("Executing instruction state OK!");
+			#endif
 			if (CPU[activeCPU].registers && doEMUsinglestep) //Single step enabled?
 			{
 				if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
@@ -771,6 +810,9 @@ OPTINLINE byte coreHandler()
 				}
 			}
 
+			#ifdef ANDROID
+			debugrow("BeforeExec!");
+			#endif
 			HWINT_saved = 0; //No HW interrupt by default!
 			CPU_beforeexec(); //Everything before the execution!
 			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
@@ -794,16 +836,31 @@ OPTINLINE byte coreHandler()
 					}
 				}
 			}
+			#ifdef ANDROID
+			debugrow("Set debugger for instruction!");
+			#endif
 			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
 			MMU_logging = debugger_logging(); //Are we logging?
+			#ifdef ANDROID
+			debugrow("Execute CPU!");
+			#endif
 			CPU_exec(); //Run CPU!
 
+			#ifdef ANDROID
+			debugrow("Step debugger!");
+			#endif
 			//Increase the instruction counter every instruction/HLT time!
 			debugger_step(); //Step debugger if needed!
 
+			#ifdef ANDROID
+			debugrow("Handle callbacks!");
+			#endif
 			CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 		}
 
+		#ifdef ANDROID
+		debugrow("Stepping timing!");
+		#endif
 		//Update current timing with calculated cycles we've executed!
 		instructiontime = CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
 		last_timing += instructiontime; //Increase CPU time executed!
@@ -821,6 +878,9 @@ OPTINLINE byte coreHandler()
 		updateVGA(instructiontime); //Update the VGA timer!
 		updateJoystick(instructiontime); //Update the Joystick!
 		updateAudio(instructiontime); //Update the general audio processing!
+		#ifdef ANDROID
+		debugrow("Stepping timing finished!");
+		#endif
 		if (--timeout==0) //Timed out?
 		{
 			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!
@@ -829,6 +889,9 @@ OPTINLINE byte coreHandler()
 		}
 	} //CPU cycle loop!
 
+	#ifdef ANDROID
+	debugrow("Slowing us down to requested speed!");
+	#endif
 	//Slowdown to requested speed if needed!
 	currenttiming += getnspassed(&CPU_timing); //Add real time!
 	for (;currenttiming < last_timing;) //Not enough time spent on instructions?
@@ -844,8 +907,14 @@ OPTINLINE byte coreHandler()
 
 	timeemulated += timeexecuted; //Add timing for the CPU percentage to update!
 
+	#ifdef ANDROID
+	debugrow("Updating keyboard timer!");
+	#endif
 	updateKeyboard(timeexecuted); //Tick the keyboard timer if needed!
 
+	#ifdef ANDROID
+	debugrow("Checking BIOS menu button!");
+	#endif
 	//Check for BIOS menu!
 	if (psp_keypressed(BUTTON_SELECT)) //Run in-emulator BIOS menu requested?
 	{
@@ -855,6 +924,9 @@ OPTINLINE byte coreHandler()
 			delay(0); //Wait a bit for the thread to start up!
 		}
 	}
+	#ifdef ANDROID
+	debugrow("Ready for next instruction.");
+	#endif
 	return 1; //OK!
 }
 
