@@ -74,7 +74,11 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	{
 		strcpy(filenametmp,"unknown"); //Empty filename = unknown.log!
 	}
+	#ifdef ANDROID
+	strcat(filenametmp,".txt"); //Do log here!
+	#else
 	strcat(filenametmp,".log"); //Do log here!
+	#endif
 
 	va_start (args, format); //Start list!
 	vsprintf (logtext, format, args); //Compile list!
