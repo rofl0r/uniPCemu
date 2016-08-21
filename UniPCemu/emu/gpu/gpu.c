@@ -119,13 +119,29 @@ byte GPU_plotsetting = 0;
 
 SDL_Surface *getGPUSurface()
 {
+	uint_32 xres, yres; //Our determinated resolution!
 	#ifdef IS_PSP
 	//PSP?
-	updateWindow(PSP_SCREEN_COLUMNS,PSP_SCREEN_ROWS,SDL_SWSURFACE); //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	xres = PSP_SCREEN_COLUMNS;
+	yres = PSP_SCREEN_ROWS; //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
+	GPU.fullscreen = 1; //Forced full screen!
+	goto windowupdated; //Skip other calculations!
 	#else
+	#if defined(ANDROID) && defined(SDL2)
+	//Get device display mode
+	SDL_DisplayMode displayMode;
+	if (SDL_GetCurrentDisplayMode(0,&displayMode)==0)
+	{
+		xres = displayMode.w;
+		yres = displayMode.h;
+		GPU.fullscreen = 1; //Forced full screen!	
+		goto windowready; //Skip other calculations!
+	}
+	#endif
+	#endif
+
 	//Windows etc?
 	//Other architecture?
-	uint_32 xres, yres; //Our determinated resolution!
 	word destxres, destyres;
 	if (VIDEO_DFORCED) //Forced?
 	{
@@ -172,7 +188,11 @@ SDL_Surface *getGPUSurface()
 	if (xres < minx) xres = minx; //Minimum width!
 	if (yres < miny) yres = miny; //Minimum height!
 
-	uint_32 flags = SDL_SWSURFACE; //Default flags!
+	uint_32 flags;
+	#if defined(ANDROID) || defined(IS_PSP)
+	windowready:
+	#endif
+	flags = SDL_SWSURFACE; //Default flags!
 	#ifndef SDL2
 	if (GPU.fullscreen) flags |= SDL_FULLSCREEN; //Goto fullscreen mode!
 	#else
@@ -194,7 +214,6 @@ SDL_Surface *getGPUSurface()
 		#endif
 	}
 	GPU_text_updatedelta(originalrenderer); //Update delta if needed, so the text is at the correct position!
-	#endif
 
 	//Determine the display masks!
 	if (originalrenderer) //Valid renderer?
