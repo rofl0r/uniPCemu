@@ -158,7 +158,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 			fwrite(&logtext2,1,safe_strlen(logtext2,sizeof(logtext2)),logfile); //Write string to file!
 		}
 		fwrite(&lineending,1,sizeof(lineending),logfile); //Write the line feed appropriate for the system after any write operation!
-#ifdef IS_PSP
+#if defined(IS_PSP) || defined(ANDROID)
 		//PSP doesn't buffer, because it's too slow!
 		fclose(logfile);
 		logfile = NULL; //We're finished!
