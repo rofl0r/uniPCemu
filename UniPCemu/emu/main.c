@@ -288,7 +288,11 @@ int main(int argc, char * argv[])
 	}
 	#endif
 	
-	if (DELETE_LOGS_ONBOOT) delete_file("logs","*.log"); //Delete any logs still there!
+	if (DELETE_LOGS_ONBOOT)
+	{
+		delete_file("logs","*.log"); //Delete any logs still there!
+		delete_file("logs","*.txt"); //Delete any logs still there!
+	}
 	if (DELETE_BMP_ONBOOT) delete_file("captures","*.bmp"); //Delete any bitmaps still there!
 	
 	#ifdef IS_PSP
