@@ -81,8 +81,11 @@ extern PIC i8259; //PIC processor!
 int emu_started = 0; //Emulator started (initEMU called)?
 
 //To debug init/doneemu?
+#ifdef ANDROID
+#define DEBUG_EMU 1
+#else
 #define DEBUG_EMU 0
-
+#endif
 //Report a memory leak has occurred?
 //#define REPORT_MEMORYLEAK
 
@@ -179,7 +182,7 @@ void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 
 void debugrow(char *text)
 {
-	if (DEBUG_EMU) dolog("zalloc",text); //Log it when enabled!
+	if (DEBUG_EMU) dolog("emu",text); //Log it when enabled!
 }
 
 /*
