@@ -863,20 +863,62 @@ OPTINLINE byte coreHandler()
 		#endif
 		//Update current timing with calculated cycles we've executed!
 		instructiontime = CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
+		#ifdef ANDROID
+		debugrow("Stepping timing1!");
+		#endif
 		last_timing += instructiontime; //Increase CPU time executed!
 		timeexecuted += instructiontime; //Increase CPU executed time executed this block!
+		#ifdef ANDROID
+		debugrow("Stepping timing PIT!");
+		#endif
 		tickPIT(instructiontime); //Tick the PIT as much as we need to keep us in sync!
+		#ifdef ANDROID
+		debugrow("Stepping timing DMA!");
+		#endif
 		updateDMA(instructiontime); //Update the DMA timer!
+		#ifdef ANDROID
+		debugrow("Stepping timing Mouse!");
+		#endif
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
+		#ifdef ANDROID
+		debugrow("Stepping timing DRO!");
+		#endif
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
+		#ifdef ANDROID
+		debugrow("Stepping timing Adlib!");
+		#endif
 		if (useAdlib) updateAdlib(instructiontime); //Tick the adlib timer if needed!
+		#ifdef ANDROID
+		debugrow("Stepping timing Game Blaster!");
+		#endif
 		if (useGameBlaster) updateGameBlaster(instructiontime); //Tick the Game Blaster timer if needed!
+		#ifdef ANDROID
+		debugrow("Stepping timing Sound Blaster!");
+		#endif
 		if (useSoundBlaster) updateSoundBlaster(instructiontime); //Tick the Sound Blaster timer if needed!
+		#ifdef ANDROID
+		debugrow("Stepping timing ATA!");
+		#endif
 		updateATA(instructiontime); //Update the ATA timer!
+		#ifdef ANDROID
+		debugrow("Stepping timing Parallel!");
+		#endif
 		tickParallel(instructiontime); //Update the Parallel timer!
+		#ifdef ANDROID
+		debugrow("Stepping timing LPTDAC!");
+		#endif
 		if (useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
+		#ifdef ANDROID
+		debugrow("Stepping timing VGA!");
+		#endif
 		updateVGA(instructiontime); //Update the VGA timer!
+		#ifdef ANDROID
+		debugrow("Stepping timing Joystick!");
+		#endif
 		updateJoystick(instructiontime); //Update the Joystick!
+		#ifdef ANDROID
+		debugrow("Stepping timing Audio!");
+		#endif
 		updateAudio(instructiontime); //Update the general audio processing!
 		#ifdef ANDROID
 		debugrow("Stepping timing finished!");

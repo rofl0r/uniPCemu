@@ -197,6 +197,9 @@ void updateInputMain() //Frequency 1000Hz!
 
 extern byte allcleared;
 
+extern double time_tick;
+extern double time_tickreverse;
+
 int main(int argc, char * argv[])
 {
 //Basic PSP stuff!
@@ -239,6 +242,10 @@ int main(int argc, char * argv[])
 	initTicksHolder(&CPUUpdate); //Initialise the Video Update timer!
 
 	initlog(); //Initialise the logging system!
+
+	#ifdef ANDROID
+	dolog("PIT","Init time passed: tick duration: %e, tick duration reversed: %e",time_tick,time_tickreverse);
+	#endif
 
 	//Normal operations!
 	resetTimers(); //Make sure all timers are ready!
