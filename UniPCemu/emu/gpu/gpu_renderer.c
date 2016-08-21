@@ -37,7 +37,7 @@ void renderScreenFrame() //Render the screen frame!
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
 	{
 		++frames_rendered; //Increase ammount of frames rendered!
-		if (haswindowactive) //Are we even visible and allowed to update?
+		if (haswindowactive==3) //Are we even visible and allowed to update?
 		{
 			safeFlip(rendersurface); //Set the new resized screen to use, if possible!
 		}

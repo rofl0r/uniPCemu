@@ -2551,7 +2551,7 @@ void toggleDirectInput(byte cause)
 	clearBuffers(); //Make sure the buffers are cleared when toggling, so we start fresh!
 }
 
-byte haswindowactive = 1; //Are we displayed on-screen?
+byte haswindowactive = 3; //Are we displayed on-screen?
 byte hasmousefocus = 1; //Do we have mouse focus?
 byte hasinputfocus = 1; //Do we have input focus?
 
@@ -3482,7 +3482,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		if (event->active.state&SDL_APPACTIVE) //Iconified/Restored?
 		{
-			haswindowactive = event->active.gain; //0=Iconified, 1=Restored.
+			haswindowactive = 2|event->active.gain; //0=Iconified, 1=Restored.
 		}
 		unlock(LOCK_INPUT);
 		break;
@@ -3492,12 +3492,12 @@ void updateInput(SDL_Event *event) //Update all input!
 		{
 			case SDL_WINDOWEVENT_MINIMIZED:
 				lock(LOCK_INPUT);
-				haswindowactive = 0; //Iconified!
+				haswindowactive &= ~1; //Iconified!
 				unlock(LOCK_INPUT);
 				break;
 			case SDL_WINDOWEVENT_RESTORED:
 				lock(LOCK_INPUT);
-				haswindowactive = 1; //Restored!
+				haswindowactive |= 1; //Restored!
 				unlock(LOCK_INPUT);
 				break;
 			case SDL_WINDOWEVENT_FOCUS_GAINED:
@@ -3529,7 +3529,12 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
 		lock(LOCK_INPUT);
-		haswindowactive = 0; //We're iconified! This also prevents drawing! This is critical!
+		haswindowactive &= ~2; //We're iconified! This also prevents drawing! This is critical!
+		unlock(LOCK_INPUT);
+		break;
+	case SDL_APP_DIDENTERFOREGROUND: //Are we pushing to the foreground?
+		lock(LOCK_INPUT);
+		haswindowactive |= 2; //We're not iconified! This also prevents drawing! This is critical!
 		unlock(LOCK_INPUT);
 		break;
 	case SDL_JOYDEVICEADDED: //Joystick has been connected?
