@@ -885,8 +885,17 @@ OPTINLINE byte coreHandler()
 		{
 			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!
 			currenttiming += getnspassed(&CPU_timing); //Check for passed time!
-			if (currenttiming >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
+			if (currenttiming >= timeoutCPUtime)
+			{
+				#ifdef ANDROID
+				debugrow("Timeout according to timeout interval!");
+				#endif
+				break; //Timeout? We're not fast enough to run at full speed!
+			}
 		}
+		#ifdef ANDROID
+		debugrow("Next cycle in block!");
+		#endif
 	} //CPU cycle loop!
 
 	#ifdef ANDROID
