@@ -3482,7 +3482,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		if (event->active.state&SDL_APPACTIVE) //Iconified/Restored?
 		{
-			haswindowactive = 2|event->active.gain; //0=Iconified, 1=Restored.
+			haswindowactive = (haswindowactive&~1)|(event->active.gain?1:0); //0=Iconified, 1=Restored.
 		}
 		unlock(LOCK_INPUT);
 		break;
