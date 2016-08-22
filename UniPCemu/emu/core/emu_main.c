@@ -93,7 +93,6 @@ byte cpurun() //The main thread for the emulator!
 //At this point everything is ready to go!
 	int emu_status;
 	emu_status = DoEmulator(); //Run the emulator!
-	debugrow("Checking return status...");
 	switch (emu_status) //What to do next?
 	{
 	case -1: //Continue running?
