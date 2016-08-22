@@ -2683,9 +2683,6 @@ void updateInput(SDL_Event *event) //Update all input!
 	{
 	//Keyboard events
 	case SDL_KEYUP: //Keyboard up?
-		#ifdef ANDROID
-		debugrow("keyupevent");
-		#endif
 		lock(LOCK_INPUT); //Wait!
 		if (((!(getjoystick(joystick,-1))) || Direct_Input) && hasinputfocus) //Gotten no joystick or is direct input?
 		{
@@ -2890,9 +2887,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		unlock(LOCK_INPUT);
 		break;
 	case SDL_KEYDOWN: //Keyboard down?
-		#ifdef ANDROID
-		debugrow("keydownevent");
-		#endif
 		#ifdef SDL2
 		if (event->key.repeat) return; //Ignore repeating keys! 
 		#endif
@@ -3069,9 +3063,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	//Joystick events
 	case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
-		#ifdef ANDROID
-		debugrow("joyaxismotionevent");
-		#endif
 		joysticktype = getjoystick(joystick,event->jaxis.which); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
@@ -3119,9 +3110,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		break;
 	case SDL_JOYHATMOTION: /* Handle joy hat motion */
-		#ifdef ANDROID
-		debugrow("joyhatmotionevent");
-		#endif
 		joysticktype = getjoystick(joystick,event->jhat.which); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
@@ -3169,9 +3157,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		break;
 	case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
-		#ifdef ANDROID
-		debugrow("joybuttondownevent");
-		#endif
 		joysticktype = getjoystick(joystick,event->jbutton.which); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
@@ -3268,9 +3253,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		break;
 	case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
-		#ifdef ANDROID
-		debugrow("joybuttonupevent");
-		#endif
 		joysticktype = getjoystick(joystick,event->jbutton.which); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
@@ -3369,9 +3351,6 @@ void updateInput(SDL_Event *event) //Update all input!
 
 	//Mouse events
 	case SDL_MOUSEBUTTONDOWN: //Button pressed?
-		#ifdef ANDROID
-		debugrow("mousebuttondownevent");
-		#endif
 		if (hasmousefocus) //Do we have mouse focus?
 		{
 			lock(LOCK_INPUT);
@@ -3401,9 +3380,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		break;
 	case SDL_MOUSEBUTTONUP: //Special mouse button action?
-		#ifdef ANDROID
-		debugrow("mousebuttonupevent");
-		#endif
 		if (hasmousefocus)
 		{
 			lock(LOCK_INPUT);
@@ -3465,9 +3441,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		break;
 	case SDL_MOUSEMOTION: //Mouse moved?
-		#ifdef ANDROID
-		debugrow("mousemotionevent");
-		#endif
 		if (hasmousefocus) //Do we have mouse focus?
 		{
 			lock(LOCK_INPUT);
@@ -3486,9 +3459,6 @@ void updateInput(SDL_Event *event) //Update all input!
 
 	//Misc system events
 	case SDL_QUIT: //Quit?
-		#ifdef ANDROID
-		debugrow("quitevent");
-		#endif
 		quitting:
 		lock(LOCK_INPUT);
 		if (joystick) //Gotten a joystick connected?
@@ -3501,9 +3471,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	#ifndef SDL2
 	case SDL_ACTIVEEVENT: //Window event?
-		#ifdef ANDROID
-		debugrow("activeevent");
-		#endif
 		lock(LOCK_INPUT);
 		if (event->active.state&SDL_APPMOUSEFOCUS)
 		{
@@ -3521,9 +3488,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	#else
 	case SDL_WINDOWEVENT: //SDL2 window event!
-		#ifdef ANDROID
-		debugrow("windowevent");
-		#endif
 		switch (event->window.event) //What event?
 		{
 			case SDL_WINDOWEVENT_MINIMIZED:
@@ -3564,37 +3528,22 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		break;
 	case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
-		#ifdef ANDROID
-		debugrow("backgroundevent");
-		#endif
 		lock(LOCK_INPUT);
 		haswindowactive &= ~2; //We're iconified! This also prevents drawing! This is critical!
 		unlock(LOCK_INPUT);
 		break;
 	case SDL_APP_DIDENTERFOREGROUND: //Are we pushing to the foreground?
-		#ifdef ANDROID
-		debugrow("foregroundevent");
-		#endif
 		lock(LOCK_INPUT);
 		haswindowactive |= 2; //We're not iconified! This also prevents drawing! This is critical!
 		unlock(LOCK_INPUT);
 		break;
 	case SDL_JOYDEVICEADDED: //Joystick has been connected?
-		#ifdef ANDROID
-		debugrow("joydeviceaddedevent");
-		#endif
 		connectJoystick(event->jdevice.which); //Connect to this joystick, is valid!
 		break;
 	case SDL_JOYDEVICEREMOVED: //Joystick has been removed?
-		#ifdef ANDROID
-		debugrow("joydeviceremovedevent");
-		#endif
 		disconnectJoystick(event->jdevice.which); //Disconnect our joystick if it's ours!
 		break;
 	case SDL_FINGERDOWN:
-		#ifdef ANDROID
-		debugrow("fingerdownevent");
-		#endif
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
 		lock(LOCK_INPUT);
 		GPU_mousebuttondown((word)(getxres()*event->tfinger.x), (word)(getyres()*event->tfinger.y),(event->tfinger.fingerId&0xFF)); //We're released at the current coordinates!
@@ -3602,9 +3551,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		unlock(LOCK_INPUT);		
 		break;
 	case SDL_FINGERUP:
-		#ifdef ANDROID
-		debugrow("fingerupevent");
-		#endif
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
 		lock(LOCK_INPUT);
 		GPU_mousebuttonup((word)(getxres()*event->tfinger.x), (word)(getyres()*event->tfinger.y),(event->tfinger.fingerId&0xFF)); //We're released at the current coordinates!
@@ -3612,9 +3558,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		unlock(LOCK_INPUT);		
 		break;
 	case SDL_FINGERMOTION:
-		#ifdef ANDROID
-		debugrow("fingermotionevent");
-		#endif
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
 		//Fingermotion uses dx,dy to indicate movement, fingerdown/fingerup declares hold/release!
 		//For now, move the mouse!
@@ -3632,9 +3575,6 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	#endif
 	default: //Unhandled/unknown event?
-		#ifdef ANDROID
-		debugrow("defaultunkevent");
-		#endif
 		break; //Ignore the event!
 	}
 }

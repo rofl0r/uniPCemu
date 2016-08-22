@@ -182,17 +182,11 @@ void updateInputMain() //Frequency 1000Hz!
 	{
 		do //Gotten events to handle?
 		{
-			#ifdef ANDROID
-			debugrow("Handling input event...");
-			#endif
 			//Handle an event!
 			updateInput(&event); //Update input status when needed!
 		}
 		while (SDL_PollEvent(&event)); //Keep polling while available!
 	}
-	#ifdef ANDROID
-	debugrow("Input event finished!");
-	#endif
 }
 
 extern byte allcleared;
@@ -328,7 +322,6 @@ int main(int argc, char * argv[])
 
 	resetmain: //Main reset!
 
-	debugrow("Starting core timers...");
 	startTimers(1); //Start core timing!
 	startTimers(0); //Disable normal timing!
 
@@ -372,15 +365,9 @@ int main(int argc, char * argv[])
 	//Start of the visible part!
 
 	initEMUreset(); //Reset initialisation!
-	#ifdef ANDROID
-	debugrow("Resetted!"); //Input update cycle!
-	#endif
 
 	if (!hasmemory()) //No MMU?
 	{
-		#ifdef ANDROID
-		debugrow("nomemory"); //Input update cycle!
-		#endif
 		dolog("BIOS", "EMU_BIOSLoader: we have no memory!");
 		BIOS_LoadIO(1); //Load basic BIOS I/O (disks), don't show checksum errors!
 		autoDetectMemorySize(0); //Check&Save memory size if needed!
@@ -388,9 +375,6 @@ int main(int argc, char * argv[])
 		goto skipcpu; //Reset!
 	}
 
-	#ifdef ANDROID
-	debugrow("preparing main thread timing..."); //Input update cycle!
-	#endif
 	//New SDL way!
 	/* Check for events */
 	getnspassed(&CPUUpdate);
@@ -401,22 +385,10 @@ int main(int argc, char * argv[])
 	timeemulated = 0.0; //Nothing has been emulated yet!
 	for (;;) //Still running?
 	{
-		#ifdef ANDROID
-		debugrow("updateinputmain"); //Input update cycle!
-		#endif
 		updateInputMain(); //Update input!
-		#ifdef ANDROID
-		debugrow("gettimepassed"); //Small delay cycle!
-		#endif
 		CPU_time += (uint_64)getuspassed(&CPUUpdate); //Update the CPU time passed!
-		#ifdef ANDROID
-		debugrow("checksmalldelay"); //Small delay cycle!
-		#endif
 		if (CPU_time>=10000) //Allow other threads to lock the CPU requirements once in a while!
 		{
-			#ifdef ANDROID
-			debugrow("smalldelay"); //Small delay cycle!
-			#endif
 			CPU_time %= 10000; //Rest!
 			unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
 			unlock(LOCK_MAINTHREAD); //Lock the main thread(us)!
@@ -424,17 +396,8 @@ int main(int argc, char * argv[])
 			lock(LOCK_MAINTHREAD); //Lock the main thread(us)!
 			lock(LOCK_CPU); //Lock the CPU: we're running!
 		}
-		#ifdef ANDROID
-		debugrow("updatevideomain"); //Input update cycle!
-		#endif
 		CPU_updateVideo(); //Update the video if needed from the CPU!
-		#ifdef ANDROID
-		debugrow("tickvideomain"); //Input update cycle!
-		#endif
 		GPU_tickVideo(); //Tick the video display to keep it up-to-date!
-		#ifdef ANDROID
-		debugrow("cpurunmain"); //Input update cycle!
-		#endif
 		if (cpurun()) break; //Stop running the CPU?
 	}
 

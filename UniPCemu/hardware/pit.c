@@ -167,32 +167,18 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	byte channel; //Current channel?
 	byte getIRQ; //IRQ triggered?
 
-	#ifdef ANDROID
-	dolog("PIT","Calculating total time passed: %f",timepassed);
-	#endif
 	i = time_ticktiming; //Load the current timing!
 	i += timepassed; //Add the amount of time passed to the PIT timing!
-
-	#ifdef ANDROID
-	dolog("PIT","Total time passed: %f, tick duration: %e, tick duration reversed: %e, tick rate: %e",i,time_tick,time_tickreverse,(double)TIME_RATE);
-	#endif
 
 	//Render 1.19MHz samples for the time that has passed!
 	length = floor(i*time_tickreverse); //How many ticks to tick?
 	i -= (length*time_tick); //Rest the amount of ticks!
 	time_ticktiming = i; //Save the new count!
 
-	#ifdef ANDROID
-	dolog("PIT","Length passed: %f",length);
-	#endif
-
 	if (length) //Anything to tick at all?
 	{
 		for (channel=0;channel<3;channel++)
 		{
-			#ifdef ANDROID
-			dolog("PIT","Ticking channel tick");
-			#endif
 			byte mode,outputmask;
 			mode = PITchannels[channel].mode; //Current mode!
 			outputmask = (channel==2)?((PCSpeakerPort&2)>>1):1; //Mask output on/off for this timer!
@@ -410,9 +396,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 		}
 	}
 
-	#ifdef ANDROID
-	dolog("PIT","Checking IRQ0 ticks...");
-	#endif
 	//IRQ0 output!
 	if (EMU_RUNNING == 1) //Are we running? We allow timers to execute!
 	{
@@ -444,9 +427,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	//Timer 1 output is discarded! We're not connected to anything or unneeded to emulate DRAM refresh!
 	//fifobuffer_clear(PITchannels[1].rawsignal); //Discard channel 1 output!
 	
-	#ifdef ANDROID
-	dolog("PIT","Ticking PC speaker ticks...");
-	#endif
 	//PC speaker output!
 	speaker_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
 	if ((speaker_ticktiming >= speaker_tick) && enablespeaker) //Enough time passed to render the physical PC speaker and enabled?
@@ -491,9 +471,6 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			}
 		}
 	}
-	#ifdef ANDROID
-	dolog("PIT","Finished!");
-	#endif
 }
 
 void initSpeakers(byte soundspeaker)
