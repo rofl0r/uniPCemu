@@ -27,10 +27,6 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 //What file to use for saving the BIOS!
 #define DEFAULT_SETTINGS_FILE "SETTINGS.DAT"
 #define DEFAULT_ROOT_PATH "."
-#define SETTINGS_FILE_ANDROID_EXTERNAL "/storage/external_SD/UniPCEmu/SETTINGS.DAT"
-#define UNIPCEMU_ANDROID_EXTERNAL "/storage/external_SD/UniPCEmu"
-#define SETTINGS_FILE_ANDROID_INTERNAL "/storage/sdcard0/UniPCEmu/SETTINGS.DAT"
-#define UNIPCEMU_ANDROID_INTERNAL "/storage/sdcard0/UniPCEmu"
 
 //Default values for new BIOS settings:
 #define DEFAULT_BOOT_ORDER 0
@@ -85,48 +81,32 @@ void BIOS_updateDirectories()
 void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start only!
 {
 	#ifdef ANDROID
+	char *rootpath=NULL;
 		//Android changes the root path!
-		removedirectory(UNIPCEMU_ANDROID_EXTERNAL);
-		removedirectory(UNIPCEMU_ANDROID_INTERNAL); //Auto-cleanup!
-		if (file_exists(SETTINGS_FILE_ANDROID_EXTERNAL)) //External settings exist?
+		if (SDL_AndroidGetExternalStorageState()==(SDL_ANDROID_EXTERNAL_STORAGE_WRITE|SDL_ANDROID_EXTERNAL_STORAGE_READ)) //External settings exist?
 		{
-			strcpy(BIOS_Settings_file,SETTINGS_FILE_ANDROID_EXTERNAL); //External settings!
-			strcpy(UniPCEmu_root_dir,UNIPCEMU_ANDROID_EXTERNAL); //External storage!
-			UniPCEmu_root_dir_setting = 1; //External!
+		rootpath = SDL_AndroidGetExternalStoragePath(); //Try external.
 		}
-		else //Default to internal storage!
+		if (rootpath==NULL)
 		{
-			strcpy(BIOS_Settings_file, SETTINGS_FILE_ANDROID_INTERNAL); //Internal settings!
-			strcpy(UniPCEmu_root_dir, UNIPCEMU_ANDROID_INTERNAL); //Internal storage!
-			UniPCEmu_root_dir_setting = 0; //Internal!
+		rootpath = SDL_AndroidGetInternalStoragePath(); //Try internal!
 		}
+		if (rootpath) //Valid overridden root path?
+		{
+		strcpy(UniPCemu_root_dir,rootpath); //Detected root path!
+		}
+		else //Default path?
+		{
+		strcpy(UniPCemu_root_dir,DEFAULT_ROOT_PATH);
+		}
+		
+		strcpy(BIOS_Settings_file,UniPCemu_root_dir); //Our settings file location!
+		strcat(BIOS_Settings_file,"/"); //Inside the directory!
+			strcat(BIOS_Settings_file,DEFAULT_SETTINGS_FILE); //Our settings file!
 		domkdir(UniPCEmu_root_dir); //Auto-create our root directory!
 		BIOS_updateDirectories(); //Update all directories!
 		//Normal devices? Don't detect!
 	#endif
-}
-
-void BIOS_SwitchAndroidStorage()
-{
-#ifdef ANDROID
-	delete_file(UniPCEmu_root_dir,DEFAULT_SETTINGS_FILE); //Remove the old settings file!
-	if (strcmp(&BIOS_Settings_file[0],SETTINGS_FILE_ANDROID_INTERNAL)==0) //Internal settings exist?
-	{
-		strcpy(BIOS_Settings_file, SETTINGS_FILE_ANDROID_EXTERNAL); //External settings!
-		strcpy(UniPCEmu_root_dir, UNIPCEMU_ANDROID_EXTERNAL); //External storage!
-		removedirectory(UNIPCEMU_ANDROID_INTERNAL); //Auto-cleanup the other option!
-		UniPCEmu_root_dir_setting = 1; //External!
-	}
-	else //Default to internal storage!
-	{
-		strcpy(BIOS_Settings_file, SETTINGS_FILE_ANDROID_INTERNAL); //Internal settings!
-		strcpy(UniPCEmu_root_dir, UNIPCEMU_ANDROID_INTERNAL); //Internal storage!
-		removedirectory(UNIPCEMU_ANDROID_EXTERNAL); //Auto-cleanup the other option!
-		UniPCEmu_root_dir_setting = 0; //Internal!
-	}
-	domkdir(UniPCEmu_root_dir); //Auto-create our root directory!
-	BIOS_updateDirectories(); //Update all directories!
-#endif
 }
 
 void forceBIOSSave()

@@ -1749,19 +1749,6 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	{
 		optioninfo[advancedoptions] = 2; //Load defaults option!
 		strcpy(menuoptions[advancedoptions++],"Load Setting defaults"); //Load defaults option!
-
-		#ifdef ANDROID
-		optioninfo[advancedoptions] = 5; //Change storage medium!
-		strcpy(menuoptions[advancedoptions], "UniPCEmu storage: "); //Load defaults option!
-		if (UniPCEmu_root_dir_setting) //External directory?
-		{
-			strcpy(menuoptions[advancedoptions++], "External memory"); //Load defaults option!
-		}
-		else
-		{
-			strcpy(menuoptions[advancedoptions++], "Internal memory"); //Load defaults option!
-		}
-		#endif
 	}
 
 #ifdef ANDROID
@@ -1781,7 +1768,6 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	case 2:
 	case 3:
 	case 4:
-	case 5:
 		switch (optioninfo[menuresult]) //What option is chosen?
 		{
 		case 0: //Save&Quit?
@@ -1806,14 +1792,6 @@ void BIOS_MainMenu() //Shows the main menu to process!
 			bootBIOS = 1; //Forced first run!
 			BIOS_Menu = -1; //Quit!
 			reboot_needed = 2; //We need a reboot!
-			break;
-		case 5: //Change active storage medium?
-			BIOS_SwitchAndroidStorage(); //Change active storage medium!
-			bootBIOS = 1; //Forced first run to return to the BIOS for resetting if needed!
-			reboot_needed = 2; //We need a reboot!
-			BIOS_Menu = -1; //Quit to reboot!
-			BIOS_SaveStat = 1; //Save our settings on the new location!
-			BIOS_Changed = 1; //We're to save!
 			break;
 		}
 		break;
