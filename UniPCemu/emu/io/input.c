@@ -33,7 +33,7 @@
 //Log input and output to compare?
 //#define __DEBUG_INPUT
 
-const float keyboard_mouseinterval = (1000000000.0f/30.0f); //Check mouse 30 times per second during mouse mode!
+double keyboard_mouseinterval = 0.0; //Check mouse 30 times per second during mouse mode!
 
 float mouse_xmove = 0, mouse_ymove = 0; //Movement of the mouse not processed yet (in mm)!
 byte Mouse_buttons = 0; //Currently pressed mouse buttons. 1=Left, 2=Right, 4=Middle.
@@ -2275,7 +2275,7 @@ void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're a
 
 void setMouseRate(float packetspersecond)
 {
-	mouse_interval = (1000000000.0f/packetspersecond); //Handles mouse input: we're a normal timer!
+	mouse_interval = (1000000000.0/packetspersecond); //Handles mouse input: we're a normal timer!
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
@@ -3741,6 +3741,9 @@ void psp_input_init()
 	//Apply joystick defaults!
 	enableJoystick(0,0); //Disable joystick 1!
 	enableJoystick(0,0); //Disable joystick 2!
+
+	//Initialize our timing!
+	keyboard_mouseinterval = (1000000000.0 / 30.0);
 }
 
 void psp_input_done()

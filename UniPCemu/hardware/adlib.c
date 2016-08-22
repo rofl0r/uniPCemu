@@ -55,8 +55,8 @@
 uint16_t baseport = 0x388; //Adlib address(w)/status(r) port, +1=Data port (write only)
 
 //Sample based information!
-const double usesamplerate = 14318180.0/288.0; //The sample rate to use for output!
-const double adlib_soundtick = 1000000000.0/(14318180.0f/288.0); //The length of a sample in ns!
+double usesamplerate = 0.0; //The sample rate to use for output!
+double adlib_soundtick = 0.0; //The length of a sample in ns!
 //The length of a sample step:
 #define adlib_sampleLength (1.0f / (14318180.0f / 288.0f))
 
@@ -651,7 +651,7 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	return result2; //Give the translated result!
 }
 
-float adlib_scaleFactor = SHRT_MAX / (3000.0f*9.0f); //We're running 9 channels in a 16-bit space, so 1/9 of SHRT_MAX
+float adlib_scaleFactor = 0.0f; //We're running 9 channels in a 16-bit space, so 1/9 of SHRT_MAX
 
 OPTINLINE word getphase(byte operator, float frequency) //Get the current phrase of the operator!
 {
@@ -1186,6 +1186,11 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 void initAdlib()
 {
 	if (__HW_DISABLED) return; //Abort!
+
+	//Initialize our timings!
+	adlib_scaleFactor = SHRT_MAX / (3000.0f*9.0f); //We're running 9 channels in a 16-bit space, so 1/9 of SHRT_MAX
+	usesamplerate = 14318180.0 / 288.0; //The sample rate to use for output!
+	adlib_soundtick = 1000000000.0 / (14318180.0f / 288.0); //The length of a sample in ns!
 
 	int i;
 	for (i = 0; i < 9; i++)

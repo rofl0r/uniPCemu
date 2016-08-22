@@ -73,7 +73,7 @@ struct
 	SAA1099 chips[2]; //The two chips for generating output!
 } GAMEBLASTER; //Our game blaster information!
 
-float AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //The amplifier, amplifying samples to the full range!
+float AMPLIFIER = 0.0; //The amplifier, amplifying samples to the full range!
 
 OPTINLINE byte SAAEnvelope(byte waveform, byte position)
 {
@@ -399,7 +399,7 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *ri
 	*rightsample = (sword)output_r; //Right sample result!
 }
 
-double gameblaster_soundtiming=0.0, gameblaster_soundtick=1000000000.0/__GAMEBLASTER_SAMPLERATE;
+double gameblaster_soundtiming=0.0, gameblaster_soundtick=0.0;
 void updateGameBlaster(double timepassed)
 {
 	if (GAMEBLASTER.baseaddr==0) return; //No game blaster?
@@ -606,6 +606,11 @@ void initGameBlaster(word baseaddr)
 	register_PORTIN(&inGameBlaster); //Input ports!
 	//All output!
 	register_PORTOUT(&outGameBlaster); //Output ports!
+
+	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
+
+	//Initialize our timings!
+	gameblaster_soundtick = 1000000000.0 / __GAMEBLASTER_SAMPLERATE;
 }
 
 void doneGameBlaster()

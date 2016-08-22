@@ -66,9 +66,9 @@ byte enablespeaker = 0; //Are we sounding the PC speaker?
 #endif
 
 double speaker_ticktiming; //Both current clocks!
-double speaker_tick = (1000000000.0 / (double)SPEAKER_RATE); //Time of a tick in the PC speaker sample!
-double time_tick = (1000000000.0 / (double)TIME_RATE); //Time of a tick in the PIT!
-double time_tickreverse = 1.0/(1000000000.0 / (double)TIME_RATE); //Reversed of time_tick(1/ticktime)!
+double speaker_tick = 0.0; //Time of a tick in the PC speaker sample!
+double time_tick = 0.0; //Time of a tick in the PIT!
+double time_tickreverse = 0.0; //Reversed of time_tick(1/ticktime)!
 
 byte IRQ0_status = 0, PIT1_status = 0; //Current IRQ0 status!
 
@@ -151,10 +151,11 @@ byte channel_reload[3] = {0,0,0}; //To reload the channel next cycle?
 float speaker_currentsample = 0, speaker_last_result = 0, speaker_last_sample = 0;
 byte speaker_first_sample = 1;
 
+double ticklength = 0.0; //Length of PIT samples to process every output sample!
+
 void tickPIT(double timepassed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
-	const double ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Length of PIT samples to process every output sample!
 	INLINEREGISTER double length; //Amount of samples to generate!
 	INLINEREGISTER double i;
 	uint_32 dutycyclei; //Input samples to process!
@@ -730,4 +731,9 @@ void init8253() {
 	if (__HW_DISABLED) return; //Abort!
 	register_PORTOUT(&out8253);
 	register_PORTIN(&in8253);
+
+	time_tick = (1000000000.0 / (double)TIME_RATE); //Time tick!
+	time_tickreverse = (1.0/time_tick); //Reversed!
+	speaker_tick = (1000000000.0 / (double)SPEAKER_RATE); //Speaker tick!
+	ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Time to speaker sample ratio!
 }

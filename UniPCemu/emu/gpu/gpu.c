@@ -49,7 +49,7 @@ byte video_aspectratio = 0; //Current aspect ratio!
 
 TicksHolder renderTiming;
 double currentRenderTiming = 0.0;
-double renderTimeout = 1000000000.0f/GPU_FRAMERATE; //60Hz refresh!
+double renderTimeout = 0.0; //60Hz refresh!
 
 #ifdef SDL2
 SDL_Window *sdlWindow = NULL;
@@ -295,6 +295,9 @@ void initVideoLayer() //We're for allocating the main video layer, only dealloca
 			}
 		}
 	}
+
+	//Initialize our timing!
+	renderTimeout = 1000000000.0 / GPU_FRAMERATE;
 }
 
 //Wrapped arround the EMU.

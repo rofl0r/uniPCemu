@@ -568,7 +568,7 @@ extern byte Direct_Input; //Are we in direct input mode?
 
 double last_timing = 0.0, timeemulated = 0.0; //Last timing!
 
-double CPU_speed_cycle = 1000000000.0f/CPU808X_CLOCK; //808X signal cycles by default!
+double CPU_speed_cycle = 0.0; //808X signal cycles by default!
 byte DosboxClock = 1; //We're executing using the Dosbox clock cycles?
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
@@ -625,11 +625,11 @@ void setDosboxCycles(byte useDosboxClock, uint_32 cycles)
 	DosboxClock = useDosboxClock; //Use Dosbox-clock style?
 	if (DosboxClock) //Dosbox clock cycles?
 	{
-		CPU_speed_cycle = 1000000.0f / (float)cycles; //Cycles per ms is used!
+		CPU_speed_cycle = 1000000.0 / (float)cycles; //Cycles per ms is used!
 	}
 	else //Actual clock cycles?
 	{
-		CPU_speed_cycle = 1000000000.0f / (float)cycles; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+		CPU_speed_cycle = 1000000000.0 / (float)cycles; //8086 CPU cycle length in us, since no other CPUs are known yet!	
 	}
 }
 
@@ -647,7 +647,7 @@ void updateSpeedLimit()
 	else //CPU speed cycles not set? No Dosbox cycles here normally (until implemented)!
 	{
 		DosboxClock = 0; //We're executing using actual clocks!
-		CPU_speed_cycle = 1000000000.0f/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+		CPU_speed_cycle = 1000000000.0/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
 		if (TurboMode) //Turbo mode enabled?
 		{
 			if (BIOS_Settings.TurboCPUSpeed) //Turbo speed specified?
@@ -656,7 +656,7 @@ void updateSpeedLimit()
 			}
 			else
 			{
-				CPU_speed_cycle = 1000000000.0f / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!	
+				CPU_speed_cycle = 1000000000.0 / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!	
 			}
 		}
 	}

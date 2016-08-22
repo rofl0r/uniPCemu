@@ -277,7 +277,7 @@ byte joystick_writeIO(word port, byte value)
 					if (sequencepos==NUMITEMS(WingManDigitalSequence)) //Sequence pattern matched?
 					{
 						JOYSTICK.model = MODEL_LOGITECH_WINGMAN_EXTREME_DIGITAL; //Enter digital WingMan Digital's digital mode!
-						JOYSTICK.digitaltiming_step = 1000000000.0f/(100000.0f*2.0f); //We're a signal going 1-0 or 0-1 at 100kHz!
+						JOYSTICK.digitaltiming_step = 1000000000.0/(100000.0*2.0); //We're a signal going 1-0 or 0-1 at 100kHz!
 					}
 					break;
 				}

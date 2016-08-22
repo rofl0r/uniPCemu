@@ -77,7 +77,7 @@ struct
 
 extern byte specialdebugger; //Enable special debugger input?
 
-double soundblaster_soundtiming = 0.0, soundblaster_soundtick = 1000000000.0 / __SOUNDBLASTER_SAMPLERATE;
+double soundblaster_soundtiming = 0.0, soundblaster_soundtick = 0.0;
 double soundblaster_sampletiming = 0.0, soundblaster_sampletick = 0.0;
 
 double soundblaster_IRR = 0.0, soundblaster_resettiming = 0.0; //No IRR nor reset requested!
@@ -1033,6 +1033,9 @@ void initSoundBlaster(word baseaddr, byte version)
 	registerDMATick(__SOUNDBLASTER_DMA8,&SoundBlaster_DREQ,&SoundBlaster_DACK,&SoundBlaster_TC);
 
 	DSP_HWreset(); //Hardware reset!
+
+	//Our tick timings!
+	soundblaster_soundtick = 1000000000.0 / __SOUNDBLASTER_SAMPLERATE;
 }
 
 void doneSoundBlaster()

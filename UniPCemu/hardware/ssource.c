@@ -19,7 +19,7 @@
 #define __COVOX_DBLBUFFER (4096*4)
 #define __COVOX_HWBUFFER (4096)
 
-double ssourcetiming = 0.0f, covoxtiming = 0.0f, ssourcetick=(1000000000.0f/__SSOURCE_RATE), covoxtick=(1000000000.0f/__COVOX_RATE);
+double ssourcetiming = 0.0f, covoxtiming = 0.0f, ssourcetick=0.0, covoxtick=0.0;
 byte ssource_ready = 0; //Are we running?
 FIFOBUFFER *ssourcestream = NULL; //Sound and covox source data stream and secondary buffer!
 SOUNDDOUBLEBUFFER ssource_soundbuffer, covox_soundbuffer; //Sound source and covox output buffers!
@@ -214,4 +214,8 @@ void initSoundsource() {
 	{
 		free_fifobuffer(&ssourcestream); //Finish the stream if it's there!
 	}
+
+	//Our tick timings!
+	ssourcetick = (1000000000.0 / __SSOURCE_RATE);
+	covoxtick = (1000000000.0 / __COVOX_RATE);
 }

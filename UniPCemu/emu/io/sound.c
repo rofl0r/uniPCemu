@@ -874,7 +874,7 @@ OPTINLINE static void HW_mixaudio(sample_stereo_p buffer, uint_32 length) //Mix 
 
 //Audio callbacks!
 
-double sound_soundtiming = 0.0, sound_soundtick = 1000000000.0 / HW_SAMPLERATE;
+double sound_soundtiming = 0.0, sound_soundtick = 0.0;
 uint_32 samples; //How many samples to render?
 void updateAudio(double timepassed)
 {
@@ -979,6 +979,8 @@ void initAudio() //Initialises audio subsystem!
 	{
 		if (!SDLAudio_Loaded) //Not loaded yet?
 		{
+			sound_soundtick = 1000000000.0 / HW_SAMPLERATE; //Load the default sound rate!
+
 			if (!audioticksready) //Not ready yet?
 			{
 				initTicksHolder(&audioticks); //Init!
