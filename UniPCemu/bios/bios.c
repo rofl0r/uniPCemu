@@ -85,24 +85,24 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		//Android changes the root path!
 		if (SDL_AndroidGetExternalStorageState()==(SDL_ANDROID_EXTERNAL_STORAGE_WRITE|SDL_ANDROID_EXTERNAL_STORAGE_READ)) //External settings exist?
 		{
-		rootpath = SDL_AndroidGetExternalStoragePath(); //Try external.
+			rootpath = SDL_AndroidGetExternalStoragePath(); //Try external.
 		}
 		if (rootpath==NULL)
 		{
-		rootpath = SDL_AndroidGetInternalStoragePath(); //Try internal!
+			rootpath = SDL_AndroidGetInternalStoragePath(); //Try internal!
 		}
 		if (rootpath) //Valid overridden root path?
 		{
-		strcpy(UniPCemu_root_dir,rootpath); //Detected root path!
+			strcpy(UniPCemu_root_dir,rootpath); //Detected root path!
 		}
 		else //Default path?
 		{
-		strcpy(UniPCemu_root_dir,DEFAULT_ROOT_PATH);
+			strcpy(UniPCemu_root_dir,DEFAULT_ROOT_PATH);
 		}
 		
 		strcpy(BIOS_Settings_file,UniPCemu_root_dir); //Our settings file location!
 		strcat(BIOS_Settings_file,"/"); //Inside the directory!
-			strcat(BIOS_Settings_file,DEFAULT_SETTINGS_FILE); //Our settings file!
+		strcat(BIOS_Settings_file,DEFAULT_SETTINGS_FILE); //Our settings file!
 		domkdir(UniPCEmu_root_dir); //Auto-create our root directory!
 		BIOS_updateDirectories(); //Update all directories!
 		//Normal devices? Don't detect!
