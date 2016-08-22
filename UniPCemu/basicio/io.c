@@ -6,7 +6,7 @@
 #include "headers/support/log.h" //Logging support!
 //Basic low level i/o functions!
 
-char diskpath[6] = "disks"; //The full disk path of the directory containing the disk images!
+char diskpath[256] = "disks"; //The full disk path of the directory containing the disk images!
 
 IODISK disks[0x100]; //All disks available, up go 256 (drive 0-255) disks!
 

@@ -56,10 +56,12 @@
 //Boot time in 2 seconds!
 #define BOOTTIME 2000000
 
-extern char diskpath[6]; //The full disk path used!
+extern char diskpath[256]; //The full disk path used!
 
-char soundfontpath[11] = "soundfonts";
-char musicpath[6] = "music"; //Music directory containing all music!
+char soundfontpath[256] = "soundfonts";
+char musicpath[256] = "music"; //Music directory containing all music!
+
+char menuoptions[256][256]; //Going to contain the menu's for BIOS_ShowMenu!
 
 typedef struct
 {
@@ -380,7 +382,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 //Now reset/save all we need to run the BIOS!
 	GPU.show_framerate = 0; //Hide the framerate surface!	
-	
+
 	#ifdef ANDROID
 	dolog("settings","Starting settings menu...");
 	#endif
@@ -410,6 +412,8 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	#ifdef ANDROID
 	dolog("settings", "Loading required Settings data...");
 	#endif
+
+	memset(&menuoptions,0,sizeof(menuoptions)); //Init all options that might be used!
 
 	BIOS_LoadData(); //Now load/reset the BIOS
 	BIOS_Changed = 0; //Default: the BIOS hasn't been changed!
@@ -712,8 +716,6 @@ void BIOS_Title(char *text)
 	EMU_textcolor(BIOSHEADER_ATTR); //Header fontcolor!
 	printcenter(text,2); //Show title text!
 }
-
-char menuoptions[256][256]; //Going to contain the menu's for BIOS_ShowMenu!
 
 //allowspecs: allow special keys to break?
 
@@ -1704,7 +1706,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	dolog("settings", "Clearing options!");
 	#endif
 	int i;
-	for (i=0; i<2; i++)
+	for (i=0; i<6; i++)
 	{
 		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
 	}

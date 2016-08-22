@@ -198,7 +198,7 @@ extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/
 
 extern byte allcleared;
 
-extern char soundfontpath[11]; //The soundfont path!
+extern char soundfontpath[256]; //The soundfont path!
 
 byte useGameBlaster; //Using the Game blaster?
 byte useAdlib; //Using the Adlib?
