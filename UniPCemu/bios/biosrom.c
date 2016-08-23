@@ -293,7 +293,9 @@ int BIOS_load_custom(char *rom)
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	strcpy(filename,rom); //Create the filename for the ROM!
+	strcpy(filename,ROMpath); //Where to find our ROM!
+	strcat(filename,"/");
+	strcat(filename,rom); //Create the filename for the ROM!
 	f = fopen(filename,"rb");
 	if (!f)
 	{
