@@ -97,7 +97,7 @@ typedef struct
 	byte purpose; //0=Normal voice, 1=Drum channel!
 	word bank; //What bank are we playing from?
 	byte instrument; //What instrument are we playing?
-	byte locknumber; //What lock number do we have?
+	byte locknumber; //What lock number do we have? Only valid when actually used(lock defined)!
 	float initialAttenuation; //Initial attenuation!
 } MIDIDEVICE_VOICE;
 
