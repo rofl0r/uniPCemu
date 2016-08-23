@@ -251,7 +251,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			byte verified;
 			verified = 0; //Default: not verified!
 			lock(LOCK_CPU);
-				verified = BIOS_load_custom("BIOSROM.BIN"); //Try to load a custom BIOS ROM!
+				verified = BIOS_load_custom(NULL,"BIOSROM.BIN"); //Try to load a custom BIOS ROM!
 				if (verified) goto loadOPTROMS; //Loaded the BIOS?
 
 			//Load a normal BIOS ROM, according to the chips!

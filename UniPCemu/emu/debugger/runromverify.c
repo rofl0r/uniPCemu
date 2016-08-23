@@ -89,7 +89,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	
 	fclose(f); //Close the ROM!
 	
-	if (!BIOS_load_custom(filename)) //Failed to load the BIOS ROM?
+	if (!BIOS_load_custom("",filename)) //Failed to load the BIOS ROM?
 	{
 		doneEMU(); //Finish the emulator!
 		dolog("ROM_log","Failed loading the verification ROM as a BIOS!");

@@ -288,12 +288,19 @@ byte *BIOS_custom_ROM;
 uint_32 BIOS_custom_ROM_size;
 char customROMname[256]; //Custom ROM name!
 
-int BIOS_load_custom(char *rom)
+int BIOS_load_custom(char *path, char *rom)
 {
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	strcpy(filename,ROMpath); //Where to find our ROM!
+	if (!path)
+	{
+		strcpy(filename,ROMpath); //Where to find our ROM!
+	}
+	else
+	{
+		strcpy(filename, path); //Where to find our ROM!
+	}
 	strcat(filename,"/");
 	strcat(filename,rom); //Create the filename for the ROM!
 	f = fopen(filename,"rb");
