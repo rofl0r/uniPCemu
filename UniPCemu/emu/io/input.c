@@ -1460,6 +1460,38 @@ void updateFingerOSK_mouse()
 	}
 }
 
+OPTINLINE static void setOSKfont(EMU_KEYINFO *currentkey, uint_32 font, uint_32 back)
+{
+	word screenx;
+	word y; //The position inside the key text!
+	byte textx; //X inside the text!
+	word startx; //Backup of the screen x of the key!
+	screenx = currentkey->x; //Screen x!
+	y = currentkey->y; //Screen y!
+	startx = screenx; //Save a copy of the beginning of the character!
+	for (textx = 0;textx<strlen(currentkey->facetext);++textx) //Check all our key positions!
+	{
+		//Based on GPU_textprintf function.
+		if (currentkey->facetext[textx] == '\t') //Return to start x?
+		{
+			screenx = startx; //Return to the specified position!
+		}
+		else if ((currentkey->facetext[textx] == '\r' && !USESLASHN) || (currentkey->facetext[textx] == '\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
+		{
+			screenx = 0; //Move to the left!
+		}
+		if (currentkey->facetext[textx] == '\n') //CR?
+		{
+			++y; //Next Y!
+		}
+		else if (currentkey->facetext[textx] != '\r') //Never display \r!
+		{
+			//Normal visible character?
+			GPU_textsetxyfont(keyboardsurface, FINGEROSK_BASEX + screenx++, FINGEROSK_BASEY + y,font,back); //Set the font?
+		}
+	}
+}
+
 OPTINLINE static void updateFingerOSK()
 {
 	static byte OSKdrawn = 0; //Are we drawn?
@@ -1470,6 +1502,7 @@ OPTINLINE static void updateFingerOSK()
 	byte textx; //X inside the text!
 	word startx; //Backup of the screen x of the key!
 	uint_32 fontcolor = getemucol16(BIOS_Settings.input_settings.fontcolor); //Font color!
+	uint_32 activecolor = getemucol16(BIOS_Settings.input_settings.activecolor); //Font color!
 	uint_32 bordercolor = getemucol16(BIOS_Settings.input_settings.bordercolor); //Border color!
 	word screenx;
 	if (FINGEROSK) //OSK enabled?
@@ -1519,11 +1552,13 @@ OPTINLINE static void updateFingerOSK()
 			}
 			if (pressed && (currentkey->pressed == 0)) //Are we pressed?
 			{
+				setOSKfont(currentkey,fontcolor,activecolor); //Set us to the active color!
 				currentkey->pressed = 1; //We're pressed!
 				fingerOSK_presskey(key); //We're pressed!
 			}
 			else if ((pressed == 0) && (currentkey->pressed)) //Are we released?
 			{
+				setOSKfont(currentkey, fontcolor, bordercolor); //Set us to the inactive color!
 				currentkey->pressed = 0; //We're released!
 				fingerOSK_releasekey(key); //We're release!
 			}
@@ -2739,9 +2774,11 @@ void updateInput(SDL_Event *event) //Update all input!
 				break;
 			case SDLK_LEFT: //LEFT?
 				input.Buttons &= ~BUTTON_LEFT; //Pressed!
+				dolog("input", "left released!");
 				break;
 			case SDLK_RIGHT: //RIGHT?
 				input.Buttons &= ~BUTTON_RIGHT; //Pressed!
+				dolog("input", "right released!");
 				break;
 			case SDLK_q: //LTRIGGER?
 				input.Buttons &= ~BUTTON_LTRIGGER; //Pressed!
@@ -2937,10 +2974,12 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.Buttons |= BUTTON_DOWN; //Pressed!
 				break;
 			case SDLK_LEFT: //LEFT?
+				dolog("input","left pressed!");
 				input.Buttons |= BUTTON_LEFT; //Pressed!
 				break;
 			case SDLK_RIGHT: //RIGHT?
 				input.Buttons |= BUTTON_RIGHT; //Pressed!
+				dolog("input", "right pressed!");
 				break;
 			case SDLK_q: //LTRIGGER?
 				input.Buttons |= BUTTON_LTRIGGER; //Pressed!
