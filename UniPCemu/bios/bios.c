@@ -82,27 +82,36 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 {
 	#ifdef ANDROID
 		//Android changes the root path!
-		strcpy(UniPCEmu_root_dir, DEFAULT_ROOT_PATH); //Default path!
+		#ifdef PELYAS_SDL
+			strcpy(UniPCEmu_root_dir, getenv("SDCARD")); //path!
+			strcat(UniPCEmu_root_dir, "/Android/data/superfury.unipcemu.sdl/files");
+		#else
+			char *environment;
+			if (environment = SDL_getenv("SDCARD")) //Autodetected?
+			{
+				strcpy(UniPCEmu_root_dir, environment); //path!
+				strcat(UniPCEmu_root_dir, "/Android/data/superfury.unipcemu.sdl/files");
+			}
+			else if (SDL_AndroidGetExternalStorageState() == (SDL_ANDROID_EXTERNAL_STORAGE_WRITE | SDL_ANDROID_EXTERNAL_STORAGE_READ)) //External settings exist?
+			{
+				if (SDL_AndroidGetExternalStoragePath()) //Try external.
+				{
+					strcpy(UniPCEmu_root_dir, SDL_AndroidGetExternalStoragePath()); //External path!
+				}
+				else if (SDL_AndroidGetInternalStoragePath()) //Try internal.
+				{
+					strcpy(UniPCEmu_root_dir, SDL_AndroidGetInternalStoragePath()); //Internal path!
+				}
+			}
+			else
+			{
+				if (SDL_AndroidGetInternalStoragePath()) //Try internal.
+				{
+					strcpy(UniPCEmu_root_dir, SDL_AndroidGetInternalStoragePath()); //Internal path!
+				}
+			}
+		#endif
 
-		if (SDL_AndroidGetExternalStorageState()==(SDL_ANDROID_EXTERNAL_STORAGE_WRITE|SDL_ANDROID_EXTERNAL_STORAGE_READ)) //External settings exist?
-		{
-			if (SDL_AndroidGetExternalStoragePath()) //Try external.
-			{
-				strcpy(UniPCEmu_root_dir, SDL_AndroidGetExternalStoragePath()); //External path!
-			}
-			else if (SDL_AndroidGetInternalStoragePath()) //Try internal.
-			{
-				strcpy(UniPCEmu_root_dir, SDL_AndroidGetInternalStoragePath()); //Internal path!
-			}
-		}
-		else
-		{
-			if (SDL_AndroidGetInternalStoragePath()) //Try internal.
-			{
-				strcpy(UniPCEmu_root_dir, SDL_AndroidGetInternalStoragePath()); //Internal path!
-			}
-		}
-		
 		strcpy(BIOS_Settings_file,UniPCEmu_root_dir); //Our settings file location!
 		strcat(BIOS_Settings_file,"/"); //Inside the directory!
 		strcat(BIOS_Settings_file,DEFAULT_SETTINGS_FILE); //Our settings file!
