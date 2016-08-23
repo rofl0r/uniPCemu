@@ -383,10 +383,6 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 //Now reset/save all we need to run the BIOS!
 	GPU.show_framerate = 0; //Hide the framerate surface!	
 
-	#ifdef ANDROID
-	dolog("settings","Starting settings menu...");
-	#endif
-
 //Now do the BIOS stuff!
 	if (showloadingtext) //Not in emulator?
 	{
@@ -395,23 +391,11 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 		delay(500000); //0.5 sec!
 	}
 
-	#ifdef ANDROID
-	dolog("settings", "Stopping emu timers...");
-	#endif
-
 	stopEMUTimers(); //Stop our timers!
 	
-	#ifdef ANDROID
-	dolog("settings", "Clearing screen...");
-	#endif
-
 	GPU_text_locksurface(frameratesurface);
 	GPU_textclearscreen(frameratesurface); //Make sure the surface is empty for a neat BIOS!
 	GPU_text_releasesurface(frameratesurface);
-
-	#ifdef ANDROID
-	dolog("settings", "Loading required Settings data...");
-	#endif
 
 	memset(&menuoptions,0,sizeof(menuoptions)); //Init all options that might be used!
 
@@ -426,25 +410,13 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 	reboot_needed = 0; //Do we need to reboot?
 
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu!");
-	#endif
-
 	BIOS_MenuChooser(); //Show the BIOS's menu we've selected!
-
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: returned!");
-	#endif
 
 	if (BIOS_Settings.firstrun) //First run?
 	{
 		BIOS_Settings.firstrun = 0; //Not the first run anymore!
 		forceBIOSSave(); //Save: we're not running again!
 	}
-
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: checked firstrun. Saving settings if needed...");
-	#endif
 
 	if (BIOS_SaveStat && BIOS_Changed) //To save the BIOS and BIOS has been changed?
 	{
@@ -494,78 +466,34 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 		delay(2000000); //Wait 2 sec!
 	}
 
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: finish screen!");
-	#endif
-
 	BIOSDoneScreen(); //Clean up the screen!
 //Now return to the emulator to reboot!
 
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: validating new settings!");
-	#endif
 	BIOS_ValidateData(); //Validate&reload all disks!
-
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: restarting emulator timers!");
-	#endif
 
 //Restore all states saved for the BIOS!
 	startEMUTimers(); //Start our timers up again!
 
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: check shutdown status!");
-	#endif
 	if (shuttingdown()) return 0; //We're shutting down, discard!
-
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: locking main thread to update!");
-	#endif
 
 	lock(LOCK_MAINTHREAD); //Lock the main thread!
 
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: starting VGA again!");
-	#endif
-
 	startVGA(); //Start the VGA up again!
 
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: starting input again!");
-	#endif
 	EMU_startInput(); //Start all emu input again!
-
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: updating VGA settings!");
-	#endif
 
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: updating VGA mode!");
-	#endif
 	if (BIOS_Settings.VGA_Mode!=oldVGAMode) //Mode changed?
 	{
 		VGA_initIO(); //Initialise/update the VGA if needed!
 	}
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: updating volume knobs!");
-	#endif
 	ssource_setVolume((float)BIOS_Settings.SoundSource_Volume); //Set the current volume!
 	GameBlaster_setVolume((float)BIOS_Settings.GameBlaster_Volume); //Set the current volume!
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: updating aspect ratio!");
-	#endif
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: updating framerate!");
-	#endif
 	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
 	unlock(LOCK_MAINTHREAD); //Continue!
 
-	#ifdef ANDROID
-	dolog("settings", "Executing settings menu: return: reboot needed when required: %i!", (reboot_needed == 2) || ((reboot_needed == 1) && (BIOS_SaveStat && BIOS_Changed))?1:0);
-	#endif
 	return (reboot_needed==2) || ((reboot_needed==1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
 }
 
@@ -676,30 +604,15 @@ void BIOS_MenuChooser() //The menu chooser!
 {
 	while (BIOS_Menu!=-1) //Still in the BIOS to open a menu?
 	{
-		#ifdef ANDROID
-		dolog("settings","Clearing screen for the settings to be viewed!");
-		#endif
 		BIOSClearScreen(); //Init the BIOS Background!
-		#ifdef ANDROID
-		dolog("settings", "Checking settings range!");
-		#endif
 		if (BIOS_Menu>=0 && BIOS_Menu<(sword)(NUMITEMS(BIOS_Menus))) //Within range of menus?
 		{
-			#ifdef ANDROID
-			dolog("settings", "Executing settings menu: %i!",BIOS_Menu);
-			#endif
 			BIOS_Menus[BIOS_Menu](); //Call the menu!
 		}
 		else
 		{
-			#ifdef ANDROID
-			dolog("settings", "Checking settings: out of range!");
-			#endif
 			BIOS_InvMenu(); //Invalid menu!
 		}
-		#ifdef ANDROID
-		dolog("settings", "Verifying shutdown by menu chooser!");
-		#endif
 		if (shuttingdown()) //Are we requesting a shutdown?
 		{
 			BIOS_SaveStat = 0; //Ignore any changes!
@@ -1692,27 +1605,14 @@ extern byte UniPCEmu_root_dir_setting; //The current root setting to be viewed!
 
 void BIOS_MainMenu() //Shows the main menu to process!
 {
-	#ifdef ANDROID
-	dolog("settings", "Setting main menu title!");
-	#endif
-
 	BIOS_Title("Main menu");
 
-	#ifdef ANDROID
-	dolog("settings", "Goto 0,4!");
-	#endif
 	EMU_gotoxy(0,4); //First row of the BIOS!
-	#ifdef ANDROID
-	dolog("settings", "Clearing options!");
-	#endif
 	int i;
 	for (i=0; i<6; i++)
 	{
 		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
 	}
-	#ifdef ANDROID
-	dolog("settings", "Setting up main menu options!");
-	#endif
 	advancedoptions = 0; //No advanced options!
 	if (BIOS_Changed) //Changed?
 	{
@@ -1751,15 +1651,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		strcpy(menuoptions[advancedoptions++],"Load Setting defaults"); //Load defaults option!
 	}
 
-#ifdef ANDROID
-	dolog("settings", "Showing main menu!");
-#endif
-
 	int menuresult = BIOS_ShowMenu(advancedoptions,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Plain menu, allow L&R triggers!
-
-#ifdef ANDROID
-	dolog("settings", "Main menu finished! Checking result!");
-#endif
 
 	switch (menuresult) //What option has been chosen?
 	{
@@ -1805,9 +1697,6 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		BIOS_Menu = NOTIMPLEMENTED; //Go out-of-range for invalid/unrecognised menu!
 		break;
 	}
-#ifdef ANDROID
-	dolog("settings", "Main menu finished! Returning to menu dispatcher!");
-#endif
 }
 
 FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 for none!
