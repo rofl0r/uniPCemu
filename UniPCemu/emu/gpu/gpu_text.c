@@ -340,6 +340,26 @@ int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32
 	return 1; //OK!
 }
 
+int GPU_textsetxyfont(GPU_TEXTSURFACE *surface, int x, int y, uint_32 font, uint_32 border) //Write a attribute only!
+{
+	if (allcleared) return 0; //Abort when all is cleared!
+	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)) return 0; //Abort without surface!
+	if (y >= GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
+	if (x >= GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
+	byte oldtext = surface->text[y][x];
+	uint_32 oldfont = surface->font[y][x];
+	uint_32 oldborder = surface->border[y][x];
+	surface->font[y][x] = font;
+	surface->border[y][x] = border;
+	uint_32 change;
+	font ^= oldfont;
+	border ^= oldborder;
+	change = font;
+	change |= border;
+	if (change) surface->flags |= TEXTSURFACE_FLAG_DIRTY; //Mark us as dirty when needed!
+	return 1; //OK!
+}
+
 void GPU_textclearrow(GPU_TEXTSURFACE *surface, int y)
 {
 	if (allcleared) return; //Abort when all is cleared!

@@ -56,6 +56,7 @@ void free_GPUtext(GPU_TEXTSURFACE **surface); //Frees an allocated GPU text over
 uint_64 GPU_textrenderer(void *surface); //Run the text rendering on pspsurface, result is the ammount of ms taken!
 int GPU_textgetxy(GPU_TEXTSURFACE *surface,int x, int y, byte *character, uint_32 *font, uint_32 *border); //Read a character+attribute!
 int GPU_textsetxy(GPU_TEXTSURFACE *surface,int x, int y, byte character, uint_32 font, uint_32 border); //Write a character+attribute!
+int GPU_textsetxyfont(GPU_TEXTSURFACE *surface, int x, int y, uint_32 font, uint_32 border); //Write a attribute only!
 void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...); //Write a string on the debug screen!
 void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y); //Goto coordinates!
 void GPU_textclearrow(GPU_TEXTSURFACE *surface, int y); //Clear a row!
