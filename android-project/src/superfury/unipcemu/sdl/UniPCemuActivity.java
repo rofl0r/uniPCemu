@@ -1,4 +1,4 @@
-package com.UniPCemu.app;
+package superfury.unipcemu.sdl;
 
 import org.libsdl.app.SDLActivity; 
 
