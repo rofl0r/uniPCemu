@@ -2774,11 +2774,9 @@ void updateInput(SDL_Event *event) //Update all input!
 				break;
 			case SDLK_LEFT: //LEFT?
 				input.Buttons &= ~BUTTON_LEFT; //Pressed!
-				dolog("input", "left released!");
 				break;
 			case SDLK_RIGHT: //RIGHT?
 				input.Buttons &= ~BUTTON_RIGHT; //Pressed!
-				dolog("input", "right released!");
 				break;
 			case SDLK_q: //LTRIGGER?
 				input.Buttons &= ~BUTTON_LTRIGGER; //Pressed!
@@ -2974,12 +2972,10 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.Buttons |= BUTTON_DOWN; //Pressed!
 				break;
 			case SDLK_LEFT: //LEFT?
-				dolog("input","left pressed!");
 				input.Buttons |= BUTTON_LEFT; //Pressed!
 				break;
 			case SDLK_RIGHT: //RIGHT?
 				input.Buttons |= BUTTON_RIGHT; //Pressed!
-				dolog("input", "right pressed!");
 				break;
 			case SDLK_q: //LTRIGGER?
 				input.Buttons |= BUTTON_LTRIGGER; //Pressed!
