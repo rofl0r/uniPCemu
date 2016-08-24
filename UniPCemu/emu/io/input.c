@@ -2711,7 +2711,7 @@ OPTINLINE word getyres()
 }
 
 #ifndef SDL2
-typedef SDL_FingerID int_64; //Finger ID type!
+typedef int_64 SDL_FingerID; //Finger ID type!
 #endif
 
 void touch_fingerDown(float x, float y, SDL_FingerID fingerId)
@@ -3364,13 +3364,13 @@ void updateInput(SDL_Event *event) //Update all input!
 				if (event->jball.ball<0x10) //Valid button protection?
 				{
 					float ballx,bally;
-					ballx = (event.jball.xrel/32767.0f); //X coordinate, normalized!
-					bally = (event.jball.yrel/32767.0f); //Y coordinate, normalized!
+					ballx = (event->jball.xrel/32767.0f); //X coordinate, normalized!
+					bally = (event->jball.yrel/32767.0f); //Y coordinate, normalized!
 					touchscreencoordinates_x[event->jball.ball] = ballx; //Set screen x coordinate normalized!
 					touchscreencoordinates_y[event->jball.ball] = bally; //Set screen y coordinate normalized!
-					if (touchstatus[event->jbutton.ball]) //Already touched?
+					if (touchstatus[event->jball.ball]) //Already touched?
 					{
-						touch_fingerMotion(touchscreencoordinates_x[event->jball.button], touchscreencoordinates_y[event->jball.button], (SDL_FingerID)event->jbutton.button); //Motion of the pressed finger now!
+						touch_fingerMotion(touchscreencoordinates_x[event->jball.ball], touchscreencoordinates_y[event->jball.ball], (SDL_FingerID)event->jball.ball); //Motion of the pressed finger now!
 					}
 				}
 			}
