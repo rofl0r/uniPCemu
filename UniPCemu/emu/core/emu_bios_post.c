@@ -204,35 +204,29 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		unlock(LOCK_MAINTHREAD);
 
 		//Special Android support!
-		#ifdef SDL2
 		#ifdef ANDROID
 		lock(LOCK_INPUT);
 		toggleDirectInput(1);
 		unlock(LOCK_INPUT);
-		#endif
 		#endif
 
 		if (CheckBIOSMenu(3000000)) //Run BIOS Menu if needed for a short time!
 		{
 			resumeEMU(1); //Start the emulator back up again!
 			//Special Android support!
-			#ifdef SDL2
 			#ifdef ANDROID
 			lock(LOCK_INPUT);
 			toggleDirectInput(1);
 			unlock(LOCK_INPUT);
 			#endif
-			#endif
 			return 1; //Reset after the BIOS!
 		}
 
 		//Special Android support!
-		#ifdef SDL2
 		#ifdef ANDROID
 		lock(LOCK_INPUT);
 		toggleDirectInput(1);
 		unlock(LOCK_INPUT);
-		#endif
 		#endif
 
 		if (shuttingdown()) return 0; //Abort!
@@ -394,12 +388,10 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		BIOS_ShowBIOS(); //Show BIOS information!
 		unlock(LOCK_MAINTHREAD);
 		//Special Android support!
-		#ifdef SDL2
 		#ifdef ANDROID
 		lock(LOCK_INPUT);
 		toggleDirectInput(1);
 		unlock(LOCK_INPUT);
-		#endif
 		#endif
 		if (CheckBIOSMenu(0)) //Run BIOS Menu if needed!
 		{
@@ -407,22 +399,20 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			resumeEMU(1); //Resume the emulator!
 
 			//Special Android support!
-			#ifdef SDL2
 			#ifdef ANDROID
+			lock(LOCK_INPUT);
 			toggleDirectInput(1);
-			#endif
+			unlock(LOCK_INPUT);
 			#endif
 			return 1; //Reset after the BIOS!
 		}
 #endif
 
 		//Special Android support!
-		#ifdef SDL2
 		#ifdef ANDROID
 		lock(LOCK_INPUT);
 		toggleDirectInput(1);
 		unlock(LOCK_INPUT);
-		#endif
 		#endif
 
 		lock(LOCK_MAINTHREAD);
