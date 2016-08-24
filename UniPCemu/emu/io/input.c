@@ -2710,6 +2710,62 @@ OPTINLINE word getyres()
 	return window_yres;
 }
 
+#ifndef SDL2
+typedef SDL_FingerID int_64; //Finger ID type!
+#endif
+
+void touch_fingerDown(float x, float y, SDL_FingerID fingerId)
+{
+		//Convert the touchId and fingerId to finger! For now, allow only one finger!
+		lock(LOCK_INPUT);
+		GPU_mousebuttondown((word)(getxres()*x), (word)(getyres()*y), (fingerId & 0xFF)); //We're released at the current coordinates!
+		updateFingerOSK();
+		unlock(LOCK_INPUT);
+}
+
+void touch_fingerUp(float x, float y, SDL_FingerID fingerId)
+{
+		//Convert the touchId and fingerId to finger! For now, allow only one finger!
+		lock(LOCK_INPUT);
+		GPU_mousebuttonup((word)(getxres()*x), (word)(getyres()*y), (fingerId & 0xFF)); //We're released at the current coordinates!
+		updateFingerOSK();
+		unlock(LOCK_INPUT);
+}
+
+sword lastxy[2][0x100]; //Last coordinates registered!
+
+void touch_fingerMotion(float relx, float rely, SDL_FingerID fingerId)
+{
+		//Convert the touchId and fingerId to finger! For now, allow only one finger!
+		//Fingermotion uses dx,dy to indicate movement, fingerdown/fingerup declares hold/release!
+		//For now, move the mouse!
+		int_64 relxfull, relyfull;
+		relxfull = (int_64)((float)getxres()*relx); //X coordinate on the screen!
+		relyfull = (int_64)((float)getyres()*rely); //Y coordinate on the screen!
+
+		fingerId &= 0xFF; //Only use lower 8-bits to limit us to a good usable range!
+		lock(LOCK_INPUT);
+		if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
+		{
+			mouse_xmove += lastxy[fingerId][0]-relxfull; //Move the mouse horizontally!
+			mouse_ymove += lastxy[fingerId][1]-relyfull; //Move the mouse vertically!
+		}
+		//Always update mouse coordinates for our own GUI handling!
+		mouse_x = (sword)relxfull; //X coordinate on the window!
+		mouse_y = (sword)relyfull; //Y coordinate on the window!
+
+		lastxy[fingerId][0] = (sword)relxfull; //Save the last coordinate for getting movement!
+		lastxy[fingerId][1] = (sword)relyfull; //Save the last coordinate for getting movement!
+		updateFingerOSK();
+		unlock(LOCK_INPUT);
+}
+
+#ifdef PELYAS_SDL
+byte touchstatus[0x10] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All Pelya finger statuses!
+float touchscreencoordinates_x[0x10] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f}; //Current screen coordinates of each finger!
+float touchscreencoordinates_y[0x10] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f}; //Current screen coordinates of each finger!
+#endif
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	byte joysticktype=0; //What joystick type?
@@ -3192,6 +3248,20 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		break;
 	case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
+		#ifdef PELYAS_SDL
+		if (event->jbutton.which==0)
+		{
+			if (event->jbutton.button<0x10) //Valid button protection?
+			{
+				if (!touchstatus[event->jbutton.button]) //Not touched yet?
+				{
+					touchstatus[event->jbutton.button] = 1; //We're touched!
+					touch_fingerDown(touchscreencoordinates_x[event->jbutton.button], touchscreencoordinates_y[event->jbutton.button],(SDL_FingerID)event->jbutton.button); //Press the finger now!
+				}
+			}
+		}
+		break; //Disable normal joystick handling: this is disabled!
+		#endif
 		joysticktype = getjoystick(joystick,event->jbutton.which); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
@@ -3287,7 +3357,42 @@ void updateInput(SDL_Event *event) //Update all input!
 			unlock(LOCK_INPUT);
 		}
 		break;
+	case SDL_JOYBALLMOTION:
+		#ifdef PELYAS_SDL
+			if (event->jbutton.which == 0)
+			{
+				if (event->jball.ball<0x10) //Valid button protection?
+				{
+					float ballx,bally;
+					ballx = (event.jball.xrel/32767.0f); //X coordinate, normalized!
+					bally = (event.jball.yrel/32767.0f); //Y coordinate, normalized!
+					touchscreencoordinates_x[event->jball.ball] = ballx; //Set screen x coordinate normalized!
+					touchscreencoordinates_y[event->jball.ball] = bally; //Set screen y coordinate normalized!
+					if (touchstatus[event->jbutton.ball]) //Already touched?
+					{
+						touch_fingerMotion(touchscreencoordinates_x[event->jball.button], touchscreencoordinates_y[event->jball.button], (SDL_FingerID)event->jbutton.button); //Motion of the pressed finger now!
+					}
+				}
+			}
+			break; //Disable normal joystick handling: this is disabled!
+		#endif
+		//We're not handling it normally!
+		break;
 	case SDL_JOYBUTTONUP:  /* Handle Joystick Button Releases */
+		#ifdef PELYAS_SDL
+			if (event->jbutton.which == 0)
+			{
+				if (event->jbutton.button<0x10) //Valid button protection?
+				{
+					if (touchstatus[event->jbutton.button]) //Not touched yet?
+					{
+						touchstatus[event->jbutton.button] = 0; //We're not touched anymore!
+						touch_fingerUp(touchscreencoordinates_x[event->jbutton.button], touchscreencoordinates_y[event->jbutton.button], (SDL_FingerID)event->jbutton.button); //Press the finger now!
+					}
+				}
+			}
+			break; //Disable normal joystick handling: this is disabled!
+		#endif
 		joysticktype = getjoystick(joystick,event->jbutton.which); //What joystick are we, if plugged in?
 		if (joysticktype && hasinputfocus) //Gotten a joystick that's supported?
 		{
@@ -3580,33 +3685,15 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_FINGERDOWN:
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
-		lock(LOCK_INPUT);
-		GPU_mousebuttondown((word)(getxres()*event->tfinger.x), (word)(getyres()*event->tfinger.y),(event->tfinger.fingerId&0xFF)); //We're released at the current coordinates!
-		updateFingerOSK();
-		unlock(LOCK_INPUT);		
+		touch_fingerDown(event->tfinger.x,event->tfinger.y, event->tfinger.fingerId);
 		break;
 	case SDL_FINGERUP:
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
-		lock(LOCK_INPUT);
-		GPU_mousebuttonup((word)(getxres()*event->tfinger.x), (word)(getyres()*event->tfinger.y),(event->tfinger.fingerId&0xFF)); //We're released at the current coordinates!
-		updateFingerOSK();
-		unlock(LOCK_INPUT);		
+		touch_fingerUp(event->tfinger.x, event->tfinger.y, event->tfinger.fingerId);
 		break;
 	case SDL_FINGERMOTION:
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
-		//Fingermotion uses dx,dy to indicate movement, fingerdown/fingerup declares hold/release!
-		//For now, move the mouse!
-		lock(LOCK_INPUT);
-		if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
-		{
-			mouse_xmove += getxres()*event->tfinger.dx; //Move the mouse horizontally!
-			mouse_ymove += getyres()*event->tfinger.dy; //Move the mouse vertically!
-		}
-		//Always update mouse coordinates for our own GUI handling!
-		mouse_x = event->motion.x; //X coordinate on the window!
-		mouse_y = event->motion.y; //Y coordinate on the window!
-		updateFingerOSK();
-		unlock(LOCK_INPUT);
+		touch_fingerMotion(event->tfinger.x, event->tfinger.y, event->tfinger.fingerId);
 		break;
 	#endif
 	default: //Unhandled/unknown event?
@@ -3719,6 +3806,7 @@ void psp_input_init()
 
 	//Initialize our timing!
 	keyboard_mouseinterval = (1000000000.0 / 30.0);
+	memset(&lastxy,0,sizeof(lastxy)); //Initialize our last xy coordinates!
 }
 
 void psp_input_done()
