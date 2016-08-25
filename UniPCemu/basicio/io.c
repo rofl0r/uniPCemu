@@ -12,7 +12,7 @@ IODISK disks[0x100]; //All disks available, up go 256 (drive 0-255) disks!
 
 void ioInit() //Resets/unmounts all disks!
 {
-	memset(disks,0,sizeof(disks)); //Initialise disks!
+	memset(&disks,0,sizeof(disks)); //Initialise disks!
 }
 
 byte drivereadonly(int drive)
@@ -21,7 +21,6 @@ byte drivereadonly(int drive)
 	switch (drive) //What drive?
 	{
 		case CDROM0:
-			return 1; //CDROM always readonly!
 		case CDROM1:
 			return 1; //CDROM always readonly!
 			break;
@@ -59,13 +58,17 @@ void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler) //Re
 	}
 }
 
-void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_32 customsize) //Disk mount routine!
+OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_32 customsize) //Disk mount routine!
 {
 	char fullfilename[256]; //Full filename of the mount!
 	memset(&fullfilename,0,sizeof(fullfilename));
 	strcpy(fullfilename,diskpath); //Load the disk path!
 	strcat(fullfilename,"/");
 	strcat(fullfilename,filename); //The full filename to use!
+	if (strcmp(filename, "")) //No filename specified?
+	{
+		strcpy(fullfilename,""); //No filename = no path to file!
+	}
 	byte dynamicimage = is_dynamicimage(fullfilename); //Dynamic image detection!
 	if (!dynamicimage) //Might be a static image when not a dynamic image?
 	{

@@ -115,6 +115,24 @@ typedef struct PACKED
 #define BWMONITOR_GREEN 2
 #define BWMONITOR_AMBER 3
 
+//Default values for new BIOS settings:
+#define DEFAULT_BOOT_ORDER 0
+#define DEFAULT_CPU CPU_NECV30
+#define DEFAULT_DEBUGMODE DEBUGMODE_NONE
+#define DEFAULT_EXECUTIONMODE EXECUTIONMODE_BIOS
+#define DEFAULT_DEBUGGERLOG DEBUGGERLOG_NONE
+#define DEFAULT_ASPECTRATIO 2
+#ifdef IS_PSP
+#define DEFAULT_DIRECTPLOT 0
+#else
+#define DEFAULT_DIRECTPLOT 2
+#endif
+#define DEFAULT_BWMONITOR BWMONITOR_NONE
+#define DEFAULT_SSOURCEVOL 100
+#define DEFAULT_BLASTERVOL 100
+#define DEFAULT_FRAMERATE 0
+#define DEFAULT_VGASYNCHRONIZATION 2
+
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!
 void BIOS_ValidateData(); //Validate all data and eject wrong ones!

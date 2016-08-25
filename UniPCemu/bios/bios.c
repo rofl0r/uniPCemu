@@ -28,23 +28,6 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 #define DEFAULT_SETTINGS_FILE "SETTINGS.DAT"
 #define DEFAULT_ROOT_PATH "."
 
-//Default values for new BIOS settings:
-#define DEFAULT_BOOT_ORDER 0
-#define DEFAULT_CPU CPU_NECV30
-#define DEFAULT_DEBUGMODE DEBUGMODE_NONE
-#define DEFAULT_EXECUTIONMODE EXECUTIONMODE_BIOS
-#define DEFAULT_DEBUGGERLOG DEBUGGERLOG_NONE
-#define DEFAULT_ASPECTRATIO 2
-#ifdef IS_PSP
-#define DEFAULT_DIRECTPLOT 0
-#else
-#define DEFAULT_DIRECTPLOT 2
-#endif
-#define DEFAULT_BWMONITOR BWMONITOR_NONE
-#define DEFAULT_SSOURCEVOL 100
-#define DEFAULT_FRAMERATE 0
-#define DEFAULT_VGASYNCHRONIZATION 2
-
 char BIOS_Settings_file[256] = DEFAULT_SETTINGS_FILE; //Our settings file!
 char UniPCEmu_root_dir[256] = DEFAULT_ROOT_PATH; //Our root path!
 byte UniPCEmu_root_dir_setting = 0; //The current root setting to be viewed!
@@ -195,6 +178,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.aspectratio = DEFAULT_ASPECTRATIO; //Don't keep aspect ratio by default!
 	BIOS_Settings.bwmonitor = DEFAULT_BWMONITOR; //Default B/W monitor setting!
 	BIOS_Settings.SoundSource_Volume = DEFAULT_SSOURCEVOL; //Default soundsource volume knob!
+	BIOS_Settings.GameBlaster_Volume = DEFAULT_BLASTERVOL; //Default Game Blaster volume knob!
 	BIOS_Settings.ShowFramerate = DEFAULT_FRAMERATE; //Default framerate setting!
 	BIOS_Settings.VGASynchronization = DEFAULT_VGASYNCHRONIZATION; //Default VGA synchronization setting!
 	

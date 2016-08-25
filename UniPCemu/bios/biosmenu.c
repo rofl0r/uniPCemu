@@ -1433,6 +1433,11 @@ void BIOS_BootOrderOption() //Manages the boot order
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
 		strcpy(itemlist[i],BOOT_ORDER_STRING[i]); //Set filename from options!
 	}
+	if (BIOS_Settings.bootorder>=numlist)
+	{
+		BIOS_Settings.bootorder = DEFAULT_BOOT_ORDER; //Set default boot order!
+		BIOS_Changed = 1; //We're changed always!
+	}
 	int file = ExecuteList(12,4,BOOT_ORDER_STRING[BIOS_Settings.bootorder],256,NULL); //Show options for the boot order!
 	switch (file) //Which file?
 	{
@@ -1440,7 +1445,7 @@ void BIOS_BootOrderOption() //Manages the boot order
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = 0; //First is default!
+		file = DEFAULT_BOOT_ORDER; //First is default!
 	default: //Changed?
 		BIOS_Changed = 1; //Changed!
 		BIOS_Settings.bootorder = (byte)file; //Use this option (need to typecast)!
@@ -1476,7 +1481,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	}
 	else //NEC V20/V30 (default)?
 	{
-		current = CPU_NECV30; //NEC V20/V30!
+		current = DEFAULT_CPU; //NEC V20/V30!
 	}
 	int file = ExecuteList(15,4,itemlist[current],256,NULL); //Show options for the installed CPU!
 	switch (file) //Which file?
@@ -1485,7 +1490,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default CPU!
+		file = DEFAULT_CPU; //Default CPU!
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
@@ -2707,7 +2712,7 @@ void BIOS_DebugMode()
 		current = BIOS_Settings.debugmode; //Valid: use!
 		break;
 	default: //Invalid
-		current = DEBUGMODE_NONE; //Default: none!
+		current = DEFAULT_DEBUGMODE; //Default: none!
 		break;
 	}
 	if (BIOS_Settings.debugmode!=current) //Invalid?
@@ -2722,7 +2727,7 @@ void BIOS_DebugMode()
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = DEBUGMODE_NONE; //Default debugmode: None!
+		file = DEFAULT_DEBUGMODE; //Default debugmode: None!
 
 	case DEBUGMODE_NONE:
 	case DEBUGMODE_RTRIGGER:
@@ -2773,7 +2778,7 @@ void BIOS_ExecutionMode()
 		current = BIOS_Settings.executionmode; //Valid: use!
 		break;
 	default: //Invalid
-		current = EXECUTIONMODE_NONE; //Default: none!
+		current = DEFAULT_EXECUTIONMODE; //Default: none!
 		break;
 	}
 	if (BIOS_Settings.executionmode != current) //Invalid?
@@ -2788,7 +2793,7 @@ void BIOS_ExecutionMode()
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = EXECUTIONMODE_NONE; //Default execution mode: None!
+		file = DEFAULT_EXECUTIONMODE; //Default execution mode: None!
 
 	case EXECUTIONMODE_NONE:
 	case EXECUTIONMODE_TEST:
@@ -2838,7 +2843,7 @@ void BIOS_DebugLog()
 		current = BIOS_Settings.debugger_log; //Valid: use!
 		break;
 	default: //Invalid
-		current = EXECUTIONMODE_NONE; //Default: none!
+		current = DEFAULT_DEBUGGERLOG; //Default: none!
 		break;
 	}
 	if (BIOS_Settings.debugger_log != current) //Invalid?
@@ -2853,7 +2858,7 @@ void BIOS_DebugLog()
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = DEBUGGERLOG_NONE; //Default execution mode: None!
+		file = DEFAULT_DEBUGGERLOG; //Default execution mode: None!
 
 	case DEBUGGERLOG_NONE: //None
 	case DEBUGGERLOG_DEBUGGING: //Only when debugging
@@ -2904,6 +2909,11 @@ void BIOS_DirectPlotSetting()
 	strcpy(itemlist[0],"Disabled"); //Set filename from options!
 	strcpy(itemlist[1],"Automatic"); //Set filename from options!
 	strcpy(itemlist[2],"Forced"); //Set filename from options!
+	if (BIOS_Settings.VGA_AllowDirectPlot >= numlist) //Invalid?
+	{
+		BIOS_Settings.VGA_AllowDirectPlot = DEFAULT_DIRECTPLOT; //Default!
+		BIOS_Changed = 1; //We've changed!
+	}
 	int current = 0;
 	switch (BIOS_Settings.VGA_AllowDirectPlot) //What direct plot?
 	{
@@ -2928,7 +2938,7 @@ void BIOS_DirectPlotSetting()
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default direct plot: None!
+		file = DEFAULT_DIRECTPLOT; //Default direct plot: None!
 
 	case 0:
 	case 1:
@@ -3004,6 +3014,11 @@ void BIOS_AspectRatio()
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
 	}
+	if (BIOS_Settings.aspectratio>=numlist) //Too high?
+	{
+		BIOS_Settings.aspectratio = DEFAULT_ASPECTRATIO; //Set the default!
+		BIOS_Changed = 1; //Changed!
+	}
 	strcpy(itemlist[0], "Fullscreen stretching"); //Set filename from options!
 	strcpy(itemlist[1], "Keep the same"); //Set filename from options!
 	strcpy(itemlist[2], "Force 4:3(VGA)"); //Set filename from options!
@@ -3037,7 +3052,7 @@ void BIOS_AspectRatio()
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default direct plot: None!
+		file = DEFAULT_ASPECTRATIO; //Default direct plot: None!
 
 	case 0:
 	case 1:
@@ -3076,6 +3091,12 @@ void BIOS_BWMonitor()
 	strcpy(itemlist[BWMONITOR_GREEN], "B/W monitor: green"); //Set filename from options!
 	strcpy(itemlist[BWMONITOR_AMBER], "B/W monitor: amber"); //Set filename from options!
 
+	if (BIOS_Settings.bwmonitor>=numlist) //Invalid?
+	{
+		BIOS_Settings.bwmonitor = DEFAULT_BWMONITOR; //Default!
+		BIOS_Changed = 1; //We've changed!
+	}
+
 	int current = 0;
 	switch (BIOS_Settings.bwmonitor) //What B/W monitor mode?
 	{
@@ -3101,7 +3122,7 @@ void BIOS_BWMonitor()
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = DEBUGGERLOG_NONE; //Default execution mode: None!
+		file = DEFAULT_BWMONITOR; //Default execution mode: None!
 
 	case BWMONITOR_NONE: //None
 	case BWMONITOR_WHITE: //Black/White
@@ -4698,7 +4719,7 @@ void BIOS_SoundSourceVolume()
 		//We do nothing with the selected percentage!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default setting: Quiet!
+		file = DEFAULT_SSOURCEVOL; //Default setting: Quiet!
 	default: //Changed?
 		if (file != BIOS_Settings.SoundSource_Volume) //Not current?
 		{
@@ -5003,7 +5024,7 @@ void BIOS_VGASynchronization()
 		current = BIOS_Settings.VGASynchronization; //Valid: use!
 		break;
 	default: //Invalid
-		current = 0; //Default: none!
+		current = DEFAULT_VGASYNCHRONIZATION; //Default: none!
 		break;
 	}
 	if (BIOS_Settings.VGASynchronization != current) //Invalid?
@@ -5018,7 +5039,7 @@ void BIOS_VGASynchronization()
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default setting: Disabled!
+		file = DEFAULT_VGASYNCHRONIZATION; //Default setting: Disabled!
 
 	case 0:
 	case 1:
@@ -5316,7 +5337,7 @@ void BIOS_GameBlasterVolume()
 		//We do nothing with the selected percentage!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default setting: Quiet!
+		file = DEFAULT_BLASTERVOL; //Default setting: Quiet!
 	default: //Changed?
 		if (file != BIOS_Settings.GameBlaster_Volume) //Not current?
 		{
