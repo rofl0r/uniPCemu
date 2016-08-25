@@ -2926,7 +2926,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			case SDLK_F10: //F10? Use F10 for simple compatiblity with Dosbox users.
 				if (RALT) //ALT-F10?
 				{
-					toggleDirectInput(2); //Toggle direct input alternwtive without mouse!
+					toggleDirectInput(2); //Toggle direct input alternative without mouse!
 				}
 				break;
 			default: //Unknown?

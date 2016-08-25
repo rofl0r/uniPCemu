@@ -311,7 +311,7 @@ int main(int argc, char * argv[])
 		raiseError("SDL Init error: %s",SDL_GetError()); //Raise an error!
 		sleep(); //Wait forever!
 	}
-	psp_input_init(); //Make sure input is checked!
+
 	initThreads(); //Initialise&reset thread subsystem!
 	initVideoLayer(); //We're for allocating the main video layer, only deallocated using SDL_Quit (when quitting the application)!
 

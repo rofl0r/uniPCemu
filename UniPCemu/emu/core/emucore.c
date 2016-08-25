@@ -216,6 +216,7 @@ void initEMU(int full) //Init!
 
 	initTicksHolder(&CPU_timing); //Initialise the ticks holder!
 
+	debugrow("Initializing user input...");
 	psp_input_init(); //Make sure input is set up!
 
 	initEMUmemory = freemem(); //Log free mem!
@@ -468,8 +469,10 @@ void doneEMU()
 		BIOS_done8042(); //Done with PS/2 communications!~
 		debugrow("doneEMU: reset audio channels...");
 		resetchannels(); //Release audio!
-		debugrow("doneEMU: finish Video...");
+		debugrow("doneEMU: Finishing Video...");
 		doneVideo(); //Cleanup screen buffers!
+		debugrow("doneEMU: Finishing user input...");
+		psp_input_done(); //Make sure input is set up!
 		debugrow("doneEMU: EMU finished!");
 		emu_started = 0; //Not started anymore!
 		EMU_RUNNING = 0; //We aren't running anymore!
@@ -588,7 +591,9 @@ void BIOSMenuExecution()
 	#endif
 	if (runBIOS(0)) //Run the emulator BIOS!
 	{
+		lock(LOCK_CPU); //We're updating the CPU!
 		reset = 1; //We're to reset!
+		unlock(LOCK_CPU);
 	}
 	#ifdef ANDROID
 	lock(LOCK_INPUT);

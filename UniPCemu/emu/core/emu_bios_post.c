@@ -406,7 +406,6 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			#endif
 			return 1; //Reset after the BIOS!
 		}
-#endif
 
 		//Special Android support!
 		#ifdef ANDROID
@@ -414,6 +413,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		toggleDirectInput(1);
 		unlock(LOCK_INPUT);
 		#endif
+#endif
 
 		lock(LOCK_MAINTHREAD);
 

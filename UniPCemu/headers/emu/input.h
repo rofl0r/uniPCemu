@@ -133,7 +133,6 @@ void updateInput(SDL_Event *event); //Update all input for SDL!
 #define SDLK_AUDIOPLAY 0x40000105
 #endif
 
-void keyboard_type_handler(); //Handles keyboard typing: we're an interrupt at 1000 ticks/second!
 void tickPendingKeys(double timepassed); //Handle all pending keys from our emulation! Updating every 1/1000th second!
 void reconnectJoystick0(); //For non-SDL2 compilations!
 
