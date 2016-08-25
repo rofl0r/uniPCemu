@@ -64,7 +64,7 @@ endif
 
 #Different kinds of flags!
 #Add -mno-ms-bitfields to fix broken bitfields and type sizes in MinGW.
-CFLAGS = -DPELYAS_SDL -std=c99 ${WARNS}
+CFLAGS = -DPELYAS_SDL -DANDROID -std=c99 ${WARNS}
 
 #Apply build directory etc.
 BUILD_RELEASE = $(BUILD_DIR)/$(TARGET_RELEASE)
