@@ -3424,8 +3424,8 @@ void updateInput(SDL_Event *event) //Update all input!
 				if (event->jball.ball<0x10) //Valid button protection?
 				{
 					float ballx,bally;
-					ballx = (event->jball.xrel/32767.0f); //X coordinate, normalized!
-					bally = (event->jball.yrel/32767.0f); //Y coordinate, normalized!
+					ballx = ((event->jball.xrel/32767.0f)+1.0f)*0.5f; //X coordinate, normalized!
+					bally = ((event->jball.yrel/32767.0f)+1.0f)*0.5f; //Y coordinate, normalized!
 					touchscreencoordinates_x[event->jball.ball] = ballx; //Set screen x coordinate normalized!
 					touchscreencoordinates_y[event->jball.ball] = bally; //Set screen y coordinate normalized!
 					if (touchstatus[event->jball.ball]) //Already touched?
