@@ -657,6 +657,8 @@ extern byte allcleared;
 
 double currenttiming = 0.0; //Current timing spent to emulate!
 
+extern byte Settings_request; //Settings requested to be executed?
+
 OPTINLINE byte coreHandler()
 {
 	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
@@ -845,10 +847,13 @@ OPTINLINE byte coreHandler()
 	updateKeyboard(timeexecuted); //Tick the keyboard timer if needed!
 
 	//Check for BIOS menu!
-	if (psp_keypressed(BUTTON_SELECT)) //Run in-emulator BIOS menu requested?
+	if (psp_keypressed(BUTTON_SELECT) || Settings_request) //Run in-emulator BIOS menu requested?
 	{
-		if (!is_gamingmode() && !Direct_Input && BIOSMenuAllowed) //Not gaming/direct input mode and allowed to open it(not already started)?
+		if ((!is_gamingmode() && !Direct_Input && BIOSMenuAllowed) || Settings_request) //Not gaming/direct input mode and allowed to open it(not already started)?
 		{
+			lock(LOCK_INPUT);
+			Settings_request = 0; //We're handling the request!
+			unlock(LOCK_INPUT);
 			BIOSMenuThread = startThread(&BIOSMenuExecution,"BIOSMenu",NULL); //Start the BIOS menu thread!
 			delay(0); //Wait a bit for the thread to start up!
 		}

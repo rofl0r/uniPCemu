@@ -52,6 +52,8 @@ double mouse_interval = 0.0f; //Check never by default (unused timer)!
 
 byte precisemousemovement = 0; //Precise mouse movement enabled?
 
+byte Settings_request = 0; //Requesting settings to be loaded?
+
 #ifdef SDL2
 extern SDL_Window *sdlWindow; //Our Window!
 #endif
@@ -958,7 +960,7 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 }
 
 //Rows: 3, one for top, middle, bottom.
-#define KEYBOARD_NUMY 4
+#define KEYBOARD_NUMY 5
 //Columns: 21: 10 for left, 1 space, 10 for right
 #define KEYBOARD_NUMX 21
 
@@ -1149,6 +1151,18 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	memcpy(&active_keyboard,&keyboards[keyboard_active],sizeof(active_keyboard)); //Set the active keyboard to the defined keyboard!
 	memset(keyboard_attribute,0,sizeof(keyboard_attribute)); //Default attributes to font color!
 	memset(keyboard_special,0,sizeof(keyboard_special)); //Default attributes to font color!
+
+	#ifdef ANDROID
+	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = 'S'; //OSK Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = 3;
+	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 2] = 'e'; //OSK Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 2] = 3;
+	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = 't'; //OSK Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = 3;
+	#endif
 
 	if (!input_enabled) //Input disabled atm?
 	{
@@ -1661,7 +1675,14 @@ void keyboard_renderer() //Render the keyboard on-screen!
 				break;
 			}
 			GPU_text_locksurface(keyboardsurface); //Lock us!
-			if (keyboard_special[y - ybase][x - xbase]==2) //Finger OSK toggle?
+			if (keyboard_special[y - ybase][x - xbase] == 3) //Special Settings toggle?
+			{
+				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED) //Settings menu toggle on click?
+				{
+					Settings_request = 1; //Requesting settings to be loaded!
+				}
+			}
+			else if (keyboard_special[y - ybase][x - xbase]==2) //Finger OSK toggle?
 			{
 				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED) //Finger OSK toggle on click?
 				{
