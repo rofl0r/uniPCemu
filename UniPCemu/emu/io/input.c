@@ -2825,17 +2825,14 @@ void updateInput(SDL_Event *event) //Update all input!
 			case SDLK_BACKSLASH: //HOLD?
 				input.Buttons &= ~BUTTON_HOLD; //Pressed!
 				break;
-			case SDLK_BACKSPACE: //SELECT?
+			#ifndef ANDROID
+			case SDLK_BACKSPACE: //SELECT? Not used on Android!
 				input.Buttons &= ~BUTTON_SELECT; //Pressed!
 				break;
-
+			#endif
 			#ifndef ANDROID
+			//Android doesn't have start, so it's ignored!
 			case SDLK_RETURN: //START?
-			#else
-			#ifndef SDL2
-			case SDLK_RETURN: //START?
-			#endif
-			#endif
 				input.Buttons &= ~BUTTON_START; //Pressed!
 				if (RALT) //RALT pressed too? Doubles as emulator fullscreen toggle!
 				{
@@ -2843,6 +2840,7 @@ void updateInput(SDL_Event *event) //Update all input!
 					updateVideo(); //Force an update of video!
 				}
 				break;
+			#endif
 			case SDLK_UP: //UP?
 				input.Buttons &= ~BUTTON_UP; //Pressed!
 				break;
@@ -2874,9 +2872,15 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.keyboardjoy_direction &= ~8; //Down!
 				break;
 			#ifndef SDL2
+			#ifdef ANDROID
+			//Android uses space!
+			case SDLK_SPACE:
+			#else
 			case SDLK_KP8: //TRIANGLE?
+			#endif
 			#else
 			#ifdef ANDROID
+			//Android uses space!
 			case SDLK_SPACE:
 			#else
 			case SDLK_KP_8: //TRIANGLE?
@@ -2892,10 +2896,16 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.Buttons &= ~BUTTON_SQUARE; //Pressed!
 				break;
 			#ifndef SDL2
-			case SDLK_KP6: //CIRCLE?
+			#ifdef ANDROID
+			//Android uses escape!
+			case SDLK_ESCAPE:
 			#else
-			#if defined(ANDROID) && !defined(SDL2)
-			case SDLK_ESC:
+			case SDLK_KP6: //CIRCLE?
+			#endif
+			#else
+			#ifdef ANDROID
+			//Android uses escape!
+			case SDLK_ESCAPE:
 			#else
 			case SDLK_KP_6: //CIRCLE?
 			#endif
@@ -2903,9 +2913,15 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.Buttons &= ~BUTTON_CIRCLE; //Pressed!
 				break;
 			#ifndef SDL2
-			case SDLK_KP2: //CROSS?
+			#ifdef ANDROID
+			//Android uses return!
+			case SDLK_RETURN:
 			#else
-			#if defined(ANDROID) && !defined(SDL2)
+			case SDLK_KP2: //CROSS?
+			#endif
+			#else
+			#ifdef ANDROID
+			//Android uses return!
 			case SDLK_RETURN:
 			#else
 			case SDLK_KP_2: //CROSS?
@@ -3031,10 +3047,14 @@ void updateInput(SDL_Event *event) //Update all input!
 			case SDLK_BACKSLASH: //HOLD?
 				input.Buttons |= BUTTON_HOLD; //Pressed!
 				break;
-			case SDLK_BACKSPACE: //SELECT?
+			#ifndef ANDROID
+			case SDLK_BACKSPACE: //SELECT? Not used on Android!
 				input.Buttons |= BUTTON_SELECT; //Pressed!
 				break;
+			#endif
+			#ifndef ANDROID
 			case SDLK_RETURN: //START?
+				//Android already has this mapped!
 				if (RALT) //ALT-ENTER?
 				{
 					unlock(LOCK_INPUT);
@@ -3042,6 +3062,7 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				input.Buttons |= BUTTON_START; //Pressed!
 				break;
+			#endif
 			case SDLK_UP: //UP?
 				input.Buttons |= BUTTON_UP; //Pressed!
 				break;
@@ -3073,9 +3094,15 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.keyboardjoy_direction |= 8; //Down!
 				break;
 			#ifndef SDL2
-			case SDLK_KP8: //TRIANGLE?
+			#ifdef ANDROID
+			//Android uses space!
+			case SDLK_SPACE:
 			#else
-			#if defined(ANDROID) && !defined(SDL2)
+			case SDLK_KP8: //TRIANGLE?
+			#endif
+			#else
+			#ifdef ANDROID
+			//Android uses space!
 			case SDLK_SPACE:
 			#else
 			case SDLK_KP_8: //TRIANGLE?
@@ -3091,10 +3118,16 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.Buttons |= BUTTON_SQUARE; //Pressed!
 				break;
 			#ifndef SDL2
-			case SDLK_KP6: //CIRCLE?
+			#ifdef ANDROID
+			//Android uses escape!
+			case SDLK_ESCAPE:
 			#else
-			#if defined(ANDROID) && !defined(SDL2)
-			case SDLK_ESC:
+			case SDLK_KP6: //CIRCLE?
+			#endif
+			#else
+			#ifdef ANDROID
+			//Android uses escape!
+			case SDLK_ESCAPE:
 			#else
 			case SDLK_KP_6: //CIRCLE?
 			#endif
@@ -3102,9 +3135,15 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.Buttons |= BUTTON_CIRCLE; //Pressed!
 				break;
 			#ifndef SDL2
-			case SDLK_KP2: //CROSS?
+			#ifdef ANDROID
+			//Android uses return!
+			case SDLK_RETURN:
 			#else
-			#if defined(ANDROID) && !defined(SDL2)
+			case SDLK_KP2: //CROSS?
+			#endif
+			#else
+			#ifdef ANDROID
+			//Android uses return!
 			case SDLK_RETURN:
 			#else
 			case SDLK_KP_2: //CROSS?
