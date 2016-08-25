@@ -3419,7 +3419,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_JOYBALLMOTION:
 		#ifdef PELYAS_SDL
-			if (event->jbutton.which == 0)
+			if (event->jball.which == 0)
 			{
 				if (event->jball.ball<0x10) //Valid button protection?
 				{
