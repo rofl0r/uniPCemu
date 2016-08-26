@@ -290,7 +290,7 @@ byte BIOS_printopentext(uint_32 timeout)
 	{
 		GPU_text_locksurface(BIOS_Surface);
 		GPU_textgotoxy(BIOS_Surface,0,0); //Goto our location!
-		result = GPU_textprintfclickable(BIOS_Surface,getemucol16(0xE),getemucol16(0x0), "Press SELECT to bring out the Settings menu");
+		result = GPU_textprintfclickable(BIOS_Surface,getemucol16(0xE),getemucol16(0x0),1, "Press SELECT to bring out the Settings menu");
 		GPU_text_releasesurface(BIOS_Surface);
 	}
 	return result; //Give the result!
@@ -665,7 +665,7 @@ byte BIOS_printscreen(word x, word y, byte attr, char *text, ...)
 
 	//Now display and return!
 	GPU_textgotoxy(BIOS_Surface,x,y); //Goto coordinates!
-	return GPU_textprintfclickable(BIOS_Surface,getemucol16(attr&0xF),getemucol16((attr>>4)&0xF),buffer); //Give the contents!
+	return GPU_textprintfclickable(BIOS_Surface,getemucol16(attr&0xF),getemucol16((attr>>4)&0xF),1,buffer); //Give the contents!
 }
 
 extern byte GPU_surfaceclicked; //Surface clicked to handle?
@@ -3211,7 +3211,7 @@ setJoysticktext: //For fixing it!
 	}
 
 #ifndef SDL2
-#ifndef IS_PSP
+#if !defined(IS_PSP) && !defined(ANDROID)
 	optioninfo[advancedoptions] = 4; //Reconnect joystick
 	strcpy(menuoptions[advancedoptions++], "Detect joystick"); //Detect the new joystick!
 #endif

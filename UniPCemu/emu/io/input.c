@@ -494,7 +494,7 @@ EMU_KEYINFO OSKinfo[104] = {
 	{"3\n\tPgDn",11,FINGEROSK_NUMROW3,0}, //KP 3
 	{"4\n\t\x1B",0,FINGEROSK_NUMROW2,0}, //KP 4
 	{"5",5,FINGEROSK_NUMROW2,0}, //KP 5
-	{"6\n\t\x1A",7,FINGEROSK_NUMROW2,0}, //KP 6
+	{"6\n\t\x1A",11,FINGEROSK_NUMROW2,0}, //KP 6
 	{"7\n\tHome",0,FINGEROSK_NUMROW1,0}, //KP 7
 	{"8\n\t\x18",5,FINGEROSK_NUMROW1,0}, //KP 8
 	{"9\n\tPgUp",11,FINGEROSK_NUMROW1,0}, //KP 9
@@ -1426,7 +1426,7 @@ void updateFingerOSK_mouse()
 			{
 				if (fingerOSK_buttons[y - FINGEROSK_BASEY][x - FINGEROSK_BASEX]==0 || newbutton) //Are we a new button?
 				{
-					if (GPU_textsetxyclickable(keyboardsurface,x,y,' ',0,0)&SETXYCLICKED_CLICKED) //Are we clicked?
+					if (GPU_textsetxyclickable(keyboardsurface,x,y,' ',0,0,0)&SETXYCLICKED_CLICKED) //Are we clicked?
 					{
 						buttonpending |= (1<<(buttonarea-1)); //Pend the button as released!
 					}
@@ -1529,7 +1529,7 @@ OPTINLINE static void updateFingerOSK()
 			for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
 			{
 				GPU_textgotoxy(keyboardsurface, currentkey->x + FINGEROSK_BASEX, currentkey->y + FINGEROSK_BASEY); //Goto the location of the key!
-				if (GPU_textprintfclickable(keyboardsurface, fontcolor, bordercolor, currentkey->facetext)&SETXYCLICKED_CLICKED) //Print the text on the screen!
+				if (GPU_textprintfclickable(keyboardsurface, fontcolor, bordercolor, 1,currentkey->facetext)&SETXYCLICKED_CLICKED) //Print the text on the screen!
 				{
 					fingerOSK_releasekey(key); //Releasing this key!
 				}
@@ -1677,14 +1677,14 @@ void keyboard_renderer() //Render the keyboard on-screen!
 			GPU_text_locksurface(keyboardsurface); //Lock us!
 			if (keyboard_special[y - ybase][x - xbase] == 3) //Special Settings toggle?
 			{
-				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED) //Settings menu toggle on click?
+				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor,0)&SETXYCLICKED_CLICKED) //Settings menu toggle on click?
 				{
 					Settings_request = 1; //Requesting settings to be loaded!
 				}
 			}
 			else if (keyboard_special[y - ybase][x - xbase]==2) //Finger OSK toggle?
 			{
-				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED) //Finger OSK toggle on click?
+				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor,0)&SETXYCLICKED_CLICKED) //Finger OSK toggle on click?
 				{
 					FINGEROSK ^= 1; //Toggle the Finger OSK!
 					GPU_text_releasesurface(keyboardsurface); //Lock us!
@@ -1694,7 +1694,7 @@ void keyboard_renderer() //Render the keyboard on-screen!
 			}
 			else if (keyboard_special[y - ybase][x - xbase]==1) //Screen capture?
 			{
-				SCREEN_CAPTURE |= (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor)&SETXYCLICKED_CLICKED)?1:0; //Screen capture on click?
+				SCREEN_CAPTURE |= (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor,0)&SETXYCLICKED_CLICKED)?1:0; //Screen capture on click?
 			}
 			else //Normal character?
 			{

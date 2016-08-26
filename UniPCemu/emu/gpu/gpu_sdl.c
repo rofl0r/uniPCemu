@@ -402,7 +402,7 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 	*n_height = newheight; //New width/height!
 	if (aspectratio) //Keeping the aspect ratio?
 	{
-		#if !defined(IS_PSP) && !defined(ANDROID)
+		#if !defined(STATICSCREEN)
 		//Only with windows used!
 		if (((aspectratio>=2) || (aspectratio<=5)) && is_renderer) //Render to the window of forced size?
 		{

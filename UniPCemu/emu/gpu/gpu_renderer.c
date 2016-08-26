@@ -117,7 +117,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 		widthclear = MIN(rendersurface->sdllayer->w,EMU_MAX_X);
 		if (GPU.aspectratio) //Using letterbox for aspect ratio?
 		{
-			#if !defined(IS_PSP) && !defined(ANDROID)
+			#if !defined(STATICSCREEN)
 				if (VIDEO_DFORCED) //Forced video?
 				{
 					goto drawpixels; //No letterbox top!

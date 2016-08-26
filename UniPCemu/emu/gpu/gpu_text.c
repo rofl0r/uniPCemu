@@ -22,6 +22,14 @@ extern byte allcleared;
 word TEXT_xdelta = 0;
 word TEXT_ydelta = 0; //Delta x,y!
 
+#ifdef ANDROID
+//We're using adaptive text surfaces for supported devices!
+#define ADAPTIVETEXT
+#endif
+
+double render_xfactor=1.0, render_yfactor=1.0; //X and Y factor during rendering!
+double render_xfactorreverse = 1.0, render_yfactorreverse = 1.0; //X and Y factor during mouse/touch input!
+
 OPTINLINE void GPU_textcalcpixel(word *x, word *y, word *charx, word *chary, word rx, word ry)
 {
 	INLINEREGISTER word rx1, rx2, ry1, ry2;
@@ -219,6 +227,29 @@ void free_GPUtext(GPU_TEXTSURFACE **surface)
 	}
 }
 
+OPTINLINE void GPU_text_updateres(word xres, word yres) //Update resultion of the screen for supported devices!
+{
+#ifdef ADAPTIVETEXT
+	if ((!xres) || (!yres)) //Invalid?
+	{
+		return; //Ignore invalid values!
+	}
+	render_xfactor = (double)PSP_SCREEN_COLUMNS/(double)xres; //X factor!
+	render_yfactor = (double)PSP_SCREEN_ROWS /(double)yres; //Y factor!
+	if (render_yfactor > render_xfactor)
+	{
+		render_xfactor = render_yfactor; //Take the lesser resolution!
+	}
+	else
+	{
+		render_yfactor = render_xfactor; //Take the lesser resolution!
+	}
+	render_xfactorreverse = 1.0f/render_xfactor; //Reversed!
+	render_yfactorreverse = 1.0f/render_yfactor; //Reversed!
+	//We're ready to be used!
+#endif
+}
+
 uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurface!
 {
 	if (allcleared) return 0; //Abort when all is cleared!
@@ -229,6 +260,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	INLINEREGISTER word x,y;
 	INLINEREGISTER uint_32 color;
 	int fx, fy; //Used when rendering on the screen!
+	double relx, rely; //Relative X/Y position to use for updating the current pixel!
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 
 	if (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) //Redraw when dirty only?
@@ -249,26 +281,39 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	}
 
 	x = y = 0; //Init coordinates!
+	relx = rely = 0.0; //Init screen coordinate plotter!
 	if (check_surface(rendersurface)) //Valid to render to?
 	{
 		renderpixel = &tsurface->notdirty[0][0]; //Start with the first pixel in our buffer!
 		do //Process all rows!
 		{
-			if ((color = *renderpixel++) != TRANSPARENTPIXEL) //The pixel to plot, if any! Ignore transparent pixels!
+			if ((color = *renderpixel) != TRANSPARENTPIXEL) //The pixel to plot, if any! Ignore transparent pixels!
 			{
-				fx = x;
+				fx = (word)(((double)x+relx)*render_xfactorreverse); //x converted to destination factor!
 				if (tsurface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
 
-				fy = y;
+				fy = (word)(((double)y+rely)*render_yfactorreverse); //y converterd to destination factor!
 				if (tsurface->ydelta) fy += TEXT_ydelta; //Apply delta position to the output pixel!
 
 				put_pixel(rendersurface, fx, fy, color); //Plot the pixel!
 			}
-			//Else, We're transparent, do don't plot!
-			if (++x==GPU_TEXTPIXELSX) //End of row reached?
+
+			relx += render_xfactor; //We've rendered a pixel!
+			for (;relx>=1.0f;) //Expired?
 			{
-				x = 0; //Reset horizontal coordinate!
-				renderpixel = &tsurface->notdirty[++y][0]; //Start with the first pixel in our new row!
+				relx -= 1.0f; //Rest!
+				++renderpixel; //We've rendered a pixel!
+				//Else, We're transparent, do don't plot!
+				if (++x==GPU_TEXTPIXELSX) //End of row reached?
+				{
+					x = 0; //Reset horizontal coordinate!
+					rely += render_yfactor; //We've rendered a row!
+					for (;rely>=1.0f;) //Expired?
+					{
+						rely -= 1.0f; //Rest!
+						renderpixel = &tsurface->notdirty[++y][0]; //Start with the first pixel in our new row!
+					}
+				}
 			}
 		} while (y!=GPU_TEXTPIXELSY); //Stop searching now!
 	}
@@ -291,10 +336,10 @@ int GPU_textgetxy(GPU_TEXTSURFACE *surface,int x, int y, byte *character, uint_3
 byte GPU_startClickable(GPU_TEXTSURFACE *surface, word x, word y); //Internal: start clickable character prototype!
 void GPU_stopClickableXY(GPU_TEXTSURFACE *surface, word x, word y); //Internal: stop clickable character prototype!
 
-byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte character, uint_32 font, uint_32 border) //Set x/y coordinates for clickable character! Result is bit value of SETXYCLICKED_*
+byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte character, uint_32 font, uint_32 border, byte ignoreempty) //Set x/y coordinates for clickable character! Result is bit value of SETXYCLICKED_*
 {
 	if (allcleared) return 0; //Abort when all is cleared!
-	byte result;
+	byte result=0;
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (y >= GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
 	if (x >= GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
@@ -304,7 +349,10 @@ byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte charact
 	surface->text[y][x] = character;
 	surface->font[y][x] = font;
 	surface->border[y][x] = border;
-	result = GPU_startClickable(surface, x, y) ? (SETXYCLICKED_OK | SETXYCLICKED_CLICKED) : SETXYCLICKED_OK; //We're starting to be clickable if not yet clickable! Give 3 for clicked and 1 for normal success without click!
+	if ((!ignoreempty) || ((character!=(char)0) && (character!=' '))) //Not an empty character?
+	{
+		result = GPU_startClickable(surface, x, y) ? (SETXYCLICKED_OK | SETXYCLICKED_CLICKED) : SETXYCLICKED_OK; //We're starting to be clickable if not yet clickable! Give 3 for clicked and 1 for normal success without click!
+	}
 	uint_32 change;
 	character ^= oldtext;
 	font ^= oldfont;
@@ -437,7 +485,7 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 	surface->y = cury; //Update y!
 }
 
-byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...)
+byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, byte ignoreempty, char *text, ...)
 {
 	if (allcleared) return 0; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
@@ -475,7 +523,7 @@ byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 bor
 		}
 		else if ((msg[i] != '\r') && (msg[i]!='\t')) //Never display \r or \t!
 		{
-			setstatus = GPU_textsetxyclickable(surface, curx, cury, (byte)msg[i], font, border); //Write the character to our screen!
+			setstatus = GPU_textsetxyclickable(surface, curx, cury, (byte)msg[i], font, border,ignoreempty); //Write the character to our screen!
 			if (!(setstatus&SETXYCLICKED_OK)) //Invalid character location or unknown status value?
 			{
 				result &= ~SETXYCLICKED_OK; //Error out: we have one or more invalid writes!
@@ -524,11 +572,12 @@ void GPU_text_updatedelta(SDL_Surface *surface)
 		TEXT_xdelta = TEXT_ydelta = 0; //No delta!
 		return; //Invalid surface: no delta used!
 	}
+	GPU_text_updateres(surface->w,surface->h); //Update our resolution if needed for this device!
 	sword xdelta, ydelta;
 	xdelta = surface->w; //Current resolution!
 	ydelta = surface->h; //Current resolution!
-	xdelta -= GPU_TEXTPIXELSX;
-	ydelta -= GPU_TEXTPIXELSY; //Calculate delta!
+	xdelta -= (sword)(GPU_TEXTPIXELSX*render_xfactorreverse);
+	ydelta -= (sword)(GPU_TEXTPIXELSY*render_yfactorreverse); //Calculate delta!
 	TEXT_xdelta = xdelta; //Horizontal delta!
 	TEXT_ydelta = ydelta; //Vertical delta!
 }
@@ -549,10 +598,10 @@ void GPU_text_releasesurface(GPU_TEXTSURFACE *surface) //Unlock a surface when d
 	PostSem(surface->lock) //Release our lock: we're done!
 }
 
-void GPU_textbuttondown(GPU_TEXTSURFACE *surface, byte finger, word x, word y) //We've been clicked at these coordinates!
+byte GPU_textbuttondown(GPU_TEXTSURFACE *surface, byte finger, word x, word y) //We've been clicked at these coordinates!
 {
-	if (allcleared) return; //Abort when all is cleared!
-	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return; //Invalid surface!
+	if (allcleared) return 0; //Abort when all is cleared!
+	if (!memprotect(surface, sizeof(*surface), "GPU_TEXTSURFACE")) return 0; //Invalid surface!
 	word x1, y1;
 	x1 = 0;
 	y1 = 0;
@@ -566,6 +615,8 @@ void GPU_textbuttondown(GPU_TEXTSURFACE *surface, byte finger, word x, word y) /
 		{
 			x -= x1; //X coordinate within the surface!
 			y -= y1;  //Y coordinate within the surface!
+			x = (word)((double)x*render_xfactor); //Convert to our destination size!
+			y = (word)((double)y*render_yfactor); //Convert to our destination size!
 			if (x < GPU_TEXTPIXELSX) //Within horizontal range?
 			{
 				if (y < GPU_TEXTPIXELSY) //Within vertical range?
@@ -576,11 +627,13 @@ void GPU_textbuttondown(GPU_TEXTSURFACE *surface, byte finger, word x, word y) /
 					{
 						surface->clickable[y][x] |= CLICKABLE_BUTTONDOWN; //Set button down flag!
 						surface->clickablefinger[y][x] = finger; //What finger?
+						return 1; //We're handled!
 					}
 				}
 			}
 		}
 	}
+	return 0; //We're not handled!
 }
 
 void GPU_textbuttonup(GPU_TEXTSURFACE *surface, byte finger, word x, word y) //We've been released at these coordinates!

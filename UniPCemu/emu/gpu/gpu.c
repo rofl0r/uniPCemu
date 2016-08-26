@@ -127,7 +127,30 @@ SDL_Surface *getGPUSurface()
 	GPU.fullscreen = 1; //Forced full screen!
 	goto windowupdated; //Skip other calculations!
 	#else
-	#if defined(ANDROID) && defined(SDL2)
+	#ifdef STATICSCREEN
+	#ifndef SDL2
+	//SDL Autodetection of fullscreen resolution!
+	SDL_Rect **modes;
+	if ((!window_xres) || (!window_yres)) //Not initialized yet?
+	{
+		/* Get available fullscreen/hardware modes */
+		modes = SDL_ListModes(NULL, SDL_FULLSCREEN | SDL_HWSURFACE);
+
+		/* Check is there are any modes available */
+		if (modes != (SDL_Rect **)0)
+		{
+			/* Check if our resolution is restricted */
+			if (modes != (SDL_Rect **)-1)
+			{
+				xres = modes[0]->w; //Use first hardware resolution!
+				yrws = modes[0]->h; //Use first hardware resolution!
+				GPU.fullscreen = 1; //Forced full screen!	
+				goto windowready; //Skip other calculations!
+			}
+		}
+	}
+	#else
+	//SDL2 Autodetction of fullscreen resolution!
 	//Get device display mode
 	SDL_DisplayMode displayMode;
 	if (SDL_GetCurrentDisplayMode(0,&displayMode)==0)
@@ -137,6 +160,7 @@ SDL_Surface *getGPUSurface()
 		GPU.fullscreen = 1; //Forced full screen!	
 		goto windowready; //Skip other calculations!
 	}
+	#endif
 	#endif
 	#endif
 
@@ -189,7 +213,7 @@ SDL_Surface *getGPUSurface()
 	if (yres < miny) yres = miny; //Minimum height!
 
 	uint_32 flags;
-	#if defined(ANDROID) || defined(IS_PSP)
+	#if defined(STATICSCREEN) || defined(IS_PSP)
 	windowready:
 	#endif
 	flags = SDL_SWSURFACE; //Default flags!
@@ -251,7 +275,7 @@ void initVideoLayer() //We're for allocating the main video layer, only dealloca
 		{
 			//PSP has solid resolution!
 			getGPUSurface(); //Allocate our display!
-			#ifdef IS_PSP
+			#if defined(STATICSCREEN)
 			//We don't want the cursor to show on the PSP!
 			SDL_ShowCursor(SDL_DISABLE); //We don't want cursors on empty screens!
 			#endif
@@ -406,8 +430,8 @@ void CPU_updateVideo()
 
 void updateVideo() //Update the screen resolution on change!
 {
-	//We're disabled with the PSP: it doesn't update resolution!
-	#ifndef IS_PSP
+	//We're disabled with the PSP&Android: it doesn't update resolution!
+	#if !defined(STATICSCREEN)
 	byte reschange = 0, restype = 0; //Resolution change and type!
 	static word xres=0;
 	static word yres=0;
@@ -530,12 +554,15 @@ void GPU_removeTextSurface(void *surface)
 
 void GPU_mousebuttondown(word x, word y, byte finger)
 {
-	int i = 0;
-	for (;i<(int)NUMITEMS(GPU.textsurfaces);i++) //Process all registered surfaces!
+	int i = (int)NUMITEMS(GPU.textsurfaces)-1; //Start with the last surface! The last registered surface has priority!
+	for (;i>=0;--i) //Process all registered surfaces!
 	{
 		if (GPU.textsurfaces[i]) //Registered?
 		{
-			GPU_textbuttondown(GPU.textsurfaces[i],finger,x,y); //We're pressed here!
+			if (GPU_textbuttondown(GPU.textsurfaces[i], finger, x, y)) //We're pressed here!
+			{
+				return; //Abort: don't let lower priority surfaces override us!
+			}
 		}
 	}
 }

@@ -197,4 +197,9 @@ void updateInputMain(); //Update input before an instruction (main thread only!)
 //Inline register usage when defined.
 #define INLINEREGISTER register
 
+#if defined(IS_PSP) || defined(ANDROID)
+//We're using a static, unchanging screen!
+#define STATICSCREEN
+#endif
+
 #endif

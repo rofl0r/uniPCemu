@@ -6,7 +6,7 @@
 #define __LOGBUFFER 1024
 #else
 //Log buffer size in bytes. The system we're running on will flush it every X bytes to disk. We use a 1MB buffer on Windows!
-//#define __LOGBUFFER 1024000
+#define __LOGBUFFER 1024000
 #endif
 
 TicksHolder logticksholder; //Log ticks holder!
@@ -159,7 +159,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 		}
 		fwrite(&lineending,1,sizeof(lineending),logfile); //Write the line feed appropriate for the system after any write operation!
 #if defined(IS_PSP) || defined(ANDROID)
-		//PSP doesn't buffer, because it's too slow!
+		//PSP doesn't buffer, because it's too slow! Android is still in the making, so constantly log, don't buffer!
 		fclose(logfile);
 		logfile = NULL; //We're finished!
 #endif

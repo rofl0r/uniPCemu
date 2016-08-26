@@ -70,11 +70,11 @@ void GPU_text_locksurface(GPU_TEXTSURFACE *surface); //Lock a surface for usage!
 void GPU_text_releasesurface(GPU_TEXTSURFACE *surface); //Unlock a surface when we're done with it!
 
 //GPU Clicking support!
-void GPU_textbuttondown(GPU_TEXTSURFACE *surface, byte finger, word x, word y); //We've been clicked at these coordinates!
+byte GPU_textbuttondown(GPU_TEXTSURFACE *surface, byte finger, word x, word y); //We've been clicked at these coordinates!
 void GPU_textbuttonup(GPU_TEXTSURFACE *surface, byte finger, word x, word y); //We've been released at these coordinates!
 
 //TEXT Clicking support!
-byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte character, uint_32 font, uint_32 border); //Set x/y coordinates for clickable character! Result is bit value of SETXYCLICKED_*
-byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...); //Same as normal GPU_textprintf, but with clickable support! Result is bit value of SETXYCLICKED_*
+byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte character, uint_32 font, uint_32 border, byte ignoreempty); //Set x/y coordinates for clickable character! Result is bit value of SETXYCLICKED_*
+byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, byte ignoreempty, char *text, ...); //Same as normal GPU_textprintf, but with clickable support! Result is bit value of SETXYCLICKED_*
 byte GPU_ispressed(GPU_TEXTSURFACE *surface, word x, word y); //Are we pressed?
 #endif
