@@ -2787,6 +2787,10 @@ float touchscreencoordinates_x[0x10] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,
 float touchscreencoordinates_y[0x10] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f}; //Current screen coordinates of each finger!
 #endif
 
+#ifdef ANDROID
+extern byte needvideoupdate; //For resolution updates!
+#endif
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	byte joysticktype=0; //What joystick type?
@@ -3737,6 +3741,17 @@ void updateInput(SDL_Event *event) //Update all input!
 		haswindowactive |= 2; //We're not iconified! This also prevents drawing! This is critical!
 		unlock(LOCK_INPUT);
 		break;
+	#ifdef ANDROID
+	case SDL_WINDOWEVENT_SIZE_CHANGED: //Orientation changed?
+		lock(LOCK_GPU); //Lock the GPU!
+		lock(LOCK_VIDEO); //Lock the video output!
+		window_xres = window_yres = 0; //We're autodetecting the new resolution!
+		GPU.forceRedraw = 1; //We're forcing a full redraw next frame to make sure the screen is always updated nicely!
+		needvideoupdate = 1; //We need a video update!
+		unlock(LOCK_VIDEO); //We're done with video!
+		unlock(LOCK_GPU); //We're finshed with the GPU!
+		break;
+	#endif
 	case SDL_JOYDEVICEADDED: //Joystick has been connected?
 		connectJoystick(event->jdevice.which); //Connect to this joystick, is valid!
 		break;
