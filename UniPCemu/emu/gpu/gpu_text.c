@@ -394,7 +394,6 @@ int GPU_textsetxyfont(GPU_TEXTSURFACE *surface, int x, int y, uint_32 font, uint
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)) return 0; //Abort without surface!
 	if (y >= GPU_TEXTSURFACE_HEIGHT) return 0; //Out of bounds?
 	if (x >= GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
-	byte oldtext = surface->text[y][x];
 	uint_32 oldfont = surface->font[y][x];
 	uint_32 oldborder = surface->border[y][x];
 	surface->font[y][x] = font;

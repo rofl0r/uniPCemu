@@ -78,6 +78,9 @@ extern uint_32 romsize; //For checking if we're running a ROM!
 extern byte cpudebugger; //To debug the CPU?
 extern PIC i8259; //PIC processor!
 
+double MHZ14tick = (1000000000/(double)MHZ14); //Time of a 14 MHZ tick!
+double MHZ14_ticktiming = 0.0; //Timing of the 14MHz clock!
+
 int emu_started = 0; //Emulator started (initEMU called)?
 
 //To debug init/doneemu?
@@ -209,6 +212,9 @@ void initEMU(int full) //Init!
 {
 	char soundfont[256];
 	doneEMU(); //Make sure we're finished too!
+
+	MHZ14tick = (1000000000/(double)MHZ14); //Initialize the 14 MHZ tick timing!
+	MHZ14_ticktiming = 0.0; //Default to no time passed yet!
 
 	allcleared = 0; //Not cleared anymore!
 
@@ -661,6 +667,7 @@ extern byte Settings_request; //Settings requested to be executed?
 
 OPTINLINE byte coreHandler()
 {
+	uint_32 MHZ14passed; //14 MHZ clock passed?
 	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
 	//CPU execution, needs to be before the debugger!
 	currenttiming += getnspassed(&CPU_timing); //Check for any time that has passed to emulate!
@@ -808,14 +815,27 @@ OPTINLINE byte coreHandler()
 		instructiontime = CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
 		last_timing += instructiontime; //Increase CPU time executed!
 		timeexecuted += instructiontime; //Increase CPU executed time executed this block!
-		tickPIT(instructiontime); //Tick the PIT as much as we need to keep us in sync!
-		updateDMA(instructiontime); //Update the DMA timer!
+
+		//Tick 14MHz master clock, for basic hardware using it!
+		MHZ14_ticktiming += instructiontime; //Add time to the 14MHz master clock!
+		if (MHZ14_ticktiming>=MHZ14tick) //To tick some 14MHz clocks?
+		{
+			MHZ14passed = (uint_32)(MHZ14_ticktiming/MHZ14tick); //Tick as many as possible!
+			MHZ14_ticktiming -= MHZ14tick*(float)MHZ14passed; //Rest the time passed!
+		}
+		else
+		{
+			MHZ14passed = 0; //No time has passed on the 14MHz Master clock!
+		}
+
+		tickPIT(instructiontime,MHZ14passed); //Tick the PIT as much as we need to keep us in sync!
+		updateDMA(MHZ14passed); //Update the DMA timer!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
-		if (useAdlib) updateAdlib(instructiontime); //Tick the adlib timer if needed!
+		if (useAdlib) updateAdlib(instructiontime,MHZ14passed); //Tick the adlib timer if needed!
 		if (useGameBlaster) updateGameBlaster(instructiontime); //Tick the Game Blaster timer if needed!
 		if (useSoundBlaster) updateSoundBlaster(instructiontime); //Tick the Sound Blaster timer if needed!
-		updateATA(instructiontime); //Update the ATA timer!
+		//updateATA(instructiontime); //Update the ATA timer! This is currently not used, so ignore it!
 		tickParallel(instructiontime); //Update the Parallel timer!
 		if (useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		updateVGA(instructiontime); //Update the VGA timer!

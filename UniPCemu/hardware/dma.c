@@ -13,6 +13,7 @@ DMA Controller (8237A)
 #define __HW_DISABLED 0
 
 //DMA Ticks(bytes)/second!
+#define MHZ14_RATE 9
 #define DMA_RATE (MHZ14/8.732575)
 
 SDL_sem *DMA_Lock = NULL;
@@ -576,8 +577,7 @@ void DMA_tick()
 		goto nextcycle; //Next cycle!!
 }
 
-double DMA_Frequency = 0.0; //DMA tick time, based on ISA clock(is supposed to be divided by 3.0), originally divided by 8.732575, which gives close to 1.6MB/s!
-double DMA_timing = 0.0f; //How much time has passed!
+uint_32 DMA_timing = 0; //How much time has passed!
 
 void initDMA()
 {
@@ -591,10 +591,7 @@ void initDMA()
 	DMAController[0].CommandRegister |= 0x4; //Disable controller!
 	DMAController[1].CommandRegister |= 0x4; //Disable controller!
 
-	DMA_timing = 0.0f; //Initialise DMA timing!
-
-	//Initialize our timings!
-	DMA_Frequency = (1000000000.0 / DMA_RATE);
+	DMA_timing = 0; //Initialise DMA timing!
 }
 
 void doneDMA()
@@ -607,20 +604,18 @@ void cleanDMA()
 	//Skip time passed!
 }
 
-void updateDMA(double timepassed)
+void updateDMA(uint_32 MHZ14passed)
 {
-	INLINEREGISTER double timing, freq;
+	INLINEREGISTER double timing;
 	timing = DMA_timing; //Load current timing!
-	freq = DMA_Frequency; //Load the frequency as well!
-	timing += timepassed; //Get time passed!
-	if (timing >= freq) //To tick?
+	timing += MHZ14passed; //How many ticks have passed?
+	if (timing >= MHZ14_RATE) //To tick?
 	{
-		//DMA_timing = (float)fmod(DMA_timing,10000.0f*DMA_Frequency); //No more than 10000 at a time!
 		do //While ticking?
 		{
 			DMA_tick(); //Tick the DMA!
-			timing -= freq; //Tick the DMA!
-		} while (timing >= freq); //Continue ticking?
+			timing -= MHZ14_RATE; //Tick the DMA!
+		} while (timing >= MHZ14_RATE); //Continue ticking?
 	}
 	DMA_timing = timing; //Save the new timing to use!
 }

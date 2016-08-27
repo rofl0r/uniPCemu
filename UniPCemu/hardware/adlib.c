@@ -29,6 +29,8 @@
 #define ADLIB_TREMOLOVIBRATO
 //Enable rhythm?
 #define ADLIB_RHYTHM
+//14MHz ticks per sample
+#define MHZ14_TICK 288
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
 #define __ADLIB_SAMPLEBUFFERSIZE 4971
@@ -1105,8 +1107,9 @@ void cleanAdlib()
 float opl2_currentsample = 0, opl2_last_result = 0, opl2_last_sample = 0;
 byte opl2_first_sample = 1;
 
-double adlib_ticktiming=0.0,adlib_soundtiming=0.0;
-void updateAdlib(double timepassed)
+double adlib_ticktiming=0.0;
+uint_32 adlib_soundtiming=0;
+void updateAdlib(double timepassed, uint_32 MHZ14passed)
 {
 	//Adlib timer!
 	adlib_ticktiming += timepassed; //Get the amount of time passed!
@@ -1120,10 +1123,10 @@ void updateAdlib(double timepassed)
 	}
 	
 	//Adlib sound output
-	adlib_soundtiming += timepassed; //Get the amount of time passed!
-	if (adlib_soundtiming>=adlib_soundtick)
+	adlib_soundtiming += MHZ14passed; //Get the amount of time passed!
+	if (adlib_soundtiming>=MHZ14_TICK)
 	{
-		for (;adlib_soundtiming>=adlib_soundtick;)
+		do
 		{
 			OPL2_stepRNG(); //Tick the RNG!
 			OPL2_stepTremoloVibrato(); //Step tremolo/vibrato!
@@ -1155,8 +1158,8 @@ void updateAdlib(double timepassed)
 			#endif
 			writeDoubleBufferedSound16(&adlib_soundbuffer,(word)sample); //Output the sample to the renderer!
 			tickadlib(); //Tick us to the next timing if needed!
-			adlib_soundtiming -= adlib_soundtick; //Decrease timer to get time left!
-		}
+			adlib_soundtiming -= MHZ14_TICK; //Decrease timer to get time left!
+		} while (adlib_soundtiming>=MHZ14_TICK);
 	}
 }
 
@@ -1190,7 +1193,6 @@ void initAdlib()
 	//Initialize our timings!
 	adlib_scaleFactor = SHRT_MAX / (3000.0f*9.0f); //We're running 9 channels in a 16-bit space, so 1/9 of SHRT_MAX
 	usesamplerate = 14318180.0 / 288.0; //The sample rate to use for output!
-	adlib_soundtick = 1000000000.0 / (14318180.0f / 288.0); //The length of a sample in ns!
 
 	int i;
 	for (i = 0; i < 9; i++)
@@ -1268,7 +1270,8 @@ void initAdlib()
 	//RNG support!
 	OPL2_RNGREG = OPL2_RNG = 0; //Initialise the RNG!
 
-	adlib_ticktiming = adlib_soundtiming = 0.0f; //Reset our output timing!
+	adlib_ticktiming = 0.0f;
+	adlib_soundtiming = 0; //Reset our output timing!
 
 	if (__SOUND_ADLIB)
 	{

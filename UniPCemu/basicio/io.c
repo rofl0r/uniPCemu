@@ -65,7 +65,7 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	strcpy(fullfilename,diskpath); //Load the disk path!
 	strcat(fullfilename,"/");
 	strcat(fullfilename,filename); //The full filename to use!
-	if (strcmp(filename, "")) //No filename specified?
+	if (strcmp(filename, "")==0) //No filename specified?
 	{
 		strcpy(fullfilename,""); //No filename = no path to file!
 	}

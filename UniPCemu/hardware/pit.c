@@ -44,6 +44,7 @@ PC SPEAKER
 
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
+#define MHZ14_RATE 12
 #define TIME_RATE (MHZ14/12.0)
 
 //Run the low pass at the 72 raw samples rate instead (16571Hz)!
@@ -77,7 +78,7 @@ extern byte PCSpeakerPort; //Port 0x61 for the PC Speaker! Bit0=Gate, Bit1=Data 
 
 extern byte EMU_RUNNING; //Current emulator status!
 
-double time_ticktiming; //Current timing!
+uint_32 time_ticktiming; //Current timing, in 14MHz ticks!
 
 PITTick PIT1Ticker = NULL; //The PIT1 ticker, if connected!
 SOUNDDOUBLEBUFFER pcspeaker_soundbuffer; //Output buffers for rendering!
@@ -153,13 +154,13 @@ byte speaker_first_sample = 1;
 
 double ticklength = 0.0; //Length of PIT samples to process every output sample!
 
-void tickPIT(double timepassed) //Ticks all PIT timers available!
+void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
-	INLINEREGISTER double length; //Amount of samples to generate!
-	INLINEREGISTER double i;
+	INLINEREGISTER uint_32 length; //Amount of samples to generate!
+	INLINEREGISTER uint_32 i;
 	uint_32 dutycyclei; //Input samples to process!
-	INLINEREGISTER double tickcounter;
+	INLINEREGISTER uint_32 tickcounter;
 	word oldvalue; //Old value before decrement!
 	double tempf;
 	uint_32 render_ticks; //A one shot tick!
@@ -168,11 +169,11 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 	byte getIRQ; //IRQ triggered?
 
 	i = time_ticktiming; //Load the current timing!
-	i += timepassed; //Add the amount of time passed to the PIT timing!
+	i += MHZ14passed; //Add the amount of time passed to the PIT timing!
 
 	//Render 1.19MHz samples for the time that has passed!
-	length = floor(i*time_tickreverse); //How many ticks to tick?
-	i -= (length*time_tick); //Rest the amount of ticks!
+	length = i/MHZ14_RATE; //How many ticks to tick?
+	i -= length*MHZ14_RATE; //Rest the amount of ticks!
 	time_ticktiming = i; //Save the new count!
 
 	if (length) //Anything to tick at all?
@@ -182,7 +183,7 @@ void tickPIT(double timepassed) //Ticks all PIT timers available!
 			byte mode,outputmask;
 			mode = PITchannels[channel].mode; //Current mode!
 			outputmask = (channel==2)?((PCSpeakerPort&2)>>1):1; //Mask output on/off for this timer!
-			for (tickcounter = length;tickcounter;tickcounter-=1.0f) //Tick all needed!
+			for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
 			{
 				switch (mode) //What mode are we rendering?
 				{
@@ -709,8 +710,6 @@ void init8253() {
 	register_PORTOUT(&out8253);
 	register_PORTIN(&in8253);
 
-	time_tick = (1000000000.0 / (double)TIME_RATE); //Time tick!
-	time_tickreverse = (1.0/time_tick); //Reversed!
 	speaker_tick = (1000000000.0 / (double)SPEAKER_RATE); //Speaker tick!
 	ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Time to speaker sample ratio!
 }

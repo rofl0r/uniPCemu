@@ -5,7 +5,7 @@ void initAdlib(); //Initialise adlib!
 void doneAdlib(); //Finish adlib!
 
 void cleanAdlib();
-void updateAdlib(double timepassed); //Sound tick. Executes every instruction.
+void updateAdlib(double timepassed, uint_32 MHZ14passed); //Sound tick. Executes every instruction.
 
 //Special Sound Blaster support!
 byte readadlibstatus();
