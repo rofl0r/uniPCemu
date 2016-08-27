@@ -11,7 +11,8 @@
 float gameblaster_samplelength = 0.0f;
 
 //Game Blaster sample rate and other audio defines!
-#define __GAMEBLASTER_SAMPLERATE 22050.0f
+#define MHZ14_TICK 650
+#define __GAMEBLASTER_SAMPLERATE (MHZ14/MHZ14_TICK)
 #define __GAMEBLASTER_SAMPLEBUFFERSIZE 2048
 #define __GAMEBLASTER_VOLUME 100.0f
 
@@ -399,15 +400,15 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *ri
 	*rightsample = (sword)output_r; //Right sample result!
 }
 
-double gameblaster_soundtiming=0.0, gameblaster_soundtick=0.0;
-void updateGameBlaster(double timepassed)
+uint_32 gameblaster_soundtiming=0;
+void updateGameBlaster(uint_32 MHZ14passed)
 {
 	if (GAMEBLASTER.baseaddr==0) return; //No game blaster?
 	//Adlib sound output
-	gameblaster_soundtiming += timepassed; //Get the amount of time passed!
-	if (gameblaster_soundtiming>=gameblaster_soundtick)
+	gameblaster_soundtiming += MHZ14passed; //Get the amount of time passed!
+	if (gameblaster_soundtiming>=MHZ14_TICK)
 	{
-		for (;gameblaster_soundtiming>=gameblaster_soundtick;)
+		for (;gameblaster_soundtiming>=MHZ14_TICK;)
 		{
 			sword leftsample[2], rightsample[2]; //Two stereo samples!
 			//Generate the sample!
@@ -433,7 +434,7 @@ void updateGameBlaster(double timepassed)
 			//Now push the samples to the output!
 			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16(rightsample[0])<<16)|signed2unsigned16(leftsample[0])); //Output the sample to the renderer!
 			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16(rightsample[1])<<16)|signed2unsigned16(leftsample[1])); //Output the sample to the renderer!
-			gameblaster_soundtiming -= gameblaster_soundtick; //Decrease timer to get time left!
+			gameblaster_soundtiming -= MHZ14_TICK; //Decrease timer to get time left!
 		}
 	}
 }
@@ -608,9 +609,6 @@ void initGameBlaster(word baseaddr)
 	register_PORTOUT(&outGameBlaster); //Output ports!
 
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
-
-	//Initialize our timings!
-	gameblaster_soundtick = 1000000000.0 / __GAMEBLASTER_SAMPLERATE;
 }
 
 void doneGameBlaster()

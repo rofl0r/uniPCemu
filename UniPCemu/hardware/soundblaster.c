@@ -9,7 +9,8 @@
 #include "headers/hardware/8237A.h" //DMA support!
 #include "headers/hardware/midi/midi.h" //MIDI support!
 
-#define __SOUNDBLASTER_SAMPLERATE 22222.0f
+#define MHZ14_TICK 644
+#define __SOUNDBLASTER_SAMPLERATE (MHZ14/MHZ14_TICK)
 #define __SOUNDBLASTER_SAMPLEBUFFERSIZE 2048
 #define SOUNDBLASTER_VOLUME 100.0f
 //Size of the input buffer of the DSP chip!
@@ -77,7 +78,8 @@ struct
 
 extern byte specialdebugger; //Enable special debugger input?
 
-double soundblaster_soundtiming = 0.0, soundblaster_soundtick = 0.0;
+uint_32 soundblaster_soundtiming = 0;
+double soundblaster_soundtick = 0.0;
 double soundblaster_sampletiming = 0.0, soundblaster_sampletick = 0.0;
 
 double soundblaster_IRR = 0.0, soundblaster_resettiming = 0.0; //No IRR nor reset requested!
@@ -97,7 +99,7 @@ OPTINLINE void SoundBlaster_FinishedReset()
 	SOUNDBLASTER.reset = DSP_S_NORMAL; //Normal execution of the DSP!
 }
 
-void updateSoundBlaster(double timepassed)
+void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 {
 	double dummy;
 	double temp;
@@ -186,14 +188,14 @@ void updateSoundBlaster(double timepassed)
 
 	//Finally, render any rendered Sound Blaster output to the renderer at the correct rate!
 	//Sound Blaster sound output
-	soundblaster_soundtiming += timepassed; //Get the amount of time passed!
-	if (soundblaster_soundtiming >= soundblaster_soundtick)
+	soundblaster_soundtiming += MHZ14passed; //Get the amount of time passed!
+	if (soundblaster_soundtiming >= MHZ14_TICK)
 	{
-		for (;soundblaster_soundtiming >= soundblaster_soundtick;)
+		for (;soundblaster_soundtiming >= MHZ14_TICK;)
 		{
 			//Now push the samples to the output!
 			writeDoubleBufferedSound16(&SOUNDBLASTER.soundbuffer, (activeright<<8) | activeleft); //Output the sample to the renderer!
-			soundblaster_soundtiming -= soundblaster_soundtick; //Decrease timer to get time left!
+			soundblaster_soundtiming -= MHZ14_TICK; //Decrease timer to get time left!
 		}
 	}
 }
@@ -1035,7 +1037,7 @@ void initSoundBlaster(word baseaddr, byte version)
 	DSP_HWreset(); //Hardware reset!
 
 	//Our tick timings!
-	soundblaster_soundtick = 1000000000.0 / __SOUNDBLASTER_SAMPLERATE;
+	soundblaster_soundtiming = 0;
 }
 
 void doneSoundBlaster()
