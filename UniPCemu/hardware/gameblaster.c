@@ -11,7 +11,8 @@
 float gameblaster_samplelength = 0.0f;
 
 //Game Blaster sample rate and other audio defines!
-#define MHZ14_TICK 650
+//Game blaster runs at 14MHz divided by 2 divided by 256 clocks!
+#define MHZ14_TICK 512
 #define __GAMEBLASTER_SAMPLERATE (MHZ14/MHZ14_TICK)
 #define __GAMEBLASTER_SAMPLEBUFFERSIZE 2048
 #define __GAMEBLASTER_VOLUME 100.0f

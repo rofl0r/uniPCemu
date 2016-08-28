@@ -31,6 +31,8 @@
 #define ADLIB_RHYTHM
 //14MHz ticks per sample
 #define MHZ14_TICK 288
+//Sample divided to get 80us tick!
+#define TIMER80_TICK 4
 
 //How large is our sample buffer? 1=Real time, 0=Automatically determine by hardware
 #define __ADLIB_SAMPLEBUFFERSIZE 4971
@@ -1107,27 +1109,24 @@ void cleanAdlib()
 float opl2_currentsample = 0, opl2_last_result = 0, opl2_last_sample = 0;
 byte opl2_first_sample = 1;
 
-double adlib_ticktiming=0.0;
-uint_32 adlib_soundtiming=0;
+byte adlib_ticktiming80 = 0; //80us divider!
+uint_32 adlib_ticktiming=0; //Sound timing!
 void updateAdlib(double timepassed, uint_32 MHZ14passed)
 {
-	//Adlib timer!
-	adlib_ticktiming += timepassed; //Get the amount of time passed!
-	if (adlib_ticktiming >= 80000.0) //Enough time passed?
-	{
-		for (;adlib_ticktiming >= 80000.0;) //All that's left!
-		{
-			adlib_timer80(); //Tick 80us timer!
-			adlib_ticktiming -= 80000.0; //Decrease timer to get time left!
-		}
-	}
-	
-	//Adlib sound output
-	adlib_soundtiming += MHZ14passed; //Get the amount of time passed!
-	if (adlib_soundtiming>=MHZ14_TICK)
+	//Adlib sound output and counters!
+	adlib_ticktiming += MHZ14passed; //Get the amount of time passed!
+	if (adlib_ticktiming>=MHZ14_TICK)
 	{
 		do
 		{
+			//Adlib timer!
+			++adlib_ticktiming80; //Tick 80 divider!
+			if (adlib_ticktiming80 >= TIMER80_TICK) //Enough time passed?
+			{
+				adlib_ticktiming80 -= TIMER80_TICK; //Tick once(never more than once!)
+				adlib_timer80(); //Tick 80us timer!
+			}
+			//Now, process the samples required!
 			OPL2_stepRNG(); //Tick the RNG!
 			OPL2_stepTremoloVibrato(); //Step tremolo/vibrato!
 			byte filled;
@@ -1158,8 +1157,8 @@ void updateAdlib(double timepassed, uint_32 MHZ14passed)
 			#endif
 			writeDoubleBufferedSound16(&adlib_soundbuffer,(word)sample); //Output the sample to the renderer!
 			tickadlib(); //Tick us to the next timing if needed!
-			adlib_soundtiming -= MHZ14_TICK; //Decrease timer to get time left!
-		} while (adlib_soundtiming>=MHZ14_TICK);
+			adlib_ticktiming -= MHZ14_TICK; //Decrease timer to get time left!
+		} while (adlib_ticktiming>=MHZ14_TICK);
 	}
 }
 
@@ -1270,8 +1269,8 @@ void initAdlib()
 	//RNG support!
 	OPL2_RNGREG = OPL2_RNG = 0; //Initialise the RNG!
 
-	adlib_ticktiming = 0.0f;
-	adlib_soundtiming = 0; //Reset our output timing!
+	adlib_ticktiming = 0; //Reset our output timing!
+	adlib_ticktiming80 = 0; //80us tick timing!
 
 	if (__SOUND_ADLIB)
 	{
