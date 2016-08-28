@@ -59,24 +59,33 @@ OPTINLINE static byte reverse8(INLINEREGISTER byte b) { //Reverses byte value bi
 byte reversedinit = 1;
 byte int10_font_08_reversed[256*8]; //Full font, reversed for optimized display!
 
-OPTINLINE static byte getcharxy_8(byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
+OPTINLINE static byte getcharxy_8(byte character, word x, word y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
 {
 	static word lastcharinfo = 0; //attribute|character, bit31=Set?
 	static byte lastrow = 0; //The last loaded row!
 	INLINEREGISTER word location;
+	INLINEREGISTER byte effectiverow; //Effective row!
 
-	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
-	location = 0x8000|(character << 3)|y; //The location to look up!
-
-	if (location!=lastcharinfo) //Last row not yet loaded?
+	if ((character&0x20)!=character) //Non-empty character?
 	{
-		lastcharinfo = location; //Load the new location!
-		location ^= 0x8000; //Disable our used bit!
-		lastrow = int10_font_08_reversed[location]; //Read the row from the character generator to use! Also reverse the bits for faster usage, which is already done!
+		//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
+		location = 0x8000|(character << 3)|y; //The location to look up!
+
+		if (location!=lastcharinfo) //Last row not yet loaded?
+		{
+			lastcharinfo = location; //Load the new location!
+			location ^= 0x8000; //Disable our used bit!
+			lastrow = int10_font_08_reversed[location]; //Read the row from the character generator to use! Also reverse the bits for faster usage, which is already done!
+		}
+		effectiverow = lastrow; //The row to use!
+	}
+	else
+	{
+		effectiverow = 0; //Nothing loaded!
 	}
 
 	//Take the pixel we need!
-	return ((lastrow>>x)&1); //Give result from the reversed data!
+	return ((effectiverow>>x)&1); //Give result from the reversed data!
 }
 
 OPTINLINE static uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
@@ -93,17 +102,14 @@ OPTINLINE static byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) 
 {
 	word tx, ty;
 	word charx, chary;
-	if (allcleared) return 0; //Abort when all is cleared!
-	if (x<0) return 0; //Lower bound!
-	if (y<0) return 0; //Lower bound!
-	if (x >= GPU_TEXTPIXELSX) return 0; //Higher bound!
-	if (y >= GPU_TEXTPIXELSY) return 0; //Higher bound!
 	GPU_textcalcpixel(&tx, &ty, &charx, &chary, x, y); //Calculate our info!
-	return getcharxy_8(surface->text[chary][charx], (byte)tx, (byte)ty); //Give the pixel of the character!
+	return getcharxy_8(surface->text[chary][charx], tx, ty); //Give the pixel of the character!
 }
 
 OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 {
+	byte xmin, xmax; //Top/bottom maximum reached?
+	byte backpixel; //Are we a background pixel?
 	if (allcleared) return; //Abort when all is cleared!
 	//Undirty!
 	if (GPU_textget_pixel(surface,fx,fy)) //Font?
@@ -113,8 +119,8 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	else
 	{
 		INLINEREGISTER int fx2, fy2;
-		INLINEREGISTER uint_32 backcolor;
-		backcolor = GPU_textgetcolor(surface, fx, fy, 1); //Background color!
+
+		backpixel = 0; //Default transparent background pixel!
 
 		fx2 = fx; //Load the ...
 		fy2 = fy; //Coordinates to check!
@@ -122,72 +128,105 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 		//We're background/transparent!
 		//{ 1,1 },{ 1,0 },{ 0,1 },{ 1,-1 },{ -1,1 },{ 0,-1 },{ -1,0 },{ -1,-1 }
 
+		xmin = (fx==0); //Min not available?
+		xmax = (fx>=(GPU_TEXTPIXELSX-1)); //Max not available?
 
 		--fx2;
 		--fy2; //-1,-1
-		if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+		if (fy==0) goto skipfirst; //Vertical first row available?
 		{
-			surface->notdirty[fy][fx] = backcolor; //Back of the current character!
-			return; //Done: we've gotten a pixel!
+			if (xmin) goto skipmin1;
+			{
+				if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+				{
+					backpixel = 1;
+					goto finishtextrendering; //We're finished!
+				}
+			}
+
+			skipmin1:
+			//Middle column is always valid!
+			++fx2; //0,-1
+			if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+			{
+				backpixel = 1;
+				goto finishtextrendering; //We're finished!
+			}
+
+			if (xmax) goto skipmax1;
+			{
+				++fx2; //1,-1
+				if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+				{
+					backpixel = 1;
+					goto finishtextrendering; //We're finished!
+				}
+				--fx2; //0,-1
+			}
+			skipmax1:
+			--fx2; //-1,0
 		}
 
-		++fx2; //0,-1
-		if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
-		{
-			surface->notdirty[fy][fx] = backcolor; //Back of the current character!
-			return; //Done: we've gotten a pixel!
-		}
-
-		++fx2; //1,-1
-		if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
-		{
-			surface->notdirty[fy][fx] = backcolor; //Back of the current character!
-			return; //Done: we've gotten a pixel!
-		}
-
+		skipfirst:
+		//Middle row? It's always valid!
 		++fy2;
-		--fx2;
-		--fx2; //-1,0
-		if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+		if (xmin) goto skipmin2;
 		{
-			surface->notdirty[fy][fx] = backcolor; //Back of the current character!
-			return; //Done: we've gotten a pixel!
+			if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+			{
+				backpixel = 1;
+				goto finishtextrendering; //We're finished!
+			}
 		}
 
-
-		++fx2;
-		++fx2; //1,0
-		if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+		skipmin2:
+		if (xmax) goto skipmax2;
 		{
-			surface->notdirty[fy][fx] = backcolor; //Back of the current character!
-			return; //Done: we've gotten a pixel!
+			++fx2;
+			++fx2; //1,0
+			if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+			{
+				backpixel = 1;
+				goto finishtextrendering; //We're finished!
+			}
+			--fx2;
+			--fx2; //-1,0
+		}
+		
+		skipmax2:
+		if (fy==(GPU_TEXTPIXELSY-1)) goto finishtextrendering; //Vertical bottom row available?
+		{
+			++fy2;
+			if (xmin) goto skipmin3;
+			{
+				if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+				{
+					backpixel = 1;
+					goto finishtextrendering; //We're finished!
+				}
+			}
+			skipmin3:
+			//Middle column is always valid!
+			++fx2; //0,1
+			if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+			{
+				backpixel = 1;
+				goto finishtextrendering; //We're finished!
+			}
+
+			if (xmax) goto finishtextrendering;
+			{
+				++fx2; //1,1
+				if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+				{
+					backpixel = 1;
+				}
+			}
 		}
 
-		++fy2;
-		--fx2;
-		--fx2; //-1,1
-		if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
-		{
-			surface->notdirty[fy][fx] = backcolor; //Back of the current character!
-			return; //Done: we've gotten a pixel!
-		}
-
-		++fx2; //0,1
-		if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
-		{
-			surface->notdirty[fy][fx] = backcolor; //Back of the current character!
-			return; //Done: we've gotten a pixel!
-		}
-
-		++fx2; //1,1
-		if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
-		{
-			surface->notdirty[fy][fx] = backcolor; //Back of the current character!
-			return; //Done: we've gotten a pixel!
-		}
-
-		//We're transparent!
-		surface->notdirty[fy][fx] = TRANSPARENTPIXEL; //Transparent instead!
+		finishtextrendering:
+		//We're transparent or background!
+		surface->notdirty[fy][fx] = backpixel?GPU_textgetcolor(surface, fx, fy, 1):TRANSPARENTPIXEL; //Background or Transparent instead!
 	}
 }
 
