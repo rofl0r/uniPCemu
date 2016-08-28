@@ -432,11 +432,11 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 	speaker_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
 	if ((speaker_ticktiming >= speaker_tick) && enablespeaker) //Enough time passed to render the physical PC speaker and enabled?
 	{
-		length = floor(SAFEDIV(speaker_ticktiming, speaker_tick)); //How many ticks to tick?
+		length = (uint_32)floor(SAFEDIV(speaker_ticktiming, speaker_tick)); //How many ticks to tick?
 		speaker_ticktiming -= (length*speaker_tick); //Rest the amount of ticks!
 
 		//Ticks the speaker when needed!
-		i = 0.0f; //Init counter!
+		i = 0; //Init counter!
 		//Generate the samples from the output signal!
 		for (;;) //Generate samples!
 		{
@@ -465,7 +465,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 
 			//Add the result to our buffer!
 			writeDoubleBufferedSound16(&pcspeaker_soundbuffer, (short)speaker_currentsample); //Write the sample to the buffer (mono buffer)!
-			i += 1.0f; //Add time!
+			++i; //Add time!
 			if (i == length) //Fully rendered?
 			{
 				return; //Next item!
@@ -489,7 +489,7 @@ void initSpeakers(byte soundspeaker)
 			allocDoubleBufferedSound16(SPEAKER_BUFFER,&pcspeaker_soundbuffer,0); //(non-)Lockable FIFO with X word-sized samples without lock!
 		}
 	}
-	speaker_ticktiming = time_ticktiming = 0.0; //Initialise our timing!
+	speaker_ticktiming = time_ticktiming = 0; //Initialise our timing!
 	if (enablespeaker)
 	{
 		addchannel(&speakerCallback, &PITchannels[2], "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!

@@ -987,7 +987,7 @@ void initSoundBlaster(word baseaddr, byte version)
 		{
 			if (allocDoubleBufferedSound16(__SOUNDBLASTER_SAMPLEBUFFERSIZE, &SOUNDBLASTER.soundbuffer, 0)) //Valid buffer?
 			{
-				if (!addchannel(&SoundBlaster_soundGenerator, &SOUNDBLASTER.soundbuffer, "SoundBlaster", __SOUNDBLASTER_SAMPLERATE, __SOUNDBLASTER_SAMPLEBUFFERSIZE, 0, SMPL8U)) //Start the sound emulation (mono) with automatic samples buffer?
+				if (!addchannel(&SoundBlaster_soundGenerator, &SOUNDBLASTER.soundbuffer, "SoundBlaster", (float)__SOUNDBLASTER_SAMPLERATE, __SOUNDBLASTER_SAMPLEBUFFERSIZE, 0, SMPL8U)) //Start the sound emulation (mono) with automatic samples buffer?
 				{
 					dolog("adlib", "Error registering sound channel for output!");
 				}

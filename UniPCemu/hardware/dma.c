@@ -606,7 +606,7 @@ void cleanDMA()
 
 void updateDMA(uint_32 MHZ14passed)
 {
-	INLINEREGISTER double timing;
+	INLINEREGISTER uint_32 timing;
 	timing = DMA_timing; //Load current timing!
 	timing += MHZ14passed; //How many ticks have passed?
 	if (timing >= MHZ14_RATE) //To tick?
