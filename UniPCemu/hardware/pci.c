@@ -2,9 +2,11 @@
 
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/ports.h" //I/O port support!
+#include "headers/hardware/pci.h" //PCI configuration space!
 
 byte *configurationspaces[0x100]; //All possible configuation spaces!
 byte configurationsizes[0x100]; //The size of the configuration!
+PCIConfigurationChangeHandler configurationchanges[0x100]; //The change handlers of PCI area data!
 
 uint_32 PCI_address, PCI_data, PCI_status; //Address data and status buffers!
 
@@ -45,6 +47,10 @@ OPTINLINE void PCI_write_data(uint_32 address, byte index, byte value) //Write d
 	if ((address+index) > 4) //Not write protected data (identification and status)?
 	{
 		configurationspaces[device][address+index] = value; //Set the data!
+		if (configurationchanges[device]) //Change registered?
+		{
+			configurationchanges[device](address+index,1); //We've updated 1 byte of configuration data!
+		}
 	}
 }
 
@@ -99,7 +105,7 @@ byte outPCI(word port, byte value)
 	return 0; //Not supported yet!
 }
 
-void register_PCI(void *config, byte size)
+void register_PCI(void *config, byte size, PCIConfigurationChangeHandler configurationchangehandler)
 {
 	int i;
 	for (i = 0;i < (int)NUMITEMS(configurationspaces);i++) //Check for available configuration space!
@@ -115,6 +121,7 @@ void register_PCI(void *config, byte size)
 		{
 			configurationspaces[i] = config; //Set up the configuration!
 			configurationsizes[i] = size; //What size (in dwords)!
+			configurationchanges[i] = configurationchangehandler; //Configuration change handler!
 			return; //We've registered!
 		}
 	}
@@ -125,5 +132,7 @@ void initPCI()
 	register_PORTIN(&inPCI);
 	register_PORTOUT(&outPCI);
 	//We don't implement DMA: this is done by our own DMA controller!
-	memset(configurationspaces, 0, sizeof(configurationspaces)); //Clear all configuration spaces set!
+	memset(&configurationspaces, 0, sizeof(configurationspaces)); //Clear all configuration spaces set!
+	memset(&configurationsizes,0,sizeof(configurationsizes)); //No sizes!
+	memset(&configurationchanges,0,sizeof(configurationchanges)); //No handlers!
 }

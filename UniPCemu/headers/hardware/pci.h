@@ -3,6 +3,8 @@
 
 #include "headers/types.h" //Basic types!
 
+typedef void (*PCIConfigurationChangeHandler)(uint_32 address, byte size);
+
 typedef struct
 {
 	word DeviceID;
@@ -33,6 +35,6 @@ typedef struct
 } PCI_CONFIG; //The entire PCI data structure!
 
 void initPCI();
-void register_PCI(void *config, byte size);
+void register_PCI(void *config, byte size, PCIConfigurationChangeHandler configurationchangehandler);
 
 #endif
