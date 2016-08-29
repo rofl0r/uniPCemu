@@ -74,6 +74,7 @@ byte adlibregmem[0xFF], adlibaddr = 0;
 word OPL2_ExpTable[0x100], OPL2_LogSinTable[0x100]; //The OPL2 Exponentional and Log-Sin tables!
 double OPL2_ExponentialLookup[0x10000]; //Full exponential lookup table!
 float OPL2_ExponentialLookup2[0x10000]; //The full exponential lookup table, converted to -1 to +1 range!
+float OPL2_TremoloVibratoLookup[0x10000]; //The full tremolo/vibrato lookup table!
 
 byte adliboperators[2][0x10] = { //Groupings of 22 registers! (20,40,60,80,E0)
 	{ 0x00, 0x01, 0x02, 0x08, 0x09, 0x0A, 0x10, 0x11, 0x12,255,255,255,255,255,255 },
@@ -481,20 +482,21 @@ OPTINLINE float OPL2_Exponential(word v)
 	return OPL2_ExponentialLookup2[v]; //Give the precalculated lookup result!
 }
 
+OPTINLINE float getOPL2TriangleWave(word v)
+{
+	return OPL2_TremoloVibratoLookup[v]; //Give the precalculated lookup result!
+}
+
 OPTINLINE void stepTremoloVibrato(TREMOLOVIBRATOSIGNAL *signal, float frequency)
 {
-	float current;
-	double dummy;
-	current = (float)modf((double)asinf(OPL2_Exponential(OPL2SinWave((float)PI2*frequency*(float)signal->time)))/(float)PI2,&dummy); //Apply the signal using the OPL2 Sine Wave, reverse the operation and convert to triangle time!
-	current = (current < 0.5f)? ((current * 2.0f) - 0.5f):(0.5f - ((current - 0.5f) * 2.0f));
-	signal->current = current; //Save the current signal as the triangle wave!
+	float temp, dummy;
+	signal->current = getOPL2TriangleWave(OPL2SinWave((float)PI2*frequency*(float)signal->time)); //Apply the signal using the OPL2 Sine Wave, reverse the operation and convert to triangle wave!
 
-	float temp;
 	signal->time += adlib_sampleLength; //Add 1 sample to the time!
 
 	temp = signal->time*frequency; //Calculate for overflow!
 	if (temp >= 1.0f) { //Overflow?
-		signal->time = (float)modf(temp, &dummy) / frequency;
+		signal->time = modff(temp, &dummy) / frequency;
 	}
 }
 
@@ -1187,6 +1189,8 @@ byte adlib_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata
 
 void initAdlib()
 {
+	float current; //Current values for Tremolo/Vibrato lookup table!
+	float dummy; //Dummy value for Tremolo/Vibrato lookup!
 	if (__HW_DISABLED) return; //Abort!
 
 	//Initialize our timings!
@@ -1256,9 +1260,16 @@ void initAdlib()
 
 	adlib_scaleFactor = (((float)(SHRT_MAX))/8.0f); //Highest volume conversion Exp table(resulting mix) to SHRT_MAX (8 channels before clipping)!
 
-	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);i++) //Process all feedback values!
+	for (i = 0;i < (int)NUMITEMS(feedbacklookup2);++i) //Process all feedback values!
 	{
 		feedbacklookup2[i] = feedbacklookup[i]; //Don't convert for now!
+	}
+
+	for (n=0;n<(int)NUMITEMS(OPL2_TremoloVibratoLookup);++n) //Process all Tremolo/Vibrato outputs!
+	{
+		current = modff(asinf(OPL2_Exponential((word)n)) / (float)PI2, &dummy); //Apply the signal using the OPL2 Sine Wave, reverse the operation and convert to triangle time!
+		current = (current < 0.5f) ? ((current * 2.0f) - 0.5f) : (0.5f - ((current - 0.5f) * 2.0f));
+		OPL2_TremoloVibratoLookup[n] = current; //Set the used Tremolo/Vibrato value!
 	}
 
 	memset(&tremolovibrato,0,sizeof(tremolovibrato)); //Initialise tremolo/vibrato!
