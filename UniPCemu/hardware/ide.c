@@ -1383,6 +1383,14 @@ port3_read: //Special port #3?
 	return 0; //Unsupported!
 }
 
+void ATA_ConfigurationSpaceChanged(uint_32 address, byte size)
+{
+	if (address == 0x3C) //IRQ changed?
+	{
+		PCI_IDE.InterruptLine = 0xFF; //We're unused, so let the software detect it, if required!
+	}
+}
+
 byte CDROM_DiskChanged = 0;
 
 void ATA_DiskChanged(int disk)
@@ -1519,7 +1527,7 @@ void initATA()
 	ATA_DiskChanged(CDROM1); //Init HDD1!
 	CDROM_DiskChanged = 1; //We're changing when updating!
 	memset(&PCI_IDE, 0, sizeof(PCI_IDE)); //Initialise to 0!
-	register_PCI(&PCI_IDE, sizeof(PCI_IDE)); //Register the PCI data area!
+	register_PCI(&PCI_IDE, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
 	//Initialise our data area!
 	PCI_IDE.DeviceID = 1;
 	PCI_IDE.VendorID = 1; //DEVICEID::VENDORID: We're a ATA device!
