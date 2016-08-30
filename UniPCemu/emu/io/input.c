@@ -3319,8 +3319,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			{
 				if (!touchstatus[event->jbutton.button]) //Not touched yet?
 				{
-					touchstatus[event->jbutton.button] = 1; //We're touched!
-					touch_fingerDown(touchscreencoordinates_x[event->jbutton.button], touchscreencoordinates_y[event->jbutton.button],(SDL_FingerID)event->jbutton.button); //Press the finger now!
+					touchstatus[event->jbutton.button] = 2; //We're pending to be touched!
 				}
 			}
 		}
@@ -3434,7 +3433,15 @@ void updateInput(SDL_Event *event) //Update all input!
 					touchscreencoordinates_y[event->jball.ball] = bally; //Set screen y coordinate normalized!
 					if (touchstatus[event->jball.ball]) //Already touched?
 					{
-						touch_fingerMotion(touchscreencoordinates_x[event->jball.ball], touchscreencoordinates_y[event->jball.ball], (SDL_FingerID)event->jball.ball); //Motion of the pressed finger now!
+						if (touchstatus[event->jball.ball]==2) //We're pending to be pressed?
+						{
+							touch_fingerDown(touchscreencoordinates_x[event->jbutton.button], touchscreencoordinates_y[event->jbutton.button], (SDL_FingerID)event->jbutton.button); //Press the finger now!
+							touchstatus[event->jball.ball] = 1; //We're pressed now!
+						}
+						else //We've moved!
+						{
+							touch_fingerMotion(touchscreencoordinates_x[event->jball.ball], touchscreencoordinates_y[event->jball.ball], (SDL_FingerID)event->jball.ball); //Motion of the pressed finger now!
+						}
 					}
 				}
 			}
@@ -3448,7 +3455,7 @@ void updateInput(SDL_Event *event) //Update all input!
 			{
 				if (event->jbutton.button<0x10) //Valid button protection?
 				{
-					if (touchstatus[event->jbutton.button]) //Not touched yet?
+					if (touchstatus[event->jbutton.button]) //Are we touched yet?
 					{
 						touchstatus[event->jbutton.button] = 0; //We're not touched anymore!
 						touch_fingerUp(touchscreencoordinates_x[event->jbutton.button], touchscreencoordinates_y[event->jbutton.button], (SDL_FingerID)event->jbutton.button); //Press the finger now!
