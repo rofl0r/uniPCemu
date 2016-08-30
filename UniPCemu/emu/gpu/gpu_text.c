@@ -298,7 +298,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (!rendersurface) return 0; //No rendering surface used yet?
 	INLINEREGISTER word x,y;
 	INLINEREGISTER uint_32 color;
-	int fx, fy; //Used when rendering on the screen!
+	int fx, fy, sx, sy; //Used when rendering on the screen!
 	double relx, rely; //Relative X/Y position to use for updating the current pixel!
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 
@@ -319,7 +319,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		PostSem(tsurface->lock); //We're finished with the surface!
 	}
 
-	x = y = 0; //Init coordinates!
+	x = y = sx = sy = 0; //Init coordinates!
 	relx = rely = 0.0; //Init screen coordinate plotter!
 	if (check_surface(rendersurface)) //Valid to render to?
 	{
@@ -328,28 +328,30 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		{
 			if ((color = *renderpixel) != TRANSPARENTPIXEL) //The pixel to plot, if any! Ignore transparent pixels!
 			{
-				fx = (word)(((double)x+relx)*render_xfactorreverse); //x converted to destination factor!
+				fx = sx; //x converted to destination factor!
 				if (tsurface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
 
-				fy = (word)(((double)y+rely)*render_yfactorreverse); //y converterd to destination factor!
+				fy = sy; //y converterd to destination factor!
 				if (tsurface->ydelta) fy += TEXT_ydelta; //Apply delta position to the output pixel!
 
 				put_pixel(rendersurface, fx, fy, color); //Plot the pixel!
 			}
 
 			relx += render_xfactor; //We've rendered a pixel!
-			for (;relx>=1.0f;) //Expired?
+			++sx; //Screen pixel rendered!
+			for (;relx>=1.0;) //Expired?
 			{
-				relx -= 1.0f; //Rest!
+				relx -= 1.0; //Rest!
 				++renderpixel; //We've rendered a pixel!
 				//Else, We're transparent, do don't plot!
 				if (++x==GPU_TEXTPIXELSX) //End of row reached?
 				{
-					x = 0; //Reset horizontal coordinate!
+					x = sx = 0; //Reset horizontal coordinate!
 					rely += render_yfactor; //We've rendered a row!
-					for (;rely>=1.0f;) //Expired?
+					++sy; //Screen row rendered!
+					for (;rely>=1.0;) //Expired?
 					{
-						rely -= 1.0f; //Rest!
+						rely -= 1.0; //Rest!
 						++y; //Next row to draw!
 					}
 					renderpixel = &tsurface->notdirty[y][0]; //Start with the first pixel in our (new) row!
