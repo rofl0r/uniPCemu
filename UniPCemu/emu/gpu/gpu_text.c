@@ -350,8 +350,9 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 					for (;rely>=1.0f;) //Expired?
 					{
 						rely -= 1.0f; //Rest!
-						renderpixel = &tsurface->notdirty[++y][0]; //Start with the first pixel in our new row!
+						++y; //Next row to draw!
 					}
+					renderpixel = &tsurface->notdirty[y][0]; //Start with the first pixel in our (new) row!
 				}
 			}
 		} while (y!=GPU_TEXTPIXELSY); //Stop searching now!
