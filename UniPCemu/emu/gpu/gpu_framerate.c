@@ -27,6 +27,10 @@
 #define FRAMERATE_SPEED 1.0f
 //Log VGA speed?
 //#define LOG_VGA_SPEED
+//Show cycles speed?
+#ifdef ANDROID
+#define SHOWCYCLESSPEED
+#endif
 
 extern GPU_type GPU; //GPU!
 
@@ -100,12 +104,14 @@ void finish_screen() //Extra stuff after rendering!
 
 extern double timeemulated; //Start of valid last timing to start counting from!
 TicksHolder currentticks; //The ticks we've counted!
+double current_emutimepassed=0.0;
+extern double CPU_speed_cycle; //Speed of a cycle in the CPU!
 
 OPTINLINE byte getCPUSpeedPercentage()
 {
 	INLINEREGISTER double emutimepassed, timenow, result;
 	//First, get current state!
-	emutimepassed = timeemulated; //The time emulated!
+	current_emutimepassed = emutimepassed = timeemulated; //The time emulated!
 	timeemulated = 0.0f; //Restart counting the time passed!
 	timenow = getnspassed(&currentticks); //How long has actually passed?
 	
@@ -165,6 +171,12 @@ void renderFramerate()
 						CPUspeed = getCPUSpeedPercentage(); //Current CPU speed percentage (how much the current time is compared to required time)!
 					}
 					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%  ", CPUspeed); //Current CPU speed percentage!
+					#ifdef SHOWCYCLESSPEED
+					if (CPU_speed_cycle)
+					{
+						GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), ", %u cycles/S                    ", (uint_64)(current_emutimepassed/CPU_speed_cycle)); //Current CPU speed in cycles/S!
+					}
+					#endif
 				}
 		}
 		else //Don't debug framerate, but still render?
@@ -178,6 +190,12 @@ void renderFramerate()
 				}
 				GPU_textgotoxy(frameratesurface, 0, 0); //For output!
 				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "CPU speed: %i%%  ", CPUspeed); //Current CPU speed percentage!
+				#ifdef SHOWCYCLESSPEED
+				if (CPU_speed_cycle)
+				{
+					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), ", %u cycles/S                    ", (uint_64)(current_emutimepassed / CPU_speed_cycle)); //Current CPU speed in cycles/S!
+				}
+				#endif
 				GPU_textclearcurrentrownext(frameratesurface); //Clear the rest of the current row!
 			}
 			else
