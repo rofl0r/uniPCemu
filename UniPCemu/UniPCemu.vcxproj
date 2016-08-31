@@ -286,6 +286,7 @@
     <ClInclude Include="headers\mmu\memory_adressing.h" />
     <ClInclude Include="headers\mmu\mmu.h" />
     <ClInclude Include="headers\mmu\mmuhandler.h" />
+    <ClInclude Include="headers\mmu\mmu_internals.h" />
     <ClInclude Include="headers\mmu\paging.h" />
     <ClInclude Include="headers\packed.h" />
     <ClInclude Include="headers\sdl_rest.h" />

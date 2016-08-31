@@ -48,9 +48,9 @@ FIFOBUFFER* allocfifobuffer(uint_32 buffersize, byte lockable)
 			}
 		}
 		//The rest is ready to work with: all 0!
+		buffer->laststatus = LASTSTATUS_READ; //Initialize read position!
+		buffer->savedpos.laststatus = LASTSTATUS_READ; //Initialize read position!
 	}
-	buffer->laststatus = LASTSTATUS_READ; //Initialize read position!
-	buffer->savedpos.laststatus = LASTSTATUS_READ; //Initialize read position!
 	return buffer; //Give the allocated FIFO container!
 }
 

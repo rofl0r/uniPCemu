@@ -926,5 +926,8 @@
     <ClInclude Include="headers\hardware\soundblaster.h">
       <Filter>Header Files\hardware</Filter>
     </ClInclude>
+    <ClInclude Include="headers\mmu\mmu_internals.h">
+      <Filter>Header Files\mmu</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

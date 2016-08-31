@@ -6,7 +6,7 @@ DMA Controller (8237A)
 
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/ports.h" //Port support!
-#include "headers/mmu/mmu.h" //Memory support!
+#include "headers/mmu/mmuhandler.h" //Direct Memory support!
 #include "headers/hardware/8237A.h" //Our own header!
 
 //Are we disabled?
@@ -499,14 +499,14 @@ void DMA_tick()
 							{
 								if (DMAController[controller].DMAChannel[channel].ReadWHandler) //Valid handler?
 								{
-									MMU_directww(address, DMAController[controller].DMAChannel[channel].ReadWHandler()); //Read using handler!
+									memory_directww(address, DMAController[controller].DMAChannel[channel].ReadWHandler()); //Read using handler!
 								}
 							}
 							else //8-bits?
 							{
 								if (DMAController[controller].DMAChannel[channel].ReadBHandler) //Valid handler?
 								{
-									MMU_directwb(address, DMAController[controller].DMAChannel[channel].ReadBHandler()); //Read using handler!
+									memory_directwb(address, DMAController[controller].DMAChannel[channel].ReadBHandler()); //Read using handler!
 								}
 							}
 							break;
@@ -515,14 +515,14 @@ void DMA_tick()
 							{
 								if (DMAController[controller].DMAChannel[channel].WriteWHandler) //Valid handler?
 								{
-									DMAController[controller].DMAChannel[channel].WriteWHandler(MMU_directrw(address)); //Read using handler!
+									DMAController[controller].DMAChannel[channel].WriteWHandler(memory_directrw(address)); //Read using handler!
 								}
 							}
 							else //8-bits?
 							{
 								if (DMAController[controller].DMAChannel[channel].WriteBHandler) //Valid handler?
 								{
-									DMAController[controller].DMAChannel[channel].WriteBHandler(MMU_directrb(address)); //Read using handler!
+									DMAController[controller].DMAChannel[channel].WriteBHandler(memory_directrb(address)); //Read using handler!
 								}
 							}
 							break;

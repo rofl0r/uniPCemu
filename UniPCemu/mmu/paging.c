@@ -1,5 +1,6 @@
 #include "headers/mmu/mmu.h" //MMU reqs!
 #include "headers/cpu/cpu.h" //CPU reqs!
+#include "headers/mmu/mmu_internals.h" //Internal transfer support!
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 
@@ -96,7 +97,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	TABLE = (address>>12)&0x3FF; //The table entry!
 	
 	//Check PDE
-	PDE.value = MMU_directrdw(CPU[activeCPU].registers->CR3.PageDirectoryBase+(DIR<<2)); //Read the page directory entry!
+	PDE.value = memory_directrdw(CPU[activeCPU].registers->CR3.PageDirectoryBase+(DIR<<2)); //Read the page directory entry!
 	if (!PDE.P) //Not present?
 	{
 		FLAG_PF(address,PDE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
@@ -110,11 +111,11 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	if (!PDE.A) //Not accessed yet?
 	{
 		PDE.A = 1; //Accessed!
-		MMU_directwdw(CPU[activeCPU].registers->CR3.PageDirectoryBase+(DIR<<2),PDE.value); //Update in memory!
+		memory_directwdw(CPU[activeCPU].registers->CR3.PageDirectoryBase+(DIR<<2),PDE.value); //Update in memory!
 	}
 	
 	//Check PTE
-	PTE.value = MMU_directrdw(PDE.PageFrameAddress+(TABLE<<2)); //Read the page table entry!
+	PTE.value = memory_directrdw(PDE.PageFrameAddress+(TABLE<<2)); //Read the page table entry!
 	if (!PTE.P) //Not present?
 	{
 		FLAG_PF(address,PTE.P|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
@@ -140,7 +141,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	}
 	if (PTEUPDATED) //Updated?
 	{
-		MMU_directwdw(PDE.PageFrameAddress+(TABLE<<2),PTE.value); //Update in memory!
+		memory_directwdw(PDE.PageFrameAddress+(TABLE<<2),PTE.value); //Update in memory!
 	}
 	return 1; //Valid!
 }
@@ -152,7 +153,7 @@ uint_32 mappage(uint_32 address) //Maps a page to real memory when needed!
 	DIR = (address>>22)&0x3FF; //The directory entry!
 	TABLE = (address>>12)&0x3FF; //The table entry!
 	ADDR = (address&0xFFF);
-	PDE.value = MMU_directrdw(CPU[activeCPU].registers->CR3.PageDirectoryBase+(DIR<<2)); //Read the page directory entry!
-	PTE.value = MMU_directrdw(PDE.PageFrameAddress+(TABLE<<2)); //Read the page table entry!
+	PDE.value = memory_directrdw(CPU[activeCPU].registers->CR3.PageDirectoryBase+(DIR<<2)); //Read the page directory entry!
+	PTE.value = memory_directrdw(PDE.PageFrameAddress+(TABLE<<2)); //Read the page table entry!
 	return PTE.PhysicalPageAddress+ADDR; //Give the actual address!
 }

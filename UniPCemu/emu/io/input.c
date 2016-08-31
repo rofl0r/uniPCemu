@@ -2753,7 +2753,7 @@ void touch_fingerUp(float x, float y, SDL_FingerID fingerId)
 		unlock(LOCK_INPUT);
 }
 
-sword lastxy[2][0x100]; //Last coordinates registered!
+sword lastxy[0x100][2]; //Last coordinates registered!
 
 void touch_fingerMotion(float relx, float rely, SDL_FingerID fingerId)
 {

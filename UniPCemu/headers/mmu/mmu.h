@@ -3,15 +3,7 @@
 
 #include "headers/types.h"
 #include "headers/cpu/cpu.h" //Pointer support etc.
-
-typedef struct
-{
-	uint_32 size; //The total size of memory allocated!
-	byte *memory; //The memory itself!
-	int invaddr; //Invalid adress in memory with MMU_ptr?
-	uint_32 wraparround; //To wrap arround memory mask?
-	byte wrapdisabled[2];
-} MMU_type;
+#include "headers/mmu/mmuhandler.h" //Memory itself!
 
 typedef struct
 {
@@ -48,42 +40,15 @@ extern MMU_type MMU; //Extern call!
 //Factor is 16 at 8086, 16/4K at 386.
 
 void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint_32 size); //Gives direct memory pointer!
-void resetMMU(); //Initialises memory!
-void doneMMU(); //Releases memory for closing emulator etc.
-uint_32 MEMsize(); //Total size of memory in use?
 byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode); //Get adress!
 word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode); //Get adress (word)!
 uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode); //Get adress (dword)!
 void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val); //Get adress!
 void MMU_ww(sword segdesc, word segment, uint_32 offset, word val); //Get adress (word)!
 void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val); //Get adress (dword)!
-byte hasmemory(); //Have memory?
 
-byte MMU_invaddr(); //Last MMU call has invalid adressing?
-void MMU_resetaddr(); //Resets the invaddr for new operations!
-
-byte MMU_directrb(uint_32 realadress); //Direct read from memory (with real data direct)!
-void MMU_directwb(uint_32 realadress, byte value); //Direct write to memory (with real data direct)!
-
-//For DMA controller/paging/system: direct word access!
-word MMU_directrw(uint_32 realadress); //Direct read from real memory (with real data direct)!
-void MMU_directww(uint_32 realadress, word value); //Direct write to real memory (with real data direct)!
-
-//For paging/system only!
-uint_32 MMU_directrdw(uint_32 realaddress);
-void MMU_directwdw(uint_32 realaddress, uint_32 value);
-
-//Memory access for fake86 compatibility and testing our CPU.
-void MMU_directwb_realaddr(uint_32 realaddress, byte val); //Write without segment/offset translation&protection (from system/interrupt)!
-byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode); //Read without segment/offset translation&protection (from system/interrupt)!
-
-//Rest support
-void MMU_dumpmemory(char *filename); //Dump the memory to a file!
 //uint_32 MMU_realaddr(int segdesc, word segment, uint_32 offset); //Real adress in real (direct) memory?
 void MMU_setA20(byte where, byte enabled); //Set A20 line enabled?
 void MMU_clearOP(); //Clear the OPcode cache!
 void MMU_addOP(byte data); //Add an opcode to the OPcode cache!
-uint_32 MMU_translateaddr(sword segdesc, word segment, uint_32 offset, byte wordop); //Translate to actual linear adress?
-void flushMMU(); //Flush MMU writes!
-void bufferMMU(); //Start buffering MMU writes!
 #endif

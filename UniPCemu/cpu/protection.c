@@ -1,8 +1,8 @@
 #include "headers/cpu/cpu.h" //Basic CPU info!
-#include "headers/cpu/cpu.h" //Basic CPU info!
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/cpu/multitasking.h" //Multitasking support!
 #include "headers/support/zalloc.h" //Memory/register protection support!
+#include "headers/mmu/mmuhandler.h" //Direct memory access support!
 
 /*
 
@@ -191,7 +191,7 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 	int i;
 	for (i=0;i<(int)sizeof(container->descdata);i++) //Process the descriptor data!
 	{
-		container->descdata[i] = MMU_directrb(descriptor_adress+i); //Read a descriptor byte directly from flat memory!
+		container->descdata[i] = memory_directrb(descriptor_adress+i); //Read a descriptor byte directly from flat memory!
 	}
 	
 	if ((whatsegment==CPU_SEGMENT_SS) && //SS is...
