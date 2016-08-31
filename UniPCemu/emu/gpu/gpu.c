@@ -143,7 +143,7 @@ SDL_Surface *getGPUSurface()
 			if (modes != (SDL_Rect **)-1)
 			{
 				xres = modes[0]->w; //Use first hardware resolution!
-				yrws = modes[0]->h; //Use first hardware resolution!
+				yres = modes[0]->h; //Use first hardware resolution!
 				GPU.fullscreen = 1; //Forced full screen!	
 				goto windowready; //Skip other calculations!
 			}

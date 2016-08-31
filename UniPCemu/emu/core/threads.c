@@ -324,11 +324,7 @@ ThreadParams_p startThread(Handler thefunc, char *name, void *params) //Start a 
 	//dolog("threads","startThread: createThread...");
 	docreatethread: //Try to start a thread!
 	#ifndef SDL2
-	#ifdef ANDROID
-	threadparams->thread = SDL_CreateThread(threadhandler,name,threadparams); //Create the thread!
-	#else
 	threadparams->thread = SDL_CreateThread(threadhandler,threadparams); //Create the thread!
-	#endif
 	#else
 	threadparams->thread = SDL_CreateThread(threadhandler,name,threadparams); //Create the thread!
 	#endif
