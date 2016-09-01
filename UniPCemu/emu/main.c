@@ -193,6 +193,13 @@ extern byte allcleared;
 
 int main(int argc, char * argv[])
 {
+	int argn;
+	char *argch;
+	char *testparam;
+	char nosoundparam[] = "nosound";
+	byte usesoundmode = 1;
+	uint_32 SDLsubsystemflags = 0; //Our default SDL subsystem flags of used functionality!
+
 //Basic PSP stuff!
 	SetupCallbacks();
 	#ifdef IS_PSP
@@ -211,6 +218,42 @@ int main(int argc, char * argv[])
 	{
 		SDL_Quit(); //Nothing to be done!
 		exit(1); //Just to be sure
+	}
+
+	if (argc) //Gotten parameters?
+	{
+		for (argn=0;argn<argc;++argn) //Process all arguments!
+		{
+			argch = &argv[argn][0]; //First character of the parameter!
+			if (*argch) //Specified?
+			{
+				testparam = &nosoundparam[0]; //Our parameter to check for!
+				for (;*argch!='\0';) //Parse the string!
+				{
+					if (tolower(*argch)!=*testparam) //Not matched?
+					{
+						goto nomatch;
+					}
+					if (*testparam=='\0') //No match? We're too long!
+					{
+						goto nomatch;
+					}
+					++argch;
+					++testparam;
+				}
+			nomatch:
+				if ((*argch==*testparam) && (*argch=='\0')) //End of string? Full match!
+				{
+					usesoundmode = 0; //Disable audio: we're disabled by the parameter!
+				}
+			}
+		}
+	}
+
+	SDLsubsystemflags = SDL_INIT_VIDEO | SDL_INIT_JOYSTICK; //Our default subsystem flags!
+	if (usesoundmode) //Using sound output?
+	{
+		SDLsubsystemflags |= SDL_INIT_AUDIO; //Use audio output!
 	}
 
 	initLocks(); //Initialise all locks before anything: we have the highest priority!
@@ -306,7 +349,7 @@ int main(int argc, char * argv[])
 		}
 	#endif
 
-	if (SDL_InitSubSystem(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_JOYSTICK)<0) //Error initialising video,audio&joystick?
+	if (SDL_InitSubSystem(SDLsubsystemflags)<0) //Error initialising video,audio&joystick?
 	{
 		raiseError("SDL Init error: %s",SDL_GetError()); //Raise an error!
 		sleep(); //Wait forever!

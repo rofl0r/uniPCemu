@@ -880,7 +880,7 @@ void updateAudio(double timepassed)
 {
 	//Adlib sound output
 	sound_soundtiming += timepassed; //Get the amount of time passed!
-	if (sound_soundtiming >= sound_soundtick) //Anything to render?
+	if ((sound_soundtiming >= sound_soundtick) && sound_soundtick) //Anything to render?
 	{
 		samples = (uint_32)(sound_soundtiming/sound_soundtick); //How many samples to render?
 		sound_soundtiming -= (double)samples*sound_soundtick; //Tick as many samples as we're rendering!
