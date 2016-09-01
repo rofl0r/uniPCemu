@@ -571,9 +571,9 @@ void initGameBlaster(word baseaddr)
 	GAMEBLASTER.baseaddr = baseaddr; //Base address of the Game Blaster!
 	setGameBlaster_SoundBlaster(0); //Default to Game Blaster I/O!
 
-	if (allocDoubleBufferedSound32(__GAMEBLASTER_SAMPLEBUFFERSIZE,&GAMEBLASTER.soundbuffer[0],0)) //Valid buffer?
+	if (allocDoubleBufferedSound32(__GAMEBLASTER_SAMPLEBUFFERSIZE,&GAMEBLASTER.soundbuffer[0],0,__GAMEBLASTER_SAMPLERATE)) //Valid buffer?
 	{
-		if (allocDoubleBufferedSound32(__GAMEBLASTER_SAMPLEBUFFERSIZE,&GAMEBLASTER.soundbuffer[1],0)) //Valid buffer?
+		if (allocDoubleBufferedSound32(__GAMEBLASTER_SAMPLEBUFFERSIZE,&GAMEBLASTER.soundbuffer[1],0,__GAMEBLASTER_SAMPLERATE)) //Valid buffer?
 		{
 			if (!addchannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[0],"GameBlaster",(float)__GAMEBLASTER_SAMPLERATE,__GAMEBLASTER_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
 			{

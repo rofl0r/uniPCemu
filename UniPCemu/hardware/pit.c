@@ -486,7 +486,7 @@ void initSpeakers(byte soundspeaker)
 		PITchannels[i].rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 2048 word-sized samples with lock (TICK_RATE)!
 		if (i==2 && enablespeaker) //Speaker?
 		{
-			allocDoubleBufferedSound16(SPEAKER_BUFFER,&pcspeaker_soundbuffer,0); //(non-)Lockable FIFO with X word-sized samples without lock!
+			allocDoubleBufferedSound16(SPEAKER_BUFFER,&pcspeaker_soundbuffer,0,SPEAKER_RATE); //(non-)Lockable FIFO with X word-sized samples without lock!
 		}
 	}
 	speaker_ticktiming = time_ticktiming = 0; //Initialise our timing!

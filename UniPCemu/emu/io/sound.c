@@ -1022,7 +1022,7 @@ void initAudio() //Initialises audio subsystem!
 		}
 
 		//Allocate the buffers!
-		if (allocDoubleBufferedSound32(SAMPLESIZE, &mixeroutput,1)) //Valid buffer?
+		if (allocDoubleBufferedSound32(SAMPLESIZE, &mixeroutput,1,SW_SAMPLERATE)) //Valid buffer?
 		{
 			mixerready = 1; //We have a mixer!
 		}

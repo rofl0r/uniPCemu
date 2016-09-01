@@ -1285,7 +1285,7 @@ void initAdlib()
 
 	if (__SOUND_ADLIB)
 	{
-		if (allocDoubleBufferedSound16(__ADLIB_SAMPLEBUFFERSIZE,&adlib_soundbuffer,0)) //Valid buffer?
+		if (allocDoubleBufferedSound16(__ADLIB_SAMPLEBUFFERSIZE,&adlib_soundbuffer,0,usesamplerate)) //Valid buffer?
 		{
 			if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",(float)usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
 			{
