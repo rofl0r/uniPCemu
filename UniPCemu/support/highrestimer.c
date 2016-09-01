@@ -5,6 +5,7 @@
 
 double tickresolution = 0.0f; //Our tick resolution, initialised!
 byte tickresolution_win_SDL = 0; //Force SDL rendering?
+byte tickresolution_SDL = 0; //Are we using SDL ticks?
 
 float msfactor, usfactor, nsfactor; //The factors!
 float msfactorrev, usfactorrev, nsfactorrev; //The factors reversed!
@@ -25,9 +26,11 @@ void initHighresTimer()
 		{
 			tickresolution = 1000.0f;
 			tickresolution_win_SDL = 1; //Force SDL!
+			tickresolution_SDL = 1; //We're using SDL method!
 		}
 #else
 		tickresolution = 1000.0f; //We have a resolution in ms as given by SDL!
+		tickresolution_SDL = 1; //We're using SDL ticks!
 #endif
 #endif
 		//Calculate needed precalculated factors!
@@ -79,6 +82,10 @@ OPTINLINE float getrealtickspassed(TicksHolder *ticksholder)
 	    //Temp is already equal to oldticks!
 	    temp -= currentticks; //Difference between the numbers(old-new=difference)!
 		currentticks = ~0; //Max to substract from instead of the current ticks!
+		if (tickresolution_SDL) //Are we SDL ticks?
+		{
+			currentticks &= (u64)(((uint_32)~0)); //We're limited to the uint_32 type, so wrap around it!
+		}
 	}
 	currentticks -= temp; //Substract the old ticks for the difference!
 	return (float)currentticks; //Give the result: amount of ticks passed!
