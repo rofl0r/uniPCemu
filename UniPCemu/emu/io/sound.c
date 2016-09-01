@@ -33,6 +33,8 @@
 //#define DEBUG_SOUNDBUFFER
 //Same as speed, but for allocations themselves.
 //#define DEBUG_SOUNDALLOC
+//Enable below to use direct audio output(SDL_QueueAudio) on SDL2 instead of an audio callback!
+//#define SDL_ENABLEQUEUEAUDIO
 
 //Use external timing synchronization?
 //#define EXTERNAL_TIMING
@@ -41,6 +43,19 @@
 
 //What frequency to filter our sound for (higher than 0Hz!) Currently the high pass filter disturbs sound too much, so it's disabled. Low pass is set to half the rendering frequency!
 #define SOUND_HIGHPASS 18.2f
+
+#ifdef SDL2
+#ifdef SDL_ENABLEQUEUEAUDIO
+//QueueAudio is supported, use it!
+#define SDL_QUEUEAUDIO
+#endif
+#endif
+
+#ifdef SDL_QUEUEAUDIO
+#define PAUSEAUDIO(x) SDL_PauseAudioDevice(audiodevice,x)
+#else
+#define PAUSEAUDIO(x) SDL_PauseAudio(x)
+#endif
 
 typedef struct
 {
@@ -75,6 +90,10 @@ typedef struct
 	void *fillbuffer; //Fillbuffer function to use!
 	void *processbuffer; //Channelbuffer function to use (determined by fillbuffer function)!
 } playing_t, *playing_p;
+
+#ifdef SDL_QUEUEAUDIO
+SDL_AudioDeviceID audiodevice; //Our used audio device!
+#endif
 
 byte audioticksready = 0; //Default: not ready yet!
 TicksHolder audioticks;
@@ -731,6 +750,9 @@ OPTINLINE static void mixaudio(uint_32 length) //Mix audio channels to buffer!
 	//Variables first
 	//Current data numbers
 	uint_32 currentsample, channelsleft; //The ammount of channels to mix!
+#ifdef SDL_QUEUEAUDIO
+	sword outputbuffer[2]; //16-bit stereo output buffer, used in direct rendering(SDL2)!
+#endif
 	INLINEREGISTER int_32 result_l, result_r; //Sample buffer!
 	sword temp_l, temp_r; //Filtered values!
 	//Active data
@@ -836,7 +858,16 @@ OPTINLINE static void mixaudio(uint_32 length) //Mix audio channels to buffer!
 		if (recording) writeWAVStereoSample(recording,result_l,result_r); //Write the recording to the file if needed!
 
 		//Give the output!
-		if (mixerready) writeDoubleBufferedSound32(&mixeroutput,(signed2unsigned16((sword)result_r)<<16)|signed2unsigned16((sword)result_l)); //Give the stereo output to the mixer!
+		if (mixerready)
+		{
+#ifdef SDL_QUEUEAUDIO
+			outputbuffer[0] = (sword)result_l; //Left sample!
+			outputbuffer[1] = (sword)result_r; //Right sample!
+			SDL_QueueAudio(audiodevice,&outputbuffer,sizeof(outputbuffer)); //Render the stereo sample!
+#else
+			writeDoubleBufferedSound32(&mixeroutput,(signed2unsigned16((sword)result_r)<<16)|signed2unsigned16((sword)result_l)); //Give the stereo output to the mixer!
+#endif
+		}
 		if (!--currentsample) return; //Finished!
 	}
 }
@@ -987,7 +1018,7 @@ void initAudio() //Initialises audio subsystem!
 				audioticksready = 1; //Ready!
 			}
 			//dolog("soundservice","Use SDL rendering...");
-			SDL_PauseAudio(1); //Disable the thread!
+			PAUSEAUDIO(1); //Disable the thread!
 			
 			//dolog("soundservice","Setting desired audio device...");
 			/* Open the audio device. The sound driver will try to give us
@@ -998,15 +1029,29 @@ void initAudio() //Initialises audio subsystem!
 			audiospecs.channels = 2;	/* ask for stereo */
 			audiospecs.samples = SAMPLESIZE;	/* this is more or less discretionary */
 			audiospecs.size = audiospecs.samples * audiospecs.channels * sizeof(sample_t);
-			audiospecs.callback = &Sound_AudioCallback;
+			#ifdef SDL_QUEUEAUDIO
+			audiospecs.callback = NULL; //We're queueing audio!
+			#else
+			audiospecs.callback = &Sound_AudioCallback; //We're not queueing audio! Use the callback instead!
+			#endif
 			audiospecs.userdata = NULL;	/* we don't need this */
 			//dolog("soundservice","Opening audio device...");
+#ifdef SDL_QUEUEAUDIO
+			audiodevice = SDL_OpenAudioDevice(NULL, 0, &audiospecs, NULL, 0); //We need this for our direct rendering!
+			if (audiodevice==0)
+			{
+				//dolog("soundservice","Unable to open audio device: %s",SDL_GetError());
+				raiseError("sound service", "Unable to open audio device: %s", SDL_GetError());
+				return; //Just to be safe!
+			}
+#else
 			if (SDL_OpenAudio(&audiospecs, NULL) < 0)
 			{
 				//dolog("soundservice","Unable to open audio device: %s",SDL_GetError());
 				raiseError("sound service","Unable to open audio device: %s", SDL_GetError());
 				return; //Just to be safe!
 			}
+#endif
 			sound_soundtick = 1000000000.0 / SW_SAMPLERATE; //Set the sample rate we render at!
 			//dolog("soundservice","Initialising channels...");
 			memset(&soundchannels,0,sizeof(soundchannels)); //Initialise/reset all sound channels!
@@ -1016,7 +1061,7 @@ void initAudio() //Initialises audio subsystem!
 		else //Already loaded, needs reset?
 		{
 			//dolog("soundservice","Resetting channels...");
-			SDL_PauseAudio(1); //Disable the thread!
+			PAUSEAUDIO(1); //Disable the thread!
 			resetchannels(); //Reset the channels!
 			//dolog("soundservice","Channels reset.");
 		}
@@ -1032,7 +1077,7 @@ void initAudio() //Initialises audio subsystem!
 		//dolog("soundservice","Calculating samplepos precalcs...");
 		calc_samplePos(); //Initialise sample position precalcs!
 		//dolog("soundservice","Starting audio...");
-		SDL_PauseAudio(0); //Start playing!
+		PAUSEAUDIO(0); //Start playing!
 		//dolog("soundservice","Device ready.");
 	}
 }
@@ -1045,8 +1090,15 @@ void doneAudio()
 	//dolog("soundservice","Channels have been reset.");
 	if (SDL_WasInit(SDL_INIT_AUDIO)) //Audio loaded?
 	{
+#ifdef SDL_QUEUEAUDIO
+		if (audiodevice)
+		{
+			SDL_CloseAudioDevice(audiodevice); //Close our allocated audio device!
+		}
+#else
 		//dolog("soundservice","Closing audio.");
 		SDL_CloseAudio(); //Close the audio system!
+#endif
 		//dolog("soundservice","Audio closed.");
 		SDLAudio_Loaded = 0; //Not loaded anymore!
 	}
