@@ -20,10 +20,15 @@
 //How many samples to process at once? Originally 2048; 64=Optimum
 #ifdef IS_PSP
 //PSP?
-#define SAMPLESIZE 4096
+#define SAMPLESIZE 64
+#else
+#ifdef ANDROID
+//We use lower latency for Android devices, since it seems it needs that.
+#define SAMPLESIZE 2048
 #else
 //Windows/Linux?
-#define SAMPLESIZE 4096
+#define SAMPLESIZE 512
+#endif
 #endif
 //Maximum samplerate in Hertz (200KHz)
 #define MAX_SAMPLERATE 50000.0f
@@ -35,10 +40,9 @@
 //#define DEBUG_SOUNDALLOC
 //Enable below to use direct audio output(SDL_QueueAudio) on SDL2 instead of an audio callback!
 //#define SDL_ENABLEQUEUEAUDIO
-
 //Use external timing synchronization?
 //#define EXTERNAL_TIMING
-
+//Use the equalizer functionality?
 //#define __USE_EQUALIZER
 
 //What frequency to filter our sound for (higher than 0Hz!) Currently the high pass filter disturbs sound too much, so it's disabled. Low pass is set to half the rendering frequency!
