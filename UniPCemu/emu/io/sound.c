@@ -20,10 +20,10 @@
 //How many samples to process at once? Originally 2048; 64=Optimum
 #ifdef IS_PSP
 //PSP?
-#define SAMPLESIZE 64
+#define SAMPLESIZE 4096
 #else
 //Windows/Linux?
-#define SAMPLESIZE 512
+#define SAMPLESIZE 4096
 #endif
 //Maximum samplerate in Hertz (200KHz)
 #define MAX_SAMPLERATE 50000.0f
