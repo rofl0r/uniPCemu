@@ -7,12 +7,16 @@
 #include "headers/support/bmp.h" //BMP support for dumping color information!
 
 uint_32 DACBitmap[0x8000]; //Full DAC 1-row bitmap!
+extern char capturepath[256]; //Capture path!
+
 void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 {
 	char filename[256];
 	bzero(filename,sizeof(filename)); //Init
-	domkdir("captures"); //Make sure our directory exists!
-	strcpy(&filename[0],"captures/VGA_DAC"); //Generate log of this mode!
+	domkdir(capturepath); //Make sure our directory exists!
+	strcpy(filename, capturepath); //Capture path!
+	strcat(filename, "/");
+	strcat(filename, "VGA_DAC"); //Generate log of this mode!
 	int c,r;
 	INLINEREGISTER uint_32 DACVal;
 	for (c=0;c<0x100;c++)
@@ -56,7 +60,9 @@ void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 		}
 	}
 	//Attributes are in order top to bottom: attribute foreground, attribute background, attribute foreground blink, attribute background blink affected for all attributes!
-	strcpy(&filename[0],"captures/VGA_ATT"); //Generate log of this mode!
+	strcpy(filename, capturepath); //Capture path!
+	strcat(filename, "/");
+	strcat(filename, "VGA_ATT"); //Generate log of this mode!
 	writeBMP(filename,&DACBitmap[0],256,4*0x20,0,0,256); //Simple 4-row dump of every scanline of the attributes through the DAC!
 }
 

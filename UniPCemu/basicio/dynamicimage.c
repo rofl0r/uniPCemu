@@ -591,10 +591,19 @@ sbyte dynamicimage_nextallocatedsector(char *filename, uint_32 *sector) //Finds 
 	return (sbyte)present; //Next sector that is (un)allocated! -1=Invalid file, 0=Nothing present anymore(EOF reached during search), 1=
 }
 
+char diskpath[256]; //Disk path!
+
 FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int percentagey)
 {
 	DYNAMICIMAGE_HEADER header;
 	FILE *f;
+
+	char fullfilename[256];
+	bzero(&fullfilename, sizeof(fullfilename)); //Init!
+	strcpy(fullfilename, diskpath); //Disk path!
+	strcat(fullfilename, "/");
+	strcat(fullfilename, filename); //The full filename!
+
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
 		EMU_locktext();
@@ -608,7 +617,7 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 
 	if (size != 0) //Has size?
 	{
-		f = emufopen64(filename, "wb"); //Start generating dynamic info!
+		f = emufopen64(fullfilename, "wb"); //Start generating dynamic info!
 		memcpy(&header.SIG,SIG,sizeof(header.SIG)); //Set the signature!
 		header.headersize = sizeof(header); //The size of the header to validate!
 		header.filesize = numblocks; //Ammount of blocks!

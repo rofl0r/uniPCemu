@@ -98,6 +98,8 @@ byte staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read 
 	return FALSE; //Error!
 }
 
+extern char diskpath[256]; //Disk path!
+
 void generateStaticImage(char *filename, FILEPOS size, int percentagex, int percentagey) //Generate a static image!
 {
 	FILEPOS sizeleft = size; //Init size left!
@@ -105,7 +107,15 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 	double percentage;
 	FILE *f;
 	int_64 byteswritten, totalbyteswritten = 0;
-	f = emufopen64(filename,"wb"); //Generate file!
+	char fullfilename[256];
+	bzero(&fullfilename,sizeof(fullfilename)); //Init!
+	strcpy(fullfilename,diskpath); //Disk path!
+	strcat(fullfilename,"/");
+	strcat(fullfilename,filename); //The full filename!
+
+	domkdir(diskpath); //Make sure our directory we're creating an image in exists!
+
+	f = emufopen64(fullfilename,"wb"); //Generate file!
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
 		EMU_locktext();
@@ -121,7 +131,7 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 		if (byteswritten != sizeof(buffer)) //An error occurred!
 		{
 			emufclose64(f); //Close the file!
-			delete_file(".",filename); //Remove the file!
+			delete_file(diskpath,filename); //Remove the file!
 			return; //Abort!
 		}
 		if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
@@ -162,7 +172,13 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 	double percentage;
 	FILE *f;
 	int_64 byteswritten, totalbyteswritten = 0;
-	f = emufopen64(filename,"wb"); //Generate file!
+	char fullfilename[256];
+	bzero(&fullfilename, sizeof(fullfilename)); //Init!
+	strcpy(fullfilename, diskpath); //Disk path!
+	strcat(fullfilename, "/");
+	strcat(fullfilename, filename); //The full filename!
+	domkdir(diskpath); //Make sure our directory we're creating an image in exists!
+	f = emufopen64(fullfilename,"wb"); //Generate file!
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
 		EMU_locktext();
@@ -293,7 +309,7 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 		if (byteswritten != sizeof(buffer)) //An error occurred!
 		{
 			emufclose64(f); //Close the file!
-			delete_file(".",filename); //Remove the file!
+			delete_file(diskpath,filename); //Remove the file!
 			return; //Abort!
 		}
 		if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?

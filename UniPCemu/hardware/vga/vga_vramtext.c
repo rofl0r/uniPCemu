@@ -83,9 +83,14 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int_32 address)
 	}
 }
 
+extern char capturepath[256]; //Capture path!
+
+
 uint_32 textdisplay[32 * 8 * 256 * 2]; //All possible output!
 void dumpVGATextFonts()
 {
+	char fullfilename[256];
+	bzero(&fullfilename,sizeof(fullfilename)); //Init!
 	uint_32 displayindex;
 	byte *getcharxy_values;
 
@@ -117,8 +122,11 @@ void dumpVGATextFonts()
 			textdisplay[displayindex] = ((getcharxy_values[(currentcharacter<<6)|(currentrow<<1)|currentattribute]>>currentpixel)&1)?RGB(0xFF,0xFF,0xFF):RGB(0x00,0x00,0x00);
 		}
 	}
-	domkdir("captures"); //Make sure we can log!
-	writeBMP("captures/VRAMText",&textdisplay[0],256*8,32*2,0,0,256*8); //Dump our font to the BMP file! We're two characters high (one for every font table) and 256 characters wide(total characters in the font).
+	domkdir(capturepath); //Make sure we can log!
+	strcpy(fullfilename, capturepath); //Capture path!
+	strcat(fullfilename, "/");
+	strcat(fullfilename, "VRAMText"); //The full filename!
+	writeBMP(fullfilename,&textdisplay[0],256*8,32*2,0,0,256*8); //Dump our font to the BMP file! We're two characters high (one for every font table) and 256 characters wide(total characters in the font).
 }
 
 void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been updated?

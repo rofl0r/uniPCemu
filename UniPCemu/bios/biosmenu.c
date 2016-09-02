@@ -1969,7 +1969,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 					strcpy(fullfilename,diskpath);
 					strcat(fullfilename,"/");
 					strcat(fullfilename,filename);
-					generateStaticImage(fullfilename, size, 18, 6); //Generate a static image!
+					generateStaticImage(filename, size, 18, 6); //Generate a static image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
@@ -2024,7 +2024,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 					strcpy(fullfilename, diskpath);
 					strcat(fullfilename, "/");
 					strcat(fullfilename, filename);
-					generateDynamicImage(fullfilename, size, 18, 6); //Generate a dynamic image!
+					generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
@@ -2093,7 +2093,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 				strcpy(fullfilename, diskpath);
 				strcat(fullfilename, "/");
 				strcat(fullfilename, filename);
-				sizecreated = generateDynamicImage(fullfilename, size, 18, 6); //Generate a dynamic image!
+				sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
@@ -2286,7 +2286,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				EMU_unlocktext();
 				byte error = 0;
 				FILE *dest;
-				domkdir(diskpath);
+				domkdir(diskpath); //Make sure our directory we're creating an image in exists!
 				memset(fullfilename, 0, sizeof(fullfilename));
 				strcpy(fullfilename, diskpath);
 				strcat(fullfilename, "/");
@@ -2467,7 +2467,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 				GPU_EMU_printscreen(0, 6, "Defragmenting image: "); //Start of percentage!
 				EMU_unlocktext();
 				FILEPOS sizecreated;
-				sizecreated = generateDynamicImage(fullfilename, size, 21, 6); //Generate a dynamic image!
+				sizecreated = generateDynamicImage(filename, size, 21, 6); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
 					EMU_locktext();
@@ -5055,8 +5055,13 @@ void BIOS_VGASynchronization()
 	BIOS_Menu = 29; //Goto Video menu!
 }
 
+extern char capturepath[256]; //Capture path!
+
 void BIOS_DumpVGA()
 {
+	char fullfilename[256];
+	bzero(&fullfilename, sizeof(fullfilename)); //Init!
+
 	FILE *f;
 	int DACIndex;
 	uint_32 DACPos;
@@ -5071,41 +5076,59 @@ void BIOS_DumpVGA()
 	VGA_Type *VGA = getActiveVGA(); //Get the current VGA!
 	if (VGA) //Valid VGA?
 	{
-		domkdir("captures"); //Make sure to create the directory we need!
-		f = fopen("captures/vga_vram.dat","wb");
+		domkdir(capturepath); //Make sure to create the directory we need!
+		strcpy(fullfilename, capturepath); //Disk path!
+		strcat(fullfilename, "/");
+		strcat(fullfilename, "vga_vram.dat"); //The full filename!
+		f = fopen(fullfilename,"wb");
 		if (f)
 		{
 			fwrite(VGA->VRAM,1,VGA->VRAM_size,f); //Write the VRAM to the file!
 			fclose(f); //We've written the VRAM to the file!
 		}
-		f = fopen("captures/vga_graphregs.dat","wb");
+		strcpy(fullfilename, capturepath); //Disk path!
+		strcat(fullfilename, "/");
+		strcat(fullfilename, "vga_graphregs.dat"); //The full filename!
+		f = fopen(fullfilename,"wb");
 		if (f)
 		{
 			fwrite(&VGA->registers->GraphicsRegisters.DATA,1,sizeof(VGA->registers->GraphicsRegisters.DATA),f);
 			fclose(f); //We've written the Graphics Registers to the file!
 		}
-		f = fopen("captures/vga_seqregs.dat","wb");
+		strcpy(fullfilename, capturepath); //Disk path!
+		strcat(fullfilename, "/");
+		strcat(fullfilename, "vga_seqregs.dat"); //The full filename!
+		f = fopen(fullfilename, "wb");
 		if (f)
 		{
 			fwrite(&VGA->registers->SequencerRegisters.DATA,1,sizeof(VGA->registers->SequencerRegisters.DATA),f);
 			fclose(f); //We've written the Sequencer Registers to the file!
 		}
 
-		f = fopen("captures/vga_attrregs.dat","wb");
+		strcpy(fullfilename, capturepath); //Disk path!
+		strcat(fullfilename, "/");
+		strcat(fullfilename, "vga_attrregs.dat"); //The full filename!
+		f = fopen(fullfilename, "wb");
 		if (f)
 		{
 			fwrite(&VGA->registers->AttributeControllerRegisters.DATA,1,sizeof(VGA->registers->AttributeControllerRegisters.DATA),f);
 			fclose(f); //We've written the Attribute Controller Registers to the file!
 		}
 
-		f = fopen("captures/vga_crtcregs.dat","wb");
+		strcpy(fullfilename, capturepath); //Disk path!
+		strcat(fullfilename, "/");
+		strcat(fullfilename, "vga_crtcregs.dat"); //The full filename!
+		f = fopen(fullfilename, "wb");
 		if (f)
 		{
 			fwrite(&VGA->registers->CRTControllerRegisters.DATA,1,sizeof(VGA->registers->CRTControllerRegisters.DATA),f);
 			fclose(f); //We've written the Graphics Registers to the file!
 		}
 
-		f = fopen("captures/vga_dacregs.dat","wb");
+		strcpy(fullfilename, capturepath); //Disk path!
+		strcat(fullfilename, "/");
+		strcat(fullfilename, "vga_dacregs.dat"); //The full filename!
+		f = fopen(fullfilename, "wb");
 		if (f)
 		{
 			DACPos = 0; //Start with the first entry!
@@ -5120,38 +5143,56 @@ void BIOS_DumpVGA()
 			fclose(f); //We've written the Graphics Registers to the file!
 		}
 		
-		f = fopen("captures/vga_colorregs.dat","wb");
+		strcpy(fullfilename, capturepath); //Disk path!
+		strcat(fullfilename, "/");
+		strcat(fullfilename, "vga_colorregs.dat"); //The full filename!
+		f = fopen(fullfilename, "wb");
 		fwrite(&VGA->registers->ColorRegisters,1,sizeof(VGA->registers->ColorRegisters),f); //Literal color registers!
 		fclose(f);
 
-		f = fopen("captures/vga_externalregs.dat","wb");
+		strcpy(fullfilename, capturepath); //Disk path!
+		strcat(fullfilename, "/");
+		strcat(fullfilename, "vga_externalregs.dat"); //The full filename!
+		f = fopen(fullfilename, "wb");
 		fwrite(&VGA->registers->ExternalRegisters,1,sizeof(VGA->registers->ExternalRegisters),f); //Literal color registers!
 		fclose(f);
 
 		if (VGA->registers->specialCGAflags&1) //CGA compatiblity enabled?
 		{
-			f = fopen("captures/vga_cgamdacrtcregs.dat","wb");
+			strcpy(fullfilename, capturepath); //Disk path!
+			strcat(fullfilename, "/");
+			strcat(fullfilename, "vga_cgamdacrtcregs.dat"); //The full filename!
+			f = fopen(fullfilename, "wb");
 			fwrite(&VGA->registers->CGARegisters,1,sizeof(VGA->registers->CGARegisters),f); //CGA CRTC registers!
 			fclose(f);
 
-			f = fopen("captures/vga_cgamodecontrol.dat","wb");
+			strcpy(fullfilename, capturepath); //Disk path!
+			strcat(fullfilename, "/");
+			strcat(fullfilename, "vga_cgamodecontrol.dat"); //The full filename!
+			f = fopen(fullfilename, "wb");
 			fwrite(&VGA->registers->Compatibility_CGAModeControl,1,1,f); //CGA mode control register!
 			fclose(f);
 			
-			f = fopen("captures/vga_cgapaletteregister.dat","wb");
+			strcpy(fullfilename, capturepath); //Disk path!
+			strcat(fullfilename, "/");
+			strcat(fullfilename, "vga_cgapaletteregister.dat"); //The full filename!
+			f = fopen(fullfilename, "wb");
 			fwrite(&VGA->registers->Compatibility_CGAPaletteRegister,1,1,f); //CGA mode control register!
 			fclose(f);
 
-			f = fopen("captures/vga_mdamodecontrol.dat","wb");
+			strcpy(fullfilename, capturepath); //Disk path!
+			strcat(fullfilename, "/");
+			strcat(fullfilename, "vga_mdamodecontrol.dat"); //The full filename!
+			f = fopen(fullfilename, "wb");
 			fwrite(&VGA->registers->Compatibility_MDAModeControl,1,1,f); //MDA mode control register!
 			fclose(f);
 		}
 		else //Clean up CGA compatiblity register dumps: we're not supposed to be used!
 		{
-			delete_file("captures","vga_cgamdacrtcregs.dat");
-			delete_file("captures","vga_cgamodecontrol.dat");
-			delete_file("captures","vga_cgapaletteregister.dat");
-			delete_file("captures","vga_mdamodecontrol.dat");
+			delete_file(capturepath,"vga_cgamdacrtcregs.dat");
+			delete_file(capturepath,"vga_cgamodecontrol.dat");
+			delete_file(capturepath,"vga_cgapaletteregister.dat");
+			delete_file(capturepath,"vga_mdamodecontrol.dat");
 		}
 
 		VGA_DUMPColors(); //Dump all colors!

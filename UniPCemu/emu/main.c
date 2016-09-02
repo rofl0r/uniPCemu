@@ -190,6 +190,9 @@ void updateInputMain() //Frequency 1000Hz!
 }
 
 extern byte allcleared;
+extern char logpath[256]; //Log path!
+extern char capturepath[256]; //Capture path!
+
 
 int main(int argc, char * argv[])
 {
@@ -333,10 +336,10 @@ int main(int argc, char * argv[])
 	
 	if (DELETE_LOGS_ONBOOT)
 	{
-		delete_file("logs","*.log"); //Delete any logs still there!
-		delete_file("logs","*.txt"); //Delete any logs still there!
+		delete_file(logpath,"*.log"); //Delete any logs still there!
+		delete_file(logpath,"*.txt"); //Delete any logs still there!
 	}
-	if (DELETE_BMP_ONBOOT) delete_file("captures","*.bmp"); //Delete any bitmaps still there!
+	if (DELETE_BMP_ONBOOT) delete_file(capturepath,"*.bmp"); //Delete any bitmaps still there!
 	
 	#ifdef IS_PSP
 		if (FILE_EXISTS("logs/profiler.txt")) //Enable profiler: doesn't work in UniPCemu?

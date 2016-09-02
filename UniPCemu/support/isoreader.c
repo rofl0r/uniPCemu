@@ -76,7 +76,7 @@ typedef union
 
 
 
-
+extern char diskpath[256]; //Disk path!
 
 /*
 getBootImage: retrieves boot image from ISO disk (from device)
@@ -101,6 +101,7 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 	FILE *f;
 	uint_32 byteswritten = 0; //Ammount of data bytes written!
 	uint_32 data_size;
+	char fullfilename[256];
 
 //First, read boot record in buffer!
 	success = readdata(device,&buffer,CD_SEC_SIZE * CD_BOOT_RECORD_VOL_SEC, CD_SEC_SIZE); //Read boot-record-volume
@@ -269,7 +270,14 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 //read the boot image
 //Process the "boot sector"=boot image
 
-	f = fopen(imagefile,"wb"); //Open the image file!
+	bzero(&fullfilename,sizeof(fullfilename)); //Init the filename!
+	strcpy(fullfilename,diskpath); //Disk path!
+	strcat(fullfilename,"/");
+	strcat(fullfilename,imagefile); //The full path of the image file!
+
+	domkdir(diskpath); //Make sure our directory we're creating an image in exists!
+
+	f = fopen(fullfilename,"wb"); //Open the image file!
 	if (!f)
 	{
 		dolog("ISOReader","Failed to boot from CD-ROM: could not open temporary image file %s.",imagefile); //Log our error!
@@ -289,14 +297,14 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 		if (!readdata(device,&sectorbuffer,(CD_SEC_SIZE * StartingSector)+byteswritten, data_size)) //Reading failed?
 		{
 			fclose(f); //Close the image file!
-			delete_file(".",imagefile); //Remove the image file!
+			delete_file(diskpath,imagefile); //Remove the image file!
 			dolog("ISOReader","Failed to boot from CD-ROM: could not read image file."); //Log our error!
 			return FALSE; //No boot sector found!
 		}
 		if (fwrite(&sectorbuffer,1,data_size,f)!=data_size) //Write error?
 		{
 			fclose(f); //Close the image file!
-			delete_file(".",imagefile); //Remove the image file!
+			delete_file(diskpath,imagefile); //Remove the image file!
 			dolog("ISOReader","Failed to boot from CD-ROM: could not write to temporary image file %s. Disk full?",imagefile); //Log our error!
 			return FALSE; //No boot sector found!
 		}
