@@ -107,6 +107,10 @@ TicksHolder currentticks; //The ticks we've counted!
 double current_emutimepassed=0.0;
 extern double CPU_speed_cycle; //Speed of a cycle in the CPU!
 
+#ifdef ANDROID
+double timer_passed=0.0, emu_timer_passed=0.0; //Timer for checking timekeeping!
+#endif
+
 OPTINLINE byte getCPUSpeedPercentage()
 {
 	INLINEREGISTER double emutimepassed, timenow, result;
@@ -114,6 +118,12 @@ OPTINLINE byte getCPUSpeedPercentage()
 	current_emutimepassed = emutimepassed = timeemulated; //The time emulated!
 	timeemulated = 0.0f; //Restart counting the time passed!
 	timenow = getnspassed(&currentticks); //How long has actually passed?
+#ifdef ANDROID
+	timer_passed += timenow; //Actual time passed!
+	emu_timer_passed += emutimepassed; //EMU time passed!
+	timer_passed = fmod(timer_passed,1000000000.0);
+	emu_timer_passed = fmod(emu_timer_passed, 1000000000.0);
+#endif
 	
 	//Apply start time to get the relative time since last check!
 
@@ -176,6 +186,9 @@ void renderFramerate()
 					{
 						GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), ", %u cycles/S                    ", (uint_64)(current_emutimepassed/CPU_speed_cycle)); //Current CPU speed in cycles/S!
 					}
+					#ifdef ANDROID
+					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\n, %u ns emu                       \n%u ns real                       ", (uint_64)emu_timer_passed,(uint_64)timer_passed); //Current CPU speed in cycles/S!
+					#endif
 					#endif
 				}
 		}
@@ -195,6 +208,9 @@ void renderFramerate()
 				{
 					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), ", %u cycles/S                    ", (uint_64)(current_emutimepassed / CPU_speed_cycle)); //Current CPU speed in cycles/S!
 				}
+				#ifdef ANDROID
+				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), ", \n%u ns emu                       \n%u ns real                       ", (uint_64)emu_timer_passed,(uint_64)timer_passed); //Current CPU speed in cycles/S!
+				#endif
 				#endif
 				GPU_textclearcurrentrownext(frameratesurface); //Clear the rest of the current row!
 			}
