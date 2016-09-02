@@ -125,7 +125,7 @@ SDL_Surface *getGPUSurface()
 	xres = PSP_SCREEN_COLUMNS;
 	yres = PSP_SCREEN_ROWS; //Start fullscreen, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 	GPU.fullscreen = 1; //Forced full screen!
-	goto windowupdated; //Skip other calculations!
+	goto windowready; //Skip other calculations!
 	#else
 	#ifdef STATICSCREEN
 	#ifndef SDL2
