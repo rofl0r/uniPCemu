@@ -219,13 +219,13 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 	if (!check_surface(rendersurface)) return; //Nothing to render to!
 	//Now, render our screen, or clear it!
 	//byte rendered = 0;
+	word y = 0; //Current row counter!
+	word count, clearwidth;
+	clearwidth = MIN(rendersurface->sdllayer->w, EMU_MAX_X); //Our width to be able to render empty data!
 	if (check_surface(resized)) //Resized anti-invalid protection?
 	{
 		//rendered = 1; //We're rendered from here on!
-		word y = 0; //Current row counter!
-		word count, clearwidth;
 		uint_32 virtualrow = 0; //Virtual row to use! (From the source)
-		clearwidth = MIN(rendersurface->sdllayer->w,EMU_MAX_X); //Our width to be able to render empty data!
 		
 		byte letterbox = GPU.aspectratio; //Use letterbox?
 		if (letterbox && resized && (rendersurface->sdllayer->h>resized->sdllayer->h)) //Using letterbox for aspect ratio?
@@ -273,6 +273,16 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 		if (memprotect(resized, sizeof(*resized), NULL) && resized) //Using resized?
 		{
 			resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
+		}
+	}
+	else //No resized available? Render black!
+	{
+		//Always clear the bottom: nothing, letterbox and direct plot both have to clear the bottom!
+		for (; y<rendersurface->sdllayer->h;) //Process bottom!
+		{
+			put_pixel_row(rendersurface, y++, clearwidth, get_rowempty(), 0, 0); //Plot empty row for the bottom, don't care about more black!
+			if (!rendersurface) return; //Error occurred?
+			if (!rendersurface->sdllayer) return; //Error occurred?
 		}
 	}
 }
