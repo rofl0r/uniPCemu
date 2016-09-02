@@ -774,6 +774,7 @@ OPTINLINE static void mixaudio(uint_32 length) //Mix audio channels to buffer!
 	channelsleft = soundchannels_used; //Load the channels to process!
 	if (!length) return; //Abort without length!
 	memset(&mixedsamples,0,sizeof(mixedsamples)); //Init mixed samples, stereo!
+	if (length>SAMPLESIZE) length = SAMPLESIZE; //Limit us to what we CAN render!
 	if (channelsleft)
 	{
 		activechannel = &soundchannels[0]; //Lookup the first channel!
