@@ -11,47 +11,31 @@ TARGET = eboot
 PSP_LARGE_MEMORY = 1
 
 #Init for below:
-CFLAGS = 
-CXXFLAGS = 
-LIBS = 
 #optimization flags: Nothing: Debugging, -O3 normal operations.
 OPTIMIZATIONFLAG = -O3
 #OPTIMIZATIONFLAG = 
 
 #Finally, everything PSP!
 
-CFLAGS += $(OPTIMIZATIONFLAG) -G0
+PSPSDK=$(shell psp-config --pspsdk-path)
 
-#SDL
-CXXFLAGS += $(CFLAGS)
+CFLAGS = $(OPTIMIZATIONFLAG) -G0 -Wall
+CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
-#PSPLIBS1 = -lpspgu -lpsppower -lpspdebugkb
-PSPLIBS1 = -lpspdebugkb
-#Audio
-PSPLIBS1 += -lpspaudiolib -lpspaudio
-#Timing/RTC
-PSPLIBS1 += -lpsprtc
-#SDL requirements
-PSPLIBS1 += -lpspirkeyb -lpsppower -lpsphprm -lpspgu -lm
+
+LIBDIR = $(PSPSDK)\..\lib
+LIBS = -lSDL -lPSPirkeyb -lGL -lGLU -lglut -lz \
+         -lpspvfpu -lpsphprm -lpspsdk -lpspctrl -lpspumd -lpsprtc -lpsppower -lpspgum -lpspgu -lpspaudiolib -lpspaudio -lpsphttp -lpspssl -lpspwlan \
+         -lpspnet_adhocmatching -lpspnet_adhoc -lpspnet_adhocctl -lpspvram \
+         -lm -lstdc++ -lpspirkeyb -lpsppower -lSDLmain -lpsprtc -lpsppower
+LDFLAGS = 
 
 EXTRA_TARGETS = EBOOT.PBP
+
+PSPBIN = $(shell psp-config -d)
+CFLAGS += $(shell $(PSPBIN)/sdl-config --cflags)
+
 PSP_EBOOT_TITLE = $(BUILD_NAME)
 
-#Turn this line off when using SDL!
-
-#SDL Specific!
-PSPBIN = $(PSPSDK)/../bin
-#CFLAGS = $(shell $(PSPBIN)/sdl-config --cflags)
-#LIBS += -lSDL  -lglut -lGLU -lGL -lc
-#PSPLIBS2 = -lpsputility -lpspdebug -lpspge -lpspdisplay -lpspctrl -lpspsdk -lpspvfpu -lpsplibc -lpspuser -lpspkernel -lpsphprm -lpspirkeyb -lpsppower
-#PSPLIBS2 = -lSDL -lSDL_image -lpspirkeyb -lpspwlan -lpsppower -lGL -l freetype -ljpeg -lpng -lz -lm -lpspgu -lpsphprm -lpspaudio -lstdc++ -lpspvfpu -lpsprtc
-
-#Basic SDL libraries!
-PSPLIBS2 = -lSDL
-
-#Link the final PSP libaries!
-LIBS += $(PSPLIBS2) $(PSPLIBS1)
-
 #PSP build path and compile script!
-PSPSDK=$(shell psp-config --pspsdk-path)
 include ../../tools/build.mak

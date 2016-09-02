@@ -1171,7 +1171,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
 			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color inactive!		
 		}
-		#ifndef __psp__
+		#ifndef IS_PSP
 		else //No input enabled? Not used on the PSP(has no keyboard nor mouse capability to use it)!
 		{
 			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!

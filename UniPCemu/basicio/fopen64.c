@@ -75,12 +75,12 @@ int emufseek64(FILE *stream, int64_t pos, int direction)
 int emufflush64(FILE *stream)
 {
 	if (!stream) return 1; //EOF!
-	BIGFILE *b = (BIGFILE *)stream; //Convert!
 #ifdef IS_PSP
 	//return sceIoSync("ms0:", 0); //Synchronize data on the device!
 	return 1; //Seems to be fine without it?
 #else
 	//Windows/linux?
+	BIGFILE *b = (BIGFILE *)stream; //Convert!
 	return fflush(b->f); //Give the fflush result!
 #endif
 }

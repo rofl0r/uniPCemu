@@ -29,7 +29,7 @@
 #include "headers/bios/bios.h" //Basic BIOS support!
 
 #ifdef IS_PSP
-PSP_MODULE_INFO("UniPCemu", 0, 1, 0);
+#include <psppower.h> //PSP power support for clock speed!
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER); //Make sure we're user mode!
 PSP_HEAP_SIZE_MAX(); //Free maximum for us: need this for the memory allocation (m/zalloc)!
 #endif
@@ -210,7 +210,7 @@ int main(int argc, char * argv[])
 	#endif
 	clockspeed = getCurrentClockSpeed(); //Save the current clock frequency for reference!
 
-	#ifdef __psp__
+	#ifdef IS_PSP
 	if (FILE_EXISTS("exception.prx")) //Enable exceptions?
 	{
 		initExceptionHandler(); //Start the exception handler!
@@ -233,7 +233,7 @@ int main(int argc, char * argv[])
 				testparam = &nosoundparam[0]; //Our parameter to check for!
 				for (;*argch!='\0';) //Parse the string!
 				{
-					if (tolower(*argch)!=*testparam) //Not matched?
+					if ((char)tolower((int)*argch)!=*testparam) //Not matched?
 					{
 						goto nomatch;
 					}

@@ -3,6 +3,10 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/locks.h" //Locking support!
 
+#ifdef IS_PSP
+#include <psprtc.h> //PSP Real Time Clock atm!
+#endif
+
 double tickresolution = 0.0f; //Our tick resolution, initialised!
 byte tickresolution_win_SDL = 0; //Force SDL rendering?
 byte tickresolution_SDL = 0; //Are we using SDL ticks?

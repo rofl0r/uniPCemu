@@ -7,7 +7,7 @@
 #include "headers/hardware/ports.h" //Port support!
 
 //For time support!
-#ifdef __PSP__
+#ifdef IS_PSP
 #include <psprtc.h> //PSP Real Time Clock atm!
 #endif
 

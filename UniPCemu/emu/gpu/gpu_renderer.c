@@ -143,7 +143,9 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 			}
 		}
 
+#if !defined(STATICSCREEN)
 		drawpixels:
+#endif
 		if (check_surface(rendersurface)) //Valid surface to render?
 		{
 			if (resized) //Valid surface to render?
