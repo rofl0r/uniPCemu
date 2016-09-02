@@ -33,7 +33,7 @@ LDFLAGS =
 EXTRA_TARGETS = EBOOT.PBP
 
 PSPBIN = $(shell psp-config -d)
-CFLAGS += $(shell $(PSPBIN)/sdl-config --cflags)
+CFLAGS += $(shell $(PSPBIN)/bin/sdl-config --cflags)
 
 PSP_EBOOT_TITLE = $(BUILD_NAME)
 
