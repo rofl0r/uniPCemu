@@ -1113,7 +1113,7 @@ byte opl2_first_sample = 1;
 
 byte adlib_ticktiming80 = 0; //80us divider!
 uint_32 adlib_ticktiming=0; //Sound timing!
-void updateAdlib(double timepassed, uint_32 MHZ14passed)
+void updateAdlib(uint_32 MHZ14passed)
 {
 	//Adlib sound output and counters!
 	adlib_ticktiming += MHZ14passed; //Get the amount of time passed!
