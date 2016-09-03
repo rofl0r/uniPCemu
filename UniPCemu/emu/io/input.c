@@ -2877,18 +2877,16 @@ void updateInput(SDL_Event *event) //Update all input!
 				break;
 			#ifndef SDL2
 			#ifdef ANDROID
-			//Android uses space!
+			//Android uses space too!
 			case SDLK_SPACE:
-			#else
-			case SDLK_KP8: //TRIANGLE?
 			#endif
+			case SDLK_KP8: //TRIANGLE?
 			#else
 			#ifdef ANDROID
-			//Android uses space!
+			//Android uses space too!
 			case SDLK_SPACE:
-			#else
-			case SDLK_KP_8: //TRIANGLE?
 			#endif
+			case SDLK_KP_8: //TRIANGLE?
 			#endif
 				input.Buttons &= ~BUTTON_TRIANGLE; //Pressed!
 				break;
@@ -2901,35 +2899,33 @@ void updateInput(SDL_Event *event) //Update all input!
 				break;
 			#ifndef SDL2
 			#ifdef ANDROID
-			//Android uses escape!
+			//Android uses escape&backspace too!
 			case SDLK_ESCAPE:
-			#else
-			case SDLK_KP6: //CIRCLE?
+			case SDLK_BACKSPACE:
 			#endif
+			case SDLK_KP6: //CIRCLE?
 			#else
 			#ifdef ANDROID
-			//Android uses escape!
+			//Android uses escape&backspace too!
 			case SDLK_ESCAPE:
-			#else
-			case SDLK_KP_6: //CIRCLE?
+			case SDLK_BACKSPACE:
 			#endif
+			case SDLK_KP_6: //CIRCLE?
 			#endif
 				input.Buttons &= ~BUTTON_CIRCLE; //Pressed!
 				break;
 			#ifndef SDL2
 			#ifdef ANDROID
-			//Android uses return!
+			//Android uses return too!
 			case SDLK_RETURN:
-			#else
-			case SDLK_KP2: //CROSS?
 			#endif
+			case SDLK_KP2: //CROSS?
 			#else
 			#ifdef ANDROID
-			//Android uses return!
+			//Android uses return too!
 			case SDLK_RETURN:
-			#else
-			case SDLK_KP_2: //CROSS?
 			#endif
+			case SDLK_KP_2: //CROSS?
 			#endif
 				input.Buttons &= ~BUTTON_CROSS; //Pressed!
 				break;
@@ -3099,18 +3095,16 @@ void updateInput(SDL_Event *event) //Update all input!
 				break;
 			#ifndef SDL2
 			#ifdef ANDROID
-			//Android uses space!
+			//Android uses space too!
 			case SDLK_SPACE:
-			#else
-			case SDLK_KP8: //TRIANGLE?
 			#endif
+			case SDLK_KP8: //TRIANGLE?
 			#else
 			#ifdef ANDROID
-			//Android uses space!
+			//Android uses space too!
 			case SDLK_SPACE:
-			#else
-			case SDLK_KP_8: //TRIANGLE?
 			#endif
+			case SDLK_KP_8: //TRIANGLE?
 			#endif
 				input.Buttons |= BUTTON_TRIANGLE; //Pressed!
 				break;
@@ -3123,35 +3117,33 @@ void updateInput(SDL_Event *event) //Update all input!
 				break;
 			#ifndef SDL2
 			#ifdef ANDROID
-			//Android uses escape!
+			//Android uses escape&backspace too!
 			case SDLK_ESCAPE:
-			#else
-			case SDLK_KP6: //CIRCLE?
+			case SDLK_BACKSPACE:
 			#endif
+			case SDLK_KP6: //CIRCLE?
 			#else
 			#ifdef ANDROID
-			//Android uses escape!
+			//Android uses escape&backspace too!
 			case SDLK_ESCAPE:
-			#else
-			case SDLK_KP_6: //CIRCLE?
+			case SDLK_BACKSPACE:
 			#endif
+			case SDLK_KP_6: //CIRCLE?
 			#endif
 				input.Buttons |= BUTTON_CIRCLE; //Pressed!
 				break;
 			#ifndef SDL2
 			#ifdef ANDROID
-			//Android uses return!
+			//Android uses return too!
 			case SDLK_RETURN:
-			#else
-			case SDLK_KP2: //CROSS?
 			#endif
+			case SDLK_KP2: //CROSS?
 			#else
 			#ifdef ANDROID
-			//Android uses return!
+			//Android uses return too!
 			case SDLK_RETURN:
-			#else
-			case SDLK_KP_2: //CROSS?
 			#endif
+			case SDLK_KP_2: //CROSS?
 			#endif
 				input.Buttons |= BUTTON_CROSS; //Pressed!
 				break;
