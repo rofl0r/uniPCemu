@@ -186,9 +186,6 @@ void renderFramerate()
 					{
 						GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), ", %u cycles/S                    ", (uint_64)(current_emutimepassed/CPU_speed_cycle)); //Current CPU speed in cycles/S!
 					}
-					#ifdef ANDROID
-					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\n, %u ns emu                       \n%u ns real                       ", (uint_64)emu_timer_passed,(uint_64)timer_passed); //Current CPU speed in cycles/S!
-					#endif
 					#endif
 				}
 		}
@@ -208,9 +205,6 @@ void renderFramerate()
 				{
 					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), ", %u cycles/S                    ", (uint_64)(current_emutimepassed / CPU_speed_cycle)); //Current CPU speed in cycles/S!
 				}
-				#ifdef ANDROID
-				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), ", \n%u ns emu                       \n%u ns real                       ", (uint_64)emu_timer_passed,(uint_64)timer_passed); //Current CPU speed in cycles/S!
-				#endif
 				#endif
 				GPU_textclearcurrentrownext(frameratesurface); //Clear the rest of the current row!
 			}
