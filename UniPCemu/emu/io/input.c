@@ -388,6 +388,13 @@ typedef struct
 	byte pressed; //Are we pressed on the OSK?
 } EMU_KEYINFO;
 
+typedef struct
+{
+	word xsize; //Horizontal size detected!
+	word ysize; //Vertical size detected!
+} EMU_KEYSIZE; //The detected size of an OSK key!
+
+EMU_KEYSIZE OSKsize[104]; //The size of all OSK keys!
 EMU_KEYINFO OSKinfo[104] = {
 	{"A",FINGEROSK_KEYBOARDLEFT + 5,FINGEROSK_ROW3,0}, //A
 	{"B",FINGEROSK_KEYBOARDLEFT + 14,FINGEROSK_ROW4,0}, //B
@@ -1181,7 +1188,10 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!		
 		}
 		#endif
-		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle 
+		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
 		return; //Keyboard disabled: don't show!
 	}
 
@@ -1352,7 +1362,10 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 		keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
 		keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color active!		
 	}
-	keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle 
+	keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+	keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+	keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+	keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
 }
 
 uint_32 keyboard_rendertime; //Time for framerate rendering!
@@ -1515,12 +1528,17 @@ OPTINLINE static void updateFingerOSK()
 	byte key; //The key we're checking!
 	EMU_KEYINFO *currentkey = &OSKinfo[0]; //The current key to check!
 	EMU_KEYINFO emptykey;
+	EMU_KEYSIZE *currentsize = &OSKsize[0]; //The current key size to check!
 	word x, y; //The position inside the key text!
 	byte textx; //X inside the text!
 	word startx; //Backup of the screen x of the key!
 	uint_32 fontcolor = getemucol16(BIOS_Settings.input_settings.fontcolor); //Font color!
 	uint_32 activecolor = getemucol16(BIOS_Settings.input_settings.activecolor); //Font color!
 	uint_32 bordercolor = getemucol16(BIOS_Settings.input_settings.bordercolor); //Border color!
+
+	byte screencharacter; //Dummy!
+	uint_32 screenfont, screenborder; //Dummy!
+
 	word screenx;
 	if (FINGEROSK) //OSK enabled?
 	{
@@ -1529,44 +1547,87 @@ OPTINLINE static void updateFingerOSK()
 		{
 			OSKdrawn = 1; //We're drawn after this!
 			currentkey = &OSKinfo[0]; //The first key to process
-			for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
+			currentsize = &OSKsize[0]; //The first key to process
+			for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey, ++currentsize) //Check for all keys!
 			{
-				GPU_textgotoxy(keyboardsurface, currentkey->x + FINGEROSK_BASEX, currentkey->y + FINGEROSK_BASEY); //Goto the location of the key!
-				if (GPU_textprintfclickable(keyboardsurface, fontcolor, bordercolor, 1,currentkey->facetext)&SETXYCLICKED_CLICKED) //Print the text on the screen!
+				byte pressed = 0; //Are we pressed? Default to not pressed!
+				screenx = currentkey->x; //Screen x!
+				y = currentkey->y; //Screen y!
+				startx = screenx; //Save a copy of the beginning of the character!
+
+				word detectedwidth = 0; //The width we have detected!
+				word currentwidth = 0; //The current width we detect!
+				word detectedrows = 0; //The number of detected rows!
+				for (textx = 0;textx<strlen(currentkey->facetext);++textx) //Check all our key positions!
 				{
-					fingerOSK_releasekey(key); //Releasing this key!
+					//Based on GPU_textprintf function.
+					if (currentkey->facetext[textx] == '\t') //Return to start x?
+					{
+						screenx = startx; //Return to the specified position!
+						currentwidth = 0; //No width to start the new position!
+					}
+					else if ((currentkey->facetext[textx] == '\r' && !USESLASHN) || (currentkey->facetext[textx] == '\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
+					{
+						screenx = 0; //Move to the left!
+						currentwidth = 0; //No width to start the new position!
+					}
+					if (currentkey->facetext[textx] == '\n') //CR?
+					{
+						++y; //Next Y!
+						++detectedrows; //One more row detected!
+						currentwidth = 0; //No width to start the new position!
+					}
+					else if ((currentkey->facetext[textx] != '\r') && (currentkey->facetext[textx] != '\t')) //Never display \r or \t!
+					{
+						//Normal visible character?
+						pressed |= GPU_textsetxyclickable(keyboardsurface, FINGEROSK_BASEX + screenx++, FINGEROSK_BASEY + y,currentkey->facetext[textx],fontcolor,bordercolor,0)&SETXYCLICKED_CLICKED; //Are we pressed?
+						++currentwidth; //We're adding one to the width we're currently at!
+						if (currentwidth>detectedwidth) detectedwidth = currentwidth; //New width detection!
+					}
+				}
+				if (currentwidth>detectedwidth) detectedwidth = currentwidth; //New width detection!
+
+				currentsize->xsize = detectedwidth+1; //Detected x size, take 1 extra for measurement!
+				currentsize->ysize = detectedrows+2; //Detected y size, take 1 extra for measurement!
+
+				for (x=0;x<currentsize->xsize;++x) //Process the entire area!
+				{
+					for (y=0;y<currentsize->ysize;++y)
+					{
+						if (GPU_textgetxy(keyboardsurface, FINGEROSK_BASEX+currentkey->x+x, FINGEROSK_BASEY+currentkey->y+y, &screencharacter, &screenfont, &screenborder)) //Valid coordinate?
+						{
+							pressed |= GPU_textsetxyclickable(keyboardsurface, FINGEROSK_BASEX+currentkey->x+x, FINGEROSK_BASEY+currentkey->y+y, screencharacter, screenfont, screenborder, 0)&SETXYCLICKED_CLICKED; //Are we pressed for the entire area?
+						}
+					}
+				}
+
+				if (pressed) //Print the text on the screen!
+				{
+					fingerOSK_releasekey(key); //Releasing this key, because we can't be pressed when opening the keyboard!
 				}
 			}
 			updateFingerOSK_mouse(); //Update our mouse handling!
 		}
+
 		currentkey = &OSKinfo[0]; //The first key to process
-		for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey) //Check for all keys!
+		currentsize = &OSKsize[0]; //The first key to process
+		for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey, ++currentsize) //Check for all keys!
 		{
 			byte pressed = 0; //Are we pressed? Default to not pressed!
 			screenx = currentkey->x; //Screen x!
 			y = currentkey->y; //Screen y!
 			startx = screenx; //Save a copy of the beginning of the character!
-			for (textx = 0;textx<strlen(currentkey->facetext);++textx) //Check all our key positions!
+			for (x = 0;x<currentsize->xsize;++x) //Process the entire area!
 			{
-				//Based on GPU_textprintf function.
-				if (currentkey->facetext[textx] == '\t') //Return to start x?
+				for (y = 0;y<currentsize->ysize;++y)
 				{
-					screenx = startx; //Return to the specified position!
-				}
-				else if ((currentkey->facetext[textx] == '\r' && !USESLASHN) || (currentkey->facetext[textx] == '\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
-				{
-					screenx = 0; //Move to the left!
-				}
-				if (currentkey->facetext[textx] == '\n') //CR?
-				{
-					++y; //Next Y!
-				}
-				else if (currentkey->facetext[textx] != '\r') //Never display \r!
-				{
-					//Normal visible character?
-					pressed |= GPU_ispressed(keyboardsurface, FINGEROSK_BASEX + screenx++, FINGEROSK_BASEY + y); //Are we pressed?
+					if (GPU_textgetxy(keyboardsurface, FINGEROSK_BASEX + currentkey->x + x, FINGEROSK_BASEY + currentkey->y + y, &screencharacter, &screenfont, &screenborder)) //Valid coordinate?
+					{
+						pressed |= GPU_ispressed(keyboardsurface, FINGEROSK_BASEX + currentkey->x + x, FINGEROSK_BASEY + currentkey->y + y); //Are we pressed?
+					}
 				}
 			}
+
 			if (pressed && (currentkey->pressed == 0)) //Are we pressed?
 			{
 				setOSKfont(currentkey,fontcolor,activecolor); //Set us to the active color!
@@ -1646,10 +1707,6 @@ void keyboard_renderer() //Render the keyboard on-screen!
 			}
 			GPU_text_releasesurface(keyboardsurface);
 		}
-		/*
-		unlock(LOCK_INPUT);
-		return;
-		*///Keyboard disabled: don't show! Edit: We're showing it, even just for the toggle for the OSK!
 	}
 
 	last_rendered = 1; //We're rendered!
