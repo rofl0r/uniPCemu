@@ -344,7 +344,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 	case 0x20: //Direct ADC, 8-bit
 		SB_LOGCOMMAND
 		SOUNDBLASTER.command = 0x20; //Enable direct ADC mode!
-		writefifobuffer(SOUNDBLASTER.DSPindata, 0x7F); //Give an empty sample(silence)!
+		writefifobuffer(SOUNDBLASTER.DSPindata, getRecordedSample8u()); //Give the current sample!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		break;
 	case 0x2C: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
@@ -835,8 +835,8 @@ OPTINLINE byte readDSPData(byte isDMA)
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
 					}
 				}
-				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!			}
-				return 0x7F; //Send the current sample from DMA(Silence)!
+				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
+				return getRecordedSample8u(); //Send the current sample from DMA!
 			}
 			else //Non-DMA read?
 			{
