@@ -99,6 +99,10 @@ typedef struct
 SDL_AudioDeviceID audiodevice; //Our used audio device!
 #endif
 
+#ifdef SDL2
+SDL_AudioDeviceID recorddevice; //Our used audio device!
+#endif
+
 byte audioticksready = 0; //Default: not ready yet!
 TicksHolder audioticks;
 
@@ -112,15 +116,23 @@ uint_32 soundchannels_used = 0; //Ammount of used sound channels to check, incre
 playing_t soundchannels[1000]; //All soundchannels!
 
 SDL_AudioSpec audiospecs; //Our requested and obtained audio specifications.
+#ifdef SDL2
+SDL_AudioSpec recordspecs; //Our requested and obtained audio specifications.
+#endif
 
 //The sample rate to render at:
 #define SW_SAMPLERATE (float)audiospecs.freq
+#define SW_RECORDRATE (float)recordspecs.freq
 
 //Sample position precalcs!
 uint_32 *samplepos[2]; //Sample positions for mono and stereo channels!
 uint_32 samplepos_size; //Size of the sample position precalcs (both of them)
 
 SOUNDDOUBLEBUFFER mixeroutput; //The output of the mixer, to be read by the renderer!
+SOUNDDOUBLEBUFFER mixerinput; //The input of the mixer, to be read by the recorder!
+
+sword inputleft, inputright; //Left&right input for recording!
+uint_32 currentrecordedsample; //The current recorded sample, as used!
 
 //Default samplerate is HW_SAMPLERATE, Real samplerate is SW_SAMPLERATE
 
@@ -743,11 +755,32 @@ OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
 	*rightsample = (sword)sample_r;
 }
 
+sbyte getRecordedSample8s()
+{
+	return (sbyte)(inputleft>>8); //Left sample!
+}
+
+byte getRecordedSample8u()
+{
+	return (byte)((signed2unsigned16(inputleft)^0x8000)>>8); //Left sample!
+}
+
+sword getRecordedSample16s()
+{
+	return inputleft; //Left sample!
+}
+
+word getRecordedSample16u()
+{
+	return (signed2unsigned16(inputleft)^0x8000); //Left sample!
+}
+
 int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!
 
 WAVEFILE *recording = NULL; //We are recording when set.
 
 byte mixerready = 0; //Are we ready to give output to the buffer?
+byte inputready = 0; //Are we ready to give output to the buffer?
 
 OPTINLINE static void mixaudio(uint_32 length) //Mix audio channels to buffer!
 {
@@ -877,6 +910,43 @@ OPTINLINE static void mixaudio(uint_32 length) //Mix audio channels to buffer!
 	}
 }
 
+OPTINLINE static void recordaudio(uint_32 length) //Record audio channels to state!
+{
+	//Variables first
+	//Current data numbers
+	uint_32 currentsample, inputsample; //How many is left to record!
+	INLINEREGISTER int_32 result_l, result_r; //Sample buffer!
+	sword temp_l, temp_r; //Filtered values!
+
+	//Final step: apply Master gain and clip to output!
+	currentsample = length; //Init samples to give!
+	for (;;)
+	{
+		//Give the input!
+		if (inputready)
+		{
+			readDoubleBufferedSound32(&mixerinput,&currentrecordedsample); //Give the stereo output to the mixer, if there's any!
+		}
+
+		inputsample = currentrecordedsample; //Load the currently recorded sample!
+		result_l = unsigned2signed16((word)inputsample); //Left sample!
+		inputsample >>= 16; //Shift low!
+		result_r = unsigned2signed16((word)inputsample); //Right sample!
+
+		//Apply our filters!
+		temp_l = result_l;
+		temp_r = result_r; //Load the temp values!
+		applySoundFilters(&temp_l, &temp_r); //Apply our sound filters!
+		result_l = temp_l; //Write back!
+		result_r = temp_r; //Write back!
+
+		inputleft = result_l; //Left recorded sample!
+		inputright = result_r; //Right recorded sample!
+
+		if (!--currentsample) return; //Finished!
+	}
+}
+
 OPTINLINE static void HW_mixaudio(sample_stereo_p buffer, uint_32 length) //Mix audio channels to buffer!
 {
 	//Variables first
@@ -908,13 +978,40 @@ OPTINLINE static void HW_mixaudio(sample_stereo_p buffer, uint_32 length) //Mix 
 	}
 }
 
+OPTINLINE static void HW_recordaudio(sample_stereo_p buffer, uint_32 length) //Mix audio channels to buffer!
+{
+	//Variables first
+	INLINEREGISTER uint_32 currentsample; //The current sample number!
+
+	static uint_32 mixersample;
+
+	//Stuff for Master gain
+
+	if (length == 0) return; //Abort without length!
+
+	//Final step: apply Master gain and clip to output!
+	currentsample = length; //Init samples to give!
+	for (;;)
+	{
+		mixersample = unsigned2signed16(buffer->r); //Right output!
+		mixersample <<= 16; //Shift high!
+		mixersample |= unsigned2signed16(buffer->l); //Left output!
+		//Give the output!
+
+		writeDoubleBufferedSound32(&mixerinput, mixersample); //Write a sample, if present!
+		if (!--currentsample) return; //Finished!
+		++buffer; //Next sample in the result!
+	}
+}
+
 //Audio callbacks!
 
 double sound_soundtiming = 0.0, sound_soundtick = 0.0;
+double sound_recordtiming = 0.0, sound_recordtick = 0.0;
 uint_32 samples; //How many samples to render?
 void updateAudio(double timepassed)
 {
-	//Adlib sound output
+	//Sound output
 	sound_soundtiming += timepassed; //Get the amount of time passed!
 	if ((sound_soundtiming >= sound_soundtick) && sound_soundtick) //Anything to render?
 	{
@@ -922,6 +1019,17 @@ void updateAudio(double timepassed)
 		sound_soundtiming -= (double)samples*sound_soundtick; //Tick as many samples as we're rendering!
 		lockaudio(); //Make sure we're the only ones rendering!
 		mixaudio(samples); //Mix the samples required!
+		unlockaudio(); //We're finished rendering!
+	}
+
+	//Sound input
+	sound_recordtiming += timepassed; //Get the amount of time passed!
+	if ((sound_recordtiming >= sound_recordtick) && sound_recordtick) //Anything to render?
+	{
+		samples = (uint_32)(sound_recordtiming / sound_recordtick); //How many samples to render?
+		sound_recordtiming -= (double)samples*sound_recordtick; //Tick as many samples as we're rendering!
+		lockaudio(); //Make sure we're the only ones rendering!
+		recordaudio(samples); //Mix the samples required!
 		unlockaudio(); //We're finished rendering!
 	}
 }
@@ -1004,7 +1112,38 @@ void Sound_AudioCallback(void *user_data, Uint8 *audio, int length)
 	#endif
 }
 
+void Sound_RecordCallback(void *user_data, Uint8 *audio, int length)
+{
+	if (__HW_DISABLED) return; //Disabled?
+							   /* Clear the audio buffer so we can mix samples into it. */
+
+							   //Now, mix all channels!
+	sample_stereo_p ubuf = (sample_stereo_p)audio; //Buffer!
+#ifdef EXTERNAL_TIMING
+	getuspassed(&audioticks); //Init!
+#endif
+	uint_32 reallength = length / sizeof(*ubuf); //Total length!
+	HW_recordaudio(ubuf, reallength); //Mix the audio!
+#ifdef EXTERNAL_TIMING
+	uint_64 mspassed = getuspassed(&audioticks); //Load the time passed!
+	totaltime_audio += mspassed; //Total time!
+	++totaltimes_audio; //Total times increase!
+	totaltime_audio_avg = (uint_32)SAFEDIV(totaltime_audio, totaltimes_audio); //Recalculate AVG audio time!
+#endif
+#ifdef DEBUG_SOUNDSPEED
+	char time1[20];
+	char time2[20];
+	convertTime(mspassed, &time1[0]); //Ms passed!
+	convertTime(totaltime_audio_avg, &time2[0]); //Total time passed!
+	if (soundchannels_used) //Any channels out there?
+	{
+		dolog("soundservice", "Recording %i samples took: %s, average: %s", length / sizeof(ubuf[0]), time1, time2); //Log it!
+	}
+#endif
+}
+
 byte SDLAudio_Loaded = 0; //Are we loaded (kept forever till quitting)
+byte SDLRecord_Loaded = 0; //Are we loaded (kept forever till quitting)
 
 //Audio initialisation!
 void initAudio() //Initialises audio subsystem!
@@ -1024,6 +1163,10 @@ void initAudio() //Initialises audio subsystem!
 			}
 			//dolog("soundservice","Use SDL rendering...");
 			PAUSEAUDIO(1); //Disable the thread!
+
+			#ifdef SDL2
+			SDL_PauseAudioDevice(recorddevice,1); //Disable the thread!
+			#endif
 			
 			//dolog("soundservice","Setting desired audio device...");
 			/* Open the audio device. The sound driver will try to give us
@@ -1057,6 +1200,29 @@ void initAudio() //Initialises audio subsystem!
 				return; //Just to be safe!
 			}
 #endif
+#ifdef SDL2
+			//Supporting audio recording?
+			recordspecs.freq = HW_SAMPLERATE;	/* desired output sample rate */
+			recordspecs.format = AUDIO_S16SYS;	/* request signed 16-bit samples */
+			recordspecs.channels = 2;	/* ask for stereo */
+			recordspecs.samples = SAMPLESIZE;	/* this is more or less discretionary */
+			recordspecs.size = audiospecs.samples * audiospecs.channels * sizeof(sample_t);
+			recordspecs.callback = &Sound_RecordCallback; //We're not queueing audio! Use the callback instead!
+			recordspecs.userdata = NULL;	/* we don't need this */
+			recorddevice = SDL_OpenAudioDevice(NULL, 0, &recordspecs, NULL, 0); //We need this for our direct rendering!
+			if (recorddevice == 0) //No recording device?
+			{
+				//dolog("soundservice","Unable to open audio device: %s",SDL_GetError());
+				SDL_GetError();
+				SDL_ClearError(); //Clear any error that's occurred!
+				sound_recordtick = (double)0; //Set the sample rate we render at!
+			}
+			else //Recording device found?
+			{
+				SDLRecord_Loaded = 1; //We're loaded!
+				sound_recordtick = 1000000000.0 / SW_RECORDRATE; //Set the sample rate we render at!
+			}
+#endif
 			sound_soundtick = 1000000000.0 / SW_SAMPLERATE; //Set the sample rate we render at!
 			//dolog("soundservice","Initialising channels...");
 			memset(&soundchannels,0,sizeof(soundchannels)); //Initialise/reset all sound channels!
@@ -1071,11 +1237,26 @@ void initAudio() //Initialises audio subsystem!
 			//dolog("soundservice","Channels reset.");
 		}
 
+#ifdef SDL2
+		if (SDLRecord_Loaded)
+		{
+			SDL_PauseAudioDevice(recorddevice, 1); //Disable the thread
+		}
+#endif
+
 		//Allocate the buffers!
 		if (allocDoubleBufferedSound32(SAMPLESIZE, &mixeroutput,1,SW_SAMPLERATE)) //Valid buffer?
 		{
 			mixerready = 1; //We have a mixer!
 		}
+
+		if (allocDoubleBufferedSound32(SAMPLESIZE, &mixerinput, 1, SW_SAMPLERATE)) //Valid buffer?
+		{
+			inputready = 1; //We have a mixer!
+		}
+
+		inputleft = inputright = 0; //Clear input samples!
+		currentrecordedsample = (signed2unsigned16(0)<<8)|signed2unsigned16(0); //Clear the currently recorded sample to initialize it!
 
 		//dolog("soundservice","Starting audio...");
 		//Finish up to start playing!
@@ -1084,6 +1265,12 @@ void initAudio() //Initialises audio subsystem!
 		//dolog("soundservice","Starting audio...");
 		PAUSEAUDIO(0); //Start playing!
 		//dolog("soundservice","Device ready.");
+#ifdef SDL2
+		if (SDLRecord_Loaded)
+		{
+			SDL_PauseAudioDevice(recorddevice, 0); //Start recording!
+		}
+#endif
 	}
 }
 
@@ -1101,6 +1288,12 @@ void doneAudio()
 			SDL_CloseAudioDevice(audiodevice); //Close our allocated audio device!
 		}
 #else
+#ifdef SDL2
+		if (recorddevice)
+		{
+			SDL_CloseAudioDevice(recorddevice); //Close our allocated audio device!
+		}
+#endif
 		//dolog("soundservice","Closing audio.");
 		SDL_CloseAudio(); //Close the audio system!
 #endif
@@ -1112,6 +1305,12 @@ void doneAudio()
 	{
 		freeDoubleBufferedSound(&mixeroutput); //Release our double buffered output!
 		mixerready = 0; //Not ready anymore!
+	}
+
+	if (inputready)
+	{
+		freeDoubleBufferedSound(&mixerinput); //Release our double buffered output!
+		inputready = 0; //Not ready anymore!
 	}
 
 	free_samplePos(); //Free the sample position precalcs!

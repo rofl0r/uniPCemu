@@ -56,4 +56,9 @@ void unlockaudio();
 void applySoundHighpassFilter(float cutoff_freq, float samplerate, float *currentsample, float *sound_last_result, float *sound_last_sample, byte *isFirstSample);
 void applySoundLowpassFilter(float cutoff_freq, float samplerate, float *currentsample, float *sound_last_result, float *sound_last_sample, byte *isFirstSample);
 
+//Get the current recorded sample at hardware rate. This is timed according to the core clock timing.
+sbyte getRecordedSample8s();
+byte getRecordedSample8u();
+sword getRecordedSample16s();
+word getRecordedSample16u();
 #endif
