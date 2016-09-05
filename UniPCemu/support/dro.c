@@ -411,7 +411,7 @@ void stepDROPlayer(double timepassed)
 				{
 					droplayer->stoprunning |= 2; //Set termination flag to request a termination by pressing!
 				}
-				else if (droplayer->stoprunning & 2) //Requested termination by pressing and released?
+				else if ((droplayer->stoprunning & 2) || shuttingdown()) //Requested termination by pressing and released?
 				{
 					droplayer->stoprunning = 1; //We're terminating now!
 				}
