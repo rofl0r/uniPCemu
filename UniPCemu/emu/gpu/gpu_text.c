@@ -59,25 +59,32 @@ OPTINLINE static byte reverse8(INLINEREGISTER byte b) { //Reverses byte value bi
 byte reversedinit = 1;
 byte int10_font_08_reversed[256*8]; //Full font, reversed for optimized display!
 
-OPTINLINE static byte getcharxy_8(byte character, word x, word y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
+OPTINLINE static byte getcharxy_8(byte character, word y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
 {
 	static word lastcharinfo = 0; //attribute|character, bit31=Set?
 	static byte lastrow = 0; //The last loaded row!
 	INLINEREGISTER word location;
 	INLINEREGISTER byte effectiverow; //Effective row!
 
-	if ((character&0x20)!=character) //Non-empty character?
+	if (character) //Non-empty character?
 	{
-		//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
-		location = 0x8000|(character << 3)|y; //The location to look up!
-
-		if (location!=lastcharinfo) //Last row not yet loaded?
+		if (character!=0x20) //Not space, which is also empty?
 		{
-			lastcharinfo = location; //Load the new location!
-			location ^= 0x8000; //Disable our used bit!
-			lastrow = int10_font_08_reversed[location]; //Read the row from the character generator to use! Also reverse the bits for faster usage, which is already done!
+			//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
+			location = 0x8000|(character << 3)|y; //The location to look up!
+
+			if (location!=lastcharinfo) //Last row not yet loaded?
+			{
+				lastcharinfo = location; //Load the new location!
+				location ^= 0x8000; //Disable our used bit!
+				lastrow = int10_font_08_reversed[location]; //Read the row from the character generator to use! Also reverse the bits for faster usage, which is already done!
+			}
+			effectiverow = lastrow; //The row to use!
 		}
-		effectiverow = lastrow; //The row to use!
+		else
+		{
+			effectiverow = 0; //Nothing loaded!
+		}
 	}
 	else
 	{
@@ -85,7 +92,7 @@ OPTINLINE static byte getcharxy_8(byte character, word x, word y) //Retrieve a c
 	}
 
 	//Take the pixel we need!
-	return ((effectiverow>>x)&1); //Give result from the reversed data!
+	return effectiverow; //Give result from the reversed data!
 }
 
 OPTINLINE static uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y, int border) //border = either border(1) or font(0)
@@ -103,14 +110,13 @@ OPTINLINE static byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) 
 	word tx, ty;
 	word charx, chary;
 	GPU_textcalcpixel(&tx, &ty, &charx, &chary, x, y); //Calculate our info!
-	return getcharxy_8(surface->text[chary][charx], tx, ty); //Give the pixel of the character!
+	return surface->fontpixels[(chary<<3)|ty][(charx<<3)|tx]; //Give the pixel of the character!
 }
 
 OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 {
 	byte xmin, xmax; //Top/bottom maximum reached?
 	byte backpixel; //Are we a background pixel?
-	if (allcleared) return; //Abort when all is cleared!
 	//Undirty!
 	if (GPU_textget_pixel(surface,fx,fy)) //Font?
 	{
@@ -293,11 +299,13 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 {
 	if (allcleared) return 0; //Abort when all is cleared!
 	uint_32 *renderpixel;
+	byte *xfont, *xchar;
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (!rendersurface) return 0; //No rendering surface used yet?
 	INLINEREGISTER word x,y;
 	INLINEREGISTER uint_32 color;
+	byte curchar; //The current character loaded font row!
 	int fx, fy, sx, sy; //Used when rendering on the screen!
 	double relx, rely; //Relative X/Y position to use for updating the current pixel!
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
@@ -305,6 +313,43 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) //Redraw when dirty only?
 	{
 		WaitSem(tsurface->lock);
+
+		//First phase: get all pixels font, by walking through the text!
+		x = y = 0; //Init coordinates!
+		xfont = &tsurface->fontpixels[0][0]; //The font pixels to use! as output!
+		xchar = &tsurface->text[0][0]; //The font pixels to use! as output!
+
+		do //Process all rows!
+		{
+			curchar = getcharxy_8(*xchar,y&7); //Get the current row to process!
+			//Process the entire row!
+			*xfont++ = (curchar&1); //Current pixel!
+			curchar >>= 1; //Shift next in!
+			*xfont++ = (curchar & 1); //Current pixel!
+			curchar >>= 1; //Shift next in!
+			*xfont++ = (curchar & 1); //Current pixel!
+			curchar >>= 1; //Shift next in!
+			*xfont++ = (curchar & 1); //Current pixel!
+			curchar >>= 1; //Shift next in!
+			*xfont++ = (curchar & 1); //Current pixel!
+			curchar >>= 1; //Shift next in!
+			*xfont++ = (curchar & 1); //Current pixel!
+			curchar >>= 1; //Shift next in!
+			*xfont++ = (curchar & 1); //Current pixel!
+			curchar >>= 1; //Shift next in!
+			*xfont++ = (curchar & 1); //Current pixel!
+			//Move to the next horizontal character!
+			++xchar; //Next character!
+			if (++x == GPU_TEXTSURFACE_WIDTH) //End of row reached?
+			{
+				x = 0; //Reset horizontal coordinate!
+				++y; //Goto Next row!
+				xfont = &tsurface->fontpixels[y][0]; //Next row loaded!
+				xchar = &tsurface->text[y>>3][0]; //Next row loaded!
+			}
+		} while (y != GPU_TEXTPIXELSY); //Stop searching now!	
+
+		//Second phase: update dirty pixels with their correct font/border/transparent color!
 		x = y = 0; //Init coordinates!
 		do //Process all rows!
 		{
