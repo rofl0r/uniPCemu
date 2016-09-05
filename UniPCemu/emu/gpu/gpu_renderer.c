@@ -335,10 +335,10 @@ OPTINLINE void renderFrames() //Render all frames to the screen!
 					GPU_textrenderer(GPU.textsurfaces[i]); //Render the text layer!
 				}
 			} //Leave these for now!
+			
+			//Render the frame!
+			renderScreenFrame(); //Render the current frame!
 		}
-		
-		//Render the frame!
-		renderScreenFrame(); //Render the current frame!
 		return; //Normal!
 	}
 
