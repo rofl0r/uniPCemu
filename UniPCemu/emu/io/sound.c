@@ -1206,10 +1206,10 @@ void initAudio() //Initialises audio subsystem!
 			recordspecs.format = AUDIO_S16SYS;	/* request signed 16-bit samples */
 			recordspecs.channels = 2;	/* ask for stereo */
 			recordspecs.samples = SAMPLESIZE;	/* this is more or less discretionary */
-			recordspecs.size = audiospecs.samples * audiospecs.channels * sizeof(sample_t);
+			recordspecs.size = recordspecs.samples * recordspecs.channels * sizeof(sample_t);
 			recordspecs.callback = &Sound_RecordCallback; //We're not queueing audio! Use the callback instead!
 			recordspecs.userdata = NULL;	/* we don't need this */
-			recorddevice = SDL_OpenAudioDevice(NULL, 0, &recordspecs, NULL, 0); //We need this for our direct rendering!
+			recorddevice = SDL_OpenAudioDevice(NULL, 1, &recordspecs, NULL, 0); //We need this for our direct rendering!
 			if (recorddevice == 0) //No recording device?
 			{
 				//dolog("soundservice","Unable to open audio device: %s",SDL_GetError());
