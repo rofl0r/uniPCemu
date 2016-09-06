@@ -219,6 +219,7 @@
     <ClInclude Include="headers\emu\gpu\gpu_sdl.h" />
     <ClInclude Include="headers\emu\gpu\gpu_text.h" />
     <ClInclude Include="headers\emu\graphics_debug.h" />
+    <ClInclude Include="headers\emu\icon.h" />
     <ClInclude Include="headers\emu\input.h" />
     <ClInclude Include="headers\emu\number_optimizations.h" />
     <ClInclude Include="headers\emu\sound.h" />
@@ -311,6 +312,13 @@
     <ClInclude Include="headers\types_linux.h" />
     <ClInclude Include="headers\types_psp.h" />
     <ClInclude Include="headers\types_win.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="UniPCemuVS.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="UniPCemu.ico" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{51F8A783-928C-482C-B51C-91C141C6302C}</ProjectGuid>

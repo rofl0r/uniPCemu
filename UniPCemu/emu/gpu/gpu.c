@@ -61,10 +61,17 @@ void updateWindow(word xres, word yres, uint_32 flags)
 {
 	if ((xres!=window_xres) || (yres!=window_yres) || !originalrenderer) //Do we need to update the Window?
 	{
+#include "headers/emu/icon.h" //We need our icon!
+		SDL_Surface *icon = NULL; //Our icon!
+		icon = SDL_CreateRGBSurfaceFrom((void *)&icondata,ICON_BMPWIDTH,ICON_BMPHEIGHT,32,ICON_BMPWIDTH<<2, 0x000000FF, 0x0000FF00,0x00FF0000,0); //We have a RGB icon only!
 		window_xres = xres;
 		window_yres = yres;
 		#ifndef SDL2
 		//SDL1?
+		if (icon) //Gotten an icon?
+		{
+			SDL_WM_SetIcon(icon,NULL); //Set the icon to use!
+		}
 		originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 		#else
 		if (sdlTexture)
@@ -91,6 +98,10 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		}
 		if (sdlWindow) //Gotten a window?
 		{
+			if (icon) //Gotten an icon?
+			{
+				SDL_SetWindowIcon(sdlWindow,icon); //Set the icon to use!
+			}
 			if (!sdlRenderer) //No renderer yet?
 			{
 				sdlRenderer = SDL_CreateRenderer(sdlWindow,-1,0);
@@ -112,6 +123,11 @@ void updateWindow(word xres, word yres, uint_32 flags)
 			0x000000FF,
 			0xFF000000); //The SDL Surface we render to!
 		#endif
+		if (icon)
+		{
+			SDL_FreeSurface(icon); //Free the icon!
+			icon = NULL; //No icon anymore!
+		}
 	}
 }
 

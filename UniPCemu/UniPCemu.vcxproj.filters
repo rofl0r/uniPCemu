@@ -929,5 +929,21 @@
     <ClInclude Include="headers\mmu\mmu_internals.h">
       <Filter>Header Files\mmu</Filter>
     </ClInclude>
+    <ClInclude Include="headers\emu\icon.h">
+      <Filter>Header Files\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="UniPCemu.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="UniPCemuVS.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

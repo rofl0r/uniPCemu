@@ -8,6 +8,9 @@ TARGET = $(BUILD_NAME).exe
 TARGET_PROFILE_TXT = profiler.txt
 TARGET_PROFILE_CMP_TXT = profiler2.txt
 
+#Currently, our resource is only one: The project rc file!
+RESOURCES = $(BUILD_NAME).res
+
 #GProf switches!
 GPROF_SWITCHES =
 
@@ -88,6 +91,7 @@ BUILD_PROFILE = $(BUILD_DIR)/$(TARGET_PROFILE)
 BUILD_PROFILE_GMON = $(BUILD_DIR)/gmon.out
 BUILD_PROFILE_GMON_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_TXT)
 BUILD_PROFILE_GMON_CMP_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_CMP_TXT)
+BUILD_RESOURCES := $(patsubst %.res,$(BUILD_DIR)/%.res,$(RESOURCES))
 
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
@@ -118,15 +122,19 @@ $(BUILD_PROFILE): ${OBJS}
 	${CC} -g -pg -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
 
 #Compile into release mode with stripping (-s)!
-$(BUILD_RELEASE): ${OBJS}
-	${CC} -o "$@" ${OBJS} $(STRIP) ${LDFLAGS}
+$(BUILD_RELEASE): ${OBJS} $(BUILD_RESOURCES)
+	${CC} -o "$@" ${OBJS} $(BUILD_RESOURCES) $(STRIP) ${LDFLAGS}
 
 #Normal compilation of seperate modules!
+$(BUILD_DIR)/%.res:%.rc
+	windres $< -O coff -o $@
+
 $(BUILD_DIR)/%.o:%.c
 	${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@
 
 clean:
 	-$(RM) $(OBJS)
+	-$(RM) $(BUILD_RESOURCES)
 	-$(RM) $(BUILD_RELEASE)
 	-$(RM) $(BUILD_PROFILE)
 	-$(RM) $(BUILD_DEBUG)
