@@ -269,3 +269,4 @@ paket-files/
 *.lastbuildstate
 *.exe
 *.etl
+android-project/gen/
