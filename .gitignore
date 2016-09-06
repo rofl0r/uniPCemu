@@ -270,3 +270,4 @@ paket-files/
 *.exe
 *.etl
 android-project/gen/
+UniPCemu/UniPCemu.sln
