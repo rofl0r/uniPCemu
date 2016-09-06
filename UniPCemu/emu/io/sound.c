@@ -1023,14 +1023,17 @@ void updateAudio(double timepassed)
 	}
 
 	//Sound input
-	sound_recordtiming += timepassed; //Get the amount of time passed!
-	if ((sound_recordtiming >= sound_recordtick) && sound_recordtick) //Anything to render?
+	if (sound_recordtick) //Any timing used?
 	{
-		samples = (uint_32)(sound_recordtiming / sound_recordtick); //How many samples to render?
-		sound_recordtiming -= (double)samples*sound_recordtick; //Tick as many samples as we're rendering!
-		lockaudio(); //Make sure we're the only ones rendering!
-		recordaudio(samples); //Mix the samples required!
-		unlockaudio(); //We're finished rendering!
+		sound_recordtiming += timepassed; //Get the amount of time passed!
+		if (sound_recordtiming >= sound_recordtick) //Anything to render?
+		{
+			samples = (uint_32)(sound_recordtiming / sound_recordtick); //How many samples to render?
+			sound_recordtiming -= (double)samples*sound_recordtick; //Tick as many samples as we're rendering!
+			lockaudio(); //Make sure we're the only ones rendering!
+			recordaudio(samples); //Mix the samples required!
+			unlockaudio(); //We're finished rendering!
+		}
 	}
 }
 
