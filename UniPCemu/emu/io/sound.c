@@ -755,6 +755,31 @@ OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
 	*rightsample = (sword)sample_r;
 }
 
+OPTINLINE static void applyRecordFilters(sword *leftsample, sword *rightsample)
+{
+	float sample_l, sample_r;
+
+	//Our information for filtering!
+#ifdef SOUND_HIGHPASS
+	static float soundhigh_last_result_l = 0, soundhigh_last_sample_l = 0, soundhigh_last_result_r = 0, soundhigh_last_sample_r = 0; //High pass
+	static byte soundhigh_first_l = 1, soundhigh_first_r = 1; //First sample to process?
+#endif
+
+															  //Load the samples to process!
+	sample_l = (float)*leftsample; //Load the left sample to process!
+	sample_r = (float)*rightsample; //Load the right sample to process!
+
+									//Use the high pass to filter anything too low frequency!
+#ifdef SOUND_HIGHPASS
+	applySoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, &sample_l, &soundhigh_last_result_l, &soundhigh_last_sample_l, &soundhigh_first_l);
+	applySoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, &sample_r, &soundhigh_last_result_r, &soundhigh_last_sample_r, &soundhigh_first_r);
+#endif
+
+	//Write back the samples we've processed!
+	*leftsample = (sword)sample_l;
+	*rightsample = (sword)sample_r;
+}
+
 sbyte getRecordedSample8s()
 {
 	return (sbyte)(inputleft>>8); //Left sample!
@@ -936,7 +961,7 @@ OPTINLINE static void recordaudio(uint_32 length) //Record audio channels to sta
 		//Apply our filters!
 		temp_l = result_l;
 		temp_r = result_r; //Load the temp values!
-		applySoundFilters(&temp_l, &temp_r); //Apply our sound filters!
+		applyRecordFilters(&temp_l, &temp_r); //Apply our sound filters!
 		result_l = temp_l; //Write back!
 		result_r = temp_r; //Write back!
 
@@ -1008,32 +1033,42 @@ OPTINLINE static void HW_recordaudio(sample_stereo_p buffer, uint_32 length) //M
 
 double sound_soundtiming = 0.0, sound_soundtick = 0.0;
 double sound_recordtiming = 0.0, sound_recordtick = 0.0;
-uint_32 samples; //How many samples to render?
 void updateAudio(double timepassed)
 {
+	uint_32 samples; //How many samples to render?
+	byte ticksound, tickrecording, locked; //To tick us?
 	//Sound output
 	sound_soundtiming += timepassed; //Get the amount of time passed!
-	if ((sound_soundtiming >= sound_soundtick) && sound_soundtick) //Anything to render?
+	sound_recordtiming += timepassed; //Get the amount of time passed!
+	ticksound = ((sound_soundtiming >= sound_soundtick) && sound_soundtick); //To tick sound?
+	tickrecording = ((sound_recordtiming >= sound_recordtick) && sound_recordtick); //To tick recording?
+	if (ticksound || tickrecording) //Anything to lock?
+	{
+		lockaudio(); //Make sure we're the only ones rendering!
+		locked = 1; //We're locked!
+	}
+	else
+	{
+		locked = 0; //We're not locked!
+	}
+
+	if (ticksound) //To tick sound?
 	{
 		samples = (uint_32)(sound_soundtiming/sound_soundtick); //How many samples to render?
 		sound_soundtiming -= (double)samples*sound_soundtick; //Tick as many samples as we're rendering!
-		lockaudio(); //Make sure we're the only ones rendering!
 		mixaudio(samples); //Mix the samples required!
-		unlockaudio(); //We're finished rendering!
 	}
 
-	//Sound input
-	if (sound_recordtick) //Any timing used?
+	if (tickrecording) //Anything to record?
 	{
-		sound_recordtiming += timepassed; //Get the amount of time passed!
-		if (sound_recordtiming >= sound_recordtick) //Anything to render?
-		{
-			samples = (uint_32)(sound_recordtiming / sound_recordtick); //How many samples to render?
-			sound_recordtiming -= (double)samples*sound_recordtick; //Tick as many samples as we're rendering!
-			lockaudio(); //Make sure we're the only ones rendering!
-			recordaudio(samples); //Mix the samples required!
-			unlockaudio(); //We're finished rendering!
-		}
+		samples = (uint_32)(sound_recordtiming / sound_recordtick); //How many samples to render?
+		sound_recordtiming -= (double)samples*sound_recordtick; //Tick as many samples as we're rendering!
+		recordaudio(samples); //Mix the samples required!
+	}
+
+	if (locked) //Anything locked?
+	{
+		unlockaudio(); //We're finished rendering!
 	}
 }
 
