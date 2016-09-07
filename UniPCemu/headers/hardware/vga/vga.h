@@ -768,4 +768,6 @@ void VGA_initIO(); //Initialise all I/O support for the VGA/EGA/CGA/MDA!
 void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler initializationhandler, VGA_calcprecalcsextensionhandler precalcsextensionhandler, VGA_clockrateextensionhandler clockrateextension, VGA_addresswrapextensionhandler addresswrapextension); //Register an extension for use with the VGA!
 
 void PORT_write_MISC_3C2(byte value); //Misc Output register updating for SVGA!
+
+void updateVGAWaitState(); //Update the new WaitState for the VGA handler!
 #endif

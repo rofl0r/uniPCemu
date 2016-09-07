@@ -127,14 +127,16 @@ byte isoutputdisabled = 0; //Output disabled?
 extern byte blanking; //Are we blanking!
 extern byte retracing; //Allow rendering by retrace!
 extern byte totalling; //Allow rendering by total!
-extern byte totalretracing; //Combined flags of retracing/totalling!
+byte totalretracing; //Combined flags of retracing/totalling!
 
 extern byte hblank, hretrace; //Horizontal blanking/retrace?
 extern byte vblank, vretrace; //Vertical blanking/retrace?
-extern word blankretraceendpending; //Ending blank/retrace pending? bits set for any of them!
+byte hblankendpending = 0; //Ending blank/retrace pending? bits set for any of them!
+byte vblankendpending = 0; //Ending blank/retrace pending? bits set for any of them!
 
 byte vtotal = 0; //VTotal busy?
 
+byte VGA_hblankstart = 0; //HBlank started?
 extern byte CGAMDARenderer; //CGA/MDA renderer?
 
 OPTINLINE uint_32 get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust the current display part for the next pixel (going from 0-total on both x and y)!
@@ -147,59 +149,120 @@ OPTINLINE uint_32 get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust
 	stat |= VGA->CRTC.colstatus[x]; //Get column status!
 	stat |= VGA->precalcs.extrasignal; //Graphics mode etc. display status affects the signal too!
 	stat |= (blanking<<VGA_SIGNAL_BLANKINGSHIFT); //Apply the current blanking signal as well!
+	VGA_hblankstart = stat; //Save directly! Ignore the overflow!
+	VGA_hblankstart >>= 7; //Shift into bit 1 to get the hblank status(small hack)!
 	return stat; //Give the combined (OR'ed) status!
 }
 
-OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word *execsignal)
-{
-	word signal;
-	INLINEREGISTER word tempsignalbackup;
-	signal = *execsignal; //The signal to execute!
-	recalcsignal: //Recalculate the signal to process!
-	tempsignalbackup = signal; //The back-up of the signal!
-	INLINEREGISTER word tempsignal = signal; //Current signal!
-	//Blankings
-	tempsignal &= (VGA_HBLANKMASK|VGA_HRETRACEMASK); //Check for blanking/retracing!
-	if (tempsignal) //HBlank?
-	{
-		if (tempsignal&VGA_SIGNAL_HBLANKSTART) //HBlank start?
-		{
-			hblank = 1; //We're blanking!
-		}
-		else if (hblank)
-		{
-			if (tempsignal&VGA_SIGNAL_HBLANKEND) //HBlank end?
-			{
-				if ((VGA->registers->specialCGAMDAflags)&1) goto CGAendhblank;
-				blankretraceendpending |= VGA_SIGNAL_HBLANKEND;
-			}
-		}
+word displaystate; //Last display state!
 
-		if (tempsignal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
-		{
-			if (!hretrace) //Not running yet?
-			{
-				VGA_HRetrace(Sequencer, VGA); //Execute the handler!
-			}
-			hretrace = 1; //We're retracing!
-		}
-		else if (hretrace)
-		{
-			if (tempsignal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
-			{
-				hretrace = 0; //We're not retraing anymore!
-			}
-		}
-	}
-	else if (blankretraceendpending&VGA_SIGNAL_HBLANKEND) //End pending HBlank!
+//All possible wait-states for the video adapter!
+typedef void (*WaitStateHandler)(VGA_Type *VGA);
+
+void updateVGAWaitState(); //Prototype!
+
+void WaitState_None(VGA_Type *VGA) {} //No waitstate: NOP!
+void WaitState_WaitDots(VGA_Type *VGA)
+{
+	//Wait 8 hdots!
+	if (--VGA->WaitStateCounter == 0) //First wait state done?
 	{
-	CGAendhblank:
-		hblank = 0; //We're not blanking anymore!
-		blankretraceendpending &= ~VGA_SIGNAL_HBLANKEND; //Remove from flags pending!
+		VGA->WaitState = 2; //Enter the next phase: Wait for the next lchar(16 dots period)!
+		updateVGAWaitState(); //Update the waitstate!
 	}
+}
+void WaitState_NextlChar(VGA_Type *VGA)
+{
+	//Wait for the next lchar?
+	if ((VGA->PixelCounter & 0xF) == 0) //Second wait state done?
+	{
+		VGA->WaitState = 0; //Enter the next phase: Wait for the next ccycle(3 hdots)
+		CPU[activeCPU].halt |= 8; //Start again when the next CPU clock arrives!
+		CPU[activeCPU].halt &= ~4; //We're done waiting!
+		updateVGAWaitState(); //Update the waitstate!
+	}
+}
+
+WaitStateHandler CurrentWaitState = NULL; //Current waitstate!
+
+WaitStateHandler WaitStates[8] = { NULL,
+WaitState_WaitDots, //Wait 8 hdots!
+WaitState_NextlChar, //Wait for the next lchar?
+WaitState_None, //Wait for the next ccycle(3 hdots)?
+WaitState_None,WaitState_None,WaitState_None,WaitState_None }; //All possible waitstates!
+
+void updateVGAWaitState()
+{
+	CurrentWaitState = WaitStates[getActiveVGA()->WaitState]; //Load the new waitstate!
+}
+
+//HBlank/Retrace handling!
+
+typedef void (*hblankretraceHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal);
+
+void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+{
+	if (VGA_hblankstart) //HBlank start?
+	{
+		hblank = 1; //We're blanking!
+	}
+	else if (hblank)
+	{
+		if (signal&VGA_SIGNAL_HBLANKEND) //HBlank end?
+		{
+			if ((VGA->registers->specialCGAMDAflags) & 1)
+			{
+				//End pending HBlank!
+				hblank = 0; //We're not blanking anymore!
+				hblankendpending = 0; //Remove from flags pending!
+			}
+			else
+			{
+				hblankendpending = 1;
+			}
+		}
+	}
+
+	if (signal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
+	{
+		if (!hretrace) //Not running yet?
+		{
+			VGA_HRetrace(Sequencer, VGA); //Execute the handler!
+		}
+		hretrace = 1; //We're retracing!
+	}
+	else if (hretrace)
+	{
+		if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
+		{
+			hretrace = 0; //We're not retraing anymore!
+		}
+	}
+}
+
+void nohblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+{
+	if (hblankendpending==0) return; //End pending HBlank!
+	{
+		hblank = 0; //We're not blanking anymore!
+		hblankendpending = 0; //Remove from flags pending!
+	}
+}
+
+OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, byte *totalretracing, byte hblankretrace)
+{
+	const static byte retracemasks[4] = { 0xFF,0x00,0x00,0x00 }; //Disable display when retracing!
+	const static hblankretraceHandler hblankretracehandlers[2] = { nohblankretrace,exechblankretrace }; //The handlers!
+
+	INLINEREGISTER word tempsignalbackup, tempsignal; //Our signal backup and signal itself!
+recalcsignal: //Recalculate the signal to process!
+	tempsignal = tempsignalbackup = displaystate; //The back-up of the signal!
+	//Blankings
+
+	hblankretracehandlers[hblankretrace](Sequencer,VGA,tempsignal); //Horizontal timing?
 
 	tempsignal = tempsignalbackup; //Restore the original backup signal!
-	tempsignal &= (VGA_VBLANKMASK|VGA_VRETRACEMASK); //Check for blanking!
+	tempsignal &= VGA_VBLANKRETRACEMASK; //Check for blanking/tretracing!
 	if (tempsignal) //VBlank?
 	{
 		if (tempsignal&VGA_SIGNAL_VBLANKSTART) //VBlank start?
@@ -210,8 +273,16 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word *exec
 		{
 			if (tempsignal&VGA_SIGNAL_VBLANKEND) //VBlank end?
 			{
-				if (VGA->registers->specialCGAMDAflags&1) goto CGAendvblank;
-				blankretraceendpending |= VGA_SIGNAL_VBLANKEND;
+				if (VGA->registers->specialCGAMDAflags & 1) //CGA special?
+				{
+					vblank = 0; //We're not blanking anymore!
+					vblankendpending = 0; //Remove from flags pending!
+					VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //No vertical retrace?
+				}
+				else
+				{
+					vblankendpending = 1; //Start pending vblank end!
+				}
 			}
 		}
 
@@ -252,11 +323,10 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word *exec
 	}
 	else
 	{
-		if (blankretraceendpending&VGA_SIGNAL_VBLANKEND) //End pending HBlank!
+		if (vblankendpending) //End pending HBlank!
 		{
-		CGAendvblank:
 			vblank = 0; //We're not blanking anymore!
-			blankretraceendpending &= ~VGA_SIGNAL_VBLANKEND; //Remove from flags pending!
+			vblankendpending = 0; //Remove from flags pending!
 		}
 		VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //No vertical retrace?
 	}
@@ -268,33 +338,36 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word *exec
 	blanking |= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable; //Use disabled output when asked to!
 
 	//Process resetting the HSync/VSync counters!
-	tempsignal = tempsignalbackup; //Restore the original backup signal!
 
 	INLINEREGISTER byte isretrace; //Vertical or horizontal retrace?
-	isretrace = hretrace;
+	*totalretracing = isretrace = hretrace;
 	retracing = (isretrace |= vretrace); //We're retracing?
 
 	//Process HTotal/VTotal
-	totalling = 0; //Default: Not totalling!
+	//INLINEREGISTER byte currenttotalling; //Current totalling state!
+	//currenttotalling = 0; //Default: Not totalling!
+	tempsignal = tempsignalbackup; //Restore the original backup signal!
 	if (tempsignal&VGA_SIGNAL_HTOTAL) //HTotal?
 	{
 		VGA_HTotal(Sequencer,VGA); //Process HTotal!
-		//totalling = 1; //Total reached!
-		*execsignal = signal = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-		if (!(signal&VGA_SIGNAL_HTOTAL)) //Not infinitely looping?
+		//currenttotalling = 1; //Total reached!
+		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
+		if (!(displaystate&VGA_SIGNAL_HTOTAL)) //Not infinitely looping?
 		{
+			hblankretrace = (displaystate&VGA_HBLANKRETRACEMASK)?1:0; //Check for blanking/retracing!
 			goto recalcsignal; //Execute immediately!
 		}
 	}
 	if (tempsignal&VGA_SIGNAL_VTOTAL) //VTotal?
 	{
 		VGA_VTotal(Sequencer,VGA); //Process VTotal!
-		/*totalling =*/ vtotal = 1; //Total reached!
-		*execsignal = signal = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-		if (!(signal&VGA_SIGNAL_VTOTAL)) //Not infinitely looping(VTotal ended)?
+		/*currenttotalling =*/ vtotal = 1; //Total reached!
+		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
+		if (!(displaystate&VGA_SIGNAL_VTOTAL)) //Not infinitely looping(VTotal ended)?
 		{
 			VGA_VTotalEnd(Sequencer, VGA); //Signal end of vertical total!
 			vtotal = 0; //Not vertical total anymore!
+			hblankretrace = (displaystate&VGA_HBLANKRETRACEMASK)?1:0; //Check for blanking/retracing!
 			goto recalcsignal; //Execute immediately!
 		}
 	}
@@ -303,56 +376,31 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, word *exec
 		VGA_VTotalEnd(Sequencer,VGA); //Signal end of vertical total!
 		vtotal = 0; //Not vertical total anymore!
 	}
-	
-	totalretracing = totalling;
-	totalretracing <<= 1; //1 bit needed more!
-	totalretracing |= isretrace; //Are we retracing?
 
-	isretrace |= totalling; //Apply totalling to retrace checks!
 	tempsignal &= VGA_DISPLAYMASK; //Check the display now!
-	if (isretrace) //Retracing?
-	{
-		VGA->CRTC.DisplayEnabled = 0; //Retracing, so display is disabled!
-	}
-	else
-	{
-		VGA->CRTC.DisplayEnabled = (tempsignal==VGA_DISPLAYACTIVE); //We're active display when not retracing/totalling and active display area!
-	}
+
+	INLINEREGISTER byte currenttotalretracing;
+	//isretrace |= (currenttotalretracing = currenttotalling); //Apply totalling to retrace checks, also load totalling for totalretracing information!
+	//currenttotalretracing <<= 1; //1 bit needed more!
+	//currenttotalretracing = isretrace; //Are we retracing?
+	//*totalretracing = currenttotalretracing; //Save retrace info!
+
+	currenttotalretracing = (tempsignal==VGA_DISPLAYACTIVE); //We're active display when not retracing/totalling and active display area!
+	currenttotalretracing &= retracemasks[isretrace]; //Apply the retrace mask: we're not using the displayenabled when retracing!
+	VGA->CRTC.DisplayEnabled = currenttotalretracing; //The Display Enable signal, which depends on the active video adapter how to use it!
 	++VGA->PixelCounter; //Simply blindly increase the pixel counter!
-	if (VGA->WaitState) //To excert CGA Wait State memory?
-	{
-		switch (VGA->WaitState) //What state are we waiting for?
-		{
-		case 1: //Wait 8 hdots!
-			if (--VGA->WaitStateCounter == 0) //First wait state done?
-			{
-				VGA->WaitState = 2; //Enter the next phase: Wait for the next lchar(16 dots period)!
-			}
-			break;
-		case 2: //Wait for the next lchar?
-			if ((VGA->PixelCounter & 0xF) == 0) //Second wait state done?
-			{
-				VGA->WaitState = 0; //Enter the next phase: Wait for the next ccycle(3 hdots)
-				CPU[activeCPU].halt |= 8; //Start again when the next CPU clock arrives!
-				CPU[activeCPU].halt &= ~4; //We're done waiting!
-			}
-			break;
-		case 3: //Wait for the next ccycle(3 hdots)?
-		default: //No waitstate?
-			break;
-		}
-	}
+
+	if (CurrentWaitState) CurrentWaitState(VGA); //Execute the current waitstate, when used!
 }
 
 extern DisplayRenderHandler displayrenderhandler[4][VGA_DISPLAYRENDERSIZE]; //Our handlers for all pixels!
 
 OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
 {
-	word displaystate = 0; //Last display state!
-
+	static byte totalretracing = 0;
 	//Process one pixel only!
 	displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(), &displaystate); //Handle any change in display state first!
+	VGA_SIGNAL_HANDLER(Sequencer, getActiveVGA(),&totalretracing,(displaystate&VGA_HBLANKRETRACEMASK)?1:0); //Handle any change in display state first!
 	displayrenderhandler[totalretracing][displaystate](Sequencer, getActiveVGA()); //Execute our signal!
 }
 

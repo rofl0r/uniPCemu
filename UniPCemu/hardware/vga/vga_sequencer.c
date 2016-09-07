@@ -254,7 +254,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Loa
 	planesdecoder[VGA->precalcs.graphicsmode](VGA,vramlocation); //Use the decoder to get the pixels or characters!
 
 	INLINEREGISTER byte lookupprecalcs;
-	lookupprecalcs = (byte)((SEQ_DATA *)Sequencer)->charinner_y;
+	lookupprecalcs = ((SEQ_DATA *)Sequencer)->charinner_y;
 	lookupprecalcs <<= 1; //Make room!
 	lookupprecalcs |= CURRENTBLINK(VGA); //Blink!
 	lookupprecalcs <<= 1; //Make room for the pixelon!
@@ -263,8 +263,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Loa
 
 OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	INLINEREGISTER word extrastatus;
-	extrastatus = *Sequencer->extrastatus; //Next status!
+	word extrastatus = *Sequencer->extrastatus; //Next status!
 	if ((getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR && getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR)==0) //Reset sequencer?
 	{
 		return 0; //Abort: we're disabled!
@@ -341,7 +340,7 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	//Row now is an index into charrowstatus
 	word *currowstatus = &VGA->CRTC.charrowstatus[row]; //Current row status!
 	Sequencer->chary = row = *currowstatus++; //First is chary (effective character/graphics row)!
-	Sequencer->rowscancounter = Sequencer->charinner_y = *currowstatus; //Second is charinner_y, which is also the row scan counter!
+	Sequencer->rowscancounter = (word)(Sequencer->charinner_y = (byte)*currowstatus); //Second is charinner_y, which is also the row scan counter!
 
 	charystart = VGA->precalcs.rowsize*row; //Calculate row start!
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
@@ -386,11 +385,9 @@ byte Sequencer_run; //Sequencer breaked (loop exit)?
 byte blanking = 0; //Are we blanking!
 byte retracing = 0; //Allow rendering by retrace!
 byte totalling = 0; //Allow rendering by total!
-byte totalretracing = 0; //Combined flags of retracing/totalling!
 
 byte hblank = 0, hretrace = 0; //Horizontal blanking/retrace?
 byte vblank = 0, vretrace = 0; //Vertical blanking/retrace?
-word blankretraceendpending = 0; //Ending blank/retrace pending? bits set for any of them!
 
 byte VGA_LOGPRECALCS = 0; //Log precalcs?
 

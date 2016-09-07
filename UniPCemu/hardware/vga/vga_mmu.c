@@ -388,6 +388,7 @@ void applyCGAMDAOffset(uint_32 *offset)
 			getActiveVGA()->WaitState = 1; //Start our waitstate for CGA memory access!
 			getActiveVGA()->WaitStateCounter = 8; //Reset our counter for the 8 hdots to wait!
 			CPU[activeCPU].halt |= 4; //We're starting to wait for the CGA!
+			updateVGAWaitState(); //Update the current waitstate!
 		}
 	}
 	else if (MDAEMULATION_ENABLED(getActiveVGA())) //MDA?

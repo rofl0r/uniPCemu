@@ -31,7 +31,7 @@ typedef struct
 	
 	//Text mode information about the current scanline!
 	word chary; //Character y!
-	word charinner_y; //Inner y base of character!
+	byte charinner_y; //Inner y base of character!
 	uint_32 charystart; //Start of the row in VRAM!
 
 	byte pixelshiftcount; //Our calculated pixel shift count!
