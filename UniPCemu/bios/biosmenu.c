@@ -187,6 +187,7 @@ void BIOS_useGameBlaster();
 void BIOS_GameBlasterVolume();
 void BIOS_useSoundBlaster();
 void BIOS_TurboCPUSpeed(); //CPU speed selection!
+void BIOS_useTurboCPUSpeed(); //CPU speed toggle!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -247,6 +248,7 @@ Handler BIOS_Menus[] =
 	,BIOS_GameBlasterVolume //Game Blaster Volume is #53!
 	,BIOS_useSoundBlaster //Use Sound Blaster is #54!
 	,BIOS_TurboCPUSpeed //BIOS Turbo CPU speed is #55!
+	,BIOS_useTurboCPUSpeed //CPU speed toggle is #56!
 };
 
 //Not implemented?
@@ -4343,8 +4345,26 @@ setDataBusSize: //For fixing it!
 		break;
 	}
 
+	fixTurboCPUToggle:
+	optioninfo[advancedoptions] = 4; //Change Turbo CPU option!
+	strcpy(menuoptions[advancedoptions], "Turbo CPU: ");
+	switch (BIOS_Settings.useTurboSpeed) //What Turbo CPU speed limit?
+	{
+	case 0: //Disabled?
+		strcat(menuoptions[advancedoptions++], "Disabled"); //Default!
+		break;
+	case 1: //Enabled?
+		strcat(menuoptions[advancedoptions++], "Enabled"); //Default!
+		break;
+	default: //Limited cycles?
+		BIOS_Settings.useTurboSpeed = 0; //Disable!
+		BIOS_Changed = 1; //Changed!
+		goto fixTurboCPUToggle; //Fix it!
+		break;
+	}
+
 setShowCPUSpeed:
-	optioninfo[advancedoptions] = 4; //Change CPU speed!
+	optioninfo[advancedoptions] = 5; //Change CPU speed!
 	strcpy(menuoptions[advancedoptions], "Show CPU Speed: ");
 	switch (BIOS_Settings.ShowCPUSpeed) //What CPU speed limit?
 	{
@@ -4361,11 +4381,11 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 5; //Boot Order!
+	optioninfo[advancedoptions] = 6; //Boot Order!
 	strcpy(menuoptions[advancedoptions], "Boot Order: "); //Change boot order!
 	strcat(menuoptions[advancedoptions++], BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
 
-	optioninfo[advancedoptions] = 6; //Execution mode!
+	optioninfo[advancedoptions] = 7; //Execution mode!
 	strcpy(menuoptions[advancedoptions], "Execution mode: ");
 	switch (BIOS_Settings.executionmode) //What execution mode is active?
 	{
@@ -4392,7 +4412,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 7; //Debug mode!
+	optioninfo[advancedoptions] = 8; //Debug mode!
 	strcpy(menuoptions[advancedoptions], "Debug mode: ");
 	switch (BIOS_Settings.debugmode) //What debug mode is active?
 	{
@@ -4413,7 +4433,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 8; //We're debug log setting!
+	optioninfo[advancedoptions] = 9; //We're debug log setting!
 	strcpy(menuoptions[advancedoptions], "Debugger log: ");
 	switch (BIOS_Settings.debugger_log)
 	{
@@ -4454,7 +4474,8 @@ void BIOS_CPU() //CPU menu!
 	case 5:
 	case 6:
 	case 7:
-	case 8: //Valid option?
+	case 8:
+	case 9: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -4470,21 +4491,24 @@ void BIOS_CPU() //CPU menu!
 		case 3: //Turbo CPU speed?
 			BIOS_Menu = 55; //Turbo CPU speed selection!
 			break;
-		case 4: //CPU speed display setting?
+		case 4: //Use Turbo CPU Speed?
+			BIOS_Menu = 56; //Turbo CPU speed selection!
+			break;
+		case 5: //CPU speed display setting?
 			BIOS_Menu = 41; //CPU speed display setting!
 			break;
 		//Basic execution information
-		case 5: //Boot order?
+		case 6: //Boot order?
 			BIOS_Menu = 9; //Boot Order Menu!
 			break;
-		case 6:
+		case 7:
 			BIOS_Menu = 24; //Execution mode option!
 			break;
 		//Debugger information
-		case 7: //Debug mode?
+		case 8: //Debug mode?
 			BIOS_Menu = 13; //Debug mode option!
 			break;
-		case 8:
+		case 9:
 			BIOS_Menu = 23; //Debugger log setting!
 			break;
 		}
@@ -5472,5 +5496,12 @@ void BIOS_TurboCPUSpeed() //CPU speed selection!
 		}
 		break;
 	}
+	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_useTurboCPUSpeed() //CPU speed toggle!
+{
+	BIOS_Settings.useTurboSpeed = !BIOS_Settings.useTurboSpeed; //Toggle!
+	BIOS_Changed = 1; //Changed!
 	BIOS_Menu = 35; //Goto CPU menu!
 }

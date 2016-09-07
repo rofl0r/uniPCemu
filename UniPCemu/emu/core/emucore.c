@@ -633,7 +633,7 @@ void updateSpeedLimit()
 	if (BIOS_Settings.CPUSpeed) //Gotten speed cycles set?
 	{
 		setDosboxCycles(1,BIOS_Settings.CPUSpeed); //Dosbox-style cycles!
-		if (TurboMode && BIOS_Settings.TurboCPUSpeed) //Turbo enabled and specified?
+		if (TurboMode && BIOS_Settings.TurboCPUSpeed && BIOS_Settings.useTurboSpeed) //Turbo enabled and specified?
 		{
 			setDosboxCycles(1, BIOS_Settings.TurboCPUSpeed); //Dosbox-style Turbo cycles!
 		}
@@ -642,7 +642,7 @@ void updateSpeedLimit()
 	{
 		DosboxClock = 0; //We're executing using actual clocks!
 		CPU_speed_cycle = 1000000000.0/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
-		if (TurboMode) //Turbo mode enabled?
+		if (TurboMode && BIOS_Settings.useTurboSpeed) //Turbo mode enabled?
 		{
 			if (BIOS_Settings.TurboCPUSpeed) //Turbo speed specified?
 			{

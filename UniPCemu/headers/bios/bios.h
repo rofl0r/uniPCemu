@@ -67,6 +67,7 @@ typedef struct PACKED
 	uint_32 GameBlaster_Volume; //The Game Blaster volume knob!
 	byte useSoundBlaster; //Emulate Sound Blaster?
 	uint_32 TurboCPUSpeed;
+	byte useTurboSpeed; //Are we to use Turbo CPU speed?
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 
