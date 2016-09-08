@@ -735,12 +735,12 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, uint_32 error) //Execute
 	switch (idtentry.Type) //What type are we?
 	{
 	case IDTENTRY_32BIT_TASKGATE: //32-bit task gate?
-		desttask = MMU_rw(CPU_SEGMENT_TR, CPU->registers->TR, 0, 0); //Read the destination task!
+		desttask = idtentry.selector; //Read the destination task!
 		if (!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
 		{
 			return; //Error, by specified reason!
 		}
-		CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 3); //Execute an IRET to the interrupted task!
+		CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 0); //Execute a task switch to the new task!
 		if (is_HW && (error != -1))
 		{
 			CPU_PUSH32(&error); //Push the error on the stack!
