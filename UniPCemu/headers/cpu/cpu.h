@@ -195,7 +195,33 @@ typedef struct
 	word DS;
 	word LDT;
 } TSS286; //80286 32-Bit Task State Segment
+
+typedef union
+{
+	struct
+	{
+		word offsethigh; //Higer part of the offset
+		byte P : 1; //Present
+		byte DPL : 2; //Descriptor Privilege Level
+		byte S : 1; //Storage Segment. Set to 0 for interrupt gates
+		word Type : 4; //One of the supported types!
+		byte zero; //Must be zero!
+		word selector; //The selector of the interrupt function. It's DPL field has be be 0.
+		word offsetlow; //Lower part of the interrupt function's offset address (a.k.a. pointer)
+	};
+	byte descdata[8]; //The full entry data!
+} IDTENTRY; //80286/80386 Interrupt descriptor table entry
+		  
 //A segment descriptor
+
+//Full gate value
+#define IDTENTRY_32BIT_TASKGATE 0x5
+
+//Partial value for interrupt/trap gates!
+#define IDTENTRY_16BIT_INTERRUPTGATE 0x6
+#define IDTENTRY_16BIT_TRAPGATE 0x7
+//32-bit variants (gate extensino set with interrupt&trap gates)
+#define IDTENTRY_32BIT_GATEEXTENSIONFLAG 0x8
 
 /*
 

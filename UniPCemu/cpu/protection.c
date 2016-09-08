@@ -656,3 +656,172 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 	}
 	return 0; //Allow all for now!
 }
+
+int LOADINTDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
+{
+	uint_32 descriptor_adress = 0;
+	descriptor_adress = (segment & 4) ? CPU[activeCPU].registers->LDTR.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
+
+	if ((word)descriptor_index>((segment & 4) ? CPU[activeCPU].registers->LDTR.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	{
+		THROWDESCGP(segment); //Throw error!
+		return 0; //Not present: limit exceeded!
+	}
+
+	if (!descriptor_index) //NULL segment loaded into CS?
+	{
+		THROWDESCGP(segment); //Throw error!
+		return 0; //Not present: limit exceeded!	
+	}
+
+	int i;
+	for (i = 0;i<(int)sizeof(container->descdata);i++) //Process the descriptor data!
+	{
+		container->descdata[i] = memory_directrb(descriptor_adress + i); //Read a descriptor byte directly from flat memory!
+	}
+
+	if ((whatsegment == CPU_SEGMENT_CS) &&
+		(
+		(getLoadedTYPE(container) != 1 && !isGateDescriptor(container)) || //Data or System in CS (non-exec)?
+			(!getLoadedTYPE(container) && !isGateDescriptor(container)) //Or System?
+			)
+		)
+
+	{
+		THROWDESCGP(segment); //Throw error!
+		return 0; //Not present: limit exceeded!	
+	}
+
+	return 1; //OK!
+}
+
+void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, uint_32 error) //Execute a protected mode interrupt!
+{
+	SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage for task switches!
+	word desttask; //Destination task for task switches!
+	byte left; //The amount of bytes left to read of the IDT entry!
+	uint_32 base;
+	base = (intnr<<3); //The base offset of the interrupt in the IDT!
+	if ((base + 5) >= CPU->registers->IDTR.limit) //Limit exceeded?
+	{
+		THROWDESCGP(base+2+(is_HW?1:0)); //#GP!
+		return; //Abort!
+	}
+
+	base += CPU->registers->IDTR.base; //Add the base for the actual offset into the IDT!
+	
+	IDTENTRY idtentry; //The loaded IVT entry!
+	for (left=0;left<sizeof(idtentry.descdata);++left) //Data left to read?
+	{
+		idtentry.descdata[left] = memory_directrb(base++); //Read a byte from the descriptor entry!
+	}
+
+	byte is32bit;
+
+	if ((!is_HW) && (idtentry.DPL < getCPL())) //Not enough rights?
+	{
+		THROWDESCGP(base + 2 + (is_HW ? 1 : 0)); //#GP!
+		return;
+	}
+
+	if (idtentry.P==0) //Not present?
+	{
+		THROWDESCSeg(base + 2,is_HW); //#NP!
+		return;
+	}
+
+	//Now, the (gate) descriptor to use is loaded!
+	switch (idtentry.Type) //What type are we?
+	{
+	case IDTENTRY_32BIT_TASKGATE: //32-bit task gate?
+		desttask = MMU_rw(CPU_SEGMENT_TR, CPU->registers->TR, 0, 0); //Read the destination task!
+		if (!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
+		{
+			return; //Error, by specified reason!
+		}
+		CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 3); //Execute an IRET to the interrupted task!
+		if (is_HW && (error != -1))
+		{
+			CPU_PUSH32(&error); //Push the error on the stack!
+		}
+		break;
+	default: //All other cases?
+		is32bit = idtentry.Type&IDTENTRY_32BIT_GATEEXTENSIONFLAG; //Enable 32-bit gate?
+		switch (idtentry.Type & 0x7) //What type are we?
+		{
+		case IDTENTRY_16BIT_INTERRUPTGATE: //16/32-bit interrupt gate?
+		case IDTENTRY_16BIT_TRAPGATE: //16/32-bit trap gate?
+			if (!LOADINTDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
+			{
+				return; //Error, by specified reason!
+			}
+			if (((newdescriptor.desc.nonS) || (newdescriptor.desc.EXECSEGMENT.ISEXEC==0)) || (newdescriptor.desc.EXECSEGMENT.R==0)) //Not readable, execute segment or is non-System segment?
+			{
+				THROWDESCGP(idtentry.selector); //Throw #GP!
+				return;
+			}
+			if ((idtentry.offsetlow | (idtentry.offsethigh << 16)) > (newdescriptor.desc.limit_low | (newdescriptor.desc.limit_high << 16))) //Limit exceeded?
+			{
+				THROWDESCGP(is_HW?1:0); //Throw #GP!
+				return;
+			}
+
+			if ((newdescriptor.desc.EXECSEGMENT.C == 0) && (newdescriptor.desc.DPL < getCPL())) //Not enough rights, but conforming?
+			{
+				//TODO
+			}
+			else
+			{
+				//Check permission? TODO!
+			}
+
+			if (is32bit)
+			{
+				CPU_PUSH32(&CPU[activeCPU].registers->EFLAGS); //Push EFLAGS!
+				if (CPU[activeCPU].faultraised) return; //Abort on fault!
+			}
+			else
+			{
+				CPU_PUSH16(&CPU[activeCPU].registers->FLAGS); //Push FLAGS!
+				if (CPU[activeCPU].faultraised) return; //Abort on fault!
+			}
+
+			CPU_PUSH16(&CPU[activeCPU].registers->CS); //Push CS!
+			if (CPU[activeCPU].faultraised) return; //Abort on fault!
+
+			if (is32bit)
+			{
+				CPU_PUSH32(&CPU[activeCPU].registers->EIP); //Push EIP!
+				if (CPU[activeCPU].faultraised) return; //Abort on fault!
+			}
+			else
+			{
+				CPU_PUSH16(&CPU[activeCPU].registers->IP); //Push IP!
+				if (CPU[activeCPU].faultraised) return; //Abort on fault!
+			}
+
+			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], &newdescriptor, sizeof(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])); //Load the segment descriptor into the cache!
+			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
+			{
+				*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = idtentry.selector; //Set the segment register to the allowed value!
+			}
+
+			CPU[activeCPU].registers->EIP = (idtentry.offsetlow | (idtentry.offsethigh << 16)); //The current OPCode: just jump to the address specified by the descriptor OR command!
+			CPU_flushPIQ(); //We're jumping to another address!
+
+			CPU[activeCPU].registers->SFLAGS.TF = 0;
+			CPU[activeCPU].registers->SFLAGS.NT = 0;
+
+			if ((idtentry.Type & 0x7) == IDTENTRY_16BIT_INTERRUPTGATE)
+			{
+				CPU[activeCPU].registers->SFLAGS.IF = 0; //No interrupts!
+			}
+			break;
+		default: //Unknown descriptor type?
+			THROWDESCGP(base + 2 + (is_HW ? 1 : 0)); //#GP!
+			break;
+		}
+		break;
+	}
+}
