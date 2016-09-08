@@ -53,7 +53,7 @@ OBJS += hardware/vga/vga_vram.o hardware/vga/vga_dac.o hardware/vga/vga.o
 OBJS += hardware/vga/vga_mmu.o hardware/vga/vga_io.o
 #VGA view:
 # *1*: Sequencer Operation
-OBJS += hardware/vga/vga_sequencer.o hardware/vga/vga_sequencer_graphicsmode.o hardware/vga/vga_sequencer_textmode.o
+OBJS += hardware/vga/vga_renderer.o hardware/vga/vga_sequencer_graphicsmode.o hardware/vga/vga_sequencer_textmode.o
 # *2*: Attribute Controller Operation
 OBJS += hardware/vga/vga_attributecontroller.o
 # *3*: DAC Operation
