@@ -15,35 +15,39 @@ Basic CPU active segment value retrieval.
 void CPU_triplefault()
 {
 	resetCPU(); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
+	CPU[activeCPU].faultraised = 1; //We're continuing being a fault!
 }
 
 void CPU_doublefault()
 {
 	uint_32 zerovalue=0; //Zero value pushed!
+	CPU[activeCPU].faultraised = 0; //Reset the fault level for the double fault(allow memory accesses again)!
 	call_hard_inthandler(EXCEPTION_DOUBLEFAULT); //Execute the double fault handler!
 	CPU_PUSH32(&zerovalue); //Error code of 0!
+	CPU[activeCPU].faultraised = 1; //We're ignoring any more errors occurring!
 }
 
 byte CPU_faultraised()
 {
-	if (CPU[activeCPU].faultraised) //Double/triple fault raised?
+	if (CPU[activeCPU].faultlevel) //Double/triple fault raised?
 	{
-		if (CPU[activeCPU].faultraised == 2) //Triple fault?
+		if (CPU[activeCPU].faultlevel == 2) //Triple fault?
 		{
 			CPU_triplefault(); //Triple faulting!
 			return 0; //Shutdown!
 		}
 		else
 		{
-			++CPU[activeCPU].faultraised; //Raise the fault level!
+			++CPU[activeCPU].faultlevel; //Raise the fault level!
 			CPU_doublefault(); //Double faulting!
 			return 0; //Don't do anything anymore(partial shutdown)!
 		}
 	}
 	else
 	{
-		CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
+		CPU[activeCPU].faultlevel = 1; //We have a fault raised, so don't raise any more!
 	}
+	CPU[activeCPU].faultraised = 0; //We've raised a fault! Ignore more errors for now!
 	return 1; //Handle the fault normally!
 }
 
@@ -59,8 +63,12 @@ void CPU_GP(int toinstruction,uint_32 errorcode)
 	if (CPU_faultraised()) //Fault raising exception!
 	{
 		call_hard_inthandler(EXCEPTION_GENERALPROTECTIONFAULT); //Call IVT entry #13 decimal!
-		CPU_PUSH32(&errorcode); //Error code!
+		if (CPU[activeCPU].faultraised == 0) //Success during this step?
+		{
+			CPU_PUSH32(&errorcode); //Error code!
+		}
 		//Execute the interrupt!
+		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
 	}
 }
 
@@ -71,8 +79,12 @@ void CPU_SegNotPresent(uint_32 errorcode)
 	if (CPU_faultraised()) //Fault raising exception!
 	{
 		call_hard_inthandler(EXCEPTION_SEGMENTNOTPRESENT); //Call IVT entry #11 decimal!
-		CPU_PUSH32(&errorcode); //Error code!
+		if (CPU[activeCPU].faultraised == 0) //Success during this step?
+		{
+			CPU_PUSH32(&errorcode); //Error code!
+		}
 		//Execute the interrupt!
+		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
 	}
 }
 
@@ -83,14 +95,19 @@ void CPU_StackFault(uint_32 errorcode)
 	if (CPU_faultraised()) //Fault raising exception!
 	{
 		call_hard_inthandler(EXCEPTION_STACKFAULT); //Call IVT entry #12 decimal!
-		CPU_PUSH32(&errorcode); //Error code!
+		if (CPU[activeCPU].faultraised==0) //Success during this step?
+		{
+			CPU_PUSH32(&errorcode); //Error code!
+		}
 		//Execute the interrupt!
+		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
 	}
 }
 
 void protection_nextOP() //We're executing the next OPcode?
 {
 	CPU[activeCPU].faultraised = 0; //We don't have a fault raised anymore, so we can raise again!
+	CPU[activeCPU].faultlevel = 0; //Reset the current fault level!
 }
 
 word CPU_segment(byte defaultsegment) //Plain segment to use!

@@ -633,6 +633,7 @@ typedef struct
 	int running; //We're running?
 	byte lastopcode; //Currently/last running opcode!
 	byte faultraised; //Has a fault been raised by the protection module?
+	byte faultlevel; //The level of the raised fault!
 	byte trapped; //Have we been trapped? Don't execute hardware interrupts!
 
 	//PIQ support!
