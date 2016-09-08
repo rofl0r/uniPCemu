@@ -14,7 +14,7 @@ VGA ROM and handling functions.
 #include "headers/bios/bios.h" //For VRAM memory size!
 #include "headers/hardware/vga/vga.h" //VGA data!
 #include "headers/mmu/mmu.h" //For memory passtrough!
-#include "headers/hardware/vga/vga_sequencer.h" //For precalcs!
+#include "headers/hardware/vga/vga_renderer.h" //For precalcs!
 #include "headers/hardware/vga/vga_crtcontroller.h" //For getyres for display rate!
 #include "headers/hardware/vga/vga_vram.h" //VRAM read!
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM text read!

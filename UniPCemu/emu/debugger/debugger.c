@@ -15,7 +15,7 @@
 #include "headers/support/locks.h" //Locking support!
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/hardware/pic.h" //Interrupt support!
-#include "headers/hardware/vga/vga_sequencer.h" //Sequencer support!
+#include "headers/hardware/vga/vga_renderer.h" //Renderer support!
 #include "headers/bios/biosmenu.h" //Support for running the BIOS from the debugger!
 
 //Log flags only?

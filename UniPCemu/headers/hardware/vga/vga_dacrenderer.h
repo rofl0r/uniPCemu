@@ -2,7 +2,7 @@
 #define VGA_DAC_H
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/vga/vga.h" //VGA support!
-#include "headers/hardware/vga/vga_sequencer.h" //Sequencer!
+#include "headers/hardware/vga/vga_renderer.h" //Sequencer!
 
 void DAC_updateEntry(VGA_Type *VGA, byte entry); //Update a DAC entry for rendering!
 void DAC_updateEntries(VGA_Type *VGA); //Update all DAC entries for rendering!

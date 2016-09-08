@@ -363,9 +363,6 @@
     <ClCompile Include="hardware\vga\vga_precalcs.c">
       <Filter>Source Files\hardware\vga</Filter>
     </ClCompile>
-    <ClCompile Include="hardware\vga\vga_sequencer.c">
-      <Filter>Source Files\hardware\vga</Filter>
-    </ClCompile>
     <ClCompile Include="hardware\vga\vga_sequencer_graphicsmode.c">
       <Filter>Source Files\hardware\vga</Filter>
     </ClCompile>
@@ -515,6 +512,9 @@
     </ClCompile>
     <ClCompile Include="hardware\soundblaster.c">
       <Filter>Source Files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="hardware\vga\vga_renderer.c">
+      <Filter>Source Files\hardware\vga</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -788,9 +788,6 @@
     <ClInclude Include="headers\hardware\vga\vga_precalcs.h">
       <Filter>Header Files\hardware\vga</Filter>
     </ClInclude>
-    <ClInclude Include="headers\hardware\vga\vga_sequencer.h">
-      <Filter>Header Files\hardware\vga</Filter>
-    </ClInclude>
     <ClInclude Include="headers\hardware\vga\vga_sequencer_graphicsmode.h">
       <Filter>Header Files\hardware\vga</Filter>
     </ClInclude>
@@ -934,6 +931,9 @@
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\hardware\vga\vga_renderer.h">
+      <Filter>Header Files\hardware\vga</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

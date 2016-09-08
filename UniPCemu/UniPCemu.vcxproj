@@ -131,7 +131,7 @@
     <ClCompile Include="hardware\vga\vga_io.c" />
     <ClCompile Include="hardware\vga\vga_mmu.c" />
     <ClCompile Include="hardware\vga\vga_precalcs.c" />
-    <ClCompile Include="hardware\vga\vga_sequencer.c" />
+    <ClCompile Include="hardware\vga\vga_renderer.c" />
     <ClCompile Include="hardware\vga\vga_sequencer_graphicsmode.c" />
     <ClCompile Include="hardware\vga\vga_sequencer_textmode.c" />
     <ClCompile Include="hardware\vga\vga_vram.c" />
@@ -264,7 +264,7 @@
     <ClInclude Include="headers\hardware\vga\vga_dac.h" />
     <ClInclude Include="headers\hardware\vga\vga_dacrenderer.h" />
     <ClInclude Include="headers\hardware\vga\vga_precalcs.h" />
-    <ClInclude Include="headers\hardware\vga\vga_sequencer.h" />
+    <ClInclude Include="headers\hardware\vga\vga_renderer.h" />
     <ClInclude Include="headers\hardware\vga\vga_sequencer_graphicsmode.h" />
     <ClInclude Include="headers\hardware\vga\vga_sequencer_textmode.h" />
     <ClInclude Include="headers\hardware\vga\vga_vram.h" />

@@ -6,7 +6,7 @@
 #include "headers/emu/gpu/gpu_renderer.h" //Renderer support!
 #include "headers/emu/gpu/gpu_text.h" //Emulator support!
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
-#include "headers/hardware/vga/vga_sequencer.h" //Sequencer itself!
+#include "headers/hardware/vga/vga_renderer.h" //Renderer itself!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC renderer support!
 #include "headers/hardware/vga/vga_crtcontroller.h" //CRT Controller for finishing up!
@@ -395,7 +395,7 @@ recalcsignal: //Recalculate the signal to process!
 
 extern DisplayRenderHandler displayrenderhandler[4][VGA_DISPLAYRENDERSIZE]; //Our handlers for all pixels!
 
-OPTINLINE static void VGA_Sequencer(SEQ_DATA *Sequencer)
+OPTINLINE static void VGA_Renderer(SEQ_DATA *Sequencer)
 {
 	static byte totalretracing = 0;
 	//Process one pixel only!
@@ -454,14 +454,14 @@ void updateVGA(double timepassed)
 		#endif
 		do
 		{
-			if (renderings<5) VGA_Sequencer(Sequencer); //5+ optimization? Not usable? Execute only once!
+			if (renderings<5) VGA_Renderer(Sequencer); //5+ optimization? Not usable? Execute only once!
 			else //x+ optimization?
 			{
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
-				VGA_Sequencer(Sequencer); //Tick the VGA once!
+				VGA_Renderer(Sequencer); //Tick the VGA once!
+				VGA_Renderer(Sequencer); //Tick the VGA once!
+				VGA_Renderer(Sequencer); //Tick the VGA once!
+				VGA_Renderer(Sequencer); //Tick the VGA once!
+				VGA_Renderer(Sequencer); //Tick the VGA once!
 				renderings -= 4; //We've processed 4 more!
 			}
 		} while (--renderings); //Ticks left to tick?

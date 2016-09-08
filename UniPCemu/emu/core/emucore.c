@@ -31,7 +31,7 @@
 #include "headers/hardware/midi/midi.h" //MIDI/MPU support!
 #include "headers/bios/biosrom.h" //BIOS ROM support!
 #include "headers/emu/threads.h" //Multithreading support!
-#include "headers/hardware/vga/vga_sequencer.h" //VGA sequencer for direct MAX speed dump!
+#include "headers/hardware/vga/vga_renderer.h" //VGA renderer for direct MAX speed dump!
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC support!
 #include "headers/hardware/uart.h" //UART support!
 #include "headers/emu/emu_vga.h" //VGA update support!

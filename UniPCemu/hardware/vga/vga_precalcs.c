@@ -3,7 +3,7 @@
 #include "headers/hardware/vga/vga_crtcontroller.h"
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Graphics mode updating support!
 #include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller support!
-#include "headers/hardware/vga/vga_sequencer.h" //Sequencer render counter support!
+#include "headers/hardware/vga/vga_renderer.h" //Sequencer render counter support!
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM text support!
 #include "headers/hardware/vga/vga_dacrenderer.h" //B/W detection support!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!

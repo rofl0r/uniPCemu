@@ -7,7 +7,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/gpu/gpu_renderer.h" //For empty rows!
 #include "headers/hardware/vga/vga.h" //VGA!
-#include "headers/hardware/vga/vga_sequencer.h" //Sequencer support!
+#include "headers/hardware/vga/vga_renderer.h" //Renderer support!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/zalloc.h" //Protection for pointers!
 #include "headers/support/locks.h" //Locking support!

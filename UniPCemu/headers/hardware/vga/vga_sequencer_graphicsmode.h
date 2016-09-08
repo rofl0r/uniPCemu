@@ -3,7 +3,7 @@
 
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/vga/vga.h" //VGA subset!
-#include "headers/hardware/vga/vga_sequencer.h" //Sequencer!
+#include "headers/hardware/vga/vga_renderer.h" //Sequencer!
 
 void VGA_Sequencer_GraphicsMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo);
 void VGA_GraphicsDecoder(VGA_Type *VGA, word loadedlocation);

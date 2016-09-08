@@ -2,7 +2,7 @@
 
 #include "headers/hardware/vga/vga.h" //Our typedefs etc!
 #include "headers/hardware/vga/vga_vramtext.h" //Our VRAM text support!
-#include "headers/hardware/vga/vga_sequencer.h" //Sequencer!
+#include "headers/hardware/vga/vga_renderer.h" //Renderer!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA cursor support!
 
 //Character is cursor position?
