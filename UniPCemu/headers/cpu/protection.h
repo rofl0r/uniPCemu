@@ -14,6 +14,8 @@ typedef struct
 } SEGDESCRIPTOR_TYPE;
 
 #define getCPL() CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].DPL
+#define getRPL(segment) (segment&3)
+#define getDescriptorIndex(segmentval) ((segmentval>>3)&0x1FFF)
 
 int CPU_segment_index(byte defaultsegment); //Plain segment to use, direct access!
 int get_segment_index(word *location);
@@ -23,5 +25,14 @@ void segmentWritten(int segment, word value, byte isJMPorCALL); //A segment regi
 int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forreading); //Determines the limit of the segment, forreading=2 when reading an opcode!
 
 byte CPU_faultraised(); //A fault has been raised (286+)?
+
+//Special support for error handling!
+void THROWDESCGP(word segment);
+void THROWDESCSP(word segment, byte external);
+void THROWDESCSeg(word segment, byte external);
+
+//Internal usage by the protection modules!
+int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container);
+void SAVEDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container); //Save a loaded descriptor back to memory!
 
 #endif

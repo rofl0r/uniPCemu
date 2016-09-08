@@ -151,20 +151,20 @@ int get_segment_index(word *location)
 	{
 		return CPU_SEGMENT_GS;
 	}
+	else if (location == CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR])
+	{
+		return CPU_SEGMENT_TR;
+	}
 	return -1; //Unknown segment!
 }
 
 SEGDESCRIPTOR_TYPE LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
 
-//Current privilege level!
-#define getCPL() CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].DPL
-#define getRPL(segment) (segment&3)
 //getTYPE: gets the loaded descriptor type: 0=Code, 1=Exec, 2=System.
 int getLoadedTYPE(SEGDESCRIPTOR_TYPE *loadeddescriptor)
 {
 	return (loadeddescriptor->desc.nonS?loadeddescriptor->desc.EXECSEGMENT.ISEXEC:2);
 }
-#define getDescriptorIndex(segmentval) ((segmentval>>3)&0x1FFF)
 int isGateDescriptor(SEGDESCRIPTOR_TYPE *loadeddescriptor)
 {
 	return (!loadeddescriptor->desc.nonS && (loadeddescriptor->desc.Type==6)); //Gate descriptor?
@@ -236,13 +236,36 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 	return 1; //OK!
 }
 
+void SAVEDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
+{
+	uint_32 descriptor_adress = 0;
+	descriptor_adress = (segment & 4) ? CPU[activeCPU].registers->LDTR.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
+
+	if ((word)descriptor_index>((segment & 4) ? CPU[activeCPU].registers->LDTR.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	{
+		return; //Not present: limit exceeded!
+	}
+
+	if (!descriptor_index && ((whatsegment == CPU_SEGMENT_CS) || (whatsegment == CPU_SEGMENT_SS))) //NULL segment loaded into CS or SS?
+	{
+		return; //Not present: limit exceeded!	
+	}
+
+	int i;
+	for (i = 0;i<(int)sizeof(container->descdata);i++) //Process the descriptor data!
+	{
+		memory_directwb(descriptor_adress + i, container->descdata[i]); //Write a descriptor byte directly to flat memory!
+	}
+}
+
 /*
 
 getsegment_seg: Gets a segment, if allowed.
 parameters:
 	whatsegment: What segment is used?
 	segment: The segment to get.
-	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL.
+	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET.
 result:
 	The segment when available, NULL on error or disallow.
 
@@ -257,7 +280,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 	byte equalprivilege = 0; //Special gate stuff requirement: DPL must equal CPL? 1 for enable, 0 for normal handling.
 	byte privilegedone = 0; //Privilege already calculated?
 	byte is_gated = 0;
-	if (isGateDescriptor(&LOADEDDESCRIPTOR) && whatsegment == CPU_SEGMENT_CS && isJMPorCALL) //Handling of gate descriptors?
+	if (isGateDescriptor(&LOADEDDESCRIPTOR) && (whatsegment == CPU_SEGMENT_CS) && isJMPorCALL) //Handling of gate descriptors?
 	{
 		is_gated = 1; //We're gated!
 		memcpy(&GATEDESCRIPTOR, &LOADEDDESCRIPTOR, sizeof(GATEDESCRIPTOR)); //Copy the loaded descriptor to the GATE!
@@ -343,15 +366,23 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 			THROWDESCGP(segment); //Throw error!
 			return NULL; //We're an invalid TSS to call!
 		}
-		//Handle the task switch!
-		if (!is_gated) //Not gated?
+		if (
+			((whatsegment == CPU_SEGMENT_CS) ||
+			(whatsegment == CPU_SEGMENT_SS) ||
+			(whatsegment == CPU_SEGMENT_DS) ||
+			(whatsegment == CPU_SEGMENT_ES) ||
+			(whatsegment == CPU_SEGMENT_FS) ||
+			(whatsegment == CPU_SEGMENT_GS)) //CS,SS,DS,ES,FS,GS are not allowed to be loaded with the TSS descriptor!
+			&& ((!is_gated) && (!isJMPorCALL)) //We're not gated and not jumping/calling? Don't allow the task switch!
+			)
 		{
 			THROWDESCGP(segment); //Throw error!
-			return NULL; //We're an invalid TSS to execute!
+			return NULL; //We're an invalid TSS to call!
 		}
+		//Handle the task switch normally! We're allowed to use the TSS!
 	}
 
-	if (whatsegment==CPU_SEGMENT_CS) //Special stuff on CS (conforming?), CPL, Task.
+	if (whatsegment==CPU_SEGMENT_CS) //Special stuff on CS, CPL, Task switch.
 	{
 		if ((LOADEDDESCRIPTOR.desc.Type & 0x1D) == 9) //We're a TSS? We're to perform a task switch!
 		{
@@ -370,21 +401,22 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 					THROWDESCGP(segment); //Throw error!
 					return NULL; //Error changing priviledges!
 				}
-				//We've switched to the destination task! Load the code segment!
-
+				//We're ready to switch to the destination task!
 			}
 
 			//Execute a normal task switch!
-			if (CPU_switchtask(whatsegment,&LOADEDDESCRIPTOR,&segment,segment)) //Switching to a certain task?
+			if (CPU_switchtask(whatsegment,&LOADEDDESCRIPTOR,&segment,segment,isJMPorCALL)) //Switching to a certain task?
 			{
-				//Throw TSS fault?
-				CPU_TSSFault(segment); //Throw error!
 				return NULL; //Error changing priviledges!
 			}
 
 			//We've properly switched to the destination task! Continue execution normally!
+			return NULL; //Don't actually load CS with the descriptor: we've caused a task switch after all!
 		}
+	}
 
+	if (whatsegment == CPU_SEGMENT_CS) //Special stuff on normal CS register (conforming?), CPL.
+	{
 		if (LOADEDDESCRIPTOR.desc.EXECSEGMENT.C) //Conforming segment?
 		{
 			if (!privilegedone && LOADEDDESCRIPTOR.desc.DPL>getCPL()) //Target DPL must be less-or-equal to the CPL.

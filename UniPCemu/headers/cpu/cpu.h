@@ -38,6 +38,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define CPU_SEGMENT_ES 3
 #define CPU_SEGMENT_FS 4
 #define CPU_SEGMENT_GS 5
+#define CPU_SEGMENT_TR 6
 //Default specified segment!
 #define CPU_SEGMENT_DEFAULT 0xFF
 
@@ -167,7 +168,33 @@ typedef struct
 		word Unused64: 15;
 	};
 	word IOMapBase;
-} TSS; //80386 32-Bit Task State Segment
+} TSS386; //80386 32-Bit Task State Segment
+
+typedef struct
+{
+	word BackLink; //Back Link to Previous TSS
+	word SP0;
+	word SS0;
+	word SP1;
+	word SS1;
+	word SP2;
+	word SS2;
+	word IP;
+	word FLAGS;
+	word AX;
+	word CX;
+	word DX;
+	word BX;
+	word SP;
+	word BP;
+	word SI;
+	word DI;
+	word ES;
+	word CS;
+	word SS;
+	word DS;
+	word LDT;
+} TSS286; //80286 32-Bit Task State Segment
 //A segment descriptor
 
 /*
@@ -609,8 +636,8 @@ typedef struct
 	CPU_registers *registers; //The registers of the CPU!
 
 	//Everything containing and buffering segment registers!
-	SEGMENT_DESCRIPTOR SEG_DESCRIPTOR[6]; //Segment descriptor for all segment registers, currently cached, loaded when it's used!
-	word *SEGMENT_REGISTERS[6]; //Segment registers pointers container (CS, SS, DS, ES, FS, GS; in that order)!
+	SEGMENT_DESCRIPTOR SEG_DESCRIPTOR[7]; //Segment descriptor for all segment registers, currently cached, loaded when it's used!
+	word *SEGMENT_REGISTERS[7]; //Segment registers pointers container (CS, SS, DS, ES, FS, GS, TR; in that order)!
 	byte CPL; //The current privilege level, registered on descriptor load!
 
 	uint_32 cycles; //Total cycles number (adjusted after operation)

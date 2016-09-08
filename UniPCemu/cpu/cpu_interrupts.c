@@ -5,6 +5,7 @@
 #include "headers/cpu/cb_manager.h" //Callback support!
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/emu/debugger/debugger.h" //For logging registers!
+#include "headers/cpu/multitasking.h" //Multitasking support!
 
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!
 {
@@ -62,14 +63,37 @@ void CPU_IRET()
 {
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
-		REG_IP = CPU_POP16();
-		REG_CS = CPU_POP16();
+		destEIP = CPU_POP16(); //POP IP!
+		segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),3); //We're loading because of an IRET!
 		CPU_flushPIQ(); //We're jumping to another address!
-		REG_FLAGS = CPU_POP16();
+		if (CPU[activeCPU].faultraised==0) //No fault raised?
+		{
+			REG_FLAGS = CPU_POP16(); //Pop flags!
+		}
 	}
 	else //Use protected mode IRET?
 	{
-		//TODO
+		if (FLAG_NT && (getcpumode() != CPU_MODE_REAL)) //Protected mode Nested Task IRET?
+		{
+			SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage!
+			word desttask;
+			desttask = MMU_rw(CPU_SEGMENT_TR, CPU->registers->TR, 0, 0); //Read the destination task!
+			if (!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
+			{
+				return; //Error, by specified reason!
+			}
+			CPU_switchtask(CPU_SEGMENT_TR,&newdescriptor,&CPU[activeCPU].registers->TR,desttask,3); //Execute an IRET to the interrupted task!
+		}
+		else //Normal IRET?
+		{
+			destEIP = CPU_POP32(); //POP EIP!
+			segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),3); //We're loading because of an IRET!
+			CPU_flushPIQ(); //We're jumping to another address!
+			if (CPU[activeCPU].faultraised == 0) //No fault raised?
+			{
+				REG_EFLAGS = CPU_POP32(); //Pop flags!
+			}
+		}
 	}
 	//Special effect: re-enable NMI!
 	NMIMasked = 0; //We're allowing NMI again!
