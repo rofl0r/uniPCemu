@@ -69,6 +69,131 @@ byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncomment
 
 byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
 
+void CPU_PORT_OUT_B(word port, byte data)
+{
+	//Check rights!
+	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
+	{
+		if (checkPortRights(port)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+	}
+	//Execute it!
+	PORT_OUT_B(port,data); //Port out!
+}
+
+void CPU_PORT_OUT_W(word port, word data)
+{
+	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
+	{
+		if (checkPortRights(port)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+		if (checkPortRights(port+1)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+	}
+	//Execute it!
+	PORT_OUT_W(port, data); //Port out!
+}
+
+void CPU_PORT_OUT_D(word port, uint_32 data)
+{
+	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
+	{
+		if (checkPortRights(port)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+		if (checkPortRights(port + 1)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+		if (checkPortRights(port + 2)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+		if (checkPortRights(port + 3)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+	}
+	//Execute it!
+	PORT_OUT_D(port, data); //Port out!
+}
+
+void CPU_PORT_IN_B(word port, byte *result)
+{
+	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
+	{
+		if (checkPortRights(port)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+	}
+	//Execute it!
+	*result = PORT_IN_B(port); //Port in!
+}
+
+void CPU_PORT_IN_W(word port, word *result)
+{
+	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
+	{
+		if (checkPortRights(port)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+		if (checkPortRights(port + 1)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+	}
+	//Execute it!
+	*result = PORT_IN_W(port); //Port in!
+}
+
+void CPU_PORT_IN_D(word port, uint_32 *result)
+{
+	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
+	{
+		if (checkPortRights(port)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+		if (checkPortRights(port + 1)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+		if (checkPortRights(port + 2)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+		if (checkPortRights(port + 3)) //Not allowed?
+		{
+			THROWDESCGP(CPU->registers->TR); //#GP!
+			return; //Abort!
+		}
+	}
+	//Execute it!
+	*result = PORT_IN_D(port); //Port in!
+}
+
 void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
 {
 //Now call handler!

@@ -604,3 +604,55 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 	}
 	return 0; //Don't give errors: handle like a 80(1)86!
 }
+
+byte checkSpecialRights() //Check special rights, common by any rights instructions!
+{
+	if (getcpumode() == CPU_MODE_REAL) return 0; //Allow all for real mode!
+	if (CPU[activeCPU].registers->SFLAGS.IOPL > getCPL()) //We're not allowed!
+	{
+		return 1; //Not priviledged!
+	}
+	return 0; //Priviledged!
+}
+
+byte checkSTICLI() //Check STI/CLI rights!
+{
+	if (checkSpecialRights()) //Not priviledged?
+	{
+		THROWDESCGP(CPU[activeCPU].registers->CS); //Raise exception!
+		return 0; //Ignore this command!
+	}
+	return 1; //We're allowed to execute!
+}
+
+byte disallowPOPFI() //Allow POPF to change interrupt flag?
+{
+	return checkSpecialRights(); //Simply ignore the change when not priviledged!
+}
+
+byte checkPortRights(word port) //Are we allowed to not use this port?
+{
+	if (checkSpecialRights()) //We're to check the I/O permission bitmap!
+	{
+		uint_32 maplocation;
+		byte mappos;
+		maplocation = (port>>3); //8 bits per byte!
+		mappos = (1<<(port&7)); //The bit within the byte specified!
+		//if ((CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_BUSY_TSS16BIT) || (CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_TSS16BIT)) //16-bit TSS?
+		if ((CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_BUSY_TSS32BIT) || (CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_TSS32BIT)) //32-bit TSS?
+		{
+			uint_32 limit;
+			limit = CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_low | (CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_high << 16); //The limit of the descriptor!
+			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU->registers->TR,0x66,0); //Add the map location to the specified address!
+			if (maplocation >= limit) //Over the limit? We're an invalid entry or got no bitmap!
+			{
+				return 1; //We're to cause an exception!
+			}
+			if (MMU_rb(CPU_SEGMENT_TR, CPU->registers->TR, maplocation, 0)&mappos) //We're to cause an exception: we're not allowed to access this port!
+			{
+				return 1; //We're to cause an exception!
+			}
+		}
+	}
+	return 0; //Allow all for now!
+}

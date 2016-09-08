@@ -152,26 +152,56 @@ void CPU186_OP60()
 	debugger_setcommand("PUSHA");
 	word oldSP = REG_SP;    //PUSHA
 	CPU_PUSH16(&REG_AX);
+	CPUPROT1
 	CPU_PUSH16(&REG_CX);
+	CPUPROT1
 	CPU_PUSH16(&REG_DX);
+	CPUPROT1
 	CPU_PUSH16(&REG_BX);
+	CPUPROT1
 	CPU_PUSH16(&oldSP);
+	CPUPROT1
 	CPU_PUSH16(&REG_BP);
+	CPUPROT1
 	CPU_PUSH16(&REG_SI);
+	CPUPROT1
 	CPU_PUSH16(&REG_DI);
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
 }
+
 void CPU186_OP61()
 {
 	debugger_setcommand("POPA");
 	REG_DI = CPU_POP16();
+	CPUPROT1
 	REG_SI = CPU_POP16();
+	CPUPROT1
 	REG_BP = CPU_POP16();
+	CPUPROT1
 	CPU_POP16();
+	CPUPROT1
 	REG_BX = CPU_POP16();
+	CPUPROT1
 	REG_DX = CPU_POP16();
+	CPUPROT1
 	REG_CX = CPU_POP16();
+	CPUPROT1
 	REG_AX = CPU_POP16();
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
 }
+
 //62 not implemented in fake86? Does this not exist?
 void CPU186_OP62()
 {
@@ -188,12 +218,14 @@ void CPU186_OP62()
 		CPU_BoundException(); //Execute bound exception!
 	}
 }
+
 void CPU186_OP68()
 {
 	word val = immw;    //PUSH Iz
 	debugger_setcommand("PUSH %04X",val);
 	CPU_PUSH16(&val);
 }
+
 void CPU186_OP69()
 {
 	temp1.val32 = modrm_read16(&params,1);
@@ -207,12 +239,14 @@ void CPU186_OP69()
 	REG_DX = temp3.val16high;
 	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3.val32)!=unsigned2signed16(REG_AX)); //Overflow occurred?
 }
+
 void CPU186_OP6A()
 {
 	byte val = immb; //Read the value!
 	debugger_setcommand("PUSH %02X",val); //PUSH this!
 	CPU_PUSH8(val);    //PUSH Ib
 }
+
 void CPU186_OP6B()
 {
 	temp1.val32 = (uint_32)modrm_read16(&params,1); //Read R/M!
@@ -226,11 +260,16 @@ void CPU186_OP6B()
 	modrm_write16(&params,0, temp3.val16,0); //Write to register!
 	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3.val32)!=unsigned2signed16(temp3.val32&0xFFFF)); //Overflow occurred?
 }
+
 void CPU186_OP6C()
 {
 	debugger_setcommand("INSB");
 	if (blockREP) return; //Disabled REP!
-	MMU_wb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,PORT_IN_B(REG_DX));    //INSB
+	byte data;
+	CPU_PORT_IN_B(REG_DX,&data); //Read the port!
+	CPUPROT1
+	MMU_wb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,data);    //INSB
+	CPUPROT1
 	if (FLAG_DF)
 	{
 		--REG_DI;
@@ -239,12 +278,19 @@ void CPU186_OP6C()
 	{
 		++REG_DI;
 	}
+	CPUPROT2
+	CPUPROT2
 }
+
 void CPU186_OP6D()
 {
 	debugger_setcommand("INSW");
 	if (blockREP) return; //Disabled REP!
-	MMU_ww(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,PORT_IN_W(REG_DX));    //INSW
+	word data;
+	CPU_PORT_IN_W(REG_DX, &data); //Read the port!
+	CPUPROT1
+	MMU_ww(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,data);    //INSW
+	CPUPROT1
 	if (FLAG_DF)
 	{
 		REG_DI -= 2;
@@ -253,12 +299,19 @@ void CPU186_OP6D()
 	{
 		REG_DI += 2;
 	}
+	CPUPROT2
+	CPUPROT2
 }
+
 void CPU186_OP6E()
 {
 	debugger_setcommand("OUTSB");
 	if (blockREP) return; //Disabled REP!
-	PORT_OUT_B(REG_DX,MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_SI,0)); //OUTS DX,Xb
+	byte data;
+	data = MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)), CPU_segment(CPU_SEGMENT_ES), REG_SI, 0);
+	CPUPROT1
+	CPU_PORT_OUT_B(REG_DX,data); //OUTS DX,Xb
+	CPUPROT1
 	if (FLAG_DF)
 	{
 		--REG_DI;
@@ -267,12 +320,19 @@ void CPU186_OP6E()
 	{
 		++REG_DI;
 	}
+	CPUPROT2
+	CPUPROT2
 }
+
 void CPU186_OP6F()
 {
 	debugger_setcommand("OUTSW");
 	if (blockREP) return; //Disabled REP!
-	PORT_OUT_W(REG_DX,MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_SI,0));    //OUTS DX,Xz
+	word data;
+	data = MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)), CPU_segment(CPU_SEGMENT_ES), REG_SI, 0);
+	CPUPROT1
+	CPU_PORT_OUT_W(REG_DX,data);    //OUTS DX,Xz
+	CPUPROT1
 	if (FLAG_DF)
 	{
 		REG_DI -= 2;
@@ -281,6 +341,8 @@ void CPU186_OP6F()
 	{
 		REG_DI += 2;
 	}
+	CPUPROT2
+	CPUPROT2
 }
 
 void CPU186_OP8E() { if (params.info[0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, 0, 1); modrm186_generateInstructionTEXT("MOVW", 16, 0, PARAM_MODRM12); MODRM_src0 = 0; CPU186_internal_MOV16(modrm_addr16(&params, 0, 0), modrm_read16(&params, 1)); }

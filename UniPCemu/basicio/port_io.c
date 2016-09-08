@@ -96,7 +96,7 @@ void PORT_OUT_W(word port, word w) //OUT port,w
 	}
 }
 
-uint_32 PORT_IN_DW(word port) //IN result,port
+uint_32 PORT_IN_D(word port) //IN result,port
 {
 	union
 	{
@@ -120,7 +120,7 @@ uint_32 PORT_IN_DW(word port) //IN result,port
 	return splitter.dw; //Give dword!
 }
 
-void PORT_OUT_DW(word port, uint_32 dw) //OUT port,w
+void PORT_OUT_D(word port, uint_32 dw) //OUT port,w
 {
 	union
 	{

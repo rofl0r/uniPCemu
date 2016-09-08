@@ -35,4 +35,8 @@ void THROWDESCSeg(word segment, byte external);
 int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container);
 void SAVEDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container); //Save a loaded descriptor back to memory!
 
+byte checkPortRights(word port); //Are we allowed to not use this port?
+byte disallowPOPFI(); //Allow POPF to not change the interrupt flag?
+byte checkSTICLI(); //Check STI/CLI rights! 1 when allowed, 0 when to be ignored!
+
 #endif

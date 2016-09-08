@@ -983,4 +983,14 @@ void CPU_flushPIQ(); //Flush the PIQ!
 void CPU_fillPIQ(); //Fill the PIQ until it's full!
 void CPU_tickPrefetch(); //Ticks the prefetch cycles!
 void CPU_unkOP(); //General unknown OPcode handler!
+
+
+//Port I/O by the emulated CPU itself!
+void CPU_PORT_OUT_B(word port, byte data);
+void CPU_PORT_OUT_W(word port, word data);
+void CPU_PORT_OUT_D(word port, uint_32 data);
+void CPU_PORT_IN_B(word port, byte *result);
+void CPU_PORT_IN_W(word port, word *result);
+void CPU_PORT_IN_D(word port, uint_32 *result);
+
 #endif
