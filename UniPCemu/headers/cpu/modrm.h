@@ -171,6 +171,7 @@ word *modrm_addr_reg16(MODRM_PARAMS *params, int whichregister); //For LEA relat
 
 void modrm_text8(MODRM_PARAMS *params, int whichregister, char *result); //8-bit text representation!
 void modrm_text16(MODRM_PARAMS *params, int whichregister, char *result); //16-bit text representation!
+void modrm_text32(MODRM_PARAMS *params, int whichregister, char *result); //32-bit text represnetation!
 
 void halt_modrm(char *message, ...); //Modr/m error?
 

@@ -33,4 +33,19 @@ typedef union
 	int_32 val32s; //Signed
 } VAL32Splitter; //Our 32-bit value splitter!
 
+typedef union
+{
+	struct
+	{
+		union
+		{
+			uint_32 val32;
+			int_32 val32s;
+		};
+		uint_32 val32high; //Filler
+	};
+	uint_32 val64; //Normal
+	int_32 val64s; //Signed
+} VAL64Splitter; //Our 32-bit value splitter!
+
 #endif

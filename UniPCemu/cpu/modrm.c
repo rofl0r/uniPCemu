@@ -1533,6 +1533,11 @@ void modrm_text16(MODRM_PARAMS *params, int whichregister, char *result)
 	strcpy(result,params->info[whichregister].text); //Use the text representation!
 }
 
+void modrm_text32(MODRM_PARAMS *params, int whichregister, char *result)
+{
+	strcpy(result, params->info[whichregister].text); //Use the text representation!
+}
+
 word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions!
 {
 	INLINEREGISTER word result;
