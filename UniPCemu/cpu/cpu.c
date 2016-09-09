@@ -773,16 +773,30 @@ void CPU_PUSH16(word *val) //Push Word!
 	else //386+?
 	{
 		word oldval = *val; //Old value!
-		stack_push(0); //We're pushing a 16-bit value!
-		MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval); //Put value!
+		stack_push(CPU_Operand_size[activeCPU]); //We're pushing a 16-bit or 32-bit value!
+		if (CPU_Operand_size[activeCPU]) //32-bit?
+		{
+			MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval); //Put value!
+		}
+		else
+		{
+			MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (uint_32)oldval); //Put value!
+		}
 	}
 }
 
 word CPU_POP16() //Pop Word!
 {
 	word result;
-	result = MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), 0); //Get value!
-	stack_pop(0); //We're popping a 16-bit value!
+	if (CPU_Operand_size[activeCPU]) //32-bit?
+	{
+		result = (word)MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), 0); //Get value!
+	}
+	else //16-bit?
+	{
+		result = MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), 0); //Get value!
+	}
+	stack_pop(CPU_Operand_size[activeCPU]); //We're popping a 16-bit value!
 	return result; //Give the result!
 }
 
@@ -790,22 +804,36 @@ void CPU_PUSH32(uint_32 *val) //Push DWord!
 {
 	if (EMULATED_CPU<CPU_80386) //286-?
 	{
-		stack_push(1); //We're pushing a 32-bit value!
-		MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), *val); //Put value!
+		stack_push(0); //We're pushing a 32-bit value!
+		MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), *val); //Put value!
 	}
 	else //386+?
 	{
 		uint_32 oldval = *val; //Old value!
-		stack_push(1); //We're pushing a 32-bit value!
-		MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval); //Put value!
+		stack_push(CPU_Operand_size[activeCPU]); //We're pushing a 32-bit value!
+		if (CPU_Operand_size[activeCPU]) //32-bit?
+		{
+			MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval); //Put value!
+		}
+		else //16-bit?
+		{
+			MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (word)oldval); //Put value!
+		}
 	}
 }
 
 uint_32 CPU_POP32() //Full stack used!
 {
-	word result;
-	result = MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0); //Get value!
-	stack_pop(1); //We're popping a 32-bit value!
+	uint_32 result;
+	if (CPU_Operand_size[activeCPU]) //32-bit?
+	{
+		result = MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0); //Get value!
+	}
+	else //16-bit?
+	{
+		result = (uint_32)MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0); //Get value!
+	}
+	stack_pop(CPU_Operand_size[activeCPU]); //We're popping a 32-bit value!
 	return result; //Give the result!
 }
 
@@ -818,7 +846,8 @@ char textsegments[][3] =   //Comply to CPU_REGISTER_XX order!
 	"DS",
 	"ES",
 	"FS",
-	"GS"
+	"GS",
+	"TR"
 };
 
 char *CPU_textsegment(byte defaultsegment) //Plain segment to use!
