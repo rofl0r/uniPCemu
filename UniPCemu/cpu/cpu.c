@@ -45,6 +45,7 @@ byte MODRM_src1 = 0; //What source is our modr/m? (1/2)
 byte immb; //For CPU_readOP result!
 word immw; //For CPU_readOPw result!
 uint_32 imm32; //For CPU_readOPdw result!
+uint_64 imm64; //For CPU_readOPdw x2 result!
 
 //Opcode&Stack sizes: 0=16-bits, 1=32-bits!
 byte CPU_Operand_size[2] = { 0 , 0 }; //Operand size for this opcode!

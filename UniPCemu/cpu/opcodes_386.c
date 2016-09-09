@@ -32,7 +32,7 @@ extern uint_32 imm32;
 #include "headers/cpu/protection.h"
 
 void op_grp3_32();
-word op_grp2_32(byte cnt, byte varshift);
+uint_32 op_grp2_32(byte cnt, byte varshift);
 void op_grp5_32();
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
@@ -56,7 +56,7 @@ extern uint_32 destEIP; //Destination address for CS JMP instruction!
 extern byte immb; //For CPU_readOP result!
 extern word immw; //For CPU_readOPw result!
 extern uint_32 imm32; //For CPU_readOPdw result!
-uint_64 imm64; //For 32-bit big pointers!
+extern uint_64 imm64; //For 32-bit big pointers!
 uint_32 oper1d, oper2d; //DWord variants!
 uint_32 res32;
 extern byte thereg; //For function number!
@@ -828,11 +828,10 @@ OPTINLINE void CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 }
 
 //LEA for LDS, LES
-OPTINLINE uint_32 get80386LEA(MODRM_PARAMS *theparams)
+OPTINLINE uint_32 getLEA386(MODRM_PARAMS *theparams)
 {
 	return modrm_lea32(theparams, 1);
 }
-
 
 /*
 
@@ -1301,7 +1300,7 @@ void CPU80386_OPE5() { INLINEREGISTER byte theimm = imm8();modrm_generateInstruc
 void CPU80386_OPE7() { INLINEREGISTER byte theimm = imm8(); debugger_setcommand("OUT %02X,EAX", theimm); CPU_PORT_OUT_D(theimm, REG_EAX); CPU[activeCPU].cycles_OP = 10; /*Timings!*/ CPU_addWordMemoryTiming386(); /*To memory?*/ }
 void CPU80386_OPE8() { INLINEREGISTER sword reloffset = imm32(); modrm_generateInstructionTEXT386("CALL", 0, ((REG_EIP + reloffset) & 0xFFFF), PARAM_IMM32); CPU_PUSH32(&REG_EIP); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Intrasegment direct */ }
 void CPU80386_OPE9() { INLINEREGISTER sword reloffset = imm32(); modrm_generateInstructionTEXT386("JMP", 0, ((REG_EIP + reloffset) & 0xFFFF), PARAM_IMM32); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct */ }
-void CPU80386_OPEA() { INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMP %04X:%04X", (segmentoffset >> 32), (segmentoffset & 0xFFFFFFFF)); destEIP = (segmentoffset & 0xFFFFFFFF); segmentWritten(CPU_SEGMENT_CS, (segmentoffset >> 32), 1); CPU[activeCPU].cycles_OP = 15; /* Intersegment direct */ }
+void CPU80386_OPEA() { INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMP %04X:%04X", (segmentoffset >> 32), (segmentoffset & 0xFFFFFFFF)); destEIP = (segmentoffset & 0xFFFFFFFF); segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset >> 32), 1); CPU[activeCPU].cycles_OP = 15; /* Intersegment direct */ }
 void CPU80386_OPEB() { INLINEREGISTER signed char reloffset = imm8(); modrm_generateInstructionTEXT386("JMP", 0, ((REG_EIP + reloffset) & 0xFFFF), PARAM_IMM32); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct short */ }
 void CPU80386_OPED() { modrm_generateInstructionTEXT386("IN EAX,DX", 0, 0, PARAM_NONE); CPU_PORT_IN_D(REG_DX, &REG_EAX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ CPU_addWordMemoryTiming386(); /*To memory?*/ }
 void CPU80386_OPEF() { modrm_generateInstructionTEXT386("OUT DX,EAX", 0, 0, PARAM_NONE); CPU_PORT_OUT_D(REG_EDX, REG_EAX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ CPU_addWordMemoryTiming386(); /*To memory?*/ }
@@ -1584,22 +1583,22 @@ void CPU80386_OPF7() //GRP3b Ev
 			debugger_setcommand("TESTD %s,%02x", &modrm_param2, imm32);
 			break;
 		case 2: //NOT
-			modrm_generateInstructionTEXT("NOTD", 32, 0, PARAM_MODRM2);
+			modrm_generateInstructionTEXT386("NOTD", 32, 0, PARAM_MODRM2);
 			break;
 		case 3: //NEG
-			modrm_generateInstructionTEXT("NEGD", 32, 0, PARAM_MODRM2);
+			modrm_generateInstructionTEXT386("NEGD", 32, 0, PARAM_MODRM2);
 			break;
 		case 4: //MUL
-			modrm_generateInstructionTEXT("MULD", 32, 0, PARAM_MODRM2);
+			modrm_generateInstructionTEXT386("MULD", 32, 0, PARAM_MODRM2);
 			break;
 		case 5: //IMUL
-			modrm_generateInstructionTEXT("IMULD", 32, 0, PARAM_MODRM2);
+			modrm_generateInstructionTEXT386("IMULD", 32, 0, PARAM_MODRM2);
 			break;
 		case 6: //DIV
-			modrm_generateInstructionTEXT("DIVD", 32, 0, PARAM_MODRM2);
+			modrm_generateInstructionTEXT386("DIVD", 32, 0, PARAM_MODRM2);
 			break;
 		case 7: //IDIV
-			modrm_generateInstructionTEXT("IDIVD", 32, 0, PARAM_MODRM2);
+			modrm_generateInstructionTEXT386("IDIVD", 32, 0, PARAM_MODRM2);
 			break;
 		default:
 			break;
@@ -1630,27 +1629,27 @@ void CPU80386_OPFF() //GRP5 Ev
 		switch (MODRM_REG(params.modrm)) //What function?
 		{
 		case 0: //INC modrm8
-			modrm_generateInstructionTEXT("INCD", 32, 0, PARAM_MODRM2); //INC!
+			modrm_generateInstructionTEXT386("INCD", 32, 0, PARAM_MODRM2); //INC!
 			break;
 		case 1: //DEC modrm8
-			modrm_generateInstructionTEXT("DECD", 32, 0, PARAM_MODRM2); //DEC!
+			modrm_generateInstructionTEXT386("DECD", 32, 0, PARAM_MODRM2); //DEC!
 			break;
 		case 2: //CALL
-			modrm_generateInstructionTEXT("CALLD", 32, 0, PARAM_MODRM2); //CALL!
+			modrm_generateInstructionTEXT386("CALLD", 32, 0, PARAM_MODRM2); //CALL!
 			break;
 		case 3: //CALL Mp (Read address word and jump there)
-			modrm_generateInstructionTEXT("CALLD", 32, 0, PARAM_MODRM2); //Jump to the address pointed here!
+			modrm_generateInstructionTEXT386("CALLD", 32, 0, PARAM_MODRM2); //Jump to the address pointed here!
 																		//debugger_setcommand("CALL %04X:%04X",MMU_rw(CPU_SEGMENT_CS,REG_CS,ea,0),MMU_rw(CPU_SEGMENT_CS,REG_CS,ea+2,0)); //Based on CALL Ap
 			break;
 		case 4: //JMP
-			modrm_generateInstructionTEXT("JMPD", 32, 0, PARAM_MODRM2); //JMP to the register!
+			modrm_generateInstructionTEXT386("JMPD", 32, 0, PARAM_MODRM2); //JMP to the register!
 			break;
 		case 5: //JMP Mp
-			modrm_generateInstructionTEXT("JMPD", 32, 0, PARAM_MODRM2); //Jump to the address pointed here!
+			modrm_generateInstructionTEXT386("JMPD", 32, 0, PARAM_MODRM2); //Jump to the address pointed here!
 																	   //debugger_setcommand("JMP %04X:%04X",MMU_rw(CPU_SEGMENT_CS,REG_CS,ea,0),MMU_rw(CPU_SEGMENT_CS,REG_CS,ea+2,0)); //JMP to destination!
 			break;
 		case 6: //PUSH
-			modrm_generateInstructionTEXT("PUSHD", 32, 0, PARAM_MODRM2); //PUSH!
+			modrm_generateInstructionTEXT386("PUSHD", 32, 0, PARAM_MODRM2); //PUSH!
 			break;
 		case 7: //---
 			debugger_setcommand("<UNKNOWN Opcode: GRP5(w) /7>");
@@ -1736,7 +1735,7 @@ OPTINLINE void op_grp2_cycles386(byte cnt, byte varshift)
 	}
 }
 
-word op_grp2_32(byte cnt, byte varshift) {
+uint_32 op_grp2_32(byte cnt, byte varshift) {
 	//uint32_t d,
 	INLINEREGISTER uint_64 s, shift, oldCF, msb;
 	//if (cnt>0x10) return(oper1); //NEC V20/V30+ limits shift count
@@ -1758,7 +1757,7 @@ word op_grp2_32(byte cnt, byte varshift) {
 			FLAG_CF = s & 1;
 			s = (s >> 1) | (FLAG_CF << 31);
 		}
-		if (cnt) FLAG_OF = (s >> 31) ^ ((s >> 30) & 1);
+		if (cnt) FLAG_OF = (byte)((s >> 31) ^ ((s >> 30) & 1));
 		break;
 
 	case 2: //RCL r/m32
@@ -1784,7 +1783,7 @@ word op_grp2_32(byte cnt, byte varshift) {
 			//s = (s<<1)+(FLAG_CF<<32);
 			//FLAG_CF = oldCF;
 		}
-		if (cnt) FLAG_OF = (s >> 31) ^ ((s >> 30) & 1);
+		if (cnt) FLAG_OF = (byte)((s >> 31) ^ ((s >> 30) & 1));
 		break;
 
 	case 4: case 6: //SHL r/m32
@@ -1793,7 +1792,7 @@ word op_grp2_32(byte cnt, byte varshift) {
 			s = (s << 1) & 0xFFFFFFFF;
 		}
 		if ((cnt) && (FLAG_CF == (s >> 31))) FLAG_OF = 0; else FLAG_OF = 1;
-		flag_szp32(s); break;
+		flag_szp32((uint_32)s); break;
 
 	case 5: //SHR r/m32
 		if (cnt) FLAG_OF = (s & 0x80000000) ? 1 : 0;
@@ -1801,7 +1800,7 @@ word op_grp2_32(byte cnt, byte varshift) {
 			FLAG_CF = s & 1;
 			s = s >> 1;
 		}
-		flag_szp32(s); break;
+		flag_szp32((uint_32)s); break;
 
 	case 7: //SAR r/m32
 		if (cnt) FLAG_OF = 0;
@@ -1812,7 +1811,7 @@ word op_grp2_32(byte cnt, byte varshift) {
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
-		flag_szp32(s);
+		flag_szp32((uint_32)s);
 		if (!cnt) //Nothing done?
 		{
 			FLAG_SF = tempSF; //We don't update when nothing's done!
@@ -1835,8 +1834,8 @@ OPTINLINE void op_div32(uint64_t valdiv, uint_32 divisor) {
 	//word v1, v2;
 	if (!divisor) { CPU_exDIV0(); return; }
 	if ((valdiv / (uint64_t)divisor) > 0xFFFFFFFF) { CPU_exDIV0(); return; }
-	REG_EDX = valdiv % (uint64_t)divisor;
-	REG_EAX = valdiv / (uint64_t)divisor;
+	REG_EDX = (uint_32)(valdiv % (uint64_t)divisor);
+	REG_EAX = (uint_32)(valdiv / (uint64_t)divisor);
 }
 
 OPTINLINE void op_idiv32(uint64_t valdiv, uint_32 divisor) {

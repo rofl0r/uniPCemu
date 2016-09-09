@@ -166,7 +166,10 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value);
 //Just the adressing:
 word modrm_lea16(MODRM_PARAMS *params, int whichregister); //For LEA instructions!
 void modrm_lea16_text(MODRM_PARAMS *params, int whichregister, char *result); //For LEA instructions!
+uint_32 modrm_lea32(MODRM_PARAMS *params, int whichregister); //For LEA instructions!
+void modrm_lea32_text(MODRM_PARAMS *params, int whichregister, char *result); //For LEA instructions!
 word modrm_offset16(MODRM_PARAMS *params, int whichregister); //Gives address for JMP, CALL etc.!
+uint_32 modrm_offset32(MODRM_PARAMS *params, int whichregister); //Gives address for JMP, CALL etc.!
 word *modrm_addr_reg16(MODRM_PARAMS *params, int whichregister); //For LEA related instructions, returning the register!
 
 void modrm_text8(MODRM_PARAMS *params, int whichregister, char *result); //8-bit text representation!
@@ -184,6 +187,8 @@ char *unsigned2signedtext32(uint_32 c);
 
 //For NECV30+
 void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //16-bit address/reg decoder!
+//For 80386+
+void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //32-bit address/reg decoder!
 
 //For CPU itself:
 void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr); //Read params for modr/m processing from CS:(E)IP
