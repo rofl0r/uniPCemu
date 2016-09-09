@@ -779,7 +779,7 @@ OPTINLINE byte coreHandler()
 
 			HWINT_saved = 0; //No HW interrupt by default!
 			CPU_beforeexec(); //Everything before the execution!
-			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
+			if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts) //Only check for hardware interrupts when not trapped and allowed to execute interrupts!
 			{
 				if (CPU[activeCPU].registers->SFLAGS.IF) //Interrupts available?
 				{

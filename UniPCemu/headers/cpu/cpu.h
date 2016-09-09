@@ -695,6 +695,9 @@ typedef struct
 
 	//REP support (ignore re-reading instruction bytes from memory)
 	byte repeating; //We're executing a REP* instruction?
+
+	//POP SS inhabits interrupts!
+	byte allowInterrupts; //Do we allow interrupts to run?
 } CPU_type;
 
 

@@ -221,7 +221,6 @@ void copyint(byte src, byte dest) //Copy interrupt handler pointer to different 
 	MMU_ww(-1,0x0000,(dest<<2)|2,MMU_rw(-1,0x0000,((src<<2)|2),0)); //Copy offset!
 }
 
-int STACK_SIZE = 2; //Stack item in bytes! (4 official for 32-bit, 2 for 16-bit?)
 byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 
 OPTINLINE void CPU_resetPrefixes() //Resets all prefixes we use!
@@ -356,17 +355,14 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 void resetCPU() //Initialises the currently selected CPU!
 {
 	memset(&CPU,0,sizeof(CPU)); //Reset the CPU fully!
+	byte i;
+	for (i = 0;i < NUMITEMS(CPU);++i) //Process all CPUs!
+	{
+		CPU[i].allowInterrupts = 1; //Default to allowing all interrupts to run!
+	}
 	CPU_initRegisters(); //Initialise the registers!
 	CPU_initPrefixes(); //Initialise all prefixes!
 	CPU_resetMode(); //Reset the mode to the default mode!
-	if (EMULATED_CPU==CPU_8086 || EMULATED_CPU==CPU_NECV30) //Emulating 80(1)86?
-	{
-		STACK_SIZE = 2; //2-byte stack!
-	}
-	else //80286+?
-	{
-		STACK_SIZE = 4; //4-byte stack!
-	}
 	//Default: not waiting for interrupt to occur on startup!
 	//Not waiting for TEST pin to occur!
 	//Default: not blocked!
@@ -938,6 +934,7 @@ byte newREP = 1; //Are we a new repeating instruction (REP issued?)
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
+	CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 	bufferMMU(); //Buffer the MMU writes for us!
 	byte cycles_counted = 0; //Cycles have been counted?
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
