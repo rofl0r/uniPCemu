@@ -26,7 +26,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	union
 	{
 		TSS386 TSS;
-		byte data[];
+		byte data[104]; //All our data!
 	} TSS32;
 	byte TSSSize = 0; //The TSS size!
 	uint_32 limit; //The limit we use!
@@ -35,8 +35,6 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		THROWDESCSeg(destinationtask,0); //Throw #NP!
 		return 1; //Error out!
 	}
-	word oldCS;
-	oldCS = CPU->registers->CS; //Old CS is stored for DPL checks!
 
 	switch (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type) //Check the type of descriptor we're executing!
 	{
