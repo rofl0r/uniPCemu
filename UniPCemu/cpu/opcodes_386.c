@@ -710,6 +710,115 @@ OPTINLINE void CPU80386_internal_TEST32(uint_32 dest, uint_32 src, byte flags)
 }
 
 //MOV
+OPTINLINE void CPU80386_internal_MOV8(byte *dest, byte val, byte flags)
+{
+	if (MMU_invaddr())
+	{
+		return;
+	}
+	CPUPROT1
+		if (dest) //Register?
+		{
+			*dest = val;
+			switch (flags) //What type are we?
+			{
+			case 0: //Reg+Reg?
+				break; //Unused!
+			case 1: //Accumulator from immediate memory address?
+				CPU[activeCPU].cycles_OP = 10; //[imm16]->Accumulator!
+				break;
+			case 2: //ModR/M Memory->Reg?
+				if (MODRM_EA(params)) //Memory?
+				{
+					CPU[activeCPU].cycles_OP = 8 + MODRM_EA(params); //Mem->Reg!
+				}
+				else //Reg->Reg?
+				{
+					CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
+				}
+				break;
+			case 3: //ModR/M Memory immediate->Reg?
+				if (MODRM_EA(params)) //Memory?
+				{
+					CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
+				}
+				else //Reg->Reg?
+				{
+					CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
+				}
+				break;
+			case 4: //Register immediate->Reg?
+				CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
+				break;
+			case 8: //SegReg->Reg?
+				if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+				{
+					CPU[activeCPU].cycles_OP = 2; //Reg->SegReg!
+				}
+				else //From memory?
+				{
+					CPU[activeCPU].cycles_OP = 8 + MODRM_EA(params); //Mem->SegReg!
+				}
+				break;
+			}
+		}
+		else //Memory?
+		{
+			if (custommem)
+			{
+				MMU_wb(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset, val); //Write to memory directly!
+				CPU[activeCPU].cycles_OP = 10; //Accumulator->[imm16]!
+				CPU_addWordMemoryTiming386(); //Second access for writeback!
+			}
+			else //ModR/M?
+			{
+				modrm_write8(&params, MODRM_src0, val); //Write the result to memory!
+				switch (flags) //What type are we?
+				{
+				case 0: //Reg+Reg?
+					break; //Unused!
+				case 1: //Accumulator from immediate memory address?
+					CPU[activeCPU].cycles_OP = 10; //Accumulator->[imm16]!
+					break;
+				case 2: //ModR/M Memory->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
+					}
+					break;
+				case 3: //ModR/M Memory immediate->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
+					}
+					break;
+				case 4: //Register immediate->Reg (Non-existant!!!)?
+					CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
+					break;
+				case 8: //Reg->SegReg?
+					if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+					{
+						CPU[activeCPU].cycles_OP = 2; //SegReg->Reg!
+					}
+					else //From memory?
+					{
+						CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //SegReg->Mem!
+					}
+					break;
+				}
+			}
+		}
+	CPUPROT2
+}
+
 OPTINLINE void CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 {
 	if (MMU_invaddr())
@@ -1263,11 +1372,11 @@ void CPU80386_OP95() { modrm_generateInstructionTEXT386("XCHG EBP,EAX", 0, 0, PA
 void CPU80386_OP96() { modrm_generateInstructionTEXT386("XCHG ESI,EAX", 0, 0, PARAM_NONE);/*XCHG AX,SI*/ CPU80386_internal_XCHG32(&REG_ESI, &REG_EAX, 1); /*XCHG SI,AX*/ }
 void CPU80386_OP97() { modrm_generateInstructionTEXT386("XCHG EDI,EAX", 0, 0, PARAM_NONE);/*XCHG AX,DI*/ CPU80386_internal_XCHG32(&REG_EDI, &REG_EAX, 1); /*XCHG DI,AX*/ }
 void CPU80386_OP99() { modrm_generateInstructionTEXT386("CDQ", 0, 0, PARAM_NONE);/*CDQ : sign extend EAX to EDX::EAX*/ CPU80386_internal_CDQ();/*CDQ : sign extend AX to DX::AX (8088+)*/ }
-void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALL %04x:%08x", (segmentoffset >> 32), (segmentoffset & 0xFFFFFFFF)); CPU_PUSH32(&REG_CS); CPU_PUSH32(&REG_EIP); destEIP = (segmentoffset & 0xFFFFFFFF);  segmentWritten(CPU_SEGMENT_CS, (segmentoffset >> 32), 2); /*CS changed!*/ CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ CPU_addWordMemoryTiming386(); /*To memory?*/ CPU_addWordMemoryTiming386(); /*To memory?*/ }
+void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALL %04x:%08x", (segmentoffset >> 32), (segmentoffset & 0xFFFFFFFF)); uint_32 fromCS; fromCS = REG_CS; CPU_PUSH32(&fromCS); CPU_PUSH32(&REG_EIP); destEIP = (segmentoffset & 0xFFFFFFFF);  segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset >> 32), 2); /*CS changed!*/ CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ CPU_addWordMemoryTiming386(); /*To memory?*/ CPU_addWordMemoryTiming386(); /*To memory?*/ }
 void CPU80386_OP9B() { modrm_generateInstructionTEXT386("WAIT", 0, 0, PARAM_NONE);/*WAIT : wait for TEST pin activity. (UNIMPLEMENTED)*/ CPU[activeCPU].wait = 1;/*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
-//void CPU80386_OPA0() { INLINEREGISTER uint_32 theimm = imm32; debugger_setcommand("MOVB AL,[%s:%08X]", CPU_textsegment(CPU_SEGMENT_DS), theimm);/*MOV AL,[imm32]*/ CPU80386_internal_MOV8(&REG_AL, MMU_rb(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), theimm, 0), 1);/*MOV AL,[imm32]*/ }
+void CPU80386_OPA0() { INLINEREGISTER uint_32 theimm = imm32; debugger_setcommand("MOVB AL,[%s:%08X]", CPU_textsegment(CPU_SEGMENT_DS), theimm);/*MOV AL,[imm32]*/ CPU80386_internal_MOV8(&REG_AL, MMU_rb(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), theimm, 0), 1);/*MOV AL,[imm32]*/ }
 void CPU80386_OPA1() { INLINEREGISTER uint_32 theimm = imm32; debugger_setcommand("MOVW EAX,[%s:%08X]", CPU_textsegment(CPU_SEGMENT_DS), theimm);/*MOV AX,[imm32]*/  CPU80386_internal_MOV32(&REG_EAX, MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), theimm, 0), 1);/*MOV AX,[imm32]*/ }
-//void CPU80386_OPA2() { INLINEREGISTER uint_32 theimm = imm32; debugger_setcommand("MOVB [%s:%08X],AL", CPU_textsegment(CPU_SEGMENT_DS), theimm);/*MOV [imm32],AL*/ custommem = 1; customoffset = theimm; CPU80386_internal_MOV8(NULL, REG_AL, 1);/*MOV [imm32],AL*/ custommem = 0; }
+void CPU80386_OPA2() { INLINEREGISTER uint_32 theimm = imm32; debugger_setcommand("MOVB [%s:%08X],AL", CPU_textsegment(CPU_SEGMENT_DS), theimm);/*MOV [imm32],AL*/ custommem = 1; customoffset = theimm; CPU80386_internal_MOV8(NULL, REG_AL, 1);/*MOV [imm32],AL*/ custommem = 0; }
 void CPU80386_OPA3() { INLINEREGISTER uint_32 theimm = imm32; debugger_setcommand("MOVW [%s:%08X],EAX", CPU_textsegment(CPU_SEGMENT_DS), theimm);/*MOV [imm32], AX*/ custommem = 1; customoffset = theimm; CPU80386_internal_MOV32(NULL, REG_EAX, 1);/*MOV [imm32], AX*/ custommem = 0; }
 void CPU80386_OPA5() { modrm_generateInstructionTEXT386("MOVSD", 0, 0, PARAM_NONE);/*MOVSD*/ CPU80386_internal_MOVSD();/*MOVSD*/ }
 void CPU80386_OPA7() { debugger_setcommand("CMPSD [%s:ESI],[ES:EDI]", CPU_textsegment(CPU_SEGMENT_DS));/*CMPSD*/ CPU80386_internal_CMPSD();/*CMPSD*/ }
@@ -1304,7 +1413,7 @@ void CPU80386_OPEA() { INLINEREGISTER uint_64 segmentoffset = imm64; debugger_se
 void CPU80386_OPEB() { INLINEREGISTER signed char reloffset = imm8(); modrm_generateInstructionTEXT386("JMP", 0, ((REG_EIP + reloffset) & 0xFFFF), PARAM_IMM32); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct short */ }
 void CPU80386_OPED() { modrm_generateInstructionTEXT386("IN EAX,DX", 0, 0, PARAM_NONE); CPU_PORT_IN_D(REG_DX, &REG_EAX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ CPU_addWordMemoryTiming386(); /*To memory?*/ }
 void CPU80386_OPEF() { modrm_generateInstructionTEXT386("OUT DX,EAX", 0, 0, PARAM_NONE); CPU_PORT_OUT_D(REG_EDX, REG_EAX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ CPU_addWordMemoryTiming386(); /*To memory?*/ }
-void CPU80386_OPF1() { modrm_generateInstructionTEXT386("<Undefined and reserved opcode, no error>", 0, 0, PARAM_NONE); }
+void CPU80386_OPF1() { modrm_generateInstructionTEXT386("ICEBP", 0, 0, PARAM_NONE); CPU386_int(1); } //ICEBP
 void CPU80386_OPF4() { modrm_generateInstructionTEXT386("HLT", 0, 0, PARAM_NONE); CPU[activeCPU].halt = 1; CPU[activeCPU].cycles_OP = 2; /*Special timing!*/ }
 
 /*

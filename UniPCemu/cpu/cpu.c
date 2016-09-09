@@ -572,7 +572,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 
 	if (timing->parameters) //Gotten parameters?
 	{
-		switch (timing->parameters&0xB) //What parameters?
+		switch (timing->parameters&~4) //What parameters?
 		{
 			case 1: //imm8?
 				if (timing->parameters&4) //Only when ModR/M REG<2?
@@ -597,27 +597,43 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 				}
 				else //Normal imm16?
 				{
-					immw = CPU_readOPw(); //Read 8-bit immediate!
+					immw = CPU_readOPw(); //Read 16-bit immediate!
 				}
 				break;
 			case 3: //imm32?
 				if (timing->parameters&4) //Only when ModR/M REG<2?
 				{
-					if (MODRM_REG(params.modrm)<2) //16-bit immediate?
+					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
 					{
-						imm32 = CPU_readOPdw(); //Read 16-bit immediate!
+						imm32 = CPU_readOPdw(); //Read 32-bit immediate!
 					}
 				}
 				else //Normal imm32?
 				{
-					imm32 = CPU_readOPdw(); //Read 8-bit immediate!
+					imm32 = CPU_readOPdw(); //Read 32-bit immediate!
 				}
 				break;
 			case 8: //imm16 + imm8
 				immw = CPU_readOPw(); //Read 16-bit immediate!
 				immb = CPU_readOP(); //Read 8-bit immediate!
 				break;
+			case 9: //imm64?
+				if (timing->parameters & 4) //Only when ModR/M REG<2?
+				{
+					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
+					{
+						imm64 = CPU_readOPdw(); //Read 32-bit immediate!
+						imm64 |= ((uint_64)CPU_readOPdw() << 32); //Read another 32-bit immediate!
+					}
+				}
+				else //Normal imm32?
+				{
+					imm64 = CPU_readOPdw(); //Read 32-bit immediate!
+					imm64 |= ((uint_64)CPU_readOPdw() << 32); //Read another 32-bit immediate!
+				}
+				break;
 			default: //Unknown?
+				//Ignore the parameters!
 				break;
 		}
 	}
