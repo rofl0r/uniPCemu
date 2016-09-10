@@ -65,6 +65,7 @@ typedef struct
 	byte IntermediateRegister; //Intermediate register!
 	//Master reset register doesn't store!
 	//MaskResetRegister doesn't store!
+	byte extrastorage[4]; //Extra storage used by the 286 BIOS!
 } DMAControllerTYPE; //Contains a DMA Controller's registers!
 
 DMAControllerTYPE DMAController[2]; //We have 2 DMA Controllers!
@@ -123,6 +124,11 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 	case 0x87: //
 		DMAController[0].DMAChannel[0].PageAddressRegister = value; //Set!
 		break;
+	case 0x84:
+	case 0x85:
+	case 0x86: //Extra on 286 BIOS?
+		DMAController[0].extrastorage[port-0x84] = value; //Set storage!
+		break;
 	case 0x83: //
 		DMAController[0].DMAChannel[1].PageAddressRegister = value; //Set!
 		break;
@@ -135,6 +141,14 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 	//Extra 8 bits for addresses:
 	case 0x8F: //
 		DMAController[1].DMAChannel[0].PageAddressRegister = value; //Set!
+		break;
+	case 0x8C:
+	case 0x8D:
+	case 0x8E: //Extra on 286 BIOS?
+		DMAController[1].extrastorage[port-0x8C] = value; //Set storage!
+		break;
+	case 0x88: //Extra on 286 BIOS?
+		DMAController[1].extrastorage[3] = value; //Set storage!
 		break;
 	case 0x8B: //
 		DMAController[1].DMAChannel[1].PageAddressRegister = value; //Set!
@@ -246,6 +260,12 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 	switch (port) //What port?
 	{
 		//Extra 8 bits for addresses:
+		case 0x84:
+		case 0x85:
+		case 0x86: //Extra on 286 BIOS?
+			*result = DMAController[0].extrastorage[port-0x84]; //Get storage!
+			ok = 1;
+			break;
 		case 0x87: //
 			*result = DMAController[0].DMAChannel[0].PageAddressRegister; //Get!
 			ok = 1;
@@ -265,6 +285,16 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 		//Extra 8 bits for addresses:
 		case 0x8F: //
 			*result = DMAController[1].DMAChannel[0].PageAddressRegister; //Get!
+			ok = 1;
+			break;
+		case 0x8C:
+		case 0x8D:
+		case 0x8E: //Extra on 286 BIOS?
+			*result = DMAController[1].extrastorage[port-0x8C]; //Get storage!
+			ok = 1;
+			break;
+		case 0x88: //Extra on 286 BIOS?
+			*result = DMAController[1].extrastorage[3]; //Get storage!
 			ok = 1;
 			break;
 		case 0x8B: //
