@@ -330,11 +330,129 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 
 void CPU286_OP0F02() //LAR /r
 {
-	unkOP0F_286(); //TODO!
+	byte isconforming = 1;
+	SEGDESCRIPTOR_TYPE verdescriptor;
+	if (getcpumode() == CPU_MODE_REAL)
+	{
+		unkOP0F_286(); //We're not recognized in real mode!
+		return;
+	}
+	oper1 = modrm_read16(&params,0); //Read the segment to check!
+	CPUPROT1
+		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
+		{
+			switch (verdescriptor.desc.Type)
+			{
+			case AVL_SYSTEM_RESERVED_0: //Invalid type?
+			case AVL_SYSTEM_INTERRUPTGATE16BIT:
+			case AVL_SYSTEM_TRAPGATE16BIT:
+			case AVL_SYSTEM_RESERVED_1:
+			case AVL_SYSTEM_RESERVED_2:
+			case AVL_SYSTEM_RESERVED_3:
+			case AVL_SYSTEM_INTERRUPTGATE32BIT:
+			case AVL_SYSTEM_TRAPGATE32BIT:
+				FLAG_ZF = 0; //Invalid descriptor type!
+				break;
+			default: //Valid type?
+				switch (verdescriptor.desc.AccessRights) //What type?
+				{
+				case AVL_CODE_EXECUTEONLY_CONFORMING:
+				case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
+				case AVL_CODE_EXECUTE_READONLY_CONFORMING:
+				case AVL_CODE_EXECUTE_READONLY_CONFORMING_ACCESSED: //Conforming?
+					isconforming = 1;
+					break;
+				default: //Not conforming?
+					isconforming = 0;
+					break;
+				}
+				if ((MAX(getCPL(), getRPL(oper1)) <= verdescriptor.desc.DPL) || isconforming) //Valid privilege?
+				{
+					verdescriptor.DATA64 &= 0xFF00;
+					modrm_write16(&params,1,(word)verdescriptor.DATA64,0); //Write our result!
+					CPUPROT1
+						FLAG_ZF = 1; //We're valid!
+					CPUPROT2
+				}
+				else
+				{
+					FLAG_ZF = 0; //Not valid!
+				}
+				break;
+			}
+		}
+		else //Couldn't be loaded?
+		{
+			FLAG_ZF = 0; //Default: not loaded!
+		}
+	CPUPROT2
 }
 
 void CPU286_OP0F03() //LSL /r
 {
+	uint_32 limit;
+	byte isconforming = 1;
+	SEGDESCRIPTOR_TYPE verdescriptor;
+	if (getcpumode() == CPU_MODE_REAL)
+	{
+		unkOP0F_286(); //We're not recognized in real mode!
+		return;
+	}
+	oper1 = modrm_read16(&params, 0); //Read the segment to check!
+	CPUPROT1
+		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
+		{
+			switch (verdescriptor.desc.Type)
+			{
+			case AVL_SYSTEM_RESERVED_0: //Invalid type?
+			case AVL_SYSTEM_INTERRUPTGATE16BIT:
+			case AVL_SYSTEM_TRAPGATE16BIT:
+			case AVL_SYSTEM_RESERVED_1:
+			case AVL_SYSTEM_RESERVED_2:
+			case AVL_SYSTEM_RESERVED_3:
+			case AVL_SYSTEM_INTERRUPTGATE32BIT:
+			case AVL_SYSTEM_TRAPGATE32BIT:
+				FLAG_ZF = 0; //Invalid descriptor type!
+				break;
+			default: //Valid type?
+				switch (verdescriptor.desc.AccessRights) //What type?
+				{
+				case AVL_CODE_EXECUTEONLY_CONFORMING:
+				case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
+				case AVL_CODE_EXECUTE_READONLY_CONFORMING:
+				case AVL_CODE_EXECUTE_READONLY_CONFORMING_ACCESSED: //Conforming?
+					isconforming = 1;
+					break;
+				default: //Not conforming?
+					isconforming = 0;
+					break;
+				}
+
+				limit = verdescriptor.desc.limit_low|(verdescriptor.desc.limit_high<<16); //Limit!
+				if (verdescriptor.desc.G && (EMULATED_CPU >= CPU_80386)) //Granularity?
+				{
+					limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
+				}
+
+				if ((MAX(getCPL(), getRPL(oper1)) <= verdescriptor.desc.DPL) || isconforming) //Valid privilege?
+				{
+					modrm_write16(&params, 1, (word)(limit&0xFFFF), 0); //Write our result!
+					CPUPROT1
+						FLAG_ZF = 1; //We're valid!
+					CPUPROT2
+				}
+				else
+				{
+					FLAG_ZF = 0; //Not valid!
+				}
+				break;
+			}
+		}
+		else //Couldn't be loaded?
+		{
+			FLAG_ZF = 0; //Default: not loaded!
+		}
+	CPUPROT2
 	unkOP0F_286(); //TODO!
 }
 

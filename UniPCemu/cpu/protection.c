@@ -552,6 +552,7 @@ MMU: Memory limit!
 //Used by the CPU(VERR/VERW)&MMU I/O!
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest)
 {
+	byte isconforming;
 	if ((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && !getDescriptorIndex(segmentval)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
 	{
 		return 1; //Error!
@@ -583,7 +584,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	limit = ((descriptor->limit_high << 8) | descriptor->limit_low); //Base limit!
 
-	if (descriptor->G) //Granularity?
+	if (descriptor->G && (EMULATED_CPU>=CPU_80386)) //Granularity?
 	{
 		limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 	}
@@ -592,7 +593,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	{
 		if (descriptor->nonS && !descriptor->DATASEGMENT.OTHERSTRUCT && descriptor->DATASEGMENT.E) //DATA segment and expand-down?
 		{
-			if ((offset<(limit + 1)) || (offset>(descriptor->G ? 0xFFFFFFFF : 0xFFFF))) //Limit+1 to 64K/64G!
+			if ((offset<(limit + 1)) || (offset>((descriptor->G && (EMULATED_CPU >= CPU_80386)) ? 0xFFFFFFFF : 0xFFFF))) //Limit+1 to 64K/64G!
 			{
 				return 1; //Error!
 			}
@@ -603,7 +604,25 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		}
 	}
 
-	//Third: privilege levels!
+	//Third: privilege levels
+
+	switch (descriptor->AccessRights) //What type?
+	{
+	case AVL_CODE_EXECUTEONLY_CONFORMING:
+	case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
+	case AVL_CODE_EXECUTE_READONLY_CONFORMING:
+	case AVL_CODE_EXECUTE_READONLY_CONFORMING_ACCESSED: //Conforming?
+		isconforming = 1;
+		break;
+	default: //Not conforming?
+		isconforming = 0;
+		break;
+	}
+
+	if (!((MAX(getCPL(), getRPL(segment)) <= descriptor->DPL) || isconforming)) //Invalid privilege?
+	{
+		return 1; //Not enough rights!
+	}
 
 	//Fouth: Restrict access to data!
 
