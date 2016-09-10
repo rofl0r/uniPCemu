@@ -21,7 +21,6 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		TSS386 TSS;
 		byte data[104]; //All our data!
 	} TSS32;
-	byte oldCPL = getCPL(); //Save the old privilege level!
 	byte TSSSize = 0; //The TSS size!
 
 	if (LOADEDDESCRIPTOR->desc.DPL != getCPL()) //Different CPL? Stack switch?
@@ -320,9 +319,9 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		return 1; //Not present: limit exceeded!
 	}
 
-	word *SSPtr;
-	uint_32 *ESPPtr;
-	word *SPPtr;
+	word *SSPtr=&TSS32.TSS.SS;
+	uint_32 *ESPPtr=&TSS32.TSS.ESP;
+	word *SPPtr=&TSS16.TSS.SP;
 	if (TSSSize) //32-bit to load?
 	{
 		switch (destStack) //What are we switching to?

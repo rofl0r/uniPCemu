@@ -663,8 +663,8 @@ typedef struct
 	CPU_registers *registers; //The registers of the CPU!
 
 	//Everything containing and buffering segment registers!
-	SEGMENT_DESCRIPTOR SEG_DESCRIPTOR[7]; //Segment descriptor for all segment registers, currently cached, loaded when it's used!
-	word *SEGMENT_REGISTERS[7]; //Segment registers pointers container (CS, SS, DS, ES, FS, GS, TR; in that order)!
+	SEGMENT_DESCRIPTOR SEG_DESCRIPTOR[8]; //Segment descriptor for all segment registers, currently cached, loaded when it's used!
+	word *SEGMENT_REGISTERS[8]; //Segment registers pointers container (CS, SS, DS, ES, FS, GS, TR; in that order)!
 	byte CPL; //The current privilege level, registered on descriptor load!
 
 	uint_32 cycles; //Total cycles number (adjusted after operation)

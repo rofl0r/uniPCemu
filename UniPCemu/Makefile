@@ -119,7 +119,7 @@ OBJS += cpu/opcodes_NECV30.o
 #Opcodes for CPU 80286,Debugger&JMPTbl for 0F opcodes!
 OBJS += cpu/cpu_jmptbls0f.o cpu/opcodes_80286.o
 #Opcodes for CPU 80386&JMPTbl
-#OBJS += cpu/opcodes0F_386.o cpu/opcodes_386.o
+OBJS += cpu/opcodes0F_386.o cpu/opcodes_386.o
 #Opcodes for CPU 80486
 OBJS += cpu/opcodes_486.o
 #Opcodes for CPU 80586 (Pentium)
