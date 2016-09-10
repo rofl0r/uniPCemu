@@ -88,41 +88,6 @@ Clock counts for instructions that have an r/m (register or memory) operand are 
 
 */
 
-
-
-/*
-Here will come the opcode functions when all interpreted.
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //Extra stuff for opcode support!
 
-void CPU_RET16(); //Ret in 16-bit mode!
-void CPU_RET32(); //Ret in 32-bit mode!
-void CPU_RETI16(); //Return from 16-bit interrupt!
-void CPU_RETI32(); //Return from 32-bit interrupt!
-
-//Used by the CPU itself:
-void CPU_PUSH_CSEIP(); //SAVE CS:EIP
-void CPU_PUSH_CSIP(); //SAVE CS:EIP
-
-void CPU_CALL16(word segment, word offset); //16-bit call!
-void CPU_CALL32(word segment, uint_32 offset); //32-bit call!
 #endif

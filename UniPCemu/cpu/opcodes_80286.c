@@ -10,6 +10,7 @@
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
 
 #include "headers/cpu/protection.h" //Protection support!
+#include "headers/cpu/cpu_OP80286.h" //80286 instruction support!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
 extern MODRM_PARAMS params;    //For getting all params!
@@ -52,25 +53,6 @@ void unkOP_286() //Unknown opcode on 186+?
 	//dolog("unkop","Unknown opcode on NECV30+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU086_int(0x06); //Call interrupt with return addres of the OPcode!
-}
-
-extern byte OPbuffer[256]; //A large opcode buffer!
-extern word OPlength; //The length of the opcode buffer!
-char command[50]; //A command buffer for storing our command (up to 10 bytes)!
-void unkOP0F_286() //Unknown opcode on 186+?
-{
-	bzero(command, sizeof(command)); //Clear the command!
-	debugger_setcommand("<80286+ 0F #UD>"); //Command is unknown opcode!
-	//dolog("unkop","Unknown opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
-	CPU_resetOP(); //Go back to the opcode itself!
-	CPU086_int(0x06); //Call interrupt with return addres of the OPcode!
-}
-
-void CPU_OP0F_286() //Special 2-byte opcode (286+)?
-{
-	byte OP = immb; //Read second OPcode!
-	CPU[activeCPU].lastopcode = OP; //Last opcode is the 0F opcode specifier, the byte after 0F!
-	CurrentCPU_opcode0F_jmptbl[(OP << 1) | CPU_Operand_size[activeCPU]](); //Execute the 0F opcode handler, if any, or fault it!
 }
 
 void CPU286_OP63() //ARPL r/m16,r16
@@ -118,21 +100,27 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 	{
 	case 0: //SLDT
 		debugger_setcommand("SLDT %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 1: //STR
 		debugger_setcommand("STR %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 2: //LLDT
 		debugger_setcommand("LLDT %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 3: //LTR
 		debugger_setcommand("LTR %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 4: //VERR
 		debugger_setcommand("VERR %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 5: //VERW
 		debugger_setcommand("VERW %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 6: //--- Unknown Opcode! ---
 	case 7: //--- Unknown Opcode! ---
@@ -153,18 +141,23 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 	{
 	case 1: //SIDT
 		debugger_setcommand("SIDT %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 2: //LGDT
 		debugger_setcommand("LGDT %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 3: //LIDT
 		debugger_setcommand("LIDT %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 4: //SMSW
 		debugger_setcommand("SMSW %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 6: //LMSW
 		debugger_setcommand("LMSW %s", info.text);
+		unkOP0F_286(); //TODO!
 		break;
 	case 0: //--- Unknown Opcode!
 	case 5: //--- Unknown Opcode!

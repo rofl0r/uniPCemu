@@ -698,6 +698,7 @@ typedef struct
 
 	//POP SS inhabits interrupts!
 	byte allowInterrupts; //Do we allow interrupts to run?
+	byte is0Fopcode; //Are we a 0F opcode to be executed?
 } CPU_type;
 
 
@@ -927,17 +928,6 @@ void CPU_resetOP(); //Rerun current Opcode? (From interrupt calls this recalls t
 void CPU_beforeexec(); //Everything before the execution of the current CPU OPcode!
 void CPU_exec(); //Run one CPU OPCode!
 //void CPU_exec_DEBUGGER(); //Processes the opcode at CS:EIP (386) or CS:IP (8086) for debugging.
-byte have_interrupt(byte nr); //We have this interrupt in the IVT?
-
-
-
-
-
-
-
-
-
-
 
 //Sign extension!
 #define SIGNEXTEND_16(x) (sword)x
@@ -963,7 +953,6 @@ void CPU_PUSH32(uint_32 *val); //Push DWord!
 uint_32 CPU_POP32(); //Full stack used!
 
 void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware or EMULATOR INTERRUPTS only (int>=0x20 for software call from Handler))!
-void CPU_hard_RETI(); //RETI from hardware!
 
 
 word *CPU_segment_ptr(byte defaultsegment); //Plain segment to use, direct access!

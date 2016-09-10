@@ -2,6 +2,20 @@
 #define CPU_OP80286_H
 
 void generate_opcode0F_jmptbl();
-void CPU_OP0F_286(); //Special 2-byte opcode (286+)?
-void THROWDESCGP(word segment); //Throw a general protection exception!
+void unkOP0F_286(); //0F unknown opcode handler on 286+?
+
+//The 80286 instructions themselves!
+void unkOP_286(); //Unknown opcode on 186+?
+void CPU286_OP63(); //ARPL r/m16,r16
+void CPU286_OPD6(); //286+ SALC
+
+//0F opcodes!
+void CPU286_OP0F00(); //Various extended 286+ instructions GRP opcode.
+void CPU286_OP0F01(); //Various extended 286+ instruction GRP opcode.
+void CPU286_OP0F02(); //LAR /r
+void CPU286_OP0F03(); //LSL /r
+void CPU286_OP0F06(); //CLTS
+void CPU286_OP0F0B(); //#UD instruction
+void CPU286_OP0FB9(); //#UD instruction
+
 #endif

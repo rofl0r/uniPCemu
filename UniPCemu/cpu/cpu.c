@@ -34,7 +34,8 @@ byte cpudebugger; //To debug the CPU?
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
 
 //CPU timings information
-CPU_Timings CPUTimings[CPU_MODES][0x100]; //All normal CPU timings, which are used, for all modes available!
+extern CPU_Timings CPUTimings[CPU_MODES][0x100]; //All normal CPU timings, which are used, for all modes available!
+extern CPU_Timings CPUTimings0F[CPU_MODES][0x100]; //All normal 0F CPU timings, which are used, for all modes available!
 
 //ModR/M information!
 MODRM_PARAMS params; //For getting all params for the CPU exection ModR/M data!
@@ -373,7 +374,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	CPU[activeCPU].lastopcode = 0; //Last opcode, default to 0 and unknown?
 	generate_opcode_jmptbl(); //Generate the opcode jmptbl for the current CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
-	generate_timings_tbl(); //Generate the timings table!
+	generate_timings_tbl(); //Generate the timings tables for all CPU's!
 	if (PIQSizes[CPU_databussize][EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
 	{
 		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
@@ -516,6 +517,7 @@ uint_32 CPU_InterruptReturn = 0;
 
 OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 {
+	byte is0Fprefix = 0; //Special 0F prefix used for extended handling?
 	INLINEREGISTER byte OP; //The current opcode!
 	INLINEREGISTER uint_32 last_eip;
 	INLINEREGISTER byte ismultiprefix = 0; //Are we multi-prefix?
@@ -541,6 +543,16 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	}
 	//Now we have the opcode and prefixes set or reset!
 
+	if ((OP == 0x0F) && (EMULATED_CPU >= CPU_80286)) //0F instruction extensions used?
+	{
+		OP = CPU_readOP(); //Read the actual opcode to use!
+		CPU[activeCPU].is0Fopcode = 1; //We're a 0F opcode!
+	}
+	else //Normal instruction?
+	{
+		CPU[activeCPU].is0Fopcode = 0; //We're a normal opcode!
+	}
+
 //Determine the stack&attribute sizes(286+)!
 	CPU_StackAddress_size[activeCPU] = DATA_SEGMENT_DESCRIPTOR_B_BIT(); //16 or 32-bits stack!
 	if (CPU_StackAddress_size[activeCPU]) //32-bits stack? We're a 32-bit Operand&Address size!
@@ -560,7 +572,14 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
 	result = OP; //Save the OPcode for later result!
 
-	timing = &CPUTimings[CPU_Address_size[activeCPU]][OP]; //Only 2 modes implemented so far, 32-bit or 16-bit mode!
+	if (CPU[activeCPU].is0Fopcode) //0F opcode?
+	{
+		timing = &CPUTimings0F[CPU_Address_size[activeCPU]][OP]; //Only 2 modes implemented so far, 32-bit or 16-bit mode!
+	}
+	else //Normal opcode?
+	{
+		timing = &CPUTimings[CPU_Address_size[activeCPU]][OP]; //Only 2 modes implemented so far, 32-bit or 16-bit mode!
+	}
 
 	if (timing->used==0) goto skiptimings; //Are we not used?
 	if (timing->has_modrm) //Do we have ModR/M data?
@@ -878,12 +897,20 @@ word CPU_exec_CS; //OPCode CS
 uint_32 CPU_exec_EIP; //OPCode EIP
 
 extern Handler CurrentCPU_opcode_jmptbl[512]; //Our standard internal standard opcode jmptbl!
+extern Handler CurrentCPU_opcode0F_jmptbl[512]; //Our standard internal standard opcode jmptbl!
 
 void CPU_OP(byte OP) //Normal CPU opcode execution!
 {
 	protection_nextOP(); //Tell the protection exception handlers that we can give faults again!
 	CPU[activeCPU].lastopcode = OP; //Last OPcode!
-	CurrentCPU_opcode_jmptbl[(OP<<1)|CPU_Operand_size[activeCPU]](); //Now go execute the OPcode once in the runtime!
+	if (CPU[activeCPU].is0Fopcode) //0F opcode?
+	{
+		CurrentCPU_opcode0F_jmptbl[(OP << 1) | CPU_Operand_size[activeCPU]](); //Now go execute the OPcode once in the runtime!
+	}
+	else
+	{
+		CurrentCPU_opcode_jmptbl[(OP<<1)|CPU_Operand_size[activeCPU]](); //Now go execute the OPcode once in the runtime!
+	}
 	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the jmptbl.
 }
 
@@ -992,38 +1019,49 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 		//New:
 		case 0xA4: //A4: REPNZ MOVSB
-			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+ 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xA5: //A5: REPNZ MOVSW
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 
 		//Old:
 		case 0xA6: //A6: REPNZ CMPSB
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
 			break;
 		case 0xA7: //A7: REPNZ CMPSW
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
 			break;
 
 		//New:
 		case 0xAA: //AA: REPNZ STOSB
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xAB: //AB: REPNZ STOSW
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xAC: //AC: REPNZ LODSB
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xAD: //AD: REPNZ LODSW
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 
 		//Old:
 		case 0xAE: //AE: REPNZ SCASB
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
 			break;
 		case 0xAF: //AF: REPNZ SCASW
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
 			break;
 		default: //Unknown yet?
+			noREPNE0F: //0F exception!
 			gotREP = 0; //Dont allow after all!
 			CPU[activeCPU].cycles_OP = 0; //Unknown!
 			break; //Not supported yet!
@@ -1035,30 +1073,41 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		switch (OP) //Which special adjustment cycles Opcode?
 		{
 		case 0xA4: //A4: REP MOVSB
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
 			break;
 		case 0xA5: //A5: REP MOVSW
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
 			break;
 		case 0xA6: //A6: REPE CMPSB
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
 			REPZ = 1; //REPE/REPZ!
 			break;
 		case 0xA7: //A7: REPE CMPSW
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
 			REPZ = 1; //REPE/REPZ!
 			break;
 		case 0xAA: //AA: REP STOSB
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
 			break;
 		case 0xAB: //AB: REP STOSW
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
 			break;
 		case 0xAC: //AC: REP LODSB
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
 			break;
 		case 0xAD: //AD: REP LODSW
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
 			break;
 		case 0xAE: //AE: REPE SCASB
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
 			REPZ = 1; //REPE/REPZ!
 			break;
 		case 0xAF: //AF: REPE SCASW
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
 			REPZ = 1; //REPE/REPZ!
 			break;
 		default: //Unknown yet?
+			noREPE0F: //0F exception!
 			gotREP = 0; //Don't allow after all!
 			break; //Not supported yet!
 		}
@@ -1170,38 +1219,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
 	}
 	flushMMU(); //Flush MMU writes!
-}
-
-void CPU_hard_RETI() //Hardware RETI!
-{
-	if (EMULATED_CPU==CPU_8086) //8086?
-	{
-		CPU_OP(0xCF); //Execute!
-	}
-}
-
-//have interrupt must be improven disable overrides for now!!!
-
-
-byte have_interrupt(byte nr) //We have this interrupt in the IVT?
-{
-	if (EMULATED_CPU<=CPU_NECV30) //80(1)86?
-	{
-		word offset = MMU_rw(-1,0x0000,nr<<2,1);
-		word segment = MMU_rw(-1,0x0000,(nr<<2)|2,1);
-		if (!(!segment && !offset)) //Got interrupt?
-		{
-			return 1; //Assigned!
-		}
-		else
-		{
-			return 0; //Not assigned!
-		}
-	}
-	else //386?
-	{
-		return 0; //Not implemented yet!
-	}
 }
 
 void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks etc.)
