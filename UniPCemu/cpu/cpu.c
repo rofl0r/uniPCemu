@@ -321,11 +321,11 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	CPU[activeCPU].registers->GDTR.base = 0;
 	CPU[activeCPU].registers->GDTR.limit = 0xFFFF; //From bochs!
 
-												   //LDTR (invalid)
-	CPU[activeCPU].registers->LDTR.base = CPU[activeCPU].registers->LDTR.limit = 0; //None and invalid!
+	//LDTR (invalid)
+	CPU[activeCPU].registers->LDTR = 0; //No LDTR (also invalid)!
 
-																					//TR (also invalid)
-	CPU[activeCPU].registers->TR = 0; //No TR!
+	//TR (invalid)
+	CPU[activeCPU].registers->TR = 0; //No TR (also invalid)!
 
 	CPU[activeCPU].registers->CR0_full &= 0x7FFFFFE0; //Clear bit 32 and 4-0!
 

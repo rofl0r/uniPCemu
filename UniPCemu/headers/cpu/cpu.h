@@ -39,6 +39,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define CPU_SEGMENT_FS 4
 #define CPU_SEGMENT_GS 5
 #define CPU_SEGMENT_TR 6
+#define CPU_SEGMENT_LDTR 7
 //Default specified segment!
 #define CPU_SEGMENT_DEFAULT 0xFF
 
@@ -616,7 +617,7 @@ typedef struct //The registers!
 //Tables:
 		TR_PTR GDTR; //GDTR pointer (48-bits) Global Descriptor Table Register
 		TR_PTR IDTR; //IDTR pointer (48-bits) Interrupt Descriptor Table Register
-		TR_PTR LDTR; //LDTR pointer (16-bits) Local Descriptor Table Register (points to an index in the GDT)
+		word LDTR; //LDTR pointer (16-bits) Local Descriptor Table Register (points to an index in the GDT)
 		word TR; //TR (16-bits) Talk Register: currently executing task (points to an index in the GDT)
 
 		union

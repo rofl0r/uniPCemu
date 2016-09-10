@@ -15,10 +15,13 @@
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
 extern MODRM_PARAMS params;    //For getting all params!
 extern MODRM_PTR info; //For storing ModR/M Info!
+extern word oper1, oper2; //Buffers!
+extern uint_32 oper1d, oper2d; //Buffers!
 extern byte immb;
 extern word immw;
 extern uint_32 imm32;
 extern byte thereg; //For function number!
+extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 
 /*
 
@@ -47,7 +50,7 @@ Interrupts:
 
 extern Handler CurrentCPU_opcode0F_jmptbl[512]; //Our standard internal standard opcode jmptbl!
 
-void unkOP_286() //Unknown opcode on 186+?
+void unkOP_286() //Unknown opcode on 286+?
 {
 	debugger_setcommand("<80286+ #UD>"); //Command is unknown opcode!
 	//dolog("unkop","Unknown opcode on NECV30+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
@@ -99,20 +102,56 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 	switch (thereg) //What function?
 	{
 	case 0: //SLDT
+		if (getcpumode() != CPU_MODE_REAL)
+		{
+			unkOP0F_286(); //We're not recognized in real mode!
+			return;
+		}
 		debugger_setcommand("SLDT %s", info.text);
-		unkOP0F_286(); //TODO!
+		modrm_write16(&params,0,CPU->registers->LDTR,0); //Try and write it to the address specified!
 		break;
 	case 1: //STR
+		if (getcpumode() != CPU_MODE_REAL)
+		{
+			unkOP0F_286(); //We're not recognized in real mode!
+			return;
+		}
 		debugger_setcommand("STR %s", info.text);
-		unkOP0F_286(); //TODO!
+		modrm_write16(&params, 0, CPU->registers->TR, 0); //Try and write it to the address specified!
 		break;
 	case 2: //LLDT
+		if (getcpumode() != CPU_MODE_REAL)
+		{
+			unkOP0F_286(); //We're not recognized in real mode!
+			return;
+		}
 		debugger_setcommand("LLDT %s", info.text);
-		unkOP0F_286(); //TODO!
+		if (getCPL()) //Privilege level isn't 0?
+		{
+			THROWDESCGP(0); //Throw #GP!
+			return; //Abort!
+		}
+		oper1 = modrm_read16(&params,0); //Read the descriptor!
+		CPUPROT1
+			segmentWritten(CPU_SEGMENT_LDTR,oper1,0); //Write the segment!
+		CPUPROT2
 		break;
 	case 3: //LTR
+		if (getcpumode() != CPU_MODE_REAL)
+		{
+			unkOP0F_286(); //We're not recognized in real mode!
+			return;
+		}
 		debugger_setcommand("LTR %s", info.text);
-		unkOP0F_286(); //TODO!
+		if (getCPL()) //Privilege level isn't 0?
+		{
+			THROWDESCGP(0); //Throw #GP!
+			return; //Abort!
+		}
+		oper1 = modrm_read16(&params, 0); //Read the descriptor!
+		CPUPROT1
+			segmentWritten(CPU_SEGMENT_TR, oper1, 0); //Write the segment!
+		CPUPROT2
 		break;
 	case 4: //VERR
 		debugger_setcommand("VERR %s", info.text);
@@ -139,27 +178,101 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 	modrm_decode16(&params, &info, 1); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
+	case 0: //SGDT
+		debugger_setcommand("SGDT %s", info.text);
+		if (params.info[0].isreg) //We're storing to a register? Invalid!
+		{
+			unkOP0F_286();
+			return; //Abort!
+		}
+		modrm_write16(&params,0,CPU[activeCPU].registers->GDTR.limit,0); //Store the limit first!
+		CPUPROT1
+			modrm_addoffset = 2; //Add 2 bytes to the offset!
+			modrm_write32(&params,0,(CPU[activeCPU].registers->GDTR.base&0xFFFFFF)|((EMULATED_CPU>=CPU_80386)?0xFF000000:0x00000000)); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+		CPUPROT2
+		break;
 	case 1: //SIDT
 		debugger_setcommand("SIDT %s", info.text);
-		unkOP0F_286(); //TODO!
+		if (params.info[0].isreg) //We're storing to a register? Invalid!
+		{
+			unkOP0F_286();
+			return; //Abort!
+		}
+		modrm_write16(&params, 0, CPU[activeCPU].registers->IDTR.limit, 0); //Store the limit first!
+		CPUPROT1
+			modrm_addoffset = 2; //Add 2 bytes to the offset!
+			modrm_write32(&params, 0, (CPU[activeCPU].registers->IDTR.base & 0xFFFFFF) | ((EMULATED_CPU >= CPU_80386) ? 0xFF000000 : 0x00000000)); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+		CPUPROT2
 		break;
 	case 2: //LGDT
 		debugger_setcommand("LGDT %s", info.text);
-		unkOP0F_286(); //TODO!
+		if (params.info[0].isreg) //We're storing to a register? Invalid!
+		{
+			unkOP0F_286();
+			return; //Abort!
+		}
+		if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
+		{
+			THROWDESCGP(0); //Throw #GP!
+			return; //Abort!
+		}
+		oper1 = modrm_read16(&params, 0); //Read the limit first!
+		CPUPROT1
+			modrm_addoffset = 2; //Add 2 bytes to the offset!
+			oper1d = ((uint_32)modrm_read16(&params, 0)); //Lower part of the limit!
+			CPUPROT1
+				modrm_addoffset = 4; //Last byte!
+				oper1d |= (((uint_32)modrm_read8(&params,0))<<16); //Higher part of the limit!
+				CPUPROT1
+					CPU[activeCPU].registers->GDTR.base = oper1d; //Load the base!
+					CPU[activeCPU].registers->GDTR.limit = oper1; //Load the limit!
+				CPUPROT2
+			CPUPROT2
+		CPUPROT2
 		break;
 	case 3: //LIDT
 		debugger_setcommand("LIDT %s", info.text);
-		unkOP0F_286(); //TODO!
+		if (params.info[0].isreg) //We're storing to a register? Invalid!
+		{
+			unkOP0F_286();
+			return; //Abort!
+		}
+		if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
+		{
+			THROWDESCGP(0); //Throw #GP!
+			return; //Abort!
+		}
+		oper1 = modrm_read16(&params, 0); //Read the limit first!
+		CPUPROT1
+			modrm_addoffset = 2; //Add 2 bytes to the offset!
+			oper1d = ((uint_32)modrm_read16(&params, 0)); //Lower part of the limit!
+			CPUPROT1
+				modrm_addoffset = 4; //Last byte!
+				oper1d |= (((uint_32)modrm_read8(&params, 0)) << 16); //Higher part of the limit!
+				CPUPROT1
+					CPU[activeCPU].registers->IDTR.base = oper1d; //Load the base!
+					CPU[activeCPU].registers->IDTR.limit = oper1; //Load the limit!
+				CPUPROT2
+			CPUPROT2
+		CPUPROT2
 		break;
 	case 4: //SMSW
 		debugger_setcommand("SMSW %s", info.text);
-		unkOP0F_286(); //TODO!
+		modrm_write16(&params,0,(word)(CPU[activeCPU].registers->CR0_full&0xFFFF),0); //Store the MSW into the specified location!
 		break;
 	case 6: //LMSW
 		debugger_setcommand("LMSW %s", info.text);
-		unkOP0F_286(); //TODO!
+		if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
+		{
+			THROWDESCGP(0); //Throw #GP!
+			return; //Abort!
+		}
+		oper1 = modrm_read16(&params,0); //Read the new register!
+		CPUPROT1
+		oper1 |= CPU[activeCPU].registers->CR0.PE; //Keep the protected mode bit on, this isn't toggable anymore once set!
+		CPU[activeCPU].registers->CR0_full = (CPU[activeCPU].registers->CR0_full&(~0xFFFF))|oper1; //Set the MSW!
+		CPUPROT2
 		break;
-	case 0: //--- Unknown Opcode!
 	case 5: //--- Unknown Opcode!
 	case 7: //--- Unknown Opcode!
 		unkOP0F_286(); //Unknown opcode!
@@ -181,7 +294,12 @@ void CPU286_OP0F03() //LSL /r
 
 void CPU286_OP0F06() //CLTS
 {
-	unkOP0F_286(); //TODO!
+	if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
+	{
+		THROWDESCGP(0); //Throw #GP!
+		return; //Abort!
+	}
+	CPU[activeCPU].registers->CR0.TS = 0; //Clear the Task Switched flag!
 }
 
 void CPU286_OP0F0B() //#UD instruction

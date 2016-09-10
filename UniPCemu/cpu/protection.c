@@ -190,16 +190,16 @@ void THROWDESCSeg(word segment, byte external)
 int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 {
 	uint_32 descriptor_adress = 0;
-	descriptor_adress = (segment&4)?CPU[activeCPU].registers->LDTR.base:CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_adress = (segment & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
 
-	if ((word)descriptor_index>((segment&4)?CPU[activeCPU].registers->LDTR.limit:CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)descriptor_index>((segment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		THROWDESCGP(segment); //Throw error!
 		return 0; //Not present: limit exceeded!
 	}
 	
-	if (!descriptor_index && ((whatsegment==CPU_SEGMENT_CS) || (whatsegment==CPU_SEGMENT_SS))) //NULL segment loaded into CS or SS?
+	if ((!descriptor_index) && ((whatsegment==CPU_SEGMENT_CS) || (whatsegment==CPU_SEGMENT_SS))) //NULL segment loaded into CS or SS?
 	{
 		THROWDESCGP(segment); //Throw error!
 		return 0; //Not present: limit exceeded!	
@@ -209,6 +209,20 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 	for (i=0;i<(int)sizeof(container->descdata);i++) //Process the descriptor data!
 	{
 		container->descdata[i] = memory_directrb(descriptor_adress+i); //Read a descriptor byte directly from flat memory!
+	}
+
+	if (whatsegment == CPU_SEGMENT_LDTR) //Loading a LDT with no LDT entry used?
+	{
+		if (segment & 4) //We're not loading from the GDT?
+		{
+			THROWDESCGP(segment); //Throw error!
+			return 0; //Not present: limit exceeded!
+		}
+		if (container->desc.Type != AVL_SYSTEM_LDT) //We're not an LDT?
+		{
+			THROWDESCGP(segment); //Throw error!
+			return 0; //Not present: limit exceeded!
+		}
 	}
 	
 	if ((whatsegment==CPU_SEGMENT_SS) && //SS is...
@@ -239,10 +253,10 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 void SAVEDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 {
 	uint_32 descriptor_adress = 0;
-	descriptor_adress = (segment & 4) ? CPU[activeCPU].registers->LDTR.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_adress = (segment & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
 
-	if ((word)descriptor_index>((segment & 4) ? CPU[activeCPU].registers->LDTR.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)descriptor_index>((segment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		return; //Not present: limit exceeded!
 	}
@@ -660,10 +674,10 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 int LOADINTDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 {
 	uint_32 descriptor_adress = 0;
-	descriptor_adress = (segment & 4) ? CPU[activeCPU].registers->LDTR.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_adress = (segment & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
 
-	if ((word)descriptor_index>((segment & 4) ? CPU[activeCPU].registers->LDTR.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)descriptor_index>((segment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		THROWDESCGP(segment); //Throw error!
 		return 0; //Not present: limit exceeded!
