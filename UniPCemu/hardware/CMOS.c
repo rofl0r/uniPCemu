@@ -411,8 +411,11 @@ void CMOS_onWrite() //When written to CMOS!
 {
 	if (CMOS.ADDR==0xB) //Might have enabled IRQ8 functions!
 	{
-		addtimer((float)getIRQ8Rate(),&RTC_updateDateTime,"RTC",10,0,NULL); //RTC handler!
+		float rate;
+		rate = (float)getIRQ8Rate(); //Update the rate!
 		CMOS.IRQ8_Disabled = 0; //Allow IRQ8 to be called by timer: we're enabled!
+		unlock(LOCK_CMOS);
+		addtimer(rate,&RTC_updateDateTime,"RTC",10,0,NULL); //RTC handler update!
 	}
 	else if (CMOS.ADDR < 0xA) //Date/time might have been updated?
 	{
@@ -420,6 +423,11 @@ void CMOS_onWrite() //When written to CMOS!
 		{
 			updateTimeDivergeance(); //Update the relative time compared to current time!
 		}
+		unlock(LOCK_CMOS);
+	}
+	else
+	{
+		unlock(LOCK_CMOS);
 	}
 }
 
@@ -592,7 +600,6 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		}
 		dolog("CMOS", "Updating register %02X=%02X", CMOS.ADDR,value);
 		CMOS_onWrite(); //On write!
-		unlock(LOCK_CMOS);
 		CMOS.ADDR = 0xD; //Reset address!		
 		return 1;
 		break;

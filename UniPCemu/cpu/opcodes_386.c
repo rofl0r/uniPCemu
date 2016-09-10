@@ -114,7 +114,7 @@ void modrm_debugger32(MODRM_PARAMS *theparams, byte whichregister1, byte whichre
 	}
 }
 
-OPTINLINE byte NumberOfSetBits(uint_32 i)
+OPTINLINE byte NumberOfSetBits386(uint_32 i)
 {
 	// Java: use >>> instead of >>
 	// C or C++: use uint32_t
@@ -2058,9 +2058,9 @@ void op_grp3_32() {
 		{
 			CPU[activeCPU].cycles_OP = 118; //Reg!
 		}
-		if (NumberOfSetBits(tempEAX)>1) //More than 1 bit set?
+		if (NumberOfSetBits386(tempEAX)>1) //More than 1 bit set?
 		{
-			CPU[activeCPU].cycles_OP += NumberOfSetBits(tempEAX) - 1; //1 cycle for all bits more than 1 bit set!
+			CPU[activeCPU].cycles_OP += NumberOfSetBits386(tempEAX) - 1; //1 cycle for all bits more than 1 bit set!
 		}
 		break;
 	case 5: //IMULW

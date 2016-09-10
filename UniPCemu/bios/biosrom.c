@@ -783,7 +783,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 		case CPU_80386:
 		case CPU_80486:
 		case CPU_PENTIUM: //5170 AT PC!
-			segment = tempoffset = offset; //Load the offset!
+			segment = tempoffset = basepos; //Load the offset!
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //u47?

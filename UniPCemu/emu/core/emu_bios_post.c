@@ -245,12 +245,15 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			byte verified;
 			verified = 0; //Default: not verified!
 			lock(LOCK_CPU);
-				verified = BIOS_load_custom(NULL,"BIOSROM.BIN"); //Try to load a custom BIOS ROM!
-				if (verified) goto loadOPTROMS; //Loaded the BIOS?
+			verified = BIOS_load_custom(NULL,"BIOSROM.BIN"); //Try to load a custom general BIOS ROM!
+			if (verified) goto loadOPTROMS; //Loaded the BIOS?
 
 			//Load a normal BIOS ROM, according to the chips!
 			if (EMULATED_CPU < CPU_80286) //5160 PC?
 			{
+				verified = BIOS_load_custom(NULL, "BIOSROM.XT.BIN"); //Try to load a custom XT BIOS ROM!
+				if (verified) goto loadOPTROMS; //Loaded the BIOS?
+
 				if (!BIOS_load_ROM(18)) //Failed to load u18?
 				{
 					dolog("emu", "Failed loading BIOS ROM u18!");
