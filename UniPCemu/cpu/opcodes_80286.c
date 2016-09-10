@@ -50,6 +50,78 @@ Interrupts:
 
 extern Handler CurrentCPU_opcode0F_jmptbl[512]; //Our standard internal standard opcode jmptbl!
 
+extern char modrm_param1[256]; //Contains param/reg1
+extern char modrm_param2[256]; //Contains param/reg2
+extern byte cpudebugger; //CPU debugger active?
+extern byte custommem; //Custom memory address?
+
+OPTINLINE void modrm286_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type) //Copy of 8086 version!
+{
+	if (cpudebugger) //Gotten no debugger to process?
+	{
+		//Process debugger!
+		char result[256];
+		bzero(result, sizeof(result));
+		strcpy(result, instruction); //Set the instruction!
+		switch (type)
+		{
+		case PARAM_MODRM1: //Param1 only?
+		case PARAM_MODRM2: //Param2 only?
+		case PARAM_MODRM12: //param1,param2
+		case PARAM_MODRM21: //param2,param1
+							//We use modr/m decoding!
+			switch (debuggersize)
+			{
+			case 8:
+				modrm_debugger8(&params, 0, 1);
+				break;
+			case 16:
+				modrm_debugger16(&params, 0, 1);
+				break;
+			default: //None?
+					 //Don't use modr/m!
+				break;
+			}
+			break;
+		}
+		switch (type)
+		{
+		case PARAM_NONE: //No params?
+			debugger_setcommand(result); //Nothing!
+			break;
+		case PARAM_MODRM1: //Param1 only?
+			strcat(result, " %s"); //1 param!
+			debugger_setcommand(result, modrm_param1);
+			break;
+		case PARAM_MODRM2: //Param2 only?
+			strcat(result, " %s"); //1 param!
+			debugger_setcommand(result, modrm_param2);
+			break;
+		case PARAM_MODRM12: //param1,param2
+			strcat(result, " %s,%s"); //2 params!
+			debugger_setcommand(result, modrm_param1, modrm_param2);
+			break;
+		case PARAM_MODRM21: //param2,param1
+			strcat(result, " %s,%s"); //2 params!
+			debugger_setcommand(result, modrm_param2, modrm_param1);
+			break;
+		case PARAM_IMM8: //imm8
+			strcat(result, " %02X"); //1 param!
+			debugger_setcommand(result, paramdata);
+			break;
+		case PARAM_IMM16: //imm16
+			strcat(result, " %04X"); //1 param!
+			debugger_setcommand(result, paramdata);
+			break;
+		case PARAM_IMM32: //imm32
+			strcat(result, " %08X"); //1 param!
+			debugger_setcommand(result, paramdata);
+		default: //Unknown?
+			break;
+		}
+	}
+}
+
 void unkOP_286() //Unknown opcode on 286+?
 {
 	debugger_setcommand("<80286+ #UD>"); //Command is unknown opcode!
@@ -60,6 +132,7 @@ void unkOP_286() //Unknown opcode on 286+?
 
 void CPU286_OP63() //ARPL r/m16,r16
 {
+	modrm286_generateInstructionTEXT("ARPL",16,0,PARAM_MODRM21); //Our instruction text!
 	if (getcpumode() == CPU_MODE_REAL) //Real mode? #UD!
 	{
 		unkOP_286(); //Execute our unk opcode handler!
@@ -86,6 +159,7 @@ void CPU286_OP63() //ARPL r/m16,r16
 
 void CPU286_OPD6() //286+ SALC
 {
+	debugger_setcommand("SALC");
 	REG_AL = FLAG_CF?0xFF:0x00; //Set AL if Carry flag!
 }
 
@@ -337,6 +411,7 @@ void CPU286_OP0F02() //LAR /r
 		unkOP0F_286(); //We're not recognized in real mode!
 		return;
 	}
+	modrm286_generateInstructionTEXT("LAR", 16, 0, PARAM_MODRM2); //Our instruction text!
 	oper1 = modrm_read16(&params,0); //Read the segment to check!
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
@@ -398,6 +473,7 @@ void CPU286_OP0F03() //LSL /r
 		unkOP0F_286(); //We're not recognized in real mode!
 		return;
 	}
+	modrm286_generateInstructionTEXT("LSL", 16, 0, PARAM_MODRM2); //Our instruction text!
 	oper1 = modrm_read16(&params, 0); //Read the segment to check!
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
@@ -458,6 +534,7 @@ void CPU286_OP0F03() //LSL /r
 
 void CPU286_OP0F06() //CLTS
 {
+	debugger_setcommand("CLTS"); //Our instruction text!
 	if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
 	{
 		THROWDESCGP(0); //Throw #GP!

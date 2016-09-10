@@ -691,7 +691,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //60h: PUSHA(removed here)
 		{ NULL, NULL }, //61h: POPA(removed here)
 		{ NULL, NULL }, //UNK
-		{ NULL, NULL }, //UNK
+		{ CPU286_OP63, NULL }, //ARPL r/m16,r16(286+)
 		{ NULL, NULL }, //UNK
 		{ NULL, NULL }, //UNK
 		{ NULL, NULL }, //UNK
@@ -813,7 +813,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //D3h:
 		{ NULL, NULL }, //D4h:
 		{ NULL, NULL }, //D5h:
-		{ NULL, NULL }, //D6h: UNK
+		{ CPU286_OPD6, NULL }, //D6h: SALC(286+)
 		{ NULL, NULL }, //D7h:
 		{ NULL, NULL }, //D8h: UNK
 		{ NULL, NULL }, //D9h: CoProcessor Minimum

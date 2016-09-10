@@ -23,18 +23,18 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 	//80286+
 	{
 //0x00:
-		{unkOP0F_286,NULL}, //00h:
-		{unkOP0F_286,NULL}, //01h
-		{unkOP0F_286,NULL}, //02h:
-		{unkOP0F_286,NULL}, //03h:
+		{CPU286_OP0F00,NULL}, //00h:
+		{CPU286_OP0F01,NULL}, //01h
+		{CPU286_OP0F02,NULL}, //02h:
+		{CPU286_OP0F03,NULL}, //03h:
 		{unkOP0F_286,NULL}, //04h:
 		{unkOP0F_286,NULL}, //05h:
-		{unkOP0F_286,NULL}, //06h:
+		{CPU286_OP0F06,NULL}, //06h:
 		{unkOP0F_286,NULL}, //07h:
 		{unkOP0F_286,NULL}, //08h:
 		{unkOP0F_286,NULL}, //09h:
 		{unkOP0F_286,NULL}, //0Ah:
-		{unkOP0F_286,NULL}, //0Bh:
+		{CPU286_OP0F0B,NULL}, //0Bh:
 		{unkOP0F_286,NULL}, //0Ch:
 		{unkOP0F_286,NULL}, //0Dh:
 		{unkOP0F_286,NULL}, //0Eh:
@@ -219,7 +219,7 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 		{unkOP0F_286,NULL},
 		{unkOP0F_286,NULL},
 		{unkOP0F_286,NULL},
-		{unkOP0F_286,NULL},
+		{CPU286_OP0FB9,NULL},
 		{unkOP0F_286,NULL},
 		{unkOP0F_286,NULL},
 		{unkOP0F_286,NULL},
