@@ -3,16 +3,9 @@
 
 //Everything concerning TSS.
 
-byte SwitchPrivileges = 0xFF; //Default: don't switch privileges!
-
-int TSS_PrivilegeChanges(int whatsegment,SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word segment)
-{
-	//Affect SwitchPrivileges!
-	return 1; //Error: not build yet!
-}
-
 byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL) //Switching to a certain task?
 {
+	byte destStack = 3; //Destination stack!
 	//Both structures to use for the TSS!
 	word LDTsegment;
 	word n;
@@ -28,7 +21,14 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		TSS386 TSS;
 		byte data[104]; //All our data!
 	} TSS32;
+	byte oldCPL = getCPL(); //Save the old privilege level!
 	byte TSSSize = 0; //The TSS size!
+
+	if (LOADEDDESCRIPTOR->desc.DPL != getCPL()) //Different CPL? Stack switch?
+	{
+		destStack = LOADEDDESCRIPTOR->desc.DPL; //Switch to this stack!
+	}
+
 	uint_32 limit; //The limit we use!
 	if (LOADEDDESCRIPTOR->desc.P==0) //Not present?
 	{
@@ -262,16 +262,22 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	descriptor_adress = (LDTsegment & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low|(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid<<16))| CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high<<24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = getDescriptorIndex(LDTsegment); //The full index within the descriptor table!
 
+	if (LDTsegment & 4) //We cannot reside in the LDT!
+	{
+		CPU_TSSFault(CPU->registers->TR); //Throw error!
+		return 1; //Not present: we cannot reside in the LDT!
+	}
+
 	if ((word)descriptor_index>((LDTsegment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low|(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high<<16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		CPU_TSSFault(CPU->registers->TR); //Throw error!
-		return 0; //Not present: limit exceeded!
+		return 1; //Not present: limit exceeded!
 	}
 
 	if ((!descriptor_index) /*&& ((whatsegment == CPU_SEGMENT_CS) || (whatsegment == CPU_SEGMENT_SS))*/) //NULL segment loaded into CS or SS?
 	{
 		THROWDESCGP(CPU->registers->TR); //Throw error!
-		return 0; //Not present: limit exceeded!
+		return 1; //Not present: limit exceeded!
 	}
 
 	int i;
@@ -311,31 +317,90 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	if (getCPL() != CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].DPL) //Non-matching TSS DPL vs CS CPL?
 	{
 		CPU_TSSFault(CPU->registers->TR); //Throw error!
-		return 0; //Not present: limit exceeded!
+		return 1; //Not present: limit exceeded!
+	}
+
+	word *SSPtr;
+	uint_32 *ESPPtr;
+	word *SPPtr;
+	if (TSSSize) //32-bit to load?
+	{
+		switch (destStack) //What are we switching to?
+		{
+		case 0: //Level 0?
+			SSPtr = &TSS32.TSS.SS0;
+			ESPPtr = &TSS32.TSS.ESP0;
+			break;
+		case 1: //Level 1?
+			SSPtr = &TSS32.TSS.SS1;
+			ESPPtr = &TSS32.TSS.ESP1;
+			break;
+		case 2: //Level 2?
+			SSPtr = &TSS32.TSS.SS2;
+			ESPPtr = &TSS32.TSS.ESP2;
+			break;
+		case 3: //Level 3?
+			SSPtr = &TSS32.TSS.SS;
+			ESPPtr = &TSS32.TSS.ESP;
+			break;
+		}
+	}
+	else //16-bit to load?
+	{
+		switch (destStack) //What are we switching to?
+		{
+		case 0: //Level 0?
+			SSPtr = &TSS16.TSS.SS0;
+			SPPtr = &TSS16.TSS.SP0;
+			break;
+		case 1: //Level 1?
+			SSPtr = &TSS16.TSS.SS1;
+			SPPtr = &TSS16.TSS.SP1;
+			break;
+		case 2: //Level 2?
+			SSPtr = &TSS16.TSS.SS2;
+			SPPtr = &TSS16.TSS.SP2;
+			break;
+		case 3: //Level 3?
+			SSPtr = &TSS16.TSS.SS;
+			SPPtr = &TSS16.TSS.SP;
+			break;
+		}
+	}
+
+	segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0); //Update the segment!
+	if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
+	if (TSSSize) //32-bit?
+	{
+		CPU[activeCPU].registers->ESP = *ESPPtr;
+	}
+	else //16-bit?
+	{
+		CPU[activeCPU].registers->SP = *SPPtr;
 	}
 
 	if (TSSSize) //32-bit?
 	{
 		segmentWritten(CPU_SEGMENT_DS, TSS32.TSS.DS, 0); //Load reg!
-		if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 		segmentWritten(CPU_SEGMENT_ES, TSS32.TSS.ES, 0); //Load reg!
-		if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 		segmentWritten(CPU_SEGMENT_FS, TSS32.TSS.FS, 0); //Load reg!
-		if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 		segmentWritten(CPU_SEGMENT_GS, TSS32.TSS.GS, 0); //Load reg!
-		if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 	}
 	else //16-bit?
 	{
 		segmentWritten(CPU_SEGMENT_DS, TSS16.TSS.DS, 0); //Load reg!
-		if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 		segmentWritten(CPU_SEGMENT_ES, TSS16.TSS.ES, 0); //Load reg!
-		if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 	}
 
 	//All segments are valid and readable!
 
-	return 1; //Abort any running instruction operation!
+	return 0; //Abort any running instruction operation!
 }
 
 void CPU_TSSFault(uint_32 errorcode)

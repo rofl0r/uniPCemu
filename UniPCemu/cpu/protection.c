@@ -421,23 +421,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 				THROWDESCSeg(segment,1); //Throw error!
 				return NULL; //We're an invalid TSS to execute!
 			}
-			//Handle the task switch!
-			if (LOADEDDESCRIPTOR.desc.DPL != getCPL()) //Different CPL? Stack switch?
-			{
-				if (TSS_PrivilegeChanges(whatsegment, &LOADEDDESCRIPTOR, segment)) //The privilege level has changed and failed?
-				{
-					//6.3.4.1 Stack Switching!!!
-					//Throw #GP?
-					THROWDESCGP(segment); //Throw error!
-					return NULL; //Error changing priviledges!
-				}
-				//We're ready to switch to the destination task!
-			}
 
 			//Execute a normal task switch!
 			if (CPU_switchtask(whatsegment,&LOADEDDESCRIPTOR,&segment,segment,isJMPorCALL)) //Switching to a certain task?
 			{
-				return NULL; //Error changing priviledges!
+				return NULL; //Error changing priviledges or anything else!
 			}
 
 			//We've properly switched to the destination task! Continue execution normally!
@@ -565,15 +553,20 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		return 2; //#NP!
 	}
 
-	if (segment == CPU_SEGMENT_CS && !(descriptor->EXECSEGMENT.ISEXEC && descriptor->nonS) && (forreading == 3)) //Non-executable segment execution?
+	if (descriptor->nonS == 0) //System segment isn't allowed?
 	{
 		return 1; //Error!
 	}
-	else if (((descriptor->EXECSEGMENT.ISEXEC) || !(descriptor->DATASEGMENT.OTHERSTRUCT || descriptor->DATASEGMENT.W)) && descriptor->nonS && !forreading) //Writing to executable segment or read-only data segment?
+
+	if (segment == CPU_SEGMENT_CS && !(descriptor->EXECSEGMENT.ISEXEC) && (forreading == 3)) //Non-executable segment execution?
 	{
 		return 1; //Error!
 	}
-	else if (descriptor->EXECSEGMENT.ISEXEC && !descriptor->EXECSEGMENT.R && descriptor->nonS && forreading == 1) //Reading execute-only segment?
+	else if (((descriptor->EXECSEGMENT.ISEXEC) || !(descriptor->DATASEGMENT.OTHERSTRUCT || descriptor->DATASEGMENT.W)) && !forreading) //Writing to executable segment or read-only data segment?
+	{
+		return 1; //Error!
+	}
+	else if (descriptor->EXECSEGMENT.ISEXEC && !descriptor->EXECSEGMENT.R && forreading == 1) //Reading execute-only segment?
 	{
 		return 1; //Error!	
 	}
@@ -581,6 +574,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	//Next: limit checking!
 
 	uint_32 limit; //The limit!
+	byte isvalid;
 
 	limit = ((descriptor->limit_high << 8) | descriptor->limit_low); //Base limit!
 
@@ -591,20 +585,21 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	if (addrtest) //Execute address test?
 	{
-		if (descriptor->nonS && !descriptor->DATASEGMENT.OTHERSTRUCT && descriptor->DATASEGMENT.E) //DATA segment and expand-down?
+		isvalid = (offset<=limit); //Valid address range!
+		if ((descriptor->nonS == 1) && ((descriptor->Type & 4) == 0)) //Data segment?
 		{
-			if ((offset<(limit + 1)) || (offset>((descriptor->G && (EMULATED_CPU >= CPU_80386)) ? 0xFFFFFFFF : 0xFFFF))) //Limit+1 to 64K/64G!
+			if (descriptor->DATASEGMENT.E) //Expand-down segment?
 			{
-				return 1; //Error!
+				isvalid = !isvalid; //Reversed valid!
+				if (descriptor->G == 0) //Small granularity?
+				{
+					isvalid = (isvalid && (offset <= 0x10000)); //Limit to 64K!
+				}
 			}
-		}
-		else if (offset>limit) //Normal operations? 0-limit!
-		{
-			return 1; //Error!
 		}
 	}
 
-	//Third: privilege levels
+	//Third: privilege levels & Restrict access to data!
 
 	switch (descriptor->AccessRights) //What type?
 	{
@@ -623,8 +618,6 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	{
 		return 1; //Not enough rights!
 	}
-
-	//Fouth: Restrict access to data!
 
 	//Fifth: Accessing data in Code segments?
 
