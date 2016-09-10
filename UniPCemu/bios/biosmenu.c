@@ -35,6 +35,8 @@
 #include "headers/support/bmp.h" //For dumping our full VGA RAM!
 #include "headers/hardware/gameblaster.h" //Gameblaster volume knob support!
 
+extern byte diagnosticsportoutput; //Diagnostics port output!
+
 //Define below to enable the sound test with recording!
 //#define SOUND_TEST
 
@@ -4279,7 +4281,7 @@ void BIOS_InitCPUText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i = 0; i<2; i++) //Clear all possibilities!
+	for (i = 0; i<11; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
@@ -4453,6 +4455,9 @@ setShowCPUSpeed:
 		strcat(menuoptions[advancedoptions++], "Never"); //Set filename from options!
 		break;
 	}
+
+	optioninfo[advancedoptions] = 10; //We're diagnostics output!
+	sprintf(menuoptions[advancedoptions++],"Diagnostics code: %02X",diagnosticsportoutput); //Show the diagnostics output!
 }
 
 void BIOS_CPU() //CPU menu!
@@ -4475,7 +4480,8 @@ void BIOS_CPU() //CPU menu!
 	case 6:
 	case 7:
 	case 8:
-	case 9: //Valid option?
+	case 9:
+	case 10: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -4508,9 +4514,11 @@ void BIOS_CPU() //CPU menu!
 		case 8: //Debug mode?
 			BIOS_Menu = 13; //Debug mode option!
 			break;
-		case 9:
+		case 9: //Debugger log setting!
 			BIOS_Menu = 23; //Debugger log setting!
 			break;
+		case 10: //Diagnostics output!
+			break; //We do nothing!
 		}
 		break;
 	default: //Unknown option?
