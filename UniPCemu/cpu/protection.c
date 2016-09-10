@@ -211,6 +211,12 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 		container->descdata[i] = memory_directrb(descriptor_adress+i); //Read a descriptor byte directly from flat memory!
 	}
 
+	if (EMULATED_CPU == CPU_80286) //80286 has less options?
+	{
+		container->desc.base_high = 0; //No high byte is present!
+		container->desc.limit_high = 0; //No high limit is present!
+	}
+
 	if (whatsegment == CPU_SEGMENT_LDTR) //Loading a LDT with no LDT entry used?
 	{
 		if (segment & 4) //We're not loading from the GDT?
@@ -264,6 +270,16 @@ void SAVEDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container
 	if (!descriptor_index && ((whatsegment == CPU_SEGMENT_CS) || (whatsegment == CPU_SEGMENT_SS))) //NULL segment loaded into CS or SS?
 	{
 		return; //Not present: limit exceeded!	
+	}
+
+	SEGDESCRIPTOR_TYPE tempcontainer;
+	if (EMULATED_CPU == CPU_80286) //80286 has less options?
+	{
+		if (LOADDESCRIPTOR(whatsegment,segment,&tempcontainer)) //Loaded the old container?
+		{
+			container->desc.base_high = tempcontainer.desc.base_high; //No high byte is present, so ignore the data!
+			container->desc.limit_high = tempcontainer.desc.limit_high; //No high limit is present, so ingore the data!
+		}
 	}
 
 	int i;
@@ -532,7 +548,71 @@ uint_32 CPU_MMU_start(sword segment, word segmentval) //Determines the start of 
 MMU: Memory limit!
 
 */
-	
+
+//Used by the CPU(VERR/VERW)&MMU I/O!
+byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest)
+{
+	if ((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && !getDescriptorIndex(segmentval)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
+	{
+		return 1; //Error!
+	}
+
+	//First: type checking!
+
+	if (!descriptor->P) //Not present?
+	{
+		return 2; //#NP!
+	}
+
+	if (segment == CPU_SEGMENT_CS && !(descriptor->EXECSEGMENT.ISEXEC && descriptor->nonS) && (forreading == 3)) //Non-executable segment execution?
+	{
+		return 1; //Error!
+	}
+	else if (((descriptor->EXECSEGMENT.ISEXEC) || !(descriptor->DATASEGMENT.OTHERSTRUCT || descriptor->DATASEGMENT.W)) && descriptor->nonS && !forreading) //Writing to executable segment or read-only data segment?
+	{
+		return 1; //Error!
+	}
+	else if (descriptor->EXECSEGMENT.ISEXEC && !descriptor->EXECSEGMENT.R && descriptor->nonS && forreading == 1) //Reading execute-only segment?
+	{
+		return 1; //Error!	
+	}
+
+	//Next: limit checking!
+
+	uint_32 limit; //The limit!
+
+	limit = ((descriptor->limit_high << 8) | descriptor->limit_low); //Base limit!
+
+	if (descriptor->G) //Granularity?
+	{
+		limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
+	}
+
+	if (addrtest) //Execute address test?
+	{
+		if (descriptor->nonS && !descriptor->DATASEGMENT.OTHERSTRUCT && descriptor->DATASEGMENT.E) //DATA segment and expand-down?
+		{
+			if ((offset<(limit + 1)) || (offset>(descriptor->G ? 0xFFFFFFFF : 0xFFFF))) //Limit+1 to 64K/64G!
+			{
+				return 1; //Error!
+			}
+		}
+		else if (offset>limit) //Normal operations? 0-limit!
+		{
+			return 1; //Error!
+		}
+	}
+
+	//Third: privilege levels!
+
+	//Fouth: Restrict access to data!
+
+	//Fifth: Accessing data in Code segments?
+
+	return 0; //OK!
+}
+
+//Used by the MMU!
 int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forreading) //Determines the limit of the segment, forreading=2 when reading an opcode!
 {
 	//Determine the Limit!
@@ -552,68 +632,18 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 			}
 		}
 		
-		if (segment!=CPU_SEGMENT_CS && segment!=CPU_SEGMENT_SS && !getDescriptorIndex(segmentval)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
+		switch (CPU_MMU_checkrights(segment,segmentval, offset, forreading, &CPU[activeCPU].SEG_DESCRIPTOR[segment],1)) //What rights resulting? Test the address itself too!
 		{
+		case 0: //OK?
+			break; //OK!
+		default: //Unknown status? Count #GP by default!
+		case 1: //#GP?
 			THROWDESCGP(segmentval); //Throw fault!
-			return 1; //Error!
+			break;
+		case 2: //#NP?
+			THROWDESCSeg(segment, 0); //Throw error: accessing non-present segment descriptor!
+			break;
 		}
-		
-		SEGMENT_DESCRIPTOR *SEG_DESCRIPTOR = &CPU[activeCPU].SEG_DESCRIPTOR[segment]; //Look it up!
-		//First: type checking!
-	
-		if (!SEG_DESCRIPTOR->P) //Not present?
-		{
-			THROWDESCSeg(segment,0); //Throw error: accessing non-present segment descriptor!
-			return 1; //Erorr!
-		}
-
-		if (segment==CPU_SEGMENT_CS && !(SEG_DESCRIPTOR->EXECSEGMENT.ISEXEC && SEG_DESCRIPTOR->nonS) && (forreading==3)) //Non-executable segment execution?
-		{
-			THROWDESCGP(segmentval); //Throw fault!
-			return 1; //Error!
-		}
-		else if (((SEG_DESCRIPTOR->EXECSEGMENT.ISEXEC) || !(SEG_DESCRIPTOR->DATASEGMENT.OTHERSTRUCT || SEG_DESCRIPTOR->DATASEGMENT.W)) && SEG_DESCRIPTOR->nonS && !forreading) //Writing to executable segment or read-only data segment?
-		{
-			THROWDESCGP(segmentval); //Throw fault!
-			return 1; //Error!
-		}
-		else if (SEG_DESCRIPTOR->EXECSEGMENT.ISEXEC && !SEG_DESCRIPTOR->EXECSEGMENT.R && SEG_DESCRIPTOR->nonS && forreading==1) //Reading execute-only segment?
-		{
-			THROWDESCGP(segmentval); //Throw fault!
-			return 1; //Error!	
-		}
-		
-		//Next: limit checking!
-	
-		uint_32 limit; //The limit!
-	
-		limit = ((SEG_DESCRIPTOR->limit_high<<8)|SEG_DESCRIPTOR->limit_low); //Base limit!
-	
-		if (SEG_DESCRIPTOR->G) //Granularity?
-		{
-			limit = ((limit << 12)|0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
-		}
-		
-		if (SEG_DESCRIPTOR->nonS && !SEG_DESCRIPTOR->DATASEGMENT.OTHERSTRUCT && SEG_DESCRIPTOR->DATASEGMENT.E) //DATA segment and expand-down?
-		{
-			if ((offset<(limit+1)) || (offset>(SEG_DESCRIPTOR->G?0xFFFFFFFF:0xFFFF))) //Limit+1 to 64K/64G!
-			{
-				THROWDESCGP(segmentval); //Throw fault!
-				return 1; //Error!
-			}
-		}
-		else if (offset>limit) //Normal operations? 0-limit!
-		{
-			THROWDESCGP(segmentval); //Throw fault!
-			return 1; //Error!
-		}
-		
-		//Third: privilege levels!
-	
-		//Fouth: Restrict access to data!
-		
-		//Fifth: Accessing data in Code segments?
-	
 		return 0; //OK!
 	}
 	return 0; //Don't give errors: handle like a 80(1)86!

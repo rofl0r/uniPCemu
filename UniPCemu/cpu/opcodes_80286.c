@@ -155,11 +155,47 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		break;
 	case 4: //VERR
 		debugger_setcommand("VERR %s", info.text);
-		unkOP0F_286(); //TODO!
+		oper1 = modrm_read16(&params,0); //Read the descriptor!
+		CPUPROT1
+			SEGDESCRIPTOR_TYPE verdescriptor;
+			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
+			{
+				if (CPU_MMU_checkrights(-1, oper1, 0, 1, &verdescriptor.desc, 0)==0) //Check without address test!
+				{
+					FLAG_ZF = 1; //We're valid!
+				}
+				else
+				{
+					FLAG_ZF = 0; //We're invalid!
+				}
+			}
+			else
+			{
+				FLAG_ZF = 0; //We're invalid!
+			}
+		CPUPROT2
 		break;
 	case 5: //VERW
 		debugger_setcommand("VERW %s", info.text);
-		unkOP0F_286(); //TODO!
+		oper1 = modrm_read16(&params, 0); //Read the descriptor!
+		CPUPROT1
+			SEGDESCRIPTOR_TYPE verdescriptor;
+			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
+			{
+				if (CPU_MMU_checkrights(-1, oper1, 0, 0, &verdescriptor.desc, 0)==0) //Check without address test!
+				{
+					FLAG_ZF = 1; //We're valid!
+				}
+				else
+				{
+					FLAG_ZF = 0; //We're invalid!
+				}
+			}
+			else
+			{
+				FLAG_ZF = 0; //We're invalid!
+			}
+		CPUPROT2
 		break;
 	case 6: //--- Unknown Opcode! ---
 	case 7: //--- Unknown Opcode! ---
