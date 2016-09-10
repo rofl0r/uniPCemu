@@ -134,8 +134,8 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 	case 5: //VERW
 		debugger_setcommand("VERW %s", info.text);
 		break;
-	case 6: //--- Unknown Opcode! --- Undocumented opcode!
-	case 7: //SAR
+	case 6: //--- Unknown Opcode! ---
+	case 7: //--- Unknown Opcode! ---
 		unkOP0F_286(); //Unknown opcode!
 		break;
 	default:
@@ -145,10 +145,43 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 
 void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 {
+	modrm_readparams(&params, 1, 0); //Read our params!
+	thereg = MODRM_REG(params.modrm);
+
+	modrm_decode16(&params, &info, 1); //Store the address for debugging!
+	switch (thereg) //What function?
+	{
+	case 1: //SIDT
+		debugger_setcommand("SIDT %s", info.text);
+		break;
+	case 2: //LGDT
+		debugger_setcommand("LGDT %s", info.text);
+		break;
+	case 3: //LIDT
+		debugger_setcommand("LIDT %s", info.text);
+		break;
+	case 4: //SMSW
+		debugger_setcommand("SMSW %s", info.text);
+		break;
+	case 6: //LMSW
+		debugger_setcommand("LMSW %s", info.text);
+		break;
+	case 0: //--- Unknown Opcode!
+	case 5: //--- Unknown Opcode!
+	case 7: //--- Unknown Opcode!
+		unkOP0F_286(); //Unknown opcode!
+		break;
+	default:
+		break;
+	}
+}
+
+void CPU286_OP0F02() //LAR /r
+{
 	unkOP0F_286(); //TODO!
 }
 
-void CPU286_OP0F02() //Various extended 286+ instruction GRP opcode.
+void CPU286_OP0F03() //LSL /r
 {
 	unkOP0F_286(); //TODO!
 }
