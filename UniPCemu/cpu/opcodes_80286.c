@@ -102,7 +102,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 	switch (thereg) //What function?
 	{
 	case 0: //SLDT
-		if (getcpumode() != CPU_MODE_REAL)
+		if (getcpumode() == CPU_MODE_REAL)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
@@ -111,7 +111,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		modrm_write16(&params,0,CPU->registers->LDTR,0); //Try and write it to the address specified!
 		break;
 	case 1: //STR
-		if (getcpumode() != CPU_MODE_REAL)
+		if (getcpumode() == CPU_MODE_REAL)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
@@ -120,7 +120,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		modrm_write16(&params, 0, CPU->registers->TR, 0); //Try and write it to the address specified!
 		break;
 	case 2: //LLDT
-		if (getcpumode() != CPU_MODE_REAL)
+		if (getcpumode() == CPU_MODE_REAL)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
@@ -137,7 +137,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		CPUPROT2
 		break;
 	case 3: //LTR
-		if (getcpumode() != CPU_MODE_REAL)
+		if (getcpumode() == CPU_MODE_REAL)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
@@ -154,6 +154,11 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		CPUPROT2
 		break;
 	case 4: //VERR
+		if (getcpumode() == CPU_MODE_REAL)
+		{
+			unkOP0F_286(); //We're not recognized in real mode!
+			return;
+		}
 		debugger_setcommand("VERR %s", info.text);
 		oper1 = modrm_read16(&params,0); //Read the descriptor!
 		CPUPROT1
@@ -176,6 +181,11 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		CPUPROT2
 		break;
 	case 5: //VERW
+		if (getcpumode() == CPU_MODE_REAL)
+		{
+			unkOP0F_286(); //We're not recognized in real mode!
+			return;
+		}
 		debugger_setcommand("VERW %s", info.text);
 		oper1 = modrm_read16(&params, 0); //Read the descriptor!
 		CPUPROT1
