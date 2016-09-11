@@ -1478,7 +1478,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	}
 	strcpy(itemlist[CPU_8086],"Intel 8086/8088"); //Set filename from options!
 	strcpy(itemlist[CPU_NECV30],"NEC V20/V30"); //Set filename from options!
-	strcpy(itemlist[CPU_80286], "Intel 80286(unfinished)"); //Set filename from options!
+	strcpy(itemlist[CPU_80286], "Intel 80286"); //Set filename from options!
 	int current = 0;
 	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
 	{
@@ -4302,7 +4302,7 @@ void BIOS_InitCPUText()
 		strcat(menuoptions[advancedoptions++], "NEC V20/V30"); //Add installed CPU!
 		break;
 	case CPU_80286: //80286?
-		strcat(menuoptions[advancedoptions++], "Intel 80286(unfinished)"); //Add installed CPU!
+		strcat(menuoptions[advancedoptions++], "Intel 80286"); //Add installed CPU!
 		break;
 	default:
 		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>"); //Add uninstalled CPU!
