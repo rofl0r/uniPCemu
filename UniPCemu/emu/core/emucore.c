@@ -365,7 +365,7 @@ void initEMU(int full) //Init!
 
 	//PPI after VGA because we're dependant on the CGA/MDA only mode!
 	debugrow("Initialising PPI...");
-	initPPI();
+	initPPI(BIOS_Settings.diagnosticsportoutput_breakpoint); //Start PPI with our breakpoint setting!
 
 	debugrow("Initializing CPU...");
 	CPU_databussize = BIOS_Settings.DataBusSize; //Apply the bus to use for our emulation!

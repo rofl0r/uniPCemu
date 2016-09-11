@@ -181,7 +181,8 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.GameBlaster_Volume = DEFAULT_BLASTERVOL; //Default Game Blaster volume knob!
 	BIOS_Settings.ShowFramerate = DEFAULT_FRAMERATE; //Default framerate setting!
 	BIOS_Settings.VGASynchronization = DEFAULT_VGASYNCHRONIZATION; //Default VGA synchronization setting!
-	
+	BIOS_Settings.diagnosticsportoutput_breakpoint = DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT; //Default breakpoint setting!
+
 	
 	BIOS_Settings.version = BIOS_VERSION; //Current version loaded!
 	keyboard_loadDefaults(); //Load the defaults for the keyboard!
@@ -189,6 +190,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.useAdlib = 0; //Emulate Adlib?
 	BIOS_Settings.useLPTDAC = 0; //Emulate Covox/Disney Sound Source?
 	BIOS_Settings.usePCSpeaker = 0; //Sound PC Speaker?
+
 	if (tosave) //Save settings?
 	{
 		forceBIOSSave(); //Save the BIOS!
@@ -231,6 +233,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	FILE *f;
 	size_t bytesread, bytestoread;
 	uint_32 CheckSum = 0; //Read checksum!
+	byte defaultsapplied = 0; //Defaults have been applied?
 
 	f = fopen(BIOS_Settings_file,"rb"); //Open BIOS file!
 
@@ -286,6 +289,25 @@ void BIOS_LoadData() //Load BIOS settings!
 		dolog("Settings","Error: Invalid settings version.");
 		BIOS_LoadDefaults(1); //Load the defaults, save!
 		return; //We've loaded the defaults because 
+	}
+
+	if (bytesread < sizeof(BIOS_Settings)) //Less read than we need? Set some defaults, if needed!
+	{
+		if (bytesread < ((((ptrnum)&BIOS_Settings.GameBlaster_Volume)+sizeof(BIOS_Settings.GameBlaster_Volume)) - ((ptrnum)&BIOS_Settings))) //Needs defaults?
+		{
+			BIOS_Settings.GameBlaster_Volume = DEFAULT_BLASTERVOL;
+			defaultsapplied = 1; //We've been applied!
+		}
+		if (bytesread < ((((ptrnum)&BIOS_Settings.diagnosticsportoutput_breakpoint) + sizeof(BIOS_Settings.diagnosticsportoutput_breakpoint)) - ((ptrnum)&BIOS_Settings))) //Needs defaults?
+		{
+			BIOS_Settings.diagnosticsportoutput_breakpoint = DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT;
+			defaultsapplied = 1; //We've been applied!
+		}
+	}
+
+	if (defaultsapplied) //To save, because defaults have been applied?
+	{
+		BIOS_SaveData(); //Save our Settings data!
 	}
 }
 

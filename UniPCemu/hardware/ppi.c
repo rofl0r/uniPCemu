@@ -10,6 +10,9 @@ byte SystemControlPortA=0x00; //System control port A!
 byte PPI62, PPI63; //Default PPI switches!
 byte TurboMode=0;
 byte diagnosticsportoutput = 0x00;
+extern byte singlestep; //Enable EMU-driven single step!
+sword diagnosticsportoutput_breakpoint = -1; //Breakpoint set?
+sword breakpoint_comparison = -1; //Breakpoint comparison value!
 
 byte readPPI62()
 {
@@ -90,6 +93,11 @@ byte PPI_writeIO(word port, byte value)
 		return 1;
 		break;
 	case 0x80: //IBM AT Diagnostics!
+		if (((sword)value!=breakpoint_comparison) && (diagnosticsportoutput_breakpoint == (sword)value)) //Have we reached a breakpoint?
+		{
+			singlestep = 1; //Start single stepping from this breakpoint!
+		}
+		breakpoint_comparison = (sword)value; //Save into the comparison for new changes!
 		diagnosticsportoutput = value; //Save it to the diagnostics display!
 		break;
 	case 0x92: //System control port A?
@@ -108,12 +116,14 @@ byte PPI_writeIO(word port, byte value)
 	return 0; //No PPI!
 }
 
-void initPPI()
+void initPPI(sword useDiagnosticsportoutput_breakpoint)
 {
 	SystemControlPortB = 0x7F; //Reset system control port B!
 	PPI62 = 0x00; //Set the default switches!
 	PPI63 = 0x00; //Set the default switches!
 	diagnosticsportoutput = 0x00; //Clear diagnostics port output!
+	diagnosticsportoutput_breakpoint = useDiagnosticsportoutput_breakpoint; //Breakpoint set?
+	breakpoint_comparison = -1; //Default to no comparison set, so the first set will trigger a breakpoint if needed!
 	TurboMode = 0; //Default to no turbo mode according to the switches!
 	updateSpeedLimit(); //Update the speed used!
 	register_PORTIN(&PPI_readIO);

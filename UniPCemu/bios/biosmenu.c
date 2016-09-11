@@ -190,6 +190,7 @@ void BIOS_GameBlasterVolume();
 void BIOS_useSoundBlaster();
 void BIOS_TurboCPUSpeed(); //CPU speed selection!
 void BIOS_useTurboCPUSpeed(); //CPU speed toggle!
+void BIOS_diagnosticsPortBreakpoint(); //Diagnostics Port Breakpoint setting!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -251,6 +252,7 @@ Handler BIOS_Menus[] =
 	,BIOS_useSoundBlaster //Use Sound Blaster is #54!
 	,BIOS_TurboCPUSpeed //BIOS Turbo CPU speed is #55!
 	,BIOS_useTurboCPUSpeed //CPU speed toggle is #56!
+	,BIOS_diagnosticsPortBreakpoint //Diagnostics port breakpoint is #57!
 };
 
 //Not implemented?
@@ -374,6 +376,8 @@ extern GPU_type GPU; //The GPU!
 
 byte reboot_needed = 0; //Default: no reboot needed!
 
+extern sword diagnosticsportoutput_breakpoint; //Breakpoint set?
+
 void BIOS_MenuChooser(); //The menu chooser prototype for runBIOS!
 byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
 {
@@ -496,6 +500,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	GameBlaster_setVolume((float)BIOS_Settings.GameBlaster_Volume); //Set the current volume!
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
 	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
+	diagnosticsportoutput_breakpoint = BIOS_Settings.diagnosticsportoutput_breakpoint; //Set our new breakpoint, if any!
 	unlock(LOCK_MAINTHREAD); //Continue!
 
 	return (reboot_needed==2) || ((reboot_needed==1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
@@ -4457,14 +4462,21 @@ setShowCPUSpeed:
 	}
 
 	optioninfo[advancedoptions] = 10; //We're diagnostics output!
-	sprintf(menuoptions[advancedoptions++],"Diagnostics code: %02X",diagnosticsportoutput); //Show the diagnostics output!
+	if (BIOS_Settings.diagnosticsportoutput_breakpoint>=0) //Diagnostics breakpoint specified?
+	{
+		sprintf(menuoptions[advancedoptions++], "Diagnostics code: %02X, Breakpoint at %02X", diagnosticsportoutput,(BIOS_Settings.diagnosticsportoutput_breakpoint&0xFF)); //Show the diagnostics output!
+	}
+	else
+	{
+		sprintf(menuoptions[advancedoptions++],"Diagnostics code: %02X",diagnosticsportoutput); //Show the diagnostics output!
+	}
 }
 
 void BIOS_CPU() //CPU menu!
 {
 	BIOS_Title("CPU Settings Menu");
 	BIOS_InitCPUText(); //Init text!
-	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
+	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN|BIOSMENU_SPEC_SQUAREOPTION, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //R: Main menu?
@@ -4486,38 +4498,78 @@ void BIOS_CPU() //CPU menu!
 		{
 		//CPU settings
 		case 0: //Installed CPU?
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 2; //FLOPPY0 selection!
+			}
 			if (!EMU_RUNNING) BIOS_Menu = 10; //Installed CPU selection!
 			break;
 		case 1: //Data bus size?
-			if (!EMU_RUNNING) BIOS_Menu = 40; //Data bus size!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				if (!EMU_RUNNING) BIOS_Menu = 40; //Data bus size!
+			}
 			break;
 		case 2: //CPU speed?
-			BIOS_Menu = 36; //CPU speed selection!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 36; //CPU speed selection!
+			}
 			break;
 		case 3: //Turbo CPU speed?
-			BIOS_Menu = 55; //Turbo CPU speed selection!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 55; //Turbo CPU speed selection!
+			}
 			break;
 		case 4: //Use Turbo CPU Speed?
-			BIOS_Menu = 56; //Turbo CPU speed selection!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 56; //Turbo CPU speed selection!
+			}
 			break;
 		case 5: //CPU speed display setting?
-			BIOS_Menu = 41; //CPU speed display setting!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 41; //CPU speed display setting!
+			}
 			break;
 		//Basic execution information
 		case 6: //Boot order?
-			BIOS_Menu = 9; //Boot Order Menu!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 9; //Boot Order Menu!
+			}
 			break;
 		case 7:
-			BIOS_Menu = 24; //Execution mode option!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 24; //Execution mode option!
+			}
 			break;
 		//Debugger information
 		case 8: //Debug mode?
-			BIOS_Menu = 13; //Debug mode option!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 13; //Debug mode option!
+			}
 			break;
 		case 9: //Debugger log setting!
-			BIOS_Menu = 23; //Debugger log setting!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 23; //Debugger log setting!
+			}
 			break;
-		case 10: //Diagnostics output!
+		case 10: //Diagnostics output breakpoint setting!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 57; //Diagnostics Output Breakpoint setting!
+			}
+			else if ((Menu_Stat == BIOSMENU_STAT_SQUARE)) //SQUARE=Set current value as the breakpoint!
+			{
+				BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)diagnosticsportoutput_breakpoint; //Set the current value as the breakpoint!
+				BIOS_Changed = 1; //We've changed!
+			}
 			break; //We do nothing!
 		}
 		break;
@@ -5511,5 +5563,97 @@ void BIOS_useTurboCPUSpeed() //CPU speed toggle!
 {
 	BIOS_Settings.useTurboSpeed = !BIOS_Settings.useTurboSpeed; //Toggle!
 	BIOS_Changed = 1; //Changed!
+	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+int_64 GetDiagnosticsPortBreakpoint(byte x, byte y, sword DiagnosticsPortBreakpoint) //Retrieve the size, or 0 for none!
+{
+	int key = 0;
+	key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	while ((key&BUTTON_CROSS)>0) //Pressed? Wait for release!
+	{
+		key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	}
+	if (DiagnosticsPortBreakpoint < 0) //Disabled?
+	{
+		DiagnosticsPortBreakpoint = 0x00; //Default to 00!
+	}
+	else
+	{
+		DiagnosticsPortBreakpoint &= 0xFF; //Safety wrap!
+	}
+	uint_32 result = DiagnosticsPortBreakpoint; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
+	for (;;) //Get input; break on error!
+	{
+		EMU_locktext();
+		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
+		GPU_EMU_printscreen(x, y, "%02X", result); //Show current size!
+		EMU_unlocktext();
+		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+
+		if ((key & BUTTON_DOWN)>0) //1 step up?
+		{
+			result -= ((key&BUTTON_LEFT) ? 0x10 : 0x01); //x100 or x10 or x1!
+		}
+		else if ((key & BUTTON_UP)>0) //1 step down?
+		{
+			result += ((key&BUTTON_LEFT) ? 0x10 : 0x01); //x100 or x10 or x1!
+		}
+		//Confirmation buttons etc.
+		else if ((key & BUTTON_CROSS)>0)
+		{
+			while ((key&BUTTON_CROSS)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			return (int_64)result;
+		}
+		else if ((key & BUTTON_CIRCLE)>0)
+		{
+			while ((key&BUTTON_CIRCLE)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			break; //Cancel!
+		}
+		else if ((key & BUTTON_TRIANGLE)>0)
+		{
+			while ((key&BUTTON_TRIANGLE)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			return FILELIST_DEFAULT; //Default: disabled!
+		}
+		else if (shuttingdown()) break; //Cancel because of shutdown?
+
+		result &= 0xFF; //Only a byte value is allowed, so wrap around it!
+	}
+	return FILELIST_CANCEL; //No size: cancel!
+}
+
+void BIOS_diagnosticsPortBreakpoint()
+{
+	BIOS_Title("Diagnostics Port Breakpoint");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Diagnostics Port Breakpoint: "); //Show selection init!
+	EMU_unlocktext();
+	int_64 file = GetDiagnosticsPortBreakpoint(29, 4, BIOS_Settings.diagnosticsportoutput_breakpoint); //Show options for the CPU speed!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected speed!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = -1; //Default setting: Disabled!
+	default: //Changed?
+		if (file != BIOS_Settings.diagnosticsportoutput_breakpoint) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)file; //Select Diagnostics Port Breakpoint setting!
+		}
+		break;
+	}
 	BIOS_Menu = 35; //Goto CPU menu!
 }
