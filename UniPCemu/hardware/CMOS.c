@@ -332,7 +332,6 @@ byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 *divergean
 	{
 		if (accuratetimetoepoch(time2, &time2val)) //Converted to universal value?
 		{
-			dolog("CMOS","Setting time: %i-%i-%i %i:%i:%i.%06i",time1->year,time1->month,time1->day,time1->hour,time1->minute,time1->second);
 			BIGGESTSINT applyingtime; //Biggest integer value we have!
 			applyingtime = ((((time1val.tv_sec * 1000000) + time1val.tv_usec) - ((time2val.tv_sec * 1000000) + time2val.tv_usec))); //Difference in usec!
 			*divergeance_sec = applyingtime/1000000; //Seconds!
@@ -598,7 +597,6 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 				break;
 			}
 		}
-		dolog("CMOS", "Updating register %02X=%02X", CMOS.ADDR,value);
 		CMOS_onWrite(); //On write!
 		CMOS.ADDR = 0xD; //Reset address!		
 		return 1;
