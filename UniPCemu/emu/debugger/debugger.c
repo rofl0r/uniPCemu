@@ -682,6 +682,7 @@ void debuggerThread()
 				goto restartdebugger; //Restart the debugger!
 			}
 		}
+		if (shuttingdown()) break; //Stop debugging when shutting down!
 		delay(0); //Wait a bit!
 	} //While not done
 	singlestepenabled: //Single step has been enabled just now?
@@ -710,6 +711,7 @@ void debugger_step() //Processes the debugging step!
 	debugger_autolog(); //Log when enabled!
 	if (debugging()) //Debugging step or single step enforced?
 	{
+		if (shuttingdown()) return; //Don't when shutting down!
 		debugger_thread = startThread(debuggerThread,"debugger",NULL); //Start the debugger!
 	} //Step mode?
 }
