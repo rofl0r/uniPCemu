@@ -676,7 +676,11 @@ void debuggerThread()
 		}
 		if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Goto BIOS?
 		{
-			runBIOS(0); //Run the BIOS!
+			if (runBIOS(0)) //Run the BIOS, reboot needed?
+			{
+				skipopcodes = 0; //Nothing to be skipped!
+				goto singlestepenabled; //We're rebooting, abort!
+			}
 			if (debugging()) //Recheck the debugger!
 			{
 				goto restartdebugger; //Restart the debugger!

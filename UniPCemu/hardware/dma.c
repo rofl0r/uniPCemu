@@ -129,6 +129,9 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 	case 0x86: //Extra on 286 BIOS?
 		DMAController[0].extrastorage[port-0x84] = value; //Set storage!
 		break;
+	case 0x80:
+		DMAController[0].extrastorage[3] = value; //Set storage!
+		break;
 	case 0x83: //
 		DMAController[0].DMAChannel[1].PageAddressRegister = value; //Set!
 		break;
@@ -268,6 +271,10 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 			break;
 		case 0x87: //
 			*result = DMAController[0].DMAChannel[0].PageAddressRegister; //Get!
+			ok = 1;
+			break;
+		case 0x80:
+			*result = DMAController[0].extrastorage[3]; //Get storage!
 			ok = 1;
 			break;
 		case 0x83: //
