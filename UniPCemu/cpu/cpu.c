@@ -519,7 +519,6 @@ uint_32 CPU_InterruptReturn = 0;
 
 OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 {
-	byte is0Fprefix = 0; //Special 0F prefix used for extended handling?
 	INLINEREGISTER byte OP; //The current opcode!
 	INLINEREGISTER uint_32 last_eip;
 	INLINEREGISTER byte ismultiprefix = 0; //Are we multi-prefix?
