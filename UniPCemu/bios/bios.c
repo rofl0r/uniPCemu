@@ -568,7 +568,7 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 	}
 	else if (BIOS_Settings.emulated_CPU == CPU_80286) //80286?
 	{
-		printmsg(0xF, "Installed CPU: Intel 80286(unfinished)\r\n"); //Emulated CPU!
+		printmsg(0xF, "Installed CPU: Intel 80286\r\n"); //Emulated CPU!
 	}
 	else //Unknown CPU?
 	{
