@@ -191,6 +191,7 @@ void BIOS_useSoundBlaster();
 void BIOS_TurboCPUSpeed(); //CPU speed selection!
 void BIOS_useTurboCPUSpeed(); //CPU speed toggle!
 void BIOS_diagnosticsPortBreakpoint(); //Diagnostics Port Breakpoint setting!
+void BIOS_diagnosticsPortBreakpointTimeout(); //Timeout to be used for breakpoints?
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -253,6 +254,7 @@ Handler BIOS_Menus[] =
 	,BIOS_TurboCPUSpeed //BIOS Turbo CPU speed is #55!
 	,BIOS_useTurboCPUSpeed //CPU speed toggle is #56!
 	,BIOS_diagnosticsPortBreakpoint //Diagnostics port breakpoint is #57!
+	,BIOS_diagnosticsPortBreakpointTimeout //Timeout to be used for breakpoints is #58!
 };
 
 //Not implemented?
@@ -4476,6 +4478,19 @@ setShowCPUSpeed:
 	{
 		sprintf(menuoptions[advancedoptions++],"Diagnostics code: %02X",diagnosticsportoutput); //Show the diagnostics output!
 	}
+
+	optioninfo[advancedoptions] = 11; //Change Diagnostics Port Breakpoint Timeout!
+	strcpy(menuoptions[advancedoptions], "Diagnostics Port Breakpoint Timeout: ");
+	switch (BIOS_Settings.diagnosticsportoutput_timeout) //What Diagnostics Port Breakpoint Timeout?
+	{
+	case 0: //Default cycles?
+		strcat(menuoptions[advancedoptions++], "First instruction"); //Default!
+		break;
+	default: //Limited cycles?
+		sprintf(menuoptions[advancedoptions], "%sAt %u instructions", menuoptions[advancedoptions], ((uint_64)BIOS_Settings.diagnosticsportoutput_timeout +1)); //Cycle limit!
+		++advancedoptions;
+		break;
+	}
 }
 
 void BIOS_CPU() //CPU menu!
@@ -4499,7 +4514,8 @@ void BIOS_CPU() //CPU menu!
 	case 7:
 	case 8:
 	case 9:
-	case 10: //Valid option?
+	case 10:
+	case 11: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -4577,6 +4593,12 @@ void BIOS_CPU() //CPU menu!
 				BIOS_Changed = 1; //We've changed!
 			}
 			break; //We do nothing!
+		case 11: //Timeout to be used for breakpoints?
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				if (!EMU_RUNNING) BIOS_Menu = 58; //Timeout to be used for breakpoints?
+			}
+			break;
 		}
 		break;
 	default: //Unknown option?
@@ -5637,6 +5659,94 @@ int_64 GetDiagnosticsPortBreakpoint(byte x, byte y, sword DiagnosticsPortBreakpo
 	return FILELIST_CANCEL; //No size: cancel!
 }
 
+int_64 GetDiagnosticsPortBreakpointTimeout(byte x, byte y, uint_32 timeout) //Retrieve the size, or 0 for none!
+{
+	int key = 0;
+	key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	while ((key&BUTTON_CROSS)>0) //Pressed? Wait for release!
+	{
+		key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	}
+	uint_32 result = timeout; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
+	uint_32 oldvalue; //To check for high overflow!
+	for (;;) //Get input; break on error!
+	{
+		EMU_locktext();
+		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
+		if (!result) //Default cycles?
+		{
+			GPU_EMU_printscreen(x, y, "First instruction                                      ", result); //Show first instruction!
+		}
+		else
+		{
+			GPU_EMU_printscreen(x, y, "At %u instructions", (result+1)); //Show current size!
+		}
+		EMU_unlocktext();
+		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+
+												  //1GB steps!
+		if ((key & BUTTON_LTRIGGER)>0) //1000 step down?
+		{
+			if (result == 0) {}
+			else
+			{
+				oldvalue = result; //Load the old value!
+				result -= (key&BUTTON_RIGHT) ? 100000 : ((key&BUTTON_LEFT) ? 10000 : 1000); //x100 or x10 or x1!
+				if (result>oldvalue) result = 0; //Underflow!
+			}
+		}
+		else if ((key & BUTTON_RTRIGGER)>0) //1000 step up?
+		{
+			oldvalue = result; //Save the old value!
+			result += (key&BUTTON_RIGHT) ? 100000 : ((key&BUTTON_LEFT) ? 10000 : 1000); //x100 or x10 or x1!
+			if (result < oldvalue) result = oldvalue; //We've overflown?
+		}
+		else if ((key & BUTTON_DOWN)>0) //1 step up?
+		{
+			if (result == 0) {}
+			else
+			{
+				oldvalue = result;
+				result -= (key&BUTTON_RIGHT) ? 100 : ((key&BUTTON_LEFT) ? 10 : 1); //x100 or x10 or x1!
+				if (result>oldvalue) result = 0; //Underflow!
+			}
+		}
+		else if ((key & BUTTON_UP)>0) //1 step down?
+		{
+			oldvalue = result; //Save the old value!
+			result += (key&BUTTON_RIGHT) ? 100 : ((key&BUTTON_LEFT) ? 10 : 1); //x100 or x10 or x1!
+			if (result < oldvalue) result = oldvalue; //We've overflown?
+		}
+		//Confirmation buttons etc.
+		else if ((key & BUTTON_CROSS)>0)
+		{
+			while ((key&BUTTON_CROSS)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			return (int_64)result;
+		}
+		else if ((key & BUTTON_CIRCLE)>0)
+		{
+			while ((key&BUTTON_CIRCLE)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			break; //Cancel!
+		}
+		else if ((key & BUTTON_TRIANGLE)>0)
+		{
+			while ((key&BUTTON_TRIANGLE)>0) //Wait for release!
+			{
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+			}
+			return 0; //Default!
+		}
+		else if (shuttingdown()) break; //Cancel because of shutdown?
+	}
+	return FILELIST_CANCEL; //No size: cancel!
+}
+
 void BIOS_diagnosticsPortBreakpoint()
 {
 	BIOS_Title("Diagnostics Port Breakpoint");
@@ -5658,6 +5768,33 @@ void BIOS_diagnosticsPortBreakpoint()
 		{
 			BIOS_Changed = 1; //Changed!
 			BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)file; //Select Diagnostics Port Breakpoint setting!
+		}
+		break;
+	}
+	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_diagnosticsPortBreakpointTimeout()
+{
+	BIOS_Title("Diagnostics Port Breakpoint Timeout");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Diagnostics Port Breakpoint Timeout: "); //Show selection init!
+	EMU_unlocktext();
+	int_64 file = GetDiagnosticsPortBreakpointTimeout(39, 4, BIOS_Settings.diagnosticsportoutput_timeout); //Show options for the CPU speed!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected speed!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT; //Default setting: One instruction!
+	default: //Changed?
+		if (file != BIOS_Settings.diagnosticsportoutput_timeout) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)file; //Select Diagnostics Port Breakpoint setting!
 		}
 		break;
 	}

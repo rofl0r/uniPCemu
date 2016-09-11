@@ -69,6 +69,7 @@ typedef struct PACKED
 	uint_32 TurboCPUSpeed;
 	byte useTurboSpeed; //Are we to use Turbo CPU speed?
 	sword diagnosticsportoutput_breakpoint; //Use a diagnostics port breakpoint?
+	uint_32 diagnosticsportoutput_timeout; //Breakpoint timeout used!
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 
@@ -137,6 +138,7 @@ typedef struct PACKED
 #define DEFAULT_FRAMERATE 0
 #define DEFAULT_VGASYNCHRONIZATION 2
 #define DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT -1
+#define DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT 0
 
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!

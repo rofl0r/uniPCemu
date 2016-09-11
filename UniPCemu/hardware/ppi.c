@@ -15,6 +15,7 @@ byte diagnosticsportoutput = 0x00;
 extern byte singlestep; //Enable EMU-driven single step!
 sword diagnosticsportoutput_breakpoint = -1; //Breakpoint set?
 sword breakpoint_comparison = -1; //Breakpoint comparison value!
+uint_32 breakpoint_timeout = 1; //Timeout for the breakpoint to become active, in instructions! Once it becomes 0(and was 1), it triggers the breakpoint!
 
 byte readPPI62()
 {
@@ -97,7 +98,13 @@ byte PPI_writeIO(word port, byte value)
 	case 0x80: //IBM AT Diagnostics!
 		if (((sword)value!=breakpoint_comparison) && (diagnosticsportoutput_breakpoint == (sword)value)) //Have we reached a breakpoint?
 		{
-			singlestep = 1; //Start single stepping from this breakpoint!
+			if (breakpoint_timeout) //Breakpoint timing?
+			{
+				if (--breakpoint_timeout==0) //Timeout?
+				{
+					singlestep = 1; //Start single stepping from this breakpoint!
+				}
+			}
 		}
 		if (isDebuggingPOSTCodes() && ((sword)value!=breakpoint_comparison)) //Changed and debugging POST codes?
 		{
@@ -122,7 +129,7 @@ byte PPI_writeIO(word port, byte value)
 	return 0; //No PPI!
 }
 
-void initPPI(sword useDiagnosticsportoutput_breakpoint)
+void initPPI(sword useDiagnosticsportoutput_breakpoint, uint_32 breakpointtimeout)
 {
 	SystemControlPortB = 0x7F; //Reset system control port B!
 	PPI62 = 0x00; //Set the default switches!
@@ -130,6 +137,7 @@ void initPPI(sword useDiagnosticsportoutput_breakpoint)
 	diagnosticsportoutput = 0x00; //Clear diagnostics port output!
 	diagnosticsportoutput_breakpoint = useDiagnosticsportoutput_breakpoint; //Breakpoint set?
 	breakpoint_comparison = -1; //Default to no comparison set, so the first set will trigger a breakpoint if needed!
+	breakpoint_timeout = breakpoint_timeout+1; //Time out after this many instructions(0=Very first instruction, 0xFFFFFFFF is 4G instructions)!
 	TurboMode = 0; //Default to no turbo mode according to the switches!
 	updateSpeedLimit(); //Update the speed used!
 	register_PORTIN(&PPI_readIO);
