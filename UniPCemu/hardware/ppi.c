@@ -4,6 +4,8 @@
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/hardware/vga/vga.h" //VGA/EGA/CGA/MDA support!
 #include "headers/emu/emucore.h" //Speed change support!
+#include "headers/emu/debugger/debugger.h" //Debugging support for logging POST codes!
+#include "headers/support/log.h" //For logging POST codes!
 
 byte SystemControlPortB=0x00; //System control port B!
 byte SystemControlPortA=0x00; //System control port A!
@@ -96,6 +98,10 @@ byte PPI_writeIO(word port, byte value)
 		if (((sword)value!=breakpoint_comparison) && (diagnosticsportoutput_breakpoint == (sword)value)) //Have we reached a breakpoint?
 		{
 			singlestep = 1; //Start single stepping from this breakpoint!
+		}
+		if (isDebuggingPOSTCodes() && ((sword)value!=breakpoint_comparison)) //Changed and debugging POST codes?
+		{
+			dolog("debugger", "POST Code: %02X", value); //Log the new value!
 		}
 		breakpoint_comparison = (sword)value; //Save into the comparison for new changes!
 		diagnosticsportoutput = value; //Save it to the diagnostics display!

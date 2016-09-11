@@ -116,12 +116,20 @@ byte debugger_logging()
 	case DEBUGGERLOG_INT: //Interrupts only?
 		enablelog = debuggerINT; //Debug this(interrupt)!
 		break;
+	case DEBUGGERLOG_DIAGNOSTICCODES: //Diagnostic codes only
+		enablelog = debugging(); //Enable log when debugging only!
+		break; //Don't enable the log by debugging only!
 	default:
 		break;
 	}
 	enablelog |= startreached; //Start logging from this point!
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
 	return enablelog; //Logging?
+}
+
+byte isDebuggingPOSTCodes()
+{
+	return (DEBUGGER_LOG==DEBUGGERLOG_DIAGNOSTICCODES); //Log Diagnostic codes only?
 }
 
 byte needdebugger() //Do we need to generate debugging information?
