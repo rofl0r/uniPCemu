@@ -138,8 +138,9 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		input_lastwrite_8042(); //Force 0xFA to user!
 		break;
 	case 0xAA: //Test PS/2 controller! Result: 0x55: Test passed. 0xFC: Test failed.
-		give_8042_input(0x55); //Always OK!
+		give_8042_input(0xFA); //ACK!
 		input_lastwrite_8042(); //Force 0xFA to user!
+		give_8042_input(0x55); //Always OK!
 		break;
 	case 0xAB: //Test first PS/2 port! See Command A9!
 		if (Controller8042.portwrite[0] && Controller8042.portread[0] && Controller8042.portpeek[0]) //Registered?
