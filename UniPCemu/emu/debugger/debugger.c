@@ -613,25 +613,24 @@ void toggleAndroidInput(byte finishInput, byte *lastStatus)
 	#endif
 }
 
+uint_32 skipopcodes = 0; //Skip none!
+byte skipstep = 0; //Skip while stepping?
+
 void debuggerThread()
 {
 	static byte AndroidInput = 1; //Default: finished status(not toggled)!
-	static uint_32 skipopcodes = 0; //Skip none!
-	static byte skipstep = 0; //Skip while stepping?
 	int i;
+	int done = 0;
+	byte displayed = 0; //Are we displayed?
 	pauseEMU(); //Pause it!
 
 	restartdebugger: //Restart the debugger during debugging!
-	debugger_screen(); //Show debugger info on-screen!
-	int done = 0;
 	done = 0; //Init: not done yet!
 
-	if (skipstep) //Finished?
+	if (!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating))) //Are we to show the (new) debugger screen?
 	{
-		if (!CPU[activeCPU].repeating) //Finished repeating?
-		{
-			skipstep = 0; //Disable skip step!
-		}
+		displayed = 1; //We're displayed!
+		debugger_screen(); //Show debugger info on-screen!
 	}
 
 	for (;!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating));) //Still not done or skipping?
@@ -705,13 +704,12 @@ void debuggerThread()
 	} //While not done
 	singlestepenabled: //Single step has been enabled just now?
 	toggleAndroidInput(1,&AndroidInput); //Finished toggle if required!
-	if (skipopcodes) //Skipping?
+	if (displayed) //Are we to clean up?
 	{
-		--skipopcodes; //Skipped one opcode!
+		GPU_text_locksurface(frameratesurface); //Lock!
+		for (i = GPU_TEXT_DEBUGGERROW;i < debuggerrow;i++) GPU_textclearrow(frameratesurface, i); //Clear our debugger rows!
+		GPU_text_releasesurface(frameratesurface); //Unlock!
 	}
-	GPU_text_locksurface(frameratesurface); //Lock!
-	for (i = GPU_TEXT_DEBUGGERROW;i < debuggerrow;i++) GPU_textclearrow(frameratesurface, i); //Clear our debugger rows!
-	GPU_text_releasesurface(frameratesurface); //Unlock!
 	resumeEMU(1); //Resume it!
 }
 
@@ -731,7 +729,21 @@ void debugger_step() //Processes the debugging step!
 	if (debugging()) //Debugging step or single step enforced?
 	{
 		if (shuttingdown()) return; //Don't when shutting down!
-		debugger_thread = startThread(debuggerThread,"debugger",NULL); //Start the debugger!
+		if (skipstep) //Finished?
+		{
+			if (!CPU[activeCPU].repeating) //Finished repeating?
+			{
+				skipstep = 0; //Disable skip step!
+			}
+		}
+		if (skipopcodes) //Skipping?
+		{
+			--skipopcodes; //Skipped one opcode!
+		}
+		if (!(skipopcodes || (skipstep&&CPU[activeCPU].repeating))) //To debug when not skipping repeating or skipping opcodes?
+		{
+			debugger_thread = startThread(debuggerThread,"debugger",NULL); //Start the debugger!
+		}
 	} //Step mode?
 }
 
