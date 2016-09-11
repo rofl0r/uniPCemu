@@ -279,6 +279,9 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			else //5170 PC?
 			{
+				verified = BIOS_load_custom(NULL, "BIOSROM.AT.BIN"); //Try to load a custom AT BIOS ROM!
+				if (verified) goto loadOPTROMS; //Loaded the BIOS?
+
 				if (!BIOS_load_ROM(27)) //Failed to load u27?
 				{
 					dolog("emu", "Failed loading BIOS ROM u27!");
