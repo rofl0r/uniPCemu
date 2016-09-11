@@ -601,8 +601,21 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 	}
 }
 
+void toggleAndroidInput(byte finishInput, byte *lastStatus)
+{
+	#ifdef ANDROID
+	if (AndroidInput!=finishInput) //Needs to change?
+	{
+		lock(LOCK_INPUT);
+		toggleDirectInput(1);
+		unlock(LOCK_INPUT);
+	}
+	#endif
+}
+
 void debuggerThread()
 {
+	static byte AndroidInput = 1; //Default: finished status(not toggled)!
 	static uint_32 skipopcodes = 0; //Skip none!
 	static byte skipstep = 0; //Skip while stepping?
 	int i;
@@ -623,6 +636,7 @@ void debuggerThread()
 
 	for (;!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating));) //Still not done or skipping?
 	{
+		toggleAndroidInput(0,&AndroidInput); //Start the toggle if required!
 		if (DEBUGGER_ALWAYS_STEP || singlestep) //Always step?
 		{
 			//We're going though like a normal STEP. Ignore RTRIGGER.
@@ -690,6 +704,7 @@ void debuggerThread()
 		delay(0); //Wait a bit!
 	} //While not done
 	singlestepenabled: //Single step has been enabled just now?
+	toggleAndroidInput(1,&AndroidInput); //Finished toggle if required!
 	if (skipopcodes) //Skipping?
 	{
 		--skipopcodes; //Skipped one opcode!
