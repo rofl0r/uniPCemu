@@ -484,13 +484,17 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 		{
 			*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Just set the segment, don't load descriptor!
+			//Load the correct base data for our loading!
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = (word)(((uint_32)value<<4)&0xFFFF); //Low base!
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = ((((uint_32)value << 4) & 0xFF0000)>>16); //Mid base!
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = ((((uint_32)value << 4) & 0xFF000000)>>24); //High base!
 		}
 		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
 		{
 			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x93; //Load default access rights!
 			//Pulled low on first load:
 			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0;
-			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0;
+			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid &= 0xF;
 			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
 			CPU_flushPIQ(); //We're jumping to another address!
 		}
@@ -541,9 +545,13 @@ MMU: Memory limit!
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest)
 {
 	byte isconforming;
-	if ((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && !getDescriptorIndex(segmentval)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
+
+	if (getcpumode() != CPU_MODE_REAL) //Not real mode? Check rights for zero descriptors!
 	{
-		return 1; //Error!
+		if ((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && !getDescriptorIndex(segmentval)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
+		{
+			return 1; //Error!
+		}
 	}
 
 	//First: type checking!
@@ -553,22 +561,20 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		return 2; //#NP!
 	}
 
-	if (descriptor->nonS == 0) //System segment isn't allowed?
+	if (getcpumode()!=CPU_MODE_REAL) //Not real mode? Check rights!
 	{
-		return 1; //Error!
-	}
-
-	if (segment == CPU_SEGMENT_CS && !(descriptor->EXECSEGMENT.ISEXEC) && (forreading == 3)) //Non-executable segment execution?
-	{
-		return 1; //Error!
-	}
-	else if (((descriptor->EXECSEGMENT.ISEXEC) || !(descriptor->DATASEGMENT.OTHERSTRUCT || descriptor->DATASEGMENT.W)) && !forreading) //Writing to executable segment or read-only data segment?
-	{
-		return 1; //Error!
-	}
-	else if (descriptor->EXECSEGMENT.ISEXEC && !descriptor->EXECSEGMENT.R && forreading == 1) //Reading execute-only segment?
-	{
-		return 1; //Error!	
+		if (segment == CPU_SEGMENT_CS && !(descriptor->EXECSEGMENT.ISEXEC) && (forreading == 3)) //Non-executable segment execution?
+		{
+			return 1; //Error!
+		}
+		else if (((descriptor->EXECSEGMENT.ISEXEC) || !(descriptor->DATASEGMENT.OTHERSTRUCT || descriptor->DATASEGMENT.W)) && !forreading) //Writing to executable segment or read-only data segment?
+		{
+			return 1; //Error!
+		}
+		else if (descriptor->EXECSEGMENT.ISEXEC && !descriptor->EXECSEGMENT.R && forreading == 1) //Reading execute-only segment?
+		{
+			return 1; //Error!	
+		}
 	}
 
 	//Next: limit checking!
@@ -614,9 +620,12 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		break;
 	}
 
-	if (!((MAX(getCPL(), getRPL(segment)) <= descriptor->DPL) || isconforming)) //Invalid privilege?
+	if (getcpumode()!=CPU_MODE_REAL) //Not in real mode? Perform rights checks!
 	{
-		return 1; //Not enough rights!
+		if (!((MAX(getCPL(), getRPL(segment)) <= descriptor->DPL) || isconforming)) //Invalid privilege?
+		{
+			return 1; //Not enough rights!
+		}
 	}
 
 	//Fifth: Accessing data in Code segments?
@@ -632,7 +641,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 	{
 		if (segment==-1) return 0; //Enable: we're an emulator call!
 		if (CPU[activeCPU].faultraised) return 1; //Abort if already an fault has been raised!
-		if ((getcpumode()!=CPU_MODE_PROTECTED) || (segment==-1)) //Real or 8086 mode, or unknown segment to use?
+		if (segment==-1) //Emulator access? Unknown segment to use?
 		{
 			if (segment!=-1) //Normal operations (called for the CPU for sure)?
 			{
@@ -644,6 +653,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 			}
 		}
 		
+		//Use segment descriptors, even when in real mode on 286+ processors!
 		switch (CPU_MMU_checkrights(segment,segmentval, offset, forreading, &CPU[activeCPU].SEG_DESCRIPTOR[segment],1)) //What rights resulting? Test the address itself too!
 		{
 		case 0: //OK?
@@ -651,9 +661,11 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 		default: //Unknown status? Count #GP by default!
 		case 1: //#GP?
 			THROWDESCGP(segmentval); //Throw fault!
+			return 1; //Error out!
 			break;
 		case 2: //#NP?
 			THROWDESCSeg(segment, 0); //Throw error: accessing non-present segment descriptor!
+			return 1; //Error out!
 			break;
 		}
 		return 0; //OK!
@@ -752,7 +764,7 @@ int LOADINTDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *contain
 	return 1; //OK!
 }
 
-void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, uint_32 error) //Execute a protected mode interrupt!
+void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint_32 returnoffset, uint_32 error) //Execute a protected mode interrupt!
 {
 	SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage for task switches!
 	word desttask; //Destination task for task switches!

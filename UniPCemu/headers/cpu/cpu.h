@@ -87,28 +87,27 @@ typedef struct
 				{
 					struct
 					{
-						union
-						{
-							u8 Type : 4; //System segment type! Used when nonS==0
-							struct
-							{
-								u8 A : 1; //Accessed by user (has been loaded by OS)?
-								u8 W : 1; //Writable?
-								u8 E : 1; //Expand-down?
-								u8 OTHERSTRUCT : 1; //Executable segment? When set we don't use this struct!
-							} DATASEGMENT;
-							struct
-							{
-								u8 A_notused : 1; //Not used, use above A!
-								u8 R : 1; //Readable?
-								u8 C : 1; //Conforming?
-								u8 ISEXEC : 1; //Must be 1 to use this struct!
-							} EXECSEGMENT;
-						};
+						u8 Type : 4; //System segment type! Used when nonS==0
 						u8 nonS : 1; //Not system segment?
 						u8 DPL : 2; //Descriptor Privilege level.
 						u8 P : 1; //Present in memory?
-					};
+					}; //General segment information!
+					struct
+					{
+						u8 A : 1; //Accessed by user (has been loaded by OS)?
+						u8 W : 1; //Writable?
+						u8 E : 1; //Expand-down?
+						u8 OTHERSTRUCT : 1; //Executable segment? When set we don't use this struct!
+						byte upperdummy1 : 4; //Upper dummy!
+					} DATASEGMENT;
+					struct
+					{
+						u8 A_notused : 1; //Not used, use above A!
+						u8 R : 1; //Readable?
+						u8 C : 1; //Conforming?
+						u8 ISEXEC : 1; //Must be 1 to use this struct!
+						byte upperdummy2 : 4; //Upper dummy!
+					} EXECSEGMENT;
 					byte AccessRights; //Access rights!
 				};
 				u8 limit_high : 4; //High part of limit (if used).

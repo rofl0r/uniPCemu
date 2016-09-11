@@ -41,4 +41,6 @@ byte checkPortRights(word port); //Are we allowed to not use this port?
 byte disallowPOPFI(); //Allow POPF to not change the interrupt flag?
 byte checkSTICLI(); //Check STI/CLI rights! 1 when allowed, 0 when to be ignored!
 
+void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint_32 returnoffset, uint_32 error); //Execute a protected mode interrupt!
+
 #endif

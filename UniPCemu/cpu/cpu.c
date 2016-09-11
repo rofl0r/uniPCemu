@@ -289,7 +289,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
 		CPU[activeCPU].registers->EIP = 0xFFF0; //We're starting at this offset!
 	}
-	else
+	else //8086?
 	{
 		CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
 		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
@@ -309,11 +309,13 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_ES] = &CPU[activeCPU].registers->ES; //Link!
 	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS] = &CPU[activeCPU].registers->FS; //Link!
 	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS] = &CPU[activeCPU].registers->GS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR] = &CPU[activeCPU].registers->TR; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_LDTR] = &CPU[activeCPU].registers->LDTR; //Link!
 
 	memset(CPU[activeCPU].SEG_DESCRIPTOR, 0, sizeof(CPU[activeCPU].SEG_DESCRIPTOR)); //Clear the descriptor cache!
-																					 //Now, load the default descriptors!
+	 //Now, load the default descriptors!
 
-																					 //IDTR
+	//IDTR
 	CPU[activeCPU].registers->IDTR.base = 0;
 	CPU[activeCPU].registers->IDTR.limit = 0x3FF;
 
