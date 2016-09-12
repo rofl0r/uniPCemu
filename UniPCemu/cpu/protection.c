@@ -639,7 +639,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	{
 		if (segment!=CPU_SEGMENT_TR) //Not task register?
 		{
-			if (!((MAX(getCPL(), getRPL(segment)) <= descriptor->DPL) || isconforming)) //Invalid privilege?
+			if (!((MAX(getCPL(), getRPL(segmentval)) <= descriptor->DPL) || isconforming)) //Invalid privilege?
 			{
 				return 1; //Not enough rights!
 			}
