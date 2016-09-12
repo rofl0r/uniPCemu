@@ -137,7 +137,7 @@ void initPPI(sword useDiagnosticsportoutput_breakpoint, uint_32 breakpointtimeou
 	diagnosticsportoutput = 0x00; //Clear diagnostics port output!
 	diagnosticsportoutput_breakpoint = useDiagnosticsportoutput_breakpoint; //Breakpoint set?
 	breakpoint_comparison = -1; //Default to no comparison set, so the first set will trigger a breakpoint if needed!
-	breakpoint_timeout = breakpoint_timeout+1; //Time out after this many instructions(0=Very first instruction, 0xFFFFFFFF is 4G instructions)!
+	breakpoint_timeout = breakpointtimeout+1; //Time out after this many instructions(0=Very first instruction, 0xFFFFFFFF is 4G instructions)!
 	TurboMode = 0; //Default to no turbo mode according to the switches!
 	updateSpeedLimit(); //Update the speed used!
 	register_PORTIN(&PPI_readIO);

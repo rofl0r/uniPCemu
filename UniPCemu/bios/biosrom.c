@@ -631,7 +631,8 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	if (basepos >= 0xF0000) //Inside 16-bit/32-bit range?
 	{
 		if (basepos<0x100000) basepos = 0xF0000; //Our base reference position(low memory)!
-		else if (basepos >= 0xF0000000) basepos = 0xF0000000; //Our base reference position(high memory)!
+		else if ((basepos >= 0xFFFF0000) && (EMULATED_CPU >= CPU_80386)) basepos = 0xFFFF0000; //Our base reference position(high memory 386+)!
+		else if ((basepos >= 0xFF0000) && (EMULATED_CPU == CPU_80286)) basepos = 0xFF0000; //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?
@@ -724,7 +725,8 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	if (basepos>=0xF0000) //Inside 16-bit/32-bit range?
 	{
 		if (basepos<0x100000) basepos = 0xF0000; //Our base reference position(low memory)!
-		else if (basepos>=0xF0000000) basepos = 0xF0000000; //Our base reference position(high memory)!
+		else if ((basepos >= 0xFFFF0000) && (EMULATED_CPU >= CPU_80386)) basepos = 0xFFFF0000; //Our base reference position(high memory 386+)!
+		else if ((basepos >= 0xFF0000) && (EMULATED_CPU == CPU_80286)) basepos = 0xFF0000; //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?

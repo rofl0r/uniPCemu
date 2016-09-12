@@ -351,8 +351,11 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	if (EMULATED_CPU>CPU_NECV30) //286+?
 	{
 		//Pulled low on first load, pulled high on reset:
-		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF;
-		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0xFF;
+		if (EMULATED_CPU>CPU_80286) //32-bit CPU?
+		{
+			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF; //More than 24 bits are pulled high as well!
+		}
+		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0xFF; //We're starting at the end of our address space, final block! (segment F000=>high 8 bits set)
 	}
 }
 

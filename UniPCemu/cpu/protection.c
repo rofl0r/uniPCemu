@@ -488,13 +488,11 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = (word)(((uint_32)value<<4)&0xFFFF); //Low base!
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = ((((uint_32)value << 4) & 0xFF0000)>>16); //Mid base!
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = ((((uint_32)value << 4) & 0xFF000000)>>24); //High base!
+			//This also maps the resulting segment in low memory (20-bit address space) in real mode, thus CS is pulled low as well!
 		}
 		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
 		{
 			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x93; //Load default access rights!
-			//Pulled low on first load:
-			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0;
-			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid &= 0xF;
 			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
 			CPU_flushPIQ(); //We're jumping to another address!
 		}
