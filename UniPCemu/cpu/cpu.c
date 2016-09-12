@@ -382,7 +382,7 @@ void resetCPU() //Initialises the currently selected CPU!
 		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
 	}
 	#ifdef CPU_USECYCLES
-	CPU_useCycles = (EMULATED_CPU<=CPU_NECV30); //Are we using cycle-accurate emulation?
+	CPU_useCycles = (EMULATED_CPU<=CPU_80286); //Are we using cycle-accurate emulation?
 	#endif
 }
 
@@ -1188,6 +1188,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 		case CPU_8086: //8086/8088?
 		case CPU_NECV30: //NEC V20/V30/80188?
+		case CPU_80286: //Special 286 case for easy 8086-compatibility!
 			//Placeholder until 8086/8088 cycles are fully implemented. Originally 8. 9 works better with 8088 MPH(better sound). 10 works worse than 9(sound disappears into the background)?
 			#ifdef CPU_USECYCLES
 			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
