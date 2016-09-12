@@ -703,10 +703,6 @@ void updateCPUmode() //Update the CPU mode!
 	mode <<= 1;
 	mode |= CPU[activeCPU].registers->CR0.PE; //Protected mode?
 	CPUmode = modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
-	if (lastmode != CPUmode) //Mode change flushes PIQ?
-	{
-		CPU_flushPIQ(); //Flush the PIQ!
-	}
 }
 
 byte getcpumode() //Retrieves the current mode!

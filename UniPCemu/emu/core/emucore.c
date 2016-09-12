@@ -559,7 +559,15 @@ void initEMUreset() //Simple reset emulator!
 
 extern byte singlestep; //Enable EMU-driven single step!
 byte doEMUsinglestep = 0; //CPU mode plus 1
-uint_64 singlestepaddress = 0xF00005D6; //The segment:offset address!
+uint_64 singlestepaddress = 0xF0001D6B; //The segment:offset address!
+/*
+
+It's the row:
+LMSW AX
+Which enables Protected Mode by setting bit 0 of the CR0/MSW register.
+Of the 80286 BIOS(test5.asm).
+
+*/
 
 extern byte interruptsaved; //Primary interrupt saved?
 
