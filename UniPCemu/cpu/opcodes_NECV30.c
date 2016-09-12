@@ -488,12 +488,8 @@ void CPU186_OPC9()
 	REG_BP = CPU_POP16();
 }
 
-extern byte OPbuffer[256]; //A large opcode buffer!
-extern word OPlength; //The length of the opcode buffer!
-char command[50]; //A command buffer for storing our command (up to 10 bytes)!
 void unkOP_186() //Unknown opcode on 186+?
 {
-	bzero(command,sizeof(command)); //Clear the command!
 	debugger_setcommand("<NECV20/V30+ #UD>"); //Command is unknown opcode!
 	//dolog("unkop","Unknown opcode on NECV30+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!

@@ -638,7 +638,9 @@ void debuggerThread()
 	if (!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating))) //Are we to show the (new) debugger screen?
 	{
 		displayed = 1; //We're displayed!
+		lock(LOCK_MAINTHREAD); //Lock the main thread!
 		debugger_screen(); //Show debugger info on-screen!
+		unlock(LOCK_MAINTHREAD); //Finished with the main thread!
 	}
 
 	for (;!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating));) //Still not done or skipping?
