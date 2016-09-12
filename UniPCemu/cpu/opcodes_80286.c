@@ -139,15 +139,15 @@ void CPU286_OP63() //ARPL r/m16,r16
 		return; //Abort!
 	}
 	word destRPL, srcRPL;
-	destRPL = modrm_read16(&params,0); //Read destination RPL!
+	destRPL = modrm_read16(&params,1); //Read destination RPL!
 	CPUPROT1
-	srcRPL = modrm_read16(&params,1); //Read source RPL!
+	srcRPL = modrm_read16(&params,0); //Read source RPL!
 	CPUPROT1
 		if (getRPL(destRPL) < getRPL(srcRPL))
 		{
 			FLAG_ZF = 1; //Set ZF!
 			setRPL(destRPL,getRPL(srcRPL)); //Set the new RPL!
-			modrm_write16(&params,0,destRPL,0); //Set the result!
+			modrm_write16(&params,1,destRPL,0); //Set the result!
 		}
 		else
 		{
@@ -181,7 +181,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("SLDT %s", info.text);
-		modrm_write16(&params,0,CPU->registers->LDTR,0); //Try and write it to the address specified!
+		modrm_write16(&params,1,CPU->registers->LDTR,0); //Try and write it to the address specified!
 		break;
 	case 1: //STR
 		if (getcpumode() == CPU_MODE_REAL)
@@ -190,7 +190,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("STR %s", info.text);
-		modrm_write16(&params, 0, CPU->registers->TR, 0); //Try and write it to the address specified!
+		modrm_write16(&params,1, CPU->registers->TR, 0); //Try and write it to the address specified!
 		break;
 	case 2: //LLDT
 		if (getcpumode() == CPU_MODE_REAL)
@@ -204,7 +204,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			THROWDESCGP(0); //Throw #GP!
 			return; //Abort!
 		}
-		oper1 = modrm_read16(&params,0); //Read the descriptor!
+		oper1 = modrm_read16(&params,1); //Read the descriptor!
 		CPUPROT1
 			segmentWritten(CPU_SEGMENT_LDTR,oper1,0); //Write the segment!
 		CPUPROT2
@@ -221,7 +221,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			THROWDESCGP(0); //Throw #GP!
 			return; //Abort!
 		}
-		oper1 = modrm_read16(&params, 0); //Read the descriptor!
+		oper1 = modrm_read16(&params, 1); //Read the descriptor!
 		CPUPROT1
 			segmentWritten(CPU_SEGMENT_TR, oper1, 0); //Write the segment!
 		CPUPROT2
@@ -233,7 +233,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("VERR %s", info.text);
-		oper1 = modrm_read16(&params,0); //Read the descriptor!
+		oper1 = modrm_read16(&params,1); //Read the descriptor!
 		CPUPROT1
 			SEGDESCRIPTOR_TYPE verdescriptor;
 			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
@@ -260,7 +260,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("VERW %s", info.text);
-		oper1 = modrm_read16(&params, 0); //Read the descriptor!
+		oper1 = modrm_read16(&params, 1); //Read the descriptor!
 		CPUPROT1
 			SEGDESCRIPTOR_TYPE verdescriptor;
 			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
@@ -298,33 +298,55 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 	{
 	case 0: //SGDT
 		debugger_setcommand("SGDT %s", info.text);
-		if (params.info[0].isreg) //We're storing to a register? Invalid!
+		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
 		{
 			unkOP0F_286();
 			return; //Abort!
 		}
-		modrm_write16(&params,0,CPU[activeCPU].registers->GDTR.limit,0); //Store the limit first!
+		modrm_addoffset = 0; //Add no bytes to the offset!
+		modrm_write16(&params, 1, CPU[activeCPU].registers->GDTR.limit, 0); //Store the limit first!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			modrm_write32(&params,0,(CPU[activeCPU].registers->GDTR.base&0xFFFFFF)|((EMULATED_CPU>=CPU_80386)?0xFF000000:0x00000000)); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+			modrm_write16(&params, 1, (CPU[activeCPU].registers->GDTR.base & 0xFFFF),0); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+			CPUPROT1
+				modrm_addoffset = 4; //Add 4 bytes to the offset!
+				modrm_write8(&params, 1, ((CPU[activeCPU].registers->GDTR.base >> 16) & 0xFF)); //Write rest value!
+				CPUPROT1
+					//Just store the high byte too, no matter what the CPU!
+					modrm_addoffset = 5; //Add 5 bytes to the offset!
+					modrm_write8(&params, 1, ((CPU[activeCPU].registers->GDTR.base >> 24) & 0xFF)); //Write rest value!
+				CPUPROT2
+			CPUPROT2
 		CPUPROT2
+		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 1: //SIDT
 		debugger_setcommand("SIDT %s", info.text);
-		if (params.info[0].isreg) //We're storing to a register? Invalid!
+		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
 		{
 			unkOP0F_286();
 			return; //Abort!
 		}
-		modrm_write16(&params, 0, CPU[activeCPU].registers->IDTR.limit, 0); //Store the limit first!
+		modrm_addoffset = 0; //Add no bytes to the offset!
+		modrm_write16(&params, 1, CPU[activeCPU].registers->IDTR.limit, 0); //Store the limit first!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			modrm_write32(&params, 0, (CPU[activeCPU].registers->IDTR.base & 0xFFFFFF) | ((EMULATED_CPU >= CPU_80386) ? 0xFF000000 : 0x00000000)); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+			modrm_write16(&params, 1, (CPU[activeCPU].registers->IDTR.base & 0xFFFF),0); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+			CPUPROT1
+				modrm_addoffset = 4; //Add 4 bytes to the offset!
+				modrm_write8(&params, 1, ((CPU[activeCPU].registers->IDTR.base>>16) & 0xFF)); //Write rest value!
+				CPUPROT1
+					//Just store the high byte too, no matter what the CPU!
+					modrm_addoffset = 5; //Add 5 bytes to the offset!
+					modrm_write8(&params, 1, ((CPU[activeCPU].registers->IDTR.base >> 24) & 0xFF)); //Write rest value!
+				CPUPROT2
+			CPUPROT2
 		CPUPROT2
+		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 2: //LGDT
 		debugger_setcommand("LGDT %s", info.text);
-		if (params.info[0].isreg) //We're storing to a register? Invalid!
+		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
 		{
 			unkOP0F_286();
 			return; //Abort!
@@ -334,23 +356,25 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			THROWDESCGP(0); //Throw #GP!
 			return; //Abort!
 		}
-		oper1 = modrm_read16(&params, 0); //Read the limit first!
+		modrm_addoffset = 0; //Add no bytes to the offset!
+		oper1 = modrm_read16(&params, 1); //Read the limit first!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			oper1d = ((uint_32)modrm_read16(&params, 0)); //Lower part of the limit!
+			oper1d = ((uint_32)modrm_read16(&params, 1)); //Lower part of the limit!
 			CPUPROT1
 				modrm_addoffset = 4; //Last byte!
-				oper1d |= (((uint_32)modrm_read8(&params,0))<<16); //Higher part of the limit!
+				oper1d |= (((uint_32)modrm_read8(&params,1))<<16); //Higher part of the limit!
 				CPUPROT1
 					CPU[activeCPU].registers->GDTR.base = oper1d; //Load the base!
 					CPU[activeCPU].registers->GDTR.limit = oper1; //Load the limit!
 				CPUPROT2
 			CPUPROT2
 		CPUPROT2
+		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 3: //LIDT
 		debugger_setcommand("LIDT %s", info.text);
-		if (params.info[0].isreg) //We're storing to a register? Invalid!
+		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
 		{
 			unkOP0F_286();
 			return; //Abort!
@@ -360,23 +384,25 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			THROWDESCGP(0); //Throw #GP!
 			return; //Abort!
 		}
-		oper1 = modrm_read16(&params, 0); //Read the limit first!
+		modrm_addoffset = 0; //Add no bytes to the offset!
+		oper1 = modrm_read16(&params, 1); //Read the limit first!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			oper1d = ((uint_32)modrm_read16(&params, 0)); //Lower part of the limit!
+			oper1d = ((uint_32)modrm_read16(&params, 1)); //Lower part of the limit!
 			CPUPROT1
 				modrm_addoffset = 4; //Last byte!
-				oper1d |= (((uint_32)modrm_read8(&params, 0)) << 16); //Higher part of the limit!
+				oper1d |= (((uint_32)modrm_read8(&params, 1)) << 16); //Higher part of the limit!
 				CPUPROT1
 					CPU[activeCPU].registers->IDTR.base = oper1d; //Load the base!
 					CPU[activeCPU].registers->IDTR.limit = oper1; //Load the limit!
 				CPUPROT2
 			CPUPROT2
 		CPUPROT2
+		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 4: //SMSW
 		debugger_setcommand("SMSW %s", info.text);
-		modrm_write16(&params,0,(word)(CPU[activeCPU].registers->CR0_full&0xFFFF),0); //Store the MSW into the specified location!
+		modrm_write16(&params,1,(word)(CPU[activeCPU].registers->CR0_full&0xFFFF),0); //Store the MSW into the specified location!
 		break;
 	case 6: //LMSW
 		debugger_setcommand("LMSW %s", info.text);
@@ -385,7 +411,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			THROWDESCGP(0); //Throw #GP!
 			return; //Abort!
 		}
-		oper1 = modrm_read16(&params,0); //Read the new register!
+		oper1 = modrm_read16(&params,1); //Read the new register!
 		CPUPROT1
 		oper1 |= CPU[activeCPU].registers->CR0.PE; //Keep the protected mode bit on, this isn't toggable anymore once set!
 		CPU[activeCPU].registers->CR0_full = (CPU[activeCPU].registers->CR0_full&(~0xFFFF))|oper1; //Set the MSW!
