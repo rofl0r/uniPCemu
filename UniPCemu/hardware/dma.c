@@ -13,7 +13,7 @@ DMA Controller (8237A)
 #define __HW_DISABLED 0
 
 //DMA Ticks(bytes)/second!
-#define MHZ14_RATE 9
+#define MHZ14_RATE 10
 #define DMA_RATE (MHZ14/8.732575)
 
 SDL_sem *DMA_Lock = NULL;

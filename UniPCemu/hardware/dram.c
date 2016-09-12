@@ -9,16 +9,16 @@ byte prevDREQ = 0;
 void DRAM_DMADREQ() //For checking any new DREQ signals of DRAM!
 {
 	DMA_SetDREQ(0,DRAM_DREQ); //Set the current DREQ0: DRAM Refresh!
+	if ((DRAM_DREQ != prevDREQ) && DRAM_DREQ) //Raised/lowered?
+	{
+		SystemControlPortB ^= 0x10; //Toggle the refresh register to let know we're active!
+	}
+	prevDREQ = DRAM_DREQ; //Save the old status for comparison!
 }
 
 void DRAM_setDREQ(byte output)
 {
 	DRAM_DREQ = output; //PIT1 is connected to the DREQ signal!
-	if (output!=prevDREQ && output) //Raised?
-	{
-		SystemControlPortB ^= 0x10; //Toggle the refresh register to let know we're active!
-	}
-	prevDREQ = output; //Save the old status for comparison!
 }
 
 void DRAM_access(uint_32 address) //Accessing DRAM?

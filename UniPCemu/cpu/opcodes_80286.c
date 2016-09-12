@@ -169,7 +169,6 @@ void CPU286_OPD6() //286+ SALC
 
 void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 {
-	modrm_readparams(&params,1,0); //Read our params!
 	thereg = MODRM_REG(params.modrm);
 
 	modrm_decode16(&params, &info, 1); //Store the address for debugging!
@@ -292,7 +291,6 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 
 void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 {
-	modrm_readparams(&params, 1, 0); //Read our params!
 	thereg = MODRM_REG(params.modrm);
 
 	modrm_decode16(&params, &info, 1); //Store the address for debugging!
