@@ -262,8 +262,9 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	}
 	else
 	{
-		CSAccessRights = 0x93; //Initialise the CS access rights!
+		CSAccessRights = 0x9D; //Initialise the CS access rights!
 	}
+
 	alloc_CPUregisters(); //Allocate the CPU registers!
 
 	if (!CPU[activeCPU].registers) return; //We can't work!
@@ -302,7 +303,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	CPU[activeCPU].registers->GS = 0; //??? segment (extra segment like FS)
 	CPU[activeCPU].registers->EFLAGS = 0x2; //Flags!
 
-											//Now the handling of solid state segments (might change, use index for that!)
+	//Now the handling of solid state segments (might change, use index for that!)
 	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = &CPU[activeCPU].registers->CS; //Link!
 	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_SS] = &CPU[activeCPU].registers->SS; //Link!
 	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_DS] = &CPU[activeCPU].registers->DS; //Link!

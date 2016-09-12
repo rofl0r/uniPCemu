@@ -411,6 +411,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			THROWDESCGP(0); //Throw #GP!
 			return; //Abort!
 		}
+		CPU[activeCPU].cycles_OP = 4*16; //Make sure we last long enough for the required JMP to be fully buffered!
 		oper1 = modrm_read16(&params,1); //Read the new register!
 		CPUPROT1
 		oper1 |= CPU[activeCPU].registers->CR0.PE; //Keep the protected mode bit on, this isn't toggable anymore once set!

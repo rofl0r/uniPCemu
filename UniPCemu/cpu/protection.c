@@ -189,11 +189,13 @@ void THROWDESCSeg(word segment, byte external)
 
 int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 {
-	uint_32 descriptor_adress = 0;
-	descriptor_adress = (segment & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	uint_32 descriptor_address = 0;
+	descriptor_address = (segment & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
 
-	if ((word)descriptor_index>((segment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	descriptor_index <<= 3; //Multiply into range!
+
+	if ((word)(descriptor_index>>3)>=((segment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		THROWDESCGP(segment); //Throw error!
 		return 0; //Not present: limit exceeded!
@@ -205,10 +207,12 @@ int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container)
 		return 0; //Not present: limit exceeded!	
 	}
 	
+	descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
+
 	int i;
 	for (i=0;i<(int)sizeof(container->descdata);i++) //Process the descriptor data!
 	{
-		container->descdata[i] = memory_directrb(descriptor_adress+i); //Read a descriptor byte directly from flat memory!
+		container->descdata[i] = memory_directrb(descriptor_address+i); //Read a descriptor byte directly from flat memory!
 	}
 
 	if (EMULATED_CPU == CPU_80286) //80286 has less options?
@@ -262,7 +266,9 @@ void SAVEDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container
 	descriptor_adress = (segment & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
 
-	if ((word)descriptor_index>((segment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	descriptor_index <<= 3; //Multiply into range!
+
+	if ((word)(descriptor_index>>3)>=((segment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		return; //Not present: limit exceeded!
 	}
@@ -310,6 +316,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 	byte equalprivilege = 0; //Special gate stuff requirement: DPL must equal CPL? 1 for enable, 0 for normal handling.
 	byte privilegedone = 0; //Privilege already calculated?
 	byte is_gated = 0;
+	byte is_TSS = 0; //Are we a TSS?
 	if (isGateDescriptor(&LOADEDDESCRIPTOR) && (whatsegment == CPU_SEGMENT_CS) && isJMPorCALL) //Handling of gate descriptors?
 	{
 		is_gated = 1; //We're gated!
@@ -389,7 +396,20 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 		return NULL; //We are a lower privilege level, so don't load!
 	}
 
-	if ((LOADEDDESCRIPTOR.desc.Type & 0x1D) == 9) //We're a TSS? We're to perform a task switch!
+	switch (LOADEDDESCRIPTOR.desc.Type) //We're a TSS? We're to perform a task switch!
+	{
+	case AVL_SYSTEM_BUSY_TSS16BIT:
+	case AVL_SYSTEM_BUSY_TSS32BIT:
+	case AVL_SYSTEM_TSS16BIT:
+	case AVL_SYSTEM_TSS32BIT: //TSS?
+		is_TSS = (LOADEDDESCRIPTOR.desc.nonS==0); //We're a TSS when not a system segment!
+		break;
+	default:
+		is_TSS = 0; //We're no TSS!
+		break;
+	}
+
+	if (is_TSS && (segment==CPU_SEGMENT_TR)) //We're a TSS? We're to perform a task switch!
 	{
 		if (segment & 2) //LDT lookup set?
 		{
@@ -412,25 +432,22 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int whatsegment, word segment, byte isJMPorCA
 		//Handle the task switch normally! We're allowed to use the TSS!
 	}
 
-	if (whatsegment==CPU_SEGMENT_CS) //Special stuff on CS, CPL, Task switch.
+	if ((whatsegment==CPU_SEGMENT_CS) && is_TSS) //Special stuff on CS, CPL, Task switch.
 	{
-		if ((LOADEDDESCRIPTOR.desc.Type & 0x1D) == 9) //We're a TSS? We're to perform a task switch!
+		if (!LOADEDDESCRIPTOR.desc.P) //Not present?
 		{
-			if (!LOADEDDESCRIPTOR.desc.P) //Not present?
-			{
-				THROWDESCSeg(segment,1); //Throw error!
-				return NULL; //We're an invalid TSS to execute!
-			}
-
-			//Execute a normal task switch!
-			if (CPU_switchtask(whatsegment,&LOADEDDESCRIPTOR,&segment,segment,isJMPorCALL)) //Switching to a certain task?
-			{
-				return NULL; //Error changing priviledges or anything else!
-			}
-
-			//We've properly switched to the destination task! Continue execution normally!
-			return NULL; //Don't actually load CS with the descriptor: we've caused a task switch after all!
+			THROWDESCSeg(segment,1); //Throw error!
+			return NULL; //We're an invalid TSS to execute!
 		}
+
+		//Execute a normal task switch!
+		if (CPU_switchtask(whatsegment,&LOADEDDESCRIPTOR,&segment,segment,isJMPorCALL)) //Switching to a certain task?
+		{
+			return NULL; //Error changing priviledges or anything else!
+		}
+
+		//We've properly switched to the destination task! Continue execution normally!
+		return NULL; //Don't actually load CS with the descriptor: we've caused a task switch after all!
 	}
 
 	if (whatsegment == CPU_SEGMENT_CS) //Special stuff on normal CS register (conforming?), CPL.
@@ -462,7 +479,7 @@ uint_32 destEIP; //Destination address for CS JMP instruction!
 void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
 	if (CPU[activeCPU].faultraised) return; //Abort if already an fault has been raised!
-	if (getcpumode()==CPU_MODE_PROTECTED) //Not real mode, must be protected or V8086 mode, so update the segment descriptor cache!
+	if (getcpumode()!=CPU_MODE_REAL) //Not real mode, must be protected or V8086 mode, so update the segment descriptor cache!
 	{
 		SEGMENT_DESCRIPTOR *descriptor = getsegment_seg(segment,value,isJMPorCALL); //Read the segment!
 		if (descriptor) //Loaded&valid?
@@ -492,7 +509,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		}
 		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
 		{
-			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x93; //Load default access rights!
+			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x9D; //Load default access rights!
 			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
 			CPU_flushPIQ(); //We're jumping to another address!
 		}
@@ -620,9 +637,12 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	if (getcpumode()!=CPU_MODE_REAL) //Not in real mode? Perform rights checks!
 	{
-		if (!((MAX(getCPL(), getRPL(segment)) <= descriptor->DPL) || isconforming)) //Invalid privilege?
+		if (segment!=CPU_SEGMENT_TR) //Not task register?
 		{
-			return 1; //Not enough rights!
+			if (!((MAX(getCPL(), getRPL(segment)) <= descriptor->DPL) || isconforming)) //Invalid privilege?
+			{
+				return 1; //Not enough rights!
+			}
 		}
 	}
 
@@ -729,7 +749,9 @@ int LOADINTDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *contain
 	descriptor_adress = (segment & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = getDescriptorIndex(segment); //The full index within the descriptor table!
 
-	if ((word)descriptor_index>((segment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	descriptor_index <<= 3; //Multiply into range!
+
+	if ((word)(descriptor_index>>3)>=((segment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		THROWDESCGP(segment); //Throw error!
 		return 0; //Not present: limit exceeded!
