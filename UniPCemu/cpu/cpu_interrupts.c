@@ -25,7 +25,7 @@ extern byte startreached; //When to start logging?
 
 OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //Used by soft (below) and exceptions/hardware!
 {
-	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
+	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure?
 	{
 		CPU_PUSH16(&REG_FLAGS); //Push flags!
 		CPU_PUSH16(&retsegment); //Push segment!
@@ -34,8 +34,8 @@ OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //U
 		FLAG_IF = 0; //We're calling the interrupt!
 		FLAG_TF = 0; //We're calling an interrupt, resetting debuggers!
 //Now, jump to it!
-		destEIP = MMU_rw(-1, 0x0000, (intnr << 2), 0); //JUMP to position CS:EIP/CS:IP in table.
-		segmentWritten(CPU_SEGMENT_CS,MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,0x0000,(intnr<<2)|2,0),0); //Interrupt to position CS:EIP/CS:IP in table.
+		destEIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
+		segmentWritten(CPU_SEGMENT_CS,memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base),0); //Interrupt to position CS:EIP/CS:IP in table.
 	}
 	else //Use Protected mode IVT?
 	{
