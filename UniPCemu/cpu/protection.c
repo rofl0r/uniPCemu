@@ -277,8 +277,8 @@ void SAVEDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container
 	{
 		if (LOADDESCRIPTOR(whatsegment,segment,&tempcontainer)) //Loaded the old container?
 		{
-			container->desc.base_high = tempcontainer.desc.base_high; //No high byte is present, so ignore the data!
-			container->desc.limit_high = tempcontainer.desc.limit_high; //No high limit is present, so ingore the data!
+			container->desc.base_high = tempcontainer.desc.base_high; //No high byte is present, so ignore the data to write!
+			container->desc.limit_high = tempcontainer.desc.limit_high; //No high limit is present, so ingore the data to write!
 		}
 	}
 
