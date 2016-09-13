@@ -982,3 +982,13 @@ void startEMUTimers()
 		useTimer(EMU_TIMERS[i],1); //Enable it, if there!
 	}
 }
+
+extern Controller8042_t Controller8042;
+extern byte SystemControlPortA;
+void EMU_onCPUReset()
+{
+	SystemControlPortA &= ~2; //Clear A20 here!
+	Controller8042.outputport |= 2; //Set A20 here!
+	refresh_outputport(); //Refresh from 8042!
+	checkPPIA20(); //Refresh from Fast A20!
+}

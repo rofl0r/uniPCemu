@@ -83,6 +83,11 @@ byte PPI_readIO(word port, byte *result)
 	return 0; //No PPI!
 }
 
+void checkPPIA20()
+{
+	MMU_setA20(1,SystemControlPortA&2); //Update with our new value!
+}
+
 byte PPI_writeIO(word port, byte value)
 {
 	switch (port)
@@ -134,13 +139,13 @@ byte PPI_writeIO(word port, byte value)
 		diagnosticsportoutput = value; //Save it to the diagnostics display!
 		break;
 	case 0x92: //System control port A?
-		MMU_setA20(1,value&2); //Fast A20!
+		SystemControlPortA = (value&(~1)); //Set the port!
+		checkPPIA20(); //Fast A20
 		if (value&1) //Fast reset?
 		{
 			doneCPU();
 			resetCPU(); //Reset the CPU!
 		}
-		SystemControlPortA = (value&(~1)); //Set the port!
 		return 1;
 		break;
 	default: //unknown port?

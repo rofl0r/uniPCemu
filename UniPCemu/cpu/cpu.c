@@ -13,6 +13,7 @@
 #include "headers/support/zalloc.h" //For allocating registers etc.
 #include "headers/support/locks.h" //Locking support!
 #include "headers/cpu/modrm.h" //MODR/M support!
+#include "headers/emu/emucore.h" //Needed for CPU reset handler!
 
 //ALL INTERRUPTS
 
@@ -388,6 +389,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	#ifdef CPU_USECYCLES
 	CPU_useCycles = (EMULATED_CPU<=CPU_80286); //Are we using cycle-accurate emulation?
 	#endif
+	EMU_onCPUReset(); //Make sure all hardware, like CPU A20 is updated for the reset!
 }
 
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h

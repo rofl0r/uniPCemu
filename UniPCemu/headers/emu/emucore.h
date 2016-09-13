@@ -32,4 +32,5 @@ void EMU_drawBusy(byte disk); //Draw busy on-screen!
 
 void updateSpeedLimit(); //Prototype!
 
+void EMU_onCPUReset(); //Emu handling for hardware on CPU reset!
 #endif
