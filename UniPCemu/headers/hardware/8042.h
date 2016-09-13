@@ -62,17 +62,24 @@ typedef struct
 	PS2PEEK portpeek[2]; //Port has data&peek function!
 	
 	//Direct feedback support!
-	byte port60toFirstPS2Input; //Redirect write to port 0x60 to input of first PS/2 device!
-	byte port60toSecondPS2Input; //Redirect write to port 0x60 to input of second PS/2 device!
+	byte port60toFirstPS2Output; //Redirect write to port 0x60 to input of first PS/2 device!
+	byte port60toSecondPS2Output; //Redirect write to port 0x60 to input of second PS/2 device!
 
 	//PS/2 output port support!
 	byte writeoutputport; //PS/2 Controller Output (to the 8042 output port)? On port 60h!
 	byte readoutputport; //PS/2 Controller Input (from the 8042 output port)? On port 60h!
 	byte outputport; //The data output for port 60 when read/writeoutputport.
+	byte inputport; //The input port value, which contains system flags!
+
+	//Security password
+	uint_32 securitychecksum; //Some ROM data containing the security string entered by the user!
+	uint_32 securitykey; //The actual key of the installed security!
+	byte has_security;
 	
 	//The output buffer itself!
 	FIFOBUFFER *buffer; //The buffer for our data!
 	
+	word inputtingsecurity; //Inputting security string?
 	byte PortB; //Port B?
 } Controller8042_t; //The 8042 Controller!
 
@@ -81,8 +88,6 @@ void BIOS_done8042(); //Deallocates the 8042!
 
 //The input buffer!
 void give_8042_input(byte value); //Give 8042 input from hardware or 8042!
-word free8042buffer(); //Free 8042 buffer size!
-void waitforfree8042buffer(byte size); //Wait for size free bytes in the 8042 buffer!
 
 //The output port has changed?
 void refresh_outputport(); //Refresh the output port actions!
