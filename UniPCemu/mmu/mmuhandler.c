@@ -420,11 +420,17 @@ void bufferMMU() //Buffer MMU writes!
 	enableMMUbuffer = 1; //Buffer MMU writes!
 }
 
+extern char capturepath[256]; //Full capture path!
+
 //Dump memory
 void MMU_dumpmemory(char *filename) //Dump the memory to a file!
 {
+	char filenamefull[256];
+	bzero(&filenamefull,sizeof(filenamefull)); //Clear memory!
+	sprintf(filenamefull,"%s/%s",capturepath,filename); //Capture path file!
+	domkdir(capturepath); //Make sure we exist!
 	FILE *f;
-	f = fopen(filename,"wb"); //Open file!
+	f = fopen(filenamefull,"wb"); //Open file!
 	fwrite(MMU.memory,1,user_memory_used,f); //Write memory to file!
 	fclose(f); //Close file!
 }

@@ -88,7 +88,7 @@ typedef struct
 					struct
 					{
 						u8 Type : 4; //System segment type! Used when nonS==0
-						u8 nonS : 1; //Not system segment?
+						u8 S : 1; //Not system segment? 1=Memory segment, 0=System segments(unused, TSS, Gates)
 						u8 DPL : 2; //Descriptor Privilege level.
 						u8 P : 1; //Present in memory?
 					}; //General segment information!
