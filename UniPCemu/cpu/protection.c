@@ -479,7 +479,7 @@ uint_32 destEIP; //Destination address for CS JMP instruction!
 void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
 	if (CPU[activeCPU].faultraised) return; //Abort if already an fault has been raised!
-	if (getcpumode()!=CPU_MODE_REAL) //Not real mode, must be protected or V8086 mode, so update the segment descriptor cache!
+	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
 		SEGMENT_DESCRIPTOR *descriptor = getsegment_seg(segment,value,isJMPorCALL); //Read the segment!
 		if (descriptor) //Loaded&valid?
@@ -561,7 +561,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 {
 	byte isconforming;
 
-	if (getcpumode() != CPU_MODE_REAL) //Not real mode? Check rights for zero descriptors!
+	if (getcpumode() == CPU_MODE_PROTECTED) //Not real mode? Check rights for zero descriptors!
 	{
 		if ((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && !getDescriptorIndex(segmentval)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
 		{
@@ -576,7 +576,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		return 2; //#NP!
 	}
 
-	if (getcpumode()!=CPU_MODE_REAL) //Not real mode? Check rights!
+	if (getcpumode()==CPU_MODE_PROTECTED) //Not real mode? Check rights!
 	{
 		if (segment == CPU_SEGMENT_CS && !(descriptor->EXECSEGMENT.ISEXEC) && (forreading == 3)) //Non-executable segment execution?
 		{
@@ -635,7 +635,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		break;
 	}
 
-	if (getcpumode()!=CPU_MODE_REAL) //Not in real mode? Perform rights checks!
+	if (getcpumode()==CPU_MODE_PROTECTED) //Not in real mode? Perform rights checks!
 	{
 		if (segment!=CPU_SEGMENT_TR) //Not task register?
 		{

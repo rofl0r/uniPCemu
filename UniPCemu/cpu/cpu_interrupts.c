@@ -25,7 +25,7 @@ extern byte startreached; //When to start logging?
 
 OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //Used by soft (below) and exceptions/hardware!
 {
-	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure?
+	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
 	{
 		CPU_PUSH16(&REG_FLAGS); //Push flags!
 		CPU_PUSH16(&retsegment); //Push segment!
