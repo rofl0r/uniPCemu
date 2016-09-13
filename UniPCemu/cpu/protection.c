@@ -23,7 +23,10 @@ void CPU_doublefault()
 	uint_32 zerovalue=0; //Zero value pushed!
 	CPU[activeCPU].faultraised = 0; //Reset the fault level for the double fault(allow memory accesses again)!
 	call_hard_inthandler(EXCEPTION_DOUBLEFAULT); //Execute the double fault handler!
-	CPU_PUSH32(&zerovalue); //Error code of 0!
+	if (CPU[activeCPU].faultraised == 0) //Success during this step?
+	{
+		CPU_PUSH32(&zerovalue); //Error code of 0!
+	}
 	CPU[activeCPU].faultraised = 1; //We're ignoring any more errors occurring!
 }
 
