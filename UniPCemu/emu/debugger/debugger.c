@@ -326,7 +326,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"Log registers called with invalid argument!");
 		return; //Abort!
 	}
-	if (EMULATED_CPU<CPU_80286) //Emulating 80(1)86?
+	if (EMULATED_CPU<=CPU_80286) //Emulating 80(1)86 registers?
 	{
 		#ifndef LOGFLAGSONLY
 		dolog(filename,"Registers:"); //Start of the registers!
@@ -336,22 +336,16 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"IP: %04X, FLAGS: %04X",registers->IP,registers->FLAGS); //Rest!
 		#endif
 		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
-//More aren't implemented in the 8086!
+		//More aren't implemented in the 80(1/2)86!
 	}
-	else //80286+?
+	else //80386+? 32-bit registers!
 	{
 		dolog(filename,"Registers:"); //Start of the registers!
 		#ifndef LOGFLAGSONLY
 		dolog(filename,"EAX: %08x, EBX: %08x, ECX: %08x, EDX: %08x",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
 		
-		if (EMULATED_CPU<CPU_80386) //286-?
-		{
-			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
-		}
-		else //386+?
-		{
-			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS); //Segment registers!
-		}
+		dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS); //Segment registers!
+
 		dolog(filename,"ESP: %08x, EBP: %08x, ESI: %08x, EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
 		dolog(filename,"EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
 		#endif
@@ -500,12 +494,12 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 		//First: location!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:%04X", debuggerregisters.CS); //Debug CS!
-		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		if (((getcpumode() == CPU_MODE_REAL) || (getcpumode() == CPU_MODE_8086)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "IP:%04X", debuggerregisters.IP); //Debug IP!
 		}
-		else //286+?
+		else //386+?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 12, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "EIP:%08X", debuggerregisters.EIP); //Debug IP!
@@ -518,7 +512,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "ES:%04X", debuggerregisters.ES); //Debug ES!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "SS:%04X", debuggerregisters.SS); //Debug SS!
-		if (EMULATED_CPU >= CPU_80286) //286+?
+		if (EMULATED_CPU >= CPU_80386) //386+?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "FS:%04X", debuggerregisters.FS); //Debug FS!
@@ -528,7 +522,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 
 		//General purpose registers!
-		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		if (((getcpumode() == CPU_MODE_REAL) || (getcpumode()==CPU_MODE_8086)) || (EMULATED_CPU==CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "AX:%04X", debuggerregisters.AX); //Debug AX!
@@ -550,7 +544,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "DI:%04X", debuggerregisters.DI); //Debug DX!
 		}
-		else //286+?
+		else //386+?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 12, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "EAX:%08X", debuggerregisters.EAX); //Debug EAX!
@@ -575,12 +569,12 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 		//Finally, the flags!
 		//First, flags fully...
-		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		if (((getcpumode() == CPU_MODE_REAL)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode? 80386 virtual 8086 mode uses 32-bit flags!
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "F :%04X", debuggerregisters.FLAGS); //Debug FLAGS!
 		}
-		else //286+
+		else //386+
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 11, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "F :%08X", debuggerregisters.EFLAGS); //Debug FLAGS!

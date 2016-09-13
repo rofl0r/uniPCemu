@@ -7,6 +7,10 @@
 #include "headers/emu/debugger/debugger.h" //For logging registers!
 #include "headers/cpu/multitasking.h" //Multitasking support!
 
+//Are we to disable NMI's from All(or Memory only)?
+#define DISABLE_MEMNMI
+//#define DISABLE_NMI
+
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!
 {
 	MMU_ww(-1,0x0000,((intnr<<2)|2),segment); //Copy segment!
@@ -94,6 +98,7 @@ void CPU_IRET()
 
 extern byte SystemControlPortA; //System control port A data!
 extern byte SystemControlPortB; //System control port B data!
+extern byte PPI62; //For XT support!
 byte NMI = 1; //NMI Disabled?
 
 extern word CPU_exec_CS;
@@ -101,28 +106,61 @@ extern uint_32 CPU_exec_EIP;
 
 byte execNMI(byte causeisMemory) //Execute an NMI!
 {
+	byte doNMI = 0;
+	if (causeisMemory) //I/O error on memory?
+	{
+		if (EMULATED_CPU >= CPU_80286) //AT?
+		{
+			if ((SystemControlPortB & 4)==0) //Parity check enabled(the enable bits are reversed according to the AT BIOS)?
+			{
+				SystemControlPortB |= 0x80; //Signal a Memory error!
+				doNMI = 1; //Allow NMI, if enabled!
+			}
+		}
+		else //XT?
+		{
+			if ((SystemControlPortB & 0x10)==0) //Enabled?
+			{
+				PPI62 |= 0x80; //Signal a Memory error on a XT!
+				doNMI = 1; //Allow NMI, if enabled!
+			}
+		}
+		#ifdef DISABLE_MEMNMI
+			return 1; //We don't handle any NMI's from Bus or Memory through the NMI PIN!
+		#endif
+	}
+	else //Cause is I/O?
+	{
+		//Bus error?
+		if (EMULATED_CPU >= CPU_80286) //AT?
+		{
+			if ((SystemControlPortB & 8)==0) //Channel check enabled(the enable bits are reversed according to the AT BIOS)?
+			{
+				SystemControlPortB |= 0x40; //Signal a Bus error!
+				doNMI = 1; //Allow NMI, if enabled!
+			}
+		}
+		else //XT?
+		{
+			if (SystemControlPortB & 0x20) //Parity check enabled?
+			{
+				PPI62 |= 0x40; //Signal a Parity error on a XT!
+				doNMI = 1; //Allow NMI, if enabled!
+			}
+		}
+	}
+
+#ifdef DISABLE_NMI
+	return 1; //We don't handle any NMI's from Bus or Memory through the NMI PIN!
+#endif
 	if (!NMI && !NMIMasked) //NMI interrupt enabled and not masked off?
 	{
 		NMIMasked = 1; //Mask future NMI!
-		if (causeisMemory) //I/O error on memory?
+		if (doNMI) //I/O error on memory or bus?
 		{
-			if (SystemControlPortB & 4) //Enabled?
-			{
-				SystemControlPortB |= 0x80; //Signal a Memory error!
-				CPU_customint(EXCEPTION_NMI, CPU_exec_CS, CPU_exec_EIP); //Return to opcode!
-				CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
-				return 0; //We're handled!
-			}
-		}
-		else if (!causeisMemory) //Bus error?
-		{
-			if (SystemControlPortB & 8) //Enabled?
-			{
-				SystemControlPortB |= 0x40; //Signal a Bus error!
-				CPU_customint(EXCEPTION_NMI, CPU_exec_CS, CPU_exec_EIP); //Return to opcode!
-				CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
-				return 0; //We're handled!
-			}
+			CPU_customint(EXCEPTION_NMI, CPU_exec_CS, CPU_exec_EIP); //Return to opcode!
+			CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
+			return 0; //We're handled!
 		}
 	}
 	return 1; //Unhandled NMI!

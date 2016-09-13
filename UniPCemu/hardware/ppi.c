@@ -60,12 +60,18 @@ byte PPI_readIO(word port, byte *result)
 		return 1;
 		break;
 	case 0x62: //PPI62?
-		*result = readPPI62(); //Read the value!
-		return 1;
+		if (EMULATED_CPU<=CPU_NECV30) //Enabled?
+		{
+			*result = readPPI62(); //Read the value!
+			return 1;
+		}
 		break;
 	case 0x63: //PPI63?
-		*result = PPI63; //Read the value!
-		return 1;
+		if (EMULATED_CPU <= CPU_NECV30) //Enabled?
+		{
+			*result = PPI63; //Read the value!
+			return 1;
+		}
 		break;
 	case 0x92: //System control port A?
 		*result = SystemControlPortA; //Read the value!
@@ -82,18 +88,32 @@ byte PPI_writeIO(word port, byte value)
 	switch (port)
 	{
 	case 0x61: //System control port B?
-		SystemControlPortB = (value&0x7F); //Set the port, highest bit isn't ours!
-		TurboMode = (value&4); //Turbo mode enabled?
+		if (EMULATED_CPU<CPU_80286) //IBM XT?
+		{
+			SystemControlPortB = (value&0x7F); //Set the port, highest bit isn't ours!
+		}
+		else //Full set?
+		{
+			SystemControlPortB = (value&0x3F)|(SystemControlPortB&0xC0); //Set the port, ignore the upper two bits!
+			SystemControlPortB &= ~((((SystemControlPortB&4)<<1)|((SystemControlPortB&8)>>1)<<4)); //Setting the enable(it's reversed in the AT BIOS) bits clears the status of it's corresponding error bit, according to the AT BIOS!
+		}
+		TurboMode = ((EMULATED_CPU<=CPU_NECV30) && (value&4)); //Turbo mode enabled on XT?
 		updateSpeedLimit(); //Update the speed used!
 		return 1;
 		break;
 	case 0x62: //PPI62?
-		PPI62 = value; //Set the value!
-		return 1;
+		if (EMULATED_CPU <= CPU_NECV30) //Enabled?
+		{
+			PPI62 = value; //Set the value!
+			return 1;
+		}
 		break;
 	case 0x63: //PPI63?
-		PPI63 = value; //Set the value!
-		return 1;
+		if (EMULATED_CPU <= CPU_NECV30) //Enabled?
+		{
+			PPI63 = value; //Set the value!
+			return 1;
+		}
 		break;
 	case 0x80: //IBM AT Diagnostics!
 		if (((sword)value!=breakpoint_comparison) && (diagnosticsportoutput_breakpoint == (sword)value)) //Have we reached a breakpoint?

@@ -250,7 +250,6 @@ uint_32 MEMsize() //Total size of memory in use?
 
 OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 realddress, byte iswrite)
 {
-	return; //Disable this NMI!
 	if (execNMI(1)) //Execute an NMI from memory!
 	{
 		MMU.invaddr = 1; //Signal invalid address!
