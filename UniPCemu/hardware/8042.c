@@ -63,13 +63,13 @@ void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 								Controller8042.status_buffer |= 0x20; //Set AUX bit!
 								if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
 								{
-									if (flags&1) doirq(12); //Raise secondary IRQ!
+									if (flags&1) raiseirq(12); //Raise secondary IRQ!
 								}
 								else
 								{
-									if (flags&1) removeirq(12); //Lower secondary IRQ!
+									if (flags&1) lowerirq(12); //Lower secondary IRQ!
 								}
-								if (flags&1) removeirq(1); //Lower primary IRQ!
+								if (flags&1) lowerirq(1); //Lower primary IRQ!
 							}
 							else //Non-AUX?
 							{
@@ -77,13 +77,13 @@ void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 
 								if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
 								{
-									if (flags&1) doirq(1); //Raise primary IRQ!
+									if (flags&1) raiseirq(1); //Raise primary IRQ!
 								}
 								else
 								{
-									if (flags&1) removeirq(1); //Lower primary IRQ!
+									if (flags&1) lowerirq(1); //Lower primary IRQ!
 								}
-								if (flags&1) removeirq(12); //Lower secondary IRQ!
+								if (flags&1) lowerirq(12); //Lower secondary IRQ!
 							}
 							break; //Finished!
 						}
@@ -272,8 +272,8 @@ void datawritten_8042() //Data has been written?
 			Controller8042.status_buffer |= 0x20; //Set AUX bit!
 			if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
 			{
-				removeirq(1); //Remove the keyboard IRQ!
-				doirq(12); //Call the interrupt if neccesary!
+				lowerirq(1); //Remove the keyboard IRQ!
+				raiseirq(12); //Call the interrupt if neccesary!
 			}
 		}
 		else //Non-AUX?
@@ -281,8 +281,8 @@ void datawritten_8042() //Data has been written?
 			Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
 			if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
 			{
-				removeirq(12); //Remove the mouse IRQ!
-				doirq(1); //Call the interrupt if neccesary!
+				lowerirq(12); //Remove the mouse IRQ!
+				raiseirq(1); //Call the interrupt if neccesary!
 			}
 		}
 		return; //Abort normal process!

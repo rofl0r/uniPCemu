@@ -43,13 +43,13 @@ void tickParallel(double timepassed)
 					switch (port)
 					{
 						case 0: //IRQ 7!
-							doirq(7); //Throw the IRQ!
+							raiseirq(7); //Throw the IRQ!
 							break;
 						case 1: //IRQ 6!
-							doirq(6); //Throw the IRQ!
+							raiseirq(6); //Throw the IRQ!
 							break;
 						case 2: //IRQ 5!
-							doirq(5); //Throw the IRQ!
+							raiseirq(5); //Throw the IRQ!
 						default: //unknown IRQ?
 							//Don't handle: we're an unknown IRQ!
 							break;
@@ -101,6 +101,25 @@ byte outparallel(word port, byte value)
 		{
 			PARALLELPORT[Parallelport].outputhandler(value); //Output the new data
 		}
+
+		if (PARALLELPORT[Parallelport].IRQraised & 2) //Are we raised? Lower it(Writing here acnowledges the interrupt)!
+		{
+			switch (Parallelport) //What port are we?
+			{
+			case 0: //IRQ 7!
+				lowerirq(7); //Throw the IRQ!
+				break;
+			case 1: //IRQ 6!
+				lowerirq(6); //Throw the IRQ!
+				break;
+			case 2: //IRQ 5!
+				lowerirq(5); //Throw the IRQ!
+			default: //unknown IRQ?
+				//Don't handle: we're an unknown IRQ!
+				break;
+			}
+		}
+
 		PARALLELPORT[Parallelport].outputdata = value; //We've written data on this port!
 		return 1; //We're handled!
 		break;

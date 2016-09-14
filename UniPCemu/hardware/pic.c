@@ -262,7 +262,7 @@ byte nextintr()
 	return lastinterrupt; //No result: unk interrupt!
 }
 
-void doirq(byte irqnum)
+void raiseirq(byte irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte requestingindex=irqnum; //Save our index that's requesting!
@@ -273,7 +273,7 @@ void doirq(byte irqnum)
 	i8259.irr2[PIC][requestingindex] |= (1 << (irqnum & 7)); //Add the IRQ to request!
 }
 
-void removeirq(byte irqnum)
+void lowerirq(byte irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte requestingindex = irqnum; //Save our index that's requesting!

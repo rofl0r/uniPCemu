@@ -280,5 +280,5 @@ void doneMPU() //Finish function!
 void MPU401_Done() //Finish our MPU system! Custom by superfury1!
 {
 	PIC_RemoveEvents(NULL); //Remove all events!
-	removeirq(2); //Remove the irq if it's still there!
+	lowerirq(MPU_IRQ); //Remove the irq if it's still there!
 }

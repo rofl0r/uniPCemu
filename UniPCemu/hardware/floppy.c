@@ -401,12 +401,13 @@ void FLOPPY_notifyDiskChanged(int disk)
 OPTINLINE void FLOPPY_raiseIRQ() //Execute an IRQ!
 {
 	FLOPPY.IRQPending = 1; //We're waiting for an IRQ!
-	doirq(FLOPPY_IRQ); //Execute the IRQ!
+	raiseirq(FLOPPY_IRQ); //Execute the IRQ!
 }
 
 OPTINLINE void FLOPPY_lowerIRQ()
 {
 	FLOPPY.IRQPending = 0; //We're not pending anymore!
+	lowerirq(FLOPPY_IRQ); //Lower the IRQ!
 }
 
 OPTINLINE byte FLOPPY_useDMA()

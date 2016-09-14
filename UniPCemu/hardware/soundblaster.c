@@ -89,7 +89,7 @@ byte leftsample=0x80, rightsample=0x80; //Two stereo samples, silence by default
 OPTINLINE void SoundBlaster_IRQ8()
 {
 	SOUNDBLASTER.IRQ8Pending |= 2; //We're actually pending!
-	doirq(__SOUNDBLASTER_IRQ8); //Trigger the IRQ for 8-bit transfers!
+	raiseirq(__SOUNDBLASTER_IRQ8); //Trigger the IRQ for 8-bit transfers!
 }
 
 OPTINLINE void SoundBlaster_FinishedReset()
@@ -912,6 +912,7 @@ byte inSoundBlaster(word port, byte *result)
 		if (SOUNDBLASTER.IRQ8Pending==3) //Pending and acnowledged?
 		{
 			SOUNDBLASTER.IRQ8Pending = 0; //Not pending anymore!
+			lowerirq(__SOUNDBLASTER_IRQ8); //Lower the IRQ!
 		}
 		return 1; //We have a result!
 	default:

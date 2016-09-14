@@ -20,6 +20,9 @@
 //What size to use for a minimum: Should always be set to standard VGA.
 #define VRAM_SIZE VGA_VRAM_VGA
 
+//Our IRQ to use when enabled (EGA compatibility)!
+#define VGA_IRQ 2
+
 //25MHz: VGA standard clock
 #define VGA25MHZ (25.2 / 1.001)*1000000.0
 //28MHz: VGA standard clock

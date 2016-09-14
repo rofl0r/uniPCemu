@@ -297,7 +297,7 @@ recalcsignal: //Recalculate the signal to process!
 				{
 					if (!VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Disabled) //Generate vertical retrace interrupts?
 					{
-						doirq(VGA_IRQ); //Execute the CRT interrupt when possible!
+						raiseirq(VGA_IRQ); //Execute the CRT interrupt when possible!
 					}
 					VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 1; //We're pending an CRT interrupt!
 				}

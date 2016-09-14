@@ -7,9 +7,6 @@
 #include "headers/hardware/vga/vga.h" //VGA!
 #include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller!
 
-//Our IRQ to use when enabled (EGA compatibility)!
-#define VGA_IRQ 2
-
 typedef struct
 {
 	//Global info

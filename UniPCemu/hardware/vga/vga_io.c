@@ -2,6 +2,7 @@
 #include "headers/hardware/vga/vga_precalcs.h" //Precalcs!
 #include "headers/hardware/ports.h" //Ports!
 #include "headers/cpu/cpu.h" //NMI support!
+#include "headers/hardware/pic.h" //IRQ support!
 
 /*
 
@@ -143,6 +144,7 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 			if (!getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_NotCleared) //Vertical interrupt cleared?
 			{
 				getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 0; //Clear the vertical interrupt pending flag!
+				lowerirq(VGA_IRQ); //Lower our IRQ if present!
 			}
 		}
 		if (!getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EVRA) //Force to 1?

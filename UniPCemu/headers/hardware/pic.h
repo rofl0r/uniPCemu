@@ -57,6 +57,6 @@ byte nextintr(); //Next interrupt to handle
 
 void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ); //Register IRQ handler!
 
-void doirq(byte irqnum); //IRQ from hardware request!
-void removeirq(byte irqnum); //Remove IRQ from hardware request!
+void raiseirq(byte irqnum); //IRQ from hardware request!
+void lowerirq(byte irqnum); //Remove IRQ from hardware request!
 #endif

@@ -104,11 +104,11 @@ OPTINLINE void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 	//Finally launch the IRQ!
 	if (COMport&1) //COM2&COM4?
 	{
-		doirq(3); //Do IRQ!
+		raiseirq(3); //Do IRQ!
 	}
 	else //COM1&COM3?
 	{
-		doirq(4); //Do IRQ!
+		raiseirq(4); //Do IRQ!
 	}
 }
 
@@ -206,6 +206,17 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 				{
 					*result = UART_port[COMport].receivedata(); //Receive the data!
 					UART_handleInputs(); //Handle the next byte to receive!
+					switch (COMport) //What port?
+					{
+					case 0:
+					case 2:
+						lowerirq(4); //Lower our IRQ if it's raised!
+						break;
+					case 1:
+					case 3:
+						lowerirq(3); //Lower our IRQ if it's raised!
+						break;
+					}
 				}
 			}
 			break;
@@ -343,10 +354,6 @@ byte PORT_writeUART(word port, byte value)
 
 void UART_handleInputs() //Handle any input to the UART!
 {
-	//First, lower the IRQs!
-	removeirq(3); //Lower IRQ!
-	removeirq(4); //Lower IRQ!
-
 	int i;
 
 	//Raise the IRQ for the first device to give input!

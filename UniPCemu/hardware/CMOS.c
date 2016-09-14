@@ -103,7 +103,7 @@ void RTC_PeriodicInterrupt() //Periodic Interrupt!
 	if (CMOS.DATA.DATA80.data[0x0B]&0x40) //Enabled interrupt?
 	{
 		CMOS.IRQ8_Disabled |= 0x40; //Disable future calls!
-		doirq(8); //Run the IRQ!
+		raiseirq(8); //Run the IRQ!
 	}
 }
 
@@ -117,7 +117,7 @@ void RTC_UpdateEndedInterrupt(byte manualtrigger) //Update Ended Interrupt!
 		{
 			CMOS.IRQ8_Disabled |= 0x10; //Disable future calls!
 		}
-		doirq(8); //Run the IRQ!
+		raiseirq(8); //Run the IRQ!
 	}
 }
 
@@ -128,7 +128,7 @@ void RTC_AlarmInterrupt() //Alarm handler!
 	if (CMOS.DATA.DATA80.data[0x0B]&0x20) //Enabled interrupt?
 	{
 		CMOS.IRQ8_Disabled |= 0x20; //Disable future calls!
-		doirq(8); //Run the IRQ!
+		raiseirq(8); //Run the IRQ!
 	}
 }
 
@@ -137,6 +137,7 @@ void CMOS_onRead() //When CMOS is being read (special actions).
 	if (CMOS.ADDR==0x0C) //Enable all interrupts for RTC again?
 	{
 		CMOS.IRQ8_Disabled = 0; //Enable all!
+		lowerirq(8); //Lower the IRQ!
 	}
 }
 

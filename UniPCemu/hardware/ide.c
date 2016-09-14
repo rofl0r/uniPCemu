@@ -156,10 +156,10 @@ OPTINLINE void ATA_IRQ(byte channel, byte slave)
 		switch (channel)
 		{
 		case 0: //Primary channel?
-			doirq(ATA_PRIMARYIRQ); //Execute the IRQ!
+			raiseirq(ATA_PRIMARYIRQ); //Execute the IRQ!
 			break;
 		case 1:
-			doirq(ATA_SECONDARYIRQ); //Execute the IRQ!
+			raiseirq(ATA_SECONDARYIRQ); //Execute the IRQ!
 			break;
 		default: //Unknown channel?
 			break;
@@ -174,10 +174,10 @@ OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 		switch (channel)
 		{
 		case 0: //Primary channel?
-			removeirq(ATA_PRIMARYIRQ); //Execute the IRQ!
+			lowerirq(ATA_PRIMARYIRQ); //Execute the IRQ!
 			break;
 		case 1:
-			removeirq(ATA_SECONDARYIRQ); //Execute the IRQ!
+			lowerirq(ATA_SECONDARYIRQ); //Execute the IRQ!
 			break;
 		default: //Unknown channel?
 			break;
