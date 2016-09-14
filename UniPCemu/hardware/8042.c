@@ -54,7 +54,7 @@ void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 				{
 					if (Controller8042.portread[whatport] && Controller8042.portpeek[whatport]) //Read handlers from the first PS/2 port available?
 					{
-						if (Controller8042.portpeek[whatport](&Controller8042.input_buffer)) //Got something?
+						if (Controller8042.portpeek[whatport](&Controller8042.output_buffer)) //Got something?
 						{
 							Controller8042.output_buffer = Controller8042.portread[whatport](); //Execute the handler!
 							Controller8042.status_buffer |= 0x1; //Set input buffer full!
@@ -198,7 +198,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xC2: //Copy bits 4-7 of input port to status bits 4-7. No ACK!
 		Controller8042.status_buffer &= ~0xF0; //Clear bits 4-7!
-		Controller8042.status_buffer |= (Controller8042.input_buffer&0xF0);
+		Controller8042.status_buffer |= (Controller8042.inputport&0xF0);
 		break;
 	case 0xD0: //Next byte read from port 0x60 is read from the Controller 8042 output port!
 		Controller8042.readoutputport = 1; //Next byte to port 0x60 is placed on the 8042 output port!
@@ -262,6 +262,7 @@ void datawritten_8042() //Data has been written?
 {
 	if (Controller8042.port60toFirstPS2Output || Controller8042.port60toSecondPS2Output) //port 60 to first/second PS2 output?
 	{
+		Controller8042.output_buffer = Controller8042.input_buffer; //Input to output!
 		Controller8042.status_buffer &= ~0x2; //Cleared ougoing command buffer!
 		Controller8042.status_buffer |= 0x1; //Set output buffer full!
 		if (Controller8042.port60toSecondPS2Output) //AUX port?
@@ -297,8 +298,8 @@ void datawritten_8042() //Data has been written?
 		{
 			if (Controller8042.portwrite[c]) //Gotten handler?
 			{
-				Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
-				Controller8042.portwrite[c](Controller8042.output_buffer); //Write data!
+				Controller8042.status_buffer &= ~0x2; //Cleared input buffer!
+				Controller8042.portwrite[c](Controller8042.input_buffer); //Write data!
 				Controller8042.has_port[c] = 0; //Reset!
 				break; //Stop searching for a device to output!
 			}
@@ -336,7 +337,7 @@ byte write_8042(word port, byte value)
 			return 1; //Don't process normally!
 		}
 
-		Controller8042.output_buffer = value; //Write to output buffer to process!
+		Controller8042.input_buffer = value; //Write to output buffer to process!
 
 		datawritten_8042(); //Written handler!
 		return 1;
@@ -391,7 +392,7 @@ byte read_8042(word port, byte *result)
 		fill8042_output_buffer(1); //Fill the input buffer if needed!
 		if (Controller8042.status_buffer&1) //Gotten data?
 		{
-			*result = Controller8042.input_buffer; //Read input buffer!
+			*result = Controller8042.output_buffer; //Read output buffer!
 			if ((EMULATED_CPU>=CPU_80286) || force8042) //We're an AT system?
 			{
 				Controller8042.status_buffer &= ~0x21; //Clear output buffer full&AUX bits!
@@ -410,7 +411,7 @@ byte read_8042(word port, byte *result)
 		return 1; //Force us to 0 by default!
 		break;
 	case 0x64: //Command port: read status register?
-		if ((EMULATED_CPU >= CPU_80286) || force8042) fill8042_output_buffer(1); //Fill the input buffer if needed!
+		if ((EMULATED_CPU >= CPU_80286) || force8042) fill8042_output_buffer(1); //Fill the output buffer if needed!
 		*result = Controller8042.status_buffer|(Controller8042.PS2ControllerConfigurationByte.SystemPassedPOST<<2); //Read status buffer combined with the BIOS POST flag!
 		return 1; //We're processed!
 		break;
