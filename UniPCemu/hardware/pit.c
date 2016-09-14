@@ -403,17 +403,10 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 		getIRQ = 0; //Default: no IRQ yet!
 		for (;readfifobuffer(PITchannels[0].rawsignal,&currentsample);) //Anything left to process?
 		{
-			if (((currentsample^IRQ0_status)&1)) //Changed?
+			if (((currentsample^IRQ0_status)&1) && currentsample) //Changed and raised?
 			{
-				if (currentsample) //Raised?
-				{
-					raiseirq(0); //Raise IRQ0!
-					getIRQ = 1; //We've gotten an IRQ!
-				}
-				else //Lowered?
-				{
-					lowerirq(0); //Lower IRQ0!
-				}
+				raiseirq(0); //Raise IRQ0!
+				getIRQ = 1; //We've gotten an IRQ!
 			}
 			IRQ0_status = currentsample; //Update status!
 		}
@@ -711,6 +704,11 @@ byte out8253(word portnum, byte value)
 	return 0; //Unhandled!
 }
 
+void PIT0Acnowledge(byte IRQ)
+{
+	lowerirq(0); //Lower our IRQ if it's raised! We don't have an acnowledge!
+}
+
 void init8253() {
 	if (__HW_DISABLED) return; //Abort!
 	register_PORTOUT(&out8253);
@@ -718,4 +716,5 @@ void init8253() {
 
 	speaker_tick = (1000000000.0 / (double)SPEAKER_RATE); //Speaker tick!
 	ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Time to speaker sample ratio!
+	registerIRQ(0,&PIT0Acnowledge,NULL); //Register our acnowledge IRQ!
 }

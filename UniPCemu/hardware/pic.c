@@ -15,6 +15,8 @@
 
 PIC i8259;
 
+//i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered!
+
 byte defaultIROrder[16] = { 0,1,2,8,9,10,11,12,13,14,15,3,4,5,6,7 }; //The order of IRQs!
 
 void init8259()
@@ -202,7 +204,6 @@ OPTINLINE byte IRRequested(byte PIC, byte IR, byte source) //We have this reques
 OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 {
 	if (__HW_DISABLED) return; //Abort!
-	i8259.irr[PIC] ^= (1 << IR); //Turn IRR off!
 	i8259.irr2[PIC][source] ^= (1 << IR); //Turn source IRR off!
 	i8259.isr[PIC] |= (1 << IR); //Turn in-service on!
 	i8259.isr2[PIC][source] |= (1 << IR); //Turn the source on!
@@ -280,8 +281,21 @@ void lowerirq(byte irqnum)
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
-	i8259.irr[PIC] &= ~(1 << (irqnum&7)); //Remove the IRQ from request!
 	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the IRQ to request!
+	byte irr2index;
+	byte hasirr = 0; //Do we still have an IRR?
+	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
+	{
+		if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
+		{
+			hasirr = 1; //We still have an IRR!
+			break; //Stop searching!
+		}
+	}
+	if (hasirr == 0) //IRR fully lifted?
+	{
+		i8259.irr[PIC] &= ~(1 << (irqnum & 7)); //Remove the IRQ from request!
+	}
 }
 
 void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ)
