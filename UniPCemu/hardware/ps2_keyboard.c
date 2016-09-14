@@ -351,7 +351,7 @@ void handle_keyboardwrite(byte data)
 	}
 	else //Command itself?
 	{
-		Keyboard.command = Controller8042.output_buffer; //Becomes a command!
+		Keyboard.command = data; //Becomes a command!
 		commandwritten_keyboard(); //Process keyboard command?
 		if (!Keyboard.has_command) //No command anymore?
 		{
