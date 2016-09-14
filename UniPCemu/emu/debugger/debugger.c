@@ -21,6 +21,12 @@
 //Log flags only?
 //#define LOGFLAGSONLY
 
+//Debugger skipping functionality
+uint_32 skipopcodes = 0; //Skip none!
+byte skipstep = 0; //Skip while stepping? 1=repeating, 2=EIP destination.
+uint_32 skipopcodes_destEIP = 0; //Wait for EIP to become this value?
+
+//Repeat log?
 byte forcerepeat = 0; //Force repeat log?
 
 byte allow_debuggerstep = 0; //Disabled by default: needs to be enabled by our BIOS!
@@ -122,6 +128,7 @@ byte debugger_logging()
 	default:
 		break;
 	}
+	if (skipstep) enablelog = 0; //Disable when skipping!
 	enablelog |= startreached; //Start logging from this point!
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
 	return enablelog; //Logging?
@@ -615,9 +622,6 @@ void toggleAndroidInput(byte finishInput, byte *lastStatus)
 	#endif
 }
 
-uint_32 skipopcodes = 0; //Skip none!
-byte skipstep = 0; //Skip while stepping?
-
 void debuggerThread()
 {
 	static byte AndroidInput = 1; //Default: finished status(not toggled)!
@@ -676,12 +680,24 @@ void debuggerThread()
 			skipopcodes = 9; //Skip 9 additional opcodes!
 			break;
 		}
-		if (psp_keypressed(BUTTON_SQUARE)) //Skip 1000 commands?
+		if (psp_keypressed(BUTTON_SQUARE)) //Skip until finished command?
 		{
 			while (psp_keypressed(BUTTON_SQUARE)) //Wait for release!
 			{
 			}
-			skipstep = 1; //Skip all REP additional opcodes!
+			skipopcodes_destEIP = debuggerregisters.EIP+OPlength; //Destination instruction position!
+			if (getcpumode() != CPU_MODE_PROTECTED) //Not protected mode?
+			{
+				skipopcodes_destEIP &= 0xFFFF; //Wrap around, like we need to!
+			}
+			if (CPU[activeCPU].repeating) //Are we repeating?
+			{
+				skipstep = 1; //Skip all REP additional opcodes!
+			}
+			else //Use the supplied EIP!
+			{
+				skipstep = 2; //Simply skip until the next instruction is reached after this address!
+			}
 			break;
 		}
 		if (psp_keypressed(BUTTON_CIRCLE)) //Dump memory?
@@ -735,16 +751,20 @@ void debugger_step() //Processes the debugging step!
 		if (shuttingdown()) return; //Don't when shutting down!
 		if (skipstep) //Finished?
 		{
-			if (!CPU[activeCPU].repeating) //Finished repeating?
+			if (!CPU[activeCPU].repeating && (skipstep==1)) //Finished repeating?
 			{
 				skipstep = 0; //Disable skip step!
+			}
+			else if (debuggerregisters.EIP == skipopcodes_destEIP) //We've reached the destination address?
+			{
+				skipstep = 0; //We're finished!
 			}
 		}
 		if (skipopcodes) //Skipping?
 		{
 			--skipopcodes; //Skipped one opcode!
 		}
-		if (!(skipopcodes || (skipstep&&CPU[activeCPU].repeating))) //To debug when not skipping repeating or skipping opcodes?
+		if (!(skipopcodes || ((skipstep==1)&&CPU[activeCPU].repeating) || (skipstep==2))) //To debug when not skipping repeating or skipping opcodes?
 		{
 			debugger_thread = startThread(debuggerThread,"debugger",NULL); //Start the debugger!
 		}

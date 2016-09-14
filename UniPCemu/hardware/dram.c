@@ -9,7 +9,7 @@ byte prevDREQ = 0;
 void DRAM_DMADREQ() //For checking any new DREQ signals of DRAM!
 {
 	DMA_SetDREQ(0,DRAM_DREQ); //Set the current DREQ0: DRAM Refresh!
-	if ((DRAM_DREQ != prevDREQ) && DRAM_DREQ) //Raised/lowered?
+	if ((DRAM_DREQ != prevDREQ) && DRAM_DREQ && (EMULATED_CPU>=CPU_80286)) //Raised/lowered?
 	{
 		SystemControlPortB ^= 0x10; //Toggle the refresh register to let know we're active!
 	}
