@@ -108,12 +108,15 @@ byte outparallel(word port, byte value)
 			{
 			case 0: //IRQ 7!
 				lowerirq(7); //Throw the IRQ!
+				acnowledgeIRQrequest(7); //Acnowledge!
 				break;
 			case 1: //IRQ 6!
 				lowerirq(6); //Throw the IRQ!
+				acnowledgeIRQrequest(6); //Acnowledge!
 				break;
 			case 2: //IRQ 5!
 				lowerirq(5); //Throw the IRQ!
+				acnowledgeIRQrequest(5); //Acnowledge!
 			default: //unknown IRQ?
 				//Don't handle: we're an unknown IRQ!
 				break;

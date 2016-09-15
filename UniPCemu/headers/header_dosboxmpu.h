@@ -19,7 +19,7 @@
 #define PIC_RemoveEvents(function) removetimer("MPU")
 #define PIC_AddEvent(function,timeout) addtimer(1/(timeout/1000000),function,"MPU",1,0,NULL)
 #define PIC_ActivateIRQ(irq) raiseirq(irq)
-#define PIC_DeActivateIRQ(irq) lowerirq(irq)
+#define PIC_DeActivateIRQ(irq) lowerirq(irq);acnowledgeIRQrequest(irq)
 
 #define IO_RegisterWriteHandler(port,handler,name) register_PORTOUT(handler)
 #define IO_RegisterReadHandler(port,handler,name) register_PORTIN(handler)

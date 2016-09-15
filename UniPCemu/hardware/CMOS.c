@@ -138,6 +138,7 @@ void CMOS_onRead() //When CMOS is being read (special actions).
 	{
 		CMOS.IRQ8_Disabled = 0; //Enable all!
 		lowerirq(8); //Lower the IRQ!
+		acnowledgeIRQrequest(8); //Acnowledge!
 	}
 }
 

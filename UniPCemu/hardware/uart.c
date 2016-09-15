@@ -211,10 +211,12 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 					case 0:
 					case 2:
 						lowerirq(4); //Lower our IRQ if it's raised!
+						acnowledgeIRQrequest(4); //Acnowledge!
 						break;
 					case 1:
 					case 3:
 						lowerirq(3); //Lower our IRQ if it's raised!
+						acnowledgeIRQrequest(3); //Acnowledge!
 						break;
 					}
 				}

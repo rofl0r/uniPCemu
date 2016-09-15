@@ -67,9 +67,17 @@ void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 								}
 								else
 								{
-									if (flags&1) lowerirq(12); //Lower secondary IRQ!
+									if (flags&1)
+									{
+										lowerirq(12); //Lower secondary IRQ!
+										acnowledgeIRQrequest(12); //Acnowledge!
+									}
 								}
-								if (flags&1) lowerirq(1); //Lower primary IRQ!
+								if (flags&1)
+								{
+									lowerirq(1); //Lower primary IRQ!
+									acnowledgeIRQrequest(1); //Acnowledge!
+								}
 							}
 							else //Non-AUX?
 							{
@@ -81,9 +89,17 @@ void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 								}
 								else
 								{
-									if (flags&1) lowerirq(1); //Lower primary IRQ!
+									if (flags&1)
+									{
+										lowerirq(1); //Lower primary IRQ!
+										acnowledgeIRQrequest(1); //Acnowledge!
+									}
 								}
-								if (flags&1) lowerirq(12); //Lower secondary IRQ!
+								if (flags&1)
+								{
+									lowerirq(12); //Lower secondary IRQ!
+									acnowledgeIRQrequest(12); //Acnowledge!
+								}
 							}
 							break; //Finished!
 						}
@@ -273,6 +289,7 @@ void datawritten_8042() //Data has been written?
 			if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
 			{
 				lowerirq(1); //Remove the keyboard IRQ!
+				acnowledgeIRQrequest(1); //Acnowledge!
 				raiseirq(12); //Call the interrupt if neccesary!
 			}
 		}
@@ -282,6 +299,7 @@ void datawritten_8042() //Data has been written?
 			if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
 			{
 				lowerirq(12); //Remove the mouse IRQ!
+				acnowledgeIRQrequest(12); //Acnowledge!
 				raiseirq(1); //Call the interrupt if neccesary!
 			}
 		}

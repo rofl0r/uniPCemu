@@ -408,6 +408,7 @@ OPTINLINE void FLOPPY_lowerIRQ()
 {
 	FLOPPY.IRQPending = 0; //We're not pending anymore!
 	lowerirq(FLOPPY_IRQ); //Lower the IRQ!
+	acnowledgeIRQrequest(FLOPPY_IRQ); //Acnowledge!
 }
 
 OPTINLINE byte FLOPPY_useDMA()

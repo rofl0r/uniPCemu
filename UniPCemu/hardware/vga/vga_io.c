@@ -145,6 +145,7 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 			{
 				getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 0; //Clear the vertical interrupt pending flag!
 				lowerirq(VGA_IRQ); //Lower our IRQ if present!
+				acnowledgeIRQrequest(VGA_IRQ); //Acnowledge us!
 			}
 		}
 		if (!getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EVRA) //Force to 1?

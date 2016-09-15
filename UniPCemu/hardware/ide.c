@@ -175,9 +175,11 @@ OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 		{
 		case 0: //Primary channel?
 			lowerirq(ATA_PRIMARYIRQ); //Execute the IRQ!
+			acnowledgeIRQrequest(ATA_PRIMARYIRQ); //Acnowledge!
 			break;
 		case 1:
 			lowerirq(ATA_SECONDARYIRQ); //Execute the IRQ!
+			acnowledgeIRQrequest(ATA_SECONDARYIRQ); //Acnowledge!
 			break;
 		default: //Unknown channel?
 			break;

@@ -913,6 +913,7 @@ byte inSoundBlaster(word port, byte *result)
 		{
 			SOUNDBLASTER.IRQ8Pending = 0; //Not pending anymore!
 			lowerirq(__SOUNDBLASTER_IRQ8); //Lower the IRQ!
+			acnowledgeIRQrequest(__SOUNDBLASTER_IRQ8); //Acnowledge!
 		}
 		return 1; //We have a result!
 	default:
