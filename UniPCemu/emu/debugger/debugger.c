@@ -52,6 +52,8 @@ extern PIC i8259;
 
 extern GPU_type GPU; //GPU itself!
 
+byte verifyfile = 0; //Check for verification file?
+
 #include "headers/packed.h" //Packed!
 typedef struct PACKED
 {
@@ -162,8 +164,9 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 		debugger_set = 0; //Default: the debugger isn't implemented!
 		debuggerHLT = CPU[activeCPU].halt; //Are we halted?
 
-		if (file_exists("debuggerverify16.dat")) //Verification file exists?
+		if (verifyfile) //Verification file exists?
 		{
+			if (!file_exists("debuggerverify16.dat")) return; //Abort if it doesn't exist anymore!
 			if (HWINT_saved) //Saved HW interrupt?
 			{
 				switch (HWINT_saved)
@@ -800,4 +803,9 @@ void debugger_setprefix(char *text)
 		strcat(debugger_prefix, text); //Add prefix!
 		strcat(debugger_prefix, " "); //Prefix seperator!
 	}
+}
+
+void initDebugger() //Initialize the debugger if needed!
+{
+	verifyfile = file_exists("debuggerverify16.dat"); //To perform verification checks at all?
 }

@@ -42,4 +42,6 @@ void debugger_screen(); //On-screen dump of registers etc.
 
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted);
 byte isDebuggingPOSTCodes(); //Debug POST codes?
+
+void initDebugger(); //Initialize the debugger if needed!
 #endif

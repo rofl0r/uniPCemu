@@ -399,6 +399,10 @@ void initEMU(int full) //Init!
 	{
 		initXTexpansionunit(); //Initialize the expansion unit!
 	}
+
+	//Initialize the normal debugger!
+	debugrow("Initialising debugger...");
+	initDebugger(); //Initialize the debugger if needed!
 	
 	if (full) //Full start?
 	{
