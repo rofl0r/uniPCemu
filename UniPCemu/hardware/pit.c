@@ -404,10 +404,17 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 		getIRQ = 0; //Default: no IRQ yet!
 		for (;readfifobuffer(PITchannels[0].rawsignal,&currentsample);) //Anything left to process?
 		{
-			if (((currentsample^IRQ0_status)&1) && currentsample) //Changed and raised?
+			if (((currentsample^IRQ0_status)&1)) //Changed?
 			{
-				raiseirq(0); //Raise IRQ0!
-				getIRQ = 1; //We've gotten an IRQ!
+				if (currentsample) //Raised?
+				{
+					raiseirq(0); //Raise IRQ0!
+					getIRQ = 1; //We've gotten an IRQ!
+				}
+				else //Lowered?
+				{
+					lowerirq(0); //Lower IRQ0!
+				}
 			}
 			IRQ0_status = currentsample; //Update status!
 		}

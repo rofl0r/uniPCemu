@@ -270,8 +270,36 @@ void raiseirq(byte irqnum)
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
-	i8259.irr[PIC] |= (1 << (irqnum&7)); //Add the IRQ to request!
+	byte irr2index;
+	byte hasirr = 0;
+	byte oldIRR = 0;
+	//Handle edge-triggered IRR!
+	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
+	{
+		if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
+		{
+			hasirr = 1; //We still have an IRR!
+			break; //Stop searching!
+		}
+	}
+	oldIRR = hasirr; //Old IRR state!
+
 	i8259.irr2[PIC][requestingindex] |= (1 << (irqnum & 7)); //Add the IRQ to request!
+	hasirr = 0; //New IRR state!
+	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
+	{
+		if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
+		{
+			hasirr = 1; //We still have an IRR!
+			break; //Stop searching!
+		}
+	}
+
+	if (hasirr && (hasirr!=oldIRR)) //The line is actually raised?
+	{
+		if (i8259.imr[PIC]&((1<<irqnum&7))) return; //Ignore raising ignored IRQs to prevent spurious interrupts!
+		i8259.irr[PIC] |= (1 << (irqnum & 7)); //Add the IRQ to request because of the rise!
+	}
 }
 
 void lowerirq(byte irqnum)
@@ -296,6 +324,15 @@ void lowerirq(byte irqnum)
 	{
 		i8259.irr[PIC] &= ~(1 << (irqnum & 7)); //Remove the IRQ from request!
 	}
+}
+
+void acnowledgeIRQrequest(byte irqnum)
+{
+	byte requestingindex = irqnum; //Save our index that's requesting!
+	irqnum &= 0xF; //Only 16 IRQs!
+	requestingindex >>= 4; //What index is requesting?
+	byte PIC = (irqnum >> 3); //IRQ8+ is high PIC!
+	i8259.irr[PIC] &= ~(1 << (irqnum & 7)); //Remove the IRQ from request! Don't affect the signal we receive, just acnowledge it so that no more interrupts are fired!
 }
 
 void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ)
