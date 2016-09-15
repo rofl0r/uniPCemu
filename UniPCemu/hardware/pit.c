@@ -578,6 +578,7 @@ void cleanPIT()
 
 uint_32 pitcurrentlatch[4], pitlatch[4], pitdivisor[4]; //Latches & divisors are 32-bits large!
 byte pitcommand[4]; //PIT command is only 1 byte large!
+byte pitdecimal[3] = {0,0,0}; //Are we addressed as decimal data?
 
 //PC Speaker functionality in PIT
 
@@ -596,6 +597,35 @@ byte readstatus[3] = {0,0,0};
 byte readlatch[3] = {0,0,0};
 
 byte lastpit = 0;
+
+word decodeBCD16(word bcd) //Converts from digits to decimal!
+{
+	INLINEREGISTER word temp, result = 0;
+	temp = bcd; //Load the BCD value!
+	result += (temp & 0xF); //Factor 1!
+	temp >>= 4;
+	result += (temp & 0xF) * 10; //Factor 10!
+	temp >>= 4;
+	result += (temp & 0xF) * 100; //Factor 100!
+	temp >>= 4;
+	result += (temp & 0xF) * 1000; //Factor 1000!
+	return result; //Give the decoded integer value!
+}
+
+word encodeBCD16(word value) //Converts from decimal to digits!
+{
+	INLINEREGISTER word temp, result = 0;
+	temp = value; //Load the original value!
+	temp %= 10000; //Wrap around!
+	result |= (0x1000 * (temp / 1000)); //Factor 1000!
+	temp %= 1000;
+	result |= (0x0100 * (temp / 100)); //Factor 100
+	temp %= 100;
+	result |= (0x0010 * (temp / 10)); //Factor 10!
+	temp %= 10;
+	result |= temp; //Factor 1!
+	return result;
+}
 
 byte in8253(word portnum, byte *result)
 {
@@ -621,10 +651,24 @@ byte in8253(word portnum, byte *result)
 			switch ((pitcommand[pit] & 0x30) | readlatch[pit]) //What input mode currently?
 			{
 			case 0x10: //Lo mode?
-				*result = (pitlatch[pit] & 0xFF);
+				if (pitdecimal[pit])
+				{
+					*result = (encodeBCD16(pitlatch[pit]) & 0xFF);
+				}
+				else //Binary?
+				{
+					*result = (pitlatch[pit] & 0xFF);
+				}
 				break;
 			case 0x20: //Hi mode?
-				*result = ((pitlatch[pit]>>8) & 0xFF) ;
+				if (pitdecimal[pit])
+				{
+					*result = ((encodeBCD16(pitlatch[pit]) >> 8) & 0xFF);
+				}
+				else //Binary?
+				{
+					*result = ((pitlatch[pit]>>8) & 0xFF) ;
+				}
 				break;
 			case 0x00: //Latch mode?
 			case 0x30: //Lo/hi mode?
@@ -632,12 +676,26 @@ byte in8253(word portnum, byte *result)
 				{
 					//Give the value!
 					pitcurrentlatch[pit] = 1;
-					*result = (pitlatch[pit] & 0xFF);
+					if (pitdecimal[pit])
+					{
+						*result = (encodeBCD16(pitlatch[pit]) & 0xFF);
+					}
+					else //Binary?
+					{
+						*result = (pitlatch[pit] & 0xFF);
+					}
 				}
 				else
 				{
 					pitcurrentlatch[pit] = 0;
-					*result = ((pitlatch[pit] >> 8) & 0xFF);
+					if (pitdecimal[pit])
+					{
+						*result = ((encodeBCD16(pitlatch[pit]) >> 8) & 0xFF);
+					}
+					else //Binary?
+					{
+						*result = ((pitlatch[pit] >> 8) & 0xFF);
+					}
 					readlatch[pit] = 0; //Normal handling again!
 				}
 				break;
@@ -671,24 +729,52 @@ byte out8253(word portnum, byte value)
 			switch (pitcommand[pit]&0x30) //What input mode currently?
 			{
 			case 0x10: //Lo mode?
-				pitdivisor[pit] = (value & 0xFF)|(pitdivisor[pit]&0xFF00);
+				if (pitdecimal[pit])
+				{
+					pitdivisor[pit] = decodeBCD16((value & 0xFF) | (encodeBCD16(pitdivisor[pit]) & 0xFF00));
+				}
+				else //Binary?
+				{
+					pitdivisor[pit] = (value & 0xFF)|(pitdivisor[pit]&0xFF00);
+				}
 				PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 				break;
 			case 0x20: //Hi mode?
-				pitdivisor[pit] = ((value & 0xFF)<<8)|(pitdivisor[pit]&0xFF);
+				if (pitdecimal[pit])
+				{
+					pitdivisor[pit] = decodeBCD16(((value & 0xFF)<<8) | (encodeBCD16(pitdivisor[pit]) & 0xFF));
+				}
+				else //Binary?
+				{
+					pitdivisor[pit] = ((value & 0xFF)<<8)|(pitdivisor[pit]&0xFF);
+				}
 				PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 				break;
 			case 0x00: //Latch mode?
 			case 0x30: //Lo/hi mode?
 				if (!pitcurrentlatch[pit])
 				{
-					pitdivisor[pit] = (pitdivisor[pit] & 0xFF00) + (value & 0xFF);
+					if (pitdecimal[pit])
+					{
+						pitdivisor[pit] = decodeBCD16((value & 0xFF) | (encodeBCD16(pitdivisor[pit]) & 0xFF00));
+					}
+					else //Binary?
+					{
+						pitdivisor[pit] = (value & 0xFF) | (pitdivisor[pit] & 0xFF00);
+					}
 					PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 					pitcurrentlatch[pit] = 1;
 				}
 				else
 				{
-					pitdivisor[pit] = (pitdivisor[pit] & 0xFF) + ((value & 0xFF)<<8);
+					if (pitdecimal[pit])
+					{
+						pitdivisor[pit] = decodeBCD16(((value & 0xFF) << 8) | (encodeBCD16(pitdivisor[pit]) & 0xFF));
+					}
+					else //Binary?
+					{
+						pitdivisor[pit] = ((value & 0xFF) << 8) | (pitdivisor[pit] & 0xFF);
+					}
 					PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 					pitcurrentlatch[pit] = 0;
 				}
@@ -743,6 +829,7 @@ byte out8253(word portnum, byte value)
 				}
 				lastpit = channel; //The last channel effected!
 				pitcurrentlatch[channel] = 0; //Reset the latch always!
+				pitdecimal[channel] = (value&1); //Set the decimal mode if requested!
 			}
 			return 1;
 		//From above original:
