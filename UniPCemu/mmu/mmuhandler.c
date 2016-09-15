@@ -256,6 +256,11 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 realddress, byte iswrite)
 	}
 }
 
+//Low memory hole start!
+#define LOW_MEMORYHOLE_START 0xA0000
+#define MID_MEMORYHOLE_START 0xF00000
+
+
 //Direct memory access (for the entire emulator)
 byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
@@ -263,9 +268,16 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	byte nonexistant = 0;
 	if (realaddress & 0x100000) //1MB+?
 	{
-		realaddress -= (0x100000 - 0xA0000); //Patch to less memory to make memory linear!
+		if ((realaddress >= MID_MEMORYHOLE_START) && (realaddress < 0x100000)) //15-16M ISA memory hole?
+		{
+			nonexistant = 1; //Non-existant memory!
+		}
+		else
+		{
+			realaddress -= (0x100000 - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
+		}
 	}
-	else if (realaddress >= 0xA0000) //640K ISA memory hole addressed?
+	else if (realaddress >= LOW_MEMORYHOLE_START) //640K ISA memory hole addressed?
 	{
 		nonexistant = 1; //Non-existant memory!
 	}
@@ -294,9 +306,16 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	byte nonexistant = 0;
 	if (realaddress & 0x100000) //1MB+?
 	{
-		realaddress -= (0x100000 - 0xA0000); //Patch to less memory to make memory linear!
+		if ((realaddress >= MID_MEMORYHOLE_START) && (realaddress < 0x100000)) //15-16M ISA memory hole?
+		{
+			nonexistant = 1; //Non-existant memory!
+		}
+		else
+		{
+			realaddress -= (0x100000 - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
+		}
 	}
-	else if (realaddress >= 0xA0000) //640K ISA memory hole addressed?
+	else if (realaddress >= LOW_MEMORYHOLE_START) //640K ISA memory hole addressed?
 	{
 		nonexistant = 1; //Non-existant memory!
 	}
