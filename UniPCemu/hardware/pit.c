@@ -95,6 +95,7 @@ typedef struct
 	byte gatewenthigh; //Gate went high?
 	byte gatelistening; //Listening to gate going high?
 	byte reloadlistening; //Listening to reloading?
+	byte nullcount; //Are we not loaded into the timer yet?
 
 	//Output generating timer!
 	float samples; //Output samples to process for the current audio tick!
@@ -146,6 +147,7 @@ void registerPIT1Ticker(PITTick ticker) //Register a PIT1 ticker for usage?
 OPTINLINE void reloadticker(byte channel)
 {
 	PITchannels[channel].ticker = PITchannels[channel].frequency; //Reload the start value!
+	PITchannels[channel].nullcount = 0; //We're loaded into the timer!
 }
 
 byte channel_reload[3] = {0,0,0}; //To reload the channel next cycle?
@@ -564,6 +566,7 @@ void setPITMode(byte channel, byte mode)
 	PITchannels[channel].reload = 0; //Init to be sure!
 	PITchannels[channel].gatewenthigh = 0; //Reset gate status to be sure, since we're reset!
 	PITchannels[channel].gatelistening = PITchannels[channel].reloadlistening = 0; //Not listening to anything right now!
+	PITchannels[channel].nullcount = 1; //We're not loaded into the divider yet!
 }
 
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
@@ -587,6 +590,11 @@ void updatePITState(byte channel)
 	pitlatch[channel] = PITchannels[channel].ticker; //Convert it to 16-bits value of the PIT and latch it!
 }
 
+//Read back command support!
+byte statusbytes[3] = {0,0,0}; //All 3 status bytes to be read when the Read Back command executes 
+byte readstatus[3] = {0,0,0};
+byte readlatch[3] = {0,0,0};
+
 byte lastpit = 0;
 
 byte in8253(word portnum, byte *result)
@@ -600,11 +608,17 @@ byte in8253(word portnum, byte *result)
 		case 0x42:
 			pit = (byte)(portnum&0xFF);
 			pit &= 3; //PIT!
-			if (pitcommand[pit] & 0x30) //No latch mode?
+			if (readstatus[pit]) //Status is to be read now?
+			{
+				*result = statusbytes[pit]; //Read the current status!
+				readstatus[pit] = 0; //We're read!
+				return 1; //Finished!
+			}
+			if ((pitcommand[pit] & 0x30) && (readlatch[pit]==0)) //No latch mode?
 			{
 				updatePITState(pit); //Update the state: effect like a running timer!
 			}
-			switch (pitcommand[pit] & 0x30) //What input mode currently?
+			switch ((pitcommand[pit] & 0x30) | readlatch[pit]) //What input mode currently?
 			{
 			case 0x10: //Lo mode?
 				*result = (pitlatch[pit] & 0xFF);
@@ -624,6 +638,7 @@ byte in8253(word portnum, byte *result)
 				{
 					pitcurrentlatch[pit] = 0;
 					*result = ((pitlatch[pit] >> 8) & 0xFF);
+					readlatch[pit] = 0; //Normal handling again!
 				}
 				break;
 			}
@@ -633,7 +648,7 @@ byte in8253(word portnum, byte *result)
 			*result = pitcommand[lastpit]; //Give the last command byte!
 			return 1;
 		case 0x61: //PC speaker? From original timer!
-			*result = PCSpeakerPort|(PIT1_status<<4)|(PITchannels[2].channel_status<<5); //Give the speaker port! PIT1 output at bit 4, PIT0 status as bit 5!
+			*result = (PCSpeakerPort&3)|((PITchannels[1].channel_status&1)<<4)|((PITchannels[2].channel_status&1)<<5); //Give the speaker port! PIT1 output at bit 4, PIT0 status as bit 5!
 			return 1;
 		default: //Unknown port?
 			break; //Unknown port!
@@ -645,6 +660,7 @@ byte out8253(word portnum, byte value)
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	byte pit;
+	byte currentstatus; //For read back command!
 	switch (portnum)
 	{
 		case 0x40: //pit 0 data port
@@ -655,21 +671,25 @@ byte out8253(word portnum, byte value)
 			switch (pitcommand[pit]&0x30) //What input mode currently?
 			{
 			case 0x10: //Lo mode?
-				pitdivisor[pit] = (value & 0xFF);
+				pitdivisor[pit] = (value & 0xFF)|(pitdivisor[pit]&0xFF00);
+				PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 				break;
 			case 0x20: //Hi mode?
-				pitdivisor[pit] = ((value & 0xFF)<<8);
+				pitdivisor[pit] = ((value & 0xFF)<<8)|(pitdivisor[pit]&0xFF);
+				PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 				break;
 			case 0x00: //Latch mode?
 			case 0x30: //Lo/hi mode?
 				if (!pitcurrentlatch[pit])
 				{
 					pitdivisor[pit] = (pitdivisor[pit] & 0xFF00) + (value & 0xFF);
+					PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 					pitcurrentlatch[pit] = 1;
 				}
 				else
 				{
 					pitdivisor[pit] = (pitdivisor[pit] & 0xFF) + ((value & 0xFF)<<8);
+					PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 					pitcurrentlatch[pit] = 0;
 				}
 				break;
@@ -679,7 +699,33 @@ byte out8253(word portnum, byte value)
 		case 0x43: //pit command port
 			if ((value & 0xC0) == 0xC0) //Read-back command?
 			{
-				//TODO
+				if ((value & 0x10)==0) //Latch status flag?
+				{
+					for (pit = 0;pit < 3;++pit) //Process all PITs!
+					{
+						if (value&(2<<pit)) //To use?
+						{
+							//Build status flag
+							currentstatus = (pitcommand[pit]&0x3F); //Init current status to data that's ready!
+							currentstatus |= ((PITchannels[pit].channel_status&1)<<7); //The current output!
+							currentstatus |= ((PITchannels[pit].nullcount&1)<<6); //Are we not loaded into the timer yet?
+							readstatus[pit] = 1; //Enable read of the status!
+							statusbytes[pit] = currentstatus; //Store the status byte!
+						}
+					}
+				}
+				if ((value & 0x20) == 0) //Latch count flag?
+				{
+					for (pit = 0;pit < 3;++pit) //Process all PITs!
+					{
+						if (value&(2 << pit)) //To use?
+						{
+							//Build status flag
+							updatePITState(pit); //Update the latch!
+							readlatch[pit] = 3; //Latch us, just once!
+						}
+					}
+				}
 			}
 			else //Normal command?
 			{
