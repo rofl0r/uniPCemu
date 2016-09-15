@@ -106,7 +106,7 @@ byte PPI_writeIO(word port, byte value)
 				acnowledgeIRQrequest(0); //Acnowledge the IRQ, ignore any more IRQs until raised again!
 			}
 			SystemControlPortB = (value&0xC)|(SystemControlPortB&0xC0); //Set the port, ignore the upper two bits!
-			SystemControlPortB &= ~((((SystemControlPortB&4)<<1)|((SystemControlPortB&8)>>1)<<4)); //Setting the enable(it's reversed in the AT BIOS) bits clears the status of it's corresponding error bit, according to the AT BIOS!
+			SystemControlPortB &= ~(((((SystemControlPortB&4)<<1))|((SystemControlPortB&8)>>1))<<4); //Setting the enable(it's reversed in the AT BIOS) bits clears the status of it's corresponding error bit, according to the AT BIOS!
 		}
 		TurboMode = ((EMULATED_CPU<=CPU_NECV30) && (value&4)); //Turbo mode enabled on XT?
 		updateSpeedLimit(); //Update the speed used!
