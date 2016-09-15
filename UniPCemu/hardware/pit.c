@@ -633,7 +633,7 @@ byte in8253(word portnum, byte *result)
 			*result = pitcommand[lastpit]; //Give the last command byte!
 			return 1;
 		case 0x61: //PC speaker? From original timer!
-			*result = PCSpeakerPort|(PIT1_status<<4)|(PITchannels[2].status<<5); //Give the speaker port! PIT1 output at bit 4, PIT0 status as bit 5!
+			*result = PCSpeakerPort|(PIT1_status<<4)|(PITchannels[2].channel_status<<5); //Give the speaker port! PIT1 output at bit 4, PIT0 status as bit 5!
 			return 1;
 		default: //Unknown port?
 			break; //Unknown port!
