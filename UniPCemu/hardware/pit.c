@@ -644,12 +644,13 @@ byte in8253(word portnum, byte *result)
 				readstatus[pit] = 0; //We're read!
 				return 1; //Finished!
 			}
-			if ((pitcommand[pit] & 0x30) && (readlatch[pit]==0)) //No latch mode?
+			if (readlatch[pit]==0) //No latch mode?
 			{
 				updatePITState(pit); //Update the state: effect like a running timer!
 			}
-			switch ((pitcommand[pit] & 0x30) | readlatch[pit]) //What input mode currently?
+			switch (pitcommand[pit] & 0x30) //What input mode currently?
 			{
+			default:
 			case 0x10: //Lo mode?
 				if (pitdecimal[pit])
 				{
@@ -659,6 +660,7 @@ byte in8253(word portnum, byte *result)
 				{
 					*result = (pitlatch[pit] & 0xFF);
 				}
+				readlatch[pit] = 0; //Finished latching!
 				break;
 			case 0x20: //Hi mode?
 				if (pitdecimal[pit])
@@ -669,8 +671,8 @@ byte in8253(word portnum, byte *result)
 				{
 					*result = ((pitlatch[pit]>>8) & 0xFF) ;
 				}
+				readlatch[pit] = 0; //Finished latching!
 				break;
-			case 0x00: //Latch mode?
 			case 0x30: //Lo/hi mode?
 				if (pitcurrentlatch[pit] == 0)
 				{
@@ -728,6 +730,7 @@ byte out8253(word portnum, byte value)
 			pit &= 3; //Low 2 bits only!
 			switch (pitcommand[pit]&0x30) //What input mode currently?
 			{
+			default:
 			case 0x10: //Lo mode?
 				if (pitdecimal[pit])
 				{
@@ -750,7 +753,6 @@ byte out8253(word portnum, byte value)
 				}
 				PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 				break;
-			case 0x00: //Latch mode?
 			case 0x30: //Lo/hi mode?
 				if (!pitcurrentlatch[pit])
 				{
@@ -808,7 +810,7 @@ byte out8253(word portnum, byte value)
 						{
 							//Build status flag
 							updatePITState(pit); //Update the latch!
-							readlatch[pit] = 3; //Latch us, just once!
+							readlatch[pit] = 1; //Latch us, just once!
 						}
 					}
 				}
@@ -818,18 +820,20 @@ byte out8253(word portnum, byte value)
 				byte channel;
 				channel = (value >> 6);
 				channel &= 3; //The channel!
-				pitcommand[channel] = value; //Set the command for the port!
 				if (value&0x30) //Not latching?
 				{
+					pitcommand[channel] = value; //Set the command for the port!
 					setPITMode(channel,(value>>1)&7); //Update the PIT mode when needed!
+					pitdecimal[channel] = (value&1); //Set the decimal mode if requested!
+					readlatch[pit] = 0; //Not latching anymore!
 				}
 				else //Latch count value?
 				{
 					updatePITState(channel); //Update the latch!
+					readlatch[pit] = 1; //Latch us, just once!
 				}
 				lastpit = channel; //The last channel effected!
 				pitcurrentlatch[channel] = 0; //Reset the latch always!
-				pitdecimal[channel] = (value&1); //Set the decimal mode if requested!
 			}
 			return 1;
 		//From above original:
