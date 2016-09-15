@@ -113,7 +113,7 @@ typedef struct {
 	word outputlevel; //(RAW) output level!
 	word volenv; //(RAW) volume level!
 	byte m_ar, m_dr, m_sl, m_rr; //Four rates and levels!
-	word m_counter; //Counter for the volume envelope!
+	uint_32 m_counter; //Counter for the volume envelope!
 	word m_env;
 	word m_ksl, m_kslAdd, m_ksr; //Various key setttings regarding pitch&envelope!
 	byte ReleaseImmediately; //Release even when the note is still turned on?
@@ -285,7 +285,7 @@ void writeadlibdata(byte value)
 		switch (portnum) //What primary port?
 		{
 		case 1: //Waveform select enable
-			wavemask = (adlibregmem[0] & 0x20) ? 3 : 0; //Apply waveform mask!
+			wavemask = (adlibregmem[1] & 0x20) ? 3 : 0; //Apply waveform mask!
 			break;
 		case 4: //timer control
 			if (value & 0x80) { //Special case: don't apply the value!
