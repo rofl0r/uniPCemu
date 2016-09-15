@@ -13,10 +13,6 @@ void DRAM_DMADREQ() //For checking any new DREQ signals of DRAM!
 void DRAM_setDREQ(byte output)
 {
 	DRAM_DREQ = output; //PIT1 is connected to the DREQ signal!
-	if (EMULATED_CPU>=CPU_80286)) //We show PIT1 status at port 0x61 bit 4?
-	{
-		SystemControlPortB = (SystemControlPortB&0xEF)|(output<<4); //Toggle the refresh register to let know we're active!
-	}
 }
 
 void DRAM_access(uint_32 address) //Accessing DRAM?

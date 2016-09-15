@@ -650,6 +650,10 @@ void updateSpeedLimit()
 	{
 		DosboxClock = 0; //We're executing using actual clocks!
 		CPU_speed_cycle = 1000000000.0/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+		if (EMULATED_CPU >= CPU_80286) //Faster clocks?
+		{
+			CPU_speed_cycle = 1000000000.0 / 5800000.0; //80286 ~6MHz for DMA speed check compatibility!
+		}
 		if (TurboMode && BIOS_Settings.useTurboSpeed) //Turbo mode enabled?
 		{
 			if (BIOS_Settings.TurboCPUSpeed) //Turbo speed specified?

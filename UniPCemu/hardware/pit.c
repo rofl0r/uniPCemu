@@ -15,6 +15,7 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 //PC speaker support functionality:
 #include "headers/support/sounddoublebuffer.h" //Sound double buffer support!
 #include "headers/support/wave.h" //Wave support!
+#include "headers/cpu/cpu.h" //XT vs AT support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -73,8 +74,8 @@ double time_tickreverse = 0.0; //Reversed of time_tick(1/ticktime)!
 
 byte IRQ0_status = 0, PIT1_status = 0; //Current IRQ0 status!
 
-byte oldPCSpeakerPort = 0x00;
-extern byte PCSpeakerPort; //Port 0x61 for the PC Speaker! Bit0=Gate, Bit1=Data enable
+byte oldPCSpeakerPort = 0x00; //Backup for tracking channel 2 gate changes!
+byte PCSpeakerPort; //Port 0x61 for the PC Speaker! Bit0=Gate, Bit1=Data enable, bit 4=PIT1 output!
 
 extern byte EMU_RUNNING; //Current emulator status!
 
@@ -570,8 +571,6 @@ byte pitcommand[4]; //PIT command is only 1 byte large!
 
 //PC Speaker functionality in PIT
 
-byte PCSpeakerPort; //Port 0x61 for the PC Speaker!
-
 //NEW HANDLER
 uint_64 calculatedpitstate[3]; //Calculate state by time and last time handled!
 
@@ -627,7 +626,7 @@ byte in8253(word portnum, byte *result)
 			*result = pitcommand[lastpit]; //Give the last command byte!
 			return 1;
 		case 0x61: //PC speaker? From original timer!
-			*result = PCSpeakerPort; //Give the speaker port!
+			*result = PCSpeakerPort|(PIT1_status<<4)|(PITchannels[2].status<<5); //Give the speaker port! PIT1 output at bit 4, PIT0 status as bit 5!
 			return 1;
 		default: //Unknown port?
 			break; //Unknown port!
@@ -695,7 +694,7 @@ byte out8253(word portnum, byte value)
 			return 1;
 		//From above original:
 	case 0x61: //PC Speaker?
-		PCSpeakerPort = (value&3); //Set the new port value, only low 2 bits are used!
+		PCSpeakerPort = (value&3); //Set the new port value, only low 2 bits are changed!
 		speakerGateUpdated(); //Gate has been updated!
 		return 1;
 	default:
@@ -706,7 +705,10 @@ byte out8253(word portnum, byte value)
 
 void PIT0Acnowledge(byte IRQ)
 {
-	lowerirq(0); //Lower our IRQ if it's raised! We don't have an acnowledge!
+	if (EMULATED_CPU<CPU_80286) //Non-AT?
+	{
+		lowerirq(0); //Lower our IRQ if it's raised! We don't have an acnowledge!
+	}
 }
 
 void init8253() {
@@ -717,4 +719,5 @@ void init8253() {
 	speaker_tick = (1000000000.0 / (double)SPEAKER_RATE); //Speaker tick!
 	ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Time to speaker sample ratio!
 	registerIRQ(0,&PIT0Acnowledge,NULL); //Register our acnowledge IRQ!
+	PCSpeakerPort = 0; //Init PC speaker port!
 }

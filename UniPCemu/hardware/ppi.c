@@ -6,6 +6,7 @@
 #include "headers/emu/emucore.h" //Speed change support!
 #include "headers/emu/debugger/debugger.h" //Debugging support for logging POST codes!
 #include "headers/support/log.h" //For logging POST codes!
+#include "headers/hardware/pic.h" //Interrupt support!
 
 byte SystemControlPortB=0x00; //System control port B!
 byte SystemControlPortA=0x00; //System control port A!
@@ -95,11 +96,16 @@ byte PPI_writeIO(word port, byte value)
 	case 0x61: //System control port B?
 		if (EMULATED_CPU<CPU_80286) //IBM XT?
 		{
-			SystemControlPortB = (value&0x7F); //Set the port, highest bit isn't ours!
+			SystemControlPortB = (value&0xF4); //Set the port, only the highest 4 bits and bit 4 is ours!
 		}
 		else //Full set?
 		{
-			SystemControlPortB = (value&0x3F)|(SystemControlPortB&0xC0); //Set the port, ignore the upper two bits!
+			//Bit 7 resets the timer 0 output latch(acnowledges it?)?
+			if (value & 0x80) //Acnowledge?
+			{
+				lowerirq(0); //Lower the IRQ!
+			}
+			SystemControlPortB = (value&0xC)|(SystemControlPortB&0xC0); //Set the port, ignore the upper two bits!
 			SystemControlPortB &= ~((((SystemControlPortB&4)<<1)|((SystemControlPortB&8)>>1)<<4)); //Setting the enable(it's reversed in the AT BIOS) bits clears the status of it's corresponding error bit, according to the AT BIOS!
 		}
 		TurboMode = ((EMULATED_CPU<=CPU_NECV30) && (value&4)); //Turbo mode enabled on XT?
