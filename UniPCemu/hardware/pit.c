@@ -737,7 +737,7 @@ byte in8254(word portnum, byte *result)
 			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 			return 1;
 		case 0x61: //PC speaker? From original timer!
-			*result = (PCSpeakerPort&3)|((PITchannels[1].risetoggle&1)<<4)|((PITchannels[2].risetoggle&1)<<5); //Give the speaker port! PIT1 output at bit 4, PIT0 status as bit 5!
+			*result = (PCSpeakerPort&3)|((PITchannels[1].risetoggle&1)<<4)|((PITchannels[2].channel_output&1)<<5); //Give the speaker port! PIT1 output at bit 4(toggling), PIT0 status as bit 5!
 			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 			return 1;
 		default: //Unknown port?
