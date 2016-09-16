@@ -235,7 +235,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		{
 			adlibop[adliboperators[0][channel]&0x1F].volenv = Silence; //No raw level: Start silence!
 			adlibop[adliboperators[0][channel]&0x1F].m_env = Silence; //No raw level: Start level!
-		}
+		}		
 		adlibop[adliboperators[0][channel]&0x1F].volenvstatus = 1; //Start attacking!
 		adlibop[adliboperators[0][channel]&0x1F].gain = ((adlibop[adliboperators[0][channel]].volenv)<<3); //Apply the start gain!
 		adlibop[adliboperators[0][channel]&0x1F].m_counter = 0; //No raw level: Start counter!
@@ -244,6 +244,20 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[0][channel]&0x1F].lastsignal[0] = adlibop[adliboperators[1][channel]&0x1F].lastsignal[1] = 0.0f; //Reset the last signals!
 		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[0][channel]&0x1F]);
 		EnvelopeGenerator_setAttennuationCustom(&adlibop[adliboperators[0][channel]&0x1F]);
+	}
+
+	//Below block is a fix for stuck notes!
+	if ((adliboperators[0][channel] != 0xFF) && (((keyon & 1) == 0) && ((oldkeyon^keyon) & 1) && ((forcekeyon & 1) == 0))) //Key OFF on operator #1?
+	{
+		if (adlibop[adliboperators[0][channel] & 0x1F].volenvstatus == 0) //Not retriggering the volume envelope?
+		{
+			adlibop[adliboperators[0][channel] & 0x1F].volenv = Silence; //No raw level: Start silence!
+			adlibop[adliboperators[0][channel] & 0x1F].m_env = Silence; //No raw level: Start level!
+		}
+		adlibop[adliboperators[0][channel] & 0x1F].volenvstatus = 4; //Start attacking!
+		adlibop[adliboperators[0][channel] & 0x1F].gain = ((adlibop[adliboperators[0][channel]].volenv) << 3); //Apply the start gain!
+		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[0][channel] & 0x1F]);
+		EnvelopeGenerator_setAttennuationCustom(&adlibop[adliboperators[0][channel] & 0x1F]);
 	}
 
 	if ((adliboperators[1][channel]!=0xFF) && (((keyon&2) && ((oldkeyon^keyon)&2)) || (forcekeyon&2))) //Key ON on operator #2?
@@ -261,6 +275,20 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[1][channel]&0x1F].lastsignal[0] = adlibop[adliboperators[1][channel]&0x1F].lastsignal[1] = 0.0f; //Reset the last signals!
 		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[1][channel]&0x1F]);
 		EnvelopeGenerator_setAttennuationCustom(&adlibop[adliboperators[1][channel]&0x1F]);
+	}
+
+	//Below block is a fix for stuck notes!
+	if ((adliboperators[1][channel] != 0xFF) && (((keyon & 2) == 0) && ((oldkeyon^keyon) & 2) && ((forcekeyon & 2) == 0))) //Key OFF on operator #1?
+	{
+		if (adlibop[adliboperators[1][channel] & 0x1F].volenvstatus == 0) //Not retriggering the volume envelope?
+		{
+			adlibop[adliboperators[1][channel] & 0x1F].volenv = Silence; //No raw level: Start silence!
+			adlibop[adliboperators[1][channel] & 0x1F].m_env = Silence; //No raw level: Start level!
+		}
+		adlibop[adliboperators[1][channel] & 0x1F].volenvstatus = 4; //Start releasing!
+		adlibop[adliboperators[1][channel] & 0x1F].gain = ((adlibop[adliboperators[1][channel]].volenv) << 3); //Apply the start gain!
+		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[1][channel] & 0x1F]);
+		EnvelopeGenerator_setAttennuationCustom(&adlibop[adliboperators[1][channel] & 0x1F]);
 	}
 
 	//Update keyon information!
@@ -1079,7 +1107,7 @@ OPTINLINE void tickadlib()
 				break;
 			case 3: //Sustaining?
 				startsustain:
-				if ((!(adlibop[curop].channel->keyon&adliboperatorsreversekeyon[curop])) || adlibop[curop].ReleaseImmediately) //Release entered?
+				if (adlibop[curop].ReleaseImmediately) //Release entered?
 				{
 					++adlibop[curop].volenvstatus; //Enter next phase!
 					goto startrelease; //Check again!
