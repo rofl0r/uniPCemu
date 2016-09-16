@@ -112,6 +112,8 @@ typedef struct
 	//Output generating timer!
 	float samples; //Output samples to process for the current audio tick!
 	double samplesleft; //Samples left to process!
+	byte lastchannel_status; //Last recorded channel status
+	byte risetoggle; //Toggled bit 0 when we rise.
 	FIFOBUFFER *rawsignal; //The raw signal buffer for the oneshot mode!
 } PITCHANNEL; // speaker!
 
@@ -417,6 +419,14 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 				default: //Unsupported mode! Ignore any input!
 					break;
 				}
+				if (channel) //Handle channel 1&2 seperately too!
+				{
+					if (((PITchannels[channel].lastchannel_status^PITchannels[channel].channel_status)&1) && PITchannels[channel].channel_status) //Raised?
+					{
+						PITchannels[channel].risetoggle ^= 1; //Toggle the bit in our output port!
+					}
+					PITchannels[channel].lastchannel_status = PITchannels[channel].channel_status; //Save the new status!
+				}
 				//We're ready for the current result!
 				writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
 			}
@@ -457,9 +467,6 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 		}
 	}
 
-	//Timer 1 output is discarded! We're not connected to anything or unneeded to emulate DRAM refresh!
-	//fifobuffer_clear(PITchannels[1].rawsignal); //Discard channel 1 output!
-	
 	//PC speaker output!
 	speaker_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
 	if ((speaker_ticktiming >= speaker_tick) && enablespeaker) //Enough time passed to render the physical PC speaker and enabled?
@@ -730,7 +737,7 @@ byte in8254(word portnum, byte *result)
 			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 			return 1;
 		case 0x61: //PC speaker? From original timer!
-			*result = (PCSpeakerPort&3)|((PITchannels[1].channel_status&1)<<4)|((PITchannels[2].channel_status&1)<<5); //Give the speaker port! PIT1 output at bit 4, PIT0 status as bit 5!
+			*result = (PCSpeakerPort&3)|((PITchannels[1].risetoggle&1)<<4)|((PITchannels[2].risetoggle&1)<<5); //Give the speaker port! PIT1 output at bit 4, PIT0 status as bit 5!
 			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 			return 1;
 		default: //Unknown port?
