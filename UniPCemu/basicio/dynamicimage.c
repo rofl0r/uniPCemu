@@ -20,6 +20,19 @@ int_64 currentsize; //The current file size, in bytes!
 } DYNAMICIMAGE_HEADER; //Dynamic image .DAT header.
 #include "headers/endpacked.h"
 
+#include "headers/packed.h"
+typedef struct PACKED
+{
+byte SIG[7]; //SFDIMG\0
+uint_32 headersize; //The size of this header!
+int_64 filesize; //The size of the dynamic image, in sectors.
+word sectorsize; //The size of a sector (512)
+int_64 firstlevellocation; //The location of the first level, in bytes!
+int_64 currentsize; //The current file size, in bytes!
+int_64 extendedinformationblocklocation; //The location of an Extended Information Block
+} EXTENDEDDYNAMICIMAGE_HEADER; //Extended Dynamic image .DAT header.
+#include "headers/endpacked.h"
+
 typedef struct
 {
 	byte SIG[7]; //SFDIMG\0
@@ -54,6 +67,7 @@ OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	PADDEDDYNAMICIMAGE_HEADER oldheader; //The older header data!
+	EXTENDEDDYNAMICIMAGE_HEAFER extendedheader; //The newest extended header data!
 	if (!emptylookuptable_ready) //Not allocated yet?
 	{
 		memset(&emptylookuptable,0,sizeof(emptylookuptable)); //Initialise the lookup table!
@@ -88,7 +102,7 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 		if (emufread64(header, 1, sizeof(*header), f) == sizeof(*header)) //Read the new header?
 		{
 			char *sig = (char *)&header->SIG; //The signature!
-			if ((!memcmp(sig, &SIG, sizeof(header->SIG))) && (header->headersize == sizeof(*header))) //Dynamic image?
+			if ((!memcmp(sig, &SIG, sizeof(header->SIG))) && ((header->headersize == sizeof(*header)) || (header->headersize == sizeof(*extendedheader)))) //Dynamic image?
 			{
 				return 1; //Is dynamic!
 			}
@@ -595,7 +609,7 @@ char diskpath[256]; //Disk path!
 
 FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int percentagey)
 {
-	DYNAMICIMAGE_HEADER header;
+	EXTENDEDDYNAMICIMAGE_HEADER header;
 	FILE *f;
 
 	char fullfilename[256];
@@ -624,6 +638,7 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 		header.sectorsize = 512; //512 bytes per sector!
 		header.currentsize = sizeof(header); //The current file size. This is updated as data is appended to the file.
 		header.firstlevellocation = 0; //No first level createn yet!
+		header.extendedinformationblocklocation = 0; //We don't have extended information!
 		if (emufwrite64(&header,1,sizeof(header),f)!=sizeof(header)) //Failed to write the header?
 		{
 			emufclose64(f); //Close the file!
