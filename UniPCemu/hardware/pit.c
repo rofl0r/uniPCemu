@@ -751,6 +751,7 @@ byte out8254(word portnum, byte value)
 					pitdivisor[pit] = (value & 0xFF);
 				}
 				PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
+				setPITFrequency(pit, pitdivisor[pit]); //Set the new divisor!
 				break;
 			case 0x20: //Hi mode?
 				if (pitdecimal[pit])
@@ -762,6 +763,7 @@ byte out8254(word portnum, byte value)
 					pitdivisor[pit] = ((value & 0xFF)<<8);
 				}
 				PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
+				setPITFrequency(pit, pitdivisor[pit]); //Set the new divisor!
 				break;
 			case 0x30: //Lo/hi mode?
 				if (!pitcurrentlatch[pit][1])
@@ -789,10 +791,10 @@ byte out8254(word portnum, byte value)
 					}
 					PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 					pitcurrentlatch[pit][1] = 0;
+					setPITFrequency(pit, pitdivisor[pit]); //Set the new divisor!
 				}
 				break;
 			}
-			setPITFrequency(pit,pitdivisor[pit]); //Set the new divisor!
 			return 1;
 		case 0x43: //pit command port
 			if ((value & 0xC0) == 0xC0) //Read-back command?
