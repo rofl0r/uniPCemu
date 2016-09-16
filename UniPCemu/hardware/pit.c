@@ -16,9 +16,21 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 #include "headers/support/sounddoublebuffer.h" //Sound double buffer support!
 #include "headers/support/wave.h" //Wave support!
 #include "headers/cpu/cpu.h" //XT vs AT support!
+#include "headers/support/log.h" //Loggin support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
+
+//Define below to log all PIT accesses!
+#define LOG_PIT
+#define PIT_LOGFILE "PIT"
+
+//Enable logs if defined!
+#ifdef LOG_PIT
+#define PIT_LOG(...) { dolog(PIT_LOGFILE,__VA_ARGS__); }
+#else
+#define PIT_LOG(...)
+#endif
 
 /*
 
@@ -649,6 +661,7 @@ byte in8254(word portnum, byte *result)
 			{
 				*result = statusbytes[pit]; //Read the current status!
 				readstatus[pit] = 0; //We're read!
+				PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 				return 1; //Finished!
 			}
 			if (readlatch[pit]==0) //No latch mode?
@@ -709,13 +722,16 @@ byte in8254(word portnum, byte *result)
 				}
 				break;
 			}
+			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 			return 1;
 			break;
 		case 0x43:
 			*result = pitcommand[lastpit]; //Give the last command byte!
+			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 			return 1;
 		case 0x61: //PC speaker? From original timer!
 			*result = (PCSpeakerPort&3)|((PITchannels[1].channel_status&1)<<4)|((PITchannels[2].channel_status&1)<<5); //Give the speaker port! PIT1 output at bit 4, PIT0 status as bit 5!
+			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 			return 1;
 		default: //Unknown port?
 			break; //Unknown port!
@@ -735,6 +751,7 @@ byte out8254(word portnum, byte value)
 		case 0x42: //speaker data port
 			pit = (byte)(portnum&0xFF);
 			pit &= 3; //Low 2 bits only!
+			PIT_LOG("Write to data port 0x%02X=%02X",portnum,value);
 			switch (pitcommand[pit]&0x30) //What input mode currently?
 			{
 			default:
@@ -794,6 +811,7 @@ byte out8254(word portnum, byte value)
 			}
 			return 1;
 		case 0x43: //pit command port
+			PIT_LOG("Write to data port 0x%02X=%02X", portnum, value);
 			if ((value & 0xC0) == 0xC0) //Read-back command?
 			{
 				if ((value & 0x10)==0) //Latch status flag?
@@ -848,6 +866,7 @@ byte out8254(word portnum, byte value)
 			return 1;
 		//From above original:
 	case 0x61: //PC Speaker?
+		PIT_LOG("Write to misc port 0x%02X=%02X", portnum, value);
 		PCSpeakerPort = (value&3); //Set the new port value, only low 2 bits are changed!
 		speakerGateUpdated(); //Gate has been updated!
 		return 1;
