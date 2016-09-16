@@ -592,9 +592,6 @@ byte pitcommand[4]; //PIT command is only 1 byte large!
 
 //PC Speaker functionality in PIT
 
-//NEW HANDLER
-uint_64 calculatedpitstate[3]; //Calculate state by time and last time handled!
-
 void updatePITState(byte channel)
 {
 	//Calculate the current PIT0 state by frequency and time passed!
