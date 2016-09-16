@@ -7,6 +7,7 @@
 
 //A dynamic image .DAT data:
 byte SIG[7] = {'S','F','D','I','M','G','\0'}; //Signature!
+byte EXTSIG[7] = {'S','F','D','I','M','E','\0'}; //Signature of an extended disk image!
 
 #include "headers/packed.h"
 typedef struct PACKED
@@ -102,8 +103,9 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 		if (emufread64(header, 1, sizeof(*header), f) == sizeof(*header)) //Read the new header?
 		{
 			char *sig = (char *)&header->SIG; //The signature!
-			if ((!memcmp(sig, &SIG, sizeof(header->SIG))) && ((header->headersize == sizeof(*header)) || (header->headersize == sizeof(*extendedheader)))) //Dynamic image?
-			{
+			if (((!memcmp(sig, &SIG, sizeof(header->SIG))) && (header->headersize == sizeof(*header))) //Normal header?
+			 || ((!memcmp(sig, &EXTSIG, sizeof(header->SIG))) && ((header->headersize == sizeof(*extendedheader))) //Extended header?
+			 )//New dynamic//New dynamic image header?			{
 				return 1; //Is dynamic!
 			}
 		}
@@ -632,7 +634,7 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 	if (size != 0) //Has size?
 	{
 		f = emufopen64(fullfilename, "wb"); //Start generating dynamic info!
-		memcpy(&header.SIG,SIG,sizeof(header.SIG)); //Set the signature!
+		memcpy(&header.SIG,EXTSIG,sizeof(header.SIG)); //Set the signature!
 		header.headersize = sizeof(header); //The size of the header to validate!
 		header.filesize = numblocks; //Ammount of blocks!
 		header.sectorsize = 512; //512 bytes per sector!
