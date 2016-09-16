@@ -65,10 +65,37 @@ OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 	return 1; //We've been updated!
 }
 
+OPTINLINE int_64 readdynamicheader_extensionlocation(FILE *f, EXTENDEDDYNAMICIMAGE_HEADER *header) //Read the extension location!
+{
+	if (!emptylookuptable_ready) //Not allocated yet?
+	{
+		memset(&emptylookuptable, 0, sizeof(emptylookuptable)); //Initialise the lookup table!
+		emptylookuptable_ready = 1; //Ready!
+	}
+	if (f)
+	{
+		if (emufseek64(f, 0, SEEK_SET) != 0)
+		{
+			return 0; //Failed to seek to position 0!
+		}
+		if (emufread64(header, 1, sizeof(*header), f) == sizeof(*header)) //Read the new header?
+		{
+			char *sig = (char *)&header->SIG; //The signature!
+			if ((!memcmp(sig, &EXTSIG, sizeof(header->SIG))) && (header->headersize == sizeof(header)) //Extended header?
+				) //(New) dynamic image header?
+			{
+				return header->extendedinformationblocklocation; //Is dynamic extended image! Give the location, if used!
+			}
+		}
+		return 0; //Valid file, not a dynamic image!
+	}
+	return 0; //Not found!
+}
+
 OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	PADDEDDYNAMICIMAGE_HEADER oldheader; //The older header data!
-	EXTENDEDDYNAMICIMAGE_HEAFER extendedheader; //The newest extended header data!
+	EXTENDEDDYNAMICIMAGE_HEADER extendedheader; //The newest extended header data!
 	if (!emptylookuptable_ready) //Not allocated yet?
 	{
 		memset(&emptylookuptable,0,sizeof(emptylookuptable)); //Initialise the lookup table!
@@ -104,8 +131,13 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 		{
 			char *sig = (char *)&header->SIG; //The signature!
 			if (((!memcmp(sig, &SIG, sizeof(header->SIG))) && (header->headersize == sizeof(*header))) //Normal header?
-			 || ((!memcmp(sig, &EXTSIG, sizeof(header->SIG))) && ((header->headersize == sizeof(*extendedheader))) //Extended header?
-			 )//New dynamic//New dynamic image header?			{
+				|| ((!memcmp(sig, &EXTSIG, sizeof(header->SIG))) && (header->headersize == sizeof(extendedheader))) //Extended header?
+				)//(New) dynamic image header?
+			{
+				if (readdynamicheader_extensionlocation(f,&extendedheader) != 0) //Extended image data isn't supported yet!
+				{
+					return 0; //Isn't supported yet!
+				}
 				return 1; //Is dynamic!
 			}
 		}

@@ -156,7 +156,7 @@ OPTINLINE void wrapPITticker(byte channel)
 {
 	if (pitdecimal[channel] && (PITchannels[channel].ticker>9999)) //We're in decimal mode?
 	{
-		PITchannels[channel].ticker = 9999-MAX((0xFFFF-PITchannels.channel[ticker]),9999); //Wrap, safe decimal to binary style!
+		PITchannels[channel].ticker = 9999-MAX((0xFFFF-PITchannels[channel].ticker),9999); //Wrap, safe decimal to binary style!
 	}
 }
 
@@ -587,7 +587,7 @@ void cleanPIT()
 	//We don't do anything: we're locked to CPU speed instead!
 }
 
-uint_32 pitcurrentlatch[4], pitlatch[4], pitdivisor[4]; //Latches & divisors are 32-bits large!
+uint_32 pitcurrentlatch[4][2], pitlatch[4], pitdivisor[4]; //Latches & divisors are 32-bits large!
 byte pitcommand[4]; //PIT command is only 1 byte large!
 
 //PC Speaker functionality in PIT
@@ -821,11 +821,10 @@ byte out8254(word portnum, byte value)
 							//Build status flag
 							updatePITState(pit); //Update the latch!
 							readlatch[pit] = 1; //Latch us, just once!
+							pitcurrentlatch[pit][0] = pitcurrentlatch[pit][1] = 0; //Reset the latches always!
 						}
 					}
 				}
-				pitcurrentlatch[channel][0] = pitcurrentlatch[channel][1] = 0; //Reset the latches always!
-
 			}
 			else //Normal command?
 			{
@@ -837,12 +836,12 @@ byte out8254(word portnum, byte value)
 					pitcommand[channel] = value; //Set the command for the port!
 					setPITMode(channel,(value>>1)&7); //Update the PIT mode when needed!
 					pitdecimal[channel] = (value&1); //Set the decimal mode if requested!
-					readlatch[pit] = 0; //Not latching anymore!
+					readlatch[channel] = 0; //Not latching anymore!
 				}
 				else //Latch count value?
 				{
 					updatePITState(channel); //Update the latch!
-					readlatch[pit] = 1; //Latch us, just once!
+					readlatch[channel] = 1; //Latch us, just once!
 				}
 				lastpit = channel; //The last channel effected!
 				pitcurrentlatch[channel][0] = pitcurrentlatch[channel][1] = 0; //Reset the latches always!
