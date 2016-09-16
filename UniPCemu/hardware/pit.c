@@ -105,7 +105,7 @@ typedef struct
 
 PITCHANNEL PITchannels[3]; //All possible PC speakers, whether used or not!
 
-byte pitdecimal[3] = {0,0,0}; //Are we addressed as decimal data?
+byte pitdecimal[4] = {0,0,0,0}; //Are we addressed as decimal data?
 
 byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	static sword s = 0; //Last sample!
@@ -604,7 +604,7 @@ void updatePITState(byte channel)
 //Read back command support!
 byte statusbytes[3] = {0,0,0}; //All 3 status bytes to be read when the Read Back command executes 
 byte readstatus[3] = {0,0,0};
-byte readlatch[3] = {0,0,0};
+byte readlatch[4] = {0,0,0};
 
 byte lastpit = 0;
 

@@ -1864,7 +1864,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 	case 1: //ROR r/m32
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAG_CF = s & 1;
-			s = (s >> 1) | (FLAG_CF << 31);
+			s = (s >> 1) | ((uint_64)FLAG_CF << 31);
 		}
 		if (cnt) FLAG_OF = (byte)((s >> 31) ^ ((s >> 30) & 1));
 		break;

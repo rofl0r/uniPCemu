@@ -22,7 +22,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	union
 	{
 		TSS386 TSS;
-		byte data[104]; //All our data!
+		byte data[108]; //All our data!
 	} TSS32;
 	byte TSSSize = 0; //The TSS size!
 
