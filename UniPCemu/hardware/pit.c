@@ -105,6 +105,8 @@ typedef struct
 
 PITCHANNEL PITchannels[3]; //All possible PC speakers, whether used or not!
 
+byte pitdecimal[3] = {0,0,0}; //Are we addressed as decimal data?
+
 byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	static sword s = 0; //Last sample!
 	uint_32 i;
@@ -148,6 +150,14 @@ OPTINLINE void reloadticker(byte channel)
 {
 	PITchannels[channel].ticker = PITchannels[channel].frequency; //Reload the start value!
 	PITchannels[channel].nullcount = 0; //We're loaded into the timer!
+}
+
+OPTINLINE void wrapPITticker(byte channel)
+{
+	if (pitdecimal[channel] && (PITchannels[channel].ticker>9999)) //We're in decimal mode?
+	{
+		PITchannels[channel].ticker = 9999-MAX((0xFFFF-PITchannels.channel[ticker]),9999); //Wrap, safe decimal to binary style!
+	}
 }
 
 byte channel_reload[3] = {0,0,0}; //To reload the channel next cycle?
@@ -231,7 +241,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 						oldvalue = PITchannels[channel].ticker; //Save old ticker for checking for overflow!
 						if (mode) --PITchannels[channel].ticker; //Mode 1 always ticks?
 						else if ((PCSpeakerPort&1) || (channel<2)) --PITchannels[channel].ticker; //Mode 0 ticks when gate is high!
-
+						wrapPITticker(channel); //Wrap us correctly!
 						if ((!PITchannels[channel].ticker) && oldvalue) //Timeout when ticking? We're done!
 						{
 							PITchannels[channel].channel_status = 1; //We're high again!
@@ -374,6 +384,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 						if (((PCSpeakerPort & 1) && (channel == 2)) || (channel<2)) //We're high or undefined?
 						{
 							--PITchannels[channel].ticker; //Decrement?
+							wrapPITticker(channel); //Wrap us correctly!
 							if (!PITchannels[channel].ticker && (PITchannels[channel].status!=3)) //One to zero? Go low when not overflown already!
 							{
 								PITchannels[channel].channel_status = 0; //We're going low during this phase!
@@ -578,7 +589,6 @@ void cleanPIT()
 
 uint_32 pitcurrentlatch[4], pitlatch[4], pitdivisor[4]; //Latches & divisors are 32-bits large!
 byte pitcommand[4]; //PIT command is only 1 byte large!
-byte pitdecimal[3] = {0,0,0}; //Are we addressed as decimal data?
 
 //PC Speaker functionality in PIT
 
@@ -627,7 +637,7 @@ word encodeBCD16(word value) //Converts from decimal to digits!
 	return result;
 }
 
-byte in8253(word portnum, byte *result)
+byte in8254(word portnum, byte *result)
 {
 	byte pit;
 	if (__HW_DISABLED) return 0; //Abort!
@@ -674,10 +684,10 @@ byte in8253(word portnum, byte *result)
 				readlatch[pit] = 0; //Finished latching!
 				break;
 			case 0x30: //Lo/hi mode?
-				if (pitcurrentlatch[pit] == 0)
+				if (pitcurrentlatch[pit][0] == 0)
 				{
 					//Give the value!
-					pitcurrentlatch[pit] = 1;
+					pitcurrentlatch[pit][0] = 1;
 					if (pitdecimal[pit])
 					{
 						*result = (encodeBCD16(pitlatch[pit]) & 0xFF);
@@ -689,7 +699,7 @@ byte in8253(word portnum, byte *result)
 				}
 				else
 				{
-					pitcurrentlatch[pit] = 0;
+					pitcurrentlatch[pit][0] = 0;
 					if (pitdecimal[pit])
 					{
 						*result = ((encodeBCD16(pitlatch[pit]) >> 8) & 0xFF);
@@ -716,7 +726,7 @@ byte in8253(word portnum, byte *result)
 	return 0; //Disabled!
 }
 
-byte out8253(word portnum, byte value)
+byte out8254(word portnum, byte value)
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	byte pit;
@@ -734,27 +744,27 @@ byte out8253(word portnum, byte value)
 			case 0x10: //Lo mode?
 				if (pitdecimal[pit])
 				{
-					pitdivisor[pit] = decodeBCD16((value & 0xFF) | (encodeBCD16(pitdivisor[pit]) & 0xFF00));
+					pitdivisor[pit] = decodeBCD16(value & 0xFF);
 				}
 				else //Binary?
 				{
-					pitdivisor[pit] = (value & 0xFF)|(pitdivisor[pit]&0xFF00);
+					pitdivisor[pit] = (value & 0xFF);
 				}
 				PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 				break;
 			case 0x20: //Hi mode?
 				if (pitdecimal[pit])
 				{
-					pitdivisor[pit] = decodeBCD16(((value & 0xFF)<<8) | (encodeBCD16(pitdivisor[pit]) & 0xFF));
+					pitdivisor[pit] = decodeBCD16((value & 0xFF)<<8);
 				}
 				else //Binary?
 				{
-					pitdivisor[pit] = ((value & 0xFF)<<8)|(pitdivisor[pit]&0xFF);
+					pitdivisor[pit] = ((value & 0xFF)<<8);
 				}
 				PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
 				break;
 			case 0x30: //Lo/hi mode?
-				if (!pitcurrentlatch[pit])
+				if (!pitcurrentlatch[pit][1])
 				{
 					if (pitdecimal[pit])
 					{
@@ -765,7 +775,7 @@ byte out8253(word portnum, byte value)
 						pitdivisor[pit] = (value & 0xFF) | (pitdivisor[pit] & 0xFF00);
 					}
 					PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
-					pitcurrentlatch[pit] = 1;
+					pitcurrentlatch[pit][1] = 1;
 				}
 				else
 				{
@@ -778,7 +788,7 @@ byte out8253(word portnum, byte value)
 						pitdivisor[pit] = ((value & 0xFF) << 8) | (pitdivisor[pit] & 0xFF);
 					}
 					PITchannels[pit].nullcount = 1; //We're not loaded into the divider yet!
-					pitcurrentlatch[pit] = 0;
+					pitcurrentlatch[pit][1] = 0;
 				}
 				break;
 			}
@@ -814,6 +824,8 @@ byte out8253(word portnum, byte value)
 						}
 					}
 				}
+				pitcurrentlatch[channel][0] = pitcurrentlatch[channel][1] = 0; //Reset the latches always!
+
 			}
 			else //Normal command?
 			{
@@ -833,7 +845,7 @@ byte out8253(word portnum, byte value)
 					readlatch[pit] = 1; //Latch us, just once!
 				}
 				lastpit = channel; //The last channel effected!
-				pitcurrentlatch[channel] = 0; //Reset the latch always!
+				pitcurrentlatch[channel][0] = pitcurrentlatch[channel][1] = 0; //Reset the latches always!
 			}
 			return 1;
 		//From above original:
@@ -858,8 +870,8 @@ void PIT0Acnowledge(byte IRQ)
 
 void init8253() {
 	if (__HW_DISABLED) return; //Abort!
-	register_PORTOUT(&out8253);
-	register_PORTIN(&in8253);
+	register_PORTOUT(&out8254);
+	register_PORTIN(&in8254);
 
 	speaker_tick = (1000000000.0 / (double)SPEAKER_RATE); //Speaker tick!
 	ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Time to speaker sample ratio!
