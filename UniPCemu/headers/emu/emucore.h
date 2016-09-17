@@ -25,7 +25,6 @@ void EMU_startInput();
 //-1: Keep running: execute next instruction!
 //0:Shutdown
 //1:Reset emu
-byte cpurun(); //Run the emulator CPU (called from main thread)!
 int DoEmulator(); //Run the emulator execution itself!
 
 void EMU_drawBusy(byte disk); //Draw busy on-screen!

@@ -82,33 +82,6 @@ uint_32 romsize = 0; //For checking if we're running a ROM!
 extern BIOS_Settings_TYPE BIOS_Settings;
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 
-/*
-
-Main thread for emulation!
-
-*/
-
-byte cpurun() //The main thread for the emulator!
-{
-//At this point everything is ready to go!
-	int emu_status;
-	emu_status = DoEmulator(); //Run the emulator!
-	switch (emu_status) //What to do next?
-	{
-	case -1: //Continue running?
-		return 0; //Continue running!
-		break;
-	case 0: //Shutdown
-		debugrow("Shutdown...");
-		EMU_Shutdown(1); //Execute shutdown!
-	case 1: //Full reset emu
-		debugrow("Reset..."); //Not supported yet!
-	default: //Unknown status?
-		debugrow("Invalid EMU return code OR full reset requested!");
-		return 1; //Shut down our thread, returning to the main processor!
-	}
-}
-
 void finishEMU() //Called on emulator quit.
 {
 	doneEMU(); //Finish up the emulator that was still running!

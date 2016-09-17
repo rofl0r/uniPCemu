@@ -14,7 +14,6 @@
 
 byte writeword = 0; //Hi-end word written?
 
-
 //Pointer support (real mode only)!
 void *MMU_directptr(uint_32 address, uint_32 size) //Full ptr to real MMU memory!
 {

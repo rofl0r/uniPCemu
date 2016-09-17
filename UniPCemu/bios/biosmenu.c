@@ -2893,6 +2893,9 @@ extern byte force_memoryredetect; //From the MMU: force memory redetect on load?
 void BIOS_MemReAlloc() //Reallocates BIOS memory!
 {
 	BIOS_Menu = 8; //Goto Advanced menu!
+	BIOS_Settings.memory = 0; //Reset the memory flag!
+	BIOS_Changed = 1; //We're changed!
+	reboot_needed = 2; //We need to reboot!
 	return; //Disable due to the fact that memory allocations aren't 100% OK atm.
 
 	force_memoryredetect = 1; //We're forcing memory redetect!

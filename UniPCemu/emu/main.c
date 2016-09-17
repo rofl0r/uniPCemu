@@ -202,6 +202,7 @@ int main(int argc, char * argv[])
 	char nosoundparam[] = "nosound";
 	byte usesoundmode = 1;
 	uint_32 SDLsubsystemflags = 0; //Our default SDL subsystem flags of used functionality!
+	int emu_status;
 
 //Basic PSP stuff!
 	SetupCallbacks();
@@ -444,7 +445,23 @@ int main(int argc, char * argv[])
 		}
 		CPU_updateVideo(); //Update the video if needed from the CPU!
 		GPU_tickVideo(); //Tick the video display to keep it up-to-date!
-		if (cpurun()) break; //Stop running the CPU?
+		//Now, run the CPU!
+		emu_status = DoEmulator(); //Run the emulator!
+		switch (emu_status) //What to do next?
+		{
+		case -1: //Continue running?
+			emu_status = 0; //Continue running!
+			break;
+		case 0: //Shutdown
+			debugrow("Shutdown...");
+			EMU_Shutdown(1); //Execute shutdown!
+		case 1: //Full reset emu
+			debugrow("Reset..."); //Not supported yet!
+		default: //Unknown status?
+			debugrow("Invalid EMU return code OR full reset requested!");
+			emu_status = 1; //Shut down our thread, returning to the main processor!
+		}
+		if (emu_status) break; //Stop running the CPU?
 	}
 
 	unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!

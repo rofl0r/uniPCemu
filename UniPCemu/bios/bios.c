@@ -20,7 +20,8 @@ BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
 byte exec_showchecksumerrors = 0; //Show checksum errors?
 
 //Block size of memory (blocks of 16KB for IBM PC Compatibility)!
-#define MEMORY_BLOCKSIZE 0x4000
+#define MEMORY_BLOCKSIZE_XT 0x4000
+#define MEMORY_BLOCKSIZE_AT 0x10000
 //What to leave for functions! 1MB for normal operations, plus 5 screens for VGA rendering resizing (2 screens for double sizing(never x&y together) and 1 screen for the final result)!
 #define FREEMEMALLOC (MBMEMORY+(5*(PSP_SCREEN_COLUMNS*PSP_SCREEN_ROWS*sizeof(uint_32))))
 
@@ -115,10 +116,25 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	debugrow("Detecting MMU memory size to use...");
 	
 	uint_32 freememory = freemem(); //The free memory available!
-	int_32 memoryblocks = SAFEDIV((freememory-FREEMEMALLOC),MEMORY_BLOCKSIZE); //Calculate # of free memory size and prepare for block size!
+	int_32 memoryblocks;
+	if (EMULATED_CPU<=CPU_NECV30) //XT?
+	{
+		memoryblocks = SAFEDIV((freememory-FREEMEMALLOC),MEMORY_BLOCKSIZE_XT); //Calculate # of free memory size and prepare for block size!
+	}
+	else //AT?
+	{
+		memoryblocks = SAFEDIV((freememory - FREEMEMALLOC), MEMORY_BLOCKSIZE_AT); //Calculate # of free memory size and prepare for block size!
+	}
 	if (memoryblocks<0) memoryblocks = 0; //No memory left?
-	BIOS_Settings.memory = memoryblocks * MEMORY_BLOCKSIZE; //Whole blocks of memory only!
-	if (!memoryblocks) //Not enough memory (at least 16KB required)?
+	if (EMULATED_CPU<=CPU_NECV30) //XT?
+	{
+		BIOS_Settings.memory = memoryblocks * MEMORY_BLOCKSIZE_XT; //Whole blocks of memory only!
+	}
+	else
+	{
+		BIOS_Settings.memory = memoryblocks * MEMORY_BLOCKSIZE_AT; //Whole blocks of memory only!
+	}
+	if (!memoryblocks) //Not enough memory (at least 16KB or AT specs required)?
 	{
 		raiseError("Settings","Ran out of enough memory to use! Free memory: ",BIOS_Settings.memory); //Show error&quit: not enough memory to work with!
 		sleep(); //Wait forever!
@@ -477,7 +493,7 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 	BIOS_ValidateData(); //Validate all data before continuing!
 
 	printmsg(0xF,"Memory installed: ");
-	printmsg(0xE,"%i blocks (%iKB / %iMB)\r\n",SAFEDIV(BIOS_GetMMUSize(),MEMORY_BLOCKSIZE),(SAFEDIV(BIOS_GetMMUSize(),1024)),(BIOS_GetMMUSize()/MBMEMORY));
+	printmsg(0xE,"%i blocks (%iKB / %iMB)\r\n",SAFEDIV(BIOS_GetMMUSize(),(EMULATED_CPU<=CPU_NECV30)?MEMORY_BLOCKSIZE_XT:MEMORY_BLOCKSIZE_AT),(SAFEDIV(BIOS_GetMMUSize(),1024)),(BIOS_GetMMUSize()/MBMEMORY));
 
 	printmsg(0xF,"\r\n"); //A bit of space between memory and disks!
 	int numdrives = 0;

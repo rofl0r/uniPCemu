@@ -63,6 +63,9 @@
 #define CPU808X_CLOCK (MHZ14/3.0f)
 #define CPU808X_TURBO_CLOCK (MHZ14/3.0f)*2.1f
 
+//80286 clock is set so that the DRAM refresh ends up with a count of F952h in CX.
+#define CPU80286_CLOCK 7280500.0
+
 //Timeout CPU time and instruction interval! 44100Hz or 1ms!
 #define TIMEOUT_INTERVAL 10
 #define TIMEOUT_TIME 1000000
@@ -656,7 +659,7 @@ void updateSpeedLimit()
 		CPU_speed_cycle = 1000000000.0/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
 		if (EMULATED_CPU >= CPU_80286) //Faster clocks?
 		{
-			CPU_speed_cycle = 1000000000.0 / 5800000.0; //80286 ~6MHz for DMA speed check compatibility!
+			CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //80286 ~6MHz for DMA speed check compatibility!
 		}
 		if (TurboMode && BIOS_Settings.useTurboSpeed) //Turbo mode enabled?
 		{
