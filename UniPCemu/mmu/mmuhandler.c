@@ -267,7 +267,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 {
 	byte result;
 	byte nonexistant = 0;
-	if (realaddress & 0x100000) //1MB+?
+	if (realaddress & ~0xFFFFF) //1MB+?
 	{
 		if ((realaddress >= MID_MEMORYHOLE_START) && (realaddress < 0x100000)) //15-16M ISA memory hole?
 		{
@@ -305,7 +305,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	}
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
-	if (realaddress & 0x100000) //1MB+?
+	if (realaddress & ~0xFFFFF) //1MB+?
 	{
 		if ((realaddress >= MID_MEMORYHOLE_START) && (realaddress < 0x100000)) //15-16M ISA memory hole?
 		{
