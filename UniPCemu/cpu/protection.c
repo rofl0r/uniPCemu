@@ -612,7 +612,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	uint_32 limit; //The limit!
 	byte isvalid;
 
-	limit = ((descriptor->limit_high << 8) | descriptor->limit_low); //Base limit!
+	limit = ((descriptor->limit_high << 16) | descriptor->limit_low); //Base limit!
 
 	if (descriptor->G && (EMULATED_CPU>=CPU_80386)) //Granularity?
 	{
@@ -621,7 +621,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	if (addrtest) //Execute address test?
 	{
-		isvalid = (offset<=limit); //Valid address range!
+		isvalid = (offset<=limit)?1:0; //Valid address range!
 		if ((descriptor->S == 1) && ((descriptor->Type & 4) == 0)) //Data/Code segment?
 		{
 			if (descriptor->DATASEGMENT.E) //Expand-down segment?
