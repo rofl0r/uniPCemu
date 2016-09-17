@@ -734,11 +734,11 @@ byte in8254(word portnum, byte *result)
 			break;
 		case 0x43:
 			*result = pitcommand[lastpit]; //Give the last command byte!
-			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
+			PIT_LOG("Read from command port 0x%02X=%02X", portnum, *result);
 			return 1;
 		case 0x61: //PC speaker? From original timer!
-			*result = (PCSpeakerPort&3)|((PITchannels[1].risetoggle&1)<<4)|((PITchannels[2].channel_output&1)<<5); //Give the speaker port! PIT1 output at bit 4(toggling), PIT0 status as bit 5!
-			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
+			*result = (PCSpeakerPort&3)|((PITchannels[1].risetoggle&1)<<4)|((PITchannels[2].channel_status&1)<<5); //Give the speaker port! PIT1 output at bit 4(toggling), PIT0 status as bit 5!
+			PIT_LOG("Read from misc port 0x%02X=%02X", portnum, *result);
 			return 1;
 		default: //Unknown port?
 			break; //Unknown port!
@@ -818,7 +818,7 @@ byte out8254(word portnum, byte value)
 			}
 			return 1;
 		case 0x43: //pit command port
-			PIT_LOG("Write to data port 0x%02X=%02X", portnum, value);
+			PIT_LOG("Write to command port 0x%02X=%02X", portnum, value);
 			if ((value & 0xC0) == 0xC0) //Read-back command?
 			{
 				if ((value & 0x10)==0) //Latch status flag?
