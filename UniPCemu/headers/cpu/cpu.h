@@ -202,11 +202,11 @@ typedef union
 	{
 		word offsetlow; //Lower part of the interrupt function's offset address (a.k.a. pointer)
 		word selector; //The selector of the interrupt function. It's DPL field has be be 0.
+		byte zero; //Must be zero!
 		byte Type : 4; //One of the supported types!
 		byte S : 1; //Storage Segment. Set to 0 for interrupt gates
 		byte DPL : 2; //Descriptor Privilege Level
 		byte P : 1; //Present
-		byte zero; //Must be zero!
 		word offsethigh; //Higer part of the offset
 	};
 	byte descdata[8]; //The full entry data!
