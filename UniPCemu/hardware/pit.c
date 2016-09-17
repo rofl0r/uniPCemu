@@ -22,7 +22,7 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 #define __HW_DISABLED 0
 
 //Define below to log all PIT accesses!
-#define LOG_PIT
+//#define LOG_PIT
 #define PIT_LOGFILE "PIT"
 
 //Enable logs if defined!
