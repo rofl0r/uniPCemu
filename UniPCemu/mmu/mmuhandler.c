@@ -285,7 +285,14 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	if ((realaddress >= MMU.size) || nonexistant) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(realaddress, 0); //Invalid memory accessed!
-		return (mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
+		if (EMULATED_CPU>=CPU_80286) //To give NOT for detecting memory?
+		{
+			return 0xFF; //Give the last data read/written by the BUS!
+		}
+		else
+		{
+			return (mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
+		}
 	}
 	result = MMU.memory[realaddress]; //Get data from memory!
 	DRAM_access(realaddress); //Tick the DRAM!
