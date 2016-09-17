@@ -778,6 +778,8 @@ int LOADINTDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *contain
 		return 0; //Not present: limit exceeded!	
 	}
 
+	descriptor_adress += descriptor_index; //Add the index to the address for the full address!
+
 	int i;
 	for (i = 0;i<(int)sizeof(container->descdata);i++) //Process the descriptor data!
 	{
@@ -856,7 +858,7 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 			{
 				return; //Error, by specified reason!
 			}
-			if (((newdescriptor.desc.S) || (newdescriptor.desc.EXECSEGMENT.ISEXEC==0)) || (newdescriptor.desc.EXECSEGMENT.R==0)) //Not readable, execute segment or is code/executable segment?
+			if (((newdescriptor.desc.S==0) || (newdescriptor.desc.EXECSEGMENT.ISEXEC==0)) || (newdescriptor.desc.EXECSEGMENT.R==0)) //Not readable, execute segment or is code/executable segment?
 			{
 				THROWDESCGP(idtentry.selector); //Throw #GP!
 				return;
