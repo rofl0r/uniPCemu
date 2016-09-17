@@ -633,6 +633,10 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 				}
 			}
 		}
+		if (isvalid == 0) //Not valid?
+		{
+			return 1; //Error!
+		}
 	}
 
 	//Third: privilege levels & Restrict access to data!
