@@ -101,7 +101,7 @@ void CPU_IRET()
 				}
 				else
 				{
-					REG_EFLAGS = CPU_POP16(); //Pop flags!
+					REG_FLAGS = CPU_POP16(); //Pop flags!
 				}
 			}
 		}
