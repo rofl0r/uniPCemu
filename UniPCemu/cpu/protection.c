@@ -739,17 +739,17 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		byte mappos;
 		maplocation = (port>>3); //8 bits per byte!
 		mappos = (1<<(port&7)); //The bit within the byte specified!
-		//if ((CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_BUSY_TSS16BIT) || (CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_TSS16BIT)) //16-bit TSS?
-		if ((CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_BUSY_TSS32BIT) || (CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_TSS32BIT)) //32-bit TSS?
+		//if ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_BUSY_TSS16BIT) || (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_TSS16BIT)) //16-bit TSS?
+		if ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_BUSY_TSS32BIT) || (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_TSS32BIT)) //32-bit TSS?
 		{
 			uint_32 limit;
-			limit = CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_low | (CPU->SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_high << 16); //The limit of the descriptor!
-			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU->registers->TR,0x66,0); //Add the map location to the specified address!
+			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_high << 16); //The limit of the descriptor!
+			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0); //Add the map location to the specified address!
 			if (maplocation >= limit) //Over the limit? We're an invalid entry or got no bitmap!
 			{
 				return 1; //We're to cause an exception!
 			}
-			if (MMU_rb(CPU_SEGMENT_TR, CPU->registers->TR, maplocation, 0)&mappos) //We're to cause an exception: we're not allowed to access this port!
+			if (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0)&mappos) //We're to cause an exception: we're not allowed to access this port!
 			{
 				return 1; //We're to cause an exception!
 			}
@@ -803,13 +803,13 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 	byte left; //The amount of bytes left to read of the IDT entry!
 	uint_32 base;
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
-	if ((base + 5) >= CPU->registers->IDTR.limit) //Limit exceeded?
+	if ((base + 7) >= CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
 	{
 		THROWDESCGP(base+2+(is_HW?1:0)); //#GP!
 		return; //Abort!
 	}
 
-	base += CPU->registers->IDTR.base; //Add the base for the actual offset into the IDT!
+	base += CPU[activeCPU].registers->IDTR.base; //Add the base for the actual offset into the IDT!
 	
 	IDTENTRY idtentry; //The loaded IVT entry!
 	for (left=0;left<sizeof(idtentry.descdata);++left) //Data left to read?

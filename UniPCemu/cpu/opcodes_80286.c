@@ -181,7 +181,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("SLDT %s", info.text);
-		modrm_write16(&params,1,CPU->registers->LDTR,0); //Try and write it to the address specified!
+		modrm_write16(&params,1,CPU[activeCPU].registers->LDTR,0); //Try and write it to the address specified!
 		break;
 	case 1: //STR
 		if (getcpumode() == CPU_MODE_REAL)
@@ -190,7 +190,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("STR %s", info.text);
-		modrm_write16(&params,1, CPU->registers->TR, 0); //Try and write it to the address specified!
+		modrm_write16(&params,1, CPU[activeCPU].registers->TR, 0); //Try and write it to the address specified!
 		break;
 	case 2: //LLDT
 		if (getcpumode() == CPU_MODE_REAL)

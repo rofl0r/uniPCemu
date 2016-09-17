@@ -79,7 +79,7 @@ void CPU_PORT_OUT_B(word port, byte data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 	}
@@ -93,12 +93,12 @@ void CPU_PORT_OUT_W(word port, word data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port+1)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 	}
@@ -112,22 +112,22 @@ void CPU_PORT_OUT_D(word port, uint_32 data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 2)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 3)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 	}
@@ -141,7 +141,7 @@ void CPU_PORT_IN_B(word port, byte *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 	}
@@ -155,12 +155,12 @@ void CPU_PORT_IN_W(word port, word *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 	}
@@ -174,22 +174,22 @@ void CPU_PORT_IN_D(word port, uint_32 *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 2)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 3)) //Not allowed?
 		{
-			THROWDESCGP(CPU->registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
 			return; //Abort!
 		}
 	}
@@ -533,7 +533,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	CPU_resetPrefixes(); //Reset all prefixes for this opcode!
 	reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
 
-	CPU_InterruptReturn = last_eip = CPU->registers->EIP; //Interrupt return point by default!
+	CPU_InterruptReturn = last_eip = CPU[activeCPU].registers->EIP; //Interrupt return point by default!
 	OP = CPU_readOP(); //Read opcode or prefix?
 	CPU[activeCPU].cycles_Prefix = 0; //No cycles for the prefix by default!
 	for (;CPU_isPrefix(OP);) //We're a prefix?
@@ -544,7 +544,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 			CPU_InterruptReturn = last_eip; //Return to the last prefix only!
 		}
 		CPU_setprefix(OP); //Set the prefix ON!
-		last_eip = CPU->registers->EIP; //Save the current EIP of the last prefix possibility!
+		last_eip = CPU[activeCPU].registers->EIP; //Save the current EIP of the last prefix possibility!
 		ismultiprefix = 1; //We're multi-prefix now when triggered again!
 		OP = CPU_readOP(); //Next opcode/prefix!
 	}

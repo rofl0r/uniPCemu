@@ -50,12 +50,12 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		/*
 		if (EMULATED_CPU < CPU_80386) //Continue normally: we're valid on a 80386 only?
 		{
-			THROWDESCGP(CPU->registers->TR); //Thow #GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR); //Thow #GP!
 		}
 		*/
 		break;
 	default: //Invalid descriptor!
-		THROWDESCGP(CPU->registers->TR); //Thow #GP!
+		THROWDESCGP(CPU[activeCPU].registers->TR); //Thow #GP!
 		return 1; //Error out!
 	}
 
@@ -88,14 +88,14 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		{
 			for (n = 0;n < sizeof(TSS32);++n) //Load our TSS!
 			{
-				TSS32.data[n] = MMU_rb(CPU_SEGMENT_TR,CPU->registers->TR,n,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+				TSS32.data[n] = MMU_rb(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,n,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 			}
 		}
 		else //16-bit TSS?
 		{
 			for (n = 0;n < sizeof(TSS16);++n) //Load our TSS!
 			{
-				TSS16.data[n] = MMU_rb(CPU_SEGMENT_TR, CPU->registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+				TSS16.data[n] = MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 			}
 		}
 	}
@@ -116,70 +116,70 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		if (isJMPorCALL != 2) //Not a call?
 		{
 			SEGDESCRIPTOR_TYPE tempdesc;
-			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU->registers->TR,&tempdesc)) //Loaded old container?
+			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc)) //Loaded old container?
 			{
 				tempdesc.desc.D_B = 0; //Mark idle!
-				SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU->registers->TR,&tempdesc); //Save the new status into the old descriptor!
+				SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc); //Save the new status into the old descriptor!
 			}
 		}
 
 		if (isJMPorCALL == 3) //IRET?
 		{
-			CPU->registers->SFLAGS.NT = 0; //Clear Nested Task flag!
+			CPU[activeCPU].registers->SFLAGS.NT = 0; //Clear Nested Task flag!
 		}
 
 		//16 or 32-bit TSS is loaded, now save the registers!
 		if (TSSSize) //We're a 32-bit TSS?
 		{
-			TSS32.TSS.EAX = CPU->registers->EAX;
-			TSS32.TSS.ECX = CPU->registers->ECX;
-			TSS32.TSS.EDX = CPU->registers->EDX;
-			TSS32.TSS.EBX = CPU->registers->EBX;
-			TSS32.TSS.ESP = CPU->registers->ESP;
-			TSS32.TSS.EBP = CPU->registers->EBP;
-			TSS32.TSS.ESI = CPU->registers->ESI;
-			TSS32.TSS.EDI = CPU->registers->EDI;
-			TSS32.TSS.CS = CPU->registers->CS;
-			TSS32.TSS.SS = CPU->registers->SS;
-			TSS32.TSS.DS = CPU->registers->DS;
-			TSS32.TSS.FS = CPU->registers->FS;
-			TSS32.TSS.GS = CPU->registers->GS;
-			TSS32.TSS.EFLAGS = CPU->registers->EFLAGS;
+			TSS32.TSS.EAX = CPU[activeCPU].registers->EAX;
+			TSS32.TSS.ECX = CPU[activeCPU].registers->ECX;
+			TSS32.TSS.EDX = CPU[activeCPU].registers->EDX;
+			TSS32.TSS.EBX = CPU[activeCPU].registers->EBX;
+			TSS32.TSS.ESP = CPU[activeCPU].registers->ESP;
+			TSS32.TSS.EBP = CPU[activeCPU].registers->EBP;
+			TSS32.TSS.ESI = CPU[activeCPU].registers->ESI;
+			TSS32.TSS.EDI = CPU[activeCPU].registers->EDI;
+			TSS32.TSS.CS = CPU[activeCPU].registers->CS;
+			TSS32.TSS.SS = CPU[activeCPU].registers->SS;
+			TSS32.TSS.DS = CPU[activeCPU].registers->DS;
+			TSS32.TSS.FS = CPU[activeCPU].registers->FS;
+			TSS32.TSS.GS = CPU[activeCPU].registers->GS;
+			TSS32.TSS.EFLAGS = CPU[activeCPU].registers->EFLAGS;
 		}
 		else //We're a 16-bit TSS?
 		{
-			TSS16.TSS.AX = CPU->registers->AX;
-			TSS16.TSS.CX = CPU->registers->CX;
-			TSS16.TSS.DX = CPU->registers->DX;
-			TSS16.TSS.BX = CPU->registers->BX;
-			TSS16.TSS.SP = CPU->registers->SP;
-			TSS16.TSS.BP = CPU->registers->BP;
-			TSS16.TSS.SI = CPU->registers->SI;
-			TSS16.TSS.DI = CPU->registers->DI;
-			TSS16.TSS.CS = CPU->registers->CS;
-			TSS16.TSS.SS = CPU->registers->SS;
-			TSS16.TSS.DS = CPU->registers->DS;
-			TSS16.TSS.FLAGS = CPU->registers->FLAGS;
+			TSS16.TSS.AX = CPU[activeCPU].registers->AX;
+			TSS16.TSS.CX = CPU[activeCPU].registers->CX;
+			TSS16.TSS.DX = CPU[activeCPU].registers->DX;
+			TSS16.TSS.BX = CPU[activeCPU].registers->BX;
+			TSS16.TSS.SP = CPU[activeCPU].registers->SP;
+			TSS16.TSS.BP = CPU[activeCPU].registers->BP;
+			TSS16.TSS.SI = CPU[activeCPU].registers->SI;
+			TSS16.TSS.DI = CPU[activeCPU].registers->DI;
+			TSS16.TSS.CS = CPU[activeCPU].registers->CS;
+			TSS16.TSS.SS = CPU[activeCPU].registers->SS;
+			TSS16.TSS.DS = CPU[activeCPU].registers->DS;
+			TSS16.TSS.FLAGS = CPU[activeCPU].registers->FLAGS;
 		}
 
 		if (TSSSize) //32-bit TSS?
 		{
 			for (n = 0;n < sizeof(TSS32);++n) //Load our TSS!
 			{
-				MMU_wb(CPU_SEGMENT_TR, CPU->registers->TR, n, TSS32.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+				MMU_wb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS32.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 			}
 		}
 		else //16-bit TSS?
 		{
 			for (n = 0;n < sizeof(TSS16);++n) //Load our TSS!
 			{
-				MMU_wb(CPU_SEGMENT_TR, CPU->registers->TR, n, TSS16.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+				MMU_wb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS16.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 			}
 		}
 	}
 
 
-	oldtask = CPU->registers->TR; //Save the old task, for backlink purposes!
+	oldtask = CPU[activeCPU].registers->TR; //Save the old task, for backlink purposes!
 
 	//Now, load all the registers required as needed!
 	CPU[activeCPU].faultraised = 0; //We have no fault raised: we need this to run the segment change!
@@ -197,7 +197,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		/*
 		if (EMULATED_CPU < CPU_80386) //Continue normally: we're valid on a 80386 only?
 		{
-		THROWDESCGP(CPU->registers->TR); //Thow #GP!
+		THROWDESCGP(CPU[activeCPU].registers->TR); //Thow #GP!
 		}
 		*/
 		break;
@@ -215,14 +215,14 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	{
 		for (n = 0;n < sizeof(TSS32);++n) //Load our TSS!
 		{
-			TSS32.data[n] = MMU_rb(CPU_SEGMENT_TR, CPU->registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+			TSS32.data[n] = MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 		}
 	}
 	else //16-bit TSS?
 	{
 		for (n = 0;n < sizeof(TSS16);++n) //Load our TSS!
 		{
-			TSS16.data[n] = MMU_rb(CPU_SEGMENT_TR, CPU->registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+			TSS16.data[n] = MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 		}
 	}
 
@@ -249,14 +249,14 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		{
 			for (n = 0;n < sizeof(TSS32);++n) //Load our TSS!
 			{
-				MMU_wb(CPU_SEGMENT_TR, CPU->registers->TR, n, TSS32.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+				MMU_wb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS32.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 			}
 		}
 		else //16-bit TSS?
 		{
 			for (n = 0;n < sizeof(TSS16);++n) //Load our TSS!
 			{
-				MMU_wb(CPU_SEGMENT_TR, CPU->registers->TR, n, TSS16.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+				MMU_wb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS16.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 			}
 		}
 	}
@@ -264,35 +264,35 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	if (isJMPorCALL != 3) //Not an IRET?
 	{
 		LOADEDDESCRIPTOR->desc.D_B = 1; //Mark not idle!
-		SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU->registers->TR, LOADEDDESCRIPTOR); //Save the new status into the old descriptor!
+		SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR); //Save the new status into the old descriptor!
 	}
 
 	//Now we're ready to load all registers!
 	if (TSSSize) //We're a 32-bit TSS?
 	{
-		CPU->registers->EAX = TSS32.TSS.EAX;
-		CPU->registers->ECX = TSS32.TSS.ECX;
-		CPU->registers->EDX = TSS32.TSS.EDX;
-		CPU->registers->EBX = TSS32.TSS.EBX;
-		CPU->registers->ESP = TSS32.TSS.ESP;
-		CPU->registers->EBP = TSS32.TSS.EBP;
-		CPU->registers->ESI = TSS32.TSS.ESI;
-		CPU->registers->EDI = TSS32.TSS.EDI;
-		CPU->registers->CR3_full = TSS32.TSS.CR3; //Load the new CR3 register to use the new Paging table!
-		CPU->registers->EFLAGS = TSS32.TSS.EFLAGS;
+		CPU[activeCPU].registers->EAX = TSS32.TSS.EAX;
+		CPU[activeCPU].registers->ECX = TSS32.TSS.ECX;
+		CPU[activeCPU].registers->EDX = TSS32.TSS.EDX;
+		CPU[activeCPU].registers->EBX = TSS32.TSS.EBX;
+		CPU[activeCPU].registers->ESP = TSS32.TSS.ESP;
+		CPU[activeCPU].registers->EBP = TSS32.TSS.EBP;
+		CPU[activeCPU].registers->ESI = TSS32.TSS.ESI;
+		CPU[activeCPU].registers->EDI = TSS32.TSS.EDI;
+		CPU[activeCPU].registers->CR3_full = TSS32.TSS.CR3; //Load the new CR3 register to use the new Paging table!
+		CPU[activeCPU].registers->EFLAGS = TSS32.TSS.EFLAGS;
 		LDTsegment = TSS32.TSS.LDT; //LDT used!
 	}
 	else //We're a 16-bit TSS?
 	{
-		CPU->registers->AX = TSS16.TSS.AX;
-		CPU->registers->CX = TSS16.TSS.CX;
-		CPU->registers->DX = TSS16.TSS.DX;
-		CPU->registers->BX = TSS16.TSS.BX;
-		CPU->registers->SP = TSS16.TSS.SP;
-		CPU->registers->BP = TSS16.TSS.BP;
-		CPU->registers->SI = TSS16.TSS.SI;
-		CPU->registers->DI = TSS16.TSS.DI;
-		CPU->registers->FLAGS = TSS16.TSS.FLAGS;
+		CPU[activeCPU].registers->AX = TSS16.TSS.AX;
+		CPU[activeCPU].registers->CX = TSS16.TSS.CX;
+		CPU[activeCPU].registers->DX = TSS16.TSS.DX;
+		CPU[activeCPU].registers->BX = TSS16.TSS.BX;
+		CPU[activeCPU].registers->SP = TSS16.TSS.SP;
+		CPU[activeCPU].registers->BP = TSS16.TSS.BP;
+		CPU[activeCPU].registers->SI = TSS16.TSS.SI;
+		CPU[activeCPU].registers->DI = TSS16.TSS.DI;
+		CPU[activeCPU].registers->FLAGS = TSS16.TSS.FLAGS;
 		LDTsegment = TSS16.TSS.LDT; //LDT used!
 	}
 
@@ -306,19 +306,19 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (LDTsegment & 4) //We cannot reside in the LDT!
 	{
-		CPU_TSSFault(CPU->registers->TR); //Throw error!
+		CPU_TSSFault(CPU[activeCPU].registers->TR); //Throw error!
 		return 1; //Not present: we cannot reside in the LDT!
 	}
 
 	if ((word)(descriptor_index>>3)>=((LDTsegment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low|(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high<<16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
-		CPU_TSSFault(CPU->registers->TR); //Throw error!
+		CPU_TSSFault(CPU[activeCPU].registers->TR); //Throw error!
 		return 1; //Not present: limit exceeded!
 	}
 
 	if ((!descriptor_index) /*&& ((whatsegment == CPU_SEGMENT_CS) || (whatsegment == CPU_SEGMENT_SS))*/) //NULL segment loaded into CS or SS?
 	{
-		THROWDESCGP(CPU->registers->TR); //Throw error!
+		THROWDESCGP(CPU[activeCPU].registers->TR); //Throw error!
 		return 1; //Not present: limit exceeded!
 	}
 
@@ -331,13 +331,13 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	//Now the LDT entry is loaded for testing!
 	if (LDTsegdesc.desc.Type != AVL_SYSTEM_LDT) //Not an LDT?
 	{
-		THROWDESCGP(CPU->registers->TR); //Throw error!
+		THROWDESCGP(CPU[activeCPU].registers->TR); //Throw error!
 		return 1; //Not present: not an IDT!	
 	}
 
 	if (!LDTsegdesc.desc.P) //Not present?
 	{
-		THROWDESCGP(CPU->registers->TR); //Throw error!
+		THROWDESCGP(CPU[activeCPU].registers->TR); //Throw error!
 		return 1; //Not present: not an IDT!	
 	}
 
@@ -358,7 +358,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
 	if (getCPL() != CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].DPL) //Non-matching TSS DPL vs CS CPL?
 	{
-		CPU_TSSFault(CPU->registers->TR); //Throw error!
+		CPU_TSSFault(CPU[activeCPU].registers->TR); //Throw error!
 		return 1; //Not present: limit exceeded!
 	}
 

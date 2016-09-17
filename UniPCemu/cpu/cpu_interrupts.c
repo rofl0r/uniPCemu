@@ -74,7 +74,7 @@ void CPU_IRET()
 		{
 			SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage!
 			word desttask;
-			desttask = MMU_rw(CPU_SEGMENT_TR, CPU->registers->TR, 0, 0); //Read the destination task!
+			desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0); //Read the destination task!
 			if (!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
 			{
 				return; //Error, by specified reason!
@@ -83,12 +83,26 @@ void CPU_IRET()
 		}
 		else //Normal IRET?
 		{
-			destEIP = CPU_POP32(); //POP EIP!
+			if (CPU_Operand_size[activeCPU]) //32-bit mode?
+			{
+				destEIP = CPU_POP32(); //POP EIP!
+			}
+			else
+			{
+				destEIP = CPU_POP16(); //POP IP!
+			}
 			segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),3); //We're loading because of an IRET!
 			CPU_flushPIQ(); //We're jumping to another address!
 			if (CPU[activeCPU].faultraised == 0) //No fault raised?
 			{
-				REG_EFLAGS = CPU_POP32(); //Pop flags!
+				if (CPU_Operand_size[activeCPU]) //32-bit mode?
+				{
+					REG_EFLAGS = CPU_POP32(); //Pop flags!
+				}
+				else
+				{
+					REG_EFLAGS = CPU_POP16(); //Pop flags!
+				}
 			}
 		}
 	}
