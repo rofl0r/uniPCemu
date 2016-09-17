@@ -629,7 +629,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 				isvalid = !isvalid; //Reversed valid!
 				if (descriptor->G == 0) //Small granularity?
 				{
-					isvalid = (isvalid && (offset <= 0x10000)); //Limit to 64K!
+					isvalid = (isvalid && (offset <= 0x10000))?1:0; //Limit to 64K!
 				}
 			}
 		}
