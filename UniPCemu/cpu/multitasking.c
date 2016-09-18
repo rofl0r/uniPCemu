@@ -301,9 +301,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	SEGDESCRIPTOR_TYPE LDTsegdesc;
 	uint_32 descriptor_address = 0;
 	descriptor_address = (LDTsegment & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low|(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid<<16))| CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high<<24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
-	uint_32 descriptor_index = getDescriptorIndex(LDTsegment); //The full index within the descriptor table!
-
-	descriptor_index <<= 3; //Multiply into range!
+	uint_32 descriptor_index = (LDTsegment&~0x7); //The full index within the descriptor table!
 
 	if (LDTsegment & 4) //We cannot reside in the LDT!
 	{
@@ -311,7 +309,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		return 1; //Not present: we cannot reside in the LDT!
 	}
 
-	if ((word)(descriptor_index>>3)>=((LDTsegment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low|(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high<<16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)(descriptor_index|0x7)>=((LDTsegment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low|(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high<<16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		CPU_TSSFault(CPU[activeCPU].registers->TR); //Throw error!
 		return 1; //Not present: limit exceeded!
@@ -324,9 +322,9 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 
 	int i;
-	for (i = 0;i<(int)sizeof(LDTsegdesc.descdata);i++) //Process the descriptor data!
+	for (i = 0;i<(int)sizeof(LDTsegdesc.descdata);) //Process the descriptor data!
 	{
-		LDTsegdesc.descdata[i] = memory_directrb(descriptor_address + i); //Read a descriptor byte directly from flat memory!
+		LDTsegdesc.descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
 	}
 
 	//Now the LDT entry is loaded for testing!

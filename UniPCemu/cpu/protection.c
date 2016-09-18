@@ -270,7 +270,6 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 	if ((segment==CPU_SEGMENT_CS) &&
 		(getLoadedTYPE(container)!=1) //Data or System in CS (non-exec)?
 		)
-	
 	{
 		return 0; //Not present: limit exceeded!	
 	}
