@@ -193,7 +193,6 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 	uint_32 render_ticks; //A one shot tick!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
 	byte channel; //Current channel?
-	byte getIRQ; //IRQ triggered?
 
 	i = time_ticktiming; //Load the current timing!
 	i += MHZ14passed; //Add the amount of time passed to the PIT timing!
@@ -436,7 +435,6 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 	//IRQ0 output!
 	if (EMU_RUNNING == 1) //Are we running? We allow timers to execute!
 	{
-		getIRQ = 0; //Default: no IRQ yet!
 		for (;readfifobuffer(PITchannels[0].rawsignal,&currentsample);) //Anything left to process?
 		{
 			if (((currentsample^IRQ0_status)&1)) //Changed?
@@ -444,7 +442,6 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 				if (currentsample) //Raised?
 				{
 					raiseirq(0); //Raise IRQ0!
-					getIRQ = 1; //We've gotten an IRQ!
 				}
 				else //Lowered?
 				{

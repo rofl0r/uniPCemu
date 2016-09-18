@@ -1,13 +1,16 @@
-#include "headers/mmu/mmu.h" //Ourselves!
+#include "headers/cpu/mmu.h" //Ourselves!
 #include "headers/cpu/cpu.h"
-#include "headers/mmu/memory_adressing.h" //Memory assist functions!
-#include "headers/mmu/paging.h" //Paging functions!
+#include "headers/cpu/memory_adressing.h" //Memory assist functions!
+#include "headers/cpu/paging.h" //Paging functions!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/protection.h" //Protection support!
-#include "headers/mmu/paging.h" //Protection support!
+#include "headers/cpu/paging.h" //Protection support!
 #include "headers/emu/debugger/debugger.h" //Debugger support for logging MMU accesses!
 #include "headers/hardware/xtexpansionunit.h" //XT expansion unit support!
 #include "headers/mmu/mmu_internals.h" //Internal MMU call support!
+#include "headers/mmu/mmuhandler.h" //MMU direct handler support!
+
+extern MMU_type MMU; //MMU itself!
 
 //Are we disabled?
 #define __HW_DISABLED 0

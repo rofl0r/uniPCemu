@@ -1,6 +1,6 @@
 #include "headers/bios/boot.h" //Need const comp!
 #include "headers/cpu/cpu.h" //Need CPU comp!
-#include "headers/mmu/mmu.h" //Need MMU comp!
+#include "headers/cpu/mmu.h" //Need MMU comp!
 #include "headers/emu/gpu/gpu.h" //Need GPU comp!
 #include "headers/basicio/io.h" //Need low level I/O comp!
 #include "headers/support/isoreader.h" //Need ISO reading comp!

@@ -462,7 +462,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		return NULL; //Don't actually load CS with the descriptor: we've caused a task switch after all!
 	}
 
-	if (segment == CPU_SEGMENT_CS) //Special stuff on normal CS register (conforming?), CPL.
+	if ((segment == CPU_SEGMENT_CS) && (is_gated==0)) //Special stuff on normal CS register (conforming?), CPL.
 	{
 		if (LOADEDDESCRIPTOR.desc.EXECSEGMENT.C) //Conforming segment?
 		{

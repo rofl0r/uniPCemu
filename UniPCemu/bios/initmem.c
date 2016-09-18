@@ -3,11 +3,12 @@
 #include "headers/cpu/interrupts.h" //Interrupt support!
 #include "headers/interrupts/interrupt13.h" //INT13 support!
 #include "headers/basicio/io.h" //Basic I/O support!
-#include "headers/mmu/mmu.h" //MMU support!
-#include "headers/mmu/bda.h" //BDA support!
+#include "headers/cpu/mmu.h" //MMU support!
+#include "headers/cpu/bda.h" //BDA support!
 #include "headers/cpu/cb_manager.h" //CB support!
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/hardware/floppy.h" //Floppy support!
+#include "headers/mmu/mmuhandler.h" //Memory available and size support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -18,7 +19,6 @@ extern word CB_realoffset; //Real offset we're loaded at within the custom BIOS!
 //Sources:
 //http://www.bioscentral.com/misc/bda.htm#
 
-extern MMU_type MMU; //MMU!
 extern word CB_datasegment; //Segment of data!
 extern word CB_dataoffset; //Offset of data!
 extern byte mounteddrives[0x100]; //All mounted drives!

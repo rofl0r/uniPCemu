@@ -1,6 +1,6 @@
 #include "headers/types.h"
 #include "headers/cpu/cpu.h" //We're debugging the CPU?
-#include "headers/mmu/mmu.h" //MMU support for opcode!
+#include "headers/cpu/mmu.h" //MMU support for opcode!
 #include "headers/emu/input.h" //Input support!
 #include "headers/cpu/interrupts.h" //Interrupt support!
 #include "headers/emu/debugger/debugger.h" //Constant support!
@@ -17,6 +17,7 @@
 #include "headers/hardware/pic.h" //Interrupt support!
 #include "headers/hardware/vga/vga_renderer.h" //Renderer support!
 #include "headers/bios/biosmenu.h" //Support for running the BIOS from the debugger!
+#include "headers/mmu/mmuhandler.h" //MMU_invaddr and MMU_dumpmemory support!
 
 //Log flags only?
 //#define LOGFLAGSONLY

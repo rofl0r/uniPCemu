@@ -1,7 +1,7 @@
 #define IS_CPU
 #include "headers/cpu/cpu.h"
 #include "headers/cpu/interrupts.h"
-#include "headers/mmu/mmu.h"
+#include "headers/cpu/mmu.h"
 #include "headers/support/signedness.h" //CPU support!
 #include "headers/cpu/cpu_OP8086.h" //8086 comp.
 #include "headers/cpu/cpu_OPNECV30.h" //unkOP comp.
@@ -14,6 +14,7 @@
 #include "headers/support/locks.h" //Locking support!
 #include "headers/cpu/modrm.h" //MODR/M support!
 #include "headers/emu/emucore.h" //Needed for CPU reset handler!
+#include "headers/mmu/mmuhandler.h" //bufferMMU, MMU_resetaddr and flushMMU support!
 
 //ALL INTERRUPTS
 
@@ -696,7 +697,6 @@ void updateCPUmode() //Update the CPU mode!
 {
 	static const byte modes[4] = { CPU_MODE_REAL, CPU_MODE_PROTECTED, CPU_MODE_REAL, CPU_MODE_8086 }; //All possible modes (VM86 mode can't exist without Protected Mode!)
 	byte mode = 0;
-	static byte lastmode = CPU_MODE_REAL; //Our last CPU mode!
 	if (!CPU[activeCPU].registers)
 	{
 		CPU_initRegisters(); //Make sure we have registers!

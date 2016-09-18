@@ -1,5 +1,5 @@
 #include "headers/types.h"
-#include "headers/mmu/mmu.h" //MMU support!
+#include "headers/cpu/mmu.h" //MMU support!
 #include "headers/interrupts/textmodedata.h" //Text mode data itself!
 #include "headers/header_dosbox.h" //Dosbox support!
 #include "headers/hardware/ports.h" //Ports support!

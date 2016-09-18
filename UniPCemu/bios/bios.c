@@ -1,6 +1,6 @@
 #include "headers/types.h" //Basic types etc.
 #include "headers/basicio/io.h" //Basic I/O support for BIOS!
-#include "headers/mmu/mmu.h" //CRC32 support!
+#include "headers/mmu/mmuhandler.h" //CRC32 support!
 #include "headers/bios/bios.h" //BIOS basic type support etc!
 #include "headers/bios/boot.h" //For booting disks!
 #include "headers/cpu/cpu.h" //For some constants concerning CPU!

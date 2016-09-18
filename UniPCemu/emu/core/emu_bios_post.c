@@ -1,6 +1,6 @@
 #include "headers/types.h" //Basic types!
 
-#include "headers/mmu/mmu.h" //For MMU
+#include "headers/cpu/mmu.h" //For MMU
 #include "headers/basicio/io.h" //For mounting!
 #include "headers/bios/bios.h" //For BIOS!
 #include "headers/bios/biosrom.h" //BIOS ROM support!

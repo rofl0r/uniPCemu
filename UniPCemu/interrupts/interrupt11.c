@@ -1,7 +1,7 @@
 #include "headers/types.h" //Basic types
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/cpu/easyregs.h" //Easy registers!
-#include "headers/mmu/mmu.h" //Basic MMU support!
+#include "headers/cpu/mmu.h" //Basic MMU support!
 #include "headers/cpu/cb_manager.h" //Callback support!
 #include "headers/cpu/protection.h" //Protection support!
 

@@ -2,7 +2,7 @@
 #define CPU_H
 
 #include "headers/types.h"
-#include "headers/mmu/mmu.h"
+#include "headers/cpu/mmu.h"
 #include "headers/bios/bios.h" //Basic BIOS!
 #include "headers/support/fifobuffer.h" //Prefetch Input Queue support!
 

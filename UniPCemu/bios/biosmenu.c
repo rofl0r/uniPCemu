@@ -6,7 +6,7 @@
 #include "headers/basicio/dynamicimage.h" //Dynamic image compatibility!
 #include "headers/basicio/io.h" //Basic I/O comp!
 #include "headers/emu/input.h" //Basic key input!
-#include "headers/mmu/bda.h" //Bios Data Area!
+#include "headers/cpu/bda.h" //Bios Data Area!
 #include "headers/hardware/vga/vga.h" //VGA!
 #include "headers/cpu/interrupts.h" //Interrupt support (int10 mostly)
 #include "headers/support/zalloc.h" //Memory allocation!

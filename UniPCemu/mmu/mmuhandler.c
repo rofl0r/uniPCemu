@@ -1,6 +1,6 @@
 #define IS_MMU
 #include "headers/types.h" //Basic types!
-#include "headers/mmu/mmu.h" //MMU support!
+#include "headers/cpu/mmu.h" //MMU support!
 #include "headers/mmu/mmuhandler.h" //Our typedefs!
 #include "headers/support/zalloc.h" //Memory allocation!
 #include "headers/hardware/dram.h" //DRAM support!

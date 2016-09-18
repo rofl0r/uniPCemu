@@ -10,6 +10,7 @@
 #include "headers/cpu/cpu_OPNECV30.h" //NECV30 function specific compatibility!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/protection.h" //Protection support!
+#include "headers/mmu/mmuhandler.h" //MMU_invaddr support!
 
 extern MODRM_PARAMS params;    //For getting all params!
 extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0

@@ -3,7 +3,7 @@
 #include "headers/hardware/vga/vga.h" //Basic typedefs!
 #include "headers/header_dosbox.h" //Screen modes from DOSBox!
 #include "headers/hardware/ports.h" //Port support!
-#include "headers/mmu/mmu.h" //MMU access!
+#include "headers/cpu/mmu.h" //MMU access!
 #include "headers/support/log.h" //Logging support for debugging!
 #include "headers/interrupts/interrupt10.h" //Our typedefs!
 #include "headers/cpu/cb_manager.h" //Callback support!

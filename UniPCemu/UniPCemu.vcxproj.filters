@@ -450,12 +450,6 @@
     <ClCompile Include="mmu\mmuhandler.c">
       <Filter>Source Files\mmu</Filter>
     </ClCompile>
-    <ClCompile Include="mmu\paging.c">
-      <Filter>Source Files\mmu</Filter>
-    </ClCompile>
-    <ClCompile Include="mmu\mmu.c">
-      <Filter>Source Files\mmu</Filter>
-    </ClCompile>
     <ClCompile Include="support\log.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
@@ -515,6 +509,12 @@
     </ClCompile>
     <ClCompile Include="hardware\vga\vga_renderer.c">
       <Filter>Source Files\hardware\vga</Filter>
+    </ClCompile>
+    <ClCompile Include="cpu\mmu.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="cpu\paging.c">
+      <Filter>Source Files\cpu</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -857,19 +857,7 @@
     <ClInclude Include="headers\interrupts\interrupt10.h">
       <Filter>Header Files\interrupts</Filter>
     </ClInclude>
-    <ClInclude Include="headers\mmu\memory_adressing.h">
-      <Filter>Header Files\mmu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\mmu\mmu.h">
-      <Filter>Header Files\mmu</Filter>
-    </ClInclude>
     <ClInclude Include="headers\mmu\mmuhandler.h">
-      <Filter>Header Files\mmu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\mmu\paging.h">
-      <Filter>Header Files\mmu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\mmu\bda.h">
       <Filter>Header Files\mmu</Filter>
     </ClInclude>
     <ClInclude Include="headers\support\dro.h">
@@ -934,6 +922,18 @@
     </ClInclude>
     <ClInclude Include="headers\hardware\vga\vga_renderer.h">
       <Filter>Header Files\hardware\vga</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\cpu\bda.h">
+      <Filter>Header Files\cpu</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\cpu\memory_adressing.h">
+      <Filter>Header Files\cpu</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\cpu\mmu.h">
+      <Filter>Header Files\cpu</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\cpu\paging.h">
+      <Filter>Header Files\cpu</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

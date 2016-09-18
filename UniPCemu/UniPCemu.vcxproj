@@ -53,6 +53,7 @@
     <ClCompile Include="cpu\cpu_jmptbls.c" />
     <ClCompile Include="cpu\cpu_jmptbls0f.c" />
     <ClCompile Include="cpu\flags.c" />
+    <ClCompile Include="cpu\mmu.c" />
     <ClCompile Include="cpu\modrm.c" />
     <ClCompile Include="cpu\multitasking.c" />
     <ClCompile Include="cpu\opcodes0F_386.c" />
@@ -62,6 +63,7 @@
     <ClCompile Include="cpu\opcodes_80286.c" />
     <ClCompile Include="cpu\opcodes_8086.c" />
     <ClCompile Include="cpu\opcodes_NECV30.c" />
+    <ClCompile Include="cpu\paging.c" />
     <ClCompile Include="cpu\protection.c" />
     <ClCompile Include="cpu\timings.c" />
     <ClCompile Include="cpu\unkop.c" />
@@ -152,9 +154,7 @@
     <ClCompile Include="interrupts\interrupt1a.c" />
     <ClCompile Include="interrupts\interrupt5.c" />
     <ClCompile Include="interrupts\unkint.c" />
-    <ClCompile Include="mmu\mmu.c" />
     <ClCompile Include="mmu\mmuhandler.c" />
-    <ClCompile Include="mmu\paging.c" />
     <ClCompile Include="support\bmp.c" />
     <ClCompile Include="support\crc32.c" />
     <ClCompile Include="support\dro.c" />
@@ -185,6 +185,7 @@
     <ClInclude Include="headers\bios\boot.h" />
     <ClInclude Include="headers\bios\initmem.h" />
     <ClInclude Include="headers\cpu\8086_grpOPs.h" />
+    <ClInclude Include="headers\cpu\bda.h" />
     <ClInclude Include="headers\cpu\cb_manager.h" />
     <ClInclude Include="headers\cpu\cpu.h" />
     <ClInclude Include="headers\cpu\cpu_OP80286.h" />
@@ -198,8 +199,11 @@
     <ClInclude Include="headers\cpu\flags.h" />
     <ClInclude Include="headers\cpu\fpu_OP8087.h" />
     <ClInclude Include="headers\cpu\interrupts.h" />
+    <ClInclude Include="headers\cpu\memory_adressing.h" />
+    <ClInclude Include="headers\cpu\mmu.h" />
     <ClInclude Include="headers\cpu\modrm.h" />
     <ClInclude Include="headers\cpu\multitasking.h" />
+    <ClInclude Include="headers\cpu\paging.h" />
     <ClInclude Include="headers\cpu\protection.h" />
     <ClInclude Include="headers\emu\debugger\debugger.h" />
     <ClInclude Include="headers\emu\debugger\runromverify.h" />
@@ -283,12 +287,8 @@
     <ClInclude Include="headers\interrupts\interrupt19.h" />
     <ClInclude Include="headers\interrupts\interrupt1a.h" />
     <ClInclude Include="headers\interrupts\textmodedata.h" />
-    <ClInclude Include="headers\mmu\bda.h" />
-    <ClInclude Include="headers\mmu\memory_adressing.h" />
-    <ClInclude Include="headers\mmu\mmu.h" />
     <ClInclude Include="headers\mmu\mmuhandler.h" />
     <ClInclude Include="headers\mmu\mmu_internals.h" />
-    <ClInclude Include="headers\mmu\paging.h" />
     <ClInclude Include="headers\packed.h" />
     <ClInclude Include="headers\sdl_rest.h" />
     <ClInclude Include="headers\support\bmp.h" />

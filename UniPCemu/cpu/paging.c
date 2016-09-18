@@ -1,6 +1,7 @@
-#include "headers/mmu/mmu.h" //MMU reqs!
+#include "headers/cpu/mmu.h" //MMU reqs!
 #include "headers/cpu/cpu.h" //CPU reqs!
 #include "headers/mmu/mmu_internals.h" //Internal transfer support!
+#include "headers/mmu/mmuhandler.h" //MMU direct access support!
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 

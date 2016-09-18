@@ -1,6 +1,6 @@
 #include "headers/types.h" //Basic types
 #include "headers/cpu/cpu.h" //CPU needed!
-#include "headers/mmu/mmu.h" //MMU needed!
+#include "headers/cpu/mmu.h" //MMU needed!
 #include "headers/cpu/easyregs.h" //Easy register compatibility!
 #include "headers/cpu/modrm.h" //MODR/M compatibility!
 #include "headers/support/signedness.h" //CPU support functions!
@@ -13,6 +13,7 @@
 #include "headers/emu/debugger/debugger.h" //CPU debugger support!
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/cpu/protection.h"
+#include "headers/mmu/mmuhandler.h" //MMU_invaddr support!
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?

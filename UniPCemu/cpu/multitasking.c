@@ -1,5 +1,6 @@
 #include "headers/cpu/cpu.h" //CPU reqs!
 #include "headers/cpu/multitasking.h" //Our typedefs!
+#include "headers/mmu/mmuhandler.h" //Direct MMU support!
 
 //Force 16-bit TSS on 80286?
 //#define FORCE_16BITTSS

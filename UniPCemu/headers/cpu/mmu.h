@@ -3,7 +3,6 @@
 
 #include "headers/types.h"
 #include "headers/cpu/cpu.h" //Pointer support etc.
-#include "headers/mmu/mmuhandler.h" //Memory itself!
 
 typedef struct
 {
@@ -28,11 +27,6 @@ typedef struct
 	char heads;             /* XT: 1-8, AT: 1-16, ESDI: 1-32 */
 	short cylinders;
 } HPPT; //Hard Disk Parameter Table (#0=int41 at 0xF000:0xE401 and #1=int46 at 0x0xF001:0xE401)
-
-#ifndef IS_MMU
-extern MMU_type MMU; //Extern call!
-#endif
-
 
 //Continuing internal stuff
 

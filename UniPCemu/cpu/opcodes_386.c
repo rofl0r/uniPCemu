@@ -1,9 +1,10 @@
 #include "headers/types.h" //Basic types
 #include "headers/cpu/cpu.h" //CPU needed!
-#include "headers/mmu/mmu.h" //MMU needed!
+#include "headers/cpu/mmu.h" //MMU needed!
 #include "headers/cpu/easyregs.h" //Easy register compatibility!
 #include "headers/cpu/modrm.h" //MODR/M compatibility!
 #include "headers/support/signedness.h" //CPU support functions!
+#include "headers/mmu/mmuhandler.h" //MMU_invaddr support!
 
 //Opcodes based on: http://www.logix.cz/michal/doc/i386/chp17-a3.htm#17-03-A
 //Special modrm/opcode differences different opcodes based on modrm: http://www.sandpile.org/x86/opc_grp.htm
@@ -17,7 +18,7 @@ extern uint_32 imm32;
 
 #include "headers/types.h" //Basic types
 #include "headers/cpu/cpu.h" //CPU needed!
-#include "headers/mmu/mmu.h" //MMU needed!
+#include "headers/cpu/mmu.h" //MMU needed!
 #include "headers/cpu/easyregs.h" //Easy register compatibility!
 #include "headers/cpu/modrm.h" //MODR/M compatibility!
 #include "headers/support/signedness.h" //CPU support functions!

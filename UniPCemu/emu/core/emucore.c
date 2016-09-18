@@ -1,5 +1,5 @@
 #include "headers/types.h" //For global stuff etc!
-#include "headers/mmu/mmu.h" //For MMU
+#include "headers/cpu/mmu.h" //For MMU
 #include "headers/cpu/cpu.h" //For CPU
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/hardware/vga/vga.h" //For savestate support!

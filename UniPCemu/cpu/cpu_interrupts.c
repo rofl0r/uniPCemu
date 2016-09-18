@@ -6,6 +6,7 @@
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/emu/debugger/debugger.h" //For logging registers!
 #include "headers/cpu/multitasking.h" //Multitasking support!
+#include "headers/mmu/mmuhandler.h" //Direct memory access support! 
 
 //Are we to disable NMI's from All(or Memory only)?
 #define DISABLE_MEMNMI

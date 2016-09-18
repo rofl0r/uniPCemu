@@ -105,7 +105,7 @@ OBJS += hardware/dram.o
 #BIOS:
 OBJS += bios/bios.o bios/biosmenu.o bios/initmem.o bios/biosrom.o
 #MMU:
-OBJS += mmu/paging.o mmu/mmuhandler.o mmu/mmu.o
+OBJS += mmu/mmuhandler.o
 #CPU:
 
 #Runromverify: Verifies ROM by execution.
@@ -136,6 +136,8 @@ OBJS += cpu/protection.o
 OBJS += cpu/multitasking.o
 #finally CPU module itself and flag support (global)
 OBJS += cpu/flags.o cpu/cpu.o
+#CPU MMU part
+OBJS += cpu/mmu.o cpu/paging.o
 #Debugger
 OBJS += emu/debugger/debugger.o
 #Signed VS unsigned conversion support!

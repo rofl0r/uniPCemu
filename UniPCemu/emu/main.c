@@ -22,11 +22,13 @@
 #include "headers/hardware/vga/vga.h" //VGA support for locks!
 #include "headers/support/highrestimer.h" //High resolution timer support!
 
-#include "headers/mmu/mmu.h" //MMU support!
+#include "headers/cpu/mmu.h" //MMU support!
 
 #include "headers/hardware/8253.h" //PIT support!
 
 #include "headers/bios/bios.h" //Basic BIOS support!
+
+#include "headers/mmu/mmuhandler.h" //hasmemory support!
 
 #ifdef IS_PSP
 #include <psppower.h> //PSP power support for clock speed!

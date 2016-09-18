@@ -12,6 +12,7 @@
 #include "headers/emu/emucore.h" //Emulation core!
 #include "headers/cpu/protection.h" //PMode support!
 #include "headers/support/locks.h" //Lock support!
+#include "headers/mmu/mmuhandler.h" //hasmemory support!
 
 extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?

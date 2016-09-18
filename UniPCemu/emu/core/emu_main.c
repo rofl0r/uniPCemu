@@ -1,6 +1,6 @@
 #include "headers/types.h" //Basic types!
 
-#include "headers/mmu/mmu.h" //For MMU
+#include "headers/cpu/mmu.h" //For MMU
 /*
 #include "headers/cpu/cpu.h" //For CPU
 #include "headers/bios/boot.h" //For booting mounted disks!
@@ -15,7 +15,7 @@
 #include "headers/emu/input.h" //Input support!
 #include "headers/hardware/vga/vga.h" //For savestate support!
 #include "headers/support/crc32.h" //CRC32 function support!
-#include "headers/mmu/bda.h" //BDA support!
+#include "headers/cpu/bda.h" //BDA support!
 */
 #include "headers/hardware/pic.h" //Interrupt controller support!
 /*
