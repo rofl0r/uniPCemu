@@ -801,7 +801,7 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 	byte left; //The amount of bytes left to read of the IDT entry!
 	uint_32 base;
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
-	if ((base + 7) >= CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
+	if ((base|0x7) >= CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
 	{
 		THROWDESCGP(base+2+(is_HW?1:0)); //#GP!
 		return; //Abort!
@@ -810,9 +810,9 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 	base += CPU[activeCPU].registers->IDTR.base; //Add the base for the actual offset into the IDT!
 	
 	IDTENTRY idtentry; //The loaded IVT entry!
-	for (left=0;left<sizeof(idtentry.descdata);++left) //Data left to read?
+	for (left=0;left<sizeof(idtentry.descdata);) //Data left to read?
 	{
-		idtentry.descdata[left] = memory_directrb(base++); //Read a byte from the descriptor entry!
+		idtentry.descdata[left++] = memory_directrb(base++); //Read a byte from the descriptor entry!
 	}
 
 	byte is32bit;
