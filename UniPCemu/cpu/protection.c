@@ -680,14 +680,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 		if (CPU[activeCPU].faultraised) return 1; //Abort if already an fault has been raised!
 		if (segment==-1) //Emulator access? Unknown segment to use?
 		{
-			if (segment!=-1) //Normal operations (called for the CPU for sure)?
-			{
-				return (offset>0xFFFF); //Behave like a 8086: overflow casts error!
-			}
-			else //System hardware (emulator itself)?
-			{
-				return 0; //Enable all, we're direct after all!
-			}
+			return 0; //Enable all, we're direct after all!
 		}
 		
 		//Use segment descriptors, even when in real mode on 286+ processors!

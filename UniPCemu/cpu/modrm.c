@@ -166,7 +166,7 @@ void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 			modrm_lastoffset = offset;
 		}
 		offset += modrm_addoffset; //Add to get the destination offset!
-		MMU_wb(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset,value); //Write the data to memory using byte depth!
+		MMU_wb(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,value); //Write the data to memory using byte depth!
 		break;
 		//return result; //Give memory!
 	default:
@@ -202,7 +202,7 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 			modrm_lastoffset = offset;
 		}
 		offset += modrm_addoffset; //Add to get the destination offset!
-		MMU_ww(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset, value); //Write the data to memory using byte depth!
+		MMU_ww(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask, value); //Write the data to memory using byte depth!
 		break;
 	default:
 		halt_modrm("MODRM: Unknown MODR/M16!");
@@ -236,7 +236,7 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 			modrm_lastoffset = offset;
 		}
 		offset += modrm_addoffset; //Add to get the destination offset!
-		MMU_wdw(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset,value); //Write the data to memory using byte depth!
+		MMU_wdw(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,value); //Write the data to memory using byte depth!
 		break;
 	default:
 		halt_modrm("MODRM: Unknown MODR/M32!");
@@ -270,7 +270,7 @@ byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 			modrm_lastoffset = offset;
 		}
 		offset += modrm_addoffset; //Add to get the destination offset!
-		return MMU_rb(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset, 0); //Read the value from memory!
+		return MMU_rb(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask, 0); //Read the value from memory!
 	default:
 		halt_modrm("MODRM: Unknown MODR/M8!");
 		return 0; //Unknown!
@@ -304,7 +304,7 @@ word modrm_read16(MODRM_PARAMS *params, int whichregister)
 			modrm_lastoffset = offset;
 		}
 		offset += modrm_addoffset; //Add to get the destination offset!
-		return MMU_rw(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset, 0); //Read the value from memory!
+		return MMU_rw(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask, 0); //Read the value from memory!
 		
 	default:
 		halt_modrm("MODRM: Unknown MODR/M16!");
@@ -340,7 +340,7 @@ uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 			modrm_lastoffset = offset;
 		}
 		offset += modrm_addoffset; //Add the destination offset!
-		return MMU_rdw(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment,offset, 0); //Read the value from memory!
+		return MMU_rdw(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment,offset&params->info[whichregister].memorymask, 0); //Read the value from memory!
 		
 	default:
 		halt_modrm("MODRM: Unknown MODR/M32!");
@@ -1141,6 +1141,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			return;
 			break;
 		}
+		result->memorymask = 0xFFFF; //Only 16-bit offsets are used!
 		break;
 	case MOD_MEM_DISP8: //[register+DISP8]
 		switch (reg) //Which register?
@@ -1223,7 +1224,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			return;
 			break;
 		}
-		offset &= 0xFFFF; //Only 16-bit offsets are used!
+		result->memorymask = 0xFFFF; //Only 16-bit offsets are used!
 		break;
 	case MOD_MEM_DISP32: //[register+DISP32]
 		if (CPU_Operand_size[activeCPU]) //Operand size is 32-bits?
@@ -1375,6 +1376,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				return;
 				break;
 			}
+			result->memorymask = 0xFFFF; //Only 16-bit offsets are used!
 			break;
 		}
 		break;
@@ -1801,6 +1803,9 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 	}
 
 	param->EA_cycles = 0; //No EA cycles for register accesses by default!
+
+	param->info[0].memorymask = ~0; //Default to full memory access!
+	param->info[1].memorymask = ~0; //Default to full memory access!
 
 	//Decode appropiately!
 	switch (size) //What size?

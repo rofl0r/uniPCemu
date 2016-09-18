@@ -123,6 +123,7 @@ typedef struct
 	word *segmentregister; //The segment register (LEA related functions)!
 	int segmentregister_index; //Segment register index!
 	uint_32 mem_offset; //Offset of memory address!
+	uint_32 memorymask; //Memory mask to use!
 } MODRM_PTR; //ModRM decoded pointer!
 
 typedef struct
