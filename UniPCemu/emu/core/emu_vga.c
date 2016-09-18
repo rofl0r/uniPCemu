@@ -457,29 +457,12 @@ void updateVGA(double timepassed)
 			if (renderings<5) VGA_Renderer(Sequencer); //5+ optimization? Not usable? Execute only once!
 			else //x+ optimization?
 			{
-				if (renderings >= 10) //Extra optimization?
-				{
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					renderings -= 9; //We've processed 9 more!
-				}
-				else //Normal optimization?
-				{
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					VGA_Renderer(Sequencer); //Tick the VGA once!
-					renderings -= 4; //We've processed 4 more!
-				}
+				VGA_Renderer(Sequencer); //Tick the VGA once!
+				VGA_Renderer(Sequencer); //Tick the VGA once!
+				VGA_Renderer(Sequencer); //Tick the VGA once!
+				VGA_Renderer(Sequencer); //Tick the VGA once!
+				VGA_Renderer(Sequencer); //Tick the VGA once!
+				renderings -= 4; //We've processed 4 more!
 			}
 		} while (--renderings); //Ticks left to tick?
 
