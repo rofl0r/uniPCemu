@@ -346,3 +346,4 @@ gen-external-apklibs
 *.exe
 *.out
 *.app
+*.etl

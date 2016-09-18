@@ -200,7 +200,7 @@ void updateVGAWaitState()
 
 typedef void (*hblankretraceHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal);
 
-void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+OPTINLINE void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 {
 	if (VGA_hblankstart) //HBlank start?
 	{
@@ -240,7 +240,7 @@ void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 	}
 }
 
-void nohblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+OPTINLINE void nohblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 {
 	if (hblankendpending==0) return; //End pending HBlank!
 	{
@@ -352,7 +352,7 @@ recalcsignal: //Recalculate the signal to process!
 		VGA_HTotal(Sequencer,VGA); //Process HTotal!
 		//currenttotalling = 1; //Total reached!
 		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-		if (!(displaystate&VGA_SIGNAL_HTOTAL)) //Not infinitely looping?
+		if ((displaystate&VGA_SIGNAL_HTOTAL)==0) //Not infinitely looping?
 		{
 			hblankretrace = (displaystate&VGA_HBLANKRETRACEMASK)?1:0; //Check for blanking/retracing!
 			goto recalcsignal; //Execute immediately!
@@ -363,7 +363,7 @@ recalcsignal: //Recalculate the signal to process!
 		VGA_VTotal(Sequencer,VGA); //Process VTotal!
 		/*currenttotalling =*/ vtotal = 1; //Total reached!
 		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-		if (!(displaystate&VGA_SIGNAL_VTOTAL)) //Not infinitely looping(VTotal ended)?
+		if ((displaystate&VGA_SIGNAL_VTOTAL)==0) //Not infinitely looping(VTotal ended)?
 		{
 			VGA_VTotalEnd(Sequencer, VGA); //Signal end of vertical total!
 			vtotal = 0; //Not vertical total anymore!
@@ -457,12 +457,29 @@ void updateVGA(double timepassed)
 			if (renderings<5) VGA_Renderer(Sequencer); //5+ optimization? Not usable? Execute only once!
 			else //x+ optimization?
 			{
-				VGA_Renderer(Sequencer); //Tick the VGA once!
-				VGA_Renderer(Sequencer); //Tick the VGA once!
-				VGA_Renderer(Sequencer); //Tick the VGA once!
-				VGA_Renderer(Sequencer); //Tick the VGA once!
-				VGA_Renderer(Sequencer); //Tick the VGA once!
-				renderings -= 4; //We've processed 4 more!
+				if (renderings >= 10) //Extra optimization?
+				{
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					renderings -= 9; //We've processed 9 more!
+				}
+				else //Normal optimization?
+				{
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					renderings -= 4; //We've processed 4 more!
+				}
 			}
 		} while (--renderings); //Ticks left to tick?
 

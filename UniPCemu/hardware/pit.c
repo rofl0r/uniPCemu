@@ -84,8 +84,6 @@ double speaker_tick = 0.0; //Time of a tick in the PC speaker sample!
 double time_tick = 0.0; //Time of a tick in the PIT!
 double time_tickreverse = 0.0; //Reversed of time_tick(1/ticktime)!
 
-byte IRQ0_status = 0, PIT1_status = 0; //Current IRQ0 status!
-
 byte oldPCSpeakerPort = 0x00; //Backup for tracking channel 2 gate changes!
 byte PCSpeakerPort; //Port 0x61 for the PC Speaker! Bit0=Gate, Bit1=Data enable, bit 4=PIT1 output!
 
@@ -424,43 +422,39 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 					{
 						PITchannels[channel].risetoggle ^= 1; //Toggle the bit in our output port!
 					}
-					PITchannels[channel].lastchannel_status = PITchannels[channel].channel_status; //Save the new status!
-				}
-				//We're ready for the current result!
-				writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
-			}
-		}
-	}
 
-	//IRQ0 output!
-	if (EMU_RUNNING == 1) //Are we running? We allow timers to execute!
-	{
-		for (;readfifobuffer(PITchannels[0].rawsignal,&currentsample);) //Anything left to process?
-		{
-			if (((currentsample^IRQ0_status)&1)) //Changed?
-			{
-				if (currentsample) //Raised?
-				{
-					raiseirq(0); //Raise IRQ0!
+					if (channel==2) //PIT2 needs a sound buffer?
+					{
+						//We're ready for the current result!
+						writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
+					}
+					else //PIT1 is connected to an external ticker!
+					{
+						if ((PITchannels[channel].lastchannel_status^PITchannels[channel].channel_status) & 1) //Changed?
+						{
+							if (PIT1Ticker) //Gotten a handler for it?
+							{
+								PIT1Ticker(PITchannels[channel].channel_status); //Handle this PIT1 tick!
+							}
+						}
+					}
 				}
-				else //Lowered?
+				else //PIT0?
 				{
-					lowerirq(0); //Lower IRQ0!
+					if ((PITchannels[channel].lastchannel_status^PITchannels[channel].channel_status) & 1) //Changed?
+					{
+						if (currentsample) //Raised?
+						{
+							raiseirq(0); //Raise IRQ0!
+						}
+						else //Lowered?
+						{
+							lowerirq(0); //Lower IRQ0!
+						}
+					}
 				}
+				PITchannels[channel].lastchannel_status = PITchannels[channel].channel_status; //Save the new status!
 			}
-			IRQ0_status = currentsample; //Update status!
-		}
-
-		for (;readfifobuffer(PITchannels[1].rawsignal,&currentsample);) //Anything left to process?
-		{
-			if ((currentsample^PIT1_status)&1) //Changed?
-			{
-				if (PIT1Ticker) //Gotten a handler for it?
-				{
-					PIT1Ticker(currentsample); //Handle this PIT1 tick!
-				}
-			}
-			PIT1_status = currentsample; //Update status!
 		}
 	}
 

@@ -131,9 +131,8 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 		attr3 = 8; //How far to go?
 		do //Process all coordinates of our row!
 		{
-			characterpixels[x] = (charrow&1); //Read current coordinate!
+			characterpixels[x++] = (charrow&1); //Read current coordinate!
 			charrow >>= 1; //Shift to the next pixel!
-			++x; //Next pixel!
 		} while (--attr3); //Loop while anything left!
 
 		if (VGA->precalcs.characterwidth == 9) //What width? 9 wide?
