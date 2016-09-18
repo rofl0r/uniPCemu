@@ -621,7 +621,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	if (addrtest) //Execute address test?
 	{
-		isvalid = (offset<=limit)?1:0; //Valid address range!
+		isvalid = (offset<=limit); //Valid address range!
 		if ((descriptor->S == 1) && ((descriptor->Type & 4) == 0)) //Data/Code segment?
 		{
 			if (descriptor->DATASEGMENT.E) //Expand-down segment?
@@ -629,11 +629,11 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 				isvalid = !isvalid; //Reversed valid!
 				if (descriptor->G == 0) //Small granularity?
 				{
-					isvalid = (isvalid && (offset <= 0x10000))?1:0; //Limit to 64K!
+					isvalid = (isvalid && (offset <= 0x10000)); //Limit to 64K!
 				}
 			}
 		}
-		if (isvalid == 0) //Not valid?
+		if (!isvalid) //Not valid?
 		{
 			return 1; //Error!
 		}

@@ -60,7 +60,8 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 //Same, but for pointer dereference
 #define NULLPTR_PTR(x,location) (ANTINULL(x,location)?((x->segment==0) && (x->offset==0)):1)
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	byte used; //Valid instruction? If zero, passthrough to earlier CPU timings.
 	byte has_modrm; //Do we have ModR/M parameters?
@@ -71,8 +72,10 @@ typedef struct
 	byte parameters; //The type of parameters to follow the ModR/M! 0=No parameters, 1=imm8, 2=imm16, 3=imm32, bit 2=Immediate is enabled on the REG of the RM byte(only when <2).
 	byte readwritebackinformation; //The type of writing back/reading data to memory if needed! Bits 0-1: 0=None, 1=Read, Write back operation, 2=Write operation only, 3=Read operation only, Bit 4: Operates on AL/AX/EAX when set. Bit 5: Push operation. Bit 6: Pop operation.
 } CPU_Timings; //The CPU timing information!
+#include "headers/endpacked.h" //End of packed type!
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	union
 	{
@@ -123,8 +126,10 @@ typedef struct
 		uint_64 DATA64; //Full data for simple set!
 	};
 } SEGMENT_DESCRIPTOR;
+#include "headers/endpacked.h" //End of packed type!
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	word BackLink; //Back Link to Previous TSS
 	word Unused0;
@@ -169,8 +174,10 @@ typedef struct
 	};
 	word IOMapBase;
 } TSS386; //80386 32-Bit Task State Segment
+#include "headers/endpacked.h" //End of packed type!
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	word BackLink; //Back Link to Previous TSS
 	word SP0;
@@ -195,8 +202,10 @@ typedef struct
 	word DS;
 	word LDT;
 } TSS286; //80286 32-Bit Task State Segment
+#include "headers/endpacked.h" //End of packed type!
 
-typedef union
+#include "headers/packed.h" //Packed type!
+typedef union PACKED
 {
 	struct
 	{
@@ -211,7 +220,8 @@ typedef union
 	};
 	byte descdata[8]; //The full entry data!
 } IDTENTRY; //80286/80386 Interrupt descriptor table entry
-		  
+#include "headers/endpacked.h" //End of packed type!
+
 //A segment descriptor
 
 //Full gate value
@@ -343,13 +353,8 @@ AVL: available to the programmer:
 #define AVL_SYSTEM_INTERRUPTGATE32BIT 0xE
 #define AVL_SYSTEM_TRAPGATE32BIT 0xF
 
-
-
-
-
-
-
-typedef struct //Seperate bits of above EFlags
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED //Seperate bits of above EFlags
 {
 	byte CF:1;
 	byte unmapped2:1; //Unused. Value 1
@@ -375,8 +380,10 @@ typedef struct //Seperate bits of above EFlags
 	byte ID : 1; //Able to use CPUID function (Pentium+)
 	word unmappedhi : 10; //Rest data (unused)
 } SEPERATEFLAGS; //Seperate flags!
+#include "headers/endpacked.h" //End of packed type!
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	union
 	{
@@ -389,65 +396,74 @@ typedef struct
 		struct
 		{
 			uint_64 data : 48; //48 bits long!
-			word unused2; //Unused data!
 		};
 	};
 } TR_PTR;
+#include "headers/endpacked.h" //End of packed type!
 
 //Different kinds of pointers!
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	union
 	{
 		struct
 		{
 			uint_32 offset; //Default: 0
-			unsigned int segment; //Default: 0
+			word segment; //Default: 0
 		};
 		unsigned char data[6]; //46-bits as bytes!
 	};
 } ptr48; //48-bit pointer Adress (32-bit mode)!
+#include "headers/endpacked.h" //End of packed type!
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	union
 	{
 		struct
 		{
-			unsigned int offset; //Default: 0
-			unsigned int segment; //Default: 0
+			word offset; //Default: 0
+			word segment; //Default: 0
 		};
 		unsigned char data[4]; //32-bits as bytes!
 	};
 } ptr32; //32-bit pointer Adress (16-bit mode)!
+#include "headers/endpacked.h" //End of packed type!
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	union
 	{
 		struct
 		{
-			unsigned short limit; //Limit!
+			word limit; //Limit!
 			unsigned int base; //Base!
 		};
 		unsigned char data[6]; //46-bit adress!
 	};
 } GDTR_PTR;
+#include "headers/endpacked.h" //End of packed type!
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	union
 	{
 		struct
 		{
-			unsigned int limit;
+			word limit;
 			uint_32 base;
 		};
 		unsigned char data[6]; //46-bit adress!
 	};
 } IDTR_PTR;
+#include "headers/endpacked.h" //End of packed type!
 
-typedef struct //The registers!
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED //The registers!
 {
 
 //Info: with union, first low data then high data!
@@ -655,9 +671,10 @@ typedef struct //The registers!
 	}; //Special registers!
 
 } CPU_registers; //Registers
+#include "headers/endpacked.h" //End of packed type!
 
-
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	CPU_registers *registers; //The registers of the CPU!
 
@@ -700,6 +717,7 @@ typedef struct
 	byte allowInterrupts; //Do we allow interrupts to run?
 	byte is0Fopcode; //Are we a 0F opcode to be executed?
 } CPU_type;
+#include "headers/endpacked.h" //End of packed type!
 
 
 #define F_CARRY 0x01
@@ -768,7 +786,8 @@ typedef struct
 
 
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	union
 	{
@@ -780,6 +799,7 @@ typedef struct
 		word w; //The word value!
 	};
 } wordsplitter; //Splits word in two bytes!
+#include "headers/endpacked.h" //End of packed type!
 
 
 
@@ -801,7 +821,8 @@ typedef struct
 
 
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	union
 	{
@@ -813,9 +834,11 @@ typedef struct
 		uint_32 dword; //The word value!
 	};
 } dwordsplitter; //Splits dword (32 bits) in two words!
+#include "headers/endpacked.h" //End of packed type!
 
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	union
 	{
@@ -843,8 +866,10 @@ typedef struct
 		uint_32 dword; //Dword var!
 	};
 } dwordsplitterb; //Splits dword (32 bits) in four bytes and subs (high/low16_high/low)!
+#include "headers/endpacked.h" //End of packed type!
 
-typedef struct
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
 {
 	union
 	{
@@ -857,6 +882,7 @@ typedef struct
 		};
 	};
 } SIBType; //SIB byte!
+#include "headers/endpacked.h" //End of packed type!
 
 #ifndef IS_CPU
 extern byte activeCPU; //That currently active CPU!
