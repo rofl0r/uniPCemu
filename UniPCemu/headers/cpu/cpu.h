@@ -938,6 +938,7 @@ extern byte CPU_StackAddress_size[2]; //Address size for this opcode!
 #define EXCEPTION_PAGEFAULT 0xE
 #define EXCEPTION_COPROCESSORERROR 0x10
 
+void initCPU(); //Initialize CPU for full system reset into known state!
 void resetCPU(); //Initialises CPU!
 void doneCPU(); //Finish the CPU!
 byte CPU_readOP(); //Reads the operation (byte) at CS:EIP

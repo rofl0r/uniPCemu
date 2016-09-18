@@ -337,16 +337,20 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	byte reg = 0;
 	for (reg = 0; reg<NUMITEMS(CPU[activeCPU].SEG_DESCRIPTOR); reg++) //Process all segment registers!
 	{
+		//Load Real mode compatible values for all registers!
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_high = 0;
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_mid = 0;
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_low = 0;
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_low = 0xFFFF; //64k limit!
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_high = 0; //No high limit!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].AVL = 0; //Byte granularity!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].unk_0 = 0; //Byte granularity!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].D_B = 0; //Normal size!
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].G = 0; //Byte granularity!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].DATASEGMENT.E = 0; //Expand up!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].DATASEGMENT.W = 1; //Writable!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].P = 1; //Present!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].DPL = 0;
+		if ((reg != CPU_SEGMENT_LDTR) && (reg != CPU_SEGMENT_TR)) //Special protected-mode segments? We're undefined!
+		{
+			CPU[activeCPU].SEG_DESCRIPTOR[reg].AccessRights = 0x93; //Data segment!
+		}
 	}
 
 	//CS specific!
@@ -364,7 +368,6 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 
 void resetCPU() //Initialises the currently selected CPU!
 {
-	memset(&CPU,0,sizeof(CPU)); //Reset the CPU fully!
 	byte i;
 	for (i = 0;i < NUMITEMS(CPU);++i) //Process all CPUs!
 	{
@@ -391,6 +394,12 @@ void resetCPU() //Initialises the currently selected CPU!
 	CPU_useCycles = (EMULATED_CPU<=CPU_80286); //Are we using cycle-accurate emulation?
 	#endif
 	EMU_onCPUReset(); //Make sure all hardware, like CPU A20 is updated for the reset!
+}
+
+void initCPU() //Initialize CPU for full system reset into known state!
+{
+	memset(&CPU, 0, sizeof(CPU)); //Reset the CPU fully!
+	resetCPU(); //Reset normally!
 }
 
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h

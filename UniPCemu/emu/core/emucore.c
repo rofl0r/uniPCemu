@@ -372,7 +372,7 @@ void initEMU(int full) //Init!
 
 	debugrow("Initializing CPU...");
 	CPU_databussize = BIOS_Settings.DataBusSize; //Apply the bus to use for our emulation!
-	resetCPU(); //Initialise CPU!
+	initCPU(); //Initialise CPU for emulation!
 	
 	debugrow("Initialising CMOS...");
 	initCMOS(); //Initialise the CMOS!
