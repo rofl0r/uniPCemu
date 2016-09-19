@@ -131,7 +131,7 @@ byte debugger_logging()
 	default:
 		break;
 	}
-	enablelog |= startreached; //Start logging from this point!
+	enablelog |= startreached; //Start logging from this point(emulator internal debugger)!
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
 	if (skipstep) enablelog = 0; //Disable when skipping!
 	return enablelog; //Logging?

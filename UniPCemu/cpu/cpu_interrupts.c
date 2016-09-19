@@ -26,8 +26,6 @@ void CPU_getint(byte intnr, word *segment, word *offset) //Set real mode IVT ent
 
 extern uint_32 destEIP;
 
-extern byte startreached; //When to start logging?
-
 OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //Used by soft (below) and exceptions/hardware!
 {
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
