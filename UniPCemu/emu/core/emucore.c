@@ -233,6 +233,13 @@ void initEMU(int full) //Init!
 	debugrow("Loading basic BIOS I/O...");
 	BIOS_LoadIO(0); //Load basic BIOS I/O, also VGA information, don't show checksum errors!
 
+	//Check for memory requirements of the system!
+	if ((BIOS_Settings.memory & 0xFFFF) && (EMULATED_CPU >= CPU_80286)) //IBM PC/AT has specific memory requirements? Needs to be 64K aligned!
+	{
+		BIOS_Settings.memory = 0; //We're forcing a redetection of available memory, as it's needed!
+		forceBIOSSave(); //Force-save the BIOS settings!
+	}
+
 	debugrow("Initializing I/O port handling...");
 	Ports_Init(); //Initialise I/O port support!
 	
