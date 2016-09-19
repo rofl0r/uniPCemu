@@ -84,8 +84,16 @@ typedef struct PACKED
 			struct
 			{
 				u16 limit_low;
-				u16 base_low;
-				u8 base_mid;
+				union
+				{
+					u16 base_low; //Low base for non-Gate Descriptors!
+					u16 selector; //Selector field of a Gate Descriptor!
+				};
+				union
+				{
+					u8 base_mid; //Mid base for non-Gate Descriptors!
+					u8 ParamCnt; //Number of (uint_32) stack arguments to copy on stack switch(Call Gate Descriptor). Bits 4-7 have to be 0 for gate descriptors.
+				};
 				union
 				{
 					struct

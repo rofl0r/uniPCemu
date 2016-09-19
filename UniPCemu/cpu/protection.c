@@ -348,7 +348,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 			THROWDESCGP(segmentval); //Throw error!
 			return NULL; //We are a lower privilege level, so don't load!				
 		}
-		segment = (GATEDESCRIPTOR.desc.base_high << 3) | (segment & 7); //We're loading this segment now!
+		segmentval = (GATEDESCRIPTOR.desc.selector & ~3) | (segmentval & 3); //We're loading this segment now, with requesting privilege!
 		if (!LOADDESCRIPTOR(segment, segmentval, &LOADEDDESCRIPTOR)) //Error loading current descriptor?
 		{
 			THROWDESCGP(segmentval); //Throw error!
@@ -433,7 +433,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 
 	if (is_TSS && (segment==CPU_SEGMENT_TR)) //We're a TSS loading into TR? We're to perform a task switch!
 	{
-		if (segment & 2) //LDT lookup set?
+		if (segmentval & 2) //LDT lookup set?
 		{
 			THROWDESCGP(segmentval); //Throw error!
 			return NULL; //We're an invalid TSS to call!
