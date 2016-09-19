@@ -724,6 +724,8 @@ typedef struct PACKED
 	//POP SS inhabits interrupts!
 	byte allowInterrupts; //Do we allow interrupts to run?
 	byte is0Fopcode; //Are we a 0F opcode to be executed?
+	byte D_B_Mask; //D_B bit mask when used for 16 vs 32-bits!
+	byte G_Mask; //G bit mask when used for 16 vs 32-bits!
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 

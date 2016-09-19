@@ -611,7 +611,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	limit = ((descriptor->limit_high << 16) | descriptor->limit_low); //Base limit!
 
-	if (descriptor->G && (EMULATED_CPU>=CPU_80386)) //Granularity?
+	if ((descriptor->G&CPU[activeCPU].G_Mask) && (EMULATED_CPU>=CPU_80386)) //Granularity?
 	{
 		limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 	}

@@ -394,6 +394,8 @@ void resetCPU() //Initialises the currently selected CPU!
 	CPU_useCycles = (EMULATED_CPU<=CPU_80286); //Are we using cycle-accurate emulation?
 	#endif
 	EMU_onCPUReset(); //Make sure all hardware, like CPU A20 is updated for the reset!
+	CPU[activeCPU].D_B_Mask = (EMULATED_CPU>=CPU_80386)?1:0; //D_B mask when applyable!
+	CPU[activeCPU].G_Mask = (EMULATED_CPU >= CPU_80386) ? 1 : 0; //G mask when applyable!
 }
 
 void initCPU() //Initialize CPU for full system reset into known state!
@@ -528,7 +530,7 @@ byte DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCR
 		return 0; //Always 16-bit descriptor!
 	}
 
-	return CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].D_B; //Give the B-BIT of the SS-register!
+	return CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].D_B&CPU[activeCPU].D_B_Mask; //Give the B-BIT of the SS-register!
 }
 
 uint_32 CPU_InterruptReturn = 0;

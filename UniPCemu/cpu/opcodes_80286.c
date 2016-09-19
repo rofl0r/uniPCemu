@@ -437,8 +437,8 @@ void CPU286_OP0F02() //LAR /r
 		unkOP0F_286(); //We're not recognized in real mode!
 		return;
 	}
-	modrm286_generateInstructionTEXT("LAR", 16, 0, PARAM_MODRM2); //Our instruction text!
-	oper1 = modrm_read16(&params,0); //Read the segment to check!
+	modrm286_generateInstructionTEXT("LAR", 16, 0, PARAM_MODRM12); //Our instruction text!
+	oper1 = modrm_read16(&params,1); //Read the segment to check!
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
 		{
@@ -469,8 +469,7 @@ void CPU286_OP0F02() //LAR /r
 				}
 				if ((MAX(getCPL(), getRPL(oper1)) <= verdescriptor.desc.DPL) || isconforming) //Valid privilege?
 				{
-					verdescriptor.DATA64 &= 0xFF00;
-					modrm_write16(&params,1,(word)verdescriptor.DATA64,0); //Write our result!
+					modrm_write16(&params,0,(word)(verdescriptor.desc.AccessRights<<8),0); //Write our result!
 					CPUPROT1
 						FLAG_ZF = 1; //We're valid!
 					CPUPROT2
@@ -499,8 +498,8 @@ void CPU286_OP0F03() //LSL /r
 		unkOP0F_286(); //We're not recognized in real mode!
 		return;
 	}
-	modrm286_generateInstructionTEXT("LSL", 16, 0, PARAM_MODRM2); //Our instruction text!
-	oper1 = modrm_read16(&params, 0); //Read the segment to check!
+	modrm286_generateInstructionTEXT("LSL", 16, 0, PARAM_MODRM12); //Our instruction text!
+	oper1 = modrm_read16(&params, 1); //Read the segment to check!
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
 		{
@@ -531,14 +530,14 @@ void CPU286_OP0F03() //LSL /r
 				}
 
 				limit = verdescriptor.desc.limit_low|(verdescriptor.desc.limit_high<<16); //Limit!
-				if (verdescriptor.desc.G && (EMULATED_CPU >= CPU_80386)) //Granularity?
+				if ((verdescriptor.desc.G&CPU[activeCPU].G_Mask) && (EMULATED_CPU >= CPU_80386)) //Granularity?
 				{
 					limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 				}
 
 				if ((MAX(getCPL(), getRPL(oper1)) <= verdescriptor.desc.DPL) || isconforming) //Valid privilege?
 				{
-					modrm_write16(&params, 1, (word)(limit&0xFFFF), 0); //Write our result!
+					modrm_write16(&params, 0, (word)(limit&0xFFFF), 0); //Write our result!
 					CPUPROT1
 						FLAG_ZF = 1; //We're valid!
 					CPUPROT2
@@ -555,7 +554,6 @@ void CPU286_OP0F03() //LSL /r
 			FLAG_ZF = 0; //Default: not loaded!
 		}
 	CPUPROT2
-	unkOP0F_286(); //TODO!
 }
 
 void CPU286_OP0F06() //CLTS
@@ -571,10 +569,10 @@ void CPU286_OP0F06() //CLTS
 
 void CPU286_OP0F0B() //#UD instruction
 {
-	unkOP0F_286(); //Delibarately #UD!
+	unkOP0F_286(); //Deliberately #UD!
 }
 
 void CPU286_OP0FB9() //#UD instruction
 {
-	unkOP0F_286(); //Delibarately #UD!
+	unkOP0F_286(); //Deliberately #UD!
 }

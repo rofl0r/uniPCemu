@@ -3116,8 +3116,8 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 		{ //16-bit
 			{ 1,1,1,0,0,1,0,0x00 }, //00 Various extended 286+ instructions GRP opcode.
 			{ 1,1,1,0,0,1,0,0x00 }, //01 Various extended 286+ instructions GRP opcode.
-			{ 1,1,1,0,0,0,0,0x00 }, //02 LAR /r
-			{ 1,1,1,0,0,0,0,0x00 }, //03 LSL /r
+			{ 1,1,1,0,0,1,0,0x00 }, //02 LAR /r
+			{ 1,1,1,0,0,1,0,0x00 }, //03 LSL /r
 			{ 0,0,0,0,0,0,1,0x04 }, //04
 			{ 0,0,0,0,0,0,2,0x04 }, //05
 			{ 1,0,0,0,0,0,0,0x00 }, //06 CLTS
