@@ -131,9 +131,9 @@ byte debugger_logging()
 	default:
 		break;
 	}
-	if (skipstep) enablelog = 0; //Disable when skipping!
 	enablelog |= startreached; //Start logging from this point!
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
+	if (skipstep) enablelog = 0; //Disable when skipping!
 	return enablelog; //Logging?
 }
 
