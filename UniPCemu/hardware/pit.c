@@ -191,6 +191,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 	uint_32 render_ticks; //A one shot tick!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
 	byte channel; //Current channel?
+	byte mode; //The mode of the currently processing channel!
 
 	i = time_ticktiming; //Load the current timing!
 	i += MHZ14passed; //Add the amount of time passed to the PIT timing!
@@ -204,9 +205,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 	{
 		for (channel=0;channel<3;channel++)
 		{
-			byte mode,outputmask;
 			mode = PITchannels[channel].mode; //Current mode!
-			outputmask = (channel==2)?((PCSpeakerPort&2)>>1):1; //Mask output on/off for this timer!
 			for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
 			{
 				switch (mode) //What mode are we rendering?
@@ -416,32 +415,35 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 				default: //Unsupported mode! Ignore any input!
 					break;
 				}
+				currentsample = PITchannels[channel].channel_status; //The current sample we're processing, prefetched!
 				if (channel) //Handle channel 1&2 seperately too!
 				{
-					if (((PITchannels[channel].lastchannel_status^PITchannels[channel].channel_status)&1) && PITchannels[channel].channel_status) //Raised?
+					//Process the rise toggle!
+					if (((PITchannels[channel].lastchannel_status^currentsample)&1) && currentsample) //Raised?
 					{
 						PITchannels[channel].risetoggle ^= 1; //Toggle the bit in our output port!
 					}
 
+					//Now, write the (changed) output to the channel to use!
 					if (channel==2) //PIT2 needs a sound buffer?
 					{
 						//We're ready for the current result!
-						writefifobuffer(PITchannels[channel].rawsignal, PITchannels[channel].channel_status&outputmask); //Add the data to the raw signal!
+						writefifobuffer(PITchannels[channel].rawsignal, currentsample&((PCSpeakerPort & 2) >> 1)); //Add the data to the raw signal! Apply the output mask too!
 					}
 					else //PIT1 is connected to an external ticker!
 					{
-						if ((PITchannels[channel].lastchannel_status^PITchannels[channel].channel_status) & 1) //Changed?
+						if ((PITchannels[channel].lastchannel_status^currentsample) & 1) //Changed?
 						{
 							if (PIT1Ticker) //Gotten a handler for it?
 							{
-								PIT1Ticker(PITchannels[channel].channel_status); //Handle this PIT1 tick!
+								PIT1Ticker(currentsample); //Handle this PIT1 tick!
 							}
 						}
 					}
 				}
 				else //PIT0?
 				{
-					if ((PITchannels[channel].lastchannel_status^PITchannels[channel].channel_status) & 1) //Changed?
+					if ((PITchannels[channel].lastchannel_status^currentsample) & 1) //Changed?
 					{
 						if (currentsample) //Raised?
 						{
@@ -453,7 +455,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 						}
 					}
 				}
-				PITchannels[channel].lastchannel_status = PITchannels[channel].channel_status; //Save the new status!
+				PITchannels[channel].lastchannel_status = currentsample; //Save the new status!
 			}
 		}
 	}
