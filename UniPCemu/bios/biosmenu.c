@@ -4525,9 +4525,8 @@ void BIOS_CPU() //CPU menu!
 		case 0: //Installed CPU?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
-				BIOS_Menu = 2; //FLOPPY0 selection!
+				if (!EMU_RUNNING) BIOS_Menu = 10; //Installed CPU selection!
 			}
-			if (!EMU_RUNNING) BIOS_Menu = 10; //Installed CPU selection!
 			break;
 		case 1: //Data bus size?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
