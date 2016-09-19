@@ -432,7 +432,7 @@ byte read_8042(word port, byte *result)
 		break;
 	case 0x64: //Command port: read status register?
 		if ((EMULATED_CPU >= CPU_80286) || force8042) fill8042_output_buffer(1); //Fill the output buffer if needed!
-		*result = (Controller8042.status_buffer&~0x10)|(Controller8042.PS2ControllerConfigurationByte.SystemPassedPOST<<2); //Read status buffer combined with the BIOS POST flag! We're never inhabited!
+		*result = (Controller8042.status_buffer|0x10)|(Controller8042.PS2ControllerConfigurationByte.SystemPassedPOST<<2); //Read status buffer combined with the BIOS POST flag! We're never inhabited!
 		return 1; //We're processed!
 		break;
 	}
