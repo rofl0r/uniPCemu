@@ -200,7 +200,7 @@ void updateVGAWaitState()
 
 typedef void (*hblankretraceHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal);
 
-OPTINLINE void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 {
 	if (VGA_hblankstart) //HBlank start?
 	{
@@ -240,7 +240,7 @@ OPTINLINE void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal
 	}
 }
 
-OPTINLINE void nohblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
+void nohblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 {
 	if (hblankendpending==0) return; //End pending HBlank!
 	{
