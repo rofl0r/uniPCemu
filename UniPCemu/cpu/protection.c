@@ -4,6 +4,7 @@
 #include "headers/support/zalloc.h" //Memory/register protection support!
 #include "headers/mmu/mmuhandler.h" //Direct memory access support!
 #include "headers/emu/debugger/debugger.h" //For logging check!
+#include "headers/support/locks.h" //We need to unlock ourselves during triple faults, to reset ourselves!
 
 /*
 
@@ -15,7 +16,9 @@ Basic CPU active segment value retrieval.
 
 void CPU_triplefault()
 {
+	unlock(LOCK_CPU);
 	resetCPU(); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
+	lock(LOCK_CPU);
 	CPU[activeCPU].faultraised = 1; //We're continuing being a fault!
 }
 
