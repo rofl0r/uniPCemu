@@ -3,6 +3,7 @@
 #include "headers/cpu/multitasking.h" //Multitasking support!
 #include "headers/support/zalloc.h" //Memory/register protection support!
 #include "headers/mmu/mmuhandler.h" //Direct memory access support!
+#include "headers/emu/debugger/debugger.h" //For logging check!
 
 /*
 
@@ -259,7 +260,7 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 	
 	if ((segment==CPU_SEGMENT_SS) && //SS is...
 		((getLoadedTYPE(container)==1) || //An executable segment? OR
-		(!getLoadedTYPE(container) && (container->desc.EXECSEGMENT.R)) || //Read-only DATA segment? OR
+		(!getLoadedTYPE(container) && (container->desc.DATASEGMENT.W==0)) || //Read-only DATA segment? OR
 		(getCPL()!=container->desc.DPL) //Not the same privilege?
 		)
 		)

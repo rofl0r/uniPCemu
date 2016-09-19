@@ -118,7 +118,7 @@ OPTINLINE byte modrm_getmod(MODRM_PARAMS *params) //Get MOD bonus parameter size
 	return MODRM_MOD(params->modrm); //Dummy: not executed!
 }
 
-OPTINLINE void modrm_updatedsegment(word *location, word value, byte isJMPorCALL) //Check for updated segment registers!
+void modrm_updatedsegment(word *location, word value, byte isJMPorCALL) //Check for updated segment registers!
 {
 	//Check for updated registers!
 	int index = get_segment_index(location); //Get the index!

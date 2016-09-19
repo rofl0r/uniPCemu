@@ -132,7 +132,10 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 	CPUPROT1
 		if (dest) //Register?
 		{
-			*dest = val;
+			modrm_updatedsegment(dest, val, 0); //Check for an updated segment!
+			CPUPROT1
+			*dest = val; //Write directly, if not errored out!
+			CPUPROT2
 		}
 		else //Memory?
 		{

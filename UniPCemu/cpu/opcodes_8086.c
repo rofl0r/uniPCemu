@@ -1151,6 +1151,8 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 	CPUPROT1
 	if (dest) //Register?
 	{
+		modrm_updatedsegment(dest,val,0); //Check for an updated segment!
+		CPUPROT1
 		*dest = val;
 		switch (flags) //What type are we?
 		{
@@ -1198,6 +1200,7 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 			}
 			break;
 		}
+		CPUPROT2
 	}
 	else //Memory?
 	{

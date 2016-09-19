@@ -193,4 +193,8 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 //For CPU itself:
 void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr); //Read params for modr/m processing from CS:(E)IP
+
+//For fixing segment loads through MOV instructions.
+void modrm_updatedsegment(word *location, word value, byte isJMPorCALL); //Check for updated segment registers!
+
 #endif
