@@ -236,7 +236,7 @@ void initEMU(int full) //Init!
 	//Check for memory requirements of the system!
 	if ((BIOS_Settings.memory & 0xFFFF) && (EMULATED_CPU >= CPU_80286)) //IBM PC/AT has specific memory requirements? Needs to be 64K aligned!
 	{
-		BIOS_Settings.memory = 0; //We're forcing a redetection of available memory, as it's needed!
+		BIOS_Settings.memory &= ~0xFFFF; //We're forcing a redetection of available memory, if it's needed! Else, just round down memory to the nearest compatible 64K memory!
 		forceBIOSSave(); //Force-save the BIOS settings!
 	}
 
