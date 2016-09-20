@@ -155,7 +155,7 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 		}
 		else //XT?
 		{
-			if (SystemControlPortB & 0x20) //Parity check enabled?
+			if ((SystemControlPortB & 0x20)==0) //Parity check enabled?
 			{
 				PPI62 |= 0x40; //Signal a Parity error on a XT!
 				doNMI = 1; //Allow NMI, if enabled!

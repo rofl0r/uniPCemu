@@ -17,6 +17,7 @@ extern byte singlestep; //Enable EMU-driven single step!
 sword diagnosticsportoutput_breakpoint = -1; //Breakpoint set?
 sword breakpoint_comparison = -1; //Breakpoint comparison value!
 uint_32 breakpoint_timeout = 1; //Timeout for the breakpoint to become active, in instructions! Once it becomes 0(and was 1), it triggers the breakpoint!
+extern byte NMI; //NMI control on XT support!
 
 byte readPPI62()
 {
@@ -44,6 +45,8 @@ byte readPPI62()
 		{
 			result |= 1; //Two floppy drives installed!
 		}
+		result |= (SystemControlPortB&0xC0); //Ram&IO channel check results!
+		//Timer 2 is handled by the keyboard controller!
 	}
 	else
 	{
@@ -57,7 +60,14 @@ byte PPI_readIO(word port, byte *result)
 	switch (port) //Special register: System control port B!
 	{
 	case 0x61: //System control port B?
-		*result = SystemControlPortB; //Read the value!
+		if (EMULATED_CPU <= CPU_NECV30) //Keyboard controller port B?
+		{
+			*result = 0x00; //Nothing here!
+		}
+		else //AT? System Control Port B directly!
+		{
+			*result = SystemControlPortB; //Read the value!
+		}
 		return 1;
 		break;
 	case 0x62: //PPI62?
@@ -78,6 +88,13 @@ byte PPI_readIO(word port, byte *result)
 		*result = SystemControlPortA; //Read the value!
 		return 1;
 		break;
+	case 0xA0: //NMI interrupt is enabled at highest bit on XT!
+		if (EMULATED_CPU <= CPU_NECV30) //Enabled?
+		{
+			*result = (byte)((~NMI)<<7); //NMI enabled? The flag itself is reversed!
+			return 1;
+		}
+		break;
 	default: //unknown port?
 		break;
 	}
@@ -96,7 +113,8 @@ byte PPI_writeIO(word port, byte value)
 	case 0x61: //System control port B?
 		if (EMULATED_CPU<CPU_80286) //IBM XT?
 		{
-			SystemControlPortB = (value&0xF4); //Set the port, only the highest 4 bits and bit 4 is ours!
+			SystemControlPortB = (value&0x3C); //Set the port, only the middle 4 bits(highest 2 bits is the keyboard controller) are used: bit 5=I/O check enable, bit 4=RAM parity check enable, bit 3=Read low switches, bit2=Turbo Switch is ours!
+			PPI62 &= ~(((((SystemControlPortB & 0x10) << 1)) | ((SystemControlPortB & 0x20) >> 1)) << 2); //Setting the enable(it's reversed in the AT BIOS) bits clears the status of it's corresponding error bit, according to the AT BIOS!
 		}
 		else //Full set?
 		{
@@ -158,6 +176,13 @@ byte PPI_writeIO(word port, byte value)
 			resetCPU(); //Reset the CPU!
 		}
 		return 1;
+		break;
+	case 0xA0: //NMI interrupt is enabled at highest bit on XT!
+		if (EMULATED_CPU <= CPU_NECV30) //Enabled?
+		{
+			NMI = !((value>>7)&1); //NMI disabled? This bit enables it, so reverse us!
+			return 1;
+		}
 		break;
 	default: //unknown port?
 		break;

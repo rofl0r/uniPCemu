@@ -572,12 +572,13 @@ void initEMUreset() //Simple reset emulator!
 /* coreHandler: The core emulation handler (running CPU and external hardware required to run it.) */
 
 extern byte singlestep; //Enable EMU-driven single step!
-byte doEMUsinglestep = 0; //CPU mode plus 1
-uint_64 singlestepaddress = 0xF0001671; //The segment:offset address!
+byte doEMUsinglestep = 1; //CPU mode plus 1
+uint_64 singlestepaddress = 0xF000E1CC; //The segment:offset address!
 /*
 
 It's the row:
-CALL DDS
+0xF0001671 CALL DDS (AT BIOS)
+0xF000E1CC Allow NMI interrupts
 
 which is at the first row of the IBM AT POST3 function.
 */
@@ -1005,7 +1006,14 @@ extern byte SystemControlPortA;
 void EMU_onCPUReset()
 {
 	SystemControlPortA &= ~2; //Clear A20 here!
-	Controller8042.outputport |= 2; //Set A20 here!
+	if (EMULATED_CPU>=CPU_80286) //AT CPU?
+	{
+		Controller8042.outputport |= 2; //Set A20 here!
+	}
+	else
+	{
+		Controller8042.outputport &= ~2; //Clear A20 here!
+	}
 	refresh_outputport(); //Refresh from 8042!
 	checkPPIA20(); //Refresh from Fast A20!
 }

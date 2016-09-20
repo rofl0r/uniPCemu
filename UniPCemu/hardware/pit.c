@@ -730,9 +730,20 @@ byte in8254(word portnum, byte *result)
 			PIT_LOG("Read from command port 0x%02X=%02X", portnum, *result);
 			return 1;
 		case 0x61: //PC speaker? From original timer!
-			*result = (PCSpeakerPort&3)|((PITchannels[1].risetoggle&1)<<4)|((PITchannels[2].channel_status&1)<<5); //Give the speaker port! PIT1 output at bit 4(toggling), PIT0 status as bit 5!
+			*result = (PCSpeakerPort&3); //This is always present on all PCs!
+			if (EMULATED_CPU>=CPU_80286) //Extra data specified here too (AT only)?
+			{
+				*result |= ((PITchannels[1].risetoggle&1)<<4)|((PITchannels[2].channel_status&1)<<5); //Give the speaker port! PIT1 output at bit 4(toggling), PIT0 status as bit 5!
+			}
 			PIT_LOG("Read from misc port 0x%02X=%02X", portnum, *result);
 			return 1;
+		case 0x62: //Channel 2 on bit 5 of port 62 on XT!
+			if (EMULATED_CPU <= CPU_NECV30) //Extra data specified here too (XT only)?
+			{
+				*result = ((PITchannels[2].channel_status & 1) << 5); //Give this bit only!
+				return 1; //Given!
+			}
+			break;
 		default: //Unknown port?
 			break; //Unknown port!
 	}
