@@ -126,7 +126,12 @@ byte PPI_writeIO(word port, byte value)
 			return 1;
 		}
 		break;
+	case 0x60: //IBM XT Diagnostics!
+		if (EMULATED_CPU<=CPU_NECV30) goto outputdiagnostics; //Output diagnostics!
+		break;
 	case 0x80: //IBM AT Diagnostics!
+		if (EMULATED_CPU<CPU_80286) break; //Don't handle this for XT systems!
+		outputdiagnostics: //Diagnostics port output!
 		if (((sword)value!=breakpoint_comparison) && (diagnosticsportoutput_breakpoint == (sword)value)) //Have we reached a breakpoint?
 		{
 			if (breakpoint_timeout) //Breakpoint timing?
