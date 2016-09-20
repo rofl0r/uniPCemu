@@ -267,7 +267,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (isJMPorCALL != 3) //Not an IRET?
 	{
-		LOADEDDESCRIPTOR->desc.D_B = 1; //Mark not idle!
+		LOADEDDESCRIPTOR->desc.Type |= 2; //Mark not idle!
 		SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR); //Save the new status into the old descriptor!
 	}
 
