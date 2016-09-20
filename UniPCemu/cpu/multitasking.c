@@ -14,6 +14,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	word LDTsegment;
 	word n;
 	word oldtask;
+	byte busy=0;
 	byte TSS_dirty = 0; //Is the new TSS dirty?
 	union
 	{
@@ -42,10 +43,12 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	switch (LOADEDDESCRIPTOR->desc.Type) //Check the type of descriptor we're executing!
 	{
 	case AVL_SYSTEM_BUSY_TSS16BIT:
+		busy = 1;
 	case AVL_SYSTEM_TSS16BIT:
 		TSSSize = 0; //16-bit TSS!
 		break;
 	case AVL_SYSTEM_BUSY_TSS32BIT:
+		busy = 1;
 	case AVL_SYSTEM_TSS32BIT: //Valid descriptor?
 		TSSSize = 1; //32-bit TSS!
 		/*
@@ -64,7 +67,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		if (EMULATED_CPU == CPU_80286) TSSSize = 0; //Force 16-bit TSS on 286!
 	#endif
 
-	if (LOADEDDESCRIPTOR->desc.D_B) //Busy?
+	if (busy) //Busy?
 	{
 		THROWDESCGP(destinationtask); //Thow #GP!
 		return 1; //Error out!
