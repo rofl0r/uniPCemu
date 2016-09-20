@@ -122,7 +122,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			SEGDESCRIPTOR_TYPE tempdesc;
 			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc)) //Loaded old container?
 			{
-				tempdesc.desc.D_B = 0; //Mark idle!
+				tempdesc.desc.Type &= ~2; //Mark idle!
 				SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc); //Save the new status into the old descriptor!
 			}
 		}
