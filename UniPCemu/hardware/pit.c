@@ -880,7 +880,6 @@ void PIT0Acnowledge(byte IRQ)
 {
 	if (EMULATED_CPU<CPU_80286) //Non-AT?
 	{
-		lowerirq(0); //Lower our IRQ if it's raised! We don't have an acnowledge!
 		acnowledgeIRQrequest(0); //Acnowledge us!
 	}
 }

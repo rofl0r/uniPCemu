@@ -295,7 +295,7 @@ void raiseirq(byte irqnum)
 		}
 	}
 
-	if (hasirr && (hasirr!=oldIRR)) //The line is actually raised?
+	if (hasirr && ((hasirr^oldIRR)&1)) //The line is actually raised?
 	{
 		if (i8259.imr[PIC]&((1<<irqnum&7))) return; //Ignore raising ignored IRQs to prevent spurious interrupts!
 		i8259.irr[PIC] |= (1 << (irqnum & 7)); //Add the IRQ to request because of the rise!
