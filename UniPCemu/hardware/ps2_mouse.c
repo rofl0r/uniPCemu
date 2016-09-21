@@ -227,6 +227,7 @@ OPTINLINE void loadMouseDefaults() //Load the Mouse Defaults!
 	Mouse.samplerate = 100; //100 packets/second!
 	update_mouseTimer(); //Update the timer!
 	Mouse.resolution = 4; //4 Pixels/mm!
+	Mouse.scaling21 = 0; //Set the default scaling to 1:1 scaling!
 }
 
 OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
