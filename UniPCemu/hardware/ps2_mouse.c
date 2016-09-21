@@ -221,6 +221,14 @@ OPTINLINE void give_mouse_status() //Gives the mouse status buffer!
 	give_mouse_input(Mouse.samplerate); //3rd byte is the sample rate!
 }
 
+OPTINLINE void loadMouseDefaults() //Load the Mouse Defaults!
+{
+	Mouse.data_reporting = 0;
+	Mouse.samplerate = 100; //100 packets/second!
+	update_mouseTimer(); //Update the timer!
+	Mouse.resolution = 4; //4 Pixels/mm!
+}
+
 OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -236,6 +244,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			give_mouse_input(0xAA); //Reset!
+			loadMouseDefaults(); //Load our defaults!
 			IRQ8042(1); //We've got data in our input buffer!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
@@ -249,10 +258,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 		case 0xF6: //Set defaults!
 			//Set us to: 
 			Mouse.mode = 0; //Reset mode!
-			Mouse.data_reporting = 0;
-			Mouse.samplerate = 100; //100 packets/second!
-			update_mouseTimer(); //Update the timer!
-			Mouse.resolution = 4; //4 Pixels/mm!
+			loadMouseDefaults(); //Load our defaults!
 			Mouse.has_command = 0; //We're not a command anymore!
 			give_mouse_input(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!

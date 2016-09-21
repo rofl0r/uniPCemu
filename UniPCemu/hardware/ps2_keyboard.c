@@ -151,6 +151,9 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 	switch (Keyboard.command) //What command?
 	{
 	case 0xFF: //Reset?
+		input_lastwrite_keyboard(); //Clear buffer for our result!
+		give_keyboard_input(0xFA); //Acnowledge!
+		input_lastwrite_keyboard(); //Force 0xFA to user!
 		resetKeyboard(1); //Reset the Keyboard Controller!
 		Keyboard.has_command = 0; //No command anymore!
 		break;
