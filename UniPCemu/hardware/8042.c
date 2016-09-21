@@ -452,6 +452,20 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	register_PORTOUT(&write_8042);
 	register_PORTIN(&read_8042);
 	reset8042(); //First 8042 controller reset!
+	if (EMULATED_CPU >= CPU_80286) //IBM AT? We're setting up the input port!
+	{
+		Controller8042.inputport = 0x80|0x20; //Keyboard not inhibited, Manufacturing jumper not installed.
+		switch (BIOS_Settings.VGA_Mode) //What VGA mode?
+		{
+		case 4: //Pure CGA?
+			break; //Report CGA1
+		case 5: //Pure MDA?
+			Controller8042.inputport |= 0x40; //Report MDA adapter!
+			break; //Report MDA!
+		default: //(S)VGA?
+			break; //Report CGA!
+		}
+	}
 }
 
 void BIOS_done8042()

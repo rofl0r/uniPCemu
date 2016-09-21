@@ -730,9 +730,11 @@ void debuggerThread()
 	toggleAndroidInput(1,&AndroidInput); //Finished toggle if required!
 	if (displayed) //Are we to clean up?
 	{
+		lock(LOCK_MAINTHREAD); //Make sure we aren't cleaning up!
 		GPU_text_locksurface(frameratesurface); //Lock!
 		for (i = GPU_TEXT_DEBUGGERROW;i < debuggerrow;i++) GPU_textclearrow(frameratesurface, i); //Clear our debugger rows!
 		GPU_text_releasesurface(frameratesurface); //Unlock!
+		unlock(LOCK_MAINTHREAD); //Finished!
 	}
 	resumeEMU(1); //Resume it!
 }
