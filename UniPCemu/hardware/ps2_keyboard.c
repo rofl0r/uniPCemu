@@ -39,22 +39,26 @@ OPTINLINE void loadKeyboardDefaults()
 	Keyboard.scancodeset = 2; //Scan code set 2!
 }
 
-OPTINLINE void resetKeyboard(byte flags) //Reset the keyboard controller!
+OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard controller!
 {
 	if (__HW_DISABLED) return; //Abort!
 	FIFOBUFFER *oldbuffer = Keyboard.buffer; //Old buffer!
 	memset(&Keyboard,0,sizeof(Keyboard)); //Reset the controller!
 	Keyboard.keyboard_enabled = 1; //Enable scanning by default!
 	Keyboard.buffer = oldbuffer; //Restore the buffer!
-	give_keyboard_input(0xAA); //Give OK status code!
-	IRQ8042(flags); //We've got data in our input buffer!
+	if (!is_ATInit)
+	{
+		give_keyboard_input(0xAA); //Give OK status code!
+		IRQ8042(flags); //We've got data in our input buffer!
+	}
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
 	loadKeyboardDefaults(); //Load our defaults!
 }
 
 void resetKeyboard_8042(byte flags)
 {
-	resetKeyboard(flags); //Reset us! Execute an interrupt as well!
+	input_lastwrite_keyboard(); //Force to user!
+	resetKeyboard(flags,0); //Reset us! Execute an interrupt as well!
 	input_lastwrite_keyboard(); //Force to user!
 }
 
@@ -154,7 +158,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		input_lastwrite_keyboard(); //Clear buffer for our result!
 		give_keyboard_input(0xFA); //Acnowledge!
 		input_lastwrite_keyboard(); //Force 0xFA to user!
-		resetKeyboard(1); //Reset the Keyboard Controller!
+		resetKeyboard(1,0); //Reset the Keyboard Controller!
 		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xFE: //Resend?
@@ -460,6 +464,8 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	{
 		raiseError("Keyboard Hardware initialisation","Invalid ID#2! Result: %02X",result);
 	}
+	fifobuffer_clear(&Keyboard.buffer); //Clear our output buffer for compatibility!
+	resetKeyboard(0,(EMULATED_CPU>=CPU_80286)?1:0); //Reset us to a known state on AT PCs when needed!
 	force8042 = 0; //Disable 8042 style init!
 }
 
@@ -477,7 +483,7 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	Keyboard.buffer = allocfifobuffer(32,1); //Allocate a small keyboard buffer (originally 16, dosbox uses double buffer (release size=2 by default)!
 	memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Typematic?
 	memset(scancodeset_break,1,sizeof(scancodeset_break)); //Allow break codes?
-	resetKeyboard(1); //Reset the keyboard controller!
+	resetKeyboard(1,0); //Reset the keyboard controller, XT style!
 	input_lastwrite_keyboard(); //Force to user!
 	if (EMULATED_CPU>CPU_NECV30) keyboardControllerInit(); //Initialise the basic keyboard controller when allowed!
 }
