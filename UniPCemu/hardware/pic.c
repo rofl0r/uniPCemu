@@ -205,6 +205,7 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 {
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr2[PIC][source] ^= (1 << IR); //Turn source IRR off!
+	i8259.irr[PIC] &= ~(1<<IR); //Clear the request!
 	i8259.isr[PIC] |= (1 << IR); //Turn in-service on!
 	i8259.isr2[PIC][source] |= (1 << IR); //Turn the source on!
 	byte IRQ;
@@ -310,20 +311,6 @@ void lowerirq(byte irqnum)
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
 	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the IRQ to request!
-	byte irr2index;
-	byte hasirr = 0; //Do we still have an IRR?
-	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
-	{
-		if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
-		{
-			hasirr = 1; //We still have an IRR!
-			break; //Stop searching!
-		}
-	}
-	if (hasirr == 0) //IRR fully lifted?
-	{
-		i8259.irr[PIC] &= ~(1 << (irqnum & 7)); //Remove the IRQ from request!
-	}
 }
 
 void acnowledgeIRQrequest(byte irqnum)
@@ -332,7 +319,8 @@ void acnowledgeIRQrequest(byte irqnum)
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum >> 3); //IRQ8+ is high PIC!
-	i8259.irr[PIC] &= ~(1 << (irqnum & 7)); //Remove the IRQ from request! Don't affect the signal we receive, just acnowledge it so that no more interrupts are fired!
+	//i8259.irr[PIC] &= ~(1 << (irqnum & 7)); //Remove the IRQ from request! Don't affect the signal we receive, just acnowledge it so that no more interrupts are fired!
+	//We don't lower raised interrupts!
 }
 
 void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ)
