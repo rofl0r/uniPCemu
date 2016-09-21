@@ -30,6 +30,15 @@ OPTINLINE void input_lastwrite_keyboard()
 	fifobuffer_gotolast(Keyboard.buffer); //Goto last!
 }
 
+OPTINLINE void loadKeyboardDefaults()
+{
+	//We set: rate/delay: 10.9cps/500ms; key types (all keys typematic/make/break) and scan code set (2)
+	memset(scancodeset_typematic, 1, sizeof(scancodeset_typematic)); //Enable all typematic!
+	memset(scancodeset_break, 1, sizeof(scancodeset_break)); //Enable all break!
+	Keyboard.typematic_rate_delay = 0x1B; //rate/delay: 10.9cps/500ms!
+	Keyboard.scancodeset = 2; //Scan code set 2!
+}
+
 OPTINLINE void resetKeyboard(byte flags) //Reset the keyboard controller!
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -41,6 +50,7 @@ OPTINLINE void resetKeyboard(byte flags) //Reset the keyboard controller!
 	input_lastwrite_keyboard(); //Force to user!
 	IRQ8042(flags); //We've got data in our input buffer!
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
+	loadKeyboardDefaults(); //Load our defaults!
 }
 
 void resetKeyboard_8042(byte flags)
@@ -207,11 +217,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		{
 			Keyboard.keyboard_enabled = 0; //Disable keyboard!
 		}
-		//We set: rate/delay: 10.9cps/500ms; key types (all keys typematic/make/break) and scan code set (2)
-		memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Enable all typematic!
-		memset(scancodeset_break,1,sizeof(scancodeset_break)); //Enable all break!
-		Keyboard.typematic_rate_delay = 0x1B; //rate/delay: 10.9cps/500ms!
-		Keyboard.scancodeset = 2; //Scan code set 2!
+		loadKeyboardDefaults(); //Load our defaults!
 		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xF4: //Enable scanning?
