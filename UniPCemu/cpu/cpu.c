@@ -198,12 +198,20 @@ void CPU_PORT_IN_D(word port, uint_32 *result)
 	*result = PORT_IN_D(port); //Port in!
 }
 
+void call_soft_inthandler(byte intnr)
+{
+	//Now call handler!
+	CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
+	calledinterruptnumber = intnr; //Save called interrupt number!
+	CPU_INT(intnr,0); //Call interrupt!
+}
+
 void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
 {
 //Now call handler!
 	CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
-	CPU_INT(intnr); //Call interrupt!
+	CPU_INT(intnr,1); //Call interrupt!
 }
 
 void CPU_8086_RETI() //Not from CPU!
@@ -332,7 +340,19 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	//TR (invalid)
 	CPU[activeCPU].registers->TR = 0; //No TR (also invalid)!
 
-	CPU[activeCPU].registers->CR0_full &= 0x7FFFFFE0; //Clear bit 32 and 4-0!
+	if (EMULATED_CPU == CPU_80286) //80286 CPU?
+	{
+		CPU[activeCPU].registers->CR0_full &= 0x7FFF0000; //Clear bit 32 and 4-0!
+		CPU[activeCPU].registers->CR0_full |= 0xFFF0; //The MSW is initialized to FFF0!
+	}
+	else //Default or 80386?
+	{
+		CPU[activeCPU].registers->CR0_full &= 0x7FFFFFE0; //Clear bit 32 and 4-0!
+		if (EMULATED_CPU >= CPU_80386) //Diffent initialization?
+		{
+			CPU[activeCPU].registers->CR0_full &= ~0xFFFF; //The MSW is initialized to 0000!
+		}
+	}
 
 	byte reg = 0;
 	for (reg = 0; reg<NUMITEMS(CPU[activeCPU].SEG_DESCRIPTOR); reg++) //Process all segment registers!
@@ -1271,12 +1291,12 @@ void CPU_exDIV0() //Division by 0!
 	if (EMULATED_CPU == CPU_8086) //We point to the instruction following the division?
 	{
 		//Points to next opcode!
-		CPU_INT(EXCEPTION_DIVIDEERROR); //Execute INT0 normally using current CS:(E)IP!
+		call_soft_inthandler(EXCEPTION_DIVIDEERROR); //Execute INT0 normally using current CS:(E)IP!
 	}
 	else
 	{
 		//Points to next opcode!
-		CPU_customint(EXCEPTION_DIVIDEERROR,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+		CPU_customint(EXCEPTION_DIVIDEERROR,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
 	}
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
@@ -1290,7 +1310,7 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	HWINT_nr = 1; //Trapped INT NR!
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
-	CPU_INT(EXCEPTION_DEBUG); //Execute INT1 normally using current CS:(E)IP!
+	call_soft_inthandler(EXCEPTION_DEBUG); //Execute INT1 normally using current CS:(E)IP!
 	CPU[activeCPU].cycles_Exception += 50; //Our cycles!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
@@ -1299,7 +1319,7 @@ void CPU_BoundException() //Bound exception!
 {
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
-	CPU_customint(EXCEPTION_BOUNDSCHECK,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+	CPU_customint(EXCEPTION_BOUNDSCHECK,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
@@ -1308,7 +1328,7 @@ void CPU_COOP_notavailable() //COProcessor not available!
 {
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
-	CPU_customint(EXCEPTION_NOCOPROCESSOR,CPU_exec_CS,CPU_exec_EIP); //Return to opcode!
+	CPU_customint(EXCEPTION_NOCOPROCESSOR,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }

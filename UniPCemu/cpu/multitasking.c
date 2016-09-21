@@ -453,7 +453,7 @@ void CPU_TSSFault(uint_32 errorcode)
 	
 	if (CPU_faultraised()) //We're raising a fault!
 	{
-		call_hard_inthandler(EXCEPTION_INVALIDTSSSEGMENT); //Call IVT entry #13 decimal!
+		call_soft_inthandler(EXCEPTION_INVALIDTSSSEGMENT); //Call IVT entry #13 decimal!
 		CPU_PUSH32(&errorcode); //Error code!
 	}
 }

@@ -237,7 +237,7 @@ OPTINLINE void CPU_addWordMemoryTiming386()
 
 OPTINLINE void CPU80386_hardware_int(byte interrupt, byte has_errorcode, uint_32 errorcode) //See int, but for hardware interrupts (IRQs)!
 {
-	CPU_INT(interrupt); //Save adress to stack (We're going soft int!)!
+	call_hard_inthandler(interrupt); //Save adress to stack (We're going soft int!)!
 	if (has_errorcode) //Have error code too?
 	{
 		CPU_PUSH32(&errorcode); //Push error code on stack!

@@ -654,8 +654,9 @@ typedef struct PACKED //The registers!
 					{
 						byte PE : 1; //Protected mode enable
 						byte MP : 1; //Math coprocessor present
-						byte TS : 2; //Task Switched
-						byte ET : 1; //Emulation Type
+						byte EM : 1; //Emulation: math instructions are to be emulated?
+						byte TS : 1; //Task Switched
+						byte ET : 1; //Extension Type: type of coprocessor present, 80286 or 80387
 						uint_32 CR0unk : 26; //Not used!
 						byte PG : 1; //Paging enable
 					} CR0;
@@ -989,7 +990,8 @@ word CPU_POP16();
 void CPU_PUSH32(uint_32 *val); //Push DWord!
 uint_32 CPU_POP32(); //Full stack used!
 
-void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware or EMULATOR INTERRUPTS only (int>=0x20 for software call from Handler))!
+void call_soft_inthandler(byte intnr); //Software interrupt handler (FROM software interrupts only (int>=0x20 for software call from Handler))!
+void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware only)!
 
 
 word *CPU_segment_ptr(byte defaultsegment); //Plain segment to use, direct access!

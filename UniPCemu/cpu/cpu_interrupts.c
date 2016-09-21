@@ -26,7 +26,7 @@ void CPU_getint(byte intnr, word *segment, word *offset) //Set real mode IVT ent
 
 extern uint_32 destEIP;
 
-OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //Used by soft (below) and exceptions/hardware!
+OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset, byte is_HW) //Used by soft (below) and exceptions/hardware!
 {
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
 	{
@@ -42,15 +42,15 @@ OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset) //U
 	}
 	else //Use Protected mode IVT?
 	{
-		CPU_ProtectedModeInterrupt(intnr,0,retsegment,retoffset,0); //Execute the protected mode interrupt!
+		CPU_ProtectedModeInterrupt(intnr,is_HW,retsegment,retoffset,0); //Execute the protected mode interrupt!
 	}
 }
 
 
-void CPU_INT(byte intnr) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
+void CPU_INT(byte intnr, byte is_HW) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
 {
 	//Now, jump to it!
-	CPU_customint(intnr,REG_CS,REG_EIP); //Execute real interrupt, returning to current address!
+	CPU_customint(intnr,REG_CS,REG_EIP,is_HW); //Execute real interrupt, returning to current address!
 }
 
 byte NMIMasked = 0; //Are NMI masked?
@@ -171,7 +171,7 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 		NMIMasked = 1; //Mask future NMI!
 		if (doNMI) //I/O error on memory or bus?
 		{
-			CPU_customint(EXCEPTION_NMI, CPU_exec_CS, CPU_exec_EIP); //Return to opcode!
+			CPU_customint(EXCEPTION_NMI, CPU_exec_CS, CPU_exec_EIP,0); //Return to opcode!
 			CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
 			return 0; //We're handled!
 		}

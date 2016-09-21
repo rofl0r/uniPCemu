@@ -68,7 +68,7 @@ void FLAG_PF(uint_32 address, word flags)
 	}
 	//Call interrupt!
 	CPU_resetOP(); //Go back to the start of the instruction!
-	call_hard_inthandler(EXCEPTION_PAGEFAULT); //Call IVT entry #13 decimal!
+	call_soft_inthandler(EXCEPTION_PAGEFAULT); //Call IVT entry #13 decimal!
 	uint_32 errorcode;
 	errorcode = (uint_32)flags; //Convert to 32-bit!
 	CPU_PUSH32(&errorcode); //Error code!

@@ -26,7 +26,7 @@ void CPU_doublefault()
 {
 	uint_32 zerovalue=0; //Zero value pushed!
 	CPU[activeCPU].faultraised = 0; //Reset the fault level for the double fault(allow memory accesses again)!
-	call_hard_inthandler(EXCEPTION_DOUBLEFAULT); //Execute the double fault handler!
+	call_soft_inthandler(EXCEPTION_DOUBLEFAULT); //Execute the double fault handler!
 	if (CPU[activeCPU].faultraised == 0) //Success during this step?
 	{
 		CPU_PUSH32(&zerovalue); //Error code of 0!
@@ -69,7 +69,7 @@ void CPU_GP(int toinstruction,uint_32 errorcode)
 	
 	if (CPU_faultraised()) //Fault raising exception!
 	{
-		call_hard_inthandler(EXCEPTION_GENERALPROTECTIONFAULT); //Call IVT entry #13 decimal!
+		call_soft_inthandler(EXCEPTION_GENERALPROTECTIONFAULT); //Call IVT entry #13 decimal!
 		if (CPU[activeCPU].faultraised == 0) //Success during this step?
 		{
 			CPU_PUSH32(&errorcode); //Error code!
@@ -85,7 +85,7 @@ void CPU_SegNotPresent(uint_32 errorcode)
 
 	if (CPU_faultraised()) //Fault raising exception!
 	{
-		call_hard_inthandler(EXCEPTION_SEGMENTNOTPRESENT); //Call IVT entry #11 decimal!
+		call_soft_inthandler(EXCEPTION_SEGMENTNOTPRESENT); //Call IVT entry #11 decimal!
 		if (CPU[activeCPU].faultraised == 0) //Success during this step?
 		{
 			CPU_PUSH32(&errorcode); //Error code!
@@ -101,7 +101,7 @@ void CPU_StackFault(uint_32 errorcode)
 
 	if (CPU_faultraised()) //Fault raising exception!
 	{
-		call_hard_inthandler(EXCEPTION_STACKFAULT); //Call IVT entry #12 decimal!
+		call_soft_inthandler(EXCEPTION_STACKFAULT); //Call IVT entry #12 decimal!
 		if (CPU[activeCPU].faultraised==0) //Success during this step?
 		{
 			CPU_PUSH32(&errorcode); //Error code!

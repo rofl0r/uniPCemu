@@ -815,14 +815,14 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //D5h:
 		{ CPU286_OPD6, NULL }, //D6h: SALC(286+)
 		{ NULL, NULL }, //D7h:
-		{ NULL, NULL }, //D8h: UNK
-		{ NULL, NULL }, //D9h: CoProcessor Minimum
-		{ NULL, NULL }, //DAh: UNK
-		{ NULL, NULL }, //DBh: CoProcessor Minimum
-		{ NULL, NULL }, //DCh: UNK
-		{ NULL, NULL }, //DDh: CoProcessor Minimum
-		{ NULL, NULL }, //DEh: UNK
-		{ NULL, NULL }, //DFh: COProcessor minimum
+		{ FPU80287_noCOOP, NULL }, //D8h: UNK
+		{ FPU80287_OPD9, NULL }, //D9h: CoProcessor Minimum
+		{ FPU80287_noCOOP, NULL }, //DAh: UNK
+		{ FPU80287_OPDB, NULL }, //DBh: CoProcessor Minimum
+		{ FPU80287_noCOOP, NULL }, //DCh: UNK
+		{ FPU80287_OPDD, NULL }, //DDh: CoProcessor Minimum
+		{ FPU80287_noCOOP, NULL }, //DEh: UNK
+		{ FPU80287_OPDF, NULL }, //DFh: COProcessor minimum
 		//0xE0:
 		{ NULL, NULL }, //E0h:
 		{ NULL, NULL }, //E1h:

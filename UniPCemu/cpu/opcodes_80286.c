@@ -576,3 +576,26 @@ void CPU286_OP0FB9() //#UD instruction
 {
 	unkOP0F_286(); //Deliberately #UD!
 }
+
+//FPU non-existant Coprocessor support!
+
+void FPU80287_OPDBE3(){debugger_setcommand("<UNKOP8087: FNINIT>");}
+void FPU80287_OPDFE0() { debugger_setcommand("<UNKOP8087: FNINIT>"); }
+void FPU80287_OPDDslash7() { debugger_setcommand("<UNKOP8087: FNSTSW>"); }
+void FPU80287_OPD9slash7() { debugger_setcommand("<UNKOP8087: FNSTCW>"); }
+
+
+void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0.EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if (CPU[activeCPU].registers->CR0.MP && CPU[activeCPU].registers->CR0.TS) { FPU80287_noCOOP(); return; } byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE3){FPU80287_OPDBE3();} else{REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2 }
+void FPU80287_OPDF(){if (CPU[activeCPU].registers->CR0.EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if (CPU[activeCPU].registers->CR0.MP && CPU[activeCPU].registers->CR0.TS) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE0){FPU80287_OPDFE0();} else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2 CPUPROT2 }
+void FPU80287_OPDD(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; if (CPU[activeCPU].registers->CR0.EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if (CPU[activeCPU].registers->CR0.MP && CPU[activeCPU].registers->CR0.TS) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPDDslash7();}else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2}
+void FPU80287_OPD9(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; if (CPU[activeCPU].registers->CR0.EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if (CPU[activeCPU].registers->CR0.MP && CPU[activeCPU].registers->CR0.TS) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPD9slash7();} else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2}
+
+void FPU80287_noCOOP() {
+	debugger_setcommand("<No COprocessor OPcodes implemented!>");
+	if ((CPU[activeCPU].registers->CR0.EM) || (CPU[activeCPU].registers->CR0.MP && CPU[activeCPU].registers->CR0.TS)) //To be emulated or task switched?
+	{
+		CPU_resetOP();
+		CPU_COOP_notavailable(); //Only on 286+!
+	}
+	CPU[activeCPU].cycles_OP = MODRM_EA(params) ? 8 + MODRM_EA(params) : 2; //No hardware interrupt to use anymore!
+}

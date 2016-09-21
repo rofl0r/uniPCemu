@@ -257,7 +257,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				if (!BIOS_load_ROM(18)) //Failed to load u18?
 				{
 					dolog("emu", "Failed loading BIOS ROM u18!");
-					CPU_INT(0x18); //Error: no ROM!
+					CPU_INT(0x18,0); //Error: no ROM!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					resumeEMU(1); //Resume the emulator!
 					unlock(LOCK_CPU);
@@ -268,7 +268,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				{
 					dolog("emu", "Failed loading BIOS ROM u19!");
 					BIOS_free_ROM(18); //Release u18!
-					CPU_INT(0x18); //Error: no ROM!
+					CPU_INT(0x18,0); //Error: no ROM!
 					resumeEMU(1); //Resume the emulator!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					unlock(LOCK_CPU);
@@ -285,7 +285,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				if (!BIOS_load_ROM(27)) //Failed to load u27?
 				{
 					dolog("emu", "Failed loading BIOS ROM u27!");
-					CPU_INT(0x18); //Error: no ROM!
+					CPU_INT(0x18,0); //Error: no ROM!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					resumeEMU(1); //Resume the emulator!
 					unlock(LOCK_CPU);
@@ -296,7 +296,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				{
 					dolog("emu", "Failed loading BIOS ROM u47!");
 					BIOS_free_ROM(27); //Release u27!
-					CPU_INT(0x18); //Error: no ROM!
+					CPU_INT(0x18,0); //Error: no ROM!
 					resumeEMU(1); //Resume the emulator!
 					allow_debuggerstep = 1; //Allow stepping from now on!
 					unlock(LOCK_CPU);
@@ -318,7 +318,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			if (!verified) //Error reading ROM?
 			{
 				unlock(LOCK_CPU);
-				CPU_INT(0x18); //Error: no ROM!
+				CPU_INT(0x18,0); //Error: no ROM!
 				resumeEMU(1); //Resume the emulator!
 				unlock(LOCK_MAINTHREAD);
 				return 0; //No reset!
@@ -496,7 +496,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				fclose(f); //Close boot rom!
 				if (!verified) //Error reading ROM?
 				{
-					CPU_INT(0x18); //Error: no ROM!
+					CPU_INT(0x18,0); //Error: no ROM!
 					EMU_startInput(); //Start input again!
 					EMU_RUNNING = 1; //We're running again!
 					resumeEMU(1);
@@ -582,7 +582,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		//Boot to disk system!
 		if (!boot_system()) //System not booted?
 		{
-			CPU_INT(0x18); //Boot failure!
+			CPU_INT(0x18,0); //Boot failure!
 		}
 		else //We're booted?
 		{

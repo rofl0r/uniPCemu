@@ -206,9 +206,9 @@ OPTINLINE void CPU_addWordMemoryTiming()
 	}
 }
 
-OPTINLINE void CPU8086_hardware_int(byte interrupt, byte has_errorcode, uint_32 errorcode) //See int, but for hardware interrupts (IRQs)!
+OPTINLINE void CPU8086_software_int(byte interrupt, byte has_errorcode, uint_32 errorcode) //See int, but for hardware interrupts (IRQs)!
 {
-	CPU_INT(interrupt); //Save adress to stack (We're going soft int!)!
+	call_soft_inthandler(interrupt); //Save adress to stack (We're going soft int!)!
 	if (has_errorcode) //Have error code too?
 	{
 		CPU_PUSH32(&errorcode); //Push error code on stack!
@@ -218,7 +218,7 @@ OPTINLINE void CPU8086_hardware_int(byte interrupt, byte has_errorcode, uint_32 
 OPTINLINE void CPU8086_int(byte interrupt, byte type3) //Software interrupt from us(internal call)!
 {
 	CPUPROT1
-		CPU8086_hardware_int(interrupt, 0, 0);
+		CPU8086_software_int(interrupt, 0, 0);
 	CPUPROT2
 	if (type3) //Type-3 interrupt?
 		CPU[activeCPU].cycles_OP = 52; /* Type-3 interrupt */
@@ -2797,20 +2797,8 @@ Special stuff for NO COprocessor (8087) present/available (default)!
 */
 
 
-/*void FPU8087_OPDBE3(){debugger_setcommand("<UNKOP8087: FNINIT>");}
-
-void FPU8087_OPDB()
-{byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE3){FPU8087_OPDBE3();} else{REG_CS = oldCS; REG_IP = oldIP; FPU8087_noCOOP();} CPUPROT2 }
-void FPU8087_OPDFE0(){debugger_setcommand("<UNKOP8087: FNINIT>");}
-void FPU8087_OPDF(){CPUPROT1 byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE0){FPU8087_OPDFE0();} else {REG_CS = oldCS; REG_IP = oldIP; FPU8087_noCOOP();} CPUPROT2 CPUPROT2 }
-void FPU8087_OPDDslash7(){debugger_setcommand("<UNKOP8087: FNSTSW>");}
-void FPU8087_OPDD(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU8087_OPDDslash7();}else {REG_CS = oldCS; REG_IP = oldIP; FPU8087_noCOOP();} CPUPROT2}
-void FPU8087_OPD9slash7(){debugger_setcommand("<UNKOP8087: FNSTCW>");}
-void FPU8087_OPD9(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU8087_OPD9slash7();} else {REG_CS = oldCS; REG_IP = oldIP; FPU8087_noCOOP();} CPUPROT2}
-*/
 void FPU8087_noCOOP(){
 	debugger_setcommand("<No COprocessor OPcodes implemented!>");
-	/*CPU_resetOP(); CPU_COOP_notavailable();*/ //Only on 286+!
 	CPU[activeCPU].cycles_OP = MODRM_EA(params)?8+MODRM_EA(params):2; //No hardware interrupt to use anymore!
 }
 
