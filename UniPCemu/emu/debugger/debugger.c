@@ -603,7 +603,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 			GPU_textprintf(frameratesurface,fontcolor,backcolor,"%i",(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 		}
 
-		if (getActiveVGA()) //Gotten an active VGA?
+		if (memprotect(getActiveVGA(),sizeof(VGA_Type),"VGA_Struct")) //Gotten an active VGA?
 		{
 			GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-33,debuggerrow++); //CRT status!
 			GPU_textprintf(frameratesurface,fontcolor,backcolor,"VGA@%i,%i(CRT:%i,%i)",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline,getActiveVGA()->CRTC.x,getActiveVGA()->CRTC.y);

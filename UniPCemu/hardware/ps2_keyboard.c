@@ -47,7 +47,6 @@ OPTINLINE void resetKeyboard(byte flags) //Reset the keyboard controller!
 	Keyboard.keyboard_enabled = 1; //Enable scanning by default!
 	Keyboard.buffer = oldbuffer; //Restore the buffer!
 	give_keyboard_input(0xAA); //Give OK status code!
-	input_lastwrite_keyboard(); //Force to user!
 	IRQ8042(flags); //We've got data in our input buffer!
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
 	loadKeyboardDefaults(); //Load our defaults!
@@ -56,6 +55,7 @@ OPTINLINE void resetKeyboard(byte flags) //Reset the keyboard controller!
 void resetKeyboard_8042(byte flags)
 {
 	resetKeyboard(flags); //Reset us! Execute an interrupt as well!
+	input_lastwrite_keyboard(); //Force to user!
 }
 
 float HWkeyboard_getrepeatrate() //Which repeat rate to use after the repeat delay! (chars/second)
@@ -478,6 +478,7 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Typematic?
 	memset(scancodeset_break,1,sizeof(scancodeset_break)); //Allow break codes?
 	resetKeyboard(1); //Reset the keyboard controller!
+	input_lastwrite_keyboard(); //Force to user!
 	if (EMULATED_CPU>CPU_NECV30) keyboardControllerInit(); //Initialise the basic keyboard controller when allowed!
 }
 
