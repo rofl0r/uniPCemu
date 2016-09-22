@@ -74,7 +74,7 @@ float HWkeyboard_getrepeatrate() //Which repeat rate to use after the repeat del
 	result = kbd_repeat_rate[(Keyboard.typematic_rate_delay&0x1F)]; //Get result!
 	if (!result) //No rate?
 	{
-	return 1.0f; //Give 1 key/second by default!
+		return 1.0f; //Give 1 key/second by default!
 	}
 	return result; //Give the repeat rate!
 }
@@ -161,9 +161,118 @@ void updatePS2Keyboard(double timepassed)
 		Keyboard.resetTimeout -= timepassed; //Pass some time!
 		if (Keyboard.resetTimeout <= 0.0) //Done?
 		{
-			Keyboard.resetTimeout = (double)0; //Finished!
-			give_keyboard_input(0xAA); //Give the result code!
-			IRQ8042(1); //We've got data in our input buffer!
+			switch (Keyboard.command) //What command?
+			{
+			case 0xFF: //Reset command?
+				switch (Keyboard.command_step) //What step?
+				{
+				case 1: //First stage?
+					input_lastwrite_keyboard(); //Force 0x00(dummy byte) to user!
+					give_keyboard_input(0xFA); //Acnowledge!
+					IRQ8042(1); //We've got data in our input buffer!
+					resetKeyboard(1, 1); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
+					Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear!
+					Keyboard.command_step = 2; //Step 2!
+					break;
+				case 2: //Final stage?
+					Keyboard.resetTimeout = (double)0; //Finished!
+					give_keyboard_input(0xAA); //Give the result code!
+					IRQ8042(1); //We've got data in our input buffer!
+					Keyboard.command_step = 0; //Finished!
+					break;
+				}
+				break;
+			case 0xFE: //Resend?
+				give_keyboard_input(Keyboard.last_send_byte); //Resend last non-0xFE byte!
+				input_lastwrite_keyboard(); //Force 0xFA to user!
+				IRQ8042(1); //We've got data in our input buffer!
+				Keyboard.has_command = 0; //No command anymore!
+				break;
+			case 0xFA: //Plain ACK and finish!
+			case 0xF9: //Plain ACK and finish!
+			case 0xF8: //Plain ACK and finish!
+			case 0xF7: //Plain ACK and finish!
+				give_keyboard_input(0xFA); //ACK!
+				input_lastwrite_keyboard(); //Force 0xFA to user!
+				IRQ8042(1); //We've got data in our input buffer!
+				Keyboard.has_command = 0; //No command anymore!
+				break;
+			case 0xF2: //Read ID
+				give_keyboard_input(0xFA); //ACK!
+				input_lastwrite_keyboard(); //Force 0xFA to user!
+				give_keyboard_input(0xAB); //First byte!
+				give_keyboard_input(0x83); //Second byte given!
+				IRQ8042(1); //We've got data in our input buffer!
+				Keyboard.has_command = 0; //No command anymore!
+				break;
+			case 0xF0: //ACK and next phase!
+			case 0xED: //ACK and next phase!
+				if (Keyboard.command_step==0) //Nothing specified yet?
+				{
+					give_keyboard_input(0xFA); //ACK!
+					input_lastwrite_keyboard(); //Force 0xFA to user!
+					Keyboard.resetTimeout = (double)0; //Finished!
+				}
+				++Keyboard.command_step; //Increase the step!
+				if (Keyboard.command_step > 1) //Second+ step?
+				{
+					if (Keyboard.cmdOK == 1) //OK?
+					{
+						give_keyboard_input(0xFA); //FA: Valid value!
+						input_lastwrite_keyboard(); //Force 0xFA to user!
+						IRQ8042(1); //We've got data in our input buffer!
+					}
+					else if (Keyboard.cmdOK == 2) //Error?
+					{
+						give_keyboard_input(0xFE); //FE: Invalid value!
+						input_lastwrite_keyboard(); //Force 0xFA to user!
+						IRQ8042(1); //We've got data in our input buffer!
+					}
+					if ((Keyboard.command == 0xF0) && (Keyboard.command_step == 2)) //Second step gives input?
+					{
+						switch (Keyboard.scancodeset) //What set?
+						{
+						case 0:
+							give_keyboard_input(0x43); //Get scan code set!
+							break;
+						case 1:
+							give_keyboard_input(0x41); //Get scan code set!
+							break;
+						case 2:
+							give_keyboard_input(0x3F); //Get scan code set!
+							break;
+						}
+						IRQ8042(1); //We've got data in our input buffer!
+						Keyboard.command_step |= 4; //We're finished!
+					}
+					if (Keyboard.cmdOK & 4) //Finish?
+					{
+						Keyboard.command_step = 0; //No command anymore!
+						Keyboard.has_command = 0; //Finish!
+					}
+					else if (Keyboard.cmdOK & 8) //We're to add another timer for the next step?
+					{
+						Keyboard.resetTimeout = 100000000.0f; //Delay until next response!
+					}
+				}
+				break;
+			case 0xEE: //Echo 0xEE!
+				give_keyboard_input(0xEE); //Respond with "Echo"!
+				input_lastwrite_keyboard(); //Force 0xFA to user!
+				IRQ8042(1); //We've got data in our input buffer!
+				Keyboard.has_command = 0; //No command anymore!
+				break;
+			default: //Unknown command?
+			case 0xFD:
+			case 0xFC:
+			case 0xFB:
+				give_keyboard_input(0xFE); //Unknown command!
+				input_lastwrite_keyboard(); //Force 0xFA to user!
+				IRQ8042(1); //We've got data in our input buffer!
+				Keyboard.has_command = 0; //No command anymore!
+				Keyboard.resetTimeout = (double)0; //Finished!
+				break;
+			}
 		}
 	}
 }
@@ -177,70 +286,43 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 	switch (Keyboard.command) //What command?
 	{
 	case 0xFF: //Reset?
-		input_lastwrite_keyboard(); //Clear buffer for our result!
-		give_keyboard_input(0x00); //Dummy data for IBM AT BIOS to ignore(it's flushed away)!
-		input_lastwrite_keyboard(); //Force 0x00(dummy byte) to user!
-		give_keyboard_input(0xFA); //Acnowledge!
-		resetKeyboard(1,1); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
-		Keyboard.resetTimeout = 100000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
-		IRQ8042(1); //We've got data in our input buffer!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.command_step = 1; //Enter step 1!
 		break;
 	case 0xFE: //Resend?
-		give_keyboard_input(Keyboard.last_send_byte); //Resend last non-0xFE byte!
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		IRQ8042(1); //We've got data in our input buffer!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xFD: //Mode 3 change: Set Key Type Make
-		give_keyboard_input(0xFE);
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		IRQ8042(1); //We've got data in our input buffer!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xFC: //Mode 3 change: 
-		give_keyboard_input(0xFE);
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		IRQ8042(1); //We've got data in our input buffer!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xFB: //Mode 3 change:
-		give_keyboard_input(0xFE);
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		IRQ8042(1); //We've got data in our input buffer!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xFA: //Mode 3 change:
-		give_keyboard_input(0xFA); //ACK!
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		IRQ8042(1); //We've got data in our input buffer!
 		memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Enable all typematic!
 		memset(scancodeset_break,1,sizeof(scancodeset_break)); //Enable all break!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF9: //Mode 3 change:
-		give_keyboard_input(0xFA); //ACK!
-		input_lastwrite_keyboard(); //Force 0xFA to user!
 		memset(scancodeset_typematic,0,sizeof(scancodeset_typematic)); //Disable all typematic!
 		memset(scancodeset_break,0,sizeof(scancodeset_break)); //Disable all break!
 		IRQ8042(1); //We've got data in our input buffer!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF8: //Mode 3 change:
-		give_keyboard_input(0xFA); //ACK!
-		input_lastwrite_keyboard(); //Force 0xFA to user!
 		IRQ8042(1); //We've got data in our input buffer!
 		memset(scancodeset_typematic,0,sizeof(scancodeset_typematic)); //Disable all typematic!
 		memset(scancodeset_break,1,sizeof(scancodeset_break)); //Enable all break!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF7: //Set All Keys Typematic: every type is one character send only!
-		give_keyboard_input(0xFA); //ACK!
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		IRQ8042(1); //We've got data in our input buffer!
 		memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Enable all typematic!
 		memset(scancodeset_break,0,sizeof(scancodeset_break)); //Disable all break!
 		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	//0xFD-0xFB not supported, because we won't support mode 3!
 	case 0xF5: //Same as 0xF6, but with scanning stop!
@@ -258,6 +340,8 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		break;
 	case 0xF3: //Set typematic rate/delay?
 		//We handle after the parameters have been set!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.cmdOK = 1; //ACK and next step!
 		break;
 	case 0xF2: //Read ID: return 0xAB, 0x83!
 		if (EMULATED_CPU<=CPU_NECV30 && (!force8042)) //Allowed to ignore?
@@ -265,36 +349,23 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 			Keyboard.has_command = 0; //No command anymore!
 			return; //Ignored on XT controller: there's no keyboard ID!
 		}
-		give_keyboard_input(0xFA); //ACK!
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		give_keyboard_input(0xAB); //First byte!
-		give_keyboard_input(0x83); //Second byte given!
-		IRQ8042(1); //We've got data in our input buffer!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF0: //Set Scan Code Set!
-		give_keyboard_input(0xFA); //Give ACK first!
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		IRQ8042(1); //We've got data in our input buffer!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.cmdOK = 1; //ACK and next step!
 		break;
 	//Still need 0xF7-0xFD!
 	case 0xEE: //Echo 0xEE!
-		give_keyboard_input(0xEE); //Respond with "Echo"!
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		IRQ8042(1); //We've got data in our input buffer!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xED: //Set/reset LEDs!
 		//Next parameter is data!
-		give_keyboard_input(0xFA); //Give ACK first!
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		IRQ8042(1); //We've got data in our input buffer!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.cmdOK = 1; //ACK and next step!
 		break;
 	default: //Unknown command?
-		give_keyboard_input(0xFE); //Error!
-		input_lastwrite_keyboard(); //Force 0xFE to user!
-		IRQ8042(1); //We've got data in our input buffer!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		return; //Abort!
 		break;
 	}
@@ -313,15 +384,12 @@ OPTINLINE void handle_keyboard_data(byte data)
 		if (data<0x80) //Valid?
 		{
 			Keyboard.typematic_rate_delay = data; //Set typematic rate/delay!
-			give_keyboard_input(0xFA); //FA: Valid value!
-			input_lastwrite_keyboard(); //Force 0xFA to user!
-			IRQ8042(1); //We've got data in our input buffer!
+			Keyboard.cmdOK = 1|4; //OK&Finish!
+			++Keyboard.command_step; //Next step!
 		}
 		else //Invalid: bit 7 is never used?
 		{
-			give_keyboard_input(0xFE); //Error!
-			input_lastwrite_keyboard(); //Force 0xFE to user!
-			IRQ8042(1); //We've got data in our input buffer!
+			Keyboard.cmdOK = 2|4; //Error&Finish!
 		}
 		Keyboard.has_command = 0; //No command anymore!
 		return; //Done!
@@ -329,47 +397,34 @@ OPTINLINE void handle_keyboard_data(byte data)
 	case 0xF0: //Scan code set: the parameter that contains the scan code set!
 		if (data==0) //ACK and then active scan code set?
 		{
-			give_keyboard_input(0xFA); //ACK!
-			input_lastwrite_keyboard(); //Force 0xFA to user!
-			switch (Keyboard.scancodeset) //What set?
-			{
-			case 0:
-				give_keyboard_input(0x43); //Get scan code set!
-				break;
-			case 1:
-				give_keyboard_input(0x41); //Get scan code set!
-				break;
-			case 2:
-				give_keyboard_input(0x3F); //Get scan code set!
-				break;
-			}
-			IRQ8042(1); //We've got data in our input buffer!
+			Keyboard.cmdOK = 1; //OK&Continue!
+			Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+			++Keyboard.command_step; //Next step!
 		}
 		else
 		{
 			if (data<4) //Valid mode
 			{
 				Keyboard.scancodeset =(data-1); //Set scan code set!
-				give_keyboard_input(0xFA); //Give ACK first!
-				input_lastwrite_keyboard(); //Force 0xFA to user!
-				IRQ8042(1); //We've got data in our input buffer!
+				Keyboard.cmdOK = 1|4; //OK&Finish!
+				Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 			}
 			else
 			{
-				give_keyboard_input(0xFE); //Give NAK first!
-				input_lastwrite_keyboard(); //Force 0xFA to user!
-				IRQ8042(1); //We've got data in our input buffer!
+				Keyboard.cmdOK = 2 | 4; //OK&Finish!
+				Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 			}
 			Keyboard.has_command = 0; //No command anymore!
+			++Keyboard.command_step; //Next step!
 			return; //Done!
 		}
 		break;
 	case 0xED: //Set/reset LEDs?
 		Keyboard.LEDS = data; //Set/reset LEDs!
 		Keyboard.has_command = 0; //No command anymore!
-		give_keyboard_input(0xFA); //Give ACK: we're OK!
-		input_lastwrite_keyboard(); //Force to user!
-		IRQ8042(1); //We've got data in our input buffer!
+		Keyboard.cmdOK = 1|4; //OK&Finish!
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		++Keyboard.command_step; //Next step!
 		return; //Done!
 		break;
 	}
@@ -426,9 +481,9 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	force8042 = 1; //We're forcing 8042 style init!
 	byte result; //For holding the result from the hardware!
 	Controller8042.RAM[0] &= ~0x50; //Enable our input, disable translation!
-	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
+	for (;!(PORT_IN_B(0x64)&0x1);) //Wait for input data?
 	{
-		raiseError("Keyboard Hardware initialisation","No self test passed result!");
+		updatePS2Keyboard(100000.0); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0xAA!
 	if (result!=0xAA) //Error?
@@ -438,9 +493,9 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 
 
 	PORT_OUT_B(0x60,0xED); //Set/reset status indicators!
-	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
+	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
 	{
-		raiseError("Keyboard Hardware initialisation","No set/reset status indicator command result:1!");
+		updatePS2Keyboard(100000.0); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0xFA!
 	if (result!=0xFA) //Error?
@@ -449,9 +504,9 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	}
 
 	PORT_OUT_B(0x60,0x00); //Set/reset status indicators: all off!
-	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
+	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
 	{
-		raiseError("Keyboard Hardware initialisation","No set/reset status indicator parameter result!");
+		updatePS2Keyboard(100000.0); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0xFA!
 	if (result!=0xFA) //Error?
@@ -460,9 +515,9 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	}
 
 	PORT_OUT_B(0x60,0xF2); //Read ID!
-	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
+	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
 	{
-		raiseError("Keyboard Hardware initialisation","No read ID ACK result!");
+		updatePS2Keyboard(100000.0); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0xFA!
 	if (result!=0xFA) //Error?
@@ -470,9 +525,9 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 		raiseError("Keyboard Hardware initialisation","Invalid function: 0xF2!",result);
 	}
 
-	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
+	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
 	{
-		raiseError("Keyboard Hardware initialisation","No read ID result byte 1!");
+		updatePS2Keyboard(100000.0); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0xAB!
 	if (result!=0xAB) //First byte invalid?
@@ -480,9 +535,9 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 		raiseError("Keyboard Hardware initialisation","Invalid ID#1! Result: %02X",result);
 	}
 
-	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
+	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
 	{
-		raiseError("Keyboard Hardware initialisation","No read ID result byte 2!");
+		updatePS2Keyboard(100000.0); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0x83!
 	if (result!=0x83) //Second byte invalid?

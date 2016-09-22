@@ -31,6 +31,7 @@ typedef struct
 	byte allowBreak; //Allow break codes?
 	byte enable_translation; //Enable translation by 8042?
 	double resetTimeout; //Timeout for reset commands!
+	byte cmdOK; //Are we OK?
 } PS2_KEYBOARD; //Active keyboard settings!
 
 void give_keyboard_input(byte data); //For the 8042!
