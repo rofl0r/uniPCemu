@@ -30,7 +30,7 @@ typedef struct
 	byte repeatMake; //Repeat make codes?
 	byte allowBreak; //Allow break codes?
 	byte enable_translation; //Enable translation by 8042?
-	double resetTimeout; //Timeout for reset commands!
+	double timeout; //Timeout for reset commands!
 	byte cmdOK; //Are we OK?
 } PS2_KEYBOARD; //Active keyboard settings!
 

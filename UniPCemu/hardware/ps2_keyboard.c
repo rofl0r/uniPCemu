@@ -156,10 +156,10 @@ extern byte force8042; //Force 8042 style handling?
 
 void updatePS2Keyboard(double timepassed)
 {
-	if (Keyboard.resetTimeout) //Gotten a timeout?
+	if (Keyboard.timeout) //Gotten a timeout?
 	{
-		Keyboard.resetTimeout -= timepassed; //Pass some time!
-		if (Keyboard.resetTimeout <= 0.0) //Done?
+		Keyboard.timeout -= timepassed; //Pass some time!
+		if (Keyboard.timeout <= 0.0) //Done?
 		{
 			switch (Keyboard.command) //What command?
 			{
@@ -171,11 +171,11 @@ void updatePS2Keyboard(double timepassed)
 					give_keyboard_input(0xFA); //Acnowledge!
 					IRQ8042(1); //We've got data in our input buffer!
 					resetKeyboard(1, 1); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
-					Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear!
+					Keyboard.timeout = 100000000.0; //A small delay for the result code to appear!
 					Keyboard.command_step = 2; //Step 2!
 					break;
 				case 2: //Final stage?
-					Keyboard.resetTimeout = (double)0; //Finished!
+					Keyboard.timeout = (double)0; //Finished!
 					give_keyboard_input(0xAA); //Give the result code!
 					IRQ8042(1); //We've got data in our input buffer!
 					Keyboard.command_step = 0; //Finished!
@@ -211,7 +211,7 @@ void updatePS2Keyboard(double timepassed)
 				{
 					give_keyboard_input(0xFA); //ACK!
 					input_lastwrite_keyboard(); //Force 0xFA to user!
-					Keyboard.resetTimeout = (double)0; //Finished!
+					Keyboard.timeout = (double)0; //Finished!
 				}
 				++Keyboard.command_step; //Increase the step!
 				if (Keyboard.command_step > 1) //Second+ step?
@@ -252,7 +252,7 @@ void updatePS2Keyboard(double timepassed)
 					}
 					else if (Keyboard.cmdOK & 8) //We're to add another timer for the next step?
 					{
-						Keyboard.resetTimeout = 100000000.0f; //Delay until next response!
+						Keyboard.timeout = 100000000.0f; //Delay until next response!
 					}
 				}
 				break;
@@ -270,7 +270,7 @@ void updatePS2Keyboard(double timepassed)
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				IRQ8042(1); //We've got data in our input buffer!
 				Keyboard.has_command = 0; //No command anymore!
-				Keyboard.resetTimeout = (double)0; //Finished!
+				Keyboard.timeout = (double)0; //Finished!
 				break;
 			}
 		}
@@ -286,43 +286,43 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 	switch (Keyboard.command) //What command?
 	{
 	case 0xFF: //Reset?
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		Keyboard.command_step = 1; //Enter step 1!
 		break;
 	case 0xFE: //Resend?
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xFD: //Mode 3 change: Set Key Type Make
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xFC: //Mode 3 change: 
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xFB: //Mode 3 change:
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xFA: //Mode 3 change:
 		memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Enable all typematic!
 		memset(scancodeset_break,1,sizeof(scancodeset_break)); //Enable all break!
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF9: //Mode 3 change:
 		memset(scancodeset_typematic,0,sizeof(scancodeset_typematic)); //Disable all typematic!
 		memset(scancodeset_break,0,sizeof(scancodeset_break)); //Disable all break!
 		IRQ8042(1); //We've got data in our input buffer!
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF8: //Mode 3 change:
 		IRQ8042(1); //We've got data in our input buffer!
 		memset(scancodeset_typematic,0,sizeof(scancodeset_typematic)); //Disable all typematic!
 		memset(scancodeset_break,1,sizeof(scancodeset_break)); //Enable all break!
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF7: //Set All Keys Typematic: every type is one character send only!
 		memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Enable all typematic!
 		memset(scancodeset_break,0,sizeof(scancodeset_break)); //Disable all break!
 		Keyboard.has_command = 0; //No command anymore!
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	//0xFD-0xFB not supported, because we won't support mode 3!
 	case 0xF5: //Same as 0xF6, but with scanning stop!
@@ -340,7 +340,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		break;
 	case 0xF3: //Set typematic rate/delay?
 		//We handle after the parameters have been set!
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		Keyboard.cmdOK = 1; //ACK and next step!
 		break;
 	case 0xF2: //Read ID: return 0xAB, 0x83!
@@ -349,23 +349,23 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 			Keyboard.has_command = 0; //No command anymore!
 			return; //Ignored on XT controller: there's no keyboard ID!
 		}
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF0: //Set Scan Code Set!
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		Keyboard.cmdOK = 1; //ACK and next step!
 		break;
 	//Still need 0xF7-0xFD!
 	case 0xEE: //Echo 0xEE!
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xED: //Set/reset LEDs!
 		//Next parameter is data!
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		Keyboard.cmdOK = 1; //ACK and next step!
 		break;
 	default: //Unknown command?
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		return; //Abort!
 		break;
 	}
@@ -391,7 +391,7 @@ OPTINLINE void handle_keyboard_data(byte data)
 		{
 			Keyboard.cmdOK = 2|4; //Error&Finish!
 		}
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		Keyboard.has_command = 0; //No command anymore!
 		return; //Done!
 		break;
@@ -399,7 +399,7 @@ OPTINLINE void handle_keyboard_data(byte data)
 		if (data==0) //ACK and then active scan code set?
 		{
 			Keyboard.cmdOK = 1; //OK&Continue!
-			Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+			Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 			++Keyboard.command_step; //Next step!
 		}
 		else
@@ -408,12 +408,12 @@ OPTINLINE void handle_keyboard_data(byte data)
 			{
 				Keyboard.scancodeset =(data-1); //Set scan code set!
 				Keyboard.cmdOK = 1|4; //OK&Finish!
-				Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+				Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 			}
 			else
 			{
 				Keyboard.cmdOK = 2 | 4; //OK&Finish!
-				Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+				Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 			}
 			Keyboard.has_command = 0; //No command anymore!
 			++Keyboard.command_step; //Next step!
@@ -424,7 +424,7 @@ OPTINLINE void handle_keyboard_data(byte data)
 		Keyboard.LEDS = data; //Set/reset LEDs!
 		Keyboard.has_command = 0; //No command anymore!
 		Keyboard.cmdOK = 1|4; //OK&Finish!
-		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		++Keyboard.command_step; //Next step!
 		return; //Done!
 		break;
