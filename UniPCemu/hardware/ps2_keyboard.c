@@ -207,28 +207,23 @@ void updatePS2Keyboard(double timepassed)
 				break;
 			case 0xF0: //ACK and next phase!
 			case 0xED: //ACK and next phase!
-				if (Keyboard.command_step==0) //Nothing specified yet?
+				if (Keyboard.cmdOK) //Second+ step?
 				{
-					give_keyboard_input(0xFA); //ACK!
-					input_lastwrite_keyboard(); //Force 0xFA to user!
-					Keyboard.timeout = (double)0; //Finished!
-				}
-				++Keyboard.command_step; //Increase the step!
-				if (Keyboard.command_step > 1) //Second+ step?
-				{
-					if (Keyboard.cmdOK == 1) //OK?
+					if ((Keyboard.cmdOK&3) == 1) //OK?
 					{
 						give_keyboard_input(0xFA); //FA: Valid value!
 						input_lastwrite_keyboard(); //Force 0xFA to user!
 						IRQ8042(1); //We've got data in our input buffer!
+						++Keyboard.command_step; //Next step!
+						Keyboard.cmdOK = 0; //No more!
 					}
-					else if (Keyboard.cmdOK == 2) //Error?
+					else if ((Keyboard.cmdOK&3) == 2) //Error?
 					{
 						give_keyboard_input(0xFE); //FE: Invalid value!
 						input_lastwrite_keyboard(); //Force 0xFA to user!
 						IRQ8042(1); //We've got data in our input buffer!
 					}
-					if ((Keyboard.command == 0xF0) && (Keyboard.command_step == 2)) //Second step gives input?
+					else if ((Keyboard.command == 0xF0) && (Keyboard.command_step == 2)) //Second step gives input?
 					{
 						switch (Keyboard.scancodeset) //What set?
 						{
@@ -243,7 +238,7 @@ void updatePS2Keyboard(double timepassed)
 							break;
 						}
 						IRQ8042(1); //We've got data in our input buffer!
-						Keyboard.command_step |= 4; //We're finished!
+						Keyboard.cmdOK |= 4; //We're finished!
 					}
 					if (Keyboard.cmdOK & 4) //Finish?
 					{
@@ -287,7 +282,6 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 	{
 	case 0xFF: //Reset?
 		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
-		Keyboard.command_step = 1; //Enter step 1!
 		break;
 	case 0xFE: //Resend?
 		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
@@ -353,7 +347,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		break;
 	case 0xF0: //Set Scan Code Set!
 		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
-		Keyboard.cmdOK = 1; //ACK and next step!
+		Keyboard.cmdOK = 1; //ACK and no finish!
 		break;
 	//Still need 0xF7-0xFD!
 	case 0xEE: //Echo 0xEE!
@@ -362,7 +356,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 	case 0xED: //Set/reset LEDs!
 		//Next parameter is data!
 		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
-		Keyboard.cmdOK = 1; //ACK and next step!
+		Keyboard.cmdOK = 1; //ACK and no finish!
 		break;
 	default: //Unknown command?
 		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
@@ -385,7 +379,6 @@ OPTINLINE void handle_keyboard_data(byte data)
 		{
 			Keyboard.typematic_rate_delay = data; //Set typematic rate/delay!
 			Keyboard.cmdOK = 1|4; //OK&Finish!
-			++Keyboard.command_step; //Next step!
 		}
 		else //Invalid: bit 7 is never used?
 		{
@@ -398,9 +391,8 @@ OPTINLINE void handle_keyboard_data(byte data)
 	case 0xF0: //Scan code set: the parameter that contains the scan code set!
 		if (data==0) //ACK and then active scan code set?
 		{
-			Keyboard.cmdOK = 1; //OK&Continue!
+			Keyboard.cmdOK = 1|4|8; //OK&Continue!
 			Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
-			++Keyboard.command_step; //Next step!
 		}
 		else
 		{
@@ -412,24 +404,19 @@ OPTINLINE void handle_keyboard_data(byte data)
 			}
 			else
 			{
-				Keyboard.cmdOK = 2 | 4; //OK&Finish!
+				Keyboard.cmdOK = 2 | 4; //Error&Finish!
 				Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 			}
-			Keyboard.has_command = 0; //No command anymore!
-			++Keyboard.command_step; //Next step!
 			return; //Done!
 		}
 		break;
 	case 0xED: //Set/reset LEDs?
 		Keyboard.LEDS = data; //Set/reset LEDs!
-		Keyboard.has_command = 0; //No command anymore!
 		Keyboard.cmdOK = 1|4; //OK&Finish!
 		Keyboard.timeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
-		++Keyboard.command_step; //Next step!
 		return; //Done!
 		break;
 	}
-	++Keyboard.command_step; //Next step!
 }
 
 void handle_keyboardwrite(byte data)
