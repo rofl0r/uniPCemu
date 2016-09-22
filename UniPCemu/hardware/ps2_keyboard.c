@@ -391,6 +391,7 @@ OPTINLINE void handle_keyboard_data(byte data)
 		{
 			Keyboard.cmdOK = 2|4; //Error&Finish!
 		}
+		Keyboard.resetTimeout = 100000000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		Keyboard.has_command = 0; //No command anymore!
 		return; //Done!
 		break;
