@@ -81,6 +81,8 @@ typedef struct
 	
 	word inputtingsecurity; //Inputting security string?
 	byte PortB; //Port B?
+
+	byte status_high; //Enable high status? Bits 4-7: non-zero to enable, bits 0-3: Amount of bits to shift left for the high nibble to have it's correct value!
 } Controller8042_t; //The 8042 Controller!
 
 void BIOS_init8042(); //Init 8042&Load all BIOS!

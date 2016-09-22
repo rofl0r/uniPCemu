@@ -212,11 +212,11 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xC1: //Copy bits 0-3 of input port to status bits 4-7. No ACK!
 		Controller8042.status_buffer &= ~0xF0; //Clear bits 4-7!
-		Controller8042.status_buffer |= ((Controller8042.inputport&0xF)<<4);
+		Controller8042.status_high = 0x14; //Bits 0-3 of input port shifted left 4 bits to status high!
 		break;
 	case 0xC2: //Copy bits 4-7 of input port to status bits 4-7. No ACK!
 		Controller8042.status_buffer &= ~0xF0; //Clear bits 4-7!
-		Controller8042.status_buffer |= (Controller8042.inputport&0xF0);
+		Controller8042.status_high = 0x10; //Bits 4-7 of input port shifted left 0 bits to status high!
 		break;
 	case 0xD0: //Next byte read from port 0x60 is read from the Controller 8042 output port!
 		Controller8042.readoutputport = 1; //Next byte to port 0x60 is placed on the 8042 output port!
@@ -388,6 +388,7 @@ byte write_8042(word port, byte value)
 		}
 		break;
 	case 0x64: //Command port: send command?
+		Controller8042.status_high = 0; //Disable high status, we're writing a new command!
 		Controller8042.status_buffer |= 0x8; //We've last sent a byte to the command port!
 		Controller8042.command = value; //Set command!
 		Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
@@ -442,6 +443,12 @@ byte read_8042(word port, byte *result)
 	case 0x64: //Command port: read status register?
 		if ((EMULATED_CPU >= CPU_80286) || force8042) fill8042_output_buffer(1); //Fill the output buffer if needed!
 		*result = (Controller8042.status_buffer|0x10)|(Controller8042.PS2ControllerConfigurationByte.SystemPassedPOST<<2); //Read status buffer combined with the BIOS POST flag! We're never inhabited!
+		if (Controller8042.status_high) //High status overwritten?
+		{
+			*result &= 0xF; //Only low data given!
+			*result |= ((Controller8042.inputport<<(Controller8042.status_high&0xF))&0xF0); //Add the high or low data to the high part of the status!
+			Controller8042.status_high = 0; //Disable high status!
+		}
 		return 1; //We're processed!
 		break;
 	}
