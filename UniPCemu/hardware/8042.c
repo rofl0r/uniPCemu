@@ -318,7 +318,7 @@ void datawritten_8042() //Data has been written?
 	{
 		if (Controller8042.has_port[c]) //To this port?
 		{
-			Controller8042.
+			Controller8042.RAM[0] &= ~(0x10<<c); //Automatically the controller when we're sent to!
 			if (Controller8042.portwrite[c]) //Gotten handler?
 			{
 				Controller8042.status_buffer &= ~0x2; //Cleared input buffer!
@@ -333,6 +333,7 @@ void datawritten_8042() //Data has been written?
 
 byte write_8042(word port, byte value)
 {
+	byte oldRAM0;
 	if ((port & 0xFFF8) != 0x60) return 0; //Not our port!
 	switch (port) //What port?
 	{
@@ -354,7 +355,12 @@ byte write_8042(word port, byte value)
 		}
 		if (Controller8042.Write_RAM) //Write to VRAM byte?
 		{
+			oldRAM0 = Controller8042.RAM[0]; //Save old RAM 0 status!
 			Controller8042.RAM[Controller8042.Write_RAM-1] = value; //Set data in RAM!
+			if ((oldRAM0^Controller8042.RAM[0]) & 0x40) //Translation changed?
+			{
+				keyboardtranslation_8042(Controller8042.RAM[0]&0x40); //Set the new keyboard translation status!
+			}
 			Controller8042.Write_RAM = 0; //Not anymore!
 			Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
 			return 1; //Don't process normally!

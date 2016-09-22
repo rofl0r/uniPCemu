@@ -55,6 +55,11 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 	loadKeyboardDefaults(); //Load our defaults!
 }
 
+void keyboardtranslation_8042(byte enabled)
+{
+	Keyboard.enable_translation = enabled?1:0; //Enable translation to scancode set 0?
+}
+
 void resetKeyboard_8042(byte flags)
 {
 	input_lastwrite_keyboard(); //Force to user!
@@ -115,26 +120,29 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 		if (!Controller8042.PS2ControllerConfigurationByte.FirstPortDisabled) //We're enabled?
 		{
 			int i; //Counter for key codes!
+			byte scancodeset;
+			scancodeset = Keyboard.scancodeset; //Get the current scancode set!
+			if (Keyboard.enable_translation) scancodeset = 0; //Force scan code set 1 when translated!
 			if (pressed&1) //Key pressed?
 			{
-				if ((scancodeset_typematic[key] && ((pressed>>1)&1)) || (!(pressed&2)) || (Keyboard.scancodeset!=3)) //Allowed typematic make codes? Also allow non-typematic always!
+				if ((scancodeset_typematic[key] && ((pressed>>1)&1)) || (!(pressed&2)) || (scancodeset!=3)) //Allowed typematic make codes? Also allow non-typematic always!
 				{
-					if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[Keyboard.scancodeset][key].keypress_size) return 0; //Buffer full: we can't add it!
-					for (i=0;i<scancodesets[Keyboard.scancodeset][key].keypress_size;i++) //Process keypress!
+					if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[scancodeset][key].keypress_size) return 0; //Buffer full: we can't add it!
+					for (i=0;i<scancodesets[scancodeset][key].keypress_size;i++) //Process keypress!
 					{
-						give_keyboard_input(scancodesets[Keyboard.scancodeset][key].keypress[i]); //Give control byte(s) of keypress!
+						give_keyboard_input(scancodesets[scancodeset][key].keypress[i]); //Give control byte(s) of keypress!
 					}
 					IRQ8042(1); //We've got data in our input buffer!
 				}
 			}
 			else //Released?
 			{
-				if (scancodeset_break[key] || (Keyboard.scancodeset!=3)) //Break codes allowed?
+				if (scancodeset_break[key] || (scancodeset!=3)) //Break codes allowed?
 				{
-					if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[Keyboard.scancodeset][key].keyrelease_size) return 0; //Buffer full: we can't add it!
-					for (i=0;i<scancodesets[Keyboard.scancodeset][key].keyrelease_size;i++) //Process keyrelease!
+					if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[scancodeset][key].keyrelease_size) return 0; //Buffer full: we can't add it!
+					for (i=0;i<scancodesets[scancodeset][key].keyrelease_size;i++) //Process keyrelease!
 					{
-						give_keyboard_input(scancodesets[Keyboard.scancodeset][key].keyrelease[i]); //Give control byte(s) of keyrelease!
+						give_keyboard_input(scancodesets[scancodeset][key].keyrelease[i]); //Give control byte(s) of keyrelease!
 					}
 					IRQ8042(1); //We've got data in our input buffer!
 				}
@@ -464,10 +472,11 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	{
 		raiseError("Keyboard Hardware initialisation","Invalid ID#2! Result: %02X",result);
 	}
-	fifobuffer_clear(&Keyboard.buffer); //Clear our output buffer for compatibility!
+	fifobuffer_clear(Keyboard.buffer); //Clear our output buffer for compatibility!
 	resetKeyboard(0,1); //Reset us to a known state on AT PCs when needed!
 	force8042 = 0; //Disable 8042 style init!
 	Controller8042.RAM[0] |= 0x50; //Disable our input, enable translation!
+	keyboardtranslation_8042(Controller8042.RAM[0]&0x40); //Enable translation?
 }
 
 void keyboardControllerInit_extern()

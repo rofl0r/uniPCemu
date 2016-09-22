@@ -29,6 +29,7 @@ typedef struct
 	FIFOBUFFER *buffer; //Buffer for output!
 	byte repeatMake; //Repeat make codes?
 	byte allowBreak; //Allow break codes?
+	byte enable_translation; //Enable translation by 8042?
 } PS2_KEYBOARD; //Active keyboard settings!
 
 void give_keyboard_input(byte data); //For the 8042!
@@ -49,5 +50,7 @@ void BIOS_doneKeyboard(); //Finish the PS/2 keyboard.
 void resetKeyboard_8042(byte flags); //8042 reset for XT compatibility!
 
 void keyboardControllerInit_extern(); //Keyboard initialization for the BIOS!
+
+void keyboardtranslation_8042(byte enabled); //Disable/enable translation to scancode set 0!
 
 #endif
