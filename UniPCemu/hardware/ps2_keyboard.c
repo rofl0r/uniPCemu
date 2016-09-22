@@ -400,7 +400,7 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	if (__HW_DISABLED) return; //Abort!
 	force8042 = 1; //We're forcing 8042 style init!
 	byte result; //For holding the result from the hardware!
-
+	Controller8042.RAM[0] &= ~0x50; //Enable our input, disable translation!
 	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard Hardware initialisation","No self test passed result!");
@@ -465,8 +465,9 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 		raiseError("Keyboard Hardware initialisation","Invalid ID#2! Result: %02X",result);
 	}
 	fifobuffer_clear(&Keyboard.buffer); //Clear our output buffer for compatibility!
-	resetKeyboard(0,(EMULATED_CPU>=CPU_80286)?1:0); //Reset us to a known state on AT PCs when needed!
+	resetKeyboard(0,1); //Reset us to a known state on AT PCs when needed!
 	force8042 = 0; //Disable 8042 style init!
+	Controller8042.RAM[0] |= 0x50; //Disable our input, enable translation!
 }
 
 void keyboardControllerInit_extern()
