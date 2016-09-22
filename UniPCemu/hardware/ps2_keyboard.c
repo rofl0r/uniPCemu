@@ -154,6 +154,19 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 
 extern byte force8042; //Force 8042 style handling?
 
+void updatePS2Keyboard(double timepassed)
+{
+	if (Keyboard.resetTimeout) //Gotten a timeout?
+	{
+		Keyboard.resetTimeout -= timepassed; //Pass some time!
+		if (Keyboard.resetTimeout <= 0.0) //Done?
+		{
+			Keyboard.resetTimeout = (double)0; //Finished!
+			give_keyboard_input(0xAA); //Give the result code!
+		}
+	}
+}
+
 //Unknown: respond with 0xFE: Resend!
 OPTINLINE void commandwritten_keyboard() //Command has been written?
 {
@@ -164,9 +177,11 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 	{
 	case 0xFF: //Reset?
 		input_lastwrite_keyboard(); //Clear buffer for our result!
+		give_keyboard_input(0x00); //Dummy data for IBM AT BIOS to ignore(it's flushed away)!
+		input_lastwrite_keyboard(); //Force 0x00(dummy byte) to user!
 		give_keyboard_input(0xFA); //Acnowledge!
-		input_lastwrite_keyboard(); //Force 0xFA to user!
-		resetKeyboard(1,0); //Reset the Keyboard Controller!
+		resetKeyboard(1,1); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
+		Keyboard.resetTimeout = 100000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
 		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xFE: //Resend?

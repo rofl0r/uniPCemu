@@ -857,6 +857,8 @@ OPTINLINE byte coreHandler()
 		updateDMA(MHZ14passed); //Update the DMA timer!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
+		updatePS2Keyboard(instructiontime); //Tick the PS/2 keyboard timer, if needed!
+		updatePS2Mouse(instructiontime); //Tick the PS/2 mouse timer, if needed!
 		if (useAdlib) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
 		if (useGameBlaster) updateGameBlaster(MHZ14passed); //Tick the Game Blaster timer if needed!
 		if (useSoundBlaster) updateSoundBlaster(instructiontime,MHZ14passed); //Tick the Sound Blaster timer if needed!

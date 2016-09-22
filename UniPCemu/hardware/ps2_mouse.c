@@ -47,6 +47,7 @@ struct
 	MOUSE_PACKET *packets; //Contains all packets!
 	MOUSE_PACKET *lastpacket; //Last send packet!
 	byte supported; //PS/2 mouse supported on this system?
+	double resetTimeout; //Timeout for reset commands!
 } Mouse; //Ourselves!
 
 OPTINLINE void give_mouse_input(byte data)
@@ -170,6 +171,19 @@ void update_mouseTimer()
 	setMouseRate(HWmouse_getsamplerate()); //Start using this samplerate!
 }
 
+void updatePS2Mouse(double timepassed)
+{
+	if (Mouse.resetTimeout) //Gotten a timeout?
+	{
+		Mouse.resetTimeout -= timepassed; //Pass some time!
+		if (Mouse.resetTimeout <= 0.0) //Done?
+		{
+			Mouse.resetTimeout = (double)0; //Finished!
+			give_mouse_input(0xAA); //Bat completion code!
+		}
+	}
+}
+
 OPTINLINE void resetMouse()
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -177,7 +191,9 @@ OPTINLINE void resetMouse()
 	memset(&Mouse.data,0,sizeof(Mouse.data)); //Reset the mouse!
 	//No data reporting!
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
-	give_mouse_input(0xAA); //Bat completion code!
+	
+	Mouse.resetTimeout = 100000.0; //
+
 	input_lastwrite_mouse(); //Force to user!
 	give_mouse_input(0x00); //We're a mouse!
 	IRQ8042(1); //We've got data in our input buffer!

@@ -20,4 +20,6 @@ float HWmouse_getsamplerate(); //Which repeat rate to use after the repeat delay
 void EMU_enablemouse(byte enabled); //Enable mouse input (disable during EMU, enable during CPU emulation (not paused))?
 void BIOS_doneMouse(); //Finish the mouse.
 
+void updatePS2Mouse(double timepassed); //For stuff requiring timing!
+
 #endif

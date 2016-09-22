@@ -30,6 +30,7 @@ typedef struct
 	byte repeatMake; //Repeat make codes?
 	byte allowBreak; //Allow break codes?
 	byte enable_translation; //Enable translation by 8042?
+	double resetTimeout; //Timeout for reset commands!
 } PS2_KEYBOARD; //Active keyboard settings!
 
 void give_keyboard_input(byte data); //For the 8042!
@@ -52,5 +53,7 @@ void resetKeyboard_8042(byte flags); //8042 reset for XT compatibility!
 void keyboardControllerInit_extern(); //Keyboard initialization for the BIOS!
 
 void keyboardtranslation_8042(byte enabled); //Disable/enable translation to scancode set 0!
+
+void updatePS2Keyboard(double timepassed); //For stuff requiring timing!
 
 #endif
