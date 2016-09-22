@@ -560,6 +560,7 @@ void PS2_initMouse(byte enabled) //Initialise the mouse to reset mode?
 	Mouse.supported = enabled; //Are we enabled!
 	if (Mouse.supported) //Are we enabled?
 	{
+		Controller8042.RAM[0] |= 0x22; //Disable the mouse by default!
 		//Register ourselves!
 		register_PS2PortWrite(1, &handle_mousewrite); //Write functionnality!
 		register_PS2PortRead(1, &handle_mouseread, &handle_mousepeek); //Read functionality!

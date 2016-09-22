@@ -454,7 +454,7 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	//First: initialise all hardware ports for emulating!
 	register_PORTOUT(&write_8042);
 	register_PORTIN(&read_8042);
-	Controller8042.RAM[0] = 0x70; //Init default status! Disable both ports and enable translation!
+	Controller8042.RAM[0] = 0x50; //Init default status! Disable first port and enable translation!
 	reset8042(); //First 8042 controller reset!
 	if (EMULATED_CPU >= CPU_80286) //IBM AT? We're setting up the input port!
 	{
