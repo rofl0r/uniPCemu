@@ -52,6 +52,8 @@ void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 				byte whatport = ControllerPriorities[portorder]; //The port to check!
 				if (whatport < 2) //Port has priority and available?
 				{
+					if ((Controller8042.PS2ControllerConfigurationByte.FirstPortDisabled|(Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled<<1))&(1<<whatport)) //Port disabled?
+						continue; //This port is disabled, don't receive!
 					if (Controller8042.portread[whatport] && Controller8042.portpeek[whatport]) //Read handlers from the first PS/2 port available?
 					{
 						if (Controller8042.portpeek[whatport](&Controller8042.output_buffer)) //Got something?
@@ -316,6 +318,7 @@ void datawritten_8042() //Data has been written?
 	{
 		if (Controller8042.has_port[c]) //To this port?
 		{
+			Controller8042.
 			if (Controller8042.portwrite[c]) //Gotten handler?
 			{
 				Controller8042.status_buffer &= ~0x2; //Cleared input buffer!
@@ -451,6 +454,7 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	//First: initialise all hardware ports for emulating!
 	register_PORTOUT(&write_8042);
 	register_PORTIN(&read_8042);
+	Controller8042.RAM[0] = 0x70; //Init default status! Disable both ports and enable translation!
 	reset8042(); //First 8042 controller reset!
 	if (EMULATED_CPU >= CPU_80286) //IBM AT? We're setting up the input port!
 	{
