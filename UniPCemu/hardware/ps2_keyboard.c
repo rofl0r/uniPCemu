@@ -163,6 +163,7 @@ void updatePS2Keyboard(double timepassed)
 		{
 			Keyboard.resetTimeout = (double)0; //Finished!
 			give_keyboard_input(0xAA); //Give the result code!
+			IRQ8042(1); //We've got data in our input buffer!
 		}
 	}
 }
@@ -182,6 +183,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		give_keyboard_input(0xFA); //Acnowledge!
 		resetKeyboard(1,1); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
 		Keyboard.resetTimeout = 100000.0; //A small delay for the result code to appear(needed by the AT BIOS)!
+		IRQ8042(1); //We've got data in our input buffer!
 		Keyboard.has_command = 0; //No command anymore!
 		break;
 	case 0xFE: //Resend?
