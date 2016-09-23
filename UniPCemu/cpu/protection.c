@@ -513,6 +513,19 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 	}
 	else //Real mode has no protection?
 	{
+		if (isJMPorCALL == 2) //CALL needs pushed data?
+		{
+			if (CPU_Operand_size) //32-bit?
+			{
+				CPU_PUSH16(&CPU[activeCPU].registers->CS);
+				CPU_PUSH32(&CPU[activeCPU].registers->EIP);
+			}
+			else //16-bit?
+			{
+				CPU_PUSH16(&CPU[activeCPU].registers->CS);
+				CPU_PUSH16(&CPU[activeCPU].registers->IP);
+			}
+		}
 		//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 		{
 			*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Just set the segment, don't load descriptor!
