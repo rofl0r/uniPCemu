@@ -37,7 +37,6 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 			writefifobuffer(SERMouse.buffer, 0x40 | (buttons << 4) | highbits); //Give info and buttons!
 			writefifobuffer(SERMouse.buffer, packet->xmove&63); //X movement!
 			writefifobuffer(SERMouse.buffer, packet->ymove&63); //Y movement!
-			UART_handleInputs(); //Process the input given by the CPU!
 		}
 	}
 	MOUSE_PACKET *temp;
@@ -55,7 +54,6 @@ void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 		{
 			writefifobuffer(SERMouse.buffer, 'M'); //with a bunch of ASCII 'M' characters.
 		}
-		UART_handleInputs(); //Update input!
 	}
 	SERMouse.modemcontrol = line; //Set the modem control lines for reference!
 }

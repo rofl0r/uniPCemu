@@ -69,6 +69,9 @@ struct
 	word DLAB; //The speed of transmission, 115200/DLAB=Speed set.
 	//This speed is the ammount of bits (data bits), stop bits (0=1, 1=1.5(with 5 bits data)/2(all other cases)) and parity bit when set, that are transferred per second.
 
+	byte havereceiveddata; //Have we received data?
+	byte receiveddata; //The data that's received (the buffer for the software to read when filled)!
+
 	//The handlers for the device attached, if any!
 	UART_setmodemcontrol setmodemcontrol;
 	UART_receivedata receivedata;
@@ -76,6 +79,8 @@ struct
 	UART_hasdata hasdata;
 
 	byte interrupt_causes[4]; //All possible causes of an interrupt!
+	double UART_receivetiming; //UART receive timing!
+	double UART_bytereceivetiming; //UART byte received timing!
 } UART_port[4]; //All UART ports!
 
 byte numUARTports = 0; //How many ports?
@@ -112,7 +117,7 @@ OPTINLINE void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 	}
 }
 
-void startUARTIRQ(byte IRQ)
+OPTINLINE void startUARTIRQ(byte IRQ)
 {
 	byte cause, port; //What cause are we?
 	byte portbase, actualport;
@@ -178,6 +183,11 @@ Processed until http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Progra
 //Offset calculator!
 #define COMPORT_offset(port) (port&0x7)
 
+void updateUARTSpeed(byte COMport, word DLAB)
+{
+	UART_port[COMport].UART_bytereceivetiming = (115200.0/(DLAB?0x10000:DLAB)) / (5+UART_port[COMport].LineControlRegister.DataBits+(UART_port[COMport].LineControlRegister.StopBits<<1)); //Every DLAB+1 / Line Control Register-dependant bytes per second! Simple formula instead of full emulation, like the PIT!
+}
+
 byte PORT_readUART(word port, byte *result) //Read from the uart!
 {
 	byte COMport;
@@ -199,13 +209,6 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 				{
 					UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
 					UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
-				}
-				//return value with bits toggled by Line Control Register!
-				*result = 0x00; //Invalid input by default!
-				if (UART_port[COMport].receivedata)
-				{
-					*result = UART_port[COMport].receivedata(); //Receive the data!
-					UART_handleInputs(); //Handle the next byte to receive!
 					switch (COMport) //What port?
 					{
 					case 0:
@@ -219,6 +222,14 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 						acnowledgeIRQrequest(3); //Acnowledge!
 						break;
 					}
+				}
+				//return value with bits toggled by Line Control Register!
+				*result = 0x00; //Invalid input by default!
+				if (UART_port[COMport].havereceiveddata)
+				{
+					*result = UART_port[COMport].receiveddata; //Receive the data!
+					UART_port[COMport].receiveddata = 0x00; //Clear the received data in the buffer!
+					UART_port[COMport].havereceiveddata = 0; //We don't have any data anymore!
 				}
 			}
 			break;
@@ -250,14 +261,24 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			{
 				UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
 				UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
+				switch (COMport) //What port?
+				{
+				case 0:
+				case 2:
+					lowerirq(4); //Lower our IRQ if it's raised!
+					acnowledgeIRQrequest(4); //Acnowledge!
+					break;
+				case 1:
+				case 3:
+					lowerirq(3); //Lower our IRQ if it's raised!
+					acnowledgeIRQrequest(3); //Acnowledge!
+					break;
+				}
 			}
 			UART_port[COMport].LineStatusRegister &= ~1; //No data ready!
-			if (UART_port[COMport].hasdata) //Data check handler?
+			if (UART_port[COMport].havereceiveddata) //Data buffer full?
 			{
-				if (UART_port[COMport].hasdata()) //Gotten data?
-				{
-					UART_port[COMport].LineStatusRegister |= 1; //Data ready!
-				}
+				UART_port[COMport].LineStatusRegister |= 1; //Data is ready!
 			}
 			*result = UART_port[COMport].LineStatusRegister; //Give the register!
 			break;
@@ -266,6 +287,19 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			{
 				UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
 				UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
+				switch (COMport) //What port?
+				{
+				case 0:
+				case 2:
+					lowerirq(4); //Lower our IRQ if it's raised!
+					acnowledgeIRQrequest(4); //Acnowledge!
+					break;
+				case 1:
+				case 3:
+					lowerirq(3); //Lower our IRQ if it's raised!
+					acnowledgeIRQrequest(3); //Acnowledge!
+					break;
+				}
 			}
 			*result = UART_port[COMport].ModemStatusRegister; //Give the register!
 			break;
@@ -293,6 +327,7 @@ byte PORT_writeUART(word port, byte value)
 			{
 				UART_port[COMport].DLAB &= ~0xFF; //Clear the low byte!
 				UART_port[COMport].DLAB |= value; //Low byte!
+				updateUARTSpeed(COMport,UART_port[COMport].DLAB); //We're updated!
 			}
 			else //Output buffer?
 			{
@@ -314,6 +349,7 @@ byte PORT_writeUART(word port, byte value)
 			{
 				UART_port[COMport].DLAB &= ~0xFF00; //Clear the high byte!
 				UART_port[COMport].DLAB |= (value<<8); //High!
+				updateUARTSpeed(COMport, UART_port[COMport].DLAB); //We're updated!
 			}
 			else //Interrupt enable register?
 			{
@@ -361,15 +397,37 @@ void UART_handleInputs() //Handle any input to the UART!
 	//Raise the IRQ for the first device to give input!
 	for (i = 0;i < 4;i++) //Process all ports!
 	{
-		if (UART_port[i].hasdata) //Port registered?
+		if (UART_port[i].havereceiveddata) //Have we received data?
 		{
-			if (UART_port[i].hasdata()) //Has data?
+			launchUARTIRQ(i, 2); //We've received data!
+		}
+	}
+}
+
+void updateUART(double timepassed)
+{
+	byte UART; //Check all UARTs!
+	//Check all UART received data!
+	for (UART=0;UART<4;++UART) //Check all UARTs!
+	{
+		if (UART_port[UART].hasdata) //Data receiver enabled for this port?
+		{
+			UART_port[UART].UART_receivetiming += timepassed; //Time our counter!
+			if ((UART_port[UART].UART_receivetiming>=UART_port[UART].UART_bytereceivetiming) && UART_port[UART].UART_bytereceivetiming) //A byte has been received, timed?
 			{
-				launchUARTIRQ(i, 2); //We've received data!
-				return;
+				UART_port[UART].UART_receivetiming -= UART_port[UART].UART_bytereceivetiming; //We've received a byte, if available!
+				if (UART_port[UART].hasdata()) //Do we have data?
+				{
+					if (UART_port[UART].havereceiveddata==0) //No data received yet?
+					{
+						UART_port[UART].receiveddata = UART_port[UART].receivedata(); //Read the data to receive!
+						UART_port[UART].havereceiveddata = 1; //We've received data!
+					}
+				}
 			}
 		}
 	}
+	UART_handleInputs(); //Handle the input received, when needed, as well as other conditions required!
 }
 
 void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, UART_hasdata hasdata, UART_receivedata receivedata, UART_senddata senddata)

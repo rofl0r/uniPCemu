@@ -864,6 +864,7 @@ OPTINLINE byte coreHandler()
 		if (useSoundBlaster) updateSoundBlaster(instructiontime,MHZ14passed); //Tick the Sound Blaster timer if needed!
 		//updateATA(instructiontime); //Update the ATA timer! This is currently not used, so ignore it!
 		tickParallel(instructiontime); //Update the Parallel timer!
+		updateUART(instructiontime); //Update the UART timer!
 		if (useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		updateVGA(instructiontime); //Update the VGA timer!
 		updateJoystick(instructiontime); //Update the Joystick!
