@@ -65,6 +65,7 @@ void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 								Controller8042.status_buffer |= 0x20; //Set AUX bit!
 								if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
 								{
+									lowerirq(12); //Lower secondary IRQ!
 									if (flags&1) raiseirq(12); //Raise secondary IRQ!
 								}
 								else
@@ -87,6 +88,7 @@ void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 
 								if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
 								{
+									lowerirq(1); //Lower primary IRQ!
 									if (flags&1) raiseirq(1); //Raise primary IRQ!
 								}
 								else
