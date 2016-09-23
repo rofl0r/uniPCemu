@@ -1762,24 +1762,23 @@ OPTINLINE void CPU8086_internal_RET(word popbytes, byte isimm)
 OPTINLINE void CPU8086_internal_RETF(word popbytes, byte isimm)
 {
 	INLINEREGISTER word val = CPU_POP16(); //Far return
+	word destCS;
 	CPUPROT1
 	destEIP = val; //Load IP!
-	segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),4); //CS changed! RETF instruction!
+	destCS = CPU_POP16(); //POP CS!
 	CPUPROT1
-	for (;popbytes;popbytes-=2) //POP as much as needed!
-	{
-		CPUPROT1
-			CPU_POP16(); //POP anything from the stack, discarding it's contents!
-		CPUPROT2
-	}
+	segmentWritten(CPU_SEGMENT_CS,destCS,4); //CS changed! RETF instruction!
+	CPUPROT1
+	REG_SP += popbytes; //Process SP!
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
 	if (isimm)
 		CPU[activeCPU].cycles_OP = 17; /* Intersegment with constant */
 	else
 		CPU[activeCPU].cycles_OP = 18; /* Intersegment */
 	CPU_addWordMemoryTiming(); //To memory?
 	CPU_addWordMemoryTiming(); //To memory?
-	CPUPROT2
-	CPUPROT2
 }
 
 void external8086RETF(word popbytes)
@@ -3402,7 +3401,6 @@ void op_grp5() {
 		CPU_flushPIQ(); //We're jumping to another address!
 		break;
 	case 3: //CALL Mp
-		CPU_PUSH16(&REG_CS); CPU_PUSH16(&REG_IP);
 		modrm_decode16(&params, &info, 1); //Get data!
 		destEIP = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);
 		segmentWritten(CPU_SEGMENT_CS, MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0), 2);

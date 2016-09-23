@@ -596,7 +596,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 	{
 		if (isJMPorCALL == 2) //CALL needs pushed data?
 		{
-			if (CPU_Operand_size) //32-bit?
+			if ((CPU_Operand_size[activeCPU]) && (EMULATED_CPU>=CPU_80386)) //32-bit?
 			{
 				CPU_PUSH16(&CPU[activeCPU].registers->CS);
 				CPU_PUSH32(&CPU[activeCPU].registers->EIP);
