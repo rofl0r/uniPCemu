@@ -558,6 +558,10 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	resetKeyboard(1,0); //Reset the keyboard controller, XT style!
 	input_lastwrite_keyboard(); //Force to user!
 	if (EMULATED_CPU>CPU_NECV30) keyboardControllerInit(); //Initialise the basic keyboard controller when allowed!
+	else //IBM XT initialization required?
+	{
+		keyboardtranslation_8042(0x40); //Enable the translation always with IBM XT!
+	}
 }
 
 void BIOS_doneKeyboard()
