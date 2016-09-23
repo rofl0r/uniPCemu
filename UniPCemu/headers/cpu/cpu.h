@@ -83,7 +83,11 @@ typedef struct PACKED
 		{
 			struct
 			{
-				u16 limit_low;
+				union
+				{
+					u16 limit_low;
+					u16 callgate_base_low; //Call Gate base low!
+				};
 				union
 				{
 					u16 base_low; //Low base for non-Gate Descriptors!
@@ -121,12 +125,23 @@ typedef struct PACKED
 					} EXECSEGMENT;
 					byte AccessRights; //Access rights!
 				};
-				u8 limit_high : 4; //High part of limit (if used).
-				u8 AVL : 1; //Available for programmers use.
-				u8 unk_0 : 1; //0!
-				u8 D_B : 1; //D(default) or B(big) (or unknown(X) in a system segment)
-				u8 G : 1; //Granularity: defines Segment limit and base address.
-				u8 base_high;
+				union
+				{
+					struct
+					{
+						u8 limit_high : 4; //High part of limit (if used).
+						u8 AVL : 1; //Available for programmers use.
+						u8 unk_0 : 1; //0!
+						u8 D_B : 1; //D(default) or B(big) (or unknown(X) in a system segment)
+						u8 G : 1; //Granularity: defines Segment limit and base address.
+					}; //For normal, non-CALL Gate descriptors
+					u8 callgate_base_mid;
+				};
+				union
+				{
+					u8 base_high;
+					u8 callgate_base_high;
+				};
 			};
 			byte bytes[8]; //The data as bytes!
 		};
@@ -727,6 +742,9 @@ typedef struct PACKED
 	byte is0Fopcode; //Are we a 0F opcode to be executed?
 	byte D_B_Mask; //D_B bit mask when used for 16 vs 32-bits!
 	byte G_Mask; //G bit mask when used for 16 vs 32-bits!
+
+	//For stack argument copying of call gates!
+	FIFOBUFFER *CallGateStack; //Arguments to copy!
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 

@@ -43,4 +43,6 @@ byte checkSTICLI(); //Check STI/CLI rights! 1 when allowed, 0 when to be ignored
 
 void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint_32 returnoffset, uint_32 error); //Execute a protected mode interrupt!
 
+byte DATA_SEGMENT_DESCRIPTOR_B_BIT(); //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
+
 #endif

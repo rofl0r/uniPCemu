@@ -410,6 +410,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	{
 		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
 	}
+	CPU[activeCPU].CallGateStack = allocfifobuffer(32<<2,0); //Non-lockable 32-bit 32 arguments FIFO buffer for call gate stack parameter copy!
 	#ifdef CPU_USECYCLES
 	CPU_useCycles = (EMULATED_CPU<=CPU_80286); //Are we using cycle-accurate emulation?
 	#endif
@@ -705,6 +706,7 @@ void doneCPU() //Finish the CPU!
 {
 	free_CPUregisters(); //Finish the allocated registers!
 	free_fifobuffer(&CPU[activeCPU].PIQ); //Release our PIQ!
+	free_fifobuffer(&CPU[activeCPU].CallGateStack); //Release our Call Gate Stack space!
 }
 
 CPU_registers dummyregisters; //Dummy registers!

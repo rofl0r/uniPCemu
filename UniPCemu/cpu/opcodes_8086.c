@@ -1761,20 +1761,25 @@ OPTINLINE void CPU8086_internal_RET(word popbytes, byte isimm)
 }
 OPTINLINE void CPU8086_internal_RETF(word popbytes, byte isimm)
 {
-	INLINEREGISTER word val = CPU_POP16();    //Far return
+	INLINEREGISTER word val = CPU_POP16(); //Far return
 	CPUPROT1
 	destEIP = val; //Load IP!
-	segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),2); //CS changed!
+	segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),4); //CS changed! RETF instruction!
 	CPUPROT1
-		REG_SP += popbytes; //Process SP!
-	CPUPROT2
-	CPUPROT2
+	for (;popbytes;popbytes-=2) //POP as much as needed!
+	{
+		CPUPROT1
+			CPU_POP16(); //POP anything from the stack, discarding it's contents!
+		CPUPROT2
+	}
 	if (isimm)
 		CPU[activeCPU].cycles_OP = 17; /* Intersegment with constant */
 	else
 		CPU[activeCPU].cycles_OP = 18; /* Intersegment */
 	CPU_addWordMemoryTiming(); //To memory?
 	CPU_addWordMemoryTiming(); //To memory?
+	CPUPROT2
+	CPUPROT2
 }
 
 void external8086RETF(word popbytes)

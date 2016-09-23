@@ -317,6 +317,9 @@ void SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 	}
 }
 
+
+uint_32 destEIP; //Destination address for CS JMP instruction!
+
 /*
 
 getsegment_seg: Gets a segment, if allowed.
@@ -342,6 +345,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	byte privilegedone = 0; //Privilege already calculated?
 	byte is_gated = 0;
 	byte is_TSS = 0; //Are we a TSS?
+	byte callgatetype = 0; //Default: no call gate!
 	if ((isGateDescriptor(&LOADEDDESCRIPTOR)==1) && (segment == CPU_SEGMENT_CS) && isJMPorCALL) //Handling of gate descriptors?
 	{
 		is_gated = 1; //We're gated!
@@ -483,12 +487,56 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		}
 	}
 
+	if ((segment == CPU_SEGMENT_CS) && (getLoadedTYPE(&GATEDESCRIPTOR) == -1) && (is_gated)) //Gated CS?
+	{
+		switch (GATEDESCRIPTOR.desc.Type) //What type of gate are we using?
+		{
+		case AVL_SYSTEM_CALLGATE16BIT: //16-bit call gate?
+			callgatetype = 1; //16-bit call gate!
+			break;
+		case AVL_SYSTEM_CALLGATE32BIT: //32-bit call gate?
+			callgatetype = 2; //32-bit call gate!
+			break;
+		default:
+			callgatetype = 0; //No call gate!
+			break;
+		}
+		if (callgatetype) //To process a call gate's parameters and offsets?
+		{
+			destEIP = GATEDESCRIPTOR.desc.callgate_base_low; //16-bit EIP!
+			if (callgatetype == 2) //32-bit destination?
+			{
+				destEIP |= (GATEDESCRIPTOR.desc.callgate_base_mid<<16); //Mid EIP!
+				destEIP |= (GATEDESCRIPTOR.desc.callgate_base_high<<24); //High EIP!
+			}
+			uint_32 argument; //Current argument to copy to the destination stack!
+			word arguments;
+			arguments = GATEDESCRIPTOR.desc.ParamCnt; //Amount of parameters!
+			fifobuffer_clear(CPU[activeCPU].CallGateStack); //Clear our stack to transfer!
+			for (;arguments--;) //Copy as many arguments as needed!
+			{
+				if (DATA_SEGMENT_DESCRIPTOR_B_BIT()) //32-bit source?
+				{
+					argument = CPU_POP32(); //POP 32-bit argument!
+				}
+				else //16-bit source?
+				{
+					argument = (uint_32)CPU_POP16(); //POP 16-bit argument!
+				}
+				if (CPU[activeCPU].faultraised) //Fault was raised reading source parameters?
+				{
+					fifobuffer_clear(CPU[activeCPU].CallGateStack); //Clear our stack!
+					return NULL; //Abort!
+				}
+				writefifobuffer32(CPU[activeCPU].CallGateStack,argument); //Add the argument to the call gate buffer to transfer to the new stack!
+			}
+		}
+	}
+
 	memcpy(dest,&LOADEDDESCRIPTOR,sizeof(LOADEDDESCRIPTOR)); //Give the loaded descriptor!
 
 	return dest; //Give the segment descriptor read from memory!
 }
-
-uint_32 destEIP; //Destination address for CS JMP instruction!
 
 void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
@@ -497,8 +545,41 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 	{
 		SEGMENT_DESCRIPTOR tempdescriptor;
 		SEGMENT_DESCRIPTOR *descriptor = getsegment_seg(segment,&tempdescriptor,value,isJMPorCALL); //Read the segment!
+		uint_32 stackval;
+		word stackval16; //16-bit stack value truncated!
 		if (descriptor) //Loaded&valid?
 		{
+			if ((segment == CPU_SEGMENT_CS) && (isJMPorCALL == 2)) //CALL needs pushed data on the stack?
+			{
+				for (;fifobuffer_freesize(CPU[activeCPU].CallGateStack);) //Process the CALL Gate Stack!
+				{
+					if (readfifobuffer32(CPU[activeCPU].CallGateStack,&stackval)) //Read the value to transfer?
+					{
+						if ((DATA_SEGMENT_DESCRIPTOR_B_BIT()) && (EMULATED_CPU>=CPU_80386)) //32-bit stack to push to?
+						{
+							CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
+						}
+						else //16-bit?
+						{
+							stackval16 = (word)(stackval&0xFFFF); //Reduced data if needed!
+							CPU_PUSH16(&stackval16); //Push the 16-bit stack value to the new stack!
+						}
+					}
+				}
+				//Push the old address to the new stack!
+				if (CPU_Operand_size) //32-bit?
+				{
+					CPU_PUSH16(&CPU[activeCPU].registers->CS);
+					CPU_PUSH32(&CPU[activeCPU].registers->EIP);
+				}
+				else //16-bit?
+				{
+					CPU_PUSH16(&CPU[activeCPU].registers->CS);
+					CPU_PUSH16(&CPU[activeCPU].registers->IP);
+				}
+			}
+
+			//Now, load the new descriptor and address for CS if needed(with secondary effects)!
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[segment],descriptor,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[segment])); //Load the segment descriptor into the cache!
 			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 			{
