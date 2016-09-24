@@ -79,9 +79,11 @@ struct
 	UART_hasdata hasdata;
 
 	byte interrupt_causes[4]; //All possible causes of an interrupt!
-	double UART_receivetiming; //UART receive timing!
-	double UART_bytereceivetiming; //UART byte received timing!
+	uint_32 UART_receivetiming; //UART receive timing!
+	uint_32 UART_bytereceivetiming; //UART byte received timing!
 } UART_port[4]; //All UART ports!
+
+double UART_clock = 0.0, UART_clocktick = 0.0; //The UART clock ticker!
 
 byte numUARTports = 0; //How many ports?
 
@@ -185,7 +187,12 @@ Processed until http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Progra
 
 void updateUARTSpeed(byte COMport, word DLAB)
 {
-	UART_port[COMport].UART_bytereceivetiming = (115200.0/(DLAB?0x10000:DLAB)) / (5+UART_port[COMport].LineControlRegister.DataBits+(UART_port[COMport].LineControlRegister.StopBits<<1)); //Every DLAB+1 / Line Control Register-dependant bytes per second! Simple formula instead of full emulation, like the PIT!
+	uint_32 transfertime, dividerclock;
+	transfertime = 1+(5 + UART_port[COMport].LineControlRegister.DataBits + (UART_port[COMport].LineControlRegister.StopBits << 1)); //The total amount of bits that needs to be sent! Start, Data and Stop bits!
+	dividerclock = (DLAB ? 0x10000 : DLAB); //The divider clock, by which the clock signal is divided!
+	//Every DLAB+1 / Line Control Register-dependant bytes per second! Simple formula instead of full emulation, like the PIT!
+	//The UART is based on a 1.8432 clock, which is divided by 16 for the bit clock(start, data and stop bits).
+	UART_port[COMport].UART_bytereceivetiming = (dividerclock<<4) * transfertime; //Master clock divided by 16, divided by DLAB, divider by individual transfer time is the actual data rate!
 }
 
 byte PORT_readUART(word port, byte *result) //Read from the uart!
@@ -407,27 +414,40 @@ void UART_handleInputs() //Handle any input to the UART!
 void updateUART(double timepassed)
 {
 	byte UART; //Check all UARTs!
-	//Check all UART received data!
-	for (UART=0;UART<4;++UART) //Check all UARTs!
+	uint_32 clockticks; //The clock ticks to process!
+	UART_clock += timepassed; //Tick our master clock!
+	if (UART_clock>=UART_clocktick) //Ticking the UART clock?
 	{
-		if (UART_port[UART].hasdata) //Data receiver enabled for this port?
+		clockticks = (uint_32)(UART_clock/UART_clocktick); //Divide the clock by the ticks to apply!
+		UART_clock -= (double)clockticks*UART_clocktick; //Rest the clocks!
+
+		//Check all UART received data!
+		for (UART=0;UART<4;++UART) //Check all UARTs!
 		{
-			UART_port[UART].UART_receivetiming += timepassed; //Time our counter!
-			if ((UART_port[UART].UART_receivetiming>=UART_port[UART].UART_bytereceivetiming) && UART_port[UART].UART_bytereceivetiming) //A byte has been received, timed?
+			if (UART_port[UART].hasdata) //Data receiver enabled for this port?
 			{
-				UART_port[UART].UART_receivetiming -= UART_port[UART].UART_bytereceivetiming; //We've received a byte, if available!
-				if (UART_port[UART].hasdata()) //Do we have data?
+				UART_port[UART].UART_receivetiming += clockticks; //Time our counter!
+				if ((UART_port[UART].UART_receivetiming>=UART_port[UART].UART_bytereceivetiming) && UART_port[UART].UART_bytereceivetiming) //A byte has been received, timed?
 				{
-					if (UART_port[UART].havereceiveddata==0) //No data received yet?
+					UART_port[UART].UART_receivetiming %= UART_port[UART].UART_bytereceivetiming; //We've received a byte, if available! No more than one byte is received at a time!
+					if (UART_port[UART].hasdata()) //Do we have data?
 					{
-						UART_port[UART].receiveddata = UART_port[UART].receivedata(); //Read the data to receive!
-						UART_port[UART].havereceiveddata = 1; //We've received data!
+						if (UART_port[UART].havereceiveddata==0) //No data received yet?
+						{
+							UART_port[UART].receiveddata = UART_port[UART].receivedata(); //Read the data to receive!
+							UART_port[UART].havereceiveddata = 1; //We've received data!
+						}
 					}
+				}
+				else if (UART_port[UART].UART_bytereceivetiming == 0) //Nothing to process?
+				{
+					UART_port[UART].UART_receivetiming = 0; //Don't handle any timing!
 				}
 			}
 		}
+
+		UART_handleInputs(); //Handle the input received, when needed, as well as other conditions required!
 	}
-	UART_handleInputs(); //Handle the input received, when needed, as well as other conditions required!
 }
 
 void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, UART_hasdata hasdata, UART_receivedata receivedata, UART_senddata senddata)
@@ -454,4 +474,6 @@ void initUART(byte numports) //Init software debugger!
 	{
 		UART_port[i >> 4].InterruptIdentificationRegister.InterruptPending = 1; //We're not executing!
 	}
+	UART_clock = 0.0; //Init our clock!
+	UART_clocktick = 1000000000.0/1843200.0; //The clock of the UART ticking!
 }
