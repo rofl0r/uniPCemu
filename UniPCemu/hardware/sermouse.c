@@ -32,24 +32,12 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 			buttons = packet->buttons; //Left/right/middle mouse button!
 			buttons &= 3; //Only left&right mouse buttons!
 			buttons = (buttons >> 1) | ((buttons & 1) << 1);  //Left mouse button and right mouse buttons are switched in the packet vs our mouse handler packet!
-			byte highbits, xmove, ymove;
+			byte highbits;
+			byte xmove, ymove;
 			//Translate our movement to valid values if needed!
-			if (packet->xmove < 0) //Negative movement?
-			{
-				xmove = 0x80 | (byte)(0x80 - (word)MAX((word)packet->xmove, -0x80)); //Negative X movement, 8-bit value!
-			}
-			else //Positive movement?
-			{
-				xmove = MIN(packet->xmove,0x7F); //Positive X movement, 8-bit value!
-			}
-			if (packet->ymove < 0) //Negative movement?
-			{
-				ymove = 0x80 | (byte)(0x80 - (word)MAX((word)packet->ymove, -0x80)); //Negative X movement, 8-bit value!
-			}
-			else //Positive movement?
-			{
-				ymove = MIN(packet->ymove, 0x7F); //Positive X movement, 8-bit value!
-			}
+			xmove = ((packet->xmove)<0)?((MAX(packet->xmove,-0x80)&0x7F)|0x80):(MIN(packet->xmove,0x7F)&0x7F); //X movement data!
+			ymove = ((packet->ymove)<0)?((MAX(packet->ymove,-0x80)&0x7F)|0x80):(MIN(packet->ymove,0x7F)&0x7F); //Y movement data!
+
 			if (SERMouse.movement==0) //Not gotten movement masked?
 			{
 				xmove = ymove = 0; //No movement!
