@@ -175,6 +175,8 @@ void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 	}
 }
 
+extern uint_32 destEIP; //For control transfers!
+
 void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJMPorCALL)
 {
 	word *result; //The result holder if needed!
@@ -186,6 +188,7 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 		if (result) //Gotten?
 		{
 			*result = value; //Write the data to the result!
+			destEIP = REG_EIP; //Our instruction pointer!
 			modrm_updatedsegment(result,value,0); //Plain update of the segment register, if needed!
 		}
 		else if (LOG_INVALID_REGISTERS)

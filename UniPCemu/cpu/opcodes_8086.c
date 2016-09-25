@@ -1151,6 +1151,7 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 	CPUPROT1
 	if (dest) //Register?
 	{
+		destEIP = REG_EIP; //Store (E)IP for safety!
 		modrm_updatedsegment(dest,val,0); //Check for an updated segment!
 		CPUPROT1
 		*dest = val;
@@ -1971,6 +1972,7 @@ OPTINLINE void CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 	word segment = modrm_read16(&params,1);
 	modrm_addoffset = 0; //Reset again!
 	CPUPROT1
+		destEIP = REG_EIP; //Save EIP for transfers!
 		segmentWritten(segmentregister, segment,0); //Load the new segment!
 	CPUPROT1
 		modrm_write16(&params, 0, offset, 0); //Try to load the new register with the offset!

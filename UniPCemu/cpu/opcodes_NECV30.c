@@ -123,6 +123,8 @@ OPTINLINE void modrm186_generateInstructionTEXT(char *instruction, byte debugger
 
 extern uint_32 customoffset; //Offset to use!
 
+extern uint_32 destEIP; //For control transfers!
+
 OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 version!
 {
 	if (MMU_invaddr())
@@ -132,6 +134,7 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 	CPUPROT1
 		if (dest) //Register?
 		{
+			destEIP = REG_EIP; //Store (E)IP for safety!
 			modrm_updatedsegment(dest, val, 0); //Check for an updated segment!
 			CPUPROT1
 			*dest = val; //Write directly, if not errored out!
