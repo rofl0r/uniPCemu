@@ -9,8 +9,10 @@ struct
 {
 	byte supported; //Are we supported?
 	FIFOBUFFER *buffer; //The input buffer!
-	byte modemcontrol; //Modem control register!
 	byte buttons; //Current button status!
+	byte movementmask; //Movement mask to use!
+	byte powered; //Are we powered?
+	byte previouspower; //Old power status!
 } SERMouse;
 
 byte useSERMouse() //Serial mouse enabled?
@@ -20,7 +22,7 @@ byte useSERMouse() //Serial mouse enabled?
 
 void SERmouse_packet_handler(MOUSE_PACKET *packet)
 {
-	if ((packet->xmove) || (packet->ymove) || (SERMouse.buttons != packet->buttons)) //Something to do?
+	if (((((packet->xmove) || (packet->ymove)) && SERMouse.movementmask) || (SERMouse.buttons != packet->buttons)) && SERMouse.powered) //Something to do and powered on?
 	{
 		//Process the packet into the buffer, if possible!
 		if (fifobuffer_freesize(SERMouse.buffer) > 2) //Gotten enough space to process?
@@ -35,8 +37,8 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 			if (packet->xmove < 0) highbits = 3;
 			if (packet->ymove < 0) highbits |= 12;
 			writefifobuffer(SERMouse.buffer, 0x40 | (buttons << 4) | highbits); //Give info and buttons!
-			writefifobuffer(SERMouse.buffer, packet->xmove&63); //X movement!
-			writefifobuffer(SERMouse.buffer, packet->ymove&63); //Y movement!
+			writefifobuffer(SERMouse.buffer, (packet->xmove&SERMouse.movementmask)); //X movement!
+			writefifobuffer(SERMouse.buffer, (packet->ymove&SERMouse.movementmask)); //Y movement!
 		}
 	}
 	MOUSE_PACKET *temp;
@@ -46,16 +48,14 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 
 void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 {
-	if (((line & 3) == 3) && ((SERMouse.modemcontrol&3)!=3)) //DTR&RTS set?
+	SERMouse.powered = (line & 2); //Are we powered on? This is done by the RTS output!
+	if (SERMouse.powered&(SERMouse.previouspower^SERMouse.powered)) //Powered on? We're performing a mouse reset(Repowering the mouse)!
 	{
 		fifobuffer_clear(SERMouse.buffer); //Flush the FIFO buffer until last input!
-		int i;
-		for (i = 0;i < 7;i++) //How many bytes to send?
-		{
-			writefifobuffer(SERMouse.buffer, 'M'); //with a bunch of ASCII 'M' characters.
-		}
+		writefifobuffer(SERMouse.buffer, 'M'); //We respond with an ASCII 'M' character on reset.
 	}
-	SERMouse.modemcontrol = line; //Set the modem control lines for reference!
+	SERMouse.previouspower = SERMouse.powered; //Save the new poweron status for poweron toggle!
+	SERMouse.movementmask = (line&1)?0x3F:0x00; //Allow movement to be used? Clearing DTR makes it not give Movement Input(it powers the lights that detect movement).
 }
 
 byte serMouse_readData()

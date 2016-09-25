@@ -61,9 +61,10 @@ struct
 		}; //Information about the sending structure.
 		byte data;
 	} LineControlRegister;
-	byte ModemControlRegister;
-	byte LineStatusRegister;
-	byte ModemStatusRegister;
+	byte ModemControlRegister; //Bit0=DTR, 1=RTS, 2=Alternative output 1, 3=Alternative output 2, 4=Loopback mode, 5=Autoflow control (16750 only
+	byte LineStatusRegister; //Bit0=Data available, 1=Overrun error, 2=Parity error, 3=Framing error, 4=Break signal received, 5=THR is empty, 6=THR is empty and all bits are sent, 7=Errorneous data in FIFO.
+	byte ModemStatusRegister; //Bit4=CTS, 5=DSR, 6=Ring indicator, 7=Carrier detect; Bits 0-3=Bits 4-6 changes, reset when read.
+	byte oldModemStatusRegister; //Last Modem status register values(high 4 bits)!
 	byte ScratchRegister;
 	//Seperate register alternative
 	word DLAB; //The speed of transmission, 115200/DLAB=Speed set.
@@ -187,12 +188,11 @@ Processed until http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Progra
 
 void updateUARTSpeed(byte COMport, word DLAB)
 {
-	uint_32 transfertime, dividerclock;
-	transfertime = 1+(5 + UART_port[COMport].LineControlRegister.DataBits + (UART_port[COMport].LineControlRegister.StopBits << 1)); //The total amount of bits that needs to be sent! Start, Data and Stop bits!
-	dividerclock = (DLAB ? 0x10000 : DLAB); //The divider clock, by which the clock signal is divided!
+	uint_32 transfertime;
+	transfertime = (7 + UART_port[COMport].LineControlRegister.DataBits + UART_port[COMport].LineControlRegister.StopBits); //The total amount of bits that needs to be sent! Start, Data and Stop bits!
 	//Every DLAB+1 / Line Control Register-dependant bytes per second! Simple formula instead of full emulation, like the PIT!
 	//The UART is based on a 1.8432 clock, which is divided by 16 for the bit clock(start, data and stop bits).
-	UART_port[COMport].UART_bytereceivetiming = (dividerclock<<4) * transfertime; //Master clock divided by 16, divided by DLAB, divider by individual transfer time is the actual data rate!
+	UART_port[COMport].UART_bytereceivetiming = ((uint_32)DLAB<<4) * transfertime; //Master clock divided by 16, divided by DLAB, divider by individual transfer time is the actual data rate!
 }
 
 byte PORT_readUART(word port, byte *result) //Read from the uart!
@@ -308,6 +308,10 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 					break;
 				}
 			}
+			UART_port[COMport].ModemStatusRegister &= 0xF0; //Only keep the relevant bits! The change bits are cleared!
+			UART_port[COMport].ModemStatusRegister |= ((UART_port[COMport].ModemStatusRegister^UART_port[COMport].oldModemStatusRegister)>>4)&0xB; //Bits have changed? Ring has other indicators!
+			UART_port[COMport].ModemStatusRegister |= (((UART_port[COMport].oldModemStatusRegister&0x40)&((~UART_port[COMport].ModemStatusRegister)&0x40))>>4); //Only set the Ring lowered bit when the ring indicator is lowered!
+			UART_port[COMport].oldModemStatusRegister = UART_port[COMport].ModemStatusRegister; //Save the old state of flags to compare!
 			*result = UART_port[COMport].ModemStatusRegister; //Give the register!
 			break;
 		case 7: //Scratch register?
