@@ -11,8 +11,7 @@ struct
 	FIFOBUFFER *buffer; //The input buffer!
 	byte buttons; //Current button status!
 	byte movementmask; //Movement mask to use!
-	byte powered; //Are we powered?
-	byte previouspower; //Old power status!
+	byte powered; //Are we powered on?
 } SERMouse;
 
 byte useSERMouse() //Serial mouse enabled?
@@ -34,11 +33,30 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 			buttons &= 3; //Only left&right mouse buttons!
 			buttons = (buttons >> 1) | ((buttons & 1) << 1);  //Left mouse button and right mouse buttons are switched in the packet vs our mouse handler packet!
 			uint8_t highbits = 0;
-			if (packet->xmove < 0) highbits = 3;
-			if (packet->ymove < 0) highbits |= 12;
+			union
+			{
+				struct
+				{
+					byte xmove;
+					byte ymove;
+				};
+				struct
+				{
+					sbyte smovex;
+					sbyte smovey;
+				};
+			} movementconverter;
+			movementconverter.smovex = packet->xmove; //X movement, 8-bit value!
+			movementconverter.smovey = packet->ymove; //Y movement, 8-bit value!
+			if (SERMouse.movementmask) //Not gotten movement masked?
+			{
+				//Bits 0-1 are X6&X7. Bits 2-3 are Y6&Y7. They're signed values.
+				highbits |= (movementconverter.xmove>>6); //X6&X7 to bits 0-1!
+				highbits |= ((movementconverter.ymove>>4)&0xC); //Y6&7 to bits 2-3!
+			}
 			writefifobuffer(SERMouse.buffer, 0x40 | (buttons << 4) | highbits); //Give info and buttons!
-			writefifobuffer(SERMouse.buffer, (packet->xmove&SERMouse.movementmask)); //X movement!
-			writefifobuffer(SERMouse.buffer, (packet->ymove&SERMouse.movementmask)); //Y movement!
+			writefifobuffer(SERMouse.buffer, (movementconverter.xmove&SERMouse.movementmask)); //X movement!
+			writefifobuffer(SERMouse.buffer, (movementconverter.ymove&SERMouse.movementmask)); //Y movement!
 		}
 	}
 	MOUSE_PACKET *temp;
@@ -48,13 +66,14 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 
 void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 {
+	INLINEREGISTER byte previouspower; //Previous power line detected!
+	previouspower = SERMouse.powered; //Previous power present?
 	SERMouse.powered = (line & 2); //Are we powered on? This is done by the RTS output!
-	if (SERMouse.powered&(SERMouse.previouspower^SERMouse.powered)) //Powered on? We're performing a mouse reset(Repowering the mouse)!
+	if (SERMouse.powered&(previouspower^SERMouse.powered)) //Powered on? We're performing a mouse reset(Repowering the mouse)!
 	{
 		fifobuffer_clear(SERMouse.buffer); //Flush the FIFO buffer until last input!
 		writefifobuffer(SERMouse.buffer, 'M'); //We respond with an ASCII 'M' character on reset.
 	}
-	SERMouse.previouspower = SERMouse.powered; //Save the new poweron status for poweron toggle!
 	SERMouse.movementmask = (line&1)?0x3F:0x00; //Allow movement to be used? Clearing DTR makes it not give Movement Input(it powers the lights that detect movement).
 }
 
