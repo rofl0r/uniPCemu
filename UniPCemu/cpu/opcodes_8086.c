@@ -3350,6 +3350,7 @@ void op_grp3_16() {
 void op_grp5() {
 	MODRM_PTR info; //To contain the info!
 	INLINEREGISTER byte tempCF;
+	word destCS;
 	switch (thereg) {
 	case 0: //INC Ev
 		oper2 = 1;
@@ -3402,8 +3403,16 @@ void op_grp5() {
 		break;
 	case 3: //CALL Mp
 		modrm_decode16(&params, &info, 1); //Get data!
-		destEIP = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);
-		segmentWritten(CPU_SEGMENT_CS, MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0), 2);
+		CPUPROT1
+		modrm_addoffset = 0; //First IP!
+		destEIP = modrm_read16(&params,1); //Get destination IP!
+		CPUPROT1
+		modrm_addoffset = 2; //Then destination CS!
+		destCS = modrm_read16(&params,1); //Get destination CS!
+		CPUPROT1
+		modrm_addoffset = 0;
+		segmentWritten(CPU_SEGMENT_CS, destCS, 2);
+		CPUPROT1
 		if (MODRM_EA(params)) //Mem?
 		{
 			CPU[activeCPU].cycles_OP = 37 + MODRM_EA(params); /* Intersegment indirect */
@@ -3416,6 +3425,10 @@ void op_grp5() {
 		{
 			CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */
 		}
+		CPUPROT2
+		CPUPROT2
+		CPUPROT2
+		CPUPROT2
 		break;
 	case 4: //JMP Ev
 		REG_IP = oper1;
@@ -3433,7 +3446,9 @@ void op_grp5() {
 	case 5: //JMP Mp
 		modrm_decode16(&params, &info, 1); //Get data!
 		destEIP = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);
+		CPUPROT1
 		segmentWritten(CPU_SEGMENT_CS, MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0), 1);
+		CPUPROT1
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 24 + MODRM_EA(params); /* Intersegment indirect through memory */
@@ -3444,9 +3459,12 @@ void op_grp5() {
 		{
 			CPU[activeCPU].cycles_OP = 11; /* Intersegment indirect through register */
 		}
+		CPUPROT2
+		CPUPROT2
 		break;
 	case 6: //PUSH Ev
 		CPU_PUSH16(&oper1); break;
+		CPUPROT1
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 16+MODRM_EA(params); /*Push Mem!*/
@@ -3457,6 +3475,7 @@ void op_grp5() {
 		{
 			CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/
 		}
+		CPUPROT2
 		break;
 	default: //Unknown OPcode?
 		CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
