@@ -10,7 +10,7 @@ struct
 	byte supported; //Are we supported?
 	FIFOBUFFER *buffer; //The input buffer!
 	byte buttons; //Current button status!
-	byte movementmask; //Movement mask to use!
+	byte movement; //Movement detection is powered on?
 	byte powered; //Are we powered on?
 } SERMouse;
 
@@ -21,42 +21,45 @@ byte useSERMouse() //Serial mouse enabled?
 
 void SERmouse_packet_handler(MOUSE_PACKET *packet)
 {
-	if (((((packet->xmove) || (packet->ymove)) && SERMouse.movementmask) || (SERMouse.buttons != packet->buttons)) && SERMouse.powered) //Something to do and powered on?
+	if (((((packet->xmove) || (packet->ymove)) && SERMouse.movement) || (SERMouse.buttons != packet->buttons)) && SERMouse.powered) //Something to do and powered on?
 	{
 		//Process the packet into the buffer, if possible!
 		if (fifobuffer_freesize(SERMouse.buffer) > 2) //Gotten enough space to process?
 		{
 			byte buttons = 0;
-			SERMouse.buttons = packet->buttons; //Last button status!
+			SERMouse.buttons = packet->buttons; //Save last button status!
 			//Convert buttons (packet=1=left, 2=right, 4=middle) to output (1=right, 2=left)!
 			buttons = packet->buttons; //Left/right/middle mouse button!
 			buttons &= 3; //Only left&right mouse buttons!
 			buttons = (buttons >> 1) | ((buttons & 1) << 1);  //Left mouse button and right mouse buttons are switched in the packet vs our mouse handler packet!
-			uint8_t highbits = 0;
-			union
+			byte highbits, xmove, ymove;
+			//Translate our movement to valid values if needed!
+			if (packet->xmove < 0) //Negative movement?
 			{
-				struct
-				{
-					byte xmove;
-					byte ymove;
-				};
-				struct
-				{
-					sbyte smovex;
-					sbyte smovey;
-				};
-			} movementconverter;
-			movementconverter.smovex = packet->xmove; //X movement, 8-bit value!
-			movementconverter.smovey = packet->ymove; //Y movement, 8-bit value!
-			if (SERMouse.movementmask) //Not gotten movement masked?
-			{
-				//Bits 0-1 are X6&X7. Bits 2-3 are Y6&Y7. They're signed values.
-				highbits |= (movementconverter.xmove>>6); //X6&X7 to bits 0-1!
-				highbits |= ((movementconverter.ymove>>4)&0xC); //Y6&7 to bits 2-3!
+				xmove = 0x80 | (byte)(0x80 - (word)MAX((word)packet->xmove, -0x80)); //Negative X movement, 8-bit value!
 			}
+			else //Positive movement?
+			{
+				xmove = MIN(packet->xmove,0x7F); //Positive X movement, 8-bit value!
+			}
+			if (packet->ymove < 0) //Negative movement?
+			{
+				ymove = 0x80 | (byte)(0x80 - (word)MAX((word)packet->ymove, -0x80)); //Negative X movement, 8-bit value!
+			}
+			else //Positive movement?
+			{
+				ymove = MIN(packet->ymove, 0x7F); //Positive X movement, 8-bit value!
+			}
+			if (SERMouse.movement==0) //Not gotten movement masked?
+			{
+				xmove = ymove = 0; //No movement!
+			}
+			//Bits 0-1 are X6&X7. Bits 2-3 are Y6&Y7. They're signed values.
+			highbits = ((xmove >> 6) & 0x3); //X6&X7 to bits 0-1!
+			highbits |= ((ymove >> 4) & 0xC); //Y6&7 to bits 2-3!
 			writefifobuffer(SERMouse.buffer, 0x40 | (buttons << 4) | highbits); //Give info and buttons!
-			writefifobuffer(SERMouse.buffer, (movementconverter.xmove&SERMouse.movementmask)); //X movement!
-			writefifobuffer(SERMouse.buffer, (movementconverter.ymove&SERMouse.movementmask)); //Y movement!
+			writefifobuffer(SERMouse.buffer, (xmove&0x3F)); //X movement!
+			writefifobuffer(SERMouse.buffer, (ymove&0x3F)); //Y movement!
 		}
 	}
 	MOUSE_PACKET *temp;
@@ -74,7 +77,7 @@ void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 		fifobuffer_clear(SERMouse.buffer); //Flush the FIFO buffer until last input!
 		writefifobuffer(SERMouse.buffer, 'M'); //We respond with an ASCII 'M' character on reset.
 	}
-	SERMouse.movementmask = (line&1)?0x3F:0x00; //Allow movement to be used? Clearing DTR makes it not give Movement Input(it powers the lights that detect movement).
+	SERMouse.movement = (line&1); //Allow movement to be used? Clearing DTR makes it not give Movement Input(it powers the lights that detect movement).
 }
 
 byte serMouse_readData()
