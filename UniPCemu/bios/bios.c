@@ -114,7 +114,11 @@ extern byte is_XT; //Are we emulating a XT architecture?
 
 void autoDetectArchitecture()
 {
-	is_XT = ((EMULATED_CPU <= CPU_NECV30) || (BIOS_Settings.PS2Mouse == 0)); //Are we emulating a XT architecture?
+	is_XT = (BIOS_Settings.architecture==ARCHITECTURE_XT); //XT architecture?
+	if (EMULATED_CPU >= CPU_80386) //Are we emulating a AT architecture CPU?
+	{
+		is_XT = 0; //We're forcing AT or PS/2 architecture!
+	}
 }
 
 void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIOS?)

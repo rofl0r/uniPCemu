@@ -167,7 +167,7 @@ void BIOS_VGAModeSetting(); //VGA Mode setting!
 void BIOS_SoundMenu(); //Manage stuff concerning Sound.
 void BIOS_SoundFont_selection(); //FLOPPY0 selection menu!
 void BIOS_MusicPlayer(); //Music player!
-void BIOS_Mouse(); //Mouse selection menu!
+void BIOS_Architecture(); //Mouse selection menu!
 void BIOS_CPU(); //CPU menu!
 void BIOS_CPUSpeed(); //CPU speed selection!
 void BIOS_ClearCMOS(); //Clear the CMOS!
@@ -230,7 +230,7 @@ Handler BIOS_Menus[] =
 	,BIOS_SoundMenu //Sound settings menu is #31!
 	,BIOS_SoundFont_selection //Soundfont selection menu is #32!
 	,BIOS_MusicPlayer //Music Player is #33!
-	,BIOS_Mouse //Mouse menu is #34!
+	,BIOS_Architecture //Architecture menu is #34!
 	,BIOS_CPU //BIOS CPU menu is #35!
 	,BIOS_CPUSpeed //BIOS CPU speed is #36!
 	,BIOS_ClearCMOS //BIOS CMOS clear is #37!
@@ -505,7 +505,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	diagnosticsportoutput_breakpoint = BIOS_Settings.diagnosticsportoutput_breakpoint; //Set our new breakpoint, if any!
 	unlock(LOCK_MAINTHREAD); //Continue!
 
-	return (reboot_needed==2) || ((reboot_needed==1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
+	return (reboot_needed&2) || ((reboot_needed&1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
 }
 
 /*
@@ -1114,7 +1114,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
-		reboot_needed = 1; //We need to reboot to apply the ATA changes!
+		reboot_needed |= 1; //We need to reboot to apply the ATA changes!
 		BIOS_Settings.hdd0_readonly = 0; //Different resets readonly flag!
 		strcpy(BIOS_Settings.hdd0,""); //Unmount!
 		break;
@@ -1123,7 +1123,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 		break; //Just calmly return!
 	default: //File?
 		BIOS_Changed = 1; //Changed!
-		reboot_needed = 1; //We need to reboot to apply the ATA changes!
+		reboot_needed |= 1; //We need to reboot to apply the ATA changes!
 		if (strcmp(BIOS_Settings.hdd0, itemlist[file]) != 0) BIOS_Settings.hdd0_readonly = 0; //Different resets readonly flag!
 		strcpy(BIOS_Settings.hdd0,itemlist[file]); //Use this file!
 	}
@@ -1145,7 +1145,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
-		reboot_needed = 1; //We need to reboot to apply the ATA changes!
+		reboot_needed |= 1; //We need to reboot to apply the ATA changes!
 		BIOS_Settings.hdd1_readonly = 0; //Different resets readonly flag!
 		strcpy(BIOS_Settings.hdd1,""); //Unmount!
 		break;
@@ -1154,7 +1154,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 		break; //Just calmly return!
 	default: //File?
 		BIOS_Changed = 1; //Changed!
-		reboot_needed = 1; //We need to reboot to apply the ATA changes!
+		reboot_needed |= 1; //We need to reboot to apply the ATA changes!
 		if (strcmp(BIOS_Settings.hdd1, itemlist[file]) != 0) BIOS_Settings.hdd1_readonly = 0; //Different resets readonly flag!
 		strcpy(BIOS_Settings.hdd1,itemlist[file]); //Use this file!
 	}
@@ -1506,7 +1506,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 		if (file!=current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
-			reboot_needed = 1; //We need to reboot: a different CPU has been selected!
+			reboot_needed |= 1; //We need to reboot: a different CPU has been selected!
 			switch (file) //Which CPU?
 			{
 			case CPU_8086: //8086?
@@ -1644,7 +1644,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	}
 
 	optioninfo[advancedoptions] = 1; //Discard option!
-	if (!(reboot_needed==2)) //Able to continue running: Reboot is optional?
+	if ((reboot_needed&2)==0) //Able to continue running: Reboot is optional?
 	{
 		strcpy(menuoptions[advancedoptions++],"Discard Changes & Resume emulation"); //Option #1!
 	}
@@ -1656,9 +1656,9 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	if (EMU_RUNNING) //Emulator is running?
 	{
 		optioninfo[advancedoptions] = 3; //Restart emulator option!
-		strcpy(menuoptions[advancedoptions++], "Restart emulator"); //Restart emulator option!
+		strcpy(menuoptions[advancedoptions++], "Restart emulator (Save changes)"); //Restart emulator option!
 		optioninfo[advancedoptions] = 4; //Restart emulator and enter BIOS menu option!
-		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter Settings menu"); // Restart emulator and enter BIOS menu option!
+		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter Settings menu (save changes)"); // Restart emulator and enter BIOS menu option!
 	}
 	
 	if (!EMU_RUNNING) //Emulator isn't running?
@@ -1694,11 +1694,13 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		case 3: //Restart emulator?
 			bootBIOS = 0; //Not a forced first run!
 			BIOS_Menu = -1; //Quit!
+			BIOS_SaveStat = 1; //Save the BIOS!
 			reboot_needed = 2; //We need a reboot!
 			break;
 		case 4: //Restart emulator and enter BIOS menu?
 			bootBIOS = 1; //Forced first run!
 			BIOS_Menu = -1; //Quit!
+			BIOS_SaveStat = 1; //Save the BIOS!
 			reboot_needed = 2; //We need a reboot!
 			break;
 		}
@@ -3180,25 +3182,8 @@ void BIOS_InitInputText()
 	optioninfo[advancedoptions] = 1; //Keyboard colors!
 	strcpy(menuoptions[advancedoptions++], "Assign keyboard colors"); //Assign keyboard colors!
 
-setMousetext: //For fixing it!
-	optioninfo[advancedoptions] = 2; //Mouse!
-	strcpy(menuoptions[advancedoptions], "Mouse: ");
-	switch (BIOS_Settings.PS2Mouse) //Mouse?
-	{
-	case 0:
-		strcat(menuoptions[advancedoptions++], "Serial");
-		break;
-	case 1:
-		strcat(menuoptions[advancedoptions++], "PS/2");
-		break;
-	default: //Error: fix it!
-		BIOS_Settings.PS2Mouse = 0; //Reset/Fix!
-		BIOS_Changed = 1; //We've changed!
-		goto setMousetext; //Goto!
-		break;
-	}
 setJoysticktext: //For fixing it!
-	optioninfo[advancedoptions] = 3; //Joystick!
+	optioninfo[advancedoptions] = 2; //Joystick!
 	strcpy(menuoptions[advancedoptions], "Gaming mode: ");
 	switch (BIOS_Settings.input_settings.gamingmode_joystick) //Joystick?
 	{
@@ -3229,7 +3214,7 @@ setJoysticktext: //For fixing it!
 
 #ifndef SDL2
 #if !defined(IS_PSP) && !defined(ANDROID)
-	optioninfo[advancedoptions] = 4; //Reconnect joystick
+	optioninfo[advancedoptions] = 3; //Reconnect joystick
 	strcpy(menuoptions[advancedoptions++], "Detect joystick"); //Detect the new joystick!
 #endif
 #endif
@@ -3248,8 +3233,7 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 	case 0:
 	case 1:
 	case 2:
-	case 3:
-	case 4: //Valid option?
+	case 3: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Gaming mode buttons?
@@ -3259,12 +3243,9 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 			BIOS_Menu = 27; //Assign keyboard colors Menu!
 			break;
 		case 2:
-			if (!EMU_RUNNING) BIOS_Menu = 34; //Mouse option!
-			break;
-		case 3:
 			BIOS_Menu = 50; //Joystick option!
 			break;
-		case 4:
+		case 3:
 			BIOS_Menu = 51; //Joystick connect option!
 			break;
 		}
@@ -4133,7 +4114,7 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 		if (strcmp(BIOS_Settings.SoundFont, ""))
 		{
 			BIOS_Changed = 1; //Changed!
-			reboot_needed = 1; //We need to reboot!
+			reboot_needed |= 1; //We need to reboot!
 			strcpy(BIOS_Settings.SoundFont, ""); //Unmount!
 		}
 		break;
@@ -4144,7 +4125,7 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 		if (strcmp(BIOS_Settings.SoundFont, itemlist[file])!=0) //Changed?
 		{
 			BIOS_Changed = 1; //Changed!
-			reboot_needed = 1; //We need to reboot!
+			reboot_needed |= 1; //We need to reboot!
 		}
 		strcpy(BIOS_Settings.SoundFont, itemlist[file]); //Use this file!
 		break;
@@ -4236,39 +4217,41 @@ void BIOS_MusicPlayer() //Music Player!
 	BIOS_Menu = 31; //Return to the Sound menu!
 }
 
-void BIOS_Mouse()
+void BIOS_Architecture()
 {
-	BIOS_Title("Mouse");
+	BIOS_Title("Architecture");
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
-	GPU_EMU_printscreen(0, 4, "Mouse: "); //Show selection init!
+	GPU_EMU_printscreen(0, 4, "Architecture: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 2; //Ammount of Direct modes!
+	numlist = 3; //Ammount of Direct modes!
 	for (i = 0; i<3; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0], "Serial"); //Set filename from options!
-	strcpy(itemlist[1], "PS/2"); //Set filename from options!
+	strcpy(itemlist[0], "XT"); //Set filename from options!
+	strcpy(itemlist[1], "AT"); //Set filename from options!
+	strcpy(itemlist[2], "PS/2"); //Set filename from options!
 	int current = 0;
-	switch (BIOS_Settings.PS2Mouse) //What setting?
+	switch (BIOS_Settings.architecture) //What setting?
 	{
 	case 0: //Valid
 	case 1: //Valid
-		current = BIOS_Settings.PS2Mouse; //Valid: use!
+	case 2: //Valid
+		current = BIOS_Settings.architecture; //Valid: use!
 		break;
 	default: //Invalid
 		current = 0; //Default: none!
 		break;
 	}
-	if (BIOS_Settings.PS2Mouse != current) //Invalid?
+	if (BIOS_Settings.architecture != current) //Invalid?
 	{
-		BIOS_Settings.PS2Mouse = current; //Safety!
+		BIOS_Settings.architecture = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(7, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(14, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -4283,18 +4266,19 @@ void BIOS_Mouse()
 		if (file != current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
-			BIOS_Settings.PS2Mouse = file; //Select PS/2 Mouse setting!
+			BIOS_Settings.architecture = file; //Select PS/2 Mouse setting!
+			reboot_needed |= 1; //A reboot is needed when applied!
 		}
 		break;
 	}
-	BIOS_Menu = 25; //Goto Input menu!
+	BIOS_Menu = 35; //Goto CPU menu!
 }
 
 void BIOS_InitCPUText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i = 0; i<11; i++) //Clear all possibilities!
+	for (i = 0; i<12; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
@@ -4494,6 +4478,27 @@ setShowCPUSpeed:
 		++advancedoptions;
 		break;
 	}
+
+setMousetext: //For fixing it!
+	optioninfo[advancedoptions] = 12; //Mouse!
+	strcpy(menuoptions[advancedoptions], "Architecture: ");
+	switch (BIOS_Settings.architecture) //What architecture?
+	{
+	case 0:
+		strcat(menuoptions[advancedoptions++], "XT");
+		break;
+	case 1:
+		strcat(menuoptions[advancedoptions++], "AT");
+		break;
+	case 2:
+		strcat(menuoptions[advancedoptions++], "PS/2");
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.architecture = 0; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setMousetext; //Goto!
+		break;
+	}
 }
 
 void BIOS_CPU() //CPU menu!
@@ -4518,7 +4523,8 @@ void BIOS_CPU() //CPU menu!
 	case 8:
 	case 9:
 	case 10:
-	case 11: //Valid option?
+	case 11:
+	case 12: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -4601,6 +4607,10 @@ void BIOS_CPU() //CPU menu!
 				if (!EMU_RUNNING) BIOS_Menu = 58; //Timeout to be used for breakpoints?
 			}
 			break;
+		case 12: //Architecture
+			if (!EMU_RUNNING) BIOS_Menu = 34; //Architecture option!
+			break;
+
 		}
 		break;
 	default: //Unknown option?
@@ -4899,7 +4909,7 @@ void BIOS_DataBusSizeSetting()
 		if (file != current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
-			reboot_needed = 1; //A reboot is needed!
+			reboot_needed |= 1; //A reboot is needed!
 			BIOS_Settings.DataBusSize = file; //Select Data bus size setting!
 		}
 		break;
@@ -5092,7 +5102,7 @@ void BIOS_usePCSpeaker()
 {
 	BIOS_Settings.usePCSpeaker = !BIOS_Settings.usePCSpeaker; //Reverse!
 	BIOS_Changed = 1; //We've changed!
-	reboot_needed = 1; //A reboot is needed!
+	reboot_needed |= 1; //A reboot is needed!
 	BIOS_Menu = 31; //Goto Sound menu!
 }
 
@@ -5100,7 +5110,7 @@ void BIOS_useAdlib()
 {
 	BIOS_Settings.useAdlib = !BIOS_Settings.useAdlib; //Reverse!
 	BIOS_Changed = 1; //We've changed!
-	reboot_needed = 1; //A reboot is needed!
+	reboot_needed |= 1; //A reboot is needed!
 	BIOS_Menu = 31; //Goto Sound menu!
 }
 
@@ -5108,7 +5118,7 @@ void BIOS_useLPTDAC()
 {
 	BIOS_Settings.useLPTDAC = !BIOS_Settings.useLPTDAC; //Reverse!
 	BIOS_Changed = 1; //We've changed!
-	reboot_needed = 1; //A reboot is needed!
+	reboot_needed |= 1; //A reboot is needed!
 	BIOS_Menu = 31; //Goto Sound menu!
 }
 
@@ -5473,7 +5483,7 @@ void BIOS_useGameBlaster()
 {
 	BIOS_Settings.useGameBlaster = !BIOS_Settings.useGameBlaster; //Reverse!
 	BIOS_Changed = 1; //We've changed!
-	reboot_needed = 1; //A reboot is needed!
+	reboot_needed |= 1; //A reboot is needed!
 	BIOS_Menu = 31; //Goto Sound menu!
 }
 
@@ -5554,7 +5564,7 @@ void BIOS_useSoundBlaster()
 		if (file != current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
-			reboot_needed = 1; //A reboot is needed!
+			reboot_needed |= 1; //A reboot is needed!
 			BIOS_Settings.useSoundBlaster = file; //Select Sound Blaster setting!
 		}
 		break;

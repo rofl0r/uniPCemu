@@ -52,7 +52,7 @@ typedef struct PACKED
 
 	byte executionmode; //What mode to execute in during runtime?
 	byte VGA_Mode; //Enable VGA NMI on precursors?
-	byte PS2Mouse; //What mouse to use when using? 1=PS/2 mouse, 0=Serial mouse
+	byte architecture; //Are we using the XT/AT/PS/2 architecture?
 	uint_32 CPUSpeed;
 	uint_32 SoundSource_Volume; //The sound source volume knob!
 	byte ShowFramerate; //Show the frame rate?
@@ -112,6 +112,13 @@ typedef struct PACKED
 
 //To debug the text mode characters on-screen?
 #define DEBUG_VIDEOCARD (BIOS_Settings.executionmode==EXECUTIONMODE_VIDEOCARD)
+
+//Architecture possibilities
+enum Architectures {
+	ARCHITECTURE_XT = 0,
+	ARCHITECTURE_AT = 1,
+	ARCHITECTURE_PS2 = 2
+}; //All possible architectures!
 
 //B/W monitor setting:
 //Color mode

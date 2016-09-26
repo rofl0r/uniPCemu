@@ -360,13 +360,13 @@ void initEMU(int full) //Init!
 	BIOS_initKeyboard(); //Start up the keyboard!
 
 	debugrow("Initialising mouse...");
-	PS2_initMouse(BIOS_Settings.PS2Mouse); //Start up the mouse!
+	PS2_initMouse(BIOS_Settings.architecture>=ARCHITECTURE_PS2); //Start up the mouse!
 
 	//Load all BIOS presets!
 	debugrow("Initializing 8253...");
 	init8253(); //Init Timer&PC Speaker!
 	
-	if (EMULATED_CPU <= CPU_NECV30) //-186 CPU?
+	if (BIOS_Settings.architecture==ARCHITECTURE_XT) //XT architecture?
 	{
 		initEMS(2 * MBMEMORY); //2MB EMS memory!
 	}
@@ -395,7 +395,7 @@ void initEMU(int full) //Init!
 	initUART(1); //Initialise the UART (COM ports)!
 
 	debugrow("Initialising serial mouse...");
-	initSERMouse(!BIOS_Settings.PS2Mouse); //Initilialise the serial mouse!
+	initSERMouse(BIOS_Settings.architecture<=ARCHITECTURE_AT); //Initilialise the serial mouse for XT and AT!
 
 	debugrow("Initialising Floppy Disk Controller...");
 	initFDC(); //Initialise the Floppy Disk Controller!
