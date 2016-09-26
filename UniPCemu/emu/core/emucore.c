@@ -211,6 +211,8 @@ byte useAdlib; //Using the Adlib?
 byte useLPTDAC; //Using the LPT DAC?
 byte useSoundBlaster; //Using the Sound Blaster?
 
+byte is_XT = 0; //Are we emulating an XT architecture?
+
 void initEMU(int full) //Init!
 {
 	char soundfont[256];
@@ -251,7 +253,9 @@ void initEMU(int full) //Init!
 	
 	debugrow("Initialising audio subsystem...");
 	resetchannels(); //Reset all channels!
-	
+
+	autoDetectArchitecture(); //Detect the architecture to use!
+
 	debugrow("Initialising PC Speaker...");
 	initSpeakers(BIOS_Settings.usePCSpeaker); //Initialise the speaker. Enable/disable sound according to the setting!
 
@@ -405,7 +409,7 @@ void initEMU(int full) //Init!
 	debugrow("Initialising joystick...");
 	joystickInit();
 
-	if (EMULATED_CPU<=CPU_NECV30) //XT?
+	if (is_XT) //XT?
 	{
 		initXTexpansionunit(); //Initialize the expansion unit!
 	}
@@ -1009,7 +1013,7 @@ extern byte SystemControlPortA;
 void EMU_onCPUReset()
 {
 	SystemControlPortA &= ~2; //Clear A20 here!
-	if (EMULATED_CPU>=CPU_80286) //AT CPU?
+	if (is_XT==0) //AT CPU?
 	{
 		Controller8042.outputport |= 2; //Set A20 here!
 	}

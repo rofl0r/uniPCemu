@@ -19,11 +19,13 @@ sword breakpoint_comparison = -1; //Breakpoint comparison value!
 uint_32 breakpoint_timeout = 1; //Timeout for the breakpoint to become active, in instructions! Once it becomes 0(and was 1), it triggers the breakpoint!
 extern byte NMI; //NMI control on XT support!
 
+extern byte is_XT; //Are we using XT architecture?
+
 byte readPPI62()
 {
 	byte result=0;
 	//Setup PPI62 as defined by System Control Port B!
-	if (EMULATED_CPU<=CPU_NECV30) //XT machine?
+	if (is_XT) //XT machine?
 	{
 		if (SystemControlPortB&8) //Read high switches?
 		{
@@ -60,7 +62,7 @@ byte PPI_readIO(word port, byte *result)
 	switch (port) //Special register: System control port B!
 	{
 	case 0x61: //System control port B?
-		if (EMULATED_CPU <= CPU_NECV30) //Keyboard controller port B?
+		if (is_XT) //Keyboard controller port B?
 		{
 			*result = 0x00; //Nothing here!
 		}
@@ -71,14 +73,14 @@ byte PPI_readIO(word port, byte *result)
 		return 1;
 		break;
 	case 0x62: //PPI62?
-		if (EMULATED_CPU<=CPU_NECV30) //Enabled?
+		if (is_XT) //Enabled?
 		{
 			*result = readPPI62(); //Read the value!
 			return 1;
 		}
 		break;
 	case 0x63: //PPI63?
-		if (EMULATED_CPU <= CPU_NECV30) //Enabled?
+		if (is_XT) //Enabled?
 		{
 			*result = PPI63; //Read the value!
 			return 1;
@@ -89,7 +91,7 @@ byte PPI_readIO(word port, byte *result)
 		return 1;
 		break;
 	case 0xA0: //NMI interrupt is enabled at highest bit on XT!
-		if (EMULATED_CPU <= CPU_NECV30) //Enabled?
+		if (is_XT) //Enabled?
 		{
 			*result = (byte)((~NMI)<<7); //NMI enabled? The flag itself is reversed!
 			return 1;
@@ -111,7 +113,7 @@ byte PPI_writeIO(word port, byte value)
 	switch (port)
 	{
 	case 0x61: //System control port B?
-		if (EMULATED_CPU<CPU_80286) //IBM XT?
+		if (is_XT) //IBM XT?
 		{
 			SystemControlPortB = (value&0x3C); //Set the port, only the middle 4 bits(highest 2 bits is the keyboard controller) are used: bit 5=I/O check enable, bit 4=RAM parity check enable, bit 3=Read low switches, bit2=Turbo Switch is ours!
 			PPI62 &= ~(((((SystemControlPortB & 0x10) << 1)) | ((SystemControlPortB & 0x20) >> 1)) << 2); //Setting the enable(it's reversed in the AT BIOS) bits clears the status of it's corresponding error bit, according to the AT BIOS!
@@ -126,29 +128,29 @@ byte PPI_writeIO(word port, byte value)
 			SystemControlPortB = (value&0xC)|(SystemControlPortB&0xC0); //Set the port, ignore the upper two bits!
 			SystemControlPortB &= ~(((((SystemControlPortB&4)<<1))|((SystemControlPortB&8)>>1))<<4); //Setting the enable(it's reversed in the AT BIOS) bits clears the status of it's corresponding error bit, according to the AT BIOS!
 		}
-		TurboMode = ((EMULATED_CPU<=CPU_NECV30) && (value&4)); //Turbo mode enabled on XT?
+		TurboMode = ((is_XT) && (value&4)); //Turbo mode enabled on XT?
 		updateSpeedLimit(); //Update the speed used!
 		return 1;
 		break;
 	case 0x62: //PPI62?
-		if (EMULATED_CPU <= CPU_NECV30) //Enabled?
+		if (is_XT) //Enabled?
 		{
 			PPI62 = value; //Set the value!
 			return 1;
 		}
 		break;
 	case 0x63: //PPI63?
-		if (EMULATED_CPU <= CPU_NECV30) //Enabled?
+		if (is_XT) //Enabled?
 		{
 			PPI63 = value; //Set the value!
 			return 1;
 		}
 		break;
 	case 0x60: //IBM XT Diagnostics!
-		if (EMULATED_CPU<=CPU_NECV30) goto outputdiagnostics; //Output diagnostics!
+		if (is_XT) goto outputdiagnostics; //Output diagnostics!
 		break;
 	case 0x80: //IBM AT Diagnostics!
-		if (EMULATED_CPU<CPU_80286) break; //Don't handle this for XT systems!
+		if (is_XT==0) break; //Don't handle this for XT systems!
 		outputdiagnostics: //Diagnostics port output!
 		if (((sword)value!=breakpoint_comparison) && (diagnosticsportoutput_breakpoint == (sword)value)) //Have we reached a breakpoint?
 		{
@@ -178,7 +180,7 @@ byte PPI_writeIO(word port, byte value)
 		return 1;
 		break;
 	case 0xA0: //NMI interrupt is enabled at highest bit on XT!
-		if (EMULATED_CPU <= CPU_NECV30) //Enabled?
+		if (is_XT) //Enabled?
 		{
 			NMI = !((value>>7)&1); //NMI disabled? This bit enables it, so reverse us!
 			return 1;

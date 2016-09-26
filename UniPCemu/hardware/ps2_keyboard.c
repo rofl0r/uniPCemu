@@ -274,6 +274,8 @@ void updatePS2Keyboard(double timepassed)
 	}
 }
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
 //Unknown: respond with 0xFE: Resend!
 OPTINLINE void commandwritten_keyboard() //Command has been written?
 {
@@ -340,7 +342,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		Keyboard.cmdOK = 1; //ACK and next step!
 		break;
 	case 0xF2: //Read ID: return 0xAB, 0x83!
-		if ((EMULATED_CPU<=CPU_NECV30) && (force8042==0)) //Allowed to ignore?
+		if ((is_XT) && (force8042==0)) //Allowed to ignore?
 		{
 			Keyboard.has_command = 0; //No command anymore!
 			return; //Ignored on XT controller: there's no keyboard ID!
@@ -557,7 +559,7 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	memset(scancodeset_break,1,sizeof(scancodeset_break)); //Allow break codes?
 	resetKeyboard(1,0); //Reset the keyboard controller, XT style!
 	input_lastwrite_keyboard(); //Force to user!
-	if (EMULATED_CPU>CPU_NECV30) keyboardControllerInit(); //Initialise the basic keyboard controller when allowed!
+	if (is_XT==0) keyboardControllerInit(); //Initialise the basic keyboard controller when allowed!
 	else //IBM XT initialization required?
 	{
 		keyboardtranslation_8042(0x40); //Enable the translation always with IBM XT!

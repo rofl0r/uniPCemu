@@ -110,6 +110,13 @@ void forceBIOSSave()
 	BIOS_SaveData(); //Save the BIOS, ignoring the result!
 }
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
+void autoDetectArchitecture()
+{
+	is_XT = ((EMULATED_CPU <= CPU_NECV30) || (BIOS_Settings.PS2Mouse == 0)); //Are we emulating a XT architecture?
+}
+
 void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIOS?)
 {
 	if (__HW_DISABLED) return; //Ignore updates to memory!
@@ -117,7 +124,9 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	
 	uint_32 freememory = freemem(); //The free memory available!
 	int_32 memoryblocks;
-	if (EMULATED_CPU<=CPU_NECV30) //XT?
+	
+	autoDetectArchitecture(); //Detect the architecture to use!
+	if (is_XT) //XT?
 	{
 		memoryblocks = SAFEDIV((freememory-FREEMEMALLOC),MEMORY_BLOCKSIZE_XT); //Calculate # of free memory size and prepare for block size!
 	}
@@ -126,7 +135,7 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 		memoryblocks = SAFEDIV((freememory - FREEMEMALLOC), MEMORY_BLOCKSIZE_AT); //Calculate # of free memory size and prepare for block size!
 	}
 	if (memoryblocks<0) memoryblocks = 0; //No memory left?
-	if (EMULATED_CPU<=CPU_NECV30) //XT?
+	if (is_XT) //XT?
 	{
 		BIOS_Settings.memory = memoryblocks * MEMORY_BLOCKSIZE_XT; //Whole blocks of memory only!
 	}
@@ -493,7 +502,7 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 	BIOS_ValidateData(); //Validate all data before continuing!
 
 	printmsg(0xF,"Memory installed: ");
-	printmsg(0xE,"%i blocks (%iKB / %iMB)\r\n",SAFEDIV(BIOS_GetMMUSize(),(EMULATED_CPU<=CPU_NECV30)?MEMORY_BLOCKSIZE_XT:MEMORY_BLOCKSIZE_AT),(SAFEDIV(BIOS_GetMMUSize(),1024)),(BIOS_GetMMUSize()/MBMEMORY));
+	printmsg(0xE,"%i blocks (%iKB / %iMB)\r\n",SAFEDIV(BIOS_GetMMUSize(),(is_XT)?MEMORY_BLOCKSIZE_XT:MEMORY_BLOCKSIZE_AT),(SAFEDIV(BIOS_GetMMUSize(),1024)),(BIOS_GetMMUSize()/MBMEMORY));
 
 	printmsg(0xF,"\r\n"); //A bit of space between memory and disks!
 	int numdrives = 0;

@@ -160,4 +160,6 @@ void BIOSKeyboardInit(); //BIOS part of keyboard initialisation!
 //Storage auto-detection, when supported!
 void BIOS_DetectStorage(); //Auto-Detect the current storage to use, on start only!
 
+void autoDetectArchitecture(); //Detect the architecture to use!
+
 #endif

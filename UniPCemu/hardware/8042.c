@@ -333,6 +333,8 @@ void datawritten_8042() //Data has been written?
 	fill8042_output_buffer(1); //Update the input buffer!
 }
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
 byte write_8042(word port, byte value)
 {
 	byte oldRAM0;
@@ -374,7 +376,7 @@ byte write_8042(word port, byte value)
 		return 1;
 		break;
 	case 0x61: //PPI keyboard functionality for XT!
-		if (EMULATED_CPU<CPU_80286) //XT machine only?
+		if (is_XT) //XT machine only?
 		{
 			if (value & 0x80) //Clear interrupt flag and we're a XT system?
 			{
@@ -425,7 +427,7 @@ byte read_8042(word port, byte *result)
 		if (Controller8042.status_buffer&1) //Gotten data?
 		{
 			*result = Controller8042.output_buffer; //Read output buffer!
-			if ((EMULATED_CPU>=CPU_80286) || force8042) //We're an AT system?
+			if ((is_XT==0) || force8042) //We're an AT system?
 			{
 				Controller8042.status_buffer &= ~0x21; //Clear output buffer full&AUX bits!
 				fill8042_output_buffer(1); //Get the next byte if needed!
@@ -443,7 +445,7 @@ byte read_8042(word port, byte *result)
 		return 1; //Force us to 0 by default!
 		break;
 	case 0x64: //Command port: read status register?
-		if ((EMULATED_CPU >= CPU_80286) || force8042) fill8042_output_buffer(1); //Fill the output buffer if needed!
+		if ((is_XT==0) || force8042) fill8042_output_buffer(1); //Fill the output buffer if needed!
 		*result = (Controller8042.status_buffer|0x10)|(Controller8042.PS2ControllerConfigurationByte.SystemPassedPOST<<2); //Read status buffer combined with the BIOS POST flag! We're never inhabited!
 		if (Controller8042.status_high) //High status overwritten?
 		{
@@ -471,7 +473,7 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	register_PORTIN(&read_8042);
 	Controller8042.RAM[0] = 0x50; //Init default status! Disable first port and enable translation!
 	reset8042(); //First 8042 controller reset!
-	if (EMULATED_CPU >= CPU_80286) //IBM AT? We're setting up the input port!
+	if (is_XT==0) //IBM AT? We're setting up the input port!
 	{
 		Controller8042.inputport = 0x80|0x20; //Keyboard not inhibited, Manufacturing jumper not installed.
 		switch (BIOS_Settings.VGA_Mode) //What VGA mode?

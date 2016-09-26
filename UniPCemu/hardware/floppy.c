@@ -1620,6 +1620,8 @@ byte getfloppydisktype(byte floppy)
 	return 2; //Default to 2.8MB to fit all!
 }
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
 byte PORT_IN_floppy(word port, byte *result)
 {
 	if ((port&~7) != 0x3F0) return 0; //Not our port range!
@@ -1664,7 +1666,7 @@ byte PORT_IN_floppy(word port, byte *result)
 		*result = floppy_readData(); //Read data!
 		return 1;
 	case 7: //DIR?
-		if (EMULATED_CPU>=CPU_80286) //AT?
+		if (is_XT==0) //AT?
 		{
 			updateFloppyDIR(); //Update the DIR register!
 			FLOPPY_LOGD("FLOPPY: Read DIR=%02X", FLOPPY.DIR.data)
@@ -1697,7 +1699,7 @@ byte PORT_OUT_floppy(word port, byte value)
 		FLOPPY_handlereset(0); //Execute a reset by DOR!
 		return 1; //Finished!
 	case 4: //DSR?
-		if (EMULATED_CPU>=CPU_80286) //AT?
+		if (is_XT==0) //AT?
 		{
 			FLOPPY_LOGD("FLOPPY: Write DSR=%02X", value)
 			FLOPPY.DSR.data = value; //Write to register to check for reset first!
@@ -1711,7 +1713,7 @@ byte PORT_OUT_floppy(word port, byte value)
 		floppy_writeData(value); //Write data!
 		return 1; //Default handler!
 	case 7: //CCR?
-		if (EMULATED_CPU>=CPU_80286) //AT?
+		if (is_XT==0) //AT?
 		{
 			FLOPPY_LOGD("FLOPPY: Write CCR=%02X", value)
 			FLOPPY.CCR.data = value; //Set CCR!
@@ -1755,7 +1757,7 @@ void FLOPPY_DMATC() //Terminal count triggered?
 
 void initFDC()
 {
-	density_forced = EMULATED_CPU>=CPU_80286; //Allow force density check if 286+ (non XT)!
+	density_forced = (is_XT==0); //Allow force density check if 286+ (non XT)!
 	memset(&FLOPPY, 0, sizeof(FLOPPY)); //Initialise floppy!
 	//Initialise DMA controller settings for the FDC!
 	DMA_SetDREQ(FLOPPY_DMA,0); //No DREQ!

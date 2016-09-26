@@ -261,6 +261,7 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 realddress, byte iswrite)
 #define LOW_MEMORYHOLE_START 0xA0000
 #define MID_MEMORYHOLE_START 0xF00000
 
+extern byte is_XT; //Are we emulating a XT architecture?
 
 //Direct memory access (for the entire emulator)
 byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
@@ -285,7 +286,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	if ((realaddress >= MMU.size) || nonexistant) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(realaddress, 0); //Invalid memory accessed!
-		if (EMULATED_CPU>=CPU_80286) //To give NOT for detecting memory?
+		if (is_XT==0) //To give NOT for detecting memory?
 		{
 			return 0xFF; //Give the last data read/written by the BUS!
 		}

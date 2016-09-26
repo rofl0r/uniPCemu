@@ -646,6 +646,8 @@ word encodeBCD16(word value) //Converts from decimal to digits!
 	return result;
 }
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
 byte in8254(word portnum, byte *result)
 {
 	byte pit;
@@ -731,14 +733,14 @@ byte in8254(word portnum, byte *result)
 			return 1;
 		case 0x61: //PC speaker? From original timer!
 			*result = (PCSpeakerPort&3); //This is always present on all PCs!
-			if (EMULATED_CPU>=CPU_80286) //Extra data specified here too (AT only)?
+			if (is_XT==0) //Extra data specified here too (AT only)?
 			{
 				*result |= ((PITchannels[1].risetoggle&1)<<4)|((PITchannels[2].channel_status&1)<<5); //Give the speaker port! PIT1 output at bit 4(toggling), PIT0 status as bit 5!
 			}
 			PIT_LOG("Read from misc port 0x%02X=%02X", portnum, *result);
 			return 1;
 		case 0x62: //Channel 2 on bit 5 of port 62 on XT!
-			if (EMULATED_CPU <= CPU_NECV30) //Extra data specified here too (XT only)?
+			if (is_XT) //Extra data specified here too (XT only)?
 			{
 				*result = ((PITchannels[2].channel_status & 1) << 5); //Give this bit only!
 				return 1; //Given!
@@ -887,9 +889,11 @@ byte out8254(word portnum, byte value)
 	return 0; //Unhandled!
 }
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
 void PIT0Acnowledge(byte IRQ)
 {
-	if (EMULATED_CPU<CPU_80286) //Non-AT?
+	if (is_XT) //Non-AT?
 	{
 		acnowledgeIRQrequest(0); //Acnowledge us!
 	}
