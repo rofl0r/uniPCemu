@@ -187,6 +187,8 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0x1234); //Make sure we boot the disk only, not do the BIOS again!
 }
 
+extern byte is_XT; //XT Architecture?
+
 //Result: 0=Continue;1=Reset!
 int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 {
@@ -249,7 +251,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			if (verified) goto loadOPTROMS; //Loaded the BIOS?
 
 			//Load a normal BIOS ROM, according to the chips!
-			if (EMULATED_CPU < CPU_80286) //5160 PC?
+			if (is_XT) //5160 XT PC?
 			{
 				verified = BIOS_load_custom(NULL, "BIOSROM.XT.BIN"); //Try to load a custom XT BIOS ROM!
 				if (verified) goto loadOPTROMS; //Loaded the BIOS?
@@ -277,7 +279,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				}
 				verified = 1; //Verified!
 			}
-			else //5170 PC?
+			else //5170 AT+ PC?
 			{
 				verified = BIOS_load_custom(NULL, "BIOSROM.AT.BIN"); //Try to load a custom AT BIOS ROM!
 				if (verified) goto loadOPTROMS; //Loaded the BIOS?
