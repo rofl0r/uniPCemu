@@ -1163,19 +1163,23 @@ OPTINLINE void CPU80386_internal_RET(word popbytes, byte isimm)
 OPTINLINE void CPU80386_internal_RETF(word popbytes, byte isimm)
 {
 	INLINEREGISTER uint_32 val = CPU_POP32();    //Far return
+	word destCS;
 	CPUPROT1
-		destEIP = val; //Load IP!
-	segmentWritten(CPU_SEGMENT_CS, CPU_POP16(), 2); //CS changed!
+	destCS = CPU_POP16(); //POP CS!
 	CPUPROT1
-		REG_ESP += popbytes; //Process SP!
+	destEIP = val; //Load IP!
+	segmentWritten(CPU_SEGMENT_CS, destCS, 4); //CS changed, we're a RETF instruction!
+	CPUPROT1
+	REG_ESP += popbytes; //Process SP!
+	if (isimm)
+		CPU[activeCPU].cycles_OP = 17; /* Intersegment with constant */
+	else
+		CPU[activeCPU].cycles_OP = 18; /* Intersegment */
+	CPU_addWordMemoryTiming386(); //To memory?
+	CPU_addWordMemoryTiming386(); //To memory?
 	CPUPROT2
-		CPUPROT2
-		if (isimm)
-			CPU[activeCPU].cycles_OP = 17; /* Intersegment with constant */
-		else
-			CPU[activeCPU].cycles_OP = 18; /* Intersegment */
-	CPU_addWordMemoryTiming386(); //To memory?
-	CPU_addWordMemoryTiming386(); //To memory?
+	CPUPROT2
+	CPUPROT2
 }
 
 void external80386RETF(word popbytes)
@@ -1295,6 +1299,12 @@ OPTINLINE void CPU80386_internal_LXS(int segmentregister) //LDS, LES etc.
 		}
 }
 
+void CPU80386_CALLF(word segment, uint_32 offset)
+{
+	destEIP = offset;
+	segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed, call version!*/
+}
+
 /*
 
 NOW THE REAL OPCODES!
@@ -1373,7 +1383,7 @@ void CPU80386_OP95() { modrm_generateInstructionTEXT386("XCHG EBP,EAX", 0, 0, PA
 void CPU80386_OP96() { modrm_generateInstructionTEXT386("XCHG ESI,EAX", 0, 0, PARAM_NONE);/*XCHG AX,SI*/ CPU80386_internal_XCHG32(&REG_ESI, &REG_EAX, 1); /*XCHG SI,AX*/ }
 void CPU80386_OP97() { modrm_generateInstructionTEXT386("XCHG EDI,EAX", 0, 0, PARAM_NONE);/*XCHG AX,DI*/ CPU80386_internal_XCHG32(&REG_EDI, &REG_EAX, 1); /*XCHG DI,AX*/ }
 void CPU80386_OP99() { modrm_generateInstructionTEXT386("CDQ", 0, 0, PARAM_NONE);/*CDQ : sign extend EAX to EDX::EAX*/ CPU80386_internal_CDQ();/*CDQ : sign extend AX to DX::AX (8088+)*/ }
-void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALL %04x:%08x", (segmentoffset >> 32), (segmentoffset & 0xFFFFFFFF)); uint_32 fromCS; fromCS = REG_CS; CPU_PUSH32(&fromCS); CPU_PUSH32(&REG_EIP); destEIP = (segmentoffset & 0xFFFFFFFF);  segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset >> 32), 2); /*CS changed!*/ CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ CPU_addWordMemoryTiming386(); /*To memory?*/ CPU_addWordMemoryTiming386(); /*To memory?*/ }
+void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALL %04x:%08x", (segmentoffset >> 32), (segmentoffset & 0xFFFFFFFF)); destEIP = (segmentoffset & 0xFFFFFFFF); CPU80386_CALLF((word)((uint_64)segmentoffset>>32),segmentoffset&0xFFFFFFFF); CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ CPU_addWordMemoryTiming386(); /*To memory?*/ CPU_addWordMemoryTiming386(); /*To memory?*/ }
 void CPU80386_OP9B() { modrm_generateInstructionTEXT386("WAIT", 0, 0, PARAM_NONE);/*WAIT : wait for TEST pin activity. (UNIMPLEMENTED)*/ CPU[activeCPU].wait = 1;/*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
 void CPU80386_OPA0() { INLINEREGISTER uint_32 theimm = imm32; debugger_setcommand("MOVB AL,[%s:%08X]", CPU_textsegment(CPU_SEGMENT_DS), theimm);/*MOV AL,[imm32]*/ CPU80386_internal_MOV8(&REG_AL, MMU_rb(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), theimm, 0), 1);/*MOV AL,[imm32]*/ }
 void CPU80386_OPA1() { INLINEREGISTER uint_32 theimm = imm32; debugger_setcommand("MOVW EAX,[%s:%08X]", CPU_textsegment(CPU_SEGMENT_DS), theimm);/*MOV AX,[imm32]*/  CPU80386_internal_MOV32(&REG_EAX, MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), theimm, 0), 1);/*MOV AX,[imm32]*/ }
@@ -2097,6 +2107,7 @@ void op_grp3_32() {
 void op_grp5_32() {
 	MODRM_PTR info; //To contain the info!
 	INLINEREGISTER byte tempCF;
+	word destCS;
 	switch (thereg) {
 	case 0: //INC Ev
 		oper2d = 1;
@@ -2148,10 +2159,16 @@ void op_grp5_32() {
 		CPU_flushPIQ(); //We're jumping to another address!
 		break;
 	case 3: //CALL Mp
-		CPU_PUSH16(&REG_CS); CPU_PUSH32(&REG_EIP);
 		modrm_decode32(&params, &info, 1); //Get data!
-		destEIP = MMU_rdw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);
-		segmentWritten(CPU_SEGMENT_CS, MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 4, 0), 2);
+		modrm_addoffset = 0; //First IP!
+		destEIP = modrm_read32(&params, 1); //Get destination IP!
+		CPUPROT1
+		modrm_addoffset = 4; //Then destination CS!
+		destCS = modrm_read16(&params, 1); //Get destination CS!
+		CPUPROT1
+		modrm_addoffset = 0;
+		CPU80386_CALLF(destCS, destEIP); //Call the destination address!
+		CPUPROT1
 		if (MODRM_EA(params)) //Mem?
 		{
 			CPU[activeCPU].cycles_OP = 37 + MODRM_EA(params); /* Intersegment indirect */
@@ -2164,6 +2181,9 @@ void op_grp5_32() {
 		{
 			CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */
 		}
+		CPUPROT2
+		CPUPROT2
+		CPUPROT2
 		break;
 	case 4: //JMP Ev
 		REG_EIP = oper1d;
@@ -2180,8 +2200,13 @@ void op_grp5_32() {
 		break;
 	case 5: //JMP Mp
 		modrm_decode32(&params, &info, 1); //Get data!
+		CPUPROT1
 		destEIP = MMU_rdw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);
-		segmentWritten(CPU_SEGMENT_CS, MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 4, 0), 1);
+		CPUPROT1
+		destCS = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 4, 0);
+		CPUPROT1
+		segmentWritten(CPU_SEGMENT_CS, destCS, 1);
+		CPUPROT1
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 24 + MODRM_EA(params); /* Intersegment indirect through memory */
@@ -2192,9 +2217,14 @@ void op_grp5_32() {
 		{
 			CPU[activeCPU].cycles_OP = 11; /* Intersegment indirect through register */
 		}
+		CPUPROT2
+		CPUPROT2
+		CPUPROT2
+		CPUPROT2
 		break;
 	case 6: //PUSH Ev
 		CPU_PUSH32(&oper1d); break;
+		CPUPROT1
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 16 + MODRM_EA(params); /*Push Mem!*/
@@ -2205,6 +2235,7 @@ void op_grp5_32() {
 		{
 			CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/
 		}
+		CPUPROT2
 		break;
 	default: //Unknown OPcode?
 		CPU_unkOP(); //Execute the unknown opcode exception handler, if any!

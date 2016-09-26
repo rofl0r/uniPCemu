@@ -1765,21 +1765,21 @@ OPTINLINE void CPU8086_internal_RETF(word popbytes, byte isimm)
 	INLINEREGISTER word val = CPU_POP16(); //Far return
 	word destCS;
 	CPUPROT1
-	destEIP = val; //Load IP!
 	destCS = CPU_POP16(); //POP CS!
 	CPUPROT1
-	segmentWritten(CPU_SEGMENT_CS,destCS,4); //CS changed! RETF instruction!
+	destEIP = val; //Load IP!
+	segmentWritten(CPU_SEGMENT_CS,destCS,4); //CS changed, we're a RETF instruction!
 	CPUPROT1
 	REG_SP += popbytes; //Process SP!
-	CPUPROT2
-	CPUPROT2
-	CPUPROT2
 	if (isimm)
 		CPU[activeCPU].cycles_OP = 17; /* Intersegment with constant */
 	else
 		CPU[activeCPU].cycles_OP = 18; /* Intersegment */
 	CPU_addWordMemoryTiming(); //To memory?
 	CPU_addWordMemoryTiming(); //To memory?
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
 }
 
 void external8086RETF(word popbytes)
@@ -3405,7 +3405,6 @@ void op_grp5() {
 		break;
 	case 3: //CALL Mp
 		modrm_decode16(&params, &info, 1); //Get data!
-		CPUPROT1
 		modrm_addoffset = 0; //First IP!
 		destEIP = modrm_read16(&params,1); //Get destination IP!
 		CPUPROT1
@@ -3413,7 +3412,7 @@ void op_grp5() {
 		destCS = modrm_read16(&params,1); //Get destination CS!
 		CPUPROT1
 		modrm_addoffset = 0;
-		segmentWritten(CPU_SEGMENT_CS, destCS, 2);
+		CPU8086_CALLF(destCS,destEIP); //Call the destination address!
 		CPUPROT1
 		if (MODRM_EA(params)) //Mem?
 		{
@@ -3427,7 +3426,6 @@ void op_grp5() {
 		{
 			CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */
 		}
-		CPUPROT2
 		CPUPROT2
 		CPUPROT2
 		CPUPROT2
@@ -3449,7 +3447,9 @@ void op_grp5() {
 		modrm_decode16(&params, &info, 1); //Get data!
 		destEIP = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);
 		CPUPROT1
-		segmentWritten(CPU_SEGMENT_CS, MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0), 1);
+		destCS = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0);
+		CPUPROT1
+		segmentWritten(CPU_SEGMENT_CS, destCS, 1);
 		CPUPROT1
 		if (MODRM_EA(params)) //Memory?
 		{
@@ -3461,6 +3461,7 @@ void op_grp5() {
 		{
 			CPU[activeCPU].cycles_OP = 11; /* Intersegment indirect through register */
 		}
+		CPUPROT2
 		CPUPROT2
 		CPUPROT2
 		break;
