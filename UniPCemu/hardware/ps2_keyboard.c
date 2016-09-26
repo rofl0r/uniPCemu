@@ -182,6 +182,7 @@ void updatePS2Keyboard(double timepassed)
 					give_keyboard_input(0xAA); //Give the result code!
 					IRQ8042(1); //We've got data in our input buffer!
 					Keyboard.command_step = 0; //Finished!
+					Keyboard.has_command = 0; //Finished command!
 					break;
 				}
 				break;
