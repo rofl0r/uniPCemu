@@ -842,7 +842,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //EFh:
 		//0xF0:
 		{ NULL, NULL }, //F0h: Special
-		{ NULL, NULL }, //F1h: UNK
+		{ CPU286_OPF1, NULL }, //F1h: UNK Don't do anything on 286+!
 		{ NULL, NULL }, //F2h: Special
 		{ NULL, NULL }, //F3h: Special
 		{ NULL, NULL }, //F4h:

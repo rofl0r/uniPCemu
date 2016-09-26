@@ -577,6 +577,11 @@ void CPU286_OP0FB9() //#UD instruction
 	unkOP0F_286(); //Deliberately #UD!
 }
 
+void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
+{
+	//Ignore this opcode!
+}
+
 //FPU non-existant Coprocessor support!
 
 void FPU80287_OPDBE3(){debugger_setcommand("<UNKOP8087: FNINIT>");}

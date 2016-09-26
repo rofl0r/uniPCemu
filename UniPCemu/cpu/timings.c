@@ -1280,7 +1280,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,0,0x00 }, //EE OUT DX,AL
 			{ 0,0,0,0,0,0,0,0x00 }, //EF OUT DX,AX
 			{ 0,0,0,0,0,0,0,0x00 }, //F0: LOCK prefix
-			{ 0,0,0,0,0,0,0,0x00 }, //F1: Undefined and reserved opcode
+			{ 1,0,0,0,0,0,0,0x00 }, //F1: Undefined and reserved opcode. Doesn't generate exceptions!
 			{ 0,0,0,0,0,0,0,0x00 }, //F2 REPNZ prefix
 			{ 0,0,0,0,0,0,0,0x00 }, //F3 REPZ prefix
 			{ 0,0,0,0,0,0,0,0x00 }, //F4 HLT

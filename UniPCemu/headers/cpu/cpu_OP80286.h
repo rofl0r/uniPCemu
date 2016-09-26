@@ -18,6 +18,8 @@ void CPU286_OP0F06(); //CLTS
 void CPU286_OP0F0B(); //#UD instruction
 void CPU286_OP0FB9(); //#UD instruction
 
+void CPU286_OPF1(); //Undefined opcode, Don't throw any exception!
+
 //FPU opcodes!
 void FPU80287_OPDB();
 void FPU80287_OPDF();
