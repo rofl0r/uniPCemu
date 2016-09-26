@@ -16,8 +16,8 @@ extern Controller8042_t Controller8042; //The 8042 itself!
 //Are we disabled?
 #define __HW_DISABLED 0
 
-//Timeout between commands or parameters and results being buffered!
-#define KEYBOARD_DEFAULTTIMEOUT 100000000.0
+//Timeout between commands or parameters and results being buffered! Use 5ms timings!
+#define KEYBOARD_DEFAULTTIMEOUT 5000000.0
 
 PS2_KEYBOARD Keyboard; //Active keyboard settings!
 
