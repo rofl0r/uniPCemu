@@ -570,5 +570,8 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 void BIOS_doneKeyboard()
 {
 	if (__HW_DISABLED) return; //Abort!
-	free_fifobuffer(&Keyboard.buffer); //Free the keyboard buffer!
+	if (Keyboard.buffer) //Something to deallocate?
+	{
+		free_fifobuffer(&Keyboard.buffer); //Free the keyboard buffer!
+	}
 }

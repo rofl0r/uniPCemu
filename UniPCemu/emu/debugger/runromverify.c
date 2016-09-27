@@ -13,6 +13,7 @@
 #include "headers/cpu/protection.h" //PMode support!
 #include "headers/support/locks.h" //Lock support!
 #include "headers/mmu/mmuhandler.h" //hasmemory support!
+#include "headers/emu/threads.h" //Multithreading support!
 
 extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?
@@ -33,8 +34,11 @@ extern byte REPPending; //REP pending reset?
 
 extern uint_32 CPU_InterruptReturn, CPU_exec_EIP; //Interrupt return address!
 
+extern ThreadParams_p debugger_thread; //Debugger menu thread!
+
 int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 {
+	byte debuggerinhibit = 0;
 	byte useHWInterrupts = 0; //Default: disable hardware interrupts!
 	char filename2[256];
 	bzero(filename2,sizeof(filename2)); //Clear the filename!
@@ -83,6 +87,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		{
 			fclose(f);    //Close when needed!
 		}
+		unlock(LOCK_CPU); //Finished with the CPU!
 		doneEMU();
 		dolog("ROM_log","Invalid file size!");
 		return 1; //OK!
@@ -92,6 +97,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	
 	if (!BIOS_load_custom("",filename)) //Failed to load the BIOS ROM?
 	{
+		unlock(LOCK_CPU); //Finished with the CPU!
 		doneEMU(); //Finish the emulator!
 		dolog("ROM_log","Failed loading the verification ROM as a BIOS!");
 		return 0; //Failed!
@@ -106,12 +112,25 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	dolog("debugger","Starting debugging file %s",filename); //Log the file we're going to test!
 	LOG_MMU_WRITES = debugger_logging(); //Enable logging!
 	allow_debuggerstep = 1; //Allow stepping of the debugger!
+	unlock(LOCK_CPU);
 	resetCPU(); //Make sure we start correctly!
+	lock(LOCK_CPU);
 	CPU[activeCPU].registers->CS = 0xF000;
 	CPU[activeCPU].registers->EIP = 0xFFF0; //Our reset vector instead for the test ROMs!
 	CPU_flushPIQ(); //Clear the PIQ from any unused instructions!
 	for (;!CPU[activeCPU].halt;) //Still running?
 	{
+		if (debugger_thread)
+		{
+			if (threadRunning(debugger_thread)) //Are we running the debugger?
+			{
+				unlock(LOCK_CPU);
+				delay(0); //OK, but skipped!
+				lock(LOCK_CPU);
+				continue; //Continue execution until not running anymore!
+			}
+		}
+
 		uint_32 curaddr = (CPU[activeCPU].registers->CS<<4)+CPU[activeCPU].registers->IP; //Calculate current memory address!
 		if (curaddr<0xF0000) //Out of executable range?
 		{
@@ -172,6 +191,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	if (!f)
 	{
 		BIOS_free_custom(filename); //Free the custom BIOS ROM!
+		unlock(LOCK_CPU); //Finished with the CPU!
 		doneEMU(); //Clean up!
 		dolog("ROM_log","Error: Failed opening result file!");
 		return 0; //Result file doesn't exist!
@@ -200,7 +220,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	}
 	fclose(f); //Close the file!
 	//dolog("ROM_log","Finishing emulator...");	
-	unlock(LOCK_CPU);
+	unlock(LOCK_CPU); //Finished with the CPU!
 	lock(LOCK_MAINTHREAD); //Lock the main thread(our other user)!
 	BIOS_free_custom(filename); //Free the custom BIOS ROM!
 	unlock(LOCK_MAINTHREAD); //Unlock us!

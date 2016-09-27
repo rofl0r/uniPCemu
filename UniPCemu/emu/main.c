@@ -468,7 +468,6 @@ int main(int argc, char * argv[])
 
 	unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
 	doneEMU(); //Finish up the emulator, if still required!
-	unlock(LOCK_MAINTHREAD); //Lock the main thread(us)!
 	skipcpu: //No CPU to execute?
 	stopTimers(1); //Stop all timers still running!
 
