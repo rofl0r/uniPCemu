@@ -38,7 +38,6 @@ extern ThreadParams_p debugger_thread; //Debugger menu thread!
 
 int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 {
-	byte debuggerinhibit = 0;
 	byte useHWInterrupts = 0; //Default: disable hardware interrupts!
 	char filename2[256];
 	bzero(filename2,sizeof(filename2)); //Clear the filename!
