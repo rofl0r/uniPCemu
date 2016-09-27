@@ -300,8 +300,8 @@ int BIOS_load_custom(char *path, char *rom)
 	else
 	{
 		strcpy(filename, path); //Where to find our ROM!
-		if (strcmp(filename,"")!=0) strcat(filename, "/"); //Only a seperator when not empty!
 	}
+	if (strcmp(filename, "") != 0) strcat(filename, "/"); //Only a seperator when not empty!
 	strcat(filename,rom); //Create the filename for the ROM!
 	f = fopen(filename,"rb");
 	if (!f)
