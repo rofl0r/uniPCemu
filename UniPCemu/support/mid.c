@@ -7,6 +7,7 @@
 #include "headers/hardware/midi/mididevice.h" //For the MIDI voices!
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/timers.h" //Tempo timer support!
+#include "headers/support/locks.h" //Locking support!
 
 //Enable this define to log all midi commands executed here!
 //#define MID_LOG
@@ -39,7 +40,6 @@ byte MID_TERM = 0; //MIDI termination flag!
 SDL_sem *MID_timing_pos_Lock = NULL; //Timing position lock!
 SDL_sem *MID_BPM_Lock = NULL; //BPM/Active tempo lock!
 //The protective semaphore for the hardware!
-SDL_sem *MIDLock = NULL;
 SDL_sem *MID_channel_Lock = NULL; //Our channel lock for counting running MIDI!
 
 uint_64 timing_pos = 0; //Current timing position!
@@ -381,7 +381,7 @@ OPTINLINE void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *head
 		else //Hardware?
 		{
 			//Lock
-			WaitSem(MIDLock)
+			lock(LOCK_MAINTHREAD);
 
 			if (curdata & 0x80) //Starting a new command?
 			{
@@ -468,10 +468,10 @@ OPTINLINE void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *head
 			{
 				PORT_OUT_B(0x330, 0xFF); //Reset the synthesizer!
 				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X", channel, error, last_command, curdata);
-				PostSem(MIDLock) //Finish up!
+				unlock(LOCK_MAINTHREAD); //Finish up!
 				return; //Abort on error!
 			}
-			PostSem(MIDLock) //Finish: prepare for next command!
+			unlock(LOCK_MAINTHREAD); //Finish: prepare for next command!
 		}
 	}
 }
@@ -510,7 +510,6 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 		PORT_OUT_B(0x331, 0x3F); //Kick to UART mode!
 
 		//Create the semaphore for the threads!
-		MIDLock = SDL_CreateSemaphore(1);
 		MID_timing_pos_Lock = SDL_CreateSemaphore(1);
 		MID_BPM_Lock = SDL_CreateSemaphore(1);
 		MID_channel_Lock = SDL_CreateSemaphore(1);
@@ -564,7 +563,6 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 		}
 
 		//Destroy semaphore
-		SDL_DestroySemaphore(MIDLock);
 		SDL_DestroySemaphore(MID_timing_pos_Lock);
 		SDL_DestroySemaphore(MID_BPM_Lock);
 		SDL_DestroySemaphore(MID_channel_Lock);
