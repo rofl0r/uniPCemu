@@ -339,7 +339,7 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 		delay(INPUT_INTERVAL); //Intervals of one!
 		if (shuttingdown()) //Request shutdown?
 		{
-			return 0; //No reset!
+			return 1; //Reset, abort if needed!
 		}
 		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun || bootBIOS || FORCE_BIOS || BIOSClicked) //R trigger pressed or first run? Also when clicked!
 		{
