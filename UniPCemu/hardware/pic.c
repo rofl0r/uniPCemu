@@ -317,10 +317,10 @@ void lowerirq(byte irqnum)
 
 void acnowledgeIRQrequest(byte irqnum)
 {
-	byte requestingindex = irqnum; //Save our index that's requesting!
-	irqnum &= 0xF; //Only 16 IRQs!
-	requestingindex >>= 4; //What index is requesting?
-	byte PIC = (irqnum >> 3); //IRQ8+ is high PIC!
+	//byte requestingindex = irqnum; //Save our index that's requesting!
+	//irqnum &= 0xF; //Only 16 IRQs!
+	//requestingindex >>= 4; //What index is requesting?
+	//byte PIC = (irqnum >> 3); //IRQ8+ is high PIC!
 	//i8259.irr[PIC] &= ~(1 << (irqnum & 7)); //Remove the IRQ from request! Don't affect the signal we receive, just acnowledge it so that no more interrupts are fired!
 	//We don't lower raised interrupts!
 }

@@ -567,7 +567,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					}
 				}
 				//Push the old address to the new stack!
-				if (CPU_Operand_size) //32-bit?
+				if (CPU_Operand_size[activeCPU]) //32-bit?
 				{
 					CPU_PUSH16(&CPU[activeCPU].registers->CS);
 					CPU_PUSH32(&CPU[activeCPU].registers->EIP);

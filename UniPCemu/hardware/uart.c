@@ -120,7 +120,7 @@ OPTINLINE void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 	}
 }
 
-OPTINLINE void startUARTIRQ(byte IRQ)
+void startUARTIRQ(byte IRQ)
 {
 	byte cause, port; //What cause are we?
 	byte portbase, actualport;
