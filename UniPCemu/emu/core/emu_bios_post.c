@@ -485,7 +485,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			DoDebugFiles(); //Do the debug files!
 			unlock(LOCK_CPU); //Finished with the main thread!
 			resumeEMU(0); //Resume the emulator!
-			return 1; //Reboot!
+			return 1; //Reboot to terminate us!
 
 		case EXECUTIONMODE_SOUND:
 			unlock(LOCK_MAINTHREAD);

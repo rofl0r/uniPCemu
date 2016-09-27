@@ -93,12 +93,20 @@ void terminateThread(uint_32 thid) //Terminate the thread!
 	int result;
 	#endif
 	//dolog("threads","terminateThread: Terminating thread: %x",thid);
-	SDL_Thread *thread=NULL;
+	SDL_Thread *thread; //The thread to test!
+	thread = NULL;
+
 	int thnr;
 	if ((thnr = getthreadpoolindex(thid))!=-1) //Found the thread?
 	{
 		thread = threadpool[thnr].thread; //Get the thread!
 	}
+	if (thread == NULL) //Can't release no thread!
+	{
+		releasePool(thid); //Release from pool if available!
+		return; //Abort!
+	}
+	//Just release!
 	releasePool(thid); //Release from pool if available!
 	if (thnr!=-1 && thread) //Valid thread to kill?
 	{
@@ -184,9 +192,9 @@ int threadhandler(/*SceSize args, void *params*/ void *data)
 void termThreads() //Terminate all threads but our own!
 {
 	//dolog("threads","termThreads...");
-	int i;
+	word i=(MAX_THREAD-1);
 	uint_32 my_thid = SDL_ThreadID(); //My own thread ID!
-	for (i=0;i<(int)NUMITEMS(threadpool);i++) //Process all of our threads!
+	for (;;) //Process all of our threads!
 	{
 		if (threadpool[i].used && (threadpool[i].threadID!=my_thid)) //Used and not ourselves?
 		{
@@ -206,6 +214,8 @@ void termThreads() //Terminate all threads but our own!
 				threadpool[i].used = 0; //Deallocate it!
 			}
 		}
+		if (i==0) break; //Finished?
+		--i; //Next!
 	}
 }
 

@@ -8,6 +8,7 @@
 #include "headers/emu/gpu/gpu_text.h" //Text surface support!
 #include "headers/emu/directorylist.h" //Directory listing support!
 #include "headers/emu/gpu/gpu_renderer.h" //For forcing a refresh of the screen!
+#include "headers/emu/emucore.h" //Core support!
 
 extern char ROMpath[256]; //ROM path!
 
@@ -82,7 +83,13 @@ void DoDebugFiles() //Do the debug files!
 				refreshscreen(); //Update the screen now!
 				dolog("ROM_log", "%s has gone wrong!", file_name);
 				unlock(LOCK_CPU); //Done with the CPU!
-				sleep(); //Wait forever for us to be closed!
+				delay(5000000); //Wait a bit before closing!
+				lock(LOCK_MAINTHREAD); //Lock the main thread!
+				initEMU(0); //Make sure we still exist when terinating us!
+				EMU_Shutdown(1); //Request shutdown!
+				unlock(LOCK_MAINTHREAD); //We're allowing the main thread to finish!
+				lock(LOCK_CPU); //Done with the CPU, so lock us to return!
+				return; //Terminate us!
 			}
 			refreshscreen(); //Update the screen now!
 		} //Not a result file?
@@ -94,6 +101,11 @@ void DoDebugFiles() //Do the debug files!
 	unlock(LOCK_CPU); //Done with the CPU!
 	GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Verification complete!");
 	refreshscreen(); //Update the screen now!
-	quitemu(0); //Quit if possible!
-	sleep(); //Wait forever with the emulator active!
+	delay(5000000); //Wait a bit before closing!
+	lock(LOCK_MAINTHREAD); //Lock the main thread!
+	initEMU(0); //Make sure we still exist when terinating us!
+	EMU_Shutdown(1); //Request shutdown!
+	unlock(LOCK_MAINTHREAD); //We're allowing the main thread to finish!
+	lock(LOCK_CPU); //Done with the CPU, so lock us to return!
+	return; //Terminate us!
 }
