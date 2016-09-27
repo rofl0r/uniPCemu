@@ -251,31 +251,59 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			if (verified) goto loadOPTROMS; //Loaded the BIOS?
 
 			//Load a normal BIOS ROM, according to the chips!
-			if (is_XT) //5160 XT PC?
+			if (is_XT) //5160/5162(80286) XT PC?
 			{
-				verified = BIOS_load_custom(NULL, "BIOSROM.XT.BIN"); //Try to load a custom XT BIOS ROM!
+				if (EMULATED_CPU!=CPU_80286) verified = BIOS_load_custom(NULL, "BIOSROM.XT.BIN"); //Try to load a custom XT BIOS ROM!
+				else verified = BIOS_load_custom(NULL, "BIOSROM.XT286.BIN"); //Try to load a custom XT BIOS ROM!
 				if (verified) goto loadOPTROMS; //Loaded the BIOS?
 
-				if (!BIOS_load_ROM(18)) //Failed to load u18?
+				if (EMULATED_CPU == CPU_80286) //80286 has different ROMs?
 				{
-					dolog("emu", "Failed loading BIOS ROM u18!");
-					CPU_INT(0x18,0); //Error: no ROM!
-					allow_debuggerstep = 1; //Allow stepping from now on!
-					resumeEMU(1); //Resume the emulator!
-					unlock(LOCK_CPU);
-					unlock(LOCK_MAINTHREAD);
-					return 0; //No reset!
+					if (!BIOS_load_ROM(34)) //Failed to load u18?
+					{
+						dolog("emu", "Failed loading BIOS ROM u34!");
+						CPU_INT(0x18, 0); //Error: no ROM!
+						allow_debuggerstep = 1; //Allow stepping from now on!
+						resumeEMU(1); //Resume the emulator!
+						unlock(LOCK_CPU);
+						unlock(LOCK_MAINTHREAD);
+						return 0; //No reset!
+					}
+					if (!BIOS_load_ROM(35)) //Failed to load u19?
+					{
+						dolog("emu", "Failed loading BIOS ROM u35!");
+						BIOS_free_ROM(34); //Release u34!
+						CPU_INT(0x18, 0); //Error: no ROM!
+						resumeEMU(1); //Resume the emulator!
+						allow_debuggerstep = 1; //Allow stepping from now on!
+						unlock(LOCK_CPU);
+						unlock(LOCK_MAINTHREAD);
+						return 0; //No reset!
+					}
 				}
-				if (!BIOS_load_ROM(19)) //Failed to load u19?
+				else //Normal PC BIOS ROMs?
 				{
-					dolog("emu", "Failed loading BIOS ROM u19!");
-					BIOS_free_ROM(18); //Release u18!
-					CPU_INT(0x18,0); //Error: no ROM!
-					resumeEMU(1); //Resume the emulator!
-					allow_debuggerstep = 1; //Allow stepping from now on!
-					unlock(LOCK_CPU);
-					unlock(LOCK_MAINTHREAD);
-					return 0; //No reset!
+					if (!BIOS_load_ROM(18)) //Failed to load u18?
+					{
+						dolog("emu", "Failed loading BIOS ROM u18!");
+						CPU_INT(0x18,0); //Error: no ROM!
+						allow_debuggerstep = 1; //Allow stepping from now on!
+						resumeEMU(1); //Resume the emulator!
+						unlock(LOCK_CPU);
+						unlock(LOCK_MAINTHREAD);
+						return 0; //No reset!
+					}
+					if (!BIOS_load_ROM(19)) //Failed to load u19?
+					{
+						dolog("emu", "Failed loading BIOS ROM u19!");
+						BIOS_free_ROM(18); //Release u18!
+						CPU_INT(0x18,0); //Error: no ROM!
+						resumeEMU(1); //Resume the emulator!
+						allow_debuggerstep = 1; //Allow stepping from now on!
+						unlock(LOCK_CPU);
+						unlock(LOCK_MAINTHREAD);
+						return 0; //No reset!
+					}
 				}
 				verified = 1; //Verified!
 			}

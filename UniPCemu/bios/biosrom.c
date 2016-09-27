@@ -690,23 +690,43 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			segment = basepos; //Load the offset!
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
-			if (segment) //u47?
+			if (segment) //u47/u35?
 			{
-				if (BIOS_ROMS[47]) //Loaded?
+				if (BIOS_ROMS[35]) //u34/u35 combination?
 				{
-					if (BIOS_ROM_size[47]>tempoffset) //Within range?
+					if (BIOS_ROM_size[35]>tempoffset) //Within range?
 					{
 						return 1; //Ignore writes!
 					}
 				}
-			}
-			else //u27?
-			{
-				if (BIOS_ROMS[27]) //Loaded?
+				else //Normal AT BIOS ROM?
 				{
-					if (BIOS_ROM_size[27]>tempoffset) //Within range?
+					if (BIOS_ROMS[47]) //Loaded?
+					{
+						if (BIOS_ROM_size[47]>tempoffset) //Within range?
+						{
+							return 1; //Ignore writes!
+						}
+					}
+				}
+			}
+			else //u27/u34?
+			{
+				if (BIOS_ROMS[34]) //u34/u35 combination?
+				{
+					if (BIOS_ROM_size[34]>tempoffset) //Within range?
 					{
 						return 1; //Ignore writes!
+					}
+				}
+				else //Normal AT BIOS ROM?
+				{
+					if (BIOS_ROMS[27]) //Loaded?
+					{
+						if (BIOS_ROM_size[27]>tempoffset) //Within range?
+						{
+							return 1; //Ignore writes!
+						}
 					}
 				}
 			}
@@ -788,25 +808,47 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment = tempoffset = basepos; //Load the offset!
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
-			if (segment) //u47?
+			if (segment) //u47/u35?
 			{
-				if (BIOS_ROMS[47]) //Loaded?
+				if (BIOS_ROMS[35]) //u34/u35 combination?
 				{
-					if (BIOS_ROM_size[47]>tempoffset) //Within range?
+					if (BIOS_ROM_size[35]>tempoffset) //Within range?
 					{
-						*value = BIOS_ROMS[47][tempoffset]; //Give the value!
+						*value = BIOS_ROMS[35][tempoffset]; //Give the value!
 						return 1;
 					}
 				}
-			}
-			else //u27?
-			{
-				if (BIOS_ROMS[27]) //Loaded?
+				else //Normal AT BIOS ROM?
 				{
-					if (BIOS_ROM_size[27]>tempoffset) //Within range?
+					if (BIOS_ROMS[47]) //Loaded?
 					{
-						*value = BIOS_ROMS[27][tempoffset]; //Give the value!
+						if (BIOS_ROM_size[47]>tempoffset) //Within range?
+						{
+							*value = BIOS_ROMS[47][tempoffset]; //Give the value!
+							return 1;
+						}
+					}
+				}
+			}
+			else //u27/u34?
+			{
+				if (BIOS_ROMS[34]) //u34/u35 combination?
+				{
+					if (BIOS_ROM_size[34]>tempoffset) //Within range?
+					{
+						*value = BIOS_ROMS[34][tempoffset]; //Give the value!
 						return 1;
+					}
+				}
+				else //Normal AT BIOS ROM?
+				{
+					if (BIOS_ROMS[27]) //Loaded?
+					{
+						if (BIOS_ROM_size[27]>tempoffset) //Within range?
+						{
+							*value = BIOS_ROMS[27][tempoffset]; //Give the value!
+							return 1;
+						}
 					}
 				}
 			}
