@@ -711,7 +711,9 @@ OPTINLINE byte coreHandler()
 		{
 			if (threadRunning(debugger_thread)) //Are we running the debugger?
 			{
-				updateAudio(getnspassed(&CPU_timing)); //Discard the time passed!
+				getnspassed(&CPU_timing);
+				updateAudio(currentCPUtime-lasttiming); //Discard the time passed!
+				last_timing += currentCPUtime-lasttiming; //Increase the last timepoint!
 				return 1; //OK, but skipped!
 			}
 		}
@@ -721,8 +723,10 @@ OPTINLINE byte coreHandler()
 			{
 				if ((CPU[activeCPU].halt&2)==0) //Are we allowed to be halted entirely?
 				{
-						updateAudio(getnspassed(&CPU_timing)); //Discard the time passed!
-						return 1; //OK, but skipped!
+					getnspassed(&CPU_timing);
+					updateAudio(currentCPUtime-lasttiming); //Discard the time passed!
+					last_timing += currentCPUtime-lasttiming; //Increase the last timepoint!
+					return 1; //OK, but skipped!
 				}
 				BIOSMenuAllowed = 0; //We're running the BIOS menu! Don't open it again!
 			}
