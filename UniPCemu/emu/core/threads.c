@@ -52,13 +52,19 @@ int getthreadpoolindex(uint_32 thid) //Get index of thread in thread pool!
 	return -1; //Not found!
 }
 
-ThreadParams_p allocateThread() //Allocate a new thread to run (waits if none to allocate)!
+ThreadParams_p allocateThread(Handler thefunc, char *name, void *params) //Allocate a new thread to run (waits if none to allocate)!
 {
 	uint_32 curindex;
-	newallocate: //Try (again)!
 	for (curindex=0;curindex<NUMITEMS(threadpool);curindex++) //Find an unused entry!
 	{
-		if (!threadpool[curindex].used) //Not used?
+		if (threadpool[curindex].used) //Used thread?
+		{
+			if ((threadpool[curindex].callback==thefunc) && (strcmp(threadpool[curindex].name,name)==0) && (threadpool[curindex].params==params)) //This is the same function we're trying to allocate?
+			{
+				return NULL; //Abort: double starting identical threads isn't allowed!
+			}
+		}
+		else //Not used?
 		{
 			//dolog("threads","Allocating thread entry...");
 			threadpool[curindex].used = 1; //Allocated!
@@ -66,8 +72,7 @@ ThreadParams_p allocateThread() //Allocate a new thread to run (waits if none to
 			//Failed to allocate, passthrough!
 		}
 	}
-	delay(0); //Wait a bit for some space: allow other threads to!
-	goto newallocate; //Try again till we work!
+	return NULL; //Nothing to allocate: ran out of entries!
 }
 
 void releasePool(uint_32 threadid) //Release a pooled thread if it exists!
@@ -318,12 +323,12 @@ ThreadParams_p startThread(Handler thefunc, char *name, void *params) //Start a 
 		return NULL; //Don't start: can't start no function!
 	}
 
-
 	//We create our handler in dynamic memory, because we need to keep it in the threadhandler!
 	
 	//dolog("threads","startThread: allocThread...");
 	//First, allocate a thread position!
-	ThreadParams_p threadparams = allocateThread(); //Allocate a thread for us, wait for any to come free in the meanwhile!
+	ThreadParams_p threadparams = allocateThread(thefunc,name,params); //Allocate a thread for us, wait for any to come free in the meanwhile!
+	if (threadparams==NULL) return NULL; //Not able to allocate the thread: ran out of thread entries!
 //Next, start the timer function!
 	//SceUID thid; //The thread ID to allocate!
 	threadparams->callback = thefunc; //The function to run!

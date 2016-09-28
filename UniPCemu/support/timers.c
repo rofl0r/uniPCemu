@@ -289,7 +289,7 @@ void startTimers(byte core)
 	if (__HW_DISABLED) return; //Abort!
 	if (core) //Core?
 	{
-		if (!timerthread) //Not already running?
+		if (timerthread==NULL) //Not already running?
 		{
 			timerthread = startThread(&timer_thread, "UniPCemu_Timing", NULL); //Timer thread start!
 		}
