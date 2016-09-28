@@ -711,8 +711,10 @@ OPTINLINE byte coreHandler()
 		{
 			if (threadRunning(debugger_thread)) //Are we running the debugger?
 			{
-				updateAudio(currentCPUtime-last_timing); //Discard the time passed!
-				last_timing += currentCPUtime-last_timing; //Increase the last timepoint!
+				instructiontime = currentCPUtime - last_timing; //The instruction time is the total time passed!
+				updateAudio(instructiontime); //Discard the time passed!
+				timeexecuted += instructiontime; //Increase CPU executed time executed this block!
+				last_timing += instructiontime; //Increase the last timepoint!
 				goto skipCPUtiming; //OK, but skipped!
 			}
 		}
@@ -722,8 +724,10 @@ OPTINLINE byte coreHandler()
 			{
 				if ((CPU[activeCPU].halt&2)==0) //Are we allowed to be halted entirely?
 				{
-					updateAudio(currentCPUtime-last_timing); //Discard the time passed!
-					last_timing += currentCPUtime-last_timing; //Increase the last timepoint!
+					instructiontime = currentCPUtime - last_timing; //The instruction time is the total time passed!
+					updateAudio(instructiontime); //Discard the time passed!
+					timeexecuted += instructiontime; //Increase CPU executed time executed this block!
+					last_timing += instructiontime; //Increase the last timepoint!
 					goto skipCPUtiming; //OK, but skipped!
 				}
 				BIOSMenuAllowed = 0; //We're running the BIOS menu! Don't open it again!
