@@ -711,10 +711,9 @@ OPTINLINE byte coreHandler()
 		{
 			if (threadRunning(debugger_thread)) //Are we running the debugger?
 			{
-				getnspassed(&CPU_timing);
 				updateAudio(currentCPUtime-lasttiming); //Discard the time passed!
 				last_timing += currentCPUtime-lasttiming; //Increase the last timepoint!
-				return 1; //OK, but skipped!
+				goto skipCPUtiming; //OK, but skipped!
 			}
 		}
 		if (BIOSMenuThread)
@@ -723,10 +722,9 @@ OPTINLINE byte coreHandler()
 			{
 				if ((CPU[activeCPU].halt&2)==0) //Are we allowed to be halted entirely?
 				{
-					getnspassed(&CPU_timing);
 					updateAudio(currentCPUtime-lasttiming); //Discard the time passed!
 					last_timing += currentCPUtime-lasttiming; //Increase the last timepoint!
-					return 1; //OK, but skipped!
+					goto skipCPUtiming; //OK, but skipped!
 				}
 				BIOSMenuAllowed = 0; //We're running the BIOS menu! Don't open it again!
 			}
@@ -885,6 +883,7 @@ OPTINLINE byte coreHandler()
 		}
 	} //CPU cycle loop!
 
+	skipCPUtiming: //Audio emulation only?
 	//Slowdown to requested speed if needed!
 	currenttiming += getnspassed(&CPU_timing); //Add real time!
 	for (;currenttiming < last_timing;) //Not enough time spent on instructions?
