@@ -1654,6 +1654,7 @@ byte PORT_IN_floppy(word port, byte *result)
 		*result = temp; //Give the result!
 		return 1; //Used!
 		break;
+	//IBM PC XT supports DOR, MSR and Data ports. AT also supports DIR and CCR registers.
 	case 2: //DOR?
 		*result = FLOPPY.DOR.data; //Give the DOR!
 		return 1; //Used!
