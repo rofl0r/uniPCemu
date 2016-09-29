@@ -474,7 +474,6 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 	}
 	else if (FLOPPY.floppy_resetted) //We were resetted and are activated?
 	{
-		FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 		FLOPPY_raiseIRQ(); //Raise the IRQ: We're reset and have been activated!
 		FLOPPY.floppy_resetted = 0; //Not resetted anymore!
 		if (source==1)
@@ -656,7 +655,6 @@ OPTINLINE void FLOPPY_dataReady() //Data transfer ready to transfer!
 {
 	if (FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].NDM) //Interrupt for each byte transferred?
 	{
-		FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 		FLOPPY_raiseIRQ(); //Raise the floppy IRQ: We have data to transfer!
 	}
 }
@@ -804,7 +802,6 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber];
 		FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
 		FLOPPY.commandstep = 3; //Move to result phrase and give the result!
-		FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 		FLOPPY_raiseIRQ(); //Entering result phase!
 		return; //Abort!
 	}
@@ -989,7 +986,6 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 					FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber];
 					FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size from the command buffer!
 					FLOPPY.commandstep = 3; //Move to result phrase and give the result!
-					FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 					FLOPPY_raiseIRQ(); //Entering result phase!
 				}
 				else
@@ -1006,7 +1002,6 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 						FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber];
 						FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
 						FLOPPY.commandstep = 3; //Move to result phase!
-						FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 						FLOPPY_raiseIRQ(); //Entering result phase!
 					}
 					else //DSK or error?
@@ -1042,7 +1037,6 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 								FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber];
 								FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
 								FLOPPY.commandstep = 3; //Move to result phase!
-								FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 								FLOPPY_raiseIRQ(); //Entering result phase!
 								return;
 							}
@@ -1064,7 +1058,6 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber];
 				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size from the command buffer!
 				FLOPPY.commandstep = 3; //Move to result phase!
-				FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 				FLOPPY_raiseIRQ(); //Entering result phase!
 			}
 			break;
@@ -1101,7 +1094,6 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size from the command buffer!
 				FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 				FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sectors).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
-				FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 				FLOPPY_raiseIRQ(); //Entering result phase!
 			}
 			else //Unfinished buffer? Terminate!
@@ -1115,7 +1107,6 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY.DOR.DriveNumber];
 				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
 				FLOPPY.commandstep = 3; //Move to result phase!
-				FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 				FLOPPY_raiseIRQ(); //Entering result phase!
 			}
 			break;
@@ -1197,7 +1188,6 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			}
 			updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			clearDiskChanged(); //Clear the disk changed flag for the new command!
-			FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 			FLOPPY_raiseIRQ(); //We're finished!
 			break;
 		case SENSE_INTERRUPT: //Check interrupt status
@@ -1224,6 +1214,10 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.ST0.data = 0x80; //Error!
 				FLOPPY.commandstep = 0xFF; //Error out!
 				return; //Error out now!
+			}
+			if (!FLOPPY.reset_pending) //Reset not pending? Lower the IRQ!
+			{
+				FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 			}
 			FLOPPY_LOGD("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber])
 			FLOPPY.ST0.InterruptCode = 3; //Polling more is invalid!
@@ -1256,7 +1250,6 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			{
 				FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[2]; //Set the current cylinder!
 				FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x30) | 0x20 | FLOPPY.DOR.DriveNumber; //Valid command!
-				FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
 				FLOPPY_raiseIRQ(); //Finished executing phase!
 				clearDiskChanged(); //Clear the disk changed flag for the new command!
 				return; //Give an error!
