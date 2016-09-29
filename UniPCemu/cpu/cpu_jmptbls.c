@@ -580,7 +580,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{NULL,NULL}, //FCh:
 		{NULL,NULL}, //FDh:
 		{NULL,NULL}, //FEh:
-		{CPU8086_OPFF,NULL}  //FFh:
+		{NULL,NULL}  //FFh:
 	},
 
 	//80286
