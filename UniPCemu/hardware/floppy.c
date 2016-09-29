@@ -1180,8 +1180,15 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 		case RECALIBRATE: //Calibrate drive
 			//Execute interrupt!
 			FLOPPY.commandstep = 0; //Reset controller command status!
-			FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = 0; //Goto cylinder #0!
-			FLOPPY.ST0.data = 0x20; //Completed command!
+			if (has_drive(FLOPPY.DOR.DriveNumber?FLOPPY1:FLOPPY0)) //Drive present?
+			{
+				FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = 0; //Goto cylinder #0!
+				FLOPPY.ST0.data = 0x20; //Completed command!
+			}
+			else //Not present disk?
+			{
+				FLOPPY.ST0.data = 0x30; //Completed command! 0x20: Seek ended, 0x10: Unit Check, because we cannot find track 0 after 79 pulses!
+			}
 			updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			clearDiskChanged(); //Clear the disk changed flag for the new command!
 			FLOPPY_raiseIRQ(); //We're finished!
