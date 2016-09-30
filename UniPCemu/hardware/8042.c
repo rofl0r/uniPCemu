@@ -10,6 +10,8 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
+#define BUFFERSIZE_8042 64
+
 byte force8042 = 0; //Force 8042 controller handling?
 
 /*
@@ -23,7 +25,7 @@ byte ControllerPriorities[2] = {0,1}; //Port order to check if something's there
 
 Controller8042_t Controller8042; //The PS/2 Controller chip!
 
-void give_8042_input(byte data) //Give 8042 input (internal!)
+void give_8042_output(byte data) //Give 8042 input (internal!)
 {
 	writefifobuffer(Controller8042.buffer,data);
 }
@@ -141,7 +143,7 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 	{
 		if (clocks8042 >= 12) //Are enough clocks ready to send?
 		{
-			if (Controller8042.WritePending) //Write is pending?
+			if (Controller8042.WritePending) //Write(Input buffer) is pending?
 			{
 				Controller8042.status_buffer &= ~0x2; //Cleared input buffer!
 				Controller8042.portwrite[Controller8042.WritePending-1](Controller8042.input_buffer); //Write data to the specified port!
@@ -150,7 +152,7 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 			}
 		}
 	}
-	else if ((Controller8042.status_buffer & 1) == 0) //Input buffer is empty?
+	else if ((Controller8042.status_buffer & 1) == 0) //Output buffer is empty?
 	{
 		if (clocks8042 >= 11) //Are enough clocks ready to receive?
 		{
@@ -160,14 +162,11 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 			}
 		}
 	}
-	else //Neither sending nor receiving? Discard our counted clocks!
-	{
-		clocks8042 = 0; //Discard the cycles: we're not doing anything!
-	}
 }
 
 void commandwritten_8042() //A command has been written to the 8042 controller?
 {
+	clocks8042 = 0; //We're resetting the clock to receive!
 	//Handle specific PS/2 commands!
 	switch (Controller8042.command) //Special command?
 	{
@@ -183,7 +182,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xA4: //Password Installed Test
 		input_lastwrite_8042(); //Force data to user!
-		give_8042_input((Controller8042.has_security && (Controller8042.securitychecksum==Controller8042.securitykey))?0xFA:0xF1); //Passed: give result! No password present!
+		give_8042_output((Controller8042.has_security && (Controller8042.securitychecksum==Controller8042.securitykey))?0xFA:0xF1); //Passed: give result! No password present!
 		input_lastwrite_8042(); //Force byte 0 to user!
 		break;
 	case 0xA5: //Load security
@@ -201,47 +200,47 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 	case 0xA8: //Enable second PS/2 port! ACK from keyboard!
 		Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled = 0; //Enabled!
 		input_lastwrite_8042(); //Force 0xFA to user!
-		give_keyboard_input(0xFA); //ACK!
+		give_8042_output(0xFA); //ACK!
 		input_lastwrite_8042(); //Force 0xFA to user!
 		break;
 	case 0xA9: //Test second PS/2 port! Give 0x00 if passed (detected). 0x02-0x04=Not detected?
 		input_lastwrite_8042(); //Force result to user!
 		if (Controller8042.portwrite[1] && Controller8042.portread[1] && Controller8042.portpeek[1]) //Registered?
 		{
-			give_8042_input(0x00); //Passed: we have one!
+			give_8042_output(0x00); //Passed: we have one!
 		}
 		else
 		{
-			give_8042_input(0x02); //Failed: not detected!
+			give_8042_output(0x02); //Failed: not detected!
 		}
 		input_lastwrite_8042(); //Force 0xFA to user!
 		break;
 	case 0xAA: //Test PS/2 controller! Result: 0x55: Test passed. 0xFC: Test failed.
 		input_lastwrite_8042(); //Force 0xFA to user!
-		give_8042_input(0xFA); //ACK!
+		give_8042_output(0xFA); //ACK!
 		input_lastwrite_8042(); //Force 0xFA to user!
-		give_8042_input(0x55); //Always OK!
+		give_8042_output(0x55); //Always OK!
 		break;
 	case 0xAB: //Test first PS/2 port! See Command A9!
 		input_lastwrite_8042(); //Force 0xFA to user!
 		if (Controller8042.portwrite[0] && Controller8042.portread[0] && Controller8042.portpeek[0]) //Registered?
 		{
-			give_8042_input(0x00); //Passed: we have one!
+			give_8042_output(0x00); //Passed: we have one!
 		}
 		else
 		{
-			give_8042_input(0x01); //Failed: not detected!
+			give_8042_output(0x01); //Failed: not detected!
 		}
 		input_lastwrite_8042(); //Force 0xFA to user!
 		break;
 	case 0xAC: //Diagnostic dump: read all bytes of internal RAM!
 		input_lastwrite_8042(); //Force data to user!
-		give_8042_input(Controller8042.RAM[0]); //Passed: give result!
+		give_8042_output(Controller8042.RAM[0]); //Passed: give result!
 		input_lastwrite_8042(); //Force byte 0 to user!
 		byte c;
 		for (c=1;c<0x20;) //Process all!
 		{
-			give_8042_input(Controller8042.RAM[c++]); //Give result!
+			give_8042_output(Controller8042.RAM[c++]); //Give result!
 		}
 		break;
 	case 0xAD: //Disable first PS/2 port! No ACK!
@@ -252,7 +251,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xC0: //Read controller input port?
 		input_lastwrite_8042(); //Force 0xFA to user!
-		give_8042_input(Controller8042.inputport); //Give it fully!
+		give_8042_output(Controller8042.inputport); //Give it fully!
 		input_lastwrite_8042(); //Force 0xFA to user!
 		break;
 	case 0xC1: //Copy bits 0-3 of input port to status bits 4-7. No ACK!
@@ -292,7 +291,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xE0: //Read test inputs?
 		input_lastwrite_8042(); //Force data to user!
-		give_8042_input(0); //Passed: give result! Bit0=Clock, Bit1=Data
+		give_8042_output(0); //Passed: give result! Bit0=Clock, Bit1=Data
 		input_lastwrite_8042(); //Force byte 0 to user!
 		break;
 	case 0xF0: case 0xF1: case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF7: case 0xF8: case 0xF9: case 0xFA: case 0xFB: case 0xFC: case 0xFD: case 0xFE: case 0xFF: //Pulses!
@@ -325,6 +324,7 @@ void refresh_outputport()
 
 void datawritten_8042() //Data has been written?
 {
+	clocks8042 = 0; //We're resetting the clock to receive!
 	if (Controller8042.port60toFirstPS2Output || Controller8042.port60toSecondPS2Output) //port 60 to first/second PS2 output?
 	{
 		Controller8042.output_buffer = Controller8042.input_buffer; //Input to output!
@@ -427,7 +427,7 @@ byte write_8042(word port, byte value)
 		{
 			if (value & 0x80) //Clear interrupt flag and we're a XT system?
 			{
-				Controller8042.status_buffer &= ~0x21; //Clear input buffer full&AUX bits!
+				Controller8042.status_buffer &= ~0x21; //Clear output buffer full&AUX bits!
 			}
 			if (((value^0x40)==(Controller8042.PortB&0x40)) && ((value)&0x40)) //Set when unset?
 			{
@@ -441,7 +441,6 @@ byte write_8042(word port, byte value)
 		Controller8042.status_high = 0; //Disable high status, we're writing a new command!
 		Controller8042.status_buffer |= 0x8; //We've last sent a byte to the command port!
 		Controller8042.command = value; //Set command!
-		Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
 		commandwritten_8042(); //Written handler!
 		return 1;
 		break;
@@ -487,6 +486,10 @@ byte read_8042(word port, byte *result)
 		return 1; //Force us to 0 by default!
 		break;
 	case 0x64: //Command port: read status register?
+		if (fifobuffer_freesize(Controller8042.buffer) != BUFFERSIZE_8042) //Data in our output buffer?
+		{
+			fill8042_output_buffer(1); //Fill our output buffer immediately, don't depend on hardware timing!
+		}
 		*result = (Controller8042.status_buffer|0x10)|(Controller8042.PS2ControllerConfigurationByte.SystemPassedPOST<<2); //Read status buffer combined with the BIOS POST flag! We're never inhabited!
 		if (Controller8042.WritePending) //Write is pending?
 		{
@@ -511,7 +514,7 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	{
 		free_fifobuffer(&Controller8042.buffer); //Release our buffer, if we have one!
 	}
-	Controller8042.buffer = allocfifobuffer(64,1); //Allocate a small buffer for us to use to commands/data!
+	Controller8042.buffer = allocfifobuffer(BUFFERSIZE_8042,1); //Allocate a small buffer for us to use to commands/data!
 
 	//First: initialise all hardware ports for emulating!
 	register_PORTOUT(&write_8042);

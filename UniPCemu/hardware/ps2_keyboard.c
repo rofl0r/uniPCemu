@@ -17,17 +17,17 @@ extern Controller8042_t Controller8042; //The 8042 itself!
 #define __HW_DISABLED 0
 
 //Timeout between commands or parameters and results being buffered! Use 5ms timings!
-#define KEYBOARD_DEFAULTTIMEOUT 5000000.0
+#define KEYBOARD_DEFAULTTIMEOUT 100000.0
 
 PS2_KEYBOARD Keyboard; //Active keyboard settings!
 
-void give_keyboard_input(byte data)
+void give_keyboard_output(byte data)
 {
 	if (__HW_DISABLED) return; //Abort!
 	writefifobuffer(Keyboard.buffer,data); //Write to the buffer, ignore the result!
 }
 
-OPTINLINE void input_lastwrite_keyboard()
+void input_lastwrite_keyboard()
 {
 	if (__HW_DISABLED) return; //Abort!
 	fifobuffer_gotolast(Keyboard.buffer); //Goto last!
@@ -51,7 +51,7 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 	Keyboard.buffer = oldbuffer; //Restore the buffer!
 	if (!is_ATInit)
 	{
-		give_keyboard_input(0xAA); //Give OK status code!
+		give_keyboard_output(0xAA); //Give OK status code!
 	}
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
 	loadKeyboardDefaults(); //Load our defaults!
@@ -132,7 +132,7 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 					if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[scancodeset][key].keypress_size) return 0; //Buffer full: we can't add it!
 					for (i=0;i<scancodesets[scancodeset][key].keypress_size;i++) //Process keypress!
 					{
-						give_keyboard_input(scancodesets[scancodeset][key].keypress[i]); //Give control byte(s) of keypress!
+						give_keyboard_output(scancodesets[scancodeset][key].keypress[i]); //Give control byte(s) of keypress!
 					}
 				}
 			}
@@ -143,7 +143,7 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 					if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[scancodeset][key].keyrelease_size) return 0; //Buffer full: we can't add it!
 					for (i=0;i<scancodesets[scancodeset][key].keyrelease_size;i++) //Process keyrelease!
 					{
-						give_keyboard_input(scancodesets[scancodeset][key].keyrelease[i]); //Give control byte(s) of keyrelease!
+						give_keyboard_output(scancodesets[scancodeset][key].keyrelease[i]); //Give control byte(s) of keyrelease!
 					}
 				}
 			}
@@ -168,21 +168,21 @@ void updatePS2Keyboard(double timepassed)
 				{
 				case 1: //First stage?
 					input_lastwrite_keyboard(); //Force 0x00(dummy byte) to user!
-					give_keyboard_input(0xFA); //Acnowledge!
+					give_keyboard_output(0xFA); //Acnowledge!
 					resetKeyboard(1, 1); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
 					Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear!
 					Keyboard.command_step = 2; //Step 2!
 					break;
 				case 2: //Final stage?
 					Keyboard.timeout = (double)0; //Finished!
-					give_keyboard_input(0xAA); //Give the result code!
+					give_keyboard_output(0xAA); //Give the result code!
 					Keyboard.command_step = 0; //Finished!
 					Keyboard.has_command = 0; //Finished command!
 					break;
 				}
 				break;
 			case 0xFE: //Resend?
-				give_keyboard_input(Keyboard.last_send_byte); //Resend last non-0xFE byte!
+				give_keyboard_output(Keyboard.last_send_byte); //Resend last non-0xFE byte!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				Keyboard.has_command = 0; //No command anymore!
 				break;
@@ -190,15 +190,15 @@ void updatePS2Keyboard(double timepassed)
 			case 0xF9: //Plain ACK and finish!
 			case 0xF8: //Plain ACK and finish!
 			case 0xF7: //Plain ACK and finish!
-				give_keyboard_input(0xFA); //ACK!
+				give_keyboard_output(0xFA); //ACK!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				Keyboard.has_command = 0; //No command anymore!
 				break;
 			case 0xF2: //Read ID
-				give_keyboard_input(0xFA); //ACK!
+				give_keyboard_output(0xFA); //ACK!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
-				give_keyboard_input(0xAB); //First byte!
-				give_keyboard_input(0x83); //Second byte given!
+				give_keyboard_output(0xAB); //First byte!
+				give_keyboard_output(0x83); //Second byte given!
 				Keyboard.has_command = 0; //No command anymore!
 				break;
 			case 0xF0: //ACK and next phase!
@@ -207,13 +207,13 @@ void updatePS2Keyboard(double timepassed)
 				{
 					if ((Keyboard.cmdOK&3) == 1) //OK?
 					{
-						give_keyboard_input(0xFA); //FA: Valid value!
+						give_keyboard_output(0xFA); //FA: Valid value!
 						input_lastwrite_keyboard(); //Force 0xFA to user!
 						++Keyboard.command_step; //Next step!
 					}
 					else if ((Keyboard.cmdOK&3) == 2) //Error?
 					{
-						give_keyboard_input(0xFE); //FE: Invalid value!
+						give_keyboard_output(0xFE); //FE: Invalid value!
 						input_lastwrite_keyboard(); //Force 0xFA to user!
 					}
 					else if ((Keyboard.command == 0xF0) && (Keyboard.command_step == 2)) //Second step gives input?
@@ -221,13 +221,13 @@ void updatePS2Keyboard(double timepassed)
 						switch (Keyboard.scancodeset) //What set?
 						{
 						case 0:
-							give_keyboard_input(0x43); //Get scan code set!
+							give_keyboard_output(0x43); //Get scan code set!
 							break;
 						case 1:
-							give_keyboard_input(0x41); //Get scan code set!
+							give_keyboard_output(0x41); //Get scan code set!
 							break;
 						case 2:
-							give_keyboard_input(0x3F); //Get scan code set!
+							give_keyboard_output(0x3F); //Get scan code set!
 							break;
 						}
 						Keyboard.cmdOK |= 4; //We're finished!
@@ -244,7 +244,7 @@ void updatePS2Keyboard(double timepassed)
 				}
 				break;
 			case 0xEE: //Echo 0xEE!
-				give_keyboard_input(0xEE); //Respond with "Echo"!
+				give_keyboard_output(0xEE); //Respond with "Echo"!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				Keyboard.has_command = 0; //No command anymore!
 				break;
@@ -252,7 +252,7 @@ void updatePS2Keyboard(double timepassed)
 			case 0xFD:
 			case 0xFC:
 			case 0xFB:
-				give_keyboard_input(0xFE); //Unknown command!
+				give_keyboard_output(0xFE); //Unknown command!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				Keyboard.has_command = 0; //No command anymore!
 				Keyboard.timeout = (double)0; //Finished!

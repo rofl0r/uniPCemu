@@ -34,11 +34,10 @@ typedef struct
 	byte cmdOK; //Are we OK?
 } PS2_KEYBOARD; //Active keyboard settings!
 
-void give_keyboard_input(byte data); //For the 8042!
+void give_keyboard_output(byte data); //For the 8042!
+void input_lastwrite_keyboard(); //Force data to user!
 
 byte EMU_keyboard_handler(byte key, byte pressed); //A key has been pressed (with interval) or released CALLED BY HARDWARE KEYBOARD (Virtual Keyboard?)? 0 indicates failure sending it!
-void EMU_keyboard_handler_name(char *name, byte pressed); //Handle key press/hold(pressed=1) or release(pressed=0) by name for hardware!
-void EMU_mouse_handler(byte *data, byte datasize); //Mouse results (packets) handler!
 //Name/ID conversion functionality!
 int EMU_keyboard_handler_nametoid(char *name); //Same as above, but with unique names from the keys_names table!
 int EMU_keyboard_handler_idtoname(int id, char *name); //Same as above, but with unique names from the keys_names table!

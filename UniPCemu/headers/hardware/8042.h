@@ -92,7 +92,7 @@ void BIOS_init8042(); //Init 8042&Load all BIOS!
 void BIOS_done8042(); //Deallocates the 8042!
 
 //The input buffer!
-void give_8042_input(byte value); //Give 8042 input from hardware or 8042!
+void give_8042_output(byte value); //Give 8042 input from hardware or 8042!
 
 //The output port has changed?
 void refresh_outputport(); //Refresh the output port actions!

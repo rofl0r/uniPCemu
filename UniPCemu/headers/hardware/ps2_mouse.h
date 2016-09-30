@@ -21,5 +21,4 @@ void EMU_enablemouse(byte enabled); //Enable mouse input (disable during EMU, en
 void BIOS_doneMouse(); //Finish the mouse.
 
 void updatePS2Mouse(double timepassed); //For stuff requiring timing!
-
 #endif

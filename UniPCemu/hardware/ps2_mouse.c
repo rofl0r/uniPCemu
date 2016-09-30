@@ -50,7 +50,7 @@ struct
 	double resetTimeout; //Timeout for reset commands!
 } Mouse; //Ourselves!
 
-OPTINLINE void give_mouse_input(byte data)
+OPTINLINE void give_mouse_output(byte data)
 {
 	if (__HW_DISABLED) return; //Abort!
 	writefifobuffer(Mouse.buffer,data); //Write to the buffer, ignore the result!
@@ -177,7 +177,7 @@ void updatePS2Mouse(double timepassed)
 		if (Mouse.resetTimeout <= 0.0) //Done?
 		{
 			Mouse.resetTimeout = (double)0; //Finished!
-			give_mouse_input(0xAA); //Bat completion code!
+			give_mouse_output(0xAA); //Bat completion code!
 		}
 	}
 }
@@ -193,7 +193,7 @@ OPTINLINE void resetMouse()
 	Mouse.resetTimeout = 100000.0; //
 
 	input_lastwrite_mouse(); //Force to user!
-	give_mouse_input(0x00); //We're a mouse!
+	give_mouse_output(0x00); //We're a mouse!
 }
 
 OPTINLINE void mouse_handleinvalidcall()
@@ -201,12 +201,12 @@ OPTINLINE void mouse_handleinvalidcall()
 	if (__HW_DISABLED) return; //Abort!
 	if (!Mouse.last_was_error) //Last wasn't an error?
 	{
-		give_mouse_input(0xFE); //NACK!
+		give_mouse_output(0xFE); //NACK!
 		input_lastwrite_mouse(); //Give byte to the user!		
 	}
 	else //Error!
 	{
-		give_mouse_input(0xFC); //Error!
+		give_mouse_output(0xFC); //Error!
 		input_lastwrite_mouse(); //Give byte to the user!
 	}
 	Mouse.last_was_error = 1; //Last was an error!
@@ -220,7 +220,7 @@ OPTINLINE void give_mouse_status() //Gives the mouse status buffer!
 				((Mouse.buttonstatus&4)>>1)| //Middle button!
 				((Mouse.buttonstatus&2)>>1) //Right button!
 				); //Button status!
-	give_mouse_input(
+	give_mouse_output(
 				(
 				((Mouse.mode==3)?0x40:0)| //Remove/stream mode?
 				(Mouse.data_reporting?0x20:0)| //Data reporting?
@@ -228,8 +228,8 @@ OPTINLINE void give_mouse_status() //Gives the mouse status buffer!
 				buttonstatus //Apply left-middle-right bits!
 				)
 				); //Give the info!
-	give_mouse_input(Mouse.resolution); //2nd byte is the resolution!
-	give_mouse_input(Mouse.samplerate); //3rd byte is the sample rate!
+	give_mouse_output(Mouse.resolution); //2nd byte is the resolution!
+	give_mouse_output(Mouse.samplerate); //3rd byte is the sample rate!
 }
 
 OPTINLINE void loadMouseDefaults() //Load the Mouse Defaults!
@@ -253,9 +253,9 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 		case 0xFF: //Reset?
 			Mouse.has_command = 0; //We don't have a command anymore: we ignore the mouse?
 			resetMouse(); //Reset the mouse!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
-			give_mouse_input(0xAA); //Reset!
+			give_mouse_output(0xAA); //Reset!
 			loadMouseDefaults(); //Load our defaults!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
@@ -270,42 +270,42 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			Mouse.mode = 0; //Reset mode!
 			loadMouseDefaults(); //Load our defaults!
 			Mouse.has_command = 0; //We're not a command anymore!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xF5: //Disable data reporting?
 			Mouse.has_command = 0; //We're not a command anymore!
 			Mouse.data_reporting = 0; //Disable data reporting!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xF4: //Enable data reporting?
 			Mouse.has_command = 0; //We're not a command anymore!
 			Mouse.data_reporting = 1; //Enable data reporting!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xF3: //Set sample rate?
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			//We're expecting parameters!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xF2: //Get device ID?
 			Mouse.has_command = 0; //We're not a command anymore!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
-			give_mouse_input(0x00); //Standard mouse!
+			give_mouse_output(0x00); //Standard mouse!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xF0: //Set Remote Mode?
 			Mouse.has_command = 0; //We're not a command anymore!
 			Mouse.data_reporting = 0; //Disable data reporting!
 			Mouse.mode = 3; //Remote mode
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			flushPackets(); //Flush our packets!
 			Mouse.last_was_error = 0; //Last is OK!
@@ -315,7 +315,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			Mouse.lastmode = Mouse.mode; //Save the last mode!
 			Mouse.mode = 1; //Enter wrap mode!
 			Mouse.data_reporting = 0; //Disable data reporting!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			flushPackets(); //Flush our packets!
 			Mouse.last_was_error = 0; //Last is OK!
@@ -323,14 +323,14 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 		case 0xEC: //Reset Wrap Mode?
 			Mouse.has_command = 0; //We're not a command anymore!
 			Mouse.mode = Mouse.lastmode; //Restore the last mode we were in!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			flushPackets(); //Flush our packets!
 			Mouse.last_was_error = 0; //Last is OK!			
 			break;
 		case 0xEB: //Read data?
 			Mouse.has_command = 0; //We're not a command anymore!
-			give_8042_input(0xFA); //OK!
+			give_mouse_output(0xFA); //OK!
 			//Already ready for receiving a packet!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
@@ -338,33 +338,33 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			Mouse.has_command = 0; //We're not a command anymore!
 			Mouse.data_reporting = 1; //Enable data reporting!
 			Mouse.mode = 2; //Set stream mode!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			flushPackets(); //Flush our packets!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xE9: //Status request?
 			Mouse.has_command = 0; //We're not a command anymore!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			give_mouse_status(); //Give the status!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xE8: //Set resolution?
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xE7: //Set Scaling 2:1?
 			Mouse.has_command = 0; //We're not a command anymore!
 			Mouse.scaling21 = 1; //Set it!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xE6: //Set Scaling 1:1?
 			Mouse.has_command = 0; //We're not a command anymore!
 			Mouse.scaling21 = 0; //Set it!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			Mouse.last_was_error = 0; //Last is OK!
 			break;
@@ -389,12 +389,12 @@ OPTINLINE void datawritten_mouse(byte data) //Data has been written to the mouse
 		case 0xF3: //Set sample rate?
 			Mouse.samplerate = data; //Set the sample rate (in samples/second)!
 			update_mouseTimer(); //Update the timer!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			break;
 		case 0xE8: //Set resolution?
 			Mouse.resolution = data; //Set the resolution!
-			give_mouse_input(0xFA); //Acnowledge!
+			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!			
 			break;
 		default: //Invalid command?
