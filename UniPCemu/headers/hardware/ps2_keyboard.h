@@ -52,8 +52,6 @@ void resetKeyboard_8042(byte flags); //8042 reset for XT compatibility!
 
 void keyboardControllerInit_extern(); //Keyboard initialization for the BIOS!
 
-void keyboardtranslation_8042(byte enabled); //Disable/enable translation to scancode set 0!
-
 void updatePS2Keyboard(double timepassed); //For stuff requiring timing!
 
 #endif

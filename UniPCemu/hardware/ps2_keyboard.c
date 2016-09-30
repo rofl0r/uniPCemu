@@ -39,7 +39,7 @@ OPTINLINE void loadKeyboardDefaults()
 	memset(scancodeset_typematic, 1, sizeof(scancodeset_typematic)); //Enable all typematic!
 	memset(scancodeset_break, 1, sizeof(scancodeset_break)); //Enable all break!
 	Keyboard.typematic_rate_delay = 0x1B; //rate/delay: 10.9cps/500ms!
-	Keyboard.scancodeset = 2; //Scan code set 2!
+	Keyboard.scancodeset = 1; //Scan code set 2!
 }
 
 OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard controller!
@@ -55,11 +55,6 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 	}
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
 	loadKeyboardDefaults(); //Load our defaults!
-}
-
-void keyboardtranslation_8042(byte enabled)
-{
-	Keyboard.enable_translation = enabled?1:0; //Enable translation to scancode set 0?
 }
 
 void resetKeyboard_8042(byte flags)
@@ -124,7 +119,6 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 			int i; //Counter for key codes!
 			byte scancodeset;
 			scancodeset = Keyboard.scancodeset; //Get the current scancode set!
-			if (Keyboard.enable_translation) scancodeset = 0; //Force scan code set 1 when translated!
 			if (pressed&1) //Key pressed?
 			{
 				if ((scancodeset_typematic[key] && ((pressed>>1)&1)) || (!(pressed&2)) || (scancodeset!=3)) //Allowed typematic make codes? Also allow non-typematic always!
@@ -221,13 +215,13 @@ void updatePS2Keyboard(double timepassed)
 						switch (Keyboard.scancodeset) //What set?
 						{
 						case 0:
-							give_keyboard_output(0x43); //Get scan code set!
+							give_keyboard_output(0x01); //Get scan code set!
 							break;
 						case 1:
-							give_keyboard_output(0x41); //Get scan code set!
+							give_keyboard_output(0x02); //Get scan code set!
 							break;
 						case 2:
-							give_keyboard_output(0x3F); //Get scan code set!
+							give_keyboard_output(0x03); //Get scan code set!
 							break;
 						}
 						Keyboard.cmdOK |= 4; //We're finished!
@@ -388,7 +382,7 @@ OPTINLINE void handle_keyboard_data(byte data)
 		{
 			if (data<4) //Valid mode
 			{
-				Keyboard.scancodeset =(data-1); //Set scan code set!
+				Keyboard.scancodeset = (data-1); //Set scan code set!
 				Keyboard.cmdOK = 1|4; //OK&Finish!
 				Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 			}
@@ -547,7 +541,6 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	resetKeyboard(0,1); //Reset us to a known state on AT PCs when needed!
 	force8042 = 0; //Disable 8042 style init!
 	Controller8042.RAM[0] |= 0x50; //Disable our input, enable translation!
-	keyboardtranslation_8042(Controller8042.RAM[0]&0x40); //Enable translation?
 }
 
 void keyboardControllerInit_extern()
@@ -569,7 +562,7 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	if (is_XT==0) keyboardControllerInit(); //Initialise the basic keyboard controller when allowed!
 	else //IBM XT initialization required?
 	{
-		keyboardtranslation_8042(0x40); //Enable the translation always with IBM XT!
+		Controller8042.RAM[0] |= 0x40; //Enable translation!
 	}
 }
 

@@ -86,6 +86,7 @@ typedef struct
 
 	//Extra support for timing output/input!
 	byte WritePending; //A write is pending to port 0/1!
+	byte TranslationEscaped; //Are we an escaped (0xF0) output?
 } Controller8042_t; //The 8042 Controller!
 
 void BIOS_init8042(); //Init 8042&Load all BIOS!
