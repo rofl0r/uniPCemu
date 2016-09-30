@@ -83,6 +83,9 @@ typedef struct
 	byte PortB; //Port B?
 
 	byte status_high; //Enable high status? Bits 4-7: non-zero to enable, bits 0-3: Amount of bits to shift left for the high nibble to have it's correct value!
+
+	//Extra support for timing output/input!
+	byte WritePending; //A write is pending to port 0/1!
 } Controller8042_t; //The 8042 Controller!
 
 void BIOS_init8042(); //Init 8042&Load all BIOS!
@@ -102,5 +105,5 @@ byte read_8042(word port, byte *result); //Prototype for init port!
 void register_PS2PortWrite(byte port, PS2OUT handler);
 void register_PS2PortRead(byte port, PS2IN handler, PS2PEEK peekhandler);
 
-void IRQ8042(byte flags); //Generates any IRQs needed on the 8042!
+void update8042(double timepassed); //Update 8042 input/output timings!
 #endif

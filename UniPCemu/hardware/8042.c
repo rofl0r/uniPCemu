@@ -33,7 +33,7 @@ void input_lastwrite_8042()
 	fifobuffer_gotolast(Controller8042.buffer); //Goto last!	
 }
 
-void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
+byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 {
 	if (!(Controller8042.status_buffer&1)) //Buffer empty?
 	{
@@ -43,6 +43,7 @@ void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 		{
 			Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
 			Controller8042.status_buffer |= 0x1; //Set output buffer full!
+			return 1; //We've received something!
 		}
 		else //Input from hardware?
 		{
@@ -105,13 +106,14 @@ void fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 									acnowledgeIRQrequest(12); //Acnowledge!
 								}
 							}
-							break; //Finished!
+							return 1; //We've received something!
 						}
 					}
 				}
 			}
 		}
 	}
+	return 0; //We've received nothing!
 }
 
 void reset8042() //Reset 8042 up till loading BIOS!
@@ -120,6 +122,48 @@ void reset8042() //Reset 8042 up till loading BIOS!
 	memset(&Controller8042,0,sizeof(Controller8042)); //Init to 0!
 	Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled = 1; //Enable first port interrupt by default!
 	Controller8042.buffer = oldbuffer; //Restore buffer!
+}
+
+double timing8042=0.0, timing8042_tick=0.0;
+uint_64 clocks8042=0; //How many clock ticks are left?
+
+void update8042(double timepassed) //Update 8042 input/output timings!
+{
+	uint_64 clocks; //Clocks to tick!
+	//Sending costs 12 clocks(1 start bit, 8 data bits, 1 parity bit, 1 stop bit, 1 ACN bit), Receiving costs 11 clocks(1 start bit, 8 data bits, 1 parity bit, 1 stop bit)
+	timing8042 += timepassed; //For ticking!
+	clocks = (uint_64)SAFEDIV(timing8042,timing8042_tick); //How much to tick in whole ticks!
+	timing8042 -= (clocks*timing8042_tick); //Substract the clocks we tick!
+
+	//Now clocks contains the amount of clocks we're to tick! First clock input to the device(sending data to the device has higher priority), then output from the device!
+	clocks8042 += clocks; //Add the clocks we're to tick to the clocks to tick to get the new amount of clocks passed!
+	if (Controller8042.status_buffer & 2) //Output buffer is full?
+	{
+		if (clocks8042 >= 12) //Are enough clocks ready to send?
+		{
+			if (Controller8042.WritePending) //Write is pending?
+			{
+				Controller8042.status_buffer &= ~0x2; //Cleared input buffer!
+				Controller8042.portwrite[Controller8042.WritePending-1](Controller8042.input_buffer); //Write data to the specified port!
+				Controller8042.WritePending = 0; //Not pending anymore!
+				clocks8042 -= 12; //Substract the pending data, because we're now processed and sent completely!
+			}
+		}
+	}
+	else if ((Controller8042.status_buffer & 1) == 0) //Input buffer is empty?
+	{
+		if (clocks8042 >= 11) //Are enough clocks ready to receive?
+		{
+			if (fill8042_output_buffer(1)) //Have we received something?
+			{
+				clocks8042 -= 11; //Substract from our clocks, because we've received something!
+			}
+		}
+	}
+	else //Neither sending nor receiving? Discard our counted clocks!
+	{
+		clocks8042 = 0; //Discard the cycles: we're not doing anything!
+	}
 }
 
 void commandwritten_8042() //A command has been written to the 8042 controller?
@@ -159,7 +203,6 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		input_lastwrite_8042(); //Force 0xFA to user!
 		give_keyboard_input(0xFA); //ACK!
 		input_lastwrite_8042(); //Force 0xFA to user!
-		IRQ8042(1); //Process the input!
 		break;
 	case 0xA9: //Test second PS/2 port! Give 0x00 if passed (detected). 0x02-0x04=Not detected?
 		input_lastwrite_8042(); //Force result to user!
@@ -310,6 +353,11 @@ void datawritten_8042() //Data has been written?
 		return; //Abort normal process!
 	}
 
+	if (Controller8042.WritePending) //Write is already pending?
+	{
+		return; //Abort: a write is pending!
+	}
+
 	if (!(Controller8042.has_port[0] || Controller8042.has_port[1])) //Neither port?
 	{
 		Controller8042.has_port[0] = 1; //Default to port 0!
@@ -320,17 +368,16 @@ void datawritten_8042() //Data has been written?
 	{
 		if (Controller8042.has_port[c]) //To this port?
 		{
-			Controller8042.RAM[0] &= ~(0x10<<c); //Automatically the controller when we're sent to!
+			Controller8042.RAM[0] &= ~(0x10<<c); //Automatically enable the controller when we're sent to!
 			if (Controller8042.portwrite[c]) //Gotten handler?
 			{
-				Controller8042.status_buffer &= ~0x2; //Cleared input buffer!
-				Controller8042.portwrite[c](Controller8042.input_buffer); //Write data!
+				Controller8042.status_buffer |= 2; //We're pending data to write!
+				Controller8042.WritePending = (c+1); //This port is pending to write!
 				Controller8042.has_port[c] = 0; //Reset!
 				break; //Stop searching for a device to output!
 			}
 		}
 	}
-	fill8042_output_buffer(1); //Update the input buffer!
 }
 
 extern byte is_XT; //Are we emulating a XT architecture?
@@ -381,7 +428,6 @@ byte write_8042(word port, byte value)
 			if (value & 0x80) //Clear interrupt flag and we're a XT system?
 			{
 				Controller8042.status_buffer &= ~0x21; //Clear input buffer full&AUX bits!
-				fill8042_output_buffer(1); //Fill the next byte to use!
 			}
 			if (((value^0x40)==(Controller8042.PortB&0x40)) && ((value)&0x40)) //Set when unset?
 			{
@@ -412,25 +458,21 @@ byte read_8042(word port, byte *result)
 		if (Controller8042.readoutputport) //Read the output port?
 		{
 			*result = Controller8042.outputport; //Read the output port directly!
-			fill8042_output_buffer(1); //Fill the input buffer if needed!
 			return 1; //Don't process normally!
 		}
 		if (Controller8042.Read_RAM) //Write to VRAM byte?
 		{
 			*result = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
 			Controller8042.Read_RAM = 0; //Not anymore!
-			fill8042_output_buffer(1); //Fill the input buffer if needed!
 			return 1; //Don't process normally!
 		}
 	
-		fill8042_output_buffer(1); //Fill the input buffer if needed!
 		if (Controller8042.status_buffer&1) //Gotten data?
 		{
 			*result = Controller8042.output_buffer; //Read output buffer!
 			if ((is_XT==0) || force8042) //We're an AT system?
 			{
 				Controller8042.status_buffer &= ~0x21; //Clear output buffer full&AUX bits!
-				fill8042_output_buffer(1); //Get the next byte if needed!
 			}
 		}
 		else
@@ -445,8 +487,11 @@ byte read_8042(word port, byte *result)
 		return 1; //Force us to 0 by default!
 		break;
 	case 0x64: //Command port: read status register?
-		if ((is_XT==0) || force8042) fill8042_output_buffer(1); //Fill the output buffer if needed!
 		*result = (Controller8042.status_buffer|0x10)|(Controller8042.PS2ControllerConfigurationByte.SystemPassedPOST<<2); //Read status buffer combined with the BIOS POST flag! We're never inhabited!
+		if (Controller8042.WritePending) //Write is pending?
+		{
+			*result |= 2; //The write buffer is still full!
+		}
 		if (Controller8042.status_high) //High status overwritten?
 		{
 			*result &= 0xF; //Only low data given!
@@ -487,17 +532,14 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 			break; //Report CGA!
 		}
 	}
+	timing8042 = 0.0; //Nothing yet!
+	timing8042_tick = 1000000000.0/16700.0; //16.7kHz signal!
 }
 
 void BIOS_done8042()
 {
 	if (__HW_DISABLED) return; //Abort!
 	free_fifobuffer(&Controller8042.buffer); //Free the buffer!
-}
-
-void IRQ8042(byte flags) //Generates any IRQs needed on the 8042!
-{
-	fill8042_output_buffer(flags); //Fill our input buffer!
 }
 
 //Registration handlers!

@@ -52,7 +52,6 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 	if (!is_ATInit)
 	{
 		give_keyboard_input(0xAA); //Give OK status code!
-		IRQ8042(flags); //We've got data in our input buffer!
 	}
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
 	loadKeyboardDefaults(); //Load our defaults!
@@ -135,7 +134,6 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 					{
 						give_keyboard_input(scancodesets[scancodeset][key].keypress[i]); //Give control byte(s) of keypress!
 					}
-					IRQ8042(1); //We've got data in our input buffer!
 				}
 			}
 			else //Released?
@@ -147,7 +145,6 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 					{
 						give_keyboard_input(scancodesets[scancodeset][key].keyrelease[i]); //Give control byte(s) of keyrelease!
 					}
-					IRQ8042(1); //We've got data in our input buffer!
 				}
 			}
 		}
@@ -172,7 +169,6 @@ void updatePS2Keyboard(double timepassed)
 				case 1: //First stage?
 					input_lastwrite_keyboard(); //Force 0x00(dummy byte) to user!
 					give_keyboard_input(0xFA); //Acnowledge!
-					IRQ8042(1); //We've got data in our input buffer!
 					resetKeyboard(1, 1); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
 					Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear!
 					Keyboard.command_step = 2; //Step 2!
@@ -180,7 +176,6 @@ void updatePS2Keyboard(double timepassed)
 				case 2: //Final stage?
 					Keyboard.timeout = (double)0; //Finished!
 					give_keyboard_input(0xAA); //Give the result code!
-					IRQ8042(1); //We've got data in our input buffer!
 					Keyboard.command_step = 0; //Finished!
 					Keyboard.has_command = 0; //Finished command!
 					break;
@@ -189,7 +184,6 @@ void updatePS2Keyboard(double timepassed)
 			case 0xFE: //Resend?
 				give_keyboard_input(Keyboard.last_send_byte); //Resend last non-0xFE byte!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
-				IRQ8042(1); //We've got data in our input buffer!
 				Keyboard.has_command = 0; //No command anymore!
 				break;
 			case 0xFA: //Plain ACK and finish!
@@ -198,7 +192,6 @@ void updatePS2Keyboard(double timepassed)
 			case 0xF7: //Plain ACK and finish!
 				give_keyboard_input(0xFA); //ACK!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
-				IRQ8042(1); //We've got data in our input buffer!
 				Keyboard.has_command = 0; //No command anymore!
 				break;
 			case 0xF2: //Read ID
@@ -206,7 +199,6 @@ void updatePS2Keyboard(double timepassed)
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				give_keyboard_input(0xAB); //First byte!
 				give_keyboard_input(0x83); //Second byte given!
-				IRQ8042(1); //We've got data in our input buffer!
 				Keyboard.has_command = 0; //No command anymore!
 				break;
 			case 0xF0: //ACK and next phase!
@@ -217,14 +209,12 @@ void updatePS2Keyboard(double timepassed)
 					{
 						give_keyboard_input(0xFA); //FA: Valid value!
 						input_lastwrite_keyboard(); //Force 0xFA to user!
-						IRQ8042(1); //We've got data in our input buffer!
 						++Keyboard.command_step; //Next step!
 					}
 					else if ((Keyboard.cmdOK&3) == 2) //Error?
 					{
 						give_keyboard_input(0xFE); //FE: Invalid value!
 						input_lastwrite_keyboard(); //Force 0xFA to user!
-						IRQ8042(1); //We've got data in our input buffer!
 					}
 					else if ((Keyboard.command == 0xF0) && (Keyboard.command_step == 2)) //Second step gives input?
 					{
@@ -240,7 +230,6 @@ void updatePS2Keyboard(double timepassed)
 							give_keyboard_input(0x3F); //Get scan code set!
 							break;
 						}
-						IRQ8042(1); //We've got data in our input buffer!
 						Keyboard.cmdOK |= 4; //We're finished!
 					}
 					if (Keyboard.cmdOK & 4) //Finish?
@@ -257,7 +246,6 @@ void updatePS2Keyboard(double timepassed)
 			case 0xEE: //Echo 0xEE!
 				give_keyboard_input(0xEE); //Respond with "Echo"!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
-				IRQ8042(1); //We've got data in our input buffer!
 				Keyboard.has_command = 0; //No command anymore!
 				break;
 			default: //Unknown command?
@@ -266,7 +254,6 @@ void updatePS2Keyboard(double timepassed)
 			case 0xFB:
 				give_keyboard_input(0xFE); //Unknown command!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
-				IRQ8042(1); //We've got data in our input buffer!
 				Keyboard.has_command = 0; //No command anymore!
 				Keyboard.timeout = (double)0; //Finished!
 				break;
@@ -308,11 +295,9 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 	case 0xF9: //Mode 3 change:
 		memset(scancodeset_typematic,0,sizeof(scancodeset_typematic)); //Disable all typematic!
 		memset(scancodeset_break,0,sizeof(scancodeset_break)); //Disable all break!
-		IRQ8042(1); //We've got data in our input buffer!
 		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF8: //Mode 3 change:
-		IRQ8042(1); //We've got data in our input buffer!
 		memset(scancodeset_typematic,0,sizeof(scancodeset_typematic)); //Disable all typematic!
 		memset(scancodeset_break,1,sizeof(scancodeset_break)); //Enable all break!
 		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
@@ -477,6 +462,7 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	for (;!(PORT_IN_B(0x64)&0x1);) //Wait for input data?
 	{
 		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0xAA!
 	if (result!=0xAA) //Error?
@@ -486,9 +472,15 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 
 
 	PORT_OUT_B(0x60,0xED); //Set/reset status indicators!
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
+	{
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
 	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
 	{
 		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0xFA!
 	if (result!=0xFA) //Error?
@@ -497,9 +489,15 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	}
 
 	PORT_OUT_B(0x60,0x00); //Set/reset status indicators: all off!
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
+	{
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
 	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
 	{
 		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0xFA!
 	if (result!=0xFA) //Error?
@@ -508,9 +506,15 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	}
 
 	PORT_OUT_B(0x60,0xF2); //Read ID!
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
+	{
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
 	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
 	{
 		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0xFA!
 	if (result!=0xFA) //Error?
@@ -521,6 +525,7 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
 	{
 		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0xAB!
 	if (result!=0xAB) //First byte invalid?
@@ -531,6 +536,7 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
 	{
 		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
 	}
 	result = PORT_IN_B(0x60); //Must be 0x83!
 	if (result!=0x83) //Second byte invalid?
