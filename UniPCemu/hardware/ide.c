@@ -556,6 +556,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 		if (ATA[channel].datapos == ATA[channel].datablock) //Fully read?
 		{
 			ATA[channel].commandstatus = 0; //Reset command!
+			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		}
 		return result; //Give the result byte!
 	default: //Unknown?
