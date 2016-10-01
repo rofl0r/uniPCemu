@@ -169,21 +169,19 @@ OPTINLINE void ATA_IRQ(byte channel, byte slave)
 
 OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 {
-	if ((!ATA[channel].DriveControlRegister.nIEN) && (!ATA[channel].DriveControlRegister.SRST) && (ATA_activeDrive(channel) == slave)) //Allow interrupts?
+	//Always allow removing an IRQ if it's raised! This doesn't depend on any flags set in registers!
+	switch (channel)
 	{
-		switch (channel)
-		{
-		case 0: //Primary channel?
-			lowerirq(ATA_PRIMARYIRQ); //Execute the IRQ!
-			acnowledgeIRQrequest(ATA_PRIMARYIRQ); //Acnowledge!
-			break;
-		case 1:
-			lowerirq(ATA_SECONDARYIRQ); //Execute the IRQ!
-			acnowledgeIRQrequest(ATA_SECONDARYIRQ); //Acnowledge!
-			break;
-		default: //Unknown channel?
-			break;
-		}
+	case 0: //Primary channel?
+		lowerirq(ATA_PRIMARYIRQ); //Execute the IRQ!
+		acnowledgeIRQrequest(ATA_PRIMARYIRQ); //Acnowledge!
+		break;
+	case 1:
+		lowerirq(ATA_SECONDARYIRQ); //Execute the IRQ!
+		acnowledgeIRQrequest(ATA_SECONDARYIRQ); //Acnowledge!
+		break;
+	default: //Unknown channel?
+		break;
 	}
 }
 
@@ -532,8 +530,9 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 				if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 				{
-
+					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 				}
+				return result; //Give the result!
 				break;
 			case 0xA8: //Read sector?
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
@@ -544,6 +543,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 						ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 					}
 				}
+				return result; //Give the result!
 				break;
 			default: //Unknown command?
 				break;
