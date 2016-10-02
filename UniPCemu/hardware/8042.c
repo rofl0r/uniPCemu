@@ -573,7 +573,6 @@ byte read_8042(word port, byte *result)
 				dolog("8042", "Read port 0x64: %02X", *result);
 			}
 			#endif
-
 		}
 		return 1; //We're processed!
 		break;
