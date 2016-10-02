@@ -1489,6 +1489,8 @@ void ATA_DiskChanged(int disk)
 			--disk_size; //LBA is 0-based, not 1 based!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable sectors, low word!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (word)(disk_size >> 16); //Number of addressable sectors, high word!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[72] = 4; //Major version! We're ATA/ATAPI 4!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[72] = 0; //Minor version! We're ATA/ATAPI 4!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[80] = 0x02; //Supports ATA-1!
 			ATA_updateCapacity(disk_channel,disk_ATA); //Update the drive capacity!
 		}
