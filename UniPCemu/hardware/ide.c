@@ -13,6 +13,16 @@
 #define ATA_PRIMARYIRQ 14
 #define ATA_SECONDARYIRQ 15
 
+//Bits 6-7 of byte 2 of the Mode Sense command
+//Current values
+#define CDROM_PAGECONTROL_CURRENT 0
+//Changable values
+#define CDROM_PAGECONTROL_CHANGEABLE 1
+//Default values
+#define CDROM_PAGECONTROL_DEFAULT 2
+//Saved values
+#define CDROM_PAGECONTROL_SAVED 3
+
 extern byte singlestep; //Enable single stepping when called?
 
 PCI_CONFIG PCI_IDE;
@@ -30,6 +40,8 @@ struct
 	{
 		byte ATAPI_processingPACKET; //Are we processing a packet or data for the ATAPI device?
 		byte ATAPI_PACKET[12]; //Full ATAPI packet!
+		byte ATAPI_ModeData[0x10000]; //All possible mode selection data, that's specified!
+		uint_32 ATAPI_ModeDataSize; //The size of the ATAPI Mode Data, that's stored!
 		union
 		{
 			struct
@@ -615,6 +627,13 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 {
 	switch (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[0]) //What command?
 	{
+	case 0x55: //MODE SELECT(10)(Mandatory)?
+		//Store the data, just ignore it!
+		memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData,&ATA[channel].data,ATA[channel].datablock); //Copy the data to be copied to the data area of the drive!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeDataSize = ATA[channel].datablock; //The size of the stored block!
+		ATA[channel].commandstatus = 0; //Reset status: we're done!
+		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're done!
+		break;
 	case 0xA8: //Read sectors command!
 		ATA[channel].commandstatus = 0; //Reset status: we're done!
 		ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're done!
@@ -652,6 +671,16 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x55: //MODE SELECT(10)(Mandatory)?
+		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
+		//Byte 4 = allocation length
+		ATA[channel].datapos = 0; //Start of data!
+		ATA[channel].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
+		ATA[channel].datasize = 1; //How many blocks to transfer!
+		memset(ATA[channel].data, 0, ATA[channel].datablock); //Clear the result!
+		//Leave the rest of the information cleared (unknown/unspecified)
+		ATA[channel].commandstatus = 2; //Transferring data OUT!
+		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x5A: //MODE SENSE(10)(Mandatory)?
 		break;
