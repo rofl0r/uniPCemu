@@ -690,6 +690,26 @@ OPTINLINE void giveATAPISignature(byte channel)
 	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = 0x01;
 }
 
+OPTINLINE void giveATASignature(byte channel)
+{
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 0x01;
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0x00;
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0x00;
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = 0x01;
+}
+
+void ATA_reset(byte channel)
+{
+	if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //CD-ROM specified?
+	{
+		giveATAPISignature(channel); //We're a CD-ROM, give ATAPI signature!
+	}
+	else //Normal IDE harddrive?
+	{
+		giveATASignature(channel); //We're a harddisk, give ATA signature!
+	}
+}
+
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
 {
 #ifdef ATA_LOG
@@ -1026,8 +1046,16 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0x00: //NOP (ATAPI Mandatory)?
 		break;
 	case 0x08: //DEVICE RESET(ATAPI Mandatory)?
+		if (!(ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //ATA device? Unsupported!
+		{
+			#ifdef ATA_LOG
+			dolog("ATA", "Invalid ATAPI on ATA drive command: %02X", command);
+			#endif
+			goto invalidcommand;
+		}
 		ATA[channel].commandstatus = 0; //Reset command status!
 		ATA[channel].command = 0; //Full reset!
+		ATA_reset(channel); //Reset the channel!
 		break;
 	case 0xDC: //BIOS - post-boot?
 	case 0xDD: //BIOS - pre-boot?
@@ -1136,6 +1164,7 @@ byte outATA16(word port, word value)
 
 byte outATA8(word port, byte value)
 {
+	byte pendingreset = 0;
 	byte channel = 0; //What channel?
 	if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Primary channel?
 	{
@@ -1222,7 +1251,12 @@ port3_write: //Special port #3?
 #ifdef ATA_LOG
 		dolog("ATA", "Control register write: %02X %i.%i",value, channel, ATA_activeDrive(channel));
 #endif
+		if (ATA[channel].DriveControlRegister.SRST==0) pendingreset = 1; //We're pending reset!
 		ATA[channel].DriveControlRegister.data = value; //Set the data!
+		if (ATA[channel].DriveControlRegister.SRST && pendingreset) //Pending reset?
+		{
+			ATA_reset(channel); //Reset the specified channel!
+		}
 		return 1; //OK!
 		break;
 	default: //Unsupported!
