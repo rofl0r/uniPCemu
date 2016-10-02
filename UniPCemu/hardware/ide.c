@@ -708,6 +708,13 @@ void ATA_reset(byte channel)
 	{
 		giveATASignature(channel); //We're a harddisk, give ATA signature!
 	}
+	//Clear errors!
+	ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0x00; //No error!
+	//Clear Drive/Head register, leaving the specified drive as it is!
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head = 0; //What head?
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.always1_1 = 1; //Always 1!
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode_2  = 0; //LBA mode?
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.always1_2 = 1; //Always 1!
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
