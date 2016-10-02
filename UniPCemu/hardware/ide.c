@@ -621,6 +621,7 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 	}	
 }
 
+//List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
 void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 {
 	byte drive;
@@ -631,15 +632,22 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x00: //TEST UNIT READY(Mandatory)?
-	case 0x01: //REZERO UNIT(Mandatory)?
 	case 0x03: //REQUEST SENSE(Mandatory)?
 	case 0x12: //INQUIRY(Mandatory)?
-	case 0x46: //GET CONFIGURATION(Mandatory)?
-	case 0x4A: //GET EVENT STATUS NOTIFICATION(Mandatory)?
-	case 0x55: //MODE SELECT(Mandatory)?
-	case 0x5A: //MODE SENSE(Mandatory)?
+	case 0x55: //MODE SELECT(10)(Mandatory)?
+	case 0x5A: //MODE SENSE(10)(Mandatory)?
+	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
+	case 0x28: //Read sectors (10) command(Mandatory)?
+	case 0xBE: //Read CD command(mandatory)?
+	case 0xB9: //Read CD MSF (mandatory)?
+	case 0x44: //Read header (mandatory)?
+	case 0x42: //Read sub-channel (mandatory)?
+	case 0x43: //Read TOC (mandatory)?
+	case 0x2B: //Seek (Mandatory)?
+	case 0x4E: //Stop play/scan (Mandatory)?
+	case 0x1B: //Start/stop unit(Mandatory)?
 		break;
-	case 0xA8: //Read sectors command!
+	case 0xA8: //Read sectors (12) command(Mandatory)!
 		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 																				 //[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
@@ -653,7 +661,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 			ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		}
 		break;
-	case 0x25: //Read capacity?
+	case 0x25: //Read CD-ROM capacity(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].datapos = 0; //Start of data!
