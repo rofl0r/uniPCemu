@@ -632,25 +632,39 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x00: //TEST UNIT READY(Mandatory)?
+		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
+		break;
 	case 0x12: //INQUIRY(Mandatory)?
+		break;
 	case 0x55: //MODE SELECT(10)(Mandatory)?
+		break;
 	case 0x5A: //MODE SENSE(10)(Mandatory)?
+		break;
 	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
+		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
+		break;
 	case 0xBE: //Read CD command(mandatory)?
+		break;
 	case 0xB9: //Read CD MSF (mandatory)?
+		break;
 	case 0x44: //Read header (mandatory)?
+		break;
 	case 0x42: //Read sub-channel (mandatory)?
+		break;
 	case 0x43: //Read TOC (mandatory)?
+		break;
 	case 0x2B: //Seek (Mandatory)?
+		break;
 	case 0x4E: //Stop play/scan (Mandatory)?
+		break;
 	case 0x1B: //Start/stop unit(Mandatory)?
 		break;
 	case 0xA8: //Read sectors (12) command(Mandatory)!
 		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
-																				 //[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
+		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 		if (LBA>disk_size) goto ATAPI_invalidcommand; //Error out when invalid sector!
 		ATA[channel].datapos = 0; //Start of data!
