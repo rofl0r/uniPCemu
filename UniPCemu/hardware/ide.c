@@ -110,6 +110,7 @@ struct
 		word driveparams[0x100]; //All drive parameters for a drive!
 		uint_32 current_LBA_address; //Current LBA address!
 		byte Enable8BitTransfers; //Enable 8-bit transfers?
+		byte preventMediumRemoval; //Are we preventing medium removal for removable disks(CD-ROM)?
 	} Drive[2]; //Two drives!
 
 	union
@@ -776,6 +777,9 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		}
 		break;
 	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
+		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
+		ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[4]&1); //Are we preventing the storage medium to be removed?
 		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
 		break;
@@ -1595,6 +1599,32 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte size)
 
 byte CDROM_DiskChanged = 0;
 
+byte ATA_allowDiskChange(int disk) //Are we allowing this disk to be changed?
+{
+	byte disk_ATA, disk_channel, disk_nr;
+	switch (disk) //What disk?
+	{
+	//Four disk numbers!
+	case HDD0:
+		disk_nr = 0;
+		break;
+	case HDD1:
+		disk_nr = 1;
+		break;
+	case CDROM0:
+		disk_nr = 2;
+		break;
+	case CDROM1:
+		disk_nr = 3;
+		break;
+	default: //Unsupported?
+		return 1; //Abort, we're unsupported, so allow changes!
+	}
+	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
+	disk_ATA = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
+	return !ATA[disk_ATA].Drive[disk_channel].preventMediumRemoval; //Are we not preventing removal of this medium?
+}
+
 void ATA_DiskChanged(int disk)
 {
 	byte disk_ATA, disk_channel, disk_nr;
@@ -1713,6 +1743,10 @@ void initATA()
 			{
 				if (ATA_Drives[j][k] == disk_reverse[i]) //Found?
 				{
+					if ((disk_reverse[i] == HDD0) || (disk_reverse[i] == HDD1))
+					{
+						ATA[j].Drive[k].preventMediumRemoval = 1; //We're preventing medium removal, when running the emulation!
+					}
 					ATA_DrivesReverse[i][0] = j;
 					ATA_DrivesReverse[i][1] = k; //Load reverse lookup!
 				}

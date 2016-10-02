@@ -34,6 +34,7 @@
 #include "headers/support/dro.h" //DRO file support!
 #include "headers/support/bmp.h" //For dumping our full VGA RAM!
 #include "headers/hardware/gameblaster.h" //Gameblaster volume knob support!
+#include "headers/hardware/ide.h" //Disk change allowed detection!
 
 extern byte diagnosticsportoutput; //Diagnostics port output!
 
@@ -1101,6 +1102,7 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 
 void BIOS_hdd0_selection() //HDD0 selection menu!
 {
+	//HDD is never allowed to change during running emulation!
 	BIOS_Title("Mount First HDD");
 	generateFileList(diskpath,"img|sfdimg",1,1); //Generate file list for all .img files!
 	EMU_locktext();
@@ -1132,6 +1134,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 
 void BIOS_hdd1_selection() //HDD1 selection menu!
 {
+	//HDD is never allowed to change during running emulation!
 	BIOS_Title("Mount Second HDD");
 	generateFileList(diskpath,"img|sfdimg",1,1); //Generate file list for all .img files!
 	EMU_locktext();
@@ -1163,54 +1166,60 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 
 void BIOS_cdrom0_selection() //CDROM0 selection menu!
 {
-	BIOS_Title("Mount First CD-ROM");
-	generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
-	EMU_locktext();
-	EMU_gotoxy(0, 4); //Goto 4th row!
-	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
-	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
-	EMU_unlocktext();
-	int file = ExecuteList(12,4,BIOS_Settings.cdrom0,256,NULL); //Show menu for the disk image!
-	switch (file) //Which file?
+	if (ATA_allowDiskChange(CDROM0)) //Allowed to change?
 	{
-	case FILELIST_DEFAULT: //Unmount?
-	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.cdrom0,""); //Unmount!
-		break;
-	case FILELIST_CANCEL: //Cancelled?
-		//We do nothing with the selected disk!
-		break; //Just calmly return!
-	default: //File?
-		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.cdrom0,itemlist[file]); //Use this file!
+		BIOS_Title("Mount First CD-ROM");
+		generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
+		EMU_locktext();
+		EMU_gotoxy(0, 4); //Goto 4th row!
+		EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+		GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
+		EMU_unlocktext();
+		int file = ExecuteList(12,4,BIOS_Settings.cdrom0,256,NULL); //Show menu for the disk image!
+		switch (file) //Which file?
+		{
+		case FILELIST_DEFAULT: //Unmount?
+		case FILELIST_NOFILES: //No files?
+			BIOS_Changed = 1; //Changed!
+			strcpy(BIOS_Settings.cdrom0,""); //Unmount!
+			break;
+		case FILELIST_CANCEL: //Cancelled?
+			//We do nothing with the selected disk!
+			break; //Just calmly return!
+		default: //File?
+			BIOS_Changed = 1; //Changed!
+			strcpy(BIOS_Settings.cdrom0,itemlist[file]); //Use this file!
+		}
 	}
 	BIOS_Menu = 1; //Return to image menu!
 }
 
 void BIOS_cdrom1_selection() //CDROM1 selection menu!
 {
-	BIOS_Title("Mount Second CD-ROM");
-	generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
-	EMU_locktext();
-	EMU_gotoxy(0,4); //Goto 4th row!
-	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
-	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
-	EMU_unlocktext();
-	int file = ExecuteList(12,4,BIOS_Settings.cdrom1,256,NULL); //Show menu for the disk image!
-	switch (file) //Which file?
+	if (ATA_allowDiskChange(CDROM0)) //Allowed to change?
 	{
-	case FILELIST_DEFAULT: //Unmount?
-	case FILELIST_NOFILES: //No files?
-		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.cdrom1,""); //Unmount!
-		break;
-	case FILELIST_CANCEL: //Cancelled?
-		//We do nothing with the selected disk!
-		break; //Just calmly return!
-	default: //File?
-		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.cdrom1,itemlist[file]); //Use this file!
+		BIOS_Title("Mount Second CD-ROM");
+		generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
+		EMU_locktext();
+		EMU_gotoxy(0,4); //Goto 4th row!
+		EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+		GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
+		EMU_unlocktext();
+		int file = ExecuteList(12,4,BIOS_Settings.cdrom1,256,NULL); //Show menu for the disk image!
+		switch (file) //Which file?
+		{
+		case FILELIST_DEFAULT: //Unmount?
+		case FILELIST_NOFILES: //No files?
+			BIOS_Changed = 1; //Changed!
+			strcpy(BIOS_Settings.cdrom1,""); //Unmount!
+			break;
+		case FILELIST_CANCEL: //Cancelled?
+			//We do nothing with the selected disk!
+			break; //Just calmly return!
+		default: //File?
+			BIOS_Changed = 1; //Changed!
+			strcpy(BIOS_Settings.cdrom1,itemlist[file]); //Use this file!
+		}
 	}
 	BIOS_Menu = 1; //Return to image menu!
 }
