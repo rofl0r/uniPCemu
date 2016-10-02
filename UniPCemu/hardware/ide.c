@@ -21,8 +21,8 @@ struct
 {
 	byte longop; //Long operation instead of a normal one?
 	uint_32 datapos; //Data position?
-	uint_32 datablock; //How large is a data block to be refreshed?
-	uint_32 datasize; //Data size?
+	uint_32 datablock; //How large is a data block to be transferred?
+	uint_32 datasize; //Data size in blocks to transfer?
 	byte data[4096]; //Full sector data!
 	byte command;
 	byte commandstatus; //Do we have a command?
@@ -527,6 +527,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 			switch (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[0]) //What command?
 			{
 			case 0x25: //Read capacity?
+			case 0x12: //Inquiry?
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 				if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 				{
@@ -636,6 +637,19 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	case 0x03: //REQUEST SENSE(Mandatory)?
 		break;
 	case 0x12: //INQUIRY(Mandatory)?
+		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
+		//Byte 4 = allocation length
+		ATA[channel].datapos = 0; //Start of data!
+		ATA[channel].datablock = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Size of a block to transfer!
+		ATA[channel].datasize = 1; //How many blocks to transfer!
+		memset(ATA[channel].data,0,ATA[channel].datablock); //Clear the result!
+		//Now fill the packet with data!
+		ATA[channel].data[0] = 0x05; //We're a CD-ROM drive!
+		ATA[channel].data[3] = (4<<4); //We're ATAPI version 4, response data format 0?
+		//Leave the rest of the information cleared (unknown/unspecified)
+		ATA[channel].commandstatus = 1; //Transferring data IN!
+		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x55: //MODE SELECT(10)(Mandatory)?
 		break;
@@ -668,7 +682,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 		if (LBA>disk_size) goto ATAPI_invalidcommand; //Error out when invalid sector!
 		ATA[channel].datapos = 0; //Start of data!
-		ATA[channel].datablock = 0x800; //Size of a sector to transfer!
+		ATA[channel].datablock = 0x800; //Size of a sector to transfer(2KB)!
 		ATA[channel].datasize = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //How many sectors to transfer
 		if (ATAPI_readsector(channel)) //Sector read?
 		{
@@ -680,6 +694,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = 8; //Size of a block of information to transfer!
+		ATA[channel].datasize = 1; //Number of blocks of information to transfer!
 		ATA[channel].data[0] = (disk_size&0xFF);
 		ATA[channel].data[1] = ((disk_size>>8) & 0xFF);
 		ATA[channel].data[2] = ((disk_size>>16) & 0xFF);
@@ -688,6 +703,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA[channel].data[5] = 8;
 		ATA[channel].data[6] = 0;
 		ATA[channel].data[7] = 0; //We're 4096 byte sectors!
+		ATA[channel].commandstatus = 1; //Transferring data IN!
 		ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're finished!
 		break;
 	default:
