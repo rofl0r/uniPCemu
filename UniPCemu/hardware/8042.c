@@ -12,6 +12,9 @@
 
 #define BUFFERSIZE_8042 64
 
+//Define this to log all 8042 reads and writes!
+#define LOG8042
+
 byte force8042 = 0; //Force 8042 controller handling?
 
 byte translation8042[0x100] = { //Full 8042 translation table!
@@ -422,34 +425,40 @@ byte write_8042(word port, byte value)
 	switch (port) //What port?
 	{
 	case 0x60: //Data port: write output buffer?
-		Controller8042.status_buffer &= ~0x8; //We've last sent a byte to the data port!
-		if (Controller8042.inputtingsecurity) //Inputting security string?
+		if (is_XT==0) //We're an AT?
 		{
-			Controller8042.securitychecksum += value; //Add to the value!
-			if (value==0) Controller8042.inputtingsecurity = 0; //Finished inputting?
-			return 1; //Don't process normally!
-		}
-		if (Controller8042.writeoutputport) //Write the output port?
-		{
-			Controller8042.outputport = value; //Write the output port directly!
-			Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
-			refresh_outputport(); //Handle the new output port!
-			Controller8042.writeoutputport = 0; //Not anymore!
-			return 1; //Don't process normally!
-		}
-		if (Controller8042.Write_RAM) //Write to VRAM byte?
-		{
-			oldRAM0 = Controller8042.RAM[0]; //Save old RAM 0 status!
-			Controller8042.RAM[Controller8042.Write_RAM-1] = value; //Set data in RAM!
-			Controller8042.Write_RAM = 0; //Not anymore!
-			Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
-			return 1; //Don't process normally!
-		}
+			#ifdef LOG8042
+			dolog("8042","Write port 0x60: %02X",value);
+			#endif
+			Controller8042.status_buffer &= ~0x8; //We've last sent a byte to the data port!
+			if (Controller8042.inputtingsecurity) //Inputting security string?
+			{
+				Controller8042.securitychecksum += value; //Add to the value!
+				if (value==0) Controller8042.inputtingsecurity = 0; //Finished inputting?
+				return 1; //Don't process normally!
+			}
+			if (Controller8042.writeoutputport) //Write the output port?
+			{
+				Controller8042.outputport = value; //Write the output port directly!
+				Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
+				refresh_outputport(); //Handle the new output port!
+				Controller8042.writeoutputport = 0; //Not anymore!
+				return 1; //Don't process normally!
+			}
+			if (Controller8042.Write_RAM) //Write to VRAM byte?
+			{
+				oldRAM0 = Controller8042.RAM[0]; //Save old RAM 0 status!
+				Controller8042.RAM[Controller8042.Write_RAM-1] = value; //Set data in RAM!
+				Controller8042.Write_RAM = 0; //Not anymore!
+				Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
+				return 1; //Don't process normally!
+			}
 
-		Controller8042.input_buffer = value; //Write to output buffer to process!
+			Controller8042.input_buffer = value; //Write to output buffer to process!
 
-		datawritten_8042(); //Written handler!
-		return 1;
+			datawritten_8042(); //Written handler!
+			return 1;
+		}
 		break;
 	case 0x61: //PPI keyboard functionality for XT!
 		if (is_XT) //XT machine only?
@@ -467,11 +476,17 @@ byte write_8042(word port, byte value)
 		}
 		break;
 	case 0x64: //Command port: send command?
-		Controller8042.status_high = 0; //Disable high status, we're writing a new command!
-		Controller8042.status_buffer |= 0x8; //We've last sent a byte to the command port!
-		Controller8042.command = value; //Set command!
-		commandwritten_8042(); //Written handler!
-		return 1;
+		if (is_XT==0) //We're an AT?
+		{
+			#ifdef LOG8042
+			dolog("8042", "Write port 0x64: %02X", value);
+			#endif
+			Controller8042.status_high = 0; //Disable high status, we're writing a new command!
+			Controller8042.status_buffer |= 0x8; //We've last sent a byte to the command port!
+			Controller8042.command = value; //Set command!
+			commandwritten_8042(); //Written handler!
+			return 1;
+		}
 		break;
 	}
 	return 0; //We're unhandled!
@@ -483,18 +498,20 @@ byte read_8042(word port, byte *result)
 	switch (port)
 	{
 	case 0x60: //Data port: Read input buffer?
-		if (Controller8042.readoutputport) //Read the output port?
+		if (is_XT==0) //We're an AT?
 		{
-			*result = Controller8042.outputport; //Read the output port directly!
-			return 1; //Don't process normally!
+			if (Controller8042.readoutputport) //Read the output port?
+			{
+				*result = Controller8042.outputport; //Read the output port directly!
+				return 1; //Don't process normally!
+			}
+			if (Controller8042.Read_RAM) //Write to VRAM byte?
+			{
+				*result = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
+				Controller8042.Read_RAM = 0; //Not anymore!
+				return 1; //Don't process normally!
+			}
 		}
-		if (Controller8042.Read_RAM) //Write to VRAM byte?
-		{
-			*result = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
-			Controller8042.Read_RAM = 0; //Not anymore!
-			return 1; //Don't process normally!
-		}
-	
 		if (Controller8042.status_buffer&1) //Gotten data?
 		{
 			*result = Controller8042.output_buffer; //Read output buffer!
@@ -507,6 +524,12 @@ byte read_8042(word port, byte *result)
 		{
 			*result = 0; //Nothing to give: input buffer is empty!
 		}
+		if (is_XT == 0) //We're an AT?
+		{
+			#ifdef LOG8042
+			dolog("8042", "Read port 0x60: %02X", *result);
+			#endif
+		}
 		return 1; //We're processed!
 		break;
 	case 0x61: //PPI keyboard functionality for XT!
@@ -515,20 +538,30 @@ byte read_8042(word port, byte *result)
 		return 1; //Force us to 0 by default!
 		break;
 	case 0x64: //Command port: read status register?
-		if (fifobuffer_freesize(Controller8042.buffer) != BUFFERSIZE_8042) //Data in our output buffer?
+		if (is_XT==0) //We're an AT?
 		{
-			fill8042_output_buffer(1); //Fill our output buffer immediately, don't depend on hardware timing!
+			if (fifobuffer_freesize(Controller8042.buffer) != BUFFERSIZE_8042) //Data in our output buffer?
+			{
+				fill8042_output_buffer(1); //Fill our output buffer immediately, don't depend on hardware timing!
+			}
 		}
 		*result = (Controller8042.status_buffer|0x10)|(Controller8042.PS2ControllerConfigurationByte.SystemPassedPOST<<2); //Read status buffer combined with the BIOS POST flag! We're never inhabited!
-		if (Controller8042.WritePending) //Write is pending?
+		if (is_XT==0) //We're an AT?
 		{
-			*result |= 2; //The write buffer is still full!
-		}
-		if (Controller8042.status_high) //High status overwritten?
-		{
-			*result &= 0xF; //Only low data given!
-			*result |= ((Controller8042.inputport<<(Controller8042.status_high&0xF))&0xF0); //Add the high or low data to the high part of the status!
-			Controller8042.status_high = 0; //Disable high status!
+			if (Controller8042.WritePending) //Write is pending?
+			{
+				*result |= 2; //The write buffer is still full!
+			}
+			if (Controller8042.status_high) //High status overwritten?
+			{
+				*result &= 0xF; //Only low data given!
+				*result |= ((Controller8042.inputport<<(Controller8042.status_high&0xF))&0xF0); //Add the high or low data to the high part of the status!
+				Controller8042.status_high = 0; //Disable high status!
+			}
+			#ifdef LOG8042
+			dolog("8042", "Read port 0x64: %02X", *result);
+			#endif
+
 		}
 		return 1; //We're processed!
 		break;
