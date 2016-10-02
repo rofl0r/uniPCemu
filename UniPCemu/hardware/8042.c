@@ -428,7 +428,10 @@ byte write_8042(word port, byte value)
 		if (is_XT==0) //We're an AT?
 		{
 			#ifdef LOG8042
-			dolog("8042","Write port 0x60: %02X",value);
+			if (force8042==0) //Not forced for initialization?
+			{
+				dolog("8042","Write port 0x60: %02X",value);
+			}
 			#endif
 			Controller8042.status_buffer &= ~0x8; //We've last sent a byte to the data port!
 			if (Controller8042.inputtingsecurity) //Inputting security string?
@@ -479,7 +482,10 @@ byte write_8042(word port, byte value)
 		if (is_XT==0) //We're an AT?
 		{
 			#ifdef LOG8042
-			dolog("8042", "Write port 0x64: %02X", value);
+			if (force8042 == 0) //Not forced for initialization?
+			{
+				dolog("8042", "Write port 0x64: %02X", value);
+			}
 			#endif
 			Controller8042.status_high = 0; //Disable high status, we're writing a new command!
 			Controller8042.status_buffer |= 0x8; //We've last sent a byte to the command port!
@@ -527,7 +533,10 @@ byte read_8042(word port, byte *result)
 		if (is_XT == 0) //We're an AT?
 		{
 			#ifdef LOG8042
-			dolog("8042", "Read port 0x60: %02X", *result);
+			if (force8042==0) //Not forced for initialization?
+			{
+				dolog("8042", "Read port 0x60: %02X", *result);
+			}
 			#endif
 		}
 		return 1; //We're processed!
@@ -559,7 +568,10 @@ byte read_8042(word port, byte *result)
 				Controller8042.status_high = 0; //Disable high status!
 			}
 			#ifdef LOG8042
-			dolog("8042", "Read port 0x64: %02X", *result);
+			if (force8042 == 0) //Not forced for initialization?
+			{
+				dolog("8042", "Read port 0x64: %02X", *result);
+			}
 			#endif
 
 		}
