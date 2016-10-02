@@ -552,7 +552,8 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				}
 				return result; //Give the result!
 				break;
-			case 0xA8: //Read sector?
+			case 0x28: //Read sectors (10) command(Mandatory)?
+			case 0xA8: //Read sector (12) command(Mandatory)?
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 				if (ATA[channel].datapos==ATA[channel].datablock) //Full block read?
 				{
@@ -666,6 +667,7 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 		ATA[channel].commandstatus = 0; //Reset status: we're done!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're done!
 		break;
+	case 0x28: //Read sectors (10) command(Mandatory)?
 	case 0xA8: //Read sectors command!
 		ATA[channel].commandstatus = 0; //Reset status: we're done!
 		ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're done!
@@ -783,8 +785,6 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		ATA[channel].commandstatus = 0; //New command can be specified!
 		break;
-	case 0x28: //Read sectors (10) command(Mandatory)?
-		break;
 	case 0xBE: //Read CD command(mandatory)?
 		break;
 	case 0xB9: //Read CD MSF (mandatory)?
@@ -801,6 +801,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0x1B: //Start/stop unit(Mandatory)?
 		break;
+	case 0x28: //Read sectors (10) command(Mandatory)?
 	case 0xA8: //Read sectors (12) command(Mandatory)!
 		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
