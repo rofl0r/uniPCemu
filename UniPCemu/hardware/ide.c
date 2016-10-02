@@ -41,7 +41,8 @@ struct
 		byte ATAPI_processingPACKET; //Are we processing a packet or data for the ATAPI device?
 		byte ATAPI_PACKET[12]; //Full ATAPI packet!
 		byte ATAPI_ModeData[0x10000]; //All possible mode selection data, that's specified!
-		uint_32 ATAPI_ModeDataSize; //The size of the ATAPI Mode Data, that's stored!
+		byte ATAPI_DefaultModeData[0x10000]; //All possible default mode selection data, that's specified!
+		byte ATAPI_SupportedMask[0x10000]; //Supported mask bits for all saved values! 0=Not supported, 1=Supported!
 		union
 		{
 			struct
@@ -514,6 +515,9 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	return 1; //We're finished!
 }
 
+byte ATAPI_supportedmodepagecodes[0x4] = { 0x01, 0x0D, 0x0E, 0x2A }; //Supported pages!
+byte ATAPI_supportedmodepagecodes_length[0x4] = {0x6,0x6,0xD,0xC}; //The length of the pages stored in our memory!
+
 OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 {
 	byte result;
@@ -625,12 +629,39 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 
 void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 {
+	word pageaddr;
+	byte pagelength; //The length of the page!
 	switch (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x55: //MODE SELECT(10)(Mandatory)?
 		//Store the data, just ignore it!
-		memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData,&ATA[channel].data,ATA[channel].datablock); //Copy the data to be copied to the data area of the drive!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeDataSize = ATA[channel].datablock; //The size of the stored block!
+		//Copy pages that are supported to their location in the Active Mode data!
+		for (pageaddr=0;pageaddr<ATA[channel].datablock;) //Process all available data!
+		{
+			pagelength = ATA[channel].data[pageaddr + 1]-1; //This value is the last byte used minus 1(zero-based)!
+			switch (ATA[channel].data[pageaddr]&0x3F) //What page code?
+			{
+				case 0x01: //Read error recovery page (Mandatory)?
+					pagelength = MAX(pagelength, 0x6); //Maximum length to apply!
+					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x01 << 8], &ATA[channel].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
+					break;
+				case 0x0D: //CD-ROM page?
+					pagelength = MAX(pagelength, 0x6); //Maximum length to apply!
+					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x0D << 8], &ATA[channel].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
+					break;
+				case 0x0E: //CD-ROM audio control page?
+					pagelength = MAX(pagelength,0xD); //Maximum length to apply!
+					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x0E<<8],&ATA[channel].data[pageaddr+2],pagelength); //Copy the page data to our position, simply copy all data!
+					break;
+				case 0x2A: //CD-ROM capabilities & Mechanical Status Page?
+					pagelength = MAX(pagelength, 0xC); //Maximum length to apply!
+					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x2A << 8], &ATA[channel].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
+					break;
+				default: //Unknown page? Ignore it!
+					break;
+			}
+			pageaddr += ATA[channel].data[pageaddr+1]+1; //Jump to the next block, if any!
+		}
 		ATA[channel].commandstatus = 0; //Reset status: we're done!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're done!
 		break;
@@ -644,6 +675,8 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
 void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 {
+	uint_32 packet_datapos;
+	byte i;
 	byte drive;
 	drive = ATA_activeDrive(channel); //The current drive!
 	uint_32 disk_size,LBA;
@@ -683,6 +716,55 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x5A: //MODE SENSE(10)(Mandatory)?
+		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
+		ATA[channel].datapos = 0; //Start of data!
+		ATA[channel].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 1) | ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
+		ATA[channel].datasize = 1; //How many blocks to transfer!
+		memset(ATA[channel].data, 0, ATA[channel].datablock); //Clear the result!
+		//Leave the rest of the information cleared (unknown/unspecified)
+		ATA[channel].commandstatus = 1; //Transferring data IN!
+
+		for (i=0;i<NUMITEMS(ATAPI_supportedmodepagecodes);i++) //Check all supported codes!
+		{
+			if (ATAPI_supportedmodepagecodes[i] == (ATA[channel].Drive[drive].ATAPI_PACKET[2]&0x3F)) //Page found in our page storage?
+			{
+				//Valid?
+				if (ATAPI_supportedmodepagecodes_length[i]<=ATA[channel].datablock) //Valid page size?
+				{
+					switch (ATA[channel].Drive[drive].ATAPI_PACKET[2]>>6) //What kind of packet are we requesting?
+					{
+					case CDROM_PAGECONTROL_CHANGEABLE: //1 bits for all changable values?
+						for (packet_datapos=0;packet_datapos<ATA[channel].datablock;++packet_datapos) //Process all our bits that are changable!
+						{
+							ATA[channel].data[packet_datapos] = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i]<<8)|packet_datapos]; //Give the raw mask we're using!
+						}
+						break;
+					case CDROM_PAGECONTROL_CURRENT: //Current values?
+						for (packet_datapos = 0;packet_datapos<ATA[channel].datablock;++packet_datapos) //Process all our bits that are changable!
+						{
+							ATA[channel].data[packet_datapos] = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
+						}
+						break;
+					case CDROM_PAGECONTROL_DEFAULT: //Default values?
+						for (packet_datapos = 0;packet_datapos<ATA[channel].datablock;++packet_datapos) //Process all our bits that are changable!
+						{
+							ATA[channel].data[packet_datapos] = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_DefaultModeData[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos] & ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
+						}
+						break;
+					case CDROM_PAGECONTROL_SAVED: //Currently saved values?
+						goto ATAPI_invalidcommand; //Saved data isn't supported!
+						break;
+					}
+					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+				}
+				else
+				{
+					goto ATAPI_invalidcommand; //Error out!
+				}
+				break; //Stop searching!
+			}
+		}
 		break;
 	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
 		break;
