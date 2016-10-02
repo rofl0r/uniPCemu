@@ -780,6 +780,8 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[4]&1); //Are we preventing the storage medium to be removed?
+		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+		ATA[channel].commandstatus = 0; //New command can be specified!
 		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
 		break;
