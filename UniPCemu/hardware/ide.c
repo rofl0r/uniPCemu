@@ -675,9 +675,32 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 	}	
 }
 
+#include "headers/packed.h."
+struct PACKED
+{
+struct
+{
+byte errorcode : 7; //0x70
+byte valid : 1; //1 for filled with data
+byte reserved1;
+byte reserved2 : 4;
+byte SenseKey : 4;
+uint_32 information;
+byte additionalsenselength; //8
+uint_32 commandspecificinformation;
+byte additionalsensecode;
+byte reserved3[3];
+};
+byte SensePacket[0x10]; //Data of a request sense packet.
+} SENSEDATA; //Command 0x03 Request Sense Result.
+#include "headers/endpacked.h" //End of packed data!
+
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
 void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 {
+	byte aborted = 0;
+	byte abortreason = 5; //Error cause is no disk inserted? Default to 5&additional sense code 0x20 for invalid command.
+	byte additionalsensecode = 0x20; //Invalid command operation code.
 	byte isvalidpage = 0; //Valid page?
 	uint_32 packet_datapos;
 	byte i;
@@ -693,7 +716,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	case 0x03: //REQUEST SENSE(Mandatory)?
 		break;
 	case 0x12: //INQUIRY(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		if (!has_drive(ATA_Drives[channel][drive])) {abortreason=2;additionalsensecode=0;goto ATAPI_invalidcommand;} //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
@@ -708,7 +731,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x55: //MODE SELECT(10)(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0;goto ATAPI_invalidcommand;} //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
@@ -720,7 +743,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x5A: //MODE SENSE(10)(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0;goto ATAPI_invalidcommand;} //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 1) | ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
@@ -779,7 +802,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		}
 		break;
 	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0;goto ATAPI_invalidcommand;} //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[4]&1); //Are we preventing the storage medium to be removed?
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
@@ -803,11 +826,13 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
 	case 0xA8: //Read sectors (12) command(Mandatory)!
-		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0;goto ATAPI_invalidcommand;} //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
-		if (LBA>disk_size) goto ATAPI_invalidcommand; //Error out when invalid sector!
+		if ((LBA>disk_size) || ((LBA+ATA[channel].Drive[drive].ATAPI_PACKET[9]-1)>disk_size)){abortreason=5;additionalsensecode=0x21;goto ATAPI_invalidcommand;} //Error out when invalid sector!
+		if (ATA[channel].Drive[drive].ATAPI_PACKET[9]==0) {abortreason=5;additionalsensecode=0x26;goto ATAPI_invalidcommand;} //Zero sectors isn't allowed!
+		
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = 0x800; //Size of a sector to transfer(2KB)!
 		ATA[channel].datasize = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //How many sectors to transfer
@@ -817,7 +842,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		}
 		break;
 	case 0x25: //Read CD-ROM capacity(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) goto ATAPI_invalidcommand; //Error out if not present!
+		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0;goto ATAPI_invalidcommand;} //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = 8; //Size of a block of information to transfer!
@@ -837,14 +862,18 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		dolog("ATAPI","Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
 		ATAPI_invalidcommand:
 		ATA[channel].Drive[drive].ERRORREGISTER.data = 4; //Reset error register!
+		SENSEDATA.sensekey = abortreason; //Reason of the error
+		SENSEDATA.additionalsensecode = additionalsensecode; //Extended reason code
 		ATA[channel].Drive[drive].STATUSREGISTER.data = 0; //Clear status!
 		ATA[channel].Drive[drive].STATUSREGISTER.driveready = 1; //Ready!
 		ATA[channel].Drive[drive].STATUSREGISTER.error = 1; //Ready!
 		//Reset of the status register is 0!
 		ATA[channel].commandstatus = 0xFF; //Move to error mode!
 		ATA_IRQ(channel, ATA_activeDrive(channel));
+		aborted = 1; //We're aborted!
 		break;
 	}
+	if (aborted==0) {SENSEDATA.sensekey = SENSEDATA.additionalsensecode = 0;} //Clear reason on success!
 }
 
 OPTINLINE void giveATAPISignature(byte channel)
