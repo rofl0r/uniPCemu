@@ -675,6 +675,7 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
 void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 {
+	byte isvalidpage = 0; //Valid page?
 	uint_32 packet_datapos;
 	byte i;
 	byte drive;
@@ -723,7 +724,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA[channel].datasize = 1; //How many blocks to transfer!
 		memset(ATA[channel].data, 0, ATA[channel].datablock); //Clear the result!
 		//Leave the rest of the information cleared (unknown/unspecified)
-		ATA[channel].commandstatus = 1; //Transferring data IN!
+		ATA[channel].commandstatus = 1; //Transferring data IN for the result!
 
 		for (i=0;i<NUMITEMS(ATAPI_supportedmodepagecodes);i++) //Check all supported codes!
 		{
@@ -732,30 +733,34 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 				//Valid?
 				if (ATAPI_supportedmodepagecodes_length[i]<=ATA[channel].datablock) //Valid page size?
 				{
+					//Generate a header for the packet!
+					ATA[channel].data[0] = ATAPI_supportedmodepagecodes[i]; //The page code and PS bit!
+					ATA[channel].data[1] = ATAPI_supportedmodepagecodes_length[i]; //Actual page length that's stored(which follows right after, either fully or partially)!
 					switch (ATA[channel].Drive[drive].ATAPI_PACKET[2]>>6) //What kind of packet are we requesting?
 					{
 					case CDROM_PAGECONTROL_CHANGEABLE: //1 bits for all changable values?
-						for (packet_datapos=0;packet_datapos<ATA[channel].datablock;++packet_datapos) //Process all our bits that are changable!
+						for (packet_datapos=0;packet_datapos<(ATA[channel].datablock-2);++packet_datapos) //Process all our bits that are changable!
 						{
-							ATA[channel].data[packet_datapos] = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i]<<8)|packet_datapos]; //Give the raw mask we're using!
+							ATA[channel].data[packet_datapos+2] = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i]<<8)|packet_datapos]; //Give the raw mask we're using!
 						}
 						break;
 					case CDROM_PAGECONTROL_CURRENT: //Current values?
-						for (packet_datapos = 0;packet_datapos<ATA[channel].datablock;++packet_datapos) //Process all our bits that are changable!
+						for (packet_datapos = 0;packet_datapos<(ATA[channel].datablock-2);++packet_datapos) //Process all our bits that are changable!
 						{
-							ATA[channel].data[packet_datapos] = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
+							ATA[channel].data[packet_datapos+2] = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
 						}
 						break;
 					case CDROM_PAGECONTROL_DEFAULT: //Default values?
-						for (packet_datapos = 0;packet_datapos<ATA[channel].datablock;++packet_datapos) //Process all our bits that are changable!
+						for (packet_datapos = 0;packet_datapos<(ATA[channel].datablock-2);++packet_datapos) //Process all our bits that are changable!
 						{
-							ATA[channel].data[packet_datapos] = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_DefaultModeData[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos] & ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
+							ATA[channel].data[packet_datapos+2] = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_DefaultModeData[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos] & ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
 						}
 						break;
 					case CDROM_PAGECONTROL_SAVED: //Currently saved values?
 						goto ATAPI_invalidcommand; //Saved data isn't supported!
 						break;
 					}
+					isvalidpage = 1; //Were valid!
 					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 				}
 				else
@@ -763,6 +768,10 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 					goto ATAPI_invalidcommand; //Error out!
 				}
 				break; //Stop searching!
+			}
+			if (isvalidpage==0) //Invalid page?
+			{
+				goto ATAPI_invalidcommand; //Error out!
 			}
 		}
 		break;
