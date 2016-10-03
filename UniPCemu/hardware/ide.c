@@ -824,18 +824,23 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0xBE: //Read CD command(mandatory)?
 		//TODO
+		goto ATAPI_invalidcommand; //Invalid command?
 		break;
 	case 0xB9: //Read CD MSF (mandatory)?
 		//TODO
+		goto ATAPI_invalidcommand; //Invalid command?
 		break;
 	case 0x44: //Read header (mandatory)?
 		//TODO
+		goto ATAPI_invalidcommand; //Invalid command?
 		break;
 	case 0x42: //Read sub-channel (mandatory)?
 	   //TODO
+		goto ATAPI_invalidcommand; //Invalid command?
 		break;
 	case 0x43: //Read TOC (mandatory)?
 		//TODO
+		goto ATAPI_invalidcommand; //Invalid command?
 		break;
 	case 0x2B: //Seek (Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
@@ -851,6 +856,10 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA[channel].commandstatus = 0; //New command can be specified!
 		break;
 	case 0x4E: //Stop play/scan (Mandatory)?
+		//Simply ignore the command for now, as audio is unsupported?
+		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+		ATA[channel].commandstatus = 0; //New command can be specified!
 		break;
 	case 0x1B: //Start/stop unit(Mandatory)?
 		break;
