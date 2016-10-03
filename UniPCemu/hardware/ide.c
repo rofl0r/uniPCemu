@@ -33,7 +33,7 @@ struct
 	uint_32 datapos; //Data position?
 	uint_32 datablock; //How large is a data block to be transferred?
 	uint_32 datasize; //Data size in blocks to transfer?
-	byte data[4096]; //Full sector data!
+	byte data[0x10000]; //Full sector data, large enough to buffer anything we throw at it (normal buffering)!
 	byte command;
 	byte commandstatus; //Do we have a command?
 	struct
@@ -476,6 +476,7 @@ OPTINLINE byte ATA_writesector(byte channel)
 
 OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 {
+	byte *datadest = NULL; //Destination of our loaded data!
 	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 	if (ATA[channel].commandstatus == 1) //We're reading already?
 	{
@@ -497,12 +498,27 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		return 0; //Stop!
 	}
 
-	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x800)) //Read the data from disk?
+	if (ATA[channel].datablock==2352) //Raw CD-ROM data requested? Add the header, based on Bochs cdrom.cc!
+	{
+		memset(&ATA[channel].data, 0, 2352); //Clear any data we use!
+		memset(&ATA[channel].data[1], 0xff, 10);
+		uint_32 raw_block = ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address + 150;
+		ATA[channel].data[12] = (raw_block / 75) / 60;
+		ATA[channel].data[13] = (raw_block / 75) % 60;
+		ATA[channel].data[14] = (raw_block % 75);
+		ATA[channel].data[15] = 0x01;
+		datadest = &ATA[channel].data[0x10]; //Start of our read sector!
+	}
+	else
+	{
+		datadest = &ATA[channel].data[0]; //Start of our buffer!
+	}
+
+	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x800)) //Read the data from disk?
 	{
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
 		ATA_increasesector(channel); //Increase the current sector!
 
-		ATA[channel].datablock = 0x800; //We're refreshing after this many bytes!
 		ATA[channel].datapos = 0; //Initialise our data position!
 		ATA[channel].commandstatus = 1; //Transferring data IN!
 		return 1; //Process the block!
@@ -724,6 +740,125 @@ byte SensePacket[0x10]; //Data of a request sense packet.
 } SENSEDATA; //Command 0x03 Request Sense Result.
 #include "headers/endpacked.h" //End of packed data!
 
+//read_TOC conversion from http://bochs.sourceforge.net/cgi-bin/lxr/source/iodev/hdimage/cdrom.cc
+byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sword format, byte channel, byte drive)
+{
+	unsigned i;
+	uint_32 blocks;
+	int len = 4;
+	switch (format) {
+		case 0:
+				// From atapi specs : start track can be 0-63, AA
+				if ((start_track > 1) && (start_track != 0xaa))
+					return 0;
+				buf[2] = 1;
+				buf[3] = 1;
+				if (start_track <= 1) {
+					buf[len++] = 0; // Reserved
+					buf[len++] = 0x14; // ADR, control
+					buf[len++] = 1; // Track number
+					buf[len++] = 0; // Reserved
+					// Start address
+					if (msf) {
+						buf[len++] = 0; // reserved
+						buf[len++] = 0; // minute
+						buf[len++] = 2; // second
+						buf[len++] = 0; // frame
+					}
+					else {
+						buf[len++] = 0;
+						buf[len++] = 0;
+						buf[len++] = 0;
+						buf[len++] = 0; // logical sector 0
+					}
+				}
+				// Lead out track
+				buf[len++] = 0; // Reserved
+				buf[len++] = 0x16; // ADR, control
+				buf[len++] = 0xaa; // Track number
+				buf[len++] = 0; // Reserved
+				blocks = ((ATA[channel].Drive[drive].driveparams[61] << 16) | ATA[channel].Drive[drive].driveparams[60]); //Get the drive size from the disk information, in 2KB blocks!
+				// Start address
+				if (msf) {
+					buf[len++] = 0; // reserved
+					buf[len++] = (byte)(((blocks + 150) / 75) / 60); // minute
+					buf[len++] = (byte)(((blocks + 150) / 75) % 60); // second
+					buf[len++] = (byte)((blocks + 150) % 75); // frame;
+				}
+				else {
+					buf[len++] = (blocks >> 24) & 0xff;
+					buf[len++] = (blocks >> 16) & 0xff;
+					buf[len++] = (blocks >> 8) & 0xff;
+					buf[len++] = (blocks >> 0) & 0xff;
+				}
+				buf[0] = ((len - 2) >> 8) & 0xff;
+				buf[1] = (len - 2) & 0xff;
+				break;
+			case 1:
+				// multi session stuff - emulate a single session only
+				buf[0] = 0;
+				buf[1] = 0x0a;
+				buf[2] = 1;
+				buf[3] = 1;
+				for (i = 0; i < 8; i++)
+					buf[4 + i] = 0;
+				len = 12;
+				break;
+			case 2:
+				// raw toc - emulate a single session only (ported from qemu)
+				buf[2] = 1;
+				buf[3] = 1;
+				for (i = 0; i < 4; i++) {
+					buf[len++] = 1;
+					buf[len++] = 0x14;
+					buf[len++] = 0;
+					if (i < 3) {
+						buf[len++] = 0xa0 + i;
+					}
+					else {
+						buf[len++] = 1;
+					}
+					buf[len++] = 0;
+					buf[len++] = 0;
+					buf[len++] = 0;
+					if (i < 2) {
+						buf[len++] = 0;
+						buf[len++] = 1;
+						buf[len++] = 0;
+						buf[len++] = 0;
+					}
+					else if (i == 2) {
+						blocks = ((ATA[channel].Drive[drive].driveparams[61] << 16) | ATA[channel].Drive[drive].driveparams[60]); //Capacity, in 2KB sectors!
+						if (msf) {
+							buf[len++] = 0; // reserved
+							buf[len++] = (byte)(((blocks + 150) / 75) / 60); // minute
+							buf[len++] = (byte)(((blocks + 150) / 75) % 60); // second
+							buf[len++] = (byte)((blocks + 150) % 75); // frame;
+						}
+						else {
+							buf[len++] = (blocks >> 24) & 0xff;
+							buf[len++] = (blocks >> 16) & 0xff;
+							buf[len++] = (blocks >> 8) & 0xff;
+							buf[len++] = (blocks >> 0) & 0xff;
+						}
+					}
+					else {
+						buf[len++] = 0;
+						buf[len++] = 0;
+						buf[len++] = 0;
+						buf[len++] = 0;
+					}
+				}
+				buf[0] = ((len - 2) >> 8) & 0xff;
+				buf[1] = (len - 2) & 0xff;
+			break;
+		default:
+			return 0;
+	}
+	*length = len;
+	return 1;
+}
+
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
 void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 {
@@ -943,7 +1078,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		if ((LBA>disk_size) || ((LBA+ATA[channel].datasize-1)>disk_size)){abortreason=5;additionalsensecode=0x21;goto ATAPI_invalidcommand;} //Error out when invalid sector!
 		
 		ATA[channel].datapos = 0; //Start of data!
-		ATA[channel].datablock = 0x800; //Size of a sector to transfer(2KB)!
+		ATA[channel].datablock = 0x800; //We're refreshing after this many bytes! Use standard CD-ROM 2KB blocks!
 		if (ATAPI_readsector(channel)) //Sector read?
 		{
 			ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
