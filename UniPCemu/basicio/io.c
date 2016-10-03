@@ -146,6 +146,14 @@ char *getDSKimage(int drive)
 	return disks[drive].DSKimage?&disks[drive].filename[0]:NULL; //Filename for DSK images, NULL otherwise!
 }
 
+void CDROM_selecttrack(int device, uint_32 track)
+{
+	if ((device & 0xFF) == device) //Valid device?
+	{
+		disks[device].selectedtrack = track; //Select the track to use, if any is supported!
+	}
+}
+
 //Startpos=sector number (start/512 bytes)!
 byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 {
@@ -175,12 +183,19 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 		}
 	}
 	strcpy(dev,disks[device].filename); //Use floppy0!
-		
-		
+
 	if (strcmp(dev,"")==0) //Failed to open or not assigned
 	{
 		//dolog("IO","io.c: Device couldnt be opened or isn't mounted: %i!",device);
 		return FALSE; //Error: device not found!
+	}
+
+	if ((device == CDROM0) || (device == CDROM1)) //CD-ROM devices support tracks?
+	{
+		if (disks[device].selectedtrack != 0) //Non-track 0 isn't supported for disk images!
+		{
+			return FALSE; //Error: invalid track!
+		}
 	}
 
 	uint_64 sector; //Current sector!

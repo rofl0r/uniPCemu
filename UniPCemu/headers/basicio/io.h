@@ -18,6 +18,7 @@ byte dynamicimage; //Are we a dynamic image?
 byte DSKimage; //Are we a DSK image?
 SECTORHANDLER readhandler, writehandler; //Read&write handlers!
 DISKCHANGEDHANDLER diskchangedhandler; //Disk changed handler!
+uint_32 selectedtrack; //The track selected for this disk!
 } IODISK; //I/O mounted disk info.
 
 //Basic img/ms0 input/output for BIOS I/O
@@ -44,4 +45,6 @@ FILEPOS getdisksize(int device); //Retrieve a dynamic/static image size!
 uint_64 disksize(int disknumber); //Currently mounted disk size!
 void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler); //Register a disk changed handler!
 char *getDSKimage(int drive); //Get DSK image filename OR NULL if not a DSK image!
+
+void CDROM_selecttrack(int device, uint_32 track); //Select a track for CD-ROM devices to read!
 #endif
