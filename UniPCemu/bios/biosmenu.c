@@ -1194,6 +1194,56 @@ void BIOS_cdrom0_selection() //CDROM0 selection menu!
 	BIOS_Menu = 1; //Return to image menu!
 }
 
+void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
+{
+	byte ejected = 0;
+	switch (disk) //What disk?
+	{
+	case FLOPPY0: //Floppy 0?
+		if (strcmp(BIOS_Settings.floppy0,"")==0) //Specified?
+		{
+			strcpy(BIOS_Settings.floppy0, ""); //Clear the option!
+			ejected = 1; //We're ejected!
+		}
+		break;
+	case FLOPPY1: //Floppy 1?
+		if (strcmp(BIOS_Settings.floppy1, "")==0) //Specified?
+		{
+			strcpy(BIOS_Settings.floppy1, ""); //Clear the option!
+			ejected = 1; //We're ejected!
+		}
+		break;
+	case CDROM0: //CD-ROM0?
+		if (strcmp(BIOS_Settings.cdrom0, "")==0) //Specified?
+		{
+			if (ATA_allowDiskChange(disk)) //Allowed to be changed?
+			{
+				strcpy(BIOS_Settings.cdrom0, ""); //Clear the option!
+				ejected = 1; //We're ejected!
+			}
+		}
+		break;
+	case CDROM1: //CD-ROM1?
+		if (strcmp(BIOS_Settings.cdrom1, "")==0) //Specified?
+		{
+			if (ATA_allowDiskChange(disk)) //Allowed to be changed?
+			{
+				strcpy(BIOS_Settings.cdrom0, ""); //Clear the option!
+				ejected = 1; //We're ejected!
+			}
+		}
+		break;
+	default: //Unsupported disk?
+		return; //Abort: invalid disk specified!
+		break;
+	}
+	if (ejected) //Are we ejected at all?
+	{
+		forceBIOSSave(); //Save the Settings, if needed!
+		BIOS_ValidateData(); //Validate&reload all disks!
+	}
+}
+
 void BIOS_cdrom1_selection() //CDROM1 selection menu!
 {
 	if (ATA_allowDiskChange(CDROM0)) //Allowed to change?

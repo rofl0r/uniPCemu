@@ -4,6 +4,7 @@
 #include "headers/basicio/dskimage.h" //DSK image support!
 #include "headers/emu/gpu/gpu.h" //Need GPU support for creating images!
 #include "headers/support/log.h" //Logging support!
+#include "headers/bios/bios.h" //BIOS support for requesting ejecting a disk!
 //Basic low level i/o functions!
 
 char diskpath[256] = "disks"; //The full disk path of the directory containing the disk images!
@@ -13,6 +14,11 @@ IODISK disks[0x100]; //All disks available, up go 256 (drive 0-255) disks!
 void ioInit() //Resets/unmounts all disks!
 {
 	memset(&disks,0,sizeof(disks)); //Initialise disks!
+}
+
+void requestEjectDisk(int drive)
+{
+	BIOS_ejectdisk(drive); //Request to the emulator to eject the disk!
 }
 
 byte drivereadonly(int drive)
@@ -69,6 +75,7 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	{
 		strcpy(fullfilename,""); //No filename = no path to file!
 	}
+
 	byte dynamicimage = is_dynamicimage(fullfilename); //Dynamic image detection!
 	if (!dynamicimage) //Might be a static image when not a dynamic image?
 	{

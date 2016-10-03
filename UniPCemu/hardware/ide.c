@@ -111,6 +111,7 @@ struct
 		uint_32 current_LBA_address; //Current LBA address!
 		byte Enable8BitTransfers; //Enable 8-bit transfers?
 		byte preventMediumRemoval; //Are we preventing medium removal for removable disks(CD-ROM)?
+		byte isSpinning; //Are we spinning the disc?
 	} Drive[2]; //Two drives!
 
 	union
@@ -516,6 +517,32 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	return 1; //We're finished!
 }
 
+byte ATA_allowDiskChange(int disk) //Are we allowing this disk to be changed?
+{
+	byte disk_ATA, disk_channel, disk_nr;
+	switch (disk) //What disk?
+	{
+		//Four disk numbers!
+	case HDD0:
+		disk_nr = 0;
+		break;
+	case HDD1:
+		disk_nr = 1;
+		break;
+	case CDROM0:
+		disk_nr = 2;
+		break;
+	case CDROM1:
+		disk_nr = 3;
+		break;
+	default: //Unsupported?
+		return 1; //Abort, we're unsupported, so allow changes!
+	}
+	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
+	disk_ATA = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
+	return !ATA[disk_ATA].Drive[disk_channel].preventMediumRemoval; //Are we not preventing removal of this medium?
+}
+
 byte ATAPI_supportedmodepagecodes[0x4] = { 0x01, 0x0D, 0x0E, 0x2A }; //Supported pages!
 byte ATAPI_supportedmodepagecodes_length[0x4] = {0x6,0x6,0xD,0xC}; //The length of the pages stored in our memory!
 
@@ -714,6 +741,16 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x00: //TEST UNIT READY(Mandatory)?
+		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		//Valid disk loaded?
+		ATA[channel].Drive[drive].ERRORREGISTER.data = 0; //Clear error register!
+		SENSEDATA.sensekey = 0x00; //Reason of the error
+		SENSEDATA.additionalsensecode = 0x00; //Extended reason code
+		SENSEDATA.errorcode = 0x70; //Default error code?
+		SENSEDATA.additionalsenselength = 8; //Additional Sense Length = 8?
+		SENSEDATA.information = 0; //No info!
+		SENSEDATA.commandspecificinformation = 0; //No command specific information?
+		SENSEDATA.valid = 1; //We're valid!
 		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
@@ -844,6 +881,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0x2B: //Seek (Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
@@ -858,14 +896,41 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	case 0x4E: //Stop play/scan (Mandatory)?
 		//Simply ignore the command for now, as audio is unsupported?
 		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		ATA[channel].commandstatus = 0; //New command can be specified!
 		break;
 	case 0x1B: //Start/stop unit(Mandatory)?
+		switch (ATA[channel].Drive[drive].ATAPI_PACKET[4] & 3) //What kind of action to take?
+		{
+		case 0: //Stop the disc?
+			ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning = 0; //We're stopped now!
+			break;
+		case 1: //Start the disc and read the TOC?
+			ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning = 1; //We're running now!
+			break;
+		case 2: //Eject the disc if possible?
+			if (ATA_allowDiskChange(ATA_Drives[channel][ATA_activeDrive(channel)]) && (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning)) //Do we allow the disc to be changed? Don't allow ejecting when running!
+			{
+				requestEjectDisk(ATA_Drives[channel][ATA_activeDrive(channel)]); //Request for the specified disk to be ejected!
+			}
+			else //Not allowed to change?
+			{
+				abortreason = 2; //Not ready!
+				additionalsensecode = 0x53; //Media removal prevented!
+				goto ATAPI_invalidcommand; //Not ready, media removal prevented!
+			}
+			break;
+		case 3: //Load the disc (Close tray)?
+			break;
+		}
+		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+		ATA[channel].commandstatus = 0; //New command can be specified!
 		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
 	case 0xA8: //Read sectors (12) command(Mandatory)!
 		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
+		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
@@ -886,6 +951,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0x25: //Read CD-ROM capacity(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
+		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = 8; //Size of a block of information to transfer!
@@ -904,7 +970,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	default:
 		dolog("ATAPI","Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
 		ATAPI_invalidcommand:
-		ATA[channel].Drive[drive].ERRORREGISTER.data = 4; //Reset error register!
+		ATA[channel].Drive[drive].ERRORREGISTER.data = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 		SENSEDATA.sensekey = abortreason; //Reason of the error
 		SENSEDATA.additionalsensecode = additionalsensecode; //Extended reason code
 		SENSEDATA.errorcode = 0x70; //Default error code?
@@ -1681,32 +1747,6 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte size)
 }
 
 byte CDROM_DiskChanged = 0;
-
-byte ATA_allowDiskChange(int disk) //Are we allowing this disk to be changed?
-{
-	byte disk_ATA, disk_channel, disk_nr;
-	switch (disk) //What disk?
-	{
-	//Four disk numbers!
-	case HDD0:
-		disk_nr = 0;
-		break;
-	case HDD1:
-		disk_nr = 1;
-		break;
-	case CDROM0:
-		disk_nr = 2;
-		break;
-	case CDROM1:
-		disk_nr = 3;
-		break;
-	default: //Unsupported?
-		return 1; //Abort, we're unsupported, so allow changes!
-	}
-	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
-	disk_ATA = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
-	return !ATA[disk_ATA].Drive[disk_channel].preventMediumRemoval; //Are we not preventing removal of this medium?
-}
 
 void ATA_DiskChanged(int disk)
 {

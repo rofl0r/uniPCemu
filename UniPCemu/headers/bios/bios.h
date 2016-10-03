@@ -169,4 +169,6 @@ void BIOS_DetectStorage(); //Auto-Detect the current storage to use, on start on
 
 void autoDetectArchitecture(); //Detect the architecture to use!
 
+void BIOS_ejectdisk(int disk); //Eject an ejectable disk?
+
 #endif

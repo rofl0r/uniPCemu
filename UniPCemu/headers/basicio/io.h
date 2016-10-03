@@ -47,4 +47,5 @@ void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler); //R
 char *getDSKimage(int drive); //Get DSK image filename OR NULL if not a DSK image!
 
 void CDROM_selecttrack(int device, uint_32 track); //Select a track for CD-ROM devices to read!
+void requestEjectDisk(int drive); //Request for an ejectable disk to be ejected!
 #endif
