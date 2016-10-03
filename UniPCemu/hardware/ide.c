@@ -545,6 +545,8 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 			{
 			case 0x25: //Read capacity?
 			case 0x12: //Inquiry?
+			case 0x03: //REQUEST SENSE(Mandatory)?
+			case 0x5A: //MODE SENSE(10)(Mandatory)?
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 				if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 				{
@@ -714,6 +716,18 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	case 0x00: //TEST UNIT READY(Mandatory)?
 		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
+		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
+																				 //Byte 4 = allocation length
+		ATA[channel].datapos = 0; //Start of data!
+		ATA[channel].datablock = MIN(ATA[channel].Drive[drive].ATAPI_PACKET[4],sizeof(SENSEDATA.SensePacket)); //Size of a block to transfer!
+		ATA[channel].datasize = 1; //How many blocks to transfer!
+
+		memcpy(&ATA[channel].data, &SENSEDATA.SensePacket, ATA[channel].datablock); //Give the result!
+		//Now fill the packet with data!
+		//Leave the rest of the information cleared (unknown/unspecified)
+		ATA[channel].commandstatus = 1; //Transferring data IN!
+		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x12: //INQUIRY(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])) {abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
@@ -809,14 +823,19 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA[channel].commandstatus = 0; //New command can be specified!
 		break;
 	case 0xBE: //Read CD command(mandatory)?
+		//TODO
 		break;
 	case 0xB9: //Read CD MSF (mandatory)?
+		//TODO
 		break;
 	case 0x44: //Read header (mandatory)?
+		//TODO
 		break;
 	case 0x42: //Read sub-channel (mandatory)?
+	   //TODO
 		break;
 	case 0x43: //Read TOC (mandatory)?
+		//TODO
 		break;
 	case 0x2B: //Seek (Mandatory)?
 		break;
@@ -868,6 +887,11 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA[channel].Drive[drive].ERRORREGISTER.data = 4; //Reset error register!
 		SENSEDATA.sensekey = abortreason; //Reason of the error
 		SENSEDATA.additionalsensecode = additionalsensecode; //Extended reason code
+		SENSEDATA.errorcode = 0x70; //Default error code?
+		SENSEDATA.additionalsenselength = 8; //Additional Sense Length = 8?
+		SENSEDATA.information = 0; //No info!
+		SENSEDATA.commandspecificinformation = 0; //No command specific information?
+		SENSEDATA.valid = 1; //We're valid!
 		ATA[channel].Drive[drive].STATUSREGISTER.data = 0; //Clear status!
 		ATA[channel].Drive[drive].STATUSREGISTER.driveready = 1; //Ready!
 		ATA[channel].Drive[drive].STATUSREGISTER.error = 1; //Ready!
@@ -877,7 +901,10 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		aborted = 1; //We're aborted!
 		break;
 	}
-	if (aborted==0) {SENSEDATA.sensekey = SENSEDATA.additionalsensecode = 0;} //Clear reason on success!
+	if (aborted==0) {
+		SENSEDATA.sensekey = SENSEDATA.additionalsensecode = 0;
+		SENSEDATA.valid = 0; //Not valid anymore!
+	} //Clear reason on success!
 }
 
 OPTINLINE void giveATAPISignature(byte channel)
