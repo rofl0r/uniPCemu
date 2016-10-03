@@ -838,6 +838,17 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		//TODO
 		break;
 	case 0x2B: //Seek (Mandatory)?
+		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
+		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
+		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
+
+		if (LBA>disk_size) { abortreason = 5;additionalsensecode = 0x21;goto ATAPI_invalidcommand; } //Error out when invalid sector!
+
+		//Save the Seeked LBA somewhere? Currently unused?
+
+		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+		ATA[channel].commandstatus = 0; //New command can be specified!
 		break;
 	case 0x4E: //Stop play/scan (Mandatory)?
 		break;
