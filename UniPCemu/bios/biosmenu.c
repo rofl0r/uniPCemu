@@ -1835,6 +1835,10 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 			break; //Cancel!
 		}
 		else if (shuttingdown()) break; //Cancel because of shutdown?
+		if (result>0x20000000000) //Past the limit of a HDD(2TB)?
+		{
+			result = 0x20000000000; //Limit to the maximum hard disk size to generate!
+		}
 	}
 	return 0; //No size: cancel!
 }
