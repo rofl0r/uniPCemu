@@ -602,6 +602,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 			case 0x28: //Read sectors (10) command(Mandatory)?
 			case 0xA8: //Read sector (12) command(Mandatory)?
 			case 0xBE: //Read CD command(mandatory)?
+			case 0xB9: //Read CD MSF (mandatory)?
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 				if (ATA[channel].datapos==ATA[channel].datablock) //Full block read?
 				{
@@ -862,6 +863,46 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 	return 1;
 }
 
+byte encodeBCD8ATA(byte value)
+{
+	INLINEREGISTER byte temp, result = 0;
+	temp = value; //Load the original value!
+	temp %= 100; //Rest to be sure!
+	result |= (0x0010 * (temp / 10)); //Factor 10!
+	temp %= 10;
+	result |= temp; //Factor 1!
+	return result;
+}
+
+byte decodeBCD8ATA(byte bcd)
+{
+	INLINEREGISTER byte temp, result = 0;
+	temp = bcd; //Load the BCD value!
+	result += (temp & 0xF); //Factor 1!
+	temp >>= 4;
+	result += (temp & 0xF) * 10; //Factor 10!
+	return result; //Give the decoded integer value!
+}
+
+uint_32 MSF2LBA(byte M, byte S, byte F)
+{
+	return (((decodeBCD8ATA(M)*60)+decodeBCD8ATA(S))*75)+decodeBCD8ATA(F); //75 frames per second, 60 seconds in a minute!
+}
+
+void LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
+{
+	uint_32 rest;
+	rest = LBA; //Load LBA!
+	*M = rest/(60*75); //Minute!
+	rest -= *M*(60*75); //Rest!
+	*S = rest/75; //Second!
+	rest -= *S*75;
+	*F = rest%75; //Frame, if any!
+	*M = encodeBCD8ATA(*M);
+	*S = encodeBCD8ATA(*S);
+	*F = encodeBCD8ATA(*F);
+}
+
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
 void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 {
@@ -876,6 +917,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	byte format;
 	sword toc_length = 0;
 	byte transfer_req;
+	uint_32 endLBA; //When does the LBA addressing end!
 
 	//Our own stuff!
 	byte aborted = 0;
@@ -1022,30 +1064,74 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 			ATA[channel].commandstatus = 0; //New command can be specified!
 		}
-		ATA[channel].datablock = 0x800; //Default block size!
-
-		if ((LBA>disk_size) || ((LBA + ATA[channel].datasize - 1)>disk_size)) { abortreason = 5;additionalsensecode = 0x21;goto ATAPI_invalidcommand; } //Error out when invalid sector!
-
-		switch (transfer_req&0xF8) //What type to transfer?
+		else //Normal processing!
 		{
-		case 0x00: goto readCDNOP; //Same as NOP!
-		case 0xF8: ATA[channel].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
-		case 0x10: //Normal 2KB sectors?
-			ATA[channel].datapos = 0; //Start of data!
-			if (ATAPI_readsector(channel)) //Sector read?
+			ATA[channel].datablock = 0x800; //Default block size!
+
+			if ((LBA>disk_size) || ((LBA + ATA[channel].datasize - 1)>disk_size)) { abortreason = 5;additionalsensecode = 0x21;goto ATAPI_invalidcommand; } //Error out when invalid sector!
+
+			switch (transfer_req&0xF8) //What type to transfer?
 			{
-				ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+			case 0x00: goto readCDNOP; //Same as NOP!
+			case 0xF8: ATA[channel].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
+			case 0x10: //Normal 2KB sectors?
+				ATA[channel].datapos = 0; //Start of data!
+				if (ATAPI_readsector(channel)) //Sector read?
+				{
+					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+				}
+				break;
+			default: //Unknown request?
+				abortreason = 5; //Error category!
+				additionalsensecode = 0x24; //Invalid Field in command packet!
+				goto ATAPI_invalidcommand;
 			}
-			break;
-		default: //Unknown request?
+		}
+		break;
+	case 0xB9: //Read CD MSF (mandatory)?
+		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		LBA = MSF2LBA(ATA[channel].Drive[drive].ATAPI_PACKET[3], ATA[channel].Drive[drive].ATAPI_PACKET[4], ATA[channel].Drive[drive].ATAPI_PACKET[5]); //The LBA address!
+		endLBA = MSF2LBA(ATA[channel].Drive[drive].ATAPI_PACKET[6], ATA[channel].Drive[drive].ATAPI_PACKET[7], ATA[channel].Drive[drive].ATAPI_PACKET[8]); //The LBA address!
+
+		if (LBA>endLBA) //LBA shall not be past the end!
+		{
 			abortreason = 5; //Error category!
 			additionalsensecode = 0x24; //Invalid Field in command packet!
 			goto ATAPI_invalidcommand;
 		}
-		break;
-	case 0xB9: //Read CD MSF (mandatory)?
-		//TODO
-		goto ATAPI_invalidcommand; //Invalid command?
+
+		ATA[channel].datasize = (endLBA-LBA); //The amount of sectors to transfer! 0 is valid!
+		transfer_req = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //Requested type of packets!
+		if (!ATA[channel].datasize) //Nothing to transfer?
+		{
+			//Execute NOP command!
+			readCDMSFNOP: //NOP for reading CD directly!
+			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+			ATA[channel].commandstatus = 0; //New command can be specified!
+		}
+		else //Normal processing!
+		{
+			ATA[channel].datablock = 0x800; //Default block size!
+
+			if ((LBA>disk_size) || ((LBA + ATA[channel].datasize - 1)>disk_size)) { abortreason = 5;additionalsensecode = 0x21;goto ATAPI_invalidcommand; } //Error out when invalid sector!
+
+			switch (transfer_req&0xF8) //What type to transfer?
+			{
+			case 0x00: goto readCDMSFNOP; //Same as NOP!
+			case 0xF8: ATA[channel].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
+			case 0x10: //Normal 2KB sectors?
+				ATA[channel].datapos = 0; //Start of data!
+				if (ATAPI_readsector(channel)) //Sector read?
+				{
+					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+				}
+				break;
+			default: //Unknown request?
+				abortreason = 5; //Error category!
+				additionalsensecode = 0x24; //Invalid Field in command packet!
+				goto ATAPI_invalidcommand;
+			}
+		}
 		break;
 	case 0x44: //Read header (mandatory)?
 		//TODO
