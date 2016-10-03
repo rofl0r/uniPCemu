@@ -755,7 +755,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	case 0x03: //REQUEST SENSE(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
-																				 //Byte 4 = allocation length
+		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = MIN(ATA[channel].Drive[drive].ATAPI_PACKET[4],sizeof(SENSEDATA.SensePacket)); //Size of a block to transfer!
 		ATA[channel].datasize = 1; //How many blocks to transfer!
