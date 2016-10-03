@@ -590,6 +590,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 			case 0x12: //Inquiry?
 			case 0x03: //REQUEST SENSE(Mandatory)?
 			case 0x5A: //MODE SENSE(10)(Mandatory)?
+			case 0x42: //Read sub-channel (mandatory)?
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 				if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 				{
@@ -862,6 +863,15 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
 void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 {
+	//Stuff based on Bochs
+	byte MSF; //MSF bit!
+	byte sub_Q; //SubQ bit!
+	byte data_format; //Sub-channel Data Format
+	byte track_number; //Track number
+	word alloc_length; //Allocation length!
+	word ret_len; //Returned length of possible data!
+
+	//Our own stuff!
 	byte aborted = 0;
 	byte abortreason = 5; //Error cause is no disk inserted? Default to 5&additional sense code 0x20 for invalid command.
 	byte additionalsensecode = 0x20; //Invalid command operation code.
@@ -1007,8 +1017,44 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		goto ATAPI_invalidcommand; //Invalid command?
 		break;
 	case 0x42: //Read sub-channel (mandatory)?
-	   //TODO
-		goto ATAPI_invalidcommand; //Invalid command?
+		MSF = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[1]&2); //MSF bit!
+		sub_Q = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[2] & 0x40); //SubQ bit!
+		data_format = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[3]; //Sub-channel Data Format
+		track_number = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[6]; //Track number
+		alloc_length = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[7]<<1)|ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[8]; //Allocation length!
+		ret_len = 4;
+		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		memset(ATA[channel].data,0,24); //Clear any and all data we might be using!
+		ATA[channel].data[0] = 0;
+		ATA[channel].data[1] = 0; //audio not supported
+		ATA[channel].data[2] = 0;
+		ATA[channel].data[3] = 0;
+		if (sub_Q) //!sub_q==header only
+		{
+			if ((data_format==2) || (data_format==3)) //UPC or ISRC
+			{
+				ret_len = 24;
+				ATA[channel].data[4] = data_format;
+				if (data_format==3)
+				{
+					ATA[channel].data[5] = 0x14;
+					ATA[channel].data[6] = 1;
+				}
+				ATA[channel].data[8] = 0;
+			}
+			else
+			{
+				abortreason = 5; //Error category!
+				additionalsensecode = 0x24; //Invalid Field in command packet!
+				goto ATAPI_invalidcommand;
+			}
+		}
+
+		//Process the command normally!
+		//Leave the rest of the information cleared (unknown/unspecified)
+		ATA[channel].datasize = 1; //One block to transfer!
+		ATA[channel].datablock = MIN(alloc_length,ret_len); //Give the smallest result, limit by allocation length!
+		ATA[channel].commandstatus = 1; //Transferring data IN for the result!
 		break;
 	case 0x43: //Read TOC (mandatory)?
 		//TODO
