@@ -684,7 +684,7 @@ byte errorcode : 7; //0x70
 byte valid : 1; //1 for filled with data
 byte reserved1;
 byte reserved2 : 4;
-byte SenseKey : 4;
+byte sensekey : 4;
 uint_32 information;
 byte additionalsenselength; //8
 uint_32 commandspecificinformation;
@@ -830,12 +830,16 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
-		if ((LBA>disk_size) || ((LBA+ATA[channel].Drive[drive].ATAPI_PACKET[9]-1)>disk_size)){abortreason=5;additionalsensecode=0x21;goto ATAPI_invalidcommand;} //Error out when invalid sector!
-		if (ATA[channel].Drive[drive].ATAPI_PACKET[9]==0) {abortreason=5;additionalsensecode=0x26;goto ATAPI_invalidcommand;} //Zero sectors isn't allowed!
+		ATA[channel].datasize = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|(ATA[channel].Drive[drive].ATAPI_PACKET[8]); //How many sectors to transfer
+		if (ATA[channel].Drive[drive].ATAPI_PACKET[0]==0xA8) //Extended sectors to transfer?
+		{
+			ATA[channel].datasize = (ATA[channel].Drive[drive].ATAPI_PACKET[6]<<3) | (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<2) | (ATA[channel].Drive[drive].ATAPI_PACKET[8] << 1) | (ATA[channel].Drive[drive].ATAPI_PACKET[9]); //How many sectors to transfer
+		}
+
+		if ((LBA>disk_size) || ((LBA+ATA[channel].datasize-1)>disk_size)){abortreason=5;additionalsensecode=0x21;goto ATAPI_invalidcommand;} //Error out when invalid sector!
 		
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = 0x800; //Size of a sector to transfer(2KB)!
-		ATA[channel].datasize = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //How many sectors to transfer
 		if (ATAPI_readsector(channel)) //Sector read?
 		{
 			ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
