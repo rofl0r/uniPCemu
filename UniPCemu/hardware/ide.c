@@ -591,6 +591,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 			case 0x03: //REQUEST SENSE(Mandatory)?
 			case 0x5A: //MODE SENSE(10)(Mandatory)?
 			case 0x42: //Read sub-channel (mandatory)?
+			case 0x43: //Read TOC (mandatory)?
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 				if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 				{
@@ -600,6 +601,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				break;
 			case 0x28: //Read sectors (10) command(Mandatory)?
 			case 0xA8: //Read sector (12) command(Mandatory)?
+			case 0xBE: //Read CD command(mandatory)?
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 				if (ATA[channel].datapos==ATA[channel].datablock) //Full block read?
 				{
@@ -870,6 +872,10 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	byte track_number; //Track number
 	word alloc_length; //Allocation length!
 	word ret_len; //Returned length of possible data!
+	byte starting_track;
+	byte format;
+	sword toc_length = 0;
+	byte transfer_req;
 
 	//Our own stuff!
 	byte aborted = 0;
@@ -1005,8 +1011,37 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA[channel].commandstatus = 0; //New command can be specified!
 		break;
 	case 0xBE: //Read CD command(mandatory)?
-		//TODO
-		goto ATAPI_invalidcommand; //Invalid command?
+		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
+		ATA[channel].datasize = ATA[channel].Drive[drive].ATAPI_PACKET[8]|ATA[channel].Drive[drive].ATAPI_PACKET[7]|ATA[channel].Drive[drive].ATAPI_PACKET[6]; //The amount of sectors to transfer!
+		transfer_req = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //Requested type of packets!
+		if (!ATA[channel].datasize) //Nothing to transfer?
+		{
+			//Execute NOP command!
+			readCDNOP: //NOP for reading CD directly!
+			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+			ATA[channel].commandstatus = 0; //New command can be specified!
+		}
+		ATA[channel].datablock = 0x800; //Default block size!
+
+		if ((LBA>disk_size) || ((LBA + ATA[channel].datasize - 1)>disk_size)) { abortreason = 5;additionalsensecode = 0x21;goto ATAPI_invalidcommand; } //Error out when invalid sector!
+
+		switch (transfer_req&0xF8) //What type to transfer?
+		{
+		case 0x00: goto readCDNOP; //Same as NOP!
+		case 0xF8: ATA[channel].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
+		case 0x10: //Normal 2KB sectors?
+			ATA[channel].datapos = 0; //Start of data!
+			if (ATAPI_readsector(channel)) //Sector read?
+			{
+				ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+			}
+			break;
+		default: //Unknown request?
+			abortreason = 5; //Error category!
+			additionalsensecode = 0x24; //Invalid Field in command packet!
+			goto ATAPI_invalidcommand;
+		}
 		break;
 	case 0xB9: //Read CD MSF (mandatory)?
 		//TODO
@@ -1057,8 +1092,31 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA[channel].commandstatus = 1; //Transferring data IN for the result!
 		break;
 	case 0x43: //Read TOC (mandatory)?
-		//TODO
-		goto ATAPI_invalidcommand; //Invalid command?
+		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		MSF = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[1]>>1)&1;
+		starting_track = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[6]; //Starting track!
+		alloc_length = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[7]<<1)|(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[8]); //Allocated length!
+		format = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[9]>>6); //The format of the packet!
+		switch (format)
+		{
+		case 0:
+		case 1:
+		case 2:
+			if (!Bochs_generateTOC(&ATA[channel].data[0],&toc_length,MSF,starting_track,format,channel,ATA_activeDrive(channel)))
+			{
+				goto invalidTOCrequest; //Invalid TOC request!
+			}
+			ATA[channel].datablock = MIN(toc_length,alloc_length); //Take the lesser length!
+			ATA[channel].datasize = 1; //One block to transfer!
+			ATA[channel].commandstatus = 1; //Transferring data IN for the result!
+			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+			break;
+		default:
+			invalidTOCrequest:
+			abortreason = 5; //Error category!
+			additionalsensecode = 0x24; //Invalid Field in command packet!
+			goto ATAPI_invalidcommand;
+		}
 		break;
 	case 0x2B: //Seek (Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
