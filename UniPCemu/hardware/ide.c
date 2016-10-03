@@ -112,6 +112,7 @@ struct
 		byte Enable8BitTransfers; //Enable 8-bit transfers?
 		byte preventMediumRemoval; //Are we preventing medium removal for removable disks(CD-ROM)?
 		byte isSpinning; //Are we spinning the disc?
+		uint_32 ATAPI_LBA; //ATAPI LBA storage!
 	} Drive[2]; //Two drives!
 
 	union
@@ -487,7 +488,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 			return 1; //We're finished!
 		}
 	}
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
+	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA > disk_size) //Past the end of the disk?
 	{
 #ifdef ATA_LOG
 		dolog("ATA", "Read Sector out of range:%i,%i=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, disk_size);
@@ -502,7 +503,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	{
 		memset(&ATA[channel].data, 0, 2352); //Clear any data we use!
 		memset(&ATA[channel].data[1], 0xff, 10);
-		uint_32 raw_block = ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address + 150;
+		uint_32 raw_block = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA + 150;
 		ATA[channel].data[12] = (raw_block / 75) / 60;
 		ATA[channel].data[13] = (raw_block / 75) % 60;
 		ATA[channel].data[14] = (raw_block % 75);
@@ -514,7 +515,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		datadest = &ATA[channel].data[0]; //Start of our buffer!
 	}
 
-	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x800)) //Read the data from disk?
+	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 9), 0x800)) //Read the data from disk?
 	{
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
 		ATA_increasesector(channel); //Increase the current sector!
@@ -592,6 +593,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 			case 0x5A: //MODE SENSE(10)(Mandatory)?
 			case 0x42: //Read sub-channel (mandatory)?
 			case 0x43: //Read TOC (mandatory)?
+			case 0x44: //Read header (mandatory)?
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 				if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 				{
@@ -947,21 +949,19 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = MIN(ATA[channel].Drive[drive].ATAPI_PACKET[4],sizeof(SENSEDATA.SensePacket)); //Size of a block to transfer!
 		ATA[channel].datasize = 1; //How many blocks to transfer!
 
-		memcpy(&ATA[channel].data, &SENSEDATA.SensePacket, ATA[channel].datablock); //Give the result!
 		//Now fill the packet with data!
+		memcpy(&ATA[channel].data, &SENSEDATA.SensePacket, ATA[channel].datablock); //Give the result!
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].commandstatus = 1; //Transferring data IN!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x12: //INQUIRY(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])) {abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Size of a block to transfer!
@@ -976,7 +976,6 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0x55: //MODE SELECT(10)(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
@@ -988,7 +987,6 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0x5A: //MODE SENSE(10)(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 1) | ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
 		ATA[channel].datasize = 1; //How many blocks to transfer!
@@ -1047,7 +1045,6 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[4]&1); //Are we preventing the storage medium to be removed?
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		ATA[channel].commandstatus = 0; //New command can be specified!
@@ -1076,6 +1073,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 			case 0xF8: ATA[channel].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
 			case 0x10: //Normal 2KB sectors?
 				ATA[channel].datapos = 0; //Start of data!
+				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA = LBA; //The LBA to use!
 				if (ATAPI_readsector(channel)) //Sector read?
 				{
 					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
@@ -1121,6 +1119,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 			case 0xF8: ATA[channel].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
 			case 0x10: //Normal 2KB sectors?
 				ATA[channel].datapos = 0; //Start of data!
+				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA = LBA; //The LBA to use!
 				if (ATAPI_readsector(channel)) //Sector read?
 				{
 					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
@@ -1134,8 +1133,40 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		}
 		break;
 	case 0x44: //Read header (mandatory)?
-		//TODO
-		goto ATAPI_invalidcommand; //Invalid command?
+		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
+
+		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
+		alloc_length = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[7] << 1) | (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[8]); //Allocated length!
+		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
+
+		if (LBA>disk_size) { abortreason = 5;additionalsensecode = 0x21;goto ATAPI_invalidcommand; } //Error out when invalid sector!
+
+		//Now, build the packet!
+
+		ret_len = 8; //Always try to return 8 bytes of data!
+
+		memset(&ATA[channel].data,0,8); //Clear all possible data!
+		if (ATA[channel].Drive[drive].ATAPI_PACKET[1]&2) //MSF packet requested?
+		{
+			ATA[channel].data[0] = 2; //User data here!
+			LBA2MSF(LBA,&ATA[channel].data[5],&ATA[channel].data[6],&ATA[channel].data[7]); //Try and get the MSF address based on the LBA!
+		}
+		else //LBA packet requested?
+		{
+			ATA[channel].data[0] = 2; //User data here!
+			ATA[channel].data[4] = (LBA>>24)&0xFF;
+			ATA[channel].data[5] = (LBA>>16)&0xFF;
+			ATA[channel].data[6] = (LBA>>8)&0xFF;
+			ATA[channel].data[7] = (LBA&0xFF);
+		}
+
+		//Process the command normally!
+		//Leave the rest of the information cleared (unknown/unspecified)
+		ATA[channel].datasize = 1; //One block to transfer!
+		ATA[channel].datablock = MIN(alloc_length, ret_len); //Give the smallest result, limit by allocation length!
+		ATA[channel].commandstatus = 1; //Transferring data IN for the result!
+
 		break;
 	case 0x42: //Read sub-channel (mandatory)?
 		MSF = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[1]&2); //MSF bit!
@@ -1207,7 +1238,6 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	case 0x2B: //Seek (Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 
@@ -1256,7 +1286,6 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	case 0xA8: //Read sectors (12) command(Mandatory)!
 		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 		ATA[channel].datasize = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|(ATA[channel].Drive[drive].ATAPI_PACKET[8]); //How many sectors to transfer
@@ -1269,6 +1298,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = 0x800; //We're refreshing after this many bytes! Use standard CD-ROM 2KB blocks!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA = LBA; //The LBA to use!
 		if (ATAPI_readsector(channel)) //Sector read?
 		{
 			ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
@@ -1277,7 +1307,6 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	case 0x25: //Read CD-ROM capacity(Mandatory)?
 		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Not processing anymore!
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = 8; //Size of a block of information to transfer!
 		ATA[channel].datasize = 1; //Number of blocks of information to transfer!
