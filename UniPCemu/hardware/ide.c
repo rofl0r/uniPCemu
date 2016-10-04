@@ -33,7 +33,7 @@ struct
 	uint_32 datapos; //Data position?
 	uint_32 datablock; //How large is a data block to be transferred?
 	uint_32 datasize; //Data size in blocks to transfer?
-	byte data[0x10000]; //Full sector data, large enough to buffer anything we throw at it (normal buffering)!
+	byte data[0x10000]; //Full sector data, large enough to buffer anything we throw at it (normal buffering)! Up to 10000 
 	byte command;
 	byte commandstatus; //Do we have a command?
 	struct
@@ -1629,7 +1629,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		dolog("ATA", "IDENTIFY:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		if (!ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //No drive errors out!
-		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Special action for CD-ROM drives?
+		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //Special action for CD-ROM drives?
 		{
 			//Enter reserved ATAPI result!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 1; //Passed!
@@ -1760,10 +1760,10 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		dolog("ATA", "INVALIDCOMMAND:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 4; //Reset error register!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 1; //Ready!
 		invalidcommand_noerror:
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 1; //Ready!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 1; //Ready!
 		//Reset of the status register is 0!
 		ATA[channel].commandstatus = 0xFF; //Move to error mode!
 		ATA_IRQ(channel, ATA_activeDrive(channel));
@@ -2129,6 +2129,7 @@ void ATA_DiskChanged(int disk)
 	{
 		ATA[disk_channel].Drive[disk_ATA].ERRORREGISTER.mediachanged = 1; //We've changed media!
 	}
+	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1)); //CD-ROM drive?
 	if ((disk_channel == 0xFF) || (disk_ATA == 0xFF)) return; //Not mounted!
 	uint_64 disk_size;
 	switch (disk)
@@ -2141,22 +2142,26 @@ void ATA_DiskChanged(int disk)
 		{
 			disk_size = disksize(disk); //Get the disk's size!
 			disk_size >>= 9; //Get the disk size in sectors!
-			if ((disk ==HDD0) || (disk==HDD1)) ATA[disk_channel].Drive[disk_ATA].driveparams[0] = 0x40|(1<<10); //Hard sectored, Fixed drive! Disk transfer rate>10MBs.
+			if ((disk ==HDD0) || (disk==HDD1)) ATA[disk_channel].Drive[disk_ATA].driveparams[0] = (1<<6)|(1<<10)|(1<<1); //Hard sectored, Fixed drive! Disk transfer rate>10MBs, hard-sectored.
 			ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
 			ATA[disk_channel].Drive[disk_ATA].driveparams[3] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk_size); //3=Number of heads
 			ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
-			ATA[disk_channel].Drive[disk_ATA].driveparams[5] = 0x200; //512 bytes per sector!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[5] = IS_CDROM?0:0x200; //512 bytes per sector!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track!
-			//ATA[disk_channel].Drive[disk_ATA].driveparams[20] = 1; //Only single port I/O (no simultaneous transfers)!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = 0xFFFF; //Buffer size in sectors!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = (1<<9); //LBA supported, DMA unsupported!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer timing node!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[20] = IS_CDROM?0:1; //Only single port I/O (no simultaneous transfers) on HDD only(ATA-1)!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = 0x80; //Buffer size in sectors! We're a 64KB buffer, so 0x80 sectors buffered(of 512 bytes each)!
+
+			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = (1<<9); //LBA supported(bit 9), DMA unsupported(bit 8)!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer timing node(high 8 bits)!
 			--disk_size; //LBA is 0-based, not 1 based!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable sectors, low word!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (word)(disk_size >> 16); //Number of addressable sectors, high word!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[72] = 4; //Major version! We're ATA/ATAPI 4!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable LBA sectors, low word!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (word)(disk_size >> 16); //Number of addressable LBA sectors, high word!
+			//ATA-1 supports up to word 63 only. Above is filled on ATAPI only(newer ATA versions)!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[72] = 0; //Major version! We're ATA/ATAPI 4 on CD-ROM, ATA-1 on HDD!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[72] = 0; //Minor version! We're ATA/ATAPI 4!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[80] = 0x02; //Supports ATA-1!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[80] = IS_CDROM?(1<<4):0x00; //Supports ATA-1 on HDD, ATA-4 on CD-ROM!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[81] = IS_CDROM?0x0017:0x0000; //ATA/ATAPI-4 T13 1153D revision 17 on CD-ROM, ATA (ATA-1) X3T9.2 781D prior to revision 4 for hard disk(=1, but 0 due to ATA-1 specification not mentioning it).
+			ATA[disk_channel].Drive[disk_ATA].driveparams[82] = IS_CDROM?((1<<4)|(1<<9)|(1<<14)):0x0000; //On CD-ROM, PACKET; DEVICE RESET; NOP is supported, ON hard disk, only NOP is supported.
 			ATA_updateCapacity(disk_channel,disk_ATA); //Update the drive capacity!
 		}
 		else //Drive not inserted?
@@ -2165,7 +2170,7 @@ void ATA_DiskChanged(int disk)
 		}
 		if ((disk == CDROM0) || (disk == CDROM1)) //CDROM?
 		{
-			ATA[disk_channel].Drive[disk_ATA].driveparams[0] = ((2 << 14) | (5 << 8) | (1 << 7) | (2 << 5) | (0 << 0)); //CDROM drive!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[0] = ((2 << 14) /*ATAPI DEVICE*/ | (5 << 8) /* Command packet set used by device */ | (1 << 7) /* Removable media device */ | (2 << 5) /* DRQ within 50us of receiving PACKET command */ | (0 << 0) /* 12-byte command packet */ ); //CDROM drive ID!
 		}
 		break;
 	default: //Unknown?
