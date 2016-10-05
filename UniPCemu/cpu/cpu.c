@@ -402,7 +402,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	//Continue interrupt call (hardware)?
 	CPU[activeCPU].running = 1; //We're running!
 	
-	CPU[activeCPU].lastopcode = 0; //Last opcode, default to 0 and unknown?
+	CPU[activeCPU].lastopcode = CPU[activeCPU].previousopcode = 0; //Last opcode, default to 0 and unknown?
 	generate_opcode_jmptbl(); //Generate the opcode jmptbl for the current CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
 	generate_timings_tbl(); //Generate the timings tables for all CPU's!
@@ -1269,6 +1269,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
 	}
 	flushMMU(); //Flush MMU writes!
+	CPU[activeCPU].previousopcode = CPU[activeCPU].lastopcode; //Last executed OPcode for reference purposes!
 }
 
 void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks etc.)
