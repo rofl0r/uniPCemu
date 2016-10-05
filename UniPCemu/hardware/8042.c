@@ -13,7 +13,7 @@
 #define BUFFERSIZE_8042 64
 
 //Define this to log all 8042 reads and writes!
-#define LOG8042
+//#define LOG8042
 
 byte force8042 = 0; //Force 8042 controller handling?
 
