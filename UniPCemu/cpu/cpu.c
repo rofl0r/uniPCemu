@@ -29,6 +29,9 @@
 //Enable this define to use cycle-accurate emulation for supported CPUs!
 #define CPU_USECYCLES
 
+//Save the last instruction address and opcode in a backup?
+#define CPU_SAVELAST
+
 byte activeCPU = 0; //What CPU is currently active?
 
 byte cpudebugger; //To debug the CPU?
@@ -932,6 +935,11 @@ void CPU_afterexec(); //Prototype for below!
 word CPU_exec_CS; //OPCode CS
 uint_32 CPU_exec_EIP; //OPCode EIP
 
+#ifdef CPU_SAVELAST
+word CPU_exec_lastCS; //OPCode CS
+uint_32 CPU_exec_lastEIP; //OPCode EIP
+#endif
+
 extern Handler CurrentCPU_opcode_jmptbl[512]; //Our standard internal standard opcode jmptbl!
 extern Handler CurrentCPU_opcode0F_jmptbl[512]; //Our standard internal standard opcode jmptbl!
 
@@ -1026,6 +1034,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
 	if (!CPU[activeCPU].repeating) //Not repeating instructions?
 	{
+		#ifdef CPU_SAVELAST
+		//Save the last coordinates!
+		CPU_exec_lastCS = CPU_exec_CS;
+		CPU_exec_lastEIP = CPU_exec_lastEIP;
+		#endif
 		CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
 		CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
 	}
