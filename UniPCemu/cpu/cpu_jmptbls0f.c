@@ -1174,7 +1174,7 @@ void generate_opcode0F_jmptbl()
 			}
 			else //Too old a CPU to support?
 			{
-				CurrentCPU_opcode0F_jmptbl[(OP << 1) | currentoperandsize] = cpu==CPU_8086?&unkOP_8086:unkOP_186; //Execute this instruction when we're triggered!
+				CurrentCPU_opcode0F_jmptbl[(OP << 1) | currentoperandsize] = (cpu==CPU_8086)?&unkOP_8086:&unkOP_186; //Execute this instruction when we're triggered!
 			}
 		}
 	}
