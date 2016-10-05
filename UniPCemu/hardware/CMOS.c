@@ -69,7 +69,6 @@ byte decodeBCD8(byte value)
 struct
 {
 	CMOSDATA DATA;
-	byte IRQ8_Disabled; //IRQ8 not allowed to run for this type? (bits 0x10-0x40 are set for enabled)?
 	byte Loaded; //CMOS loaded?
 	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
 } CMOS;
@@ -98,47 +97,41 @@ void loadCMOSDefaults()
 
 void RTC_PeriodicInterrupt() //Periodic Interrupt!
 {
-	CMOS.DATA.DATA80.data[0x0C] |= 0x40; //Periodic Interrupt flag!
-
 	if (CMOS.DATA.DATA80.data[0x0B]&0x40) //Enabled interrupt?
 	{
-		CMOS.IRQ8_Disabled |= 0x40; //Disable future calls!
-		raiseirq(8); //Run the IRQ!
+		if ((CMOS.DATA.DATA80.data[0xC] & 0x70) == 0) //Allowed to raise?
+		{
+			raiseirq(8); //Run the IRQ!
+			CMOS.DATA.DATA80.data[0x0C] |= 0x40; //Periodic Interrupt flag!
+		}
 	}
 }
 
 void RTC_UpdateEndedInterrupt(byte manualtrigger) //Update Ended Interrupt!
 {
-	CMOS.DATA.DATA80.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
-
 	if (CMOS.DATA.DATA80.data[0x0B]&0x10) //Enabled interrupt?
 	{
-		if (!manualtrigger)
+		if ((CMOS.DATA.DATA80.data[0xC] & 0x70) == 0) //Allowed to raise?
 		{
-			CMOS.IRQ8_Disabled |= 0x10; //Disable future calls!
+			raiseirq(8); //Run the IRQ!
+			CMOS.DATA.DATA80.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
 		}
-		raiseirq(8); //Run the IRQ!
+		if (manualtrigger==1) //Manual trigger?
+		{
+			CMOS.DATA.DATA80.data[0x0C] |= 0x10; //Disable future calls manually!
+		}
 	}
 }
 
 void RTC_AlarmInterrupt() //Alarm handler!
 {
-	CMOS.DATA.DATA80.data[0x0C] |= 0x20; //Alarm Interrupt flag!
-
 	if (CMOS.DATA.DATA80.data[0x0B]&0x20) //Enabled interrupt?
 	{
-		CMOS.IRQ8_Disabled |= 0x20; //Disable future calls!
-		raiseirq(8); //Run the IRQ!
-	}
-}
-
-void CMOS_onRead() //When CMOS is being read (special actions).
-{
-	if (CMOS.ADDR==0x0C) //Enable all interrupts for RTC again?
-	{
-		CMOS.IRQ8_Disabled = 0; //Enable all!
-		lowerirq(8); //Lower the IRQ!
-		acnowledgeIRQrequest(8); //Acnowledge!
+		if ((CMOS.DATA.DATA80.data[0xC] & 0x70) == 0) //Allowed to raise?
+		{
+			raiseirq(8); //Run the IRQ!
+			CMOS.DATA.DATA80.data[0x0C] |= 0x20; //Alarm Interrupt flag!
+		}
 	}
 }
 
@@ -414,7 +407,6 @@ void CMOS_onWrite() //When written to CMOS!
 	{
 		float rate;
 		rate = (float)getIRQ8Rate(); //Update the rate!
-		CMOS.IRQ8_Disabled = 0; //Allow IRQ8 to be called by timer: we're enabled!
 		unlock(LOCK_CMOS);
 		addtimer(rate,&RTC_updateDateTime,"RTC",10,0,NULL); //RTC handler update!
 	}
@@ -484,7 +476,6 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 		return 1;
 	case 0x71:
 		readXTRTC: //XT RTC read compatibility
-		CMOS_onRead(); //Execute handler!
 		lock(LOCK_CMOS); //Lock the CMOS!
 		byte data;
 		if ((CMOS.ADDR&0x80)==0x00) //Normal data?
@@ -510,6 +501,13 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 				data = 0; //Unknown register!
 				break;
 			}
+		}
+		if (CMOS.ADDR == 0x0C) //Lower any interrupt flags set when this register is read? This allows new interrupts to fire!
+		{
+			//Enable all interrupts for RTC again?
+			lowerirq(8); //Lower the IRQ, if raised!
+			acnowledgeIRQrequest(8); //Acnowledge the IRQ, if needed!
+			CMOS.DATA.DATA80.data[0x0C] &= ~0x70; //Clear the interrupt raised flags to allow new interrupts to fire!
 		}
 		unlock(LOCK_CMOS);
 		CMOS.ADDR = 0xD; //Reset address!
