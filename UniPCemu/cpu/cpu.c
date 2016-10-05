@@ -1053,51 +1053,61 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		gotREP = REPZ = 1; //Allow and we're REPZ!
 		switch (OP) //Which special adjustment cycles Opcode?
 		{
+		//80186+ REP opcodes!
+		case 0x6C: //A4: REPNZ INSB
+		case 0x6D: //A4: REPNZ INSW
+		case 0x6E: //A4: REPNZ OUTSB
+		case 0x6F: //A4: REPNZ OUTSW
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
+			if (EMULATED_CPU<=CPU_NECV30) goto noREPNE0Fand8086; //Not existant on 8086!
+			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+			break;
+		//8086 REPable opcodes!	
 		//New:
 		case 0xA4: //A4: REPNZ MOVSB
-			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
  			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xA5: //A5: REPNZ MOVSW
-			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 
 		//Old:
 		case 0xA6: //A6: REPNZ CMPSB
-			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			break;
 		case 0xA7: //A7: REPNZ CMPSW
-			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			break;
 
 		//New:
 		case 0xAA: //AA: REPNZ STOSB
-			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xAB: //AB: REPNZ STOSW
-			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xAC: //AC: REPNZ LODSB
-			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xAD: //AD: REPNZ LODSW
-			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 
 		//Old:
 		case 0xAE: //AE: REPNZ SCASB
-			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			break;
 		case 0xAF: //AF: REPNZ SCASW
-			if (CPU[activeCPU].is0Fopcode) goto noREPNE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			break;
 		default: //Unknown yet?
-			noREPNE0F: //0F exception!
+		noREPNE0Fand8086: //0F/8086 #UD exception!
 			gotREP = 0; //Dont allow after all!
 			CPU[activeCPU].cycles_OP = 0; //Unknown!
 			break; //Not supported yet!
@@ -1108,42 +1118,52 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		gotREP = 1; //Allow!
 		switch (OP) //Which special adjustment cycles Opcode?
 		{
+		//80186+ REP opcodes!
+		case 0x6C: //A4: REP INSB
+		case 0x6D: //A4: REP INSW
+		case 0x6E: //A4: REP OUTSB
+		case 0x6F: //A4: REP OUTSW
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
+			if (EMULATED_CPU <= CPU_NECV30) goto noREPNE0Fand8086; //Not existant on 8086!
+			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+			break;
+			//8086 REP opcodes!
 		case 0xA4: //A4: REP MOVSB
-			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			break;
 		case 0xA5: //A5: REP MOVSW
-			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			break;
 		case 0xA6: //A6: REPE CMPSB
-			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //REPE/REPZ!
 			break;
 		case 0xA7: //A7: REPE CMPSW
-			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //REPE/REPZ!
 			break;
 		case 0xAA: //AA: REP STOSB
-			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			break;
 		case 0xAB: //AB: REP STOSW
-			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			break;
 		case 0xAC: //AC: REP LODSB
-			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			break;
 		case 0xAD: //AD: REP LODSW
-			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			break;
 		case 0xAE: //AE: REPE SCASB
-			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //REPE/REPZ!
 			break;
 		case 0xAF: //AF: REPE SCASW
-			if (CPU[activeCPU].is0Fopcode) goto noREPE0F; //0F opcode?
+			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //REPE/REPZ!
 			break;
 		default: //Unknown yet?
-			noREPE0F: //0F exception!
+			noREPE0Fand8086: //0F exception!
 			gotREP = 0; //Don't allow after all!
 			break; //Not supported yet!
 		}
