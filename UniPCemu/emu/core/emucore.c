@@ -57,6 +57,19 @@
 #include "headers/hardware/gameblaster.h" //Game blaster support!
 #include "headers/hardware/soundblaster.h" //Sound blaster support!
 
+//Emulator single step address, when enabled.
+byte doEMUsinglestep = 0; //CPU mode plus 1
+uint_64 singlestepaddress = 0xC6000000; //The segment:offset address!
+
+/*
+
+It's the row:
+0xF0001671 CALL DDS (AT BIOS)
+0xF000E1CC Allow NMI interrupts
+
+which is at the first row of the IBM AT POST3 function.
+*/
+
 //CPU default clock speeds (in Hz)!
 
 //The clock speed of the 8086 (~14.31818MHz divided by 3)!
@@ -576,17 +589,6 @@ void initEMUreset() //Simple reset emulator!
 /* coreHandler: The core emulation handler (running CPU and external hardware required to run it.) */
 
 extern byte singlestep; //Enable EMU-driven single step!
-byte doEMUsinglestep = 0; //CPU mode plus 1
-uint_64 singlestepaddress = 0xF000E1CC; //The segment:offset address!
-/*
-
-It's the row:
-0xF0001671 CALL DDS (AT BIOS)
-0xF000E1CC Allow NMI interrupts
-
-which is at the first row of the IBM AT POST3 function.
-*/
-
 extern byte interruptsaved; //Primary interrupt saved?
 
 byte HWINT_nr = 0, HWINT_saved = 0; //HW interrupt saved?
