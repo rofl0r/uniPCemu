@@ -490,6 +490,11 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 		if ((CMOS.ADDR&0x80)==0x00) //Normal data?
 		{
 			data = CMOS.DATA.DATA80.data[CMOS.ADDR]; //Give the data from the CMOS!
+			if (CMOS.ADDR == 0xD) //Read only status register D?
+			{
+				data |= 0x80; //We have power!
+			}
+			//Status register B&C are read-only!
 		}
 		else
 		{
@@ -582,7 +587,10 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		//Write back the destination data!
 		if ((CMOS.ADDR & 0x80)==0x00) //Normal data?
 		{
-			CMOS.DATA.DATA80.data[CMOS.ADDR] = value; //Give the data from the CMOS!
+			if ((CMOS.ADDR!=0xC) && (CMOS.ADDR!=0xD)) //Read only values?
+			{
+				CMOS.DATA.DATA80.data[CMOS.ADDR] = value; //Give the data from the CMOS!
+			}
 		}
 		else
 		{
