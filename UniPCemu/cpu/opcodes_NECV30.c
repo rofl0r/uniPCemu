@@ -12,6 +12,9 @@
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/mmu/mmuhandler.h" //MMU_invaddr support!
 
+//Shutdown the application when an unknown instruction is executed?
+//#define UNKOP_SHUTDOWN
+
 extern MODRM_PARAMS params;    //For getting all params!
 extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
 extern byte MODRM_src0; //What source is our modr/m? (1/2)
@@ -501,6 +504,9 @@ void unkOP_186() //Unknown opcode on 186+?
 	//dolog("unkop","Unknown opcode on NECV30+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU086_int(0x06); //Call interrupt with return addres of the OPcode!
+#ifdef UNKOP_SHUTDOWN
+	EMU_Shutdown(1); //Request to shut down!
+#endif
 }
 
 //Fully checked, and the same as fake86.
