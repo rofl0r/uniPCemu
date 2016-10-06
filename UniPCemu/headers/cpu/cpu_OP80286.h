@@ -5,7 +5,6 @@ void generate_opcode0F_jmptbl();
 void unkOP0F_286(); //0F unknown opcode handler on 286+?
 
 //The 80286 instructions themselves!
-void unkOP_286(); //Unknown opcode on 186+?
 void CPU286_OP63(); //ARPL r/m16,r16
 void CPU286_OPD6(); //286+ SALC
 

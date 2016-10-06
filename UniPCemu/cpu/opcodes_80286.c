@@ -11,6 +11,7 @@
 
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/cpu/cpu_OP80286.h" //80286 instruction support!
+#include "headers/cpu/cpu_OPNECV30.h" //186+ #UD support!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
 extern MODRM_PARAMS params;    //For getting all params!
@@ -122,20 +123,12 @@ OPTINLINE void modrm286_generateInstructionTEXT(char *instruction, byte debugger
 	}
 }
 
-void unkOP_286() //Unknown opcode on 286+?
-{
-	debugger_setcommand("<80286+ #UD>"); //Command is unknown opcode!
-	//dolog("unkop","Unknown opcode on NECV30+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
-	CPU_resetOP(); //Go back to the opcode itself!
-	CPU086_int(0x06); //Call interrupt with return addres of the OPcode!
-}
-
 void CPU286_OP63() //ARPL r/m16,r16
 {
 	modrm286_generateInstructionTEXT("ARPL",16,0,PARAM_MODRM21); //Our instruction text!
 	if (getcpumode() == CPU_MODE_REAL) //Real mode? #UD!
 	{
-		unkOP_286(); //Execute our unk opcode handler!
+		unkOP_186(); //Execute our unk opcode handler!
 		return; //Abort!
 	}
 	word destRPL, srcRPL;
