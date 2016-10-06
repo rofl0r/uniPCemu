@@ -150,7 +150,7 @@ byte PPI_writeIO(word port, byte value)
 		if (is_XT) goto outputdiagnostics; //Output diagnostics!
 		break;
 	case 0x80: //IBM AT Diagnostics!
-		if (is_XT==0) break; //Don't handle this for XT systems!
+		if (is_XT) break; //Don't handle this for XT systems!
 		outputdiagnostics: //Diagnostics port output!
 		if (((sword)value!=breakpoint_comparison) && (diagnosticsportoutput_breakpoint == (sword)value)) //Have we reached a breakpoint?
 		{
