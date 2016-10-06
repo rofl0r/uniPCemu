@@ -673,7 +673,7 @@ void debuggerThread()
 			while (psp_keypressed(BUTTON_CROSS)) //Wait for release!
 			{
 			}
-			//If single stepping, keep doing so!
+			singlestep = 0; //If single stepping, stop doing so!
 			break;
 		}
 		if (psp_keypressed(BUTTON_TRIANGLE)) //Skip 10 commands?
@@ -682,6 +682,7 @@ void debuggerThread()
 			{
 			}
 			skipopcodes = 9; //Skip 9 additional opcodes!
+			singlestep = 0; //If single stepping, stop doing so!
 			break;
 		}
 		if (psp_keypressed(BUTTON_SQUARE)) //Skip until finished command?
@@ -702,6 +703,7 @@ void debuggerThread()
 			{
 				skipstep = 2; //Simply skip until the next instruction is reached after this address!
 			}
+			singlestep = 0; //If single stepping, stop doing so!
 			break;
 		}
 		if (psp_keypressed(BUTTON_CIRCLE)) //Dump memory?
@@ -721,6 +723,10 @@ void debuggerThread()
 			if (debugging()) //Recheck the debugger!
 			{
 				goto restartdebugger; //Restart the debugger!
+			}
+			else //Not debugging anymore?
+			{
+				goto singlestepenabled; //Stop debugging!
 			}
 		}
 		if (shuttingdown()) break; //Stop debugging when shutting down!
