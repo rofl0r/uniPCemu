@@ -466,15 +466,19 @@ byte XTRTC_translatetable[0x10] = {
 0xFF  //0F: RAM
 }; //XT to CMOS translation table!
 
+extern byte is_XT; //Are we an XT machine?
+
 byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 {
 	byte isXT = 0;
 	switch (port)
 	{
 	case 0x70: //CMOS_ADDR
+		if (is_XT) return 0; //Not existant on XT systems!
 		*result = CMOS.ADDR|(NMI<<7); //Give the address and NMI!
 		return 1;
 	case 0x71:
+		if (is_XT) return 0; //Not existant on XT systems!
 		readXTRTC: //XT RTC read compatibility
 		lock(LOCK_CMOS); //Lock the CMOS!
 		byte data;
@@ -571,11 +575,13 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	switch (port)
 	{
 	case 0x70: //CMOS ADDR
+		if (is_XT) return 0; //Not existant on XT systems!
 		CMOS.ADDR = (value&0x7F); //Take the value!
 		NMI = ((value&0x80)>>7); //NMI?
 		return 1;
 		break;
 	case 0x71:
+		if (is_XT) return 0; //Not existant on XT systems!
 		writeXTRTC: //XT RTC write compatibility
 		lock(LOCK_CMOS); //Lock the CMOS!
 		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert from binary?
