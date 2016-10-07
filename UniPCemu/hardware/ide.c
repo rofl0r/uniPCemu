@@ -1149,12 +1149,12 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		memset(&ATA[channel].data,0,8); //Clear all possible data!
 		if (ATA[channel].Drive[drive].ATAPI_PACKET[1]&2) //MSF packet requested?
 		{
-			ATA[channel].data[0] = 2; //User data here!
+			ATA[channel].data[0] = 1; //User data here! 2048 bytes, mode 1 sector!
 			LBA2MSF(LBA,&ATA[channel].data[5],&ATA[channel].data[6],&ATA[channel].data[7]); //Try and get the MSF address based on the LBA!
 		}
 		else //LBA packet requested?
 		{
-			ATA[channel].data[0] = 2; //User data here!
+			ATA[channel].data[0] = 1; //User data here! 2048 bytes, mode 1 sector!
 			ATA[channel].data[4] = (LBA>>24)&0xFF;
 			ATA[channel].data[5] = (LBA>>16)&0xFF;
 			ATA[channel].data[6] = (LBA>>8)&0xFF;
