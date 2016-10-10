@@ -420,7 +420,6 @@ extern byte is_XT; //Are we emulating a XT architecture?
 
 byte write_8042(word port, byte value)
 {
-	byte oldRAM0;
 	if ((port & 0xFFF8) != 0x60) return 0; //Not our port!
 	switch (port) //What port?
 	{
@@ -450,7 +449,6 @@ byte write_8042(word port, byte value)
 			}
 			if (Controller8042.Write_RAM) //Write to VRAM byte?
 			{
-				oldRAM0 = Controller8042.RAM[0]; //Save old RAM 0 status!
 				Controller8042.RAM[Controller8042.Write_RAM-1] = value; //Set data in RAM!
 				Controller8042.Write_RAM = 0; //Not anymore!
 				Controller8042.status_buffer &= ~0x2; //Cleared output buffer!

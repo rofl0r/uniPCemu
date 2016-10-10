@@ -912,7 +912,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	byte MSF; //MSF bit!
 	byte sub_Q; //SubQ bit!
 	byte data_format; //Sub-channel Data Format
-	byte track_number; //Track number
+	//byte track_number; //Track number
 	word alloc_length; //Allocation length!
 	word ret_len; //Returned length of possible data!
 	byte starting_track;
@@ -1172,7 +1172,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		MSF = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[1]&2); //MSF bit!
 		sub_Q = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[2] & 0x40); //SubQ bit!
 		data_format = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[3]; //Sub-channel Data Format
-		track_number = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[6]; //Track number
+		//track_number = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[6]; //Track number
 		alloc_length = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[7]<<1)|ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[8]; //Allocation length!
 		ret_len = 4;
 		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!

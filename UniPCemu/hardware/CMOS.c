@@ -27,7 +27,7 @@ CMOS&RTC (Combined!)
 
 byte XTMode = 0;
 
-word decodeBCD(word bcd)
+OPTINLINE word decodeBCD(word bcd)
 {
 	INLINEREGISTER word temp, result=0;
 	temp = bcd; //Load the BCD value!
@@ -41,7 +41,7 @@ word decodeBCD(word bcd)
 	return result; //Give the decoded integer value!
 }
 
-word encodeBCD(word value)
+OPTINLINE word encodeBCD(word value)
 {
 	INLINEREGISTER word temp,result=0;
 	temp = value; //Load the original value!
@@ -56,12 +56,12 @@ word encodeBCD(word value)
 	return result;
 }
 
-byte encodeBCD8(byte value)
+OPTINLINE byte encodeBCD8(byte value)
 {
 	return (encodeBCD(value)&0xFF);
 }
 
-byte decodeBCD8(byte value)
+OPTINLINE byte decodeBCD8(byte value)
 {
 	return (decodeBCD(value)&0xFF);
 }
@@ -93,7 +93,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS settings loaded!
 #define FLOPPY_144 4
 #define FLOPPY_288 5
 
-void loadCMOSDefaults()
+OPTINLINE void loadCMOSDefaults()
 {
 	memset(&CMOS.DATA,0,sizeof(CMOS.DATA)); //Clear/init CMOS!
 	CMOS.DATA.timedivergeance = 0; //No second divergeance!
@@ -101,7 +101,7 @@ void loadCMOSDefaults()
 	//We don't affect loaded: we're not loaded and invalid by default!
 }
 
-void RTC_PeriodicInterrupt() //Periodic Interrupt!
+OPTINLINE void RTC_PeriodicInterrupt() //Periodic Interrupt!
 {
 	if (CMOS.DATA.DATA80.data[0x0B]&0x40) //Enabled interrupt?
 	{
@@ -113,7 +113,7 @@ void RTC_PeriodicInterrupt() //Periodic Interrupt!
 	}
 }
 
-void RTC_UpdateEndedInterrupt(byte manualtrigger) //Update Ended Interrupt!
+OPTINLINE void RTC_UpdateEndedInterrupt(byte manualtrigger) //Update Ended Interrupt!
 {
 	if (CMOS.DATA.DATA80.data[0x0B]&0x10) //Enabled interrupt?
 	{
@@ -129,7 +129,7 @@ void RTC_UpdateEndedInterrupt(byte manualtrigger) //Update Ended Interrupt!
 	}
 }
 
-void RTC_AlarmInterrupt() //Alarm handler!
+OPTINLINE void RTC_AlarmInterrupt() //Alarm handler!
 {
 	if (CMOS.DATA.DATA80.data[0x0B]&0x20) //Enabled interrupt?
 	{
@@ -141,7 +141,7 @@ void RTC_AlarmInterrupt() //Alarm handler!
 	}
 }
 
-void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
+OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 {
 	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnablePeriodicInterrupt) //Enabled?
 	{
@@ -246,7 +246,7 @@ byte _ytab[2][12] = { //Days within months!
 	{ 31,29,31,30,31,30,31,31,30,31,30,31 } //Leap year
 };
 
-byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
+OPTINLINE byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
 {
 	//More accurate timing than default!
 	datetime->us = curtime->tv_usec;
@@ -288,7 +288,7 @@ byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
 #define HOURSIZE 3600
 #define DAYSIZE (3600*24)
 
-byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
+OPTINLINE byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 {
 	uint_64 seconds=0;
 	if ((curtime->us-(curtime->us%100))!=(((curtime->s100)*10000)+(curtime->s10000*100))) return 0; //Invalid time to convert: 100th&10000th seconds doesn't match us(this is supposed to be the same!)
@@ -319,7 +319,7 @@ byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
 }
 
 //CMOS time encoding support!
-void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
+OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
 {
 	curtime->year = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Year); //The year to compare to!
 	curtime->year += decodeBCD8(CMOS.DATA.DATA80.data[0x32])*100; //Add the century!
@@ -334,7 +334,7 @@ void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
 	curtime->us = (curtime->s100*10000)+(curtime->s10000*100); //The same as above, make sure we match!
 }
 
-void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
+OPTINLINE void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
 {
 	CMOS.DATA.DATA80.data[0x32] = encodeBCD8((curtime->year/100)%100); //The century!
 	CMOS.DATA.DATA80.info.RTC_Year = encodeBCD8(curtime->year%100);
@@ -350,7 +350,7 @@ void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
 }
 
 //Divergeance support!
-byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 *divergeance_sec, int_64 *divergeance_usec) //Calculates the difference of time1 compared to time2(reference time)!
+OPTINLINE byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 *divergeance_sec, int_64 *divergeance_usec) //Calculates the difference of time1 compared to time2(reference time)!
 {
 	struct timeval time1val, time2val; //Our time values!
 	if (accuratetimetoepoch(time1, &time1val)) //Converted to universal value?
@@ -367,7 +367,7 @@ byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 *divergean
 	return 0; //Unknown: Don't apply divergeance!
 }
 
-byte applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, int_64 divergeance_usec) //Apply divergeance to accurate time!
+OPTINLINE byte applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, int_64 divergeance_usec) //Apply divergeance to accurate time!
 {
 	struct timeval timeval; //The accurate time value!
 	BIGGESTSINT applyingtime; //Biggest integer value we have!
@@ -390,7 +390,7 @@ byte applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, int_64 dive
 }
 
 //Calculating relative time from the CMOS!
-void updateTimeDivergeance() //Update relative time to the clocks(time difference changes)! This is called when software changes the time/date!
+OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time difference changes)! This is called when software changes the time/date!
 {
 	struct timeval tp;
 	struct timezone currentzone;
@@ -406,7 +406,7 @@ void updateTimeDivergeance() //Update relative time to the clocks(time differenc
 }
 
 //Update the current Date/Time (based upon the refresh rate set) to the CMOS this runs at 64kHz!
-void RTC_updateDateTime()
+OPTINLINE void RTC_updateDateTime()
 {
 	//Update the time itself at the highest frequency of 64kHz!
 	//Get time!
@@ -462,7 +462,7 @@ uint_32 getGenericCMOSRate()
 	}
 }
 
-uint_32 getSDIVCMOSRate()
+OPTINLINE uint_32 getSDIVCMOSRate()
 {
 	if (CMOS.DATA.DATA80.data[0xA] & 0x60) //To use us?
 	{
@@ -474,7 +474,7 @@ uint_32 getSDIVCMOSRate()
 	}
 }
 
-void CMOS_onWrite() //When written to CMOS!
+OPTINLINE void CMOS_onWrite() //When written to CMOS!
 {
 	if (CMOS.ADDR==0xB) //Might have enabled IRQ8 functions!
 	{
