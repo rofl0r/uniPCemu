@@ -21,7 +21,7 @@ extern byte MODRM_src0; //What source is our modr/m? (1/2)
 MODRM_PTR info; //For storing ModR/M Info!
 
 extern byte immb; //Immediate byte!
-extern byte immw; //Immediate word!
+extern word immw; //Immediate word!
 
 /*
 
