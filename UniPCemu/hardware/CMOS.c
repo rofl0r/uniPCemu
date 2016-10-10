@@ -414,7 +414,6 @@ void RTC_updateDateTime()
 	struct timezone currentzone;
 	accuratetime currenttime;
 	byte lastsecond = CMOS.DATA.DATA80.info.RTC_Seconds; //Previous second value for alarm!
-	byte timeupdated = 0; //Are we updated?
 	CMOS.UpdatingInterruptSquareWave ^= 1; //Toggle the square wave to interrupt us!
 	if (CMOS.UpdatingInterruptSquareWave==0) //Toggled twice? Update us!
 	{
