@@ -61,4 +61,6 @@ typedef struct
 void initCMOS(); //Initialises CMOS (apply solid init settings&read init if possible)!
 void saveCMOS(); //Saves the CMOS, if any!
 
+void updateCMOS(double timepassed); //Update CMOS timing!
+
 #endif

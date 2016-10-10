@@ -71,6 +71,14 @@ struct
 	CMOSDATA DATA;
 	byte Loaded; //CMOS loaded?
 	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
+
+	uint_32 SDIVDivider; //SDIV divider, usually set to 32kHz divider(2)!
+	uint_32 RateDivider; //Rate divider, usually set to 1024Hz. Used for Square Wave output and Periodic Interrupt!
+
+	uint_32 currentSDIV[5]; //Current SDIV value for any counters!
+	uint_32 currentRate[5]; //Current rate value for any counters!
+
+	byte SquareWave; //Square Wave Output!
 } CMOS;
 
 extern byte NMI; //NMI interrupt enabled?
@@ -87,12 +95,9 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS settings loaded!
 void loadCMOSDefaults()
 {
 	memset(&CMOS.DATA,0,sizeof(CMOS.DATA)); //Clear/init CMOS!
-	CMOS.DATA.DATA80.data[0x10] = ((FLOPPY_144)<<4)|(FLOPPY_144); //High=Master, Low=Slave!
-	CMOS.DATA.DATA80.data[0x15] = 0x15; //We have...
-	CMOS.DATA.DATA80.data[0x16] = 0x16; //640K base memory!
 	CMOS.DATA.timedivergeance = 0; //No second divergeance!
 	CMOS.DATA.timedivergeance2 = 0; //No us divergeance!
-	CMOS.Loaded = 1; //Loaded: ready to save!
+	//We don't affect loaded: we're not loaded and invalid by default!
 }
 
 void RTC_PeriodicInterrupt() //Periodic Interrupt!
@@ -135,24 +140,48 @@ void RTC_AlarmInterrupt() //Alarm handler!
 	}
 }
 
-void RTC_Handler() //Handle RTC Timer Tick!
+void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 {
 	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnablePeriodicInterrupt) //Enabled?
 	{
-		RTC_PeriodicInterrupt(); //Handle!
+		if (CMOS.RateDivider != 0x20000) //Valid Rate divider?
+		{
+			if (++CMOS.currentRate[1]>=CMOS.RateDivider) //Overflow on SDIV?
+			{
+				CMOS.currentRate[1] = 0; //Reset for the next count!
+				RTC_PeriodicInterrupt(); //Handle!
+			}
+		}
 	}
 
-	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnabledUpdateEndedInterrupt) //Enabled?
+	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableSquareWaveOutput) //Square Wave generator enabled?
 	{
-		RTC_UpdateEndedInterrupt(0); //Handle!
+		if (CMOS.RateDivider!=0x20000) //Valid Rate divider?
+		{
+			if (++CMOS.currentRate[0]>=(CMOS.RateDivider>>1)) //Overflow on Rate? We're generating a square wave!
+			{
+				CMOS.currentRate[0] = 0; //Reset for the next count!
+				CMOS.SquareWave ^= 1; //Toggle the square wave!
+				//It's unknown what the Square Wave output is connected to, if it's connected at all?
+			}
+		}
+	}
+
+	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnabledUpdateEndedInterrupt && (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableCycleUpdate == 0)) //Enabled and updated?
+	{
+		if (CMOS.DATA.DATA80.info.RTC_Seconds != lastsecond) //We're updated at all?
+		{
+			RTC_UpdateEndedInterrupt(0); //Handle!
+		}
 	}
 
 	if ((CMOS.DATA.DATA80.info.RTC_Hours==CMOS.DATA.DATA80.info.RTC_HourAlarm) &&
 			(CMOS.DATA.DATA80.info.RTC_Minutes==CMOS.DATA.DATA80.info.RTC_MinuteAlarm) &&
 			(CMOS.DATA.DATA80.info.RTC_Seconds==CMOS.DATA.DATA80.info.RTC_SecondAlarm) &&
+			(CMOS.DATA.DATA80.info.RTC_Seconds!=lastsecond) && //Second changed to the actual alarm value?
 			(CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableAlarmInterrupt)) //Alarm on?
 	{
-		RTC_AlarmInterrupt(); //Handle!
+		RTC_AlarmInterrupt(); //Handle the alarm!
 	}
 }
 
@@ -375,40 +404,77 @@ void updateTimeDivergeance() //Update relative time to the clocks(time differenc
 	}
 }
 
-//Update the current Date/Time (based upon the refresh rate set) to the CMOS!
+//Update the current Date/Time (based upon the refresh rate set) to the CMOS this runs at 64kHz!
 void RTC_updateDateTime()
 {
+	//Update the time itself at the highest frequency of 64kHz!
 	//Get time!
 	struct timeval tp;
 	struct timezone currentzone;
 	accuratetime currenttime;
-	if (gettimeofday(&tp, &currentzone) == 0) //Time gotten?
+	byte lastsecond = CMOS.DATA.DATA80.info.RTC_Seconds; //Previous second value for alarm!
+	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableCycleUpdate==0) //We're allowed to update the time?
 	{
-		if (epochtoaccuratetime(&tp,&currenttime)) //Converted?
+		if (gettimeofday(&tp, &currentzone) == 0) //Time gotten?
 		{
-			//Apply time!
-			lock(LOCK_CMOS);
-			applyDivergeance(&currenttime, CMOS.DATA.timedivergeance,CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
-			CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
-			RTC_Handler(); //Handle anything that the RTC has to handle!
-			unlock(LOCK_CMOS); //Finished updating!
+			if (epochtoaccuratetime(&tp,&currenttime)) //Converted?
+			{
+				//Apply time!
+				applyDivergeance(&currenttime, CMOS.DATA.timedivergeance,CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
+				CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
+			}
+		}
+	}
+	RTC_Handler(lastsecond); //Handle anything that the RTC has to handle!
+}
+
+double RTC_timepassed = 0.0, RTC_timetick = 0.0;
+void updateCMOS(double timepassed)
+{
+	RTC_timepassed += timepassed; //Add the time passed to get our time passed!
+	if (RTC_timetick) //Are we enabled?
+	{
+		if (RTC_timepassed >= RTC_timetick) //Enough to tick?
+		{
+			for (;RTC_timepassed>=RTC_timetick;) //Still enough to tick?
+			{
+				RTC_timepassed -= RTC_timetick; //Ticked once!
+				RTC_updateDateTime(); //Call our timed handler!
+			}
 		}
 	}
 }
 
-uint_32 getIRQ8Rate()
+uint_32 getGenericCMOSRate()
 {
-	return 32768>>(CMOS.DATA.DATA80.data[0xA]); //The frequency!
+	if (CMOS.DATA.DATA80.data[0xA]&0xF) //To use us?
+	{
+		return ((CMOS.DATA.DATA80.data[0xA]&0xF)-1)<<1; //The divider!
+	}
+	else //We're disabled?
+	{
+		return 0x20000; //We're disabled!
+	}
+}
+
+uint_32 getSDIVCMOSRate()
+{
+	if (CMOS.DATA.DATA80.data[0xA] & 0x60) //To use us?
+	{
+		return (((CMOS.DATA.DATA80.data[0xA] & 0x60)>>5) - 1)<<1; //The divider!
+	}
+	else //We're disabled?
+	{
+		return 0x20000; //We're disabled!
+	}
 }
 
 void CMOS_onWrite() //When written to CMOS!
 {
 	if (CMOS.ADDR==0xB) //Might have enabled IRQ8 functions!
 	{
-		float rate;
-		rate = (float)getIRQ8Rate(); //Update the rate!
-		unlock(LOCK_CMOS);
-		addtimer(rate,&RTC_updateDateTime,"RTC",10,0,NULL); //RTC handler update!
+		CMOS.RateDivider = getGenericCMOSRate(); //Generic rate!
+		CMOS.SDIVDivider = getSDIVCMOSRate(); //SDIV divider!
 	}
 	else if (CMOS.ADDR < 0xA) //Date/time might have been updated?
 	{
@@ -416,19 +482,15 @@ void CMOS_onWrite() //When written to CMOS!
 		{
 			updateTimeDivergeance(); //Update the relative time compared to current time!
 		}
-		unlock(LOCK_CMOS);
 	}
-	else
-	{
-		unlock(LOCK_CMOS);
-	}
+	CMOS.Loaded = 1; //We're loaded now!
 }
 
 void loadCMOS()
 {
 	if (!BIOS_Settings.got_CMOS)
 	{
-		loadCMOSDefaults(); //No CMOS!
+		loadCMOSDefaults(); //Load our default requirements!
 		updateTimeDivergeance(); //Load the default time divergeance too!
 		return;
 	}
@@ -441,7 +503,7 @@ void loadCMOS()
 
 void saveCMOS()
 {
-	if (!CMOS.Loaded) return; //Don't save when not loaded/initialised!
+	if (CMOS.Loaded==0) return; //Don't save when not loaded/initialised!
 	memcpy(&BIOS_Settings.CMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 	BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
 	forceBIOSSave(); //Save the BIOS data!
@@ -470,6 +532,7 @@ extern byte is_XT; //Are we an XT machine?
 
 byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 {
+	byte data;
 	byte isXT = 0;
 	switch (port)
 	{
@@ -480,14 +543,15 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 	case 0x71:
 		if (is_XT) return 0; //Not existant on XT systems!
 		readXTRTC: //XT RTC read compatibility
-		lock(LOCK_CMOS); //Lock the CMOS!
-		byte data;
 		if ((CMOS.ADDR&0x80)==0x00) //Normal data?
 		{
 			data = CMOS.DATA.DATA80.data[CMOS.ADDR]; //Give the data from the CMOS!
 			if (CMOS.ADDR == 0xD) //Read only status register D?
 			{
-				data |= 0x80; //We have power!
+				if (CMOS.Loaded) //Anything valid in RAM?
+				{
+					data |= 0x80; //We have power!
+				}
 			}
 			//Status register B&C are read-only!
 		}
@@ -513,7 +577,6 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			acnowledgeIRQrequest(8); //Acnowledge the IRQ, if needed!
 			CMOS.DATA.DATA80.data[0x0C] &= ~0x70; //Clear the interrupt raised flags to allow new interrupts to fire!
 		}
-		unlock(LOCK_CMOS);
 		CMOS.ADDR = 0xD; //Reset address!
 		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert to binary?
 		{
@@ -531,10 +594,12 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 	case 0x246: //day of month
 	case 0x247: //month
 	case 0x249: //1/100 seconds, year in the case of TIMER.COM v1.2!
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
 		goto readXTRTC; //Read the XT RTC!
 	case 0x248: //1/10000 seconds latch according to documentation, map to RAM for TIMER.COM v1.2!
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
 		*result = CMOS.DATA.extraRAMdata[6]; //Map to month instead!
 		return 1;
 		break;
@@ -558,10 +623,12 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 	case 0x255: //"GO" Command
 	case 0x256: //Standby Interrupt
 	case 0x257: //Test Mode
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
 		*result = 0; //Unimplemented atm!
 		return 1; //Simply supported for now(plain RAM read)!
 		break;
 	case 0x254: //Status Bit
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
 		*result = 0; //Not updating the status!
 		return 1;
 		break;
@@ -583,7 +650,6 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x71:
 		if (is_XT) return 0; //Not existant on XT systems!
 		writeXTRTC: //XT RTC write compatibility
-		lock(LOCK_CMOS); //Lock the CMOS!
 		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert from binary?
 		{
 			value = encodeBCD8(value); //Encode the binary data!
@@ -625,10 +691,12 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x246: //day of month
 	case 0x247: //month
 	case 0x249: //1/100 seconds, year in the case of TIMER.COM v1.2!
+		if (is_XT==0) return 0; //Not existant on the AT and higher!
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port & 0xF]; //Translate the port to a compatible index!
 		goto writeXTRTC; //Read the XT RTC!
 	case 0x248: //1/10000 seconds latch according to documentation, map to RAM for TIMER.COM v1.2!
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
 		CMOS.DATA.extraRAMdata[6] = value; //Map to month instead!
 		return 1;
 		break;
@@ -653,6 +721,7 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x255: //"GO" Command
 	case 0x256: //Standby Interrupt
 	case 0x257: //Test Mode
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
 		//Unimplemented atm!
 		return 1;
 		break;
@@ -666,11 +735,13 @@ void initCMOS() //Initialises CMOS (apply solid init settings&read init if possi
 {
 	CMOS.ADDR = 0; //Reset!
 	NMI = 1; //Reset: Disable NMI interrupts!
+	memset(&CMOS,0,sizeof(CMOS)); //Make sure we're fully initialized always!
 	loadCMOS(); //Load the CMOS from disk OR defaults!
 
 	//Register our I/O ports!
 	register_PORTIN(&PORT_readCMOS);
 	register_PORTOUT(&PORT_writeCMOS);
-	addtimer((float)getIRQ8Rate(), &RTC_updateDateTime, "RTC", 10, 0, NULL); //RTC handler!
 	XTMode = 0; //Default: not XT mode!
+	RTC_timepassed = 0.0; //Initialize our timing!
+	RTC_timetick = 1000000000.0/131072.0; //We're ticking at a frequency of ~65kHz(65535Hz signal, which is able to produce a square wave as well at that frequency?)!
 }

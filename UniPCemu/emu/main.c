@@ -269,7 +269,6 @@ int main(int argc, char * argv[])
 	getLock(LOCK_GPU);
 	getLock(LOCK_CPU);
 	getLock(LOCK_VIDEO);
-	getLock(LOCK_CMOS);
 	getLock(LOCK_TIMERS);
 	getLock(LOCK_INPUT);
 	getLock(LOCK_SHUTDOWN);
