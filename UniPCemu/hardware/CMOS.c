@@ -79,6 +79,7 @@ struct
 	uint_32 currentRate[5]; //Current rate value for any counters!
 
 	byte SquareWave; //Square Wave Output!
+	byte UpdatingInterruptSquareWave; //Updating interrupt square wave generation!
 } CMOS;
 
 extern byte NMI; //NMI interrupt enabled?
@@ -167,7 +168,7 @@ void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 		}
 	}
 
-	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnabledUpdateEndedInterrupt && (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableCycleUpdate == 0)) //Enabled and updated?
+	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnabledUpdateEndedInterrupt && (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableCycleUpdate == 0) && (CMOS.UpdatingInterruptSquareWave == 0)) //Enabled and updated?
 	{
 		if (CMOS.DATA.DATA80.info.RTC_Seconds != lastsecond) //We're updated at all?
 		{
@@ -413,15 +414,20 @@ void RTC_updateDateTime()
 	struct timezone currentzone;
 	accuratetime currenttime;
 	byte lastsecond = CMOS.DATA.DATA80.info.RTC_Seconds; //Previous second value for alarm!
-	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableCycleUpdate==0) //We're allowed to update the time?
+	byte timeupdated = 0; //Are we updated?
+	CMOS.UpdatingInterruptSquareWave ^= 1; //Toggle the square wave to interrupt us!
+	if (CMOS.UpdatingInterruptSquareWave==0) //Toggled twice? Update us!
 	{
-		if (gettimeofday(&tp, &currentzone) == 0) //Time gotten?
+		if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableCycleUpdate==0) //We're allowed to update the time?
 		{
-			if (epochtoaccuratetime(&tp,&currenttime)) //Converted?
+			if (gettimeofday(&tp, &currentzone) == 0) //Time gotten?
 			{
-				//Apply time!
-				applyDivergeance(&currenttime, CMOS.DATA.timedivergeance,CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
-				CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
+				if (epochtoaccuratetime(&tp,&currenttime)) //Converted?
+				{
+					//Apply time!
+					applyDivergeance(&currenttime, CMOS.DATA.timedivergeance,CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
+					CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
+				}
 			}
 		}
 	}
