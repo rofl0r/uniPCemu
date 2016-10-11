@@ -660,7 +660,7 @@ typedef struct PACKED //The registers!
 
 		union
 		{
-			uint_32 CR[4];
+			uint_32 CR[8];
 			struct
 			{
 				union
@@ -688,10 +688,22 @@ typedef struct PACKED //The registers!
 					} CR3;
 					uint_32 CR3_full;
 				};
+				uint_32 unusedCR[4]; //4 unused CRs!
 			}; //CR0-3!
-			uint_32 unusedCR[2]; //2 unused CRs!
 		}; //CR0-3!
-		//DR0-7; 4=6&5=7!
+		union
+		{
+			uint_32 DR[6]; //All debugger registers! index 4=6 and index 5=7!
+			struct
+			{
+				uint_32 DR0;
+				uint_32 DR1;
+				uint_32 DR2;
+				uint_32 DR3;
+				uint_32 DR4_6; //DR4&6!
+				uint_32 DR5_7; //DR5&7!
+			};
+		}; //DR0-7; 4=6&5=7!
 	}; //Special registers!
 
 } CPU_registers; //Registers
