@@ -420,6 +420,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	EMU_onCPUReset(); //Make sure all hardware, like CPU A20 is updated for the reset!
 	CPU[activeCPU].D_B_Mask = (EMULATED_CPU>=CPU_80386)?1:0; //D_B mask when applyable!
 	CPU[activeCPU].G_Mask = (EMULATED_CPU >= CPU_80386) ? 1 : 0; //G mask when applyable!
+	CPU[activeCPU].is_reset = 1; //We're reset!
 }
 
 void initCPU() //Initialize CPU for full system reset into known state!
@@ -1031,6 +1032,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 	CPU_8086REPPending(); //Process pending REP!
 
+	CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
 	CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
 	if (!CPU[activeCPU].repeating) //Not repeating instructions?
 	{

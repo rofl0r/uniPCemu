@@ -705,7 +705,6 @@ typedef struct PACKED //The registers!
 			};
 		}; //DR0-7; 4=6&5=7!
 	}; //Special registers!
-
 } CPU_registers; //Registers
 #include "headers/endpacked.h" //End of packed type!
 
@@ -758,6 +757,7 @@ typedef struct PACKED
 
 	//For stack argument copying of call gates!
 	FIFOBUFFER *CallGateStack; //Arguments to copy!
+	byte is_reset; //Are we a reset CPU?
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 
