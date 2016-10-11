@@ -580,7 +580,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			//Enable all interrupts for RTC again?
 			lowerirq(8); //Lower the IRQ, if raised!
 			acnowledgeIRQrequest(8); //Acnowledge the IRQ, if needed!
-			CMOS.DATA.DATA80.data[0x0C] &= ~0x70; //Clear the interrupt raised flags to allow new interrupts to fire!
+			CMOS.DATA.DATA80.data[0x0C] &= 0xF; //Clear the interrupt raised flags to allow new interrupts to fire!
 		}
 		CMOS.ADDR = 0xD; //Reset address!
 		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert to binary?
