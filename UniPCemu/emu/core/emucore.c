@@ -58,8 +58,8 @@
 #include "headers/hardware/soundblaster.h" //Sound blaster support!
 
 //Emulator single step address, when enabled.
-byte doEMUsinglestep = 0; //CPU mode plus 1
-uint_64 singlestepaddress = 0xC6000000; //The segment:offset address!
+byte doEMUsinglestep = CPU_MODE_REAL+1; //CPU mode plus 1
+uint_64 singlestepaddress = 0x00007C00; //The segment:offset address!
 
 /*
 
