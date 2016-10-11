@@ -445,6 +445,7 @@ OPTINLINE static void debugger_autolog()
 		{
 			dolog("debugger", "The CPU has raised an exception.");
 		}
+
 		char fullcmd[256];
 		bzero(fullcmd,sizeof(fullcmd)); //Init!
 		int i; //A counter for opcode data dump!
@@ -467,6 +468,21 @@ OPTINLINE static void debugger_autolog()
 			strcat(fullcmd, ")"); //Our opcode before disassembly!
 			strcat(fullcmd, debugger_prefix); //The prefix(es)!
 			strcat(fullcmd, debugger_command_text); //Command itself!
+		}
+
+		if (HWINT_saved) //Saved HW interrupt?
+		{
+			switch (HWINT_saved)
+			{
+			case 1: //Trap/SW Interrupt?
+				dolog("debugger", "Trapped interrupt: %04X", HWINT_nr);
+				break;
+			case 2: //PIC Interrupt toggle?
+				dolog("debugger", "HW interrupt: %04X", HWINT_nr);
+				break;
+			default: //Unknown?
+				break;
+			}
 		}
 
 		if (getcpumode() == CPU_MODE_REAL) //Emulating 80(1)86? Use IP!
