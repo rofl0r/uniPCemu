@@ -72,10 +72,7 @@ struct
 	byte Loaded; //CMOS loaded?
 	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
 
-	uint_32 SDIVDivider; //SDIV divider, usually set to 32kHz divider(2)!
 	uint_32 RateDivider; //Rate divider, usually set to 1024Hz. Used for Square Wave output and Periodic Interrupt!
-
-	uint_32 currentSDIV[5]; //Current SDIV value for any counters!
 	uint_32 currentRate[5]; //Current rate value for any counters!
 
 	byte SquareWave; //Square Wave Output!
@@ -101,44 +98,45 @@ OPTINLINE void loadCMOSDefaults()
 	//We don't affect loaded: we're not loaded and invalid by default!
 }
 
+OPTINLINE void RTC_raiseIRQ()
+{
+	raiseirq(8); //We're the cause of the interrupt!
+}
+
 OPTINLINE void RTC_PeriodicInterrupt() //Periodic Interrupt!
 {
 	if (CMOS.DATA.DATA80.data[0x0B]&0x40) //Enabled interrupt?
 	{
-		if ((CMOS.DATA.DATA80.data[0xC] & 0x70) == 0) //Allowed to raise?
+		if ((CMOS.DATA.DATA80.data[0xC] & 0x40) == 0) //Allowed to raise?
 		{
-			raiseirq(8); //Run the IRQ!
-			CMOS.DATA.DATA80.data[0x0C] |= 0x40; //Periodic Interrupt flag!
+			RTC_raiseIRQ(); //Raise the IRQ!
 		}
 	}
+	CMOS.DATA.DATA80.data[0x0C] |= 0x40; //Periodic Interrupt flag is always set!
 }
 
-OPTINLINE void RTC_UpdateEndedInterrupt(byte manualtrigger) //Update Ended Interrupt!
+OPTINLINE void RTC_UpdateEndedInterrupt() //Update Ended Interrupt!
 {
 	if (CMOS.DATA.DATA80.data[0x0B]&0x10) //Enabled interrupt?
 	{
-		if ((CMOS.DATA.DATA80.data[0xC] & 0x70) == 0) //Allowed to raise?
+		if ((CMOS.DATA.DATA80.data[0xC] & 0x10) == 0) //Allowed to raise?
 		{
-			raiseirq(8); //Run the IRQ!
-			CMOS.DATA.DATA80.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
-		}
-		if (manualtrigger==1) //Manual trigger?
-		{
-			CMOS.DATA.DATA80.data[0x0C] |= 0x10; //Disable future calls manually!
+			RTC_raiseIRQ(); //Raise the IRQ!
 		}
 	}
+	CMOS.DATA.DATA80.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
 }
 
 OPTINLINE void RTC_AlarmInterrupt() //Alarm handler!
 {
 	if (CMOS.DATA.DATA80.data[0x0B]&0x20) //Enabled interrupt?
 	{
-		if ((CMOS.DATA.DATA80.data[0xC] & 0x70) == 0) //Allowed to raise?
+		if ((CMOS.DATA.DATA80.data[0xC] & 0x20) == 0) //Allowed to raise?
 		{
-			raiseirq(8); //Run the IRQ!
-			CMOS.DATA.DATA80.data[0x0C] |= 0x20; //Alarm Interrupt flag!
+			RTC_raiseIRQ(); //Raise the IRQ!
 		}
 	}
+	CMOS.DATA.DATA80.data[0x0C] |= 0x20; //Alarm Interrupt flag!
 }
 
 OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
@@ -147,11 +145,15 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 	{
 		if (CMOS.RateDivider != 0x20000) //Valid Rate divider?
 		{
-			if (++CMOS.currentRate[1]>=CMOS.RateDivider) //Overflow on SDIV?
+			if (++CMOS.currentRate[1]>=(CMOS.RateDivider>>1)) //Overflow on Rate(divided by 2 for our rate, since it's square wave signal)?
 			{
 				CMOS.currentRate[1] = 0; //Reset for the next count!
 				RTC_PeriodicInterrupt(); //Handle!
 			}
+		}
+		else
+		{
+			CMOS.currentRate[1] = 0; //Restart the rating!
 		}
 	}
 
@@ -159,12 +161,16 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 	{
 		if (CMOS.RateDivider!=0x20000) //Valid Rate divider?
 		{
-			if (++CMOS.currentRate[0]>=(CMOS.RateDivider>>1)) //Overflow on Rate? We're generating a square wave!
+			if (++CMOS.currentRate[0]>=CMOS.RateDivider) //Overflow on Rate? We're generating a square wave at the specified frequency!
 			{
 				CMOS.currentRate[0] = 0; //Reset for the next count!
 				CMOS.SquareWave ^= 1; //Toggle the square wave!
 				//It's unknown what the Square Wave output is connected to, if it's connected at all?
 			}
+		}
+		else
+		{
+			CMOS.currentRate[1] = 0; //Restart the rating!
 		}
 	}
 
@@ -176,11 +182,12 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 		}
 	}
 
-	if ((CMOS.DATA.DATA80.info.RTC_Hours==CMOS.DATA.DATA80.info.RTC_HourAlarm) &&
-			(CMOS.DATA.DATA80.info.RTC_Minutes==CMOS.DATA.DATA80.info.RTC_MinuteAlarm) &&
-			(CMOS.DATA.DATA80.info.RTC_Seconds==CMOS.DATA.DATA80.info.RTC_SecondAlarm) &&
-			(CMOS.DATA.DATA80.info.RTC_Seconds!=lastsecond) && //Second changed to the actual alarm value?
-			(CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableAlarmInterrupt)) //Alarm on?
+	if (
+			((CMOS.DATA.DATA80.info.RTC_Hours==CMOS.DATA.DATA80.info.RTC_HourAlarm) || ((CMOS.DATA.DATA80.info.RTC_HourAlarm&0xC0)==0xC0)) && //Hour set or ignored?
+			((CMOS.DATA.DATA80.info.RTC_Minutes==CMOS.DATA.DATA80.info.RTC_MinuteAlarm) || ((CMOS.DATA.DATA80.info.RTC_MinuteAlarm & 0xC0) == 0xC0)) && //Minute set or ignored?
+			((CMOS.DATA.DATA80.info.RTC_Seconds==CMOS.DATA.DATA80.info.RTC_SecondAlarm) || ((CMOS.DATA.DATA80.info.RTC_SecondAlarm & 0xC0) == 0xC0)) && //Second set or ignored?
+			(CMOS.DATA.DATA80.info.RTC_Seconds!=lastsecond) && //Second changed and check for alarm?
+			(CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableAlarmInterrupt)) //Alarm enabled?
 	{
 		RTC_AlarmInterrupt(); //Handle the alarm!
 	}
@@ -454,19 +461,7 @@ uint_32 getGenericCMOSRate()
 {
 	if (CMOS.DATA.DATA80.data[0xA]&0xF) //To use us?
 	{
-		return ((CMOS.DATA.DATA80.data[0xA]&0xF)-1)<<1; //The divider!
-	}
-	else //We're disabled?
-	{
-		return 0x20000; //We're disabled!
-	}
-}
-
-OPTINLINE uint_32 getSDIVCMOSRate()
-{
-	if (CMOS.DATA.DATA80.data[0xA] & 0x60) //To use us?
-	{
-		return (((CMOS.DATA.DATA80.data[0xA] & 0x60)>>5) - 1)<<1; //The divider!
+		return (0x8000>>((CMOS.DATA.DATA80.data[0xA]&0xF)-1))<<1; //The divider! Double the rate for square wave generation!
 	}
 	else //We're disabled?
 	{
@@ -479,7 +474,6 @@ OPTINLINE void CMOS_onWrite() //When written to CMOS!
 	if (CMOS.ADDR==0xB) //Might have enabled IRQ8 functions!
 	{
 		CMOS.RateDivider = getGenericCMOSRate(); //Generic rate!
-		CMOS.SDIVDivider = getSDIVCMOSRate(); //SDIV divider!
 	}
 	else if (CMOS.ADDR < 0xA) //Date/time might have been updated?
 	{
@@ -580,6 +574,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			//Enable all interrupts for RTC again?
 			lowerirq(8); //Lower the IRQ, if raised!
 			acnowledgeIRQrequest(8); //Acnowledge the IRQ, if needed!
+			if ((data&0x70)&(CMOS.DATA.DATA80.info.STATUSREGISTERB.value&0x70)) data |= 0x80; //Set the IRQF bit when any interrupt is requested (PF==PIE==1, AF==AIE==1 or UF==UIE==1)
 			CMOS.DATA.DATA80.data[0x0C] &= 0xF; //Clear the interrupt raised flags to allow new interrupts to fire!
 		}
 		CMOS.ADDR = 0xD; //Reset address!
