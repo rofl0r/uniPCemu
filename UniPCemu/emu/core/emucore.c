@@ -817,7 +817,7 @@ OPTINLINE byte coreHandler()
 
 			HWINT_saved = 0; //No HW interrupt by default!
 			CPU_beforeexec(); //Everything before the execution!
-			if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts) //Only check for hardware interrupts when not trapped and allowed to execute interrupts!
+			if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 			{
 				if (CPU[activeCPU].registers->SFLAGS.IF) //Interrupts available?
 				{
@@ -1032,7 +1032,7 @@ void EMU_onCPUReset()
 	{
 		Controller8042.outputport &= ~2; //Clear A20 here!
 	}
-	Controller8042.outputport |= 1; //Prevent us from deadlocking!
+	Controller8042.outputport |= 1; //Prevent us from deadlocking(calling this function over and over fininitely within itself)!
 	refresh_outputport(); //Refresh from 8042!
 	checkPPIA20(); //Refresh from Fast A20!
 }
