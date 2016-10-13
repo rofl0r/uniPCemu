@@ -73,7 +73,7 @@ struct
 	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
 
 	uint_32 RateDivider; //Rate divider, usually set to 1024Hz. Used for Square Wave output and Periodic Interrupt!
-	uint_32 currentRate[5]; //Current rate value for any counters!
+	uint_32 currentRate; //The current rate divider outputs(22-bits)!
 
 	byte SquareWave; //Square Wave Output!
 	byte UpdatingInterruptSquareWave; //Updating interrupt square wave generation!
@@ -141,36 +141,25 @@ OPTINLINE void RTC_AlarmInterrupt() //Alarm handler!
 
 OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 {
+	uint_32 oldrate, bitstoggled=0; //Old output!
+	oldrate = CMOS.currentRate; //Save the old output for comparision!
+	++CMOS.currentRate; //Increase the input divider to the next stage(22-bit divider at 64kHz(32kHz square wave))!
+	bitstoggled = CMOS.currentRate^oldrate; //What bits have been toggled!
+
 	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnablePeriodicInterrupt) //Enabled?
 	{
-		if (CMOS.RateDivider != 0x20000) //Valid Rate divider?
+		if (bitstoggled&(CMOS.RateDivider<<1)) //Overflow on Rate(divided by 2 for our rate, since it's square wave signal converted to Hz)?
 		{
-			if (++CMOS.currentRate[1]>=(CMOS.RateDivider>>1)) //Overflow on Rate(divided by 2 for our rate, since it's square wave signal)?
-			{
-				CMOS.currentRate[1] = 0; //Reset for the next count!
-				RTC_PeriodicInterrupt(); //Handle!
-			}
-		}
-		else
-		{
-			CMOS.currentRate[1] = 0; //Restart the rating!
+			RTC_PeriodicInterrupt(); //Handle!
 		}
 	}
 
 	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableSquareWaveOutput) //Square Wave generator enabled?
 	{
-		if (CMOS.RateDivider!=0x20000) //Valid Rate divider?
+		if (bitstoggled&CMOS.RateDivider) //Overflow on Rate? We're generating a square wave at the specified frequency!
 		{
-			if (++CMOS.currentRate[0]>=CMOS.RateDivider) //Overflow on Rate? We're generating a square wave at the specified frequency!
-			{
-				CMOS.currentRate[0] = 0; //Reset for the next count!
-				CMOS.SquareWave ^= 1; //Toggle the square wave!
-				//It's unknown what the Square Wave output is connected to, if it's connected at all?
-			}
-		}
-		else
-		{
-			CMOS.currentRate[1] = 0; //Restart the rating!
+			CMOS.SquareWave ^= 1; //Toggle the square wave!
+			//It's unknown what the Square Wave output is connected to, if it's connected at all?
 		}
 	}
 
@@ -459,13 +448,17 @@ void updateCMOS(double timepassed)
 
 uint_32 getGenericCMOSRate()
 {
-	if (CMOS.DATA.DATA80.data[0xA]&0xF) //To use us?
+	byte rate;
+	rate = CMOS.DATA.DATA80.data[0xA]; //Load the rate register!
+	rate &= 0xF; //Only the rate bits themselves are used!
+	if (rate) //To use us?
 	{
-		return (0x8000>>((CMOS.DATA.DATA80.data[0xA]&0xF)-1))<<1; //The divider! Double the rate for square wave generation!
+		--rate; //Rate is one less!
+		return (1<<rate); //The tap to look at(as a binary number) for a square wave to change state!
 	}
 	else //We're disabled?
 	{
-		return 0x20000; //We're disabled!
+		return 0; //We're disabled!
 	}
 }
 
