@@ -167,7 +167,7 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 	{
 		if (CMOS.DATA.DATA80.info.RTC_Seconds != lastsecond) //We're updated at all?
 		{
-			RTC_UpdateEndedInterrupt(0); //Handle!
+			RTC_UpdateEndedInterrupt(); //Handle!
 		}
 	}
 
