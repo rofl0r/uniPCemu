@@ -165,7 +165,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 		strcpy(debugger_command_text,"<DEBUGGER UNKOP NOT IMPLEMENTED>"); //Standard: unknown opcode!
 		debugger_set = 0; //Default: the debugger isn't implemented!
 		debuggerHLT = CPU[activeCPU].halt; //Are we halted?
-		debuggerReset = CPU[activeCPU].is_reset; //Are we reset?
+		debuggerReset = CPU[activeCPU].is_reset|(CPU[activeCPU].permanentreset<<1); //Are we reset?
 
 		if (verifyfile) //Verification file exists?
 		{
@@ -332,6 +332,24 @@ static char *debugger_generateFlags(CPU_registers *registers)
 	return &flags[0]; //Give the flags for quick reference!
 }
 
+OPTINLINE char decodeHLTreset(byte halted,byte isreset)
+{
+	if (halted)
+	{
+		return 'H'; //We're halted!
+	}
+	else if (isreset)
+	{
+		if (isreset&2) //Permanently reset?
+		{
+			return '*'; //We're permanently reset!
+		}
+		//Normal reset?
+		return 'R'; //We're reset!
+	}
+	return ' '; //Nothing to report, give empty!
+}
+
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted, byte isreset)
 {
 	if (!registers || !filename) //Invalid?
@@ -352,7 +370,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 			dolog(filename, "CR0: %04X", (registers->CR0_full&0xFFFF)); //Rest!
 		}
 		#endif
-		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),(char)(halted?'H':(isreset?'R':' '))); //Log the flags!
+		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),decodeHLTreset(halted,isreset)); //Log the flags!
 		//More aren't implemented in the 80(1/2)86!
 	}
 	else //80386+? 32-bit registers!
@@ -625,7 +643,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		//Finally, flags seperated!
 		char *theflags = debugger_generateFlags(&debuggerregisters); //Generate the flags as text!
 		GPU_textgotoxy(frameratesurface, (GPU_TEXTSURFACE_WIDTH - strlen(flags)) - 1, debuggerrow++); //Second flags row! Reserve one for our special HLT flag!
-		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s%c", theflags, (char)(debuggerHLT?'H':(debuggerReset?'R':' '))); //All flags, seperated!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s%c", theflags, decodeHLTreset(debuggerHLT,debuggerReset)); //All flags, seperated!
 
 		//Full interrupt status!
 		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-16,debuggerrow++); //Interrupt status!

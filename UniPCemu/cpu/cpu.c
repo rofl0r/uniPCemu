@@ -1032,6 +1032,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 	CPU_8086REPPending(); //Process pending REP!
 
+	if (CPU[activeCPU].permanentreset) //We've entered a permanent reset?
+	{
+		CPU[activeCPU].cycles = 4; //Small cycle dummy! Muse be greater than zero!
+		return; //Don't run the CPU: we're in a permanent reset state!
+	}
+
 	CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
 	CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
 	if (!CPU[activeCPU].repeating) //Not repeating instructions?

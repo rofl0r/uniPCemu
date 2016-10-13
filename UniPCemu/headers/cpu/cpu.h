@@ -758,6 +758,7 @@ typedef struct PACKED
 	//For stack argument copying of call gates!
 	FIFOBUFFER *CallGateStack; //Arguments to copy!
 	byte is_reset; //Are we a reset CPU?
+	byte permanentreset; //Are we in a permanent reset lock?
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 

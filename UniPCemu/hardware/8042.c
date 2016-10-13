@@ -365,6 +365,15 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 
 void refresh_outputport()
 {
+	if ((Controller8042.outputport&1)==0) //This keeps the CPU reset permanently?
+	{
+		unlock(LOCK_CPU);
+		doneCPU();
+		resetCPU();
+		lock(LOCK_CPU); //Relock the CPU!
+		Controller8042.outputport &= ~1; //Keep us locked down!
+		CPU[activeCPU].permanentreset = 1; //Enter a permanent reset state!
+	}
 	MMU_setA20(0,(Controller8042.outputport&2)); //Enable/disable wrap arround depending on bit 2 (1=Enable, 0=Disable)!
 }
 

@@ -1032,6 +1032,7 @@ void EMU_onCPUReset()
 	{
 		Controller8042.outputport &= ~2; //Clear A20 here!
 	}
+	Controller8042.outputport |= 1; //Prevent us from deadlocking!
 	refresh_outputport(); //Refresh from 8042!
 	checkPPIA20(); //Refresh from Fast A20!
 }
