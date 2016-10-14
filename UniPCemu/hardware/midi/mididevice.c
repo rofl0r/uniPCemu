@@ -43,6 +43,15 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 //Default mode is Omni Off, Poly
 #define MIDIDEVICE_DEFAULTMODE MIDIDEVICE_POLY
 
+//Reverb delay in seconds
+#define REVERB_DELAY 0.25f
+
+//Chorus delay in seconds
+#define CHORUS_DELAY 0.001f
+
+float reverb_delay[0x100];
+float chorus_delay[0x100];
+
 MIDIDEVICE_CHANNEL MIDI_channels[0x10]; //Stuff for all channels!
 
 MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
@@ -73,6 +82,11 @@ OPTINLINE static void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		{
 			MIDI_channels[channel].notes[notes].channel = channel;
 			MIDI_channels[channel].notes[notes].note = (byte)notes;
+
+			//Also apply delays while we're at it(also 256 values)!
+			reverb_delay[notes] = REVERB_DELAY*(float)notes; //The reverb delay to use for this stream!
+			chorus_delay[notes] = CHORUS_DELAY*(float)notes; //The chorus delay to use for this stream!
+
 			++notes; //Next note!
 		}
 		MIDI_channels[channel].bank = MIDI_channels[channel].activebank = 0; //Reset!
@@ -119,7 +133,7 @@ Voice support
 
 */
 
-OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_counter, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation) //Get a sample from an MIDI note!
+OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusvol, float reverbvol) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
@@ -129,10 +143,16 @@ OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_
 	static sword readsample = 0; //The sample retrieved!
 
 	samplepos = play_counter; //Load the current play counter!
+	samplepos -= (int_64)(chorus_delay[chorus]*samplerate); //Apply specified chorus delay!
+	samplepos -= (int_64)(reverb_delay[reverb]*samplerate); //Apply specified reverb delay!
 	samplepos = (int_64)(samplepos*samplespeedup); //Affect speed through cents and other global factors!
 	if (voice->modenv_pitchfactor) //Gotten a modulation envelope to process to the pitch?
 	{
 		samplepos = (int_64)(samplepos*cents2samplesfactor(voice->modenv_pitchfactor)); //Apply the pitch bend to the sample to retrieve!
+	}
+	if (chorus) //Chorus has modulation of the pitch as well?
+	{
+		samplepos = (int_64)(samplepos*cents2samplesfactor((float)sin((double)play_counter*0.01)*(chorus*(1.0/256.0))+(1200.0f-1.0f))); //Apply the pitch bend to the sample to retrieve!
 	}
 
 	samplepos += voice->startaddressoffset; //The start of the sample!
@@ -178,7 +198,7 @@ OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_
 	loopflags = (samplepos >= voice->endaddressoffset) || (play_counter<0); //Expired or not started yet?
 	if (loopflags) //Sound is finished?
 	{
-		sample->l = sample->r = 0; //No sample!
+		//No sample!
 		return; //Done!
 	}
 
@@ -206,12 +226,16 @@ OPTINLINE static void MIDIDEVICE_getsample(sample_stereo_t *sample, int_64 play_
 		if (rchannel>SHRT_MAX) rchannel = SHRT_MAX;
 		if (rchannel<SHRT_MIN) rchannel = SHRT_MIN;
 
+		lchannel *= chorusvol; //Apply chorus volume for this stream!
+		rchannel *= chorusvol; //Apply chorus volume for this stream!
+
+		lchannel *= reverbvol; //Apply reverb volume for this stream!
+		rchannel *= reverbvol; //Apply reverb volume for this stream!
+
 		//Give the result!
-		sample->l = (sword)lchannel; //LChannel!
-		sample->r = (sword)rchannel; //RChannel!
-		return;
+		*leftsample += (sword)lchannel; //LChannel!
+		*rightsample += (sword)rchannel; //RChannel!
 	}
-	sample->l = sample->r = 0; //No sample to be found!
 }
 
 byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata) //Sound output renderer!
@@ -232,6 +256,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	MIDIDEVICE_CHANNEL *channel = voice->channel; //Get the channel to use!
 	uint_32 numsamples = length; //How many samples to buffer!
 	++numsamples; //Take one sample more!
+	byte currentchorusreverb; //Current chorus and reverb levels we're processing!
 
 	#ifdef MIDI_LOCKSTART
 	//lock(voice->locknumber); //Lock us!
@@ -310,12 +335,28 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	VolumeEnvelope = voice->CurrentVolumeEnvelope; //Make sure we don't clear!
 	ModulationEnvelope = voice->CurrentModulationEnvelope; //Make sure we don't clear!
 
+	int_32 lchannel, rchannel; //Left&right samples, big enough for all chorus and reverb to be applied!
+
 	//Now produce the sound itself!
 	for (; --numsamples;) //Produce the samples!
 	{
-		VolumeEnvelope = ADSR_tick(VolumeADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Volume Envelope!
-		ModulationEnvelope = ADSR_tick(ModulationADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
-		MIDIDEVICE_getsample(ubuf++, voice->play_counter++, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope); //Get the sample from the MIDI device!
+		lchannel = 0; //Reset left channel!
+		rchannel = 0; //Reset right channel!
+		for (currentchorusreverb=0;currentchorusreverb<16;++currentchorusreverb) //Process all reverb&chorus used(4 chorus channels within 4 reverb channels)!
+		{
+			VolumeEnvelope = ADSR_tick(VolumeADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Volume Envelope!
+			ModulationEnvelope = ADSR_tick(ModulationADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
+			MIDIDEVICE_getsample(&lchannel,&rchannel, voice->play_counter, (float)voice->sample.dwSampleRate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, (byte)(currentchorusreverb&0x3), (byte)(currentchorusreverb>>2),voice->activechorusdepth[(currentchorusreverb&3)],voice->activereverbdepth[(currentchorusreverb>>3)]); //Get the sample from the MIDI device!
+		}
+		//Clip the samples to prevent overflow!
+		if (lchannel>SHRT_MAX) lchannel = SHRT_MAX;
+		if (lchannel<SHRT_MIN) lchannel = SHRT_MIN;
+		if (rchannel>SHRT_MAX) rchannel = SHRT_MAX;
+		if (rchannel<SHRT_MIN) rchannel = SHRT_MIN;
+		ubuf->l = lchannel; //Left sample!
+		ubuf->r = rchannel; //Right sample!
+		++voice->play_counter; //Next sample!
+		++ubuf; //Prepare for the next sample!
 	}
 
 	voice->CurrentVolumeEnvelope = VolumeEnvelope; //Current volume envelope updated!
@@ -340,7 +381,7 @@ OPTINLINE float MIDIconvex(float value, float maxvalue)
 
 OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
 {
-	word pbag, ibag;
+	word pbag, ibag, chorusreverbdepth, chorusreverbchannel;
 	sword rootMIDITone; //Relative root MIDI tone!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
 	float cents, tonecents, panningtemp, pitchwheeltemp,attenuation;
@@ -591,7 +632,57 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 	}
 	voice->panningmod = panningtemp; //Apply the modulator!
+
+	//Chorus percentage
+	panningtemp = 0.0f; //Default to none!
+	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, 0x00DD, &applymod)) //Gotten panning modulator?
+	{
+		panningtemp = (float)applymod.modAmount; //Get the amount specified!
+		panningtemp *= 0.0002f; //Make into a percentage, it's in 0.02% units!
+	}
+
+	for (chorusreverbdepth=1;chorusreverbdepth<0x100;chorusreverbdepth++) //Process all possible chorus depths!
+	{
+		voice->chorusdepth[chorusreverbdepth] = powf(panningtemp,(float)chorusreverbdepth); //Apply the volume!
+	}
+	voice->chorusdepth[0] = 0.0; //Always none at the original level!
+
+	//Reverb percentage
+	panningtemp = 0.0f; //Default to none!
+	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, 0x00DB, &applymod)) //Gotten panning modulator?
+	{
+		panningtemp = (float)applymod.modAmount; //Get the amount specified!
+		panningtemp *= 0.0002f; //Make into a percentage, it's in 0.02% units!
+	}
+	for (chorusreverbdepth=0;chorusreverbdepth<0x100;chorusreverbdepth++) //Process all possible chorus depths!
+	{
+		for (chorusreverbchannel=0;chorusreverbchannel<4;chorusreverbchannel++) //Process all channels!
+		{
+			if (chorusreverbdepth==0)
+			{
+				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = 0.0; //Nothing at the main channel!
+			}
+			else //Valid depth?
+			{
+				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = (float)dB2factor((pow(panningtemp, chorusreverbdepth),chorusreverbchannel),1.0); //Apply the volume!
+			}
+		}
+	}
 	
+	voice->currentchorusdepth = channel->choruslevel; //Current chorus depth!
+	voice->currentreverbdepth = channel->reverblevel; //Curernt reverb depth!
+
+	for (chorusreverbchannel=0;chorusreverbchannel<4;++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
+	{
+		voice->activechorusdepth[chorusreverbchannel] = voice->chorusdepth[voice->currentchorusdepth]; //The chorus feedback strength for that channel!
+		voice->activereverbdepth[chorusreverbchannel] = voice->reverbdepth[voice->currentreverbdepth][chorusreverbchannel]; //The 
+	}
+
+	//Setup default channel chorus/reverb!
+	voice->activechorusdepth[0] = 1.0; //Always the same: produce full sound!
+	voice->activereverbdepth[0] = 1.0; //Always the same: produce full sound!
+
+	//Pitch wheel modulator
 	pitchwheeltemp = 12700.0f; //Default to 12700 cents!
 	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount,ibag,0x020E,&applymod)) //Gotten panning modulator?
 	{
@@ -1008,10 +1099,16 @@ OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current
 					//break;
 				//case 0x4A: //Frequency Cutoff (a.k.a. Brightness)
 					//break;
-				//case 0x5B: //Reverb Level
-					//break;
-				//case 0x5D: //Chorus Level
-					//break;
+				case 0x5B: //Reverb Level
+					lockaudio(); //Lock the audio!
+					MIDI_channels[currentchannel].reverblevel = current->buffer[1]; //Reverb level!
+					unlockaudio(); //Unlock the audio!
+					break;
+				case 0x5D: //Chorus Level
+					lockaudio(); //Lock the audio!
+					MIDI_channels[currentchannel].choruslevel = current->buffer[1]; //Chorus level!
+					unlockaudio(); //Unlock the audio!
+					break;
 					//Sound function On/Off:
 				//case 0x78: //All Sound Off
 					//break;

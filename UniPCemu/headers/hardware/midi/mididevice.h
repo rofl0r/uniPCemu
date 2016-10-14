@@ -51,6 +51,8 @@ typedef struct
 	byte mode; //Channel mode: 0=Omni off, Mono; 1=Omni off, Poly; 2=Omni on, Mono; 3=Omni on, Poly;
 	//Bit 1=1:Poly/0:Mono; Bit2=1:Omni on/0:Omni off
 	/* Omni: respond to all channels (ignore channel part); Poly: Use multiple voices; Mono: Use one voice at the time (end other voices on Note On) */
+	byte choruslevel; //Current chorus depth set!
+	byte reverblevel; //Current reverb depth set!
 } MIDIDEVICE_CHANNEL;
 
 typedef struct
@@ -99,6 +101,14 @@ typedef struct
 	byte instrument; //What instrument are we playing?
 	byte locknumber; //What lock number do we have? Only valid when actually used(lock defined)!
 	float initialAttenuation; //Initial attenuation!
+
+	//Chorus and reverb calculations!
+	float chorusdepth[0x100]; //All chorus depths, index 0 is dry sound!
+	float reverbdepth[0x100][4]; //All reverb depths, index 0 is dry sound!
+	float activechorusdepth[4]; //The chorus depth used for all channels!
+	float activereverbdepth[4]; //The reverb depth used for all channels!
+	byte currentchorusdepth; //Used chorus depth, set by software when a note is started! 
+	byte currentreverbdepth; //Used reverb depth, set by software when a note is started!
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
