@@ -669,7 +669,7 @@ void toggleAndroidInput(byte finishInput, byte *lastStatus)
 		lock(LOCK_INPUT);
 		toggleDirectInput(1);
 		unlock(LOCK_INPUT);
-		*lastStatus = fininshInput; //Set the new status!
+		*lastStatus = finishInput; //Set the new status!
 	}
 	#endif
 }
