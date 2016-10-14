@@ -664,11 +664,12 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 void toggleAndroidInput(byte finishInput, byte *lastStatus)
 {
 	#ifdef ANDROID
-	if (AndroidInput!=finishInput) //Needs to change?
+	if (*lastStatus!=finishInput) //Needs to change?
 	{
 		lock(LOCK_INPUT);
 		toggleDirectInput(1);
 		unlock(LOCK_INPUT);
+		*lastStatus = fininshInput; //Set the new status!
 	}
 	#endif
 }
