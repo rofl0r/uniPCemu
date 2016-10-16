@@ -1,5 +1,45 @@
 #include "headers/cpu/cpu.h" //Basic types!
 
+typedef struct
+{
+	byte CPU; //For what CPU(286 relative)? 0=286, 1=386, 2=486, 3=586(Pentium) etc
+	byte is0F; //Are we an extended instruction(0F instruction)?
+	byte OPcode; //The opcode to be applied to!
+	byte OPcodemask; //The mask to be applied to the original opcode to match this opcode in order to be applied!
+	byte modrm_reg; //>0: Substract 1 for the modr/m reg requirement. Else no modr/m is looked at!
+	struct
+	{
+		struct
+		{
+			word basetiming;
+			word n; //With RO*/SH*/SAR is the amount of bytes actually shifted; With String instructions, added to base ount with multiplier(number of repeats after first instruction)
+			byte addclock; //Add one clock if we're using 3 memory operands!
+		} ismemory[2]; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
+	} CPUmode[2]; //0=Real mode, 1=Protected mode
+} CPUPM_Timings;
+
+//Compressed protected&real mode timing table. This will need to be uncompressed for usage to be usable(long lookup times otherwise)
+CPUPM_Timings CPUPMTimings[] = {
+	//286 CPU timings
+	//MOV
+	{0,0,0x88,0xFE,0x00,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Register to Register/Memory
+	,{0,0,0x8A,0xFE,0x00,{{{{2,0,0},{5,0,1}}},{{{2,0,0},{5,0,1}}}}} //MOV Register/memory to Register
+	,{0,0,0xC6,0xFE,0x01,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Immediate to register/memory
+	,{0,0,0xB0,0xF0,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //MOV Immediate to register
+	,{0,0,0xA0,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //MOV Memory to accumulator
+	,{0,0,0xA2,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //MOV Accumulator to memory
+	,{0,0,0x8E,0xFF,0x00,{{{{2,0,0},{5,0,1}}},{{{17,0,0},{19,0,1}}}}} //MOV Register/memory to segment register
+	,{0,0,0x8C,0xFF,0x00,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Segment register to register/memory
+	//PUSH
+	,{0,0,0xFF,0xFF,0x07,{{{{5,0,1},{5,0,1}}},{{{5,0,1},{5,0,1}}}}} //PUSH Memory
+	,{0,0,0x50,0xF8,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSH Register
+	,{0,0,0x06,0xE7,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSH Segment register
+	,{0,0,0x68,0xFD,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSH immediate
+	,{0,0,0x60,0xFF,0x00,{{{{17,0,0},{17,0,0}}},{{{17,0,0},{17,0,0}}}}} //PUSHA
+	//POP
+	
+};
+
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 	{
 		{ //16-bit!
