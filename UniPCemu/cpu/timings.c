@@ -13,7 +13,7 @@ typedef struct
 		{
 			word basetiming;
 			word n; //With RO*/SH*/SAR is the amount of bytes actually shifted; With String instructions, added to base ount with multiplier(number of repeats after first instruction)
-			byte addclock; //bit 1=Add one clock if we're using 3 memory operands! bit 2=n is count to add for string instructions (every repeat)
+			byte addclock; //bit 1=Add one clock if we're using 3 memory operands! bit 2=n is count to add for string instructions (every repeat).  This variant is only used with string instructions.
 		} ismemory[2]; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
 	} CPUmode[2]; //0=Real mode, 1=Protected mode
 } CPUPM_Timings;
@@ -155,7 +155,41 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,0,0x34,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //XOR Immediate to accumulator
 	//NOT
 	,{0,0,0xF6,0xFE,0x03,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //NOT
+
+	//String instructions without REP((N)Z)
 	//MOVS
+	,{0,0,0xA4,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //MOVS
+	//CMPS
+	,{0,0,0xA6,0xFE,0x00,{{{{8,0,0},{8,0,0}}},{{{8,0,0},{8,0,0}}}}} //CMPS
+	//SCAS
+	,{0,0,0xAE,0xFE,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //SCAS
+	//LODS
+	,{0,0,0xAC,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //LODS
+	//STOS
+	,{0,0,0xAA,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //STOS
+	//INS
+	,{0,0,0x6C,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //INS
+	//OUTS
+	,{0,0,0x6E,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //OUTS
+
+	//String instructions with REP(N)(Z)
+	//MOVS
+	,{0,0,0xA4,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //MOVS
+	//CMPS
+	,{0,0,0xA6,0xFE,0x00,{{{{5,9,2},{5,9,2}}},{{{5,9,2},{5,9,2}}}}} //CMPS
+	//SCAS
+	,{0,0,0xAE,0xFE,0x00,{{{{5,8,2},{5,8,2}}},{{{5,8,2},{5,8,2}}}}} //SCAS
+	//LODS
+	,{0,0,0xAC,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //LODS
+	//STOS
+	,{0,0,0xAA,0xFE,0x00,{{{{4,3,2},{4,3,2}}},{{{4,3,2},{4,3,2}}}}} //STOS
+	//INS
+	,{0,0,0x6C,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //INS
+	//OUTS
+	,{0,0,0x6E,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //OUTS
+
+	//Page 3-51
+
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
