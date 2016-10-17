@@ -13,11 +13,29 @@ typedef struct
 		{
 			word basetiming;
 			word n; //With RO*/SH*/SAR is the amount of bytes actually shifted; With String instructions, added to base ount with multiplier(number of repeats after first instruction)
-			byte addclock; //bit 0=Add one clock if we're using 3 memory operands! bit 1=n is count to add for string instructions (every repeat).  This variant is only used with string instructions., bit 2=We depend on the gate used. The gate type we're for is specified in the low 4 bits of n. The upper 2(bits 4-5) bits of n specify: 0=Same privilege level Call gate, 1=Different privilege level Call gate, no parameters, 2=Different privilege level, X parameters, 3=Ignore privilege level/parameters in the cycle calculation.
+			byte addclock; //bit 0=Add one clock if we're using 3 memory operands! bit 1=n is count to add for string instructions (every repeat).  This variant is only used with string instructions., bit 2=We depend on the gate used. The gate type we're for is specified in the low 4 bits of n. The upper 2(bits 4-5) bits of n specify: 1=Same privilege level Call gate, 2=Different privilege level Call gate, no parameters, 3=Different privilege level, X parameters, 0=Ignore privilege level/parameters in the cycle calculation.
 			//Setting addclock bit 2, n lower bits to call gate and n higher bits to 2 adds 4 cycles for each parameter on a 80286.
 		} ismemory[2]; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
 	} CPUmode[2]; //0=Real mode, 1=Protected mode
 } CPUPM_Timings;
+
+//Lower 4 bits of the n information
+#define GATECOMPARISON_CALLGATE 1
+#define GATECOMPARISON_TSS 2
+#define GATECOMPARISON_TASKGATE 3
+
+//High 2 bits of the n information
+#define CALLGATETIMING_SAMEPRIVILEGELEVEL 1
+#define CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_NOPARAMETERS 2
+#define CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_XPARAMETERS 3
+#define GATETIMING_ANYPRIVILEGELEVEL 0
+
+//Simplified stuff for 286 gate descriptors(combination of the above flags used, which are used in the lookup table multiple times)!
+#define CALLGATE_SAMELEVEL ((GATECOMPARISON_CALLGATE)|(CALLGATETIMING_SAMEPRIVILEGELEVEL<<4))
+#define CALLGATE_DIFFERENTLEVEL_NOPARAMETERS ((GATECOMPARISON_CALLGATE)|(CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_NOPARAMETERS<<4))
+#define CALLGATE_DIFFERENTLEVEL_XPARAMETERS ((GATECOMPARISON_CALLGATE)|(CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_XPARAMETERS<<4))
+#define OTHERGATE_NORMALTSS ((GATECOMPARISON_TSS)|(GATETIMING_ANYPRIVILEGELEVEL<<4))
+#define OTHERGATE_NORMALTASKGATE ((GATECOMPARISON_TASKGATE)|(GATETIMING_ANYPRIVILEGELEVEL<<4))
 
 //Compressed protected&real mode timing table. This will need to be uncompressed for usage to be usable(long lookup times otherwise)
 CPUPM_Timings CPUPMTimings[] = {
@@ -191,6 +209,19 @@ CPUPM_Timings CPUPMTimings[] = {
 
 	//Page 3-51
 	//We don't use the m value: this is done by the prefetch unit itself.
+	//CALL
+	,{0,0,0xE8,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //CALL Direct within segment
+	,{0,0,0xFF,0xFF,0x03,{{{{7,0,0},{11,0,1}}},{{{7,0,0},{11,0,1}}}}} //CALL Register/memory indirect within segment
+	,{0,0,0x9A,0xFF,0x00,{{{{13,0,0},{26,0,0}}},{{{13,0,0},{26,0,0}}}}} //CALL Direct Intersegment
+
+	//Protected mode variants
+	,{0,0,0x9A,0xFF,0x00,{{{{0,CALLGATE_SAMELEVEL,4},{41,CALLGATE_SAMELEVEL,4}}},{{{41,CALLGATE_SAMELEVEL,4},{41,CALLGATE_SAMELEVEL}}}}} //CALL Via call gate to same privilege level
+	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{82,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4},{82,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, no parameters
+	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{86,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4},{86,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, X parameters
+	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{177,OTHERGATE_NORMALTSS,4},{177,OTHERGATE_NORMALTSS,4}}}}} //CALL Via TSS
+	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{182,OTHERGATE_NORMALTASKGATE,4},{182,OTHERGATE_NORMALTASKGATE,4}}}}} //CALL Via task gate
+
+
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
