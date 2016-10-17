@@ -13,7 +13,7 @@ typedef struct
 		{
 			word basetiming;
 			word n; //With RO*/SH*/SAR is the amount of bytes actually shifted; With String instructions, added to base ount with multiplier(number of repeats after first instruction)
-			byte addclock; //Add one clock if we're using 3 memory operands!
+			byte addclock; //bit 1=Add one clock if we're using 3 memory operands! bit 2=n is count to add for string instructions (every repeat)
 		} ismemory[2]; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
 	} CPUmode[2]; //0=Real mode, 1=Protected mode
 } CPUPM_Timings;
@@ -60,6 +60,8 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,0,0xC5,0xFF,0x00,{{{{7,0,1},{7,0,1}}},{{{21,0,1},{21,0,1}}}}} //LDS
 	//LES
 	,{0,0,0xC4,0xFF,0x00,{{{{7,0,1},{7,0,1}}},{{{21,0,1},{21,0,1}}}}} //LES
+
+	//Page 3-48
 	//LAHF
 	,{0,0,0x9F,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //LAHF
 	//SAHF
@@ -68,7 +70,92 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,0,0x9C,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSHF
 	//POPF
 	,{0,0,0x9D,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //POPF
+	//ADD
+	,{0,0,0x00,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //ADD Reg/memory with register to either
+	,{0,0,0x80,0xFC,0x01,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //ADD Immediate to register/memory
+	,{0,0,0x04,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //ADD Immediate to accumulator
+	//ADC
+	,{0,0,0x10,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //ADC Reg/memory with register to either
+	,{0,0,0x80,0xFC,0x03,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //ADC Immediate to register/memory
+	,{0,0,0x14,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //ADC Immediate to accumulator
+	//INC
+	,{0,0,0xFE,0xFE,0x01,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //INC Register/memory
+	,{0,0,0x40,0xF8,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //INC Register
+	//SUB
+	,{0,0,0x28,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //SUB Reg/memory and register to either
+	,{0,0,0x80,0xFC,0x06,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //SUB Immediate from register/memory
+	,{0,0,0x2C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //SUB Immediate from accumulator
+	//SBB
+	,{0,0,0x18,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //SBB Reg/memory and register to either
+	,{0,0,0x80,0xFC,0x04,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //SBB Immediate from register/memory
+	,{0,0,0x1C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //SBB Immediate from accumulator
+	//DEC
+	,{0,0,0xFE,0xFE,0x02,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //DEC Register/memory
+	,{0,0,0x48,0xF8,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //DEC Register
+	//CMP
+	,{0,0,0x3A,0xFE,0x00,{{{{2,0,0},{6,0,1}}},{{{2,0,0},{6,0,1}}}}} //CMP Register/memory with register
+	,{0,0,0x38,0xFE,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //CMP Register with register/memory
+	,{0,0,0x80,0xFC,0x08,{{{{3,0,0},{6,0,1}}},{{{3,0,0},{6,0,1}}}}} //CMP Immediate with register/memory
+	,{0,0,0x3C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //CMP Immediate with accumulator
+	//NEG
+	,{0,0,0xF6,0xFE,0x04,{{{{2,0,0},{2,0,0}}},{{{7,0,1},{7,0,1}}}}} //NEG
+	//AAA
+	,{0,0,0x37,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //AAA
+	//DAA
+	,{0,0,0x27,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //DAA
 
+	//Page 3-49
+	//AAS
+	,{0,0,0x3F,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //AAS
+	//DAS
+	,{0,0,0x2F,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //DAS
+	//MUL
+	,{0,0,0xF6,0xFF,0x05,{{{{13,0,0},{16,0,1}}},{{{13,0,0},{16,0,1}}}}} //MULB Register/Memory-Byte
+	,{0,0,0xF7,0xFF,0x05,{{{{21,0,0},{24,0,1}}},{{{21,0,0},{24,0,1}}}}} //MULW Register/Memory-Word
+	//IMUL
+	,{0,0,0xF6,0xFF,0x06,{{{{13,0,0},{16,0,1}}},{{{13,0,0},{16,0,1}}}}} //IMULB Register/Memory-Byte
+	,{0,0,0xF7,0xFF,0x06,{{{{21,0,0},{24,0,1}}},{{{21,0,0},{24,0,1}}}}} //IMULW Register/Memory-Word
+	//IMUL (186+ instruction)
+	,{0,0,0x69,0xFD,0x00,{{{{21,0,0},{24,0,1}}},{{{21,0,0},{24,0,1}}}}} //IMUL
+	//DIV
+	,{0,0,0xF6,0xFF,0x07,{{{{14,0,0},{17,0,1}}},{{{14,0,0},{17,0,1}}}}} //DIV Register/Memory-Byte
+	,{0,0,0xF7,0xFF,0x07,{{{{22,0,0},{25,0,1}}},{{{22,0,0},{25,0,1}}}}} //DIV Register/Memory-Word
+	//IDIV
+	,{0,0,0xF6,0xFF,0x08,{{{{17,0,0},{20,0,1}}},{{{17,0,0},{20,0,1}}}}} //IDIV Register/Memory-Byte
+	,{0,0,0xF7,0xFF,0x08,{{{{25,0,0},{28,0,1}}},{{{25,0,0},{28,0,1}}}}} //IDIV Register/Memory-Word
+	//AAM
+	,{0,0,0xD4,0xFF,0x00,{{{{16,0,0},{16,0,0}}},{{{16,0,0},{16,0,0}}}}} //AAM
+	//AAD
+	,{0,0,0xD5,0xFF,0x00,{{{{14,0,0},{14,0,0}}},{{{14,0,0},{14,0,0}}}}} //AAD
+	//CBW
+	,{0,0,0x98,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CBW
+	//CWD
+	,{0,0,0x99,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CWD
+	//Shift/Rotate Instructions
+	,{0,0,0xD0,0xFE,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //Shift/Rotate Register/Memory by 1
+	,{0,0,0xD2,0xFE,0x00,{{{{5,1,0},{8,1,1}}},{{{5,1,0},{8,1,1}}}}} //Shift/Rotate Register/Memory by CL
+	,{0,0,0xC0,0xFE,0x00,{{{{5,1,0},{8,1,1}}},{{{5,1,0},{8,1,1}}}}} //Shift/Rotate Register/Memory by Count
+
+	//Page 3-50
+	//AND
+	,{0,0,0x20,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //AND Reg/memory and register to either
+	,{0,0,0x80,0xFE,0x05,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //AND Immediate to register/memory
+	,{0,0,0x24,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //AND Immediate to accumulator
+	//TEST
+	,{0,0,0x84,0xFE,0x00,{{{{2,0,0},{6,0,1}}},{{{2,0,0},{6,0,1}}}}} //TEST Register/memory and register
+	,{0,0,0xF6,0xFE,0x01,{{{{3,0,0},{6,0,1}}},{{{3,0,0},{6,0,1}}}}} //TEST Immediate data and register/memory
+	,{0,0,0xA8,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //TEST Immediate data and accumulator
+	//OR
+	,{0,0,0x08,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //OR Reg/memory and register to either
+	,{0,0,0x80,0xFE,0x02,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //OR Immediate to register/memory
+	,{0,0,0x0C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //OR Immediate to accumulator
+	//XOR
+	,{0,0,0x30,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //XOR Reg/memory and register to either
+	,{0,0,0x80,0xFE,0x07,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //XOR Immediate to register/memory
+	,{0,0,0x34,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //XOR Immediate to accumulator
+	//NOT
+	,{0,0,0xF6,0xFE,0x03,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //NOT
+	//MOVS
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
