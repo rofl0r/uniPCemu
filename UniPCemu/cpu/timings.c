@@ -13,7 +13,7 @@ typedef struct
 		{
 			word basetiming;
 			word n; //With RO*/SH*/SAR is the amount of bytes actually shifted; With String instructions, added to base ount with multiplier(number of repeats after first instruction)
-			byte addclock; //bit 0=Add one clock if we're using 3 memory operands! bit 1=n is count to add for string instructions (every repeat).  This variant is only used with string instructions., bit 2=We depend on the gate used. The gate type we're for is specified in the low 4 bits of n. The upper 2(bits 4-5) bits of n specify: 1=Same privilege level Call gate, 2=Different privilege level Call gate, no parameters, 3=Different privilege level, X parameters, 0=Ignore privilege level/parameters in the cycle calculation.
+			byte addclock; //bit 0=Add one clock if we're using 3 memory operands! bit 1=n is count to add for string instructions (every repeat).  This variant is only used with string instructions., bit 2=We depend on the gate used. The gate type we're for is specified in the low 4 bits of n. The upper 2(bits 4-5) bits of n specify: 1=Same privilege level Call gate, 2=Different privilege level Call gate, no parameters, 3=Different privilege level, X parameters, 0=Ignore privilege level/parameters in the cycle calculation, bit 3=This rule only fires when the jump is taken.
 			//Setting addclock bit 2, n lower bits to call gate and n higher bits to 2 adds 4 cycles for each parameter on a 80286.
 		} ismemory[2]; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
 	} CPUmode[2]; //0=Real mode, 1=Protected mode
@@ -265,6 +265,66 @@ CPUPM_Timings CPUPMTimings[] = {
 
 	//Page 3-52
 
+	//JE/JZ
+	,{0,0,0x74,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JZ Not taken!
+	,{0,0,0x74,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JZ taken!
+	//JL/JNGE
+	,{0,0,0x7C,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JL Not taken!
+	,{0,0,0x7C,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JL taken!
+	//JLE/JNG
+	,{0,0,0x7E,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JLE Not taken!
+	,{0,0,0x7E,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JLE taken!
+	//JB/JNAE
+	,{0,0,0x72,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JB Not taken!
+	,{0,0,0x72,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JB taken!
+	//JBE/JNA
+	,{0,0,0x76,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JBE Not taken!
+	,{0,0,0x76,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JBE taken!
+	//JP/JPE
+	,{0,0,0x7A,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JP Not taken!
+	,{0,0,0x7A,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JP taken!
+	//JO
+	,{0,0,0x70,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JO Not taken!
+	,{0,0,0x70,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JO taken!
+	//JB
+	,{0,0,0x78,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JB Not taken!
+	,{0,0,0x78,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JB taken!
+	//JNE/JNZ
+	,{0,0,0x75,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNE Not taken!
+	,{0,0,0x75,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNE taken!
+	//JNL/JGE
+	,{0,0,0x7D,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNL Not taken!
+	,{0,0,0x7D,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNL taken!
+	//JNLE/JG
+	,{0,0,0x7F,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNLE Not taken!
+	,{0,0,0x7F,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNLE taken!
+	////JNB/JAE
+	,{0,0,0x73,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNB Not taken!
+	,{0,0,0x73,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNB taken!
+	//JNBE/JA
+	,{0,0,0x77,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNBE Not taken!
+	,{0,0,0x77,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNBE taken!
+	//JNP/JPO
+	,{0,0,0x7B,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNP Not taken!
+	,{0,0,0x7B,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNP taken!
+	//JNO
+	,{0,0,0x71,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNO Not taken!
+	,{0,0,0x71,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNO taken!
+	//JNS
+	,{0,0,0x79,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNS Not taken!
+	,{0,0,0x79,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNS taken!
+	//LOOP
+	,{0,0,0xE2,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //LOOP Not taken!
+	,{0,0,0xE2,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //LOOP taken!
+	//LOOPZ/LOOPE
+	,{0,0,0xE1,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //LOOPZ Not taken!
+	,{0,0,0xE1,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //LOOPZ taken!
+	//LOOPNZ/LOOPNE
+	,{0,0,0xE0,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //LOOPNZ Not taken!
+	,{0,0,0xE0,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //LOOPNZ taken!
+	//JCXZ
+	,{0,0,0xE3,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //JCXZ Not taken!
+	,{0,0,0xE3,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //JCXZ taken!
 
 };
 
