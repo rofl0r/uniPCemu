@@ -13,7 +13,8 @@ typedef struct
 		{
 			word basetiming;
 			word n; //With RO*/SH*/SAR is the amount of bytes actually shifted; With String instructions, added to base ount with multiplier(number of repeats after first instruction)
-			byte addclock; //bit 1=Add one clock if we're using 3 memory operands! bit 2=n is count to add for string instructions (every repeat).  This variant is only used with string instructions.
+			byte addclock; //bit 0=Add one clock if we're using 3 memory operands! bit 1=n is count to add for string instructions (every repeat).  This variant is only used with string instructions., bit 2=We depend on the gate used. The gate type we're for is specified in the low 4 bits of n. The upper 2(bits 4-5) bits of n specify: 0=Same privilege level Call gate, 1=Different privilege level Call gate, no parameters, 2=Different privilege level, X parameters, 3=Ignore privilege level/parameters in the cycle calculation.
+			//Setting addclock bit 2, n lower bits to call gate and n higher bits to 2 adds 4 cycles for each parameter on a 80286.
 		} ismemory[2]; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
 	} CPUmode[2]; //0=Real mode, 1=Protected mode
 } CPUPM_Timings;
@@ -189,7 +190,7 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,0,0x6E,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //OUTS
 
 	//Page 3-51
-
+	//We don't use the m value: this is done by the prefetch unit itself.
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
