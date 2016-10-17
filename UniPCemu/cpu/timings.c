@@ -13,8 +13,9 @@ typedef struct
 		{
 			word basetiming;
 			word n; //With RO*/SH*/SAR is the amount of bytes actually shifted; With String instructions, added to base ount with multiplier(number of repeats after first instruction)
-			byte addclock; //bit 0=Add one clock if we're using 3 memory operands! bit 1=n is count to add for string instructions (every repeat).  This variant is only used with string instructions., bit 2=We depend on the gate used. The gate type we're for is specified in the low 4 bits of n. The upper 2(bits 4-5) bits of n specify: 1=Same privilege level Call gate, 2=Different privilege level Call gate, no parameters, 3=Different privilege level, X parameters, 0=Ignore privilege level/parameters in the cycle calculation, bit 3=This rule only fires when the jump is taken.
+			byte addclock; //bit 0=Add one clock if we're using 3 memory operands! bit 1=n is count to add for string instructions (every repeat).  This variant is only used with string instructions., bit 2=We depend on the gate used. The gate type we're for is specified in the low 4 bits of n. The upper 2(bits 4-5) bits of n specify: 1=Same privilege level Call gate, 2=Different privilege level Call gate, no parameters, 3=Different privilege level, X parameters, 0=Ignore privilege level/parameters in the cycle calculation, bit 3=This rule only fires when the jump is taken. bit 4=This rule fires only when the L value of the ENTER instruction matches and fits in the lowest bit of n. 5=This rule fires only when the L value of the ENTER instruction doesn't fit in 1 bit. L is multiplied with the n value and added to the base count cycles.
 			//Setting addclock bit 2, n lower bits to call gate and n higher bits to 2 adds 4 cycles for each parameter on a 80286.
+			//With addclock bit 4, n is the L value to be specified. With addclock bit 5, (L - 1) is multiplied with the n value and added to the base count cycles.
 		} ismemory[2]; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
 	} CPUmode[2]; //0=Real mode, 1=Protected mode
 } CPUPM_Timings;
@@ -325,6 +326,12 @@ CPUPM_Timings CPUPMTimings[] = {
 	//JCXZ
 	,{0,0,0xE3,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //JCXZ Not taken!
 	,{0,0,0xE3,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //JCXZ taken!
+	//ENTER
+	,{0,0,0xC8,0xFF,0x00,{{{{11,0,16},{11,0,16}}},{{{11,0,16},{11,0,16}}}}} //ENTER L=0
+	,{0,0,0xC8,0xFF,0x00,{{{{15,1,16},{15,1,16}}},{{{15,1,16},{15,1,16}}}}} //ENTER L=1
+	,{0,0,0xC8,0xFF,0x00,{{{{16,4,32},{16,4,32}}},{{{16,4,32},{16,4,32}}}}} //ENTER L>1
+	//LEAVE
+	,{0,0,0xC9,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //LEAVE
 
 };
 
