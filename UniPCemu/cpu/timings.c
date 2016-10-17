@@ -332,7 +332,14 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,0,0xC8,0xFF,0x00,{{{{16,4,32},{16,4,32}}},{{{16,4,32},{16,4,32}}}}} //ENTER L>1
 	//LEAVE
 	,{0,0,0xC9,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //LEAVE
+	//INT (Real mode only)
+	,{0,0,0xCD,0xFF,0x00,{{{{23,0,0},{23,0,0}}},{{{0,0,0},{0,0,0}}}}} //INT Type specified
+	,{0,0,0xCC,0xFF,0x00,{{{{23,0,0},{23,0,0}}},{{{0,0,0},{0,0,0}}}}} //INT 3
+	//INTO (Real mode only)
+	,{0,0,0xCE,0xFF,0x00,{{{{24,0,8},{24,0,0}}},{{{0,0,0},{0,0,0}}}}} //INTO Taken
+	,{0,0,0xCE,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{0,0,0},{0,0,0}}}}} //INTO Not taken
 
+	//Page 3-53
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
