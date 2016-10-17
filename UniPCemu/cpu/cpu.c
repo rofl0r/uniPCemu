@@ -848,11 +848,11 @@ void CPU_PUSH16(word *val) //Push Word!
 		stack_push(CPU_Operand_size[activeCPU]); //We're pushing a 16-bit or 32-bit value!
 		if (CPU_Operand_size[activeCPU]) //32-bit?
 		{
-			MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval); //Put value!
+			MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (uint_32)oldval); //Put value!
 		}
 		else
 		{
-			MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (uint_32)oldval); //Put value!
+			MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval); //Put value!
 		}
 	}
 }
