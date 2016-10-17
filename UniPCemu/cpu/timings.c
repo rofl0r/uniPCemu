@@ -209,7 +209,7 @@ CPUPM_Timings CPUPMTimings[] = {
 
 	//Page 3-51
 	//We don't use the m value: this is done by the prefetch unit itself.
-	//CALL
+	//CALL Direct Intersegment
 	,{0,0,0xE8,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //CALL Direct within segment
 	,{0,0,0xFF,0xFF,0x03,{{{{7,0,0},{11,0,1}}},{{{7,0,0},{11,0,1}}}}} //CALL Register/memory indirect within segment
 	,{0,0,0x9A,0xFF,0x00,{{{{13,0,0},{26,0,0}}},{{{13,0,0},{26,0,0}}}}} //CALL Direct Intersegment
@@ -221,6 +221,17 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{177,OTHERGATE_NORMALTSS,4},{177,OTHERGATE_NORMALTSS,4}}}}} //CALL Via TSS
 	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{182,OTHERGATE_NORMALTASKGATE,4},{182,OTHERGATE_NORMALTASKGATE,4}}}}} //CALL Via task gate
 
+	//CALL Indirect Intersegment
+	,{0,0,0xFF,0xFF,0x04,{{{{16,0,0},{16,0,0}}},{{{29,0,1},{29,0,1}}}}} //CALL Register/memory indirect within segment
+
+	//Protected mode variants
+	,{0,0,0x9A,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{44,CALLGATE_SAMELEVEL,5},{44,CALLGATE_SAMELEVEL}}}}} //CALL Via call gate to same privilege level
+	,{0,0,0x9A,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5},{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, no parameters
+	,{0,0,0x9A,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5},{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, X parameters
+	,{0,0,0x9A,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{180,OTHERGATE_NORMALTSS,5},{180,OTHERGATE_NORMALTSS,5}}}}} //CALL Via TSS
+	,{0,0,0x9A,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{185,OTHERGATE_NORMALTASKGATE,5},{185,OTHERGATE_NORMALTASKGATE,5}}}}} //CALL Via task gate
+
+	//JMP
 
 };
 
