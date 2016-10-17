@@ -215,7 +215,7 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,0,0x9A,0xFF,0x00,{{{{13,0,0},{26,0,0}}},{{{13,0,0},{26,0,0}}}}} //CALL Direct Intersegment
 
 	//Protected mode variants
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{41,CALLGATE_SAMELEVEL,4},{41,CALLGATE_SAMELEVEL}}}}} //CALL Via call gate to same privilege level
+	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{41,CALLGATE_SAMELEVEL,4},{41,CALLGATE_SAMELEVEL,4}}}}} //CALL Via call gate to same privilege level
 	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{82,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4},{82,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, no parameters
 	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{86,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4},{86,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, X parameters
 	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{177,OTHERGATE_NORMALTSS,4},{177,OTHERGATE_NORMALTSS,4}}}}} //CALL Via TSS
@@ -225,13 +225,30 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,0,0xFF,0xFF,0x04,{{{{16,0,0},{16,0,0}}},{{{29,0,1},{29,0,1}}}}} //CALL Register/memory indirect within segment
 
 	//Protected mode variants
-	,{0,0,0x9A,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{44,CALLGATE_SAMELEVEL,5},{44,CALLGATE_SAMELEVEL}}}}} //CALL Via call gate to same privilege level
-	,{0,0,0x9A,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5},{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, no parameters
-	,{0,0,0x9A,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5},{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, X parameters
-	,{0,0,0x9A,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{180,OTHERGATE_NORMALTSS,5},{180,OTHERGATE_NORMALTSS,5}}}}} //CALL Via TSS
-	,{0,0,0x9A,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{185,OTHERGATE_NORMALTASKGATE,5},{185,OTHERGATE_NORMALTASKGATE,5}}}}} //CALL Via task gate
+	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{44,CALLGATE_SAMELEVEL,5},{44,CALLGATE_SAMELEVEL,5}}}}} //CALL Via call gate to same privilege level
+	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5},{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, no parameters
+	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5},{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, X parameters
+	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{180,OTHERGATE_NORMALTSS,5},{180,OTHERGATE_NORMALTSS,5}}}}} //CALL Via TSS
+	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{185,OTHERGATE_NORMALTASKGATE,5},{185,OTHERGATE_NORMALTASKGATE,5}}}}} //CALL Via task gate
 
 	//JMP
+	,{0,0,0xEB,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Short/long
+	,{0,0,0xED,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Direct within segment
+	,{0,0,0xFF,0xFF,0x05,{{{{7,0,0},{11,0,0}}},{{{7,0,0},{11,0,0}}}}} //JMP Register/memory indirect within segment
+	,{0,0,0xEA,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{23,0,0},{23,0,0}}}}} //JMP Direct intersegment
+	
+	//Protected mode variants(Direct Intersegment)
+	,{0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{38,CALLGATE_SAMELEVEL,5},{38,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
+	,{0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{175,OTHERGATE_NORMALTSS,5},{175,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
+	,{0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{180,OTHERGATE_NORMALTASKGATE,5},{180,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
+
+	//JMP Indirect Intersegment
+	,{0,0,0xFF,0xFF,0x06,{{{{15,0,1},{15,0,1}}},{{{26,0,1},{26,0,1}}}}} //JMP Indirect intersegment
+
+	//Protected mode variants (Indirect Intersegment)
+	,{0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{41,CALLGATE_SAMELEVEL,5},{41,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
+	,{0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{178,OTHERGATE_NORMALTSS,5},{178,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
+	,{0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{183,OTHERGATE_NORMALTASKGATE,5},{183,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
 
 };
 
