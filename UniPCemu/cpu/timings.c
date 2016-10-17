@@ -23,6 +23,8 @@ typedef struct
 #define GATECOMPARISON_CALLGATE 1
 #define GATECOMPARISON_TSS 2
 #define GATECOMPARISON_TASKGATE 3
+//Special RET case for returning to different privilege levels!
+#define GATECOMPARISON_RET 4
 
 //High 2 bits of the n information
 #define CALLGATETIMING_SAMEPRIVILEGELEVEL 1
@@ -36,6 +38,7 @@ typedef struct
 #define CALLGATE_DIFFERENTLEVEL_XPARAMETERS ((GATECOMPARISON_CALLGATE)|(CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_XPARAMETERS<<4))
 #define OTHERGATE_NORMALTSS ((GATECOMPARISON_TSS)|(GATETIMING_ANYPRIVILEGELEVEL<<4))
 #define OTHERGATE_NORMALTASKGATE ((GATECOMPARISON_TASKGATE)|(GATETIMING_ANYPRIVILEGELEVEL<<4))
+#define RET_DIFFERENTLEVEL ((GATECOMPARISON_RET)|(CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_NOPARAMETERS<<4))
 
 //Compressed protected&real mode timing table. This will need to be uncompressed for usage to be usable(long lookup times otherwise)
 CPUPM_Timings CPUPMTimings[] = {
@@ -249,6 +252,19 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{41,CALLGATE_SAMELEVEL,5},{41,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
 	,{0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{178,OTHERGATE_NORMALTSS,5},{178,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
 	,{0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{183,OTHERGATE_NORMALTASKGATE,5},{183,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
+
+	//RET
+	,{0,0,0xC3,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{11,0,0},{11,0,0}}}}} //RET Within segment
+	,{0,0,0xC2,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{11,0,0},{11,0,0}}}}} //RET Within seg adding immed to SP
+	,{0,0,0xCB,0xFF,0x00,{{{{15,0,0},{15,0,0}}},{{{25,0,0},{25,0,0}}}}} //RET Intersegment
+	,{0,0,0xCA,0xFF,0x00,{{{{15,0,0},{15,0,0}}},{{{15,0,0},{15,0,0}}}}} //RET Intersegment adding immediate to SP
+
+	//Protected mode variants (Intersegment)
+	,{0,0,0xCB,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{55,RET_DIFFERENTLEVEL,4},{55,RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment
+	,{0,0,0xCA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{55,RET_DIFFERENTLEVEL,4},{55,RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment adding immediate to SP
+
+	//Page 3-52
+
 
 };
 
