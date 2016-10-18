@@ -100,7 +100,7 @@ extern uint_32 wordaddress; //Word address used during memory access!
 byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
 {
 	INLINEREGISTER uint_32 realaddress;
-	if (CPU_MMU_checklimit(segdesc,segment,offset,0)) //Disallowed?
+	if (CPU_MMU_checklimit(segdesc,segment,offset,readflags)) //Disallowed?
 	{
 		MMU.invaddr = 2; //Invalid address signaling!
 		return 1; //Not found.
