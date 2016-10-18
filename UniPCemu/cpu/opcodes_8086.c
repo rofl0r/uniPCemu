@@ -2481,6 +2481,7 @@ void CPU8086_OP80() //GRP1 Eb,Ib
 		{
 			debugger_setcommand("CMPB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
+		if (modrm_check8(&params,1,1)) return; //Abort when needed!
 		CMP_b(modrm_read8(&params,1),imm,3); //CMP Eb, Ib
 		break;
 	default:
@@ -2551,6 +2552,7 @@ void CPU8086_OP81() //GRP1 Ev,Iv
 		{
 			debugger_setcommand("CMPW %s,%04X",&modrm_param1,imm); //CMP Eb, Ib
 		}
+		if (modrm_check16(&params,1,1)) return; //Abort when needed!
 		CMP_w(modrm_read16(&params,1),imm,3); //CMP Eb, Ib
 		break;
 	default:
@@ -2628,6 +2630,7 @@ void CPU8086_OP83() //GRP1 Ev,Ib
 		{
 			debugger_setcommand("CMPW %s,%04X",&modrm_param1,imm); //CMP Eb, Ib
 		}
+		if (modrm_check16(&params,1,1)) return; //Abort when needed!
 		CMP_w(modrm_read16(&params,1),imm,3); //CMP Eb, Ib
 		break;
 	default:
@@ -2648,6 +2651,7 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		{
 			modrm_generateInstructionTEXT("POPW",16,0,PARAM_MODRM2); //POPW Ew
 		}
+		if (checkStackAccess(1,0,0)) return; //Abort when needed!
 		modrm_write16(&params,1,CPU_POP16(),0); //POP r/m16
 		if (params.info[1].reg16 == &CPU[activeCPU].registers->SS) //Popping into SS?
 		{
@@ -2677,6 +2681,8 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 void CPU8086_OPD0() //GRP2 Eb,1
 {
 	thereg = MODRM_REG(params.modrm);
+	if (modrm_check8(&params,1,1)) return; //Abort when needed!
+	if (modrm_check8(&params,1,0)) return; //Abort when needed!
 	oper1b = modrm_read8(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
@@ -2714,6 +2720,8 @@ void CPU8086_OPD0() //GRP2 Eb,1
 void CPU8086_OPD1() //GRP2 Ev,1
 {
 	thereg = MODRM_REG(params.modrm);
+	if (modrm_check16(&params,1,1)) return; //Abort when needed!
+	if (modrm_check16(&params,1,0)) return; //Abort when needed!
 	oper1 = modrm_read16(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
@@ -2751,6 +2759,8 @@ void CPU8086_OPD1() //GRP2 Ev,1
 void CPU8086_OPD2() //GRP2 Eb,CL
 {
 	thereg = MODRM_REG(params.modrm);
+	if (modrm_check8(&params,1,1)) return; //Abort when needed!
+	if (modrm_check8(&params,1,0)) return; //Abort when needed!
 	oper1b = modrm_read8(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
@@ -2788,6 +2798,8 @@ void CPU8086_OPD2() //GRP2 Eb,CL
 void CPU8086_OPD3() //GRP2 Ev,CL
 {
 	thereg = MODRM_REG(params.modrm);
+	if (modrm_check16(&params,1,1)) return; //Abort when needed!
+	if (modrm_check16(&params,1,0)) return; //Abort when needed!
 	oper1 = modrm_read16(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
@@ -2829,6 +2841,11 @@ void CPU8086_OPD3() //GRP2 Ev,CL
 void CPU8086_OPF6() //GRP3a Eb
 {
 	thereg = MODRM_REG(params.modrm);
+	if (modrm_check8(&params,1,1)) return; //Abort when needed!
+	if ((MODRM_REG(params.modrm)>1) && (MODRM_REG(params.modrm)<4))
+	{
+		if (modrm_check8(&params,1,0)) return; //Abort when needed!
+	}
 	oper1b = modrm_read8(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
@@ -2870,6 +2887,11 @@ void CPU8086_OPF6() //GRP3a Eb
 void CPU8086_OPF7() //GRP3b Ev
 {
 	thereg = MODRM_REG(params.modrm);
+	if (modrm_check16(&params,1,1)) return; //Abort when needed!
+	if ((thereg>1) && (thereg<4)) //NOT/NEG?
+	{
+		if (modrm_check16(&params,1,0)) return; //Abort when needed!
+	}
 	oper1 = modrm_read16(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
@@ -2923,6 +2945,8 @@ void CPU8086_OPFE() //GRP4 Eb
 	switch (MODRM_REG(params.modrm)) //What function?
 	{
 	case 0: //INC
+		if (modrm_check8(&params,1,1)) return; //Abort when needed!
+		if (modrm_check8(&params,1,0)) return; //Abort when needed!
 		if (cpudebugger) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("INCB",8,0,PARAM_MODRM2); //INC!
@@ -2934,6 +2958,8 @@ void CPU8086_OPFE() //GRP4 Eb
 		modrm_write8(&params,1,res8);
 		break;
 	case 1: //DEC
+		if (modrm_check8(&params,1,1)) return; //Abort when needed!
+		if (modrm_check8(&params,1,0)) return; //Abort when needed!
 		if (cpudebugger) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("DECB",8,0,PARAM_MODRM2); //DEC!
@@ -2953,6 +2979,7 @@ void CPU8086_OPFE() //GRP4 Eb
 void CPU8086_OPFF() //GRP5 Ev
 {
 	thereg = MODRM_REG(params.modrm);
+	if (modrm_check16(&params,1,1)) return; //Abort when needed!
 	oper1 = modrm_read16(&params,1);
 	ea = modrm_offset16(&params,1);
 	if (cpudebugger) //Debugger on?
@@ -3546,6 +3573,7 @@ void op_grp5() {
 	word destCS;
 	switch (thereg) {
 	case 0: //INC Ev
+		if (modrm_check16(&params,1,0)) return; //Abort when needed!
 		oper2 = 1;
 		tempCF = FLAG_CF;
 		op_add16();
@@ -3563,6 +3591,7 @@ void op_grp5() {
 		}
 		break;
 	case 1: //DEC Ev
+		if (modrm_check16(&params,1,0)) return; //Abort when needed!
 		oper2 = 1;
 		tempCF = FLAG_CF;
 		op_sub16();
@@ -3580,6 +3609,7 @@ void op_grp5() {
 		}
 		break;
 	case 2: //CALL Ev
+		if (checkStackAccess(1,1,0)) return; //Abort when needed!
 		CPU_PUSH16(&REG_IP);
 		REG_IP = oper1;
 		if (MODRM_EA(params)) //Mem?
@@ -3596,6 +3626,12 @@ void op_grp5() {
 		break;
 	case 3: //CALL Mp
 		modrm_decode16(&params, &info, 1); //Get data!
+
+		modrm_addoffset = 0; //First IP!
+		if (modrm_check16(&params,1,1)) return; //Abort when needed!
+		modrm_addoffset = 2; //Then destination CS!
+		if (modrm_check16(&params,1,1)) return; //Abort when needed!
+
 		modrm_addoffset = 0; //First IP!
 		destEIP = modrm_read16(&params,1); //Get destination IP!
 		CPUPROT1
@@ -3636,6 +3672,11 @@ void op_grp5() {
 		break;
 	case 5: //JMP Mp
 		modrm_decode16(&params, &info, 1); //Get data!
+		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset,1,getCPL())) return; //Abort on fault!
+		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+1,1,getCPL())) return; //Abort on fault!
+		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+2,1,getCPL())) return; //Abort on fault!
+		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+3,1,getCPL())) return; //Abort on fault!
+
 		destEIP = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0);
 		CPUPROT1
 		destCS = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0);
@@ -3657,6 +3698,7 @@ void op_grp5() {
 		CPUPROT2
 		break;
 	case 6: //PUSH Ev
+		if (checkStackAccess(1,1,0)) return; //Abort on fault!
 		CPU_PUSH16(&oper1); break;
 		CPUPROT1
 		if (MODRM_EA(params)) //Memory?
