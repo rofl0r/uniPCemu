@@ -1082,4 +1082,8 @@ void CPU_PORT_IN_B(word port, byte *result);
 void CPU_PORT_IN_W(word port, word *result);
 void CPU_PORT_IN_D(word port, uint_32 *result);
 
+//Information for simulating PUSH and POP on the stack!
+sbyte stack_pushchange(byte dword);
+sbyte stack_popchange(byte dword);
+
 #endif

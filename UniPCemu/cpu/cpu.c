@@ -782,6 +782,32 @@ byte CPU_POP8()
 	return (CPU_POP16()&0xFF); //Give the result!
 }
 
+//Changes in stack during PUSH and POP operations!
+sbyte stack_pushchange(byte dword)
+{
+	if (topdown_stack()) //--?
+	{
+		return -(2 << dword); //Decrease!
+	}
+	else //++?
+	{
+		return (2 << dword); //Increase!
+	}
+}
+
+sbyte stack_popchange(byte dword)
+{
+	if (topdown_stack()) //--?
+	{
+		return (2 << dword); //Decrease!
+	}
+	else //++?
+	{
+		return -(2 << dword); //Increase!
+	}
+}
+
+
 OPTINLINE void stack_push(byte dword) //Push 16/32-bits to stack!
 {
 	if (topdown_stack()) //--?
