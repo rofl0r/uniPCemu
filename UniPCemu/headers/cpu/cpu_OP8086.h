@@ -318,4 +318,6 @@ void unkOP_8086(); //Unknown opcode on 8086?
 
 void external8086RETF(word popbytes); //Support for special interrupt handlers!
 
+byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much do we need to POP from the stack?
+
 #endif
