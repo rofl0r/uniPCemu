@@ -147,6 +147,11 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	return 1; //Valid!
 }
 
+byte CPU_Paging_checkPage(uint_32 address, byte readflags, byte CPL)
+{
+	return (isvalidpage(address,(readflags==0),CPL)==0); //Are we an invalid page? We've raised an error!
+}
+
 uint_32 mappage(uint_32 address) //Maps a page to real memory when needed!
 {
 	word DIR,TABLE,ADDR;

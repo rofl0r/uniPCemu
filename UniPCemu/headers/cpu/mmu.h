@@ -45,4 +45,6 @@ void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val); //Get ad
 void MMU_setA20(byte where, byte enabled); //Set A20 line enabled?
 void MMU_clearOP(); //Clear the OPcode cache!
 void MMU_addOP(byte data); //Add an opcode to the OPcode cache!
+
+byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
 #endif

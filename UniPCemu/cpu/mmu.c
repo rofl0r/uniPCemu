@@ -96,6 +96,32 @@ void MMU_clearOP()
 //CPU/EMU simple memory access routine.
 extern uint_32 wordaddress; //Word address used during memory access!
 
+//isread = 1|(opcode<<1) for reads! 0 for writes!
+byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
+{
+	INLINEREGISTER uint_32 realaddress;
+	if (CPU_MMU_checklimit(segdesc,segment,offset,0)) //Disallowed?
+	{
+		MMU.invaddr = 2; //Invalid address signaling!
+		return 1; //Not found.
+	}
+
+	//Check for paging next!
+	realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
+
+	//We need to block on Page Faults as well! This is still unimplemented!
+	if (is_paging()) //Are we paging?
+	{
+		if (CPU_Paging_checkPage(realaddress,readflags,CPL)) //Map it using the paging mechanism! Errored out?
+		{
+			return 1; //Error out!
+		}
+	}
+
+	//We're valid?
+	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
+}
+
 OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte index) //Get adress, opcode=1 when opcode reading, else 0!
 {
 	INLINEREGISTER byte result; //The result!
@@ -106,13 +132,6 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 		//dolog("MMU","R:No memory present!");
 		MMU.invaddr = 1; //Invalid adress!
 		return 0xFF; //Out of bounds!
-	}
-
-	if (CPU_MMU_checklimit(segdesc,segment,offset,1|(opcode<<1))) //Disallowed?
-	{
-		//dolog("MMU","R:Limit break:%04X:%08X!",segment,offset);
-		MMU.invaddr = 2; //Invalid address!
-		return 0xFF; //Not found.
 	}
 
 	realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
@@ -164,12 +183,6 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 		//dolog("MMU","W:No memory present!");
 		MMU.invaddr = 1; //Invalid address signaling!
 		return; //Out of bounds!
-	}
-	
-	if (CPU_MMU_checklimit(segdesc,segment,offset,0)) //Disallowed?
-	{
-		MMU.invaddr = 2; //Invalid address signaling!
-		return; //Not found.
 	}
 	
 	/*if (LOG_MMU_WRITES) //Log MMU writes?
