@@ -132,6 +132,8 @@ void CPU286_OP63() //ARPL r/m16,r16
 		return; //Abort!
 	}
 	word destRPL, srcRPL;
+	if (modrm_check16(&params,1,1)) return; //Abort on fault!
+	if (modrm_check16(&params,0,1)) return; //Abort on fault!
 	destRPL = modrm_read16(&params,1); //Read destination RPL!
 	CPUPROT1
 	srcRPL = modrm_read16(&params,0); //Read source RPL!
@@ -140,6 +142,7 @@ void CPU286_OP63() //ARPL r/m16,r16
 		{
 			FLAG_ZF = 1; //Set ZF!
 			setRPL(destRPL,getRPL(srcRPL)); //Set the new RPL!
+			if (modrm_check16(&params,1,0)) return; //Abort on fault!
 			modrm_write16(&params,1,destRPL,0); //Set the result!
 		}
 		else
@@ -174,6 +177,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("SLDT %s", info.text);
+		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 		modrm_write16(&params,1,CPU[activeCPU].registers->LDTR,0); //Try and write it to the address specified!
 		break;
 	case 1: //STR
@@ -183,6 +187,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("STR %s", info.text);
+		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 		modrm_write16(&params,1, CPU[activeCPU].registers->TR, 0); //Try and write it to the address specified!
 		break;
 	case 2: //LLDT
@@ -197,6 +202,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			THROWDESCGP(0); //Throw #GP!
 			return; //Abort!
 		}
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 		oper1 = modrm_read16(&params,1); //Read the descriptor!
 		CPUPROT1
 			segmentWritten(CPU_SEGMENT_LDTR,oper1,0); //Write the segment!
@@ -214,6 +220,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			THROWDESCGP(0); //Throw #GP!
 			return; //Abort!
 		}
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 		oper1 = modrm_read16(&params, 1); //Read the descriptor!
 		CPUPROT1
 			segmentWritten(CPU_SEGMENT_TR, oper1, 0); //Write the segment!
