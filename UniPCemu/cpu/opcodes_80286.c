@@ -233,6 +233,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("VERR %s", info.text);
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 		oper1 = modrm_read16(&params,1); //Read the descriptor!
 		CPUPROT1
 			SEGDESCRIPTOR_TYPE verdescriptor;
@@ -260,6 +261,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("VERW %s", info.text);
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 		oper1 = modrm_read16(&params, 1); //Read the descriptor!
 		CPUPROT1
 			SEGDESCRIPTOR_TYPE verdescriptor;
@@ -303,6 +305,15 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			unkOP0F_286();
 			return; //Abort!
 		}
+		modrm_addoffset = 0;
+		if (modrm_check16(&params,1,0)) return; //Abort on fault!
+		modrm_addoffset = 2;
+		if (modrm_check16(&params,1,0)) return; //Abort on fault!
+		modrm_addoffset = 4;
+		if (modrm_check8(&params,1,0)) return; //Abort on fault!
+		modrm_addoffset = 5;
+		if (modrm_check8(&params,1,0)) return; //Abort on fault!
+
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		modrm_write16(&params, 1, CPU[activeCPU].registers->GDTR.limit, 0); //Store the limit first!
 		CPUPROT1
@@ -327,6 +338,16 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			unkOP0F_286();
 			return; //Abort!
 		}
+
+		modrm_addoffset = 0;
+		if (modrm_check16(&params,1,0)) return; //Abort on fault!
+		modrm_addoffset = 2;
+		if (modrm_check16(&params,1,0)) return; //Abort on fault!
+		modrm_addoffset = 4;
+		if (modrm_check8(&params,1,0)) return; //Abort on fault!
+		modrm_addoffset = 5;
+		if (modrm_check8(&params,1,0)) return; //Abort on fault!
+
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		modrm_write16(&params, 1, CPU[activeCPU].registers->IDTR.limit, 0); //Store the limit first!
 		CPUPROT1
@@ -356,6 +377,14 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			THROWDESCGP(0); //Throw #GP!
 			return; //Abort!
 		}
+
+		modrm_addoffset = 0;
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		modrm_addoffset = 2;
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		modrm_addoffset = 4;
+		if (modrm_check8(&params,1,1)) return; //Abort on fault!
+
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		oper1 = modrm_read16(&params, 1); //Read the limit first!
 		CPUPROT1
@@ -384,6 +413,14 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			THROWDESCGP(0); //Throw #GP!
 			return; //Abort!
 		}
+
+		modrm_addoffset = 0;
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		modrm_addoffset = 2;
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		modrm_addoffset = 4;
+		if (modrm_check8(&params,1,1)) return; //Abort on fault!
+
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		oper1 = modrm_read16(&params, 1); //Read the limit first!
 		CPUPROT1
@@ -402,10 +439,12 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		break;
 	case 4: //SMSW
 		debugger_setcommand("SMSW %s", info.text);
+		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 		modrm_write16(&params,1,(word)(CPU[activeCPU].registers->CR0_full&0xFFFF),0); //Store the MSW into the specified location!
 		break;
 	case 6: //LMSW
 		debugger_setcommand("LMSW %s", info.text);
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 		if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
 		{
 			THROWDESCGP(0); //Throw #GP!
@@ -438,6 +477,7 @@ void CPU286_OP0F02() //LAR /r
 		return;
 	}
 	modrm286_generateInstructionTEXT("LAR", 16, 0, PARAM_MODRM12); //Our instruction text!
+	if (modrm_check16(&params,1,1)) return; //Abort on fault!
 	oper1 = modrm_read16(&params,1); //Read the segment to check!
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
@@ -469,6 +509,7 @@ void CPU286_OP0F02() //LAR /r
 				}
 				if ((MAX(getCPL(), getRPL(oper1)) <= verdescriptor.desc.DPL) || isconforming) //Valid privilege?
 				{
+					if (modrm_check16(&params,1,0)) return; //Abort on fault!
 					modrm_write16(&params,0,(word)(verdescriptor.desc.AccessRights<<8),0); //Write our result!
 					CPUPROT1
 						FLAG_ZF = 1; //We're valid!
@@ -499,6 +540,7 @@ void CPU286_OP0F03() //LSL /r
 		return;
 	}
 	modrm286_generateInstructionTEXT("LSL", 16, 0, PARAM_MODRM12); //Our instruction text!
+	if (modrm_check16(&params,1,1)) return; //Abort on fault!
 	oper1 = modrm_read16(&params, 1); //Read the segment to check!
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
@@ -537,6 +579,7 @@ void CPU286_OP0F03() //LSL /r
 
 				if ((MAX(getCPL(), getRPL(oper1)) <= verdescriptor.desc.DPL) || isconforming) //Valid privilege?
 				{
+					if (modrm_check16(&params,1,0)) return; //Abort on fault!
 					modrm_write16(&params, 0, (word)(limit&0xFFFF), 0); //Write our result!
 					CPUPROT1
 						FLAG_ZF = 1; //We're valid!
