@@ -1910,6 +1910,7 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do
 			}
 		}
 		ESP += isPUSH?stack_pushchange(0):stack_popchange(0); //Apply the change in virtual (E)SP to check the next value!
+		--poptimesleft; //One POP processed!
 	}
 	return 0; //OK!
 }
