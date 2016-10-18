@@ -140,6 +140,32 @@ void reset_modrm()
 	params.EA_cycles = 0; //Default: no cycles used!
 }
 
+byte modrm_check8(MODRM_PARAMS *params, int whichregister, byte isread)
+{
+	uint_32 offset;
+	switch (params->info[whichregister].isreg) //What type?
+	{
+	case 1: //Register?
+		return 0; //OK!
+		break;
+	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		offset = params->info[whichregister].mem_offset; //Get the base offset!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = offset;
+		}
+		offset += modrm_addoffset; //Add to get the destination offset!
+		return checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,isread,getCPL()); //Check the data to memory using byte depth!
+		break;
+		//return result; //Give memory!
+	default:
+		halt_modrm("MODRM: Unknown MODR/M8!");
+		break;
+	}
+	return 0; //Ignore invalid!
+}
 void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 {
 	byte *result; //The result holder if needed!
@@ -211,6 +237,82 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 		halt_modrm("MODRM: Unknown MODR/M16!");
 		break;
 	}	
+}
+
+byte modrm_check16(MODRM_PARAMS *params, int whichregister, byte isread)
+{
+	uint_32 offset;
+	switch (params->info[whichregister].isreg) //What type?
+	{
+	case 1: //Register?
+		return 0; //OK!
+		break;
+	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		offset = params->info[whichregister].mem_offset;
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = offset;
+		}
+		offset += modrm_addoffset; //Add to get the destination offset!
+		if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,isread,getCPL())) //Check the data to memory using byte depth!
+		{
+			return 1; //Errored out!
+		}
+		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+1)&params->info[whichregister].memorymask,isread,getCPL())) //Check the data to memory using byte depth!
+		{
+			return 1; //Errored out!
+		}
+		return 0; //OK!
+		break;
+	default:
+		halt_modrm("MODRM: Unknown MODR/M16!");
+		break;
+	}	
+	return 0; //Ignore invalid!
+}
+
+byte modrm_check32(MODRM_PARAMS *params, int whichregister, byte isread)
+{
+	uint_32 offset;
+	switch (params->info[whichregister].isreg) //What type?
+	{
+	case 1: //Register?
+		return 0; //OK!
+		break;
+	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		offset = params->info[whichregister].mem_offset; //Load the base offset!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = offset;
+		}
+		offset += modrm_addoffset; //Add to get the destination offset!
+		if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,isread,getCPL())) //Check the data to memory using byte depth!
+		{
+			return 1; //Errored out!
+		}
+		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+1)&params->info[whichregister].memorymask,isread,getCPL())) //Check the data to memory using byte depth!
+		{
+			return 1; //Errored out!
+		}
+		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+2)&params->info[whichregister].memorymask,isread,getCPL())) //Check the data to memory using byte depth!
+		{
+			return 1; //Errored out!
+		}
+		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+3)&params->info[whichregister].memorymask,isread,getCPL())) //Check the data to memory using byte depth!
+		{
+			return 1; //Errored out!
+		}
+		return 0; //OK!
+		break;
+	default:
+		halt_modrm("MODRM: Unknown MODR/M32!");
+		break;
+	}
+	return 0; //Ignore invalid!
 }
 
 void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)

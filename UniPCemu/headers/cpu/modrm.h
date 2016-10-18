@@ -197,4 +197,9 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr); //Read param
 //For fixing segment loads through MOV instructions.
 void modrm_updatedsegment(word *location, word value, byte isJMPorCALL); //Check for updated segment registers!
 
+//Checks for real and protected mode segments and paging!
+//isread=0 for writes, 1 for reads.
+byte modrm_check8(MODRM_PARAMS *params, int whichregister, byte isread);
+byte modrm_check16(MODRM_PARAMS *params, int whichregister, byte isread);
+byte modrm_check32(MODRM_PARAMS *params, int whichregister, byte isread);
 #endif
