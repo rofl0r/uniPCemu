@@ -540,10 +540,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			data = CMOS.DATA.DATA80.data[CMOS.ADDR]; //Give the data from the CMOS!
 			if (CMOS.ADDR == 0xD) //Read only status register D?
 			{
-				if (CMOS.Loaded) //Anything valid in RAM?
-				{
-					data |= 0x80; //We have power!
-				}
+				data |= 0x80; //We have power!
 			}
 			//Status register B&C are read-only!
 		}
