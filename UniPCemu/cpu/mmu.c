@@ -107,7 +107,7 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 	}
 
 	//Check for paging next!
-	realaddress = MMU_realaddr(segdesc, segment, offset, writeword); //Real adress!
+	realaddress = MMU_realaddr(segdesc, segment, offset, 0); //Real adress!
 
 	//We need to block on Page Faults as well! This is still unimplemented!
 	if (is_paging()) //Are we paging?
