@@ -937,7 +937,7 @@ uint_32 CPU_POP32() //Full stack used!
 
 //Final stuff:
 
-char textsegments[][3] =   //Comply to CPU_REGISTER_XX order!
+char textsegments[][5] =   //Comply to CPU_REGISTER_XX order!
 {
 	"CS",
 	"SS",
@@ -945,7 +945,8 @@ char textsegments[][3] =   //Comply to CPU_REGISTER_XX order!
 	"ES",
 	"FS",
 	"GS",
-	"TR"
+	"TR",
+	"LDTR"
 };
 
 char *CPU_textsegment(byte defaultsegment) //Plain segment to use!

@@ -1889,22 +1889,22 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do
 	for (;poptimesleft;) //Anything left?
 	{
 		//We're at least a word access!
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP,!isPUSH,getCPL())) //Error accessing memory?
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP,isPUSH?0:1,getCPL())) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP+1,!isPUSH,getCPL())) //Error accessing memory?
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP+1,isPUSH?0:1,getCPL())) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP+2,!isPUSH,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP+2,isPUSH?0:1,getCPL())) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP+3,!isPUSH,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP+3,isPUSH?0:1,getCPL())) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}

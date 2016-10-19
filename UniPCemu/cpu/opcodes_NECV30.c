@@ -340,8 +340,8 @@ void CPU186_OP6E()
 	debugger_setcommand("OUTSB");
 	if (blockREP) return; //Disabled REP!
 	byte data;
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,1,getCPL())) return; //Abort on fault!
-	data = MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)), CPU_segment(CPU_SEGMENT_ES), REG_SI, 0);
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),REG_SI,1,getCPL())) return; //Abort on fault!
+	data = MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0);
 	CPUPROT1
 	CPU_PORT_OUT_B(REG_DX,data); //OUTS DX,Xb
 	CPUPROT1
@@ -362,9 +362,9 @@ void CPU186_OP6F()
 	debugger_setcommand("OUTSW");
 	if (blockREP) return; //Disabled REP!
 	word data;
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,1,getCPL())) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI+1,1,getCPL())) return; //Abort on fault!
-	data = MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)), CPU_segment(CPU_SEGMENT_ES), REG_SI, 0);
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),REG_SI,1,getCPL())) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),REG_SI+1,1,getCPL())) return; //Abort on fault!
+	data = MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0);
 	CPUPROT1
 	CPU_PORT_OUT_W(REG_DX,data);    //OUTS DX,Xz
 	CPUPROT1
