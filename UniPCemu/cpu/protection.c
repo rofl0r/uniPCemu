@@ -729,7 +729,14 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		}
 		if (!isvalid) //Not valid?
 		{
-			return 1; //Error!
+			if (segment==CPU_SEGMENT_SS) //Stack fault?
+			{
+				return 3; //Error!
+			}
+			else //Normal #GP?
+			{
+				return 1; //Error!
+			}
 		}
 	}
 
@@ -789,6 +796,10 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 			break;
 		case 2: //#NP?
 			THROWDESCSeg(segment, 0); //Throw error: accessing non-present segment descriptor!
+			return 1; //Error out!
+			break;
+		case 3: //#SS?
+			THROWDESCSP(segment,0); //Throw error!
 			return 1; //Error out!
 			break;
 		}
