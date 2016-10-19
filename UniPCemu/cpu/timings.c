@@ -24,6 +24,7 @@ typedef struct
 #define GATECOMPARISON_CALLGATE 1
 #define GATECOMPARISON_TSS 2
 #define GATECOMPARISON_TASKGATE 3
+#define GATECOMPARISON_INTERRUPTGATE 4
 //Special RET case for returning to different privilege levels!
 #define GATECOMPARISON_RET 4
 
@@ -32,6 +33,17 @@ typedef struct
 #define CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_NOPARAMETERS 2
 #define CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_XPARAMETERS 3
 #define GATETIMING_ANYPRIVILEGELEVEL 0
+
+#define INTERRUPTGATE_SAMEPRIVILEGELEVEL 0
+#define INTERRUPTGATE_DIFFERENTPRIVILEGELEVEL 1
+#define INTERRUPTGATE_TASKGATE 2
+
+//Simplified stuff for 286 gate descriptors(combination of the above flags used, which are used in the lookup table multiple times)!
+#define INTERRUPTGATETIMING_SAMELEVEL ((GATECOMPARISON_INTERRUPTGATE)|(INTERRUPTGATE_SAMEPRIVILEGELEVEL<<4))
+#define INTERRUPTGATETIMING_DIFFERENTLEVEL ((GATECOMPARISON_INTERRUPTGATE)|(INTERRUPTGATE_DIFFERENTPRIVILEGELEVEL<<4))
+#define INTERRUPTGATETIMING_TASKGATE ((GATECOMPARISON_INTERRUPTGATE)|(INTERRUPTGATE_TASKGATE<<4))
+
+
 
 //Simplified stuff for 286 gate descriptors(combination of the above flags used, which are used in the lookup table multiple times)!
 #define CALLGATE_SAMELEVEL ((GATECOMPARISON_CALLGATE)|(CALLGATETIMING_SAMEPRIVILEGELEVEL<<4))
@@ -340,6 +352,79 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,0,0xCE,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //INTO Not taken
 
 	//Page 3-53
+	//INT&INTO Protected mode variants
+	,{0,0,0xCD,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{40,INTERRUPTGATETIMING_SAMELEVEL,4},{40,INTERRUPTGATETIMING_SAMELEVEL,4}}}}} //INT Via Interrupt or Trap Gate to same privilege level
+	,{0,0,0xCD,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4},{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4}}}}} //INT Via INterrupt or Trap Gate to different privilege level
+	,{0,0,0xCD,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{167,INTERRUPTGATETIMING_TASKGATE,4},{167,INTERRUPTGATETIMING_TASKGATE,4}}}}} //INT Via Task Gate
+	,{0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{40,INTERRUPTGATETIMING_SAMELEVEL,4},{40,INTERRUPTGATETIMING_SAMELEVEL,4}}}}} //INT Via Interrupt or Trap Gate to same privilege level
+	,{0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4},{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4}}}}} //INT Via INterrupt or Trap Gate to different privilege level
+	,{0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{167,INTERRUPTGATE_TASKGATE,4},{167,INTERRUPTGATE_TASKGATE,4}}}}} //INT Via Task Gate
+
+	//BOUND
+	,{0,0,0x62,0xFF,0x00,{{{{13,0,0},{13,0,1}}},{{{13,0,0},{13,0,1}}}}} //BOUND
+
+	//Processor Control
+	//CLC
+	,{0,0,0xF8,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CLC
+	//CMC
+	,{0,0,0xF5,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CMC
+	//STC
+	,{0,0,0xF9,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //STC
+	//CLD
+	,{0,0,0xFC,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CLD
+	//STD
+	,{0,0,0xFD,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //STD
+	//CLI
+	,{0,0,0xFA,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //CLI
+	//STI
+	,{0,0,0xFB,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CLC
+	//HLT
+	,{0,0,0xF4,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //HLT
+	//WAIT
+	,{0,0,0x9B,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //WAIT
+	//LOCK
+	,{0,0,0xF0,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,0,0},{0,0,0}}}}} //LOCK
+	//CTS
+	,{0,1,0x06,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CTS
+	//ESC (Coprocessor Instruction Escape)
+	,{0,0,0xD8,0xF8,0x00,{{{{9,0,0},{9,0,0}}},{{{9,0,0},{9,0,0}}}}} //ESC
+	//Segment override prefix
+	,{0,0,0x26,0xE7,0x00,{{{{0,0,0},{0,0,0}}},{{{0,0,0},{0,0,0}}}}} //Any Segment override prefix (CS,SS,DS,ES,FS,GS)
+	
+	//Protection control
+	//LGDT
+	,{0,1,0x01,0xFF,0x03,{{{{11,0,1},{11,0,1}}},{{{11,0,1},{11,0,1}}}}} //LGDT
+	//SGDT
+	,{0,1,0x01,0xFF,0x01,{{{{11,0,1},{11,0,1}}},{{{11,0,1},{11,0,1}}}}} //SGDT
+	//LIDT
+	,{0,1,0x01,0xFF,0x04,{{{{12,0,1},{12,0,1}}},{{{12,0,1},{12,0,1}}}}} //LIDT
+	//SIDT
+	,{0,1,0x01,0xFF,0x02,{{{{12,0,1},{12,0,1}}},{{{12,0,1},{12,0,1}}}}} //LIDT
+	//LLDT
+	,{0,1,0x00,0xFF,0x03,{{{{0,0,0},{0,0,0}}},{{{17,0,1},{19,0,1}}}}} //LLDT
+	//SLDT
+	,{0,1,0x00,0xFF,0x01,{{{{0,0,0},{0,0,0}}},{{{2,0,1},{3,0,1}}}}} //SLDT
+
+	//Page 3-54
+
+	//LTR
+	,{0,1,0x00,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{17,0,1},{19,0,1}}}}} //LTR
+	//STR
+	,{0,1,0x00,0xFF,0x02,{{{{0,0,0},{0,0,0}}},{{{2,0,1},{3,0,1}}}}} //STR
+	//LMSW
+	,{0,1,0x01,0xFF,0x07,{{{{3,0,0},{6,0,1}}},{{{3,0,0},{6,0,1}}}}} //LMSW
+	//SMSW
+	,{0,1,0x01,0xFF,0x05,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //SMSW
+	//LAR
+	,{0,1,0x02,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //LAR
+	//LSL
+	,{0,1,0x03,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //LSL
+	//ARPL
+	,{0,0,0x63,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{14,0,1},{11,0,1}}}}} //ARPL
+	//VERR
+	,{0,1,0x00,0xFF,0x05,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //VERR
+	//VERW
+	,{0,1,0x00,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //VERR
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
