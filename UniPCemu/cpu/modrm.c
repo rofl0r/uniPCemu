@@ -138,6 +138,7 @@ void reset_modrm()
 {
 	last_modrm = 0; //Last wasn't a modr/m anymore by default!
 	params.EA_cycles = 0; //Default: no cycles used!
+	modrm_addoffset = 0; //Add this offset to ModR/M reads: default to none!
 }
 
 byte modrm_check8(MODRM_PARAMS *params, int whichregister, byte isread)

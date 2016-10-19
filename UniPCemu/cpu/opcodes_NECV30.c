@@ -237,6 +237,7 @@ void CPU186_OP62()
 	bound_min=modrm_read16(&params,1); //Read min!
 	modrm_addoffset = 2; //Max offset!
 	bound_max=modrm_read16(&params,1); //Read max!
+	modrm_addoffset = 0; //Reset offset!
 	if ((theval<bound_min) || (theval>bound_max))
 	{
 		//BOUND Gv,Ma
