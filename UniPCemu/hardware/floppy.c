@@ -1292,7 +1292,14 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.ST2.data = 0x00; //Clear ST2!
 				updateFloppyTrack0(); //Update track 0!
 				updateFloppyWriteProtected(0); //Update write protected related flags!
-				if ((int_32)floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber], FLOPPY.currentsector[FLOPPY.DOR.DriveNumber]) >= (int_32)(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->KB * 1024)) //Invalid address within our image!
+				if (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //Valid geometry?
+				{
+					if ((int_32)floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber], FLOPPY.currentsector[FLOPPY.DOR.DriveNumber]) >= (int_32)(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->KB * 1024)) //Invalid address within our image!
+					{
+						FLOPPY.ST1.NoAddressMark = FLOPPY.ST1.NoData = 1; //Invalid sector!
+					}
+				}
+				else //No geometry? Always error out!
 				{
 					FLOPPY.ST1.NoAddressMark = FLOPPY.ST1.NoData = 1; //Invalid sector!
 				}
