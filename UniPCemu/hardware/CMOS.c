@@ -571,7 +571,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			CMOS.DATA.DATA80.data[0x0C] &= 0xF; //Clear the interrupt raised flags to allow new interrupts to fire!
 		}
 		CMOS.ADDR = 0xD; //Reset address!
-		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert to binary?
+		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary && (CMOS.ADDR<0xA)) //To convert to binary?
 		{
 			data = decodeBCD8(data); //Decode the BCD data!
 		}
@@ -643,7 +643,7 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x71:
 		if (is_XT) return 0; //Not existant on XT systems!
 		writeXTRTC: //XT RTC write compatibility
-		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary) //To convert from binary?
+		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary && (CMOS.ADDR<0xA)) //To convert from binary?
 		{
 			value = encodeBCD8(value); //Encode the binary data!
 		}
