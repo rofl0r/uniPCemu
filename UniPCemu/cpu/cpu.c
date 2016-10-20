@@ -1331,6 +1331,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 			if (CPU_interruptraised) //Any fault is raised?
 			{
+				currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][0][0][0xCD][0x00][0]; //Start by pointing to our records to process! Enforce interrupt!
+			}
+			else
+			{
 				currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
 			}
 			//Try to use the lookup table!
@@ -1374,7 +1378,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 						}
 						else if (currenttimingcheck->addclock&0x04) //Gate type has to match in order to be processed?
 						{
-							//TODO
+							if (currenttimingcheck->n==hascallinterrupttaken_type) //Did we execute this kind of gate?
+							{
+								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!								
+								goto apply286cycles; //Apply the cycles!								
+							}
 						}
 						else if (currenttimingcheck->addclock&0x02) //REP((N)Z) instruction prefix only?
 						{
@@ -1487,7 +1495,7 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 							{
 								if ((CPUPMTimings[index].CPU==latestCPU) && (CPUPMTimings[index].is0F==is0Fopcode) && (CPUPMTimings[index].OPcode==(instruction&CPUPMTimings[index].OPcodemask))) //Basic opcode matches?
 								{
-									if ((CPUPMTimings[index].modrm_reg==0) || (CPUPMTimings[index].modrm_reg==modrm_register)) //MODR/M filter matches to full opcode?
+									if ((CPUPMTimings[index].modrm_reg==0) || (CPUPMTimings[index].modrm_reg==(modrm_register+1))) //MODR/M filter matches to full opcode?
 									{
 										notfound = 0; //We're found!
 										goto topCPUTimingsdetected; //We're detected!
@@ -1510,7 +1518,7 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 							{
 								if ((CPUPMTimings[index].CPU==latestCPU) && (CPUPMTimings[index].is0F==is0Fopcode) && (CPUPMTimings[index].OPcode==(instruction&CPUPMTimings[index].OPcodemask))) //Basic opcode matches?
 								{
-									if ((CPUPMTimings[index].modrm_reg==0) || (CPUPMTimings[index].modrm_reg==modrm_register)) //MODR/M filter matches to full opcode?
+									if ((CPUPMTimings[index].modrm_reg==0) || (CPUPMTimings[index].modrm_reg==(modrm_register+1))) //MODR/M filter matches to full opcode?
 									{
 										if (sublistsize<NUMITEMS(sublist)) //Can we even add this item?
 										{

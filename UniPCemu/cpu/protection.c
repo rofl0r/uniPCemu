@@ -17,6 +17,8 @@ Basic CPU active segment value retrieval.
 
 extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 
+uint_32 CALLGATE_NUMARGUMENTS = 0; //The amount of arguments of the call gate!
+
 void CPU_triplefault()
 {
 	unlock(LOCK_CPU);
@@ -335,7 +337,7 @@ result:
 
 */
 
-SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word segmentval, byte isJMPorCALL) //Get this corresponding segment descriptor (or LDT. For LDT, specify LDT register as segment) for loading into the segment descriptor cache!
+SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word segmentval, byte isJMPorCALL, byte *isdifferentCPL) //Get this corresponding segment descriptor (or LDT. For LDT, specify LDT register as segment) for loading into the segment descriptor cache!
 {
 	SEGDESCRIPTOR_TYPE LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
 
@@ -460,7 +462,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		}
 
 		//Execute a normal task switch!
-		if (CPU_switchtask(segment,&LOADEDDESCRIPTOR,&segmentval,segmentval,isJMPorCALL)) //Switching to a certain task?
+		if (CPU_switchtask(segment,&LOADEDDESCRIPTOR,&segmentval,segmentval,isJMPorCALL,is_gated)) //Switching to a certain task?
 		{
 			return NULL; //Error changing priviledges or anything else!
 		}
@@ -514,24 +516,28 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 			}
 			uint_32 argument; //Current argument to copy to the destination stack!
 			word arguments;
-			arguments = GATEDESCRIPTOR.desc.ParamCnt; //Amount of parameters!
 			fifobuffer_clear(CPU[activeCPU].CallGateStack); //Clear our stack to transfer!
-			for (;arguments--;) //Copy as many arguments as needed!
+			if (LOADEDDESCRIPTOR.desc.DPL!=getCPL()) //Stack switch required?
 			{
-				if (DATA_SEGMENT_DESCRIPTOR_B_BIT()) //32-bit source?
+				*isdifferentCPL = 1; //We're a different level!
+				arguments = CALLGATE_NUMARGUMENTS =  GATEDESCRIPTOR.desc.ParamCnt; //Amount of parameters!
+				for (;arguments--;) //Copy as many arguments as needed!
 				{
-					argument = CPU_POP32(); //POP 32-bit argument!
+					if (DATA_SEGMENT_DESCRIPTOR_B_BIT()) //32-bit source?
+					{
+						argument = CPU_POP32(); //POP 32-bit argument!
+					}
+					else //16-bit source?
+					{
+						argument = (uint_32)CPU_POP16(); //POP 16-bit argument!
+					}
+					if (CPU[activeCPU].faultraised) //Fault was raised reading source parameters?
+					{
+						fifobuffer_clear(CPU[activeCPU].CallGateStack); //Clear our stack!
+						return NULL; //Abort!
+					}
+					writefifobuffer32(CPU[activeCPU].CallGateStack,argument); //Add the argument to the call gate buffer to transfer to the new stack!
 				}
-				else //16-bit source?
-				{
-					argument = (uint_32)CPU_POP16(); //POP 16-bit argument!
-				}
-				if (CPU[activeCPU].faultraised) //Fault was raised reading source parameters?
-				{
-					fifobuffer_clear(CPU[activeCPU].CallGateStack); //Clear our stack!
-					return NULL; //Abort!
-				}
-				writefifobuffer32(CPU[activeCPU].CallGateStack,argument); //Add the argument to the call gate buffer to transfer to the new stack!
 			}
 		}
 	}
@@ -543,29 +549,66 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 
 void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
+	byte TSSSize, isDifferentCPL;
 	if (CPU[activeCPU].faultraised) return; //Abort if already an fault has been raised!
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
+		isDifferentCPL = 0; //Default: same CPL!
 		SEGMENT_DESCRIPTOR tempdescriptor;
-		SEGMENT_DESCRIPTOR *descriptor = getsegment_seg(segment,&tempdescriptor,value,isJMPorCALL); //Read the segment!
+		SEGMENT_DESCRIPTOR *descriptor = getsegment_seg(segment,&tempdescriptor,value,isJMPorCALL,&isDifferentCPL); //Read the segment!
+		byte TSS_StackPos;
 		uint_32 stackval;
 		word stackval16; //16-bit stack value truncated!
 		if (descriptor) //Loaded&valid?
 		{
 			if ((segment == CPU_SEGMENT_CS) && (isJMPorCALL == 2)) //CALL needs pushed data on the stack?
 			{
-				for (;fifobuffer_freesize(CPU[activeCPU].CallGateStack);) //Process the CALL Gate Stack!
+				if (CALLGATE_NUMARGUMENTS) //Stack switch is required?
 				{
-					if (readfifobuffer32(CPU[activeCPU].CallGateStack,&stackval)) //Read the value to transfer?
+					TSSSize = 0; //Default to 16-bit TSS!
+					switch (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type) //What kind of TSS?
 					{
-						if ((DATA_SEGMENT_DESCRIPTOR_B_BIT()) && (EMULATED_CPU>=CPU_80386)) //32-bit stack to push to?
+					case AVL_SYSTEM_BUSY_TSS32BIT:
+					case AVL_SYSTEM_TSS32BIT:
+						TSSSize = 1; //32-bit TSS!
+					case AVL_SYSTEM_BUSY_TSS16BIT:
+					case AVL_SYSTEM_TSS16BIT:
+						TSS_StackPos = (2<<TSSSize); //Start of the stack block! 2 for 16-bit TSS, 4 for 32-bit TSS!
+						TSS_StackPos += (4<<TSSSize)*descriptor->DPL; //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
+						stackval = TSSSize?MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0):MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0); //Read (E)SP for the privilege level from the TSS!
+						if (TSSSize) //32-bit?
 						{
-							CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
+							TSS_StackPos += 8; //Take SS position!
 						}
-						else //16-bit?
+						else
 						{
-							stackval16 = (word)(stackval&0xFFFF); //Reduced data if needed!
-							CPU_PUSH16(&stackval16); //Push the 16-bit stack value to the new stack!
+							TSS_StackPos += 4; //Take SS position!
+						}
+						segmentWritten(CPU_SEGMENT_SS,MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0),0); //Read SS!
+						if (CPU[activeCPU].faultraised) return; //Abort on fault!
+						if (TSSSize) //32-bit?
+						{
+							CPU[activeCPU].registers->ESP = stackval; //Apply the stack position!
+						}
+						else
+						{
+							CPU[activeCPU].registers->SP = (word)stackval; //Apply the stack position!
+						}
+						//Now, we've switched to the destination stack! Load all parameters onto the new stack!
+						for (;fifobuffer_freesize(CPU[activeCPU].CallGateStack);) //Process the CALL Gate Stack!
+						{
+							if (readfifobuffer32(CPU[activeCPU].CallGateStack,&stackval)) //Read the value to transfer?
+							{
+								if ((DATA_SEGMENT_DESCRIPTOR_B_BIT()) && (EMULATED_CPU>=CPU_80386)) //32-bit stack to push to?
+								{
+									CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
+								}
+								else //16-bit?
+								{
+									stackval16 = (word)(stackval&0xFFFF); //Reduced data if needed!
+									CPU_PUSH16(&stackval16); //Push the 16-bit stack value to the new stack!
+								}
+							}
 						}
 					}
 				}
@@ -579,6 +622,21 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				{
 					CPU_PUSH16(&CPU[activeCPU].registers->CS);
 					CPU_PUSH16(&CPU[activeCPU].registers->IP);
+				}
+
+				if (hascallinterrupttaken_type==0xFF) //Not set yet?
+				{
+					if (CPU[activeCPU].faultraised==0) //OK?
+					{
+						if (isDifferentCPL) //Different CPL?
+						{
+							hascallinterrupttaken_type = CALLGATE_NUMARGUMENTS?CALLGATE_DIFFERENTLEVEL_XPARAMETERS:CALLGATE_DIFFERENTLEVEL_NOPARAMETERS; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+						}
+						else //Same CPL call gate?
+						{
+							hascallinterrupttaken_type = CALLGATE_SAMELEVEL; //Same level call gate!
+						}
+					}		
 				}
 			}
 
@@ -951,7 +1009,7 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 			THROWDESCGP(desttask); //Throw #GP error!
 			return; //Error, by specified reason!
 		}
-		CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 0); //Execute a task switch to the new task!
+		CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 0,1); //Execute a task switch to the new task!
 		if (is_HW && (error != -1))
 		{
 			CPU_PUSH32(&error); //Push the error on the stack!

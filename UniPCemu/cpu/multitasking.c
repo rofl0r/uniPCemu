@@ -1,14 +1,18 @@
 #include "headers/cpu/cpu.h" //CPU reqs!
 #include "headers/cpu/multitasking.h" //Our typedefs!
 #include "headers/mmu/mmuhandler.h" //Direct MMU support!
+#include "headers/cpu/cpu_pmtimings.h" //286+ timing support!
 
 //Force 16-bit TSS on 80286?
 //#define FORCE_16BITTSS
 
 //Everything concerning TSS.
 
-byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL) //Switching to a certain task?
+extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+
+byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated) //Switching to a certain task?
 {
+	byte isStackSwitch = 0; //Stack switch?
 	byte destStack = 3; //Destination stack!
 	//Both structures to use for the TSS!
 	word LDTsegment;
@@ -31,6 +35,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	if (LOADEDDESCRIPTOR->desc.DPL != getCPL()) //Different CPL? Stack switch?
 	{
 		destStack = LOADEDDESCRIPTOR->desc.DPL; //Switch to this stack!
+		isStackSwitch = 1; //Switching stacks!
 	}
 
 	uint_32 limit; //The limit we use!
@@ -443,6 +448,18 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 
 	//All segments are valid and readable!
+
+	if (hascallinterrupttaken_type==0xFF) //Not set yet?
+	{
+		if (gated) //Different CPL?
+		{
+			hascallinterrupttaken_type = OTHERGATE_NORMALTASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+		}
+		else //Same CPL call gate?
+		{
+			hascallinterrupttaken_type = OTHERGATE_NORMALTSS; //Normal TSS direct call!
+		}
+	}
 
 	return 0; //Abort any running instruction operation!
 }

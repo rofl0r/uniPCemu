@@ -197,7 +197,7 @@ CPUPM_Timings CPUPMTimings[215] = {
 
 	//JMP
 	,{0,0,0xEB,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Short/long
-	,{0,0,0xED,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Direct within segment
+	,{0,0,0xE9,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Direct within segment
 	,{0,0,0xFF,0xFF,0x05,{{{{7,0,0},{11,0,0}}},{{{7,0,0},{11,0,0}}}}} //JMP Register/memory indirect within segment
 	,{0,0,0xEA,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{23,0,0},{23,0,0}}}}} //JMP Direct intersegment
 	
