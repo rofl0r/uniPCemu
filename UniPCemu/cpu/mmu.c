@@ -100,6 +100,8 @@ extern uint_32 wordaddress; //Word address used during memory access!
 byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
 {
 	INLINEREGISTER uint_32 realaddress;
+	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
+
 	if (CPU_MMU_checklimit(segdesc,segment,offset,readflags)) //Disallowed?
 	{
 		MMU.invaddr = 2; //Invalid address signaling!
@@ -144,6 +146,20 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 	if (writewordbackup==0) //First data of the word access?
 	{
 		wordaddress = realaddress; //Word address used during memory access!
+		if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
+		{
+			CPU[activeCPU].cycles_MMUR += 3; //Add memory cycles used!
+		}
+	}
+	else //Second data of a word access?
+	{
+		if ((realaddress&~1)!=(wordaddress&~1)) //Unaligned word access? We're the second byte on a different word boundary!
+		{
+			if (EMULATED_CPU==CPU_80286) //Process additional cycles!
+			{
+				CPU[activeCPU].cycles_MMUR += 3; //Add memory cycles used!				
+			}
+		}
 	}
 
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,opcode,index); //Read from MMU/hardware!
@@ -200,6 +216,20 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 	if (writewordbackup==0) //First data of the word access?
 	{
 		wordaddress = realaddress; //Word address used during memory access!
+		if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
+		{
+			CPU[activeCPU].cycles_MMUW += 3; //Add memory cycles used!
+		}
+	}
+	else //Second data of a word access?
+	{
+		if ((realaddress&~1)!=(wordaddress&~1)) //Unaligned word access? We're the second byte on a different word boundary!
+		{
+			if (EMULATED_CPU==CPU_80286) //Process additional cycles!
+			{
+				CPU[activeCPU].cycles_MMUW += 3; //Add memory cycles used!				
+			}
+		}
 	}
 
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
@@ -237,12 +267,12 @@ void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Read without segment
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val) //Set adress!
 {
-	if (segdesc!=-1) CPU[activeCPU].cycles_MMUW += 4; //CPU writes are counted!
+	if (segdesc!=-1) CPU[activeCPU].cycles_MMUW += (EMULATED_CPU==CPU_80286)?0:4; //CPU writes are counted!
 	MMU_INTERNAL_wb(segdesc,segment,offset,val,0);
 }
 void MMU_ww(sword segdesc, word segment, uint_32 offset, word val) //Set adress!
 {
-	if (segdesc!=-1) CPU[activeCPU].cycles_MMUW += CPU_databussize?8:4; //CPU writes are counted!
+	if (segdesc!=-1) CPU[activeCPU].cycles_MMUW += (EMULATED_CPU==CPU_80286)?0:(CPU_databussize?8:4); //CPU writes are counted!
 	MMU_INTERNAL_ww(segdesc,segment,offset,val,0);
 }
 void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val) //Set adress!
@@ -251,12 +281,12 @@ void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val) //Set adr
 }
 byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
 {
-	if (segdesc!=-1) CPU[activeCPU].cycles_MMUR += 4; //CPU writes are counted!
+	if (segdesc!=-1) CPU[activeCPU].cycles_MMUR += EMULATED_CPU==CPU_80286?0:4; //CPU writes are counted!
 	return MMU_INTERNAL_rb(segdesc,segment,offset,opcode,0);
 }
 word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
 {
-	if (segdesc!=-1) CPU[activeCPU].cycles_MMUR += CPU_databussize?8:4; //CPU writes are counted!
+	if (segdesc!=-1) CPU[activeCPU].cycles_MMUR += (EMULATED_CPU==CPU_80286)?0:(CPU_databussize?8:4); //CPU writes are counted!
 	return MMU_INTERNAL_rw(segdesc,segment,offset,opcode,0);
 }
 uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode) //Get adress, opcode=1 when opcode reading, else 0!
