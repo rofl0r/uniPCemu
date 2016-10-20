@@ -1,60 +1,8 @@
 #include "headers/cpu/cpu.h" //Basic types!
-
-typedef struct
-{
-	byte CPU; //For what CPU(286 relative)? 0=286, 1=386, 2=486, 3=586(Pentium) etc
-	byte is0F; //Are we an extended instruction(0F instruction)?
-	byte OPcode; //The opcode to be applied to!
-	byte OPcodemask; //The mask to be applied to the original opcode to match this opcode in order to be applied!
-	byte modrm_reg; //>0: Substract 1 for the modr/m reg requirement. Else no modr/m is looked at!
-	struct
-	{
-		struct
-		{
-			word basetiming;
-			word n; //With RO*/SH*/SAR is the amount of bytes actually shifted; With String instructions, added to base ount with multiplier(number of repeats after first instruction)
-			byte addclock; //bit 0=Add one clock if we're using 3 memory operands! bit 1=n is count to add for string instructions (every repeat).  This variant is only used with string instructions., bit 2=We depend on the gate used. The gate type we're for is specified in the low 4 bits of n. The upper 2(bits 4-5) bits of n specify: 1=Same privilege level Call gate, 2=Different privilege level Call gate, no parameters, 3=Different privilege level, X parameters, 0=Ignore privilege level/parameters in the cycle calculation, bit 3=This rule only fires when the jump is taken. bit 4=This rule fires only when the L value of the ENTER instruction matches and fits in the lowest bit of n. 5=This rule fires only when the L value of the ENTER instruction doesn't fit in 1 bit. L is multiplied with the n value and added to the base count cycles.
-			//Setting addclock bit 2, n lower bits to call gate and n higher bits to 2 adds 4 cycles for each parameter on a 80286.
-			//With addclock bit 4, n is the L value to be specified. With addclock bit 5, (L - 1) is multiplied with the n value and added to the base count cycles.
-		} ismemory[2]; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
-	} CPUmode[2]; //0=Real mode, 1=Protected mode
-} CPUPM_Timings;
-
-//Lower 4 bits of the n information
-#define GATECOMPARISON_CALLGATE 1
-#define GATECOMPARISON_TSS 2
-#define GATECOMPARISON_TASKGATE 3
-#define GATECOMPARISON_INTERRUPTGATE 4
-//Special RET case for returning to different privilege levels!
-#define GATECOMPARISON_RET 4
-
-//High 2 bits of the n information
-#define CALLGATETIMING_SAMEPRIVILEGELEVEL 1
-#define CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_NOPARAMETERS 2
-#define CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_XPARAMETERS 3
-#define GATETIMING_ANYPRIVILEGELEVEL 0
-
-#define INTERRUPTGATE_SAMEPRIVILEGELEVEL 0
-#define INTERRUPTGATE_DIFFERENTPRIVILEGELEVEL 1
-#define INTERRUPTGATE_TASKGATE 2
-
-//Simplified stuff for 286 gate descriptors(combination of the above flags used, which are used in the lookup table multiple times)!
-#define INTERRUPTGATETIMING_SAMELEVEL ((GATECOMPARISON_INTERRUPTGATE)|(INTERRUPTGATE_SAMEPRIVILEGELEVEL<<4))
-#define INTERRUPTGATETIMING_DIFFERENTLEVEL ((GATECOMPARISON_INTERRUPTGATE)|(INTERRUPTGATE_DIFFERENTPRIVILEGELEVEL<<4))
-#define INTERRUPTGATETIMING_TASKGATE ((GATECOMPARISON_INTERRUPTGATE)|(INTERRUPTGATE_TASKGATE<<4))
-
-
-
-//Simplified stuff for 286 gate descriptors(combination of the above flags used, which are used in the lookup table multiple times)!
-#define CALLGATE_SAMELEVEL ((GATECOMPARISON_CALLGATE)|(CALLGATETIMING_SAMEPRIVILEGELEVEL<<4))
-#define CALLGATE_DIFFERENTLEVEL_NOPARAMETERS ((GATECOMPARISON_CALLGATE)|(CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_NOPARAMETERS<<4))
-#define CALLGATE_DIFFERENTLEVEL_XPARAMETERS ((GATECOMPARISON_CALLGATE)|(CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_XPARAMETERS<<4))
-#define OTHERGATE_NORMALTSS ((GATECOMPARISON_TSS)|(GATETIMING_ANYPRIVILEGELEVEL<<4))
-#define OTHERGATE_NORMALTASKGATE ((GATECOMPARISON_TASKGATE)|(GATETIMING_ANYPRIVILEGELEVEL<<4))
-#define RET_DIFFERENTLEVEL ((GATECOMPARISON_RET)|(CALLGATETIMING_DIFFERENTPRIVILEGELEVEL_NOPARAMETERS<<4))
+#include "headers/cpu/cpu_pmtimings.h" //Protected-mode timings header!
 
 //Compressed protected&real mode timing table. This will need to be uncompressed for usage to be usable(long lookup times otherwise)
-CPUPM_Timings CPUPMTimings[] = {
+CPUPM_Timings CPUPMTimings[215] = {
 	//286 CPU timings
 	//MOV
 	{0,0,0x88,0xFE,0x00,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Register to Register/Memory
@@ -425,6 +373,7 @@ CPUPM_Timings CPUPMTimings[] = {
 	,{0,1,0x00,0xFF,0x05,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //VERR
 	//VERW
 	,{0,1,0x00,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //VERR
+	//215 items at this point!
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
