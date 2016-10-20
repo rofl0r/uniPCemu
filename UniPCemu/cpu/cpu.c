@@ -1354,6 +1354,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 									CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
 									CPU[activeCPU].cycles += currenttimingcheck->n*(ENTER_L-1); //This adds the n value for each level after level 1 linearly!
 									CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+									if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 									goto apply286cycles; //Apply the cycles!									
 								}
 							}
@@ -1366,6 +1367,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 								{
 									CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
 									CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+									if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 									goto apply286cycles; //Apply the cycles!									
 								}
 							}
@@ -1376,6 +1378,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 							{
 								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!								
 								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 								goto apply286cycles; //Apply the cycles!
 							}
 						}
@@ -1385,6 +1388,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 							{
 								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!								
 								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 								goto apply286cycles; //Apply the cycles!								
 							}
 						}
@@ -1401,6 +1405,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 									CPU[activeCPU].cycles = currenttimingcheck->n; //Simply cycle count added each REPeated instruction!
 								}
 								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 								goto apply286cycles; //Apply the cycles!
 							}
 						}
@@ -1408,6 +1413,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 						{
 							CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
 							CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+							if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 							goto apply286cycles; //Apply the cycles!
 						}
 					}
