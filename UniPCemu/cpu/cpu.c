@@ -1062,9 +1062,13 @@ extern byte DosboxClock; //Dosbox clocking?
 
 byte newREP = 1; //Are we a new repeating instruction (REP issued?)
 
-//Stuff for CPU timing processing!
+//Stuff for CPU 286+ timing processing!
 byte didJump = 0; //Did we jump this instruction?
 byte ENTER_L = 0; //Level value of the ENTER instruction!
+
+byte hascallinterrupttaken_type = 0xFF; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+byte CPU_interruptraised = 0;
+
 extern CPUPM_Timings CPUPMTimings[215]; //The PM timings full table!
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
@@ -1090,6 +1094,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	//Initialize stuff needed for local CPU timing!
 	didJump = 0; //Default: we didn't jump!
 	ENTER_L = 0; //Default to no L depth!
+	hascallinterrupttaken_type = 0xFF; //Default to no call/interrupt taken type!
+	CPU_interruptraised = 0; //Default: no interrupt raised!
 
 	//Now, starting the instruction preprocessing!
 	CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
@@ -1322,7 +1328,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			{
 				modrm_threevariablesused = 0; //Only 2 or less variables used in calculating the ModR/M.
 			}
-			currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
+
+			if (CPU_interruptraised) //Any fault is raised?
+			{
+				currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
+			}
 			//Try to use the lookup table!
 			for (instructiontiming=0;((instructiontiming<8)&&*currentinstructiontiming);++instructiontiming, ++currentinstructiontiming) //Process all timing candidates!
 			{

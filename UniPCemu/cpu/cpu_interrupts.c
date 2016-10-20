@@ -26,8 +26,12 @@ void CPU_getint(byte intnr, word *segment, word *offset) //Set real mode IVT ent
 
 extern uint_32 destEIP;
 
+//Interrupt support for timings!
+extern byte CPU_interruptraised; //Interrupt raised flag?
+
 OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset, byte is_HW) //Used by soft (below) and exceptions/hardware!
 {
+	CPU_interruptraised = 1; //We've raised an interrupt!
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
 	{
 		CPU_PUSH16(&REG_FLAGS); //Push flags!

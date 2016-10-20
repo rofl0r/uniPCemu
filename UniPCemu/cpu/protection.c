@@ -5,6 +5,7 @@
 #include "headers/mmu/mmuhandler.h" //Direct memory access support!
 #include "headers/emu/debugger/debugger.h" //For logging check!
 #include "headers/support/locks.h" //We need to unlock ourselves during triple faults, to reset ourselves!
+#include "headers/cpu/cpu_pmtimings.h" //286+ timing support!
 
 /*
 
@@ -13,6 +14,8 @@ Basic CPU active segment value retrieval.
 */
 
 //Exceptions, 286+ only!
+
+extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 
 void CPU_triplefault()
 {
@@ -952,6 +955,10 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 		if (is_HW && (error != -1))
 		{
 			CPU_PUSH32(&error); //Push the error on the stack!
+			if (CPU[activeCPU].faultraised==0) //OK?
+			{
+				hascallinterrupttaken_type = INTERRUPTGATETIMING_TASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+			}
 		}
 		break;
 	default: //All other cases?
@@ -1025,6 +1032,11 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 			if ((idtentry.Type & 0x7) == IDTENTRY_16BIT_INTERRUPTGATE)
 			{
 				CPU[activeCPU].registers->SFLAGS.IF = 0; //No interrupts!
+			}
+
+			if (CPU[activeCPU].faultraised==0) //OK?
+			{
+				hascallinterrupttaken_type = INTERRUPTGATETIMING_SAMELEVEL; //TODO Specify same level for now, until different level is implemented!
 			}
 			break;
 		default: //Unknown descriptor type?
