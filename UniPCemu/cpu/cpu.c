@@ -1064,6 +1064,7 @@ byte newREP = 1; //Are we a new repeating instruction (REP issued?)
 
 //Stuff for CPU timing processing!
 byte didJump = 0; //Did we jump this instruction?
+byte ENTER_L = 0; //Level value of the ENTER instruction!
 extern CPUPM_Timings CPUPMTimings[215]; //The PM timings full table!
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
@@ -1088,6 +1089,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 	//Initialize stuff needed for local CPU timing!
 	didJump = 0; //Default: we didn't jump!
+	ENTER_L = 0; //Default to no L depth!
 
 	//Now, starting the instruction preprocessing!
 	CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
@@ -1331,11 +1333,26 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 						currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()].ismemory[ismemory]; //Our current info to check!
 						if (currenttimingcheck->addclock&0x20) //L of instruction doesn't fit in 1 bit?
 						{
-							//TODO
+							if ((ENTER_L&1)!=ENTER_L) //Doesn't fit in 1 bit?
+							{
+								if ((ENTER_L&1)==currenttimingcheck->n) //Matching timing?
+								{
+									CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
+									CPU[activeCPU].cycles += currenttimingcheck->n*(ENTER_L-1); //This adds the n value for each level after level 1 linearly!
+									goto apply286cycles; //Apply the cycles!									
+								}
+							}
 						}
 						else if (currenttimingcheck->addclock&0x10) //L of instruction fits in 1 bit and matches?
 						{
-							//TODO
+							if ((ENTER_L&1)==ENTER_L) //Fits in 1 bit?
+							{
+								if ((ENTER_L&1)==currenttimingcheck->n) //Matching timing?
+								{
+									CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
+									goto apply286cycles; //Apply the cycles!									
+								}
+							}
 						}
 						else if (currenttimingcheck->addclock&0x08) //Only when jump taken?
 						{

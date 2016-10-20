@@ -468,6 +468,8 @@ void CPU186_OPC1()
 	
 	modrm_write16(&params,1,op_grp2_16((byte)oper2,2),0);
 } //GRP2 Ev,Ib
+
+extern byte ENTER_L; //Level value of the ENTER instruction!
 void CPU186_OPC8()
 {
 	word temp16;    //ENTER Iw,Ib
@@ -475,6 +477,7 @@ void CPU186_OPC8()
 	byte nestlev = immb;
 	debugger_setcommand("ENTER %04X,%02X",stacksize,nestlev);
 	if (checkStackAccess(1+(nestlev?(nestlev&0x1F):0),1,0)) return; //Abort on error!
+	ENTER_L = nestlev; //Set the nesting level used!
 	CPU_PUSH16(&REG_BP);
     word frametemp = REG_SP;
     if (nestlev)

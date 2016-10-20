@@ -101,6 +101,8 @@ Start of help for debugging
 
 */
 
+extern byte didJump; //Branch taken?
+
 extern char modrm_param1[256]; //Contains param/reg1
 extern char modrm_param2[256]; //Contains param/reg2
 
@@ -1412,10 +1414,10 @@ void CPU80386_OPCA() { INLINEREGISTER sword popbytes = imm32();/*RETF imm32 (Far
 void CPU80386_OPCB() { modrm_generateInstructionTEXT386("RETF", 0, 0, PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU80386_internal_RETF(0, 0); }
 void CPU80386_OPCD() { INLINEREGISTER byte theimm = immb; INTdebugger80386(); modrm_generateInstructionTEXT386("INT", 0, theimm, PARAM_IMM8);/*INT imm8*/ CPU80386_int(theimm, 0);/*INT imm8*/ }
 void CPU80386_OPCE() { modrm_generateInstructionTEXT386("INTO", 0, 0, PARAM_NONE);/*INTO*/ CPU80386_internal_INTO();/*INTO*/ }
-void CPU80386_OPE0() { INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT386("LOOPNZ", 0, ((REG_EIP + rel8) & 0xFFFF), PARAM_IMM32); if ((--REG_ECX) && (!FLAG_ZF)) { REG_EIP += rel8; CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Branch taken */ } else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */ } }
-void CPU80386_OPE1() { INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT386("LOOPZ", 0, ((REG_EIP + rel8) & 0xFFFF), PARAM_IMM32);if ((--REG_ECX) && (FLAG_ZF)) { REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 18; /* Branch taken */ } else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */ } }
-void CPU80386_OPE2() { INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT386("LOOP", 0, ((REG_EIP + rel8) & 0xFFFF), PARAM_IMM32);if (--REG_ECX) { REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 17; /* Branch taken */ } else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */ } }
-void CPU80386_OPE3() { INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT386("JCXZ", 0, ((REG_EIP + rel8) & 0xFFFF), PARAM_IMM32); if (!REG_ECX) { REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/CPU[activeCPU].cycles_OP = 18; /* Branch taken */ } else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */ } }
+void CPU80386_OPE0() { INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT386("LOOPNZ", 0, ((REG_EIP + rel8) & 0xFFFF), PARAM_IMM32); if ((--REG_ECX) && (!FLAG_ZF)) { REG_EIP += rel8; CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; didJump = 1; /* Branch taken */ } else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */ } }
+void CPU80386_OPE1() { INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT386("LOOPZ", 0, ((REG_EIP + rel8) & 0xFFFF), PARAM_IMM32);if ((--REG_ECX) && (FLAG_ZF)) { REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 18; didJump = 1; /* Branch taken */ } else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */ } }
+void CPU80386_OPE2() { INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT386("LOOP", 0, ((REG_EIP + rel8) & 0xFFFF), PARAM_IMM32);if (--REG_ECX) { REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 17; didJump = 1; /* Branch taken */ } else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */ } }
+void CPU80386_OPE3() { INLINEREGISTER signed char rel8; rel8 = imm8(); modrm_generateInstructionTEXT386("JCXZ", 0, ((REG_EIP + rel8) & 0xFFFF), PARAM_IMM32); if (!REG_ECX) { REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/CPU[activeCPU].cycles_OP = 18; didJump = 1; /* Branch taken */ } else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */ } }
 void CPU80386_OPE5() { INLINEREGISTER byte theimm = imm8();modrm_generateInstructionTEXT386("IN EAX,", 0, theimm, PARAM_IMM8); CPU_PORT_IN_D(theimm, &REG_EAX); CPU[activeCPU].cycles_OP = 10; /*Timings!*/  CPU_addWordMemoryTiming386(); /*To memory?*/ }
 void CPU80386_OPE7() { INLINEREGISTER byte theimm = imm8(); debugger_setcommand("OUT %02X,EAX", theimm); CPU_PORT_OUT_D(theimm, REG_EAX); CPU[activeCPU].cycles_OP = 10; /*Timings!*/ CPU_addWordMemoryTiming386(); /*To memory?*/ }
 void CPU80386_OPE8() { INLINEREGISTER sword reloffset = imm32(); modrm_generateInstructionTEXT386("CALL", 0, ((REG_EIP + reloffset) & 0xFFFF), PARAM_IMM32); CPU_PUSH32(&REG_EIP); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Intrasegment direct */ }
