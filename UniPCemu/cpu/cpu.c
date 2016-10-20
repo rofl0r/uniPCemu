@@ -1353,6 +1353,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 								{
 									CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
 									CPU[activeCPU].cycles += currenttimingcheck->n*(ENTER_L-1); //This adds the n value for each level after level 1 linearly!
+									CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
 									goto apply286cycles; //Apply the cycles!									
 								}
 							}
@@ -1364,6 +1365,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 								if ((ENTER_L&1)==currenttimingcheck->n) //Matching timing?
 								{
 									CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
+									CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
 									goto apply286cycles; //Apply the cycles!									
 								}
 							}
@@ -1373,6 +1375,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 							if (didJump) //Did we jump?
 							{
 								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!								
+								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
 								goto apply286cycles; //Apply the cycles!
 							}
 						}
@@ -1381,6 +1384,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 							if (currenttimingcheck->n==hascallinterrupttaken_type) //Did we execute this kind of gate?
 							{
 								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!								
+								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
 								goto apply286cycles; //Apply the cycles!								
 							}
 						}
@@ -1396,12 +1400,14 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 								{
 									CPU[activeCPU].cycles = currenttimingcheck->n; //Simply cycle count added each REPeated instruction!
 								}
+								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
 								goto apply286cycles; //Apply the cycles!
 							}
 						}
 						else //Normal/default behaviour? Always matches!
 						{
 							CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
+							CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
 							goto apply286cycles; //Apply the cycles!
 						}
 					}
