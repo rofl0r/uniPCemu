@@ -1260,6 +1260,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 11; //Based indexed relative!
+			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_BXDI: //BX+DI?
 			if (cpudebugger) sprintf(result->text,"[%s:BX+DI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
@@ -1269,6 +1270,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 			params->EA_cycles = 12; //Based indexed relative!
+			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_BPSI: //BP+SI?
 			if (cpudebugger) sprintf(result->text,"[%s:BP+SI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
@@ -1278,6 +1280,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 			params->EA_cycles = 12; //Based indexed relative!
+			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_BPDI: //BP+DI?
 			if (cpudebugger) sprintf(result->text,"[%s:BP+DI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
@@ -1287,6 +1290,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 			segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 			params->EA_cycles = 11; //Based indexed relative!
+			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_SI: //SI?
 			if (cpudebugger) sprintf(result->text,"[%s:SI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext8(params->displacement.low16_low)); //Give addr!
@@ -1343,6 +1347,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_BX+REG_SI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+				params->havethreevariables = 1; //3 params added!
 				break;
 			case MODRM_MEM_BXDI: //BX+DI?
 				if (cpudebugger) sprintf(result->text,"[%s:BX+DI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
@@ -1350,6 +1355,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_BX+REG_DI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+				params->havethreevariables = 1; //3 params added!
 				break;
 			case MODRM_MEM_BPSI: //BP+SI?
 				if (cpudebugger) sprintf(result->text,"[%s:BP+SI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
@@ -1357,6 +1363,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_BP+REG_SI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+				params->havethreevariables = 1; //3 params added!
 				break;
 			case MODRM_MEM_BPDI: //BP+DI?
 				if (cpudebugger) sprintf(result->text,"[%s:BP+DI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
@@ -1364,6 +1371,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				offset = REG_BP+REG_DI+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+				params->havethreevariables = 1; //3 params added!
 				break;
 			case MODRM_MEM_SI: //SI?
 				if (cpudebugger) sprintf(result->text,"[%s:SI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext32(params->displacement.dword)); //Give addr!
@@ -1412,6 +1420,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 				params->EA_cycles = 11; //Based indexed relative!
+				params->havethreevariables = 1; //3 params added!
 				break;
 			case MODRM_MEM_BXDI: //BX+DI?
 				if (cpudebugger) sprintf(result->text,"[%s:BX+DI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
@@ -1421,6 +1430,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_DS); //Is the segment overridden?
 				params->EA_cycles = 12; //Based indexed relative!
+				params->havethreevariables = 1; //3 params added!
 				break;
 			case MODRM_MEM_BPSI: //BP+SI?
 				if (cpudebugger) sprintf(result->text,"[%s:BP+SI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
@@ -1430,6 +1440,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 				params->EA_cycles = 12; //Based indexed relative!
+				params->havethreevariables = 1; //3 params added!
 				break;
 			case MODRM_MEM_BPDI: //BP+DI?
 				if (cpudebugger) sprintf(result->text,"[%s:BP+DI%s]",CPU_textsegment(CPU_SEGMENT_SS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
@@ -1439,6 +1450,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 				segmentoverridden = (CPU[activeCPU].segment_register!=CPU_SEGMENT_SS); //Is the segment overridden?
 				params->EA_cycles = 11; //Based indexed relative!
+				params->havethreevariables = 1; //3 params added!
 				break;
 			case MODRM_MEM_SI: //SI?
 				if (cpudebugger) sprintf(result->text,"[%s:SI%s]",CPU_textsegment(CPU_SEGMENT_DS),unsigned2signedtext16(params->displacement.low16)); //Give addr!
@@ -1913,6 +1925,8 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 	param->info[0].memorymask = ~0; //Default to full memory access!
 	param->info[1].memorymask = ~0; //Default to full memory access!
 
+	param->havethreevariables = 0; //Default: not 3 params added!
+	
 	//Decode appropiately!
 	switch (size) //What size?
 	{

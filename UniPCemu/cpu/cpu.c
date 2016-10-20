@@ -754,6 +754,16 @@ byte getcpumode() //Retrieves the current mode!
 	return CPUmode; //Give the current CPU mode!
 }
 
+byte isPM()
+{
+	return (CPUmode!=CPU_MODE_REAL)?1:0; //Are we in protected mode?
+}
+
+byte isV86()
+{
+	return (CPUmode==CPU_MODE_8086)?1:0; //Are we in virtual 8086 mode?
+}
+
 //PUSH and POP values!
 
 byte topdown_stack() //Top-down stack?
@@ -1056,6 +1066,10 @@ extern CPUPM_Timings CPUPMTimings[215]; //The PM timings full table!
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
+	byte didNewREP = 0, didRepeating=0; //Did we do a REP?
+	word *currentinstructiontiming; //Current timing we're processing!
+	byte instructiontiming, ismemory, modrm_threevariablesused; //Timing loop used on 286+ CPUs!
+	MemoryTimingInfo *currenttimingcheck; //Current timing check!
 	CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 	bufferMMU(); //Buffer the MMU writes for us!
 	byte cycles_counted = 0; //Cycles have been counted?
@@ -1067,7 +1081,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 	if (CPU[activeCPU].permanentreset) //We've entered a permanent reset?
 	{
-		CPU[activeCPU].cycles = 4; //Small cycle dummy! Muse be greater than zero!
+		CPU[activeCPU].cycles = 4; //Small cycle dummy! Must be greater than zero!
 		return; //Don't run the CPU: we're in a permanent reset state!
 	}
 
@@ -1245,6 +1259,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			blockREP = 1; //Block the CPU instruction from executing!
 		}
 	}
+	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
+	didNewREP = newREP; //Were we doing a REP for the first time?
 	CPU_OP(OP); //Now go execute the OPcode once!
 	if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
 	{
@@ -1290,7 +1306,52 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 		case CPU_80286: //Special 286 case for easy 8086-compatibility!
 			//80286 uses other timings than the other chips!
-			//Use the lookup table!
+			ismemory = modrm_ismemory(params)?1:0; //Are we accessing memory?
+			if (ismemory)
+			{
+				modrm_threevariablesused = MODRM_threevariables(params); //Three variables used?
+			}
+			else
+			{
+				modrm_threevariablesused = 0; //Only 2 or less variables used in calculating the ModR/M.
+			}
+			currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
+			//Try to use the lookup table!
+			for (instructiontiming=0;((instructiontiming<8)&&*currentinstructiontiming);++instructiontiming, ++currentinstructiontiming) //Process all timing candidates!
+			{
+				if (*currentinstructiontiming) //Valid timing?
+				{
+					if (CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()].ismemory[ismemory].basetiming) //Do we have valid timing to use?
+					{
+						currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()].ismemory[ismemory]; //Our current info to check!
+						if (currenttimingcheck->addclock&0x20) //L of instruction doesn't fit in 1 bit?
+						{
+						}
+						else if (currenttimingcheck->addclock&0x10) //L of instruction fits in 1 bit and matches?
+						{
+						}
+						else if (currenttimingcheck->addclock&0x08) //Only when jump taken?
+						{
+						}
+						else if (currenttimingcheck->addclock&0x04) //Gate type has to match in order to be processed?
+						{
+						}
+						else if (currenttimingcheck->addclock&0x02) //REP((N)Z) instruction prefix only?
+						{
+							if (didRepeating) //Are we executing a repeat?
+							{
+							}
+						}
+						else //Normal/default behaviour? Always matches!
+						{
+							CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
+
+							goto apply286cycles; //Apply normally!
+						}
+					}
+				}
+			}
+			//Fall back to the default handler on 80(1)86 systems!
 		case CPU_8086: //8086/8088?
 		case CPU_NECV30: //NEC V20/V30/80188?
 			//Placeholder until 8086/8088 cycles are fully implemented. Originally 8. 9 works better with 8088 MPH(better sound). 10 works worse than 9(sound disappears into the background)?
@@ -1305,6 +1366,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				CPU[activeCPU].cycles = (CPU_databussize>=1)?9:8; //Use 9 with 8088MPH CPU(8088 CPU), normal 8 with 8086.
 			#ifdef CPU_USECYCLES
 			}
+			apply286cycles: //Apply the 286+ cycles used!
 			cycles_counted = 1; //Cycles have been counted!
 			#endif
 			break;

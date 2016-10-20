@@ -8,6 +8,16 @@
 
 typedef struct
 {
+	word basetiming;
+	word n; //With RO*/SH*/SAR is the amount of bytes actually shifted; With String instructions, added to base count with multiplier(number of repeats after first instruction)
+	byte addclock; //bit 0=Add one clock if we're using 3 memory operands! bit 1=n is count to add for string instructions (every repeat).  This variant is only used with string instructions., bit 2=We depend on the gate used. The gate type we're for is specified in the low 4 bits of n. The upper 2(bits 4-5) bits of n specify: 1=Same privilege level Call gate, 2=Different privilege level Call gate, no parameters, 3=Different privilege level, X parameters, 0=Ignore privilege level/parameters in the cycle calculation, bit 3=This rule only fires when the jump is taken. bit 4=This rule fires only when the L value of the ENTER instruction matches and fits in the lowest bit of n. 5=This rule fires only when the L value of the ENTER instruction doesn't fit in 1 bit. L is multiplied with the n value and added to the base count cycles.
+	//Setting addclock bit 2, n lower bits to call gate and n higher bits to 2 adds 4 cycles for each parameter on a 80286.
+	//With addclock bit 4, n is the L value to be specified. With addclock bit 5, (L - 1) is multiplied with the n value and added to the base count cycles.
+} MemoryTimingInfo; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
+
+
+typedef struct
+{
 	byte CPU; //For what CPU(286 relative)? 0=286, 1=386, 2=486, 3=586(Pentium) etc
 	byte is0F; //Are we an extended instruction(0F instruction)?
 	byte OPcode; //The opcode to be applied to!
@@ -15,14 +25,7 @@ typedef struct
 	byte modrm_reg; //>0: Substract 1 for the modr/m reg requirement. Else no modr/m is looked at!
 	struct
 	{
-		struct
-		{
-			word basetiming;
-			word n; //With RO*/SH*/SAR is the amount of bytes actually shifted; With String instructions, added to base count with multiplier(number of repeats after first instruction)
-			byte addclock; //bit 0=Add one clock if we're using 3 memory operands! bit 1=n is count to add for string instructions (every repeat).  This variant is only used with string instructions., bit 2=We depend on the gate used. The gate type we're for is specified in the low 4 bits of n. The upper 2(bits 4-5) bits of n specify: 1=Same privilege level Call gate, 2=Different privilege level Call gate, no parameters, 3=Different privilege level, X parameters, 0=Ignore privilege level/parameters in the cycle calculation, bit 3=This rule only fires when the jump is taken. bit 4=This rule fires only when the L value of the ENTER instruction matches and fits in the lowest bit of n. 5=This rule fires only when the L value of the ENTER instruction doesn't fit in 1 bit. L is multiplied with the n value and added to the base count cycles.
-			//Setting addclock bit 2, n lower bits to call gate and n higher bits to 2 adds 4 cycles for each parameter on a 80286.
-			//With addclock bit 4, n is the L value to be specified. With addclock bit 5, (L - 1) is multiplied with the n value and added to the base count cycles.
-		} ismemory[2]; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
+		MemoryTimingInfo ismemory[2]; //First entry is register value(modr/m register-register), Second entry is memory value(modr/m register-memory)
 	} CPUmode[2]; //0=Real mode, 1=Protected mode
 } CPUPM_Timings;
 

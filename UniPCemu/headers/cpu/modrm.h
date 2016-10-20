@@ -4,11 +4,6 @@
 #include "headers/types.h" //Needs type support!
 #include "headers/cpu/cpu.h" //Need CPU support for types!
 
-//MODR/M decoders:
-byte MODRM_MOD(byte modrm); //MOD
-byte MODRM_REG(byte modrm); //REG
-byte MODRM_RM(byte modrm); //RM
-
 //REG (depends on size specified by stack B-bit&opcode 66h&done with 'register' MOD (see below)):
 
 //8-bit registers:
@@ -84,8 +79,6 @@ byte MODRM_RM(byte modrm); //RM
 #define MODRM_MEM_ESI 6
 #define MODRM_MEM_EDI 7
 
-
-
 //MOD:
 
 //e.g. [XXX] (location in memory)
@@ -135,6 +128,7 @@ typedef struct
 	byte reg_is_segmentregister; //REG is segment register?
 	MODRM_PTR info[3]; //All versions of info!
 	byte EA_cycles; //The effective address cycles we're using!
+	byte havethreevariables; //3-variable memory addition?
 } MODRM_PARAMS;
 
 #define MODRM_MOD(modrm) ((modrm & 0xC0) >> 6)
@@ -143,6 +137,7 @@ typedef struct
 #define modrm_isregister(params) (MODRM_MOD(params.modrm) == MOD_REG)
 #define modrm_ismemory(params) (MODRM_MOD(params.modrm)!=MOD_REG)
 #define MODRM_EA(params) params.EA_cycles
+#define MODRM_threevariables(params) (params.havethreevariables)
 
 /*
 Warning: SIB=Scaled index byte modes

@@ -761,7 +761,7 @@ typedef struct PACKED
 	byte permanentreset; //Are we in a permanent reset lock?
 
 	//80286 timing support for lookup tables!
-	word timing286lookup[2][2][2][0x100][9][8]; //2 modes, 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
+	word timing286lookup[2][2][2][0x100][8][8]; //2 modes, 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 
@@ -1088,5 +1088,9 @@ void CPU_PORT_IN_D(word port, uint_32 *result);
 //Information for simulating PUSH and POP on the stack!
 sbyte stack_pushchange(byte dword);
 sbyte stack_popchange(byte dword);
+
+byte isPM(); //Are we in protected mode?
+byte isV86(); //Are we in Virtual 8086 mode?
+
 
 #endif
