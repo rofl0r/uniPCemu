@@ -77,7 +77,10 @@ which is at the first row of the IBM AT POST3 function.
 #define CPU808X_TURBO_CLOCK (MHZ14/3.0f)*2.1f
 
 //80286 clock is set so that the DRAM refresh ends up with a count of F952h in CX.
-#define CPU80286_CLOCK 7280500.0
+//Original 8086 timing adjustment:
+//#define CPU80286_CLOCK 7280500.0
+//The AT runs at 6MHz 80286!
+#define CPU80286_CLOCK 6000000.0
 
 //Timeout CPU time and instruction interval! 44100Hz or 1ms!
 #define TIMEOUT_INTERVAL 10
