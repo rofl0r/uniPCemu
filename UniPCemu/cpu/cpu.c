@@ -1425,10 +1425,21 @@ void CPU_tickPrefetch()
 	cycles -= CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
 	cycles -= CPU[activeCPU].cycles_Prefetch; //Don't count memory access cycles by prefetching required data!
 	//Now we have the amount of cycles we're idling.
-	for (;(cycles >= 4) && fifobuffer_freesize(CPU[activeCPU].PIQ);) //Prefetch left to fill?
+	if (EMULATED_CPU<CPU_80286) //Old CPU?
 	{
-		CPU_fillPIQ(); //Add a byte to the prefetch!
-		cycles -= 4; //This takes four cycles to transfer!
+		for (;(cycles >= 4) && fifobuffer_freesize(CPU[activeCPU].PIQ);) //Prefetch left to fill?
+		{
+			CPU_fillPIQ(); //Add a byte to the prefetch!
+			cycles -= 4; //This takes four cycles to transfer!
+		}
+	}
+	else //286+
+	{
+		for (;(cycles >= 3) && fifobuffer_freesize(CPU[activeCPU].PIQ);) //Prefetch left to fill?
+		{
+			CPU_fillPIQ(); //Add a byte to the prefetch!
+			cycles -= 3; //This takes four cycles to transfer!
+		}
 	}
 }
 
