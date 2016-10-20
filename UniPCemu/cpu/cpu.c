@@ -1062,6 +1062,8 @@ extern byte DosboxClock; //Dosbox clocking?
 
 byte newREP = 1; //Are we a new repeating instruction (REP issued?)
 
+//Stuff for CPU timing processing!
+byte didJump = 0; //Did we jump this instruction?
 extern CPUPM_Timings CPUPMTimings[215]; //The PM timings full table!
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
@@ -1076,7 +1078,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
 	debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 	MMU_resetaddr(); //Reset invalid address for our usage!
-
 	CPU_8086REPPending(); //Process pending REP!
 
 	if (CPU[activeCPU].permanentreset) //We've entered a permanent reset?
@@ -1085,6 +1086,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		return; //Don't run the CPU: we're in a permanent reset state!
 	}
 
+	//Initialize stuff needed for local CPU timing!
+	didJump = 0; //Default: we didn't jump!
+
+	//Now, starting the instruction preprocessing!
 	CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
 	CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
 	if (!CPU[activeCPU].repeating) //Not repeating instructions?
@@ -1326,27 +1331,43 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 						currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()].ismemory[ismemory]; //Our current info to check!
 						if (currenttimingcheck->addclock&0x20) //L of instruction doesn't fit in 1 bit?
 						{
+							//TODO
 						}
 						else if (currenttimingcheck->addclock&0x10) //L of instruction fits in 1 bit and matches?
 						{
+							//TODO
 						}
 						else if (currenttimingcheck->addclock&0x08) //Only when jump taken?
 						{
+							if (didJump) //Did we jump?
+							{
+								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!								
+								goto apply286cycles; //Apply the cycles!
+							}
 						}
 						else if (currenttimingcheck->addclock&0x04) //Gate type has to match in order to be processed?
 						{
+							//TODO
 						}
 						else if (currenttimingcheck->addclock&0x02) //REP((N)Z) instruction prefix only?
 						{
 							if (didRepeating) //Are we executing a repeat?
 							{
+								if (didNewREP) //Including the REP, first instruction?
+								{
+									CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
+								}
+								else //Already repeating instruction continued?
+								{
+									CPU[activeCPU].cycles = currenttimingcheck->n; //Simply cycle count added each REPeated instruction!
+								}
+								goto apply286cycles; //Apply the cycles!
 							}
 						}
 						else //Normal/default behaviour? Always matches!
 						{
 							CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
-
-							goto apply286cycles; //Apply normally!
+							goto apply286cycles; //Apply the cycles!
 						}
 					}
 				}
