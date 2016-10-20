@@ -935,7 +935,7 @@
     <ClInclude Include="headers\cpu\paging.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\cpu\cpu_pmtimings.h">
+    <ClInclude Include="headers\cpu\cpu_pmtimings.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>
   </ItemGroup>

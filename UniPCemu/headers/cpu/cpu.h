@@ -759,6 +759,9 @@ typedef struct PACKED
 	FIFOBUFFER *CallGateStack; //Arguments to copy!
 	byte is_reset; //Are we a reset CPU?
 	byte permanentreset; //Are we in a permanent reset lock?
+
+	//80286 timing support for lookup tables!
+	word timing286lookup[2][2][2][0x100][9][8]; //2 modes, 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 

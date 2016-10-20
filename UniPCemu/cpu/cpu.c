@@ -15,6 +15,7 @@
 #include "headers/cpu/modrm.h" //MODR/M support!
 #include "headers/emu/emucore.h" //Needed for CPU reset handler!
 #include "headers/mmu/mmuhandler.h" //bufferMMU, MMU_resetaddr and flushMMU support!
+#include "headers/cpu/cpu_pmtimings.h" //80286+ timings lookup table support!
 
 //ALL INTERRUPTS
 
@@ -389,6 +390,8 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	}
 }
 
+void CPU_initLookupTables(); //Initialize the CPU timing lookup tables! Prototype!
+
 void resetCPU() //Initialises the currently selected CPU!
 {
 	byte i;
@@ -409,6 +412,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	generate_opcode_jmptbl(); //Generate the opcode jmptbl for the current CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
 	generate_timings_tbl(); //Generate the timings tables for all CPU's!
+	CPU_initLookupTables(); //Initialize our timing lookup tables!
 	if (PIQSizes[CPU_databussize][EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
 	{
 		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
@@ -1048,6 +1052,8 @@ extern byte DosboxClock; //Dosbox clocking?
 
 byte newREP = 1; //Are we a new repeating instruction (REP issued?)
 
+extern CPUPM_Timings CPUPMTimings[215]; //The PM timings full table!
+
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
@@ -1282,9 +1288,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 		switch (EMULATED_CPU) //What CPU to use?
 		{
+		case CPU_80286: //Special 286 case for easy 8086-compatibility!
+			//80286 uses other timings than the other chips!
+			//Use the lookup table!
 		case CPU_8086: //8086/8088?
 		case CPU_NECV30: //NEC V20/V30/80188?
-		case CPU_80286: //Special 286 case for easy 8086-compatibility!
 			//Placeholder until 8086/8088 cycles are fully implemented. Originally 8. 9 works better with 8088 MPH(better sound). 10 works worse than 9(sound disappears into the background)?
 			#ifdef CPU_USECYCLES
 			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
@@ -1318,6 +1326,113 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 	flushMMU(); //Flush MMU writes!
 	CPU[activeCPU].previousopcode = CPU[activeCPU].lastopcode; //Last executed OPcode for reference purposes!
+}
+
+byte haslower286timingpriority(byte CPUmode,byte ismemory,word lowerindex, word higherindex)
+{
+	if ((CPUPMTimings[higherindex].CPUmode[CPUmode].ismemory[ismemory].addclock&2)>(CPUPMTimings[lowerindex].CPUmode[CPUmode].ismemory[ismemory].addclock&2)) return 1; //REP over non-REP
+	if ((CPUPMTimings[higherindex].CPUmode[CPUmode].ismemory[ismemory].addclock&4)>(CPUPMTimings[lowerindex].CPUmode[CPUmode].ismemory[ismemory].addclock&4)) return 1; //Gate over non-Gate!
+	if ((CPUPMTimings[higherindex].CPUmode[CPUmode].ismemory[ismemory].addclock&8)>(CPUPMTimings[lowerindex].CPUmode[CPUmode].ismemory[ismemory].addclock&8)) return 1; //JMP taken over JMP not taken!
+	if ((CPUPMTimings[higherindex].CPUmode[CPUmode].ismemory[ismemory].addclock&16)>(CPUPMTimings[lowerindex].CPUmode[CPUmode].ismemory[ismemory].addclock&16)) return 1; //L value of BOUND fits having higher priority!
+	if ((CPUPMTimings[higherindex].CPUmode[CPUmode].ismemory[ismemory].addclock&32)>(CPUPMTimings[lowerindex].CPUmode[CPUmode].ismemory[ismemory].addclock&32)) return 1; //L value of BOUND counts having higher priority!
+	return 0; //We're equal priority or having higher priority! Don't swap!
+}
+
+void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
+{
+	word index; //The index into the main table!
+	word sublistindex; //The index in the sublist!
+	byte CPUmode; //The used CPU mode!
+	byte ismemory; //Memory used in the CPU mode!
+	byte is0Fopcode; //0F opcode bit!
+	word instruction; //Instruction itself!
+	word modrm_register; //The modr/m register used, if any(modr/m specified only)!
+	word sublistsize; //Sub-list size!
+	word sublist[8]; //All instructions matching this!
+	word tempsublist; //Temporary value for swapping items!
+	byte latestCPU; //Last supported CPU for this instruction timing!
+	byte currentCPU; //The CPU we're emulating, relative to the 80286!
+	byte notfound = 0; //Not found CPU timings?
+	currentCPU = EMULATED_CPU-CPU_80286; //The CPU to find in the table!
+
+	memset(&CPU[activeCPU].timing286lookup,0,sizeof(CPU[activeCPU].timing286lookup)); //Clear the entire list!
+
+	for (CPUmode=0;CPUmode<2;++CPUmode) //All CPU modes!
+	{
+		for (ismemory=0;ismemory<2;++ismemory) //All memory modes!
+		{
+			for (is0Fopcode=0;is0Fopcode<2;++is0Fopcode) //All 0F opcode possibilities!
+			{
+				for (instruction=0;instruction<0x100;++instruction) //All instruction opcodes!
+				{
+					for (modrm_register=0;modrm_register<8;++modrm_register) //All modr/m variants!
+					{
+						sublistsize = 0; //Initialize our size to none!
+						latestCPU = currentCPU; //Start off with the current CPU that's supported!
+						notfound = 1; //Default to not found!
+						for (;;) //Find the top CPU supported!
+						{
+							//First, detect the latest supported CPU!
+							for (index=0;index<NUMITEMS(CPUPMTimings);++index) //Process all timings available!
+							{
+								if ((CPUPMTimings[index].CPU==latestCPU) && (CPUPMTimings[index].is0F==is0Fopcode) && (CPUPMTimings[index].OPcode==(instruction&CPUPMTimings[index].OPcodemask))) //Basic opcode matches?
+								{
+									if ((CPUPMTimings[index].modrm_reg==0) || (CPUPMTimings[index].modrm_reg==modrm_register)) //MODR/M filter matches to full opcode?
+									{
+										notfound = 0; //We're found!
+										goto topCPUTimingsdetected; //We're detected!
+									}
+								}
+							}
+							if (latestCPU==0) goto topCPUTimingsdetected; //Abort when finished!
+							--latestCPU; //Check the next CPU!
+						}
+						topCPUTimingsdetected: //TOP CPU timings detected?
+						memset(&sublist,0,sizeof(sublist)); //Clear our sublist!
+						if (notfound) //No CPU found matching this instruction?
+						{
+							memset(&CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],0,sizeof(&CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register])); //Unused timings!
+						}
+						else //Valid CPU found for this instruction?
+						{
+							//Now, find all items that apply to this instruction!
+							for (index=0;index<NUMITEMS(CPUPMTimings);++index) //Process all timings available!
+							{
+								if ((CPUPMTimings[index].CPU==latestCPU) && (CPUPMTimings[index].is0F==is0Fopcode) && (CPUPMTimings[index].OPcode==(instruction&CPUPMTimings[index].OPcodemask))) //Basic opcode matches?
+								{
+									if ((CPUPMTimings[index].modrm_reg==0) || (CPUPMTimings[index].modrm_reg==modrm_register)) //MODR/M filter matches to full opcode?
+									{
+										if (sublistsize<NUMITEMS(sublist)) //Can we even add this item?
+										{
+											sublist[sublistsize++] = (index+1); //Add the index to the sublist, when possible!
+										}
+									}
+								}
+							}
+					
+							//Now, sort the items in their apropriate order!
+							for (index=0;index<sublistsize;++index) //Process all items to sort!
+							{
+								for (sublistindex=index+1;sublistindex<sublistsize;++sublistindex) //The items to compare!
+								{
+									if (haslower286timingpriority(CPUmode,ismemory,sublist[index],sublist[sublistindex])) //Do we have lower timing priority (item must be after the item specified)?
+									{
+										tempsublist = sublist[index]; //Lower priority index saved!
+										sublist[index] = sublist[sublistindex]; //Higher priority index to higher priority position!
+										sublist[sublistindex] = tempsublist; //Lower priority index to lower priority position!
+									}
+								}
+							}
+
+							//Now, the sublist is filled with items needed for the entry!
+							memcpy(&CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],&sublist,MIN(sizeof(sublist),sizeof(CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register]))); //Copy the sublist to the active items!
+						}
+					}
+				}
+			}
+		}
+	}
+	//The list is now ready for use!
 }
 
 void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks etc.)
