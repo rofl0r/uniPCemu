@@ -2,7 +2,7 @@
 #include "headers/cpu/cpu_pmtimings.h" //Protected-mode timings header!
 
 //Compressed protected&real mode timing table. This will need to be uncompressed for usage to be usable(long lookup times otherwise)
-CPUPM_Timings CPUPMTimings[215] = {
+CPUPM_Timings CPUPMTimings[216] = {
 	//286 CPU timings
 	//MOV
 	{0,0,0x88,0xFE,0x00,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Register to Register/Memory
@@ -374,6 +374,8 @@ CPUPM_Timings CPUPMTimings[215] = {
 	//VERW
 	,{0,1,0x00,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //VERR
 	//215 items at this point!
+	//Undocumented instruction: LOADALL
+	,{0,1,0x05,0xFF,0x00,{{{{195,0,0},{195,0,0}}},{{{195,0,0},{195,0,0}}}}} //LOADALL uses 195 clocks and performs 51 bus cycles.
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {

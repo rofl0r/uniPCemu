@@ -1255,7 +1255,7 @@ byte ENTER_L = 0; //Level value of the ENTER instruction!
 byte hascallinterrupttaken_type = 0xFF; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 byte CPU_interruptraised = 0;
 
-extern CPUPM_Timings CPUPMTimings[215]; //The PM timings full table!
+extern CPUPM_Timings CPUPMTimings[216]; //The PM timings full table!
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
