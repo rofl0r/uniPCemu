@@ -12,6 +12,7 @@
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/cpu/cpu_OP80286.h" //80286 instruction support!
 #include "headers/cpu/cpu_OPNECV30.h" //186+ #UD support!
+#include "headers/mmu/mmuhandler.h" //Direct memory access support for LOADALL!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
 extern MODRM_PARAMS params;    //For getting all params!
@@ -530,6 +531,137 @@ void CPU286_OP0F03() //LSL /r
 			FLAG_ZF = 0; //Default: not loaded!
 		}
 	CPUPROT2
+}
+
+#include "headers/packed.h" //Packed!
+typedef struct PACKED
+{
+	struct
+	{
+		word baselow;
+		byte basehigh;
+		byte accessrights; //Present bit is valid bit instead!
+		word limit;
+	};
+	byte data[6]; //All our descriptor cache data!
+} DESCRIPTORCACHE286;
+#include "headers/endpacked.h" //Finished!
+
+#include "headers/packed.h" //Packed!
+typedef struct PACKED
+{
+	struct
+	{
+		word baselow;
+		byte basehigh;
+		byte shouldbezeroed;
+		word limit;
+	};
+	byte data[6];
+} DTRdata;
+#include "headers/endpacked.h" //Finished!
+
+void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
+{
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = source->limit;
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_high = 0; //No high limit!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = source->baselow;
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = source->basehigh; //Mid is High base in the descriptor(286 only)!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = 0;
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].callgate_base_mid = 0; //Not used!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = source->accessrights; //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
+}
+
+void CPU286_OP0F05() //Undocumented LOADALL instruction
+{
+	word address;
+#include "headers/packed.h" //Packed!
+	union PACKED
+	{
+		struct
+		{
+			byte unused[6];
+			word MSW;
+			byte unused2[14];
+			word TR;
+			word flags;
+			word IP;
+			word LDT;
+			word DS;
+			word SS;
+			word CS;
+			word ES;
+			word DI;
+			word SI;
+			word BP;
+			word SP;
+			word BX;
+			word DX;
+			word CX;
+			word AX;
+			DESCRIPTORCACHE286 ESdescriptor;
+			DESCRIPTORCACHE286 CSdescriptor;
+			DESCRIPTORCACHE286 SSdescriptor;
+			DESCRIPTORCACHE286 DSdescriptor;
+			DTRdata GDTR;
+			DESCRIPTORCACHE286 LDTdescriptor;
+			DTRdata IDTR;
+			DESCRIPTORCACHE286 TSSdescriptor;
+		} fields; //Fields
+		byte data[0x66]; //All data to be loaded!
+	} LOADALLDATA;
+#include "headers/endpacked.h" //Finished!
+
+	if (getCPL() && (getcpumode()!=CPU_MODE_REAL)) //We're protected by CPL!
+	{
+		unkOP0F_286(); //Raise an error!
+		return;
+	}
+
+	//TODO: Load the data from the location specified!
+	memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
+
+	//Load the data from the used location!
+
+	for (address=0;address<sizeof(LOADALLDATA);++address) //Load all data!
+	{
+		LOADALLDATA.data[address] = memory_directrb(address); //Read the data to load from memory!
+	}
+
+	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
+	//Plain registers!
+	CPU[activeCPU].registers->CR0_full = LOADALLDATA.fields.MSW|(CPU[activeCPU].registers->CR0_full&1); //MSW! We cannot reenter real mode by clearing bit 0!
+	CPU[activeCPU].registers->TR = LOADALLDATA.fields.TR; //TR
+	CPU[activeCPU].registers->FLAGS = LOADALLDATA.fields.flags; //FLAGS
+	CPU[activeCPU].registers->EIP = LOADALLDATA.fields.IP; //IP
+	CPU[activeCPU].registers->LDTR = LOADALLDATA.fields.LDT; //LDT
+	CPU[activeCPU].registers->DS = LOADALLDATA.fields.DS; //DS
+	CPU[activeCPU].registers->SS = LOADALLDATA.fields.SS; //SS
+	CPU[activeCPU].registers->CS = LOADALLDATA.fields.CS; //CS
+	CPU[activeCPU].registers->ES = LOADALLDATA.fields.ES; //ES
+	CPU[activeCPU].registers->DI = LOADALLDATA.fields.DI; //DI
+	CPU[activeCPU].registers->SI = LOADALLDATA.fields.SI; //SI
+	CPU[activeCPU].registers->BP = LOADALLDATA.fields.BP; //BP
+	CPU[activeCPU].registers->SP = LOADALLDATA.fields.SP; //SP
+	CPU[activeCPU].registers->BX = LOADALLDATA.fields.BX; //BX
+	CPU[activeCPU].registers->DX = LOADALLDATA.fields.CX; //CX
+	CPU[activeCPU].registers->CX = LOADALLDATA.fields.DX; //DX
+	CPU[activeCPU].registers->AX = LOADALLDATA.fields.AX; //AX
+	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
+
+	//GDTR/IDTR registers!
+	CPU[activeCPU].registers->GDTR.base = (LOADALLDATA.fields.GDTR.basehigh<<2)|LOADALLDATA.fields.GDTR.baselow; //Base!
+	CPU[activeCPU].registers->GDTR.limit = LOADALLDATA.fields.GDTR.limit; //Limit
+	CPU[activeCPU].registers->IDTR.base = (LOADALLDATA.fields.IDTR.basehigh<<2)|LOADALLDATA.fields.IDTR.baselow; //Base!
+	CPU[activeCPU].registers->IDTR.limit = LOADALLDATA.fields.IDTR.limit; //Limit
+
+	//Load all descriptors directly without checks!
+	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.ESdescriptor,CPU_SEGMENT_ES); //ES descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.CSdescriptor,CPU_SEGMENT_CS); //CS descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.SSdescriptor,CPU_SEGMENT_SS); //SS descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.DSdescriptor,CPU_SEGMENT_DS); //DS descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.LDTdescriptor,CPU_SEGMENT_LDTR); //LDT descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.TSSdescriptor,CPU_SEGMENT_TR); //TSS descriptor!
 }
 
 void CPU286_OP0F06() //CLTS

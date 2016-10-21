@@ -28,7 +28,7 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 		{CPU286_OP0F02,NULL}, //02h:
 		{CPU286_OP0F03,NULL}, //03h:
 		{unkOP0F_286,NULL}, //04h:
-		{unkOP0F_286,NULL}, //05h:
+		{CPU286_OP0F05,NULL}, //05h:
 		{CPU286_OP0F06,NULL}, //06h:
 		{unkOP0F_286,NULL}, //07h:
 		{unkOP0F_286,NULL}, //08h:
@@ -304,7 +304,7 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 	{ NULL, NULL }, //02h:
 	{ NULL, NULL }, //03h:
 	{ NULL, NULL }, //04h:
-	{ NULL, NULL }, //05h:
+	{ unkOP0F_286, NULL }, //05h: 286-only LOADALL doesn't exist anymore on a 386!
 	{ NULL, NULL }, //06h:
 	{ NULL, NULL }, //07h:
 	{ NULL, NULL }, //08h:

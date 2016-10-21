@@ -13,6 +13,7 @@ void CPU286_OP0F00(); //Various extended 286+ instructions GRP opcode.
 void CPU286_OP0F01(); //Various extended 286+ instruction GRP opcode.
 void CPU286_OP0F02(); //LAR /r
 void CPU286_OP0F03(); //LSL /r
+void CPU286_OP0F05(); //Undocumented LOADALL instruction
 void CPU286_OP0F06(); //CLTS
 void CPU286_OP0F0B(); //#UD instruction
 void CPU286_OP0FB9(); //#UD instruction
