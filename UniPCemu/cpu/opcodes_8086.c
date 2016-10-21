@@ -343,8 +343,8 @@ OPTINLINE void CPU8086_internal_INC16(word *reg)
 		return;
 	}
 	//Check for exceptions first!
-	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!reg) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!reg) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	INLINEREGISTER byte tempcf = FLAG_CF;
 	oper1 = reg?*reg:modrm_read16(&params,MODRM_src0);
@@ -371,8 +371,8 @@ OPTINLINE void CPU8086_internal_DEC16(word *reg)
 	{
 		return;
 	}
-	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!reg) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!reg) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	INLINEREGISTER byte tempcf = FLAG_CF;
 	oper1 = reg?*reg:modrm_read16(&params,MODRM_src0);
@@ -400,8 +400,8 @@ OPTINLINE void CPU8086_internal_INC8(byte *reg)
 	{
 		return;
 	}
-	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!reg) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!reg) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1b = reg?*reg:modrm_read8(&params,MODRM_src0);
 	oper2b = 1;
@@ -425,8 +425,8 @@ OPTINLINE void CPU8086_internal_DEC8(byte *reg)
 		return;
 	}
 	CPUPROT1
-	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!reg) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!reg) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	oper1b = reg?*reg:modrm_read8(&params,MODRM_src0);
 	oper2b = 1;
 	op_sub8();
@@ -548,8 +548,8 @@ OPTINLINE void CPU8086_internal_ADD8(byte *dest, byte addition, byte flags)
 	{
 		return;
 	}
-	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
 	oper2b = addition;
@@ -571,8 +571,8 @@ OPTINLINE void CPU8086_internal_ADD16(word *dest, word addition, byte flags)
 	{
 		return;
 	}
-	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
 	oper2 = addition;
@@ -596,8 +596,8 @@ OPTINLINE void CPU8086_internal_ADC8(byte *dest, byte addition, byte flags)
 	{
 		return;
 	}
-	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
 	oper2b = addition;
@@ -619,8 +619,8 @@ OPTINLINE void CPU8086_internal_ADC16(word *dest, word addition, byte flags)
 	{
 		return;
 	}
-	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
 	oper2 = addition;
@@ -645,8 +645,8 @@ OPTINLINE void CPU8086_internal_OR8(byte *dest, byte src, byte flags)
 	{
 		return;
 	}
-	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
 	oper2b = src;
@@ -668,8 +668,8 @@ OPTINLINE void CPU8086_internal_OR16(word *dest, word src, byte flags)
 	{
 		return;
 	}
-	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
 	oper2 = src;
@@ -689,8 +689,8 @@ OPTINLINE void CPU8086_internal_OR16(word *dest, word src, byte flags)
 //For AND
 OPTINLINE void CPU8086_internal_AND8(byte *dest, byte src, byte flags)
 {
-	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
 	oper2b = src;
@@ -782,8 +782,8 @@ OPTINLINE void CPU8086_internal_SBB8(byte *dest, byte addition, byte flags)
 	{
 		return;
 	}
-	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
 	oper2b = addition;
@@ -805,8 +805,8 @@ OPTINLINE void CPU8086_internal_SBB16(word *dest, word addition, byte flags)
 	{
 		return;
 	}
-	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
 	oper2 = addition;
@@ -831,8 +831,8 @@ OPTINLINE void CPU8086_internal_XOR8(byte *dest, byte src, byte flags)
 	{
 		return;
 	}
-	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
 	oper2b = src;
@@ -854,8 +854,8 @@ OPTINLINE void CPU8086_internal_XOR16(word *dest, word src, byte flags)
 	{
 		return;
 	}
-	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
 	oper2 = src;
@@ -1888,10 +1888,10 @@ OPTINLINE void CPU8086_internal_XLAT()
 
 OPTINLINE void CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 {
-	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src1,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src1,0)) return; //Abort on fault!
+	if (!data1) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!data1) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!data2) if (modrm_check8(&params,MODRM_src1,1)) return; //Abort on fault!
+	if (!data2) if (modrm_check8(&params,MODRM_src1,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1b = data1?*data1:modrm_read8(&params,MODRM_src0);
 	CPUPROT1
@@ -1943,10 +1943,10 @@ OPTINLINE void CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 
 OPTINLINE void CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 {
-	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src1,0)) return; //Abort on fault!
+	if (!data1) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!data1) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!data2) if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
+	if (!data2) if (modrm_check16(&params,MODRM_src1,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1 = data1?*data1:modrm_read16(&params,MODRM_src0);
 	CPUPROT1

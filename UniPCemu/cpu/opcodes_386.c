@@ -254,8 +254,8 @@ OPTINLINE void CPU80386_internal_INC32(uint_32 *reg)
 		return;
 	}
 	//Check for exceptions first!
-	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	INLINEREGISTER byte tempcf = FLAG_CF;
 	oper1d = reg?*reg:modrm_read32(&params,MODRM_src0);
@@ -280,8 +280,8 @@ OPTINLINE void CPU80386_internal_DEC32(uint_32 *reg)
 	{
 		return;
 	}
-	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	INLINEREGISTER byte tempcf = FLAG_CF;
 	oper1d = reg?*reg:modrm_read32(&params,MODRM_src0);
@@ -355,8 +355,8 @@ OPTINLINE void CPU80386_internal_ADD32(uint_32 *dest, uint_32 addition, byte fla
 	{
 		return;
 	}
-	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
 	oper2d = addition;
@@ -380,8 +380,8 @@ OPTINLINE void CPU80386_internal_ADC32(uint_32 *dest, uint_32 addition, byte fla
 	{
 		return;
 	}
-	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
 	oper2d = addition;
@@ -406,8 +406,8 @@ OPTINLINE void CPU80386_internal_OR32(uint_32 *dest, uint_32 src, byte flags)
 	{
 		return;
 	}
-	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
 	oper2d = src;
@@ -427,7 +427,7 @@ OPTINLINE void CPU80386_internal_OR32(uint_32 *dest, uint_32 src, byte flags)
 //For AND
 OPTINLINE void CPU80386_internal_AND32(uint_32 *dest, uint_32 src, byte flags)
 {
-	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault on write only!
 	CPUPROT1
 	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
@@ -453,7 +453,7 @@ OPTINLINE void CPU80386_internal_SUB32(uint_32 *dest, uint_32 addition, byte fla
 	{
 		return;
 	}
-	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault on write only!
 	CPUPROT1
 	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
@@ -478,8 +478,8 @@ OPTINLINE void CPU80386_internal_SBB32(uint_32 *dest, uint_32 addition, byte fla
 	{
 		return;
 	}
-	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
 	oper2d = addition;
@@ -504,8 +504,8 @@ OPTINLINE void CPU80386_internal_XOR32(uint_32 *dest, uint_32 src, byte flags)
 	{
 		return;
 	}
-	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
 	oper2d = src;
@@ -1451,10 +1451,10 @@ OPTINLINE void CPU80386_internal_XLAT()
 
 OPTINLINE void CPU80386_internal_XCHG8(byte *data1, byte *data2, byte flags)
 {
-	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src1,1)) return; //Abort on fault!
-	if (modrm_check8(&params,MODRM_src1,0)) return; //Abort on fault!
+	if (!data1) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!data1) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!data2) if (modrm_check8(&params,MODRM_src1,1)) return; //Abort on fault!
+	if (!data2) if (modrm_check8(&params,MODRM_src1,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1b = data1?*data1:modrm_read8(&params,MODRM_src0);
 	CPUPROT1
@@ -1506,10 +1506,10 @@ OPTINLINE void CPU80386_internal_XCHG8(byte *data1, byte *data2, byte flags)
 
 OPTINLINE void CPU80386_internal_XCHG32(uint_32 *data1, uint_32 *data2, byte flags)
 {
-	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
-	if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
-	if (modrm_check32(&params,MODRM_src1,0)) return; //Abort on fault!
+	if (!data1) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (!data1) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!data2) if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
+	if (!data2) if (modrm_check32(&params,MODRM_src1,0)) return; //Abort on fault!
 	CPUPROT1
 	oper1d = data1?*data1:modrm_read32(&params,MODRM_src0);
 	CPUPROT1
