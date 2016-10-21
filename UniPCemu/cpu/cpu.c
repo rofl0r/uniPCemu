@@ -190,6 +190,9 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 					case 16:
 						modrm_debugger16(&params,0,1);
 						break;
+					case 32:
+						modrm_debugger32(&params,0,1);
+						break;
 					default: //None?
 						//Don't use modr/m!
 						break;
