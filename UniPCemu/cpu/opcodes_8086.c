@@ -64,117 +64,8 @@ Start of help for debugging
 
 */
 
-char modrm_param1[256]; //Contains param/reg1
-char modrm_param2[256]; //Contains param/reg2
-
-void modrm_debugger8(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //8-bit handler!
-{
-	if (cpudebugger)
-	{
-		bzero(modrm_param1,sizeof(modrm_param1));
-		bzero(modrm_param2,sizeof(modrm_param2));
-		modrm_text8(theparams,whichregister1,&modrm_param1[0]);
-		modrm_text8(theparams,whichregister2,&modrm_param2[0]);
-	}
-}
-
-void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //16-bit handler!
-{
-	if (cpudebugger)
-	{
-		bzero(modrm_param1,sizeof(modrm_param1));
-		bzero(modrm_param2,sizeof(modrm_param2));
-		modrm_text16(theparams,whichregister1,&modrm_param1[0]);
-		modrm_text16(theparams,whichregister2,&modrm_param2[0]);
-	}
-}
-
-OPTINLINE byte NumberOfSetBits(uint_32 i)
-{
-	// Java: use >>> instead of >>
-	// C or C++: use uint32_t
-	i = i - ((i >> 1) & 0x55555555);
-	i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-	return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-}
-
-/*
-
-modrm_generateInstructionTEXT: Generates text for an instruction into the debugger.
-parameters:
-	instruction: The instruction ("ADD","INT",etc.)
-	debuggersize: Size of the debugger, if any (8/16/32/0 for none).
-	paramdata: The params to use when debuggersize set and using modr/m with correct type.
-	type: See above.
-
-*/
-
-OPTINLINE void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type)
-{
-	if (cpudebugger) //Gotten no debugger to process?
-	{
-		//Process debugger!
-		char result[256];
-		bzero(result,sizeof(result));
-		strcpy(result,instruction); //Set the instruction!
-		switch (type)
-		{
-			case PARAM_MODRM1: //Param1 only?
-			case PARAM_MODRM2: //Param2 only?
-			case PARAM_MODRM12: //param1,param2
-			case PARAM_MODRM21: //param2,param1
-				//We use modr/m decoding!
-				switch (debuggersize)
-				{
-					case 8:
-						modrm_debugger8(&params,0,1);
-						break;
-					case 16:
-						modrm_debugger16(&params,0,1);
-						break;
-					default: //None?
-						//Don't use modr/m!
-						break;
-				}
-				break;
-		}
-		switch (type)
-		{
-			case PARAM_NONE: //No params?
-				debugger_setcommand(result); //Nothing!
-				break;
-			case PARAM_MODRM1: //Param1 only?
-				strcat(result," %s"); //1 param!
-				debugger_setcommand(result,modrm_param1);
-				break;
-			case PARAM_MODRM2: //Param2 only?
-				strcat(result," %s"); //1 param!
-				debugger_setcommand(result,modrm_param2);
-				break;
-			case PARAM_MODRM12: //param1,param2
-				strcat(result," %s,%s"); //2 params!
-				debugger_setcommand(result,modrm_param1,modrm_param2);
-				break;
-			case PARAM_MODRM21: //param2,param1
-				strcat(result," %s,%s"); //2 params!
-				debugger_setcommand(result,modrm_param2,modrm_param1);
-				break;
-			case PARAM_IMM8: //imm8
-				strcat(result," %02X"); //1 param!
-				debugger_setcommand(result,paramdata);
-				break;
-			case PARAM_IMM16: //imm16
-				strcat(result," %04X"); //1 param!
-				debugger_setcommand(result,paramdata);
-				break;
-			case PARAM_IMM32: //imm32
-				strcat(result," %08X"); //1 param!
-				debugger_setcommand(result,paramdata);
-			default: //Unknown?
-				break;
-		}
-	}
-}
+extern char modrm_param1[256]; //Contains param/reg1
+extern char modrm_param2[256]; //Contains param/reg2
 
 char LEAtext[256];
 OPTINLINE char *getLEAtext(MODRM_PARAMS *theparams)
@@ -193,15 +84,18 @@ extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/
 uint_32 wordaddress; //Word address used during memory access!
 OPTINLINE void CPU_addWordMemoryTiming()
 {
-	if (CPU_databussize) //8088?
+	if (EMULATED_CPU==CPU_8086) //808(6/8)?
 	{
-		CPU[activeCPU].cycles_OP += 4; //Add 4 clocks with all 16-bit cycles on 8086!
-	}
-	else //8086?
-	{
-		if (wordaddress&1) //Odd address?
+		if (CPU_databussize) //8088?
 		{
-			CPU[activeCPU].cycles_OP += 4; //Add 4 clocks with odd cycles on 8086!
+			CPU[activeCPU].cycles_OP += 4; //Add 4 clocks with all 16-bit cycles on 8086!
+		}
+		else //8086?
+		{
+			if (wordaddress&1) //Odd address?
+			{
+				CPU[activeCPU].cycles_OP += 4; //Add 4 clocks with odd cycles on 8086!
+			}
 		}
 	}
 }
@@ -1880,39 +1774,6 @@ OPTINLINE void CPU8086_internal_SCASW()
 		CPU[activeCPU].cycles_OP = 15; //Clock cycles!
 	}
 	CPU_addWordMemoryTiming(); //To memory?
-}
-
-byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do we need to POP from the stack?
-{
-	uint_32 poptimesleft = poptimes; //Load the amount to check!
-	uint_32 ESP = REG_ESP; //Load the stack pointer to verify!
-	for (;poptimesleft;) //Anything left?
-	{
-		//We're at least a word access!
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP,isPUSH?0:1,getCPL())) //Error accessing memory?
-		{
-			return 1; //Abort on fault!
-		}
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP+1,isPUSH?0:1,getCPL())) //Error accessing memory?
-		{
-			return 1; //Abort on fault!
-		}
-		if (isdword) //DWord?
-		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP+2,isPUSH?0:1,getCPL())) //Error accessing memory?
-			{
-				return 1; //Abort on fault!
-			}
-
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), REG_SS, ESP+3,isPUSH?0:1,getCPL())) //Error accessing memory?
-			{
-				return 1; //Abort on fault!
-			}
-		}
-		ESP += isPUSH?stack_pushchange(0):stack_popchange(0); //Apply the change in virtual (E)SP to check the next value!
-		--poptimesleft; //One POP processed!
-	}
-	return 0; //OK!
 }
 
 OPTINLINE void CPU8086_internal_RET(word popbytes, byte isimm)

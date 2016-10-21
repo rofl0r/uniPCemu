@@ -56,76 +56,9 @@ extern char modrm_param2[256]; //Contains param/reg2
 extern byte cpudebugger; //CPU debugger active?
 extern byte custommem; //Custom memory address?
 
-OPTINLINE void modrm286_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type) //Copy of 8086 version!
-{
-	if (cpudebugger) //Gotten no debugger to process?
-	{
-		//Process debugger!
-		char result[256];
-		bzero(result, sizeof(result));
-		strcpy(result, instruction); //Set the instruction!
-		switch (type)
-		{
-		case PARAM_MODRM1: //Param1 only?
-		case PARAM_MODRM2: //Param2 only?
-		case PARAM_MODRM12: //param1,param2
-		case PARAM_MODRM21: //param2,param1
-							//We use modr/m decoding!
-			switch (debuggersize)
-			{
-			case 8:
-				modrm_debugger8(&params, 0, 1);
-				break;
-			case 16:
-				modrm_debugger16(&params, 0, 1);
-				break;
-			default: //None?
-					 //Don't use modr/m!
-				break;
-			}
-			break;
-		}
-		switch (type)
-		{
-		case PARAM_NONE: //No params?
-			debugger_setcommand(result); //Nothing!
-			break;
-		case PARAM_MODRM1: //Param1 only?
-			strcat(result, " %s"); //1 param!
-			debugger_setcommand(result, modrm_param1);
-			break;
-		case PARAM_MODRM2: //Param2 only?
-			strcat(result, " %s"); //1 param!
-			debugger_setcommand(result, modrm_param2);
-			break;
-		case PARAM_MODRM12: //param1,param2
-			strcat(result, " %s,%s"); //2 params!
-			debugger_setcommand(result, modrm_param1, modrm_param2);
-			break;
-		case PARAM_MODRM21: //param2,param1
-			strcat(result, " %s,%s"); //2 params!
-			debugger_setcommand(result, modrm_param2, modrm_param1);
-			break;
-		case PARAM_IMM8: //imm8
-			strcat(result, " %02X"); //1 param!
-			debugger_setcommand(result, paramdata);
-			break;
-		case PARAM_IMM16: //imm16
-			strcat(result, " %04X"); //1 param!
-			debugger_setcommand(result, paramdata);
-			break;
-		case PARAM_IMM32: //imm32
-			strcat(result, " %08X"); //1 param!
-			debugger_setcommand(result, paramdata);
-		default: //Unknown?
-			break;
-		}
-	}
-}
-
 void CPU286_OP63() //ARPL r/m16,r16
 {
-	modrm286_generateInstructionTEXT("ARPL",16,0,PARAM_MODRM21); //Our instruction text!
+	modrm_generateInstructionTEXT("ARPL",16,0,PARAM_MODRM21); //Our instruction text!
 	if (getcpumode() == CPU_MODE_REAL) //Real mode? #UD!
 	{
 		unkOP_186(); //Execute our unk opcode handler!
@@ -476,7 +409,7 @@ void CPU286_OP0F02() //LAR /r
 		unkOP0F_286(); //We're not recognized in real mode!
 		return;
 	}
-	modrm286_generateInstructionTEXT("LAR", 16, 0, PARAM_MODRM12); //Our instruction text!
+	modrm_generateInstructionTEXT("LAR", 16, 0, PARAM_MODRM12); //Our instruction text!
 	if (modrm_check16(&params,1,1)) return; //Abort on fault!
 	oper1 = modrm_read16(&params,1); //Read the segment to check!
 	CPUPROT1
@@ -539,7 +472,7 @@ void CPU286_OP0F03() //LSL /r
 		unkOP0F_286(); //We're not recognized in real mode!
 		return;
 	}
-	modrm286_generateInstructionTEXT("LSL", 16, 0, PARAM_MODRM12); //Our instruction text!
+	modrm_generateInstructionTEXT("LSL", 16, 0, PARAM_MODRM12); //Our instruction text!
 	if (modrm_check16(&params,1,1)) return; //Abort on fault!
 	oper1 = modrm_read16(&params, 1); //Read the segment to check!
 	CPUPROT1

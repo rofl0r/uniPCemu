@@ -197,4 +197,10 @@ void modrm_updatedsegment(word *location, word value, byte isJMPorCALL); //Check
 byte modrm_check8(MODRM_PARAMS *params, int whichregister, byte isread);
 byte modrm_check16(MODRM_PARAMS *params, int whichregister, byte isread);
 byte modrm_check32(MODRM_PARAMS *params, int whichregister, byte isread);
+
+//The following in in the general CPU module:
+void modrm_debugger8(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2); //8-bit handler!
+void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2); //16-bit handler!
+void modrm_debugger32(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2); //32-bit handler!
+void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type); //In the CPU module, generates debugger modR/M info!
 #endif

@@ -43,6 +43,16 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 //Default specified segment!
 #define CPU_SEGMENT_DEFAULT 0xFF
 
+//The types of parameters used in the instruction for the instruction text debugger!
+#define PARAM_NONE 0
+#define PARAM_MODRM1 1
+#define PARAM_MODRM2 2
+#define PARAM_MODRM12 3
+#define PARAM_MODRM21 4
+#define PARAM_IMM8 5
+#define PARAM_IMM16 6
+#define PARAM_IMM32 7
+
 //Descriptors used by the CPU
 
 //Data segment descriptor
@@ -1037,7 +1047,7 @@ void copyint(byte src, byte dest); //Copy interrupt handler pointer to different
 #define signext32(value) ((((uint_32)value&0x8000)*0x1FFFE)|(uint_32)value)
 
 //Software access with protection!
-#define CPUPROT1 if(!CPU[activeCPU].faultraised){
+#define CPUPROT1 if(CPU[activeCPU].faultraised==0){
 #define CPUPROT2 }
 
 #include "headers/cpu/interrupts.h" //Real interrupts!
@@ -1092,5 +1102,9 @@ sbyte stack_popchange(byte dword);
 byte isPM(); //Are we in protected mode?
 byte isV86(); //Are we in Virtual 8086 mode?
 
+//ModR/M debugger support!
+byte NumberOfSetBits(uint_32 i); //Number of bits set in this variable!
+
+byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much do we need to POP from the stack?
 
 #endif

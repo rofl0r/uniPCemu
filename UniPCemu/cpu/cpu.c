@@ -73,10 +73,168 @@ extern byte PIQSizes[2][NUMCPUS]; //The PIQ buffer sizes!
 byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncommented?
 #endif
 
+byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do we need to POP from the stack?
+{
+	uint_32 poptimesleft = poptimes; //Load the amount to check!
+	uint_32 ESP = CPU[activeCPU].registers->ESP; //Load the stack pointer to verify!
+	for (;poptimesleft;) //Anything left?
+	{
+		//We're at least a word access!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP,isPUSH?0:1,getCPL())) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP+1,isPUSH?0:1,getCPL())) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (isdword) //DWord?
+		{
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP+2,isPUSH?0:1,getCPL())) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP+3,isPUSH?0:1,getCPL())) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+		}
+		ESP += isPUSH?stack_pushchange(0):stack_popchange(0); //Apply the change in virtual (E)SP to check the next value!
+		--poptimesleft; //One POP processed!
+	}
+	return 0; //OK!
+}
+
 //Now the code!
 
 byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
 
+
+char modrm_param1[256]; //Contains param/reg1
+char modrm_param2[256]; //Contains param/reg2
+
+void modrm_debugger8(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //8-bit handler!
+{
+	if (cpudebugger)
+	{
+		bzero(modrm_param1,sizeof(modrm_param1));
+		bzero(modrm_param2,sizeof(modrm_param2));
+		modrm_text8(theparams,whichregister1,&modrm_param1[0]);
+		modrm_text8(theparams,whichregister2,&modrm_param2[0]);
+	}
+}
+
+void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //16-bit handler!
+{
+	if (cpudebugger)
+	{
+		bzero(modrm_param1,sizeof(modrm_param1));
+		bzero(modrm_param2,sizeof(modrm_param2));
+		modrm_text16(theparams,whichregister1,&modrm_param1[0]);
+		modrm_text16(theparams,whichregister2,&modrm_param2[0]);
+	}
+}
+
+void modrm_debugger32(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //16-bit handler!
+{
+	if (cpudebugger)
+	{
+		bzero(modrm_param1,sizeof(modrm_param1));
+		bzero(modrm_param2,sizeof(modrm_param2));
+		modrm_text32(theparams,whichregister1,&modrm_param1[0]);
+		modrm_text32(theparams,whichregister2,&modrm_param2[0]);
+	}
+}
+
+byte NumberOfSetBits(uint_32 i)
+{
+	// Java: use >>> instead of >>
+	// C or C++: use uint32_t
+	i = i - ((i >> 1) & 0x55555555);
+	i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+	return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+}
+
+/*
+
+modrm_generateInstructionTEXT: Generates text for an instruction into the debugger.
+parameters:
+	instruction: The instruction ("ADD","INT",etc.)
+	debuggersize: Size of the debugger, if any (8/16/32/0 for none).
+	paramdata: The params to use when debuggersize set and using modr/m with correct type.
+	type: See above.
+
+*/
+
+void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type)
+{
+	if (cpudebugger) //Gotten no debugger to process?
+	{
+		//Process debugger!
+		char result[256];
+		bzero(result,sizeof(result));
+		strcpy(result,instruction); //Set the instruction!
+		switch (type)
+		{
+			case PARAM_MODRM1: //Param1 only?
+			case PARAM_MODRM2: //Param2 only?
+			case PARAM_MODRM12: //param1,param2
+			case PARAM_MODRM21: //param2,param1
+				//We use modr/m decoding!
+				switch (debuggersize)
+				{
+					case 8:
+						modrm_debugger8(&params,0,1);
+						break;
+					case 16:
+						modrm_debugger16(&params,0,1);
+						break;
+					default: //None?
+						//Don't use modr/m!
+						break;
+				}
+				break;
+		}
+		switch (type)
+		{
+			case PARAM_NONE: //No params?
+				debugger_setcommand(result); //Nothing!
+				break;
+			case PARAM_MODRM1: //Param1 only?
+				strcat(result," %s"); //1 param!
+				debugger_setcommand(result,modrm_param1);
+				break;
+			case PARAM_MODRM2: //Param2 only?
+				strcat(result," %s"); //1 param!
+				debugger_setcommand(result,modrm_param2);
+				break;
+			case PARAM_MODRM12: //param1,param2
+				strcat(result," %s,%s"); //2 params!
+				debugger_setcommand(result,modrm_param1,modrm_param2);
+				break;
+			case PARAM_MODRM21: //param2,param1
+				strcat(result," %s,%s"); //2 params!
+				debugger_setcommand(result,modrm_param2,modrm_param1);
+				break;
+			case PARAM_IMM8: //imm8
+				strcat(result," %02X"); //1 param!
+				debugger_setcommand(result,paramdata);
+				break;
+			case PARAM_IMM16: //imm16
+				strcat(result," %04X"); //1 param!
+				debugger_setcommand(result,paramdata);
+				break;
+			case PARAM_IMM32: //imm32
+				strcat(result," %08X"); //1 param!
+				debugger_setcommand(result,paramdata);
+			default: //Unknown?
+				break;
+		}
+	}
+}
+
+//PORT IN/OUT instructions!
 void CPU_PORT_OUT_B(word port, byte data)
 {
 	//Check rights!
@@ -444,6 +602,10 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 		PIQ_retry: //Retry after refilling PIQ!
 		if (readfifobuffer(CPU[activeCPU].PIQ,&result)) //Read from PIQ?
 		{
+			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,1,getCPL())) //Error accessing memory?
+			{
+				return 0xFF; //Abort on fault!
+			}
 			if (cpudebugger) //We're an OPcode retrieval and debugging?
 			{
 				MMU_addOP(result); //Add to the opcode cache!
@@ -453,6 +615,10 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 		//Not enough data in the PIQ? Refill for the next data!
 		CPU_fillPIQ(); //Fill instruction cache with next data!
 		goto PIQ_retry; //Read again!
+	}
+	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,1,getCPL())) //Error accessing memory?
+	{
+		return 0xFF; //Abort on fault!
 	}
 	result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 1); //Read OPcode directly from memory!
 	if (cpudebugger) //We're an OPcode retrieval and debugging?
@@ -466,6 +632,7 @@ word CPU_readOPw() //Reads the operation (word) at CS:EIP
 {
 	INLINEREGISTER byte temp, temp2;
 	temp = CPU_readOP(); //Read OPcode!
+	if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 	temp2 = CPU_readOP(); //Read OPcode!
 	return temp|(temp2<<8); //Give result!
 }
@@ -474,6 +641,7 @@ uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
 {
 	INLINEREGISTER uint_32 result;
 	result = CPU_readOPw(); //Read OPcode!
+	if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 	result |= CPU_readOPw()<<16; //Read OPcode!
 	return result; //Give result!
 }
@@ -588,12 +756,14 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 		last_eip = CPU[activeCPU].registers->EIP; //Save the current EIP of the last prefix possibility!
 		ismultiprefix = 1; //We're multi-prefix now when triggered again!
 		OP = CPU_readOP(); //Next opcode/prefix!
+		if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 	}
 	//Now we have the opcode and prefixes set or reset!
 
 	if ((OP == 0x0F) && (EMULATED_CPU >= CPU_80286)) //0F instruction extensions used?
 	{
 		OP = CPU_readOP(); //Read the actual opcode to use!
+		if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 		CPU[activeCPU].is0Fopcode = 1; //We're a 0F opcode!
 	}
 	else //Normal instruction?
@@ -633,6 +803,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	if (timing->has_modrm) //Do we have ModR/M data?
 	{
 		modrm_readparams(&params,timing->modrm_readparams_0,timing->modrm_readparams_1); //Read the params!
+		if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 		MODRM_src0 = timing->modrm_src0; //First source!
 		MODRM_src1 = timing->modrm_src1; //Second source!
 	}
@@ -647,11 +818,13 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 					if (MODRM_REG(params.modrm)<2) //8-bit immediate?
 					{
 						immb = CPU_readOP(); //Read 8-bit immediate!
+						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 					}
 				}
 				else //Normal imm8?
 				{
 					immb = CPU_readOP(); //Read 8-bit immediate!
+					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 				}
 				break;
 			case 2: //imm16?
@@ -660,11 +833,13 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 					if (MODRM_REG(params.modrm)<2) //16-bit immediate?
 					{
 						immw = CPU_readOPw(); //Read 16-bit immediate!
+						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 					}
 				}
 				else //Normal imm16?
 				{
 					immw = CPU_readOPw(); //Read 16-bit immediate!
+					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 				}
 				break;
 			case 3: //imm32?
@@ -673,16 +848,20 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
 					{
 						imm32 = CPU_readOPdw(); //Read 32-bit immediate!
+						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 					}
 				}
 				else //Normal imm32?
 				{
 					imm32 = CPU_readOPdw(); //Read 32-bit immediate!
+					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 				}
 				break;
 			case 8: //imm16 + imm8
 				immw = CPU_readOPw(); //Read 16-bit immediate!
+				if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 				immb = CPU_readOP(); //Read 8-bit immediate!
+				if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 				break;
 			case 9: //imm64?
 				if (timing->parameters & 4) //Only when ModR/M REG<2?
@@ -690,13 +869,17 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
 					{
 						imm64 = CPU_readOPdw(); //Read 32-bit immediate!
+						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 						imm64 |= ((uint_64)CPU_readOPdw() << 32); //Read another 32-bit immediate!
+						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 					}
 				}
 				else //Normal imm32?
 				{
 					imm64 = CPU_readOPdw(); //Read 32-bit immediate!
+					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 					imm64 |= ((uint_64)CPU_readOPdw() << 32); //Read another 32-bit immediate!
+					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 				}
 				break;
 			default: //Unknown?
@@ -1123,6 +1306,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	else //Not a repeating instruction?
 	{
 		OP = CPU_readOP_prefix(); //Process prefix(es) and read OPCode!
+		if (CPU[activeCPU].faultraised) goto skipexecutionOPfault; //Abort on fault!
 		newREP = 1; //We're a new repeating instruction!
 	}
 	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
@@ -1275,6 +1459,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
 	didNewREP = newREP; //Were we doing a REP for the first time?
 	CPU_OP(OP); //Now go execute the OPcode once!
+	skipexecutionOPfault: //Instruction fetch fault?
 	if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
 	{
 		if (CPU_getprefix(0xF2)) //REPNZ?
