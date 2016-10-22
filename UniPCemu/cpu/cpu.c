@@ -363,12 +363,12 @@ void CPU_PORT_IN_D(word port, uint_32 *result)
 	*result = PORT_IN_D(port); //Port in!
 }
 
-void call_soft_inthandler(byte intnr)
+byte call_soft_inthandler(byte intnr)
 {
 	//Now call handler!
 	CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
-	CPU_INT(intnr,0); //Call interrupt!
+	return CPU_INT(intnr,0); //Call interrupt!
 }
 
 void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!

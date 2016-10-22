@@ -74,8 +74,7 @@ void CPU_GP(int toinstruction,uint_32 errorcode)
 	
 	if (CPU_faultraised()) //Fault raising exception!
 	{
-		call_soft_inthandler(EXCEPTION_GENERALPROTECTIONFAULT); //Call IVT entry #13 decimal!
-		if (CPU[activeCPU].faultraised == 0) //Success during this step?
+		if (call_soft_inthandler(EXCEPTION_GENERALPROTECTIONFAULT)) //Call IVT entry #13 decimal!
 		{
 			CPU_PUSH32(&errorcode); //Error code!
 		}
@@ -90,8 +89,7 @@ void CPU_SegNotPresent(uint_32 errorcode)
 
 	if (CPU_faultraised()) //Fault raising exception!
 	{
-		call_soft_inthandler(EXCEPTION_SEGMENTNOTPRESENT); //Call IVT entry #11 decimal!
-		if (CPU[activeCPU].faultraised == 0) //Success during this step?
+		if (call_soft_inthandler(EXCEPTION_SEGMENTNOTPRESENT)) //Call IVT entry #11 decimal!
 		{
 			CPU_PUSH32(&errorcode); //Error code!
 		}
@@ -106,8 +104,7 @@ void CPU_StackFault(uint_32 errorcode)
 
 	if (CPU_faultraised()) //Fault raising exception!
 	{
-		call_soft_inthandler(EXCEPTION_STACKFAULT); //Call IVT entry #12 decimal!
-		if (CPU[activeCPU].faultraised==0) //Success during this step?
+		if (call_soft_inthandler(EXCEPTION_STACKFAULT)) //Call IVT entry #12 decimal!
 		{
 			CPU_PUSH32(&errorcode); //Error code!
 		}
@@ -987,7 +984,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 	return 1; //OK!
 }
 
-void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint_32 returnoffset, uint_32 error) //Execute a protected mode interrupt!
+byte CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint_32 returnoffset, uint_32 error) //Execute a protected mode interrupt!
 {
 	SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage for task switches!
 	word desttask; //Destination task for task switches!
@@ -997,7 +994,7 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 	if ((base|0x7) >= CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
 	{
 		THROWDESCGP(base,(is_HW?1:0),EXCEPTION_TABLE_IDT); //#GP!
-		return; //Abort!
+		return 0; //Abort!
 	}
 
 	base += CPU[activeCPU].registers->IDTR.base; //Add the base for the actual offset into the IDT!
@@ -1013,13 +1010,13 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 	if (idtentry.P==0) //Not present?
 	{
 		THROWDESCNP(base,(is_HW?1:0),EXCEPTION_TABLE_IDT); //#NP!
-		return;
+		return 0;
 	}
 
 	if ((!is_HW) && (idtentry.DPL < getCPL())) //Not enough rights?
 	{
 		THROWDESCGP(base,(is_HW?1:0),EXCEPTION_TABLE_IDT); //#GP!
-		return;
+		return 0;
 	}
 
 	//Now, the (gate) descriptor to use is loaded!
@@ -1030,16 +1027,23 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 		if ((!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
 		{
 			THROWDESCGP(desttask,(is_HW?1:0),(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
-			return; //Error, by specified reason!
+			return 0; //Error, by specified reason!
 		}
-		CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 0,1,(is_HW?1:0)); //Execute a task switch to the new task!
-		if (is_HW && (error != -1))
+		if (CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 0,1,(is_HW?1:0))) //Execute a task switch to the new task!
 		{
-			CPU_PUSH32(&error); //Push the error on the stack!
-			if (CPU[activeCPU].faultraised==0) //OK?
+			if (is_HW && (error != -1))
 			{
-				hascallinterrupttaken_type = INTERRUPTGATETIMING_TASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+				CPU_PUSH32(&error); //Push the error on the stack!
+				if (CPU[activeCPU].faultraised==0) //OK?
+				{
+					hascallinterrupttaken_type = INTERRUPTGATETIMING_TASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+				}
 			}
+			return 1; //OK!
+		}
+		else
+		{
+			return 0; //Abort!
 		}
 		break;
 	default: //All other cases?
@@ -1051,17 +1055,17 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 			if (!LOADINTDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
 			{
 				THROWDESCGP(idtentry.selector,(is_HW?1:0),(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-				return; //Error, by specified reason!
+				return 0; //Error, by specified reason!
 			}
 			if (((newdescriptor.desc.S==0) || (newdescriptor.desc.EXECSEGMENT.ISEXEC==0)) || (newdescriptor.desc.EXECSEGMENT.R==0)) //Not readable, execute segment or is code/executable segment?
 			{
 				THROWDESCGP(idtentry.selector,(is_HW?1:0),(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
-				return;
+				return 0;
 			}
 			if ((idtentry.offsetlow | (idtentry.offsethigh << 16)) > (newdescriptor.desc.limit_low | (newdescriptor.desc.limit_high << 16))) //Limit exceeded?
 			{
 				THROWDESCGP(idtentry.selector,(is_HW?1:0),(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
-				return;
+				return 0;
 			}
 
 			if ((newdescriptor.desc.EXECSEGMENT.C == 0) && (newdescriptor.desc.DPL < getCPL())) //Not enough rights, but conforming?
@@ -1073,29 +1077,31 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 				//Check permission? TODO!
 			}
 
+			CPU[activeCPU].faultraised = 0; //No fault raised anymore, because we're at the new instruction to handle it!
+
 			if (is32bit)
 			{
 				CPU_PUSH32(&CPU[activeCPU].registers->EFLAGS); //Push EFLAGS!
-				if (CPU[activeCPU].faultraised) return; //Abort on fault!
+				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 			else
 			{
 				CPU_PUSH16(&CPU[activeCPU].registers->FLAGS); //Push FLAGS!
-				if (CPU[activeCPU].faultraised) return; //Abort on fault!
+				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 
 			CPU_PUSH16(&CPU[activeCPU].registers->CS); //Push CS!
-			if (CPU[activeCPU].faultraised) return; //Abort on fault!
+			if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 
 			if (is32bit)
 			{
 				CPU_PUSH32(&CPU[activeCPU].registers->EIP); //Push EIP!
-				if (CPU[activeCPU].faultraised) return; //Abort on fault!
+				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 			else
 			{
 				CPU_PUSH16(&CPU[activeCPU].registers->IP); //Push IP!
-				if (CPU[activeCPU].faultraised) return; //Abort on fault!
+				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], &newdescriptor, sizeof(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])); //Load the segment descriptor into the cache!
@@ -1119,9 +1125,11 @@ void CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 			{
 				hascallinterrupttaken_type = INTERRUPTGATETIMING_SAMELEVEL; //TODO Specify same level for now, until different level is implemented!
 			}
+			return 1; //OK!
 			break;
 		default: //Unknown descriptor type?
 			THROWDESCGP(base,(is_HW ? 1 : 0),EXCEPTION_TABLE_GDT); //#GP! We're always from the GDT!
+			return 0; //Errored out!
 			break;
 		}
 		break;

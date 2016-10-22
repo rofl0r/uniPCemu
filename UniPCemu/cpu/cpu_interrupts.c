@@ -29,7 +29,7 @@ extern uint_32 destEIP;
 //Interrupt support for timings!
 extern byte CPU_interruptraised; //Interrupt raised flag?
 
-OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset, byte is_HW) //Used by soft (below) and exceptions/hardware!
+byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, byte is_HW) //Used by soft (below) and exceptions/hardware!
 {
 	CPU_interruptraised = 1; //We've raised an interrupt!
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
@@ -43,18 +43,19 @@ OPTINLINE void CPU_customint(byte intnr, word retsegment, uint_32 retoffset, byt
 //Now, jump to it!
 		destEIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
 		segmentWritten(CPU_SEGMENT_CS,memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base),0); //Interrupt to position CS:EIP/CS:IP in table.
+		return 1; //OK!
 	}
 	else //Use Protected mode IVT?
 	{
-		CPU_ProtectedModeInterrupt(intnr,is_HW,retsegment,retoffset,0); //Execute the protected mode interrupt!
+		return CPU_ProtectedModeInterrupt(intnr,is_HW,retsegment,retoffset,0); //Execute the protected mode interrupt!
 	}
 }
 
 
-void CPU_INT(byte intnr, byte is_HW) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
+byte CPU_INT(byte intnr, byte is_HW) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
 {
 	//Now, jump to it!
-	CPU_customint(intnr,REG_CS,REG_EIP,is_HW); //Execute real interrupt, returning to current address!
+	return CPU_customint(intnr,REG_CS,REG_EIP,is_HW); //Execute real interrupt, returning to current address!
 }
 
 byte NMIMasked = 0; //Are NMI masked?

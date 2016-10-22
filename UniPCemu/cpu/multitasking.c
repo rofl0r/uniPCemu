@@ -472,8 +472,7 @@ void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
 	
 	if (CPU_faultraised()) //We're raising a fault!
 	{
-		call_soft_inthandler(EXCEPTION_INVALIDTSSSEGMENT); //Call IVT entry #13 decimal!
-		if (CPU[activeCPU].faultraised==0)
+		if (call_soft_inthandler(EXCEPTION_INVALIDTSSSEGMENT)) //Call IVT entry #13 decimal!
 		{
 			CPU_PUSH32(&errorcode); //Error code!
 		}
