@@ -29,9 +29,9 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 byte CPU_faultraised(); //A fault has been raised (286+)?
 
 //Special support for error handling!
-void THROWDESCGP(word segment);
-void THROWDESCSP(word segment, byte external);
-void THROWDESCSeg(word segment, byte external);
+void THROWDESCGP(word segmentval, byte external, byte tbl);
+void THROWDESCSP(word segmentval, byte external, byte tbl);
+void THROWDESCNP(word segmentval, byte external, byte tbl);
 
 //Internal usage by the protection modules!
 int LOADDESCRIPTOR(int whatsegment, word segment, SEGDESCRIPTOR_TYPE *container);

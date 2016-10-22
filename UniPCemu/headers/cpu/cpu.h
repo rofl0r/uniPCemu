@@ -971,10 +971,14 @@ extern byte CPU_StackAddress_size[2]; //Address size for this opcode!
 #define CPU_PREFIX_ADDR 0x67
 
 //CPU Modes:
-#define CPU_MODE_PROTECTED 1
+//Real mode has no special stuff
 #define CPU_MODE_REAL 0
-#define CPU_MODE_8086 2
-#define CPU_MODE_UNKNOWN 3
+//Protected mode has bit 1 set
+#define CPU_MODE_PROTECTED 1
+//Virtual 8086 mode has bit 1(Protected mode) and bit 2(Virtual override) set
+#define CPU_MODE_8086 3
+//Virtual override without Protected mode has no effect: it's real mode after all!
+#define CPU_MODE_UNKNOWN 2
 
 //Exception interrupt numbers!
 #define EXCEPTION_DIVIDEERROR 0
@@ -983,8 +987,8 @@ extern byte CPU_StackAddress_size[2]; //Address size for this opcode!
 #define EXCEPTION_CPUBREAKPOINT 3
 #define EXCEPTION_OVERFLOW 4
 #define EXCEPTION_BOUNDSCHECK 5
-#define EXCEPTION_BADOPCODE 6
-#define EXCEPTION_NOCOPROCESSOR 7
+#define EXCEPTION_INVALIDOPCODE 6
+#define EXCEPTION_COPROCESSORNOTAVAILABLE 7
 #define EXCEPTION_DOUBLEFAULT 8
 #define EXCEPTION_COPROCESSOROVERRUN 9
 #define EXCEPTION_INVALIDTSSSEGMENT 0xA
@@ -993,6 +997,11 @@ extern byte CPU_StackAddress_size[2]; //Address size for this opcode!
 #define EXCEPTION_GENERALPROTECTIONFAULT 0xD
 #define EXCEPTION_PAGEFAULT 0xE
 #define EXCEPTION_COPROCESSORERROR 0x10
+
+#define EXCEPTION_TABLE_GDT 0x00
+#define EXCEPTION_TABLE_IDT 0x01
+#define EXCEPTION_TABLE_LDT 0x02
+//0x03 seems to be an alias of 0x01?
 
 void initCPU(); //Initialize CPU for full system reset into known state!
 void resetCPU(); //Initialises CPU!

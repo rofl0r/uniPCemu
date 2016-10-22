@@ -133,7 +133,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		debugger_setcommand("LLDT %s", info.text);
 		if (getCPL()) //Privilege level isn't 0?
 		{
-			THROWDESCGP(0); //Throw #GP!
+			THROWDESCGP(0,0,0); //Throw #GP!
 			return; //Abort!
 		}
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
@@ -151,7 +151,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		debugger_setcommand("LTR %s", info.text);
 		if (getCPL()) //Privilege level isn't 0?
 		{
-			THROWDESCGP(0); //Throw #GP!
+			THROWDESCGP(0,0,0); //Throw #GP!
 			return; //Abort!
 		}
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
@@ -308,7 +308,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		}
 		if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
 		{
-			THROWDESCGP(0); //Throw #GP!
+			THROWDESCGP(0,0,0); //Throw #GP!
 			return; //Abort!
 		}
 
@@ -344,7 +344,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		}
 		if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
 		{
-			THROWDESCGP(0); //Throw #GP!
+			THROWDESCGP(0,0,0); //Throw #GP!
 			return; //Abort!
 		}
 
@@ -381,7 +381,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 		if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
 		{
-			THROWDESCGP(0); //Throw #GP!
+			THROWDESCGP(0,0,0); //Throw #GP!
 			return; //Abort!
 		}
 		CPU[activeCPU].cycles_OP = 4*16; //Make sure we last long enough for the required JMP to be fully buffered!
@@ -669,7 +669,7 @@ void CPU286_OP0F06() //CLTS
 	debugger_setcommand("CLTS"); //Our instruction text!
 	if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
 	{
-		THROWDESCGP(0); //Throw #GP!
+		THROWDESCGP(0,0,0); //Throw #GP!
 		return; //Abort!
 	}
 	CPU[activeCPU].registers->CR0.TS = 0; //Clear the Task Switched flag!

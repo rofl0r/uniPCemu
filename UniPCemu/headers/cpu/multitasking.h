@@ -3,8 +3,8 @@
 
 #include "headers/cpu/protection.h" //Basic protection types!
 
-byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated); //Switching to a certain task?
+byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, byte is_external); //Switching to a certain task?
 
-void CPU_TSSFault(uint_32 errorcode);
+void CPU_TSSFault(word segmentval, byte is_external, byte tbl);
 
 #endif

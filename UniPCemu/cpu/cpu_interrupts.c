@@ -82,7 +82,7 @@ void CPU_IRET()
 			{
 				return; //Error, by specified reason!
 			}
-			CPU_switchtask(CPU_SEGMENT_TR,&newdescriptor,&CPU[activeCPU].registers->TR,desttask,3,0); //Execute an IRET to the interrupted task!
+			CPU_switchtask(CPU_SEGMENT_TR,&newdescriptor,&CPU[activeCPU].registers->TR,desttask,3,0,0); //Execute an IRET to the interrupted task!
 		}
 		else //Normal IRET?
 		{

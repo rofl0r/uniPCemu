@@ -245,7 +245,7 @@ void CPU_PORT_OUT_B(word port, byte data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 	}
@@ -259,12 +259,12 @@ void CPU_PORT_OUT_W(word port, word data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port+1)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 	}
@@ -278,22 +278,22 @@ void CPU_PORT_OUT_D(word port, uint_32 data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 2)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 3)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 	}
@@ -307,7 +307,7 @@ void CPU_PORT_IN_B(word port, byte *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 	}
@@ -321,12 +321,12 @@ void CPU_PORT_IN_W(word port, word *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 	}
@@ -340,22 +340,22 @@ void CPU_PORT_IN_D(word port, uint_32 *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 2)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 		if (checkPortRights(port + 3)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //#GP!
+			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
 			return; //Abort!
 		}
 	}
@@ -1825,7 +1825,7 @@ void CPU_COOP_notavailable() //COProcessor not available!
 {
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
-	CPU_customint(EXCEPTION_NOCOPROCESSOR,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
+	CPU_customint(EXCEPTION_COPROCESSORNOTAVAILABLE,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }

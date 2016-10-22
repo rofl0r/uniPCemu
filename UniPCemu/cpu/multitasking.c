@@ -10,7 +10,7 @@
 
 extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 
-byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated) //Switching to a certain task?
+byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, byte is_external) //Switching to a certain task?
 {
 	byte isStackSwitch = 0; //Stack switch?
 	byte destStack = 3; //Destination stack!
@@ -41,7 +41,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	uint_32 limit; //The limit we use!
 	if (LOADEDDESCRIPTOR->desc.P==0) //Not present?
 	{
-		THROWDESCSeg(destinationtask,0); //Throw #NP!
+		THROWDESCNP(destinationtask,is_external,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #NP!
 		return 1; //Error out!
 	}
 
@@ -64,7 +64,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		*/
 		break;
 	default: //Invalid descriptor!
-		THROWDESCGP(CPU[activeCPU].registers->TR); //Thow #GP!
+		THROWDESCGP(CPU[activeCPU].registers->TR,is_external,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 1; //Error out!
 	}
 
@@ -74,7 +74,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (busy) //Busy?
 	{
-		THROWDESCGP(destinationtask); //Thow #GP!
+		THROWDESCGP(destinationtask,is_external,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 1; //Error out!
 	}
 
@@ -86,7 +86,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (limit < (uint_32)((EMULATED_CPU==CPU_80286)?43:103)) //Limit isn't high enough(>=103 for 386+, >=43 for 80286)?
 	{
-		CPU_TSSFault(destinationtask); //Throw #TS!
+		CPU_TSSFault(destinationtask,is_external,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #TS!
 		return 1; //Error out!
 	}
 
@@ -211,7 +211,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		*/
 		break;
 	default: //Invalid descriptor!
-		THROWDESCGP(destinationtask); //Thow #GP!
+		THROWDESCGP(destinationtask,is_external,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 1; //Error out!
 	}
 
@@ -313,19 +313,19 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (LDTsegment & 4) //We cannot reside in the LDT!
 	{
-		CPU_TSSFault(CPU[activeCPU].registers->TR); //Throw error!
+		CPU_TSSFault(CPU[activeCPU].registers->TR,is_external,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: we cannot reside in the LDT!
 	}
 
 	if ((word)(descriptor_index|0x7)>=((LDTsegment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low|(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high<<16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
-		CPU_TSSFault(CPU[activeCPU].registers->TR); //Throw error!
+		CPU_TSSFault(CPU[activeCPU].registers->TR,is_external,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: limit exceeded!
 	}
 
 	if ((!descriptor_index) /*&& ((whatsegment == CPU_SEGMENT_CS) || (whatsegment == CPU_SEGMENT_SS))*/) //NULL segment loaded into CS or SS?
 	{
-		THROWDESCGP(CPU[activeCPU].registers->TR); //Throw error!
+		THROWDESCGP(CPU[activeCPU].registers->TR,is_external,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: limit exceeded!
 	}
 
@@ -338,13 +338,13 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	//Now the LDT entry is loaded for testing!
 	if (LDTsegdesc.desc.Type != AVL_SYSTEM_LDT) //Not an LDT?
 	{
-		THROWDESCGP(CPU[activeCPU].registers->TR); //Throw error!
+		THROWDESCGP(CPU[activeCPU].registers->TR,is_external,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: not an IDT!	
 	}
 
 	if (!LDTsegdesc.desc.P) //Not present?
 	{
-		THROWDESCGP(CPU[activeCPU].registers->TR); //Throw error!
+		THROWDESCGP(CPU[activeCPU].registers->TR,is_external,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: not an IDT!	
 	}
 
@@ -365,7 +365,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
 	if (getCPL() != CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].DPL) //Non-matching TSS DPL vs CS CPL?
 	{
-		CPU_TSSFault(CPU[activeCPU].registers->TR); //Throw error!
+		CPU_TSSFault(CPU[activeCPU].registers->TR,is_external,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: limit exceeded!
 	}
 
@@ -464,13 +464,18 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	return 0; //Abort any running instruction operation!
 }
 
-void CPU_TSSFault(uint_32 errorcode)
+void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
 {
+	uint_32 errorcode;
+	errorcode = (segmentval&0xFFFB)|(is_external&1)|(tbl<<1);
 	CPU_resetOP(); //Point to the faulting instruction!
 	
 	if (CPU_faultraised()) //We're raising a fault!
 	{
 		call_soft_inthandler(EXCEPTION_INVALIDTSSSEGMENT); //Call IVT entry #13 decimal!
-		CPU_PUSH32(&errorcode); //Error code!
+		if (CPU[activeCPU].faultraised==0)
+		{
+			CPU_PUSH32(&errorcode); //Error code!
+		}
 	}
 }
