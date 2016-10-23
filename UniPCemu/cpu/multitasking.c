@@ -12,7 +12,7 @@ extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are th
 
 byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
-	byte isStackSwitch = 0; //Stack switch?
+	//byte isStackSwitch = 0; //Stack switch?
 	byte destStack = 3; //Destination stack!
 	//Both structures to use for the TSS!
 	word LDTsegment;
@@ -35,7 +35,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	if (LOADEDDESCRIPTOR->desc.DPL != getCPL()) //Different CPL? Stack switch?
 	{
 		destStack = LOADEDDESCRIPTOR->desc.DPL; //Switch to this stack!
-		isStackSwitch = 1; //Switching stacks!
+		//isStackSwitch = 1; //Switching stacks!
 	}
 
 	uint_32 limit; //The limit we use!

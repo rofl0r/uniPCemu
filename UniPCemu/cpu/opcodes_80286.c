@@ -623,9 +623,9 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 
 	//Load the data from the used location!
 
-	for (address=0;address<sizeof(LOADALLDATA);++address) //Load all data!
+	for (address=0;address<sizeof(LOADALLDATA.data);++address) //Load all data!
 	{
-		LOADALLDATA.data[address] = memory_directrb(address); //Read the data to load from memory!
+		LOADALLDATA.data[address] = memory_directrb(address+0x800); //Read the data to load from memory!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!

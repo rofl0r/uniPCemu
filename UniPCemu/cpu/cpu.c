@@ -1266,6 +1266,7 @@ extern CPUPM_Timings CPUPMTimings[216]; //The PM timings full table!
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
+	byte REPZ = 0; //Default to REP!
 	byte didNewREP = 0, didRepeating=0; //Did we do a REP?
 	word *currentinstructiontiming; //Current timing we're processing!
 	byte instructiontiming, ismemory, modrm_threevariablesused; //Timing loop used on 286+ CPUs!
@@ -1322,7 +1323,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
 	if (cpudebugger) debugger_setprefix(""); //Reset prefix for the debugger!
 	gotREP = 0; //Default: no REP-prefix used!
-	byte REPZ = 0; //Default to REP!
+	REPZ = 0; //Init REP to NZ!
 	if (CPU_getprefix(0xF2)) //REPNE Opcode set?
 	{
 		gotREP = REPZ = 1; //Allow and we're REPZ!
@@ -1716,7 +1717,7 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 						memset(&sublist,0,sizeof(sublist)); //Clear our sublist!
 						if (notfound) //No CPU found matching this instruction?
 						{
-							memset(&CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],0,sizeof(&CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register])); //Unused timings!
+							memset(&CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],0,sizeof(CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register])); //Unused timings!
 						}
 						else //Valid CPU found for this instruction?
 						{
