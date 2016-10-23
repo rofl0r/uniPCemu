@@ -91,19 +91,15 @@ Start of help for opcode processing
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 extern uint_32 wordaddress; //Word address used during memory access!
 
-OPTINLINE void CPU80386_software_int(byte interrupt, byte has_errorcode, uint_32 errorcode) //See int, but for hardware interrupts (IRQs)!
+OPTINLINE void CPU80386_software_int(byte interrupt, int_64 errorcode) //See int, but for hardware interrupts (IRQs)!
 {
-	call_soft_inthandler(interrupt); //Save adress to stack (We're going soft int!)!
-	if (has_errorcode) //Have error code too?
-	{
-		CPU_PUSH32(&errorcode); //Push error code on stack!
-	}
+	call_soft_inthandler(interrupt,errorcode); //Save adress to stack (We're going soft int!)!
 }
 
 OPTINLINE void CPU80386_INTERNAL_int(byte interrupt, byte type3) //Software interrupt from us(internal call)!
 {
 	CPUPROT1
-		CPU80386_software_int(interrupt, 0, 0);
+		CPU80386_software_int(interrupt, -1);
 	CPUPROT2
 	if (type3) //Type-3 interrupt?
 		CPU[activeCPU].cycles_OP = 52; /* Type-3 interrupt */

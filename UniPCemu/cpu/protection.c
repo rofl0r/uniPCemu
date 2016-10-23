@@ -29,13 +29,9 @@ void CPU_triplefault()
 
 void CPU_doublefault()
 {
-	uint_32 zerovalue=0; //Zero value pushed!
+	uint_64 zerovalue=0; //Zero value pushed!
 	CPU[activeCPU].faultraised = 0; //Reset the fault level for the double fault(allow memory accesses again)!
-	call_soft_inthandler(EXCEPTION_DOUBLEFAULT); //Execute the double fault handler!
-	if (CPU[activeCPU].faultraised == 0) //Success during this step?
-	{
-		CPU_PUSH32(&zerovalue); //Error code of 0!
-	}
+	call_soft_inthandler(EXCEPTION_DOUBLEFAULT,zerovalue); //Execute the double fault handler!
 	CPU[activeCPU].faultraised = 1; //We're ignoring any more errors occurring!
 }
 
@@ -65,7 +61,7 @@ byte CPU_faultraised()
 
 //More info: http://wiki.osdev.org/Paging
 //General Protection fault.
-void CPU_GP(int toinstruction,uint_32 errorcode)
+void CPU_GP(int toinstruction,int_64 errorcode)
 {
 	if (toinstruction) //Point to the faulting instruction?
 	{
@@ -74,40 +70,31 @@ void CPU_GP(int toinstruction,uint_32 errorcode)
 	
 	if (CPU_faultraised()) //Fault raising exception!
 	{
-		if (call_soft_inthandler(EXCEPTION_GENERALPROTECTIONFAULT)) //Call IVT entry #13 decimal!
-		{
-			CPU_PUSH32(&errorcode); //Error code!
-		}
+		call_soft_inthandler(EXCEPTION_GENERALPROTECTIONFAULT,errorcode); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
 		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
 	}
 }
 
-void CPU_SegNotPresent(uint_32 errorcode)
+void CPU_SegNotPresent(int_64 errorcode)
 {
 	CPU_resetOP(); //Point to the faulting instruction!
 
 	if (CPU_faultraised()) //Fault raising exception!
 	{
-		if (call_soft_inthandler(EXCEPTION_SEGMENTNOTPRESENT)) //Call IVT entry #11 decimal!
-		{
-			CPU_PUSH32(&errorcode); //Error code!
-		}
+		call_soft_inthandler(EXCEPTION_SEGMENTNOTPRESENT,errorcode); //Call IVT entry #11 decimal!
 		//Execute the interrupt!
 		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
 	}
 }
 
-void CPU_StackFault(uint_32 errorcode)
+void CPU_StackFault(int_64 errorcode)
 {
 	CPU_resetOP(); //Point to the faulting instruction!
 
 	if (CPU_faultraised()) //Fault raising exception!
 	{
-		if (call_soft_inthandler(EXCEPTION_STACKFAULT)) //Call IVT entry #12 decimal!
-		{
-			CPU_PUSH32(&errorcode); //Error code!
-		}
+		call_soft_inthandler(EXCEPTION_STACKFAULT,errorcode); //Call IVT entry #12 decimal!
 		//Execute the interrupt!
 		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
 	}
@@ -984,8 +971,12 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 	return 1; //OK!
 }
 
-byte CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint_32 returnoffset, uint_32 error) //Execute a protected mode interrupt!
+byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnoffset, int_64 errorcode) //Execute a protected mode interrupt!
 {
+	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
+	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
+	byte is_EXT = 0;
+	is_EXT = ((errorcode!=-1)&&(errorcode&1)?1:0); //EXT?
 	SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage for task switches!
 	word desttask; //Destination task for task switches!
 	byte left; //The amount of bytes left to read of the IDT entry!
@@ -993,7 +984,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
 	if ((base|0x7) >= CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
 	{
-		THROWDESCGP(base,(is_HW?1:0),EXCEPTION_TABLE_IDT); //#GP!
+		THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#GP!
 		return 0; //Abort!
 	}
 
@@ -1009,13 +1000,13 @@ byte CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 
 	if (idtentry.P==0) //Not present?
 	{
-		THROWDESCNP(base,(is_HW?1:0),EXCEPTION_TABLE_IDT); //#NP!
+		THROWDESCNP(base,is_EXT,EXCEPTION_TABLE_IDT); //#NP!
 		return 0;
 	}
 
-	if ((!is_HW) && (idtentry.DPL < getCPL())) //Not enough rights?
+	if (!((errorcode!=-1)&&(errorcode&1)) && (idtentry.DPL < getCPL())) //Not enough rights?
 	{
-		THROWDESCGP(base,(is_HW?1:0),EXCEPTION_TABLE_IDT); //#GP!
+		THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#GP!
 		return 0;
 	}
 
@@ -1026,14 +1017,21 @@ byte CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 		desttask = idtentry.selector; //Read the destination task!
 		if ((!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
 		{
-			THROWDESCGP(desttask,(is_HW?1:0),(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+			THROWDESCGP(desttask,((errorcode!=-1)&&(errorcode&1)?1:0),(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
 			return 0; //Error, by specified reason!
 		}
-		if (CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 0,1,(is_HW?1:0))) //Execute a task switch to the new task!
+		if (CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 0,1,errorcode)) //Execute a task switch to the new task!
 		{
-			if (is_HW && (error != -1))
+			if (errorcode!=-1) //Error code to be pushed on the stack?
 			{
-				CPU_PUSH32(&error); //Push the error on the stack!
+				if (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].D_B) //32-bit task?
+				{
+					CPU_PUSH32(&errorcode32); //Push the error on the stack!
+				}
+				else
+				{
+					CPU_PUSH16(&errorcode16); //Push the error on the stack!
+				}
 				if (CPU[activeCPU].faultraised==0) //OK?
 				{
 					hascallinterrupttaken_type = INTERRUPTGATETIMING_TASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
@@ -1054,17 +1052,17 @@ byte CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 		case IDTENTRY_16BIT_TRAPGATE: //16/32-bit trap gate?
 			if (!LOADINTDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
 			{
-				THROWDESCGP(idtentry.selector,(is_HW?1:0),(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				THROWDESCGP(idtentry.selector,is_EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return 0; //Error, by specified reason!
 			}
 			if (((newdescriptor.desc.S==0) || (newdescriptor.desc.EXECSEGMENT.ISEXEC==0)) || (newdescriptor.desc.EXECSEGMENT.R==0)) //Not readable, execute segment or is code/executable segment?
 			{
-				THROWDESCGP(idtentry.selector,(is_HW?1:0),(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+				THROWDESCGP(idtentry.selector,is_EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
 			}
 			if ((idtentry.offsetlow | (idtentry.offsethigh << 16)) > (newdescriptor.desc.limit_low | (newdescriptor.desc.limit_high << 16))) //Limit exceeded?
 			{
-				THROWDESCGP(idtentry.selector,(is_HW?1:0),(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+				THROWDESCGP(idtentry.selector,is_EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
 			}
 
@@ -1121,6 +1119,18 @@ byte CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 				CPU[activeCPU].registers->SFLAGS.IF = 0; //No interrupts!
 			}
 
+			if (errorcode!=-1) //Error code specified?
+			{
+				if (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].D_B) //32-bit task?
+				{
+					CPU_PUSH32(&errorcode32); //Push the error on the stack!
+				}
+				else
+				{
+					CPU_PUSH16(&errorcode16); //Push the error on the stack!
+				}
+			}
+
 			if (CPU[activeCPU].faultraised==0) //OK?
 			{
 				hascallinterrupttaken_type = INTERRUPTGATETIMING_SAMELEVEL; //TODO Specify same level for now, until different level is implemented!
@@ -1128,7 +1138,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint
 			return 1; //OK!
 			break;
 		default: //Unknown descriptor type?
-			THROWDESCGP(base,(is_HW ? 1 : 0),EXCEPTION_TABLE_GDT); //#GP! We're always from the GDT!
+			THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_GDT); //#GP! We're always from the GDT!
 			return 0; //Errored out!
 			break;
 		}

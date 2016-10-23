@@ -100,19 +100,15 @@ OPTINLINE void CPU_addWordMemoryTiming()
 	}
 }
 
-OPTINLINE void CPU8086_software_int(byte interrupt, byte has_errorcode, uint_32 errorcode) //See int, but for hardware interrupts (IRQs)!
+OPTINLINE void CPU8086_software_int(byte interrupt, int_64 errorcode) //See int, but for hardware interrupts (IRQs)!
 {
-	call_soft_inthandler(interrupt); //Save adress to stack (We're going soft int!)!
-	if (has_errorcode) //Have error code too?
-	{
-		CPU_PUSH32(&errorcode); //Push error code on stack!
-	}
+	call_soft_inthandler(interrupt,errorcode); //Save adress to stack (We're going soft int!)!
 }
 
 OPTINLINE void CPU8086_int(byte interrupt, byte type3) //Software interrupt from us(internal call)!
 {
 	CPUPROT1
-		CPU8086_software_int(interrupt, 0, 0);
+		CPU8086_software_int(interrupt,-1);
 	CPUPROT2
 	if (type3) //Type-3 interrupt?
 		CPU[activeCPU].cycles_OP = 52; /* Type-3 interrupt */

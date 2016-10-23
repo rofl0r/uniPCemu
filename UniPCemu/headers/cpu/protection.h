@@ -41,7 +41,7 @@ byte checkPortRights(word port); //Are we allowed to not use this port?
 byte disallowPOPFI(); //Allow POPF to not change the interrupt flag?
 byte checkSTICLI(); //Check STI/CLI rights! 1 when allowed, 0 when to be ignored!
 
-byte CPU_ProtectedModeInterrupt(byte intnr, byte is_HW, word returnsegment, uint_32 returnoffset, uint_32 error); //Execute a protected mode interrupt!
+byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnoffset, int_64 errorcode); //Execute a protected mode interrupt!
 
 byte DATA_SEGMENT_DESCRIPTOR_B_BIT(); //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
 

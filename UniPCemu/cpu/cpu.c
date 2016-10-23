@@ -363,12 +363,12 @@ void CPU_PORT_IN_D(word port, uint_32 *result)
 	*result = PORT_IN_D(port); //Port in!
 }
 
-byte call_soft_inthandler(byte intnr)
+byte call_soft_inthandler(byte intnr, int_64 errorcode)
 {
 	//Now call handler!
 	CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
-	return CPU_INT(intnr,0); //Call interrupt!
+	return CPU_INT(intnr,errorcode); //Call interrupt!
 }
 
 void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
@@ -376,7 +376,7 @@ void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardwar
 //Now call handler!
 	CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
-	CPU_INT(intnr,1); //Call interrupt!
+	CPU_INT(intnr,-1); //Call interrupt!
 }
 
 void CPU_8086_RETI() //Not from CPU!
@@ -429,6 +429,7 @@ OPTINLINE void free_CPUregisters()
 
 OPTINLINE void CPU_initRegisters() //Init the registers!
 {
+	uint_32 CSBase; //Base of CS!
 	byte CSAccessRights; //Default CS access rights, overwritten during first software reset!
 	if (CPU[activeCPU].registers) //Already allocated?
 	{
@@ -548,6 +549,12 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF; //More than 24 bits are pulled high as well!
 		}
 		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0xFF; //We're starting at the end of our address space, final block! (segment F000=>high 8 bits set)
+	}
+	else //186-?
+	{
+		CSBase = CPU[activeCPU].registers->CS<<4; //CS base itself!
+		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = (CSBase>>16); //Mid range!
+		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_low = (CSBase&0xFFFF); //Low range!
 	}
 }
 
@@ -1788,12 +1795,12 @@ void CPU_exDIV0() //Division by 0!
 	if (EMULATED_CPU == CPU_8086) //We point to the instruction following the division?
 	{
 		//Points to next opcode!
-		call_soft_inthandler(EXCEPTION_DIVIDEERROR); //Execute INT0 normally using current CS:(E)IP!
+		call_soft_inthandler(EXCEPTION_DIVIDEERROR,-1); //Execute INT0 normally using current CS:(E)IP!
 	}
 	else
 	{
 		//Points to next opcode!
-		CPU_customint(EXCEPTION_DIVIDEERROR,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
+		CPU_customint(EXCEPTION_DIVIDEERROR,CPU_exec_CS,CPU_exec_EIP,-1); //Return to opcode!
 	}
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
@@ -1807,7 +1814,7 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	HWINT_nr = 1; //Trapped INT NR!
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
-	call_soft_inthandler(EXCEPTION_DEBUG); //Execute INT1 normally using current CS:(E)IP!
+	call_soft_inthandler(EXCEPTION_DEBUG,-1); //Execute INT1 normally using current CS:(E)IP!
 	CPU[activeCPU].cycles_Exception += 50; //Our cycles!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }

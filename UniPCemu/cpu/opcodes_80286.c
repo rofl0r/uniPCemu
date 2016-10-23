@@ -688,7 +688,7 @@ void CPU286_OP0FB9() //#UD instruction
 void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
 {
 	debugger_setcommand("ICEBP");
-	CPU_INT(1,0); //ICEBP!
+	CPU_INT(1,-1); //ICEBP!
 }
 
 //FPU non-existant Coprocessor support!

@@ -29,8 +29,9 @@ extern uint_32 destEIP;
 //Interrupt support for timings!
 extern byte CPU_interruptraised; //Interrupt raised flag?
 
-byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, byte is_HW) //Used by soft (below) and exceptions/hardware!
+byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode) //Used by soft (below) and exceptions/hardware!
 {
+	word errorcode16;
 	CPU_interruptraised = 1; //We've raised an interrupt!
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
 	{
@@ -43,19 +44,24 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, byte is_HW) /
 //Now, jump to it!
 		destEIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
 		segmentWritten(CPU_SEGMENT_CS,memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base),0); //Interrupt to position CS:EIP/CS:IP in table.
+		if (errorcode!=-1) //Error code specified?
+		{
+			errorcode16 = (word)errorcode; //16-bit!
+			CPU_PUSH16(&errorcode16); //PUSH the error code!
+		}
 		return 1; //OK!
 	}
 	else //Use Protected mode IVT?
 	{
-		return CPU_ProtectedModeInterrupt(intnr,is_HW,retsegment,retoffset,0); //Execute the protected mode interrupt!
+		return CPU_ProtectedModeInterrupt(intnr,retsegment,retoffset,errorcode); //Execute the protected mode interrupt!
 	}
 }
 
 
-byte CPU_INT(byte intnr, byte is_HW) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
+byte CPU_INT(byte intnr, int_64 errorcode) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
 {
 	//Now, jump to it!
-	return CPU_customint(intnr,REG_CS,REG_EIP,is_HW); //Execute real interrupt, returning to current address!
+	return CPU_customint(intnr,REG_CS,REG_EIP,errorcode); //Execute real interrupt, returning to current address!
 }
 
 byte NMIMasked = 0; //Are NMI masked?
@@ -83,7 +89,7 @@ void CPU_IRET()
 			{
 				return; //Error, by specified reason!
 			}
-			CPU_switchtask(CPU_SEGMENT_TR,&newdescriptor,&CPU[activeCPU].registers->TR,desttask,3,0,0); //Execute an IRET to the interrupted task!
+			CPU_switchtask(CPU_SEGMENT_TR,&newdescriptor,&CPU[activeCPU].registers->TR,desttask,3,0,-1); //Execute an IRET to the interrupted task!
 		}
 		else //Normal IRET?
 		{
@@ -95,19 +101,18 @@ void CPU_IRET()
 			{
 				destEIP = CPU_POP16(); //POP IP!
 			}
-			segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),3); //We're loading because of an IRET!
-			CPU_flushPIQ(); //We're jumping to another address!
-			if (CPU[activeCPU].faultraised == 0) //No fault raised?
+			word tempCS;
+			tempCS = CPU_POP16(); //CS to be loaded!
+			if (CPU_Operand_size[activeCPU]) //32-bit mode?
 			{
-				if (CPU_Operand_size[activeCPU]) //32-bit mode?
-				{
-					REG_EFLAGS = CPU_POP32(); //Pop flags!
-				}
-				else
-				{
-					REG_FLAGS = CPU_POP16(); //Pop flags!
-				}
+				REG_EFLAGS = CPU_POP32(); //Pop flags!
 			}
+			else
+			{
+				REG_FLAGS = CPU_POP16(); //Pop flags!
+			}
+			segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
+			CPU_flushPIQ(); //We're jumping to another address!
 		}
 	}
 	//Special effect: re-enable NMI!
