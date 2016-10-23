@@ -15,6 +15,8 @@ extern MMU_type MMU; //MMU itself!
 //Are we disabled?
 #define __HW_DISABLED 0
 
+#define CPU286_WAITSTATE_DELAY 1
+
 byte writeword = 0; //Hi-end word written?
 
 //Pointer support (real mode only)!
@@ -149,6 +151,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 		if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
 		{
 			CPU[activeCPU].cycles_MMUR += 3; //Add memory cycles used!
+			CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
 		}
 	}
 	else //Second data of a word access?
@@ -158,6 +161,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 			if (EMULATED_CPU==CPU_80286) //Process additional cycles!
 			{
 				CPU[activeCPU].cycles_MMUR += 3; //Add memory cycles used!				
+				CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
 			}
 		}
 	}
@@ -219,6 +223,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 		if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
 		{
 			CPU[activeCPU].cycles_MMUW += 3; //Add memory cycles used!
+			CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
 		}
 	}
 	else //Second data of a word access?
@@ -228,6 +233,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 			if (EMULATED_CPU==CPU_80286) //Process additional cycles!
 			{
 				CPU[activeCPU].cycles_MMUW += 3; //Add memory cycles used!				
+				CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
 			}
 		}
 	}

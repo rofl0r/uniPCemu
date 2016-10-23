@@ -612,7 +612,7 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 		PIQ_retry: //Retry after refilling PIQ!
 		if (readfifobuffer(CPU[activeCPU].PIQ,&result)) //Read from PIQ?
 		{
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,1,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL())) //Error accessing memory?
 			{
 				return 0xFF; //Abort on fault!
 			}
