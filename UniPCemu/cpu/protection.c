@@ -29,9 +29,12 @@ void CPU_triplefault()
 
 void CPU_doublefault()
 {
-	uint_64 zerovalue=0; //Zero value pushed!
-	CPU[activeCPU].faultraised = 0; //Reset the fault level for the double fault(allow memory accesses again)!
-	call_soft_inthandler(EXCEPTION_DOUBLEFAULT,zerovalue); //Execute the double fault handler!
+	if (getcpumode()!=CPU_MODE_REAL) //Protected mode only?
+	{
+		uint_64 zerovalue=0; //Zero value pushed!
+		CPU[activeCPU].faultraised = 0; //Reset the fault level for the double fault(allow memory accesses again)!
+		call_soft_inthandler(EXCEPTION_DOUBLEFAULT,zerovalue); //Execute the double fault handler!
+	}
 	CPU[activeCPU].faultraised = 1; //We're ignoring any more errors occurring!
 }
 
