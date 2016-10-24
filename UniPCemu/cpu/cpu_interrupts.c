@@ -31,13 +31,12 @@ extern byte CPU_interruptraised; //Interrupt raised flag?
 
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode) //Used by soft (below) and exceptions/hardware!
 {
-	word errorcode16;
 	CPU_interruptraised = 1; //We've raised an interrupt!
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
 	{
 		if (CPU[activeCPU].registers->IDTR.limit<((intnr<<2)|3)) //IVT limit too low?
 		{
-			if (cpu_faultraised()) //Able to fault?
+			if (CPU_faultraised()) //Able to fault?
 			{
 				return CPU_INT(8,-1); //IVT limit problem or double fault redirect!
 			}
