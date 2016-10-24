@@ -175,16 +175,13 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 
 	//Now clocks contains the amount of clocks we're to tick! First clock input to the device(sending data to the device has higher priority), then output from the device!
 	clocks8042 += clocks; //Add the clocks we're to tick to the clocks to tick to get the new amount of clocks passed!
-	byte outputpending, inputpending;
+	byte outputpending, inputpending, outputprocessed, inputprocessed;
 	outputpending = (Controller8042.status_buffer & 2); //Output pending to be sent? Takes 12 clocks
 	inputpending = ((Controller8042.status_buffer & 1) == 0); //Input pending to be received? Takes 11 clocks
+	outputprocessed = inputprocessed = 0; //Default: not processed!
 	for (;(((clocks8042>=11) && inputpending) || ((clocks8042>=12) && outputpending));) //Enough to tick at at least once?
 	{
-		if ((outputpending==0) && (inputpending==0)) //Nothing to be done?
-		{
-			clocks8042 -= 11; //Tick as much as we can!
-		}
-		if (outputpending) //Output buffer is full?
+		if (outputpending && (outputprocessed==0)) //Output buffer is full?
 		{
 			if (clocks8042 >= 12) //Are enough clocks ready to send?
 			{
@@ -196,9 +193,9 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 					clocks8042 -= 12; //Substract the pending data, because we're now processed and sent completely!
 				}
 			}
-			outputpending = 0; //Not pending anymore!
+			outputprocessed = 1; //We're processed!
 		}
-		else if (inputpending) //Output buffer is empty?
+		else if ((inputpending) && (inputprocessed==0)) //Output buffer is empty?
 		{
 			if (clocks8042 >= 11) //Are enough clocks ready to receive?
 			{
@@ -207,10 +204,12 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 					clocks8042 -= 11; //Substract from our clocks, because we've received something!
 				}
 			}
-			inputpending = 0; //Not pending anymore!
+			inputprocessed = 1; //We're processed!
 		}
+		else if ((outputprocessed || (outputpending==0)) && ((inputprocessed) || (inputpending==0))) //Nothing to be done? Both have been checked!
+			break; //Stop: 
 	}
-	if (!(inputpending|outputpending)) //Input and output isn't pending?
+	if (!((inputpending&~inputprocessed)|(outputpending&~outputprocessed))) //Input and output isn't pending?
 	{
 		clocks8042 = 0; //Start counting again! Reset out sending/receiving!
 	}
