@@ -392,6 +392,7 @@ void datawritten_8042() //Data has been written?
 			{
 				lowerirq(1); //Remove the keyboard IRQ!
 				acnowledgeIRQrequest(1); //Acnowledge!
+				lowerirq(12); //Remove the mouse IRQ!
 				raiseirq(12); //Call the interrupt if neccesary!
 			}
 		}
@@ -402,6 +403,7 @@ void datawritten_8042() //Data has been written?
 			{
 				lowerirq(12); //Remove the mouse IRQ!
 				acnowledgeIRQrequest(12); //Acnowledge!
+				lowerirq(1); //Remove the keyboard IRQ!
 				raiseirq(1); //Call the interrupt if neccesary!
 			}
 		}

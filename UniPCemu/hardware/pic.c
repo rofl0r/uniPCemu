@@ -200,13 +200,13 @@ byte PICInterrupt() //We have an interrupt ready to process?
 OPTINLINE byte IRRequested(byte PIC, byte IR, byte source) //We have this requested?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	return (((getunprocessedinterrupt(PIC) >> IR) & 1) && (i8259.irr2[PIC&1][source])); //Interrupt requested on the specified source?
+	return (((getunprocessedinterrupt(PIC) & (i8259.irr3[PIC&1][source]))>> IR) & 1); //Interrupt requested on the specified source?
 }
 
 OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 {
 	if (__HW_DISABLED) return; //Abort!
-	i8259.irr2[PIC][source] ^= (1 << IR); //Turn source IRR off!
+	i8259.irr3[PIC][source] &= ~(1 << IR); //Turn source IRR off!
 	i8259.irr[PIC] &= ~(1<<IR); //Clear the request!
 	i8259.isr[PIC] |= (1 << IR); //Turn in-service on!
 	i8259.isr2[PIC][source] |= (1 << IR); //Turn the source on!
@@ -277,6 +277,7 @@ void raiseirq(byte irqnum)
 	byte hasirr = 0;
 	byte oldIRR = 0;
 	//Handle edge-triggered IRR!
+	hasirr = 0; //Init IRR state!
 	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
 	{
 		if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
@@ -288,7 +289,7 @@ void raiseirq(byte irqnum)
 	oldIRR = hasirr; //Old IRR state!
 
 	i8259.irr2[PIC][requestingindex] |= (1 << (irqnum & 7)); //Add the IRQ to request!
-	hasirr = 0; //New IRR state!
+	hasirr = 0; //Init IRR state!
 	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
 	{
 		if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
@@ -302,6 +303,7 @@ void raiseirq(byte irqnum)
 	{
 		if (i8259.imr[PIC]&((1<<irqnum&7))) return; //Ignore raising ignored IRQs to prevent spurious interrupts!
 		i8259.irr[PIC] |= (1 << (irqnum & 7)); //Add the IRQ to request because of the rise!
+		i8259.irr3[PIC][requestingindex] |= (1 << (irqnum & 7)); //Add the IRQ to request because of the rise! This causes us to be the reason during shared IR lines!
 	}
 }
 
