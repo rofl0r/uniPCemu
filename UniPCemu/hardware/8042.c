@@ -175,28 +175,44 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 
 	//Now clocks contains the amount of clocks we're to tick! First clock input to the device(sending data to the device has higher priority), then output from the device!
 	clocks8042 += clocks; //Add the clocks we're to tick to the clocks to tick to get the new amount of clocks passed!
-	if (Controller8042.status_buffer & 2) //Output buffer is full?
+	byte outputpending, inputpending;
+	outputpending = (Controller8042.status_buffer & 2); //Output pending to be sent? Takes 12 clocks
+	inputpending = ((Controller8042.status_buffer & 1) == 0); //Input pending to be received? Takes 11 clocks
+	for (;(((clocks8042>=11) && inputpending) || ((clocks8042>=12) && outputpending));) //Enough to tick at at least once?
 	{
-		if (clocks8042 >= 12) //Are enough clocks ready to send?
+		if ((outputpending==0) && (inputpending==0)) //Nothing to be done?
 		{
-			if (Controller8042.WritePending) //Write(Input buffer) is pending?
+			clocks8042 -= 11; //Tick as much as we can!
+		}
+		if (outputpending) //Output buffer is full?
+		{
+			if (clocks8042 >= 12) //Are enough clocks ready to send?
 			{
-				Controller8042.status_buffer &= ~0x2; //Cleared input buffer!
-				Controller8042.portwrite[Controller8042.WritePending-1](Controller8042.input_buffer); //Write data to the specified port!
-				Controller8042.WritePending = 0; //Not pending anymore!
-				clocks8042 -= 12; //Substract the pending data, because we're now processed and sent completely!
+				if (Controller8042.WritePending) //Write(Input buffer) is pending?
+				{
+					Controller8042.status_buffer &= ~0x2; //Cleared input buffer!
+					Controller8042.portwrite[Controller8042.WritePending-1](Controller8042.input_buffer); //Write data to the specified port!
+					Controller8042.WritePending = 0; //Not pending anymore!
+					clocks8042 -= 12; //Substract the pending data, because we're now processed and sent completely!
+				}
 			}
+			outputpending = 0; //Not pending anymore!
+		}
+		else if (inputpending) //Output buffer is empty?
+		{
+			if (clocks8042 >= 11) //Are enough clocks ready to receive?
+			{
+				if (fill8042_output_buffer(1)) //Have we received something?
+				{
+					clocks8042 -= 11; //Substract from our clocks, because we've received something!
+				}
+			}
+			inputpending = 0; //Not pending anymore!
 		}
 	}
-	else if ((Controller8042.status_buffer & 1) == 0) //Output buffer is empty?
+	if (!(inputpending|outputpending)) //Input and output isn't pending?
 	{
-		if (clocks8042 >= 11) //Are enough clocks ready to receive?
-		{
-			if (fill8042_output_buffer(1)) //Have we received something?
-			{
-				clocks8042 -= 11; //Substract from our clocks, because we've received something!
-			}
-		}
+		clocks8042 = 0; //Start counting again! Reset out sending/receiving!
 	}
 }
 
