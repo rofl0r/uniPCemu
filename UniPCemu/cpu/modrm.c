@@ -538,12 +538,12 @@ OPTINLINE void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 i
 		if (cpudebugger) strcpy(result->text,"DS");
 		break;
 	case MODRM_SEG_FS:
-		if (EMULATED_CPU<CPU_80286) goto unkseg; //Unsupported on 80(1)86!
+		if (EMULATED_CPU<CPU_80386) goto unkseg; //Unsupported on 80(1)86!
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS];
 		if (cpudebugger) strcpy(result->text,"FS");
 		break;
 	case MODRM_SEG_GS:
-		if (EMULATED_CPU<CPU_80286) goto unkseg; //Unsupported on 80(1)86!
+		if (EMULATED_CPU<CPU_80386) goto unkseg; //Unsupported on 80(1)86!
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS];
 		if (cpudebugger) strcpy(result->text,"GS");
 		break;
