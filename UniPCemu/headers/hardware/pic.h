@@ -48,6 +48,7 @@ typedef struct
 	uint8_t enabled[2];
 	byte IROrder[16]; //The order we process!
 	IRQHandler acceptirq[0x10][0x10], finishirq[0x10][0x10]; //All IRQ handlers!
+	byte activePIC; //What PIC is currently processing?
 } PIC;
 
 void init8259(); //For initialising the 8259 module!

@@ -186,11 +186,13 @@ byte PICInterrupt() //We have an interrupt ready to process?
 	if (__HW_DISABLED) return 0; //Abort!
 	if (getunprocessedinterrupt(0) || interruptsaved) //Primary PIC interrupt?
 	{
+		i8259.activePIC = 0; //From PIC0!
 		return 1;
 	}
 
 	if (getunprocessedinterrupt(1)) //Secondary PIC interrupt?
 	{
+		i8259.activePIC = 1; //From PIC1!
 		return 1;
 	}
 
@@ -261,7 +263,8 @@ byte nextintr()
 			}
 		}
 	}
-	lastinterrupt = 0; //Unknown!
+
+	lastinterrupt = getint(i8259.activePIC,7); //Unknown, dispatch through IR7 of the used PIC!
 	interruptsaved = 1; //Gotten!
 	return lastinterrupt; //No result: unk interrupt!
 }
