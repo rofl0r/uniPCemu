@@ -448,6 +448,7 @@ void unkOP_186() //Unknown opcode on 186+?
 	//dolog("unkop","Unknown opcode on NECV30+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt with return addres of the OPcode!
+	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 #ifdef UNKOP_SHUTDOWN
 	EMU_Shutdown(1); //Request to shut down!
 #endif

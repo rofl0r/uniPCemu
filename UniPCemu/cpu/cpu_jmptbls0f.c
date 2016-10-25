@@ -15,6 +15,7 @@ void unkOP0F_286() //0F unknown opcode handler on 286+?
 	//dolog("unkop","Unknown opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
+	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 }
 
 //See normal opcode table, but for 0F opcodes!

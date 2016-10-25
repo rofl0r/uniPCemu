@@ -718,10 +718,10 @@ OPTINLINE byte CPU_isPrefix(byte prefix)
 			return 1; //Always a prefix!
 		case 0x66: //Operand-size override
 		case 0x67: //Address-size override
-			return (EMULATED_CPU>=CPU_80286); //We're a prefix when 286+!
+			return (EMULATED_CPU>=CPU_80386); //We're a prefix when 386+!
 		case 0x64: //FS segment override prefix
 		case 0x65: //GS segment override prefix
-			return (EMULATED_CPU >= CPU_80386); //We're a prefix when 386+!
+			return (EMULATED_CPU >= CPU_80286); //We're a prefix when 286+!
 		default: //It's a normal OPcode?
 			return 0; //No prefix!
 			break; //Not use others!
@@ -814,6 +814,11 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	{
 		modrm_readparams(&params,timing->modrm_readparams_0,timing->modrm_readparams_1); //Read the params!
 		if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+		if (MODRM_ERROR(params)) //An error occurred in the read params?
+		{
+			CPU_unkOP(); //Execute the unknown opcode handler!
+			return 0xFF; //Abort!
+		}
 		MODRM_src0 = timing->modrm_src0; //First source!
 		MODRM_src1 = timing->modrm_src1; //Second source!
 	}

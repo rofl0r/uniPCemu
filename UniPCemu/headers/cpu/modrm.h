@@ -129,6 +129,7 @@ typedef struct
 	MODRM_PTR info[3]; //All versions of info!
 	byte EA_cycles; //The effective address cycles we're using!
 	byte havethreevariables; //3-variable memory addition?
+	byte error; //An error was detected decoding the modr/m?
 } MODRM_PARAMS;
 
 #define MODRM_MOD(modrm) ((modrm & 0xC0) >> 6)
@@ -138,6 +139,8 @@ typedef struct
 #define modrm_ismemory(params) (MODRM_MOD(params.modrm)!=MOD_REG)
 #define MODRM_EA(params) params.EA_cycles
 #define MODRM_threevariables(params) (params.havethreevariables)
+//Error in the ModR/M?
+#define MODRM_ERROR(params) params.error
 
 /*
 Warning: SIB=Scaled index byte modes

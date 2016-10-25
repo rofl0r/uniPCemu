@@ -538,15 +538,18 @@ OPTINLINE void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 i
 		if (cpudebugger) strcpy(result->text,"DS");
 		break;
 	case MODRM_SEG_FS:
+		if (EMULATED_CPU<CPU_80286) goto unkseg; //Unsupported on 80(1)86!
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS];
 		if (cpudebugger) strcpy(result->text,"FS");
 		break;
 	case MODRM_SEG_GS:
+		if (EMULATED_CPU<CPU_80286) goto unkseg; //Unsupported on 80(1)86!
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS];
 		if (cpudebugger) strcpy(result->text,"GS");
 		break;
 
 	default: //Catch handler!
+		unkseg:
 		result->reg16 = NULL; //Unknown!
 		if (cpudebugger) strcpy(result->text,"<UNKSREG>");
 		break;
@@ -1901,6 +1904,8 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 		param->reg_is_segmentregister = 1; //REG2 is segment register!
 	}
 
+	param->error = 0; //Default: no errors detected during decoding!
+
 	param->modrm = CPU_readOP(); /* modrm byte first */
 	param->SIB.SIB = modrm_useSIB(param,size)?CPU_readOP():0; //Read SIB byte or 0!
 	param->displacement.dword = 0; //Reset DWORD (biggest) value (reset value to 0)!
@@ -1931,18 +1936,23 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 	switch (size) //What size?
 	{
 	case 0: //8-bits?
-		modrm_decode8(param, &param->info[0], 0); //#0!
-		modrm_decode8(param, &param->info[1], 1); //#0!
+		modrm_decode8(param, &param->info[0], 0); //#0 reg!
+		modrm_decode8(param, &param->info[1], 1); //#0 modr/m!
 		break;
 	case 1: //16-bits?
-		modrm_decode16(param, &param->info[0], 0); //#0!
-		modrm_decode16(param, &param->info[1], 1); //#0!
+		modrm_decode16(param, &param->info[0], 0); //#0 reg!
+		modrm_decode16(param, &param->info[1], 1); //#0 modr/m!
 		break;
 	case 2: //32-bits?
-		modrm_decode32(param, &param->info[0], 0); //#0!
-		modrm_decode32(param, &param->info[1], 1); //#0!
+		modrm_decode32(param, &param->info[0], 0); //#0 reg!
+		modrm_decode32(param, &param->info[1], 1); //#0 modr/m!
 		break;
 	default:
 		halt_modrm("Unknown decoder size: %i",size); //Unknown size!
+	}
+
+	if (param->reg_is_segmentregister && (param->info[0].reg16==NULL)) //Invalid segment register?
+	{
+		param->error = 1; //We've detected an error!
 	}
 }
