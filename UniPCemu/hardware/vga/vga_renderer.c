@@ -26,10 +26,10 @@
 extern GPU_type GPU; //GPU!
 
 double VGA_clocks[4] = {
-			VGA25MHZ, //25MHz: VGA standard clock
-			VGA28MHZ, //28MHz: VGA standard clock
-			0.0f, //external clock: not connected!
-			0.0f //Unused
+			0.0, //25MHz: VGA standard clock
+			0.0, //28MHz: VGA standard clock
+			0.0, //external clock: not connected!
+			0.0 //Unused
 			}; //Our clocks!
 
 uint_32 CGALineSize = 0; //How long is our line!
@@ -37,6 +37,14 @@ byte CGALineBuffer[2048]; //Full CGA scanline buffer!
 uint_32 CGAOutputBuffer[2048]; //Full CGA NTSC buffer!
 
 VGA_clockrateextensionhandler VGA_calcclockrateextensionhandler; //The clock rate extension handler!
+
+void initVGAclocks()
+{
+	VGA_clocks[0] = VGA25MHZ; //25MHZ clock!
+	VGA_clocks[1] = VGA28MHZ; //28MHZ clock!
+	VGA_clocks[2] = 0.0; //Unused!
+	VGA_clocks[3] = 0.0; //Unused!
+}
 
 double VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
 {

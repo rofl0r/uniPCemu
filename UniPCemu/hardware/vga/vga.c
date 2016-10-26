@@ -88,7 +88,9 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 {
 	if (__HW_DISABLED) return NULL; //Abort!
 
-	debugrow("VGA: Creating VGA lock if needed...");
+	debugrow("VGA: Initializing clocks if needed...");
+
+	initVGAclocks(); //Initialize all clocks!
 
 	VGA_Type *VGA; //The VGA to be allocated!
 	debugrow("VGA: Allocating VGA...");
@@ -98,7 +100,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 		raiseError("VGAalloc","Ran out of memory allocating VGA base!");
 		return NULL;
 	}
-	
+
 	uint_32 size;
 	if (update_bios) //From BIOS init?
 	{

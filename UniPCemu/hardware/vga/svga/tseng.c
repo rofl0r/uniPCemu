@@ -9,8 +9,8 @@
 
 // From the depths of X86Config, probably inexact
 double ET4K_clockFreq[16] = {
-	VGA25MHZ, //25MHz: VGA standard clock
-	VGA28MHZ, //28MHz: VGA standard clock
+	0.0, //25MHz: VGA standard clock
+	0.0, //28MHz: VGA standard clock
 	32400000.0f, //ET3/4000 clock!
 	35900000.0f, //ET3/4000 clock!
 	39900000.0f, //ET3/4000 clock!
@@ -28,8 +28,8 @@ double ET4K_clockFreq[16] = {
 };
 
 double ET3K_clockFreq[16] = {
-	VGA25MHZ, //25MHz: VGA standard clock
-	VGA28MHZ, //28MHz: VGA standard clock
+	0.0, //25MHz: VGA standard clock
+	0.0, //28MHz: VGA standard clock
 	32400000.0f, //ET3/4000 clock!
 	35900000.0f, //ET3/4000 clock!
 	39900000.0f, //ET3/4000 clock!
@@ -1117,6 +1117,8 @@ double Tseng34k_clockMultiplier(VGA_Type *VGA)
 	return 1.0; //Normal clock!
 }
 
+extern double VGA_clocks[4]; //Normal VGA clocks!
+
 double Tseng34k_getClockRate(VGA_Type *VGA)
 {
 	byte clock_index;
@@ -1124,11 +1126,13 @@ double Tseng34k_getClockRate(VGA_Type *VGA)
 	if (VGA->enable_SVGA == 2) //ET3000?
 	{
 		clock_index = get_clock_index_et3k(VGA); //Retrieve the ET4K clock index!
+		if (clock_index<2) return VGA_clocks[clock_index]*Tseng34k_clockMultiplier(VGA); //VGA-compatible clocks!
 		return ET3K_clockFreq[clock_index & 0xF]*Tseng34k_clockMultiplier(VGA); //Give the ET4K clock index rate!
 	}
 	else //ET4000?
 	{
 		clock_index = get_clock_index_et4k(VGA); //Retrieve the ET4K clock index!
+		if (clock_index<2) return VGA_clocks[clock_index]*Tseng34k_clockMultiplier(VGA); //VGA-compatible clocks!
 		return ET4K_clockFreq[clock_index & 0xF]*Tseng34k_clockMultiplier(VGA); //Give the ET4K clock index rate!
 	}
 	return 0.0; //Not an ET3K/ET4K clock rate, default to VGA rate!

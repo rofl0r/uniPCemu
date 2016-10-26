@@ -70,6 +70,8 @@ typedef union PACKED
 } LOADEDPLANESCONTAINER; //All four loaded planes!
 #include "headers/endpacked.h"
 
+void initVGAclocks(); //Init all clocks used!
+
 double VGA_VerticalRefreshRate(VGA_Type *VGA); //Scanline speed for one line in Hz!
 
 void VGA_Sequencer_calcScanlineData(VGA_Type *VGA);
