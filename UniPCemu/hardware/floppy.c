@@ -1150,6 +1150,8 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 	}
 }
 
+byte FLOPPY_hadIRQ = 0; //Did we have an IRQ raised?
+
 OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
@@ -1214,7 +1216,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.ST0.CurrentHead = (FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
 				datatemp = FLOPPY.ST0.data; //Use the current data, not the cleared data!
 			}
-			else if (!FLOPPY.IRQPending) //Not an pending IRQ?
+			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
 			{
 				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending! Locking up controller!")
 				FLOPPY.ignorecommands = 1; //Ignore commands until a reset!
@@ -1222,10 +1224,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.commandstep = 0xFF; //Error out!
 				return; //Error out now!
 			}
-			if (!FLOPPY.reset_pending) //Reset not pending? Lower the IRQ!
-			{
-				FLOPPY_lowerIRQ(); //Lower the IRQ if it's raised!
-			}
+			
 			FLOPPY_LOGD("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber])
 			FLOPPY.ST0.InterruptCode = 3; //Polling more is invalid!
 			FLOPPY.ST0.SeekEnd = 0; //Not seeking anymore if we were!
@@ -1739,6 +1738,8 @@ byte PORT_OUT_floppy(word port, byte value)
 			return 1; //Finished!
 		}
 	case 5: //Data?
+		FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
+		FLOPPY_lowerIRQ(); //Lower the IRQ!
 		floppy_writeData(value); //Write data!
 		return 1; //Default handler!
 	case 7: //CCR?
