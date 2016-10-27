@@ -1188,10 +1188,10 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			FLOPPY.currentcylinder[FLOPPY.commandbuffer[1]] = 0; //Goto cylinder #0!
 			FLOPPY.ST0.data = 0x20|FLOPPY.commandbuffer[1]; //Completed command!
-			if (!is_mounted(FLOPPY.commandbuffer[1] ? FLOPPY1 : FLOPPY0)) //Media inserted?
+			/*if (!is_mounted(FLOPPY.commandbuffer[1] ? FLOPPY1 : FLOPPY0)) //Media inserted?
 			{
 				FLOPPY.ST0.data |= 0x10; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
-			}
+			}*/ //We always report success!
 			updateFloppyWriteProtected(0,FLOPPY.commandbuffer[1]); //Try to read with(out) protection!
 			clearDiskChanged(); //Clear the disk changed flag for the new command!
 			FLOPPY_raiseIRQ(); //We're finished!
