@@ -39,7 +39,7 @@ void iocdrom0(char *filename, uint_64 startpos, byte readonly, uint_32 customsiz
 void iocdrom1(char *filename, uint_64 startpos, byte readonly, uint_32 customsize);
 byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread);
 byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite);
-byte has_drive(int drive); //Have drive?
+byte is_mounted(int drive); //Have drive?
 byte drivereadonly(int drive); //Drive is read-only?
 FILEPOS getdisksize(int device); //Retrieve a dynamic/static image size!
 uint_64 disksize(int disknumber); //Currently mounted disk size!

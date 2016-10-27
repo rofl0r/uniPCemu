@@ -471,7 +471,7 @@ void int13_02()
 		return; //Abort!
 	}
 
-	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
+	if (!is_mounted(mounteddrives[REG_DL])) //No drive image loaded?
 	{
 		dolog("debugger","Media not mounted:%02X!",REG_DL);
 		last_status = 0x31; //No media in drive!
@@ -529,7 +529,7 @@ void int13_03()
 	word cylinder;
 	word sector;
 
-	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
+	if (!is_mounted(mounteddrives[REG_DL])) //No drive image loaded?
 	{
 		last_status = 0x31; //No media in drive!
 		CALLBACK_SCF(1);
@@ -612,7 +612,7 @@ void int13_04()
 		return;
 	}
 
-	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
+	if (!is_mounted(mounteddrives[REG_DL])) //No drive image loaded?
 	{
 		last_status = 0x31; //No media in drive!
 		CALLBACK_SCF(1);
@@ -761,7 +761,7 @@ void int13_08()
 	word tmpheads, tmpcyl;
 	uint_64 tmpsize, tmpsect;
 
-	if (!has_drive(mounteddrives[REG_DL])) //No drive image loaded?
+	if (!is_mounted(mounteddrives[REG_DL])) //No drive image loaded?
 	{
 		last_status = 0x31; //No media in drive!
 		CALLBACK_SCF(1);
@@ -795,14 +795,14 @@ void int13_08()
 	if (REG_DL&0x80) //Harddisks
 	{
 		REG_DL = 0;
-		if (has_drive(HDD0)) ++REG_DL;
-		if (has_drive(HDD1)) ++REG_DL;
+		if (is_mounted(HDD0)) ++REG_DL;
+		if (is_mounted(HDD1)) ++REG_DL;
 	}
 	else //Floppy disks?
 	{
 		REG_DL = 0;
-		if (has_drive(FLOPPY0)) ++REG_DL;
-		if (has_drive(FLOPPY1)) ++REG_DL;
+		if (is_mounted(FLOPPY0)) ++REG_DL;
+		if (is_mounted(FLOPPY1)) ++REG_DL;
 	}
 }
 

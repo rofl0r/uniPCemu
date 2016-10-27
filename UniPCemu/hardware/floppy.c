@@ -601,10 +601,10 @@ OPTINLINE void updateFloppyTrack0()
 	FLOPPY.ST3.Track0 = (FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] == 0); //Are we at track 0?
 }
 
-OPTINLINE void updateFloppyWriteProtected(byte iswrite)
+OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
 {
 	FLOPPY.ST1.data = (FLOPPY.ST1.data&~2); //Default: not write protected!
-	if (drivereadonly(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0) && iswrite) //Read-only drive and tried to write?
+	if (drivereadonly(drivenumber ? FLOPPY1 : FLOPPY0) && iswrite) //Read-only drive and tried to write?
 	{
 		FLOPPY.ST1.data |= 2; //Write protected!
 	}
@@ -947,7 +947,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 		case WRITE_DATA: //Write sector
 		case WRITE_DELETED_DATA: //Write deleted sector
 			//Write sector to disk!
-			updateFloppyWriteProtected(1); //Try to write with(out) protection!
+			updateFloppyWriteProtected(1,FLOPPY.DOR.DriveNumber); //Try to write with(out) protection!
 			if (FLOPPY.databufferposition == FLOPPY.databuffersize) //Fully buffered?
 			{
 				if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber) || !FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //We don't support the rate or geometry?
@@ -1117,7 +1117,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 			}
 			break;
 		case FORMAT_TRACK: //Format sector
-			updateFloppyWriteProtected(1); //Try to write with(out) protection!
+			updateFloppyWriteProtected(1,FLOPPY.DOR.DriveNumber); //Try to write with(out) protection!
 			FLOPPY_formatsector(); //Execute a format sector command!
 			break;
 		default: //Unknown command?
@@ -1181,24 +1181,24 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].data[1] = FLOPPY.commandbuffer[2]; //Set setting byte 2/2!
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			FLOPPY.ST0.data = 0x00; //Correct command!
-			updateFloppyWriteProtected(0); //Try to read with(out) protection!
+			updateFloppyWriteProtected(0,FLOPPY.DOR.DriveNumber); //Try to read with(out) protection!
 			break;
 		case RECALIBRATE: //Calibrate drive
 			//Execute interrupt!
 			FLOPPY.commandstep = 0; //Reset controller command status!
-			FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = 0; //Goto cylinder #0!
-			FLOPPY.ST0.data = 0x20|FLOPPY.DOR.DriveNumber; //Completed command!
-			if (!has_drive(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Drive present?
+			FLOPPY.currentcylinder[FLOPPY.commandbuffer[1]] = 0; //Goto cylinder #0!
+			FLOPPY.ST0.data = 0x20|FLOPPY.commandbuffer[1]; //Completed command!
+			if (!is_mounted(FLOPPY.commandbuffer[1] ? FLOPPY1 : FLOPPY0)) //Media inserted?
 			{
-				FLOPPY.ST0.data |= 0x50; //Completed command! 0x40: Abnormal termination, 0x10: Unit Check, cannot find track 0 after 79 pulses.
+				FLOPPY.ST0.data |= 0x10; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
 			}
-			updateFloppyWriteProtected(0); //Try to read with(out) protection!
+			updateFloppyWriteProtected(0,FLOPPY.commandbuffer[1]); //Try to read with(out) protection!
 			clearDiskChanged(); //Clear the disk changed flag for the new command!
 			FLOPPY_raiseIRQ(); //We're finished!
 			break;
 		case SENSE_INTERRUPT: //Check interrupt status
 			//Set result
-			updateFloppyWriteProtected(0); //Try to read with(out) protection!
+			updateFloppyWriteProtected(0,FLOPPY.DOR.DriveNumber); //Try to read with(out) protection!
 			FLOPPY.commandstep = 3; //Move to result phrase!
 			byte datatemp;
 			datatemp = FLOPPY.ST0.data; //Save default!
@@ -1237,15 +1237,15 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			break;
 		case SEEK: //Seek/park head
 			FLOPPY.commandstep = 0; //Reset controller command status!
-			updateFloppyWriteProtected(0); //Try to read with(out) protection!
-			if (FLOPPY.DOR.DriveNumber >= 2) //Invalid drive?
+			updateFloppyWriteProtected(0,FLOPPY.DOR.DriveNumber); //Try to read with(out) protection!
+			if ((FLOPPY.DOR.DriveNumber >= 2) || (FLOPPY.DOR.DriveNumber!=(FLOPPY.commandbuffer[1]&3))) //Invalid drive specified?
 			{
 				FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x32) | 0x14 | FLOPPY.DOR.DriveNumber; //Error: drive not ready!
 				FLOPPY.commandstep = 0; //Reset command!
 				clearDiskChanged(); //Clear the disk changed flag for the new command!
 				return; //Abort!
 			}
-			if (!has_drive(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Floppy not inserted?
+			if (!is_mounted(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Floppy not inserted?
 			{
 				FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x30) | 0x18 | FLOPPY.DOR.DriveNumber; //Error: drive not ready!
 				FLOPPY.commandstep = 0; //Reset command!
@@ -1297,7 +1297,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.ST1.data = 0x00; //Clear ST1!
 				FLOPPY.ST2.data = 0x00; //Clear ST2!
 				updateFloppyTrack0(); //Update track 0!
-				updateFloppyWriteProtected(0); //Update write protected related flags!
+				updateFloppyWriteProtected(0,FLOPPY.DOR.DriveNumber); //Update write protected related flags!
 				if (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //Valid geometry?
 				{
 					if ((int_32)floppy_LBA(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber], FLOPPY.currentsector[FLOPPY.DOR.DriveNumber]) >= (int_32)(FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->KB * 1024)) //Invalid address within our image!

@@ -936,7 +936,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x00: //TEST UNIT READY(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		//Valid disk loaded?
 		ATA[channel].Drive[drive].ERRORREGISTER.data = 0; //Clear error register!
 		SENSEDATA.sensekey = 0x00; //Reason of the error
@@ -948,7 +948,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		SENSEDATA.valid = 1; //We're valid!
 		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = MIN(ATA[channel].Drive[drive].ATAPI_PACKET[4],sizeof(SENSEDATA.SensePacket)); //Size of a block to transfer!
@@ -961,7 +961,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x12: //INQUIRY(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) {abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])) {abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Size of a block to transfer!
@@ -975,7 +975,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x55: //MODE SELECT(10)(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
@@ -986,7 +986,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x5A: //MODE SENSE(10)(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 1) | ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
 		ATA[channel].datasize = 1; //How many blocks to transfer!
@@ -1044,13 +1044,13 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		}
 		break;
 	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[4]&1); //Are we preventing the storage medium to be removed?
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		ATA[channel].commandstatus = 0; //New command can be specified!
 		break;
 	case 0xBE: //Read CD command(mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 		ATA[channel].datasize = ATA[channel].Drive[drive].ATAPI_PACKET[8]|ATA[channel].Drive[drive].ATAPI_PACKET[7]|ATA[channel].Drive[drive].ATAPI_PACKET[6]; //The amount of sectors to transfer!
 		transfer_req = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //Requested type of packets!
@@ -1087,7 +1087,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		}
 		break;
 	case 0xB9: //Read CD MSF (mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		LBA = MSF2LBA(ATA[channel].Drive[drive].ATAPI_PACKET[3], ATA[channel].Drive[drive].ATAPI_PACKET[4], ATA[channel].Drive[drive].ATAPI_PACKET[5]); //The LBA address!
 		endLBA = MSF2LBA(ATA[channel].Drive[drive].ATAPI_PACKET[6], ATA[channel].Drive[drive].ATAPI_PACKET[7], ATA[channel].Drive[drive].ATAPI_PACKET[8]); //The LBA address!
 
@@ -1133,7 +1133,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		}
 		break;
 	case 0x44: //Read header (mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
@@ -1175,7 +1175,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		//track_number = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[6]; //Track number
 		alloc_length = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[7]<<1)|ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[8]; //Allocation length!
 		ret_len = 4;
-		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		memset(ATA[channel].data,0,24); //Clear any and all data we might be using!
 		ATA[channel].data[0] = 0;
 		ATA[channel].data[1] = 0; //audio not supported
@@ -1209,7 +1209,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA[channel].commandstatus = 1; //Transferring data IN for the result!
 		break;
 	case 0x43: //Read TOC (mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		MSF = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[1]>>1)&1;
 		starting_track = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[6]; //Starting track!
 		alloc_length = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[7]<<1)|(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[8]); //Allocated length!
@@ -1236,7 +1236,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		}
 		break;
 	case 0x2B: //Seek (Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
@@ -1250,7 +1250,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0x4E: //Stop play/scan (Mandatory)?
 		//Simply ignore the command for now, as audio is unsupported?
-		if (!has_drive(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		ATA[channel].commandstatus = 0; //New command can be specified!
@@ -1284,7 +1284,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
 	case 0xA8: //Read sectors (12) command(Mandatory)!
-		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 		//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 		LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
@@ -1305,7 +1305,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		}
 		break;
 	case 0x25: //Read CD-ROM capacity(Mandatory)?
-		if (!has_drive(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
+		if (!is_mounted(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = 8; //Size of a block of information to transfer!
@@ -1441,7 +1441,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //Default to no error!
-		if (has_drive(ATA_Drives[channel][ATA_activeDrive(channel)]) && (ATA_Drives[channel][ATA_activeDrive(channel)]>=HDD0) && (ATA_Drives[channel][ATA_activeDrive(channel)]<=HDD1)) //Gotten drive and is a hard disk?
+		if (is_mounted(ATA_Drives[channel][ATA_activeDrive(channel)]) && (ATA_Drives[channel][ATA_activeDrive(channel)]>=HDD0) && (ATA_Drives[channel][ATA_activeDrive(channel)]<=HDD1)) //Gotten drive and is a hard disk?
 		{
 #ifdef ATA_LOG
 			dolog("ATA", "Recalibrated!");
@@ -1672,7 +1672,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //CD-ROM drive?
 		{
 			drive = ATA_Drives[channel][ATA_activeDrive(channel)]; //Load the drive identifier!
-			if (has_drive(drive)) //Drive inserted?
+			if (is_mounted(drive)) //Drive inserted?
 			{
 				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.uncorrectabledata = drivereadonly(drive); //Are we read-only!
 			}
@@ -2138,7 +2138,7 @@ void ATA_DiskChanged(int disk)
 	case HDD1: //HDD1 changed?
 	case CDROM0: //CDROM0 changed?
 	case CDROM1: //CDROM1 changed?
-		if (has_drive(disk)) //Do we even have this drive?
+		if (is_mounted(disk)) //Do we even have this drive?
 		{
 			disk_size = disksize(disk); //Get the disk's size!
 			disk_size >>= 9; //Get the disk size in sectors!
@@ -2195,15 +2195,15 @@ void initATA()
 	memset(ATA_Drives, 0, sizeof(ATA_Drives)); //Init drives to unused!
 	memset(ATA_DrivesReverse, 0, sizeof(ATA_DrivesReverse)); //Init reverse drives to unused!
 	byte CDROM_channel = 1; //CDROM is the second channel by default!
-	if (has_drive(HDD0)) //Have HDD0?
+	if (is_mounted(HDD0)) //Have HDD0?
 	{
 		ATA_Drives[0][0] = HDD0; //Mount HDD0!
-		if (has_drive(HDD1)) //Have HDD1?
+		if (is_mounted(HDD1)) //Have HDD1?
 		{
 			ATA_Drives[0][1] = HDD1; //Mount HDD1!
 		}
 	}
-	else if (has_drive(HDD1)) //Have HDD1?
+	else if (is_mounted(HDD1)) //Have HDD1?
 	{
 		ATA_Drives[0][0] = HDD1; //Mount HDD1!
 	}

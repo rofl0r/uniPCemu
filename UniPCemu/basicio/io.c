@@ -251,7 +251,7 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 	return TRUE; //OK!
 }
 
-byte has_drive(int drive) //Device inserted?
+byte is_mounted(int drive) //Device inserted?
 {
 	if (drive<0 || drive>0xFF) return 0; //No disk available!
 	byte buf[512];
